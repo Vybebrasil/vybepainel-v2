@@ -39,8 +39,6 @@ const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
-for (const [arquivo, nome] of [['vybelandia-540.mp4', 'vybelandia-540'], ['vybelandia.mp4', 'vybelandia']])
-  html = html.replaceAll(`/assets/${arquivo}`, await asset(await readFile(`assets/${arquivo}`), 'mp4', nome));
 // Versão do painel: o mesmo hash para a página e para /versao.json, que as abas
 // abertas conferem para se atualizar (vybe-versao.js).
 const versaoPainel = createHash('sha256').update(html).digest('hex').slice(0, 12);

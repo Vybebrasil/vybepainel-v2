@@ -11,21 +11,14 @@ function vybeAparelhoLeve() {
   return Boolean(n.connection?.saveData || (n.deviceMemory && n.deviceMemory <= 4) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4));
 }
 if (typeof document !== "undefined" && document.documentElement && vybeAparelhoLeve()) document.documentElement.classList.add("vybe-leve");
-// Fundo da Vybelândia. "video": a cena animada (versão leve em telas
-// pequenas), para a abertura e o login, que ficam pouco tempo na tela.
-// "imagem": a imagem parada, para a entrada do Escritório, que fica aberta o
-// dia inteiro. "parada": a imagem escurecida atrás dos painéis da abertura.
-// Nunca um vídeo escondido ou desfocado tocando por trás de outra tela.
-function vybelandiaCenaHtml(modo = "video") {
-  if (modo === true) modo = "parada";
-  const href = (id, padrao) => document.getElementById(id)?.getAttribute("href") || padrao;
-  const capa = href("vybelandia-img", "/assets/vybelandia.webp");
-  const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (modo !== "video" || reduzido || vybeAparelhoLeve())
-    return `<img class="abr-cena${modo === "parada" ? " parada" : ""}" src="${safeText(capa)}" alt="" aria-hidden="true" decoding="async">`;
-  const video = window.matchMedia?.("(max-width: 900px)").matches ? href("vybelandia-video-leve", "/assets/vybelandia-540.mp4") : href("vybelandia-video", "/assets/vybelandia.mp4");
-  // A cena é sempre muda (decisão do Paulo): sem trilha e sem botão de som.
-  return `<video class="abr-cena" src="${safeText(video)}" poster="${safeText(capa)}" autoplay loop muted playsinline preload="auto" aria-hidden="true"></video>`;
+// Fundo da Vybelândia (login, abertura, entrada e convite): a imagem parada
+// da cidade; "parada" é a mesma imagem escurecida atrás dos painéis. Sem
+// vídeo (decisão do Paulo, 22/10/2026: "tira logo o vídeo do começo
+// também"): o vídeo em loop, decodificado o dia inteiro, travava o painel.
+function vybelandiaCenaHtml(modo = "imagem") {
+  const capa = document.getElementById("vybelandia-img")?.getAttribute("href") || "/assets/vybelandia.webp";
+  const parada = modo === true || modo === "parada";
+  return `<img class="abr-cena${parada ? " parada" : ""}" src="${safeText(capa)}" alt="" aria-hidden="true" decoding="async">`;
 }
 
 // Criador de personagem no estilo do Habbo: abas por categoria, grade com
