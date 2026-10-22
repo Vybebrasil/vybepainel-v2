@@ -239,7 +239,7 @@ ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp
   // massa um cartãozinho com esse cenário, mas a pessoa ver o vídeo da
   // Vybelândia também?"): placa com a sala e o nível em cima, o pedaço do
   // quarto vivo dentro e a cidade aparecendo em volta. Inclina com o mouse.
-  const palco = `<div class="lg-palco" aria-hidden="true"><div class="lg-quarto" id="lg-quarto"><span class="lg-quarto-placa">${escritorioIcone("mesa")}<b>${safeText(sala?.nome || "Seu quarto")}</b>${p?.nivel ? `<em>Nível ${Number(p.nivel)}</em>` : ""}</span>${escritorioVitrineHtml("lg-vitrine", escritorio.base?.eu, { zoom: 2, desce: 0.2 })}<span class="lg-quarto-brilho"></span></div></div>`;
+  const palco = `<div class="lg-palco" aria-hidden="true"><div class="lg-quarto" id="lg-quarto"><span class="lg-quarto-placa">${escritorioIcone("mesa")}<b>${safeText(sala?.nome || "Seu quarto")}</b>${p?.nivel ? `<em>Nível ${Number(p.nivel)}</em>` : ""}</span>${escritorioVitrineHtml("lg-vitrine", escritorio.base?.eu, { zoom: 2.2, desce: 0.3 })}<span class="lg-quarto-brilho"></span></div></div>`;
   // Os colegas online em ilhas menores ao fundo, de corpo inteiro (clicar leva até eles).
   const turma = `<div class="lg-turma" id="lg-turma"></div>`;
   const regra = conv ? `Você anda pela sala de ${quem} e pelas áreas comuns. Microfone ligado nas salas.` : "Microfone ligado nas salas · câmera desligada · a equipe vê você ao entrar";

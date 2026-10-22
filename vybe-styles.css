@@ -7792,7 +7792,13 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-destaque-numeros em {flex:none;min-width:42px;padding:4px 6px;font-size:9px}
 .ofc-destaque-numeros em b {font-size:14px}
 
-.ofc-rodas {display:grid;gap:6px;margin:0 0 6px;padding:0;list-style:none}
+/* Salas com gente e lista de quem está online no mesmo padrão dos cartões da
+   direita (Paulo, 21/10/2026): um poço escuro, uma linha por item, fio entre
+   as linhas. */
+.ofc-rodas {display:grid;gap:0;margin:0 0 8px;padding:2px 0;list-style:none;border-radius:14px;background:#0e1016;box-shadow:inset 0 1px 3px #000a}
+.ofc-rodas > .ofc-roda + .ofc-roda {border-top:1px solid #ffffff0d}
+#office-roster ul {display:grid;gap:0;margin:0 0 10px;padding:2px 0;list-style:none;border-radius:14px;background:#0e1016;box-shadow:inset 0 1px 3px #000a}
+#office-roster ul > .office-member + .office-member {border-top:1px solid #ffffff0d}
 .ofc-roda {display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px 8px 8px;border:1px solid color-mix(in srgb,var(--sala) 45%,transparent);border-radius:14px;
   background:linear-gradient(90deg,color-mix(in srgb,var(--sala) 22%,transparent),transparent 70%),var(--jg-slot);box-shadow:var(--jg-relevo),var(--jg-sombra-leve)}
 .ofc-roda-emblema {position:relative;display:grid;place-items:end center;width:40px;height:40px;padding:3px;border-radius:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--sala) 50%,#0000),color-mix(in srgb,var(--sala) 70%,#000 30%));box-shadow:inset 0 1px 0 #ffffff40}
@@ -10528,8 +10534,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    online viram cartões escuros com degrau (vb-jogo-cartao); a cor da sala fica
    só no ícone, como nas Conquistas, sem fundo tingido inteiro. */
 .ofc-salas h5, #office-roster h4 {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
-.ofc-roda {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .2s var(--curva,ease),border-color .2s}
-.ofc-roda:hover {border-color:color-mix(in srgb,var(--sala) 55%,#ffffff10);transform:translateY(-1px)}
+.ofc-roda {background:none;border:0;border-radius:0;box-shadow:none;transition:background .2s}
+.ofc-roda:hover {background:#ffffff06}
 .ofc-roda-emblema {background:radial-gradient(circle at 50% 75%,color-mix(in srgb,var(--sala) 45%,transparent),color-mix(in srgb,var(--sala) 14%,#00000040) 75%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sala) 50%,transparent)}
 .ofc-roda-texto b {font:850 13.5px var(--mac-ui)}
 .ofc-roda-pessoa {background:#00000033;border:1px solid #ffffff10}
@@ -10542,7 +10548,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-espaco[aria-pressed="true"], .ofc-quarto[aria-pressed="true"] {border-color:#ff8a35;box-shadow:0 4px 0 #a24e0c,0 0 0 1px #ff8a35}
 .ofc-espaco-emblema {background:radial-gradient(circle at 50% 75%,color-mix(in srgb,var(--sala) 35%,transparent),#00000030 75%)}
 .ofc-espaco.ocupada .ofc-espaco-conta {background:#4fd18b;color:#06240f}
-.office-member {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);padding:10px 12px}
+.office-member {margin:0;background:none;border:0;border-radius:0;box-shadow:none;padding:10px 12px}
 .office-member > .office-avatar {border-radius:10px;background:#00000033}
 .office-member b {font:850 13.5px var(--mac-ui)}
 .ofc-membro-acoes .ofc-mini {display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 8px;border-radius:10px;border:1px solid #ffffff14;background:#00000033;color:#eef0f5;font:750 11.5px var(--mac-ui);box-shadow:0 3px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .15s var(--curva,ease),box-shadow .15s,border-color .15s}
