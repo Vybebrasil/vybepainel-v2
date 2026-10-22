@@ -100,11 +100,10 @@ const FORMATOS = [
     celdas: (w, h) => {
       const c = vazio(w, h, 0), fundo = par(h * 0.3, 2);
       for (let y = 0; y < fundo; y++) for (let x = 0; x < w; x++) c[y][x] = MEZANINO;
-      // Escadas perto das pontas: o meio do mezanino fica inteiro para a
-      // mesa. A da esquerda fica a 2 ladrilhos da parede: encostada nela, o
-      // perfil dos degraus sumia nos tijolos e a escada parecia torta
-      // (Paulo, 22/10/2026); a da direita já mostra o perfil no chão.
-      escada(c, 2, fundo, 0, 1); escada(c, w - 2, fundo, 0, 1);
+      // Escadas nos dois cantos, simétricas (Paulo, 22/10/2026: afastada da
+      // parede a sala ficou assimétrica demais): o meio do mezanino fica
+      // inteiro para a mesa.
+      escada(c, 0, fundo, 0, 1); escada(c, w - 2, fundo, 0, 1);
       return c;
     },
   },
