@@ -2098,9 +2098,24 @@ function escritorioParedesDoPerfil(s) {
   return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(L - t)).join("");
 }
 // Peça de piso de d.x × d.y ladrilhos encaixada na grade dela, dentro do
-// quarto w × h, a partir do ladrilho clicado.
-function escritorioEncaixePiso(lx, ly, d, w, h) {
-  return { x: Math.max(0, Math.min(w - d.x, lx - (lx % d.x))), y: Math.max(0, Math.min(h - d.y, ly - (ly % d.y))) };
+// quarto w × h, a partir do ladrilho clicado. Com "nivel(x, y)" (a altura de
+// cada ladrilho), a peça fica inteira num andar só: onde a grade não fecha
+// (faixa ímpar, borda do mezanino), vai para a posição mais perto da grade em
+// que cabe sem atravessar a borda (Paulo, 22/10/2026: "o piso passava do
+// lugar… tinha 1 quadrado na borda").
+function escritorioEncaixePiso(lx, ly, d, w, h, nivel = null) {
+  const grade = { x: Math.max(0, Math.min(w - d.x, lx - (lx % d.x))), y: Math.max(0, Math.min(h - d.y, ly - (ly % d.y))) };
+  if (!nivel) return grade;
+  const alvo = nivel(lx, ly);
+  const cabe = (x, y) => { for (let i = 0; i < d.x; i++) for (let j = 0; j < d.y; j++) if (nivel(x + i, y + j) !== alvo) return false; return true; };
+  if (alvo < 0 || cabe(grade.x, grade.y)) return grade;
+  let melhor = null, dist = Infinity;
+  for (let x = Math.max(0, lx - d.x + 1); x <= Math.min(lx, w - d.x); x++)
+    for (let y = Math.max(0, ly - d.y + 1); y <= Math.min(ly, h - d.y); y++) {
+      const dd = Math.abs(x - grade.x) + Math.abs(y - grade.y);
+      if (dd < dist && cabe(x, y)) { melhor = { x, y }; dist = dd; }
+    }
+  return melhor || grade;
 }
 // Trecho de parede clicado na própria parede: na projeção do mapa o ponto
 // da parede do fundo cai atrás do quarto, na diagonal da coluna (x − y); o
