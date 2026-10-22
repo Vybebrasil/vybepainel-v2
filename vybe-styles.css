@@ -10316,7 +10316,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-lobby.lg.saindo .lg-lado {translate:40px 0}
 .ofc-lobby.lg.saindo .lg-online {translate:-40px 0}
 .ofc-lobby.lg.saindo .lg-palco .ofc-lobby-boneco {transition:translate 1.6s linear,opacity 1.6s ease-in;translate:60px -50px;opacity:0}
-.ofc-lobby.lg.saindo :is(.lg-vitrine,.lg-placa-sala,.lg-faiscas,.lg-feixe) {transition:opacity .9s .3s,scale .9s var(--curva,ease) .3s;opacity:0;scale:.9}
+.ofc-lobby.lg.saindo :is(.lg-quarto,.lg-vitrine,.lg-placa-sala,.lg-faiscas,.lg-feixe) {transition:opacity .9s .3s,scale .9s var(--curva,ease) .3s;opacity:0;scale:.9}
 @container (max-width:900px) or (max-height:620px) {
   .lg-noticias {order:3;flex-basis:100%;max-width:none}
   .lg-colega {--x:86%;bottom:110px;scale:.66}.lg-colega.esq {--x:14%}
@@ -10826,10 +10826,13 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    cartão do quarto do tamanho do quarto; "online agora" vira o título dos
    cartõezinhos (sem repetir as bolinhas); a frase do microfone vira dica. */
 .lg-base {grid-template-columns:minmax(0,1fr) minmax(300px,380px);align-items:stretch}
+/* A barra de "Conferindo seu acesso…" continua centralizada (a regra da bandeja acima a empurrava para a esquerda). */
+.lg-base.lg-carregando {grid-template-columns:minmax(0,560px);justify-content:center}
 .lg-bandeja {display:flex;align-items:center;gap:10px;min-width:0;padding:10px;border:2px solid #0b0c10;border-radius:20px;background:var(--vidro);box-shadow:inset 0 1px 0 #ffffff12,0 6px 0 var(--degrau),0 18px 36px #0008}
 .lg-bandeja .lg-audio {padding:0;border:0;background:none;box-shadow:none}
 .lg-bandeja .lg-outros {margin-left:auto}
-.lg-bandeja .lg-secundario {height:52px;background:#262a36}
+.lg-bandeja .lg-secundario {height:52px;background:#262a36;white-space:nowrap}
+.lg-bandeja .lg-mudo {white-space:nowrap}
 .lg-base .lg-entrar {height:auto;min-height:74px}
 .lg-regra {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .lg-quarto {aspect-ratio:1/.86}
@@ -10908,8 +10911,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-reacoes > div .ofc-mais-linha:hover {background:#ffffff0d}
 .ofc-reacoes > div .ofc-mais-linha:disabled {opacity:.45;cursor:default}
 .ofc-mais-linha svg {flex:none;box-sizing:content-box;width:16px;height:16px;padding:6px;border-radius:9px;background:#0e1016;fill:none;stroke:#ffb27a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ofc-acoes > summary span {margin-left:4px}
-@media (max-width:560px) {.ofc-acoes-grade {grid-template-columns:repeat(3,76px)}.ofc-acoes > summary span {display:none}}
+@media (max-width:560px) {.ofc-acoes-grade {grid-template-columns:repeat(3,76px)}}
 /* Com um menu da barra aberto, a barra fica na frente do aviso de ação ("E Sentar"). */
 .ofc-dock:has(details[open]) {z-index:95}
 

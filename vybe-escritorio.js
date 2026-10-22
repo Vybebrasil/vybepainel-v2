@@ -994,7 +994,7 @@ function escritorioMontarVitrines(raiz = document) {
     const a = { ...base, id: "vitrine-" + (pid || "x"), planta: plantaId, x1: base.x0 + dim.w, y1: base.y0 + dim.h, celdasLivres: "", semParedes: false, pintura: null,
       piso: sala?.piso || "grama", cor: sala?.cor || "#4fd18b", porta: "baixo" };
     el.style.setProperty("--c", a.cor);
-    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], previa: true, vitrine: true, zoomFixo: escritorioZoomDaVitrine(el), desce: Number(el.dataset.desce) || 0 };
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], soleiras: [], previa: true, vitrine: true, zoomFixo: escritorioZoomDaVitrine(el), desce: Number(el.dataset.desce) || 0 };
     let mapa;
     try { mapa = criarMapaEscritorio(el, { planta, eu: null }); } catch (e) { console.warn("vitrine:", e.message); continue; }
     vivas.push({ el, mapa });
@@ -1011,8 +1011,10 @@ function escritorioMontarVitrines(raiz = document) {
 // O zoom pedido vale para um cartão de 400 px; num cartão menor (celular) o
 // quarto se afasta na mesma proporção, para não cortar o boneco.
 function escritorioZoomDaVitrine(el) {
+  // Também cresce num cartão maior (telas grandes), até 1,6×: o quarto
+  // continua preenchendo o cartão em vez de sobrar chão vazio.
   const z = Number(el.dataset.zoom) || 0, largura = el.getBoundingClientRect().width;
-  return z >= 1.5 && largura > 60 && largura < 380 ? Math.round(z * Math.max(0.5, largura / 400) * 100) / 100 : z;
+  return z >= 1.5 && largura > 60 ? Math.round(z * Math.min(1.6, Math.max(0.5, largura / 400)) * 100) / 100 : z;
 }
 // Até dois móveis do quarto da pessoa que ocupam um ladrilho, um de cada lado
 // do boneco (nem atrás, que parece sair das costas dele, nem na frente):
@@ -1995,7 +1997,7 @@ function atualizarControlesEscritorio() {
     const peca = (acao, arte, rotulo, tecla = "", ativo = false) => `<button type="button" class="ofc-acao-peca${ativo ? " ativo" : ""}" onclick="${acao};this.closest('details').open=false" aria-pressed="${ativo}"><span class="ofc-acao-arte">${arte}</span><b>${rotulo}</b>${tecla ? `<kbd>${tecla}</kbd>` : ""}</button>`;
     const placa = (txt) => `<span class="ofc-acao-placa">${txt}</span>`;
     const coracao = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z" fill="#ff5a6e"/></svg>';
-    const acoes = escritorio.conectado ? `<details class="ofc-reacoes ofc-acoes" id="office-acoes"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("mao")}<span>Ações</span></summary><div class="ofc-acoes-grade">
+    const acoes = escritorio.conectado ? `<details class="ofc-reacoes ofc-acoes" id="office-acoes"><summary class="ofc-dock-btn" aria-label="Ações do boneco" title="Ações do boneco">${escritorioIcone("mao")}</summary><div class="ofc-acoes-grade">
       <span class="vb-jogo-rotulo">Seu boneco</span>
       ${peca("definirPoseEscritorio(escritorio.pose==='acenar'?'':'acenar')", boneco("wav"), "Acenar", "1", escritorio.pose === "acenar")}${peca("deitarEscritorio()", boneco("lay"), "Deitar", "2")}${peca("definirPoseEscritorio(escritorio.pose==='cafe'?'':'cafe')", boneco("std", "crr=6"), "Café", "3", escritorio.pose === "cafe")}${peca("sentarNoChaoEscritorio()", boneco("sit"), escritorio.noChao ? "Levantar" : "Sentar", "4", Boolean(escritorio.noChao))}
       <span class="vb-jogo-rotulo">Rosto</span>
