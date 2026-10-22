@@ -222,7 +222,6 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
   const nome = safeText((eu?.nome || "").split(" ")[0] || "equipe");
   const oi = { manha: "Bom dia", tarde: "Boa tarde", noite: "Boa noite" }[escritorioPeriodoDoDia()];
   const figura = mapaFigura(perfil || {}), mao = perfil?.mao || "";
-  const acenar = mapaAvatarUrl(figura, 3, "wav", mao, 0, "sml", 3), parado = mapaAvatarUrl(figura, 3, "std", mao, 0, "sml", 3);
   const eco = b?.economia, p = eco?.pontos, sala = escritorioMinhaMesa()?.ambiente, idEu = safeText(String(escritorio.base?.eu || ""));
   const conv = escritorio.base?.convidado, quem = conv ? safeText(String(conv.anfitriao.nome).split(" ")[0]) : "";
   const pct = p?.xpProximo ? Math.min(100, Math.round((Number(p.xp || 0) / p.xpProximo) * 100)) : 0;
@@ -236,7 +235,7 @@ function escritorioLobbyTopoHtml(perfil, eu, b) {
 <span class="lg-jogador-txt"><small>${oi}</small><b id="ofc-lobby-titulo">${nome}</b>${eu?.titulo?.texto ? `<span class="vb-titulo n${Number(eu.titulo.nivel) || 1}">${safeText(eu.titulo.texto)}</span>` : conv ? `<span class="lg-conv">convidado de ${quem}</span>` : ""}
 ${p ? `<span class="lg-xp"><i style="width:${pct}%"></i></span><em>${Number(p.xp || 0).toLocaleString("pt-BR")} / ${Number(p.xpProximo || 0).toLocaleString("pt-BR")} XP</em>` : ""}</span></div>`;
   const moedas = `<div class="lg-recursos lg-entra" style="--o:1">${eco?.disponivel ? `<span class="lg-pilula lg-moeda" title="VybeCoins"><i aria-hidden="true"></i><b data-vb-contar="${Number(eco.saldo || 0)}" data-vb-chave="moedas-${idEu}">${Number(eco.saldo || 0).toLocaleString("pt-BR")}</b></span>` : ""}<span class="lg-pilula lg-fogo" id="ofc-lobby-fogo">${escritorioLobbyFogoHtml()}</span>${escritorioBonusCopaHtml("entrada")}</div>`;
-  const palco = `<div class="lg-palco" aria-hidden="true"><span class="lg-feixe"></span><span class="lg-sombra"></span><img class="lg-ilha" alt="" width="272" height="182"${escritorio.lobbyIlha ? ` src="${escritorio.lobbyIlha}"` : ""}><span class="lg-cantinho" id="lg-cantinho">${escritorio.lobbyCantinho || ""}</span><span class="lg-faiscas">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</span><img class="ofc-lobby-boneco" src="${safeText(acenar)}" data-acenar="${safeText(acenar)}" data-parado="${safeText(parado)}" data-figura="${safeText(figura)}" data-mao="${safeText(mao)}" alt="" width="64" height="110">${sala ? `<span class="lg-placa-sala">${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""}</div>`;
+  const palco = `<div class="lg-palco" aria-hidden="true"><span class="lg-feixe"></span>${escritorioVitrineHtml("lg-vitrine")}<span class="lg-faiscas">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</span>${sala ? `<span class="lg-placa-sala">${escritorioIcone("mesa")}${safeText(sala.nome || "Sua sala")}</span>` : ""}</div>`;
   // Os colegas online em ilhas menores ao fundo, de corpo inteiro (clicar leva até eles).
   const turma = `<div class="lg-turma" id="lg-turma">${escritorioLobbyTurmaHtml()}</div>`;
   const regra = conv ? `Você anda pela sala de ${quem} e pelas áreas comuns. Microfone ligado nas salas.` : "Microfone ligado nas salas · câmera desligada · a equipe vê você ao entrar";
@@ -341,7 +340,7 @@ function escritorioLobbyTurmaHtml() {
     const figura = mapaFigura(perfil), lado = i % 2 ? "dir" : "esq", longe = i > 1;
     const url = mapaAvatarUrl(figura, lado === "esq" ? 2 : 4, i === 0 ? "wav" : "std", perfil.mao || "", 0, "sml", lado === "esq" ? 2 : 4);
     const nome = safeText(String(p.nome || "").split(" ")[0]), lugar = safeText(escritorioLobbyLugar(p));
-    return `<button type="button" class="lg-colega ${lado}${longe ? " longe" : ""}" style="--i:${i}" onclick="entrarPeloLobbyEscritorio('zona:${safeText(p.zona || "")}')" aria-label="Entrar onde ${nome} está: ${lugar}"><span class="lg-colega-ilha"${escritorio.lobbyIlhaMini ? ` style="background-image:url(${escritorio.lobbyIlhaMini})"` : ""}></span><img src="${safeText(url)}" alt="" width="64" height="110" loading="lazy"><span class="lg-colega-nome"><b>${nome}</b>${lugar}</span></button>`;
+    return `<button type="button" class="lg-colega ${lado}${longe ? " longe" : ""}" style="--i:${i}" onclick="entrarPeloLobbyEscritorio('zona:${safeText(p.zona || "")}')" aria-label="Entrar onde ${nome} está: ${lugar}"><span class="lg-colega-chao" aria-hidden="true"></span><img src="${safeText(url)}" alt="" width="64" height="110" loading="lazy"><span class="lg-colega-nome"><b>${nome}</b>${lugar}</span></button>`;
   }).join("");
 }
 // Notícias da semana: do ranking que a entrada já carrega (quem lidera, quem
@@ -379,31 +378,6 @@ function montarNoticiasLobbyEscritorio() {
 }
 // O cantinho: até três móveis do seu quarto em cima da ilha, desenhados pelo
 // motor do mapa (troféu e planta primeiro), no tamanho da ilha.
-async function desenharCantinhoLobbyEscritorio() {
-  if (escritorio.lobbyCantinho !== undefined || typeof mapaCarregarMovel !== "function") return;
-  escritorio.lobbyCantinho = "";
-  const sala = escritorioMinhaMesa()?.ambiente;
-  if (!sala) return;
-  const itens = (escritorioItensDaCamada(sala.id) || []).map((it) => String(it[0] || "")).filter((c) => c && !/^plano:|^wf_|door|porta|wall|window|rug|carpet|tapete|floor|tile/i.test(c));
-  const peso = (c) => (/troph|statue|award|cup/i.test(c) ? 0 : /plant|flor|tree|bonsai|cactus|vase/i.test(c) ? 1 : 2);
-  const unicos = [...new Set(itens)].sort((a, b) => peso(a) - peso(b));
-  const lugares = [["21%", 40, 1], ["79%", 40, 1], ["16%", 96, 3]];
-  const pecas = [];
-  for (const classe of unicos) {
-    if (pecas.length >= 3) break;
-    try {
-      const m = await mapaCarregarMovel(classe);
-      const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0);
-      const c = d?.canvas;
-      if (!c || c.width > 80 || c.height > 110) continue;
-      const [x, y, z] = lugares[pecas.length];
-      pecas.push(`<img src="${c.toDataURL()}" alt="" style="left:${x};top:${y}px;width:${Math.round(c.width * 1.5)}px;height:${Math.round(c.height * 1.5)}px;z-index:${z}">`);
-    } catch {}
-  }
-  escritorio.lobbyCantinho = pecas.join("");
-  const el = document.getElementById("lg-cantinho");
-  if (el) el.innerHTML = escritorio.lobbyCantinho;
-}
 function escritorioHojeBahia() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia" }).format(new Date());
 }
@@ -560,12 +534,6 @@ function entrarPeloLobbyEscritorio(destino) {
   // enquanto o escritório carrega por baixo.
   escritorio.lobbySaindo = true;
   document.querySelector(".ofc-lobby")?.classList.add("saindo");
-  const img = document.querySelector(".lg-palco .ofc-lobby-boneco");
-  if (img && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-    clearInterval(escritorio.timerLobby);
-    let k = 0;
-    escritorio.timerLobby = setInterval(() => { const atual = document.querySelector(".lg-palco .ofc-lobby-boneco"); if (!atual) return clearInterval(escritorio.timerLobby); atual.src = mapaAvatarUrl(atual.dataset.figura, 1, "wlk", atual.dataset.mao, k % 4, "sml", 1); k++; }, 130);
-  }
   pararTesteMicLobbyEscritorio(false);
   fecharObservadorLobbyEscritorio();
   try { localStorage.setItem("vybe-escritorio-entradas", String(escritorioVisitasEntrada() + 1)); } catch {}
@@ -611,50 +579,9 @@ function pararTesteMicLobbyEscritorio(redesenhar = true) {
 }
 // O boneco chega andando até o ladrilho e acena (troca quadros da imagem).
 // Para sozinho quando a entrada fecha; com "reduzir movimento", fica parado.
-// A ilha do palco é uma peça do próprio Habbo (lt_stage2, grama e pedra),
-// desenhada pelo motor do mapa, para o boneco pisar em arte do jogo e não num
-// disco de vetor (Paulo, 21/10/2026: "muito cara de Canva"). Guardada depois
-// da primeira vez.
-async function desenharIlhaLobbyEscritorio() {
-  desenharCantinhoLobbyEscritorio();
-  const img = document.querySelector(".lg-ilha");
-  if (!img || (img.getAttribute("src") && escritorio.lobbyIlhaMini) || typeof mapaCarregarMovel !== "function") return;
-  try {
-    if (!escritorio.lobbyIlha) {
-      const m = await mapaCarregarMovel("lt_stage2");
-      const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0);
-      escritorio.lobbyIlha = d?.canvas?.toDataURL() || "";
-    }
-    const atual = document.querySelector(".lg-ilha");
-    if (atual && escritorio.lobbyIlha) { atual.src = escritorio.lobbyIlha; atual.classList.add("pronta"); }
-    if (!escritorio.lobbyIlhaMini) {
-      const m = await mapaCarregarMovel("lt_stage1");
-      escritorio.lobbyIlhaMini = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0)?.canvas?.toDataURL() || "";
-      const turma = document.getElementById("lg-turma"); if (turma) turma.innerHTML = escritorioLobbyTurmaHtml();
-    }
-  } catch {}
-}
+// O boneco aparece na vitrine do quarto dele (escritorioVitrineHtml), acenando.
 function animarLobbyEscritorio() {
-  desenharIlhaLobbyEscritorio();
-  if (escritorio.lobbySaindo) return; // o boneco está andando para entrar
-  clearInterval(escritorio.timerLobby);
-  const img = document.querySelector(".ofc-lobby-boneco");
-  if (!img) return;
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { img.src = img.dataset.parado; return; }
-  const andar = [0, 1, 2, 3].map((q) => mapaAvatarUrl(img.dataset.figura, 2, "wlk", img.dataset.mao, q, "sml", 2));
-  for (const u of [...andar, img.dataset.parado]) new Image().src = u;
-  // Só anda na primeira vez que a entrada aparece nesta visita.
-  let k = escritorio.lobbyChegou ? 12 : 0;
-  escritorio.lobbyChegou = true;
-  escritorio.timerLobby = setInterval(() => {
-    const atual = document.querySelector(".ofc-lobby-boneco");
-    if (!atual) { clearInterval(escritorio.timerLobby); return; }
-    if (document.hidden) return;
-    if (k < 12) { atual.src = andar[k % 4]; atual.style.transform = `translateX(${-70 + k * 6}px)`; k++; return; }
-    atual.style.transform = "";
-    const f = (k++ - 12) % 10;
-    atual.src = f < 6 ? (f % 2 ? atual.dataset.parado : atual.dataset.acenar) : atual.dataset.parado;
-  }, k < 12 ? 140 : 420);
+  escritorioMontarVitrines(document.querySelector(".ofc-lobby") || document);
 }
 function escritorioEntradaHtml() {
   const e = escritorio.entrada;
@@ -1019,6 +946,64 @@ async function pintarArtesEscritorio(raiz = document) {
       img.classList.add("pronta");
     } catch {}
   }
+}
+// Vitrine do personagem (Paulo, 21/10/2026: "o cartão do personagem precisa
+// ser uma parada muito foda… manter o padrão sempre que aparecer"; "o bloco e
+// o tema têm que ser sempre os do quarto da pessoa"; "tá com física? com
+// movimento?"): um pedaço de 3 × 3 do quarto da pessoa desenhado pelo próprio
+// motor do mapa — piso e parede dela, até três móveis dela no fundo e nos
+// lados, o boneco no meio acenando ao abrir —, na mesma escala e na mesma
+// ordem de profundidade do jogo. O mesmo em todo lugar: entrada, Meu espaço,
+// ficha e o fundo do provador.
+function escritorioVitrineHtml(classe = "", pessoaId = escritorio.base?.eu, { boneco = true, zoom = 2, desce = 0.2 } = {}) {
+  return `<div class="vb-vitrine ofc-mapa ${classe}" data-pessoa="${safeText(String(pessoaId || ""))}"${boneco ? ' data-boneco="1"' : ""} data-zoom="${Number(zoom)}" data-desce="${Number(desce)}" aria-hidden="true"></div>`;
+}
+function escritorioMontarVitrines(raiz = document) {
+  if (typeof criarMapaEscritorio !== "function") return;
+  const vivas = (escritorio.vitrines ||= []);
+  for (let i = vivas.length - 1; i >= 0; i--) if (!vivas[i].el.isConnected) { try { vivas[i].mapa.destruir(); } catch {} vivas.splice(i, 1); }
+  for (const el of raiz.querySelectorAll(".vb-vitrine:not([data-montada])")) {
+    el.dataset.montada = "1";
+    const pid = el.dataset.pessoa, sala = pid ? escritorioDonos().get(String(pid)) : null;
+    const base = sala || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
+    const a = { ...base, id: "vitrine-" + (pid || "x"), planta: "vitrine", x1: base.x0 + 3, y1: base.y0 + 3, celdasLivres: "", semParedes: false, pintura: null,
+      piso: sala?.piso || "grama", cor: sala?.cor || "#4fd18b", porta: "baixo" };
+    el.style.setProperty("--c", a.cor);
+    const planta = { ...escritorioPlantaDoQuarto(a), moveis: [], fixos: [], rotulos: [], imagens: [], previa: true, vitrine: true, zoomFixo: Number(el.dataset.zoom) || 0, desce: Number(el.dataset.desce) || 0 };
+    let mapa;
+    try { mapa = criarMapaEscritorio(el, { planta, eu: null }); } catch (e) { console.warn("vitrine:", e.message); continue; }
+    vivas.push({ el, mapa });
+    if (el.dataset.boneco) {
+      const perfil = String(pid) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(pid))?.perfil;
+      const pessoa = (acao) => [{ id: "vitrine-" + pid, nome: "", perfil: { figura: mapaFigura(perfil || {}) }, status: "disponivel", corStatus: "#3fbf7f", rotulo: "", statusTexto: "", x: 1, y: 1, acao, mao: perfil?.mao || "", dir: 2 }];
+      const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      mapa.atualizarPessoas(pessoa(quieto ? "std" : "wav"));
+      if (!quieto) setTimeout(() => { if (el.isConnected) mapa.atualizarPessoas(pessoa("std")); }, 2600);
+    }
+    escritorioMoveisDaVitrine(pid).then((itens) => { if (el.isConnected) for (const it of itens) mapa.acrescentarMovel?.(it); });
+  }
+}
+// Até dois móveis do quarto da pessoa que ocupam um ladrilho, um de cada lado
+// do boneco (nem atrás, que parece sair das costas dele, nem na frente):
+// troféu e planta primeiro. Peça de parede fica de fora.
+async function escritorioMoveisDaVitrine(pessoaId) {
+  const cache = (escritorio.moveisVitrine ||= {});
+  if (cache[pessoaId]) return cache[pessoaId];
+  const sala = pessoaId ? escritorioDonos().get(String(pessoaId))?.id : null;
+  if (!sala || typeof mapaCarregarMovel !== "function") return [];
+  const classes = (escritorioItensDaCamada(sala) || []).map((it) => String(it[0] || "")).filter((c) => c && !/^plano:|^wf_|^vybeimg_|door|porta|wall|window|rug|carpet|tapete|floor|tile/i.test(c));
+  const peso = (c) => (/troph|statue|award|cup/i.test(c) ? 0 : /plant|flor|tree|bonsai|cactus|vase/i.test(c) ? 1 : 2);
+  const lugares = [[2, 0], [0, 2]], itens = [];
+  for (const classe of [...new Set(classes)].sort((x, y) => peso(x) - peso(y))) {
+    if (itens.length >= lugares.length) break;
+    try {
+      const m = await mapaCarregarMovel(classe), d = m.dados?.logic?.model?.dimensions || { x: 1, y: 1 };
+      if (d.x > 1 || d.y > 1 || mapaEhDeParede(m.dados, classe)) continue;
+      const [x, y] = lugares[itens.length];
+      itens.push([classe, x, y, mapaDirecaoValida(m.dados, x ? 4 : 2) ?? 2, 0, 0]);
+    } catch {}
+  }
+  return (cache[pessoaId] = itens);
 }
 function escritorioIcone(nome) {
   const d = {

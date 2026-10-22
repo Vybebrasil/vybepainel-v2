@@ -1731,3 +1731,13 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vb-jogo-dica { position: relative; }
 .vb-jogo-dica[data-dica]::after { content: attr(data-dica); position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 5; padding: 8px 10px; border-radius: 10px; background: #05060af2; border: 1px solid #ffffff1f; box-shadow: 0 8px 20px #000a; color: #fff; font: 600 12px/1.4 var(--mac-ui); opacity: 0; translate: 0 4px; pointer-events: none; transition: opacity .15s, translate .15s var(--curva); }
 .vb-jogo-dica[data-dica]:is(:hover, :focus-visible)::after { opacity: 1; translate: 0 0; }
+
+/* Vitrine do personagem (decisão do Paulo, 21/10/2026): o mesmo cartão em
+   todo lugar onde aparece o jogador (escritorioVitrineHtml). Um pedaço de
+   3 × 3 do quarto da pessoa desenhado pelo motor do mapa, com luz suave na
+   cor da parede dela (--c), um brilho no chão e vinheta — sem fundo preto
+   nem cone de luz duro. Só se olha: não recebe clique nem arraste. */
+.vb-vitrine {--c:#ff8a35;position:relative;display:block;overflow:hidden;pointer-events:none;
+  background:radial-gradient(60% 45% at 50% 62%,color-mix(in srgb,var(--c) 26%,transparent),transparent 72%),radial-gradient(120% 80% at 50% 0%,color-mix(in srgb,var(--c) 14%,#20232e),#0f1117 78%)}
+.vb-vitrine::after {content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 100% at 50% 45%,transparent 55%,#0009)}
+.vb-vitrine .mapa-etiqueta, .vb-vitrine .mapa-rotulo {display:none}

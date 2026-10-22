@@ -1423,3 +1423,15 @@ decoração inicial "bem feito".
   `hr-100`) sai com uma cor: o imager do Habbo completava com cinza-claro e o
   cabelo aparecia branco de costas no mapa.
 - Provador mais claro: abas Peças / Skins / Guarda-roupa com ícone e o que cada uma faz; Skins explica "visual inteiro com desconto"; peça da sacola tira com um clique e "Tirar o que não é seu" volta tudo ao visual salvo.
+
+## Quartos maiores e cartão do jogador (21/10/2026)
+
+- Feito: lado máximo 24 (Gigante 16, Colossal 20, Mansão 24 em cada formato),
+  reforma refeita como tela de jogo (vitrine, trilha de tamanhos, cartas de
+  formato, antes e depois), Meu espaço com números (tamanho, móveis, looks),
+  vitrine única do personagem (`escritorioVitrineHtml`) na entrada, no Meu
+  espaço, na ficha e no fundo do provador, cartões da direita como janelas de
+  jogo e a etiqueta que cortava o título perto da borda.
+- Próximo: recado global (Paulo, Vinícius, Ewerton e Deivid mandam; aparece no
+  meio da tela de todos com Conferir e Ignorar). O tema de obra fica para o
+  primeiro recado, a "emenda de Bacelar", que leva à reforma do quarto.

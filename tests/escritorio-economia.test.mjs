@@ -140,7 +140,7 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
  const vm=await import('node:vm');const {QUARTOS,itensDoModelo}=await import('../server/escritorio-quartos.js');
  const novas=QUARTOS.plantas.filter(p=>!p.legado);
  assert.ok(novas.length>=20,'há formatos e tamanhos para escolher');
- assert.ok(new Set(novas.map(p=>p.tamanho)).size===6 && new Set(novas.map(p=>p.formato)).size>=8);
+ assert.ok(new Set(novas.map(p=>p.tamanho)).size===7 && new Set(novas.map(p=>p.formato)).size>=8);
  const c=vm.createContext({console,escritorio:{base:{quartos:QUARTOS}}});
  vm.runInContext(readFileSync('vybe-escritorio-planta.js','utf8')+'\n'+readFileSync('vybe-escritorio-mapa.js','utf8'),c);
  for(const planta of novas) for(const modelo of QUARTOS.modelos) {
@@ -163,7 +163,9 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
    c.porta=porta;
    const faltam=vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);const g=mapaMontarGrade(p,itens);
     if(!mapaCaminho(g,p.entrada,p.saida)) return ['porta'];
-    const r=[];for(let x=0;x<p.W-1;x++)for(let y=0;y<p.H-1;y++){if(!p.andavel(x,y)||g.bloqueado[g.ind(x,y)]||g.assento.has(g.ind(x,y)))continue;if(!(x===p.entrada.x&&y===p.entrada.y)&&!mapaCaminho(g,p.entrada,{x,y}))r.push(x+','+y);}return r;})()`,c);
+    const r=[],ok=new Set(),todos=[];for(let x=0;x<p.W-1;x++)for(let y=0;y<p.H-1;y++)todos.push([x,y]);
+    // Do mais longe para o mais perto da porta: cada caminho achado já prova os ladrilhos por onde passa (quartos de até 24 × 24).
+    todos.sort((a,b)=>Math.hypot(b[0]-p.entrada.x,b[1]-p.entrada.y)-Math.hypot(a[0]-p.entrada.x,a[1]-p.entrada.y));for(const [x,y] of todos){if(!p.andavel(x,y)||g.bloqueado[g.ind(x,y)]||g.assento.has(g.ind(x,y))||ok.has(x+','+y))continue;if(x===p.entrada.x&&y===p.entrada.y)continue;const c=mapaCaminho(g,p.entrada,{x,y});if(!c)r.push(x+','+y);else for(const q of c)ok.add(q.x+','+q.y);}return r;})()`,c);
    assert.deepEqual([...faltam],[],planta.id+'/'+modelo.id+'/'+porta);
   }
  }
@@ -214,7 +216,7 @@ test('planta desenhada salva junto com os móveis; porta e escada não mudam; m�
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'amplo',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  // Tira o ladrilho (0,0), sobe (1,0) a patamar e tenta mexer na porta (3,7).
- const celdas=[...'0'.repeat(400)];celdas[0]='v';celdas[1]='1';celdas[7*20+3]='v';
+ const celdas=[...'0'.repeat(576)];celdas[0]='v';celdas[1]='1';celdas[7*24+3]='v';
  const livres=celdas.join('');
  const p=plantaQuarto('amplo',livres);
  assert.equal(p.celdas[0][0],-1);assert.equal(p.celdas[0][1],1);assert.equal(p.celdas[7][3],0,'porta fica');
@@ -237,12 +239,12 @@ test('perfil aceita luz conhecida e não muda a planta desenhada pelo salvamento
  assert.equal(perfilEscritorio({mao:'crr=6'}).mao,'crr=6');
  assert.equal(perfilEscritorio({mao:'crr=6&x=1'}).mao,'');
  assert.equal(perfilEscritorio({}).mao,'');
- assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(400)}).sala_celdas,'v'.repeat(400));
- // Planta desenhada antiga (12 × 12) vale ampliada para 20 × 20.
- assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,('v'.repeat(12)+'0'.repeat(8)).repeat(12)+'0'.repeat(160));
- assert.equal(perfilEscritorio({sala_celdas:'z'.repeat(400)}).sala_celdas,'');
+ assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(576)}).sala_celdas,'v'.repeat(576));
+ // Planta desenhada antiga (12 × 12) vale ampliada para 24 × 24.
+ assert.equal(perfilEscritorio({sala_celdas:'v'.repeat(144)}).sala_celdas,('v'.repeat(12)+'0'.repeat(12)).repeat(12)+'0'.repeat(288));
+ assert.equal(perfilEscritorio({sala_celdas:'z'.repeat(576)}).sala_celdas,'');
  sql.comTransacao ??= (fn)=>fn(sql);
- const salvo=await salvarPerfilEscritorio(sql,1,{sala_luz:'noite',sala_celdas:'v'.repeat(400)});
+ const salvo=await salvarPerfilEscritorio(sql,1,{sala_luz:'noite',sala_celdas:'v'.repeat(576)});
  assert.equal(salvo.sala_luz,'noite');assert.equal(salvo.sala_celdas,'');
 });
 test('blocos baixos sobem como no Habbo; torre alta é parede; bloco invisível é grátis',async()=>{
@@ -382,7 +384,7 @@ test('salas comuns: só quem administra salva a camada da cena, sem inventário;
  const [linha]=await sql`SELECT itens FROM vybe_escritorio_mapa WHERE camada='lounge'`;
  assert.equal(linha.itens.length,2);
  // Planta desenhada não vale nas salas comuns (o formato fica no código).
- await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'lounge',itens:[],versao:1,celdas:'p'.repeat(400)}),/Planta/);
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'lounge',itens:[],versao:1,celdas:'p'.repeat(576)}),/Planta/);
  // Nome fora da lista continua recusado pelo banco e pelo servidor.
  await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'cozinha',itens:[],versao:0}),/inválida/);
 });

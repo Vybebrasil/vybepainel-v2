@@ -15,38 +15,43 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const ARQUIVO = "assets/escritorio/habbo/quartos.json";
-const TAMANHOS = { P: "Pequeno", M: "Médio", G: "Grande", GG: "Enorme" };
+// Gigante, Colossal e Mansão desde 21/10/2026 (Paulo: "até 4x maior o maior
+// de hoje"): a Mansão quadrada tem 24 × 24, quatro vezes o Enorme de 12 × 12.
+const TAMANHOS = { P: "Pequeno", M: "Médio", G: "Grande", GG: "Enorme", XG: "Gigante", XXG: "Colossal", MAX: "Mansão" };
+const GRANDES = { XG: [16, 16], XXG: [20, 20], MAX: [24, 24] };
+const GRANDES_LARGO = { XG: [16, 12], XXG: [20, 14], MAX: [24, 18] };
+const GRANDES_FUNDO = { XG: [12, 16], XXG: [14, 20], MAX: [18, 24] };
 const vazio = (w, h, v = 0) => Array.from({ length: h }, () => Array(w).fill(v));
 
 const FORMATOS = [
-  { id: "quadrado", nome: "Quadrado", dica: "Simples e fácil de organizar", medidas: { P: [6, 6], M: [8, 8], G: [10, 10], GG: [12, 12] }, celdas: (w, h) => vazio(w, h) },
-  { id: "largo", nome: "Largo", dica: "Mais frente, para receber", medidas: { P: [8, 6], M: [10, 7], G: [12, 8], GG: [12, 10] }, celdas: (w, h) => vazio(w, h) },
-  { id: "fundo", nome: "Profundo", dica: "Mais fundo, para trabalhar", medidas: { P: [6, 8], M: [7, 10], G: [8, 12], GG: [10, 12] }, celdas: (w, h) => vazio(w, h) },
+  { id: "quadrado", nome: "Quadrado", dica: "Simples e fácil de organizar", medidas: { P: [6, 6], M: [8, 8], G: [10, 10], GG: [12, 12], ...GRANDES }, celdas: (w, h) => vazio(w, h) },
+  { id: "largo", nome: "Largo", dica: "Mais frente, para receber", medidas: { P: [8, 6], M: [10, 7], G: [12, 8], GG: [12, 10], ...GRANDES_LARGO }, celdas: (w, h) => vazio(w, h) },
+  { id: "fundo", nome: "Profundo", dica: "Mais fundo, para trabalhar", medidas: { P: [6, 8], M: [7, 10], G: [8, 12], GG: [10, 12], ...GRANDES_FUNDO }, celdas: (w, h) => vazio(w, h) },
   {
-    id: "ele", nome: "Em L", dica: "Dois cantos que se encontram", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    id: "ele", nome: "Em L", dica: "Dois cantos que se encontram", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12], ...GRANDES },
     celdas: (w, h) => { const c = vazio(w, h), a = Math.round(w * 0.4), b = Math.round(h * 0.4); for (let y = 0; y < b; y++) for (let x = 0; x < a; x++) c[y][x] = -1; return c; },
   },
   {
-    id: "u", nome: "Em U", dica: "Um recorte no fundo, dois braços", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    id: "u", nome: "Em U", dica: "Um recorte no fundo, dois braços", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12], ...GRANDES },
     celdas: (w, h) => {
-      const c = vazio(w, h), m = Math.round(w * 0.35), fundo = { 8: 2, 10: 4, 12: 5 }[h];
+      const c = vazio(w, h), m = Math.round(w * 0.35), fundo = { 8: 2, 10: 4, 12: 5 }[h] ?? Math.round(h * 0.42);
       for (let y = 0; y < fundo; y++) for (let x = m; x < w - m; x++) c[y][x] = -1;
       return c;
     },
   },
   {
-    id: "chanfrado", nome: "Chanfrado", dica: "Canto do fundo cortado em diagonal", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    id: "chanfrado", nome: "Chanfrado", dica: "Canto do fundo cortado em diagonal", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12], ...GRANDES },
     celdas: (w, h) => { const c = vazio(w, h), k = w / 2; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x + y < k) c[y][x] = -1; return c; },
   },
   {
-    id: "dividido", nome: "Dois ambientes", dica: "Divisória com passagem: receber e trabalhar", medidas: { G: [10, 8], GG: [12, 10] },
+    id: "dividido", nome: "Dois ambientes", dica: "Divisória com passagem: receber e trabalhar", medidas: { G: [10, 8], GG: [12, 10], ...GRANDES_LARGO },
     celdas: (w, h) => vazio(w, h),
     divisorias: (w, h) => { const d = w - 6, g = Math.floor(h / 2) - 1; return [[d, 0, d, g], [d, g + 2, d, h]]; },
   },
   {
-    id: "niveis", nome: "Com níveis", dica: "Mezanino no fundo e escada", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12] },
+    id: "niveis", nome: "Com níveis", dica: "Mezanino no fundo e escada", medidas: { M: [8, 8], G: [10, 10], GG: [12, 12], ...GRANDES },
     celdas: (w, h) => {
-      const c = vazio(w, h), fundo = { 8: 3, 10: 4, 12: 6 }[h], ex = Math.floor(w / 2) - 1;
+      const c = vazio(w, h), fundo = { 8: 3, 10: 4, 12: 6 }[h] ?? Math.round(h * 0.45), ex = Math.floor(w / 2) - 1;
       for (let y = 0; y < fundo; y++) for (let x = 0; x < w; x++) c[y][x] = 2;
       c[fundo - 1][ex] = 1; c[fundo - 1][ex + 1] = 1;
       return c;
@@ -117,18 +122,40 @@ const catalogo = JSON.parse(await readFile(ARQUIVO, "utf8"));
 const legado = catalogo.plantas.filter((p) => !p.formato).map((p) => ({
   ...p, legado: true, portas: p.portas || portasDe(p.celdas), escada: escadaDe(p.celdas), deslocamento: [p.celdas[0].length - 8, p.celdas.length - 8],
 }));
+// Plantas que já existem no catálogo ficam como estão (algumas foram
+// ajustadas à mão depois de geradas e há quartos montados nelas); o script só
+// acrescenta as que faltam.
+const existentes = new Map(catalogo.plantas.filter((p) => p.formato).map((p) => [p.id, p]));
 const novas = [];
 for (const f of FORMATOS) for (const [tam, [w, h]] of Object.entries(f.medidas)) {
+  const id = `${f.id}-${tam.toLowerCase()}`;
+  if (existentes.has(id)) { novas.push(existentes.get(id)); continue; }
   const celdas = f.celdas(w, h);
   const n = celdas.flat().filter((v) => v >= 0).length;
   novas.push({
-    id: `${f.id}-${tam.toLowerCase()}`, nome: f.nome, formato: f.id, tamanho: tam, tamanhoNome: TAMANHOS[tam],
+    id, nome: f.nome, formato: f.id, tamanho: tam, tamanhoNome: TAMANHOS[tam],
     dica: f.dica, medidas: `${w} × ${h} · ${n} ladrilhos`, celdas,
     ...(f.divisorias ? { divisorias: f.divisorias(w, h) } : {}),
     ...(f.aberta ? { bordaAberta: true } : {}),
     portas: portasDe(celdas), escada: escadaDe(celdas), deslocamento: [w - 8, h - 8],
   });
 }
-catalogo.plantas = [...legado, ...novas];
+// Formatos especiais (galeria, alas, terraços, mirante): a Mansão é a planta
+// Enorme do catálogo com cada ladrilho virando 2 × 2 (24 × 24), para manter o
+// desenho conferido.
+for (const f of FORMATOS.filter((f) => f.aberta)) {
+  const id = `${f.id}-max`, base = novas.find((p) => p.id === `${f.id}-gg`);
+  if (!base || novas.some((p) => p.id === id)) continue;
+  const celdas = base.celdas.flatMap((linha) => { const l = linha.flatMap((n) => [n, n]); return [l, [...l]]; });
+  // A escada continua com um degrau só: a metade dobrada que não encosta no
+  // chão vira patamar.
+  const baixo = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => celdas[y + dy]?.[x + dx] === 0);
+  const sem = []; celdas.forEach((l, y) => l.forEach((n, x) => { if (n === 1 && !baixo(x, y)) sem.push([x, y]); }));
+  for (const [x, y] of sem) celdas[y][x] = 2;
+  const w = celdas[0].length, h = celdas.length, n = celdas.flat().filter((v) => v >= 0).length;
+  novas.push({ id, nome: f.nome, formato: f.id, tamanho: "MAX", tamanhoNome: TAMANHOS.MAX, dica: base.dica, medidas: `${w} × ${h} · ${n} ladrilhos`, celdas, bordaAberta: true, portas: portasDe(celdas), escada: escadaDe(celdas), deslocamento: [w - 8, h - 8] });
+}
+const extras = catalogo.plantas.filter((p) => p.formato && !novas.some((n) => n.id === p.id));
+catalogo.plantas = [...legado, ...novas, ...extras];
 await writeFile(ARQUIVO, JSON.stringify(catalogo, null, 2) + "\n");
 console.log(`Plantas: ${novas.length} novas (${FORMATOS.length} formatos) + ${legado.length} de legado.`);

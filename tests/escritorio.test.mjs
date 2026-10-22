@@ -864,7 +864,7 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
-  assert.throws(() => itensValidos("sala-0", [["exe_table", 20, 2, 0]]), /fora/);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", 24, 2, 0]]), /fora/);
   assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
   assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
   assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);
@@ -1195,17 +1195,22 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
 });
 
 test("perfil: piso pintado e paredes só no formato certo", () => {
-  // Grade de 20 × 20 (o maior quarto): 400 ladrilhos e 80 trechos de parede
-  // (20 por lado). As antigas, de 8 × 8 e de 12 × 12, valem ampliadas.
-  const ok = perfilEscritorio({ sala_pisos: "0".repeat(399) + "b", sala_paredes: "c02".repeat(79) + "hd0" });
-  assert.equal(ok.sala_pisos.length, 400);
-  assert.equal(ok.sala_paredes.length, 240);
-  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(400), sala_paredes: "c03".repeat(80) });
+  // Grade de 24 × 24 (o maior quarto, desde 21/10/2026): 576 ladrilhos e 96
+  // trechos de parede (24 por lado). As antigas, de 8, 12 e 20, valem ampliadas.
+  const ok = perfilEscritorio({ sala_pisos: "0".repeat(575) + "b", sala_paredes: "c02".repeat(95) + "hd0" });
+  assert.equal(ok.sala_pisos.length, 576);
+  assert.equal(ok.sala_paredes.length, 288);
+  const ruim = perfilEscritorio({ sala_pisos: "z".repeat(576), sala_paredes: "c03".repeat(96) });
   const legado=perfilEscritorio({sala_pisos:"1".repeat(8)+"2".repeat(56),sala_paredes:"c02".repeat(8)+"hd0".repeat(24)});
-  assert.equal(legado.sala_pisos,"1".repeat(8)+"0".repeat(12)+("2".repeat(8)+"0".repeat(12)).repeat(7)+"0".repeat(240));
-  assert.equal(legado.sala_paredes,"c02".repeat(8)+"-00".repeat(12)+("hd0".repeat(8)+"-00".repeat(12)).repeat(3));
+  assert.equal(legado.sala_pisos,"1".repeat(8)+"0".repeat(16)+("2".repeat(8)+"0".repeat(16)).repeat(7)+"0".repeat(24*16));
+  assert.equal(legado.sala_paredes,"c02".repeat(8)+"-00".repeat(16)+("hd0".repeat(8)+"-00".repeat(16)).repeat(3));
   const doze=perfilEscritorio({sala_pisos:"3".repeat(144)});
-  assert.equal(doze.sala_pisos,("3".repeat(12)+"0".repeat(8)).repeat(12)+"0".repeat(160));
+  assert.equal(doze.sala_pisos,("3".repeat(12)+"0".repeat(12)).repeat(12)+"0".repeat(24*12));
+  // Quarto salvo no lado de 20 (até 21/10/2026): nada se perde.
+  const vinte=perfilEscritorio({sala_pisos:"4".repeat(400),sala_paredes:"c02".repeat(80),sala_celdas:"p".repeat(400)});
+  assert.equal(vinte.sala_pisos,("4".repeat(20)+"0".repeat(4)).repeat(20)+"0".repeat(96));
+  assert.equal(vinte.sala_paredes,("c02".repeat(20)+"-00".repeat(4)).repeat(4));
+  assert.equal(vinte.sala_celdas,("p".repeat(20)+"0".repeat(4)).repeat(20)+"0".repeat(96));
   assert.equal(ruim.sala_pisos, "");
   assert.equal(ruim.sala_paredes, "");
 });

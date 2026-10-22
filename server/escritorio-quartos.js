@@ -3,25 +3,25 @@ import { readFileSync } from 'node:fs';
 import { salasDoEscritorio, salvarCamadaEscritorio, versoesProntas } from './escritorio-mapa.js';
 import { economiaPronta, carregarEconomia } from './escritorio-economia.js';
 export const QUARTOS = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json',import.meta.url),'utf8'));
-// Lado máximo do quarto (desde 18/10/2026: 20 × 20, para construções grandes
-// como as dos construtores do Habbo). As grades guardadas no perfil (pintura
-// do piso, planta desenhada) têm esse lado; as antigas, de 8 e de 12, são
-// ampliadas ao ler, sem perder nada.
-export const LADO_QUARTO = 20;
+// Lado máximo do quarto (desde 21/10/2026: 24 × 24, quatro vezes o Enorme de
+// 12 × 12, decisão do Paulo; antes 20). As grades guardadas no perfil
+// (pintura do piso, planta desenhada) têm esse lado; as antigas, de 8, 12 e
+// 20, são ampliadas ao ler, sem perder nada.
+export const LADO_QUARTO = 24;
 export function ampliarGrade(s, de, vazio, casa = 1) {
  const linhas = Array.from({ length: LADO_QUARTO }, (_, y) => (y < de ? s.slice(y * de * casa, (y + 1) * de * casa) : "") .padEnd(LADO_QUARTO * casa, vazio));
  return linhas.join("");
 }
 // Trechos de parede (estilo, cor, altura: 3 caracteres) por lado: amplia cada
-// um dos 4 lados de 8 ou 12 trechos para LADO_QUARTO.
+// um dos 4 lados de 8, 12 ou 20 trechos para LADO_QUARTO.
 export function ampliarParedes(s) {
  const t = String(s || "").length / 3 / 4;
- if (![8, 12, LADO_QUARTO].includes(t) || t === LADO_QUARTO) return String(s || "");
+ if (![8, 12, 20].includes(t)) return String(s || "");
  return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(LADO_QUARTO - t)).join("");
 }
 export function ampliarCeldas(s) {
  s = String(s || "");
- return /^[0vp1-9A-Z]{144}$/.test(s) ? ampliarGrade(s, 12, "0") : s;
+ return /^[0vp1-9A-Z]{144}$/.test(s) ? ampliarGrade(s, 12, "0") : /^[0vp1-9A-Z]{400}$/.test(s) ? ampliarGrade(s, 20, "0") : s;
 }
 // Planta desenhada pelo dono (editor de planta livre): LADO_QUARTO² códigos
 // sobre a planta escolhida. "0" mantém o ladrilho da planta, "v" tira o piso,

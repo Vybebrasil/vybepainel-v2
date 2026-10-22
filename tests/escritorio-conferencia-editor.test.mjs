@@ -9,7 +9,7 @@ test('conferência não permite que não administrador inspecione sala alheia ou
 });
 test('conferência valida limite e classe antes de carregar o motor',async()=>{
  await assert.rejects(conferirEditorEscritorio(semBanco,{id:1,admin:true},[{id:'sala-0',pessoa_id:'1'}],{camada:'cafe',itens:[['../../arquivo',1,1,2]]}),/Móvel inválido/);
- await assert.rejects(conferirEditorEscritorio(semBanco,{id:1,admin:true},[{id:'sala-0',pessoa_id:'1'}],{camada:'cafe',itens:[],celdas:'v'.repeat(400)}),/Planta/);
+ await assert.rejects(conferirEditorEscritorio(semBanco,{id:1,admin:true},[{id:'sala-0',pessoa_id:'1'}],{camada:'cafe',itens:[],celdas:'v'.repeat(576)}),/Planta/);
 });
 test('mesmo verificador das cenas acusa arte ausente e não contamina a próxima conferência',()=>{
  const ruim=conferirConstrucao('cafe',[['sem_arte_no_painel',1,1,2]]);

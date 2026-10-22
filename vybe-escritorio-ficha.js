@@ -147,7 +147,6 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const eu = String(id) === String(b.eu);
   const veNumeros = eu || b.admin;
   const online = (escritorio.online || []).find((o) => String(o.id) === String(id));
-  const perfil = eu ? escritorio.perfil : pessoa.perfil || {};
   let d = document.getElementById("office-ficha");
   if (!d) {
     d = document.createElement("dialog");
@@ -166,7 +165,6 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const t = pontos?.trabalho || null;
   const pub = escritorio.perfisPublicos?.[String(id)];
   const jogo = pub && pub.disponivel ? pub : null;
-  const img = "https://www.habbo.com/habbo-imaging/avatarimage?" + new URLSearchParams({ figure: mapaFigura(perfil), direction: "2", head_direction: "3", size: "l", gesture: "sml" });
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
   const [status, cor] = ESCRITORIO_STATUS[online?.status || "ausente"] || ESCRITORIO_STATUS.ausente;
   const funcao = { criacao: "Criação", atendimento: "Atendimento", agendamento: "Agendamento", producao: "Produção", gestao: "Gestão" }[pontos?.funcao] || "";
@@ -238,7 +236,7 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
   // Cartão do jogador (21/10/2026, a linguagem do Provador): o pedestal
   // brilha na cor do troféu mais alto da pessoa (Bronze a Diamante).
   d.className = `ofc-ficha jogador${vitrine[0] ? " tier-n" + vitrine[0].nivel : ""}`;
-  d.innerHTML = `<div class="ofc-hud-topo"><div class="ofc-hud-boneco ofc-hud-palco"><span class="ofc-hud-holofote" aria-hidden="true"></span><span class="ofc-hud-pedestal" aria-hidden="true"></span><img src="${img}" alt="" width="128" height="220" referrerpolicy="no-referrer"></div>
+  d.innerHTML = `<div class="ofc-hud-topo"><div class="ofc-hud-boneco ofc-hud-palco">${escritorioVitrineHtml("ofc-hud-vitrine", pessoa.id, { zoom: 1.7, desce: 0.24 })}</div>
 <div class="ofc-hud-id"><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3>${pessoa.titulo?.texto ? `<em class="ofc-hud-titulo vb-titulo n${Number(pessoa.titulo.nivel) || 1}">${safeText(pessoa.titulo.texto)}</em>` : ""}<small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}${funcao ? ` · ${funcao}` : ""}</small>
 ${nivel != null ? `<div class="ofc-hud-nivel"><span class="ofc-hud-selo" title="Nível">${nivel}</span><span class="ofc-hud-xp"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${xpProx}" aria-valuenow="${xp}" aria-label="XP até o próximo nível"><i style="width:${pct}%"></i></span><small>${xp} de ${xpProx} XP para o nível ${nivel + 1}</small></span></div>` : ""}
 ${jogo ? `<div class="ofc-hud-moedas"><span title="VybeCoins na carteira">${escritorioFichaIcone("moeda")}<b data-vb-contar="${Number(jogo.saldo)}" data-vb-chave="moedas-${sid}">${Number(jogo.saldo).toLocaleString("pt-BR")}</b><small>moedas</small></span><span title="Níveis de conquista">${escritorioFichaIcone("estrela")}<b>${conquistas ?? 0}</b><small>conquistas</small></span><span title="Móveis no inventário">${escritorioFichaIcone("caixa")}<b>${moveis}</b><small>móveis</small></span>${rk?.posicao ? `<span class="rk" title="Ranking da semana" role="button" tabindex="0" onclick="abrirRankingEscritorio('geral')">${escritorioIcone("ranking")}<b>${rk.posicao}º</b><small>na semana</small></span>` : ""}</div>` : pub === null ? '<small class="ofc-nota" role="alert">Não deu para carregar moedas e inventário agora.</small>' : ""}</div>
@@ -249,6 +247,7 @@ ${vitrine.length ? `<div class="ofc-hud-vitrine" aria-label="Troféus em destaqu
 <div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}</div>`;
   if (!d.open) d.showModal();
   if (typeof vbAnimarContagens === "function") vbAnimarContagens(d);
+  if (typeof escritorioMontarVitrines === "function") escritorioMontarVitrines(d);
   if (!semAtualizar) carregarPerfilJogoEscritorio(id, () => { if (d.open) abrirFichaEscritorio(id, true); });
   // Pontos e marcos mudam com o trabalho do dia: a ficha busca o estado atual
   // ao abrir (a própria pessoa; ou outra, para quem administra).
