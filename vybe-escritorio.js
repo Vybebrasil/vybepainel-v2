@@ -2019,7 +2019,7 @@ function atualizarControlesEscritorio() {
     </div></details>` : "";
     const linha = (acao, icone, rotulo, extra = "") => `<button type="button" class="ofc-mais-linha" onclick="${acao};this.closest('details').open=false" ${extra}>${escritorioIcone(icone)}<span>${rotulo}</span></button>`;
     const trancaLinha = escritorioPodeTrancar() ? linha("trancarZonaEscritorio()", "cadeado", escritorio.trancas?.has(escritorio.zona) ? "Destrancar a sala" : "Trancar a sala", `aria-pressed="${Boolean(escritorio.trancas?.has(escritorio.zona))}"`) : "";
-    return `${acoes}<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-mais-lista">${escritorio.conectado && escritorio.quarto ? `<span class="vb-jogo-rotulo">Sala</span>${linha("abrirNovoPostitEscritorio()", "editar", "Colar post-it na parede")}` : ""}<span class="vb-jogo-rotulo">Escritório</span>${linha("irParaMinhaMesaEscritorio()", "mesa", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${linha("abrirDiaEquipeEscritorio()", "lista", "Dia da equipe")}${trancaLinha}${escritorio.podeAvisar ? linha("abrirMandarAvisoEscritorio()", "conversa", "Mandar recado para todos") : ""}${linha("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${linha("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio")}</div></details>`;
+    return `${acoes}<details class="ofc-reacoes ofc-mais" id="office-mais"><summary class="ofc-dock-btn" aria-label="Mais opções" title="Mais opções">${escritorioIcone("mais")}</summary><div class="ofc-mais-lista">${escritorio.conectado && escritorio.quarto ? `<span class="vb-jogo-rotulo">Sala</span>${linha("abrirNovoPostitEscritorio()", "editar", "Colar post-it na parede")}` : ""}<span class="vb-jogo-rotulo">Escritório</span>${linha("irParaMinhaMesaEscritorio()", "mesa", "Ir para minha mesa", escritorioMinhaMesa() ? "" : "disabled")}${linha("abrirDiaEquipeEscritorio()", "lista", "Dia da equipe")}${linha("encaixarCaixasEscritorio()", "grade", "Voltar as caixas para a coluna")}${trancaLinha}${escritorio.podeAvisar ? linha("abrirMandarAvisoEscritorio()", "conversa", "Mandar recado para todos") : ""}${linha("alternarSomEscritorio()", "som", escritorioSomLigado() ? "Desligar sons do escritório" : "Ligar sons do escritório")}${linha("abrirAjustesAudioEscritorio()", "ajustes", "Ajustes de áudio")}</div></details>`;
   })()}<span class="ofc-sep"></span>${escritorioMinhaMesa() ? botao("irParaMinhaMesaEscritorio()", "mesa", "Minha sala", 'title="Ir para a minha sala e sentar na minha mesa"', { texto: true, classe: "destaque" }) : ""}${botao("escolherPainelDoEscritorio()", "painel", escritorio.avisosNovos ? `Painel · ${escritorio.avisosNovos} ${escritorio.avisosNovos === 1 ? "novo" : "novos"}` : "Painel", `id="ofc-btn-painel"${escritorio.avisosNovos ? ' data-avisos="true"' : ""}${escritorio.avisos ? ` title="${escritorio.avisos} ${escritorio.avisos === 1 ? "aviso não lido" : "avisos não lidos"} no Painel"` : ' title="Voltar ao painel de trabalho (demandas, agenda, clientes)"'}`, { texto: true, classe: "destaque principal" })}${escritorioPainelOnde() ? `<button type="button" class="ofc-abrir-trocar" onclick="esquecerPainelOndeEscritorio()" title="O Painel abre ${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}. Clique para escolher de novo.">${escritorioPainelOnde() === "nova" ? "em outra aba" : "nesta aba"}</button>` : ""}<span class="ofc-sep"></span>${escritorio.conectado ? botao("desconectarEscritorio()", "sair", "Sair do escritório", "", { classe: "perigo" }) : botao("conectarEscritorio()", "entrar", escritorio.conectando ? "Entrando…" : "Entrar", escritorio.conectando ? "disabled" : "", { texto: true })}`;
 }
 function renderEscritorio() {
@@ -2151,10 +2151,10 @@ function montarMapaEscritorio() {
   const lugarMusica = document.getElementById("office-musica-lugar");
   if (lugarMusica) {
     const musica = escritorioElementoMusica();
-    // Solto (a pessoa arrastou): fica por cima do mapa; senão, na coluna da direita.
-    if (musica.classList.contains("solto")) { lugarMusica.remove(); document.querySelector(".ofc-principal")?.append(musica); }
-    else lugarMusica.replaceWith(musica);
+    // Sempre na coluna; solto, flutua por cima do mapa (escritorioPrepararCaixas).
+    lugarMusica.replaceWith(musica);
   }
+  escritorioPrepararCaixas();
   if (!escritorio.mapa) {
     const planta = escritorioPlantaDaCena();
     escritorio.mapa = criarMapaEscritorio(el, {
@@ -5108,6 +5108,144 @@ function escritorioNomeCurto(nome) {
   return partes[0] + " " + partes.at(-1)[0].toUpperCase() + ".";
 }
 
+// Caixas da coluna da direita soltas (Paulo, 22/10/2026: "que a pessoa
+// consiga puxar ela pra outro lugar cada uma individual, aumentar,
+// diminuir"). A mesma peça que a Música já usava: arrastar pelo topo solta a
+// caixa da coluna e ela fica onde a pessoa deixou; o canto de baixo à
+// direita muda o tamanho; dois cliques no topo (ou o menu Mais) devolvem à
+// coluna. O arranjo é de cada pessoa, guardado no navegador dela.
+// id da caixa → topo por onde se arrasta (na ordem da coluna).
+const ESCRITORIO_CAIXAS = { "office-cobrancas": ".ofc-missoes-topo", "office-missoes": ".ofc-missoes-topo", "office-call": ".office-call-actions", "office-musica": ".ofc-musica-topo", "office-minha-tela": ".ofc-minha-tela-topo" };
+const ESCRITORIO_CAIXA_MIN = { w: 240, h: 72 };
+function escritorioCaixaSalva(id) {
+  try {
+    const v = JSON.parse(localStorage.getItem("vybe-escritorio-caixa-" + id) || "null");
+    if (v || id !== "office-musica") return v;
+    // Posição da Música de antes da peça compartilhada.
+    const antiga = JSON.parse(localStorage.getItem("vybe-escritorio-musica-pos") || "null");
+    return antiga ? { solto: true, x: antiga.x, y: antiga.y } : null;
+  } catch { return null; }
+}
+function escritorioGuardarCaixa(id, dados) {
+  try {
+    dados ? localStorage.setItem("vybe-escritorio-caixa-" + id, JSON.stringify(dados)) : localStorage.removeItem("vybe-escritorio-caixa-" + id);
+    if (id === "office-musica") localStorage.removeItem("vybe-escritorio-musica-pos");
+  } catch {}
+}
+// Celular: a coluna vira a lista de baixo; caixa solta só em tela larga.
+const escritorioCaixasSoltas = () => !window.matchMedia?.("(max-width: 760px)").matches;
+// Solta, a caixa continua na coluna (os estilos dela valem) e flutua fixa
+// sobre o mapa; a posição guardada é relativa à área do escritório.
+function escritorioPosicionarCaixa(el, x, y) {
+  const area = document.querySelector(".ofc-principal")?.getBoundingClientRect();
+  if (!area) return null;
+  x = Math.min(Math.max(8, area.width - el.offsetWidth - 8), Math.max(8, x));
+  y = Math.min(Math.max(8, area.height - 48), Math.max(8, y));
+  Object.assign(el.style, { left: area.left + x + "px", top: area.top + y + "px", right: "auto", bottom: "auto" });
+  el.dataset.x = x; el.dataset.y = y;
+  return { x, y };
+}
+function escritorioSoltarCaixa(el) {
+  const area = document.querySelector(".ofc-principal")?.getBoundingClientRect();
+  if (!area || el.classList.contains("solto")) return;
+  const r = el.getBoundingClientRect();
+  el.style.width = (parseFloat(el.style.getPropertyValue("--caixa-w")) || r.width) + "px";
+  el.classList.add("solto");
+  escritorioPosicionarCaixa(el, r.left - area.left, r.top - area.top);
+}
+function escritorioAplicarCaixa(el) {
+  const v = escritorioCaixasSoltas() ? escritorioCaixaSalva(el.id) : null;
+  if (v?.h) el.style.setProperty("--caixa-h", v.h + "px"); else el.style.removeProperty("--caixa-h");
+  if (v?.w) el.style.setProperty("--caixa-w", v.w + "px"); else el.style.removeProperty("--caixa-w");
+  if (!v?.solto) return;
+  escritorioSoltarCaixa(el);
+  if (v.w) el.style.width = v.w + "px";
+  // A área do escritório ainda está montando na primeira volta: confere de novo.
+  escritorioPosicionarCaixa(el, v.x, v.y);
+  for (const ms of [120, 800]) setTimeout(() => el.isConnected && el.classList.contains("solto") && escritorioPosicionarCaixa(el, v.x, v.y), ms);
+}
+function escritorioPrepararCaixas() {
+  for (const [id, alca] of Object.entries(ESCRITORIO_CAIXAS)) {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.caixa) continue;
+    el.dataset.caixa = "1";
+    el.classList.add("ofc-caixa");
+    escritorioAplicarCaixa(el);
+    let gesto = null;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || !escritorioCaixasSoltas()) return;
+      const r = el.getBoundingClientRect();
+      const canto = e.clientX > r.right - 18 && e.clientY > r.bottom - 18;
+      if (!canto && (!e.target.closest(alca) || e.target.closest("select, input, textarea, a, .ofc-x"))) return;
+      gesto = { modo: canto ? "tamanho" : "talvez", px: e.clientX, py: e.clientY, x: el.offsetLeft, y: el.offsetTop, w: r.width, h: r.height, id: e.pointerId };
+      if (canto) { e.preventDefault(); e.stopPropagation(); el.classList.add("mudando"); }
+      // O mouse sai de cima da caixa no meio do gesto: acompanha pela janela.
+      window.addEventListener("pointermove", mover);
+      window.addEventListener("pointerup", soltar, { once: true });
+      window.addEventListener("pointercancel", soltar, { once: true });
+    });
+    const mover = (e) => {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      const dx = e.clientX - gesto.px, dy = e.clientY - gesto.py;
+      if (gesto.modo === "talvez") {
+        // Só vira arrasto depois de andar um pouco: clicar no topo continua abrindo e fechando.
+        if (Math.hypot(dx, dy) < 6) return;
+        escritorioSoltarCaixa(el);
+        gesto = { ...gesto, modo: "mover", x: Number(el.dataset.x) - dx, y: Number(el.dataset.y) - dy };
+        el.classList.add("arrastando");
+      }
+      if (gesto.modo === "mover") { escritorioPosicionarCaixa(el, gesto.x + dx, gesto.y + dy); return; }
+      const area = document.querySelector(".ofc-principal")?.getBoundingClientRect(), r = el.getBoundingClientRect(), solto = el.classList.contains("solto");
+      if (!area) return;
+      const h = Math.round(Math.min(area.bottom - r.top - 8, Math.max(ESCRITORIO_CAIXA_MIN.h, gesto.h + dy)));
+      el.style.setProperty("--caixa-h", h + "px");
+      // Na coluna, a largura é a dela; solta, a caixa também alarga e estreita.
+      if (solto) { const w = Math.round(Math.min(area.right - r.left - 8, Math.max(ESCRITORIO_CAIXA_MIN.w, gesto.w + dx))); el.style.width = w + "px"; el.style.setProperty("--caixa-w", w + "px"); }
+    };
+    const soltar = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", soltar);
+      if (!gesto) return;
+      const g = gesto; gesto = null;
+      el.classList.remove("arrastando", "mudando");
+      if (g.modo === "talvez") return;
+      // O clique que vem depois do arrasto não abre nem fecha a caixa.
+      // (só o clique que chega junto com a soltura; se não vier, não bloqueia o próximo).
+      if (g.modo === "mover") {
+        const engolir = (c) => { c.stopPropagation(); c.preventDefault(); };
+        el.addEventListener("click", engolir, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener("click", engolir, { capture: true }), 0);
+      }
+      const solto = el.classList.contains("solto");
+      escritorioGuardarCaixa(el.id, { solto, x: solto ? Number(el.dataset.x) : undefined, y: solto ? Number(el.dataset.y) : undefined, w: parseFloat(el.style.getPropertyValue("--caixa-w")) || undefined, h: parseFloat(el.style.getPropertyValue("--caixa-h")) || undefined });
+    };
+    // Dois cliques no topo devolvem à coluna. Contados aqui: o primeiro
+    // clique redesenha o topo (abre ou fecha) e o navegador não junta os dois.
+    let ultimoClique = 0;
+    el.addEventListener("click", (e) => {
+      if (!e.target.closest?.(alca)) return;
+      const agora = performance.now();
+      if (el.classList.contains("solto") && agora - ultimoClique < 400) { ultimoClique = 0; encaixarCaixaEscritorio(id); return; }
+      ultimoClique = agora;
+    });
+  }
+}
+// Volta para a coluna, no lugar dela e no tamanho padrão.
+function encaixarCaixaEscritorio(id) {
+  const el = document.getElementById(id);
+  escritorioGuardarCaixa(id, null);
+  if (!el) return;
+  el.classList.remove("solto");
+  Object.assign(el.style, { left: "", top: "", right: "", bottom: "", width: "" });
+  el.style.removeProperty("--caixa-h"); el.style.removeProperty("--caixa-w");
+}
+function encaixarCaixasEscritorio() {
+  for (const id of Object.keys(ESCRITORIO_CAIXAS)) encaixarCaixaEscritorio(id);
+  escritorioAviso("As caixas voltaram para a coluna da direita.");
+}
+// Janela mudou de tamanho: caixa solta não fica fora da tela.
+if (typeof window !== "undefined") window.addEventListener?.("resize", () => { for (const el of document.querySelectorAll(".ofc-caixa.solto")) escritorioPosicionarCaixa(el, Number(el.dataset.x), Number(el.dataset.y)); });
 // Balão do dia na mesa do dono do quarto (Paulo, 22/10/2026: "a gente como
 // Head tem muita dificuldade de saber o que o time fez no dia, deixou de
 // fazer"). Todos veem o de todos. Passar o mouse mostra o resumo de hoje e

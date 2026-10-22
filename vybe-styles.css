@@ -6745,7 +6745,20 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-coluna .ofc-musica {width:auto}
 .ofc-coluna .ofc-minha-tela {position:relative;left:auto;bottom:auto;width:auto;flex:none}
 /* Player arrastado para fora da coluna. */
-.ofc-musica.solto {position:absolute;z-index:9;width:224px}
+.ofc-musica.solto {width:224px}
+/* Caixas soltas (Paulo, 22/10/2026): qualquer caixa da coluna sai para cima
+   do mapa pelo topo e muda de tamanho pelo canto de baixo à direita. */
+.ofc-caixa:not(.solto) {position:relative}
+.ofc-caixa.solto {position:fixed;z-index:8;max-width:calc(100vw - 16px);margin:0}
+.ofc-caixa.solto:hover, .ofc-caixa.arrastando, .ofc-caixa.mudando {z-index:9}
+.ofc-caixa.arrastando {cursor:grabbing;box-shadow:0 24px 60px #000a;opacity:.96}
+.ofc-caixa.arrastando *, .ofc-caixa.mudando * {cursor:inherit;user-select:none}
+.ofc-caixa.mudando {cursor:nwse-resize}
+/* Altura escolhida só com a caixa aberta (recolhida, fica só o topo). */
+.ofc-caixa[style*="--caixa-h"]:not(.mini):not(:has(> [aria-expanded="false"])) {height:var(--caixa-h);max-height:none}
+.ofc-caixa::after {content:"";position:absolute;right:4px;bottom:4px;width:9px;height:9px;border:solid #ffffff59;border-width:0 2px 2px 0;border-radius:0 0 3px 0;cursor:nwse-resize;opacity:0;transition:opacity .15s}
+.ofc-caixa:hover::after, .ofc-caixa.mudando::after {opacity:1}
+@media (max-width: 760px) {.ofc-caixa::after {display:none}}
 .office-call-rosto {position:relative;overflow:hidden}
 .office-call-rosto img {position:absolute;inset:-2px 0 0 -3px;width:30px;height:30px;object-fit:cover;object-position:50% 20%;image-rendering:pixelated}
 .office-call-rosto span {font-style:normal}

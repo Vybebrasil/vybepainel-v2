@@ -1481,3 +1481,19 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 - Abrir no Escritório sem piscar o painel de demandas: `iniciarNoEscritorio`
   põe `abrindo-escritorio` no body (a cidade no fundo, tela de trabalho
   escondida) até o servidor responder, no máximo 8 s.
+
+### Desempenho: saída da cena — 22/10/2026 (local, sem publicação)
+
+- Após o relato de CPU e memória altos no Safari, encontrada corrida entre
+  saída da sala e carga da arte: a promessa podia iniciar o relógio depois
+  de `destruir`. Cena encerrada agora ignora essa conclusão e a montagem
+  tardia de móveis/imagens; a saída cancela também relógios de figurantes,
+  visitantes e quadros pendentes de etiquetas, hover e movimentos.
+- Regressões em `tests/escritorio-ciclo-mapa.test.mjs`: saída, carga tardia
+  e animação preservada na cena ativa. Testes direcionados e sintaxe passam.
+- A suíte completa iniciada durante a integração foi interrompida por carga
+  alta e execução prolongada em `escritorio-economia.test.mjs`; não passou
+  completa. Não reiniciar várias execuções em paralelo.
+- Ainda falta medir no Safari e revisar retenção de caches. Não há medição
+  antes/depois nem validação visual desta correção; não considerar resolvido
+  o consumo geral. Preservadas as alterações locais das caixas soltas.
