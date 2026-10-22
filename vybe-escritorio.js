@@ -1794,6 +1794,8 @@ function atualizarPessoasEscritorio() {
         // completo passava pelo encurtador e virava "Você E.").
         id: p.id, nome: voce ? "Você" : escritorioNomeCurto(p.nome), perfil: perfilDe, status: p.status, corStatus,
         titulo: p.convidado ? null : daEquipe?.titulo || null,
+        // Campeão da Copa do mês (Paulo, 21/10/2026): etiqueta dourada e anel nos pés.
+        campeao: !p.convidado && String(escritorio.base?.copa?.campeao?.id || "") === String(p.id) ? (escritorio.base.copa.titulo || "Campeão da Copa") : "",
         rotulo: `${p.nome}${voce ? " (você)" : ""} · ${p.convidado ? "convidado" : voce && !escritorio.conectado ? "fora do escritório" : nomeStatus}`,
         statusTexto: p.convidado && !voce ? "convidado" : p.status && p.status !== "disponivel" ? nomeStatus : "",
         x: Math.round(pos.x), y: Math.round(pos.y),

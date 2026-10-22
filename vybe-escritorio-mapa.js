@@ -2314,16 +2314,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // A presença chega a cada passo de qualquer pessoa: só refaz a
       // etiqueta quando nome ou status mudaram (antes refazia sempre).
       // O título da conquista escolhida fica numa linha embaixo do nome.
-      const rotulo = [q.corStatus, q.nome, q.statusTexto || "", q.titulo?.texto || ""].join("|");
+      // Campeão da Copa: a faixa do título vira "Campeão da Copa · mês", com a taça.
+      const tituloTexto = q.campeao || q.titulo?.texto || "", nivelTitulo = q.campeao ? 4 : Number(q.titulo?.nivel) || 1;
+      const rotulo = [q.corStatus, q.nome, q.statusTexto || "", tituloTexto, q.campeao ? "c" : ""].join("|");
       if (p.rotulo !== rotulo) {
         p.rotulo = rotulo;
-        p.etiqueta.classList.toggle("com-titulo", !!q.titulo?.texto);
-        p.etiqueta.dataset.nivel = q.titulo?.texto ? String(Number(q.titulo.nivel) || 1) : "";
-        const linha = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
-        p.etiqueta.innerHTML = q.titulo?.texto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo n${Number(q.titulo.nivel) || 1}"><i aria-hidden="true"></i><span></span></em>` : linha;
+        p.etiqueta.classList.toggle("com-titulo", !!tituloTexto);
+        p.etiqueta.classList.toggle("campeao", !!q.campeao);
+        p.no.classList.toggle("campeao", !!q.campeao);
+        p.etiqueta.dataset.nivel = tituloTexto ? String(nivelTitulo) : "";
+        const linha = `${q.campeao ? '<span class="mapa-taca" aria-hidden="true"></span>' : ""}<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
+        p.etiqueta.innerHTML = tituloTexto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo n${nivelTitulo}${q.campeao ? " copa" : ""}"><i aria-hidden="true"></i><span></span></em>${q.campeao ? '<span class="mapa-faiscas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>' : ""}` : linha;
         p.etiqueta.querySelector("b").textContent = q.nome;
         if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
-        if (q.titulo?.texto) p.etiqueta.querySelector(".mapa-titulo span").textContent = q.titulo.texto;
+        if (tituloTexto) p.etiqueta.querySelector(".mapa-titulo span").textContent = tituloTexto;
       }
       // Selo de status sobre a cabeça, visível de longe (foco: fone; reunião: balão).
       let selo = p.no.querySelector(".mapa-selo");

@@ -10333,17 +10333,22 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    Habbo (a origem no ponto da cabeça mantém o nome no lugar). O título é uma
    linha pequena na cor do nível, com uma gema; Ouro e Diamante brilham. */
 .mapa-etiqueta.solta {transform-origin:0 0;scale:clamp(.62, calc(1 / var(--zoom-mapa, 1)), 1.35);padding:2px 7px;border-radius:8px;font-size:10.5px;gap:4px;background:#12141bd9;border-color:#ffffff1f;box-shadow:0 2px 0 #0007}
-.mapa-etiqueta.com-titulo {flex-direction:column;align-items:center;gap:0;padding:2px 8px 3px}
+/* Etiqueta com título (Paulo, 21/10/2026: "a tag precisa de uma animação
+   bonitinha e foda"): o nome em cima e o título numa faixinha na cor do nível
+   (Bronze, Prata, Ouro, Diamante), com um brilho passando no texto e a pedra
+   do nível girando em 3D de tempos em tempos. */
+.mapa-etiqueta.com-titulo {flex-direction:column;align-items:center;gap:3px;padding:3px 9px 5px}
 .mapa-linha {display:flex;align-items:center;gap:4px}
-.mapa-titulo {display:inline-flex;align-items:center;gap:3px;max-width:170px;margin-top:0;font:800 8.5px/1.2 var(--mac-ui);font-style:normal;letter-spacing:.04em;text-transform:uppercase;color:#e9a374}
-.mapa-titulo span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mapa-titulo i {flex:none;width:6px;height:6px;rotate:45deg;border-radius:1px;background:currentColor;box-shadow:0 0 4px currentColor}
-.mapa-titulo.n2 {color:#dfe3ea}
-.mapa-titulo.n3 span {background:linear-gradient(90deg,#ffd166,#fff3c2,#ffb52e,#ffd166);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mapa-titulo-brilho 3s linear infinite}
-.mapa-titulo.n3 {color:#ffd166}
-.mapa-titulo.n4 span {background:linear-gradient(90deg,#8ff0ff,#c7a6ff,#7cf3d4,#ffd0f4,#8ff0ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mapa-titulo-brilho 4s linear infinite}
-.mapa-titulo.n4 {color:#9fe8ff}
-@keyframes mapa-titulo-brilho {to {background-position:-200% 0}}
+.mapa-titulo {--tc:#e9a374;display:inline-flex;align-items:center;gap:4px;max-width:180px;margin-top:0;padding:1px 7px 1px 5px;border-radius:6px;background:color-mix(in srgb,var(--tc) 16%,#0b0c10);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tc) 45%,transparent);font:900 8.5px/1.45 var(--mac-ui);font-style:normal;letter-spacing:.05em;text-transform:uppercase;color:var(--tc)}
+.mapa-titulo span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:linear-gradient(100deg,var(--tc) 0 38%,#fff 50%,var(--tc) 62% 100%);background-size:250% 100%;background-position:120% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mapa-titulo-brilho 3.6s ease-in-out infinite}
+.mapa-titulo i {flex:none;width:6px;height:6px;rotate:45deg;border-radius:1px;background:var(--tc);box-shadow:0 0 6px var(--tc);animation:mapa-gema-gira 4s ease-in-out infinite}
+.mapa-titulo.n2 {--tc:#dfe3ea}
+.mapa-titulo.n3 {--tc:#ffd166}
+.mapa-titulo.n4 {--tc:#9fe8ff}
+.mapa-titulo.n4 span {background:linear-gradient(90deg,#8ff0ff,#c7a6ff,#7cf3d4,#ffd0f4,#8ff0ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;animation:mapa-titulo-arco 4s linear infinite}
+@keyframes mapa-titulo-brilho {0%,40% {background-position:120% 0} 100% {background-position:-120% 0}}
+@keyframes mapa-titulo-arco {to {background-position:-300% 0}}
+@keyframes mapa-gema-gira {0%,70% {transform:rotateY(0) scale(1)} 85% {transform:rotateY(180deg) scale(1.4)} 100% {transform:rotateY(360deg) scale(1)}}
 @media (prefers-reduced-motion:reduce) {.mapa-titulo span {animation:none!important}}
 [data-motion=reduce] .mapa-titulo span {animation:none!important}
 
@@ -10565,10 +10570,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .mapa-etiqueta.solta[data-nivel="3"] {border-color:#ffd16688;box-shadow:0 2px 0 #0007,0 0 10px #ffc94a33}
 .mapa-etiqueta.solta:not(.agente):not(.visitante)[data-nivel="4"] {border-color:transparent;box-shadow:0 2px 0 #0007,0 0 12px #9fe8ff44;outline:1.5px solid #8ff0ff;outline-offset:-1.5px;animation:mapa-tag-entra .45s var(--curva,ease) both,mapa-tag-brilho 6s ease-in-out 1.2s infinite,mapa-tag-furta 5s linear infinite}
 @keyframes mapa-tag-furta {0%,100% {outline-color:#8ff0ff} 33% {outline-color:#c7a6ff} 66% {outline-color:#7cf3d4}}
-.mapa-titulo i {animation:mapa-gema 2.4s ease-in-out infinite}
-@keyframes mapa-gema {0%,100% {scale:1;box-shadow:0 0 4px currentColor} 50% {scale:1.35;box-shadow:0 0 9px currentColor}}
 .mapa-etiqueta.solta.voce {border-color:#ff8a3599}
-@media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta, .mapa-titulo i {animation:none!important}}
+@media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta, .mapa-titulo i, .mapa-titulo span {animation:none!important}}
 [data-motion=reduce] :is(.mapa-etiqueta.solta, .mapa-titulo i) {animation:none!important}
 
 /* Balões dos clientes (bots) como balões de jogo: escuros, borda na cor do
@@ -10909,3 +10912,23 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (max-width:560px) {.ofc-acoes-grade {grid-template-columns:repeat(3,76px)}.ofc-acoes > summary span {display:none}}
 /* Com um menu da barra aberto, a barra fica na frente do aviso de ação ("E Sentar"). */
 .ofc-dock:has(details[open]) {z-index:95}
+
+/* Etiqueta do campeão da Copa do mês (Paulo, 21/10/2026: "essa sim tem um
+   efeitinho mais foda ainda"): placa dourada com a borda em ouro girando, a
+   taça ao lado do nome, faíscas douradas subindo e um anel dourado pulsando
+   nos pés do boneco, em qualquer sala. */
+@property --mapa-giro {syntax:"<angle>";inherits:false;initial-value:0deg}
+/* Mais específico que a etiqueta comum e a do Diamante (o campeão tem nível 4). */
+.mapa-etiqueta.solta.campeao:not(.agente):not(.visitante)[data-nivel] {outline:none;border:2px solid transparent;background:linear-gradient(180deg,#3a2a0b,#1c1406) padding-box,conic-gradient(from var(--mapa-giro),#ffd166,#fff6d1,#c98a12,#ffe08a,#ffd166) border-box;box-shadow:0 2px 0 #0008,0 0 16px #ffc94a66;animation:mapa-tag-entra .45s var(--curva,ease) both,mapa-giro 3s linear infinite}
+@keyframes mapa-giro {to {--mapa-giro:360deg}}
+.mapa-etiqueta.solta.campeao b {color:#fff3c2;text-shadow:0 1px 0 #000,0 0 8px #ffd16688}
+.mapa-taca {display:inline-block;width:18px;height:21px;margin:-3px 0;background:url("https://www.habboassets.com/imaging/furniture/fball_trophy.png?size=64") center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 0 4px #ffd166aa);animation:cq-flutua 2.4s ease-in-out infinite}
+.mapa-titulo.copa {--tc:#ffd166;max-width:240px;background:linear-gradient(180deg,#5a3f0c,#2a1d06);box-shadow:inset 0 0 0 1px #ffd16699,0 0 8px #ffc94a44}
+.mapa-faiscas {position:absolute;inset:-6px -4px;pointer-events:none}
+.mapa-faiscas i {position:absolute;bottom:0;width:3px;height:3px;border-radius:50%;background:#ffe08a;box-shadow:0 0 6px #ffd166;opacity:0;animation:mapa-faisca 2.6s ease-out infinite}
+.mapa-faiscas i:nth-child(1) {left:8%;animation-delay:0s}.mapa-faiscas i:nth-child(2) {left:30%;animation-delay:-.5s}.mapa-faiscas i:nth-child(3) {left:52%;animation-delay:-1s}.mapa-faiscas i:nth-child(4) {left:74%;animation-delay:-1.6s}.mapa-faiscas i:nth-child(5) {left:92%;animation-delay:-2.1s}
+@keyframes mapa-faisca {15% {opacity:1} 100% {opacity:0;transform:translateY(-34px)}}
+.mapa-pessoa.campeao::before {content:"";position:absolute;left:6px;bottom:-6px;width:52px;height:22px;border-radius:50%;border:2px solid #ffd166;box-shadow:0 0 12px #ffc94a,inset 0 0 8px #ffc94a88;pointer-events:none;animation:mapa-anel-copa 2s ease-in-out infinite}
+@keyframes mapa-anel-copa {50% {opacity:.45;transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta.campeao, .mapa-taca, .mapa-faiscas i, .mapa-pessoa.campeao::before {animation:none!important}.mapa-faiscas {display:none}}
+[data-motion=reduce] :is(.mapa-etiqueta.solta.campeao, .mapa-taca, .mapa-faiscas i, .mapa-pessoa.campeao::before, .mapa-titulo i, .mapa-titulo span) {animation:none!important}
