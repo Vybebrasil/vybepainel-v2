@@ -9772,7 +9772,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .rk2-camp-txt em {color:#ffd0a8;font:650 11.5px var(--mac-ui);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rk2-camp .ofc-rk-rosto {border-radius:50%}
 .rk2-camp-eu {position:absolute;top:-7px;right:8px;padding:0 6px;border-radius:999px;background:#ff8a35;color:#1d0d02;font:800 9.5px/15px var(--mac-ui);font-style:normal}
-.rk2-camp.meu {background:linear-gradient(180deg,#3a2a1a,#241c16)}
+
 .rk2-corpo {display:grid;gap:12px;padding:0 18px 18px;overflow-y:auto;min-height:0;transition:opacity .2s}
 .rk2-corpo.atualizando {opacity:.7}
 /* Você */
@@ -10431,4 +10431,83 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .rk2 .ofc-rk-det-lista li[data-dica]:is(:hover,:focus-visible) {border-color:#ff8a3566;background:#262a36;outline:none}
 .rk2 .ofc-rk-det-pecas li {background:#1d2029;border:1px solid #ffffff0d;border-radius:10px}
 .rk2 .rk2-det-ritmo .rk2-ritmo {height:56px}
-.rk2-fora {padding:1px 6px;border-radius:999px;background:#ffffff12;color:#aeb4c2;font:700 9.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.04em}
+
+/* Ranking no mesmo jogo das Conquistas (Paulo, 21/10/2026: "conquista está
+   parecendo muito mais um joguinho do que o ranking"): cartões escuros com
+   degrau (vb-jogo-cartao), arte do Habbo em cada categoria, chips de texto,
+   seções em cartão com rótulo em caixa alta. */
+.rk2-camp {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);grid-template-columns:46px minmax(0,1fr) 26px}
+.rk2-camp:hover {border-color:#ffffff26;transform:translateY(-1px)}
+.rk2-camp:active {transform:translateY(3px);box-shadow:0 1px 0 var(--vb-jogo-degrau,#0e1016)}
+.rk2-camp.ativo {border-color:#ff8a35;box-shadow:0 4px 0 #a24e0c,0 0 0 1px #ff8a35}
+.rk2-camp-arte {display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:radial-gradient(circle at 50% 70%,#ffc94a2e,#ffffff06 70%)}
+.rk2-camp-arte img {max-width:40px;max-height:40px;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #0008)}
+.rk2-camp-txt small {color:#a3a9b7;font:800 10px var(--mac-ui);letter-spacing:.08em}
+.rk2-camp-txt em {color:#ffd166}
+.rk2-chips > small {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em}
+.rk2-chip {min-height:32px;padding:0 12px 0 5px;border-radius:999px;background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff14;box-shadow:0 3px 0 var(--vb-jogo-degrau,#0e1016)}
+.rk2-chip.ativo {border-color:#ff8a35;background:#ff8a351f;box-shadow:0 3px 0 #a24e0c}
+.rk2-regra {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016);padding:12px 14px}
+.rk2-regra b {display:block;margin-bottom:4px;color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.rk2 .rk2-podio {padding:28px 14px 16px;border-radius:16px;background:radial-gradient(120% 80% at 50% 0%,#ffc94a14,transparent 60%),var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016)}
+.rk2-lista > li:not(.ofc-rk-det-li) {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016)}
+.rk2-lista > li.eu {border-color:#ff954888;background:var(--vb-jogo-fundo,#1d2029);box-shadow:0 4px 0 #a24e0c,0 0 0 1px #ff954855}
+.rk2 .ofc-rk-anterior, .rk2 .ofc-rk-como {background:var(--vb-jogo-fundo,#1d2029);border:1px solid #ffffff10;border-radius:16px;box-shadow:0 4px 0 var(--vb-jogo-degrau,#0e1016)}
+.rk2 .ofc-rk-anterior > small {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em}
+.rk2-voce-fixa {background:linear-gradient(90deg,#2a2016f2,#1d2029f2);border:1px solid #ff954866;box-shadow:0 -10px 24px #0009,0 4px 0 #a24e0c}
+@media (max-width:640px) {.rk2-camp {grid-template-columns:32px minmax(0,1fr)}.rk2-camp-arte {width:32px;height:32px}.rk2-camp-arte img {max-width:28px;max-height:28px}}
+
+/* O detalhe da pessoa no Ranking: um cartão flutuante ao lado dela. */
+.rk2-pop {position:fixed;z-index:100002;display:grid;gap:10px;max-height:calc(100vh - 24px);overflow:auto;padding:12px;border-radius:18px;background:linear-gradient(180deg,#22252ff7,#16181ff7);border:1px solid #ffffff1f;box-shadow:inset 0 1px 0 #ffffff14,0 6px 0 #0009,0 24px 60px #000c;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#eef0f5;font-family:var(--mac-ui);opacity:0;translate:0 8px;scale:.98;transition:opacity .16s,translate .2s var(--curva,ease),scale .2s var(--curva,ease)}
+.rk2-pop.aberto {opacity:1;translate:0 0;scale:1}
+.rk2-pop-topo {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:2px 2px 0}
+.rk2-pop-topo img {width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:center 28%;image-rendering:pixelated;background:#2a2e3b;box-shadow:0 0 0 2px #ffffff26}
+.rk2-pop-topo b {display:block;color:#fff;font:850 15px var(--mac-ui)}
+.rk2-pop-topo small {color:#aeb4c2;font:600 11.5px var(--mac-ui)}
+.rk2-pop .ofc-rk-detalhe {gap:10px;padding:0;background:none;border:0;box-shadow:none;animation:none}
+.rk2-pop .ofc-rk-det-col {padding:12px;border-radius:14px;background:#1d2029;border:1px solid #ffffff10;box-shadow:0 4px 0 #0e1016}
+.rk2-pop .ofc-rk-det-col h5 {color:#a3a9b7;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.rk2-pop .ofc-rk-det-col h5 small {color:#ffd9bd;font:700 11px var(--mac-ui);letter-spacing:0;text-transform:none}
+.rk2-pop .ofc-rk-det-lista li {position:relative;padding:8px 10px;border-radius:10px;background:#00000030;border:1px solid #ffffff0d;color:#e9ecf2;font:600 12.5px var(--mac-ui)}
+.rk2-pop .ofc-rk-det-lista li b {color:#ffd166}
+.rk2-pop .ofc-rk-det-lista li.vb-jogo-dica:is(:hover,:focus-visible) {border-color:#ff8a3566;outline:none}
+.rk2-pop .ofc-rk-det-pecas li {background:#00000030;border:1px solid #ffffff0d;border-radius:10px}
+.rk2-pop .rk2-det-ritmo .rk2-ritmo {height:52px}
+@media (max-width:640px) {.rk2-pop {left:8px!important;right:8px;width:auto!important}.rk2-pop .ofc-rk-detalhe {grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce) {.rk2-pop {transition:none}}
+
+/* O bônus do campeão da Copa, como peça de jogo (Paulo, 21/10/2026: "faz ele
+   mais bonitinho, no estilo joguinho"): a taça em pixel no pedestal com a
+   cabeça do campeão, rótulo em caixa alta, a barra dos dias e o selo 2×. */
+.ofc-bonus-lugar {position:absolute;left:16px;top:76px;z-index:60;pointer-events:none}
+.ofc-bonus-lugar:empty {display:none}
+.ofc:has(.ofc-lobby) .ofc-bonus-lugar {display:none}
+.ofc[data-editando="true"] .ofc-bonus-lugar {display:none}
+.ofc-bonus {position:relative;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;width:372px;max-width:calc(100vw - 32px);padding:8px 10px 10px 8px;border-radius:16px;border:1px solid #ffd16655;background:radial-gradient(120% 140% at 0% 0%,#ffc94a24,transparent 55%),var(--vb-jogo-fundo,#1d2029);color:#fff;font:inherit;text-align:left;cursor:pointer;pointer-events:auto;box-shadow:inset 0 1px 0 #fff3c222,0 4px 0 var(--vb-jogo-degrau,#0e1016),0 12px 28px #0008;transition:transform .2s var(--curva,ease),border-color .2s;animation:lg-entra .6s var(--curva,ease) both;--dy:-8px}
+.ofc-bonus:hover {transform:translateY(-1px);border-color:#ffd166aa}
+.ofc-bonus:active {transform:translateY(3px);box-shadow:inset 0 1px 0 #fff3c222,0 1px 0 var(--vb-jogo-degrau,#0e1016)}
+.ofc-bonus.meu {border-color:#ffd166;box-shadow:inset 0 1px 0 #fff3c244,0 4px 0 #8a5a10,0 0 26px #ffc94a55}
+.ofc-bonus-arte {position:relative;display:grid;place-items:end center;width:56px;height:60px;border-radius:12px;background:radial-gradient(circle at 50% 75%,#ffc94a40,#ffffff06 70%)}
+.ofc-bonus-luz {position:absolute;inset:4px 8px 6px;border-radius:50%;background:radial-gradient(closest-side,#ffd16666,transparent);animation:lg-feixe 2.4s ease-in-out infinite}
+.ofc-bonus-taca {position:relative;z-index:1;height:52px;width:auto;margin-bottom:3px;image-rendering:pixelated;filter:drop-shadow(0 0 8px #ffd16688);animation:cq-flutua 3.4s ease-in-out infinite}
+.ofc-bonus-cabeca {position:absolute;z-index:2;right:-8px;bottom:-6px;width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center 28%;image-rendering:pixelated;background:#2a2e3b;box-shadow:0 0 0 2px #ffd166,0 2px 0 #000a}
+.ofc-bonus-txt {display:grid;gap:2px;min-width:0}
+.ofc-bonus-txt small {color:#ffd9a0;font:800 9.5px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase}
+.ofc-bonus-txt b {color:#fff;font:850 14px/1.15 var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-bonus-txt em {color:#c9cdd8;font:600 11px var(--mac-ui);font-style:normal;white-space:nowrap}
+.ofc-bonus-txt em.ofc-bonus-rendeu {color:#ffe29a}
+.ofc-bonus-barra {display:block;height:5px;margin-top:3px;border-radius:9px;background:#ffffff14;overflow:hidden}
+.ofc-bonus-barra i {position:relative;display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ffb52e,#ffe58a);overflow:hidden}
+.ofc-bonus-barra i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffffa0 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.6s var(--curva,ease) infinite}
+/* O multiplicador num poço escuro com borda dourada e o número em letra de
+   ouro com brilho (o mesmo da placa do campeão), sem botão de plástico. */
+.ofc-bonus-selo {display:grid;justify-items:center;align-content:center;gap:1px;min-width:62px;height:52px;padding:0 8px;border-radius:12px;background:#00000040;border:1px solid #ffd16655;box-shadow:inset 0 2px 6px #0007}
+.ofc-bonus-selo b {font:950 22px/1 var(--mac-ui);letter-spacing:-.01em;background:linear-gradient(90deg,#ffd166,#fff3c2,#ffb52e,#ffd166);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mapa-titulo-brilho 3s linear infinite;filter:drop-shadow(0 0 6px #ffc94a55)}
+.ofc-bonus-selo small {color:#ffd9a0;font:800 7.5px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.ofc-bonus:focus-visible {outline:2px solid #ff8a35;outline-offset:3px}
+.ofc-bonus.entrada {--dy:-18px;width:340px;grid-template-columns:44px minmax(0,1fr) auto;padding:6px 8px 8px 6px}
+.ofc-bonus.entrada .ofc-bonus-arte {width:44px;height:46px}.ofc-bonus.entrada .ofc-bonus-taca {height:40px}
+.ofc-bonus.entrada .ofc-bonus-selo {min-width:48px;height:42px}.ofc-bonus.entrada .ofc-bonus-selo b {font-size:18px}
+@media (max-width:760px) {.ofc-bonus-lugar {top:64px;left:8px}.ofc-bonus {width:320px}}
+@media (prefers-reduced-motion:reduce) {.ofc-bonus,.ofc-bonus-luz,.ofc-bonus-taca,.ofc-bonus-barra i::after,.ofc-bonus-selo b {animation:none}}
+[data-motion=reduce] :is(.ofc-bonus,.ofc-bonus-luz,.ofc-bonus-taca,.ofc-bonus-barra i::after,.ofc-bonus-selo b) {animation:none}
