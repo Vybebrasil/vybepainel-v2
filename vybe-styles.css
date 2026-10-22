@@ -6336,8 +6336,6 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-acao[hidden] {display:none}
 .ofc-acao button {display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;border:1px solid #ff8a3566;background:#1d1610ee;color:#ffe7d2;font:650 13px var(--mac-ui);cursor:pointer;box-shadow:0 10px 30px #0008;animation:mapa-balao .2s ease-out}
 .ofc-acao kbd,.ofc-poses kbd {display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:#ff8a35;color:#1d1107;font:700 12px var(--mac-ui)}
-.ofc-poses {flex-direction:column;align-items:stretch;min-width:170px}
-.ofc-reacoes>div.ofc-poses button {width:auto;height:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;font:600 13px var(--mac-ui);color:#fff}
 .ofc-avisos {position:absolute;z-index:8;top:64px;left:50%;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;pointer-events:none}
 .ofc-avisos p {padding:7px 12px;border-radius:10px;background:#171a22e6;border:1px solid #ffffff1c;color:#e8eaf0;font:600 12px var(--mac-ui);animation:mapa-balao .25s ease-out}
 /* Criador de personagem (abas, grade de peças, cores reais) */
@@ -6631,8 +6629,6 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-clientes-lista li.inativo b {opacity:.6}
 .ofc-clientes-lista a.ofc-mini {text-decoration:none;display:inline-flex;align-items:center}
 .ofc-campo input[type=range] {accent-color:#ff8a35;width:100%}
-.ofc-mais-titulo {display:block;padding:6px 10px 2px;font:700 10px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ofc-suave,#c9bfb4)}
-.ofc-mais .ofc-poses button:disabled {opacity:.45;cursor:default}
 
 /* Garantia da abertura: sem depender da animação para aparecer */
 .ofc-abertura.abr-pronta::before {display:none}
@@ -10886,3 +10882,30 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-ficha.jogador .ofc-ficha-acoes button:active {transform:translateY(3px);box-shadow:0 0 0 var(--vb-jogo-degrau,#0e1016)}
 @container (max-width:900px) or (max-height:620px) {.lg-turma {width:100%;justify-self:stretch}.lg-colega {width:100%}}
 @media (max-width:760px) {.esp-peca-titulo b {white-space:normal;overflow:visible}}
+
+/* Ações do boneco num botão próprio da barra e o "Mais" enxuto (Paulo,
+   21/10/2026). Ações: grade de peças de jogo com o próprio boneco fazendo o
+   gesto e o atalho do teclado; "Mais": linhas alinhadas com ícone. As duas
+   janelas sobem da barra como janelas de jogo. */
+.ofc-reacoes > div.ofc-acoes-grade, .ofc-reacoes > div.ofc-mais-lista {display:grid;gap:6px;padding:10px;border:2px solid #0b0c10;border-radius:18px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff12,0 6px 0 #07080b,0 24px 50px #000b}
+.ofc-acoes-grade {grid-template-columns:repeat(4,76px)}
+.ofc-acoes-grade .vb-jogo-rotulo, .ofc-mais-lista .vb-jogo-rotulo {grid-column:1/-1;padding:4px 4px 0}
+.ofc-reacoes > div .ofc-acao-peca {position:relative;display:grid;justify-items:center;gap:3px;width:76px;height:auto;padding:6px 4px 7px;border:1px solid #ffffff10;border-radius:14px;background:#262a36;color:#fff;font:inherit;box-shadow:inset 0 1px 0 #ffffff12,0 3px 0 var(--vb-jogo-degrau,#0e1016);cursor:pointer;transition:transform .14s var(--curva,ease),box-shadow .14s}
+.ofc-reacoes > div .ofc-acao-peca:hover {background:#2e3341;transform:translateY(-2px)}
+.ofc-reacoes > div .ofc-acao-peca:active {transform:translateY(3px);box-shadow:0 0 0 var(--vb-jogo-degrau,#0e1016)}
+.ofc-acao-peca.ativo {border-color:#ff8a35;box-shadow:inset 0 1px 0 #ffffff12,0 3px 0 #a24e0c}
+.ofc-acao-arte {display:grid;place-items:center;width:52px;height:52px;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000c;overflow:hidden}
+.ofc-acao-arte img {width:52px;height:auto;max-height:78px;object-fit:cover;object-position:center 22%;image-rendering:pixelated}
+.ofc-acao-placa {display:grid;place-items:center;width:34px;height:34px;border-radius:8px;background:#f4efe4;box-shadow:0 3px 0 #8a7a5c;color:#3a2a14;font:900 17px var(--mac-ui)}
+.ofc-acao-placa svg {width:22px;height:22px}
+.ofc-acao-peca b {font:750 11px var(--mac-ui);white-space:nowrap}
+.ofc-acao-peca kbd {position:absolute;top:4px;right:4px;min-width:16px;padding:0 4px;border-radius:5px;background:#0e1016;color:#ffb27a;font:800 9.5px/16px var(--mac-ui)}
+.ofc-mais-lista {min-width:240px}
+.ofc-reacoes > div .ofc-mais-linha {display:flex;align-items:center;gap:10px;width:100%;height:auto;padding:9px 10px;border:0;border-radius:11px;background:none;color:#fff;font:700 13px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-reacoes > div .ofc-mais-linha:hover {background:#ffffff0d}
+.ofc-reacoes > div .ofc-mais-linha:disabled {opacity:.45;cursor:default}
+.ofc-mais-linha svg {flex:none;box-sizing:content-box;width:16px;height:16px;padding:6px;border-radius:9px;background:#0e1016;fill:none;stroke:#ffb27a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ofc-acoes > summary span {margin-left:4px}
+@media (max-width:560px) {.ofc-acoes-grade {grid-template-columns:repeat(3,76px)}.ofc-acoes > summary span {display:none}}
+/* Com um menu da barra aberto, a barra fica na frente do aviso de ação ("E Sentar"). */
+.ofc-dock:has(details[open]) {z-index:95}
