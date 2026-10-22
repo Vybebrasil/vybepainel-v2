@@ -1492,3 +1492,35 @@ test("tela de entrada observa quem está no escritório sem aparecer, sem voz e 
   assert.equal(paulo.a.sala, undefined, "não se move");
   assert.equal(room.naZona("").length + room.naZona(undefined).length <= 1, true);
 });
+
+// Entrada leve (22/10/2026): a entrada do Escritório fica aberta o dia todo e
+// nunca toca vídeo; computador simples não toca vídeo em lugar nenhum; o mapa
+// coberto pela entrada para de animar, mas a vitrine dentro dela continua.
+test("Vybelândia: entrada com imagem parada, vídeo só na abertura e mapa parado quando coberto", () => {
+  const cena = (navigator, cobertura = null) => {
+    const c = vm.createContext({
+      navigator, safeText: (v) => String(v), window: { matchMedia: () => ({ matches: false }) },
+      document: { hidden: false, getElementById: () => null, querySelector: (s) => (s.includes(".ofc-lobby") ? cobertura : null) },
+    });
+    vm.runInContext(readFileSync("vybe-escritorio-abertura.js", "utf8").split("// Criador de personagem")[0], c);
+    vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8").match(/function mapaForaDeVista[\s\S]*?\n}\n/)[0], c);
+    return c;
+  };
+  const forte = cena({ hardwareConcurrency: 8, deviceMemory: 8 });
+  assert.match(vm.runInContext('vybelandiaCenaHtml()', forte), /^<video/);
+  assert.match(vm.runInContext('vybelandiaCenaHtml("imagem")', forte), /^<img class="abr-cena"/);
+  assert.match(vm.runInContext('vybelandiaCenaHtml("parada")', forte), /^<img class="abr-cena parada"/);
+  assert.match(vm.runInContext('vybelandiaCenaHtml(true)', forte), /^<img class="abr-cena parada"/);
+  const fraco = cena({ hardwareConcurrency: 4 });
+  assert.match(vm.runInContext('vybelandiaCenaHtml()', fraco), /^<img/);
+  assert.match(vm.runInContext('vybelandiaCenaHtml()', cena({ hardwareConcurrency: 8, connection: { saveData: true } })), /^<img/);
+
+  const mapa = (dentroDaEntrada) => ({ isConnected: true, offsetParent: {}, closest: () => (dentroDaEntrada ? {} : null) });
+  const coberta = cena({}, {});
+  coberta.m = mapa(false); coberta.v = mapa(true);
+  assert.equal(vm.runInContext("mapaForaDeVista(m)", coberta), true, "mapa por trás da entrada para");
+  assert.equal(vm.runInContext("mapaForaDeVista(v)", coberta), false, "a vitrine dentro da entrada anima");
+  const aberta = cena({});
+  aberta.m = mapa(false);
+  assert.equal(vm.runInContext("mapaForaDeVista(m)", aberta), false, "sem entrada, o mapa anima");
+});

@@ -1093,6 +1093,14 @@ function mapaAlvoCursor(t, item) {
 // 31 px (no tamanho 64), com subida e descida em seno que encolhe perto das
 // pontas; ao chegar à ponta, volta; a amplitude muda quando a curva zera.
 const MAPA_FEIXE_AREA = 31;
+// Mapa fora de vista: aba escondida, fora da tela ou coberto pela entrada da
+// Vybelândia ou pela abertura. A vitrine dentro da entrada continua animando.
+// Animar o mapa inteiro por trás da entrada pesava em todo computador (22/10/2026).
+function mapaForaDeVista(el) {
+  if (document.hidden || !el.isConnected || !el.offsetParent) return true;
+  if (el.closest(".ofc-lobby, .ofc-abertura")) return false;
+  return Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura"));
+}
 function mapaFatorFeixe() { return 0.15 + Math.random() * 0.35; }
 function mapaPassoFeixe(f) {
   const D = MAPA_FEIXE_AREA, prox = f.fase + f.sentido * f.vel;
@@ -1541,7 +1549,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // folga ou um assento livre, desviando dos outros.
     if (livres.length + assentos.length) relogioPasseio = setInterval(() => {
       if (!palco.isConnected) { clearInterval(relogioPasseio); return; }
-      if (document.hidden || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      if (mapaForaDeVista(el) || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
       const quem = noMapa[Math.floor(Math.random() * noMapa.length)]?.p;
       if (!quem || quem.acao === "wlk") return;
       const aqui = (o) => [Math.round(o.x), Math.round(o.y)];
@@ -2774,7 +2782,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     };
     desenhar();
     // 4 quadros, cada um 3 ticks a 24 por segundo (frameRepeat do Nitro).
-    if (!reduzMov) setaRelogio = setInterval(desenhar, 125);
+    if (!reduzMov) setaRelogio = setInterval(() => { if (!mapaForaDeVista(el)) desenhar(); }, 125);
   }
   function posicionarSeta(q) {
     if (!seta || String(q.id) !== setaId) return;
@@ -3005,7 +3013,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   let quadro = 0, relogio = null, pulsoBonecos = 0;
   const focos = [];
   const animar = () => {
-    if (document.hidden || !el.isConnected || !el.offsetParent) return;
+    if (mapaForaDeVista(el)) return;
     quadro++;
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();

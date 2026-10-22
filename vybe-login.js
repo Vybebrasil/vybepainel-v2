@@ -184,6 +184,9 @@ function montarTelaDeLogin() {
   pintarRostos();
   const chegar = () => {
     gate.dataset.etapa = 'login';
+    // Atrás da caixa da senha a cena fica escura e desfocada: o vídeo para,
+    // para não refazer o desfoque a cada quadro.
+    gate.querySelector('video.abr-cena')?.pause();
     window.VYBELANDIA_VISTA = true; // a abertura do escritório não repete a cena
     document.querySelector('#login-rostos-lista button, #login-senha')?.focus({ preventScroll: true });
   };

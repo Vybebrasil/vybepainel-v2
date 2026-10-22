@@ -2098,7 +2098,7 @@ function renderEscritorio() {
  <div class="ofc-bonus-lugar" id="office-bonus">${escritorioBonusCopaHtml("mapa")}</div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml() : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml("imagem") : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
 </main>
 </section>`;
   if (lobby && typeof vbAnimarContagens === "function") vbAnimarContagens(painel);
