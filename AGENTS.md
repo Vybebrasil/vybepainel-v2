@@ -331,6 +331,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   da entrada não confere conquistas (isso fica na janela Conquistas e na
   ficha). As funções da Vercel rodam em `gru1` (São Paulo), junto do Neon em
   `sa-east-1`; não voltar para `iad1`.
+- Copa Vybe (decisão do Paulo, 21/10/2026): o 1º do ranking Geral do mês
+  leva a taça da Copa (épica), o título do mês e o prêmio; 2º e 3º, as taças
+  de prata e bronze; fecha uma vez por mês no ciclo diário (`fecharCopaMes`,
+  `2026-10-21-escritorio-copa.sql`). A taça do último campeão aparece em
+  todas as salas e quartos, com o nome dele. Detalhes em `docs/escritorio-pontos.md`.
 - Roupas e skins (decisão do Paulo, 21/10/2026): o preço vem do desenho.
   Animada e diferente custa mais (cabeça inteira, máscara, armadura, asas;
   efeitos e bichinhos animados no topo); a regra fica em

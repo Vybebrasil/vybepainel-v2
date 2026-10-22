@@ -4,7 +4,7 @@
 // (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
 import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
-import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco } from './escritorio-marcos.js';
+import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco, titulosDaPessoa } from './escritorio-marcos.js';
 import { roupaDaClasse } from './escritorio-roupas.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
@@ -91,7 +91,7 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
   sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`]);
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
  return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,
-  pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
+  pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, titulos: lista ? await titulosDaPessoa(sql, pessoaId) : null, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
 }
 // Só com a loja (janela do catálogo, compras): a entrada do escritório fica leve.
 async function extrasDaLoja(sql, pessoaId, agora) {

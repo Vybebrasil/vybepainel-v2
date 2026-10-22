@@ -1966,6 +1966,26 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     for (const p of pessoas.values()) posicionarPessoa(p);
     destacar(selecionado);
   }
+  // Uma peça a mais na cena sem trocar as outras (a taça da Copa, que aparece
+  // em toda sala e não é salva na decoração de ninguém).
+  async function acrescentarMovel(item) {
+    await filaMoveis.catch(() => {});
+    await montar(item);
+    ordenar(); pintarLuzes();
+    grade = mapaMontarGrade(P, moveis);
+    for (const p of pessoas.values()) posicionarPessoa(p);
+  }
+  // Uma placa acima de um ladrilho, na camada dos nomes (acompanha zoom e
+  // câmera como as etiquetas das pessoas). Sem html, tira a placa.
+  function marcador(id, x, y, html, acima = 118) {
+    let el = palco.querySelector(`[data-marcador="${id}"]`);
+    if (!html) { el?.remove(); return; }
+    if (!el) { el = document.createElement("span"); el.className = "mapa-etiqueta solta mapa-marcador"; el.dataset.marcador = id; palco.append(el); }
+    el.innerHTML = html;
+    const t = mapaTela(x + 0.5, y + 0.5, origem);
+    el.style.left = t.x + "px";
+    el.style.top = t.y - acima + "px";
+  }
   // Móveis que ocupam o ladrilho, do mais à frente para o mais atrás.
   function moveisEm(x, y) {
     const tx = Math.floor(x), ty = Math.floor(y);
@@ -2261,6 +2281,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         etiqueta.setAttribute("aria-hidden", "true");
         etiqueta.addEventListener("click", (e) => { e.stopPropagation(); selecionarPessoa(q.id); q.aoClicar?.(q.id); });
         etiqueta.addEventListener("pointerdown", (e) => e.stopPropagation());
+        // Passar o mouse sobre a pessoa (ou o nome) mostra o cartão do jogador.
+        const passar = (on) => (e) => { if (e.pointerType !== "touch") q.aoPassar?.(q.id, on, etiqueta); };
+        for (const alvo of [etiqueta, no]) { alvo.addEventListener("pointerenter", passar(true)); alvo.addEventListener("pointerleave", passar(false)); }
         // Sombra no chão de quem está em pé ou andando (h_std_sd do Habbo, 50 de 255).
         const sombra = document.createElement("i");
         sombra.className = "mapa-sombra-boneco";
@@ -2290,10 +2313,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         p.rotulo = rotulo;
         p.etiqueta.classList.toggle("com-titulo", !!q.titulo?.texto);
         const linha = `<i class="ofc-ponto" style="--st:${q.corStatus}"></i><b></b>${q.statusTexto ? "<small></small>" : ""}`;
-        p.etiqueta.innerHTML = q.titulo?.texto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo vb-titulo n${Number(q.titulo.nivel) || 1}"></em>` : linha;
+        p.etiqueta.innerHTML = q.titulo?.texto ? `<span class="mapa-linha">${linha}</span><em class="mapa-titulo n${Number(q.titulo.nivel) || 1}"><i aria-hidden="true"></i><span></span></em>` : linha;
         p.etiqueta.querySelector("b").textContent = q.nome;
         if (q.statusTexto) p.etiqueta.querySelector("small").textContent = q.statusTexto;
-        if (q.titulo?.texto) p.etiqueta.querySelector(".mapa-titulo").textContent = q.titulo.texto;
+        if (q.titulo?.texto) p.etiqueta.querySelector(".mapa-titulo span").textContent = q.titulo.texto;
       }
       // Selo de status sobre a cabeça, visível de longe (foco: fone; reunião: balão).
       let selo = p.no.querySelector(".mapa-selo");
@@ -2343,6 +2366,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // na mesma proporção em que o mapa diminui.
   const aplicar = () => {
     palco.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${zoom})`;
+    // As etiquetas de nome não crescem com o zoom (como no Habbo).
+    palco.style.setProperty("--zoom-mapa", String(zoom));
     // A variável recalcula o estilo de todos os letreiros: só muda em passos
     // de 5%, e não a cada quadro do zoom (era o que travava a animação).
     const c = Math.round(Math.max(1, 0.9 / zoom) * 20) / 20;
@@ -2992,6 +3017,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
     ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    acrescentarMovel, marcador, tamanho: () => (grade ? { W: grade.W, H: grade.H } : null),
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
     // Ladrilho fora do mapa ou tomado por parede/móvel sólido.

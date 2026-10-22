@@ -7,7 +7,7 @@ import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
-import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe } from "./escritorio-marcos.js";
+import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe, copaDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -154,7 +154,7 @@ export async function carregarEscritorio(sql, pessoa) {
   const tituloDaPessoa = (id, escolha) => {
     if (escolha === "nenhum") return null;
     const meus = marcos.filter((m) => String(m.pessoa_id) === String(id)).map((m) => ({ chave: m.marco, ...partesDoMarco(m.marco) }))
-      .map((m) => ({ ...m, texto: tituloDe(m.marco, m.nivel) })).filter((m) => m.texto);
+      .map((m) => ({ ...m, nivel: copaDoMarco(m.marco) ? 4 : m.nivel, texto: tituloDe(m.marco, m.nivel) })).filter((m) => m.texto);
     // Sem escolha, o do maior nível; os de trabalho antes dos de presença e do escritório.
     const deTrabalho = (m) => !["painel", "quarto", "andar2", "presente", "troca", "postits"].includes(m.marco);
     const t = meus.find((m) => m.chave === escolha) || meus.sort((a, b) => deTrabalho(b) - deTrabalho(a) || b.nivel - a.nivel)[0];
@@ -166,7 +166,11 @@ export async function carregarEscritorio(sql, pessoa) {
     perfil: perfilEscritorio(p.preferencias),
     titulo: tituloDaPessoa(p.id, p.preferencias?.titulo || ""),
   }));
+  // A Copa Vybe: o campeão do último mês fechado (a taça aparece em todo lugar).
+  const copas = marcos.map((m) => ({ ...m, copa: copaDoMarco(partesDoMarco(m.marco).marco) })).filter((m) => m.copa).sort((a, b) => (a.marco < b.marco ? 1 : -1));
+  const campeao = copas[0] ? lista.find((p) => p.id === String(copas[0].pessoa_id)) : null;
   return {
+    copa: campeao ? { campeao: { id: campeao.id, nome: campeao.nome }, titulo: copas[0].copa.texto, mes: `${copas[0].copa.ano}-${String(copas[0].copa.mes).padStart(2, "0")}`, vezes: copas.filter((c) => String(c.pessoa_id) === campeao.id).length } : null,
     quartos: QUARTOS,
     // A loja (faixas, estoque e vitrine) chega quando o editor abre, e as
     // conquistas (umas 25 consultas a mais) quando a janela delas ou a ficha

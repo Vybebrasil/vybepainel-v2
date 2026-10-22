@@ -33,6 +33,7 @@ export const TITULOS = {
   meta: ['Bateu a Meta', 'Constante', 'Consistente', 'Infalível'],
   meta_turbo: ['Turbinado', 'Acelerado', 'Foguete', 'Supersônico'],
   podio: ['No Pódio', 'Medalhista', 'Campeão', 'Dinastia'],
+  artilheiro: ['Artilheiro', 'Craque', 'Camisa 10', 'Bola de Ouro'],
   painel: ['Presente', 'Ligado', 'Conectado', 'Onipresente no Painel'],
   da: ['Olho Crítico', 'Diretor', 'Diretor de Arte Sênior', 'O Crivo'],
   agendamento: ['Postador', 'Agendador Nato', 'Relógio da Postagem', 'Nunca Atrasa'],
@@ -47,7 +48,15 @@ export const TITULOS = {
   quarto: ['Decorador'], andar2: ['Construtor'], presente: ['Generoso'], troca: ['Negociante'], postits: ['Recadeiro'],
 };
 const TIPO_TITULO = { cards: 'Cards', carrosseis: 'Carrosséis', reels: 'Reels', stories: 'Stories', fotografias: 'Fotos' };
+const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+// O título da Copa de cada mês (marco "copa_2026_09:1"); vale como Diamante.
+export function copaDoMarco(marco) {
+  const m = String(marco).match(/^copa_(\d{4})_(\d{2})$/);
+  return m ? { ano: m[1], mes: Number(m[2]), texto: `Campeão da Copa · ${MESES_CURTOS[Number(m[2]) - 1]}/${m[1].slice(2)}` } : null;
+}
 export function tituloDe(marco, nivel) {
+  const copa = copaDoMarco(marco);
+  if (copa) return copa.texto;
   const lista = TITULOS[marco];
   if (lista) return lista[Math.min(lista.length, Math.max(1, nivel)) - 1] || null;
   const m = String(marco).match(/^(agendados|carteira)_(\w+)$/);
@@ -60,13 +69,15 @@ export async function noticiasDaEquipe(sql, agora = new Date()) {
   if (!await marcosProntos(sql)) return [];
   const linhas = await sql`SELECT m.pessoa_id, p.nome, m.marco, m.em FROM vybe_escritorio_marcos m JOIN vybe_pessoas p ON p.id=m.pessoa_id
     WHERE m.em >= ${agora}::timestamptz - interval '7 days' AND p.ativo ORDER BY m.em DESC LIMIT 12`;
-  return linhas.map((l) => { const { marco, nivel } = partesDoMarco(l.marco), m = MARCOS.find((x) => x.id === marco); return m ? { pessoa: String(l.pessoa_id), nome: l.nome, escada: m.nome, nivel: MARCOS_SOCIAIS.has(marco) ? 0 : nivel, nomeNivel: MARCOS_SOCIAIS.has(marco) ? '' : NIVEIS[nivel] || '', titulo: tituloDe(marco, nivel), em: l.em } : null; }).filter(Boolean);
+  return linhas.map((l) => { const { marco, nivel } = partesDoMarco(l.marco), m = MARCOS.find((x) => x.id === marco), copa = copaDoMarco(marco);
+    if (copa) return { pessoa: String(l.pessoa_id), nome: l.nome, escada: 'Copa Vybe', nivel: 4, nomeNivel: '', titulo: copa.texto, copa: true, em: l.em };
+    return m ? { pessoa: String(l.pessoa_id), nome: l.nome, escada: m.nome, nivel: MARCOS_SOCIAIS.has(marco) ? 0 : nivel, nomeNivel: MARCOS_SOCIAIS.has(marco) ? '' : NIVEIS[nivel] || '', titulo: tituloDe(marco, nivel), em: l.em } : null; }).filter(Boolean);
 }
 // Os títulos que a pessoa tem (um por nível alcançado, do maior para o menor).
 export async function titulosDaPessoa(sql, pessoaId) {
   if (!await marcosProntos(sql)) return [];
   const feitos = await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=${pessoaId}`;
-  return feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco); const texto = tituloDe(marco, nivel); return texto ? { chave: f.marco, texto, nivel: MARCOS_SOCIAIS.has(marco) ? 1 : nivel } : null; })
+  return feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco); const texto = tituloDe(marco, nivel); return texto ? { chave: f.marco, texto, nivel: copaDoMarco(marco) ? 4 : MARCOS_SOCIAIS.has(marco) ? 1 : nivel } : null; })
     .filter(Boolean).sort((a, b) => b.nivel - a.nivel || a.texto.localeCompare(b.texto, 'pt-BR'));
 }
 // Entregas de quem executou a peça (Criação e Produção): as escadas de entrega,
@@ -102,6 +113,8 @@ export const MARCOS = [
   // Escadas das regras de 21/10/2026 (valor por papel e ranking).
   { id: 'meta_turbo', nome: 'Meta turbinada', unidade: 'semanas com 160% da meta', valor: (n) => n.regras.meta_semanal_160 || 0 },
   { id: 'podio', nome: 'Pódio', unidade: 'semanas no pódio do ranking', valor: (n) => (n.regras.ranking_1 || 0) + (n.regras.ranking_2 || 0) + (n.regras.ranking_3 || 0) },
+  // A escada da Copa (Paulo, 21/10/2026: "sentindo falta do da Copa do Mundo"): semanas em 1º.
+  { id: 'artilheiro', nome: 'Artilheiro', unidade: 'semanas em 1º no ranking', valor: (n) => n.regras.ranking_1 || 0 },
   { id: 'painel', nome: 'No painel', unidade: 'dias com as 10 ações do painel', valor: (n) => n.diasPainelCheio },
   { id: 'da', nome: 'Direção de arte', unidade: 'aprovações como DA', valor: (n) => n.regras.peca_da || 0 },
   { id: 'agendamento', nome: 'Postagens', unidade: 'peças postadas', valor: (n) => n.regras.peca_agendamento || 0 },
@@ -271,6 +284,8 @@ export async function revisarNiveisEscritorio(sql, chave, { tirarDoQuarto = fals
     const n = await numerosDosMarcos(sql, p);
     for (const f of await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=${p}`) {
       const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco), t = trofeus.find((x) => x.marco === marco && Number(x.nivel) === nivel);
+      // A Copa não é escada: ganha no fechamento do mês e nunca sai na revisão.
+      if (copaDoMarco(marco)) continue;
       if (m && t && Number(m.valor(n) || 0) >= Number(t.meta)) continue;
       await sql.comTransacao(async (tx) => {
         await tx`DELETE FROM vybe_escritorio_marcos WHERE pessoa_id=${p} AND marco=${f.marco}`;

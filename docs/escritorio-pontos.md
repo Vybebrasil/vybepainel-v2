@@ -538,6 +538,27 @@ A Gestão leva pouco de cada peça: quem cadastra a demanda ganha por isso
   ficha e no ranking. A pessoa escolhe na janela Conquistas (rota `titulo`,
   que confere se a conquista é dela); sem escolha, o do maior nível de trabalho.
 
+## Copa Vybe e Artilheiro (decisões do Paulo, 21/10/2026)
+
+- "Sentindo falta do da Copa do Mundo" (o Deivid queria a taça) e "dá pra
+  criar uma mecânica?": a taça da Copa (`fball_trophy`, épica, nunca à venda)
+  é o prêmio do campeão do mês, o 1º do ranking Geral do mês (% da própria
+  meta). O campeão leva a taça, o título "Campeão da Copa · <mês>" (marco
+  `copa_AAAA_MM:1`, vale como Diamante) e 150 moedas e 300 XP; 2º e 3º levam
+  as taças clássicas de prata e bronze (60/120 e 30/60). Fecha no ciclo
+  diário (`fecharCopaMes`), uma vez por mês; o primeiro foi setembro.
+- A taça do último campeão aparece em todas as salas e quartos, num canto da
+  tela, com o nome dele em cima e quem lidera a Copa deste mês.
+- Pódio: 1/5/12/30 semanas no pódio (Bronze com a taça prata pequena).
+  Artilheiro: semanas em 1º (1/3/8/20), chuteira azul, Chuteira de Ouro,
+  taça prata e a estátua do gol de bicicleta; títulos Artilheiro, Craque,
+  Camisa 10 e Bola de Ouro (`2026-10-21-escritorio-copa.sql`).
+- Ranking explica cada posição: a regra da categoria à vista e, em cada
+  pessoa, o que mais somou.
+- Etiqueta do mapa compacta e do mesmo tamanho em qualquer zoom; o cartão do
+  jogador (passar o mouse ou clicar) mostra nível, título, onde está, os três
+  maiores troféus e a semana no ranking, pelo perfil público.
+
 ## Produção por tipo de captação (decisão do Paulo, 20/10/2026)
 
 - Uma gravação gera muitas fotos: a fatia passa a depender do tipo
