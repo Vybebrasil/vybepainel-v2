@@ -1531,3 +1531,28 @@ test("Vybelândia: cidade sempre parada, sem vídeo, e mapa parado quando cobert
   aberta.m = mapa(false);
   assert.equal(vm.runInContext("mapaForaDeVista(m)", aberta), false, "sem entrada, o mapa anima");
 });
+
+// Dia da equipe por carteira (Paulo, 22/10/2026): a peça entra se algum cliente
+// dela é da carteira (a mesma regra do painel); peça de duas carteiras conta nas
+// duas, e as contas da pessoa seguem o recorte.
+test("Dia da equipe: carteira de Vinícius ou Ewerton filtra peças e contas", () => {
+  const fonte = readFileSync("vybe-escritorio-ficha.js", "utf8");
+  const c = vm.createContext({
+    carteiraDoCliente: (nome) => ({ VOA: "vinicius", Gonzalez: "ewerton" })[nome] || "",
+    escritorio: { diaEquipe: { hoje: "2026-10-22", ontem: "2026-10-21", pessoas: { 7: {
+      hoje: [
+        { titulo: "A", clientes: ["VOA"], estado: "pronta" },
+        { titulo: "B", clientes: ["Gonzalez"], estado: "falta" },
+        { titulo: "C", clientes: ["VOA", "Gonzalez"], estado: "fazendo" },
+        { titulo: "D", clientes: ["Sem carteira"], estado: "falta" },
+      ], ontem: [], atrasadas: [{ titulo: "E", clientes: ["Gonzalez"], estado: "falta" }] } } } },
+  });
+  vm.runInContext(fonte.match(/const escritorioDiaNaCarteira[^\n]*\n/)[0] + fonte.match(/function escritorioDiaDe[\s\S]*?\n}\n/)[0], c);
+  const de = (carteira) => vm.runInContext(`escritorioDiaDe({ id: 7 }, ${JSON.stringify(carteira)})`, c);
+  const titulos = (d) => [...d.paraHoje, ...d.atrasadas].map((x) => x.titulo).join("");
+  assert.equal(titulos(de("all")), "ABCDE");
+  assert.equal(titulos(de("vinicius")), "AC");
+  assert.equal(titulos(de("ewerton")), "BCE", "a peça das duas carteiras aparece nas duas");
+  assert.deepEqual([de("vinicius").nHoje.total, de("vinicius").nHoje.feitas], [2, 1]);
+  assert.deepEqual([de("ewerton").nHoje.total, de("ewerton").nHoje.feitas], [2, 0]);
+});
