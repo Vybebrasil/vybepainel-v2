@@ -10092,7 +10092,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-entra {animation:lg-entra .7s var(--curva,cubic-bezier(.22,1,.36,1)) both;animation-delay:calc(var(--o,0) * 90ms + 120ms)}
 @keyframes lg-entra {from {opacity:0;transform:translate(var(--dx,0),var(--dy,18px)) scale(.98)}}
 /* Topo: placa do jogador e recursos */
-.lg-topo {grid-area:topo;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.lg-topo {grid-area:topo;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"jogador recursos" "jogador noticias";align-items:start;gap:10px 16px}
+.lg-topo > .lg-jogador {grid-area:jogador}.lg-topo > .lg-recursos {grid-area:recursos;justify-self:end}.lg-topo > .lg-noticias {grid-area:noticias;justify-self:end;width:min(640px,100%);margin:0}
 .lg-jogador {--dy:-18px;display:flex;align-items:center;gap:14px;padding:10px 18px 10px 10px;border-radius:18px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 5px 0 var(--degrau),0 18px 40px #0008}
 .lg-anel {--p:0;position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:conic-gradient(#ffc35c,#ff8a1f calc(var(--p) * 1%),#ffffff1a 0)}
 .lg-anel::before {content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a3f52,#1b1e29)}
@@ -10107,12 +10108,12 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-xp i {position:relative;display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#8f7bff,#c7b3ff);overflow:hidden}
 .lg-xp i::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffffa0 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 2.8s var(--curva,ease) infinite}
 .lg-jogador-txt em {color:#b7bccb;font:600 10.5px var(--mac-ui);font-style:normal;font-variant-numeric:tabular-nums}
-.lg-recursos {--dy:-18px;display:flex;gap:10px;align-items:center}
+.lg-recursos {--dy:-18px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;align-items:center}
 .lg-pilula {display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:14px;background:var(--vidro);border:1px solid var(--borda-vidro);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau);font:900 17px var(--mac-ui);font-variant-numeric:tabular-nums}
 .lg-pilula:empty {display:none}
 .lg-moeda > i {width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a,0 0 12px #ffc93c66;position:relative}
 .lg-moeda > i::after {content:"V";position:absolute;inset:0;display:grid;place-items:center;color:#8a4d00;font:900 14px var(--mac-ui)}
-.lg-fogo {padding-left:12px;font-size:13px;font-weight:700;color:#ffd0a8}
+.lg-fogo {gap:6px;padding-left:12px;font-size:13px;font-weight:700;color:#ffd0a8;white-space:nowrap}
 .lg-fogo b {color:#fff;font-weight:900}
 /* O palco: feixe de luz, plataforma girando e faíscas subindo */
 .lg-palco {grid-area:palco;position:relative;display:grid;place-items:end center;min-height:0;padding-bottom:28px}
@@ -10139,7 +10140,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-botao-icone svg {width:24px;height:24px;fill:none;stroke:var(--cor);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 0 #0007)}
 .lg-botao-txt {grid-area:txt;display:grid;gap:2px;min-width:0}
 .lg-botao-txt b {font:850 15px var(--mac-ui)}
-.lg-botao-txt small {color:color-mix(in srgb,var(--cor) 55%,#d6dae3);font:600 11px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-botao-txt small {color:color-mix(in srgb,var(--cor) 55%,#d6dae3);font:600 11px/1.3 var(--mac-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lg-botao.alerta .lg-botao-txt small {color:#ffb3a8}
 .lg-botao:not(:disabled):hover {transform:translateY(-2px) translateX(-4px);border-color:color-mix(in srgb,var(--cor) 55%,transparent);box-shadow:inset 0 1px 0 #ffffff0d,0 6px 0 var(--degrau),0 16px 30px #0009}
 .lg-botao:not(:disabled):active {transform:translateY(4px);box-shadow:inset 0 1px 0 #ffffff0d,0 0 0 var(--degrau)}
@@ -10174,7 +10175,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-regra svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:1.9}
 /* A base: áudio, atalhos e o ENTRAR */
 .lg-base {--dy:26px;grid-area:base;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(280px,360px);align-items:center;gap:16px}
-.lg-audio {justify-self:start;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:16px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau)}
+.lg-audio {justify-self:start;width:max-content;max-width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:16px;background:var(--vidro);border:1px solid var(--borda-vidro);box-shadow:inset 0 1px 0 #ffffff0d,0 4px 0 var(--degrau)}
 .lg-redondo {display:grid;place-items:center;width:44px;height:44px;border-radius:12px;border:0;background:#2a2e3a;color:#fff;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 var(--degrau);transition:transform .15s var(--curva,ease),box-shadow .15s}
 .lg-redondo svg {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lg-redondo:active {transform:translateY(3px);box-shadow:0 1px 0 #000a}
@@ -10212,7 +10213,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (hover:none) {.lg-entrar kbd {display:none}}
 @container (max-width:900px) or (max-height:620px) {
   .lg-tela {grid-template-columns:1fr;grid-template-rows:auto minmax(270px,1fr) auto auto auto auto;grid-template-areas:"topo" "palco" "lado" "online" "regra" "base";gap:12px;padding:14px 14px 18px;overflow-y:auto}
-  .lg-topo {flex-wrap:wrap}
+  .lg-topo {grid-template-columns:minmax(0,1fr);grid-template-areas:"jogador" "recursos" "noticias"}
+  .lg-topo > .lg-recursos, .lg-topo > .lg-noticias {justify-self:stretch}.lg-recursos {justify-content:flex-start}
   .lg-jogador {padding:8px 14px 8px 8px}
   .lg-anel {width:58px;height:58px}.lg-anel img {width:44px;height:44px}
   .lg-jogador-txt > b {font-size:20px}.lg-xp {width:140px}

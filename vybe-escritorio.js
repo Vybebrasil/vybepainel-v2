@@ -467,7 +467,7 @@ function escritorioLobbyEsperaHtml() {
   // Botões de jogo, todos do mesmo desenho: cartão escuro, a peça do Habbo
   // num poço e o número num selo (vermelho quando pede atenção). Enquanto o
   // resumo chega, os botões ficam no lugar com o brilho passando.
-  const LG_ARTE = { missoes: "school_chalkboard", cobrancas: "exe_c15_telephone", recados: "nyc_c23_mailbox", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy" };
+  const LG_ARTE = { missoes: "exe_map", cobrancas: "exe_c15_telephone", recados: "nyc_c23_mailbox", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy" };
   const botao = (tipo, icone, nome, valor, detalhe, acao, alerta, sufixo = "") => `<button type="button" class="lg-botao jg-${tipo}${alerta ? " alerta" : ""}${e ? "" : " esqueleto"}" ${acao ? `onclick="${acao}"` : "disabled"} title="${safeText(detalhe || "")}"><span class="lg-botao-icone">${LG_ARTE[tipo] && typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(LG_ARTE[tipo]) : escritorioIcone(icone)}${valor != null && (Number(valor) || sufixo) ? `<b class="lg-selo"><span data-vb-contar="${Number(valor) || 0}" data-vb-chave="lobby-${tipo}-${eu}">${Number(valor)}</span>${sufixo}</b>` : ""}</span><span class="lg-botao-txt"><b>${nome}</b><small>${detalhe ? safeText(detalhe) : "&nbsp;"}</small></span></button>`;
   if (escritorio.base?.demo && !e) return "";
   const temSala = Boolean(escritorioMinhaMesa());
