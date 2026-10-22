@@ -10936,3 +10936,18 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @keyframes mapa-anel-copa {50% {opacity:.45;transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta.campeao, .mapa-taca, .mapa-faiscas i, .mapa-pessoa.campeao::before {animation:none!important}.mapa-faiscas {display:none}}
 [data-motion=reduce] :is(.mapa-etiqueta.solta.campeao, .mapa-taca, .mapa-faiscas i, .mapa-pessoa.campeao::before, .mapa-titulo i, .mapa-titulo span) {animation:none!important}
+/* Acabamento com os pisos e papéis de parede oficiais do Habbo (21/10/2026):
+   amostras com a textura de verdade, numa grade que rola; a escolhida com a
+   borda laranja. As cores lisas ficam embaixo, como "Básico". */
+.abr-acervo-bloco {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:10px 0 6px}
+.abr-acervo-coluna {display:grid;gap:8px;min-width:0}
+.abr-acervo-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;max-height:190px;overflow-y:auto;padding:8px;border-radius:14px;background:#0e1016;box-shadow:inset 0 1px 3px #000a;scrollbar-width:thin}
+.abr-acervo {aspect-ratio:1;padding:0;border:2px solid #0b0c10;border-radius:10px;background:#1d2029 center/64px auto repeat;image-rendering:pixelated;cursor:pointer;box-shadow:0 2px 0 #07080b;transition:transform .12s var(--curva,ease)}
+.abr-acervo.parede {background-size:48px auto}
+.abr-acervo:hover {transform:translateY(-2px)}
+.abr-acervo[aria-pressed=true] {border-color:#ff8a35;box-shadow:0 2px 0 #a24e0c,0 0 0 2px #ff8a3540}
+.abr-acervo:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
+.abr-acervo-grade.carregando i {aspect-ratio:1;border-radius:10px;background:linear-gradient(100deg,#1d2029 30%,#2a2e3b 50%,#1d2029 70%) 0 0/300% 100%;animation:vb-brilho 1.4s linear infinite}
+.abr-acabamentos.basico {opacity:.92}
+.abr-acabamentos.basico > .vb-jogo-rotulo {grid-column:1/-1}
+@media (max-width:760px) {.abr-acervo-bloco {grid-template-columns:1fr}}

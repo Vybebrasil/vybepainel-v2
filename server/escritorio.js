@@ -1,4 +1,21 @@
 import { avisosDaPessoa, mandarAviso, responderAviso } from "./escritorio-avisos.js";
+import { readFileSync as lerArquivoPlanos } from "node:fs";
+// Pisos e papéis de parede oficiais do Habbo que o quarto pessoal aceita
+// (os mesmos do mapa: habbo_quarto_planos.json, floorData e wallData).
+let PLANOS_QUARTO = null;
+function planosQuarto() {
+  if (PLANOS_QUARTO) return PLANOS_QUARTO;
+  try {
+    const rv = JSON.parse(lerArquivoPlanos(new URL("../assets/escritorio/habbo/habbo_quarto_planos.json", import.meta.url), "utf8")).roomVisualization || {};
+    const ids = (b) => new Set((b?.planes || []).map((p) => String(p.id)).filter((id) => /^\d{1,5}$/.test(id)));
+    PLANOS_QUARTO = { piso: ids(rv.floorData), parede: ids(rv.wallData) };
+  } catch { PLANOS_QUARTO = { piso: new Set(), parede: new Set() }; }
+  return PLANOS_QUARTO;
+}
+function planoValido(valor, tipo) {
+  const m = /^plano:(piso|parede):(\d{1,5})$/.exec(String(valor || ""));
+  return m && m[1] === tipo && planosQuarto()[tipo].has(m[2]) ? m[0] : "";
+}
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
@@ -57,7 +74,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -86,6 +103,10 @@ export function perfilEscritorio(valor = {}) {
     sala_piso: opcao("sala_piso", PISOS_SALA_ESCRITORIO, ""),
     sala_parede: opcao("sala_parede", PAREDES_SALA_ESCRITORIO, ""),
     sala_luz: opcao("sala_luz", LUZES_SALA_ESCRITORIO, ""),
+    // Piso e papel de parede oficiais do Habbo do quarto inteiro (21/10/2026,
+    // acabamento com o acervo); vazio: o piso e a cor acima.
+    sala_piso_plano: planoValido(valor.sala_piso_plano, "piso"),
+    sala_parede_plano: planoValido(valor.sala_parede_plano, "parede"),
     // Lado da porta do quarto, escolhido pelo dono (vazio: o padrão da sala).
     sala_porta: opcao("sala_porta", ["", "baixo", "direita"], ""),
     // Quarto "maquete": sem as paredes do quarto (o dono constrói as suas).
@@ -205,7 +226,7 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
     }
     const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
     if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {

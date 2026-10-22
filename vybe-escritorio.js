@@ -1152,7 +1152,7 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   if(!a || !String(id).endsWith('-andar-1')) return a || null;
   const perfil=escritorioPerfilDecoracao(id);
   if(!perfil?.quarto_configurado) return null;
-  const r={...a,id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,...escritorioOpcoesDoQuarto(perfil),porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
+  const r={...a,...escritorioPlanosDoPerfil(perfil,escritorioDimQuarto({planta:perfil.sala_planta})),id,nome:a.nome+' · segundo andar',planta:perfil.sala_planta,piso:perfil.sala_piso || a.pisoPadrao,cor:perfil.sala_parede || a.corPadrao,luz:perfil.sala_luz || '',celdasLivres:escritorioCeldasDoPerfil(perfil.sala_celdas),semParedes:perfil.sala_sem_paredes===true,...escritorioOpcoesDoQuarto(perfil),porta:['baixo','direita'].includes(perfil.sala_porta) ? perfil.sala_porta : a.porta};
   const dim=escritorioDimQuarto(r);r.x1=r.x0+dim.w;r.y1=r.y0+dim.h;
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
   const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
@@ -1193,6 +1193,7 @@ function escritorioAplicarSalas() {
     a.cor = /^#[0-9a-f]{6}$/i.test(perfil?.sala_parede || "") ? perfil.sala_parede : a.corPadrao;
     a.luz = ESCRITORIO_LUZES_SALA.some(([id]) => id === perfil?.sala_luz) ? perfil.sala_luz : "";
     a.celdasLivres = escritorioCeldasDoPerfil(perfil?.sala_celdas);
+    Object.assign(a, escritorioPlanosDoPerfil(perfil, dim));
     a.semParedes = perfil?.sala_sem_paredes === true;
     Object.assign(a, escritorioOpcoesDoQuarto(perfil));
     // Lado da porta: o escolhido pelo dono ou o padrão da sala.
@@ -1226,6 +1227,12 @@ function escritorioAplicarSalas() {
 }
 // Ao chegar, a pessoa aparece dentro do próprio quarto (modo foco), logo
 // depois da porta; sem sala, na Convivência.
+// Piso e papel de parede oficiais do Habbo escolhidos para o quarto inteiro
+// (sala_piso_plano / sala_parede_plano); sem escolha, o piso e a cor da sala.
+function escritorioPlanosDoPerfil(perfil, dim) {
+  const piso = /^plano:piso:\d+$/.test(perfil?.sala_piso_plano || "") ? perfil.sala_piso_plano : "";
+  return { texturas: piso ? [{ x0: 0, y0: 0, x1: dim.w, y1: dim.h, textura: piso }] : [], texturaParede: /^plano:parede:\d+$/.test(perfil?.sala_parede_plano || "") ? perfil.sala_parede_plano : "" };
+}
 function escritorioChegar() {
   const base = escritorio.base;
   if (!base.demo && !base.convidado) iniciarAvisosEscritorio();

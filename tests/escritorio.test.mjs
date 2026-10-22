@@ -1194,6 +1194,19 @@ test("perfil: piso e parede da sala só com valores conhecidos", () => {
   assert.equal(q.sala_parede, "");
 });
 
+test("perfil: piso e parede oficiais do Habbo só os que existem no acervo", () => {
+  const ok = perfilEscritorio({ sala_piso_plano: "plano:piso:307", sala_parede_plano: "plano:parede:218" });
+  assert.equal(ok.sala_piso_plano, "plano:piso:307");
+  assert.equal(ok.sala_parede_plano, "plano:parede:218");
+  // Número que não existe, tipo trocado ou texto livre: fica vazio.
+  assert.equal(perfilEscritorio({ sala_piso_plano: "plano:piso:99999" }).sala_piso_plano, "");
+  assert.equal(perfilEscritorio({ sala_parede_plano: "plano:piso:307" }).sala_parede_plano, "");
+  assert.equal(perfilEscritorio({ sala_piso_plano: "url(javascript:x)" }).sala_piso_plano, "");
+  // O segundo andar guarda os mesmos campos.
+  const dois = perfilEscritorio({ sala_andares: [{ andar: 1, sala_planta: "quadrado-m", sala_piso_plano: "plano:piso:307", quarto_configurado: true }] });
+  assert.equal(dois.sala_andares[0].sala_piso_plano, "plano:piso:307");
+});
+
 test("perfil: piso pintado e paredes só no formato certo", () => {
   // Grade de 24 × 24 (o maior quarto, desde 21/10/2026): 576 ladrilhos e 96
   // trechos de parede (24 por lado). As antigas, de 8, 12 e 20, valem ampliadas.
