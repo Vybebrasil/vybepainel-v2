@@ -9217,16 +9217,17 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
 .ofc-ficha.jogador .ofc-hud-id h3 {font-size:24px;letter-spacing:-.02em}
 .ofc-ficha.jogador .ofc-hud-selo::before {background:linear-gradient(135deg,color-mix(in srgb,var(--tier) 60%,#fff),var(--tier));box-shadow:0 0 0 2px #2a1a10,0 0 0 4px color-mix(in srgb,var(--tier) 40%,transparent),0 6px 14px color-mix(in srgb,var(--tier) 35%,transparent)}
 .ofc-ficha.jogador .ofc-hud-moedas {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
-.ofc-ficha.jogador .ofc-hud-moedas span {display:grid;justify-items:center;gap:2px;min-width:0;padding:8px 4px;border-radius:12px;background:#ffffff08;border-color:#ffffff12;text-align:center}
+.ofc-ficha.jogador .ofc-hud-moedas span {display:grid;justify-items:center;gap:2px;min-width:0;padding:8px 4px 9px;border:2px solid #0b0c10;border-radius:14px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff12,0 4px 0 var(--vb-jogo-degrau,#0e1016);text-align:center}
 .ofc-ficha.jogador .ofc-hud-moedas svg {width:20px;height:20px}
-.ofc-ficha.jogador .ofc-hud-moedas b {font-size:16px;line-height:1.1}
+.ofc-ficha.jogador .ofc-hud-moedas b {font:900 17px/1.1 var(--mac-ui);text-shadow:0 2px 0 #000}
 .ofc-ficha.jogador .ofc-hud-moedas small {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9aa1b2;font-size:10.5px}
 .ofc-ficha.jogador .ofc-hud-moedas .rk {cursor:pointer;border-color:#ff8a3540}
 .ofc-ficha.jogador > .ofc-hud-topo {position:static}
 .ofc-ficha.jogador > .ofc-hud-topo > .ofc-x {z-index:3;top:12px;right:12px}
-.ofc-ficha.jogador .ofc-hud-abas button {border-radius:999px;padding:7px 14px}
+.ofc-ficha.jogador .ofc-hud-abas button {border-radius:12px 12px 0 0;padding:9px 14px;font-weight:800}
 .ofc-ficha.jogador .ofc-hud-abas {gap:4px;border-bottom:1px solid #ffffff12;padding-bottom:10px}
-.ofc-ficha.jogador .ofc-hud-abas button[aria-selected="true"] {background:#fff;color:#14151b;box-shadow:none}
+/* Aba escolhida como aba de jogo: mais clara, texto laranja e a barra laranja embaixo (era uma pílula branca). */
+.ofc-ficha.jogador .ofc-hud-abas button[aria-selected="true"] {background:#262a36;color:#ffcf9e;box-shadow:inset 0 1px 0 #ffffff14,inset 0 -3px 0 #ff8a35}
 @media (max-width:760px) {
   .ofc-ficha.jogador {height:calc(100vh - 16px);width:calc(100vw - 16px)}
   .ofc-ficha.jogador[open] {display:flex;flex-direction:column;overflow-y:auto}
@@ -10865,3 +10866,20 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-coluna .office-call .office-call-media {gap:0;margin:0 10px 10px;padding:0;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000a;overflow:hidden}
 .ofc-coluna .office-call-media > div {padding:10px 12px;border-radius:0;background:none}
 .ofc-coluna .office-call-media > div + div {border-top:1px solid #ffffff0d}
+
+/* Ficha do jogador no padrão de jogo (Paulo, 21/10/2026): cada bloco do Resumo
+   é uma janela de jogo (faixa de título, corpo escuro com degrau), as listas
+   (próximos troféus, ganhos) ficam num poço com uma linha por item e os
+   ganhos em texto colorido, sem pílula; os botões de baixo têm degrau e o
+   "Ir para o quarto" é o laranja. */
+.ofc-ficha.jogador .ofc-hud-bloco {gap:10px;padding:0 12px 12px;border:2px solid #0b0c10;border-radius:16px;background:var(--vb-jogo-fundo,#1d2029);box-shadow:inset 0 1px 0 #ffffff12,0 4px 0 var(--vb-jogo-degrau,#0e1016);overflow:hidden}
+.ofc-ficha.jogador .ofc-hud-bloco-topo {margin:0 -12px;padding:10px 14px;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1a,0 1px 0 #0b0c10;align-items:center}
+.ofc-ficha.jogador .ofc-hud-bloco h4 {font:900 14.5px var(--mac-ui);text-shadow:0 2px 0 #000}
+.ofc-ficha.jogador :is(.ofc-hud-ganhos, .ofc-hud-proximos) {gap:0;padding:2px 0;border-radius:12px;background:#0e1016;box-shadow:inset 0 1px 3px #000a}
+.ofc-ficha.jogador :is(.ofc-hud-ganhos, .ofc-hud-proximos) > li {border-radius:0;background:none;border:0}
+.ofc-ficha.jogador :is(.ofc-hud-ganhos, .ofc-hud-proximos) > li + li {border-top:1px solid #ffffff0d}
+.ofc-ficha.jogador .ofc-hud-chip {padding:0 2px;background:none}
+.ofc-ficha.jogador .ofc-ficha-acoes button {min-height:46px;border:2px solid #0b0c10;border-radius:14px;background:#262a36;color:#fff;font:800 13.5px var(--mac-ui);box-shadow:inset 0 1px 0 #ffffff14,0 4px 0 var(--vb-jogo-degrau,#0e1016);transition:transform .14s var(--curva,ease),box-shadow .14s}
+.ofc-ficha.jogador .ofc-ficha-acoes button:first-child {background:linear-gradient(180deg,#ffb15c,#ff8a35);color:#1c0b00;box-shadow:inset 0 1px 0 #fff6,0 4px 0 #a24e0c}
+.ofc-ficha.jogador .ofc-ficha-acoes button:hover {transform:translateY(-2px)}
+.ofc-ficha.jogador .ofc-ficha-acoes button:active {transform:translateY(3px);box-shadow:0 0 0 var(--vb-jogo-degrau,#0e1016)}
