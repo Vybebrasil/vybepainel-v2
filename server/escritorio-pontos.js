@@ -615,3 +615,53 @@ async function fecharRankingSemana(tx, inicio) {
   if (r.agencia.bateu) for (const p of r.pessoas) if (await aplicar(tx, p.id, 'meta_agencia', `agencia-semana:${inicio}`, fim)) agencia++;
   return { inicio, pagos, agencia };
 }
+
+// Leitura do trabalho para a ficha: mesmas contribuições do ranking, sem
+// conceder pontos. Cada peça conta uma vez por papel, na primeira entrega.
+export async function desempenhoTrabalho(sql, pessoaId, agora = new Date()) {
+  if (!await pontosProntos(sql)) return { disponivel: false };
+  const hoje = diaBahia(agora), desde = somarDias(hoje, -179);
+  const [[funcao], linhas, recordes, ganhos] = await Promise.all([
+    sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`,
+    sql`WITH fontes AS (
+      SELECT regra,conteudo_id,origem,dia FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId}
+      UNION ALL SELECT m.regra,m.conteudo_id,m.origem,vybe_dia_bahia(m.criado_em) AS dia
+      FROM vybe_escritorio_moedas m WHERE m.pessoa_id=${pessoaId}
+      AND m.regra = ANY(${ATIVIDADES_DO_RANKING.map(([r]) => r)}::text[])
+      AND NOT EXISTS(SELECT 1 FROM vybe_escritorio_entregas e WHERE e.pessoa_id=m.pessoa_id AND e.origem=m.origem)
+    ), unicas AS (
+      SELECT regra,conteudo_id,CASE WHEN conteudo_id IS NULL THEN origem ELSE '' END AS evento,min(dia) AS dia
+      FROM fontes WHERE dia <= ${hoje}::date
+      GROUP BY 1,2,3
+    ) SELECT e.regra,TO_CHAR(e.dia,'YYYY-MM-DD') AS dia,
+      COALESCE(NULLIF(lower(trim(split_part(c.formato,',',1))),''),'sem formato') AS formato,count(*)::int AS n
+      FROM unicas e LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id
+      WHERE e.dia >= ${desde}::date GROUP BY 1,2,3 ORDER BY 2`,
+    sql`WITH fontes AS (
+      SELECT regra,conteudo_id,origem,dia FROM vybe_escritorio_entregas WHERE pessoa_id=${pessoaId}
+      UNION ALL SELECT m.regra,m.conteudo_id,m.origem,vybe_dia_bahia(m.criado_em) AS dia
+      FROM vybe_escritorio_moedas m WHERE m.pessoa_id=${pessoaId}
+      AND m.regra = ANY(${ATIVIDADES_DO_RANKING.map(([r]) => r)}::text[])
+      AND NOT EXISTS(SELECT 1 FROM vybe_escritorio_entregas e WHERE e.pessoa_id=m.pessoa_id AND e.origem=m.origem)
+    ), unicas AS (
+      SELECT regra,conteudo_id,CASE WHEN conteudo_id IS NULL THEN origem ELSE '' END AS evento,min(dia) AS dia
+      FROM fontes WHERE dia <= ${hoje}::date GROUP BY 1,2,3
+    ), diarios AS (
+      SELECT e.regra,COALESCE(NULLIF(lower(trim(split_part(c.formato,',',1))),''),'sem formato') AS formato,e.dia,count(*)::int AS n
+      FROM unicas e LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id GROUP BY 1,2,3
+      UNION ALL SELECT regra,NULL AS formato,dia,count(*)::int AS n FROM unicas GROUP BY 1,3
+    ), posicoes AS (
+      SELECT *,min(dia) OVER(PARTITION BY regra,formato) AS primeiro,dense_rank() OVER(PARTITION BY regra,formato ORDER BY n DESC) AS pos FROM diarios
+    ) SELECT regra,formato,max(n)::int AS n,min(dia)::text AS dia,min(primeiro)::text AS primeiro,count(*)::int AS empates
+      FROM posicoes WHERE pos=1 GROUP BY 1,2`,
+    sql`SELECT vybe_dia_bahia(criado_em)::text AS dia,regra,COALESCE(sum(pontos),0)::int AS xp
+      FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra IS NOT NULL
+      AND NOT (regra = ANY(${FORA_DO_RANKING}::text[]))
+      AND vybe_dia_bahia(criado_em) BETWEEN ${desde}::date AND ${hoje}::date GROUP BY 1,2`
+  ]);
+  return { disponivel: true, hoje, desde, funcao: funcao?.funcao || null,
+    atividades: ATIVIDADES_DO_RANKING.map(([regra,nome]) => ({regra,nome})),
+    linhas: linhas.map(l => ({...l,n:Number(l.n)})),
+    recordes: recordes.map(l => ({...l,n:Number(l.n),empates:Number(l.empates)})),
+    ganhos: ganhos.map(l => ({...l,xp:Number(l.xp)})) };
+}

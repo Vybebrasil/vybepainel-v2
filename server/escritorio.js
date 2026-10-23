@@ -389,13 +389,13 @@ export async function areaEscritorio(req, res, quem, sql) {
       if (outra && !/^\d+$/.test(outra)) return res.status(400).json({ error: "Pessoa inválida." });
       return res.status(200).json({ok:true,economia:await carregarEconomia(sql,outra ? Number(outra) : pessoa.id,{loja:!outra})});
     }
-    // Perfil do jogo aberto a toda a equipe (decisão do Paulo, 19/10/2026;
-    // sem ranking comparativo): moedas, nível, marcos e móveis. Desempenho no
-    // trabalho continua na rota "economia", restrita.
+    // Perfil do jogo aberto a toda a equipe (decisão do Paulo, 19/10/2026):
+    // moedas, nível, marcos e móveis. A aba Trabalho pode solicitar agregados
+    // públicos; extrato pessoal e economia detalhada continuam restritos.
     if (acao === "perfil-publico") {
       const alvo = String(req.query?.pessoa || pessoa.id);
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
-      return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo)) });
+      return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo), { trabalho: req.query?.trabalho === "1" }) });
     }
     if (acao === "ranking") return res.status(200).json({ ok: true, ...(await rankingEscritorio(sql, new Date(), { periodo: String(req.query?.periodo || "semana") })) });
     if (acao === "movel-origem") {

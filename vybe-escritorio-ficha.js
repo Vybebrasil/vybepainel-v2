@@ -265,6 +265,74 @@ ${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extra
 // selo do nível, a barra de XP e as moedas; abas no lugar da rolagem longa.
 // Os valores de "como ganhar" e os ganhos da semana vêm do servidor (tabela
 // de regras e razão de moedas), nunca de constante aqui.
+// Trabalho usa a leitura pública da ficha, carregada só ao abrir esta aba.
+function escritorioTrabalhoCarregar(id, tentar = false) {
+  const k = String(id), cache = (escritorio.trabalhos ||= {}), anterior = cache[k];
+  if (anterior?.carregando || (!tentar && anterior && Date.now() - anterior.em < 60000)) return;
+  cache[k] = { carregando: true, em: Date.now() };
+  escritorioApi('perfil-publico', null, { pessoa: k, trabalho: '1' }).then(r => {
+    if (!r?.perfil?.trabalho) throw new Error('A resposta não trouxe os números de trabalho.');
+    cache[k] = { dados: r.perfil.trabalho, em: Date.now() };
+  }).catch(() => { cache[k] = { erro: true, em: Date.now() }; }).finally(() => {
+    if (escritorio.fichaDe === k && document.getElementById('office-ficha')?.open) abrirFichaEscritorio(k, true);
+  });
+}
+function escritorioTrabalhoFiltro(id, campo, valor) {
+  ((escritorio.trabalhoFiltros ||= {})[String(id)] ||= {})[campo] = valor;
+  abrirFichaEscritorio(id, true);
+}
+function escritorioTrabalhoConta(dados, { dias = 28, regra, formato = '' } = {}) {
+  const somar = (iso,n) => new Date(Date.parse(iso+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+  const util = d => ![0,6].includes(new Date(d+'T12:00:00Z').getUTCDay());
+  const fim = dados.hoje, inicio = somar(fim,1-dias), anterior = somar(inicio,-dias);
+  const linhas = (dados.linhas || []).filter(l => l.regra === regra && (!formato || l.formato === formato));
+  const porDia = new Map();
+  for (const l of linhas) porDia.set(l.dia,(porDia.get(l.dia)||0)+Number(l.n));
+  const serie = Array.from({length:dias},(_,i) => { const dia=somar(inicio,i); return {dia,n:porDia.get(dia)||0,util:util(dia)}; });
+  const passada = Array.from({length:dias},(_,i) => { const dia=somar(anterior,i); return {dia,n:porDia.get(dia)||0,util:util(dia)}; });
+  const recorde=(dados.recordes||[]).find(r=>r.regra===regra&&(formato ? r.formato===formato : r.formato===null));
+  const primeiro=recorde?.primeiro||null;
+  const resumo = s => { s=s.filter(d=>!primeiro||d.dia>=primeiro); const total=s.reduce((n,d)=>n+d.n,0), uteis=s.filter(d=>d.util), ativos=s.filter(d=>d.n>0).length;
+    return {total,ativos,diasUteis:uteis.length,diasCobertos:s.length,media:uteis.length ? uteis.reduce((n,d)=>n+d.n,0)/uteis.length : 0,mediaAtiva:ativos?total/ativos:0}; };
+  const atual=resumo(serie), antes=resumo(passada), variacao=antes.media && (!primeiro || primeiro<=anterior) ? (atual.media/antes.media-1)*100 : null;
+  const formatos = [...new Set((dados.linhas||[]).filter(l=>l.regra===regra).map(l=>l.formato))].sort();
+  const distribuicao = formatos.map(f=>({formato:f,n:linhas.filter(l=>l.formato===f&&l.dia>=inicio&&l.dia<=fim).reduce((n,l)=>n+l.n,0)})).filter(l=>l.n).sort((a,b)=>b.n-a.n);
+  return {inicio,fim,anterior,serie,passada,atual,antes,variacao,formatos,distribuicao,recorde,primeiro};
+}
+function escritorioTrabalhoHtml(id) {
+  const k=String(id), cache=escritorio.trabalhos?.[k], sid=safeText(k);
+  if (!cache || cache.carregando) return vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando desempenho' });
+  if (cache.erro) return vbEstadoHtml({ tipo:'erro', titulo:'Não foi possível carregar o trabalho', texto:'Tente novamente para consultar os números atuais.', acao:`<button class="vb-jogo-botao" onclick="escritorioTrabalhoCarregar('${sid}',true);abrirFichaEscritorio('${sid}',true)">Tentar de novo</button>` });
+  const d=cache.dados;
+  if (!d?.disponivel) return vbEstadoHtml({ titulo:'Histórico ainda indisponível', texto:'Os números aparecem quando a contagem de trabalho estiver ativa.' });
+  if (!d.linhas?.length && !d.recordes?.length) return vbEstadoHtml({ titulo:'Seu histórico começa com as primeiras contribuições', texto:'Entregas, captações, agendamentos e outras ações registradas aparecerão aqui.', acao:`<button class="ofc-secundario" onclick="escolherAbaFichaEscritorio('${sid}','resumo')">Voltar ao resumo</button>` });
+  const f=escritorio.trabalhoFiltros?.[k]||{}, dias=[7,28,90].includes(Number(f.dias))?Number(f.dias):28;
+  const padrao={criacao:'peca_criacao',producao:'peca_producao',atendimento:'peca_atendimento',agendamento:'peca_agendamento',gestao:'peca_gestao'}[d.funcao]||'peca_criacao';
+  const atividades=d.atividades||[], regra=atividades.some(a=>a.regra===f.regra)?f.regra:padrao;
+  const formatos=[...new Set((d.linhas||[]).filter(l=>l.regra===regra).map(l=>l.formato))].sort();
+  const formato=formatos.includes(f.formato)?f.formato:'', c=escritorioTrabalhoConta(d,{dias,regra,formato});
+  const nome=atividades.find(a=>a.regra===regra)?.nome||'Contribuições', n=v=>Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:1}), data=v=>new Date(v+'T12:00:00Z').toLocaleDateString('pt-BR',{timeZone:'UTC'});
+  const opc=(v,t,atual)=>`<option value="${safeText(v)}" ${v===atual?'selected':''}>${safeText(t)}</option>`;
+  const filtro=(campo,rotulo,opcoes)=>`<label>${rotulo}<select onchange="escritorioTrabalhoFiltro('${sid}','${campo}',this.value)">${opcoes}</select></label>`;
+  const card=(titulo,valor,texto)=>`<div class="vb-jogo-cartao"><span class="vb-jogo-rotulo">${titulo}</span><strong class="vb-jogo-numero">${valor}</strong><small>${texto}</small></div>`;
+  const max=Math.max(1,...c.serie.map(l=>l.n),...c.passada.map(l=>l.n)), pontos=c.serie.map((l,i)=>`${20+i*680/Math.max(1,dias-1)},${160-l.n/max*125}`).join(' '), anteriores=c.passada.map((l,i)=>`${20+i*680/Math.max(1,dias-1)},${160-l.n/max*125}`).join(' ');
+  const pico=c.serie.reduce((a,b)=>b.n>a.n?b:a,c.serie[0]);
+  const xp=(d.ganhos||[]).filter(l=>l.dia>=c.inicio&&l.dia<=c.fim).reduce((n,l)=>n+l.xp,0);
+  return `<div class="ofc-trabalho">
+${vbCabecalhoHtml({titulo:'Evolução no trabalho',texto:'Volume por contribuição, ritmo e recordes. Cada número explica o que foi contado.'})}
+<div class="ofc-trabalho-filtros">${filtro('dias','Período',[7,28,90].map(v=>opc(String(v),`Últimos ${v} dias`,String(dias))).join(''))}${filtro('regra','Contribuição',atividades.map(a=>opc(a.regra,a.nome,regra)).join(''))}${filtro('formato','Formato',opc('','Todos os formatos',formato)+formatos.map(v=>opc(v,v,formato)).join(''))}</div>
+<p class="ofc-nota">${data(c.inicio)} a ${data(c.fim)} · Hoje ainda está em andamento.${c.primeiro?` Histórico deste recorte desde ${data(c.primeiro)}.`:""}</p>
+<div class="ofc-trabalho-kpis">${card(safeText(nome),n(c.atual.total),formato?safeText(formato):'No período selecionado')}${card('Média por dia útil',n(c.atual.media),`${c.atual.diasUteis} dias de segunda a sexta, incluindo zeros`)}${card('Evolução da média',c.variacao===null?'Sem base':`${c.variacao>0?'+':''}${n(c.variacao)}%`,`${n(c.antes.media)} por dia útil no período anterior`)}${card('Dias com contribuição',`${c.atual.ativos} / ${c.atual.diasCobertos}`,`${n(c.atual.mediaAtiva)} por dia com atividade, inclusive fins de semana`)}</div>
+<section class="vb-jogo-cartao ofc-trabalho-grafico"><div class="ofc-hud-bloco-topo"><h4>Ritmo diário · ${safeText(nome)}</h4><small>Quantidade de contribuições</small></div>
+<svg viewBox="0 0 720 190" role="img" aria-label="${safeText(nome)} por dia. Total ${c.atual.total}; pico ${pico.n} em ${data(pico.dia)}."><path d="M20 35H700 M20 97H700 M20 160H700" class="ofc-trabalho-eixos"/><polygon points="20,160 ${pontos} 700,160" class="ofc-trabalho-area"/><polyline points="${anteriores}" class="ofc-trabalho-anterior"/><polyline points="${pontos}" class="ofc-trabalho-linha"/>${c.serie.map((l,i)=>`<circle tabindex="0" cx="${20+i*680/Math.max(1,dias-1)}" cy="${160-l.n/max*125}" r="3"><title>${data(l.dia)}: ${l.n}</title></circle>`).join('')}<text x="20" y="24">${max}</text><text x="20" y="185">${data(c.inicio)}</text><text x="700" y="185" text-anchor="end">${data(c.fim)}</text></svg>
+<p class="ofc-trabalho-legenda"><span>Traço laranja: período escolhido</span><span>Tracejado cinza: período anterior, alinhado por dia da janela</span></p><details><summary>Ver os valores por dia</summary><div class="ofc-trabalho-tabela"><table><thead><tr><th>Dia</th><th>Quantidade</th></tr></thead><tbody>${c.serie.map(l=>`<tr><td>${data(l.dia)}</td><td>${l.n}</td></tr>`).join('')}</tbody></table></div></details></section>
+<div class="ofc-trabalho-dupla"><section class="vb-jogo-cartao"><h4>Recorde histórico registrado</h4>${c.recorde?`<strong class="vb-jogo-numero">${n(c.recorde.n)}</strong><p>${safeText(nome)}${formato?' · '+safeText(formato):''} em ${data(c.recorde.dia)}.</p><small>${c.recorde.empates>1?`Mesma marca em ${c.recorde.empates} dias; exibimos o primeiro.`:'Maior volume em um dia no histórico disponível.'}</small>`:'<p>Ainda não há contribuição registrada nesta seleção.</p>'}</section>
+<section class="vb-jogo-cartao"><h4>Participação no ranking</h4><strong class="vb-jogo-numero">${n(xp)} XP</strong><p>XP de trabalho de todos os papéis neste período, incluindo bônus de trabalho e penalidades.</p><small>Conquistas, compras e prêmios da Copa ficam fora. Quantidade e XP medem coisas diferentes.</small></section></div>
+<section class="vb-jogo-cartao"><h4>Todas as contribuições no período</h4><div class="ofc-trabalho-tabela"><table><thead><tr><th>Contribuição</th><th>Quantidade</th><th>XP</th></tr></thead><tbody>${atividades.map(a=>{const qtd=(d.linhas||[]).filter(l=>l.regra===a.regra&&l.dia>=c.inicio&&l.dia<=c.fim).reduce((n,l)=>n+l.n,0), xpRegra=(d.ganhos||[]).filter(l=>l.regra===a.regra&&l.dia>=c.inicio&&l.dia<=c.fim).reduce((n,l)=>n+l.xp,0);return qtd||xpRegra?`<tr><td>${safeText(a.nome)}</td><td>${n(qtd)}</td><td>${n(xpRegra)}</td></tr>`:'';}).join('')||'<tr><td colspan="3">Sem contribuições no período.</td></tr>'}</tbody></table></div><small>Linhas são papéis e ações, não um total de demandas únicas. Ações no painel mostram apenas as recompensadas (até 10 por dia). Bônus e penalidades podem mudar o XP total.</small></section>
+<section class="vb-jogo-cartao"><h4>Composição por formato</h4>${c.distribuicao.length?`<ul class="ofc-trabalho-formatos">${c.distribuicao.map(l=>`<li><span>${safeText(l.formato)}</span><meter min="0" max="${Math.max(...c.distribuicao.map(v=>v.n))}" value="${l.n}">${l.n}</meter><b>${n(l.n)}</b></li>`).join('')}</ul>`:'<p>Nenhuma contribuição neste período. Escolha outro período ou papel para consultar o histórico.</p>'}</section>
+<details class="vb-jogo-cartao"><summary>Como interpretar estes números</summary><p>Uma peça conta uma vez por papel, no primeiro registro de entrega. Executar, captar, aprovar como DA, agendar e acompanhar como head são contribuições diferentes. Elas não são somadas como peças produzidas.</p><p>A média por dia útil usa apenas as contribuições de segunda a sexta e divide por todos esses dias, inclusive os sem registro após a primeira contribuição conhecida deste recorte. Dias anteriores a ela ficam fora. Não desconta férias, feriados ou afastamentos. A comparação usa os ${dias} dias anteriores e a mesma média; sem cobertura completa anterior, não exibe variação. O dia atual é parcial.</p><p>As séries cobrem até 180 dias; os recordes usam todo o histórico disponível. Formato é o formato principal cadastrado hoje, e pode ter sido alterado. Uma demanda de foto não informa quantas fotos foram feitas. Agendamento não comprova publicação. Registro ausente não prova falta de trabalho, e tempo online não entra na conta.</p></details></div>`;
+}
+
 const ESCRITORIO_FICHA_ABAS = [["resumo", "Resumo"], ["ganhar", "Como ganhar"], ["conquistas", "Conquistas"], ["inventario", "Inventário"], ["trabalho", "Trabalho"]];
 const escritorioFichaIcone = (nome) => ({
   moeda: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f5b83d" stroke="#8a5a12" stroke-width="1.6"/><circle cx="12" cy="12" r="6" fill="none" stroke="#ffe08a" stroke-width="1.2"/><path d="M9.6 9.2 12 15l2.4-5.8" fill="none" stroke="#8a5a12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -295,7 +363,6 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const economia = eu ? escritorio.base?.economia : escritorio.fichas?.[String(id)];
   const pontos = veNumeros ? economia?.pontos || null : null;
   const marcos = veNumeros ? economia?.marcos || null : null;
-  const t = pontos?.trabalho || null;
   const pub = escritorio.perfisPublicos?.[String(id)];
   const jogo = pub && pub.disponivel ? pub : null;
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
@@ -305,7 +372,7 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const pct = xpProx ? Math.round(((xp || 0) / xpProx) * 100) : 0;
   const moveis = (jogo?.inventario || []).filter((i) => !String(i.classe).startsWith("roupa:")).reduce((n, i) => n + Number(i.quantidade || 0), 0);
   const conquistas = jogo?.conquistas ?? (marcos ? marcos.filter((m) => m.ok).length : null);
-  const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || !["ganhar", "trabalho"].includes(k));
+  const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || k !== "ganhar");
   const aba = abas.some(([k]) => k === escritorio.fichaAba) ? escritorio.fichaAba : "resumo";
   const sid = safeText(String(id));
   const carregando = (texto) => `<p class="ofc-nota ofc-hud-vazio">${texto}</p>`;
@@ -354,11 +421,8 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
     const trofeus = inv.filter((i) => deTrofeu.has(i.classe)).sort((a, b) => deTrofeu.get(b.classe).nivel - deTrofeu.get(a.classe).nivel), outros = inv.filter((i) => !deTrofeu.has(i.classe));
     corpo = pub === undefined ? carregando("Carregando o inventário…") : inv.length ? `${trofeus.length ? `<h4 class="ofc-hud-sub">Troféus <small>${trofeus.length}</small></h4><ul class="ofc-ficha-inventario ofc-hud-inventario">${trofeus.map(item).join("")}</ul>` : ""}${outros.length ? `<h4 class="ofc-hud-sub">Móveis <small>${outros.length}</small></h4><ul class="ofc-ficha-inventario ofc-hud-inventario">${outros.map(item).join("")}</ul>` : ""}` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>';
   } else if (aba === "trabalho") {
-    const oQue = { criacao: "pelas peças que você fez e demandas finalizadas", atendimento: "pelas peças dos clientes da sua carteira", agendamento: "pelas peças agendadas", producao: "pelas fotos e vídeos captados", gestao: "pelas peças da agência, briefings e dias sem furo" }[t?.funcao] || "pelas entregas";
-    const n = (rotulo, valor, dica) => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd><small>${dica}</small></div>`;
-    corpo = !economia ? carregando("Carregando os números de trabalho…") : !t ? '<p class="ofc-nota">Os números de trabalho aparecem quando a contagem de pontos estiver ativa.</p>'
-      : `<dl class="ofc-ficha-numeros ofc-hud-numeros">${n("Hoje", t.hoje, "Entregas de hoje")}${n("Na semana", t.semana, "Desde segunda")}${n("No mês", t.mes, "Neste mês")}${n("Sequência", t.sequencia + (t.sequencia === 1 ? " dia" : " dias"), "Dias úteis seguidos com entrega")}${n("No total", t.total, "Todas as entregas")}${n("Meta", pontos.meta ? `${pontos.meta.entregas || 0}/${pontos.meta.meta || 1}` : "–", "Da semana")}</dl>
-<p class="ofc-nota">Contado ${safeText(oQue)}: as mesmas entregas que dão XP e contam na meta.${eu ? "" : " Visto por quem administra."}</p>`;
+    corpo = escritorioTrabalhoHtml(id);
+    escritorioTrabalhoCarregar(id);
   }
   const quarto = escritorioQuartoDe(id);
   const fechar = "document.getElementById('office-ficha').close();";

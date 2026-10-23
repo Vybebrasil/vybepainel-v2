@@ -352,3 +352,17 @@ conferiu acabamento em prévia e desfazer em desktop; ajustes finais não tivera
 revisão visual completa porque o navegador bloqueou acesso à aba local.
 Celular final, medição de CPU/memória no Safari e mídia não estão validados.
 Não publicado; não confundir demonstração com homologação de persistência.
+
+## 23/10/2026 — publicação da construção e Trabalho local
+
+Construção publicada no PR #356 (merge `998671e`, deployment
+`dpl_7wskc3Tbd3odLFkyKMb2RRxJ84HP`, READY). CI e preview passaram no
+commit aprovado. HTML 200, API protegida 401 e Monday 410; sem escrita real.
+
+Nova aba Trabalho permanece local: testes PostgreSQL isolados cobrem deduplicação,
+separação de papéis/pessoas, ações por origem, fuso da Bahia, exclusão de prêmio
+no XP, recordes anteriores à série e base vazia. Testes de cálculo cobrem média
+útil com zeros, fim de semana, comparação e início da cobertura. Regressões de
+ranking/economia passaram. Sintaxe e build aprovados. Não houve inspeção visual
+automatizada por bloqueio de segurança; Paulo está revisando a demonstração.
+Não houve medição de custo/latência em produção nem alteração de fórmulas/dados.
