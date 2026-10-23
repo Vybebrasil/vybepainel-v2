@@ -50,3 +50,21 @@ test('cena ativa continua iniciando a animação quando a arte fica pronta', () 
   a.c.cargaTerminou();
   assert.deepEqual(a.intervalos, ['novo']);
 });
+
+test('pôster grande responde à altura acima e abaixo do encaixe da parede', () => {
+  const c = vm.createContext({});
+  vm.runInContext(fonte, c);
+  const topo = a => vm.runInContext(`mapaTopoItemParede(200,-180,180,82,${a})`, c);
+  assert.equal(topo(0),122);
+  assert.equal(topo(.25),114);
+  assert.equal(topo(-.25),130);
+  assert.equal(topo(5),-38);
+});
+
+test('servidor preserva ajuste negativo só para peças do catálogo de parede', async () => {
+  const {itensValidos} = await import('../server/escritorio-mapa.js');
+  const item = ['ads_volkswagen_poster',1,0,4,0,-.25];
+  assert.deepEqual(itensValidos('sala-0',[item]),[item]);
+  assert.throws(()=>itensValidos('sala-0',[['chair_norja',1,1,2,0,-.25]]),/altura/);
+  assert.throws(()=>itensValidos('sala-0',[[...item.slice(0,5),-40.1]]),/altura/);
+});
