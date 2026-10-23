@@ -13,6 +13,8 @@ export async function emitirCodigo(sql, pessoaId, segredo, agora = Date.now()) {
     FROM vybe_pessoas p
     WHERE p.id = ${pessoaId} AND p.ativo IS TRUE AND p.pode_entrar IS TRUE
       AND p.senha_hash IS NOT NULL
+      AND (SELECT COUNT(*) FROM vybe_ai_desafios d
+           WHERE d.pessoa_id = p.id AND d.criado_em > NOW() - INTERVAL '1 hour') < 3
     RETURNING id
   `;
   if (linhas.length !== 1) return null;
