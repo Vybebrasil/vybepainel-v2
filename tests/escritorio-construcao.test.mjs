@@ -116,9 +116,14 @@ test('setas de parede fazem ajuste fino nos dois lados e na altura, sem soltar d
  r('escritorio.edicao.passoParede=.25');await r('empurrarSelecionadoEscritorio(1,0,true)');assert.equal(r('escritorio.edicao.itens[0][2]'),.85);
 });
 test('ajuste de parede respeita limites, bloqueio e salvamento em andamento',async()=>{
- const {r}=contexto();r(`escritorioEhParede=()=>true;escritorio.edicao.itens=[['poster',0,0,4,0,4]]`);
- await r('empurrarSelecionadoEscritorio(0,-1,true)');assert.equal(r('escritorio.edicao.itens[0][5]'),4);
+ const {r}=contexto();r(`escritorioEhParede=()=>true;escritorio.edicao.itens=[['poster',0,0,4,0,40]]`);
+ await r('empurrarSelecionadoEscritorio(0,-1,true)');assert.equal(r('escritorio.edicao.itens[0][5]'),40);
  await r('empurrarSelecionadoEscritorio(-1,0,true)');assert.equal(r('escritorio.edicao.itens[0][1]'),0);
  r('escritorio.edicao.bloqueados=new Set([escritorio.edicao.itens[0]])');await r('empurrarSelecionadoEscritorio(1,0,true)');assert.equal(r('escritorio.edicao.itens[0][1]'),0);
  r('escritorio.edicao.bloqueados.clear();escritorio.edicao.salvando=true');await r('empurrarSelecionadoEscritorio(1,0,true)');assert.equal(r('escritorio.edicao.itens[0][1]'),0);
+});
+
+test('parede pode descer abaixo do encaixe inicial',async()=>{
+ const {r}=contexto();r(`escritorioEhParede=()=>true;escritorio.edicao.itens=[['poster',1,0,4,0,0]]`);
+ await r('empurrarSelecionadoEscritorio(0,1,true)');assert.equal(r('escritorio.edicao.itens[0][5]'),-.25);
 });

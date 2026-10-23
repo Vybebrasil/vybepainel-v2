@@ -14,6 +14,13 @@ const MAPA_MOVEL_Y = MAPA_TH / 2;
 const MAPA_MOVEIS = new Map(); // classe → Promise<{dados, imagem}>
 const MAPA_BASE = "/api/painel?area=escritorio&acao=arte&arquivo=";
 
+// Mantém o encaixe legado em altura zero e aplica o ajuste manual sem recorte.
+function mapaTopoItemParede(ancoraY, offsetY, tamanho, alturaParede, ajuste) {
+  const teto = ancoraY - alturaParede + 4;
+  let topo = Math.max(teto, Math.round(ancoraY) + offsetY);
+  if (topo + tamanho > ancoraY + 2) topo = Math.max(teto, ancoraY + 2 - tamanho);
+  return topo - ajuste * 32;
+}
 // A arte só sai pela API, para quem está logado. No build, a versão da pasta
 // de arte entra no endereço, para o cache do navegador renovar.
 function mapaArquivo(nome) {
@@ -1735,7 +1742,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     if (item.parede) {
       const anc = mapaAncoraParede(item.x, item.y, item.dir);
       item.no.style.left = Math.round(anc.x) + d.ox + MAPA_PAREDE_AJUSTE[item.dir].x + "px";
-      item.no.style.top = Math.round(anc.y - item.altura * 32) + d.oy + MAPA_PAREDE_AJUSTE[item.dir].y + "px";
+      item.no.style.top = mapaTopoItemParede(anc.y, d.oy + MAPA_PAREDE_AJUSTE[item.dir].y, item.no.height, mapaAlturaParede(Math.floor(item.x), Math.floor(item.y), item.dir === 2 ? "y" : "x"), item.altura) + "px";
       juntarCamadasParede(item);
     } else colocar(item.no, ...mapaPosicaoPorta(item.classe, item.x, item.y, item.dir), { ...d, oy: d.oy + MAPA_MOVEL_Y - item.altura * 32 + (item.classe === "bc_stairs_recolorable" ? (P.alturaEm?.(item.x, item.y) || 0) * MAPA_NIVEL_PX : 0) });
     const i = animados.indexOf(item);
@@ -1867,15 +1874,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         no.dataset.classe = classe;
         tingir(no);
         no.style.left = Math.round(ancora.x) + desenho.ox + MAPA_PAREDE_AJUSTE[d0].x + "px";
-        // A parede tem altura própria (prédio 118, sala 82 ou a que o dono
-        // pintou, divisória baixa 46): o item fica sempre dentro dela, sem
-        // passar do topo (antes as janelas "flutuavam" acima das paredes das salas).
-        let topo = Math.round(ancora.y - altura * 32) + desenho.oy + MAPA_PAREDE_AJUSTE[d0].y;
+        // O encaixe automático define só a posição inicial. O deslocamento
+        // escolhido pela pessoa vem depois e não pode ser anulado pelo teto.
         const altParede = mapaAlturaParede(Math.floor(x), Math.floor(y), d0 === 2 ? "y" : "x");
-        const teto = ancora.y - altParede + 4, h = no.height;
-        if (topo < teto) topo = teto;
-        if (topo + h > ancora.y + 2) topo = Math.max(teto, ancora.y + 2 - h);
-        no.style.top = topo + "px";
+        no.style.top = mapaTopoItemParede(ancora.y, desenho.oy + MAPA_PAREDE_AJUSTE[d0].y, no.height, altParede, altura) + "px";
         palco.append(no);
         const extras = (grupos || []).slice(1).map((g) => {
           const c = doGrupo(g);

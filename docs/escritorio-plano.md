@@ -1729,3 +1729,21 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 
 - Paulo autorizou publicar o ajuste fino em 23/10/2026. CI e preview no
   commit exato antes do merge; sem migração nesta entrega.
+
+### Correção do deslocamento visual na parede — 23/10/2026 (local)
+
+- A primeira entrega de setas não resolvia o desenho: o renderer limitava a
+  posição final ao teto e ao rodapé, anulando o ajuste de pôsteres grandes.
+  Agora o encaixe legado é calculado na altura zero e o deslocamento manual
+  vem depois, também na troca de estado. Quadros sem ajuste não mudam de lugar.
+- Retirado o teto artificial de 4 níveis. Deslocamento de parede entre -40 e
+  40 permite descer da posição inicial; servidor aceita negativo somente
+  para classes de parede do catálogo oficial. Móveis de chão mantêm 0–40.
+- 22 testes direcionados aprovados: cálculo visual de pôster grande, subir e
+  descer do zero, editor e validação do servidor. Sintaxe e build aprovados.
+  Sem migração. Revisão visual manual pendente; navegador automático bloqueado.
+- Suíte geral iniciada, mas interrompida após deixar de produzir resultados;
+  não considerada aprovada. A aprovação técnica desta etapa cobre os 22
+  testes direcionados, sintaxe e build, sem validação visual automática.
+- Publicação autorizada por Paulo. Comparação com `origin/main` atualizada
+  sem divergência; CI completo e preview serão exigidos no commit da entrega.

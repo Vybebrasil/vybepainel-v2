@@ -560,7 +560,7 @@ async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
   if (escritorioEhParede(it[0])) {
     const r = (v) => Math.round(v * 100) / 100;
     const passo = fino ? (e.passoParede === 0.1 ? 0.1 : 0.25) : 1;
-    if (dy && dx === 0 && fino) { const altura = Math.max(0, Math.min(4, r((it[5] || 0) - dy * passo))); if (altura === (it[5] || 0)) return; it[5] = altura; return escritorioEditorMudou(); }
+    if (dy && dx === 0 && fino) { const altura = Math.max(-ESCRITORIO_ALTURA_MAX, Math.min(ESCRITORIO_ALTURA_MAX, r((it[5] || 0) - dy * passo))); if (altura === (it[5] || 0)) return; it[5] = altura; return escritorioEditorMudou(); }
     const ao = it[3] === 2 ? "y" : "x";
     const d = ao === "x" ? dx || -dy : dy || -dx;
     const c = escritorioCantoCamada(e.camada), k = ao === "x" ? 1 : 2, lim = ao === "x" ? c.w : c.h;
