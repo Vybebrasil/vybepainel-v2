@@ -29,6 +29,7 @@ import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
 import { minhasDemandas } from '../server/assistente-consultas.js';
+import { emitirCodigo } from '../server/assistente-vinculacao-fluxo.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
@@ -1661,6 +1662,20 @@ async function areaAssistente(req, res, quem) {
   if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
   if (req.method === 'GET' && req.query?.consulta === 'minhas_demandas')
     return res.status(200).json({ ok: true, ...(await minhasDemandas(sql(), Number(quem.pessoa.id))) });
+  if (req.method === 'POST' && req.query?.consulta === 'vinculacao_iniciar') {
+    // Somente sessão pessoal e requisição feita dentro da origem do painel.
+    // Nenhuma chave de serviço autoriza emissão em nome de outra pessoa.
+    const origem = String(req.headers?.origin || '');
+    const destino = String(req.headers?.host || '');
+    if (!origem || !destino || !['https://' + destino, 'http://localhost:4321'].includes(origem))
+      return res.status(403).json({ error: 'Origem não autorizada.' });
+    const segredo = process.env.VYBE_AI_LINK_SECRET;
+    if (!segredo || segredo.length < 32)
+      return res.status(503).json({ error: 'Integração ainda não configurada.' });
+    const desafio = await emitirCodigo(sql(), Number(quem.pessoa.id), segredo);
+    if (!desafio) return res.status(429).json({ error: 'Código indisponível. Tente mais tarde.' });
+    return res.status(200).json({ ok: true, ...desafio });
+  }
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
