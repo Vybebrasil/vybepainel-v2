@@ -1,9 +1,12 @@
-// Desligada por padrão. Lista vazia não libera ninguém, nem administradores.
+// A integração continua desligada por padrão. Funcionários não dependem de lista manual.
 export function assistenteAtivo(config = process.env) {
   return config.VYBE_AI_ATIVA === '1';
 }
-export function pessoaLiberadaAssistente(id, config = process.env) {
+// Pré-requisito de conta para a interface pessoal; grupo/vínculo são conferidos
+// no fluxo WhatsApp. Não autoriza um JID nem uma audiência por si só.
+export async function pessoaLiberadaAssistente(sql, id, config = process.env) {
   if (!assistenteAtivo(config) || !Number.isSafeInteger(id) || id <= 0) return false;
-  return String(config.VYBE_AI_PESSOAS_LIBERADAS || '').split(',')
-    .some(valor => /^[1-9]\d*$/.test(valor.trim()) && Number(valor.trim()) === id);
+  const linhas = await sql`SELECT id FROM vybe_pessoas
+    WHERE id=${id} AND ativo IS TRUE AND pode_entrar IS TRUE AND senha_hash IS NOT NULL`;
+  return linhas.length === 1;
 }

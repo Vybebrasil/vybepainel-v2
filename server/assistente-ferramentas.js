@@ -7,6 +7,7 @@ const busca={type:'string',maxLength:100};
 const data={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
+ ['minhas_demandas','Demandas da pessoa autenticada, sem ID escolhido pelo modelo. Hoje usa prazo ou, se ausente, veiculação.',{periodo:{type:'string',enum:['hoje','todas']},...pagina}],
  ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub.',{cliente_id:inteiro,de:data,ate:data},['cliente_id','de','ate']],
  ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,de:data,ate:data,...pagina}],
  ['detalhar_demanda','Detalhes operacionais de uma demanda, sem notas privadas ou anexos.',{id:inteiro},['id']],
@@ -27,6 +28,7 @@ export function validarFerramenta(nome,args={}){
   const p=Object.hasOwn(d.properties,k)?d.properties[k]:null;if(!p)throw new TypeError('Parâmetro desconhecido.');
   if(p.type==='integer'&&(!Number.isSafeInteger(v)||v<p.minimum||v>p.maximum))throw new TypeError('Número inválido.');
   if(p.type==='string'&&(typeof v!=='string'||v.length>(p.maxLength||10)))throw new TypeError('Texto inválido.');
+  if(p.enum&&!p.enum.includes(v))throw new TypeError('Opção inválida.');
   if(p.pattern&&(!new RegExp(p.pattern).test(v)||!Number.isFinite(Date.parse(v+'T12:00:00Z'))||new Date(v+'T12:00:00Z').toISOString().slice(0,10)!==v))throw new TypeError('Data inválida.');
  }
  if(nome==='consultar_metricas_trafego'&&args.de&&args.ate&&Date.parse(args.ate)-Date.parse(args.de)>93*86400000)throw new TypeError('Período máximo de 93 dias.');
@@ -42,18 +44,29 @@ export function textoOperacional(v,max=300){return String(v??'').slice(0,max)
  .replace(/\b[A-Za-z0-9_-]{40,}\b/g,'[identificador omitido]')
  .replace(/(?:\+?\d[\d(). -]{9,}\d)/g,'[número omitido]');}
 const limpar=v=>Array.isArray(v)?v.map(limpar):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,typeof x==='string'&&!['id','cliente_id','prazo','veiculacao','mes','dia','inicio','fim','atualizado_em','data'].includes(k)?textoOperacional(x):limpar(x)])):v;
-export async function executarFerramenta(sql,nome,args){
+export function diaAssistente(agora=new Date()){
+ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(agora);
+}
+export async function executarFerramenta(sql,nome,args,identidade={}){
  const a=validarFerramenta(nome,args),q=a.busca||'',cid=a.cliente_id||null,rid=a.responsavel_id||null,status=a.status||'',de=a.de||null,ate=a.ate||null;
  const limit=a.limite||25,offset=a.deslocamento||0;let itens,modulo;
+ if(nome==='minhas_demandas'){
+  if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');
+  const periodo=a.periodo||'todas';
+  const dia=periodo==='hoje'?diaAssistente(identidade.agora):null;
+  const r=await executarFerramenta(sql,'buscar_demandas',{responsavel_id:identidade.pessoaId,limite:limit,deslocamento:offset},{diaDaPessoa:dia});
+  return {...r,ferramenta:nome,escopo:'pessoa_autenticada',periodo,dia,observacao:'Somente a pessoa autenticada. Hoje segue o prazo; sem prazo, a veiculação. Não indica publicação comprovada.'};
+ }
  if(nome==='consultar_metricas_trafego')return limpar(await metricasDoHub(sql,a));
  if(nome==='cobertura_modulos')return {fonte:'vybe-neon',itens:[{disponiveis:['demandas','conteudos','clientes','responsaveis','planejamentos','aprovacao_do_planejamento','captacoes','referencias_de_roteiros'],limitacoes:['Campanhas e tráfego vêm do VybeHub; a ponte exige configuração própria e vínculo explícito do cliente.','Publicação: retorna status registrado, sem inferir entrega ou veiculação efetiva.','Roteiros: apenas referência; não lê texto do Drive.','Sem financeiro, RH, credenciais, notas privadas ou documentos pessoais.']}],limitado:false};
  if(['buscar_demandas','detalhar_demanda'].includes(nome)){
-  modulo='demandas';const id=a.id||null;
+  modulo='demandas';const id=a.id||null,diaDaPessoa=identidade.diaDaPessoa||null;
   itens=await sql`SELECT c.id::text AS id,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
    COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes,
    COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_responsaveis cr JOIN vybe_pessoas p ON p.id=cr.pessoa_id WHERE cr.conteudo_id=c.id),'[]') AS responsaveis
    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
    WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_DEMANDAS},${BOARD_PRODUCAO})
+   AND (${diaDaPessoa}::date IS NULL OR COALESCE(c.prazo,c.veiculacao)=${diaDaPessoa}::date)
    AND (${id}::bigint IS NULL OR c.id=${id}) AND (${q}='' OR c.titulo ILIKE '%'||${q}||'%')
    AND (${cid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id=c.id AND cc.cliente_id=${cid}))
    AND (${rid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis cr WHERE cr.conteudo_id=c.id AND cr.pessoa_id=${rid}))

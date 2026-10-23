@@ -1,3 +1,5 @@
+> Atualização de autorização: removida a dependência da lista manual de funcionários. A regra atual é conta ativa/com acesso + vínculo WhatsApp + grupo interno aprovado, com ativação global desligada por padrão. As menções históricas a IDs do piloto abaixo não são configuração vigente; consulte `docs/vybe-ai-operacional.md`. Nenhuma variável da Vercel foi alterada.
+
 > Escopo atualizado: a política operacional ampla está em `docs/vybe-ai-operacional.md`. As referências abaixo à restrição original ao executor descrevem a etapa anterior e não limitam as novas ferramentas. As condições de backup, aprovação e desligamento continuam válidas.
 
 # Vybe AI — prontidão do PR #357 para produção

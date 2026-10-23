@@ -18,7 +18,8 @@ function comando(texto) {
   if (v) return {tipo:'vinculacao_confirmar', codigo:v[1].toLowerCase()};
   // Não mandar códigos malformados ao modelo nem interpretar comandos pessoais em linguagem livre.
   if (/^vincular(?:\s|$)/i.test(pergunta) || /^[a-f0-9]{20}$/i.test(pergunta)) return {tipo:'invalido'};
-  if (/^minhas demandas$/i.test(pergunta)) return {tipo:'minhas_demandas'};
+  // Intenção pessoal tem prioridade: nunca pede ao modelo para escolher responsável.
+  if (/\bminhas\s+demandas\b/i.test(pergunta)) return {tipo:'minhas_demandas',periodo:/\bhoje\b/i.test(pergunta)?'hoje':'todas'};
   return {tipo:'qwen', pergunta};
 }
 class RegistroMensagens {
@@ -89,6 +90,7 @@ async function perguntarQwen(pergunta, fetchImpl = fetch, suporte) {
 function criarProcessador({client, registro, env = process.env, api = consultaVybe, qwen = perguntarQwen,
   log = evento => console.log(evento), previa = () => {}, agora = Date.now}) {
   const permitidos = new Set(String(env.VYBE_GRUPOS_IDS || '').split(',').map(x=>x.trim()).filter(x=>/^[0-9-]+@g\.us$/.test(x)));
+  if(permitidos.size>8)throw new Error('No máximo oito grupos internos aprovados.');
   const ocupados = new Set(); let ativos = 0;
   async function grupos() {
     return (await client.getChats()).filter(c=>c.isGroup && GRUPOS_VYBE.has(String(c.name||'').trim()) && permitidos.has(serial(c.id)));
@@ -146,14 +148,13 @@ function criarProcessador({client, registro, env = process.env, api = consultaVy
       ocupados.add(ator); ativos++; entrou=true;
       const ctxInicial=await contextoAtual(chat,remetente);
       if(c.tipo!=='vinculacao_confirmar'){const autorizado=await api({jid:remetente,contexto:ctxInicial,consulta:'autorizar_contexto'},{env});if(autorizado.ok!==true)throw new Error('Sem autorização.');}
-      if(chat.isGroup&&c.tipo==='minhas_demandas'){c.tipo='qwen';c.pergunta='Liste minhas demandas usando a identidade verificada do solicitante.';}
       let texto;
       if (c.tipo === 'qwen') texto = await qwen(c.pergunta,fetch,{jid:remetente,contexto:()=>contextoAtual(chat,remetente),api,env});
       else {
         if (env.VYBE_API_HABILITADA !== '1') throw new Error('API desativada.');
         const contexto=await contextoAtual(chat,remetente);
         if(c.tipo!=='vinculacao_confirmar')await api({jid:remetente,consulta:'autorizar_contexto',contexto},{env});
-        const data = await api({jid:remetente,contexto,consulta:c.tipo,...(c.codigo?{codigo:c.codigo}:{})},{env});
+        const data = await api({jid:remetente,contexto,...(c.tipo==='minhas_demandas'?{consulta:'operacional',ferramenta:'minhas_demandas',argumentos:{periodo:c.periodo}}:{consulta:c.tipo,codigo:c.codigo})},{env});
         // Códigos não passam pelo modelo; dados autorizados não entram em memória do Qwen.
         texto = c.tipo === 'vinculacao_confirmar' ? 'Vinculação confirmada no ambiente de teste.' :
           (data.itens.length ? data.itens.map(x=>`${String(x.titulo||'').slice(0,180)} — ${String(x.status||'sem status').slice(0,60)} — prazo: ${String(x.prazo||'não informado').slice(0,20)}`).join('\n').slice(0,3500) : 'Nenhuma demanda retornada para sua conta.');

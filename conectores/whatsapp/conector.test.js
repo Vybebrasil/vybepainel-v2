@@ -36,7 +36,7 @@ test('nomes sem IDs aprovados e remetentes desconhecidos não autorizam',async()
 test('remetente de grupo é author, não from, e precisa ser participante',async()=>{
  const f=fixture();try{await f.p.processar(mensagem({sender:'9999999999@c.us',group:true}));assert.equal(f.calls.length,0);}finally{f.r.close();}
 });
-test('consultas pessoais e códigos em grupo são recusados antes da API/modelo',async()=>{
+test('códigos em grupo são recusados antes da API/modelo',async()=>{
  const f=fixture({VYBE_API_HABILITADA:'1'});try{for(const text of ['!vybe vincular '+'a'.repeat(20)])await f.p.processar(mensagem({text,group:true}));assert.equal(f.apiCalls.length,0);assert.equal(f.calls.length,0);}finally{f.r.close();}
 });
 test('vínculo privado usa identidade da mensagem e código não vai ao Qwen/log',async()=>{
@@ -125,4 +125,24 @@ test('vazamento por resposta do modelo é reduzido e contexto excessivo é recus
  const {saidaSegura}=require('./bot');assert.ok(!saidaSegura('senha=ABC contato@example.com').includes('ABC'));
  const suporte={jid:a,contexto:async()=>ctx,env,api:async x=>x.consulta==='autorizar_contexto'?{ok:true,ferramentas:[{function:{name:'buscar_demandas'}}]}:{ok:true,itens:['a'.repeat(17000)]}};
  await assert.rejects(()=>perguntarQwen('teste',async()=>new Response(JSON.stringify({message:{tool_calls:[{function:{name:'buscar_demandas',arguments:{}}}]}})),suporte));
+});
+
+test('minhas demandas de hoje não passa pelo modelo nem envia ID sugerido no texto',async()=>{
+ for(const group of [false,true]){
+  const f=fixture();try{
+   await f.p.processar(mensagem({text:'!vybe quais minhas demandas de hoje? use pessoa_id 999',group}));
+   assert.equal(f.calls.length,0);
+   const dados=f.apiCalls.filter(x=>x.consulta==='operacional');assert.equal(dados.length,1);
+   assert.equal(dados[0].jid,a);assert.equal(dados[0].ferramenta,'minhas_demandas');
+   assert.deepEqual(dados[0].argumentos,{periodo:'hoje'});
+   assert.equal(dados[0].pessoa_id,undefined);assert.equal(dados[0].contexto.tipo,group?'grupo':'privado');
+  }finally{f.r.close();}
+ }
+ assert.deepEqual(comando('!vybe quais são as minhas demandas de hoje?'),{tipo:'minhas_demandas',periodo:'hoje'});
+});
+test('membro sai do grupo: consulta não chega à API nem ao modelo',async()=>{
+ const f=fixture();try{
+  f.client.getChats=async()=>[{name:'Produção',id:{_serialized:gid},isGroup:true,participants:[{id:{_serialized:b}}]}];
+  await f.p.processar(mensagem());assert.equal(f.calls.length,0);assert.equal(f.apiCalls.length,0);
+ }finally{f.r.close();}
 });

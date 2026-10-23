@@ -11,7 +11,7 @@ Fonte canônica nesta branch do PR #357. Substitui os dois arquivos auditados do
 
 ## Contrato com o servidor
 
-O servidor recebe contexto fresco (30 segundos), JID da plataforma, grupos aprovados do remetente e audiência completa. IDs de grupos são aprovados em VYBE_GRUPOS_IDS no Windows e VYBE_AI_GRUPOS_IDS no servidor; nenhum nome ou resultado do modelo concede acesso. Para grupo, todos os participantes precisam de vínculo, conta ativa e liberação no piloto, inclusive a conta conectada se ela constar na audiência. Identidades LID/c.us não são convertidas por sufixo. Participante desconhecido/inválido/duplicado bloqueia a consulta.
+O servidor recebe contexto fresco (30 segundos), JID da plataforma, grupos aprovados do remetente e audiência completa. IDs de grupos são aprovados em VYBE_GRUPOS_IDS no Windows e VYBE_AI_GRUPOS_IDS no servidor; nenhum nome ou resultado do modelo concede acesso. Para grupo, todos os participantes precisam de vínculo e conta ativa/com acesso, inclusive a conta conectada se ela constar na audiência. Identidades LID/c.us não são convertidas por sufixo. Participante desconhecido/inválido/duplicado bloqueia a consulta.
 
 O conector é um componente de confiança: o servidor não consulta o WhatsApp independentemente para comprovar a lista. Comprometer token/processo permite forjar declarações; proteger token, sessão e sistema operacional é obrigatório. Não há modo cliente habilitado.
 
@@ -38,7 +38,7 @@ Para levantar os oito grupos sem autorizar por nomes: VYBE_LISTAR_GRUPOS=1 escre
 
 - `!vybe <pergunta livre>`: linguagem natural, consulta ferramentas do servidor quando necessário e fundamenta estratégia em fontes operacionais permitidas.
 - `!vybe vincular <codigo>`: caminho determinístico, somente no privado, sem passar código ao modelo. Habilitar API pode escrever vínculo exclusivamente na homologação; simulação significa não enviar respostas, não significa impedir confirmação de vínculo.
-- `!vybe minhas demandas`: atalho privado existente. No grupo, usa o fluxo natural e a identidade validada. Não é o limite do acesso operacional.
+- `!vybe quais minhas demandas de hoje?`: caminho pessoal determinístico em privado ou grupo autorizado. Usa a ferramenta `minhas_demandas`, sem enviar ID de pessoa/responsável ao servidor e sem chamar o Qwen. “Hoje” é calculado no servidor em America/Bahia; sem “hoje”, retorna o recorte pessoal geral. Uma tentativa de sugerir outro ID na mesma pergunta não muda o titular. A ferramenta de equipe continua disponível nas perguntas operacionais gerais.
 - Comando próprio só em conversa consigo mesmo e com teste explícito; comandos próprios em grupos/terceiros continuam bloqueados para evitar ciclos. Mensagens recebidas de colegas nos oito grupos são suportadas com audiência autorizada.
 
 ## Contexto e envio
@@ -56,3 +56,7 @@ Preparação para envio futuro: retorno final autorizado, audiência estável e 
 ## Testes
 
 `node --test conector.test.js` não inicializa WhatsApp nem usa rede real. O CI do Vybe OS importa a mesma suíte. Testar depois no Node 24/Windows: IDs reais, participação completa, código privado, revogação, reconexão, duplicatas e ausência de logs/envios. Alterar o modelo ou atualizar dependências exige nova verificação, não está incluído nesta entrega.
+
+## Elegibilidade automática
+
+Não há lista manual de pessoas. A variável antiga VYBE_AI_PESSOAS_LIBERADAS é ignorada, sem precisar editá-la nesta etapa. Todos os funcionários com conta ativa/com acesso no OS, vínculo individual e participação verificada em grupo interno aprovado são elegíveis quando a integração for autorizada/ativada globalmente. Ser membro de grupo sem vínculo/conta não basta. Os IDs aprovados dos grupos permanecem explícitos; não se autoriza por nome livre nem por ID escrito na mensagem.
