@@ -121,3 +121,48 @@ banco isolado, enviar código no privado ao bot, conferir vínculo, consultar
 minhas_demandas e revogar; a consulta seguinte deve negar acesso. A inspeção
 visual automática permanece bloqueada, portanto testes de HTML não equivalem
 à aprovação visual no navegador. Escritório/jogos não foram editados.
+
+## Homologação Neon isolada — preparação de 23/10/2026
+
+Foi criado o recurso **vybe-ai-homologacao**, plano Free, região gru1,
+projeto Neon `blue-pine-55207839`, separado de `bold-silence-70503527`.
+O schema público foi exportado com `pg_dump --schema-only` e
+`default_transaction_read_only=on` na origem, e restaurado no destino novo e
+vazio. São 91 tabelas antes da migração da Vybe AI. Também foram copiadas
+somente configurações de status, preços, regras e catálogo do Escritório;
+pessoas, clientes, demandas, conversas e históricos reais não foram copiados.
+
+A migração `2026-10-23-assistente-vinculos.sql` foi aplicada **apenas no Neon
+isolado**. Duas contas não administrativas com e-mails em `vybe.invalid`,
+um cliente fictício e duas demandas próprias foram preparados. A conexão
+principal e as permissões de funcionários reais não foram modificadas.
+
+A branch `feature/vybe-ai-readonly-integration` tem overrides exclusivos de
+Preview para `DATABASE_URL`, `VYBE_HOMOLOGACAO`, `SESSAO_SECRET`,
+`VYBE_AI_BOT_TOKEN` e `VYBE_AI_LINK_SECRET`. Segredos são próprios da homologação,
+sem valores no Git, argumentos de shell ou relatórios. O recurso foi conectado
+com prefixo `VYBE_AI_HOMOLOG_`, sem substituir a configuração global de banco.
+Overrides só entram em deployments novos; previews antigos continuam com sua
+configuração anterior e não devem ser usados para testar escrita.
+
+### Roteiros reproduzíveis
+
+- `scripts/assistente-homologacao.mjs` bloqueia banco com mesmo endpoint de
+  produção (inclusive pooled/unpooled) e URLs HTTP de produção.
+- `scripts/assistente-preparar-homologacao.mjs` exige `VYBE_HOMOLOGACAO=1`, as
+  conexões separadas em `VYBE_AI_PRODUCAO_DATABASE_URL` e
+  `VYBE_AI_HOMOLOG_DATABASE_URL`, e senha de teste em `VYBE_AI_HOMOLOG_SENHA`.
+  Recusa banco com pessoas fora das duas contas fictícias. Aplica a migração e
+  prepara somente os registros de teste, sem mudar administradores.
+- `scripts/assistente-testar-preview.mjs` usa essas mesmas variáveis, mais
+  `VYBE_AI_HOMOLOG_PREVIEW`, `VYBE_AI_BOT_TOKEN` e `VYBE_AI_LINK_SECRET`. Testa
+  login, geração, vínculo, consulta própria, identidade forjada no corpo,
+  bloqueio, códigos expirados/reutilizados, revogação e invalidação de pendentes.
+  Ao final verifica as APIs de entrada, mapa, economia/conquistas, ranking e
+  lobby do Escritório. Não envia mensagens reais ao WhatsApp nem valida mídia.
+
+Não usar o token de homologação no bot de produção. Para testar o conector local,
+configurar uma instância de teste com o URL e token desta branch por canal seguro;
+o código recebido no privado deve ser consumido antes de chamar o Qwen. O modelo
+não escolhe JID/pessoa nem recebe os segredos. Evidências finais de HTTP e CI
+ficam no PR #357; testes de API não equivalem à inspeção visual de todos os jogos.
