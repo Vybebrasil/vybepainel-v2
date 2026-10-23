@@ -1666,3 +1666,47 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 
 - Paulo autorizou publicar também a Oficina em 23/10/2026. Conferir CI e
   prévia no commit exato antes do merge; nenhuma migração nesta entrega.
+
+### Evolução do Trabalho: oito melhorias — 23/10/2026
+
+- Oficina publicada no PR #359: merge `d3a7ce1`, produção READY
+  `dpl_Hcrd8W7VV3cMWFNGUbxCFSsXaJDJ`, alias e SHA conferidos; CI com
+  596 testes. HTML 200, API sem sessão 401, Monday 410. Sem migração.
+- Paulo pediu executar e publicar os oito pontos da revisão do Trabalho e
+  aprovou a demonstração manualmente. Branch `codex/trabalho-metricas-detalhes`.
+- Cabeçalho compacto: o header global em coluna fazia o flex-basis de 260px
+  do título compartilhado virar altura. Corrigida só esta instância, sem
+  mudar outros cabeçalhos. Cartões em quatro colunas quando o espaço real
+  permite, pela container query; gráfico e tabela preservam leitura no celular.
+- XP discriminado por todas as regras do trabalho, inclusive bônus e perdas,
+  com total da mesma resposta. Prêmios/conquistas continuam fora conforme o
+  ranking. Quantidade por papel não vira soma de demandas únicas.
+- Números de volume, XP, pontos do gráfico e recorde abrem lista paginada na
+  mesma ficha e usam o painel existente para abrir a demanda. Fonte única de
+  contribuições no servidor para agregados e detalhe; primeira entrega por
+  peça/papel. XP público só por demanda/dia/regra, sem origem individual ou
+  horário do razão privado. Bônus sem vínculo aparecem como tal.
+- Períodos de 7/28/90 dias, mês atual, mês passado e personalizado (até 180
+  dias, validados no servidor). Comparação com a janela imediatamente anterior
+  de mesma duração, datas e denominadores explícitos. Histórico antigo não
+  carrega todos os anos seguintes. Cache e respostas isolados por período;
+  uma resposta atrasada não troca o recorte atual.
+- Gráfico com valores atuais, anteriores e média móvel de sete dias corridos,
+  incluindo zeros; detalhes por mouse/foco e abertura por clique/Enter.
+  Uma parada no Tab, navegação entre pontos pelas setas/Home/End. Tabela
+  diária continua como alternativa acessível. Sem biblioteca ou loop novo.
+- Leitura por função e resumo por regras determinísticas: variação da própria
+  média, formato predominante e pico do período. Não há nota de desempenho,
+  comparação indevida entre papéis nem uso de presença como produtividade.
+- Prazo/retrabalho: só execuções próprias (`peca_criacao`), em todos os formatos
+  do período. O status de entrega precisa estar no mesmo dia da contribuição;
+  o prazo é reconstruído pelos eventos antes/depois daquele instante, nunca
+  pelo valor atual. Mostra cobertura da amostra e ausência de base. Retorno
+  para Alteração só após a entrega e antes da primeira aprovação/finalização,
+  observado até o fim do recorte. Ausência de retorno não prova aprovação de
+  primeira, e o indicador não atribui culpa. Não muda nenhum pagamento.
+- Verificação local: regressões de Trabalho/ranking/economia aprovadas (38
+  testes na primeira rodada), onze casos de Trabalho na rodada final, sintaxe
+  e build aprovados. Revisão visual manual aprovada pelo Paulo; inspeção
+  automática continua bloqueada pela política do navegador. Sem medição de
+  Safari, mídia ou latência de banco real. Aguardando CI/preview para publicar.

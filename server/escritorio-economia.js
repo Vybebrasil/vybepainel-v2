@@ -236,8 +236,9 @@ export async function comprarMovel(sql, pessoaId, {classe,chave,quantidade=1,pre
 // Perfil aberto a toda a equipe (decisão do Paulo, 19/10/2026; sem ranking):
 // saldo de VybeCoins, nível/XP, conquistas e móveis. A aba Trabalho pede
 // agregados pela mesma rota; não expõe o extrato privado nem escreve dados.
-export async function perfilPublico(sql, pessoaId, { trabalho = false } = {}) {
+export async function perfilPublico(sql, pessoaId, { trabalho = false, consultaTrabalho = {} } = {}) {
  if (!await economiaPronta(sql)) return { disponivel: false };
+ if (trabalho) return { disponivel:true, trabalho:await desempenhoTrabalho(sql,pessoaId,new Date(),consultaTrabalho) };
  const comXp = await pontosProntosEconomia(sql);
  const [c] = comXp ? await sql`SELECT saldo,xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`
   : await sql`SELECT saldo,0 AS xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`;
@@ -250,7 +251,7 @@ export async function perfilPublico(sql, pessoaId, { trabalho = false } = {}) {
  const [tt] = await sql`SELECT to_regclass('public.vybe_escritorio_trofeus') IS NOT NULL AS existe`;
  const trofeus = tt?.existe ? await sql`SELECT marco||':'||nivel AS chave, classe FROM vybe_escritorio_trofeus` : [];
  const marcos = feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco); return m ? { id: f.marco, nome: nomeDoMarco(f.marco), nivel, dica: m.unidade, em: f.em, classe: trofeus.find((t) => t.chave === f.marco)?.classe || null } : null; }).filter(Boolean);
- return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos, ...(trabalho ? { trabalho: await desempenhoTrabalho(sql, pessoaId) } : {}) };
+ return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos };
 }
 async function pontosProntosEconomia(sql) {
  const [r] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_escritorio_carteiras' AND column_name='xp') AS existe`;

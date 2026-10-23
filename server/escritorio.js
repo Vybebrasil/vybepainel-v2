@@ -395,7 +395,7 @@ export async function areaEscritorio(req, res, quem, sql) {
     if (acao === "perfil-publico") {
       const alvo = String(req.query?.pessoa || pessoa.id);
       if (!/^\d+$/.test(alvo)) return res.status(400).json({ error: "Pessoa inválida." });
-      return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo), { trabalho: req.query?.trabalho === "1" }) });
+      return res.status(200).json({ ok: true, perfil: await perfilPublico(sql, Number(alvo), { trabalho: req.query?.trabalho === "1", consultaTrabalho: {de:req.query?.de,ate:req.query?.ate,detalhes:req.query?.detalhes === "1",regra:req.query?.regra,formato:req.query?.formato,dia:req.query?.dia,pagina:req.query?.pagina,fonte:req.query?.fonte} }) });
     }
     if (acao === "ranking") return res.status(200).json({ ok: true, ...(await rankingEscritorio(sql, new Date(), { periodo: String(req.query?.periodo || "semana") })) });
     if (acao === "movel-origem") {

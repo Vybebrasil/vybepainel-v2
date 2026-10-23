@@ -511,3 +511,12 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
   variação com cobertura anterior incompleta. Hoje é parcial. Recordes usam
   histórico disponível; formato é o cadastro atual. Sem inferir qualidade,
   publicação ou produtividade por presença. Não mudar pagamentos por esta leitura.
+
+- Evolução de Trabalho (23/10/2026): períodos personalizados limitados a 180
+  dias e comparação com janela anterior de mesma duração; detalhes paginados
+  pela mesma rota pública e fonte de contribuições. XP público é agregado por
+  demanda/dia/regra, sem expor origem/horário do extrato privado. Tabela deve
+  fechar com o total de XP, incluindo bônus e perdas permitidos pelo ranking.
+  Prazo histórico exige eventos para reconstrução no instante da entrega;
+  não usar o prazo atual para julgar entregas antigas. Retorno registrado não
+  prova erro de quem executou, e ausência dele não prova primeira aprovação.

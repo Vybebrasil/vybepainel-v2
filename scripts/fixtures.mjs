@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
 import { vitrineDaSemana } from '../server/escritorio-economia.js';
 import { MARCOS, criterioDoMarco, tituloDe } from '../server/escritorio-marcos.js';
-import { ATIVIDADES_DO_RANKING, somarDias, diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
+import { ATIVIDADES_DO_RANKING, periodoTrabalho, somarDias, diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
 import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
 import { documentoHtml } from '../server/planejamento-documento.js';
 // Loja de demonstração: as mesmas faixas da migração da fase 2, estoque cheio,
@@ -155,7 +155,7 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='convite-cancelar')return reply(200,{ok:true});
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
       // Perfil de demonstração (números fictícios, só para a tela).
-      if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{...(url.searchParams.get('trabalho')==='1'?{trabalho:trabalhoDemonstracao(n)}:{}),disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
+      if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{...(url.searchParams.get('trabalho')==='1'?{trabalho:trabalhoDemonstracao(n,Object.fromEntries(url.searchParams))}:{}),disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
       // Missões de demonstração (fictícias): mesma forma da rota de verdade.
       if(url.searchParams.get('acao')==='missoes'){const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
         return reply(200,{ok:true,disponivel:true,funcao:'criacao',missoes:[
@@ -308,9 +308,10 @@ export async function demoApi(req,res,url,body) {
 }
 
 // Dados explicitamente fictícios, exclusivos da revisão local da aba Trabalho.
-function trabalhoDemonstracao(id) {
- const hoje=diaBahia(), desde=somarDias(hoje,-179), linhas=[];
- for(let i=0;i<180;i++) { const dia=somarDias(desde,i), dow=new Date(dia+'T12:00:00Z').getUTCDay();
+function trabalhoDemonstracao(id,consulta={}) {
+ const hoje=diaBahia(), periodo=periodoTrabalho(hoje,consulta), desde=periodo.desde, linhas=[];
+ const ndias=Math.round((Date.parse(periodo.fim)-Date.parse(desde))/864e5)+1;
+ for(let i=0;i<ndias;i++) { const dia=somarDias(desde,i), dow=new Date(dia+'T12:00:00Z').getUTCDay();
   if(dow===0||dow===6)continue;
   for(const [j,[regra]] of ATIVIDADES_DO_RANKING.entries()) {
    const n=(i+id+j)%9; if(n)linhas.push({dia,regra,formato:j%3===0?'card':j%3===1?'reels':'impresso',n});
@@ -321,5 +322,13 @@ function trabalhoDemonstracao(id) {
   recordes.push({regra,formato:null,n:max,dia:top[0].dia,primeiro:por[0].dia,empates:top.length});
   for(const formato of new Set(por.map(l=>l.formato)))recordes.push({regra,formato,n:max,dia:top[0].dia,primeiro:por[0].dia,empates:top.length});
  }
- return {disponivel:true,hoje,desde,funcao:'criacao',atividades:ATIVIDADES_DO_RANKING.map(([regra,nome])=>({regra,nome})),linhas,recordes,ganhos:linhas.map(l=>({dia:l.dia,regra:l.regra,xp:l.n*5}))};
+ const ganhos=linhas.map(l=>({dia:l.dia,regra:l.regra,xp:l.n*5,eventos:l.n}));
+ ganhos.push({dia:periodo.fim,regra:'meta_semana',xp:50,eventos:1},{dia:periodo.fim,regra:'criacao_alteracao',xp:-7,eventos:1});
+ if(consulta.detalhes==='1'){
+  const origem=consulta.fonte==='xp'?ganhos:linhas, lista=origem.filter(l=>(consulta.regra==='*'||l.regra===consulta.regra)&&l.dia>=periodo.inicio&&l.dia<=periodo.fim&&(!consulta.dia||consulta.dia===l.dia)&&(!consulta.formato||consulta.formato===l.formato));
+  const itens=lista.flatMap(l=>Array.from({length:consulta.fonte==='xp'?1:l.n},()=>({ref:null,quadro:'producao',titulo:'Contribuição fictícia',dia:l.dia,formato:l.formato||'',cliente:'Cliente demonstração',observacao:'Registro fictício da demonstração local',xp:consulta.fonte==='xp'?l.xp:null})));
+  const pagina=Number(consulta.pagina||0);return {disponivel:true,pagina,total:itens.length,itens:itens.slice(pagina*30,(pagina+1)*30)};
+ }
+ const total=linhas.filter(l=>l.regra==='peca_criacao'&&l.dia>=periodo.inicio&&l.dia<=periodo.fim).reduce((n,l)=>n+l.n,0);
+ return {disponivel:true,hoje,desde,periodo,qualidade:{disponivel:true,entregas:total,com_status:Math.floor(total*.8),com_prazo:Math.floor(total*.7),no_prazo:Math.floor(total*.6),com_retorno:Math.floor(total*.1)},regras:{meta_semana:'Meta da semana batida',criacao_alteracao:'Retorno para alteração'},funcao:'criacao',atividades:ATIVIDADES_DO_RANKING.map(([regra,nome])=>({regra,nome})),linhas,recordes,ganhos};
 }

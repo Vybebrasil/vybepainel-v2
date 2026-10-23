@@ -11114,8 +11114,11 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (max-width:760px) {.abr-acervo-bloco {grid-template-columns:1fr}}
 
 /* Trabalho na ficha: componentes de jogo existentes, gráfico estático sem loop. */
-.ofc-trabalho {display:grid;gap:16px;min-width:0}
-.ofc-trabalho header h3,.ofc-trabalho h4 {margin:0 0 8px}
+.ofc-trabalho {display:grid;gap:16px;min-width:0;container-type:inline-size}
+/* O header global é coluna: o flex-basis de 260px do título virava altura.
+   Esta instância do cabeçalho compartilhado é horizontal e sem material do topo. */
+.ofc-trabalho > .vb-cabecalho {flex-direction:row;align-items:center;min-height:0;height:auto;padding:0;margin:0;background:none;border:0;box-shadow:none}
+.ofc-trabalho h4 {margin:0 0 8px}
 .ofc-trabalho p {color:var(--texto-secundario,#b3b7c4);line-height:1.5;margin:8px 0}
 .ofc-trabalho .vb-jogo-cartao {padding:18px;min-width:0}
 .ofc-trabalho-filtros {display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px}
@@ -11139,6 +11142,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-trabalho-formatos {list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .ofc-trabalho-formatos li {display:grid;grid-template-columns:minmax(80px,1fr) 2fr 40px;align-items:center;gap:12px}
 .ofc-trabalho-formatos meter {width:100%;accent-color:#ff963f}
+.ofc-trabalho-formatos meter::-webkit-meter-optimum-value {background:#ff963f}
+.ofc-trabalho-formatos meter::-moz-meter-bar {background:#ff963f}
 @media(max-width:700px){.ofc-trabalho-filtros {grid-template-columns:1fr}.ofc-trabalho-dupla {grid-template-columns:1fr}.ofc-trabalho .vb-jogo-cartao{padding:14px}.ofc-trabalho-formatos li{gap:6px;grid-template-columns:minmax(70px,1fr) 1fr 30px}}
 
 
@@ -11219,3 +11224,20 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
 .ofc-oficina .ofc-amostras-piso button > span {min-height:2.7em;display:grid;align-items:center}
 .ofc-oficina-nav button[aria-selected=true] {box-shadow:0 3px 0 #8a471f,inset 0 -3px 0 #ff963f}
 @media(max-width:760px){.ofc-oficina .ofc-cats button,.ofc-oficina .ofc-area-piso button,.ofc-oficina .ofc-pisos-catalogo > button {min-height:44px}}
+
+.ofc-trabalho-media {fill:none;stroke:#ffe1a1;stroke-width:2;stroke-dasharray:2 3}
+.ofc-trabalho-grafico circle[role=button] {cursor:pointer;stroke:transparent;stroke-width:12;paint-order:stroke}
+.ofc-trabalho-grafico circle[role=button]:focus {stroke:#ffffffaa;stroke-width:5}
+.ofc-trabalho-grafico output {display:block;min-height:2.8em;font-size:12px;line-height:1.5;color:#ffd4ad;padding:8px;background:#11141d;border-radius:8px}
+.ofc-trabalho .ofc-trabalho-numero-link {font:inherit;color:inherit;padding:0;text-decoration:underline;text-decoration-color:#ff963f88;text-underline-offset:5px;border:0;background:none;cursor:pointer}
+.ofc-trabalho .ofc-trabalho-numero-link:focus-visible {outline:2px solid #ff963f;outline-offset:5px;border-radius:4px}
+.ofc-trabalho .vb-jogo-numero {font-size:26px}
+.ofc-trabalho tfoot {font-weight:800;color:#ffcc99}
+.ofc-trabalho-datas {display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.ofc-trabalho-datas label {display:grid;gap:6px;font-size:12px;flex:1;min-width:140px}
+.ofc-trabalho-datas input {min-height:40px;background:#252832;color:#f4f4f7;border:1px solid #484b55;border-radius:9px;padding:8px;font:inherit}
+.ofc-trabalho-pecas {padding:0;list-style:none;display:grid;gap:0}
+.ofc-trabalho-pecas li {padding:12px 0;border-bottom:1px solid #ffffff12;min-width:0;overflow-wrap:anywhere}
+.ofc-trabalho-pecas button {text-align:left;font-size:13px;line-height:1.4}
+.ofc-trabalho-paginas {display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+@container(min-width:780px){.ofc-trabalho-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.ofc-trabalho .vb-jogo-cartao{padding:14px}}
