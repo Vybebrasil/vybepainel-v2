@@ -163,9 +163,25 @@ test('plantas novas (formato × tamanho): portas no piso, modelo cabe e o quarto
    c.porta=porta;
    const faltam=vm.runInContext(`(()=>{const a={...ESCRITORIO_PLANTA.ambientes.find(a=>a.id==='sala-0'),planta:modelo,porta};const p=escritorioPlantaDoQuarto(a);const g=mapaMontarGrade(p,itens);
     if(!mapaCaminho(g,p.entrada,p.saida)) return ['porta'];
-    const r=[],ok=new Set(),todos=[];for(let x=0;x<p.W-1;x++)for(let y=0;y<p.H-1;y++)todos.push([x,y]);
-    // Do mais longe para o mais perto da porta: cada caminho achado já prova os ladrilhos por onde passa (quartos de até 24 × 24).
-    todos.sort((a,b)=>Math.hypot(b[0]-p.entrada.x,b[1]-p.entrada.y)-Math.hypot(a[0]-p.entrada.x,a[1]-p.entrada.y));for(const [x,y] of todos){if(!p.andavel(x,y)||g.bloqueado[g.ind(x,y)]||g.assento.has(g.ind(x,y))||ok.has(x+','+y))continue;if(x===p.entrada.x&&y===p.entrada.y)continue;const c=mapaCaminho(g,p.entrada,{x,y});if(!c)r.push(x+','+y);else for(const q of c)ok.add(q.x+','+q.y);}return r;})()`,c);
+    // Acesso ao piso é conectividade: uma busca por entrada, usando as mesmas
+    // transições de mapaCaminho. Evita centenas de buscas A* para cada planta.
+    // O caminho até a porta acima continua conferido pelo pathfinder real.
+    const sx=Math.max(0,Math.min(g.W-1,Math.round(p.entrada.x))),sy=Math.max(0,Math.min(g.H-1,Math.round(p.entrada.y)));
+    const ok=new Set([g.ind(sx,sy)]),fila=[[sx,sy]],r=[];
+    for(let i=0;i<fila.length;i++){
+     const [x,y]=fila[i];
+     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
+      if(!mapaPassa(g,x,y,dx,dy))continue;
+      const k=g.ind(x+dx,y+dy);
+      if(ok.has(k)||g.assento.has(k))continue;
+      ok.add(k);fila.push([x+dx,y+dy]);
+     }
+    }
+    for(let x=0;x<p.W;x++)for(let y=0;y<p.H;y++){
+     const k=g.ind(x,y);
+     if(p.andavel(x,y)&&!g.bloqueado[k]&&!g.assento.has(k)&&!ok.has(k))r.push(x+','+y);
+    }
+    return r;})()`,c);
    assert.deepEqual([...faltam],[],planta.id+'/'+modelo.id+'/'+porta);
   }
  }

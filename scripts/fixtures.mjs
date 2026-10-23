@@ -3,7 +3,7 @@ import { QUARTOS } from '../server/escritorio-quartos.js';
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
 import { vitrineDaSemana } from '../server/escritorio-economia.js';
-import { MARCOS } from '../server/escritorio-marcos.js';
+import { MARCOS, criterioDoMarco, tituloDe } from '../server/escritorio-marcos.js';
 import { diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
 import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
 import { documentoHtml } from '../server/planejamento-documento.js';
@@ -21,10 +21,10 @@ function lojaDemo(){
 // Conquistas no formato do servidor (níveis Bronze a Diamante, conferirMarcos):
 // a ficha e a janela de Conquistas só abrem com os degraus.
 const NIVEIS_DEMO=['','Bronze','Prata','Ouro','Diamante'],TROFEUS_DEMO=Object.values(MOVEIS_DE_MARCO_DEMO);
-const marcosDemo=()=>MARCOS.map((m,k)=>{const metas=[10,50,200,1000].map(x=>x*(k%3+1)),valor=[35,120,8,460,0,64][k%6],em=new Date(Date.now()-3*864e5).toISOString();
-  const degraus=metas.map((meta,i)=>({nivel:i+1,meta,classe:TROFEUS_DEMO[(k+i)%TROFEUS_DEMO.length],nome:NIVEIS_DEMO[i+1],ok:valor>=meta,em:valor>=meta?em:null,moedas:20*(i+1),pontos:40*(i+1)}));
+const marcosDemo=()=>MARCOS.map((m,k)=>{const especial=['implementacoes','motions'].includes(m.id),metas=m.id==='implementacoes'?[5,20,60,150]:m.id==='motions'?[10,40,120,300]:[10,50,200,1000].map(x=>x*(k%3+1)),valor=[35,120,8,460,0,64][k%6],em=new Date(Date.now()-3*864e5).toISOString();
+  const degraus=metas.map((meta,i)=>({nivel:i+1,meta,classe:TROFEUS_DEMO[(k+i)%TROFEUS_DEMO.length],nome:NIVEIS_DEMO[i+1],ok:valor>=meta,em:valor>=meta?em:null,titulo:tituloDe(m.id,i+1),moedas:especial?[10,20,40,100][i]:20*(i+1),pontos:especial?[25,50,100,200][i]:40*(i+1)}));
   const nivel=degraus.filter(d=>d.ok).length,proximo=degraus[nivel]||null;
-  return {id:m.id,nome:m.nome,nivel,nomeNivel:NIVEIS_DEMO[nivel]||'',social:false,valor,unidade:m.unidade,proximo:proximo?{nivel:proximo.nivel,nome:proximo.nome,meta:proximo.meta,classe:proximo.classe}:null,degraus,ok:nivel>0,em:nivel?em:null,dica:proximo?`${proximo.meta} ${m.unidade}`:'Nível máximo',moveis:[(proximo||degraus.at(-1)).classe]};});
+  return {id:m.id,nome:m.nome,criterio:criterioDoMarco(m.id),nivel,nomeNivel:NIVEIS_DEMO[nivel]||'',social:false,valor,unidade:m.unidade,proximo:proximo?{nivel:proximo.nivel,nome:proximo.nome,meta:proximo.meta,classe:proximo.classe}:null,degraus,ok:nivel>0,em:nivel?em:null,dica:proximo?`${proximo.meta} ${m.unidade}`:'Nível máximo',moveis:[(proximo||degraus.at(-1)).classe]};});
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
@@ -89,11 +89,11 @@ export async function demoApi(req,res,url,body) {
     if(acao==='sair'){res.setHeader('Set-Cookie','vybe_convidado=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');return reply(200,{ok:true});}
     if(acao!=='entrar' && acao!=='entrada')return reply(403,{error:'A demonstração não abre voz para convidados.'});
     if(acao==='entrada' && !/vybe_convidado=demo/.test(req.headers.cookie||''))return reply(401,{error:'Sem convite.'});
-    const equipeDemo=['Operador de teste','Design demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul'][i],pele:'media',cabelo:'curto',sala:'convivencia',x:50,y:70}}));
+    const equipeDemo=['Operador de teste','Design demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul'][i],pele:'media',cabelo:'curto',sala:'convivencia',x:50,y:70,abertura:'2026-10-17',quarto_configurado:true}}));
     const salas=salasDoEscritorio(equipeDemo).map((s,i)=>i===0?{...s,pessoa_id:'1'}:s);
     let corpo={};try{corpo=JSON.parse(body?.toString()||'{}');}catch{}
     const nome=String(corpo.nome||'Convidado de teste').slice(0,40), b=Number(corpo.boneco)||0;
-    const eu={id:'c-000000000000',nome,perfil:{figura:BONECOS_CONVIDADO[b]?.figura||BONECOS_CONVIDADO[0].figura,sala:'convivencia',x:50,y:70}};
+    const eu={id:'c-000000000000',nome,perfil:{figura:BONECOS_CONVIDADO[b]?.figura||BONECOS_CONVIDADO[0].figura,sala:'convivencia',x:50,y:70,abertura:'2026-10-17',quarto_configurado:true}};
     if(acao==='entrar')res.setHeader('Set-Cookie','vybe_convidado=demo; Path=/; HttpOnly; SameSite=Lax');
     return reply(200,{ok:true,demo:true,convidado:{id:eu.id,nome,anfitriao:{id:'1',nome:'Operador de teste'},salaAnfitriao:'sala-0',zonas:['sala-0','sala-0-andar-1',...ZONAS_DO_CONVIDADO],vozes:['sala-0','sala-0-andar-1'],expira:new Date(Date.now()+12*3600e3).toISOString()},
       quartos:QUARTOS,economia:{disponivel:false},eu:eu.id,admin:false,worker:null,token:null,equipe:[...equipeDemo,eu],salas,mapa:{editavel:false,camadas:{}}});
@@ -191,7 +191,7 @@ export async function demoApi(req,res,url,body) {
         const base=[['1','Operador de teste','gestao',38,160,52,'peca_gestao'],['2','Design demonstração','criacao',31,22,140,'peca_criacao'],['3','Edição demonstração','criacao',9,8,120,'peca_criacao'],['4','Atendimento demonstração','atendimento',44,40,88,'peca_atendimento'],['5','Produção demonstração','producao',27,30,70,'peca_producao'],['6','Agendamento demonstração','agendamento',35,45,64,'peca_agendamento']];
         const dias=[];for(let x=ini||soma(hoje,-77);x<=(fim<hoje?fim:hoje)&&dias.length<40;x=soma(x,per==='total'?7:1))dias.push(x);
         const pessoas=base.map(([id,nome,funcao,ent,meta,xp,regra],k)=>{const e=Math.round(ent*f),m=Math.max(1,Math.round(meta*f));return{id,nome,funcao,meta:m,entregas:e,pct:Math.round(e/m*100),xp:Math.round(xp*f*3),moedas:Math.round(xp*f*1.2),
-          atividades:{[regra]:e,entrega_prazo:Math.round(e*.7),acao_painel:Math.round(30*f),briefing:funcao==='gestao'?Math.round(20*f):0},xpPor:{[regra]:Math.round(xp*f*3)},porRegra:{[regra]:e},pecas:[],
+          atividades:{[regra]:e,entrega_prazo:Math.round(e*.7),acao_painel:Math.round(30*f),briefing:funcao==='gestao'?Math.round(20*f):0},xpPor:{[regra]:Math.round(xp*f*3)},porRegra:{[regra]:e},demandasDistintas:e,formatos:{[regra]:k===2?{reels:e}:{card:Math.floor(e/2),fotografia:e-Math.floor(e/2)}},pecas:[],
           ritmo:dias.map((d,i)=>[d,Math.round(xp*(.4+((i*7+k*3)%5)/5))]),sequencia:[6,4,1,9,3,2][k],xpTotal:[4200,9800,8700,5100,6900,4800][k],nivel:[17,26,25,19,23,18][k]};});
         pessoas.sort((a,b)=>b.pct-a.pct);pessoas.forEach((p,i)=>{p.posicao=i+1;p.antes=per==='total'?null:[2,1,5,4,3,6][i];});
         if(per==='total'){pessoas.sort((a,b)=>b.xpTotal-a.xpTotal);pessoas.forEach((p,i)=>p.posicao=i+1);}
@@ -205,7 +205,7 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='recados')return reply(200,{ok:true,recados:url.searchParams.get('com')==='2'?[{id:'1',de:'2',para:'1',texto:'Oi! Deixei o briefing do post na sua fila.',criado_em:new Date(Date.now()-3600e3).toISOString(),lido_em:null}]:[]});
       if(url.searchParams.get('acao')==='boneco'){const r=await fetch('https://www.habboassets.com/imaging/avatar.png?'+new URLSearchParams({figure:url.searchParams.get('figura')||'',direction:url.searchParams.get('dir')||'2',size:'n'})).catch(()=>null);if(!r?.ok)return reply(404,{error:'Boneco indisponível.'});res.writeHead(200,{'Content-Type':'image/png'});return res.end(Buffer.from(await r.arrayBuffer()));}
       if(url.searchParams.get('acao')==='arte'){const arquivo=url.searchParams.get('arquivo')||'';if(!/^[a-z0-9_]+\.(png|json)$/.test(arquivo))return reply(400,{error:'Arquivo inválido.'});try{const dados=readFileSync(new URL('../assets/escritorio/habbo/'+arquivo,import.meta.url));res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});return res.end(dados);}catch{/* Fora do painel: igual à produção, busca no catálogo do Habbo. */return import('../server/escritorio-mapa.js').then(({arteRemotaEscritorio})=>arteRemotaEscritorio(arquivo.replace(/\.(png|json)$/,''),arquivo.endsWith('.png')?'png':'json')).then((dados)=>{res.writeHead(200,{'Content-Type':arquivo.endsWith('.png')?'image/png':'application/json; charset=utf-8'});res.end(dados);}).catch(()=>reply(404,{error:'Arte não encontrada.'}));}}
-      const equipeDemo=['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70}}));
+      const equipeDemo=['Operador de teste','Design demonstração','Edição demonstração','Atendimento demonstração'].map((nome,i)=>({id:String(i+1),nome,perfil:{roupa:['laranja','azul','verde','roxo'][i],pele:'media',cabelo:['curto','longo','cacheado','curto'][i],mesa:['grafite','azul','verde','roxo'][i],objeto:['planta','livros','luminaria','planta'][i],sala:'convivencia',x:50,y:70,abertura:'2026-10-17',quarto_configurado:true}}));
       return reply(200,{ok:true,demo:true,quartos:QUARTOS,economia:{disponivel:true,saldo:700,inventario:[{classe:'shelves_norja',quantidade:2},{classe:'bling_sofa_mu',quantidade:1}],essenciais:QUARTOS.essenciais,preco:25,conquistas:[],loja:lojaDemo(),marcos:marcosDemo(),
         // Pontos de demonstração, só para a ficha: nada disso vem de banco.
         pontos:{nivel:3,xp:40,xpProximo:140,xpTotal:200,funcao:'gestao',carteira:null,trabalho:{total:120,hoje:2,semana:7,mes:30,sequencia:4,funcao:'criacao'},meta:{inicio:new Date().toISOString().slice(0,10),fim:new Date().toISOString().slice(0,10),funcao:'gestao',entregas:3,meta:4,semanas:6,media:3.8},

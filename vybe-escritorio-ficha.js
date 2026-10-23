@@ -191,13 +191,13 @@ function pintarDiaEquipeEscritorio() {
 // moedas, e como o bolo de cada peça é dividido. Tudo vem das tabelas.
 function escritorioComoFuncionaHtml(bolo, regras) {
   const pct = (n) => (n ? `${Math.round(n * 1000) / 10}%`.replace(".", ",") : "—");
-  const papeis = [["producao", "Produção (quem grava e fotografa)"], ["criacao", "Criação (quem faz a peça)"], ["atendimento", "Atendimento (head da carteira)"], ["agendamento", "Agendamento (quem agenda)"], ["gestao", "Gestão"]];
+  const papeis = [["producao", "Produção (quem grava e fotografa)"], ["criacao", "Criação (quem faz a peça)"], ["direcao_arte", "Direção de arte (quem aprova)"], ["atendimento", "Atendimento (head da carteira)"], ["agendamento", "Agendamento (quem agenda)"], ["gestao", "Gestão"]];
   const tabela = bolo ? `<table class="ofc-hud-bolo"><thead><tr><th>Quem</th><th>Foto</th><th>Vídeo e reels</th><th>Outras peças</th></tr></thead><tbody>${papeis.map(([k, nome]) => `<tr><td>${nome}</td><td>${pct(bolo[k]?.foto ?? bolo[k]?.captada)}</td><td>${pct(bolo[k]?.video ?? bolo[k]?.captada)}</td><td>${pct(bolo[k]?.normal)}</td></tr>`).join("")}</tbody></table>
-<p class="ofc-nota">Quando o DA aprova a peça de outra pessoa, fica com ${pct(bolo.direcao_arte?.normal)} da parte da Criação. Se várias pessoas fazem a mesma peça, dividem a parte.</p>` : "";
+<p class="ofc-nota">Os percentuais usam o valor-base da execução como referência; a soma dos papéis pode ultrapassar 100%. Quando várias pessoas dividem um papel na mesma peça, dividem a parte desse papel.</p>` : "";
   const ganha = [...new Set(regras.filter((r) => r.moedas > 0).map((r) => r.descricao))];
   const perde = [...new Set(regras.filter((r) => r.moedas < 0).map((r) => r.descricao))];
   return `<section class="ofc-hud-bloco ofc-hud-como"><div class="ofc-hud-bloco-topo"><h4>Como funciona</h4><small>Moedas compram móveis; XP sobe o nível.</small></div>
-${bolo ? `<p>Cada peça concluída vira um <b>bolo</b> de moedas e XP do tamanho do formato (um Reels vale 2,5 vezes um Card). O bolo é dividido entre quem trabalhou nela:</p>${tabela}` : ""}
+${bolo ? `<p>Cada peça concluída tem um valor-base de moedas e XP, definido pelas regras e pelo peso do formato. Cada contribuição recebe o percentual indicado abaixo:</p>${tabela}` : ""}
 <ul class="ofc-hud-como-lista">
 <li><b>Dá XP:</b> tudo o que dá moedas também dá XP, além das conquistas e do fechamento do dia e da semana.</li>
 <li><b>Tira XP:</b> ${perde.length ? safeText(perde.join("; ")) : "nada"}. O XP nunca fica abaixo de zero.</li>
@@ -1142,14 +1142,14 @@ function rkCategorias(d) {
   return [
     geralTotal
       ? { k: "geral", nome: "Nível", icone: "geral", valor: (p) => p.xpTotal || 0, fmt: (v, p) => `Nível ${p.nivel}`, sub: (p) => `${Number(p.xpTotal || 0).toLocaleString("pt-BR")} XP no total`, dica: "Desde sempre: vale o XP de todo o trabalho." }
-      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.pct}% da própria meta`, dica: "A ordem é pelo XP do trabalho no período: cada peça vale pelo seu papel nela (quem fez leva o valor inteiro, o head um quarto, quem postou e o DA um pouco) e pelo tamanho do formato (um impresso vale 4 cards), mais prazo, aprovação de primeira e briefings. Quem produz mais sobe." },
+      : { k: "geral", nome: "Geral", icone: "geral", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.pct}% da própria meta`, dica: "A ordem é pelo XP do trabalho no período: cada contribuição recebe o valor das regras ativas, considerando papel e formato. Volume sozinho não determina a posição. Abra a pessoa para conferir formatos, etapas e origem do XP. Conquistas e prêmios da Copa não contam." },
     ...(geralTotal ? [] : [{ k: "superacao", nome: "Superação", icone: "sequencia", valor: (p) => (p.entregas ? p.pct : 0), fmt: (v) => `${v}%`, sub: (p) => `${p.entregas} entregas ÷ meta ${p.meta}`, dica: "A ordem é por quem mais superou o próprio ritmo: as entregas do período divididas pela meta de cada um (a média das suas entregas nas últimas 8 semanas). Bom para ver quem está melhorando; não decide pódio nem Copa." }]),
     { k: "xp", nome: "XP", icone: "xp", valor: (p) => p.xp, fmt: (v) => `${v.toLocaleString("pt-BR")} XP`, sub: (p) => `${p.moedas} moedas`, dica: "A ordem é pelo XP ganho trabalhando no período: peças, prazo, aprovação de primeira, briefings e ações no painel. Conquistas e prêmios do ranking não contam." },
-    { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "A ordem é pelas moedas ganhas trabalhando no período (sem compras, conquistas e prêmios). Peça maior vale mais: um impresso vale 4 cards." },
+    { k: "moedas", nome: "Moedas", icone: "moedas", valor: (p) => p.moedas, fmt: (v) => v.toLocaleString("pt-BR"), sub: (p) => `${p.xp} XP`, dica: "A ordem é pelas moedas ganhas trabalhando no período (sem compras, conquistas e prêmios). Os valores dependem das regras ativas de papel e formato." },
     { k: "entregas", nome: "Volume", icone: "entregas", valor: (p) => p.entregas, fmt: (v) => `${v}`, sub: (p) => (geralTotal ? "entregas" : `meta ${p.meta}`), dica: "A ordem é pelo número de entregas no período, de qualquer tipo, sem olhar a meta: quem fez mais coisas." },
     { k: "sequencia", nome: "Em chamas", icone: "sequencia", valor: (p) => p.sequencia || 0, fmt: (v) => `${v} ${v === 1 ? "dia" : "dias"}`, sub: () => "seguidos entregando", dica: "A ordem é pelos dias úteis seguidos com pelo menos uma entrega, até hoje. Sábado e domingo não quebram a sequência." },
-    atv("peca_criacao", "Peças feitas"), atv("peca_producao", "Captações"), atv("peca_atendimento", "Carteira"), atv("peca_agendamento", "Postagens"),
-    atv("peca_da", "Direção de arte"), atv("briefing", "Briefings"), atv("entrega_prazo", "No prazo"), atv("criacao_aprovada", "De primeira"),
+    atv("peca_criacao", "Peças feitas"), atv("peca_producao", "Peças captadas"), atv("peca_atendimento", "Carteira"), atv("peca_agendamento", "Agendamento"),
+    atv("peca_da", "Direção de arte"), atv("briefing", "Briefings no cadastro"), atv("entrega_prazo", "No prazo"), atv("criacao_aprovada", "De primeira"),
     atv("peca_gestao", "Peças da agência"), atv("acao_painel", "No painel"),
   ];
 }
@@ -1157,7 +1157,20 @@ function rkCategorias(d) {
 // por você e mostrar quantos cards, carrosséis…").
 const RK_FORMATOS = { card: ["card", "cards"], feed: ["feed", "feeds"], post: ["post", "posts"], carrossel: ["carrossel", "carrosséis"], reels: ["reels", "reels"],
   story: ["story", "stories"], stories: ["story", "stories"], fotografia: ["foto", "fotos"], foto: ["foto", "fotos"], video: ["vídeo", "vídeos"], "vídeo": ["vídeo", "vídeos"],
-  motion: ["motion", "motions"], impresso: ["impresso", "impressos"], avulso: ["avulso", "avulsos"], outro: ["outro", "outros"] };
+  motion: ["motion", "motions"], impresso: ["impresso", "impressos"], avulso: ["avulso", "avulsos"], outro: ["outro", "outros"], "sem formato": ["demanda sem formato", "demandas sem formato"],
+  "feed/story": ["demanda Feed/Story", "demandas Feed/Story"], "implementação": ["implementação", "implementações"], implementacao: ["implementação", "implementações"],
+  design: ["demanda de design", "demandas de design"], digital: ["demanda digital", "demandas digitais"], "capa videos": ["capa de vídeo", "capas de vídeo"] };
+// Mesma decomposição no ranking: volume legível sem depender de hover.
+function escritorioRankingVolumeHtml(p) {
+  const etapas = [["peca_criacao", "Criação e implementação"], ["peca_producao", "Peças com crédito de captação"], ["peca_agendamento", "Agendamento ou finalização"], ["peca_da", "Revisões como DA"], ["peca_atendimento", "Acompanhamento como head"], ["briefing", "Cadastros com briefing"]];
+  const linhas = etapas.map(([k, nome]) => {
+    const formatos = Object.entries(p.formatos?.[k] || {}).sort((a, b) => b[1] - a[1]);
+    const n = Number(p.porRegra?.[k] || p.atividades?.[k] || 0);
+    if (!n) return "";
+    return `<li><span><b>${safeText(nome)}</b>${formatos.length ? `<small>${safeText(rkFormatosTexto(p.formatos[k]))}</small>` : ""}</span><b>${n.toLocaleString("pt-BR")}</b></li>`;
+  }).join("");
+  return `<div class="ofc-rk-det-col largo rk-volume"><h5>Volume por contribuição${p.demandasDistintas != null ? ` <small>${Number(p.demandasDistintas).toLocaleString("pt-BR")} demandas distintas com crédito</small>` : ""}</h5>${linhas ? `<ul class="ofc-rk-det-lista">${linhas}</ul>` : '<p class="ofc-nota">Sem contribuições registradas no período.</p>'}<p class="ofc-nota">Não some etapas como demandas únicas: uma peça pode ser criada, revisada e agendada. Cada demanda conta uma vez por etapa; pode conter várias telas ou variações. Fotografia é o formato cadastrado, não prova de tratamento. Captação conta peças, não sessões. Briefing no cadastro não comprova quem escreveu o texto.</p></div>`;
+}
 function rkFormatosTexto(f) {
   const l = Object.entries(f || {}).sort((a, b) => b[1] - a[1]);
   if (!l.length || (l.length === 1 && l[0][0] === "outro")) return "";
@@ -1258,7 +1271,7 @@ function pintarRankingEscritorio() {
     const contou = Object.entries(p.porRegra || {}).sort((a, b) => b[1] - a[1]);
     const xp = Object.entries(p.xpPor || {}).sort((a, b) => b[1] - a[1]);
     const ritmo = rkRitmo(d, p, Math.max(1, ...d.pessoas.flatMap((q) => (q.ritmo || []).map(([, v]) => v))));
-    return `<div class="ofc-rk-detalhe">${ritmo ? `<div class="ofc-rk-det-col largo rk2-det-ritmo"><h5>Ritmo do XP <small>${per === "total" ? "por semana" : "por dia"}</small></h5>${ritmo}</div>` : ""}<div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => { const dica = rkFormatosTexto(p.formatos?.[k]); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n}</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
+    return `<div class="ofc-rk-detalhe">${escritorioRankingVolumeHtml(p)}${ritmo ? `<div class="ofc-rk-det-col largo rk2-det-ritmo"><h5>Ritmo do XP <small>${per === "total" ? "por semana" : "por dia"}</small></h5>${ritmo}</div>` : ""}<div class="ofc-rk-det-col"><h5>Contou como entrega <small>${p.entregas} no período${per === "total" ? "" : ` · meta ${p.meta}`}</small></h5>${contou.length ? `<ul class="ofc-rk-det-lista">${contou.map(([k, n]) => { const dica = rkFormatosTexto(p.formatos?.[k]); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n}</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nenhuma entrega no período ainda.</p>'}</div>
 <div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => { const vezes = Number(p.atividades?.[k] || 0), f = rkFormatosTexto(p.formatos?.[k]); const dica = [vezes ? `${vezes.toLocaleString("pt-BR")} ${vezes === 1 ? "vez" : "vezes"}${vezes > 1 ? ` · média de ${Math.round(n / vezes)} XP por vez` : ""}` : "", f].filter(Boolean).join(" · "); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR")} XP</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
 ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "do período"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
   };
@@ -1401,10 +1414,10 @@ function fecharDetalheRankingEscritorio() {
 // mostra todas as conquistas e o que cada uma dá"): cada escada com os quatro
 // níveis, a meta, o troféu e as moedas e o XP de cada um, e o seu progresso.
 const ESCRITORIO_GRUPOS_CONQUISTA = [
-  ["entregas", "Entregas", "As peças que você fez.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos", "impressos"]],
-  ["producao", "Produção", "Gravações e o que foi captado.", ["gravacoes", "fotos_captadas", "videos_captados"]],
+  ["entregas", "Entregas", "As peças que você fez.", ["entregas", "cards", "carrosseis", "reels", "stories", "fotografias", "videos", "motions", "impressos", "implementacoes"]],
+  ["producao", "Produção", "Dias com crédito de captação e peças vinculadas; não são sessões de gravação.", ["gravacoes", "fotos_captadas", "videos_captados"]],
   ["ritmo", "Ritmo", "Prazo, aprovação de primeira, sequência, meta e pódio.", ["adiantado", "deprimeira", "embalo", "semana", "filaemdia", "meta", "meta_turbo", "podio", "artilheiro", "painel", "clientes", "nivel"]],
-  ["agendamento", "Postagens", "Peças postadas, por tipo.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
+  ["agendamento", "Agendamento", "Peças com crédito de agendamento ou finalização, por tipo; não comprova publicação.", ["agendamento", "agendados_cards", "agendados_carrosseis", "agendados_reels", "agendados_stories", "agendados_fotografias"]],
   ["atendimento", "Atendimento", "Peças dos clientes da sua carteira, por tipo.", ["carteira", "carteira_cards", "carteira_carrosseis", "carteira_reels", "carteira_stories", "carteira_fotografias", "planejamentos"]],
   ["gestao", "Gestão", "Cadastros, briefings, peças da agência e aprovações do DA.", ["cadastros", "briefings", "agencia", "da"]],
   ["escritorio", "Escritório", "Um nível só, para começar a usar.", ["quarto", "andar2", "presente", "troca", "postits"]],
@@ -1459,6 +1472,7 @@ ${x.titulo ? `<span class="cq-tit vb-titulo n${x.nivel}">${safeText(x.titulo)}</
 ${x.social ? `<small>${x.nivel ? "Conquistado" : safeText(x.dica || "")}</small>` : `${trilha(x)}<small>${prox ? `<b>${num(x.valor)}</b> ${safeText(x.unidade)} · faltam <b>${num(falta)}</b> para ${safeText(prox.nome)}` : `<b>${num(x.valor)}</b> ${safeText(x.unidade)} · nível máximo`}</small>`}</span>
 ${dProx ? `<span class="cq-premio" title="Prêmio do próximo nível"><b>+${dProx.moedas}</b><small>moedas</small><b>+${dProx.pontos}</b><small>XP</small></span>` : ""}
 </summary>
+${x.criterio ? `<p class="cq-dica">${safeText(x.criterio)}</p>` : ""}
 <ol class="cq-niveis">${x.degraus.map((d) => `<li class="n${d.nivel}${d.ok ? " ok" : ""}"><span class="cq-arte">${escritorioMiniaturaHtml(d.classe)}</span><b>${safeText(d.nome)}</b><small>${safeText(qtd(d.meta, x.unidade))}</small>${d.titulo ? `<span class="cq-tit vb-titulo n${d.nivel}">${safeText(d.titulo)}</span>` : ""}<em>+${d.moedas} moedas · +${d.pontos} XP</em>${d.ok ? '<i class="cq-seu">Seu</i>' : ""}</li>`).join("")}</ol></details>`;
   };
   const niveis = marcos.reduce((t, x) => t + x.nivel, 0), total = marcos.reduce((t, x) => t + x.degraus.length, 0);
@@ -1497,7 +1511,7 @@ ${meu && titulos.length ? `<button type="button" class="cq-trocar" aria-expanded
   const chips = `<div class="ofc-cq-abas" role="tablist" aria-label="Grupos de conquistas">${visiveis.map(([k, nome, , ids]) => { const l = daAba(ids); return `<button type="button" role="tab" class="vb-chip" aria-pressed="${k === aba}" aria-selected="${k === aba}" onclick="escolherAbaConquistasEscritorio('${k}')">${nome}${ids ? `<b>${l.filter((x) => x.nivel).length}/${l.length}</b>` : ""}</button>`; }).join("")}</div>`;
   const [, , dica, ids] = grupos.find(([k]) => k === aba) || grupos[0];
   const lista = daAba(ids);
-  return `<div class="cq-tela"><aside class="cq-lado">${vitrine}${escolherTitulos}${estante}</aside><div class="cq-principal">${chips}<p class="cq-dica">${dica} Os troféus da escada ficam todos com você, para expor no quarto.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div></div>`;
+  return `<div class="cq-tela"><aside class="cq-lado">${vitrine}${escolherTitulos}${estante}</aside><div class="cq-principal">${chips}<p class="cq-dica">${dica} Cada nível mostra a meta, o que conta e o prêmio. Os troféus conquistados ficam com você; XP de conquistas não entra no ranking de trabalho.</p><div class="cq-grade" role="tabpanel">${lista.map((x, k) => cartao(x, aba === "perto" && k === 0)).join("") || '<p class="ofc-nota">Nada aqui ainda.</p>'}</div></div></div>`;
 }
 function escolherAbaConquistasEscritorio(aba) {
   escritorio.cqAba = aba;

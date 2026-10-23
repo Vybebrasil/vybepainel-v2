@@ -643,3 +643,37 @@ cerca de 1 moeda por peça; um lendário levava de 3 semanas a mais de 3 meses.
 - Só eventos novos; saldos e XP de hoje não mudam. Migração
   `migrations/2026-10-21-escritorio-volume.sql`; teste
   `tests/escritorio-volume.test.mjs`.
+
+## Clareza das contribuições e complemento das conquistas — 22/10/2026 (local)
+
+Paulo aprovou preservar as conquistas atuais e complementá-las após a comparação
+real por formato. Esta etapa não oficializa os valores experimentais de XP/ouro.
+
+- Ranking: volume de cada etapa e seus formatos fica legível no detalhe da pessoa,
+  sem depender de hover. As contagens usam agregações completas, independentes das
+  3.000 linhas de exemplo. Feed/Story permanece uma demanda, sem virar Feed.
+  Demandas distintas são deduplicadas entre etapas; não somar execução, captação,
+  revisão, agendamento, briefing e carteira como se fossem demandas diferentes.
+- Critério de cada conquista vem de `criterioDoMarco`, junto da resposta do motor
+  existente, e aparece ao abrir seu cartão: o que conta, unidade, meta, falta,
+  recompensa e título. Briefing no cadastro não comprova autoria; agendamento ou
+  finalização não comprova publicação; peça captada não equivale a uma sessão.
+- Acrescentadas as especialidades Implementações (5/20/60/150 demandas) e Motion
+  (10/40/120/300 demandas), Bronze a Diamante, com títulos próprios. São metas
+  iniciais para homologação, não validadas por tempo de trabalho medido. Motion
+  continua contando na escada existente Vídeos e motions, como especialidade
+  dentro dela; não somar ambas como execuções diferentes.
+- Migração aditiva `2026-10-22-escritorio-conquistas-especialidades.sql`: herda
+  artes e recompensas dos níveis de Impressos; não modifica nenhuma escada antiga,
+  marco, carteira ou inventário. Repetir não sobrescreve metas. O motor atual
+  concede as novas conquistas uma vez por nível com a origem própria. Nenhuma
+  revisão ou remoção de conquista antiga faz parte desta etapa.
+- A migração ainda NÃO foi aplicada. As escadas novas só são ativadas quando ela
+  for aplicada após homologação. Os pesos de pontos, fatias e metas oficiais
+  permanecem nas tabelas atuais; textos da interface não anunciam a simulação
+  como regra vigente.
+
+Pendências do balanceamento: confirmar autoria dos briefings, executores ausentes
+nas oito implementações identificadas e complexidade dos vídeos sem escopo; decidir
+os pesos finais e seu reflexo em moedas/metas antes de preparar uma alteração
+financeira revisável. Não repetir as migrações históricas de recálculo.

@@ -327,7 +327,7 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
 export const ATIVIDADES_DO_RANKING = [
   ['peca_criacao', 'Peças feitas'], ['peca_producao', 'Fotos e vídeos captados'], ['peca_da', 'Aprovações do DA'],
   ['peca_agendamento', 'Peças agendadas'], ['peca_atendimento', 'Peças da carteira'], ['cadastro', 'Demandas cadastradas'],
-  ['briefing', 'Briefings escritos'], ['entrega_prazo', 'Entregas no prazo'], ['criacao_aprovada', 'Aprovadas de primeira'],
+  ['briefing', 'Briefings no cadastro'], ['entrega_prazo', 'Entregas no prazo'], ['criacao_aprovada', 'Aprovadas de primeira'],
   ['peca_gestao', 'Peças da agência'], ['acao_painel', 'Ações no painel'],
 ];
 const FORA_DO_RANKING = ['conquista', 'ranking_1', 'ranking_2', 'ranking_3', 'meta_agencia', 'copa_1', 'copa_2', 'copa_3', 'copa_bonus'];
@@ -410,12 +410,28 @@ async function rankingIntervalo(sql, { de, ate, pessoas, metas, fator, entregasD
         WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date ORDER BY e.dia DESC, e.origem LIMIT 3000`
     : await sql`SELECT e.pessoa_id, e.regra, TO_CHAR(e.dia,'YYYY-MM-DD') AS dia, NULL AS titulo, NULL AS cliente FROM vybe_escritorio_entregas e
         JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date ORDER BY e.dia DESC, e.origem LIMIT 3000`;
+  // Totais vêm de agregações sem o limite da lista de exemplos (3.000).
+  // Formato principal preserva Feed/Story: não o transforma silenciosamente em Feed.
+  const porFormato = comTitulo?.existe ? await sql`SELECT e.pessoa_id, e.regra,
+    COALESCE(NULLIF(lower(trim(split_part(c.formato, ',', 1))), ''), 'sem formato') AS formato,
+    count(DISTINCT e.conteudo_id)::int AS n
+    FROM vybe_escritorio_entregas e JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega
+    LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id
+    WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date GROUP BY 1,2,3` : await sql`SELECT e.pessoa_id, e.regra, 'sem formato' AS formato, count(DISTINCT e.conteudo_id)::int AS n
+    FROM vybe_escritorio_entregas e JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega
+    WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date GROUP BY 1,2`;
+  const distintas = await sql`SELECT e.pessoa_id, count(DISTINCT e.conteudo_id)::int AS n
+    FROM vybe_escritorio_entregas e JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega
+    WHERE e.dia >= ${de}::date AND e.dia <= ${ate}::date GROUP BY 1`;
   for (const p of lista) {
     const minhas = entregas.filter((e) => String(e.pessoa_id) === p.id);
-    p.porRegra = minhas.reduce((t, e) => ({ ...t, [e.regra]: (t[e.regra] || 0) + 1 }), {});
-    // Quantos de cada formato em cada regra (cards, carrosséis, reels…).
+    p.porRegra = {};
     p.formatos = {};
-    for (const e of minhas) { const f = String(e.formato || "").split(/[;,/]/)[0].trim().toLowerCase() || "outro"; (p.formatos[e.regra] ||= {})[f] = (p.formatos[e.regra][f] || 0) + 1; }
+    for (const e of porFormato.filter((e) => String(e.pessoa_id) === p.id)) {
+      p.porRegra[e.regra] = (p.porRegra[e.regra] || 0) + Number(e.n);
+      (p.formatos[e.regra] ||= {})[e.formato] = Number(e.n);
+    }
+    p.demandasDistintas = Number(distintas.find((e) => String(e.pessoa_id) === p.id)?.n || 0);
     p.pecas = minhas.slice(0, 40).map((e) => ({ regra: e.regra, dia: e.dia, titulo: e.titulo || null, cliente: e.cliente || null }));
   }
   const regras = Object.fromEntries((await sql`SELECT chave, descricao FROM vybe_escritorio_regras`).map((r) => [r.chave, r.descricao]));

@@ -171,3 +171,18 @@ test('Bônus de campeão: no mês seguinte, o campeão ganha a % da tabela sobre
  assert.equal(await sql.comTransacao(tx=>bonusCopaDoDia(tx,HOJE)),null,'uma vez por dia');
  assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE pessoa_id=6 AND regra='copa_bonus'`)[0].n,0,'só o campeão');
 });
+
+test('volume por formato não é truncado pela lista de exemplos e preserva Feed/Story', async t => {
+ const {db,sql}=await banco(t);
+ const hoje=diaBahia(new Date()),inicio=inicioDaSemana(hoje);
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,formato,titulo) SELECT n,7829537690,CASE WHEN n=90000 THEN 'Feed/Story' ELSE 'Card' END,'Peça '||n FROM generate_series(90000,93010) n;
+ INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) SELECT 7,'volume:'||n,'peca_criacao',n,'${hoje}' FROM generate_series(90000,93010) n;
+ INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) VALUES(7,'outra-etapa','peca_agendamento',90000,'${hoje}');`);
+ const r=await rankingDaSemana(sql,new Date(),inicio),p=r.pessoas.find(p=>p.id==='7');
+ assert.equal(p.porRegra.peca_criacao,3011);
+ assert.equal(p.formatos.peca_criacao.card,3010);
+ assert.equal(p.formatos.peca_criacao['feed/story'],1);
+ assert.equal(p.porRegra.peca_agendamento,1);
+ assert.equal(p.demandasDistintas,3011,'mesma demanda em duas etapas continua única');
+ assert.equal(p.pecas.length,40,'só os exemplos têm limite');
+});
