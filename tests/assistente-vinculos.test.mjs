@@ -12,6 +12,7 @@ test('confere estado ativo e permissões e retorna o id associado', async () => 
   const hash = 'a'.repeat(64);
   const sql = async (strings, ...values) => {
     const query = strings.join('?');
+    if(query.includes('to_regclass')) return [{pronta:true}];
     assert.match(query, /revogado_em IS NULL/);
     assert.match(query, /p.ativo = TRUE/);
     assert.match(query, /p.pode_entrar = TRUE/);
@@ -22,5 +23,5 @@ test('confere estado ativo e permissões e retorna o id associado', async () => 
 });
 
 test('sem vínculo ativo não retorna pessoa', async () => {
-  assert.equal(await pessoaVinculada(async () => [], 'b'.repeat(64)), null);
+  assert.equal(await pessoaVinculada(async (s) => s.join('').includes('to_regclass') ? [{pronta:true}] : [], 'b'.repeat(64)), null);
 });
