@@ -11145,3 +11145,77 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-trabalho-anterior {fill:none;stroke:#b3b7c4;stroke-width:2;stroke-dasharray:6 5;opacity:.8}
 .ofc-trabalho-legenda {display:flex;gap:16px;flex-wrap:wrap;font-size:12px}
 .ofc-trabalho-legenda span:first-child {color:#ffab65}
+
+/* Oficina: escopo exclusivo da lateral de construção. As janelas de loja,
+   inventário e perfil mantêm sua apresentação compartilhada. */
+.ofc-oficina {container-type:inline-size;display:flex;flex-direction:column;gap:14px}
+.ofc-oficina[hidden] {display:none}
+.ofc-oficina-nav {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 2px;padding:2px 0 5px}
+.ofc-oficina-nav button {display:flex;align-items:center;gap:9px;min-width:0;min-height:62px;padding:10px;text-align:left;border:1px solid #ffffff16;border-radius:12px;background:#1d2029;color:var(--ofc-texto);box-shadow:0 3px 0 #0c0e15;cursor:pointer;transition:transform .15s var(--curva),border-color .15s var(--curva)}
+.ofc-oficina-nav button > svg {flex:0 0 27px;width:27px;height:27px;padding:5px;box-sizing:content-box;border-radius:9px;background:#ffffff08;color:#c2c8d6}
+.ofc-oficina-nav button > span {display:grid;gap:3px;min-width:0}
+.ofc-oficina-nav b {font:750 12px/1.2 var(--mac-ui)}
+.ofc-oficina-nav small {font:500 10px/1.35 var(--mac-ui);color:var(--ofc-suave)}
+.ofc-oficina-nav button[aria-selected=true] {border-color:#ff963f;background:#24242c}
+.ofc-oficina-nav button[aria-selected=true] > svg {background:#ff8a3520;color:#ffb16d}
+.ofc-oficina-nav button:active {transform:translateY(2px);box-shadow:0 1px 0 #0c0e15}
+.ofc-oficina :is(button,select,input,summary):focus-visible {outline:2px solid #ff963f;outline-offset:3px}
+.ofc-oficina-carteira {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:12px}
+.ofc-oficina-carteira > span {display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
+.ofc-oficina-carteira svg {width:20px;height:20px}
+.ofc-oficina-carteira b {font:800 22px var(--mac-ui);color:#ffda85}
+.ofc-oficina-carteira small {font-size:10px;color:var(--ofc-suave)}
+.ofc-oficina-carteira button {display:flex;align-items:center;gap:6px;font-size:12px;padding:9px 12px}
+.ofc-oficina .ofc-busca {margin:0}
+.ofc-oficina .ofc-busca input {min-height:44px;border-radius:12px;background:#11141c;border:1px solid #ffffff17;box-shadow:inset 0 2px 4px #0004}
+.ofc-oficina .ofc-cats {gap:6px;margin:0}
+.ofc-oficina .ofc-cats button {border-radius:9px;font-size:11px;padding:8px 10px;min-height:36px}
+.ofc-oficina .ofc-cats-topo {display:flex;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #ffffff10}
+.ofc-oficina .ofc-cats-topo button:nth-child(-n+2) {font-size:11px;min-height:36px}
+.ofc-oficina .ofc-ferramentas {display:flex;flex-wrap:wrap;margin:0 0 14px;padding:5px;border-radius:12px;background:#10131b;box-shadow:inset 0 2px 3px #0005}
+.ofc-oficina .ofc-ferramentas button {display:flex;align-items:center;justify-content:center;gap:5px;flex:1 1 auto;background:transparent;border:1px solid transparent;color:var(--ofc-suave)}
+.ofc-oficina .ofc-ferramentas button[aria-pressed=true] {border-color:#ff963f;background:#ff963f16;color:#ffd0a9;box-shadow:0 2px 0 #090b12}
+.ofc-oficina .ofc-ferramentas svg {width:16px;height:16px;flex-shrink:0}
+.ofc-oficina h4 {margin:22px 0 10px;padding:0;border:0;color:#cad0df;font:750 11px/1.4 var(--mac-ui);letter-spacing:.06em}
+.ofc-oficina .ofc-nota {font-size:12px;line-height:1.6;margin:10px 0 14px;color:#aeb6c8}
+.ofc-oficina .ofc-amostras {grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.ofc-oficina .ofc-amostras button {position:relative;overflow:hidden;gap:8px;padding:7px 7px 9px;border-radius:12px;background:#1d2029;border:1px solid #ffffff15;box-shadow:0 3px 0 #0b0d14;font:600 11px/1.35 var(--mac-ui)}
+.ofc-oficina .ofc-amostras i {height:46px;border-radius:7px;box-shadow:inset 0 0 0 1px #ffffff0a,0 2px 5px #0004}
+.ofc-oficina .ofc-amostras button[aria-pressed=true] {outline:0;border-color:#ff963f;box-shadow:0 3px 0 #8a471f,inset 0 0 0 1px #ff963f}
+.ofc-oficina .ofc-amostras button[aria-pressed=true]::after {content:'✓';position:absolute;top:9px;right:9px;width:17px;height:17px;border-radius:5px;background:#ff963f;color:#17120e;font:800 12px/17px var(--mac-ui);text-align:center}
+.ofc-oficina .ofc-amostras.cores {grid-template-columns:repeat(5,minmax(0,1fr))}
+.ofc-oficina .ofc-amostras.cores i {height:30px}
+.ofc-oficina .ofc-moveis {grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ofc-oficina .ofc-movel {display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:10px;border-radius:13px;background:#1d2029;border:1px solid #ffffff15;box-shadow:0 4px 0 #0b0d14;min-height:0;height:auto;text-align:left}
+.ofc-oficina .ofc-movel img {align-self:center;width:76px;height:76px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 3px #0007)}
+.ofc-oficina .ofc-movel > span {display:block;min-height:0;overflow:visible;white-space:normal;overflow-wrap:anywhere;font:650 12px/1.4 var(--mac-ui);color:#ecedf4}
+.ofc-oficina .ofc-movel .ofc-movel-linha {margin-top:auto;white-space:normal;font-size:10px;line-height:1.4;text-align:left;overflow:visible}
+.ofc-oficina .ofc-movel[aria-pressed=true] {outline:0;border-color:#ff963f;box-shadow:0 4px 0 #8a471f,inset 0 0 0 1px #ff963f}
+.ofc-oficina .ofc-movel small {color:#aeb6c8;font:500 10px/1.4 var(--mac-ui)}
+.ofc-oficina .ofc-piso-custo {font:750 11px/1.4 var(--mac-ui);color:#ffd18f;margin-top:auto;font-style:normal}
+.ofc-oficina .ofc-pisos-acervo {max-height:none;overflow:visible}
+.ofc-oficina .ofc-pisos-catalogo {padding:12px;border:1px solid #ffffff15;border-radius:14px;background:#11141c}
+.ofc-oficina .ofc-pisos-catalogo summary {font:750 13px/1.5 var(--mac-ui);padding:3px 0}
+.ofc-oficina .ofc-pisos-catalogo > label {display:flex;align-items:center;gap:8px;margin:12px 0;font-size:11px;color:#c6cbda}
+.ofc-oficina :is(input[type=search],select,input[type=number]) {min-height:40px;border:1px solid #ffffff18;border-radius:9px;padding:8px;background:#151821;color:#ecedf4;font:500 12px var(--mac-ui)}
+.ofc-oficina .ofc-pisos-catalogo input[type=search] {width:100%;background:#090c13}
+.ofc-oficina .ofc-area-piso {display:flex;flex-wrap:wrap;gap:6px;margin:16px 0;padding:12px;border:1px solid #ffffff15;border-radius:12px;background:#11141c}
+.ofc-oficina .ofc-area-piso legend {font:750 11px var(--mac-ui);padding:0 6px;color:#cad0df}
+.ofc-oficina .ofc-area-piso button {border-radius:8px;min-height:36px;background:#252935;font-size:11px}
+.ofc-oficina .ofc-area-piso small {width:100%;font-size:11px;line-height:1.5;color:#aeb6c8;margin-top:5px}
+.ofc-oficina .ofc-mao {border:1px solid #ffffff12;background:#11141c;border-radius:12px;padding:10px;margin:0}
+.ofc-oficina .ofc-mao label {gap:9px;font-size:12px;cursor:pointer}
+.ofc-oficina .ofc-mao label span {display:grid;gap:3px}
+.ofc-oficina .ofc-mao label small {font-size:10px;color:#aeb6c8}
+.ofc-oficina input[type=checkbox] {accent-color:#ff963f;width:16px;height:16px;flex:0 0 16px}
+.ofc-oficina .ofc-oficina-conjuntos {display:flex;align-items:center;gap:6px;font-size:11px;align-self:flex-start;padding:0}
+.ofc-oficina-conjuntos svg {width:15px;height:15px}
+.ofc-oficina .ofc-opcoes-quarto {padding:12px;border:1px solid #ffffff15;border-radius:12px;background:#11141c}
+@media(prefers-reduced-motion:reduce){.ofc-oficina-nav button{transition:none}}
+body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
+@container(max-width:250px){.ofc-oficina-nav small{display:none}.ofc-oficina-nav button{min-height:48px;gap:6px;padding:8px}.ofc-oficina-nav button > svg{width:20px;height:20px;padding:3px}.ofc-oficina .ofc-movel img{width:60px;height:60px}}
+
+.ofc-oficina .ofc-amostras-piso i {height:54px;clip-path:polygon(50% 4%,100% 49%,100% 56%,50% 100%,0 56%,0 49%);background-size:14px 14px}
+.ofc-oficina .ofc-amostras-piso button > span {min-height:2.7em;display:grid;align-items:center}
+.ofc-oficina-nav button[aria-selected=true] {box-shadow:0 3px 0 #8a471f,inset 0 -3px 0 #ff963f}
+@media(max-width:760px){.ofc-oficina .ofc-cats button,.ofc-oficina .ofc-area-piso button,.ofc-oficina .ofc-pisos-catalogo > button {min-height:44px}}

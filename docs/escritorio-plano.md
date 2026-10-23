@@ -1635,3 +1635,34 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 
 - Paulo aprovou a demonstração da aba Trabalho e autorizou sua publicação em
   23/10/2026. Entrega em um PR, com CI e preview no commit exato antes do merge.
+
+### Trabalho publicado e Oficina local — 23/10/2026
+
+- Paulo aprovou a aba Trabalho e autorizou publicar: PR #358, commit de
+  revisão `167412b`, **594 testes** na CI, preview READY no mesmo SHA.
+  Merge `1647a06`; produção `dpl_Ar4c6sH2wHoRQAeYeyCMpCbA1ez5`, READY,
+  SHA e alias oficial confirmados. HTML 200, rota pública de trabalho sem
+  sessão 401, Monday 410. Sem migração, concessão ou recálculo de pagamentos.
+- Novo pedido após publicar: reformular visualmente os painéis de construção,
+  conforme quatro capturas de Paulo. Branch local `codex/construcao-paineis-jogo`.
+- A lateral da edição vira Oficina. Navegação única por Móveis, Acabamentos,
+  Estrutura e Extras; atalhos de Imagens/Conjuntos só nos Extras. Mantidos os
+  estados e handlers existentes (inclusive os ambientes compartilhados).
+- Saldo e acesso à loja no painel de móveis, sem exibir zero quando a carteira
+  não chegou. A loja continua sendo a janela existente. Repetir colocação com
+  explicação curta. Cartões em duas colunas, arte maior, nomes completos,
+  preço e quantidade separados nos pisos. Acabamentos gratuitos com amostras
+  isométricas e marca de seleção; materiais sem segunda rolagem interna.
+- Aparência segue os materiais e degraus do padrão de jogo, com estilos
+  delimitados por `.ofc-oficina`; loja, inventário e ficha não são alterados.
+  Navegação por setas/Home/End e foco visível. Nenhuma alteração de física,
+  autorização, compras, rascunho ou salvamento. Sem animação contínua nova.
+- Verificação: **25 testes** direcionados de navegação, construção, pincel,
+  conferência e rascunho aprovados. Sintaxe e build aprovados. A política do
+  navegador ainda bloqueia inspeção automatizada; Paulo foi chamado para
+  conferir na demonstração local e ele respondeu **"aprovado"**. Aprovação
+  visual manual registrada, sem afirmar inspeção automatizada ou de celular.
+  **Oficina ainda local, não publicada.**
+
+- Paulo autorizou publicar também a Oficina em 23/10/2026. Conferir CI e
+  prévia no commit exato antes do merge; nenhuma migração nesta entrega.

@@ -366,3 +366,16 @@ no XP, recordes anteriores à série e base vazia. Testes de cálculo cobrem mé
 ranking/economia passaram. Sintaxe e build aprovados. Não houve inspeção visual
 automatizada por bloqueio de segurança; Paulo está revisando a demonstração.
 Não houve medição de custo/latência em produção nem alteração de fórmulas/dados.
+
+## 23/10/2026 — Trabalho publicado / Oficina local
+
+Trabalho: PR #358, CI com 594 testes aprovados e preview no SHA `167412b`.
+Produção READY `dpl_Ar4c6sH2wHoRQAeYeyCMpCbA1ez5`, merge `1647a06`,
+alias oficial conferido; HTML 200, API sem sessão 401, Monday 410.
+
+Oficina: reformulação local da lateral de construção, sem mudanças no servidor.
+25 testes direcionados aprovados, incluindo navegação sem menus redundantes e
+separação entre carteira pessoal e acervo compartilhado. Sintaxe/build/diff
+conferidos. Sem revisão visual automatizada por bloqueio de segurança; revisão
+manual aprovada por Paulo ("aprovado"). Não considerar celular/loja/perfil visualmente
+validados por estes testes. Esta reformulação não foi publicada.
