@@ -28,6 +28,7 @@ import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
+import { minhasDemandas } from '../server/assistente-consultas.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
@@ -1654,7 +1655,16 @@ async function areaRoteiros(req,res,quem) {
   } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
 }
 
-const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Primeira consulta da Vybe AI: somente usuário autenticado por sessão.
+// Este acesso NÃO é uma credencial de serviço para o bot de WhatsApp.
+async function areaAssistente(req, res, quem) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
+  if (req.query?.consulta !== 'minhas_demandas') return res.status(400).json({ error: 'Consulta desconhecida.' });
+  return res.status(200).json({ ok: true, ...(await minhasDemandas(sql(), Number(quem.pessoa.id))) });
+}
+
+const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 
