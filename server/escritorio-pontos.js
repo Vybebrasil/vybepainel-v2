@@ -615,3 +615,102 @@ async function fecharRankingSemana(tx, inicio) {
   if (r.agencia.bateu) for (const p of r.pessoas) if (await aplicar(tx, p.id, 'meta_agencia', `agencia-semana:${inicio}`, fim)) agencia++;
   return { inicio, pagos, agencia };
 }
+
+// Leitura do trabalho para a ficha: mesmas contribuições do ranking, sem
+// conceder pontos. Cada peça conta uma vez por papel, na primeira entrega.
+export async function desempenhoTrabalho(sql, pessoaId, agora = new Date(), opcoes = {}) {
+  if (!await pontosProntos(sql)) return { disponivel: false };
+  const hoje = diaBahia(agora), periodo = periodoTrabalho(hoje,opcoes), desde = periodo.desde;
+  if (opcoes.detalhes) return detalhesTrabalho(sql,pessoaId,agora,opcoes);
+  const [[funcao], linhas, recordes, ganhos, qualidade, regras] = await Promise.all([
+    sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id=${pessoaId}`,
+    sql.query(`${fontesTrabalho()} SELECT e.regra,TO_CHAR(e.dia,'YYYY-MM-DD') AS dia,
+      COALESCE(NULLIF(lower(trim(split_part(c.formato,',',1))),''),'sem formato') AS formato,count(*)::int AS n
+      FROM unicas e LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id
+      WHERE e.dia >= $4::date AND e.dia <= $5::date GROUP BY 1,2,3 ORDER BY 2`,[pessoaId,ATIVIDADES_DO_RANKING.map(([r])=>r),hoje,desde,periodo.fim]),
+    sql.query(`${fontesTrabalho()}, diarios AS (
+      SELECT e.regra,COALESCE(NULLIF(lower(trim(split_part(c.formato,',',1))),''),'sem formato') AS formato,e.dia,count(*)::int AS n
+      FROM unicas e LEFT JOIN vybe_conteudos c ON c.id=e.conteudo_id GROUP BY 1,2,3
+      UNION ALL SELECT regra,NULL AS formato,dia,count(*)::int AS n FROM unicas GROUP BY 1,3
+    ), posicoes AS (
+      SELECT *,min(dia) OVER(PARTITION BY regra,formato) AS primeiro,dense_rank() OVER(PARTITION BY regra,formato ORDER BY n DESC) AS pos FROM diarios
+    ) SELECT regra,formato,max(n)::int AS n,min(dia)::text AS dia,min(primeiro)::text AS primeiro,count(*)::int AS empates
+      FROM posicoes WHERE pos=1 GROUP BY 1,2`,[pessoaId,ATIVIDADES_DO_RANKING.map(([r])=>r),hoje]),
+    sql`SELECT vybe_dia_bahia(criado_em)::text AS dia,regra,count(*)::int AS eventos,COALESCE(sum(pontos),0)::int AS xp
+      FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND regra IS NOT NULL
+      AND NOT (regra = ANY(${FORA_DO_RANKING}::text[]))
+      AND vybe_dia_bahia(criado_em) BETWEEN ${desde}::date AND ${periodo.fim}::date GROUP BY 1,2`,
+    qualidadeTrabalho(sql,pessoaId,hoje,periodo),
+    sql`SELECT chave,descricao FROM vybe_escritorio_regras`
+  ]);
+  return { disponivel: true, hoje, desde, periodo, qualidade, regras: Object.fromEntries(regras.map(r=>[r.chave,r.descricao||r.chave])), funcao: funcao?.funcao || null,
+    atividades: ATIVIDADES_DO_RANKING.map(([regra,nome]) => ({regra,nome})),
+    linhas: linhas.map(l => ({...l,n:Number(l.n)})),
+    recordes: recordes.map(l => ({...l,n:Number(l.n),empates:Number(l.empates)})),
+    ganhos: ganhos.map(l => ({...l,xp:Number(l.xp)})) };
+}
+
+export function periodoTrabalho(hoje, { de, ate } = {}) {
+  const valido = d => /^\d{4}-\d{2}-\d{2}$/.test(String(d)) && !Number.isNaN(Date.parse(d+'T12:00:00Z')) && new Date(d+'T12:00:00Z').toISOString().slice(0,10) === d;
+  if (!de && !ate) return { inicio: somarDias(hoje,-89), fim: hoje, desde: somarDias(hoje,-179) };
+  if (!valido(de) || !valido(ate) || de > ate || ate > hoje) throw Object.assign(new Error('Escolha datas válidas, até hoje.'), {status:400});
+  const dias = Math.round((Date.parse(ate)-Date.parse(de))/864e5)+1;
+  if (dias > 180) throw Object.assign(new Error('Escolha um intervalo de até 180 dias.'), {status:400});
+  return {inicio:de,fim:ate,desde:somarDias(de,-dias)};
+}
+// Mesma fonte para agregados e abertura das contribuições. Parâmetros SQL,
+// incluindo pessoa e regras, continuam separados do texto da consulta.
+function fontesTrabalho() {
+ return `WITH fontes AS (
+ SELECT regra,conteudo_id,origem,dia FROM vybe_escritorio_entregas WHERE pessoa_id=$1
+ UNION ALL SELECT m.regra,m.conteudo_id,m.origem,vybe_dia_bahia(m.criado_em) AS dia
+ FROM vybe_escritorio_moedas m WHERE m.pessoa_id=$1 AND m.regra=ANY($2::text[])
+ AND NOT EXISTS(SELECT 1 FROM vybe_escritorio_entregas e WHERE e.pessoa_id=m.pessoa_id AND e.origem=m.origem)
+ ), unicas AS (SELECT regra,conteudo_id,CASE WHEN conteudo_id IS NULL THEN origem ELSE '' END AS evento,min(dia) AS dia
+ FROM fontes WHERE dia <= $3::date GROUP BY 1,2,3)`;
+}
+export async function detalhesTrabalho(sql,pessoaId,agora,opcoes) {
+ const hoje=diaBahia(agora), p=periodoTrabalho(hoje,opcoes);
+ const regra=String(opcoes.regra||''), formato=String(opcoes.formato||''), dia=String(opcoes.dia||'');
+ if (!regra || regra.length>100 || formato.length>200 || (dia && (!/^\d{4}-\d{2}-\d{2}$/.test(dia)||dia<p.inicio||dia>p.fim))) throw Object.assign(new Error('Filtro de contribuição inválido.'),{status:400});
+ if(dia)periodoTrabalho(hoje,{de:dia,ate:dia});
+ if(opcoes.fonte && !['xp','volume','volume-geral'].includes(opcoes.fonte))throw Object.assign(new Error('Fonte inválida.'),{status:400});
+ const pagina=Number(opcoes.pagina||0);
+ if(!Number.isInteger(pagina)||pagina<0||pagina>10000) throw Object.assign(new Error('Página inválida.'),{status:400});
+ const razao=opcoes.fonte==='xp';
+ const params=[pessoaId,ATIVIDADES_DO_RANKING.map(([r])=>r),hoje,p.inicio,p.fim,regra,formato,dia,pagina*30];
+ const base=razao?`SELECT m.conteudo_id,vybe_dia_bahia(m.criado_em) AS dia,sum(m.pontos)::int AS xp,m.regra,''::text AS origem,count(*)::int AS eventos FROM vybe_escritorio_moedas m
+ WHERE m.pessoa_id=$1 AND ($6='*' OR m.regra=$6) AND m.regra IS NOT NULL AND NOT(m.regra=ANY($10::text[])) AND vybe_dia_bahia(m.criado_em) BETWEEN $4::date AND $5::date GROUP BY 1,2,m.regra`:
+ `SELECT conteudo_id,dia,NULL::integer AS xp,regra,evento AS origem,1::int AS eventos FROM unicas WHERE regra=$6`;
+ if(razao)params.push(FORA_DO_RANKING);
+ const linhas=await sql.query(`${fontesTrabalho()}, lista AS (${base})
+ SELECT c.id::text AS id,c.monday_item_id,c.board_id::text AS board_id,c.titulo,c.formato,c.clientes_texto AS cliente,
+ l.dia::text AS dia,l.xp,l.regra,g.descricao AS contribuicao,l.eventos,CASE WHEN l.conteudo_id IS NULL THEN 'Ação ou bônus sem demanda vinculada' WHEN c.id IS NULL THEN 'Demanda indisponível' ELSE NULL END AS observacao,
+ count(*) OVER()::int AS total FROM lista l LEFT JOIN vybe_conteudos c ON c.id=l.conteudo_id LEFT JOIN vybe_escritorio_regras g ON g.chave=l.regra
+ WHERE l.dia BETWEEN $4::date AND $5::date
+ AND ($7='' OR COALESCE(NULLIF(lower(trim(split_part(c.formato,',',1))),''),'sem formato')=$7)
+ AND ($8='' OR l.dia::text=$8) ORDER BY l.dia DESC,l.conteudo_id NULLS LAST,l.origem LIMIT 30 OFFSET $9`,params);
+ return {disponivel:true,pagina,total:Number(linhas[0]?.total||0),itens:linhas.map(l=>({...l,xp:l.xp===null?null:Number(l.xp),ref:l.id?(l.monday_item_id?String(l.monday_item_id):'vybe:'+l.id):null,quadro:l.board_id==='8385559107'?'demandas':'producao'}))};
+}
+async function qualidadeTrabalho(sql,pessoaId,hoje,p) {
+ const [tem]=await sql`SELECT to_regclass('public.vybe_conteudo_eventos') IS NOT NULL AS existe`;
+ if(!tem?.existe)return {disponivel:false};
+ const [r]=await sql.query(`${fontesTrabalho()}, entregues AS (
+ SELECT conteudo_id,dia FROM unicas WHERE regra='peca_criacao' AND conteudo_id IS NOT NULL AND dia BETWEEN $4::date AND $5::date
+ ), evidencias AS (
+ SELECT e.*,s.em AS entrega_em,
+ CASE WHEN EXISTS(SELECT 1 FROM vybe_conteudo_eventos v WHERE v.conteudo_id=e.conteudo_id AND v.tipo='prazo' AND v.em>s.em) THEN (SELECT v.de FROM vybe_conteudo_eventos v WHERE v.conteudo_id=e.conteudo_id AND v.tipo='prazo' AND v.em>s.em ORDER BY v.em,v.de LIMIT 1) ELSE
+ (SELECT v.para FROM vybe_conteudo_eventos v WHERE v.conteudo_id=e.conteudo_id AND v.tipo='prazo' AND v.em<=s.em ORDER BY v.em DESC,v.para LIMIT 1) END AS prazo,
+ EXISTS(SELECT 1 FROM vybe_conteudo_eventos v WHERE v.conteudo_id=e.conteudo_id AND v.tipo='status' AND lower(v.para) IN ('alteração','alteracao') AND lower(s.para) NOT IN ('feito','finalizado')
+ AND v.em>s.em AND vybe_dia_bahia(v.em)<=$5::date
+ AND v.em<COALESCE((SELECT min(a.em) FROM vybe_conteudo_eventos a WHERE a.conteudo_id=e.conteudo_id AND a.tipo='status' AND a.em>s.em AND lower(a.para) IN ('para agendar','agendado','finalizado','feito')), 'infinity'::timestamptz)) AS retornou
+ FROM entregues e LEFT JOIN LATERAL (
+ SELECT v.em,v.para FROM vybe_conteudo_eventos v WHERE v.conteudo_id=e.conteudo_id AND v.tipo='status'
+ AND lower(v.para) IN ('para aprovação','para aprovacao','feito','finalizado') AND vybe_dia_bahia(v.em)=e.dia ORDER BY v.em LIMIT 1
+ ) s ON true
+ ) SELECT count(*)::int AS entregas,count(entrega_em)::int AS com_status,
+ count(*) FILTER(WHERE entrega_em IS NOT NULL AND prazo ~ '^\\d{4}-\\d{2}-\\d{2}$')::int AS com_prazo,
+ count(*) FILTER(WHERE entrega_em IS NOT NULL AND prazo ~ '^\\d{4}-\\d{2}-\\d{2}$' AND dia::text<=prazo)::int AS no_prazo,
+ count(*) FILTER(WHERE entrega_em IS NOT NULL AND retornou)::int AS com_retorno FROM evidencias`,[pessoaId,ATIVIDADES_DO_RANKING.map(([r])=>r),hoje,p.inicio,p.fim]);
+ return {disponivel:true,...Object.fromEntries(Object.entries(r||{}).map(([k,v])=>[k,Number(v)]))};
+}

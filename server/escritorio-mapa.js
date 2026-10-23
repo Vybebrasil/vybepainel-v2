@@ -38,6 +38,11 @@ const LIMITE = { geral: { x: 80, y: 80, itens: 1500 }, sala: { x: LADO_SALA, y: 
 export const CENAS_COMUNS = new Set(["recepcao", "reuniao", "auditorio", "producao", "cafe", "jogos", "foco", "academia", "lounge", "operacao"]);
 // Item: [classe, x, y, direção, estado, altura]. Nas salas, x/y são relativos à
 // sala e o item inteiro fica dentro dela (o tamanho real é conferido no mapa).
+let classesDeParede;
+function itemDeParede(classe) {
+  classesDeParede ??= new Set(JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8')).filter(m => m.parede).map(m => m.classe));
+  return classesDeParede.has(classe);
+}
 export function itensValidos(camada, itens) {
   if (!Array.isArray(itens)) throw new Error("Itens inválidos.");
   const lim = camada === "geral" ? LIMITE.geral : CENAS_COMUNS.has(camada) ? LIMITE.cena : LIMITE.sala;
@@ -49,8 +54,9 @@ export function itensValidos(camada, itens) {
     const num = (v, min, max) => Number.isFinite(Number(v)) && Number(v) >= min && Number(v) <= max;
     if (!num(x, 0, lim.x - 0.01) || !num(y, 0, lim.y - 0.01)) throw new Error("Móvel fora da área que você pode editar.");
     if (![0, 2, 4, 6].includes(Number(dir))) throw new Error("Direção inválida.");
-    // Altura livre até 40 níveis (Room.MAXIMUM_FURNI_HEIGHT do servidor do Habbo).
-    if (!num(estado, 0, 200) || !num(altura, 0, 40)) throw new Error("Estado ou altura inválidos.");
+    // No chão, altura de 0 a 40. Na parede, deslocamento assinado
+    // a partir do encaixe da arte; o catálogo do servidor define o tipo.
+    if (!num(estado, 0, 200) || !num(altura, Number(altura) < 0 && itemDeParede(classe) ? -40 : 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
     const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
     const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]) || configFundo(classe, it[6]);

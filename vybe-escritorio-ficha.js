@@ -265,6 +265,158 @@ ${p.extrato?.length ? `<h4>Últimos pontos</h4><ul class="ofc-extrato">${p.extra
 // selo do nível, a barra de XP e as moedas; abas no lugar da rolagem longa.
 // Os valores de "como ganhar" e os ganhos da semana vêm do servidor (tabela
 // de regras e razão de moedas), nunca de constante aqui.
+function escritorioTrabalhoPeriodo(hoje, f = {}) {
+  const somar=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+  if (f.periodo==='personalizado' && f.de && f.ate) return {de:f.de,ate:f.ate};
+  if (f.periodo==='mes') return {de:hoje.slice(0,8)+'01',ate:hoje};
+  if (f.periodo==='mes-passado') {const ate=somar(hoje.slice(0,8)+'01',-1);return {de:ate.slice(0,8)+'01',ate};}
+  const dias=[7,28,90].includes(Number(f.periodo||f.dias))?Number(f.periodo||f.dias):28;
+  return {de:somar(hoje,1-dias),ate:hoje};
+}
+function escritorioTrabalhoDatas(id) {
+  const de=document.getElementById('office-trabalho-de')?.value,ate=document.getElementById('office-trabalho-ate')?.value;
+  if(!de||!ate||de>ate||(Date.parse(ate)-Date.parse(de))/864e5>=180){escritorioAviso('Escolha um período válido de até 180 dias.');return;}
+  const f=((escritorio.trabalhoFiltros||={})[String(id)]||={});Object.assign(f,{de,ate,periodo:'personalizado'});
+  escritorioTrabalhoCarregar(id,true);abrirFichaEscritorio(id,true);
+}
+function escritorioTrabalhoGraficoTecla(event) {
+ const pontos=[...event.currentTarget.closest('svg').querySelectorAll('circle[role="button"]')], i=pontos.indexOf(event.currentTarget);
+ if(event.key==='Enter'||event.key===' '){event.preventDefault();event.currentTarget.dispatchEvent(new MouseEvent('click'));return;}
+ if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+ event.preventDefault();const k=event.key==='Home'?0:event.key==='End'?pontos.length-1:Math.max(0,Math.min(pontos.length-1,i+(event.key==='ArrowRight'?1:-1)));
+ pontos.forEach((p,j)=>p.setAttribute('tabindex',j===k?'0':'-1'));pontos[k]?.focus();
+}
+function escritorioTrabalhoDica(el) {
+  const saida=document.getElementById('office-trabalho-dica');if(saida)saida.textContent=el.dataset.dica||'';
+}
+async function escritorioTrabalhoDetalhar(id,regra,fonte='volume',dia='',pagina=0) {
+  const k=String(id),d=escritorio.trabalhos?.[k]?.dados;if(!d)return;
+  const p=escritorioTrabalhoPeriodo(d.hoje,escritorio.trabalhoFiltros?.[k]);
+  if(dia&&(dia<p.de||dia>p.ate)){p.de=dia;p.ate=dia;}
+  const formato=fonte==='volume'?(escritorio.trabalhoFiltros?.[k]?.formato||''):'';
+  const chave=JSON.stringify([regra,fonte,dia,pagina,p.de,p.ate,formato]);
+  const estado={carregando:true,regra,fonte,dia,pagina,chave};(escritorio.trabalhoDetalhes||={})[k]=estado;
+  abrirFichaEscritorio(k,true);
+  try {
+    const r=await escritorioApi('perfil-publico',null,{pessoa:k,trabalho:'1',detalhes:'1',regra,fonte,dia,pagina:String(pagina),formato,...p});
+    if(!r?.perfil?.trabalho?.itens)throw new Error('Resposta incompleta');
+    if(escritorio.trabalhoDetalhes[k]!==estado)return;
+    Object.assign(estado,{carregando:false,dados:r.perfil.trabalho});
+  }catch{if(escritorio.trabalhoDetalhes[k]===estado)Object.assign(estado,{carregando:false,erro:true});}
+  if(escritorio.fichaDe===k&&document.getElementById('office-ficha')?.open){abrirFichaEscritorio(k,true);document.getElementById('office-trabalho-detalhes')?.scrollIntoView({block:'nearest'});}
+}
+function escritorioTrabalhoAcao(id,regra,fonte,dia,pagina=0) {
+ return 'escritorioTrabalhoDetalhar('+[String(id),regra,fonte,dia,pagina].map(v=>safeText(JSON.stringify(v))).join(',')+')';
+}
+function escritorioTrabalhoDetalhesHtml(id,dados) {
+ const k=String(id),e=escritorio.trabalhoDetalhes?.[k];if(!e)return '';
+ const nome=e.regra==='*'?'XP de trabalho · todas as contribuições':dados.regras?.[e.regra]||dados.atividades?.find(a=>a.regra===e.regra)?.nome||e.regra;
+ const acao=escritorioTrabalhoAcao(k,e.regra,e.fonte,e.dia,e.pagina);
+ let corpo=e.carregando?vbEstadoHtml({tipo:'carregando',titulo:'Carregando contribuições'}):e.erro?vbEstadoHtml({tipo:'erro',titulo:'Não foi possível abrir as contribuições',acao:`<button class="ofc-secundario" onclick="${acao}">Tentar de novo</button>`}):
+ e.dados?.itens.length?`<p>${e.dados.total} registro(s) · página ${e.pagina+1} · até 30 por página</p><ul class="ofc-trabalho-pecas">${e.dados.itens.map(it=>`<li>${it.ref?`<button type="button" class="office-text-button" onclick="document.getElementById('office-ficha').close();abrirMissaoEscritorio(${safeText(JSON.stringify(it.ref))},${safeText(JSON.stringify(it.quadro))})">${safeText(it.titulo||'Sem título')}</button>`:`<b>${safeText(it.observacao||'Ação sem demanda vinculada')}</b>`}<small>${safeText(it.dia)} · ${safeText(it.contribuicao||it.regra||'Contribuição')} · ${safeText(it.cliente||'Sem cliente')} ${it.formato?'· '+safeText(it.formato):''}${it.xp===null?'':' · '+Number(it.xp).toLocaleString('pt-BR')+' XP'}</small></li>`).join('')}</ul><div class="ofc-trabalho-paginas"><button class="ofc-secundario" ${e.pagina?'':'disabled'} onclick="${escritorioTrabalhoAcao(k,e.regra,e.fonte,e.dia,e.pagina-1)}">Anterior</button><button class="ofc-secundario" ${(e.pagina+1)*30<e.dados.total?'':'disabled'} onclick="${escritorioTrabalhoAcao(k,e.regra,e.fonte,e.dia,e.pagina+1)}">Próxima</button></div>`:vbEstadoHtml({titulo:'Nenhum registro neste recorte',texto:'Bônus e ações sem vínculo não inventam uma demanda.'});
+ return `<section class="vb-jogo-cartao" id="office-trabalho-detalhes"><div class="ofc-hud-bloco-topo"><h4>${safeText(nome)}${e.dia?' · '+safeText(e.dia):''}</h4><button class="office-text-button" onclick="delete escritorio.trabalhoDetalhes['${safeText(k)}'];abrirFichaEscritorio('${safeText(k)}',true)">Fechar lista</button></div>${corpo}</section>`;
+}
+
+// Trabalho usa a leitura pública da ficha, carregada só ao abrir esta aba.
+function escritorioTrabalhoCarregar(id, tentar = false) {
+  const k=String(id), cache=(escritorio.trabalhos||={}), anterior=cache[k];
+  const hoje=anterior?.dados?.hoje||new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const periodo=escritorioTrabalhoPeriodo(hoje,escritorio.trabalhoFiltros?.[k]), chave=JSON.stringify(periodo);
+  if(anterior?.chave===chave&&(anterior.carregando||(!tentar&&Date.now()-anterior.em<60000)))return;
+  const estado={carregando:true,em:Date.now(),chave};cache[k]=estado;
+  escritorioApi('perfil-publico',null,{pessoa:k,trabalho:'1',...periodo}).then(r=>{
+    if(!r?.perfil?.trabalho)throw new Error('Resposta incompleta.');
+    if(cache[k]===estado)cache[k]={dados:r.perfil.trabalho,em:Date.now(),chave};
+  }).catch(()=>{if(cache[k]===estado)cache[k]={erro:true,em:Date.now(),chave};}).finally(()=>{
+    if(escritorio.fichaDe===k&&document.getElementById('office-ficha')?.open)abrirFichaEscritorio(k,true);
+  });
+}
+function escritorioTrabalhoFiltro(id, campo, valor) {
+  const filtros=((escritorio.trabalhoFiltros ||= {})[String(id)] ||= {});filtros[campo]=valor;
+  if(campo==='regra')delete filtros.formato;
+  delete escritorio.trabalhoDetalhes?.[String(id)];
+  if(campo==='periodo'&&valor!=='personalizado')escritorioTrabalhoCarregar(id,true);
+  abrirFichaEscritorio(id, true);
+}
+function escritorioTrabalhoConta(dados, { dias = 28, regra, formato = '', de = null, ate = null } = {}) {
+  const somar = (iso,n) => new Date(Date.parse(iso+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+  const util = d => ![0,6].includes(new Date(d+'T12:00:00Z').getUTCDay());
+  const fim = ate || dados.hoje, inicio = de || somar(fim,1-dias);
+  dias=Math.round((Date.parse(fim)-Date.parse(inicio))/864e5)+1;
+  const anterior = somar(inicio,-dias);
+  const linhas = (dados.linhas || []).filter(l => l.regra === regra && (!formato || l.formato === formato));
+  const porDia = new Map();
+  for (const l of linhas) porDia.set(l.dia,(porDia.get(l.dia)||0)+Number(l.n));
+  const serie = Array.from({length:dias},(_,i) => { const dia=somar(inicio,i); return {dia,n:porDia.get(dia)||0,util:util(dia)}; });
+  const passada = Array.from({length:dias},(_,i) => { const dia=somar(anterior,i); return {dia,n:porDia.get(dia)||0,util:util(dia)}; });
+  const recorde=(dados.recordes||[]).find(r=>r.regra===regra&&(formato ? r.formato===formato : r.formato===null));
+  const primeiro=recorde?.primeiro||null;
+  const resumo = s => { s=s.filter(d=>!primeiro||d.dia>=primeiro); const total=s.reduce((n,d)=>n+d.n,0), uteis=s.filter(d=>d.util), ativos=s.filter(d=>d.n>0).length;
+    return {total,ativos,diasUteis:uteis.length,diasCobertos:s.length,media:uteis.length ? uteis.reduce((n,d)=>n+d.n,0)/uteis.length : 0,mediaAtiva:ativos?total/ativos:0}; };
+  const atual=resumo(serie), antes=resumo(passada), variacao=antes.media && (!primeiro || primeiro<=anterior) ? (atual.media/antes.media-1)*100 : null;
+  const formatos = [...new Set((dados.linhas||[]).filter(l=>l.regra===regra).map(l=>l.formato))].sort();
+  const distribuicao = formatos.map(f=>({formato:f,n:linhas.filter(l=>l.formato===f&&l.dia>=inicio&&l.dia<=fim).reduce((n,l)=>n+l.n,0)})).filter(l=>l.n).sort((a,b)=>b.n-a.n);
+  const movel=serie.map(l=>{const amostra=Array.from({length:7},(_,i)=>somar(l.dia,i-6)).filter(d=>!primeiro||d>=primeiro);return amostra.length?amostra.reduce((n,d)=>n+(porDia.get(d)||0),0)/amostra.length:0;});
+  return {inicio,fim,anterior,serie,passada,atual,antes,variacao,formatos,distribuicao,recorde,primeiro,movel,dias};
+}
+function escritorioTrabalhoResumoHtml(d,c,n,data) {
+ const frases=[];
+ if(c.variacao!==null)frases.push(`A média por dia útil ${c.variacao>0?'cresceu':c.variacao<0?'caiu':'se manteve'}${c.variacao?' '+n(Math.abs(c.variacao))+'%':''} frente ao período anterior.`);
+ else frases.push('Ainda não há base anterior completa para calcular uma variação.');
+ if(c.distribuicao[0])frases.push(`${c.distribuicao[0].formato} representa ${n(c.distribuicao[0].n/Math.max(1,c.atual.total)*100)}% das contribuições selecionadas.`);
+ const pico=c.serie.reduce((a,b)=>b.n>a.n?b:a,c.serie[0]);
+ if(pico.n)frases.push(`O pico deste período foi ${pico.n} em ${data(pico.dia)}.`);
+ return `<section class="vb-jogo-cartao"><h4>O que mudou</h4><ul>${frases.map(v=>`<li>${safeText(v)}</li>`).join('')}</ul><small>Comparação com o próprio histórico; não é avaliação automática de desempenho. Hoje pode estar parcial.</small></section>`;
+}
+function escritorioTrabalhoQualidadeHtml(d,n) {
+ const q=d.qualidade;
+ const papel={criacao:['Criação','Peças executadas por formato, prazo comprovado e retornos registrados.'],producao:['Produção','Peças com crédito de captação. Uma demanda não representa uma sessão nem informa quantas fotos foram tiradas.'],agendamento:['Agendamento','Peças com contribuição de agendamento. Agendado não comprova publicação.'],atendimento:['Atendimento','Peças acompanhadas como head, cadastros e briefings. A execução continua com quem fez.'],gestao:['Gestão','Contribuições de gestão, cadastros e briefings, separadas da produção da equipe.']}[d.funcao]||['Contribuições','Consulte cada papel separadamente.'];
+ const evidencias=!q?.disponivel?'<p>Histórico de status e prazo indisponível para este indicador.</p>':!q.entregas?'<p>Não há execuções próprias neste período para analisar prazo e retornos.</p>':`<div class="ofc-trabalho-dupla"><div><b>${q.com_prazo?n(q.no_prazo/q.com_prazo*100)+'%':'Sem base'} no prazo comprovado</b><p>${q.no_prazo} de ${q.com_prazo} execuções com prazo reconstruído na entrega, de ${q.entregas} execuções no período.</p></div><div><b>${q.com_retorno} com retorno registrado</b><p>Entre ${q.com_status} execuções com status de entrega identificado. Sem retorno registrado não significa aprovação de primeira.</p></div></div><small>Amostra das execuções próprias, em todos os formatos do período. Não usa o prazo atual: precisa de histórico de prazo e status. Retorno observado até o final do período e antes da primeira aprovação/finalização; não atribui culpa nem nota de qualidade.</small>`;
+ return `<section class="vb-jogo-cartao"><h4>Leitura de ${papel[0]}</h4><p>${papel[1]}</p>${evidencias}</section>`;
+}
+
+function escritorioTrabalhoHtml(id) {
+  const k=String(id), cache=escritorio.trabalhos?.[k], sid=safeText(k);
+  if (!cache || cache.carregando) return vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando desempenho' });
+  if (cache.erro) return vbEstadoHtml({ tipo:'erro', titulo:'Não foi possível carregar o trabalho', texto:'Tente novamente para consultar os números atuais.', acao:`<button class="vb-jogo-botao" onclick="escritorioTrabalhoCarregar('${sid}',true);abrirFichaEscritorio('${sid}',true)">Tentar de novo</button>` });
+  const d=cache.dados;
+  if (!d?.disponivel) return vbEstadoHtml({ titulo:'Histórico ainda indisponível', texto:'Os números aparecem quando a contagem de trabalho estiver ativa.' });
+  if (!d.linhas?.length && !d.recordes?.length && !d.ganhos?.length) return vbEstadoHtml({ titulo:'Seu histórico começa com as primeiras contribuições', texto:'Entregas, captações, agendamentos e outras ações registradas aparecerão aqui.', acao:`<button class="ofc-secundario" onclick="escolherAbaFichaEscritorio('${sid}','resumo')">Voltar ao resumo</button>` });
+  const f=escritorio.trabalhoFiltros?.[k]||{}, periodo=escritorioTrabalhoPeriodo(d.hoje,f);
+  const dias=Math.round((Date.parse(periodo.ate)-Date.parse(periodo.de))/864e5)+1;
+  const padrao={criacao:'peca_criacao',producao:'peca_producao',atendimento:'peca_atendimento',agendamento:'peca_agendamento',gestao:'peca_gestao'}[d.funcao]||'peca_criacao';
+  const atividades=d.atividades||[], regra=atividades.some(a=>a.regra===f.regra)?f.regra:padrao;
+  const formatos=[...new Set((d.linhas||[]).filter(l=>l.regra===regra).map(l=>l.formato))].sort();
+  const formato=formatos.includes(f.formato)?f.formato:'', c=escritorioTrabalhoConta(d,{dias,regra,formato,...periodo});
+  const nome=atividades.find(a=>a.regra===regra)?.nome||'Contribuições', n=v=>Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:1}), data=v=>new Date(v+'T12:00:00Z').toLocaleDateString('pt-BR',{timeZone:'UTC'});
+  const opc=(v,t,atual)=>`<option value="${safeText(v)}" ${v===atual?'selected':''}>${safeText(t)}</option>`;
+  const filtro=(campo,rotulo,opcoes)=>`<label>${rotulo}<select onchange="escritorioTrabalhoFiltro('${sid}','${campo}',this.value)">${opcoes}</select></label>`;
+  const card=(titulo,valor,texto)=>`<div class="vb-jogo-cartao"><span class="vb-jogo-rotulo">${titulo}</span><strong class="vb-jogo-numero">${valor}</strong><small>${texto}</small></div>`;
+  const max=Math.max(1,...c.serie.map(l=>l.n),...c.passada.map(l=>l.n),...c.movel), pontos=c.serie.map((l,i)=>`${20+i*680/Math.max(1,dias-1)},${160-l.n/max*125}`).join(' '), anteriores=c.passada.map((l,i)=>`${20+i*680/Math.max(1,dias-1)},${160-l.n/max*125}`).join(' ');
+  const medias=c.movel.map((v,i)=>`${20+i*680/Math.max(1,dias-1)},${160-v/max*125}`).join(' ');
+  const pico=c.serie.reduce((a,b)=>b.n>a.n?b:a,c.serie[0]);
+  const abrir=(r,fonte='volume',dia='')=>escritorioTrabalhoAcao(k,r,fonte,dia);
+  const ver=(r,valor,fonte='volume',dia='')=>`<button type="button" class="office-text-button ofc-trabalho-numero-link" onclick="${abrir(r,fonte,dia)}" aria-label="Conferir registros: ${safeText(String(valor))}">${valor}</button>`;
+  const xp=(d.ganhos||[]).filter(l=>l.dia>=c.inicio&&l.dia<=c.fim).reduce((n,l)=>n+l.xp,0);
+  return `<div class="ofc-trabalho">
+${vbCabecalhoHtml({titulo:'Evolução no trabalho',texto:'Volume por contribuição, ritmo e recordes. Cada número explica o que foi contado.'})}
+<div class="ofc-trabalho-filtros">${filtro('periodo','Período',[["7","Últimos 7 dias"],["28","Últimos 28 dias"],["90","Últimos 90 dias"],["mes","Mês atual"],["mes-passado","Mês passado"],["personalizado","Personalizado"]].map(([v,t])=>opc(v,t,f.periodo||'28')).join(''))}${filtro('regra','Contribuição',atividades.map(a=>opc(a.regra,a.nome,regra)).join(''))}${filtro('formato','Formato do ritmo e volume',opc('','Todos os formatos',formato)+formatos.map(v=>opc(v,v,formato)).join(''))}</div>
+${f.periodo==='personalizado'?`<form class="ofc-trabalho-datas" onsubmit="event.preventDefault();escritorioTrabalhoDatas('${sid}')"><label>De<input type="date" id="office-trabalho-de" value="${safeText(f.de||c.inicio)}" max="${d.hoje}" required></label><label>Até<input type="date" id="office-trabalho-ate" value="${safeText(f.ate||c.fim)}" max="${d.hoje}" required></label><button class="vb-jogo-botao">Aplicar período</button></form>`:''}
+<p class="ofc-nota">${data(c.inicio)} a ${data(c.fim)} ${c.fim===d.hoje?'· Hoje ainda está em andamento.':''}${c.primeiro?` Histórico deste recorte desde ${data(c.primeiro)}.`:""}</p>
+<div class="ofc-trabalho-kpis">${card(safeText(nome),ver(regra,n(c.atual.total)),formato?safeText(formato):'No período selecionado')}${card('Média por dia útil',n(c.atual.media),`${c.atual.diasUteis} dias de segunda a sexta, incluindo zeros`)}${card('Evolução da média',c.variacao===null?'Sem base':`${c.variacao>0?'+':''}${n(c.variacao)}%`,`${n(c.antes.media)} por dia útil no período anterior`)}${card('Dias com contribuição',`${c.atual.ativos} / ${c.atual.diasCobertos}`,`${n(c.atual.mediaAtiva)} por dia com atividade, inclusive fins de semana`)}</div>
+${escritorioTrabalhoResumoHtml(d,c,n,data)}
+<section class="vb-jogo-cartao"><h4>Comparação lado a lado</h4><div class="ofc-trabalho-tabela"><table><thead><tr><th>Indicador</th><th>${data(c.inicio)} a ${data(c.fim)}</th><th>${data(c.anterior)} a ${data(new Date(Date.parse(c.inicio+'T12:00:00Z')-864e5).toISOString().slice(0,10))}</th></tr></thead><tbody><tr><td>${safeText(nome)}</td><td>${n(c.atual.total)}</td><td>${n(c.antes.total)}</td></tr><tr><td>Média por dia útil</td><td>${n(c.atual.media)}</td><td>${n(c.antes.media)}</td></tr><tr><td>Dias com contribuição</td><td>${c.atual.ativos} / ${c.atual.diasCobertos}</td><td>${c.antes.ativos} / ${c.antes.diasCobertos}</td></tr></tbody></table></div><small>${c.variacao===null?'Histórico anterior insuficiente ou média anterior zero; não calculamos variação percentual.':'Médias normalizadas pelos dias úteis de cada janela.'}</small></section>
+<section class="vb-jogo-cartao ofc-trabalho-grafico"><div class="ofc-hud-bloco-topo"><h4>Ritmo diário · ${safeText(nome)}</h4><small>Quantidade de contribuições</small></div>
+<svg viewBox="0 0 720 190" role="group" aria-label="${safeText(nome)} por dia. Total ${c.atual.total}; pico ${pico.n} em ${data(pico.dia)}."><path d="M20 35H700 M20 97H700 M20 160H700" class="ofc-trabalho-eixos"/><polygon points="20,160 ${pontos} 700,160" class="ofc-trabalho-area"/><polyline points="${anteriores}" class="ofc-trabalho-anterior"/><polyline points="${pontos}" class="ofc-trabalho-linha"/><polyline points="${medias}" class="ofc-trabalho-media"/>${c.serie.map((l,i)=>`<circle tabindex="${i===0?0:-1}" role="button" aria-label="${data(l.dia)}: ${l.n}. Abrir contribuições." data-dica="${data(l.dia)}: ${l.n} · anterior (${data(c.passada[i].dia)}): ${c.passada[i].n} · média móvel 7 dias: ${n(c.movel[i])}" onmouseenter="escritorioTrabalhoDica(this)" onfocus="escritorioTrabalhoDica(this)" onclick="${abrir(regra,'volume',l.dia)}" onkeydown="escritorioTrabalhoGraficoTecla(event)" cx="${20+i*680/Math.max(1,dias-1)}" cy="${160-l.n/max*125}" r="3"><title>${data(l.dia)}: ${l.n}</title></circle>`).join('')}<text x="20" y="24">${max}</text><text x="20" y="185">${data(c.inicio)}</text><text x="700" y="185" text-anchor="end">${data(c.fim)}</text></svg>
+<output id="office-trabalho-dica" aria-live="polite">Passe o mouse ou use Tab e as setas nos pontos para conferir. Clique ou pressione Enter para abrir as contribuições.</output><p class="ofc-trabalho-legenda"><span>Traço laranja: período escolhido</span><span>Tracejado cinza: período anterior, alinhado por dia da janela</span><span>Linha dourada: média móvel de 7 dias corridos, incluindo zeros</span></p><details><summary>Ver os valores por dia</summary><div class="ofc-trabalho-tabela"><table><thead><tr><th>Dia</th><th>Quantidade</th></tr></thead><tbody>${c.serie.map(l=>`<tr><td>${data(l.dia)}</td><td>${l.n}</td></tr>`).join('')}</tbody></table></div></details></section>
+<div class="ofc-trabalho-dupla"><section class="vb-jogo-cartao"><h4>Recorde histórico registrado</h4>${c.recorde?`<strong class="vb-jogo-numero">${ver(regra,n(c.recorde.n),'volume',c.recorde.dia)}</strong><p>${safeText(nome)}${formato?' · '+safeText(formato):''} em ${data(c.recorde.dia)}.</p><small>${c.recorde.empates>1?`Mesma marca em ${c.recorde.empates} dias; exibimos o primeiro.`:'Maior volume em um dia no histórico disponível.'}</small>`:'<p>Ainda não há contribuição registrada nesta seleção.</p>'}</section>
+<section class="vb-jogo-cartao"><h4>Participação no ranking</h4><strong class="vb-jogo-numero">${ver('*',n(xp)+' XP','xp')}</strong><p>XP de trabalho de todos os papéis e formatos neste período, incluindo bônus de trabalho e penalidades.</p><small>Conquistas, compras e prêmios da Copa ficam fora. Quantidade e XP medem coisas diferentes.</small></section></div>
+<section class="vb-jogo-cartao"><h4>Todas as contribuições no período · todos os formatos</h4><div class="ofc-trabalho-tabela"><table><thead><tr><th>Contribuição</th><th>Quantidade</th><th>XP</th></tr></thead><tbody>${[...new Set([...atividades.map(a=>a.regra),...(d.ganhos||[]).map(l=>l.regra)])].map(r=>{const a=atividades.find(a=>a.regra===r),nome=a?.nome||d.regras?.[r]||r,qtd=(d.linhas||[]).filter(l=>l.regra===r&&l.dia>=c.inicio&&l.dia<=c.fim).reduce((n,l)=>n+l.n,0),g=(d.ganhos||[]).filter(l=>l.regra===r&&l.dia>=c.inicio&&l.dia<=c.fim),xpRegra=g.reduce((n,l)=>n+l.xp,0),eventos=g.reduce((n,l)=>n+Number(l.eventos||0),0);return qtd||xpRegra||eventos?`<tr><td>${safeText(nome)}</td><td>${qtd?ver(r,n(qtd),'volume-geral'):eventos?n(eventos)+' eventos':'–'}</td><td>${ver(r,n(xpRegra),'xp')}</td></tr>`:'';}).join('')||'<tr><td colspan="3">Sem contribuições no período.</td></tr>'}</tbody><tfoot><tr><th>Total de XP de trabalho</th><td>Todos os papéis</td><th>${n(xp)}</th></tr></tfoot></table></div><small>Linhas são papéis e ações, não um total de demandas únicas. Ações no painel mostram apenas as recompensadas (até 10 por dia). Bônus e penalidades podem mudar o XP total.</small></section>
+${escritorioTrabalhoDetalhesHtml(id,d)}${escritorioTrabalhoQualidadeHtml(d,n)}
+<section class="vb-jogo-cartao"><h4>Composição por formato</h4>${c.distribuicao.length?`<ul class="ofc-trabalho-formatos">${c.distribuicao.map(l=>`<li><span>${safeText(l.formato)}</span><meter min="0" max="${Math.max(...c.distribuicao.map(v=>v.n))}" value="${l.n}">${l.n}</meter><b>${n(l.n)}</b></li>`).join('')}</ul>`:'<p>Nenhuma contribuição neste período. Escolha outro período ou papel para consultar o histórico.</p>'}</section>
+<details class="vb-jogo-cartao"><summary>Como interpretar estes números</summary><p>Uma peça conta uma vez por papel, no primeiro registro de entrega. Executar, captar, aprovar como DA, agendar e acompanhar como head são contribuições diferentes. Elas não são somadas como peças produzidas.</p><p>A média por dia útil usa apenas as contribuições de segunda a sexta e divide por todos esses dias, inclusive os sem registro após a primeira contribuição conhecida deste recorte. Dias anteriores a ela ficam fora. Não desconta férias, feriados ou afastamentos. A comparação usa os ${dias} dias anteriores e a mesma média; sem cobertura completa anterior, não exibe variação. O dia atual é parcial.</p><p>Cada período pode ter até 180 dias, com uma janela anterior de mesma duração; os recordes usam todo o histórico disponível. Formato é o formato principal cadastrado hoje, e pode ter sido alterado. Uma demanda de foto não informa quantas fotos foram feitas. Agendamento não comprova publicação. Registro ausente não prova falta de trabalho, e tempo online não entra na conta.</p></details></div>`;
+}
+
 const ESCRITORIO_FICHA_ABAS = [["resumo", "Resumo"], ["ganhar", "Como ganhar"], ["conquistas", "Conquistas"], ["inventario", "Inventário"], ["trabalho", "Trabalho"]];
 const escritorioFichaIcone = (nome) => ({
   moeda: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f5b83d" stroke="#8a5a12" stroke-width="1.6"/><circle cx="12" cy="12" r="6" fill="none" stroke="#ffe08a" stroke-width="1.2"/><path d="M9.6 9.2 12 15l2.4-5.8" fill="none" stroke="#8a5a12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -295,7 +447,6 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const economia = eu ? escritorio.base?.economia : escritorio.fichas?.[String(id)];
   const pontos = veNumeros ? economia?.pontos || null : null;
   const marcos = veNumeros ? economia?.marcos || null : null;
-  const t = pontos?.trabalho || null;
   const pub = escritorio.perfisPublicos?.[String(id)];
   const jogo = pub && pub.disponivel ? pub : null;
   const lugar = online ? escritorioLugarDe(online).nome : "Fora do escritório";
@@ -305,7 +456,7 @@ function abrirFichaEscritorio(id, semAtualizar = false) {
   const pct = xpProx ? Math.round(((xp || 0) / xpProx) * 100) : 0;
   const moveis = (jogo?.inventario || []).filter((i) => !String(i.classe).startsWith("roupa:")).reduce((n, i) => n + Number(i.quantidade || 0), 0);
   const conquistas = jogo?.conquistas ?? (marcos ? marcos.filter((m) => m.ok).length : null);
-  const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || !["ganhar", "trabalho"].includes(k));
+  const abas = ESCRITORIO_FICHA_ABAS.filter(([k]) => veNumeros || k !== "ganhar");
   const aba = abas.some(([k]) => k === escritorio.fichaAba) ? escritorio.fichaAba : "resumo";
   const sid = safeText(String(id));
   const carregando = (texto) => `<p class="ofc-nota ofc-hud-vazio">${texto}</p>`;
@@ -354,11 +505,8 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
     const trofeus = inv.filter((i) => deTrofeu.has(i.classe)).sort((a, b) => deTrofeu.get(b.classe).nivel - deTrofeu.get(a.classe).nivel), outros = inv.filter((i) => !deTrofeu.has(i.classe));
     corpo = pub === undefined ? carregando("Carregando o inventário…") : inv.length ? `${trofeus.length ? `<h4 class="ofc-hud-sub">Troféus <small>${trofeus.length}</small></h4><ul class="ofc-ficha-inventario ofc-hud-inventario">${trofeus.map(item).join("")}</ul>` : ""}${outros.length ? `<h4 class="ofc-hud-sub">Móveis <small>${outros.length}</small></h4><ul class="ofc-ficha-inventario ofc-hud-inventario">${outros.map(item).join("")}</ul>` : ""}` : '<p class="ofc-nota">Nenhum móvel guardado ainda.</p>';
   } else if (aba === "trabalho") {
-    const oQue = { criacao: "pelas peças que você fez e demandas finalizadas", atendimento: "pelas peças dos clientes da sua carteira", agendamento: "pelas peças agendadas", producao: "pelas fotos e vídeos captados", gestao: "pelas peças da agência, briefings e dias sem furo" }[t?.funcao] || "pelas entregas";
-    const n = (rotulo, valor, dica) => `<div title="${safeText(dica)}"><dt>${rotulo}</dt><dd>${valor}</dd><small>${dica}</small></div>`;
-    corpo = !economia ? carregando("Carregando os números de trabalho…") : !t ? '<p class="ofc-nota">Os números de trabalho aparecem quando a contagem de pontos estiver ativa.</p>'
-      : `<dl class="ofc-ficha-numeros ofc-hud-numeros">${n("Hoje", t.hoje, "Entregas de hoje")}${n("Na semana", t.semana, "Desde segunda")}${n("No mês", t.mes, "Neste mês")}${n("Sequência", t.sequencia + (t.sequencia === 1 ? " dia" : " dias"), "Dias úteis seguidos com entrega")}${n("No total", t.total, "Todas as entregas")}${n("Meta", pontos.meta ? `${pontos.meta.entregas || 0}/${pontos.meta.meta || 1}` : "–", "Da semana")}</dl>
-<p class="ofc-nota">Contado ${safeText(oQue)}: as mesmas entregas que dão XP e contam na meta.${eu ? "" : " Visto por quem administra."}</p>`;
+    corpo = escritorioTrabalhoHtml(id);
+    escritorioTrabalhoCarregar(id);
   }
   const quarto = escritorioQuartoDe(id);
   const fechar = "document.getElementById('office-ficha').close();";
@@ -421,7 +569,7 @@ function escritorioEstiloSalaHtml() {
   if (!modoPlanta && ["planta", "luz"].includes(pin.ferramenta)) pin.ferramenta = "piso";
   const piso = (id) => { const c = ESCRITORIO_PLANTA.PISO[id || a.pisoPadrao]; return c ? `repeating-conic-gradient(${c[0]} 0 25%,${c[1]} 0 50%) 0 0/16px 16px` : "#333"; };
   const amostraParede = (e) => ({ a: `linear-gradient(${a.corPadrao} 0 12%,#2b2d36 12%)`, b: pin.cor || a.corPadrao, c: "repeating-linear-gradient(#8a4733 0 7px,#3b1f17 7px 8px)", d: "repeating-linear-gradient(90deg,#7a5235 0 9px,#4a2f1c 9px 10px)", e: "#6e7077", f: "linear-gradient(135deg,#cfeaff,#7fb6e0)", g: `repeating-linear-gradient(90deg,${pin.cor || a.corPadrao} 0 6px,#00000040 6px 12px)`, h: "repeating-linear-gradient(#e9edf2 0 9px,#b8c0ca 9px 10px),#e9edf2" }[e]);
-  const ferr = (id, nome, dica) => `<button type="button" aria-pressed="${pin.ferramenta === id}" onclick="escritorioPincel().ferramenta='${id}';renderEscritorio()" title="${dica}">${nome}</button>`;
+  const ferr = (id, nome, dica) => `<button type="button" aria-pressed="${pin.ferramenta === id}" onclick="escritorioPincel().ferramenta='${id}';renderEscritorio()" title="${dica}">${escritorioIcone({piso:"editar",balde:"grade",parede:"mapa",planta:"grade",luz:"ajustes"}[id])}<span>${nome}</span></button>`;
   return `<div class="ofc-cats ofc-ferramentas">${modoPlanta
     ? ferr("planta", "Planta", "Desenhe o formato do quarto: tire piso ou crie patamares") + ferr("luz", "Luz", "Luz ambiente do quarto, como o regulador de luz do Habbo")
     : ferr("piso", "Pintar piso", "Clique ou arraste nos ladrilhos da sua sala") + ferr("balde", "Piso inteiro", "Troca o piso da sala toda de uma vez") + ferr("parede", "Pintar parede", "Clique no trecho da parede")}</div>
@@ -431,7 +579,7 @@ ${pin.ferramenta === "parede" ? `<h4>Estilo da parede</h4><div class="ofc-amostr
 <h4>Altura</h4><div class="ofc-cats ofc-ferramentas">${[["0", "Baixa"], ["1", "Média"], ["2", "Alta"]].map(([h, n]) => `<button type="button" aria-pressed="${pin.altura === h}" onclick="escritorioPincel().altura='${h}';renderEscritorio()">${n}</button>`).join("")}</div>
 <h4>Cor (Padrão, Lisa e Listrada)</h4><div class="ofc-amostras cores">${ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" aria-pressed="${pin.cor === c}" onclick="escritorioPincel().cor='${c}';renderEscritorio()" aria-label="${c ? "Cor " + c : "Cor da sala"}"><i style="background:${c || a.corPadrao}"></i>${c ? "" : "<span>Da sala</span>"}</button>`).join("")}</div>
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="pintarTodasParedesEscritorio()">Aplicar em todas as paredes</button><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_paredes')">Paredes como eram</button></div>`
-  : `<h4>Acabamento básico · grátis</h4><div class="ofc-amostras">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${pin.ferramenta === "balde" ? (escritorioPerfilDecoracao()?.sala_piso || "") === id : pin.piso === id}" onclick="${pin.ferramenta === "balde" ? `estiloSalaEscritorio('sala_piso','${id}',true)` : `escritorioPincel().movel='';escritorioPincel().piso='${id}';renderEscritorio()`}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
+  : `<h4>Acabamentos gratuitos</h4><div class="ofc-amostras ofc-amostras-piso">${ESCRITORIO_PISOS_SALA.map(([id, nome]) => `<button type="button" aria-pressed="${pin.ferramenta === "balde" ? (escritorioPerfilDecoracao()?.sala_piso || "") === id : pin.piso === id}" onclick="${pin.ferramenta === "balde" ? `estiloSalaEscritorio('sala_piso','${id}',true)` : `escritorioPincel().movel='';escritorioPincel().piso='${id}';renderEscritorio()`}" aria-label="Piso ${nome}"><i style="background:${piso(id)}"></i><span>${nome}</span></button>`).join("")}</div>
 <div class="ofc-ficha-acoes"><button type="button" class="ofc-secundario" onclick="limparPinturaEscritorio('sala_pisos')">Tirar a pintura do piso</button></div>${pin.ferramenta === "piso" ? escritorioFerramentasAreaHtml()+escritorioPisosAcervoHtml() : ""}`}
 <p class="ofc-erro" id="office-estilo-erro" role="alert"></p>`}`;
 }
@@ -722,7 +870,7 @@ function escritorioPisosAcervoHtml() {
  const visiveis=lista.slice(0,pin.limitePisos || 24);
  return `<details class="ofc-pisos-catalogo" ${pin.movel||pin.buscaPiso?'open':''}><summary>Peças de piso · ${lista.length}</summary><p class="ofc-nota">Peças com tamanho próprio; o acabamento básico está acima. Use as guardadas ou compre somente o que faltar.</p><label>Buscar material<input id="office-piso-busca" type="search" value="${safeText(pin.buscaPiso || '')}" oninput="escritorioPincel().buscaPiso=this.value" placeholder="Madeira, mármore, água…"></label><button type="button" onclick="escritorioPincel().buscaPiso=document.getElementById('office-piso-busca').value;escritorioPincel().limitePisos=24;renderEscritorio()">Buscar materiais</button><label>Material<select onchange="escritorioPincel().familiaPiso=this.value;escritorioPincel().limitePisos=24;renderEscritorio()">${[['','Todos'],['madeira','Madeira'],['pedra','Pedra'],['mármore','Mármore'],['água','Água'],['grama','Grama'],['carpete','Carpete']].map(([id,n])=>`<option value="${id}" ${pin.familiaPiso===id?'selected':''}>${n}</option>`).join('')}</select></label><label><input type="checkbox" ${pin.somenteMeus?'checked':''} onchange="escritorioPincel().somenteMeus=this.checked;renderEscritorio()">Só disponíveis no inventário</label><div class="ofc-moveis ofc-pisos-acervo">${visiveis.map(m=>{
  const info=escritorioInfoLoja(m.classe),d=ESCRITORIO_DIM_PISOS.get(m.classe),q=escritorioOndeEstaMovel(m.classe);
- return `<button type="button" class="ofc-movel" aria-pressed="${pin.movel===m.classe}" onclick="escritorioEscolherPiso('${safeText(m.classe)}')"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span><small>${d?.pronto&&!d.erro?`${d.x} × ${d.y} ladrilhos`:'Medidas ao selecionar'}</small><small>${q.guardados===Infinity?'Grátis':`${q.guardados} guardados · ${info.marco?'Conquista':info.restante===0?'Esgotado':!info.naVitrine?'Fora da vitrine':info.preco+' moedas/un.'}`}</small></button>`;
+ return `<button type="button" class="ofc-movel" aria-pressed="${pin.movel===m.classe}" onclick="escritorioEscolherPiso('${safeText(m.classe)}')"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span><small>${d?.pronto&&!d.erro?`${d.x} × ${d.y} ladrilhos`:'Ver medidas'}</small><em class="ofc-piso-custo">${q.guardados===Infinity?'Grátis':info.marco?'Conquista':info.restante===0?'Esgotado':!info.naVitrine?'Fora da vitrine':info.preco+' moedas/un.'}</em><small>${q.guardados===Infinity?'Uso livre':`${q.guardados} guardados`}</small></button>`;
  }).join('')}</div>${!lista.length?'<p>Nenhum piso encontrado. Tente outro nome ou retire o filtro.</p>':''}${lista.length>visiveis.length?'<button type="button" onclick="escritorioPincel().limitePisos=(escritorioPincel().limitePisos||24)+24;renderEscritorio()">Mostrar mais</button>':''}</details>`;
 }
 

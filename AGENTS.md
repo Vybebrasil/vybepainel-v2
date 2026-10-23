@@ -498,3 +498,25 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
   validar preço/estoque no servidor, atomicidade e idempotência do lote.
 - Rascunho local isolado por pessoa/sala/andar; sem credenciais/economia. Não
   tratar recuperação local como autorização ou persistência no banco.
+
+## Trabalho na ficha — 23/10/2026
+
+- A aba Trabalho consulta agregados sob demanda pela rota `perfil-publico`
+  (`trabalho=1`), visíveis à equipe; extrato individual permanece restrito.
+  Reutilizar `desempenhoTrabalho` e as atividades do ranking, sem outro razão.
+- Volume por papel é distinto por peça, na primeira entrega; não somar head,
+  execução e captação como produção da mesma pessoa. Ações são as recompensadas.
+- Médias mostram denominador, incluem zeros nos dias úteis após o primeiro
+  registro conhecido e explicam feriados/férias não descontados. Não exibir
+  variação com cobertura anterior incompleta. Hoje é parcial. Recordes usam
+  histórico disponível; formato é o cadastro atual. Sem inferir qualidade,
+  publicação ou produtividade por presença. Não mudar pagamentos por esta leitura.
+
+- Evolução de Trabalho (23/10/2026): períodos personalizados limitados a 180
+  dias e comparação com janela anterior de mesma duração; detalhes paginados
+  pela mesma rota pública e fonte de contribuições. XP público é agregado por
+  demanda/dia/regra, sem expor origem/horário do extrato privado. Tabela deve
+  fechar com o total de XP, incluindo bônus e perdas permitidos pelo ranking.
+  Prazo histórico exige eventos para reconstrução no instante da entrega;
+  não usar o prazo atual para julgar entregas antigas. Retorno registrado não
+  prova erro de quem executou, e ausência dele não prova primeira aprovação.

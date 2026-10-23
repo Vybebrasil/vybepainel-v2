@@ -1598,3 +1598,152 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   e sem proxy de produção. Revisão visual final ainda pendente pelo bloqueio
   de segurança do navegador. Não declarar Safari, mídia ou todas as telas
   visualmente aprovadas. Nenhum push, deploy ou banco real alterado nesta etapa.
+
+### Construção publicada e aba Trabalho em evolução — 23/10/2026
+
+- Paulo aprovou a construção e autorizou publicar. PR #356, CI e prévia
+  aprovadas no commit `1f2ca9f`; merge `998671e`. Produção READY:
+  `dpl_7wskc3Tbd3odLFkyKMb2RRxJ84HP`, SHA confirmado pela Vercel.
+  Conferências externas sem escrita: HTML 200, API sem sessão 401,
+  Monday encerrado 410. Nenhuma migração ou reset nesta publicação.
+- Nova implementação **local**, branch `codex/perfil-trabalho-evolucao`:
+  a aba Trabalho da ficha passa a ser um painel de evolução de cada pessoa,
+  visível à equipe, usando a rota `perfil-publico` existente com `trabalho=1`.
+  A carga acontece só ao abrir a aba, com cache curto por pessoa e erro explícito.
+  O extrato privado continua restrito. Não há outra carteira, endpoint ou razão.
+- Fonte: entregas e razão existentes, agregados no PostgreSQL. Peça distinta
+  por pessoa/papel na primeira entrega; ações sem peça preservam a origem.
+  Produção, captação, agendamento, DA, head e gestão não se confundem.
+  Ações no painel são apenas as recompensadas, limitadas pela regra vigente.
+- Períodos de 7/28/90 dias, filtro de papel e formato, gráfico atual versus
+  anterior, média por dia útil e por dia ativo, composição por formato, tabela
+  de contribuições/XP e recordes históricos com empates. Datas da Bahia.
+  Séries limitadas a 180 dias; recordes usam todo o histórico disponível.
+- Média útil considera seg–sex com zeros após o primeiro registro conhecido
+  daquele recorte; não presume calendário de férias/feriados. Sem cobertura
+  anterior completa, não inventa variação. Hoje é parcial. Formato é o atual
+  da demanda. Registro ausente não comprova falta de trabalho; agendado não
+  comprova publicação. Não há nota inventada de qualidade ou presença.
+- Dados fictícios somente em `scripts/fixtures.mjs`, para revisão local em
+  `http://127.0.0.1:4362/` (senha `demo-local`). Paulo está conferindo a tela;
+  inspeção automática do navegador segue bloqueada, sem contorno.
+- Verificação: **35 testes** de economia/ranking e Trabalho passaram na
+  rodada final (incluindo quatro casos de Trabalho), sintaxe de 260 arquivos
+  e build aprovados. Revisão visual final
+  ainda pendente. Sem alteração de XP, moedas, conquistas ou dados reais;
+  esta nova aba ainda não foi publicada.
+
+- Paulo aprovou a demonstração da aba Trabalho e autorizou sua publicação em
+  23/10/2026. Entrega em um PR, com CI e preview no commit exato antes do merge.
+
+### Trabalho publicado e Oficina local — 23/10/2026
+
+- Paulo aprovou a aba Trabalho e autorizou publicar: PR #358, commit de
+  revisão `167412b`, **594 testes** na CI, preview READY no mesmo SHA.
+  Merge `1647a06`; produção `dpl_Ar4c6sH2wHoRQAeYeyCMpCbA1ez5`, READY,
+  SHA e alias oficial confirmados. HTML 200, rota pública de trabalho sem
+  sessão 401, Monday 410. Sem migração, concessão ou recálculo de pagamentos.
+- Novo pedido após publicar: reformular visualmente os painéis de construção,
+  conforme quatro capturas de Paulo. Branch local `codex/construcao-paineis-jogo`.
+- A lateral da edição vira Oficina. Navegação única por Móveis, Acabamentos,
+  Estrutura e Extras; atalhos de Imagens/Conjuntos só nos Extras. Mantidos os
+  estados e handlers existentes (inclusive os ambientes compartilhados).
+- Saldo e acesso à loja no painel de móveis, sem exibir zero quando a carteira
+  não chegou. A loja continua sendo a janela existente. Repetir colocação com
+  explicação curta. Cartões em duas colunas, arte maior, nomes completos,
+  preço e quantidade separados nos pisos. Acabamentos gratuitos com amostras
+  isométricas e marca de seleção; materiais sem segunda rolagem interna.
+- Aparência segue os materiais e degraus do padrão de jogo, com estilos
+  delimitados por `.ofc-oficina`; loja, inventário e ficha não são alterados.
+  Navegação por setas/Home/End e foco visível. Nenhuma alteração de física,
+  autorização, compras, rascunho ou salvamento. Sem animação contínua nova.
+- Verificação: **25 testes** direcionados de navegação, construção, pincel,
+  conferência e rascunho aprovados. Sintaxe e build aprovados. A política do
+  navegador ainda bloqueia inspeção automatizada; Paulo foi chamado para
+  conferir na demonstração local e ele respondeu **"aprovado"**. Aprovação
+  visual manual registrada, sem afirmar inspeção automatizada ou de celular.
+  **Oficina ainda local, não publicada.**
+
+- Paulo autorizou publicar também a Oficina em 23/10/2026. Conferir CI e
+  prévia no commit exato antes do merge; nenhuma migração nesta entrega.
+
+### Evolução do Trabalho: oito melhorias — 23/10/2026
+
+- Oficina publicada no PR #359: merge `d3a7ce1`, produção READY
+  `dpl_Hcrd8W7VV3cMWFNGUbxCFSsXaJDJ`, alias e SHA conferidos; CI com
+  596 testes. HTML 200, API sem sessão 401, Monday 410. Sem migração.
+- Paulo pediu executar e publicar os oito pontos da revisão do Trabalho e
+  aprovou a demonstração manualmente. Branch `codex/trabalho-metricas-detalhes`.
+- Cabeçalho compacto: o header global em coluna fazia o flex-basis de 260px
+  do título compartilhado virar altura. Corrigida só esta instância, sem
+  mudar outros cabeçalhos. Cartões em quatro colunas quando o espaço real
+  permite, pela container query; gráfico e tabela preservam leitura no celular.
+- XP discriminado por todas as regras do trabalho, inclusive bônus e perdas,
+  com total da mesma resposta. Prêmios/conquistas continuam fora conforme o
+  ranking. Quantidade por papel não vira soma de demandas únicas.
+- Números de volume, XP, pontos do gráfico e recorde abrem lista paginada na
+  mesma ficha e usam o painel existente para abrir a demanda. Fonte única de
+  contribuições no servidor para agregados e detalhe; primeira entrega por
+  peça/papel. XP público só por demanda/dia/regra, sem origem individual ou
+  horário do razão privado. Bônus sem vínculo aparecem como tal.
+- Períodos de 7/28/90 dias, mês atual, mês passado e personalizado (até 180
+  dias, validados no servidor). Comparação com a janela imediatamente anterior
+  de mesma duração, datas e denominadores explícitos. Histórico antigo não
+  carrega todos os anos seguintes. Cache e respostas isolados por período;
+  uma resposta atrasada não troca o recorte atual.
+- Gráfico com valores atuais, anteriores e média móvel de sete dias corridos,
+  incluindo zeros; detalhes por mouse/foco e abertura por clique/Enter.
+  Uma parada no Tab, navegação entre pontos pelas setas/Home/End. Tabela
+  diária continua como alternativa acessível. Sem biblioteca ou loop novo.
+- Leitura por função e resumo por regras determinísticas: variação da própria
+  média, formato predominante e pico do período. Não há nota de desempenho,
+  comparação indevida entre papéis nem uso de presença como produtividade.
+- Prazo/retrabalho: só execuções próprias (`peca_criacao`), em todos os formatos
+  do período. O status de entrega precisa estar no mesmo dia da contribuição;
+  o prazo é reconstruído pelos eventos antes/depois daquele instante, nunca
+  pelo valor atual. Mostra cobertura da amostra e ausência de base. Retorno
+  para Alteração só após a entrega e antes da primeira aprovação/finalização,
+  observado até o fim do recorte. Ausência de retorno não prova aprovação de
+  primeira, e o indicador não atribui culpa. Não muda nenhum pagamento.
+- Verificação local: regressões de Trabalho/ranking/economia aprovadas (38
+  testes na primeira rodada), onze casos de Trabalho na rodada final, sintaxe
+  e build aprovados. Revisão visual manual aprovada pelo Paulo; inspeção
+  automática continua bloqueada pela política do navegador. Sem medição de
+  Safari, mídia ou latência de banco real. Aguardando CI/preview para publicar.
+
+### Ajuste fino de objetos de parede do acervo — 23/10/2026 (local)
+
+- Paulo pediu setinhas de ajuste fino para o pôster da captura, identificado no
+  catálogo como `ads_volkswagen_poster`. A operação já existia, mas o dock
+  misturava Subir/Descer com duas setas. Reorganizada em quatro sentidos.
+- Reutiliza `empurrarSelecionadoEscritorio` e Alt + setas, com passo de ¼ ou
+  ⅒ de ladrilho local à edição. Preserva a parede atual, limites existentes,
+  desfazer e salvamento. Bloqueio e salvamento em curso impedem ajuste.
+- Escopo: itens de parede do acervo; quadros enviados pela equipe mantêm seu
+  renderizador e regras existentes. Sem mudança de profundidade, física ou
+  persistência do mapa. Nenhum servidor ou schema alterado.
+- 21 testes direcionados aprovados, incluindo duas direções de parede,
+  altura, passo, limites, bloqueio e salvamento. Sintaxe/build/diff aprovados.
+  Revisão visual local pendente pelo bloqueio do navegador automático.
+  Branch `codex/parede-ajuste-fino`; ainda não publicado.
+
+- Paulo autorizou publicar o ajuste fino em 23/10/2026. CI e preview no
+  commit exato antes do merge; sem migração nesta entrega.
+
+### Correção do deslocamento visual na parede — 23/10/2026 (local)
+
+- A primeira entrega de setas não resolvia o desenho: o renderer limitava a
+  posição final ao teto e ao rodapé, anulando o ajuste de pôsteres grandes.
+  Agora o encaixe legado é calculado na altura zero e o deslocamento manual
+  vem depois, também na troca de estado. Quadros sem ajuste não mudam de lugar.
+- Retirado o teto artificial de 4 níveis. Deslocamento de parede entre -40 e
+  40 permite descer da posição inicial; servidor aceita negativo somente
+  para classes de parede do catálogo oficial. Móveis de chão mantêm 0–40.
+- 22 testes direcionados aprovados: cálculo visual de pôster grande, subir e
+  descer do zero, editor e validação do servidor. Sintaxe e build aprovados.
+  Sem migração. Revisão visual manual pendente; navegador automático bloqueado.
+- Suíte geral iniciada, mas interrompida após deixar de produzir resultados;
+  não considerada aprovada. A aprovação técnica desta etapa cobre os 22
+  testes direcionados, sintaxe e build, sem validação visual automática.
+- Publicação autorizada por Paulo. Comparação com `origin/main` atualizada
+  sem divergência; CI completo e preview serão exigidos no commit da entrega.
