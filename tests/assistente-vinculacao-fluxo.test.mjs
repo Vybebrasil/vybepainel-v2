@@ -12,6 +12,8 @@ test('não emite código quando usuário não tem acesso ao painel', async () =>
   const sql = async (partes, ...valores) => {
     assert.match(partes.join('?'), /p.ativo IS TRUE/);
     assert.match(partes.join('?'), /p.pode_entrar IS TRUE/);
+    assert.match(partes.join('?'), /COUNT\(\*\) FROM vybe_ai_desafios/);
+    assert.match(partes.join('?'), /INTERVAL '1 hour'/);
     assert.equal(valores[2], 11);
     return [];
   };
