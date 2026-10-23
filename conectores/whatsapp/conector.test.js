@@ -144,5 +144,6 @@ test('membro sai do grupo: consulta não chega à API nem ao modelo',async()=>{
  const f=fixture();try{
   f.client.getChats=async()=>[{name:'Produção',id:{_serialized:gid},isGroup:true,participants:[{id:{_serialized:b}}]}];
   await f.p.processar(mensagem());assert.equal(f.calls.length,0);assert.equal(f.apiCalls.length,0);
+  assert.equal(f.r.db.prepare('SELECT count(*) AS n FROM mensagens').get().n,0);
  }finally{f.r.close();}
 });

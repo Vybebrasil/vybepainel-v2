@@ -133,6 +133,8 @@ function criarProcessador({client, registro, env = process.env, api = consultaVy
       if (!id || id.length > 512 || !Number.isFinite(msg.timestamp)) return;
       const idade = agora() - msg.timestamp*1000;
       if (idade < -60000 || idade > 300000) return; // Não executar histórico/replay antigo.
+      // Contatos fora dos grupos não consomem o ledger nem a cota da equipe.
+      const ctxInicial=await contextoAtual(chat,remetente);
       chave = hash(JSON.stringify([conta,conversa,remetente,id]));
       if (!registro.reservar(chave,agora())) { log('duplicata_ignorada'); return; }
       reservado = true;
@@ -146,7 +148,6 @@ function criarProcessador({client, registro, env = process.env, api = consultaVy
       }
       registro.db.prepare('INSERT INTO limites VALUES(?,?) ON CONFLICT(ator) DO UPDATE SET proximo=excluded.proximo').run(ator,agora()+10000);
       ocupados.add(ator); ativos++; entrou=true;
-      const ctxInicial=await contextoAtual(chat,remetente);
       if(c.tipo!=='vinculacao_confirmar'){const autorizado=await api({jid:remetente,contexto:ctxInicial,consulta:'autorizar_contexto'},{env});if(autorizado.ok!==true)throw new Error('Sem autorização.');}
       let texto;
       if (c.tipo === 'qwen') texto = await qwen(c.pergunta,fetch,{jid:remetente,contexto:()=>contextoAtual(chat,remetente),api,env});
