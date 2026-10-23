@@ -23,6 +23,8 @@ export const TITULOS = {
   fotografias: ['Retocador', 'Tratador de Fotos', 'Mestre da Edição', 'Lenda da Foto'],
   videos: ['Editor', 'Montador de Vídeo', 'Cineasta', 'Lenda do Vídeo'],
   impressos: ['Gráfico', 'Mestre da Gráfica', 'Rei do Impresso', 'Imperador do Impresso'],
+  implementacoes: ['Construtor Digital', 'Implementador', 'Arquiteto Digital', 'Mestre das Implementações'],
+  motions: ['Animador', 'Designer de Movimento', 'Mestre do Motion', 'Lenda do Motion'],
   nivel: ['Experiente', 'Veterano', 'Elite', 'Mítico'],
   adiantado: ['Pontual', 'Adiantado', 'Relâmpago', 'Senhor do Tempo'],
   deprimeira: ['Caprichoso', 'Certeiro', 'Sem Alteração', 'Perfeição'],
@@ -90,7 +92,7 @@ const EXECUCAO = ['peca_criacao'];
 // Formatos de cada escada de entrega (chave de vybe_escritorio_complexidade).
 const FORMATOS = {
   cards: ['card', 'feed', 'post', 'avulso', 'feed/story'], carrosseis: ['carrossel'], reels: ['reels'],
-  stories: ['story'], fotografias: ['fotografia'], videos: ['video', 'motion', 'capa videos'], impressos: ['impresso'],
+  stories: ['story'], fotografias: ['fotografia'], videos: ['video', 'motion', 'capa videos'], impressos: ['impresso'], implementacoes: ['implementacao'], motions: ['motion'],
 };
 const NOME_TIPO = { cards: 'Cards', carrosseis: 'Carrosséis', reels: 'Reels', stories: 'Stories', fotografias: 'Fotografias' };
 export const MARCOS = [
@@ -102,6 +104,8 @@ export const MARCOS = [
   { id: 'fotografias', nome: 'Fotografias', unidade: 'fotografias entregues', valor: (n) => n.formatos.fotografias },
   { id: 'videos', nome: 'Vídeos e motions', unidade: 'vídeos entregues', valor: (n) => n.formatos.videos },
   { id: 'impressos', nome: 'Impressos', unidade: 'impressos entregues', valor: (n) => n.formatos.impressos },
+  { id: 'implementacoes', nome: 'Implementações', unidade: 'demandas de implementação concluídas', valor: (n) => n.formatos.implementacoes || 0 },
+  { id: 'motions', nome: 'Motion', unidade: 'motions entregues', valor: (n) => n.formatos.motions || 0 },
   { id: 'nivel', nome: 'Nível', unidade: 'de nível', valor: (n) => n.nivel },
   { id: 'adiantado', nome: 'Adiantado', unidade: 'entregas antes do prazo', valor: (n) => n.antes },
   { id: 'deprimeira', nome: 'De primeira', unidade: 'peças aprovadas sem alteração', valor: (n) => n.deprimeira },
@@ -117,7 +121,7 @@ export const MARCOS = [
   { id: 'artilheiro', nome: 'Artilheiro', unidade: 'semanas em 1º no ranking', valor: (n) => n.regras.ranking_1 || 0 },
   { id: 'painel', nome: 'No painel', unidade: 'dias com as 10 ações do painel', valor: (n) => n.diasPainelCheio },
   { id: 'da', nome: 'Direção de arte', unidade: 'aprovações como DA', valor: (n) => n.regras.peca_da || 0 },
-  { id: 'agendamento', nome: 'Postagens', unidade: 'peças postadas', valor: (n) => n.regras.peca_agendamento || 0 },
+  { id: 'agendamento', nome: 'Agendamento', unidade: 'peças agendadas ou finalizadas', valor: (n) => n.regras.peca_agendamento || 0 },
   { id: 'carteira', nome: 'Carteira', unidade: 'peças da carteira', valor: (n) => n.regras.peca_atendimento || 0 },
   { id: 'cadastros', nome: 'Cadastros', unidade: 'demandas cadastradas', valor: (n) => n.regras.cadastro || 0 },
   // Categorias por tipo também para quem agenda, atende e gere (Paulo, 20/10/2026:
@@ -129,7 +133,7 @@ export const MARCOS = [
   { id: 'gravacoes', nome: 'Dias de gravação', unidade: 'dias com captação', valor: (n) => n.diasCaptacao },
   { id: 'fotos_captadas', nome: 'Fotos captadas', unidade: 'fotos captadas', valor: (n) => n.porRegra.peca_producao?.fotografias || 0 },
   { id: 'videos_captados', nome: 'Vídeos captados', unidade: 'vídeos e reels captados', valor: (n) => (n.porRegra.peca_producao?.videos || 0) + (n.porRegra.peca_producao?.reels || 0) },
-  { id: 'briefings', nome: 'Briefings', unidade: 'briefings escritos', valor: (n) => n.regras.briefing || 0 },
+  { id: 'briefings', nome: 'Briefings no cadastro', unidade: 'cadastros com briefing', valor: (n) => n.regras.briefing || 0 },
   { id: 'agencia', nome: 'Peças da agência', unidade: 'peças da agência acompanhadas', valor: (n) => n.regras.peca_gestao || 0 },
   { id: 'planejamentos', nome: 'Planejamentos', unidade: 'planejamentos aprovados', valor: (n) => n.planejamentos },
   // Sociais: um nível só.
@@ -139,6 +143,43 @@ export const MARCOS = [
   { id: 'troca', nome: 'Negociante', unidade: 'trocas feitas', valor: (n) => n.trocas },
   { id: 'postits', nome: 'Recadeiro', unidade: 'post-its colados', valor: (n) => n.postits },
 ];
+// Critérios junto das contagens do servidor: a ficha não deduz trabalho pelo cargo.
+export function criterioDoMarco(id) {
+  const especificos = {
+    entregas: 'Demandas com crédito de execução para você. Captação, agendamento e carteira têm contagens próprias. Uma demanda pode conter várias peças.',
+    nivel: 'Seu nível pelo XP total da carteira. É diferente do XP do trabalho usado na Copa; conquistas também podem aumentar seu nível.',
+    gravacoes: 'Dias distintos com peças creditadas à sua captação. Não conta sessões de gravação nem comprova quantas gravações houve no mesmo dia.',
+    fotos_captadas: 'Peças de fotografia com crédito de captação para você. Várias peças podem vir da mesma sessão.',
+    videos_captados: 'Peças de vídeo, motion e reels com crédito de captação para você. Não é quantidade de sessões.',
+    briefings: 'Cadastros com briefing preenchido e crédito para você. O registro atual não comprova quem escreveu o texto originalmente.',
+    cadastros: 'Cadastros creditados à sua sessão, inclusive peças cadastradas em lote. Não comprova autoria do briefing nem execução da peça.',
+    agendamento: 'Peças com crédito de agendamento ou finalização para você. O crédito não comprova publicação na rede social.',
+    carteira: 'Peças concluídas com crédito de head para você. Acompanhar a carteira não significa executar a criação.',
+    agencia: 'Peças com crédito geral da agência para você. Não equivale a criação ou captação.',
+    videos: 'Execuções de demandas classificadas como vídeo, motion ou capa de vídeo. Motion também tem sua especialidade; as contagens não devem ser somadas.',
+    fotografias: 'Execuções de demandas classificadas como Fotografia. O formato sozinho não diferencia seleção, tratamento e criação original.',
+    implementacoes: 'Demandas com Implementação como primeiro formato e crédito de execução para você. Ser head ou apenas alterar o status não basta.',
+    motions: 'Demandas com Motion como primeiro formato e crédito de execução para você. Também participam da categoria Vídeos e motions.',
+    da: 'Aprovações com crédito de direção de arte para você; não conta somente estar vinculado à demanda.',
+    meta: 'Semanas com crédito de meta atingida, incluindo os degraus de 100%, 130% ou 160%. Alterar pesos de XP não muda essa contagem automaticamente.',
+    meta_turbo: 'Semanas com crédito do degrau de 160% da meta. Uma mesma semana não deve pagar vários degraus.',
+    painel: 'Dias com pelo menos 10 ações creditadas no painel. Não conta tempo online.',
+    podio: 'Fechamentos semanais com prêmio de primeiro, segundo ou terceiro lugar. A posição provisória não conta.',
+    artilheiro: 'Fechamentos semanais com prêmio de primeiro lugar. É diferente do título mensal da Copa.',
+    planejamentos: 'Planejamentos aprovados ou cadastrados que você enviou para aprovação. Não comprova autoria de todo o conteúdo.',
+    adiantado: 'Execuções registradas em dia anterior ao prazo cadastrado. Não usa veiculação como substituto do prazo.',
+    deprimeira: 'Peças com crédito de aprovação de primeira para você.',
+    embalo: 'Maior sequência de dias úteis com execução. Sábado e domingo não quebram a sequência.',
+    clientes: 'Maior quantidade de clientes distintos atendidos por suas execuções em um mês; uma peça com vários clientes continua sendo uma execução.',
+    semana: 'Semanas com pelo menos 15 execuções com prazo, sem nenhuma dessas execuções após o prazo.',
+    filaemdia: 'Fechamentos de dia com crédito de fila sem demanda vencida.',
+  };
+  if (especificos[id]) return especificos[id];
+  if (id.startsWith('agendados_')) return 'Peças deste formato com crédito de agendamento ou finalização para você; não comprova publicação.';
+  if (id.startsWith('carteira_')) return 'Peças deste formato com crédito de head da carteira; não é execução da peça.';
+  if (MARCOS_SOCIAIS.has(id)) return 'Conquista do uso do Escritório, concedida uma vez. Seus prêmios não entram no XP do ranking de trabalho.';
+  return 'Demandas deste formato com crédito de execução para você. Conta a demanda, não cada tela, variação ou arquivo; reabrir e concluir não deve repetir o crédito.';
+}
 // "entregas:3" → { marco: 'entregas', nivel: 3 }.
 export function partesDoMarco(chave) {
   const [marco, n] = String(chave || '').split(':');
@@ -255,7 +296,7 @@ export async function conferirMarcos(sql, pessoaId, agora = new Date()) {
     const proximo = degraus.find((d) => d.nivel === nivel + 1) || null;
     const social = MARCOS_SOCIAIS.has(m.id);
     lista.push({
-      id: m.id, nome: m.nome, nivel, nomeNivel: social ? (nivel ? 'Conquistado' : '') : NIVEIS[nivel] || '', social, valor, unidade: m.unidade,
+      id: m.id, nome: m.nome, criterio: criterioDoMarco(m.id), nivel, nomeNivel: social ? (nivel ? 'Conquistado' : '') : NIVEIS[nivel] || '', social, valor, unidade: m.unidade,
       proximo: proximo ? { nivel: proximo.nivel, nome: social ? 'Conquistado' : NIVEIS[proximo.nivel], meta: proximo.meta, classe: proximo.classe } : null,
       degraus: degraus.map((d) => ({ ...d, nome: social ? 'Conquistado' : NIVEIS[d.nivel], ok: feitos.has(`${m.id}:${d.nivel}`), em: feitos.get(`${m.id}:${d.nivel}`) || null,
         titulo: tituloDe(m.id, d.nivel) })),

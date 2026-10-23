@@ -99,3 +99,29 @@ test('Pódio com 1 semana (taça prata no Bronze) e a escada do Artilheiro pelas
   assert.equal(await inventario(sql, 3, 'fball_trophy'), 0, 'a taça da Copa só vem do fechamento do mês');
   assert.equal(tituloDe('artilheiro', 4), 'Bola de Ouro');
 });
+
+test('especialidades acrescentam sem mudar conquistas antigas e pagam uma vez', async t => {
+ const {db,sql}=await banco(t);
+ await db.exec(ler('2026-10-21-escritorio-conquistas-dificeis.sql'));
+ await cards(db,3,20000,20039);
+ await conferirMarcos(sql,3);
+ const antes=await sql`SELECT * FROM vybe_escritorio_marcos ORDER BY pessoa_id,marco`;
+ const premios=await sql`SELECT * FROM vybe_escritorio_trofeus ORDER BY marco,nivel`;
+ const carteira=await sql`SELECT * FROM vybe_escritorio_carteiras ORDER BY pessoa_id`;
+ await db.exec(ler('2026-10-22-escritorio-conquistas-especialidades.sql'));
+ await db.exec(ler('2026-10-22-escritorio-conquistas-especialidades.sql'));
+ assert.deepEqual(await sql`SELECT * FROM vybe_escritorio_marcos ORDER BY pessoa_id,marco`,antes);
+ assert.deepEqual(await sql`SELECT * FROM vybe_escritorio_trofeus WHERE marco NOT IN ('implementacoes','motions') ORDER BY marco,nivel`,premios);
+ assert.deepEqual(await sql`SELECT * FROM vybe_escritorio_carteiras ORDER BY pessoa_id`,carteira);
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,formato) SELECT n,8385559107,'Implementação' FROM generate_series(21000,21004) n;
+ INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) SELECT 24,'impl:'||n,'peca_criacao',n,current_date FROM generate_series(21000,21004) n;
+ INSERT INTO vybe_conteudos(id,board_id,formato) SELECT n,7829537690,'Motion' FROM generate_series(22000,22009) n;
+ INSERT INTO vybe_escritorio_entregas(pessoa_id,origem,regra,conteudo_id,dia) SELECT 2,'motion:'||n,'peca_criacao',n,current_date FROM generate_series(22000,22009) n;`);
+ const impl=(await conferirMarcos(sql,24)).find(m=>m.id==='implementacoes');
+ assert.equal(impl.valor,5);assert.equal(impl.nivel,1);assert.match(impl.criterio,/crédito de execução/);
+ assert.equal((await conferirMarcos(sql,2)).find(m=>m.id==='motions').nivel,1);
+ await conferirMarcos(sql,24);await conferirMarcos(sql,2);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE origem='conquista:implementacoes:1'`)[0].n,1);
+ assert.equal((await sql`SELECT count(*)::int n FROM vybe_escritorio_moedas WHERE origem='conquista:motions:1'`)[0].n,1);
+ assert.equal((await sql`SELECT marco FROM vybe_escritorio_marcos WHERE pessoa_id=3 AND marco='cards:1'`).length,1);
+});

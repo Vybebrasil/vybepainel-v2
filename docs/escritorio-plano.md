@@ -1497,3 +1497,46 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 - Ainda falta medir no Safari e revisar retenção de caches. Não há medição
   antes/depois nem validação visual desta correção; não considerar resolvido
   o consumo geral. Preservadas as alterações locais das caixas soltas.
+
+### Conquistas complementares e ranking explicativo — 22/10/2026 (local)
+
+- Preservadas as escadas, títulos e prêmios existentes. Critérios explícitos na
+  resposta de conquistas e no cartão aberto, com distinção entre cadastro e autoria,
+  agendamento e publicação, peça captada e sessão de gravação.
+- Implementações e Motion preparados como especialidades novas no mesmo motor,
+  com migração aditiva ainda não aplicada. Não rodar revisão de níveis nem resets.
+- Ranking detalha o volume por etapa/formato e demandas distintas. Corrigido o
+  truncamento dos totais pela lista de 3.000 exemplos; Feed/Story permanece inteiro.
+- Retirados exemplos numéricos fixos divergentes das tabelas da explicação de ganhos.
+  Esta etapa NÃO aplica head 20%, pesos experimentais nem recálculo de XP/ouro.
+- Testes direcionados de ranking/conquistas: 12 passaram, incluindo preservação,
+  idempotência e contagem acima do limite. Revisão visual ainda pendente: a demo
+  abriu Conquistas na árvore de acessibilidade, mas o fluxo inicial do personagem
+  cobriu a tela e a tentativa de navegação seguinte travou. Não houve validação
+  desktop/celular completa. Na primeira verificação, sintaxe/ordem global, build e 25 regressões direcionadas passaram; a suíte completa foi interrompida pela demora em `escritorio-economia.test.mjs`. Essa pendência foi resolvida na continuação abaixo. Sem publicação nem migração aplicada.
+
+
+#### Verificação concluída — 22/10/2026
+
+- Isolamento confirmou que o teste de banco de decoração legada passa. A demora
+  vinha da verificação exaustiva dos caminhos de todas as plantas. O teste agora
+  faz uma varredura de conectividade por entrada, com as mesmas transições de
+  `mapaPassa` e bloqueio de assentos, preservando a checagem real de `mapaCaminho`
+  até a porta. Também verifica a última linha/coluna do piso. Nenhuma mudança
+  na movimentação do jogo ou nas plantas.
+- Arquivo de economia: 23 testes passaram. Suíte completa: **582 testes passaram,
+  zero falhas/ignorados**, Node 24.19 com concorrência 1 (316 s). Executados os
+  estágios de verificação de sintaxe, suíte e build separadamente para limitar
+  a concorrência; não foi mudado o comando npm nem o framework.
+- Prévia inspecionada no navegador: Conquistas em desktop e 390 px; Ranking e
+  detalhe com volume por contribuição/formato em desktop e 390 px. Sem rolagem
+  horizontal na largura móvel; console sem erros nessa conferência. Não houve
+  revisão visual geral de outras telas. Prévia aprovada por Paulo ("gostei").
+- Demonstração com personagem já configurado para não obrigar o fluxo inicial
+  durante a revisão; volumes fictícios de formatos no ranking. As metas/prêmios
+  das novas especialidades no demo refletem a migração preparada.
+- Migração aditiva revisada: exige os quatro níveis de Impressos com recompensas
+  configuradas, não sobrescreve especialidades existentes ao repetir e não
+  remove marcos, moedas, XP ou inventário. Testada apenas no banco isolado.
+- **Ainda local**: não houve publicação, aplicação de migração, ajuste de pesos,
+  head 20%, recálculo histórico ou concessão das execuções inferidas de Ewerton.
