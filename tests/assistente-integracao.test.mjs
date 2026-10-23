@@ -99,3 +99,33 @@ test('emissão HTTP exige sessão pessoal e mesma origem; ignora pessoa enviada 
  await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET);await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET);
  assert.equal(await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET),null);
 });
+
+test('Perfil: estado, revogação própria, códigos invalidados e reconexão segura',async t=>{
+ const {estadoVinculacao,revogarVinculacao,consumirCodigo}=await import('../server/assistente-vinculacao-fluxo.js');
+ const {areaAssistente}=await import('../api/painel.js');
+ const {db,sql}=conexao();t.after(()=>db.close());
+ await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,ativo boolean,pode_entrar boolean,senha_hash text);
+ INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia');`);
+ assert.equal((await estadoVinculacao(sql,1)).disponivel,false);
+ await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
+ assert.deepEqual(await estadoVinculacao(sql,1),{disponivel:true,vinculado:false});
+ const d=await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET);
+ assert.equal(await consumirCodigo(sql,jid,d.codigo,config.VYBE_AI_LINK_SECRET),true);
+ const pendente=await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET);
+ const outro=await emitirCodigo(sql,5,config.VYBE_AI_LINK_SECRET);
+ assert.equal(await consumirCodigo(sql,'88888888888888888888@lid',outro.codigo,config.VYBE_AI_LINK_SECRET),true);
+ const req={method:'GET',query:{consulta:'vinculacao_status'},body:{pessoa_id:5}};
+ const res=()=>({status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}});
+ let r=res();await areaAssistente(req,r,{tipo:'sessao',pessoa:{id:1}},()=>sql);
+ assert.equal(r.corpo.vinculado,true);assert.ok(!JSON.stringify(r.corpo).includes('hash'));
+ r=res();await areaAssistente({...req,method:'POST',query:{consulta:'vinculacao_revogar'},headers:{origin:'https://outro.example',host:'teste.example'}},r,{tipo:'sessao',pessoa:{id:1}},()=>sql);assert.equal(r.codigo,403);
+ r=res();await areaAssistente({...req,method:'POST',query:{consulta:'vinculacao_revogar'},headers:{origin:'https://teste.example',host:'teste.example'}},r,{tipo:'sessao',pessoa:{id:1}},()=>sql);
+ assert.equal(r.codigo,200);assert.equal((await estadoVinculacao(sql,1)).vinculado,false);assert.equal((await estadoVinculacao(sql,5)).vinculado,true);
+ assert.equal(await consumirCodigo(sql,jid,pendente.codigo,config.VYBE_AI_LINK_SECRET),false);
+ const novo=await emitirCodigo(sql,1,config.VYBE_AI_LINK_SECRET);
+ assert.equal(await consumirCodigo(sql,jid,novo.codigo,config.VYBE_AI_LINK_SECRET),true);
+ const roubar=await emitirCodigo(sql,5,config.VYBE_AI_LINK_SECRET);
+ assert.equal(await consumirCodigo(sql,jid,roubar.codigo,config.VYBE_AI_LINK_SECRET),false);
+ assert.equal((await estadoVinculacao(sql,1)).vinculado,true);
+ await revogarVinculacao(sql,1);
+});

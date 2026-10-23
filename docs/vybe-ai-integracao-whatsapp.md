@@ -92,3 +92,32 @@ ali a migração. A aplicação em Production exige autorização própria. Até
 acontecer, emissão/consumo não estão homologados contra o banco remoto; o 403
 não significa que a vinculação já está provisionada. Não usar código de vínculo
 ou identidade real para testar no Preview atual, pois ele compartilha o banco.
+
+## Conta & Equipe → Perfil: Vybe AI — WhatsApp
+
+A seção reutiliza a sessão pessoal do Perfil e `area=assistente`. Não usa token
+administrativo no navegador, nem recebe pessoa_id para escolher o titular:
+
+- GET `consulta=vinculacao_status`: disponibilidade da estrutura e estado do
+  vínculo da própria sessão, sem retornar telefone, JID ou hash.
+- POST `consulta=vinculacao_iniciar`: código de uso único, dez minutos e até
+  três emissões por hora. O código fica só em memória na tela; não vai para
+  localStorage. A pessoa copia e envia apenas na conversa privada com o bot.
+- POST `consulta=vinculacao_revogar`: revoga todos os vínculos da própria
+  pessoa e invalida todos os códigos pendentes na mesma transação. Exige
+  sessão pessoal e mesma origem, como a emissão. Não exige LINK_SECRET para
+  permitir revogar um vínculo mesmo se a configuração de emissão falhar.
+- Emissão, confirmação e revogação serializam por pessoa usando a transação
+  existente do Vybe OS. Reconexão de JID revogado é permitida somente para o
+  mesmo titular, com código novo; não transfere o WhatsApp para outra pessoa.
+- A tela distingue erro de rede, indisponibilidade da estrutura, não vinculado
+  e vinculado. Conferência é manual, sem polling permanente. Revogação com
+  erro preserva o estado exibido e informa a falha.
+
+A estrutura continua ausente no Preview compartilhado: a seção aparece como
+indisponível até provisionar um banco isolado e aplicar ali a migração. Não foi
+alterado o banco remoto. Para fechar a homologação: testar em conta fictícia no
+banco isolado, enviar código no privado ao bot, conferir vínculo, consultar
+minhas_demandas e revogar; a consulta seguinte deve negar acesso. A inspeção
+visual automática permanece bloqueada, portanto testes de HTML não equivalem
+à aprovação visual no navegador. Escritório/jogos não foram editados.

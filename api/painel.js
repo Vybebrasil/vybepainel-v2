@@ -29,7 +29,7 @@ import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
 import { minhasDemandas } from '../server/assistente-consultas.js';
-import { emitirCodigo } from '../server/assistente-vinculacao-fluxo.js';
+import { emitirCodigo, estadoVinculacao, revogarVinculacao } from '../server/assistente-vinculacao-fluxo.js';
 import { atenderBotAssistente } from '../server/assistente-servico.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
@@ -1663,19 +1663,29 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
   if (req.method === 'GET' && req.query?.consulta === 'minhas_demandas')
     return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), Number(quem.pessoa.id))) });
-  if (req.method === 'POST' && req.query?.consulta === 'vinculacao_iniciar') {
-    // Somente sessão pessoal e requisição feita dentro da origem do painel.
-    // Nenhuma chave de serviço autoriza emissão em nome de outra pessoa.
+  const consulta = req.query?.consulta;
+  if (req.method === 'GET' && consulta === 'vinculacao_status') {
+    try {
+      const estado = await estadoVinculacao(criarBanco(), Number(quem.pessoa.id));
+      return res.status(200).json({ok:true,...estado,pode_gerar:estado.disponivel && (process.env.VYBE_AI_LINK_SECRET || '').length >= 32});
+    } catch { return res.status(503).json({error:'Não foi possível consultar a vinculação.'}); }
+  }
+  if (req.method === 'POST' && ['vinculacao_iniciar','vinculacao_revogar'].includes(consulta)) {
     const origem = String(req.headers?.origin || '');
     const destino = String(req.headers?.host || '');
     if (!origem || !destino || !['https://' + destino, 'http://localhost:4321'].includes(origem))
       return res.status(403).json({ error: 'Origem não autorizada.' });
-    const segredo = process.env.VYBE_AI_LINK_SECRET;
-    if (!segredo || segredo.length < 32)
-      return res.status(503).json({ error: 'Integração ainda não configurada.' });
-    const desafio = await emitirCodigo(criarBanco(), Number(quem.pessoa.id), segredo);
-    if (!desafio) return res.status(429).json({ error: 'Código indisponível. Tente mais tarde.' });
-    return res.status(200).json({ ok: true, ...desafio });
+    try {
+      const banco=criarBanco(), pessoaId=Number(quem.pessoa.id);
+      if (!(await estadoVinculacao(banco,pessoaId)).disponivel)
+        return res.status(503).json({error:'Vinculação ainda não provisionada neste ambiente.'});
+      if (consulta === 'vinculacao_revogar') return res.status(200).json({ok:true,...await revogarVinculacao(banco,pessoaId)});
+      const segredo = process.env.VYBE_AI_LINK_SECRET;
+      if (!segredo || segredo.length < 32) return res.status(503).json({error:'Integração ainda não configurada.'});
+      const desafio=await emitirCodigo(banco,pessoaId,segredo);
+      if (!desafio) return res.status(429).json({error:'Código indisponível. Limite de três códigos por hora; tente mais tarde.'});
+      return res.status(200).json({ok:true,...desafio});
+    } catch { return res.status(503).json({error:'Não foi possível atualizar a vinculação.'}); }
   }
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }

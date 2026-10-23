@@ -14,6 +14,7 @@ let CLIENTES = [];
 let OPCOES = null;
 let ACESSOS = [];
 let MINHA_CONTA = null;
+let CONTA_AI = { carregando: true };
 
 function ehAdmin() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -28,6 +29,8 @@ async function carregarConta() {
   raiz.innerHTML = '<div class="auto-carregando" role="status">Carregando…</div>';
   EQUIPE = []; CLIENTES = []; OPCOES = null; ACESSOS = []; MINHA_CONTA = null;
   ERROS_DA_CONTA = {};
+  clearTimeout(CONTA_AI.expiracao);
+  CONTA_AI = { carregando: true };
   const ler = async (url, campo) => {
     const r = await fetch(url, { credentials:'same-origin', cache:'no-store' });
     if (!r.ok) throw new Error('Não foi possível carregar.');
@@ -42,6 +45,7 @@ async function carregarConta() {
     catch { if (carga === CONTA_CARGA) ERROS_DA_CONTA[chave] = true; }
   };
   await Promise.all([
+    carregarContaAI(carga, false),
     carregar('perfil', CONTA_API, 'pessoa', v => { MINHA_CONTA = v; }),
     ...(ehAdmin() ? [
       carregar('equipe', PESSOAS_API, 'pessoas', v => { EQUIPE = v; }),
@@ -212,7 +216,65 @@ function blocoPerfil(eu) {
       <div class="conta-campo-linha"><span>E-mail</span><b>${safeText(eu.email)}</b></div>
       <div class="conta-campo-linha"><span>Acesso</span><b>${eu.admin ? 'Administra o painel' : 'Time'}</b></div>
       <p class="conta-nota">Nome e e-mail vêm do cadastro da equipe. Para mudar, fale com quem administra.</p>
-    </div>`;
+    </div>` + blocoContaAI();
+}
+
+// A conta WhatsApp usa a mesma sessão do Perfil; código fica só em memória.
+function blocoContaAI() {
+  const a=CONTA_AI;
+  const botoes = a.disponivel ? `<div class="conta-ai-acoes">
+    <button type="button" class="conta-botao primario" onclick="acaoContaAI('vinculacao_iniciar')" ${a.ocupado || !a.pode_gerar ? 'disabled' : ''}>${a.ocupado ? 'Aguarde…' : 'Gerar código temporário'}</button>
+    <button type="button" class="conta-botao" onclick="carregarContaAI()" ${a.ocupado ? 'disabled' : ''}>Conferir vínculo</button>
+    <button type="button" class="conta-botao" onclick="acaoContaAI('vinculacao_revogar')" ${a.ocupado ? 'disabled' : ''}>Revogar vínculo e códigos</button></div>` : '';
+  const codigo = a.codigo && Date.parse(a.expiraEm)>Date.now() ? `<div class="conta-ai-codigo"><label for="conta-ai-codigo">Seu código temporário</label>
+    <input id="conta-ai-codigo" value="${safeText(a.codigo)}" readonly autocomplete="off" spellcheck="false" onclick="this.select()">
+    <button type="button" class="conta-botao" onclick="copiarCodigoContaAI()">Copiar código</button>
+    <small>Válido até ${safeText(new Date(a.expiraEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}. Uso único. Envie este código somente na conversa privada com o WhatsApp da Vybe AI.</small></div>` : '';
+  return `<section class="conta-cartao conta-ai" aria-labelledby="conta-ai-titulo"><h3 id="conta-ai-titulo">Vybe AI — WhatsApp</h3>
+    <p class="conta-nota">Conecte seu WhatsApp à sua própria conta para consultar as demandas permitidas para você. O vínculo não dá acesso administrativo.</p>
+    ${a.carregando ? vbEstadoHtml({tipo:'carregando',titulo:'Conferindo vínculo'}) : a.erro ? vbEstadoHtml({tipo:'erro',titulo:a.erro,acao:'<button type="button" class="conta-botao" onclick="carregarContaAI()">Tentar de novo</button>'}) : a.disponivel ? `<p class="conta-ai-status"><b>${a.vinculado ? 'WhatsApp vinculado' : 'WhatsApp não vinculado'}</b></p>${!a.pode_gerar ? '<p class="conta-nota">A emissão de códigos ainda não está configurada neste ambiente.</p>' : ''}` : '<p class="conta-ai-status">Vinculação ainda não disponível neste ambiente. Nenhuma alteração foi feita na sua conta.</p><button type="button" class="conta-botao" onclick="carregarContaAI()">Conferir disponibilidade</button>'}
+    ${!a.carregando && !a.erro ? botoes + codigo : ''}<p class="conta-nota" role="status" aria-live="polite">${safeText(a.aviso || '')}</p></section>`;
+}
+function pintarContaAI() {
+  const el=document.querySelector('.conta-ai');
+  if(el) el.outerHTML=blocoContaAI();
+}
+async function carregarContaAI(carga=CONTA_CARGA, pintar=true) {
+  const estado=CONTA_AI; estado.carregando=true;estado.erro='';
+  if(pintar)pintarContaAI();
+  try {
+    const r=await fetch('/api/painel?area=assistente&consulta=vinculacao_status',{credentials:'same-origin',cache:'no-store'});
+    const d=await r.json(); if(!r.ok || !d.ok || typeof d.vinculado!=='boolean' || typeof d.disponivel!=='boolean') throw Error(d.error || 'Não foi possível conferir o vínculo.');
+    if(carga!==CONTA_CARGA || estado!==CONTA_AI)return;
+    Object.assign(estado,{disponivel:d.disponivel,vinculado:d.vinculado,pode_gerar:d.pode_gerar});
+    if(d.vinculado){estado.codigo=null;clearTimeout(estado.expiracao);}
+  } catch(e){if(carga===CONTA_CARGA && estado===CONTA_AI)estado.erro=e.message || 'Não foi possível conferir o vínculo.';}
+  finally {if(carga===CONTA_CARGA && estado===CONTA_AI){estado.carregando=false;if(pintar)pintarContaAI();}}
+}
+async function acaoContaAI(consulta) {
+  const estado=CONTA_AI,carga=CONTA_CARGA;
+  if(estado.ocupado || estado.carregando)return;
+  estado.ocupado=true;estado.aviso='';pintarContaAI();
+  try {
+    const r=await fetch('/api/painel?area=assistente&consulta='+encodeURIComponent(consulta),{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();if(!r.ok || !d.ok)throw Error(d.error || 'Não foi possível atualizar o vínculo.');
+    if(estado!==CONTA_AI || carga!==CONTA_CARGA)return;
+    clearTimeout(estado.expiracao);estado.codigo=null;
+    if(consulta==='vinculacao_iniciar'){
+      if(!/^[0-9a-f]{20}$/.test(d.codigo || '') || !(Date.parse(d.expiraEm)>Date.now()))throw Error('Código recebido inválido. Tente novamente.');
+      estado.codigo=d.codigo;estado.expiraEm=d.expiraEm;
+      estado.aviso='Código gerado. Após enviar para a Vybe AI, clique em Conferir vínculo.';
+      estado.expiracao=setTimeout(()=>{if(CONTA_AI===estado){estado.codigo=null;estado.aviso='Código expirado. Gere outro para continuar.';pintarContaAI();}},Math.max(0,Date.parse(d.expiraEm)-Date.now()));
+    }else{estado.vinculado=false;estado.aviso='Vínculos revogados e códigos pendentes invalidados.';}
+  }catch(e){if(estado===CONTA_AI && carga===CONTA_CARGA)estado.aviso=e.message || 'Não foi possível atualizar o vínculo.';}
+  finally{if(estado===CONTA_AI && carga===CONTA_CARGA){estado.ocupado=false;pintarContaAI();}}
+}
+async function copiarCodigoContaAI() {
+  if(!CONTA_AI.codigo || Date.parse(CONTA_AI.expiraEm)<=Date.now())return;
+  const estado=CONTA_AI;
+  try{await navigator.clipboard.writeText(estado.codigo);if(estado===CONTA_AI)estado.aviso='Código copiado.';}
+  catch{if(estado===CONTA_AI){estado.aviso='Selecione o código e copie com o teclado.';pintarContaAI();document.getElementById('conta-ai-codigo')?.select();}return;}
+  pintarContaAI();
 }
 
 function blocoSenha() {
