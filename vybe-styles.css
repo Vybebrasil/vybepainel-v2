@@ -11241,3 +11241,14 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
 .ofc-trabalho-pecas button {text-align:left;font-size:13px;line-height:1.4}
 .ofc-trabalho-paginas {display:flex;justify-content:space-between;gap:10px;margin-top:12px}
 @container(min-width:780px){.ofc-trabalho-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.ofc-trabalho .vb-jogo-cartao{padding:14px}}
+/* Ajuste fino de parede usa os mesmos comandos do teclado e não troca de parede. */
+.ofc-ajuste-parede {display:inline-flex;gap:10px;align-items:center;padding:0 8px;border-inline:1px solid #ffffff18}
+.ofc-editor-flutua .ofc-fino-parede {grid-template-columns:repeat(3,28px);grid-template-rows:repeat(2,25px);gap:3px}
+.ofc-editor-flutua .ofc-fino-parede button {width:28px;height:25px;padding:0;font-size:16px}
+.ofc-fino-parede button:nth-child(1) {grid-area:1/2}
+.ofc-fino-parede button:nth-child(2) {grid-area:2/1}
+.ofc-fino-parede button:nth-child(3) {grid-area:2/3}
+.ofc-fino-parede button:nth-child(4) {grid-area:2/2}
+.ofc-ajuste-parede label {display:grid;gap:4px;font:600 10px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-ajuste-parede select {padding:7px;border-radius:8px;background:#252832;border:1px solid #ffffff24;color:#f4f4f7;font:600 11px var(--mac-ui)}
+@media(max-width:760px){.ofc-editor-flutua .ofc-fino-parede{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,36px)}.ofc-editor-flutua .ofc-fino-parede button{width:36px;height:36px}}

@@ -1710,3 +1710,22 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   e build aprovados. Revisão visual manual aprovada pelo Paulo; inspeção
   automática continua bloqueada pela política do navegador. Sem medição de
   Safari, mídia ou latência de banco real. Aguardando CI/preview para publicar.
+
+### Ajuste fino de objetos de parede do acervo — 23/10/2026 (local)
+
+- Paulo pediu setinhas de ajuste fino para o pôster da captura, identificado no
+  catálogo como `ads_volkswagen_poster`. A operação já existia, mas o dock
+  misturava Subir/Descer com duas setas. Reorganizada em quatro sentidos.
+- Reutiliza `empurrarSelecionadoEscritorio` e Alt + setas, com passo de ¼ ou
+  ⅒ de ladrilho local à edição. Preserva a parede atual, limites existentes,
+  desfazer e salvamento. Bloqueio e salvamento em curso impedem ajuste.
+- Escopo: itens de parede do acervo; quadros enviados pela equipe mantêm seu
+  renderizador e regras existentes. Sem mudança de profundidade, física ou
+  persistência do mapa. Nenhum servidor ou schema alterado.
+- 21 testes direcionados aprovados, incluindo duas direções de parede,
+  altura, passo, limites, bloqueio e salvamento. Sintaxe/build/diff aprovados.
+  Revisão visual local pendente pelo bloqueio do navegador automático.
+  Branch `codex/parede-ajuste-fino`; ainda não publicado.
+
+- Paulo autorizou publicar o ajuste fino em 23/10/2026. CI e preview no
+  commit exato antes do merge; sem migração nesta entrega.
