@@ -1658,10 +1658,10 @@ async function areaRoteiros(req,res,quem) {
 // Primeira consulta da Vybe AI: somente usuário autenticado por sessão.
 // Este acesso NÃO é uma credencial de serviço para o bot de WhatsApp.
 async function areaAssistente(req, res, quem) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
-  if (req.query?.consulta !== 'minhas_demandas') return res.status(400).json({ error: 'Consulta desconhecida.' });
-  return res.status(200).json({ ok: true, ...(await minhasDemandas(sql(), Number(quem.pessoa.id))) });
+  if (req.method === 'GET' && req.query?.consulta === 'minhas_demandas')
+    return res.status(200).json({ ok: true, ...(await minhasDemandas(sql(), Number(quem.pessoa.id))) });
+  return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
 const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
