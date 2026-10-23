@@ -11112,3 +11112,36 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .abr-acabamentos.basico {opacity:.92}
 .abr-acabamentos.basico > .vb-jogo-rotulo {grid-column:1/-1}
 @media (max-width:760px) {.abr-acervo-bloco {grid-template-columns:1fr}}
+
+/* Trabalho na ficha: componentes de jogo existentes, gráfico estático sem loop. */
+.ofc-trabalho {display:grid;gap:16px;min-width:0}
+.ofc-trabalho header h3,.ofc-trabalho h4 {margin:0 0 8px}
+.ofc-trabalho p {color:var(--texto-secundario,#b3b7c4);line-height:1.5;margin:8px 0}
+.ofc-trabalho .vb-jogo-cartao {padding:18px;min-width:0}
+.ofc-trabalho-filtros {display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px}
+.ofc-trabalho-filtros label {display:grid;gap:6px;font-size:12px;color:#bdc1cd}
+.ofc-trabalho-filtros select {width:100%;min-width:0;min-height:44px;background:#252832;color:#f4f4f7;border:1px solid #484b55;border-radius:10px;padding:8px;font:inherit}
+.ofc-trabalho-kpis {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ofc-trabalho .vb-jogo-numero {display:block;font-size:30px;margin:10px 0}
+.ofc-trabalho small {display:block;color:#b3b7c4;line-height:1.5}
+.ofc-trabalho-dupla {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ofc-trabalho-grafico svg {display:block;width:100%;overflow:visible}
+.ofc-trabalho-eixos {stroke:#4a4e59;stroke-width:1;fill:none}
+.ofc-trabalho-area {fill:#ff8a351a}
+.ofc-trabalho-linha {fill:none;stroke:#ff963f;stroke-width:3;stroke-linejoin:round}
+.ofc-trabalho-grafico circle {fill:#ff963f;stroke:#1d2029;stroke-width:2}
+.ofc-trabalho-grafico circle:focus {outline:none;stroke:#fff;stroke-width:4}
+.ofc-trabalho-grafico text {fill:#bfc3cf;font-size:12px}
+.ofc-trabalho summary {cursor:pointer;min-height:32px;padding-top:8px;font-weight:600}
+.ofc-trabalho-tabela {max-height:240px;overflow:auto}
+.ofc-trabalho table {width:100%;border-collapse:collapse;text-align:left;font-size:13px}
+.ofc-trabalho th,.ofc-trabalho td {padding:8px;border-bottom:1px solid #3c3f49}
+.ofc-trabalho-formatos {list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.ofc-trabalho-formatos li {display:grid;grid-template-columns:minmax(80px,1fr) 2fr 40px;align-items:center;gap:12px}
+.ofc-trabalho-formatos meter {width:100%;accent-color:#ff963f}
+@media(max-width:700px){.ofc-trabalho-filtros {grid-template-columns:1fr}.ofc-trabalho-dupla {grid-template-columns:1fr}.ofc-trabalho .vb-jogo-cartao{padding:14px}.ofc-trabalho-formatos li{gap:6px;grid-template-columns:minmax(70px,1fr) 1fr 30px}}
+
+
+.ofc-trabalho-anterior {fill:none;stroke:#b3b7c4;stroke-width:2;stroke-dasharray:6 5;opacity:.8}
+.ofc-trabalho-legenda {display:flex;gap:16px;flex-wrap:wrap;font-size:12px}
+.ofc-trabalho-legenda span:first-child {color:#ffab65}

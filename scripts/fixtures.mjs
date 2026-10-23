@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
 import { vitrineDaSemana } from '../server/escritorio-economia.js';
 import { MARCOS, criterioDoMarco, tituloDe } from '../server/escritorio-marcos.js';
-import { diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
+import { ATIVIDADES_DO_RANKING, somarDias, diaBahia, inicioDaSemana } from '../server/escritorio-pontos.js';
 import { raridadesDoCatalogo } from './escritorio-raridades.mjs';
 import { documentoHtml } from '../server/planejamento-documento.js';
 // Loja de demonstração: as mesmas faixas da migração da fase 2, estoque cheio,
@@ -155,7 +155,7 @@ export async function demoApi(req,res,url,body) {
       if(url.searchParams.get('acao')==='convite-cancelar')return reply(200,{ok:true});
       if(url.searchParams.get('acao')==='mensagens')return reply(200,{ok:true,mensagens:[]});
       // Perfil de demonstração (números fictícios, só para a tela).
-      if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
+      if(url.searchParams.get('acao')==='perfil-publico'){const id=url.searchParams.get('pessoa')||'1';const n=Number(id)||1;return reply(200,{ok:true,perfil:{...(url.searchParams.get('trabalho')==='1'?{trabalho:trabalhoDemonstracao(n)}:{}),disponivel:true,saldo:700-n*90,nivel:4-n%3,xp:20*n,xpProximo:140,xpTotal:300-n*40,conquistas:5-n,inventario:[{classe:'hygge_c25_carpet',quantidade:1},{classe:'plant_small_cactus',quantidade:2},{classe:'exe_table',quantidade:1}].slice(0,4-n%3)}});}
       // Missões de demonstração (fictícias): mesma forma da rota de verdade.
       if(url.searchParams.get('acao')==='missoes'){const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
         return reply(200,{ok:true,disponivel:true,funcao:'criacao',missoes:[
@@ -305,4 +305,21 @@ export async function demoApi(req,res,url,body) {
     return reply(200,{ok:true,pessoas:[],clientes:[],acessos:[],automacoes:[],snapshots:[],colunas:[],opcoes:[],captacao:[],catalogos:{status:[],captacao:[],grupos:[],pessoas:[],formatos:[]}});
   }
   return reply(200,{ok:true,itens:[],items:[],eventos:[],snapshots:[],data: { boards: [] }});
+}
+
+// Dados explicitamente fictícios, exclusivos da revisão local da aba Trabalho.
+function trabalhoDemonstracao(id) {
+ const hoje=diaBahia(), desde=somarDias(hoje,-179), linhas=[];
+ for(let i=0;i<180;i++) { const dia=somarDias(desde,i), dow=new Date(dia+'T12:00:00Z').getUTCDay();
+  if(dow===0||dow===6)continue;
+  for(const [j,[regra]] of ATIVIDADES_DO_RANKING.entries()) {
+   const n=(i+id+j)%9; if(n)linhas.push({dia,regra,formato:j%3===0?'card':j%3===1?'reels':'impresso',n});
+  }
+ }
+ const recordes=[];
+ for(const [regra] of ATIVIDADES_DO_RANKING){const por=linhas.filter(l=>l.regra===regra), max=Math.max(...por.map(l=>l.n)), top=por.filter(l=>l.n===max);
+  recordes.push({regra,formato:null,n:max,dia:top[0].dia,primeiro:por[0].dia,empates:top.length});
+  for(const formato of new Set(por.map(l=>l.formato)))recordes.push({regra,formato,n:max,dia:top[0].dia,primeiro:por[0].dia,empates:top.length});
+ }
+ return {disponivel:true,hoje,desde,funcao:'criacao',atividades:ATIVIDADES_DO_RANKING.map(([regra,nome])=>({regra,nome})),linhas,recordes,ganhos:linhas.map(l=>({dia:l.dia,regra:l.regra,xp:l.n*5}))};
 }

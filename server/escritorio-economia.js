@@ -3,7 +3,7 @@
 // móveis limitados ficam em vybe_escritorio_raridades/vybe_escritorio_catalogo
 // (migrations/2026-10-17-escritorio-loja.sql); quem não está na tabela é comum.
 import { readFileSync } from 'node:fs';
-import { resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
+import { desempenhoTrabalho, resumoPontos, diaBahia, inicioDaSemana, nivelPorXp, somarDias } from './escritorio-pontos.js';
 import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco, titulosDaPessoa } from './escritorio-marcos.js';
 import { roupaDaClasse } from './escritorio-roupas.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
@@ -234,10 +234,9 @@ export async function comprarMovel(sql, pessoaId, {classe,chave,quantidade=1,pre
  });
 }
 // Perfil aberto a toda a equipe (decisão do Paulo, 19/10/2026; sem ranking):
-// saldo de VybeCoins, nível/XP, conquistas e os móveis de cada um. Números de
-// desempenho no trabalho (entregas, prazo) continuam só na ficha da própria
-// pessoa e com quem administra; o extrato do razão também.
-export async function perfilPublico(sql, pessoaId) {
+// saldo de VybeCoins, nível/XP, conquistas e móveis. A aba Trabalho pede
+// agregados pela mesma rota; não expõe o extrato privado nem escreve dados.
+export async function perfilPublico(sql, pessoaId, { trabalho = false } = {}) {
  if (!await economiaPronta(sql)) return { disponivel: false };
  const comXp = await pontosProntosEconomia(sql);
  const [c] = comXp ? await sql`SELECT saldo,xp FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId}`
@@ -251,7 +250,7 @@ export async function perfilPublico(sql, pessoaId) {
  const [tt] = await sql`SELECT to_regclass('public.vybe_escritorio_trofeus') IS NOT NULL AS existe`;
  const trofeus = tt?.existe ? await sql`SELECT marco||':'||nivel AS chave, classe FROM vybe_escritorio_trofeus` : [];
  const marcos = feitos.map((f) => { const { marco, nivel } = partesDoMarco(f.marco), m = MARCOS.find((x) => x.id === marco); return m ? { id: f.marco, nome: nomeDoMarco(f.marco), nivel, dica: m.unidade, em: f.em, classe: trofeus.find((t) => t.chave === f.marco)?.classe || null } : null; }).filter(Boolean);
- return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos };
+ return { disponivel: true, saldo: Number(c?.saldo || 0), ...nivelPorXp(c?.xp || 0), conquistas: q?.n || 0, inventario, marcos, ...(trabalho ? { trabalho: await desempenhoTrabalho(sql, pessoaId) } : {}) };
 }
 async function pontosProntosEconomia(sql) {
  const [r] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_escritorio_carteiras' AND column_name='xp') AS existe`;

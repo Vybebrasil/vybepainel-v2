@@ -1598,3 +1598,40 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   e sem proxy de produção. Revisão visual final ainda pendente pelo bloqueio
   de segurança do navegador. Não declarar Safari, mídia ou todas as telas
   visualmente aprovadas. Nenhum push, deploy ou banco real alterado nesta etapa.
+
+### Construção publicada e aba Trabalho em evolução — 23/10/2026
+
+- Paulo aprovou a construção e autorizou publicar. PR #356, CI e prévia
+  aprovadas no commit `1f2ca9f`; merge `998671e`. Produção READY:
+  `dpl_7wskc3Tbd3odLFkyKMb2RRxJ84HP`, SHA confirmado pela Vercel.
+  Conferências externas sem escrita: HTML 200, API sem sessão 401,
+  Monday encerrado 410. Nenhuma migração ou reset nesta publicação.
+- Nova implementação **local**, branch `codex/perfil-trabalho-evolucao`:
+  a aba Trabalho da ficha passa a ser um painel de evolução de cada pessoa,
+  visível à equipe, usando a rota `perfil-publico` existente com `trabalho=1`.
+  A carga acontece só ao abrir a aba, com cache curto por pessoa e erro explícito.
+  O extrato privado continua restrito. Não há outra carteira, endpoint ou razão.
+- Fonte: entregas e razão existentes, agregados no PostgreSQL. Peça distinta
+  por pessoa/papel na primeira entrega; ações sem peça preservam a origem.
+  Produção, captação, agendamento, DA, head e gestão não se confundem.
+  Ações no painel são apenas as recompensadas, limitadas pela regra vigente.
+- Períodos de 7/28/90 dias, filtro de papel e formato, gráfico atual versus
+  anterior, média por dia útil e por dia ativo, composição por formato, tabela
+  de contribuições/XP e recordes históricos com empates. Datas da Bahia.
+  Séries limitadas a 180 dias; recordes usam todo o histórico disponível.
+- Média útil considera seg–sex com zeros após o primeiro registro conhecido
+  daquele recorte; não presume calendário de férias/feriados. Sem cobertura
+  anterior completa, não inventa variação. Hoje é parcial. Formato é o atual
+  da demanda. Registro ausente não comprova falta de trabalho; agendado não
+  comprova publicação. Não há nota inventada de qualidade ou presença.
+- Dados fictícios somente em `scripts/fixtures.mjs`, para revisão local em
+  `http://127.0.0.1:4362/` (senha `demo-local`). Paulo está conferindo a tela;
+  inspeção automática do navegador segue bloqueada, sem contorno.
+- Verificação: **35 testes** de economia/ranking e Trabalho passaram na
+  rodada final (incluindo quatro casos de Trabalho), sintaxe de 260 arquivos
+  e build aprovados. Revisão visual final
+  ainda pendente. Sem alteração de XP, moedas, conquistas ou dados reais;
+  esta nova aba ainda não foi publicada.
+
+- Paulo aprovou a demonstração da aba Trabalho e autorizou sua publicação em
+  23/10/2026. Entrega em um PR, com CI e preview no commit exato antes do merge.
