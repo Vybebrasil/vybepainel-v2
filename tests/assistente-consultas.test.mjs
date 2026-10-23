@@ -16,6 +16,7 @@ test('retorna somente campos operacionais e conserva clientes múltiplos', async
   const fake = async (strings, ...values) => {
     assert.match(strings.join('?'), /vybe_conteudo_responsaveis/);
     assert.match(strings.join('?'), /r.pessoa_id=/);
+    assert.equal(values[0], 8385559107);
     assert.equal(values[1], 17);
     return [{
       id: '41', titulo: 'Peça de teste', prazo: '2026-10-23',
