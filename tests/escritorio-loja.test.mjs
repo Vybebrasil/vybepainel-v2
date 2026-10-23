@@ -212,3 +212,21 @@ test('Produção tem escadas próprias (gravações, fotos e vídeos captados) e
  assert.equal(lista.find(m=>m.id==='fotografias').nivel,0,'não conta na escada da Criação');
  assert.equal(await inventario(sql,28,'lt_statue'),1);
 });
+
+test('compra em quantidade é atômica, idempotente e não altera XP; estoque e saldo insuficientes não compram parcialmente',async t=>{
+ const {sql}=await banco(t);await creditar(sql,1,1000);
+ const classe=await umaClasse(sql,'raro');await sql`UPDATE vybe_escritorio_catalogo SET estoque=5,preco=30 WHERE classe=${classe}`;
+ const compra={classe,chave:crypto.randomUUID(),quantidade:3,precoEsperado:30};
+ await comprarMovel(sql,1,compra,AGORA);
+ assert.equal(await inventario(sql,1,classe),3);assert.deepEqual(await saldo(sql,1),[910,0]);
+ await comprarMovel(sql,1,compra,AGORA);
+ assert.equal(await inventario(sql,1,classe),3);assert.equal(Number((await sql`SELECT vendidos FROM vybe_escritorio_catalogo WHERE classe=${classe}`)[0].vendidos),3);
+ await assert.rejects(comprarMovel(sql,1,{...compra,quantidade:2},AGORA),/já utilizado/);
+ await assert.rejects(comprarMovel(sql,1,{...compra,chave:crypto.randomUUID()},AGORA),/Estoque insuficiente/);
+ assert.equal(await inventario(sql,1,classe),3);assert.deepEqual(await saldo(sql,1),[910,0]);
+ await sql`UPDATE vybe_escritorio_catalogo SET preco=1000 WHERE classe=${classe}`;
+ await assert.rejects(comprarMovel(sql,1,{...compra,chave:crypto.randomUUID(),quantidade:2},AGORA),/preço mudou/);
+ await assert.rejects(comprarMovel(sql,1,{...compra,chave:crypto.randomUUID(),quantidade:2,precoEsperado:1000},AGORA),/insuficientes/);
+ assert.equal(await inventario(sql,1,classe),3);
+ for(const quantidade of [0,-1,1.5,1501,'2'])await assert.rejects(comprarMovel(sql,1,{...compra,quantidade},AGORA),/Quantidade/);
+});

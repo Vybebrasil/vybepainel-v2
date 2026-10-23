@@ -159,15 +159,16 @@ export async function dimensoesDosMoveis(itens) {
   return dimensoes;
 }
 // "celdas" (opcional): a planta desenhada do quarto, salva junto com os móveis.
-export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao, celdas }) {
-  return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao,celdas}));
+export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens, versao, celdas, decoracao }) {
+  return sql.comTransacao(async tx => salvarCamadaTransacional(tx, pessoa, salas, {camada,itens,versao,celdas,decoracao}));
 }
-async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao,celdas}) {
+async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao,celdas,decoracao}) {
   conferirEdicao(pessoa, salas, camada);
   if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
   const limpos = itensValidos(camada, itens);
   const comum = camada === "geral" || CENAS_COMUNS.has(camada);
   if (celdas !== undefined && (comum || !CELDAS_LIVRES.test(String(celdas)))) throw Object.assign(new Error("Planta do quarto inválida."), { status: 400 });
+  if (decoracao !== undefined && (comum || !decoracao || typeof decoracao !== 'object' || Array.isArray(decoracao))) throw Object.assign(new Error('Acabamento inválido.'), {status:400});
   let novaPlanta = null, conferiuPlanta = false;
   if (!comum) {
     const dono = salas.find(s => s.id === partesDaCamada(camada)?.raiz)?.pessoa_id;
@@ -220,7 +221,18 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
     throw e;
   }
   if (!r) throw Object.assign(new Error("Alguém salvou esta área antes. Recarregue para ver a versão nova."), { status: 409 });
-  return { camada, versao: r.versao, itens: limpos, ...(celdas !== undefined ? { celdas } : {}) };
+  let perfil;
+  if (decoracao !== undefined) {
+    // O mesmo normalizador e a mesma validação da porta do perfil, nesta transação.
+    // O cliente só pode alterar acabamento, nunca identidade, planta ou inventário.
+    const { salvarPerfilNaTransacao } = await import('./escritorio.js');
+    const [atual] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoa.id} FOR UPDATE`;
+    const andar = partesDaCamada(camada).andar;
+    const campos = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
+    const patch = Object.fromEntries(campos.filter(k => Object.hasOwn(decoracao,k)).map(k => [k,decoracao[k]]));
+    perfil = await salvarPerfilNaTransacao(sql,pessoa.id,{...atual.preferencias,...perfilDoAndar(atual.preferencias,andar),...patch,...(andar ? {andar:1} : {})},async()=>partesDaCamada(camada).raiz);
+  }
+  return { camada, versao: r.versao, itens: limpos, ...(perfil ? {perfil} : {}), ...(celdas !== undefined ? { celdas } : {}) };
 }
 
 // Móvel do catálogo que ainda não está no painel: busca o .nitro no

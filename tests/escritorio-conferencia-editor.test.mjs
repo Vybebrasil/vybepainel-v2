@@ -18,3 +18,10 @@ test('mesmo verificador das cenas acusa arte ausente e não contamina a próxima
  assert.ok(!outra.problemas.some(t=>t.includes('sem_arte_no_painel')));
  assert.throws(()=>conferirConstrucao('inexistente',[]),/Sala inválida/);
 });
+
+test('editor distingue arte remota não verificável de erro de construção e permite localizar a peça',async()=>{
+ const r=await conferirEditorEscritorio(semBanco,{id:1,admin:true},[{id:'sala-0',pessoa_id:'1'}],{camada:'cafe',itens:[['sem_arte_no_painel',1,1,2]]});
+ assert.ok(!r.problemas.some(t=>t.includes('sem arte')));
+ assert.ok(r.avisos.some(t=>t.includes('indisponível para análise local')));
+ assert.deepEqual(r.detalhes.find(d=>d.mensagem.includes('indisponível')).indices,[0]);
+});

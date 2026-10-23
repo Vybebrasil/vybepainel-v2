@@ -40,3 +40,18 @@ test('clique na parede do fundo e da esquerda acha o trecho certo',()=>{
  // Fora do quarto (além da última coluna) não pinta nada.
  assert.equal(rodar('escritorioTrechoDaParede(12-1,-1,10,10)'),null);
 });
+
+function ferramentas(){const c=vm.createContext({console,structuredClone,window:{},document:{addEventListener(){}}});vm.runInContext(readFileSync('vybe-escritorio-ficha.js','utf8'),c);return c;}
+test('formas de pintura respeitam máscara e região não atravessa níveis',()=>{
+ const c=ferramentas();c.nivel=(x,y)=>x===2&&y===2?-1:x<3?0:2;
+ const area=(modo)=>JSON.parse(JSON.stringify(vm.runInContext(`escritorioPontosDaArea([0,0],[4,4],'${modo}',nivel,5,5)`,c)));
+ assert.equal(area('retangulo').length,24);
+ assert.equal(area('regiao').length,14);
+ assert.deepEqual(area('linha'),[[0,0],[1,1],[3,3],[4,4]]);
+});
+test('planejador de piso substitui somente os pisos cobertos e mantém os móveis',()=>{
+ const c=ferramentas();c.itens=[['piso',0,0,0],['piso',2,0,0],['mesa',0,0,2]];
+ const novo=vm.runInContext(`escritorioMontarPisos(itens,[{x0:0,y0:0,w:2,h:2}],'novo',new Set(['piso','novo']),()=>({x:2,y:2}))`,c);
+ assert.equal(novo.length,3);assert.equal(novo.filter(it=>it[0]==='mesa').length,1);assert.equal(novo.filter(it=>it[0]==='novo').length,1);
+ assert.equal(c.itens[0][0],'piso','não altera o original antes de confirmar compra');
+});

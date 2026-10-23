@@ -336,3 +336,19 @@ Versão anterior: `33ce4fd523670350e96af1bea91298180ddccee2`, deployment
 - A revisão visual do Paulo encontrou problemas nas salas; a publicação foi
   autorizada com melhorias individuais pendentes. Não tratar a aprovação
   técnica do verificador como aprovação estética.
+
+## Construção do Escritório — 23/10/2026 (local)
+
+Rascunho único para móveis/planta/acabamento, compra em quantidade na rota
+existente, reposição no dock, ferramentas de área para pisos, conferência
+compacta e recuperação local por pessoa/sala/andar. Backend preserva autorização,
+versão, inventário dos dois andares e o razão; lote é atômico e idempotente.
+Mudança no preço confirmado é recusada antes do débito.
+
+590 testes completos aprovados, Node 26.7.0 e concorrência 1; sintaxe de 259
+arquivos, build e diff-check aprovados. Persistência/rollback em PGlite isolado.
+Não houve escrita de teste em produção nem migração. A inspeção visual anterior
+conferiu acabamento em prévia e desfazer em desktop; ajustes finais não tiveram
+revisão visual completa porque o navegador bloqueou acesso à aba local.
+Celular final, medição de CPU/memória no Safari e mídia não estão validados.
+Não publicado; não confundir demonstração com homologação de persistência.

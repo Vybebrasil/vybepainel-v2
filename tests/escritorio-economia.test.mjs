@@ -413,3 +413,18 @@ test('sala comum antes da migração das cenas: erro claro, nada gravado',async 
  await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'cafe',itens:[['shelves_norja',1,1,0]],versao:0}),/aguarda a migração/);
  assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_escritorio_mapa WHERE camada='cafe'`)[0].n,0);
 });
+
+test('móveis e acabamento salvam juntos; conflito ou falta de inventário revertem ambos',async t=>{
+ const {sql}=await banco(t);
+ const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const pessoa={id:1},salas=salasDoEscritorio([{id:1,nome:'Paulo'}]);
+ const q=await configurarQuarto(sql,pessoa,{},{planta:'quadrado-m',modelo:'vazio'});
+ const salvo=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[],versao:q.mapa.versao,decoracao:{sala_piso:'madeira',sala_luz:'quente',figura:'hd-999-1',sala_planta:'compacto'}});
+ assert.equal(salvo.perfil.sala_piso,'madeira');assert.equal(salvo.perfil.sala_planta,'quadrado-m');assert.notEqual(salvo.perfil.figura,'hd-999-1');
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[],versao:q.mapa.versao,decoracao:{sala_piso:'preto'}}),/Alguém salvou/);
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['shelves_norja',2,2,2]],versao:salvo.versao,decoracao:{sala_piso:'preto'}}),/inventário/);
+ const [p]=await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=1`;
+ assert.equal(p.preferencias.sala_piso,'madeira');
+ const [m]=await sql`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada='sala-0'`;
+ assert.equal(Number(m.versao),salvo.versao);assert.deepEqual(m.itens,[]);
+});

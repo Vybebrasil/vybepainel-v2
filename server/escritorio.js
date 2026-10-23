@@ -219,7 +219,9 @@ export async function carregarEscritorio(sql, pessoa) {
 // "buscarSala" só é chamada se a porta mudar: devolve a sala da pessoa, para
 // conferir que nenhum móvel ficou no vão da porta nova.
 export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = null) {
-  return sql.comTransacao(async tx => {
+  return sql.comTransacao(tx => salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala));
+}
+export async function salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala = null) {
     await tx`INSERT INTO vybe_escritorio_perfis(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
     const [atual] = await tx`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId} FOR UPDATE`;
     let perfil = perfilEscritorio({...valor, titulo:atual.preferencias.titulo, sala_planta:atual.preferencias.sala_planta, sala_celdas:atual.preferencias.sala_celdas, quarto_configurado:atual.preferencias.quarto_configurado,sala_andares:atual.preferencias.sala_andares,convite_geracao:atual.preferencias.convite_geracao});
@@ -247,7 +249,6 @@ export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = 
     if (perfil.figura && perfil.figura !== (atual.preferencias.figura || "")) await conferirFiguraDaPessoa(tx, pessoaId, perfil.figura, atual.preferencias.figura || "");
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
     return perfil;
-  });
 }
 export async function mensagensEscritorio(sql, sala) {
   if (!SALAS_ESCRITORIO.includes(sala)) throw new Error("Sala inválida.");

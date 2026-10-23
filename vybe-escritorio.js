@@ -110,7 +110,7 @@ async function escritorioApi(acao, corpo, consulta = null) {
   // avisa em português, em vez de "Unexpected token".
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok)
-    throw new Error(d.error || (r.status === 413 ? "O envio é grande demais para o servidor." : `Não foi possível acessar o escritório (${r.status}).`));
+    throw Object.assign(new Error(d.error || (r.status === 413 ? "O envio é grande demais para o servidor." : `Não foi possível acessar o escritório (${r.status}).`)), {status:r.status});
   if (acao === "perfil" && corpo && d.perfil) escritorioFotoDoPersonagem(d.perfil);
   return d;
 }
@@ -1127,11 +1127,13 @@ function escritorioMoveisAtuais() {
 }
 function escritorioRaizQuarto(id) { return String(id || '').replace(/-andar-1$/,''); }
 function escritorioPerfilDecoracao(id=escritorio.quarto || escritorioMinhaMesa()?.ambiente.id) {
+  if (escritorio.edicao?.camada === id && escritorio.edicao.decoracao) return escritorio.edicao.decoracao;
   const raiz=escritorioRaizQuarto(id), dono=escritorio.base?.salas?.find(s=>s.id===raiz)?.pessoa_id;
   const perfil=String(dono)===String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find(p=>String(p.id)===String(dono))?.perfil;
   return String(id).endsWith('-andar-1') ? perfil?.sala_andares?.find(a=>a.andar===1) : perfil;
 }
 function escritorioAlterarDecoracao(patch) {
+  if (escritorio.edicao?.decoracao && escritorio.edicao.camada === escritorio.quarto) { Object.assign(escritorio.edicao.decoracao,patch); return; }
   if(escritorio.quarto?.endsWith('-andar-1')) escritorio.perfil={...escritorio.perfil,sala_andares:[{...escritorioPerfilDecoracao(),...patch,andar:1}]};
   else escritorio.perfil={...escritorio.perfil,...patch};
 }
@@ -1185,7 +1187,7 @@ function escritorioAplicarSalas() {
     a.pisoPadrao ??= a.piso;
     a.corPadrao ??= a.cor;
     const dono = donos.get(a.id);
-    const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
+    const perfil = escritorioPerfilDecoracao(a.id);
     a.planta = perfil?.sala_planta || "amplo";
     // O quarto tem o tamanho da planta escolhida (coordenadas locais).
     const dim = escritorioDimQuarto(a); a.x1 = a.x0 + dim.w; a.y1 = a.y0 + dim.h;
@@ -1208,7 +1210,7 @@ function escritorioAplicarSalas() {
     if (!a.pessoal) continue;
     const pisos = new Map(), paredes = new Map();
     const dono = donos.get(a.id);
-    const perfil = String(dono) === String(escritorio.base?.eu) ? escritorio.perfil : escritorio.base?.equipe?.find((p) => String(p.id) === String(dono))?.perfil;
+    const perfil = escritorioPerfilDecoracao(a.id);
     const lp = escritorioPisosDoPerfil(perfil?.sala_pisos), lw = escritorioParedesDoPerfil(perfil?.sala_paredes);
     // Pintura em grade de ESCRITORIO_QUARTO_MAX² (o maior quarto); cada planta usa o canto dela.
     const L = ESCRITORIO_QUARTO_MAX;

@@ -486,3 +486,15 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
   local, em preview ou publicado. Não invente resultados, métricas ou cobertura.
 - Atualize estas regras se uma decisão arquitetural mudar. Mantenha uma fonte
   única compartilhada pelos agentes, sem copiar regras divergentes entre arquivos.
+
+## Construção — continuação autorizada em 23/10/2026
+
+- No editor, acabamento, luz, planta e móveis ficam em rascunho até Salvar.
+  A rota de mapa grava acabamento e móveis na mesma transação e usa o
+  normalizador do perfil. Fora do editor, preservar os fluxos de perfil.
+- Compras são aquisição de inventário, separadas do rascunho: mostrar custo e
+  saldo, usar guardados primeiro e nunca comprar no hover. Cancelar/desfazer
+  decoração não devolve moedas. Quantidade usa a compra e o razão existentes;
+  validar preço/estoque no servidor, atomicidade e idempotência do lote.
+- Rascunho local isolado por pessoa/sala/andar; sem credenciais/economia. Não
+  tratar recuperação local como autorização ou persistência no banco.
