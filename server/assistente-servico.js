@@ -1,3 +1,4 @@
+import { assistenteAtivo, pessoaLiberadaAssistente } from './assistente-ativacao.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 // Credencial EXCLUSIVA do bot. Nunca reutilizar MIRROR_ADMIN_KEY ou SESSAO_SECRET.
@@ -20,6 +21,7 @@ import { minhasDemandas } from './assistente-consultas.js';
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
   if (!autenticarAssistente(req, config.VYBE_AI_BOT_TOKEN))
     return res.status(401).json({ error: 'Não autorizado.' });
+  if (!assistenteAtivo(config)) return res.status(503).json({ error: 'Vybe AI desativada neste ambiente.' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const { jid, codigo, consulta } = req.body || {};
   const segredo = config.VYBE_AI_LINK_SECRET;
@@ -27,11 +29,12 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
   try {
     if (consulta === 'vinculacao_confirmar') {
       if (typeof codigo !== 'string') return res.status(400).json({ error: 'Código obrigatório.' });
-      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo);
+      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo, id => pessoaLiberadaAssistente(id, config));
       return res.status(ok ? 200 : 403).json({ ok });
     }
     if (consulta === 'minhas_demandas') {
       const id = await pessoaVinculada(criarBanco(), identificadorProtegido(jid, segredo));
+      if (id && !pessoaLiberadaAssistente(id, config)) return res.status(403).json({ error: 'Vybe AI não liberada para esta conta.' });
       if (!id) return res.status(403).json({ error: 'Conta WhatsApp não vinculada.' });
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }

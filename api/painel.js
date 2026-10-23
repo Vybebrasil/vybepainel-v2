@@ -1,3 +1,4 @@
+import { pessoaLiberadaAssistente } from '../server/assistente-ativacao.js';
 import { areaEscritorio } from '../server/escritorio.js';
 import { areaConvite, convidadoDoCookie } from '../server/escritorio-convite.js';
 import { resolverBriefing, MARCAS_BRIEFING } from '../server/briefing.js';
@@ -1661,13 +1662,15 @@ async function areaRoteiros(req,res,quem) {
 // Este acesso NÃO é uma credencial de serviço para o bot de WhatsApp.
 export async function areaAssistente(req, res, quem, criarBanco = sql) {
   if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
+  if (req.query?.consulta === 'minhas_demandas' && !pessoaLiberadaAssistente(Number(quem.pessoa.id)))
+    return res.status(403).json({error:'Vybe AI não liberada para esta conta.'});
   if (req.method === 'GET' && req.query?.consulta === 'minhas_demandas')
     return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), Number(quem.pessoa.id))) });
   const consulta = req.query?.consulta;
   if (req.method === 'GET' && consulta === 'vinculacao_status') {
     try {
       const estado = await estadoVinculacao(criarBanco(), Number(quem.pessoa.id));
-      return res.status(200).json({ok:true,...estado,pode_gerar:estado.disponivel && (process.env.VYBE_AI_LINK_SECRET || '').length >= 32});
+      return res.status(200).json({ok:true,...estado,pode_gerar:pessoaLiberadaAssistente(Number(quem.pessoa.id)) && estado.disponivel && (process.env.VYBE_AI_LINK_SECRET || '').length >= 32});
     } catch { return res.status(503).json({error:'Não foi possível consultar a vinculação.'}); }
   }
   if (req.method === 'POST' && ['vinculacao_iniciar','vinculacao_revogar'].includes(consulta)) {
@@ -1680,6 +1683,7 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
       if (!(await estadoVinculacao(banco,pessoaId)).disponivel)
         return res.status(503).json({error:'Vinculação ainda não provisionada neste ambiente.'});
       if (consulta === 'vinculacao_revogar') return res.status(200).json({ok:true,...await revogarVinculacao(banco,pessoaId)});
+      if (!pessoaLiberadaAssistente(pessoaId)) return res.status(403).json({error:'Vybe AI não liberada para esta conta.'});
       const segredo = process.env.VYBE_AI_LINK_SECRET;
       if (!segredo || segredo.length < 32) return res.status(503).json({error:'Integração ainda não configurada.'});
       const desafio=await emitirCodigo(banco,pessoaId,segredo);

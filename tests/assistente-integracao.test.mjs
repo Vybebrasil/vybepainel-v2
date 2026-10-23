@@ -5,7 +5,7 @@ import {conexao} from './postgres.mjs';
 import {atenderBotAssistente} from '../server/assistente-servico.js';
 import {emitirCodigo} from '../server/assistente-vinculacao-fluxo.js';
 import {identificadorProtegido} from '../server/assistente-identidade.js';
-const config={VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'segredo-ficticio-isolado-para-integracao-123456'};
+const config={VYBE_AI_ATIVA:'1',VYBE_AI_PESSOAS_LIBERADAS:'1,5',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'segredo-ficticio-isolado-para-integracao-123456'};
 const jid='99999999999999999999@lid';
 async function chamar(sql,body={},op={}) {
  const req={method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:{jid,consulta:'minhas_demandas',...body},...op};
@@ -66,6 +66,17 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
   assert.equal(r.corpo.itens.length,1);assert.equal(r.corpo.itens[0].titulo,'Minha peça');
   assert.equal(r.corpo.itens[0].status,'Agendado');assert.equal(r.corpo.itens[0].clientes.length,2);
  });
+ await t.test('retirar conta do piloto bloqueia consulta vinculada imediatamente',async()=>{
+  const anterior=config.VYBE_AI_PESSOAS_LIBERADAS;config.VYBE_AI_PESSOAS_LIBERADAS='5';
+  try { assert.equal((await chamar(sql)).codigo,403); } finally { config.VYBE_AI_PESSOAS_LIBERADAS=anterior; }
+ });
+ await t.test('conta fora do piloto não consome nem vincula código',async()=>{
+  const d=await emitirCodigo(sql,5,config.VYBE_AI_LINK_SECRET);
+  const anterior=config.VYBE_AI_PESSOAS_LIBERADAS;config.VYBE_AI_PESSOAS_LIBERADAS='1';
+  try { assert.equal((await chamar(sql,{consulta:'vinculacao_confirmar',codigo:d.codigo})).codigo,403);
+   assert.equal((await sql`SELECT usado_em FROM vybe_ai_desafios WHERE pessoa_id=5 ORDER BY id DESC LIMIT 1`)[0].usado_em,null);
+  } finally { config.VYBE_AI_PESSOAS_LIBERADAS=anterior; await sql`DELETE FROM vybe_ai_desafios WHERE pessoa_id=5`; }
+ });
  await t.test('bloqueio e revogação valem já na próxima consulta',async()=>{
   await db.exec('UPDATE vybe_pessoas SET pode_entrar=false WHERE id=1');assert.equal((await chamar(sql)).codigo,403);
   await db.exec('UPDATE vybe_pessoas SET pode_entrar=true,ativo=false WHERE id=1');assert.equal((await chamar(sql)).codigo,403);
@@ -88,6 +99,8 @@ test('emissão HTTP exige sessão pessoal e mesma origem; ignora pessoa enviada 
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,ativo boolean,pode_entrar boolean,senha_hash text);
  INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia');`);
  await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
+ const ativaAntes=process.env.VYBE_AI_ATIVA,listaAntes=process.env.VYBE_AI_PESSOAS_LIBERADAS;process.env.VYBE_AI_ATIVA='1';process.env.VYBE_AI_PESSOAS_LIBERADAS='1,5';
+ t.after(()=>{for(const [k,v] of [['VYBE_AI_ATIVA',ativaAntes],['VYBE_AI_PESSOAS_LIBERADAS',listaAntes]]){if(v===undefined)delete process.env[k];else process.env[k]=v;}});
  const anterior=process.env.VYBE_AI_LINK_SECRET;process.env.VYBE_AI_LINK_SECRET=config.VYBE_AI_LINK_SECRET;
  t.after(()=>{if(anterior===undefined)delete process.env.VYBE_AI_LINK_SECRET;else process.env.VYBE_AI_LINK_SECRET=anterior});
  const req={method:'POST',query:{consulta:'vinculacao_iniciar'},headers:{origin:'https://teste.example',host:'teste.example'},body:{pessoa_id:5}};
