@@ -5,10 +5,10 @@ import {conexao} from './postgres.mjs';
 import {atenderBotAssistente} from '../server/assistente-servico.js';
 import {emitirCodigo} from '../server/assistente-vinculacao-fluxo.js';
 import {identificadorProtegido} from '../server/assistente-identidade.js';
-const config={VYBE_AI_ATIVA:'1',VYBE_AI_PESSOAS_LIBERADAS:'1,5',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'segredo-ficticio-isolado-para-integracao-123456'};
+const config={VYBE_AI_GRUPOS_IDS:'123456789-123@g.us',VYBE_AI_ATIVA:'1',VYBE_AI_PESSOAS_LIBERADAS:'1,5',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'segredo-ficticio-isolado-para-integracao-123456'};
 const jid='99999999999999999999@lid';
 async function chamar(sql,body={},op={}) {
- const req={method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:{jid,consulta:'minhas_demandas',...body},...op};
+ const req={method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:{jid,contexto:{tipo:'privado',observado_em:Date.now(),participantes:[jid],grupos_remetente:['123456789-123@g.us']},consulta:'minhas_demandas',...body},...op};
  const res={status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}};
  await atenderBotAssistente(req,res,()=>sql,config);return res;
 }
@@ -35,7 +35,7 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
  });
  await t.test('desconhecido, grupo e parâmetros inválidos não recebem dados',async()=>{
   assert.equal((await chamar(sql,{pessoa_id:1,admin:true})).codigo,403);
-  assert.equal((await chamar(sql,{jid:'123456789@g.us'})).codigo,400);
+  assert.equal((await chamar(sql,{jid:'123456789@g.us'})).codigo,403);
   assert.equal((await chamar(sql,{consulta:'sql',sql:'SELECT *'})).codigo,400);
  });
  await t.test('emissão só para pessoa ativa, liberada e com senha',async()=>{

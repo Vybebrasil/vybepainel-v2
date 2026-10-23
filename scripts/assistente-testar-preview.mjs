@@ -15,7 +15,7 @@ async function req(path,{cookie,body,bearer,method=body?'POST':'GET'}={}){
  let d;try{d=await r.json();}catch{d={};}
  return{status:r.status,data:d,cookie:r.headers.get('set-cookie')?.split(';')[0]};
 }
-const bot=body=>req('/api/painel?area=assistente&canal=bot',{body:{jid,...body},bearer:token});
+const bot=body=>req('/api/painel?area=assistente&canal=bot',{body:{jid,contexto:{tipo:'privado',observado_em:Date.now(),participantes:[jid],grupos_remetente:String(process.env.VYBE_AI_GRUPOS_IDS||'').split(',').filter(Boolean)},...body},bearer:token});
 const pessoa=(cookie,consulta,body)=>req('/api/painel?area=assistente&consulta='+consulta,{cookie,body});
 const ok=(r,status,etapa)=>{assert.equal(r.status,status,etapa+': HTTP inesperado');console.log(etapa+': HTTP '+status);return r.data;};
 try{

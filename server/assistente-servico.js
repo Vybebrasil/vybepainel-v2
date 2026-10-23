@@ -1,3 +1,5 @@
+import { validarConversa, autorizarConversa } from './assistente-politica.js';
+import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
 import { assistenteAtivo, pessoaLiberadaAssistente } from './assistente-ativacao.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
@@ -23,16 +25,25 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     return res.status(401).json({ error: 'Não autorizado.' });
   if (!assistenteAtivo(config)) return res.status(503).json({ error: 'Vybe AI desativada neste ambiente.' });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
-  const { jid, codigo, consulta } = req.body || {};
+  const { jid, codigo, consulta, contexto, ferramenta, argumentos } = req.body || {};
   const segredo = config.VYBE_AI_LINK_SECRET;
   if (!segredo || segredo.length < 32) return res.status(503).json({ error: 'Integração não configurada.' });
   try {
     if (consulta === 'vinculacao_confirmar') {
+      validarConversa(jid,contexto,config);
+      if (contexto.tipo !== 'privado') return res.status(403).json({error:'Vinculação somente em conversa privada.'});
       if (typeof codigo !== 'string') return res.status(400).json({ error: 'Código obrigatório.' });
       const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo, id => pessoaLiberadaAssistente(id, config));
       return res.status(ok ? 200 : 403).json({ ok });
     }
+    if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
+      const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
+      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'operacional-interna-1',max_ferramentas:3});
+      return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos)});
+    }
     if (consulta === 'minhas_demandas') {
+      validarConversa(jid,contexto,config);
+      if(contexto.tipo!=='privado')return res.status(403).json({error:'Use as ferramentas operacionais para consulta em grupo.'});
       const id = await pessoaVinculada(criarBanco(), identificadorProtegido(jid, segredo));
       if (id && !pessoaLiberadaAssistente(id, config)) return res.status(403).json({ error: 'Vybe AI não liberada para esta conta.' });
       if (!id) return res.status(403).json({ error: 'Conta WhatsApp não vinculada.' });
@@ -40,6 +51,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     }
     return res.status(400).json({ error: 'Consulta desconhecida.' });
   } catch (erro) {
+    if (erro.status === 403) return res.status(403).json({error:'Conversa ou participantes não autorizados.'});
     if (erro instanceof TypeError) return res.status(400).json({ error: 'Parâmetros inválidos.' });
     return res.status(503).json({ error: 'Não foi possível concluir a consulta.' });
   }
