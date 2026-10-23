@@ -48,3 +48,7 @@ Status: **proposta de arquitetura, sem ativação em produção**. Escopo inicia
 - Validar o cadastro/associação dos usuários WhatsApp, sem guardar números em código.
 - Implementar contrato mínimo de uma consulta (`minhas_demandas`) e testes em branch, revisando antes de ampliar.
 - Conectar a API ao `bot.js` local, mantendo `SIMULACAO=true`.
+
+## Preview de homologação
+
+O repositório utiliza `scripts/vercel-construir.mjs`: previews são construídos somente quando a mensagem do commit inclui `[preview]`. A implantação de teste não autoriza executar migrações no banco de produção nem cadastrar credenciais sem revisão. Verificar acesso público, autenticação e build antes de quaisquer consultas com dados reais.
