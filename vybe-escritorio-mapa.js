@@ -2084,7 +2084,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       pincelNo.innerHTML = '<polygon class="mapa-pincel-area"/>';
       palco.append(pincelNo);
     }
+    pincelNo.classList.toggle("mapa-pincel-invalido",area.valido===false);
     const o0 = { ...origem, alturaAtual: 0 }, t = (x, y, dy = 0) => { const p = mapaTela(x, y, o0); return `${p.x},${p.y + dy}`; };
+    if (area.pisos) {
+      pincelNo.innerHTML=area.pisos.slice(0,1500).map(({x0,y0,w,h})=>{
+        const dy=-alturaNoPiso(x0,y0)*MAPA_NIVEL_PX;
+        const pts=[t(x0,y0,dy),t(x0+w,y0,dy),t(x0+w,y0+h,dy),t(x0,y0+h,dy)];
+        return `<polygon class="mapa-pincel-area" points="${pts.join(' ')}"/>`;
+      }).join('');pincelNo.hidden=false;return;
+    }
+    if(pincelNo.querySelectorAll('polygon').length!==1)pincelNo.innerHTML='<polygon class="mapa-pincel-area"/>';
     let pts;
     if (area.piso) {
       const { x0, y0, w, h } = area.piso, dy = -alturaNoPiso(x0, y0) * MAPA_NIVEL_PX;
@@ -3086,6 +3095,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   }
   return {
     origem, prontos, carga, atualizarPessoas, ladrilhoEm, grade: mostrarGrade, postits,
+    camera: () => ({x:cam.x,y:cam.y,zoom}),
+    restaurarCamera: (c) => { if(destruido || ![c?.x,c?.y,c?.zoom].every(Number.isFinite))return; cam.x=alvo.x=c.x;cam.y=alvo.y=c.y;zoom=alvo.z=c.zoom;inercia=null;salto=null;aplicar(); },
     // Piso e paredes pintados mudaram: redesenha só o fundo e as paredes.
     repintar: () => {
       fundoPronto?.();

@@ -7,7 +7,7 @@ function contexto() {
  const c=vm.createContext({avisos,eventos,classes,console,window:{addEventListener(k,f){eventos[k]=f;}},document:{addEventListener(k,f){eventos[k]=f;},getElementById(){return {classList:{toggle:(...a)=>classes.push(a)}}}},safeText:String,localStorage:{getItem:()=>null},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){},requestAnimationFrame(){},cancelAnimationFrame(){}});
  vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:['gratis']},economia:{inventario:[{classe:'limitado',quantidade:1}]}},edicao:{camada:'sala-0',sel:0,novo:null,itens:[['limitado',1,1,2]]},mapa:{medidas:async()=>({x:1,y:1,z:1,dir:2}),moveisEm:()=>[],previa(){},destacar(){},grade(a){this.ultimaGrade=a;}}};
  var ESCRITORIO_PLANTA={W:8,H:8,ambientes:[{id:'sala-0',x0:0,y0:0,x1:8,y1:8}]},MAPA_ASSENTOS=new Set();
- function escritorioImagemDe(){return null}function escritorioAviso(x){avisos.push(x)}function escritorioAmbienteDoQuarto(){return null}function escritorioModeloPlanta(){return null}function escritorioNivelQuarto(){return 0}
+ function escritorioPerfilDecoracao(){return escritorio.edicao?.decoracao || {}}function escritorioImagemDe(){return null}function escritorioAviso(x){avisos.push(x)}function escritorioAmbienteDoQuarto(){return null}function escritorioModeloPlanta(){return null}function escritorioNivelQuarto(){return 0}
  function escritorioPosicao(){return {x:-9,y:-9}}function escritorioOcupado(){return false}function escritorioPortaQuarto(){return null}function mapaFisica(){return {poe:true}}function mapaTopoMovel(m){return (m.altura||0)+1}`,c);
  vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
  vm.runInContext(`renderBarraEditorEscritorio=()=>{};escritorioEditorMudou=()=>{};escritorioLembrarMovel=()=>{};escritorioEhParede=()=>false`,c);
@@ -15,7 +15,7 @@ function contexto() {
 }
 test('duplicar e colar não criam unidades além do inventário; essenciais continuam livres',async()=>{
  const {r,avisos}=contexto();
- await r('duplicarSelecionadoEscritorio()');assert.equal(r('escritorio.edicao.itens.length'),1);assert.match(avisos.at(-1),/unidades livres/);
+ await r('duplicarSelecionadoEscritorio()');assert.equal(r('escritorio.edicao.itens.length'),1);assert.match(avisos.at(-1),/Faltam .* VybeCoins/);
  r(`escritorio.edicao.colar=[['limitado',0,0,2,0,0]]`);await r('soltarColarEscritorio(3,3)');assert.equal(r('escritorio.edicao.itens.length'),1);
  r(`escritorio.edicao.colar=[['gratis',0,0,2,0,0],['gratis',1,0,2,0,0]]`);await r('soltarColarEscritorio(3,3)');assert.equal(r('escritorio.edicao.itens.length'),3);
 });
@@ -77,4 +77,30 @@ test('falha da API de conferência permanece erro e libera nova tentativa',async
  const {r,avisos}=contexto();r(`escritorioApi=async()=>{throw new Error('Indisponível')}`);
  assert.equal(await r('conferirConstrucaoEditorEscritorio()'),null);
  assert.equal(r('escritorio.edicao.conferindo'),false);assert.match(avisos.at(-1),/Não foi possível conferir: Indisponível/);
+});
+
+test('clique no piso não move a seleção por acidente; mover pelo clique é explícito',async()=>{
+ const {r}=contexto();
+ await r('cliqueEditorEscritorio(4,4)');assert.equal(r('escritorio.edicao.itens[0][1]'),1);assert.equal(r('escritorio.edicao.sel'),null);
+ r('escritorio.edicao.sel=0;escritorio.edicao.moverClique=true');await r('cliqueEditorEscritorio(4,4)');assert.equal(r('escritorio.edicao.itens[0][1]'),4);
+});
+test('rascunho é isolado por pessoa/sala e não guarda a carteira',()=>{
+ const {c,r}=contexto();let salvo;c.localStorage={setItem(k,v){salvo={k,v};},getItem(){return null;}};
+ r(`escritorio.edicao.decoracao={sala_piso:'madeira'};escritorioPerfilDecoracao=()=>escritorio.edicao.decoracao;escritorio.edicao.versao=3;escritorio.edicao.mudou=true;escritorioGuardarRascunho()`);
+ assert.equal(salvo.k,'vybe-construcao:1:sala-0');assert.ok(!salvo.v.includes('inventario'));assert.equal(JSON.parse(salvo.v).versao,3);
+});
+
+test('acabamento no editor não grava perfil; desfazer e cancelar preservam o perfil salvo',async()=>{
+ const {c,r}=contexto();c.structuredClone=structuredClone;c.confirm=()=>true;
+ const fonte=readFileSync('vybe-escritorio.js','utf8');
+ vm.runInContext(fonte.slice(fonte.indexOf('function escritorioRaizQuarto('),fonte.indexOf('function escritorioAmbienteDoQuarto(')),c);
+ vm.runInContext(readFileSync('vybe-escritorio-ficha.js','utf8'),c);
+ r(`escritorio.perfil={sala_piso:'madeira',sala_luz:'',sala_pisos:'',sala_paredes:''};escritorio.quarto='sala-0';escritorio.base.salas=[{id:'sala-0',pessoa_id:'1'}];escritorio.base.equipe=[];escritorio.edicao.decoracao=structuredClone(escritorio.perfil);escritorio.edicao.passos=[escritorioFotoEdicao(escritorio.edicao)];escritorio.edicao.inicial=escritorio.edicao.passos[0];escritorio.edicao.futuro=[];
+ escritorioAplicarSalas=()=>{};escritorioRedesenharMapa=()=>{};renderEscritorio=()=>{};escritorioApi=()=>{throw Error('Não deve gravar o perfil durante a edição')};
+ escritorioEditorMudou=function(semPasso){const e=escritorio.edicao;if(!semPasso)e.passos.push(escritorioFotoEdicao(e));e.mudou=escritorioFotoEdicao(e)!==e.inicial;};`);
+ await r(`estiloSalaEscritorio('sala_piso','clara')`);
+ assert.equal(r('escritorio.perfil.sala_piso'),'madeira');assert.equal(r('escritorioPerfilDecoracao().sala_piso'),'clara');
+ r('desfazerEditorEscritorio()');assert.equal(r('escritorioPerfilDecoracao().sala_piso'),'madeira');
+ await r(`estiloSalaEscritorio('sala_luz','quente')`);r(`escritorio.mapa.definirMoveis=()=>{};escritorioMoveisAtuais=()=>[];sairEditorEscritorio()`);
+ assert.equal(r('escritorio.perfil.sala_luz'),'');assert.equal(r('escritorio.edicao'),null);
 });

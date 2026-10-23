@@ -1540,3 +1540,61 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   remove marcos, moedas, XP ou inventário. Testada apenas no banco isolado.
 - **Ainda local**: não houve publicação, aplicação de migração, ajuste de pesos,
   head 20%, recálculo histórico ou concessão das execuções inferidas de Ewerton.
+
+### Construção: rascunho, materiais e precisão — 23/10/2026 (local)
+
+- Continuação autorizada por Paulo: executar a revisão de construção. Branch
+  `codex/construcao-fluxo`, baseada no merge publicado #355 (`f33c4e4`).
+- A entrega anterior foi publicada em 22/10, deployment
+  `dpl_3U2bCTkyiZJ6xoA55bNfiZcFcdKC`. Migração aditiva de especialidades
+  aplicada: oito níveis novos (Implementações/Motion), sem recálculo histórico.
+- O editor agora mantém acabamento em rascunho, junto de móveis e planta.
+  O salvamento usa a rota de mapa existente e a mesma transação do perfil,
+  filtrando campos permitidos. Cancelar descarta a prévia; compras continuam
+  reais no inventário e não são desfeitas com a decoração.
+- Compra existente aceita quantidade, com débito e estoque atômicos. A origem
+  continua terminando na classe para preservar vitrine e ficha; o sufixo de
+  quantidade fica junto da chave. Repetir a chave não compra novamente; mudar
+  classe ou quantidade com ela é rejeitado. Não há outra carteira ou razão.
+- Piso por pincel, linha, retângulo, região ou borracha. Medidas oficiais antes
+  de aplicar, uso de unidades disponíveis primeiro, orçamento e confirmação
+  das faltantes no editor. Um gesto vira um passo de desfazer. Falha de
+  medidas ou compra não altera a área. Porta/escada seguem protegidas.
+- Dock com reposição, disponibilidade nos dois andares, repetição de colocação,
+  bloqueio local de peça e seleção de outra peça no mesmo ladrilho. Clique
+  vazio não move a seleção por acidente; movimento por clique é explícito.
+- Prévia de arraste confere pouso e limites; colagem mostra contorno do conjunto.
+  Paredes podem ser ocultadas somente na prévia. Câmera é preservada ao refazer
+  o mapa no editor. Mantidas as regras de profundidade e física existentes.
+- Conferência recolhida e agrupada, com localizar. Arte não disponível ao
+  auditor local vira aviso de análise, sem afirmar que o móvel está quebrado
+  ou que foi validado. Não confundir sugestão estética com autorização de salvar.
+- Pisos com busca, filtro de material/inventário e carga inicial de 24 cartões.
+  Acabamentos básicos ficam antes das peças pagas. Recentes e conjuntos têm
+  acesso direto. No celular os materiais ficam em painel inferior recolhível;
+  formulários de espessura em linhas próprias.
+- Rascunho por identidade/sala/andar no navegador (sete dias), sem credenciais
+  ou economia; conflito de versão não o apaga. O servidor permanece responsável
+  por inventário, planta, perfil, permissões e versão. Nenhuma migração nova.
+- Verificação em andamento: regressões direcionadas de compra, piso e rascunho
+  passaram. A revisão visual anterior confirmou acabamento em prévia e desfazer
+  no desktop. Na retomada, a política do navegador bloqueou observar a aba local;
+  não contornar. Ajustes finais precisam de conferência visual manual, inclusive
+  no celular. Sem medição de CPU/memória no Safari nem testes de mídia.
+- Nenhuma publicação desta etapa nem alteração de salas/dados em produção.
+
+#### Validação da entrega de construção — 23/10/2026
+
+- Suíte completa: **590 testes passaram**, sem falhas ou ignorados, Node 26.7.0
+  com concorrência 1 (398,7 s). Sintaxe/ordem global: 259 arquivos válidos;
+  build e `git diff --check` aprovados. Estágios do check executados separadamente
+  para limitar concorrência, sem mudar scripts/dependências do projeto.
+- Regressões cobrem quantidade atômica/idempotente, estoque/saldo, mudança de
+  preço, preservação do perfil salvo no cancelar/desfazer, identidade do rascunho,
+  forma/máscara/nível do piso e distinção entre arte não verificável e erro.
+- Ajustes finais de prévia/dock/materiais tiveram regressões direcionadas
+  aprovadas. Build final: 55 módulos, JS 2.242.448 B e CSS 1.145.581 B.
+- Servidor de demonstração em `http://127.0.0.1:4362/`, somente dados fictícios
+  e sem proxy de produção. Revisão visual final ainda pendente pelo bloqueio
+  de segurança do navegador. Não declarar Safari, mídia ou todas as telas
+  visualmente aprovadas. Nenhum push, deploy ou banco real alterado nesta etapa.

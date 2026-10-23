@@ -9391,7 +9391,7 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
 .ofc-editor.construcao .ofc-cons-mais[open] > summary {background:#ffffff14;color:#fff}
 .ofc-editor.construcao .ofc-editor-dica {bottom:0;left:50%;transform:translateX(-50%);margin:0;max-width:min(720px,calc(100% - 100px));padding:9px 16px;border-radius:999px;color:#e6e9f0;font:500 13px var(--mac-ui);text-align:center}
 .ofc-editor.construcao .ofc-editor-dica b {color:#ffc79a}
-.ofc-editor.construcao > .ofc-conferencia {position:absolute;top:62px;left:0;width:min(420px,100%);max-height:calc(100% - 70px);overflow:auto}
+.ofc-editor.construcao > .ofc-conferencia {position:absolute;top:132px;left:96px;width:min(340px,calc(100% - 100px));max-height:min(320px,calc(100% - 140px));overflow:auto}
 .ofc-principal > .ofc-editor.construcao .ofc-cons-ferr.alterna[aria-pressed=true] {background:#ffffff1f;color:#fff;box-shadow:inset 0 0 0 1px #ffffff2e}
 .ofc-cons-ferr.alterna[aria-pressed=true]::after {content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:50%;background:#5fd39a;box-shadow:0 0 6px #5fd39a}
 @media (max-width:700px) {
@@ -9407,6 +9407,55 @@ button.prov-sacola-item:focus-visible {outline:2px solid var(--prov-acento);outl
   .ofc-editor.construcao .ofc-cons-mais > div {left:auto;right:0;top:calc(100% + 8px);bottom:auto}
   .ofc-editor.construcao .ofc-editor-dica {bottom:0;max-width:calc(100% - 16px);border-radius:14px;font-size:12.5px}
   .ofc-principal > .ofc-editor.construcao .ofc-cons-acoes button {padding:7px 12px}
+}
+
+/* Construção: orçamento no contexto e materiais recolhíveis; a sala continua
+   visível no celular. Escopo restrito ao editor, sem alterar outras laterais. */
+.ofc[data-editor-sem-paredes] .mapa-muro {opacity:.08;pointer-events:none}
+.ofc-previa-motivo {position:absolute;bottom:44px;right:0;padding:5px 8px;font-size:12px;color:var(--ofc-suave);pointer-events:none}
+.mapa-pincel-invalido .mapa-pincel-area {fill:#e4555533;stroke:#ff7777}
+.ofc-cons-saldo {position:absolute;top:58px;right:0;display:grid;gap:3px;max-width:290px;padding:8px 12px;background:var(--cons-vidro);border:1px solid var(--cons-linha);border-radius:12px;color:var(--ofc-suave);font-size:12px}
+.ofc-cons-saldo b {display:block;color:#ffc79a;font-size:14px}
+.ofc-cons-saldo small {font-size:11px;line-height:1.4}
+.ofc-mao {display:grid;gap:5px;padding:8px 0;font-size:12px}
+.ofc-mao label {display:flex;gap:6px;align-items:center}
+.ofc-mao small {color:var(--ofc-suave)}
+.ofc-mao button {padding:7px;background:#ff8a3526;color:#ffc79a;border:1px solid #ff8a3555;border-radius:8px}
+.ofc-repor {display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ofc-repor small {color:var(--ofc-suave);font-size:11px}
+.ofc-repor label {display:flex;align-items:center;gap:4px;font-size:12px}
+.ofc-area-piso {border:0;padding:8px 0;display:flex;flex-wrap:wrap;gap:6px}
+.ofc-area-piso legend {font-size:12px;font-weight:700;color:var(--ofc-suave)}
+.ofc-area-piso small {flex-basis:100%;color:var(--ofc-suave);line-height:1.5}
+.ofc-area-piso button,.ofc-pisos-catalogo > button {padding:7px 10px;border:1px solid var(--ofc-borda);border-radius:9px;background:#ffffff09;color:var(--ofc-texto)}
+.ofc-area-piso button[aria-pressed=true] {background:#ff8a3526;border-color:#ff8a35;color:#ffc79a}
+.ofc-pisos-catalogo {padding:10px 0}
+.ofc-pisos-catalogo summary {cursor:pointer;font-weight:700;padding:8px 0}
+.ofc-pisos-catalogo > label {display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0;font-size:12px}
+.ofc-pisos-catalogo input[type=search] {width:100%;padding:10px;border:1px solid var(--ofc-borda);border-radius:9px;background:#ffffff08;color:var(--ofc-texto)}
+.ofc-pisos-acervo {max-height:330px}
+.ofc-pisos-acervo small {display:block;font-size:11px;line-height:1.4;color:var(--ofc-suave)}
+.ofc-opcoes-quarto {display:grid;gap:10px}
+.ofc-opcao-quarto {display:grid;gap:5px;font-size:12px}
+.ofc-opcao-quarto select {width:100%;padding:7px;background:#20232c;color:#f5f5f6;border:1px solid var(--ofc-borda);border-radius:8px}
+.ofc-conferencia summary {display:flex;justify-content:space-between;gap:8px}
+.ofc-conferencia summary span {color:var(--ofc-suave);font-size:11px}
+.ofc-conferencia li button {display:block;margin-top:4px}
+@media (max-width:760px) {
+ .ofc[data-editando=true] .ofc-lateral {top:auto;bottom:64px;height:min(44vh,390px);border-radius:18px 18px 0 0;border-top:1px solid var(--ofc-borda);box-shadow:0 -10px 24px #0007}
+ .ofc[data-editando=true] .ofc-lateral-topo {padding:8px 12px 4px}
+ .ofc[data-editando=true] .ofc-lateral-topo small {display:none}
+ .ofc[data-editando=true] .ofc-topo {max-height:80px;overflow:auto}
+ .ofc-cons-saldo {top:104px;left:0;right:auto;max-width:230px;font-size:11px}
+ .ofc-cons-saldo small {display:none}
+ .ofc-editor.construcao > .ofc-conferencia {top:155px;left:0;width:min(300px,100%);max-height:160px}
+ .ofc-cons-acoes {top:0;gap:3px}
+ .ofc-cons-selo {max-width:110px}
+ .ofc-cons-selo select {max-width:90px}
+ .ofc-principal > .ofc-editor.construcao .ofc-cons-acoes button {padding:7px;font-size:11px}
+ .ofc[data-editando=true][data-lateral=true] .ofc-editor-flutua {bottom:calc(min(44vh,390px) + 70px);max-height:120px;overflow:auto}
+ .ofc[data-editando=true] .ofc-editor-dica {display:none}
+ .ofc[data-editando=true] .ofc-dock {display:none}
 }
 
 /* Entrada do Escritório como tela de jogo (21/10/2026, a linguagem do

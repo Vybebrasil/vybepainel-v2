@@ -238,8 +238,8 @@ export async function origemDoMovel(sql, salas, { camada, classe } = {}) {
   if (!ganhos.length) origens.push({ tipo: 'conquista', texto: 'Troféu de conquista. Não se compra.' });
  }
  const [bolo] = await tem('vybe_escritorio_reinicios') ? await sql`SELECT executado_em FROM vybe_escritorio_reinicios WHERE chave='bolo-2026-10-20'` : [];
- for (const c of await sql`SELECT -quantidade AS preco, criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${dono} AND origem LIKE ${'compra:%:' + classe} ORDER BY criado_em`)
-  origens.push({ tipo: 'compra', texto: `Comprado na loja por ${Number(c.preco)} VybeCoins.${bolo && new Date(c.criado_em) < new Date(bolo.executado_em) ? ' No recomeço de 20/10 o valor foi descontado do saldo novo.' : ''}`, em: c.criado_em });
+ for (const c of await sql`SELECT -quantidade AS preco, origem, criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${dono} AND origem LIKE ${'compra:%:' + classe} ORDER BY criado_em`)
+  origens.push({ tipo: 'compra', texto: `Comprado na loja${/-q(\d+):/.test(c.origem || "") ? ` (lote de ${/-q(\d+):/.exec(c.origem)[1]} unidades)` : ""} por ${Number(c.preco)} VybeCoins.${bolo && new Date(c.criado_em) < new Date(bolo.executado_em) ? ' No recomeço de 20/10 o valor foi descontado do saldo novo.' : ''}`, em: c.criado_em });
  if (await tem('vybe_escritorio_presentes'))
   for (const g of await sql`SELECT g.criado_em, a.nome FROM vybe_escritorio_presentes g LEFT JOIN vybe_pessoas a ON a.id=g.de_pessoa WHERE g.para_pessoa=${dono} AND g.classe=${classe} ORDER BY g.criado_em`)
    origens.push({ tipo: 'presente', texto: `Presente de ${g.nome || 'alguém da equipe'}.`, em: g.criado_em });

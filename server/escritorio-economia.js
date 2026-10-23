@@ -193,17 +193,18 @@ export async function comprarKit(sql, pessoaId, { kit, chave, corpo } = {}, agor
   return carregarEconomia(tx, pessoaId, { agora });
  });
 }
-export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new Date()) {
+export async function comprarMovel(sql, pessoaId, {classe,chave,quantidade=1,precoEsperado}={}, agora = new Date()) {
  const precoBase = precoMovel(classe);
+ if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1500) throw Object.assign(new Error("Quantidade entre 1 e 1500."),{status:400});
  if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da compra inválido.'),{status:400});
  if (!precoBase) throw Object.assign(new Error('Os móveis essenciais já são gratuitos.'),{status:400});
  if (!await economiaPronta(sql)) throw Object.assign(new Error('Loja indisponível: migração pendente.'),{status:503});
  return sql.comTransacao(async tx => {
   await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
   const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId} FOR UPDATE`;
-  const origem = 'compra:'+chave+':'+classe;
+  const origem = 'compra:'+chave+(quantidade===1 ? '' : '-q'+quantidade)+':'+classe;
   // A chave é global por pessoa, inclusive se a repetição tentar outro produto.
-  const [anterior] = await tx`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE ${'compra:'+chave+':%'}`;
+  const [anterior] = await tx`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (origem LIKE ${'compra:'+chave+':%'} OR origem LIKE ${'compra:'+chave+'-q%:%'})`;
   if (anterior && anterior.origem !== origem) throw Object.assign(new Error('Identificador de compra já utilizado.'),{status:409});
   if (!anterior) {
    // Sempre nesta ordem (carteira, depois o móvel) para duas compras ao mesmo
@@ -216,15 +217,18 @@ export async function comprarMovel(sql, pessoaId, {classe,chave}={}, agora = new
     if (info.marco) throw Object.assign(new Error('Este móvel não se compra: vem com um marco da ficha.'),{status:400});
     if (!info.preco) throw Object.assign(new Error('Esta peça já é grátis.'),{status:400});
     if (info.restante === 0) throw Object.assign(new Error('Esgotado: todos os exemplares já foram comprados.'),{status:409});
+    if (info.restante !== null && info.restante < quantidade) throw Object.assign(new Error('Estoque insuficiente para esta quantidade.'),{status:409});
     if (!info.naVitrine) throw Object.assign(new Error('Este móvel não está na vitrine desta semana.'),{status:409});
     limitado = info.restante !== null; preco = info.preco;
    }
+   if(precoEsperado !== undefined && (!Number.isSafeInteger(precoEsperado) || precoEsperado!==preco)) throw Object.assign(new Error("O preço mudou. Atualize a loja e confirme o valor novamente."),{status:409});
+   preco *= quantidade;
    if (Number(c.saldo)<preco) throw Object.assign(new Error('VybeCoins insuficientes.'),{status:409});
    await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${preco} WHERE pessoa_id=${pessoaId}`;
    await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${pessoaId},${origem},${-preco})`;
-   await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},1)
-    ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
-   if (limitado) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+1 WHERE classe=${classe}`;
+   await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},${quantidade})
+    ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+EXCLUDED.quantidade`;
+   if (limitado) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+${quantidade} WHERE classe=${classe}`;
   }
   return carregarEconomia(tx,pessoaId,{ agora });
  });
