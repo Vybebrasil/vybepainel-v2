@@ -30,6 +30,10 @@ import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js'
 import { quemChama } from '../vybe_acesso.js';
 import { minhasDemandas } from '../server/assistente-consultas.js';
 import { emitirCodigo } from '../server/assistente-vinculacao-fluxo.js';
+import { consumirCodigo } from '../server/assistente-vinculacao-fluxo.js';
+import { autenticarAssistente } from '../server/assistente-servico.js';
+import { identificadorProtegido } from '../server/assistente-identidade.js';
+import { pessoaVinculada } from '../server/assistente-vinculos.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
@@ -1706,6 +1710,31 @@ export default async function handler(req, res) {
   if (areaPublica === 'escritorio' && req.method === 'GET' && ['arte', 'boneco', 'imagem'].includes(String(req.query?.acao || ''))
       && !String(req.headers?.cookie || '').includes('vybe_sessao=') && convidadoDoCookie(req))
     return areaEscritorio(req, res, { tipo: 'sessao', pessoa: null }, sql());
+  // Integração exclusivamente privada do WhatsApp: token próprio, sem poderes admin.
+  if (areaPublica === 'assistente' && req.query?.canal === 'bot') {
+    if (!autenticarAssistente(req, process.env.VYBE_AI_BOT_TOKEN))
+      return res.status(401).json({ error: 'Não autorizado.' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+    const { jid, codigo, consulta } = req.body || {};
+    const segredo = process.env.VYBE_AI_LINK_SECRET;
+    if (!segredo || segredo.length < 32) return res.status(503).json({ error: 'Integração não configurada.' });
+    try {
+      if (consulta === 'vinculacao_confirmar') {
+        if (typeof codigo !== 'string') return res.status(400).json({ error: 'Código obrigatório.' });
+        const ok = await consumirCodigo(sql(), jid, codigo, segredo);
+        return res.status(ok ? 200 : 403).json({ ok });
+      }
+      if (consulta === 'minhas_demandas') {
+        const id = await pessoaVinculada(sql(), identificadorProtegido(jid, segredo));
+        if (!id) return res.status(403).json({ error: 'Conta WhatsApp não vinculada.' });
+        return res.status(200).json({ ok: true, ...(await minhasDemandas(sql(), id)) });
+      }
+      return res.status(400).json({ error: 'Consulta desconhecida.' });
+    } catch (erro) {
+      if (erro instanceof TypeError) return res.status(400).json({ error: 'Parâmetros inválidos.' });
+      return res.status(503).json({ error: 'Não foi possível concluir a consulta.' });
+    }
+  }
   if (areaPublica === 'agentes') {
     try { return await conectorAgentes(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }
