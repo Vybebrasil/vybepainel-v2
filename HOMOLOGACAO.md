@@ -379,3 +379,15 @@ separação entre carteira pessoal e acervo compartilhado. Sintaxe/build/diff
 conferidos. Sem revisão visual automatizada por bloqueio de segurança; revisão
 manual aprovada por Paulo ("aprovado"). Não considerar celular/loja/perfil visualmente
 validados por estes testes. Esta reformulação não foi publicada.
+
+## 23/10/2026 — oito melhorias na aba Trabalho
+
+Paulo autorizou executar/publicar e aprovou a demonstração manualmente. Testes
+isolados validam deduplicação, bônus/perdas, detalhe sem prêmio, prazo histórico,
+retorno limitado ao recorte, datas inválidas/futuras, virada de ano, média móvel,
+escape do cadastro e resposta antiga ignorada na troca de período. Onze casos de
+Trabalho passaram; regressões de ranking/economia passaram na rodada anterior.
+Sintaxe e build aprovados. Inspeção automatizada bloqueada; não declarar revisão
+automática de celular/Safari ou medição de latência. Sem migração, escrita em
+produção, mudança de pagamentos ou recálculo histórico. Publicação depende da
+CI completa e preview do commit exato.
