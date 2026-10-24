@@ -32,6 +32,7 @@ import { quemChama } from '../vybe_acesso.js';
 import { minhasDemandas } from '../server/assistente-consultas.js';
 import { emitirCodigo, estadoVinculacao, revogarVinculacao, limiteCodigosVinculacao } from '../server/assistente-vinculacao-fluxo.js';
 import { atenderBotAssistente } from '../server/assistente-servico.js';
+import { diagnosticoBancoAssistente, diagnosticoBancoBotAssistente } from '../server/assistente-diagnostico-banco.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
@@ -1703,6 +1704,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
+
+  // Diagnóstico técnico separado: apenas metadados, com token próprio do bot.
+  // Produção, outras branches e flag de homologação ausente negam antes do banco.
+  if (req.query?.area === 'assistente' && req.query?.consulta === 'diagnostico_banco_bot')
+    return diagnosticoBancoBotAssistente(req, res, sql);
+
+  // Antes dos caminhos de bot, serviço e manutenção: somente sessão pessoal
+  // administrativa em Preview; fora dela retorna 404 sem acessar o banco.
+  if (req.query?.area === 'assistente' && req.query?.consulta === 'diagnostico_banco')
+    return diagnosticoBancoAssistente(req, res, sql);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
