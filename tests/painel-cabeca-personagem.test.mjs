@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 test('fotinha da equipe vira a cabeça do personagem e acompanha o visual', () => {
   const c = vm.createContext({ window: {}, document: {}, URLSearchParams });
   vm.runInContext(readFileSync('vybe-escritorio-mapa.js', 'utf8'), c);
-  const dominio = readFileSync('vybe-dominio.js', 'utf8');
+  const dominio = readFileSync('vybe-dominio.js', 'utf8').replace(/\r\n/g,'\n');
   const fonte = dominio.slice(dominio.indexOf('function aplicarFotosDoBanco'), dominio.indexOf('\n}\n', dominio.indexOf('function aplicarFotosDoBanco')) + 2);
   vm.runInContext(`var TEAM_USERS = [{id:'1',name:'Paulo',photo:null},{id:'2',name:'Jady',photo:null}];\n${fonte}`, c);
   vm.runInContext(`aplicarFotosDoBanco([{id:'1',foto_url:'https://drive/foto1',personagem:{figura:'hd-180-1.hr-828-61'}},{id:'2',foto_url:'https://drive/foto2'}])`, c);

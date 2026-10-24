@@ -27,7 +27,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const arq = "vybe-escritorio-planta.js", fonte = readFileSync(arq, "utf8");
   const i = fonte.indexOf(INICIO), j = fonte.indexOf(FIM);
   if (i < 0 || j < 0) throw new Error("Marcadores das cenas compostas não encontrados no planta.");
-  const novo = fonte.slice(0, i) + bloco + fonte.slice(j + FIM.length);
+  // Preservar a convenção do checkout: CRLF no Windows não muda a cena.
+  const quebra = fonte.includes("\r\n") ? "\r\n" : "\n";
+  const novo = fonte.slice(0, i) + bloco.replace(/\n/g, quebra) + fonte.slice(j + FIM.length);
   if (process.argv.includes("--conferir")) {
     if (novo !== fonte) { console.error("As cenas compostas estão desatualizadas: rode node scripts/escritorio-compor.mjs"); process.exit(1); }
     console.log("Cenas compostas em dia.");

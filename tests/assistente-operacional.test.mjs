@@ -8,7 +8,7 @@ const contexto=(grupoAtivo=false)=>({tipo:grupoAtivo?'grupo':'privado',...(grupo
 test('contrato fechado: sem SQL, datas impossíveis, campos administrativos e excesso',()=>{
  for(const [n,a] of [['sql',{}],['buscar_demandas',{sql:'SELECT *'}],['listar_responsaveis',{admin:true}],['buscar_demandas',{limite:26}],['buscar_demandas',{de:'2026-02-30'}],['consultar_metricas_trafego',{cliente_id:1,de:'2026-01-01',ate:'2026-12-31'}]])assert.throws(()=>validarFerramenta(n,a));
  assert.throws(()=>validarFerramenta('buscar_demandas',JSON.parse('{"__proto__":{}}')));
- assert.equal(FERRAMENTAS_ASSISTENTE.length,11);
+ assert.equal(FERRAMENTAS_ASSISTENTE.length,15);
  assert.ok(!textoOperacional('senha=ABC teste@example.com https://host/link').includes('ABC'));
 });
 test('conversa exige evidência recente, grupo aprovado, remetente e audiência válidos',()=>{
@@ -25,11 +25,12 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
  INSERT INTO vybe_conteudos VALUES(100,'Card A','Card','2026-10-23','2026-10-24',now(),'agendado',8385559107,NULL,'senha=NAO_EXPOR'),(200,'Peça da outra pessoa','Vídeo','2026-10-25','2026-10-26',now(),'agendado',7829537690,NULL,'NAO_EXPOR'),(300,'Excluída',NULL,NULL,NULL,now(),NULL,8385559107,now(),NULL);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(100,1),(200,2);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);INSERT INTO vybe_conteudo_clientes VALUES(100,10),(100,20),(200,20);
- CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);INSERT INTO vybe_status VALUES(8385559107,'agendado','Agendado'),(7829537690,'agendado','Agendado');
+ CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);INSERT INTO vybe_status VALUES(8385559107,'agendado','Agendado',false),(7829537690,'agendado','Agendado',false);
  CREATE TABLE vybe_planejamentos(id bigint PRIMARY KEY,cliente_id bigint,mes date,titulo text,estado text,conteudo jsonb,atualizado_em timestamptz,link_hash text);
- INSERT INTO vybe_planejamentos VALUES(5,10,'2026-10-01','Plano A','enviado','{"resumo":"Posicionamento da marca","pecas":[{"data":"2026-10-23","tema":"Criatividade","formato":"Card","ajuste_cliente":"privado"}],"observacoes":"NAO_EXPOR"}',now(),'NAO_EXPOR');
+ INSERT INTO vybe_planejamentos VALUES(5,10,'2026-10-01','Plano A','enviado','{"resumo":"Posicionamento da marca","pecas":[{"data":"2026-10-23","tema":"Criatividade","formato":"Card","ajuste_cliente":"privado"}],"observacoes":"senha=NAO_EXPOR"}',now(),'NAO_EXPOR');
  CREATE TABLE vybe_captacoes(id bigint,cliente_id bigint,dia date,inicio time,fim time,estado text,observacao text);INSERT INTO vybe_captacoes VALUES(1,10,'2026-10-23','10:00','11:00','marcada','NAO_EXPOR');
  CREATE TABLE vybe_roteiros(id bigint,cliente_id bigint,titulo text,removido_em timestamptz,criado_em timestamptz,doc_id text);INSERT INTO vybe_roteiros VALUES(1,10,'Roteiro A',NULL,now(),'NAO_EXPOR');`);
+ await db.exec(`CREATE TABLE vybe_conteudo_editores(conteudo_id bigint,pessoa_id bigint);ALTER TABLE vybe_conteudos ADD COLUMN criado_em timestamptz,ADD COLUMN material_bruto text,ADD COLUMN etapa text,ADD COLUMN grupo_id bigint,ADD COLUMN prioridade_chave text,ADD COLUMN captacao_chave text,ADD COLUMN off_audio_chave text,ADD COLUMN tipo_conteudo_chaves text[],ADD COLUMN formato_chaves text[];`);
  await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
  for(const [id,j]of [[1,jid],[2,outro]])await sql`INSERT INTO vybe_ai_vinculos(pessoa_id,jid_hash) VALUES(${id},${identificadorProtegido(j,segredo)})`;
  await t.test('todos os funcionários elegíveis podem consultar demandas de outros responsáveis',async()=>{
@@ -46,14 +47,54 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   assert.deepEqual(r.itens.map(x=>x.id),['100']);
   await assert.rejects(()=>executarFerramenta(sql,'minhas_demandas',{periodo:'hoje',responsavel_id:2},{pessoaId:1}));
   await assert.rejects(()=>executarFerramenta(sql,'minhas_demandas',{}));
-  await db.exec("INSERT INTO vybe_conteudos VALUES(400,'Sem prazo','Vídeo',NULL,'2026-10-23',now(),'agendado',7829537690,NULL,'NAO_EXPOR');INSERT INTO vybe_conteudo_responsaveis VALUES(400,1)");
+  await db.exec("INSERT INTO vybe_conteudos(id,titulo,formato,prazo,veiculacao,atualizado_em,status_chave,board_id,removido_em,briefing) VALUES(400,'Sem prazo','Vídeo',NULL,'2026-10-23',now(),'agendado',7829537690,NULL,'NAO_EXPOR');INSERT INTO vybe_conteudo_responsaveis VALUES(400,1)");
   const semPrazo=await executarFerramenta(sql,'minhas_demandas',{periodo:'hoje'},{pessoaId:1,agora:new Date('2026-10-23T15:00:00Z')});
   assert.deepEqual(semPrazo.itens.map(x=>x.id),['100','400']);
   await db.exec('DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=400;DELETE FROM vybe_conteudos WHERE id=400');
  });
+ await t.test('pendentes e atrasadas seguem status oficial, prazo e identidade, sem aproximação textual',async()=>{
+  await db.exec(`INSERT INTO vybe_status VALUES(8385559107,'terminou','Qualquer rótulo',true);
+   INSERT INTO vybe_conteudos(id,titulo,formato,prazo,veiculacao,atualizado_em,status_chave,board_id,removido_em,briefing) VALUES
+   (401,'Vencida','Card','2026-10-22',NULL,now(),'agendado',8385559107,NULL,NULL),
+   (402,'Concluída vencida','Card','2026-10-22',NULL,now(),'terminou',8385559107,NULL,NULL),
+   (403,'Sem prazo','Card',NULL,'2026-10-22',now(),'agendado',8385559107,NULL,NULL),
+   (404,'Status desconhecido','Card','2026-10-22',NULL,now(),'desconhecido',8385559107,NULL,NULL),
+   (405,'Vencida de outra pessoa','Card','2026-10-22',NULL,now(),'agendado',8385559107,NULL,NULL);
+   INSERT INTO vybe_conteudo_responsaveis VALUES(401,1),(402,1),(403,1),(404,1),(405,2);`);
+  const identidade={pessoaId:1,agora:new Date('2026-10-23T15:00:00Z')};
+  const consultar=args=>executarFerramenta(sql,'minhas_demandas',args,identidade);
+  assert.deepEqual((await consultar({situacao:'atrasadas'})).itens.map(x=>x.id),['401']);
+  assert.deepEqual((await consultar({situacao:'pendentes'})).itens.map(x=>x.id),['401','100','403']);
+  assert.deepEqual((await consultar({situacao:'pendentes',periodo:'hoje'})).itens.map(x=>x.id),['100']);
+  assert.deepEqual((await consultar({situacao:'atrasadas',periodo:'hoje'})).itens,[]);
+  assert.deepEqual((await consultar({situacao:'pendentes',limite:1,deslocamento:1})).itens.map(x=>x.id),['100']);
+  await assert.rejects(()=>consultar({situacao:'concluida OR true'}));
+  await db.exec('DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id>=401;DELETE FROM vybe_conteudos WHERE id>=401');
+ });
+ await t.test('ficha ampla permite briefing, comentários, arquivos e tarefas de qualquer responsável sem segredos',async()=>{
+  await db.exec(`CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint,tipo text,em timestamptz,de text,para text,texto text,autor_id bigint,monday_log_id text);
+   CREATE TABLE vybe_conteudo_updates(id bigint,conteudo_id bigint,corpo text,autor text,criado_em timestamptz,editado_em timestamptz,monday_update_id text);
+   CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,criado_em timestamptz,ausente_em timestamptz);
+   CREATE TABLE vybe_subitens(id bigint,pai_id bigint,titulo text,prazo date,conclusao date,tipo text,prioridade text,status_chave text,ordem int);
+   CREATE TABLE vybe_subitem_responsaveis(subitem_id bigint,pessoa_id bigint);
+   UPDATE vybe_conteudos SET briefing='Briefing operacional: criar campanha. senha=NAO_EXPOR' WHERE id=200;
+   INSERT INTO vybe_conteudo_updates VALUES(1,200,'<p>Ajustar a chamada. token=NAO_EXPOR</p>','Pessoa B',now(),NULL,NULL);
+   INSERT INTO vybe_conteudo_arquivos VALUES(1,200,'Arte aprovada','png',123,now(),NULL);
+   INSERT INTO vybe_subitens VALUES(1,200,'Revisar texto',NULL,NULL,'Card','Alta','agendado',0);
+   INSERT INTO vybe_subitem_responsaveis VALUES(1,2);`);
+  for(const secao of ['ficha','comentarios','arquivos','tarefas']){
+   const r=await executarFerramenta(sql,'detalhar_demanda',{id:200,secao},{pessoaId:1});
+   assert.equal(r.itens.length,1);assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));assert.equal(r.fontes[0].id,'200');
+  }
+  const ficha=await executarFerramenta(sql,'detalhar_demanda',{id:200});assert.match(ficha.itens[0].briefing.texto,/Briefing operacional/);
+  const fora=await executarFerramenta(sql,'detalhar_demanda',{id:200,secao:'comentarios',deslocamento:1});assert.equal(fora.itens.length,0);
+  await assert.rejects(()=>executarFerramenta(sql,'detalhar_demanda',{id:200,secao:'senha_hash'}));
+  // No source failure may masquerade as an empty history.
+  await assert.rejects(()=>executarFerramenta(sql,'detalhar_demanda',{id:200,secao:'historico'}));
+ });
  await t.test('projeções não incluem emails, credenciais, notas, links ou documentos',async()=>{
   for(const [nome,args]of [['listar_clientes',{}],['listar_responsaveis',{}],['listar_planejamentos',{}],['detalhar_planejamento',{id:5}],['listar_captacoes',{}],['listar_roteiros',{}]]){
-   const r=await executarFerramenta(sql,nome,args);assert.ok(r.itens.length);assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));assert.ok(!JSON.stringify(r).includes('example.com'));assert.ok(!JSON.stringify(r).includes('privado'));
+   const r=await executarFerramenta(sql,nome,args);assert.ok(r.itens.length);assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));assert.ok(!JSON.stringify(r).includes('example.com'));if(nome!=='detalhar_planejamento')assert.ok(!JSON.stringify(r).includes('privado'));
   }
  });
  await t.test('endpoint fornece ferramentas e executa consulta ampla, sem confiar em admin/pessoa_id',async()=>{
@@ -96,4 +137,16 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   const r=await metricasDoHub(sql,a,{config:c,buscar});assert.equal(r.itens[0].amountSpent,10);assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));assert.ok(!('faturamento'in r.itens[0]));
   await assert.rejects(()=>metricasDoHub(sql,{...a,cliente_id:20},{config:c,buscar}));
  });
+});
+
+test('novas ferramentas mantêm contrato fechado e autenticação antes de consultar fontes',async()=>{
+ const nomes=['consultar_perfil_trabalho','consultar_perfil_jogo','consultar_ranking','consultar_dia_equipe'];
+ for(const ferramenta of nomes){
+  const r={status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}};
+  await atenderBotAssistente({method:'POST',headers:{authorization:'Bearer '+'B'.repeat(64)},body:{consulta:'operacional',ferramenta,argumentos:{}}},r,()=>{throw Error('Não consultar banco');},config);
+  assert.equal(r.codigo,401);
+ }
+ for(const a of [{pessoa_id:1,de:'2026-01-01',ate:'2026-12-31'},{pessoa_id:1,de:'2026-10-01',ate:'2026-10-20',sql:'SELECT *'}])assert.throws(()=>validarFerramenta('consultar_perfil_trabalho',a));
+ assert.throws(()=>validarFerramenta('consultar_metricas_trafego',{cliente_id:10,de:'2026-10-01',ate:'2026-10-20',url:'https://outro'}));
+ assert.doesNotThrow(()=>validarFerramenta('consultar_metricas_trafego',{cliente_id:10,de:'2026-10-01',ate:'2026-10-20',modulo:'faturamento'}));
 });

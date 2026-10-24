@@ -1511,7 +1511,7 @@ test("Vybelândia: cidade sempre parada, sem vídeo, e mapa parado quando cobert
       document: { hidden: false, getElementById: () => null, querySelector: (s) => (s.includes(".ofc-lobby") ? cobertura : null) },
     });
     vm.runInContext(readFileSync("vybe-escritorio-abertura.js", "utf8").split("// Criador de personagem")[0], c);
-    vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8").match(/function mapaForaDeVista[\s\S]*?\n}\n/)[0], c);
+    vm.runInContext(readFileSync("vybe-escritorio-mapa.js", "utf8").replace(/\r\n/g,"\n").match(/function mapaForaDeVista[\s\S]*?\n}\n/)[0], c);
     return c;
   };
   const forte = cena({ hardwareConcurrency: 8, deviceMemory: 8 });

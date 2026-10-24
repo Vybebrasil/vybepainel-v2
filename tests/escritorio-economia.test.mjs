@@ -428,3 +428,12 @@ test('móveis e acabamento salvam juntos; conflito ou falta de inventário rever
  const [m]=await sql`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada='sala-0'`;
  assert.equal(Number(m.versao),salvo.versao);assert.deepEqual(m.itens,[]);
 });
+test('IA consulta perfil público de outra pessoa sem conceder saldo ou conquistas',async t=>{
+ const {sql}=await banco(t);
+ const {consultarPerfilJogo}=await import('../server/assistente-dominio.js');
+ const antes=await sql`SELECT count(*)::int AS n FROM vybe_escritorio_moedas`;
+ const r=await consultarPerfilJogo(sql,{pessoa_id:2});
+ assert.equal(r.itens[0].nome,'Jady');assert.equal(r.itens[0].saldo,0);
+ assert.deepEqual(await sql`SELECT count(*)::int AS n FROM vybe_escritorio_moedas`,antes);
+ await assert.rejects(()=>consultarPerfilJogo(sql,{pessoa_id:999}));
+});

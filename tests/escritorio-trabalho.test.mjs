@@ -22,6 +22,11 @@ test('desempenho separa papéis, deduplica reabertura e consulta recordes além 
  (6,'acao','acao_painel',NULL,'2026-10-02T01:30:00Z',1),
  (6,'premio','copa_1',NULL,'2026-10-01T12:00:00Z',500),
  (7,'alheio','peca_criacao',4,'2026-10-01T12:00:00Z',100);`);
+ await db.exec("CREATE TABLE vybe_pessoas(id bigint,nome text,ativo boolean,pode_entrar boolean);INSERT INTO vybe_pessoas VALUES(6,'Pessoa fictícia',true,true)");
+ const {consultarPerfilTrabalho}=await import('../server/assistente-dominio.js');
+ const perfil=await consultarPerfilTrabalho(sql,{pessoa_id:6,de:'2026-10-01',ate:'2026-10-23',regra:'peca_criacao',formato:'card'},new Date('2026-10-23T12:00:00Z'));
+ assert.equal(perfil.itens[0].atual.total,1);assert.equal(perfil.itens[0].xp_trabalho,31);assert.equal(perfil.itens[0].recorde.n,1);
+ await assert.rejects(()=>consultarPerfilTrabalho(sql,{pessoa_id:999,de:'2026-10-01',ate:'2026-10-23'}));
  const d=await desempenhoTrabalho(sql,6,new Date('2026-10-23T12:00:00Z'));
  assert.equal(d.funcao,'criacao');
  assert.equal(d.linhas.filter(l=>l.regra==='peca_criacao').reduce((n,l)=>n+l.n,0),2);
@@ -65,8 +70,8 @@ test('desempenho separa papéis, deduplica reabertura e consulta recordes além 
 
 });
 
-const fonte=readFileSync('vybe-escritorio-ficha.js','utf8');
-const conta=fonte.slice(fonte.indexOf('function escritorioTrabalhoConta('),fonte.indexOf('function escritorioTrabalhoHtml('));
+const fonte=readFileSync('shared/escritorio-trabalho-calculos.js','utf8')+'\n'+readFileSync('vybe-escritorio-ficha.js','utf8');
+const conta=fonte;
 const ctx=vm.createContext({});vm.runInContext(conta,ctx);
 test('médias explicitam dias úteis com zero, separam fim de semana e comparam períodos iguais',()=>{
  const d={hoje:'2026-10-23',linhas:[{dia:'2026-10-23',regra:'peca_criacao',formato:'card',n:10},{dia:'2026-10-18',regra:'peca_criacao',formato:'card',n:20},{dia:'2026-10-16',regra:'peca_criacao',formato:'card',n:5},{dia:'2026-10-23',regra:'peca_atendimento',formato:'card',n:100}]};
@@ -104,7 +109,7 @@ test('calendário mensal e personalizado preservam datas sem fuso e média móve
 test('a tela discrimina bônus e penalidade e mantém todos os papéis acessíveis sem interpolar HTML do cadastro',()=>{
  const safe=readFileSync('vybe-gestor.js','utf8').match(/function safeText\(value\) \{[\s\S]*?\n\}/)[0];
  const tela=vm.createContext({escritorio:{trabalhos:{'6':{dados:{disponivel:true,hoje:'2026-10-23',funcao:'criacao',regras:{meta_semana:'Meta da semana',criacao_alteracao:'Retorno'},atividades:[{regra:'peca_criacao',nome:'Peças feitas'}],linhas:[{dia:'2026-10-20',regra:'peca_criacao',formato:'<img onerror=alert(1)>',n:1}],recordes:[],ganhos:[{dia:'2026-10-20',regra:'peca_criacao',xp:30,eventos:1},{dia:'2026-10-20',regra:'meta_semana',xp:50,eventos:1},{dia:'2026-10-20',regra:'criacao_alteracao',xp:-7,eventos:1}]}}}},vbEstadoHtml:()=>'',vbCabecalhoHtml:()=>'<header class="vb-cabecalho"></header>'});
- vm.runInContext(safe+'\n'+fonte.slice(fonte.indexOf('function escritorioTrabalhoPeriodo('),fonte.indexOf('const ESCRITORIO_FICHA_ABAS')),tela);
+ vm.runInContext(safe+'\n'+readFileSync('shared/escritorio-trabalho-calculos.js','utf8')+'\n'+fonte.slice(fonte.indexOf('function escritorioTrabalhoPeriodo('),fonte.indexOf('const ESCRITORIO_FICHA_ABAS')),tela);
  const html=tela.escritorioTrabalhoHtml('6');
  assert.ok(html.includes('Meta da semana'));assert.ok(html.includes('Retorno'));assert.ok(html.includes('>73</th>'));
  assert.ok(html.includes('escritorioTrabalhoDetalhar'));assert.ok(html.includes('ofc-trabalho-media'));assert.ok(!html.includes('<img onerror='));

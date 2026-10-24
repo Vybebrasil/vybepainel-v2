@@ -1,4 +1,5 @@
 'use strict';
+const {falha} = require('./diagnostico.js');
 // Homologação apenas. Não possui URL padrão de produção nem recebe SQL/pessoa_id.
 class ErroVybe extends Error {
   constructor(status) { super('Consulta Vybe OS não concluída.'); this.status = status; }
@@ -40,9 +41,9 @@ async function consultaVybe({jid, consulta, codigo, contexto, ferramenta, argume
       body: JSON.stringify({jid, consulta, contexto, ...(consulta === 'operacional' ? {ferramenta, argumentos} : {}), ...(consulta === 'vinculacao_confirmar' ? {codigo} : {})})
     });
     if (!r.ok) throw new ErroVybe(r.status); // Não logar corpo remoto ou headers.
-    const data = await lerJsonLimitado(r);
-    if (data.ok !== true || (consulta === 'minhas_demandas' && !Array.isArray(data.itens))) throw new Error('Formato inválido.');
+    let data; try { data = await lerJsonLimitado(r); } catch { throw falha('FORMATO_API'); }
+    if (data.ok !== true || (['minhas_demandas','operacional'].includes(consulta) && !Array.isArray(data.itens))) throw falha('FORMATO_API');
     return data;
-  } catch (e) { if (e instanceof ErroVybe) throw e; throw new ErroVybe(502); }
+  } catch (e) { if (e instanceof ErroVybe || e.categoria) throw e; throw falha(['TimeoutError','AbortError'].includes(e.name)?'API_TIMEOUT':'API_INDISPONIVEL'); }
 }
 module.exports = {consultaVybe, configurarApi, lerJsonLimitado, ErroVybe};

@@ -1747,3 +1747,14 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   testes direcionados, sintaxe e build, sem validação visual automática.
 - Publicação autorizada por Paulo. Comparação com `origin/main` atualizada
   sem divergência; CI completo e preview serão exigidos no commit da entrega.
+
+### Portabilidade da conferência e testes — 24/10/2026
+
+- As três falhas gerais identificadas na preparação da Vybe AI eram diferenças
+  CRLF/LF do checkout Windows: nenhuma cena, mapa ou foto estava ausente.
+- O gerador preserva a quebra do arquivo existente; não foi necessário gerar
+  novamente ou alterar o desenho das cenas. Os testes de mapa/foto normalizam
+  as quebras antes de extrair as funções existentes.
+- Regressão com LF e CRLF comprova conferência sem escrita e rejeição de uma
+  cena realmente diferente. Suíte geral: 755/755. Sem alteração visual ou de
+  banco; não foi alegada uma revisão visual manual nesta etapa.

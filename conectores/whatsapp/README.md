@@ -1,62 +1,41 @@
-# Vybe AI — conector interno em simulação
+# Vybe AI — conector de consultas amplas em simulação
 
-Fonte canônica nesta branch do PR #357. Substitui os dois arquivos auditados do Windows; não cria sistema paralelo nem altera dependências do Vybe OS. Node 24, whatsapp-web.js e qrcode-terminal existentes; SQLite nativo somente para metadados locais anti-replay. Preserve package.json/package-lock/node_modules e sessão do projeto Windows ao copiar os dois arquivos.
+Esta preparação mantém a política operacional ampla aprovada para a equipe: demandas, briefings, comentários, histórico, planejamento, desempenho, ranking, XP, moedas, faturamento de clientes e módulos do VybeHub. Identidade, vínculo e participação nos grupos internos continuam obrigatórios. A política da IA não modifica permissões das telas nem concede poderes administrativos.
 
-## Estado seguro
+## Estado desta integração
 
-- SIMULACAO=true obrigatório; **não existe envio WhatsApp nesta versão**. Não há toggle de ambiente para habilitar respostas.
-- VYBE_API_HABILITADA ausente/0 bloqueia todo processamento. Até a orientação geral exige funcionário elegível no OS; o bot deixa de ter acesso genérico apenas por participação em grupo.
-- Produção e grupos de clientes não são destinos aceitos. O conector aceita o alias estável do Preview da branch e o deployment anterior desativado. Nunca usar token Production nesta entrega.
-- Oito grupos originais preservados: Produção; Correção; Saída de Publicações; #VYBE - Criação; Atendimento & Planejamento; VYBE - Geral; Mídia Paga; Diretoria.
+Código preparado na branch feature/vybe-ai-readonly-integration, somente no workspace. O bot instalado em C:\whatsapp-ia não foi substituído nem reiniciado. SIMULACAO=true está fixo no código e não existe caminho de envio WhatsApp.
 
-## Contrato com o servidor
+Os fontes ampliados dos dois servidores foram recebidos, conferidos por SHA-256 e integrados nos workspaces. O OS local oferece 15 ferramentas e os filtros situacao/secao/modulo. O Hub local oferece os 13 módulos aprovados, incluindo faturamento. O verificador offline de compatibilidade indica compativel=true. Isso não comprova que as Previews já tenham recebido o código: nenhum push/deploy ocorreu.
 
-O servidor recebe contexto fresco (30 segundos), JID da plataforma, grupos aprovados do remetente e audiência completa. IDs de grupos são aprovados em VYBE_GRUPOS_IDS no Windows e VYBE_AI_GRUPOS_IDS no servidor; nenhum nome ou resultado do modelo concede acesso. Para grupo, todos os participantes precisam de vínculo e conta ativa/com acesso, inclusive a conta conectada se ela constar na audiência. Identidades LID/c.us não são convertidas por sufixo. Participante desconhecido/inválido/duplicado bloqueia a consulta.
+Não aplicar o conector instalado antes de publicar e validar os dois servidores compatíveis em uma etapa autorizada. O servidor antigo da Preview ainda não conhece os novos filtros.
 
-O conector é um componente de confiança: o servidor não consulta o WhatsApp independentemente para comprovar a lista. Comprometer token/processo permite forjar declarações; proteger token, sessão e sistema operacional é obrigatório. Não há modo cliente habilitado.
+## O que foi reaproveitado e preservado
 
-## Configuração somente homologação (após autorização de teste)
+Reutiliza perguntarQwen, catálogo devolvido pelo servidor, autenticação da API, vínculo, grupos aprovados, fotografia completa de participantes e revalidação no fechamento. Preserva LID/telefone somente com equivalência confirmada pela plataforma, fallback de getChat, ID interno da mensagem, LocalAuth, lock, deduplicação, cooldown e leitura compatível dos grupos. A frase pessoal "demandas ... sob minha responsabilidade" também segue o caminho pessoal, sem pedir identidade ao modelo.
 
-No PowerShell do operador, sem transcrição de terminal:
+Até três chamadas de ferramenta, quatro rodadas, 150 segundos no orquestrador, 16 KB de resultados, contexto 8192 e geração 1024. Sem histórico entre conversas. O modelo não recebe acesso direto a PostgreSQL, terminal ou URL arbitrária. Ferramentas de escrita não fazem parte desta entrega de leitura.
 
-```powershell
-Set-Location C:\whatsapp-ia
-$env:VYBE_API_URL = 'https://vybepainel-v2-git-feature-vybe-ai-readonly-integration-vybe-hub.vercel.app'
-$env:VYBE_AI_BOT_TOKEN = (Get-Content -Raw 'C:\whatsapp-ia\token-vybe.txt').Trim()
-$env:VYBE_API_HABILITADA = '1'
-# Defina VYBE_GRUPOS_IDS somente com os IDs internos conferidos localmente.
-$env:VYBE_TESTE_PROPRIO = '1'
-$env:VYBE_PREVIA_LOCAL = '0'
-node bot.js
-```
+## Prévia e diagnóstico
 
-O servidor permanece desligado e sem IDs configurados nesta entrega. Retorno 503 é esperado até aprovação para ativar homologação; o Windows não consegue ativá-lo por conta própria. Nunca enviar LINK_SECRET, segredo da ponte Hub ou credencial Meta/Google ao Windows.
+Após autorização final, consultas pessoais e naturais aparecem em PREVIA_WHATSAPP_SIMULACAO no CMD. A prévia usa resultados autorizados, sem incorporar o rascunho livre do Qwen como evidência. Os campos aprovados incluem nomes operacionais, briefing, comentários, histórico, planejamento e métricas amplas. Credenciais, sessões e segredos técnicos não são campos autorizados.
 
-Para levantar os oito grupos sem autorizar por nomes: VYBE_LISTAR_GRUPOS=1 escreve `.vybe-ai-local/grupos-encontrados.json` no evento ready. Revise IDs no WhatsApp, configure os aprovados e desative a listagem. O arquivo contém metadados privados, não deve ir ao Git. QR somente com VYBE_MOSTRAR_QR=1 em terminal privado.
+O pacote recebido desabilitava a prévia padrão e reintroduzia gravação em arquivo. Essas regressões foram corrigidas na preparação. Não há gravação de respostas pela aplicação, mesmo com VYBE_PREVIA_LOCAL=1. Permanecem somente os metadados do ledger e os mecanismos de sessão existentes. Use terminal privado, sem transcrição ou redirecionamento.
 
-## Uso
+Diagnósticos têm categorias fixas, como erro_ARGUMENTOS_REJEITADOS, erro_OLLAMA_TIMEOUT, erro_MODELO_VAZIO e erro_AUTORIZACAO. Não imprimir mensagens brutas de exceção, perguntas, resultados, tokens ou credenciais. O diagnóstico pessoal de quantidade e limite foi preservado.
 
-- `!vybe <pergunta livre>`: linguagem natural, consulta ferramentas do servidor quando necessário e fundamenta estratégia em fontes operacionais permitidas.
-- `!vybe vincular <codigo>`: caminho determinístico, somente no privado, sem passar código ao modelo. Habilitar API pode escrever vínculo exclusivamente na homologação; simulação significa não enviar respostas, não significa impedir confirmação de vínculo.
-- `!vybe quais minhas demandas de hoje?`: caminho pessoal determinístico em privado ou grupo autorizado. Usa a ferramenta `minhas_demandas`, sem enviar ID de pessoa/responsável ao servidor e sem chamar o Qwen. “Hoje” é calculado no servidor em America/Bahia; sem “hoje”, retorna o recorte pessoal geral. Uma tentativa de sugerir outro ID na mesma pergunta não muda o titular. A ferramenta de equipe continua disponível nas perguntas operacionais gerais.
-- Comando próprio só em conversa consigo mesmo e com teste explícito; comandos próprios em grupos/terceiros continuam bloqueados para evitar ciclos. Mensagens recebidas de colegas nos oito grupos são suportadas com audiência autorizada.
+## Testes sem WhatsApp ou banco real
 
-## Contexto e envio
+Node 24: node --test conector.test.js. Os testes usam mensagens, APIs e respostas do modelo fictícias, com SQLite local descartável ou em memória. Importar bot.js não inicializa WhatsApp. Não é necessário instalar novas bibliotecas para essa suíte.
 
-Qwen3.5:35b-a3b no Ollama em loopback; até três ferramentas por pergunta, quatro rodadas, 16 KB acumulados de resultados, num_ctx 8192, num_predict 1024 e prazo total aproximado de 150 segundos mais eventuais validações em trânsito. Sem histórico entre mensagens/funcionários/grupos. Dados autorizados e instruções do usuário são entradas não confiáveis, não alteram ferramentas ou permissões. Não há SQL, URL arbitrária ou ações de escrita disponíveis ao modelo.
+No repositório do OS: node --test tests/assistente-*.test.mjs. O verificador offline node scripts/assistente-verificar-compatibilidade.mjs lista contratos que faltam; saída compativel=false bloqueia a conclusão técnica de integração, não altera autorização de ninguém.
 
-Revalida audiência e vínculo a cada ferramenta e antes de preparar resultado. Mudança de participantes descarta resposta. Fontes são anexadas pelos IDs devolvidos pelo servidor; fatos não consultados não devem ser tratados como comprovados. Prompt estratégico é orientação, não garantia de acerto; revisão humana continua necessária.
+## Ordem de implantação futura, mediante autorização
 
-Terminal só mostra categorias fixas. A resposta não é enviada nem gravada por padrão. VYBE_PREVIA_LOCAL=1 permite ao operador vinculado conferir a própria resposta no arquivo privado `.vybe-ai-local/previa-local.txt`; isso pode conter dados operacionais autorizados, exige ACL, conteúdo fictício e limpeza posterior. Não salvar prompts, códigos, tokens ou logs de respostas. Proteger token-vybe.txt, `.wwebjs_auth`, `.wwebjs_cache` e estado com ACL Windows; mode/chmod não substitui ACL.
+1. Revisar os diffs já integrados nas branches de desenvolvimento e concluir a validação de cada servidor. O contrato local já é compatível; resolver as pendências de CI registradas no relatório.
+2. Publicar primeiro o Hub em Preview. Preparar a ponte entre servidores com credencial própria, correspondência exata de clientes e nenhuma reutilização do token do bot ou cookies administrativos.
+3. Publicar o OS compatível em Preview. Revalidar o banco isolado e os vínculos/configurações de homologação; testar o fluxo OS → Hub e os módulos ampliados.
+4. Só então aplicar as edições revisadas no Windows, preservando dependências, sessão, credenciais, ledger e lock. Reinício exige autorização específica; não iniciar segunda instância.
+5. Validar Fases 1/2 e consultas amplas em simulação, primeiro com dados fictícios. Não gerar códigos nem revincular a conta já vinculada sem necessidade/autorização.
 
-Ledger SQLite persiste somente hashes/estado/horários/cooldown, nunca conteúdo. Reserva é atômica e não é retomada automaticamente. Cooldown 10 s, até 20 trabalhos/minuto e dois trabalhos ativos. Uma instância por pasta, lock de execução; após queda só remover lock depois de confirmar que processo terminou. Não operar cópias independentes da mesma sessão. Não apagar ledger para repetir mensagem; envie um comando novo.
-
-Preparação para envio futuro: retorno final autorizado, audiência estável e evento deduplicado estão definidos. Persistência de estados enviado/incerto, reconciliação com ID WhatsApp e nova auditoria ainda são obrigatórias antes de adicionar envio. Não existe garantia de exactly-once para mensagens externas. Esta versão deliberadamente não contém msg.reply/sendMessage.
-
-## Testes
-
-`node --test conector.test.js` não inicializa WhatsApp nem usa rede real. O CI do Vybe OS importa a mesma suíte. Testar depois no Node 24/Windows: IDs reais, participação completa, código privado, revogação, reconexão, duplicatas e ausência de logs/envios. Alterar o modelo ou atualizar dependências exige nova verificação, não está incluído nesta entrega.
-
-## Elegibilidade automática
-
-Não há lista manual de pessoas. A variável antiga VYBE_AI_PESSOAS_LIBERADAS é ignorada, sem precisar editá-la nesta etapa. Todos os funcionários com conta ativa/com acesso no OS, vínculo individual e participação verificada em grupo interno aprovado são elegíveis quando a integração for autorizada/ativada globalmente. Ser membro de grupo sem vínculo/conta não basta. Os IDs aprovados dos grupos permanecem explícitos; não se autoriza por nome livre nem por ID escrito na mensagem.
+Não foram executados push, deploy, merge, migração, alterações de banco, configuração ou produção. Detalhes de cobertura e dependências: docs/vybe-ai-operacional.md.

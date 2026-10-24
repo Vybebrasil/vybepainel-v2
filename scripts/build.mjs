@@ -31,7 +31,7 @@ const estilo = await asset(css.code, 'css');
 const appearance = await transform(await readFile('vybe-appearance.css','utf8'), { loader: 'css', minify: true });
 const appearancePath = await asset(appearance.code, 'css', 'appearance');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
-  [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,''))])));
+  [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
 html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
   (_,fonte) => `<script defer src="${caminhos.get(fonte)}"></script>`);
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath);

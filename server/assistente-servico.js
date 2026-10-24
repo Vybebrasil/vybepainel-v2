@@ -36,7 +36,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     }
     if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
       const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
-      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'operacional-interna-1',max_ferramentas:3});
+      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'equipe-ampla-2',max_ferramentas:3});
       return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});
     }
     if (consulta === 'minhas_demandas') {
@@ -47,6 +47,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
   } catch (erro) {
     if (erro.codigo === 'WHATSAPP_NAO_VINCULADO') return res.status(403).json({error:'Conta WhatsApp não vinculada.'});
     if (erro.status === 403) return res.status(403).json({error:'Conversa ou participantes não autorizados.'});
+    if (erro.status === 413) return res.status(413).json({error:'Recorte excede o limite; reduza a quantidade ou consulte outra seção.'});
     if (erro instanceof TypeError) return res.status(400).json({ error: 'Parâmetros inválidos.' });
     return res.status(503).json({ error: 'Não foi possível concluir a consulta.' });
   }

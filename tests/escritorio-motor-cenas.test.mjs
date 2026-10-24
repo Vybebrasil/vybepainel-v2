@@ -4,6 +4,9 @@ import { execFileSync } from "node:child_process";
 import { novaCena, frente, peca } from "../scripts/escritorio-construcao.mjs";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 test("o que vai em cima apoia no topo do de baixo, e só onde a ficha deixa", () => {
   const s = novaCena("t", { w: 8, h: 8 });
@@ -55,6 +58,25 @@ test("itens de parede ganham espaço pela arte e recusam o que não cabe", () =>
 test("as cenas geradas estão em dia com as descrições", () => {
   const saida = execFileSync("node", ["scripts/escritorio-compor.mjs", "--conferir"], { encoding: "utf8" });
   assert.match(saida, /em dia/);
+});
+
+test("conferência de cenas aceita LF e CRLF sem escrever nem ocultar uma cena diferente", () => {
+  const pasta=mkdtempSync(join(tmpdir(),'vybe-cenas-eol-'));
+  const script=resolve('scripts/escritorio-compor.mjs');
+  try {
+    mkdirSync(join(pasta,'scripts/cenas'),{recursive:true});
+    writeFileSync(join(pasta,'scripts/cenas/teste.mjs'),'export default ()=>({moveis:[["ficticio",1,1,0,0,0]],figurantes:[],erros:[]});');
+    const bloco='// <cenas-compostas> (gerado por scripts/escritorio-compor.mjs; não edite à mão)\nconst ESCRITORIO_CENAS_COMPOSTAS = {\n  teste: {\n    moveis: [\n      ["ficticio",1,1,0,0,0],\n    ],\n    figurantes: [],\n  },\n};\n// </cenas-compostas>';
+    const arquivo=join(pasta,'vybe-escritorio-planta.js');
+    for(const quebra of ['\n','\r\n']) {
+      const conteudo=('// antes\n'+bloco+'\n// depois\n').replace(/\n/g,quebra);
+      writeFileSync(arquivo,conteudo);
+      assert.match(execFileSync(process.execPath,[script,'--conferir'],{cwd:pasta,encoding:'utf8'}),/em dia/);
+      assert.equal(readFileSync(arquivo,'utf8'),conteudo,'conferir não grava o arquivo');
+      writeFileSync(arquivo,conteudo.replace('figurantes: []','figurantes: [{}]'));
+      assert.throws(()=>execFileSync(process.execPath,[script,'--conferir'],{cwd:pasta,stdio:'pipe'}));
+    }
+  } finally { rmSync(pasta,{recursive:true,force:true}); }
 });
 
 test("revestimento: altura pelo desenho, por baixo dos quadros e só onde cabe", () => {

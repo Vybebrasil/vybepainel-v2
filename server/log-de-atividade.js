@@ -15,7 +15,7 @@
 // de não sair.
 export const LIMITE_DO_LOG = 1000;
 
-export async function logDaPeca(sql, conteudoId) {
+export async function logDaPeca(sql, conteudoId, { estrito = false } = {}) {
   const id = Number(conteudoId);
   const [eventos, execucoes, comentariosDoMonday] = await Promise.allSettled([
     sql`SELECT e.tipo, e.de, e.para, e.texto, e.em,
@@ -33,6 +33,7 @@ export async function logDaPeca(sql, conteudoId) {
          WHERE u.conteudo_id = ${id} AND u.monday_update_id IS NOT NULL AND u.criado_em IS NOT NULL
          ORDER BY u.criado_em DESC LIMIT 200`,
   ]);
+  if (estrito && [execucoes,comentariosDoMonday].some(x=>x.status!=='fulfilled')) throw new Error('Histórico complementar indisponível.');
   if (eventos.status !== 'fulfilled') throw eventos.reason;
   const texto = (v) => (v === null || v === undefined ? null : String(v));
   const itens = eventos.value.map((e) => ({
