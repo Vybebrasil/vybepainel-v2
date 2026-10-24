@@ -1,4 +1,5 @@
 // Adaptado do motor RealtimeKit do VybeChat; credenciais ficam no servidor.
+import { exigirSaidaExternaAtiva } from './homologacao.js';
 function realtimeKitConfig(env) {
   const accountId = String(env?.CLOUDFLARE_ACCOUNT_ID ?? "").trim();
   const appId = String(env?.REALTIMEKIT_APP_ID ?? "").trim();
@@ -16,6 +17,7 @@ function realtimeKitConfig(env) {
 }
 
 async function realtimeKitRequest(env, pathname, init = {}) {
+  exigirSaidaExternaAtiva();
   const config = realtimeKitConfig(env);
   // Error() ignora o segundo argumento: status e código vão como propriedades,
   // para a rota responder 503/502 em vez de 500 genérico.
@@ -52,6 +54,7 @@ export async function prepararChamadaEscritorio(
   sala,
   env = process.env,
 ) {
+  exigirSaidaExternaAtiva();
   // A conversa por voz é da zona do mapa (sala individual ou espaço).
   const { SALAS_ESCRITORIO, ZONAS_ESCRITORIO } = await import("./escritorio.js");
   // "escritorio": a conversa única dos espaços abertos (cada um só ouve quem

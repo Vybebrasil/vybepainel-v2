@@ -1,17 +1,41 @@
 // Ponte de servidor para o BI existente do VybeHub. Não usa sessão de cliente,
 // token do bot, PORTAL_CHAVE ou credenciais Meta/Google.
+import { previewVybeAiIsolada } from './homologacao.js';
+
+function headersDaPonte(base, config, segredo) {
+ const headers = { Authorization: 'Bearer ' + segredo };
+ // O bypass do Hub nunca e o bypass do proprio projeto OS, nem vai em URLs.
+ // Fora desta branch, o contrato anterior permanece inalterado.
+ if (!previewVybeAiIsolada(config)) return headers;
+ const bypass = config.VYBE_AI_HUB_VERCEL_BYPASS_SECRET;
+ if (typeof bypass !== 'string' || !/^[A-Za-z0-9_-]{32}$/.test(bypass) || bypass === segredo ||
+     config.VYBE_AI_HUB_VERCEL_BYPASS_ORIGIN !== base.origin) {
+  throw Object.assign(new Error('Acesso protegido ao Hub não configurado para esta Preview.'), { status: 503 });
+ }
+ headers['x-vercel-protection-bypass'] = bypass;
+ return headers;
+}
+
 export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  if(config.VYBE_AI_HUB_ATIVO!=='1')throw Object.assign(new Error('Métricas do VybeHub ainda não configuradas neste ambiente.'),{status:503});
  let base,mapa;try{base=new URL(config.VYBE_AI_HUB_URL);mapa=JSON.parse(config.VYBE_AI_HUB_CLIENTES||'{}');}catch{throw new TypeError('Configuração do Hub inválida.');}
  if(base.protocol!=='https:'||base.username||base.password||base.port||base.pathname!=='/'||base.search||base.hash||!/^vybehub-[a-z0-9-]+-vybe-hub\.vercel\.app$/.test(base.hostname)||base.hostname.includes('-git-main-'))throw new TypeError('Use um Preview autorizado do VybeHub.');
  const segredo=config.VYBE_OS_METRICAS_TOKEN;
  if(!/^[A-Za-z0-9_-]{48,256}$/.test(segredo||''))throw new TypeError('Ponte de métricas não configurada.');
+ const headers = headersDaPonte(base, config, segredo);
  const slug=mapa[String(a.cliente_id)];if(typeof slug!=='string'||!/^[-a-z0-9]{1,80}$/.test(slug))throw new TypeError('Cliente sem correspondência aprovada no VybeHub.');
  const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${a.cliente_id} AND COALESCE(ativo,true)`;
  if(!cliente)throw new TypeError('Cliente inválido.');
  const modulo=a.modulo||'trafego',limite=a.limite||25,offset=a.deslocamento||0;
  const input=JSON.stringify({json:{slug,cliente_nome:cliente.nome,since:a.de,until:a.ate,modulo,limite,deslocamento:offset}});
- const r=await buscar(base.origin+'/api/trpc/portal.metricasOperacionais?input='+encodeURIComponent(input),{headers:{Authorization:'Bearer '+segredo},redirect:'error',signal:AbortSignal.timeout(10000)});
+ let r;
+ try {
+  r=await buscar(base.origin+'/api/trpc/portal.metricasOperacionais?input='+encodeURIComponent(input),{headers,redirect:'error',signal:AbortSignal.timeout(10000)});
+ } catch (erro) {
+  if (!previewVybeAiIsolada(config)) throw erro;
+  // Não propagar erros do transporte que possam carregar URL ou headers.
+  throw Object.assign(new Error('Não foi possível consultar as métricas do VybeHub.'),{status:503});
+ }
  if(!r.ok)throw Object.assign(new Error('Não foi possível consultar as métricas do VybeHub.'),{status:503});
  if(Number(r.headers.get('content-length')||0)>131072)throw new TypeError('Resposta excede limite.');
  const reader=r.body.getReader();let total=0;const partes=[];

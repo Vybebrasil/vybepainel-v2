@@ -2,13 +2,16 @@
 // e a senha de app ficam só nas variáveis da Vercel (GMAIL_USUARIO e
 // GMAIL_SENHA_APP); nada disso passa pelo navegador nem pelo banco.
 import nodemailer from 'nodemailer';
+import { exigirSaidaExternaAtiva, previewVybeAiIsolada } from './homologacao.js';
 
 let transporte = null;
 export function emailConfigurado() {
+ if (previewVybeAiIsolada()) return false;
  return Boolean(process.env.GMAIL_USUARIO && process.env.GMAIL_SENHA_APP);
 }
 const enderecoValido = (v) => /^[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]+$/.test(String(v || '').trim());
 export async function enviarEmail({ para, assunto, html, texto }) {
+ exigirSaidaExternaAtiva();
  if (!emailConfigurado()) throw Object.assign(new Error('O e-mail do painel ainda não foi configurado.'), { status: 503 });
  const destinos = String(para || '').split(/[;,]/).map((e) => e.trim()).filter(enderecoValido);
  if (!destinos.length) throw Object.assign(new Error('O cliente não tem e-mail válido no cadastro.'), { status: 400 });
