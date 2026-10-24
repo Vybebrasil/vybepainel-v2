@@ -61,7 +61,10 @@ export async function consumirCodigo(sql, jid, codigo, segredo) {
   // A API chamadora precisa aplicar rate limit e restringir ao privado.
   const { createHmac } = await import('node:crypto');
   const codigoHash = createHmac('sha256', segredo).update('codigo:v1:' + codigo).digest('hex');
-  return sql.comTransacao(async tx => {
+  // A recusa do vínculo precisa reverter também o UPDATE do desafio na CTE.
+  // Retornar false dentro da transação confirmaria um consumo sem vínculo.
+  const vinculoRecusado = new Error('Vínculo recusado.');
+  try { return await sql.comTransacao(async tx => {
     // Mesma trava da emissão e revogação: nenhuma confirmação pendente
     // pode ressuscitar o vínculo depois de uma revogação concorrente.
     const pessoas = await tx`SELECT p.id FROM vybe_pessoas p JOIN vybe_ai_desafios d ON d.pessoa_id=p.id
@@ -79,12 +82,17 @@ export async function consumirCodigo(sql, jid, codigo, segredo) {
       ), vinculo AS (
         INSERT INTO vybe_ai_vinculos (pessoa_id, jid_hash)
         SELECT pessoa_id, ${jidHash} FROM consumido
-        ON CONFLICT (jid_hash) DO UPDATE SET revogado_em=NULL, criado_em=NOW()
-        WHERE vybe_ai_vinculos.pessoa_id=EXCLUDED.pessoa_id AND vybe_ai_vinculos.revogado_em IS NOT NULL
+        ON CONFLICT (jid_hash) DO UPDATE SET revogado_em=NULL,
+          criado_em=CASE WHEN vybe_ai_vinculos.revogado_em IS NOT NULL THEN NOW() ELSE vybe_ai_vinculos.criado_em END
+        WHERE vybe_ai_vinculos.pessoa_id=EXCLUDED.pessoa_id
         RETURNING pessoa_id
       )
       SELECT pessoa_id FROM vinculo
     `;
-    return linhas.length === 1;
-  });
+    if (linhas.length !== 1) throw vinculoRecusado;
+    return true;
+  }); } catch (erro) {
+    if (erro === vinculoRecusado) return false;
+    throw erro;
+  }
 }
