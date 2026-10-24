@@ -391,3 +391,36 @@ Sintaxe e build aprovados. Inspeção automatizada bloqueada; não declarar revi
 automática de celular/Safari ou medição de latência. Sem migração, escrita em
 produção, mudança de pagamentos ou recálculo histórico. Publicação depende da
 CI completa e preview do commit exato.
+
+## Vybe AI — investigação do PR #357 (23/10/2026)
+
+- Somente branch `feature/vybe-ai-readonly-integration`; main não alterada.
+- Preview e Production compartilham DATABASE_URL para esta branch. Nenhuma
+  migração ou escrita foi realizada no banco remoto.
+- Evidência por SELECT: relações de vínculos/desafios ausentes; consulta do
+  vínculo retorna SQLSTATE 42P01. Schema de pessoas com ID bigint e flags
+  boolean compatível com a migração, testada em PostgreSQL local isolado.
+- Negação 403 sem tabela de vínculos e propagação de outros erros como 503
+  verificadas no handler real com PostgreSQL isolado. Sem criar vínculo fictício
+  no banco compartilhado, sem ler demandas reais para testar.
+- 26 testes focados de assistente aprovados, incluindo autenticação, sessão,
+  origem, códigos, concorrência, expiração, permissões e múltiplos clientes.
+- Token de Preview é sensível e não recuperável via API. Teste remoto com
+  credencial válida depende do bot já configurado; não considerar esse trecho
+  aprovado somente por testes locais. Preview novo aguardando CI/build.
+
+## Vybe AI — Neon isolado preparado (23/10/2026)
+
+- Recurso novo `vybe-ai-homologacao`, Free/gru1, projeto
+  `blue-pine-55207839`, distinto do projeto principal.
+- Schema público copiado em leitura de produção, sem registros pessoais;
+  configurações de status/catálogo copiadas separadamente. A migração de
+  vínculos/desafios foi aplicada apenas nesse destino isolado.
+- Duas contas fictícias, ambas sem administração, e duas demandas de teste.
+- DATABASE_URL e segredos próprios de homologação configurados somente para
+  a branch do PR #357 em Preview. Nenhum override de Production alterado.
+- Roteiros de migração e HTTP recusam endpoint de banco/domínio de produção.
+  Testes locais do assistente: 33 aprovados. Novo Preview aguardando CI e
+  execução do roteiro HTTP; evidências finais serão registradas no PR.
+- Escritório/Vybelândia/jogos não foram editados. A conferência cobre APIs e
+  regressões automatizadas, sem alegar aprovação visual nem teste de voz/vídeo.

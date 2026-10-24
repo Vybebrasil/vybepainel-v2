@@ -32,7 +32,7 @@ test('Todos na busca usa total de atividades, não soma vínculos de clientes',(
 });
 
 function conta(fetch) {
- const root={innerHTML:''};const c=vm.createContext({fetch,console,document:{getElementById:()=>root},sessaoAtual:()=>({admin:true}),safeText});
+ const root={innerHTML:''};const c=vm.createContext({fetch,console,clearTimeout,setTimeout,document:{getElementById:()=>root},sessaoAtual:()=>({admin:true}),safeText});
  vm.runInContext(fonte('vybe-conta.js'),c);vm.runInContext('pintarConta=()=>{}',c);return c;
 }
 test('Conta distingue rede, HTTP, resposta incompleta e lista vazia; retry limpa erro',async()=>{

@@ -1,3 +1,4 @@
+import { pessoaLiberadaAssistente } from '../server/assistente-ativacao.js';
 import { areaEscritorio } from '../server/escritorio.js';
 import { areaConvite, convidadoDoCookie } from '../server/escritorio-convite.js';
 import { resolverBriefing, MARCAS_BRIEFING } from '../server/briefing.js';
@@ -28,6 +29,10 @@ import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
 import { quemChama } from '../vybe_acesso.js';
+import { minhasDemandas } from '../server/assistente-consultas.js';
+import { emitirCodigo, estadoVinculacao, revogarVinculacao, limiteCodigosVinculacao } from '../server/assistente-vinculacao-fluxo.js';
+import { atenderBotAssistente } from '../server/assistente-servico.js';
+import { diagnosticoBancoAssistente, diagnosticoBancoBotAssistente } from '../server/assistente-diagnostico-banco.js';
 import { agruparHistorico } from '../server/historico.js';
 import { listarPessoas, definirSenha, definirAcesso, trocarPropriaSenha, assinarSessao, cabecalhoDeCookie } from '../vybe_sessao.js';
 import { listarSnapshots, obterSnapshot, registrarSnapshotOperacional, excluirSnapshot, obterBaseResumo, registrarBaseResumo } from '../vybe_observabilidade.js';
@@ -1654,7 +1659,43 @@ async function areaRoteiros(req,res,quem) {
   } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
 }
 
-const AREAS = { escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Primeira consulta da Vybe AI: somente usuário autenticado por sessão.
+// Este acesso NÃO é uma credencial de serviço para o bot de WhatsApp.
+export async function areaAssistente(req, res, quem, criarBanco = sql) {
+  if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'É necessária uma sessão pessoal.' });
+  if (req.query?.consulta === 'minhas_demandas' && !await pessoaLiberadaAssistente(criarBanco(), Number(quem.pessoa.id)))
+    return res.status(403).json({error:'Vybe AI não liberada para esta conta.'});
+  if (req.method === 'GET' && req.query?.consulta === 'minhas_demandas')
+    return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), Number(quem.pessoa.id))) });
+  const consulta = req.query?.consulta;
+  if (req.method === 'GET' && consulta === 'vinculacao_status') {
+    try {
+      const estado = await estadoVinculacao(criarBanco(), Number(quem.pessoa.id));
+      return res.status(200).json({ok:true,...estado,pode_gerar:await pessoaLiberadaAssistente(criarBanco(), Number(quem.pessoa.id)) && estado.disponivel && (process.env.VYBE_AI_LINK_SECRET || '').length >= 32});
+    } catch { return res.status(503).json({error:'Não foi possível consultar a vinculação.'}); }
+  }
+  if (req.method === 'POST' && ['vinculacao_iniciar','vinculacao_revogar'].includes(consulta)) {
+    const origem = String(req.headers?.origin || '');
+    const destino = String(req.headers?.host || '');
+    if (!origem || !destino || !['https://' + destino, 'http://localhost:4321'].includes(origem))
+      return res.status(403).json({ error: 'Origem não autorizada.' });
+    try {
+      const banco=criarBanco(), pessoaId=Number(quem.pessoa.id);
+      if (!(await estadoVinculacao(banco,pessoaId)).disponivel)
+        return res.status(503).json({error:'Vinculação ainda não provisionada neste ambiente.'});
+      if (consulta === 'vinculacao_revogar') return res.status(200).json({ok:true,...await revogarVinculacao(banco,pessoaId)});
+      if (!await pessoaLiberadaAssistente(banco,pessoaId)) return res.status(403).json({error:'Vybe AI não liberada para esta conta.'});
+      const segredo = process.env.VYBE_AI_LINK_SECRET;
+      if (!segredo || segredo.length < 32) return res.status(503).json({error:'Integração ainda não configurada.'});
+      const desafio=await emitirCodigo(banco,pessoaId,segredo);
+      if (!desafio) return res.status(429).json({error:`Código indisponível. Limite de ${limiteCodigosVinculacao()} códigos por hora; tente mais tarde.`});
+      return res.status(200).json({ok:true,...desafio});
+    } catch { return res.status(503).json({error:'Não foi possível atualizar a vinculação.'}); }
+  }
+  return res.status(405).json({ error: 'Operação não habilitada.' });
+}
+
+const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 
@@ -1663,6 +1704,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
+
+  // Diagnóstico técnico separado: apenas metadados, com token próprio do bot.
+  // Produção, outras branches e flag de homologação ausente negam antes do banco.
+  if (req.query?.area === 'assistente' && req.query?.consulta === 'diagnostico_banco_bot')
+    return diagnosticoBancoBotAssistente(req, res, sql);
+
+  // Antes dos caminhos de bot, serviço e manutenção: somente sessão pessoal
+  // administrativa em Preview; fora dela retorna 404 sem acessar o banco.
+  if (req.query?.area === 'assistente' && req.query?.consulta === 'diagnostico_banco')
+    return diagnosticoBancoAssistente(req, res, sql);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -1681,6 +1732,8 @@ export default async function handler(req, res) {
   if (areaPublica === 'escritorio' && req.method === 'GET' && ['arte', 'boneco', 'imagem'].includes(String(req.query?.acao || ''))
       && !String(req.headers?.cookie || '').includes('vybe_sessao=') && convidadoDoCookie(req))
     return areaEscritorio(req, res, { tipo: 'sessao', pessoa: null }, sql());
+  // Integração exclusivamente privada do WhatsApp: token próprio, sem poderes admin.
+  if (areaPublica === 'assistente' && req.query?.canal === 'bot') return atenderBotAssistente(req, res, sql);
   if (areaPublica === 'agentes') {
     try { return await conectorAgentes(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }
