@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emitirCodigo, consumirCodigo } from '../server/assistente-vinculacao-fluxo.js';
+import { emitirCodigo, consumirCodigo, limiteCodigosVinculacao } from '../server/assistente-vinculacao-fluxo.js';
 
 const segredo = 'segredo-ficticio-de-mais-de-trinta-e-dois-caracteres';
 
@@ -40,4 +40,12 @@ test('o consumo exige atualização de código não utilizado e vínculo único'
   };
   sql.comTransacao=fn=>fn(sql);
   assert.equal(await consumirCodigo(sql, '123456789@lid', 'a'.repeat(20), segredo), true);
+});
+
+
+test('limite de emissão é 30 somente no Preview e 3 nos demais ambientes', async () => {
+  assert.equal(limiteCodigosVinculacao('preview'), 30);
+  assert.equal(limiteCodigosVinculacao('production'), 3);
+  assert.equal(limiteCodigosVinculacao('development'), 3);
+  assert.equal(limiteCodigosVinculacao('test'), 3);
 });
