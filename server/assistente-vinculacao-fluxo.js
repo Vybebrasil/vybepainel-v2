@@ -30,6 +30,10 @@ export async function revogarVinculacao(sql, pessoaId) {
   });
 }
 
+export function limiteCodigosVinculacao(ambiente = process.env.VERCEL_ENV) {
+  return ambiente === 'preview' ? 30 : 3;
+}
+
 export async function emitirCodigo(sql, pessoaId, segredo, agora = Date.now()) {
   if (!Number.isSafeInteger(pessoaId) || pessoaId <= 0) throw new TypeError('Pessoa inválida.');
   const desafio = criarDesafioVinculacao(segredo, agora);
@@ -41,7 +45,7 @@ export async function emitirCodigo(sql, pessoaId, segredo, agora = Date.now()) {
       WHERE p.id = ${pessoaId} AND p.ativo IS TRUE AND p.pode_entrar IS TRUE
         AND p.senha_hash IS NOT NULL
         AND (SELECT COUNT(*) FROM vybe_ai_desafios d
-             WHERE d.pessoa_id = p.id AND d.criado_em > NOW() - INTERVAL '1 hour') < 3
+             WHERE d.pessoa_id = p.id AND d.criado_em > NOW() - INTERVAL '1 hour') < ${limiteCodigosVinculacao()}
       RETURNING id
     `;
     if (linhas.length !== 1) return null;
