@@ -12,6 +12,16 @@ const CAMPOS=Object.freeze({disponivel:'Fonte disponível',objective:'Objetivo',
  campaign:'Campanha',date:'Data',reach:'Alcance (sem somar)',impressions:'Impressões',
  amountSpent:'Investimento',linkClicks:'Cliques',results:'Resultados',resultType:'Tipo de resultado',
  costPerResult:'Custo por resultado',cpm:'CPM',cpc:'CPC',messagingConversations:'Conversas'});
+function dataMetricaLegivel(valor){
+ // O BI representa o dia em UTC. Usar o fuso do PC deslocaria meia-noite
+ // para o dia anterior; a conversão aqui é só de apresentação.
+ if(typeof valor==='number'){
+  const data=new Date(valor);
+  if(!Number.isFinite(data.getTime()))throw Error('Data de métricas inválida.');
+  return prazoLegivel(data.toISOString().slice(0,10));
+ }
+ return prazoLegivel(valor);
+}
 function formatarPreviaNatural(resultados){
  if(!Array.isArray(resultados)||resultados.length>3)throw Error('Resultado operacional inválido.');
  if(!resultados.length)return 'Não consultei dados do Vybe OS para confirmar essa resposta. Reformule a pergunta indicando o que deseja consultar.';
@@ -30,7 +40,7 @@ function formatarPreviaNatural(resultados){
     const v=item[chave];if(v===null||v===undefined)continue;
     if(compostos.has(chave)&&typeof v==='object'){campos.push(rotulo+': '+detalhes(v));continue;}
     if(typeof v!=='string'&&typeof v!=='boolean'&&!(typeof v==='number'&&Number.isFinite(v)))throw Error('Resultado operacional inválido.');
-    campos.push(rotulo+': '+(typeof v==='number'?String(v):typeof v==='boolean'?(v?'Sim':'Não'):limparCampo(v,['resumo','corpo','texto'].includes(chave)?1200:180)));
+    campos.push(rotulo+': '+(chave==='date'?dataMetricaLegivel(v):typeof v==='number'?String(v):typeof v==='boolean'?(v?'Sim':'Não'):limparCampo(v,['resumo','corpo','texto'].includes(chave)?1200:180)));
    }
    for(const k of compostos)if(k!=='briefing'&&item[k]&&typeof item[k]==='object')campos.push(k+': '+detalhes(item[k]));
    if(nome==='buscar_demandas'||nome==='detalhar_demanda'&&(!dados.secao||dados.secao==='ficha')){

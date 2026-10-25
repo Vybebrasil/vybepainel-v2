@@ -448,3 +448,19 @@ test('prévia preserva marca fixa de fixtures, inclusive vazias, sem copiar obse
  const real=formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados:{ok:true,itens:[],origem_dados:'meta',observacao:'DADOS FICTÍCIOS DE HOMOLOGAÇÃO'}}]);
  assert.ok(!real.includes('DADOS FICTÍCIOS DE HOMOLOGAÇÃO'));
 });
+
+test('data das métricas usa DD/MM/AAAA sem deslocar o dia UTC nem alterar dados e valores',()=>{
+ for(const date of [1792800000000,'2026-10-24',Date.UTC(2026,9,24,23,59,59)]){
+  const dados={ok:true,origem_dados:'homologacao_fixture',itens:[{date,amountSpent:25,reach:800,impressions:1000,dateLabel:'Período original'}]};
+  const original=structuredClone(dados);
+  const texto=formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados}]);
+  assert.match(texto,/Data: 24\/10\/2026/);assert.match(texto,/DADOS FICTÍCIOS DE HOMOLOGAÇÃO/);
+  assert.match(texto,/Investimento: 25/);assert.match(texto,/Alcance \(sem somar\): 800/);
+  assert.match(texto,/Impressões: 1000/);assert.match(texto,/Período: Período original/);
+  assert.deepEqual(dados,original);
+ }
+ const render=date=>formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados:{ok:true,itens:[{date}]}}]);
+ assert.match(render(Date.UTC(2024,1,29)),/29\/02\/2024/);
+ for(const date of [1e30,'2026-02-30','inválida'])assert.throws(()=>render(date));
+ assert.doesNotMatch(formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados:{ok:true,itens:[{date:null,amountSpent:25}]}}]),/Data:/);
+});
