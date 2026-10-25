@@ -43,7 +43,8 @@ function formatarPreviaNatural(resultados){
    }
    return (i+1)+'. '+(campos.join('\n   ')||'Registro autorizado; detalhes não disponíveis nesta prévia.');
   });
-  return SECOES[nome]+':\n'+(linhas.join('\n\n')||'Nenhum registro retornado neste recorte.')+
+  const avisoFixture = dados.origem_dados === 'homologacao_fixture' ? 'DADOS FICTÍCIOS DE HOMOLOGAÇÃO\n' : '';
+  return avisoFixture+SECOES[nome]+':\n'+(linhas.join('\n\n')||'Nenhum registro retornado neste recorte.')+
    (dados.limitado===true?'\nEsta lista pode estar incompleta.':'');
  });
  const exibidos=[];

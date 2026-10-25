@@ -438,3 +438,13 @@ test('integração: callback padrão continua emitindo bloco CMD sem caminho de 
  const fs=require('node:fs'),path=require('node:path');const fonte=fs.readFileSync(path.join(__dirname,'bot.js'),'utf8');
  assert.ok(fonte.includes('previaWhatsapp = exibirPreviaWhatsapp'));assert.ok(!fonte.includes('previa-local.txt'));assert.ok(!fonte.includes('await previa(texto)'));assert.ok(!/\b(?:sendMessage|reply)\s*\(/.test(fonte));assert.equal(SIMULACAO,true);
 });
+
+test('prévia preserva marca fixa de fixtures, inclusive vazias, sem copiar observações livres',()=>{
+ for(const itens of [[],[{amountSpent:25}]]){
+  const texto=formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados:{ok:true,itens,origem_dados:'homologacao_fixture',observacao:'token=NAO_EXIBIR'}}]);
+  assert.match(texto,/DADOS FICTÍCIOS DE HOMOLOGAÇÃO/);
+  assert.ok(!texto.includes('NAO_EXIBIR'));
+ }
+ const real=formatarPreviaNatural([{nome:'consultar_metricas_trafego',dados:{ok:true,itens:[],origem_dados:'meta',observacao:'DADOS FICTÍCIOS DE HOMOLOGAÇÃO'}}]);
+ assert.ok(!real.includes('DADOS FICTÍCIOS DE HOMOLOGAÇÃO'));
+});
