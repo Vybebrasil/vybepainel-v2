@@ -814,6 +814,16 @@ function aplicarLayoutDosDias(grid, sem, emDias) {
   }
   return true;
 }
+// A cor de cada formato é a mesma dos planejamentos (PLJ_COR_FORMATO): Card,
+// Carrossel, Reels… têm uma cor só no painel inteiro. O nome do quadro varia
+// ("Story", "Vídeo institucional"), então ele é lido pelo começo.
+function corDoFormato(formato) {
+  const paleta = typeof PLJ_COR_FORMATO !== 'undefined' ? PLJ_COR_FORMATO : {};
+  const n = String(formato || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const nome = /stor/.test(n) ? 'Stories' : /video/.test(n) ? 'Vídeo' : /reel/.test(n) ? 'Reels'
+    : /carross/.test(n) ? 'Carrossel' : /foto/.test(n) ? 'Fotografia' : /card/.test(n) ? 'Card' : 'Outro';
+  return paleta[nome] || '#6b7280';
+}
 function renderByDay(sem, filter, dayFilter) {
   const items=itensDaSemanaGestor(sem);
   const fi=filtrarItensDoDia(items,filter);
@@ -848,9 +858,12 @@ function renderByDay(sem, filter, dayFilter) {
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote"><input type="checkbox" ${marcada?'checked':''} data-day-item="${safeText(d.id)}" aria-label="Marcar ${safeText(d.nome||'')}"
           onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <div class="day-activity-content"><div class="day-activity-main">
-          <div class="day-activity-titulo"><button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir detalhes da atividade">${safeText(d.nome)}</button>${botaoDePreviaNaLinha(d)}</div>
-          <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>tagClienteHtml(nome)).join(' ')||'Sem cliente'}${clientesDoItem(d).length>1?`<span class="dia-mais-clientes" title="${safeText(clientesDoItem(d).join(', '))}">+${clientesDoItem(d).length-1}</span>`:''}</span>${d.formato?`<span class="day-activity-formato"${String(d.nome||'').trim().toLowerCase().startsWith(String(d.formato).trim().toLowerCase())?' data-no-titulo':''}>${safeText(d.formato)}</span>`:''}${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
-        </div><div class="day-activity-actions">${managerStatusControl(d,{comTempo:false})}${ownerEditorTrigger(d,'manager-owner-trigger')}</div></div>
+          <button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir detalhes da atividade">${safeText(d.nome)}</button>
+          <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>tagClienteHtml(nome)).join(' ')||'Sem cliente'}${clientesDoItem(d).length>1?`<span class="dia-mais-clientes" title="${safeText(clientesDoItem(d).join(', '))}">+${clientesDoItem(d).length-1}</span>`:''}</span>${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
+        </div><div class="day-activity-lado">
+          <div class="day-activity-pessoas">${botaoDePreviaNaLinha(d)}${ownerEditorTrigger(d,'manager-owner-trigger')}</div>
+          <div class="day-activity-actions">${d.formato?`<span class="day-activity-formato" style="--formato:${corDoFormato(d.formato)}">${safeText(d.formato)}</span>`:''}${managerStatusControl(d,{comTempo:false})}</div>
+        </div></div>
       </div>`;
     };
     const avisoHtml=aba!=='social'&&aviso?`<p class="day-pending-note" role="status">${aviso}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>`:'';
