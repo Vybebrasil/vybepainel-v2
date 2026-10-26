@@ -12,12 +12,21 @@ function planosQuarto() {
   } catch { PLANOS_QUARTO = { piso: new Set(), parede: new Set() }; }
   return PLANOS_QUARTO;
 }
+// Revestimentos por trecho de parede: só índices do quarto e classes de revestimento.
+function texturasDeParede(valor) {
+  const vistos = new Map();
+  for (const par of String(valor || "").split(",").slice(0, LADO_QUARTO * 4)) {
+    const m = /^(\d{1,3}):([a-z0-9_]{1,64})$/i.exec(par.trim());
+    if (m && Number(m[1]) < LADO_QUARTO * 4 && REVESTIMENTOS_DE_PAREDE.has(m[2])) vistos.set(Number(m[1]), m[2]);
+  }
+  return [...vistos].sort((a, b) => a[0] - b[0]).map(([i, c]) => i + ":" + c).join(",");
+}
 function planoValido(valor, tipo) {
   const m = /^plano:(piso|parede):(\d{1,5})$/.exec(String(valor || ""));
   return m && m[1] === tipo && planosQuarto()[tipo].has(m[2]) ? m[0] : "";
 }
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
-import { carregarEconomia, comprarMovel, comprarKit, perfilPublico, venderMovel } from "./escritorio-economia.js";
+import { carregarEconomia, comprarMovel, comprarKit, perfilPublico, venderMovel, REVESTIMENTOS_DE_PAREDE } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { diaDaEquipe } from "./escritorio-dia.js";
@@ -75,7 +84,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -126,6 +135,9 @@ export function perfilEscritorio(valor = {}) {
     // LADO_QUARTO trechos por lado (fundo, esquerda, frente, direita), cada um com
     // estilo, cor e altura (0 baixa, 1 média, 2 alta).
     sala_paredes: new RegExp(`^([a-h-][0-9a-d][0-2]){${LADO_QUARTO * 4}}$`).test(paredesAtuais) ? paredesAtuais : "",
+    // Revestimento do acervo cobrindo o trecho inteiro (26/10/2026): "trecho:classe"
+    // separados por vírgula; só revestimentos grátis da construção, um por trecho.
+    sala_paredes_texturas: texturasDeParede(valor.sala_paredes_texturas),
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
     // Convites para a sala (server/escritorio-convite.js): mudar o número
@@ -229,7 +241,7 @@ export async function salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala = 
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
     }
     const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
     if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {

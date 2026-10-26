@@ -2097,6 +2097,16 @@ function escritorioParedesDoPerfil(s) {
   if (t !== 8 && t !== 12 && t !== 20) return s;
   return Array.from({ length: 4 }, (_, lado) => s.slice(lado * t * 3, (lado + 1) * t * 3) + "-00".repeat(L - t)).join("");
 }
+// Revestimentos por trecho (sala_paredes_texturas, "trecho:classe,…"; o
+// servidor só aceita revestimentos da construção) ⇄ Map trecho → classe.
+function escritorioTexturasDoPerfil(s) {
+  const m = new Map();
+  for (const par of String(s || "").split(",")) { const r = /^(\d{1,3}):([a-z0-9_]{1,64})$/i.exec(par.trim()); if (r) m.set(Number(r[1]), r[2]); }
+  return m;
+}
+function escritorioTexturasParaPerfil(m) {
+  return [...m].sort((a, b) => a[0] - b[0]).map(([i, c]) => i + ":" + c).join(",");
+}
 // Peça de piso de d.x × d.y ladrilhos encaixada na grade dela, dentro do
 // quarto w × h, a partir do ladrilho clicado. Com "nivel(x, y)" (a altura de
 // cada ladrilho), a peça fica inteira num andar só: onde a grade não fecha

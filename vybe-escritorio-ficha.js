@@ -716,10 +716,14 @@ function plantaOriginalEscritorio() {
 function pintarTrechoEscritorio(a, i) {
   const pin = escritorioPincel(), L = ESCRITORIO_QUARTO_MAX;
   if (!escritorioTrechoExiste(a, i)) return false;
-  const paredes = escritorioParedesDoPerfil(escritorioPerfilDecoracao().sala_paredes), atual = paredes.length === L * 12 ? paredes : "-00".repeat(L * 4);
-  const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
-  if (atual.slice(i * 3, i * 3 + 3) === cod) return true;
-  escritorioAlterarDecoracao({ sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3) });
+  const decoracao = escritorioPerfilDecoracao(), paredes = escritorioParedesDoPerfil(decoracao.sala_paredes), atual = paredes.length === L * 12 ? paredes : "-00".repeat(L * 4);
+  // Revestimento na mão (pin.textura): cobre o trecho inteiro, na altura
+  // escolhida; com um estilo comum na mão, o trecho perde o revestimento.
+  const cod = (pin.textura ? "a" : pin.estilo) + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
+  const tex = escritorioTexturasDoPerfil(decoracao.sala_paredes_texturas);
+  if (atual.slice(i * 3, i * 3 + 3) === cod && (tex.get(i) || "") === (pin.textura || "")) return true;
+  if (pin.textura) tex.set(i, pin.textura); else tex.delete(i);
+  escritorioAlterarDecoracao({ sala_paredes: atual.slice(0, i * 3) + cod + atual.slice(i * 3 + 3), sala_paredes_texturas: escritorioTexturasParaPerfil(tex) });
   escritorioPinturaMudou();
   return true;
 }
@@ -727,12 +731,15 @@ function pintarTodasParedesEscritorio() {
   const pin = escritorioPincel();
   const a = escritorioMinhaMesa()?.ambiente;
   if (!a) return;
-  const cod = pin.estilo + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
-  escritorioAlterarDecoracao({sala_paredes: Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join("")});
+  const cod = (pin.textura ? "a" : pin.estilo) + Math.max(0, ESCRITORIO_PAREDES_SALA.indexOf(pin.cor)).toString(16) + pin.altura;
+  const trechos = Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => i).filter((i) => escritorioTrechoExiste(a, i));
+  escritorioAlterarDecoracao({sala_paredes: Array.from({ length: ESCRITORIO_QUARTO_MAX * 4 }, (_, i) => (escritorioTrechoExiste(a, i) ? cod : "-00")).join(""),
+    sala_paredes_texturas: pin.textura ? escritorioTexturasParaPerfil(new Map(trechos.map((i) => [i, pin.textura]))) : ""});
   escritorioPinturaMudou();
 }
 function limparPinturaEscritorio(campo) {
-  escritorioAlterarDecoracao({[campo]: ""});
+  // As paredes como eram também perdem os revestimentos.
+  escritorioAlterarDecoracao({[campo]: "", ...(campo === "sala_paredes" ? { sala_paredes_texturas: "" } : {})});
   escritorioPinturaMudou();
 }
 // Redesenha logo e salva um pouco depois (arrastando, junta vários ladrilhos).

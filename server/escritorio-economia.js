@@ -22,6 +22,8 @@ export function ehDeConstrucao(m) {
 }
 export const MOVEIS_DE_CONSTRUCAO = catalogo.filter(ehDeConstrucao).map(m => m.classe);
 export const MOVEIS_ESSENCIAIS = [...new Set([...quartos.essenciais, ...MOVEIS_DE_CONSTRUCAO])];
+// Revestimentos: cobrem o trecho inteiro da parede (sala_paredes_texturas).
+export const REVESTIMENTOS_DE_PAREDE = new Set(catalogo.filter(m => m.categoria === 'Na parede' && ehDeConstrucao(m)).map(m => m.classe));
 // Nome do móvel para mensagens (o do catálogo; sem ele, a classe).
 export const nomeDoMovel = (classe) => catalogo.find((m) => m.classe === classe)?.nome || classe;
 const classes = new Set([...catalogo.map(m => m.classe),'computer_laptop','uni_laptop','computer_old','steampunk_computer','easter_c23_solarpunkcomputer']);

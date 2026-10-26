@@ -134,3 +134,12 @@ test('economia de energia: sem mexer, o sistema entra em ócio; mexer acorda', (
   const css = readFileSync('vybe-styles.css', 'utf8');
   assert.match(css, /html\.vb-ocioso \*[^{]*\{animation-play-state:paused!important\}/);
 });
+
+test('revestimento de parede: o perfil guarda só revestimentos grátis em trechos do quarto', async () => {
+  const { perfilEscritorio } = await import('../server/escritorio.js');
+  const { REVESTIMENTOS_DE_PAREDE } = await import('../server/escritorio-economia.js');
+  assert.ok(REVESTIMENTOS_DE_PAREDE.has('country_forestwall'));
+  const p = perfilEscritorio({ sala_paredes_texturas: '3:country_forestwall,1:stone_wall,999:stone_wall,2:bling_sofa_mu,x:sb_wall,3:sb_wall' });
+  assert.equal(p.sala_paredes_texturas, '1:stone_wall,3:sb_wall', 'só trechos válidos, só revestimentos, o último vale');
+  assert.equal(perfilEscritorio({}).sala_paredes_texturas, '');
+});

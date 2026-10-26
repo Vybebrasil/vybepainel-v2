@@ -70,11 +70,11 @@ function escritorioVendaHtml(classe) {
   if (!v.unidades || !v.valor) return "";
   return `<button type="button" class="workflow-secondary ofc-vender" onclick="fecharPreviaMovelEscritorio(this);venderParaLojaEscritorio('${safeText(classe)}')" title="Devolve uma unidade guardada à loja pelo valor que você pagou">Vender · ${v.valor.toLocaleString("pt-BR")} moedas</button>`;
 }
-async function venderParaLojaEscritorio(classe) {
+async function venderParaLojaEscritorio(classe, semPerguntar = false) {
   const v = escritorioVendaDe(classe), eco = escritorio.base?.economia;
   if (!v.unidades || !eco || escritorio.vendendo) return;
   const nome = typeof escritorioNomeDaClasse === "function" ? escritorioNomeDaClasse(classe) : classe, saldo = Number(eco.saldo || 0);
-  if (!confirm(`Vender 1 × ${nome} para a loja por ${v.valor.toLocaleString("pt-BR")} VybeCoins (o que você pagou)?\nSaldo: ${saldo.toLocaleString("pt-BR")} → ${(saldo + v.valor).toLocaleString("pt-BR")}.\nA peça sai do seu inventário.`)) return;
+  if (!semPerguntar && !confirm(`Vender 1 × ${nome} para a loja por ${v.valor.toLocaleString("pt-BR")} VybeCoins (o que você pagou)?\nSaldo: ${saldo.toLocaleString("pt-BR")} → ${(saldo + v.valor).toLocaleString("pt-BR")}.\nA peça sai do seu inventário.`)) return;
   escritorio.vendendo = true;
   // A chave fica a mesma se a rede falhar e a pessoa tentar de novo.
   if (escritorio.vendaPendente?.classe !== classe) escritorio.vendaPendente = { classe, chave: crypto.randomUUID(), valorEsperado: v.valor };
@@ -95,4 +95,27 @@ async function venderParaLojaEscritorio(classe) {
   } catch (e) {
     escritorioAviso("Não vendeu: " + e.message);
   } finally { escritorio.vendendo = false; }
+}
+
+// Vender no modo edição (Paulo, 26/10/2026): a peça selecionada no quarto sai,
+// a construção é salva (o servidor só vende o que está guardado no salvo) e a
+// venda acontece; depois a construção abre de novo para continuar.
+function escritorioVendaSelecionadoHtml(classe) {
+  const lotes = escritorio.base?.economia?.vendiveis?.[classe] || [];
+  const valor = Number(lotes[0]?.[1] || 0);
+  if (!lotes.length || !valor || !escritorio.edicao || escritorioCamadaComum(escritorio.edicao.camada)) return "";
+  return `<button type="button" class="ofc-vender" onclick="venderSelecionadoEscritorio()" title="Tira do quarto, salva a construção e vende pelo valor que você pagou">Vender · ${valor.toLocaleString("pt-BR")}</button>`;
+}
+async function venderSelecionadoEscritorio() {
+  const e = escritorio.edicao, it = e?.sel != null ? e.itens[e.sel] : null;
+  if (!it || e.salvando) return;
+  const classe = it[0], valor = Number(escritorio.base?.economia?.vendiveis?.[classe]?.[0]?.[1] || 0);
+  const nome = escritorioNomeDaClasse(classe);
+  if (!valor || !confirm(`Vender ${nome} por ${valor.toLocaleString("pt-BR")} VybeCoins (o que você pagou)?\nA peça sai do quarto e a construção é salva agora, com as outras mudanças.`)) return;
+  e.itens.splice(e.sel, 1); e.sel = null;
+  escritorioEditorMudou();
+  await salvarEditorEscritorio();
+  if (escritorio.edicao) return; // não salvou: a peça volta com Desfazer
+  await venderParaLojaEscritorio(classe, true);
+  await abrirEditorEscritorio();
 }
