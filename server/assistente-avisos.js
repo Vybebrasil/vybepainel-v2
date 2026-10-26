@@ -6,7 +6,8 @@
 //    dono do cliente (Vinícius ou Ewerton); Para agendar → Tainara (função agendamento); Alteração →
 //    responsáveis da peça, no grupo Correção.
 import { identificadorProtegido, validarJid } from './assistente-identidade.js';
-import { codigoDoPainel } from './assistente-rotinas.js';
+import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
+export { linkDaAtividade };
 import { cobrancasDaEquipe } from './escritorio-cobrancas.js';
 import vm from 'node:vm';
 
@@ -31,9 +32,6 @@ const ehVideo = (item) => /^(reels|video|motion)/.test(normal(item.formato || it
 // Marcador que o bot troca por @menção (pessoa vinculada no grupo) ou pelo primeiro nome.
 const marcar = (p) => `{{pessoa:${p.monday_id || 'sem'}:${primeiro(p.nome)}}}`;
 
-// Link que abre a peça direto na gaveta do painel (o mesmo do botão "copiar link"), em qualquer máquina com sessão.
-const PAINEL = String(process.env.VYBE_PAINEL_URL || 'https://vybepainel-v2.vercel.app').replace(/\/+$/, '');
-export const linkDaAtividade = (ref) => `${PAINEL}/?atividade=${encodeURIComponent(ref).replace(/%3A/gi, ':')}`;
 export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
   const inicio = Date.parse(desde);
   if (typeof desde !== 'string' || !Number.isFinite(inicio) || inicio > agora.getTime() || agora.getTime() - inicio > 6 * 3600e3)

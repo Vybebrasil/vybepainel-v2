@@ -1,6 +1,7 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
 import {metricasDoHub} from './assistente-hub.js';
-import {diaDaAgencia} from './assistente-rotinas.js';
+import {diaDaAgencia,meuDia} from './assistente-rotinas.js';
+import {agendaDeCaptacoes} from './captacoes.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
 import {pecasComRevisao} from './planejamento-documento.js';
@@ -23,12 +24,14 @@ const defs=[
  ['listar_responsaveis','Equipe ativa, nomes e funções, sem e-mails ou dados pessoais.',{busca,...pagina}],
  ['listar_planejamentos','Planejamentos, mês e situação de aprovação.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
  ['detalhar_planejamento','Planejamento e peças com texto, ajustes e decisões válidas, paginadas. Sem links secretos.',{id:inteiro,...pagina},['id']],
- ['listar_captacoes','Gravações registradas no módulo de captações, sem acesso externo ao Google.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
+ ['consultar_agenda_captacoes','Agenda real de gravações: o Google Agenda da Vybe pelas regras do módulo de Captações (azul = captação; reunião, pessoal, privado, folga e férias fora). de = primeiro dia (padrão hoje), dias = quantos dias (1 a 14).',{de:data,dias:{type:'integer',minimum:1,maximum:14}}],
+ ['listar_captacoes','Captações cadastradas no painel (tabela interna). Para o que vai ser gravado, use consultar_agenda_captacoes.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
  ['listar_roteiros','Referências operacionais dos roteiros; o texto continua no Drive.',{cliente_id:inteiro,...pagina}],
  ['consultar_perfil_trabalho','Métricas de qualquer funcionário, com os mesmos cálculos da aba Trabalho: volume, média, evolução, recorde, qualidade e XP.',{pessoa_id:inteiro,de:data,ate:data,regra:busca,formato:busca},['pessoa_id','de','ate']],
  ['consultar_perfil_jogo','Nível, XP total, moedas, inventário e conquistas públicas de qualquer pessoa. Somente leitura.',{pessoa_id:inteiro,secao:{type:'string',enum:['resumo','inventario','conquistas']},...pagina},['pessoa_id']],
  ['consultar_ranking','Ranking de trabalho e patrimônio da equipe, usando as regras existentes.',{periodo:{type:'string',enum:['dia','semana','mes','total']},...pagina}],
  ['consultar_dia_equipe','Previsto, pronto, adiado e atrasado de toda a equipe hoje, pela mesma conta do Escritório.',{...pagina}],
+ ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem hoje, atrasadas e prazo amanhã, com o link de cada peça. Sem escolher pessoa.',{}],
  ['consultar_dia_agencia','Resumo do dia da agência hoje (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto hoje.',{}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
@@ -75,6 +78,19 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='consultar_perfil_trabalho')return limpar(await consultarPerfilTrabalho(sql,a,identidade.agora));
  if(nome==='consultar_perfil_jogo')return limpar(await consultarPerfilJogo(sql,a));
  if(nome==='consultar_ranking')return limpar(await consultarRanking(sql,a,identidade.agora));
+ if(nome==='consultar_agenda_captacoes'){
+  // Mesma leitura do módulo de Captações; falha do Google vira 503 com a mensagem pública do módulo.
+  const de=a.de||diaAssistente(identidade.agora),dias=a.dias||1;
+  let eventos;try{eventos=await agendaDeCaptacoes(sql,{inicio:de,dias,hoje:diaAssistente(identidade.agora)});}
+  catch(e){throw Object.assign(new Error(e.publica?e.message:'Agenda de gravações indisponível agora.'),{status:503});}
+  const itens=eventos.filter(e=>e.tipo==='captacao').slice(0,25).map(e=>({id:e.id,titulo:e.titulo,dia:e.dia,horario:e.horario,local:e.local,cliente:e.cliente||null}));
+  return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
+ }
+ if(nome==='meu_dia'){
+  if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');
+  const d=await meuDia(sql,identidade.pessoaId,diaAssistente(identidade.agora));
+  return {fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false,escopo:'pessoa_autenticada'};
+ }
  if(nome==='consultar_dia_agencia'){const d=await diaDaAgencia(sql,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='consultar_dia_equipe')return limpar(await consultarDiaEquipe(sql,a,identidade.agora));
  if(nome==='detalhar_demanda')return limpar(await secaoDaDemanda(sql,a));

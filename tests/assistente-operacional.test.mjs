@@ -9,7 +9,7 @@ const contexto=(grupoAtivo=false)=>({tipo:grupoAtivo?'grupo':'privado',...(grupo
 test('contrato fechado: sem SQL, datas impossíveis, campos administrativos e excesso',()=>{
  for(const [n,a] of [['sql',{}],['buscar_demandas',{sql:'SELECT *'}],['listar_responsaveis',{admin:true}],['buscar_demandas',{limite:26}],['buscar_demandas',{de:'2026-02-30'}],['consultar_metricas_trafego',{cliente_id:1,de:'2026-01-01',ate:'2026-12-31'}]])assert.throws(()=>validarFerramenta(n,a));
  assert.throws(()=>validarFerramenta('buscar_demandas',JSON.parse('{"__proto__":{}}')));
- assert.equal(FERRAMENTAS_ASSISTENTE.length,16);
+ assert.equal(FERRAMENTAS_ASSISTENTE.length,18);
  assert.ok(!textoOperacional('senha=ABC teste@example.com https://host/link').includes('ABC'));
 });
 test('conversa exige evidência recente, grupo aprovado, remetente e audiência válidos',()=>{
@@ -180,4 +180,13 @@ test('novas ferramentas mantêm contrato fechado e autenticação antes de consu
  for(const a of [{pessoa_id:1,de:'2026-01-01',ate:'2026-12-31'},{pessoa_id:1,de:'2026-10-01',ate:'2026-10-20',sql:'SELECT *'}])assert.throws(()=>validarFerramenta('consultar_perfil_trabalho',a));
  assert.throws(()=>validarFerramenta('consultar_metricas_trafego',{cliente_id:10,de:'2026-10-01',ate:'2026-10-20',url:'https://outro'}));
  assert.doesNotThrow(()=>validarFerramenta('consultar_metricas_trafego',{cliente_id:10,de:'2026-10-01',ate:'2026-10-20',modulo:'faturamento'}));
+});
+
+test('agenda de gravações: sem a conta do Google, responde indisponível (503) sem expor detalhes',async()=>{
+ const {executarFerramenta:executar}=await import('../server/assistente-ferramentas.js');
+ const antes=process.env.GOOGLE_SERVICE_ACCOUNT;delete process.env.GOOGLE_SERVICE_ACCOUNT;
+ const sqlFalso=async()=>[];
+ try{await assert.rejects(()=>executar(sqlFalso,'consultar_agenda_captacoes',{dias:1}),e=>e.status===503&&/Google|agenda/i.test(e.message));
+  await assert.rejects(()=>executar(sqlFalso,'consultar_agenda_captacoes',{dias:30}));}
+ finally{if(antes!==undefined)process.env.GOOGLE_SERVICE_ACCOUNT=antes;}
 });

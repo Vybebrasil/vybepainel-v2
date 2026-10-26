@@ -148,3 +148,30 @@ test('dia da agência: resumo com as regras da rotina e o que cada pessoa tem ab
   assert.match(t, /\*Jady\* — ✅ 1 · ⏳ 1 em aberto · 🔴 1 atrasada\(s\)\n- Card B \(Cli\) · Pode Fazer/);
   assert.match(t, /\*Reriston\* — ⏳ 1 em aberto\n- Reels C \(Cli\) · Em andamento/);
 });
+
+test('meu dia: só as peças da pessoa autenticada, com link, atrasadas e prazo amanhã', async () => {
+  const { mensagemMeuDia } = await import('../server/assistente-rotinas.js');
+  const dia = '2026-10-26';
+  const item = (id, nome, status, ids, extra = {}) => ({ id, nome, status, responsavel: ids.map((x) => ({ 1: 'Jady Lima', 2: 'Deivid Souza' })[x]).join(', '), responsavel_ids: ids.map(String),
+    clientes: ['Cli'], origem: 'producao_conteudo', veiculacao_iso: dia, prazo_iso: dia, ...extra });
+  const itens = [item('11', 'Card pronto', 'Finalizado', [1]), item('12', 'Card aberto', 'Pode Fazer', [1, 2]), item('vybe:13', 'Do Deivid', 'Pode Fazer', [2]),
+    item('14', 'Card velho', 'Pode Fazer', [1], { prazo_iso: '2026-10-20', veiculacao_iso: '2026-10-30' }), item('15', 'Card de amanhã', 'Pode Fazer', [1], { prazo_iso: '2026-10-27', veiculacao_iso: '2026-10-28' })];
+  const t = mensagemMeuDia(itens, dia, (i) => i.status, 'Seg 26/10', { nome: 'Jady Lima', monday_id: '1' });
+  assert.match(t, /^📅 \*Seu dia, Jady · Seg 26\/10\*\n\n✅ 1 pronta\(s\) hoje · ⏳ 1 em aberto · 🔴 1 atrasada\(s\)/);
+  assert.match(t, /\*⏳ Em aberto hoje \(1\)\*\n- Card aberto \(Cli\) · Pode Fazer\n  🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=12/);
+  assert.match(t, /\*🔴 Atrasadas \(1\)\*\n- Card velho \(Cli\) · Pode Fazer · prazo 20\/10/);
+  assert.match(t, /\*🔭 Prazo amanhã \(1\)\*\n- Card de amanhã/);
+  assert.doesNotMatch(t, /Do Deivid/);
+  assert.match(mensagemMeuDia([], dia, (i) => i.status, 'Seg 26/10', { nome: 'Jady Lima', monday_id: '1' }), /Nada previsto pra você/);
+});
+
+test('fechamento da semana: fechadas, quem executou, ranking, atrasadas e prévia da segunda', async () => {
+  const { mensagemSemana } = await import('../server/assistente-rotinas.js');
+  const t = mensagemSemana({ inicio: '2026-10-26', dia: '2026-10-30', producao: 40, solicitacoes: 3, execucao: new Map([['Jady', 12], ['Beatriz', 15]]), agendamento: new Map([['Tainara', 38]]),
+    ranking: [{ posicao: 1, nome: 'Beatriz Rocha', xp: 900 }, { posicao: 2, nome: 'Jady Lima', xp: 700 }], agencia: { pecas: 43, meta: 40, pct: 108, bateu: true }, atrasadas: 4,
+    segunda: { dia: '2026-11-02', conteudos: 12, prontos: 5, paraAgendar: 3, abertos: 4 } });
+  assert.match(t, /^🏁 \*Fechamento da semana · 26\/10 a 30\/10\*\n\n📣 Conteúdos fechados: 40 · 📌 Solicitações concluídas: 3\n🎯 Agência: 43 de 40 peças da meta \(108%\) 🎉/);
+  assert.match(t, /\*Quem executou\*: Beatriz 15 · Jady 12\n📅 Agendamento: Tainara 38/);
+  assert.match(t, /\*Ranking da semana\*\n🥇 Beatriz · 900 XP\n🥈 Jady · 700 XP/);
+  assert.match(t, /⚠️ Seguem atrasadas: 4\n🔭 Segunda \(02\/11\): 12 conteúdo\(s\) · ✅ 5 pronto\(s\) · 📅 3 para agendar · ⏳ 4 em aberto/);
+});

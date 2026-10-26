@@ -39,7 +39,10 @@ export function codigoDoPainel() {
 }
 
 const somarDias = (iso, n) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-const textoData = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
+// Link que abre a peça direto na gaveta do painel (o mesmo do botão "copiar link"), em qualquer máquina com sessão.
+const PAINEL = String(process.env.VYBE_PAINEL_URL || 'https://vybepainel-v2.vercel.app').replace(/\/+$/, '');
+export const linkDaAtividade = (ref) => `${PAINEL}/?atividade=${encodeURIComponent(ref).replace(/%3A/gi, ':')}`;
+const textoData =(v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
 
 // Mesmos campos que o painel entrega ao gerador (vybe-core/vybe-demandas), a partir do banco.
 export async function itensDoDia(sql, dia) {
@@ -148,7 +151,7 @@ export function mensagemFimDoDia(itens, dia, statusDe, rotuloDia, rotuloAmanha) 
     '', 'Valeu, time! Amanhã a gente fecha o que ficou. 🚀'].join('\n');
 }
 
-const MOMENTOS = ['manha', 'meio_dia', 'fim_dia'];
+const MOMENTOS = ['manha', 'meio_dia', 'fim_dia', 'semana'];
 // Monta as mensagens da rotina; baseAnterior é a lista da manhã anterior guardada pelo bot.
 export async function rotinaDoDia(sql, { momento, dia, baseAnterior = null }, agoraIso = new Date().toISOString()) {
   if (!MOMENTOS.includes(momento)) throw new TypeError('Momento inválido.');
@@ -163,6 +166,8 @@ export async function rotinaDoDia(sql, { momento, dia, baseAnterior = null }, ag
   if (momento === 'manha') {
     ctx.__itens = itens; ctx.__dia = dia; ctx.__opcoes = { statusDe, clientesDe: (i) => i.clientes, equipe, baseAnterior, geradoEm: agoraIso };
     mensagens = JSON.parse(JSON.stringify(vm.runInContext('resumosPorGrupo(__itens, __dia, __opcoes)', ctx)));
+  } else if (momento === 'semana') {
+    mensagens = [{ id: 'geral', nome: 'Geral', texto: await fechamentoDaSemana(sql, dia, new Date(agoraIso)) }];
   } else if (momento === 'meio_dia') {
     mensagens = [{ id: 'geral', nome: 'Geral', texto: mensagemMeioDia(itens, dia, statusDe, rotulo(dia)) }];
   } else {
@@ -214,4 +219,81 @@ export async function diaDaAgencia(sql, dia) {
   const { ctx } = codigoDoPainel();
   const itens = await itensDoDia(sql, dia);
   return { texto: mensagemDiaAgencia(itens, dia, (i) => ctx.operationalFlowStatus(i), ctx.resumoDiaCurto(dia)), fontes: [{ modulo: 'dia_agencia', id: dia.replace(/-/g, '') }] };
+}
+
+// "Meu dia" da pessoa autenticada (vínculo do WhatsApp, nunca nome digitado): o que tem hoje, o que está
+// atrasado e o que vem amanhã, com o link de cada peça aberta. Mesmas regras de status da rotina.
+export function mensagemMeuDia(itens, dia, statusDe, rotuloDia, pessoa, max = 8) {
+  const r = retrato(itens, dia, statusDe), amanha = somarDias(dia, 1);
+  const minha = (i) => (pessoa.monday_id && i.responsavel_ids.includes(String(pessoa.monday_id)))
+    || i.responsavel.split(',').map((n) => normal(n)).includes(normal(pessoa.nome));
+  const meus = itens.filter(minha);
+  const hoje = meus.filter((i) => i.veiculacao_iso === dia || i.prazo_iso === dia);
+  const prontas = hoje.filter((i) => r.entregue(i) || r.pronto(i)), abertas = hoje.filter((i) => !r.entregue(i) && !r.pronto(i) && !r.pausa(i));
+  const atrasadas = r.atrasadas.filter(minha).filter((i) => !abertas.includes(i));
+  const deAmanha = meus.filter((i) => i.prazo_iso === amanha && r.aberto(i) && !abertas.includes(i));
+  const curto = (iso) => (iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
+  const linha = (i, extra = '') => `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${statusDe(i) || 'Sem status'}${extra}\n  🔗 ${linkDaAtividade(i.id)}`;
+  const bloco = (titulo, lista, extra) => (lista.length ? ['', `*${titulo} (${lista.length})*`, ...lista.slice(0, max).map((i) => linha(i, extra ? extra(i) : '')),
+    ...(lista.length > max ? [`- e mais ${lista.length - max} no painel`] : [])] : []);
+  const nome = primeiroNome(pessoa.nome);
+  if (!hoje.length && !atrasadas.length && !deAmanha.length) return `📅 *Seu dia, ${nome} · ${rotuloDia}*\n\nNada previsto pra você hoje nem amanhã, e nada atrasado. 🎉`;
+  return [`📅 *Seu dia, ${nome} · ${rotuloDia}*`, '',
+    `✅ ${prontas.length} pronta(s) hoje · ⏳ ${abertas.length} em aberto · 🔴 ${atrasadas.length} atrasada(s)`,
+    ...bloco('⏳ Em aberto hoje', abertas),
+    ...bloco('🔴 Atrasadas', atrasadas, (i) => ` · prazo ${curto(i.prazo_iso)}`),
+    ...bloco('🔭 Prazo amanhã', deAmanha),
+  ].join('\n');
+}
+export async function meuDia(sql, pessoaId, dia) {
+  if (!Number.isSafeInteger(pessoaId) || pessoaId <= 0) throw new TypeError('Identidade autenticada obrigatória.');
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const [pessoa] = await sql`SELECT nome, monday_user_id::text AS monday_id FROM vybe_pessoas WHERE id = ${pessoaId}`;
+  if (!pessoa) throw new TypeError('Pessoa inválida.');
+  const { ctx } = codigoDoPainel();
+  const itens = await itensDoDia(sql, dia);
+  return { texto: mensagemMeuDia(itens, dia, (i) => ctx.operationalFlowStatus(i), ctx.resumoDiaCurto(dia), pessoa), fontes: [{ modulo: 'meu_dia', id: dia.replace(/-/g, '') }] };
+}
+
+// Fechamento da semana (sexta, 18h, no Geral): o que fechou de segunda até hoje, quem executou (fatias da peça,
+// a mesma conta do XP), o ranking da semana, o que segue atrasado e a prévia da segunda.
+export function mensagemSemana({ inicio, dia, producao, solicitacoes, execucao, agendamento, ranking, agencia, atrasadas, segunda }) {
+  const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  const placar = (m) => [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR')).map(([n, q]) => `${n} ${q}`).join(' · ');
+  return [`🏁 *Fechamento da semana · ${curto(inicio)} a ${curto(dia)}*`, '',
+    `📣 Conteúdos fechados: ${producao} · 📌 Solicitações concluídas: ${solicitacoes}`,
+    ...(agencia ? [`🎯 Agência: ${agencia.pecas} de ${agencia.meta} peças da meta (${agencia.pct}%)${agencia.bateu ? ' 🎉' : ''}`] : []),
+    ...(execucao.size ? ['', `*Quem executou*: ${placar(execucao)}`] : []),
+    ...(agendamento.size ? [`📅 Agendamento: ${placar(agendamento)}`] : []),
+    ...(ranking.length ? ['', '*Ranking da semana*', ...ranking.map((p) => `${['🥇', '🥈', '🥉'][p.posicao - 1] || p.posicao + 'º'} ${primeiroNome(p.nome)} · ${p.xp} XP`)] : []),
+    '', `⚠️ Seguem atrasadas: ${atrasadas}`,
+    `🔭 Segunda (${curto(segunda.dia)}): ${segunda.conteudos} conteúdo(s) · ✅ ${segunda.prontos} pronto(s) · 📅 ${segunda.paraAgendar} para agendar · ⏳ ${segunda.abertos} em aberto`,
+    '', 'Valeu demais pela semana, time! Bom descanso. 🚀'].join('\n');
+}
+export async function fechamentoDaSemana(sql, dia, agora = new Date(), { ranking: lerRanking } = {}) {
+  const inicio = somarDias(dia, -((new Date(dia + 'T12:00:00Z').getUTCDay() + 6) % 7)), segunda = somarDias(inicio, 7);
+  const [eventos] = await sql`SELECT to_regclass('public.vybe_conteudo_eventos') IS NOT NULL AS ok`;
+  const fechadas = eventos?.ok ? await sql`SELECT c.id::text AS id, c.board_id::text AS board_id FROM vybe_conteudos c JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND s.final IS TRUE AND c.id IN (SELECT conteudo_id FROM vybe_conteudo_eventos WHERE tipo = 'status'
+      GROUP BY conteudo_id HAVING vybe_dia_bahia(max(em)) BETWEEN ${inicio}::date AND ${dia}::date)` : [];
+  const execucao = new Map(), agendamento = new Map();
+  const [moedas] = await sql`SELECT to_regclass('public.vybe_escritorio_moedas') IS NOT NULL AS ok`;
+  if (moedas?.ok && fechadas.length) {
+    const fatias = await sql`SELECT DISTINCT m.conteudo_id::text AS id, m.regra, p.nome FROM vybe_escritorio_moedas m JOIN vybe_pessoas p ON p.id = m.pessoa_id
+      WHERE m.conteudo_id::text = ANY(${fechadas.map((f) => f.id)}::text[]) AND m.quantidade > 0 AND m.regra = ANY(${['peca_criacao', 'peca_da', 'peca_producao', 'peca_agendamento']}::text[])`;
+    const porPapel = (regras, alvo) => { const vistos = new Set(); for (const f of fatias) if (regras.includes(f.regra)) { const n = primeiroNome(f.nome), k = n + ':' + f.id; if (!vistos.has(k)) { vistos.add(k); alvo.set(n, (alvo.get(n) || 0) + 1); } } };
+    porPapel(['peca_criacao', 'peca_da', 'peca_producao'], execucao); porPapel(['peca_agendamento'], agendamento);
+  }
+  let ranking = [], agencia = null;
+  try {
+    const r = await (lerRanking || (async () => (await import('./escritorio-pontos.js')).rankingEscritorio(sql, agora, { periodo: 'semana' })))();
+    if (r?.disponivel !== false && Array.isArray(r?.pessoas)) { ranking = r.pessoas.filter((p) => p.posicao).sort((a, b) => a.posicao - b.posicao).slice(0, 3); agencia = r.agencia || null; }
+  } catch { /* Ranking indisponível não impede o fechamento. */ }
+  const { ctx } = codigoDoPainel(), statusDe = (i) => ctx.operationalFlowStatus(i);
+  const [deHoje, deSegunda] = await Promise.all([itensDoDia(sql, dia), itensDoDia(sql, segunda)]);
+  const r = retrato(deHoje, dia, statusDe), rs = retrato(deSegunda, segunda, statusDe);
+  return mensagemSemana({ inicio, dia,
+    producao: fechadas.filter((f) => f.board_id !== String(BOARD_DEMANDAS)).length, solicitacoes: fechadas.filter((f) => f.board_id === String(BOARD_DEMANDAS)).length,
+    execucao, agendamento, ranking, agencia, atrasadas: r.atrasadas.length,
+    segunda: { dia: segunda, conteudos: rs.conteudosHoje.length, prontos: rs.conteudosHoje.filter(rs.entregue).length, paraAgendar: rs.conteudosHoje.filter(rs.pronto).length, abertos: rs.conteudosHoje.filter(rs.aberto).length } });
 }
