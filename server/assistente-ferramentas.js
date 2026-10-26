@@ -12,7 +12,7 @@ const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'i
 const defs=[
  ['minhas_demandas','Demandas da pessoa autenticada, sem ID escolhido pelo modelo. Hoje usa prazo ou, se ausente, veiculação. Pendentes usam status oficial não final; atrasadas exigem prazo vencido e status não final.',{periodo:{type:'string',enum:['hoje','todas']},situacao,...pagina}],
  ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub.',{cliente_id:inteiro,de:data,ate:data,modulo:{type:'string',enum:['trafego','alcance','interacoes','seguidores','faturamento','objetivos','aprovacoes','documentos','marca','campanhas','anuncios','publico','segmentacao']},...pagina},['cliente_id','de','ate']],
- ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao,de:data,ate:data,...pagina}],
+ ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
  ['detalhar_demanda','Detalhes operacionais de uma demanda, com briefing, comentários, histórico, tarefas e referências de arquivos. Nunca lê segredos nem o conteúdo binário de anexos.',{id:inteiro,secao:{type:'string',enum:['ficha','comentarios','historico','tarefas','arquivos']},...pagina},['id']],
  ['listar_clientes','Clientes e carteira operacional, sem contatos ou contratos.',{busca,...pagina}],
  ['listar_responsaveis','Equipe ativa, nomes e funções, sem e-mails ou dados pessoais.',{busca,...pagina}],
@@ -41,6 +41,7 @@ export function validarFerramenta(nome,args={}){
  if(nome==='consultar_perfil_trabalho'&&args.de&&args.ate&&Date.parse(args.ate)-Date.parse(args.de)>=180*86400000)throw new TypeError('Período máximo de 180 dias.');
  if(nome==='consultar_metricas_trafego'&&args.de&&args.ate&&Date.parse(args.ate)-Date.parse(args.de)>93*86400000)throw new TypeError('Período máximo de 93 dias.');
  if(args.de&&args.ate&&args.de>args.ate)throw new TypeError('Período inválido.');
+ if(args.cliente_de&&args.cliente_ate&&args.cliente_de>args.cliente_ate)throw new TypeError('Período inválido.');
  return args;
 }
 // Defesa adicional, não classificação perfeita de texto livre. Excluímos fontes
@@ -74,7 +75,9 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='cobertura_modulos')return {fonte:'vybe-neon',itens:[{disponiveis:['demandas','conteudos','clientes','responsaveis','planejamentos','aprovacao_do_planejamento','captacoes','referencias_de_roteiros','briefings','comentarios','historico','tarefas','referencias_de_arquivos','perfil_trabalho','perfil_jogo','ranking','dia_equipe','bi_vybehub'],limitacoes:['Campanhas e tráfego vêm do VybeHub; a ponte exige configuração própria e vínculo explícito do cliente.','Publicação: retorna status registrado, sem inferir entrega ou veiculação efetiva.','Roteiros: apenas referência; não lê texto do Drive.','Sem credenciais, sessões ou segredos técnicos. Arquivos externos são referências; não lemos seu conteúdo binário. O BI depende das fontes configuradas no Hub.']}],limitado:false};
  if(['buscar_demandas','detalhar_demanda'].includes(nome)){
   modulo='demandas';const id=a.id||null,diaDaPessoa=identidade.diaDaPessoa||null,situacao=a.situacao||'todas',hoje=diaAssistente(identidade.agora);
+  const quadro=a.quadro==='producao'?BOARD_PRODUCAO:a.quadro==='solicitacoes'?BOARD_DEMANDAS:null,cde=a.cliente_de||null,cate=a.cliente_ate||null;
   itens=await sql`SELECT c.id::text AS id,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
+   CASE WHEN c.board_id=${BOARD_DEMANDAS} THEN 'solicitacoes' ELSE 'producao' END AS quadro,
    COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes,
    COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_responsaveis cr JOIN vybe_pessoas p ON p.id=cr.pessoa_id WHERE cr.conteudo_id=c.id),'[]') AS responsaveis
    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
@@ -85,6 +88,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    AND (${cid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id=c.id AND cc.cliente_id=${cid}))
    AND (${rid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis cr WHERE cr.conteudo_id=c.id AND cr.pessoa_id=${rid}))
    AND (${status}='' OR s.rotulo ILIKE ${status}) AND (${de}::date IS NULL OR c.prazo>=${de}::date) AND (${ate}::date IS NULL OR c.prazo<=${ate}::date)
+   AND (${quadro}::bigint IS NULL OR c.board_id=${quadro}) AND (${cde}::date IS NULL OR c.veiculacao>=${cde}::date) AND (${cate}::date IS NULL OR c.veiculacao<=${cate}::date)
    ORDER BY c.prazo ASC NULLS LAST,c.id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_clientes'){
   modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;

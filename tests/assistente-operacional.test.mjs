@@ -41,6 +41,13 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   assert.equal(r.itens[1].responsaveis[0].nome,'Pessoa B');assert.equal(r.itens[0].status,'Agendado');assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));
   assert.equal((await executarFerramenta(sql,'buscar_demandas',{cliente_id:20,responsavel_id:2})).itens.length,1);
   assert.equal((await executarFerramenta(sql,'detalhar_demanda',{id:300})).itens.length,0);
+  // Quadro e data do cliente (veiculação na Produção / conclusão nas Solicitações).
+  assert.deepEqual(r.itens.map(x=>x.quadro),['solicitacoes','producao']);
+  assert.deepEqual((await executarFerramenta(sql,'buscar_demandas',{quadro:'producao'})).itens.map(x=>x.id),['200']);
+  assert.deepEqual((await executarFerramenta(sql,'buscar_demandas',{quadro:'solicitacoes'})).itens.map(x=>x.id),['100']);
+  assert.deepEqual((await executarFerramenta(sql,'buscar_demandas',{cliente_de:'2026-10-26',cliente_ate:'2026-10-26'})).itens.map(x=>x.id),['200']);
+  assert.throws(()=>validarFerramenta('buscar_demandas',{quadro:'outro'}));
+  assert.throws(()=>validarFerramenta('buscar_demandas',{cliente_de:'2026-10-27',cliente_ate:'2026-10-26'}));
  });
  await t.test('consulta pessoal de hoje é vinculada no servidor, nos dois quadros e no fuso Bahia',async()=>{
   assert.equal(diaAssistente(new Date('2026-10-23T02:59:59Z')),'2026-10-22');
