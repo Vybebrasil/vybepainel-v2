@@ -11552,6 +11552,31 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
    tela inteira o tempo todo, mesmo com o Painel parado. */
 /* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
 html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}
+
+/* Loja: "Monte um ambiente" e histórico de compras da Carteira. */
+.ofc-loja-ambientes {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ofc-loja-ambiente {display:grid;gap:4px;justify-items:start;padding:10px;border-radius:14px;border:1px solid #ffffff14;background:linear-gradient(160deg,#ffffff0d,#ffffff03);color:#e8ebf2;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.ofc-loja-ambiente:hover {transform:translateY(-2px);border-color:#ff8a3566;background:linear-gradient(160deg,#ff8a351c,#ffffff05)}
+.ofc-loja-ambiente-artes {display:flex;align-items:flex-end;gap:2px;width:100%;height:46px;overflow:hidden}
+.ofc-loja-ambiente-artes > * {flex:1 1 0;min-width:0;max-height:46px;object-fit:contain}
+.ofc-loja-ambiente b {display:flex;align-items:center;gap:6px;font:800 13px var(--mac-ui)}
+.ofc-loja-ambiente b svg {width:15px;height:15px;color:#ffc79a}
+.ofc-loja-ambiente small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-historico {display:grid;gap:6px;margin-top:12px}
+.ofc-historico h4 {margin:0;display:flex;align-items:baseline;gap:8px;font:800 13px var(--mac-ui);color:#fff}
+.ofc-historico h4 small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-historico ul {list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:320px;overflow:auto}
+.ofc-historico-item {display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#ffffff08}
+.ofc-historico-item[onclick] {cursor:pointer}
+.ofc-historico-item[onclick]:hover {background:#ffffff12}
+.ofc-historico-arte {width:36px;height:36px;display:grid;place-items:center;overflow:hidden}
+.ofc-historico-arte > * {max-width:36px;max-height:36px;object-fit:contain}
+.ofc-historico-texto {display:grid;min-width:0}
+.ofc-historico-texto b {font:700 12px var(--mac-ui);color:#e8ebf2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-historico-texto small {font:600 11px var(--mac-ui);color:#8f97a8}
+.ofc-historico-item em {font:800 12px var(--mac-ui);font-style:normal}
+.ofc-historico-item em.mais {color:#7be0a2}
+.ofc-historico-item em.menos {color:#ffb08a}
 /* LADO DIREITO EM DUAS LINHAS (Paulo, 26/10/2026: "status e o que é (card,
    reels) alinhados à direita, as bolinhas em cima do status e o olhinho com
    uma barrinha antes das bolinhas"). Em cima: olho | responsáveis; embaixo:
