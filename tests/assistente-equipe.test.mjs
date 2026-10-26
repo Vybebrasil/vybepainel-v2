@@ -6,7 +6,7 @@ import {identificadorProtegido} from '../server/assistente-identidade.js';
 import {emitirCodigo} from '../server/assistente-vinculacao-fluxo.js';
 import {conexao} from './postgres.mjs';
 
-// Escopo equipe: qualquer pessoa ativa e vinculada; grupo só com todos os participantes vinculados.
+// Escopo equipe: qualquer pessoa ativa e vinculada; em grupo aprovado basta quem pergunta estar vinculado.
 const admin='1111111111@lid',bia='2222222222@c.us',joao='3333333333@lid',estranho='9999999999@c.us';
 const grupo='123456789-123@g.us',outroGrupo='987654321-987@g.us',segredo='s'.repeat(40);
 const base={VYBE_AI_ATIVA:'1',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:segredo,VYBE_AI_GRUPOS_IDS:grupo,
@@ -56,12 +56,16 @@ test('equipe: sem vínculo, inativo, sem acesso ao painel ou vínculo revogado n
   assert.equal((await chamar({jid:bia,contexto:privado(bia),consulta:'autorizar_contexto'},equipe,sql)).codigo,403);
  }finally{await db.close();}
 });
-test('equipe: grupo aprovado exige todos os participantes vinculados',async()=>{
+test('equipe: no grupo aprovado basta quem pergunta estar vinculado',async()=>{
  const {db,sql}=await banco();try{
   const ok=await chamar({jid:joao,contexto:emGrupo([admin,bia,joao]),consulta:'autorizar_contexto'},equipe,sql);
   assert.equal(ok.codigo,200);assert.equal(ok.dados.pessoa_id,8);
-  assert.equal((await chamar({jid:joao,contexto:emGrupo([admin,bia,joao,estranho]),consulta:'autorizar_contexto'},equipe,sql)).codigo,403);
+  const comEstranho=await chamar({jid:joao,contexto:emGrupo([admin,bia,joao,estranho]),consulta:'autorizar_contexto'},equipe,sql);
+  assert.equal(comEstranho.codigo,200);assert.equal(comEstranho.dados.pessoa_id,8);
   assert.equal((await chamar({jid:joao,contexto:{...emGrupo([bia,joao]),grupo_id:outroGrupo,grupos_remetente:[outroGrupo]},consulta:'autorizar_contexto'},equipe,sql)).codigo,403);
+  // Quem pergunta sem vínculo, ou fora da lista de participantes, continua recusado.
+  const semVinculo=await chamar({jid:estranho,contexto:emGrupo([bia,joao,estranho]),consulta:'autorizar_contexto'},equipe,sql);
+  assert.equal(semVinculo.codigo,403);assert.equal(semVinculo.dados.error,'Conta WhatsApp não vinculada.');
   assert.equal((await chamar({jid:estranho,contexto:emGrupo([bia,joao]),consulta:'autorizar_contexto'},equipe,sql)).codigo,403);
  }finally{await db.close();}
 });
