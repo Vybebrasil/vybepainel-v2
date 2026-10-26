@@ -175,3 +175,12 @@ test('fechamento da semana: fechadas, quem executou, ranking, atrasadas e prévi
   assert.match(t, /\*Ranking da semana\*\n🥇 Beatriz · 900 XP\n🥈 Jady · 700 XP/);
   assert.match(t, /⚠️ Seguem atrasadas: 4\n🔭 Segunda \(02\/11\): 12 conteúdo\(s\) · ✅ 5 pronto\(s\) · 📅 3 para agendar · ⏳ 4 em aberto/);
 });
+
+test('resumo para o cliente: publicados, aguardando aprovação do cliente e próxima semana', async () => {
+  const { mensagemResumoCliente } = await import('../server/assistente-rotinas.js');
+  const t = mensagemResumoCliente({ cliente: 'Hebravet', inicio: '2026-10-26', dia: '2026-10-30',
+    publicados: [{ titulo: 'Reels - Rotina interna', veiculacao: '2026-10-27' }], aprovacao: [{ titulo: 'Card - Vacina', veiculacao: '2026-11-03' }], proxima: [] });
+  assert.match(t, /^Olá, time Hebravet! 👋 Segue o resumo da semana \(26\/10 a 30\/10\):\n\n✅ \*Publicados\* \(1\)\n- Reels - Rotina interna · 27\/10/);
+  assert.match(t, /🕐 \*Aguardando a aprovação de vocês\* \(1\)\n- Card - Vacina · veicula 03\/11/);
+  assert.match(t, /📅 \*Próxima semana\* \(0\)\n- Ainda sem conteúdos programados\.[\s\S]*— Equipe Vybe$/);
+});

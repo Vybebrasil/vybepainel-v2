@@ -313,3 +313,35 @@ export async function diasPessoais(sql, pessoaIds, dia) {
     return { pessoa_id: p.id, texto: texto.replace(/^📅 \*Seu dia,/, '☀️ *Bom dia,'), vazio: /Nada previsto pra você hoje/.test(texto) };
   });
 }
+
+// Resumo da semana para o cliente (texto pronto para o atendimento revisar e encaminhar): o que foi publicado
+// de segunda até hoje, o que espera a aprovação do cliente e o que vem na próxima semana. Só a Produção.
+export function mensagemResumoCliente({ cliente, inicio, dia, publicados, aprovacao, proxima }) {
+  const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  const lista = (itens, data) => itens.slice(0, 15).map((i) => `- ${i.titulo}${data(i) ? ' · ' + data(i) : ''}`).concat(itens.length > 15 ? [`- e mais ${itens.length - 15}`] : []);
+  return [`Olá, time ${cliente}! 👋 Segue o resumo da semana (${curto(inicio)} a ${curto(dia)}):`, '',
+    `✅ *Publicados* (${publicados.length})`, ...(publicados.length ? lista(publicados, (i) => i.veiculacao && curto(i.veiculacao)) : ['- Nada publicado ainda nesta semana.']),
+    ...(aprovacao.length ? ['', `🕐 *Aguardando a aprovação de vocês* (${aprovacao.length})`, ...lista(aprovacao, (i) => i.veiculacao && 'veicula ' + curto(i.veiculacao))] : []),
+    '', `📅 *Próxima semana* (${proxima.length})`, ...(proxima.length ? lista(proxima, (i) => i.veiculacao && curto(i.veiculacao)) : ['- Ainda sem conteúdos programados.']),
+    '', 'Qualquer ajuste, é só falar por aqui. 💜', '— Equipe Vybe'].join('\n');
+}
+export async function resumoCliente(sql, clienteId, dia) {
+  if (!Number.isSafeInteger(clienteId) || clienteId <= 0) throw new TypeError('Cliente inválido.');
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND COALESCE(ativo, true)`;
+  if (!cliente) throw new TypeError('Cliente inválido.');
+  const inicio = somarDias(dia, -((new Date(dia + 'T12:00:00Z').getUTCDay() + 6) % 7)), segunda = somarDias(inicio, 7), domingo = somarDias(inicio, 13);
+  const pecas = await sql`SELECT c.titulo, c.veiculacao::text AS veiculacao, s.rotulo AS status, COALESCE(s.final, false) AS final
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO}
+      AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${clienteId})
+      AND c.veiculacao BETWEEN ${inicio}::date AND ${domingo}::date
+    ORDER BY c.veiculacao, c.titulo`;
+  const p = pecas.map((x) => ({ ...x, titulo: x.titulo || 'Sem título', veiculacao: textoData(x.veiculacao) }));
+  const aguardaCliente = (x) => /aprova[cç][aã]o.*cliente|ag\.? aprova/i.test(normal(x.status));
+  const texto = mensagemResumoCliente({ cliente: cliente.nome, inicio, dia,
+    publicados: p.filter((x) => x.final && x.veiculacao <= dia),
+    aprovacao: p.filter((x) => !x.final && aguardaCliente(x)),
+    proxima: p.filter((x) => x.veiculacao >= segunda) });
+  return { texto, fontes: [{ modulo: 'resumo_cliente', id: String(clienteId) }] };
+}

@@ -1,6 +1,6 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
 import {metricasDoHub} from './assistente-hub.js';
-import {diaDaAgencia,meuDia} from './assistente-rotinas.js';
+import {diaDaAgencia,meuDia,resumoCliente} from './assistente-rotinas.js';
 import {agendaDeCaptacoes} from './captacoes.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
@@ -31,6 +31,7 @@ const defs=[
  ['consultar_perfil_jogo','Nível, XP total, moedas, inventário e conquistas públicas de qualquer pessoa. Somente leitura.',{pessoa_id:inteiro,secao:{type:'string',enum:['resumo','inventario','conquistas']},...pagina},['pessoa_id']],
  ['consultar_ranking','Ranking de trabalho e patrimônio da equipe, usando as regras existentes.',{periodo:{type:'string',enum:['dia','semana','mes','total']},...pagina}],
  ['consultar_dia_equipe','Previsto, pronto, adiado e atrasado de toda a equipe hoje, pela mesma conta do Escritório.',{...pagina}],
+ ['resumo_cliente','Texto pronto para o atendimento revisar e mandar ao cliente: publicados na semana, o que espera a aprovação do cliente e a próxima semana (Produção).',{cliente_id:inteiro},['cliente_id']],
  ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem hoje, atrasadas e prazo amanhã, com o link de cada peça. Sem escolher pessoa.',{}],
  ['consultar_dia_agencia','Resumo do dia da agência hoje (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto hoje.',{}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
@@ -86,6 +87,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
   const itens=eventos.filter(e=>e.tipo==='captacao').slice(0,25).map(e=>({id:e.id,titulo:e.titulo,dia:e.dia,horario:e.horario,local:e.local,cliente:e.cliente||null}));
   return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
  }
+ if(nome==='resumo_cliente'){const d=await resumoCliente(sql,a.cliente_id,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='meu_dia'){
   if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');
   const d=await meuDia(sql,identidade.pessoaId,diaAssistente(identidade.agora));
