@@ -194,7 +194,8 @@ function mapaEtapaQuebravel(dados, golpes) {
   const n = Object.keys(dados.visualizations.find((v) => v.size === 64)?.animations || {}).filter((k) => Number(k) < 100).length || 1;
   return Math.min(n - 1, Math.floor((Math.max(0, golpes) * (n - 1)) / MAPA_GOLPES_QUEBRAVEL));
 }
-function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro) {
+// leitura: os pixels do desenho vão ser lidos (getImageData); ver mapaLuzSemPreto.
+function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro, leitura = false) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const digitos = MAPA_COM_DIGITOS.test(dados.visualizationType || "");
   const numero = Math.max(0, Math.round(Number(estadoSalvo) || 0));
@@ -235,7 +236,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, maxX - minX);
   canvas.height = Math.max(1, maxY - minY);
-  const g = canvas.getContext("2d");
+  const g = canvas.getContext("2d", leitura ? { willReadFrequently: true } : undefined);
   g.imageSmoothingEnabled = false;
   for (const c of caixas) {
     if (filtro && !filtro(c)) continue;
@@ -279,6 +280,10 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
 // criar e compor canvases novos 24 vezes por segundo para cada móvel animado
 // (era o que mais pesava nas salas cheias). Os canvases guardados só são lidos.
 const MAPA_CACHE_CAMADAS = new WeakMap();
+// Quadros guardados por tipo de móvel: com 96, as muitas telas do Centro de
+// Operação (cada uma numa fase) descartavam e redesenhavam o mesmo quadro sem
+// parar. Cada quadro é um canvas pequeno.
+const MAPA_CACHE_QUADROS = 640;
 // Cópia de um canvas (o do cache não pode ir para o mapa duas vezes).
 // Área de clique do boneco: só o corpo. O botão inteiro (64 × 110) tapava o
 // clique na mesa, na cadeira e no painel atrás de quem está na frente
@@ -303,7 +308,7 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   const chave = `${dir}|${estado}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
   if (cache.has(chave)) return cache.get(chave);
   const d = mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
-  if (cache.size >= 96) cache.delete(cache.keys().next().value);
+  if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value);
   cache.set(chave, d);
   return d;
 }
@@ -357,7 +362,11 @@ function mapaLuzSemPreto(imagem, f) {
   if (porImagem.has(chave)) return porImagem.get(chave);
   const c = document.createElement("canvas");
   c.width = f.w; c.height = f.h;
-  const g = c.getContext("2d");
+  // Canvas na memória comum (willReadFrequently): ler os pixels de um canvas da
+  // placa de vídeo espera ela terminar tudo o que está na fila. Na entrada do
+  // escritório isso somava ~1,2 s, com leituras de até 576 ms (Paulo,
+  // 26/10/2026: o convidado travava ao abrir).
+  const g = c.getContext("2d", { willReadFrequently: true });
   g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
   try {
     const px = g.getImageData(0, 0, f.w, f.h), d = px.data;
@@ -1103,10 +1112,17 @@ const MAPA_FEIXE_AREA = 31;
 // Mapa fora de vista: aba escondida, fora da tela ou coberto pela entrada da
 // Vybelândia ou pela abertura. A vitrine dentro da entrada continua animando.
 // Animar o mapa inteiro por trás da entrada pesava em todo computador (22/10/2026).
+// Guardado por meio segundo: chamada 24 vezes por segundo (animar, seta,
+// passeio), o offsetParent forçava o layout e o querySelector varria os mais de
+// 10 mil elementos do Centro de Operação a cada quadro, e a sala piorava com o
+// tempo aberta (Paulo, 26/10/2026: o Mac esquentava e o Centro travava).
 function mapaForaDeVista(el) {
-  if (document.hidden || !el.isConnected || !el.offsetParent) return true;
-  if (el.closest(".ofc-lobby, .ofc-abertura")) return false;
-  return Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura"));
+  if (document.hidden || !el.isConnected) return true;
+  const agora = Date.now(), guardado = el._mapaVista;
+  if (guardado && agora - guardado.t < 500) return guardado.fora;
+  const fora = !el.offsetParent || (!el.closest(".ofc-lobby, .ofc-abertura") && Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura")));
+  el._mapaVista = { t: agora, fora };
+  return fora;
 }
 function mapaFatorFeixe() { return 0.15 + Math.random() * 0.35; }
 function mapaPassoFeixe(f) {
@@ -1282,7 +1298,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // 6º campo: estilo padrão do trecho (vidro na reunião, tijolo no Lounge…).
     const [x0, y0, x1, y1, cor] = dv, estiloBase = dv.estilo;
     // Painel do acervo: o que o dono pintou, senão o do espaço (ou o padrão da sala).
-    const texturaDe = (est) => dv.recorte ? null : (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
+    // Revestimento escolhido para o trecho (est.textura) vem antes do estilo.
+    const texturaDe = (est) => dv.recorte ? null : est?.textura ? est.textura : (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
@@ -1309,17 +1326,20 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     }
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
-  const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
-  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
+  const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura), ...(P.texturasParede || [])].filter(Boolean))];
+  // Também chamado ao repintar na edição: um revestimento escolhido agora
+  // ainda não tem a arte carregada.
+  const carregarTexturasParede = (classes) => Promise.all(classes.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
-      const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);
+      const d4 = mapaDesenharMovel(m, 4, 0, 0, 0, null, true), d2 = mapaDesenharMovel(m, 2, 0, 0, 0, null, true);
       // Só a parte desenhada do painel ladrilha a parede (as margens
       // transparentes da arte deixavam faixas da base escura aparecendo nas
       // paredes mais altas que o painel).
       if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n, recorte: { 4: mapaRecorteOpaco(d4.canvas), 2: mapaRecorteOpaco(d2.canvas) } });
     } catch {}
-  })).then(() => { try { pintarParedes(true); } catch {} });
+  })).then(() => { try { if (!destruido) pintarParedes(true); } catch {} });
+  carregarTexturasParede(classesParede);
   // Altura da parede num trecho (para os itens pendurados): a do muro da
   // planta, ou a do prédio nas paredes de fora.
   const mapaAlturaParede = (x, y, eixo) => {
@@ -1643,7 +1663,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       const filtro = a.chave == null ? item.filtro : (p) => mapaGrupoCamada(p) === a.chave && (!item.filtro || item.filtro(p));
       // Mesmo ciclo dos móveis de chão: cada quadro desenhado uma vez só.
       const cache = (item.cacheDesenho ??= new Map()), chave = `${a.chave}|${item.dir}|${estado}|${mapaChaveQuadro(item.m.dados, estado, q, item.semente || 0)}`;
-      if (!cache.has(chave)) { if (cache.size >= 96) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
+      if (!cache.has(chave)) { if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
       const d = cache.get(chave);
       const g = a.no.getContext("2d");
       if (!d) { g.clearRect(0, 0, a.no.width, a.no.height); continue; }
@@ -1907,7 +1927,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // volta são desenhadas por cima dela.
       const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12 && (!MAPA_FISICA?.[classe] || mapaFisica(classe).pisa);
       const no = document.createElement("div");
-      no.className = "mapa-obj mapa-movel";
+      no.className = "mapa-obj mapa-movel" + (plano ? " mapa-rente" : "");
       no.dataset.classe = classe;
       // A peça de escada fica apoiada no piso de baixo (a rampa de quem anda
       // por ela sobe até o mezanino; sem isso ela aparecia no meio da subida).
@@ -3027,8 +3047,17 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // movimento", metade disso. Só com o mapa visível na tela.
   let quadro = 0, relogio = null, pulsoBonecos = 0;
   const focos = [];
+  let emPausa = false, tique = 0;
   const animar = () => {
-    if (mapaForaDeVista(el)) return;
+    // Fora de vista (atrás do lobby, outra aba, janela escondida) as animações
+    // CSS do mapa também param: luzes, zzz e etiquetas seguiam pedindo quadros
+    // à placa de vídeo sem ninguém ver (Paulo, 26/10/2026: o MacBook esquentava).
+    const fora = mapaForaDeVista(el);
+    if (fora !== emPausa) { emPausa = fora; el.classList.toggle("mapa-em-pausa", fora); }
+    if (fora) return;
+    // Ninguém mexe há um tempo (vybe-energia.js): um quadro a cada quatro.
+    tique = (tique + 1) % 4;
+    if (tique && typeof vbOcioso === "function" && vbOcioso()) return;
     quadro++;
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();
@@ -3110,6 +3139,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt != null ? m.altParede(est.alt) : m.altBase; m.textura = m.texturaDe(est);
       }
       pintarParedes(true);
+      // Revestimento novo na prévia: carrega a arte e repinta quando chegar.
+      carregarTexturasParede([...new Set(muros.map((m) => m.textura).filter(Boolean))]);
     },
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },

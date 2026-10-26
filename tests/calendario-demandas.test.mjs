@@ -17,7 +17,7 @@ function contexto() {
     MOSTRAR_FORA_DO_FEED:false,FORA_DO_FEED_NO_MES:17,solicitacaoVaiProFeed:()=>false,
     managerCalendarMonthMeta:()=>({cells:[{iso:'2026-09-26',date:new Date(2026,8,26),inMonth:true}]}),
     managerCalendarLabel:()=> 'Setembro de 2026',safeText:String,planningDateBr:String,ancorarPopover(){},
-    managerCalendarEventHtml:i=>`<article data-id="${i.id}">${i.nome}</article>`,agendaDeDemandasAberta:true,
+    managerCalendarEventHtml:i=>`<article data-id="${i.id}">${i.nome}</article>`,previaDoDiaAttrs:()=>'',agendaDeDemandasAberta:true,
   });
   for(const f of ['vybe-config.js','vybe-demandas.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);
   vm.runInContext(fs.readFileSync('vybe-core.js','utf8').split('// QUANDO FOI')[0],c);

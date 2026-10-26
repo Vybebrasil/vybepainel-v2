@@ -237,41 +237,32 @@ const STATUS_JA_ENTREGUE = new Set(['para aprovação','para aprovacao','em apro
 // divergiria da primeira no primeiro conserto.
 //
 // A linha nao sabe se existe arquivo, so o status. Por isso o destino de quem
-// clica sem material nao e um beco: abre o link se houver, e abre a caixa de
-// entrega se nao houver nada.
+// clica sem material nao e um beco: a previa abre dizendo o que falta, com o
+// link (se houver) e "Entregar material" ali mesmo. Antes ela pulava direto
+// para a caixa de entrega — o certo para quem produz, estranho para o head que
+// so queria conferir (Paulo, 26/10/2026).
+//
+// Paulo, 26/10/2026: "quero ele como padrão em mais lugares pra facilitar meus
+// heads olharem as coisas". O olho fica logo depois do nome da peça na Agenda
+// da equipe, no calendário do mês e na tabela; data-previa-id é o que deixa a
+// prévia passar para a peça seguinte da mesma coluna (sequenciaDaPrevia).
 function botaoDePreviaNaLinha(item, classe = 'linha-previa') {
   if (!item || !jaTemMaterial(item)) return '';
-  return `<button type="button" class="${classe}"
+  return `<button type="button" class="${classe}" data-previa-id="${safeText(String(item.id))}"
     onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(item.id))}',this)"
-    title="Ver o material entregue" aria-label="Ver prévia de ${safeText(item.nome || 'atividade')}">👁</button>`;
+    title="Ver o material entregue" aria-label="Ver prévia de ${safeText(item.nome || 'atividade')}">${ICONE_LINHA.previa}</button>`;
 }
 
 function jaTemMaterial(item) {
   return STATUS_JA_ENTREGUE.has(normalizedWorkflowStatus(operationalFlowStatus(item)));
 }
-async function abrirPreviaDaEntrega(itemId, gatilho) {
+// `ancora` é de onde se lê a sequência quando o clique não veio do próprio
+// olho — o "Ver prévia" do cartão rápido usa a peça do calendário que o abriu.
+async function abrirPreviaDaEntrega(itemId, gatilho, ancora = gatilho) {
   if (gatilho) { gatilho.disabled = true; gatilho.classList.add('carregando'); }
-  let detail = null;
-  try { detail = await fetchWorkspaceItem(itemId); }
-  catch (erro) { showToast(`Não foi possível abrir a prévia: ${erro.message}`, 'err', 7000); return; }
+  try { await abrirPecaNaPrevia(String(itemId), sequenciaDaPrevia(itemId, ancora)); }
+  catch (erro) { showToast(`Não foi possível abrir a prévia: ${erro.message}`, 'err', 7000); }
   finally { if (gatilho) { gatilho.disabled = false; gatilho.classList.remove('carregando'); } }
-  const artes = statusContextPreviewAssets(detail) || [];
-  if (artes.length) {
-    PREVIA_MATERIAL = artes;
-    PREVIA_DA_PECA = String(itemId);
-    return abrirPreviaGrande(0);
-  }
-  // Sem imagem, pode haver link — e o link e material tanto quanto o arquivo.
-  const entrega = typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detail) : null;
-  if (entrega?.url) {
-    showToast('O material desta atividade é um link. Abrindo…', 'info', 4000);
-    window.open(entrega.url, '_blank', 'noopener');
-    return;
-  }
-  // O status diz que foi entregue e nao ha material: isso e um aviso, nao um
-  // beco — a entrega abre logo em seguida.
-  showToast('Esta atividade está marcada como entregue, mas não há arquivo nem link registrado.', 'info', 7000);
-  abrirEntregaRapida(itemId, { currentTarget: gatilho, stopPropagation() {} });
 }
 
 function fecharEntregaRapida() {
@@ -353,7 +344,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
     <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${botaoDeBriefingHtml(d)}${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)
-      ? `<button type="button" class="focus-brief-btn previa" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
+      ? `<button type="button" class="focus-brief-btn previa" data-previa-id="${safeText(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
       : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }

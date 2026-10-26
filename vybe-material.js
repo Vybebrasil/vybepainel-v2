@@ -24,8 +24,97 @@ function trocarMaterialDaPrevia(event) {
   abrirEntregaRapida(id, event);
 }
 
+// ── PEÇA A PEÇA: CONFERIR UMA COLUNA INTEIRA SEM FECHAR A PRÉVIA ─────────────
+//
+// Paulo, 26/10/2026: os heads abrem a prévia para conferir o dia, e fechar e
+// abrir de novo a cada peça é o que cansa. A prévia guarda a sequência de onde
+// o olho foi clicado (a coluna do dia, a célula do calendário, o grupo da
+// tabela) e anda por ela.
+//
+// "Se liga pra quando for peça estilo carrossel, pra não sair pulando": as
+// setas do lado da imagem (e ← →) continuam passando as lâminas da MESMA peça
+// e dão a volta nela. Trocar de peça é outro controle, em cima ("Peça
+// anterior" / "Próxima peça", ↑ ↓), e sempre começa da primeira lâmina.
+let PREVIA_SEQUENCIA = { ids: [], rotulo: '', indice: 0 };
+// A peça aberta: nome e cliente para a barra, e o estado do que veio do servidor.
+let PREVIA_PECA = null;
+const PREVIA_DETALHES = new Map();
+let PREVIA_PECA_VEZ = 0;
+
+// A sequência é o que está na tela em volta do clique: os olhos do mesmo
+// [data-previa-sequencia]. A célula do calendário mostra só cinco peças, então
+// ela traz a lista completa do dia em data-previa-ids.
+function sequenciaDaPrevia(itemId, ancora) {
+  const id = String(itemId);
+  const caixa = ancora?.closest?.('[data-previa-sequencia]');
+  if (!caixa) return { ids: [id], rotulo: '', indice: 0 };
+  const lista = caixa.dataset.previaIds
+    ? caixa.dataset.previaIds.split(',')
+    : [...caixa.querySelectorAll('[data-previa-id]')].map((b) => b.dataset.previaId);
+  const ids = [...new Set(lista.filter(Boolean))];
+  if (!ids.includes(id)) ids.unshift(id);
+  return { ids, rotulo: caixa.dataset.previaSequencia || '', indice: ids.indexOf(id) };
+}
+
+function pecaLocalDaPrevia(id) {
+  const conteudo = typeof findOperationalItem === 'function' ? findOperationalItem(id) : null;
+  if (conteudo) return conteudo;
+  const pedido = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find((d) => String(d.id) === id);
+  return pedido && typeof normalizeRequestForOperational === 'function' ? normalizeRequestForOperational(pedido) : pedido;
+}
+
+// Uma busca por peça enquanto a prévia está aberta: voltar uma peça é na hora.
+function detalheDaPrevia(id) {
+  if (!PREVIA_DETALHES.has(id)) {
+    PREVIA_DETALHES.set(id, fetchWorkspaceItem(id).catch((erro) => { PREVIA_DETALHES.delete(id); throw erro; }));
+  }
+  return PREVIA_DETALHES.get(id);
+}
+
+async function abrirPecaNaPrevia(id, sequencia) {
+  PREVIA_SEQUENCIA = sequencia || { ids: [id], rotulo: '', indice: 0 };
+  await mostrarPecaDaPrevia(Math.max(0, PREVIA_SEQUENCIA.ids.indexOf(id)));
+}
+
+async function mostrarPecaDaPrevia(indice) {
+  const id = PREVIA_SEQUENCIA.ids[indice];
+  if (!id) return;
+  const vez = ++PREVIA_PECA_VEZ;
+  PREVIA_SEQUENCIA.indice = indice;
+  const local = pecaLocalDaPrevia(id);
+  PREVIA_PECA = { id, nome: local?.nome || '', cliente: local?.cliente || '', link: '', estado: 'carregando', erro: '' };
+  PREVIA_DA_PECA = id;
+  PREVIA_MATERIAL = [];
+  abrirPreviaGrande(0);
+  try {
+    const detalhe = await detalheDaPrevia(id);
+    if (vez !== PREVIA_PECA_VEZ) return;
+    PREVIA_MATERIAL = statusContextPreviewAssets(detalhe) || [];
+    // Sem imagem, pode haver link — e o link e material tanto quanto o arquivo.
+    const entrega = !PREVIA_MATERIAL.length && typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detalhe) : null;
+    PREVIA_PECA.link = entrega?.url || '';
+    PREVIA_PECA.estado = 'pronta';
+  } catch (erro) {
+    if (vez !== PREVIA_PECA_VEZ) return;
+    PREVIA_PECA.estado = 'erro';
+    PREVIA_PECA.erro = erro.message || 'Falha ao buscar a peça.';
+  }
+  abrirPreviaGrande(0);
+  // A próxima já vem buscada: quem confere uma coluna anda para a frente.
+  const proxima = PREVIA_SEQUENCIA.ids[indice + 1];
+  if (proxima) detalheDaPrevia(proxima).catch(() => {});
+}
+
+function passarPecaDaPrevia(passo) {
+  const total = PREVIA_SEQUENCIA.ids.length;
+  if (!PREVIA_PECA || total < 2) return;
+  const destino = PREVIA_SEQUENCIA.indice + passo;
+  if (destino < 0 || destino >= total) return;
+  mostrarPecaDaPrevia(destino);
+}
+
 function abrirPreviaGrande(indice = 0) {
-  if (!PREVIA_MATERIAL.length) return;
+  if (!PREVIA_MATERIAL.length && !PREVIA_PECA) return;
   PREVIA_GRANDE_INDICE = Math.max(0, Math.min(indice, PREVIA_MATERIAL.length - 1));
   let caixa = document.getElementById('previa-grande');
   if (!caixa) {
@@ -41,6 +130,13 @@ function abrirPreviaGrande(indice = 0) {
           <button type="button" id="previa-trocar" class="previa-grande-trocar"
             onclick="trocarMaterialDaPrevia(event)">⤓ Trocar material</button>
           <button class="x-fechar" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
+        </div>
+        <div class="previa-grande-pecas" id="previa-grande-pecas" role="group" aria-label="Peças da sequência">
+          <button type="button" class="previa-peca-passo" id="previa-peca-antes" onclick="passarPecaDaPrevia(-1)"
+            title="Peça anterior (↑)" aria-label="Peça anterior">‹<span> Peça anterior</span></button>
+          <div class="previa-peca-info" aria-live="polite"><b id="previa-peca-nome"></b><small id="previa-peca-onde"></small></div>
+          <button type="button" class="previa-peca-passo" id="previa-peca-depois" onclick="passarPecaDaPrevia(1)"
+            title="Próxima peça (↓)" aria-label="Próxima peça"><span>Próxima peça </span>›</button>
         </div>
         <div class="previa-grande-palco">
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>
@@ -62,11 +158,55 @@ function eVideoDoMaterial(a) {
   return /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(String(onde));
 }
 
+// A barra das peças só existe quando a prévia é de uma peça do painel; vinda de
+// um portão ou da lista de arquivos ela some.
+function pintarPecasDaPrevia() {
+  const barra = document.getElementById('previa-grande-pecas');
+  if (!barra) return;
+  barra.hidden = !PREVIA_PECA;
+  if (!PREVIA_PECA) return;
+  const { ids, indice, rotulo } = PREVIA_SEQUENCIA;
+  const nome = document.getElementById('previa-peca-nome');
+  const onde = document.getElementById('previa-peca-onde');
+  if (nome) nome.textContent = PREVIA_PECA.nome || 'Peça sem título';
+  if (onde) onde.textContent = [PREVIA_PECA.cliente, rotulo,
+    ids.length > 1 ? `peça ${indice + 1} de ${ids.length}` : ''].filter(Boolean).join(' · ');
+  const antes = document.getElementById('previa-peca-antes');
+  const depois = document.getElementById('previa-peca-depois');
+  if (antes) { antes.hidden = ids.length < 2; antes.disabled = indice <= 0; }
+  if (depois) { depois.hidden = ids.length < 2; depois.disabled = indice >= ids.length - 1; }
+}
+
+// Peça sem imagem: carregando, erro, só link ou nada registrado. Nenhum dos
+// quatro é um beco — cada um diz o que fazer dali.
+function estadoDaPecaNaPrevia() {
+  const p = PREVIA_PECA;
+  if (p.estado === 'carregando') return vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando a peça' });
+  if (p.estado === 'erro') return vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível abrir esta peça', texto: p.erro,
+    acao: `<button type="button" class="vb-botao" onclick="mostrarPecaDaPrevia(PREVIA_SEQUENCIA.indice)">Tentar de novo</button>` });
+  if (p.link) return vbEstadoHtml({ titulo: 'O material desta peça é um link', texto: 'Ele abre numa aba nova.',
+    acao: `<a class="vb-botao principal" href="${safeText(p.link)}" target="_blank" rel="noopener">Abrir o link</a>` });
+  return vbEstadoHtml({ titulo: 'Sem arquivo nem link registrado',
+    texto: 'A peça está marcada como entregue, mas o material não foi anexado.',
+    acao: `<button type="button" class="vb-botao" onclick="trocarMaterialDaPrevia(event)">Entregar material</button>` });
+}
+
 function pintarPreviaGrande() {
+  pintarPecasDaPrevia();
   const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
-  if (!a) return;
   const palco = document.getElementById('previa-grande-media');
   const nome = document.getElementById('previa-grande-nome');
+  if (!a) {
+    if (!PREVIA_PECA) return;
+    if (palco) palco.innerHTML = `<div class="previa-grande-estado">${estadoDaPecaNaPrevia()}</div>`;
+    if (nome) nome.textContent = '';
+    ['previa-baixar', 'previa-trocar'].forEach((idBotao) => {
+      const b = document.getElementById(idBotao);
+      if (b) b.style.display = 'none';
+    });
+    document.querySelectorAll('.previa-grande-seta').forEach((b) => { b.style.visibility = 'hidden'; });
+    return;
+  }
   // Video tinha caixa propria antes. Agora e a mesma caixa: quem abre um .mp4
   // pela lista de arquivos ganha as setas, o nome e o botao de baixar junto.
   if (palco) {
@@ -123,6 +263,7 @@ function openVybeLightbox(src, name) {
   // Sem a lista da peça — ou com um arquivo que não está nela — abre só ele.
   PREVIA_MATERIAL = mostraveis.some(mesmo) ? mostraveis : [{ name, url: src, public_url: src }];
   PREVIA_DA_PECA = '';
+  PREVIA_PECA = null;
   const onde = Math.max(0, PREVIA_MATERIAL.findIndex(mesmo));
   abrirPreviaGrande(onde);
 }
@@ -130,6 +271,13 @@ function openVybeLightbox(src, name) {
 function fecharPreviaGrande() {
   const caixa = document.getElementById('previa-grande');
   if (caixa) caixa.style.display = 'none';
+  // Um vídeo continuaria tocando atrás do painel fechado.
+  caixa?.querySelector('video')?.pause();
+  // A sequência é da abertura; um portão que abra a prévia depois não herda.
+  PREVIA_PECA = null;
+  PREVIA_SEQUENCIA = { ids: [], rotulo: '', indice: 0 };
+  PREVIA_DETALHES.clear();
+  PREVIA_PECA_VEZ++;
 }
 
 // Só responde às teclas com o painel aberto: ESC dentro do modal de checklist
@@ -140,6 +288,8 @@ function teclaPreviaGrande(e) {
   if (e.key === 'Escape') { e.stopPropagation(); fecharPreviaGrande(); }
   if (e.key === 'ArrowLeft') passarPreviaGrande(-1);
   if (e.key === 'ArrowRight') passarPreviaGrande(1);
+  if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); passarPecaDaPrevia(-1); }
+  if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); passarPecaDaPrevia(1); }
 }
 
 function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!asset) return; PREVIA_GRANDE_INDICE=indice; const img=document.getElementById('material-review-img'); const legenda=document.getElementById('material-review-caption'); if(img){ img.src=asset.url_thumbnail||asset.public_url||asset.url||''; img.alt=`Prévia de ${asset.name||'material'}`; } if(legenda) legenda.textContent=`(${indice+1}/${PREVIA_MATERIAL.length}) ${asset.name||''}`; document.querySelectorAll('#material-review-strip button').forEach((b,i)=>b.classList.toggle('ativa',i===indice)); }

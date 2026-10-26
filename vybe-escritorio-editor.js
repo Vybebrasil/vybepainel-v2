@@ -613,6 +613,10 @@ function teclaEditorEscritorio(e) {
   if (cmd && k0 === "a") { e.preventDefault?.(); escritorio.edicao.selVarios = new Set(escritorio.edicao.itens.map((_, i) => i).filter((i) => !escritorioImagemDe(escritorio.edicao.itens[i][0]))); escritorio.edicao.sel = [...escritorio.edicao.selVarios].at(-1) ?? null; escritorioDestacarGrupo(); renderBarraEditorEscritorio(); return true; }
   if (e.key === "Escape") { if (ed.alvos != null) return terminarAlvosGatilhoEscritorio(), true; if (ed.colar) ed.colar = null; else if (ed.trocar != null) ed.trocar = null; else if (ed.novo) ed.novo = null; else { ed.sel = null; ed.selVarios = new Set(); escritorio.mapa?.destacar(null); } escritorio.mapa?.previa(null); renderBarraEditorEscritorio(); return true; }
   if (!cmd && !e.altKey && k0 === "b") { alternarConstrutorEscritorio(); return true; }
+  // Modos da construção (1 a 6), ver piso (V) e grade (G), como num jogo.
+  if (!cmd && !e.altKey && /^[1-6]$/.test(k0) && typeof escritorioIrModoConstrucao === "function") { escritorioIrModoConstrucao(ESCRITORIO_MODOS_CONSTRUCAO[Number(k0) - 1][0]); return true; }
+  if (!cmd && !e.altKey && k0 === "v" && typeof escritorioVerPiso === "function") { escritorioVerPiso(); return true; }
+  if (!cmd && !e.altKey && k0 === "g") { gradeEditorEscritorio(true); return true; }
   // Móvel novo ainda na mão: R gira a prévia antes de colocar.
   if (ed.novo && ed.sel === null && (e.key === "r" || e.key === "R")) { girarNovoEscritorio(); return true; }
   // Móvel novo na mão: Alt + setas ajusta a prévia antes de colocar (¼ de ladrilho).
@@ -638,6 +642,7 @@ function renderBarraEditorEscritorio() {
   el.hidden = !e;
   atualizarFerramentaEditorEscritorio();
   document.querySelector("#painel-escritorio .ofc")?.toggleAttribute("data-editor-sem-paredes",Boolean(e?.ocultarParedes));
+  document.querySelector("#painel-escritorio .ofc")?.toggleAttribute("data-editor-ver-piso",Boolean(e?.verPiso));
   if (!e) { document.getElementById("office-editor-sel")?.remove(); return; }
   const mao=document.getElementById("office-editor-mao");if(mao)mao.innerHTML=escritorioMaoHtml();
   const it = e.sel !== null ? e.itens[e.sel] : null;
@@ -656,8 +661,8 @@ function renderBarraEditorEscritorio() {
     : e.trocar != null ? "Escolha na lateral o novo modelo · Esc cancela"
     : e.colar ? `Clique no piso para colar ${e.colar.length} ${e.colar.length === 1 ? "móvel" : "móveis"} · Esc cancela`
     : naMao ? `<b>${safeText(naMao)}</b> na mão · ${parede ? "clique no piso encostado na parede" : "clique no piso para colocar"} · R gira${e.novoAjuste && (e.novoAjuste.dx || e.novoAjuste.dy) ? " · ajustado" : ""} · <button type="button" onclick="cancelarColocacaoEscritorio()">Cancelar</button>`
-    : escritorioPintando() ? escritorioDicaDoPincel()
-    : it ? "Arraste para mudar de lugar · R gira · Delete apaga · ⌘Z desfaz" : "";
+    : escritorioPintando() ? "" // as ferramentas e o material estão na barra de baixo
+    : ""; // com um móvel selecionado, a barra dele já diz o que fazer
   // Construção (21/10/2026, a linguagem do Provador): selo com a sala e o
   // estado do salvamento num canto, Cancelar e Salvar no outro, e as
   // ferramentas num trilho de ícones à esquerda do mapa.
@@ -668,19 +673,24 @@ function renderBarraEditorEscritorio() {
   const medirTopo = () => { if (!topo?.isConnected) return; const p = el.parentElement.getBoundingClientRect(), t = topo.getBoundingClientRect(); el.style.setProperty("--cons-topo", Math.max(56, Math.round(t.bottom - p.top + 10)) + "px"); };
   medirTopo();
   if (topo && el.dataset.topoMedido !== "1") { el.dataset.topoMedido = "1"; new ResizeObserver(medirTopo).observe(topo); }
-  const ferr = (ico, rotulo, attrs, dica = "", alterna = false) => `<button type="button" class="ofc-cons-ferr${alterna ? " alterna" : ""}" ${attrs}${dica ? ` title="${dica}"` : ""}>${escritorioIcone(ico)}<span>${rotulo}</span></button>`;
-  el.innerHTML = `${escritorioResumoCompraHtml()}<div class="ofc-cons-selo"><i class="ofc-cons-luz${e.mudou ? " sujo" : ""}" aria-hidden="true"></i><span class="ofc-cons-titulo"><small>Construindo</small>${escolha}</span><span class="ofc-editor-estado${e.mudou ? " sujo" : ""}" role="status">${e.salvando ? "Salvando…" : e.mudou ? "Mudanças não salvas" : "Tudo salvo"}</span></div>
-<div class="ofc-cons-trilho" role="group" aria-label="Ferramentas de construção">
-${ferr("cursor", "Selecionar", `aria-pressed="${e.ferramenta !== "camera"}" onclick="ferramentaEditorEscritorio('selecionar')"`)}${ferr("mao", "Mover visão", `aria-pressed="${e.ferramenta === "camera"}" onclick="ferramentaEditorEscritorio('camera')"`, "Segure Espaço para mover a visão temporariamente")}<hr>
-${ferr("grade", "Grade", `aria-pressed="${e.grade !== false}" onclick="gradeEditorEscritorio(true)"`, "", true)}${ferr("pessoas", "Pessoas", `aria-pressed="${e.pessoas === true}" onclick="pessoasEditorEscritorio()"`, "Enquanto edita, as outras pessoas, os agentes e os clientes ficam escondidos. Clique para mostrar.", true)}<span class="ofc-cons-pilha">${ferr("pilha", "Empilhar", `aria-pressed="${Boolean(escritorio.construtor?.ligado)}" onclick="alternarConstrutorEscritorio()"`, "Como o ladrilho de empilhar do Habbo: põe móvel em cima de qualquer coisa, sem bloqueio (B)", true)}${escritorio.construtor?.ligado ? `<label class="ofc-cons-altura">Altura <input type="number" min="0" max="${ESCRITORIO_ALTURA_MAX}" step="0.1" inputmode="decimal" value="${escritorio.construtor.altura ?? ""}" placeholder="auto" aria-label="Altura de empilhar (vazio: em cima do que estiver embaixo)" onchange="alturaConstrutorEscritorio(this.value)"></label>` : ""}</span><hr>
-${ferr("desfazer", "Desfazer", `onclick="desfazerEditorEscritorio()" ${e.passos?.length > 1 ? "" : "disabled"} aria-label="Desfazer"`, "Desfazer (⌘Z)")}${ferr("refazer", "Refazer", `onclick="refazerEditorEscritorio()" ${e.futuro?.length ? "" : "disabled"} aria-label="Refazer"`, "Refazer (⌘⇧Z)")}<hr>
-<details class="ofc-editor-menu ofc-cons-mais"><summary class="ofc-cons-ferr">${escritorioIcone("mais")}<span>Mais</span></summary><div><button type="button" onclick="conferirConstrucaoEditorEscritorio()">Conferir construção</button><button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${e.camada !== "geral" ? '<button type="button" onclick="guardarTudoEscritorio()" title="Guarda todos os móveis desta sala no inventário (dá para desfazer antes de salvar)">Guardar tudo</button>' : ""}<button type="button" onclick="abrirVersoesEscritorio()" title="Versões salvas antes (para voltar atrás)">Versões</button>${minhaSala ? '<button type="button" onclick="abrirEstiloSalaEscritorio()">Piso e paredes</button>' : ""}<p class="ofc-editor-atalhos"><b>Atalhos</b> Espaço: mover visão · R: girar · Alt + setas: ajuste fino · Page Up/Down: altura · Shift + clique: seleção múltipla · Ctrl/⌘ + D: duplicar · ⌘Z: desfazer (inclusive a pintura) · ⌘S: salvar · Esc: cancelar · B: empilhar livre.</p></div></details>
-</div>
-<div class="ofc-cons-acoes"><button type="button" onclick="escritorio.lateral=!escritorio.lateral;renderEscritorio()" aria-label="Abrir ou recolher materiais">Materiais</button>${minhaSala ? `<button type="button" onclick="guardarTudoEditorEscritorio()" title="Tira do quarto todos os móveis que não são essenciais; eles voltam para o inventário quando você salvar">Guardar tudo</button>` : ""}<button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="${e.mudou ? "ofc-primario" : "ofc-secundario"}" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""} title="Salvar (⌘S)">${e.salvando ? "Salvando…" : "Salvar"}</button></div>
-${dica ? `<p class="ofc-editor-dica" role="status">${dica}</p>` : ""}
+  // Construção como jogo (26/10/2026, vybe-escritorio-construcao.js): modos e
+  // ferramentas numa barra embaixo; no topo, só o estado, o menu e Salvar.
+  const lateralAberta = document.querySelector("#painel-escritorio .ofc")?.dataset.lateral === "true";
+  // O saldo fica na Oficina (modo Móveis), não mais num cartão sobre o quarto.
+  // O selo (sala e estado do salvamento) vai para o topo da Oficina quando
+  // ela está aberta; com ela fechada, fica no canto do mapa.
+  const mudancas = Math.max(0, (e.passos?.length || 1) - 1);
+  const selo = `<div class="ofc-cons-selo"><i class="ofc-cons-luz${e.mudou ? " sujo" : ""}" aria-hidden="true"></i><span class="ofc-cons-titulo"><small>Construindo</small>${escolha}</span><span class="ofc-editor-estado${e.mudou ? " sujo" : ""}" role="status">${e.salvando ? "Salvando…" : e.mudou ? `${mudancas} ${mudancas === 1 ? "mudança" : "mudanças"} sem salvar` : "Tudo salvo"}</span></div>`;
+  const topoOficina = document.getElementById("office-cons-topo");
+  if (topoOficina) topoOficina.innerHTML = selo;
+  el.innerHTML = `${topoOficina ? "" : selo}
+<div class="ofc-cons-acoes">${lateralAberta ? "" : `<button type="button" onclick="escritorio.lateral=true;escritorio.aba='catalogo';renderEscritorio()" title="Abrir a Oficina com os materiais">Oficina</button>`}<details class="ofc-editor-menu ofc-cons-mais"><summary aria-label="Mais opções da construção" title="Mais opções">${escritorioIcone("mais")}</summary><div><button type="button" onclick="pessoasEditorEscritorio()">${e.pessoas ? "Esconder as pessoas" : "Mostrar as pessoas"}</button><button type="button" onclick="conferirConstrucaoEditorEscritorio()">Conferir construção</button><button type="button" onclick="abrirVersoesEscritorio()" title="Versões salvas antes (para voltar atrás)">Versões salvas</button>${minhaSala ? `<button type="button" onclick="guardarTudoEditorEscritorio()" title="Tira do quarto todos os móveis que não são essenciais; eles voltam para o inventário quando você salvar">Guardar todos os móveis</button>` : e.camada !== "geral" ? '<button type="button" onclick="guardarTudoEscritorio()" title="Guarda todos os móveis desta sala no inventário (dá para desfazer antes de salvar)">Guardar todos os móveis</button>' : ""}<button type="button" onclick="restaurarPadraoEditorEscritorio()" title="Voltar ao desenho original desta área">Voltar ao padrão</button>${typeof iniciarTutorialConstrucao === "function" ? '<button type="button" onclick="this.closest(\'details\').open=false;iniciarTutorialConstrucao()">Como construir (tutorial)</button>' : ""}${escritorio.construtor?.ligado ? `<label class="ofc-cons-altura">Altura de empilhar <input type="number" min="0" max="${ESCRITORIO_ALTURA_MAX}" step="0.1" inputmode="decimal" value="${escritorio.construtor.altura ?? ""}" placeholder="auto" aria-label="Altura de empilhar (vazio: em cima do que estiver embaixo)" onchange="alturaConstrutorEscritorio(this.value)"></label>` : ""}<p class="ofc-editor-atalhos"><b>Atalhos</b> 1–6: modos · Espaço: mover visão · V: ver piso · G: grade · R: girar · Delete: guardar · Alt + setas: ajuste fino · Page Up/Down: altura · Shift + clique: vários · ⌘D: duplicar · ⌘Z: desfazer · ⌘S: salvar · Esc: largar · B: empilhar.</p></div></details><button type="button" onclick="sairEditorEscritorio()">Cancelar</button><button type="button" class="${e.mudou ? "ofc-primario" : "ofc-secundario"}" onclick="salvarEditorEscritorio()" ${e.salvando ? "disabled" : ""} title="Salvar (⌘S)">${e.salvando ? "Salvando…" : e.mudou && mudancas ? `Salvar · ${mudancas}` : "Salvar"}</button></div>
+<div class="ofc-cons-base">${dica ? `<p class="ofc-editor-dica" role="status">${dica}</p>` : ""}${escritorioSubbarHtml()}${escritorioHotbarHtml(e)}</div>
 ${it ? (escritorioImagemDe(it[0]) ? `<div class="ofc-editor-sel" hidden><span>${escritorioImagemDe(it[0]).tipo === "quadro" ? "Quadro" : "Tapete"}: ${safeText(escritorioImagemDe(it[0]).nome || "imagem")}</span><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button></div>` : `<div class="ofc-editor-sel" hidden><button type="button" onclick="girarSelecionadoEscritorio()">Girar</button><button type="button" aria-pressed="${Boolean(it[5])}" onclick="alturaSelecionadoEscritorio()">Em cima da mesa</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar</button></div>`) : ""}
 <p id="office-editor-motivo" class="ofc-previa-motivo" role="status">${safeText(e.motivoPrevia || "")}</p>${escritorioConferenciaHtml(e)}`;
   escritorioInterfaceSalvando();
+  // A base acabou de ser refeita: a barra do selecionado volta para ela.
+  if (it) acompanharSelecaoEditorEscritorio();
 }
 // O que o clique faz com o pincel (Piso e paredes, Planta e luz): a mesma
 // frase curta na barra, com o material escolhido.
@@ -733,6 +743,8 @@ function escritorioGirosDe(classe) {
 const ESCRITORIO_SUBSTANTIVOS = { table: "Mesa", chair: "Cadeira", tree: "Árvore", lamp: "Luminária", sofa: "Sofá", corner: "Canto", divider: "Divisória", stool: "Banqueta", rug: "Tapete", plant: "Planta", bench: "Banco", shelf: "Prateleira", light: "Luz", lights: "Luzes", desk: "Escrivaninha", seat: "Assento", armchair: "Poltrona", flower: "Flor", flowers: "Flores", fence: "Cerca", floor: "Piso", wall: "Parede", counter: "Balcão", block: "Bloco", pillow: "Almofada", stage: "Palco", bookcase: "Estante", carpet: "Carpete", candles: "Velas", candle: "Vela", throne: "Trono", vase: "Vaso", lantern: "Lanterna", ball: "Bola", bush: "Arbusto", toilet: "Vaso sanitário", lounge: "Espreguiçadeira", cat: "Gato", screen: "Tela", scoreboard: "Placar", drinks: "Bebidas", tea: "Chá", pillar: "Pilar", chandelier: "Lustre", box: "Caixa", rock: "Pedra", bed: "Cama", garden: "Jardim", cushion: "Almofada", fan: "Ventilador", cactus: "Cacto", bonsai: "Bonsai", gate: "Portão", mattress: "Colchão", computer: "Computador", laptop: "Notebook", tv: "TV", fridge: "Geladeira", stove: "Fogão", sink: "Pia", cabinet: "Armário", crate: "Caixote", pot: "Vaso", torch: "Tocha", palm: "Palmeira", jukebox: "Jukebox", clock: "Relógio", mirror: "Espelho", window: "Janela", door: "Porta", statue: "Estátua", fountain: "Fonte", printer: "Impressora", whiteboard: "Quadro branco", bar: "Bar", railing: "Grade" };
 const ESCRITORIO_ADJETIVOS = { dark: "escuro", blue: "azul", red: "vermelho", black: "preto", modern: "moderno", yellow: "amarelo", pink: "rosa", white: "branco", coffee: "de centro", green: "verde", large: "grande", glass: "de vidro", gold: "dourado", dining: "de jantar", street: "de rua", side: "lateral", beige: "bege", "(beige)": "bege", small: "pequeno", purple: "roxo", gray: "cinza", grey: "cinza", wooden: "de madeira", kitchen: "de cozinha", picnic: "de piquenique", chinese: "chinês", inflatable: "inflável", folding: "dobrável", ancient: "antigo", marble: "de mármore", executive: "executivo", orange: "laranja", hanging: "suspenso", leather: "de couro", school: "da escola", bathroom: "de banheiro", solid: "sólido", potted: "no vaso", aquamarine: "água-marinha", electric: "elétrico", old: "antigo", office: "de escritório", three: "de três lugares", two: "de dois lugares", suspended: "suspenso", "pool-side": "de piscina", iced: "gelo", round: "redondo", square: "quadrado", long: "comprido", mini: "mini", big: "grande", tall: "alto", low: "baixo", double: "duplo", silver: "prateado", brown: "marrom", wood: "madeira", metal: "de metal", plastic: "de plástico", "&": "e" };
 function escritorioNomeMovel(m) {
+  // Nomes de rascunho do acervo ("… name", prefixo de anúncio) saem do nome.
+  if (/\s+name$|^ads[ _]|^dtl[ _]/i.test(m.nome || "")) m = { ...m, nome: String(m.nome).replace(/\s+name$/i, "").replace(/^(ads|dtl)[ _]/i, "") };
   if (m.categoria === "Computadores" || /[ãçéíóú]/i.test(m.nome)) return m.nome;
   // Sem nome no catálogo vem a classe ("bling_sofa_mu"): vira palavras.
   const base = /_/.test(m.nome || "") || !m.nome ? String(m.nome || m.classe).replace(/_?c\d+_/g, " ").replace(/_/g, " ") : m.nome;
@@ -855,7 +867,9 @@ function escritorioCatalogoHtml() {
   const ir = (a, cat = "") => `escritorio.abaQuarto='${a}';escritorio.catalogoCategoria='${cat}';escritorio.catalogoPagina=0;renderEscritorio()`;
   const atual = secao !== "decorar" ? "moveis" : filtro === "Sala" ? "acabamento" : filtro === "Planta" ? "planta" : "extras";
   const nav = (chave, acao, icone, nome, texto) => botao(atual === chave, acao, `${escritorioIcone(icone)}<span><b>${nome}</b><small>${texto}</small></span>`);
-  const abas = `<div class="ofc-oficina-nav" role="tablist" aria-label="O que construir" onkeydown="escritorioOficinaTeclado(event)">${minha
+  // Os modos ficam na barra de baixo (vybe-escritorio-construcao.js); aqui, o
+  // nome do modo e o que o clique faz.
+  const abas = typeof escritorioCabecalhoModoHtml === "function" ? escritorioCabecalhoModoHtml() : `<div class="ofc-oficina-nav" role="tablist" aria-label="O que construir" onkeydown="escritorioOficinaTeclado(event)">${minha
     ? nav("moveis", ir("meus"), "mesa", "Móveis", "Colocar e organizar") + nav("acabamento", ir("decorar", "Sala"), "editar", "Acabamentos", "Pisos e paredes") + nav("planta", ir("decorar", "Planta"), "grade", "Estrutura", "Planta e iluminação") + nav("extras", ir("decorar", "Imagens"), "pilha", "Extras", "Imagens e conjuntos")
     : nav("moveis", "escritorio.catalogoCategoria='';escritorio.catalogoPagina=0;renderEscritorio()", "mesa", "Móveis", "Acervo compartilhado") + nav("extras", "escritorio.catalogoCategoria='Imagens';renderEscritorio()", "pilha", "Extras", "Imagens e conjuntos")}</div>`;
   // Dentro de Decorar: o que muda a sala além dos móveis.
@@ -872,10 +886,9 @@ function escritorioCatalogoHtml() {
   if (minha) {
     const fichaFiltro = (chave, rotulo) => `<button type="button" aria-pressed="${(escritorio.moveisFiltro || "tudo") === chave}" onclick="escritorio.moveisFiltro='${chave}';escritorio.catalogoPagina=0;escritorioRedesenharFiltroMoveis();desenharCatalogoEscritorio()">${rotulo}</button>`;
     const saldo = escritorio.base?.economia?.saldo;
-    return `${abas}<div class="ofc-oficina-carteira vb-jogo-poco"><span>${escritorioFichaIcone("moeda")}<b>${saldo == null ? "–" : Number(saldo).toLocaleString("pt-BR")}</b><small>VybeCoins</small></span><button type="button" class="vb-jogo-botao" onclick="abrirCatalogoEscritorio('loja')">${escritorioIcone("loja")}Loja</button></div><div id="office-editor-mao">${escritorioMaoHtml()}</div><div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar nos seus móveis…" aria-label="Buscar nos seus móveis" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
-<div class="ofc-cats ofc-filtro-meus" role="group" aria-label="Quais móveis" id="office-moveis-filtro">${fichaFiltro("tudo", "Tudo")}${fichaFiltro("meus", "Meus")}${fichaFiltro("gratis", "Grátis")}${fichaFiltro("recentes", "Recentes")}</div><button type="button" class="office-text-button ofc-oficina-conjuntos" onclick="escritorio.abaQuarto='decorar';escritorio.catalogoCategoria='Conjuntos';renderEscritorio()">${escritorioIcone("pilha")}Meus conjuntos</button>
+    return `${abas}<div class="ofc-oficina-carteira vb-jogo-poco${typeof escritorioCabecalhoModoHtml === "function" ? " fina" : ""}"><span>${escritorioFichaIcone("moeda")}<b>${saldo == null ? "–" : Number(saldo).toLocaleString("pt-BR")}</b><small>VybeCoins</small></span><button type="button" class="vb-jogo-botao" onclick="abrirCatalogoEscritorio('loja')">${escritorioIcone("loja")}Loja</button></div><div id="office-editor-mao">${escritorioMaoHtml()}</div><div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar móvel: sofá, mesa, planta…" aria-label="Buscar nos seus móveis" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
+<div class="ofc-cats ofc-filtro-meus" role="group" aria-label="Quais móveis" id="office-moveis-filtro">${fichaFiltro("tudo", "Tudo")}${fichaFiltro("meus", "Meus")}${fichaFiltro("gratis", "Grátis")}${fichaFiltro("blocos", "Blocos")}${fichaFiltro("recentes", "Recentes")}${fichaFiltro("avancado", "Avançado")}</div>
 <div id="office-catalogo-lista"></div>
-<p class="ofc-nota">Clique num móvel e depois no piso, ou arraste para o mapa.</p>
 <div class="ofc-cat-portas"><button type="button" class="ofc-secundario" onclick="abrirCatalogoEscritorio('inventario')">Trocas e presentes</button></div>`;
   }
   return `${abas}<p class="ofc-catalogo-contexto">Acervo da sala · decoração compartilhada, sem usar seu saldo.</p><div class="ofc-busca"><input id="office-catalogo-busca" type="search" placeholder="Buscar: mesa, sofá, planta, luz…" aria-label="Buscar móvel" autocomplete="off" value="${safeText(escritorio.catalogoBusca || "")}" oninput="escritorio.catalogoBusca=this.value;escritorio.catalogoPagina=0;desenharCatalogoEscritorio()"></div>
@@ -955,11 +968,16 @@ function escritorioCartaoMovel(m, opcoes) {
     : comum ? (m.parede ? "Na parede" : "Acervo da sala") : q === Infinity ? "Grátis"
     : inventario && q > 0 ? `${q} seu${q > 1 ? "s" : ""}` : i.marco ? (/^ranking_/.test(i.marco) ? "Só no ranking" : "Só por conquista") : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Só na vitrine" : `${i.preco.toLocaleString("pt-BR")} moedas${restam}`;
   const travado = /^(Só|Esgotado)/.test(estado);
+  // Na loja, o preço numa etiqueta só (a raridade já vem na cor da borda).
+  if (naLoja && !travado && !meu && q !== Infinity && !(inventario && q > 0)) {
+    const arrastaL = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
+    return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${i.preco > Number(escritorio.base?.economia?.saldo || 0) ? " caro" : ""}" draggable="${arrastaL}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)}${i.raridade !== "comum" ? ` · ${safeText(i.nome)}` : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha ofc-preco">${i.raridade !== "comum" ? `${safeText(i.nome)} · ` : ""}${i.preco.toLocaleString("pt-BR")} moedas${i.restante > 0 ? `<small>${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}</small>` : ""}</em>${!meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : ""}</button>`;
+  }
   // Prêmio (conquista ou ranking) traz a etiqueta no cartão do inventário.
   const faixa = (meu && i.marco ? "Prêmio · " : "") + (!comum && i.raridade !== "comum" ? `${safeText(i.nome)} · ` : "");
   const arrasta = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
   const desejo = !meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : "";
-  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}</button>`;
+  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${q === Infinity && !meu ? " gratis" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}</button>`;
 }
 // O que a loja sabe do móvel: faixa, preço, restantes, se está na vitrine e se
 // vem só por marco. Quem não está na tabela é comum (preço único); sem a tabela
@@ -992,7 +1010,7 @@ function escritorioSelectRaridadeHtml(ativa, aoMudar) {
 function abrirCatalogoEscritorio(aba) {
   if (!escritorioCatalogo) { carregarCatalogoEscritorio().then(() => abrirCatalogoEscritorio(aba)); return; }
   garantirLojaEscritorio();
-  escritorio.cat ||= { raridade: "", ordem: "preco", categoria: "*", busca: "", posso: false, ver: 60, aba: "loja", inv: "todos" };
+  escritorio.cat ||= { raridade: "", ordem: "destaque", categoria: "*", busca: "", posso: false, ver: 60, aba: "loja", inv: "todos" };
   if (aba) escritorio.cat.aba = aba;
   if (escritorio.cat.aba === "inventario" && typeof carregarTrocasEscritorio === "function") carregarTrocasEscritorio();
   let d = document.getElementById("office-catalogo");
@@ -1026,8 +1044,11 @@ function redesenharCatalogoJanelaEscritorio() {
   const aba = (rotulo, chave, extra = "") => `<button type="button" role="tab" aria-selected="${f.aba === chave}" onclick="escritorio.cat.aba='${chave}';escritorio.cat.ver=60;${chave === "inventario" ? "carregarTrocasEscritorio();" : ""}redesenharCatalogoJanelaEscritorio()">${rotulo}${extra}</button>`;
   d.querySelector("#office-catj-abas").innerHTML = aba("Loja", "loja") + aba("Inventário", "inventario", trocasNovas ? ` <span class="ofc-badge">${trocasNovas}</span>` : "") + aba("Carteira", "carteira");
   d.classList.toggle("sem-arvore", f.aba === "carteira");
+  // Trocou de categoria ou de aba: a lista volta ao topo.
+  const lugar = `${f.aba}|${f.categoria}|${f.inv}|${Boolean(f.desejos)}`;
+  if (d.dataset.lugar !== lugar) { d.dataset.lugar = lugar; const main = d.querySelector(".ofc-catj-main"); if (main) main.scrollTop = 0; }
   d.querySelector("#office-catj-arvore").innerHTML = f.aba === "carteira" ? "" : f.aba === "inventario" ? escritorioArvoreInventarioHtml()
-    : escritorioArvoreCategoriasHtml(f.categoria || "*", "escritorio.cat.categoria='%';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()");
+    : (typeof escritorioArvoreLojaHtml === "function" ? escritorioArvoreLojaHtml : escritorioArvoreCategoriasHtml)(f.categoria || "*", "escritorio.cat.categoria='%';escritorio.cat.desejos=false;escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()");
   d.querySelector(".ofc-catj-busca").placeholder = f.aba === "inventario" ? "Buscar nos seus móveis…" : "Buscar: mesa, sofá, planta, luz…";
   desenharCatalogoJanelaEscritorio();
 }
@@ -1091,7 +1112,10 @@ function desenharCatalogoJanelaEscritorio() {
   const f = escritorio.cat, info = new Map();
   const de = (m) => info.get(m.classe) || (info.set(m.classe, escritorioInfoLoja(m.classe)), info.get(m.classe));
   const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
-  const ordem = { preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
+  // Em destaque: primeiro o que dá para comprar agora, depois os mais raros.
+  const compravel = (m) => Number(de(m).naVitrine && !de(m).marco && de(m).restante !== 0);
+  const ordem = { destaque: (a, b) => compravel(b) - compravel(a) || (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || nome(a, b),
+    preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
     raridade: (a, b) => (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || de(b).preco - de(a).preco || nome(a, b), nome }[f.ordem] || nome;
   const semFaixa = escritorioCatalogoGeralLista({ ...f, raridade: "" });
   const conta = new Map();
@@ -1099,15 +1123,20 @@ function desenharCatalogoJanelaEscritorio() {
   const faixas = escritorio.base?.economia?.loja?.raridades || [];
   // Faixa clicada de novo volta para todas; a cor vem com o nome escrito.
   d.querySelector("#office-catj-faixas").innerHTML = `${faixas.map((r) => `<button type="button" class="ofc-cat-chip r-${safeText(r.chave)}" aria-pressed="${f.raridade === r.chave}" ${conta.get(r.chave) ? "" : "disabled"} onclick="escritorio.cat.raridade=escritorio.cat.raridade==='${safeText(r.chave)}'?'':'${safeText(r.chave)}';escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()">${safeText(r.nome)} <small>${(conta.get(r.chave) || 0).toLocaleString("pt-BR")}</small></button>`).join("")}
-<button type="button" class="ofc-cat-chip venda" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Só o que está à venda esta semana e cabe no seu saldo">À venda agora</button>
+<button type="button" class="ofc-cat-chip venda" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Só o que está à venda esta semana e cabe no seu saldo">Cabe no saldo</button>
 <button type="button" class="ofc-cat-chip" aria-pressed="${Boolean(f.desejos)}" ${escritorioDesejos().size ? "" : "disabled"} onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Os móveis que você marcou com Quero">Desejos <small>${escritorioDesejos().size}</small></button>
-<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoJanelaEscritorio()">${[["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
+<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoJanelaEscritorio()">${[["destaque", "Em destaque"], ["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
   const lista = (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
   const onde = f.categoria && f.categoria !== "*" ? escritorioRotuloCategoria(f.categoria.replace(/^secao:/, "")) : "todo o catálogo";
   const ativos = [f.raridade && (faixas.find((r) => r.chave === f.raridade)?.nome || f.raridade), f.posso && "à venda agora", f.busca && `“${f.busca}”`].filter(Boolean);
   d.querySelector("#office-catj-info").innerHTML = `<b>${lista.length.toLocaleString("pt-BR")} móveis</b><span>em ${safeText(onde)}${ativos.length ? ` · ${safeText(ativos.join(" · "))}` : ""}</span>${ativos.length || (f.categoria && f.categoria !== "*") ? `<button type="button" class="office-text-button" onclick="escritorio.cat={...escritorio.cat,raridade:'',posso:false,busca:'',categoria:'*',ver:60};abrirCatalogoEscritorio()">Limpar filtros</button>` : ""}`;
-  const destaque = !f.busca && !f.raridade && !f.posso && !f.desejos ? escritorioDestaquesLojaHtml() : "";
-  d.querySelector("#office-catj-grade").innerHTML = destaque + (lista.length ? lista.slice(0, f.ver).map((m) => escritorioCartaoMovel(m, { loja: true })).join("") + (lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=60;desenharCatalogoJanelaEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")})</button>` : "")
+  // Sem filtro nenhum, a capa (vitrine e prateleiras) em vez dos milhares de itens.
+  const capa = typeof escritorioCapaLojaHtml === "function" && (!f.categoria || f.categoria === "*") && !f.busca && !f.raridade && !f.posso && !f.desejos;
+  d.classList.toggle("na-capa", Boolean(capa));
+  if (capa) { d.querySelector("#office-catj-info").innerHTML = ""; d.querySelector("#office-catj-grade").innerHTML = escritorioCapaLojaHtml(); return; }
+  const destaque = typeof escritorioCapaLojaHtml === "function" ? "" : !f.busca && !f.raridade && !f.posso && !f.desejos ? escritorioDestaquesLojaHtml() : "";
+  const sub = typeof escritorioSubcategoriasLojaHtml === "function" && f.categoria && f.categoria !== "*" ? escritorioSubcategoriasLojaHtml(f.categoria) : "";
+  d.querySelector("#office-catj-grade").innerHTML = sub + destaque + (lista.length ? lista.slice(0, f.ver).map((m) => escritorioCartaoMovel(m, { loja: true })).join("") + (lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=60;desenharCatalogoJanelaEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")})</button>` : "")
     : '<p class="ofc-nota">Nenhum móvel com esses filtros. Tire um filtro ou busque outra palavra.</p>');
 }
 function escritorioCatalogoGeralLista(f) {
@@ -1117,6 +1146,8 @@ function escritorioCatalogoGeralLista(f) {
   return [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES].filter((m) => {
     if (vistos.has(m.classe)) return false;
     vistos.add(m.classe);
+    // A Loja só mostra o que se compra (os grátis ficam na construção).
+    if (typeof escritorioVendivelNaLoja === "function" && !escritorioVendivelNaLoja(m)) return false;
     if (grupo && !grupo(m)) return false;
     if (busca && !escritorioBuscaCombina(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe + " " + (m.categoria || ""), busca)) return false;
     if (f.desejos && !escritorioDesejos().has(m.classe)) return false;
@@ -1169,11 +1200,18 @@ function desenharCatalogoEscritorio() {
     // Os seus e os grátis numa grade só; os usados por último vêm primeiro.
     const filtro = escritorio.moveisFiltro || "tudo", recentes = escritorioRecentes();
     const sem = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    // Pisos e revestimentos ficam nos modos Piso e Parede; blocos e peças
+    // técnicas (invisíveis, gatilhos, ferramentas) em filtros próprios.
+    const construcao = typeof escritorioClassesDeConstrucao === "function" ? escritorioClassesDeConstrucao() : new Set();
+    const bloco = (m) => typeof escritorioMovelEhBloco === "function" && escritorioMovelEhBloco(m);
+    const tecnico = (m) => typeof escritorioMovelTecnico === "function" && escritorioMovelTecnico(m);
+    const deMovel = (m) => !construcao.has(m.classe) || bloco(m);
     lista = escritorioMeusMoveis()
-      .filter((m) => filtro === "tudo" || (filtro === "recentes" ? recentes.includes(m.classe) : (filtro === "gratis") === (escritorioQuantidadeMovel(m.classe) === Infinity)))
+      .filter((m) => deMovel(m) && (busca || filtro === "blocos" ? true : filtro === "avancado" ? tecnico(m) : !tecnico(m) && !bloco(m)))
+      .filter((m) => filtro === "tudo" || filtro === "avancado" || (filtro === "blocos" ? bloco(m) : filtro === "recentes" ? recentes.includes(m.classe) : (filtro === "gratis") === (escritorioQuantidadeMovel(m.classe) === Infinity)))
       .filter((m) => !busca || sem(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe).includes(busca))
       .sort((a, b) => ((recentes.indexOf(a.classe) + 1 || 999) - (recentes.indexOf(b.classe) + 1 || 999)) || escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR"));
-    titulo = { tudo: "Seus móveis e os grátis", meus: "Comprados, presentes e trocas", gratis: "Essenciais grátis", recentes: "Usados recentemente" }[filtro];
+    titulo = { tudo: "Seus móveis e os grátis", meus: "Comprados, presentes e trocas", gratis: "Grátis", blocos: "Blocos e materiais · grátis", recentes: "Usados recentemente", avancado: "Peças técnicas" }[filtro];
   }
   const filtros = "";
   // Faixas de raridade (só onde há loja: o acervo das salas comuns é livre).
@@ -1508,6 +1546,7 @@ async function soltarNoEditorEscritorio(x, y, moveu) {
   if (escritorio.pintandoArrasto) {
     escritorio.pintandoArrasto=false;const ed=escritorio.edicao,g=ed?.gestoPiso;
     if(ed){ed.gestoPiso=null;ed.agrupando=false;}
+    escritorioAviso(""); // a contagem da área ("N ladrilhos · solte") termina ao soltar
     if(g&&escritorioPincel().ferramenta==='piso')await escritorioAplicarAreaPiso(escritorioAreaDoGesto(g));
     else if(ed)escritorioEditorMudou();
     return;
@@ -1701,7 +1740,10 @@ function acompanharSelecaoEditorEscritorio() {
   const img = escritorioImagemDe(it[0]);
   const giros = escritorioGirosDe(it[0]);
   const grupo = escritorioGrupo().size;
-  const chave = `${e.sel}|${it[0]}|${it[5]}|${e.passoParede}|${giros}|${grupo}|${escritorio.base?.economia?.saldo}|${escritorioUnidadesColocadas(it[0])}|${e.bloqueados?.has(it)}`;
+  // Na construção a barra vai junto das ferramentas, em cima delas.
+  const base = document.querySelector("#office-editor .ofc-cons-base");
+  if (base && barra.parentElement !== base) base.prepend(barra);
+  const chave = `${e.sel}|${it[0]}|${it[5]}|${e.passoParede}|${giros}|${grupo}|${escritorio.base?.economia?.saldo}|${escritorioUnidadesColocadas(it[0])}|${e.bloqueados?.has(it)}|${Boolean(e.selAjustes)}`;
   if (barra.dataset.chave !== chave) {
     barra.dataset.chave = chave;
     barra.innerHTML = grupo > 1
@@ -1710,15 +1752,20 @@ function acompanharSelecaoEditorEscritorio() {
       ? `${escritorioAjusteParedeHtml()}<button type="button" onclick="copiarSelecaoEscritorio()">Copiar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Guardar</button>`
       : img
       ? `<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Tirar do mapa</button>`
-      : `${typeof ESCRITORIO_GATILHOS !== "undefined" && ESCRITORIO_GATILHOS[it[0]] ? '<button type="button" onclick="configurarGatilhoEscritorio()" title="Escolher móveis, texto ou tempo">Configurar</button>' : ""}${["trofeu", "cadeado"].includes(mapaFisica(it[0]).logica) ? '<button type="button" onclick="gravarTrofeuEscritorio()" title="Nome, data e dedicatória, como no Habbo">Gravar</button>' : ""}${mapaFisica(it[0]).logica === "fundo" ? '<button type="button" onclick="corDoFundoEscritorio()" title="A cor do vazio em volta do quarto, como o fundo colorido do Habbo">Cor do fundo</button>' : ""}${mapaFisica(it[0]).logica === "manequim" ? '<button type="button" onclick="guardarVisualManequimEscritorio()" title="Guarda o seu visual atual no manequim">Guardar meu visual</button>' : ""}${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar${giros ? ` · ${giros}` : ""}</button>`}<button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><span class="ofc-altura" role="group" aria-label="Altura da peça (como o ladrilho de empilhar do Habbo)"><button type="button" onclick="alturaLivreEscritorio(-0.1)" aria-label="Descer a peça" title="Descer (Page Down; Shift desce mais)">−</button><span title="Altura em níveis">${(Math.round((it[5] || 0) * 100) / 100).toLocaleString("pt-BR")}</span><button type="button" onclick="alturaLivreEscritorio(0.1)" aria-label="Subir a peça" title="Subir (Page Up; Shift sobe mais)">+</button><button type="button" onclick="noTopoEscritorio()" title="Põe a peça em cima do que está embaixo dela">No topo</button><button type="button" onclick="noChaoEscritorio()" ${it[5] ? "" : "disabled"} title="Volta a peça para o chão">No chão</button></span>${/_recolorable$/.test(it[0]) ? `<span class="ofc-cores-bloco" role="group" aria-label="Cor do bloco">${MAPA_CORES_BLOCO.map((cor, i) => `<button type="button" style="--cor:${cor}" aria-label="Cor ${i + 1}" aria-pressed="${it[4] >= 100 && Math.floor((it[4] - 100) / 5) === i}" onclick="corBlocoEscritorio(${i})"></button>`).join("")}</span>` : ""}<span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="${e.camada === 'geral' ? 'Tirar do mapa' : 'Guardar no inventário'} (Delete)">${e.camada === 'geral' ? 'Remover' : 'Guardar'}</button>`;
+      // Construção como jogo (26/10/2026): o que se faz toda hora fica à vista
+      // (girar, duplicar, trocar, guardar; cor do bloco); altura, ajuste fino,
+      // bloquear e o resto ficam em Ajustes, numa segunda linha.
+      : `<span class="ofc-sel-linha">${typeof ESCRITORIO_GATILHOS !== "undefined" && ESCRITORIO_GATILHOS[it[0]] ? '<button type="button" onclick="configurarGatilhoEscritorio()" title="Escolher móveis, texto ou tempo">Configurar</button>' : ""}${["trofeu", "cadeado"].includes(mapaFisica(it[0]).logica) ? '<button type="button" onclick="gravarTrofeuEscritorio()" title="Nome, data e dedicatória, como no Habbo">Gravar</button>' : ""}${mapaFisica(it[0]).logica === "fundo" ? '<button type="button" onclick="corDoFundoEscritorio()" title="A cor do vazio em volta do quarto, como o fundo colorido do Habbo">Cor do fundo</button>' : ""}${mapaFisica(it[0]).logica === "manequim" ? '<button type="button" onclick="guardarVisualManequimEscritorio()" title="Guarda o seu visual atual no manequim">Guardar meu visual</button>' : ""}${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar <kbd>R</kbd></button>`}${escritorioOutroIgualHtml(it[0])}<button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button>${/_recolorable$/.test(it[0]) ? `<span class="ofc-cores-bloco" role="group" aria-label="Cor do bloco">${MAPA_CORES_BLOCO.map((cor, i) => `<button type="button" style="--cor:${cor}" aria-label="Cor ${i + 1}" aria-pressed="${it[4] >= 100 && Math.floor((it[4] - 100) / 5) === i}" onclick="corBlocoEscritorio(${i})"></button>`).join("")}</span>` : ""}<button type="button" aria-expanded="${Boolean(e.selAjustes)}" onclick="escritorio.edicao.selAjustes=!escritorio.edicao.selAjustes;document.getElementById('office-editor-sel').dataset.chave='';acompanharSelecaoEditorEscritorio()">Ajustes ${e.selAjustes ? "▴" : "▾"}</button>${typeof escritorioVendaSelecionadoHtml === "function" ? escritorioVendaSelecionadoHtml(it[0]) : ""}<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="${e.camada === 'geral' ? 'Tirar do mapa' : 'Guardar no inventário'} (Delete)">${e.camada === 'geral' ? 'Remover' : 'Guardar'} <kbd>Del</kbd></button></span>${e.selAjustes ? `<span class="ofc-sel-linha ofc-sel-ajustes"><span class="ofc-altura" role="group" aria-label="Altura da peça (como o ladrilho de empilhar do Habbo)"><small>Altura</small><button type="button" onclick="alturaLivreEscritorio(-0.1)" aria-label="Descer a peça" title="Descer (Page Down; Shift desce mais)">−</button><span title="Altura em níveis">${(Math.round((it[5] || 0) * 100) / 100).toLocaleString("pt-BR")}</span><button type="button" onclick="alturaLivreEscritorio(0.1)" aria-label="Subir a peça" title="Subir (Page Up; Shift sobe mais)">+</button><button type="button" onclick="noTopoEscritorio()" title="Põe a peça em cima do que está embaixo dela">No topo</button><button type="button" onclick="noChaoEscritorio()" ${it[5] ? "" : "disabled"} title="Volta a peça para o chão">No chão</button></span><small>Ajuste fino</small><span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar no lugar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" onclick="escritorioBloquearSelecionado()" title="Trava a peça para não mexer sem querer">${e.bloqueados?.has(it) ? "Desbloquear" : "Bloquear"}</button><button type="button" onclick="escritorioSelecionarSobreposto()" title="Escolhe a outra peça que está no mesmo ladrilho">Outra peça neste lugar</button><button type="button" onclick="escritorio.edicao.moverClique=true;escritorioAviso('Clique no piso para mover a peça selecionada. Esc cancela.')">Mover pelo clique</button></span>` : ""}`;
   }
-  if (!barra.querySelector('.ofc-repor') && !img && grupo === 1) barra.insertAdjacentHTML('afterbegin', escritorioReposicaoHtml(it[0]));
   if(e.bloqueados?.has(it))barra.querySelectorAll('button').forEach(b=>{b.disabled=b.textContent!=='Desbloquear'&&b.textContent!=='Outra peça neste lugar';});
   // Ações em posição estável no rodapé: não seguem nem encobrem a peça.
   // Sem loop de animação para uma barra estática; o render atualiza a seleção.
   barra.style.left = "";
   barra.style.top = "";
-  barra.dataset.movel = grupo > 1 ? `${grupo} móveis selecionados` : escritorioNomeMovel((escritorioCatalogo || []).find(m=>m.classe===it[0]) || {nome:it[0]});
+  // Nome e quantos ainda estão guardados (grátis não conta).
+  const onde = !img && grupo === 1 ? escritorioOndeEstaMovel(it[0]) : null;
+  const guardados = onde && onde.guardados !== Infinity ? ` · ${onde.guardados} guardado${onde.guardados === 1 ? "" : "s"}` : onde ? " · grátis" : "";
+  barra.dataset.movel = grupo > 1 ? `${grupo} móveis selecionados` : escritorioNomeMovel((escritorioCatalogo || []).find(m=>m.classe===it[0]) || {nome:it[0]}) + guardados;
   escritorio.selQuadro = 0;
 }
 function trocarModeloEditorEscritorio() {
@@ -2034,6 +2081,7 @@ async function escritorioAcaoMovel(classe, comprar = false, quantidade = 1, colo
    escritorio.base.economia.saldo-=info.preco*quantidade;
    const item=escritorio.base.economia.inventario.find(i=>i.classe===classe);
    if(item) item.quantidade+=quantidade; else escritorio.base.economia.inventario.push({classe,quantidade});
+   ((escritorio.base.economia.vendiveis ||= {})[classe] ||= []).push([quantidade,info.preco]); // a demonstração também vende de volta
    const limitado=escritorio.base.economia.loja?.mapa?.get(classe);
    if(limitado && limitado.restante!==null) limitado.restante-=quantidade;
   } else escritorio.base.economia=(await escritorioApi("comprar",compra)).economia;
@@ -2136,7 +2184,8 @@ ${desejavel || provar ? `<div class="ofc-previa-extras">${desejavel ? `<button t
 <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this)">Fechar</button>
 ${comprar && !(i.marco && q > 0) ? `<button type="button" class="${colocar ? "workflow-secondary" : "workflow-primary"}" ${bloqueio ? "disabled" : ""} onclick="fecharPreviaMovelEscritorio(this);escritorioAcaoMovel('${safeText(classe)}', true)">${bloqueio || `Comprar · ${i.preco.toLocaleString("pt-BR")} moedas`}</button>` : ""}
 ${!escritorio.edicao && q === Infinity && escritorioMinhaMesa() ? `<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
-${!escritorio.edicao && q > 0 && q !== Infinity ? `${escritorioOndeEstaMovel(classe).guardados && !i.marco ? `<button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);abrirTrocaEscritorio(null,'${safeText(classe)}')">Trocar</button><button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);escolherPresenteEscritorio('${safeText(classe)}')">Dar de presente</button>` : ""}<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
+${escritorio.edicao && typeof escritorioVendaHtml === "function" ? escritorioVendaHtml(classe) : ""}
+${!escritorio.edicao && q > 0 && q !== Infinity ? `${escritorioOndeEstaMovel(classe).guardados && !i.marco ? `${typeof escritorioVendaHtml === "function" ? escritorioVendaHtml(classe) : ""}<button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);abrirTrocaEscritorio(null,'${safeText(classe)}')">Trocar</button><button type="button" class="workflow-secondary" onclick="fecharPreviaMovelEscritorio(this);escolherPresenteEscritorio('${safeText(classe)}')">Dar de presente</button>` : ""}<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();colocarDoInventarioEscritorio('${safeText(classe)}')">Colocar no quarto</button>` : ""}
 ${colocar ? `<button type="button" class="workflow-primary" onclick="fecharPreviaMovelEscritorio(this);document.getElementById('office-catalogo')?.close();escolherMovelEscritorio('${safeText(classe)}')">Colocar ${comum ? "na sala" : "no quarto"}</button>` : ""}</div>`;
   if (d.tagName === "DIALOG") { if (!d.open) d.showModal(); }
   else {
@@ -2348,7 +2397,7 @@ ${ganhos.length ? `<section class="ofc-cart-ganhos"><h4>De onde vieram</h4><ul>$
 
 // Acabamento e rascunho pertencem à mesma edição que os móveis. Nunca guardar
 // identidade, cookies ou economia no rascunho; uma compra não é um passo de decoração.
-const ESCRITORIO_ACABAMENTO = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
+const ESCRITORIO_ACABAMENTO = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
 function escritorioAcabamento(p) { return Object.fromEntries(ESCRITORIO_ACABAMENTO.map(k=>[k,p?.[k] ?? (k==='sala_sem_paredes' ? false : '')])); }
 function escritorioChaveRascunho() { return `vybe-construcao:${escritorio.base?.eu}:${escritorio.edicao?.camada}`; }
 function escritorioGuardarRascunho() {
@@ -2374,11 +2423,6 @@ if(typeof window!=='undefined') window.addEventListener?.('beforeunload',ev=>{if
 function escritorioResumoCompraHtml() {
  if(!escritorio.edicao || escritorioCamadaComum(escritorio.edicao.camada)) return '';
  return `<div class="ofc-cons-saldo"><span>Saldo disponível <b>${Number(escritorio.base?.economia?.saldo || 0).toLocaleString('pt-BR')} VybeCoins</b></span><small>Compras ficam no inventário, mesmo ao cancelar a decoração.</small></div>`;
-}
-function escritorioReposicaoHtml(classe) {
- const info=escritorioInfoLoja(classe), onde=escritorioOndeEstaMovel(classe), livre=escritorioCamadaComum(escritorio.edicao.camada) || onde.guardados>0;
- const pode=livre || (!info.marco && info.naVitrine && info.restante!==0);
- return `<span class="ofc-repor"><button type="button" onclick="escritorioColocarOutro()" ${pode?'':'disabled'}>${livre?'Colocar outro':`Comprar outro · ${info.preco.toLocaleString('pt-BR')}`}</button><small>${onde.guardados===Infinity?'Grátis':`${onde.guardados} guardados · ${onde.aqui} aqui · ${onde.outro} no outro andar`}</small><label><input type="checkbox" ${escritorio.edicao.repetir?'checked':''} onchange="escritorio.edicao.repetir=this.checked;renderBarraEditorEscritorio()">Repetir colocação</label><button type="button" onclick="escritorioBloquearSelecionado()">${escritorio.edicao.bloqueados?.has(escritorio.edicao.itens[escritorio.edicao.sel])?'Desbloquear':'Bloquear'}</button><button type="button" onclick="escritorioSelecionarSobreposto()">Outra peça neste lugar</button><button type="button" onclick="escritorio.edicao.moverClique=true;escritorioAviso('Clique no piso para mover a peça selecionada. Esc cancela.')">Mover pelo clique</button></span>`;
 }
 async function escritorioColocarOutro() {
  const e=escritorio.edicao,it=e?.itens[e.sel]; if(!it || e.salvando) return;
@@ -2414,6 +2458,8 @@ function escritorioInterfaceSalvando(){
 function escritorioMaoHtml(){
  const e=escritorio.edicao;if(!e)return '';
  const cl=e.novo,info=cl?escritorioInfoLoja(cl):null,q=cl?escritorioOndeEstaMovel(cl):null;
+ // Só com um móvel na mão (antes a caixa ficava sempre na Oficina).
+ if(!cl)return '';
  return `<div class="ofc-mao"><label><input type="checkbox" ${e.repetir?'checked':''} onchange="escritorio.edicao.repetir=this.checked;renderBarraEditorEscritorio()"><span><b>Repetir colocação</b><small>Continue com o mesmo móvel na mão</small></span></label>${cl?`<b>${safeText(escritorioNomeDaClasse(cl))} na mão</b><small>${q.guardados===Infinity?'Essencial grátis':`${q.guardados} disponíveis para colocar`}</small>${q.guardados!==Infinity&&!info.marco?`<button type="button" onclick="escritorioComprarNaMao()">Comprar mais uma unidade · ${info.preco} moedas</button>`:''}`:''}</div>`;
 }
 async function escritorioComprarNaMao(){const e=escritorio.edicao,cl=e?.novo;if(!cl||e.salvando)return;await escritorioComprarUnidades(cl,1);if(escritorio.edicao===e)renderBarraEditorEscritorio();}

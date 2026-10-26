@@ -617,6 +617,12 @@ document.addEventListener('click', (event) => {
 function abrirCartaoRapido(itemId, event, source = 'content') {
   event?.preventDefault?.();
   event?.stopPropagation?.();
+  // De onde o cartão nasceu na tela (o bloco do calendário, a linha do dia): é
+  // por ele que "Ver prévia" sabe quais outras peças vêm junto. Ao repintar, o
+  // evento é de mentira e a origem é a de antes.
+  const alvo = event?.currentTarget;
+  const origem = alvo instanceof Element ? alvo
+    : (CARTAO_ABERTO?.id === String(itemId) ? CARTAO_ABERTO.origem : null);
   fecharCartaoRapido();
   // A lista crua de Solicitacoes nao tem board_id nem 'formato' — sem traduzir,
   // as pilhas deste cartao procuravam a coluna do quadro errado.
@@ -673,6 +679,8 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
     ${ehDemanda ? `<div class="cr-subs" id="cr-subs-${safeText(item.id)}"><div class="cr-subs-carregando">Carregando subdemandas…</div></div>` : ''}
     <div class="cr-rodape">
+      ${jaTemMaterial(item) ? `<button type="button" class="cr-previa" onclick="verPreviaDoCartao('${safeText(item.id)}')"
+        title="Ver o material entregue">${ICONE_LINHA.previa}<span>Ver prévia</span></button>` : ''}
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
         title="Arquivos, histórico e entrega">Abrir detalhes</button>
     </div>`;
@@ -697,9 +705,15 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   }
   // Guardado como objeto simples: o DOMRect original some quando a linha e
   // repintada, e o cartao precisa continuar sabendo onde se ancorar.
-  CARTAO_ABERTO = { id: String(itemId), source,
+  CARTAO_ABERTO = { id: String(itemId), source, origem,
     rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
             width: rect.width, height: rect.height } };
+}
+
+function verPreviaDoCartao(itemId) {
+  const origem = CARTAO_ABERTO?.origem?.isConnected ? CARTAO_ABERTO.origem : null;
+  fecharCartaoRapido();
+  abrirPreviaDaEntrega(itemId, null, origem);
 }
 
 // O + do dia abria o formulario antigo — o de onze campos de uma vez, que so
@@ -889,7 +903,7 @@ function abrirDiaDoCalendario(event, iso, quadro = '') {
       <button type="button" class="dia-do-calendario-fechar" onclick="fecharDiaDoCalendario()"
         aria-label="Fechar">✕</button>
     </div>
-    <div class="dia-do-calendario-lista">${doDia.map(managerCalendarEventHtml).join('')}</div>`;
+    <div class="dia-do-calendario-lista"${previaDoDiaAttrs(doDia, planningDateBr(iso).slice(0,5))}>${doDia.map(managerCalendarEventHtml).join('')}</div>`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
   // O ponto de ancoragem muda quando a janela gira ou é redimensionada.
@@ -905,7 +919,17 @@ function managerCalendarEventHtml(item) {
   const color = managerCalendarStatusColor(item, item.calendarSource === 'request' ? '#c084fc' : '#ff8b38');
   const status = item.status || 'Sem status';
   const owner = item.responsavel ? firstName(item.responsavel) : 'Sem responsável';
-  return `<button type="button" draggable="true" class="manager-calendar-event" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}',event)" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta" title="${sourceLabel}"><i class="${sourceClass}"></i></span></button>`;
+  // O olho da prévia não cabe DENTRO do bloco — botão dentro de botão não é
+  // clicável direito nem lido pelo leitor de tela. Ele fica por cima do canto,
+  // num invólucro, e o bloco reserva o espaço para o título não correr por baixo.
+  const olho = botaoDePreviaNaLinha(item, 'linha-previa manager-calendar-previa');
+  const bloco = `<button type="button" draggable="true" class="manager-calendar-event${olho ? ' tem-previa' : ''}" style="--event-color:${color}" title="${safeText(`${item.nome} · ${item.cliente} · ${status} · arraste para mover a data`)}" onclick="managerCalendarOpen('${item.calendarSource}','${item.id}',event)" ondragstart="managerCalendarDragStart('${item.calendarSource}','${item.id}',event)" ondragend="managerCalendarDragEnd()"><span class="manager-calendar-event-bar"></span><span class="manager-calendar-event-copy"><b>${safeText(item.nome || 'Sem título')}</b><small>${safeText(item.cliente || '—')} · ${safeText(owner)} · <span class="manager-calendar-event-status">${safeText(status)}</span></small></span><span class="manager-calendar-event-meta" title="${sourceLabel}"><i class="${sourceClass}"></i></span></button>`;
+  return olho ? `<div class="manager-calendar-event-com-previa">${bloco}${olho}</div>` : bloco;
+}
+// A célula mostra até cinco peças; a prévia anda pelo dia inteiro.
+function previaDoDiaAttrs(itens, rotulo) {
+  const ids = (itens || []).filter((i) => jaTemMaterial(i)).map((i) => String(i.id));
+  return ids.length ? ` data-previa-sequencia="${safeText(rotulo)}" data-previa-ids="${safeText(ids.join(','))}"` : '';
 }
 function openDemandaPlanningEditor(itemId, targetDate='') {
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));
@@ -971,12 +995,13 @@ function renderManagerCalendar(forcar = false) {
   monthItems.forEach(item => { if (!grouped.has(item.calendarDateIso)) grouped.set(item.calendarDateIso, []); grouped.get(item.calendarDateIso).push(item); });
   const sourceCount = {content: monthItems.filter(item => item.calendarSource === 'content').length, request: monthItems.filter(item => item.calendarSource === 'request').length};
   const cells = meta.cells.map(cell => {
-    const dayItems = (grouped.get(cell.iso) || []).sort((a,b) => String(a.nome).localeCompare(String(b.nome),'pt-BR')).slice(0,5);
+    const doDia = (grouped.get(cell.iso) || []).sort((a,b) => String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+    const dayItems = doDia.slice(0,5);
     const total = (grouped.get(cell.iso) || []).length;
     const isToday = cell.iso === (HOJE_ISO || META.today_iso);
     const events = dayItems.map(managerCalendarEventHtml).join('');
     const more = total > 5 ? `<button type="button" class="manager-calendar-more" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver os ${total} itens deste dia">+ ${total-5} ${total-5===1?'item':'itens'} neste dia</button>` : '';
-    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Cadastrar neste dia">+</button></div><div class="manager-calendar-events">${events}${more}</div></div>`;
+    return `<div class="manager-calendar-day ${cell.inMonth?'':'is-other'} ${isToday?'is-today':''}" data-date="${cell.iso}"${previaDoDiaAttrs(doDia, planningDateBr(cell.iso).slice(0,5))} ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)"><div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span><button type="button" class="manager-calendar-add" onclick="managerCalendarAdd('${cell.iso}')" title="Cadastrar neste dia">+</button></div><div class="manager-calendar-events">${events}${more}</div></div>`;
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
   const totalNoMes = semRecorte.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso)).length;
@@ -2276,7 +2301,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
       </div>
       ${restam > 0 ? `<button type="button" class="grupo-ver-mais" onclick="verGrupoInteiro('${grupo.id}')">Mostrar os outros ${restam} ${peca(restam)}</button>` : ''}`;
     const controles = typeof controlesDoGrupo === 'function' ? controlesDoGrupo(quadro, grupo.id, grupo.nome) : '';
-    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}${controles ? ' editavel' : ''}" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
+    return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}${controles ? ' editavel' : ''}" data-grupo="${safeText(grupo.id)}" data-previa-sequencia="${safeText(grupo.nome)}" data-quadro="${quadro}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
       <div class="grupo-cabecalho">${controles}<button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
         <span class="grupo-titulo"><b${controles ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${safeText(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
@@ -2787,7 +2812,7 @@ function renderAgendaDeDemandas() {
         const doDia = (porDia.get(cell.iso) || [])
           .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
         const mostra = doDia.slice(0, 4);
-        return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this,'demandas')">
+        return `<div class="manager-calendar-day ${cell.inMonth ? '' : 'is-other'} ${cell.iso === hoje ? 'is-today' : ''}" data-date="${cell.iso}"${previaDoDiaAttrs(doDia, planningDateBr(cell.iso).slice(0,5))} ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this,'demandas')">
           <div class="manager-calendar-day-head"><span><b>${cell.date.getDate()}</b></span></div>
           <div class="manager-calendar-events">${mostra.map(managerCalendarEventHtml).join('')
             || ''}${
