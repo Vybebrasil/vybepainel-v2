@@ -7059,6 +7059,8 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-raio-sol {position:absolute;z-index:90000;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(170deg,rgba(255,226,160,.30),rgba(255,214,140,.12) 55%,rgba(255,210,130,0))}
 .mapa-pessoa.figurante {pointer-events:none}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
+/* Mapa fora de vista (criarMapaEscritorio: atrás do lobby, outra aba): nada anima. */
+.mapa-em-pausa, .mapa-em-pausa *, .mapa-em-pausa *::before, .mapa-em-pausa *::after {animation-play-state:paused!important}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
 
 
@@ -10252,7 +10254,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-lobby-atualizando {margin-left:6px;color:var(--ofc-suave);font:600 10px var(--mac-ui);letter-spacing:0;text-transform:none}
 .ofc-lobby-atualizando::before {content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#ffb27a;vertical-align:1px;animation:jg-pulso 1.2s ease-in-out infinite}
 .ofc-lobby-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:12px;overflow:hidden}
-.ofc-lobby-entrar::before {content:"";position:absolute;inset:0 auto 0 -30%;width:24%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffff70,transparent);animation:vb-titulo-brilho 3.6s var(--curva,ease) infinite;pointer-events:none}
+.ofc-lobby-entrar::before {content:"";position:absolute;inset:0 auto 0 -40%;width:24%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffff70,transparent);animation:vb-botao-brilho 3.6s var(--curva,ease) infinite;pointer-events:none}
 .ofc-lobby-entrar kbd {padding:2px 7px;border-radius:6px;background:#00000026;color:#2a1200;font:750 11px var(--mac-ui);box-shadow:inset 0 -1px 0 #0000002e}
 @media (prefers-reduced-motion:reduce) {.ofc-lobby-xp .ofc-dia-barra i::after,.ofc-lobby-chama,.ofc-lobby-aovivo,.ofc-lobby-card.esqueleto::before,.ofc-lobby-entrar::before,.ofc-lobby-atualizando::before {animation:none}}
 [data-motion=reduce] :is(.ofc-lobby-xp .ofc-dia-barra i::after,.ofc-lobby-chama,.ofc-lobby-aovivo,.ofc-lobby-card.esqueleto::before,.ofc-lobby-entrar::before,.ofc-lobby-atualizando::before) {animation:none}
@@ -10372,8 +10374,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-secundario svg {box-sizing:content-box;width:16px;height:16px;padding:7px;border-radius:9px;background:#2a2e3a;fill:none;stroke:#ffb27a;stroke-width:2;box-shadow:inset 0 1px 0 #ffffff14}
 .lg-secundario:hover {border-color:#ffffff40}
 .lg-secundario:active {transform:translateY(4px);box-shadow:0 0 0 var(--degrau)}
-.lg-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:16px;height:74px;padding:0 26px;border:0;border-radius:20px;overflow:hidden;cursor:pointer;color:#1c0b00;background:linear-gradient(180deg,#ffd07a,#ff9a3c 45%,#ff7a1f);box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #c45a12,0 7px 0 #8f3f0a,0 0 0 0 #ff8a3566,0 20px 40px #ff7a1f55;transition:transform .14s var(--curva,ease),box-shadow .14s;animation:lg-pulso 2.6s ease-in-out infinite}
-.lg-entrar::before {content:"";position:absolute;inset:0 auto 0 -30%;width:22%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffffb0,transparent);animation:vb-titulo-brilho 3.4s var(--curva,ease) infinite;pointer-events:none}
+.lg-entrar {position:relative;display:flex;align-items:center;justify-content:center;gap:16px;height:74px;padding:0 26px;border:0;border-radius:20px;overflow:hidden;cursor:pointer;color:#1c0b00;background:linear-gradient(180deg,#ffd07a,#ff9a3c 45%,#ff7a1f);box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #c45a12,0 7px 0 #8f3f0a,0 0 0 0 #ff8a3566,0 20px 40px #ff7a1f55;transition:transform .14s var(--curva,ease),box-shadow .14s;animation:lg-pulso 2.6s ease-in-out 3}
+.lg-entrar::before {content:"";position:absolute;inset:0 auto 0 -40%;width:22%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffffb0,transparent);animation:vb-botao-brilho 3.4s var(--curva,ease) infinite;pointer-events:none}
 .lg-entrar:hover {transform:translateY(-2px)}
 .lg-entrar:active {transform:translateY(6px);box-shadow:inset 0 2px 0 #fff6,inset 0 -2px 0 #c45a12,0 1px 0 #8f3f0a}
 .lg-entrar:focus-visible {outline:3px solid #fff;outline-offset:3px}
@@ -10732,13 +10734,13 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
    alguma animação bonitinha e foda"): entra num pulinho, um brilho passa de
    tempos em tempos, a gema do título pulsa e a borda tem a cor do nível
    (furta-cor no Diamante). */
-.mapa-etiqueta.solta:not(.agente):not(.visitante) {background:linear-gradient(100deg,transparent 42%,#ffffff1c 50%,transparent 58%) no-repeat,#10121ae6;background-size:260% 100%,auto;background-position:140% 0,0 0;animation:mapa-tag-entra .45s var(--curva,cubic-bezier(.22,1,.36,1)) both,mapa-tag-brilho 6s ease-in-out 1.2s infinite}
+.mapa-etiqueta.solta:not(.agente):not(.visitante) {background:linear-gradient(100deg,transparent 42%,#ffffff1c 50%,transparent 58%) no-repeat,#10121ae6;background-size:260% 100%,auto;background-position:140% 0,0 0;animation:mapa-tag-entra .45s var(--curva,cubic-bezier(.22,1,.36,1)) both,mapa-tag-brilho 6s ease-in-out 1.2s 2}
 @keyframes mapa-tag-entra {from {opacity:0;scale:.6;translate:0 6px}}
 @keyframes mapa-tag-brilho {0%,70% {background-position:140% 0,0 0} 90%,100% {background-position:-40% 0,0 0}}
 .mapa-etiqueta.solta[data-nivel="1"] {border-color:#e0915a66}
 .mapa-etiqueta.solta[data-nivel="2"] {border-color:#dfe3ea77}
 .mapa-etiqueta.solta[data-nivel="3"] {border-color:#ffd16688;box-shadow:0 2px 0 #0007,0 0 10px #ffc94a33}
-.mapa-etiqueta.solta:not(.agente):not(.visitante)[data-nivel="4"] {border-color:transparent;box-shadow:0 2px 0 #0007,0 0 12px #9fe8ff44;outline:1.5px solid #8ff0ff;outline-offset:-1.5px;animation:mapa-tag-entra .45s var(--curva,ease) both,mapa-tag-brilho 6s ease-in-out 1.2s infinite,mapa-tag-furta 5s linear infinite}
+.mapa-etiqueta.solta:not(.agente):not(.visitante)[data-nivel="4"] {border-color:transparent;box-shadow:0 2px 0 #0007,0 0 12px #9fe8ff44;outline:1.5px solid #8ff0ff;outline-offset:-1.5px;animation:mapa-tag-entra .45s var(--curva,ease) both,mapa-tag-brilho 6s ease-in-out 1.2s 2,mapa-tag-furta 5s linear infinite}
 @keyframes mapa-tag-furta {0%,100% {outline-color:#8ff0ff} 33% {outline-color:#c7a6ff} 66% {outline-color:#7cf3d4}}
 .mapa-etiqueta.solta.voce {border-color:#ff8a3599}
 @media (prefers-reduced-motion:reduce) {.mapa-etiqueta.solta, .mapa-titulo i, .mapa-titulo span {animation:none!important}}
@@ -10980,7 +10982,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-quarto-placa {position:absolute;z-index:3;top:10px;left:50%;translate:-50% 0;display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:12px;border:2px solid #0b0c10;background:linear-gradient(180deg,#2a2e3b,#20232d);box-shadow:inset 0 1px 0 #ffffff1f,0 3px 0 #0b0c10;white-space:nowrap;font:850 13px var(--mac-ui);color:#fff}
 .lg-quarto-placa svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:2}
 .lg-quarto-placa em {padding:2px 7px;border-radius:7px;background:#0e1016;color:#c7b3ff;font:850 10.5px var(--mac-ui);font-style:normal}
-.lg-quarto-brilho {position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffff1a 50%,transparent 60%) no-repeat;background-size:260% 100%;background-position:150% 0;animation:mapa-tag-brilho 7s ease-in-out 2s infinite}
+.lg-quarto-brilho {position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffff1a 50%,transparent 60%) no-repeat;background-size:260% 100%;background-position:150% 0;animation:mapa-tag-brilho 7s ease-in-out 2s 2}
 .lg-turma {grid-area:online;align-self:center;justify-self:start;display:flex;flex-direction:column;gap:14px;margin:0;padding-bottom:120px}
 .lg-colega {position:relative;left:auto;bottom:auto;top:auto;translate:none;width:150px;padding:0;border:2px solid #0b0c10;border-radius:16px;background:#12141bdd;box-shadow:inset 0 1px 0 #ffffff14,0 5px 0 #07080b,0 20px 40px #000a;overflow:hidden;scale:1;filter:none}
 .lg-colega.longe {display:none}

@@ -960,7 +960,9 @@ async function pintarArtesEscritorio(raiz = document) {
       let url = ESCRITORIO_ARTES_PRONTAS.get(classe);
       if (!url) {
         const m = await mapaCarregarMovel(classe);
-        const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0);
+        // Desenho na memória comum: o toDataURL de um canvas da placa de vídeo
+        // esperava ela esvaziar a fila e travava a entrada por até ~0,6 s.
+        const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0, 0, null, true);
         if (!d) continue;
         url = d.canvas.toDataURL();
         ESCRITORIO_ARTES_PRONTAS.set(classe, url);

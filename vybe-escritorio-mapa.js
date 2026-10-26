@@ -194,7 +194,8 @@ function mapaEtapaQuebravel(dados, golpes) {
   const n = Object.keys(dados.visualizations.find((v) => v.size === 64)?.animations || {}).filter((k) => Number(k) < 100).length || 1;
   return Math.min(n - 1, Math.floor((Math.max(0, golpes) * (n - 1)) / MAPA_GOLPES_QUEBRAVEL));
 }
-function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro) {
+// leitura: os pixels do desenho vão ser lidos (getImageData); ver mapaLuzSemPreto.
+function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro, leitura = false) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const digitos = MAPA_COM_DIGITOS.test(dados.visualizationType || "");
   const numero = Math.max(0, Math.round(Number(estadoSalvo) || 0));
@@ -235,7 +236,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, maxX - minX);
   canvas.height = Math.max(1, maxY - minY);
-  const g = canvas.getContext("2d");
+  const g = canvas.getContext("2d", leitura ? { willReadFrequently: true } : undefined);
   g.imageSmoothingEnabled = false;
   for (const c of caixas) {
     if (filtro && !filtro(c)) continue;
@@ -357,7 +358,11 @@ function mapaLuzSemPreto(imagem, f) {
   if (porImagem.has(chave)) return porImagem.get(chave);
   const c = document.createElement("canvas");
   c.width = f.w; c.height = f.h;
-  const g = c.getContext("2d");
+  // Canvas na memória comum (willReadFrequently): ler os pixels de um canvas da
+  // placa de vídeo espera ela terminar tudo o que está na fila. Na entrada do
+  // escritório isso somava ~1,2 s, com leituras de até 576 ms (Paulo,
+  // 26/10/2026: o convidado travava ao abrir).
+  const g = c.getContext("2d", { willReadFrequently: true });
   g.drawImage(imagem, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
   try {
     const px = g.getImageData(0, 0, f.w, f.h), d = px.data;
@@ -1313,7 +1318,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
-      const d4 = mapaDesenharMovel(m, 4, 0, 0), d2 = mapaDesenharMovel(m, 2, 0, 0);
+      const d4 = mapaDesenharMovel(m, 4, 0, 0, 0, null, true), d2 = mapaDesenharMovel(m, 2, 0, 0, 0, null, true);
       // Só a parte desenhada do painel ladrilha a parede (as margens
       // transparentes da arte deixavam faixas da base escura aparecendo nas
       // paredes mais altas que o painel).
@@ -3027,8 +3032,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // movimento", metade disso. Só com o mapa visível na tela.
   let quadro = 0, relogio = null, pulsoBonecos = 0;
   const focos = [];
+  let emPausa = false;
   const animar = () => {
-    if (mapaForaDeVista(el)) return;
+    // Fora de vista (atrás do lobby, outra aba, janela escondida) as animações
+    // CSS do mapa também param: luzes, zzz e etiquetas seguiam pedindo quadros
+    // à placa de vídeo sem ninguém ver (Paulo, 26/10/2026: o MacBook esquentava).
+    const fora = mapaForaDeVista(el);
+    if (fora !== emPausa) { emPausa = fora; el.classList.toggle("mapa-em-pausa", fora); }
+    if (fora) return;
     quadro++;
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();
