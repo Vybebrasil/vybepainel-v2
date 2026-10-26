@@ -280,6 +280,10 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
 // criar e compor canvases novos 24 vezes por segundo para cada móvel animado
 // (era o que mais pesava nas salas cheias). Os canvases guardados só são lidos.
 const MAPA_CACHE_CAMADAS = new WeakMap();
+// Quadros guardados por tipo de móvel: com 96, as muitas telas do Centro de
+// Operação (cada uma numa fase) descartavam e redesenhavam o mesmo quadro sem
+// parar. Cada quadro é um canvas pequeno.
+const MAPA_CACHE_QUADROS = 640;
 // Cópia de um canvas (o do cache não pode ir para o mapa duas vezes).
 // Área de clique do boneco: só o corpo. O botão inteiro (64 × 110) tapava o
 // clique na mesa, na cadeira e no painel atrás de quem está na frente
@@ -304,7 +308,7 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   const chave = `${dir}|${estado}|${mapaChaveQuadro(m.dados, estado, quadro, semente)}`;
   if (cache.has(chave)) return cache.get(chave);
   const d = mapaCamadasMovelNovo(m, dir, estado, quadro, semente);
-  if (cache.size >= 96) cache.delete(cache.keys().next().value);
+  if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value);
   cache.set(chave, d);
   return d;
 }
@@ -1108,10 +1112,17 @@ const MAPA_FEIXE_AREA = 31;
 // Mapa fora de vista: aba escondida, fora da tela ou coberto pela entrada da
 // Vybelândia ou pela abertura. A vitrine dentro da entrada continua animando.
 // Animar o mapa inteiro por trás da entrada pesava em todo computador (22/10/2026).
+// Guardado por meio segundo: chamada 24 vezes por segundo (animar, seta,
+// passeio), o offsetParent forçava o layout e o querySelector varria os mais de
+// 10 mil elementos do Centro de Operação a cada quadro, e a sala piorava com o
+// tempo aberta (Paulo, 26/10/2026: o Mac esquentava e o Centro travava).
 function mapaForaDeVista(el) {
-  if (document.hidden || !el.isConnected || !el.offsetParent) return true;
-  if (el.closest(".ofc-lobby, .ofc-abertura")) return false;
-  return Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura"));
+  if (document.hidden || !el.isConnected) return true;
+  const agora = Date.now(), guardado = el._mapaVista;
+  if (guardado && agora - guardado.t < 500) return guardado.fora;
+  const fora = !el.offsetParent || (!el.closest(".ofc-lobby, .ofc-abertura") && Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura")));
+  el._mapaVista = { t: agora, fora };
+  return fora;
 }
 function mapaFatorFeixe() { return 0.15 + Math.random() * 0.35; }
 function mapaPassoFeixe(f) {
@@ -1648,7 +1659,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       const filtro = a.chave == null ? item.filtro : (p) => mapaGrupoCamada(p) === a.chave && (!item.filtro || item.filtro(p));
       // Mesmo ciclo dos móveis de chão: cada quadro desenhado uma vez só.
       const cache = (item.cacheDesenho ??= new Map()), chave = `${a.chave}|${item.dir}|${estado}|${mapaChaveQuadro(item.m.dados, estado, q, item.semente || 0)}`;
-      if (!cache.has(chave)) { if (cache.size >= 96) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
+      if (!cache.has(chave)) { if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
       const d = cache.get(chave);
       const g = a.no.getContext("2d");
       if (!d) { g.clearRect(0, 0, a.no.width, a.no.height); continue; }
@@ -1912,7 +1923,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // volta são desenhadas por cima dela.
       const plano = !altura && !(dim.z > 0.05) && desenho.canvas.height <= (dim.x + dim.y) * (MAPA_TH / 2) + 12 && (!MAPA_FISICA?.[classe] || mapaFisica(classe).pisa);
       const no = document.createElement("div");
-      no.className = "mapa-obj mapa-movel";
+      no.className = "mapa-obj mapa-movel" + (plano ? " mapa-rente" : "");
       no.dataset.classe = classe;
       // A peça de escada fica apoiada no piso de baixo (a rampa de quem anda
       // por ela sobe até o mezanino; sem isso ela aparecia no meio da subida).
@@ -3032,7 +3043,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // movimento", metade disso. Só com o mapa visível na tela.
   let quadro = 0, relogio = null, pulsoBonecos = 0;
   const focos = [];
-  let emPausa = false;
+  let emPausa = false, tique = 0;
   const animar = () => {
     // Fora de vista (atrás do lobby, outra aba, janela escondida) as animações
     // CSS do mapa também param: luzes, zzz e etiquetas seguiam pedindo quadros
@@ -3040,6 +3051,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     const fora = mapaForaDeVista(el);
     if (fora !== emPausa) { emPausa = fora; el.classList.toggle("mapa-em-pausa", fora); }
     if (fora) return;
+    // Ninguém mexe há um tempo (vybe-energia.js): um quadro a cada quatro.
+    tique = (tique + 1) % 4;
+    if (tique && typeof vbOcioso === "function" && vbOcioso()) return;
     quadro++;
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();

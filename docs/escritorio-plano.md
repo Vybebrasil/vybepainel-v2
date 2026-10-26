@@ -1758,3 +1758,73 @@ animando 24 vezes por segundo por trás da entrada. Agora:
 - Regressão com LF e CRLF comprova conferência sem escrita e rejeição de uma
   cena realmente diferente. Suíte geral: 755/755. Sem alteração visual ou de
   banco; não foi alegada uma revisão visual manual nesta etapa.
+
+### Construção como jogo, loja e tutorial — 26/10/2026 (local)
+
+- Pedido do Paulo: "não parece modo de construção de jogo"; ver e pintar o piso
+  ruim, construir difícil; todos os pisos e paredes grátis; loja e catálogo
+  difíceis de usar. Branch `codex/construcao-jogo`, a partir da `main`.
+- Economia: pisos do acervo (182), acabamentos (5), blocos e materiais (151) e
+  86 revestimentos de parede viram essenciais grátis (`MOVEIS_DE_CONSTRUCAO`).
+  Sem migração; quem comprou antes fica com as unidades no inventário (sem
+  reembolso automático: decisão pendente do Paulo).
+- Construção: modos Móveis, Piso, Parede, Planta, Luz e Extras na barra de
+  baixo (teclas 1–6); ferramentas do modo acima (pincel, retângulo, linha,
+  balde, borracha, quarto todo; altura e todas as paredes; formas da planta);
+  Ver piso (V), Grade (G), Mover visão (Espaço). Tela limpa: saem HUD, trilho,
+  abas de conversa, gerenciar/convidar e marcadores do dia. Selo da sala e
+  estado no topo da Oficina; Salvar mostra a contagem de mudanças.
+- Oficina em grade de ícones; piso com material na mão em destaque, ladrilhos
+  isométricos e famílias (madeira, pedra, natureza, azulejo, tapetes);
+  parede com estilos, cores e revestimentos. Barra do móvel selecionado com
+  girar, outro igual, trocar, guardar e Ajustes (altura, ajuste fino, bloquear).
+- Consertos: peça de piso aplicada sem esperar a arte (a ferramenta travava
+  para sempre se a imagem não chegava); aviso "0 ladrilhos" preso no topo.
+- Tutorial próprio da construção (primeira vez de cada pessoa, revisto no ⋯),
+  no mesmo cartão do tutorial do Escritório. Sons curtos ao pegar, colocar,
+  girar, guardar, pintar e salvar (respeitam o som desligado).
+- Loja: só o que se compra; capa com vitrine e prateleiras por categoria;
+  categorias com ícones; subcategorias em fichas; ordem "Em destaque"
+  (compráveis e raros primeiro); preço em etiqueta com moeda.
+- Verificação: testes `escritorio-construcao-jogo` e suíte completa; conferido
+  no Chrome sem janela (1440×900 e 390×844) com mouse e teclado de verdade.
+  Pendente: teste no Safari/Mac e quarto parcialmente coberto pela gaveta no
+  celular.
+
+### Energia: Mac esquentando e Centro de Operação travando — 26/10/2026 (local)
+
+- Junta a branch `codex/escritorio-aquecimento` (PR #363, ainda fora da `main`):
+  mapa pausado atrás do lobby, brilhos por `translate`, leitura de pixels sem
+  esperar a placa de vídeo.
+- Medido com o Chrome sem janela (trabalho do navegador por segundo, parado):
+  Painel 0,20 → 0 depois de 8 s (o ponto do aviso de planejamento, por
+  `box-shadow`, repintava a tela 180 vezes por segundo); Centro de Operação
+  0,63 → 0,11 e, depois de 2 minutos aberto, 1,17 com travadas de 50–77 ms →
+  0,07 sem nenhuma (não piora mais com o tempo).
+- Causas no Centro: `mapaForaDeVista` 24 vezes por segundo varrendo mais de
+  10 mil elementos e forçando layout (agora guardado por 500 ms) e cache de
+  quadros de 96 por tipo de móvel, pequeno para as telas em fases diferentes
+  (agora 640).
+- Animações que ficavam para sempre passam a tocar poucas vezes: estrelas do
+  lobby, brilho do destaque, pulso do aviso de planejamento, alerta dos agentes
+  e o brilho de "ninguém no escritório".
+- Rede de segurança (`vybe-energia.js`): 30 s sem mouse, teclado ou toque, as
+  animações CSS pausam (`html.vb-ocioso`) e o mapa anima a um quarto do ritmo;
+  o primeiro movimento devolve tudo. Voz e vídeo não dependem disso.
+- Pendente: medir no Safari do Mac (o headless usa placa de vídeo emulada).
+
+### Reembolso da construção e venda à loja — 26/10/2026
+
+- Paulo aprovou a construção e pediu: reembolsar quem comprou piso e bloco e
+  deixar vender à loja o que comprou, pelo mesmo valor.
+- Migração `2026-10-26-escritorio-construcao-livre-e-venda.sql` (aplicar depois
+  da publicação, como as anteriores): cria `vybe_escritorio_vendas` e devolve,
+  uma vez por compra (`reembolso:compra:<id>`), o que foi pago por pisos,
+  acabamentos, blocos e revestimentos; tira essas peças do inventário (agora
+  essenciais). Kits não são devolvidos (preço do conjunto). Quartos intactos.
+- Venda: botão "Vender · N moedas" na ficha do móvel guardado. O servidor
+  confere unidade guardada, compra ainda não vendida nem devolvida, presentes
+  e trocas que já saíram, e grava venda, razão e carteira juntos; peça
+  limitada volta ao estoque. Sem a migração, a venda responde 503.
+- Testes em PGlite: venda pelo valor pago, idempotência, quarto, prêmio,
+  presente, grátis, estoque e reembolso que não repete.

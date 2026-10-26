@@ -7458,7 +7458,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .plj-aviso.urgente{border-color:#ffb451;box-shadow:0 0 0 3px rgba(255,157,0,.25),0 12px 36px rgba(0,0,0,.45)}
 .plj-aviso b{display:block;font:700 12px var(--mac-ui)}
 .plj-aviso small{display:block;color:#c9b38f;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
-.plj-aviso-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 0 rgba(255,157,0,.6);animation:plj-pulso 2s ease-out infinite}
+.plj-aviso-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#ff9d00;box-shadow:0 0 0 0 rgba(255,157,0,.6);animation:plj-pulso 2s ease-out 4}
 @keyframes plj-pulso{to{box-shadow:0 0 0 10px rgba(255,157,0,0)}}
 @media(prefers-reduced-motion:reduce){.plj-aviso-ponto{animation:none}}
 @media(max-width:560px){.plj-aviso{right:12px;bottom:76px}.plj-drive{margin-left:0}}
@@ -7490,7 +7490,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
    box-shadow fazia o navegador repintar a cena a cada quadro, e com 14 agentes
    pedindo ação o Centro de Operação travava (Paulo, 20/10/2026). */
 .mapa-etiqueta.agente.alerta::after {content:"";position:absolute;inset:-1px;border-radius:inherit;box-shadow:0 0 0 6px #ff9d0022,0 6px 22px #ff9d0066;opacity:0;pointer-events:none}
-@media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta::after {will-change:opacity;animation:ofc-agente-chama 1.8s ease-in-out infinite}}
+@media (prefers-reduced-motion:no-preference) {.mapa-etiqueta.agente.alerta::after {animation:ofc-agente-chama 1.8s ease-in-out 6 forwards}}
 @keyframes ofc-agente-chama {50% {opacity:1}}
 .ofc-dock-plano {position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(520px,calc(100vw - 32px));padding:8px 14px 8px 12px;border:1px solid #ffb45199;border-radius:999px;background:#2a1a08f0;color:#ffe0a6;font:600 13px var(--mac-ui);white-space:nowrap;cursor:pointer;box-shadow:0 10px 30px #0008,0 0 0 3px #ff9d0022}
 .ofc-dock-plano b {font-weight:800;color:#fff}
@@ -7498,7 +7498,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .ofc-dock-plano .ofc-ico {width:16px;height:16px;flex:none;stroke:#ffb451}
 .ofc-dock-plano > i {flex:none;width:8px;height:8px;border-radius:50%;background:#ff9d00}
 .ofc-dock-plano:hover, .ofc-dock-plano:focus-visible {background:#3a2408f5;outline:none;box-shadow:0 10px 30px #0008,0 0 0 3px #ff9d0066}
-@media (prefers-reduced-motion:no-preference) {.ofc-dock-plano > i {animation:plj-pulso 2s ease-out infinite}}
+@media (prefers-reduced-motion:no-preference) {.ofc-dock-plano > i {animation:plj-pulso 2s ease-out 4}}
 .ofc-sala .ofc-sala-alerta {display:block;grid-column:1/-1;margin-top:2px;color:#ffc46b;font:700 10px var(--mac-ui)}
 
 /* Raridade no cartão da loja (borda na cor da faixa; o nome da faixa vem
@@ -7799,7 +7799,7 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .ofc-destaque {position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-areas:"emb txt" "num num" "btn btn";gap:10px 12px;width:100%;margin:2px 0 12px;padding:14px;border:1px solid #ff8a3577;border-radius:18px;
   background:radial-gradient(120% 90% at 0% 0%,#ff8a3540,transparent 55%),radial-gradient(90% 80% at 100% 100%,#6f3cff26,transparent 60%),linear-gradient(160deg,#2b2233,#1a1b27);
   box-shadow:var(--jg-relevo),0 0 0 1px #ff8a3522,0 14px 30px #0009,0 0 26px #ff6b1a22;color:var(--ofc-texto);text-align:left;cursor:pointer;overflow:hidden;transition:transform var(--jg-mov),box-shadow var(--jg-mov)}
-.ofc-destaque::after {content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#ffffff12 45%,transparent 60%) -120% 0/250% 100% no-repeat;pointer-events:none;animation:jg-brilho 6s ease-in-out infinite}
+.ofc-destaque::after {content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#ffffff12 45%,transparent 60%) -120% 0/250% 100% no-repeat;pointer-events:none;animation:jg-brilho 6s ease-in-out 2}
 @keyframes jg-brilho {0%,70% {background-position:-120% 0} 100% {background-position:220% 0}}
 .ofc-destaque:hover {transform:translateY(-2px);box-shadow:var(--jg-relevo),0 0 0 1px #ff8a3566,0 18px 34px #000a,0 0 34px #ff6b1a40}
 .ofc-destaque:active {transform:translateY(0)}
@@ -10348,7 +10348,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-amigo:hover .lg-dica, .lg-amigo:focus-visible .lg-dica {opacity:1;transform:translate(-50%,0)}
 .lg-mais {display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#ffffff14;font:800 12px var(--mac-ui)}
 .lg-vazio {width:44px;height:44px;border-radius:50%;background:#ffffff10;position:relative;overflow:hidden}
-.lg-vazio::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff1f 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) infinite}
+.lg-vazio::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff1f 50%,transparent 70%);translate:-100% 0;animation:vb-brilho 1.4s var(--curva,ease) 3}
 .lg-regra {--dy:10px;grid-area:regra;justify-self:center;display:inline-flex;align-items:center;gap:8px;margin:0;color:#b7bccb;font:600 12px var(--mac-ui)}
 .lg-regra svg {width:15px;height:15px;fill:none;stroke:#ffb27a;stroke-width:1.9}
 /* A base: áudio, atalhos e o ENTRAR */
@@ -10441,7 +10441,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .lg-noticia .vb-titulo {font-size:10px}
 /* Céu e luz por hora do dia */
 .lg-ceu {position:absolute;inset:0 0 auto;height:45%;z-index:2;pointer-events:none}
-.lg-ceu i {position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:lg-estrela 3.2s ease-in-out infinite;animation-delay:var(--d)}
+.lg-ceu i {position:absolute;left:var(--x);top:var(--y);width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;opacity:.55;animation:lg-estrela 3.2s ease-in-out 2;animation-delay:var(--d)}
 @keyframes lg-estrela {0%,100% {opacity:.15} 50% {opacity:.9}}
 .ofc-lobby.lg {--lg-luz:.62;--lg-sat:1.15}
 .ofc-lobby.lg[data-periodo="manha"] {--lg-luz:.8;--lg-sat:1.05}
@@ -11261,3 +11261,253 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
 .ofc-ajuste-parede label {display:grid;gap:4px;font:600 10px var(--mac-ui);color:var(--ofc-suave)}
 .ofc-ajuste-parede select {padding:7px;border-radius:8px;background:#252832;border:1px solid #ffffff24;color:#f4f4f7;font:600 11px var(--mac-ui)}
 @media(max-width:760px){.ofc-editor-flutua .ofc-fino-parede{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,36px)}.ofc-editor-flutua .ofc-fino-parede button{width:36px;height:36px}}
+
+/* Construção como jogo (Paulo, 26/10/2026, vybe-escritorio-construcao.js):
+   tela limpa enquanto constrói (sai o HUD do jogo, missões e cartões do topo),
+   modos e ferramentas numa barra embaixo, materiais compactos na Oficina e
+   "Ver piso" para enxergar o chão por baixo dos móveis. Sem animação contínua. */
+.ofc[data-editando=true] :is(.ofc-dock,#office-cobrancas,#office-missoes,.ofc-bonus-lugar,.ofc-abrir,.ofc-voltar-mapa,.ofc-sala-atual) {display:none}
+.ofc[data-editando=true] .ofc-principal > .ofc-editor.construcao {bottom:14px}
+.ofc[data-editando=true] .ofc-zoom {bottom:16px}
+.ofc-editor.construcao .ofc-cons-base {position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100% - 90px);pointer-events:none}
+.ofc-cons-base > * {pointer-events:auto}
+.ofc-editor.construcao .ofc-cons-base .ofc-editor-dica {position:static;transform:none;max-width:100%}
+.ofc-hotbar, .ofc-subbar {display:flex;align-items:stretch;gap:4px;padding:5px;border-radius:18px;background:var(--cons-vidro);border:1px solid var(--cons-linha);box-shadow:0 18px 40px #0009,inset 0 1px #ffffff12;backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.ofc-hot-grupo {display:flex;gap:2px;align-items:stretch}
+.ofc-hot-grupo + .ofc-hot-grupo {padding-left:6px;margin-left:2px;border-left:1px solid var(--cons-linha)}
+.ofc-principal > .ofc-editor.construcao :is(.ofc-hot-modo,.ofc-hot-ferr) {position:relative;display:grid;justify-items:center;align-content:center;gap:3px;min-width:60px;padding:7px 6px 6px;border:0;border-radius:13px;background:transparent;box-shadow:none;color:#c9ced8;font:650 11px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.ofc-principal > .ofc-editor.construcao .ofc-hot-modo {min-width:68px}
+:is(.ofc-hot-modo,.ofc-hot-ferr) .ofc-ico, .ofc-subbar .ofc-ico, .ofc-modo-cabeca .ofc-ico {width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ofc-hot-modo kbd {position:absolute;top:3px;right:5px;padding:0 4px;border-radius:5px;background:#ffffff12;color:#9aa1b2;font:700 9px/14px var(--mac-ui)}
+.ofc-principal > .ofc-editor.construcao :is(.ofc-hot-modo,.ofc-hot-ferr):hover:not(:disabled) {background:#ffffff12;color:#fff}
+.ofc-principal > .ofc-editor.construcao .ofc-hot-modo[aria-pressed=true] {background:linear-gradient(180deg,#ff9a45,#ff6b1a);color:#1d0d02;box-shadow:0 6px 16px #ff6b1a55,inset 0 1px #fff6}
+.ofc-hot-modo[aria-pressed=true] kbd {background:#00000026;color:#3a1800}
+.ofc-principal > .ofc-editor.construcao .ofc-hot-ferr[aria-pressed=true] {background:#ffffff1c;color:#fff;box-shadow:inset 0 0 0 1px #ffffff2e}
+.ofc-hot-ferr[aria-pressed=true]::after {content:"";position:absolute;top:6px;right:10px;width:6px;height:6px;border-radius:50%;background:#5fd39a;box-shadow:0 0 6px #5fd39a}
+.ofc-principal > .ofc-editor.construcao .ofc-hot-ferr:disabled {opacity:.35;cursor:default}
+.ofc-principal > .ofc-editor.construcao :is(.ofc-hot-modo,.ofc-hot-ferr,.ofc-subbar button):focus-visible {outline:2px solid #ffb27a;outline-offset:1px}
+.ofc-subbar {align-items:center;padding:4px;border-radius:14px}
+.ofc-subbar > i {width:1px;align-self:stretch;margin:4px 3px;background:var(--cons-linha)}
+.ofc-principal > .ofc-editor.construcao .ofc-subbar button {display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid transparent;border-radius:10px;background:transparent;box-shadow:none;color:#d6dae3;font:650 12.5px var(--mac-ui);cursor:pointer;white-space:nowrap}
+.ofc-subbar .ofc-ico {width:18px;height:18px}
+.ofc-principal > .ofc-editor.construcao .ofc-subbar button:hover {background:#ffffff10;color:#fff}
+.ofc-principal > .ofc-editor.construcao .ofc-subbar button[aria-pressed=true] {border-color:#ff963f;background:#ff8a3524;color:#fff}
+.ofc-sub-material {max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 10px;margin-right:2px;border-radius:10px;background:#ffffff0c;color:#ffc79a;font:700 12px var(--mac-ui)}
+.ofc-sub-material::before {content:"Na mão: ";color:#9aa1b2;font-weight:600}
+.ofc-sub-numero {display:flex;align-items:center;gap:6px;padding:0 8px;color:#c9ced8;font:600 12px var(--mac-ui)}
+.ofc-sub-numero input {width:56px;padding:4px 6px;border-radius:8px;border:1px solid var(--cons-linha);background:#0c0d12;color:#fff;font:600 12px var(--mac-ui)}
+/* Menu ⋯ no topo, ao lado de Cancelar e Salvar. */
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais {position:relative}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais > summary {display:grid;place-items:center;width:38px;height:100%;min-height:34px;border-radius:11px;cursor:pointer;list-style:none;color:#c9ced8}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais > summary::-webkit-details-marker {display:none}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais > summary .ofc-ico {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais > div {position:absolute;left:auto;right:0;top:calc(100% + 10px);bottom:auto;z-index:3;display:grid;gap:4px;min-width:260px;padding:8px;border-radius:14px;border:1px solid var(--cons-linha);background:var(--cons-vidro);backdrop-filter:blur(16px);box-shadow:0 18px 40px #0009}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-mais > div > button {text-align:left;padding:8px 12px}
+.ofc-editor.construcao .ofc-cons-acoes .ofc-cons-altura {position:static;transform:none}
+/* Móvel selecionado: em cima das ferramentas, com o nome e no máximo duas
+   linhas (as ações de sempre e, abrindo Ajustes, o resto). */
+.ofc-cons-base > .ofc-editor-flutua {position:static;flex-direction:column;align-items:stretch;gap:6px;max-width:min(860px,100%);padding:8px 10px;overflow:visible;border-radius:16px;background:var(--cons-vidro);border:1px solid #ff8a3555;backdrop-filter:blur(16px)}
+.ofc-cons-base > .ofc-editor-flutua::before {flex:none;text-align:center;color:#ffc79a;font:750 12px var(--mac-ui)}
+.ofc-sel-linha {display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
+.ofc-sel-ajustes {padding-top:6px;border-top:1px solid var(--cons-linha)}
+.ofc-sel-linha small {color:#9aa1b2;font:600 11px var(--mac-ui);margin:0 2px}
+.ofc-sel-linha kbd {margin-left:4px;padding:0 4px;border-radius:5px;background:#ffffff14;color:#aeb6c8;font:700 9.5px/15px var(--mac-ui)}
+.ofc-editor-flutua .ofc-sel-principal {border-color:#ff963f;background:#ff8a3529}
+.ofc-sel-ajustes .ofc-repor {display:contents}
+/* Ver piso: móveis quase transparentes e sem pegar o clique. */
+.ofc[data-editor-ver-piso] :is(.mapa-movel:not(.mapa-rente),.mapa-de-parede,.mapa-pessoa) {opacity:.12;pointer-events:none}
+/* Oficina: cabeçalho do modo e materiais em grade compacta. */
+.ofc-modo-cabeca {display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:13px;background:#1d2029;border:1px solid #ffffff12}
+.ofc-modo-cabeca .ofc-ico {flex:none;width:26px;height:26px;padding:6px;box-sizing:content-box;border-radius:10px;background:linear-gradient(180deg,#ff9a45,#ff6b1a);color:#1d0d02}
+.ofc-modo-cabeca b {display:block;color:#fff;font:800 15px var(--mac-ui)}
+.ofc-modo-cabeca small {display:block;margin-top:2px;color:#aeb6c8;font:500 11.5px/1.45 var(--mac-ui)}
+.ofc-materiais {display:grid;gap:10px}
+.ofc-materiais h4 {margin:4px 0 0;color:#9aa1b2;font:800 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-materiais h4 small {text-transform:none;letter-spacing:0;font-weight:600}
+.ofc-materiais-topo {display:grid;gap:8px}
+.ofc-materiais-topo input {width:100%;box-sizing:border-box;padding:9px 12px;border-radius:11px;border:1px solid #ffffff1a;background:#12141b;color:#fff;font:500 13px var(--mac-ui)}
+.ofc-gratis {margin:0;color:#7fe0a8;font:600 11.5px var(--mac-ui)}
+.ofc-gratis::before {content:"✓ "}
+.ofc-materiais-grade {display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.ofc-material {position:relative;display:grid;justify-items:center;align-content:start;gap:5px;min-width:0;padding:8px 4px 7px;border-radius:12px;border:1px solid #ffffff14;background:radial-gradient(60% 40% at 50% 38%,#ffffff10,transparent 70%),#1d2029;box-shadow:0 3px 0 #0b0d14;color:#dfe3ec;font:600 10.5px/1.3 var(--mac-ui);text-align:center;cursor:pointer}
+.ofc-material:hover {border-color:#ffffff33}
+.ofc-material[aria-pressed=true] {border-color:#ff963f;box-shadow:0 3px 0 #8a471f,inset 0 0 0 1px #ff963f;background:#2a1d14}
+.ofc-material[aria-pressed=true]::after {content:"✓";position:absolute;top:4px;right:5px;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#ff8a35;color:#1d0d02;font:900 10px var(--mac-ui)}
+.ofc-material img {width:48px;height:40px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 3px 2px #0007)}
+.ofc-material > span {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ofc-material em {position:absolute;top:4px;left:5px;padding:0 4px;border-radius:5px;background:#00000066;color:#c9ced8;font:700 9px/14px var(--mac-ui);font-style:normal}
+.ofc-material-amostra {width:52px;height:30px;margin:5px 0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.ofc-material-amostra.parede {width:40px;height:40px;margin:0;clip-path:none;border-radius:6px;overflow:hidden;box-shadow:inset 0 0 0 1px #0006}
+.ofc-material-amostra.parede img {width:100%;height:100%;object-fit:cover}
+.ofc-materiais-grade.estilos {grid-template-columns:repeat(4,minmax(0,1fr))}
+.ofc-cores {display:flex;flex-wrap:wrap;gap:6px}
+.ofc-cor {display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #ffffff1a;background:#12141b;cursor:pointer}
+.ofc-cor i {width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1px #0005}
+.ofc-cor[aria-pressed=true] {border-color:#ff963f;box-shadow:0 0 0 2px #ff963f55}
+.ofc-mais-materiais {justify-self:center;padding:8px 14px;border-radius:10px;border:1px solid #ffffff1c;background:#1d2029;color:#e6e9f0;font:650 12px var(--mac-ui);cursor:pointer}
+/* Móveis do quarto em três colunas (antes duas, com cartões altos). */
+.ofc-oficina .ofc-moveis {grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.ofc-oficina .ofc-movel {gap:4px;padding:8px 6px 7px;border-radius:12px;text-align:center;align-items:center}
+.ofc-oficina .ofc-movel img {width:54px;height:48px}
+.ofc-oficina .ofc-movel > span {font-size:11px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ofc-oficina .ofc-movel .ofc-movel-linha {margin-top:0;text-align:center;font-size:9.5px}
+@media (max-width:700px) {
+  .ofc-editor.construcao .ofc-cons-base {max-width:calc(100% - 8px);gap:6px}
+  .ofc-principal > .ofc-editor.construcao :is(.ofc-hot-modo,.ofc-hot-ferr) {min-width:46px;padding:6px 4px;font-size:9.5px}
+  .ofc-hot-modo kbd {display:none}
+  .ofc-hot-grupo:not(.ofc-hot-modos) .ofc-hot-ferr span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .ofc-principal > .ofc-editor.construcao .ofc-subbar button {padding:6px 8px}
+  .ofc-sub-material {display:none}
+  .ofc-cons-base > .ofc-editor-flutua {padding:6px}
+}
+/* O que a barra de baixo substitui fica escondido na Oficina (hidden vence display). */
+.ofc-oficina [hidden] {display:none!important}
+/* Oficina como inventário de jogo (Paulo, 26/10/2026: "continua uma bosta"):
+   menos caixas antes dos itens, filtros numa fileira, grade só de ícones (o
+   nome aparece ao passar o mouse e na barra do selecionado). */
+.ofc[data-editando=true] .ofc-oficina {gap:8px}
+.ofc-modo-cabeca {align-items:center;gap:8px;padding:2px 2px 0;border:0;background:none}
+.ofc-modo-cabeca .ofc-ico {width:18px;height:18px;padding:5px;border-radius:8px}
+.ofc-modo-cabeca b {font:850 16px var(--mac-ui)}
+.ofc-modo-cabeca small {margin:0;color:#8f97a8;font:500 11.5px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-oficina-carteira.fina {display:flex;align-items:center;justify-content:space-between;min-height:0;padding:5px 6px 5px 10px;border-radius:11px}
+.ofc-oficina-carteira.fina b {font-size:15px}
+.ofc-oficina-carteira.fina .vb-jogo-botao {padding:5px 12px;min-height:0;font-size:12px}
+.ofc-oficina .ofc-busca input {padding:8px 11px;font-size:12.5px}
+.ofc-oficina .ofc-filtro-meus, .ofc-materiais-topo .ofc-cats {display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0}
+.ofc-oficina .ofc-filtro-meus button, .ofc-materiais-topo .ofc-cats button {flex:none;padding:5px 10px;border-radius:999px;font-size:11.5px;min-height:0}
+.ofc-oficina #office-catalogo-lista h4 {margin:2px 0 6px;font-size:10px}
+/* Grade de ícones: 4 por linha na largura padrão da lateral. */
+.ofc-oficina .ofc-moveis, .ofc-materiais-grade {grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:5px}
+.ofc-oficina .ofc-movel, .ofc-material {aspect-ratio:1;padding:4px;gap:0;justify-content:center;align-content:center;border-radius:10px}
+.ofc-oficina .ofc-movel img, .ofc-material img {width:44px;height:40px}
+.ofc-oficina .ofc-movel > span, .ofc-material > span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.ofc-oficina .ofc-movel .ofc-movel-linha {position:absolute;left:3px;right:3px;bottom:2px;margin:0;font-size:8.5px;line-height:1.2;color:#9aa1b2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-oficina .ofc-movel .ofc-movel-linha:is(:empty) {display:none}
+.ofc-material-amostra {width:42px;height:24px;margin:0}
+.ofc-material-amostra.parede {width:34px;height:34px}
+.ofc-materiais-grade.estilos {grid-template-columns:repeat(4,minmax(0,1fr))}
+.ofc-materiais {gap:8px}
+.ofc-gratis {font-size:11px}
+.ofc-oficina .ofc-movel.gratis .ofc-movel-linha {display:none}
+/* Construção, análise geral (Paulo, 26/10/2026: "faz sentido aqueles botões lá
+   em cima?"): construindo, sai a navegação do jogo (trilho da esquerda, abas de
+   conversa, gerenciar e convidar, marcadores do dia sobre o boneco) e o selo
+   da sala vai para o topo da Oficina. */
+@media (min-width:761px) {
+  .ofc[data-editando=true] {grid-template-columns:330px minmax(0,1fr)}
+  .ofc[data-editando=true][data-lateral=false] {grid-template-columns:minmax(0,1fr)}
+  .ofc[data-editando=true] > .ofc-rail {display:none}
+}
+.ofc[data-editando=true] .ofc-abas, .ofc-abas[hidden] {display:none!important}
+.ofc[data-editando=true] :is(.mapa-dia,.mapa-etiqueta) {display:none}
+.ofc-cons-topo {flex:1;min-width:0}
+.ofc-lateral-topo .ofc-cons-selo {position:static;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:center;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none}
+.ofc-lateral-topo .ofc-cons-selo .ofc-cons-luz {grid-row:span 2}
+.ofc-lateral-topo .ofc-cons-titulo b, .ofc-lateral-topo .ofc-cons-titulo select {font:850 16px var(--mac-ui);color:#fff}
+.ofc-lateral-topo .ofc-cons-titulo select {max-width:100%;padding:2px 4px;border-radius:8px;background:#12141b;border:1px solid #ffffff1a}
+.ofc-lateral-topo .ofc-editor-estado {justify-self:start;padding:2px 9px;border-radius:999px;background:#ffffff0d;color:#b9bfcc;font:650 11px var(--mac-ui)}
+.ofc-lateral-topo .ofc-editor-estado.sujo {background:#ff8a351f;color:#ffc79a}
+/* Pé da Oficina: o item sob o mouse. */
+.ofc-oficina-info {position:sticky;bottom:0;z-index:2;display:flex;align-items:baseline;gap:8px;margin:0 -2px;padding:9px 14px;border-top:1px solid #ffffff14;background:linear-gradient(180deg,#181a22ee,#14161d);color:#fff;font:750 13px var(--mac-ui)}
+.ofc-oficina-info[hidden] {display:none}
+.ofc-oficina-info b {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-oficina-info small {flex:none;color:#9aa1b2;font:600 11px var(--mac-ui)}
+/* Material na mão em destaque. */
+.ofc-mat-destaque {display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;background:radial-gradient(120% 140% at 0% 0%,#ff8a3522,transparent 60%),#1d2029;border:1px solid #ff8a3544;box-shadow:0 4px 0 #0b0d14,inset 0 1px #ffffff12}
+.ofc-mat-arte {flex:none;display:grid;place-items:center;width:78px;height:64px;border-radius:12px;background:radial-gradient(60% 50% at 50% 60%,#ffffff14,transparent 70%),#12141b}
+.ofc-mat-arte img {max-width:70px;max-height:58px;image-rendering:pixelated;filter:drop-shadow(0 4px 3px #0008)}
+.ofc-mat-arte .ofc-ico {width:30px;height:30px;color:#ffc79a}
+.ofc-mat-texto {display:grid;gap:1px;min-width:0}
+.ofc-mat-texto small {color:#9aa1b2;font:800 9.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-mat-texto b {color:#fff;font:850 14.5px/1.25 var(--mac-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-mat-texto span {color:#aeb6c8;font:600 11px var(--mac-ui)}
+.ofc-mat-texto i {font-style:normal;color:#7fe0a8}
+.ofc-mat-texto .ofc-mat-ferr {margin-top:3px;color:#ffc79a}
+.ofc-ladrilho {width:46px;height:30px;filter:drop-shadow(0 3px 2px #0009)}
+.ofc-ladrilho.grande {width:70px;height:46px}
+.ofc-material-cor {background:radial-gradient(70% 50% at 50% 55%,#ffffff12,transparent 70%),#1a1c25}
+.ofc-mat-grupo {display:grid;gap:6px}
+.ofc-mat-grupo h4 {display:flex;align-items:center;gap:6px;margin:4px 0 0}
+.ofc-mat-grupo h4 small {color:#6f7789}
+.ofc-mat-grupo h4 button {margin-left:auto;padding:2px 8px;border-radius:999px;border:1px solid #ffffff1c;background:transparent;color:#ffc79a;font:700 10.5px var(--mac-ui);letter-spacing:0;text-transform:none;cursor:pointer}
+.ofc-materiais-topo .ofc-cats button small {color:#8f97a8;font-weight:700}
+/* Ícones vivos: passar o mouse levanta o item; o escolhido brilha. */
+.ofc-oficina :is(.ofc-movel,.ofc-material) {transition:transform .12s var(--curva,ease),border-color .12s,box-shadow .12s}
+.ofc-oficina :is(.ofc-movel,.ofc-material):hover {transform:translateY(-2px);border-color:#ffffff40;box-shadow:0 5px 0 #0b0d14,0 8px 16px #0007}
+.ofc-oficina :is(.ofc-movel,.ofc-material) img {transition:transform .12s var(--curva,ease)}
+.ofc-oficina :is(.ofc-movel,.ofc-material):hover img {transform:scale(1.1)}
+.ofc-oficina .ofc-movel[aria-pressed=true] {border-color:#ff963f;box-shadow:0 3px 0 #8a471f,inset 0 0 0 1px #ff963f,0 0 16px #ff8a3544;background:#2a1d14}
+@media (prefers-reduced-motion:reduce) {.ofc-oficina :is(.ofc-movel,.ofc-material), .ofc-oficina :is(.ofc-movel,.ofc-material) img {transition:none}.ofc-oficina :is(.ofc-movel,.ofc-material):hover, .ofc-oficina :is(.ofc-movel,.ofc-material):hover img {transform:none}}
+/* Loja como loja de jogo (Paulo, 26/10/2026, vybe-escritorio-loja.js): capa
+   com vitrine e prateleiras, categorias com ícones sempre à vista e preço
+   em destaque nos cartões. */
+.ofc-catj-grade > :is(.ofc-loja-capa,.ofc-loja-sub) {grid-column:1/-1}
+.ofc-catjanela.na-capa .ofc-catj-grade {display:block}
+.ofc-catjanela.na-capa .ofc-catj-info:empty {display:none}
+.ofc-loja-grupo {display:grid;gap:2px;padding:4px 0 10px}
+.ofc-loja-grupo + .ofc-loja-grupo {border-top:1px solid #ffffff10;padding-top:10px}
+.ofc-loja-grupo h5 {margin:0 0 4px 10px;color:#8f97a8;font:800 10px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-loja-nav {display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:11px;background:none;color:#d6dae3;font:650 13px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-loja-nav .ofc-ico {flex:none;width:30px;height:30px;padding:6px;box-sizing:border-box;border-radius:9px;background:#ffffff0a;color:#c2c8d6}
+.ofc-loja-nav span {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofc-loja-nav small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-loja-nav:hover {background:#ffffff0c;color:#fff}
+.ofc-loja-nav[aria-pressed=true] {background:linear-gradient(90deg,#ff8a3530,#ff8a350a);color:#fff;box-shadow:inset 3px 0 0 #ff8a35}
+.ofc-loja-nav[aria-pressed=true] .ofc-ico {background:linear-gradient(180deg,#ff9a45,#ff6b1a);color:#1d0d02}
+.ofc-loja-nav.vitrine .ofc-ico {color:#c7a6ff}
+.ofc-loja-capa {display:grid;gap:16px}
+.ofc-loja-saudacao {display:grid;gap:4px;padding:16px 18px;border-radius:16px;background:radial-gradient(140% 160% at 0% 0%,#ff8a3530,transparent 55%),radial-gradient(120% 140% at 100% 100%,#7c6cff26,transparent 55%),#1d2029;border:1px solid #ffffff14;box-shadow:0 4px 0 #0b0d14}
+.ofc-loja-saudacao b {color:#fff;font:900 20px var(--mac-ui)}
+.ofc-loja-saudacao span {color:#aeb6c8;font:500 12.5px/1.5 var(--mac-ui)}
+.ofc-loja-saudacao i {font-style:normal;color:#ffd166;font-weight:800}
+.ofc-loja-prateleira {display:grid;gap:8px}
+.ofc-loja-prateleira .ofc-loja-prat-topo {display:flex;align-items:baseline;gap:8px}
+.ofc-loja-prateleira h3 {margin:0;color:#fff;font:850 15px var(--mac-ui)}
+.ofc-loja-prateleira .ofc-loja-prat-topo small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-loja-prateleira .ofc-loja-prat-topo button {margin-left:auto;padding:4px 10px;border-radius:999px;border:1px solid #ffffff1c;background:transparent;color:#ffc79a;font:700 12px var(--mac-ui);cursor:pointer}
+.ofc-loja-prateleira .ofc-loja-prat-topo button:hover {background:#ff8a3518;border-color:#ff8a3566}
+.ofc-loja-fila {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:1100px) {.ofc-loja-fila {grid-template-columns:repeat(4,minmax(0,1fr))} .ofc-loja-fila > :nth-child(n+5) {display:none}}
+@media (max-width:700px) {.ofc-loja-fila {grid-template-columns:repeat(3,minmax(0,1fr))} .ofc-loja-fila > :nth-child(n+4) {display:none}}
+.ofc-loja-sub {display:flex;flex-wrap:wrap;gap:6px;padding-bottom:4px}
+/* Cartões da janela: arte maior, preço como etiqueta, raridade na borda. */
+.ofc-catjanela .ofc-movel {position:relative;padding:12px 8px 10px;gap:6px;transition:transform .12s var(--curva,ease),border-color .12s,box-shadow .12s}
+.ofc-catjanela .ofc-movel:hover {transform:translateY(-3px);border-color:#ffffff3a;box-shadow:0 6px 0 #0b0d14,0 12px 22px #0008}
+.ofc-catjanela .ofc-movel img {transition:transform .12s var(--curva,ease)}
+.ofc-catjanela .ofc-movel:hover img {transform:scale(1.12)}
+.ofc-catjanela .ofc-movel .ofc-movel-linha {justify-self:center;padding:3px 9px;border-radius:999px;background:#0e1016;border:1px solid #ffd16633;color:#ffd166;font:800 11px var(--mac-ui)}
+.ofc-catjanela .ofc-movel .ofc-movel-linha.nao {color:#9aa1b2;border-color:#ffffff1a}
+.ofc-catjanela .ofc-movel.r-incomum {border-color:#5ad18a55}
+.ofc-catjanela .ofc-movel.r-raro {border-color:#5aa9ff66;box-shadow:0 4px 0 #0b0d14,inset 0 0 18px #5aa9ff14}
+.ofc-catjanela .ofc-movel.r-epico {border-color:#b48cff77;box-shadow:0 4px 0 #0b0d14,inset 0 0 20px #b48cff1c}
+.ofc-catjanela .ofc-movel.r-lendario {border-color:#ffd16688;box-shadow:0 4px 0 #0b0d14,inset 0 0 22px #ffd16624}
+@media (prefers-reduced-motion:reduce) {.ofc-catjanela .ofc-movel, .ofc-catjanela .ofc-movel img {transition:none}.ofc-catjanela .ofc-movel:hover, .ofc-catjanela .ofc-movel:hover img {transform:none}}
+.ofc-catjanela .ofc-movel .ofc-preco {display:inline-flex;align-items:center;gap:5px}
+.ofc-catjanela .ofc-movel .ofc-preco::before {content:"";width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c2,#ffc94a 45%,#c98a12);box-shadow:0 0 0 1px #7a4d0880}
+.ofc-catjanela .ofc-movel .ofc-preco small {color:#c9a24a;font:700 9.5px var(--mac-ui)}
+.ofc-catjanela .ofc-movel.caro .ofc-preco {color:#e8a0a0;border-color:#e0555544}
+.ofc-catjanela .ofc-movel .ofc-preco {white-space:nowrap;max-width:100%;overflow:hidden}
+@media (max-width:760px) {
+  .ofc-catj-arvore {gap:6px;padding:8px}
+  .ofc-catj-arvore .ofc-loja-grupo {display:flex;gap:6px;padding:0;border:0}
+  .ofc-catj-arvore .ofc-loja-grupo h5 {display:none}
+  .ofc-loja-nav {flex:none;width:auto;padding:6px 10px 6px 6px;border-radius:999px;background:#ffffff0a;font-size:12px}
+  .ofc-loja-nav .ofc-ico {width:24px;height:24px;padding:4px}
+  .ofc-loja-nav[aria-pressed=true] {box-shadow:inset 0 0 0 1px #ff8a35}
+}
+/* Celular construindo: sem a barra do jogo; a Oficina vira gaveta no pé e as
+   ferramentas ficam logo acima dela. */
+@media (max-width:760px) {
+  .ofc[data-editando=true] > .ofc-rail {display:none}
+  .ofc[data-editando=true] .ofc-lateral {bottom:0;height:min(40vh,330px)}
+  .ofc[data-editando=true][data-lateral=true] .ofc-principal > .ofc-editor.construcao {bottom:calc(min(40vh,330px) + 6px)}
+  .ofc[data-editando=true] .ofc-principal > .ofc-editor.construcao {bottom:8px;inset-inline:6px}
+  .ofc[data-editando=true] .ofc-zoom {display:none}
+}
+
+/* Painel e lobby sem animação infinita (26/10/2026): pulsos e brilhos tocam
+   poucas vezes; uma só animação infinita mantinha o navegador redesenhando a
+   tela inteira o tempo todo, mesmo com o Painel parado. */
+/* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
+html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}

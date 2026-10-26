@@ -8,7 +8,20 @@ import { conferirMarcos, MARCOS, partesDoMarco, nomeDoMarco, titulosDaPessoa } f
 import { roupaDaClasse } from './escritorio-roupas.js';
 const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/catalogo.json', import.meta.url), 'utf8'));
 const quartos = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json', import.meta.url), 'utf8'));
-export const MOVEIS_ESSENCIAIS = quartos.essenciais;
+// Construção livre (decisão do Paulo, 26/10/2026: "todos os pisos e paredes têm
+// que ser gratuitos"): peças de piso, acabamentos, blocos e materiais e os
+// revestimentos de parede do acervo entram nos essenciais, grátis e sem limite.
+// A decoração (móveis, quadros, luzes) continua na loja.
+export const CATEGORIAS_DE_CONSTRUCAO = ['Pisos do acervo', 'Acabamentos', 'Blocos e materiais'];
+// Revestimento de parede pelo nome ("… Wall"), sem anúncio, luminária ou quadro.
+const REVESTIMENTO = /(\bwall\b|wallpaper|wall cover)/i;
+const NAO_REVESTIMENTO = /^(ads_|brnd_|md_|tampax)|walltable|^wall_ph$|lamp|light|clock|shelf|poster|sign|mirror|window|door|torch|candle|plant|tv|screen|hook|rack|cabinet|hanging|decal|deco/i;
+export function ehDeConstrucao(m) {
+ if (CATEGORIAS_DE_CONSTRUCAO.includes(m.categoria)) return true;
+ return m.categoria === 'Na parede' && REVESTIMENTO.test(`${m.nome} ${m.classe.replace(/_/g, ' ')}`) && !NAO_REVESTIMENTO.test(m.classe) && !NAO_REVESTIMENTO.test(m.nome) && !/ name$/.test(m.nome);
+}
+export const MOVEIS_DE_CONSTRUCAO = catalogo.filter(ehDeConstrucao).map(m => m.classe);
+export const MOVEIS_ESSENCIAIS = [...new Set([...quartos.essenciais, ...MOVEIS_DE_CONSTRUCAO])];
 // Nome do móvel para mensagens (o do catálogo; sem ele, a classe).
 export const nomeDoMovel = (classe) => catalogo.find((m) => m.classe === classe)?.nome || classe;
 const classes = new Set([...catalogo.map(m => m.classe),'computer_laptop','uni_laptop','computer_old','steampunk_computer','easter_c23_solarpunkcomputer']);
@@ -58,7 +71,8 @@ export async function carregarLoja(sql, agora = new Date()) {
   .map(r => ({ chave: r.chave, nome: r.nome, preco: Number(r.preco), estoque: r.estoque === null ? null : Number(r.estoque), vitrine: Number(r.vitrine) }));
  const porChave = Object.fromEntries(raridades.map(r => [r.chave, r]));
  const linhas = await sql`SELECT classe,raridade,estoque,vendidos,preco,marco FROM vybe_escritorio_catalogo ORDER BY classe`;
- const itens = linhas.map(l => {
+ // Essenciais (inclusive a construção livre) nunca são vendidos, nem na vitrine.
+ const itens = linhas.filter(l => !MOVEIS_ESSENCIAIS.includes(l.classe)).map(l => {
   const faixa = porChave[l.raridade], estoque = l.estoque === null ? faixa?.estoque ?? null : Number(l.estoque);
   return { classe: l.classe, raridade: l.raridade, preco: l.preco === null ? faixa?.preco ?? PRECO_COMUM : Number(l.preco),
    restante: estoque === null ? null : Math.max(0, estoque - Number(l.vendidos)), marco: l.marco || null };
@@ -90,7 +104,9 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
   sql`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId}`,
   sql`SELECT origem,criado_em FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'conquista:%' ORDER BY criado_em`]);
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
- return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,
+ // O que pode voltar para a loja: unidades compradas e o valor de cada uma.
+ const vendiveis = Object.fromEntries(Object.entries(await unidadesVendiveis(sql, pessoaId)).map(([c, l]) => [c, l.map((x) => [x.unidades, x.preco])]));
+ return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,vendiveis,
   pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, titulos: lista ? await titulosDaPessoa(sql, pessoaId) : null, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
 }
 // Só com a loja (janela do catálogo, compras): a entrada do escritório fica leve.
@@ -124,12 +140,12 @@ async function ritmoDeMoedas(sql, pessoaId, agora = new Date()) {
  // Antes da migração dos pontos o razão não tem XP: só as moedas.
  if (!await pontosProntosEconomia(sql)) {
   const so = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas
-    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' GROUP BY 1`;
+    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' GROUP BY 1`;
   const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = so.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: 0 }; });
   return { dias, porDia: Math.round((dias.reduce((t, d) => t + d.moedas, 0) / 7) * 10) / 10 };
  }
  const linhas = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas, COALESCE(sum(pontos),0)::int AS xp
-   FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' GROUP BY 1`;
+   FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' GROUP BY 1`;
  const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = linhas.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: Number(l?.xp || 0) }; });
  const total = dias.reduce((t, d) => t + d.moedas, 0);
  return { dias, porDia: Math.round((total / 7) * 10) / 10 };
@@ -231,6 +247,80 @@ export async function comprarMovel(sql, pessoaId, {classe,chave,quantidade=1,pre
    if (limitado) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=vendidos+${quantidade} WHERE classe=${classe}`;
   }
   return carregarEconomia(tx,pessoaId,{ agora });
+ });
+}
+// Venda à Loja (decisão do Paulo, 26/10/2026: "vender pra loja os itens que
+// comprou pelo mesmo valor"). Só unidades compradas (não prêmio, presente,
+// troca ou kit), guardadas (fora dos dois andares) e ainda não vendidas nem
+// devolvidas; cada unidade vale o que foi pago por ela na compra (a compra em
+// quantidade divide o total). Tabela vybe_escritorio_vendas
+// (migrations/2026-10-26-escritorio-construcao-livre-e-venda.sql).
+export async function vendasProntas(sql) {
+ const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_vendas') IS NOT NULL AS existe`;
+ return Boolean(r?.existe);
+}
+const COMPRA = /^compra:[^:]*?(?:-q(\d+))?:(.+)$/;
+// Unidades compradas que ainda podem voltar para a Loja, por classe, da compra
+// mais antiga para a mais nova. Unidades que saíram em presente ou troca
+// contam como compradas primeiro (ninguém vende o que já deu).
+export async function unidadesVendiveis(sql, pessoaId) {
+ if (!await vendasProntas(sql)) return {};
+ const compras = await sql`SELECT c.id,c.origem,-c.quantidade AS total FROM vybe_escritorio_moedas c
+  WHERE c.pessoa_id=${pessoaId} AND c.origem LIKE 'compra:%' AND c.quantidade<0
+   AND NOT EXISTS (SELECT 1 FROM vybe_escritorio_moedas r WHERE r.pessoa_id=c.pessoa_id AND r.origem='reembolso:compra:'||c.id)
+  ORDER BY c.criado_em,c.id`;
+ const vendidas = new Map((await sql`SELECT compra_id,sum(unidades)::int AS n FROM vybe_escritorio_vendas WHERE pessoa_id=${pessoaId} GROUP BY compra_id`).map(v => [String(v.compra_id), Number(v.n)]));
+ const saiu = new Map();
+ const [tem] = await sql`SELECT to_regclass('public.vybe_escritorio_presentes') IS NOT NULL AS presentes, to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS trocas`;
+ if (tem?.presentes) for (const p of await sql`SELECT classe,count(*)::int AS n FROM vybe_escritorio_presentes WHERE de_pessoa=${pessoaId} GROUP BY classe`) saiu.set(p.classe, Number(p.n));
+ if (tem?.trocas) for (const t of await sql`SELECT de_pessoa,oferece,pede FROM vybe_escritorio_trocas WHERE estado='aceita' AND (de_pessoa=${pessoaId} OR para_pessoa=${pessoaId})`)
+  for (const [classe, n] of (String(t.de_pessoa) === String(pessoaId) ? t.oferece : t.pede) || []) saiu.set(classe, (saiu.get(classe) || 0) + Number(n || 0));
+ const por = {};
+ for (const c of compras) {
+  const m = COMPRA.exec(c.origem); if (!m) continue;
+  const classe = m[2], n = Number(m[1] || 1), unit = Math.floor(Number(c.total) / n);
+  let livres = n - (vendidas.get(String(c.id)) || 0);
+  const consumir = Math.min(livres, saiu.get(classe) || 0);
+  livres -= consumir; saiu.set(classe, (saiu.get(classe) || 0) - consumir);
+  if (livres > 0 && unit > 0) (por[classe] ||= []).push({ compra: String(c.id), unidades: livres, preco: unit });
+ }
+ return por;
+}
+export async function venderMovel(sql, pessoa, salas, { classe, chave, quantidade = 1, valorEsperado } = {}) {
+ if (typeof classe !== 'string' || !/^[a-z0-9_]{1,64}$/i.test(classe) || MOVEIS_ESSENCIAIS.includes(classe)) throw Object.assign(new Error('Este móvel não se vende.'), { status: 400 });
+ if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1500) throw Object.assign(new Error('Quantidade entre 1 e 1500.'), { status: 400 });
+ if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da venda inválido.'), { status: 400 });
+ if (!await economiaPronta(sql) || !await vendasProntas(sql)) throw Object.assign(new Error('A venda à loja aguarda a migração do banco.'), { status: 503 });
+ const pessoaId = pessoa.id;
+ return sql.comTransacao(async (tx) => {
+  // Mesma ordem da compra: carteira, depois o inventário.
+  await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
+  await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId} FOR UPDATE`;
+  const origem = 'venda:' + chave + ':' + classe;
+  const [anterior] = await tx`SELECT origem FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE ${'venda:' + chave + ':%'}`;
+  if (anterior) {
+   if (anterior.origem !== origem) throw Object.assign(new Error('Identificador de venda já utilizado.'), { status: 409 });
+   return { repetido: true, economia: await carregarEconomia(tx, pessoaId) };
+  }
+  const [inv] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe} FOR UPDATE`;
+  const sala = salas.find((s) => String(s.pessoa_id) === String(pessoaId))?.id;
+  const colocadas = sala ? (await tx`SELECT itens FROM vybe_escritorio_mapa WHERE camada=${sala} OR camada=${sala + '-andar-1'}`).flatMap((m) => m.itens || []).filter((it) => it[0] === classe).length : 0;
+  const guardadas = Math.max(0, Number(inv?.quantidade || 0) - colocadas);
+  if (guardadas < quantidade) throw Object.assign(new Error(guardadas ? `Só ${guardadas} ${guardadas === 1 ? 'unidade guardada' : 'unidades guardadas'} para vender. Tire do quarto antes.` : 'Guarde a unidade (tire do quarto) antes de vender.'), { status: 409 });
+  const lotes = (await unidadesVendiveis(tx, pessoaId))[classe] || [];
+  if (lotes.reduce((t, l) => t + l.unidades, 0) < quantidade) throw Object.assign(new Error('Só dá para vender o que foi comprado na loja (prêmios, presentes e trocas ficam).'), { status: 409 });
+  let falta = quantidade, valor = 0;
+  const usar = [];
+  for (const l of lotes) { if (!falta) break; const n = Math.min(falta, l.unidades); usar.push([l.compra, n, n * l.preco]); valor += n * l.preco; falta -= n; }
+  if (valorEsperado !== undefined && valorEsperado !== valor) throw Object.assign(new Error('O valor mudou. Abra a ficha de novo e confirme.'), { status: 409 });
+  for (const [compra, n, v] of usar) await tx`INSERT INTO vybe_escritorio_vendas(pessoa_id,chave,compra_id,classe,unidades,valor) VALUES(${pessoaId},${chave},${compra},${classe},${n},${v})`;
+  await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${pessoaId},${origem},${valor})`;
+  await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo+${valor} WHERE pessoa_id=${pessoaId}`;
+  if (Number(inv.quantidade) === quantidade) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
+  else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-${quantidade} WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
+  // Peça limitada volta ao estoque da loja.
+  if (await lojaPronta(tx)) await tx`UPDATE vybe_escritorio_catalogo SET vendidos=GREATEST(0,vendidos-${quantidade}) WHERE classe=${classe} AND vendidos>0`;
+  return { repetido: false, valor, economia: await carregarEconomia(tx, pessoaId) };
  });
 }
 // Perfil aberto a toda a equipe (decisão do Paulo, 19/10/2026; sem ranking):
