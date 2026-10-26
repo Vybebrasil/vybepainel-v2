@@ -107,5 +107,9 @@ test('endpoint: identificar e avisos só para administração no privado', async
     const av = await chamar(admin, { consulta: 'avisos', desde: recente });
     assert.equal(av.codigo, 200); assert.ok(Array.isArray(av.dados.avisos));
     assert.equal((await chamar(admin, { consulta: 'avisos', desde: 'x' })).codigo, 400);
+    // Bom dia individual: só a administração; pessoas e dia validados antes de qualquer leitura.
+    assert.equal((await chamar(jady, { consulta: 'dias_pessoais', pessoas: ['3'], dia: '2026-10-26' })).codigo, 403);
+    assert.equal((await chamar(admin, { consulta: 'dias_pessoais', pessoas: 'todas', dia: '2026-10-26' })).codigo, 400);
+    assert.equal((await chamar(admin, { consulta: 'dias_pessoais', pessoas: ['3'], dia: 'hoje' })).codigo, 400);
   } finally { await db.close(); }
 });

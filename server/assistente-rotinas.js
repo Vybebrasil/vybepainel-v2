@@ -297,3 +297,19 @@ export async function fechamentoDaSemana(sql, dia, agora = new Date(), { ranking
     execucao, agendamento, ranking, agencia, atrasadas: r.atrasadas.length,
     segunda: { dia: segunda, conteudos: rs.conteudosHoje.length, prontos: rs.conteudosHoje.filter(rs.entregue).length, paraAgendar: rs.conteudosHoje.filter(rs.pronto).length, abertos: rs.conteudosHoje.filter(rs.aberto).length } });
 }
+
+// Bom dia individual (8h, no privado de quem vinculou): o "meu dia" de várias pessoas de uma vez, com o mesmo
+// recorte do dia. Quem não tem nada hoje, atrasado ou amanhã volta com vazio=true (o bot não manda nada).
+export async function diasPessoais(sql, pessoaIds, dia) {
+  if (!Array.isArray(pessoaIds) || !pessoaIds.length || pessoaIds.length > 60 || pessoaIds.some((x) => !/^[1-9]\d{0,15}$/.test(String(x))))
+    throw new TypeError('Pessoas inválidas.');
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const pessoas = await sql`SELECT id::text AS id, nome, monday_user_id::text AS monday_id FROM vybe_pessoas
+    WHERE id = ANY(${pessoaIds.map(String)}::bigint[]) AND ativo IS TRUE AND pode_entrar IS TRUE`;
+  const { ctx } = codigoDoPainel(), statusDe = (i) => ctx.operationalFlowStatus(i), rotulo = ctx.resumoDiaCurto(dia);
+  const itens = await itensDoDia(sql, dia);
+  return pessoas.map((p) => {
+    const texto = mensagemMeuDia(itens, dia, statusDe, rotulo, p);
+    return { pessoa_id: p.id, texto: texto.replace(/^📅 \*Seu dia,/, '☀️ *Bom dia,'), vazio: /Nada previsto pra você hoje/.test(texto) };
+  });
+}
