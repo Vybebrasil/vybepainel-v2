@@ -78,21 +78,43 @@ export async function listarCaptacoes(sql, { de = '', ate = '' } = {}) {
   const inicio = diaValido(de) ? de : hoje;
   const fimPadrao = new Date(`${inicio}T12:00:00Z`); fimPadrao.setUTCDate(fimPadrao.getUTCDate() + 30);
   const fim = diaValido(ate) ? ate : fimPadrao.toISOString().slice(0, 10);
+  // O status de cada peça vai junto: depois de gravada, a captação mostra o
+  // que ela gerou e em que pé cada peça está (edição, aprovação…).
   const linhas = await sql`SELECT k.id, k.cliente_id::text AS cliente_id, cl.nome AS cliente, k.dia::text AS dia,
       to_char(k.inicio, 'HH24:MI') AS inicio, to_char(k.fim, 'HH24:MI') AS fim, k.local, k.observacao, k.estado,
       k.evento_google IS NOT NULL AS na_agenda, k.evento_google, k.evento_do_painel, k.aviso, p.nome AS criado_por,
       COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato, 'briefing', c.briefing, 'prazo', c.prazo::text, 'veiculacao', c.veiculacao::text,
         'tipo', CASE WHEN c.formato ILIKE '%foto%' OR c.titulo ILIKE 'foto%' THEN 'foto' ELSE 'video' END,
+        'status', s.rotulo, 'status_cor', s.cor,
         'captacao', c.captacao_chave, 'gravado', kp.gravado_em IS NOT NULL) ORDER BY kp.ordem, c.id) FILTER (WHERE c.id IS NOT NULL), '[]') AS pecas
     FROM vybe_captacoes k
     LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id
     LEFT JOIN vybe_pessoas p ON p.id = k.criado_por
     LEFT JOIN vybe_captacao_pecas kp ON kp.captacao_id = k.id
     LEFT JOIN vybe_conteudos c ON c.id = kp.conteudo_id
+    LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE k.estado <> 'cancelada' AND k.dia BETWEEN ${inicio}::date AND ${fim}::date
     GROUP BY k.id, cl.nome, p.nome
     ORDER BY k.dia, k.inicio NULLS LAST, k.id`;
-  return { de: inicio, ate: fim, captacoes: linhas.map((l) => ({ ...l, id: String(l.id) })) };
+  const captacoes = linhas.map((l) => ({ ...l, id: String(l.id) }));
+  // Antes da migração do fechamento a lista continua igual, sem os campos novos.
+  if (captacoes.length && await fechamentoPronto(sql)) {
+    const fechadas = new Map((await sql`SELECT k.id::text AS id, k.drive_link, k.fechada_em::text AS fechada_em, k.observacao_final, p.nome AS fechada_por
+      FROM vybe_captacoes k LEFT JOIN vybe_pessoas p ON p.id = k.fechada_por
+      WHERE k.id = ANY(${captacoes.map((k) => k.id)}::bigint[])`).map((l) => [l.id, l]));
+    for (const k of captacoes) Object.assign(k, fechadas.get(k.id) || {});
+  }
+  return { de: inicio, ate: fim, captacoes };
+}
+
+const fechamentoProntoEm = new WeakSet();
+async function fechamentoPronto(sql) {
+  if (fechamentoProntoEm.has(sql)) return true;
+  const [r] = await sql`SELECT count(*)::int AS n FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'vybe_captacoes' AND column_name IN ('drive_link', 'fechada_em', 'fechada_por', 'observacao_final')`;
+  if (r?.n !== 4) return false;
+  fechamentoProntoEm.add(sql);
+  return true;
 }
 
 function validarMontagem(d = {}) {
@@ -225,6 +247,111 @@ export async function cancelarCaptacao(sql, quem, { id } = {}, { trocar, agenda 
     catch (e) { avisos.push(`O evento continua no Google Agenda: ${e.message}`); }
   }
   return { avisos };
+}
+
+// FECHAR GRAVAÇÃO (Paulo, 26/10/2026: o Mizinho fecha a captação que fez, no
+// sistema, com o link do Drive, e vê o que ela gerou).
+//
+// Serve para a captação montada no painel e para a que só está no Google
+// Agenda: nesse caso a captação nasce aqui, ligada ao evento, sem mexer nele
+// (`evento_do_painel = false`, como em "Levar peças"). Numa transação:
+//  - `gravadas` são as peças que de fato foram gravadas: as já ligadas e as do
+//    cliente que estavam esperando (em "Agendar Captação" ou sem material);
+//  - as ligadas que não foram gravadas se soltam e voltam para "Agendar
+//    Captação", como no cancelar;
+//  - a pasta do Drive vira o material bruto de cada peça gravada que ainda não
+//    tem um (com o registro no histórico da peça, como o campo da gaveta);
+//  - a captação fica "gravada", com quem fechou, quando e a observação.
+// Depois, cada peça muda de status de captação pelo trocarEscolha do painel.
+function validarFechamento(d = {}) {
+  const gravadas = [...new Set((Array.isArray(d.gravadas) ? d.gravadas : []).map(String))];
+  const id = d.captacao_id ? String(d.captacao_id) : '';
+  const evento = d.evento_google ? String(d.evento_google) : '';
+  if (id && !/^\d{1,18}$/.test(id)) throw erro('Captação inválida.');
+  if (evento && !/^[A-Za-z0-9_-]{5,1024}$/.test(evento)) throw erro('Evento da agenda inválido.');
+  if (!id && !evento) throw erro('Escolha a captação que vai fechar.');
+  if (!gravadas.length) throw erro('Marque ao menos uma peça gravada. Se nada foi gravado, cancele a captação.');
+  if (gravadas.length > LIMITE_PECAS) throw erro(`No máximo ${LIMITE_PECAS} peças por captação.`);
+  if (gravadas.some((p) => !/^\d{1,18}$/.test(p))) throw erro('Peça inválida.');
+  const drive = String(d.drive || '').trim();
+  if (drive && !/^https?:\/\/\S+$/i.test(drive)) throw erro('O link do Drive precisa começar com http:// ou https://');
+  if (drive.length > 2000) throw erro('O link do Drive é longo demais.');
+  const observacao = String(d.observacao || '').trim();
+  if (observacao.length > 2000) throw erro('A observação passou de 2.000 caracteres.');
+  if (!id) {
+    if (!/^\d{1,18}$/.test(String(d.cliente_id || ''))) throw erro('Esta captação não tem cliente reconhecido. Ponha o nome do cliente no título do evento.');
+    if (!diaValido(d.dia)) throw erro('Dia da captação inválido.');
+    if (d.inicio && !horaValida(d.inicio)) throw erro('Horário de início inválido.');
+    if (d.fim && !horaValida(d.fim)) throw erro('Horário de fim inválido.');
+  }
+  return { id, evento, gravadas, drive, observacao, cliente_id: String(d.cliente_id || ''), dia: d.dia,
+    inicio: d.inicio || null, fim: d.inicio && d.fim && d.fim > d.inicio ? d.fim : null, local: String(d.local || '').trim().slice(0, 300) };
+}
+
+export async function fecharGravacao(sql, quem, dados, { trocar } = {}) {
+  await exigirTabelas(sql);
+  if (!(await fechamentoPronto(sql))) throw erro('Fechar gravação aguarda a migração do banco.', 503);
+  const d = validarFechamento(dados);
+  const pessoaId = quem?.pessoa?.id ? String(quem.pessoa.id) : null;
+  const r = await sql.comTransacao(async (tx) => {
+    let [k] = d.id
+      ? await tx`SELECT id, cliente_id::text AS cliente_id, estado, fechada_em FROM vybe_captacoes WHERE id = ${d.id} FOR UPDATE`
+      : await tx`SELECT id, cliente_id::text AS cliente_id, estado, fechada_em FROM vybe_captacoes WHERE evento_google = ${d.evento} AND estado <> 'cancelada' FOR UPDATE`;
+    if (d.id && (!k || k.estado === 'cancelada')) throw erro('Captação não encontrada.', 404);
+    if (k?.fechada_em) throw erro('Esta gravação já foi fechada. Atualize a tela.', 409);
+    if (!k) {
+      const [cliente] = await tx`SELECT id FROM vybe_clientes WHERE id = ${d.cliente_id}`;
+      if (!cliente) throw erro('Cliente não encontrado.', 404);
+      [k] = await tx`INSERT INTO vybe_captacoes (cliente_id, dia, inicio, fim, local, criado_por, evento_google, evento_do_painel)
+        VALUES (${d.cliente_id}, ${d.dia}::date, ${d.inicio}::time, ${d.fim}::time, ${d.local}, ${pessoaId}, ${d.evento}, false)
+        RETURNING id, cliente_id::text AS cliente_id, estado`;
+    }
+    const doLaco = await tx`SELECT conteudo_id::text AS id, gravado_em IS NOT NULL AS gravado FROM vybe_captacao_pecas WHERE captacao_id = ${k.id}`;
+    const ligadas = new Set(doLaco.map((l) => l.id));
+    const linhas = await tx`SELECT c.id::text AS id, c.titulo, c.captacao_chave, c.removido_em, c.board_id, c.material_bruto,
+        EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${k.cliente_id}) AS do_cliente,
+        EXISTS (SELECT 1 FROM vybe_captacao_pecas p JOIN vybe_captacoes o ON o.id = p.captacao_id
+          WHERE p.conteudo_id = c.id AND o.estado = 'agendada' AND o.id <> ${k.id}) AS em_outra
+      FROM vybe_conteudos c WHERE c.id = ANY(${d.gravadas}::bigint[]) ORDER BY c.id FOR UPDATE OF c`;
+    if (linhas.length !== d.gravadas.length) throw erro('Alguma peça não existe mais.', 409);
+    const semMaterial = new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
+      LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+      WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.gravadas])).map((l) => l.id));
+    // Peça ligada a esta captação entra sempre; as outras, se são do cliente e
+    // estavam esperando captação (como em "Levar peças").
+    const fora = linhas.filter((l) => !ligadas.has(l.id) && (l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || !l.do_cliente || l.em_outra
+      || (l.captacao_chave !== CAPTACAO.pronta && !semMaterial.has(l.id))));
+    if (fora.length) throw erro(`Não dá para pôr nesta gravação: ${fora.map((l) => l.titulo).join('; ')}. Atualize a tela.`, 409);
+    // A que já tinha "Gravado" (marcado peça a peça) fica, mesmo desmarcada aqui.
+    const soltas = doLaco.filter((l) => !l.gravado && !d.gravadas.includes(l.id)).map((l) => l.id);
+    if (soltas.length) await tx`DELETE FROM vybe_captacao_pecas WHERE captacao_id = ${k.id} AND conteudo_id = ANY(${soltas}::bigint[])`;
+    const agora = new Date();
+    let ordem = ligadas.size;
+    for (const id of d.gravadas) {
+      if (ligadas.has(id)) await tx`UPDATE vybe_captacao_pecas SET gravado_em = COALESCE(gravado_em, ${agora}), gravado_por = COALESCE(gravado_por, ${pessoaId})
+        WHERE captacao_id = ${k.id} AND conteudo_id = ${id}`;
+      else await tx`INSERT INTO vybe_captacao_pecas (captacao_id, conteudo_id, ordem, gravado_em, gravado_por) VALUES (${k.id}, ${id}, ${ordem++}, ${agora}, ${pessoaId})`;
+    }
+    // A pasta não apaga o material de quem já tinha um.
+    const brutos = d.drive ? linhas.filter((l) => !String(l.material_bruto || '').trim()).map((l) => l.id) : [];
+    for (const id of brutos) {
+      await tx`UPDATE vybe_conteudos SET material_bruto = ${d.drive}, material_bruto_em = now(), atualizado_em = now() WHERE id = ${id}`;
+      await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id) VALUES (${id}, 'material_bruto', NULL, ${d.drive}, ${pessoaId})`;
+    }
+    await tx`UPDATE vybe_captacoes SET estado = 'gravada', drive_link = ${d.drive || null}, fechada_em = now(), fechada_por = ${pessoaId},
+      observacao_final = ${d.observacao}, atualizado_em = now() WHERE id = ${k.id}`;
+    return { id: String(k.id), soltas, brutos: brutos.length, feitas: linhas.filter((l) => l.captacao_chave !== CAPTACAO.feita).map((l) => l.id) };
+  });
+  const avisos = [];
+  for (const item of r.feitas) {
+    try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.feita }); }
+    catch (e) { avisos.push(`Uma peça não foi para "Captação Feita": ${e.message}`); }
+  }
+  for (const item of r.soltas) {
+    try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.pronta }); }
+    catch (e) { avisos.push(`Uma peça não voltou para "Agendar Captação": ${e.message}`); }
+  }
+  return { id: r.id, gravadas: d.gravadas.length, soltas: r.soltas.length, com_drive: r.brutos, avisos };
 }
 
 // Evento da captação no Google Agenda da Vybe (conta de serviço com permissão

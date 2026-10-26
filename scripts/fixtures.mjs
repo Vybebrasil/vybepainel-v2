@@ -266,7 +266,10 @@ export async function demoApi(req,res,url,body) {
         {id:'103',titulo:'Reels - Bastidores do atendimento',formato:'Reels',prazo:d(6),veiculacao:d(8),briefing:'Mostrar a recepção e a equipe sorrindo.',status:'Aguardo',clientes:[{id:'2',nome:'Cliente B (fictício)'}],roteiro_doc:{titulo:'Roteiros Cliente B – bastidores',link:'https://docs.google.com/document/d/demonstracao-roteiro-cliente-b/edit'}}]});
       const ag=(id,titulo,n,inicio,fim,tipo,cliente_id,cliente,extra={})=>({id,titulo,dia:d(n),inicio,fim,horario:inicio?`${inicio} às ${fim}`:'Dia inteiro · horário não informado',local:'',tipo,cliente_id,cliente,captacao_id:'',link:'',...extra});
       const proximas=[ag('g7','Captação - Cliente C - fachada',2,'10:00','11:00','captacao','3','Cliente C (fictício)'),ag('g8','Captação aula de dança',3,'07:00','08:00','captacao','','')];
-      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',proximas,agenda:[...proximas,
+      // Últimos 7 dias: uma gravação de ontem sem fechar e uma já fechada (Fechar gravação).
+      const recentes=[ag('g10','Captação - Cliente demonstração - cardápio',-1,'14:00','16:00','captacao','1','Cliente demonstração'),
+        ag('g11','Captação - Cliente B - depoimentos',-2,'10:00','11:00','captacao','2','Cliente B (fictício)',{captacao_id:'10'})];
+      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',proximas,recentes,agenda:[...proximas,...recentes,
         ag('g1','Captação - Cliente B - entrevista',0,'09:00','10:00','captacao','2','Cliente B (fictício)',{local:'Clínica'}),
         ag('g2','Reunião de pauta - Cliente B',0,'09:30','10:30','reuniao','2','Cliente B (fictício)'),
         ag('g4','Cliente demonstração - Banco de imagem',0,'15:00','16:30','captacao','1','Cliente demonstração'),
@@ -275,7 +278,10 @@ export async function demoApi(req,res,url,body) {
         ag('g6','Dentista Vinícius',3,'14:00','15:00','outro','',''),
         ag('g3','Banco de imagem - Cliente demonstração',4,'','','captacao','1','Cliente demonstração')],
         captacoes:[{id:'9',cliente_id:'1',cliente:'Cliente demonstração',dia:d(1),inicio:'09:00',fim:'11:00',local:'No restaurante',observacao:'Levar a luz de LED.',estado:'agendada',na_agenda:true,aviso:null,criado_por:'Operador de teste',
-        pecas:[{id:'104',titulo:'Reels - Novidade do cardápio',formato:'Reels',briefing:'Close nos ingredientes, depois o prato pronto.',captacao:'captacao_agendada',gravado:true},{id:'105',titulo:'Foto - Ambiente',formato:'Fotografia',briefing:'',captacao:'captacao_agendada',gravado:false}]}]});
+        pecas:[{id:'104',titulo:'Reels - Novidade do cardápio',formato:'Reels',briefing:'Close nos ingredientes, depois o prato pronto.',captacao:'captacao_agendada',gravado:true},{id:'105',titulo:'Foto - Ambiente',formato:'Fotografia',briefing:'',captacao:'captacao_agendada',gravado:false}]},
+        {id:'10',cliente_id:'2',cliente:'Cliente B (fictício)',dia:d(-2),inicio:'10:00',fim:'11:00',local:'Clínica',observacao:'',estado:'gravada',na_agenda:true,evento_google:'g11',evento_do_painel:false,aviso:null,criado_por:'Operador de teste',
+        drive_link:'https://drive.google.com/drive/folders/demonstracao',fechada_em:new Date(Date.now()-864e5*2+4*36e5).toISOString(),fechada_por:'Pessoa fictícia',observacao_final:'Gravamos um depoimento a mais.',
+        pecas:[{id:'110',titulo:'Reels - Depoimento da paciente',formato:'Reels',captacao:'captacao_feita',gravado:true,status:'Em edição',status_cor:'#fdab3d'},{id:'111',titulo:'Reels - O que faz um nefrologista?',formato:'Reels',captacao:'captacao_feita',gravado:true,status:'Para aprovação',status_cor:'#579bfc'}]}]});
     }
     // Agenda fictícia da semana (server/agenda-producao.js), a do ícone do Escritório.
     if(area==='agenda_producao'){
