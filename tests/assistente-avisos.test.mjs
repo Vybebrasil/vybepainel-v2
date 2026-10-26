@@ -12,7 +12,7 @@ async function banco() {
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text,ativo boolean,pode_entrar boolean,senha_hash text,admin boolean);
     CREATE TABLE vybe_ai_vinculos(id bigserial,pessoa_id bigint,jid_hash char(64) UNIQUE,criado_em timestamptz DEFAULT NOW(),revogado_em timestamptz);
     CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
-    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz,status_chave text);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz,status_chave text,monday_item_id bigint);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
     CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int);
@@ -57,14 +57,14 @@ test('avisos: aprovação de design → Deivid; vídeo → dono do cliente; agen
     assert.equal(avisos.length, 5); // removido, Finalizado, mudança de grupo e evento antigo ficam fora
     const card = por['100:Para aprovação'];
     assert.equal(card.grupo, 'criacao'); assert.deepEqual(card.pessoas.map((p) => p.monday_id), ['68997024']);
-    assert.match(card.texto, /^🔎 \*Para aprovação\* · Card - Promo \(Cliente A\)\n👤 Jady · ⏰ prazo 26\/10 · 📅 cliente 28\/10\n👉 \{\{pessoa:68997024:Deivid\}\}, pode aprovar\? 🙏$/);
+    assert.match(card.texto, /^🔎 \*Para aprovação\* · Card - Promo \(Cliente A\)\n👤 Jady · ⏰ prazo 26\/10 · 📅 cliente 28\/10\n👉 \{\{pessoa:68997024:Deivid\}\}, pode aprovar\? 🙏\n🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=vybe:100$/);
     const reels = por['101:Em aprovação'];
     assert.equal(reels.grupo, 'atendimento'); assert.deepEqual(reels.pessoas.map((p) => p.monday_id), ['68036687']); // head do Cliente B = Ewerton
     const semHead = por['104:Para aprovação'];
     assert.deepEqual(semHead.pessoas.map((p) => p.monday_id).sort(), ['68035653', '68036687']); // sem head: Vinícius e Ewerton
     const agendar = por['102:Para agendar'];
     assert.equal(agendar.grupo, 'publicacoes'); assert.deepEqual(agendar.pessoas.map((p) => p.monday_id), ['80146924']);
-    assert.match(agendar.texto, /veicula 27\/10\n👉 \{\{pessoa:80146924:Tainara\}\}, pode agendar\?/);
+    assert.match(agendar.texto, /veicula 27\/10\n👉 \{\{pessoa:80146924:Tainara\}\}, pode agendar\? 🙏\n🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=vybe:102$/);
     const alt = por['103:Alteração'];
     assert.equal(alt.grupo, 'correcao'); assert.deepEqual(alt.pessoas.map((p) => p.monday_id), ['100482777']);
     // Status atual diferente do evento (já aprovado/agendado): não avisa.

@@ -31,12 +31,15 @@ const ehVideo = (item) => /^(reels|video|motion)/.test(normal(item.formato || it
 // Marcador que o bot troca por @menção (pessoa vinculada no grupo) ou pelo primeiro nome.
 const marcar = (p) => `{{pessoa:${p.monday_id || 'sem'}:${primeiro(p.nome)}}}`;
 
+// Link que abre a peça direto na gaveta do painel (o mesmo do botão "copiar link"), em qualquer máquina com sessão.
+const PAINEL = String(process.env.VYBE_PAINEL_URL || 'https://vybepainel-v2.vercel.app').replace(/\/+$/, '');
+export const linkDaAtividade = (ref) => `${PAINEL}/?atividade=${encodeURIComponent(ref).replace(/%3A/gi, ':')}`;
 export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
   const inicio = Date.parse(desde);
   if (typeof desde !== 'string' || !Number.isFinite(inicio) || inicio > agora.getTime() || agora.getTime() - inicio > 6 * 3600e3)
     throw new TypeError('Período inválido.');
   const pessoasPainel = vm.runInContext('PESSOAS', codigoDoPainel().ctx);
-  const eventos = await sql`SELECT e.id::text AS evento_id, e.em::text AS em, e.para, c.id::text AS conteudo_id, c.titulo, c.formato,
+  const eventos = await sql`SELECT e.id::text AS evento_id, e.em::text AS em, e.para, c.id::text AS conteudo_id, c.monday_item_id::text AS monday_item_id, c.titulo, c.formato,
       c.board_id::text AS board_id, s.rotulo AS atual,
       c.prazo::text AS prazo, c.veiculacao::text AS veiculacao,
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id ORDER BY cl.nome), '{}') AS clientes,
@@ -82,6 +85,7 @@ export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
       grupo = 'correcao'; alvo = resp;
       texto = `✏️ *Alteração* · ${e.titulo} (${clientes})${datas ? '\n' + datas : ''}\n👉 ${alvo.map(marcar).join(', ') || 'Sem responsável'}, tem ajuste pra fazer. 💪`;
     } else continue;
+    texto += `\n🔗 ${linkDaAtividade(e.monday_item_id || 'vybe:' + e.conteudo_id)}`;
     avisos.push({ evento_id: e.evento_id, conteudo_id: e.conteudo_id, em: e.em, status: e.para, grupo, pessoas: alvo, texto });
   }
   return avisos;
