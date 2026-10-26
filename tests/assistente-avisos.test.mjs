@@ -12,7 +12,8 @@ async function banco() {
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text,ativo boolean,pode_entrar boolean,senha_hash text,admin boolean);
     CREATE TABLE vybe_ai_vinculos(id bigserial,pessoa_id bigint,jid_hash char(64) UNIQUE,criado_em timestamptz DEFAULT NOW(),revogado_em timestamptz);
     CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
-    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz,status_chave text);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
     CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int);
     CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int);
@@ -66,6 +67,19 @@ test('avisos: aprovação de design → Deivid; vídeo → dono do cliente; agen
     assert.match(agendar.texto, /veicula 27\/10\n👉 \{\{pessoa:80146924:Tainara\}\}, pode agendar\?/);
     const alt = por['103:Alteração'];
     assert.equal(alt.grupo, 'correcao'); assert.deepEqual(alt.pessoas.map((p) => p.monday_id), ['100482777']);
+    // Status atual diferente do evento (já aprovado/agendado): não avisa.
+    await sql`INSERT INTO vybe_status VALUES (${PROD},'finalizado','Finalizado',true),(${PROD},'para_agendar','Para agendar',true),(8385559107,'ag_aprov','Aguardando Aprovação',false)`;
+    await sql`UPDATE vybe_conteudos SET status_chave='finalizado' WHERE id=101`;
+    await sql`UPDATE vybe_conteudos SET status_chave='para_agendar' WHERE id=102`;
+    const depois = await avisosDeStatus(sql, { desde: '2026-10-26T14:00:00Z' }, agora);
+    assert.ok(!depois.some((a) => a.conteudo_id === '101'), 'Reels já finalizado não avisa');
+    assert.ok(depois.some((a) => a.conteudo_id === '102'), 'continua Para agendar: avisa');
+    // Solicitação: "Aguardando Aprovação" é "Para aprovação" no fluxo do painel.
+    await sql`INSERT INTO vybe_conteudos VALUES (300,8385559107,'Panfleto','Impresso','2026-10-26',NULL,NULL,'ag_aprov')`;
+    await sql`INSERT INTO vybe_conteudo_clientes VALUES (300,10)`;
+    await sql`INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,de,para,em) VALUES (300,'status','Em execução','Aguardando Aprovação','2026-10-26T14:58:00Z')`;
+    const pedido = (await avisosDeStatus(sql, { desde: '2026-10-26T14:00:00Z' }, agora)).find((a) => a.conteudo_id === '300');
+    assert.equal(pedido.grupo, 'criacao'); assert.deepEqual(pedido.pessoas.map((p) => p.monday_id), ['68997024']);
   } finally { await db.close(); }
 });
 
