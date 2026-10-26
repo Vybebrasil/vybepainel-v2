@@ -17,7 +17,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { minhasDemandas } from './assistente-consultas.js';
-import { rotinaDoDia } from './assistente-rotinas.js';
+import { rotinaDoDia, diasPessoais } from './assistente-rotinas.js';
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
@@ -49,7 +49,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['rotina', 'identificar', 'avisos', 'ronda'].includes(consulta)) {
+    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -57,6 +57,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
       if (consulta === 'identificar') return res.status(200).json({ ok: true, pessoas: await identificarParticipantes(banco, req.body?.participantes, segredo) });
       if (consulta === 'avisos') return res.status(200).json({ ok: true, avisos: await avisosDeStatus(banco, { desde: req.body?.desde }) });
+      if (consulta === 'dias_pessoais') return res.status(200).json({ ok: true, dias: await diasPessoais(banco, req.body?.pessoas, req.body?.dia) });
       if (consulta === 'ronda') return res.status(200).json({ ok: true, mensagens: await rondaDosClientes(banco, req.body?.ronda) });
       const { momento, dia, base_anterior: baseAnterior = null } = req.body?.rotina || {};
       return res.status(200).json({ ok: true, itens: [], ...(await rotinaDoDia(banco, { momento, dia, baseAnterior })) });
