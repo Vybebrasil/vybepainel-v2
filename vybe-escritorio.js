@@ -960,7 +960,9 @@ async function pintarArtesEscritorio(raiz = document) {
       let url = ESCRITORIO_ARTES_PRONTAS.get(classe);
       if (!url) {
         const m = await mapaCarregarMovel(classe);
-        const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0);
+        // Desenho na memória comum: o toDataURL de um canvas da placa de vídeo
+        // esperava ela esvaziar a fila e travava a entrada por até ~0,6 s.
+        const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0, 0, null, true);
         if (!d) continue;
         url = d.canvas.toDataURL();
         ESCRITORIO_ARTES_PRONTAS.set(classe, url);
@@ -1165,7 +1167,10 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
 function escritorioAndaresHtml() {
   const id=escritorio.quarto;if(!id || escritorioCenaComum(id)) return '';
   const raiz=escritorioRaizQuarto(id), superior=escritorioPerfilDecoracao(raiz+'-andar-1');
-  return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button><button type="button" onclick="convidarParaMinhaSalaEscritorio()" title="Mande um link para alguém de fora entrar na sua sala">Convidar</button>` : ''}</nav>`;
+  // Construindo: só a troca de andar (e só se houver dois); gerenciar e
+  // convidar ficam para fora da construção.
+  if (escritorio.edicao && !superior?.quarto_configurado) return '';
+  return `<nav class="ofc-andares" aria-label="Andares do escritório"><button type="button" aria-pressed="${id===raiz}" onclick="escritorioEntrarNoQuarto('${raiz}')">Térreo</button>${superior?.quarto_configurado ? `<button type="button" aria-pressed="${id!==raiz}" onclick="escritorioEntrarNoQuarto('${raiz}-andar-1')">Segundo andar</button>` : ''}${escritorioNoMeuQuarto() && !escritorio.edicao ? `<button type="button" onclick="personalizarEscritorio()">Gerenciar meu espaço</button><button type="button" onclick="convidarParaMinhaSalaEscritorio()" title="Mande um link para alguém de fora entrar na sua sala">Convidar</button>` : ''}</nav>`;
 }
 // Planta da cena atual para o renderizador: a sala (com a pintura do dono,
 // lida na hora de desenhar) ou a Praça, a cena de abertura.
@@ -2037,7 +2042,8 @@ function renderEscritorio() {
   const modo = escritorio.modo || "mapa";
   // Catálogo e Inventário viraram a janela própria: as abas antigas da lateral voltam para Pessoas.
   if (escritorio.aba === "loja" || escritorio.aba === "inventario") escritorio.aba = "pessoas";
-  const aba = escritorio.aba || "pessoas";
+  // Construindo, a lateral é só a Oficina (as abas de conversa voltam ao sair).
+  const aba = escritorio.edicao ? "catalogo" : escritorio.aba || "pessoas";
   // No celular o painel lateral cobre o mapa: começa recolhido.
   const lateral = escritorio.lateral ?? !celular;
   // No celular a barra de baixo mostra só os principais (data-principal) e o
@@ -2070,9 +2076,9 @@ function renderEscritorio() {
  <button type="button" class="ofc-rail-btn ofc-rail-so-celular" data-principal onclick="escritorio.railMais=!escritorio.railMais;renderEscritorio()" aria-expanded="${Boolean(escritorio.railMais)}" aria-label="Mais opções do escritório">${escritorioIcone("mais")}<span>Mais</span></button>
 </nav>${escritorio.railMais ? '<button type="button" class="ofc-rail-fundo" aria-label="Fechar o menu" onclick="escritorio.railMais=false;renderEscritorio()"></button>' : ""}
 <aside class="ofc-lateral" aria-label="${escritorio.edicao && aba === "catalogo" ? "Construção" : aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
- <div class="ofc-lateral-topo"><div><b>${escritorio.edicao && aba === "catalogo" ? "Oficina" : "Vybe"}</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div><button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
- <div class="ofc-abas" role="tablist"${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Edição</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
- ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo ofc-oficina" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div>` : ""}
+ <div class="ofc-lateral-topo">${escritorio.edicao && typeof escritorioTopoConstrucaoHtml === "function" ? escritorioTopoConstrucaoHtml() : `<div><b>${escritorio.edicao && aba === "catalogo" ? "Oficina" : "Vybe"}</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div>`}<button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
+ <div class="ofc-abas" role="tablist"${escritorio.edicao ? " hidden" : ""}${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Edição</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
+ ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo ofc-oficina" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div><div class="ofc-oficina-info" id="office-oficina-info" role="status" hidden></div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div><p class="ofc-nota">Online indica presença, não produtividade.</p></div>
  <section class="office-chat ofc-aba" ${aba === "conversa" ? "" : "hidden"}><div class="office-chat-head"><div><h3 id="office-chat-titulo">${safeText(escritorioTituloChat(sala))}</h3><small id="office-chat-nota" class="ofc-nota">${safeText(escritorioNotaChat(sala))}</small></div><button class="office-text-button" onclick="carregarChatEscritorio()">Atualizar</button></div><div id="office-chat-list" role="log" aria-live="polite">Carregando mensagens…</div><form onsubmit="event.preventDefault();enviarChatEscritorio(this)"><input aria-label="Mensagem para este chat" id="office-message" name="texto" oninput="delete this.form.dataset.chave;escritorioDigitando(Boolean(this.value))" onblur="escritorioDigitando(false)" maxlength="2000" placeholder="Escreva para a sala" required autocomplete="off"><button class="workflow-primary">Enviar</button></form></section>
  <section class="office-chat ofc-aba ofc-recados" id="office-recados" ${aba === "recados" ? "" : "hidden"}>${escritorioRecadosHtml()}</section>

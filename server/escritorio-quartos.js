@@ -1,8 +1,10 @@
 import { conferirFiguraDaPessoa } from './escritorio-roupas.js';
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio, salvarCamadaEscritorio, versoesProntas } from './escritorio-mapa.js';
-import { economiaPronta, carregarEconomia } from './escritorio-economia.js';
-export const QUARTOS = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json',import.meta.url),'utf8'));
+import { economiaPronta, carregarEconomia, MOVEIS_ESSENCIAIS, MOVEIS_DE_CONSTRUCAO } from './escritorio-economia.js';
+// Os essenciais do arquivo mais a construção livre (pisos, paredes e blocos);
+// "construcao" separa essas peças dos móveis na Oficina.
+export const QUARTOS = { ...JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/quartos.json',import.meta.url),'utf8')), essenciais: MOVEIS_ESSENCIAIS, construcao: MOVEIS_DE_CONSTRUCAO };
 // Lado máximo do quarto (desde 21/10/2026: 24 × 24, quatro vezes o Enorme de
 // 12 × 12, decisão do Paulo; antes 20). As grades guardadas no perfil
 // (pintura do piso, planta desenhada) têm esse lado; as antigas, de 8, 12 e

@@ -498,6 +498,23 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
   validar preço/estoque no servidor, atomicidade e idempotência do lote.
 - Rascunho local isolado por pessoa/sala/andar; sem credenciais/economia. Não
   tratar recuperação local como autorização ou persistência no banco.
+- Construção livre (decisão do Paulo, 26/10/2026): pisos do acervo,
+  acabamentos, blocos e materiais e revestimentos de parede são essenciais
+  grátis e sem limite (`MOVEIS_DE_CONSTRUCAO` em `server/escritorio-economia.js`,
+  enviados em `quartos.construcao`); nunca vendidos nem na vitrine. A Loja só
+  mostra o que se compra. Decoração continua paga. O que foi pago por essas
+  peças antes é devolvido uma vez por compra pela migração
+  `2026-10-26-escritorio-construcao-livre-e-venda.sql` (marcador
+  `construcao-livre-2026-10-26`); não repetir.
+- Venda à loja (decisão do Paulo, 26/10/2026): só unidades compradas e
+  guardadas voltam, pelo valor pago nelas (`venderMovel`, tabela
+  `vybe_escritorio_vendas` ligada à compra); prêmio, presente, troca e kit não.
+  Chave idempotente, carteira, razão e inventário na mesma transação; venda
+  não conta como ganho (sem regra, fora do ranking e das metas).
+- Construção como jogo (`vybe-escritorio-construcao.js`): modos na barra de
+  baixo (1–6), ferramentas do modo acima dela, tela limpa (sem o HUD do jogo,
+  trilho, abas de conversa e convite) e tutorial próprio na primeira vez.
+  Sem animação contínua: o Mac esquentava com animações infinitas.
 
 ## Trabalho na ficha — 23/10/2026
 

@@ -967,10 +967,13 @@ const TUTORIAL_ESCRITORIO = [
   { alvo: ".ofc-eu", titulo: "Seu personagem", texto: "Clique aqui (ou no seu boneco) para trocar roupa, cabelo e acessórios." },
   { alvo: "[aria-label='Tutorial']", titulo: "Pronto!", texto: "Para rever estas dicas, use o botão Tutorial na barra da esquerda." },
 ];
-const tutorial = { passo: 0 };
-function iniciarTutorialEscritorio() {
+const tutorial = { passo: 0, lista: TUTORIAL_ESCRITORIO };
+// lista: outros tutoriais usam o mesmo cartão (a construção, em
+// vybe-escritorio-construcao.js). Cada passo pode ter "antes" (prepara a tela).
+function iniciarTutorialEscritorio(lista = TUTORIAL_ESCRITORIO) {
   if (typeof activeBoard !== "undefined" && activeBoard !== "escritorio") return;
   tutorial.passo = 0;
+  tutorial.lista = Array.isArray(lista) ? lista : TUTORIAL_ESCRITORIO;
   let el = document.getElementById("ofc-tutorial");
   if (!el) {
     el = document.createElement("div");
@@ -994,20 +997,21 @@ function fecharTutorialEscritorio() {
   window.removeEventListener("resize", renderTutorialEscritorio);
 }
 function passoTutorialEscritorio(d) {
-  tutorial.passo = Math.max(0, Math.min(TUTORIAL_ESCRITORIO.length - 1, tutorial.passo + d));
+  tutorial.passo = Math.max(0, Math.min(tutorial.lista.length - 1, tutorial.passo + d));
   renderTutorialEscritorio();
 }
 function renderTutorialEscritorio() {
   const el = document.getElementById("ofc-tutorial");
   if (!el) return;
-  const p = TUTORIAL_ESCRITORIO[tutorial.passo], ultimo = tutorial.passo === TUTORIAL_ESCRITORIO.length - 1;
+  const lista = tutorial.lista, p = lista[tutorial.passo], ultimo = tutorial.passo === lista.length - 1;
+  try { p.antes?.(); } catch {}
   const alvo = p.alvo && [...document.querySelectorAll(p.alvo)].find((n) => n.getClientRects().length);
   const r = alvo?.getBoundingClientRect();
   const folga = 8;
   const furo = r ? `left:${r.left - folga}px;top:${r.top - folga}px;width:${r.width + folga * 2}px;height:${r.height + folga * 2}px` : "";
   el.innerHTML = `${r ? `<div class="tut-furo" style="${furo}"></div>` : '<div class="tut-fundo"></div>'}
 <section class="tut-cartao" tabindex="-1">
- <span class="tut-passo">${tutorial.passo + 1} de ${TUTORIAL_ESCRITORIO.length}</span>
+ <span class="tut-passo">${tutorial.passo + 1} de ${lista.length}</span>
  <h2 id="ofc-tutorial-titulo">${safeText(p.titulo)}</h2>
  <p>${safeText(p.texto)}</p>
  <div class="tut-acoes"><button type="button" class="tut-pular" onclick="fecharTutorialEscritorio()">${ultimo ? "Fechar" : "Pular tutorial"}</button><span></span>${tutorial.passo ? '<button type="button" class="abr-secundario" onclick="passoTutorialEscritorio(-1)">Voltar</button>' : ""}<button type="button" class="abr-primario" onclick="${ultimo ? "fecharTutorialEscritorio()" : "passoTutorialEscritorio(1)"}">${ultimo ? "Começar" : "Próximo"}</button></div>

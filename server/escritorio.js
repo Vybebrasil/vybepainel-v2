@@ -17,7 +17,7 @@ function planoValido(valor, tipo) {
   return m && m[1] === tipo && planosQuarto()[tipo].has(m[2]) ? m[0] : "";
 }
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
-import { carregarEconomia, comprarMovel, comprarKit, perfilPublico } from "./escritorio-economia.js";
+import { carregarEconomia, comprarMovel, comprarKit, perfilPublico, venderMovel } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { diaDaEquipe } from "./escritorio-dia.js";
@@ -578,10 +578,11 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 400).json({ error: e.message });
     }
   }
-  if (acao === "postit" || acao === "postit-apagar" || acao === "presente") {
+  if (acao === "postit" || acao === "postit-apagar" || acao === "presente" || acao === "vender") {
     try {
       if (acao === "postit") return res.status(200).json({ ok: true, id: await colarPostit(sql, pessoa, req.body || {}) });
       const { salas } = await carregarEscritorio(sql, pessoa);
+      if (acao === "vender") return res.status(200).json({ ok: true, ...(await venderMovel(sql, pessoa, salas, req.body || {})) });
       if (acao === "postit-apagar") return res.status(200).json({ ok: true, camada: await apagarPostit(sql, pessoa, salas, String(req.body?.id || "")) });
       return res.status(200).json({ ok: true, ...(await darPresente(sql, pessoa, salas, req.body || {})) });
     } catch (e) {

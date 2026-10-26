@@ -1696,7 +1696,10 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vb-titulo.n4::before { animation-duration: 2.6s; }
 /* A estrela do Diamante. */
 .vb-titulo.n4::after { content: ""; position: absolute; top: 1px; right: 2px; width: 5px; height: 5px; background: #fff; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: vb-titulo-estrela 1.8s ease-in-out infinite; pointer-events: none; }
-@keyframes vb-titulo-brilho { 0%, 55% { left: -40%; } 85%, 100% { left: 120%; } }
+/* translate, e não left: left refazia o layout a cada quadro (o MacBook esquentava
+   com o escritório aberto). 533% = de −40% a 120% da largura do pai numa faixa de 30%. */
+@keyframes vb-titulo-brilho { 0%, 55% { translate: 0 0; } 85%, 100% { translate: 533% 0; } }
+@keyframes vb-botao-brilho { 0%, 55% { translate: 0 0; } 85%, 100% { translate: 700% 0; } }
 @keyframes vb-titulo-furta { to { background-position: 300% 0; } }
 @keyframes vb-titulo-estrela { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(45deg); } }
 @media (prefers-reduced-motion: reduce) { .vb-titulo, .vb-titulo::before, .vb-titulo::after { animation: none !important; } .vb-titulo::before { display: none; } }
