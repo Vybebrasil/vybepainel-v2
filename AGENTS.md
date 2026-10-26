@@ -98,6 +98,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Captação" de um cliente num dia; marcar e gravar mudam o status de captação
   pelo `trocarEscolha` (automações) e o evento vai ao Google Agenda da Vybe.
   Falha do Google é aviso, não desfaz. Consulte `docs/captacao-plano.md`.
+  Fechar gravação (decisão do Paulo, 26/10/2026): o Mizinho fecha a captação
+  no cartão da agenda, marcando o que gravou e colando a pasta do Drive, que
+  vira o material bruto das peças sem material (`fecharGravacao`, numa
+  transação; migração `2026-10-26-producao-fechar-gravacao.sql`). Não crie
+  outro lugar de link de gravação nem sobrescreva material bruto existente.
   Agenda única: Captações (painel geral) e a Agenda da semana do Escritório
   (jogo) abrem cada uma no seu lugar, com o mesmo desenho (`agendaSemanaHtml`)
   e o mesmo tipo de evento do servidor (`tipoNaAgenda`); não crie outra

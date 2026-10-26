@@ -8,7 +8,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -1618,17 +1618,21 @@ async function areaCaptacoes(req,res,quem) {
       const hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia'}).format(new Date());
       const semana=/^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.semana||'')) ? String(req.query.semana) : dia(hoje,-((new Date(`${hoje}T12:00:00Z`).getUTCDay()+6)%7));
       const ler=(opcoes)=>agendaDeCaptacoes(banco,opcoes).then((eventos)=>({eventos}),(e)=>({eventos:[],aviso:e.publica||e.status===503?e.message:'Não deu para ler o Google Agenda agora.'}));
-      const [lista, agenda, proximas] = await Promise.all([
-        listarCaptacoes(banco,{de:semana<hoje?semana:hoje,ate:dia(semana,6)>dia(hoje,30)?dia(semana,6):dia(hoje,30)}),
-        ler({inicio:semana,dias:7}), ler({inicio:hoje,dias:31})]);
+      // Os últimos 7 dias também: captação que já passou e ninguém fechou
+      // aparece como "falta fechar" (Fechar gravação, 26/10/2026).
+      const semanaPassada=dia(hoje,-7);
+      const [lista, agenda, proximas, recentes] = await Promise.all([
+        listarCaptacoes(banco,{de:semana<semanaPassada?semana:semanaPassada,ate:dia(semana,6)>dia(hoje,30)?dia(semana,6):dia(hoje,30)}),
+        ler({inicio:semana,dias:7}), ler({inicio:hoje,dias:31}), ler({inicio:semanaPassada,dias:8})]);
       // As peças que saíram de um roteiro do Docs trazem o link dele.
       const roteiros=await roteirosDosConteudos(banco,lista.captacoes.flatMap((k)=>k.pecas.map((p)=>p.id)));
       for(const k of lista.captacoes) k.pecas=k.pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}));
-      return res.status(200).json({ok:true,...lista,semana,agenda:agenda.eventos,proximas:proximas.eventos.filter((e)=>e.tipo==='captacao'),aviso_agenda:agenda.aviso||proximas.aviso||''});
+      return res.status(200).json({ok:true,...lista,semana,agenda:agenda.eventos,proximas:proximas.eventos.filter((e)=>e.tipo==='captacao'),recentes:recentes.eventos.filter((e)=>e.tipo==='captacao'),aviso_agenda:agenda.aviso||proximas.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});
     if(acao==='montar') return res.status(200).json({ok:true,...await montarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='gravado') return res.status(200).json({ok:true,...await marcarGravado(banco,quem,corpo,{trocar:trocarEscolha})});
+    if(acao==='fechar') return res.status(200).json({ok:true,...await fecharGravacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='cancelar') return res.status(200).json({ok:true,...await cancelarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='agenda') return res.status(200).json({ok:true,avisos:await sincronizarAgenda(banco,String(corpo.id||''))});
     return res.status(400).json({error:'Ação desconhecida.'});

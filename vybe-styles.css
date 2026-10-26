@@ -9688,6 +9688,19 @@ img.ofc-com-animada {position:relative;z-index:1}
 .capt-detalhe-cliente {margin:0;color:#fff;font:720 14px var(--mac-ui)}
 .capt-detalhe .vb-botao.principal {justify-self:start}
 .capt-detalhe .vb-link.perigo {justify-self:start;font-size:12.5px}
+/* Fechar gravação (26/10/2026): o botão no cartão, o selo da gravação fechada,
+   a pasta do Drive e "o que esta gravação gerou" com o status de cada peça. */
+.capt-detalhe .capt-fechar-btn {gap:7px}
+.capt-fechar-btn .icone-linha, .capt-fechada .icone-linha {width:14px;height:14px}
+.capt-fechada {display:flex;align-items:center;gap:6px;margin:0;color:#3de8a2}
+.capt-fechada small {color:#9aa1b0;font:550 12px var(--mac-ui)}
+.capt-detalhe .capt-drive {justify-self:start}
+.capt-gerado {list-style:none;margin:0;padding:0;display:grid}
+.capt-gerado li {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #ffffff12}
+.capt-gerado li:first-child {border-top:0}
+.capt-gerado .capt-peca-nome {min-width:0;text-align:left}
+.capt-gerado-status {flex:none;padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--cor) 60%,#0000);
+  background:color-mix(in srgb,var(--cor) 15%,#0000);color:color-mix(in srgb,var(--cor) 55%,#fff);font:600 11px/1.5 var(--mac-ui);white-space:nowrap}
 .capt-tipo {justify-self:start;display:inline-flex;align-items:center;gap:6px;color:#cfd3dc;font:700 11.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.05em}
 .capt-tipo::before {content:"";width:9px;height:9px;border-radius:3px;background:var(--ag-cor)}
 .capt-quando-fixo {display:grid;gap:3px;margin:0;padding:10px 12px;border-radius:11px;background:#4f8df714;border:1px solid #4f8df744;color:#dbe7ff;font:650 13px var(--mac-ui)}

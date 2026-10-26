@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -33,7 +33,7 @@ async function banco(t) {
   const trocar = async (s, quem, { item, campo, para }) => { trocas.push([item, campo, para]); await s`UPDATE vybe_conteudos SET captacao_chave = ${para} WHERE id = ${item}`; };
   const eventos = [];
   const agenda = async (acao, k) => { eventos.push([acao, k.evento_google || k.cliente]); if (acao === 'criar') return 'ev-1'; return null; };
-  return { sql, trocar, trocas, agenda, eventos };
+  return { db, sql, trocar, trocas, agenda, eventos };
 }
 const quem = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Martins' } };
 
@@ -160,4 +160,68 @@ test('a agenda do Google conta: azul é captação, reunião e pessoal ficam for
   // A semana inteira vem, cada evento com o tipo: a tela pinta e conta só as captações.
   const agenda = await agendaDeCaptacoes(sql, { listar, inicio: '2026-10-19' });
   assert.deepEqual(agenda.map((e) => [e.id, e.tipo, e.cliente, e.inicio]), [['g1', 'captacao', 'Brussolo', '07:00'], ['g2', 'reuniao', 'Brussolo', '09:00']]);
+});
+
+// Fechar gravação (Paulo, 26/10/2026): o Mizinho marca o que gravou e cola a
+// pasta do Drive; a pasta vira o material bruto das peças e a captação fecha.
+async function comFechamento(t) {
+  const b = await banco(t);
+  await b.sql`ALTER TABLE vybe_conteudos ADD COLUMN material_bruto_em timestamptz, ADD COLUMN atualizado_em timestamptz`;
+  await b.sql`CREATE TABLE vybe_conteudo_eventos (conteudo_id bigint, tipo text, de text, para text, autor_id bigint)`;
+  await b.db.exec(readFileSync('migrations/2026-10-26-producao-fechar-gravacao.sql', 'utf8'));
+  return b;
+}
+const DRIVE = 'https://drive.google.com/drive/folders/lions-26-10';
+
+test('fechar uma captação que só está no Google cria a captação, liga o que foi gravado e leva a pasta para as peças', async (t) => {
+  const { sql, trocar, trocas } = await comFechamento(t);
+  const r = await fecharGravacao(sql, quem, { evento_google: 'g1brussolo', cliente_id: '1', dia: '2026-10-26', inicio: '14:00', fim: '16:00',
+    gravadas: ['10', '11'], drive: DRIVE, observacao: 'Supino gravado a mais' }, { trocar });
+  assert.deepEqual([r.gravadas, r.soltas, r.com_drive, r.avisos], [2, 0, 2, []]);
+  assert.deepEqual(trocas, [['10', 'captacao', CAPTACAO.feita], ['11', 'captacao', CAPTACAO.feita]]);
+  assert.deepEqual((await sql`SELECT id::text, material_bruto FROM vybe_conteudos WHERE id IN (10, 11) ORDER BY id`).map((l) => l.material_bruto), [DRIVE, DRIVE]);
+  assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_conteudo_eventos WHERE tipo = 'material_bruto' AND para = ${DRIVE}`)[0].n, 2);
+  const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
+  assert.deepEqual([k.estado, k.evento_google, k.evento_do_painel, k.drive_link, k.fechada_por, k.observacao_final],
+    ['gravada', 'g1brussolo', false, DRIVE, 'Paulo Martins', 'Supino gravado a mais']);
+  assert.ok(k.fechada_em);
+  assert.deepEqual(k.pecas.map((p) => [p.id, p.gravado, p.status]), [['10', true, 'Aguardo'], ['11', true, 'Aguardo']]);
+  // A mesma gravação não fecha duas vezes.
+  await assert.rejects(fecharGravacao(sql, quem, { captacao_id: k.id, gravadas: ['10'] }, { trocar }), /já foi fechada/);
+});
+
+test('fechar a captação do painel solta o que não foi gravado e não apaga material que a peça já tinha', async (t) => {
+  const { sql, trocar, trocas, agenda } = await comFechamento(t);
+  await sql`UPDATE vybe_conteudos SET material_bruto = 'https://drive.google.com/antigo' WHERE id = 11`;
+  const { id } = await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-26', pecas: ['10', '11'] }, { trocar, agenda });
+  await marcarGravado(sql, quem, { captacao_id: id, conteudo_id: '11' }, { trocar });
+  trocas.length = 0;
+  // 11 já tinha "Gravado": desmarcada aqui, continua gravada; 10 não foi gravada e se solta.
+  await assert.rejects(fecharGravacao(sql, quem, { captacao_id: id, gravadas: [] }, { trocar }), /ao menos uma/);
+  const r = await fecharGravacao(sql, quem, { captacao_id: id, gravadas: ['11'], drive: DRIVE }, { trocar });
+  assert.deepEqual([r.soltas, r.com_drive], [1, 0]);
+  assert.deepEqual(trocas, [['10', 'captacao', CAPTACAO.pronta]]);
+  assert.equal((await sql`SELECT material_bruto FROM vybe_conteudos WHERE id = 11`)[0].material_bruto, 'https://drive.google.com/antigo');
+  assert.deepEqual((await pecasParaCaptar(sql)).map((p) => p.id), ['10', '12']);
+  const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
+  assert.deepEqual(k.pecas.map((p) => p.id), ['11']);
+});
+
+test('fechar recusa peça de outro cliente, link que não é endereço e evento sem cliente; nada fica pela metade', async (t) => {
+  const { sql, trocar, trocas } = await comFechamento(t);
+  const base = { evento_google: 'g1brussolo', cliente_id: '1', dia: '2026-10-26' };
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, gravadas: ['10', '12'] }, { trocar }), /Reels - Exame/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, gravadas: ['13'] }, { trocar }), /Card - Promo/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, gravadas: ['10'], drive: 'pasta do lions' }, { trocar }), /http/);
+  await assert.rejects(fecharGravacao(sql, quem, { evento_google: 'g1semcliente', dia: '2026-10-26', gravadas: ['10'] }, { trocar }), /cliente/);
+  assert.equal(trocas.length, 0);
+  assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_captacoes`)[0].n, 0);
+});
+
+test('antes da migração, fechar avisa e a lista continua funcionando', async (t) => {
+  const { sql, trocar, agenda } = await banco(t);
+  await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-26', pecas: ['10'] }, { trocar, agenda });
+  await assert.rejects(fecharGravacao(sql, quem, { captacao_id: '1', gravadas: ['10'] }, { trocar }), (e) => e.status === 503 && /migração/.test(e.message));
+  const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
+  assert.equal(k.drive_link, undefined);
 });

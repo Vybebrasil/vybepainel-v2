@@ -13,7 +13,7 @@
 // cada uma tem peças e roteiro (o estado no bloco), e o que precisa de alguém
 // agora: marcar, ligar peças, cadastrar o que só está no Google e escrever
 // roteiro (o painel do lado, pelos próximos 30 dias).
-const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
+const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
   busca: "", abertos: new Set(), semana: "", dia: "", sel: "", vista: "semana", tipos: new Set(["captacao"]), grupo: "" };
 
 const AG_TIPOS = { captacao: "Captação", reuniao: "Reunião", outro: "Compromisso" };
@@ -158,7 +158,7 @@ async function captPedir(params, corpo) {
   return d;
 }
 const captRender = () => { if (typeof renderProductionCommand === "function") renderProductionCommand(); };
-function captGuardar(c) { CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
+function captGuardar(c) { CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.recentes = c.recentes || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
 async function captCarregar() {
   if (CAPT.carregando) return;
   CAPT.carregando = true;
@@ -231,6 +231,8 @@ const captPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 function captEstado(e) {
   if (e.tipo !== "captacao") return null;
   const k = e.nossa;
+  if (k?.fechada_em) return { tom: "ok", texto: "Gravada" };
+  if (captFaltaFechar(e)) return { tom: "atencao", texto: "Falta fechar" };
   if (k) {
     const falta = k.pecas.filter((p) => !p.gravado && !captTemRoteiro(p)).length, gravadas = k.pecas.filter((p) => p.gravado).length;
     if (k.aviso) return { tom: "alerta", texto: "Fora do Google Agenda" };
@@ -241,6 +243,21 @@ function captEstado(e) {
   const n = captPendentesDo(e.cliente_id, e).length;
   return n ? { tom: "atencao", texto: `${captPlural(n, "peça esperando", "peças esperando")}` } : { tom: "alerta", texto: "Nada no sistema" };
 }
+
+// Captação que já aconteceu (o dia passou, ou hoje e o horário já acabou) e
+// ninguém fechou. A fechada peça a peça antes do "Fechar gravação" (todas com
+// "Gravado") não pede de novo; sem cliente reconhecido não há o que fechar.
+function captJaAconteceu(e) {
+  const hoje = captHoje();
+  if (e.dia < hoje) return true;
+  if (e.dia > hoje) return false;
+  const fim = agMin(e.fim) ?? agMin(e.inicio);
+  if (fim === null) return false;
+  const agora = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
+  return fim <= agMin(agora);
+}
+const captFechavel = (e) => e.tipo === "captacao" && !e.nossa?.fechada_em && e.nossa?.estado !== "gravada" && Boolean(e.nossa || e.cliente_id);
+const captFaltaFechar = (e) => captFechavel(e) && captJaAconteceu(e);
 
 // Fila por cliente (peça com vários clientes entra no primeiro, sem duplicar),
 // das mais urgentes para as outras; a próxima captação vem dos próximos 30 dias.
@@ -278,7 +295,7 @@ function captComNossas(lista, { semana = false } = {}) {
   return fora.map((e) => ({ ...e, estado: captEstado(e) }));
 }
 const captEventos = () => captComNossas(CAPT.agenda || [], { semana: true });
-const captTodos = () => { const vistos = new Set(); return [...captEventos(), ...captComNossas(CAPT.proximas || [])].filter((e) => !vistos.has(e.id) && vistos.add(e.id)); };
+const captTodos = () => { const vistos = new Set(); return [...captEventos(), ...captComNossas(CAPT.proximas || []), ...captComNossas(CAPT.recentes || [])].filter((e) => !vistos.has(e.id) && vistos.add(e.id)); };
 
 // O que precisa de alguém nos próximos 30 dias.
 function captPendencias() {
@@ -296,9 +313,15 @@ function captPendencias() {
   // Vídeo cadastrado sem captação e sem roteiro: o roteiro vem antes de marcar.
   for (const p of CAPT.pecas || []) if (p.sem_material && p.tipo === "video" && !captTemRoteiro(p) && !roteiro.some((r) => r.p.id === p.id))
     roteiro.push({ p, e: null });
-  return { ligar, cadastrar, marcar, roteiro };
+  // Gravações dos últimos 7 dias (e as de hoje que já acabaram) sem fechar.
+  const vistas = new Set();
+  const fechar = [...captComNossas(CAPT.recentes || []), ...captComNossas(CAPT.agenda || [])]
+    .filter((e) => e.dia >= agSomar(hoje, -7) && captFaltaFechar(e) && !vistas.has(e.id) && vistas.add(e.id))
+    .sort((a, b) => (a.dia + (a.inicio || "")).localeCompare(b.dia + (b.inicio || "")));
+  return { fechar, ligar, cadastrar, marcar, roteiro };
 }
 const CAPT_GRUPOS = [
+  ["fechar", "Fechar gravação", "Captações que já aconteceram: marque o que foi gravado e cole a pasta do Drive."],
   ["ligar", "Ligar peças", "Captações na agenda cujo cliente tem peças esperando: leve as peças para a captação."],
   ["cadastrar", "Cadastrar", "Captações que estão no Google Agenda e não têm nada no sistema."],
   ["marcar", "Marcar captação", "Clientes com peças para captar e sem captação marcada nos próximos 30 dias."],
@@ -331,12 +354,16 @@ function captDetalheHtml(e) {
     ${e.link ? `<a class="vb-link capt-detalhe-google" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : ""}`;
   if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-discreto">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"} da agenda da Vybe. Só as captações (azuis) recebem peças.</p></div>`;
   const cliente = e.cliente ? `<p class="capt-detalhe-cliente">${safeText(e.cliente)}</p>` : '<p class="capt-aviso">Não reconheci o cliente pelo título. Ponha o nome do cliente no título do evento no Google Agenda.</p>';
-  if (k) return `<div class="capt-detalhe">${topo}${cliente}${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
+  if (k?.fechada_em) return `<div class="capt-detalhe">${topo}${cliente}${captGeradoHtml(k)}</div>`;
+  // Hoje ou antes: dá para fechar a gravação a partir do próprio cartão.
+  const fechar = captFechavel(e) && e.dia <= captHoje()
+    ? `<button type="button" class="vb-botao principal capt-fechar-btn" onclick="captAbrirFechar('${safeText(e.id)}')">${ICONE_CHECK}Fechar gravação</button>` : "";
+  if (k) return `<div class="capt-detalhe">${topo}${cliente}${fechar}${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
     <h5>Peças desta captação <small>${k.pecas.filter((p) => p.gravado).length} de ${k.pecas.length} gravadas</small></h5>
     <ul class="capt-lista">${k.pecas.map((p) => captPecaHtml(p, { marcar: `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` })).join("")}</ul>
     ${k.observacao ? `<p class="capt-discreto">${safeText(k.observacao)}</p>` : ""}
     ${k.estado === "agendada" ? `<button type="button" class="vb-link perigo" onclick="captCancelar('${k.id}',${k.evento_do_painel === false})">${k.evento_do_painel === false ? "Soltar as peças desta captação" : "Cancelar captação"}</button>` : ""}</div>`;
-  return `<div class="capt-detalhe">${topo}${cliente}
+  return `<div class="capt-detalhe">${topo}${cliente}${fechar}
     ${pendentes.length ? `${outras.length ? `<h5>Esperando captação <small>${captPlural(outras.length, "peça", "peças")}</small></h5><ul class="capt-lista">${outras.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
       ${fotos.length ? `<h5>${captEhFotos(e) ? "Fotografias sem banco de fotos" : "Vídeos ainda sem captação"} <small>${captPlural(fotos.length, "peça", "peças")}</small></h5><p class="capt-discreto">${captEhFotos(e) ? `Pelo título, esta captação é de fotos: as fotografias de ${safeText(e.cliente)} travadas sem material podem sair daqui.` : `Vídeos de ${safeText(e.cliente)} já cadastrados que ainda não entraram na Captação.`}</p><ul class="capt-lista">${fotos.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
       <button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Levar peças para esta captação</button>`
@@ -381,12 +408,14 @@ function captPendenciasHtml(pend) {
       : vbEstadoHtml({ icone: "ok", titulo: "Toda peça com captação marcada tem roteiro" });
   } else {
     const lista = pend[grupo];
-    corpo = lista.length ? `<ul class="capt-lista">${lista.map((e) => captPendenciaEventoHtml(e, grupo === "ligar"
+    corpo = lista.length ? `<ul class="capt-lista">${lista.map((e) => captPendenciaEventoHtml(e, grupo === "fechar"
+      ? `<button type="button" class="vb-botao principal" onclick="captAbrirFechar('${safeText(e.id)}')">Fechar</button>`
+      : grupo === "ligar"
       ? `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Ligar</button>`
       : e.cliente ? `<button type="button" class="vb-botao" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar</button>` : `<button type="button" class="vb-botao" onclick="captSelecionar('${safeText(e.id)}')">Ver</button>`)).join("")}</ul>`
-      : vbEstadoHtml({ icone: "ok", titulo: grupo === "ligar" ? "Nenhuma captação esperando peças" : "Toda captação da agenda tem algo no sistema" });
+      : vbEstadoHtml({ icone: "ok", titulo: grupo === "fechar" ? "Toda gravação da semana está fechada" : grupo === "ligar" ? "Nenhuma captação esperando peças" : "Toda captação da agenda tem algo no sistema" });
   }
-  return `<div class="capt-coluna-topo"><h4>O que precisa de você</h4><small>próximos 30 dias</small></div>
+  return `<div class="capt-coluna-topo"><h4>O que precisa de você</h4><small>${grupo === "fechar" ? "últimos 7 dias" : "próximos 30 dias"}</small></div>
     <div class="capt-grupos" role="group" aria-label="Pendências">${chips}</div><p class="capt-discreto">${safeText(explica)}</p>${corpo}`;
 }
 
@@ -403,6 +432,21 @@ function captListaHtml(eventos) {
       ${lista.length ? `<ul>${lista.map(linha).join("")}</ul>` : '<p class="capt-discreto">Nada.</p>'}</section>`; }).join("")}</div>`;
 }
 
+// O cartão da gravação fechada: quem fechou e quando, a pasta do Drive e o que
+// ela gerou, com o status de agora de cada peça (edição, aprovação…).
+const ICONE_CHECK = '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3.5 8.4 2.9 2.9 6.1-6.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function captGeradoHtml(k) {
+  const gravadas = k.pecas.filter((p) => p.gravado);
+  const quando = new Date(k.fechada_em).toLocaleString("pt-BR", { timeZone: "America/Bahia", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+  // O selo "Gravada" já está no topo do cartão (captEstado); aqui, quem e quando.
+  return `<p class="capt-fechada">${ICONE_CHECK}<small>Fechada ${safeText([k.fechada_por ? `por ${firstName(k.fechada_por)}` : "", `em ${quando}`].filter(Boolean).join(" "))}</small></p>
+    ${k.drive_link ? `<a class="vb-botao capt-drive" href="${safeText(k.drive_link)}" target="_blank" rel="noopener">Material bruto no Drive</a>` : '<p class="capt-aviso">Fechada sem a pasta do Drive: cole o link do material em cada peça.</p>'}
+    ${k.observacao_final ? `<p class="capt-discreto">${safeText(k.observacao_final)}</p>` : ""}
+    <h5>O que esta gravação gerou <small>${captPlural(gravadas.length, "peça", "peças")}</small></h5>
+    <ul class="capt-gerado">${gravadas.map((p) => `<li><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>
+      ${p.status ? `<span class="capt-gerado-status" style="--cor:${safeText(p.status_cor || "#8b93a3")}">${safeText(p.status)}</span>` : ""}</li>`).join("")}</ul>`;
+}
+
 function captacoesHtml() {
   if (!CAPT.pecas && !CAPT.erro) { captCarregar(); return vbEstadoHtml({ tipo: "carregando", titulo: "Carregando as captações" }); }
   if (CAPT.erro) return vbEstadoHtml({ tipo: "erro", titulo: "Não deu para abrir as captações", texto: CAPT.erro, acao: '<button type="button" class="vb-botao" onclick="CAPT.erro=\'\';captRecarregar()">Tentar de novo</button>' });
@@ -413,6 +457,7 @@ function captacoesHtml() {
   const deHoje = caps.filter((e) => e.dia === hoje).length;
   const resumo = vbResumoHtml([
     CAPT.semana === agSegunda(hoje) ? { valor: deHoje, rotulo: deHoje === 1 ? " captação hoje" : " captações hoje", tom: deHoje ? "ok" : "" } : null,
+    pend.fechar.length ? { valor: pend.fechar.length, rotulo: pend.fechar.length === 1 ? " gravação para fechar" : " gravações para fechar", tom: "atencao", onclick: "captGrupo('fechar')" } : null,
     { valor: caps.length, rotulo: caps.length === 1 ? " captação na semana" : " captações na semana", onclick: "CAPT.tipos=new Set(['captacao']);captVista('lista')" },
     pend.ligar.length ? { valor: pend.ligar.length, rotulo: pend.ligar.length === 1 ? " captação para ligar peças" : " captações para ligar peças", tom: pend.ligar.length ? "atencao" : "", onclick: "captGrupo('ligar')" } : null,
     pend.cadastrar.length ? { valor: pend.cadastrar.length, rotulo: pend.cadastrar.length === 1 ? " captação sem nada no sistema" : " captações sem nada no sistema", tom: pend.cadastrar.length ? "alerta" : "", onclick: "captGrupo('cadastrar')" } : null,
@@ -507,4 +552,60 @@ async function captAgenda(id) {
   try { const r = await captPedir("", { acao: "agenda", id }); showToast(r.avisos?.[0] || "Captação no Google Agenda.", r.avisos?.length ? "info" : "ok", 6000); }
   catch (e) { showToast(e.message, "err", 6000); }
   captRecarregar();
+}
+
+// FECHAR GRAVAÇÃO (Paulo, 26/10/2026): o Mizinho marca o que gravou, cola a
+// pasta do Drive e a captação fica fechada. Aparecem as peças já ligadas
+// (marcadas) e as do cliente que estavam esperando captação (para marcar o que
+// também saiu da gravação). A pasta vira o material bruto de cada peça marcada
+// que ainda não tem um; as ligadas que ficarem desmarcadas voltam para
+// "Agendar Captação". As regras ficam em fecharGravacao (server/captacoes.js).
+function captAbrirFechar(eventoId) {
+  agCartaoFechar();
+  const e = captTodos().find((x) => x.id === eventoId);
+  if (!e) { showToast("Esta captação não está mais na tela. Atualize.", "info"); return; }
+  const k = e.nossa;
+  const ligadas = k ? k.pecas : [];
+  const esperando = e.cliente_id ? captPendentesDo(e.cliente_id, e).filter((p) => !ligadas.some((l) => l.id === p.id)) : [];
+  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>`; };
+  const nome = e.cliente || k?.cliente || "";
+  openWorkflowModal(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Fechar gravação</h2>
+    <p class="capt-quando-fixo">${safeText(nome || e.titulo)} · ${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
+    <form class="capt-form" onsubmit="event.preventDefault();captFechar(this)" data-evento="${safeText(e.id)}">
+      <fieldset class="capt-pecas-form"><legend>O que foi gravado</legend>
+        ${ligadas.map((p) => escolha(p, true, p.gravado ? "já marcada como gravada" : "")).join("")}
+        ${esperando.length ? `${ligadas.length ? '<p class="capt-discreto">Também esperando captação deste cliente:</p>' : ""}${esperando.map((p) => escolha(p, false, p.sem_material ? captFaltaRotulo(p) : "")).join("")}` : ""}
+        ${!ligadas.length && !esperando.length ? `<p class="capt-discreto">Nenhuma peça de ${safeText(nome || "este cliente")} esperando captação.</p>` : ""}
+        ${nome ? `<button type="button" class="vb-link" onclick="closeWorkflowModal();captCadastrar('${safeText(nome)}');showToast('Depois de cadastrar, volte em Fechar gravação: a peça nova aparece na lista.','info',7000)">Gravou algo fora da lista? Cadastrar peça de ${safeText(nome)}</button>` : ""}
+      </fieldset>
+      <label>Pasta do material no Drive<input type="url" name="drive" inputmode="url" maxlength="2000" placeholder="https://drive.google.com/drive/folders/…"></label>
+      <p class="capt-discreto">O link vai para cada peça marcada como material bruto, para a edição achar o arquivo.</p>
+      <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="Ex.: supino gravado a mais; faltou o depoimento"></textarea></label>
+      <p class="capt-erro" role="alert" hidden></p>
+      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Fechar gravação</button></div>
+    </form>`);
+}
+async function captFechar(form) {
+  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
+  const e = captTodos().find((x) => x.id === form.dataset.evento);
+  // As já gravadas vêm desabilitadas (não saem pelo FormData), mas continuam gravadas.
+  const gravadas = [...f.getAll("peca"), ...[...form.querySelectorAll('input[name=peca]:disabled:checked')].map((i) => i.value)];
+  const drive = String(f.get("drive") || "").trim();
+  const mostrar = (texto) => { erro.textContent = texto; erro.hidden = false; };
+  if (!e) return mostrar("Esta captação não está mais na tela. Feche e atualize.");
+  if (!gravadas.length) return mostrar("Marque ao menos uma peça gravada.");
+  if (drive && !/^https?:\/\/\S+$/i.test(drive)) return mostrar("O link do Drive precisa começar com https://");
+  if (!drive && !confirm("Fechar sem a pasta do Drive? A edição não vai achar o material pela peça.")) return;
+  botao.disabled = true; botao.textContent = "Fechando…";
+  try {
+    const k = e.nossa;
+    const dados = k ? { captacao_id: k.id } : { evento_google: e.id, cliente_id: e.cliente_id, dia: e.dia, inicio: e.inicio || "", fim: e.fim || "", local: e.local || "" };
+    const r = await captPedir("", { acao: "fechar", gravadas, drive, observacao: f.get("observacao") || "", ...dados });
+    closeWorkflowModal();
+    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
+    showToast(r.avisos?.length ? `${partes}. ${r.avisos[0]}` : `${partes}.`, r.avisos?.length ? "info" : "ok", 7000);
+    if (typeof refreshData === "function") refreshData();
+    CAPT.sel = e.id; captRecarregar();
+  } catch (x) { mostrar(x.message); botao.disabled = false; botao.textContent = rotulo; }
 }
