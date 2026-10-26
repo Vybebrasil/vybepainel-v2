@@ -2,6 +2,11 @@
 export function assistenteAtivo(config = process.env) {
   return config.VYBE_AI_ATIVA === '1';
 }
+// Escopo do WhatsApp: sem configuração explícita, segue exclusivo do administrador.
+// 'equipe' libera pessoas ativas e vinculadas; vínculo e grupos aprovados continuam obrigatórios.
+export function escopoEquipe(config = process.env) {
+  return config.VYBE_AI_ESCOPO === 'equipe';
+}
 // Pré-requisito de conta para a interface pessoal; grupo/vínculo são conferidos
 // no fluxo WhatsApp. Não autoriza um JID nem uma audiência por si só.
 export async function pessoaLiberadaAssistente(sql, id, config = process.env) {

@@ -1,7 +1,7 @@
 import {exigirAdministradorPrivado} from './assistente-exclusivo.js';
 import { validarConversa, autorizarConversa } from './assistente-politica.js';
 import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
-import { assistenteAtivo } from './assistente-ativacao.js';
+import { assistenteAtivo, escopoEquipe } from './assistente-ativacao.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 // Credencial EXCLUSIVA do bot. Nunca reutilizar MIRROR_ADMIN_KEY ou SESSAO_SECRET.
@@ -28,12 +28,13 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
   const segredo = config.VYBE_AI_LINK_SECRET;
   if (!segredo || segredo.length < 32) return res.status(503).json({ error: 'Integração não configurada.' });
   try {
-    exigirAdministradorPrivado(jid,contexto,config);
+    const equipe = escopoEquipe(config);
+    if (!equipe) exigirAdministradorPrivado(jid,contexto,config);
     validarConversa(jid,contexto,config);
     if (consulta === 'vinculacao_confirmar') {
       if (contexto.tipo !== 'privado') return res.status(403).json({error:'Vinculação somente em conversa privada.'});
       if (typeof codigo !== 'string') return res.status(400).json({ error: 'Código obrigatório.' });
-      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo, Number(config.VYBE_AI_ADMIN_PESSOA_ID));
+      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo, equipe ? null : Number(config.VYBE_AI_ADMIN_PESSOA_ID));
       return res.status(ok ? 200 : 403).json({ ok });
     }
     if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
