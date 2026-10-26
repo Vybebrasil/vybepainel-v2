@@ -9,7 +9,7 @@ const contexto=(grupoAtivo=false)=>({tipo:grupoAtivo?'grupo':'privado',...(grupo
 test('contrato fechado: sem SQL, datas impossíveis, campos administrativos e excesso',()=>{
  for(const [n,a] of [['sql',{}],['buscar_demandas',{sql:'SELECT *'}],['listar_responsaveis',{admin:true}],['buscar_demandas',{limite:26}],['buscar_demandas',{de:'2026-02-30'}],['consultar_metricas_trafego',{cliente_id:1,de:'2026-01-01',ate:'2026-12-31'}]])assert.throws(()=>validarFerramenta(n,a));
  assert.throws(()=>validarFerramenta('buscar_demandas',JSON.parse('{"__proto__":{}}')));
- assert.equal(FERRAMENTAS_ASSISTENTE.length,15);
+ assert.equal(FERRAMENTAS_ASSISTENTE.length,16);
  assert.ok(!textoOperacional('senha=ABC teste@example.com https://host/link').includes('ABC'));
 });
 test('conversa exige evidência recente, grupo aprovado, remetente e audiência válidos',()=>{
@@ -113,6 +113,12 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   // 502: 02:30Z ainda é 25/10 na Bahia (UTC-3).
   const r=await executarFerramenta(sql,'buscar_demandas',{situacao:'finalizadas_hoje'},{agora:new Date('2026-10-26T20:00:00Z')});
   assert.deepEqual(r.itens.map(x=>x.id),['501']);
+  assert.equal(r.itens[0].execucao,undefined); // Sem a tabela de fatias, só não informa quem executou.
+  await db.exec(`CREATE TABLE vybe_escritorio_moedas(id bigserial,pessoa_id bigint,origem text,quantidade int,pontos int,regra text,conteudo_id bigint);
+   INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade,regra,conteudo_id) VALUES(2,'a',3,'peca_agendamento',501),(1,'b',10,'peca_criacao',501),(1,'c',4,'chegada',501),(2,'d',-3,'peca_atendimento',501)`);
+  const comFatias=await executarFerramenta(sql,'buscar_demandas',{situacao:'finalizadas_hoje'},{agora:new Date('2026-10-26T20:00:00Z')});
+  assert.deepEqual(comFatias.itens[0].execucao,[{papel:'criacao',nome:'Pessoa A'},{papel:'agendamento',nome:'Pessoa B'}]);
+  await db.exec('DROP TABLE vybe_escritorio_moedas');
   await assert.rejects(()=>executarFerramenta(sql,'minhas_demandas',{situacao:'finalizadas_hoje'},{pessoaId:1}));
   await db.exec('DELETE FROM vybe_conteudo_eventos WHERE conteudo_id>=501;DELETE FROM vybe_conteudos WHERE id>=501');
  });

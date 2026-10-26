@@ -176,3 +176,42 @@ export async function rotinaDoDia(sql, { momento, dia, baseAnterior = null }, ag
   return { momento, dia, mensagens: mensagens.filter((m) => !m.agenda || m.texto), base,
     equipe: equipe.map((p) => ({ id: String(p.id), nome: p.nome })), apelidos, fontes: [{ modulo: 'rotina', id: dia.replace(/-/g, '') }] };
 }
+
+// Dia da agência sob demanda ("como tá o dia?"): o mesmo recorte e as mesmas regras de status da rotina,
+// com o resumo da agência e uma visão por pessoa (Paulo, 26/10/2026: "dividido por cliente ou pessoa").
+export function mensagemDiaAgencia(itens, dia, statusDe, rotuloDia, maxPorPessoa = 4) {
+  const r = retrato(itens, dia, statusDe);
+  const entregues = r.conteudosHoje.filter(r.entregue).length, prontos = r.conteudosHoje.filter(r.pronto).length;
+  const risco = r.conteudosHoje.filter((i) => r.aberto(i) && !r.pausa(i));
+  const pedidosAbertos = r.pedidosHoje.filter(r.aberto).length;
+  // Do dia: veicula/conclui hoje ou tem prazo hoje.
+  const doDia = itens.filter((i) => i.veiculacao_iso === dia || i.prazo_iso === dia);
+  const pessoas = new Map();
+  const daPessoa = (n) => { if (!pessoas.has(n)) pessoas.set(n, { prontas: 0, abertas: [], atrasadas: 0 }); return pessoas.get(n); };
+  const nomes = (i) => (i.responsavel ? i.responsavel.split(',').map(primeiroNome).filter(Boolean) : []);
+  for (const i of doDia) for (const n of new Set(nomes(i))) {
+    const p = daPessoa(n);
+    if (r.entregue(i) || r.pronto(i)) p.prontas++; else if (!r.pausa(i)) p.abertas.push(i);
+  }
+  for (const i of r.atrasadas) for (const n of new Set(nomes(i))) daPessoa(n).atrasadas++;
+  const linhasPessoa = [...pessoas.entries()].filter(([, p]) => p.prontas || p.abertas.length || p.atrasadas)
+    .sort((a, b) => b[1].abertas.length - a[1].abertas.length || b[1].atrasadas - a[1].atrasadas || a[0].localeCompare(b[0], 'pt-BR'))
+    .map(([n, p]) => {
+      const resumo = [p.prontas && `✅ ${p.prontas}`, p.abertas.length && `⏳ ${p.abertas.length} em aberto`, p.atrasadas && `🔴 ${p.atrasadas} atrasada(s)`].filter(Boolean).join(' · ');
+      p.abertas.sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999')));
+      const lista = p.abertas.slice(0, maxPorPessoa).map((i) => `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${statusDe(i) || 'Sem status'}`);
+      if (p.abertas.length > maxPorPessoa) lista.push(`- e mais ${p.abertas.length - maxPorPessoa} no painel`);
+      return [`*${n}* — ${resumo}`, ...lista].join('\n');
+    });
+  return [`🏢 *Dia da agência · ${rotuloDia}*`, '',
+    `📊 Veiculam hoje: ${r.conteudosHoje.length} · ✅ ${entregues} entregues · 📅 ${prontos} para agendar · ⏳ ${risco.length} em aberto`,
+    `📌 Solicitações com conclusão hoje: ${r.pedidosHoje.length}${r.pedidosHoje.length ? ` · ${pedidosAbertos} em aberto` : ''}`,
+    `⚠️ ${r.atrasadas.length} atividade(s) com prazo vencido, fora pausas e espera do cliente`,
+    '', '*Por pessoa, hoje*', linhasPessoa.length ? linhasPessoa.join('\n\n') : '- Nada previsto para hoje.'].join('\n');
+}
+export async function diaDaAgencia(sql, dia) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const { ctx } = codigoDoPainel();
+  const itens = await itensDoDia(sql, dia);
+  return { texto: mensagemDiaAgencia(itens, dia, (i) => ctx.operationalFlowStatus(i), ctx.resumoDiaCurto(dia)), fontes: [{ modulo: 'dia_agencia', id: dia.replace(/-/g, '') }] };
+}

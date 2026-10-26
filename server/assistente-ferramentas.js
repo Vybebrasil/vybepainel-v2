@@ -1,5 +1,6 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
 import {metricasDoHub} from './assistente-hub.js';
+import {diaDaAgencia} from './assistente-rotinas.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
 import {pecasComRevisao} from './planejamento-documento.js';
@@ -9,6 +10,8 @@ const busca={type:'string',maxLength:100};
 const data={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
 const situacao={type:'string',enum:['todas','pendentes','atrasadas']};
 // finalizadas_hoje: status final alcançado hoje, pelo histórico de status (a mesma regra do Dia da equipe).
+const PAPEIS_PECA={peca_criacao:'criacao',peca_da:'direcao_arte',peca_producao:'captacao',peca_agendamento:'agendamento',peca_atendimento:'atendimento',peca_gestao:'gestao'};
+const ORDEM_PAPEIS=['criacao','direcao_arte','captacao','agendamento','atendimento','gestao'];
 const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
@@ -26,6 +29,7 @@ const defs=[
  ['consultar_perfil_jogo','Nível, XP total, moedas, inventário e conquistas públicas de qualquer pessoa. Somente leitura.',{pessoa_id:inteiro,secao:{type:'string',enum:['resumo','inventario','conquistas']},...pagina},['pessoa_id']],
  ['consultar_ranking','Ranking de trabalho e patrimônio da equipe, usando as regras existentes.',{periodo:{type:'string',enum:['dia','semana','mes','total']},...pagina}],
  ['consultar_dia_equipe','Previsto, pronto, adiado e atrasado de toda a equipe hoje, pela mesma conta do Escritório.',{...pagina}],
+ ['consultar_dia_agencia','Resumo do dia da agência hoje (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto hoje.',{}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -71,6 +75,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='consultar_perfil_trabalho')return limpar(await consultarPerfilTrabalho(sql,a,identidade.agora));
  if(nome==='consultar_perfil_jogo')return limpar(await consultarPerfilJogo(sql,a));
  if(nome==='consultar_ranking')return limpar(await consultarRanking(sql,a,identidade.agora));
+ if(nome==='consultar_dia_agencia'){const d=await diaDaAgencia(sql,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='consultar_dia_equipe')return limpar(await consultarDiaEquipe(sql,a,identidade.agora));
  if(nome==='detalhar_demanda')return limpar(await secaoDaDemanda(sql,a));
  if(nome==='consultar_metricas_trafego')return limpar(await metricasDoHub(sql,a));
@@ -96,6 +101,16 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    AND (${status}='' OR s.rotulo ILIKE ${status}) AND (${de}::date IS NULL OR c.prazo>=${de}::date) AND (${ate}::date IS NULL OR c.prazo<=${ate}::date)
    AND (${quadro}::bigint IS NULL OR c.board_id=${quadro}) AND (${cde}::date IS NULL OR c.veiculacao>=${cde}::date) AND (${cate}::date IS NULL OR c.veiculacao<=${cate}::date)
    ORDER BY c.prazo ASC NULLS LAST,c.id LIMIT ${limit} OFFSET ${offset}`;
+  // Quem executou: as fatias do bolo da peça (mesma conta do XP do Escritório), por papel.
+  if(finalHoje&&itens.length){
+   const [t]=await sql`SELECT to_regclass('public.vybe_escritorio_moedas') IS NOT NULL AS ok`;
+   if(t?.ok){
+    const fatias=await sql`SELECT DISTINCT m.conteudo_id::text AS id,m.regra,p.nome FROM vybe_escritorio_moedas m JOIN vybe_pessoas p ON p.id=m.pessoa_id
+     WHERE m.conteudo_id::text=ANY(${itens.map(i=>i.id)}::text[]) AND m.regra=ANY(${Object.keys(PAPEIS_PECA)}::text[]) AND m.quantidade>0`;
+    for(const i of itens)i.execucao=fatias.filter(f=>f.id===i.id).map(f=>({papel:PAPEIS_PECA[f.regra],nome:f.nome}))
+     .sort((a,b)=>ORDEM_PAPEIS.indexOf(a.papel)-ORDEM_PAPEIS.indexOf(b.papel)||a.nome.localeCompare(b.nome,'pt-BR'));
+   }
+  }
  }else if(nome==='listar_clientes'){
   modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_responsaveis'){

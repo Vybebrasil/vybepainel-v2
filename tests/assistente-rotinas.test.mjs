@@ -126,3 +126,25 @@ test('endpoint: rotina só para administrador vinculado, no privado', async () =
     assert.equal((await chamar(admin, privado(admin), { momento: 'x', dia })).codigo, 400);
   } finally { await db.close(); }
 });
+
+test('dia da agência: resumo com as regras da rotina e o que cada pessoa tem aberto hoje', async () => {
+  const { mensagemDiaAgencia } = await import('../server/assistente-rotinas.js');
+  const dia = '2026-10-26';
+  const item = (nome, status, responsavel, extra = {}) => ({ id: nome, nome, status, responsavel, responsavel_ids: responsavel ? ['1'] : [], clientes: ['Cli'],
+    origem: 'producao_conteudo', veiculacao_iso: dia, prazo_iso: dia, ...extra });
+  const itens = [
+    item('Card A', 'Finalizado', 'Jady Lima'),
+    item('Card B', 'Pode Fazer', 'Jady Lima, Deivid Souza'),
+    item('Reels C', 'Em andamento', 'Reriston Souza'),
+    item('Card velho', 'Pode Fazer', 'Jady Lima', { prazo_iso: '2026-10-20', veiculacao_iso: '2026-10-30' }),
+    item('Pedido', 'A Fazer', 'Deivid Souza', { origem: 'solicitacao', conclusao_iso: dia }),
+  ];
+  const t = mensagemDiaAgencia(itens, dia, (i) => i.status, 'Seg 26/10');
+  assert.match(t, /^🏢 \*Dia da agência · Seg 26\/10\*/);
+  assert.match(t, /📊 Veiculam hoje: 3 · ✅ 1 entregues · 📅 0 para agendar · ⏳ 2 em aberto/);
+  assert.match(t, /📌 Solicitações com conclusão hoje: 1 · 1 em aberto/);
+  assert.match(t, /⚠️ 1 atividade\(s\) com prazo vencido/);
+  assert.match(t, /\*Deivid\* — ⏳ 2 em aberto\n- Card B \(Cli\) · Pode Fazer\n- Pedido \(Cli\) · A Fazer/);
+  assert.match(t, /\*Jady\* — ✅ 1 · ⏳ 1 em aberto · 🔴 1 atrasada\(s\)\n- Card B \(Cli\) · Pode Fazer/);
+  assert.match(t, /\*Reriston\* — ⏳ 1 em aberto\n- Reels C \(Cli\) · Em andamento/);
+});
