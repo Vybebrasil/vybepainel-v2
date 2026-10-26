@@ -6,7 +6,8 @@
 //    dono do cliente (Vinícius ou Ewerton); Para agendar → Tainara (função agendamento); Alteração →
 //    responsáveis da peça, no grupo Correção.
 import { identificadorProtegido, validarJid } from './assistente-identidade.js';
-import { codigoDoPainel } from './assistente-rotinas.js';
+import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
+export { linkDaAtividade };
 import { cobrancasDaEquipe } from './escritorio-cobrancas.js';
 import vm from 'node:vm';
 
@@ -36,7 +37,7 @@ export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
   if (typeof desde !== 'string' || !Number.isFinite(inicio) || inicio > agora.getTime() || agora.getTime() - inicio > 6 * 3600e3)
     throw new TypeError('Período inválido.');
   const pessoasPainel = vm.runInContext('PESSOAS', codigoDoPainel().ctx);
-  const eventos = await sql`SELECT e.id::text AS evento_id, e.em::text AS em, e.para, c.id::text AS conteudo_id, c.titulo, c.formato,
+  const eventos = await sql`SELECT e.id::text AS evento_id, e.em::text AS em, e.para, c.id::text AS conteudo_id, c.monday_item_id::text AS monday_item_id, c.titulo, c.formato,
       c.board_id::text AS board_id, s.rotulo AS atual,
       c.prazo::text AS prazo, c.veiculacao::text AS veiculacao,
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id ORDER BY cl.nome), '{}') AS clientes,
@@ -82,6 +83,7 @@ export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
       grupo = 'correcao'; alvo = resp;
       texto = `✏️ *Alteração* · ${e.titulo} (${clientes})${datas ? '\n' + datas : ''}\n👉 ${alvo.map(marcar).join(', ') || 'Sem responsável'}, tem ajuste pra fazer. 💪`;
     } else continue;
+    texto += `\n🔗 ${linkDaAtividade(e.monday_item_id || 'vybe:' + e.conteudo_id)}`;
     avisos.push({ evento_id: e.evento_id, conteudo_id: e.conteudo_id, em: e.em, status: e.para, grupo, pessoas: alvo, texto });
   }
   return avisos;

@@ -1,5 +1,7 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
 import {metricasDoHub} from './assistente-hub.js';
+import {diaDaAgencia,meuDia} from './assistente-rotinas.js';
+import {agendaDeCaptacoes} from './captacoes.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
 import {pecasComRevisao} from './planejamento-documento.js';
@@ -8,22 +10,29 @@ const inteiro={type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER};
 const busca={type:'string',maxLength:100};
 const data={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
 const situacao={type:'string',enum:['todas','pendentes','atrasadas']};
+// finalizadas_hoje: status final alcançado hoje, pelo histórico de status (a mesma regra do Dia da equipe).
+const PAPEIS_PECA={peca_criacao:'criacao',peca_da:'direcao_arte',peca_producao:'captacao',peca_agendamento:'agendamento',peca_atendimento:'atendimento',peca_gestao:'gestao'};
+const ORDEM_PAPEIS=['criacao','direcao_arte','captacao','agendamento','atendimento','gestao'];
+const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
  ['minhas_demandas','Demandas da pessoa autenticada, sem ID escolhido pelo modelo. Hoje usa prazo ou, se ausente, veiculação. Pendentes usam status oficial não final; atrasadas exigem prazo vencido e status não final.',{periodo:{type:'string',enum:['hoje','todas']},situacao,...pagina}],
  ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub.',{cliente_id:inteiro,de:data,ate:data,modulo:{type:'string',enum:['trafego','alcance','interacoes','seguidores','faturamento','objetivos','aprovacoes','documentos','marca','campanhas','anuncios','publico','segmentacao']},...pagina},['cliente_id','de','ate']],
- ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
+ ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações; situacao finalizadas_hoje traz o que virou status final hoje.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao:situacaoBusca,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
  ['detalhar_demanda','Detalhes operacionais de uma demanda, com briefing, comentários, histórico, tarefas e referências de arquivos. Nunca lê segredos nem o conteúdo binário de anexos.',{id:inteiro,secao:{type:'string',enum:['ficha','comentarios','historico','tarefas','arquivos']},...pagina},['id']],
  ['listar_clientes','Clientes e carteira operacional, sem contatos ou contratos.',{busca,...pagina}],
  ['listar_responsaveis','Equipe ativa, nomes e funções, sem e-mails ou dados pessoais.',{busca,...pagina}],
  ['listar_planejamentos','Planejamentos, mês e situação de aprovação.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
  ['detalhar_planejamento','Planejamento e peças com texto, ajustes e decisões válidas, paginadas. Sem links secretos.',{id:inteiro,...pagina},['id']],
- ['listar_captacoes','Gravações registradas no módulo de captações, sem acesso externo ao Google.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
+ ['consultar_agenda_captacoes','Agenda real de gravações: o Google Agenda da Vybe pelas regras do módulo de Captações (azul = captação; reunião, pessoal, privado, folga e férias fora). de = primeiro dia (padrão hoje), dias = quantos dias (1 a 14).',{de:data,dias:{type:'integer',minimum:1,maximum:14}}],
+ ['listar_captacoes','Captações cadastradas no painel (tabela interna). Para o que vai ser gravado, use consultar_agenda_captacoes.',{cliente_id:inteiro,de:data,ate:data,...pagina}],
  ['listar_roteiros','Referências operacionais dos roteiros; o texto continua no Drive.',{cliente_id:inteiro,...pagina}],
  ['consultar_perfil_trabalho','Métricas de qualquer funcionário, com os mesmos cálculos da aba Trabalho: volume, média, evolução, recorde, qualidade e XP.',{pessoa_id:inteiro,de:data,ate:data,regra:busca,formato:busca},['pessoa_id','de','ate']],
  ['consultar_perfil_jogo','Nível, XP total, moedas, inventário e conquistas públicas de qualquer pessoa. Somente leitura.',{pessoa_id:inteiro,secao:{type:'string',enum:['resumo','inventario','conquistas']},...pagina},['pessoa_id']],
  ['consultar_ranking','Ranking de trabalho e patrimônio da equipe, usando as regras existentes.',{periodo:{type:'string',enum:['dia','semana','mes','total']},...pagina}],
  ['consultar_dia_equipe','Previsto, pronto, adiado e atrasado de toda a equipe hoje, pela mesma conta do Escritório.',{...pagina}],
+ ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem hoje, atrasadas e prazo amanhã, com o link de cada peça. Sem escolher pessoa.',{}],
+ ['consultar_dia_agencia','Resumo do dia da agência hoje (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto hoje.',{}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -69,6 +78,20 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='consultar_perfil_trabalho')return limpar(await consultarPerfilTrabalho(sql,a,identidade.agora));
  if(nome==='consultar_perfil_jogo')return limpar(await consultarPerfilJogo(sql,a));
  if(nome==='consultar_ranking')return limpar(await consultarRanking(sql,a,identidade.agora));
+ if(nome==='consultar_agenda_captacoes'){
+  // Mesma leitura do módulo de Captações; falha do Google vira 503 com a mensagem pública do módulo.
+  const de=a.de||diaAssistente(identidade.agora),dias=a.dias||1;
+  let eventos;try{eventos=await agendaDeCaptacoes(sql,{inicio:de,dias,hoje:diaAssistente(identidade.agora)});}
+  catch(e){throw Object.assign(new Error(e.publica?e.message:'Agenda de gravações indisponível agora.'),{status:503});}
+  const itens=eventos.filter(e=>e.tipo==='captacao').slice(0,25).map(e=>({id:e.id,titulo:e.titulo,dia:e.dia,horario:e.horario,local:e.local,cliente:e.cliente||null}));
+  return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
+ }
+ if(nome==='meu_dia'){
+  if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');
+  const d=await meuDia(sql,identidade.pessoaId,diaAssistente(identidade.agora));
+  return {fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false,escopo:'pessoa_autenticada'};
+ }
+ if(nome==='consultar_dia_agencia'){const d=await diaDaAgencia(sql,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='consultar_dia_equipe')return limpar(await consultarDiaEquipe(sql,a,identidade.agora));
  if(nome==='detalhar_demanda')return limpar(await secaoDaDemanda(sql,a));
  if(nome==='consultar_metricas_trafego')return limpar(await metricasDoHub(sql,a));
@@ -76,6 +99,9 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(['buscar_demandas','detalhar_demanda'].includes(nome)){
   modulo='demandas';const id=a.id||null,diaDaPessoa=identidade.diaDaPessoa||null,situacao=a.situacao||'todas',hoje=diaAssistente(identidade.agora);
   const quadro=a.quadro==='producao'?BOARD_PRODUCAO:a.quadro==='solicitacoes'?BOARD_DEMANDAS:null,cde=a.cliente_de||null,cate=a.cliente_ate||null;
+  // Finalizadas hoje: o último evento de status caiu hoje (fuso Bahia); o status final é conferido abaixo.
+  const finalHoje=situacao==='finalizadas_hoje'?(await sql`SELECT conteudo_id::text AS id FROM vybe_conteudo_eventos WHERE tipo='status'
+   GROUP BY conteudo_id HAVING vybe_dia_bahia(max(em))=${hoje}::date`).map(x=>x.id):null;
   itens=await sql`SELECT c.id::text AS id,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
    CASE WHEN c.board_id=${BOARD_DEMANDAS} THEN 'solicitacoes' ELSE 'producao' END AS quadro,
    COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes,
@@ -83,13 +109,24 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
    WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_DEMANDAS},${BOARD_PRODUCAO})
    AND (${diaDaPessoa}::date IS NULL OR COALESCE(c.prazo,c.veiculacao)=${diaDaPessoa}::date)
-   AND (${situacao}='todas' OR (s.final IS FALSE AND (${situacao}='pendentes' OR c.prazo<${hoje}::date)))
+   AND (${situacao}='todas' OR (${situacao}='finalizadas_hoje' AND s.final IS TRUE AND c.id::text=ANY(${finalHoje}::text[]))
+    OR (${situacao} IN ('pendentes','atrasadas') AND s.final IS FALSE AND (${situacao}='pendentes' OR c.prazo<${hoje}::date)))
    AND (${id}::bigint IS NULL OR c.id=${id}) AND (${q}='' OR c.titulo ILIKE '%'||${q}||'%')
    AND (${cid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id=c.id AND cc.cliente_id=${cid}))
    AND (${rid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis cr WHERE cr.conteudo_id=c.id AND cr.pessoa_id=${rid}))
    AND (${status}='' OR s.rotulo ILIKE ${status}) AND (${de}::date IS NULL OR c.prazo>=${de}::date) AND (${ate}::date IS NULL OR c.prazo<=${ate}::date)
    AND (${quadro}::bigint IS NULL OR c.board_id=${quadro}) AND (${cde}::date IS NULL OR c.veiculacao>=${cde}::date) AND (${cate}::date IS NULL OR c.veiculacao<=${cate}::date)
    ORDER BY c.prazo ASC NULLS LAST,c.id LIMIT ${limit} OFFSET ${offset}`;
+  // Quem executou: as fatias do bolo da peça (mesma conta do XP do Escritório), por papel.
+  if(finalHoje&&itens.length){
+   const [t]=await sql`SELECT to_regclass('public.vybe_escritorio_moedas') IS NOT NULL AS ok`;
+   if(t?.ok){
+    const fatias=await sql`SELECT DISTINCT m.conteudo_id::text AS id,m.regra,p.nome FROM vybe_escritorio_moedas m JOIN vybe_pessoas p ON p.id=m.pessoa_id
+     WHERE m.conteudo_id::text=ANY(${itens.map(i=>i.id)}::text[]) AND m.regra=ANY(${Object.keys(PAPEIS_PECA)}::text[]) AND m.quantidade>0`;
+    for(const i of itens)i.execucao=fatias.filter(f=>f.id===i.id).map(f=>({papel:PAPEIS_PECA[f.regra],nome:f.nome}))
+     .sort((a,b)=>ORDEM_PAPEIS.indexOf(a.papel)-ORDEM_PAPEIS.indexOf(b.papel)||a.nome.localeCompare(b.nome,'pt-BR'));
+   }
+  }
  }else if(nome==='listar_clientes'){
   modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_responsaveis'){
