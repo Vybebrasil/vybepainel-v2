@@ -170,6 +170,9 @@ export async function rotinaDoDia(sql, { momento, dia, baseAnterior = null }, ag
   }
   // A base da manhã (conteúdos que veiculam hoje) volta para o bot guardar e mandar amanhã.
   const base = momento === 'manha' ? { data: dia, itens: itens.filter((i) => i.origem !== 'solicitacao' && i.veiculacao_iso === dia).map((i) => ({ id: i.id })) } : null;
+  // Apelidos usados no texto do gerador (ex.: "Bia", e "Tai" fixo em "Bom dia, Tai!") → ID do Monday, para o bot marcar com @.
+  const pessoasPainel = vm.runInContext('PESSOAS', ctx);
+  const apelidos = [...equipe.map((p) => ({ nome: p.nome, id: String(p.id) })), ...(pessoasPainel.TAINARA ? [{ nome: 'Tai', id: String(pessoasPainel.TAINARA) }] : [])];
   return { momento, dia, mensagens: mensagens.filter((m) => !m.agenda || m.texto), base,
-    equipe: equipe.map((p) => ({ id: String(p.id), nome: p.nome })), fontes: [{ modulo: 'rotina', id: dia.replace(/-/g, '') }] };
+    equipe: equipe.map((p) => ({ id: String(p.id), nome: p.nome })), apelidos, fontes: [{ modulo: 'rotina', id: dia.replace(/-/g, '') }] };
 }

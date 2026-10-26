@@ -6,7 +6,7 @@ import {cobrancasDaEquipe} from '../server/escritorio-cobrancas.js';
 
 test('cada demanda que pede ação manda o cliente para o quarto de quem deve agir',async t=>{
  const {db,sql}=await bancoEscritorio(t);
- await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN titulo text, ADD COLUMN monday_item_id text;
+ await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN titulo text, ADD COLUMN monday_item_id text, ADD COLUMN formato text;
   ALTER TABLE vybe_clientes ADD COLUMN segmento text, ADD COLUMN identidade jsonb NOT NULL DEFAULT '{}'::jsonb;
   CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
   INSERT INTO vybe_cliente_pessoas VALUES(1,3),(2,24);
@@ -52,4 +52,12 @@ test('cada demanda que pede ação manda o cliente para o quarto de quem deve ag
  // Antes do meio-dia, a do dia ainda não cobra.
  const manha=await cobrancasDaEquipe(sql,new Date('2026-10-20T13:00:00Z'));
  assert.ok(!titulos(manha,7).some(t=>t.startsWith('Card do dia')));
+ // Aprovação de vídeo/Reels/motion vai para o dono do cliente, não para o Deivid (Paulo, 26/10/2026).
+ await db.exec(`INSERT INTO vybe_conteudos(id,board_id,titulo,formato,status_chave,prazo,veiculacao) VALUES
+   (15,7829537690,'Reels - Bastidor','Reels','para_aprovacao','2026-10-18',NULL),(16,7829537690,'Motion - Abertura',NULL,'em_aprovacao','2026-10-18',NULL);
+  INSERT INTO vybe_conteudo_clientes VALUES(15,1),(16,1);INSERT INTO vybe_conteudo_responsaveis VALUES(15,7,0),(16,7,0);`);
+ const depois=await cobrancasDaEquipe(sql,new Date('2026-10-20T17:00:00Z'));
+ assert.ok(titulos(depois,3).includes('Reels - Bastidor:atrasada')&&titulos(depois,3).includes('Motion - Abertura:atrasada'),'vídeo em aprovação cobra o head do cliente');
+ assert.ok(!titulos(depois,4).some(t=>/Bastidor|Abertura/.test(t)),'o Deivid continua só com design');
+ assert.deepEqual(titulos(depois,4),['Card para aprovar:atrasada']);
 });

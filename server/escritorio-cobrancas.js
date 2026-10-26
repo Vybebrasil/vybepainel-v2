@@ -28,7 +28,7 @@ const diasEntre = (de, ate) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date
 
 export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const hoje = diaBahia(agora), amanha = somarDias(hoje, 1), tarde = horaBahia(agora) >= 12;
-  const linhas = await sql`SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, COALESCE(s.final,false) AS final,
+  const linhas = await sql`SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.formato, c.status_chave, s.rotulo AS status, COALESCE(s.final,false) AS final,
       TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,
       cl.id AS cliente_id, cl.nome AS cliente, cl.segmento, cl.identidade->'personagem' AS personagem,
       COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id), '{}') AS responsaveis,
@@ -64,7 +64,10 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
       if (CLIENTE_DEVE.includes(l.status_chave)) return cobrar(heads, { ...base, tipo: 'lembrar_cliente', data: l.prazo, dias });
       const tipo = l.prazo < hoje ? 'atrasada' : l.prazo === hoje ? (tarde ? 'hoje' : null) : l.prazo === amanha && NAO_COMECOU.includes(l.status_chave) ? 'vence' : null;
       if (!tipo) return;
-      const quem = !l.responsaveis.length ? heads : APROVACAO_INTERNA.includes(l.status_chave) && da ? [da.id] : l.responsaveis;
+      // Aprovação (Paulo, 26/10/2026): design e direção de arte → Deivid; vídeo, Reels e motion → dono do cliente.
+      const video = /^(reels|video|motion)/.test(String(l.formato || l.titulo || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim());
+      const aprovacao = APROVACAO_INTERNA.includes(l.status_chave);
+      const quem = !l.responsaveis.length ? heads : aprovacao && video ? heads : aprovacao && da ? [da.id] : l.responsaveis;
       cobrar(quem, { ...base, tipo, data: l.prazo, dias, sem_responsavel: !l.responsaveis.length });
     };
     peloPrazo();
