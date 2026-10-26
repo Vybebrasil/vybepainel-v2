@@ -17,6 +17,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { minhasDemandas } from './assistente-consultas.js';
+import { rotinaDoDia } from './assistente-rotinas.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
@@ -45,6 +46,16 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     if (consulta === 'minhas_demandas') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
+    }
+    // Rotinas do dia (resumo da agência inteira): só pessoa administradora, no privado.
+    if (consulta === 'rotina') {
+      if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Rotina somente no privado da administração.' });
+      const banco = criarBanco();
+      const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
+      const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
+      if (!adm) return res.status(403).json({ error: 'Rotina restrita à administração.' });
+      const { momento, dia, base_anterior: baseAnterior = null } = req.body?.rotina || {};
+      return res.status(200).json({ ok: true, itens: [], ...(await rotinaDoDia(banco, { momento, dia, baseAnterior })) });
     }
     return res.status(400).json({ error: 'Consulta desconhecida.' });
   } catch (erro) {

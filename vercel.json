@@ -48,7 +48,7 @@
   "functions": {
     "api/*.js": {
       "maxDuration": 300,
-      "includeFiles": "{assets/escritorio/habbo/**,vybe-escritorio-planta.js,vybe-escritorio-mapa.js}"
+      "includeFiles": "{assets/escritorio/habbo/**,vybe-escritorio-planta.js,vybe-escritorio-mapa.js,vybe-resumo.js,vybe-demandas.js,vybe-config.js,vybe-gestor.js}"
     }
   }
 }
