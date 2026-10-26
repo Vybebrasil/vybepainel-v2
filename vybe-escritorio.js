@@ -1161,8 +1161,11 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   const L=ESCRITORIO_QUARTO_MAX,pisos=new Map(),paredes=new Map();
   const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
   if(lp.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(lp[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
-  if(lw.length===L*12) for(let i=0;i<L*4;i++){const [estilo,c,h]=lw.slice(i*3,i*3+3);if(estilo!=='-')paredes.set(escritorioChaveTrecho(r,i),{estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][Number(h)]});}
-  r.pintura={pisos,paredes}; return r;
+  // Revestimento do acervo no trecho (sala_paredes_texturas): cobre a parede
+  // inteira, na altura do trecho (alta se o trecho não foi pintado).
+  const tex=escritorioTexturasDoPerfil(perfil.sala_paredes_texturas);
+  for(let i=0;i<L*4;i++){const [estilo,c,h]=lw.length===L*12?lw.slice(i*3,i*3+3):'-00';if(estilo==='-'&&!tex.has(i))continue;paredes.set(escritorioChaveTrecho(r,i),{estilo:estilo==='-'?'a':estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][estilo==='-'?2:Number(h)],...(tex.has(i)?{textura:tex.get(i)}:{})});}
+  r.pintura={pisos,paredes,texturas:[...new Set(tex.values())]}; return r;
 }
 function escritorioAndaresHtml() {
   const id=escritorio.quarto;if(!id || escritorioCenaComum(id)) return '';
@@ -1178,7 +1181,7 @@ function escritorioPlantaDaCena() {
   const imagens = escritorio.base?.mapa?.imagens || [];
   const a = escritorioAmbienteDoQuarto();
   if (a) { const pq = escritorioPlantaDoQuarto(a); return { ...pq, moveis: [...escritorioMoveisAtuais(), ...pq.fixos], imagens,
-    pisoLadrilho: (x, y) => a.pintura?.pisos.get(x + "," + y), paredeEm: (x, y, eixo) => a.pintura?.paredes.get(`${eixo}:${x},${y}`) }; }
+    pisoLadrilho: (x, y) => a.pintura?.pisos.get(x + "," + y), paredeEm: (x, y, eixo) => a.pintura?.paredes.get(`${eixo}:${x},${y}`), texturasParede: a.pintura?.texturas || [] }; }
   const pq = escritorioPlantaGeral();
   return { ...pq, moveis: [...escritorioMoveisAtuais(), ...pq.fixos], imagens };
 }
@@ -1223,13 +1226,16 @@ function escritorioAplicarSalas() {
       const k = typeof ESCRITORIO_PISOS_SALA !== "undefined" ? ESCRITORIO_PISOS_SALA[parseInt(lp[i], 16)]?.[0] : "";
       if (k) pisos.set(`${a.x0 + (i % L)},${a.y0 + Math.floor(i / L)}`, k);
     }
-    if (lw.length === L * 12) for (let i = 0; i < L * 4; i++) {
-      const [estilo, c, h] = lw.slice(i * 3, i * 3 + 3);
-      if (estilo === "-") continue;
+    // Revestimento do trecho (sala_paredes_texturas) cobre a parede inteira,
+    // como no segundo andar (escritorioAmbienteDoQuarto).
+    const tex = typeof escritorioTexturasDoPerfil === "function" ? escritorioTexturasDoPerfil(perfil?.sala_paredes_texturas) : new Map();
+    for (let i = 0; i < L * 4; i++) {
+      const [estilo, c, h] = lw.length === L * 12 ? lw.slice(i * 3, i * 3 + 3) : "-00";
+      if (estilo === "-" && !tex.has(i)) continue;
       const cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(c, 16)] : "";
-      paredes.set(escritorioChaveTrecho(a, i), { estilo, cor: cor || a.cor, alt: [46, 82, 118][Number(h)] });
+      paredes.set(escritorioChaveTrecho(a, i), { estilo: estilo === "-" ? "a" : estilo, cor: cor || a.cor, alt: [46, 82, 118][estilo === "-" ? 2 : Number(h)], ...(tex.has(i) ? { textura: tex.get(i) } : {}) });
     }
-    a.pintura = { pisos, paredes };
+    a.pintura = { pisos, paredes, texturas: [...new Set(tex.values())] };
   }
 }
 // Ao chegar, a pessoa aparece dentro do próprio quarto (modo foco), logo

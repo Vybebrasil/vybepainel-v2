@@ -1298,7 +1298,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // 6º campo: estilo padrão do trecho (vidro na reunião, tijolo no Lounge…).
     const [x0, y0, x1, y1, cor] = dv, estiloBase = dv.estilo;
     // Painel do acervo: o que o dono pintou, senão o do espaço (ou o padrão da sala).
-    const texturaDe = (est) => dv.recorte ? null : (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
+    // Revestimento escolhido para o trecho (est.textura) vem antes do estilo.
+    const texturaDe = (est) => dv.recorte ? null : est?.textura ? est.textura : (est?.estilo ? (est.estilo === "a" ? MAPA_TEXTURA_SALA : MAPA_ESTILO_TEXTURA[est.estilo] || null) : dv.textura || (dv.sala ? MAPA_TEXTURA_SALA : null));
     const eixo = y0 === y1 ? "x" : "y";
     const n = eixo === "x" ? x1 - x0 : y1 - y0;
     for (let i = 0; i < n; i++) {
@@ -1325,8 +1326,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     }
   }
   // Painéis de parede do acervo: carrega os usados e redesenha as paredes.
-  const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura)].filter(Boolean))];
-  Promise.all(classesParede.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
+  const classesParede = [...new Set([MAPA_TEXTURA_SALA, ...Object.values(MAPA_ESTILO_TEXTURA), ...P.divisorias.map((d) => d.textura), ...(P.texturasParede || [])].filter(Boolean))];
+  // Também chamado ao repintar na edição: um revestimento escolhido agora
+  // ainda não tem a arte carregada.
+  const carregarTexturasParede = (classes) => Promise.all(classes.filter((c) => !MAPA_TEXTURAS_PAREDE.has(c) && !mapaEhPlano(c)).map(async (c) => {
     try {
       const m = await mapaCarregarMovel(c), n = Math.max(1, Math.round(m.dados.logic?.model?.dimensions?.x || 1));
       const d4 = mapaDesenharMovel(m, 4, 0, 0, 0, null, true), d2 = mapaDesenharMovel(m, 2, 0, 0, 0, null, true);
@@ -1335,7 +1338,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // paredes mais altas que o painel).
       if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n, recorte: { 4: mapaRecorteOpaco(d4.canvas), 2: mapaRecorteOpaco(d2.canvas) } });
     } catch {}
-  })).then(() => { try { pintarParedes(true); } catch {} });
+  })).then(() => { try { if (!destruido) pintarParedes(true); } catch {} });
+  carregarTexturasParede(classesParede);
   // Altura da parede num trecho (para os itens pendurados): a do muro da
   // planta, ou a do prédio nas paredes de fora.
   const mapaAlturaParede = (x, y, eixo) => {
@@ -3135,6 +3139,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         m.estilo = est?.estilo || m.estiloBase; m.alt = est?.alt != null ? m.altParede(est.alt) : m.altBase; m.textura = m.texturaDe(est);
       }
       pintarParedes(true);
+      // Revestimento novo na prévia: carrega a arte e repinta quando chegar.
+      carregarTexturasParede([...new Set(muros.map((m) => m.textura).filter(Boolean))]);
     },
     // Ponto da janela de um ladrilho (para pôr a barrinha do editor ao lado do móvel).
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },

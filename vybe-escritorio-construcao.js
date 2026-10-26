@@ -124,6 +124,7 @@ function escritorioNomeMaterialPiso() {
 }
 function escritorioNomeMaterialParede() {
   const pin = escritorioPincel();
+  if (pin.textura) return safeText(escritorioNomeDaClasse(pin.textura));
   return safeText(ESCRITORIO_ESTILOS_PAREDE.find(([id]) => id === pin.estilo)?.[1] || "Parede");
 }
 // Peças de construção (pisos do acervo, revestimentos, acabamentos e blocos):
@@ -234,11 +235,23 @@ async function escritorioPisoNoQuartoTodo() {
     if (pin.area === "borracha") return limparPinturaEscritorio("sala_pisos");
     return estiloSalaEscritorio("sala_piso", pin.piso || "", true);
   }
-  const { w, h } = escritorioDimQuarto(a), pontos = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (escritorioNivelQuarto(a, x, y) >= 0) pontos.push([x, y]);
-  const antes = { ferramenta: pin.ferramenta, area: pin.area };
-  pin.ferramenta = "piso"; pin.area = "retangulo";
-  try { await escritorioAplicarAreaPiso(pontos); } finally { pin.ferramenta = antes.ferramenta; pin.area = antes.area; }
+  // A peça cobre o quarto inteiro (Paulo, 26/10/2026: uma 3×3 num quarto 8×8
+  // deixava as bordas sem piso). Na grade da peça e, quando o tamanho não
+  // divide o quarto, a última fileira encosta na parede por cima da anterior
+  // (a mesma textura, sem emenda à vista).
+  const e = escritorio.edicao, d = escritorioDimPiso(pin.movel);
+  if (!d.pronto) await d.carga;
+  if (escritorio.edicao !== e) return;
+  if (d.erro || !d.x || !d.y) return escritorioAviso("Não foi possível medir esta peça de piso. Escolha outra.");
+  const { w, h } = escritorioDimQuarto(a);
+  const posicoes = (n, t) => { const r = []; for (let k = 0; k + t <= n; k += t) r.push(k); if (n >= t && r.at(-1) + t < n) r.push(n - t); return r; };
+  const novos = [];
+  for (const y of posicoes(h, d.y)) for (const x of posicoes(w, d.x)) if (escritorioPisoCabe(a, x, y, d)) novos.push([pin.movel, x, y, 0, 0, 0]);
+  if (!novos.length) return escritorioAviso("Esta peça não cabe no quarto.");
+  const pisos = new Set(escritorioCatalogo.filter((m) => m.categoria === "Pisos do acervo").map((m) => m.classe));
+  e.itens = [...e.itens.filter((it) => !pisos.has(it[0])), ...novos];
+  escritorioEditorMudou();
+  escritorioAviso(`Quarto todo com ${escritorioNomeDaClasse(pin.movel)}. Salve para confirmar.`);
 }
 // Materiais da parede: estilo, cor e os revestimentos do acervo (grátis).
 function escritorioMateriaisParedeHtml() {
@@ -248,13 +261,13 @@ function escritorioMateriaisParedeHtml() {
   const amostra = (e) => ({ a: `linear-gradient(${a.corPadrao} 0 12%,#2b2d36 12%)`, b: pin.cor || a.corPadrao, c: "repeating-linear-gradient(#8a4733 0 7px,#3b1f17 7px 8px)", d: "repeating-linear-gradient(90deg,#7a5235 0 9px,#4a2f1c 9px 10px)", e: "#6e7077", f: "linear-gradient(135deg,#cfeaff,#7fb6e0)", g: `repeating-linear-gradient(90deg,${pin.cor || a.corPadrao} 0 6px,#00000040 6px 12px)`, h: "repeating-linear-gradient(#e9edf2 0 9px,#b8c0ca 9px 10px),#e9edf2" }[e]);
   const construcao = escritorioClassesDeConstrucao();
   const revest = (escritorioCatalogo || []).filter((m) => construcao.has(m.classe) && m.categoria === "Na parede" && escritorioBuscaCombina(escritorioNomeMovel(m) + " " + m.nome, busca));
-  const estilos = busca ? "" : ESCRITORIO_ESTILOS_PAREDE.map(([id, nome]) => `<button type="button" class="ofc-material" aria-pressed="${pin.estilo === id}" onclick="escritorioPincel().estilo='${id}';renderEscritorio()" title="${safeText(nome)}"><i class="ofc-material-amostra parede" style="background:${amostra(id)}">${typeof MAPA_ESTILO_TEXTURA !== "undefined" && MAPA_ESTILO_TEXTURA[id] ? `<img class="ofc-arte" alt="" data-arte="${MAPA_ESTILO_TEXTURA[id]}">` : ""}</i><span>${nome}</span></button>`).join("");
+  const estilos = busca ? "" : ESCRITORIO_ESTILOS_PAREDE.map(([id, nome]) => `<button type="button" class="ofc-material" aria-pressed="${!pin.textura && pin.estilo === id}" onclick="escritorioPincel().estilo='${id}';escritorioPincel().textura='';renderEscritorio()" title="${safeText(nome)}"><i class="ofc-material-amostra parede" style="background:${amostra(id)}">${typeof MAPA_ESTILO_TEXTURA !== "undefined" && MAPA_ESTILO_TEXTURA[id] ? `<img class="ofc-arte" alt="" data-arte="${MAPA_ESTILO_TEXTURA[id]}">` : ""}</i><span>${nome}</span></button>`).join("");
   const cores = ESCRITORIO_PAREDES_SALA.map((c) => `<button type="button" class="ofc-cor" aria-pressed="${pin.cor === c}" onclick="escritorioPincel().cor='${c}';renderEscritorio()" aria-label="${c ? "Cor " + c : "Cor da sala"}" title="${c ? "" : "Cor da sala"}"><i style="background:${c || a.corPadrao}"></i></button>`).join("");
   const limite = pin.limiteParedes || 36;
-  const cartoes = revest.slice(0, limite).map((m) => `<button type="button" class="ofc-material" onclick="escolherMovelEscritorio('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique e depois na parede"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span></button>`).join("");
+  const cartoes = revest.slice(0, limite).map((m) => `<button type="button" class="ofc-material" aria-pressed="${pin.textura === m.classe}" onclick="escritorioEscolherRevestimento('${safeText(m.classe)}')" title="${safeText(escritorioNomeMovel(m))} · clique e depois na parede: cobre o trecho inteiro"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(escritorioNomeMovel(m))}</span></button>`).join("");
   return `<div class="ofc-materiais" data-modo="parede">
 ${busca ? "" : `<h4>Estilo</h4><div class="ofc-materiais-grade estilos">${estilos}</div><h4>Cor <small>(Padrão, Lisa e Listrada)</small></h4><div class="ofc-cores">${cores}</div>`}
-<h4>Revestimentos <small>· grátis, clique e depois na parede</small></h4><div class="ofc-materiais-topo"><input id="office-parede-busca" type="search" placeholder="Buscar revestimento: madeira, pedra, cidade…" aria-label="Buscar revestimento de parede" value="${safeText(busca)}" oninput="escritorioPincel().buscaParede=this.value;escritorioPincel().limiteParedes=36;escritorioRedesenharMateriais()" autocomplete="off"></div>
+<h4>Revestimentos <small>· grátis, cobrem o trecho inteiro da parede</small></h4><div class="ofc-materiais-topo"><input id="office-parede-busca" type="search" placeholder="Buscar revestimento: madeira, pedra, cidade…" aria-label="Buscar revestimento de parede" value="${safeText(busca)}" oninput="escritorioPincel().buscaParede=this.value;escritorioPincel().limiteParedes=36;escritorioRedesenharMateriais()" autocomplete="off"></div>
 <div class="ofc-materiais-grade" id="office-materiais-grade">${cartoes || '<p class="ofc-nota">Nenhum revestimento com esse nome.</p>'}</div>${revest.length > limite ? `<button type="button" class="ofc-mais-materiais" onclick="escritorioPincel().limiteParedes=${limite + 36};renderEscritorio()">Mostrar mais</button>` : ""}
 <p class="ofc-erro" id="office-estilo-erro" role="alert"></p></div>`;
 }
@@ -264,6 +277,14 @@ function escritorioOutroIgualHtml(classe) {
   const info = escritorioInfoLoja(classe), onde = escritorioOndeEstaMovel(classe), livre = escritorioCamadaComum(escritorio.edicao.camada) || onde.guardados > 0;
   const pode = livre || (!info.marco && info.naVitrine && info.restante !== 0);
   return `<button type="button" onclick="escritorioColocarOutro()" ${pode ? "" : "disabled"} title="Coloca mais um igual no quarto (Ctrl+D duplica no lugar)">${livre ? "+ Outro igual" : `+ Comprar outro · ${info.preco.toLocaleString("pt-BR")}`}</button>`;
+}
+// Revestimento na mão: o próximo clique na parede cobre o trecho inteiro com a
+// arte dele (sala_paredes_texturas), como os estilos Tijolo e Madeira.
+function escritorioEscolherRevestimento(classe) {
+  const pin = escritorioPincel();
+  pin.textura = pin.textura === classe ? "" : classe;
+  if (pin.ferramenta !== "parede") pin.ferramenta = "parede";
+  renderEscritorio();
 }
 // Cabeçalho do modo na Oficina: o nome e uma frase do que o clique faz.
 function escritorioCabecalhoModoHtml() {
