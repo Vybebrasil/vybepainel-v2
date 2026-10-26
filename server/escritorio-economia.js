@@ -97,6 +97,27 @@ export function infoMovel(loja, classe) {
  const exigeVitrine = Boolean(faixa?.vitrine);
  return { ...item, nome: faixa?.nome || item.raridade, exigeVitrine, naVitrine: !exigeVitrine || loja.vitrine.includes(classe) };
 }
+// Histórico de compras da Carteira (Paulo, 26/10/2026: "onde olha o histórico
+// de compras?"): os 40 últimos movimentos de loja da pessoa, pelo razão.
+// tipo: compra, kit, venda ou devolucao; classes: as peças; valor: em moedas.
+export async function historicoDaLoja(sql, pessoaId) {
+ const linhas = await sql`SELECT m.origem, m.quantidade, m.criado_em, c.origem AS compra
+  FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_moedas c ON c.pessoa_id=m.pessoa_id AND m.origem = 'reembolso:compra:' || c.id
+  WHERE m.pessoa_id=${pessoaId} AND (m.origem LIKE 'compra:%' OR m.origem LIKE 'kit:%' OR m.origem LIKE 'venda:%' OR m.origem LIKE 'reembolso:compra:%')
+  ORDER BY m.criado_em DESC, m.id DESC LIMIT 40`;
+ return linhas.map((l) => {
+  const origem = String(l.origem), em = l.criado_em instanceof Date ? l.criado_em.toISOString() : String(l.criado_em);
+  if (origem.startsWith('kit:')) {
+   // Classes de roupa têm dois-pontos (roupa:...): junta de volta.
+   const p = origem.split(':'), classes = [];
+   for (let i = 3; i < p.length; i++) classes.push(p[i] === 'roupa' && i + 1 < p.length ? 'roupa:' + p[++i] : p[i]);
+   return { tipo: 'kit', kit: p[2] || '', classes, unidades: classes.length, valor: Number(l.quantidade), em };
+  }
+  if (origem.startsWith('venda:')) return { tipo: 'venda', classes: [origem.split(':').slice(2).join(':')], unidades: 1, valor: Number(l.quantidade), em };
+  const base = origem.startsWith('reembolso:') ? String(l.compra || '') : origem, m = COMPRA.exec(base);
+  return { tipo: origem.startsWith('reembolso:') ? 'devolucao' : 'compra', classes: m ? [m[2]] : [], unidades: Number(m?.[1] || 1), valor: Number(l.quantidade), em };
+ });
+}
 export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja = true, marcos = true } = {}) {
  if (!await economiaPronta(sql)) return {disponivel:false, motivo:'A loja aguarda a migração revisada do banco.'};
  // Marcos primeiro: o móvel de um marco recém-conquistado já aparece no inventário.
@@ -108,7 +129,7 @@ export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja
  // Pontos (XP, meta e extrato) chegam depois da migração própria; sem ela, null.
  // O que pode voltar para a loja: unidades compradas e o valor de cada uma.
  const vendiveis = Object.fromEntries(Object.entries(await unidadesVendiveis(sql, pessoaId)).map(([c, l]) => [c, l.map((x) => [x.unidades, x.preco])]));
- return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,vendiveis,
+ return {disponivel:true,saldo:Number(carteira?.saldo || 0),inventario,conquistas,essenciais:MOVEIS_ESSENCIAIS,preco:PRECO_COMUM,vendiveis,historico:await historicoDaLoja(sql,pessoaId),
   pontos:await resumoPontos(sql,pessoaId,agora), marcos: lista, titulos: lista ? await titulosDaPessoa(sql, pessoaId) : null, ...(loja ? await extrasDaLoja(sql, pessoaId, agora) : {})};
 }
 // Só com a loja (janela do catálogo, compras): a entrada do escritório fica leve.

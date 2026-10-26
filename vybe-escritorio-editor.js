@@ -1114,7 +1114,9 @@ function desenharCatalogoJanelaEscritorio() {
   const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
   // Em destaque: primeiro o que dá para comprar agora, depois os mais raros.
   const compravel = (m) => Number(de(m).naVitrine && !de(m).marco && de(m).restante !== 0);
-  const ordem = { destaque: (a, b) => compravel(b) - compravel(a) || (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || nome(a, b),
+  // Com busca, o mais parecido com o que se digitou vem primeiro.
+  const relevancia = new Map(), rel = (m) => relevancia.get(m.classe) ?? (relevancia.set(m.classe, f.busca ? escritorioRelevanciaBusca(m, f.busca) : 0), relevancia.get(m.classe));
+  const ordem = { destaque: (a, b) => rel(b) - rel(a) || compravel(b) - compravel(a) || (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || nome(a, b),
     preco: (a, b) => de(a).preco - de(b).preco || nome(a, b), caro: (a, b) => de(b).preco - de(a).preco || nome(a, b),
     raridade: (a, b) => (ESCRITORIO_ORDEM_RARIDADE[de(b).raridade] ?? 0) - (ESCRITORIO_ORDEM_RARIDADE[de(a).raridade] ?? 0) || de(b).preco - de(a).preco || nome(a, b), nome }[f.ordem] || nome;
   const semFaixa = escritorioCatalogoGeralLista({ ...f, raridade: "" });
@@ -1142,6 +1144,9 @@ function desenharCatalogoJanelaEscritorio() {
 function escritorioCatalogoGeralLista(f) {
   const busca = String(f.busca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const grupo = f.categoria === "Recentes" ? ((m) => escritorioRecentes().includes(m.classe)) : f.categoria && f.categoria !== "*" ? escritorioFiltroGrupo(f.categoria) : null;
+  // Buscar o nome de um ambiente ("academia", "cozinha") traz tudo dele.
+  const amb = busca && typeof ESCRITORIO_AMBIENTES !== "undefined" ? ESCRITORIO_AMBIENTES.find(([n]) => escritorioSemAcento(n) === busca || escritorioSingular(busca) === escritorioSemAcento(n)) : null;
+  const doAmbiente = amb ? escritorioFiltroGrupo(amb[0]) : null;
   const saldo = Number(escritorio.base?.economia?.saldo || 0), vistos = new Set();
   return [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES].filter((m) => {
     if (vistos.has(m.classe)) return false;
@@ -1149,7 +1154,7 @@ function escritorioCatalogoGeralLista(f) {
     // A Loja só mostra o que se compra (os grátis ficam na construção).
     if (typeof escritorioVendivelNaLoja === "function" && !escritorioVendivelNaLoja(m)) return false;
     if (grupo && !grupo(m)) return false;
-    if (busca && !escritorioBuscaCombina(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe + " " + (m.categoria || ""), busca)) return false;
+    if (busca && !escritorioBuscaCombina(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe, busca) && !doAmbiente?.(m)) return false;
     if (f.desejos && !escritorioDesejos().has(m.classe)) return false;
     const i = escritorioInfoLoja(m.classe);
     if (f.raridade && i.raridade !== f.raridade) return false;
@@ -2280,6 +2285,7 @@ function escritorioCarteiraHtml() {
   return `<section class="ofc-carteira" aria-label="Sua carteira">
 <div class="ofc-carteira-saldo"><span>Saldo disponível</span><b>${Number(c.saldo).toLocaleString("pt-BR")}</b><small>VybeCoins</small></div>
 ${escritorioCarteiraSemanaHtml(c)}
+${typeof escritorioHistoricoComprasHtml === "function" ? escritorioHistoricoComprasHtml() : ""}
 ${c.pontos && typeof escritorioNivelHtml === "function" ? escritorioNivelHtml(c.pontos) : ""}
 ${c.marcos?.length && typeof escritorioMarcosHtml === "function" ? `<h4>Como ganhar mais</h4>${escritorioMarcosHtml(c.marcos)}` : ""}
 <details class="ofc-precos"><summary>Preços e raridades</summary><ul><li>Essenciais · grátis</li><li>${faixas}</li></ul>${loja ? "<p>Muito raros e lendários só na vitrine semanal; estoque compartilhado pela equipe.</p>" : ""}</details>
@@ -2322,14 +2328,66 @@ const ESCRITORIO_SINONIMOS = [
   ["tv", "televisão", "tela", "screen"], ["som", "música", "jukebox", "caixa de som", "speaker", "radio"],
   ["quadro", "pôster", "arte", "poster", "picture", "painting"], ["janela", "window"], ["porta", "door", "portão", "gate"],
   ["troféu", "prêmio", "taça", "trophy", "prize"], ["geladeira", "frigobar", "fridge"], ["café", "cafeteira", "coffee"],
+  // 26/10/2026 (Paulo: o Vinícius queria montar uma academia e não achava): o
+  // acervo do Habbo está em inglês; cada palavra em português procura também
+  // o nome original.
+  ["academia", "ginástica", "ginastica", "musculação", "treino", "fitness", "gym", "workout", "exercise"],
+  ["esteira", "treadmill"], ["haltere", "halter", "peso", "anilha", "dumbbell", "barbell", "weight", "weights"],
+  ["bicicleta", "bike", "bicycle", "cycle"], ["luta", "saco de pancada", "boxing", "punch", "sparring"], ["tatame", "colchonete", "yoga", "softmat"],
+  ["armário de academia", "vestiário", "locker"], ["chuveiro", "ducha", "shower"], ["banheira", "bath", "bathtub", "tub", "jacuzzi"], ["vaso sanitário", "privada", "toilet"], ["pia", "sink"],
+  ["fogão", "fogao", "cooker", "stove", "oven", "forno"], ["micro-ondas", "microondas", "microwave"], ["cozinha", "kitchen", "ktchn"], ["balcão", "balcao", "counter", "bar"],
+  ["piscina", "pool", "hot tub"], ["praia", "beach", "sand", "surf"], ["guarda-sol", "parasol", "umbrella"], ["churrasqueira", "grill", "bbq"],
+  ["festa", "balada", "party", "disco", "dance"], ["dj", "turntable", "mixer"], ["balão", "balao", "balloon"], ["videogame", "fliperama", "arcade", "gaming", "game", "console"],
+  ["sinuca", "bilhar", "pool table", "billiard"], ["futebol", "football", "soccer"], ["piano", "guitarra", "violão", "bateria", "piano", "guitar", "drum"],
+  ["escritório", "escritorio", "office", "desk"], ["impressora", "printer", "copier"], ["quadro branco", "lousa", "whiteboard", "blackboard", "chalkboard"],
+  ["lareira", "fireplace"], ["guarda-roupa", "armário de roupa", "wardrobe", "closet", "dresser"], ["espelho", "mirror"], ["relógio", "relogio", "clock"],
+  ["cerca", "grade", "fence", "railing"], ["fonte", "fountain"], ["árvore", "arvore", "tree", "palm", "palmeira"], ["estátua", "estatua", "statue", "sculpture"],
+  ["natal", "christmas", "xmas", "santa"], ["neve", "snow", "ice", "gelo"], ["cortina", "curtain"], ["almofada", "travesseiro", "pillow", "cushion"],
+  ["carro", "car", "vehicle"], ["moto", "motorbike", "motorcycle"], ["barraca", "tent"], ["aquário", "aquario", "aquarium", "fish"],
 ];
+// Busca do catálogo, da Loja, da Oficina e do inventário (26/10/2026): sem
+// acento, plural e palavras pequenas ("de", "com") não atrapalham; cada palavra
+// precisa aparecer (ou um sinônimo dela) e expressões ("saco de pancada")
+// valem inteiras.
+const ESCRITORIO_PALAVRAS_VAZIAS = new Set(["de", "da", "do", "das", "dos", "e", "com", "para", "pra", "o", "a", "os", "as", "um", "uma", "no", "na"]);
+const escritorioSemAcento = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/_/g, " ");
+const escritorioSingular = (p) => p.length > 4 && /oes$/.test(p) ? p.slice(0, -3) + "ao" : p.length > 4 && /(ais|eis)$/.test(p) ? p.slice(0, -2) + "l" : p.length > 3 && /s$/.test(p) ? p.slice(0, -1) : p;
+let escritorioBuscaCache = null;
+function escritorioTermosDaBusca(busca) {
+  const b = escritorioSemAcento(busca).trim();
+  if (escritorioBuscaCache?.b === b) return escritorioBuscaCache.termos;
+  const grupos = ESCRITORIO_SINONIMOS.map((g) => g.map(escritorioSemAcento));
+  let resto = ` ${b} `;
+  const termos = [];
+  // Expressões de várias palavras primeiro ("saco de pancada", "pool table").
+  for (const g of grupos) for (const p of g) if (p.includes(" ") && resto.includes(` ${p} `)) { termos.push([...new Set(g)]); resto = resto.replace(` ${p} `, " "); }
+  for (const palavra of resto.split(/\s+/).filter((p) => p && !ESCRITORIO_PALAVRAS_VAZIAS.has(p))) {
+    const formas = new Set([palavra, escritorioSingular(palavra)]), digitadas = new Set(formas);
+    for (const g of grupos) if (g.some((p) => formas.has(p) || formas.has(escritorioSingular(p)) || (palavra.length > 3 && p.startsWith(palavra)))) g.forEach((p) => formas.add(p));
+    // O que se digitou vale no começo de uma palavra; o sinônimo, só inteiro
+    // ("oven" não acha "woven", "bar" não acha "barraca").
+    termos.push([...formas].map((f) => (digitadas.has(f) ? "^" + f : f)));
+  }
+  escritorioBuscaCache = { b, termos };
+  return termos;
+}
 function escritorioBuscaCombina(texto, busca) {
-  const sem = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  const alvo = sem(texto), b = sem(busca).trim();
-  if (!b) return true;
-  if (alvo.includes(b)) return true;
-  const grupo = ESCRITORIO_SINONIMOS.find((g) => g.some((p) => sem(p) === b || (b.length > 3 && sem(p).startsWith(b))));
-  return Boolean(grupo?.some((p) => alvo.includes(sem(p))));
+  const termos = escritorioTermosDaBusca(busca);
+  if (!termos.length) return true;
+  const alvo = ` ${escritorioSemAcento(texto).replace(/[^a-z0-9]+/g, " ")} `;
+  const inteira = (f) => alvo.includes(` ${f} `) || alvo.includes(` ${f}s `) || alvo.includes(` ${f}es `);
+  // Palavra curta digitada só inteira ("tv", "pc"); as outras, no começo de uma palavra.
+  return termos.every((formas) => formas.some((f) => (f[0] !== "^" ? inteira(f) : f.length <= 4 ? inteira(f.slice(1)) : alvo.includes(" " + f.slice(1)))));
+}
+// Relevância para ordenar a busca: o nome em português começando pelo que se
+// digitou vale mais; achar só pelo sinônimo, menos.
+function escritorioRelevanciaBusca(m, busca) {
+  const nome = escritorioSemAcento(escritorioNomeMovel(m)), b = escritorioSemAcento(busca).trim();
+  if (!b) return 0;
+  if (nome.startsWith(b)) return 100;
+  if (nome.includes(b)) return 70;
+  const termos = escritorioTermosDaBusca(busca), noNome = termos.filter((formas) => formas.some((f) => nome.includes(f.replace(/^\^/, "")))).length;
+  return 10 + Math.round((noNome / Math.max(1, termos.length)) * 50);
 }
 // Destaques da Loja: a vitrine da semana com a contagem até trocar e os kits.
 function escritorioDestaquesLojaHtml() {
