@@ -8247,7 +8247,10 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
    cada coluna tem a altura da tela e rola por dentro, então cabe muito mais por
    dia e o "Ver todas" some. No celular, uma coluna por vez, com encaixe. */
 .clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;overscroll-behavior-x:contain}
-.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(280px,21.5vw,340px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
+/* Mais largas (Paulo, 26/10/2026: "as colunas muito apertadinhas"): 280px
+   eram o mínimo e era o que se via num notebook. Agora cabem três e meia numa
+   tela de 1280 e quatro e pouco numa de 1920; a rolagem lateral continua. */
+.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(320px,26vw,400px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
 .clients-grid.dias-colunas > .day-scroll-card .day-activity-scroll,
 /* Sem "overscroll contain" (Deivid, 20/10/2026, segunda tela): no fim da lista
    do dia a roda do mouse continua rolando a página; com as colunas cobrindo a
@@ -8268,15 +8271,15 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .dias-colunas > .day-scroll-card .client-header .day-date-context {grid-area:2/1}
 .dias-colunas > .day-scroll-card .client-header .day-progress-label {grid-area:2/2;font-size:10.5px;opacity:.85;white-space:nowrap}
 .dias-colunas > .day-scroll-card .day-menu > summary {padding:2px 8px;font-size:11px}
-.dias-colunas > .day-scroll-card .day-pending-tabs {flex-wrap:nowrap;padding:4px 10px;gap:3px}
-.dias-colunas > .day-scroll-card .day-pending-tabs button {flex:1 1 auto;min-width:0;padding:3px 4px;gap:3px;font-size:10px}
+.dias-colunas > .day-scroll-card .day-pending-tabs {flex-wrap:nowrap;padding:5px 12px;gap:4px}
+.dias-colunas > .day-scroll-card .day-pending-tabs button {flex:1 1 auto;min-width:0;padding:4px 6px;gap:4px;font-size:10.5px}
 .dias-colunas > .day-scroll-card .day-pending-tabs button > span {flex:none;padding:0 4px}
-.dias-colunas > .day-scroll-card > .client-progress {padding:0 10px 4px}
+.dias-colunas > .day-scroll-card > .client-progress {padding:0 12px 6px}
 .dias-colunas > .day-scroll-card > .client-progress .client-progress-text {display:none}
-.dias-colunas > .day-scroll-card .item-row.day-activity-row {padding:6px 10px 6px 8px;gap:4px}
-.dias-colunas > .day-scroll-card .day-activity-content {grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"titulo titulo" "legenda acoes";gap:3px 6px;align-items:center}
+.dias-colunas > .day-scroll-card .item-row.day-activity-row {padding:9px 12px 9px 10px;gap:6px}
+.dias-colunas > .day-scroll-card .day-activity-content {grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"titulo titulo" "legenda acoes";gap:6px 8px;align-items:center}
 .dias-colunas > .day-scroll-card .day-activity-main {display:contents}
-.dias-colunas > .day-scroll-card .day-activity-row .item-name {grid-area:titulo;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:12.5px;line-height:1.3}
+.dias-colunas > .day-scroll-card .day-activity-row .item-name {grid-area:titulo;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:13px;line-height:1.35}
 .dias-colunas > .day-scroll-card .day-activity-caption {grid-area:legenda;margin:0;min-width:0;flex-wrap:nowrap;overflow:hidden}
 .dias-colunas > .day-scroll-card .day-activity-caption > span {flex:none;white-space:nowrap}
 /* Vários clientes: nas colunas, o primeiro e "+N" (lista inteira no título);
@@ -11553,3 +11556,12 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
    tela inteira o tempo todo, mesmo com o Painel parado. */
 /* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
 html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}
+/* STATUS NUMA LINHA SÓ (Paulo, 26/10/2026: "me incomoda ficar tudo torto").
+   Uma bolinha, duas ou três empurravam o status para lados diferentes em cada
+   linha do dia. Agora os responsáveis ocupam sempre o mesmo espaço à direita,
+   empilhados (até três e o "+N", como já mostra ownerEditorTrigger), e o
+   status termina sempre no mesmo ponto. */
+.day-activity-row .day-activity-actions .manager-owner-trigger{flex:0 0 58px;width:58px;justify-content:flex-end;transform:none}
+.day-activity-row .manager-owner-trigger .owner-avatar-stack{padding-left:0}
+.day-activity-row .manager-owner-trigger .owner-avatar-stack > :is(img,.owner-avatar-fallback){width:22px;height:22px}
+.day-activity-row .manager-owner-trigger .owner-avatar-stack > :is(img,.owner-avatar-fallback) + :is(img,.owner-avatar-fallback){margin-left:-10px}
