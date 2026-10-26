@@ -8,11 +8,13 @@ const inteiro={type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER};
 const busca={type:'string',maxLength:100};
 const data={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
 const situacao={type:'string',enum:['todas','pendentes','atrasadas']};
+// finalizadas_hoje: status final alcançado hoje, pelo histórico de status (a mesma regra do Dia da equipe).
+const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
  ['minhas_demandas','Demandas da pessoa autenticada, sem ID escolhido pelo modelo. Hoje usa prazo ou, se ausente, veiculação. Pendentes usam status oficial não final; atrasadas exigem prazo vencido e status não final.',{periodo:{type:'string',enum:['hoje','todas']},situacao,...pagina}],
  ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub.',{cliente_id:inteiro,de:data,ate:data,modulo:{type:'string',enum:['trafego','alcance','interacoes','seguidores','faturamento','objetivos','aprovacoes','documentos','marca','campanhas','anuncios','publico','segmentacao']},...pagina},['cliente_id','de','ate']],
- ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
+ ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações; situacao finalizadas_hoje traz o que virou status final hoje.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao:situacaoBusca,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
  ['detalhar_demanda','Detalhes operacionais de uma demanda, com briefing, comentários, histórico, tarefas e referências de arquivos. Nunca lê segredos nem o conteúdo binário de anexos.',{id:inteiro,secao:{type:'string',enum:['ficha','comentarios','historico','tarefas','arquivos']},...pagina},['id']],
  ['listar_clientes','Clientes e carteira operacional, sem contatos ou contratos.',{busca,...pagina}],
  ['listar_responsaveis','Equipe ativa, nomes e funções, sem e-mails ou dados pessoais.',{busca,...pagina}],
@@ -76,6 +78,9 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(['buscar_demandas','detalhar_demanda'].includes(nome)){
   modulo='demandas';const id=a.id||null,diaDaPessoa=identidade.diaDaPessoa||null,situacao=a.situacao||'todas',hoje=diaAssistente(identidade.agora);
   const quadro=a.quadro==='producao'?BOARD_PRODUCAO:a.quadro==='solicitacoes'?BOARD_DEMANDAS:null,cde=a.cliente_de||null,cate=a.cliente_ate||null;
+  // Finalizadas hoje: o último evento de status caiu hoje (fuso Bahia); o status final é conferido abaixo.
+  const finalHoje=situacao==='finalizadas_hoje'?(await sql`SELECT conteudo_id::text AS id FROM vybe_conteudo_eventos WHERE tipo='status'
+   GROUP BY conteudo_id HAVING vybe_dia_bahia(max(em))=${hoje}::date`).map(x=>x.id):null;
   itens=await sql`SELECT c.id::text AS id,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
    CASE WHEN c.board_id=${BOARD_DEMANDAS} THEN 'solicitacoes' ELSE 'producao' END AS quadro,
    COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes,
@@ -83,7 +88,8 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
    WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_DEMANDAS},${BOARD_PRODUCAO})
    AND (${diaDaPessoa}::date IS NULL OR COALESCE(c.prazo,c.veiculacao)=${diaDaPessoa}::date)
-   AND (${situacao}='todas' OR (s.final IS FALSE AND (${situacao}='pendentes' OR c.prazo<${hoje}::date)))
+   AND (${situacao}='todas' OR (${situacao}='finalizadas_hoje' AND s.final IS TRUE AND c.id::text=ANY(${finalHoje}::text[]))
+    OR (${situacao} IN ('pendentes','atrasadas') AND s.final IS FALSE AND (${situacao}='pendentes' OR c.prazo<${hoje}::date)))
    AND (${id}::bigint IS NULL OR c.id=${id}) AND (${q}='' OR c.titulo ILIKE '%'||${q}||'%')
    AND (${cid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id=c.id AND cc.cliente_id=${cid}))
    AND (${rid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis cr WHERE cr.conteudo_id=c.id AND cr.pessoa_id=${rid}))

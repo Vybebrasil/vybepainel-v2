@@ -101,6 +101,21 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   // No source failure may masquerade as an empty history.
   await assert.rejects(()=>executarFerramenta(sql,'detalhar_demanda',{id:200,secao:'historico'}));
  });
+ await t.test('finalizadas_hoje: status final cujo último evento de status foi hoje, no fuso Bahia',async()=>{
+  await db.exec(`CREATE FUNCTION vybe_dia_bahia(timestamptz) RETURNS date LANGUAGE sql AS $$ SELECT ($1 AT TIME ZONE 'America/Bahia')::date $$;
+   INSERT INTO vybe_status VALUES(7829537690,'final','Finalizado',true);
+   INSERT INTO vybe_conteudos(id,titulo,formato,prazo,veiculacao,atualizado_em,status_chave,board_id,removido_em,briefing) VALUES
+   (501,'Pronta hoje','Card','2026-10-26','2026-10-26',now(),'final',7829537690,NULL,NULL),
+   (502,'Pronta ontem','Card','2026-10-25','2026-10-26',now(),'final',7829537690,NULL,NULL),
+   (503,'Mexida hoje, mas aberta','Card','2026-10-26','2026-10-26',now(),'agendado',7829537690,NULL,NULL);
+   INSERT INTO vybe_conteudo_eventos(conteudo_id,tipo,em) VALUES(501,'status','2026-10-25T20:00:00Z'),(501,'status','2026-10-26T13:00:00Z'),
+   (502,'status','2026-10-26T02:30:00Z'),(503,'status','2026-10-26T14:00:00Z');`);
+  // 502: 02:30Z ainda é 25/10 na Bahia (UTC-3).
+  const r=await executarFerramenta(sql,'buscar_demandas',{situacao:'finalizadas_hoje'},{agora:new Date('2026-10-26T20:00:00Z')});
+  assert.deepEqual(r.itens.map(x=>x.id),['501']);
+  await assert.rejects(()=>executarFerramenta(sql,'minhas_demandas',{situacao:'finalizadas_hoje'},{pessoaId:1}));
+  await db.exec('DELETE FROM vybe_conteudo_eventos WHERE conteudo_id>=501;DELETE FROM vybe_conteudos WHERE id>=501');
+ });
  await t.test('projeções não incluem emails, credenciais, notas, links ou documentos',async()=>{
   for(const [nome,args]of [['listar_clientes',{}],['listar_responsaveis',{}],['listar_planejamentos',{}],['detalhar_planejamento',{id:5}],['listar_captacoes',{}],['listar_roteiros',{}]]){
    const r=await executarFerramenta(sql,nome,args);assert.ok(r.itens.length);assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));assert.ok(!JSON.stringify(r).includes('example.com'));if(nome!=='detalhar_planejamento')assert.ok(!JSON.stringify(r).includes('privado'));
