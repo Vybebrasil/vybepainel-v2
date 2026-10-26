@@ -1,3 +1,4 @@
+import {exigirAdministradorPrivado} from './assistente-exclusivo.js';
 import { validarConversa, autorizarConversa } from './assistente-politica.js';
 import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
 import { assistenteAtivo } from './assistente-ativacao.js';
@@ -27,16 +28,17 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
   const segredo = config.VYBE_AI_LINK_SECRET;
   if (!segredo || segredo.length < 32) return res.status(503).json({ error: 'Integração não configurada.' });
   try {
+    exigirAdministradorPrivado(jid,contexto,config);
+    validarConversa(jid,contexto,config);
     if (consulta === 'vinculacao_confirmar') {
-      validarConversa(jid,contexto,config);
       if (contexto.tipo !== 'privado') return res.status(403).json({error:'Vinculação somente em conversa privada.'});
       if (typeof codigo !== 'string') return res.status(400).json({ error: 'Código obrigatório.' });
-      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo);
+      const ok = await consumirCodigo(criarBanco(), jid, codigo, segredo, Number(config.VYBE_AI_ADMIN_PESSOA_ID));
       return res.status(ok ? 200 : 403).json({ ok });
     }
     if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
       const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
-      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'equipe-ampla-2',max_ferramentas:3});
+      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'administrador-privado-1',max_ferramentas:3});
       return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});
     }
     if (consulta === 'minhas_demandas') {

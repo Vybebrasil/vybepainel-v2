@@ -10,10 +10,12 @@ const {criarProcessador,RegistroMensagens,SIMULACAO}=require('../conectores/what
 const {ErroVybe}=require('../conectores/whatsapp/vybe-api.js');
 const jid='2222222222@lid',owner='1111111111@c.us',grupo='123456789-123@g.us';
 const config={VYBE_AI_ATIVA:'1',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'s'.repeat(40),VYBE_AI_GRUPOS_IDS:grupo};
+config.VYBE_AI_ADMIN_JID_HASH=identificadorProtegido(jid,config.VYBE_AI_LINK_SECRET);
+config.VYBE_AI_ADMIN_PESSOA_ID='42';
 async function preparar(){
  const {db,sql}=conexao();
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean,pode_entrar boolean,senha_hash text);
- INSERT INTO vybe_pessoas VALUES(42,'Pessoa fictícia',true,true,'ficticio'),(43,'Outra pessoa fictícia',true,true,'ficticio');
+ INSERT INTO vybe_pessoas VALUES(42,'Pessoa fictícia',true,true,'ficticio'),(43,'Outra pessoa fictícia',true,true,'ficticio'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;
  CREATE TABLE vybe_clientes(id bigint,nome text);
  CREATE TABLE vybe_conteudos(id bigint,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz);
  INSERT INTO vybe_conteudos VALUES(1,'Aberta vencida fictícia',NULL,'2020-01-01',NULL,now(),'aberta',8385559107,NULL),(2,'Finalizada fictícia',NULL,'2020-01-01',NULL,now(),'final',8385559107,NULL),(3,'Futura fictícia',NULL,'2099-01-01',NULL,now(),'aberta',8385559107,NULL),(4,'Outra pessoa fictícia',NULL,'2020-01-01',NULL,now(),'aberta',8385559107,NULL),(5,'Sem prazo fictícia',NULL,NULL,NULL,now(),'aberta',8385559107,NULL);
@@ -35,7 +37,7 @@ for(const revogar of [false,true])test('fluxo real conector → handler → Post
   return res.dados;
  };
  const client={info:{wid:{_serialized:owner}},getChats:async()=>[{isGroup:true,name:'Produção',id:{_serialized:grupo},participants:[{id:{_serialized:jid}}]}]};
- const p=criarProcessador({client,registro,api,qwen:async()=>{modelo++;throw Error('Não chamar');},env:{VYBE_API_HABILITADA:'1',VYBE_GRUPOS_IDS:grupo},log:x=>logs.push(x),previaWhatsapp:x=>previas.push(x)});
+ const p=criarProcessador({client,registro,api,qwen:async()=>{modelo++;throw Error('Não chamar');},env:{VYBE_AI_ADMIN_JID:jid,VYBE_API_HABILITADA:'1',VYBE_GRUPOS_IDS:grupo},log:x=>logs.push(x),previaWhatsapp:x=>previas.push(x)});
  try{
   await p.processar({body:'!vybe Quais são as demandas atrasadas que estão sob minha responsabilidade? pessoa_id 43',from:jid,to:owner,fromMe:false,type:'chat',timestamp:Date.now()/1000,id:{_serialized:'mensagem-ficticia'},getChat:async()=>({id:{_serialized:jid},isGroup:false}),reply(){throw Error('Não enviar');}});
   assert.equal(modelo,0);assert.ok(leituras>0);assert.equal(SIMULACAO,true);

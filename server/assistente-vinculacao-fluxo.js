@@ -53,7 +53,8 @@ export async function emitirCodigo(sql, pessoaId, segredo, agora = Date.now()) {
   });
 }
 
-export async function consumirCodigo(sql, jid, codigo, segredo) {
+export async function consumirCodigo(sql, jid, codigo, segredo, pessoaAdministrativa = null) {
+  if(pessoaAdministrativa!==null&&(!Number.isSafeInteger(pessoaAdministrativa)||pessoaAdministrativa<=0))throw new TypeError('Conta inválida.');
   if (typeof codigo !== 'string' || !/^[0-9a-f]{20}$/.test(codigo)) return false;
   const jidHash = identificadorProtegido(jid, segredo);
   // CTE atômica: só consome código vigente e ainda não usado.
@@ -68,7 +69,8 @@ export async function consumirCodigo(sql, jid, codigo, segredo) {
     // Mesma trava da emissão e revogação: nenhuma confirmação pendente
     // pode ressuscitar o vínculo depois de uma revogação concorrente.
     const pessoas = await tx`SELECT p.id FROM vybe_pessoas p JOIN vybe_ai_desafios d ON d.pessoa_id=p.id
-      WHERE d.codigo_hash=${codigoHash} FOR UPDATE OF p`;
+      WHERE d.codigo_hash=${codigoHash}
+        AND (${pessoaAdministrativa}::bigint IS NULL OR (p.id=${pessoaAdministrativa} AND p.admin IS TRUE)) FOR UPDATE OF p`;
     if (!pessoas.length) return false;
     const linhas = await tx`
       WITH consumido AS (

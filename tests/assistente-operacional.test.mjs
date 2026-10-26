@@ -4,6 +4,7 @@ import {validarConversa,autorizarConversa} from '../server/assistente-politica.j
 import {identificadorProtegido} from '../server/assistente-identidade.js';import {atenderBotAssistente} from '../server/assistente-servico.js';import {metricasDoHub} from '../server/assistente-hub.js';
 const jid='1111111111@lid',outro='2222222222@c.us',grupo='123456789-123@g.us',segredo='s'.repeat(40);
 const config={VYBE_AI_ATIVA:'1',VYBE_AI_GRUPOS_IDS:grupo,VYBE_AI_LINK_SECRET:segredo,VYBE_AI_BOT_TOKEN:'A'.repeat(64)};
+config.VYBE_AI_ADMIN_JID_HASH=identificadorProtegido(jid,segredo);config.VYBE_AI_ADMIN_PESSOA_ID='1';
 const contexto=(grupoAtivo=false)=>({tipo:grupoAtivo?'grupo':'privado',...(grupoAtivo?{grupo_id:grupo}:{}),participantes:grupoAtivo?[jid,outro]:[jid],grupos_remetente:[grupo],observado_em:Date.now()});
 test('contrato fechado: sem SQL, datas impossíveis, campos administrativos e excesso',()=>{
  for(const [n,a] of [['sql',{}],['buscar_demandas',{sql:'SELECT *'}],['listar_responsaveis',{admin:true}],['buscar_demandas',{limite:26}],['buscar_demandas',{de:'2026-02-30'}],['consultar_metricas_trafego',{cliente_id:1,de:'2026-01-01',ate:'2026-12-31'}]])assert.throws(()=>validarFerramenta(n,a));
@@ -18,7 +19,7 @@ test('conversa exige evidência recente, grupo aprovado, remetente e audiência 
 test('operações consultam domínio real e autorizam a audiência inteira',async t=>{
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,papel text,disciplina text,ativo boolean,pode_entrar boolean,senha_hash text,email text);
- INSERT INTO vybe_pessoas VALUES(1,'Pessoa A','Criação','Design',true,true,'senha','sigilo@example.com'),(2,'Pessoa B','Atendimento','Estratégia',true,true,'senha','pessoal@example.com');
+ INSERT INTO vybe_pessoas VALUES(1,'Pessoa A','Criação','Design',true,true,'senha','sigilo@example.com'),(2,'Pessoa B','Atendimento','Estratégia',true,true,'senha','pessoal@example.com'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;
  CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean,responsavel text);
  INSERT INTO vybe_clientes VALUES(10,'Cliente A',true,'Vinícius'),(20,'Cliente B',true,'Ewerton');
  CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz,briefing text);
@@ -34,7 +35,8 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
  await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
  for(const [id,j]of [[1,jid],[2,outro]])await sql`INSERT INTO vybe_ai_vinculos(pessoa_id,jid_hash) VALUES(${id},${identificadorProtegido(j,segredo)})`;
  await t.test('todos os funcionários elegíveis podem consultar demandas de outros responsáveis',async()=>{
-  assert.equal(await autorizarConversa(sql,jid,contexto(true),segredo,config),1);
+  await assert.rejects(()=>autorizarConversa(sql,jid,contexto(true),segredo,config),{status:403});
+  assert.equal(await autorizarConversa(sql,jid,contexto(),segredo,config),1);
   const r=await executarFerramenta(sql,'buscar_demandas',{});assert.deepEqual(r.itens.map(x=>x.id),['100','200']);assert.equal(r.itens[0].clientes.length,2);
   assert.equal(r.itens[1].responsaveis[0].nome,'Pessoa B');assert.equal(r.itens[0].status,'Agendado');assert.ok(!JSON.stringify(r).includes('NAO_EXPOR'));
   assert.equal((await executarFerramenta(sql,'buscar_demandas',{cliente_id:20,responsavel_id:2})).itens.length,1);
@@ -103,11 +105,12 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   let r=res();await atenderBotAssistente(req,r,()=>sql,config);assert.equal(r.codigo,200);assert.equal(r.corpo.itens.length,2);
   r=res();await atenderBotAssistente({...req,body:{...req.body,consulta:'autorizar_contexto'}},r,()=>sql,config);assert.equal(r.codigo,200);assert.equal(r.corpo.max_ferramentas,3);
  });
- await t.test('endpoint pessoal vincula remetente em privado e grupo e recusa IDs do modelo',async()=>{
+ await t.test('endpoint pessoal permite administrador privado, bloqueia grupo e recusa IDs do modelo',async()=>{
   const res=()=>({status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}});
   for(const grupoAtivo of [false,true]){
    const corpo={jid,contexto:contexto(grupoAtivo),consulta:'operacional',ferramenta:'minhas_demandas',argumentos:{periodo:'todas'},pessoa_id:2,admin:true};
    let r=res();await atenderBotAssistente({method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:corpo},r,()=>sql,config);
+   if(grupoAtivo){assert.equal(r.codigo,403);continue;}
    assert.equal(r.codigo,200);assert.deepEqual(r.corpo.itens.map(x=>x.id),['100']);
    for(const manipulacao of [{responsavel_id:2},{pessoa_id:2},{id:200},{sql:'SELECT *'},{agora:'2026-10-25'}]){
     r=res();await atenderBotAssistente({method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:{...corpo,argumentos:{periodo:'hoje',...manipulacao}}},r,()=>sql,config);assert.equal(r.codigo,400);
@@ -115,7 +118,7 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
   }
  });
  await t.test('elegibilidade automática não usa whitelist e bloqueia ativos sem vínculo/grupo',async()=>{
-  for(const antiga of [undefined,'','999','*'])assert.equal(await autorizarConversa(sql,jid,contexto(true),segredo,{...config,VYBE_AI_PESSOAS_LIBERADAS:antiga}),1);
+  for(const antiga of [undefined,'','999','*'])assert.equal(await autorizarConversa(sql,jid,contexto(),segredo,{...config,VYBE_AI_PESSOAS_LIBERADAS:antiga}),1);
   await assert.rejects(()=>autorizarConversa(sql,'9999999999@lid',{...contexto(),participantes:['9999999999@lid']},segredo,config));
   await assert.rejects(()=>autorizarConversa(sql,jid,{...contexto(),grupos_remetente:[]},segredo,config));
   await assert.rejects(()=>autorizarConversa(sql,jid,{...contexto(),tipo:'privado',participantes:[jid,outro]},segredo,config));

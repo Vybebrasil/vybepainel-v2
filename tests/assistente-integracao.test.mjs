@@ -7,6 +7,7 @@ import {emitirCodigo} from '../server/assistente-vinculacao-fluxo.js';
 import {identificadorProtegido} from '../server/assistente-identidade.js';
 const config={VYBE_AI_GRUPOS_IDS:'123456789-123@g.us',VYBE_AI_ATIVA:'1',VYBE_AI_BOT_TOKEN:'A'.repeat(64),VYBE_AI_LINK_SECRET:'segredo-ficticio-isolado-para-integracao-123456'};
 const jid='99999999999999999999@lid';
+config.VYBE_AI_ADMIN_JID_HASH=identificadorProtegido(jid,config.VYBE_AI_LINK_SECRET);config.VYBE_AI_ADMIN_PESSOA_ID='1';
 async function chamar(sql,body={},op={}) {
  const req={method:'POST',headers:{authorization:'Bearer '+config.VYBE_AI_BOT_TOKEN},body:{jid,contexto:{tipo:'privado',observado_em:Date.now(),participantes:[jid],grupos_remetente:['123456789-123@g.us']},consulta:'minhas_demandas',...body},...op};
  const res={status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}};
@@ -16,7 +17,7 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
  const {db,sql}=conexao();t.after(()=>db.close());
  // Tipos confirmados por information_schema no banco real, sem copiar pessoas/dados.
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,ativo boolean,pode_entrar boolean,senha_hash text);
- INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(2,false,true,'ficticia'),(3,true,false,'ficticia'),(4,true,true,NULL),(5,true,true,'ficticia');`);
+ INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(2,false,true,'ficticia'),(3,true,false,'ficticia'),(4,true,true,NULL),(5,true,true,'ficticia'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;`);
  await t.test('autenticação falha antes de tocar no banco',async()=>{
   const naoChamar=()=>{throw Error('não consultar')};
   for(const headers of [{},{authorization:'Bearer '+'B'.repeat(64)}]) assert.equal((await chamar(naoChamar,{}, {headers})).codigo,401);
@@ -70,11 +71,11 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
   const anterior=config.VYBE_AI_GRUPOS_IDS;config.VYBE_AI_GRUPOS_IDS='';
   try { assert.equal((await chamar(sql)).codigo,403); } finally { config.VYBE_AI_GRUPOS_IDS=anterior; }
  });
- await t.test('qualquer conta ativa vincula sem lista manual; conta bloqueada não consome código',async()=>{
+ await t.test('identidade fora da configuração não vincula nem consome código',async()=>{
   const d=await emitirCodigo(sql,5,config.VYBE_AI_LINK_SECRET);
   const novo='77777777777777777777@lid';
   const ctx={tipo:'privado',observado_em:Date.now(),participantes:[novo],grupos_remetente:[config.VYBE_AI_GRUPOS_IDS]};
-  assert.equal((await chamar(sql,{jid:novo,contexto:ctx,consulta:'vinculacao_confirmar',codigo:d.codigo})).codigo,200);
+  assert.equal((await chamar(sql,{jid:novo,contexto:ctx,consulta:'vinculacao_confirmar',codigo:d.codigo})).codigo,403);
   const pendente=await emitirCodigo(sql,5,config.VYBE_AI_LINK_SECRET);
   await sql`UPDATE vybe_pessoas SET pode_entrar=false WHERE id=5`;
   try { assert.equal((await chamar(sql,{jid:novo,contexto:ctx,consulta:'vinculacao_confirmar',codigo:pendente.codigo})).codigo,403);
@@ -101,7 +102,7 @@ test('emissão HTTP exige sessão pessoal e mesma origem; ignora pessoa enviada 
  const {areaAssistente}=await import('../api/painel.js');
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,ativo boolean,pode_entrar boolean,senha_hash text);
- INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia');`);
+ INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;`);
  await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
  const ativaAntes=process.env.VYBE_AI_ATIVA;process.env.VYBE_AI_ATIVA='1';
  t.after(()=>{for(const [k,v] of [['VYBE_AI_ATIVA',ativaAntes]]){if(v===undefined)delete process.env[k];else process.env[k]=v;}});
@@ -122,7 +123,7 @@ test('Perfil: estado, revogação própria, códigos invalidados e reconexão se
  const {areaAssistente}=await import('../api/painel.js');
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,ativo boolean,pode_entrar boolean,senha_hash text);
- INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia');`);
+ INSERT INTO vybe_pessoas VALUES(1,true,true,'ficticia'),(5,true,true,'ficticia'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;`);
  assert.equal((await estadoVinculacao(sql,1)).disponivel,false);
  await db.exec(readFileSync('migrations/2026-10-23-assistente-vinculos.sql','utf8'));
  assert.deepEqual(await estadoVinculacao(sql,1),{disponivel:true,vinculado:false});

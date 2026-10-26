@@ -1712,7 +1712,7 @@ export default async function handler(req, res) {
 
   // Antes dos caminhos de bot, serviço e manutenção: somente sessão pessoal
   // administrativa em Preview; fora dela retorna 404 sem acessar o banco.
-  if (req.query?.area === 'assistente' && req.query?.consulta === 'diagnostico_banco')
+  if (req.query?.area === 'assistente' && ['diagnostico_banco','diagnostico_vinculo'].includes(req.query?.consulta))
     return diagnosticoBancoAssistente(req, res, sql);
 
   if (req.method === 'OPTIONS') return res.status(200).end();

@@ -1,3 +1,4 @@
+import {identificadorProtegido} from '../server/assistente-identidade.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {diagnosticoBancoBotAssistente,diagnosticoBancoAssistente,identificadorBanco} from '../server/assistente-diagnostico-banco.js';
@@ -8,12 +9,15 @@ import {conexao} from './postgres.mjs';
 const url='postgresql://usuario:senha-ficticia@ep-exemplo-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require';
 const token='A'.repeat(64);
 const config={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'feature/vybe-ai-readonly-integration',VYBE_HOMOLOGACAO:'1',VYBE_AI_BOT_TOKEN:token,DATABASE_URL:url};
-const req=()=>({method:'GET',query:{area:'assistente',consulta:'diagnostico_banco_bot',canal:'bot'},headers:{authorization:'Bearer '+token}});
+const jid='1111111111@lid',grupo='123456789-123@g.us';
+config.VYBE_AI_LINK_SECRET='s'.repeat(40);config.VYBE_AI_ADMIN_JID_HASH=identificadorProtegido(jid,config.VYBE_AI_LINK_SECRET);config.VYBE_AI_ADMIN_PESSOA_ID='1';config.VYBE_AI_GRUPOS_IDS=grupo;
+config.VYBE_AI_ATIVA='1';
+const req=()=>({method:'POST',body:{jid,contexto:{tipo:'privado',participantes:[jid],grupos_remetente:[grupo],observado_em:Date.now()}},query:{area:'assistente',consulta:'diagnostico_banco_bot',canal:'bot'},headers:{authorization:'Bearer '+token}});
 const res=()=>({headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.codigo=n;return this},json(b){this.corpo=b;return this}});
 const naoAbrir=()=>assert.fail('Não pode abrir conexão nem consultar banco');
 function bancoFalso(nome='neondb') {
   const chamadas=[];
-  const sql=(partes,...parametros)=>({text:partes.join('?'),parametros});
+  const sql=(partes,...parametros)=>{const q={text:partes.join('?'),parametros};Object.defineProperty(q,'then',{value:(resolve,reject)=>Promise.resolve(q.text.includes('to_regclass')?[{pronta:true}]:[{hash:config.VYBE_AI_ADMIN_JID_HASH,id:1}]).then(resolve,reject)});return q;};
   sql.transaction=async(consultas,opcoes)=>{
     chamadas.push({consultas,opcoes});assert.deepEqual(opcoes,{readOnly:true});
     assert.equal(consultas.length,1);assert.deepEqual(consultas[0],{text:'SELECT current_database() AS banco',parametros:[]});
@@ -56,10 +60,10 @@ test('bot: token ausente, errado, malformado ou não configurado e cookie admini
   }
 });
 
-test('bot: somente GET no canal bot; demais métodos ou canais falham sem conexão',async()=>{
-  for(const method of ['POST','PATCH','PUT','DELETE','HEAD','OPTIONS']) {
+test('bot: somente POST no canal bot; demais métodos ou canais falham sem conexão',async()=>{
+  for(const method of ['GET','PATCH','PUT','DELETE','HEAD','OPTIONS']) {
     const r=res();await diagnosticoBancoBotAssistente({...req(),method},r,naoAbrir,config);
-    assert.equal(r.codigo,405);assert.equal(r.headers.Allow,'GET');assert.equal(r.headers['Cache-Control'],'no-store');
+    assert.equal(r.codigo,405);assert.equal(r.headers.Allow,'POST');assert.equal(r.headers['Cache-Control'],'no-store');
   }
   for(const canal of [undefined,'servico','manutencao','BOT']) {
     const r=res();await diagnosticoBancoBotAssistente({...req(),query:{...req().query,canal}},r,naoAbrir,config);assert.equal(r.codigo,403);
@@ -74,7 +78,7 @@ test('bot: resposta somente banco e impressão digital; uma consulta fixa em REA
 });
 
 test('bot: corpo, query e headers não escolhem conexão, flag, branch, SQL ou nome do banco',async()=>{
-  const pedido={...req(),body:{DATABASE_URL:'nao-usar',sql:'DELETE FROM vybe_pessoas',admin:true},
+  const pedido={...req(),body:{...req().body,DATABASE_URL:'nao-usar',sql:'DELETE FROM vybe_pessoas',admin:true},
     query:{...req().query,DATABASE_URL:'nao-usar',banco:'nao-usar',VYBE_HOMOLOGACAO:'1'},
     headers:{...req().headers,'x-vercel-env':'preview','x-vercel-git-commit-ref':config.VERCEL_GIT_COMMIT_REF}};
   const {r}=await chamar({pedido});assert.equal(r.codigo,200);assert.equal(r.corpo.identificador_banco,identificadorBanco(url,'neondb'));
@@ -114,13 +118,13 @@ test('bot: roteador real bloqueia produção antes de OPTIONS e valida token sem
     Object.assign(process.env,config,{VERCEL_ENV:'production'});
     for(const method of ['GET','OPTIONS']) {const r=res();await handler({...req(),method},r);assert.equal(r.codigo,404);}
     process.env.VERCEL_ENV='preview';const r=res();await handler({...req(),headers:{}},r);assert.equal(r.codigo,401);
-    const admin=res();await diagnosticoBancoAssistente({...req(),query:{consulta:'diagnostico_banco'}},admin,naoAbrir,config);
+    const admin=res();await diagnosticoBancoAssistente({...req(),method:'GET',query:{consulta:'diagnostico_banco'}},admin,naoAbrir,config);
     assert.equal(admin.codigo,401);
     // O contrato operacional continua exigindo POST, ativação e sua política;
     // a nova consulta não é adicionada às ferramentas nem ao cliente WhatsApp.
     const normal=res();await atenderBotAssistente({...req(),method:'POST',body:{consulta:'diagnostico_banco_bot'}},normal,naoAbrir,
       {...config,VYBE_AI_ATIVA:'1',VYBE_AI_LINK_SECRET:'segredo-ficticio-com-mais-de-trinta-e-dois-caracteres'});
-    assert.equal(normal.codigo,400);
+    assert.equal(normal.codigo,403);
   } finally {for(const [k,v] of Object.entries(antes)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
 });
 
@@ -131,7 +135,12 @@ test('bot: PostgreSQL em memória sem tabela de funcionários; registros e schem
   const colunas=await sql`SELECT table_name,column_name FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,column_name`;
   const [meta]=await sql`SELECT current_database() AS banco`;
   const {r}=await chamar({db:{sql},ambiente:{...config,DATABASE_URL:url.replace('/neondb','/'+meta.banco)}});
-  assert.equal(r.codigo,200);assert.equal(r.corpo.banco,meta.banco);
+  assert.equal(r.codigo,403);assert.equal(r.corpo.banco,undefined);
   assert.deepEqual(await sql`SELECT * FROM sentinela`,antes);
   assert.deepEqual(await sql`SELECT table_name,column_name FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,column_name`,colunas);
+});
+
+test('diagnóstico técnico bloqueia configuração ausente, grupos e desconhecidos antes do banco',async()=>{
+ for(const body of [undefined,{...req().body,jid:'2222222222@lid'},{...req().body,contexto:{...req().body.contexto,tipo:'grupo',grupo_id:grupo}}]){const r=res();await diagnosticoBancoBotAssistente({...req(),body},r,naoAbrir,config);assert.equal(r.codigo,403);}
+ const r=res();await diagnosticoBancoBotAssistente(req(),r,naoAbrir,{...config,VYBE_AI_ADMIN_JID_HASH:undefined});assert.equal(r.codigo,403);
 });

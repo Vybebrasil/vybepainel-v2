@@ -1536,7 +1536,8 @@ test("Vybelândia: cidade sempre parada, sem vídeo, e mapa parado quando cobert
 // dela é da carteira (a mesma regra do painel); peça de duas carteiras conta nas
 // duas, e as contas da pessoa seguem o recorte.
 test("Dia da equipe: carteira de Vinícius ou Ewerton filtra peças e contas", () => {
-  const fonte = readFileSync("vybe-escritorio-ficha.js", "utf8");
+  // O checkout Windows pode usar CRLF; a extração abaixo usa delimitadores LF.
+  const fonte = readFileSync("vybe-escritorio-ficha.js", "utf8").replace(/\r\n/g, "\n");
   const c = vm.createContext({
     carteiraDoCliente: (nome) => ({ VOA: "vinicius", Gonzalez: "ewerton" })[nome] || "",
     escritorio: { diaEquipe: { hoje: "2026-10-22", ontem: "2026-10-21", pessoas: { 7: {
