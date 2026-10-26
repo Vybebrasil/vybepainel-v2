@@ -5571,6 +5571,48 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .linha-previa{border-color:rgba(61,232,162,.42);background:rgba(61,232,162,.10);
   color:#6fe3b0;font-size:12px}
 .linha-previa:hover{border-color:rgba(61,232,162,.85);background:rgba(61,232,162,.2);color:#fff}
+.linha-previa:focus-visible,.cr-previa:focus-visible,.previa-peca-passo:focus-visible{outline:2px solid var(--accent2,#ff9d00);outline-offset:2px}
+.linha-previa.carregando{opacity:.55;cursor:progress}
+
+/* O OLHO EM MAIS LUGARES (Paulo, 26/10/2026) — logo depois do nome da peça.
+   Na Agenda da equipe o nome e o olho dividem a linha do título; nas colunas,
+   e o invólucro que ocupa a área "titulo" da grade da linha. */
+.day-activity-titulo{display:flex;align-items:flex-start;gap:6px;min-width:0}
+.day-activity-titulo > .item-name{flex:1 1 auto;width:auto}
+.day-activity-titulo > .linha-previa{flex:none;min-width:22px;min-height:22px;padding:0 4px;margin-top:-1px}
+.dias-colunas > .day-scroll-card .day-activity-titulo{grid-area:titulo}
+/* No calendário o olho fica por cima do canto do bloco, que guarda o espaço. */
+.manager-calendar-event-com-previa{position:relative;min-width:0}
+.manager-calendar-event.tem-previa{padding-right:27px}
+.manager-calendar-previa{position:absolute;top:4px;right:4px;min-width:21px;min-height:21px;padding:0 3px}
+.manager-calendar-previa .icone-linha{width:13px;height:13px}
+.cr-previa{display:inline-flex;align-items:center;gap:6px;flex:none;padding:5px 10px;border-radius:8px;
+  border:1px solid rgba(61,232,162,.42);background:rgba(61,232,162,.10);color:#6fe3b0;
+  font:600 12px var(--mac-ui);cursor:pointer}
+.cr-previa:hover{border-color:rgba(61,232,162,.85);background:rgba(61,232,162,.2);color:#fff}
+
+/* Barra das peças na prévia grande: trocar de PEÇA fica em cima, longe das
+   setas do lado da imagem, que passam as lâminas de um carrossel. */
+.previa-grande-pecas{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.previa-grande-pecas[hidden],.previa-grande-pecas .previa-peca-passo[hidden]{display:none}
+.previa-peca-info{flex:1;min-width:0;text-align:center}
+.previa-peca-info b,.previa-peca-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.previa-peca-info b{color:#f3f6fb;font:650 13px/1.3 var(--mac-ui)}
+.previa-peca-info small{margin-top:2px;color:#9aa4b4;font:500 11.5px/1.3 var(--mac-ui)}
+.previa-peca-passo{flex:none;display:inline-flex;align-items:center;padding:7px 12px;border-radius:9px;
+  border:1px solid var(--vybe-line,rgba(255,255,255,.16));background:rgba(255,255,255,.06);color:#e7ecf5;
+  font:600 12px var(--mac-ui);white-space:nowrap;cursor:pointer}
+.previa-peca-passo:hover:not(:disabled){background:rgba(255,255,255,.14)}
+.previa-peca-passo:disabled{opacity:.35;cursor:default}
+/* A barra ocupa ~52px a mais no vidro: a imagem desconta essa altura, senão
+   ela invade a barra (o limite antigo contava só o topo). */
+.previa-grande-vidro:has(.previa-grande-pecas:not([hidden])) .previa-grande-palco :is(img,video){max-height:calc(92vh - 142px)}
+.previa-grande-estado{display:grid;place-items:center;width:min(460px,72vw);min-height:280px}
+.previa-grande-estado .vb-carregando{width:100%}
+@media(max-width:600px){.previa-grande-pecas{gap:6px;padding:6px}.previa-peca-passo{padding:6px 11px;font-size:15px}
+  .previa-peca-passo > span{display:none}
+  .previa-grande-vidro:has(.previa-grande-pecas:not([hidden])) .previa-grande-palco :is(img,video){max-height:calc(92vh - 172px)}}
 /* O x de tirar o cliente do painel. Fica escondido ate o mouse chegar no chip:
    ele e uma acao rara e destrutiva, e um x sempre visivel em vinte chips vira
    uma fileira de convites para o clique errado. No teclado ele aparece ao
