@@ -85,20 +85,35 @@ function retrato(itens, dia, statusDe) {
   const pronto = (i) => !pedido(i) && s(i) === 'para agendar';
   const pausa = (i) => s(i) === 'segurar post';
   const cliente = (i) => ['ag. info cliente', 'ag. aprovacao cliente'].includes(s(i));
+  // Mesmo grupo do gerador do painel: esperando informação, redação ou gravação fica fora da cobrança.
+  const faltaInfo = (i) => ['aguardo', 'aguardo redacao', 'falta info', 'falta d.a', 'falta off', 'ag. interno'].includes(s(i));
   const aberto = (i) => !entregue(i) && !pronto(i);
   const conteudosHoje = itens.filter((i) => !pedido(i) && i.veiculacao_iso === dia);
   const pedidosHoje = itens.filter((i) => pedido(i) && i.conclusao_iso === dia);
   const atrasadas = itens.filter((i) => aberto(i) && !pausa(i) && !cliente(i) && i.prazo_iso && i.prazo_iso < dia && i.responsavel_ids.length);
-  return { s, pedido, entregue, pronto, pausa, cliente, aberto, conteudosHoje, pedidosHoje, atrasadas };
+  return { s, pedido, entregue, pronto, pausa, cliente, faltaInfo, aberto, conteudosHoje, pedidosHoje, atrasadas };
 }
-function linhaItem(i, statusDe) {
+function linhaItem(i) {
   const pessoas = i.responsavel ? i.responsavel.split(',').map(primeiroNome).filter(Boolean).join(', ') : 'sem responsável';
-  return `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${pessoas} · ${statusDe(i) || 'Sem status'}`;
+  return `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${pessoas}`;
 }
+// Cada bloco dividido por status (pedido do Paulo, 26/10/2026), status com mais itens primeiro;
+// dentro do status, o prazo mais antigo primeiro.
 function bloco(titulo, lista, statusDe, max = 15) {
   if (!lista.length) return [];
-  lista = [...lista].sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999')) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
-  return ['', `*${titulo} (${lista.length})*`, ...lista.slice(0, max).map((i) => linhaItem(i, statusDe)), ...(lista.length > max ? [`- e mais ${lista.length - max} no painel.`] : [])];
+  const porStatus = new Map();
+  for (const i of lista) { const s = statusDe(i) || 'Sem status'; if (!porStatus.has(s)) porStatus.set(s, []); porStatus.get(s).push(i); }
+  const grupos = [...porStatus.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], 'pt-BR'));
+  const linhas = ['', `*${titulo} (${lista.length})*`];
+  let mostrados = 0;
+  for (const [status, itens] of grupos) {
+    itens.sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999')) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+    const cabe = itens.slice(0, Math.max(0, max - mostrados));
+    linhas.push(`_${status} (${itens.length})_`, ...cabe.map(linhaItem));
+    if (cabe.length < itens.length) linhas.push(`- e mais ${itens.length - cabe.length} em ${status} no painel.`);
+    mostrados += cabe.length;
+  }
+  return linhas;
 }
 
 export function mensagemMeioDia(itens, dia, statusDe, rotuloDia) {
@@ -110,7 +125,8 @@ export function mensagemMeioDia(itens, dia, statusDe, rotuloDia) {
     `📊 Conteúdos que veiculam hoje: ${r.conteudosHoje.length} · ✅ ${entregues} entregues · 📅 ${prontos} para agendar · ⏳ ${risco.length} em aberto`,
     ...bloco('🔴 Veiculam hoje e ainda não saíram', risco.filter((i) => !r.cliente(i)), statusDe),
     ...bloco('🟡 Veiculam hoje, esperando o cliente', risco.filter(r.cliente), statusDe),
-    ...bloco('⏰ Prazo da equipe vence hoje', prazoHoje.filter((i) => !r.cliente(i) && !risco.includes(i)), statusDe),
+    ...bloco('⏰ Prazo da equipe vence hoje', prazoHoje.filter((i) => !r.cliente(i) && !r.faltaInfo(i) && !risco.includes(i)), statusDe),
+    ...(prazoHoje.some((i) => r.faltaInfo(i) && !risco.includes(i)) ? ['', `- ⏳ ${prazoHoje.filter((i) => r.faltaInfo(i) && !risco.includes(i)).length} com prazo hoje aguardando informação, redação ou gravação (fora da cobrança).`] : []),
     ...bloco('📌 Solicitações com conclusão hoje em aberto', r.pedidosHoje.filter(r.aberto), statusDe),
     '', `- ⚠️ ${r.atrasadas.length} atividades com prazo vencido, com responsável, fora pausas e espera do cliente.`,
     '', 'Ainda dá tempo, time! Quem travou, avisa aqui. 💪'].join('\n');

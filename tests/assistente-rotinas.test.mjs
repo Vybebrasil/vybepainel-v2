@@ -84,11 +84,18 @@ test('meio-dia e fim do dia: risco, espera do cliente, prazo vencido e percentua
     const meio = (await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto;
     assert.match(meio, /^🕐 \*Meio-dia, como estamos\? Seg 26\/10\*/);
     assert.match(meio, /Conteúdos que veiculam hoje: 5 · ✅ 1 entregues · 📅 1 para agendar · ⏳ 3 em aberto/);
-    // Mais atrasado primeiro (prazo mais antigo).
-    assert.match(meio, /🔴 Veiculam hoje e ainda não saíram \(2\)\*\n- Reels - Bastidor \(Cliente A\) · Deivid · Pode Fazer\n- Card - Promo \(Cliente A\) · Jady · Para aprovação/);
+    // Dividido por status; dentro de cada status, o prazo mais antigo primeiro.
+    assert.match(meio, /🔴 Veiculam hoje e ainda não saíram \(2\)\*\n_Para aprovação \(1\)_\n- Card - Promo \(Cliente A\) · Jady\n_Pode Fazer \(1\)_\n- Reels - Bastidor \(Cliente A\) · Deivid/);
     assert.match(meio, /🟡 Veiculam hoje, esperando o cliente \(1\)/);
-    assert.match(meio, /Solicitações com conclusão hoje em aberto \(1\)\*\n- Panfleto evento \(Cliente B\) · Deivid · A Fazer/);
+    assert.match(meio, /Solicitações com conclusão hoje em aberto \(1\)\*\n_A Fazer \(1\)_\n- Panfleto evento \(Cliente B\) · Deivid/);
     assert.match(meio, /⚠️ 2 atividades com prazo vencido/);
+    // Aguardo / Aguardo Redação com prazo hoje: fora da cobrança, como no gerador do painel.
+    await sql`INSERT INTO vybe_status VALUES (${PROD},'aguardo','Aguardo',false)`;
+    await sql`INSERT INTO vybe_conteudos VALUES (106,${PROD},'Reels - Esperando gravação','Reels',NULL,${dia},'2026-10-30',NULL,'b','aguardo','m106',NULL)`;
+    await sql`INSERT INTO vybe_conteudo_responsaveis VALUES (106,1,0)`;
+    const meio2 = (await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto;
+    assert.doesNotMatch(meio2, /Esperando gravação/);
+    assert.match(meio2, /⏳ 1 com prazo hoje aguardando informação, redação ou gravação \(fora da cobrança\)/);
     const fim = (await rotinaDoDia(sql, { momento: 'fim_dia', dia })).mensagens[0].texto;
     assert.match(fim, /^🌙 \*Fechamento de Seg 26\/10\*\n\n📊 20% dos conteúdos de hoje entregues: 1 de 5/);
     assert.match(fim, /🔴 Não saíram hoje \(3\)/); assert.match(fim, /Amanhã \(Ter 27\/10\): 0 conteúdos/);
