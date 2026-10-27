@@ -97,5 +97,7 @@ test('colaborador sai sem login nem WhatsApp, volta entrando, e apagado perde o 
     const [bia] = await sql`SELECT email, ativo, pode_entrar FROM vybe_pessoas WHERE id=${nova.pessoa.id}`;
     assert.deepEqual([bia.email, bia.ativo, bia.pode_entrar], ['bia@vybe.invalid', true, false]);
     await assert.rejects(criarPessoa(sql, { nome: 'X', email: 'sem-arroba' }), /E-mail inválido/);
+    // Sem e-mail ficaria fora da Equipe e sem como entrar.
+    await assert.rejects(criarPessoa(sql, { nome: 'Sem Email', email: '' }), /Informe o e-mail/);
   } finally { await db.close(); }
 });
