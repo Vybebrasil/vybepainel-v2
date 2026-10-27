@@ -200,18 +200,73 @@ function materialDaPeca(detalhe, local) {
   if (link && !videos.some((v) => fonteDoVideo(v).abrir === fonteDoVideo({ abrir: link }).abrir)) {
     const f = fonteDoVideo({ abrir: link });
     if (f.embed || f.src) videos.unshift({ tipo: 'video', name: 'Vídeo · link de entrega', abrir: link });
+    else if (idDaPasta(link)) videos.unshift({ tipo: 'pasta', pasta: idDaPasta(link), name: 'Vídeo · pasta do link de entrega', abrir: link });
     else if (formatoDeVideo || videos.length) videos.unshift({ tipo: 'link', name: 'Vídeo · link de entrega', abrir: link });
   }
   const ehVideo = formatoDeVideo || videos.length > 0;
   const comCapa = imagens.map((a) => (ehVideo || /capa|cover|thumb/i.test(String(a.name || '')) ? { ...a, capa: true } : a));
   return [...videos, ...comCapa];
 }
+// Link de entrega que é a PASTA do dia (Paulo, 27/10/2026: "não dá pra ver o
+// vídeo direto aqui?"): o painel lista os vídeos da pasta e toca o que mais
+// combina com a peça (cliente e palavras do título no nome do arquivo ou da
+// subpasta). Os outros ficam numa lista logo abaixo para trocar.
+const PREVIA_PASTAS = new Map();
+function idDaPasta(url) {
+  return (String(url || '').match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([\w-]{10,})/i) || [])[1] || '';
+}
+function videosDaPastaNaPrevia(pasta) {
+  if (!PREVIA_PASTAS.has(pasta)) {
+    PREVIA_PASTAS.set(pasta, fetch(`/api/painel?area=drive_videos&pasta=${encodeURIComponent(pasta)}`, { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d?.error || 'Não foi possível ler a pasta.'); return d.videos || []; })
+      .catch((erro) => { PREVIA_PASTAS.delete(pasta); throw erro; }));
+  }
+  return PREVIA_PASTAS.get(pasta);
+}
+const semAcentoDaPrevia = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function notaDoVideo(v, peca) {
+  const alvo = semAcentoDaPrevia(`${v.caminho || ''} ${v.nome || ''}`);
+  const palavras = (t) => semAcentoDaPrevia(t).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^(reels|video|post|card|carrossel|para|com|dos|das|the)$/.test(w));
+  return palavras(peca?.cliente).filter((w) => alvo.includes(w)).length * 3 + palavras(peca?.nome).filter((w) => alvo.includes(w)).length;
+}
+function pastaDaPrevia(a) {
+  const id = `previa-pasta-${PREVIA_GRANDE_INDICE}`;
+  const peca = PREVIA_PECA ? { ...PREVIA_PECA } : null, pasta = a.pasta;
+  videosDaPastaNaPrevia(pasta).then((videos) => {
+    const caixa = document.getElementById(id);
+    if (!caixa) return;
+    if (!videos.length) {
+      caixa.innerHTML = vbEstadoHtml({ titulo: 'Nenhum vídeo nesta pasta', texto: 'A pasta do link de entrega não tem vídeo (nem nas subpastas).',
+        acao: `<a class="vb-botao principal" href="${safeText(a.abrir)}" target="_blank" rel="noopener">Abrir a pasta ↗</a>` });
+      return;
+    }
+    const ordem = videos.map((v, i) => ({ v, i, nota: notaDoVideo(v, peca) })).sort((x, y) => y.nota - x.nota || x.i - y.i).map((x) => x.v);
+    const escolhido = a.escolhido && ordem.find((v) => v.id === a.escolhido) || ordem[0];
+    a.escolhido = escolhido.id;
+    const nome = (v) => `${v.caminho ? `${v.caminho} / ` : ''}${v.nome}`;
+    caixa.innerHTML = `${videoDaPrevia({ tipo: 'video', name: escolhido.nome, abrir: `https://drive.google.com/file/d/${escolhido.id}/view` }).replace('class="previa-video"', 'class="previa-video previa-video-pasta"')}
+      ${ordem.length > 1 ? `<details class="previa-pasta-lista"${notaDoVideo(escolhido, peca) ? '' : ' open'}><summary>${notaDoVideo(escolhido, peca) ? 'Não é este?' : 'Qual é o vídeo desta peça?'} ${ordem.length} vídeos na pasta</summary>
+        <ul>${ordem.map((v) => `<li><button type="button" aria-pressed="${v.id === escolhido.id}" onclick="escolherVideoDaPasta(${PREVIA_GRANDE_INDICE},'${safeText(v.id)}')">▶ ${safeText(nome(v))}</button></li>`).join('')}</ul></details>` : ''}`;
+  }).catch((erro) => {
+    const caixa = document.getElementById(id);
+    if (caixa) caixa.innerHTML = vbEstadoHtml({ tipo: 'erro', titulo: 'Não deu para ler a pasta do vídeo', texto: erro.message,
+      acao: `<a class="vb-botao principal" href="${safeText(a.abrir)}" target="_blank" rel="noopener">Abrir a pasta ↗</a>` });
+  });
+  return `<div id="${id}" class="previa-grande-estado">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Procurando o vídeo na pasta' })}</div>`;
+}
+function escolherVideoDaPasta(indice, videoId) {
+  const a = PREVIA_MATERIAL[indice];
+  if (!a) return;
+  a.escolhido = videoId;
+  pintarPreviaGrande();
+}
 function capaDaPrevia(a) {
-  const semVideo = !PREVIA_MATERIAL.some((m) => m.tipo === 'video' || m.tipo === 'link');
+  const semVideo = !PREVIA_MATERIAL.some((m) => m.tipo === 'video' || m.tipo === 'link' || m.tipo === 'pasta');
   return `<div class="previa-capa"><img id="previa-grande-img" src="${safeText(a.public_url || a.url || a.url_thumbnail || '')}" alt="Capa: ${safeText(a.name || '')}">
     <span class="previa-capa-selo">Capa</span>${semVideo ? '<small class="previa-capa-aviso">Esta é só a capa. O vídeo ainda não foi anexado nem registrado como link de entrega.</small>' : ''}</div>`;
 }
 function videoDaPrevia(a) {
+  if (a.tipo === 'pasta') return pastaDaPrevia(a);
   if (a.tipo === 'link') return `<div class="previa-grande-estado">${vbEstadoHtml({ titulo: 'O vídeo está num link', texto: 'O link não é de um arquivo que dá para tocar aqui (por exemplo, uma pasta). Ele abre numa aba nova.',
     acao: `<a class="vb-botao principal" href="${safeText(a.abrir)}" target="_blank" rel="noopener">Abrir o vídeo ↗</a>` })}</div>`;
   const f = fonteDoVideo(a);
@@ -275,11 +330,11 @@ function pintarPreviaGrande() {
   // pela lista de arquivos ganha as setas, o nome e o botao de baixar junto.
   if (palco) {
     const fonte = safeText(a.public_url || a.url || a.url_thumbnail || '');
-    palco.innerHTML = eVideoDoMaterial(a) || a.tipo === 'link' ? videoDaPrevia(a)
+    palco.innerHTML = eVideoDoMaterial(a) || a.tipo === 'link' || a.tipo === 'pasta' ? videoDaPrevia(a)
       : a.capa ? capaDaPrevia(a)
       : `<img id="previa-grande-img" src="${fonte}" alt="${safeText(a.name || '')}">`;
   }
-  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.tipo === 'video' || a.tipo === 'link' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
+  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.tipo === 'video' || a.tipo === 'link' || a.tipo === 'pasta' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
   // Baixar precisa do id do arquivo no banco: e por ele que o servidor acha os
   // bytes. Previa de coisa que nao esta na peca (um link colado, por exemplo)
   // nao tem esse id, e o botao nao aparece em vez de aparecer quebrado.

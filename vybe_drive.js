@@ -396,6 +396,14 @@ export async function salvarDocumentoEPdf({ html, nome, pastaId }) {
 // Roteiros da Produção (server/roteiros.js): docs do Google com "roteiro" no
 // nome que a conta do painel enxerga (o drive compartilhado e as pastas
 // compartilhadas com ela). Os docs no "Meu Drive" de alguém não aparecem.
+// O que está dentro de uma pasta (vídeos e subpastas), para o olho da prévia
+// tocar o vídeo de um link de entrega que é pasta (server/drive-videos.js).
+export async function listarNoDrive(pastaId) {
+  const q = encodeURIComponent(`'${String(pastaId).replace(/[\\']/g, '\\$&')}' in parents and trashed = false and (mimeType contains 'video/' or mimeType = 'application/vnd.google-apps.folder')`);
+  const d = await drive(`files?q=${q}&fields=files(id,name,mimeType,createdTime,videoMediaMetadata(durationMillis))&orderBy=name&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
+  return d.files || [];
+}
+
 export async function roteirosNoDrive({ desde = '' } = {}) {
   const filtro = ["trashed = false", "mimeType = 'application/vnd.google-apps.document'", "name contains 'oteiro'"];
   if (/^\d{4}-\d{2}-\d{2}$/.test(desde)) filtro.push(`modifiedTime > '${desde}T00:00:00'`);
