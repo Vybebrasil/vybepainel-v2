@@ -11791,3 +11791,130 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .capt-roteiro-form label {flex:1;min-width:0}
 .capt-roteiro-form input {width:100%;min-height:34px;padding:6px 10px;border-radius:9px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 12.5px var(--mac-ui)}
 .capt-pecas-form.capt-novas-form {max-height:none;overflow:visible}
+
+/* ─── CAPTAÇÕES, VERSÃO SÓBRIA (Paulo, 26/10/2026) ───────────────────────────
+   "Um design mais sóbrio não ficaria melhor?" — com as leis de UX como régua:
+   uma cor de destaque só, para o que pede ação (Von Restorff); barra com o
+   mínimo, no lugar onde o Google Agenda e o Mac põem cada coisa (Hick, Jakob);
+   superfícies lisas, sem vidro nem brilho (Prägnanz, Occam). O resto do painel
+   não muda: tudo aqui fica sob .capt-cal, o cartão e a prévia. */
+.capt-cal .capt-toolbar {grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;padding:6px 2px 12px;border:0;border-bottom:1px solid #ffffff10;border-radius:0;
+  background:var(--vb-fundo,#121318);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+.capt-cal .capt-tb-esq {gap:8px}
+.capt-tb-criar,.capt-tb-hoje {display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:8px;border:1px solid #ffffff1f;background:transparent;color:#e7eaf0;font:600 13px var(--mac-ui);cursor:pointer;transition:background .15s}
+.capt-tb-criar span {font-size:16px;line-height:1;color:#aeb4c2}
+.capt-tb-criar:hover,.capt-tb-hoje:hover {background:#ffffff0d}
+.capt-tb-hoje[aria-current] {color:#9aa1b0}
+.capt-tb-setas {display:inline-flex}
+.capt-tb-setas button {width:30px;height:32px;border:0;border-radius:8px;background:transparent;color:#cfd3dc;font:500 18px var(--mac-ui);cursor:pointer}
+.capt-tb-setas button:hover {background:#ffffff0d}
+.capt-cal .capt-tb-titulo {display:block;margin-left:6px;font:650 19px/1.2 var(--mac-ui);letter-spacing:0}
+.capt-cal .capt-tb-dir {gap:10px}
+.capt-cal .capt-tb-pend {height:auto;padding:4px 2px;border:0;background:transparent;color:#aeb4c2;font:600 12.5px var(--mac-ui)}
+.capt-cal .capt-tb-pend.atencao {color:#f2c14e}
+.capt-cal .capt-tb-pend:hover {background:transparent;text-decoration:underline}
+.capt-menu {position:relative}
+.capt-menu > summary {display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:8px;border:1px solid #ffffff1f;color:#cfd3dc;font:600 12.5px var(--mac-ui);cursor:pointer;list-style:none}
+.capt-menu > summary::-webkit-details-marker {display:none}
+.capt-menu > summary::after {content:"";width:6px;height:6px;margin-left:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px)}
+.capt-menu[open] > summary,.capt-menu > summary:hover {background:#ffffff0d}
+.capt-menu-painel {position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:260px;display:grid;gap:2px;padding:8px;border-radius:12px;border:1px solid #ffffff1a;background:#1b1d24;box-shadow:0 14px 36px #0008}
+.capt-menu-painel hr {margin:6px 0;border:0;border-top:1px solid #ffffff12}
+.capt-menu-rotulo {margin:4px 8px 2px;color:#8b92a3;font:650 11px var(--mac-ui)}
+.capt-menu-item {display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;color:#e7eaf0;font:550 13px var(--mac-ui);cursor:pointer}
+.capt-menu-item:hover,.capt-menu-acao:hover {background:#ffffff0d}
+.capt-menu-item input {accent-color:var(--ag-cor)}
+.capt-menu-item small {margin-left:auto;color:#8b92a3;font:600 11.5px var(--mac-ui)}
+.capt-menu-acao {padding:7px 8px;border:0;border-radius:7px;background:transparent;color:#e7eaf0;font:550 13px var(--mac-ui);text-align:left;cursor:pointer}
+.capt-menu-dica {margin:0 8px 4px;color:#8b92a3;font:500 12px/1.5 var(--mac-ui)}
+.capt-cal .capt-tb-vista button {min-height:30px}
+/* Grade: neutra; hoje em negrito, sem bola laranja; só "falta fechar" em âmbar. */
+.capt-cal .ag-semana,.capt-cal .capt-mes {border-radius:12px;border-color:#ffffff0f;background:#14151a;box-shadow:none}
+.capt-cal .ag-cabeca,.capt-cal .capt-mes-cab {background:#14151a}
+.capt-cal .ag-dia-cab.hoje b,.capt-cal .capt-mes-dia.hoje .capt-mes-num {background:none;color:#fff;font-weight:800;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
+.capt-cal .ag-dia-cab.hoje small {color:#e7eaf0}
+.capt-cal .ag-col.hoje {background:transparent}
+.capt-cal .ag-col.passou,.capt-cal .capt-mes-dia.passou:not(.fora) {background:transparent}
+.capt-cal .ag-agora {border-top:1px solid #ff6b5a}
+.capt-cal .ag-agora::before {width:7px;height:7px;top:-4px;background:#ff6b5a}
+.capt-cal .ag-ev {background:#1c1e25;box-shadow:inset 3px 0 0 color-mix(in srgb,var(--ag-cor) 65%,#7d8494);border-radius:6px;padding:5px 8px 5px 10px}
+.capt-cal .ag-ev:hover {background:#23262e;transform:none;box-shadow:inset 3px 0 0 color-mix(in srgb,var(--ag-cor) 80%,#7d8494)}
+.capt-cal .ag-ev b {font:600 12px/15px var(--mac-ui);color:#eef0f5}
+.capt-cal .ag-ev small {color:#9aa1b0}
+.capt-cal .ag-ev .ag-selo,.capt-cal .ag-ev.curto[class*="tom-"]::after {display:none}
+.capt-cal .ag-ev.est-fechar {background:#f2c14e14;box-shadow:inset 3px 0 0 #f2c14e}
+.capt-cal .ag-ev.est-fechar b,.capt-cal .ag-ev.est-fechar small {color:#f5d27e}
+.capt-cal .ag-ev.passou:not(.est-fechar) {opacity:.45}
+.capt-cal .ag-ev.sel {box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 1.5px #ffffff66}
+.capt-cal .ag-chip {background:transparent;color:#d9dde6}
+.capt-cal .ag-chip i {background:color-mix(in srgb,var(--ag-cor) 65%,#7d8494);box-shadow:none}
+.capt-cal .ag-chip:hover {background:#ffffff0d}
+.capt-cal .ag-chip.est-fechar {background:#f2c14e14;color:#f5d27e}
+.capt-cal .ag-chip.est-fechar i {background:#f2c14e}
+.capt-cal .ag-chip.passou:not(.est-fechar) {opacity:.45}
+.capt-cal .capt-rd {box-shadow:none;background:#16171d}
+/* Cartão, prévia e painel lateral: superfícies lisas, sem vidro. */
+.ag-cartao,.ag-previa,#workflow-modal.capt-folha {-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.ag-cartao {background:#1b1d24;border-color:#ffffff1a;box-shadow:0 18px 44px #0009}
+.ag-previa {background:#1b1d24;box-shadow:0 14px 36px #0009}
+#workflow-modal.capt-folha {background:#1b1d24!important}
+.ag-cartao .capt-detalhe h4 {font:700 17px/1.25 var(--mac-ui)}
+.capt-detalhe-titulo {margin:0;color:#8b92a3;font:550 12.5px var(--mac-ui)}
+.capt-progresso {display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 0;color:#cfd3dc;font:600 12.5px var(--mac-ui)}
+.capt-progresso:empty {display:none}
+.capt-pecas-curtas {list-style:none;margin:4px 0 0;padding:0;display:grid}
+.capt-peca-curta {display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid #ffffff0f}
+.capt-peca-curta:first-child {border-top:0}
+.capt-peca-curta .capt-peca-nome {min-width:0;flex:1;text-align:left;font:550 13px/1.35 var(--mac-ui)}
+.capt-peca-curta.gravada .capt-peca-nome {color:#9aa1b0}
+.capt-falta {flex:none;color:#f2c14e;font:600 11px var(--mac-ui)}
+.ag-previa-tipo,.ag-cartao .capt-tipo {display:none}
+.capt-cal .capt-sinal.alerta {background:transparent;border:0;padding:0;color:#f2c14e}
+.capt-cal .capt-gravado input,.ag-cartao .capt-gravado input {accent-color:#aeb4c2}
+
+/* ─── AGENDA COMPLETA (26/10/2026): reuniões à vista, criação rápida, vínculo
+   de cliente e o acabamento que faltava. */
+/* Reunião e compromisso aparecem, mais quietos que a captação (o trabalho do
+   Mizinho continua sendo o que se lê primeiro). */
+.capt-cal .ag-ev.t-reuniao,.capt-cal .ag-ev.t-outro {background:#17181d}
+.capt-cal .ag-ev.t-reuniao b,.capt-cal .ag-ev.t-outro b {color:#c3c8d2;font-weight:550}
+.capt-cal .ag-ev.t-reuniao small,.capt-cal .ag-ev.t-outro small {color:#868c99}
+/* Prévia: o título não estoura a largura. */
+.ag-previa > * {min-width:0}
+.ag-previa-pecas li span {flex:1 1 auto}
+/* Botão principal sem brilho, no cartão, na prévia e no painel lateral. */
+.capt-cal .vb-botao.principal,.ag-cartao .vb-botao.principal,#workflow-modal.capt-folha .workflow-primary {box-shadow:none!important;background:#ff8a35!important;color:#1d0d02}
+.capt-cal .vb-botao.principal:hover,.ag-cartao .vb-botao.principal:hover {background:#ff9a4f!important}
+/* Cabeçalho do módulo mais baixo nas Captações: a agenda é a tela. */
+.prod-v2-layout:has(.capt-cal) .prod-v2-head {padding:12px 18px!important;margin-bottom:10px}
+.prod-v2-layout:has(.capt-cal) .p-head-title h3 {font-size:19px}
+.prod-v2-layout:has(.capt-cal) .p-head-title p {display:none}
+/* Painel lateral do formulário, mais calmo. */
+#workflow-modal.capt-folha .workflow-title {font-size:22px!important;margin:6px 0 10px!important}
+#workflow-modal.capt-folha .workflow-kicker span {color:#8b92a3}
+#workflow-modal.capt-folha .capt-quando-fixo {background:#ffffff08;border-color:#ffffff14;color:#e7eaf0}
+/* Criação rápida no horário. */
+.capt-novo {display:grid;gap:10px;padding:18px}
+.capt-novo h4 {margin:0;color:#fff;font:700 16px var(--mac-ui)}
+.capt-novo input,.capt-novo select,.capt-vinculo select {width:100%;min-height:36px;padding:7px 10px;border-radius:9px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 13px var(--mac-ui)}
+.capt-novo input[name=titulo] {font-size:15px;font-weight:600}
+.capt-novo input:focus-visible,.capt-novo select:focus-visible,.capt-vinculo select:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-novo-tipos {display:flex;gap:4px;padding:3px;border-radius:10px;background:#ffffff08}
+.capt-novo-tipo {flex:1;position:relative;cursor:pointer}
+.capt-novo-tipo input {position:absolute;opacity:0;pointer-events:none}
+.capt-novo-tipo span {display:flex;align-items:center;justify-content:center;gap:6px;min-height:30px;border-radius:8px;color:#aeb4c2;font:600 12.5px var(--mac-ui)}
+.capt-novo-tipo span::before {content:"";width:8px;height:8px;border-radius:50%;background:var(--ag-cor)}
+.capt-novo-tipo input:checked + span {background:#ffffff14;color:#fff}
+.capt-novo-tipo input:focus-visible + span {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-novo-quando {display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center;color:#8b92a3}
+.capt-novo-acoes {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.capt-novo-acoes .vb-botao.principal {min-width:96px;justify-content:center}
+/* Vínculo de cliente no cartão. */
+.capt-vinculo-caixa {display:grid;gap:8px;padding:10px 12px;border-radius:11px;background:#ffffff06;border:1px solid #ffffff10}
+.capt-vinculo {display:flex;gap:6px}
+.capt-vinculo select {flex:1;min-width:0}
+.capt-trocar {margin:2px 0 0}
+.capt-trocar > summary {color:#8b92a3;font:550 12px var(--mac-ui);cursor:pointer;list-style:none}
+.capt-trocar > summary::-webkit-details-marker {display:none}
+.capt-trocar > summary:hover {color:#cfd3dc;text-decoration:underline}
+.capt-trocar[open] {display:grid;gap:8px}

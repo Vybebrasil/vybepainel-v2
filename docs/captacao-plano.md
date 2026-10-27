@@ -179,6 +179,42 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   DOCX do grupo são só cópias e não entram. Falha ao ligar vira aviso.
 - Sem migração.
 
+## Versão sóbria (26/10/2026, noite)
+
+- Paulo: "um design mais sóbrio não ficaria melhor?", com as leis de UX
+  (Hick, Fitts, Jakob, Von Restorff, Miller, Prägnanz, Occam, Pareto…) como régua.
+- Barra no lugar do Google Agenda e do Mac: "+ Captação", "Hoje", ‹ › e o
+  período à esquerda; a pendência que importa como texto ("N gravações para
+  fechar"), "Exibir" (tipos, Lista, painel de pendências, atalhos) e
+  Dia/Semana/Mês à direita. Sem a fileira de filtros e sem a legenda.
+- Uma cor de destaque: só a ação do cartão é laranja. Blocos neutros com uma
+  barra fina da cor do tipo; âmbar só em "falta fechar" (estado com
+  `chave: "fechar"`). Hoje em negrito sublinhado, sem a bola laranja.
+- Cartão curto: o cliente, o título do Google (se for outro), quando, o
+  progresso ("1 de 2 peças gravadas"), a ação e só as peças desta captação.
+  As do cliente que esperam ficam no formulário.
+- Sem vidro: barra, cartão, prévia e painel lateral com fundo liso.
+- O cabeçalho do módulo não mostra "Prazo Base / Veiculação" nas Captações.
+
+## Agenda completa (26/10/2026, madrugada)
+
+- Paulo: "não tem como ver as reuniões? não tem como criar um compromisso
+  novo? quando não tem um cliente vinculado na agenda, não posso vincular?".
+- Reuniões e compromissos aparecem por padrão, mais quietos que as captações;
+  no bloco deles o nome do evento vem primeiro e o cliente embaixo.
+- Criação rápida (`captNovoEvento`): clicar num horário vazio, ou em "+ Novo",
+  abre um cartão ali mesmo com título, tipo, dia e horário, cliente e local.
+  O evento vai para o Google Agenda da Vybe (`criarEvento`) com a cor da
+  convenção: azul (9) captação, amarelo (5) reunião, grafite (8) compromisso.
+  Captação exige cliente; "Captação com peças…" abre o formulário completo.
+- Vincular cliente (`vincularCliente`): no cartão do evento sem cliente
+  reconhecido, escolhe-se o cliente; também dá para trocar o que o título fez
+  adivinhar e voltar a ler pelo título. O vínculo fica em
+  `vybe_agenda_clientes` (`migrations/2026-10-27-agenda-clientes.sql`) e vale
+  mais que o título; o evento no Google não é reescrito. Sem a migração,
+  vincular responde 503 e o resto funciona.
+- A rota devolve `clientes` (ativos) para a escolha de cliente.
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.

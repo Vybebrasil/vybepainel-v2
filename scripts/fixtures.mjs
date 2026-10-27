@@ -269,7 +269,7 @@ export async function demoApi(req,res,url,body) {
       // Últimos 7 dias: uma gravação de ontem sem fechar e uma já fechada (Fechar gravação).
       const recentes=[ag('g10','Captação - Cliente demonstração - cardápio',-1,'14:00','16:00','captacao','1','Cliente demonstração'),
         ag('g11','Captação - Cliente B - depoimentos',-2,'10:00','11:00','captacao','2','Cliente B (fictício)',{captacao_id:'10'})];
-      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',proximas,recentes,agenda:[...proximas,...recentes,
+      return reply(200,{ok:true,de:d(0),ate:d(6),aviso_agenda:'',clientes:[{id:'1',nome:'Cliente demonstração'},{id:'2',nome:'Cliente B (fictício)'},{id:'3',nome:'Cliente C (fictício)'}],proximas,recentes,agenda:[...proximas,...recentes,
         ag('g1','Captação - Cliente B - entrevista',0,'09:00','10:00','captacao','2','Cliente B (fictício)',{local:'Clínica'}),
         ag('g2','Reunião de pauta - Cliente B',0,'09:30','10:30','reuniao','2','Cliente B (fictício)'),
         ag('g4','Cliente demonstração - Banco de imagem',0,'15:00','16:30','captacao','1','Cliente demonstração'),

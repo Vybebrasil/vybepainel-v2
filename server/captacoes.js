@@ -483,16 +483,86 @@ export function clienteDoEvento(titulo, clientes) {
 // montadas no painel; as outras ficam como contexto da semana.
 export async function agendaDeCaptacoes(sql, { inicio = '', dias = 7, listar = listarAgendaProducao, hoje = '' } = {}) {
   const dia = diaValido(inicio) ? inicio : diaValido(hoje) ? hoje : new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(new Date());
-  const [r, clientes, nossas] = await Promise.all([
+  const [r, clientes, nossas, vinculos] = await Promise.all([
     listar(dia, { dias }),
     sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`,
     (async () => (await captacoesProntas(sql)) ? sql`SELECT id::text AS id, evento_google FROM vybe_captacoes WHERE evento_google IS NOT NULL AND estado <> 'cancelada'` : [])(),
+    (async () => (await vinculosProntos(sql)) ? sql`SELECT a.evento_google, a.cliente_id::text AS id, c.nome FROM vybe_agenda_clientes a JOIN vybe_clientes c ON c.id = a.cliente_id` : [])(),
   ]);
   const porEvento = new Map(nossas.map((n) => [n.evento_google, n.id]));
+  // O cliente escolhido à mão vale mais que o adivinhado pelo título.
+  const escolhido = new Map(vinculos.map((v) => [v.evento_google, { id: v.id, nome: v.nome }]));
   return (r.eventos || []).map((e) => {
-    const c = clienteDoEvento(e.titulo, clientes);
+    const manual = escolhido.get(e.id), c = manual || clienteDoEvento(e.titulo, clientes);
     const tipo = e.tipo || (e.captacao ? 'captacao' : 'outro');
     return { id: e.id, titulo: e.titulo, dia: e.dia, horario: e.horario, inicio: e.inicio || '', fim: e.fim || '', local: e.local, link: e.link || '',
-      tipo, cliente_id: c?.id || '', cliente: c?.nome || '', captacao_id: porEvento.get(e.id) || '' };
+      tipo, cliente_id: c?.id || '', cliente: c?.nome || '', cliente_manual: Boolean(manual), captacao_id: porEvento.get(e.id) || '' };
   });
+}
+
+// ── VINCULAR CLIENTE E CRIAR EVENTO (Paulo, 26/10/2026) ──────────────────────
+// "Quando não tem um cliente vinculado na agenda, não posso vincular?" e "não
+// tem como criar um compromisso novo?". O vínculo fica no painel
+// (vybe_agenda_clientes): o evento de quem marcou no Google não é reescrito.
+// Evento novo vai para o Google Agenda da Vybe com a cor da convenção da
+// agência: azul (9) captação, amarelo (5) reunião, grafite (8) compromisso.
+async function vinculosProntos(sql) {
+  const [r] = await sql`SELECT to_regclass('public.vybe_agenda_clientes') IS NOT NULL AS existe`;
+  return Boolean(r?.existe);
+}
+const eventoValido = (id) => /^[A-Za-z0-9_-]{5,1024}$/.test(String(id || ''));
+export async function vincularCliente(sql, quem, { evento, cliente_id } = {}) {
+  if (!(await vinculosProntos(sql))) throw erro('Vincular cliente aguarda a migração do banco.', 503);
+  if (!eventoValido(evento)) throw erro('Evento da agenda inválido.');
+  if (!cliente_id) { await sql`DELETE FROM vybe_agenda_clientes WHERE evento_google = ${evento}`; return { cliente: null }; }
+  if (!/^\d{1,18}$/.test(String(cliente_id))) throw erro('Cliente inválido.');
+  const [c] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${cliente_id} AND COALESCE(ativo, true)`;
+  if (!c) throw erro('Cliente não encontrado.', 404);
+  const pessoaId = quem?.pessoa?.id ? String(quem.pessoa.id) : null;
+  await sql`INSERT INTO vybe_agenda_clientes (evento_google, cliente_id, definido_por) VALUES (${evento}, ${c.id}, ${pessoaId})
+    ON CONFLICT (evento_google) DO UPDATE SET cliente_id = EXCLUDED.cliente_id, definido_por = EXCLUDED.definido_por, definido_em = now()`;
+  return { cliente: c };
+}
+
+const COR_DO_TIPO = { captacao: '9', reuniao: '5', outro: '8' };
+export function eventoNovo({ tipo, titulo, dia, inicio, fim, local, cliente }) {
+  const nome = String(titulo || '').trim();
+  const summary = tipo === 'captacao' ? ['Captação', cliente, nome].filter(Boolean).join(' · ')
+    : tipo === 'reuniao' ? ['Reunião', nome, cliente].filter(Boolean).join(' · ') : [nome, cliente].filter(Boolean).join(' · ');
+  const fimDia = new Date(`${dia}T12:00:00Z`); fimDia.setUTCDate(fimDia.getUTCDate() + 1);
+  const quando = inicio
+    ? { start: { dateTime: `${dia}T${inicio}:00-03:00`, timeZone: FUSO }, end: { dateTime: `${dia}T${fim || inicio}:00-03:00`, timeZone: FUSO } }
+    : { start: { date: dia }, end: { date: fimDia.toISOString().slice(0, 10) } };
+  if (inicio && !fim) { const t = new Date(`${dia}T${inicio}:00-03:00`); quando.end.dateTime = new Date(t.getTime() + 3600e3).toISOString(); }
+  return { summary, location: local || undefined, colorId: COR_DO_TIPO[tipo], ...quando };
+}
+export async function criarEvento(sql, quem, d = {}, { buscar = fetch, obterToken = tokenGoogle } = {}) {
+  const tipo = String(d.tipo || '');
+  if (!COR_DO_TIPO[tipo]) throw erro('Escolha captação, reunião ou compromisso.');
+  const titulo = String(d.titulo || '').replace(/\s+/g, ' ').trim();
+  if (titulo.length > 200) throw erro('O título passou de 200 caracteres.');
+  if (!diaValido(d.dia)) throw erro('Escolha o dia.');
+  if (d.inicio && !horaValida(d.inicio)) throw erro('Horário de início inválido.');
+  if (d.fim && !horaValida(d.fim)) throw erro('Horário de fim inválido.');
+  if (d.inicio && d.fim && d.fim <= d.inicio) throw erro('O fim precisa ser depois do início.');
+  const local = String(d.local || '').trim();
+  if (local.length > 300) throw erro('O local passou de 300 caracteres.');
+  let cliente = null;
+  if (d.cliente_id) {
+    if (!/^\d{1,18}$/.test(String(d.cliente_id))) throw erro('Cliente inválido.');
+    [cliente] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${d.cliente_id} AND COALESCE(ativo, true)`;
+    if (!cliente) throw erro('Cliente não encontrado.', 404);
+  }
+  if (tipo === 'captacao' && !cliente) throw erro('Captação precisa do cliente.');
+  if (!titulo && !cliente) throw erro('Dê um título ao evento.');
+  const corpo = eventoNovo({ tipo, titulo, dia: d.dia, inicio: d.inicio || '', fim: d.fim || '', local, cliente: cliente?.nome || '' });
+  const agenda = encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com');
+  const token = await obterToken(ESCOPO_AGENDA);
+  const r = await buscar(`https://www.googleapis.com/calendar/v3/calendars/${agenda}/events`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(corpo), signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw erro(r.status === 403 ? 'A conta do painel não pode mudar a agenda (confira o compartilhamento com "Fazer alterações").' : `O Google Agenda respondeu ${r.status}. Tente de novo.`, 502);
+  const e = await r.json();
+  // O cliente escolhido fica vinculado mesmo que o título mude depois no Google.
+  if (cliente && e.id && (await vinculosProntos(sql))) await vincularCliente(sql, quem, { evento: e.id, cliente_id: cliente.id });
+  return { id: e.id, titulo: corpo.summary };
 }
