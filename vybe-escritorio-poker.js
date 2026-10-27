@@ -18,10 +18,15 @@ function abrirPokerEscritorio(m) {
 function pokerSinalEscritorio(de, v) {
   mesaSinalEscritorio(POKER_CFG, de, v);
 }
+// Cartas desenhadas (Boardgame Pack do Kenney, CC0; assets/jogos/cartas.webp):
+// uma folha com 13 colunas (A, 2…10, J, Q, K) e as linhas espadas, copas,
+// ouros e paus, mais a dos versos; o CSS recorta pela coluna e pela linha.
+const POKER_COLUNA = { A: 0, T: 9, J: 10, Q: 11, K: 12 }, POKER_LINHA = { s: 0, h: 1, d: 2, c: 3 };
 function pokerCartaHtml(c, cls = "") {
-  if (!c) return `<span class="pkr-carta costas ${cls}" role="img" aria-label="Carta virada"></span>`;
-  const valor = c[0] === "T" ? "10" : c[0], [naipe, nome] = POKER_NAIPES[c[1]];
-  return `<span class="pkr-carta${c[1] === "h" || c[1] === "d" ? " verm" : ""} ${cls}" role="img" aria-label="${valor} de ${nome}"><b>${valor}</b><i>${naipe}</i></span>`;
+  if (!c) return `<span class="pkr-carta img costas ${cls}" style="--cx:0;--cy:4" role="img" aria-label="Carta virada"></span>`;
+  const valor = c[0] === "T" ? "10" : c[0], [, nome] = POKER_NAIPES[c[1]];
+  const coluna = POKER_COLUNA[c[0]] ?? Number(c[0]) - 1;
+  return `<span class="pkr-carta img ${cls}" style="--cx:${coluna};--cy:${POKER_LINHA[c[1]]}" role="img" aria-label="${valor} de ${nome}"></span>`;
 }
 const pokerFichas = (n) => Number(n || 0).toLocaleString("pt-BR");
 const pokerMaior = (m) => Math.max(0, ...Object.values(m.rodada || {}));

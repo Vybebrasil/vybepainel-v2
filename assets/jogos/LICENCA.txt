@@ -1,0 +1,5 @@
+Cartas e fichas dos jogos do Escritório (assets/jogos/cartas.webp e
+fichas.webp): montadas a partir do "Boardgame Pack" de Kenney Vleugels
+(www.kenney.nl), licença CC0 1.0 (domínio público, uso comercial livre;
+crédito não obrigatório). Baixado em 27/10/2026 com autorização do Paulo.
+https://kenney.nl/assets/boardgame-pack
