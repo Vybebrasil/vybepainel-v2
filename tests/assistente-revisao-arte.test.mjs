@@ -7,11 +7,13 @@ const PROD = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
-    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+    CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text,criado_em timestamptz);
     CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,drive_file_id text,criado_em timestamptz,ausente_em timestamptz);
     INSERT INTO vybe_clientes VALUES (10,'Copirecê');
+    INSERT INTO vybe_conteudo_updates VALUES (100,'<p>LEGENDA DO POST: Creme de milho Copirecê, do campo para a sua mesa.</p>','2026-10-26'),(100,'<p>Bom dia</p>','2026-10-26');
     INSERT INTO vybe_status VALUES (${PROD},'a','Para aprovação',false);
     INSERT INTO vybe_conteudos VALUES (100,${PROD},'Card - Creme de milho','Card',NULL,'a',555),(101,${PROD},'Reels - Sem arte','Reels',NULL,'a',NULL);
     INSERT INTO vybe_conteudo_clientes VALUES (100,10),(101,10);
@@ -26,6 +28,7 @@ test('arte da peça: a versão mais recente do Drive, com cliente, status e link
   assert.equal(r.peca.cliente, 'Copirecê'); assert.equal(r.peca.status, 'Para aprovação');
   assert.match(r.peca.link, /atividade=555/);
   assert.equal(Buffer.from(r.arte.data, 'base64').toString(), 'PNG'); assert.equal(r.arte.mimetype, 'image/png');
+  assert.match(r.peca.texto, /LEGENDA DO POST: Creme de milho/); assert.doesNotMatch(r.peca.texto, /Bom dia/);
   const sem = await arteDaPeca(sql, 'vybe:101', { baixar: async () => { throw Error('não deve baixar'); } });
   assert.equal(sem.arte, null); assert.equal(sem.motivo, 'sem_arquivo');
   await assert.rejects(arteDaPeca(sql, '999'), /Peça não encontrada/);
@@ -43,7 +46,7 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
-    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
     CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,drive_file_id text,criado_em timestamptz,ausente_em timestamptz);

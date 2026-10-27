@@ -1,5 +1,5 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
-import {metricasDoHub} from './assistente-hub.js';
+import {metricasDoHub,linkDoRelatorio} from './assistente-hub.js';
 import {diaDaAgencia,meuDia,resumoCliente,calendarioClientes} from './assistente-rotinas.js';
 import {agendaDeCaptacoes} from './captacoes.js';
 import {memoriaDoCliente,legendasAprovadas} from './assistente-memoria.js';
@@ -45,6 +45,7 @@ const defs=[
  ['memoria_cliente','Memória do cliente: comentários das peças (pedidos de mudança primeiro) e quantas vezes voltaram para Alteração, nos últimos dias. busca = assunto (ex.: "logo", "cor", "preço"). Use para "o que o cliente pediu", "o que já falaram sobre", "histórico da".',{cliente_id:inteiro,busca,dias:{type:'integer',minimum:7,maximum:365}},['cliente_id']],
  ['legendas_aprovadas','Legendas que o cliente já aprovou nos planejamentos (exemplos de tom para escrever legendas novas). formato opcional (Reels, Card, Carrossel...).',{cliente_id:inteiro,formato:busca,limite:{type:'integer',minimum:1,maximum:12}},['cliente_id']],
  ['sugerir_responsavel','Quem pode pegar uma demanda nova de um formato (Reels, Card, Carrossel...): experiência no formato em 90 dias e carga dos próximos 3 dias. Só sugere.',{formato:busca}],
+ ['link_relatorio','Link de 10 minutos para o relatório mensal de BI do cliente no VybeHub (o mesmo do admin), para gerar o PDF. mes = qualquer dia do mês.',{cliente_id:inteiro,mes:data},['cliente_id','mes']],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -112,6 +113,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='consultar_dia_equipe')return limpar(await consultarDiaEquipe(sql,a,identidade.agora));
  if(nome==='detalhar_demanda')return limpar(await secaoDaDemanda(sql,a));
  if(nome==='consultar_metricas_trafego')return limpar(await metricasDoHub(sql,a));
+ if(nome==='link_relatorio'){const d=await linkDoRelatorio(sql,a);return {fonte:'vybehub',ferramenta:nome,itens:[d],fontes:[{modulo:'vybehub_relatorio',id:String(a.cliente_id)}],limitado:false};}
  if(nome==='cobertura_modulos')return {fonte:'vybe-neon',itens:[{disponiveis:['demandas','conteudos','clientes','responsaveis','planejamentos','aprovacao_do_planejamento','captacoes','referencias_de_roteiros','briefings','comentarios','historico','tarefas','referencias_de_arquivos','perfil_trabalho','perfil_jogo','ranking','dia_equipe','bi_vybehub'],limitacoes:['Campanhas e tráfego vêm do VybeHub; a ponte exige configuração própria e vínculo explícito do cliente.','Publicação: retorna status registrado, sem inferir entrega ou veiculação efetiva.','Roteiros: apenas referência; não lê texto do Drive.','Sem credenciais, sessões ou segredos técnicos. Arquivos externos são referências; não lemos seu conteúdo binário. O BI depende das fontes configuradas no Hub.']}],limitado:false};
  if(['buscar_demandas','detalhar_demanda'].includes(nome)){
   modulo='demandas';const id=a.id||null,diaDaPessoa=identidade.diaDaPessoa||null,situacao=a.situacao||'todas',hoje=diaAssistente(identidade.agora);

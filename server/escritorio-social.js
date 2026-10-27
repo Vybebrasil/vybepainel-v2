@@ -5,7 +5,7 @@ import { carregarEconomia, MOVEIS_ESSENCIAIS, precoMovel, PRECO_COMUM } from './
 import { partesDaCamada } from './escritorio-quartos.js';
 import { ehPauloNoEscritorio } from './escritorio-mapa.js';
 
-const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$/;
+const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao|subsolo)$/;
 const CORES = ['amarelo', 'rosa', 'azul', 'verde'];
 const LIMITE_POR_CENA = 40;
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });

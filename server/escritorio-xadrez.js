@@ -10,7 +10,7 @@ import { carregarEconomia } from './escritorio-economia.js';
 import { itensDaTroca, semMarco, conferirLado, tirarDoInventario, porNoInventario } from './escritorio-social.js';
 import { roupasDaFigura, roupaDaClasse, CLASSE_ROUPA } from './escritorio-roupas.js';
 
-const CAMADA = /^(praca|sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$/;
+const CAMADA = /^(praca|sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao|subsolo)$/;
 const MOVEL = /^[A-Za-z0-9_]{1,64}@\d{1,2},\d{1,2}$/;
 export const XADREZ_MOEDAS_MAX = 10000;
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;

@@ -213,6 +213,11 @@ export async function demoApi(req,res,url,body) {
           {origem:'briefing:1',regra:'briefing',descricao:'Demanda criada com briefing',moedas:2,pontos:2,criado_em:new Date().toISOString()},
           {origem:'compra:demo:shelves_norja',regra:null,descricao:'Compra na loja',moedas:-25,pontos:0,criado_em:new Date(Date.now()-864e5).toISOString()}]}},eu:'1',admin:true,worker:null,token:null,equipe:equipeDemo,salas:salasDoEscritorio(equipeDemo).map((s,i)=>i===0?{...s,pessoa_id:'1'}:s),mapa:{editavel:false,camadas:{}}});
     }
+    // O subsolo do Escritório e a Equipe com alguém lá embaixo, para ver as lápides sem banco.
+    if(area==='subsolo')return reply(200,{ok:true,clientes:[{id:'7',nome:'Padaria demonstração',segmento:'Alimentos',personagem:null,saiu_em:new Date(Date.now()-40*864e5).toISOString(),motivo:'Encerrou o contrato',pecas:38},{id:'8',nome:'Clínica demonstração',segmento:'Saúde',personagem:null,saiu_em:null,motivo:null,pecas:12}],
+      pessoas:[{id:'9',nome:'Ex-colaborador demonstração',papel:'Design',foto_url:null,saiu_em:new Date(Date.now()-90*864e5).toISOString(),motivo:'Saiu da agência'}]});
+    if(area==='pessoas'&&req.method==='GET')return reply(200,{ok:true,pessoas:[{id:'1',nome:'Operador de teste',email:'operador@vybe.invalid',admin:true,pode_entrar:true,ativo:true,tem_senha:true,ultimo_acesso:new Date().toISOString()},
+      {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});
     if(area==='clientes')return reply(200,{ok:true,clientes:[{id:1,nome:'Cliente demonstração',ativo:true,status:'Ativo',responsavel:'Vinícius',heads:'Operador de teste',heads_ids:[1]}],pessoas:[pessoa],acessos:[]});
     // Log de atividade fictício: um exemplo de cada tipo de evento, em dias diferentes.
     if(area==='peca' && url.searchParams.get('log')==='1'){

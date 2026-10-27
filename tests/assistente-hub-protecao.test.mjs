@@ -107,3 +107,14 @@ test('resumos da semana: um texto por cliente com BI; os demais vão para "sem d
  assert.match(r.resumos[0].texto, /Resumo da semana/);
  assert.deepEqual(r.sem_dados, ['Sem BI']);
 });
+
+test('link do relatório: convite do Hub vira URL absoluta só do Hub autorizado', async () => {
+ const { linkDoRelatorio } = await import('../server/assistente-hub.js');
+ const r = await linkDoRelatorio(sql, { cliente_id: '1', mes: '2026-10-15' }, { config, buscar: async (url, init) => {
+  assert.equal(new URL(url).pathname, '/api/trpc/portal.conviteRelatorio'); assert.equal(init.headers.Authorization, 'Bearer ' + ponte);
+  const input = JSON.parse(decodeURIComponent(url.split('input=')[1])).json; assert.equal(input.mes, '2026-10');
+  return new Response(JSON.stringify({ result: { data: { json: { caminho: '/relatorio-ai/cliente-ficticio-ai?mes=2026-10&c=' + 'a'.repeat(30) + '.' + 'b'.repeat(43) } } } }));
+ } });
+ assert.equal(r.url, origin + '/relatorio-ai/cliente-ficticio-ai?mes=2026-10&c=' + 'a'.repeat(30) + '.' + 'b'.repeat(43));
+ await assert.rejects(linkDoRelatorio(sql, { cliente_id: '1', mes: '2026-10-15' }, { config, buscar: async () => new Response(JSON.stringify({ result: { data: { json: { caminho: 'https://outro.site/x' } } } })) }), /inválida/);
+});
