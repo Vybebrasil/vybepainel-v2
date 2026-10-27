@@ -12421,3 +12421,11 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .trc-pedido {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
 .trc-pedido b {color:#ffe0a6;font:800 15px var(--mac-ui)}
 .trc-grito {font-weight:900;letter-spacing:.5px;text-transform:uppercase}
+/* Pôquer em grupo (até 4 na mesa): os outros numa fileira em cima, cada um com as cartas viradas. */
+.pkr-outros {display:grid;gap:6px}
+.pkr-outros.grupo {grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.pkr-dele > span {display:inline-flex;gap:2px}
+.pkr-dele {flex-wrap:wrap;gap:14px}
+.pkr-outros.grupo .mesa-jogador {grid-template-columns:36px minmax(0,1fr);row-gap:0}
+.pkr-outros.grupo .mesa-jogador small {grid-column:2;white-space:normal;line-height:1.25}
+.pkr-outros.grupo .mesa-jogador img,.pkr-outros.grupo .mesa-jogador i {grid-row:span 2}

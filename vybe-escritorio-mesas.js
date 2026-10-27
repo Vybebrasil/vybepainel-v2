@@ -26,6 +26,14 @@ function escritorioMesa(chave) {
 function mesaOutro(lado) {
   return lado === "desafiante" ? "desafiado" : "desafiante";
 }
+// Os outros da mesa (no pôquer em grupo, dois ou três), para o aviso pelo balão.
+function mesaOutrosIds(j) {
+  const eu = String(escritorio.base?.eu);
+  return (j.jogadores || [j.desafiante, j.desafiado]).map((p) => String(p.id)).filter((id) => id !== eu);
+}
+function mesaSinalTodos(cfg, j, tipo) {
+  for (const id of mesaOutrosIds(j)) mesaSinal(cfg, j.id, id, tipo);
+}
 
 function abrirJogoMesa(chave, j) {
   const s = escritorioMesa(chave);
@@ -72,7 +80,7 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
     s.jogo = r.jogo; s.sel = null;
     if (r.economia) xadrezEconomia(r.economia);
     escritorioTocar(520, 0.06, 0.05);
-    mesaSinal(ESCRITORIO_MESAS[chave], j.id, j[mesaOutro(j.eu)].id, "l");
+    mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
   } catch (e) {
     s.sel = null;
@@ -93,7 +101,7 @@ async function acaoMesaEscritorio(chave, acao, botao) {
     const r = await escritorioApi("mesa-acao", { id: j.id, acao });
     s.jogo = r.jogo;
     if (r.economia) xadrezEconomia(r.economia);
-    mesaSinal(ESCRITORIO_MESAS[chave], j.id, j[mesaOutro(j.eu)].id, "l");
+    mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
     desenharJogoMesa(chave);
   } catch (e) {
@@ -117,7 +125,11 @@ function desenharJogoMesa(chave) {
   const { mesa, status, painel = "" } = cfg.desenhar(j, s);
   const jogando = j.estado === "jogando", eu = j.eu, outro = eu ? mesaOutro(eu) : null;
   const empateMeu = j.empate_de && j.empate_de === String(escritorio.base?.eu), empateDele = j.empate_de && !empateMeu;
-  const acoes = !jogando || !eu ? "" : `<div class="xdz-acoes">
+  // Em grupo não tem empate combinado, e quem sumiu na vez sai da mesa (os outros seguem).
+  const saiu = (j.mesa?.saiu || []).includes(eu), sumiu = j.grupo ? j[j.vez] : j[outro];
+  const acoes = !jogando || !eu || saiu ? "" : j.grupo ? `<div class="xdz-acoes">
+${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="acaoMesaEscritorio('${chave}','reivindicar',this)">${xadrezPrimeiroNome(sumiu)} sumiu: tirar da mesa</button>` : ""}
+<button type="button" class="workflow-secondary xdz-desistir" onclick="desistirMesa('${chave}',this)">Desistir</button></div>` : `<div class="xdz-acoes">
 ${empateDele ? `<div class="xdz-empate"><span>${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="workflow-primary" onclick="acaoMesaEscritorio('${chave}','aceitar-empate',this)">Aceitar</button><button type="button" class="workflow-secondary" onclick="acaoMesaEscritorio('${chave}','recusar-empate',this)">Recusar</button></div>` : ""}
 ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="acaoMesaEscritorio('${chave}','reivindicar',this)">${xadrezPrimeiroNome(j[outro])} sumiu: ganhar por tempo</button>` : ""}
 <button type="button" class="workflow-secondary" onclick="acaoMesaEscritorio('${chave}','empate',this)" ${j.empate_de ? "disabled" : ""}>${empateMeu ? "Empate proposto" : "Propor empate"}</button>
@@ -149,15 +161,16 @@ async function revancheEscritorio(chave, botao) {
   const cfg = chave === "xdz" ? XADREZ_CFG : ESCRITORIO_MESAS[chave];
   const j = chave === "xdz" ? escritorioXadrez().jogo : escritorioMesa(chave).jogo;
   if (!cfg || !j?.eu) return;
-  const outro = String(j.desafiante.id) === String(escritorio.base?.eu) ? j.desafiado : j.desafiante;
+  const outros = mesaOutrosIds(j), outro = (j.jogadores || [j.desafiante, j.desafiado]).find((p) => String(p.id) === outros[0]);
   botao.disabled = true;
   try {
-    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: outro.id, camada: j.camada, movel: j.movel, moedas: j.moedas || 0, oferece: [], pede: [], chave: xadrezChave() });
-    mesaSinal(cfg, r.id, outro.id, "c");
+    // Em grupo, a revanche chama a mesa toda de novo.
+    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: outros[0], ...(outros.length > 1 ? { mais: outros.slice(1) } : {}), camada: j.camada, movel: j.movel, moedas: j.moedas || 0, oferece: [], pede: [], chave: xadrezChave() });
+    for (const id of outros) mesaSinal(cfg, r.id, id, "c");
     const x = escritorioXadrez();
     x.esperando = cfg.sinal + ":" + r.id; x.mesa = { camada: j.camada, movel: j.movel }; x.cfg = cfg;
     botao.textContent = "Revanche enviada";
-    escritorioAviso(`Revanche enviada para ${String(outro.nome || "a pessoa").split(" ")[0]}. A partida abre quando aceitar.`);
+    escritorioAviso(outros.length > 1 ? "Revanche enviada para a mesa. A partida abre quando todos aceitarem." : `Revanche enviada para ${String(outro?.nome || "a pessoa").split(" ")[0]}. A partida abre quando aceitar.`);
   } catch (e) {
     botao.disabled = false;
     const el = document.getElementById("xdz-erro");

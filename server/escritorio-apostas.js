@@ -68,22 +68,27 @@ export async function conferirDesafio(tx, pessoa, salas, { para, n, da, quer }) 
  await conferirAposta(tx, para, salas, quer, 'outro');
 }
 
-// Aceite (quem responde é o desafiado): confere tudo de novo e tira a aposta
-// das duas carteiras e dos dois inventários. `razao` = '<jogo>:<id>'.
-export async function cobrarAposta(tx, j, salas, razao) {
+// Quem está na mesa: os dois de sempre e, no pôquer em grupo, os de `mais`.
+export const pessoasDaMesa = (j) => [j.desafiante, j.desafiado, ...(j.mais || [])].map(String);
+
+// Aceite (quem responde é o desafiado, ou o último do grupo a aceitar): confere
+// tudo de novo e tira a aposta de todas as carteiras e dos dois inventários
+// (em grupo a aposta é só de VybeCoins). `razao` = '<jogo>:<id>'.
+export async function cobrarAposta(tx, j, salas, razao, quemAceita = j.desafiado) {
  // Carteiras e inventários trancados sempre na mesma ordem (menor id primeiro).
- const dois = [String(j.desafiante), String(j.desafiado)].sort((a, b) => Number(a) - Number(b));
+ const todos = pessoasDaMesa(j).sort((a, b) => Number(a) - Number(b));
  const n = Number(j.moedas) || 0;
  if (n) {
-  for (const p of dois) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${p}) ON CONFLICT DO NOTHING`;
-  const cart = await tx`SELECT pessoa_id,saldo FROM vybe_escritorio_carteiras WHERE pessoa_id IN (${dois[0]},${dois[1]}) ORDER BY pessoa_id FOR UPDATE`;
-  for (const c of cart) if (Number(c.saldo) < n) throw erro(String(c.pessoa_id) === String(j.desafiado) ? 'Você não tem as VybeCoins da aposta.' : 'Quem chamou não tem mais as VybeCoins da aposta.', 409);
+  for (const p of todos) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${p}) ON CONFLICT DO NOTHING`;
+  const cart = await tx`SELECT pessoa_id,saldo FROM vybe_escritorio_carteiras WHERE pessoa_id = ANY(${todos}::bigint[]) ORDER BY pessoa_id FOR UPDATE`;
+  for (const c of cart) if (Number(c.saldo) < n) throw erro(String(c.pessoa_id) === String(quemAceita) ? 'Você não tem as VybeCoins da aposta.'
+   : String(c.pessoa_id) === String(j.desafiante) ? 'Quem chamou não tem mais as VybeCoins da aposta.' : 'Alguém da mesa não tem mais as VybeCoins da aposta.', 409);
  }
- await tx`SELECT 1 FROM vybe_escritorio_inventario WHERE pessoa_id IN (${dois[0]},${dois[1]}) ORDER BY pessoa_id,classe FOR UPDATE`;
+ await tx`SELECT 1 FROM vybe_escritorio_inventario WHERE pessoa_id = ANY(${todos}::bigint[]) ORDER BY pessoa_id,classe FOR UPDATE`;
  const daqui = itensDaAposta(j.itens_desafiante || []), dali = itensDaAposta(j.itens_desafiado || []);
  await conferirAposta(tx, j.desafiante, salas, daqui, 'outro');
- await conferirAposta(tx, j.desafiado, salas, dali, 'eu');
- if (n) for (const p of dois) {
+ await conferirAposta(tx, j.desafiado, salas, dali, String(quemAceita) === String(j.desafiado) ? 'eu' : 'outro');
+ if (n) for (const p of todos) {
   await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${n} WHERE pessoa_id=${p}`;
   await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${p},${`${razao}:aposta`},${-n})`;
  }
@@ -91,21 +96,21 @@ export async function cobrarAposta(tx, j, salas, razao) {
  await tirarDoInventario(tx, j.desafiado, dali);
 }
 
-// Fim da partida: prêmio para quem ganhou (vencedor = id da pessoa), ou cada
-// um recebe o seu de volta (vencedor = null).
+// Fim da partida: prêmio para quem ganhou (vencedor = id da pessoa: as moedas
+// de todos da mesa e os itens), ou cada um recebe o seu de volta (vencedor = null).
 export async function pagarAposta(tx, j, vencedor, razao) {
- const n = Number(j.moedas) || 0;
+ const n = Number(j.moedas) || 0, todos = pessoasDaMesa(j);
  const daqui = [...(j.itens_desafiante || [])], dali = [...(j.itens_desafiado || [])];
  const creditar = async (p, origem, valor) => {
   const [r] = await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${p},${origem},${valor}) ON CONFLICT(pessoa_id,origem) DO NOTHING RETURNING id`;
   if (r) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(${p},${valor}) ON CONFLICT(pessoa_id) DO UPDATE SET saldo=vybe_escritorio_carteiras.saldo+EXCLUDED.saldo`;
  };
  if (vencedor == null) {
-  if (n) { await creditar(j.desafiante, `${razao}:devolucao`, n); await creditar(j.desafiado, `${razao}:devolucao`, n); }
+  if (n) for (const p of todos) await creditar(p, `${razao}:devolucao`, n);
   await porNoInventario(tx, j.desafiante, daqui);
   await porNoInventario(tx, j.desafiado, dali);
  } else {
-  if (n) await creditar(vencedor, `${razao}:premio`, 2 * n);
+  if (n) await creditar(vencedor, `${razao}:premio`, todos.length * n);
   await porNoInventario(tx, vencedor, [...daqui, ...dali]);
  }
 }
