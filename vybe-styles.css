@@ -12316,3 +12316,13 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .ofc-loja-jogos > .ofc-nota {margin:2px 0 8px}
 .ofc-loja-nav.jogos {color:#ffd18d}
 .ofc-movel-jogo {position:absolute;top:4px;left:4px;padding:1px 6px;border-radius:999px;background:var(--ofc-laranja,#ff9548);color:#1b1006;font:800 9px var(--mac-ui);font-style:normal;letter-spacing:.3px;pointer-events:none}
+/* Fechar gravação: editar a peça já cadastrada (27/10/2026). */
+.capt-escolha-linha {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:4px}
+.capt-escolha-linha .capt-escolha {min-width:0}
+.capt-editar-btn {margin-top:4px;height:28px;padding:0 10px;border:1px solid #ffffff1f;border-radius:8px;background:#ffffff08;color:#cfd6e4;font:650 12px var(--mac-ui);cursor:pointer}
+.capt-editar-btn:hover {background:#ffffff14;color:#fff}
+.capt-editar-btn[aria-expanded=true] {border-color:#ff8a3566;color:#ffb27a}
+.capt-editar {grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px;padding:2px 8px 8px 35px}
+.capt-editar[hidden] {display:none}
+.capt-editar input {width:100%}
+@media (max-width:520px) {.capt-editar {grid-template-columns:1fr;padding-left:8px}}
