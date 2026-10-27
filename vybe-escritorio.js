@@ -1875,7 +1875,7 @@ function escritorioIrParaAmbiente(id, manterLista = false) {
   const a = escritorioAmbienteDoQuarto(id);
   if (!a || a.id === escritorio.quarto) return;
   // Sala escondida só se entra pela porta secreta (descerAoSubsoloEscritorio).
-  if (a.oculta && !(escritorio.base?.admin && escritorio.pelaPortaSecreta)) return;
+  if (a.oculta && !escritorio.pelaPortaSecreta) return;
   escritorio.pelaPortaSecreta = false;
   escritorioEntrarNoQuarto(a.id);
 }
@@ -3878,7 +3878,7 @@ function escritorioAcoesPerto() {
     return { item: comida, texto: escritorio.pose === tipo ? (tipo === "bebida" ? "Largar a bebida" : "Largar o lanche") : (tipo === "bebida" ? "Pegar uma bebida" : "Pegar um lanche"),
       fazer: () => definirPoseEscritorio(escritorio.pose === tipo ? "" : tipo) };
   }
-  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || (typeof escritorioEhPecaDoSubsolo === "function" && escritorioEhPecaDoSubsolo(m) && escritorio.base?.admin) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
+  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || (typeof escritorioEhPecaDoSubsolo === "function" && escritorioEhPecaDoSubsolo(m) && escritorioAcaoDoSubsolo(m)) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
     || ESCRITORIO_GARRAFA.test(m.classe) || ESCRITORIO_ROLETA.test(m.classe)
     || ESCRITORIO_MAO_UNICA.test(m.classe) && (() => { const f = escritorioFrenteDoMovel(m); return f.x === p.x && f.y === p.y; })());
   if (usavel) return escritorioAcaoDoMovel(usavel);
