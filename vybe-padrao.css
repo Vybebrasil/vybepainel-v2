@@ -265,3 +265,11 @@
 #fc-overlay .fc-prev-head{font-family:var(--pv-titulo)!important}
 #fc-overlay .fc-prev-item span,#fc-overlay .fc-prev-item small,#fc-overlay .fc-prev-tag{font-family:var(--mac-ui)!important}
 #fc-overlay .fc-prev-tag{border-radius:7px!important}
+
+/* ---- Escritório: janela de presente com o móvel de verdade ---- */
+.ofc-presente-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:14px}
+.ofc-presente-movel{display:grid;justify-items:center;gap:4px;padding:12px 8px 10px;border-radius:16px;border:1px solid var(--pv-linha);background:linear-gradient(180deg,#2a2d3c,#1e2130);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 3px 0 #0a0b10;color:#fff;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+.ofc-presente-movel:hover,.ofc-presente-movel:focus-visible{transform:translateY(-2px);border-color:#ffb35c;box-shadow:0 0 0 2px rgba(255,179,92,.3),0 12px 24px -12px #ffb35c;outline:0}
+.ofc-presente-movel img{height:64px;max-width:90%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5))}
+.ofc-presente-movel b{font:600 12px var(--mac-ui)}
+.ofc-presente-movel small{font-size:10.5px;color:#7d7870}
