@@ -1853,3 +1853,31 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   `area=subsolo`; quem não cabe aparece no livro de registros.
 - Antes de publicar: migração `migrations/2026-10-27-escritorio-subsolo.sql`
   no banco de Production e o Worker publicado (zona e sala `subsolo`).
+
+### Xadrez no tabuleiro — 27/10/2026
+
+Pedido do Paulo: jogos dentro do Escritório, ligados aos móveis, contra quem
+está online, de graça ou valendo VybeCoins, móvel ou roupa. Começou pelo xadrez.
+
+- Móvel: `CF_250_goldenchessboard` ("Tabuleiro de Xadrez", categoria Jogos,
+  Comum: sempre à venda). Arte extraída do acervo (habboassets); física à mão
+  pela medida da arte (`[0,1]`: sólido, altura 1), porque a furnidata oficial
+  não baixa por script. Clicar ou apertar E perto abre a mesa.
+- Servidor: `server/escritorio-xadrez.js`, tabela `vybe_escritorio_xadrez`
+  (`migrations/2026-10-27-escritorio-xadrez.sql`). Regras pelo chess.js
+  (BSD-2) no servidor; a posição sai dos lances (repetição e 50 lances valem).
+  Convite vale 10 min; cores sorteadas; uma partida por pessoa e por tabuleiro.
+- Aposta: moedas iguais dos dois mais itens de cada lado (móveis guardados e
+  roupas fora do corpo, nunca marco nem roupa grátis). Saem das carteiras e dos
+  inventários ao aceitar (`xadrez:<id>:aposta`) e vão para quem ganha
+  (`xadrez:<id>:premio`); empate devolve (`xadrez:<id>:devolucao`). Sem regra
+  e sem XP: fora do ranking e do ritmo de moedas.
+- Fim: mate, afogamento, material, repetição, 50 lances, desistência, empate
+  combinado, tempo (5 min sem lance de quem tem a vez, a outra pessoa
+  reivindica) e abandono (24 h: perde quem tinha a vez, a aposta não fica presa).
+- Tempo real: sem mudar o Worker. O aviso vai pelo balão de comando
+  (`xdz=<id>:<para>:<c|l>`) e a tela aberta relê a cada 4 s. Quem passa pelo
+  tabuleiro durante a partida assiste.
+- Peças: sprite Cburnett (Wikimedia, CC BY-SA 3.0) do cm-chessboard (MIT), em
+  `vybe-escritorio-xadrez-pecas.js` com a licença dentro do SVG.
+- Próximos: dominó, poker e sinuca na mesma estrutura de mesa e aposta.
