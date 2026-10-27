@@ -12772,3 +12772,8 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .dam-casa.alvo::after {width:34%;height:34%;background:#ffe08a;box-shadow:0 0 0 4px #ffe08a55,0 0 14px #ffe08a;animation:dam-alvo 1s ease-in-out infinite}
 @keyframes dam-alvo {50% {transform:scale(.8)}}
 @media (prefers-reduced-motion: reduce) {.dam-casa.alvo::after {animation:none}}
+/* Cartas e fichas desenhadas (Kenney, CC0): a folha assets/jogos/cartas.webp tem 13 × 5 cartas de 140 × 190. */
+.pkr-carta.img {height:calc(var(--w) * 1.357);border-radius:calc(var(--w) * .09);background:url(/assets/jogos/cartas.webp) calc(var(--cx) * 100% / 12) calc(var(--cy) * 100% / 4) / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008}
+.pkr-carta.img.costas {background:url(/assets/jogos/cartas.webp) 0 100% / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008}
+.pkr-pote i,.pkr-aposta i {width:18px;height:18px;border-radius:50%;background:url(/assets/jogos/fichas.webp) 0 0 / 500% 100% no-repeat;box-shadow:0 2px 3px #0009}
+.pkr-aposta i {background-position:25% 0}
