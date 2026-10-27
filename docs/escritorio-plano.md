@@ -1931,3 +1931,24 @@ Terceiro jogo. Nenhuma migração: `vybe_escritorio_partidas` já aceitava
   tempo); cada jogo só desenha a sua mesa (`desenhar`) e pede a jogada
   (`lanceMesaEscritorio`). Aviso pelo balão `pkr=<id>:<para>:<c|l>`.
 - Próximo: sinuca.
+
+### Sinuca na mesa de bilhar — 27/10/2026
+
+Quarto e último jogo do pedido. Sem migração (`jogo = 'sinuca'` já valia).
+
+- Móvel: `bling15_pooltable` (a mesa da Sala de Jogos, que antes só mandava
+  "Bora uma partida de sinuca?" no balão) agora abre a partida; no catálogo
+  passa a se chamar "Mesa de Sinuca". O pebolim continua só chamando no balão.
+- Regras (`server/escritorio-sinuca.js`): bola 8 para dois. Lisas 1–7,
+  listradas 9–15; a mesa fica aberta até a primeira bola encaçapada sem falta.
+  Continua quem encaçapa bola sua sem falta. Falta (branca na caçapa, não tocar
+  em nada, tocar primeiro a bola errada, a 8 com a mesa aberta) dá bola na mão
+  ao outro. Ganha quem encaçapa a 8 com o grupo limpo; a 8 antes disso ou com
+  falta perde. Na saída a 8 que cai volta para a marca.
+- Física no servidor: mesa 100 × 50, bolas de raio 1,15, seis caçapas, atrito,
+  tabela e choques entre bolas, passo de 1/240 s. O navegador só manda ângulo,
+  força e onde põe a branca; recebe os quadros (30 por segundo) para animar,
+  os dois veem a mesma tacada. Ninguém mexe na física pelo navegador.
+- Tela (`vybe-escritorio-sinuca.js`): canvas com mira (linha, bola fantasma e
+  taco), força, bola na mão e a animação da última tacada. Aviso pelo balão
+  `snc=<id>:<para>:<c|l>`.

@@ -14,6 +14,12 @@ function registrarMesaEscritorio(cfg) {
   ESCRITORIO_MESAS[cfg.sinal] = cfg;
   return cfg;
 }
+// Móveis que abrem um jogo com a equipe (a Loja os destaca e o cartão ganha a
+// etiqueta "Jogo"): o nome do jogo, ou null.
+function escritorioJogoDoMovel(classe) {
+  const c = String(classe || "");
+  return ESCRITORIO_XADREZ.test(c) ? "Xadrez" : ESCRITORIO_DOMINO.test(c) ? "Dominó" : ESCRITORIO_POKER.test(c) ? "Pôquer" : ESCRITORIO_SINUCA.test(c) ? "Sinuca" : null;
+}
 function escritorioMesa(chave) {
   return ((escritorio.mesas ||= {})[chave] ||= { jogo: null, sel: null, timer: null });
 }

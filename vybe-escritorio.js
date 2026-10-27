@@ -427,7 +427,7 @@ function escritorioMarcarBau() {
   const n = b.abatidas || b.pecas.length;
   m.marcarBau(eu, { arte: escritorio.bauArte, numero: n,
     rotulo: `Baú: ${n ? `${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}, ` : ""}+${b.pontos} XP e ${b.moedas >= 0 ? "+" : ""}${b.moedas} moedas. Clique para abrir.`,
-    aoClicar: () => abrirBauEscritorio() });
+    aoClicar: () => { abrirBauEscritorio(); abrirBauEscritorio(true); } });
 }
 function escritorioBauValor(moedas, pontos) {
   const sinal = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("pt-BR");
@@ -462,8 +462,9 @@ function pintarBauEscritorio() {
   if (!el) { el = document.createElement("div"); el.id = "office-bau"; document.body.append(el); }
   el.innerHTML = escritorioBauHtml();
 }
-// Primeiro clique (no boneco): abre a janela com o baú fechado; o segundo
-// (no baú) treme e abre, com os números subindo e as demandas caindo uma a uma.
+// Clicar no baú sobre a cabeça abre a janela e já estoura o baú: ele treme e abre,
+// com os números subindo e as demandas caindo uma a uma (Paulo, 27/10/2026:
+// "clico nele e não abre"). Sem estourar, a janela espera o clique no baú.
 function abrirBauEscritorio(abrir = false) {
   if (!escritorio.bau) return;
   const calmo = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -1143,6 +1144,7 @@ function escritorioIcone(nome) {
     ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     mais: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    jogo: '<path d="M7 8h10a4 4 0 014 4v1a3.5 3.5 0 01-6.3 2.1L14 14h-4l-.7 1.1A3.5 3.5 0 013 13v-1a4 4 0 014-4z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="15.5" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/>',
     voltar: '<path d="M18 6l-8 6 8 6zM6 6v12"/>',
     avancar: '<path d="M6 6l8 6-8 6zM18 6v12"/>',
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
@@ -3215,6 +3217,7 @@ function escritorioAplicarComando(id, cmd) {
   // Dominó (e as próximas mesas de jogo): o mesmo aviso, com a sua chave.
   else if (k === "dmn") dominoSinalEscritorio(id, v);
   else if (k === "pkr") pokerSinalEscritorio(id, v);
+  else if (k === "snc") sinucaSinalEscritorio(id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3562,7 +3565,7 @@ const ESCRITORIO_LIGAVEIS = [
 ];
 const ESCRITORIO_BEBIDA = /fridge|water_dispenser|minibar|vending|vendingmchn|drinkmach|drinksmach|drinksvend|bubblejuicerack|cooler/;
 const ESCRITORIO_LANCHE = /stove|microwave|school_c22_cafe/;
-const ESCRITORIO_JOGOS = [[/pooltable/, "sinuca"], [/footballtable/, "pebolim"]];
+const ESCRITORIO_JOGOS = [[/footballtable/, "pebolim"]];
 function alternarMovelEscritorio(item) {
   const chave = escritorio.mapa.chaveMovel(item);
   const estado = item.estado ? 0 : (item.ligadoPadrao || 1);
@@ -3800,6 +3803,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_XADREZ.test(m.classe)) return { item: m, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(m) };
   if (ESCRITORIO_DOMINO.test(m.classe)) return { item: m, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(m) };
   if (ESCRITORIO_POKER.test(m.classe)) return { item: m, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(m) };
+  if (ESCRITORIO_SINUCA.test(m.classe)) return { item: m, texto: "Jogar sinuca", fazer: () => abrirSinucaEscritorio(m) };
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
@@ -3896,10 +3900,12 @@ function escritorioAcoesPerto() {
   if (domino) return { item: domino, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(domino) };
   const poker = perto.find((m) => ESCRITORIO_POKER.test(m.classe));
   if (poker) return { item: poker, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(poker) };
+  const sinuca = perto.find((m) => ESCRITORIO_SINUCA.test(m.classe));
+  if (sinuca) return { item: sinuca, texto: "Jogar sinuca", fazer: () => abrirSinucaEscritorio(sinuca) };
   const jogo = perto.map((m) => [m, ESCRITORIO_JOGOS.find(([re]) => re.test(m.classe))?.[1]]).find(([, n]) => n);
   if (jogo) {
-    const texto = jogo[1] === "sinuca" ? "Bora uma partida de sinuca?" : "Bora um pebolim?";
-    return { item: jogo[0], texto: "Chamar para " + (jogo[1] === "sinuca" ? "a sinuca" : "o pebolim"),
+    const texto = "Bora um pebolim?";
+    return { item: jogo[0], texto: "Chamar para o pebolim",
       fazer: () => { escritorioEmitir("chat:bubble", { texto }); escritorio.mapa.balao(escritorio.base.eu, texto); } };
   }
   const assento = perto.find((m) => escritorio.mapa.assentoEm(Math.floor(m.x), Math.floor(m.y)) !== undefined && !(Math.floor(m.x) === p.x && Math.floor(m.y) === p.y));

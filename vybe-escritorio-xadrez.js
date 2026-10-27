@@ -365,8 +365,10 @@ async function acaoXadrezEscritorio(acao, botao) {
 }
 // Fim da partida: quem ganhou recebe confete; a carteira de quem jogou é relida.
 function xadrezAcabou(j) {
-  if (j.eu && !escritorioXadrez().economiaRelida?.[j.id]) {
-    (escritorioXadrez().economiaRelida ||= {})[j.id] = true;
+  // Xadrez e mesas numeram as partidas cada um do seu jeito: a chave leva o jogo.
+  const chave = (j.jogo || "xadrez") + ":" + j.id;
+  if (j.eu && !escritorioXadrez().economiaRelida?.[chave]) {
+    (escritorioXadrez().economiaRelida ||= {})[chave] = true;
     escritorioApi("economia").then((d) => d.economia && xadrezEconomia(d.economia)).catch(() => {});
   }
   if (j.eu && j.resultado === j.eu) setTimeout(() => { const n = document.querySelector(".xdz-fim"); if (n && typeof rkConfete === "function" && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) rkConfete(n); }, 80);
