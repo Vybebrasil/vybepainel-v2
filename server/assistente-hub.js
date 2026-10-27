@@ -37,11 +37,13 @@ async function ponteDoHub(sql,clienteId,config){
 }
 export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  const {base,headers,cliente,slug}=await ponteDoHub(sql,a.cliente_id,config);
+ // 25 s (27/10/2026): o resumo de tráfego busca campanhas, totais e anúncios no Meta; sem cache, passava de 10 s e
+ // a pergunta "como tá o tráfego da Conectasim esse mês?" voltava erro.
  const modulo=a.modulo||'trafego',limite=a.limite||25,offset=a.deslocamento||0;
  const input=JSON.stringify({json:{slug,cliente_nome:cliente.nome,since:a.de,until:a.ate,modulo,limite,deslocamento:offset}});
  let r;
  try {
-  r=await buscar(base.origin+'/api/trpc/portal.metricasOperacionais?input='+encodeURIComponent(input),{headers,redirect:'error',signal:AbortSignal.timeout(10000)});
+  r=await buscar(base.origin+'/api/trpc/portal.metricasOperacionais?input='+encodeURIComponent(input),{headers,redirect:'error',signal:AbortSignal.timeout(25000)});
  } catch (erro) {
   if (!previewVybeAiIsolada(config)) throw erro;
   // Não propagar erros do transporte que possam carregar URL ou headers.
