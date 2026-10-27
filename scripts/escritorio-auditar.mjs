@@ -43,7 +43,8 @@ const ASSENTOS = { test: (c) => ctx.mapaFisica(c).senta };
 const PORTAS = /^(val14_gate|exe_gate|ktchn_gate|wildwest_saloondr)$/;
 const DE_TETO = /discoball|chandelier|hanging_?lamp|ceiling/;
 const INTERATIVOS = /coffee|fridge|water_dispenser|minibar|stove|microwave|school_c22_cafe|treadmill|bicycle|jukebox|hc25_6|pinball|arcade|retrogames|fireplace|floorlight|pooltable|projector|largescreen|_tv$|exe_table/;
-const FOCO = /table|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
+// Tabuleiro de jogo (o xadrez do salão de jogos) também é o foco de quem senta.
+const FOCO = /table|chessboard|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
 // Cabine (bilheteria) é assento na ficha, mas quem está nela atende quem chega.
 const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade|ticket_booth/;

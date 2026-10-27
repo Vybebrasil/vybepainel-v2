@@ -1974,3 +1974,13 @@ Etapas 2 a 4 das melhorias pedidas pelo Paulo (sem partida contra o computador).
 - Jogos novos na mesma tabela (`migrations/2026-10-27-escritorio-mesas-jogos-novos.sql` amplia a lista de jogos): dama brasileira (`server/escritorio-dama.js`: captura obrigatória, lei da maioria, dama voadora, coroa ao terminar na última fileira), jogo da velha melhor de 5 (`escritorio-velha.js`) e truco paulista para dois até 12 (`escritorio-truco.js`: vira e manilha, melhor de 3 rodadas, truco/seis/nove/doze, correr, mão de onze).
 - A mesa do dominó (`hobbies_c26_gamingtable`) virou a "Mesa de Jogos": clicando, abre a partida que estiver rolando, o convite recebido ou a escolha entre dominó, dama, velha e truco (`vybe-escritorio-mesa-de-jogos.js`; a lista usa `jogo: "todos"`). Avisos pelo balão dam=, vlh=, trc=.
 - Extrato: as apostas de pôquer, sinuca e dos jogos novos aparecem com o nome do jogo e ficam fora do "no seu ritmo" (antes só xadrez e dominó).
+
+### Salão de jogos por alas — 27/10/2026
+
+Pedido do Paulo: a sala de Jogos estava escura, com objetos largados e sem os jogos novos. Refeita no motor de construção (`scripts/cenas/jogos.mjs`), agora 26 × 18, luz quente, parede de tijolo claro e um piso por ala (texturas da planta):
+
+- Fundo: fliperama (4 máquinas e 2 pinballs), sinuca e pebolim com placares e sofá de plateia, saloon do pôquer (2 mesas de barril, banquinhos, balcão, lampião), separados por grade de neon e divisória de madeira.
+- Meio: tabuleiros de xadrez (2, com tapete e luminária) e Mesas de Jogos (2, para dominó, dama, velha e truco).
+- Frente: videogame, área da torcida e lanchonete; passadeira da porta até o fundo.
+- O verificador (`scripts/escritorio-auditar.mjs`) passou a aceitar tabuleiro de jogo como foco de quem senta.
+- Partida que estivesse rolando na posição antiga da mesa continua: clicar em qualquer mesa do mesmo jogo abre a partida da pessoa.
