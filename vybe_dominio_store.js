@@ -135,6 +135,12 @@ export async function criarSchema() {
   // dia em que o Monday sair, todo avatar do painel quebra junto.
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS vybe_pessoas_email_idx ON vybe_pessoas (LOWER(email)) WHERE email IS NOT NULL`;
+  // As colunas do ciclo de vida (server/ciclo-de-vida.js), que as cargas do
+  // Monday leem para nao desfazer o que foi decidido aqui.
+  for (const tabela of ['vybe_clientes', 'vybe_pessoas']) {
+    await sql.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ciclo_em TIMESTAMPTZ`);
+    await sql.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS apagado_em TIMESTAMPTZ`);
+  }
 
   // As cores hoje vêm coladas em cada um dos 1.969 itens, porque acompanham a
   // resposta do Monday. Aqui viram 18 linhas.
@@ -1241,7 +1247,10 @@ export async function sincronizarEquipe() {
     ON CONFLICT (monday_user_id) DO UPDATE SET
       nome = EXCLUDED.nome,
       email = COALESCE(EXCLUDED.email, vybe_pessoas.email),
-      ativo = TRUE`;
+      -- Quem foi desativado no Vybe OS continua fora, mesmo ativo no Monday; e
+      -- quem foi apagado nao recebe o e-mail de volta.
+      ativo = CASE WHEN vybe_pessoas.ciclo_em IS NULL THEN TRUE ELSE vybe_pessoas.ativo END
+    WHERE vybe_pessoas.apagado_em IS NULL`;
 
   const linhas = await sql`SELECT nome, email, pode_entrar FROM vybe_pessoas
     WHERE email IS NOT NULL ORDER BY pode_entrar DESC, nome`;
@@ -2042,13 +2051,19 @@ export async function importarCadastroClientes() {
               ${txt(it, C.dashboard)}, ${valorTexto ? Number(String(valorTexto).replace(',', '.')) : null},
               ${dataOuNulo(txt(it, C.reuniao))}, ${dataOuNulo(txt(it, C.criado))})
       ON CONFLICT (nome) DO UPDATE SET
-        ativo=EXCLUDED.ativo, monday_item_id=EXCLUDED.monday_item_id, email=EXCLUDED.email,
+        -- Depois que o Vybe OS decidiu (ciclo_em), o grupo do Monday nao manda
+        -- mais: sem isso, quem saiu voltava sozinho na proxima carga.
+        ativo=CASE WHEN vybe_clientes.ciclo_em IS NULL THEN EXCLUDED.ativo ELSE vybe_clientes.ativo END,
+        monday_item_id=EXCLUDED.monday_item_id, email=EXCLUDED.email,
         telefone=EXCLUDED.telefone, endereco=EXCLUDED.endereco, cnpj=EXCLUDED.cnpj,
         plano=EXCLUDED.plano, segmento=EXCLUDED.segmento, responsavel=EXCLUDED.responsavel,
         status=EXCLUDED.status, planejamento_url=EXCLUDED.planejamento_url,
         dashboard=EXCLUDED.dashboard, valor=EXCLUDED.valor,
         proxima_reuniao=EXCLUDED.proxima_reuniao, criado_no_monday=EXCLUDED.criado_no_monday
+      -- Cliente apagado para sempre nao se recadastra pelo Monday.
+      WHERE vybe_clientes.apagado_em IS NULL
       RETURNING id, (xmax = 0) AS nasceu`)[0];
+    if (!linha) continue;
     if (linha.nasceu) criados += 1; else vinculados += 1;
 
     pessoasDoItem({ column_values: (it.column_values || []).map((c) => (c.id === C.pessoas ? { ...c, id: 'person' } : c)) })

@@ -11,6 +11,7 @@ import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteir
 import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
+import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
@@ -247,6 +248,18 @@ async function areaPessoas(req, res, quem) {
 
   if (req.method === 'POST') {
     const { email, acao, senha } = req.body || {};
+    // Entrar, sair, voltar e apagar passam todos pelo ciclo de vida, o mesmo
+    // do cliente: e o unico lugar que muda esse estado (server/ciclo-de-vida.js).
+    if (['criar', 'desativar', 'reativar', 'apagar'].includes(acao)) {
+      const autor = quem?.pessoa?.nome || 'Vybe OS';
+      try {
+        if (acao === 'criar') return res.status(200).json(await criarPessoa(sql(), { ...req.body, autor }));
+        return res.status(200).json(await cicloPessoa(sql(), { ...req.body, autor, autorId: quem?.pessoa?.id }));
+      } catch (erro) {
+        if (erro.status) return res.status(erro.status).json({ error: erro.message });
+        throw erro;
+      }
+    }
     if (!email || !acao) return res.status(400).json({ error: 'Informe o e-mail e a ação.' });
 
     // Tirar de si mesmo o poder de administrar deixaria a operação sem ninguém
@@ -698,8 +711,9 @@ async function anexarNaPeca(req, res, quem) {
 // Sem isto, criar conteúdo para um cliente novo exigia cadastrá-lo antes no
 // Monday — e com o time fora de lá, viraria um pedido para o Paulo toda vez.
 //
-// Cliente não se apaga: desativa. A lista de conteúdos filtra por ativo, e apagar
-// arrastaria junto o vínculo de todo conteúdo histórico dele.
+// Cliente desativa e volta; apagar para sempre so tira o cadastro, e a linha fica
+// com o nome congelado (server/ciclo-de-vida.js): apagar a linha arrastaria junto
+// o vinculo de todo conteudo historico dele.
 // As reunioes do cliente: a data da ultima e as atas.
 //
 // Gerir cliente e, em boa parte, lembrar do que foi combinado na ultima conversa
@@ -749,10 +763,20 @@ async function garantirSchemaDeReunioes(db) {
   reunioesProntas = true;
 }
 
+// O subsolo do Escritorio: quem foi desativado e ainda nao foi apagado. So de
+// quem administra, como o resto do ciclo de vida.
+async function areaSubsolo(req, res, quem) {
+  const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
+  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra desce ao subsolo.' });
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  return res.status(200).json(await listarSubsolo(sql()));
+}
+
 async function areaClientes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
   await garantirSchemaDeReunioes(db);
+  await garantirCicloDeVida(db);
 
   if (req.method === 'GET') {
     const [linhas, acessos] = await Promise.all([
@@ -769,7 +793,7 @@ async function areaClientes(req, res, quem) {
              -- nome sozinho nao volta para o banco.
              (SELECT ARRAY_AGG(cp.pessoa_id ORDER BY cp.ordem)
                 FROM vybe_cliente_pessoas cp WHERE cp.cliente_id = c.id) AS heads_ids
-        FROM vybe_clientes c ORDER BY c.ativo DESC, c.nome`,
+        FROM vybe_clientes c WHERE c.apagado_em IS NULL ORDER BY c.ativo DESC, c.nome`,
       db`SELECT a.id, a.nome, a.cliente_id, c.nome AS cliente, a.grupo,
                 a.pasta_drive AS drive, a.link, a.manus,
                 CASE WHEN a.doc_id IS NOT NULL OR a.doc_conteudo IS NOT NULL THEN TRUE ELSE FALSE END AS documento,
@@ -809,22 +833,17 @@ async function areaClientes(req, res, quem) {
 
   if (req.method === 'POST') {
     const { acao = 'criar', id, nome } = req.body || {};
-    if (acao === 'criar') {
-      const limpo = String(nome || '').trim();
-      if (!limpo) return res.status(400).json({ error: 'Informe o nome do cliente.' });
-      const existe = await db`SELECT id, nome, ativo FROM vybe_clientes WHERE LOWER(nome)=LOWER(${limpo})`;
-      if (existe.length) {
-        // Reativa em vez de recusar: cliente que voltou é o caso comum, e criar
-        // um segundo com o mesmo nome partiria o histórico em dois.
-        const r = await db`UPDATE vybe_clientes SET ativo=TRUE, status='Ativo'
-          WHERE id=${existe[0].id} RETURNING id, nome, ativo`;
-        return res.status(200).json({ ok: true, reativado: true, cliente: r[0] });
+    const autor = quem?.pessoa?.nome || 'Vybe OS';
+    // Entrar, sair, voltar e apagar: o mesmo ciclo de vida da pessoa, num lugar
+    // so (server/ciclo-de-vida.js). 'ativar' segue valendo como 'reativar'.
+    if (['criar', 'ativar', 'reativar', 'desativar', 'apagar'].includes(acao)) {
+      try {
+        if (acao === 'criar') return res.status(200).json(await criarCliente(db, { nome, autor }));
+        return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
+      } catch (erro) {
+        if (erro.status) return res.status(erro.status).json({ error: erro.message });
+        throw erro;
       }
-      // O status preenchido e o que separa um cadastro de verdade de uma linha
-      // que a importacao criou sozinha so porque o nome apareceu num conteudo.
-      const r = await db`INSERT INTO vybe_clientes (nome, status) VALUES (${limpo}, 'Ativo')
-        RETURNING id, nome, ativo`;
-      return res.status(200).json({ ok: true, cliente: r[0] });
     }
     if (acao === 'ficha') {
       // Cadastro veio do Monday; a partir daqui ele se corrige aqui.
@@ -926,23 +945,6 @@ async function areaClientes(req, res, quem) {
       const limpo = String(nome || '').trim();
       if (!id || !limpo) return res.status(400).json({ error: 'Informe o cliente e o novo nome.' });
       const r = await db`UPDATE vybe_clientes SET nome=${limpo} WHERE id=${Number(id)} RETURNING id, nome, ativo`;
-      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
-      return res.status(200).json({ ok: true, cliente: r[0] });
-    }
-    if (acao === 'ativar' || acao === 'desativar') {
-      if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
-      const antes = (await db`SELECT status, ativo FROM vybe_clientes WHERE id=${Number(id)}`)[0];
-      const r = await db`UPDATE vybe_clientes
-          SET ativo=${acao === 'ativar'}, status=${acao === 'ativar' ? 'Ativo' : 'Inativo'}
-        WHERE id=${Number(id)} RETURNING id, nome, ativo`;
-      if (r.length) {
-        await db`INSERT INTO vybe_cliente_eventos (cliente_id, tipo, de, para, motivo, autor)
-          VALUES (${Number(id)}, 'status',
-                  ${antes?.status || (antes?.ativo === false ? 'Inativo' : 'Ativo')},
-                  ${acao === 'ativar' ? 'Ativo' : 'Inativo'},
-                  ${String(req.body?.motivo || '').trim() || null},
-                  ${quem?.pessoa?.nome || 'Vybe OS'})`;
-      }
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
     }
@@ -1706,7 +1708,7 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
-const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar,
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
 
