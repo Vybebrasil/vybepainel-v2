@@ -46,6 +46,10 @@ test('escada Mesas de jogo: uma vitória por jogo, adversário e dia', async (t)
   const { db, sql } = await banco(t);
   await db.exec(ler('2026-10-27-escritorio-conquista-jogos.sql'));
   await db.exec(ler('2026-10-27-escritorio-conquista-jogos.sql'));
+  // A correção dos troféus roda por cima (em Production a primeira versão usava as taças do ranking) e pode repetir.
+  await db.exec(ler('2026-10-27-escritorio-conquista-jogos-trofeus.sql'));
+  await db.exec(ler('2026-10-27-escritorio-conquista-jogos-trofeus.sql'));
+  assert.deepEqual((await sql`SELECT classe FROM vybe_escritorio_trofeus WHERE marco='jogos' ORDER BY nivel`).map((r) => r.classe), ['gift_mysterytrophy', 'habbo20_c20_trophylooks', 'prizetrophy_2011_y', 'royal_chair']);
   assert.deepEqual((await sql`SELECT nivel, meta FROM vybe_escritorio_trofeus WHERE marco='jogos' ORDER BY nivel`).map((r) => [r.nivel, r.meta]), [[1, 1], [2, 10], [3, 30], [4, 100]]);
   assert.equal((await sql`SELECT marco FROM vybe_escritorio_catalogo WHERE classe='royal_chair'`)[0].marco, 'trofeu', 'o troféu não se compra');
   const { conferirMarcos } = await import('../server/escritorio-marcos.js');
@@ -61,6 +65,6 @@ test('escada Mesas de jogo: uma vitória por jogo, adversário e dia', async (t)
   assert.equal(jogos.valor, 4, 'dominó, pôquer e xadrez contra Vinícius e sinuca contra Bia');
   assert.equal(jogos.nivel, 1);
   assert.equal(jogos.titulo, 'Jogador de Mesa');
-  assert.equal((await sql`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=1 AND classe='trophy_fball_c26_wingedbronze'`)[0]?.quantidade, 1);
+  assert.equal((await sql`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=1 AND classe='gift_mysterytrophy'`)[0]?.quantidade, 1);
   assert.equal((await conferirMarcos(sql, 3)).find((m) => m.id === 'jogos').valor, 1, 'Vinícius ganhou um xadrez de Paulo');
 });
