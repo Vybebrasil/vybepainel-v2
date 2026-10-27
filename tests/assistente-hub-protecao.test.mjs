@@ -80,3 +80,12 @@ test('nomes com acentuação diferente não são aceitos como correspondência e
   config,buscar:async()=>resposta(),
  }),/Cliente ou período não conferem/);
 });
+
+test('módulo resumo: só os campos do resumo de tráfego passam pela ponte', async () => {
+ const r = await metricasDoHub(sql,{...args,modulo:'resumo'},{config,buscar:async()=>new Response(JSON.stringify({result:{data:{json:{
+  slug:'cliente-ficticio-ai',cliente_nome:'Cliente Ficticio AI',de:args.de,ate:args.ate,modulo:'resumo',
+  linhas:[{tipo:'total',investido:300,ctr:1.2,resultados:50,tipoResultado:'Conversas iniciadas',custoResultado:6,thumbnail:'https://segredo'}],origem_dados:'meta',
+ }}}}))});
+ assert.equal(r.modulo,'resumo');
+ assert.deepEqual(r.itens,[{tipo:'total',investido:300,ctr:1.2,resultados:50,tipoResultado:'Conversas iniciadas',custoResultado:6}]);
+});
