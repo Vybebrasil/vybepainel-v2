@@ -213,13 +213,13 @@ async function vitoriasNasMesas(sql, pessoaId) {
  const [ex] = await sql`SELECT to_regclass('public.vybe_escritorio_xadrez') IS NOT NULL AS xadrez, to_regclass('public.vybe_escritorio_partidas') IS NOT NULL AS partidas`;
  const dia = (t) => new Date(t).toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' });
  const chaves = new Set();
- if (ex?.xadrez) for (const l of await sql`SELECT brancas, pretas, resultado, terminado_em FROM vybe_escritorio_xadrez WHERE estado='fim'
+ if (ex?.xadrez) for (const l of await sql`SELECT brancas, pretas, resultado, terminado_em FROM vybe_escritorio_xadrez WHERE estado='fim' AND brancas IS NOT NULL AND pretas IS NOT NULL
    AND ((resultado='brancas' AND brancas=${pessoaId}) OR (resultado='pretas' AND pretas=${pessoaId}))`)
   chaves.add(`xadrez:${String(l.brancas) === String(pessoaId) ? l.pretas : l.brancas}:${dia(l.terminado_em)}`);
  // Pôquer em grupo: quem ganhou venceu cada um dos outros da mesa.
  const LADOS = ['desafiante', 'desafiado', 'jogador3', 'jogador4'];
  if (ex?.partidas) for (const l of await sql`SELECT jogo, desafiante, desafiado, mais, resultado, terminado_em FROM vybe_escritorio_partidas WHERE estado='fim'
-   AND resultado <> 'empate' AND (desafiante=${pessoaId} OR desafiado=${pessoaId} OR ${pessoaId} = ANY(mais))`) {
+   AND resultado <> 'empate' AND bot IS NULL AND (desafiante=${pessoaId} OR desafiado=${pessoaId} OR ${pessoaId} = ANY(mais))`) {
   const mesa = [l.desafiante, l.desafiado, ...(l.mais || [])].map(String);
   if (mesa[LADOS.indexOf(l.resultado)] !== String(pessoaId)) continue;
   for (const outro of mesa) if (outro !== String(pessoaId)) chaves.add(`${l.jogo}:${outro}:${dia(l.terminado_em)}`);

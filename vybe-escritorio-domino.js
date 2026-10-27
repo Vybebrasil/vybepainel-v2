@@ -24,8 +24,14 @@ const dominoMesma = (p, q) => (p[0] === q[0] && p[1] === q[1]) || (p[0] === q[1]
 function dominoMetadeHtml(n) {
   return `<span class="dmn-meia">${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => `<i${DOMINO_PONTOS[n].includes(i) ? ' class="p"' : ""}></i>`).join("")}</span>`;
 }
+// Peças desenhadas (Domino Pack do Kenney, CC0; assets/jogos/domino.webp): a
+// folha tem as 28 peças em pé (menor em cima), 7 por linha, e o verso. A peça
+// gira para mostrar o primeiro número no começo da fileira (à esquerda ou em cima).
+const DOMINO_INDICE = (() => { const m = {}; let k = 0; for (let a = 0; a <= 6; a++) for (let b = a; b <= 6; b++) m[a + "_" + b] = k++; return m; })();
 function dominoPecaHtml([a, b], cls = "") {
-  return `<span class="dmn-peca ${cls}" role="img" aria-label="${a} e ${b}">${dominoMetadeHtml(a)}<b></b>${dominoMetadeHtml(b)}</span>`;
+  const lo = Math.min(a, b), hi = Math.max(a, b), k = DOMINO_INDICE[lo + "_" + hi], deitada = /deitada/.test(cls);
+  const giro = deitada ? (a === lo ? -90 : 90) : (a === lo ? 0 : 180);
+  return `<span class="dmn-peca img ${cls}" role="img" aria-label="${a} e ${b}"><i style="--cx:${k % 7};--cy:${Math.floor(k / 7)};--giro:${giro}deg"></i></span>`;
 }
 
 // A fileira no jeito dos dominós online (Paulo, 27/10/2026, com a

@@ -12557,3 +12557,309 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 /* Peça arrastada no xadrez e na dama: segue o ponteiro por cima de tudo. */
 .tab-fantasma {position:fixed;left:0;top:0;z-index:10000;pointer-events:none;filter:drop-shadow(0 8px 10px #000a);transform-origin:center}
 .xdz-tabuleiro.vez .xdz-casa.minha,.dam-tabuleiro.vez .dam-casa.minha {cursor:grab;touch-action:none}
+/* Lobby da mesa de jogo: cartões de convite, espera e partida rolando, que se atualizam sozinhos. */
+.workflow-modal.ofc-xdz-sala {width:min(620px,calc(100vw - 24px))}
+.sala-cartao {display:grid;gap:10px;margin:10px 0;padding:14px;border-radius:16px;background:#ffffff08;border:1px solid #ffffff14}
+.sala-cartao.destaque {background:linear-gradient(135deg,color-mix(in srgb,var(--ofc-laranja,#ff9548) 22%,transparent),#ffffff08);border-color:color-mix(in srgb,var(--ofc-laranja,#ff9548) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.sala-cartao .sala-topo {display:flex;align-items:center;gap:10px}
+.sala-cartao .sala-topo > div {display:grid;gap:2px}
+.sala-cartao .sala-topo b {color:#fff;font:700 15px var(--mac-ui)}
+.sala-cartao .sala-topo small {color:#9da4b4;font-size:12px}
+.sala-prazo {justify-self:start;margin-top:2px;padding:1px 8px;border-radius:999px;background:#ffffff12;color:#d7deeb;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.sala-prazo.pouco {background:#e2462e33;color:#ffb3a6}
+.sala-lugares {display:flex;flex-wrap:wrap;gap:8px}
+.sala-pessoa {display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;background:#0b0d12;border:1px solid #ffffff14}
+.sala-pessoa img,.sala-pessoa > i {width:28px;height:28px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12}
+.sala-pessoa b {color:#fff;font:700 12px var(--mac-ui)}
+.sala-pessoa small {color:#9da4b4;font:600 11px var(--mac-ui)}
+.sala-pessoa.aceitou {border-color:#3fbf7a88}
+.sala-pessoa.aceitou small {color:#7fe0a8}
+.sala-pessoa.espera small {color:#ffd56a}
+.sala-pessoa.espera small::before {content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#ffd56a;vertical-align:middle;animation:sala-pulso 1.2s ease-in-out infinite}
+@keyframes sala-pulso {50% {opacity:.25}}
+@media (prefers-reduced-motion: reduce) {.sala-pessoa.espera small::before {animation:none}}
+.sala-acoes {display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.sala-vazia {margin:14px 0}
+.xdz-pessoa {position:relative}
+.xdz-pessoa.online::after {content:"";position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:#3fbf7a;box-shadow:0 0 0 2px #14171e}
+.xdz-pessoa:not(.online) img {opacity:.6}
+/* Convite que chega com outra tela aberta: aviso no canto com os botões. */
+.mesa-convite-aviso {position:fixed;right:18px;bottom:18px;z-index:10001;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:12px 14px;border-radius:16px;background:#14171ef2;border:1px solid color-mix(in srgb,var(--ofc-laranja,#ff9548) 60%,transparent);box-shadow:0 18px 40px #000b;animation:convite-entra .3s cubic-bezier(.2,.8,.3,1)}
+.mesa-convite-aviso img {width:40px;height:40px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12}
+.mesa-convite-aviso > div {display:grid;gap:2px;margin-right:6px}
+.mesa-convite-aviso b {color:#fff;font:700 13px var(--mac-ui)}
+.mesa-convite-aviso small {color:#9da4b4;font-size:12px}
+.mesa-convite-aviso button {padding:8px 12px}
+@keyframes convite-entra {from {opacity:0;transform:translateY(20px)}}
+@media(max-width:640px){.mesa-convite-aviso{left:12px;right:12px;bottom:12px;flex-wrap:wrap}.mesa-convite-aviso > div{flex:1 1 70%}}
+/* Lobby com cara de joguinho: faixa temática, assentos redondos, selos, relógio e botões em relevo. */
+.workflow-modal.ofc-xdz-sala {width:min(640px,calc(100vw - 24px));padding:0;overflow:hidden auto;background:#12151c}
+.ofc-xdz-sala > .sala-mesa,.ofc-xdz-sala > .ofc-erro {margin-left:16px;margin-right:16px}
+.sala-banner {position:relative;display:flex;align-items:center;gap:14px;min-height:118px;padding:18px 54px 18px 20px;overflow:hidden;color:#fff;background:radial-gradient(ellipse at 20% 0%,#2fae6c,#155c39 70%);box-shadow:inset 0 -4px 0 #0004}
+.sala-banner.tema-xadrez {background:repeating-conic-gradient(#3b2a1a 0 25%,#5a4028 0 50%) 0 0/36px 36px;box-shadow:inset 0 0 0 999px #0007}
+.sala-banner.tema-sinuca {background:radial-gradient(ellipse at 30% 0%,#2fb06e,#14603b 75%)}
+.sala-banner.tema-domino,.sala-banner.tema-todos {background:radial-gradient(ellipse at 30% 0%,#3f7bd6,#1d3f7a 75%)}
+.sala-banner.tema-dama {background:radial-gradient(ellipse at 30% 0%,#c0563a,#6b2414 75%)}
+.sala-banner.tema-velha {background:radial-gradient(ellipse at 30% 0%,#8b5cf6,#43207f 75%)}
+.sala-banner.tema-truco {background:radial-gradient(ellipse at 30% 0%,#d9a12b,#7a4a08 75%)}
+.sala-banner small {color:#ffffffb3;font:800 11px var(--mac-ui);letter-spacing:1.5px;text-transform:uppercase}
+.sala-banner h2 {margin:2px 0 4px;font:900 28px/1.05 var(--mac-ui);letter-spacing:-.5px;text-shadow:0 3px 0 #0005}
+.sala-banner p {margin:0;max-width:44ch;color:#ffffffd9;font:600 12.5px var(--mac-ui)}
+.sala-banner .workflow-close {position:absolute;top:12px;right:12px}
+.sala-simbolos {position:absolute;right:-8px;bottom:-22px;display:flex;gap:2px;pointer-events:none}
+.sala-simbolos i {font-style:normal;font-size:84px;line-height:1;color:#ffffff1f;transform:rotate(calc(var(--i) * 12deg - 12deg));text-shadow:0 4px 0 #0002}
+.sala-mesa {position:relative;display:grid;gap:12px;margin:14px 0;padding:16px;border-radius:20px;background:radial-gradient(ellipse at 50% 0%,#1f3a2c,#141b1a 80%);border:2px solid #ffffff12;box-shadow:inset 0 2px 0 #ffffff10,0 8px 0 #0004}
+.sala-mesa.destaque {background:radial-gradient(ellipse at 50% 0%,#5a3a12,#1d1810 80%);border-color:#ffb94a;box-shadow:0 0 0 4px #ffb94a33,0 0 30px #ffb94a33,0 8px 0 #0005;animation:sala-chamando 1.6s ease-in-out infinite}
+@keyframes sala-chamando {50% {box-shadow:0 0 0 6px #ffb94a22,0 0 44px #ffb94a55,0 8px 0 #0005}}
+.sala-mesa.rolando {background:radial-gradient(ellipse at 50% 0%,#1d2f55,#121827 80%)}
+.sala-topo {display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sala-topo b {color:#fff;font:900 17px var(--mac-ui);letter-spacing:-.2px;text-shadow:0 2px 0 #0006}
+.sala-prazo {display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#000a;color:#fff;font:800 13px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:inset 0 -2px 0 #fff2}
+.sala-prazo i {width:12px;height:12px;border-radius:50%;border:2px solid #7fe0a8;border-top-color:transparent;animation:sala-gira 1s linear infinite}
+.sala-prazo.pouco {background:#a3261a;animation:sala-pisca .8s ease-in-out infinite}
+.sala-prazo.pouco i {border-color:#fff;border-top-color:transparent}
+@keyframes sala-gira {to {transform:rotate(360deg)}}
+@keyframes sala-pisca {50% {opacity:.6}}
+.sala-lugares {display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px}
+.sala-lugar {display:grid;justify-items:center;gap:3px;width:84px;padding:0;border:0;background:none;color:#fff}
+.sala-assento {display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#1a1f2a);box-shadow:0 0 0 4px #ffffff22,0 6px 0 #0006}
+.sala-assento img {width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
+.sala-assento i {font:900 24px var(--mac-ui);font-style:normal;color:#ffffffb0}
+.sala-lugar b {max-width:84px;overflow:hidden;color:#fff;font:800 12px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.sala-lugar em {padding:1px 8px;border-radius:999px;font:900 9.5px var(--mac-ui);font-style:normal;letter-spacing:.6px;text-transform:uppercase;box-shadow:0 2px 0 #0005}
+.sala-lugar.chamou .sala-assento {box-shadow:0 0 0 4px #ffcf4a,0 6px 0 #0006}
+.sala-lugar.chamou em {background:#ffcf4a;color:#2a1800}
+.sala-lugar.aceitou .sala-assento {box-shadow:0 0 0 4px #3fd17f,0 0 18px #3fd17f88,0 6px 0 #0006}
+.sala-lugar.aceitou em {background:#3fd17f;color:#062712}
+.sala-lugar.espera .sala-assento {box-shadow:0 0 0 4px #ffffff40,0 6px 0 #0006;animation:sala-espera 1.4s ease-in-out infinite}
+.sala-lugar.espera em {background:#ffffff26;color:#ffe9a8}
+@keyframes sala-espera {50% {box-shadow:0 0 0 4px #ffcf4a99,0 6px 0 #0006}}
+.sala-lugar.jogando .sala-assento {box-shadow:0 0 0 4px #5aa7ff,0 6px 0 #0006}
+.sala-lugar.vazio {cursor:pointer}
+.sala-lugar.vazio .sala-assento {background:transparent;border:3px dashed #ffffff40;box-shadow:none;transition:transform .15s,border-color .15s}
+.sala-lugar.vazio .sala-assento i {color:#ffffff80;font-size:30px}
+.sala-lugar.vazio b {color:#ffffff99}
+.sala-lugar.vazio em {background:#ff9548;color:#2a1400}
+.sala-lugar.vazio:hover .sala-assento {transform:scale(1.08);border-color:#ff9548}
+.sala-vs {color:#ffcf4a;font:900 18px var(--mac-ui);font-style:italic;text-shadow:0 3px 0 #0007}
+.sala-aovivo {display:inline-block;margin-right:6px;padding:1px 7px;border-radius:5px;background:#e2462e;color:#fff;font:900 10px var(--mac-ui);font-style:normal;letter-spacing:.6px;text-transform:uppercase;vertical-align:middle;animation:sala-pisca 1.2s ease-in-out infinite}
+.sala-dica {margin:0;text-align:center;color:#c9d1dd;font:600 12px var(--mac-ui)}
+.sala-mesa .xdz-aposta {margin:0}
+.sala-acoes {display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sala-rodape {position:sticky;bottom:0;display:flex;justify-content:space-between;gap:10px;padding:14px 16px;background:linear-gradient(transparent,#12151c 30%)}
+.sala-botao {padding:11px 20px;border:0;border-radius:14px;color:#fff;font:900 14px var(--mac-ui);letter-spacing:.3px;text-transform:uppercase;cursor:pointer;box-shadow:inset 0 2px 0 #ffffff40,0 5px 0 var(--sombra,#0008);transition:transform .08s,box-shadow .08s}
+.sala-botao:hover {transform:translateY(-1px)}
+.sala-botao:active {transform:translateY(4px);box-shadow:inset 0 2px 0 #ffffff40,0 1px 0 var(--sombra,#0008)}
+.sala-botao:disabled {opacity:.5;cursor:default;transform:none}
+.sala-botao.verde {--sombra:#0d6b36;background:linear-gradient(#4fe08f,#22a85c)}
+.sala-botao.laranja {--sombra:#a3480d;background:linear-gradient(#ffb067,#ff7a1f)}
+.sala-botao.azul {--sombra:#1c4d99;background:linear-gradient(#6fb2ff,#3577e0)}
+.sala-botao.cinza {--sombra:#0b0d12;background:linear-gradient(#4a5160,#2e333e)}
+.sala-botao.grande {padding:13px 26px;font-size:15px}
+@media (prefers-reduced-motion: reduce) {.sala-mesa.destaque,.sala-prazo i,.sala-prazo.pouco,.sala-lugar.espera .sala-assento,.sala-aovivo {animation:none}}
+@media(max-width:560px){.sala-banner h2{font-size:22px}.sala-simbolos i{font-size:60px}.sala-lugar{width:70px}.sala-assento{width:54px;height:54px}.sala-assento img{width:46px;height:46px}}
+/* Convite novo com cara de jogo: a mesma faixa, as pessoas em assentos redondos e o modo como botões grandes. */
+.workflow-modal.ofc-xdz-novo {width:min(640px,calc(100vw - 24px));padding:0;overflow:hidden auto;background:#12151c}
+.ofc-xdz-novo .sala-corpo {padding:4px 16px 8px}
+.ofc-xdz-novo .xdz-pessoas {gap:12px;justify-content:center}
+.ofc-xdz-novo .xdz-pessoa {width:84px;padding:6px 2px;border:0;background:none;color:#fff;font:800 12px var(--mac-ui)}
+.ofc-xdz-novo .xdz-pessoa img,.ofc-xdz-novo .xdz-pessoa > i {width:60px;height:60px;padding:2px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#1a1f2a);box-shadow:0 0 0 3px #ffffff22,0 5px 0 #0006;transition:transform .12s,box-shadow .12s}
+.ofc-xdz-novo .xdz-pessoa:hover img,.ofc-xdz-novo .xdz-pessoa:hover > i {transform:translateY(-3px)}
+.ofc-xdz-novo .xdz-pessoa.sim {background:none}
+.ofc-xdz-novo .xdz-pessoa.sim img,.ofc-xdz-novo .xdz-pessoa.sim > i {box-shadow:0 0 0 4px #ff9548,0 0 20px #ff954888,0 5px 0 #0006;transform:translateY(-3px)}
+.ofc-xdz-novo .xdz-pessoa.online::after {top:8px;right:14px;width:12px;height:12px}
+.ofc-xdz-novo .xdz-modo button {border-radius:14px;box-shadow:inset 0 2px 0 #ffffff20,0 5px 0 #0007}
+.ofc-xdz-novo .xdz-modo button.sim {background:linear-gradient(#ffb067,#ff7a1f);color:#2a1400;box-shadow:inset 0 2px 0 #ffffff50,0 5px 0 #a3480d}
+.ofc-xdz-novo .xdz-modo button.sim small {color:#4a2400}
+/* Na vez de tacar, o toque na mesa não rola a página (o navegador cancelava o toque e a branca não entrava). */
+.snc-canvas.vez {touch-action:none}
+/* Relógio da vez: anel que esvazia com os segundos no meio; vermelho e pulsando nos últimos 10. */
+.vez-prazo {--p:1;position:relative;display:inline-grid;place-items:center;flex:0 0 auto;width:30px;height:30px;margin-left:auto;border-radius:50%;background:conic-gradient(#3fd17f calc(var(--p) * 360deg),#ffffff1a 0);box-shadow:0 2px 6px #0008}
+.vez-prazo i {position:absolute;inset:3px;border-radius:50%;background:#12151c}
+.vez-prazo b {position:relative;color:#fff;font:900 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.vez-prazo.pouco {background:conic-gradient(#ff4a3a calc(var(--p) * 360deg),#ffffff1a 0);animation:sala-pisca .6s ease-in-out infinite}
+.pkr-lugar .vez-prazo {position:absolute;top:-10px;right:4px;margin:0}
+.snc-jogador .vez-prazo {margin:0}
+@media (prefers-reduced-motion: reduce) {.vez-prazo.pouco {animation:none}}
+/* Xadrez mais legível, no jeito do lichess e do chess.com: casas possíveis com pontos fortes, captura com anel, peça escolhida e último lance bem marcados. */
+.xdz-casa.alvo::after {width:32%;height:32%;background:#14141473}
+.xdz-casa.alvo.captura::after {width:88%;height:88%;background:transparent;border:5px solid #14141473;box-sizing:border-box}
+.xdz-casa.alvo:hover::after {background:#14141499}
+.xdz-casa.sel::before {background:#f6c34ad0}
+.xdz-casa.ultimo::before {background:#f6e27a8c}
+.xdz-casa svg {position:relative;z-index:1;filter:drop-shadow(0 2px 1px #0006)}
+.xdz-tabuleiro {box-shadow:0 0 0 6px #4a2e16,0 0 0 8px #2a1a0c,0 14px 30px #000a;border-radius:4px}
+/* Relógio da vez cabe na barra do jogador. */
+.mesa-jogador {grid-template-columns:36px minmax(0,1fr) auto auto}
+/* Truco no jeito dos trucos online: feltro largo, leques de cartas, jogadas no meio, placar grande e faixa do pedido. */
+.workflow-modal.ofc-trc-jogo {width:min(960px,calc(100vw - 24px))}
+.ofc-trc-jogo .mesa-jogo {grid-template-columns:1fr}
+.ofc-trc-jogo .mesa-lado {width:100%}
+.ofc-trc-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+.trc-salao {display:grid;gap:10px}
+.trc-feltro {position:relative;display:grid;gap:12px;justify-items:center;padding:16px 18px 20px;border-radius:28px;background:radial-gradient(ellipse at 50% 35%,#2c9a5c,#17603a 70%,#0f4527);box-shadow:inset 0 0 0 8px #6b3c18,inset 0 0 0 11px #2e1a09,inset 0 0 40px #000a,0 14px 30px #000b}
+.trc-dele {position:relative;display:flex;justify-content:center;height:64px}
+.trc-costas {display:inline-block;margin:0 -10px;transform:rotate(calc(var(--i) * 7deg)) translateY(calc(var(--i) * var(--i) * 3px));transform-origin:50% 120%}
+.trc-meio {display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;width:100%}
+.trc-vira {display:grid;justify-items:center;gap:4px;padding:8px 10px;border-radius:14px;background:#0006;color:#d9f2e3;font:700 11px var(--mac-ui)}
+.trc-vira b {color:#ffd56a}
+.trc-jogadas {display:flex;justify-content:center;gap:18px}
+.trc-jogada .pkr-carta {animation:trc-joga .35s cubic-bezier(.2,.8,.3,1)}
+@keyframes trc-joga {from {opacity:0;transform:translateY(30px) scale(.8) rotate(-8deg)}}
+.trc-info {display:grid;justify-items:center;gap:6px;color:#d9f2e3;font:700 11px var(--mac-ui)}
+.trc-placar {display:grid;grid-template-columns:auto auto auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:#000a;box-shadow:inset 0 -3px 0 #fff1}
+.trc-placar div {display:grid;justify-items:center}
+.trc-placar small {color:#9da4b4;font:700 10px var(--mac-ui)}
+.trc-placar b {color:#fff;font:900 26px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.trc-placar span {color:#ffd56a;font:900 16px var(--mac-ui)}
+.trc-placar em {grid-column:1/-1;justify-self:center;color:#9da4b4;font:700 10px var(--mac-ui);font-style:normal}
+.trc-vale {padding:3px 12px;border-radius:999px;background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;font:900 14px var(--mac-ui);box-shadow:0 3px 0 #8a5a00}
+.trc-rodada {width:12px;height:12px;border-radius:50%;background:#ffffff26;box-shadow:inset 0 1px 2px #0008}
+.trc-rodada.minha {background:#3fd17f}
+.trc-rodada.dele {background:#ff5a4a}
+.trc-rodada.empate {background:#ffd56a}
+.trc-rodadas {display:flex;gap:5px}
+.trc-minhas {display:flex;justify-content:center;min-height:120px;padding-top:8px}
+.trc-carta {margin:0 -6px;padding:0;border:0;background:none;transform:rotate(calc(var(--i) * 6deg)) translateY(calc(var(--i) * var(--i) * 4px));transform-origin:50% 140%;transition:transform .15s;cursor:pointer}
+.trc-carta:not(:disabled):hover {transform:rotate(calc(var(--i) * 6deg)) translateY(-18px)}
+.trc-carta:disabled {cursor:default;filter:saturate(.8)}
+.trc-botoes {display:flex;justify-content:center;min-height:8px}
+.sala-botao.vermelho {--sombra:#7a140a;background:linear-gradient(#ff6a55,#d62a14)}
+.trc-grito {font-size:20px;padding:12px 34px;animation:trc-pulsa 1.2s ease-in-out infinite}
+@keyframes trc-pulsa {50% {transform:scale(1.06) rotate(-1deg)}}
+.trc-faixa {position:absolute;left:50%;top:50%;z-index:2;display:grid;justify-items:center;gap:10px;min-width:min(420px,90%);padding:16px 20px;border-radius:18px;background:#14171ef2;border:2px solid #ffb94a;box-shadow:0 0 40px #ffb94a66,0 18px 40px #000c;transform:translate(-50%,-50%);animation:trc-faixa .35s cubic-bezier(.2,1.4,.4,1)}
+.trc-faixa b {color:#ffd56a;font:900 24px var(--mac-ui);text-transform:uppercase;letter-spacing:.5px;text-shadow:0 3px 0 #0008}
+.trc-faixa small {color:#c9d1dd;font:600 12px var(--mac-ui)}
+.trc-faixa > div {display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.trc-faixa.espera {border-color:#ffffff40;box-shadow:0 18px 40px #000c}
+@keyframes trc-faixa {from {opacity:0;transform:translate(-50%,-50%) scale(.7)}}
+@media (prefers-reduced-motion: reduce) {.trc-grito,.trc-faixa,.trc-jogada .pkr-carta {animation:none}}
+@media(max-width:640px){.trc-meio{grid-template-columns:1fr;justify-items:center}.trc-info{grid-auto-flow:column;align-items:center}}
+/* Jogo da velha em neon: quadro escuro, linhas acesas, X rosa e O azul brilhando, símbolo fantasma no hover, linha da vitória acesa. */
+.vlh-mesa {display:grid;justify-items:center;gap:8px;padding:16px;border-radius:22px;background:radial-gradient(ellipse at 50% 30%,#2a1f4a,#120d22 75%);box-shadow:inset 0 0 0 2px #8b5cf655,0 14px 30px #000b}
+.vlh-mesa > small {color:#c4b5fd;font:800 11px var(--mac-ui);letter-spacing:1px;text-transform:uppercase}
+.vlh-placar {display:flex;align-items:center;gap:14px;font:900 30px/1 var(--mac-ui)}
+.vlh-placar span {color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 0 12px #fff6}
+.vlh-placar b.x,.vlh-casa.x {color:#ff4fa3;text-shadow:0 0 8px #ff4fa3,0 0 22px #ff4fa388}
+.vlh-placar b.o,.vlh-casa.o {color:#4fd1ff;text-shadow:0 0 8px #4fd1ff,0 0 22px #4fd1ff88}
+.vlh-tab {display:grid;grid-template-columns:repeat(3,minmax(0,96px));gap:0;background:none}
+.vlh-casa {position:relative;aspect-ratio:1;border:0;border-radius:0;background:transparent;font:900 64px/1 var(--mac-ui);box-shadow:none}
+.vlh-casa:nth-child(-n+6) {border-bottom:4px solid #a78bfa}
+.vlh-casa:not(:nth-child(3n)) {border-right:4px solid #a78bfa}
+.vlh-tab {filter:drop-shadow(0 0 6px #a78bfa88)}
+.vlh-casa.x,.vlh-casa.o {animation:vlh-marca .3s cubic-bezier(.2,1.4,.4,1)}
+@keyframes vlh-marca {from {opacity:0;transform:scale(.3) rotate(-20deg)}}
+.vlh-casa.ultima {background:radial-gradient(circle,#ffffff1f,transparent 70%);box-shadow:none}
+.vlh-casa.linha {background:#ffffff1f;animation:vlh-ganha 1s ease-in-out infinite}
+@keyframes vlh-ganha {50% {background:#ffffff38}}
+.vlh-tab[data-meu] .vlh-casa:not(:disabled) {cursor:pointer}
+.vlh-tab[data-meu="X"] .vlh-casa:not(:disabled):hover::after {content:"X";color:#ff4fa366}
+.vlh-tab[data-meu="O"] .vlh-casa:not(:disabled):hover::after {content:"O";color:#4fd1ff66}
+@media (prefers-reduced-motion: reduce) {.vlh-casa.x,.vlh-casa.o,.vlh-casa.linha {animation:none}}
+@media(max-width:560px){.vlh-tab{grid-template-columns:repeat(3,minmax(0,80px))}.vlh-casa{font-size:52px}}
+/* Dama mais bonita: tabuleiro do tamanho certo com moldura, peças com anéis em relevo, coroa dourada na dama e marcas fortes. */
+.dam-tabuleiro {width:min(460px,100%);margin:0 auto;box-shadow:0 0 0 7px #4a2e16,0 0 0 9px #2a1a0c,0 16px 34px #000b;border-radius:4px}
+.dam-casa.escura {background:linear-gradient(135deg,#7f5434,#6c4428)}
+.dam-casa.clara {background:#ecdcba}
+.dam-peca {width:80%;height:80%;transition:transform .15s}
+.dam-peca.branca {background:radial-gradient(circle at 50% 45%,#fffdf6 0 34%,#e3dccb 35% 40%,#fbf7ee 41% 58%,#d9d0bc 59% 64%,#f4efe4 65%);box-shadow:inset 0 -5px 0 #b9ae95,0 4px 0 #8e826a,0 6px 8px #0009}
+.dam-peca.preta {background:radial-gradient(circle at 50% 45%,#3d3d3d 0 34%,#1b1b1b 35% 40%,#353535 41% 58%,#141414 59% 64%,#2b2b2b 65%);box-shadow:inset 0 -5px 0 #000,0 4px 0 #050505,0 6px 8px #0009}
+.dam-peca.dama::after {content:"♛";color:#f2c94c;text-shadow:0 1px 0 #7a5a00,0 0 8px #f2c94c88;font-size:clamp(14px,3.2vw,26px)}
+.dam-tabuleiro.vez .dam-casa.minha:hover .dam-peca {transform:translateY(-3px)}
+.dam-casa.sel::before {background:#f6c34ab0}
+.dam-casa.sel .dam-peca {transform:translateY(-4px)}
+.dam-casa.ultimo::before {background:#f6e27a66}
+.dam-casa.alvo::after {width:34%;height:34%;background:#ffe08a;box-shadow:0 0 0 4px #ffe08a55,0 0 14px #ffe08a;animation:dam-alvo 1s ease-in-out infinite}
+@keyframes dam-alvo {50% {transform:scale(.8)}}
+@media (prefers-reduced-motion: reduce) {.dam-casa.alvo::after {animation:none}}
+/* Cartas e fichas desenhadas (Kenney, CC0): a folha assets/jogos/cartas.webp tem 13 × 5 cartas de 140 × 190. */
+.pkr-carta.img {height:calc(var(--w) * 1.357);border-radius:calc(var(--w) * .09);background:url(/assets/jogos/cartas.webp) calc(var(--cx) * 100% / 12) calc(var(--cy) * 100% / 4) / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008}
+.pkr-carta.img.costas {background:url(/assets/jogos/cartas.webp) 0 100% / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008}
+.pkr-pote i,.pkr-aposta i {width:18px;height:18px;border-radius:50%;background:url(/assets/jogos/fichas.webp) 0 0 / 500% 100% no-repeat;box-shadow:0 2px 3px #0009}
+.pkr-aposta i {background-position:25% 0}
+/* Dominó com as peças do Kenney: a imagem em pé dentro da peça e girada quando a peça está deitada. */
+.dmn-peca.img {--m:22px;position:relative;display:inline-block;width:calc(var(--m) * 1.08);height:calc(var(--m) * 2.16);padding:0;background:none;box-shadow:none;overflow:visible}
+.dmn-peca.img.deitada {width:calc(var(--m) * 2.16);height:calc(var(--m) * 1.08)}
+.dmn-peca.img i {position:absolute;left:50%;top:50%;width:calc(var(--m) * 1.08);height:calc(var(--m) * 2.16);margin:calc(var(--m) * -1.08) 0 0 calc(var(--m) * -.54);background:url(/assets/jogos/domino.webp) calc(var(--cx) * 100% / 6) calc(var(--cy) * 100% / 4) / 700% 500% no-repeat;transform:rotate(var(--giro));filter:drop-shadow(0 2px 2px #0008)}
+.dmn-peca.img > b,.dmn-peca.img .dmn-meia {display:none}
+.dmn-lugar .dmn-peca.img {--m:calc(var(--u) - 2px);margin:auto}
+.dmn-lugar .dmn-peca.img.deitada,.dmn-lugar .dmn-peca.img.empe,.dmn-lugar .dmn-peca.img.carroca {position:absolute;inset:0;margin:auto}
+.dmn-peca.img.nova i {filter:drop-shadow(0 0 4px #ffcf4a) drop-shadow(0 0 8px #ffcf4a)}
+.dmn-mao-peca .dmn-peca.img {--m:34px}
+.dmn-virada {width:16px;height:30px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none;filter:drop-shadow(0 2px 2px #0008)}
+.dmn-costas {width:12px;height:22px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none}
+/* Bolinhas do placar da sinuca com a mesma arte da mesa. */
+.snc-grupo i {background:url(/assets/jogos/bolas.webp) calc(var(--n) * 100% / 15) 0 / 1600% 100% no-repeat;color:transparent;box-shadow:0 1px 2px #0008}
+/* HUD dos jogos: faixa no tema, palco com a pílula de status, barra de aviso, histórico discreto e tela de fim por cima da mesa. */
+.workflow-modal[class*="ofc-"][class*="-jogo"] {padding:0;overflow:hidden auto;background:#0f1218}
+.jogo-topo {position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;background:linear-gradient(90deg,#155c39,#1f7a4d);box-shadow:0 4px 0 #0005}
+.jogo-topo.tema-xadrez {background:linear-gradient(90deg,#3b2a1a,#6b4a2a)}
+.jogo-topo.tema-poker {background:linear-gradient(90deg,#0f4527,#1d7a48)}
+.jogo-topo.tema-sinuca {background:linear-gradient(90deg,#14603b,#27945a)}
+.jogo-topo.tema-domino {background:linear-gradient(90deg,#1d3f7a,#3f7bd6)}
+.jogo-topo.tema-dama {background:linear-gradient(90deg,#6b2414,#c0563a)}
+.jogo-topo.tema-velha {background:linear-gradient(90deg,#43207f,#8b5cf6)}
+.jogo-topo.tema-truco {background:linear-gradient(90deg,#7a4a08,#d9a12b)}
+.jogo-titulo {display:flex;align-items:center;gap:8px;min-width:0}
+.jogo-titulo i {display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#0004;font-style:normal;font-size:20px;box-shadow:inset 0 -2px 0 #0004}
+.jogo-titulo b {color:#fff;font:900 18px var(--mac-ui);letter-spacing:-.2px;text-shadow:0 2px 0 #0005}
+.jogo-selos {display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.jogo-selo {padding:4px 10px;border-radius:999px;background:#0006;color:#fff;font:800 12px var(--mac-ui);white-space:nowrap;box-shadow:inset 0 -2px 0 #fff1}
+.jogo-selo.ouro {background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;box-shadow:0 2px 0 #8a5a00}
+.jogo-botoes {display:flex;gap:6px}
+.jogo-icone {display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:11px;background:#0005;color:#fff;font:700 16px var(--mac-ui);cursor:pointer;box-shadow:inset 0 -3px 0 #0005;transition:transform .08s,background .12s}
+.jogo-icone:hover {background:#0008;transform:translateY(-1px)}
+.jogo-icone:disabled {opacity:.4;cursor:default;transform:none}
+.jogo-icone.perigo:hover {background:#a3261a}
+.jogo-icone[data-certeza="1"] {width:auto;padding:0 10px;background:#a3261a;font-size:12px}
+.jogo-alerta {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:#2a2410;border-bottom:1px solid #ffb94a55;color:#ffe9a8;font:800 13px var(--mac-ui)}
+.jogo-palco {position:relative;display:grid;gap:10px;padding:14px 16px 10px}
+.jogo-palco .mesa-lado,.jogo-palco > .xdz-jogo {width:100%}
+.jogo-status {justify-self:center;margin:0;padding:6px 16px;border-radius:999px;background:#ffffff12;color:#e9eef7;font:800 13px var(--mac-ui);text-align:center;box-shadow:inset 0 -2px 0 #0004}
+.jogo-status.minha {background:linear-gradient(#4fe08f,#22a85c);color:#062712;box-shadow:0 3px 0 #0d6b36,0 0 18px #3fd17f55;animation:jogo-sua-vez 1.6s ease-in-out infinite}
+@keyframes jogo-sua-vez {50% {box-shadow:0 3px 0 #0d6b36,0 0 28px #3fd17f99}}
+.jogo-feed {margin:0 16px 14px;padding:10px 12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff0d;color:#c9d1dd;font-size:12px}
+.jogo-feed .ofc-nota {margin:2px 0}
+.jogo-fim {position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:16px;background:radial-gradient(circle,#000a,#000d);animation:jogo-fim-entra .4s ease-out}
+.jogo-fim-caixa {display:grid;justify-items:center;gap:8px;min-width:min(380px,90%);padding:22px 26px;border-radius:24px;background:#14171e;border:3px solid #ffffff22;box-shadow:0 20px 60px #000;text-align:center}
+.jogo-fim.ganhou .jogo-fim-caixa {border-color:#ffd56a;box-shadow:0 0 60px #ffd56a55,0 20px 60px #000}
+.jogo-fim.perdeu .jogo-fim-caixa {border-color:#ff5a4a88}
+.jogo-fim-caixa small {color:#9da4b4;font:800 11px var(--mac-ui);letter-spacing:1px;text-transform:uppercase}
+.jogo-fim-caixa b {color:#fff;font:900 40px/1 var(--mac-ui);letter-spacing:-1px;text-shadow:0 4px 0 #0007}
+.jogo-fim.ganhou .jogo-fim-caixa b {color:#ffd56a}
+.jogo-fim.perdeu .jogo-fim-caixa b {color:#ff8a7a}
+.jogo-fim-caixa > span {color:#e9eef7;font:700 14px var(--mac-ui)}
+.jogo-fim-caixa .workflow-actions {margin:6px 0 0;padding:0;border:0;background:none;position:static}
+@keyframes jogo-fim-entra {from {opacity:0}}
+@media (prefers-reduced-motion: reduce) {.jogo-status.minha,.jogo-fim {animation:none}}
+@media(max-width:640px){.jogo-topo{flex-wrap:wrap}.jogo-selos{order:3;width:100%;margin-left:0}.jogo-palco{padding:10px 8px}}
+/* Xadrez dentro do HUD: tabuleiro e lances lado a lado no palco; xeque em vermelho na pílula. */
+.jogo-palco .xdz-jogo {margin:0}
+.workflow-modal.ofc-xdz-jogo {width:min(940px,calc(100vw - 24px))}
+.jogo-status.xeque {background:linear-gradient(#ff6a55,#d62a14);color:#fff;box-shadow:0 3px 0 #7a140a}
+.jogo-fim-caixa .workflow-actions {background:none;box-shadow:none;border:0;justify-content:center;gap:10px}
+/* Desafios (bots) e Temporada no lobby: cartões de oponente com nível em cor, prêmio e o ranking da quinzena. */
+.sala-mesa.desafios {background:radial-gradient(ellipse at 50% 0%,#2a2350,#141327 80%)}
+.sala-mesa.temporada {background:radial-gradient(ellipse at 50% 0%,#4a3a0e,#1a160c 80%)}
+.desafio-teto {color:#c9d1dd;font:700 11px var(--mac-ui)}
+.desafio {display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:#0006;border:2px solid #ffffff14}
+.desafio.medio {border-color:#5aa7ff55}
+.desafio.lendario {border-color:#ff5a4a;background:linear-gradient(135deg,#3a0f0b,#0009);box-shadow:0 0 22px #ff5a4a44}
+.desafio-avatar {display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#1a1f2a);font-size:30px;box-shadow:0 0 0 3px #ffffff22,0 5px 0 #0006}
+.desafio.lendario .desafio-avatar {box-shadow:0 0 0 3px #ff5a4a,0 0 18px #ff5a4a88,0 5px 0 #0006}
+.desafio > div {display:grid;gap:2px;min-width:0}
+.desafio b {color:#fff;font:900 16px var(--mac-ui)}
+.desafio em {justify-self:start;padding:1px 8px;border-radius:999px;background:#3fd17f;color:#062712;font:900 10px var(--mac-ui);font-style:normal;letter-spacing:.5px;text-transform:uppercase}
+.desafio.medio em {background:#5aa7ff;color:#04203f}
+.desafio.lendario em {background:#ff5a4a;color:#fff}
+.desafio small {color:#c9d1dd;font:600 12px var(--mac-ui)}
+.desafio-premio {color:#ffd56a;font:800 12px var(--mac-ui)}
+.temporada-premios {display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.temporada-premios span {padding:4px 10px;border-radius:999px;background:#0008;color:#ffe9a8;font:800 12px var(--mac-ui)}
+.temporada-lista {display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.temporada-lista li {display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;background:#0006;color:#fff;font:700 13px var(--mac-ui)}
+.temporada-lista li.eu {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 25%,#0006);box-shadow:inset 0 0 0 2px #ff9548}
+.temporada-lista i {font-style:normal;font-size:18px;text-align:center}
+.temporada-lista span {color:#ffd56a;font:800 12px var(--mac-ui)}
+@media(max-width:560px){.desafio{grid-template-columns:48px 1fr}.desafio .sala-botao{grid-column:1/-1}}
+.jogo-selo.lendario {background:#d62a14;box-shadow:0 2px 0 #7a140a}

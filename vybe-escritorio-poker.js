@@ -7,6 +7,8 @@
 const ESCRITORIO_POKER = /^wildwest_table$/;
 const POKER_CFG = registrarMesaEscritorio({
   nome: "Pôquer", artigo: "o pôquer", extra: { jogo: "poker" }, sinal: "pkr", grupo: 4,
+  som: (j, antes) => (j.mesa?.mao !== antes?.mesa?.mao ? "embaralhar" : ["pagou", "apostou", "aumentou", "all-in"].includes(j.mesa?.ultimo?.acao) ? "fichas"
+    : j.mesa?.comunitarias?.length !== antes?.mesa?.comunitarias?.length ? "carta" : j.mesa?.ultimo?.acao === "mesa" ? "ficha" : "carta"),
   nota: "Texas Hold'em de 2 a 4 na mesa: cada um começa com 1.000 fichas e ganha quem ficar com todas.", desenhar: (j, s) => desenharPoker(j, s),
 });
 const POKER_NAIPES = { s: ["♠", "espadas"], h: ["♥", "copas"], d: ["♦", "ouros"], c: ["♣", "paus"] };
@@ -18,10 +20,15 @@ function abrirPokerEscritorio(m) {
 function pokerSinalEscritorio(de, v) {
   mesaSinalEscritorio(POKER_CFG, de, v);
 }
+// Cartas desenhadas (Boardgame Pack do Kenney, CC0; assets/jogos/cartas.webp):
+// uma folha com 13 colunas (A, 2…10, J, Q, K) e as linhas espadas, copas,
+// ouros e paus, mais a dos versos; o CSS recorta pela coluna e pela linha.
+const POKER_COLUNA = { A: 0, T: 9, J: 10, Q: 11, K: 12 }, POKER_LINHA = { s: 0, h: 1, d: 2, c: 3 };
 function pokerCartaHtml(c, cls = "") {
-  if (!c) return `<span class="pkr-carta costas ${cls}" role="img" aria-label="Carta virada"></span>`;
-  const valor = c[0] === "T" ? "10" : c[0], [naipe, nome] = POKER_NAIPES[c[1]];
-  return `<span class="pkr-carta${c[1] === "h" || c[1] === "d" ? " verm" : ""} ${cls}" role="img" aria-label="${valor} de ${nome}"><b>${valor}</b><i>${naipe}</i></span>`;
+  if (!c) return `<span class="pkr-carta img costas ${cls}" style="--cx:0;--cy:4" role="img" aria-label="Carta virada"></span>`;
+  const valor = c[0] === "T" ? "10" : c[0], [, nome] = POKER_NAIPES[c[1]];
+  const coluna = POKER_COLUNA[c[0]] ?? Number(c[0]) - 1;
+  return `<span class="pkr-carta img ${cls}" style="--cx:${coluna};--cy:${POKER_LINHA[c[1]]}" role="img" aria-label="${valor} de ${nome}"></span>`;
 }
 const pokerFichas = (n) => Number(n || 0).toLocaleString("pt-BR");
 const pokerMaior = (m) => Math.max(0, ...Object.values(m.rodada || {}));
@@ -70,7 +77,7 @@ ${a.mesa ? `<button type="button" class="workflow-primary" onclick="lanceMesaEsc
 const POKER_LUGARES = { 1: ["topo"], 2: ["esq-topo", "dir-topo"], 3: ["esq", "topo", "dir"] };
 const POKER_ACOES = { largou: "Largou", mesa: "Passou", pagou: "Pagou", apostou: "Apostou", aumentou: "Aumentou", "all-in": "All-in", saiu: "Saiu" };
 function pokerLugarHtml(j, l, pos, revela) {
-  const m = j.mesa, p = j[l], u = escritorioCabecaUrl(p.id), eu = l === j.eu, vez = j.estado === "jogando" && j.vez === l;
+  const m = j.mesa, p = j[l], u = mesaCabecaUrl(j, p), eu = l === j.eu, vez = j.estado === "jogando" && j.vez === l;
   const fora = (m.fora || []).includes(l), saiu = (m.saiu || []).includes(l), semFichas = !(m.na_mao || m.lados || []).includes(l);
   const a = m.anterior, ganhou = revela && a && (a.vencedor === l || (a.ganhos?.[l] && a.vencedor === "empate"));
   const show = revela && a?.maos?.[l];
@@ -84,7 +91,7 @@ function pokerLugarHtml(j, l, pos, revela) {
 <div class="pkr-cartas-lugar">${cartas}</div>
 <div class="pkr-quem">${u ? `<img src="${safeText(u)}" alt="" width="48" height="48">` : "<i class=\"pkr-sem\"></i>"}${m.botao === l ? '<span class="pkr-dealer" title="Botão">D</span>' : ""}
 <div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span>${pokerFichas(m.fichas?.[l])}</span></div></div>
-${legenda ? `<small class="pkr-legenda">${legenda}</small>` : ""}${aposta}</div>`;
+${legenda ? `<small class="pkr-legenda">${legenda}</small>` : ""}${vez ? mesaPrazoVezHtml(j) : ""}${aposta}</div>`;
 }
 function desenharPoker(j, s) {
   const m = j.mesa, eu = j.eu, lados = m.lados || ["desafiante", "desafiado"];
@@ -102,7 +109,7 @@ function desenharPoker(j, s) {
   // Mão nova: as cartas entram com animação uma vez (a tela relê a cada 4 s).
   const nova = s.maoVista !== undefined && s.maoVista !== j.id + ":" + m.mao;
   s.maoVista = j.id + ":" + m.mao;
-  if (nova) escritorioTocar(700, 0.05, 0.04);
+  if (nova) jogosSom("embaralhar", 0.5);
   const faixa = revela ? (a.vencedor === "empate" ? `Mão ${a.mao}: empate, pote dividido` : `${nome(a.vencedor)} levou ${pokerFichas(a.ganhos?.[a.vencedor] ?? a.pote)}`) : "";
   return {
     status,
