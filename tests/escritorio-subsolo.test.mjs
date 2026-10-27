@@ -6,7 +6,7 @@ import vm from 'node:vm';
 // O subsolo é easter egg: quem está fora não vê quem está lá dentro, e a sala
 // não entra em lista nenhuma (Paulo, 27/10/2026).
 function contexto(zona) {
-  const fonte = readFileSync('vybe-escritorio.js', 'utf8');
+  const fonte = readFileSync('vybe-escritorio.js', 'utf8').replace(/\r\n/g, '\n');
   const i = fonte.indexOf('function escritorioPresencaVisivel');
   const corpo = fonte.slice(i, fonte.indexOf('\n}\n', i) + 3);
   const c = vm.createContext({ escritorio: { zona, base: { eu: '1' } },
