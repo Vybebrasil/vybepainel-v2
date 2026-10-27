@@ -12349,3 +12349,48 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .dmn-fileira {display:flex;align-items:center;gap:3px;min-height:52px}
 .dmn-fileira.volta {flex-direction:row-reverse}
 .dmn-rodada {position:absolute;top:8px;left:10px;color:#d9f2e3;font:700 12px var(--mac-ui)}
+/* Mesa de Jogos: escolha do jogo, jogo da velha, dama e truco. */
+.workflow-modal.ofc-dam-jogo,.workflow-modal.ofc-vlh-jogo,.workflow-modal.ofc-trc-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
+.mesa-escolha {display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:12px}
+.mesa-escolha button {display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;gap:2px 10px;align-items:center;padding:12px;border:1px solid #ffffff14;border-radius:14px;background:#ffffff06;color:#e7ecf5;text-align:left;cursor:pointer}
+.mesa-escolha button:hover {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 12%,transparent)}
+.mesa-escolha i {grid-row:span 2;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#ffffff10;font-style:normal;font-size:20px}
+.mesa-escolha b {font:700 14px var(--mac-ui)}
+.mesa-escolha small {color:#9da4b4;font-size:11px}
+.vlh-mesa {display:grid;justify-items:center;gap:8px;padding:16px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#1f6b4a,#124631 75%)}
+.vlh-mesa small {color:#d9f2e3;font:700 12px var(--mac-ui)}
+.vlh-tab {display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(300px,100%);aspect-ratio:1}
+.vlh-casa {display:grid;place-items:center;border:0;border-radius:12px;background:#f4efe4;color:#17181c;font:800 clamp(28px,8vw,56px) var(--mac-ui);cursor:pointer}
+.vlh-casa:disabled {cursor:default}
+.vlh-casa.x {color:#d23a2a}
+.vlh-casa.o {color:#1f5fbf}
+.vlh-casa.ultima {box-shadow:inset 0 0 0 3px #ffcf4a}
+.vlh-casa.linha {background:#ffe08a}
+.dam-tabuleiro {display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:6px;overflow:hidden;box-shadow:0 0 0 2px #2a1d10,0 10px 30px #0008}
+.dam-casa {position:relative;display:grid;place-items:center;min-width:0;padding:0;border:0}
+.dam-casa.clara {background:#e9d9b6}
+.dam-casa.escura {background:#7b5232}
+.dam-casa.ultimo::before {content:"";position:absolute;inset:0;background:#ffcf4a40}
+.dam-casa.sel::before {content:"";position:absolute;inset:0;background:#ff9548a6}
+.dam-casa.alvo::after {content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:#ffe08acc}
+.dam-tabuleiro.vez .dam-casa.minha,.dam-casa.alvo {cursor:pointer}
+.dam-peca {position:relative;width:76%;height:76%;border-radius:50%;box-shadow:inset 0 -4px 0 #0005,0 2px 4px #0008}
+.dam-peca.branca {background:radial-gradient(circle at 40% 35%,#fff,#d9d2c3)}
+.dam-peca.preta {background:radial-gradient(circle at 40% 35%,#555,#151515)}
+.dam-peca.dama::after {content:"♛";position:absolute;inset:0;display:grid;place-items:center;color:#c9a227;font-size:clamp(12px,3vw,22px)}
+.trc-mesa {display:grid;justify-items:center;gap:10px;padding:14px;border-radius:24px;background:radial-gradient(ellipse at 50% 40%,#236b46,#12402a 75%);box-shadow:inset 0 0 0 6px #6b4422,0 10px 30px #0008}
+.trc-centro {display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;width:100%}
+.trc-vira,.trc-info {display:grid;justify-items:center;gap:4px;color:#d9f2e3;font-size:11px}
+.trc-info b {color:#ffe0a6;font:800 15px var(--mac-ui)}
+.trc-jogadas {display:flex;justify-content:center;gap:10px}
+.trc-rodadas {display:flex;gap:4px}
+.trc-rodada {width:12px;height:12px;border-radius:50%;background:#ffffff22;box-shadow:inset 0 0 0 1px #ffffff40}
+.trc-rodada.minha {background:#4cd964}
+.trc-rodada.dele {background:#ff3b30}
+.trc-rodada.empate {background:#c9d1dd}
+.trc-carta {padding:0;border:0;background:none;cursor:pointer;transition:transform .12s}
+.trc-carta:not(:disabled):hover {transform:translateY(-6px)}
+.trc-carta:disabled {cursor:default}
+.trc-pedido {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.trc-pedido b {color:#ffe0a6;font:800 15px var(--mac-ui)}
+.trc-grito {font-weight:900;letter-spacing:.5px;text-transform:uppercase}

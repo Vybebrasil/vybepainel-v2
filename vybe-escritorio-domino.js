@@ -8,7 +8,7 @@
 const ESCRITORIO_DOMINO = /gamingtable/;
 const DOMINO_CFG = registrarMesaEscritorio({
   nome: "Dominó", artigo: "o dominó", extra: { jogo: "domino" }, sinal: "dmn",
-  nota: "Começa quem tem a maior carroça.", desenhar: (j, s) => desenharDomino(j, s),
+  nota: "Até 100 pontos, em várias mãos; começa quem tem a maior carroça.", desenhar: (j, s) => desenharDomino(j, s),
 });
 // Pontos de cada metade numa grade 3×3 (0 = canto de cima à esquerda).
 const DOMINO_PONTOS = { 0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };

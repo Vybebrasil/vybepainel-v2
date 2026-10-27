@@ -18,7 +18,7 @@ function registrarMesaEscritorio(cfg) {
 // etiqueta "Jogo"): o nome do jogo, ou null.
 function escritorioJogoDoMovel(classe) {
   const c = String(classe || "");
-  return ESCRITORIO_XADREZ.test(c) ? "Xadrez" : ESCRITORIO_DOMINO.test(c) ? "Dominó" : ESCRITORIO_POKER.test(c) ? "Pôquer" : ESCRITORIO_SINUCA.test(c) ? "Sinuca" : null;
+  return ESCRITORIO_XADREZ.test(c) ? "Xadrez" : ESCRITORIO_DOMINO.test(c) ? "Dominó, dama, velha e truco" : ESCRITORIO_POKER.test(c) ? "Pôquer" : ESCRITORIO_SINUCA.test(c) ? "Sinuca" : null;
 }
 function escritorioMesa(chave) {
   return ((escritorio.mesas ||= {})[chave] ||= { jogo: null, sel: null, timer: null });
@@ -168,7 +168,7 @@ async function revancheEscritorio(chave, botao) {
 // Placas em cima das mesas com partida nesta cena (quem passa sabe que pode
 // assistir) e aviso dos convites que chegaram enquanto a pessoa não estava no
 // escritório. Relê a cada 20 s, logo que a cena muda e quando chega aviso de jogo.
-const MESAS_NOMES = { xadrez: "Xadrez", domino: "Dominó", poker: "Pôquer", sinuca: "Sinuca" };
+const MESAS_NOMES = { xadrez: "Xadrez", domino: "Dominó", poker: "Pôquer", sinuca: "Sinuca", dama: "Dama", velha: "Velha", truco: "Truco" };
 function escritorioResumoJogos(agora) {
   if (typeof escritorio === "undefined" || !escritorio.mapa?.marcador || !escritorio.base || escritorio.base.demo || document.hidden) return;
   const r = (escritorio.resumoJogos ||= { cena: null, em: 0, placas: new Set(), avisados: new Set() });

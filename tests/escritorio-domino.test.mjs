@@ -83,7 +83,7 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);
  await sql`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(1,100),(3,30),(7,0)`;
  await sql`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(1,'shelves_norja',1),(3,'pura_mdl1',2)`;
- await assert.rejects(x.desafiarMesa(sql,{id:1},salas,{...MESA,jogo:'truco',para:'3',chave:'domino-0001'}),/Jogo inválido/);
+ await assert.rejects(x.desafiarMesa(sql,{id:1},salas,{...MESA,jogo:'bingo',para:'3',chave:'domino-0001'}),/Jogo inválido/);
  await assert.rejects(x.desafiarMesa(sql,{id:7},salas,{para:'1',...MESA,moedas:10,chave:'domino-0001'}),/não tem essas VybeCoins/);
  const d=await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,moedas:20,oferece:[['shelves_norja',1]],pede:[['pura_mdl1',1]],chave:'domino-0001'});
  assert.equal((await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,moedas:20,chave:'domino-0001'})).repetido,true);

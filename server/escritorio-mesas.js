@@ -10,12 +10,15 @@ import { xadrezPronto } from './escritorio-xadrez.js';
 import { motorDomino } from './escritorio-domino.js';
 import { motorPoker } from './escritorio-poker.js';
 import { motorSinuca } from './escritorio-sinuca.js';
+import { motorDama } from './escritorio-dama.js';
+import { motorVelha } from './escritorio-velha.js';
+import { motorTruco } from './escritorio-truco.js';
 
-const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca };
+const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca, dama: motorDama, velha: motorVelha, truco: motorTruco };
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
 // partida largada um dia inteiro termina sozinha (perde quem tinha a vez).
 const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;
-const NOME_DO_JOGO = { domino: 'o dominó', poker: 'o pôquer', sinuca: 'a sinuca' };
+const NOME_DO_JOGO = { domino: 'o dominó', poker: 'o pôquer', sinuca: 'a sinuca', dama: 'a dama', velha: 'o jogo da velha', truco: 'o truco' };
 const MOTIVOS = { desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
 const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
 
@@ -74,11 +77,13 @@ export async function verMesa(sql, pessoa, id) {
 }
 // Convites, partidas e o que está rolando nesta mesa (para assistir), de um jogo.
 export async function listarMesa(sql, pessoa, { jogo, camada, movel } = {}) {
- motorDe(jogo);
+ // 'todos': a Mesa de Jogos (dominó, dama, velha, truco) mostra o que estiver rolando nela.
+ const todos = jogo === 'todos';
+ if (!todos) motorDe(jogo);
  if (!await mesasProntas(sql)) return { disponivel: false, convites: [], enviados: [], jogos: [], mesa: null };
  await encerrarAbandonadas(sql);
  const desde = new Date(Date.now() - CONVITE_MIN * 60000);
- const linhas = await sql`SELECT * FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND ((estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id}
+ const linhas = await sql`SELECT * FROM vybe_escritorio_partidas WHERE (${todos} OR jogo=${String(jogo)}) AND ((estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id}
    OR (camada=${String(camada || '')} AND movel=${String(movel || '')})))
   OR (estado='convite' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id}) AND criado_em > ${desde}::timestamptz)) ORDER BY id DESC LIMIT 20`;
  const nome = await nomes(sql, [...new Set(linhas.flatMap((l) => [String(l.desafiante), String(l.desafiado)]))]);
