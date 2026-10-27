@@ -317,7 +317,7 @@ export async function trocarData(sql, quem, { item, campo, data }) {
 }
 
 // ── responsáveis ──────────────────────────────────────────────────────────────
-async function trocarResponsaveis(sql, quem, { item, pessoas }) {
+export async function trocarResponsaveis(sql, quem, { item, pessoas }) {
   if (!Array.isArray(pessoas)) throw new Error('Informe a lista de responsáveis.');
   const ids = [...new Set(pessoas.map(String))];
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo FROM vybe_conteudos
@@ -663,7 +663,7 @@ export async function grupoDoQuadro(sql, grupoId, boardId) {
 
 // Mover de grupo só existia dentro das automações. Nenhuma tela oferecia, então
 // um conteúdo no grupo errado não tinha conserto pelo painel.
-async function moverGrupo(sql, quem, { item, grupo_id }) {
+export async function moverGrupo(sql, quem, { item, grupo_id }) {
   const linhas = await sql`SELECT id, board_id, monday_item_id, titulo, etapa AS de FROM vybe_conteudos
     WHERE (monday_item_id = ${String(item)} OR id = ${referenciaLocal(item)})`;
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);

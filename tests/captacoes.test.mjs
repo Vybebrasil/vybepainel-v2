@@ -11,13 +11,16 @@ import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 const PRODUCAO = 7829537690;
 async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
-  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text);
+  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text, final boolean DEFAULT false);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date, briefing text,
       status_chave text, captacao_chave text, board_id bigint, removido_em timestamptz, material_bruto text);
     CREATE TABLE vybe_conteudo_clientes (conteudo_id bigint, cliente_id bigint);
-    INSERT INTO vybe_pessoas VALUES (1, 'Paulo Martins'), (28, 'Ademir Dourado Santana');
+    CREATE TABLE vybe_conteudo_responsaveis (conteudo_id bigint, pessoa_id bigint);
+    CREATE TABLE vybe_cliente_pessoas (cliente_id bigint, pessoa_id bigint);
+    INSERT INTO vybe_pessoas VALUES (1, 'Paulo Martins'), (28, 'Ademir Dourado Santana'), (5, 'Vinícius Head');
+    INSERT INTO vybe_cliente_pessoas VALUES (1, 5);
     INSERT INTO vybe_clientes VALUES (1, 'Brussolo'), (2, 'DiaCenter');
     INSERT INTO vybe_status VALUES (${PRODUCAO}, 'aguardo', 'Aguardo', '#ff8a35');
     INSERT INTO vybe_conteudos VALUES
@@ -29,8 +32,13 @@ async function banco(t) {
   await db.exec(readFileSync('migrations/2026-10-21-producao-captacoes.sql', 'utf8'));
   await db.exec(readFileSync('migrations/2026-10-21-producao-captacoes-evento.sql', 'utf8'));
   // O trocarEscolha do painel, reduzido ao que importa aqui: a chave muda.
+  // A peça tem de chegar como "vybe:<id>" (o id puro não acha nada no painel).
   const trocas = [];
-  const trocar = async (s, quem, { item, campo, para }) => { trocas.push([item, campo, para]); await s`UPDATE vybe_conteudos SET captacao_chave = ${para} WHERE id = ${item}`; };
+  const trocar = async (s, quem, { item, campo, para }) => {
+    assert.match(String(item), /^vybe:\d+$/, 'a peça vai ao painel como vybe:<id>');
+    const id = String(item).slice(5);
+    trocas.push([id, campo, para]); await s`UPDATE vybe_conteudos SET captacao_chave = ${para} WHERE id = ${id}`;
+  };
   const eventos = [];
   const agenda = async (acao, k) => { eventos.push([acao, k.evento_google || k.cliente]); if (acao === 'criar') return 'ev-1'; return null; };
   return { db, sql, trocar, trocas, agenda, eventos };
@@ -241,15 +249,20 @@ async function comPecasNovas(t) {
     criadas.push(d);
     return { conteudo_id: String(id), titulo: d.titulo };
   };
-  return { ...b, criar, criadas, prazo: (veic) => veic };
+  // Grupo, responsáveis e comentário do painel, reduzidos: só registram.
+  const painel = { chamadas: [],
+    moverGrupo: async (s, q, { item, grupo_id }) => { painel.chamadas.push(['grupo', item, grupo_id]); },
+    trocarResponsaveis: async (s, q, { item, pessoas }) => { painel.chamadas.push(['responsaveis', item, pessoas]); },
+    comentar: async (s, q, { item, texto }) => { painel.chamadas.push(['comentario', item, texto]); } };
+  return { ...b, criar, criadas, prazo: (veic) => veic, painel };
 }
 const ROTEIRO = 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit';
 const destino = { grupo_id: 'novo_grupo__1', status: 'pode_fazer', responsaveis: ['9'] };
 
 test('fechar cadastra as peças gravadas a mais, já gravadas, com a pasta e em "Captação Feita"', async (t) => {
-  const { sql, trocar, trocas, criar, criadas, prazo } = await comPecasNovas(t);
+  const { sql, trocar, trocas, criar, criadas, prazo, painel } = await comPecasNovas(t);
   const r = await fecharGravacao(sql, quem, { evento_google: 'g1lions', cliente_id: '1', dia: '2026-10-26', gravadas: ['10'], drive: DRIVE,
-    novas: [{ titulo: 'Abdominal', formato: 'Reels', destino }, { titulo: 'Reels - Tríceps', formato: 'Reels', veiculacao: '2026-11-10', destino }] }, { trocar, criar, prazo });
+    novas: [{ titulo: 'Abdominal', formato: 'Reels', destino }, { titulo: 'Reels - Tríceps', formato: 'Reels', veiculacao: '2026-11-10', destino }] }, { trocar, criar, prazo, painel });
   assert.deepEqual([r.gravadas, r.novas, r.avisos], [3, 2, []]);
   // Título com o formato na frente, sem repetir; destino e pasta da regra.
   assert.deepEqual(criadas.map((d) => [d.titulo, d.status, d.grupo_id, d.material_bruto, d.veiculacao, d.cliente]),
@@ -259,13 +272,20 @@ test('fechar cadastra as peças gravadas a mais, já gravadas, com a pasta e em 
   assert.ok(trocas.every((x) => x[2] === CAPTACAO.feita));
   const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
   assert.deepEqual(k.pecas.map((p) => [p.id, p.gravado]), [['10', true], [novas[0], true], [novas[1], true]]);
+  // Só a Abdominal ficou sem dia de ir ao ar: vai para Redação, com o head do
+  // cliente nos responsáveis e o aviso na peça (Paulo, 27/10/2026).
+  const sem = `vybe:${novas[0]}`;
+  assert.deepEqual(painel.chamadas.map((c) => c.slice(0, 2)), [['grupo', sem], ['responsaveis', sem], ['comentario', sem]]);
+  assert.equal(painel.chamadas[0][2], 'group_title');
+  assert.ok(painel.chamadas[1][2].includes('5'));
+  assert.match(painel.chamadas[2][2], /^@Vinícius .*dia de veiculação/);
 });
 
 test('o roteiro do Docs entra na biblioteca e liga às peças da gravação; link que não é Docs é recusado', async (t) => {
-  const { sql, trocar, criar, prazo } = await comPecasNovas(t);
-  await assert.rejects(fecharGravacao(sql, quem, { evento_google: 'g1lions', cliente_id: '1', dia: '2026-10-26', gravadas: ['10'], roteiro: 'https://drive.google.com/file/d/x/view' }, { trocar, criar, prazo }), /Google Docs/);
+  const { sql, trocar, criar, prazo, painel } = await comPecasNovas(t);
+  await assert.rejects(fecharGravacao(sql, quem, { evento_google: 'g1lions', cliente_id: '1', dia: '2026-10-26', gravadas: ['10'], roteiro: 'https://drive.google.com/file/d/x/view' }, { trocar, criar, prazo, painel }), /Google Docs/);
   const r = await fecharGravacao(sql, quem, { evento_google: 'g1lions', cliente_id: '1', dia: '2026-10-26', gravadas: ['10', '11'], roteiro: ROTEIRO,
-    novas: [{ titulo: 'Supino', formato: 'Reels', destino }] }, { trocar, criar, prazo });
+    novas: [{ titulo: 'Supino', formato: 'Reels', destino }] }, { trocar, criar, prazo, painel });
   // O doc não é lido no teste (sem Google): vira aviso, e mesmo assim liga.
   assert.ok(r.avisos.every((a) => /não enxerga/.test(a)));
   const [rot] = await sql`SELECT id, titulo, cliente_id::text AS cliente FROM vybe_roteiros`;
@@ -273,17 +293,17 @@ test('o roteiro do Docs entra na biblioteca e liga às peças da gravação; lin
   assert.match(rot.titulo, /^Roteiro Brussolo 26\/10\/2026$/);
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_roteiro_conteudos WHERE roteiro_id = ${rot.id}`)[0].n, 3);
   // O mesmo doc numa próxima gravação não duplica a biblioteca.
-  await fecharGravacao(sql, quem, { evento_google: 'g2lions', cliente_id: '1', dia: '2026-10-27', gravadas: [], roteiro: ROTEIRO, novas: [{ titulo: 'Rosca', formato: 'Reels', destino }] }, { trocar, criar, prazo });
+  await fecharGravacao(sql, quem, { evento_google: 'g2lions', cliente_id: '1', dia: '2026-10-27', gravadas: [], roteiro: ROTEIRO, novas: [{ titulo: 'Rosca', formato: 'Reels', destino }] }, { trocar, criar, prazo, painel });
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_roteiros`)[0].n, 1);
 });
 
 test('peça nova sem título, formato estranho ou sem destino é recusada antes de gravar qualquer coisa', async (t) => {
-  const { sql, trocar, trocas, criar, prazo } = await comPecasNovas(t);
+  const { sql, trocar, trocas, criar, prazo, painel } = await comPecasNovas(t);
   const base = { evento_google: 'g1lions', cliente_id: '1', dia: '2026-10-26', gravadas: [] };
-  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: '', formato: 'Reels', destino }] }, { trocar, criar, prazo }), /título/);
-  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: 'X', formato: 'Podcast', destino }] }, { trocar, criar, prazo }), /Formato/);
-  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: 'X', formato: 'Reels' }] }, { trocar, criar, prazo }), /Destino/);
-  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [] }, { trocar, criar, prazo }), /ao menos uma/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: '', formato: 'Reels', destino }] }, { trocar, criar, prazo, painel }), /título/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: 'X', formato: 'Podcast', destino }] }, { trocar, criar, prazo, painel }), /Formato/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [{ titulo: 'X', formato: 'Reels' }] }, { trocar, criar, prazo, painel }), /Destino/);
+  await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [] }, { trocar, criar, prazo, painel }), /ao menos uma/);
   assert.equal(trocas.length, 0);
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_captacoes`)[0].n, 0);
 });
