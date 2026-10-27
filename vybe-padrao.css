@@ -161,3 +161,20 @@
 #mode-gate#mode-gate .universe-orbit::before,#mode-gate#mode-gate .universe-orbit::after{border-color:rgba(255,255,255,.04)!important}
 #mode-gate#mode-gate .universe-streams{opacity:.25;filter:grayscale(.6)}
 #mode-gate#mode-gate .universe-toggle,#mode-gate#mode-gate .identity-appearance-actions .appearance-button{border-radius:11px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important}
+
+/* ---- Gaveta da peça (a tela de aprovar): vidro, título grande, seções em cartão ---- */
+#workspace-drawer{border-left:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
+#workspace-drawer .workspace-title{font:700 25px/1.12 var(--pv-titulo)!important;letter-spacing:-.015em!important}
+#workspace-drawer .workspace-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+#workspace-drawer .workspace-kicker{font:700 10px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase;color:#7d7870!important}
+#workspace-drawer .workspace-id{border-radius:7px!important;background:rgba(255,255,255,.06)!important;color:#a8a39c!important}
+#workspace-drawer .workspace-section{border-radius:18px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+#workspace-drawer .workspace-section-head{border:0!important;background:none!important}
+#workspace-drawer .workspace-section-head :is(h3,h4,b,strong){font-family:var(--pv-titulo)!important;font-weight:700!important}
+#workspace-drawer :is(.workspace-action,.workspace-close,.workspace-mais>button,.workspace-barra-acoes button){border-radius:10px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important}
+#workspace-drawer .workspace-dropzone{border-radius:16px!important;border:1.5px dashed rgba(255,154,92,.5)!important;background:radial-gradient(ellipse at 50% 0,rgba(255,154,92,.1),transparent 70%)!important}
+#workspace-drawer :is(.workspace-textarea,.workspace-input,textarea,input[type="text"],input[type="url"]){border-radius:12px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
+
+/* ---- Barra do topo: marca branca completa num quadro escuro ---- */
+.app-header .logo{background:rgba(27,13,6,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)!important;padding:0 8px!important;width:auto!important}
+.app-header .logo img{width:42px!important;height:auto!important;display:block}
