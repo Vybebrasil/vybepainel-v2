@@ -56,7 +56,7 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
     || new Date(`${dia}T12:00:00Z`).toISOString().slice(0,10)!==dia) {
     throw Object.assign(new Error('Informe uma data válida.'), {status:400});
   }
-  const fim=new Date(`${dia}T12:00:00Z`); fim.setUTCDate(fim.getUTCDate()+Math.min(31,Math.max(1,Number(dias)||6)));
+  const fim=new Date(`${dia}T12:00:00Z`); fim.setUTCDate(fim.getUTCDate()+Math.min(42,Math.max(1,Number(dias)||6)));  // até 42: a grade do mês (Captações) tem seis semanas.
   const calendarId=process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com';
   if(obterToken===tokenGoogle && !process.env.GOOGLE_SERVICE_ACCOUNT) {
     throw Object.assign(new Error('A integração do Google não está configurada no servidor. Cadastre GOOGLE_SERVICE_ACCOUNT na Vercel e compartilhe a agenda da Vybe com essa conta de serviço.'),{status:503,publica:true});

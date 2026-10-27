@@ -139,6 +139,27 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   (`captParada`); "Ver paradas" no inspetor mostra quais são. "Falta fechar"
   conta só a partir de 26/10/2026 (`CAPT_FECHAR_DESDE`).
 
+## Polimento em quatro rodadas (26/10/2026, depois)
+
+- Blocos com o cliente em destaque (`agPartesDoTitulo` tira o "Captação -" e
+  o nome do cliente do resto do título), legenda dos pontos de estado e
+  atalhos de teclado (T hoje, ← → navega, D S M L troca a visão, N marca,
+  P pendências). Só a grade rola.
+- Cartão com a ação da vez em cima (`captAcaoPrincipal`: escolher o que vai
+  ser gravado, fechar a gravação ou cadastrar), peças no meio, Google e
+  cancelar no pé.
+- Inspetor com três pendências (Fechar gravação, Sem peças, Sem roteiro) e a
+  fila "Esperando captação" embaixo, de onde se arrasta o cliente.
+- Marcar, Levar peças e Fechar gravação abrem num painel lateral
+  (`captAbrirFolha`), com o calendário à vista.
+- Visões Dia, Semana, Mês e Lista. O Mês pede 42 dias à rota (`dias`, até 42;
+  o Google Agenda passou a aceitar 42). O Dia tem a coluna das horas e o
+  Roteiro do dia (`captRoteiroDoDiaHtml`): cada captação com as peças, o
+  roteiro aberto e "Gravado" de um toque. No celular a aba abre no Dia, só
+  com o roteiro.
+- Animações de entrada sem opacidade: com `html.vb-ocioso` elas pausam no
+  primeiro quadro e o painel ficava invisível.
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.
