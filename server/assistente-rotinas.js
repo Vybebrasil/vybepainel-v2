@@ -377,7 +377,10 @@ export function riscosDoDia(itens, dia, statusDe, { paradoDias = 3, antecedencia
 export async function riscos(sql, dia) {
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
   const { ctx } = codigoDoPainel();
-  return riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i));
+  const r = riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i));
+  // A previsão nunca derruba os riscos: sem histórico suficiente, só não aparece.
+  const previsao = await previsaoDeAtrasos(sql, dia).catch(() => ({ texto: null }));
+  return { ...r, previsao: previsao.texto };
 }
 
 // Calendário do mês por cliente (Paulo, 27/10/2026: "quais clientes estão sem nada cadastrado para novembro?").
@@ -428,4 +431,52 @@ export async function calendarioClientes(sql, mesIso, clienteId = null) {
     status: l.status, final: l.final === true, cliente_ids: (l.cliente_ids || []).map(String), solicitacao: String(l.board_id) === String(BOARD_DEMANDAS) }));
   const texto = mensagemCalendario({ mes, clientes, planejamentos, pecas, clienteId });
   return { texto, fontes: [{ modulo: 'calendario_clientes', id: clienteId ? String(clienteId) : mes }] };
+}
+
+// Previsão de atraso (Paulo, 27/10/2026): pelo histórico de 90 dias, quanto cada formato costuma levar do status
+// atual até finalizar. Peça aberta com prazo nos próximos 5 dias que, nesse ritmo, termina depois do prazo entra no
+// alerta, dias antes de virar atraso. Só com 5 ou mais casos parecidos no histórico (senão não arrisca palpite).
+const chaveFormato = (f) => normal(f).split(/[^a-z]/)[0] || 'outro';
+const mediana = (v) => { const s = [...v].sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
+export function preverAtrasos({ historico, abertas, dia, minimo = 5 }) {
+  const porChave = new Map(), porStatus = new Map();
+  for (const h of historico) {
+    const fim = Date.parse(h.final_em);
+    for (const e of h.eventos) {
+      const dias = (fim - Date.parse(e.em)) / 864e5;
+      if (!(dias >= 0)) continue;
+      const k1 = chaveFormato(h.formato) + '|' + normal(e.para), k2 = normal(e.para);
+      if (!porChave.has(k1)) porChave.set(k1, []); porChave.get(k1).push(dias);
+      if (!porStatus.has(k2)) porStatus.set(k2, []); porStatus.get(k2).push(dias);
+    }
+  }
+  const hoje = Date.parse(dia + 'T12:00:00Z'), saida = [];
+  for (const a of abertas) {
+    const lista = (porChave.get(chaveFormato(a.formato) + '|' + normal(a.status)) || []).length >= minimo ? porChave.get(chaveFormato(a.formato) + '|' + normal(a.status)) : porStatus.get(normal(a.status));
+    if (!lista || lista.length < minimo || !a.prazo || !a.status_em) continue;
+    const previsto = Date.parse(a.status_em) + mediana(lista) * 864e5, prazo = Date.parse(a.prazo + 'T23:59:00Z');
+    const atraso = Math.ceil((previsto - prazo) / 864e5);
+    if (atraso >= 1) saida.push({ ...a, atraso, costuma: Math.round(mediana(lista) * 10) / 10, ha: Math.max(0, Math.floor((hoje - Date.parse(a.status_em)) / 864e5)) });
+  }
+  return saida.sort((x, y) => x.prazo.localeCompare(y.prazo) || y.atraso - x.atraso);
+}
+export async function previsaoDeAtrasos(sql, dia) {
+  // Datas em ISO (to_json): o texto padrão do Postgres ("2026-10-26 12:00:00+00") é lido de forma ambígua no JS.
+  const historicoLinhas = await sql`SELECT c.id::text, c.formato, to_json(c.status_em) #>> '{}' AS final_em,
+      COALESCE((SELECT json_agg(json_build_object('para', e.para, 'em', e.em) ORDER BY e.em) FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'status'), '[]') AS eventos
+    FROM vybe_conteudos c JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave AND s.final
+    WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND c.status_em >= ${somarDias(dia, -90)}::date LIMIT 2000`;
+  const abertas = await sql`SELECT c.id::text, c.monday_item_id, c.titulo, c.formato, c.prazo::text AS prazo, to_json(c.status_em) #>> '{}' AS status_em, s.rotulo AS status,
+      (SELECT string_agg(cl.nome, ' / ') FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id) AS cliente
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND NOT COALESCE(s.final, false)
+      AND c.prazo BETWEEN ${dia}::date AND ${somarDias(dia, 5)}::date`;
+  const historico = historicoLinhas.map((h) => ({ ...h, eventos: typeof h.eventos === 'string' ? JSON.parse(h.eventos) : h.eventos }));
+  const lista = preverAtrasos({ historico, abertas: abertas.map((a) => ({ ...a, prazo: textoData(a.prazo) })), dia });
+  if (!lista.length) return { texto: null, itens: [] };
+  const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  const texto = `🔮 *Previsão de atraso* (ritmo dos últimos 90 dias)\n` + lista.slice(0, 10).map((a) =>
+    `- ${a.titulo || 'Sem título'} (${a.cliente || 'sem cliente'}) · prazo ${curto(a.prazo)}\n  em *${a.status || 'sem status'}* há ${a.ha} dia(s); daqui até finalizar costuma levar ${a.costuma} dia(s) → deve atrasar ~${a.atraso} dia(s)\n  🔗 ${linkDaAtividade(a.monday_item_id ? String(a.monday_item_id) : 'vybe:' + a.id)}`).join('\n') +
+    '\n\n_É tendência, não sentença: dá tempo de mexer na fila ou falar com o cliente antes._';
+  return { texto, itens: lista };
 }
