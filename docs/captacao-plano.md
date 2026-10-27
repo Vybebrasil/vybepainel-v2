@@ -196,6 +196,25 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
 - Sem vidro: barra, cartão, prévia e painel lateral com fundo liso.
 - O cabeçalho do módulo não mostra "Prazo Base / Veiculação" nas Captações.
 
+## Agenda completa (26/10/2026, madrugada)
+
+- Paulo: "não tem como ver as reuniões? não tem como criar um compromisso
+  novo? quando não tem um cliente vinculado na agenda, não posso vincular?".
+- Reuniões e compromissos aparecem por padrão, mais quietos que as captações;
+  no bloco deles o nome do evento vem primeiro e o cliente embaixo.
+- Criação rápida (`captNovoEvento`): clicar num horário vazio, ou em "+ Novo",
+  abre um cartão ali mesmo com título, tipo, dia e horário, cliente e local.
+  O evento vai para o Google Agenda da Vybe (`criarEvento`) com a cor da
+  convenção: azul (9) captação, amarelo (5) reunião, grafite (8) compromisso.
+  Captação exige cliente; "Captação com peças…" abre o formulário completo.
+- Vincular cliente (`vincularCliente`): no cartão do evento sem cliente
+  reconhecido, escolhe-se o cliente; também dá para trocar o que o título fez
+  adivinhar e voltar a ler pelo título. O vínculo fica em
+  `vybe_agenda_clientes` (`migrations/2026-10-27-agenda-clientes.sql`) e vale
+  mais que o título; o evento no Google não é reescrito. Sem a migração,
+  vincular responde 503 e o resto funciona.
+- A rota devolve `clientes` (ativos) para a escolha de cliente.
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.

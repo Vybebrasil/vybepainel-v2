@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao, vincularCliente, criarEvento } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -286,4 +286,52 @@ test('peça nova sem título, formato estranho ou sem destino é recusada antes 
   await assert.rejects(fecharGravacao(sql, quem, { ...base, novas: [] }, { trocar, criar, prazo }), /ao menos uma/);
   assert.equal(trocas.length, 0);
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_captacoes`)[0].n, 0);
+});
+
+// Vincular cliente a um evento e criar evento novo (Paulo, 26/10/2026).
+async function comVinculos(t) {
+  const b = await banco(t);
+  await b.db.exec(readFileSync('migrations/2026-10-27-agenda-clientes.sql', 'utf8'));
+  return b;
+}
+const listarDois = async () => ({ eventos: [
+  { id: 'g1sem', titulo: 'Gravação aula experimental', dia: '2026-10-27', inicio: '08:00', fim: '09:00', tipo: 'captacao' },
+  { id: 'g2errado', titulo: 'Captação Brussolo', dia: '2026-10-27', inicio: '10:00', fim: '11:00', tipo: 'captacao' }] });
+
+test('vincular cliente vale mais que o título, troca e volta a ler pelo título', async (t) => {
+  const { sql } = await comVinculos(t);
+  let ev = await agendaDeCaptacoes(sql, { inicio: '2026-10-26', listar: listarDois });
+  assert.deepEqual(ev.map((e) => [e.id, e.cliente, e.cliente_manual]), [['g1sem', '', false], ['g2errado', 'Brussolo', false]]);
+  assert.equal((await vincularCliente(sql, quem, { evento: 'g1sem', cliente_id: '2' })).cliente.nome, 'DiaCenter');
+  await vincularCliente(sql, quem, { evento: 'g2errado', cliente_id: '2' });
+  ev = await agendaDeCaptacoes(sql, { inicio: '2026-10-26', listar: listarDois });
+  assert.deepEqual(ev.map((e) => [e.cliente, e.cliente_manual]), [['DiaCenter', true], ['DiaCenter', true]]);
+  // Tirar o vínculo volta a ler pelo título.
+  await vincularCliente(sql, quem, { evento: 'g2errado', cliente_id: '' });
+  ev = await agendaDeCaptacoes(sql, { inicio: '2026-10-26', listar: listarDois });
+  assert.equal(ev[1].cliente, 'Brussolo');
+  await assert.rejects(vincularCliente(sql, quem, { evento: 'x y', cliente_id: '1' }), /inválido/);
+  await assert.rejects(vincularCliente(sql, quem, { evento: 'g1sem', cliente_id: '99' }), /não encontrado/);
+});
+
+test('criar evento vai ao Google com a cor do tipo, o cliente no título e o vínculo guardado', async (t) => {
+  const { sql } = await comVinculos(t);
+  const pedidos = [];
+  const buscar = async (url, o) => { pedidos.push(JSON.parse(o.body)); return { ok: true, json: async () => ({ id: `novo${pedidos.length}x` }) }; };
+  const obterToken = async () => 'token';
+  const r = await criarEvento(sql, quem, { tipo: 'reuniao', titulo: 'Pauta de novembro', dia: '2026-10-28', inicio: '14:00', fim: '15:00', cliente_id: '1' }, { buscar, obterToken });
+  assert.equal(r.titulo, 'Reunião · Pauta de novembro · Brussolo');
+  assert.deepEqual([pedidos[0].colorId, pedidos[0].start.dateTime, pedidos[0].end.dateTime], ['5', '2026-10-28T14:00:00-03:00', '2026-10-28T15:00:00-03:00']);
+  assert.equal((await sql`SELECT cliente_id::text AS c FROM vybe_agenda_clientes WHERE evento_google = 'novo1x'`)[0].c, '1');
+  const c = await criarEvento(sql, quem, { tipo: 'captacao', dia: '2026-10-29', inicio: '09:00', cliente_id: '2' }, { buscar, obterToken });
+  assert.equal(c.titulo, 'Captação · DiaCenter');
+  assert.equal(pedidos[1].colorId, '9');
+  // Sem fim: uma hora.
+  assert.equal(new Date(pedidos[1].end.dateTime).toISOString(), '2026-10-29T13:00:00.000Z');
+  await criarEvento(sql, quem, { tipo: 'outro', titulo: 'Dentista', dia: '2026-10-30' }, { buscar, obterToken });
+  assert.deepEqual([pedidos[2].colorId, pedidos[2].start.date, pedidos[2].summary], ['8', '2026-10-30', 'Dentista']);
+  await assert.rejects(criarEvento(sql, quem, { tipo: 'captacao', dia: '2026-10-29' }, { buscar, obterToken }), /cliente/);
+  await assert.rejects(criarEvento(sql, quem, { tipo: 'festa', titulo: 'x', dia: '2026-10-29' }, { buscar, obterToken }), /captação, reunião ou compromisso/);
+  await assert.rejects(criarEvento(sql, quem, { tipo: 'reuniao', titulo: 'x', dia: '2026-10-29', inicio: '10:00', fim: '09:00' }, { buscar, obterToken }), /fim/);
+  assert.equal(pedidos.length, 3);
 });

@@ -11871,3 +11871,50 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .ag-previa-tipo,.ag-cartao .capt-tipo {display:none}
 .capt-cal .capt-sinal.alerta {background:transparent;border:0;padding:0;color:#f2c14e}
 .capt-cal .capt-gravado input,.ag-cartao .capt-gravado input {accent-color:#aeb4c2}
+
+/* ─── AGENDA COMPLETA (26/10/2026): reuniões à vista, criação rápida, vínculo
+   de cliente e o acabamento que faltava. */
+/* Reunião e compromisso aparecem, mais quietos que a captação (o trabalho do
+   Mizinho continua sendo o que se lê primeiro). */
+.capt-cal .ag-ev.t-reuniao,.capt-cal .ag-ev.t-outro {background:#17181d}
+.capt-cal .ag-ev.t-reuniao b,.capt-cal .ag-ev.t-outro b {color:#c3c8d2;font-weight:550}
+.capt-cal .ag-ev.t-reuniao small,.capt-cal .ag-ev.t-outro small {color:#868c99}
+/* Prévia: o título não estoura a largura. */
+.ag-previa > * {min-width:0}
+.ag-previa-pecas li span {flex:1 1 auto}
+/* Botão principal sem brilho, no cartão, na prévia e no painel lateral. */
+.capt-cal .vb-botao.principal,.ag-cartao .vb-botao.principal,#workflow-modal.capt-folha .workflow-primary {box-shadow:none!important;background:#ff8a35!important;color:#1d0d02}
+.capt-cal .vb-botao.principal:hover,.ag-cartao .vb-botao.principal:hover {background:#ff9a4f!important}
+/* Cabeçalho do módulo mais baixo nas Captações: a agenda é a tela. */
+.prod-v2-layout:has(.capt-cal) .prod-v2-head {padding:12px 18px!important;margin-bottom:10px}
+.prod-v2-layout:has(.capt-cal) .p-head-title h3 {font-size:19px}
+.prod-v2-layout:has(.capt-cal) .p-head-title p {display:none}
+/* Painel lateral do formulário, mais calmo. */
+#workflow-modal.capt-folha .workflow-title {font-size:22px!important;margin:6px 0 10px!important}
+#workflow-modal.capt-folha .workflow-kicker span {color:#8b92a3}
+#workflow-modal.capt-folha .capt-quando-fixo {background:#ffffff08;border-color:#ffffff14;color:#e7eaf0}
+/* Criação rápida no horário. */
+.capt-novo {display:grid;gap:10px;padding:18px}
+.capt-novo h4 {margin:0;color:#fff;font:700 16px var(--mac-ui)}
+.capt-novo input,.capt-novo select,.capt-vinculo select {width:100%;min-height:36px;padding:7px 10px;border-radius:9px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 13px var(--mac-ui)}
+.capt-novo input[name=titulo] {font-size:15px;font-weight:600}
+.capt-novo input:focus-visible,.capt-novo select:focus-visible,.capt-vinculo select:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-novo-tipos {display:flex;gap:4px;padding:3px;border-radius:10px;background:#ffffff08}
+.capt-novo-tipo {flex:1;position:relative;cursor:pointer}
+.capt-novo-tipo input {position:absolute;opacity:0;pointer-events:none}
+.capt-novo-tipo span {display:flex;align-items:center;justify-content:center;gap:6px;min-height:30px;border-radius:8px;color:#aeb4c2;font:600 12.5px var(--mac-ui)}
+.capt-novo-tipo span::before {content:"";width:8px;height:8px;border-radius:50%;background:var(--ag-cor)}
+.capt-novo-tipo input:checked + span {background:#ffffff14;color:#fff}
+.capt-novo-tipo input:focus-visible + span {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-novo-quando {display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center;color:#8b92a3}
+.capt-novo-acoes {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.capt-novo-acoes .vb-botao.principal {min-width:96px;justify-content:center}
+/* Vínculo de cliente no cartão. */
+.capt-vinculo-caixa {display:grid;gap:8px;padding:10px 12px;border-radius:11px;background:#ffffff06;border:1px solid #ffffff10}
+.capt-vinculo {display:flex;gap:6px}
+.capt-vinculo select {flex:1;min-width:0}
+.capt-trocar {margin:2px 0 0}
+.capt-trocar > summary {color:#8b92a3;font:550 12px var(--mac-ui);cursor:pointer;list-style:none}
+.capt-trocar > summary::-webkit-details-marker {display:none}
+.capt-trocar > summary:hover {color:#cfd3dc;text-decoration:underline}
+.capt-trocar[open] {display:grid;gap:8px}
