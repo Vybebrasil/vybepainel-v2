@@ -12327,3 +12327,25 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .snc-efeito span {color:#9da4b4;font-weight:600}
 .snc-mira-fina {display:flex;gap:4px}
 .snc-mira-fina button {min-width:40px;padding:6px 10px}
+/* Pôquer: a mão de agora e as cartas da mão nova entrando. */
+.pkr-tenho {margin:0;text-align:center;color:#c9d1dd;font-size:12px}
+.pkr-tenho b {color:#ffe0a6}
+.pkr-tenho span {color:#9da4b4}
+.pkr-minhas.nova .pkr-carta {animation:pkr-dar .45s cubic-bezier(.2,.8,.3,1) both}
+.pkr-minhas.nova .pkr-carta:nth-child(2) {animation-delay:.12s}
+@keyframes pkr-dar {from {opacity:0;transform:translateY(-40px) rotate(-8deg)} to {opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce) {.pkr-minhas.nova .pkr-carta {animation:none}}
+/* Xadrez: relógio, peças tomadas e o último lance na lista. */
+.xdz-jogador.com-relogio {grid-template-columns:12px 36px minmax(0,1fr) auto auto}
+.xdz-jogador b {display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.xdz-capturadas {display:inline-flex;flex-wrap:wrap}
+.xdz-capturadas svg {width:15px;height:15px;margin-right:-4px}
+.xdz-relogio {min-width:52px;padding:3px 8px;border-radius:8px;background:#0b1118;color:#c9d1dd;font:700 14px ui-monospace,Menlo,Consolas,monospace;text-align:center}
+.xdz-relogio.corre {background:#f4f1ea;color:#121212}
+.xdz-relogio.pouco {background:#ff3b30;color:#fff}
+.xdz-lances span.ultimo {border-radius:4px;background:#ffcf4a33;color:#ffe9a8}
+/* Dominó: linha em cobra e a mão da partida até 100 pontos. */
+.dmn-linha.cobra {flex-direction:column;align-items:stretch;gap:4px}
+.dmn-fileira {display:flex;align-items:center;gap:3px;min-height:52px}
+.dmn-fileira.volta {flex-direction:row-reverse}
+.dmn-rodada {position:absolute;top:8px;left:10px;color:#d9f2e3;font:700 12px var(--mac-ui)}

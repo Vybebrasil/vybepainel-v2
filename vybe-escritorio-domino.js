@@ -37,9 +37,18 @@ function dominoLinhaHtml(j, s) {
   const escolher = s.sel ? (m.jogaveis.find((o) => dominoMesma(o.peca, s.sel))?.pontas || []) : [];
   const ponta = (lado, rotulo) => escolher.includes(lado) ? `<button type="button" class="dmn-ponta" onclick="jogarDominoEscritorio('${lado}')">${rotulo}</button>` : "";
   const ultimo = m.ultimo?.acao === "jogou" ? m.ultimo.peca : null;
-  const pecas = m.linha.map((p, i) => dominoPecaHtml(p, `${p[0] === p[1] ? "carroca" : "deitada"}${ultimo && dominoMesma(p, ultimo) && (i === 0 || i === m.linha.length - 1) ? " nova" : ""}`)).join("");
-  return `<div class="dmn-linha">${ponta("esq", "◀ Aqui")}${pecas}${ponta("dir", "Aqui ▶")}</div>`;
+  // Em "cobra": fileiras de DOMINO_FILEIRA peças, uma indo e a seguinte
+  // voltando (as peças da volta aparecem viradas para casar com a vizinha).
+  const fileiras = [];
+  m.linha.forEach((p, i) => {
+    const f = Math.floor(i / DOMINO_FILEIRA), volta = f % 2 === 1;
+    const nova = ultimo && dominoMesma(p, ultimo) && (i === 0 || i === m.linha.length - 1);
+    (fileiras[f] ||= []).push(dominoPecaHtml(volta ? [p[1], p[0]] : p, `${p[0] === p[1] ? "carroca" : "deitada"}${nova ? " nova" : ""}`));
+  });
+  const ultima = fileiras.length - 1;
+  return `<div class="dmn-linha cobra">${fileiras.map((f, k) => `<div class="dmn-fileira${k % 2 ? " volta" : ""}">${k === 0 ? ponta("esq", "◀ Aqui") : ""}${f.join("")}${k === ultima ? ponta("dir", k % 2 ? "◀ Aqui" : "Aqui ▶") : ""}</div>`).join("")}</div>`;
 }
+const DOMINO_FILEIRA = 7;
 function dominoMaoHtml(j, s) {
   const m = j.mesa;
   // No fim as duas mãos aparecem no painel (dominoReveladoHtml).
@@ -65,9 +74,18 @@ function dominoReveladoHtml(j) {
   const lado = (l) => `<div class="dmn-revelado"><span>${xadrezPrimeiroNome(j[l])} · ${r.pontos[l]} ${r.pontos[l] === 1 ? "ponto" : "pontos"}</span><div>${r.maos[l].length ? r.maos[l].map((p) => dominoPecaHtml(p, "mini")).join("") : "<small>Bateu</small>"}</div></div>`;
   return `<h3 class="xdz-sub">Mãos no fim</h3>${lado("desafiante")}${lado("desafiado")}`;
 }
+// A mão que acabou (partida até 100): quem levou e quantos pontos.
+function dominoAnteriorHtml(j) {
+  const a = j.mesa?.anterior;
+  if (!a || j.estado !== "jogando") return "";
+  const nome = (l) => (l === j.eu ? "Você" : xadrezPrimeiroNome(j[l]));
+  const texto = a.vencedor === "empate" ? `Mão ${a.mao}: trancou empatado, ninguém pontuou.`
+    : `Mão ${a.mao}: ${nome(a.vencedor)} ${a.motivo === "batida" ? "bateu" : "ganhou no trancado"} e fez ${a.ganho} ${a.ganho === 1 ? "ponto" : "pontos"}.`;
+  return `<p class="ofc-nota">${safeText(texto)}</p>`;
+}
 function desenharDomino(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
-  const pecas = (l) => `${m.pecas[l]} ${m.pecas[l] === 1 ? "peça" : "peças"}`;
+  const pecas = (l) => `${m.pecas[l]} ${m.pecas[l] === 1 ? "peça" : "peças"}${m.alvo ? ` · ${m.placar[l]} de ${m.alvo} pts` : ""}`;
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
     : s.sel ? "Escolha a ponta onde a peça entra." : m.pode_comprar ? "Nenhuma peça encaixa: compre do monte." : m.pode_passar ? "Nenhuma peça encaixa e o monte acabou: passe a vez." : "Sua vez. Toque numa peça que encaixa.";
   const cima = outro || "desafiado", baixo = eu || "desafiante";
@@ -75,9 +93,9 @@ function desenharDomino(j, s) {
   return {
     status,
     mesa: `${mesaJogadorHtml(j, cima, pecas(cima))}
-<div class="dmn-mesa"><div class="dmn-monte" title="Peças no monte"><span class="dmn-costas"></span><b>${m.monte}</b><small>no monte</small></div>${dominoLinhaHtml(j, s)}</div>
+<div class="dmn-mesa">${m.alvo ? `<div class="dmn-rodada">Mão ${m.numero_mao} · até ${m.alvo} pontos</div>` : ""}<div class="dmn-monte" title="Peças no monte"><span class="dmn-costas"></span><b>${m.monte}</b><small>no monte</small></div>${dominoLinhaHtml(j, s)}</div>
 ${mesaJogadorHtml(j, baixo, pecas(baixo))}${dominoMaoHtml(j, s)}`,
-    painel: `${ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : ""}${dominoReveladoHtml(j)}`,
+    painel: `${ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : ""}${dominoAnteriorHtml(j)}${dominoReveladoHtml(j)}`,
   };
 }
 // Tocou numa peça: se só cabe numa ponta (ou as duas pontas são iguais), joga;

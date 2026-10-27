@@ -40,6 +40,26 @@ export function iniciarDomino(pecas = embaralhar(todasAsPecas())) {
  return { maos, monte: pecas.slice(14), linha: [], vez: a.lado, abertura: a.peca, passes: 0, n: 0, ultimo: null };
 }
 
+// Partida em várias mãos (Paulo, 27/10/2026: "até 100 pontos, como no dominó
+// de bar"). Quem bate, ou tem menos pontos no trancado, ganha os pontos da mão
+// do outro; trancado empatado não dá ponto. Chegou a `alvo`, acabou. Partidas
+// antigas não têm `alvo` e terminam na primeira mão, como antes.
+export const DOMINO_ALVO = 100;
+function darMao(m, pecas = embaralhar(todasAsPecas())) {
+ const nova = iniciarDomino(pecas);
+ Object.assign(m, { maos: nova.maos, monte: nova.monte, linha: [], vez: nova.vez, abertura: nova.abertura, passes: 0 });
+}
+function fimDaMao(m, vencedor, motivo) {
+ if (!m.alvo) return { resultado: vencedor, motivo };
+ const ganho = vencedor === 'empate' ? 0 : pontos(m.maos[outro(vencedor)]);
+ if (ganho) m.placar[vencedor] += ganho;
+ m.anterior = { mao: m.mao, vencedor, motivo, ganho, maos: m.maos, pontos: { desafiante: pontos(m.maos.desafiante), desafiado: pontos(m.maos.desafiado) } };
+ if (vencedor !== 'empate' && m.placar[vencedor] >= m.alvo) return { resultado: vencedor, motivo: 'pontos' };
+ m.mao += 1;
+ darMao(m);
+ return null;
+}
+
 // Peças da mão que encaixam agora, com as pontas onde cabem.
 function jogaveis(mesa, lado) {
  const mao = mesa.maos[lado] || [];
@@ -63,6 +83,7 @@ export function vistaDomino(mesa, lado, fim) {
   pode_passar: vez && !pode.length && !mesa.monte.length,
   abertura: !linha.length ? mesa.abertura : null,
   ultimo: mesa.ultimo || null,
+  placar: mesa.placar || null, alvo: mesa.alvo || 0, numero_mao: mesa.mao || 1, anterior: mesa.anterior || null,
   revelado: fim ? { maos: mesa.maos, pontos: { desafiante: pontos(mesa.maos.desafiante), desafiado: pontos(mesa.maos.desafiado) } } : null,
  };
 }
@@ -90,7 +111,7 @@ export function jogarDomino(mesa, lado, pedido) {
   m.vez = outro(lado);
   if (m.passes < 2) return { mesa: m, fim: null };
   const a = pontos(m.maos.desafiante), b = pontos(m.maos.desafiado);
-  return { mesa: m, fim: { resultado: a === b ? 'empate' : a < b ? 'desafiante' : 'desafiado', motivo: 'trancado' } };
+  return { mesa: m, fim: fimDaMao(m, a === b ? 'empate' : a < b ? 'desafiante' : 'desafiado', 'trancado') };
  }
  if (pedido?.tipo !== 'jogar' || !pecaValida(pedido.peca)) throw erro('Jogada inválida.');
  const i = mao.findIndex((p) => igual(p, pedido.peca));
@@ -110,13 +131,13 @@ export function jogarDomino(mesa, lado, pedido) {
  m.passes = 0;
  m.ultimo = { lado, acao: 'jogou', peca: [x, y], ponta };
  m.vez = outro(lado);
- return { mesa: m, fim: mao.length ? null : { resultado: lado, motivo: 'batida' } };
+ return { mesa: m, fim: mao.length ? null : fimDaMao(m, lado, 'batida') };
 }
 
 export const motorDomino = {
  nome: 'Dominó',
- motivos: { batida: 'Bateu', trancado: 'Jogo trancado: menos pontos na mão' },
- iniciar: () => iniciarDomino(),
+ motivos: { batida: 'Bateu', trancado: 'Jogo trancado: menos pontos na mão', pontos: `Chegou a ${DOMINO_ALVO} pontos` },
+ iniciar: () => ({ ...iniciarDomino(), placar: { desafiante: 0, desafiado: 0 }, alvo: DOMINO_ALVO, mao: 1, anterior: null }),
  vista: vistaDomino,
  jogar: jogarDomino,
 };

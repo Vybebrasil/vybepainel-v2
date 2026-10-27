@@ -50,8 +50,8 @@ function xadrezModal(html, classe) {
 }
 function xadrezFechar() {
   const x = escritorioXadrez();
-  clearInterval(x.timer);
-  x.timer = null; x.jogo = null; x.sel = null; x.promo = null; x.nova = null;
+  clearInterval(x.timer); clearInterval(x.relogio);
+  x.timer = null; x.relogio = null; x.jogo = null; x.sel = null; x.promo = null; x.nova = null;
   closeWorkflowModal();
 }
 
@@ -224,6 +224,17 @@ function abrirJogoXadrez(j) {
     if (!document.querySelector("#workflow-modal.ofc-xdz-jogo")) { clearInterval(x.timer); x.timer = null; x.jogo = null; return; }
     if (x.jogo?.estado === "jogando" && !document.hidden) recarregarJogoXadrez();
   }, 4000);
+  // O relógio de quem tem a vez anda na tela; zerou, a tela relê e o servidor encerra.
+  clearInterval(x.relogio);
+  x.relogio = setInterval(() => {
+    if (!document.querySelector("#workflow-modal.ofc-xdz-jogo")) { clearInterval(x.relogio); x.relogio = null; return; }
+    const el = document.querySelector("#workflow-modal.ofc-xdz-jogo .xdz-relogio.corre");
+    if (!el?.dataset.ate) return;
+    const ms = Number(el.dataset.ate) - Date.now();
+    el.textContent = xadrezTempo(ms);
+    el.classList.toggle("pouco", ms < 30000);
+    if (ms <= 0 && !x.zerou) { x.zerou = true; recarregarJogoXadrez(); setTimeout(() => { x.zerou = false; }, 3000); }
+  }, 250);
 }
 async function recarregarJogoXadrez() {
   const x = escritorioXadrez(), j = x.jogo;
@@ -272,9 +283,20 @@ function xadrezTabuleiroHtml(j) {
   const promo = x.promo ? `<div class="xdz-promo" role="dialog" aria-label="Promover o peão"><span>Promover para</span>${["q", "r", "b", "n"].map((t) => `<button type="button" aria-label="${XADREZ_NOME_PECA[t]}" onclick="promoverXadrez('${t}')"><svg viewBox="0 0 40 40"><use href="#xdz-${j.eu === "brancas" ? "w" : "b"}${t}"/></svg></button>`).join("")}<button type="button" class="xdz-promo-x" aria-label="Cancelar" onclick="escritorioXadrez().promo=null;desenharJogoXadrez()">×</button></div>` : "";
   return `<div class="xdz-tabuleiro${minhaVez ? " vez" : ""}">${html}${promo}</div>`;
 }
+const xadrezTempo = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+// Peças que esta cor já tomou: as do adversário que faltam na posição.
+function xadrezCapturadasHtml(j, cor) {
+  const dele = cor === "brancas" ? "b" : "w", restam = {};
+  for (const p of Object.values(xadrezPecas(j.fen))) if (p[0] === dele) restam[p[1]] = (restam[p[1]] || 0) + 1;
+  const tomadas = ["q", "r", "b", "n", "p"].flatMap((t) => Array(Math.max(0, { q: 1, r: 2, b: 2, n: 2, p: 8 }[t] - (restam[t] || 0))).fill(t));
+  return tomadas.length ? `<span class="xdz-capturadas" aria-label="${tomadas.length} peças tomadas">${tomadas.map((t) => `<svg viewBox="0 0 40 40" aria-hidden="true"><use href="#xdz-${dele}${t}"/></svg>`).join("")}</span>` : "";
+}
 function xadrezJogadorHtml(j, cor) {
   const p = j[cor], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === cor, eu = j.eu === cor;
-  return `<div class="xdz-jogador${vez ? " vez" : ""}"><span class="xdz-cor ${cor}" aria-hidden="true"></span>${u ? `<img src="${safeText(u)}" alt="" width="36" height="36">` : "<i></i>"}<b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><small>${vez ? (eu ? "Sua vez" : "Pensando…") : cor === "brancas" ? "Brancas" : "Pretas"}</small></div>`;
+  // Relógio: quem está com a vez conta para baixo na tela (o servidor é quem decide o fim).
+  const ms = j.relogio?.[cor], corre = j.relogio?.corre === cor;
+  const relogio = ms == null ? "" : `<time class="xdz-relogio${corre ? " corre" : ""}${ms < 30000 ? " pouco" : ""}" data-ate="${corre ? Date.now() + ms : ""}">${xadrezTempo(ms)}</time>`;
+  return `<div class="xdz-jogador${vez ? " vez" : ""}${relogio ? " com-relogio" : ""}"><span class="xdz-cor ${cor}" aria-hidden="true"></span>${u ? `<img src="${safeText(u)}" alt="" width="36" height="36">` : "<i></i>"}<b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}${xadrezCapturadasHtml(j, cor)}</b><small>${vez ? (eu ? "Sua vez" : "Pensando…") : cor === "brancas" ? "Brancas" : "Pretas"}</small>${relogio}</div>`;
 }
 function xadrezResultadoHtml(j) {
   if (j.estado !== "fim") return "";
@@ -288,7 +310,8 @@ function xadrezResultadoHtml(j) {
 function xadrezLancesHtml(j) {
   if (!j.lances.length) return '<p class="ofc-nota">Brancas começam.</p>';
   let s = "";
-  for (let i = 0; i < j.lances.length; i += 2) s += `<li><i>${i / 2 + 1}.</i><span>${safeText(j.lances[i])}</span><span>${safeText(j.lances[i + 1] || "")}</span></li>`;
+  const ultimo = j.lances.length - 1, lance = (k) => `<span${k === ultimo ? ' class="ultimo"' : ""}>${safeText(j.lances[k] || "")}</span>`;
+  for (let i = 0; i < j.lances.length; i += 2) s += `<li><i>${i / 2 + 1}.</i>${lance(i)}${lance(i + 1)}</li>`;
   return `<ol class="xdz-lances">${s}</ol>`;
 }
 function desenharJogoXadrez() {

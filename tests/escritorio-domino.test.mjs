@@ -127,3 +127,22 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  const tempo=await x.acaoMesa(sql,esperando,{id:h.id,acao:'reivindicar'});
  assert.equal(tempo.jogo.motivo_nome,'Tempo esgotado');assert.equal(tempo.jogo.resultado,jh.vez==='desafiante'?'desafiado':'desafiante');
 });
+
+test('dominó até 100 pontos: quem bate ganha os pontos do outro e a mão seguinte começa',()=>{
+ const base={linha:[[2,5]],abertura:null,passes:0,n:9,ultimo:null,alvo:100,mao:3,anterior:null};
+ // Bateu com 40 pontos: ganha os 7 da mão do outro e vem a mão 4.
+ let r=jogarDomino({...base,vez:'desafiado',placar:{desafiante:10,desafiado:40},maos:{desafiante:[[3,4]],desafiado:[[5,5]]},monte:[]},'desafiado',{tipo:'jogar',peca:[5,5]});
+ assert.equal(r.fim,null);
+ assert.deepEqual(r.mesa.placar,{desafiante:10,desafiado:47});
+ assert.equal(r.mesa.mao,4);assert.equal(r.mesa.linha.length,0);
+ assert.equal(r.mesa.maos.desafiante.length+r.mesa.maos.desafiado.length+r.mesa.monte.length,28,'mão nova com as 28 peças');
+ assert.deepEqual({v:r.mesa.anterior.vencedor,g:r.mesa.anterior.ganho,m:r.mesa.anterior.motivo},{v:'desafiado',g:7,m:'batida'});
+ assert.equal(vistaDomino(r.mesa,'desafiante',false).anterior.ganho,7);
+ // Com 95, os 7 levam a 102: acabou a partida.
+ r=jogarDomino({...base,vez:'desafiado',placar:{desafiante:10,desafiado:95},maos:{desafiante:[[3,4]],desafiado:[[5,5]]},monte:[]},'desafiado',{tipo:'jogar',peca:[5,5]});
+ assert.deepEqual(r.fim,{resultado:'desafiado',motivo:'pontos'});
+ // Trancado empatado não dá ponto e segue.
+ const tr={...base,vez:'desafiante',placar:{desafiante:0,desafiado:0},maos:{desafiante:[[0,4]],desafiado:[[1,3]]},monte:[]};
+ r=jogarDomino(jogarDomino(tr,'desafiante',{tipo:'passar'}).mesa,'desafiado',{tipo:'passar'});
+ assert.equal(r.fim,null);assert.deepEqual(r.mesa.placar,{desafiante:0,desafiado:0});assert.equal(r.mesa.anterior.vencedor,'empate');
+});

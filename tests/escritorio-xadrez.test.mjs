@@ -118,3 +118,24 @@ test('xadrez: de graça, empate combinado devolve, desistência e vitória por t
  await x.responderXadrez(sql,{id:3},[],{id:g.id,acao:'recusar'});
  assert.equal((await x.listarXadrez(sql,{id:3},MESA)).convites.length,0);
 });
+
+test('xadrez com relógio: 10 minutos, 2 segundos por lance e quem fica sem tempo perde',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-xadrez.sql','utf8'));
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-xadrez-relogio.sql','utf8'));
+ const x=await import('../server/escritorio-xadrez.js');
+ const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
+ const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'}]);
+ const d=await x.desafiarXadrez(sql,{id:1},salas,{para:'3',...MESA,chave:'relogio-0001'});
+ const r=await x.responderXadrez(sql,{id:3},salas,{id:d.id,acao:'aceitar'});
+ assert.equal(r.jogo.relogio.corre,'brancas');assert.ok(r.jogo.relogio.brancas<=600000&&r.jogo.relogio.brancas>590000);assert.equal(r.jogo.relogio.pretas,600000);
+ assert.equal(r.jogo.pode_reivindicar,false,'com relógio não há reivindicar de 5 minutos');
+ const brancas=r.jogo.brancas.id==='1'?{id:1}:{id:3},pretas=brancas.id===1?{id:3}:{id:1};
+ const l=await x.lanceXadrez(sql,brancas,{id:d.id,de:'e2',para:'e4',n:0});
+ assert.ok(l.jogo.relogio.brancas>600000,'o lance soma 2 segundos');assert.equal(l.jogo.relogio.corre,'pretas');
+ await assert.rejects(x.acaoXadrez(sql,brancas,{id:d.id,acao:'reivindicar'}),/ainda tem tempo/);
+ // As pretas somem 11 minutos: ao abrir, a partida acaba e as brancas ganham.
+ await sql`UPDATE vybe_escritorio_xadrez SET ultimo_lance_em=now()-interval '11 minutes' WHERE id=${d.id}`;
+ const v=await x.verXadrez(sql,pretas,d.id);
+ assert.equal(v.estado,'fim');assert.equal(v.resultado,'brancas');assert.equal(v.motivo_nome,'Tempo esgotado');
+});

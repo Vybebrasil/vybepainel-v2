@@ -119,9 +119,16 @@ export function vistaPoker(m, lado, fim) {
   mao: m.mao, blind: m.blind, botao: m.botao, fase: m.fase, comunitarias: m.comunitarias,
   fichas: m.fichas, rodada: m.rodada, pote: m.posto.desafiante + m.posto.desafiado,
   minhas: lado ? m.cartas[lado] : null,
+  minha_mao: lado && !fim ? minhaMao(m, lado) : null,
   acoes: vez ? acoes(m, lado) : null,
   ultimo: m.ultimo || null, anterior: m.anterior || null,
  };
+}
+
+// O que a pessoa tem agora com as próprias cartas e as da mesa ("Par", "Dois pares").
+function minhaMao(m, lado) {
+ const h = Hand.solve([...(m.cartas[lado] || []), ...m.comunitarias]);
+ return NOMES[h.name] || h.name;
 }
 
 // pedido: { tipo: 'largar' | 'mesa' | 'pagar' | 'aumentar', valor } (valor = total da rodada).
