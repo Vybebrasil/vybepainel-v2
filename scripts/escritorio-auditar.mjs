@@ -47,6 +47,8 @@ const INTERATIVOS = /coffee|fridge|water_dispenser|minibar|stove|microwave|schoo
 const FOCO = /table|chessboard|desk|rigpro|hc26_2|tv|screen|lectern|stage|fireplace|projector|pooltable|footballtable|bardesk|bartable|counter|whiteboard|dj|hc25_6|jukebox|hc26_3|hc25_12|lowtable|coffeetable|arcade|retrogames|pinball|console|studio_camera|mixingdesk/;
 const OLHA = { 0: [0, -1], 2: [1, 0], 4: [0, 1], 6: [-1, 0] };
 // Cabine (bilheteria) é assento na ficha, mas quem está nela atende quem chega.
+// Peças de jogo de dois jogadores (ver a regra dos assentos frente a frente).
+const JOGO_DE_DOIS = /chessboard|gamingtable/;
 const SEM_FOCO_OK = /lounger|stonebench|bench|hangingchair|barstool|treadmill|lifering|rela_rock|olympics_c16_sofa|racearcade|ticket_booth/;
 const FRENTE = /arcade|pinball|retrogames|jukebox|bookcase|bookshelf|shelve|_shelf|tv$|screen|projector|fireplace|wrkdesk|minibar|fridge|stove|sink|counter|cabinet|cupboard|dispenser|mixingdesk|lectern|whiteboard|coffeemachine|microwave|printer|hc25_6|bardesk|rigpro/;
 // Peça que se usa de pé na frente (máquina, armário, estante): a frente
@@ -259,6 +261,18 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
       }
     }
     if (!achou) problemas.push(nomeCena(`${it.classe} (${it.x},${it.y}) virado para o nada (direção ${it.dir})`));
+  }
+  // Jogo de dois (xadrez, dama, dominó, velha): os jogadores sentam frente a
+  // frente, de lados opostos do tabuleiro; dois assentos em L, um de lado
+  // para o outro, não é jogo (Paulo, 27/10/2026: "quem joga xadrez de lado?").
+  for (const mesa of itens) {
+    if (!JOGO_DE_DOIS.test(mesa.classe)) continue;
+    const base = itens.find((o) => o !== mesa && !o.assento && mesa.altura && mesa.x >= o.x && mesa.x < o.x + o.w && mesa.y >= o.y && mesa.y < o.y + o.h) || mesa;
+    const lados = itens.filter((o) => o.assento && o.w === 1 && o.h === 1).map((o) => {
+      const [dx, dy] = OLHA[o.dir] || [0, 0], x = o.x + dx, y = o.y + dy;
+      return x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h ? [dx, dy] : null;
+    }).filter(Boolean);
+    if (lados.some((a, i) => lados.some((b, j) => j > i && a[0] * b[0] + a[1] * b[1] === 0))) problemas.push(nomeCena(`${mesa.classe} (${mesa.x},${mesa.y}): jogadores de lado um para o outro (jogo de dois é frente a frente)`));
   }
   // Frente do desenho: na arte de 4 direções, 0/2/4/6 olham para −y/+x/+y/−x;
   // na de duas (0 e 2, ou 2 e 4), a frente é sempre para quem olha o mapa:
@@ -777,6 +791,10 @@ function auditar(cena, P, moveis, avisos, avisosDesenho = [], avisosIlhas = []) 
     // Fileira de plateia (assentos iguais virados para o mesmo lado): a de
     // trás cobre um pouco a da frente, como num teatro em degraus.
     if (f.it.assento && t.it.assento && f.it.classe === t.it.classe && f.it.dir === t.it.dir) continue;
+    // Cadeira puxada para a própria mesa, do lado de trás (jogo de dois, frente
+    // a frente): o tampo cobre o assento e só o encosto aparece, até 60%.
+    const aMesa = t.it.assento && !f.it.assento && ctx.mapaFisica(f.it.classe).poe && f.it.x - 1 <= t.it.x && t.it.x <= f.it.x + (f.it.w || 1) && f.it.y - 1 <= t.it.y && t.it.y <= f.it.y + (f.it.h || 1);
+    if (aMesa && n <= t.s.n * 0.6) continue;
     if (n > 300 && n > t.s.n * (t.parede ? 0.2 : 0.4)) desenho.push(nomeCena(`${f.nome} esconde ${Math.round((n / t.s.n) * 100)}% de ${t.nome}`));
   }
   // Regras de interiores (decisão do Paulo, 18/10/2026: "fliperama na

@@ -3,7 +3,7 @@
 // como as referências do Habbo; parede só com objeto solto pendurado está
 // ruim"). O padrão, o mesmo do Café e do Lounge:
 // - piso de verdade (peça com textura) em cada ala, não a textura lisa;
-// - parede revestida por ala (pixel art, madeira, papel de saloon) e vestida
+// - parede revestida por ala (azulejo, lambri, papel de saloon) e vestida
 //   por móveis encostados (máquinas, estantes, banco, balcão), com os quadros
 //   e arandelas por cima, em ritmo;
 // - altura: o saloon do pôquer num tablado, com degraus;
@@ -29,7 +29,7 @@ export default function jogos() {
     mesaDeJogos: "hobbies_c26_gamingtable", poquer: "wildwest_table", banco: "lodge_dark_barrelstool", poltrona: "classic9_chair",
     cadeiraMesa: "modern_c17_chair", mesinha: "rainyday_c20_woodentable" }, {
     acentos: ["xmas_c16_woodtile", "disco_c26_floor", "hs_carpet", "wildwest_floor", "rainyday_c20_woodenfloor", "classic9_floor2", "xmas_c22_woodenfloor",
-      "pixel_wall_black", "pixel_wall_blue", "exe_c15_wall", "wildwest_wallpaper", "hween_c20_porchstairs",
+      "hygge_c25_wallpaper1", "hygge_c25_wallpaper2", "wildwest_wallpaper", "hween_c20_porchstairs",
       "arcade_c23_space", "arcade_c23_cyberpunk", "arcade_c23_pinball", "graffiti_r24_arcademachine", "vwave_r21_jukebox", "pixel_painting_blue",
       "pixel_painting_red", "pixel_poster2", "cubie_decklight_p", "neonpunk_c20_lights", "grungelamp", "army_c15_light", "cine_light2", "pixel_clock_red",
       "fball_score_b", "fball_score_r", "cine_bench", "wildwest_cabinet", "wildwest_desk", "wildwest_till", "pirate_bottle_1", "pirate_bottle_3",
@@ -48,22 +48,32 @@ export default function jogos() {
   s.piso("xmas_c22_woodenfloor", { x0: 14, y0: 6, x1: 22, y1: 14 });
 
   // --- Paredes revestidas por ala ---
-  s.revestir("fundo", { de: 0, ate: 6, classe: "pixel_wall_black" });
-  s.revestir("esquerda", { de: 0, ate: 6, classe: "pixel_wall_blue" });
-  s.revestir("fundo", { de: 6, ate: 14, classe: "exe_c15_wall" });
+  // Revestimento que é textura de ponta a ponta (Paulo, 27/10/2026: "as
+  // texturas não tão meio bugadas?"): o pixel_wall é branco com blocos só no
+  // alto e o exe_c15_wall é janela com prédios, e os dois pareciam defeito.
+  // A parede tem 8,6 níveis (o tablado sobe a cornija) e o papel cobre 4,2:
+  // vai em duas faixas, uma em cima da outra, até a cornija.
+  for (const altura of [0, 4.2]) {
+    s.revestir("fundo", { de: 0, ate: 6, altura, classe: "hygge_c25_wallpaper2", estado: 0 });
+    s.revestir("esquerda", { de: 0, ate: 6, altura, classe: "hygge_c25_wallpaper2", estado: 0 });
+    s.revestir("fundo", { de: 6, ate: 14, altura, classe: "hygge_c25_wallpaper1", estado: 3 });
+    s.revestir("esquerda", { de: 6, ate: 14, altura, classe: "hygge_c25_wallpaper1", estado: 1 });
+  }
   s.revestir("fundo", { de: 14, ate: 22, classe: "wildwest_wallpaper", estado: 1 });
-  s.revestir("esquerda", { de: 6, ate: 14, classe: "exe_c15_wall" });
 
   // --- Fliperama: máquinas na parede, banquinhos, pinballs na lateral ---
   s.canto("fliperama", { funcao: "jogar nas máquinas", destaque: "tokyo_c18_retroarcade" });
   for (const [x, c] of [[1, "tokyo_c18_retroarcade"], [3, "arcade_c23_space"], [5, "graffiti_r24_arcademachine"]]) s.por(c, x, 0, { olha: [x, 4] });
   // Fliperama se joga em pé, de frente para a máquina.
   s.figurante({ figura: FIGURAS.jogador1, x: 1, y: 1, dir: 0 });
-  s.por("arcade_c23_pinball", 0, 2, { olha: [4, 2] });
-  s.por("arcade_c23_pinball", 0, 4, { olha: [4, 4] });
+  // Pinball se joga pela ponta: a cabeceira (o painel alto com a arte) vai
+  // encostada na parede e o jogador fica na outra ponta, de frente para ela
+  // (Paulo, 27/10/2026: "isso não se joga de lado").
+  for (const y of [2, 4]) s.por("arcade_c23_pinball", 0, y, { olha: [4, y] });
+  s.figurante({ figura: FIGURAS.jogador2, x: 2, y: 4, dir: 6 });
   s.parede("fundo", { de: 0, ate: 6, altura: 3.2 }, ["pixel_painting_blue", "pixel_painting_red"]);
   s.parede("esquerda", { de: 0, ate: 6, altura: 2.8 }, ["cubie_decklight_p", "pixel_clock_red"]);
-  for (const x of [3, 5]) s.pendente("grungelamp", x, 3, { estado: 1 });
+  for (const [x, y] of [[4, 3], [5, 1]]) s.pendente("grungelamp", x, y, { estado: 1 });
 
   // --- Sinuca e pebolim: banco da plateia na parede, placares, luz baixa ---
   s.canto("sinuca", { funcao: "jogar sinuca e pebolim com plateia", destaque: "bling15_pooltable" });
@@ -105,8 +115,10 @@ export default function jogos() {
   for (const y of [8, 11]) {
     s.por("rainyday_c20_woodentable", 3, y);
     s.emCima(3, y, "CF_250_goldenchessboard");
+    // Xadrez se joga frente a frente, uma cadeira de cada lado do tabuleiro
+    // (Paulo, 27/10/2026: "quem joga xadrez de lado um pro outro?").
     s.assento("classic9_chair", 2, y, [3, y]);
-    const c = s.assento("classic9_chair", 3, y - 1, [3, y]);
+    const c = s.assento("classic9_chair", 4, y, [3, y]);
     if (y === 8) s.figurante({ figura: FIGURAS.enxadrista, sentado: c });
     s.pendente("grungelamp", 3, y, { estado: 1 });
   }
@@ -116,13 +128,16 @@ export default function jogos() {
   // --- Mesas de Jogos (dominó, dama, velha e truco) ---
   s.canto("mesas de jogos", { funcao: "jogar dominó, dama, velha e truco", destaque: "hobbies_c26_gamingtable" });
   for (const x of [15, 19]) {
-    s.por("hobbies_c26_gamingtable", x, 8);
+    s.por("hobbies_c26_gamingtable", x, 8, { dir: 2 });
     s.emCima(x, 8, [x === 15 ? "edice" : "classic2_drinkcup"]);
-    s.assento("modern_c17_chair", x + 2, 9, [x + 1, 9]);
-    s.assento("modern_c17_chair", x, 11, [x, 9]);
-    s.pendente("army_c15_light", x, 9, { dir: 2 });
+    // Jogo de dois: uma cadeira de cada lado da mesa, frente a frente.
+    s.assento("modern_c17_chair", x + 1, 7, [x + 1, 8]);
+    s.assento("modern_c17_chair", x + 1, 10, [x + 1, 9]);
+    s.pendente("army_c15_light", x + 1, 9, { dir: 2 });
   }
-  s.por("tokyo_c18_drinksmachine", 21, 6, { olha: [21, 10] });
+  // Máquina de bebida de costas para o tablado (do lado direito não há
+  // parede), com a frente para as mesas.
+  s.por("tokyo_c18_drinksmachine", 21, 4, { olha: [21, 8] });
   s.por("classic9_plant", 14, 13);
 
   // --- Corredor da porta ---
