@@ -49,7 +49,15 @@ export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
   // Não propagar erros do transporte que possam carregar URL ou headers.
   throw Object.assign(new Error('Não foi possível consultar as métricas do VybeHub.'),{status:503});
  }
- if(!r.ok)throw Object.assign(new Error('Não foi possível consultar as métricas do VybeHub.'),{status:503});
+ // O motivo do Hub (27/10/2026: "como tá o tráfego da Conectasim" voltava só "API_HTTP"): a mensagem do erro do tRPC,
+ // curta e sem link ou credencial, vai para o log e para quem perguntou ("Conta de anúncios indisponível.", "Meta API: ...").
+ if(!r.ok){
+  let motivo='';
+  try{const e=await r.json();motivo=String(e?.error?.json?.message||e?.error?.message||'');}catch{motivo='';}
+  motivo=motivo.replace(/(?:https?:\/\/)[^\s]+/gi,'[link]').replace(/\b(?:token|access_token|senha|secret)\b\S*/gi,'[credencial]').replace(/\s+/g,' ').trim().slice(0,200);
+  console.error('vybehub_metricas_erro',r.status,modulo,motivo||'(sem mensagem)');
+  throw Object.assign(new Error(`O VybeHub não respondeu os dados de ${cliente.nome}${motivo?': '+motivo:'.'}`),{status:503,publica:true});
+ }
  if(Number(r.headers.get('content-length')||0)>131072)throw new TypeError('Resposta excede limite.');
  const reader=r.body.getReader();let total=0;const partes=[];
  try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.length;if(total>131072)throw new TypeError('Resposta excede limite.');partes.push(Buffer.from(value));}}finally{await reader.cancel().catch(()=>{});}

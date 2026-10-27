@@ -48,7 +48,9 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
       const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
       if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'administrador-privado-1',max_ferramentas:3});
-      return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});
+      // Falha com motivo para a pessoa (VybeHub fora, cliente sem conta de anúncio): volta como aviso, não como erro mudo.
+      try{return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});}
+      catch(erro){if(erro.publica)return res.status(200).json({ok:true,itens:[],aviso:String(erro.message).slice(0,300)});throw erro;}
     }
     // Ações em dois passos (assistente-acoes.js). Recusa esperada (permissão, peça, status) volta como resposta
     // normal com o motivo, porque o bot não lê corpo de erro.
