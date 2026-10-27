@@ -396,39 +396,114 @@ function montarNoticiasLobbyEscritorio() {
 function escritorioHojeBahia() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia" }).format(new Date());
 }
-// O baú do dia: uma vez por dia, mostra o que o seu trabalho rendeu nas
-// últimas 24 horas (já está na carteira; o baú só conta). Abre com um clique.
-function escritorioLobbyBauHtml() {
-  const g = escritorio.lobbyBau;
-  if (!g) return "";
-  const aberto = escritorio.lobbyBauAberto;
-  return `<div class="lg-bau${aberto ? " aberto" : ""}" role="dialog" aria-label="Seu baú do dia"><div class="lg-bau-cartao">
-<button type="button" class="lg-bau-x" onclick="fecharBauLobbyEscritorio()" aria-label="Fechar">×</button>
-<button type="button" class="lg-bau-caixa" onclick="abrirBauLobbyEscritorio()" ${aberto ? "disabled" : ""} aria-label="Abrir o baú">${escritorio.lobbyBauArte ? `<img src="${escritorio.lobbyBauArte}" alt="">` : ""}<span class="lg-bau-luz"></span></button>
-${aberto ? `<b class="lg-bau-total"><span class="lg-bau-moeda"></span>+${Number(g.moedas).toLocaleString("pt-BR")} <small>moedas</small> · +${Number(g.pontos).toLocaleString("pt-BR")} <small>XP</small></b><p>O que o seu trabalho rendeu nas últimas 24 horas. Já está na sua carteira.</p><ul>${g.itens.map((x) => `<li><span>${safeText(x.descricao)}${x.vezes > 1 ? ` <small>×${x.vezes}</small>` : ""}</span><b>${x.moedas >= 0 ? "+" : ""}${x.moedas}</b></li>`).join("")}</ul><button type="button" class="lg-bau-ok" onclick="fecharBauLobbyEscritorio()">Bora trabalhar</button>` : `<b class="lg-bau-titulo">Seu baú do dia chegou</b><p>Toque para abrir.</p>`}
+// Baú sobre a cabeça (Paulo, 27/10/2026): cada missão cumprida (card
+// aprovado, peça agendada, cadastro...) cai num baú que pisca sobre o próprio
+// boneco. Abrir mostra cada demanda abatida com o XP e as moedas dela e o
+// total. Os ganhos já estão na carteira; o baú só conta. O navegador guarda
+// até qual linha do extrato já foi aberta. Substitui o baú do dia da entrada.
+function escritorioChaveBau() {
+  return "vybe-escritorio-bau-visto-" + (escritorio.base?.eu || "");
+}
+async function escritorioArteBau() {
+  if (escritorio.bauArte == null)
+    try { const m = await mapaCarregarMovel("pirate_crate"); const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0); escritorio.bauArte = d?.canvas?.toDataURL() || ""; } catch { escritorio.bauArte = ""; }
+  return escritorio.bauArte;
+}
+async function carregarBauEscritorio() {
+  if (!escritorio.base?.eu || escritorio.bauCarregando || escritorio.bauAberto || window.ESCRITORIO_CONVIDADO) return;
+  escritorio.bauCarregando = true;
+  try {
+    let desde = ""; try { desde = localStorage.getItem(escritorioChaveBau()) || ""; } catch {}
+    const d = await escritorioApi("bau", null, desde ? { desde } : null);
+    escritorio.bau = d.bau && (d.bau.pecas.length || d.bau.outros.length) ? d.bau : null;
+    if (escritorio.bau) await escritorioArteBau();
+  } catch {} finally { escritorio.bauCarregando = false; }
+  escritorioMarcarBau();
+}
+function escritorioMarcarBau() {
+  const b = escritorio.bau, m = escritorio.mapa, eu = String(escritorio.base?.eu || "");
+  if (!m?.marcarBau) return;
+  if (!b || escritorio.bauAberto) return m.marcarBau(eu);
+  const n = b.abatidas || b.pecas.length;
+  m.marcarBau(eu, { arte: escritorio.bauArte, numero: n,
+    rotulo: `Baú: ${n ? `${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}, ` : ""}+${b.pontos} XP e ${b.moedas >= 0 ? "+" : ""}${b.moedas} moedas. Clique para abrir.`,
+    aoClicar: () => abrirBauEscritorio() });
+}
+function escritorioBauValor(moedas, pontos) {
+  const sinal = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("pt-BR");
+  return `<span class="ofc-bau-xp${pontos < 0 ? " perde" : ""}">${sinal(pontos)} <small>XP</small></span><span class="ofc-bau-gold${moedas < 0 ? " perde" : ""}"><i aria-hidden="true"></i>${sinal(moedas)}</span>`;
+}
+const ESCRITORIO_BAU_MAX = 30;
+function escritorioBauHtml() {
+  const b = escritorio.bau, aberto = escritorio.bauAberto === "aberto";
+  if (!b) return "";
+  const pecas = b.pecas.slice(0, ESCRITORIO_BAU_MAX), resto = b.pecas.length - pecas.length;
+  const espada = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 3.5 20 3l-.5 5.5-9 9-3-3 9-9zM6.2 13.8l4 4M4 20l3-3M5.5 15.5l3 3"/></svg>';
+  const escudo = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3z"/><path d="m9 9 6 6M15 9l-6 6"/></svg>';
+  const linha = (p, i) => {
+    const dano = p.pontos < 0 || (p.pontos === 0 && p.moedas < 0);
+    const sub = [p.cliente, p.formato].filter(Boolean).join(" · ");
+    return `<li class="ofc-bau-peca${dano ? " dano" : ""}" style="--i:${i}"><button type="button" onclick="abrirMissaoEscritorio('${safeText(p.ref)}','${p.quadro}',event);fecharBauEscritorio()" title="Abrir a demanda"><span class="ofc-bau-icone">${dano ? escudo : espada}</span><span class="ofc-bau-nome"><b>${safeText(p.titulo)}</b>${sub ? `<small>${safeText(sub)}</small>` : ""}<em>${p.partes.map((x) => `${safeText(x.descricao)}${x.vezes > 1 ? ` ×${x.vezes}` : ""}`).join(" · ")}</em></span><span class="ofc-bau-valor">${escritorioBauValor(p.moedas, p.pontos)}</span></button></li>`;
+  };
+  const n = b.abatidas;
+  return `<div class="ofc-bau${aberto ? " aberto" : ""}" role="dialog" aria-modal="true" aria-labelledby="ofc-bau-titulo" onclick="if(event.target===this)fecharBauEscritorio()"><div class="ofc-bau-cartao">
+<button type="button" class="ofc-bau-x" onclick="fecharBauEscritorio()" aria-label="Fechar">×</button>
+<div class="ofc-bau-topo"><button type="button" class="ofc-bau-caixa" onclick="abrirBauEscritorio(true)" ${aberto ? "disabled" : ""} aria-label="Abrir o baú"><span class="ofc-bau-raios" aria-hidden="true"></span>${escritorio.bauArte ? `<img src="${escritorio.bauArte}" alt="">` : ""}</button>
+<div><b id="ofc-bau-titulo">${aberto ? (n ? `${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}` : "Baú aberto") : "Baú de missões"}</b><p>${aberto ? "Desde o último baú. Já está tudo na sua carteira." : `${n ? `${n} ${n === 1 ? "demanda abatida espera" : "demandas abatidas esperam"} por você. ` : ""}Toque no baú para abrir.`}</p></div></div>
+${aberto ? `<div class="ofc-bau-total"><span><small>XP</small><b data-ate="${b.pontos}">0</b></span><span class="gold"><small>Moedas</small><b data-ate="${b.moedas}">0</b></span></div>
+<ul class="ofc-bau-lista">${pecas.map(linha).join("")}${resto > 0 ? `<li class="ofc-bau-mais">e mais ${resto} ${resto === 1 ? "demanda" : "demandas"}</li>` : ""}</ul>
+${b.outros.length ? `<div class="ofc-bau-bonus"><small>Bônus</small><ul>${b.outros.map((o, i) => `<li style="--i:${pecas.length + i}"><span>${safeText(o.descricao)}${o.vezes > 1 ? ` <small>×${o.vezes}</small>` : ""}</span><span class="ofc-bau-valor">${escritorioBauValor(o.moedas, o.pontos)}</span></li>`).join("")}</ul></div>` : ""}
+<button type="button" class="ofc-bau-ok" onclick="fecharBauEscritorio()">Coletar</button>` : ""}
 </div></div>`;
 }
-function pintarBauLobbyEscritorio() {
-  let el = document.getElementById("lg-bau-lugar");
-  if (el) el.innerHTML = escritorioLobbyBauHtml();
+function pintarBauEscritorio() {
+  let el = document.getElementById("office-bau");
+  if (!escritorio.bauAberto) { el?.remove(); return; }
+  if (!el) { el = document.createElement("div"); el.id = "office-bau"; document.body.append(el); }
+  el.innerHTML = escritorioBauHtml();
 }
-function abrirBauLobbyEscritorio() {
-  const caixa = document.querySelector(".lg-bau-caixa");
-  if (caixa) caixa.classList.add("tremendo");
-  setTimeout(() => { escritorio.lobbyBauAberto = true; pintarBauLobbyEscritorio(); const n = document.querySelector(".lg-bau"); if (n && typeof rkConfete === "function" && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) rkConfete(n); }, 650);
+// Primeiro clique (no boneco): abre a janela com o baú fechado; o segundo
+// (no baú) treme e abre, com os números subindo e as demandas caindo uma a uma.
+function abrirBauEscritorio(abrir = false) {
+  if (!escritorio.bau) return;
+  const calmo = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!abrir) {
+    escritorio.bauAberto = "fechado";
+    escritorioMarcarBau();
+    pintarBauEscritorio();
+    document.querySelector(".ofc-bau-caixa")?.focus();
+    document.addEventListener("keydown", escritorioTeclaBau);
+    return;
+  }
+  const caixa = document.querySelector(".ofc-bau-caixa");
+  caixa?.classList.add("tremendo");
+  setTimeout(() => {
+    escritorio.bauAberto = "aberto";
+    pintarBauEscritorio();
+    const c = document.querySelector(".ofc-bau-cartao");
+    if (c && !calmo && typeof rkConfete === "function") rkConfete(c.querySelector(".ofc-bau-caixa") || c);
+    for (const n of document.querySelectorAll(".ofc-bau-total [data-ate]")) {
+      const ate = Number(n.dataset.ate) || 0, t0 = performance.now(), dur = calmo ? 0 : 900;
+      const passo = (t) => { const k = dur ? Math.min(1, (t - t0) / dur) : 1; n.textContent = (ate > 0 ? "+" : "") + Math.round(ate * (1 - (1 - k) ** 3)).toLocaleString("pt-BR"); if (k < 1) requestAnimationFrame(passo); };
+      requestAnimationFrame(passo);
+    }
+    document.querySelector(".ofc-bau-ok")?.focus();
+  }, calmo ? 0 : 650);
 }
-function fecharBauLobbyEscritorio() {
-  try { localStorage.setItem("vybe-escritorio-bau-" + (escritorio.base?.eu || ""), escritorioHojeBahia()); } catch {}
-  escritorio.lobbyBau = null; escritorio.lobbyBauAberto = false;
-  pintarBauLobbyEscritorio();
+function escritorioTeclaBau(e) {
+  if (e.key === "Escape") fecharBauEscritorio();
 }
-async function prepararBauLobbyEscritorio(ganhos) {
-  if (!ganhos || (!ganhos.moedas && !ganhos.pontos)) return;
-  let visto = ""; try { visto = localStorage.getItem("vybe-escritorio-bau-" + (escritorio.base?.eu || "")) || ""; } catch {}
-  if (visto === escritorioHojeBahia()) return;
-  try { if (!escritorio.lobbyBauArte) { const m = await mapaCarregarMovel("pirate_crate"); const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? 2, 0, 0); escritorio.lobbyBauArte = d?.canvas?.toDataURL() || ""; } } catch {}
-  escritorio.lobbyBau = ganhos;
-  pintarBauLobbyEscritorio();
+// Fechar depois de aberto é coletar: o próximo baú começa da última linha vista.
+// Fechar sem abrir deixa o baú piscando.
+function fecharBauEscritorio() {
+  document.removeEventListener("keydown", escritorioTeclaBau);
+  if (escritorio.bauAberto === "aberto" && escritorio.bau?.ultimo) {
+    try { localStorage.setItem(escritorioChaveBau(), String(escritorio.bau.ultimo)); } catch {}
+    escritorio.bau = null;
+  }
+  escritorio.bauAberto = null;
+  pintarBauEscritorio();
+  escritorioMarcarBau();
 }
 // Quem está no escritório agora: uma conexão só de leitura com o Worker
 // (presence:join com observar), que não põe você na lista nem na voz.
@@ -489,7 +564,7 @@ async function carregarLobbyEscritorio() {
     escritorioApi("missoes").then((d) => { const l = d.missoes || []; espera.missoes = l.filter((m) => m.hoje || m.atrasada).length; espera.atrasadas = l.filter((m) => m.atrasada).length; pintar(); }).catch(() => {}),
     escritorioApi("cobrancas", null, { pessoa: eu }).then((d) => { espera.cobrancas = (d.cobrancas || []).length; pintar(); }).catch(() => {}),
     escritorioApi("recados-resumo").then((d) => { espera.recados = (d.resumo || []).reduce((t, r) => t + Number(r.nao_lidos || 0), 0); pintar(); }).catch(() => {}),
-    escritorioApi("lobby").then((d) => { escritorio.lobbyNovidades = d.noticias || []; montarNoticiasLobbyEscritorio(); prepararBauLobbyEscritorio(d.ganhos); }).catch(() => {}),
+    escritorioApi("lobby").then((d) => { escritorio.lobbyNovidades = d.noticias || []; montarNoticiasLobbyEscritorio(); }).catch(() => {}),
     escritorioApi("ranking").then((d) => {
       escritorioRanking.dados.semana = d;
       montarNoticiasLobbyEscritorio();
@@ -2164,7 +2239,7 @@ function renderEscritorio() {
  <div class="ofc-bonus-lugar" id="office-bonus">${escritorioBonusCopaHtml("mapa")}</div>
  <div class="ofc-avisos" id="office-avisos" aria-live="polite"></div>
  <div class="ofc-dock" id="office-controls" role="toolbar" aria-label="Controles do escritório"></div>
- ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml("imagem") : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}<div id="lg-bau-lugar">${escritorioLobbyBauHtml()}</div>${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
+ ${lobby ? `<div class="ofc-lobby lg${escritorio.lobbySaindo ? " saindo" : ""}" role="dialog" aria-modal="false" aria-labelledby="ofc-lobby-titulo" data-periodo="${escritorioPeriodoDoDia()}">${typeof vybelandiaCenaHtml === "function" ? vybelandiaCenaHtml("imagem") : ""}<div class="abr-vinheta" aria-hidden="true"></div><div class="lg-tela">${escritorioLobbyTopoHtml(perfil, eu, b)}${escritorio.entrada ? `<div class="lg-base lg-carregando">${escritorioEntradaHtml()}</div>` : escritorioLobbyAcoesHtml(b)}</div></div>` : ""}
 </main>
 </section>`;
   if (lobby && typeof vbAnimarContagens === "function") vbAnimarContagens(painel);
@@ -2240,7 +2315,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof escritorioOcuparSubsolo === "function") escritorioOcuparSubsolo(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
+    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); carregarBauEscritorio(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof escritorioOcuparSubsolo === "function") escritorioOcuparSubsolo(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -3247,6 +3322,8 @@ function escritorioConferirCochilo() {
 if (typeof window !== "undefined" && window.addEventListener && typeof setInterval === "function" && typeof document !== "undefined" && document.body) {
   for (const ev of ["keydown", "pointerdown", "wheel"]) window.addEventListener(ev, escritorioAtividade, { passive: true });
   setInterval(escritorioConferirCochilo, 30000);
+  // Missão cumprida enquanto a pessoa está no jogo: o baú aparece em até 2 min.
+  setInterval(() => { if (escritorio.conectado && escritorio.mapa && !document.hidden) carregarBauEscritorio(); }, 120000);
 }
 function escritorioComandoBoneco(cmd) {
   escritorioAplicarComando(escritorio.base?.eu, cmd);

@@ -10496,30 +10496,6 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .ofc-lobby.lg[data-periodo="tarde"] .lg-ceu {background:linear-gradient(180deg,#ff8a3533,transparent)}
 .ofc-lobby.lg[data-periodo="noite"] .lg-ceu {background:linear-gradient(180deg,#2a1f6a55,transparent)}
 /* O baú do dia */
-#lg-bau-lugar {display:contents}
-.lg-bau {position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:#05060aa6;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:lg-entra .4s var(--curva,ease) both;--dy:0}
-.lg-bau-cartao {position:relative;display:grid;justify-items:center;gap:8px;width:min(380px,calc(100% - 32px));padding:26px 24px 22px;border-radius:24px;background:linear-gradient(180deg,#262a37,#171920);border:1px solid #ffffff1f;box-shadow:inset 0 1px 0 #ffffff1a,0 8px 0 #000a,0 30px 60px #000c;text-align:center}
-.lg-bau-x {position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffff12;color:#fff;font:400 20px/1 var(--mac-ui);cursor:pointer}
-.lg-bau-caixa {position:relative;display:grid;place-items:center;width:150px;height:130px;padding:0;border:0;background:none;cursor:pointer;animation:lg-bau-pula 1.6s ease-in-out infinite}
-.lg-bau-caixa img {position:relative;z-index:1;width:auto;height:110px;image-rendering:pixelated;filter:drop-shadow(0 8px 10px #000b)}
-.lg-bau-luz {position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,#ffd35c88,transparent);animation:lg-feixe 1.6s ease-in-out infinite}
-.lg-bau-caixa.tremendo {animation:lg-bau-treme .12s linear infinite}
-.lg-bau.aberto .lg-bau-caixa {animation:none;cursor:default}
-.lg-bau.aberto .lg-bau-luz {inset:-30px;background:conic-gradient(from 0deg,#ffd35c00,#ffd35c66,#ffd35c00 25%,#ffd35c66 50%,#ffd35c00 75%);border-radius:50%;animation:lg-raios 6s linear infinite}
-@keyframes lg-bau-pula {50% {translate:0 -6px}}
-@keyframes lg-bau-treme {25% {rotate:-4deg} 75% {rotate:4deg}}
-@keyframes lg-raios {to {rotate:360deg}}
-.lg-bau-titulo {font:900 20px var(--mac-ui)}
-.lg-bau-cartao p {margin:0;color:#c5cad6;font:500 13px/1.45 var(--mac-ui)}
-.lg-bau-total {display:flex;align-items:center;gap:6px;color:#ffe29a;font:950 26px var(--mac-ui);font-variant-numeric:tabular-nums;animation:lg-entra .5s var(--curva,ease) both;--dy:10px}
-.lg-bau-total small {color:#c5cad6;font-size:13px;font-weight:700}
-.lg-bau-moeda {width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -3px 0 #a8660a}
-.lg-bau-cartao ul {display:grid;gap:4px;width:100%;margin:4px 0 0;padding:0;list-style:none}
-.lg-bau-cartao li {display:flex;justify-content:space-between;gap:10px;padding:7px 10px;border-radius:10px;background:#ffffff08;color:#dfe3ea;font:600 12.5px var(--mac-ui);text-align:left}
-.lg-bau-cartao li b {color:#ffe29a;font-variant-numeric:tabular-nums}
-.lg-bau-cartao li small {color:#8f96a5}
-.lg-bau-ok {margin-top:8px;height:46px;padding:0 26px;border:0;border-radius:14px;background:linear-gradient(180deg,#ffd07a,#ff7a1f);color:#1c0b00;font:900 15px var(--mac-ui);cursor:pointer;box-shadow:inset 0 2px 0 #fff6,0 5px 0 #8f3f0a}
-.lg-bau-ok:active {translate:0 4px;box-shadow:inset 0 2px 0 #fff6,0 1px 0 #8f3f0a}
 /* A saída animada ao ENTRAR */
 .ofc-lobby.lg.saindo .abr-cena {animation:lg-mergulho 1.6s var(--curva,ease) forwards}
 @keyframes lg-mergulho {to {transform:scale(1.5);filter:blur(0) brightness(.9) saturate(1.1)}}
@@ -10535,8 +10511,8 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
   .lg-colega.longe {display:none}
   .lg-cantinho {width:180px;height:121px;bottom:14px;scale:.66;transform-origin:50% 100%}
 }
-@media (prefers-reduced-motion:reduce) {.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena {animation:none!important;transition:none!important}}
-[data-motion=reduce] :is(.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-bau-caixa,.lg-bau-luz,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena) {animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce) {.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena {animation:none!important;transition:none!important}}
+[data-motion=reduce] :is(.lg-cantinho,.lg-cantinho img,.lg-colega,.lg-ceu i,.lg-noticia,.ofc-lobby.lg.saindo .abr-cena) {animation:none!important;transition:none!important}
 /* Computador simples (vybeAparelhoLeve, 22/10/2026): a Vybelândia sem os
    enfeites que rodam sem parar; a entrada continua igual, só quieta. */
 .vybe-leve :is(.abr-faiscas,.lg-faiscas,.lg-ceu,.lg-feixe) {display:none}
@@ -12260,3 +12236,71 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .pkr-showdown {display:grid;gap:4px;margin-bottom:6px;color:#d7deeb;font-size:12px}
 .pkr-showdown > div {display:flex;flex-wrap:wrap;gap:3px}
 @media(max-width:760px){.pkr-carta{--w:36px}.pkr-carta.grande{--w:50px}.pkr-mesa{border-radius:28px}}
+/* Baú sobre a cabeça (27/10/2026): pisca acima do nome do próprio boneco. */
+.mapa-bau {position:absolute;z-index:99990;left:0;top:0;width:54px;height:50px;margin:0;padding:0;border:0;background:none;cursor:pointer;transform:translate(-50%,calc(-100% - 20px - var(--sobe,0px)));animation:mapa-bau-pula 1.4s ease-in-out infinite}
+.mapa-bau.com-titulo {transform:translate(-50%,calc(-100% - 40px - var(--sobe,0px)))}
+.mapa-bau img {position:relative;z-index:1;display:block;height:42px;width:auto;margin:0 auto;image-rendering:pixelated;filter:drop-shadow(0 0 6px #ffd35c) drop-shadow(0 3px 2px #000a)}
+.mapa-bau-luz {position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(closest-side,#ffd35cb0,#ffd35c00);animation:mapa-bau-brilho 1.4s ease-in-out infinite}
+.mapa-bau b {position:absolute;z-index:2;top:-4px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;border:2px solid #1b1d27;background:linear-gradient(180deg,#ff8a35,#e8500f);color:#fff;font:900 11px/16px var(--mac-ui);font-variant-numeric:tabular-nums;text-align:center}
+.mapa-bau b:empty {display:none}
+.mapa-bau:hover {animation-play-state:paused}
+.mapa-bau:hover img {filter:drop-shadow(0 0 10px #ffe39a) drop-shadow(0 3px 2px #000a)}
+.mapa-bau:focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:4px;border-radius:12px}
+@keyframes mapa-bau-pula {0%,100% {translate:0 0} 50% {translate:0 -7px} 56% {rotate:-5deg} 62% {rotate:5deg} 68% {rotate:0deg}}
+@keyframes mapa-bau-brilho {0%,100% {opacity:.45;scale:.85} 50% {opacity:1;scale:1.1}}
+
+/* Janela do baú: as demandas abatidas, cada uma com XP e moedas, e o total. */
+.ofc-bau {position:fixed;inset:0;z-index:100050;display:grid;place-items:center;padding:16px;background:#05060ab3;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);animation:ofc-bau-entra .25s ease both}
+.ofc-bau-cartao {position:relative;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;gap:12px;width:min(460px,100%);max-height:min(720px,calc(100dvh - 32px));padding:20px 18px 18px;border-radius:22px;background:linear-gradient(180deg,#262a37,#171920);border:1px solid #ffffff1f;box-shadow:inset 0 1px 0 #ffffff1a,0 8px 0 #000a,0 30px 60px #000c;color:#fff}
+.ofc-bau:not(.aberto) .ofc-bau-cartao {grid-template-rows:auto}
+.ofc-bau-x {position:absolute;z-index:2;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#ffffff12;color:#fff;font:400 20px/1 var(--mac-ui);cursor:pointer}
+.ofc-bau-x:hover {background:#ffffff22}
+.ofc-bau-topo {display:flex;align-items:center;gap:14px;padding-right:34px}
+.ofc-bau:not(.aberto) .ofc-bau-topo {flex-direction:column;padding:6px 0 4px;text-align:center}
+.ofc-bau-topo b {display:block;font:900 20px/1.15 var(--mac-ui)}
+.ofc-bau-topo p {margin:3px 0 0;color:#c5cad6;font:500 13px/1.4 var(--mac-ui)}
+.ofc-bau-caixa {position:relative;flex:none;display:grid;place-items:center;width:86px;height:78px;padding:0;border:0;background:none;cursor:pointer;animation:mapa-bau-pula 1.4s ease-in-out infinite}
+.ofc-bau:not(.aberto) .ofc-bau-caixa {width:160px;height:140px}
+.ofc-bau-caixa img {position:relative;z-index:1;height:66px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 6px 8px #000b)}
+.ofc-bau:not(.aberto) .ofc-bau-caixa img {height:116px}
+.ofc-bau-raios {position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(closest-side,#ffd35c88,transparent)}
+.ofc-bau.aberto .ofc-bau-caixa {animation:none;cursor:default}
+.ofc-bau.aberto .ofc-bau-raios {inset:-22px;background:conic-gradient(from 0deg,#ffd35c00,#ffd35c70,#ffd35c00 25%,#ffd35c70 50%,#ffd35c00 75%);animation:ofc-bau-raios 6s linear infinite}
+.ofc-bau-caixa.tremendo {animation:ofc-bau-treme .12s linear infinite}
+.ofc-bau-total {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ofc-bau-total span {display:grid;gap:2px;padding:10px 12px;border-radius:14px;background:#ffffff0a;border:1px solid #ffffff14}
+.ofc-bau-total small {color:#9aa1b2;font:800 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.ofc-bau-total b {color:#c9b8ff;font:950 26px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-bau-total .gold b {color:#ffe29a}
+.ofc-bau-lista {display:grid;align-content:start;gap:5px;min-height:0;margin:0;padding:0 2px 0 0;overflow:auto;list-style:none;overscroll-behavior:contain}
+.ofc-bau-peca {animation:ofc-bau-cai .35s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:calc(min(var(--i),14) * 70ms + 250ms)}
+.ofc-bau-peca button {display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid #ffffff10;border-radius:12px;background:#ffffff08;color:#dfe3ea;text-align:left;cursor:pointer}
+.ofc-bau-peca button:hover {background:#ffffff12;border-color:#ffffff24}
+.ofc-bau-icone {display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:linear-gradient(180deg,#ff9a4d,#e8500f);color:#fff;box-shadow:inset 0 1px 0 #fff5,0 2px 0 #7a2c06}
+.ofc-bau-icone svg {width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ofc-bau-peca.dano .ofc-bau-icone {background:linear-gradient(180deg,#5b6070,#3a3e4a);box-shadow:inset 0 1px 0 #fff3,0 2px 0 #1b1d24}
+.ofc-bau-peca.dano button {border-color:#ff6b6b33;background:#ff6b6b0d}
+.ofc-bau-nome {display:grid;gap:1px;min-width:0}
+.ofc-bau-nome b {overflow:hidden;color:#fff;font:750 13px/1.3 var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-bau-nome small {overflow:hidden;color:#aab1c0;font:600 11.5px/1.3 var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-bau-nome em {overflow:hidden;color:#7f8798;font:500 11px/1.3 var(--mac-ui);font-style:normal;white-space:nowrap;text-overflow:ellipsis}
+.ofc-bau-valor {display:grid;justify-items:end;gap:2px;font:850 12.5px/1.1 var(--mac-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ofc-bau-xp {color:#c9b8ff}
+.ofc-bau-xp small {color:#8f86b8;font-size:10px;font-weight:800}
+.ofc-bau-gold {display:inline-flex;align-items:center;gap:4px;color:#ffe29a}
+.ofc-bau-gold i {width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd24a 45%,#d9930e);box-shadow:inset 0 -2px 0 #a8660a}
+.ofc-bau-valor .perde {color:#ff8b8b}
+.ofc-bau-mais {padding:6px;color:#8f96a5;font:600 12px var(--mac-ui);text-align:center}
+.ofc-bau-bonus > small {display:block;margin:0 0 5px 2px;color:#9aa1b2;font:800 10.5px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
+.ofc-bau-bonus ul {display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.ofc-bau-bonus li {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;border-radius:10px;background:#ffffff06;color:#dfe3ea;font:600 12.5px var(--mac-ui);animation:ofc-bau-cai .35s ease both;animation-delay:calc(min(var(--i),14) * 70ms + 250ms)}
+.ofc-bau-bonus li small {color:#8f96a5}
+.ofc-bau-bonus .ofc-bau-valor {grid-auto-flow:column;gap:10px}
+.ofc-bau-ok {justify-self:center;height:46px;padding:0 34px;border:0;border-radius:14px;background:linear-gradient(180deg,#ffd07a,#ff7a1f);color:#1c0b00;font:900 15px var(--mac-ui);cursor:pointer;box-shadow:inset 0 2px 0 #fff6,0 5px 0 #8f3f0a}
+.ofc-bau-ok:active {translate:0 4px;box-shadow:inset 0 2px 0 #fff6,0 1px 0 #8f3f0a}
+@keyframes ofc-bau-entra {from {opacity:0}}
+@keyframes ofc-bau-cai {from {opacity:0;translate:0 -14px;scale:.96}}
+@keyframes ofc-bau-raios {to {rotate:360deg}}
+@keyframes ofc-bau-treme {25% {rotate:-5deg} 75% {rotate:5deg}}
+@media (prefers-reduced-motion:reduce) {.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li {animation:none!important}}
+[data-motion=reduce] :is(.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li) {animation:none!important}

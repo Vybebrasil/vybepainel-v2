@@ -141,16 +141,47 @@ export async function fecharPontosEscritorio(sql, agora = new Date(), { janela =
   return { disponivel: true, hoje, dias, semanas, ranking, copa, bonus };
 }
 // O que a ficha mostra da própria pessoa: nível, meta da semana e extrato.
-// O "baú" da entrada (Paulo, 21/10/2026): o que a pessoa ganhou trabalhando
-// nas últimas 24 horas, pelo razão, agrupado pela regra. Compras e ajustes
-// (sem regra) ficam de fora; penalidade entra com o sinal dela.
-export async function ganhosRecentes(sql, pessoaId, agora = new Date()) {
+// O baú sobre a cabeça (Paulo, 27/10/2026: "abre e mostra o que ele MATOU de
+// demanda e o XP e gold que ganhou, total e de cada uma"). É o que entrou no
+// razão desde o último baú aberto (pelo id da linha), uma entrada por peça com
+// as partes dela (fez, aprovou como DA, agendou, head, geral...). Ganhos sem
+// peça (dia, meta, ranking) vêm à parte. Compras e ajustes (sem regra) e
+// linhas zeradas ficam de fora; penalidade entra com o sinal dela. Sem
+// "desde" (primeiro baú neste navegador), as últimas 24 horas.
+export async function bauDaPessoa(sql, pessoaId, { desde = null, agora = new Date(), limite = 300 } = {}) {
   if (!await pontosProntos(sql)) return null;
-  const linhas = await sql`SELECT COALESCE(g.descricao, m.regra) AS descricao, COALESCE(SUM(m.quantidade),0)::int AS moedas, COALESCE(SUM(m.pontos),0)::int AS pontos, COUNT(*)::int AS vezes
-    FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra
-    WHERE m.pessoa_id=${pessoaId} AND m.regra IS NOT NULL AND m.criado_em >= ${agora}::timestamptz - interval '24 hours'
-    GROUP BY 1 ORDER BY 2 DESC, 3 DESC`;
-  return { moedas: linhas.reduce((t, l) => t + l.moedas, 0), pontos: linhas.reduce((t, l) => t + l.pontos, 0), itens: linhas.slice(0, 4) };
+  const linhas = desde != null
+    ? await sql`SELECT m.id,m.conteudo_id,m.quantidade AS moedas,m.pontos,COALESCE(g.descricao,m.regra) AS descricao,c.titulo,c.clientes_texto,c.formato,c.board_id,c.monday_item_id
+        FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra LEFT JOIN vybe_conteudos c ON c.id=m.conteudo_id
+        WHERE m.pessoa_id=${pessoaId} AND m.regra IS NOT NULL AND (m.quantidade<>0 OR m.pontos<>0) AND m.id > ${Number(desde)} ORDER BY m.id LIMIT ${limite}`
+    : await sql`SELECT m.id,m.conteudo_id,m.quantidade AS moedas,m.pontos,COALESCE(g.descricao,m.regra) AS descricao,c.titulo,c.clientes_texto,c.formato,c.board_id,c.monday_item_id
+        FROM vybe_escritorio_moedas m LEFT JOIN vybe_escritorio_regras g ON g.chave=m.regra LEFT JOIN vybe_conteudos c ON c.id=m.conteudo_id
+        WHERE m.pessoa_id=${pessoaId} AND m.regra IS NOT NULL AND (m.quantidade<>0 OR m.pontos<>0) AND m.criado_em >= ${agora}::timestamptz - interval '24 hours' ORDER BY m.id LIMIT ${limite}`;
+  const pecas = new Map(), outros = new Map();
+  const somar = (alvo, l) => {
+    alvo.moedas += Number(l.moedas) || 0; alvo.pontos += Number(l.pontos) || 0;
+    const p = alvo.partes.find((x) => x.descricao === l.descricao) || alvo.partes[alvo.partes.push({ descricao: l.descricao, moedas: 0, pontos: 0, vezes: 0 }) - 1];
+    p.moedas += Number(l.moedas) || 0; p.pontos += Number(l.pontos) || 0; p.vezes += 1;
+  };
+  for (const l of linhas) {
+    if (l.conteudo_id) {
+      const k = String(l.conteudo_id);
+      if (!pecas.has(k)) pecas.set(k, {
+        ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.conteudo_id, quadro: String(l.board_id) === QUADRO_DEMANDAS ? 'demandas' : 'producao',
+        titulo: l.titulo || 'Sem título', cliente: l.clientes_texto || '', formato: l.formato || '', moedas: 0, pontos: 0, partes: [] });
+      somar(pecas.get(k), l);
+    } else {
+      if (!outros.has(l.descricao)) outros.set(l.descricao, { descricao: l.descricao, moedas: 0, pontos: 0, partes: [] });
+      somar(outros.get(l.descricao), l);
+    }
+  }
+  const lista = [...pecas.values()].sort((a, b) => b.pontos - a.pontos || b.moedas - a.moedas);
+  const extras = [...outros.values()].map(({ partes, ...o }) => ({ ...o, vezes: partes[0]?.vezes || 1 }));
+  return {
+    ultimo: linhas.length ? Number(linhas[linhas.length - 1].id) : null,
+    moedas: linhas.reduce((t, l) => t + (Number(l.moedas) || 0), 0), pontos: linhas.reduce((t, l) => t + (Number(l.pontos) || 0), 0),
+    abatidas: lista.filter((p) => p.pontos > 0 || (p.pontos === 0 && p.moedas > 0)).length, pecas: lista, outros: extras,
+  };
 }
 export async function resumoPontos(sql, pessoaId, agora = new Date()) {
   if (!await pontosProntos(sql)) return null;
