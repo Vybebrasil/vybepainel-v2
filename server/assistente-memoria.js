@@ -4,14 +4,17 @@
 import { textoDoHistorico } from './texto-historico.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { linkDaAtividade } from './assistente-rotinas.js';
+import { regrasDoCliente } from './assistente-regras.js';
 
 const curto = (iso) => (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // "alteração", "ajuste", "mudar"... viram um mesmo assunto: o que o cliente pediu para mudar.
 const PEDIDOS = /alter|ajust|mud|troc|corrig|refaz|refaze|tirar|coloc|pediu|cliente (?:quer|pede|prefere)/;
 
-export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes }) {
+export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes, regras = [] }) {
   const partes = [`🧠 *Memória · ${cliente}* (últimos ${dias} dias${busca ? ` · “${busca}”` : ''})`];
+  // Regras decididas pela equipe valem sempre (não dependem do período nem do assunto).
+  if (regras.length) partes.push(`📌 *Regras do cliente*\n` + regras.slice(0, 10).map((r) => `- ${r}`).join('\n'));
   if (alteracoes.length) {
     partes.push(`🔁 *Voltaram para alteração: ${alteracoes.length} vez(es)*\n` + alteracoes.slice(0, 6)
       .map((a) => `- ${curto(a.em)} · ${a.titulo || 'Sem título'}\n  🔗 ${linkDaAtividade(a.ref)}`).join('\n'));
@@ -20,7 +23,7 @@ export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes 
     partes.push(`💬 *O que foi dito nas peças*\n` + comentarios.slice(0, 10)
       .map((c) => `- ${curto(c.criado_em)} · ${c.titulo || 'Sem título'}${c.autor ? ` (${c.autor})` : ''}: “${c.corpo.replace(/\s+/g, ' ').slice(0, 220)}${c.corpo.length > 220 ? '…' : ''}”\n  🔗 ${linkDaAtividade(c.ref)}`).join('\n'));
   }
-  if (!alteracoes.length && !comentarios.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
+  if (!alteracoes.length && !comentarios.length && !regras.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
   return partes.join('\n\n');
 }
 
@@ -46,7 +49,8 @@ export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '',
   if (termos.length) comentarios = comentarios.filter((c) => termos.some((t) => normal(c.corpo + ' ' + c.titulo).includes(t.slice(0, Math.max(4, t.length - 2)))));
   else comentarios = [...comentarios.filter((c) => PEDIDOS.test(normal(c.corpo))), ...comentarios.filter((c) => !PEDIDOS.test(normal(c.corpo)))];
   const alteracoes = voltas.map((v) => ({ ...v, ref: ref(v) }));
-  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes }), fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }] };
+  const regras = await regrasDoCliente(sql, clienteId);
+  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes, regras }), fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }] };
 }
 
 // Legendas que o cliente já aprovou (planejamentos aprovados ou já cadastrados no quadro), as mais recentes primeiro.
@@ -67,5 +71,5 @@ export async function legendasAprovadas(sql, { cliente_id: clienteId, formato = 
       itens.push({ mes: p.mes.slice(0, 7), formato: peca.formato, tema: peca.tema || '', legenda: peca.legenda.slice(0, 1200) });
     }
   }
-  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)) };
+  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)), regras: await regrasDoCliente(sql, clienteId) };
 }

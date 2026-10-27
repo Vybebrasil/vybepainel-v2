@@ -108,7 +108,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
   return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
  }
  if(nome==='sugerir_responsavel'){const d=await sugerirResponsavel(sql,{formato:a.formato||'',dia:diaAssistente(identidade.agora)});return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:[{modulo:'responsaveis',id:'sugestao'}],limitado:false});}
- if(nome==='legendas_aprovadas'){const d=await legendasAprovadas(sql,a);return limpar({fonte:'vybe-neon',ferramenta:nome,cliente:d.cliente,itens:d.itens,fontes:[{modulo:'planejamentos',id:String(a.cliente_id)}],limitado:false});}
+ if(nome==='legendas_aprovadas'){const d=await legendasAprovadas(sql,a);return limpar({fonte:'vybe-neon',ferramenta:nome,cliente:d.cliente,itens:d.itens,regras:d.regras||[],fontes:[{modulo:'planejamentos',id:String(a.cliente_id)}],limitado:false});}
  if(nome==='memoria_cliente'){const d=await memoriaDoCliente(sql,a);return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='calendario_clientes'){const d=await calendarioClientes(sql,a.mes,a.cliente_id||null);return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='resumo_cliente'){const d=await resumoCliente(sql,a.cliente_id,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}

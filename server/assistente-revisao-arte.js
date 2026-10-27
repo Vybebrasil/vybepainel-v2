@@ -6,6 +6,7 @@ import { linkDaAtividade } from './assistente-rotinas.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { MARCAS_BRIEFING } from './briefing.js';
 import { textoDoHistorico } from './texto-historico.js';
+import { regrasDaPeca } from './assistente-regras.js';
 
 const IMAGEM = /^(png|jpe?g|webp)$/i;
 const MAX_DIRETO = 2.5 * 1024 * 1024; // A resposta da função cabe em ~4 MB; acima disso vai a miniatura do Drive.
@@ -39,7 +40,9 @@ export async function arteDaPeca(sql, ref, { baixar = baixarDoDrive, buscar = fe
   // Briefing e notas marcadas (legenda do post, copy...), para conferir a arte contra o que foi pedido.
   const notas = await sql`SELECT corpo FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id} AND corpo ~* ${MARCAS_BRIEFING} ORDER BY criado_em DESC NULLS LAST LIMIT 3`;
   const texto = [c.briefing || '', ...notas.map((n) => textoDoHistorico(n.corpo || ''))].map((t) => String(t).trim()).filter(Boolean).join('\n---\n').slice(0, 3000);
-  const peca = { ref: referencia(c), titulo: c.titulo, formato: c.formato, status: c.status, cliente: c.cliente || '', link: linkDaAtividade(referencia(c)), texto };
+  // Regras do cliente decididas pela equipe: a revisão confere se a arte respeita.
+  const regras = await regrasDaPeca(sql, c.id);
+  const peca = { ref: referencia(c), titulo: c.titulo, formato: c.formato, status: c.status, cliente: c.cliente || '', link: linkDaAtividade(referencia(c)), texto, regras };
   if (!a) return { peca, arte: null, motivo: 'sem_arquivo' };
   let arte = null;
   if (IMAGEM.test(a.extensao || '') && Number(a.tamanho_bytes || 0) <= MAX_DIRETO) {

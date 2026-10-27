@@ -199,13 +199,13 @@ test('pedido de alteração: comentário na peça e, com permissão, status Alte
     const a = await prepararAcao(sql, 5, { acao: 'alteracao', busca: 'agenda musical da hebravet', texto: 'quarta para Maria Luísa e sexta para Greyce Pires' }, segredo);
     assert.match(a.resumo, /Pedido de alteração em "Card - Agenda Musical" \(Hebravet\):\n“quarta para Maria Luísa e sexta para Greyce Pires”\n\(fica registrado como comentário/);
     const ok = await confirmarAcao(sql, 5, a.codigo, segredo, { executar });
-    assert.match(ok.feito, /Pedido de alteração registrado em "Card - Agenda Musical"\. Status segue \*Pode Fazer\*/);
+    assert.match(ok.feito, /Pedido de alteração registrado em "Card - Agenda Musical": “quarta para Maria Luísa e sexta para Greyce Pires”\. Status segue \*Pode Fazer\*/);
     assert.deepEqual(feitos, [['comentar', 'ew@x', { item: 'vybe:10', texto: '🔧 Alteração pedida pelo WhatsApp: quarta para Maria Luísa e sexta para Greyce Pires' }]]);
     // Administração: comentário e status.
     const b = await prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: 'trocar a foto' }, segredo);
     assert.match(b.resumo, /e status de \*Pode Fazer\* para \*Alteração\*/);
     const ok2 = await confirmarAcao(sql, 1, b.codigo, segredo, { executar });
-    assert.match(ok2.feito, /que agora está em \*alteracao\*/);
+    assert.match(ok2.feito, /: “trocar a foto”\. Agora está em \*alteracao\*/);
     assert.deepEqual(feitos.slice(1).map((f) => f[0]), ['comentar', 'status']);
     await assert.rejects(() => prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: ' ' }, segredo), /Diga o que precisa mudar/);
   } finally { await db.close(); }
@@ -224,5 +224,42 @@ test('alteração acha também a peça já agendada que veicula hoje (e a marca 
     // Troca de status não mexe em peça já agendada: a mesma busca acha só a outra.
     const s = await prepararAcao(sql, 2, { acao: 'status', busca: 'agenda musical hebravet', para: 'Alteração' }, segredo).catch((e) => e);
     assert.doesNotMatch(String(s.message || s.resumo), /Achei/);
+  } finally { await db.close(); }
+});
+
+test('regra do cliente: head ou administração guarda com SIM; entra na memória e nas legendas', async () => {
+  const { db, sql } = await banco();
+  try {
+    const { regrasDoCliente, regrasDaPeca } = await import('../server/assistente-regras.js');
+    await db.exec('ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true');
+    assert.deepEqual(await regrasDoCliente(sql, 7), []);
+    // Jady (responsável, não head) não pode; Ewerton (head da Hebravet) pode, pelo nome do cliente ou pela peça.
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'regra', cliente: 'Hebravet', texto: 'nunca usar fundo escuro' }, segredo), /administração ou com os heads/);
+    const a = await prepararAcao(sql, 5, { acao: 'regra', cliente: 'hebra', texto: 'nunca usar fundo escuro' }, segredo);
+    assert.match(a.resumo, /Regra para as próximas peças da \*Hebravet\*:\n“nunca usar fundo escuro”/);
+    assert.match((await confirmarAcao(sql, 5, a.codigo, segredo, { executar })).feito, /Regra guardada para \*Hebravet\*/);
+    await assert.rejects(() => confirmarAcao(sql, 5, a.codigo, segredo, { executar }), /já foi usada/);
+    const b = await prepararAcao(sql, 1, { acao: 'regra', item: 'vybe:10', texto: 'sexta é sempre a Greyce' }, segredo);
+    await confirmarAcao(sql, 1, b.codigo, segredo, { executar });
+    assert.deepEqual(await regrasDoCliente(sql, 7), ['sexta é sempre a Greyce', 'nunca usar fundo escuro']);
+    assert.deepEqual(await regrasDaPeca(sql, 12), ['sexta é sempre a Greyce', 'nunca usar fundo escuro']);
+    await assert.rejects(() => prepararAcao(sql, 1, { acao: 'regra', cliente: 'Inexistente', texto: 'x y z' }, segredo), /Não achei o cliente/);
+  } finally { await db.close(); }
+});
+
+test('trocar responsável (redistribuir): só administração; troca de quem é para quem, com SIM', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudo_responsaveis ADD COLUMN ordem int DEFAULT 0;`);
+    const trocas = [];
+    const exec = { ...executar, trocarResponsaveis: async (s, quem, a) => { trocas.push([quem.pessoa.email, a]); } };
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'responsavel', item: 'vybe:10', de: 'Jady', para: 'Deivid' }, segredo), /só com a administração/);
+    await assert.rejects(() => prepararAcao(sql, 1, { acao: 'responsavel', item: 'vybe:10', de: 'Deivid', para: 'Jady' }, segredo), /não é responsável/);
+    await assert.rejects(() => prepararAcao(sql, 1, { acao: 'responsavel', item: 'vybe:10', de: 'Jady', para: 'Fulano' }, segredo), /Não achei "Fulano"/);
+    const a = await prepararAcao(sql, 1, { acao: 'responsavel', item: 'vybe:10', de: 'Jady', para: 'Deivid' }, segredo);
+    assert.match(a.resumo, /Trocar responsável de "Card A" \(Hebravet\)\nde \*Jady Lima\* para \*Deivid Souza\*/);
+    const ok = await confirmarAcao(sql, 1, a.codigo, segredo, { executar: exec });
+    assert.match(ok.feito, /"Card A" agora é de \*Deivid Souza\*/);
+    assert.deepEqual(trocas, [['paulo@x', { item: 'vybe:10', pessoas: ['68997024'] }]]);
   } finally { await db.close(); }
 });

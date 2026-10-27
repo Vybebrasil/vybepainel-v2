@@ -362,7 +362,7 @@ export async function resumoCliente(sql, clienteId, dia) {
 // - Risco de furo: veicula em até 2 dias, parada no mesmo status há 3+ dias e ainda antes da aprovação
 //   (nem entregue, nem para agendar, nem em aprovação, nem pausa/espera do cliente) → privado de cada responsável.
 // - Sobrecarga: alguém com 6+ peças em aberto com prazo amanhã enquanto outra pessoa tem 0 ou 1 → administração.
-export function riscosDoDia(itens, dia, statusDe, { paradoDias = 3, antecedencia = 2, limiteSobrecarga = 6 } = {}) {
+export function riscosDoDia(itens, dia, statusDe, { paradoDias = 3, antecedencia = 2, limiteSobrecarga = 6, equipes = [] } = {}) {
   const r = retrato(itens, dia, statusDe), limite = somarDias(dia, antecedencia), amanha = somarDias(dia, 1);
   const s = (i) => normal(statusDe(i));
   const parado = (i) => { const d = textoData(i.status_updated_at); return d && d <= somarDias(dia, -paradoDias) ? Math.round((Date.parse(dia) - Date.parse(d)) / 864e5) : 0; };
@@ -384,12 +384,38 @@ export function riscosDoDia(itens, dia, statusDe, { paradoDias = 3, antecedencia
   const livres = [...new Set(itens.flatMap((i) => (i.responsavel || '').split(',').map(primeiroNome).filter(Boolean)))].filter((n) => (conta.get(n) || 0) <= 1);
   const sobrecarga = ordem.length && ordem[0][1] >= limiteSobrecarga && livres.length
     ? `⚖️ *Sobrecarga amanhã (${curto(amanha)})*\n${ordem.filter(([, q]) => q >= limiteSobrecarga).map(([n, q]) => `- ${n}: ${q} peças com prazo amanhã`).join('\n')}\nCom pouca coisa: ${livres.slice(0, 6).join(', ')}.\nVale redistribuir?` : null;
-  return { pessoas, sobrecarga };
+  // Sugestão concreta (Paulo, 27/10/2026: "sugerir a solução"): até 2 peças de cada sobrecarregado, ainda não começadas
+  // e só dele, para alguém da mesma equipe (EQUIPES do painel) com 0 ou 1 peça amanhã. A troca sai pelo WhatsApp com SIM.
+  const sugestoes = [];
+  if (sobrecarga && equipes.length) {
+    const nomeDe = new Map();
+    for (const i of itens) { const ns = (i.responsavel || '').split(',').map(primeiroNome); if (ns.length === i.responsavel_ids.length) i.responsavel_ids.forEach((id, k) => ns[k] && nomeDe.set(String(id), ns[k])); }
+    const amanhaAbertos = itens.filter((i) => i.prazo_iso === amanha && r.aberto(i) && !r.pausa(i));
+    const carga = new Map();
+    for (const i of amanhaAbertos) for (const id of new Set(i.responsavel_ids.map(String))) carga.set(id, (carga.get(id) || 0) + 1);
+    for (const [id, q] of [...carga.entries()].sort((a, b) => b[1] - a[1])) {
+      if (q < limiteSobrecarga) break;
+      const pares = [...new Set(equipes.filter((e) => e.map(String).includes(id)).flat().map(String))].filter((x) => x !== id && nomeDe.has(x) && (carga.get(x) || 0) <= 1);
+      if (!pares.length) continue;
+      const pecas = amanhaAbertos.filter((i) => i.responsavel_ids.length === 1 && String(i.responsavel_ids[0]) === id && !['em andamento', 'em execucao'].includes(s(i))).slice(0, 2);
+      for (const i of pecas) {
+        const para = pares.sort((a, b) => (carga.get(a) || 0) - (carga.get(b) || 0))[0];
+        carga.set(para, (carga.get(para) || 0) + 1);
+        sugestoes.push({ item: String(i.id), titulo: i.nome || 'Sem título', cliente: (i.clientes || []).join(' / '), de: { id, nome: nomeDe.get(id) || id }, para: { id: para, nome: nomeDe.get(para) } });
+      }
+    }
+  }
+  const comSugestao = sobrecarga && sugestoes.length ? `${sobrecarga}\n\n💡 *Sugestão*\n` +
+    sugestoes.map((x, k) => `${k + 1}. ${x.titulo} (${x.cliente || 'sem cliente'}) · nº ${x.item} → passar de ${x.de.nome} para ${x.para.nome}`).join('\n') +
+    `\n\nResponda citando esta mensagem com o número (ex.: *1*) ou *todas* que eu preparo a troca (com SIM).` : sobrecarga;
+  return { pessoas, sobrecarga: comSugestao, sugestoes };
 }
 export async function riscos(sql, dia) {
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
   const { ctx } = codigoDoPainel();
-  const r = riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i));
+  let equipes = [];
+  try { equipes = Object.values(vm.runInContext('EQUIPES', ctx)).map((e) => [...e]); } catch { equipes = []; }
+  const r = riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i), { equipes });
   // A previsão nunca derruba os riscos: sem histórico suficiente, só não aparece.
   const previsao = await previsaoDeAtrasos(sql, dia).catch(() => ({ texto: null }));
   return { ...r, previsao: previsao.texto };

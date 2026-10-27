@@ -8,6 +8,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import vm from 'node:vm';
 import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
+import { tabelaRegras } from './assistente-regras.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -214,7 +215,30 @@ async function montarCriacao(sql, pedido, agora) {
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao', 'regra', 'responsavel'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (acao === 'regra') {
+    // Regra do cliente: pela peça (cliente dela) ou pelo nome do cliente. Quem pode: administração e heads do cliente.
+    const p = await pessoaAtiva(sql, pessoaId);
+    const texto = String(pedido.texto || '').replace(/\s+/g, ' ').trim();
+    if (texto.length < 3 || texto.length > 500) throw invalido('Diga a regra (até 500 caracteres).');
+    let cliente = null;
+    if (item) {
+      const c = await pecaPorReferencia(sql, item);
+      [cliente] = await sql`SELECT cl.id::text AS id, cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id
+        WHERE cc.conteudo_id = ${Number(c.id)} ORDER BY cl.nome LIMIT 1`;
+    } else {
+      const nome = String(pedido.cliente || pedido.busca || '').trim();
+      const achados = nome.length >= 2 ? await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + nome + '%'} ORDER BY nome LIMIT 5` : [];
+      cliente = achados.length === 1 ? achados[0] : achados.find((x) => normal(x.nome) === normal(nome)) || null;
+      if (!cliente) throw invalido(achados.length ? `Mais de um cliente com "${nome}": ${achados.map((x) => x.nome).join(', ')}.` : `Não achei o cliente "${nome.slice(0, 60)}".`);
+    }
+    if (!cliente) throw invalido('Essa peça não tem cliente.');
+    const [head] = await sql`SELECT 1 AS ok FROM vybe_cliente_pessoas WHERE cliente_id = ${Number(cliente.id)} AND pessoa_id = ${Number(p.id)}`;
+    if (!p.admin && !head) throw negar('Regra do cliente é com a administração ou com os heads do cliente.');
+    const resumo = `📌 Regra para as próximas peças da *${cliente.nome}*:\n“${texto}”\n(entra nas legendas, nas revisões de arte e na memória do cliente)`;
+    const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'regra', v: { cliente: cliente.id, nome: cliente.nome, t: texto }, de: '', e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
+  }
   if (acao === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
@@ -231,6 +255,19 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     const texto = String(pedido.texto || '').replace(/\s+/g, ' ').trim();
     if (!texto || texto.length > 1000) throw invalido('Escreva o comentário (até 1000 caracteres).');
     resumo = `💬 Comentar em ${nome}:\n“${texto}”`; valor = texto;
+  } else if (acao === 'responsavel') {
+    // Redistribuir (sugestão da sobrecarga): troca um responsável por outro, pela mesma função do painel. Só administração.
+    if (!p.admin) throw negar('Trocar responsável pelo WhatsApp é só com a administração.');
+    const atuais = await sql`SELECT p.monday_user_id::text AS id, p.nome FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+      WHERE r.conteudo_id = ${Number(c.id)} AND p.monday_user_id IS NOT NULL ORDER BY r.ordem`;
+    const quem = (lista, v) => { const t = normal(v); return lista.filter((x) => x.id === String(v) || normal(x.nome) === t || normal(x.nome).split(/\s+/)[0] === t); };
+    const de = quem(atuais, pedido.de);
+    if (de.length !== 1) throw invalido(`${String(pedido.de || '').slice(0, 40)} não é responsável por ${nome}.`);
+    const ativos = await sql`SELECT monday_user_id::text AS id, nome FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL`;
+    const para = quem(ativos, pedido.para);
+    if (para.length !== 1) throw invalido(para.length ? `Mais de uma pessoa com "${pedido.para}". Use o nome completo.` : `Não achei "${String(pedido.para || '').slice(0, 40)}" na equipe.`);
+    const nova = [...new Set(atuais.map((x) => (x.id === de[0].id ? para[0].id : x.id)))];
+    resumo = `👥 Trocar responsável de ${nome}\nde *${de[0].nome}* para *${para[0].nome}*`; valor = JSON.stringify({ de: de[0].id, lista: nova, nome: para[0].nome });
   } else if (acao === 'alteracao') {
     // Pedido de alteração (Ewerton, 27/10/2026: "adicione uma alteração na agenda musical do Gonzalez alterando a quarta
     // para Maria Luísa e a sexta para Greyce Pires"): o pedido vira comentário na peça e, se a pessoa pode mexer no
@@ -268,6 +305,18 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   const t = JSON.parse(Buffer.from(dados, 'base64url').toString());
   if (String(t.p) !== String(pessoaId)) throw negar('Só quem pediu pode confirmar.');
   if (!(t.e > agora)) throw invalido('A confirmação expirou. Peça de novo.');
+  if (t.a === 'regra') {
+    const p = await pessoaAtiva(sql, pessoaId), d = t.v;
+    await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
+      acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
+    const hashCodigo = createHash('sha256').update(String(codigo)).digest('hex');
+    const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'regra', ${String(d.t).slice(0, 1000)})
+      ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
+    if (!nova) throw invalido('Esta confirmação já foi usada.');
+    await tabelaRegras(sql);
+    await sql`INSERT INTO vybe_ai_regras_cliente(cliente_id, texto, autor_id) VALUES (${Number(d.cliente)}, ${d.t}, ${Number(p.id)})`;
+    return { feito: `✅ Regra guardada para *${d.nome}*: “${d.t}”. Entra nas legendas, nas revisões de arte e na memória do cliente.`, link: null };
+  }
   if (t.a === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = t.v;
     await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
@@ -307,11 +356,19 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     await fazer.comentar(sql, quem, { item: c.ref, texto: t.v });
     return { feito: `✅ Comentário registrado em "${c.titulo}".`, link: linkDaAtividade(c.ref) };
   }
+  if (t.a === 'responsavel') {
+    const v = JSON.parse(t.v);
+    const atuais = (await sql`SELECT p.monday_user_id::text AS id FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id = ${Number(c.id)}`).map((x) => x.id);
+    if (!atuais.includes(v.de)) throw invalido('Os responsáveis mudaram enquanto isso. Peça de novo.');
+    await fazer.trocarResponsaveis(sql, quem, { item: c.ref, pessoas: v.lista });
+    return { feito: `✅ "${c.titulo}" agora é de *${v.nome}*.`, link: linkDaAtividade(c.ref) };
+  }
   if (t.a === 'alteracao') {
     await fazer.comentar(sql, quem, { item: c.ref, texto: `🔧 Alteração pedida pelo WhatsApp: ${t.v.t}` });
-    if (!t.v.s) return { feito: `✅ Pedido de alteração registrado em "${c.titulo}". Status segue *${c.status || 'sem status'}*.`, link: linkDaAtividade(c.ref) };
+    const pedidoTxt = `“${String(t.v.t).slice(0, 300)}”`;
+    if (!t.v.s) return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Status segue *${c.status || 'sem status'}*.`, link: linkDaAtividade(c.ref) };
     const r = await fazer.trocarStatus(sql, quem, { item: c.ref, para: t.v.s });
-    return { feito: `✅ Pedido de alteração registrado em "${c.titulo}", que agora está em *${r?.para || t.v.s}*.`, link: linkDaAtividade(c.ref) };
+    return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Agora está em *${r?.para || t.v.s}*.`, link: linkDaAtividade(c.ref) };
   }
   if (t.a === 'captacao') {
     const r = await fazer.trocarEscolha(sql, quem, { item: c.ref, campo: 'captacao', para: t.v });

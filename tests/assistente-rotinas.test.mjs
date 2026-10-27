@@ -212,3 +212,20 @@ test('riscos: peça parada perto da veiculação vai para o responsável; sobrec
   assert.match(r.sobrecarga, /Sobrecarga amanhã \(27\/10\)\*\n- Reriston: 6 peças com prazo amanhã\nCom pouca coisa: Jady, Deivid/);
   assert.equal(riscosDoDia(itens.slice(0, 4), dia, (i) => i.status).sobrecarga, null);
 });
+
+test('sobrecarga com sugestão: peças não começadas do sobrecarregado vão para alguém da mesma equipe com pouca coisa', async () => {
+  const { riscosDoDia } = await import('../server/assistente-rotinas.js');
+  const dia = '2026-10-26', nomes = { 1: 'Jady Lima', 2: 'Deivid Souza', 3: 'Reriston Souza', 4: 'Bia Costa' };
+  const item = (id, nome, status, ids, extra = {}) => ({ id, nome, status, responsavel: ids.map((x) => nomes[x]).join(', '), responsavel_ids: ids.map(String), clientes: ['Cli'],
+    origem: 'producao_conteudo', veiculacao_iso: '2026-11-05', prazo_iso: '2026-10-27', status_updated_at: '2026-10-25T10:00:00Z', ...extra });
+  const itens = [
+    ...[1, 2, 3, 4, 5].map((n) => item('3' + n, 'Card ' + n, 'Em andamento', [1])),
+    item('36', 'Card 6', 'Pode Fazer', [1]), item('37', 'Card 7', 'Pode Fazer', [1]), item('38', 'Card dividido', 'Pode Fazer', [1, 2]),
+    item('40', 'Card da Bia', 'Pode Fazer', [4], { prazo_iso: '2026-10-30' }), item('41', 'Reels', 'Pode Fazer', [3], { prazo_iso: '2026-10-30' }),
+  ];
+  const r = riscosDoDia(itens, dia, (i) => i.status, { equipes: [['2', '4', '1'], ['3']] });
+  assert.deepEqual(r.sugestoes.map((x) => [x.item, x.de.nome, x.para.nome]), [['36', 'Jady', 'Bia'], ['37', 'Jady', 'Bia']]);
+  assert.match(r.sobrecarga, /💡 \*Sugestão\*\n1\. Card 6 \(Cli\) · nº 36 → passar de Jady para Bia\n2\. Card 7 \(Cli\) · nº 37 → passar de Jady para Bia\n\nResponda citando esta mensagem com o número/);
+  // Sem equipes informadas: só o aviso, como antes.
+  assert.deepEqual(riscosDoDia(itens, dia, (i) => i.status).sugestoes, []);
+});
