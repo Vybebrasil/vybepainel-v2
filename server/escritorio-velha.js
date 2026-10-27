@@ -54,4 +54,7 @@ export const motorVelha = {
  iniciar: () => iniciarVelha(),
  vista: vistaVelha,
  jogar: jogarVelha,
+ // Tempo da vez: acabou, marca a primeira casa livre.
+ tempo: 20,
+ automatico: (mesa) => ({ tipo: 'marcar', casa: mesa.tab.findIndex((c) => !c) }),
 };

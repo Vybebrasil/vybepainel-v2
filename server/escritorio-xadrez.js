@@ -94,7 +94,7 @@ function vista(j, eu, nome, agora = Date.now()) {
  return {
   id: String(j.id), estado: j.estado, camada: j.camada, movel: j.movel,
   desafiante: pessoa(j.desafiante), desafiado: pessoa(j.desafiado), brancas: pessoa(j.brancas), pretas: pessoa(j.pretas),
-  eu: minha, vez, fen: c.fen(), lances: j.lances || [], ultimo: ultimo ? { de: ultimo.from, para: ultimo.to } : null,
+  eu: minha, vez, fen: c.fen(), lances: j.lances || [], san: hist.map((m) => m.san), ultimo: ultimo ? { de: ultimo.from, para: ultimo.to } : null,
   xeque: j.estado === 'jogando' && c.inCheck(), legais,
   moedas: Number(j.moedas) || 0, itens: { desafiante: j.itens_desafiante || [], desafiado: j.itens_desafiado || [] },
   resultado: j.resultado || null, motivo: j.motivo || null, motivo_nome: MOTIVOS[j.motivo] || null,

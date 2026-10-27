@@ -25,6 +25,9 @@ const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca, d
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
 // partida largada um dia inteiro termina sozinha (perde quem tinha a vez).
 const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;
+// Tempo da vez (cada motor diz o seu): estourou, o jogo faz a jogada mínima por
+// quem sumiu; três estouros seguidos e a pessoa perde (em grupo, sai da mesa).
+const ESTOUROS_MAX = 3;
 const NOME_DO_JOGO = { domino: 'o dominó', poker: 'o pôquer', sinuca: 'a sinuca', dama: 'a dama', velha: 'o jogo da velha', truco: 'o truco' };
 const MOTIVOS = { desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
 // Lugares na mesa, na ordem: quem chamou, o primeiro chamado e os do grupo.
@@ -60,6 +63,29 @@ async function encerrarAbandonadas(sql, agora = Date.now()) {
  });
 }
 
+async function vencerTempos(sql, agora = Date.now()) {
+ const velhas = await sql`SELECT id FROM vybe_escritorio_partidas WHERE estado='jogando' AND ultimo_lance_em < ${new Date(agora - 20000)}::timestamptz`;
+ for (const { id } of velhas) await sql.comTransacao(async (tx) => {
+  const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${id} FOR UPDATE`;
+  const motor = MOTORES[j?.jogo], lado = j?.mesa?.vez;
+  if (j?.estado !== 'jogando' || !motor?.tempo || !lado || (agora - new Date(j.ultimo_lance_em).getTime()) / 1000 < motor.tempo) return;
+  const estouros = (j.mesa.tempos?.[lado] || 0) + 1;
+  if (estouros >= ESTOUROS_MAX) {
+   if (!emGrupo(j)) return encerrar(tx, j, outro(lado), 'tempo');
+   const { mesa, fim } = motor.sair(j.mesa, lado, 'tempo');
+   await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
+   if (fim) await encerrar(tx, j, fim.resultado, fim.motivo);
+   return;
+  }
+  let r;
+  try { r = motor.jogar(j.mesa, lado, motor.automatico(j.mesa, lado)); } catch { return; }
+  r.mesa.tempos = { ...(j.mesa.tempos || {}), [lado]: estouros };
+  if (r.mesa.ultimo) r.mesa.ultimo.porTempo = true;
+  await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(r.mesa)}::jsonb,ultimo_lance_em=now(),empate_de=NULL WHERE id=${j.id}`;
+  if (r.fim) await encerrar(tx, j, r.fim.resultado, r.fim.motivo);
+ });
+}
+
 function vista(j, eu, nome, agora = Date.now()) {
  const motor = MOTORES[j.jogo], lado = ladoDe(j, eu), jogando = j.estado === 'jogando', vez = jogando ? j.mesa?.vez : null;
  const pessoa = (id) => ({ id: String(id), nome: nome[String(id)] || '' });
@@ -73,6 +99,9 @@ function vista(j, eu, nome, agora = Date.now()) {
   moedas: Number(j.moedas) || 0, itens: { desafiante: j.itens_desafiante || [], desafiado: j.itens_desafiado || [] },
   resultado: j.resultado || null, motivo: j.motivo || null, motivo_nome: motor.motivos[j.motivo] || MOTIVOS[j.motivo] || null,
   empate_de: j.empate_de ? String(j.empate_de) : null,
+  // Até quando vai a vez de quem joga agora (o relógio da tela).
+  prazo_vez: jogando && motor.tempo && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + motor.tempo * 1000).toISOString() : null,
+  tempo_vez: motor.tempo || null,
   pode_reivindicar: jogando && Boolean(lado) && lado !== vez && !j.mesa?.saiu?.[lado] && minutosDesde(j.ultimo_lance_em, agora) >= REIVINDICAR_MIN,
   reivindicar_em: jogando && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + REIVINDICAR_MIN * 60000).toISOString() : null,
   convite_ate: j.estado === 'convite' ? new Date(new Date(j.criado_em).getTime() + CONVITE_MIN * 60000).toISOString() : null,
@@ -82,6 +111,7 @@ function vista(j, eu, nome, agora = Date.now()) {
 export async function verMesa(sql, pessoa, id) {
  await exigirTabela(sql);
  await encerrarAbandonadas(sql);
+ await vencerTempos(sql);
  const [j] = await sql`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)}`;
  if (!j) throw erro('Partida não encontrada.', 404);
  // Convite é só de quem está nele; partida começada, qualquer um da equipe assiste.
@@ -103,6 +133,7 @@ export async function listarMesa(sql, pessoa, { jogo, camada, movel } = {}) {
  if (!todos) motorDe(jogo);
  if (!await mesasProntas(sql)) return { disponivel: false, convites: [], enviados: [], aguardando: [], jogos: [], mesa: null };
  await encerrarAbandonadas(sql);
+ await vencerTempos(sql);
  const desde = new Date(Date.now() - CONVITE_MIN * 60000);
  const linhas = await sql`SELECT * FROM vybe_escritorio_partidas WHERE (${todos} OR jogo=${String(jogo)}) AND ((estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id} OR ${pessoa.id} = ANY(mais)
    OR (camada=${String(camada || '')} AND movel=${String(movel || '')})))
@@ -233,6 +264,7 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
   if (j.estado !== 'jogando') throw erro('A partida já acabou.', 409);
   if (Number(n) !== (Number(j.mesa?.n) || 0)) throw erro('A mesa mudou. Olhe de novo.', 409);
   const { mesa, fim } = motorDe(j.jogo).jogar(j.mesa, lado, pedido);
+  if (mesa.tempos?.[lado]) mesa.tempos = { ...mesa.tempos, [lado]: 0 };
   // Quem recebeu a proposta de empate e jogou, recusou.
   const empate = j.empate_de && String(j.empate_de) !== String(pessoa.id) ? null : j.empate_de;
   await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now(),empate_de=${empate} WHERE id=${j.id}`;

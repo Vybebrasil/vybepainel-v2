@@ -72,7 +72,7 @@ function sinucaJogadorHtml(j, lado) {
   const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]}">${n}</i>`).join("")
     : '<small>Mesa aberta</small>';
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" ? " direita" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="40" height="40">` : "<i class=\"snc-sem\"></i>"}
-<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${g === "lisas" ? "Lisas" : "Listradas"}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${bolas}</span></div></div>`;
+${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${g === "lisas" ? "Lisas" : "Listradas"}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${bolas}</span></div></div>`;
 }
 function desenharSinuca(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
@@ -100,7 +100,7 @@ ${m.bolaNaMao && s.branca && minha ? `<button type="button" class="snc-mudar" on
     status,
     mesa: `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante")}<span class="snc-x">×</span>${sinucaJogadorHtml(j, "desafiado")}</div>
 <div class="snc-area">${forca}<canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}" width="${(SINUCA_L + 2 * SINUCA_B) * SINUCA_PX}" height="${(SINUCA_A + 2 * SINUCA_B) * SINUCA_PX}" role="img" aria-label="Mesa de sinuca"
- onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')"></canvas>${lado}</div>`,
+ onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')"></canvas>${lado}</div>`,
     painel: ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : "",
   };
 }
@@ -109,6 +109,10 @@ ${m.bolaNaMao && s.branca && minha ? `<button type="button" class="snc-mudar" on
 // clicar trava/solta. Dedo: tocar e arrastar mira (a mira fica onde soltou).
 function sinucaPonteiro(ev, tipo) {
   const s = sinucaEstado(), j = s.jogo, c = ev.currentTarget;
+  // Animação da tacada que ficou presa (aba escondida, tela fechada no meio)
+  // não pode travar a mesa: passado o tempo dela, acabou (Paulo, 27/10/2026:
+  // "Vinícius não conseguiu colocar a bola branca em lugar nenhum").
+  if (s.anim && s.anim.inicio && performance.now() - s.anim.inicio > s.anim.quadros.length * (1000 / 30) + 1500) { s.anim = null; sinucaPintar(); }
   if (!sinucaMinhaVez(j) || s.anim) return;
   const R = sinucaRaio(j), r = c.getBoundingClientRect();
   const x = (ev.clientX - r.left) / r.width * (SINUCA_L + 2 * SINUCA_B) - SINUCA_B, y = (ev.clientY - r.top) / r.height * (SINUCA_A + 2 * SINUCA_B) - SINUCA_B;
@@ -116,10 +120,17 @@ function sinucaPonteiro(ev, tipo) {
     const px = Math.min(SINUCA_L - R, Math.max(R, x)), py = Math.min(SINUCA_A - R, Math.max(R, y));
     const livre = j.mesa.bolas.every((b, n) => !b || n === 0 || Math.hypot(b[0] - px, b[1] - py) >= 2 * R + 0.1);
     s.fantasma = { x: px, y: py, livre };
-    if (tipo === "up" && livre) { s.branca = { x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100 }; s.fantasma = null; desenharJogoMesa("snc"); return; }
+    // Põe ao soltar o dedo/botão ou no clique (no celular o toque às vezes só chega como clique).
+    if (tipo === "up" || tipo === "clique") {
+      if (!livre) { escritorioAviso("Aí a branca encosta noutra bola: toque num lugar livre."); sinucaPintar(); return; }
+      s.branca = { x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100 }; s.fantasma = null;
+      desenharJogoMesa("snc");
+      return;
+    }
     sinucaPintar();
     return;
   }
+  if (tipo === "clique") return;
   const b = sinucaBranca(j, s);
   if (!b) return;
   if (ev.pointerType !== "mouse") {

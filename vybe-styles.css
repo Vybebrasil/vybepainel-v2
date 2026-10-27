@@ -12671,3 +12671,21 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-xdz-novo .xdz-modo button {border-radius:14px;box-shadow:inset 0 2px 0 #ffffff20,0 5px 0 #0007}
 .ofc-xdz-novo .xdz-modo button.sim {background:linear-gradient(#ffb067,#ff7a1f);color:#2a1400;box-shadow:inset 0 2px 0 #ffffff50,0 5px 0 #a3480d}
 .ofc-xdz-novo .xdz-modo button.sim small {color:#4a2400}
+/* Na vez de tacar, o toque na mesa não rola a página (o navegador cancelava o toque e a branca não entrava). */
+.snc-canvas.vez {touch-action:none}
+/* Relógio da vez: anel que esvazia com os segundos no meio; vermelho e pulsando nos últimos 10. */
+.vez-prazo {--p:1;position:relative;display:inline-grid;place-items:center;flex:0 0 auto;width:30px;height:30px;margin-left:auto;border-radius:50%;background:conic-gradient(#3fd17f calc(var(--p) * 360deg),#ffffff1a 0);box-shadow:0 2px 6px #0008}
+.vez-prazo i {position:absolute;inset:3px;border-radius:50%;background:#12151c}
+.vez-prazo b {position:relative;color:#fff;font:900 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.vez-prazo.pouco {background:conic-gradient(#ff4a3a calc(var(--p) * 360deg),#ffffff1a 0);animation:sala-pisca .6s ease-in-out infinite}
+.pkr-lugar .vez-prazo {position:absolute;top:-10px;right:4px;margin:0}
+.snc-jogador .vez-prazo {margin:0}
+@media (prefers-reduced-motion: reduce) {.vez-prazo.pouco {animation:none}}
+/* Xadrez mais legível, no jeito do lichess e do chess.com: casas possíveis com pontos fortes, captura com anel, peça escolhida e último lance bem marcados. */
+.xdz-casa.alvo::after {width:32%;height:32%;background:#14141473}
+.xdz-casa.alvo.captura::after {width:88%;height:88%;background:transparent;border:5px solid #14141473;box-sizing:border-box}
+.xdz-casa.alvo:hover::after {background:#14141499}
+.xdz-casa.sel::before {background:#f6c34ad0}
+.xdz-casa.ultimo::before {background:#f6e27a8c}
+.xdz-casa svg {position:relative;z-index:1;filter:drop-shadow(0 2px 1px #0006)}
+.xdz-tabuleiro {box-shadow:0 0 0 6px #4a2e16,0 0 0 8px #2a1a0c,0 14px 30px #000a;border-radius:4px}

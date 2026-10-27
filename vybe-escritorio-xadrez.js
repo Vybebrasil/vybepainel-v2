@@ -466,10 +466,15 @@ function xadrezResultadoHtml(j) {
   const premio = !valendo ? "" : j.resultado === "empate" ? "Cada um recebeu a aposta de volta." : ganhou ? `A mesa é sua${j.moedas ? `: +${((j.jogadores?.length || 2) * j.moedas).toLocaleString("pt-BR")} VybeCoins` : ""}${j.itens.desafiante.length || j.itens.desafiado.length ? " e os itens já estão no seu inventário" : ""}.` : `${vencedor} levou a mesa.`;
   return `<div class="xdz-fim ${ganhou ? "ganhou" : perdeu ? "perdeu" : ""}"><b>${titulo}</b><span>${safeText(j.motivo_nome || "")}${premio ? " · " + premio : ""}</span></div>`;
 }
+// Lances na notação de jogo em português, como nos livros e no lichess em pt:
+// R rei, D dama, T torre, B bispo, C cavalo (o servidor manda o SAN em inglês).
+const XADREZ_SAN_PT = { K: "R", Q: "D", R: "T", B: "B", N: "C" };
+const xadrezSanPt = (san) => String(san || "").replace(/^[KQRBN]/, (l) => XADREZ_SAN_PT[l]).replace(/=([QRBN])/, (_, l) => "=" + XADREZ_SAN_PT[l]);
 function xadrezLancesHtml(j) {
   if (!j.lances.length) return '<p class="ofc-nota">Brancas começam.</p>';
   let s = "";
-  const ultimo = j.lances.length - 1, lance = (k) => `<span${k === ultimo ? ' class="ultimo"' : ""}>${safeText(j.lances[k] || "")}</span>`;
+  const nomes = j.san?.length === j.lances.length ? j.san.map(xadrezSanPt) : j.lances;
+  const ultimo = j.lances.length - 1, lance = (k) => `<span${k === ultimo ? ' class="ultimo"' : ""}>${safeText(nomes[k] || "")}</span>`;
   for (let i = 0; i < j.lances.length; i += 2) s += `<li><i>${i / 2 + 1}.</i>${lance(i)}${lance(i + 1)}</li>`;
   return `<ol class="xdz-lances">${s}</ol>`;
 }
@@ -491,6 +496,20 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
 ${xadrezApostaHtml(j, eu ? (String(j.desafiante.id) === String(escritorio.base?.eu) ? "desafiante" : "desafiado") : null)}${mesaPlacarHtml(j)}
 <h3 class="xdz-sub">Lances</h3>${xadrezLancesHtml(j)}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
 ${!jogando ? mesaFimAcoesHtml("xdz", j, "xadrezFechar()") : ""}</aside></div>`, "ofc-xdz-jogo");
+  xadrezAnimarLance(j);
+}
+// O lance novo desliza da casa de origem até a de destino (uma vez por lance).
+function xadrezAnimarLance(j) {
+  const x = escritorioXadrez(), chave = j.id + ":" + j.lances.length;
+  if (!j.ultimo || x.animado === chave) return;
+  const primeiro = x.animado === undefined || x.animado.split(":")[0] !== j.id;
+  x.animado = chave;
+  if (primeiro || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const de = document.querySelector(`.xdz-casa[data-casa="${j.ultimo.de}"]`), para = document.querySelector(`.xdz-casa[data-casa="${j.ultimo.para}"]`);
+  const peca = para?.querySelector("svg");
+  if (!de || !peca) return;
+  const a = de.getBoundingClientRect(), b = para.getBoundingClientRect();
+  peca.animate([{ transform: `translate(${a.left - b.left}px,${a.top - b.top}px)` }, { transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.3,1)" });
 }
 function casaXadrez(casa) {
   const x = escritorioXadrez(), j = x.jogo;

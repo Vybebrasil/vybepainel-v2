@@ -134,4 +134,10 @@ export const motorDama = {
  iniciar: () => iniciarDama(),
  vista: vistaDama,
  jogar: jogarDama,
+ // Tempo da vez: acabou, faz o primeiro lance que vale (a captura obrigatória vem primeiro).
+ tempo: 60,
+ automatico: (mesa, lado) => {
+  const [de, [l]] = Object.entries(vistaDama(mesa, lado, false).legais)[0];
+  return { tipo: 'mover', de: Number(de), para: l.para, caminho: l.caminho };
+ },
 };

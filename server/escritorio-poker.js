@@ -234,4 +234,7 @@ export const motorPoker = {
  jogar: jogarPoker,
  sair: sairPoker,
  lider: liderPoker,
+ // Tempo da vez, como nas salas online: acabou, passa se puder, senão larga.
+ tempo: 30,
+ automatico: (mesa, lado) => (vistaPoker(mesa, lado, false).acoes?.mesa ? { tipo: 'mesa' } : { tipo: 'largar' }),
 };

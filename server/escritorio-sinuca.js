@@ -129,6 +129,13 @@ export function vistaSinuca(m, lado, fim) {
 // lado (-1 a 1, efeito lateral), branca: {x, y} (com bola na mão) }.
 export function jogarSinuca(mesa, lado, pedido) {
  if (mesa.vez !== lado) throw erro('Agora é a vez da outra pessoa.', 409);
+ // Tempo esgotado: falta sem tacada, a vez passa com bola na mão.
+ if (pedido?.tipo === 'tempo') {
+  const m = structuredClone(mesa);
+  m.n = (m.n || 0) + 1; m.vez = outro(lado); m.bolaNaMao = true;
+  m.ultimo = { lado, quadros: [], eventos: [], caiu: [], primeiro: null, falta: 'tempo' };
+  return { mesa: m, fim: null };
+ }
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
  const angulo = Number(pedido.angulo), forca = Number(pedido.forca), efeito = Number(pedido.efeito || 0), lado2 = Number(pedido.lado || 0);
  if (!Number.isFinite(angulo) || Math.abs(angulo) > 7) throw erro('Mire de novo.');
@@ -171,4 +178,7 @@ export const motorSinuca = {
  iniciar: () => iniciarSinuca(),
  vista: vistaSinuca,
  jogar: jogarSinuca,
+ // Tempo da vez: acabou, é falta (como nos jogos online): a vez passa com bola na mão.
+ tempo: 60,
+ automatico: () => ({ tipo: 'tempo' }),
 };

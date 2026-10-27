@@ -153,8 +153,24 @@ function tabuleiroArrastar(ev, casa, selecionar, soltar) {
 // (peças na mão, fichas…).
 function mesaJogadorHtml(j, lado, detalhe) {
   const p = j[lado], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado;
-  return `<div class="xdz-jogador mesa-jogador${vez ? " vez" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="36" height="36">` : "<i></i>"}<b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><small>${vez ? (eu ? "Sua vez" : "Pensando…") : detalhe}</small></div>`;
+  return `<div class="xdz-jogador mesa-jogador${vez ? " vez" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="36" height="36">` : "<i></i>"}<b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><small>${vez ? (eu ? "Sua vez" : "Pensando…") : detalhe}</small>${vez ? mesaPrazoVezHtml(j) : ""}</div>`;
 }
+// Relógio da vez (tempo de cada jogada, como nos jogos online): anel que
+// esvazia e os segundos; nos últimos 10 fica vermelho.
+function mesaPrazoVezHtml(j) {
+  if (!j.prazo_vez || j.estado !== "jogando") return "";
+  return `<span class="vez-prazo" data-ate="${new Date(j.prazo_vez).getTime()}" data-total="${j.tempo_vez || 30}" role="timer" aria-label="Tempo da vez"><i></i><b></b></span>`;
+}
+setInterval(() => {
+  if (typeof document === "undefined") return;
+  for (const el of document.querySelectorAll(".vez-prazo[data-ate]")) {
+    const ms = Number(el.dataset.ate) - Date.now(), s = Math.max(0, Math.ceil(ms / 1000));
+    el.style.setProperty("--p", String(Math.max(0, Math.min(1, ms / (Number(el.dataset.total) * 1000)))));
+    el.querySelector("b").textContent = String(s);
+    const pouco = s <= 10;
+    el.classList.toggle("pouco", pouco);
+  }
+}, 250);
 // Moldura da partida: a mesa à esquerda (cima = a outra pessoa, baixo = eu) e
 // o painel com resultado, status, aposta, o que o jogo quiser e as ações.
 function desenharJogoMesa(chave) {

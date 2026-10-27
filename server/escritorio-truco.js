@@ -148,4 +148,7 @@ export const motorTruco = {
  iniciar: () => iniciarTruco(),
  vista: vistaTruco,
  jogar: jogarTruco,
+ // Tempo da vez: acabou, corre do pedido ou joga a primeira carta da mão.
+ tempo: 30,
+ automatico: (mesa, lado) => (acoes(mesa, lado)?.responder ? { tipo: 'correr' } : { tipo: 'jogar', carta: mesa.cartas[lado][0] }),
 };
