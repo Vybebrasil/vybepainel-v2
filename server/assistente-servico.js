@@ -18,6 +18,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais } from './assistente-rotinas.js';
+import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
@@ -43,6 +44,19 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
       if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'administrador-privado-1',max_ferramentas:3});
       return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});
+    }
+    // Ações em dois passos (assistente-acoes.js). Recusa esperada (permissão, peça, status) volta como resposta
+    // normal com o motivo, porque o bot não lê corpo de erro.
+    if (consulta === 'acao_preparar' || consulta === 'acao_confirmar') {
+      const banco = criarBanco();
+      const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
+      try {
+        if (consulta === 'acao_preparar') return res.status(200).json({ ok: true, ...(await prepararAcao(banco, pessoaId, req.body?.pedido, segredo)) });
+        return res.status(200).json({ ok: true, ...(await confirmarAcao(banco, pessoaId, req.body?.codigo, segredo)) });
+      } catch (erro) {
+        if (erro.publica) return res.status(200).json({ ok: true, recusa: String(erro.message).slice(0, 400) });
+        throw erro;
+      }
     }
     if (consulta === 'minhas_demandas') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
