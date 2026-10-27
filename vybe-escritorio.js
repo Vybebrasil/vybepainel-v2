@@ -3077,6 +3077,8 @@ function escritorioAplicarComando(id, cmd) {
   else if (k === "pst" && v === escritorio.quarto && String(id) !== String(escritorio.base?.eu)) carregarPostitsEscritorio();
   // Presente de móvel: quem recebe relê o inventário.
   else if (k === "pre") presenteChegouEscritorio(id, v);
+  // VybeCoins de Paulo: quem recebe relê a carteira.
+  else if (k === "vbc") moedasChegaramEscritorio(id, v);
   else if (k === "trc") trocaChegouEscritorio(id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {

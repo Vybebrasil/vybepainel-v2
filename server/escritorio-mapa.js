@@ -137,12 +137,16 @@ export async function carregarMapaEscritorio(sql) {
   if (await imagensProntas(sql)) mapa.imagens = await listarImagensEscritorio(sql);
   return mapa;
 }
+// Identidade de Paulo no escritório: quem administra e é dono da sala-0.
+export function ehPauloNoEscritorio(pessoa, salas) {
+  const paulo = salas.find(s=>s.id === "sala-0")?.pessoa_id;
+  return Boolean(pessoa?.admin && paulo && String(pessoa.id) === String(paulo));
+}
 // Cada pessoa edita somente o próprio quarto. Ambientes públicos e Praça
 // são exclusivos da identidade de Paulo, vinculada à sala-0 pelo servidor.
 export function conferirEdicao(pessoa, salas, camada) {
   if (camada === "geral" || CENAS_COMUNS.has(camada)) {
-    const paulo = salas.find(s=>s.id === "sala-0")?.pessoa_id;
-    if (!pessoa.admin || !paulo || String(pessoa.id) !== String(paulo))
+    if (!ehPauloNoEscritorio(pessoa, salas))
       throw Object.assign(new Error("Só Paulo administra a edição das salas comuns."), {status:403});
     return;
   }

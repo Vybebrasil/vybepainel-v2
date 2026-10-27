@@ -504,7 +504,7 @@ ${jogo ? `<div class="ofc-hud-moedas"><span title="VybeCoins na carteira">${escr
 ${vitrine.length ? `<div class="ofc-hud-vitrine" aria-label="Troféus em destaque">${vitrine.map((v) => `<span class="n${v.nivel}" title="${safeText(v.nome)}">${escritorioMiniaturaHtml(v.classe)}</span>`).join("")}</div>` : ""}
 <div class="ofc-hud-abas" role="tablist" aria-label="Ficha">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" onclick="escolherAbaFichaEscritorio('${sid}','${k}')">${r}</button>`).join("")}</div>
 <div class="ofc-hud-corpo" role="tabpanel">${corpo}</div>
-<div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}</div>`;
+<div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}${b.paulo ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirMoedasEscritorio('${sid}')">Dar VybeCoins</button>` : ""}</div>`;
   if (!d.open) d.showModal();
   if (typeof vbAnimarContagens === "function") vbAnimarContagens(d);
   if (typeof escritorioMontarVitrines === "function") escritorioMontarVitrines(d);
@@ -983,6 +983,50 @@ async function darPresenteEscritorio(para, classe, botao) {
     const erro = document.getElementById("office-presente-erro");
     if (erro) erro.textContent = e.message;
   }
+}
+// VybeCoins de Paulo: só aparece para ele (escritorio.base.paulo) e o
+// servidor confere de novo. Não sai da carteira dele.
+function abrirMoedasEscritorio(id) {
+  const pessoa = escritorio.base.equipe.find((p) => String(p.id) === String(id));
+  if (!pessoa || !escritorio.base.paulo) return;
+  const sid = safeText(String(id));
+  const eu = String(id) === String(escritorio.base.eu);
+  openWorkflowModal(`<div class="workflow-kicker">VybeCoins</div><h2 class="workflow-title">Dar VybeCoins ${eu ? "para você" : "para " + safeText(String(pessoa.nome).split(" ")[0])}</h2>
+<p>Entram direto na carteira${eu ? "" : " da pessoa"}, sem XP e sem sair da sua.</p>
+<div class="workflow-actions ofc-teleporte">${[100, 500, 1000, 2000].map((v) => `<button type="button" class="workflow-secondary" onclick="document.getElementById('office-moedas-valor').value=${v}">${v.toLocaleString("pt-BR")}</button>`).join("")}</div>
+<label class="workflow-field"><span>Quantidade</span><input id="office-moedas-valor" type="number" min="1" max="10000" step="1" inputmode="numeric" value="1000"></label>
+<p class="ofc-erro" id="office-moedas-erro" role="alert"></p>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="darMoedasEscritorio('${sid}',this)">Dar</button></div>`);
+}
+async function darMoedasEscritorio(para, botao) {
+  const valor = Number(document.getElementById("office-moedas-valor")?.value);
+  if (botao) botao.disabled = true;
+  try {
+    if (escritorio.base.demo) throw new Error("A demonstração não grava VybeCoins.");
+    const chave = (crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g, "");
+    const r = await escritorioApi("moedas", { para, valor, chave });
+    escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
+    closeWorkflowModal();
+    escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "vbc=" + para + ":" + valor });
+    const nome = String(escritorio.base.equipe.find((p) => String(p.id) === String(para))?.nome || "").split(" ")[0];
+    escritorioAviso(`${valor.toLocaleString("pt-BR")} VybeCoins para ${nome}. Saldo agora: ${Number(r.saldo).toLocaleString("pt-BR")}.`);
+    if (escritorio.edicao) renderEscritorio();
+  } catch (e) {
+    if (botao) botao.disabled = false;
+    const erro = document.getElementById("office-moedas-erro");
+    if (erro) erro.textContent = e.message;
+  }
+}
+async function moedasChegaramEscritorio(id, v) {
+  const [para, valor] = String(v || "").split(":");
+  const paulo = escritorio.base?.salas?.find((s) => s.id === "sala-0")?.pessoa_id;
+  if (para !== String(escritorio.base?.eu) || String(id) === para || String(id) !== String(paulo) || escritorio.base?.demo) return;
+  try {
+    const b = await escritorioApi("entrada");
+    escritorio.base.economia = { ...escritorio.base.economia, ...b.economia, loja: escritorio.base.economia?.loja };
+  } catch {}
+  escritorioAviso(`Paulo te deu ${Number(valor || 0).toLocaleString("pt-BR")} VybeCoins.`);
+  if (escritorio.edicao) renderEscritorio();
 }
 async function presenteChegouEscritorio(id, v) {
   const [para] = String(v || "").split(":");

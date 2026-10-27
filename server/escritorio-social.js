@@ -3,6 +3,7 @@
 // permissões vêm da sessão; o navegador só escolhe texto, cor e lugar.
 import { carregarEconomia, MOVEIS_ESSENCIAIS, precoMovel, PRECO_COMUM } from './escritorio-economia.js';
 import { partesDaCamada } from './escritorio-quartos.js';
+import { ehPauloNoEscritorio } from './escritorio-mapa.js';
 
 const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$/;
 const CORES = ['amarelo', 'rosa', 'azul', 'verde'];
@@ -81,6 +82,28 @@ export async function darPresente(sql, pessoa, salas, { para, classe, chave }) {
    ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+1`;
   await tx`INSERT INTO vybe_escritorio_presentes(chave,de_pessoa,para_pessoa,classe) VALUES(${chave},${pessoa.id},${para},${classe})`;
   return { repetido: false, economia: await carregarEconomia(tx, pessoa.id) };
+ });
+}
+
+// VybeCoins dados por Paulo, pela ficha de qualquer pessoa (Paulo, 26/10/2026:
+// "só no dele"). Sai do nada, sem XP e sem descontar da carteira de Paulo; o
+// razão guarda 'premio:paulo:<chave>' e repetir o pedido não credita de novo.
+export const PREMIO_MAXIMO = 10000;
+export async function darMoedas(sql, pessoa, salas, { para, valor, chave }) {
+ if (!ehPauloNoEscritorio(pessoa, salas)) throw erro('Só Paulo dá VybeCoins.', 403);
+ const n = Number(valor);
+ if (!/^\d{1,18}$/.test(String(para))) throw erro('Escolha uma pessoa da equipe.');
+ if (!Number.isInteger(n) || n < 1 || n > PREMIO_MAXIMO) throw erro(`Escolha de 1 a ${PREMIO_MAXIMO.toLocaleString('pt-BR')} VybeCoins.`);
+ if (!/^[A-Za-z0-9_-]{8,64}$/.test(String(chave))) throw erro('Pedido inválido.');
+ return sql.comTransacao(async (tx) => {
+  const [alvo] = await tx`SELECT id FROM vybe_pessoas WHERE id=${para} AND ativo=TRUE AND pode_entrar=TRUE`;
+  if (!alvo) throw erro('Essa pessoa não está na equipe do escritório.', 404);
+  const [recibo] = await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade,pontos)
+   VALUES(${para},${'premio:paulo:' + chave},${n},0) ON CONFLICT(pessoa_id,origem) DO NOTHING RETURNING id`;
+  if (recibo) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(${para},${n})
+   ON CONFLICT(pessoa_id) DO UPDATE SET saldo=vybe_escritorio_carteiras.saldo+EXCLUDED.saldo`;
+  const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${para}`;
+  return { repetido: !recibo, saldo: Number(c?.saldo || 0), economia: await carregarEconomia(tx, pessoa.id) };
  });
 }
 
