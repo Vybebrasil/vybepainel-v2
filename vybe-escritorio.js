@@ -1456,6 +1456,14 @@ function abrirAgenteOperacaoEscritorio(a, figura) {
   document.getElementById("workflow-modal")?.classList.add("ofc-agente-janela");
   pintarAgenteOperacaoEscritorio();
 }
+// Desativar pelo Centro (Paulo, 27/10/2026): o cliente desce para o subsolo e a
+// mesa dele fica vazia. O gesto é o do ciclo de vida (vybe-ciclo.js), o mesmo
+// da tela de Clientes e do subsolo.
+function mandarAgenteParaSubsoloEscritorio() {
+  const a = escritorio.agenteAberto?.a;
+  if (!a) return;
+  abrirDesativarNoCiclo("cliente", a.cliente_id, a.cliente, { depois: () => { escritorio.agenteAberto = null; return escritorioOcuparOperacao(); } });
+}
 // Listas do painel do agente com as regras do painel (Paulo, 20/10/2026:
 // números que levam ao trabalho): atraso é o mesmo prazo_atrasado do painel;
 // "esperando o cliente" é a próxima ação do radar de risco (riskActionOwner);
@@ -1522,7 +1530,7 @@ function pintarAgenteOperacaoEscritorio() {
   const tituloLista = qual === "proximas" ? "Próximas peças" : ESCRITORIO_AGENTE_LISTAS.find(([k]) => k === qual)?.[1].replace(/^./, (c) => c.toUpperCase());
   el.innerHTML = `<div class="workflow-kicker"><span>Agente de ${safeText(a.cliente)}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
   <div class="ofc-agente-topo"><div class="ofc-agente-palco"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span>${boneco}</div><div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(a.cliente)}</h2><span>${tag}${a.segmento ? `<small>${safeText(a.segmento)}</small>` : ""}</span></div>
-   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}${escritorio.base?.admin || a.meu ? `<button type="button" class="workflow-secondary" onclick="abrirAvatarDoClienteEscritorio()" title="Trocar roupa, cabelo e objeto de mão do agente deste cliente">Editar avatar</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button></div></div>
+   <div class="ofc-agente-portas">${calendario ? `<button type="button" class="workflow-secondary" onclick="abrirCalendarioDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Calendário do cliente</button>` : ""}${escritorio.base?.admin || a.meu ? `<button type="button" class="workflow-secondary" onclick="abrirAvatarDoClienteEscritorio()" title="Trocar roupa, cabelo e objeto de mão do agente deste cliente">Editar avatar</button>` : ""}<button type="button" class="workflow-primary" onclick="abrirFichaDoClienteEscritorio(escritorio.agenteAberto.a.cliente)">Ficha do cliente</button>${escritorio.base?.admin && typeof abrirDesativarNoCiclo === "function" ? `<button type="button" class="workflow-secondary perigo" onclick="mandarAgenteParaSubsoloEscritorio()" title="Desativa o cliente: a mesa fica vazia e ele desce para o subsolo, de onde pode voltar">Mandar para o subsolo</button>` : ""}</div></div>
   <div class="ofc-agente-nums" role="group" aria-label="Trabalho do cliente: clique para ver a lista">${abas}</div>
   <div class="ofc-agente-grade">
    <div class="ofc-agente-col">${typeof planejamentosDoClienteHtml === "function" ? planejamentosDoClienteHtml() : ""}${escritorioMiniAgendaHtml(nome)}</div>

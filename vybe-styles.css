@@ -12086,3 +12086,16 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .ofc-p-quarto .ofc-p-avatar .ofc-p-cabeca {border-radius:9px}
 .ofc-p-quarto .ofc-p-avatar > i {display:none}
 .ofc-p-quarto.aqui .ofc-p-avatar {box-shadow:0 0 0 2px #ff8a35,0 0 10px #ff8a3555}
+
+/* Ciclo de vida (vybe-ciclo.js): as janelas de criar, mandar para o subsolo e apagar. */
+.ciclo-janela .conta-form{margin:14px 0 4px}
+.ciclo-janela .ciclo-erro{min-height:1.2em;margin:6px 0 0;color:#ff9fa9;font-size:12px}
+/* O laranja do painel vem com !important; o vermelho do perigo precisa vencer. */
+.workflow-modal .ciclo-janela .ciclo-perigo{color:#ff9fa9!important}
+.workflow-modal .workflow-primary.perigo{background:#c8303f!important;border-color:#c8303f!important;color:#fff!important}
+.workflow-modal .workflow-primary.perigo:hover:not(:disabled){background:#e03a4a!important}
+.workflow-modal .workflow-primary.perigo:disabled{opacity:.45;cursor:not-allowed}
+.workflow-secondary.perigo{border-color:rgba(240,71,86,.42);color:#ffb9c0}
+.workflow-secondary.perigo:hover{background:rgba(240,71,86,.16);border-color:rgba(240,71,86,.7)}
+.eq-acoes button.perigo{border-color:rgba(240,71,86,.35);color:#ffb9c0}
+.eq-acoes button.perigo:hover{background:rgba(240,71,86,.14);border-color:rgba(240,71,86,.6)}
