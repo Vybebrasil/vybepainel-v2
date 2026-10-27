@@ -1975,12 +1975,15 @@ Etapas 2 a 4 das melhorias pedidas pelo Paulo (sem partida contra o computador).
 - A mesa do dominó (`hobbies_c26_gamingtable`) virou a "Mesa de Jogos": clicando, abre a partida que estiver rolando, o convite recebido ou a escolha entre dominó, dama, velha e truco (`vybe-escritorio-mesa-de-jogos.js`; a lista usa `jogo: "todos"`). Avisos pelo balão dam=, vlh=, trc=.
 - Extrato: as apostas de pôquer, sinuca e dos jogos novos aparecem com o nome do jogo e ficam fora do "no seu ritmo" (antes só xadrez e dominó).
 
-### Salão de jogos por alas — 27/10/2026
+### Salão de jogos e o padrão de sala rica — 27/10/2026
 
-Pedido do Paulo: a sala de Jogos estava escura, com objetos largados e sem os jogos novos. Refeita no motor de construção (`scripts/cenas/jogos.mjs`), agora 26 × 18, luz quente, parede de tijolo claro e um piso por ala (texturas da planta):
+Paulo, sobre a primeira versão: "as paredes só com objetos soltos pendurados; precisa achar um padrão de construir que deixa a sala rica, como as referências do Habbo; nossas salas estão muito jogadas". O padrão (o mesmo do Café e do Lounge), que vale para refazer as outras salas:
 
-- Fundo: fliperama (4 máquinas e 2 pinballs), sinuca e pebolim com placares e sofá de plateia, saloon do pôquer (2 mesas de barril, banquinhos, balcão, lampião), separados por grade de neon e divisória de madeira.
-- Meio: tabuleiros de xadrez (2, com tapete e luminária) e Mesas de Jogos (2, para dominó, dama, velha e truco).
-- Frente: videogame, área da torcida e lanchonete; passadeira da porta até o fundo.
-- O verificador (`scripts/escritorio-auditar.mjs`) passou a aceitar tabuleiro de jogo como foco de quem senta.
-- Partida que estivesse rolando na posição antiga da mesa continua: clicar em qualquer mesa do mesmo jogo abre a partida da pessoa.
+1. **Piso de peça**, não a textura lisa da planta: uma peça de piso do acervo por ala (`s.piso`), com textura (tábua, ladrilho, carpete).
+2. **Parede revestida** por ala (`s.revestir`: lambri, papel, pixel art) e **vestida por móveis encostados** (estante, armário, balcão, máquinas, banco); quadro e arandela vêm por cima, em ritmo (arandela, quadro, arandela), nunca soltos numa parede vazia.
+3. **Altura**: pelo menos um tablado (patamar `1` na planta, com `s.escada`) ou mezanino, para a sala não ser um plano só.
+4. **Nada no chão sem base**: tabuleiro em cima de mesinha, objetos nos tampos (`s.emCima`): balcão com caixa e garrafas, mesa com copo ou dado.
+5. **Cada ala é uma cena com gente**: figurante fazendo a coisa da ala (jogando, servindo, assistindo).
+6. **Densidade**: sala do tamanho do conteúdo (melhor menor e cheia do que grande e vazia); corredor marcado por passadeira.
+
+Salão de jogos (`scripts/cenas/jogos.mjs`, 22 × 14): fliperama (piso de neon, parede de pixel art, máquinas e pinballs), sinuca e pebolim (carpete, madeira, banco da plateia, placares, jukebox), saloon do pôquer no tablado (papel de saloon, armário de garrafas, balcão com caixa, barman, mesas de barril), clube do xadrez (tábuas, madeira, estantes do chão ao teto, tabuleiros sobre mesinhas) e Mesas de Jogos (dominó, dama, velha, truco). O verificador aceita tabuleiro de jogo como foco de quem senta. Partida que estivesse rolando na posição antiga da mesa continua: clicar em qualquer mesa do mesmo jogo abre a partida da pessoa.
