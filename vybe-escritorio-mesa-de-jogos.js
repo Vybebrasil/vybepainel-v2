@@ -65,16 +65,21 @@ function desenharVelha(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
   const cima = outro || "desafiado", baixo = eu || "desafiante";
   const detalhe = (l) => `${m.simbolos[l]} · ${m.placar[l]} de ${m.alvo}`;
-  const minha = j.estado === "jogando" && m.pode_marcar;
+  const minha = j.estado === "jogando" && m.pode_marcar && !(m.anterior && s.rodadaVista !== undefined && s.rodadaVista !== m.anterior.rodada && m.tab.every((c) => !c));
   // No fim da partida o tabuleiro mostrado é o da última rodada, com a linha que fechou.
-  const tab = j.estado === "fim" && m.anterior ? m.anterior.tab : m.tab, linha = new Set(j.estado === "fim" ? m.anterior?.linha || [] : []);
+  // Rodada que acabou de fechar (no meio da partida): o tabuleiro dela fica na
+  // tela por 2 s com a linha acesa e o aviso de quem fez, antes de limpar.
+  const a0 = m.anterior, replay = j.estado === "jogando" && a0 && s.rodadaVista !== undefined && s.rodadaVista !== a0.rodada && m.tab.every((c) => !c);
+  if (s.rodadaVista === undefined || (!replay && a0)) s.rodadaVista = a0?.rodada ?? null;
+  if (replay) { clearTimeout(s.replayTimer); s.replayTimer = setTimeout(() => { s.rodadaVista = a0.rodada; if (escritorioMesa("vlh").jogo?.id === j.id) desenharJogoMesa("vlh"); }, 2000); }
+  const tab = (j.estado === "fim" || replay) && m.anterior ? m.anterior.tab : m.tab, linha = new Set(j.estado === "fim" || replay ? m.anterior?.linha || [] : []);
   const casas = tab.map((c, i) => `<button type="button" class="vlh-casa${c ? " " + c.toLowerCase() : ""}${m.ultimo?.casa === i && c ? " ultima" : ""}${linha.has(i) ? " linha" : ""}" ${minha && !c ? `onclick="lanceMesaEscritorio('vlh',{tipo:'marcar',casa:${i}},this)"` : "disabled"} aria-label="Casa ${i + 1}${c ? ", " + c : ""}">${c || ""}</button>`).join("");
   const a = m.anterior, nome = (l) => (l === eu ? "Você" : xadrezPrimeiroNome(j[l]));
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : minha ? `Sua vez: você é ${m.simbolos[eu]}.` : `Vez de ${xadrezPrimeiroNome(j[outro])}.`;
   return {
     status,
     // Quadro de neon: placar grande, o meu símbolo aparece de leve na casa livre ao passar o mouse.
-    mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}<div class="vlh-mesa"><div class="vlh-placar"><b class="${m.simbolos[cima].toLowerCase()}">${m.simbolos[cima]}</b><span>${m.placar[cima]} × ${m.placar[baixo]}</span><b class="${m.simbolos[baixo].toLowerCase()}">${m.simbolos[baixo]}</b></div><small>Rodada ${m.rodada} · melhor de ${m.alvo * 2 - 1}</small><div class="vlh-tab"${minha && eu ? ` data-meu="${m.simbolos[eu]}"` : ""}>${casas}</div></div>${mesaJogadorHtml(j, baixo, detalhe(baixo))}`,
+    mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}<div class="vlh-mesa"><div class="vlh-placar"><b class="${m.simbolos[cima].toLowerCase()}">${m.simbolos[cima]}</b><span>${m.placar[cima]} × ${m.placar[baixo]}</span><b class="${m.simbolos[baixo].toLowerCase()}">${m.simbolos[baixo]}</b></div><small>Rodada ${m.rodada} · melhor de ${m.alvo * 2 - 1}</small><div class="vlh-tab${replay ? " replay" : ""}"${minha && eu ? ` data-meu="${m.simbolos[eu]}"` : ""}>${casas}${replay ? `<p class="vlh-aviso">${safeText(a0.vencedor === "empate" ? "Deu velha!" : `${nome(a0.vencedor)} fez a linha!`)}</p>` : ""}</div></div>${mesaJogadorHtml(j, baixo, detalhe(baixo))}`,
     painel: a ? `<p class="ofc-nota">${safeText(a.vencedor === "empate" ? `Rodada ${a.rodada}: deu velha.` : `Rodada ${a.rodada}: ${nome(a.vencedor)} fez a linha.`)}</p>` : "",
   };
 }

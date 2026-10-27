@@ -165,3 +165,15 @@ test('sinuca par ou ímpar com as 15 bolas: a 1 é a última, a 1 antes da hora 
  r=tacar({...pi({0:[85,35],1:[95,45],4:[20,20]}),tacadas:0},'desafiante',DIAG,0.5);
  assert.equal(r.fim,null);assert.ok(r.mesa.bolas[1],'a 1 voltou');
 });
+
+// Paulo, 28/10/2026: "melhorar a física". A caçapa é uma abertura na tabela com
+// quinas: a bola reta cai, a que vem rente à tabela cai, e a que bate na quina volta.
+test('sinuca: caçapa com boca e quinas (cai reta, cai rente à tabela, volta da quina)',()=>{
+ const R=1.6,b=(o)=>{const a=Array(16).fill(null);for(const[k,v] of Object.entries(o))a[k]=v;return a;};
+ assert.deepEqual(simular(b({0:[80,30],3:[90,40]}),Math.atan2(10,10),0.5,0,R).caiu.slice(0,1),[3],'reta no canto cai');
+ assert.deepEqual(simular(b({0:[60,48.3]}),0,0.5,0,R).caiu,[0],'rente à tabela até o canto cai');
+ assert.deepEqual(simular(b({0:[50,20]}),-Math.PI/2,0.5,0,R).caiu,[0],'reta na do meio cai');
+ const quina=simular(b({0:[80,25]}),Math.atan2(23,14.9),0.7,0,R);
+ assert.deepEqual(quina.caiu,[],'bateu na quina e voltou');
+ assert.ok(quina.bolas[0][0]<100&&quina.bolas[0][1]<50,'a branca ficou na mesa');
+});

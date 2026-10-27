@@ -18,8 +18,23 @@ import { erro } from './escritorio-apostas.js';
 // RAIO: bola das partidas novas (1,6 desde 28/10/2026: a 1,45 ficava pequena
 // demais na tela para ler o número; a partida guarda o dela em m.r).
 export const LARGURA = 100, ALTURA = 50, R = 1.15, RAIO = 1.6;
-// Caçapas: canto e meio, com a boca proporcional à bola.
-const cacapas = (r) => [[0, 0, 2.43 * r], [50, -0.3, 2 * r], [100, 0, 2.43 * r], [0, 50, 2.43 * r], [50, 50.3, 2 * r], [100, 50, 2.43 * r]];
+// Caçapas como nas mesas de verdade (28/10/2026, Paulo: "melhorar a física"):
+// a tabela tem uma abertura em cada caçapa e a bola só cai se passar por ela.
+// As pontas da abertura são quinas: a bola que chega torta bate na quina e
+// volta ("bateu na boca e não caiu"). Antes a caçapa era um círculo grande e
+// qualquer bola que encostasse perto caía.
+// Boca de canto: BOCA_CANTO raios ao longo de cada tabela a partir do canto;
+// do meio: BOCA_MEIO raios para cada lado do centro.
+export const BOCA_CANTO = 2.6, BOCA_MEIO = 2.05;
+function bocas(r) {
+ const m = BOCA_CANTO * r, h = BOCA_MEIO * r, L = LARGURA, A = ALTURA;
+ const quinas = [[0, m], [m, 0], [L - m, 0], [L, m], [0, A - m], [m, A], [L - m, A], [L, A - m], [50 - h, 0], [50 + h, 0], [50 - h, A], [50 + h, A]];
+ // Onde a tabela está aberta (sem borracha para a bola bater).
+ const abertaX = (y) => y < m || y > A - m; // tabelas da esquerda e da direita
+ const abertaY = (x) => x < m || x > L - m || Math.abs(x - 50) < h; // tabelas de cima e de baixo
+ return { quinas, abertaX, abertaY };
+}
+const RESTITUICAO_QUINA = 0.6;
 const PASSO = 1 / 240, QUADRO = 8, PASSOS_MAX = 240 * 15;
 const ATRITO = 40, RESTITUICAO_TABELA = 0.78, VEL_MIN = 20, VEL_MAX = 260;
 const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
@@ -74,7 +89,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
 // tabela a branca sai abrindo para um lado, e o giro vai gastando (0,6 por
 // tabela, e o choque com outra bola tira quase todo).
 export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0) {
- const CACAPAS = cacapas(R);
+ const BOCAS = bocas(R);
  const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], vx: 0, vy: 0 } : null));
  const v = VEL_MIN + (VEL_MAX - VEL_MIN) * forca, dirX = Math.cos(angulo), dirY = Math.sin(angulo);
  b[0].vx = dirX * v; b[0].vy = dirY * v;
@@ -98,16 +113,25 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0)
    p.vx *= nova / vel; p.vy *= nova / vel;
    p.x += p.vx * PASSO; p.y += p.vy * PASSO;
    andando = true;
-   if (CACAPAS.some(([cx, cy, cr]) => Math.hypot(p.x - cx, p.y - cy) < cr)) { b[n] = null; caiu.push(n); evento('caiu', nova); continue; }
-   const bateu = p.x < R || p.x > LARGURA - R || p.y < R || p.y > ALTURA - R;
+   // Passou da linha da tabela: só acontece pela boca, então caiu.
+   if (p.x < 0 || p.x > LARGURA || p.y < 0 || p.y > ALTURA) { b[n] = null; caiu.push(n); evento('caiu', nova); continue; }
+   // Quinas da boca: a bola bate na ponta da tabela e volta (com menos força).
+   for (const [qx, qy] of BOCAS.quinas) {
+    const dx = p.x - qx, dy = p.y - qy, d = Math.hypot(dx, dy);
+    if (d >= R || d === 0) continue;
+    const nx = dx / d, ny = dy / d, vn = p.vx * nx + p.vy * ny;
+    if (vn < 0) { p.vx -= (1 + RESTITUICAO_QUINA) * vn * nx; p.vy -= (1 + RESTITUICAO_QUINA) * vn * ny; if (-vn > 8) evento('tabela', -vn); }
+    p.x = qx + nx * R; p.y = qy + ny * R;
+   }
+   const bateuX = (p.x < R || p.x > LARGURA - R) && !BOCAS.abertaX(p.y), bateuY = (p.y < R || p.y > ALTURA - R) && !BOCAS.abertaY(p.x);
    // Giro lateral da branca: na tabela, empurra ao longo dela (para a direita
    // de quem tacou com giro positivo) na proporção da batida.
    const torce = (normal) => { const t = giro * 0.35 * Math.abs(normal); giro *= 0.6; return t; };
-   if (p.x < R) { p.x = R; if (n === 0 && giro) p.vy -= torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
-   if (p.x > LARGURA - R) { p.x = LARGURA - R; if (n === 0 && giro) p.vy += torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
-   if (p.y < R) { p.y = R; if (n === 0 && giro) p.vx += torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
-   if (p.y > ALTURA - R) { p.y = ALTURA - R; if (n === 0 && giro) p.vx -= torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
-   if (bateu && nova > 8) evento('tabela', nova);
+   if (bateuX && p.x < R) { p.x = R; if (n === 0 && giro) p.vy -= torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
+   if (bateuX && p.x > LARGURA - R) { p.x = LARGURA - R; if (n === 0 && giro) p.vy += torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
+   if (bateuY && p.y < R) { p.y = R; if (n === 0 && giro) p.vx += torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
+   if (bateuY && p.y > ALTURA - R) { p.y = ALTURA - R; if (n === 0 && giro) p.vx -= torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
+   if ((bateuX || bateuY) && nova > 8) evento('tabela', nova);
   }
   // Choques entre bolas (massas iguais, quase elástico).
   for (let i = 0; i < 16; i++) for (let k = i + 1; k < 16; k++) {
