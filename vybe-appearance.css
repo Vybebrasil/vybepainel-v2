@@ -1744,3 +1744,27 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
   background:radial-gradient(60% 45% at 50% 62%,color-mix(in srgb,var(--c) 26%,transparent),transparent 72%),radial-gradient(120% 80% at 50% 0%,color-mix(in srgb,var(--c) 14%,#20232e),#0f1117 78%)}
 .vb-vitrine::after {content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 100% at 50% 45%,transparent 55%,#0009)}
 .vb-vitrine .mapa-etiqueta, .vb-vitrine .mapa-rotulo {display:none}
+/* Barra do topo no princípio do VybeHub (Paulo, 27/10/2026: "tá parecendo
+   tudo o mesmo botão"). As abas viram um grupo escuro dentro do laranja, cada
+   uma com ícone e cor própria; a ativa fica preenchida com a cor dela. As
+   ferramentas da direita ficam claras e mais leves: não parecem abas. */
+.vybe-desktop > .app-header .board-switch-bar {background:#1c120cf0!important;border:1px solid #00000038!important;box-shadow:inset 0 1px 0 #ffffff12,0 6px 18px -10px #4a1d0599!important;padding:4px!important;gap:2px!important}
+.vybe-desktop > .app-header .board-switch-btn {display:inline-flex;align-items:center;gap:7px;color:#e9ddd2!important;font-weight:550!important;background:transparent!important;box-shadow:none!important}
+.vybe-desktop > .app-header .board-switch-btn .aba-ic {flex:none;color:var(--aba,#fff);transition:color .2s}
+.vybe-desktop > .app-header .board-switch-btn:hover {color:#fff!important;background:#ffffff12!important}
+.vybe-desktop > .app-header .board-switch-btn.active {color:#1b0d06!important;font-weight:700!important;background:var(--aba,#fff2de)!important;box-shadow:inset 0 1px 0 #ffffff59,0 6px 16px -8px var(--aba,#000)!important}
+.vybe-desktop > .app-header .board-switch-btn.active .aba-ic {color:#1b0d06}
+.vybe-desktop > .app-header .board-switch-btn.active:hover {color:#1b0d06!important}
+.vybe-desktop > .app-header .board-switch-btn:focus-visible {outline:2px solid #fff!important;outline-offset:1px}
+/* Ferramentas: um grupo só, sem moldura em cada uma; a busca parece campo. */
+.vybe-desktop > .app-header .header-row2 :is(.quem-sou-btn,.notif-sino,.appearance-button) {background:transparent!important;border-color:transparent!important;color:#3a1d0b!important}
+.vybe-desktop > .app-header .header-row2 :is(.quem-sou-btn,.notif-sino,.appearance-button):hover {background:#ffffff33!important}
+.vybe-desktop > .app-header .header-row2 .spotlight-button {min-width:150px;justify-content:flex-start!important;background:#fff4e6cc!important;border-color:#ffffff80!important;color:#5a3216!important;box-shadow:inset 0 1px 2px #6a2e0a1f!important}
+.vybe-desktop > .app-header .header-row2 .spotlight-button kbd {margin-left:auto}
+.vybe-desktop > .app-header .header-utilities > summary {background:#1c120c1f;color:#3a1d0b}
+@media (max-width:1499px) {
+  /* Larguras menores: só o ícone nas abas que não estão abertas (o nome vai no título). */
+  .vybe-desktop > .app-header .board-switch-btn:not(.active) > span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .vybe-desktop > .app-header .board-switch-btn:not(.active) {padding-left:10px!important;padding-right:10px!important}
+  .vybe-desktop > .app-header .spotlight-button {min-width:0}
+}
