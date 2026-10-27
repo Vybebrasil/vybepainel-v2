@@ -314,7 +314,8 @@ function xadrezTabuleiroHtml(j) {
     const cls = ["xdz-casa", clara ? "clara" : "escura", x.sel === casa ? "sel" : "", alvos.has(casa) ? (p ? "alvo captura" : "alvo") : "",
       j.ultimo && (j.ultimo.de === casa || j.ultimo.para === casa) ? "ultimo" : "", reiEmXeque === casa ? "xeque" : "", minhaVez && j.legais[casa] ? "minha" : ""].filter(Boolean).join(" ");
     const nomeCasa = `${casa}${p ? ", " + (p[0] === "w" ? "branca" : "preta") : ""}`;
-    html += `<button type="button" class="${cls}" data-casa="${casa}" aria-label="${nomeCasa}" onclick="casaXadrez('${casa}')">${p ? `<svg viewBox="0 0 40 40" aria-hidden="true"><use href="#xdz-${p}"/></svg>` : ""}${ci === 0 ? `<i class="xdz-fil">${f}</i>` : ""}${li === 7 ? `<i class="xdz-col">${c}</i>` : ""}</button>`;
+    const arrasta = minhaVez && j.legais[casa] ? ` onpointerdown="tabuleiroArrastar(event,'${casa}',(c)=>{if(escritorioXadrez().sel!==c)casaXadrez(c)},casaXadrez)"` : "";
+    html += `<button type="button" class="${cls}" data-casa="${casa}" aria-label="${nomeCasa}" onclick="casaXadrez('${casa}')"${arrasta}>${p ? `<svg viewBox="0 0 40 40" aria-hidden="true"><use href="#xdz-${p}"/></svg>` : ""}${ci === 0 ? `<i class="xdz-fil">${f}</i>` : ""}${li === 7 ? `<i class="xdz-col">${c}</i>` : ""}</button>`;
   }));
   const promo = x.promo ? `<div class="xdz-promo" role="dialog" aria-label="Promover o peão"><span>Promover para</span>${["q", "r", "b", "n"].map((t) => `<button type="button" aria-label="${XADREZ_NOME_PECA[t]}" onclick="promoverXadrez('${t}')"><svg viewBox="0 0 40 40"><use href="#xdz-${j.eu === "brancas" ? "w" : "b"}${t}"/></svg></button>`).join("")}<button type="button" class="xdz-promo-x" aria-label="Cancelar" onclick="escritorioXadrez().promo=null;desenharJogoXadrez()">×</button></div>` : "";
   return `<div class="xdz-tabuleiro${minhaVez ? " vez" : ""}">${html}${promo}</div>`;

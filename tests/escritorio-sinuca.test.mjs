@@ -19,7 +19,8 @@ test('sinuca: triângulo com 15 bolas, a 8 no meio e um canto de cada grupo',()=
  const m=iniciarSinuca('desafiado');
  const nums=m.bolas.map((p,n)=>p&&n).filter(n=>n!==null&&n!==false);
  assert.equal(m.bolas.filter(Boolean).length,16);assert.deepEqual(m.bolas[0],[25,25]);assert.equal(m.vez,'desafiado');
- const oito=m.bolas[8];assert.ok(Math.abs(oito[1]-25)<0.01&&oito[0]>79&&oito[0]<80,'a 8 no meio da terceira fileira');
+ const oito=m.bolas[8],x8=75+2*(2*m.r*0.866+0.02);assert.ok(Math.abs(oito[1]-25)<0.01&&Math.abs(oito[0]-x8)<0.01,'a 8 no meio da terceira fileira');
+ assert.equal(m.r,1.45,'partida nova usa a bola maior');
  const tras=m.bolas.map((p,n)=>[n,p]).filter(([n,p])=>p&&n&&p[0]>83).map(([n])=>n);
  assert.equal(tras.length,5);
  const cantos=tras.filter(n=>Math.abs(m.bolas[n][1]-25)>4.5);
@@ -106,4 +107,20 @@ test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',(
  assert.deepEqual(r.eventos.map(e=>e.t),['bola','tabela']);
  assert.ok(r.eventos.every(e=>e.q<r.quadros.length&&e.f>0&&e.f<=1));
  assert.throws(()=>jogarSinuca(mesa({0:[30,25],5:[50,25]}),'desafiante',{tipo:'tacar',angulo:0,forca:0.3,efeito:2}),/Efeito/);
+});
+
+test('sinuca: a bola maior das partidas novas e a partida antiga com a bola de antes',()=>{
+ // Partida gravada antes (sem m.r) segue com a bola de 1,15; a nova usa 1,45.
+ assert.equal(vistaSinuca(mesa({0:[50,25]}),'desafiante',false).r,1.15);
+ const nova=iniciarSinuca('desafiante');
+ assert.equal(vistaSinuca(nova,'desafiante',false).r,1.45);
+ // Nenhuma bola do triângulo encosta na outra (com folga).
+ const b=nova.bolas.filter(Boolean);
+ for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],b[i][1]-b[k][1])>=2*1.45,'bolas sem sobreposição');
+ // A bola maior vai para a caçapa do mesmo jeito.
+ const r=simular(mesa({0:[85,35],3:[95,45]}).bolas,DIAG,0.5,0,1.45);
+ assert.deepEqual(r.caiu,[3]);
+ // A saída espalha as bolas e alguma coisa se mexe de verdade.
+ const s=jogarSinuca(nova,'desafiante',{tipo:'tacar',angulo:0,forca:1});
+ assert.ok(s.mesa.bolas.some((p,n)=>p&&Math.hypot(p[0]-nova.bolas[n][0],p[1]-nova.bolas[n][1])>3));
 });

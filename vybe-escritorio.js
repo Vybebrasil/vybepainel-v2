@@ -2018,9 +2018,8 @@ function atualizarPessoasEscritorio() {
     const voce = `<div class="ofc-p-eu">
       <span class="ofc-p-retrato" style="--st:${corSt};--xp:${xpPct}%"${pts?.nivel ? ` title="Nível ${pts.nivel} · ${xpPct}% até o próximo"` : ""}><span class="ofc-p-avatar">${cabecaDe({ id: eu, nome: "Você" })}<i aria-hidden="true"></i></span>${pts?.nivel ? `<b class="ofc-p-nivel" aria-label="Nível ${pts.nivel}">${pts.nivel}</b>` : ""}</span>
       <span class="ofc-p-eu-texto"><b>Você</b><small>${escritorio.conectado ? safeText(escritorioLugarDe(escritorio.perfil).nome) : "Fora do escritório"}</small></span>
-      ${escritorio.bau && !escritorio.bauAberto ? `<button type="button" class="ofc-p-bau" onclick="abrirBauEscritorio();abrirBauEscritorio(true)" title="Abrir o baú: o que você ganhou desde o último">${escritorio.bauArte ? `<img src="${escritorio.bauArte}" alt="">` : ""}<span>Baú</span><b>${escritorio.bau.abatidas || escritorio.bau.pecas.length || "!"}</b></button>` : ""}
       <label class="ofc-p-status" style="--st:${corSt}"><span class="sr-only">Sua disponibilidade</span><i aria-hidden="true"></i>
-        <select onchange="escritorioTrocarStatus(this.value)"${escritorio.conectado ? "" : " disabled"}>${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}"${meuStatus === id ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select></label></div>`;
+        <select onchange="escritorioTrocarStatus(this.value)"${escritorio.conectado ? "" : " disabled"}>${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}"${meuStatus === id ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select></label></div>${escritorio.bau && !escritorio.bauAberto ? (() => { const n = escritorio.bau.abatidas || escritorio.bau.pecas.length; return `<button type="button" class="ofc-p-bau" onclick="abrirBauEscritorio();abrirBauEscritorio(true)">${escritorio.bauArte ? `<img src="${escritorio.bauArte}" alt="">` : ""}<span>Abrir o baú${n ? ` · ${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}` : ""}</span></button>`; })() : ""}`;
     // 2. Centro de Operação
     const principal = A.find((a) => a.id === "operacao");
     const centro = principal ? (() => {
@@ -2976,6 +2975,10 @@ function abrirFichaMovelEscritorio(m) {
   if (f.senta) acoes.push(["Sentar", "sentarNoMovelSelecionadoEscritorio()"]);
   if (f.deita) acoes.push(["Deitar", "sentarNoMovelSelecionadoEscritorio()"]);
   const acao = escritorioAcaoDoMovel(m) || (ESCRITORIO_REGULADOR.test(m.classe) ? { texto: "Regular a luz" } : null);
+  // Jogo em cima ou embaixo deste móvel (o tabuleiro sobre a mesinha, o dado
+  // sobre a Mesa de Jogos): a ficha também abre o jogo.
+  const jogoAqui = !escritorioJogoDoMovel(m.classe) && (escritorio.mapa?.moveisEm?.(Math.floor(m.x), Math.floor(m.y)) || []).find((i) => i !== m && escritorioJogoDoMovel(i.classe));
+  if (jogoAqui) acoes.push([escritorioAcaoDoMovel(jogoAqui)?.texto || "Jogar", "usarJogoDoMovelSelecionadoEscritorio()"]);
   if (acao) acoes.push([acao.texto || "Usar", "usarMovelSelecionadoEscritorio()"]);
   // Tela, telefone, globo…: a arte tem outro estado (desligado/parado).
   // Liga e desliga para todos, como o duplo clique (Paulo, 20/10/2026).
@@ -3128,7 +3131,14 @@ function usarMovelSelecionadoEscritorio() {
   const m = escritorio.movelSelecionado;
   if (!m) return;
   fecharFichaMovelEscritorio();
-  if (!escritorioUsarAoClicar(Math.floor(m.x), Math.floor(m.y))) escritorioAcaoDoMovel(m)?.fazer?.();
+  if (!escritorioUsarAoClicar(Math.floor(m.x), Math.floor(m.y), m)) escritorioAcaoDoMovel(m)?.fazer?.();
+}
+// O jogo do mesmo ladrilho do móvel escolhido (ver a ficha).
+function usarJogoDoMovelSelecionadoEscritorio() {
+  const m = escritorio.movelSelecionado;
+  if (!m) return;
+  fecharFichaMovelEscritorio();
+  escritorioUsarAoClicar(Math.floor(m.x), Math.floor(m.y));
 }
 function editarMovelSelecionadoEscritorio() {
   const m = escritorio.movelSelecionado;
@@ -3849,11 +3859,15 @@ function escritorioAcaoDoMovel(m) {
 }
 // Clique num móvel que se usa (luz, jukebox, geladeira, esteira, fliperama…):
 // anda até o ladrilho livre ao lado dele e usa ao chegar.
-function escritorioUsarAoClicar(x, y) {
+function escritorioUsarAoClicar(x, y, alvo = null) {
   // Regulador de luz na parede: como no Habbo, abre direto, sem andar até ele.
   if ((escritorio.mapa?.moveisEm(x, y) || []).some((i) => ESCRITORIO_REGULADOR.test(i.classe))) { regularLuzEscritorio(); return true; }
-  // (o dado pode estar em cima de uma mesa)
-  const m = (escritorio.mapa?.moveisEm(x, y) || []).find((i) => !i.plano && (!i.altura || ESCRITORIO_DADO.test(i.classe)) && !i.parede && escritorioAcaoDoMovel(i));
+  // (o dado e o tabuleiro podem estar em cima de uma mesa). O jogo vem antes:
+  // na Sala de Jogos o dado fica em cima da Mesa de Jogos e o tabuleiro de
+  // xadrez em cima da mesinha (Paulo, 27/10/2026: "xadrez, dominó e dama não abrem").
+  const aqui = (escritorio.mapa?.moveisEm(x, y) || []).filter((i) => !i.plano && !i.parede && escritorioAcaoDoMovel(i));
+  // `alvo`: o móvel que a pessoa escolheu na ficha (o dado, quando ela quer o dado).
+  const m = (alvo && aqui.includes(alvo) ? alvo : null) || aqui.find((i) => escritorioJogoDoMovel(i.classe)) || aqui.find((i) => !i.altura || ESCRITORIO_DADO.test(i.classe));
   if (!m) return false;
   // Máquina de café, geladeira e afins: como no Habbo, usa-se pela frente
   // (o ladrilho para onde ela está virada), se ele estiver livre.
