@@ -12790,3 +12790,51 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .dmn-costas {width:12px;height:22px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none}
 /* Bolinhas do placar da sinuca com a mesma arte da mesa. */
 .snc-grupo i {background:url(/assets/jogos/bolas.webp) calc(var(--n) * 100% / 15) 0 / 1600% 100% no-repeat;color:transparent;box-shadow:0 1px 2px #0008}
+/* HUD dos jogos: faixa no tema, palco com a pílula de status, barra de aviso, histórico discreto e tela de fim por cima da mesa. */
+.workflow-modal[class*="ofc-"][class*="-jogo"] {padding:0;overflow:hidden auto;background:#0f1218}
+.jogo-topo {position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;background:linear-gradient(90deg,#155c39,#1f7a4d);box-shadow:0 4px 0 #0005}
+.jogo-topo.tema-xadrez {background:linear-gradient(90deg,#3b2a1a,#6b4a2a)}
+.jogo-topo.tema-poker {background:linear-gradient(90deg,#0f4527,#1d7a48)}
+.jogo-topo.tema-sinuca {background:linear-gradient(90deg,#14603b,#27945a)}
+.jogo-topo.tema-domino {background:linear-gradient(90deg,#1d3f7a,#3f7bd6)}
+.jogo-topo.tema-dama {background:linear-gradient(90deg,#6b2414,#c0563a)}
+.jogo-topo.tema-velha {background:linear-gradient(90deg,#43207f,#8b5cf6)}
+.jogo-topo.tema-truco {background:linear-gradient(90deg,#7a4a08,#d9a12b)}
+.jogo-titulo {display:flex;align-items:center;gap:8px;min-width:0}
+.jogo-titulo i {display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#0004;font-style:normal;font-size:20px;box-shadow:inset 0 -2px 0 #0004}
+.jogo-titulo b {color:#fff;font:900 18px var(--mac-ui);letter-spacing:-.2px;text-shadow:0 2px 0 #0005}
+.jogo-selos {display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.jogo-selo {padding:4px 10px;border-radius:999px;background:#0006;color:#fff;font:800 12px var(--mac-ui);white-space:nowrap;box-shadow:inset 0 -2px 0 #fff1}
+.jogo-selo.ouro {background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;box-shadow:0 2px 0 #8a5a00}
+.jogo-botoes {display:flex;gap:6px}
+.jogo-icone {display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:11px;background:#0005;color:#fff;font:700 16px var(--mac-ui);cursor:pointer;box-shadow:inset 0 -3px 0 #0005;transition:transform .08s,background .12s}
+.jogo-icone:hover {background:#0008;transform:translateY(-1px)}
+.jogo-icone:disabled {opacity:.4;cursor:default;transform:none}
+.jogo-icone.perigo:hover {background:#a3261a}
+.jogo-icone[data-certeza="1"] {width:auto;padding:0 10px;background:#a3261a;font-size:12px}
+.jogo-alerta {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:#2a2410;border-bottom:1px solid #ffb94a55;color:#ffe9a8;font:800 13px var(--mac-ui)}
+.jogo-palco {position:relative;display:grid;gap:10px;padding:14px 16px 10px}
+.jogo-palco .mesa-lado,.jogo-palco > .xdz-jogo {width:100%}
+.jogo-status {justify-self:center;margin:0;padding:6px 16px;border-radius:999px;background:#ffffff12;color:#e9eef7;font:800 13px var(--mac-ui);text-align:center;box-shadow:inset 0 -2px 0 #0004}
+.jogo-status.minha {background:linear-gradient(#4fe08f,#22a85c);color:#062712;box-shadow:0 3px 0 #0d6b36,0 0 18px #3fd17f55;animation:jogo-sua-vez 1.6s ease-in-out infinite}
+@keyframes jogo-sua-vez {50% {box-shadow:0 3px 0 #0d6b36,0 0 28px #3fd17f99}}
+.jogo-feed {margin:0 16px 14px;padding:10px 12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff0d;color:#c9d1dd;font-size:12px}
+.jogo-feed .ofc-nota {margin:2px 0}
+.jogo-fim {position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:16px;background:radial-gradient(circle,#000a,#000d);animation:jogo-fim-entra .4s ease-out}
+.jogo-fim-caixa {display:grid;justify-items:center;gap:8px;min-width:min(380px,90%);padding:22px 26px;border-radius:24px;background:#14171e;border:3px solid #ffffff22;box-shadow:0 20px 60px #000;text-align:center}
+.jogo-fim.ganhou .jogo-fim-caixa {border-color:#ffd56a;box-shadow:0 0 60px #ffd56a55,0 20px 60px #000}
+.jogo-fim.perdeu .jogo-fim-caixa {border-color:#ff5a4a88}
+.jogo-fim-caixa small {color:#9da4b4;font:800 11px var(--mac-ui);letter-spacing:1px;text-transform:uppercase}
+.jogo-fim-caixa b {color:#fff;font:900 40px/1 var(--mac-ui);letter-spacing:-1px;text-shadow:0 4px 0 #0007}
+.jogo-fim.ganhou .jogo-fim-caixa b {color:#ffd56a}
+.jogo-fim.perdeu .jogo-fim-caixa b {color:#ff8a7a}
+.jogo-fim-caixa > span {color:#e9eef7;font:700 14px var(--mac-ui)}
+.jogo-fim-caixa .workflow-actions {margin:6px 0 0;padding:0;border:0;background:none;position:static}
+@keyframes jogo-fim-entra {from {opacity:0}}
+@media (prefers-reduced-motion: reduce) {.jogo-status.minha,.jogo-fim {animation:none}}
+@media(max-width:640px){.jogo-topo{flex-wrap:wrap}.jogo-selos{order:3;width:100%;margin-left:0}.jogo-palco{padding:10px 8px}}
+/* Xadrez dentro do HUD: tabuleiro e lances lado a lado no palco; xeque em vermelho na pílula. */
+.jogo-palco .xdz-jogo {margin:0}
+.workflow-modal.ofc-xdz-jogo {width:min(940px,calc(100vw - 24px))}
+.jogo-status.xeque {background:linear-gradient(#ff6a55,#d62a14);color:#fff;box-shadow:0 3px 0 #7a140a}
+.jogo-fim-caixa .workflow-actions {background:none;box-shadow:none;border:0;justify-content:center;gap:10px}

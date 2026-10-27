@@ -21,7 +21,7 @@ const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
   // A tacada já toca os sons dela na animação.
   som: () => null,
-  nota: "Bola 8: quem sai é sorteado, lisas contra listradas.", desenhar: (j, s) => desenharSinuca(j, s),
+  nota: "Par ou ímpar, como no bar: 14 bolas (sem a 1), cada um com as suas, sorteadas na saída. Ganha quem encaçapar todas primeiro.", desenhar: (j, s) => desenharSinuca(j, s),
 });
 // Mesa de 100 × 50 com 4 de tabela em volta; 10 px por unidade no canvas.
 const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 4, SINUCA_PX = 10;
@@ -55,8 +55,11 @@ function sinucaBranca(j, s) {
   return j.mesa.bolas[0];
 }
 // Bola que eu posso tocar primeiro: do meu grupo (a 8 com o grupo limpo); mesa aberta, qualquer uma menos a 8.
+const SINUCA_GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
+const SINUCA_NOME_GRUPO = { lisas: "Lisas", listradas: "Listradas", pares: "Pares", impares: "Ímpares" };
 function sinucaPodeTocar(j, n) {
   const g = j.mesa.grupos?.[j.eu];
+  if (j.mesa.modo === "parimpar") return SINUCA_GRUPOS[g]?.includes(n);
   if (!g) return n !== 8 || !j.mesa.tacadas;
   if (n === 8) return !j.mesa.restam?.[g];
   return g === "lisas" ? n < 8 : n > 8;
@@ -74,11 +77,11 @@ function sinucaUltimoTexto(j) {
 // (as que já caíram ficam apagadas).
 function sinucaJogadorHtml(j, lado) {
   const p = j[lado], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
-  const nums = g === "lisas" ? [1, 2, 3, 4, 5, 6, 7] : g === "listradas" ? [9, 10, 11, 12, 13, 14, 15] : [];
+  const nums = SINUCA_GRUPOS[g] || [];
   const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]};--n:${n}">${n}</i>`).join("")
     : '<small>Mesa aberta</small>';
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" ? " direita" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="40" height="40">` : "<i class=\"snc-sem\"></i>"}
-${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${g === "lisas" ? "Lisas" : "Listradas"}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${bolas}</span></div></div>`;
+${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
 }
 function desenharSinuca(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;

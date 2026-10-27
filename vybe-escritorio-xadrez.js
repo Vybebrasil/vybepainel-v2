@@ -484,18 +484,20 @@ function desenharJogoXadrez() {
   const jogando = j.estado === "jogando", eu = j.eu, outro = eu === "brancas" ? "pretas" : "brancas";
   const empateMeu = j.empate_de && j.empate_de === String(escritorio.base?.eu), empateDele = j.empate_de && !empateMeu;
   const status = !jogando ? "" : j.xeque ? (j.vez === eu ? "Xeque! Proteja o rei." : "Xeque!") : !eu ? "Você está assistindo." : j.vez === eu ? "Sua vez. Toque numa peça e depois na casa." : `Vez de ${xadrezPrimeiroNome(j[outro])}.`;
-  const acoes = !jogando || !eu ? "" : `<div class="xdz-acoes">
-${empateDele ? `<div class="xdz-empate"><span>${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="workflow-primary" onclick="acaoXadrezEscritorio('aceitar-empate',this)">Aceitar</button><button type="button" class="workflow-secondary" onclick="acaoXadrezEscritorio('recusar-empate',this)">Recusar</button></div>` : ""}
-${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="acaoXadrezEscritorio('reivindicar',this)">${xadrezPrimeiroNome(j[outro])} sumiu: ganhar por tempo</button>` : ""}
-<button type="button" class="workflow-secondary" onclick="acaoXadrezEscritorio('empate',this)" ${j.empate_de ? "disabled" : ""}>${empateMeu ? "Empate proposto" : "Propor empate"}</button>
-<button type="button" class="workflow-secondary xdz-desistir" onclick="desistirXadrez(this)">Desistir</button></div>`;
+  // O mesmo HUD dos jogos de mesa (vybe-escritorio-mesas.js): faixa com selos e
+  // ícones, aviso de empate/sumiço em barra, status em pílula e fim por cima.
+  const botoes = !jogando || !eu ? "" : `<button type="button" class="jogo-icone" onclick="acaoXadrezEscritorio('empate',this)" ${j.empate_de ? "disabled" : ""} title="${empateMeu ? "Empate proposto" : "Propor empate"}" aria-label="${empateMeu ? "Empate proposto" : "Propor empate"}">🤝</button>
+<button type="button" class="jogo-icone perigo" onclick="desistirXadrez(this)" title="Desistir" aria-label="Desistir">⚑</button>`;
+  const alerta = !jogando || !eu ? "" : [
+    empateDele ? `<div class="jogo-alerta"><span>🤝 ${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="sala-botao verde" onclick="acaoXadrezEscritorio('aceitar-empate',this)">Aceitar</button><button type="button" class="sala-botao cinza" onclick="acaoXadrezEscritorio('recusar-empate',this)">Recusar</button></div>` : "",
+    j.pode_reivindicar ? `<div class="jogo-alerta"><span>⏰ ${xadrezPrimeiroNome(j[outro])} sumiu.</span><button type="button" class="sala-botao laranja" onclick="acaoXadrezEscritorio('reivindicar',this)">Ganhar por tempo</button></div>` : "",
+  ].join("");
   const cima = eu === "pretas" ? "brancas" : "pretas", baixo = cima === "brancas" ? "pretas" : "brancas";
-  xadrezModal(`<div class="workflow-kicker">Xadrez${!eu ? " · assistindo" : ""}<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
+  xadrezModal(`${jogoTopoHtml("xadrez", "Xadrez", !eu, jogoSelosHtml(j), botoes, "xadrezFechar()")}${alerta}
+<div class="jogo-palco">${status && jogando ? `<p class="jogo-status${eu && j.vez === eu ? " minha" : ""}${j.xeque ? " xeque" : ""}" aria-live="polite">${status}</p>` : ""}
 <div class="xdz-jogo"><div class="xdz-lado-tab">${xadrezJogadorHtml(j, cima)}${xadrezTabuleiroHtml(j)}${xadrezJogadorHtml(j, baixo)}</div>
-<aside class="xdz-painel">${xadrezResultadoHtml(j)}${status ? `<p class="xdz-status${j.xeque ? " xeque" : ""}" aria-live="polite">${status}</p>` : ""}
-${xadrezApostaHtml(j, eu ? (String(j.desafiante.id) === String(escritorio.base?.eu) ? "desafiante" : "desafiado") : null)}${mesaPlacarHtml(j)}
-<h3 class="xdz-sub">Lances</h3>${xadrezLancesHtml(j)}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
-${!jogando ? mesaFimAcoesHtml("xdz", j, "xadrezFechar()") : ""}</aside></div>`, "ofc-xdz-jogo");
+<aside class="xdz-painel"><h3 class="xdz-sub">Lances</h3>${xadrezLancesHtml(j)}<p class="ofc-erro" id="xdz-erro" role="alert"></p></aside></div>
+${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml("xdz", j, "xadrezFechar()")) : ""}</div>`, "ofc-xdz-jogo");
   xadrezAnimarLance(j);
 }
 // O lance novo desliza da casa de origem até a de destino (uma vez por lance).
@@ -544,8 +546,9 @@ async function lanceXadrezEscritorio(de, para, promocao) {
   desenharJogoXadrez();
 }
 function desistirXadrez(botao) {
-  if (botao.dataset.certeza !== "1") { botao.dataset.certeza = "1"; botao.textContent = "Desistir mesmo?"; setTimeout(() => { if (botao.isConnected) { botao.dataset.certeza = ""; botao.textContent = "Desistir"; } }, 4000); return; }
-  acaoXadrezEscritorio("desistir", botao);
+  if (botao.dataset.certeza === "1") return acaoXadrezEscritorio("desistir", botao);
+  const antes = botao.textContent; botao.dataset.certeza = "1"; botao.textContent = "Desistir mesmo?";
+  setTimeout(() => { if (botao.isConnected) { botao.dataset.certeza = ""; botao.textContent = antes; } }, 4000);
 }
 async function acaoXadrezEscritorio(acao, botao) {
   const x = escritorioXadrez(), j = x.jogo;

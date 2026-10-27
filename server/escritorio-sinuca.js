@@ -21,14 +21,32 @@ const cacapas = (r) => [[0, 0, 2.43 * r], [50, -0.3, 2 * r], [100, 0, 2.43 * r],
 const PASSO = 1 / 240, QUADRO = 8, PASSOS_MAX = 240 * 15;
 const ATRITO = 40, RESTITUICAO_TABELA = 0.78, VEL_MIN = 20, VEL_MAX = 260;
 const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
+// Par ou ímpar, a sinuca de bar do Brasil (Paulo, 27/10/2026: "tem que ser
+// estilo Brasil, ímpar e par"): sai a bola 1 e sobram 7 pares e 7 ímpares.
+const PARES = [2, 4, 6, 8, 10, 12, 14], IMPARES = [3, 5, 7, 9, 11, 13, 15];
+const GRUPOS = { lisas: LISAS, listradas: LISTRADAS, pares: PARES, impares: IMPARES };
 const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
-const doGrupo = (g, n) => (g === 'lisas' ? n >= 1 && n <= 7 : g === 'listradas' ? n >= 9 && n <= 15 : false);
-const restam = (bolas, g) => (g === 'lisas' ? LISAS : LISTRADAS).filter((n) => bolas[n]).length;
+const doGrupo = (g, n) => Boolean(GRUPOS[g]?.includes(n));
+const restam = (bolas, g) => (GRUPOS[g] || []).filter((n) => bolas[n]).length;
 
 // Triângulo com o ápice na marca (75, 25): a 8 no meio da terceira fileira e
 // uma lisa e uma listrada nos cantos de trás.
-export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', sortear = randomInt, r = RAIO) {
+// modo 'parimpar' (o padrão das partidas novas): 14 bolas no triângulo, sem a
+// 1 e com o meio da fileira de trás vazio, e os grupos sorteados já na saída.
+// modo 'bola8': a regra de antes (a partida gravada sem modo é bola 8).
+export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', sortear = randomInt, r = RAIO, modo = 'parimpar') {
  const misturar = (l) => { for (let i = l.length - 1; i > 0; i--) { const k = sortear(i + 1); [l[i], l[k]] = [l[k], l[i]]; } return l; };
+ if (modo === 'parimpar') {
+  const ordem = misturar([...PARES, ...IMPARES]), bolas = Array(16).fill(null);
+  bolas[0] = [25, 25];
+  let i = 0, pos = 0;
+  for (let fila = 0; fila < 5; fila++) for (let k = 0; k <= fila; k++, pos++) {
+   if (pos === 12) continue;
+   bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
+  }
+  const g = sortear(2) ? 'pares' : 'impares';
+  return { modo, r, bolas, vez: quemSai, grupos: { [quemSai]: g, [outro(quemSai)]: g === 'pares' ? 'impares' : 'pares' }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null };
+ }
  const lisas = misturar([...LISAS]), listradas = misturar([...LISTRADAS]);
  // Posições do triângulo: 4 = meio da terceira fileira, 10 e 14 = cantos de trás.
  const fixas = { 4: 8, 10: lisas.pop(), 14: listradas.pop() }, resto = misturar([...lisas, ...listradas]);
@@ -119,8 +137,8 @@ function recolocar(bolas, n, r) {
 export function vistaSinuca(m, lado, fim) {
  const vez = !fim && lado && m.vez === lado;
  return {
-  r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas,
-  restam: { lisas: restam(m.bolas, 'lisas'), listradas: restam(m.bolas, 'listradas') },
+  modo: m.modo || 'bola8', r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas,
+  restam: Object.fromEntries(Object.keys(GRUPOS).map((g) => [g, restam(m.bolas, g)])),
   pode_tacar: Boolean(vez), ultimo: m.ultimo || null,
  };
 }
@@ -148,6 +166,7 @@ export function jogarSinuca(mesa, lado, pedido) {
   if (!livre(m.bolas, x, y, 0, r0)) throw erro('A branca está em cima de outra bola.');
   m.bolas[0] = [x, y];
  }
+ if (m.modo === 'parimpar') return parImpar(m, lado, simular(m.bolas, angulo, forca, efeito, r0, lado2), { angulo, forca, efeito, lado2, r0 });
  const saida = m.tacadas === 0, grupo = m.grupos[lado], limpo = grupo ? restam(m.bolas, grupo) === 0 : false;
  const r = simular(m.bolas, angulo, forca, efeito, r0, lado2);
  m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
@@ -172,9 +191,28 @@ export function jogarSinuca(mesa, lado, pedido) {
  return { mesa: m, fim: null };
 }
 
+// Par ou ímpar: a primeira bola tocada tem que ser do grupo de quem taca;
+// branca na caçapa, não tocar em nada ou tocar a do outro é falta (a vez passa
+// com bola na mão). Continua quem encaçapa bola sua sem falta. Ganha quem
+// encaçapa todas as suas; encaçapar a última do outro dá a vitória a ele; a
+// última sua que cai com falta volta para a mesa.
+function parImpar(m, lado, r, { angulo, forca, efeito, lado2, r0 }) {
+ const meu = m.grupos[lado], dele = m.grupos[outro(lado)];
+ m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
+ const falta = r.caiu.includes(0) ? 'branca' : r.primeiro === null ? 'nenhuma' : !doGrupo(meu, r.primeiro) ? 'errada' : null;
+ m.ultimo = { lado, angulo, forca, efeito, giro: lado2, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta };
+ if (!falta && restam(m.bolas, meu) === 0) return { mesa: m, fim: { resultado: lado, motivo: 'todas' } };
+ if (falta && restam(m.bolas, meu) === 0) { const ultima = [...r.caiu].reverse().find((n) => doGrupo(meu, n)); if (ultima) recolocar(m.bolas, ultima, r0); }
+ if (restam(m.bolas, dele) === 0) return { mesa: m, fim: { resultado: outro(lado), motivo: 'ultima-do-outro' } };
+ const continua = !falta && r.caiu.some((n) => doGrupo(meu, n));
+ if (falta) { m.vez = outro(lado); m.bolaNaMao = true; if (m.bolas[0] && falta === 'branca') m.bolas[0] = null; }
+ else { m.bolaNaMao = false; if (!continua) m.vez = outro(lado); }
+ return { mesa: m, fim: null };
+}
+
 export const motorSinuca = {
  nome: 'Sinuca',
- motivos: { oito: 'Encaçapou a 8', 'oito-cedo': 'A 8 caiu antes da hora', 'oito-falta': 'A 8 caiu com falta' },
+ motivos: { oito: 'Encaçapou a 8', 'oito-cedo': 'A 8 caiu antes da hora', 'oito-falta': 'A 8 caiu com falta', todas: 'Encaçapou todas as suas', 'ultima-do-outro': 'O outro encaçapou a última bola dele por ele' },
  iniciar: () => iniciarSinuca(),
  vista: vistaSinuca,
  jogar: jogarSinuca,
