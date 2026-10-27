@@ -9658,14 +9658,10 @@ img.ofc-com-animada {position:relative;z-index:1}
    a fila por cliente, uma linha que abre, das mais urgentes para as outras.
    Estado sempre por texto e cor juntos. */
 .capt {display:grid;gap:16px}
-/* Barra da semana: navegação, período, cores e a ação principal. */
-.capt-barra {display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
 .capt-nav {display:inline-flex;gap:4px}
 .capt-nav .vb-botao {min-height:32px;padding:0 11px}
 .capt-nav .vb-botao:disabled {opacity:.45;cursor:default}
 .capt-periodo {margin:0;color:#fff;font:760 17px/1.2 var(--mac-ui);font-variant-numeric:tabular-nums;text-transform:none}
-.capt-barra .ag-legenda {margin-left:auto}
-.capt-barra > .vb-botao.principal {flex:none}
 .capt-colunas {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:18px;align-items:start}
 .capt-agenda {display:grid;gap:8px;min-width:0;transition:opacity .2s var(--curva,ease)}
 .capt-agenda.carregando {opacity:.55;pointer-events:none}
@@ -9713,14 +9709,6 @@ img.ofc-com-animada {position:relative;z-index:1}
 .t-outro {--ag-cor:#8b92a3}
 .ag-legenda {display:flex;flex-wrap:wrap;gap:12px}
 .ag-legenda-item {display:inline-flex;align-items:center;gap:6px;color:#aeb4c2;font:600 12px var(--mac-ui)}
-/* Na Produção a legenda é o filtro: cada tipo liga e desliga, com a contagem. */
-.ag-legenda.filtro {gap:4px}
-.ag-legenda.filtro .ag-legenda-item {min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--vb-linha,#ffffff1f);background:#ffffff06;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
-.ag-legenda.filtro .ag-legenda-item b {color:#8b92a3;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="false"] {color:#6f7686}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="false"]::before {background:transparent;box-shadow:inset 0 0 0 2px var(--ag-cor)}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="true"] {border-color:#ff8a3566;background:#ff8a3514;color:#fff}
-.ag-legenda.filtro .ag-legenda-item:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 .ag-legenda-item::before {content:"";width:10px;height:10px;border-radius:3px;background:var(--ag-cor)}
 .ag {container-type:inline-size;min-width:0}
 .ag-semana {border-radius:16px;border:1px solid #ffffff14;background:#13151c;overflow:hidden}
@@ -9921,7 +9909,9 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .rot-candidatos {max-height:min(52vh,460px);overflow:auto;padding-right:2px}
 @media (max-width:760px) {.rot-corpo {grid-template-columns:1fr;padding:4px 14px 14px}.rot-topo {align-items:stretch}.rot-botoes {width:100%}.rot-botoes .vb-botao {flex:1}}
 @media (prefers-reduced-motion:reduce) {.rot-cartao {animation:none}}
-.capt .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* O cartão do evento fica no body, fora de .capt: sem ele aqui, o texto para
+   leitor de tela ("Gravado: …") aparecia escrito dentro do cartão. */
+.capt .sr-only,.ag-cartao .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Cartão do evento (agCartaoAbrir): ao lado do bloco clicado, como no
    calendário; no celular é uma folha que sobe de baixo. */
@@ -11615,3 +11605,90 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .day-activity-formato{flex:none;display:inline-block;box-sizing:border-box;width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--formato,#6b7280) 60%,transparent);
   background:color-mix(in srgb,var(--formato,#6b7280) 16%,transparent);color:color-mix(in srgb,var(--formato,#6b7280) 45%,#fff);
   font:600 10px/1.5 var(--mac-ui);white-space:nowrap}
+
+/* ─── CAPTAÇÕES COMO CALENDÁRIO (Paulo, 26/10/2026) ──────────────────────────
+   "Quero o padrão de calendário: abre e vê o calendário; clicando ou passando
+   o mouse aparecem as coisas." Referência: o Calendário do Mac — uma barra
+   de vidro só, a semana ocupando a tela, o que passou recuado, prévia no
+   hover e o cartão no clique. Cores de tipo continuam as do Google Agenda. */
+.capt-cal {gap:12px}
+.capt-toolbar {position:sticky;top:8px;z-index:20;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 16px;padding:10px 12px 10px 14px;
+  border-radius:16px;border:1px solid #ffffff17;background:color-mix(in srgb,#1b1d26 82%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);box-shadow:0 10px 30px #0005,inset 0 1px 0 #ffffff0d}
+.capt-tb-esq {display:flex;align-items:center;gap:14px;min-width:0}
+.capt-tb-nav {display:inline-flex;padding:2px;border-radius:10px;background:#ffffff0d;border:1px solid #ffffff12}
+.capt-tb-nav button {min-width:30px;height:28px;padding:0 9px;border:0;border-radius:8px;background:transparent;color:#d9dde6;font:650 13px var(--mac-ui);cursor:pointer;transition:background .15s}
+.capt-tb-nav button:hover {background:#ffffff14}
+.capt-tb-nav .capt-tb-hoje {padding:0 12px}
+.capt-tb-nav .capt-tb-hoje[aria-current] {color:#8b92a3}
+.capt-tb-nav button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-titulo {display:grid;gap:2px;margin:0;color:#fff;font:760 21px/1.1 var(--mac-ui);letter-spacing:-.01em;white-space:nowrap;min-width:0}
+.capt-tb-titulo small {color:#8b92a3;font:550 12.5px var(--mac-ui);letter-spacing:0;font-variant-numeric:tabular-nums}
+.capt-tb-vista {margin:0;justify-self:center}
+.capt-tb-dir {display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:0}
+.capt-filtros {display:inline-flex;gap:2px;padding:2px;border-radius:10px;background:#ffffff0a;border:1px solid #ffffff10}
+.capt-filtro {display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;white-space:nowrap;border:0;border-radius:8px;background:transparent;color:#7d8494;font:600 12px var(--mac-ui);cursor:pointer;transition:background .15s,color .15s}
+.capt-filtro::before {content:"";width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ag-cor)}
+.capt-filtro b {color:#6f7686;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.capt-filtro[aria-pressed="true"] {background:#ffffff12;color:#f2f4f8}
+.capt-filtro[aria-pressed="true"]::before {background:var(--ag-cor);box-shadow:none}
+.capt-filtro[aria-pressed="true"] b {color:#aeb4c2}
+.capt-filtro:hover {color:#f2f4f8}
+.capt-filtro:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-pend {display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;white-space:nowrap;flex:none;border-radius:10px;border:1px solid #ffffff17;background:#ffffff0a;color:#d9dde6;font:650 12.5px var(--mac-ui);cursor:pointer;transition:background .15s,border-color .15s}
+.capt-tb-pend b {display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#ff7a1a;color:#1d0d02;font:800 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.capt-tb-pend:hover {background:#ffffff14}
+.capt-tb-pend[aria-pressed="true"] {border-color:#ff8a3577;background:#ff8a3514;color:#fff}
+.capt-tb-pend:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-marcar {min-height:32px;gap:6px;white-space:nowrap;flex:none}
+.capt-tb-marcar span {font-size:16px;line-height:1}
+/* A semana ocupa a largura; o inspetor entra ao lado quando pedido. */
+.capt-cal .capt-colunas {grid-template-columns:minmax(0,1fr)}
+.capt-cal.com-inspetor .capt-colunas {grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+.capt-cal .capt-lado {top:76px;max-height:calc(100vh - 100px);padding:14px;border-radius:16px;border:1px solid #ffffff14;background:#171920;animation:esp-entra .2s var(--curva,ease) both}
+.capt-inspetor-fechar {margin-left:auto;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#9aa1b0;font-size:18px;line-height:1;cursor:pointer}
+.capt-inspetor-fechar:hover {background:#ffffff12;color:#fff}
+.capt-paradas {margin:6px 0 0;padding:10px 12px;border-radius:11px;background:#ffffff06;color:#9aa1b0;font:500 12px/1.45 var(--mac-ui)}
+/* A grade, mais alta e calma: o que passou recua, hoje fica em evidência. */
+.capt-cal .ag-semana {border-radius:16px;border-color:#ffffff12;background:#121419;box-shadow:0 12px 34px #0004}
+.capt-cal .ag-corpo {max-height:max(480px,calc(100vh - 250px))}
+.capt-cal .ag-cabeca {position:sticky;top:0;z-index:6;background:#16181f}
+.capt-cal .ag-dia-cab {padding:10px 4px 9px}
+.capt-cal .ag-dia-cab b {font-size:17px}
+.ag-dia-cab.passou small,.ag-dia-cab.passou b {color:#5d6372}
+.ag-col.passou {background:#0000001f}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta) {opacity:.5}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta):hover {opacity:.85}
+.capt-cal .ag-ev {border-radius:7px;padding:5px 8px 5px 11px;background:color-mix(in srgb,var(--ag-cor) 20%,#14161c);box-shadow:inset 3px 0 0 var(--ag-cor),0 1px 2px #0005}
+.capt-cal .ag-ev:hover {background:color-mix(in srgb,var(--ag-cor) 30%,#14161c);transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--ag-cor),0 6px 16px #0006}
+.capt-cal .ag-ev b {font:650 12px/15px var(--mac-ui)}
+.capt-cal .ag-ev small {color:#ffffffa8;font:550 11px/14px var(--mac-ui)}
+.capt-cal .ag-selo {font-size:10px;line-height:15px;padding:0 6px}
+.capt-cal .capt-dica {text-align:center}
+/* Prévia do hover (agPreviaEntrar): vidro, ao lado do bloco, só leitura. */
+.ag-previa {position:fixed;z-index:880;width:300px;display:grid;gap:6px;padding:14px 15px 12px;border-radius:14px;pointer-events:none;
+  border:1px solid #ffffff1f;background:color-mix(in srgb,#1c1e27 90%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  box-shadow:0 18px 44px #000a,inset 0 1px 0 #ffffff12;color:#e9ecf2;animation:ag-previa-entra .14s var(--curva,ease) both}
+.ag-previa[hidden] {display:none}
+@keyframes ag-previa-entra {from {opacity:0;transform:translateY(3px) scale(.985)} to {opacity:1;transform:none}}
+.ag-previa > * {margin:0}
+.ag-previa-tipo {display:inline-flex;align-items:center;gap:6px;color:#aeb4c2;font:700 10.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.06em}
+.ag-previa-tipo::before {content:"";width:8px;height:8px;border-radius:50%;background:var(--ag-cor)}
+.ag-previa-titulo {color:#fff;font:720 15px/1.3 var(--mac-ui)}
+.ag-previa-quando {color:#c9cdd6;font:550 12.5px var(--mac-ui)}
+.ag-previa-cliente {color:#fff;font:650 13px var(--mac-ui)}
+.ag-previa .capt-estado {justify-self:start}
+.ag-previa-sub {margin-top:4px;color:#8b92a3;font:700 11px var(--mac-ui)}
+.ag-previa-pecas {list-style:none;padding:0;display:grid;gap:4px}
+.ag-previa-pecas li {display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:550 12.5px/1.35 var(--mac-ui)}
+.ag-previa-pecas li span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-previa-pecas i {flex:none;font:600 11px var(--mac-ui);font-style:normal}
+.ag-previa-pecas i.ok {color:#7fe2b2}
+.ag-previa-pecas i.falta {color:#ffcf6b}
+.ag-previa-mais {color:#8b92a3;font:500 12px var(--mac-ui)}
+.ag-previa-dica {margin-top:4px;padding-top:8px;border-top:1px solid #ffffff12;color:#7d8494;font:550 11px var(--mac-ui)}
+@media (max-width:900px) {.capt-cal.com-inspetor .capt-colunas {grid-template-columns:minmax(0,1fr)}.capt-cal .capt-lado {position:static;max-height:none}}
+/* Tela média: a barra vira duas linhas (navegação e Semana/Lista em cima, filtros e ações embaixo). */
+@media (max-width:1280px) {.capt-toolbar {grid-template-columns:minmax(0,1fr) auto}.capt-tb-vista {justify-self:end}.capt-tb-dir {grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap}}
+@media (max-width:760px) {.capt-toolbar {position:static;grid-template-columns:minmax(0,1fr)}.capt-tb-esq {flex-wrap:wrap}.capt-tb-titulo {font-size:19px;white-space:normal}.capt-tb-titulo small {display:none}.capt-tb-vista {justify-self:start}.capt-filtros {max-width:100%;overflow-x:auto;scrollbar-width:none}.capt-filtro {flex:none}}
+@media (prefers-reduced-motion:reduce) {.ag-previa,.capt-cal .capt-lado {animation:none}.capt-cal .ag-ev:hover {transform:none}}
