@@ -455,6 +455,7 @@ async function recarregarJogoXadrez() {
     if (x.jogo?.id !== j.id) return;
     const mudou = r.jogo.lances.length !== j.lances.length || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     x.jogo = r.jogo;
+    if (xadrezPreLance()) return;
     if (mudou) {
       if (r.jogo.lances.length !== j.lances.length) { x.sel = null; x.promo = null; jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca"); }
       if (r.jogo.estado === "fim" && j.estado !== "fim") xadrezAcabou(r.jogo);
@@ -486,9 +487,11 @@ function xadrezTabuleiroHtml(j) {
   fileiras.forEach((f, li) => colunas.forEach((c, ci) => {
     const casa = c + f, p = pecas[casa], clara = (XADREZ_COLUNAS.indexOf(c) + f) % 2 === 1;
     const cls = ["xdz-casa", clara ? "clara" : "escura", x.sel === casa ? "sel" : "", alvos.has(casa) ? (p ? "alvo captura" : "alvo") : "",
-      j.ultimo && (j.ultimo.de === casa || j.ultimo.para === casa) ? "ultimo" : "", reiEmXeque === casa ? "xeque" : "", minhaVez && j.legais[casa] ? "minha" : ""].filter(Boolean).join(" ");
+      j.ultimo && (j.ultimo.de === casa || j.ultimo.para === casa) ? "ultimo" : "", reiEmXeque === casa ? "xeque" : "", minhaVez && j.legais[casa] ? "minha" : "",
+      x.pre && (x.pre.de === casa || x.pre.para === casa) ? "pre" : ""].filter(Boolean).join(" ");
     const nomeCasa = `${casa}${p ? ", " + (p[0] === "w" ? "branca" : "preta") : ""}`;
-    const arrasta = minhaVez && j.legais[casa] ? ` onpointerdown="tabuleiroArrastar(event,'${casa}',(c)=>{if(escritorioXadrez().sel!==c)casaXadrez(c)},casaXadrez)"` : "";
+    const minhaPeca = j.estado === "jogando" && j.eu && p?.[0] === (j.eu === "brancas" ? "w" : "b");
+    const arrasta = (minhaVez && j.legais[casa]) || (!minhaVez && minhaPeca) ? ` onpointerdown="tabuleiroArrastar(event,'${casa}',(c)=>{if(escritorioXadrez().sel!==c)casaXadrez(c)},casaXadrez)"` : "";
     html += `<button type="button" class="${cls}" data-casa="${casa}" aria-label="${nomeCasa}" onclick="casaXadrez('${casa}')"${arrasta}>${p ? `<svg viewBox="0 0 40 40" aria-hidden="true"><use href="#xdz-${p}"/></svg>` : ""}${ci === 0 ? `<i class="xdz-fil">${f}</i>` : ""}${li === 7 ? `<i class="xdz-col">${c}</i>` : ""}</button>`;
   }));
   const promo = x.promo ? `<div class="xdz-promo" role="dialog" aria-label="Promover o peão"><span>Promover para</span>${["q", "r", "b", "n"].map((t) => `<button type="button" aria-label="${XADREZ_NOME_PECA[t]}" onclick="promoverXadrez('${t}')"><svg viewBox="0 0 40 40"><use href="#xdz-${j.eu === "brancas" ? "w" : "b"}${t}"/></svg></button>`).join("")}<button type="button" class="xdz-promo-x" aria-label="Cancelar" onclick="escritorioXadrez().promo=null;desenharJogoXadrez()">×</button></div>` : "";
@@ -566,6 +569,7 @@ function xadrezAcionarBot() {
       const r = await escritorioApi("xadrez-bot-vez", { id: j.id, n: j.lances.length });
       if (escritorioXadrez().jogo?.id !== j.id) return;
       x.jogo = r.jogo; x.sel = null; x.promo = null;
+      if (xadrezPreLance()) return;
       if (r.economia) xadrezEconomia(r.economia);
       if (r.jogo.lances.length !== j.lances.length) jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca");
       if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
@@ -588,7 +592,15 @@ function xadrezAnimarLance(j) {
 }
 function casaXadrez(casa) {
   const x = escritorioXadrez(), j = x.jogo;
-  if (!j || j.estado !== "jogando" || !j.eu || j.eu !== j.vez || x.enviando) return;
+  if (!j || j.estado !== "jogando" || !j.eu || x.enviando) return;
+  // Pré-lance (como no lichess e no chess.com): na vez do outro, escolha a peça
+  // e a casa; o lance sai sozinho assim que ele jogar, se ainda valer.
+  if (j.eu !== j.vez) {
+    const minha = (c) => xadrezPecas(j.fen)[c]?.[0] === (j.eu === "brancas" ? "w" : "b");
+    x.pre = x.pre?.de && !x.pre.para && casa !== x.pre.de && !minha(casa) ? { de: x.pre.de, para: casa } : minha(casa) && x.pre?.de !== casa ? { de: casa } : null;
+    desenharJogoXadrez();
+    return;
+  }
   if (x.sel && (j.legais[x.sel] || []).includes(casa)) {
     const peca = xadrezPecas(j.fen)[x.sel];
     if (peca?.[1] === "p" && (casa[1] === "8" || casa[1] === "1")) { x.promo = { de: x.sel, para: casa }; desenharJogoXadrez(); return; }
@@ -596,6 +608,17 @@ function casaXadrez(casa) {
   }
   x.sel = j.legais[casa] && x.sel !== casa ? casa : null;
   desenharJogoXadrez();
+}
+// A vez voltou: joga o pré-lance guardado se ele ainda vale (peão na última
+// fileira vira dama). Não valendo mais, some sem aviso, como nos sites de xadrez.
+function xadrezPreLance() {
+  const x = escritorioXadrez(), j = x.jogo, pre = x.pre;
+  if (!pre?.para || !j || j.estado !== "jogando" || j.vez !== j.eu) { if (j?.vez === j?.eu && pre) { x.pre = null; desenharJogoXadrez(); } return false; }
+  x.pre = null;
+  if (!(j.legais[pre.de] || []).includes(pre.para)) { desenharJogoXadrez(); return false; }
+  const peao = xadrezPecas(j.fen)[pre.de]?.[1] === "p" && (pre.para[1] === "8" || pre.para[1] === "1");
+  lanceXadrezEscritorio(pre.de, pre.para, peao ? "q" : undefined);
+  return true;
 }
 function promoverXadrez(tipo) {
   const p = escritorioXadrez().promo;
