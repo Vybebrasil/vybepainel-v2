@@ -7,6 +7,7 @@
 import vm from 'node:vm';
 import { listarAgendaProducao, tipoNaAgenda } from './agenda-producao.js';
 import { codigoDoPainel } from './assistente-rotinas.js';
+import { clienteDoEvento } from './captacoes.js';
 
 const FUSO = 'America/Bahia';
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -15,6 +16,9 @@ const diaLocal = (v) => new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).for
 // Apelidos da equipe (os mesmos do Escritório: DONOS_CADASTRO).
 const APELIDOS = { mizinho: 'ADEMIR', bia: 'BEATRIZ', tai: 'TAINARA', taynara: 'TAINARA' };
 export const JANELA_MIN = 75;
+// Captação que terminou há 25 a 50 minutos (Paulo, 27/10/2026: fechar a captação sem depender de alguém lembrar): o bot
+// pergunta ao Mizinho se já gravou, com o cliente do evento para a resposta curta achar a peça.
+export const ENCERRADA_MIN = [25, 50];
 
 function dentro(e) {
   const t = normal(e.summary);
@@ -25,8 +29,12 @@ function dentro(e) {
 export async function compromissosProximos(sql, { agora = Date.now(), listar = listarAgendaProducao } = {}) {
   const hoje = diaLocal(agora), fim = agora + JANELA_MIN * 60e3;
   const { eventos = [] } = await listar(hoje, { dias: diaLocal(fim) === hoje ? 1 : 2, bruto: true });
-  const proximos = eventos.filter((e) => dentro(e) && Date.parse(e.start.dateTime) > agora && Date.parse(e.start.dateTime) <= fim);
+  const fimEntre = (e) => { const f = Date.parse(e.end.dateTime); return f <= agora - ENCERRADA_MIN[0] * 60e3 && f > agora - ENCERRADA_MIN[1] * 60e3; };
+  const proximos = eventos.filter((e) => dentro(e) && ((Date.parse(e.start.dateTime) > agora && Date.parse(e.start.dateTime) <= fim)
+    || (tipoNaAgenda(e) === 'captacao' && fimEntre(e))));
   if (!proximos.length) return [];
+  let clientes = [];
+  try { clientes = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`; } catch { clientes = []; }
   const P = vm.runInContext('PESSOAS', codigoDoPainel().ctx);
   const equipe = await sql`SELECT nome, monday_user_id::text AS monday_id, COALESCE(admin, false) AS admin FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL`;
   const porMonday = new Map(equipe.map((p) => [p.monday_id, p]));
@@ -46,6 +54,8 @@ export async function compromissosProximos(sql, { agora = Date.now(), listar = l
     return { id: e.id, titulo: String(e.summary || 'Compromisso').replace(/\s+/g, ' ').trim().slice(0, 200), tipo,
       inicio: new Date(e.start.dateTime).toISOString(), hora: horaLocal(e.start.dateTime), fim: horaLocal(e.end.dateTime),
       local: String(e.location || '').replace(/\s+/g, ' ').trim().slice(0, 200),
+      terminou: Date.parse(e.start.dateTime) <= agora, fim_iso: new Date(e.end.dateTime).toISOString(),
+      cliente: clientes.length ? clienteDoEvento(e.summary, clientes)?.nome || '' : '',
       pessoas: [...donos.values()].map((p) => ({ monday_id: p.monday_id, nome: p.nome, admin: Boolean(p.admin) })) };
   }).filter((c) => c.pessoas.length);
 }
