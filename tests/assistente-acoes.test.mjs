@@ -10,7 +10,7 @@ async function banco() {
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,email text,admin boolean,ativo boolean,pode_entrar boolean,monday_user_id bigint);
     INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins','paulo@x',true,true,true,1),(2,'Jady Lima','jady@x',false,true,true,100482777),
       (3,'Tainara Sodré','tai@x',false,true,true,80146924),(4,'Deivid Souza','deivid@x',false,true,true,68997024),(5,'Ewerton','ew@x',false,true,true,68036687);
-    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,monday_item_id bigint,titulo text,formato text,board_id bigint,status_chave text,removido_em timestamptz);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,monday_item_id bigint,titulo text,formato text,board_id bigint,status_chave text,removido_em timestamptz,veiculacao date);
     INSERT INTO vybe_conteudos VALUES(10,NULL,'Card A','Card',${PROD},'pode_fazer',NULL),(11,12863070737,'Reels B','Reels',${PROD},'para_agendar',NULL),
       (12,NULL,'Card C','Card',${PROD},'para_aprovacao',NULL),(13,NULL,'Reels D','Reels',${PROD},'para_aprovacao',NULL);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);
@@ -104,8 +104,14 @@ test('ação sem número: acha a peça da própria pessoa pelo cliente ou títul
     const r = await prepararAcao(sql, 2, { acao: 'status', busca: 'brussulo', para: 'Pode Fazer' }, segredo).catch((e) => e);
     assert.match(String(r.message || r.resumo), /Massa da casa|já está em Pode Fazer/);
     // Hebravet: duas peças abertas da Jady → lista com os números.
+    await db.exec(`UPDATE vybe_conteudos SET veiculacao='2099-01-05' WHERE id=10; UPDATE vybe_conteudos SET veiculacao='2099-01-02' WHERE id=12;`);
     const varias = await prepararAcao(sql, 2, { acao: 'status', busca: 'hebravet', para: 'Em andamento' }, segredo).catch((e) => e);
-    assert.match(varias.message, /Achei 2 peças suas com "hebravet":\n- Card A \(Hebravet\) · número vybe:10\n- Card C \(Hebravet\) · número vybe:12/);
+    // Em ordem de veiculação, numeradas, com dia da semana e status; a próxima a veicular marcada.
+    assert.match(varias.message, /Achei 2 peças com "hebravet"\. Qual delas\?\n1\. ⭐ Card C \(Hebravet\) · veicula sex 02\/01 · Para aprovação · nº vybe:12\n2\. Card A \(Hebravet\) · veicula seg 05\/01 · Pode Fazer · nº vybe:10/);
+    assert.match(varias.message, /a posição \(ex\.: \*1\*\), a data \(ex\.: \*02\/01\*\) ou \*a próxima\* \(⭐\)\.$/);
+    // A data falada já escolhe.
+    const doDia = await prepararAcao(sql, 2, { acao: 'comentar', busca: 'hebravet 05/01', texto: 'oi' }, segredo);
+    assert.match(doDia.resumo, /Card A/);
     // Do jeito que veio do áudio do Reriston: "tareza", "Bruce Lou" (= Brussolo) e "vou iniciar" no meio da frase.
     for (const frase of ['tareza que eu tenho para hoje do cliente brussulo vou iniciar', 'não é tareza, é tarefa. E o cliente que eu disse é o Bruce Lou', 'brussolo']) {
       const r2 = await prepararAcao(sql, 2, { acao: 'status', busca: frase, para: 'Para aprovação' }, segredo).catch((e) => e);

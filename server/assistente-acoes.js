@@ -81,6 +81,7 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } =
   if (!termos.length) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
   const consultas = [...termos.map((t) => [t]), ...termos.slice(1).map((t, i) => [termos[i], t])];
   const linhas = await sql`SELECT c.id::text AS id, c.monday_item_id::text AS monday_item_id, c.titulo, c.prazo::text AS prazo,
+      c.veiculacao::text AS veiculacao, s.rotulo AS status,
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id), '{}') AS clientes
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND NOT COALESCE(s.final, false)
@@ -106,13 +107,26 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } =
   // Empate: o formato falado desempata ("o reels da MR Fit" entre o card e o reels do mesmo cliente).
   const formato = ['reels', 'card', 'carrossel', 'story', 'video', 'motion', 'foto', 'feed'].find((f) => semAcento(busca).split(/[^a-z0-9]+/).some((w) => w.startsWith(f)));
   if (achadas.length > 1 && formato) { const doFormato = achadas.filter((l) => semAcento(l.titulo).startsWith(formato)); if (doFormato.length) achadas = doFormato; }
+  // Data falada desempata também ("a agenda musical de 29/10").
+  const data = /\b(\d{1,2})\/(\d{1,2})\b/.exec(busca);
+  if (achadas.length > 1 && data) { const dm = data[1].padStart(2, '0') + '/' + data[2].padStart(2, '0'); const doDia = achadas.filter((l) => curtoDia(l.veiculacao) === dm); if (doDia.length) achadas = doDia; }
   const pedido = termos.join(' ');
   if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${pedido.slice(0, 60)}". Responda citando esta mensagem com o nome do cliente ou o número da peça (o do link).`);
-  if (achadas.length > 1) throw invalido(`Achei ${achadas.length} peças suas com "${pedido.slice(0, 60)}":\n` +
-    achadas.slice(0, 6).map((l) => `- ${l.titulo || 'Sem título'} (${l.clientes.join(' / ') || 'sem cliente'}) · número ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
-    '\n\nResponda citando esta mensagem só com o número da peça.');
+  // Várias (Ewerton, 27/10/2026: cinco "Agenda Musical" da Gonzalez): em ordem de veiculação, com o dia da semana e o status,
+  // numeradas, e a próxima a veicular marcada; a resposta pode ser a posição, a data ou "a próxima".
+  if (achadas.length > 1) {
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
+    const ordem = [...achadas].sort((a, b) => String(a.veiculacao || '9999').localeCompare(String(b.veiculacao || '9999')));
+    const proxima = ordem.find((l) => l.veiculacao && String(l.veiculacao).slice(0, 10) >= hoje);
+    throw invalido(`🔎 Achei ${achadas.length} peças com "${pedido.slice(0, 60)}". Qual delas?\n` +
+      ordem.slice(0, 8).map((l, i) => `${i + 1}. ${l === proxima ? '⭐ ' : ''}${l.titulo || 'Sem título'} (${l.clientes.join(' / ') || 'sem cliente'})` +
+        ` · ${l.veiculacao ? 'veicula ' + semanaCurta(l.veiculacao) + ' ' + curtoDia(l.veiculacao) : 'sem veiculação'} · ${l.status || 'sem status'} · nº ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
+      `\n\nResponda citando esta mensagem com a posição (ex.: *1*)${proxima ? `, a data (ex.: *${curtoDia(proxima.veiculacao)}*) ou *a próxima* (⭐)` : ' ou o nº'}.`);
+  }
   return achadas[0].monday_item_id || 'vybe:' + achadas[0].id;
 }
+const curtoDia = (iso) => (iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) : '');
+const semanaCurta = (iso) => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(String(iso).slice(0, 10) + 'T12:00:00Z').getUTCDay()];
 async function temFuncao(sql, pessoaId, funcao) {
   const [t] = await sql`SELECT to_regclass('public.vybe_escritorio_funcoes') IS NOT NULL AS ok`;
   if (!t?.ok) return false;
