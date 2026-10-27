@@ -136,7 +136,33 @@ function updateLocalStatus(itemId, option) {
   }));
 }
 
-function openDaDirectionModal(itemId) { const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.', 'err'); pendingDaDirectionItemId=String(itemId); const owners=daControllerTeam().map(user=>`<option value="${user.id}">${safeText(firstName(user.name))}</option>`).join(''); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Direcionamento de arte</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Direcionar esta demanda</h2><p class="workflow-copy">Registre a decisão visual no histórico da peça para que o time execute sem depender do WhatsApp.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>Qual é a direção objetiva?</span><textarea id="da-direction-text" rows="4" placeholder="Ex.: Ajustar a hierarquia do título, trocar a imagem principal e usar a referência enviada pelo cliente."></textarea></label><label class="workflow-field"><span>Quem precisa agir agora?</span><select id="da-direction-owner"><option value="">Manter responsável atual</option>${owners}</select></label><label class="workflow-field"><span>Próximo passo esperado</span><input id="da-direction-next" type="text" placeholder="Ex.: Nova versão para validação interna até amanhã."></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitDaDirection()">Registrar direção →</button></div>`); }
+function openDaDirectionModal(itemId) { const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.', 'err'); pendingDaDirectionItemId=String(itemId); const owners=daControllerTeam().map(user=>`<option value="${user.id}">${safeText(firstName(user.name))}</option>`).join(''); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Direcionamento de arte</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Direcionar esta demanda</h2><p class="workflow-copy">Registre a decisão visual no histórico da peça para que o time execute sem depender do WhatsApp.</p>${workflowItemHtml(item,item.status)}<label class="workflow-field"><span>Qual é a direção objetiva?</span><textarea id="da-direction-text" rows="4" placeholder="Ex.: Ajustar a hierarquia do título, trocar a imagem principal e usar a referência enviada pelo cliente."></textarea></label><label class="workflow-field"><span>Quem precisa agir agora?</span><select id="da-direction-owner"><option value="">Manter responsável atual</option>${owners}</select></label><label class="workflow-field"><span>Próximo passo esperado</span><input id="da-direction-next" type="text" placeholder="Ex.: Nova versão para validação interna até amanhã."></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitDaDirection()">Registrar direção →</button></div>`); facilitarJanelaDeDirecao(); }
+// Uma pergunta por vez: os ajustes mais comuns viram botões que escrevem a
+// direção, quem age vira cartões de pessoa (o select continua lá, escondido, e
+// é ele que submitDaDirection lê) e o próximo passo já vem preenchido.
+const DIRECAO_AJUSTES = ['Trocar a imagem principal', 'Ajustar a hierarquia do título', 'Usar a referência do cliente', 'Rever as cores', 'Encurtar o texto', 'Seguir a identidade do cliente'];
+function facilitarJanelaDeDirecao() {
+  const texto = document.getElementById('da-direction-text');
+  const dono = document.getElementById('da-direction-owner');
+  const proximo = document.getElementById('da-direction-next');
+  if (!texto || !dono) return;
+  texto.insertAdjacentHTML('beforebegin', `<div class="pv-sugestoes" id="da-direction-ajustes">${DIRECAO_AJUSTES.map((a) => `<button type="button" onclick="alternarAjusteDeDirecao(this)">${safeText(a)}</button>`).join('')}</div>`);
+  texto.rows = 2;
+  dono.hidden = true;
+  dono.insertAdjacentHTML('afterend', `<div class="pv-sugestoes" id="da-direction-donos">${[...dono.options].map((o) => `<button type="button" data-valor="${safeText(o.value)}" class="${o.value === dono.value ? 'on' : ''}" onclick="escolherDonoDaDirecao(this)">${safeText(o.textContent)}</button>`).join('')}</div>`);
+  if (proximo && !proximo.value) proximo.value = 'Nova versão para validação interna até amanhã.';
+}
+function alternarAjusteDeDirecao(botao) {
+  botao.classList.toggle('on');
+  const marcados = [...document.querySelectorAll('#da-direction-ajustes button.on')].map((b) => b.textContent);
+  const texto = document.getElementById('da-direction-text');
+  if (texto) texto.value = marcados.join(' · ');
+}
+function escolherDonoDaDirecao(botao) {
+  document.querySelectorAll('#da-direction-donos button').forEach((b) => b.classList.toggle('on', b === botao));
+  const dono = document.getElementById('da-direction-owner');
+  if (dono) dono.value = botao.dataset.valor || '';
+}
 async function submitDaDirection() { const item=findOperationalItem(pendingDaDirectionItemId); const direction=String(document.getElementById('da-direction-text')?.value||'').trim(); const next=String(document.getElementById('da-direction-next')?.value||'').trim(); const ownerId=String(document.getElementById('da-direction-owner')?.value||''); if(!item || !direction) return showToast('Descreva a direção antes de registrar.', 'info'); const owner=daControllerTeam().find(user=>user.id===ownerId); try { await postItemUpdate(item.id,`[Vybe OS · Direcionamento de D.A.]\nDireção: ${direction}${owner?`\nQuem executa: ${owner.name}`:''}${next?`\nPróximo passo: ${next}`:''}`); item.status_context={reason:direction,next:next||item.status_context?.next||'',created_at:new Date().toISOString()}; closeWorkflowModal(); pendingDaDirectionItemId=''; showToast('✓ Direcionamento registrado no Vybe OS','ok'); renderDaController(); if(activeWorkspaceItemId===String(item.id)) renderWorkspaceDrawer(await fetchWorkspaceItem(item.id),item); } catch(e) { showToast(`Não foi possível registrar o direcionamento: ${e.message}`,'err',7000); } }
 let handoffEnviando = false;
 async function submitHandoff() {
@@ -443,7 +469,32 @@ function selecionarOrigemContexto(id) {
   document.querySelectorAll('[data-origin-id]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.originId === String(id))));
   if (!pessoa) nome.focus();
 }
+// Uma pergunta por vez: o motivo começa com as respostas mais comuns para
+// tocar, conforme o status de destino. Tocar escreve no campo de sempre
+// (status-context-reason); quem quiser, completa com as próprias palavras.
+const CONTEXTO_SUGESTOES = {
+  'alteração': ['Trocar a imagem', 'Mudar o texto', 'Mudar preço ou condição', 'Ajustar cores', 'Outro ajuste'],
+  'alteracao': ['Trocar a imagem', 'Mudar o texto', 'Mudar preço ou condição', 'Ajustar cores', 'Outro ajuste'],
+  'ag. info cliente': ['Fotos do produto', 'Texto ou legenda', 'Aprovação do cliente', 'Dados do produto', 'Acesso à conta'],
+  'aguardando info.': ['Fotos do produto', 'Texto ou legenda', 'Aprovação do cliente', 'Dados do produto', 'Acesso à conta'],
+  'falta info': ['Fotos do produto', 'Texto ou legenda', 'Dados do produto', 'Acesso à conta'],
+};
+function facilitarContextoDeStatus(option) {
+  const campo = document.getElementById('status-context-reason');
+  const lista = CONTEXTO_SUGESTOES[String(option?.label || '').trim().toLowerCase()];
+  if (!campo || !lista || document.getElementById('status-context-sugestoes')) return;
+  campo.insertAdjacentHTML('beforebegin', `<div class="pv-sugestoes" id="status-context-sugestoes">${lista.map((t) => `<button type="button" onclick="alternarSugestaoDeContexto(this)">${safeText(t)}</button>`).join('')}</div>`);
+}
+function alternarSugestaoDeContexto(botao) {
+  botao.classList.toggle('on');
+  const campo = document.getElementById('status-context-reason');
+  if (!campo) return;
+  campo.value = [...document.querySelectorAll('#status-context-sugestoes button.on')].map((b) => b.textContent).join(' · ');
+  campo.dispatchEvent(new Event('input', { bubbles: true }));
+  campo.dispatchEvent(new Event('change', { bubbles: true }));
+}
 function openStatusContextGate(item, option) {
+  setTimeout(() => facilitarContextoDeStatus(option), 0);
   const rule=contextRuleFor(option); const requiresQuality=statusNeedsQuality(option); const requiresHandoff=statusNeedsHandoff(item,option); const checks=requiresQuality ? qualityChecklistFor(item) : []; const isCard=statusContextIsCard(item);
   // Quem esta com o painel aberto e, quase sempre, quem esta pedindo a
   // mudanca. O campo ja vem com o nome dele — continua editavel, para o caso

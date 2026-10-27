@@ -281,5 +281,27 @@ async function confirmarConferenciaVisual() {
   await commitStatusChange(item, option);
 }
 
-function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<label class="workflow-field"><span>O que foi concluído?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitHandoff()">REGISTRAR E ${option ? 'ATUALIZAR STATUS' : 'SALVAR'} →</button></div>`); }
+// Uma pergunta por vez: o que ficou pronto vira botões que escrevem o
+// "concluído", o próximo passo já vem sugerido pela etapa de destino e o link
+// da entrega da peça entra sozinho quando existe. Os campos mantêm os ids que
+// submitHandoff lê.
+const BASTAO_PRONTOS = ['Arte final', 'Legenda revisada', 'Arquivo anexado', 'Aprovado internamente', 'Vídeo editado', 'Roteiro pronto'];
+function facilitarPassagemDeBastao(item, option) {
+  const feito = document.getElementById('handoff-done');
+  const proximo = document.getElementById('handoff-next');
+  const link = document.getElementById('handoff-link');
+  if (!feito) return;
+  feito.insertAdjacentHTML('beforebegin', `<div class="pv-sugestoes" id="handoff-prontos">${BASTAO_PRONTOS.map((p) => `<button type="button" onclick="alternarProntoDoBastao(this)">${safeText(p)}</button>`).join('')}</div>`);
+  feito.rows = 2;
+  if (proximo && !proximo.value && option?.label) proximo.value = `Segue para ${option.label}.`;
+  const entrega = String(item?.link_entrega || item?.entrega_link || item?.link || '').trim();
+  if (link && !link.value && /^https?:\/\//i.test(entrega)) link.value = entrega;
+}
+function alternarProntoDoBastao(botao) {
+  botao.classList.toggle('on');
+  const marcados = [...document.querySelectorAll('#handoff-prontos button.on')].map((b) => b.textContent);
+  const feito = document.getElementById('handoff-done');
+  if (feito) feito.value = marcados.join(' · ');
+}
+function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<label class="workflow-field"><span>O que foi concluído?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitHandoff()">Registrar e ${option ? 'atualizar o status' : 'salvar'} →</button></div>`); facilitarPassagemDeBastao(item, option); }
 function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if (item) openHandoffGate(item,null); }
