@@ -178,3 +178,23 @@
 /* ---- Barra do topo: marca branca completa num quadro escuro ---- */
 .app-header .logo{background:rgba(27,13,6,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)!important;padding:0 8px!important;width:auto!important}
 .app-header .logo img{width:42px!important;height:auto!important;display:block}
+
+/* ---- Uma pergunta por vez: passos, opções que avançam ao tocar e respostas prontas ---- */
+.pv-passos{display:flex;align-items:center;gap:6px;margin:14px 0 4px}
+.pv-passos span{display:inline-flex;align-items:center;gap:7px;font:600 11.5px var(--mac-ui);color:#7d7870;white-space:nowrap}
+.pv-passos span i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 10.5px var(--pv-titulo);font-style:normal;border:1.5px solid rgba(255,255,255,.18)}
+.pv-passos span.on{color:#fff}
+.pv-passos span.on i{background:#ff8a35;border-color:#ff8a35;color:#1b0d06;box-shadow:0 0 14px rgba(255,138,53,.5)}
+.pv-passos span.feito i{background:rgba(98,211,148,.18);border-color:#62d394;color:#62d394}
+.pv-passos em{flex:1;height:2px;min-width:14px;border-radius:2px;background:rgba(255,255,255,.1)}
+.pv-opcoes{display:grid;gap:8px;margin-top:14px}
+.pv-opcao{--c:#ff8a35;display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;border-radius:16px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#fff;font:600 14px var(--mac-ui);text-align:left;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+.pv-opcao:hover,.pv-opcao:focus-visible{transform:translateY(-1px);border-color:color-mix(in srgb,var(--c) 55%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 14%,transparent),transparent 70%),#15171e;box-shadow:0 12px 26px -16px var(--c);outline:0}
+.pv-opcao-ic{width:38px;height:38px;flex:none;border-radius:12px;display:grid;place-items:center;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)}
+.pv-opcao-ic svg{width:18px;height:18px;display:block}
+.pv-opcao > i{margin-left:auto;font-style:normal;color:var(--c);opacity:.7}
+.pv-sugestoes{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
+.pv-sugestoes button{padding:8px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015));color:#a8a39c;font:600 12px var(--mac-ui);cursor:pointer}
+.pv-sugestoes button.on{border-color:#ff8a35;color:#fff;background:linear-gradient(180deg,rgba(255,138,53,.22),rgba(255,138,53,.07));box-shadow:0 8px 18px -12px #ff8a35}
+.pv-sugestoes button.on::before{content:"✓ ";color:#ff9a5c}
+.workflow-modal section[data-bloqueio-passo] .workflow-title{margin-top:10px!important;font-size:22px!important}
