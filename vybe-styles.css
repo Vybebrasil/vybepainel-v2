@@ -12910,3 +12910,28 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .vlh-tab.replay .vlh-casa {pointer-events:none}
 .vlh-tab.replay .vlh-casa:not(.linha) {opacity:.35}
 .vlh-aviso {position:absolute;left:50%;top:50%;margin:0;padding:10px 18px;border-radius:999px;background:#1b1230ee;border:2px solid #b48cff;color:#fff;font:900 20px var(--mac-ui);white-space:nowrap;transform:translate(-50%,-50%);animation:trc-faixa .3s ease-out;box-shadow:0 0 30px #b48cff88}
+/* Truco: grito em balão de quadrinho (TRUCO! SEIS! NOVE! DOZE!) com tranco na mesa, e o placar de tentos em palitos de fósforo. */
+.trc-feltro.tranco {animation:trc-tranco .45s cubic-bezier(.3,1.8,.5,1)}
+@keyframes trc-tranco {15% {transform:translate(-6px,3px) rotate(-.6deg)} 35% {transform:translate(6px,-2px) rotate(.5deg)} 55% {transform:translate(-3px,1px)} 75% {transform:translate(2px,0)}}
+.trc-balao {position:absolute;left:50%;z-index:3;margin:0;padding:12px 26px;border:4px solid #1a1a1a;border-radius:24px;background:#fff6d6;color:#d2231a;font:900 clamp(30px,5vw,52px)/1 var(--mac-ui);letter-spacing:1px;
+  text-shadow:2px 2px 0 #ffd35c,4px 4px 0 #1a1a1a;white-space:nowrap;pointer-events:none;transform:translateX(-50%);animation:trc-balao 1.9s cubic-bezier(.2,1.6,.4,1) forwards}
+.trc-balao::after {content:"";position:absolute;left:46%;width:22px;height:22px;background:#fff6d6;border:4px solid #1a1a1a;border-top:0;border-left:0}
+.trc-balao.cima {top:58px}
+.trc-balao.cima::after {top:-13px;transform:rotate(-135deg)}
+.trc-balao.baixo {bottom:26px}
+.trc-balao.baixo::after {bottom:-13px;transform:rotate(45deg)}
+.trc-balao.aceitou {color:#1f8a4a;text-shadow:2px 2px 0 #b8f5c9,4px 4px 0 #1a1a1a}
+.trc-balao.correu {color:#6b7280;text-shadow:2px 2px 0 #e5e7eb,4px 4px 0 #1a1a1a;font-size:clamp(24px,4vw,40px)}
+.trc-balao.forte {background:#ffe1d6;font-size:clamp(36px,6vw,64px)}
+@keyframes trc-balao {0% {opacity:0;transform:translateX(-50%) scale(.2) rotate(-14deg)} 14% {opacity:1;transform:translateX(-50%) scale(1.15) rotate(4deg)} 22% {transform:translateX(-50%) scale(1) rotate(-2deg)} 80% {opacity:1;transform:translateX(-50%) scale(1)} 100% {opacity:0;transform:translateX(-50%) scale(.9) translateY(-12px)}}
+.trc-placar.tentos {display:grid;grid-template-columns:1fr;gap:4px;padding:8px 10px;background:linear-gradient(#2c2219,#1a130c);border:2px solid #5a3a1f;box-shadow:inset 0 0 0 1px #0008,0 4px 10px #0007}
+.trc-tentos-linha {display:grid;grid-template-columns:52px 96px 22px;align-items:center;gap:6px}
+.trc-tentos-linha small {overflow:hidden;color:#e9dcc3;font:700 10px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.trc-tentos-linha b {color:#ffd56a;font:900 16px var(--mac-ui);text-align:right;font-variant-numeric:tabular-nums}
+.trc-tentos g.novo {animation:trc-tento .5s calc(var(--k) * .12s) both cubic-bezier(.3,1.6,.5,1)}
+.trc-tentos g.novo ellipse {animation:trc-acende 1.2s calc(var(--k) * .12s) both}
+@keyframes trc-tento {from {opacity:0;translate:0 -14px}}
+@keyframes trc-acende {0%,30% {fill:#ffd35c;filter:drop-shadow(0 0 3px #ffb000)} 100% {fill:#d23a2a}}
+.trc-placar.tentos em {justify-self:center;color:#9d8f78}
+@media (prefers-reduced-motion: reduce) {.trc-feltro.tranco,.trc-balao,.trc-tentos g.novo,.trc-tentos g.novo ellipse {animation:none}}
+.dam-tomada {display:grid;place-items:center;border-radius:50%}
