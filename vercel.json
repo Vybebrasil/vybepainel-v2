@@ -41,6 +41,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/instalar", "destination": "/instalar.html" },
     { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" }
   ],
   "fluid": true,

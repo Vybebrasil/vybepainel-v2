@@ -44,6 +44,9 @@ html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
 await mkdir('dist/assets/app', { recursive: true });
 await writeFile('dist/manifest.webmanifest', await readFile('manifest.webmanifest'));
 for (const f of await readdir('assets/app')) await writeFile(`dist/assets/app/${f}`, await readFile(`assets/app/${f}`));
+// Página pública /instalar (link para mandar no grupo): ensina ou oferece a
+// instalação conforme o aparelho. Não pede login nem mostra dados.
+await writeFile('dist/instalar.html', await readFile('instalar.html'));
 // Versão do painel: o mesmo hash para a página e para /versao.json, que as abas
 // abertas conferem para se atualizar (vybe-versao.js).
 const versaoPainel = createHash('sha256').update(html).digest('hex').slice(0, 12);

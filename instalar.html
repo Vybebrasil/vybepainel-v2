@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Instalar o Vybe OS</title>
+  <meta name="description" content="O painel da equipe Vybe, com ícone na tela inicial.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/assets/app/icon-192.png">
+  <link rel="apple-touch-icon" href="/assets/app/apple-touch-icon.png">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vybe OS">
+  <meta property="og:title" content="Instalar o Vybe OS">
+  <meta property="og:description" content="O painel da equipe Vybe, com ícone na tela inicial.">
+  <meta property="og:image" content="https://vybepainel-v2.vercel.app/assets/app/icon-512.png">
+  <meta property="og:url" content="https://vybepainel-v2.vercel.app/instalar">
+  <style>
+    :root { --fundo:#000; --cartao:#111; --linha:#262626; --texto:#f5f5f4; --suave:#a8a29e;
+      --teal:#63b9b6; --laranja:#ec6b3c; --areia:#a89f8a; }
+    * { box-sizing:border-box; }
+    html, body { margin:0; background:var(--fundo); color:var(--texto); }
+    body { font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height:100vh; min-height:100dvh; display:flex; justify-content:center;
+      padding:max(32px, env(safe-area-inset-top)) 16px max(120px, env(safe-area-inset-bottom)); }
+    main { width:100%; max-width:440px; }
+    .topo { text-align:center; margin-bottom:28px; }
+    .topo img { width:96px; height:96px; border-radius:22px; border:1px solid var(--linha); }
+    h1 { font-size:26px; line-height:1.2; margin:18px 0 6px; letter-spacing:-.01em; }
+    .topo p { margin:0; color:var(--suave); }
+    .bloco { display:none; }
+    .bloco.ativo { display:block; }
+    .botao { display:block; width:100%; border:0; border-radius:14px; padding:16px; font:600 17px/1 inherit;
+      font-family:inherit; color:#000; background:var(--laranja); cursor:pointer; text-align:center; text-decoration:none; }
+    .botao:active { transform:scale(.98); }
+    .botao.secundario { background:transparent; color:var(--texto); border:1px solid var(--linha); margin-top:12px; }
+    ol { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
+    li { display:flex; gap:14px; align-items:center; background:var(--cartao); border:1px solid var(--linha);
+      border-radius:14px; padding:14px 16px; }
+    .num { flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+      font-weight:700; font-size:14px; color:#000; background:var(--teal); }
+    li b { font-weight:600; }
+    .icone { display:inline-flex; vertical-align:-5px; width:22px; height:22px; margin:0 2px; color:var(--teal); }
+    .nota { color:var(--suave); font-size:14px; margin:16px 2px 0; }
+    .ok { text-align:center; background:var(--cartao); border:1px solid var(--linha); border-radius:14px; padding:20px; margin-bottom:12px; }
+    .ok strong { display:block; font-size:18px; margin-bottom:4px; }
+    .seta { position:fixed; left:50%; bottom:max(14px, env(safe-area-inset-bottom)); transform:translateX(-50%);
+      display:none; flex-direction:column; align-items:center; color:var(--laranja); font-weight:600; font-size:14px;
+      animation:pula 1.2s ease-in-out infinite; pointer-events:none; }
+    .seta.ativo { display:flex; }
+    @keyframes pula { 50% { transform:translate(-50%, 8px); } }
+    @media (prefers-reduced-motion: reduce) { .seta { animation:none; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="topo">
+    <img src="/assets/app/icon-192.png" alt="" width="96" height="96">
+    <h1>Instalar o Vybe OS</h1>
+    <p>O painel da equipe Vybe, com ícone na tela inicial.</p>
+  </div>
+
+  <!-- Já está aberto como app. -->
+  <section class="bloco" id="ja-instalado">
+    <div class="ok"><strong>Você já está no app ✓</strong>Pode fechar esta página.</div>
+    <a class="botao" href="/">Abrir o Vybe OS</a>
+  </section>
+
+  <!-- Chrome, Edge, Samsung: o navegador oferece o botão de instalar. -->
+  <section class="bloco" id="botao">
+    <button class="botao" id="instalar" type="button">Instalar o Vybe OS</button>
+    <p class="nota">Toque em <b>Instalar</b> e confirme. O ícone aparece na tela inicial.</p>
+  </section>
+
+  <section class="bloco" id="instalou">
+    <div class="ok"><strong>Pronto, instalado ✓</strong>Procure o ícone do Vybe OS na tela inicial.</div>
+    <a class="botao secundario" href="/">Continuar no navegador</a>
+  </section>
+
+  <!-- iPhone e iPad: a Apple não deixa site mostrar botão; só pelo Compartilhar. -->
+  <section class="bloco" id="ios">
+    <ol>
+      <li><span class="num">1</span><span>Toque em <b>Compartilhar</b>
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/></svg>
+        <span id="ios-onde">na barra de baixo do Safari</span></span></li>
+      <li><span class="num">2</span><span>Role e toque em <b>Adicionar à Tela de Início</b>
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span></li>
+      <li><span class="num">3</span><span>Toque em <b>Adicionar</b>, no canto de cima</span></li>
+    </ol>
+    <p class="nota">Na primeira vez, entre com seu login dentro do app: ele não usa o login do Safari.</p>
+  </section>
+
+  <!-- Mac no Safari. -->
+  <section class="bloco" id="mac">
+    <ol>
+      <li><span class="num">1</span><span>No menu do Safari, clique em <b>Arquivo</b></span></li>
+      <li><span class="num">2</span><span>Clique em <b>Adicionar ao Dock…</b></span></li>
+      <li><span class="num">3</span><span>Clique em <b>Adicionar</b></span></li>
+    </ol>
+    <p class="nota">Não aparece? Atualize o macOS (Sonoma ou mais novo) ou abra este link no Chrome.</p>
+  </section>
+
+  <!-- Navegador de dentro de outro app (WhatsApp, Instagram): não instala. -->
+  <section class="bloco" id="embutido">
+    <ol>
+      <li><span class="num">1</span><span>Toque nos <b>⋯</b> ou <b>⋮</b> no canto da tela</span></li>
+      <li><span class="num">2</span><span>Escolha <b id="embutido-alvo">Abrir no navegador</b></span></li>
+      <li><span class="num">3</span><span>Lá, siga o passo que aparecer nesta página</span></li>
+    </ol>
+    <p class="nota">Dentro do WhatsApp ou do Instagram não dá para instalar: precisa abrir no navegador do celular.</p>
+  </section>
+
+  <!-- Android ou computador sem o botão: pelo menu do navegador. -->
+  <section class="bloco" id="menu">
+    <ol>
+      <li><span class="num">1</span><span id="menu-passo1">Toque no menu <b>⋮</b> do navegador</span></li>
+      <li><span class="num">2</span><span id="menu-passo2">Escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b></span></li>
+      <li><span class="num">3</span><span>Confirme</span></li>
+    </ol>
+    <p class="nota" id="menu-nota">Não achou a opção? Abra este link no Chrome.</p>
+  </section>
+</main>
+<div class="seta" id="seta" aria-hidden="true">Compartilhar
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg>
+</div>
+<script>
+(function () {
+  var ua = navigator.userAgent;
+  var mostrar = function (id) {
+    document.querySelectorAll('.bloco').forEach(function (b) { b.classList.toggle('ativo', b.id === id); });
+  };
+  var app = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  // iPad novo se apresenta como Mac; o toque denuncia.
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var android = /Android/.test(ua);
+  var embutido = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/.test(ua);
+  var pedido = null;
+
+  if (app) return mostrar('ja-instalado');
+  if (embutido) {
+    document.getElementById('embutido-alvo').textContent = ios ? 'Abrir no Safari' : 'Abrir no Chrome';
+    return mostrar('embutido');
+  }
+  if (ios) {
+    if (/CriOS|FxiOS|EdgiOS/.test(ua)) {
+      document.getElementById('ios-onde').textContent = 'na barra de endereço, à direita';
+    } else if (/iPhone|iPod/.test(ua)) {
+      document.getElementById('seta').classList.add('ativo');
+    } else {
+      document.getElementById('ios-onde').textContent = 'no alto da tela';
+    }
+    return mostrar('ios');
+  }
+  if (/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua)) return mostrar('mac');
+
+  // Chrome/Edge/Samsung avisam que dá para instalar; sem o aviso, ensina pelo menu.
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    pedido = e;
+    mostrar('botao');
+  });
+  window.addEventListener('appinstalled', function () { mostrar('instalou'); });
+  document.getElementById('instalar').addEventListener('click', function () {
+    if (!pedido) return;
+    pedido.prompt();
+    pedido.userChoice.then(function (r) { if (r.outcome === 'accepted') mostrar('instalou'); });
+    pedido = null;
+  });
+
+  if (/SamsungBrowser/.test(ua)) {
+    document.getElementById('menu-passo1').innerHTML = 'Toque no menu <b>≡</b>, embaixo à direita';
+    document.getElementById('menu-passo2').innerHTML = 'Escolha <b>Adicionar página a</b> → <b>Tela inicial</b>';
+  } else if (!android) {
+    document.getElementById('menu-passo1').innerHTML = 'Clique no ícone de instalar <b>⊕</b> na barra de endereço, ou no menu <b>⋮</b>';
+    document.getElementById('menu-passo2').innerHTML = 'Escolha <b>Instalar Vybe OS</b>';
+    document.getElementById('menu-nota').textContent = /Firefox/.test(ua)
+      ? 'O Firefox não instala sites como app: abra este link no Chrome ou no Edge.'
+      : 'Não achou? Abra este link no Chrome ou no Edge.';
+  }
+  setTimeout(function () { if (!pedido && !document.querySelector('.bloco.ativo')) mostrar('menu'); }, 1500);
+})();
+</script>
+</body>
+</html>
