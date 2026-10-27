@@ -103,7 +103,9 @@ async function escritorioApi(acao, corpo, consulta = null) {
       cache: "no-store",
       method: corpo ? "POST" : "GET",
       headers: corpo ? { "Content-Type": "application/json" } : {},
-      body: corpo ? JSON.stringify({ ...corpo, acao }) : undefined,
+      // A rota vai no endereço; o "acao" do próprio pedido (aceitar, recusar,
+      // desistir…) não pode ser trocado pelo nome da rota.
+      body: corpo ? JSON.stringify({ acao, ...corpo }) : undefined,
     },
   );
   // Resposta sem JSON (página de erro da hospedagem, envio grande demais):
