@@ -49,9 +49,9 @@ test('só a capa: avisa que o vídeo ainda não foi anexado', () => {
   assert.match(c.capaDaPrevia(m[0]), /só a capa/);
 });
 
-test('link de pasta vira "Abrir o vídeo"; post comum não ganha etiqueta de capa', () => {
+test('link que não toca (pasta fora do Drive) vira "Abrir o vídeo"; post comum não ganha etiqueta de capa', () => {
   const c = contexto();
-  const m = c.materialDaPeca({ assets: [capa], updates: [entrega('https://drive.google.com/drive/folders/PASTA123')] }, { formato: 'Reels' });
+  const m = c.materialDaPeca({ assets: [capa], updates: [entrega('https://www.dropbox.com/scl/fo/abc123/pasta-do-dia')] }, { formato: 'Reels' });
   assert.equal(m[0].tipo, 'link');
   assert.match(c.videoDaPrevia(m[0]), /Abrir o vídeo/);
   const post = c.materialDaPeca({ assets: [{ ...capa, name: 'card-promo.png' }], updates: [] }, { formato: 'Card' });
@@ -62,4 +62,15 @@ test('YouTube e mp4 direto também tocam', () => {
   const c = contexto();
   assert.equal(c.fonteDoVideo({ abrir: 'https://youtube.com/shorts/abcdefghijk' }).embed, 'https://www.youtube.com/embed/abcdefghijk');
   assert.equal(c.fonteDoVideo({ abrir: 'https://cdn.exemplo.com/v.mp4' }).src, 'https://cdn.exemplo.com/v.mp4');
+});
+
+test('link de pasta do Drive: a prévia procura o vídeo dentro da pasta e escolhe o da peça', () => {
+  const c = contexto();
+  const m = c.materialDaPeca({ assets: [capa], updates: [entrega('https://drive.google.com/drive/u/0/folders/1PastaDia26Clientes')] }, { formato: 'Reels' });
+  assert.equal(m[0].tipo, 'pasta');
+  assert.equal(m[0].pasta, '1PastaDia26Clientes');
+  const peca = { cliente: 'Hebravet', nome: 'Reels - Rotina interna' };
+  const outro = { nome: 'VOA bastidores.mp4', caminho: 'VOA' };
+  const certo = { nome: 'rotina interna final.mp4', caminho: 'HEBRAVET' };
+  assert.ok(c.notaDoVideo(certo, peca) > c.notaDoVideo(outro, peca));
 });
