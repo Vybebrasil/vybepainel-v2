@@ -7,6 +7,8 @@ const salas = [
   "producao",
   "reuniao",
   "foco",
+  // Conversa escrita do subsolo do Escritório (easter egg do Centro de Operação).
+  "subsolo",
 ];
 const estados = ["disponivel", "foco", "reuniao", "ausente"];
 // Zona do mapa (sala individual ou espaço); fora delas, corredor ("").
@@ -32,7 +34,7 @@ export function fonteMusica(f) {
 const musicaVazia = () => ({ fila: [], indice: 0, tocando: false, posicao: 0, atualizado: Date.now(), revisao: 0, por: null });
 const chaveMusica = (zona) => (zona === "lounge" ? "musica" : "musica:" + zona);
 const posicaoAgora = (m, agora = Date.now()) => Math.max(0, m.posicao + (m.tocando ? Math.max(0, agora - m.atualizado) / 1000 : 0));
-const zonaValida = (z) => (/^(sala-([0-9]|1[01])(-andar-1)?|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge|operacao)$/.test(String(z || "")) ? String(z) : "");
+const zonaValida = (z) => (/^(sala-([0-9]|1[01])(-andar-1)?|auditorio|reuniao|recepcao|cafe|academia|foco|jogos|producao|lounge|operacao|subsolo)$/.test(String(z || "")) ? String(z) : "");
 export async function verificarEntrada(token, segredo, agora = Date.now()) {
   try {
     if (

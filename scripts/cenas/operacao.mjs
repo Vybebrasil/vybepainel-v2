@@ -35,7 +35,7 @@ export default function operacao() {
       "exe_globe", "exe_map", "room_cof15_planter", "classic9_plant", "modern_c17_display",
       // As duas alas: cada carteira com piso, parede, divisória, mesa e cadeira próprias.
       "ducket_c25_warmfloor", "darkmodern_c20_floor", "hygge_c25_wallpaper2", "darkmodern_c20_glassblockwall",
-      "darkmodern_c20_desk"],
+      "darkmodern_c20_desk", "hween_c20_secretbkshelf"],
   });
   s.casca(null, 1, ["xmas_c16_woodtile", 0]);
 
@@ -122,7 +122,10 @@ export default function operacao() {
   s.canto("mesa de aprovação", { funcao: "o head revisa e manda o planejamento para o cliente", destaque: "army_c15_contable" });
   s.mesa({ x: 3, y: 14, tampo: "army_c15_contable", cadeira: "army_c15_leatherchr", lados: ["esquerda", "direita", "frente"], sobre: ["modern_c17_reads"] });
   s.emCima(4, 14, "room_cof15_cup2");
-  s.por("army_c15_bookshelf", 0, 11);
+  // A estante do canto é secreta (Paulo, 27/10/2026): quem administra puxa o
+  // livro torto e desce para o subsolo (vybe-escritorio-subsolo.js). Para o
+  // resto do time é só uma estante.
+  s.por("hween_c20_secretbkshelf", 0, 10, { dir: 2 });
   s.por("exe_globe", 6, 16);
   s.por("modern_c17_floorlamp", 8, 16);
   s.por("army_c15_plant", 0, 17);

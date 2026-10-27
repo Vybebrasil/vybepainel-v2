@@ -737,10 +737,13 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         if (e.payload.chamado) { escritorioTocar(740, 0.15, 0.06); setTimeout(() => escritorioTocar(988, 0.15, 0.06), 160); aceitarConviteEscritorio(); }
       }
       if (e.type === "presence:update") {
-        avisarEntradasEscritorio(escritorio.online, e.payload);
-        if (typeof convidadoPresenca === "function") convidadoPresenca(escritorio.online, e.payload);
+        // O subsolo é segredo: quem está fora não fica sabendo de quem está lá.
+        escritorio.onlineTodos = e.payload;
+        const visiveis = escritorioPresencaVisivel(e.payload);
+        avisarEntradasEscritorio(escritorio.online, visiveis);
+        if (typeof convidadoPresenca === "function") convidadoPresenca(escritorio.online, visiveis);
         const canalAntesDaLista = escritorioCanal();
-        escritorio.online = e.payload;
+        escritorio.online = visiveis;
         // Convidado entrou ou saiu da sua sala: a conversa da sala muda junto.
         if (escritorio.conectado && escritorioCanal() !== canalAntesDaLista) escritorioConversaAutomatica();
         // Alguém entrou ou saiu da sua sala: passa (ou deixa) de ser ouvido.
@@ -1258,6 +1261,8 @@ function escritorioChegar() {
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = a.sala;
   escritorio.zona = a.id;
+  // Entrar ou sair do subsolo muda quem esta tela pode ver.
+  if (escritorio.onlineTodos) escritorio.online = escritorioPresencaVisivel(escritorio.onlineTodos);
 }
 // A pessoa está na mesma cena que eu (a mesma sala, ou a Praça)? Na Praça
 // a zona é vazia; quem está numa sala não aparece lá.
@@ -1757,6 +1762,13 @@ function escritorioLugarDe(p) {
   const zona = eu ? escritorio.zona : String(p.zona || "");
   return (zona && escritorioAmbienteDoQuarto(zona)) || ESCRITORIO_PRACA;
 }
+// Presença que esta tela pode mostrar: quem está numa sala escondida (o
+// subsolo) só aparece para quem também está lá dentro (Paulo, 27/10/2026:
+// "só vê quem tá nela quem tá dentro").
+function escritorioPresencaVisivel(lista) {
+  const escondida = (z) => Boolean(z && ESCRITORIO_PLANTA.ambientes.find((a) => a.id === z)?.oculta);
+  return (lista || []).filter((p) => String(p.id) === String(escritorio.base?.eu) || !escondida(String(p.zona || "")) || String(p.zona) === escritorio.zona);
+}
 // "Ir" ao lado de alguém: anda até um ladrilho livre ao lado da pessoa. Em
 // outra cena (ela num quarto, ou eu num quarto e ela fora), vai primeiro até
 // lá e continua ao chegar.
@@ -1785,6 +1797,9 @@ function escritorioIrParaAmbiente(id, manterLista = false) {
   if (id === "praca") { escritorioIrParaPraca(); return; }
   const a = escritorioAmbienteDoQuarto(id);
   if (!a || a.id === escritorio.quarto) return;
+  // Sala escondida só se entra pela porta secreta (descerAoSubsoloEscritorio).
+  if (a.oculta && !(escritorio.base?.admin && escritorio.pelaPortaSecreta)) return;
+  escritorio.pelaPortaSecreta = false;
   escritorioEntrarNoQuarto(a.id);
 }
 // Onde a pessoa está no mapa (ladrilho), a partir da presença em porcentagem.
@@ -1932,7 +1947,7 @@ function atualizarPessoasEscritorio() {
       ${escritorio.conectado ? `<ul class="ofc-p-grupos">${ordem.map(grupo).join("") || '<li class="ofc-p-vazio">Ninguém além de você por aqui.</li>'}</ul>` : '<p class="ofc-p-vazio">Entre no escritório para ver quem está onde.</p>'}
       ${fora.length ? `<details class="ofc-p-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary>Fora do escritório <small>${fora.length}</small></summary><ul>${fora.map((p) => linha(p, null)).join("")}</ul></details>` : ""}</section>`;
     // 4. Ir para
-    const comuns = [ESCRITORIO_PRACA, ...A.filter((a) => !a.pessoal && a.id !== "operacao")];
+    const comuns = [ESCRITORIO_PRACA, ...A.filter((a) => !a.pessoal && a.id !== "operacao" && !a.oculta)];
     const ficha = (a) => {
       const n = gente(a).length;
       return `<button type="button" class="ofc-p-sala${a.id === meu ? " aqui" : ""}" style="--sala:${corDe(a)}" onclick="escritorioIrParaAmbiente('${a.id}')" aria-label="${safeText(a.nome)}${n ? `, ${plural(n)}` : ""}${a.id === meu ? ", você está aqui" : ""}"><span class="ofc-p-sala-arte" aria-hidden="true">${escritorioEmblemaSala(a.id)}</span><span class="ofc-p-sala-nome">${safeText(a.nome)}</span>${n ? `<small title="${plural(n)}">${n}</small>` : ""}${a.id === meu ? '<em class="ofc-p-pino">você</em>' : ""}</button>`;
@@ -1995,7 +2010,8 @@ function escritorioListaSalasHtml() {
     return `<article class="ofc-cartao" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}"><div class="ofc-cartao-topo"><i></i><h3>${safeText(a.nome)}</h3><small>${aqui.length} ${aqui.length === 1 ? "pessoa" : "pessoas"}</small></div><ul>${aqui.map((p) => `<li>${escritorioAvatar(p.perfil, p.nome)}<span><b>${safeText(p.nome)}</b><small>${escritorioStatusHtml(p.status)}</small></span></li>`).join("")}</ul><button type="button" class="ofc-mini" onclick="escritorioIrParaAmbiente('${a.id}',true)" ${a.id === meu ? "disabled" : ""}>${a.id === meu ? "Você está aqui" : "Ir para cá"}</button></article>`;
   };
   // Mesma ordem da lateral: Praça e espaços comuns primeiro, depois os quartos.
-  const A = [ESCRITORIO_PRACA, ...ESCRITORIO_PLANTA.ambientes.filter((a) => !a.pessoal), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal)];
+  // O subsolo é segredo: não entra em lista nenhuma, nem para quem está lá.
+  const A = [ESCRITORIO_PRACA, ...ESCRITORIO_PLANTA.ambientes.filter((a) => !a.pessoal && !a.oculta), ...ESCRITORIO_PLANTA.ambientes.filter((a) => a.pessoal)];
   const comGente = A.filter((a) => a.id === meu || pessoas.some((p) => escritorioLugarDe(p).id === a.id));
   const vazios = A.filter((a) => !comGente.includes(a));
   return `${musica}${comGente.map(cartao).join("")}<section class="ofc-vazios"><h4>Outros lugares</h4><div>${vazios.map((a) => `<button type="button" class="ofc-mini" style="--sala:${a.cor || ESCRITORIO_COR_SALA[a.sala]}" onclick="escritorioIrParaAmbiente('${a.id}',true)">${safeText(a.nome)}</button>`).join("")}</div></section>`;
@@ -2224,7 +2240,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
+    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof escritorioOcuparSubsolo === "function") escritorioOcuparSubsolo(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -2307,6 +2323,7 @@ function escritorioMudouLugar(x, y, forcar = false) {
   escritorio.perfil = { ...escritorio.perfil, ...escritorioParaPorcentagem(x, y) };
   escritorio.sala = sala;
   escritorio.zona = zona;
+  if (escritorio.onlineTodos) escritorio.online = escritorioPresencaVisivel(escritorio.onlineTodos);
   // Como no SoWork: sair da zona encerra a conversa dela. Entrar numa sala
   // (decisão do Paulo) já entra na conversa dela com o microfone ligado.
   // Pisar na porta ou no corredor por um instante não derruba a conversa:
@@ -3323,7 +3340,7 @@ function teletransportarParEscritorio(m, par) {
 function abrirTeleporteEscritorio(m) {
   const par = escritorioParDoTeleporte(m);
   if (par) return teletransportarParEscritorio(m, par);
-  const lugares = [...ESCRITORIO_PLANTA.ambientes, ESCRITORIO_PRACA].filter((a) => a.id !== (escritorio.quarto || "praca"));
+  const lugares = [...ESCRITORIO_PLANTA.ambientes, ESCRITORIO_PRACA].filter((a) => a.id !== (escritorio.quarto || "praca") && !a.oculta);
   escritorio.teleporte = m;
   openWorkflowModal(`<div class="workflow-kicker">Teleporte</div><h2 class="workflow-title">Para onde?</h2><p>A cabine leva direto para a sala escolhida.</p><div class="workflow-actions ofc-teleporte">${lugares.map((a) => `<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();teletransportarEscritorio('${safeText(a.id)}')">${safeText(a.nome)}</button>`).join("")}</div>`);
 }
@@ -3695,6 +3712,9 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_GARRAFA.test(m.classe)) return { item: m, texto: "Girar a garrafa", fazer: () => girarGarrafaEscritorio(m) };
   if (ESCRITORIO_ROLETA.test(m.classe)) return { item: m, texto: "Girar a roleta", fazer: () => girarRoletaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
+  // A estante secreta do Centro e o livro do subsolo (vybe-escritorio-subsolo.js).
+  const doSubsolo = typeof escritorioAcaoDoSubsolo === "function" ? escritorioAcaoDoSubsolo(m) : null;
+  if (doSubsolo) return doSubsolo;
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
@@ -3767,7 +3787,7 @@ function escritorioAcoesPerto() {
     return { item: comida, texto: escritorio.pose === tipo ? (tipo === "bebida" ? "Largar a bebida" : "Largar o lanche") : (tipo === "bebida" ? "Pegar uma bebida" : "Pegar um lanche"),
       fazer: () => definirPoseEscritorio(escritorio.pose === tipo ? "" : tipo) };
   }
-  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
+  const usavel = perto.find((m) => ESCRITORIO_DADO.test(m.classe) || ESCRITORIO_TELEPORTE.test(m.classe) || (typeof escritorioEhPecaDoSubsolo === "function" && escritorioEhPecaDoSubsolo(m) && escritorio.base?.admin) || mapaEhPortao(m.classe) && !m.altura || /floor_switch/.test(m.classe)
     || ESCRITORIO_GARRAFA.test(m.classe) || ESCRITORIO_ROLETA.test(m.classe)
     || ESCRITORIO_MAO_UNICA.test(m.classe) && (() => { const f = escritorioFrenteDoMovel(m); return f.x === p.x && f.y === p.y; })());
   if (usavel) return escritorioAcaoDoMovel(usavel);

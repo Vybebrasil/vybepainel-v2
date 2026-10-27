@@ -230,5 +230,11 @@ export async function listarSubsolo(db) {
     LEFT JOIN LATERAL (SELECT em, motivo FROM vybe_pessoa_eventos WHERE pessoa_id=p.id AND para='Inativo' ORDER BY em DESC LIMIT 1) e ON TRUE
     WHERE p.ativo=FALSE AND p.apagado_em IS NULL AND (p.email IS NOT NULL OR p.senha_hash IS NOT NULL OR p.desativado_em IS NOT NULL)
     ORDER BY COALESCE(p.desativado_em, e.em) DESC NULLS LAST, p.nome`;
+  // O boneco que a pessoa usava no Escritório, para descer com a mesma roupa.
+  if (pessoas.length && await existeTabela(db, 'vybe_escritorio_perfis')) {
+    const figuras = new Map((await db`SELECT pessoa_id::text AS id, preferencias->>'figura' AS figura
+      FROM vybe_escritorio_perfis WHERE pessoa_id = ANY(${pessoas.map((p) => p.id)}::bigint[])`).map((f) => [f.id, f.figura]));
+    for (const p of pessoas) p.figura = figuras.get(p.id) || null;
+  }
   return { ok: true, clientes, pessoas };
 }
