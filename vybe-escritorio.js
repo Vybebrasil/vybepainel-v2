@@ -2930,7 +2930,7 @@ function abrirMenuPessoaEscritorio(id) {
   const card = document.getElementById("office-movel-card");
   if (card) {
     // O cartão do jogador (o mesmo do mouse por cima), com os botões.
-    const botoes = `<div class="cj-botoes"><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
+    const botoes = `<div class="cj-botoes"><button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();abrirFichaEscritorio('${sid}')">Ficha completa</button>${escritorio.base?.paulo ? `<button type="button" class="ofc-mini cj-moedas" onclick="fecharFichaMovelEscritorio();abrirMoedasEscritorio('${sid}')">Dar VybeCoins</button>` : ""}<button type="button" class="ofc-mini" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null)" aria-label="Fechar">Fechar</button></div>`;
     const pintar = () => { if (escritorio.pessoaSelecionada === String(id) && !card.hidden) card.innerHTML = escritorioCartaoJogadorHtml(id) + botoes; };
     card.classList.add("cj-no-clique");
     card.innerHTML = escritorioCartaoJogadorHtml(id) + botoes;
@@ -2942,6 +2942,8 @@ function abrirMenuPessoaEscritorio(id) {
   const acoes = eu
     ? [["Acenar", "definirPoseEscritorio('acenar')"], ["Sentar no chão", "sentarNoChaoEscritorio()"], ["Personalizar", "personalizarEscritorio()"]]
     : [...(online ? [["Ir até", `escritorioIrAte('${sid}')`]] : []), ["Deixar recado", `abrirRecadosEscritorio('${sid}')`], ["Dar presente", `abrirPresenteEscritorio('${sid}')`]];
+  // Só Paulo (o servidor confere de novo): VybeCoins direto do boneco.
+  if (escritorio.base?.paulo) acoes.push(["Dar VybeCoins", `abrirMoedasEscritorio('${sid}')`]);
   const menu = document.getElementById("office-menu-pessoa");
   if (!menu) return;
   menu.innerHTML = `<b>${safeText(pessoa.nome.split(" ")[0])}</b>${acoes.map(([t, f]) => `<button type="button" role="menuitem" onclick="fecharFichaMovelEscritorio();escritorio.mapa?.selecionarPessoa(null);${f}">${safeText(t)}</button>`).join("")}`;
