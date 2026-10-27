@@ -6,9 +6,9 @@ const negar=()=>Object.assign(new Error('Conversa ou participantes não autoriza
 const semVinculo=()=>Object.assign(negar(),{codigo:'WHATSAPP_NAO_VINCULADO'});
 export function validarConversa(jid,c,config=process.env,agora=Date.now()) {
  const grupos=new Set(String(config.VYBE_AI_GRUPOS_IDS||'').split(',').map(x=>x.trim()).filter(x=>/^[0-9-]+@g\.us$/.test(x)));
- if(!grupos.size||grupos.size>8)throw negar();
+ if(!grupos.size||grupos.size>12)throw negar();
  if(!validarJid(jid)||!c||!['privado','grupo'].includes(c.tipo)||!Number.isSafeInteger(c.observado_em)||Math.abs(agora-c.observado_em)>30000)throw negar();
- if(!Array.isArray(c.grupos_remetente)||!c.grupos_remetente.length||c.grupos_remetente.length>8||new Set(c.grupos_remetente).size!==c.grupos_remetente.length||c.grupos_remetente.some(x=>!grupos.has(x)))throw negar();
+ if(!Array.isArray(c.grupos_remetente)||!c.grupos_remetente.length||c.grupos_remetente.length>12||new Set(c.grupos_remetente).size!==c.grupos_remetente.length||c.grupos_remetente.some(x=>!grupos.has(x)))throw negar();
  if(!Array.isArray(c.participantes)||!c.participantes.length||c.participantes.length>100||c.participantes.some(x=>!validarJid(x))||new Set(c.participantes).size!==c.participantes.length||!c.participantes.includes(jid))throw negar();
  if(c.tipo==='privado'&&(c.participantes.length!==1||c.grupo_id))throw negar();
  if(c.tipo==='grupo'&&(!grupos.has(c.grupo_id)||!c.grupos_remetente.includes(c.grupo_id)))throw negar();
