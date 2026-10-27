@@ -162,7 +162,7 @@ async function copiarConviteEscritorio() {
 }
 async function cancelarConvitesEscritorio() {
   const status = document.getElementById("office-convite-status");
-  if (!confirm("Cancelar todos os convites que você mandou? Quem entrou por eles sai do escritório.")) return;
+  if (!await confirmarNoPainel("Cancelar todos os convites que você mandou? Quem entrou por eles sai do escritório.")) return;
   try { await escritorioApi("convite-cancelar", {}); document.getElementById("office-convite")?.close(); escritorioAviso("Convites cancelados. Para chamar alguém de novo, gere um link novo."); }
   catch (e) { if (status) status.textContent = e.message; }
 }

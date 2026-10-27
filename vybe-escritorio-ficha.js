@@ -782,12 +782,12 @@ async function salvarPinturaEscritorio(payload=escritorioPayloadDecoracao()) {
     escritorioAviso("A pintura não foi salva: " + e.message);
   }
 }
-function abrirEstiloSalaEscritorio() {
+async function abrirEstiloSalaEscritorio() {
   const mesa = escritorioMinhaMesa();
   if (!mesa) return escritorioAviso("Você ainda não tem sala no escritório.");
   document.getElementById("office-ficha")?.close?.();
   if (!escritorio.edicao || escritorio.edicao.camada !== mesa.ambiente.id) {
-    if (escritorio.edicao?.mudou && !confirm("Descartar as mudanças desta edição?")) return;
+    if (escritorio.edicao?.mudou && !await confirmarNoPainel("Descartar as mudanças desta edição?")) return;
     escritorio.edicao = null;
     abrirEditorEscritorio(mesa.ambiente.id);
   }
@@ -956,17 +956,23 @@ function escritorioMeusGuardados() {
     .map((i) => ({ classe: i.classe, livres: Number(i.quantidade) - colocados(i.classe) }))
     .filter((i) => i.livres > 0);
 }
-function abrirPresenteEscritorio(id) {
+// O presente mostrava o nome interno do móvel ("shelves_norja"): a janela era
+// montada antes de o catálogo chegar e não se refazia. Agora espera o catálogo
+// e mostra cada móvel como no inventário, com a imagem e o nome.
+async function abrirPresenteEscritorio(id) {
   const pessoa = escritorio.base.equipe.find((p) => String(p.id) === String(id));
   if (!pessoa) return;
+  if (typeof carregarCatalogoEscritorio === "function" && !(escritorioCatalogo || []).length) {
+    try { await carregarCatalogoEscritorio(); } catch {}
+  }
   const lista = escritorioMeusGuardados();
   const nome = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe; };
-  openWorkflowModal(`<div class="workflow-kicker">Presente</div><h2 class="workflow-title">Dar um móvel para ${safeText(String(pessoa.nome).split(" ")[0])}</h2>
-${lista.length ? `<p>Escolha um móvel guardado (fora do quarto). Ele sai do seu inventário e vai para o da pessoa.</p><div class="workflow-actions ofc-teleporte">${lista.map((i) => `<button type="button" class="workflow-secondary" onclick="darPresenteEscritorio('${safeText(String(id))}','${safeText(i.classe)}',this)">${safeText(nome(i.classe))}${i.livres > 1 ? ` · ${i.livres} guardados` : ""}</button>`).join("")}</div>`
+  const primeiro = String(pessoa.nome).split(" ")[0];
+  openWorkflowModal(`<div class="workflow-kicker"><span>Presente</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Dar um móvel para ${safeText(primeiro)}</h2>
+${lista.length ? `<p class="workflow-copy">Escolha um móvel guardado (fora do quarto). Ele sai do seu inventário e vai para o da pessoa.</p><div class="ofc-presente-grade">${lista.map((i) => `<button type="button" class="ofc-presente-movel" onclick="darPresenteEscritorio('${safeText(String(id))}','${safeText(i.classe)}',this)">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(i.classe) : ""}<b>${safeText(nome(i.classe))}</b><small>${i.livres > 1 ? `${i.livres} guardados` : "1 guardado"}</small></button>`).join("")}</div>`
     : `<p class="ofc-nota">Você não tem móveis guardados para dar. Os essenciais grátis não contam; para dar um móvel que está no quarto, guarde-o antes (editor → Guardar).</p>`}
 <p class="ofc-erro" id="office-presente-erro" role="alert"></p>
 <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button></div>`);
-  if (typeof carregarCatalogoEscritorio === "function" && !escritorioCatalogo) carregarCatalogoEscritorio();
 }
 async function darPresenteEscritorio(para, classe, botao) {
   if (botao) botao.disabled = true;

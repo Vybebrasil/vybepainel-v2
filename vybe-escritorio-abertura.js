@@ -262,7 +262,7 @@ async function criadorComprarRoupas() {
   const saldo = Number(escritorio.base?.economia?.saldo || 0);
   const erro = document.getElementById("abr-erro");
   if (total > saldo) { escritorioAviso(`Faltam ${(total - saldo).toLocaleString("pt-BR")} VybeCoins para estas peças. Troque alguma peça ou junte mais moedas.`); return; }
-  if (!confirm(`Comprar ${faltam.length === 1 ? "1 peça" : faltam.length + " peças"} por ${total.toLocaleString("pt-BR")} VybeCoins?`)) return;
+  if (!await confirmarNoPainel(`Comprar ${faltam.length === 1 ? "1 peça" : faltam.length + " peças"} por ${total.toLocaleString("pt-BR")} VybeCoins?`)) return;
   try {
     for (const f of faltam) {
       const r = await escritorioApi("comprar", { classe: f.classe, chave: crypto.randomUUID() });
@@ -336,7 +336,7 @@ function criadorKitDasFaltas(faltam) {
 async function criadorComprarKit(chave, eSeguir = false) {
   const k = criador.roupas?.kits?.find((x) => x.chave === chave);
   const d = k && criadorKitDoCorpo(k);
-  if (!k || !confirm(`Comprar ${k.nome} por ${d.preco.toLocaleString("pt-BR")} VybeCoins?`)) return;
+  if (!k || !await confirmarNoPainel(`Comprar ${k.nome} por ${d.preco.toLocaleString("pt-BR")} VybeCoins?`)) return;
   try {
     const r = await escritorioApi("comprar-kit", { kit: chave, chave: crypto.randomUUID(), corpo: d.g });
     if (r.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };

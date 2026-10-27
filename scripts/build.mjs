@@ -30,11 +30,13 @@ const asset = async (code, ext, prefixo='painel') => {
 const estilo = await asset(css.code, 'css');
 const appearance = await transform(await readFile('vybe-appearance.css','utf8'), { loader: 'css', minify: true });
 const appearancePath = await asset(appearance.code, 'css', 'appearance');
+const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loader: 'css', minify: true });
+const padraoPath = await asset(padrao.code, 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
 html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
   (_,fonte) => `<script defer src="${caminhos.get(fonte)}"></script>`);
-html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath);
+html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');

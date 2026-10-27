@@ -604,6 +604,30 @@ function headsDoClienteHtml(texto) {
 // tela escura elas parecem um aviso de erro. Estas usam a mesma lingua do resto,
 // e ficam por cima do painel de edicao em vez de substitui-lo — cancelar devolve
 // a tela de onde a pessoa veio.
+// O navegador perguntava com caixinhas cinzas (confirm/prompt) no meio do
+// painel escuro. As duas funções abaixo fazem a mesma pergunta na janela do
+// painel: a primeira frase vira o título, o resto vira o texto, o botão leva o
+// verbo da pergunta e fica vermelho quando a ação tira ou apaga algo.
+// confirmarNoPainel devolve true/false; nomearNoPainel devolve o texto ou null,
+// exatamente como confirm e prompt devolviam.
+const VERBOS_DE_PERIGO = /^(Tirar|Apagar|Remover|Descartar|Sair sem salvar|Cancelar todos|Limpar|Mover o arquivo|Vender|Soltar)/i;
+function partirPergunta(mensagem) {
+  const linhas = String(mensagem || '').split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  return { titulo: linhas[0] || 'Confirmar?', texto: linhas.slice(1).join(' ') };
+}
+function confirmarNoPainel(mensagem, opcoes = {}) {
+  const { titulo, texto } = partirPergunta(mensagem);
+  const verbo = (titulo.match(/^(Comprar|Vender|Tirar|Apagar|Remover|Descartar|Guardar|Recuperar|Voltar|Mover|Vestir|Salvar|Reabrir|Aprovar|Limpar|Soltar|Fechar|Cancelar todos)/i) || [])[0];
+  return perguntarNoPainel({
+    titulo, texto,
+    confirmar: opcoes.confirmar || (verbo ? verbo.charAt(0).toUpperCase() + verbo.slice(1).toLowerCase() : 'Confirmar'),
+    perigo: opcoes.perigo ?? VERBOS_DE_PERIGO.test(titulo),
+  });
+}
+function nomearNoPainel(rotulo, valor = '') {
+  const { titulo, texto } = partirPergunta(rotulo);
+  return perguntarNoPainel({ titulo: titulo.replace(/:\s*$/, ''), texto, confirmar: 'Salvar', campo: { valor: valor ?? '', dica: '' } });
+}
 function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null, larga = false }) {
   const focoAnterior = document.activeElement;
   return new Promise((resolve) => {
