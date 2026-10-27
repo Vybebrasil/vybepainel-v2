@@ -2586,6 +2586,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   };
   el.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest("button")) return;
+    // Baú sobre a cabeça coberto por outra coisa (parede, móvel, recorte): o
+    // apertar na área dele abre o baú em vez de andar (Paulo, 27/10/2026: o
+    // boneco andava e o baú ia junto).
+    if (bauNoPonto(e.clientX, e.clientY)) { e.preventDefault(); const bau = pessoas.get(bauDe).bau; bau.info?.aoClicar?.(bau); return; }
     inercia = null;
     // Editor: apertar num móvel da área em edição pega o móvel (em vez de
     // arrastar o mapa); soltar larga onde o mouse estiver.
@@ -3028,6 +3032,12 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     p.bau.querySelector("b").textContent = info.numero > 99 ? "99+" : info.numero ? String(info.numero) : "";
     p.bau.setAttribute("aria-label", info.rotulo || "Abrir o baú");
     posicionarBau(p);
+  }
+  function bauNoPonto(x, y, folga = 12) {
+    const b = bauDe && pessoas.get(bauDe)?.bau;
+    if (!b) return false;
+    const r = b.getBoundingClientRect();
+    return r.width > 0 && x >= r.left - folga && x <= r.right + folga && y >= r.top - folga && y <= r.bottom + folga;
   }
   function posicionarBau(p) {
     p.bau.style.left = p.etiqueta.style.left;
