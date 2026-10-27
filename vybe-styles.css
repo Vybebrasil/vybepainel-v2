@@ -12689,3 +12689,86 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .xdz-casa.ultimo::before {background:#f6e27a8c}
 .xdz-casa svg {position:relative;z-index:1;filter:drop-shadow(0 2px 1px #0006)}
 .xdz-tabuleiro {box-shadow:0 0 0 6px #4a2e16,0 0 0 8px #2a1a0c,0 14px 30px #000a;border-radius:4px}
+/* Relógio da vez cabe na barra do jogador. */
+.mesa-jogador {grid-template-columns:36px minmax(0,1fr) auto auto}
+/* Truco no jeito dos trucos online: feltro largo, leques de cartas, jogadas no meio, placar grande e faixa do pedido. */
+.workflow-modal.ofc-trc-jogo {width:min(960px,calc(100vw - 24px))}
+.ofc-trc-jogo .mesa-jogo {grid-template-columns:1fr}
+.ofc-trc-jogo .mesa-lado {width:100%}
+.ofc-trc-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+.trc-salao {display:grid;gap:10px}
+.trc-feltro {position:relative;display:grid;gap:12px;justify-items:center;padding:16px 18px 20px;border-radius:28px;background:radial-gradient(ellipse at 50% 35%,#2c9a5c,#17603a 70%,#0f4527);box-shadow:inset 0 0 0 8px #6b3c18,inset 0 0 0 11px #2e1a09,inset 0 0 40px #000a,0 14px 30px #000b}
+.trc-dele {position:relative;display:flex;justify-content:center;height:64px}
+.trc-costas {display:inline-block;margin:0 -10px;transform:rotate(calc(var(--i) * 7deg)) translateY(calc(var(--i) * var(--i) * 3px));transform-origin:50% 120%}
+.trc-meio {display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;width:100%}
+.trc-vira {display:grid;justify-items:center;gap:4px;padding:8px 10px;border-radius:14px;background:#0006;color:#d9f2e3;font:700 11px var(--mac-ui)}
+.trc-vira b {color:#ffd56a}
+.trc-jogadas {display:flex;justify-content:center;gap:18px}
+.trc-jogada .pkr-carta {animation:trc-joga .35s cubic-bezier(.2,.8,.3,1)}
+@keyframes trc-joga {from {opacity:0;transform:translateY(30px) scale(.8) rotate(-8deg)}}
+.trc-info {display:grid;justify-items:center;gap:6px;color:#d9f2e3;font:700 11px var(--mac-ui)}
+.trc-placar {display:grid;grid-template-columns:auto auto auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:#000a;box-shadow:inset 0 -3px 0 #fff1}
+.trc-placar div {display:grid;justify-items:center}
+.trc-placar small {color:#9da4b4;font:700 10px var(--mac-ui)}
+.trc-placar b {color:#fff;font:900 26px/1 var(--mac-ui);font-variant-numeric:tabular-nums}
+.trc-placar span {color:#ffd56a;font:900 16px var(--mac-ui)}
+.trc-placar em {grid-column:1/-1;justify-self:center;color:#9da4b4;font:700 10px var(--mac-ui);font-style:normal}
+.trc-vale {padding:3px 12px;border-radius:999px;background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;font:900 14px var(--mac-ui);box-shadow:0 3px 0 #8a5a00}
+.trc-rodada {width:12px;height:12px;border-radius:50%;background:#ffffff26;box-shadow:inset 0 1px 2px #0008}
+.trc-rodada.minha {background:#3fd17f}
+.trc-rodada.dele {background:#ff5a4a}
+.trc-rodada.empate {background:#ffd56a}
+.trc-rodadas {display:flex;gap:5px}
+.trc-minhas {display:flex;justify-content:center;min-height:120px;padding-top:8px}
+.trc-carta {margin:0 -6px;padding:0;border:0;background:none;transform:rotate(calc(var(--i) * 6deg)) translateY(calc(var(--i) * var(--i) * 4px));transform-origin:50% 140%;transition:transform .15s;cursor:pointer}
+.trc-carta:not(:disabled):hover {transform:rotate(calc(var(--i) * 6deg)) translateY(-18px)}
+.trc-carta:disabled {cursor:default;filter:saturate(.8)}
+.trc-botoes {display:flex;justify-content:center;min-height:8px}
+.sala-botao.vermelho {--sombra:#7a140a;background:linear-gradient(#ff6a55,#d62a14)}
+.trc-grito {font-size:20px;padding:12px 34px;animation:trc-pulsa 1.2s ease-in-out infinite}
+@keyframes trc-pulsa {50% {transform:scale(1.06) rotate(-1deg)}}
+.trc-faixa {position:absolute;left:50%;top:50%;z-index:2;display:grid;justify-items:center;gap:10px;min-width:min(420px,90%);padding:16px 20px;border-radius:18px;background:#14171ef2;border:2px solid #ffb94a;box-shadow:0 0 40px #ffb94a66,0 18px 40px #000c;transform:translate(-50%,-50%);animation:trc-faixa .35s cubic-bezier(.2,1.4,.4,1)}
+.trc-faixa b {color:#ffd56a;font:900 24px var(--mac-ui);text-transform:uppercase;letter-spacing:.5px;text-shadow:0 3px 0 #0008}
+.trc-faixa small {color:#c9d1dd;font:600 12px var(--mac-ui)}
+.trc-faixa > div {display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.trc-faixa.espera {border-color:#ffffff40;box-shadow:0 18px 40px #000c}
+@keyframes trc-faixa {from {opacity:0;transform:translate(-50%,-50%) scale(.7)}}
+@media (prefers-reduced-motion: reduce) {.trc-grito,.trc-faixa,.trc-jogada .pkr-carta {animation:none}}
+@media(max-width:640px){.trc-meio{grid-template-columns:1fr;justify-items:center}.trc-info{grid-auto-flow:column;align-items:center}}
+/* Jogo da velha em neon: quadro escuro, linhas acesas, X rosa e O azul brilhando, símbolo fantasma no hover, linha da vitória acesa. */
+.vlh-mesa {display:grid;justify-items:center;gap:8px;padding:16px;border-radius:22px;background:radial-gradient(ellipse at 50% 30%,#2a1f4a,#120d22 75%);box-shadow:inset 0 0 0 2px #8b5cf655,0 14px 30px #000b}
+.vlh-mesa > small {color:#c4b5fd;font:800 11px var(--mac-ui);letter-spacing:1px;text-transform:uppercase}
+.vlh-placar {display:flex;align-items:center;gap:14px;font:900 30px/1 var(--mac-ui)}
+.vlh-placar span {color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 0 12px #fff6}
+.vlh-placar b.x,.vlh-casa.x {color:#ff4fa3;text-shadow:0 0 8px #ff4fa3,0 0 22px #ff4fa388}
+.vlh-placar b.o,.vlh-casa.o {color:#4fd1ff;text-shadow:0 0 8px #4fd1ff,0 0 22px #4fd1ff88}
+.vlh-tab {display:grid;grid-template-columns:repeat(3,minmax(0,96px));gap:0;background:none}
+.vlh-casa {position:relative;aspect-ratio:1;border:0;border-radius:0;background:transparent;font:900 64px/1 var(--mac-ui);box-shadow:none}
+.vlh-casa:nth-child(-n+6) {border-bottom:4px solid #a78bfa}
+.vlh-casa:not(:nth-child(3n)) {border-right:4px solid #a78bfa}
+.vlh-tab {filter:drop-shadow(0 0 6px #a78bfa88)}
+.vlh-casa.x,.vlh-casa.o {animation:vlh-marca .3s cubic-bezier(.2,1.4,.4,1)}
+@keyframes vlh-marca {from {opacity:0;transform:scale(.3) rotate(-20deg)}}
+.vlh-casa.ultima {background:radial-gradient(circle,#ffffff1f,transparent 70%);box-shadow:none}
+.vlh-casa.linha {background:#ffffff1f;animation:vlh-ganha 1s ease-in-out infinite}
+@keyframes vlh-ganha {50% {background:#ffffff38}}
+.vlh-tab[data-meu] .vlh-casa:not(:disabled) {cursor:pointer}
+.vlh-tab[data-meu="X"] .vlh-casa:not(:disabled):hover::after {content:"X";color:#ff4fa366}
+.vlh-tab[data-meu="O"] .vlh-casa:not(:disabled):hover::after {content:"O";color:#4fd1ff66}
+@media (prefers-reduced-motion: reduce) {.vlh-casa.x,.vlh-casa.o,.vlh-casa.linha {animation:none}}
+@media(max-width:560px){.vlh-tab{grid-template-columns:repeat(3,minmax(0,80px))}.vlh-casa{font-size:52px}}
+/* Dama mais bonita: tabuleiro do tamanho certo com moldura, peças com anéis em relevo, coroa dourada na dama e marcas fortes. */
+.dam-tabuleiro {width:min(460px,100%);margin:0 auto;box-shadow:0 0 0 7px #4a2e16,0 0 0 9px #2a1a0c,0 16px 34px #000b;border-radius:4px}
+.dam-casa.escura {background:linear-gradient(135deg,#7f5434,#6c4428)}
+.dam-casa.clara {background:#ecdcba}
+.dam-peca {width:80%;height:80%;transition:transform .15s}
+.dam-peca.branca {background:radial-gradient(circle at 50% 45%,#fffdf6 0 34%,#e3dccb 35% 40%,#fbf7ee 41% 58%,#d9d0bc 59% 64%,#f4efe4 65%);box-shadow:inset 0 -5px 0 #b9ae95,0 4px 0 #8e826a,0 6px 8px #0009}
+.dam-peca.preta {background:radial-gradient(circle at 50% 45%,#3d3d3d 0 34%,#1b1b1b 35% 40%,#353535 41% 58%,#141414 59% 64%,#2b2b2b 65%);box-shadow:inset 0 -5px 0 #000,0 4px 0 #050505,0 6px 8px #0009}
+.dam-peca.dama::after {content:"♛";color:#f2c94c;text-shadow:0 1px 0 #7a5a00,0 0 8px #f2c94c88;font-size:clamp(14px,3.2vw,26px)}
+.dam-tabuleiro.vez .dam-casa.minha:hover .dam-peca {transform:translateY(-3px)}
+.dam-casa.sel::before {background:#f6c34ab0}
+.dam-casa.sel .dam-peca {transform:translateY(-4px)}
+.dam-casa.ultimo::before {background:#f6e27a66}
+.dam-casa.alvo::after {width:34%;height:34%;background:#ffe08a;box-shadow:0 0 0 4px #ffe08a55,0 0 14px #ffe08a;animation:dam-alvo 1s ease-in-out infinite}
+@keyframes dam-alvo {50% {transform:scale(.8)}}
+@media (prefers-reduced-motion: reduce) {.dam-casa.alvo::after {animation:none}}
