@@ -8,7 +8,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -1636,6 +1636,7 @@ async function areaCaptacoes(req,res,quem) {
     if(acao==='montar') return res.status(200).json({ok:true,...await montarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='gravado') return res.status(200).json({ok:true,...await marcarGravado(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='fechar') return res.status(200).json({ok:true,...await fecharGravacao(banco,quem,corpo,{trocar:trocarEscolha})});
+    if(acao==='roteiro') return res.status(200).json({ok:true,...await roteiroDaCaptacao(banco,quem,corpo)});
     if(acao==='cancelar') return res.status(200).json({ok:true,...await cancelarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='agenda') return res.status(200).json({ok:true,avisos:await sincronizarAgenda(banco,String(corpo.id||''))});
     return res.status(400).json({error:'Ação desconhecida.'});
