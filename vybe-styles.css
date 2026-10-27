@@ -12090,10 +12090,22 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 /* Vídeo no olho (27/10/2026): o vídeo do Reels toca no player do Drive; a
    capa ganha a etiqueta "Capa". Reels é vertical: 9:16 cabendo na tela. */
 .previa-video {display:grid;justify-items:center;gap:8px}
-.previa-video iframe {display:block;width:min(420px,80vw,calc((92vh - 150px) * 9 / 16));aspect-ratio:9/16;border:0;border-radius:8px;background:#080b10}
+.previa-video iframe {display:block;width:min(420px,80vw,calc((92vh - 230px) * 9 / 16));aspect-ratio:9/16;border:0;border-radius:8px;background:#080b10}
 .previa-video video {max-height:calc(92vh - 150px)}
 .previa-video-abrir {color:#cfd6e4;font:600 12px var(--mac-ui);text-decoration:none}
 .previa-video-abrir:hover {color:#fff;text-decoration:underline}
 .previa-capa {position:relative;display:grid;justify-items:center;gap:8px}
 .previa-capa-selo {position:absolute;top:10px;left:10px;padding:3px 9px;border-radius:99px;background:#0b0e14d9;box-shadow:0 0 0 1px #ffffff2e;color:#fff;font:800 11px/16px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase}
 .previa-capa-aviso {max-width:420px;color:#ffd9a6;font:600 12px/1.4 var(--mac-ui);text-align:center}
+/* Vídeo da pasta do link de entrega: o player e, embaixo, os outros vídeos. */
+.previa-grande-estado:has(.previa-video-pasta) {display:grid;gap:10px;width:auto;min-height:0}
+.previa-pasta-lista {width:min(420px,80vw);color:#cfd6e4;font:600 12px var(--mac-ui)}
+.previa-pasta-lista > summary {padding:6px 2px;cursor:pointer;list-style:none;text-align:center}
+.previa-pasta-lista > summary::-webkit-details-marker {display:none}
+.previa-pasta-lista > summary:hover {color:#fff;text-decoration:underline}
+.previa-pasta-lista ul {display:grid;gap:2px;max-height:180px;margin:4px 0 0;padding:4px;overflow:auto;border-radius:8px;background:#0b0e14b3;list-style:none}
+.previa-pasta-lista button {width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:#cfd6e4;font:500 12px var(--mac-ui);text-align:left;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.previa-pasta-lista button:hover {background:#ffffff14;color:#fff}
+.previa-pasta-lista button[aria-pressed=true] {background:#ff8a3526;color:#fff}
+/* Conteúdo mais alto que o palco (player + lista) rola em vez de vazar por cima da barra da peça. */
+.previa-grande-palco {align-items:safe center;overflow-y:auto}
