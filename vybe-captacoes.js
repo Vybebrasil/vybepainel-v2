@@ -13,11 +13,13 @@
 // cada uma tem peças e roteiro (o estado no bloco), e o que precisa de alguém
 // agora: marcar, ligar peças, cadastrar o que só está no Google e escrever
 // roteiro (o painel do lado, pelos próximos 30 dias).
-const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
-  busca: "", abertos: new Set(), semana: "", dia: "", sel: "", vista: "semana", tipos: new Set(["captacao"]), grupo: "" };
+const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
+  busca: "", abertos: new Set(), semana: "", dia: "", sel: "", vista: "semana", tipos: new Set(["captacao"]), grupo: "",
+  // O inspetor ("Precisa de você") abre e fecha pela barra; a escolha fica no navegador.
+  inspetor: (() => { try { return localStorage.getItem("vybeCaptInspetor") === "1"; } catch { return false; } })(), verParadas: false };
 
 const AG_TIPOS = { captacao: "Captação", reuniao: "Reunião", outro: "Compromisso" };
-const AG_HORA_PX = 52, AG_TOPO = 10;
+const AG_HORA_PX = 58, AG_TOPO = 10;
 const agHoje = () => (typeof hojeDeVerdade === "function" && hojeDeVerdade()) || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia" }).format(new Date());
 const agSomar = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const agSegunda = (iso) => { const d = new Date(`${iso}T12:00:00Z`); return agSomar(iso, -((d.getUTCDay() + 6) % 7)); };
@@ -45,8 +47,13 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   // Um respiro em cima para a primeira hora não ficar sob o cabeçalho.
   const px = (min) => AG_TOPO + ((min - ini) / 60) * AG_HORA_PX;
   const rotulo = (e) => `${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agDiaSemana(e.dia, "long")} ${agHorario(e)}${e.cliente ? `, ${e.cliente}` : ""}${e.estado ? `, ${e.estado.texto}` : ""}`;
-  const clicar = (e) => acoes.evento ? ` onclick="event.stopPropagation();${acoes.evento}('${safeText(e.id)}')"` : "";
-  const bloco = (e, estilo = "", curto = false, recuado = false) => `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}"${estilo}${clicar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
+  const clicar = (e) => acoes.evento ? ` onclick="event.stopPropagation();agPreviaSair(true);${acoes.evento}('${safeText(e.id)}')"` : "";
+  // Passar o mouse mostra a prévia (Paulo, 26/10/2026); clicar abre o cartão.
+  const passar = (e) => acoes.previa ? ` onmouseenter="agPreviaEntrar(this,'${acoes.previa}')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'${acoes.previa}')" onblur="agPreviaSair()"` : "";
+  // O que já passou recua, como no calendário; o que pede ação não.
+  const agoraHm = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
+  const passou = (e) => e.dia < hoje || (e.dia === hoje && (agMin(e.fim) ?? agMin(e.inicio) ?? 24 * 60) <= agMin(agoraHm));
+  const bloco = (e, estilo = "", curto = false, recuado = false) => `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
       <b>${safeText(e.titulo || "Sem título")}</b><small>${safeText([e.inicio ? agHorario(e) : "", curto ? "" : e.cliente].filter(Boolean).join(" · "))}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`;
   // Eventos que se cruzam dividem a coluna (faixas).
   const posicionar = (lista) => {
@@ -70,11 +77,11 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   const largado = acoes.soltar ? ` ondragover="agSobre(event)" ondragleave="this.classList.remove('alvo')" ondrop="agSoltar(event,'${acoes.soltar}',${ini})"` : "";
   const vazio = (d) => acoes.vazio ? ` onclick="agVazio(event,'${acoes.vazio}','${d}',${ini})" title="Clique num horário para marcar uma captação"` : "";
   const grade = `<div class="ag-semana" role="grid" aria-label="Semana de ${safeText(agPeriodo(inicio))}">
-    <div class="ag-cabeca"><span></span>${dias.map((d) => `<div class="ag-dia-cab${d === hoje ? " hoje" : ""}" role="columnheader"><small>${safeText(agDiaSemana(d))}</small><b>${Number(d.slice(8))}</b></div>`).join("")}</div>
+    <div class="ag-cabeca"><span></span>${dias.map((d) => `<div class="ag-dia-cab${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" role="columnheader"><small>${safeText(agDiaSemana(d))}</small><b>${Number(d.slice(8))}</b></div>`).join("")}</div>
     ${diaTodo.length ? `<div class="ag-dia-todo"><span>dia todo</span>${dias.map((d) => `<div>${diaTodo.filter((e) => e.dia === d).map((e) => bloco(e)).join("")}</div>`).join("")}</div>` : ""}
     <div class="ag-corpo" data-ag-rolar="${Math.max(0, px(Math.max(ini, 7 * 60)) - AG_TOPO)}">
       <div class="ag-horas" style="height:${px(fim) + AG_TOPO}px">${horas.map((m) => `<span style="top:${px(m)}px">${agHora(m)}</span>`).join("")}</div>
-      ${dias.map((d) => `<div class="ag-col${d === hoje ? " hoje" : ""}" data-dia="${d}" style="height:${px(fim) + AG_TOPO}px"${vazio(d)}${largado}>
+      ${dias.map((d) => `<div class="ag-col${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" data-dia="${d}" style="height:${px(fim) + AG_TOPO}px"${vazio(d)}${largado}>
         ${horas.map((m) => `<i class="ag-linha" style="top:${px(m)}px"></i>`).join("")}
         ${d === hoje && agoraMin >= ini && agoraMin <= fim ? `<i class="ag-agora" style="top:${px(agoraMin)}px" aria-hidden="true"></i>` : ""}
         ${posicionar(comHora.filter((e) => e.dia === d)).map(({ e, a, b, faixa, n, lado }) => { const h = Math.max(26, px(b) - px(a) - 2);
@@ -130,6 +137,35 @@ function agCartaoFechar() {
 }
 window.addEventListener("resize", () => agCartaoPosicionar());
 document.addEventListener("scroll", () => agCartaoPosicionar(), true);
+// A PRÉVIA DO HOVER. Abre um instante depois do mouse parar no bloco (passar
+// por cima a caminho de outro lugar não pisca nada), ao lado dele, e some ao
+// sair. Não abre com o cartão aberto nem em tela de toque (lá o toque abre o
+// cartão direto). `funcao` é o nome da função global que devolve o HTML.
+let AG_PREVIA_TEMPO = 0;
+function agPreviaEntrar(el, funcao) {
+  clearTimeout(AG_PREVIA_TEMPO);
+  if (!window.matchMedia?.("(hover: hover)").matches && document.activeElement !== el) return;
+  if (!document.getElementById("ag-cartao")?.hidden && document.getElementById("ag-cartao")) return;
+  AG_PREVIA_TEMPO = setTimeout(() => {
+    const html = window[funcao]?.(el.dataset.ev);
+    if (!html || !el.isConnected) return;
+    let pop = document.getElementById("ag-previa");
+    if (!pop) { pop = document.createElement("div"); pop.id = "ag-previa"; pop.className = "ag-previa"; pop.setAttribute("role", "tooltip"); document.body.append(pop); }
+    pop.innerHTML = html; pop.hidden = false;
+    const r = el.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, m = 10;
+    const direita = r.right + m + w <= window.innerWidth - m;
+    pop.style.left = `${Math.max(m, direita ? r.right + m : r.left - m - w)}px`;
+    pop.style.top = `${Math.max(m, Math.min(r.top, window.innerHeight - h - m))}px`;
+    pop.classList.toggle("a-esquerda", !direita);
+  }, 260);
+}
+function agPreviaSair(agora = false) {
+  clearTimeout(AG_PREVIA_TEMPO);
+  const pop = document.getElementById("ag-previa");
+  if (pop) { if (agora) pop.hidden = true; else AG_PREVIA_TEMPO = setTimeout(() => { pop.hidden = true; }, 80); }
+}
+document.addEventListener("scroll", () => agPreviaSair(true), true);
+
 // Troca de dia no celular sem recarregar nada (usado pelo Escritório).
 function agDiaLocal(d, botao) {
   const ag = botao.closest(".ag");
@@ -158,7 +194,7 @@ async function captPedir(params, corpo) {
   return d;
 }
 const captRender = () => { if (typeof renderProductionCommand === "function") renderProductionCommand(); };
-function captGuardar(c) { CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
+function captGuardar(c) { CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.recentes = c.recentes || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
 async function captCarregar() {
   if (CAPT.carregando) return;
   CAPT.carregando = true;
@@ -192,7 +228,6 @@ function captTipo(t) {
   captRender();
 }
 function captVista(v) { CAPT.vista = v; captRender(); }
-function captGrupo(g) { CAPT.grupo = g; captRender(); document.querySelector(".capt-lado")?.scrollIntoView({ block: "nearest" }); }
 function captAbrirPeca(id) { if (typeof window.openItemWorkspace === "function") window.openItemWorkspace(String(id)); }
 function captCadastrar(cliente) { if (typeof openCadastrosGoverned === "function") openCadastrosGoverned({ board: "producao", client: cliente || "" }); }
 
@@ -220,7 +255,14 @@ const captTemRoteiro = (p) => Boolean(String(p.briefing || "").trim() || p.rotei
 // captação. Sem evento (a fila), entram todas.
 const captSemSinais = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const captEhFotos = (e) => /banco de (imagem|imagens|foto|fotos)|\bfotos?\b|fotografia|ensaio/.test(captSemSinais(e?.titulo));
-const captPendentesDo = (clienteId, e = null) => (CAPT.pecas || []).filter((p) => clienteId && p.clientes?.some((c) => c.id === clienteId) && (!e || !p.sem_material || (p.tipo === "foto") === captEhFotos(e)));
+// Peça com prazo vencido há mais de 30 dias está parada (Paulo, 26/10/2026:
+// "tá mostrando demanda que não existe" — "Dia dos namorados" vencida há 150
+// dias ainda em "Agendar Captação"). Sai das listas e da fila; "ver paradas"
+// no inspetor mostra quais são, para alguém limpar. Nada muda no banco.
+const CAPT_PARADA_DIAS = 30;
+const captParada = (p) => { const iso = p.prazo || p.veiculacao; return Boolean(iso) && captDiasAte(iso) < -CAPT_PARADA_DIAS; };
+const captPecasVivas = () => (CAPT.pecas || []).filter((p) => CAPT.verParadas || !captParada(p));
+const captPendentesDo = (clienteId, e = null) => captPecasVivas().filter((p) => clienteId && p.clientes?.some((c) => c.id === clienteId) && (!e || !p.sem_material || (p.tipo === "foto") === captEhFotos(e)));
 const captFaltaRotulo = (p) => p.tipo === "foto" ? "sem banco de fotos" : "sem captação";
 const captPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 
@@ -231,6 +273,8 @@ const captPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 function captEstado(e) {
   if (e.tipo !== "captacao") return null;
   const k = e.nossa;
+  if (k?.fechada_em) return { tom: "ok", texto: "Gravada" };
+  if (captFaltaFechar(e)) return { tom: "atencao", texto: "Falta fechar" };
   if (k) {
     const falta = k.pecas.filter((p) => !p.gravado && !captTemRoteiro(p)).length, gravadas = k.pecas.filter((p) => p.gravado).length;
     if (k.aviso) return { tom: "alerta", texto: "Fora do Google Agenda" };
@@ -242,6 +286,24 @@ function captEstado(e) {
   return n ? { tom: "atencao", texto: `${captPlural(n, "peça esperando", "peças esperando")}` } : { tom: "alerta", texto: "Nada no sistema" };
 }
 
+// Captação que já aconteceu (o dia passou, ou hoje e o horário já acabou) e
+// ninguém fechou. A fechada peça a peça antes do "Fechar gravação" (todas com
+// "Gravado") não pede de novo; sem cliente reconhecido não há o que fechar.
+function captJaAconteceu(e) {
+  const hoje = captHoje();
+  if (e.dia < hoje) return true;
+  if (e.dia > hoje) return false;
+  const fim = agMin(e.fim) ?? agMin(e.inicio);
+  if (fim === null) return false;
+  const agora = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
+  return fim <= agMin(agora);
+}
+const captFechavel = (e) => e.tipo === "captacao" && !e.nossa?.fechada_em && e.nossa?.estado !== "gravada" && Boolean(e.nossa || e.cliente_id);
+// Só cobra a partir de 26/10/2026, quando "Fechar gravação" passou a existir:
+// as anteriores não tinham como ser fechadas e só fariam ruído.
+const CAPT_FECHAR_DESDE = "2026-10-26";
+const captFaltaFechar = (e) => captFechavel(e) && e.dia >= CAPT_FECHAR_DESDE && captJaAconteceu(e);
+
 // Fila por cliente (peça com vários clientes entra no primeiro, sem duplicar),
 // das mais urgentes para as outras; a próxima captação vem dos próximos 30 dias.
 function captProximaDo(clienteId) {
@@ -252,7 +314,7 @@ function captProximaDo(clienteId) {
 }
 function captFila() {
   const grupos = new Map();
-  for (const p of CAPT.pecas || []) {
+  for (const p of captPecasVivas()) {
     const c = p.clientes?.[0] || { id: "", nome: "Sem cliente" };
     if (!grupos.has(c.id)) grupos.set(c.id, { cliente: c, pecas: [] });
     grupos.get(c.id).pecas.push(p);
@@ -278,7 +340,7 @@ function captComNossas(lista, { semana = false } = {}) {
   return fora.map((e) => ({ ...e, estado: captEstado(e) }));
 }
 const captEventos = () => captComNossas(CAPT.agenda || [], { semana: true });
-const captTodos = () => { const vistos = new Set(); return [...captEventos(), ...captComNossas(CAPT.proximas || [])].filter((e) => !vistos.has(e.id) && vistos.add(e.id)); };
+const captTodos = () => { const vistos = new Set(); return [...captEventos(), ...captComNossas(CAPT.proximas || []), ...captComNossas(CAPT.recentes || [])].filter((e) => !vistos.has(e.id) && vistos.add(e.id)); };
 
 // O que precisa de alguém nos próximos 30 dias.
 function captPendencias() {
@@ -294,11 +356,17 @@ function captPendencias() {
     for (const p of pecas) if (p.tipo !== "foto" && !captTemRoteiro(p) && !roteiro.some((r) => r.p.id === p.id)) roteiro.push({ p, e });
   }
   // Vídeo cadastrado sem captação e sem roteiro: o roteiro vem antes de marcar.
-  for (const p of CAPT.pecas || []) if (p.sem_material && p.tipo === "video" && !captTemRoteiro(p) && !roteiro.some((r) => r.p.id === p.id))
+  for (const p of captPecasVivas()) if (p.sem_material && p.tipo === "video" && !captTemRoteiro(p) && !roteiro.some((r) => r.p.id === p.id))
     roteiro.push({ p, e: null });
-  return { ligar, cadastrar, marcar, roteiro };
+  // Gravações dos últimos 7 dias (e as de hoje que já acabaram) sem fechar.
+  const vistas = new Set();
+  const fechar = [...captComNossas(CAPT.recentes || []), ...captComNossas(CAPT.agenda || [])]
+    .filter((e) => e.dia >= agSomar(hoje, -7) && captFaltaFechar(e) && !vistas.has(e.id) && vistas.add(e.id))
+    .sort((a, b) => (a.dia + (a.inicio || "")).localeCompare(b.dia + (b.inicio || "")));
+  return { fechar, ligar, cadastrar, marcar, roteiro };
 }
 const CAPT_GRUPOS = [
+  ["fechar", "Fechar gravação", "Captações que já aconteceram: marque o que foi gravado e cole a pasta do Drive."],
   ["ligar", "Ligar peças", "Captações na agenda cujo cliente tem peças esperando: leve as peças para a captação."],
   ["cadastrar", "Cadastrar", "Captações que estão no Google Agenda e não têm nada no sistema."],
   ["marcar", "Marcar captação", "Clientes com peças para captar e sem captação marcada nos próximos 30 dias."],
@@ -331,12 +399,16 @@ function captDetalheHtml(e) {
     ${e.link ? `<a class="vb-link capt-detalhe-google" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : ""}`;
   if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-discreto">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"} da agenda da Vybe. Só as captações (azuis) recebem peças.</p></div>`;
   const cliente = e.cliente ? `<p class="capt-detalhe-cliente">${safeText(e.cliente)}</p>` : '<p class="capt-aviso">Não reconheci o cliente pelo título. Ponha o nome do cliente no título do evento no Google Agenda.</p>';
-  if (k) return `<div class="capt-detalhe">${topo}${cliente}${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
+  if (k?.fechada_em) return `<div class="capt-detalhe">${topo}${cliente}${captGeradoHtml(k)}</div>`;
+  // Hoje ou antes: dá para fechar a gravação a partir do próprio cartão.
+  const fechar = captFechavel(e) && e.dia <= captHoje()
+    ? `<button type="button" class="vb-botao principal capt-fechar-btn" onclick="captAbrirFechar('${safeText(e.id)}')">${ICONE_CHECK}Fechar gravação</button>` : "";
+  if (k) return `<div class="capt-detalhe">${topo}${cliente}${fechar}${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
     <h5>Peças desta captação <small>${k.pecas.filter((p) => p.gravado).length} de ${k.pecas.length} gravadas</small></h5>
     <ul class="capt-lista">${k.pecas.map((p) => captPecaHtml(p, { marcar: `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` })).join("")}</ul>
     ${k.observacao ? `<p class="capt-discreto">${safeText(k.observacao)}</p>` : ""}
     ${k.estado === "agendada" ? `<button type="button" class="vb-link perigo" onclick="captCancelar('${k.id}',${k.evento_do_painel === false})">${k.evento_do_painel === false ? "Soltar as peças desta captação" : "Cancelar captação"}</button>` : ""}</div>`;
-  return `<div class="capt-detalhe">${topo}${cliente}
+  return `<div class="capt-detalhe">${topo}${cliente}${fechar}
     ${pendentes.length ? `${outras.length ? `<h5>Esperando captação <small>${captPlural(outras.length, "peça", "peças")}</small></h5><ul class="capt-lista">${outras.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
       ${fotos.length ? `<h5>${captEhFotos(e) ? "Fotografias sem banco de fotos" : "Vídeos ainda sem captação"} <small>${captPlural(fotos.length, "peça", "peças")}</small></h5><p class="capt-discreto">${captEhFotos(e) ? `Pelo título, esta captação é de fotos: as fotografias de ${safeText(e.cliente)} travadas sem material podem sair daqui.` : `Vídeos de ${safeText(e.cliente)} já cadastrados que ainda não entraram na Captação.`}</p><ul class="capt-lista">${fotos.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
       <button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Levar peças para esta captação</button>`
@@ -381,13 +453,17 @@ function captPendenciasHtml(pend) {
       : vbEstadoHtml({ icone: "ok", titulo: "Toda peça com captação marcada tem roteiro" });
   } else {
     const lista = pend[grupo];
-    corpo = lista.length ? `<ul class="capt-lista">${lista.map((e) => captPendenciaEventoHtml(e, grupo === "ligar"
+    corpo = lista.length ? `<ul class="capt-lista">${lista.map((e) => captPendenciaEventoHtml(e, grupo === "fechar"
+      ? `<button type="button" class="vb-botao principal" onclick="captAbrirFechar('${safeText(e.id)}')">Fechar</button>`
+      : grupo === "ligar"
       ? `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Ligar</button>`
       : e.cliente ? `<button type="button" class="vb-botao" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar</button>` : `<button type="button" class="vb-botao" onclick="captSelecionar('${safeText(e.id)}')">Ver</button>`)).join("")}</ul>`
-      : vbEstadoHtml({ icone: "ok", titulo: grupo === "ligar" ? "Nenhuma captação esperando peças" : "Toda captação da agenda tem algo no sistema" });
+      : vbEstadoHtml({ icone: "ok", titulo: grupo === "fechar" ? "Toda gravação da semana está fechada" : grupo === "ligar" ? "Nenhuma captação esperando peças" : "Toda captação da agenda tem algo no sistema" });
   }
-  return `<div class="capt-coluna-topo"><h4>O que precisa de você</h4><small>próximos 30 dias</small></div>
-    <div class="capt-grupos" role="group" aria-label="Pendências">${chips}</div><p class="capt-discreto">${safeText(explica)}</p>${corpo}`;
+  const paradas = (CAPT.pecas || []).filter(captParada).length;
+  return `<div class="capt-coluna-topo"><h4>Precisa de você</h4><small>${grupo === "fechar" ? "desde 26/10" : "próximos 30 dias"}</small><button type="button" class="capt-inspetor-fechar" aria-label="Fechar o painel" onclick="captAlternarInspetor()">×</button></div>
+    <div class="capt-grupos" role="group" aria-label="Pendências">${chips}</div><p class="capt-discreto">${safeText(explica)}</p>${corpo}
+    ${paradas ? `<p class="capt-paradas">${captPlural(paradas, "peça parada", "peças paradas")} há mais de ${CAPT_PARADA_DIAS} dias em "Agendar Captação" ${CAPT.verParadas ? "aparecendo" : "escondidas"}. <button type="button" class="vb-link" onclick="captVerParadas()">${CAPT.verParadas ? "Esconder de novo" : "Ver paradas"}</button></p>` : ""}`;
 }
 
 // A semana em lista: cada dia com o título inteiro, a hora, o cliente e o estado.
@@ -403,38 +479,88 @@ function captListaHtml(eventos) {
       ${lista.length ? `<ul>${lista.map(linha).join("")}</ul>` : '<p class="capt-discreto">Nada.</p>'}</section>`; }).join("")}</div>`;
 }
 
+// O cartão da gravação fechada: quem fechou e quando, a pasta do Drive e o que
+// ela gerou, com o status de agora de cada peça (edição, aprovação…).
+const ICONE_CHECK = '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3.5 8.4 2.9 2.9 6.1-6.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function captGeradoHtml(k) {
+  const gravadas = k.pecas.filter((p) => p.gravado);
+  const quando = new Date(k.fechada_em).toLocaleString("pt-BR", { timeZone: "America/Bahia", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+  // O selo "Gravada" já está no topo do cartão (captEstado); aqui, quem e quando.
+  return `<p class="capt-fechada">${ICONE_CHECK}<small>Fechada ${safeText([k.fechada_por ? `por ${firstName(k.fechada_por)}` : "", `em ${quando}`].filter(Boolean).join(" "))}</small></p>
+    ${k.drive_link ? `<a class="vb-botao capt-drive" href="${safeText(k.drive_link)}" target="_blank" rel="noopener">Material bruto no Drive</a>` : '<p class="capt-aviso">Fechada sem a pasta do Drive: cole o link do material em cada peça.</p>'}
+    ${k.observacao_final ? `<p class="capt-discreto">${safeText(k.observacao_final)}</p>` : ""}
+    <h5>O que esta gravação gerou <small>${captPlural(gravadas.length, "peça", "peças")}</small></h5>
+    <ul class="capt-gerado">${gravadas.map((p) => `<li><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>
+      ${p.status ? `<span class="capt-gerado-status" style="--cor:${safeText(p.status_cor || "#8b93a3")}">${safeText(p.status)}</span>` : ""}</li>`).join("")}</ul>`;
+}
+
+// A TELA É O CALENDÁRIO (Paulo, 26/10/2026: "quero o padrão de calendário:
+// abre e vê o calendário; clicando ou passando o mouse aparecem as coisas").
+// Uma barra só no topo, como o Calendário do Mac: navegação e período à
+// esquerda, Semana/Lista no meio, os tipos como filtro, "Precisa de você"
+// (o inspetor, com o número de pendências) e "Marcar captação" à direita.
+// A semana ocupa a largura toda; o inspetor abre ao lado quando pedido.
+function captAlternarInspetor() {
+  CAPT.inspetor = !CAPT.inspetor;
+  try { localStorage.setItem("vybeCaptInspetor", CAPT.inspetor ? "1" : "0"); } catch { /* sem storage */ }
+  captRender();
+}
+function captGrupo(g) { CAPT.grupo = g; CAPT.inspetor = true; captRender(); }
+function captVerParadas() { CAPT.verParadas = !CAPT.verParadas; captRender(); }
+
+// A prévia do hover: o essencial da captação, sem ação (as ações ficam no
+// cartão, que abre no clique).
+function captPreviaHtml(id) {
+  const e = captTodos().find((x) => x.id === id);
+  if (!e) return "";
+  const k = e.nossa;
+  const pecas = k ? k.pecas : e.tipo === "captacao" && e.cliente_id ? captPendentesDo(e.cliente_id, e) : [];
+  const mostra = pecas.slice(0, 4);
+  const sinal = (p) => p.gravado ? ["ok", "gravada"] : p.tipo === "foto" ? ["ok", "foto"] : captTemRoteiro(p) ? ["ok", "roteiro"] : ["falta", "sem roteiro"];
+  const linhaPeca = (p) => { const [tom, texto] = sinal(p); return `<li><span>${safeText(p.titulo)}</span><i class="${tom}">${texto}</i></li>`; };
+  return `<p class="ag-previa-tipo t-${safeText(e.tipo)}">${safeText(AG_TIPOS[e.tipo] || "Compromisso")}</p>
+    <b class="ag-previa-titulo">${safeText(e.titulo || "Sem título")}</b>
+    <p class="ag-previa-quando">${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
+    ${e.cliente ? `<p class="ag-previa-cliente">${safeText(e.cliente)}</p>` : ""}
+    ${e.estado ? `<span class="capt-estado tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}
+    ${mostra.length ? `<p class="ag-previa-sub">${k ? "Nesta captação" : "Esperando captação"}</p><ul class="ag-previa-pecas">${mostra.map(linhaPeca).join("")}</ul>${pecas.length > mostra.length ? `<p class="ag-previa-mais">e mais ${pecas.length - mostra.length}</p>` : ""}` : ""}
+    <p class="ag-previa-dica">${e.tipo === "captacao" ? "Clique para abrir" : "Clique para ver"}</p>`;
+}
+
 function captacoesHtml() {
   if (!CAPT.pecas && !CAPT.erro) { captCarregar(); return vbEstadoHtml({ tipo: "carregando", titulo: "Carregando as captações" }); }
   if (CAPT.erro) return vbEstadoHtml({ tipo: "erro", titulo: "Não deu para abrir as captações", texto: CAPT.erro, acao: '<button type="button" class="vb-botao" onclick="CAPT.erro=\'\';captRecarregar()">Tentar de novo</button>' });
-  const pecas = CAPT.pecas || [], hoje = captHoje(), todosDaSemana = captEventos();
+  const hoje = captHoje(), todosDaSemana = captEventos();
   const eventos = todosDaSemana.filter((e) => CAPT.tipos.has(e.tipo));
-  const caps = todosDaSemana.filter((e) => e.tipo === "captacao"), pend = captPendencias();
-  const vencidas = pecas.filter((p) => captPrazo(p).tom === "alerta").length;
-  const deHoje = caps.filter((e) => e.dia === hoje).length;
-  const resumo = vbResumoHtml([
-    CAPT.semana === agSegunda(hoje) ? { valor: deHoje, rotulo: deHoje === 1 ? " captação hoje" : " captações hoje", tom: deHoje ? "ok" : "" } : null,
-    { valor: caps.length, rotulo: caps.length === 1 ? " captação na semana" : " captações na semana", onclick: "CAPT.tipos=new Set(['captacao']);captVista('lista')" },
-    pend.ligar.length ? { valor: pend.ligar.length, rotulo: pend.ligar.length === 1 ? " captação para ligar peças" : " captações para ligar peças", tom: pend.ligar.length ? "atencao" : "", onclick: "captGrupo('ligar')" } : null,
-    pend.cadastrar.length ? { valor: pend.cadastrar.length, rotulo: pend.cadastrar.length === 1 ? " captação sem nada no sistema" : " captações sem nada no sistema", tom: pend.cadastrar.length ? "alerta" : "", onclick: "captGrupo('cadastrar')" } : null,
-    pend.marcar.length ? { valor: pend.marcar.length, rotulo: pend.marcar.length === 1 ? " cliente sem captação marcada" : " clientes sem captação marcada", tom: pend.marcar.length ? "atencao" : "", onclick: "captGrupo('marcar')" } : null,
-    pend.roteiro.length ? { valor: pend.roteiro.length, rotulo: pend.roteiro.length === 1 ? " peça para gravar sem roteiro" : " peças para gravar sem roteiro", tom: pend.roteiro.length ? "alerta" : "", onclick: "captGrupo('roteiro')" } : null,
-    vencidas ? { valor: vencidas, rotulo: " com prazo vencido", tom: "alerta", onclick: "captGrupo('todos')" } : null,
-  ]);
-  const legenda = Object.entries(AG_TIPOS).map(([t, n]) => `<button type="button" class="ag-legenda-item t-${t}" aria-pressed="${CAPT.tipos.has(t)}" onclick="captTipo('${t}')">${n} <b>${todosDaSemana.filter((e) => e.tipo === t).length}</b></button>`).join("");
-  setTimeout(() => { if (CAPT.vista === "semana") agRolar(); captCartaoAtualizar(); }, 0);
-  return `<div class="capt">${resumo}
-    <div class="capt-barra">
-      <div class="capt-nav" role="group" aria-label="Semana"><button type="button" class="vb-botao" aria-label="Semana anterior" onclick="captIrSemana(-1)">‹</button><button type="button" class="vb-botao" onclick="captIrSemana(0)"${CAPT.semana === agSegunda(hoje) ? " disabled" : ""}>Hoje</button><button type="button" class="vb-botao" aria-label="Próxima semana" onclick="captIrSemana(1)">›</button></div>
-      <h4 class="capt-periodo">${safeText(agPeriodo(CAPT.semana))}</h4>
-      <div class="vb-alternar" role="group" aria-label="Ver como"><button type="button" aria-pressed="${CAPT.vista === "semana"}" onclick="captVista('semana')">Semana</button><button type="button" aria-pressed="${CAPT.vista === "lista"}" onclick="captVista('lista')">Lista</button></div>
-      <div class="ag-legenda filtro" role="group" aria-label="Mostrar na agenda">${legenda}</div>
-      <button type="button" class="vb-botao principal" onclick="captAbrirMontar('')">Marcar captação</button></div>
+  const pend = captPendencias();
+  const nPend = pend.fechar.length + pend.ligar.length + pend.cadastrar.length + pend.roteiro.length;
+  const naSemana = CAPT.semana === agSegunda(hoje);
+  const ini = new Date(`${CAPT.semana}T12:00:00Z`), fimSemana = new Date(`${agSomar(CAPT.semana, 6)}T12:00:00Z`);
+  const mes = (d) => d.toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" });
+  const titulo = ini.getUTCMonth() === fimSemana.getUTCMonth() ? `${mes(ini)} ${ini.getUTCFullYear()}` : `${mes(ini)} – ${mes(fimSemana)} ${fimSemana.getUTCFullYear()}`;
+  const filtros = Object.entries(AG_TIPOS).map(([t, n]) => { const qtd = todosDaSemana.filter((e) => e.tipo === t).length;
+    return `<button type="button" class="capt-filtro t-${t}" aria-pressed="${CAPT.tipos.has(t)}" onclick="captTipo('${t}')" title="${CAPT.tipos.has(t) ? "Esconder" : "Mostrar"} ${n.toLowerCase()}">${n}<b>${qtd}</b></button>`; }).join("");
+  // Redesenhar troca os blocos embaixo do mouse: a prévia do bloco antigo sai junto.
+  setTimeout(() => { agPreviaSair(true); if (CAPT.vista === "semana") agRolar(); captCartaoAtualizar(); }, 0);
+  return `<div class="capt capt-cal${CAPT.inspetor ? " com-inspetor" : ""}">
+    <div class="capt-toolbar" role="toolbar" aria-label="Captações">
+      <div class="capt-tb-esq">
+        <div class="capt-tb-nav" role="group" aria-label="Semana"><button type="button" aria-label="Semana anterior" onclick="captIrSemana(-1)">‹</button><button type="button" class="capt-tb-hoje" onclick="captIrSemana(0)"${naSemana ? ' aria-current="date"' : ""}>Hoje</button><button type="button" aria-label="Próxima semana" onclick="captIrSemana(1)">›</button></div>
+        <h4 class="capt-tb-titulo">${safeText(titulo.charAt(0).toUpperCase() + titulo.slice(1))}<small>${safeText(agPeriodo(CAPT.semana))}</small></h4>
+      </div>
+      <div class="vb-alternar capt-tb-vista" role="group" aria-label="Ver como"><button type="button" aria-pressed="${CAPT.vista === "semana"}" onclick="captVista('semana')">Semana</button><button type="button" aria-pressed="${CAPT.vista === "lista"}" onclick="captVista('lista')">Lista</button></div>
+      <div class="capt-tb-dir">
+        <div class="capt-filtros" role="group" aria-label="Mostrar na agenda">${filtros}</div>
+        <button type="button" class="capt-tb-pend${nPend ? " tem" : ""}" aria-pressed="${CAPT.inspetor}" onclick="captAlternarInspetor()" title="O que precisa de você">Precisa de você${nPend ? `<b>${nPend}</b>` : ""}</button>
+        <button type="button" class="vb-botao principal capt-tb-marcar" onclick="captAbrirMontar('')"><span aria-hidden="true">+</span> Marcar captação</button>
+      </div>
+    </div>
     ${CAPT.avisoAgenda ? `<p class="capt-aviso">${safeText(CAPT.avisoAgenda)}</p>` : ""}
     <div class="capt-colunas">
       <section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda da semana" aria-busy="${CAPT.carregandoSemana}">${CAPT.vista === "lista" ? captListaHtml(eventos)
-        : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel" } })}
-        ${CAPT.vista === "semana" ? '<p class="capt-dica">Arraste um cliente para um horário, ou clique num horário vazio, para marcar a captação.</p>' : ""}</section>
-      <aside class="capt-lado" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>
+        : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml" } })}
+        ${CAPT.vista === "semana" ? '<p class="capt-dica">Passe o mouse numa captação para ver o que tem nela; clique para abrir. Clique num horário vazio para marcar.</p>' : ""}</section>
+      ${CAPT.inspetor ? `<aside class="capt-lado" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
     </div></div>`;
 }
 
@@ -507,4 +633,60 @@ async function captAgenda(id) {
   try { const r = await captPedir("", { acao: "agenda", id }); showToast(r.avisos?.[0] || "Captação no Google Agenda.", r.avisos?.length ? "info" : "ok", 6000); }
   catch (e) { showToast(e.message, "err", 6000); }
   captRecarregar();
+}
+
+// FECHAR GRAVAÇÃO (Paulo, 26/10/2026): o Mizinho marca o que gravou, cola a
+// pasta do Drive e a captação fica fechada. Aparecem as peças já ligadas
+// (marcadas) e as do cliente que estavam esperando captação (para marcar o que
+// também saiu da gravação). A pasta vira o material bruto de cada peça marcada
+// que ainda não tem um; as ligadas que ficarem desmarcadas voltam para
+// "Agendar Captação". As regras ficam em fecharGravacao (server/captacoes.js).
+function captAbrirFechar(eventoId) {
+  agCartaoFechar();
+  const e = captTodos().find((x) => x.id === eventoId);
+  if (!e) { showToast("Esta captação não está mais na tela. Atualize.", "info"); return; }
+  const k = e.nossa;
+  const ligadas = k ? k.pecas : [];
+  const esperando = e.cliente_id ? captPendentesDo(e.cliente_id, e).filter((p) => !ligadas.some((l) => l.id === p.id)) : [];
+  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>`; };
+  const nome = e.cliente || k?.cliente || "";
+  openWorkflowModal(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+    <h2 class="workflow-title">Fechar gravação</h2>
+    <p class="capt-quando-fixo">${safeText(nome || e.titulo)} · ${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
+    <form class="capt-form" onsubmit="event.preventDefault();captFechar(this)" data-evento="${safeText(e.id)}">
+      <fieldset class="capt-pecas-form"><legend>O que foi gravado</legend>
+        ${ligadas.map((p) => escolha(p, true, p.gravado ? "já marcada como gravada" : "")).join("")}
+        ${esperando.length ? `${ligadas.length ? '<p class="capt-discreto">Também esperando captação deste cliente:</p>' : ""}${esperando.map((p) => escolha(p, false, p.sem_material ? captFaltaRotulo(p) : "")).join("")}` : ""}
+        ${!ligadas.length && !esperando.length ? `<p class="capt-discreto">Nenhuma peça de ${safeText(nome || "este cliente")} esperando captação.</p>` : ""}
+        ${nome ? `<button type="button" class="vb-link" onclick="closeWorkflowModal();captCadastrar('${safeText(nome)}');showToast('Depois de cadastrar, volte em Fechar gravação: a peça nova aparece na lista.','info',7000)">Gravou algo fora da lista? Cadastrar peça de ${safeText(nome)}</button>` : ""}
+      </fieldset>
+      <label>Pasta do material no Drive<input type="url" name="drive" inputmode="url" maxlength="2000" placeholder="https://drive.google.com/drive/folders/…"></label>
+      <p class="capt-discreto">O link vai para cada peça marcada como material bruto, para a edição achar o arquivo.</p>
+      <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="Ex.: supino gravado a mais; faltou o depoimento"></textarea></label>
+      <p class="capt-erro" role="alert" hidden></p>
+      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Fechar gravação</button></div>
+    </form>`);
+}
+async function captFechar(form) {
+  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
+  const e = captTodos().find((x) => x.id === form.dataset.evento);
+  // As já gravadas vêm desabilitadas (não saem pelo FormData), mas continuam gravadas.
+  const gravadas = [...f.getAll("peca"), ...[...form.querySelectorAll('input[name=peca]:disabled:checked')].map((i) => i.value)];
+  const drive = String(f.get("drive") || "").trim();
+  const mostrar = (texto) => { erro.textContent = texto; erro.hidden = false; };
+  if (!e) return mostrar("Esta captação não está mais na tela. Feche e atualize.");
+  if (!gravadas.length) return mostrar("Marque ao menos uma peça gravada.");
+  if (drive && !/^https?:\/\/\S+$/i.test(drive)) return mostrar("O link do Drive precisa começar com https://");
+  if (!drive && !confirm("Fechar sem a pasta do Drive? A edição não vai achar o material pela peça.")) return;
+  botao.disabled = true; botao.textContent = "Fechando…";
+  try {
+    const k = e.nossa;
+    const dados = k ? { captacao_id: k.id } : { evento_google: e.id, cliente_id: e.cliente_id, dia: e.dia, inicio: e.inicio || "", fim: e.fim || "", local: e.local || "" };
+    const r = await captPedir("", { acao: "fechar", gravadas, drive, observacao: f.get("observacao") || "", ...dados });
+    closeWorkflowModal();
+    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
+    showToast(r.avisos?.length ? `${partes}. ${r.avisos[0]}` : `${partes}.`, r.avisos?.length ? "info" : "ok", 7000);
+    if (typeof refreshData === "function") refreshData();
+    CAPT.sel = e.id; captRecarregar();
+  } catch (x) { mostrar(x.message); botao.disabled = false; botao.textContent = rotulo; }
 }

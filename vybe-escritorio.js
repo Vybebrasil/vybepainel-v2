@@ -1162,9 +1162,9 @@ function escritorioAmbienteDoQuarto(id = escritorio.quarto) {
   const lp=escritorioPisosDoPerfil(perfil.sala_pisos), lw=escritorioParedesDoPerfil(perfil.sala_paredes);
   if(lp.length===L*L) for(let i=0;i<L*L;i++) {const k=ESCRITORIO_PISOS_SALA[parseInt(lp[i],16)]?.[0];if(k)pisos.set(`${i%L},${Math.floor(i/L)}`,k);}
   // Revestimento do acervo no trecho (sala_paredes_texturas): cobre a parede
-  // inteira, na altura do trecho (alta se o trecho não foi pintado).
+  // inteira, na altura do trecho (a do quarto se o trecho não foi pintado).
   const tex=escritorioTexturasDoPerfil(perfil.sala_paredes_texturas);
-  for(let i=0;i<L*4;i++){const [estilo,c,h]=lw.length===L*12?lw.slice(i*3,i*3+3):'-00';if(estilo==='-'&&!tex.has(i))continue;paredes.set(escritorioChaveTrecho(r,i),{estilo:estilo==='-'?'a':estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:[46,82,118][estilo==='-'?2:Number(h)],...(tex.has(i)?{textura:tex.get(i)}:{})});}
+  for(let i=0;i<L*4;i++){const [estilo,c,h]=lw.length===L*12?lw.slice(i*3,i*3+3):'-00';if(estilo==='-'&&!tex.has(i))continue;paredes.set(escritorioChaveTrecho(r,i),{estilo:estilo==='-'?'a':estilo,cor:ESCRITORIO_PAREDES_SALA[parseInt(c,16)] || r.cor,alt:estilo==='-'?undefined:[46,82,118][Number(h)],...(tex.has(i)?{textura:tex.get(i)}:{})});}
   r.pintura={pisos,paredes,texturas:[...new Set(tex.values())]}; return r;
 }
 function escritorioAndaresHtml() {
@@ -1233,7 +1233,7 @@ function escritorioAplicarSalas() {
       const [estilo, c, h] = lw.length === L * 12 ? lw.slice(i * 3, i * 3 + 3) : "-00";
       if (estilo === "-" && !tex.has(i)) continue;
       const cor = typeof ESCRITORIO_PAREDES_SALA !== "undefined" ? ESCRITORIO_PAREDES_SALA[parseInt(c, 16)] : "";
-      paredes.set(escritorioChaveTrecho(a, i), { estilo: estilo === "-" ? "a" : estilo, cor: cor || a.cor, alt: [46, 82, 118][estilo === "-" ? 2 : Number(h)], ...(tex.has(i) ? { textura: tex.get(i) } : {}) });
+      paredes.set(escritorioChaveTrecho(a, i), { estilo: estilo === "-" ? "a" : estilo, cor: cor || a.cor, alt: estilo === "-" ? undefined : [46, 82, 118][Number(h)], ...(tex.has(i) ? { textura: tex.get(i) } : {}) });
     }
     a.pintura = { pisos, paredes, texturas: [...new Set(tex.values())] };
   }

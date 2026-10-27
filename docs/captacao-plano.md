@@ -96,6 +96,49 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
 - Na Captação, a peça ligada a um roteiro mostra "Roteiro no Docs" e deixa de
   contar como "sem roteiro".
 
+## Fechar gravação (26/10/2026)
+
+- Paulo: "preciso que o Mizinho finalize a captação que ele fez direto no
+  sistema, dando um check na agenda da gravação, com o link que foi pro Drive,
+  e veja o que aquela gravação gerou e está ligado de demanda".
+- "Fechar gravação" no cartão de toda captação de hoje ou de antes, montada no
+  painel ou só no Google Agenda (aí a captação nasce no painel ligada ao
+  evento, sem mexer nele). O formulário traz as peças ligadas (marcadas) e as do
+  cliente esperando captação; o Mizinho marca o que gravou, cola a pasta do
+  Drive e uma observação (`captAbrirFechar`, `fecharGravacao`).
+- Numa transação: as marcadas ficam gravadas; as ligadas desmarcadas (sem
+  "Gravado" antes) se soltam e voltam para "Agendar Captação"; a pasta vira o
+  material bruto de cada peça marcada que ainda não tem um, com registro no
+  histórico da peça (`vybe_conteudo_eventos`, tipo `material_bruto`); a
+  captação fica "gravada" com `drive_link`, `fechada_em`, `fechada_por` e
+  `observacao_final` (`migrations/2026-10-26-producao-fechar-gravacao.sql`).
+  Depois, cada peça vai para "Captação Feita" pelo `trocarEscolha`.
+- Gravação fechada mostra quem fechou e quando, "Material bruto no Drive" e
+  "O que esta gravação gerou", com o status de agora de cada peça.
+- Captação que já aconteceu (dia passado, ou hoje com o horário acabado) e não
+  foi fechada aparece como "Falta fechar" no bloco e no grupo "Fechar
+  gravação" do painel do lado (últimos 7 dias; a rota traz `recentes`). A
+  fechada peça a peça antes (tudo "Gravado") não pede de novo.
+- Antes da migração, a lista funciona igual e fechar responde 503.
+
+## A tela é o calendário (26/10/2026, depois)
+
+- Paulo: "quero o padrão de calendário: abre e vê o calendário; clicando ou
+  passando o mouse aparecem as coisas", com o Calendário do Mac como
+  referência.
+- Uma barra de vidro só (`capt-toolbar`): ‹ Hoje ›, o mês e a semana, Semana
+  ou Lista, os tipos como filtro, "Precisa de você" com o número de
+  pendências e "+ Marcar captação". Saiu a fileira de números do topo.
+- A semana ocupa a largura toda. O painel de pendências virou inspetor: abre e
+  fecha pelo botão da barra (lembrado no navegador).
+- Passar o mouse num bloco mostra a prévia (`agPreviaEntrar`, `captPreviaHtml`:
+  cliente, horário, local, estado e peças com roteiro); clicar abre o cartão
+  com as ações, como antes. O Escritório usa a mesma semana sem a prévia.
+- O que já passou recua (dia e evento esmaecidos), menos o que pede ação.
+- Peça com prazo vencido há mais de 30 dias sai das listas e da fila
+  (`captParada`); "Ver paradas" no inspetor mostra quais são. "Falta fechar"
+  conta só a partir de 26/10/2026 (`CAPT_FECHAR_DESDE`).
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.

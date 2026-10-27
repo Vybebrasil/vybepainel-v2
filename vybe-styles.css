@@ -5574,13 +5574,6 @@ body[data-modo]:not([data-modo="gestor"]) #badge-s2{display:none!important}
 .linha-previa:focus-visible,.cr-previa:focus-visible,.previa-peca-passo:focus-visible{outline:2px solid var(--accent2,#ff9d00);outline-offset:2px}
 .linha-previa.carregando{opacity:.55;cursor:progress}
 
-/* O OLHO EM MAIS LUGARES (Paulo, 26/10/2026) — logo depois do nome da peça.
-   Na Agenda da equipe o nome e o olho dividem a linha do título; nas colunas,
-   e o invólucro que ocupa a área "titulo" da grade da linha. */
-.day-activity-titulo{display:flex;align-items:flex-start;gap:6px;min-width:0}
-.day-activity-titulo > .item-name{flex:1 1 auto;width:auto}
-.day-activity-titulo > .linha-previa{flex:none;min-width:22px;min-height:22px;padding:0 4px;margin-top:-1px}
-.dias-colunas > .day-scroll-card .day-activity-titulo{grid-area:titulo}
 /* No calendário o olho fica por cima do canto do bloco, que guarda o espaço. */
 .manager-calendar-event-com-previa{position:relative;min-width:0}
 .manager-calendar-event.tem-previa{padding-right:27px}
@@ -8234,7 +8227,6 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .day-scroll-card .day-activity-caption {margin-top:2px;gap:2px 6px;font-size:10.5px;line-height:1.3}
 .day-scroll-card .day-activity-caption > span+span::before {margin-right:6px}
 .day-scroll-card .day-activity-clients .cliente-carteira {padding:1px 6px;font-size:10.5px;line-height:1.35;border-radius:6px}
-.day-scroll-card .day-activity-actions .manager-owner-trigger {transform:scale(.9)}
 /* A aparência fixa o espaço do cabeçalho com !important pela variável; ajusta-se a variável. */
 .day-scroll-card {--day-header-padding:8px 12px}
 .day-scroll-card .day-heading {gap:1px}
@@ -8247,7 +8239,11 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
    cada coluna tem a altura da tela e rola por dentro, então cabe muito mais por
    dia e o "Ver todas" some. No celular, uma coluna por vez, com encaixe. */
 .clients-grid.dias-colunas {display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;align-items:stretch;scroll-snap-type:x proximity;padding:2px 2px 14px;overscroll-behavior-x:contain}
-.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(280px,21.5vw,340px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
+/* Mais largas (Paulo, 26/10/2026: "as colunas muito apertadinhas", "não é
+   melhor ganhar mais espaço lateral?"): 280px eram o mínimo e era o que se
+   via num notebook. Agora cabem três e pouco numa tela de 1280 e quatro numa
+   de 1920; a rolagem lateral continua. */
+.clients-grid.dias-colunas > .day-scroll-card {flex:0 0 clamp(360px,29vw,440px);margin:0;scroll-snap-align:start;display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:440px}
 .clients-grid.dias-colunas > .day-scroll-card .day-activity-scroll,
 /* Sem "overscroll contain" (Deivid, 20/10/2026, segunda tela): no fim da lista
    do dia a roda do mouse continua rolando a página; com as colunas cobrindo a
@@ -8268,15 +8264,20 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .dias-colunas > .day-scroll-card .client-header .day-date-context {grid-area:2/1}
 .dias-colunas > .day-scroll-card .client-header .day-progress-label {grid-area:2/2;font-size:10.5px;opacity:.85;white-space:nowrap}
 .dias-colunas > .day-scroll-card .day-menu > summary {padding:2px 8px;font-size:11px}
-.dias-colunas > .day-scroll-card .day-pending-tabs {flex-wrap:nowrap;padding:4px 10px;gap:3px}
-.dias-colunas > .day-scroll-card .day-pending-tabs button {flex:1 1 auto;min-width:0;padding:3px 4px;gap:3px;font-size:10px}
+.dias-colunas > .day-scroll-card .day-pending-tabs {flex-wrap:nowrap;padding:5px 12px;gap:4px}
+.dias-colunas > .day-scroll-card .day-pending-tabs button {flex:1 1 auto;min-width:0;padding:4px 6px;gap:4px;font-size:10.5px}
 .dias-colunas > .day-scroll-card .day-pending-tabs button > span {flex:none;padding:0 4px}
-.dias-colunas > .day-scroll-card > .client-progress {padding:0 10px 4px}
+.dias-colunas > .day-scroll-card > .client-progress {padding:0 12px 6px}
 .dias-colunas > .day-scroll-card > .client-progress .client-progress-text {display:none}
-.dias-colunas > .day-scroll-card .item-row.day-activity-row {padding:6px 10px 6px 8px;gap:4px}
-.dias-colunas > .day-scroll-card .day-activity-content {grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"titulo titulo" "legenda acoes";gap:3px 6px;align-items:center}
-.dias-colunas > .day-scroll-card .day-activity-main {display:contents}
-.dias-colunas > .day-scroll-card .day-activity-row .item-name {grid-area:titulo;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:12.5px;line-height:1.3}
+.dias-colunas > .day-scroll-card .item-row.day-activity-row {padding:9px 12px 9px 10px;gap:6px}
+/* Três trilhas para cada linha dividir o espaço sozinha: o título só cede a
+   largura de olho + responsáveis, e o cliente só a de formato + status. Com
+   duas trilhas, a linha de baixo (mais larga) roubava espaço do título. */
+.dias-colunas > .day-scroll-card .day-activity-content {grid-template-columns:minmax(0,1fr) auto max-content;grid-template-areas:"titulo titulo pessoas" "legenda acoes acoes";gap:6px 10px;align-items:center}
+.dias-colunas > .day-scroll-card .day-activity-main,
+.dias-colunas > .day-scroll-card .day-activity-lado {display:contents}
+.dias-colunas > .day-scroll-card .day-activity-pessoas {grid-area:pessoas;align-self:start}
+.dias-colunas > .day-scroll-card .day-activity-row .item-name {grid-area:titulo;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:13px;line-height:1.35}
 .dias-colunas > .day-scroll-card .day-activity-caption {grid-area:legenda;margin:0;min-width:0;flex-wrap:nowrap;overflow:hidden}
 .dias-colunas > .day-scroll-card .day-activity-caption > span {flex:none;white-space:nowrap}
 /* Vários clientes: nas colunas, o primeiro e "+N" (lista inteira no título);
@@ -8284,8 +8285,6 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 .dia-mais-clientes {display:none}
 .dias-colunas > .day-scroll-card .day-activity-clients > .cliente-carteira ~ .cliente-carteira {display:none}
 .dias-colunas > .day-scroll-card .dia-mais-clientes {display:inline-block;flex:none;padding:1px 5px;border-radius:6px;background:#ffffff14;color:var(--text-muted);font:700 10px/1.35 var(--mac-ui)}
-/* O formato some quando o título já começa por ele ("Reels - …"). */
-.dias-colunas > .day-scroll-card .day-activity-formato[data-no-titulo] {display:none}
 /* Cliente de nome longo encolhe com reticências em vez de quebrar a linha. */
 .dias-colunas > .day-scroll-card .day-activity-caption > .day-activity-clients {flex:0 1 auto;min-width:0;display:flex;gap:3px;overflow:hidden}
 .dias-colunas > .day-scroll-card .day-activity-clients .cliente-carteira {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -9659,14 +9658,10 @@ img.ofc-com-animada {position:relative;z-index:1}
    a fila por cliente, uma linha que abre, das mais urgentes para as outras.
    Estado sempre por texto e cor juntos. */
 .capt {display:grid;gap:16px}
-/* Barra da semana: navegação, período, cores e a ação principal. */
-.capt-barra {display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
 .capt-nav {display:inline-flex;gap:4px}
 .capt-nav .vb-botao {min-height:32px;padding:0 11px}
 .capt-nav .vb-botao:disabled {opacity:.45;cursor:default}
 .capt-periodo {margin:0;color:#fff;font:760 17px/1.2 var(--mac-ui);font-variant-numeric:tabular-nums;text-transform:none}
-.capt-barra .ag-legenda {margin-left:auto}
-.capt-barra > .vb-botao.principal {flex:none}
 .capt-colunas {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:18px;align-items:start}
 .capt-agenda {display:grid;gap:8px;min-width:0;transition:opacity .2s var(--curva,ease)}
 .capt-agenda.carregando {opacity:.55;pointer-events:none}
@@ -9689,6 +9684,19 @@ img.ofc-com-animada {position:relative;z-index:1}
 .capt-detalhe-cliente {margin:0;color:#fff;font:720 14px var(--mac-ui)}
 .capt-detalhe .vb-botao.principal {justify-self:start}
 .capt-detalhe .vb-link.perigo {justify-self:start;font-size:12.5px}
+/* Fechar gravação (26/10/2026): o botão no cartão, o selo da gravação fechada,
+   a pasta do Drive e "o que esta gravação gerou" com o status de cada peça. */
+.capt-detalhe .capt-fechar-btn {gap:7px}
+.capt-fechar-btn .icone-linha, .capt-fechada .icone-linha {width:14px;height:14px}
+.capt-fechada {display:flex;align-items:center;gap:6px;margin:0;color:#3de8a2}
+.capt-fechada small {color:#9aa1b0;font:550 12px var(--mac-ui)}
+.capt-detalhe .capt-drive {justify-self:start}
+.capt-gerado {list-style:none;margin:0;padding:0;display:grid}
+.capt-gerado li {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #ffffff12}
+.capt-gerado li:first-child {border-top:0}
+.capt-gerado .capt-peca-nome {min-width:0;text-align:left}
+.capt-gerado-status {flex:none;padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--cor) 60%,#0000);
+  background:color-mix(in srgb,var(--cor) 15%,#0000);color:color-mix(in srgb,var(--cor) 55%,#fff);font:600 11px/1.5 var(--mac-ui);white-space:nowrap}
 .capt-tipo {justify-self:start;display:inline-flex;align-items:center;gap:6px;color:#cfd3dc;font:700 11.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.05em}
 .capt-tipo::before {content:"";width:9px;height:9px;border-radius:3px;background:var(--ag-cor)}
 .capt-quando-fixo {display:grid;gap:3px;margin:0;padding:10px 12px;border-radius:11px;background:#4f8df714;border:1px solid #4f8df744;color:#dbe7ff;font:650 13px var(--mac-ui)}
@@ -9701,14 +9709,6 @@ img.ofc-com-animada {position:relative;z-index:1}
 .t-outro {--ag-cor:#8b92a3}
 .ag-legenda {display:flex;flex-wrap:wrap;gap:12px}
 .ag-legenda-item {display:inline-flex;align-items:center;gap:6px;color:#aeb4c2;font:600 12px var(--mac-ui)}
-/* Na Produção a legenda é o filtro: cada tipo liga e desliga, com a contagem. */
-.ag-legenda.filtro {gap:4px}
-.ag-legenda.filtro .ag-legenda-item {min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--vb-linha,#ffffff1f);background:#ffffff06;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
-.ag-legenda.filtro .ag-legenda-item b {color:#8b92a3;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="false"] {color:#6f7686}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="false"]::before {background:transparent;box-shadow:inset 0 0 0 2px var(--ag-cor)}
-.ag-legenda.filtro .ag-legenda-item[aria-pressed="true"] {border-color:#ff8a3566;background:#ff8a3514;color:#fff}
-.ag-legenda.filtro .ag-legenda-item:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
 .ag-legenda-item::before {content:"";width:10px;height:10px;border-radius:3px;background:var(--ag-cor)}
 .ag {container-type:inline-size;min-width:0}
 .ag-semana {border-radius:16px;border:1px solid #ffffff14;background:#13151c;overflow:hidden}
@@ -9909,7 +9909,9 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 .rot-candidatos {max-height:min(52vh,460px);overflow:auto;padding-right:2px}
 @media (max-width:760px) {.rot-corpo {grid-template-columns:1fr;padding:4px 14px 14px}.rot-topo {align-items:stretch}.rot-botoes {width:100%}.rot-botoes .vb-botao {flex:1}}
 @media (prefers-reduced-motion:reduce) {.rot-cartao {animation:none}}
-.capt .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* O cartão do evento fica no body, fora de .capt: sem ele aqui, o texto para
+   leitor de tela ("Gravado: …") aparecia escrito dentro do cartão. */
+.capt .sr-only,.ag-cartao .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Cartão do evento (agCartaoAbrir): ao lado do bloco clicado, como no
    calendário; no celular é uma folha que sobe de baixo. */
@@ -11553,3 +11555,140 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
    tela inteira o tempo todo, mesmo com o Painel parado. */
 /* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
 html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}
+
+/* Loja: "Monte um ambiente" e histórico de compras da Carteira. */
+.ofc-loja-ambientes {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ofc-loja-ambiente {display:grid;gap:4px;justify-items:start;padding:10px;border-radius:14px;border:1px solid #ffffff14;background:linear-gradient(160deg,#ffffff0d,#ffffff03);color:#e8ebf2;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.ofc-loja-ambiente:hover {transform:translateY(-2px);border-color:#ff8a3566;background:linear-gradient(160deg,#ff8a351c,#ffffff05)}
+.ofc-loja-ambiente-artes {display:flex;align-items:flex-end;gap:2px;width:100%;height:46px;overflow:hidden}
+.ofc-loja-ambiente-artes > * {flex:1 1 0;min-width:0;max-height:46px;object-fit:contain}
+.ofc-loja-ambiente b {display:flex;align-items:center;gap:6px;font:800 13px var(--mac-ui)}
+.ofc-loja-ambiente b svg {width:15px;height:15px;color:#ffc79a}
+.ofc-loja-ambiente small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-historico {display:grid;gap:6px;margin-top:12px}
+.ofc-historico h4 {margin:0;display:flex;align-items:baseline;gap:8px;font:800 13px var(--mac-ui);color:#fff}
+.ofc-historico h4 small {color:#8f97a8;font:700 11px var(--mac-ui)}
+.ofc-historico ul {list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:320px;overflow:auto}
+.ofc-historico-item {display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#ffffff08}
+.ofc-historico-item[onclick] {cursor:pointer}
+.ofc-historico-item[onclick]:hover {background:#ffffff12}
+.ofc-historico-arte {width:36px;height:36px;display:grid;place-items:center;overflow:hidden}
+.ofc-historico-arte > * {max-width:36px;max-height:36px;object-fit:contain}
+.ofc-historico-texto {display:grid;min-width:0}
+.ofc-historico-texto b {font:700 12px var(--mac-ui);color:#e8ebf2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ofc-historico-texto small {font:600 11px var(--mac-ui);color:#8f97a8}
+.ofc-historico-item em {font:800 12px var(--mac-ui);font-style:normal}
+.ofc-historico-item em.mais {color:#7be0a2}
+.ofc-historico-item em.menos {color:#ffb08a}
+/* LADO DIREITO EM DUAS LINHAS (Paulo, 26/10/2026: "status e o que é (card,
+   reels) alinhados à direita, as bolinhas em cima do status e o olhinho com
+   uma barrinha antes das bolinhas"). Em cima: olho | responsáveis; embaixo:
+   formato e status. Tudo encostado à direita, então uma, duas ou três
+   pessoas não mexem em nada: os responsáveis ocupam sempre o mesmo espaço
+   (até três e o "+N", como já mostra ownerEditorTrigger). */
+.day-activity-lado{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:0}
+.day-activity-pessoas{display:flex;align-items:center;justify-content:flex-end;gap:7px}
+.day-activity-pessoas > .linha-previa{min-width:22px;min-height:22px;padding:0 4px}
+.day-activity-pessoas > .linha-previa + .manager-owner-trigger{padding-left:7px;border-left:1px solid rgba(255,255,255,.16);border-radius:0}
+.day-activity-pessoas .manager-owner-trigger{flex:none;box-sizing:content-box;width:64px;justify-content:flex-end}
+.day-activity-pessoas .manager-owner-trigger .owner-avatar-stack{padding-left:0}
+.day-activity-pessoas .manager-owner-trigger .owner-avatar-stack > :is(img,.owner-avatar-fallback){width:22px;height:22px}
+.day-activity-pessoas .manager-owner-trigger .owner-avatar-stack > :is(img,.owner-avatar-fallback) + :is(img,.owner-avatar-fallback){margin-left:-8px}
+.day-activity-lado .day-activity-actions{justify-content:flex-end;flex-wrap:nowrap;gap:5px}
+/* Formato e status com largura fixa ("status e formato devem ser alinhados
+   e justificados"): cada etiqueta vira uma coluna, e "Para aprovação" ao lado
+   de "Pode Fazer" não desalinha o formato da linha de cima. O nome inteiro
+   fica no title do botão de status. */
+.day-activity-lado .manager-status-control{flex:none;display:flex;width:112px}
+.day-activity-lado .manager-status-control .pill{width:100%;box-sizing:border-box;justify-content:center;overflow:hidden;white-space:nowrap}
+/* Cada formato com a cor dele (corDoFormato), só na borda e no texto. */
+.day-activity-formato{flex:none;display:inline-block;box-sizing:border-box;width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--formato,#6b7280) 60%,transparent);
+  background:color-mix(in srgb,var(--formato,#6b7280) 16%,transparent);color:color-mix(in srgb,var(--formato,#6b7280) 45%,#fff);
+  font:600 10px/1.5 var(--mac-ui);white-space:nowrap}
+
+/* ─── CAPTAÇÕES COMO CALENDÁRIO (Paulo, 26/10/2026) ──────────────────────────
+   "Quero o padrão de calendário: abre e vê o calendário; clicando ou passando
+   o mouse aparecem as coisas." Referência: o Calendário do Mac — uma barra
+   de vidro só, a semana ocupando a tela, o que passou recuado, prévia no
+   hover e o cartão no clique. Cores de tipo continuam as do Google Agenda. */
+.capt-cal {gap:12px}
+.capt-toolbar {position:sticky;top:8px;z-index:20;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 16px;padding:10px 12px 10px 14px;
+  border-radius:16px;border:1px solid #ffffff17;background:color-mix(in srgb,#1b1d26 82%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);box-shadow:0 10px 30px #0005,inset 0 1px 0 #ffffff0d}
+.capt-tb-esq {display:flex;align-items:center;gap:14px;min-width:0}
+.capt-tb-nav {display:inline-flex;padding:2px;border-radius:10px;background:#ffffff0d;border:1px solid #ffffff12}
+.capt-tb-nav button {min-width:30px;height:28px;padding:0 9px;border:0;border-radius:8px;background:transparent;color:#d9dde6;font:650 13px var(--mac-ui);cursor:pointer;transition:background .15s}
+.capt-tb-nav button:hover {background:#ffffff14}
+.capt-tb-nav .capt-tb-hoje {padding:0 12px}
+.capt-tb-nav .capt-tb-hoje[aria-current] {color:#8b92a3}
+.capt-tb-nav button:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-titulo {display:grid;gap:2px;margin:0;color:#fff;font:760 21px/1.1 var(--mac-ui);letter-spacing:-.01em;white-space:nowrap;min-width:0}
+.capt-tb-titulo small {color:#8b92a3;font:550 12.5px var(--mac-ui);letter-spacing:0;font-variant-numeric:tabular-nums}
+.capt-tb-vista {margin:0;justify-self:center}
+.capt-tb-dir {display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:0}
+.capt-filtros {display:inline-flex;gap:2px;padding:2px;border-radius:10px;background:#ffffff0a;border:1px solid #ffffff10}
+.capt-filtro {display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;white-space:nowrap;border:0;border-radius:8px;background:transparent;color:#7d8494;font:600 12px var(--mac-ui);cursor:pointer;transition:background .15s,color .15s}
+.capt-filtro::before {content:"";width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--ag-cor)}
+.capt-filtro b {color:#6f7686;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.capt-filtro[aria-pressed="true"] {background:#ffffff12;color:#f2f4f8}
+.capt-filtro[aria-pressed="true"]::before {background:var(--ag-cor);box-shadow:none}
+.capt-filtro[aria-pressed="true"] b {color:#aeb4c2}
+.capt-filtro:hover {color:#f2f4f8}
+.capt-filtro:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-pend {display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;white-space:nowrap;flex:none;border-radius:10px;border:1px solid #ffffff17;background:#ffffff0a;color:#d9dde6;font:650 12.5px var(--mac-ui);cursor:pointer;transition:background .15s,border-color .15s}
+.capt-tb-pend b {display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#ff7a1a;color:#1d0d02;font:800 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.capt-tb-pend:hover {background:#ffffff14}
+.capt-tb-pend[aria-pressed="true"] {border-color:#ff8a3577;background:#ff8a3514;color:#fff}
+.capt-tb-pend:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-tb-marcar {min-height:32px;gap:6px;white-space:nowrap;flex:none}
+.capt-tb-marcar span {font-size:16px;line-height:1}
+/* A semana ocupa a largura; o inspetor entra ao lado quando pedido. */
+.capt-cal .capt-colunas {grid-template-columns:minmax(0,1fr)}
+.capt-cal.com-inspetor .capt-colunas {grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+.capt-cal .capt-lado {top:76px;max-height:calc(100vh - 100px);padding:14px;border-radius:16px;border:1px solid #ffffff14;background:#171920;animation:esp-entra .2s var(--curva,ease) both}
+.capt-inspetor-fechar {margin-left:auto;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#9aa1b0;font-size:18px;line-height:1;cursor:pointer}
+.capt-inspetor-fechar:hover {background:#ffffff12;color:#fff}
+.capt-paradas {margin:6px 0 0;padding:10px 12px;border-radius:11px;background:#ffffff06;color:#9aa1b0;font:500 12px/1.45 var(--mac-ui)}
+/* A grade, mais alta e calma: o que passou recua, hoje fica em evidência. */
+.capt-cal .ag-semana {border-radius:16px;border-color:#ffffff12;background:#121419;box-shadow:0 12px 34px #0004}
+.capt-cal .ag-corpo {max-height:max(480px,calc(100vh - 250px))}
+.capt-cal .ag-cabeca {position:sticky;top:0;z-index:6;background:#16181f}
+.capt-cal .ag-dia-cab {padding:10px 4px 9px}
+.capt-cal .ag-dia-cab b {font-size:17px}
+.ag-dia-cab.passou small,.ag-dia-cab.passou b {color:#5d6372}
+.ag-col.passou {background:#0000001f}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta) {opacity:.5}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta):hover {opacity:.85}
+.capt-cal .ag-ev {border-radius:7px;padding:5px 8px 5px 11px;background:color-mix(in srgb,var(--ag-cor) 20%,#14161c);box-shadow:inset 3px 0 0 var(--ag-cor),0 1px 2px #0005}
+.capt-cal .ag-ev:hover {background:color-mix(in srgb,var(--ag-cor) 30%,#14161c);transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--ag-cor),0 6px 16px #0006}
+.capt-cal .ag-ev b {font:650 12px/15px var(--mac-ui)}
+.capt-cal .ag-ev small {color:#ffffffa8;font:550 11px/14px var(--mac-ui)}
+.capt-cal .ag-selo {font-size:10px;line-height:15px;padding:0 6px}
+.capt-cal .capt-dica {text-align:center}
+/* Prévia do hover (agPreviaEntrar): vidro, ao lado do bloco, só leitura. */
+.ag-previa {position:fixed;z-index:880;width:300px;display:grid;gap:6px;padding:14px 15px 12px;border-radius:14px;pointer-events:none;
+  border:1px solid #ffffff1f;background:color-mix(in srgb,#1c1e27 90%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  box-shadow:0 18px 44px #000a,inset 0 1px 0 #ffffff12;color:#e9ecf2;animation:ag-previa-entra .14s var(--curva,ease) both}
+.ag-previa[hidden] {display:none}
+@keyframes ag-previa-entra {from {opacity:0;transform:translateY(3px) scale(.985)} to {opacity:1;transform:none}}
+.ag-previa > * {margin:0}
+.ag-previa-tipo {display:inline-flex;align-items:center;gap:6px;color:#aeb4c2;font:700 10.5px var(--mac-ui);text-transform:uppercase;letter-spacing:.06em}
+.ag-previa-tipo::before {content:"";width:8px;height:8px;border-radius:50%;background:var(--ag-cor)}
+.ag-previa-titulo {color:#fff;font:720 15px/1.3 var(--mac-ui)}
+.ag-previa-quando {color:#c9cdd6;font:550 12.5px var(--mac-ui)}
+.ag-previa-cliente {color:#fff;font:650 13px var(--mac-ui)}
+.ag-previa .capt-estado {justify-self:start}
+.ag-previa-sub {margin-top:4px;color:#8b92a3;font:700 11px var(--mac-ui)}
+.ag-previa-pecas {list-style:none;padding:0;display:grid;gap:4px}
+.ag-previa-pecas li {display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:550 12.5px/1.35 var(--mac-ui)}
+.ag-previa-pecas li span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-previa-pecas i {flex:none;font:600 11px var(--mac-ui);font-style:normal}
+.ag-previa-pecas i.ok {color:#7fe2b2}
+.ag-previa-pecas i.falta {color:#ffcf6b}
+.ag-previa-mais {color:#8b92a3;font:500 12px var(--mac-ui)}
+.ag-previa-dica {margin-top:4px;padding-top:8px;border-top:1px solid #ffffff12;color:#7d8494;font:550 11px var(--mac-ui)}
+@media (max-width:900px) {.capt-cal.com-inspetor .capt-colunas {grid-template-columns:minmax(0,1fr)}.capt-cal .capt-lado {position:static;max-height:none}}
+/* Tela média: a barra vira duas linhas (navegação e Semana/Lista em cima, filtros e ações embaixo). */
+@media (max-width:1280px) {.capt-toolbar {grid-template-columns:minmax(0,1fr) auto}.capt-tb-vista {justify-self:end}.capt-tb-dir {grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap}}
+@media (max-width:760px) {.capt-toolbar {position:static;grid-template-columns:minmax(0,1fr)}.capt-tb-esq {flex-wrap:wrap}.capt-tb-titulo {font-size:19px;white-space:normal}.capt-tb-titulo small {display:none}.capt-tb-vista {justify-self:start}.capt-filtros {max-width:100%;overflow-x:auto;scrollbar-width:none}.capt-filtro {flex:none}}
+@media (prefers-reduced-motion:reduce) {.ag-previa,.capt-cal .capt-lado {animation:none}.capt-cal .ag-ev:hover {transform:none}}

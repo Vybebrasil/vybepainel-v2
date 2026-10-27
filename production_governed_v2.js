@@ -140,7 +140,10 @@
       
       @media(max-width:780px){
          .prod-v2-head { flex-direction:column; align-items:flex-start; gap:16px; }
-         .p-controls-row { flex-wrap:wrap; }
+         .p-controls-row { flex-wrap:wrap; max-width:100%; }
+         /* As quatro abas não cabem em 375px: a fileira rola para o lado em vez de vazar a página. */
+         .p-segment { max-width:100%; overflow-x:auto; scrollbar-width:none; }
+         .p-segment button { flex:none; padding:8px 12px; }
          .prod-v2-card { flex-direction:column; align-items:flex-start; gap:12px; }
          .p-card-right { width:100%; justify-content:space-between; }
          .prod-v2-drawer { width:100%; }

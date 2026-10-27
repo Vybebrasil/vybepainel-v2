@@ -53,7 +53,7 @@ function escritorioCapaLojaHtml() {
     return `<section class="ofc-loja-prateleira"><div class="ofc-loja-prat-topo"><h3>${safeText(escritorioRotuloCategoria(cat))}</h3><small>${l.length.toLocaleString("pt-BR")}</small><button type="button" onclick="escritorio.cat.categoria='${safeText(cat)}';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">ver tudo ›</button></div><div class="ofc-loja-fila">${l.slice(0, 6).map((m) => escritorioCartaoMovel(m, { loja: true })).join("")}</div></section>`;
   };
   const baratos = escritorioCatalogoGeralLista({ categoria: "*", busca: "", raridade: "", posso: true, desejos: false }).filter((m) => escritorioInfoLoja(m.classe).raridade === "comum").length;
-  return `<div class="ofc-loja-capa"><div class="ofc-loja-saudacao"><b>Loja da Vybelândia</b><span>Você tem <i>${saldo.toLocaleString("pt-BR")} VybeCoins</i>${baratos ? ` · ${baratos.toLocaleString("pt-BR")} peças cabem no seu saldo` : ""}. Pisos, paredes e blocos são grátis na construção.</span></div>${escritorioDestaquesLojaHtml().replace('<h4 class="ofc-loja-todos">Todos os móveis</h4>', "")}${ESCRITORIO_PRATELEIRAS_LOJA.map(prateleira).join("")}</div>`;
+  return `<div class="ofc-loja-capa"><div class="ofc-loja-saudacao"><b>Loja da Vybelândia</b><span>Você tem <i>${saldo.toLocaleString("pt-BR")} VybeCoins</i>${baratos ? ` · ${baratos.toLocaleString("pt-BR")} peças cabem no seu saldo` : ""}. Pisos, paredes e blocos são grátis na construção.</span></div>${escritorioDestaquesLojaHtml().replace('<h4 class="ofc-loja-todos">Todos os móveis</h4>', "")}${typeof escritorioAmbientesCapaHtml === "function" ? escritorioAmbientesCapaHtml() : ""}${ESCRITORIO_PRATELEIRAS_LOJA.map(prateleira).join("")}</div>`;
 }
 
 // Venda à loja (Paulo, 26/10/2026): o que a pessoa comprou volta pelo mesmo
@@ -118,4 +118,83 @@ async function venderSelecionadoEscritorio() {
   if (escritorio.edicao) return; // não salvou: a peça volta com Desfazer
   await venderParaLojaEscritorio(classe, true);
   await abrirEditorEscritorio();
+}
+
+// Ambientes (Paulo, 26/10/2026: "o Vinícius queria montar uma academia e não
+// aparece as coisas de forma fácil"): categorias por tipo de sala, pelas
+// palavras do nome e da classe (o acervo está em inglês) e pelas categorias
+// antigas que já cobriam o tema, para nenhuma peça sumir.
+const ESCRITORIO_AMBIENTES = [
+  ["Academia", "alvo", ["gym", "treadmill", "dumbbell", "weightrack", "weight", "barbell", "sparring", "boxing", "punch", "yoga", "fitness", "exercise", "rowing", "kettlebell", "trampoline", "locker", "olympics c16", "sport"], []],
+  ["Cozinha", "mesa", ["kitchen", "ktchn", "stove", "cooker", "oven", "fridge", "freezer", "microwave", "toaster", "cutlery", "chef", "pantry", "dish"], ["Cozinha e bar", "Detalhes de cozinha"]],
+  ["Banheiro", "espaco", ["bathroom", "bath", "toilet", "shower", "bathtub", "towel", "jacuzzi"], []],
+  ["Quarto", "espaco", ["bed", "wardrobe", "dresser", "nightstand", "bunk", "closet", "pillow"], ["Camas"]],
+  ["Sala de estar", "mesa", ["sofa", "couch", "armchair", "fireplace", "coffee table", "tv set", "television", "beanbag"], []],
+  ["Escritório", "painel", ["office", "desk", "exe ", "computer", "laptop", "filing", "whiteboard", "printer", "copier", "swivel", "conference"], ["Do escritório", "Computadores", "Escrivaninhas"]],
+  ["Jardim", "estrela", ["garden", "plant", "tree", "flower", "bush", "hedge", "fountain", "gnome", "pond", "grass", "pergola"], ["Jardim e área externa", "Plantas"]],
+  ["Praia e piscina", "mapa", ["beach", "pool", "surf", "sand", "parasol", "umbrella", "lifeguard", "deckchair", "lounger", "palm", "tiki"], []],
+  ["Festa e balada", "musica", ["party", "disco", "dj", "dance", "balloon", "confetti", "club", "karaoke", "strobe", "neon"], []],
+  ["Gamer e fliperama", "ajustes", ["arcade", "gaming", "game", "console", "pinball", "billiard", "pool table", "joystick", "vwave"], ["Jogos e música"]],
+  ["Estúdio", "camera", ["studio", "camera", "microphone", "spotlight", "recording", "tripod", "mixer"], ["Objetos de estúdio"]],
+  ["Café e bar", "mesa", ["coffee", "cafe", "espresso", "bar", "minibar", "drinks", "cocktail", "beer", "bartender"], []],
+  ["Loja", "loja", ["shop", "store", "mall", "cash register", "till", "display", "merch", "vending"], []],
+  ["Escola", "lista", ["school", "classroom", "blackboard", "chalkboard", "uni ", "locker", "desk school"], []],
+];
+function escritorioDoAmbiente([, , termos, antigas]) {
+  const filtros = antigas.map((n) => ESCRITORIO_GRUPOS_CATALOGO.find(([g]) => g === n)?.[1]).filter(Boolean);
+  const t = termos.map(escritorioSemAcento);
+  return (m) => {
+    // No começo de uma palavra ("rowing" não acha "growing").
+    const alvo = ` ${escritorioSemAcento(m.classe + " " + m.nome).replace(/[^a-z0-9]+/g, " ")} `;
+    return t.some((p) => (p.length <= 3 ? alvo.includes(` ${p} `) : alvo.includes(" " + p))) || filtros.some((f) => f(m));
+  };
+}
+(function ligarAmbientes() {
+  if (typeof ESCRITORIO_GRUPOS_CATALOGO === "undefined" || ESCRITORIO_GRUPOS_CATALOGO.some(([n]) => n === "Academia")) return;
+  for (const a of ESCRITORIO_AMBIENTES) ESCRITORIO_GRUPOS_CATALOGO.push([a[0], escritorioDoAmbiente(a)]);
+  // A seção Ambientes passa a ser estes; as categorias antigas que eles
+  // englobam saem das listas (as peças continuam nos ambientes).
+  const secao = ESCRITORIO_SECOES_CATALOGO.find(([t]) => t === "Ambientes");
+  // "Lazer" fica (carro, barco, rede e balanço não entram em nenhum ambiente).
+  if (secao) secao[1] = [...ESCRITORIO_AMBIENTES.map(([n]) => n), "Lazer (piscina, rede, carro…)"];
+  const englobadas = new Set(ESCRITORIO_AMBIENTES.flatMap(([, , , antigas]) => antigas).filter((n) => !["Camas", "Plantas", "Do escritório", "Computadores", "Escrivaninhas"].includes(n)));
+  for (let i = ESCRITORIO_GRUPOS_CATALOGO.length - 1; i >= 0; i--) if (englobadas.has(ESCRITORIO_GRUPOS_CATALOGO[i][0])) ESCRITORIO_GRUPOS_CATALOGO.splice(i, 1);
+})();
+// Capa da Loja: "Monte um ambiente", um cartão por ambiente com três peças.
+function escritorioAmbientesCapaHtml() {
+  const cartoes = ESCRITORIO_AMBIENTES.map(([nome, ico]) => {
+    const l = escritorioCatalogoGeralLista({ categoria: nome, busca: "", raridade: "", posso: false, desejos: false });
+    if (!l.length) return "";
+    const artes = l.filter((m) => escritorioInfoLoja(m.classe).naVitrine).slice(0, 3).map((m) => `<img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')">`).join("");
+    return `<button type="button" class="ofc-loja-ambiente" onclick="escritorio.cat.categoria='${safeText(nome)}';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()"><span class="ofc-loja-ambiente-artes">${artes}</span><b>${escritorioIcone(ico)}${safeText(nome)}</b><small>${l.length.toLocaleString("pt-BR")} peças</small></button>`;
+  }).join("");
+  return cartoes ? `<section class="ofc-loja-prateleira"><div class="ofc-loja-prat-topo"><h3>Monte um ambiente</h3><small>tudo o que combina com cada tipo de sala</small></div><div class="ofc-loja-ambientes">${cartoes}</div></section>` : "";
+}
+
+// Histórico de compras na Carteira: o que entrou e saiu pela loja, com a peça,
+// o valor, a data e onde ela está agora (no quarto, guardada ou já não está).
+function escritorioHistoricoComprasHtml() {
+  const h = escritorio.base?.economia?.historico;
+  if (!Array.isArray(h)) return "";
+  if (!h.length) return '<section class="ofc-historico"><h4>Histórico de compras</h4><p class="ofc-nota">Nenhuma compra ainda.</p></section>';
+  const rotulo = { compra: "Comprou", kit: "Kit", venda: "Vendeu", devolucao: "Devolução" };
+  const quando = (iso) => { const d = new Date(iso); return Number.isNaN(+d) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
+  // Pelo quarto salvo (o mesmo cálculo da aba Inventário).
+  const meus = new Map((typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : []).map((i) => [i.classe, i]));
+  const onde = (classe) => {
+    if (!classe) return "";
+    if ((escritorio.base?.quartos?.essenciais || []).includes(classe)) return "grátis agora";
+    const i = meus.get(classe);
+    if (!i) return "não está mais com você";
+    const guardados = i.total - i.noQuarto;
+    return [i.noQuarto ? `${i.noQuarto} no quarto` : "", guardados ? `${guardados} guardado${guardados > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · ");
+  };
+  const linhas = h.map((x) => {
+    const classe = x.classes[0] || "", roupa = classe.startsWith("roupa:");
+    const nome = x.tipo === "kit" ? `Kit ${x.kit} · ${x.unidades} peças` : roupa ? "Roupa do avatar" : `${x.unidades > 1 ? x.unidades + " × " : ""}${escritorioNomeDaClasse(classe)}`;
+    const arte = classe && !roupa ? `<img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(classe)}')">` : "";
+    const abrir = classe && !roupa && x.tipo !== "kit" ? ` onclick="abrirPreviaMovelEscritorio('${safeText(classe)}')" role="button" tabindex="0"` : "";
+    return `<li class="ofc-historico-item tipo-${x.tipo}"${abrir}><span class="ofc-historico-arte">${arte}</span><span class="ofc-historico-texto"><b>${safeText(nome)}</b><small>${rotulo[x.tipo] || ""} · ${quando(x.em)}${(x.tipo === "compra" || x.tipo === "kit") && !roupa ? ` · ${safeText(onde(classe))}` : roupa ? " · no guarda-roupa" : ""}</small></span><em class="${x.valor >= 0 ? "mais" : "menos"}">${x.valor >= 0 ? "+" : "−"}${Math.abs(x.valor).toLocaleString("pt-BR")}</em></li>`;
+  }).join("");
+  return `<section class="ofc-historico" aria-label="Histórico de compras"><h4>Histórico de compras <small>últimos ${h.length}</small></h4><ul>${linhas}</ul></section>`;
 }
