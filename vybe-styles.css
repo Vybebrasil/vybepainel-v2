@@ -11539,6 +11539,10 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
    tela inteira o tempo todo, mesmo com o Painel parado. */
 /* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
 html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}
+/* Animações desligadas (botão do Escritório ou Reduzir movimento da Aparência,
+   vybe-escritorio.js): laços acabam na hora e entradas pulam para o fim, sem
+   sumir nada (pausar deixaria uma entrada parada no primeiro quadro). */
+html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::after {animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}
 
 /* Loja: "Monte um ambiente" e histórico de compras da Carteira. */
 .ofc-loja-ambientes {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}

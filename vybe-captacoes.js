@@ -277,7 +277,9 @@ function captTipo(t) {
   captRender();
 }
 function captVista(v) { if (CAPT.vista === v) return; CAPT.vista = v; CAPT.sel = ""; agCartaoFechar(); if (v === "lista") captRender(); else captBuscarFaixa(); }
-function captAbrirPeca(id) { if (typeof window.openItemWorkspace === "function") window.openItemWorkspace(String(id)); }
+// O id da captação é o do banco; a gaveta acha a peça por "vybe:<id>" (o id
+// puro dava "Conteúdo não encontrado no banco").
+function captAbrirPeca(id) { if (typeof window.openItemWorkspace === "function") window.openItemWorkspace(`vybe:${id}`); }
 function captCadastrar(cliente) { if (typeof openCadastrosGoverned === "function") openCadastrosGoverned({ board: "producao", client: cliente || "" }); }
 
 const captHoje = agHoje;
@@ -835,6 +837,7 @@ function captAbrirMontar(clienteId, { dia = "", inicio = "", evento = "" } = {})
       ${g ? `<input type="hidden" name="cliente" value="${safeText(g.cliente.id)}"><p class="capt-detalhe-cliente">${safeText(g.cliente.nome)}</p>`
         : `<label>Cliente<select name="cliente" required onchange="captPecasDoForm(this.form,this.value)"><option value="">Escolha o cliente</option>${fila.map((x) => `<option value="${safeText(x.cliente.id)}">${safeText(x.cliente.nome)} (${captPlural(x.pecas.length, "peça", "peças")})</option>`).join("")}</select></label>`}
       <fieldset class="capt-pecas-form"${g ? "" : " hidden"}>${g ? captPecasFieldset(g, ev) : ""}</fieldset>
+      ${g ? `<button type="button" class="vb-botao capt-add-nova" onclick="closeWorkflowModal();captCadastrar('${safeText(g.cliente.nome)}')"><span aria-hidden="true">+</span> Cadastrar peça nova de ${safeText(g.cliente.nome)}</button>` : ""}
       ${quando}
       <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="O que levar, quem acompanha…"></textarea></label>
       <p class="capt-erro" role="alert" hidden></p>
@@ -950,9 +953,9 @@ async function captSalvarEdicoes(edicoes) {
     if (!r.ok) throw new Error(d?.error || "não salvou");
   };
   for (const x of edicoes) {
-    try { if (x.titulo !== null) await enviar({ acao: "titulo", item: x.id, titulo: x.titulo }); }
+    try { if (x.titulo !== null) await enviar({ acao: "titulo", item: `vybe:${x.id}`, titulo: x.titulo }); }
     catch (e) { falhas.push(`título de "${x.titulo}": ${e.message}`); }
-    try { if (x.veiculacao !== null) await enviar({ acao: "veiculacao", item: x.id, data: x.veiculacao || null }); }
+    try { if (x.veiculacao !== null) await enviar({ acao: "veiculacao", item: `vybe:${x.id}`, data: x.veiculacao || null }); }
     catch (e) { falhas.push(`dia de ir ao ar: ${e.message}`); }
   }
   return falhas;

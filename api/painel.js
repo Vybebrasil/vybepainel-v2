@@ -764,13 +764,19 @@ async function garantirSchemaDeReunioes(db) {
   reunioesProntas = true;
 }
 
-// O subsolo do Escritorio: quem foi desativado e ainda nao foi apagado. So de
-// quem administra, como o resto do ciclo de vida.
+// O subsolo do Escritorio: quem foi desativado e ainda nao foi apagado. Todos
+// descem e veem as almas (Paulo, 27/10/2026); o motivo da saida fica so com
+// quem administra, e reviver ou apagar seguem pelo ciclo de vida, que e de
+// quem administra.
 async function areaSubsolo(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
-  if (!ehAdmin) return res.status(403).json({ error: 'Só quem administra desce ao subsolo.' });
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
-  return res.status(200).json(await listarSubsolo(sql()));
+  const dados = await listarSubsolo(sql());
+  return res.status(200).json(ehAdmin ? dados : semMotivoDoSubsolo(dados));
+}
+export function semMotivoDoSubsolo(dados) {
+  const tira = (lista) => (lista || []).map(({ motivo, ...resto }) => resto);
+  return { ...dados, clientes: tira(dados.clientes), pessoas: tira(dados.pessoas) };
 }
 
 async function areaClientes(req, res, quem) {

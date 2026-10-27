@@ -3,7 +3,7 @@
 // Easter egg do Centro de Operação (Paulo, 27/10/2026). A estante do canto do
 // Centro é secreta: quem puxa o livro certo desce para o subsolo, uma cripta
 // onde ficam os clientes e os colaboradores desativados (só quem administra
-// os vê; para os outros a cripta está vazia). Cliente
+// pode trazer de volta ou apagar). Cliente
 // fica na frente de uma lápide, com a fantasia que usava na mesa; colaborador
 // fica ao lado de uma cripta, com o boneco que usava no Escritório.
 //
@@ -28,9 +28,9 @@ const ESCRITORIO_ESQUELETO = "hd-6248-27.cc-4277-110";
 
 // O que cada peça do segredo faz ao ser usada (escritorioAcaoDoMovel).
 // A passagem é de todos (Paulo, 27/10/2026: o Reriston entrou no armário e
-// não apareceu nada; "todos podendo entrar na sala do easter eggs"). Quem está
-// lá embaixo (nomes e motivos de saída) e o livro de registros seguem só de
-// quem administra: para os outros a cripta aparece vazia.
+// não apareceu nada; "todos podendo entrar na sala do easter eggs"), e todos
+// veem as almas. Reviver, apagar e o livro de registros (que cadastra gente
+// nova) seguem só de quem administra; o motivo da saída também.
 function escritorioAcaoDoSubsolo(m) {
   if (m.classe === ESCRITORIO_ESTANTE_SECRETA && escritorio.quarto === "operacao") return { item: m, texto: "Puxar o livro torto", fazer: () => descerAoSubsoloEscritorio() };
   if (!escritorio.base?.admin) return null;
@@ -60,7 +60,6 @@ const escritorioDataDaSaida = (iso) => (iso ? new Date(iso).toLocaleDateString("
 async function escritorioOcuparSubsolo() {
   if (escritorio.quarto !== "subsolo" || !escritorio.mapa?.ocuparPostos) return;
   const mapa = escritorio.mapa;
-  if (!escritorio.base?.admin) { mapa.ocuparPostos([]); return; }
   let dados;
   try { dados = await escritorioCarregarSubsolo(); }
   catch (e) { escritorioAviso("O subsolo não abriu: " + e.message); return; }
@@ -104,20 +103,20 @@ function abrirAlmaDoSubsoloEscritorio(tipo, id) {
     <div class="workflow-kicker"><span>${tipo === "cliente" ? "Cliente no subsolo" : "Colaborador no subsolo"}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <div class="ofc-agente-topo"><div class="ofc-agente-palco ofc-alma-palco"><span class="ofc-lobby-luz"></span><span class="ofc-lobby-ladrilho"></span>${boneco}</div>
       <div class="ofc-agente-nome"><h2 class="workflow-title">${safeText(x.nome)}</h2>${linhas.map((l) => `<small>${safeText(l)}</small>`).join("")}</div></div>
-    <div class="workflow-actions">
+    ${escritorio.base?.admin ? `<div class="workflow-actions">
       <button type="button" class="workflow-primary" onclick="reviverAlmaDoSubsoloEscritorio()">${tipo === "cliente" ? "Reviver: volta para uma mesa" : "Reviver: volta para o time"}</button>
       <button type="button" class="workflow-secondary perigo ofc-alma-apagar" onclick="apagarAlmaDoSubsoloEscritorio()" title="Apagar para sempre: não tem volta">☠ Apagar para sempre</button>
-    </div></div>`);
+    </div>` : ""}</div>`);
 }
 function reviverAlmaDoSubsoloEscritorio() {
   const a = escritorio.almaAberta;
-  if (!a) return;
+  if (!a || !escritorio.base?.admin) return;
   closeWorkflowModal();
   reviverNoCiclo(a.tipo, a.id, a.nome, { depois: escritorioOcuparSubsolo });
 }
 function apagarAlmaDoSubsoloEscritorio() {
   const a = escritorio.almaAberta;
-  if (a) abrirApagarNoCiclo(a.tipo, a.id, a.nome, { depois: escritorioOcuparSubsolo });
+  if (a && escritorio.base?.admin) abrirApagarNoCiclo(a.tipo, a.id, a.nome, { depois: escritorioOcuparSubsolo });
 }
 
 // O livro de registros: cadastrar quem chega e achar quem está lá embaixo.
