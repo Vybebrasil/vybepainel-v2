@@ -51,6 +51,7 @@ function pokerAcoesHtml(j, s) {
   if (a.aumentar) s.valor = Math.min(a.aumentar.max, Math.max(a.aumentar.min, Number(s.valor) || a.aumentar.min));
   const aumentar = !a.aumentar ? "" : `<div class="pkr-aumentar"><input type="range" min="${a.aumentar.min}" max="${a.aumentar.max}" step="${j.mesa.blind / 2}" value="${s.valor}" aria-label="Quanto apostar" oninput="valorPoker(this.value)">
 <input type="number" min="${a.aumentar.min}" max="${a.aumentar.max}" value="${s.valor}" aria-label="Fichas" oninput="valorPoker(this.value)">
+${a.aumentar.max > a.aumentar.min ? `<button type="button" class="workflow-secondary" onclick="valorPoker(${a.aumentar.max});aumentarPoker(this)">All-in (${pokerFichas(a.aumentar.max)})</button>` : ""}
 <button type="button" class="workflow-primary" id="pkr-aumentar" onclick="aumentarPoker(this)">${s.valor >= a.aumentar.max ? "All-in" : maior ? "Aumentar para " + pokerFichas(s.valor) : "Apostar " + pokerFichas(s.valor)}</button></div>`;
   return `<div class="pkr-acoes"><button type="button" class="workflow-secondary" onclick="lanceMesaEscritorio('pkr',{tipo:'largar'},this)">Largar</button>
 ${a.mesa ? `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('pkr',{tipo:'mesa'},this)">Passar</button>` : `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('pkr',{tipo:'pagar'},this)">Pagar ${pokerFichas(a.pagar)}</button>`}</div>${aumentar}`;
