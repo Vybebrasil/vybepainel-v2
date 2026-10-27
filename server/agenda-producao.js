@@ -51,7 +51,7 @@ export function gravacoesDaAgenda(eventos) {
     fimDia:e.end.dateTime ? dataLocal(e.end.dateTime) : '',local:String(e.location || '').replace(/\s+/g,' ').trim(),
   })).sort((a,b) => a.dia.localeCompare(b.dia) || a.horario.localeCompare(b.horario));
 }
-export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenGoogle,dias=6 } = {}) {
+export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenGoogle,dias=6,bruto=false } = {}) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dia)) || !Number.isFinite(Date.parse(`${dia}T12:00:00Z`))
     || new Date(`${dia}T12:00:00Z`).toISOString().slice(0,10)!==dia) {
     throw Object.assign(new Error('Informe uma data válida.'), {status:400});
@@ -79,5 +79,6 @@ export async function listarAgendaProducao(dia, { buscar=fetch,obterToken=tokenG
     if(pagina && (paginas.has(pagina)||paginas.size>=20)) throw new Error('Não foi possível carregar toda a agenda. Tente novamente.');
     paginas.add(pagina);
   } while(pagina);
-  return {ok:true,inicio:dia,fim:fim.toISOString().slice(0,10),fuso:FUSO,eventos:gravacoesDaAgenda(eventos)};
+  // bruto: os eventos como o Google devolve (lembretes de compromisso filtram do jeito deles, reunião inclusive).
+  return {ok:true,inicio:dia,fim:fim.toISOString().slice(0,10),fuso:FUSO,eventos:bruto?eventos:gravacoesDaAgenda(eventos)};
 }
