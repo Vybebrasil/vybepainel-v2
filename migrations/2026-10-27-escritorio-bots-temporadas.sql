@@ -29,4 +29,10 @@ CREATE TABLE IF NOT EXISTS vybe_escritorio_temporadas (
  pago_em timestamptz NOT NULL DEFAULT now(),
  PRIMARY KEY (jogo, inicio, posicao)
 );
+-- Troféu do campeão de cada jogo, conferido em Production (sem marco, fora de
+-- toda conquista e sem dono): passa a vir só pela temporada (não se compra).
+INSERT INTO vybe_escritorio_catalogo(classe, raridade, marco) VALUES
+ ('trophy_gameprize','lendario','temporada'),('trophy_ltd18_wcup','lendario','temporada'),('prizetrophy_hot','lendario','temporada'),
+ ('prizetrophy_cool','lendario','temporada'),('race_trophy','lendario','temporada'),('trophy_wired','lendario','temporada'),('xm09_trophy','lendario','temporada')
+ON CONFLICT (classe) DO UPDATE SET marco=COALESCE(vybe_escritorio_catalogo.marco, 'temporada');
 COMMIT;

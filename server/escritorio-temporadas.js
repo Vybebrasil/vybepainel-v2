@@ -13,7 +13,10 @@ import { nomes } from './escritorio-apostas.js';
 export const JOGOS = ['xadrez', 'sinuca', 'poker', 'domino', 'dama', 'velha', 'truco'];
 export const PREMIOS_TEMPORADA = [{ posicao: 1, xp: 300, moedas: 150, trofeu: true }, { posicao: 2, xp: 200, moedas: 80 }, { posicao: 3, xp: 100, moedas: 40 }];
 // Troféu do campeão de cada jogo (móvel que não se compra; ver a migração).
-export const TROFEUS_TEMPORADA = {};
+// Conferidos em Production em 27/10/2026: sem marco, fora de toda conquista e
+// sem dono (as taças aladas e os troféus das conquistas ficaram de fora).
+export const TROFEUS_TEMPORADA = { xadrez: 'trophy_gameprize', sinuca: 'trophy_ltd18_wcup', poker: 'prizetrophy_hot', domino: 'prizetrophy_cool',
+ dama: 'race_trophy', velha: 'trophy_wired', truco: 'xm09_trophy' };
 // A primeira temporada paga é a que estava aberta quando os jogos entraram.
 const PRIMEIRA = '2026-10-16';
 const MAX_POR_DIA = 3;
