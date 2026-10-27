@@ -16,7 +16,7 @@
 const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
   busca: "", abertos: new Set(), semana: "", dia: "", sel: "",
   // No celular abre no Dia (o Roteiro do dia, a tela do Mizinho na gravação); no computador, na Semana.
-  vista: typeof window !== "undefined" && window.matchMedia?.("(max-width: 700px)").matches ? "dia" : "semana", tipos: new Set(["captacao"]), grupo: "",
+  vista: typeof window !== "undefined" && window.matchMedia?.("(max-width: 700px)").matches ? "dia" : "semana", tipos: new Set(["captacao", "reuniao", "outro"]), grupo: "",
   // O inspetor ("Precisa de você") abre e fecha pela barra; a escolha fica no navegador.
   inspetor: (() => { try { return localStorage.getItem("vybeCaptInspetor") === "1"; } catch { return false; } })(), verParadas: false };
 
@@ -56,8 +56,8 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   // O que já passou recua, como no calendário; o que pede ação não.
   const agoraHm = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
   const passou = (e) => e.dia < hoje || (e.dia === hoje && (agMin(e.fim) ?? agMin(e.inicio) ?? 24 * 60) <= agMin(agoraHm));
-  const bloco = (e, estilo = "", curto = false, recuado = false) => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
-      <b>${safeText(p.nome)}</b><small>${safeText([e.inicio ? agHorario(e) : "", curto ? "" : p.resto].filter(Boolean).join(" · "))}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`; };
+  const bloco = (e, estilo = "", curto = false, recuado = false) => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
+      <b>${safeText(p.nome)}</b><small>${safeText([e.inicio ? agHorario(e) : "", e.estado?.chave === "fechar" ? "falta fechar" : curto ? "" : p.resto].filter(Boolean).join(" · "))}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`; };
   // Eventos que se cruzam dividem a coluna (faixas).
   const posicionar = (lista) => {
     const ordem = [...lista].sort((a, b) => agMin(a.inicio) - agMin(b.inicio)), faixas = [], grupo = [];
@@ -107,6 +107,8 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
 // reconhecido, fica o título sem o prefixo.
 function agPartesDoTitulo(e) {
   const semSinais = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  // Reuni\u00e3o e compromisso: o nome do evento \u00e9 o que importa; o cliente vem embaixo.
+  if (e.tipo && e.tipo !== "captacao") return { nome: e.titulo || "Sem t\u00edtulo", resto: e.cliente && !semSinais(e.titulo).includes(semSinais(e.cliente)) ? e.cliente : "" };
   let resto = String(e.titulo || "").replace(/^\s*(capta[çc][ãa]o|grava[çc][ãa]o|gavacao)\b\s*[-–·:]?\s*/i, "");
   if (e.cliente) {
     const i = semSinais(resto).indexOf(semSinais(e.cliente));
@@ -123,28 +125,30 @@ function agPartesDoTitulo(e) {
 // 21/10/2026: "abrir o hover com tudo daquela captação, ao invés de descer").
 // No celular sobe de baixo. Fecha no ×, no Esc ou clicando fora; `aoFechar`
 // é o nome da função global que limpa a escolha.
-function agCartaoAbrir(id, html, aoFechar = "") {
+function agCartaoAbrir(id, html, aoFechar = "", ponto = null) {
   let pop = document.getElementById("ag-cartao");
   if (!pop) {
     pop = document.createElement("div"); pop.id = "ag-cartao"; pop.className = "ag-cartao"; pop.setAttribute("role", "dialog");
     document.body.append(pop);
-    document.addEventListener("mousedown", (ev) => { const p = document.getElementById("ag-cartao"); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest(".ag-ev,.ag-chip,.capt-linha,.capt-pend-texto,.capt-rd")) agCartaoFechar(); }, true);
+    document.addEventListener("mousedown", (ev) => { const p = document.getElementById("ag-cartao"); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest(".capt-tb-criar") && !ev.target.closest(".ag-ev,.ag-chip,.capt-linha,.capt-pend-texto,.capt-rd")) agCartaoFechar(); }, true);
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !document.getElementById("ag-cartao")?.hidden) agCartaoFechar(); });
   }
-  pop.dataset.fechar = aoFechar; pop.dataset.ev = id;
+  pop.dataset.fechar = aoFechar; pop.dataset.ev = id; pop._ponto = ponto;
   pop.innerHTML = `<button type="button" class="ag-cartao-fechar" aria-label="Fechar" onclick="agCartaoFechar()">×</button>${html}`;
   pop.setAttribute("aria-label", pop.querySelector("h4")?.textContent || "Evento");
   pop.hidden = false;
   agCartaoPosicionar();
 }
+let AG_ULTIMO_TOQUE = null;
+document.addEventListener("pointerdown", (ev) => { AG_ULTIMO_TOQUE = { left: ev.clientX, right: ev.clientX, top: ev.clientY - 8, bottom: ev.clientY }; }, true);
 function agCartaoPosicionar() {
   const pop = document.getElementById("ag-cartao");
   if (!pop || pop.hidden) return;
   const ancora = [...document.querySelectorAll(`[data-ev="${CSS.escape(pop.dataset.ev || "")}"]`)].find((el) => el.offsetParent !== null);
   const estreito = window.innerWidth < 700;
-  pop.classList.toggle("folha", estreito || !ancora);
-  if (estreito || !ancora) { pop.style.left = pop.style.top = ""; return; }
-  const r = ancora.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, m = 12;
+  pop.classList.toggle("folha", estreito || (!ancora && !pop._ponto));
+  if (estreito || (!ancora && !pop._ponto)) { pop.style.left = pop.style.top = ""; return; }
+  const r = ancora ? ancora.getBoundingClientRect() : pop._ponto, w = pop.offsetWidth, h = pop.offsetHeight, m = 12;
   const direita = r.right + m + w <= window.innerWidth - m;
   pop.style.left = `${Math.max(m, direita ? r.right + m : r.left - m - w)}px`;
   pop.style.top = `${Math.max(m, Math.min(r.top, window.innerHeight - h - m))}px`;
@@ -215,7 +219,7 @@ async function captPedir(params, corpo) {
   return d;
 }
 const captRender = () => { if (typeof renderProductionCommand === "function") renderProductionCommand(); };
-function captGuardar(c) { CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.recentes = c.recentes || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
+function captGuardar(c) { CAPT.clientes = c.clientes || CAPT.clientes || []; CAPT.captacoes = c.captacoes || []; CAPT.agenda = c.agenda || []; CAPT.proximas = c.proximas || []; CAPT.recentes = c.recentes || []; CAPT.avisoAgenda = c.aviso_agenda || ""; }
 // O período carregado acompanha a visão: a semana do dia em foco (Dia e
 // Semana) ou as seis semanas da grade do mês. `CAPT.dia` é o dia em foco;
 // trocar de semana, mês ou dia só busca de novo se sair do que já veio.
@@ -319,7 +323,7 @@ function captEstado(e) {
   if (e.tipo !== "captacao") return null;
   const k = e.nossa;
   if (k?.fechada_em) return { tom: "ok", texto: "Gravada" };
-  if (captFaltaFechar(e)) return { tom: "atencao", texto: "Falta fechar" };
+  if (captFaltaFechar(e)) return { tom: "atencao", texto: "Falta fechar", chave: "fechar" };
   if (k) {
     const falta = k.pecas.filter((p) => !p.gravado && !captTemRoteiro(p)).length, gravadas = k.pecas.filter((p) => p.gravado).length;
     if (k.aviso) return { tom: "alerta", texto: "Fora do Google Agenda" };
@@ -453,32 +457,43 @@ function captRoteiroDoCartao(k) {
   return `<form class="capt-roteiro-form" onsubmit="event.preventDefault();captLigarRoteiro(this,'${safeText(k.id)}')"><label><span class="sr-only">Link do roteiro no Google Docs</span><input type="url" name="roteiro" placeholder="Link do roteiro no Google Docs" required></label><button type="submit" class="vb-botao">Ligar roteiro</button></form>`;
 }
 
-// O cartão do evento, ao lado do bloco clicado: quem, quando e o estado em
-// cima; a ação da vez logo abaixo; as peças no meio; Google e cancelar no pé.
+// O cartão do evento, ao lado do bloco clicado (versão sóbria, 26/10/2026):
+// quem, quando e o progresso em cima; a ação da vez; as peças DESTA captação
+// numa lista curta; Google e cancelar no pé. As peças do cliente que só estão
+// esperando não entram aqui (proximidade: parecia que eram desta captação) —
+// aparecem no formulário de escolher ou de fechar.
+function captPecaCompactaHtml(p, k) {
+  const fechada = Boolean(k?.fechada_em);
+  const marcar = k && !fechada ? `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` : "";
+  const falta = !p.gravado && p.tipo !== "foto" && !captTemRoteiro(p) ? '<small class="capt-falta">sem roteiro</small>' : "";
+  return `<li class="capt-peca-curta${p.gravado ? " gravada" : ""}">${marcar}<button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>${falta}</li>`;
+}
 function captDetalheHtml(e) {
-  const k = e.nossa, pendentes = captPendentesDo(e.cliente_id, e), est = e.estado;
-  const fotos = pendentes.filter((p) => p.sem_material), outras = pendentes.filter((p) => !p.sem_material);
-  const topo = `<p class="capt-tipo t-${safeText(e.tipo)}">${safeText(AG_TIPOS[e.tipo] || "Compromisso")}</p>
-    <h4>${safeText(e.titulo || "Sem título")}</h4>
-    <p class="capt-detalhe-quando">${safeText(captDiaLongo(e.dia))}${captDiasAte(e.dia) === 0 || captDiasAte(e.dia) === 1 ? `, ${safeText(captDia(e.dia))}` : ""} · ${safeText(agHorario(e))}${e.local ? `<br>${safeText(e.local)}` : ""}</p>
-    ${e.cliente ? `<p class="capt-detalhe-cliente">${safeText(e.cliente)}</p>` : e.tipo === "captacao" ? '<p class="capt-aviso">Não reconheci o cliente pelo título. Ponha o nome do cliente no título do evento no Google Agenda.</p>' : ""}
-    ${est ? `<span class="capt-estado tom-${est.tom}">${safeText(est.texto)}</span>` : ""}`;
+  const k = e.nossa, p = agPartesDoTitulo(e), est = e.estado;
+  const quando = `${captDiaLongo(e.dia)}${captDiasAte(e.dia) === 0 || captDiasAte(e.dia) === 1 ? `, ${captDia(e.dia)}` : ""} · ${agHorario(e)}`;
   const google = e.link ? `<a class="vb-link" href="${safeText(e.link)}" target="_blank" rel="noopener">Abrir no Google Agenda</a>` : "";
-  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-discreto">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"} da agenda da Vybe. Só as captações (azuis) recebem peças.</p>${google ? `<div class="capt-rodape">${google}</div>` : ""}</div>`;
+  const topo = `<h4>${safeText(p.nome)}</h4>
+    ${p.nome !== e.titulo ? `<p class="capt-detalhe-titulo">${safeText(e.titulo)}</p>` : ""}
+    <p class="capt-detalhe-quando">${safeText(quando)}${e.local ? ` · ${safeText(e.local)}` : ""}</p>`;
+  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-progresso">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"}${e.cliente ? ` · ${safeText(e.cliente)}` : ""}</p>${captVinculoHtml(e)}${google ? `<div class="capt-rodape">${google}</div>` : ""}</div>`;
+  if (!e.cliente && !k) return `<div class="capt-detalhe">${topo}${captVinculoHtml(e)}${google ? `<div class="capt-rodape">${google}</div>` : ""}</div>`;
+  const pendentes = k ? [] : captPendentesDo(e.cliente_id, e);
+  // Zeigarnik: o que falta, em número, logo no topo.
+  const progresso = k?.fechada_em ? "" : k ? `${k.pecas.filter((x) => x.gravado).length} de ${captPlural(k.pecas.length, "peça gravada", "peças gravadas")}`
+    : pendentes.length ? `${captPlural(pendentes.length, "peça do cliente esperando", "peças do cliente esperando")}` : "nenhuma peça no sistema";
+  const estado = est && est.tom !== "ok" ? `<span class="capt-estado tom-${est.tom}">${safeText(est.texto)}</span>` : "";
   const acao = captAcaoPrincipal(e);
   let corpo = "";
   if (k?.fechada_em) corpo = captGeradoHtml(k) + captRoteiroDoCartao(k);
   else if (k) corpo = `${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
-    <h5>Peças desta captação <small>${k.pecas.filter((p) => p.gravado).length} de ${k.pecas.length} gravadas</small></h5>
-    <ul class="capt-lista">${k.pecas.map((p) => captPecaHtml(p, { marcar: `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` })).join("")}</ul>
+    <ul class="capt-pecas-curtas">${k.pecas.map((x) => captPecaCompactaHtml(x, k)).join("")}</ul>
     ${k.observacao ? `<p class="capt-discreto">${safeText(k.observacao)}</p>` : ""}${captRoteiroDoCartao(k)}`;
-  else if (pendentes.length) corpo = `${outras.length ? `<h5>Esperando captação <small>${captPlural(outras.length, "peça", "peças")}</small></h5><ul class="capt-lista">${outras.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
-    ${fotos.length ? `<h5>${captEhFotos(e) ? "Fotografias sem banco de fotos" : "Vídeos ainda sem captação"} <small>${captPlural(fotos.length, "peça", "peças")}</small></h5><ul class="capt-lista">${fotos.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}`;
-  else if (e.cliente) corpo = `<p class="capt-discreto">Nenhuma peça de ${safeText(e.cliente)} está esperando captação.</p>`;
   const cancelar = k && !k.fechada_em && k.estado === "agendada"
     ? `<button type="button" class="vb-link perigo" onclick="captCancelar('${k.id}',${k.evento_do_painel === false})">${k.evento_do_painel === false ? "Soltar as peças" : "Cancelar captação"}</button>` : "";
   const rodape = [google, cancelar].filter(Boolean).join("");
-  return `<div class="capt-detalhe">${topo}${acao ? `<div class="capt-acao">${acao}</div>` : ""}${corpo}${rodape ? `<div class="capt-rodape">${rodape}</div>` : ""}</div>`;
+  return `<div class="capt-detalhe">${topo}${captVinculoHtml(e)}
+    <p class="capt-progresso">${progresso ? safeText(progresso) : ""}${estado}</p>
+    ${acao ? `<div class="capt-acao">${acao}</div>` : ""}${corpo}${rodape ? `<div class="capt-rodape">${rodape}</div>` : ""}</div>`;
 }
 
 function captFilaHtml(grupos) {
@@ -589,7 +604,8 @@ function captPreviaHtml(id) {
   const sinal = (p) => p.gravado ? ["ok", "gravada"] : p.tipo === "foto" ? ["ok", "foto"] : captTemRoteiro(p) ? ["ok", "roteiro"] : ["falta", "sem roteiro"];
   const linhaPeca = (p) => { const [tom, texto] = sinal(p); return `<li><span>${safeText(p.titulo)}</span><i class="${tom}">${texto}</i></li>`; };
   return `<p class="ag-previa-tipo t-${safeText(e.tipo)}">${safeText(AG_TIPOS[e.tipo] || "Compromisso")}</p>
-    <b class="ag-previa-titulo">${safeText(e.titulo || "Sem título")}</b>
+    <b class="ag-previa-titulo">${safeText(agPartesDoTitulo(e).nome)}</b>
+    ${agPartesDoTitulo(e).nome !== e.titulo ? `<p class="ag-previa-quando">${safeText(e.titulo || "")}</p>` : ""}
     <p class="ag-previa-quando">${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
     ${e.cliente ? `<p class="ag-previa-cliente">${safeText(e.cliente)}</p>` : ""}
     ${e.estado ? `<span class="capt-estado tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}
@@ -604,7 +620,7 @@ function captMesHtml(eventos) {
   const d = CAPT.dia || captHoje(), mes = d.slice(0, 7), hoje = captHoje();
   const ini = agSegunda(captPrimeiroDoMes(d)), dias = Array.from({ length: 42 }, (_, i) => agSomar(ini, i));
   const chip = (e) => { const p = agPartesDoTitulo(e);
-    return `<button type="button" class="ag-chip t-${safeText(e.tipo || "outro")}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.dia < hoje ? " passou" : ""}${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"
+    return `<button type="button" class="ag-chip t-${safeText(e.tipo || "outro")}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}${e.dia < hoje ? " passou" : ""}${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"
       onclick="event.stopPropagation();agPreviaSair(true);captSelecionar('${safeText(e.id)}')" onmouseenter="agPreviaEntrar(this,'captPreviaHtml')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'captPreviaHtml')" onblur="agPreviaSair()"
       aria-label="${safeText(`${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agHorario(e)}${e.estado ? `, ${e.estado.texto}` : ""}`)}"><i aria-hidden="true"></i><span>${e.inicio ? `<em>${safeText(e.inicio)}</em> ` : ""}${safeText(p.nome)}</span></button>`; };
   const cab = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((n) => `<div class="capt-mes-cab" role="columnheader">${n}</div>`).join("");
@@ -647,7 +663,7 @@ function captDiaHtml(eventos) {
     <section class="capt-dia-roteiro" aria-label="Roteiro do dia"><h4 class="capt-dia-titulo">Roteiro do dia</h4>${captRoteiroDoDiaHtml(d, doDia)}</section></div>`;
 }
 
-const CAPT_VISTAS = [["dia", "Dia", "D"], ["semana", "Semana", "S"], ["mes", "Mês", "M"], ["lista", "Lista", "L"]];
+const CAPT_VISTAS = [["dia", "Dia", "D"], ["semana", "Semana", "S"], ["mes", "Mês", "M"]];
 function captTituloDaVista() {
   const d = CAPT.dia || captHoje(), data = new Date(`${d}T12:00:00Z`);
   const mes = (x) => x.toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" });
@@ -672,9 +688,14 @@ function captacoesHtml() {
   const { titulo, sub } = captTituloDaVista();
   const passo = CAPT.vista === "dia" ? "dia" : CAPT.vista === "mes" ? "mês" : "semana";
   const ehHoje = CAPT.vista === "dia" ? d === hoje : CAPT.vista === "mes" ? d.slice(0, 7) === hoje.slice(0, 7) : CAPT.semana === agSegunda(hoje);
+  // Hick: na barra só o que se usa sempre. Tipos, Lista e o painel de
+  // pendências vão para "Exibir"; a pendência que importa (gravação para
+  // fechar) aparece como texto, o único destaque além da ação do cartão.
   const filtros = Object.entries(AG_TIPOS).map(([t, n]) => { const qtd = todos.filter((e) => e.tipo === t).length;
-    return `<button type="button" class="capt-filtro t-${t}" aria-pressed="${CAPT.tipos.has(t)}" onclick="captTipo('${t}')" title="${CAPT.tipos.has(t) ? "Esconder" : "Mostrar"} ${n.toLowerCase()}">${n}<b>${qtd}</b></button>`; }).join("");
+    return `<label class="capt-menu-item t-${t}"><input type="checkbox" ${CAPT.tipos.has(t) ? "checked" : ""} onchange="captTipo('${t}')"><span>${n}</span><small>${qtd}</small></label>`; }).join("");
   const vistas = CAPT_VISTAS.map(([v, n, tecla]) => `<button type="button" aria-pressed="${CAPT.vista === v}" onclick="captVista('${v}')" title="${n} (${tecla})">${n}</button>`).join("");
+  const pendTexto = pend.fechar.length ? `<button type="button" class="capt-tb-pend atencao" onclick="captGrupo('fechar')">${captPlural(pend.fechar.length, "gravação para fechar", "gravações para fechar")}</button>`
+    : nPend ? `<button type="button" class="capt-tb-pend" onclick="captAlternarInspetor()" aria-pressed="${CAPT.inspetor}">${captPlural(nPend, "pendência", "pendências")}</button>` : "";
   const corpo = CAPT.vista === "lista" ? captListaHtml(eventos)
     : CAPT.vista === "mes" ? captMesHtml(eventos)
     : CAPT.vista === "dia" ? captDiaHtml(eventos)
@@ -684,20 +705,25 @@ function captacoesHtml() {
   return `<div class="capt capt-cal vista-${CAPT.vista}${CAPT.inspetor ? " com-inspetor" : ""}">
     <div class="capt-toolbar" role="toolbar" aria-label="Captações">
       <div class="capt-tb-esq">
-        <div class="capt-tb-nav" role="group" aria-label="Navegar"><button type="button" aria-label="${passo === "mês" ? "Mês" : passo === "dia" ? "Dia" : "Semana"} anterior (←)" title="Anterior (←)" onclick="captNavegar(-1)">‹</button><button type="button" class="capt-tb-hoje" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button><button type="button" aria-label="Próximo ${passo} (→)" title="Próximo (→)" onclick="captNavegar(1)">›</button></div>
-        <h4 class="capt-tb-titulo">${safeText(titulo)}${sub ? `<small>${safeText(sub)}</small>` : ""}</h4>
+        <button type="button" class="capt-tb-criar" onclick="captNovoEvento({dia:'${CAPT.vista === "dia" ? d : ""}'},this.getBoundingClientRect())" title="Novo na agenda (N)"><span aria-hidden="true">+</span> Novo</button>
+        <button type="button" class="capt-tb-hoje" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button>
+        <span class="capt-tb-setas"><button type="button" aria-label="${passo === "mês" ? "Mês" : passo === "dia" ? "Dia" : "Semana"} anterior" title="Anterior (←)" onclick="captNavegar(-1)">‹</button><button type="button" aria-label="Próximo ${passo}" title="Próximo (→)" onclick="captNavegar(1)">›</button></span>
+        <h4 class="capt-tb-titulo">${safeText(titulo)}</h4>
       </div>
-      <div class="vb-alternar capt-tb-vista" role="group" aria-label="Ver como">${vistas}</div>
       <div class="capt-tb-dir">
-        <div class="capt-filtros" role="group" aria-label="Mostrar na agenda">${filtros}</div>
-        <button type="button" class="capt-tb-pend${nPend ? " tem" : ""}" aria-pressed="${CAPT.inspetor}" onclick="captAlternarInspetor()" title="O que precisa de você (P)">Precisa de você${nPend ? `<b>${nPend}</b>` : ""}</button>
-        <button type="button" class="vb-botao principal capt-tb-marcar" onclick="captAbrirMontar('',{dia:'${CAPT.vista === "dia" ? d : ""}'})" title="Marcar captação (N)"><span aria-hidden="true">+</span> Marcar captação</button>
+        ${pendTexto}
+        <details class="capt-menu"><summary>Exibir</summary><div class="capt-menu-painel">
+          <p class="capt-menu-rotulo">Na agenda</p>${filtros}
+          <hr><button type="button" class="capt-menu-acao" onclick="this.closest('details').open=false;captVista('${CAPT.vista === "lista" ? "semana" : "lista"}')">${CAPT.vista === "lista" ? "Voltar para a semana" : "Ver em lista"}</button>
+          <button type="button" class="capt-menu-acao" onclick="this.closest('details').open=false;captAlternarInspetor()">${CAPT.inspetor ? "Esconder" : "Mostrar"} o que precisa de você${nPend ? ` (${nPend})` : ""}</button>
+          <hr><p class="capt-menu-rotulo">Atalhos</p><p class="capt-menu-dica">T hoje · ← → navega · D S M visão · N marca · P pendências</p>
+        </div></details>
+        <div class="vb-alternar capt-tb-vista" role="group" aria-label="Ver como">${vistas}</div>
       </div>
     </div>
     ${CAPT.avisoAgenda ? `<p class="capt-aviso">${safeText(CAPT.avisoAgenda)}</p>` : ""}
     <div class="capt-colunas">
-      <section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${corpo}
-        <p class="capt-legenda"><span class="tom-ok">pronta ou gravada</span><span class="tom-atencao">falta algo</span><span class="tom-alerta">nada no sistema</span><em>Passe o mouse para ver, clique para abrir · T hoje · ← → navega · D S M L muda a visão · N marca</em></p></section>
+      <section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${corpo}</section>
       ${CAPT.inspetor ? `<aside class="capt-lado" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
     </div></div>`;
 }
@@ -714,7 +740,7 @@ document.addEventListener("keydown", (ev) => {
   else if (ev.key === "ArrowLeft") captNavegar(-1);
   else if (ev.key === "ArrowRight") captNavegar(1);
   else if (vistas[k]) captVista(vistas[k]);
-  else if (k === "n") captAbrirMontar("", { dia: CAPT.vista === "dia" ? CAPT.dia : "" });
+  else if (k === "n") captNovoEvento({ dia: CAPT.vista === "dia" ? CAPT.dia : "" }, document.querySelector(".capt-tb-criar")?.getBoundingClientRect() || null);
   else if (k === "p") captAlternarInspetor();
   else return;
   ev.preventDefault();
@@ -728,7 +754,66 @@ function captAbrirFolha(html) {
   document.getElementById("workflow-backdrop")?.classList.add("capt-folha-fundo");
 }
 
-function captMarcarEm(dia, hora) { captAbrirMontar("", { dia, inicio: hora }); }
+function captMarcarEm(dia, hora) { captNovoEvento({ dia, inicio: hora }, AG_ULTIMO_TOQUE); }
+
+// CRIAÇÃO RÁPIDA (Paulo, 26/10/2026: "não tem como criar um compromisso
+// novo?"): um cartão pequeno no próprio horário, como no Google Agenda —
+// título, tipo (captação, reunião ou compromisso), dia e horário, cliente e
+// local. Vai para o Google Agenda da Vybe com a cor do tipo. "Com peças"
+// leva a captação para o formulário completo, já com as peças do cliente.
+function captNovoEvento({ dia = "", inicio = "", tipo = "captacao" } = {}, ponto = null) {
+  const d = dia || CAPT.dia || captHoje(), ini = inicio || "09:00";
+  const fim = agHora(Math.min(23 * 60 + 30, (agMin(ini) ?? 540) + 60));
+  const clientes = (CAPT.clientes || []).map((c) => `<option value="${safeText(c.id)}">${safeText(c.nome)}</option>`).join("");
+  const tipos = Object.entries(AG_TIPOS).map(([t, n]) => `<label class="capt-novo-tipo t-${t}"><input type="radio" name="tipo" value="${t}"${t === tipo ? " checked" : ""}><span>${n}</span></label>`).join("");
+  agCartaoAbrir("novo", `<form class="capt-novo" onsubmit="event.preventDefault();captCriarEvento(this)">
+      <h4>Novo na agenda</h4>
+      <input name="titulo" maxlength="200" placeholder="Título (ex.: Reunião de pauta)" autocomplete="off">
+      <div class="capt-novo-tipos" role="radiogroup" aria-label="Tipo">${tipos}</div>
+      <div class="capt-novo-quando"><input type="date" name="dia" value="${safeText(d)}" required aria-label="Dia"><input type="time" name="inicio" value="${safeText(ini)}" aria-label="Começa"><span aria-hidden="true">–</span><input type="time" name="fim" value="${safeText(fim)}" aria-label="Termina"></div>
+      <select name="cliente" aria-label="Cliente"><option value="">Cliente (opcional; obrigatório na captação)</option>${clientes}</select>
+      <input name="local" maxlength="300" placeholder="Local (opcional)">
+      <p class="capt-erro" role="alert" hidden></p>
+      <div class="capt-novo-acoes"><button type="button" class="vb-link" onclick="captNovoComPecas(this.form)">Captação com peças…</button><button type="submit" class="vb-botao principal">Criar</button></div>
+    </form>`, "", ponto);
+  setTimeout(() => document.querySelector(".capt-novo [name=titulo]")?.focus(), 30);
+}
+function captNovoComPecas(form) {
+  const f = new FormData(form);
+  agCartaoFechar();
+  captAbrirMontar(String(f.get("cliente") || ""), { dia: String(f.get("dia") || ""), inicio: String(f.get("inicio") || "") });
+}
+async function captCriarEvento(form) {
+  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]");
+  const dados = { acao: "evento", tipo: f.get("tipo"), titulo: String(f.get("titulo") || "").trim(), dia: f.get("dia"), inicio: f.get("inicio") || "", fim: f.get("fim") || "", cliente_id: f.get("cliente") || "", local: String(f.get("local") || "").trim() };
+  const mostrar = (t) => { erro.textContent = t; erro.hidden = false; };
+  if (dados.tipo === "captacao" && !dados.cliente_id) return mostrar("Escolha o cliente da captação.");
+  if (!dados.titulo && !dados.cliente_id) return mostrar("Dê um título.");
+  botao.disabled = true; botao.textContent = "Criando…";
+  try {
+    const r = await captPedir("", dados);
+    agCartaoFechar();
+    showToast(`No Google Agenda: ${r.titulo}.`, "ok", 5000);
+    CAPT.dia = dados.dia; CAPT.sel = r.id || ""; captRecarregar();
+  } catch (e) { mostrar(e.message); botao.disabled = false; botao.textContent = "Criar"; }
+}
+
+// VINCULAR CLIENTE (Paulo, 26/10/2026): quando o título não diz de quem é o
+// evento, escolhe-se o cliente aqui; também dá para trocar o que o painel
+// adivinhou. O vínculo fica no painel; o evento no Google não muda.
+function captVinculoHtml(e) {
+  if (e.nossa) return "";
+  const opcoes = (sel) => (CAPT.clientes || []).map((c) => `<option value="${safeText(c.id)}"${c.id === sel ? " selected" : ""}>${safeText(c.nome)}</option>`).join("");
+  const form = (sel, rotulo) => `<form class="capt-vinculo" onsubmit="event.preventDefault();captVincular(this,'${safeText(e.id)}')"><select name="cliente" aria-label="Cliente" required><option value="">Escolha o cliente</option>${opcoes(sel)}</select><button type="submit" class="vb-botao">${rotulo}</button></form>`;
+  if (!e.cliente) return `<div class="capt-vinculo-caixa"><p class="capt-discreto">De qual cliente é este evento? O painel guarda o vínculo; o evento no Google não muda.</p>${form("", "Vincular")}</div>`;
+  return `<details class="capt-trocar"><summary>${e.cliente_manual ? "Cliente escolhido à mão · trocar" : "Não é este cliente? Trocar"}</summary>${form(e.cliente_id, "Trocar")}${e.cliente_manual ? `<button type="button" class="vb-link" onclick="captVincular(null,'${safeText(e.id)}')">Voltar a ler pelo título</button>` : ""}</details>`;
+}
+async function captVincular(form, eventoId) {
+  const cliente_id = form ? String(new FormData(form).get("cliente") || "") : "";
+  if (form && !cliente_id) return;
+  try { const r = await captPedir("", { acao: "vincular", evento: eventoId, cliente_id }); showToast(r.cliente ? `Vinculado a ${r.cliente.nome}.` : "Vínculo tirado; o cliente volta a sair do título.", "ok", 5000); CAPT.sel = eventoId; captRecarregar(); }
+  catch (e) { showToast(e.message, "err", 6000); }
+}
 function captSoltarCliente(cliente, dia, hora) { captAbrirMontar(cliente, { dia, inicio: hora }); }
 
 // Marcar captação: o cliente (escolhido ou vindo da fila), as peças, o dia e
