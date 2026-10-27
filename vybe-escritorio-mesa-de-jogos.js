@@ -106,7 +106,49 @@ function desenharDama(j, s) {
   const deve = minhaVez ? Math.max(0, ...Object.values(m.legais).flat().map((l) => l.capturas)) : 0;
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : !minhaVez ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
     : deve ? `Captura obrigatória: tome ${deve} ${deve === 1 ? "peça" : "peças"}.` : "Sua vez. Toque numa peça e depois na casa.";
+  // Lance novo (meu ou do outro): a peça pula casa por casa e as tomadas somem no pulo.
+  const chave = j.id + ":" + j.n, anima = s.damVisto && s.damVisto.split(":")[0] === j.id && s.damVisto !== chave && m.ultimo;
+  s.damVisto = chave;
+  if (anima) setTimeout(() => damaAnimar(m.ultimo));
   return { status, mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}<div class="dam-tabuleiro${minhaVez ? " vez" : ""}">${casas}</div>${mesaJogadorHtml(j, baixo, detalhe(baixo))}` };
+}
+// O último lance da dama animado: uma cópia da peça sai da casa de origem e
+// pula por cada casa do caminho (com arco); cada peça tomada fica na tela até
+// a peça passar por cima dela e some girando. A peça de verdade só aparece no fim.
+function damaAnimar(u) {
+  const tab = document.querySelector(".ofc-dam-jogo .dam-tabuleiro");
+  if (!tab || !u || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const casa = (i) => tab.querySelector(`[data-casa="${i}"]`)?.getBoundingClientRect();
+  const final = tab.querySelector(`[data-casa="${u.para}"] .dam-peca`), r0 = casa(u.de);
+  if (!final || !r0) return;
+  const PULO = 280, passos = [u.de, ...u.caminho].map(casa);
+  const fantasma = final.cloneNode(true), lado = r0.width;
+  Object.assign(fantasma.style, { position: "fixed", left: "0", top: "0", width: lado * 0.8 + "px", height: lado * 0.8 + "px", zIndex: 10000, pointerEvents: "none" });
+  document.body.append(fantasma);
+  final.style.visibility = "hidden";
+  const centro = (r) => [r.left + r.width * 0.1, r.top + r.height * 0.1];
+  const quadros = [];
+  passos.forEach((r, k) => {
+    const [x, y] = centro(r);
+    if (k) { const [x0, y0] = centro(passos[k - 1]); quadros.push({ transform: `translate(${(x + x0) / 2}px,${(y + y0) / 2 - lado * 0.45}px) scale(1.18)`, offset: (k - 0.5) / (passos.length - 1) }); }
+    quadros.push({ transform: `translate(${x}px,${y}px) scale(1)`, offset: passos.length > 1 ? k / (passos.length - 1) : 1 });
+  });
+  const total = PULO * Math.max(1, passos.length - 1);
+  fantasma.animate(quadros, { duration: total, easing: "linear", fill: "forwards" }).finished.then(() => { fantasma.remove(); final.style.visibility = ""; jogosSom("peca"); }).catch(() => { fantasma.remove(); final.style.visibility = ""; });
+  // As tomadas: cópia da peça do outro na casa, some quando a peça passa por cima.
+  const cor = final.classList.contains("branca") ? "preta" : "branca";
+  (u.capturadas || []).forEach((c, k) => {
+    const r = casa(c);
+    if (!r) return;
+    const t = document.createElement("span");
+    t.className = `dam-peca ${cor} dam-tomada`;
+    Object.assign(t.style, { position: "fixed", left: r.left + r.width * 0.1 + "px", top: r.top + r.height * 0.1 + "px", width: r.width * 0.8 + "px", height: r.height * 0.8 + "px", zIndex: 9999, pointerEvents: "none" });
+    document.body.append(t);
+    const quando = PULO * (k + 0.55);
+    t.animate([{ transform: "none", opacity: 1 }, { transform: "none", opacity: 1, offset: quando / (quando + 320) }, { transform: "scale(.2) rotate(140deg)", opacity: 0 }], { duration: quando + 320, fill: "forwards" })
+      .finished.then(() => t.remove()).catch(() => t.remove());
+    setTimeout(() => jogosSom("peca2", 0.8), quando);
+  });
 }
 function casaDama(i) {
   const s = escritorioMesa("dam"), j = s.jogo;
@@ -118,6 +160,19 @@ function casaDama(i) {
 }
 
 // --- Truco -----------------------------------------------------------------
+// Tentos em palitos de fósforo: grupos de cinco (quatro em pé, o quinto
+// atravessado), como na lousa do bar. `antes` = tentos já vistos: os novos caem acesos.
+function trucoTentosHtml(n, antes = n) {
+  const palito = (k, x, y, ang) => `<g class="${k >= antes ? "novo" : ""}" style="--k:${Math.max(0, k - antes)}" transform="translate(${x} ${y}) rotate(${ang})"><rect x="-1.1" y="-10" width="2.2" height="20" rx="1" fill="#f1d7a1"/><ellipse cx="0" cy="-10" rx="1.9" ry="2.6" fill="#d23a2a"/></g>`;
+  let svg = "", k = 0;
+  for (let g = 0; g * 5 < Math.max(n, 1) && g < 3; g++) {
+    const x0 = 6 + g * 30;
+    for (let i = 0; i < 4; i++, k++) svg += k < n ? palito(k, x0 + i * 5, 14, 0) : `<rect x="${x0 + i * 5 - 1}" y="5" width="2" height="18" rx="1" fill="#ffffff14"/>`;
+    svg += k < n ? palito(k, x0 + 7.5, 14, 62) : "";
+    k++;
+  }
+  return `<svg viewBox="0 0 96 28" width="96" height="28" aria-hidden="true">${svg}</svg>`;
+}
 // Cartas do truco ('4o') no desenho das cartas do pôquer ('4d').
 const TRUCO_NAIPE = { o: "d", e: "s", c: "h", p: "c" };
 const trucoCartaHtml = (c, cls) => pokerCartaHtml(c ? c[0] + TRUCO_NAIPE[c[1]] : null, cls);
@@ -143,11 +198,24 @@ function desenharTruco(j, s) {
     : a.responder ? "Responda o pedido." : a.jogar ? "Sua vez: jogue uma carta." : `Vez de ${xadrezPrimeiroNome(j[outro])}.`;
   const ant = m.anterior;
   const anterior = ant ? `<p class="ofc-nota">${safeText(ant.vencedor === "empate" ? `Mão ${ant.mao}: empatou, ninguém pontuou.` : `Mão ${ant.mao}: ${nome(ant.vencedor)} levou ${ant.valor} ${ant.valor === 1 ? "ponto" : "pontos"}${ant.motivo === "correu" ? " (o outro correu)" : ""}.`)}</p>` : "";
-  const placar = `<div class="trc-placar"><div><small>${nome(baixo)}</small><b>${m.pontos[baixo]}</b></div><span>×</span><div><small>${nome(cima)}</small><b>${m.pontos[cima]}</b></div><em>até ${m.alvo}</em></div>`;
+  // Placar de tentos de bar: palitos de fósforo em grupos de cinco (quatro em pé
+  // e um atravessado), um quadro de cada um, até 12. O tento novo cai aceso.
+  const tentosVistos = s.tentos?.id === j.id ? s.tentos : { id: j.id, [baixo]: m.pontos[baixo], [cima]: m.pontos[cima] };
+  const linhaTentos = (l) => `<div class="trc-tentos-linha"><small>${nome(l)}</small><span class="trc-tentos" aria-label="${m.pontos[l]} ${m.pontos[l] === 1 ? "tento" : "tentos"}">${trucoTentosHtml(m.pontos[l], tentosVistos[l])}</span><b>${m.pontos[l]}</b></div>`;
+  const placar = `<div class="trc-placar tentos">${linhaTentos(cima)}${linhaTentos(baixo)}<em>até ${m.alvo}</em></div>`;
+  s.tentos = { id: j.id, [baixo]: m.pontos[baixo], [cima]: m.pontos[cima] };
+  // Grito novo (truco, seis, nove, doze, aceitou, correu): balão em cima de
+  // quem gritou, a mesa dá um tranco e o som de tapa na mesa. Uma vez por jogada.
+  const u = m.ultimo, chaveGrito = j.id + ":" + j.n, gritoNovo = u && ["pediu", "aceitou", "correu"].includes(u.acao) && s.gritoVisto !== undefined && s.gritoVisto !== chaveGrito;
+  s.gritoVisto = chaveGrito;
+  const GRITOS = { 3: "TRUCO!", 6: "SEIS!", 9: "NOVE!", 12: "DOZE!" };
+  const textoGrito = !gritoNovo ? "" : u.acao === "pediu" ? GRITOS[u.valor] || "TRUCO!" : u.acao === "aceitou" ? (u.valor >= 12 ? "DESCE O DOZE!" : "CAI DENTRO!") : "CORRI!";
+  if (gritoNovo) { jogosSom("tabela", u.acao === "pediu" ? 1 : 0.6); if (u.acao === "pediu") setTimeout(() => jogosSom("tabela", 0.8), 140); }
+  const balao = gritoNovo ? `<p class="trc-balao ${u.lado === baixo ? "baixo" : "cima"} ${u.acao}${u.valor >= 9 ? " forte" : ""}" aria-live="assertive">${textoGrito}</p>` : "";
   return {
     status,
     mesa: `<div class="trc-salao">${mesaJogadorHtml(j, cima, `${m.pecas[cima]} ${m.pecas[cima] === 1 ? "carta" : "cartas"}${m.pe === cima ? " · pé" : ""}`)}
-<div class="trc-feltro"><div class="trc-dele">${dele}</div>
+<div class="trc-feltro${gritoNovo && u.acao === "pediu" ? " tranco" : ""}">${balao}<div class="trc-dele">${dele}</div>
 <div class="trc-meio"><div class="trc-vira"><small>Vira</small>${trucoCartaHtml(m.vira, "media")}<small>Manilha <b>${safeText(m.manilha)}</b></small></div>
 <div class="trc-jogadas">${naMesa(cima)}${naMesa(baixo)}</div>
 <div class="trc-info">${placar}<b class="trc-vale">Vale ${m.vale}</b>${m.mao_de_onze ? "<small>Mão de onze</small>" : ""}<span class="trc-rodadas">${rodadas}</span><small>Mão ${m.mao}</small></div></div>
