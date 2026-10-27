@@ -20,7 +20,7 @@ import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
-import { resumosDaSemana } from './assistente-hub.js';
+import { resumosDaSemana, resultadoDosPosts } from './assistente-hub.js';
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
 import { saudeDosClientes, pecasSemBriefing } from './assistente-saude.js';
 import { compromissosProximos } from './assistente-compromissos.js';
@@ -67,7 +67,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos'].includes(consulta)) {
+    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -75,6 +75,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
       if (consulta === 'identificar') return res.status(200).json({ ok: true, pessoas: await identificarParticipantes(banco, req.body?.participantes, segredo) });
       if (consulta === 'avisos') return res.status(200).json({ ok: true, avisos: await avisosDeStatus(banco, { desde: req.body?.desde }) });
+      if (consulta === 'resultado_posts') return res.status(200).json({ ok: true, ...(await resultadoDosPosts(banco, req.body?.dia)) });
       if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco) });
       if (consulta === 'sem_briefing') return res.status(200).json({ ok: true, pecas: await pecasSemBriefing(banco, req.body?.dia) });
       if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });

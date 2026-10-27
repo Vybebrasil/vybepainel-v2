@@ -54,7 +54,7 @@ export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  let d;try{d=JSON.parse(Buffer.concat(partes).toString()).result.data.json;}catch{throw new TypeError('Resposta de métricas inválida.');}
  if(d?.slug!==slug||d?.cliente_nome!==cliente.nome||d?.de!==a.de||d?.ate!==a.ate||!Array.isArray(d.linhas)||(d.modulo||'trafego')!==modulo||(d.deslocamento||0)!==offset)throw new TypeError('Cliente ou período não conferem no Hub.');
  // Projeção de saída mesmo que o Hub passe a devolver campos adicionais.
- const campos={campanhas:['id','name','objective','status','dailyBudget','lifetimeBudget','startTime','stopTime','spent','impressions','reach','frequency','clicks','messages','results','resultType','follows'],anuncios:['id','name','campaign','status','text','format','resultType','follows','thruPlays','spent','impressions','reach','clicks','messages','results'],publico:['dimensao','label','spent','reach','impressions','clicks','messages','age','gender','platform','position','hour','outcomes'],segmentacao:['kind','name','context','radius','excluded'],semana:['texto'],resumo:['tipo','nome','objetivo','investido','impressoes','alcance','frequencia','cliques','ctr','cpm','cpc','conversas','resultados','tipoResultado','custoResultado','seguidores'],trafego:['date','campaign','reach','impressions','amountSpent','linkClicks','results','resultType','costPerResult','cpm','cpc','messagingConversations','frequency','postEngagement','videoViews','landingPageViews','reactions','comments','shares','saves','follows','thruPlays','videoAvgTime'],
+ const campos={campanhas:['id','name','objective','status','dailyBudget','lifetimeBudget','startTime','stopTime','spent','impressions','reach','frequency','clicks','messages','results','resultType','follows'],anuncios:['id','name','campaign','status','text','format','resultType','follows','thruPlays','spent','impressions','reach','clicks','messages','results'],publico:['dimensao','label','spent','reach','impressions','clicks','messages','age','gender','platform','position','hour','outcomes'],segmentacao:['kind','name','context','radius','excluded'],semana:['texto'],posts:['id','date','tipo','legenda','alcance','visualizacoes','curtidas','comentarios','salvamentos','compartilhamentos','interacoes','erro'],resumo:['tipo','nome','objetivo','investido','impressoes','alcance','frequencia','cliques','ctr','cpm','cpc','conversas','resultados','tipoResultado','custoResultado','seguidores'],trafego:['date','campaign','reach','impressions','amountSpent','linkClicks','results','resultType','costPerResult','cpm','cpc','messagingConversations','frequency','postEngagement','videoViews','landingPageViews','reactions','comments','shares','saves','follows','thruPlays','videoAvgTime'],
  alcance:['date','dateLabel','contasAlcancadas','impressoes','naoSeguidoresPct','seguidoresPct','atividadesPerfil','visitasPerfil','linksExternos','enderecoComercial'],
  interacoes:['date','dateLabel','interacoes','seguidoresPct','naoSeguidoresPct','reels','publi','stories'],seguidores:['date','dateLabel','total','crescimento','seguiram','deixaram'],
  faturamento:['date','dateLabel','meta','influencers','midiaOff','radio','faturamento'],objetivos:['primary','secondary'],
@@ -85,6 +85,46 @@ export async function resumosDaSemana(sql,dia,opcoes={}){
  }));
  resumos.sort((a,b)=>a.cliente.localeCompare(b.cliente,'pt-BR'));semDados.sort((a,b)=>a.localeCompare(b,'pt-BR'));
  return {resumos,sem_dados:semDados};
+}
+
+// Resultado dos posts de ontem (Paulo, 27/10/2026: "o time ver o resultado do próprio trabalho"): cada post do Instagram
+// publicado ontem, com alcance comparado à média dos posts do cliente nos últimos 30 dias, salvamentos e
+// compartilhamentos. Vai para o grupo dos heads. Token sem permissão do Instagram: volta o aviso (uma linha), sem número.
+const BAHIA = (iso) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date(iso));
+const mil = (v) => (Number.isFinite(v) ? Math.round(v).toLocaleString('pt-BR') : '–');
+export function mensagemResultadoPosts(dia, porCliente) {
+  const ontem = new Date(Date.parse(dia + 'T12:00:00Z') - 864e5).toISOString().slice(0, 10);
+  const blocos = [];
+  for (const { cliente, posts } of porCliente) {
+    const deOntem = posts.filter((p) => p.date && BAHIA(p.date) === ontem && Number.isFinite(p.alcance));
+    if (!deOntem.length) continue;
+    const outros = posts.filter((p) => p.date && BAHIA(p.date) < ontem && Number.isFinite(p.alcance));
+    const media = outros.length >= 3 ? outros.reduce((t, p) => t + p.alcance, 0) / outros.length : null;
+    blocos.push(`*${cliente}*\n` + deOntem.map((p) => {
+      const x = media ? p.alcance / media : null;
+      const sinal = x === null ? '📊' : x >= 1.5 ? '🔥' : x <= 0.6 ? '📉' : '📊';
+      const comp = x === null ? '' : ` (${x >= 1 ? x.toFixed(1).replace('.', ',') + 'x a média' : Math.round(x * 100) + '% da média'})`;
+      const extras = [Number.isFinite(p.salvamentos) && `${mil(p.salvamentos)} salvamentos`, Number.isFinite(p.compartilhamentos) && `${mil(p.compartilhamentos)} compartilhamentos`].filter(Boolean).join(', ');
+      return `${sinal} ${p.tipo || 'Post'} “${String(p.legenda || '').slice(0, 50) || 'sem legenda'}”: alcance *${mil(p.alcance)}*${comp}${extras ? ', ' + extras : ''}`;
+    }).join('\n'));
+  }
+  if (!blocos.length) return null;
+  return `📈 *Resultado dos posts de ontem (${ontem.slice(8, 10)}/${ontem.slice(5, 7)})*\n_Alcance comparado à média do cliente nos últimos 30 dias._\n\n${blocos.join('\n\n')}`;
+}
+export async function resultadoDosPosts(sql, dia, opcoes = {}) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const de = new Date(Date.parse(dia + 'T12:00:00Z') - 30 * 864e5).toISOString().slice(0, 10);
+  const clientes = await sql`SELECT id::text,nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+  const porCliente = [], erros = new Set();
+  for (let i = 0; i < clientes.length; i += 6) await Promise.all(clientes.slice(i, i + 6).map(async (c) => {
+    try {
+      const r = await metricasDoHub(sql, { cliente_id: Number(c.id), de, ate: dia, modulo: 'posts', limite: 25 }, opcoes);
+      const erro = r.itens.find((x) => typeof x.erro === 'string')?.erro;
+      if (erro) erros.add(erro); else porCliente.push({ cliente: c.nome, posts: r.itens });
+    } catch { /* cliente sem conta de anúncio ou sem Instagram: fica de fora */ }
+  }));
+  porCliente.sort((a, b) => a.cliente.localeCompare(b.cliente, 'pt-BR'));
+  return { texto: mensagemResultadoPosts(dia, porCliente), erro: [...erros][0] || null };
 }
 
 // Relatório mensal em PDF (27/10/2026): o Hub devolve um convite de 10 minutos para o mesmo relatório do admin;
