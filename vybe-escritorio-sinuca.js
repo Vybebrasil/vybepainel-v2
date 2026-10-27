@@ -21,7 +21,7 @@ const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
   // A tacada já toca os sons dela na animação.
   som: () => null,
-  nota: "Par ou ímpar, como no bar: 14 bolas (sem a 1), cada um com as suas, sorteadas na saída. Ganha quem encaçapar todas primeiro.", desenhar: (j, s) => desenharSinuca(j, s),
+  nota: "Par ou ímpar, como no bar: as 15 bolas na mesa, pares para um e ímpares para o outro (sorteados na saída). Limpe as suas e encaçape a 1 para ganhar.", desenhar: (j, s) => desenharSinuca(j, s),
 });
 // Mesa de 100 × 50 com 4 de tabela em volta; 10 px por unidade no canvas.
 const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 4, SINUCA_PX = 10;
@@ -59,7 +59,7 @@ const SINUCA_GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12,
 const SINUCA_NOME_GRUPO = { lisas: "Lisas", listradas: "Listradas", pares: "Pares", impares: "Ímpares" };
 function sinucaPodeTocar(j, n) {
   const g = j.mesa.grupos?.[j.eu];
-  if (j.mesa.modo === "parimpar") return SINUCA_GRUPOS[g]?.includes(n);
+  if (j.mesa.modo === "parimpar") return j.mesa.bola1 && !j.mesa.restam?.[g] ? n === 1 : SINUCA_GRUPOS[g]?.includes(n);
   if (!g) return n !== 8 || !j.mesa.tacadas;
   if (n === 8) return !j.mesa.restam?.[g];
   return g === "lisas" ? n < 8 : n > 8;
@@ -77,8 +77,9 @@ function sinucaUltimoTexto(j) {
 // (as que já caíram ficam apagadas).
 function sinucaJogadorHtml(j, lado) {
   const p = j[lado], u = mesaCabecaUrl(j, p), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
-  const nums = SINUCA_GRUPOS[g] || [];
-  const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]};--n:${n}">${n}</i>`).join("")
+  // Com as 15 bolas, a 1 vem no fim da fila: é a bola final de cada um.
+  const nums = g ? [...SINUCA_GRUPOS[g], ...(j.mesa.bola1 ? [1] : [])] : [];
+  const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}${n === 1 && j.mesa.bola1 ? " final" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]}" title="Bola ${n}">${n}</i>`).join("")
     : '<small>Mesa aberta</small>';
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" ? " direita" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="40" height="40">` : "<i class=\"snc-sem\"></i>"}
 ${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
@@ -312,7 +313,8 @@ function sinucaMesaPintar(g, W, H, R) {
   for (let k = 1; k < 8; k++) if (k !== 4) for (const yy of [B / 2, B + SINUCA_A + B / 2]) { g.beginPath(); g.arc((B + k * 12.5) * P, yy * P, P * 0.38, 0, Math.PI * 2); g.fill(); }
   for (let k = 1; k < 4; k++) for (const xx of [B / 2, B + SINUCA_L + B / 2]) { g.beginPath(); g.arc(xx * P, (B + k * 12.5) * P, P * 0.38, 0, Math.PI * 2); g.fill(); }
   for (const [x, y, k] of SINUCA_CACAPAS) {
-    const cx = (x + B) * P, cy = (y + B) * P, rr = k * R * 0.92 * P;
+    // A boca desenhada é menor que a de captura (a física é generosa; desenhada no tamanho todo, a caçapa engolia a mesa).
+    const cx = (x + B) * P, cy = (y + B) * P, rr = k * R * 0.74 * P;
     g.beginPath(); g.arc(cx, cy, rr + P * 0.45, 0, Math.PI * 2); g.fillStyle = "#2b1606"; g.fill();
     const fundo = g.createRadialGradient(cx, cy, 0, cx, cy, rr);
     fundo.addColorStop(0, "#000"); fundo.addColorStop(1, "#151515");
@@ -347,6 +349,13 @@ function sinucaPintar(agora) {
   }
   const branca = !s.anim && sinucaMinhaVez(j) ? sinucaBranca(j, s) : null;
   bolas.forEach((p, n) => { if (p && !(n === 0 && branca && s.branca)) sinucaBolaPintar(g, n, p[0], p[1], R); });
+  // As minhas bolas ganham um anel (verde; a 1, dourado, quando é a vez dela):
+  // dá para ver de longe quais são as pares e quais são as ímpares.
+  if (j.eu && j.mesa.grupos?.[j.eu]) bolas.forEach((p, n) => {
+    if (!p || !n || !sinucaPodeTocar(j, n)) return;
+    g.beginPath(); g.arc(sinucaPx(p[0]), sinucaPx(p[1]), R * P + 2.5, 0, Math.PI * 2);
+    g.strokeStyle = n === 1 && j.mesa.bola1 ? "#ffd35c" : "#5ef08f"; g.lineWidth = 3; g.stroke();
+  });
   if (s.anim) return;
   if (sinucaPondo(j, s) && s.fantasma) sinucaBolaPintar(g, 0, s.fantasma.x, s.fantasma.y, R, true);
   if (!branca) return;

@@ -189,17 +189,20 @@ function poker(vista, nivel) {
 // --- Sinuca: testa tacadas na física de verdade e escolhe a melhor ----------
 const CACAPAS = [[0, 0], [50, -0.3], [100, 0], [0, 50], [50, 50.3], [100, 50]];
 const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
+// A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
+const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);
 function alvosSinuca(mesa, lado) {
- const g = mesa.grupos?.[lado];
- const lista = g ? GRUPOS[g].filter((n) => mesa.bolas[n]) : mesa.bolas.map((p, n) => (p && n && n !== 8 ? n : null)).filter((n) => n !== null);
- return lista.length ? lista : (mesa.modo === 'parimpar' ? [] : [8]);
+ const g = mesa.grupos?.[lado], fim = finalSinuca(mesa);
+ const lista = g ? GRUPOS[g].filter((n) => mesa.bolas[n]) : mesa.bolas.map((p, n) => (p && n && n !== fim ? n : null)).filter((n) => n !== null);
+ return lista.length ? lista : (fim && mesa.bolas[fim] ? [fim] : []);
 }
 function notaTacada(r, mesa, lado) {
- const g = mesa.grupos?.[lado], meu = (n) => (g ? GRUPOS[g].includes(n) : n !== 8 && n !== 0);
+ const g = mesa.grupos?.[lado], fim = finalSinuca(mesa), limpo = !alvosSinuca(mesa, lado).some((n) => n !== fim);
+ const meu = (n) => (g ? GRUPOS[g].includes(n) : n !== fim && n !== 0);
  let s = 0;
  if (r.caiu.includes(0)) s -= 60;
- if (r.primeiro === null) s -= 40; else if (!meu(r.primeiro) && !(r.primeiro === 8 && !alvosSinuca(mesa, lado).some((n) => n !== 8))) s -= 40;
- for (const n of r.caiu) if (n && n !== 0) s += meu(n) ? 30 : n === 8 ? -200 : -15;
+ if (r.primeiro === null) s -= 40; else if (limpo ? r.primeiro !== fim : !meu(r.primeiro)) s -= 40;
+ for (const n of r.caiu) if (n && n !== 0) s += meu(n) ? 30 : n === fim ? (limpo ? 500 : -200) : -15;
  return s;
 }
 function sinuca(mesa, lado, nivel) {

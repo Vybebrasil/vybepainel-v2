@@ -78,6 +78,9 @@ function dominoLinhaHtml(j, s) {
   const escolher = s.sel ? (m.jogaveis.find((o) => dominoMesma(o.peca, s.sel))?.pontas || []) : [];
   const ultimo = m.ultimo?.acao === "jogou" ? m.ultimo.peca : null;
   const pos = dominoCobra(m.linha), alto = Math.max(...pos.map((q) => q.y + q.h));
+  // A fileira fica no meio da mesa (antes começava grudada na borda esquerda).
+  const de = Math.min(...pos.map((q) => q.x)), ate = Math.max(...pos.map((q) => q.x + q.w)), desloca = Math.max(0, (DOMINO_LARGURA - (ate - de)) / 2) - de;
+  for (const q of pos) q.x += desloca;
   const pecas = pos.map((q, i) => {
     const ponta = i === 0 ? "esq" : i === pos.length - 1 ? "dir" : null, alvo = ponta && escolher.includes(ponta);
     const nova = ultimo && dominoMesma(q.p, ultimo) && ponta;

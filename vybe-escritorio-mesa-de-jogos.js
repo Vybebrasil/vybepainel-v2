@@ -141,7 +141,7 @@ function desenharTruco(j, s) {
   const placar = `<div class="trc-placar"><div><small>${nome(baixo)}</small><b>${m.pontos[baixo]}</b></div><span>×</span><div><small>${nome(cima)}</small><b>${m.pontos[cima]}</b></div><em>até ${m.alvo}</em></div>`;
   return {
     status,
-    mesa: `<div class="trc-salao">${mesaJogadorHtml(j, cima, `${m.pecas[cima]} cartas${m.pe === cima ? " · pé" : ""}`)}
+    mesa: `<div class="trc-salao">${mesaJogadorHtml(j, cima, `${m.pecas[cima]} ${m.pecas[cima] === 1 ? "carta" : "cartas"}${m.pe === cima ? " · pé" : ""}`)}
 <div class="trc-feltro"><div class="trc-dele">${dele}</div>
 <div class="trc-meio"><div class="trc-vira"><small>Vira</small>${trucoCartaHtml(m.vira, "media")}<small>Manilha <b>${safeText(m.manilha)}</b></small></div>
 <div class="trc-jogadas">${naMesa(cima)}${naMesa(baixo)}</div>
