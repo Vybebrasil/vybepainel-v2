@@ -60,3 +60,30 @@ export async function sugerirResponsavel(sql, { formato = '', dia }) {
     : `Não achei quem tenha feito ${formato || 'esse formato'} nos últimos 90 dias.`;
   return { texto, itens: lista };
 }
+
+// Copiloto de briefing (Paulo, 27/10/2026): cards da Produção criados nos últimos 2 dias, ainda abertos e sem
+// briefing (nem no campo, nem em comentário marcado como briefing). Quem pediu é quem criou o card no painel;
+// sem esse registro, o primeiro responsável.
+export async function pecasSemBriefing(sql, dia) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const { MARCAS_BRIEFING } = await import('./briefing.js');
+  const linhas = await sql`SELECT c.id::text, c.monday_item_id, c.titulo, c.formato, c.veiculacao::text AS veiculacao,
+      (SELECT string_agg(cl.nome, ' / ') FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id) AS cliente,
+      (SELECT json_build_object('monday_id', p.monday_user_id, 'nome', p.nome) FROM vybe_conteudo_eventos e JOIN vybe_pessoas p ON p.id = e.autor_id
+        WHERE e.conteudo_id = c.id AND e.tipo = 'criacao' ORDER BY e.em LIMIT 1) AS criador,
+      (SELECT json_build_object('monday_id', p.monday_user_id, 'nome', p.nome) FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+        WHERE r.conteudo_id = c.id ORDER BY r.ordem LIMIT 1) AS responsavel
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND NOT COALESCE(s.final, false)
+      AND COALESCE(btrim(c.briefing), '') = ''
+      AND EXISTS (SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'criacao' AND e.em >= ${somar(dia, -2)}::date)
+      AND NOT EXISTS (SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'briefing')
+      AND NOT EXISTS (SELECT 1 FROM vybe_conteudo_updates u WHERE u.conteudo_id = c.id AND u.corpo ~* ${MARCAS_BRIEFING})
+    ORDER BY c.veiculacao NULLS LAST LIMIT 30`;
+  const json = (v) => (typeof v === 'string' ? JSON.parse(v) : v);
+  return linhas.map((l) => {
+    const quem = json(l.criador)?.monday_id ? json(l.criador) : json(l.responsavel);
+    return { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, titulo: l.titulo || 'Sem título', formato: l.formato || '', cliente: l.cliente || '',
+      veiculacao: l.veiculacao ? String(l.veiculacao).slice(0, 10) : null, pessoa: quem?.monday_id ? { monday_id: String(quem.monday_id), nome: quem.nome || '' } : null };
+  }).filter((x) => x.pessoa);
+}
