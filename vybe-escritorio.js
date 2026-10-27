@@ -427,7 +427,7 @@ function escritorioMarcarBau() {
   const n = b.abatidas || b.pecas.length;
   m.marcarBau(eu, { arte: escritorio.bauArte, numero: n,
     rotulo: `Baú: ${n ? `${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}, ` : ""}+${b.pontos} XP e ${b.moedas >= 0 ? "+" : ""}${b.moedas} moedas. Clique para abrir.`,
-    aoClicar: () => abrirBauEscritorio() });
+    aoClicar: () => { abrirBauEscritorio(); abrirBauEscritorio(true); } });
 }
 function escritorioBauValor(moedas, pontos) {
   const sinal = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("pt-BR");
@@ -462,8 +462,9 @@ function pintarBauEscritorio() {
   if (!el) { el = document.createElement("div"); el.id = "office-bau"; document.body.append(el); }
   el.innerHTML = escritorioBauHtml();
 }
-// Primeiro clique (no boneco): abre a janela com o baú fechado; o segundo
-// (no baú) treme e abre, com os números subindo e as demandas caindo uma a uma.
+// Clicar no baú sobre a cabeça abre a janela e já estoura o baú: ele treme e abre,
+// com os números subindo e as demandas caindo uma a uma (Paulo, 27/10/2026:
+// "clico nele e não abre"). Sem estourar, a janela espera o clique no baú.
 function abrirBauEscritorio(abrir = false) {
   if (!escritorio.bau) return;
   const calmo = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

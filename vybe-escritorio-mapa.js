@@ -3016,7 +3016,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       b.className = "mapa-bau";
       b.innerHTML = '<span class="mapa-bau-luz" aria-hidden="true"></span><img alt="" draggable="false"><b></b>';
       b.addEventListener("click", (e) => { e.stopPropagation(); b.info?.aoClicar?.(b); });
-      b.addEventListener("pointerdown", (e) => e.stopPropagation());
+      // Prende o ponteiro no baú: a fala de um cliente que surge por cima
+      // entre apertar e soltar engolia o clique (Paulo, 27/10/2026).
+      b.addEventListener("pointerdown", (e) => { e.stopPropagation(); try { b.setPointerCapture(e.pointerId); } catch {} });
       palco.append(b);
       p.bau = b;
     }
