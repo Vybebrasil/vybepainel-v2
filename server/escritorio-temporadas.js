@@ -56,7 +56,7 @@ export async function rankingDaTemporada(sql, jogo, temporada) {
  };
  if (jogo === 'xadrez') {
   const [{ existe }] = await sql`SELECT to_regclass('public.vybe_escritorio_xadrez') IS NOT NULL AS existe`;
-  if (existe) for (const l of await sql`SELECT brancas, pretas, resultado, terminado_em FROM vybe_escritorio_xadrez WHERE estado='fim' AND resultado IN ('brancas','pretas')
+  if (existe) for (const l of await sql`SELECT brancas, pretas, resultado, terminado_em FROM vybe_escritorio_xadrez WHERE estado='fim' AND resultado IN ('brancas','pretas') AND brancas IS NOT NULL AND pretas IS NOT NULL
     AND terminado_em >= ${de}::timestamptz AND terminado_em < ${ate}::timestamptz ORDER BY terminado_em`) {
    const v = String(l[l.resultado]), p = String(l.resultado === 'brancas' ? l.pretas : l.brancas);
    ponto(v, [p], l.terminado_em);

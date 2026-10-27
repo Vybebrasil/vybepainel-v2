@@ -10,7 +10,7 @@
 // mesmas telas com as rotas "mesa").
 const ESCRITORIO_XADREZ = /chessboard/;
 const XADREZ_CFG = {
-  nome: "Xadrez", artigo: "o xadrez", lista: "xadrez", desafiar: "xadrez-desafiar", responder: "xadrez-responder", extra: {},
+  nome: "Xadrez", artigo: "o xadrez", lista: "xadrez", desafiar: "xadrez-desafiar", responder: "xadrez-responder", extra: { jogo: "xadrez" },
   sinal: "xdz", nota: "As cores são sorteadas.", abrir: (j) => abrirJogoXadrez(j),
   aberto: (id) => (escritorioXadrez().jogo?.id === id ? (recarregarJogoXadrez(), true) : false),
 };
@@ -184,7 +184,7 @@ async function mesaLerExtras(cfg) {
   if (x.extras?.jogo === jogo && Date.now() - x.extras.em < 30000) return;
   x.extrasLendo = true;
   try {
-    const [b, t] = await Promise.all([jogo === "xadrez" ? Promise.resolve(null) : escritorioApi("mesa-bots", null, { jogo }).catch(() => null), escritorioApi("temporada", null, { jogo }).catch(() => null)]);
+    const [b, t] = await Promise.all([escritorioApi("mesa-bots", null, { jogo }).catch(() => null), escritorioApi("temporada", null, { jogo }).catch(() => null)]);
     x.extras = { jogo, em: Date.now(), bots: b, temporada: t?.temporada || null };
     if (document.querySelector("#workflow-modal.ofc-xdz-sala") && (x.salaCfg || x.cfg)?.extra?.jogo === jogo) desenharSalaMesa(x.sala || {}, x.salaCfg || x.cfg);
   } finally { x.extrasLendo = false; }
@@ -503,7 +503,7 @@ function xadrezCapturadasHtml(j, cor) {
   return tomadas.length ? `<span class="xdz-capturadas" aria-label="${tomadas.length} peças tomadas">${tomadas.map((t) => `<svg viewBox="0 0 40 40" aria-hidden="true"><use href="#xdz-${dele}${t}"/></svg>`).join("")}</span>` : "";
 }
 function xadrezJogadorHtml(j, cor) {
-  const p = j[cor], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === cor, eu = j.eu === cor;
+  const p = j[cor], u = mesaCabecaUrl(j, p), vez = j.estado === "jogando" && j.vez === cor, eu = j.eu === cor;
   // Relógio: quem está com a vez conta para baixo na tela (o servidor é quem decide o fim).
   const ms = j.relogio?.[cor], corre = j.relogio?.corre === cor;
   const relogio = ms == null ? "" : `<time class="xdz-relogio${corre ? " corre" : ""}${ms < 30000 ? " pouco" : ""}" data-ate="${corre ? Date.now() + ms : ""}">${xadrezTempo(ms)}</time>`;
@@ -538,7 +538,7 @@ function desenharJogoXadrez() {
   const status = !jogando ? "" : j.xeque ? (j.vez === eu ? "Xeque! Proteja o rei." : "Xeque!") : !eu ? "Você está assistindo." : j.vez === eu ? "Sua vez. Toque numa peça e depois na casa." : `Vez de ${xadrezPrimeiroNome(j[outro])}.`;
   // O mesmo HUD dos jogos de mesa (vybe-escritorio-mesas.js): faixa com selos e
   // ícones, aviso de empate/sumiço em barra, status em pílula e fim por cima.
-  const botoes = !jogando || !eu ? "" : `<button type="button" class="jogo-icone" onclick="acaoXadrezEscritorio('empate',this)" ${j.empate_de ? "disabled" : ""} title="${empateMeu ? "Empate proposto" : "Propor empate"}" aria-label="${empateMeu ? "Empate proposto" : "Propor empate"}">🤝</button>
+  const botoes = !jogando || !eu ? "" : `${j.bot ? "" : `<button type="button" class="jogo-icone" onclick="acaoXadrezEscritorio('empate',this)" ${j.empate_de ? "disabled" : ""} title="${empateMeu ? "Empate proposto" : "Propor empate"}" aria-label="${empateMeu ? "Empate proposto" : "Propor empate"}">🤝</button>`}
 <button type="button" class="jogo-icone perigo" onclick="desistirXadrez(this)" title="Desistir" aria-label="Desistir">⚑</button>`;
   const alerta = !jogando || !eu ? "" : [
     empateDele ? `<div class="jogo-alerta"><span>🤝 ${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="sala-botao verde" onclick="acaoXadrezEscritorio('aceitar-empate',this)">Aceitar</button><button type="button" class="sala-botao cinza" onclick="acaoXadrezEscritorio('recusar-empate',this)">Recusar</button></div>` : "",
@@ -551,6 +551,27 @@ function desenharJogoXadrez() {
 <aside class="xdz-painel"><h3 class="xdz-sub">Lances</h3>${xadrezLancesHtml(j)}<p class="ofc-erro" id="xdz-erro" role="alert"></p></aside></div>
 ${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml("xdz", j, "xadrezFechar()")) : ""}</div>`, "ofc-xdz-jogo");
   xadrezAnimarLance(j);
+  xadrezAcionarBot();
+}
+// Contra o bot (Desafios): na vez dele, a tela pede o lance com o ritmo de quem
+// pensa; o servidor joga sozinho se a tela fechar.
+function xadrezAcionarBot() {
+  const x = escritorioXadrez(), j = x.jogo;
+  clearTimeout(x.botTimer);
+  if (!j?.bot || j.estado !== "jogando" || !j.eu || j.vez === j.eu) return;
+  x.botTimer = setTimeout(async () => {
+    const atual = escritorioXadrez().jogo;
+    if (atual?.id !== j.id || atual.lances.length !== j.lances.length) return;
+    try {
+      const r = await escritorioApi("xadrez-bot-vez", { id: j.id, n: j.lances.length });
+      if (escritorioXadrez().jogo?.id !== j.id) return;
+      x.jogo = r.jogo; x.sel = null; x.promo = null;
+      if (r.economia) xadrezEconomia(r.economia);
+      if (r.jogo.lances.length !== j.lances.length) jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca");
+      if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
+      desenharJogoXadrez();
+    } catch { setTimeout(recarregarJogoXadrez, 1500); }
+  }, 700);
 }
 // O lance novo desliza da casa de origem até a de destino (uma vez por lance).
 function xadrezAnimarLance(j) {
@@ -588,7 +609,7 @@ async function lanceXadrezEscritorio(de, para, promocao) {
     x.jogo = r.jogo; x.sel = null; x.promo = null;
     if (r.economia) xadrezEconomia(r.economia);
     jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca");
-    xadrezSinal(j.id, j[j.eu === "brancas" ? "pretas" : "brancas"].id, "l");
+    if (!j.bot) xadrezSinal(j.id, j[j.eu === "brancas" ? "pretas" : "brancas"].id, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
   } catch (e) {
     x.sel = null; x.promo = null;
@@ -610,7 +631,7 @@ async function acaoXadrezEscritorio(acao, botao) {
     const r = await escritorioApi("xadrez-acao", { id: j.id, acao });
     x.jogo = r.jogo;
     if (r.economia) xadrezEconomia(r.economia);
-    xadrezSinal(j.id, j[j.eu === "brancas" ? "pretas" : "brancas"].id, "l");
+    if (!j.bot) xadrezSinal(j.id, j[j.eu === "brancas" ? "pretas" : "brancas"].id, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
     desenharJogoXadrez();
   } catch (e) {

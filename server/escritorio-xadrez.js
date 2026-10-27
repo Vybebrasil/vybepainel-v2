@@ -7,6 +7,8 @@
 // e sem XP: não entra no ranking nem no ritmo de trabalho).
 import { Chess } from 'chess.js';
 import { carregarEconomia } from './escritorio-economia.js';
+import { botValido, botInfo, listaDeBots, pagarBot, TETO_DIA } from './escritorio-bots.js';
+import { lanceDoBotXadrez } from './escritorio-xadrez-bot.js';
 import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta, placarDe, avisarConvite, textoDoConvite, MESA_MOEDAS_MAX } from './escritorio-apostas.js';
 
 export const XADREZ_MOEDAS_MAX = MESA_MOEDAS_MAX;
@@ -28,6 +30,16 @@ function relogioAgora(j, vez, agora = Date.now()) {
  if (j.estado === 'jogando' && j.ultimo_lance_em) r[vez] -= agora - new Date(j.ultimo_lance_em).getTime();
  return { brancas: Math.max(0, r.brancas), pretas: Math.max(0, r.pretas), corre: j.estado === 'jogando' ? vez : null };
 }
+// Desafios contra bot (migrations/2026-10-28-escritorio-xadrez-bot.sql): a cor
+// do bot fica sem pessoa e a partida é sempre de graça. Sem a coluna, sem bot.
+let botPronto = false;
+async function comBot(sql) {
+ if (!botPronto) botPronto = (await sql`SELECT 1 FROM information_schema.columns WHERE table_name='vybe_escritorio_xadrez' AND column_name='bot'`).length > 0;
+ return botPronto;
+}
+const corDoBot = (j) => (!j.bot ? null : j.brancas == null ? 'brancas' : 'pretas');
+// O bot espera um pouco antes de jogar sozinho (a tela pede antes, com ritmo).
+const BOT_ESPERA_MS = 3000;
 const MOTIVOS = { mate: 'Xeque-mate', afogamento: 'Afogamento', material: 'Material insuficiente', repeticao: 'Repetição de posição',
  cinquenta: 'Regra dos 50 lances', desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
 
@@ -56,6 +68,12 @@ function fimDaPosicao(c) {
 
 // Fim da partida: prêmio para quem ganhou, ou cada um recebe o seu de volta.
 async function encerrar(tx, j, resultado, motivo) {
+ if (j.bot) {
+  const premio = resultado !== 'empate' && resultado !== corDoBot(j) ? await pagarBot(tx, j.desafiante, j.bot, `bot:xadrez:${j.id}`) : null;
+  await tx`UPDATE vybe_escritorio_xadrez SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now(),premio_bot=${premio ? JSON.stringify(premio) : null}::jsonb
+   WHERE id=${j.id} AND estado='jogando'`;
+  return;
+ }
  await pagarAposta(tx, j, resultado === 'empate' ? null : resultado === 'brancas' ? j.brancas : j.pretas, `xadrez:${j.id}`);
  await tx`UPDATE vybe_escritorio_xadrez SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
 }
@@ -67,19 +85,46 @@ async function encerrarAbandonadas(sql, agora = Date.now()) {
  for (const { id } of velhas) await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_xadrez WHERE id=${id} FOR UPDATE`;
   if (j?.estado !== 'jogando') return;
-  await encerrar(tx, j, vezDe(partida(j.lances)) === 'brancas' ? 'pretas' : 'brancas', 'abandono');
+  // Contra o bot, quem larga a partida é sempre a pessoa: o bot ganha.
+  await encerrar(tx, j, j.bot ? corDoBot(j) : vezDe(partida(j.lances)) === 'brancas' ? 'pretas' : 'brancas', 'abandono');
  });
+ // O bot joga sozinho se a tela não pediu (fechou, ou a pessoa saiu da sala).
+ if (await comBot(sql)) {
+  const paradas = await sql`SELECT id, brancas, lances FROM vybe_escritorio_xadrez WHERE estado='jogando' AND bot IS NOT NULL AND ultimo_lance_em < ${new Date(agora - BOT_ESPERA_MS)}::timestamptz`;
+  for (const l of paradas) if (vezDe(partida(l.lances)) === (l.brancas == null ? 'brancas' : 'pretas')) await sql.comTransacao(async (tx) => {
+   const [j] = await tx`SELECT * FROM vybe_escritorio_xadrez WHERE id=${l.id} FOR UPDATE`;
+   if (j?.estado === 'jogando') await jogarBot(tx, j);
+  });
+ }
  if (!await comRelogio(sql)) return;
- const comTempo = await sql`SELECT id, lances, relogio, ultimo_lance_em, estado FROM vybe_escritorio_xadrez WHERE estado='jogando' AND relogio IS NOT NULL`;
+ const comTempo = await sql`SELECT * FROM vybe_escritorio_xadrez WHERE estado='jogando' AND relogio IS NOT NULL`;
  for (const l of comTempo) {
   const vez = vezDe(partida(l.lances));
-  if (relogioAgora(l, vez, agora)[vez] > 0) continue;
+  // O tempo do bot não corre (ele joga em segundos; a tela só pede com ritmo).
+  if (corDoBot(l) === vez || relogioAgora(l, vez, agora)[vez] > 0) continue;
   await sql.comTransacao(async (tx) => {
    const [j] = await tx`SELECT * FROM vybe_escritorio_xadrez WHERE id=${l.id} FOR UPDATE`;
-   if (j?.estado === 'jogando' && relogioAgora(j, vezDe(partida(j.lances)), agora)[vezDe(partida(j.lances))] <= 0)
+   if (j?.estado === 'jogando' && corDoBot(j) !== vezDe(partida(j.lances)) && relogioAgora(j, vezDe(partida(j.lances)), agora)[vezDe(partida(j.lances))] <= 0)
     await encerrar(tx, j, vezDe(partida(j.lances)) === 'brancas' ? 'pretas' : 'brancas', 'tempo');
   });
  }
+}
+
+// O lance do bot, se for a vez dele: o motor escolhe, o chess.js confere. O
+// relógio do bot não desconta o tempo que a tela esperou, só ganha o acréscimo.
+async function jogarBot(tx, j) {
+ const c = partida(j.lances), cor = corDoBot(j);
+ if (j.estado !== 'jogando' || vezDe(c) !== cor) return;
+ const l = lanceDoBotXadrez(botInfo(j.bot).nivel, j.lances);
+ const feito = l && c.move({ from: l.de, to: l.para, ...(l.promocao ? { promotion: l.promocao } : {}) });
+ if (!feito) return;
+ const lances = [...(j.lances || []), feito.san];
+ await tx`UPDATE vybe_escritorio_xadrez SET lances=${JSON.stringify(lances)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
+ if (j.relogio) {
+  await tx`UPDATE vybe_escritorio_xadrez SET relogio=${JSON.stringify({ ...j.relogio, [cor]: Number(j.relogio[cor]) + INCREMENTO_MS })}::jsonb WHERE id=${j.id}`;
+ }
+ const fim = fimDaPosicao(c);
+ if (fim) await encerrar(tx, { ...j, lances }, fim.resultado, fim.motivo);
 }
 
 // O que a tela precisa: posição, de quem é a vez, os lances que valem agora
@@ -90,18 +135,21 @@ function vista(j, eu, nome, agora = Date.now()) {
  const legais = {};
  if (j.estado === 'jogando' && minha === vez)
   for (const m of c.moves({ verbose: true })) (legais[m.from] ||= []).includes(m.to) || legais[m.from].push(m.to);
- const pessoa = (id) => ({ id: String(id), nome: nome[String(id)] || '' });
+ const info = j.bot ? botInfo(j.bot) : null;
+ const pessoa = (id) => (info && id == null ? { id: 'bot', nome: info.nome, bot: j.bot, avatar: info.avatar, frase: info.frase } : { id: String(id), nome: nome[String(id)] || '' });
  return {
-  id: String(j.id), estado: j.estado, camada: j.camada, movel: j.movel,
+  id: String(j.id), jogo: 'xadrez', estado: j.estado, camada: j.camada, movel: j.movel,
+  bot: info ? { id: j.bot, nivel: info.nivel, nome: info.nome, avatar: info.avatar, premio: info.premio } : null, premio_bot: j.premio_bot || null,
   desafiante: pessoa(j.desafiante), desafiado: pessoa(j.desafiado), brancas: pessoa(j.brancas), pretas: pessoa(j.pretas),
   eu: minha, vez, fen: c.fen(), lances: j.lances || [], san: hist.map((m) => m.san), ultimo: ultimo ? { de: ultimo.from, para: ultimo.to } : null,
   xeque: j.estado === 'jogando' && c.inCheck(), legais,
   moedas: Number(j.moedas) || 0, itens: { desafiante: j.itens_desafiante || [], desafiado: j.itens_desafiado || [] },
   resultado: j.resultado || null, motivo: j.motivo || null, motivo_nome: MOTIVOS[j.motivo] || null,
   empate_de: j.empate_de ? String(j.empate_de) : null,
-  relogio: relogioAgora(j, vez, agora),
+  // O relógio do bot fica parado na vez dele (ele joga em segundos).
+  relogio: (() => { const r = relogioAgora(j, vez, agora); if (r && info && r.corre === corDoBot(j)) r[r.corre] = Number(j.relogio[r.corre]); return r; })(),
   // Com relógio o tempo acaba sozinho; sem ele (partidas antigas), 5 minutos sem lance.
-  pode_reivindicar: !j.relogio && j.estado === 'jogando' && Boolean(minha) && minha !== vez && minutosDesde(j.ultimo_lance_em, agora) >= REIVINDICAR_MIN,
+  pode_reivindicar: !j.bot && !j.relogio && j.estado === 'jogando' && Boolean(minha) && minha !== vez && minutosDesde(j.ultimo_lance_em, agora) >= REIVINDICAR_MIN,
   reivindicar_em: j.estado === 'jogando' && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + REIVINDICAR_MIN * 60000).toISOString() : null,
   convite_ate: j.estado === 'convite' ? new Date(new Date(j.criado_em).getTime() + CONVITE_MIN * 60000).toISOString() : null,
  };
@@ -117,6 +165,7 @@ export async function verXadrez(sql, pessoa, id) {
  if (j.estado === 'convite' && !corDe(j, pessoa.id)) throw erro('Partida não encontrada.', 404);
  if (conviteVencido(j)) j.estado = 'cancelado';
  const v = vista(j, pessoa.id, await nomes(sql, [j.brancas, j.pretas]));
+ if (j.bot) return v;
  // Placar dos dois no xadrez (todas as partidas terminadas entre eles).
  const feitas = await sql`SELECT resultado, brancas, pretas FROM vybe_escritorio_xadrez WHERE estado='fim'
    AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante}))`;
@@ -238,6 +287,7 @@ export async function acaoXadrez(sql, pessoa, { id, acao }) {
   if (j.estado !== 'jogando') return { repetido: true };
   const eu = String(pessoa.id), empateDe = j.empate_de ? String(j.empate_de) : null;
   if (acao === 'desistir') { await encerrar(tx, j, outra, 'desistencia'); return { fim: true }; }
+  if (j.bot) throw erro('Contra o bot não tem empate nem vitória por tempo: jogue até o fim.', 409);
   if (acao === 'empate') { if (!empateDe) await tx`UPDATE vybe_escritorio_xadrez SET empate_de=${eu} WHERE id=${j.id}`; return {}; }
   if (acao === 'aceitar-empate') {
    if (!empateDe || empateDe === eu) throw erro('Não há proposta de empate para aceitar.', 409);
@@ -251,4 +301,49 @@ export async function acaoXadrez(sql, pessoa, { id, acao }) {
   return { fim: true };
  });
  return { ...r, jogo: await verXadrez(sql, pessoa, id), ...(r.fim ? { economia: await carregarEconomia(sql, pessoa.id) } : {}) };
+}
+
+// --- Desafios contra o bot ---------------------------------------------------
+// Os bots do xadrez, com o prêmio e quanto ainda dá para ganhar hoje (o teto é
+// o mesmo dos outros jogos: soma tudo o que veio de bot no dia).
+export async function botsDoXadrez(sql, pessoa) {
+ const [{ hoje }] = await sql`SELECT COALESCE(sum(quantidade),0)::int AS hoje FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoa.id} AND origem LIKE 'bot:%'
+   AND criado_em >= (date_trunc('day', now() AT TIME ZONE 'America/Bahia') AT TIME ZONE 'America/Bahia')`;
+ const venceu = {}, pronto = await xadrezPronto(sql) && await comBot(sql);
+ if (pronto) for (const l of await sql`SELECT bot, count(*)::int AS n FROM vybe_escritorio_xadrez WHERE bot IS NOT NULL AND desafiante=${pessoa.id} AND estado='fim'
+   AND ((resultado='brancas' AND brancas IS NOT NULL) OR (resultado='pretas' AND pretas IS NOT NULL)) GROUP BY bot`) venceu[l.bot] = l.n;
+ return { bots: pronto ? listaDeBots('xadrez').map((b) => ({ ...b, vitorias: venceu[b.bot] || 0 })) : [], resta_hoje: Math.max(0, TETO_DIA - Number(hoje)), teto_dia: TETO_DIA };
+}
+// Começa na hora, com as cores sorteadas; se o bot ficar com as brancas, a tela
+// pede o primeiro lance dele.
+export async function desafiarBotXadrez(sql, pessoa, { nivel, camada, movel, chave } = {}) {
+ await exigirTabela(sql);
+ if (!await comBot(sql)) throw erro('O bot do xadrez aguarda a migração do banco.', 503);
+ if (!botValido('xadrez', nivel)) throw erro('Esse bot não existe.');
+ if (!/^[A-Za-z0-9_-]{8,64}$/.test(String(chave))) throw erro('Pedido inválido.');
+ const lugar = /^[A-Za-z0-9_]{1,64}@\d{1,2},\d{1,2}$/.test(String(movel || '')) ? String(movel) : 'bot@0,0';
+ const r = await sql.comTransacao(async (tx) => {
+  const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_xadrez WHERE chave=${chave}`;
+  if (ja) { if (String(ja.desafiante) !== String(pessoa.id)) throw erro('Pedido inválido.'); return { id: String(ja.id) }; }
+  const [jogando] = await tx`SELECT id FROM vybe_escritorio_xadrez WHERE estado='jogando' AND (brancas=${pessoa.id} OR pretas=${pessoa.id})`;
+  if (jogando) throw erro('Termine a sua partida antes de começar outra.', 409);
+  const brancoEuSou = Math.random() < 0.5;
+  const [j] = await tx`INSERT INTO vybe_escritorio_xadrez(chave,desafiante,desafiado,brancas,pretas,bot,camada,movel,estado,iniciado_em,ultimo_lance_em)
+   VALUES(${chave},${pessoa.id},NULL,${brancoEuSou ? pessoa.id : null},${brancoEuSou ? null : pessoa.id},${'xadrez:' + nivel},${String(camada || 'jogos').slice(0, 40)},${lugar},'jogando',now(),now()) RETURNING id`;
+  if (await comRelogio(tx)) await tx`UPDATE vybe_escritorio_xadrez SET relogio=${JSON.stringify({ brancas: RELOGIO_MS, pretas: RELOGIO_MS })}::jsonb WHERE id=${j.id}`;
+  return { id: String(j.id) };
+ });
+ return { ...r, jogo: await verXadrez(sql, pessoa, r.id) };
+}
+// A tela pede o lance do bot quando é a vez dele; `n` = quantos lances ela viu.
+export async function vezDoBotXadrez(sql, pessoa, { id, n } = {}) {
+ await exigirTabela(sql);
+ await sql.comTransacao(async (tx) => {
+  const [j] = await tx`SELECT * FROM vybe_escritorio_xadrez WHERE id=${idValido(id)} FOR UPDATE`;
+  if (!j?.bot || String(j.desafiante) !== String(pessoa.id)) throw erro('Partida não encontrada.', 404);
+  if (Number(n) !== (j.lances || []).length) return;
+  await jogarBot(tx, j);
+ });
+ const jogo = await verXadrez(sql, pessoa, id);
+ return { jogo, ...(jogo.estado === 'fim' ? { economia: await carregarEconomia(sql, pessoa.id) } : {}) };
 }

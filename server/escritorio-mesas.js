@@ -20,7 +20,7 @@ import { motorSinuca } from './escritorio-sinuca.js';
 import { motorDama } from './escritorio-dama.js';
 import { motorVelha } from './escritorio-velha.js';
 import { motorTruco } from './escritorio-truco.js';
-import { botValido, botInfo, jogadaDoBot, PREMIOS, TETO_DIA, listaDeBots } from './escritorio-bots.js';
+import { botValido, botInfo, jogadaDoBot, TETO_DIA, listaDeBots, pagarBot } from './escritorio-bots.js';
 
 const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca, dama: motorDama, velha: motorVelha, truco: motorTruco };
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
@@ -52,24 +52,13 @@ const conviteVencido = (j, agora = Date.now()) => j.estado === 'convite' && minu
 
 async function encerrar(tx, j, resultado, motivo) {
  if (j.bot) {
-  const premio = resultado === 'desafiante' ? await pagarBot(tx, j) : null;
+  const premio = resultado === 'desafiante' ? await pagarBot(tx, j.desafiante, j.bot, 'bot:' + j.id) : null;
   await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now(),
    mesa=jsonb_set(mesa,'{premioBot}',${JSON.stringify(premio)}::jsonb) WHERE id=${j.id} AND estado='jogando'`;
   return;
  }
  await pagarAposta(tx, j, resultado === 'empate' ? null : idDoLado(j, resultado), `${j.jogo}:${j.id}`);
  await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
-}
-// Vitória sobre um bot: VybeCoins e XP do nível, até o teto do dia somando
-// todos os bots (dia da Bahia). Pelo razão, sem regra (fora da Copa e do teto
-// da semana do trabalho).
-async function pagarBot(tx, j) {
- const info = botInfo(j.bot), p = j.desafiante;
- const [{ hoje }] = await tx`SELECT COALESCE(sum(quantidade),0)::int AS hoje FROM vybe_escritorio_moedas WHERE pessoa_id=${p} AND origem LIKE 'bot:%'
-   AND criado_em >= (date_trunc('day', now() AT TIME ZONE 'America/Bahia') AT TIME ZONE 'America/Bahia')`;
- const moedas = Math.max(0, Math.min(info.premio.moedas, TETO_DIA - Number(hoje))), xp = moedas * 2;
- if (moedas > 0) await tx`SELECT vybe_lancar_pontos(${p},${'bot:' + j.id},NULL,NULL,${moedas},${xp})`;
- return { moedas, xp, teto: moedas < info.premio.moedas };
 }
 // Uma jogada do bot, se for a vez dele: pelo mesmo motor, com a vista do lado dele.
 async function jogarBot(tx, j) {

@@ -34,7 +34,7 @@ import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, darMoedas, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
-import { listarXadrez, verXadrez, desafiarXadrez, responderXadrez, lanceXadrez, acaoXadrez } from "./escritorio-xadrez.js";
+import { listarXadrez, verXadrez, desafiarXadrez, responderXadrez, lanceXadrez, acaoXadrez, botsDoXadrez, desafiarBotXadrez, vezDoBotXadrez } from "./escritorio-xadrez.js";
 import { listarMesa, verMesa, desafiarMesa, responderMesa, lanceMesa, acaoMesa, resumoDosJogos, botsDoJogo, desafiarBot, vezDoBot } from "./escritorio-mesas.js";
 import { verTemporada } from "./escritorio-temporadas.js";
 import { dimensoesDosMoveis, salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
@@ -447,6 +447,7 @@ export async function areaEscritorio(req, res, quem, sql) {
       try {
         const jogo = String(req.query?.jogo || "");
         if (acao === "temporada") return res.status(200).json({ ok: true, temporada: await verTemporada(sql, pessoa, jogo) });
+        if (jogo === "xadrez") return res.status(200).json({ ok: true, ...(await botsDoXadrez(sql, pessoa)) });
         return res.status(200).json({ ok: true, ...(await botsDoJogo(sql, pessoa, jogo)) });
       } catch (e) {
         return res.status(e.status || 400).json({ error: e.message });
@@ -621,9 +622,10 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 400).json({ error: e.message });
     }
   // Xadrez no tabuleiro: desafio, resposta, lance e desistir/empate/tempo.
-  if (["xadrez-desafiar", "xadrez-responder", "xadrez-lance", "xadrez-acao"].includes(acao)) {
+  if (["xadrez-desafiar", "xadrez-responder", "xadrez-lance", "xadrez-acao", "xadrez-bot-vez"].includes(acao)) {
     try {
       const corpo = req.body || {};
+      if (acao === "xadrez-bot-vez") return res.status(200).json({ ok: true, ...(await vezDoBotXadrez(sql, pessoa, corpo)) });
       if (acao === "xadrez-lance") return res.status(200).json({ ok: true, ...(await lanceXadrez(sql, pessoa, corpo)) });
       if (acao === "xadrez-acao") return res.status(200).json({ ok: true, ...(await acaoXadrez(sql, pessoa, corpo)) });
       const { salas } = await carregarEscritorio(sql, pessoa);
@@ -637,7 +639,7 @@ export async function areaEscritorio(req, res, quem, sql) {
   if (["mesa-desafiar", "mesa-responder", "mesa-lance", "mesa-acao", "mesa-bot", "mesa-bot-vez"].includes(acao)) {
     try {
       const corpo = req.body || {};
-      if (acao === "mesa-bot") return res.status(200).json({ ok: true, ...(await desafiarBot(sql, pessoa, corpo)) });
+      if (acao === "mesa-bot") return res.status(200).json({ ok: true, ...(await (corpo.jogo === "xadrez" ? desafiarBotXadrez(sql, pessoa, corpo) : desafiarBot(sql, pessoa, corpo))) });
       if (acao === "mesa-bot-vez") return res.status(200).json({ ok: true, ...(await vezDoBot(sql, pessoa, corpo)) });
       if (acao === "mesa-lance") return res.status(200).json({ ok: true, ...(await lanceMesa(sql, pessoa, corpo)) });
       if (acao === "mesa-acao") return res.status(200).json({ ok: true, ...(await acaoMesa(sql, pessoa, corpo)) });
