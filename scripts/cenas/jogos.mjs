@@ -34,7 +34,7 @@ export default function jogos() {
       "pixel_painting_red", "pixel_poster2", "cubie_decklight_p", "neonpunk_c20_lights", "grungelamp", "army_c15_light", "cine_light2", "pixel_clock_red",
       "fball_score_b", "fball_score_r", "cine_bench", "wildwest_cabinet", "wildwest_desk", "wildwest_till", "pirate_bottle_1", "pirate_bottle_3",
       "xmas_c24_mugs", "classic2_drinkcup", "edice", "wildwest_light", "mafia_c26_walllamp_dark", "st_wildwest_wallskull", "hween_c26_bookshelf",
-      "antique_c21_books", "antique_c21_lamp", "attic15_painting", "mafia_c26_walllamp_white", "classic9_plant", "carpet_standard", "tokyo_c18_drinksmachine"],
+      "antique_c21_books", "antique_c21_lamp", "attic15_painting", "mafia_c26_walllamp_white", "classic9_plant", "carpet_standard"],
   });
   s.casca(null, 1, ["xmas_c16_woodtile", 0]);
 
@@ -99,7 +99,11 @@ export default function jogos() {
   for (const x of [16, 19]) {
     s.por("wildwest_table", x, 2);
     s.emCima(x, 2, ["classic2_drinkcup"]);
+    // Mesa de pôquer com banco nos quatro lados (o jogo é mano a mano; os
+    // outros dois são de quem senta para assistir a mão).
     s.assento("lodge_dark_barrelstool", x - 1, 2, [x, 2]);
+    s.assento("lodge_dark_barrelstool", x, 1, [x, 2]);
+    s.assento("lodge_dark_barrelstool", x, 3, [x, 2]);
     const b = s.assento("lodge_dark_barrelstool", x + 1, 2, [x, 2]);
     if (x === 19) s.figurante({ figura: FIGURAS.cowboy, sentado: b });
     s.pendente("army_c15_light", x, 2, { dir: 2 });
@@ -135,9 +139,6 @@ export default function jogos() {
     s.assento("modern_c17_chair", x + 1, 10, [x + 1, 9]);
     s.pendente("army_c15_light", x + 1, 9, { dir: 2 });
   }
-  // Máquina de bebida de costas para o tablado (do lado direito não há
-  // parede), com a frente para as mesas.
-  s.por("tokyo_c18_drinksmachine", 21, 4, { olha: [21, 8] });
   s.por("classic9_plant", 14, 13);
 
   // --- Corredor da porta ---
