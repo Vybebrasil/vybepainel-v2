@@ -3139,6 +3139,7 @@ function escritorioAplicarComando(id, cmd) {
   else if (k === "xdz") xadrezSinalEscritorio(id, v);
   // Dominó (e as próximas mesas de jogo): o mesmo aviso, com a sua chave.
   else if (k === "dmn") dominoSinalEscritorio(id, v);
+  else if (k === "pkr") pokerSinalEscritorio(id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3721,6 +3722,7 @@ function escritorioAcaoDoMovel(m) {
   if (doSubsolo) return doSubsolo;
   if (ESCRITORIO_XADREZ.test(m.classe)) return { item: m, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(m) };
   if (ESCRITORIO_DOMINO.test(m.classe)) return { item: m, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(m) };
+  if (ESCRITORIO_POKER.test(m.classe)) return { item: m, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(m) };
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
@@ -3815,6 +3817,8 @@ function escritorioAcoesPerto() {
   if (xadrez) return { item: xadrez, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(xadrez) };
   const domino = perto.find((m) => ESCRITORIO_DOMINO.test(m.classe));
   if (domino) return { item: domino, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(domino) };
+  const poker = perto.find((m) => ESCRITORIO_POKER.test(m.classe));
+  if (poker) return { item: poker, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(poker) };
   const jogo = perto.map((m) => [m, ESCRITORIO_JOGOS.find(([re]) => re.test(m.classe))?.[1]]).find(([, n]) => n);
   if (jogo) {
     const texto = jogo[1] === "sinuca" ? "Bora uma partida de sinuca?" : "Bora um pebolim?";
