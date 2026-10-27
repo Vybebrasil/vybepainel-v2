@@ -121,6 +121,24 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   fechada peça a peça antes (tudo "Gravado") não pede de novo.
 - Antes da migração, a lista funciona igual e fechar responde 503.
 
+## A tela é o calendário (26/10/2026, depois)
+
+- Paulo: "quero o padrão de calendário: abre e vê o calendário; clicando ou
+  passando o mouse aparecem as coisas", com o Calendário do Mac como
+  referência.
+- Uma barra de vidro só (`capt-toolbar`): ‹ Hoje ›, o mês e a semana, Semana
+  ou Lista, os tipos como filtro, "Precisa de você" com o número de
+  pendências e "+ Marcar captação". Saiu a fileira de números do topo.
+- A semana ocupa a largura toda. O painel de pendências virou inspetor: abre e
+  fecha pelo botão da barra (lembrado no navegador).
+- Passar o mouse num bloco mostra a prévia (`agPreviaEntrar`, `captPreviaHtml`:
+  cliente, horário, local, estado e peças com roteiro); clicar abre o cartão
+  com as ações, como antes. O Escritório usa a mesma semana sem a prévia.
+- O que já passou recua (dia e evento esmaecidos), menos o que pede ação.
+- Peça com prazo vencido há mais de 30 dias sai das listas e da fila
+  (`captParada`); "Ver paradas" no inspetor mostra quais são. "Falta fechar"
+  conta só a partir de 26/10/2026 (`CAPT_FECHAR_DESDE`).
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.
