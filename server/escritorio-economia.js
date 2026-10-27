@@ -163,12 +163,12 @@ async function ritmoDeMoedas(sql, pessoaId, agora = new Date()) {
  // Antes da migração dos pontos o razão não tem XP: só as moedas.
  if (!await pontosProntosEconomia(sql)) {
   const so = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas
-    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' GROUP BY 1`;
+    FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' AND origem NOT LIKE 'xadrez:%' AND origem NOT LIKE 'domino:%' GROUP BY 1`;
   const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = so.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: 0 }; });
   return { dias, porDia: Math.round((dias.reduce((t, d) => t + d.moedas, 0) / 7) * 10) / 10 };
  }
  const linhas = await sql`SELECT TO_CHAR((criado_em AT TIME ZONE 'America/Bahia')::date,'YYYY-MM-DD') AS dia, COALESCE(sum(quantidade) FILTER (WHERE quantidade > 0),0)::int AS moedas, COALESCE(sum(pontos),0)::int AS xp
-   FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' GROUP BY 1`;
+   FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND (criado_em AT TIME ZONE 'America/Bahia')::date >= ${desde}::date AND origem NOT LIKE 'compra:%' AND origem NOT LIKE 'kit:%' AND origem NOT LIKE 'reembolso:%' AND origem NOT LIKE 'venda:%' AND origem NOT LIKE 'xadrez:%' AND origem NOT LIKE 'domino:%' GROUP BY 1`;
  const dias = Array.from({ length: 7 }, (_, k) => { const dia = somarDias(desde, k), l = linhas.find((x) => x.dia === dia); return { dia, moedas: Number(l?.moedas || 0), xp: Number(l?.xp || 0) }; });
  const total = dias.reduce((t, d) => t + d.moedas, 0);
  return { dias, porDia: Math.round((total / 7) * 10) / 10 };

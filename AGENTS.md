@@ -261,6 +261,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Ordem de desenho é a do Nitro (profundidade por ladrilho, altura e z de
   cada camada da arte; `mapaProfundidade`/`mapaZ`): não volte a ordenar
   móveis por regra própria nem ponha filtro/z-index no contêiner `.mapa-movel`.
+  Xadrez no tabuleiro (pedido do Paulo, 27/10/2026): `server/escritorio-xadrez.js`
+  e `vybe-escritorio-xadrez.js`; regras pelo chess.js só no servidor; aposta
+  (moedas e itens) sai ao aceitar e vai para quem ganha numa transação, pelo
+  mesmo razão (`xadrez:<id>:…`, sem regra nem XP). Ver docs/escritorio-plano.md.
+  Os outros jogos de mesa (dominó; poker e sinuca depois) não ganham tabela nem
+  rota própria: são motores em `server/escritorio-mesas.js` (tabela
+  `vybe_escritorio_partidas`) e usam a aposta comum de `escritorio-apostas.js`
+  e as telas de convite do xadrez com uma configuração (`DOMINO_CFG`).
   Gatilhos e efeitos (Wired) ficam em `vybe-escritorio-gatilhos.js`; a
   configuração vai no 7º campo do item, validada no servidor só para `wf_*`.
   Regras do Habbo portadas (sem colar código GPL, decisão do Paulo em

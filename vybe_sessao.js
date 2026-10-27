@@ -13,6 +13,7 @@
 import { neon } from '@neondatabase/serverless';
 import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto';
 import { promisify } from 'node:util';
+import { garantirCicloDeVida } from './server/ciclo-de-vida.js';
 
 const scryptAsync = promisify(scrypt);
 const DIAS_DE_SESSAO = 30;
@@ -48,6 +49,7 @@ async function criarSchemaSessao() {
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS tentativas INT NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS bloqueado_ate TIMESTAMPTZ`;
   await sql`ALTER TABLE vybe_pessoas ADD COLUMN IF NOT EXISTS sessao_versao INT NOT NULL DEFAULT 0`;
+  await garantirCicloDeVida(sql);
 }
 
 async function derivar(senha, salHex) {
@@ -201,10 +203,12 @@ export function cabecalhoDeCookie(token) {
 export async function listarPessoas() {
   await garantirSchemaSessao();
   const sql = database();
-  return sql`SELECT id, nome, email, admin, pode_entrar, tentativas, bloqueado_ate,
+  // Quem foi apagado nao aparece; quem esta no subsolo aparece marcado, para
+  // a Equipe nao mostrar como "sem acesso" alguem que simplesmente saiu.
+  return sql`SELECT id, nome, email, admin, pode_entrar, ativo, tentativas, bloqueado_ate,
       (senha_hash IS NOT NULL) AS tem_senha, ultimo_acesso
-    FROM vybe_pessoas WHERE email IS NOT NULL
-    ORDER BY pode_entrar DESC, admin DESC, nome`;
+    FROM vybe_pessoas WHERE email IS NOT NULL AND apagado_em IS NULL
+    ORDER BY ativo DESC, pode_entrar DESC, admin DESC, nome`;
 }
 
 // Quem administra decide quem entra. pode_entrar nasce FALSE de propósito, então

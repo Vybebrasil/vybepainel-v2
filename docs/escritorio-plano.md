@@ -1828,3 +1828,83 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   limitada volta ao estoque. Sem a migração, a venda responde 503.
 - Testes em PGlite: venda pelo valor pago, idempotência, quarto, prêmio,
   presente, grátis, estoque e reembolso que não repete.
+
+### Subsolo (easter egg) e ciclo de vida — 27/10/2026
+
+- Pedido do Paulo: um fluxo só para criar, desativar, reativar e apagar cliente
+  e colaborador (`server/ciclo-de-vida.js`, janelas em `vybe-ciclo.js`), e um
+  andar secreto embaixo do Centro de Operação com os desativados.
+- Sala comum nova `subsolo` (24 × 18), montada pelo motor
+  (`scripts/cenas/subsolo.mjs`), luz `verde`, conversa e voz próprias (sala
+  `subsolo` no Worker e em `SALAS_ESCRITORIO`). Conceito aprovado e revisto
+  pelo Paulo ("não tá nada com cara de cripta", "mais rico, piso com
+  textura"): cemitério velho dentro de cripta de pedra. Esquerda: chão de
+  musgo, lápides variadas (`hal_grave`, `vikings_tombstone`,
+  `hween_c21_gravestone`) com o cliente de pé na frente, cerca de ferro,
+  árvores secas, rosas, ossos, névoa. Direita: laje de pedra com caixões
+  góticos (`hween_r22_coffin`) e o colaborador ao lado. Fundo: poço das almas
+  entre dois anjos; livro de registros (`hween_c22_bookofdead`) no caminho.
+- É segredo (Paulo): `oculta: true` na planta. Não aparece em lista nenhuma
+  (nem para quem está lá), quem está fora não recebe a presença de quem está
+  dentro (`escritorioPresencaVisivel`) e só se entra pela estante secreta
+  (`hween_c20_secretbkshelf`, no Centro, em 0,10), só para quem administra.
+- Postos de pé: `figurante()` aceita `posto`/`ala` sem assento. O navegador
+  ocupa as lápides (ala `clientes`) e os caixões (ala `time`) com
+  `area=subsolo`; quem não cabe aparece no livro de registros.
+- Antes de publicar: migração `migrations/2026-10-27-escritorio-subsolo.sql`
+  no banco de Production e o Worker publicado (zona e sala `subsolo`).
+
+### Xadrez no tabuleiro — 27/10/2026
+
+Pedido do Paulo: jogos dentro do Escritório, ligados aos móveis, contra quem
+está online, de graça ou valendo VybeCoins, móvel ou roupa. Começou pelo xadrez.
+
+- Móvel: `CF_250_goldenchessboard` ("Tabuleiro de Xadrez", categoria Jogos,
+  Comum: sempre à venda). Arte extraída do acervo (habboassets); física à mão
+  pela medida da arte (`[0,1]`: sólido, altura 1), porque a furnidata oficial
+  não baixa por script. Clicar ou apertar E perto abre a mesa.
+- Servidor: `server/escritorio-xadrez.js`, tabela `vybe_escritorio_xadrez`
+  (`migrations/2026-10-27-escritorio-xadrez.sql`). Regras pelo chess.js
+  (BSD-2) no servidor; a posição sai dos lances (repetição e 50 lances valem).
+  Convite vale 10 min; cores sorteadas; uma partida por pessoa e por tabuleiro.
+- Aposta: moedas iguais dos dois mais itens de cada lado (móveis guardados e
+  roupas fora do corpo, nunca marco nem roupa grátis). Saem das carteiras e dos
+  inventários ao aceitar (`xadrez:<id>:aposta`) e vão para quem ganha
+  (`xadrez:<id>:premio`); empate devolve (`xadrez:<id>:devolucao`). Sem regra
+  e sem XP: fora do ranking e do ritmo de moedas.
+- Fim: mate, afogamento, material, repetição, 50 lances, desistência, empate
+  combinado, tempo (5 min sem lance de quem tem a vez, a outra pessoa
+  reivindica) e abandono (24 h: perde quem tinha a vez, a aposta não fica presa).
+- Tempo real: sem mudar o Worker. O aviso vai pelo balão de comando
+  (`xdz=<id>:<para>:<c|l>`) e a tela aberta relê a cada 4 s. Quem passa pelo
+  tabuleiro durante a partida assiste.
+- Peças: sprite Cburnett (Wikimedia, CC BY-SA 3.0) do cm-chessboard (MIT), em
+  `vybe-escritorio-xadrez-pecas.js` com a licença dentro do SVG.
+- Próximos: dominó, poker e sinuca na mesma estrutura de mesa e aposta.
+
+### Dominó na mesa de jogo — 27/10/2026
+
+Segundo jogo do mesmo pedido. A aposta do xadrez virou comum
+(`server/escritorio-apostas.js`) e os jogos novos ficam numa tabela só.
+
+- Móvel: `hobbies_c26_gamingtable` vira "Mesa de Dominó" (categoria Jogos);
+  arte e física já estavam no acervo. Clicar ou apertar E perto abre a mesa.
+- Servidor: `server/escritorio-mesas.js` (convite, aposta, vez, desistência,
+  empate combinado, tempo e abandono, iguais para todo jogo de dois) sobre
+  `vybe_escritorio_partidas` (`migrations/2026-10-27-escritorio-mesas.sql`,
+  coluna `jogo` já aceita poker e sinuca). Cada jogo é um motor
+  (`iniciar`, `vista`, `jogar`, `motivos`); o do dominó é
+  `server/escritorio-domino.js`. Rotas: `mesa`, `mesa-desafiar`,
+  `mesa-responder`, `mesa-lance`, `mesa-acao`, com `jogo`.
+- Regras: dominó de compra para dois, uma mão. 7 peças para cada um, 14 no
+  monte; abre quem tem a maior carroça (sem carroça, a peça mais alta). Sem
+  peça que encaixe, compra; monte vazio, passa. Ganha quem bate; trancado (os
+  dois passam), ganha quem tem menos pontos na mão (iguais: empate).
+- As mãos ficam só no servidor: cada um vê as próprias peças, quantas o outro
+  tem e o tamanho do monte; quem assiste não vê mão nenhuma. No fim as duas
+  aparecem.
+- Aposta e razão iguais às do xadrez (`domino:<id>:aposta|premio|devolucao`).
+- Tela: o convite e a escolha da aposta são as do xadrez com outra
+  configuração (`vybe-escritorio-xadrez.js`, `DOMINO_CFG` em
+  `vybe-escritorio-domino.js`); aviso pelo balão `dmn=<id>:<para>:<c|l>`.
+- Próximos: poker e sinuca como motores novos de `escritorio-mesas.js`.

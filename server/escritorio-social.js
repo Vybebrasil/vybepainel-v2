@@ -5,7 +5,7 @@ import { carregarEconomia, MOVEIS_ESSENCIAIS, precoMovel, PRECO_COMUM } from './
 import { partesDaCamada } from './escritorio-quartos.js';
 import { ehPauloNoEscritorio } from './escritorio-mapa.js';
 
-const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao)$/;
+const CAMADA = /^(sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao|subsolo)$/;
 const CORES = ['amarelo', 'rosa', 'azul', 'verde'];
 const LIMITE_POR_CENA = 40;
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
@@ -117,7 +117,7 @@ export async function trocasProntas(sql) {
 }
 const exigirTrocas = async (sql) => { if (!await trocasProntas(sql)) throw erro('A troca de móveis aguarda a migração do banco.', 503); };
 // Lista [[classe, quantidade]] limpa: só móveis que se trocam, sem repetir classe.
-function itensDaTroca(lista) {
+export function itensDaTroca(lista) {
  if (!Array.isArray(lista) || lista.length > 12) throw erro('Escolha até 12 móveis de cada lado.');
  const por = new Map();
  for (const it of lista) {
@@ -138,12 +138,12 @@ async function guardadas(tx, pessoaId, salas, classes) {
  const inv = await tx`SELECT classe,quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe = ANY(${classes})`;
  return new Map(classes.map((c) => [c, Math.max(0, Number(inv.find((i) => i.classe === c)?.quantidade || 0) - (colocadas.get(c) || 0))]));
 }
-async function semMarco(tx, classes) {
+export async function semMarco(tx, classes) {
  const [loja] = await tx`SELECT to_regclass('public.vybe_escritorio_catalogo') IS NOT NULL AS existe`;
  if (loja?.existe && classes.length && (await tx`SELECT 1 FROM vybe_escritorio_catalogo WHERE classe = ANY(${classes}) AND marco IS NOT NULL`).length)
   throw erro('Móvel de marco é pessoal: não entra em troca.', 409);
 }
-async function conferirLado(tx, pessoaId, salas, itens, quem) {
+export async function conferirLado(tx, pessoaId, salas, itens, quem) {
  if (!itens.length) return;
  const livres = await guardadas(tx, pessoaId, salas, itens.map(([c]) => c));
  for (const [classe, n] of itens) if ((livres.get(classe) || 0) < n)
@@ -176,14 +176,21 @@ export async function proporTroca(sql, pessoa, salas, { para, oferece, pede, cha
   return { repetido: false, id: String(t.id) };
  });
 }
-async function mover(tx, de, para, itens) {
+// Tirar e pôr unidades no inventário (a troca e a aposta do xadrez usam os dois).
+export async function tirarDoInventario(tx, pessoaId, itens) {
  for (const [classe, n] of itens) {
-  const [inv] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${de} AND classe=${classe}`;
-  if (Number(inv.quantidade) === n) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${de} AND classe=${classe}`;
-  else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-${n} WHERE pessoa_id=${de} AND classe=${classe}`;
-  await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${para},${classe},${n})
-   ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+${n}`;
+  const [inv] = await tx`SELECT quantidade FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
+  if (Number(inv.quantidade) === n) await tx`DELETE FROM vybe_escritorio_inventario WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
+  else await tx`UPDATE vybe_escritorio_inventario SET quantidade=quantidade-${n} WHERE pessoa_id=${pessoaId} AND classe=${classe}`;
  }
+}
+export async function porNoInventario(tx, pessoaId, itens) {
+ for (const [classe, n] of itens) await tx`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(${pessoaId},${classe},${n})
+   ON CONFLICT(pessoa_id,classe) DO UPDATE SET quantidade=vybe_escritorio_inventario.quantidade+${n}`;
+}
+export async function mover(tx, de, para, itens) {
+ await tirarDoInventario(tx, de, itens);
+ await porNoInventario(tx, para, itens);
 }
 // acao: "aceitar" e "recusar" (quem recebeu) ou "cancelar" (quem propôs).
 export async function responderTroca(sql, pessoa, salas, { id, acao }) {

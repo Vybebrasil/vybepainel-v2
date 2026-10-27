@@ -12109,3 +12109,133 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .previa-pasta-lista button[aria-pressed=true] {background:#ff8a3526;color:#fff}
 /* Conteúdo mais alto que o palco (player + lista) rola em vez de vazar por cima da barra da peça. */
 .previa-grande-palco {align-items:safe center;overflow-y:auto}
+
+/* Ciclo de vida (vybe-ciclo.js): as janelas de criar, mandar para o subsolo e apagar. */
+.ciclo-janela .conta-form{margin:14px 0 4px}
+.ciclo-janela .ciclo-erro{min-height:1.2em;margin:6px 0 0;color:#ff9fa9;font-size:12px}
+/* O laranja do painel vem com !important; o vermelho do perigo precisa vencer. */
+.workflow-modal .ciclo-janela .ciclo-perigo{color:#ff9fa9!important}
+.workflow-modal .workflow-primary.perigo{background:#c8303f!important;border-color:#c8303f!important;color:#fff!important}
+.workflow-modal .workflow-primary.perigo:hover:not(:disabled){background:#e03a4a!important}
+.workflow-modal .workflow-primary.perigo:disabled{opacity:.45;cursor:not-allowed}
+.workflow-secondary.perigo{border-color:rgba(240,71,86,.42);color:#ffb9c0}
+.workflow-secondary.perigo:hover{background:rgba(240,71,86,.16);border-color:rgba(240,71,86,.7)}
+.eq-acoes button.perigo{border-color:rgba(240,71,86,.35);color:#ffb9c0}
+.eq-acoes button.perigo:hover{background:rgba(240,71,86,.14);border-color:rgba(240,71,86,.6)}
+
+/* Subsolo do Escritório (vybe-escritorio-subsolo.js): as almas aparecem pálidas e com brilho frio. */
+.mapa-pessoa.figurante.fantasma img{opacity:.62;filter:grayscale(1) brightness(1.35) sepia(.35) hue-rotate(95deg) drop-shadow(0 0 7px rgba(140,255,200,.7));animation:alma-flutua 3.2s ease-in-out infinite}
+.mapa-pessoa.figurante.fantasma:hover img{opacity:.92}
+@keyframes alma-flutua{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.mapa-pessoa.figurante.fantasma img{animation:none}}
+.ofc-alma .ofc-agente-nome small{display:block;color:#a9b4ad;margin-top:2px}
+.ofc-alma-palco{background:radial-gradient(circle at 50% 60%,rgba(120,200,160,.18),transparent 70%)}
+.workflow-modal .ofc-alma-apagar{font-weight:700}
+.ofc-livro-novos{justify-content:flex-start;margin:6px 0 14px}
+/* Xadrez do Escritório (vybe-escritorio-xadrez.js): convite, aposta e a partida. */
+.workflow-modal.ofc-xdz {width:min(560px,calc(100vw - 32px));overflow:auto}
+.workflow-modal.ofc-xdz-jogo {width:min(900px,calc(100vw - 24px));overflow:auto}
+.ofc-xdz .xdz-sub {margin:14px 0 6px;color:#b7c3d2;font:700 11px var(--mac-ui);letter-spacing:.3px}
+.xdz-pessoas {display:flex;flex-wrap:wrap;gap:6px}
+.xdz-pessoa {display:grid;justify-items:center;gap:2px;width:68px;padding:6px 4px;border:1px solid #ffffff14;border-radius:12px;background:#ffffff06;color:#d7deeb;font:600 11px var(--mac-ui);cursor:pointer}
+.xdz-pessoa img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
+.xdz-pessoa i {width:40px;height:40px;border-radius:50%;background:#ffffff10}
+.xdz-pessoa.sim {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent);color:#fff}
+.xdz-modo {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.xdz-modo button {display:grid;gap:2px;padding:10px;border:1px solid #ffffff14;border-radius:12px;background:#ffffff06;color:#d7deeb;text-align:left;cursor:pointer}
+.xdz-modo button b {font:700 13px var(--mac-ui)}
+.xdz-modo button small {color:#9da4b4;font-size:11px}
+.xdz-modo button.sim {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.xdz-aguardando {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:#ffffff08;color:#d7deeb;font-size:12px}
+.xdz-convite {display:flex;align-items:center;gap:10px}
+.xdz-convite img {image-rendering:pixelated}
+.xdz-aposta {margin-top:10px;padding:10px;border:1px solid #ffffff12;border-radius:12px;background:#ffffff05}
+.xdz-aposta h4 {margin:8px 0 4px;color:#b7c3d2;font:700 11px var(--mac-ui)}
+.xdz-aposta ul {display:flex;flex-wrap:wrap;gap:4px;margin:0;padding:0;list-style:none}
+.xdz-aposta li {display:flex;align-items:center;gap:4px;padding:2px 8px 2px 2px;border-radius:8px;background:#ffffff08;color:#d7deeb;font-size:11px}
+.xdz-aposta li img {width:24px;height:24px;object-fit:contain;image-rendering:pixelated}
+.xdz-moedas {margin:0;color:#ffe0a6;font-size:12px}
+.xdz-gratis {margin:10px 0 0;color:#9da4b4;font-size:12px}
+.xdz-jogo {display:grid;grid-template-columns:minmax(0,auto) minmax(220px,1fr);gap:16px;align-items:start;margin-top:8px}
+.xdz-lado-tab {display:grid;gap:6px;width:min(480px,calc(100vw - 56px))}
+.xdz-jogador {display:grid;grid-template-columns:12px 36px minmax(0,1fr) auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;color:#d7deeb;font-size:12px}
+.xdz-jogador img {width:36px;height:36px;object-fit:contain;image-rendering:pixelated}
+.xdz-jogador > i {width:36px;height:36px;border-radius:50%;background:#ffffff10}
+.xdz-jogador small {color:#9da4b4}
+.xdz-jogador.vez {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.xdz-jogador.vez small {color:#ffd18d;font-weight:700}
+.xdz-cor {width:12px;height:12px;border-radius:50%;border:1px solid #0008}
+.xdz-cor.brancas {background:#f4f1ea}
+.xdz-cor.pretas {background:#1b1b1b;border-color:#ffffff40}
+.xdz-tabuleiro {position:relative;display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:6px;overflow:hidden;box-shadow:0 0 0 2px #2a1d10,0 10px 30px #0008}
+.xdz-casa {position:relative;display:grid;place-items:center;min-width:0;padding:0;border:0;cursor:default}
+.xdz-casa.clara {background:#e9d9b6}
+.xdz-casa.escura {background:#a97c52}
+.xdz-casa svg {width:92%;height:92%;pointer-events:none}
+.xdz-tabuleiro.vez .xdz-casa.minha,.xdz-casa.alvo {cursor:pointer}
+.xdz-casa.ultimo::before {content:"";position:absolute;inset:0;background:#ffcf4a59}
+.xdz-casa.sel::before {content:"";position:absolute;inset:0;background:#ff9548a6}
+.xdz-casa.alvo::after {content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:#1d140b55}
+.xdz-casa.alvo.captura::after {width:86%;height:86%;background:transparent;border:4px solid #1d140b55}
+.xdz-casa.xeque {background:radial-gradient(circle,#ff3b30 0,#ff3b3080 40%,transparent 72%),#a97c52}
+.xdz-casa:focus-visible {outline:3px solid #fff;outline-offset:-3px;z-index:1}
+.xdz-fil,.xdz-col {position:absolute;font:700 10px var(--mac-ui);font-style:normal;pointer-events:none}
+.xdz-fil {top:2px;left:3px}
+.xdz-col {right:3px;bottom:1px}
+.xdz-casa.clara .xdz-fil,.xdz-casa.clara .xdz-col {color:#a97c52}
+.xdz-casa.escura .xdz-fil,.xdz-casa.escura .xdz-col {color:#e9d9b6}
+.xdz-promo {position:absolute;inset:auto 8% 38% 8%;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:14px;background:#0d1520f2;box-shadow:0 10px 30px #000a;color:#d7deeb;font:700 12px var(--mac-ui);z-index:2}
+.xdz-promo button {width:52px;height:52px;padding:2px;border:1px solid #ffffff20;border-radius:10px;background:#e9d9b6;cursor:pointer}
+.xdz-promo button svg {width:100%;height:100%}
+.xdz-promo .xdz-promo-x {width:32px;height:32px;background:transparent;color:#d7deeb;font-size:18px}
+.xdz-painel {display:grid;gap:8px;align-content:start;min-width:0}
+.xdz-painel .xdz-aposta {margin-top:0}
+.xdz-status {margin:0;padding:8px 10px;border-radius:10px;background:#ffffff08;color:#e7ecf5;font:600 12px var(--mac-ui)}
+.xdz-status.xeque {background:#ff3b3024;color:#ffb4ae}
+.xdz-lances {display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;max-height:220px;overflow:auto;margin:0;padding:0;list-style:none;font:12px ui-monospace,Menlo,Consolas,monospace;color:#d7deeb}
+.xdz-lances li {display:grid;grid-template-columns:26px 1fr 1fr;gap:4px}
+.xdz-lances i {color:#7d8696;font-style:normal}
+.xdz-acoes {display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.xdz-empate {display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:8px 10px;border-radius:10px;background:#ffffff0a;color:#e7ecf5;font-size:12px}
+.xdz-desistir {margin-left:auto}
+.xdz-fim {display:grid;gap:2px;padding:12px;border-radius:12px;background:#ffffff0a;color:#d7deeb;font-size:12px}
+.xdz-fim b {color:#fff;font:800 18px var(--mac-ui)}
+.xdz-fim.ganhou {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 22%,transparent)}
+.xdz-fim.ganhou b {color:#ffe0a6}
+.xdz-fim.perdeu b {color:#c9d1dd}
+@media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}
+/* Dominó do Escritório (vybe-escritorio-domino.js): a mesa, a linha e a mão. */
+.workflow-modal.ofc-dmn-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
+.dmn-lado-mesa {display:grid;gap:8px;width:min(560px,calc(100vw - 56px))}
+.dmn-jogador {grid-template-columns:36px minmax(0,1fr) auto}
+.dmn-mesa {position:relative;display:grid;gap:8px;min-height:190px;padding:12px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#1f6b4a,#124631 75%);box-shadow:inset 0 0 0 3px #5a3a1f,inset 0 0 0 5px #2a1a0c,0 10px 30px #0008}
+.dmn-monte {position:absolute;top:8px;right:10px;display:flex;align-items:center;gap:5px;color:#d9f2e3;font:700 12px var(--mac-ui)}
+.dmn-monte small {color:#a9cdb8;font-weight:600}
+.dmn-costas {width:12px;height:22px;border-radius:3px;background:repeating-linear-gradient(45deg,#2b1a0e 0 3px,#4a2e17 3px 6px);box-shadow:0 0 0 1px #0006}
+.dmn-linha {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px;margin-top:22px;padding:4px}
+.dmn-linha.vazia {min-height:120px;color:#d9f2e3;font:600 13px var(--mac-ui)}
+.dmn-peca {--m:22px;display:inline-flex;flex-direction:column;align-items:center;flex:0 0 auto;padding:2px;border-radius:5px;background:linear-gradient(#fffdf6,#ece4d2);box-shadow:0 1px 0 #fff inset,0 2px 4px #0007,0 0 0 1px #0004}
+.dmn-peca > b {width:80%;height:1.5px;margin:1px 0;background:#00000055}
+.dmn-peca.deitada {flex-direction:row}
+.dmn-peca.deitada > b {width:1.5px;height:80%;margin:0 1px}
+.dmn-meia {display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:var(--m);height:var(--m);padding:calc(var(--m) * .12);box-sizing:border-box}
+.dmn-peca.deitada .dmn-meia {grid-auto-flow:column}
+.dmn-meia i {display:block}
+.dmn-meia i.p {width:72%;height:72%;margin:auto;border-radius:50%;background:radial-gradient(circle at 35% 35%,#555,#111)}
+.dmn-peca.nova {box-shadow:0 0 0 2px #ffcf4a,0 2px 6px #0008}
+.dmn-peca.mini {--m:14px}
+.dmn-ponta {align-self:center;padding:10px;border:2px dashed #ffcf4a;border-radius:8px;background:#ffcf4a26;color:#ffe9a8;font:800 12px var(--mac-ui);cursor:pointer}
+.dmn-ponta:hover {background:#ffcf4a44}
+.dmn-mao {display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:12px;background:#ffffff06}
+.dmn-mao-peca {padding:0;border:0;border-radius:7px;background:none;opacity:.55;transition:transform .12s,opacity .12s}
+.dmn-mao-peca .dmn-peca {--m:30px}
+.dmn-mao.vez .dmn-mao-peca.pode {opacity:1;cursor:pointer}
+.dmn-mao.vez .dmn-mao-peca.pode:hover {transform:translateY(-4px)}
+.dmn-mao-peca.sel {opacity:1;transform:translateY(-8px)}
+.dmn-mao-peca.sel .dmn-peca {box-shadow:0 0 0 3px var(--ofc-laranja,#ff9548),0 4px 10px #0008}
+.dmn-mao-peca:focus-visible {outline:3px solid #fff;outline-offset:2px}
+.dmn-mao:not(.vez) .dmn-mao-peca {opacity:1}
+.dmn-botoes {display:flex;justify-content:center}
+.dmn-revelado {display:grid;gap:4px;margin-bottom:6px;color:#d7deeb;font-size:12px}
+.dmn-revelado > div {display:flex;flex-wrap:wrap;gap:3px}
+@media(max-width:760px){.dmn-lado-mesa{width:100%}.dmn-peca{--m:18px}.dmn-mao-peca .dmn-peca{--m:26px}.workflow-modal.ofc-dmn-jogo{padding:10px}}
