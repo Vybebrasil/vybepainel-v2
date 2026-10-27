@@ -1881,3 +1881,30 @@ está online, de graça ou valendo VybeCoins, móvel ou roupa. Começou pelo xad
 - Peças: sprite Cburnett (Wikimedia, CC BY-SA 3.0) do cm-chessboard (MIT), em
   `vybe-escritorio-xadrez-pecas.js` com a licença dentro do SVG.
 - Próximos: dominó, poker e sinuca na mesma estrutura de mesa e aposta.
+
+### Dominó na mesa de jogo — 27/10/2026
+
+Segundo jogo do mesmo pedido. A aposta do xadrez virou comum
+(`server/escritorio-apostas.js`) e os jogos novos ficam numa tabela só.
+
+- Móvel: `hobbies_c26_gamingtable` vira "Mesa de Dominó" (categoria Jogos);
+  arte e física já estavam no acervo. Clicar ou apertar E perto abre a mesa.
+- Servidor: `server/escritorio-mesas.js` (convite, aposta, vez, desistência,
+  empate combinado, tempo e abandono, iguais para todo jogo de dois) sobre
+  `vybe_escritorio_partidas` (`migrations/2026-10-27-escritorio-mesas.sql`,
+  coluna `jogo` já aceita poker e sinuca). Cada jogo é um motor
+  (`iniciar`, `vista`, `jogar`, `motivos`); o do dominó é
+  `server/escritorio-domino.js`. Rotas: `mesa`, `mesa-desafiar`,
+  `mesa-responder`, `mesa-lance`, `mesa-acao`, com `jogo`.
+- Regras: dominó de compra para dois, uma mão. 7 peças para cada um, 14 no
+  monte; abre quem tem a maior carroça (sem carroça, a peça mais alta). Sem
+  peça que encaixe, compra; monte vazio, passa. Ganha quem bate; trancado (os
+  dois passam), ganha quem tem menos pontos na mão (iguais: empate).
+- As mãos ficam só no servidor: cada um vê as próprias peças, quantas o outro
+  tem e o tamanho do monte; quem assiste não vê mão nenhuma. No fim as duas
+  aparecem.
+- Aposta e razão iguais às do xadrez (`domino:<id>:aposta|premio|devolucao`).
+- Tela: o convite e a escolha da aposta são as do xadrez com outra
+  configuração (`vybe-escritorio-xadrez.js`, `DOMINO_CFG` em
+  `vybe-escritorio-domino.js`); aviso pelo balão `dmn=<id>:<para>:<c|l>`.
+- Próximos: poker e sinuca como motores novos de `escritorio-mesas.js`.
