@@ -306,9 +306,9 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
   xadrezModal(`<div class="workflow-kicker">Xadrez${!eu ? " · assistindo" : ""}<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
 <div class="xdz-jogo"><div class="xdz-lado-tab">${xadrezJogadorHtml(j, cima)}${xadrezTabuleiroHtml(j)}${xadrezJogadorHtml(j, baixo)}</div>
 <aside class="xdz-painel">${xadrezResultadoHtml(j)}${status ? `<p class="xdz-status${j.xeque ? " xeque" : ""}" aria-live="polite">${status}</p>` : ""}
-${xadrezApostaHtml(j, eu ? (String(j.desafiante.id) === String(escritorio.base?.eu) ? "desafiante" : "desafiado") : null)}
+${xadrezApostaHtml(j, eu ? (String(j.desafiante.id) === String(escritorio.base?.eu) ? "desafiante" : "desafiado") : null)}${mesaPlacarHtml(j)}
 <h3 class="xdz-sub">Lances</h3>${xadrezLancesHtml(j)}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
-${!jogando ? `<div class="workflow-actions"><button type="button" class="workflow-primary" onclick="xadrezFechar()">Fechar</button></div>` : ""}</aside></div>`, "ofc-xdz-jogo");
+${!jogando ? mesaFimAcoesHtml("xdz", j, "xadrezFechar()") : ""}</aside></div>`, "ofc-xdz-jogo");
 }
 function casaXadrez(casa) {
   const x = escritorioXadrez(), j = x.jogo;
@@ -383,6 +383,9 @@ function mesaSinalEscritorio(cfg, de, v) {
   const [id, para, tipo] = String(v || "").split(":");
   if (!/^\d{1,18}$/.test(id) || escritorio.base?.demo || String(de) === String(escritorio.base?.eu)) return;
   const x = escritorioXadrez(), eu = String(escritorio.base?.eu), meu = cfg.sinal + ":" + id;
+  // A sala relê as placas das mesas; o convite que chegou aqui não é avisado de novo pelo resumo.
+  if (typeof escritorioResumoJogos === "function") escritorioResumoJogos(true);
+  if (tipo === "c") (escritorio.resumoJogos ||= { cena: null, em: 0, placas: new Set(), avisados: new Set() }).avisados.add((cfg.extra.jogo || "xadrez") + ":" + id);
   if (cfg.aberto(id)) return;
   if (para !== eu) return;
   if (tipo === "c" || x.esperando === meu) {

@@ -1952,3 +1952,13 @@ Quarto e último jogo do pedido. Sem migração (`jogo = 'sinuca'` já valia).
 - Tela (`vybe-escritorio-sinuca.js`): canvas com mira (linha, bola fantasma e
   taco), força, bola na mão e a animação da última tacada. Aviso pelo balão
   `snc=<id>:<para>:<c|l>`.
+
+### Jogos de mesa: revanche, placar, placas e conquistas — 27/10/2026
+
+Etapa 1 das melhorias pedidas pelo Paulo para os quatro jogos (sem partida contra o computador, por decisão dele).
+
+- Revanche: no fim, quem jogou chama a mesma pessoa para a mesma mesa, valendo as mesmas VybeCoins (os itens já mudaram de dono e não se repetem).
+- Placar dos dois em cada jogo, de todas as partidas terminadas entre eles (`placar` na vista do xadrez e das mesas).
+- Placa em cima da mesa com partida (`mapa.marcador`) e aviso dos convites pendentes ao entrar: rota `jogos-resumo` (`resumoDosJogos`), relida a cada 20 s, na troca de cena e quando chega aviso de jogo.
+- Convite também no sino do painel (`vybe_notificacoes`), fora da transação do convite.
+- Escada de conquistas "Mesas de jogo" (`migrations/2026-10-27-escritorio-conquista-jogos.sql`): vitórias contra outra pessoa, uma por jogo, adversário e dia; Bronze 1, Prata 10, Ouro 30, Diamante 100; troféus: taças aladas e o Trono Real; títulos Jogador de Mesa, Competidor, Rei da Mesa, Lenda das Mesas.

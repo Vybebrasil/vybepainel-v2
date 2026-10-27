@@ -5,7 +5,8 @@
 // sabe das próprias regras; o xadrez veio antes e tem tabela própria
 // (server/escritorio-xadrez.js), mas usa a mesma aposta (escritorio-apostas.js).
 import { carregarEconomia } from './escritorio-economia.js';
-import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta } from './escritorio-apostas.js';
+import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta, placarDe, avisarConvite, textoDoConvite } from './escritorio-apostas.js';
+import { xadrezPronto } from './escritorio-xadrez.js';
 import { motorDomino } from './escritorio-domino.js';
 import { motorPoker } from './escritorio-poker.js';
 import { motorSinuca } from './escritorio-sinuca.js';
@@ -14,6 +15,7 @@ const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca };
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
 // partida largada um dia inteiro termina sozinha (perde quem tinha a vez).
 const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;
+const NOME_DO_JOGO = { domino: 'o dominó', poker: 'o pôquer', sinuca: 'a sinuca' };
 const MOTIVOS = { desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
 const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
 
@@ -63,7 +65,12 @@ export async function verMesa(sql, pessoa, id) {
  // Convite é só dos dois; partida começada, qualquer um da equipe assiste.
  if (j.estado === 'convite' && !ladoDe(j, pessoa.id)) throw erro('Partida não encontrada.', 404);
  if (conviteVencido(j)) j.estado = 'cancelado';
- return vista(j, pessoa.id, await nomes(sql, [j.desafiante, j.desafiado]));
+ const v = vista(j, pessoa.id, await nomes(sql, [j.desafiante, j.desafiado]));
+ // Placar dos dois neste jogo (todas as partidas terminadas entre eles).
+ const feitas = await sql`SELECT resultado, desafiante, desafiado FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='fim'
+   AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante}))`;
+ v.placar = placarDe(feitas.map((l) => ({ vencedor: l.resultado === 'empate' ? null : l[l.resultado] })), j.desafiante, j.desafiado);
+ return v;
 }
 // Convites, partidas e o que está rolando nesta mesa (para assistir), de um jogo.
 export async function listarMesa(sql, pessoa, { jogo, camada, movel } = {}) {
@@ -91,7 +98,7 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
  const jogo = String(pedido?.jogo || '');
  motorDe(jogo);
  const d = lerDesafio(pessoa, pedido), { para, camada, movel, chave, n, da, quer } = d;
- return sql.comTransacao(async (tx) => {
+ const r = await sql.comTransacao(async (tx) => {
   const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_partidas WHERE chave=${chave}`;
   if (ja) { if (String(ja.desafiante) !== String(pessoa.id)) throw erro('Pedido inválido.'); return { repetido: true, id: String(ja.id) }; }
   const [jogando] = await tx`SELECT id FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id})`;
@@ -103,6 +110,8 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
    VALUES(${jogo},${chave},${pessoa.id},${para},${camada},${movel},${n},${JSON.stringify(da)}::jsonb,${JSON.stringify(quer)}::jsonb) RETURNING id`;
   return { repetido: false, id: String(j.id) };
  });
+ if (!r.repetido) await avisarConvite(sql, para, textoDoConvite((await nomes(sql, [pessoa.id]))[String(pessoa.id)], NOME_DO_JOGO[jogo], camada, n));
+ return r;
 }
 
 // acao: "aceitar"/"recusar" (quem foi chamado) ou "cancelar" (quem chamou).
@@ -178,4 +187,25 @@ export async function acaoMesa(sql, pessoa, { id, acao }) {
   return { fim: true };
  });
  return { ...r, jogo: await verMesa(sql, pessoa, id), ...(r.fim ? { economia: await carregarEconomia(sql, pessoa.id) } : {}) };
+}
+
+// O que a sala mostra sem abrir nada: as mesas com partida rolando nesta cena
+// (placa em cima do móvel, para quem passa saber que pode assistir) e os
+// convites que chegaram para mim em qualquer jogo, inclusive o xadrez.
+export async function resumoDosJogos(sql, pessoa, camada) {
+ const desde = new Date(Date.now() - CONVITE_MIN * 60000), cena = String(camada || '');
+ const ativas = [], convites = [];
+ if (await xadrezPronto(sql)) {
+  for (const l of await sql`SELECT x.movel, a.nome AS a, b.nome AS b FROM vybe_escritorio_xadrez x JOIN vybe_pessoas a ON a.id=x.brancas JOIN vybe_pessoas b ON b.id=x.pretas
+    WHERE x.estado='jogando' AND x.camada=${cena}`) ativas.push({ jogo: 'xadrez', movel: l.movel, nomes: [l.a, l.b] });
+  for (const l of await sql`SELECT x.id, p.nome FROM vybe_escritorio_xadrez x JOIN vybe_pessoas p ON p.id=x.desafiante
+    WHERE x.estado='convite' AND x.desafiado=${pessoa.id} AND x.criado_em > ${desde}::timestamptz`) convites.push({ jogo: 'xadrez', id: String(l.id), de: l.nome });
+ }
+ if (await mesasProntas(sql)) {
+  for (const l of await sql`SELECT x.jogo, x.movel, a.nome AS a, b.nome AS b FROM vybe_escritorio_partidas x JOIN vybe_pessoas a ON a.id=x.desafiante JOIN vybe_pessoas b ON b.id=x.desafiado
+    WHERE x.estado='jogando' AND x.camada=${cena}`) ativas.push({ jogo: l.jogo, movel: l.movel, nomes: [l.a, l.b] });
+  for (const l of await sql`SELECT x.id, x.jogo, p.nome FROM vybe_escritorio_partidas x JOIN vybe_pessoas p ON p.id=x.desafiante
+    WHERE x.estado='convite' AND x.desafiado=${pessoa.id} AND x.criado_em > ${desde}::timestamptz`) convites.push({ jogo: l.jogo, id: String(l.id), de: l.nome });
+ }
+ return { ativas, convites };
 }

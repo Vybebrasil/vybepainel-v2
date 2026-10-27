@@ -47,6 +47,7 @@ export const TITULOS = {
   briefings: ['Escritor', 'Roteirista', 'Mente Criativa', 'O Visionário'],
   agencia: ['Guardião', 'Comandante', 'General', 'Dono do Jogo'],
   planejamentos: ['Planejador', 'Estrategista', 'Mestre do Plano', 'Visionário do Mês'],
+  jogos: ['Jogador de Mesa', 'Competidor', 'Rei da Mesa', 'Lenda das Mesas'],
   quarto: ['Decorador'], andar2: ['Construtor'], presente: ['Generoso'], troca: ['Negociante'], postits: ['Recadeiro'],
 };
 const TIPO_TITULO = { cards: 'Cards', carrosseis: 'Carrosséis', reels: 'Reels', stories: 'Stories', fotografias: 'Fotos' };
@@ -136,6 +137,8 @@ export const MARCOS = [
   { id: 'briefings', nome: 'Briefings no cadastro', unidade: 'cadastros com briefing', valor: (n) => n.regras.briefing || 0 },
   { id: 'agencia', nome: 'Peças da agência', unidade: 'peças da agência acompanhadas', valor: (n) => n.regras.peca_gestao || 0 },
   { id: 'planejamentos', nome: 'Planejamentos', unidade: 'planejamentos aprovados', valor: (n) => n.planejamentos },
+  // Jogos do escritório (Paulo, 27/10/2026): vitórias no xadrez, dominó, pôquer e sinuca.
+  { id: 'jogos', nome: 'Mesas de jogo', unidade: 'vitórias nas mesas', valor: (n) => n.vitoriasMesa },
   // Sociais: um nível só.
   { id: 'quarto', nome: 'Meu quarto', unidade: 'quarto montado', valor: (n) => (n.quarto ? 1 : 0), origem: 'conquista:meu-quarto' },
   { id: 'andar2', nome: 'Segundo andar', unidade: 'segundo andar montado', valor: (n) => (n.andar2 ? 1 : 0) },
@@ -166,6 +169,7 @@ export function criterioDoMarco(id) {
     painel: 'Dias com pelo menos 10 ações creditadas no painel. Não conta tempo online.',
     podio: 'Fechamentos semanais com prêmio de primeiro, segundo ou terceiro lugar. A posição provisória não conta.',
     artilheiro: 'Fechamentos semanais com prêmio de primeiro lugar. É diferente do título mensal da Copa.',
+    jogos: 'Vitórias contra outra pessoa da equipe no xadrez, dominó, pôquer e sinuca (desistência e tempo contam). Vale uma por jogo, adversário e dia; empate não conta.',
     planejamentos: 'Planejamentos aprovados ou cadastrados que você enviou para aprovação. Não comprova autoria de todo o conteúdo.',
     adiantado: 'Execuções registradas em dia anterior ao prazo cadastrado. Não usa veiculação como substituto do prazo.',
     deprimeira: 'Peças com crédito de aprovação de primeira para você.',
@@ -201,6 +205,21 @@ function diaUtilAntes(iso) {
   let d = iso;
   do d = somarDias(d, -1); while (diaDaSemana(d) > 5);
   return d;
+}
+// Vitórias nas mesas (xadrez, dominó, pôquer, sinuca) para a escada de
+// conquistas: conta uma por jogo, adversário e dia, para dois colegas não
+// subirem a escada jogando a mesma partida o dia inteiro.
+async function vitoriasNasMesas(sql, pessoaId) {
+ const [ex] = await sql`SELECT to_regclass('public.vybe_escritorio_xadrez') IS NOT NULL AS xadrez, to_regclass('public.vybe_escritorio_partidas') IS NOT NULL AS partidas`;
+ const dia = (t) => new Date(t).toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' });
+ const chaves = new Set();
+ if (ex?.xadrez) for (const l of await sql`SELECT brancas, pretas, resultado, terminado_em FROM vybe_escritorio_xadrez WHERE estado='fim'
+   AND ((resultado='brancas' AND brancas=${pessoaId}) OR (resultado='pretas' AND pretas=${pessoaId}))`)
+  chaves.add(`xadrez:${String(l.brancas) === String(pessoaId) ? l.pretas : l.brancas}:${dia(l.terminado_em)}`);
+ if (ex?.partidas) for (const l of await sql`SELECT jogo, desafiante, desafiado, terminado_em FROM vybe_escritorio_partidas WHERE estado='fim'
+   AND ((resultado='desafiante' AND desafiante=${pessoaId}) OR (resultado='desafiado' AND desafiado=${pessoaId}))`)
+  chaves.add(`${l.jogo}:${String(l.desafiante) === String(pessoaId) ? l.desafiado : l.desafiante}:${dia(l.terminado_em)}`);
+ return chaves.size;
 }
 // Os números que as escadas olham, de todo o histórico.
 export async function numerosDosMarcos(sql, pessoaId) {
@@ -246,12 +265,13 @@ export async function numerosDosMarcos(sql, pessoaId) {
     seqMax = Math.max(seqMax, n);
   }
   const regras = Object.fromEntries(regrasLinhas.map((r) => [r.regra, Number(r.n)]));
+  const vitoriasMesa = await vitoriasNasMesas(sql, pessoaId);
   const somar = (linhas) => Object.fromEntries(Object.keys(FORMATOS).map((k) => [k, linhas.filter((f) => FORMATOS[k].includes(f.f)).reduce((s, f) => s + Number(f.n), 0)]));
   const porFormato = somar(formatos.filter((f) => EXECUCAO.includes(f.regra)));
   const porRegra = Object.fromEntries(['peca_agendamento', 'peca_atendimento', 'peca_producao'].map((r) => [r, somar(formatos.filter((f) => f.regra === r))]));
   return { hoje: diaBahia(), total: Number(t.n), seqMax, clientesMax: Number(cl.n), nivel: nivelPorXp(c?.xp || 0).nivel, regras, antes: Number(a.antes),
     diasCaptacao: Number(captacao?.n || 0), diasPainelCheio: Number(painelCheio?.n || 0), deprimeira: regras.criacao_aprovada || 0, semanasLimpas: Number(semanas[0]?.n || 0), formatos: porFormato, porRegra, presentes, trocas, postits, planejamentos,
-    quarto: Boolean(quarto?.sim), andar2: (pf?.preferencias?.sala_andares || []).some((x) => x?.andar === 1 && x.quarto_configurado === true) };
+    vitoriasMesa, quarto: Boolean(quarto?.sim), andar2: (pf?.preferencias?.sala_andares || []).some((x) => x?.andar === 1 && x.quarto_configurado === true) };
 }
 function proximoUtil(iso, passo) {
   let d = iso;

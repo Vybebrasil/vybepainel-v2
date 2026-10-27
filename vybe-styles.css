@@ -12316,3 +12316,10 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .ofc-loja-jogos > .ofc-nota {margin:2px 0 8px}
 .ofc-loja-nav.jogos {color:#ffd18d}
 .ofc-movel-jogo {position:absolute;top:4px;left:4px;padding:1px 6px;border-radius:999px;background:var(--ofc-laranja,#ff9548);color:#1b1006;font:800 9px var(--mac-ui);font-style:normal;letter-spacing:.3px;pointer-events:none}
+/* Jogos de mesa: placar dos dois, placa da mesa ocupada no mapa. */
+.mesa-placar {display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin:0;padding:8px 10px;border-radius:10px;background:#ffffff08;color:#d7deeb;font-size:12px}
+.mesa-placar span {color:#9da4b4}
+.mesa-placar b {color:#ffe0a6;font:700 13px var(--mac-ui)}
+.mesa-placar small {color:#9da4b4}
+.mesa-ocupada {display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:#10161fe6;box-shadow:0 2px 8px #0008,0 0 0 1px color-mix(in srgb,var(--ofc-laranja,#ff9548) 60%,transparent);color:#e7ecf5;font:600 11px var(--mac-ui);white-space:nowrap}
+.mesa-ocupada b {color:#ffd18d;font-weight:800}

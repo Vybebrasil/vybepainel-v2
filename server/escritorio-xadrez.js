@@ -7,7 +7,7 @@
 // e sem XP: não entra no ranking nem no ritmo de trabalho).
 import { Chess } from 'chess.js';
 import { carregarEconomia } from './escritorio-economia.js';
-import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta, MESA_MOEDAS_MAX } from './escritorio-apostas.js';
+import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta, placarDe, avisarConvite, textoDoConvite, MESA_MOEDAS_MAX } from './escritorio-apostas.js';
 
 export const XADREZ_MOEDAS_MAX = MESA_MOEDAS_MAX;
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
@@ -87,7 +87,12 @@ export async function verXadrez(sql, pessoa, id) {
  // Convite é só dos dois; partida começada, qualquer um da equipe assiste.
  if (j.estado === 'convite' && !corDe(j, pessoa.id)) throw erro('Partida não encontrada.', 404);
  if (conviteVencido(j)) j.estado = 'cancelado';
- return vista(j, pessoa.id, await nomes(sql, [j.brancas, j.pretas]));
+ const v = vista(j, pessoa.id, await nomes(sql, [j.brancas, j.pretas]));
+ // Placar dos dois no xadrez (todas as partidas terminadas entre eles).
+ const feitas = await sql`SELECT resultado, brancas, pretas FROM vybe_escritorio_xadrez WHERE estado='fim'
+   AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante}))`;
+ v.placar = placarDe(feitas.map((l) => ({ vencedor: l.resultado === 'empate' ? null : l[l.resultado] })), j.desafiante, j.desafiado);
+ return v;
 }
 // Convites, partidas e o que está rolando em cada tabuleiro (para assistir).
 export async function listarXadrez(sql, pessoa, { camada, movel } = {}) {
@@ -113,7 +118,7 @@ export async function listarXadrez(sql, pessoa, { camada, movel } = {}) {
 export async function desafiarXadrez(sql, pessoa, salas, pedido) {
  await exigirTabela(sql);
  const d = lerDesafio(pessoa, pedido), { para, camada, movel, chave, n, da, quer } = d;
- return sql.comTransacao(async (tx) => {
+ const r = await sql.comTransacao(async (tx) => {
   const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_xadrez WHERE chave=${chave}`;
   if (ja) { if (String(ja.desafiante) !== String(pessoa.id)) throw erro('Pedido inválido.'); return { repetido: true, id: String(ja.id) }; }
   const [jogando] = await tx`SELECT id FROM vybe_escritorio_xadrez WHERE estado='jogando' AND (brancas=${pessoa.id} OR pretas=${pessoa.id})`;
@@ -126,6 +131,8 @@ export async function desafiarXadrez(sql, pessoa, salas, pedido) {
    VALUES(${chave},${pessoa.id},${para},${brancoEuSou ? pessoa.id : para},${brancoEuSou ? para : pessoa.id},${camada},${movel},${n},${JSON.stringify(da)}::jsonb,${JSON.stringify(quer)}::jsonb) RETURNING id`;
   return { repetido: false, id: String(j.id) };
  });
+ if (!r.repetido) await avisarConvite(sql, para, textoDoConvite((await nomes(sql, [pessoa.id]))[String(pessoa.id)], 'o xadrez', camada, n));
+ return r;
 }
 
 // acao: "aceitar"/"recusar" (quem foi chamado) ou "cancelar" (quem chamou).

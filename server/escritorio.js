@@ -35,7 +35,7 @@ import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, darMoedas, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
 import { listarXadrez, verXadrez, desafiarXadrez, responderXadrez, lanceXadrez, acaoXadrez } from "./escritorio-xadrez.js";
-import { listarMesa, verMesa, desafiarMesa, responderMesa, lanceMesa, acaoMesa } from "./escritorio-mesas.js";
+import { listarMesa, verMesa, desafiarMesa, responderMesa, lanceMesa, acaoMesa, resumoDosJogos } from "./escritorio-mesas.js";
 import { dimensoesDosMoveis, salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe, copaDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
@@ -431,6 +431,8 @@ export async function areaEscritorio(req, res, quem, sql) {
         return res.status(e.status || 400).json({ error: e.message });
       }
     }
+    // Mesas com partida nesta cena e convites para mim (placas no mapa e aviso).
+    if (acao === "jogos-resumo") return res.status(200).json({ ok: true, ...(await resumoDosJogos(sql, pessoa, String(req.query?.camada || ""))) });
     if (acao === "mesa") {
       try {
         if (req.query?.id) return res.status(200).json({ ok: true, jogo: await verMesa(sql, pessoa, String(req.query.id)) });

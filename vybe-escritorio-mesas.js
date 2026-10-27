@@ -126,6 +126,73 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
   xadrezModal(`<div class="workflow-kicker">${cfg.nome}${!eu ? " · assistindo" : ""}<button type="button" class="workflow-close" aria-label="Fechar" onclick="mesaFechar('${chave}')">×</button></div>
 <div class="xdz-jogo mesa-jogo"><div class="mesa-lado">${mesa}</div>
 <aside class="xdz-painel">${xadrezResultadoHtml(j)}${status ? `<p class="xdz-status" aria-live="polite">${status}</p>` : ""}
-${xadrezApostaHtml(j, perspectiva)}${painel}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
-${!jogando ? `<div class="workflow-actions"><button type="button" class="workflow-primary" onclick="mesaFechar('${chave}')">Fechar</button></div>` : ""}</aside></div>`, `ofc-${chave}-jogo`);
+${xadrezApostaHtml(j, perspectiva)}${mesaPlacarHtml(j)}${painel}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
+${!jogando ? mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`) : ""}</aside></div>`, `ofc-${chave}-jogo`);
 }
+
+// Placar dos dois neste jogo, de todas as partidas que já terminaram.
+function mesaPlacarHtml(j) {
+  const p = j.placar;
+  if (!p) return "";
+  const a = j.desafiante, b = j.desafiado, va = p[String(a.id)] || 0, vb = p[String(b.id)] || 0;
+  if (!va && !vb && !p.empates) return "";
+  return `<p class="mesa-placar"><span>Placar de vocês</span><b>${xadrezPrimeiroNome(a)} ${va} × ${vb} ${xadrezPrimeiroNome(b)}</b>${p.empates ? `<small>${p.empates} ${p.empates === 1 ? "empate" : "empates"}</small>` : ""}</p>`;
+}
+// Fim da partida: revanche (quem jogou) e fechar.
+function mesaFimAcoesHtml(chave, j, fechar) {
+  const revanche = j.eu ? `<button type="button" class="workflow-secondary" onclick="revancheEscritorio('${chave}',this)">Revanche</button>` : "";
+  return `<div class="workflow-actions">${revanche}<button type="button" class="workflow-primary" onclick="${fechar}">Fechar</button></div>`;
+}
+// Revanche: chama a mesma pessoa para a mesma mesa, valendo as mesmas
+// VybeCoins. Os itens da aposta já mudaram de dono, então não se repetem.
+async function revancheEscritorio(chave, botao) {
+  const cfg = chave === "xdz" ? XADREZ_CFG : ESCRITORIO_MESAS[chave];
+  const j = chave === "xdz" ? escritorioXadrez().jogo : escritorioMesa(chave).jogo;
+  if (!cfg || !j?.eu) return;
+  const outro = String(j.desafiante.id) === String(escritorio.base?.eu) ? j.desafiado : j.desafiante;
+  botao.disabled = true;
+  try {
+    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: outro.id, camada: j.camada, movel: j.movel, moedas: j.moedas || 0, oferece: [], pede: [], chave: xadrezChave() });
+    mesaSinal(cfg, r.id, outro.id, "c");
+    const x = escritorioXadrez();
+    x.esperando = cfg.sinal + ":" + r.id; x.mesa = { camada: j.camada, movel: j.movel }; x.cfg = cfg;
+    botao.textContent = "Revanche enviada";
+    escritorioAviso(`Revanche enviada para ${String(outro.nome || "a pessoa").split(" ")[0]}. A partida abre quando aceitar.`);
+  } catch (e) {
+    botao.disabled = false;
+    const el = document.getElementById("xdz-erro");
+    if (el) el.textContent = e.message;
+  }
+}
+
+// Placas em cima das mesas com partida nesta cena (quem passa sabe que pode
+// assistir) e aviso dos convites que chegaram enquanto a pessoa não estava no
+// escritório. Relê a cada 20 s, logo que a cena muda e quando chega aviso de jogo.
+const MESAS_NOMES = { xadrez: "Xadrez", domino: "Dominó", poker: "Pôquer", sinuca: "Sinuca" };
+function escritorioResumoJogos(agora) {
+  if (typeof escritorio === "undefined" || !escritorio.mapa?.marcador || !escritorio.base || escritorio.base.demo || document.hidden) return;
+  const r = (escritorio.resumoJogos ||= { cena: null, em: 0, placas: new Set(), avisados: new Set() });
+  const cena = escritorio.quarto || "praca";
+  if (!agora && cena === r.cena && Date.now() - r.em < 20000) return;
+  r.cena = cena; r.em = Date.now();
+  escritorioApi("jogos-resumo", null, { camada: cena }).then((d) => {
+    if ((escritorio.quarto || "praca") !== cena || !escritorio.mapa) return;
+    const novas = new Set();
+    for (const a of d.ativas || []) {
+      const m = /@(\d+),(\d+)$/.exec(a.movel);
+      if (!m) continue;
+      const id = "jogo-" + a.movel;
+      novas.add(id);
+      escritorio.mapa.marcador(id, Number(m[1]), Number(m[2]), `<span class="mesa-ocupada"><b>${MESAS_NOMES[a.jogo] || "Jogo"}</b>${a.nomes.map((n) => safeText(String(n).split(" ")[0])).join(" × ")}</span>`, 70);
+    }
+    for (const id of r.placas) if (!novas.has(id)) escritorio.mapa.marcador(id, 0, 0, null);
+    r.placas = novas;
+    for (const c of d.convites || []) {
+      const k = c.jogo + ":" + c.id;
+      if (r.avisados.has(k)) continue;
+      r.avisados.add(k);
+      escritorioAviso(`${String(c.de).split(" ")[0]} te chamou para ${MESAS_NOMES[c.jogo]?.toLowerCase() || "um jogo"}. Clique na mesa do jogo para responder.`);
+    }
+  }).catch(() => {});
+}
+setInterval(() => escritorioResumoJogos(false), 5000);

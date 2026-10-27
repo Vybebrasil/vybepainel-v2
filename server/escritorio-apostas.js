@@ -109,3 +109,23 @@ export async function pagarAposta(tx, j, vencedor, razao) {
   await porNoInventario(tx, vencedor, [...daqui, ...dali]);
  }
 }
+
+// Placar entre duas pessoas num jogo: vitórias de cada uma e empates.
+// `linhas` = [{ vencedor: id | null }] das partidas terminadas entre elas.
+export function placarDe(linhas, a, b) {
+ const placar = { [String(a)]: 0, [String(b)]: 0, empates: 0 };
+ for (const l of linhas) { if (l.vencedor == null) placar.empates++; else if (String(l.vencedor) in placar) placar[String(l.vencedor)]++; }
+ return placar;
+}
+// Convite também no sino do painel (quem foi chamado pode estar fora do
+// escritório). Fora da transação do convite: aviso que falha não desfaz o convite.
+export async function avisarConvite(sql, para, texto) {
+ try { await sql`INSERT INTO vybe_notificacoes (pessoa_id, texto) VALUES (${para}, ${texto})`; } catch { /* o sino é opcional */ }
+}
+const LUGARES = { praca: 'na Praça', recepcao: 'na Recepção', reuniao: 'na Sala de Reunião', auditorio: 'no Auditório', producao: 'na Produção', cafe: 'no Café',
+ jogos: 'na Sala de Jogos', foco: 'na Sala de Foco', academia: 'na Academia', lounge: 'no Lounge', operacao: 'no Centro de Operação', subsolo: 'no Subsolo' };
+export function textoDoConvite(nome, jogo, camada, moedas) {
+ const onde = LUGARES[camada] || (String(camada).startsWith('sala-') ? 'numa sala do escritório' : 'no escritório');
+ const primeiro = String(nome || 'Alguém').split(' ')[0];
+ return `${primeiro} te chamou para ${jogo}${moedas ? ` valendo ${Number(moedas).toLocaleString('pt-BR')} VybeCoins` : ''}. Abra o Escritório e clique na mesa ${onde} para responder (vale 10 minutos).`;
+}
