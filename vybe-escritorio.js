@@ -450,6 +450,7 @@ async function carregarBauEscritorio() {
     if (escritorio.bau) await escritorioArteBau();
   } catch {} finally { escritorio.bauCarregando = false; }
   escritorioMarcarBau();
+  if (typeof atualizarPessoasEscritorio === "function") atualizarPessoasEscritorio();
 }
 function escritorioMarcarBau() {
   const b = escritorio.bau, m = escritorio.mapa, eu = String(escritorio.base?.eu || "");
@@ -536,6 +537,7 @@ function fecharBauEscritorio() {
   escritorio.bauAberto = null;
   pintarBauEscritorio();
   escritorioMarcarBau();
+  if (typeof atualizarPessoasEscritorio === "function") atualizarPessoasEscritorio();
 }
 // Quem está no escritório agora: uma conexão só de leitura com o Worker
 // (presence:join com observar), que não põe você na lista nem na voz.
@@ -1979,7 +1981,7 @@ function atualizarPessoasEscritorio() {
   // As listas laterais só mudam quando alguém troca de lugar, status ou
   // entra/sai; a presença chega a cada passo, então refazê-las sempre
   // (com as imagens dos bonecos) travava o painel com a equipe andando.
-  const assinatura = JSON.stringify([escritorio.conectado, escritorio.status, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, (escritorio.planosPendentes || []).length, typeof PLJ_ALERTAS !== "undefined" ? PLJ_ALERTAS.length : 0, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
+  const assinatura = JSON.stringify([escritorio.bau?.ultimo || 0, escritorio.bauAberto || "", escritorio.conectado, escritorio.status, escritorioLugarDe(escritorio.perfil).id, escritorio.recadosResumo || {}, (escritorio.base?.equipe || []).length, escritorio.musica?.tocando ? [escritorio.musica.indice, escritorio.musica.fila?.length] : 0, (escritorio.planosPendentes || []).length, typeof PLJ_ALERTAS !== "undefined" ? PLJ_ALERTAS.length : 0, pessoas.map((p) => [p.id, p.zona, p.status, p.nome])]);
   const mudou = (el) => el && el.dataset.assinatura !== assinatura && (el.dataset.assinatura = assinatura, true);
   // ABA PESSOAS (Paulo, 27/10/2026: "sem hierarquia de nada… o Centro de
   // Operação é a sala principal de tudo, o cérebro da agência"). Uma coluna
@@ -2016,6 +2018,7 @@ function atualizarPessoasEscritorio() {
     const voce = `<div class="ofc-p-eu">
       <span class="ofc-p-retrato" style="--st:${corSt};--xp:${xpPct}%"${pts?.nivel ? ` title="Nível ${pts.nivel} · ${xpPct}% até o próximo"` : ""}><span class="ofc-p-avatar">${cabecaDe({ id: eu, nome: "Você" })}<i aria-hidden="true"></i></span>${pts?.nivel ? `<b class="ofc-p-nivel" aria-label="Nível ${pts.nivel}">${pts.nivel}</b>` : ""}</span>
       <span class="ofc-p-eu-texto"><b>Você</b><small>${escritorio.conectado ? safeText(escritorioLugarDe(escritorio.perfil).nome) : "Fora do escritório"}</small></span>
+      ${escritorio.bau && !escritorio.bauAberto ? `<button type="button" class="ofc-p-bau" onclick="abrirBauEscritorio();abrirBauEscritorio(true)" title="Abrir o baú: o que você ganhou desde o último">${escritorio.bauArte ? `<img src="${escritorio.bauArte}" alt="">` : ""}<span>Baú</span><b>${escritorio.bau.abatidas || escritorio.bau.pecas.length || "!"}</b></button>` : ""}
       <label class="ofc-p-status" style="--st:${corSt}"><span class="sr-only">Sua disponibilidade</span><i aria-hidden="true"></i>
         <select onchange="escritorioTrocarStatus(this.value)"${escritorio.conectado ? "" : " disabled"}>${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}"${meuStatus === id ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select></label></div>`;
     // 2. Centro de Operação

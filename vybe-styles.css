@@ -7101,6 +7101,8 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-raio-sol {position:absolute;z-index:90000;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(170deg,rgba(255,226,160,.30),rgba(255,214,140,.12) 55%,rgba(255,210,130,0))}
 .mapa-pessoa.figurante {pointer-events:none}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
+/* Fogo fora do enquadramento não tremula (vybe-escritorio-mapa.js, conferirNaTela). */
+.mapa-luz.fogo.fora-da-tela {animation-play-state:paused}
 /* Mapa fora de vista (criarMapaEscritorio: atrás do lobby, outra aba): nada anima. */
 .mapa-em-pausa, .mapa-em-pausa *, .mapa-em-pausa *::before, .mapa-em-pausa *::after {animation-play-state:paused!important}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}
@@ -12433,3 +12435,10 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-outros.grupo .mesa-jogador {grid-template-columns:36px minmax(0,1fr);row-gap:0}
 .pkr-outros.grupo .mesa-jogador small {grid-column:2;white-space:normal;line-height:1.25}
 .pkr-outros.grupo .mesa-jogador img,.pkr-outros.grupo .mesa-jogador i {grid-row:span 2}
+/* Baú também no cartão "Você" da aba Pessoas: abre mesmo se o mapa não deixar clicar (27/10/2026). */
+.ofc-p-bau {display:inline-flex;align-items:center;gap:5px;flex:none;height:32px;padding:0 9px 0 4px;border:1px solid #ffd35c66;border-radius:10px;background:linear-gradient(180deg,#3a2f17,#251d0e);color:#ffe29a;font:800 12px var(--mac-ui);cursor:pointer;box-shadow:0 0 0 2px #ffd35c22,0 0 14px #ffd35c55;animation:mapa-bau-brilho 1.6s ease-in-out infinite}
+.ofc-p-bau img {height:24px;width:auto;image-rendering:pixelated}
+.ofc-p-bau b {min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff7a1f;color:#fff;font:900 10.5px/18px var(--mac-ui);text-align:center}
+.ofc-p-bau:hover {border-color:#ffd35c;color:#fff}
+@media (prefers-reduced-motion:reduce) {.ofc-p-bau {animation:none}}
+[data-motion=reduce] .ofc-p-bau {animation:none}

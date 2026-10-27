@@ -195,7 +195,9 @@ function mapaEtapaQuebravel(dados, golpes) {
   return Math.min(n - 1, Math.floor((Math.max(0, golpes) * (n - 1)) / MAPA_GOLPES_QUEBRAVEL));
 }
 // leitura: os pixels do desenho vão ser lidos (getImageData); ver mapaLuzSemPreto.
-function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro, leitura = false) {
+// justo: com filtro, o recorte é só o das camadas filtradas (ox/oy delas), não
+// o do desenho inteiro (mapaCamadasMovelNovo).
+function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente = 0, filtro, leitura = false, justo = false) {
   const v = dados.visualizations.find((v) => v.size === 64);
   const digitos = MAPA_COM_DIGITOS.test(dados.visualizationType || "");
   const numero = Math.max(0, Math.round(Number(estadoSalvo) || 0));
@@ -229,7 +231,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
     // Ponto de registro: sem espelho, (−x, −y); espelhado, o x conta da direita.
     const x = a.flipH ? a.x - f.w : -a.x;
     return { ...p, f, flip: Boolean(a.flipH), x, y: -a.y };
-  }).filter(Boolean);
+  }).filter((c) => c && (!justo || !filtro || filtro(c)));
   if (!caixas.length) return null;
   const minX = Math.min(...caixas.map((c) => c.x)), minY = Math.min(...caixas.map((c) => c.y));
   const maxX = Math.max(...caixas.map((c) => c.x + c.f.w)), maxY = Math.max(...caixas.map((c) => c.y + c.f.h));
@@ -312,12 +314,12 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   cache.set(chave, d);
   return d;
 }
-// Desenho de cada grupo de camadas, guardado pelo que ele mostra (as artes do
-// grupo e o tamanho do desenho inteiro). Num móvel animado só parte das camadas
-// muda: o caixão do subsolo tem 7 grupos e 3 nunca mudam. Com o mesmo canvas
-// para o grupo parado, o mapa vê que nada mudou e não copia de novo (antes cada
-// troca de quadro redesenhava todos os grupos: ~350 cópias por segundo só nos
-// caixões).
+// Desenho de cada grupo de camadas no seu próprio recorte, guardado pelas artes
+// do grupo; dx/dy dizem onde ele fica dentro do desenho inteiro. Num móvel
+// animado só parte das camadas muda (o caixão do subsolo tem 7 grupos e 3 nunca
+// mudam). Com o recorte do desenho inteiro, que muda de tamanho de um quadro
+// para outro, até o grupo parado virava um desenho novo; no recorte próprio ele
+// é sempre o mesmo canvas, e o mapa só redesenha os grupos que mudaram.
 const MAPA_CACHE_GRUPOS = new WeakMap();
 function mapaCamadasMovelNovo(m, dir, estado, quadro, semente = 0) {
   const d = mapaDesenharMovel(m, dir, estado, quadro, semente);
@@ -325,19 +327,19 @@ function mapaCamadasMovelNovo(m, dir, estado, quadro, semente = 0) {
   if (d.grupos.length <= 1) return { ...d, camadas: [{ canvas: d.canvas, prof: d.grupos[0]?.prof || 0, luz: d.grupos[0]?.luz }] };
   let cache = m.dados && MAPA_CACHE_GRUPOS.get(m.dados);
   if (m.dados && !cache) MAPA_CACHE_GRUPOS.set(m.dados, (cache = new Map()));
-  const caixa = `${d.ox},${d.oy},${d.canvas.width},${d.canvas.height}|`;
   const camadas = d.grupos.map((g) => {
-    const chave = caixa + g.chave + "|" + d.caixas.filter((c) => mapaGrupoCamada(c) === g.chave).map((c) => c.asset + (c.cor || "")).join(",");
-    let canvas = cache?.get(chave);
-    if (!canvas) {
-      canvas = mapaDesenharMovel(m, dir, estado, quadro, semente, (p) => mapaGrupoCamada(p) === g.chave)?.canvas;
-      if (canvas && cache) {
+    const chave = g.chave + "|" + d.caixas.filter((c) => mapaGrupoCamada(c) === g.chave).map((c) => c.asset + (c.cor || "")).join(",");
+    let pronto = cache?.get(chave);
+    if (!pronto) {
+      const r = mapaDesenharMovel(m, dir, estado, quadro, semente, (p) => mapaGrupoCamada(p) === g.chave, false, true);
+      pronto = r && { canvas: r.canvas, ox: r.ox, oy: r.oy };
+      if (pronto && cache) {
         if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value);
-        cache.set(chave, canvas);
+        cache.set(chave, pronto);
       }
     }
-    return { canvas, prof: g.prof, luz: g.luz };
-  }).filter((c) => c.canvas);
+    return pronto && { canvas: pronto.canvas, dx: pronto.ox - d.ox, dy: pronto.oy - d.oy, prof: g.prof, luz: g.luz };
+  }).filter(Boolean);
   return { ...d, camadas };
 }
 // Paisagem vista pela janela, como no Habbo (FurnitureWindow: a máscara da
@@ -1757,6 +1759,10 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         g.drawImage(fonte, 0, 0);
         cv._fonte = fonte;
       }
+      // Cada grupo no seu recorte, no lugar dele dentro do desenho inteiro.
+      const esq = (c.dx || 0) + "px", topo = (c.dy || 0) + "px";
+      if (cv.style.left !== esq) cv.style.left = esq;
+      if (cv.style.top !== topo) cv.style.top = topo;
       // Camada de luz (ADD): soma com o que está atrás, como no Habbo.
       cv.style.mixBlendMode = c.luz ? "plus-lighter" : "";
       if (!cv.parentNode) no.append(cv);
@@ -3055,10 +3061,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       b.type = "button";
       b.className = "mapa-bau";
       b.innerHTML = '<span class="mapa-bau-luz" aria-hidden="true"></span><img alt="" draggable="false"><b></b>';
-      b.addEventListener("click", (e) => { e.stopPropagation(); b.info?.aoClicar?.(b); });
-      // Prende o ponteiro no baú: a fala de um cliente que surge por cima
-      // entre apertar e soltar engolia o clique (Paulo, 27/10/2026).
-      b.addEventListener("pointerdown", (e) => { e.stopPropagation(); try { b.setPointerCapture(e.pointerId); } catch {} });
+      // Prende o ponteiro no baú (a fala de um cliente que surge por cima entre
+      // apertar e soltar engolia o clique) e abre ao soltar: no Safari o click
+      // não chega depois de prender o ponteiro (Paulo, 27/10/2026, no Mac).
+      // Enter e Espaço chegam como click sem ponteiro.
+      b.addEventListener("pointerdown", (e) => { e.stopPropagation(); if (e.button !== 0) return; b.apertado = true; try { b.setPointerCapture(e.pointerId); } catch {} });
+      b.addEventListener("pointerup", (e) => { e.stopPropagation(); if (!b.apertado) return; b.apertado = false; b.abriuEm = Date.now(); b.info?.aoClicar?.(b); });
+      b.addEventListener("pointercancel", () => { b.apertado = false; });
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (Date.now() - (b.abriuEm || 0) < 800) return; b.info?.aoClicar?.(b); });
       palco.append(b);
       p.bau = b;
     }
@@ -3147,6 +3157,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // Aparência): móveis, focos e piscadas ficam parados; só quem anda mexe as
     // pernas e uma passagem de estado já começada vai até o fim.
     const leve = typeof escritorioAnimacoesLeves === "function" && escritorioAnimacoesLeves();
+    if (quadro % 12 === 0) conferirNaTela();
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();
     const pulso = Math.floor(agora / 100);
@@ -3165,7 +3176,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // atrás da luz (Paulo, 19/10/2026: o Auditório caía de FPS).
     if (focos.length && quadro % 2 === 0 && !leve) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.transform = `translate(${Math.round(dx)}px,${Math.round(dy)}px)`; }
     for (const item of [...animados]) {
-      if (leve && !item.transicao) continue;
+      if ((leve || item.foraDaTela) && !item.transicao) continue;
       // Passagem entre estados: do primeiro quadro dela até o fim; depois, o estado novo.
       let estado = item.estado, q = quadro;
       if (item.transicao && quadro < item.transicao.fim) { estado = item.transicao.chave; q = quadro - item.transicao.inicio; }
@@ -3183,6 +3194,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       seguirRegistro(item, d);
       juntarCamadasParede(item);
     }
+  };
+  // O que está fora do enquadramento (sala maior que a tela, câmera puxada
+  // para um canto) não troca de quadro nem pisca a luz: ninguém vê. Confere a
+  // cada meio segundo, com folga de 96 px; ao voltar para a tela, o quadro
+  // certo aparece no tique seguinte. Vale para todas as salas.
+  const conferirNaTela = () => {
+    const r = el.getBoundingClientRect(), M = 96;
+    const fora = (no) => { const q = no.getBoundingClientRect(); return q.right < r.left - M || q.left > r.right + M || q.bottom < r.top - M || q.top > r.bottom + M; };
+    for (const item of animados) item.foraDaTela = fora(item.no);
+    for (const n of luzes) if (n.classList.contains("fogo")) n.classList.toggle("fora-da-tela", fora(n));
   };
   prontos.then(() => { if (!destruido) relogio = setInterval(animar, 1000 / (reduzido ? 12 : 24)); });
 
