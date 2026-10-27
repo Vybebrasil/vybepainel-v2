@@ -3140,6 +3140,7 @@ function escritorioAplicarComando(id, cmd) {
   // Dominó (e as próximas mesas de jogo): o mesmo aviso, com a sua chave.
   else if (k === "dmn") dominoSinalEscritorio(id, v);
   else if (k === "pkr") pokerSinalEscritorio(id, v);
+  else if (k === "snc") sinucaSinalEscritorio(id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3485,7 +3486,7 @@ const ESCRITORIO_LIGAVEIS = [
 ];
 const ESCRITORIO_BEBIDA = /fridge|water_dispenser|minibar|vending|vendingmchn|drinkmach|drinksmach|drinksvend|bubblejuicerack|cooler/;
 const ESCRITORIO_LANCHE = /stove|microwave|school_c22_cafe/;
-const ESCRITORIO_JOGOS = [[/pooltable/, "sinuca"], [/footballtable/, "pebolim"]];
+const ESCRITORIO_JOGOS = [[/footballtable/, "pebolim"]];
 function alternarMovelEscritorio(item) {
   const chave = escritorio.mapa.chaveMovel(item);
   const estado = item.estado ? 0 : (item.ligadoPadrao || 1);
@@ -3723,6 +3724,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_XADREZ.test(m.classe)) return { item: m, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(m) };
   if (ESCRITORIO_DOMINO.test(m.classe)) return { item: m, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(m) };
   if (ESCRITORIO_POKER.test(m.classe)) return { item: m, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(m) };
+  if (ESCRITORIO_SINUCA.test(m.classe)) return { item: m, texto: "Jogar sinuca", fazer: () => abrirSinucaEscritorio(m) };
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
@@ -3819,10 +3821,12 @@ function escritorioAcoesPerto() {
   if (domino) return { item: domino, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(domino) };
   const poker = perto.find((m) => ESCRITORIO_POKER.test(m.classe));
   if (poker) return { item: poker, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(poker) };
+  const sinuca = perto.find((m) => ESCRITORIO_SINUCA.test(m.classe));
+  if (sinuca) return { item: sinuca, texto: "Jogar sinuca", fazer: () => abrirSinucaEscritorio(sinuca) };
   const jogo = perto.map((m) => [m, ESCRITORIO_JOGOS.find(([re]) => re.test(m.classe))?.[1]]).find(([, n]) => n);
   if (jogo) {
-    const texto = jogo[1] === "sinuca" ? "Bora uma partida de sinuca?" : "Bora um pebolim?";
-    return { item: jogo[0], texto: "Chamar para " + (jogo[1] === "sinuca" ? "a sinuca" : "o pebolim"),
+    const texto = "Bora um pebolim?";
+    return { item: jogo[0], texto: "Chamar para o pebolim",
       fazer: () => { escritorioEmitir("chat:bubble", { texto }); escritorio.mapa.balao(escritorio.base.eu, texto); } };
   }
   const assento = perto.find((m) => escritorio.mapa.assentoEm(Math.floor(m.x), Math.floor(m.y)) !== undefined && !(Math.floor(m.x) === p.x && Math.floor(m.y) === p.y));
