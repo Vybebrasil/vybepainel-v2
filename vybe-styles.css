@@ -12435,7 +12435,13 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-outros.grupo .mesa-jogador {grid-template-columns:36px minmax(0,1fr);row-gap:0}
 .pkr-outros.grupo .mesa-jogador small {grid-column:2;white-space:normal;line-height:1.25}
 .pkr-outros.grupo .mesa-jogador img,.pkr-outros.grupo .mesa-jogador i {grid-row:span 2}
-<<<<<<< HEAD
+/* Baú também no cartão "Você" da aba Pessoas: abre mesmo se o mapa não deixar clicar (27/10/2026). */
+.ofc-p-bau {display:inline-flex;align-items:center;gap:5px;flex:none;height:32px;padding:0 9px 0 4px;border:1px solid #ffd35c66;border-radius:10px;background:linear-gradient(180deg,#3a2f17,#251d0e);color:#ffe29a;font:800 12px var(--mac-ui);cursor:pointer;box-shadow:0 0 0 2px #ffd35c22,0 0 14px #ffd35c55;animation:mapa-bau-brilho 1.6s ease-in-out infinite}
+.ofc-p-bau img {height:24px;width:auto;image-rendering:pixelated}
+.ofc-p-bau b {min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff7a1f;color:#fff;font:900 10.5px/18px var(--mac-ui);text-align:center}
+.ofc-p-bau:hover {border-color:#ffd35c;color:#fff}
+@media (prefers-reduced-motion:reduce) {.ofc-p-bau {animation:none}}
+[data-motion=reduce] .ofc-p-bau {animation:none}
 /* Sinuca no jeito dos jogos online: a mesa em cima, larga, com o placar dos dois e as bolas de cada grupo; força vertical à esquerda e efeito à direita. */
 .workflow-modal.ofc-snc-jogo {width:min(1120px,calc(100vw - 24px))}
 .ofc-snc-jogo .mesa-jogo {grid-template-columns:1fr}
@@ -12552,12 +12558,3 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 /* Peça arrastada no xadrez e na dama: segue o ponteiro por cima de tudo. */
 .tab-fantasma {position:fixed;left:0;top:0;z-index:10000;pointer-events:none;filter:drop-shadow(0 8px 10px #000a);transform-origin:center}
 .xdz-tabuleiro.vez .xdz-casa.minha,.dam-tabuleiro.vez .dam-casa.minha {cursor:grab;touch-action:none}
-=======
-/* Baú também no cartão "Você" da aba Pessoas: abre mesmo se o mapa não deixar clicar (27/10/2026). */
-.ofc-p-bau {display:inline-flex;align-items:center;gap:5px;flex:none;height:32px;padding:0 9px 0 4px;border:1px solid #ffd35c66;border-radius:10px;background:linear-gradient(180deg,#3a2f17,#251d0e);color:#ffe29a;font:800 12px var(--mac-ui);cursor:pointer;box-shadow:0 0 0 2px #ffd35c22,0 0 14px #ffd35c55;animation:mapa-bau-brilho 1.6s ease-in-out infinite}
-.ofc-p-bau img {height:24px;width:auto;image-rendering:pixelated}
-.ofc-p-bau b {min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ff7a1f;color:#fff;font:900 10.5px/18px var(--mac-ui);text-align:center}
-.ofc-p-bau:hover {border-color:#ffd35c;color:#fff}
-@media (prefers-reduced-motion:reduce) {.ofc-p-bau {animation:none}}
-[data-motion=reduce] .ofc-p-bau {animation:none}
->>>>>>> origin/main
