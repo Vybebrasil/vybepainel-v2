@@ -65,7 +65,7 @@ const GENERICAS = new Set(('a o as os um uma de da do das dos na no em para pra 
   + 'tarefa tareza tarefas demanda demandas peca pecas card cards reels post posts carrossel story video arte atividade job trabalho '
   + 'tenho to estou tava hoje agora amanha cliente clientes coloque coloca colocar muda mude mudar passa passe marca marque bota bote '
   + 'deixa deixe poe ponha atualiza status como vou iniciar comecar comecando fazendo andamento execucao nao e era disse falei quis '
-  + 'dizer isso aquela aquele sim ok certo vybe').split(' '));
+  + 'dizer isso aquela aquele sim ok certo vybe ia ja furar furo atrasar atrasada gravando gravou gravacao captacao captando').split(' '));
 // Forma "pelo som" (Reriston, 27/10/2026: o áudio escreveu "Bruce Lou" para Brussolo): c/ç/z/ss viram s, ou vira o,
 // letras dobradas viram uma, sem acento.
 const pelaFala = (w) => semAcento(w).replace(/ph/g, 'f').replace(/ch/g, 'x').replace(/lh/g, 'l').replace(/nh/g, 'n').replace(/qu/g, 'k')
@@ -76,7 +76,7 @@ const parecido = (a, b) => { const ma = pares(a), mb = pares(b); let c = 0; for 
 // entre as peças abertas em que a própria pessoa é responsável. Cada palavra que sobra (cliente, pedaço do título) conta
 // ponto se bate pelo começo ou pelo som com o cliente ou o título; duas palavras juntas também ("bruce lou" = brusolo).
 // A peça com mais pontos, se for só uma, segue para a confirmação; empate vira lista com o número; nada, diz isso.
-async function pecaDaPessoaPorBusca(sql, pessoaId, busca) {
+async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } = {}) {
   const termos = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3 && !GENERICAS.has(x));
   if (!termos.length) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
   const consultas = [...termos.map((t) => [t]), ...termos.slice(1).map((t, i) => [termos[i], t])];
@@ -84,7 +84,10 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca) {
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id), '{}') AS clientes
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND NOT COALESCE(s.final, false)
-      AND EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
+      AND (EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
+        -- Captação: o head do cliente também acha as peças dos clientes dele (Ewerton, 27/10/2026: "o reels da MR Fit").
+        OR (${comoHead} AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc JOIN vybe_cliente_pessoas h ON h.cliente_id = cc.cliente_id
+          WHERE cc.conteudo_id = c.id AND h.pessoa_id = ${pessoaId})))
     ORDER BY c.prazo NULLS LAST, c.id LIMIT 200`;
   const pontos = (l) => {
     const palavras = semAcento(l.titulo + ' ' + l.clientes.join(' ')).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3);
@@ -99,7 +102,10 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca) {
   };
   const notas = linhas.map((l) => ({ l, n: pontos(l) })).filter((x) => x.n > 0);
   const melhor = Math.max(0, ...notas.map((x) => x.n));
-  const achadas = notas.filter((x) => x.n === melhor).map((x) => x.l);
+  let achadas = notas.filter((x) => x.n === melhor).map((x) => x.l);
+  // Empate: o formato falado desempata ("o reels da MR Fit" entre o card e o reels do mesmo cliente).
+  const formato = ['reels', 'card', 'carrossel', 'story', 'video', 'motion', 'foto', 'feed'].find((f) => semAcento(busca).split(/[^a-z0-9]+/).some((w) => w.startsWith(f)));
+  if (achadas.length > 1 && formato) { const doFormato = achadas.filter((l) => semAcento(l.titulo).startsWith(formato)); if (doFormato.length) achadas = doFormato; }
   const pedido = termos.join(' ');
   if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${pedido.slice(0, 60)}". Responda citando esta mensagem com o nome do cliente ou o número da peça (o do link).`);
   if (achadas.length > 1) throw invalido(`Achei ${achadas.length} peças suas com "${pedido.slice(0, 60)}":\n` +
@@ -139,6 +145,21 @@ async function conferirPermissao(sql, p, c, alvo) {
   }
   throw negar('Essa mudança de status é só pelo painel ou com a administração.');
 }
+// Campo Captação (Paulo, 27/10/2026): é separado do status e é gatilho das automações do painel ("Captação Feita"
+// muda o grupo e passa para quem edita). Pelo WhatsApp: "tá gravando" = Captação em Andamento, "gravou" = Captação
+// Feita. Pode quem toca a peça: responsáveis, heads do cliente, função captação, administração.
+async function captacaoDaPeca(sql, c, para) {
+  const lista = await sql`SELECT chave, rotulo FROM vybe_captacao`;
+  const p = normal(para), k = comoChave(para);
+  const alvo = lista.find((s) => s.chave === String(para)) || lista.find((s) => normal(s.rotulo) === p) || lista.find((s) => comoChave(s.rotulo) === k);
+  if (!alvo) throw invalido(`Captação "${String(para).slice(0, 40)}" não existe. Opções: ${lista.map((s) => s.rotulo).join(', ')}.`);
+  const [atual] = await sql`SELECT k.rotulo FROM vybe_conteudos x LEFT JOIN vybe_captacao k ON k.chave = x.captacao_chave WHERE x.id = ${Number(c.id)}`;
+  return { alvo, atual: atual?.rotulo || '' };
+}
+async function conferirPermissaoCaptacao(sql, p, c) {
+  if (p.admin || c.responsaveis.includes(p.id) || c.heads.includes(p.id) || await temFuncao(sql, p.id, 'captacao')) return;
+  throw negar('A captação desta peça é de quem é responsável por ela, dos heads do cliente ou de quem faz captação.');
+}
 async function statusDoQuadro(sql, c, para) {
   const lista = await sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${c.board_id}`;
   const p = normal(para), k = comoChave(para);
@@ -175,7 +196,7 @@ async function montarCriacao(sql, pedido, agora) {
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar', 'criar'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar', 'captacao'].includes(acao)) throw invalido('Ação desconhecida.');
   if (acao === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
@@ -184,13 +205,20 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
-  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca) : item));
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: acao === 'captacao' }) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
   if (acao === 'comentar') {
     const texto = String(pedido.texto || '').replace(/\s+/g, ' ').trim();
     if (!texto || texto.length > 1000) throw invalido('Escreva o comentário (até 1000 caracteres).');
     resumo = `💬 Comentar em ${nome}:\n“${texto}”`; valor = texto;
+  } else if (acao === 'captacao') {
+    const { alvo, atual } = await captacaoDaPeca(sql, c, pedido.para);
+    if (normal(alvo.rotulo) === normal(atual)) throw invalido(`A captação já está em ${alvo.rotulo}.`);
+    await conferirPermissaoCaptacao(sql, p, c);
+    resumo = `🎬 Captação de ${nome}\nde *${atual || 'vazia'}* para *${alvo.rotulo}*\n(o status segue as automações do painel)`; valor = alvo.chave;
+    const dados = b64(JSON.stringify({ p: p.id, c: c.id, a: acao, v: valor, de: atual, e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: linkDaAtividade(c.ref), validade_min: 5 };
   } else {
     const alvo = await statusDoQuadro(sql, c, pedido.para);
     if (normal(alvo.rotulo) === normal(c.status)) throw invalido(`A peça já está em ${alvo.rotulo}.`);
@@ -227,6 +255,11 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   // A peça mudou entre o pedido e o SIM: não executa sobre um estado que a pessoa não viu.
   if (t.a === 'status' && normal(c.status) !== normal(t.de)) throw invalido(`A peça mudou para ${c.status} enquanto isso. Peça de novo.`);
   if (t.a === 'status') await conferirPermissao(sql, p, c, await statusDoQuadro(sql, c, t.v));
+  if (t.a === 'captacao') {
+    const { atual } = await captacaoDaPeca(sql, c, t.v);
+    if (normal(atual) !== normal(t.de)) throw invalido(`A captação mudou para ${atual || 'vazia'} enquanto isso. Peça de novo.`);
+    await conferirPermissaoCaptacao(sql, p, c);
+  }
   // Uso único (e registro de quem fez o quê pelo WhatsApp).
   await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
     acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
@@ -240,6 +273,14 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   if (t.a === 'comentar') {
     await fazer.comentar(sql, quem, { item: c.ref, texto: t.v });
     return { feito: `✅ Comentário registrado em "${c.titulo}".`, link: linkDaAtividade(c.ref) };
+  }
+  if (t.a === 'captacao') {
+    const r = await fazer.trocarEscolha(sql, quem, { item: c.ref, campo: 'captacao', para: t.v });
+    // Como a peça ficou depois das automações (grupo, status, quem faz).
+    const depois = await pecaPorReferencia(sql, 'vybe:' + c.id);
+    const mudou = normal(depois.status) !== normal(c.status) ? ` Status: *${depois.status}*.` : ` Status segue *${depois.status || 'sem status'}*.`;
+    return { feito: `✅ Captação de "${c.titulo}" agora está em *${r?.para || t.v}*.${mudou}${r?.automacoes?.length ? ' As automações do painel rodaram.' : ''}`,
+      link: linkDaAtividade(c.ref), checagem: await checagemDaPeca(sql, depois) };
   }
   const r = await fazer.trocarStatus(sql, quem, { item: c.ref, para: t.v });
   return { feito: `✅ "${c.titulo}" agora está em *${r?.para || t.v}*.${r?.automacao_pendente ? '\n⚠️ A automação do status ficou pendente; confira no painel.' : ''}`, link: linkDaAtividade(c.ref),

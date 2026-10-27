@@ -136,3 +136,49 @@ test('troca de status devolve a checagem da peça: briefing, OFF e captação (o
     assert.deepEqual((await confirmarAcao(sql, 1, c.codigo, segredo, { executar })).checagem, { briefing: true, off: 'Com OFF', captacao: 'Agendada', video: true });
   } finally { await db.close(); }
 });
+
+test('captação: "tá gravando" e "gravou" mudam o campo Captação (gatilho das automações), não o status; quem toca a peça pode', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN captacao_chave text;
+      CREATE TABLE vybe_captacao(chave text,rotulo text);
+      INSERT INTO vybe_captacao VALUES('agendada','Captação Agendada'),('andamento','Captação em Andamento'),('feita','Captação Feita');
+      UPDATE vybe_conteudos SET captacao_chave='agendada' WHERE id=13;`);
+    const trocas = [];
+    const exec = { ...executar, trocarEscolha: async (s, quem, a) => { trocas.push([quem.pessoa.email, a]); await s`UPDATE vybe_conteudos SET captacao_chave=${a.para}, status_chave='pode_fazer' WHERE id=13`; return { para: 'Captação Feita', automacoes: [{ id: 1 }] }; } };
+    // Ewerton é head do cliente (Hebravet): pode. Tainara (agendamento, sem vínculo com a peça): não.
+    await assert.rejects(() => prepararAcao(sql, 3, { acao: 'captacao', item: 'vybe:13', para: 'Captação em Andamento' }, segredo), /captação desta peça/);
+    await assert.rejects(() => prepararAcao(sql, 5, { acao: 'captacao', item: 'vybe:13', para: 'Captação Agendada' }, segredo), /já está em Captação Agendada/);
+    await assert.rejects(() => prepararAcao(sql, 5, { acao: 'captacao', item: 'vybe:13', para: 'Gravando' }, segredo), /Opções: Captação Agendada, Captação em Andamento, Captação Feita/);
+    const a = await prepararAcao(sql, 5, { acao: 'captacao', item: 'vybe:13', para: 'Captação Feita' }, segredo);
+    assert.match(a.resumo, /Captação de "Reels D" \(Hebravet\)\nde \*Captação Agendada\* para \*Captação Feita\*/);
+    const ok = await confirmarAcao(sql, 5, a.codigo, segredo, { executar: exec });
+    assert.deepEqual(trocas.at(-1), ['ew@x', { item: 'vybe:13', campo: 'captacao', para: 'feita' }]);
+    assert.match(ok.feito, /Captação de "Reels D" agora está em \*Captação Feita\*\. Status: \*Pode Fazer\*\. As automações do painel rodaram\./);
+  } finally { await db.close(); }
+});
+
+test('captação por busca: o head do cliente acha a peça pelo nome falado ("o reels da Hebravet que ia furar já tá gravando")', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN captacao_chave text; ALTER TABLE vybe_conteudos ADD COLUMN prazo date;
+      CREATE TABLE vybe_captacao(chave text,rotulo text);INSERT INTO vybe_captacao VALUES('andamento','Captação em Andamento');
+      ALTER TABLE vybe_status ADD COLUMN final boolean;
+      UPDATE vybe_conteudos SET titulo='Reels - Treino na Hebravet' WHERE id=13; UPDATE vybe_conteudos SET removido_em=now() WHERE id=11;`);
+    const a = await prepararAcao(sql, 5, { acao: 'captacao', busca: 'o reels do treino da hebravet que ia furar', para: 'Captação em Andamento' }, segredo);
+    assert.match(a.resumo, /Captação de "Reels - Treino na Hebravet"/);
+    // Status continua sendo só dos responsáveis: a mesma busca para status não acha nada do Ewerton.
+    await assert.rejects(() => prepararAcao(sql, 5, { acao: 'status', busca: 'hebravet', para: 'Pode Fazer' }, segredo), /Não achei peça aberta sua/);
+  } finally { await db.close(); }
+});
+
+test('busca por peça: o formato falado desempata entre peças do mesmo cliente', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN prazo date; ALTER TABLE vybe_status ADD COLUMN final boolean;
+      INSERT INTO vybe_conteudo_responsaveis VALUES(13,2); UPDATE vybe_conteudos SET status_chave='pode_fazer' WHERE id=13;`);
+    const s = await prepararAcao(sql, 2, { acao: 'status', busca: 'o reels da hebravet', para: 'Para aprovação' }, segredo).catch((e) => e);
+    assert.doesNotMatch(String(s.message || s.resumo), /Achei \d peças/);
+    assert.match(String(s.resumo || s.message), /Reels D/);
+  } finally { await db.close(); }
+});
