@@ -179,6 +179,23 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   DOCX do grupo são só cópias e não entram. Falha ao ligar vira aviso.
 - Sem migração.
 
+## Versão sóbria (26/10/2026, noite)
+
+- Paulo: "um design mais sóbrio não ficaria melhor?", com as leis de UX
+  (Hick, Fitts, Jakob, Von Restorff, Miller, Prägnanz, Occam, Pareto…) como régua.
+- Barra no lugar do Google Agenda e do Mac: "+ Captação", "Hoje", ‹ › e o
+  período à esquerda; a pendência que importa como texto ("N gravações para
+  fechar"), "Exibir" (tipos, Lista, painel de pendências, atalhos) e
+  Dia/Semana/Mês à direita. Sem a fileira de filtros e sem a legenda.
+- Uma cor de destaque: só a ação do cartão é laranja. Blocos neutros com uma
+  barra fina da cor do tipo; âmbar só em "falta fechar" (estado com
+  `chave: "fechar"`). Hoje em negrito sublinhado, sem a bola laranja.
+- Cartão curto: o cliente, o título do Google (se for outro), quando, o
+  progresso ("1 de 2 peças gravadas"), a ação e só as peças desta captação.
+  As do cliente que esperam ficam no formulário.
+- Sem vidro: barra, cartão, prévia e painel lateral com fundo liso.
+- O cabeçalho do módulo não mostra "Prazo Base / Veiculação" nas Captações.
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.

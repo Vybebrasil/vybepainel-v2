@@ -413,10 +413,10 @@
                   <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">Feed</button>
                   <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">Calendário</button>
                </div>
-               <div class="p-segment">
+               ${window.productionV2View==='captacoes' ? '' : `<div class="p-segment">
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='prazo'?'active':''}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo Base</button>
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='veiculacao'?'active':''}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button>
-               </div>
+               </div>`}
             </div>
          </header>
          ${contentHtml}
