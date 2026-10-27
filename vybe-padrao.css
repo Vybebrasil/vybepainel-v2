@@ -1,0 +1,37 @@
+/* Padrão visual do Vybe OS (direção de arte aprovada em 27/10/2026).
+   Carrega depois de vybe-styles.css e vybe-appearance.css e só mexe na aparência:
+   nenhum seletor aqui muda o que a tela faz, só como ela se parece.
+   Fonte da verdade: https://claude.ai/artifact/EM8smE24xdncFqEz2byVe1 */
+:root{
+  --pv-titulo:"Space Grotesk",var(--mac-ui);
+  --pv-vidro:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015) 30%),#14161d;
+  --pv-tile:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015) 55%),#161820;
+  --pv-borda:rgba(255,255,255,.12);
+  --pv-linha:rgba(255,255,255,.08);
+  --pv-brilho:inset 0 1px 0 rgba(255,255,255,.1);
+  --pv-laranja:linear-gradient(180deg,#ff8f4f,#e8602e);
+  --pv-campo:rgba(8,9,13,.6);
+}
+
+/* ---- Janelas (workflow-modal): troca de status, bloqueio, direção, bastão, resumo e outras ---- */
+.workflow-backdrop{background:rgba(5,6,10,.62)!important;backdrop-filter:blur(3px)!important}
+.workflow-modal{border-radius:26px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
+.workflow-kicker,.workflow-kicker>span{font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase!important;color:#ff9a5c!important}
+.workflow-title,.context-title{font-family:var(--pv-titulo)!important;font-weight:700!important;letter-spacing:-.015em!important}
+.workflow-copy,.context-field-help,.workflow-hint{color:#a8a39c!important}
+.workflow-close{width:30px!important;height:30px!important;border-radius:10px!important;border:1px solid var(--pv-borda)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important}
+.workflow-item,.context-item{border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;padding:10px 14px!important}
+.workflow-field>span{color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none!important}
+.workflow-field input,.workflow-field select,.workflow-field textarea,.status-context-dialog :is(input,select,textarea){border-radius:12px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
+.workflow-field input:focus,.workflow-field select:focus,.workflow-field textarea:focus,.status-context-dialog :is(input,textarea,select):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
+.workflow-check{border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+.workflow-check:has(input:checked){border-color:rgba(98,211,148,.45)!important;background:linear-gradient(180deg,rgba(98,211,148,.12),rgba(98,211,148,.04))!important}
+.workflow-check input{accent-color:#62d394!important}
+.workflow-actions,.context-actions{background:rgba(10,11,15,.7)!important;border-top:1px solid var(--pv-linha)!important}
+.workflow-primary{border:0!important;border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
+.workflow-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 14px 28px -10px #e8602e!important}
+.workflow-secondary{border-color:transparent!important;background:none!important;color:#a8a39c!important;font:600 13px var(--mac-ui)!important}
+.workflow-secondary:hover{color:#fff!important;background:rgba(255,255,255,.05)!important}
+.context-progress{font:600 12px var(--mac-ui)!important;color:#ff9a5c!important}
+.status-context-preview{border-radius:18px!important;border:1px solid var(--pv-linha)!important;background:#0e1016!important;overflow:hidden}
+.status-context-dialog .dono-ficha{border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important}
