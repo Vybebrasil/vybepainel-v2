@@ -2208,6 +2208,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // na frente cobria a etiqueta).
     p.etiqueta.style.left = t.x + "px";
     p.etiqueta.style.top = t.y + MAPA_TH / 2 - 104 + "px";
+    if (p.bau) posicionarBau(p);
     if (setaId === String(p.id)) posicionarSeta(p);
     // Profundidade do Habbo (AvatarVisualization): a do ladrilho em que está
     // (o arredondado, como o Nitro faz no meio do passo), na altura do piso,
@@ -2237,6 +2238,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         while (sobe < 108 && postas.some((u) => Math.abs(u.x - it.x) < (u.w + it.w) / 2 + 4 && Math.abs((u.y - u.sobe) - (it.y - sobe)) < 19)) sobe += 19;
         postas.push({ ...it, sobe });
         it.p.etiqueta.style.setProperty("--sobe", sobe + "px");
+        it.p.bau?.style.setProperty("--sobe", sobe + "px");
       }
     });
   };
@@ -2372,6 +2374,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         palco.append(no);
         p = { id: q.id, no, img, etiqueta, x: q.x, y: q.y, dir: q.dir ?? 2, acao: q.acao || "std", figura };
         pessoas.set(q.id, p);
+        if (bauDe === q.id) marcarBau(bauDe, bauInfo);
         posicionarPessoa(p);
         trocarImagem(p);
         // O próprio boneco: os passos das 8 direções já ficam baixados.
@@ -2422,7 +2425,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       if (Math.abs(p.x - q.x) > 0.01 || Math.abs(p.y - q.y) > 0.01 || p.acao !== (q.acao || "std")) caminhar(p, q);
       else trocarImagem(p);
     }
-    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); p.etiqueta.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
+    for (const [id, p] of pessoas) if (!vistos.has(id)) { cancelAnimationFrame(p.passo); p.no.remove(); p.etiqueta.remove(); p.bau?.remove(); pessoas.delete(id); recortar(id, 0, 0, 0, 0, Infinity); }
     separarEtiquetas();
   }
 
@@ -2996,6 +2999,39 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     diaNo.classList.toggle("completo", Boolean(info.completo));
     diaNo.setAttribute("aria-label", info.rotulo || "");
   }
+  // Baú sobre a cabeça do próprio boneco (Paulo, 27/10/2026): pisca enquanto
+  // houver ganho de demanda ainda não aberto. Fica na camada dos nomes, logo
+  // acima da etiqueta, e anda junto com o boneco. Sem info, some.
+  let bauDe = null, bauInfo = null;
+  function marcarBau(id, info) {
+    const antes = bauDe && pessoas.get(bauDe);
+    if (antes?.bau && (!info || bauDe !== String(id))) { antes.bau.remove(); antes.bau = null; }
+    bauDe = info ? String(id) : null;
+    bauInfo = info || null;
+    const p = info && pessoas.get(bauDe);
+    if (!p) return;
+    if (!p.bau) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "mapa-bau";
+      b.innerHTML = '<span class="mapa-bau-luz" aria-hidden="true"></span><img alt="" draggable="false"><b></b>';
+      b.addEventListener("click", (e) => { e.stopPropagation(); b.info?.aoClicar?.(b); });
+      b.addEventListener("pointerdown", (e) => e.stopPropagation());
+      palco.append(b);
+      p.bau = b;
+    }
+    p.bau.info = info;
+    const img = p.bau.querySelector("img");
+    if (info.arte && img.getAttribute("src") !== info.arte) img.src = info.arte;
+    p.bau.querySelector("b").textContent = info.numero > 99 ? "99+" : info.numero ? String(info.numero) : "";
+    p.bau.setAttribute("aria-label", info.rotulo || "Abrir o baú");
+    posicionarBau(p);
+  }
+  function posicionarBau(p) {
+    p.bau.style.left = p.etiqueta.style.left;
+    p.bau.style.top = p.etiqueta.style.top;
+    p.bau.classList.toggle("com-titulo", p.etiqueta.classList.contains("com-titulo"));
+  }
   // Quem está falando na conversa ganha um anel verde nos pés.
   // e o nome dele acende em verde com ondas piscando.
   function marcarFalando(id, falando) {
@@ -3146,7 +3182,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     naJanela: (x, y) => { const r = palco.getBoundingClientRect(), t = mapaTela(x, y, origem); return { x: r.left + t.x * zoom, y: r.top + t.y * zoom }; },
     // Imagem nova (enviada agora) passa a poder ser desenhada.
     registrarImagem: (meta) => IMAGENS.set("vybeimg_" + meta.id, meta), centralizar, enquadrarQuarto, mudarZoom, definirMoveis, moveisEm, destacar, medidas, mover, seguir,
-    ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, marcarDia, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
+    ocuparPostos, numeroDePostos, alasDosPostos, pincel, definirVisitantes, objetoEm, selecionarPessoa, noDaPessoa: (id) => pessoas.get(String(id))?.no || null, balao, reagir, estadoBoneco, anexarVideo, marcarFalando, marcarAviso, marcarRecado, marcarDia, marcarBau, previa, olhar, idsNoMapa, marcarTrancas, moveisPerto, realcar, realcarVarios, posicoes, estadosMoveis, chaveMovel,
     acrescentarMovel, marcador, tamanho: () => (grade ? { W: grade.W, H: grade.H } : null),
     caminho: (de, para, evitar, limite) => (grade ? mapaCaminho(grade, de, para, evitar, limite) : null),
     podePassar: (x, y, dx, dy) => Boolean(grade) && mapaPassa(grade, x, y, dx, dy),
