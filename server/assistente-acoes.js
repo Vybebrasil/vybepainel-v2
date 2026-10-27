@@ -76,7 +76,7 @@ const parecido = (a, b) => { const ma = pares(a), mb = pares(b); let c = 0; for 
 // entre as peças abertas em que a própria pessoa é responsável. Cada palavra que sobra (cliente, pedaço do título) conta
 // ponto se bate pelo começo ou pelo som com o cliente ou o título; duas palavras juntas também ("bruce lou" = brusolo).
 // A peça com mais pontos, se for só uma, segue para a confirmação; empate vira lista com o número; nada, diz isso.
-async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } = {}) {
+async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, recentes = false } = {}) {
   const termos = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3 && !GENERICAS.has(x));
   if (!termos.length) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
   const consultas = [...termos.map((t) => [t]), ...termos.slice(1).map((t, i) => [termos[i], t])];
@@ -84,7 +84,10 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } =
       c.veiculacao::text AS veiculacao, s.rotulo AS status,
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id), '{}') AS clientes
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-    WHERE c.removido_em IS NULL AND NOT COALESCE(s.final, false)
+    WHERE c.removido_em IS NULL
+      -- Alteração e comentário também valem para a peça já agendada que veicula de ontem em diante (Ewerton, 27/10/2026:
+      -- "a agenda de hoje" já estava agendada e não aparecia na lista).
+      AND (NOT COALESCE(s.final, false) OR (${recentes} AND c.veiculacao >= (now() AT TIME ZONE 'America/Bahia')::date - 1))
       AND (EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
         -- Captação: o head do cliente também acha as peças dos clientes dele (Ewerton, 27/10/2026: "o reels da MR Fit").
         OR (${comoHead} AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc JOIN vybe_cliente_pessoas h ON h.cliente_id = cc.cliente_id
@@ -120,7 +123,7 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false } =
     const proxima = ordem.find((l) => l.veiculacao && String(l.veiculacao).slice(0, 10) >= hoje);
     throw invalido(`🔎 Achei ${achadas.length} peças com "${pedido.slice(0, 60)}". Qual delas?\n` +
       ordem.slice(0, 8).map((l, i) => `${i + 1}. ${l === proxima ? '⭐ ' : ''}${l.titulo || 'Sem título'} (${l.clientes.join(' / ') || 'sem cliente'})` +
-        ` · ${l.veiculacao ? 'veicula ' + semanaCurta(l.veiculacao) + ' ' + curtoDia(l.veiculacao) : 'sem veiculação'} · ${l.status || 'sem status'} · nº ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
+        ` · ${l.veiculacao ? 'veicula ' + semanaCurta(l.veiculacao) + ' ' + curtoDia(l.veiculacao) + (String(l.veiculacao).slice(0, 10) === hoje ? ' (hoje)' : '') : 'sem veiculação'} · ${l.status || 'sem status'} · nº ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
       `\n\nResponda citando esta mensagem com a posição (ex.: *1*)${proxima ? `, a data (ex.: *${curtoDia(proxima.veiculacao)}*) ou *a próxima* (⭐)` : ' ou o nº'}.`);
   }
   return achadas[0].monday_item_id || 'vybe:' + achadas[0].id;
@@ -219,7 +222,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
-  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao) }) : item));
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao), recentes: ['alteracao', 'comentar'].includes(acao) }) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
   if (acao === 'comentar') {

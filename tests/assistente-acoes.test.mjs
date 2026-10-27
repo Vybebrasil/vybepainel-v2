@@ -210,3 +210,19 @@ test('pedido de alteração: comentário na peça e, com permissão, status Alte
     await assert.rejects(() => prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: ' ' }, segredo), /Diga o que precisa mudar/);
   } finally { await db.close(); }
 });
+
+test('alteração acha também a peça já agendada que veicula hoje (e a marca como a próxima)', async () => {
+  const { db, sql } = await banco();
+  try {
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN prazo date; ALTER TABLE vybe_status ADD COLUMN final boolean DEFAULT false;
+      UPDATE vybe_status SET final=true WHERE chave='agendado';
+      UPDATE vybe_conteudos SET titulo='Card - Agenda Musical', veiculacao='${hoje}', status_chave='agendado' WHERE id=10;
+      UPDATE vybe_conteudos SET titulo='Card - Agenda Musical', veiculacao='2099-01-02' WHERE id=12;`);
+    const r = await prepararAcao(sql, 5, { acao: 'alteracao', busca: 'agenda musical hebravet', texto: 'sexta é Greyce' }, segredo).catch((e) => e);
+    assert.match(r.message, /1\. ⭐ Card - Agenda Musical \(Hebravet\) · veicula \S+ \d\d\/\d\d \(hoje\) · Agendado · nº vybe:10\n2\. Card - Agenda Musical/);
+    // Troca de status não mexe em peça já agendada: a mesma busca acha só a outra.
+    const s = await prepararAcao(sql, 2, { acao: 'status', busca: 'agenda musical hebravet', para: 'Alteração' }, segredo).catch((e) => e);
+    assert.doesNotMatch(String(s.message || s.resumo), /Achei/);
+  } finally { await db.close(); }
+});

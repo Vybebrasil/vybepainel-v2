@@ -58,7 +58,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
         if (consulta === 'acao_preparar') return res.status(200).json({ ok: true, ...(await prepararAcao(banco, pessoaId, req.body?.pedido, segredo)) });
         return res.status(200).json({ ok: true, ...(await confirmarAcao(banco, pessoaId, req.body?.codigo, segredo)) });
       } catch (erro) {
-        if (erro.publica) return res.status(200).json({ ok: true, recusa: String(erro.message).slice(0, 400) });
+        if (erro.publica) return res.status(200).json({ ok: true, recusa: String(erro.message).slice(0, 1500) });
         throw erro;
       }
     }
