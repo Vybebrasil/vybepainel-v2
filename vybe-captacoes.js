@@ -445,6 +445,14 @@ function captAcaoPrincipal(e) {
   return "";
 }
 
+// Roteiro da captação no cartão: o Docs ligado às peças, ou o campo para ligar.
+function captRoteiroDoCartao(k) {
+  const docs = [...new Map(k.pecas.filter((p) => p.roteiro_doc).map((p) => [p.roteiro_doc.link, p.roteiro_doc])).values()];
+  if (docs.length) return `<p class="capt-roteiro-doc">Roteiro: ${docs.map((d) => `<a class="vb-link" href="${safeText(d.link)}" target="_blank" rel="noopener">${safeText(d.titulo)}</a>`).join(", ")}</p>`;
+  if (!k.pecas.length) return "";
+  return `<form class="capt-roteiro-form" onsubmit="event.preventDefault();captLigarRoteiro(this,'${safeText(k.id)}')"><label><span class="sr-only">Link do roteiro no Google Docs</span><input type="url" name="roteiro" placeholder="Link do roteiro no Google Docs" required></label><button type="submit" class="vb-botao">Ligar roteiro</button></form>`;
+}
+
 // O cartão do evento, ao lado do bloco clicado: quem, quando e o estado em
 // cima; a ação da vez logo abaixo; as peças no meio; Google e cancelar no pé.
 function captDetalheHtml(e) {
@@ -459,11 +467,11 @@ function captDetalheHtml(e) {
   if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-discreto">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"} da agenda da Vybe. Só as captações (azuis) recebem peças.</p>${google ? `<div class="capt-rodape">${google}</div>` : ""}</div>`;
   const acao = captAcaoPrincipal(e);
   let corpo = "";
-  if (k?.fechada_em) corpo = captGeradoHtml(k);
+  if (k?.fechada_em) corpo = captGeradoHtml(k) + captRoteiroDoCartao(k);
   else if (k) corpo = `${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
     <h5>Peças desta captação <small>${k.pecas.filter((p) => p.gravado).length} de ${k.pecas.length} gravadas</small></h5>
     <ul class="capt-lista">${k.pecas.map((p) => captPecaHtml(p, { marcar: `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` })).join("")}</ul>
-    ${k.observacao ? `<p class="capt-discreto">${safeText(k.observacao)}</p>` : ""}`;
+    ${k.observacao ? `<p class="capt-discreto">${safeText(k.observacao)}</p>` : ""}${captRoteiroDoCartao(k)}`;
   else if (pendentes.length) corpo = `${outras.length ? `<h5>Esperando captação <small>${captPlural(outras.length, "peça", "peças")}</small></h5><ul class="capt-lista">${outras.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}
     ${fotos.length ? `<h5>${captEhFotos(e) ? "Fotografias sem banco de fotos" : "Vídeos ainda sem captação"} <small>${captPlural(fotos.length, "peça", "peças")}</small></h5><ul class="capt-lista">${fotos.map((p) => captPecaHtml(p)).join("")}</ul>` : ""}`;
   else if (e.cliente) corpo = `<p class="capt-discreto">Nenhuma peça de ${safeText(e.cliente)} está esperando captação.</p>`;
@@ -814,33 +822,78 @@ function captAbrirFechar(eventoId) {
         ${ligadas.map((p) => escolha(p, true, p.gravado ? "já marcada como gravada" : "")).join("")}
         ${esperando.length ? `${ligadas.length ? '<p class="capt-discreto">Também esperando captação deste cliente:</p>' : ""}${esperando.map((p) => escolha(p, false, p.sem_material ? captFaltaRotulo(p) : "")).join("")}` : ""}
         ${!ligadas.length && !esperando.length ? `<p class="capt-discreto">Nenhuma peça de ${safeText(nome || "este cliente")} esperando captação.</p>` : ""}
-        ${nome ? `<button type="button" class="vb-link" onclick="closeWorkflowModal();captCadastrar('${safeText(nome)}');showToast('Depois de cadastrar, volte em Fechar gravação: a peça nova aparece na lista.','info',7000)">Gravou algo fora da lista? Cadastrar peça de ${safeText(nome)}</button>` : ""}
+      </fieldset>
+      <fieldset class="capt-pecas-form capt-novas-form"><legend>Gravou algo que não estava no sistema?</legend>
+        <div class="capt-novas"></div>
+        <button type="button" class="vb-botao capt-add-nova" onclick="captNovaPeca(this.form)"><span aria-hidden="true">+</span> Adicionar peça gravada</button>
+        <p class="capt-discreto">Entra no painel já gravada, com a pasta do Drive, e segue para a edição como qualquer peça cadastrada.</p>
       </fieldset>
       <label>Pasta do material no Drive<input type="url" name="drive" inputmode="url" maxlength="2000" placeholder="https://drive.google.com/drive/folders/…"></label>
       <p class="capt-discreto">O link vai para cada peça marcada como material bruto, para a edição achar o arquivo.</p>
+      ${captRoteiroCampo(ligadas)}
       <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="Ex.: supino gravado a mais; faltou o depoimento"></textarea></label>
       <p class="capt-erro" role="alert" hidden></p>
       <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Fechar gravação</button></div>
     </form>`);
 }
+// Uma linha de peça gravada fora do sistema: título, formato e, se já se
+// sabe, o dia de ir ao ar.
+const CAPT_FORMATOS_NOVOS = ["Reels", "Vídeo", "Fotografia", "Story", "Card", "Carrossel"];
+function captNovaPeca(form) {
+  const lugar = form.querySelector(".capt-novas"), linha = document.createElement("div");
+  linha.className = "capt-nova";
+  linha.innerHTML = `<label class="capt-nova-titulo"><span class="sr-only">Título</span><input name="nova_titulo" maxlength="200" placeholder="Ex.: Abdominal" required></label>
+    <label><span class="sr-only">Formato</span><select name="nova_formato">${CAPT_FORMATOS_NOVOS.map((f) => `<option>${f}</option>`).join("")}</select></label>
+    <label title="Vai ao ar (opcional)"><span class="sr-only">Vai ao ar</span><input type="date" name="nova_veiculacao"></label>
+    <button type="button" class="capt-nova-tirar" aria-label="Tirar esta peça" onclick="this.closest('.capt-nova').remove()">×</button>`;
+  lugar.append(linha);
+  linha.querySelector("input").focus();
+}
+// O roteiro é o Google Docs da agência: mostra o que já está ligado às peças,
+// ou pede o link.
+function captRoteiroCampo(pecas) {
+  const docs = [...new Map((pecas || []).filter((p) => p.roteiro_doc).map((p) => [p.roteiro_doc.link, p.roteiro_doc])).values()];
+  const ja = docs.length ? `<p class="capt-discreto">Já ligado: ${docs.map((d) => `<a class="vb-link" href="${safeText(d.link)}" target="_blank" rel="noopener">${safeText(d.titulo)}</a>`).join(", ")}</p>` : "";
+  return `<label>Roteiro no Google Docs<input type="url" name="roteiro" inputmode="url" maxlength="2000" placeholder="https://docs.google.com/document/d/…"></label>
+    ${ja || '<p class="capt-discreto">O doc fica no Gmail da agência; o link liga o roteiro às peças gravadas e entra na aba Roteiros.</p>'}`;
+}
+async function captLigarRoteiro(form, captacaoId) {
+  const link = String(new FormData(form).get("roteiro") || "").trim(), botao = form.querySelector("button");
+  if (!/docs\.google\.com\/document\//.test(link)) { showToast("Cole o link do Google Docs do roteiro.", "info", 5000); return; }
+  botao.disabled = true;
+  try { const r = await captPedir("", { acao: "roteiro", captacao_id: captacaoId, link }); showToast(r.avisos?.[0] || "Roteiro ligado às peças da captação.", r.avisos?.length ? "info" : "ok", 6000); captRecarregar(); }
+  catch (e) { showToast(e.message, "err", 6000); botao.disabled = false; }
+}
+
 async function captFechar(form) {
   const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
   const e = captTodos().find((x) => x.id === form.dataset.evento);
   // As já gravadas vêm desabilitadas (não saem pelo FormData), mas continuam gravadas.
   const gravadas = [...f.getAll("peca"), ...[...form.querySelectorAll('input[name=peca]:disabled:checked')].map((i) => i.value)];
-  const drive = String(f.get("drive") || "").trim();
+  const drive = String(f.get("drive") || "").trim(), roteiro = String(f.get("roteiro") || "").trim();
   const mostrar = (texto) => { erro.textContent = texto; erro.hidden = false; };
+  // O destino de cada peça nova é o da regra do cadastro (cadastrosDestiny),
+  // com o material pronto: ela acabou de ser gravada.
+  const novas = [...form.querySelectorAll(".capt-nova")].map((linha) => {
+    const formato = linha.querySelector("[name=nova_formato]").value;
+    const d = typeof cadastrosDestiny === "function" ? cadastrosDestiny(formato, true, true, []) : null;
+    return { titulo: linha.querySelector("[name=nova_titulo]").value.trim(), formato, veiculacao: linha.querySelector("[name=nova_veiculacao]").value,
+      destino: d ? { grupo_id: d.group, status: chaveDeStatus(d.status), responsaveis: (d.assignees || []).map(String) } : null };
+  });
   if (!e) return mostrar("Esta captação não está mais na tela. Feche e atualize.");
-  if (!gravadas.length) return mostrar("Marque ao menos uma peça gravada.");
+  if (novas.some((n) => !n.titulo)) return mostrar("Dê um título a cada peça nova (ou tire a linha).");
+  if (novas.some((n) => !n.destino)) return mostrar("Não deu para calcular o destino da peça nova. Recarregue a página.");
+  if (!gravadas.length && !novas.length) return mostrar("Marque ao menos uma peça gravada, ou adicione a que foi gravada.");
+  if (roteiro && !/docs\.google\.com\/document\//.test(roteiro)) return mostrar("O roteiro precisa ser o link do Google Docs.");
   if (drive && !/^https?:\/\/\S+$/i.test(drive)) return mostrar("O link do Drive precisa começar com https://");
   if (!drive && !confirm("Fechar sem a pasta do Drive? A edição não vai achar o material pela peça.")) return;
   botao.disabled = true; botao.textContent = "Fechando…";
   try {
     const k = e.nossa;
     const dados = k ? { captacao_id: k.id } : { evento_google: e.id, cliente_id: e.cliente_id, dia: e.dia, inicio: e.inicio || "", fim: e.fim || "", local: e.local || "" };
-    const r = await captPedir("", { acao: "fechar", gravadas, drive, observacao: f.get("observacao") || "", ...dados });
+    const r = await captPedir("", { acao: "fechar", gravadas, novas, roteiro, drive, observacao: f.get("observacao") || "", ...dados });
     closeWorkflowModal();
-    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
+    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.novas ? `${captPlural(r.novas, "nova cadastrada", "novas cadastradas")}` : "", r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
     showToast(r.avisos?.length ? `${partes}. ${r.avisos[0]}` : `${partes}.`, r.avisos?.length ? "info" : "ok", 7000);
     if (typeof refreshData === "function") refreshData();
     CAPT.sel = e.id; captRecarregar();

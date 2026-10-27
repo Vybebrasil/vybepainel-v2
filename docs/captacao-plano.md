@@ -160,6 +160,25 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
 - Animações de entrada sem opacidade: com `html.vb-ocioso` elas pausam no
   primeiro quadro e o painel ficava invisível.
 
+## Peças gravadas a mais e roteiro da gravação (26/10/2026, noite)
+
+- Paulo: "o Mizinho fez 4 materiais na Lions e só 2 estavam no sistema" e
+  "pra não perder os roteiros… eles são feitos e ficam sempre nos Docs, no
+  mesmo Gmail da agência que todos usam".
+- No "Fechar gravação", "+ Adicionar peça gravada" (título, formato e, se já
+  se sabe, o dia de ir ao ar). Ao fechar, cada peça nasce pelo cadastro do
+  painel (`criarConteudoNaTransacao`, o mesmo do "Cadastrar as peças" do
+  planejamento), com o destino e a equipe de `cadastrosDestiny` com material
+  pronto (Reels/Vídeo para a edição, Fotografia e Design para o design), a
+  pasta do Drive como material bruto, ligada e gravada na captação, e depois
+  vai para "Captação Feita" pelo `trocarEscolha`. Com o dia de ir ao ar, o
+  prazo segue `prazoDaPeca`.
+- Roteiro: o link do Google Docs, no "Fechar gravação" ou em "Ligar roteiro"
+  no cartão de uma captação montada (`roteiroDaCaptacao`). Entra na biblioteca
+  da aba Roteiros, se ainda não estiver, e liga às peças da captação. PDF e
+  DOCX do grupo são só cópias e não entram. Falha ao ligar vira aviso.
+- Sem migração.
+
 ## Próximas etapas
 
 3. Aprovação do roteiro pelo head, peça a peça.

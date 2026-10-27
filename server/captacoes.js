@@ -7,6 +7,9 @@
 import { tokenGoogle } from '../vybe_drive.js';
 import { listarAgendaProducao } from './agenda-producao.js';
 import { BOARD_PRODUCAO } from './grupos.js';
+// roteiros.js também importa daqui (clienteDoEvento); só funções declaradas,
+// usadas na hora da chamada, então o ciclo não atrapalha.
+import { incluirRoteiro, ligar as ligarRoteiro, docDoLink } from './roteiros.js';
 
 export const CAPTACAO = { pronta: 'agendar_captacao', agendada: 'captacao_agendada', feita: 'captacao_feita' };
 const FUSO = 'America/Bahia';
@@ -270,7 +273,26 @@ function validarFechamento(d = {}) {
   if (id && !/^\d{1,18}$/.test(id)) throw erro('Captação inválida.');
   if (evento && !/^[A-Za-z0-9_-]{5,1024}$/.test(evento)) throw erro('Evento da agenda inválido.');
   if (!id && !evento) throw erro('Escolha a captação que vai fechar.');
-  if (!gravadas.length) throw erro('Marque ao menos uma peça gravada. Se nada foi gravado, cancele a captação.');
+  // Peças gravadas que não estavam no sistema (Paulo, 26/10/2026: "o Mizinho fez
+  // 4 materiais na Lions e só 2 estavam lá"): título, formato, o dia de ir ao ar
+  // (opcional) e o destino da regra do cadastro (cadastrosDestiny, na tela).
+  const novas = (Array.isArray(d.novas) ? d.novas : []).map((n) => ({
+    titulo: String(n?.titulo || '').replace(/\s+/g, ' ').trim(), formato: String(n?.formato || '').trim(),
+    veiculacao: String(n?.veiculacao || ''), grupo_id: String(n?.destino?.grupo_id || ''), status: String(n?.destino?.status || ''),
+    responsaveis: (Array.isArray(n?.destino?.responsaveis) ? n.destino.responsaveis : []).map(String).filter((x) => /^\d{1,18}$/.test(x)).slice(0, 12) }));
+  if (novas.length > 20) throw erro('No máximo 20 peças novas por gravação.');
+  for (const n of novas) {
+    if (!n.titulo) throw erro('Dê um título a cada peça nova.');
+    if (n.titulo.length > 200) throw erro('O título de uma peça nova passou de 200 caracteres.');
+    if (!FORMATOS_NOVOS.includes(n.formato)) throw erro(`Formato inválido: ${n.formato || 'vazio'}.`);
+    if (n.veiculacao && !diaValido(n.veiculacao)) throw erro(`Data de veiculação inválida em "${n.titulo}".`);
+    if (!/^[a-z0-9_]{1,80}$/i.test(n.grupo_id) || !/^[a-z0-9_]{1,80}$/.test(n.status)) throw erro('Destino da peça nova inválido. Atualize a tela.');
+  }
+  if (!gravadas.length && !novas.length) throw erro('Marque ao menos uma peça gravada. Se nada foi gravado, cancele a captação.');
+  // O roteiro é o Google Docs da agência (Paulo: "fica sempre nos Docs, no mesmo
+  // Gmail que todos usam"); o PDF/DOCX do grupo é só a cópia.
+  const roteiro = String(d.roteiro || '').trim();
+  if (roteiro && !docDoLink(roteiro)) throw erro('Cole o link do Google Docs do roteiro.');
   if (gravadas.length > LIMITE_PECAS) throw erro(`No máximo ${LIMITE_PECAS} peças por captação.`);
   if (gravadas.some((p) => !/^\d{1,18}$/.test(p))) throw erro('Peça inválida.');
   const drive = String(d.drive || '').trim();
@@ -284,11 +306,38 @@ function validarFechamento(d = {}) {
     if (d.inicio && !horaValida(d.inicio)) throw erro('Horário de início inválido.');
     if (d.fim && !horaValida(d.fim)) throw erro('Horário de fim inválido.');
   }
-  return { id, evento, gravadas, drive, observacao, cliente_id: String(d.cliente_id || ''), dia: d.dia,
+  return { id, evento, gravadas, novas, roteiro, drive, observacao, cliente_id: String(d.cliente_id || ''), dia: d.dia,
     inicio: d.inicio || null, fim: d.inicio && d.fim && d.fim > d.inicio ? d.fim : null, local: String(d.local || '').trim().slice(0, 300) };
 }
 
-export async function fecharGravacao(sql, quem, dados, { trocar } = {}) {
+const FORMATOS_NOVOS = ['Reels', 'Vídeo', 'Fotografia', 'Story', 'Card', 'Carrossel'];
+
+// Liga o roteiro (um Google Docs) às peças: entra na biblioteca se ainda não
+// está lá (a mesma de "Incluir roteiro", aba Roteiros) e liga cada peça.
+// Falhar aqui é aviso: a gravação já está registrada.
+async function ligarRoteiroNasPecas(sql, quem, { link, cliente_id, titulo, pecas }) {
+  const doc = docDoLink(link);
+  if (!doc) throw erro('Cole o link do Google Docs do roteiro.');
+  const avisos = [];
+  let [r] = await sql`SELECT id::text AS id, removido_em FROM vybe_roteiros WHERE doc_id = ${doc}`;
+  if (!r || r.removido_em) { const n = await incluirRoteiro(sql, quem, { link, titulo, cliente_id }); r = { id: n.id }; avisos.push(...(n.avisos || [])); }
+  for (const conteudo_id of pecas) await ligarRoteiro(sql, quem, { roteiro_id: r.id, conteudo_id });
+  return { roteiro_id: r.id, avisos };
+}
+
+// "Ligar roteiro" no cartão de uma captação montada: o Docs vai para as peças dela.
+export async function roteiroDaCaptacao(sql, quem, { captacao_id, link } = {}) {
+  await exigirTabelas(sql);
+  if (!/^\d{1,18}$/.test(String(captacao_id || ''))) throw erro('Captação inválida.');
+  const [k] = await sql`SELECT k.id, k.cliente_id::text AS cliente_id, k.dia::text AS dia, cl.nome AS cliente FROM vybe_captacoes k
+    LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id WHERE k.id = ${captacao_id} AND k.estado <> 'cancelada'`;
+  if (!k) throw erro('Captação não encontrada.', 404);
+  const pecas = (await sql`SELECT conteudo_id::text AS id FROM vybe_captacao_pecas WHERE captacao_id = ${k.id}`).map((l) => l.id);
+  if (!pecas.length) throw erro('Esta captação ainda não tem peças para ligar o roteiro.');
+  return ligarRoteiroNasPecas(sql, quem, { link, cliente_id: k.cliente_id, titulo: `Roteiro ${k.cliente || ''} ${k.dia.split('-').reverse().join('/')}`.trim(), pecas });
+}
+
+export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, prazo = null } = {}) {
   await exigirTabelas(sql);
   if (!(await fechamentoPronto(sql))) throw erro('Fechar gravação aguarda a migração do banco.', 503);
   const d = validarFechamento(dados);
@@ -308,15 +357,15 @@ export async function fecharGravacao(sql, quem, dados, { trocar } = {}) {
     }
     const doLaco = await tx`SELECT conteudo_id::text AS id, gravado_em IS NOT NULL AS gravado FROM vybe_captacao_pecas WHERE captacao_id = ${k.id}`;
     const ligadas = new Set(doLaco.map((l) => l.id));
-    const linhas = await tx`SELECT c.id::text AS id, c.titulo, c.captacao_chave, c.removido_em, c.board_id, c.material_bruto,
+    const linhas = d.gravadas.length ? await tx`SELECT c.id::text AS id, c.titulo, c.captacao_chave, c.removido_em, c.board_id, c.material_bruto,
         EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${k.cliente_id}) AS do_cliente,
         EXISTS (SELECT 1 FROM vybe_captacao_pecas p JOIN vybe_captacoes o ON o.id = p.captacao_id
           WHERE p.conteudo_id = c.id AND o.estado = 'agendada' AND o.id <> ${k.id}) AS em_outra
-      FROM vybe_conteudos c WHERE c.id = ANY(${d.gravadas}::bigint[]) ORDER BY c.id FOR UPDATE OF c`;
+      FROM vybe_conteudos c WHERE c.id = ANY(${d.gravadas}::bigint[]) ORDER BY c.id FOR UPDATE OF c` : [];
     if (linhas.length !== d.gravadas.length) throw erro('Alguma peça não existe mais.', 409);
-    const semMaterial = new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
+    const semMaterial = d.gravadas.length ? new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
       LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-      WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.gravadas])).map((l) => l.id));
+      WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.gravadas])).map((l) => l.id)) : new Set();
     // Peça ligada a esta captação entra sempre; as outras, se são do cliente e
     // estavam esperando captação (como em "Levar peças").
     const fora = linhas.filter((l) => !ligadas.has(l.id) && (l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || !l.do_cliente || l.em_outra
@@ -338,9 +387,28 @@ export async function fecharGravacao(sql, quem, dados, { trocar } = {}) {
       await tx`UPDATE vybe_conteudos SET material_bruto = ${d.drive}, material_bruto_em = now(), atualizado_em = now() WHERE id = ${id}`;
       await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id) VALUES (${id}, 'material_bruto', NULL, ${d.drive}, ${pessoaId})`;
     }
+    // As peças novas nascem pelo mesmo cadastro do painel (criarConteudoNaTransacao,
+    // o do botão "Cadastrar as peças" do planejamento), com o destino da regra do
+    // cadastro, a pasta como material bruto, ligadas e gravadas nesta captação.
+    const criadas = [];
+    if (d.novas.length) {
+      const [cl] = await tx`SELECT nome FROM vybe_clientes WHERE id = ${k.cliente_id}`;
+      const criarPeca = criar || (await import('../api/conteudo.js')).criarConteudoNaTransacao;
+      const prazoDe = prazo || (await import('./planejamentos.js')).prazoDaPeca;
+      const [{ hoje }] = await tx`SELECT (now() AT TIME ZONE 'America/Bahia')::date::text AS hoje`;
+      for (const n of d.novas) {
+        const comFormato = n.titulo.toLowerCase().startsWith(n.formato.toLowerCase()) ? n.titulo : `${n.formato} - ${n.titulo}`;
+        const r = await criarPeca(tx, quem, { board: BOARD_PRODUCAO, titulo: comFormato.slice(0, 240), cliente: cl?.nome, formato: n.formato,
+          prazo: n.veiculacao ? prazoDe(n.veiculacao, hoje) : null, veiculacao: n.veiculacao || null, status: n.status, grupo_id: n.grupo_id,
+          material_bruto: d.drive || '', responsaveis: n.responsaveis });
+        await tx`INSERT INTO vybe_captacao_pecas (captacao_id, conteudo_id, ordem, gravado_em, gravado_por) VALUES (${k.id}, ${r.conteudo_id}, ${ordem++}, ${agora}, ${pessoaId})`;
+        criadas.push(String(r.conteudo_id));
+      }
+    }
     await tx`UPDATE vybe_captacoes SET estado = 'gravada', drive_link = ${d.drive || null}, fechada_em = now(), fechada_por = ${pessoaId},
       observacao_final = ${d.observacao}, atualizado_em = now() WHERE id = ${k.id}`;
-    return { id: String(k.id), soltas, brutos: brutos.length, feitas: linhas.filter((l) => l.captacao_chave !== CAPTACAO.feita).map((l) => l.id) };
+    return { id: String(k.id), cliente_id: k.cliente_id, dia: d.dia, soltas, brutos: brutos.length + (d.drive ? criadas.length : 0), criadas,
+      feitas: [...linhas.filter((l) => l.captacao_chave !== CAPTACAO.feita).map((l) => l.id), ...criadas] };
   });
   const avisos = [];
   for (const item of r.feitas) {
@@ -351,7 +419,14 @@ export async function fecharGravacao(sql, quem, dados, { trocar } = {}) {
     try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.pronta }); }
     catch (e) { avisos.push(`Uma peça não voltou para "Agendar Captação": ${e.message}`); }
   }
-  return { id: r.id, gravadas: d.gravadas.length, soltas: r.soltas.length, com_drive: r.brutos, avisos };
+  if (d.roteiro) {
+    try {
+      const [k] = await sql`SELECT k.dia::text AS dia, cl.nome AS cliente FROM vybe_captacoes k LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id WHERE k.id = ${r.id}`;
+      const ligado = await ligarRoteiroNasPecas(sql, quem, { link: d.roteiro, cliente_id: r.cliente_id, titulo: `Roteiro ${k?.cliente || ''} ${String(k?.dia || '').split('-').reverse().join('/')}`.trim(), pecas: [...d.gravadas, ...r.criadas] });
+      avisos.push(...ligado.avisos);
+    } catch (e) { avisos.push(`O roteiro não foi ligado: ${e.message}`); }
+  }
+  return { id: r.id, gravadas: d.gravadas.length + r.criadas.length, novas: r.criadas.length, soltas: r.soltas.length, com_drive: r.brutos, avisos };
 }
 
 // Evento da captação no Google Agenda da Vybe (conta de serviço com permissão

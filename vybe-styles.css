@@ -9911,7 +9911,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (prefers-reduced-motion:reduce) {.rot-cartao {animation:none}}
 /* O cartão do evento fica no body, fora de .capt: sem ele aqui, o texto para
    leitor de tela ("Gravado: …") aparecia escrito dentro do cartão. */
-.capt .sr-only,.ag-cartao .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.capt .sr-only,.ag-cartao .sr-only,.capt-folha .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Cartão do evento (agCartaoAbrir): ao lado do bloco clicado, como no
    calendário; no celular é uma folha que sobe de baixo. */
@@ -11776,3 +11776,17 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .capt-cal .capt-linha {border-radius:12px;border-color:#ffffff10;background:#171920;box-shadow:inset 3px 0 0 var(--ag-cor);transition:background .15s,border-color .15s}
 .capt-cal .capt-linha:hover {background:#1d2029;border-color:#ffffff22}
 @media (prefers-reduced-motion:reduce) {#workflow-modal.capt-folha {animation:none}.ag-chip,.capt-gravado-btn {transition:none}}
+/* Fechar gravação: peças gravadas fora do sistema e o roteiro (26/10/2026). */
+.capt-novas {display:grid;gap:6px}
+.capt-nova {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px;grid-template-areas:"titulo titulo tirar" "formato data .";gap:6px;align-items:center;padding:8px;border-radius:11px;background:#ffffff06}
+.capt-nova-titulo {grid-area:titulo}.capt-nova label:nth-of-type(2) {grid-area:formato}.capt-nova label:nth-of-type(3) {grid-area:data}.capt-nova-tirar {grid-area:tirar}
+.capt-nova input,.capt-nova select {width:100%;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 13px var(--mac-ui)}
+.capt-nova input:focus-visible,.capt-nova select:focus-visible {outline:2px solid #ff8a35;outline-offset:1px}
+.capt-nova-tirar {width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#9aa1b0;font-size:17px;cursor:pointer}
+.capt-nova-tirar:hover {background:#ffffff12;color:#fff}
+.capt-add-nova {justify-self:start;gap:6px}
+.capt-roteiro-doc {margin:4px 0 0;color:#aeb4c2;font:550 12.5px var(--mac-ui)}
+.capt-roteiro-form {display:flex;gap:6px;margin-top:6px}
+.capt-roteiro-form label {flex:1;min-width:0}
+.capt-roteiro-form input {width:100%;min-height:34px;padding:6px 10px;border-radius:9px;border:1px solid #ffffff1f;background:#0000002e;color:#fff;font:500 12.5px var(--mac-ui)}
+.capt-pecas-form.capt-novas-form {max-height:none;overflow:visible}
