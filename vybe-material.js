@@ -89,7 +89,7 @@ async function mostrarPecaDaPrevia(indice) {
   try {
     const detalhe = await detalheDaPrevia(id);
     if (vez !== PREVIA_PECA_VEZ) return;
-    PREVIA_MATERIAL = statusContextPreviewAssets(detalhe) || [];
+    PREVIA_MATERIAL = materialDaPeca(detalhe, local);
     // Sem imagem, pode haver link — e o link e material tanto quanto o arquivo.
     const entrega = !PREVIA_MATERIAL.length && typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detalhe) : null;
     PREVIA_PECA.link = entrega?.url || '';
@@ -154,8 +154,72 @@ function abrirPreviaGrande(indice = 0) {
 }
 
 function eVideoDoMaterial(a) {
+  if (a?.tipo === 'video') return true;
+  if (/^\.?(mp4|mov|webm|m4v|avi|mkv)$/i.test(String(a?.file_extension || ''))) return true;
   const onde = a?.name || a?.public_url || a?.url || '';
   return /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(String(onde));
+}
+
+// ── VÍDEO NO OLHO (Paulo, 27/10/2026: "tem peça que é Reels, como os vídeos
+// da VOA, mas no olhinho só aparece a capa… quero dar pra assistir; quando
+// tiver capa, avisa que é capa e mostra o vídeo também") ────────────────────
+//
+// O que acontecia: a prévia só aceitava imagem. Arquivo do Drive chega com a
+// miniatura do Drive — de um vídeo, é o primeiro quadro, a capa —, e o vídeo
+// do Reels quase sempre entra como link de entrega (passa do limite do
+// upload), que só era usado quando não havia imagem nenhuma.
+//
+// Agora o vídeo vem primeiro e toca no player do Drive (o servidor já deixa
+// público o arquivo da prévia); link de pasta vira "Abrir o vídeo". Numa peça
+// de vídeo, a imagem ganha a etiqueta "Capa".
+function idDoDrive(url) {
+  const u = String(url || '');
+  return (u.match(/drive\.google\.com\/(?:file\/d\/|thumbnail\?id=|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/i) || [])[1] || '';
+}
+function idDoYoutube(url) {
+  return (String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/i) || [])[1] || '';
+}
+// Como tocar um vídeo: o player do Drive, do YouTube ou o próprio arquivo.
+function fonteDoVideo(a) {
+  const drive = idDoDrive(a?.link_drive) || idDoDrive(a?.public_url || a?.url) || idDoDrive(a?.abrir);
+  if (drive) return { embed: `https://drive.google.com/file/d/${drive}/preview`, abrir: `https://drive.google.com/file/d/${drive}/view` };
+  const yt = idDoYoutube(a?.abrir || a?.url);
+  if (yt) return { embed: `https://www.youtube.com/embed/${yt}`, abrir: a.abrir || a.url };
+  const direto = a?.public_url || a?.url || a?.abrir || '';
+  return /\.(mp4|mov|webm|m4v)(?:$|[?#])/i.test(direto) ? { src: direto, abrir: direto } : { abrir: a?.abrir || direto };
+}
+function materialDaPeca(detalhe, local) {
+  const todos = [...(detalhe?.assets || []), ...(detalhe?.updates || []).flatMap((u) => u?.assets || [])];
+  const videos = todos.filter(eVideoDoMaterial).map((a) => ({ ...a, tipo: 'video' }));
+  const imagens = (statusContextPreviewAssets(detalhe) || []).filter((a) => !eVideoDoMaterial(a));
+  // O link de entrega marcado ("Link de entrega", "Link final") — não o
+  // primeiro arquivo, que workspaceDeliveryInfo também devolve.
+  const entrega = typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detalhe) : null;
+  const link = entrega?.source === 'Atualização de entrega' ? entrega.url : '';
+  const formatoDeVideo = /reels|v[ií]deo|audiovisual|motion/i.test(String(local?.formato || local?.tipo || detalhe?.formato || ''));
+  if (link && !videos.some((v) => fonteDoVideo(v).abrir === fonteDoVideo({ abrir: link }).abrir)) {
+    const f = fonteDoVideo({ abrir: link });
+    if (f.embed || f.src) videos.unshift({ tipo: 'video', name: 'Vídeo · link de entrega', abrir: link });
+    else if (formatoDeVideo || videos.length) videos.unshift({ tipo: 'link', name: 'Vídeo · link de entrega', abrir: link });
+  }
+  const ehVideo = formatoDeVideo || videos.length > 0;
+  const comCapa = imagens.map((a) => (ehVideo || /capa|cover|thumb/i.test(String(a.name || '')) ? { ...a, capa: true } : a));
+  return [...videos, ...comCapa];
+}
+function capaDaPrevia(a) {
+  const semVideo = !PREVIA_MATERIAL.some((m) => m.tipo === 'video' || m.tipo === 'link');
+  return `<div class="previa-capa"><img id="previa-grande-img" src="${safeText(a.public_url || a.url || a.url_thumbnail || '')}" alt="Capa: ${safeText(a.name || '')}">
+    <span class="previa-capa-selo">Capa</span>${semVideo ? '<small class="previa-capa-aviso">Esta é só a capa. O vídeo ainda não foi anexado nem registrado como link de entrega.</small>' : ''}</div>`;
+}
+function videoDaPrevia(a) {
+  if (a.tipo === 'link') return `<div class="previa-grande-estado">${vbEstadoHtml({ titulo: 'O vídeo está num link', texto: 'O link não é de um arquivo que dá para tocar aqui (por exemplo, uma pasta). Ele abre numa aba nova.',
+    acao: `<a class="vb-botao principal" href="${safeText(a.abrir)}" target="_blank" rel="noopener">Abrir o vídeo ↗</a>` })}</div>`;
+  const f = fonteDoVideo(a);
+  const player = f.embed
+    ? `<iframe id="previa-grande-img" src="${safeText(f.embed)}" title="${safeText(a.name || 'Vídeo da peça')}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`
+    : f.src ? `<video id="previa-grande-img" src="${safeText(f.src)}" controls autoplay playsinline></video>` : '';
+  if (!player) return videoDaPrevia({ ...a, tipo: 'link' });
+  return `<div class="previa-video">${player}${f.abrir ? `<a class="previa-video-abrir" href="${safeText(f.abrir)}" target="_blank" rel="noopener">Abrir em outra aba ↗</a>` : ''}</div>`;
 }
 
 // A barra das peças só existe quando a prévia é de uma peça do painel; vinda de
@@ -211,11 +275,11 @@ function pintarPreviaGrande() {
   // pela lista de arquivos ganha as setas, o nome e o botao de baixar junto.
   if (palco) {
     const fonte = safeText(a.public_url || a.url || a.url_thumbnail || '');
-    palco.innerHTML = eVideoDoMaterial(a)
-      ? `<video id="previa-grande-img" src="${fonte}" controls autoplay playsinline></video>`
+    palco.innerHTML = eVideoDoMaterial(a) || a.tipo === 'link' ? videoDaPrevia(a)
+      : a.capa ? capaDaPrevia(a)
       : `<img id="previa-grande-img" src="${fonte}" alt="${safeText(a.name || '')}">`;
   }
-  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.name || ''}`;
+  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.tipo === 'video' || a.tipo === 'link' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
   // Baixar precisa do id do arquivo no banco: e por ele que o servidor acha os
   // bytes. Previa de coisa que nao esta na peca (um link colado, por exemplo)
   // nao tem esse id, e o botao nao aparece em vez de aparecer quebrado.
