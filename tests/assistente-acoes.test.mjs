@@ -182,3 +182,25 @@ test('busca por peça: o formato falado desempata entre peças do mesmo cliente'
     assert.match(String(s.resumo || s.message), /Reels D/);
   } finally { await db.close(); }
 });
+
+test('pedido de alteração: comentário na peça e, com permissão, status Alteração; head acha pela busca', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN prazo date; ALTER TABLE vybe_status ADD COLUMN final boolean;
+      UPDATE vybe_conteudos SET titulo='Card - Agenda Musical' WHERE id=10;`);
+    feitos.length = 0;
+    // Ewerton (head da Hebravet, sem permissão de status nessa etapa): fica só o comentário.
+    const a = await prepararAcao(sql, 5, { acao: 'alteracao', busca: 'agenda musical da hebravet', texto: 'quarta para Maria Luísa e sexta para Greyce Pires' }, segredo);
+    assert.match(a.resumo, /Pedido de alteração em "Card - Agenda Musical" \(Hebravet\):\n“quarta para Maria Luísa e sexta para Greyce Pires”\n\(fica registrado como comentário/);
+    const ok = await confirmarAcao(sql, 5, a.codigo, segredo, { executar });
+    assert.match(ok.feito, /Pedido de alteração registrado em "Card - Agenda Musical"\. Status segue \*Pode Fazer\*/);
+    assert.deepEqual(feitos, [['comentar', 'ew@x', { item: 'vybe:10', texto: '🔧 Alteração pedida pelo WhatsApp: quarta para Maria Luísa e sexta para Greyce Pires' }]]);
+    // Administração: comentário e status.
+    const b = await prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: 'trocar a foto' }, segredo);
+    assert.match(b.resumo, /e status de \*Pode Fazer\* para \*Alteração\*/);
+    const ok2 = await confirmarAcao(sql, 1, b.codigo, segredo, { executar });
+    assert.match(ok2.feito, /que agora está em \*alteracao\*/);
+    assert.deepEqual(feitos.slice(1).map((f) => f[0]), ['comentar', 'status']);
+    await assert.rejects(() => prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: ' ' }, segredo), /Diga o que precisa mudar/);
+  } finally { await db.close(); }
+});
