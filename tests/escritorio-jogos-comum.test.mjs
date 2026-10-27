@@ -13,7 +13,7 @@ async function banco(t) {
   await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN formato text, ADD COLUMN titulo text, ADD COLUMN clientes_texto text, ADD COLUMN monday_item_id text, ADD COLUMN etapa text;`);
   for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-19-escritorio-gestao-pontos.sql', '2026-10-20-escritorio-complexidade.sql', '2026-10-20-escritorio-bolo-por-peca.sql',
     '2026-10-20-escritorio-conquistas-niveis.sql', '2026-10-20-escritorio-conquistas-producao.sql', '2026-10-21-escritorio-conquistas-dificeis.sql',
-    '2026-10-27-escritorio-xadrez.sql', '2026-10-27-escritorio-mesas.sql']) await db.exec(ler(f));
+    '2026-10-27-escritorio-xadrez.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(ler(f));
   await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
   return { db, sql };
 }

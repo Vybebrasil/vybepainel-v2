@@ -23,7 +23,7 @@ test('pôquer: blinds, vez e mão até o showdown',()=>{
  assert.deepEqual(v.acoes,{pagar:10,mesa:false,aumentar:{min:40,max:1000}});
  assert.equal(vistaPoker(m,'desafiado',false).acoes,null,'só quem tem a vez joga');
  assert.equal(vistaPoker(m,null,false).minhas,null,'quem assiste não vê carta');
- assert.throws(()=>j(m,'desafiado','mesa'),/vez da outra/);
+ assert.throws(()=>j(m,'desafiado','mesa'),/vez de outra/);
  assert.throws(()=>j(m,'desafiante','mesa'),/pague 10/);
  assert.throws(()=>j(m,'desafiante','aumentar',30),/de 40 a 1000/);
  // Small blind completa; big blind ainda pode falar e passa: sai o flop.
@@ -74,6 +74,7 @@ test('mesa de pôquer: começa pela mesa genérica e só cada um vê as própria
  const {db,sql}=await bancoEscritorio(t);
  await db.exec(readFileSync('migrations/2026-10-18-escritorio-postits-presentes.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-mesas.sql','utf8'));
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-poker-mesa-cheia.sql','utf8'));
  const x=await import('../server/escritorio-mesas.js');
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);
