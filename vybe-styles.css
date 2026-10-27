@@ -12204,3 +12204,38 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .xdz-fim.ganhou b {color:#ffe0a6}
 .xdz-fim.perdeu b {color:#c9d1dd}
 @media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}
+/* Dominó do Escritório (vybe-escritorio-domino.js): a mesa, a linha e a mão. */
+.workflow-modal.ofc-dmn-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
+.dmn-lado-mesa {display:grid;gap:8px;width:min(560px,calc(100vw - 56px))}
+.dmn-jogador {grid-template-columns:36px minmax(0,1fr) auto}
+.dmn-mesa {position:relative;display:grid;gap:8px;min-height:190px;padding:12px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#1f6b4a,#124631 75%);box-shadow:inset 0 0 0 3px #5a3a1f,inset 0 0 0 5px #2a1a0c,0 10px 30px #0008}
+.dmn-monte {position:absolute;top:8px;right:10px;display:flex;align-items:center;gap:5px;color:#d9f2e3;font:700 12px var(--mac-ui)}
+.dmn-monte small {color:#a9cdb8;font-weight:600}
+.dmn-costas {width:12px;height:22px;border-radius:3px;background:repeating-linear-gradient(45deg,#2b1a0e 0 3px,#4a2e17 3px 6px);box-shadow:0 0 0 1px #0006}
+.dmn-linha {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px;margin-top:22px;padding:4px}
+.dmn-linha.vazia {min-height:120px;color:#d9f2e3;font:600 13px var(--mac-ui)}
+.dmn-peca {--m:22px;display:inline-flex;flex-direction:column;align-items:center;flex:0 0 auto;padding:2px;border-radius:5px;background:linear-gradient(#fffdf6,#ece4d2);box-shadow:0 1px 0 #fff inset,0 2px 4px #0007,0 0 0 1px #0004}
+.dmn-peca > b {width:80%;height:1.5px;margin:1px 0;background:#00000055}
+.dmn-peca.deitada {flex-direction:row}
+.dmn-peca.deitada > b {width:1.5px;height:80%;margin:0 1px}
+.dmn-meia {display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:var(--m);height:var(--m);padding:calc(var(--m) * .12);box-sizing:border-box}
+.dmn-peca.deitada .dmn-meia {grid-auto-flow:column}
+.dmn-meia i {display:block}
+.dmn-meia i.p {width:72%;height:72%;margin:auto;border-radius:50%;background:radial-gradient(circle at 35% 35%,#555,#111)}
+.dmn-peca.nova {box-shadow:0 0 0 2px #ffcf4a,0 2px 6px #0008}
+.dmn-peca.mini {--m:14px}
+.dmn-ponta {align-self:center;padding:10px;border:2px dashed #ffcf4a;border-radius:8px;background:#ffcf4a26;color:#ffe9a8;font:800 12px var(--mac-ui);cursor:pointer}
+.dmn-ponta:hover {background:#ffcf4a44}
+.dmn-mao {display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px;border-radius:12px;background:#ffffff06}
+.dmn-mao-peca {padding:0;border:0;border-radius:7px;background:none;opacity:.55;transition:transform .12s,opacity .12s}
+.dmn-mao-peca .dmn-peca {--m:30px}
+.dmn-mao.vez .dmn-mao-peca.pode {opacity:1;cursor:pointer}
+.dmn-mao.vez .dmn-mao-peca.pode:hover {transform:translateY(-4px)}
+.dmn-mao-peca.sel {opacity:1;transform:translateY(-8px)}
+.dmn-mao-peca.sel .dmn-peca {box-shadow:0 0 0 3px var(--ofc-laranja,#ff9548),0 4px 10px #0008}
+.dmn-mao-peca:focus-visible {outline:3px solid #fff;outline-offset:2px}
+.dmn-mao:not(.vez) .dmn-mao-peca {opacity:1}
+.dmn-botoes {display:flex;justify-content:center}
+.dmn-revelado {display:grid;gap:4px;margin-bottom:6px;color:#d7deeb;font-size:12px}
+.dmn-revelado > div {display:flex;flex-wrap:wrap;gap:3px}
+@media(max-width:760px){.dmn-lado-mesa{width:100%}.dmn-peca{--m:18px}.dmn-mao-peca .dmn-peca{--m:26px}.workflow-modal.ofc-dmn-jogo{padding:10px}}

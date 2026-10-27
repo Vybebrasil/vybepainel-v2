@@ -7,16 +7,12 @@
 // e sem XP: não entra no ranking nem no ritmo de trabalho).
 import { Chess } from 'chess.js';
 import { carregarEconomia } from './escritorio-economia.js';
-import { itensDaTroca, semMarco, conferirLado, tirarDoInventario, porNoInventario } from './escritorio-social.js';
-import { roupasDaFigura, roupaDaClasse, CLASSE_ROUPA } from './escritorio-roupas.js';
+import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta, MESA_MOEDAS_MAX } from './escritorio-apostas.js';
 
-const CAMADA = /^(praca|sala-([0-9]|1[01])(-andar-1)?|recepcao|reuniao|auditorio|producao|cafe|jogos|foco|academia|lounge|operacao|subsolo)$/;
-const MOVEL = /^[A-Za-z0-9_]{1,64}@\d{1,2},\d{1,2}$/;
-export const XADREZ_MOEDAS_MAX = 10000;
+export const XADREZ_MOEDAS_MAX = MESA_MOEDAS_MAX;
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
 // partida largada um dia inteiro termina sozinha (perde quem tinha a vez).
 const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;
-const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const MOTIVOS = { mate: 'Xeque-mate', afogamento: 'Afogamento', material: 'Material insuficiente', repeticao: 'Repetição de posição',
  cinquenta: 'Regra dos 50 lances', desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
 
@@ -25,7 +21,6 @@ export async function xadrezPronto(sql) {
  return Boolean(r?.existe);
 }
 const exigirTabela = async (sql) => { if (!await xadrezPronto(sql)) throw erro('O xadrez aguarda a migração do banco.', 503); };
-const idValido = (id) => { if (!/^\d{1,18}$/.test(String(id))) throw erro('Partida inválida.'); return String(id); };
 
 // A posição sai dos lances, do começo: assim repetição e 50 lances valem.
 function partida(lances) {
@@ -35,7 +30,6 @@ function partida(lances) {
 }
 const corDe = (j, pessoaId) => String(j.brancas) === String(pessoaId) ? 'brancas' : String(j.pretas) === String(pessoaId) ? 'pretas' : null;
 const vezDe = (c) => (c.turn() === 'w' ? 'brancas' : 'pretas');
-const minutosDesde = (t, agora) => (agora - new Date(t).getTime()) / 60000;
 function fimDaPosicao(c) {
  if (c.isCheckmate()) return { resultado: c.turn() === 'w' ? 'pretas' : 'brancas', motivo: 'mate' };
  if (c.isStalemate()) return { resultado: 'empate', motivo: 'afogamento' };
@@ -47,21 +41,7 @@ function fimDaPosicao(c) {
 
 // Fim da partida: prêmio para quem ganhou, ou cada um recebe o seu de volta.
 async function encerrar(tx, j, resultado, motivo) {
- const n = Number(j.moedas) || 0;
- const daqui = [...(j.itens_desafiante || [])], dali = [...(j.itens_desafiado || [])];
- const creditar = async (p, origem, valor) => {
-  const [r] = await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${p},${origem},${valor}) ON CONFLICT(pessoa_id,origem) DO NOTHING RETURNING id`;
-  if (r) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(${p},${valor}) ON CONFLICT(pessoa_id) DO UPDATE SET saldo=vybe_escritorio_carteiras.saldo+EXCLUDED.saldo`;
- };
- if (resultado === 'empate') {
-  if (n) { await creditar(j.desafiante, `xadrez:${j.id}:devolucao`, n); await creditar(j.desafiado, `xadrez:${j.id}:devolucao`, n); }
-  await porNoInventario(tx, j.desafiante, daqui);
-  await porNoInventario(tx, j.desafiado, dali);
- } else {
-  const vencedor = resultado === 'brancas' ? j.brancas : j.pretas;
-  if (n) await creditar(vencedor, `xadrez:${j.id}:premio`, 2 * n);
-  await porNoInventario(tx, vencedor, [...daqui, ...dali]);
- }
+ await pagarAposta(tx, j, resultado === 'empate' ? null : resultado === 'brancas' ? j.brancas : j.pretas, `xadrez:${j.id}`);
  await tx`UPDATE vybe_escritorio_xadrez SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
 }
 
@@ -75,10 +55,6 @@ async function encerrarAbandonadas(sql, agora = Date.now()) {
  });
 }
 
-async function nomes(sql, ids) {
- const linhas = await sql`SELECT id,nome FROM vybe_pessoas WHERE id = ANY(${ids.map(String)}::bigint[])`;
- return Object.fromEntries(linhas.map((l) => [String(l.id), l.nome]));
-}
 // O que a tela precisa: posição, de quem é a vez, os lances que valem agora
 // (só para quem tem a vez), a aposta e o resultado.
 function vista(j, eu, nome, agora = Date.now()) {
@@ -132,57 +108,17 @@ export async function listarXadrez(sql, pessoa, { camada, movel } = {}) {
  };
 }
 
-// Itens da aposta: os móveis pela regra da troca, mais as roupas do personagem
-// (pedido do Paulo: "objeto ou parte de skin"), uma unidade de cada.
-function itensDaAposta(lista) {
- if (!Array.isArray(lista)) throw erro('Itens inválidos.');
- const classe = (it) => (Array.isArray(it) ? it[0] : it?.classe);
- const roupas = lista.filter((it) => CLASSE_ROUPA.test(String(classe(it))));
- const moveis = itensDaTroca(lista.filter((it) => !roupas.includes(it)));
- const vestes = [...new Set(roupas.map(classe))];
- if (vestes.some((c) => !roupaDaClasse(c))) throw erro('Essa roupa não existe no catálogo.');
- if (moveis.length + vestes.length > 12) throw erro('Escolha até 12 itens de cada lado.');
- return [...moveis, ...vestes.map((c) => [c, 1])];
-}
-// Roupa que a pessoa está vestindo não vai para a mesa (perderia e continuaria vestida).
-async function conferirRoupas(tx, pessoaId, itens, quem) {
- const roupas = itens.map(([c]) => c).filter((c) => c.startsWith('roupa:'));
- if (!roupas.length) return;
- const [p] = await tx`SELECT preferencias->>'figura' AS figura FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoaId}`;
- const vestidas = new Set(roupasDaFigura(p?.figura || ''));
- if (roupas.some((c) => vestidas.has(c))) throw erro(quem === 'eu' ? 'Tire a roupa do personagem antes de apostar ela.' : 'A outra pessoa está vestindo essa roupa agora.', 409);
- if ((await tx`SELECT 1 FROM vybe_escritorio_catalogo WHERE classe = ANY(${roupas}) AND preco = 0`).length) throw erro('Roupa grátis não vale aposta.', 409);
-}
-async function conferirAposta(tx, pessoaId, salas, itens, quem) {
- if (!itens.length) return;
- await semMarco(tx, itens.map(([c]) => c));
- await conferirLado(tx, pessoaId, salas, itens, quem);
- await conferirRoupas(tx, pessoaId, itens, quem);
-}
-
 // Desafio: quem chama escolhe a pessoa, o tabuleiro e a aposta (as moedas são
 // iguais para os dois; os itens, o que cada um põe). As cores são sorteadas.
-export async function desafiarXadrez(sql, pessoa, salas, { para, camada, movel, moedas = 0, oferece = [], pede = [], chave }) {
+export async function desafiarXadrez(sql, pessoa, salas, pedido) {
  await exigirTabela(sql);
- if (!/^\d{1,18}$/.test(String(para)) || String(para) === String(pessoa.id)) throw erro('Escolha outra pessoa da equipe.');
- if (!CAMADA.test(String(camada)) || !MOVEL.test(String(movel))) throw erro('Tabuleiro inválido.');
- if (!/^[A-Za-z0-9_-]{8,64}$/.test(String(chave))) throw erro('Pedido inválido.');
- const n = Number(moedas);
- if (!Number.isInteger(n) || n < 0 || n > XADREZ_MOEDAS_MAX) throw erro(`Aposte de 0 a ${XADREZ_MOEDAS_MAX.toLocaleString('pt-BR')} VybeCoins.`);
- const da = itensDaAposta(oferece || []), quer = itensDaAposta(pede || []);
+ const d = lerDesafio(pessoa, pedido), { para, camada, movel, chave, n, da, quer } = d;
  return sql.comTransacao(async (tx) => {
-  const [alvo] = await tx`SELECT id FROM vybe_pessoas WHERE id=${para} AND ativo=TRUE AND pode_entrar=TRUE`;
-  if (!alvo) throw erro('Essa pessoa não está na equipe do escritório.', 404);
   const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_xadrez WHERE chave=${chave}`;
   if (ja) { if (String(ja.desafiante) !== String(pessoa.id)) throw erro('Pedido inválido.'); return { repetido: true, id: String(ja.id) }; }
   const [jogando] = await tx`SELECT id FROM vybe_escritorio_xadrez WHERE estado='jogando' AND (brancas=${pessoa.id} OR pretas=${pessoa.id})`;
   if (jogando) throw erro('Termine a sua partida antes de chamar outra.', 409);
-  if (n) {
-   const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoa.id}`;
-   if (Number(c?.saldo || 0) < n) throw erro('Você não tem essas VybeCoins para apostar.', 409);
-  }
-  await conferirAposta(tx, pessoa.id, salas, da, 'eu');
-  await conferirAposta(tx, para, salas, quer, 'outro');
+  await conferirDesafio(tx, pessoa, salas, d);
   // Um convite aberto por vez de quem chama: o novo substitui o antigo.
   await tx`UPDATE vybe_escritorio_xadrez SET estado='cancelado',terminado_em=now() WHERE estado='convite' AND desafiante=${pessoa.id}`;
   const brancoEuSou = Math.random() < 0.5;
@@ -212,24 +148,7 @@ export async function responderXadrez(sql, pessoa, salas, { id, acao }) {
   if (ocupado) throw erro('Um de vocês já está numa partida. Terminem aquela primeiro.', 409);
   const [mesa] = await tx`SELECT id FROM vybe_escritorio_xadrez WHERE estado='jogando' AND camada=${j.camada} AND movel=${j.movel}`;
   if (mesa) throw erro('Esse tabuleiro já está com uma partida. Esperem acabar.', 409);
-  // Carteiras e inventários trancados sempre na mesma ordem (menor id primeiro).
-  const dois = [String(j.desafiante), String(j.desafiado)].sort((a, b) => Number(a) - Number(b));
-  const n = Number(j.moedas) || 0;
-  if (n) {
-   for (const p of dois) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${p}) ON CONFLICT DO NOTHING`;
-   const cart = await tx`SELECT pessoa_id,saldo FROM vybe_escritorio_carteiras WHERE pessoa_id IN (${dois[0]},${dois[1]}) ORDER BY pessoa_id FOR UPDATE`;
-   for (const c of cart) if (Number(c.saldo) < n) throw erro(String(c.pessoa_id) === eu ? 'Você não tem as VybeCoins da aposta.' : 'Quem chamou não tem mais as VybeCoins da aposta.', 409);
-  }
-  await tx`SELECT 1 FROM vybe_escritorio_inventario WHERE pessoa_id IN (${dois[0]},${dois[1]}) ORDER BY pessoa_id,classe FOR UPDATE`;
-  const daqui = itensDaAposta(j.itens_desafiante || []), dali = itensDaAposta(j.itens_desafiado || []);
-  await conferirAposta(tx, j.desafiante, salas, daqui, 'outro');
-  await conferirAposta(tx, j.desafiado, salas, dali, 'eu');
-  if (n) for (const p of dois) {
-   await tx`UPDATE vybe_escritorio_carteiras SET saldo=saldo-${n} WHERE pessoa_id=${p}`;
-   await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${p},${`xadrez:${j.id}:aposta`},${-n})`;
-  }
-  await tirarDoInventario(tx, j.desafiante, daqui);
-  await tirarDoInventario(tx, j.desafiado, dali);
+  await cobrarAposta(tx, j, salas, `xadrez:${j.id}`);
   await tx`UPDATE vybe_escritorio_xadrez SET estado='jogando',iniciado_em=now(),ultimo_lance_em=now() WHERE id=${j.id}`;
   return {};
  });

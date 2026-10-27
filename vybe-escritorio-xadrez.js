@@ -5,7 +5,15 @@
 // aqui só se desenha e se pede o lance. O aviso de "a partida mudou" vai pelo
 // balão de comando (xdz=<id>:<para>:<c|l>), como a troca; a tela aberta também
 // relê sozinha a cada poucos segundos.
+// O convite, a aposta e o aviso servem a todas as mesas de jogo: cada jogo
+// passa a sua configuração (o dominó, em vybe-escritorio-domino.js, usa as
+// mesmas telas com as rotas "mesa").
 const ESCRITORIO_XADREZ = /chessboard/;
+const XADREZ_CFG = {
+  nome: "Xadrez", artigo: "o xadrez", lista: "xadrez", desafiar: "xadrez-desafiar", responder: "xadrez-responder", extra: {},
+  sinal: "xdz", nota: "As cores são sorteadas.", abrir: (j) => abrirJogoXadrez(j),
+  aberto: (id) => (escritorioXadrez().jogo?.id === id ? (recarregarJogoXadrez(), true) : false),
+};
 const XADREZ_COLUNAS = "abcdefgh";
 const XADREZ_NOME_PECA = { q: "Dama", r: "Torre", b: "Bispo", n: "Cavalo" };
 
@@ -18,8 +26,14 @@ function xadrezChave() {
 function xadrezPrimeiroNome(p) {
   return safeText(String(p?.nome || "").split(" ")[0] || "Alguém");
 }
+function mesaSinal(cfg, j, para, tipo) {
+  escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + cfg.sinal + "=" + j + ":" + para + ":" + tipo });
+}
 function xadrezSinal(j, para, tipo) {
-  escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "xdz=" + j + ":" + para + ":" + tipo });
+  mesaSinal(XADREZ_CFG, j, para, tipo);
+}
+function mesaCfg() {
+  return escritorioXadrez().cfg || XADREZ_CFG;
 }
 function xadrezPoeSprite() {
   if (document.getElementById("xdz-sprite")) return;
@@ -42,18 +56,21 @@ function xadrezFechar() {
 }
 
 // Clicou no tabuleiro (ou apertou E perto dele).
-async function abrirXadrezEscritorio(m) {
-  if (escritorio.base?.demo) return escritorioAviso("A demonstração não tem partidas de xadrez.");
+function abrirXadrezEscritorio(m) {
+  return abrirMesaEscritorio(m, XADREZ_CFG);
+}
+async function abrirMesaEscritorio(m, cfg) {
+  if (escritorio.base?.demo) return escritorioAviso(`A demonstração não tem partidas de ${cfg.nome.toLowerCase()}.`);
   const mesa = { camada: escritorio.quarto || "praca", movel: escritorio.mapa.chaveMovel(m) };
   let d;
-  try { d = await escritorioApi("xadrez", null, mesa); } catch (e) { return escritorioAviso(e.message); }
-  if (!d.disponivel) return escritorioAviso("O xadrez aguarda a migração do banco.");
+  try { d = await escritorioApi(cfg.lista, null, { ...mesa, ...cfg.extra }); } catch (e) { return escritorioAviso(e.message); }
+  if (!d.disponivel) return escritorioAviso(`${cfg.artigo[0].toUpperCase() + cfg.artigo.slice(1)} aguarda a migração do banco.`);
   xadrezPoeSprite();
   const x = escritorioXadrez();
-  x.mesa = mesa;
-  if (d.jogos[0]) return abrirJogoXadrez(d.jogos[0]);
-  if (d.mesa) return abrirJogoXadrez(d.mesa);
-  if (d.convites[0]) return desenharConviteXadrez(d.convites[0]);
+  x.mesa = mesa; x.cfg = cfg;
+  if (d.jogos[0]) return cfg.abrir(d.jogos[0]);
+  if (d.mesa) return cfg.abrir(d.mesa);
+  if (d.convites[0]) return desenharConviteXadrez(d.convites[0], cfg);
   novoXadrez(d.enviados[0] || null);
 }
 
@@ -98,11 +115,12 @@ function desenharNovoXadrez() {
 <section><h3>Você pede</h3>${!f.para ? '<p class="ofc-nota">Escolha com quem jogar.</p>' : !f.deles ? '<p class="ofc-nota">Carregando o inventário…</p>' : f.deles.length ? `<ul>${f.deles.map((i) => xadrezItemHtml("pede", i)).join("")}</ul>` : '<p class="ofc-nota">Essa pessoa não tem itens para apostar.</p>'}</section></div>
 <p class="ofc-nota">Quem ganha leva tudo o que está na mesa. Empate devolve a cada um o seu. Só valem móveis guardados (fora do quarto) e roupas que a pessoa não está vestindo.</p>`;
   const enviado = f.enviado ? `<div class="xdz-aguardando"><span>Você chamou <b>${xadrezPrimeiroNome(f.enviado.desafiado)}</b>. Esperando a resposta.</span><button type="button" class="workflow-secondary" onclick="responderXadrezEscritorio('${safeText(f.enviado.id)}','cancelar',this)">Cancelar convite</button></div>` : "";
-  xadrezModal(`<div class="workflow-kicker">Xadrez<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div><h2 class="workflow-title">Chamar para uma partida</h2>
+  const cfg = mesaCfg();
+  xadrezModal(`<div class="workflow-kicker">${cfg.nome}<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div><h2 class="workflow-title">Chamar para uma partida</h2>
 ${enviado}<h3 class="xdz-sub">Com quem</h3>${pessoas}
 <div class="xdz-modo" role="radiogroup" aria-label="Modo"><button type="button" role="radio" aria-checked="${!f.valendo}" class="${f.valendo ? "" : "sim"}" onclick="modoXadrez(false)"><b>De graça</b><small>Só pela partida</small></button><button type="button" role="radio" aria-checked="${f.valendo}" class="${f.valendo ? "sim" : ""}" onclick="modoXadrez(true)"><b>Valendo</b><small>VybeCoins, móveis ou roupas</small></button></div>
 ${aposta}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
-<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="xadrezFechar()">Fechar</button><button type="button" class="workflow-primary" id="xdz-chamar" onclick="desafiarXadrezEscritorio(this)">Chamar para o xadrez</button></div>`, "ofc-xdz-novo");
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="xadrezFechar()">Fechar</button><button type="button" class="workflow-primary" id="xdz-chamar" onclick="desafiarXadrezEscritorio(this)">Chamar para ${cfg.artigo}</button></div>`, "ofc-xdz-novo");
   atualizarBotaoXadrez();
 }
 function atualizarBotaoXadrez() {
@@ -135,17 +153,17 @@ function mudarItemXadrez(lado, classe, delta, max) {
   desenharNovoXadrez();
 }
 async function desafiarXadrezEscritorio(botao) {
-  const x = escritorioXadrez(), f = x.nova;
+  const x = escritorioXadrez(), f = x.nova, cfg = mesaCfg();
   if (!f?.para || !x.mesa) return;
   botao.disabled = true;
   try {
-    const r = await escritorioApi("xadrez-desafiar", { para: f.para, ...x.mesa, moedas: f.valendo ? f.moedas : 0,
+    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: f.para, ...x.mesa, moedas: f.valendo ? f.moedas : 0,
       oferece: f.valendo ? [...f.oferece] : [], pede: f.valendo ? [...f.pede] : [], chave: xadrezChave() });
-    xadrezSinal(r.id, f.para, "c");
+    mesaSinal(cfg, r.id, f.para, "c");
     const nome = String(xadrezOnline().find((o) => String(o.id) === f.para)?.nome || "a pessoa").split(" ")[0];
     xadrezFechar();
     escritorioAviso(`Convite enviado para ${nome}. A partida abre quando aceitar.`);
-    escritorioXadrez().esperando = r.id;
+    escritorioXadrez().esperando = cfg.sinal + ":" + r.id;
   } catch (e) {
     botao.disabled = false;
     const el = document.getElementById("xdz-erro");
@@ -164,22 +182,24 @@ function xadrezApostaHtml(j, perspectiva) {
 ${quem ? `${meu.length ? `<h4>Você põe</h4><ul>${itens(meu)}</ul>` : ""}${dele.length ? `<h4>${quem} põe</h4><ul>${itens(dele)}</ul>` : ""}`
     : `${de.length ? `<h4>${xadrezPrimeiroNome(j.desafiante)} põe</h4><ul>${itens(de)}</ul>` : ""}${para.length ? `<h4>${xadrezPrimeiroNome(j.desafiado)} põe</h4><ul>${itens(para)}</ul>` : ""}`}</div>`;
 }
-function desenharConviteXadrez(j) {
+function desenharConviteXadrez(j, cfg = mesaCfg()) {
   xadrezPoeSprite();
+  escritorioXadrez().cfg = cfg;
   const u = escritorioCabecaUrl(j.desafiante.id);
-  xadrezModal(`<div class="workflow-kicker">Xadrez<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
-<div class="xdz-convite">${u ? `<img src="${safeText(u)}" alt="" width="54" height="54">` : ""}<h2 class="workflow-title">${xadrezPrimeiroNome(j.desafiante)} te chamou para o xadrez</h2></div>
-${xadrezApostaHtml(j, "desafiado")}<p class="ofc-nota">As cores são sorteadas. O convite vale por 10 minutos.</p><p class="ofc-erro" id="xdz-erro" role="alert"></p>
+  xadrezModal(`<div class="workflow-kicker">${cfg.nome}<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
+<div class="xdz-convite">${u ? `<img src="${safeText(u)}" alt="" width="54" height="54">` : ""}<h2 class="workflow-title">${xadrezPrimeiroNome(j.desafiante)} te chamou para ${cfg.artigo}</h2></div>
+${xadrezApostaHtml(j, "desafiado")}<p class="ofc-nota">${cfg.nota} O convite vale por 10 minutos.</p><p class="ofc-erro" id="xdz-erro" role="alert"></p>
 <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="responderXadrezEscritorio('${safeText(j.id)}','recusar',this)">Recusar</button><button type="button" class="workflow-primary" onclick="responderXadrezEscritorio('${safeText(j.id)}','aceitar',this)">Aceitar e jogar</button></div>`, "ofc-xdz-convite");
 }
 async function responderXadrezEscritorio(id, acao, botao) {
   if (botao) botao.disabled = true;
+  const cfg = mesaCfg();
   try {
-    const r = await escritorioApi("xadrez-responder", { id, acao });
+    const r = await escritorioApi(cfg.responder, { id, acao });
     if (r.economia) xadrezEconomia(r.economia);
     const outro = acao === "cancelar" ? r.jogo?.desafiado?.id : r.jogo?.desafiante?.id;
-    if (outro) xadrezSinal(id, outro, "l");
-    if (acao === "aceitar" && r.jogo?.estado === "jogando") return abrirJogoXadrez(r.jogo);
+    if (outro) mesaSinal(cfg, id, outro, "l");
+    if (acao === "aceitar" && r.jogo?.estado === "jogando") return cfg.abrir(r.jogo);
     xadrezFechar();
     escritorioAviso(acao === "recusar" ? "Convite recusado." : "Convite cancelado.");
   } catch (e) {
@@ -355,24 +375,27 @@ function xadrezAcabou(j) {
 // Balão de comando xdz=<id>:<para>:<c|l>: convite novo para mim ou a partida
 // aberta mudou (lance, desistência, empate, aceite).
 function xadrezSinalEscritorio(de, v) {
+  mesaSinalEscritorio(XADREZ_CFG, de, v);
+}
+function mesaSinalEscritorio(cfg, de, v) {
   const [id, para, tipo] = String(v || "").split(":");
   if (!/^\d{1,18}$/.test(id) || escritorio.base?.demo || String(de) === String(escritorio.base?.eu)) return;
-  const x = escritorioXadrez(), eu = String(escritorio.base?.eu);
-  if (x.jogo?.id === id) { recarregarJogoXadrez(); return; }
+  const x = escritorioXadrez(), eu = String(escritorio.base?.eu), meu = cfg.sinal + ":" + id;
+  if (cfg.aberto(id)) return;
   if (para !== eu) return;
-  if (tipo === "c" || x.esperando === id) {
-    escritorioApi("xadrez", null, { id }).then((r) => {
+  if (tipo === "c" || x.esperando === meu) {
+    escritorioApi(cfg.lista, null, { id }).then((r) => {
       const j = r.jogo, nome = xadrezPrimeiroNome(j.desafiante);
       if (j.estado === "convite" && j.desafiado.id === eu) {
-        if (document.getElementById("workflow-modal")) return escritorioAviso(`${nome} te chamou para o xadrez. Clique num tabuleiro para responder.`);
-        desenharConviteXadrez(j);
-      } else if (j.estado === "jogando" && x.esperando === id) {
+        if (document.getElementById("workflow-modal")) return escritorioAviso(`${nome} te chamou para ${cfg.artigo}. Clique na mesa do jogo para responder.`);
+        desenharConviteXadrez(j, cfg);
+      } else if (j.estado === "jogando" && x.esperando === meu) {
         x.esperando = null;
-        if (!document.getElementById("workflow-modal")) abrirJogoXadrez(j);
-        else escritorioAviso(`${xadrezPrimeiroNome(j.desafiado)} aceitou o xadrez. Clique num tabuleiro para jogar.`);
-      } else if ((j.estado === "recusado" || j.estado === "cancelado") && x.esperando === id) {
+        if (!document.getElementById("workflow-modal")) cfg.abrir(j);
+        else escritorioAviso(`${xadrezPrimeiroNome(j.desafiado)} aceitou ${cfg.artigo}. Clique na mesa do jogo para jogar.`);
+      } else if ((j.estado === "recusado" || j.estado === "cancelado") && x.esperando === meu) {
         x.esperando = null;
-        escritorioAviso(`${xadrezPrimeiroNome(j.desafiado)} não aceitou o xadrez agora.`);
+        escritorioAviso(`${xadrezPrimeiroNome(j.desafiado)} não aceitou ${cfg.artigo} agora.`);
       }
     }).catch(() => {});
   }
