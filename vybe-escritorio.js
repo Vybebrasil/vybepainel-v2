@@ -122,7 +122,36 @@ function escritorioAviso(texto) {
   clearTimeout(escritorio.timerAviso);
   if (texto) escritorio.timerAviso = setTimeout(() => { if (el.textContent === texto) el.textContent = ""; }, /falh|não |erro|negad|bloque/i.test(texto) ? 12000 : 6000);
 }
+// Animações do jogo desligadas (Paulo, 27/10/2026: "tá tudo meio travando… um
+// botãozinho de desligar/ligar animações"). Fica guardado neste navegador; o
+// "Reduzir movimento" da Aparência também desliga. Com elas desligadas os
+// móveis param no quadro em que estão e as animações de CSS terminam na hora
+// (html.vb-sem-animacao), o que tira o navegador do redesenho contínuo.
+const ESCRITORIO_CHAVE_ANIMACOES = "vybe-escritorio-animacoes";
+function escritorioAnimacoesLeves() { return Boolean(document.documentElement?.classList.contains("vb-sem-animacao")); }
+function aplicarAnimacoesEscritorio() {
+  let escolha = null;
+  try { escolha = localStorage.getItem(ESCRITORIO_CHAVE_ANIMACOES); } catch { /* sem armazenamento: vale a Aparência */ }
+  const desligar = escolha ? escolha === "off" : document.body?.dataset?.motion === "reduce";
+  document.documentElement?.classList.toggle("vb-sem-animacao", desligar);
+}
+function alternarAnimacoesEscritorio() {
+  const desligar = !escritorioAnimacoesLeves();
+  try { localStorage.setItem(ESCRITORIO_CHAVE_ANIMACOES, desligar ? "off" : "on"); } catch { /* vale só nesta aba */ }
+  document.documentElement.classList.toggle("vb-sem-animacao", desligar);
+  // Só o botão muda (redesenhar a tela inteira trocaria o mapa de lugar à toa).
+  const botao = document.querySelector('.ofc-rail-btn[onclick*="alternarAnimacoesEscritorio"]');
+  if (botao) {
+    const rotulo = desligar ? "Ligar animações" : "Desligar animações";
+    botao.setAttribute("aria-pressed", String(desligar));
+    botao.setAttribute("aria-label", rotulo);
+    botao.title = rotulo;
+    botao.innerHTML = `${escritorioIcone(desligar ? "tocar" : "pausa")}<span>${rotulo}</span>`;
+  }
+  escritorioAviso(desligar ? "Animações desligadas: o jogo fica parado e mais leve." : "Animações ligadas.");
+}
 async function abrirEscritorio() {
+  aplicarAnimacoesEscritorio();
   const painel = document.getElementById("painel-escritorio");
   if (escritorio.base) {
     renderEscritorio();
@@ -1125,6 +1154,8 @@ function escritorioIcone(nome) {
     pessoas: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5"/><path d="M16 4.6a3 3 0 010 6M18 14.8c1.6.8 2.6 2.5 3 5.2"/>',
     conversa: '<path d="M4 5h16v11H9l-5 4z"/>',
     clientes: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>',
+    pausa: '<rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/>',
+    tocar: '<path d="M8 5.5v13l10.5-6.5z"/>',
     ajuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8 1c0 1.7-2.4 2-2.4 3.6"/><path d="M12 17h.01"/>',
     espaco: '<circle cx="12" cy="8" r="3.6"/><path d="M5 21c.8-4.4 3.5-6.6 7-6.6s6.2 2.2 7 6.6"/>',
     painel: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
@@ -2207,6 +2238,7 @@ function renderEscritorio() {
  ${rail("espaco", "espaco", "Meu espaço", "personalizarEscritorio()", false)}
  ${rail("painel", "painel", "Painel", "escolherPainelDoEscritorio()", false)}
  ${rail("ajuda", "ajuda", "Tutorial", "iniciarTutorialEscritorio()", false)}
+ ${escritorioAnimacoesLeves() ? rail("animacoes", "tocar", "Ligar animações", "alternarAnimacoesEscritorio()", true) : rail("animacoes", "pausa", "Desligar animações", "alternarAnimacoesEscritorio()", false)}
  <button type="button" class="ofc-rail-btn ofc-rail-so-celular ofc-rail-missoes" data-principal onclick="escritorio.railMais=false;escritorio.colunaAberta=!escritorio.colunaAberta;renderEscritorio()" aria-pressed="${Boolean(escritorio.colunaAberta)}" aria-label="Missões e cobranças">${escritorioIcone("alvo")}<span>Missões</span></button>
  <button type="button" class="ofc-rail-btn ofc-rail-so-celular" data-principal onclick="escritorio.railMais=!escritorio.railMais;renderEscritorio()" aria-expanded="${Boolean(escritorio.railMais)}" aria-label="Mais opções do escritório">${escritorioIcone("mais")}<span>Mais</span></button>
 </nav>${escritorio.railMais ? '<button type="button" class="ofc-rail-fundo" aria-label="Fechar o menu" onclick="escritorio.railMais=false;renderEscritorio()"></button>' : ""}
