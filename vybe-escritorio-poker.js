@@ -77,7 +77,7 @@ ${a.mesa ? `<button type="button" class="workflow-primary" onclick="lanceMesaEsc
 const POKER_LUGARES = { 1: ["topo"], 2: ["esq-topo", "dir-topo"], 3: ["esq", "topo", "dir"] };
 const POKER_ACOES = { largou: "Largou", mesa: "Passou", pagou: "Pagou", apostou: "Apostou", aumentou: "Aumentou", "all-in": "All-in", saiu: "Saiu" };
 function pokerLugarHtml(j, l, pos, revela) {
-  const m = j.mesa, p = j[l], u = escritorioCabecaUrl(p.id), eu = l === j.eu, vez = j.estado === "jogando" && j.vez === l;
+  const m = j.mesa, p = j[l], u = mesaCabecaUrl(j, p), eu = l === j.eu, vez = j.estado === "jogando" && j.vez === l;
   const fora = (m.fora || []).includes(l), saiu = (m.saiu || []).includes(l), semFichas = !(m.na_mao || m.lados || []).includes(l);
   const a = m.anterior, ganhou = revela && a && (a.vencedor === l || (a.ganhos?.[l] && a.vencedor === "empate"));
   const show = revela && a?.maos?.[l];

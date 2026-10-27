@@ -75,6 +75,7 @@ test('mesa de pôquer: começa pela mesa genérica e só cada um vê as própria
  await db.exec(readFileSync('migrations/2026-10-18-escritorio-postits-presentes.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-mesas.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-poker-mesa-cheia.sql','utf8'));
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-bots-temporadas.sql','utf8'));
  const x=await import('../server/escritorio-mesas.js');
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);

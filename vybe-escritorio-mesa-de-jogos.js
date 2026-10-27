@@ -55,7 +55,9 @@ function escolherJogoDaMesa() {
 function jogoDaMesaEscolhido(chave) {
   const x = escritorioXadrez(), cfg = ESCRITORIO_MESAS[chave];
   x.cfg = cfg;
-  novoXadrez(null);
+  // O lobby do jogo escolhido: chamar gente, os Desafios (bots) e a Temporada.
+  x.extras = null;
+  desenharSalaMesa({ convites: [], aguardando: [], enviados: [], mesa: null }, cfg);
 }
 
 // --- Jogo da velha ---------------------------------------------------------

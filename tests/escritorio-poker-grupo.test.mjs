@@ -82,7 +82,7 @@ test('mesa de pôquer em grupo: convite, recusa, aceite de todos, aposta e conqu
  await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN formato text, ADD COLUMN titulo text, ADD COLUMN clientes_texto text, ADD COLUMN monday_item_id text, ADD COLUMN etapa text;`);
  for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-19-escritorio-gestao-pontos.sql', '2026-10-20-escritorio-complexidade.sql', '2026-10-20-escritorio-bolo-por-peca.sql',
   '2026-10-20-escritorio-conquistas-niveis.sql', '2026-10-20-escritorio-conquistas-producao.sql', '2026-10-21-escritorio-conquistas-dificeis.sql',
-  '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+  '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql', '2026-10-27-escritorio-bots-temporadas.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
  await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
  await sql`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(1,100),(3,100),(7,100),(5,100)`;
  const x = await import('../server/escritorio-mesas.js');
@@ -129,7 +129,7 @@ test('mesa de pôquer em grupo: convite, recusa, aceite de todos, aposta e conqu
 
 test('mesa de pôquer em grupo: quem chamou começa só com quem já aceitou', async (t) => {
  const { db, sql } = await bancoEscritorio(t);
- for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+ for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql', '2026-10-27-escritorio-bots-temporadas.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
  await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
  const x = await import('../server/escritorio-mesas.js');
  const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');
@@ -149,7 +149,7 @@ test('mesa de pôquer em grupo: quem chamou começa só com quem já aceitou', a
 
 test('tempo da vez: estourou, o jogo faz a jogada mínima; três estouros seguidos perdem', async (t) => {
  const { db, sql } = await bancoEscritorio(t);
- for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+ for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql', '2026-10-27-escritorio-bots-temporadas.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
  await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
  const x = await import('../server/escritorio-mesas.js');
  const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');

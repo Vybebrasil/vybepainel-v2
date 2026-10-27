@@ -139,10 +139,11 @@ ${mesaLugaresHtml(j)}<p class="sala-dica">${j.grupo ? "Começa quando todos esti
   // Mesa vazia: eu sentado e os lugares vagos esperando gente.
   const meu = (escritorio.base?.equipe || []).find((p) => String(p.id) === eu) || { id: eu, nome: "Você" };
   const vagos = cfg.grupo ? cfg.grupo - 1 : cfg.escolher ? 1 : 1;
+  const extras = mesaDesafiosHtml(cfg) + mesaTemporadaHtml(cfg);
   const vazia = !convites && !aguardando && !enviados ? `<section class="sala-mesa"><div class="sala-topo"><b>Monte a sua mesa</b></div>
 <div class="sala-lugares">${mesaPessoaChipHtml({ ...meu, nome: "Você" }, "chamou")}${Array.from({ length: vagos }, () => mesaLugarVagoHtml(chamar)).join("")}</div></section>` : "";
   xadrezModal(`${mesaBannerHtml(cfg, cfg.escolher ? "Mesa de Jogos" : `Mesa de ${cfg.nome.toLowerCase()}`, cfg.nota)}
-${convites}${aguardando}${enviados}${rolando}${vazia}
+${convites}${aguardando}${enviados}${rolando}${vazia}${extras}
 <p class="ofc-erro" id="xdz-erro" role="alert"></p>
 <div class="sala-rodape"><button type="button" class="sala-botao cinza" onclick="xadrezFechar()">Fechar</button><button type="button" class="sala-botao laranja grande" onclick="${chamar}">${enviados ? "Chamar mais gente" : "Chamar para jogar"}</button></div>`, "ofc-xdz-sala");
   mesaLobbyRelogio();
@@ -174,6 +175,57 @@ async function recarregarSalaMesa() {
     const chave = (v) => JSON.stringify([v.convites, v.aguardando, v.enviados, v.mesa?.id].map((l) => (Array.isArray(l) ? l.map((j) => [j.id, j.estado, mesaLugaresDo(j).map((p) => p.aceitou)]) : l)));
     if (chave(d) !== chave(x.sala || {})) desenharSalaMesa(d, cfg);
   } catch { /* tenta de novo */ } finally { x.salaLendo = false; }
+}
+// Desafios (bots) e Temporada (ranking quinzenal) do jogo do lobby: lidos uma
+// vez ao abrir e relidos a cada 30 s (o resto do lobby relê a cada 3 s).
+async function mesaLerExtras(cfg) {
+  const x = escritorioXadrez(), jogo = cfg?.extra?.jogo;
+  if (!jogo || jogo === "todos" || x.extrasLendo) return;
+  if (x.extras?.jogo === jogo && Date.now() - x.extras.em < 30000) return;
+  x.extrasLendo = true;
+  try {
+    const [b, t] = await Promise.all([jogo === "xadrez" ? Promise.resolve(null) : escritorioApi("mesa-bots", null, { jogo }).catch(() => null), escritorioApi("temporada", null, { jogo }).catch(() => null)]);
+    x.extras = { jogo, em: Date.now(), bots: b, temporada: t?.temporada || null };
+    if (document.querySelector("#workflow-modal.ofc-xdz-sala") && (x.salaCfg || x.cfg)?.extra?.jogo === jogo) desenharSalaMesa(x.sala || {}, x.salaCfg || x.cfg);
+  } finally { x.extrasLendo = false; }
+}
+const MESA_NIVEL = { facil: "Fácil", medio: "Médio", lendario: "Lendário" };
+function mesaDesafiosHtml(cfg) {
+  const x = escritorioXadrez(), e = x.extras;
+  mesaLerExtras(cfg);
+  if (!e || e.jogo !== cfg?.extra?.jogo || !e.bots?.bots?.length) return "";
+  const cartoes = e.bots.bots.map((b) => `<div class="desafio ${b.nivel}"><span class="desafio-avatar" aria-hidden="true">${b.avatar}</span>
+<div><b>${safeText(b.nome)}</b><em>${MESA_NIVEL[b.nivel]}</em><small>${safeText(b.frase)}</small><span class="desafio-premio">+${b.premio.moedas} 🪙 · +${b.premio.xp} XP${b.vitorias ? ` · venceu ${b.vitorias}×` : ""}</span></div>
+<button type="button" class="sala-botao ${b.nivel === "lendario" ? "vermelho" : "azul"}" onclick="desafiarBotEscritorio('${safeText(b.bot)}',this)">Desafiar</button></div>`).join("");
+  return `<section class="sala-mesa desafios"><div class="sala-topo"><b>⚔️ Desafios</b><small class="desafio-teto">${e.bots.resta_hoje ? `Ainda dá para ganhar ${e.bots.resta_hoje} 🪙 hoje` : "Teto de prêmios de hoje batido: jogue pela glória"}</small></div>${cartoes}</section>`;
+}
+function mesaTemporadaHtml(cfg) {
+  const e = escritorioXadrez().extras, t = e?.jogo === cfg?.extra?.jogo ? e.temporada : null;
+  if (!t) return "";
+  const data = (d) => d.slice(8, 10) + "/" + d.slice(5, 7), fim = new Date(new Date(t.fim + "T00:00:00-03:00").getTime() - 86400000).toISOString().slice(0, 10);
+  const dias = Math.max(0, Math.ceil((new Date(t.termina_em).getTime() - Date.now()) / 86400000));
+  const medalha = ["🥇", "🥈", "🥉"];
+  const lista = t.ranking.length ? `<ol class="temporada-lista">${t.ranking.map((p) => `<li class="${p.eu ? "eu" : ""}"><i>${medalha[p.posicao - 1] || p.posicao + "º"}</i><b>${safeText(String(p.nome).split(" ")[0])}${p.eu ? " (você)" : ""}</b><span>${p.vitorias} ${p.vitorias === 1 ? "vitória" : "vitórias"}</span></li>`).join("")}</ol>`
+    : '<p class="sala-dica">Ninguém venceu nesta temporada ainda. A primeira vitória contra um colega já põe você no topo.</p>';
+  const premios = t.premios.map((p) => `<span>${medalha[p.posicao - 1]} ${p.xp} XP · ${p.moedas} 🪙${p.trofeu ? " · troféu" : ""}</span>`).join("");
+  const ant = t.anterior?.campeoes?.length ? `<p class="sala-dica">Campeões da anterior: ${t.anterior.campeoes.map((c) => `${medalha[c.posicao - 1]} ${safeText(String(c.nome).split(" ")[0])}`).join(" · ")}</p>` : "";
+  return `<section class="sala-mesa temporada"><div class="sala-topo"><b>🏆 Temporada ${data(t.inicio)} a ${data(fim)}</b><small class="desafio-teto">${dias ? `termina em ${dias} ${dias === 1 ? "dia" : "dias"}` : "termina hoje"}</small></div>
+<div class="temporada-premios">${premios}</div>${lista}<p class="sala-dica">Contam só vitórias contra colegas (até 3 contra a mesma pessoa por dia).</p>${ant}</section>`;
+}
+async function desafiarBotEscritorio(bot, botao) {
+  const x = escritorioXadrez(), [jogo, nivel] = String(bot).split(":");
+  const cfg = jogo === "xadrez" ? XADREZ_CFG : Object.values(ESCRITORIO_MESAS).find((c) => c.extra.jogo === jogo);
+  if (!cfg) return;
+  if (botao) botao.disabled = true;
+  try {
+    const r = await escritorioApi("mesa-bot", { jogo, nivel, ...(x.mesa || { camada: escritorio.quarto || "jogos", movel: "bot@0,0" }), chave: xadrezChave() });
+    x.cfg = cfg;
+    cfg.abrir(r.jogo);
+  } catch (e) {
+    if (botao) botao.disabled = false;
+    const el = document.getElementById("xdz-erro");
+    if (el) el.textContent = e.message; else escritorioAviso(e.message);
+  }
 }
 function abrirSalaMesa() {
   const x = escritorioXadrez();
