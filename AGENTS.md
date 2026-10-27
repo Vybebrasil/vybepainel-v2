@@ -265,10 +265,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e `vybe-escritorio-xadrez.js`; regras pelo chess.js só no servidor; aposta
   (moedas e itens) sai ao aceitar e vai para quem ganha numa transação, pelo
   mesmo razão (`xadrez:<id>:…`, sem regra nem XP). Ver docs/escritorio-plano.md.
-  Os outros jogos de mesa (dominó; poker e sinuca depois) não ganham tabela nem
+  Os outros jogos de mesa (dominó, pôquer; sinuca depois) não ganham tabela nem
   rota própria: são motores em `server/escritorio-mesas.js` (tabela
-  `vybe_escritorio_partidas`) e usam a aposta comum de `escritorio-apostas.js`
-  e as telas de convite do xadrez com uma configuração (`DOMINO_CFG`).
+  `vybe_escritorio_partidas`) e usam a aposta comum de `escritorio-apostas.js`,
+  as telas de convite do xadrez e a moldura de `vybe-escritorio-mesas.js`
+  (cada jogo registra `registrarMesaEscritorio({ ..., desenhar })`).
   Gatilhos e efeitos (Wired) ficam em `vybe-escritorio-gatilhos.js`; a
   configuração vai no 7º campo do item, validada no servidor só para `wf_*`.
   Regras do Habbo portadas (sem colar código GPL, decisão do Paulo em

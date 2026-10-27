@@ -1908,3 +1908,26 @@ Segundo jogo do mesmo pedido. A aposta do xadrez virou comum
   configuração (`vybe-escritorio-xadrez.js`, `DOMINO_CFG` em
   `vybe-escritorio-domino.js`); aviso pelo balão `dmn=<id>:<para>:<c|l>`.
 - Próximos: poker e sinuca como motores novos de `escritorio-mesas.js`.
+
+### Pôquer no saloon — 27/10/2026
+
+Terceiro jogo. Nenhuma migração: `vybe_escritorio_partidas` já aceitava
+`jogo = 'poker'`.
+
+- Móvel: `wildwest_table` (a mesa de barril do conjunto Velho Oeste, que
+  combina com o saloon) vira "Mesa de Pôquer" (categoria Jogos).
+- Regras (`server/escritorio-poker.js`): Texas Hold'em para dois até um ficar
+  com todas as fichas. 1.000 fichas para cada um, blinds 10/20 que dobram a
+  cada 10 mãos. O botão paga o small blind e fala primeiro antes do flop;
+  depois, fala primeiro o big blind. Passar, pagar, apostar/aumentar (mínimo =
+  o último aumento), all-in e largar. All-in pago a menos devolve o que ninguém
+  pagou; empate no showdown divide. A força da mão é do pokersolver 2.1.4 (MIT).
+- As fichas são do jogo; a aposta de verdade é a da mesa (VybeCoins, móveis,
+  roupas), paga a quem ganha a partida (`poker:<id>:…`).
+- Baralho e cartas ficam no banco; a vista de cada um mostra as próprias
+  cartas, e as do outro só no showdown (no resumo da mão que acabou).
+- Tela: a moldura das partidas de mesa saiu do dominó para
+  `vybe-escritorio-mesas.js` (reler, jogadores, resultado, empate, desistir,
+  tempo); cada jogo só desenha a sua mesa (`desenhar`) e pede a jogada
+  (`lanceMesaEscritorio`). Aviso pelo balão `pkr=<id>:<para>:<c|l>`.
+- Próximo: sinuca.
