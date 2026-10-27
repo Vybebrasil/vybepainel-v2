@@ -116,3 +116,23 @@ test('ação sem número: acha a peça da própria pessoa pelo cliente ou títul
     assert.match(nada.message, /Não achei peça aberta sua com "brussolo"/);
   } finally { await db.close(); }
 });
+
+test('troca de status devolve a checagem da peça: briefing, OFF e captação (o bot pergunta o que falta)', async () => {
+  const { db, sql } = await banco();
+  try {
+    // Banco antigo, sem as colunas: a troca acontece e a checagem fica nula.
+    const a = await prepararAcao(sql, 1, { acao: 'status', item: 'vybe:13', para: 'Pode Fazer' }, segredo);
+    assert.equal((await confirmarAcao(sql, 1, a.codigo, segredo, { executar })).checagem, null);
+    await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN briefing text; ALTER TABLE vybe_conteudos ADD COLUMN off_audio_chave text; ALTER TABLE vybe_conteudos ADD COLUMN captacao_chave text;
+      CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint,tipo text,em timestamptz,autor_id bigint);
+      CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text);
+      CREATE TABLE vybe_opcoes(coluna_id text,chave text,rotulo text);INSERT INTO vybe_opcoes VALUES('color_mkynd7j8','com_off','Com OFF');
+      CREATE TABLE vybe_captacao(chave text,rotulo text);INSERT INTO vybe_captacao VALUES('agendada','Agendada');
+      UPDATE vybe_conteudos SET captacao_chave='agendada' WHERE id=13;`);
+    const b = await prepararAcao(sql, 1, { acao: 'status', item: 'vybe:13', para: 'Alteração' }, segredo);
+    assert.deepEqual((await confirmarAcao(sql, 1, b.codigo, segredo, { executar })).checagem, { briefing: false, off: null, captacao: 'Agendada', video: true });
+    await db.exec(`UPDATE vybe_conteudos SET off_audio_chave='com_off' WHERE id=13; INSERT INTO vybe_conteudo_updates VALUES(13,'ROTEIRO: abertura na academia');`);
+    const c = await prepararAcao(sql, 1, { acao: 'status', item: 'vybe:13', para: 'Pode Fazer' }, segredo);
+    assert.deepEqual((await confirmarAcao(sql, 1, c.codigo, segredo, { executar })).checagem, { briefing: true, off: 'Com OFF', captacao: 'Agendada', video: true });
+  } finally { await db.close(); }
+});

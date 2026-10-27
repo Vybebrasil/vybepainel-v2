@@ -24,6 +24,22 @@ async function pessoaAtiva(sql, pessoaId) {
   if (!p) throw negar('Pessoa sem acesso ao Vybe OS.');
   return p;
 }
+// O que falta na peça para o próximo passo (Paulo, 27/10/2026: "tem briefing? tem OFF? já foi mandado pro cliente?"):
+// o bot pergunta só o que estiver faltando. Briefing: o campo ou um comentário com as marcas do formulário. OFF e
+// captação: o rótulo escolhido no painel (vazio = ninguém marcou). Sem as tabelas (banco antigo), não pergunta nada.
+async function checagemDaPeca(sql, c) {
+  try {
+    const { MARCAS_BRIEFING } = await import('./briefing.js');
+    const [l] = await sql`SELECT (COALESCE(btrim(x.briefing), '') <> ''
+        OR EXISTS (SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id = x.id AND e.tipo = 'briefing')
+        OR EXISTS (SELECT 1 FROM vybe_conteudo_updates u WHERE u.conteudo_id = x.id AND u.corpo ~* ${MARCAS_BRIEFING})) AS briefing,
+      (SELECT o.rotulo FROM vybe_opcoes o WHERE o.coluna_id = 'color_mkynd7j8' AND o.chave = x.off_audio_chave) AS off,
+      (SELECT k.rotulo FROM vybe_captacao k WHERE k.chave = x.captacao_chave) AS captacao
+      FROM vybe_conteudos x WHERE x.id = ${Number(c.id)}`;
+    if (!l) return null;
+    return { briefing: Boolean(l.briefing), off: l.off || null, captacao: l.captacao || null, video: ehVideo(c) };
+  } catch { return null; }
+}
 // Peça pelo número do painel (vybe:N ou N curto) ou pelo número do Monday (N longo).
 async function pecaPorReferencia(sql, ref) {
   const texto = String(ref || '').trim();
@@ -226,5 +242,6 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     return { feito: `✅ Comentário registrado em "${c.titulo}".`, link: linkDaAtividade(c.ref) };
   }
   const r = await fazer.trocarStatus(sql, quem, { item: c.ref, para: t.v });
-  return { feito: `✅ "${c.titulo}" agora está em *${r?.para || t.v}*.${r?.automacao_pendente ? '\n⚠️ A automação do status ficou pendente; confira no painel.' : ''}`, link: linkDaAtividade(c.ref) };
+  return { feito: `✅ "${c.titulo}" agora está em *${r?.para || t.v}*.${r?.automacao_pendente ? '\n⚠️ A automação do status ficou pendente; confira no painel.' : ''}`, link: linkDaAtividade(c.ref),
+    checagem: await checagemDaPeca(sql, c) };
 }
