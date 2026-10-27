@@ -17,7 +17,7 @@ const ORDEM_PAPEIS=['criacao','direcao_arte','captacao','agendamento','atendimen
 const quando={type:'string',enum:['hoje','amanha']};
 const diaPedido=(a,agora)=>{const hoje=diaAssistente(agora);return a.quando==='amanha'?new Date(Date.parse(hoje+'T12:00:00Z')+864e5).toISOString().slice(0,10):hoje;};
 // Os textos dos geradores falam do dia como "hoje"; pedido de amanhã troca para "no dia" (a data vai no título).
-const paraAmanha=(a,texto)=>a.quando!=='amanha'?texto:texto.replace(/Prazo amanhã/g,'Prazo no dia seguinte').replace(/hoje nem amanhã/g,'nesse dia nem no seguinte').replace(/hoje/g,'no dia');
+const paraAmanha=(a,texto)=>a.quando!=='amanha'?texto:texto.replace(/Prazo amanhã/g,'Prazo no dia seguinte').replace(/hoje nem amanhã/g,'nesse dia nem no seguinte').replace(/\bhoje\b/g,'no dia');
 const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
