@@ -44,23 +44,51 @@ async function pecaPorReferencia(sql, ref) {
 // entre as peças abertas em que a própria pessoa é responsável, pelo nome do cliente ou por um pedaço do título.
 // Uma só: segue para a confirmação. Várias: lista com o número de cada uma. Nenhuma: diz isso.
 const semAcento = (v) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+// Palavras que não identificam peça (do jeito que se fala e do que a transcrição de áudio erra).
+const GENERICAS = new Set(('a o as os um uma de da do das dos na no em para pra pro por com que eu tu ele ela minha meu minhas meus essa esse '
+  + 'tarefa tareza tarefas demanda demandas peca pecas card cards reels post posts carrossel story video arte atividade job trabalho '
+  + 'tenho to estou tava hoje agora amanha cliente clientes coloque coloca colocar muda mude mudar passa passe marca marque bota bote '
+  + 'deixa deixe poe ponha atualiza status como vou iniciar comecar comecando fazendo andamento execucao nao e era disse falei quis '
+  + 'dizer isso aquela aquele sim ok certo vybe').split(' '));
+// Forma "pelo som" (Reriston, 27/10/2026: o áudio escreveu "Bruce Lou" para Brussolo): c/ç/z/ss viram s, ou vira o,
+// letras dobradas viram uma, sem acento.
+const pelaFala = (w) => semAcento(w).replace(/ph/g, 'f').replace(/ch/g, 'x').replace(/lh/g, 'l').replace(/nh/g, 'n').replace(/qu/g, 'k')
+  .replace(/c(?=[ei])/g, 's').replace(/c/g, 'k').replace(/[zç]/g, 's').replace(/ou/g, 'o').replace(/w/g, 'v').replace(/y/g, 'i').replace(/(.)\1+/g, '$1');
+const pares = (t) => { const m = new Map(); for (let i = 0; i < t.length - 1; i++) { const x = t.slice(i, i + 2); m.set(x, (m.get(x) || 0) + 1); } return m; };
+const parecido = (a, b) => { const ma = pares(a), mb = pares(b); let c = 0; for (const [x, n] of ma) c += Math.min(n, mb.get(x) || 0); const t = Math.max(0, a.length - 1) + Math.max(0, b.length - 1); return t ? (2 * c) / t : 0; };
+// Peça sem número (Reriston, 27/10/2026: "coloque a tarefa que eu tenho hoje do Brussolo como em andamento"): procura só
+// entre as peças abertas em que a própria pessoa é responsável. Cada palavra que sobra (cliente, pedaço do título) conta
+// ponto se bate pelo começo ou pelo som com o cliente ou o título; duas palavras juntas também ("bruce lou" = brusolo).
+// A peça com mais pontos, se for só uma, segue para a confirmação; empate vira lista com o número; nada, diz isso.
 async function pecaDaPessoaPorBusca(sql, pessoaId, busca) {
-  const termo = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (termo.length < 3) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
+  const termos = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3 && !GENERICAS.has(x));
+  if (!termos.length) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
+  const consultas = [...termos.map((t) => [t]), ...termos.slice(1).map((t, i) => [termos[i], t])];
   const linhas = await sql`SELECT c.id::text AS id, c.monday_item_id::text AS monday_item_id, c.titulo, c.prazo::text AS prazo,
       COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id), '{}') AS clientes
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND NOT COALESCE(s.final, false)
       AND EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
     ORDER BY c.prazo NULLS LAST, c.id LIMIT 200`;
-  // Cada palavra do termo (com 3+ letras) precisa aparecer no cliente ou no título, pelo começo (60% da palavra):
-  // a transcrição de áudio erra o fim ("brussulo" acha "Brussolo Ristorante").
-  const palavras = termo.split(' ').filter((x) => x.length >= 3);
-  const achadas = linhas.filter((l) => { const alvo = semAcento(l.titulo + ' ' + l.clientes.join(' ')); return palavras.every((x) => alvo.includes(x.slice(0, Math.max(4, Math.ceil(x.length * 0.6))))); });
-  if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${String(busca).slice(0, 60)}". Mande o número da peça (o do link).`);
-  if (achadas.length > 1) throw invalido(`Achei ${achadas.length} peças suas com "${String(busca).slice(0, 60)}":\n` +
+  const pontos = (l) => {
+    const palavras = semAcento(l.titulo + ' ' + l.clientes.join(' ')).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3);
+    const alvos = [...palavras, ...palavras.slice(1).map((w, i) => palavras[i] + w)];
+    let n = 0;
+    for (const q of consultas) {
+      const junto = q.join(''), som = pelaFala(junto);
+      const bate = alvos.some((w) => w.startsWith(junto.slice(0, Math.max(4, Math.ceil(junto.length * 0.6)))) || parecido(som, pelaFala(w)) >= 0.6);
+      if (bate) n += q.length;
+    }
+    return n;
+  };
+  const notas = linhas.map((l) => ({ l, n: pontos(l) })).filter((x) => x.n > 0);
+  const melhor = Math.max(0, ...notas.map((x) => x.n));
+  const achadas = notas.filter((x) => x.n === melhor).map((x) => x.l);
+  const pedido = termos.join(' ');
+  if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${pedido.slice(0, 60)}". Responda citando esta mensagem com o nome do cliente ou o número da peça (o do link).`);
+  if (achadas.length > 1) throw invalido(`Achei ${achadas.length} peças suas com "${pedido.slice(0, 60)}":\n` +
     achadas.slice(0, 6).map((l) => `- ${l.titulo || 'Sem título'} (${l.clientes.join(' / ') || 'sem cliente'}) · número ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
-    '\n\nRepita com o número, por exemplo: muda a ' + (achadas[0].monday_item_id || 'vybe:' + achadas[0].id) + ' para Em andamento');
+    '\n\nResponda citando esta mensagem só com o número da peça.');
   return achadas[0].monday_item_id || 'vybe:' + achadas[0].id;
 }
 async function temFuncao(sql, pessoaId, funcao) {

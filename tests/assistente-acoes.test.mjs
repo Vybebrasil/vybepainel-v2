@@ -106,6 +106,11 @@ test('ação sem número: acha a peça da própria pessoa pelo cliente ou títul
     // Hebravet: duas peças abertas da Jady → lista com os números.
     const varias = await prepararAcao(sql, 2, { acao: 'status', busca: 'hebravet', para: 'Em andamento' }, segredo).catch((e) => e);
     assert.match(varias.message, /Achei 2 peças suas com "hebravet":\n- Card A \(Hebravet\) · número vybe:10\n- Card C \(Hebravet\) · número vybe:12/);
+    // Do jeito que veio do áudio do Reriston: "tareza", "Bruce Lou" (= Brussolo) e "vou iniciar" no meio da frase.
+    for (const frase of ['tareza que eu tenho para hoje do cliente brussulo vou iniciar', 'não é tareza, é tarefa. E o cliente que eu disse é o Bruce Lou', 'brussolo']) {
+      const r2 = await prepararAcao(sql, 2, { acao: 'status', busca: frase, para: 'Para aprovação' }, segredo).catch((e) => e);
+      assert.match(String(r2.resumo || r2.message), /Massa da casa/, frase);
+    }
     // Peça de outra pessoa nunca entra: Tainara (3) não é responsável por nada do Brussolo.
     const nada = await prepararAcao(sql, 3, { acao: 'status', busca: 'brussolo', para: 'Em andamento' }, segredo).catch((e) => e);
     assert.match(nada.message, /Não achei peça aberta sua com "brussolo"/);
