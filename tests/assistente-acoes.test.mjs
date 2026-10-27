@@ -263,3 +263,15 @@ test('trocar responsável (redistribuir): só administração; troca de quem é 
     assert.deepEqual(trocas, [['paulo@x', { item: 'vybe:10', pessoas: ['68997024'] }]]);
   } finally { await db.close(); }
 });
+
+test('criar com briefing (áudio do cliente pedindo peça nova): o resumo mostra e a peça nasce com ele', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`CREATE TABLE IF NOT EXISTS vybe_clientes_extra(x int); ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true; INSERT INTO vybe_clientes VALUES(9,'Gonzalez Gastronomia',true);`);
+    const p = await prepararAcao(sql, 1, { acao: 'criar', formato: 'Card', cliente: 'Gonzalez', titulo: 'Rodízio de quarta', veiculacao: '2099-01-07', briefing: 'Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante.' }, segredo);
+    assert.match(p.resumo, /\n📝 Briefing: “Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante\.”$/);
+    const criados = [];
+    await confirmarAcao(sql, 1, p.codigo, segredo, { executar: { criarConteudo: async (s, quem, dados) => { criados.push(dados); return { conteudo_id: 9 }; } } });
+    assert.equal(criados[0].briefing, 'Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante.');
+  } finally { await db.close(); }
+});

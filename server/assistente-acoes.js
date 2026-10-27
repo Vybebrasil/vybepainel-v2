@@ -209,7 +209,9 @@ async function montarCriacao(sql, pedido, agora) {
     responsavel = ps.length === 1 ? ps[0] : null;
     if (!responsavel) throw invalido(ps.length ? `Mais de uma pessoa com esse nome: ${ps.map((p) => p.nome).join(', ')}.` : 'Não achei esse responsável.');
   }
-  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo, responsavel };
+  // Briefing junto (áudio do cliente pedindo peça nova, 27/10/2026): vai no campo de briefing da peça criada.
+  const briefing = String(pedido.briefing || '').trim().slice(0, 3000);
+  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo, responsavel, ...(briefing ? { briefing } : {}) };
 }
 
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
@@ -242,7 +244,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
   if (acao === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}`;
+    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}`;
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
@@ -327,7 +329,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     if (!nova) throw invalido('Esta confirmação já foi usada.');
     const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
-    const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, formato: d.formato, veiculacao: d.veiculacao, prazo: d.prazo,
+    const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, formato: d.formato, veiculacao: d.veiculacao, prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
       responsaveis: d.responsavel ? [d.responsavel.monday_id] : [] });
     const ref = r?.item_id || (r?.conteudo_id ? 'vybe:' + r.conteudo_id : null);
     return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).`, link: ref ? linkDaAtividade(ref) : null };
