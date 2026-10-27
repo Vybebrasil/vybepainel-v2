@@ -91,7 +91,7 @@ test('rascunho é isolado por pessoa/sala e não guarda a carteira',()=>{
 });
 
 test('acabamento no editor não grava perfil; desfazer e cancelar preservam o perfil salvo',async()=>{
- const {c,r}=contexto();c.structuredClone=structuredClone;c.confirm=()=>true;
+ const {c,r}=contexto();c.structuredClone=structuredClone;c.confirmarNoPainel=async()=>true;
  const fonte=readFileSync('vybe-escritorio.js','utf8');
  vm.runInContext(fonte.slice(fonte.indexOf('function escritorioRaizQuarto('),fonte.indexOf('function escritorioAmbienteDoQuarto(')),c);
  vm.runInContext(readFileSync('vybe-escritorio-ficha.js','utf8'),c);
@@ -101,7 +101,7 @@ test('acabamento no editor não grava perfil; desfazer e cancelar preservam o pe
  await r(`estiloSalaEscritorio('sala_piso','clara')`);
  assert.equal(r('escritorio.perfil.sala_piso'),'madeira');assert.equal(r('escritorioPerfilDecoracao().sala_piso'),'clara');
  r('desfazerEditorEscritorio()');assert.equal(r('escritorioPerfilDecoracao().sala_piso'),'madeira');
- await r(`estiloSalaEscritorio('sala_luz','quente')`);r(`escritorio.mapa.definirMoveis=()=>{};escritorioMoveisAtuais=()=>[];sairEditorEscritorio()`);
+ await r(`estiloSalaEscritorio('sala_luz','quente')`);await r(`escritorio.mapa.definirMoveis=()=>{};escritorioMoveisAtuais=()=>[];sairEditorEscritorio()`);
  assert.equal(r('escritorio.perfil.sala_luz'),'');assert.equal(r('escritorio.edicao'),null);
 });
 

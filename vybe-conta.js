@@ -394,8 +394,8 @@ async function processarReplicaAgora(botao, retomarId=null) {
   finally { if(botao)botao.disabled=false; }
 }
 
-function retomarCopiaConferida(id, botao) {
-  if (!confirm('Confira primeiro no Monday se esta operação NÃO foi aplicada. Repetir uma criação já concluída pode duplicar item ou comentário. Confirmou que ela ainda não existe?')) return;
+async function retomarCopiaConferida(id, botao) {
+  if (!await confirmarNoPainel('Confira primeiro no Monday se esta operação NÃO foi aplicada. Repetir uma criação já concluída pode duplicar item ou comentário. Confirmou que ela ainda não existe?')) return;
   return processarReplicaAgora(botao,id);
 }
 
@@ -430,20 +430,20 @@ async function chamarClientes(corpo, feito) {
   } catch (erro) { showToast(erro.message, 'error', 6000); }
 }
 
-function criarCliente() {
-  const nome = prompt('Nome do novo cliente, exatamente como deve aparecer no painel:');
+async function criarCliente() {
+  const nome = await nomearNoPainel('Nome do novo cliente, exatamente como deve aparecer no painel:');
   if (nome === null || !String(nome).trim()) return;
   chamarClientes({ acao:'criar', nome }, 'Cliente criado.');
 }
 
-function renomearCliente(id, atual) {
-  const nome = prompt('Novo nome do cliente:', atual);
+async function renomearCliente(id, atual) {
+  const nome = await nomearNoPainel('Novo nome do cliente:', atual);
   if (nome === null || !String(nome).trim() || nome === atual) return;
   chamarClientes({ acao:'renomear', id, nome }, 'Cliente renomeado.');
 }
 
-function acaoCliente(id, acao) {
-  if (acao === 'desativar' && !confirm('Tirar este cliente do painel?\n\nO histórico dele continua; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.')) return;
+async function acaoCliente(id, acao) {
+  if (acao === 'desativar' && !await confirmarNoPainel('Tirar este cliente do painel?\n\nO histórico dele continua; ele só deixa de aparecer nas telas e não pode receber conteúdo novo.')) return;
   chamarClientes({ acao, id }, acao === 'ativar' ? 'Cliente de volta ao painel.' : 'Cliente fora do painel.');
 }
 
@@ -484,8 +484,8 @@ async function chamarOpcoes(corpo) {
 
 function alternarOpcao(coluna, chave) { chamarOpcoes({ acao:'alternar', coluna, chave }); }
 
-function criarOpcao(coluna, titulo) {
-  const rotulo = prompt(`Nova opção para “${titulo}”:`);
+async function criarOpcao(coluna, titulo) {
+  const rotulo = await nomearNoPainel(`Nova opção para “${titulo}”:`);
   if (rotulo === null || !String(rotulo).trim()) return;
   chamarOpcoes({ acao:'criar', coluna, rotulo });
 }
@@ -512,7 +512,7 @@ async function trocarMinhaSenha() {
 async function acaoPessoa(email, acao) {
   const rotulos = { bloquear: 'tirar o acesso de', liberar: 'liberar', tornar_admin: 'tornar administrador',
                     tirar_admin: 'tirar o administrador de', destravar: 'destravar' };
-  if (acao === 'bloquear' && !confirm(`Tirar o acesso de ${email}?\n\nA pessoa deixa de entrar no painel. Dá para liberar de novo depois.`)) return;
+  if (acao === 'bloquear' && !await confirmarNoPainel(`Tirar o acesso de ${email}?\n\nA pessoa deixa de entrar no painel. Dá para liberar de novo depois.`)) return;
   try {
     const r = await fetch(PESSOAS_API, {
       method: 'POST', credentials: 'same-origin',
@@ -528,7 +528,7 @@ async function acaoPessoa(email, acao) {
 // A senha é digitada por quem administra, aqui no navegador — não passa por
 // lugar nenhum além do envio para gravar.
 async function redefinirSenhaDe(email, nome) {
-  const senha = prompt(`Nova senha para ${nome} (${email}).\n\nMínimo 8 caracteres. Anote antes de confirmar: depois de gravada ninguém consegue lê-la de volta.`);
+  const senha = await nomearNoPainel(`Nova senha para ${nome} (${email}).\n\nMínimo 8 caracteres. Anote antes de confirmar: depois de gravada ninguém consegue lê-la de volta.`);
   if (senha === null) return;
   if (String(senha).length < 8) { showToast('A senha precisa de pelo menos 8 caracteres.', 'error', 5000); return; }
   try {

@@ -782,12 +782,12 @@ async function salvarPinturaEscritorio(payload=escritorioPayloadDecoracao()) {
     escritorioAviso("A pintura não foi salva: " + e.message);
   }
 }
-function abrirEstiloSalaEscritorio() {
+async function abrirEstiloSalaEscritorio() {
   const mesa = escritorioMinhaMesa();
   if (!mesa) return escritorioAviso("Você ainda não tem sala no escritório.");
   document.getElementById("office-ficha")?.close?.();
   if (!escritorio.edicao || escritorio.edicao.camada !== mesa.ambiente.id) {
-    if (escritorio.edicao?.mudou && !confirm("Descartar as mudanças desta edição?")) return;
+    if (escritorio.edicao?.mudou && !await confirmarNoPainel("Descartar as mudanças desta edição?")) return;
     escritorio.edicao = null;
     abrirEditorEscritorio(mesa.ambiente.id);
   }

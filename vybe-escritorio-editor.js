@@ -112,8 +112,8 @@ function pessoasEditorEscritorio() {
   document.querySelector("#painel-escritorio .ofc")?.toggleAttribute("data-com-pessoas", e.pessoas);
   renderBarraEditorEscritorio();
 }
-function sairEditorEscritorio() {
-  if (escritorio.edicao?.mudou && !confirm("Descartar as mudanças desta edição?")) return;
+async function sairEditorEscritorio() {
+  if (escritorio.edicao?.mudou && !await confirmarNoPainel("Descartar as mudanças desta edição?")) return;
   const plantaMudou = Boolean(escritorio.edicao);
   escritorioLimparRascunho();
   escritorio.edicao = null;
@@ -146,7 +146,7 @@ async function salvarEditorEscritorio() {
   try {
     const conferencia = await conferirConstrucaoEditorEscritorio();
     if (!conferencia) { e.salvando = false; renderBarraEditorEscritorio(); return; }
-    if (conferencia.problemas.length && !confirm(`A conferência encontrou ${conferencia.problemas.length} pontos na construção. Salvar assim mesmo? Você pode consultar a lista em Conferir construção.`)) {
+    if (conferencia.problemas.length && !await confirmarNoPainel(`A conferência encontrou ${conferencia.problemas.length} pontos na construção. Salvar assim mesmo? Você pode consultar a lista em Conferir construção.`)) {
       e.salvando = false; renderBarraEditorEscritorio(); return;
     }
     // A planta desenhada vai junto com os móveis (o servidor confere os dois).
@@ -426,11 +426,11 @@ function apagarSelecionadoEscritorio() {
 }
 // Guardar tudo (como "pegar tudo" do Habbo): os móveis voltam para o
 // inventário; os quadros e tapetes de imagem ficam. Desfazer traz de volta.
-function guardarTudoEscritorio() {
+async function guardarTudoEscritorio() {
   const e = escritorio.edicao;
   if (!e || escritorioCamadaComum(e.camada)) return;
   const n = e.itens.filter((it) => !escritorioImagemDe(it[0])).length;
-  if (!n || !confirm(`Guardar os ${n} móveis desta sala no inventário? Você ainda pode desfazer antes de salvar.`)) return;
+  if (!n || !await confirmarNoPainel(`Guardar os ${n} móveis desta sala no inventário? Você ainda pode desfazer antes de salvar.`)) return;
   e.itens = e.itens.filter((it) => escritorioImagemDe(it[0]));
   e.sel = null; e.selVarios = new Set();
   escritorio.mapa?.destacar(null);
@@ -1448,7 +1448,7 @@ async function enviarImagemEscritorio(form) {
 }
 async function apagarImagemEscritorio(id) {
   const e = escritorio.edicao;
-  if (!e || !confirm("Apagar esta imagem? Ela sai do mapa também.")) return;
+  if (!e || !await confirmarNoPainel("Apagar esta imagem? Ela sai do mapa também.")) return;
   if (escritorio.base.demo) return escritorioAviso("A demonstração não apaga imagens.");
   try {
     const r = await escritorioApi("imagem-apagar", { id });
@@ -1466,10 +1466,10 @@ async function apagarImagemEscritorio(id) {
   }
 }
 
-function trocarCamadaEditorEscritorio(camada) {
+async function trocarCamadaEditorEscritorio(camada) {
   const e = escritorio.edicao;
   if (!e || camada === e.camada) return;
-  if (e.mudou && !confirm("Descartar as mudanças em " + escritorioNomeCamada(e.camada) + "?")) return renderBarraEditorEscritorio();
+  if (e.mudou && !await confirmarNoPainel("Descartar as mudanças em " + escritorioNomeCamada(e.camada) + "?")) return renderBarraEditorEscritorio();
   escritorioLimparRascunho();
   escritorio.edicao = null;
   escritorioAplicarSalas();
@@ -1690,9 +1690,9 @@ async function duplicarSelecionadoEscritorio() {
   }
   escritorioAviso("Não há espaço livre ao lado para a cópia.");
 }
-function restaurarPadraoEditorEscritorio() {
+async function restaurarPadraoEditorEscritorio() {
   const e = escritorio.edicao;
-  if (!e || !confirm("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
+  if (!e || !await confirmarNoPainel("Voltar " + escritorioNomeCamada(e.camada) + " ao desenho original? Você ainda pode desfazer antes de salvar.")) return;
   const a = escritorioAmbienteDoQuarto(e.camada);
   if(escritorio.perfil?.quarto_configurado && !escritorioCamadaComum(e.camada)) {aplicarModeloSalaEscritorio("trabalho");return;}
   // Sala comum: volta aos móveis padrão do código (o que estava antes do editor).
@@ -1924,9 +1924,9 @@ async function soltarColarEscritorio(x, y) {
 function escritorioConjuntos() {
   try { return JSON.parse(localStorage.getItem("vybe-escritorio-conjuntos") || "[]").filter((c) => c && Array.isArray(c.itens)); } catch { return []; }
 }
-function salvarConjuntoEscritorio() {
+async function salvarConjuntoEscritorio() {
   if (!copiarSelecaoEscritorio(true)) return escritorioAviso("Selecione os móveis do conjunto primeiro.");
-  const nome = (prompt("Nome do conjunto (ex.: minha estação de trabalho):") || "").trim().slice(0, 40);
+  const nome = (await nomearNoPainel("Nome do conjunto (ex.: minha estação de trabalho):") || "").trim().slice(0, 40);
   if (!nome) return;
   const lista = [{ nome, itens: escritorio.copiaEditor }, ...escritorioConjuntos().filter((c) => c.nome !== nome)].slice(0, 30);
   try { localStorage.setItem("vybe-escritorio-conjuntos", JSON.stringify(lista)); } catch {}
@@ -1938,9 +1938,9 @@ function escritorioConjuntosHtml() {
   return `<p class="ofc-nota">Selecione móveis (Shift + clique ou Shift + arrastar no piso) e use "Guardar conjunto". Ficam guardados neste computador.</p>
 <div class="ofc-modelos">${lista.map((c, i) => `<div class="ofc-conjunto"><button type="button" onclick="colarEscritorio(escritorioConjuntos()[${i}].itens)"><b>${safeText(c.nome)}</b><small>${c.itens.length} ${c.itens.length === 1 ? "móvel" : "móveis"} · clique e depois no piso</small></button><button type="button" class="ofc-imagem-apagar" onclick="apagarConjuntoEscritorio(${i})" aria-label="Apagar o conjunto ${safeText(c.nome)}">Apagar</button></div>`).join("") || '<p class="ofc-nota">Nenhum conjunto ainda.</p>'}</div>`;
 }
-function apagarConjuntoEscritorio(i) {
+async function apagarConjuntoEscritorio(i) {
   const lista = escritorioConjuntos();
-  if (!lista[i] || !confirm(`Apagar o conjunto "${lista[i].nome}"?`)) return;
+  if (!lista[i] || !await confirmarNoPainel(`Apagar o conjunto "${lista[i].nome}"?`)) return;
   lista.splice(i, 1);
   try { localStorage.setItem("vybe-escritorio-conjuntos", JSON.stringify(lista)); } catch {}
   renderEscritorio();
@@ -2410,7 +2410,7 @@ ${kits.length ? `<section class="ofc-loja-destaque"><div class="ofc-loja-destaqu
 }
 async function comprarKitEscritorio(kit) {
   const k = escritorio.base?.economia?.kits?.find((x) => x.chave === kit);
-  if (!k || !confirm(`Comprar o ${k.nome} por ${k.preco.toLocaleString("pt-BR")} moedas? Os ${k.classes.length} móveis vão para o seu inventário.`)) return;
+  if (!k || !await confirmarNoPainel(`Comprar o ${k.nome} por ${k.preco.toLocaleString("pt-BR")} moedas? Os ${k.classes.length} móveis vão para o seu inventário.`)) return;
   try {
     const r = await escritorioApi("comprar-kit", { kit, chave: crypto.randomUUID() });
     if (r.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia };
@@ -2429,14 +2429,14 @@ function experimentarMovelEscritorio(classe) {
   escritorioAviso(`Experimentando ${escritorioNomeDaClasse(classe)}: coloque onde quiser. Para salvar, compre na Loja ou tire do quarto.`);
 }
 // Guardar tudo: tira do quarto o que não é essencial (volta ao inventário ao salvar).
-function guardarTudoEditorEscritorio() {
+async function guardarTudoEditorEscritorio() {
   const e = escritorio.edicao;
   if (!e) return;
   const essenciais = escritorio.base?.quartos?.essenciais || [];
   const ficam = e.itens.filter((it) => essenciais.includes(it[0]) || escritorioImagemDe(it[0]));
   const saem = e.itens.length - ficam.length;
   if (!saem) { escritorioAviso("Não há móveis para guardar neste andar."); return; }
-  if (!confirm(`Guardar ${saem} ${saem === 1 ? "móvel" : "móveis"} no inventário? Os essenciais grátis ficam. Você ainda pode desfazer antes de salvar.`)) return;
+  if (!await confirmarNoPainel(`Guardar ${saem} ${saem === 1 ? "móvel" : "móveis"} no inventário? Os essenciais grátis ficam. Você ainda pode desfazer antes de salvar.`)) return;
   e.itens = ficam; e.sel = null; e.selVarios = new Set();
   escritorioEditorMudou();
   escritorioAviso(`${saem} ${saem === 1 ? "móvel guardado" : "móveis guardados"}. Clique em Salvar para confirmar.`);
@@ -2469,14 +2469,14 @@ function escritorioGuardarRascunho() {
  try { localStorage.setItem(escritorioChaveRascunho(),JSON.stringify({versao:e.versao,em:Date.now(),foto:escritorioFotoEdicao(e)})); } catch { escritorioAviso('Não foi possível guardar o rascunho neste navegador. Salve antes de sair.'); }
 }
 function escritorioLimparRascunho() { try { localStorage.removeItem(escritorioChaveRascunho()); } catch {} }
-function escritorioRecuperarRascunho() {
+async function escritorioRecuperarRascunho() {
  const e=escritorio.edicao;
  try {
   const r=JSON.parse(localStorage.getItem(escritorioChaveRascunho()) || 'null');
   if(!r || Date.now()-r.em>7*86400000 || typeof r.foto!=='string' || r.foto.length>1000000) return;
   const f=JSON.parse(r.foto);
   if(!Array.isArray(f.itens) || f.itens.length>1500 || !f.itens.every(it=>Array.isArray(it)&&/^[a-z0-9_]+$/i.test(it[0]))) return;
-  if(!confirm(`Recuperar o rascunho desta sala?${r.versao!==e.versao ? ' Há uma versão mais recente no servidor; confira antes de salvar.' : ''}`)) return;
+  if(!await confirmarNoPainel(`Recuperar o rascunho desta sala?${r.versao!==e.versao ? ' Há uma versão mais recente no servidor; confira antes de salvar.' : ''}`)) return;
   e.itens=f.itens; e.celdas=f.celdas ?? undefined;
   Object.assign(e.decoracao,escritorioAcabamento(f.pintura));
   e.passos.push(escritorioFotoEdicao(e)); e.mudou=true;
@@ -2500,7 +2500,7 @@ async function escritorioComprarUnidades(classe,quantidade) {
  if(info.marco || !info.naVitrine || info.restante===0) {escritorioAviso(info.marco?'Esta peça é prêmio de conquista.':info.restante===0?'Estoque esgotado.':'Fora da vitrine desta semana.');return false;}
  if(info.restante!=null && info.restante<quantidade) {escritorioAviso(`Só há ${info.restante} unidades disponíveis.`);return false;}
  if(custo>saldo){escritorioAviso(`Faltam ${(custo-saldo).toLocaleString('pt-BR')} VybeCoins para esta compra.`);return false;}
- if(!confirm(`Comprar ${quantidade} × ${escritorioNomeDaClasse(classe)} por ${custo.toLocaleString('pt-BR')} VybeCoins?\nSaldo: ${saldo} → ${saldo-custo}.\nAs peças ficam no inventário, mesmo se cancelar ou desfizer a decoração.`))return false;
+ if(!await confirmarNoPainel(`Comprar ${quantidade} × ${escritorioNomeDaClasse(classe)} por ${custo.toLocaleString('pt-BR')} VybeCoins?\nSaldo: ${saldo} → ${saldo-custo}.\nAs peças ficam no inventário, mesmo se cancelar ou desfizer a decoração.`))return false;
  return escritorioAcaoMovel(classe,true,quantidade,false);
 }
 function escritorioBloquearSelecionado(){const e=escritorio.edicao,it=e?.itens[e.sel];if(!it)return;e.bloqueados ||= new Set();e.bloqueados.has(it)?e.bloqueados.delete(it):e.bloqueados.add(it);renderBarraEditorEscritorio();}

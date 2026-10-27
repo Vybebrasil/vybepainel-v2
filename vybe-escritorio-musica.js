@@ -191,7 +191,7 @@ function desenharFilaMusicaEscritorio() {
   if (!m) { el.innerHTML = '<p class="ofc-nota">Carregando a fila…</p>'; return; }
   if (!m.fila.length) { el.innerHTML = '<p class="ofc-nota">A fila está vazia. Cole um link acima para começar.</p>'; return; }
   el.innerHTML = `<ol class="ofc-musica-lista">${m.fila.map((f, i) => `<li${i === m.indice ? ' aria-current="true"' : ""}><img src="${f.kind === "video" ? `https://i.ytimg.com/vi/${f.videoId}/default.jpg` : ""}" alt="" width="48" height="36" loading="lazy" ${f.kind === "video" ? "" : "hidden"}><span><b>${i === m.indice ? (m.tocando ? "Tocando agora" : "Pausada") : f.kind === "playlist" ? "Playlist" : "Música"}</b><small>${f.kind === "playlist" ? "Playlist do YouTube" : "Vídeo do YouTube"} · de ${safeText(String(f.por || ""))}</small></span><button type="button" onclick="controleMusicaEscritorio('tocarItem','${f.id}')" ${i === m.indice && m.tocando ? "disabled" : ""}>Tocar</button><button type="button" class="perigo" onclick="controleMusicaEscritorio('remover','${f.id}')" aria-label="Tirar da fila">Tirar</button></li>`).join("")}</ol>
-<div class="ofc-musica-rodape"><button type="button" class="ofc-secundario" onclick="if(confirm('Limpar a fila inteira?'))controleMusicaEscritorio('limpar')">Limpar fila</button></div>`;
+<div class="ofc-musica-rodape"><button type="button" class="ofc-secundario" onclick="confirmarNoPainel('Limpar a fila inteira?').then((ok)=>{if(ok)controleMusicaEscritorio('limpar')})">Limpar fila</button></div>`;
 }
 function adicionarMusicaEscritorio(form) {
   const erro = document.getElementById("office-musica-erro");

@@ -149,13 +149,13 @@ async function criarTarefa(itemId) {
 
 async function renomearTarefa(subitemId, itemId, alvo) {
   const atual = alvo?.textContent || '';
-  const novo = window.prompt('Nome da subdemanda:', atual);
+  const novo = await nomearNoPainel('Nome da subdemanda:', atual);
   if (novo === null || novo.trim() === atual.trim()) return;
   await mexerNaTarefa({ operacao: 'titulo', subitem: subitemId, titulo: novo.trim() }, itemId);
 }
 
 async function removerTarefa(subitemId, itemId, titulo) {
-  if (!window.confirm(`Remover a subdemanda "${titulo}"?`)) return;
+  if (!await confirmarNoPainel(`Remover a subdemanda "${titulo}"?`)) return;
   const d = await mexerNaTarefa({ operacao: 'remover', subitem: subitemId }, itemId);
   if (d) showToast('✓ Subdemanda removida', 'ok');
 }

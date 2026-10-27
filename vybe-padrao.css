@@ -198,3 +198,14 @@
 .pv-sugestoes button.on{border-color:#ff8a35;color:#fff;background:linear-gradient(180deg,rgba(255,138,53,.22),rgba(255,138,53,.07));box-shadow:0 8px 18px -12px #ff8a35}
 .pv-sugestoes button.on::before{content:"✓ ";color:#ff9a5c}
 .workflow-modal section[data-bloqueio-passo] .workflow-title{margin-top:10px!important;font-size:22px!important}
+
+/* ---- Confirmação e "dar nome" do painel (no lugar das caixinhas do navegador) ---- */
+.cli-pergunta{background:rgba(5,6,10,.62)!important;backdrop-filter:blur(3px)!important}
+.cli-pergunta-caixa{border-radius:24px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important;padding:22px!important}
+.cli-pergunta-caixa h3{font:700 21px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em!important;color:#fff!important}
+.cli-pergunta-caixa p{color:#a8a39c!important;font-size:13px!important;line-height:1.5!important}
+.cli-pergunta-caixa :is(input,textarea){border-radius:12px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important;color:#fff!important;font:600 15px var(--mac-ui)!important}
+.cli-pergunta-caixa :is(input,textarea):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
+.cli-pergunta-acoes{border-top:1px solid var(--pv-linha)!important;padding-top:14px!important;margin-top:16px!important}
+.cli-pergunta-caixa .workflow-primary.perigo{background:linear-gradient(180deg,#ff7d7d,#e14848)!important;color:#2a0606!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e14848!important}
+.cli-pergunta-caixa:has(.perigo) h3::before{content:"!";display:grid;place-items:center;width:42px;height:42px;margin-bottom:12px;border-radius:14px;font:800 19px var(--pv-titulo);color:#ff6b6b;background:rgba(255,107,107,.14);box-shadow:inset 0 0 0 1px rgba(255,107,107,.45),0 10px 24px -10px #ff6b6b}
