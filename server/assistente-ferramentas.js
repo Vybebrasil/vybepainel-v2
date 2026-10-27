@@ -1,6 +1,6 @@
 import {consultarPerfilJogo,consultarPerfilTrabalho,consultarRanking,consultarDiaEquipe,secaoDaDemanda} from './assistente-dominio.js';
 import {metricasDoHub} from './assistente-hub.js';
-import {diaDaAgencia,meuDia,resumoCliente} from './assistente-rotinas.js';
+import {diaDaAgencia,meuDia,resumoCliente,calendarioClientes} from './assistente-rotinas.js';
 import {agendaDeCaptacoes} from './captacoes.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
@@ -22,7 +22,7 @@ const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
  ['minhas_demandas','Demandas da pessoa autenticada, sem ID escolhido pelo modelo. Hoje usa prazo ou, se ausente, veiculação. Pendentes usam status oficial não final; atrasadas exigem prazo vencido e status não final.',{periodo:{type:'string',enum:['hoje','todas']},situacao,...pagina}],
- ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub. Para "como foi o tráfego", use modulo resumo (totais, período anterior, campanhas e melhor anúncio, como o painel).',{cliente_id:inteiro,de:data,ate:data,modulo:{type:'string',enum:['trafego','alcance','interacoes','seguidores','faturamento','objetivos','aprovacoes','documentos','marca','campanhas','anuncios','publico','segmentacao','resumo']},...pagina},['cliente_id','de','ate']],
+ ['consultar_metricas_trafego','Métricas de tráfego e campanhas por cliente e período, pela fonte VybeHub. Para "como foi o tráfego", use modulo resumo (totais, período anterior, campanhas e melhor anúncio, como o painel).',{cliente_id:inteiro,de:data,ate:data,modulo:{type:'string',enum:['trafego','alcance','interacoes','seguidores','faturamento','objetivos','aprovacoes','documentos','marca','campanhas','anuncios','publico','segmentacao','resumo','semana']},...pagina},['cliente_id','de','ate']],
  ['buscar_demandas','Demandas e conteúdos operacionais. Status não comprova publicação. de/ate filtram o prazo da equipe; cliente_de/cliente_ate filtram a data do cliente (veiculação na Produção, conclusão nas Solicitações); quadro separa Produção (social media) de Solicitações; situacao finalizadas_hoje traz o que virou status final hoje.',{busca,cliente_id:inteiro,responsavel_id:inteiro,status:busca,situacao:situacaoBusca,de:data,ate:data,cliente_de:data,cliente_ate:data,quadro:{type:'string',enum:['producao','solicitacoes']},...pagina}],
  ['detalhar_demanda','Detalhes operacionais de uma demanda, com briefing, comentários, histórico, tarefas e referências de arquivos. Nunca lê segredos nem o conteúdo binário de anexos.',{id:inteiro,secao:{type:'string',enum:['ficha','comentarios','historico','tarefas','arquivos']},...pagina},['id']],
  ['listar_clientes','Clientes e carteira operacional, sem contatos ou contratos.',{busca,...pagina}],
@@ -39,6 +39,7 @@ const defs=[
  ['resumo_cliente','Texto pronto para o atendimento revisar e mandar ao cliente: publicados na semana, o que espera a aprovação do cliente e a próxima semana (Produção).',{cliente_id:inteiro},['cliente_id']],
  ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem no dia, atrasadas e prazo no dia seguinte, com o link de cada peça. quando = hoje (padrão) ou amanha. Sem escolher pessoa.',{quando}],
  ['consultar_dia_agencia','Resumo do dia da agência (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto no dia. quando = hoje (padrão) ou amanha.',{quando}],
+ ['calendario_clientes','Calendário do mês: sem cliente_id, a carteira inteira (quem está sem nada cadastrado, só com planejamento ou com peças); com cliente_id, as peças do cliente no mês com data, status e link. mes = qualquer dia do mês (AAAA-MM-DD). Peças contam pela data do cliente (veiculação), nos quadros Produção e Solicitações.',{mes:data,cliente_id:inteiro},['mes']],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -92,6 +93,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
   const itens=eventos.filter(e=>e.tipo==='captacao').slice(0,25).map(e=>({id:e.id,titulo:e.titulo,dia:e.dia,horario:e.horario,local:e.local,cliente:e.cliente||null}));
   return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
  }
+ if(nome==='calendario_clientes'){const d=await calendarioClientes(sql,a.mes,a.cliente_id||null);return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='resumo_cliente'){const d=await resumoCliente(sql,a.cliente_id,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='meu_dia'){
   if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');

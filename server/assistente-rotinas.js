@@ -379,3 +379,53 @@ export async function riscos(sql, dia) {
   const { ctx } = codigoDoPainel();
   return riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i));
 }
+
+// Calendário do mês por cliente (Paulo, 27/10/2026: "quais clientes estão sem nada cadastrado para novembro?").
+// Conta o planejamento do mês e as peças com data do cliente no mês, nos dois quadros (Produção e Solicitações).
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const ESTADOS_PLANEJAMENTO = { revisar: 'para o head revisar', enviado: 'com o cliente', aprovado: 'aprovado', ajustes: 'em ajustes', cadastrado: 'cadastrado no quadro' };
+export function mensagemCalendario({ mes, clientes, planejamentos, pecas, clienteId = null }) {
+  const [ano, m] = mes.split('-').map(Number), nomeMes = `${MESES[m - 1]}/${ano}`;
+  const estado = (p) => ESTADOS_PLANEJAMENTO[p.estado] || String(p.estado || '').replace(/_/g, ' ');
+  const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  if (clienteId) {
+    const c = clientes.find((x) => x.id === String(clienteId));
+    const minhas = pecas.filter((p) => p.cliente_ids.includes(String(clienteId)));
+    const pl = planejamentos.filter((p) => p.cliente_id === String(clienteId));
+    const linhas = minhas.map((p) => `- ${curto(p.veiculacao)} · ${p.titulo || 'Sem título'} · ${p.status || 'sem status'}${p.final ? ' ✅' : ''}${p.solicitacao ? ' (solicitação)' : ''}\n  🔗 ${linkDaAtividade(p.ref)}`);
+    return `📅 *${c?.nome || 'Cliente'} · ${nomeMes}*\n` +
+      `🗂️ Planejamento: ${pl.length ? pl.map(estado).join(', ') : '*nenhum cadastrado*'}\n` +
+      `🧩 Peças no quadro: *${minhas.length}*${minhas.length ? ` (${minhas.filter((p) => p.final).length} finalizadas)` : ''}\n\n` +
+      (linhas.length ? linhas.slice(0, 40).join('\n') + (linhas.length > 40 ? `\n… e mais ${linhas.length - 40}` : '') : 'Nada com data do cliente neste mês ainda.');
+  }
+  const porCliente = clientes.map((c) => ({ ...c, pecas: pecas.filter((p) => p.cliente_ids.includes(c.id)), pl: planejamentos.filter((p) => p.cliente_id === c.id) }));
+  const nada = porCliente.filter((c) => !c.pecas.length && !c.pl.length);
+  const soPlano = porCliente.filter((c) => !c.pecas.length && c.pl.length);
+  const comPecas = porCliente.filter((c) => c.pecas.length).sort((a, b) => a.pecas.length - b.pecas.length);
+  const partes = [`📅 *Calendário de ${nomeMes}* · ${clientes.length} clientes ativos`];
+  partes.push(nada.length ? `⚠️ *Sem nada cadastrado (${nada.length})*\n${nada.map((c) => '- ' + c.nome).join('\n')}` : '✅ Todo cliente ativo tem planejamento ou peça no mês.');
+  if (soPlano.length) partes.push(`🗂️ *Só planejamento, sem peças no quadro (${soPlano.length})*\n${soPlano.map((c) => `- ${c.nome} · planejamento ${c.pl.map(estado).join(', ')}`).join('\n')}`);
+  if (comPecas.length) partes.push(`🧩 *Com peças no quadro (${comPecas.length})*, do que tem menos para o que tem mais\n${comPecas.map((c) => `- ${c.nome} · ${c.pecas.length} peça(s), ${c.pecas.filter((p) => p.final).length} finalizada(s)${c.pl.length ? ' · planejamento ' + c.pl.map(estado).join(', ') : ' · sem planejamento'}`).join('\n')}`);
+  partes.push('_Peças contam pela data do cliente (veiculação) no mês. Para o calendário de um cliente: "calendário da Gonzalez em novembro"._');
+  return partes.join('\n\n');
+}
+export async function calendarioClientes(sql, mesIso, clienteId = null) {
+  if (typeof mesIso !== 'string' || !/^\d{4}-\d{2}/.test(mesIso)) throw new TypeError('Mês inválido.');
+  const mes = mesIso.slice(0, 7), inicio = mes + '-01';
+  const [ano, m] = mes.split('-').map(Number), fim = new Date(Date.UTC(ano, m, 0)).toISOString().slice(0, 10);
+  const clientes = (await sql`SELECT id::text, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`);
+  if (clienteId && !clientes.some((c) => c.id === String(clienteId))) throw new TypeError('Cliente inválido.');
+  const planejamentos = await sql`SELECT cliente_id::text, estado FROM vybe_planejamentos
+    WHERE estado <> 'arquivado' AND mes BETWEEN ${inicio}::date AND ${fim}::date`;
+  const linhas = await sql`SELECT c.id::text, c.monday_item_id, c.board_id::text, c.titulo, c.veiculacao::text AS veiculacao,
+      s.rotulo AS status, COALESCE(s.final, false) AS final,
+      ARRAY(SELECT cc.cliente_id::text FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id) AS cliente_ids
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_PRODUCAO}, ${BOARD_DEMANDAS})
+      AND c.veiculacao BETWEEN ${inicio}::date AND ${fim}::date
+    ORDER BY c.veiculacao, c.titulo`;
+  const pecas = linhas.map((l) => ({ ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, titulo: l.titulo, veiculacao: textoData(l.veiculacao),
+    status: l.status, final: l.final === true, cliente_ids: (l.cliente_ids || []).map(String), solicitacao: String(l.board_id) === String(BOARD_DEMANDAS) }));
+  const texto = mensagemCalendario({ mes, clientes, planejamentos, pecas, clienteId });
+  return { texto, fontes: [{ modulo: 'calendario_clientes', id: clienteId ? String(clienteId) : mes }] };
+}

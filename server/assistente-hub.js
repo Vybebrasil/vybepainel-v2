@@ -50,16 +50,35 @@ export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  let d;try{d=JSON.parse(Buffer.concat(partes).toString()).result.data.json;}catch{throw new TypeError('Resposta de métricas inválida.');}
  if(d?.slug!==slug||d?.cliente_nome!==cliente.nome||d?.de!==a.de||d?.ate!==a.ate||!Array.isArray(d.linhas)||(d.modulo||'trafego')!==modulo||(d.deslocamento||0)!==offset)throw new TypeError('Cliente ou período não conferem no Hub.');
  // Projeção de saída mesmo que o Hub passe a devolver campos adicionais.
- const campos={campanhas:['id','name','objective','status','dailyBudget','lifetimeBudget','startTime','stopTime','spent','impressions','reach','frequency','clicks','messages','results','resultType','follows'],anuncios:['id','name','campaign','status','text','format','resultType','follows','thruPlays','spent','impressions','reach','clicks','messages','results'],publico:['dimensao','label','spent','reach','impressions','clicks','messages','age','gender','platform','position','hour','outcomes'],segmentacao:['kind','name','context','radius','excluded'],resumo:['tipo','nome','objetivo','investido','impressoes','alcance','frequencia','cliques','ctr','cpm','cpc','conversas','resultados','tipoResultado','custoResultado','seguidores'],trafego:['date','campaign','reach','impressions','amountSpent','linkClicks','results','resultType','costPerResult','cpm','cpc','messagingConversations','frequency','postEngagement','videoViews','landingPageViews','reactions','comments','shares','saves','follows','thruPlays','videoAvgTime'],
+ const campos={campanhas:['id','name','objective','status','dailyBudget','lifetimeBudget','startTime','stopTime','spent','impressions','reach','frequency','clicks','messages','results','resultType','follows'],anuncios:['id','name','campaign','status','text','format','resultType','follows','thruPlays','spent','impressions','reach','clicks','messages','results'],publico:['dimensao','label','spent','reach','impressions','clicks','messages','age','gender','platform','position','hour','outcomes'],segmentacao:['kind','name','context','radius','excluded'],semana:['texto'],resumo:['tipo','nome','objetivo','investido','impressoes','alcance','frequencia','cliques','ctr','cpm','cpc','conversas','resultados','tipoResultado','custoResultado','seguidores'],trafego:['date','campaign','reach','impressions','amountSpent','linkClicks','results','resultType','costPerResult','cpm','cpc','messagingConversations','frequency','postEngagement','videoViews','landingPageViews','reactions','comments','shares','saves','follows','thruPlays','videoAvgTime'],
  alcance:['date','dateLabel','contasAlcancadas','impressoes','naoSeguidoresPct','seguidoresPct','atividadesPerfil','visitasPerfil','linksExternos','enderecoComercial'],
  interacoes:['date','dateLabel','interacoes','seguidoresPct','naoSeguidoresPct','reels','publi','stories'],seguidores:['date','dateLabel','total','crescimento','seguiram','deixaram'],
  faturamento:['date','dateLabel','meta','influencers','midiaOff','radio','faturamento'],objetivos:['primary','secondary'],
  aprovacoes:['id','contentTitle','status','comment','createdAt','updatedAt'],documentos:['id','name','mimeType','modifiedTime','size','isFolder'],marca:['id','name','mimeType','modifiedTime','size','isFolder']};
  if(!Object.hasOwn(campos,modulo))throw new TypeError('Módulo inválido.');
- const valor=v=>typeof v==='number'?(Number.isFinite(v)?v:null):typeof v==='boolean'?v:typeof v==='string'?v.slice(0,2000):null;
+ const valor=v=>typeof v==='number'?(Number.isFinite(v)?v:null):typeof v==='boolean'?v:typeof v==='string'?v.slice(0,modulo==='semana'?4000:2000):null;
  const itens=d.linhas.slice(0,limite).map(x=>Object.fromEntries(campos[modulo].filter(k=>Object.hasOwn(x,k)).map(k=>[k,
  ['reels','publi','stories','outcomes'].includes(k)&&x[k]&&typeof x[k]==='object'?Object.fromEntries(['curtidas','comentarios','salvar','compartilhar','respostas','messages','profile_visits','follows','leads','purchases','link_clicks','video_views','engagement'].filter(n=>Object.hasOwn(x[k],n)).map(n=>[n,valor(x[k][n])])):valor(x[k])])));
  return {fonte:'vybehub',cliente_id:String(a.cliente_id),cliente:cliente.nome,de:a.de,ate:a.ate,modulo,limite,deslocamento:offset,itens,origem_dados:['meta','sheet','drive','vybehub','homologacao_fixture'].includes(d.origem_dados)?d.origem_dados:null,
  limitado:Boolean(d.limitado)||d.linhas.length>limite,atualizado_em:Number.isFinite(d.atualizado_em)?d.atualizado_em:null,fontes:[{modulo:'vybehub_metricas',id:String(a.cliente_id)}],
  observacao:(d.origem_dados==='homologacao_fixture'?'DADOS FICTÍCIOS DE HOMOLOGAÇÃO. ':'')+(modulo==='publico'?'Público agregado; horários/posicionamentos podem estar indisponíveis. Vazio não comprova ausência. ':modulo==='segmentacao'?'Segmentação atual, não desempenho nem histórico. ':'')+'Alcance não deve ser somado entre dias/campanhas. Resultados devem ser comparados por resultType. Ausência de dado não é zero. Faturamento é o BI do cliente, não folha interna. Objetivos são atuais; documentos/marca são metadados da raiz, sem conteúdo binário e sem filtro de período. Credenciais e URLs são excluídas.'};
+}
+
+// Resumo da semana de cada cliente ativo (o texto do botão do painel do Hub), para o atendimento mandar aos
+// clientes. Cliente sem BI ou sem conta de anúncios no Hub entra na lista "sem dados", nunca com números zerados.
+export async function resumosDaSemana(sql,dia,opcoes={}){
+ if(typeof dia!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(dia))throw new TypeError('Dia inválido.');
+ const de=new Date(Date.parse(dia+'T12:00:00Z')-8*864e5).toISOString().slice(0,10);
+ const clientes=await sql`SELECT id::text,nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+ const resumos=[],semDados=[];
+ // Em lotes de 6: cada consulta ao Hub leva alguns segundos (planilha e Meta).
+ for(let i=0;i<clientes.length;i+=6)await Promise.all(clientes.slice(i,i+6).map(async c=>{
+  try{
+   const r=await metricasDoHub(sql,{cliente_id:Number(c.id),de,ate:dia,modulo:'semana',limite:1},opcoes);
+   const texto=r.itens?.[0]?.texto;
+   if(typeof texto==='string'&&texto.trim())resumos.push({cliente:c.nome,texto});else semDados.push(c.nome);
+  }catch{semDados.push(c.nome);}
+ }));
+ resumos.sort((a,b)=>a.cliente.localeCompare(b.cliente,'pt-BR'));semDados.sort((a,b)=>a.localeCompare(b,'pt-BR'));
+ return {resumos,sem_dados:semDados};
 }

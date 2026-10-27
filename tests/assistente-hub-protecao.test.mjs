@@ -89,3 +89,21 @@ test('módulo resumo: só os campos do resumo de tráfego passam pela ponte', as
  assert.equal(r.modulo,'resumo');
  assert.deepEqual(r.itens,[{tipo:'total',investido:300,ctr:1.2,resultados:50,tipoResultado:'Conversas iniciadas',custoResultado:6}]);
 });
+
+test('resumos da semana: um texto por cliente com BI; os demais vão para "sem dados"', async () => {
+ const { resumosDaSemana } = await import('../server/assistente-hub.js');
+ const r = await resumosDaSemana(async (partes, ...v) => {
+  const q = partes.join('?');
+  if (q.includes('ORDER BY nome')) return [{ id: '1', nome: 'Cliente Ficticio AI' }, { id: '2', nome: 'Sem BI' }];
+  return v[0] === 1 ? [{ id: '1', nome: 'Cliente Ficticio AI' }] : [{ id: '2', nome: 'Sem BI' }];
+ }, '2026-10-27', { config, buscar: async (url) => {
+  const input = JSON.parse(decodeURIComponent(url.split('input=')[1])).json;
+  if (input.cliente_nome !== 'Cliente Ficticio AI') return new Response('{}', { status: 503 });
+  assert.equal(input.modulo, 'semana'); assert.equal(input.until, '2026-10-27');
+  return new Response(JSON.stringify({ result: { data: { json: { slug: input.slug, cliente_nome: input.cliente_nome, de: input.since, ate: input.until, modulo: 'semana', deslocamento: 0,
+   linhas: [{ texto: '📊 *Resumo da semana · Cliente Ficticio AI*' }], origem_dados: 'homologacao_fixture' } } } }));
+ } });
+ assert.deepEqual(r.resumos.map((x) => x.cliente), ['Cliente Ficticio AI']);
+ assert.match(r.resumos[0].texto, /Resumo da semana/);
+ assert.deepEqual(r.sem_dados, ['Sem BI']);
+});
