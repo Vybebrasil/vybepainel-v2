@@ -12441,3 +12441,119 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-p-bau img {flex:none;height:26px;width:auto;image-rendering:pixelated}
 .ofc-p-bau span {min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ofc-p-bau:hover {border-color:#ffd35c;color:#fff}
+/* Sinuca no jeito dos jogos online: a mesa em cima, larga, com o placar dos dois e as bolas de cada grupo; força vertical à esquerda e efeito à direita. */
+.workflow-modal.ofc-snc-jogo {width:min(1120px,calc(100vw - 24px))}
+.ofc-snc-jogo .mesa-jogo {grid-template-columns:1fr}
+.ofc-snc-jogo .mesa-lado {width:100%}
+.ofc-snc-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+.snc-placar {display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.snc-x {color:#9da4b4;font:800 14px var(--mac-ui)}
+.snc-jogador {display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10;min-width:0}
+.snc-jogador.direita {flex-direction:row-reverse;text-align:right}
+.snc-jogador.vez {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ofc-laranja,#ff9548) 20%,transparent)}
+.snc-jogador img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated;border-radius:50%;background:#ffffff10}
+.snc-jogador .snc-sem {width:40px;height:40px;border-radius:50%;background:#ffffff10}
+.snc-jogador > div {display:grid;gap:4px;min-width:0}
+.snc-jogador b {color:#fff;font:700 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snc-jogador small {color:#9da4b4;font-size:11px}
+.snc-grupo {display:flex;flex-wrap:wrap;gap:3px}
+.snc-jogador.direita .snc-grupo {justify-content:flex-end}
+.snc-grupo i {display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c);color:#111;font:800 9px var(--mac-ui);font-style:normal;box-shadow:inset 0 -2px 3px #0005}
+.snc-grupo i.listra {background:linear-gradient(#f7f4ea 0 26%,var(--c) 26% 74%,#f7f4ea 74%)}
+.snc-grupo i.caiu {opacity:.22;filter:grayscale(1)}
+.snc-area {display:grid;grid-template-columns:44px minmax(0,1fr) 64px;gap:10px;align-items:stretch}
+.snc-forca {position:relative;display:grid;place-items:end center;border-radius:22px;background:linear-gradient(#2a2f3a,#14171e);border:1px solid #ffffff14;touch-action:none;cursor:ns-resize;overflow:hidden;user-select:none}
+.snc-forca b {position:absolute;left:0;right:0;top:0;background:linear-gradient(#ffe08a,#ff9548 60%,#e2462e);border-radius:0 0 22px 22px;transition:height .05s}
+.snc-forca span {position:relative;writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:10px;color:#e9eef7;font:700 11px var(--mac-ui);text-shadow:0 1px 2px #000}
+.snc-forca.parada {opacity:.35;cursor:default}
+.snc-forca:focus-visible {outline:2px solid var(--ofc-laranja,#ff9548);outline-offset:2px}
+.snc-canvas.travada {cursor:pointer;box-shadow:0 10px 30px #0008,0 0 0 3px #ffffff40}
+.snc-lado {display:grid;justify-items:center;align-content:start;gap:6px}
+.snc-lado small {color:#9da4b4;font:600 11px var(--mac-ui)}
+.snc-efeito-bola {position:relative;width:54px;height:54px;border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#fff,#e9e4d6 55%,#b9b2a0);box-shadow:0 3px 8px #0008;cursor:pointer}
+.snc-efeito-bola::before,.snc-efeito-bola::after {content:"";position:absolute;background:#0002}
+.snc-efeito-bola::before {left:50%;top:8px;bottom:8px;width:1px}
+.snc-efeito-bola::after {top:50%;left:8px;right:8px;height:1px}
+.snc-efeito-bola i {position:absolute;left:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#e2462e;box-shadow:0 0 0 2px #fff}
+.snc-efeito-bola:disabled {opacity:.4;cursor:default}
+.snc-lado .snc-mira-fina {display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%}
+.snc-lado .snc-mira-fina button,.snc-mudar {padding:8px 0;border:1px solid #ffffff1a;border-radius:10px;background:#ffffff0a;color:#e9eef7;font:700 14px var(--mac-ui);cursor:pointer}
+.snc-mudar {font-size:11px;padding:6px 4px}
+.snc-lado .snc-mira-fina button:disabled {opacity:.4;cursor:default}
+@media(max-width:760px){.snc-area{grid-template-columns:34px minmax(0,1fr)}.snc-lado{grid-column:1/-1;grid-template-columns:auto auto 1fr auto;align-items:center}.snc-placar{grid-template-columns:1fr}.snc-x{display:none}.snc-jogador.direita{flex-direction:row;text-align:left}.snc-jogador.direita .snc-grupo{justify-content:flex-start}}
+/* Pôquer na mesa oval (referências das salas online): fundo escuro, feltro verde com borda de madeira, lugares em volta. */
+.workflow-modal.ofc-pkr-jogo {width:min(1080px,calc(100vw - 24px))}
+.ofc-pkr-jogo .mesa-jogo {grid-template-columns:1fr}
+.ofc-pkr-jogo .mesa-lado {width:100%}
+.ofc-pkr-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(240px,1fr));align-items:start}
+.pkr-salao {position:relative;height:480px;border-radius:18px;background:radial-gradient(ellipse at 50% 45%,#2b2f38,#121419 70%);overflow:hidden}
+.pkr-feltro {position:absolute;left:13%;right:13%;top:17%;bottom:21%;border-radius:999px;background:radial-gradient(ellipse at 50% 40%,#2c9a5c,#1b6b3f 60%,#12502e);box-shadow:inset 0 0 0 10px #5a3416,inset 0 0 0 13px #2e1a09,inset 0 0 40px #000a,0 18px 40px #000b;display:grid;place-items:center}
+.pkr-salao .pkr-centro {display:grid;justify-items:center;gap:6px;color:#d9f2e3;font-size:11px}
+.pkr-salao .pkr-pote {display:flex;align-items:center;gap:6px;margin:0;padding:3px 12px;border-radius:999px;background:#0006;color:#e9f7ee;font:600 13px var(--mac-ui)}
+.pkr-pote i,.pkr-aposta i {display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#d23a2a 23% 60%,#fff 61% 70%,#d23a2a 71%);box-shadow:0 1px 2px #0008}
+.pkr-vencedor {margin:0;padding:4px 14px;border-radius:999px;background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;font:800 13px var(--mac-ui);text-transform:uppercase;letter-spacing:.4px;box-shadow:0 4px 14px #0008}
+.pkr-lugar {position:absolute;display:grid;justify-items:center;gap:4px;width:150px;transform:translate(-50%,-50%);z-index:1}
+.pkr-lugar.baixo {left:50%;top:84%}
+.pkr-lugar.topo {left:50%;top:13%}
+.pkr-lugar.esq {left:11%;top:46%}
+.pkr-lugar.dir {left:89%;top:46%}
+.pkr-lugar.esq-topo {left:24%;top:14%}
+.pkr-lugar.dir-topo {left:76%;top:14%}
+.pkr-quem {position:relative;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:#0b0d12e6;border:1px solid #ffffff18;box-shadow:0 4px 12px #0009}
+.pkr-quem img,.pkr-quem .pkr-sem {width:44px;height:44px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12}
+.pkr-quem div {display:grid;line-height:1.2}
+.pkr-quem b {color:#fff;font:700 12px var(--mac-ui);white-space:nowrap}
+.pkr-quem span {color:#ffd56a;font:700 13px var(--mac-ui)}
+.pkr-dealer {position:absolute;left:30px;bottom:-4px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#fff;color:#111;font:800 10px var(--mac-ui);box-shadow:0 1px 3px #000a}
+.pkr-lugar.vez .pkr-quem {border-color:var(--ofc-laranja,#ff9548);box-shadow:0 0 0 3px color-mix(in srgb,var(--ofc-laranja,#ff9548) 35%,transparent),0 4px 12px #0009}
+.pkr-lugar.fora .pkr-quem {opacity:.5}
+.pkr-lugar.ganhou .pkr-quem {border-color:#ffd56a;box-shadow:0 0 0 3px #ffd56a88,0 0 24px #ffd56a66}
+.pkr-legenda {padding:1px 8px;border-radius:999px;background:#000a;color:#e9eef7;font:700 10px var(--mac-ui);white-space:nowrap}
+.pkr-lugar.ganhou .pkr-legenda {background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800;text-transform:uppercase}
+.pkr-cartas-lugar {display:flex;gap:3px;min-height:20px}
+.pkr-carta.media {--w:34px}
+.pkr-lugar.eu .pkr-cartas-lugar {margin-bottom:-6px}
+.pkr-aposta {position:absolute;display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#000a;color:#fff;font:700 11px var(--mac-ui);white-space:nowrap}
+.pkr-lugar.baixo .pkr-aposta {top:-26px;left:calc(100% - 10px)}
+.pkr-lugar.topo .pkr-aposta,.pkr-lugar.esq-topo .pkr-aposta,.pkr-lugar.dir-topo .pkr-aposta {bottom:-24px}
+.pkr-lugar.esq .pkr-aposta {right:-58px;top:45%}
+.pkr-lugar.dir .pkr-aposta {left:-58px;top:45%}
+.pkr-salao.nova .pkr-lugar.eu .pkr-carta {animation:pkr-dar .45s cubic-bezier(.2,.8,.3,1) both}
+.pkr-salao.nova .pkr-lugar.eu .pkr-carta:nth-child(2) {animation-delay:.12s}
+@media (prefers-reduced-motion: reduce) {.pkr-salao.nova .pkr-lugar.eu .pkr-carta {animation:none}}
+@media(max-width:760px){.pkr-salao{height:430px}.pkr-feltro{left:6%;right:6%}.pkr-lugar{width:112px}.pkr-lugar.esq{left:13%}.pkr-lugar.dir{left:87%}.pkr-quem img,.pkr-quem .pkr-sem{width:34px;height:34px}.pkr-salao .pkr-carta{--w:30px}.pkr-carta.media{--w:24px}.pkr-carta.grande{--w:44px}}
+.snc-tacar {width:100%;padding:10px 0;border:0;border-radius:12px;background:linear-gradient(#ffb067,#ff8a3d);color:#2a1400;font:800 13px var(--mac-ui);cursor:pointer;box-shadow:0 4px 10px #0007}
+.snc-tacar:disabled {opacity:.4;cursor:default}
+.pkr-salao {height:500px}
+.pkr-feltro {top:22%;bottom:20%}
+.pkr-lugar.topo {top:19%}
+.pkr-lugar.esq-topo,.pkr-lugar.dir-topo {top:20%}
+.pkr-lugar.baixo {top:83%}
+/* Dominó no jeito dos jogos online: feltro verde largo, a fileira em cobra com curva de peças em pé, as peças do outro viradas em cima e a minha mão num suporte de madeira. */
+.workflow-modal.ofc-dmn-jogo {width:min(1040px,calc(100vw - 24px))}
+.ofc-dmn-jogo .mesa-jogo {grid-template-columns:1fr}
+.ofc-dmn-jogo .mesa-lado {width:100%}
+.ofc-dmn-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
+.dmn-mesa {min-height:300px;padding:44px 16px 18px;background:radial-gradient(ellipse at 50% 40%,#2a8a58,#16573a 75%)}
+.dmn-linha.tabuleiro {display:block;margin:0;container-type:inline-size}
+.dmn-cobra {--u:calc(100cqw / 26);position:relative;height:calc(var(--alto) * var(--u));min-height:80px}
+.dmn-lugar {position:absolute;display:grid;place-items:stretch;padding:1px;border:0;background:none;box-sizing:border-box}
+.dmn-lugar .dmn-peca {--m:calc(var(--u) - 4px);padding:1px;margin:auto}
+.dmn-peca.empe {flex-direction:column}
+.dmn-peca.empe > b {width:80%;height:1.5px;margin:1px auto}
+.dmn-lugar.alvo {cursor:pointer;animation:dmn-pisca 1s ease-in-out infinite}
+.dmn-lugar.alvo .dmn-peca {box-shadow:0 0 0 3px #ffcf4a,0 0 16px #ffcf4a}
+@keyframes dmn-pisca {50% {transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce) {.dmn-lugar.alvo {animation:none}}
+.dmn-escolher {display:flex;justify-content:center;gap:8px;margin-top:10px}
+.dmn-outro {position:absolute;top:10px;left:50%;display:flex;gap:3px;transform:translateX(-50%)}
+.dmn-virada {width:14px;height:26px;border-radius:3px;background:linear-gradient(#f3ead6,#d9cbab);box-shadow:0 2px 3px #0007,0 0 0 1px #0004}
+.dmn-rodada {top:12px;left:14px}
+.dmn-monte {top:12px;right:14px}
+.dmn-mao {padding:12px 10px 10px;border-radius:14px;background:linear-gradient(#7a4a22,#4a2a10);box-shadow:inset 0 2px 0 #ffffff22,0 8px 20px #0008}
+.dmn-mao-peca .dmn-peca {--m:34px}
+.dmn-mao-peca .dmn-peca.empe {flex-direction:column}
+@media(max-width:760px){.dmn-mao-peca .dmn-peca{--m:26px}.dmn-mesa{padding:40px 8px 12px}}
+/* Peça arrastada no xadrez e na dama: segue o ponteiro por cima de tudo. */
+.tab-fantasma {position:fixed;left:0;top:0;z-index:10000;pointer-events:none;filter:drop-shadow(0 8px 10px #000a);transform-origin:center}
+.xdz-tabuleiro.vez .xdz-casa.minha,.dam-tabuleiro.vez .dam-casa.minha {cursor:grab;touch-action:none}

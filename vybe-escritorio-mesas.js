@@ -111,6 +111,44 @@ async function acaoMesaEscritorio(chave, acao, botao) {
   }
 }
 
+// Arrastar a peça no tabuleiro (xadrez e dama), no jeito do lichess e do
+// chess.com: segura a peça, arrasta e solta na casa (as casas possíveis acendem
+// ao começar a arrastar); clicar na peça e depois na casa continua valendo.
+// `selecionar(casa)` marca a peça; `soltar(casa)` joga nela (ou só escolhe outra).
+function tabuleiroArrastar(ev, casa, selecionar, soltar) {
+  if (ev.button > 0) return;
+  const peca = ev.currentTarget.querySelector("svg,.dam-peca");
+  if (!peca) return;
+  const x0 = ev.clientX, y0 = ev.clientY;
+  let fantasma = null;
+  const mover = (e) => {
+    if (!fantasma) {
+      if (Math.hypot(e.clientX - x0, e.clientY - y0) < 6) return;
+      const r = peca.getBoundingClientRect();
+      fantasma = peca.cloneNode(true);
+      fantasma.classList.add("tab-fantasma");
+      Object.assign(fantasma.style, { width: r.width + "px", height: r.height + "px" });
+      document.body.append(fantasma);
+      selecionar(casa);
+    }
+    fantasma.style.transform = `translate(${e.clientX - fantasma.offsetWidth / 2}px,${e.clientY - fantasma.offsetHeight / 2}px)`;
+  };
+  const fim = (e) => {
+    document.removeEventListener("pointermove", mover);
+    document.removeEventListener("pointerup", fim);
+    if (!fantasma) return;
+    fantasma.remove();
+    const alvo = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-casa]");
+    if (alvo && alvo.dataset.casa !== String(casa)) soltar(alvo.dataset.casa);
+    // O clique que o navegador manda logo depois de soltar não é um clique na casa.
+    const engole = (c) => { c.stopPropagation(); c.preventDefault(); };
+    document.addEventListener("click", engole, true);
+    setTimeout(() => document.removeEventListener("click", engole, true), 60);
+  };
+  document.addEventListener("pointermove", mover);
+  document.addEventListener("pointerup", fim);
+}
+
 // Barra de quem joga: cabeça, nome, de quem é a vez e um detalhe do jogo
 // (peças na mão, fichas…).
 function mesaJogadorHtml(j, lado, detalhe) {

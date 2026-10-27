@@ -62,14 +62,40 @@ ${a.aumentar.max > a.aumentar.min ? `<button type="button" class="workflow-secon
   return `<div class="pkr-acoes"><button type="button" class="workflow-secondary" onclick="lanceMesaEscritorio('pkr',{tipo:'largar'},this)">Largar</button>
 ${a.mesa ? `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('pkr',{tipo:'mesa'},this)">Passar</button>` : `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('pkr',{tipo:'pagar'},this)">Pagar ${pokerFichas(a.pagar)}</button>`}</div>${aumentar}`;
 }
+// Mesa oval no jeito das salas de pôquer online (Paulo, 27/10/2026, com as
+// referências): eu embaixo, os outros em volta na ordem da mesa (à esquerda,
+// em cima, à direita), cada um com cabeça, nome, fichas, cartas, a aposta da
+// rodada na frente e o botão "D". Quando a mão fecha, a mesa mostra as cartas
+// de quem foi ao showdown e marca o vencedor até alguém jogar a mão nova.
+const POKER_LUGARES = { 1: ["topo"], 2: ["esq-topo", "dir-topo"], 3: ["esq", "topo", "dir"] };
+const POKER_ACOES = { largou: "Largou", mesa: "Passou", pagou: "Pagou", apostou: "Apostou", aumentou: "Aumentou", "all-in": "All-in", saiu: "Saiu" };
+function pokerLugarHtml(j, l, pos, revela) {
+  const m = j.mesa, p = j[l], u = escritorioCabecaUrl(p.id), eu = l === j.eu, vez = j.estado === "jogando" && j.vez === l;
+  const fora = (m.fora || []).includes(l), saiu = (m.saiu || []).includes(l), semFichas = !(m.na_mao || m.lados || []).includes(l);
+  const a = m.anterior, ganhou = revela && a && (a.vencedor === l || (a.ganhos?.[l] && a.vencedor === "empate"));
+  const show = revela && a?.maos?.[l];
+  // Cartas: as minhas de frente; dos outros, viradas (ou as do showdown).
+  const cartas = saiu || semFichas ? "" : show ? show.cartas.map((c) => pokerCartaHtml(c, eu ? "grande" : "media")).join("")
+    : eu && m.minhas ? m.minhas.map((c) => pokerCartaHtml(c, "grande")).join("") : fora ? "" : pokerCartaHtml(null, "media") + pokerCartaHtml(null, "media");
+  const u2 = m.ultimo, acao = u2 && u2.mao === m.mao && u2.lado === l ? `${POKER_ACOES[u2.acao] || ""}${u2.valor && u2.acao !== "largou" ? " " + pokerFichas(u2.valor) : ""}` : "";
+  const aposta = m.rodada?.[l] ? `<span class="pkr-aposta"><i aria-hidden="true"></i>${pokerFichas(m.rodada[l])}</span>` : "";
+  const legenda = saiu ? "Saiu da mesa" : semFichas ? "Sem fichas" : ganhou ? `Vencedor · ${safeText(show?.nome || "")}`.replace(/ · $/, "") : show ? safeText(show.nome) : acao || (vez ? (eu ? "Sua vez" : "Pensando…") : "");
+  return `<div class="pkr-lugar ${pos}${vez ? " vez" : ""}${fora || saiu || semFichas ? " fora" : ""}${ganhou ? " ganhou" : ""}${eu ? " eu" : ""}">
+<div class="pkr-cartas-lugar">${cartas}</div>
+<div class="pkr-quem">${u ? `<img src="${safeText(u)}" alt="" width="48" height="48">` : "<i class=\"pkr-sem\"></i>"}${m.botao === l ? '<span class="pkr-dealer" title="Botão">D</span>' : ""}
+<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span>${pokerFichas(m.fichas?.[l])}</span></div></div>
+${legenda ? `<small class="pkr-legenda">${legenda}</small>` : ""}${aposta}</div>`;
+}
 function desenharPoker(j, s) {
   const m = j.mesa, eu = j.eu, lados = m.lados || ["desafiante", "desafiado"];
-  // Em cima, os outros da mesa (um, dois ou três); embaixo, eu (ou o primeiro, para quem assiste).
-  const baixo = eu || lados[0], cima = lados.filter((l) => l !== baixo);
-  const detalhe = (l) => (m.saiu || []).includes(l) ? "Saiu da mesa" : !(m.na_mao || lados).includes(l) ? "Sem fichas"
-    : `${(m.fora || []).includes(l) ? "Largou · " : ""}${pokerFichas(m.fichas[l])} fichas${m.botao === l ? " · botão" : ""}${m.rodada[l] ? ` · ${pokerFichas(m.rodada[l])} na mesa` : ""}`;
-  const minhas = eu && m.minhas ? m.minhas.map((c) => pokerCartaHtml(c, "grande")).join("") : pokerCartaHtml(null, "grande") + pokerCartaHtml(null, "grande");
-  const mesa = [0, 1, 2, 3, 4].map((i) => (m.comunitarias[i] ? pokerCartaHtml(m.comunitarias[i]) : '<span class="pkr-carta vaga" aria-hidden="true"></span>')).join("");
+  // Eu embaixo (quem assiste vê pelo primeiro); os outros na ordem da mesa depois de mim.
+  const baixo = eu || lados[0], i = lados.indexOf(baixo), outros = [...lados.slice(i + 1), ...lados.slice(0, i)];
+  const pos = POKER_LUGARES[outros.length] || POKER_LUGARES[3];
+  // A mão acabou de fechar e ninguém jogou a nova: mostra o showdown e o vencedor.
+  const a = m.anterior, revela = Boolean(a) && (j.estado !== "jogando" || (a.mao === m.mao - 1 && (!m.ultimo || m.ultimo.mao !== m.mao)));
+  const centro = revela && a.comunitarias?.length ? a.comunitarias : m.comunitarias;
+  const mesa = [0, 1, 2, 3, 4].map((k) => (centro[k] ? pokerCartaHtml(centro[k]) : '<span class="pkr-carta vaga" aria-hidden="true"></span>')).join("");
+  const nome = (l) => (l === eu ? "Você" : xadrezPrimeiroNome(j[l]));
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : (m.saiu || []).includes(eu) ? "Você saiu da mesa: está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[j.vez])}.`
     : m.acoes?.mesa ? "Sua vez: passe, aposte ou largue." : `Sua vez: pague ${pokerFichas(m.acoes?.pagar)}, aumente ou largue.`;
   const ultimo = pokerUltimoTexto(j);
@@ -77,13 +103,15 @@ function desenharPoker(j, s) {
   const nova = s.maoVista !== undefined && s.maoVista !== j.id + ":" + m.mao;
   s.maoVista = j.id + ":" + m.mao;
   if (nova) escritorioTocar(700, 0.05, 0.04);
+  const faixa = revela ? (a.vencedor === "empate" ? `Mão ${a.mao}: empate, pote dividido` : `${nome(a.vencedor)} levou ${pokerFichas(a.ganhos?.[a.vencedor] ?? a.pote)}`) : "";
   return {
     status,
-    mesa: `<div class="pkr-outros${cima.length > 1 ? " grupo" : ""}">${cima.map((l) => mesaJogadorHtml(j, l, detalhe(l))).join("")}</div>
-<div class="pkr-mesa"><div class="pkr-dele">${cima.filter((l) => (m.na_mao || lados).includes(l) && !(m.fora || []).includes(l)).map(() => `<span>${pokerCartaHtml(null, "mini")}${pokerCartaHtml(null, "mini")}</span>`).join("")}</div>
-<div class="pkr-centro"><div class="pkr-comunitarias">${mesa}</div><p class="pkr-pote">Pote <b>${pokerFichas(m.pote)}</b></p>
+    mesa: `<div class="pkr-salao${nova ? " nova" : ""}"><div class="pkr-feltro"><div class="pkr-centro">
+${revela ? `<p class="pkr-vencedor">${safeText(faixa)}</p>` : ""}<div class="pkr-comunitarias">${mesa}</div>
+<p class="pkr-pote"><i aria-hidden="true"></i>Total do pote: <b>${pokerFichas(revela ? a.pote : m.pote)}</b></p>
 <small>Mão ${m.mao} · ${POKER_FASES[m.fase] || ""} · blinds ${pokerFichas(m.blind / 2)}/${pokerFichas(m.blind)}</small></div></div>
-${mesaJogadorHtml(j, baixo, detalhe(baixo))}<div class="pkr-minhas${nova ? " nova" : ""}">${minhas}</div>${m.minha_mao ? `<p class="pkr-tenho">Você tem: <b>${safeText(m.minha_mao)}</b>${nova ? ` · <span>Mão ${m.mao}</span>` : ""}</p>` : ""}${eu ? pokerAcoesHtml(j, s) : ""}`,
+${outros.map((l, k) => pokerLugarHtml(j, l, pos[k], revela)).join("")}${pokerLugarHtml(j, baixo, "baixo", revela)}</div>
+${m.minha_mao && !revela ? `<p class="pkr-tenho">Você tem: <b>${safeText(m.minha_mao)}</b></p>` : ""}${eu ? pokerAcoesHtml(j, s) : ""}`,
     painel: `${ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : ""}${pokerAnteriorHtml(j)}`,
   };
 }
