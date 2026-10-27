@@ -20,8 +20,8 @@ async function pecaDaReferencia(sql, ref) {
 }
 
 // Miniatura grande (1600 px) que o próprio Drive gera, para arquivo pesado, vídeo ou PDF.
-async function miniatura(fileId, buscar = fetch) {
-  const token = await tokenGoogle();
+async function miniatura(fileId, buscar = fetch, pegarToken = tokenGoogle) {
+  const token = await pegarToken();
   const meta = await buscar(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=thumbnailLink&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
   const link = meta.ok ? (await meta.json()).thumbnailLink : null;
   if (!link) return null;
@@ -44,6 +44,23 @@ export async function arteDaPeca(sql, ref, { baixar = baixarDoDrive, buscar = fe
   }
   if (!arte) arte = await miniatura(String(a.drive_file_id), buscar).catch(() => null);
   return { peca, arquivo: { id: a.id, nome: a.nome }, arte, motivo: arte ? null : 'sem_previa' };
+}
+
+// Prévia da peça para ir junto do aviso no WhatsApp (Paulo, 27/10/2026: "mandar a demanda junto, seja card,
+// carrossel ou vídeo"). A última entrega inteira (arquivos subidos até 15 min antes do mais recente, até 10, como as
+// lâminas de um carrossel), sempre pela miniatura do Drive: leve, e vale para imagem, vídeo (capa) e PDF.
+export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = tokenGoogle } = {}) {
+  const c = await pecaDaReferencia(sql, ref);
+  const arquivos = await sql`SELECT id::text, nome, extensao, drive_file_id, criado_em FROM vybe_conteudo_arquivos
+    WHERE conteudo_id = ${c.id} AND ausente_em IS NULL AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC LIMIT 30`;
+  const ultimo = arquivos[0] ? new Date(arquivos[0].criado_em || 0).getTime() : 0;
+  const entrega = arquivos.filter((a) => ultimo - new Date(a.criado_em || 0).getTime() <= 15 * 60e3).slice(0, 10).reverse();
+  const midias = [];
+  for (const a of entrega) {
+    const m = await miniatura(String(a.drive_file_id), buscar, pegarToken).catch(() => null);
+    if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || '') });
+  }
+  return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length };
 }
 
 // Opinião como comentário da Vybe AI (autor "Vybe IA"), pela mesma função de comentar do painel.
