@@ -79,6 +79,7 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  assert.equal((await x.listarMesa(sql,{id:1},MESA)).disponivel,false);
  await assert.rejects(x.desafiarMesa(sql,{id:1},[],{para:'3',...MESA,chave:'domino-0001'}),/migração/);
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-mesas.sql','utf8'));
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-poker-mesa-cheia.sql','utf8'));
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);
  await sql`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(1,100),(3,30),(7,0)`;

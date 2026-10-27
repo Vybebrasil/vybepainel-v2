@@ -81,7 +81,7 @@ test('truco: manilha, rodadas, pedidos e quem corre', () => {
 
 test('Mesa de Jogos: dama pela mesa genérica e a lista de todos os jogos', async (t) => {
   const { db, sql } = await bancoEscritorio(t);
-  for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-mesas-jogos-novos.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+  for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-mesas-jogos-novos.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
   const x = await import('../server/escritorio-mesas.js');
   const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');
   const salas = salasDoEscritorio([{ id: 1, nome: 'Paulo' }, { id: 3, nome: 'Vinícius' }, { id: 7, nome: 'Bia' }]);

@@ -1,19 +1,24 @@
 // Pôquer nas mesas do Escritório (pedido do Paulo, 27/10/2026): Texas Hold'em
-// para dois, até um ficar com todas as fichas. Cada um começa com 1.000 fichas
-// (as fichas são do jogo; a aposta de VybeCoins/itens é a da mesa, em
-// escritorio-apostas.js). Blinds 10/20 que dobram a cada 10 mãos, para a
-// partida acabar. Quem tem o botão paga o small blind e fala primeiro antes do
-// flop; depois do flop fala primeiro o big blind. A força da mão é do
-// pokersolver (MIT). Baralho e cartas ficam só no servidor: a vista de cada um
-// mostra as próprias cartas, e as do outro só quando a mão vai ao showdown.
+// de dois a quatro na mesma mesa, até um ficar com todas as fichas. Cada um
+// começa com 1.000 fichas (as fichas são do jogo; a aposta de VybeCoins/itens
+// é a da mesa, em escritorio-apostas.js). Blinds 10/20 que dobram a cada 10
+// mãos, para a partida acabar. A dois, quem tem o botão paga o small blind e
+// fala primeiro antes do flop; com três ou mais, os blinds são os dois à
+// esquerda do botão e fala primeiro o seguinte. Depois do flop fala o primeiro
+// à esquerda do botão. All-in de valores diferentes abre pote paralelo: cada
+// um disputa só o que pôde cobrir. A força da mão é do pokersolver (MIT).
+// Baralho e cartas ficam só no servidor: a vista de cada um mostra as próprias
+// cartas, e as dos outros só quando a mão vai ao showdown.
+//
+// Lados: 'desafiante', 'desafiado', 'jogador3', 'jogador4' (m.lados, na ordem
+// da mesa). Partida gravada antes do pôquer em grupo não tem m.lados: é a dois.
 import { randomInt } from 'node:crypto';
 import pokersolver from 'pokersolver';
 import { erro } from './escritorio-apostas.js';
 
 const { Hand } = pokersolver;
-const LADOS = ['desafiante', 'desafiado'];
+const DOIS = ['desafiante', 'desafiado'];
 const FICHAS = 1000, BLIND = 20, MAOS_POR_NIVEL = 10;
-const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
 const NOMES = { 'High Card': 'Carta alta', Pair: 'Par', 'Two Pair': 'Dois pares', 'Three of a Kind': 'Trinca', Straight: 'Sequência',
  Flush: 'Flush', 'Full House': 'Full house', 'Four of a Kind': 'Quadra', 'Straight Flush': 'Straight flush', 'Royal Flush': 'Royal flush' };
 
@@ -23,84 +28,121 @@ export function baralho() {
  for (let i = b.length - 1; i > 0; i--) { const k = randomInt(i + 1); [b[i], b[k]] = [b[k], b[i]]; }
  return b;
 }
-const dosDois = (v) => ({ desafiante: v, desafiado: v });
+const deTodos = (m, v) => Object.fromEntries(m.lados.map((l) => [l, v]));
+// Partida antiga (a dois, sem os campos do grupo) ganha os campos que faltam.
+function completar(m) {
+ m.lados ||= DOIS;
+ m.naMao ||= m.lados.filter((l) => m.fichas[l] > 0 || m.posto?.[l] > 0);
+ m.fora ||= {}; m.saiu ||= {};
+ return m;
+}
+// Na mão e sem largar; dos que estão na partida, quem ainda tem fichas.
+const ativos = (m) => m.naMao.filter((l) => !m.fora[l]);
+const naPartida = (m) => m.lados.filter((l) => !m.saiu[l] && (m.fichas[l] > 0 || (m.naMao.includes(l) && !m.fora[l])));
+// O próximo da mesa depois de `lado` (na ordem dos lugares) entre `lista`.
+function proximo(m, lado, lista) {
+ const i = m.lados.indexOf(lado);
+ for (let k = 1; k <= m.lados.length; k++) { const l = m.lados[(i + k) % m.lados.length]; if (lista.includes(l)) return l; }
+ return null;
+}
+const maior = (m) => Math.max(...m.naMao.map((l) => m.rodada[l]));
 
 function apostar(m, lado, v) {
  const x = Math.min(v, m.fichas[lado]);
  m.fichas[lado] -= x; m.rodada[lado] += x; m.posto[lado] += x;
 }
-// Mão nova: botão troca, blinds sobem a cada 10 mãos, duas cartas para cada um.
+// Mão nova: botão anda, blinds sobem a cada 10 mãos, duas cartas para cada um
+// (a começar pelo botão).
 function novaMao(m, embaralhado = baralho()) {
  m.mao = (m.mao || 0) + 1;
  m.blind = BLIND * 2 ** Math.floor((m.mao - 1) / MAOS_POR_NIVEL);
- if (m.mao > 1) m.botao = outro(m.botao);
+ m.naMao = m.lados.filter((l) => m.fichas[l] > 0 && !m.saiu[l]);
+ if (m.mao > 1 || !m.naMao.includes(m.botao)) m.botao = proximo(m, m.botao, m.naMao);
  m.baralho = embaralhado;
- m.cartas = { [m.botao]: [m.baralho.pop(), m.baralho.pop()], [outro(m.botao)]: [m.baralho.pop(), m.baralho.pop()] };
+ m.cartas = {};
+ for (let k = 0, l = m.botao; k < m.naMao.length; k++, l = proximo(m, l, m.naMao)) m.cartas[l] = [m.baralho.pop(), m.baralho.pop()];
  m.comunitarias = [];
  m.fase = 'preflop';
- m.posto = dosDois(0); m.rodada = dosDois(0); m.agiu = dosDois(false);
- apostar(m, m.botao, m.blind / 2);
- apostar(m, outro(m.botao), m.blind);
+ m.posto = deTodos(m, 0); m.rodada = deTodos(m, 0); m.agiu = deTodos(m, false); m.fora = {};
+ const dois = m.naMao.length === 2;
+ const pequeno = dois ? m.botao : proximo(m, m.botao, m.naMao), grande = proximo(m, pequeno, m.naMao);
+ apostar(m, pequeno, m.blind / 2);
+ apostar(m, grande, m.blind);
  m.aumento = m.blind;
- m.vez = m.botao;
+ m.vez = dois ? m.botao : proximo(m, grande, m.naMao);
 }
 
-export function iniciarPoker(botao = randomInt(2) ? 'desafiante' : 'desafiado', embaralhado) {
- const m = { fichas: dosDois(FICHAS), botao, n: 0, ultimo: null, anterior: null };
+// lados: quem está na mesa, na ordem dos lugares (2 a 4).
+export function iniciarPoker(botao, embaralhado, lados = DOIS) {
+ const m = { lados: [...lados], n: 0, ultimo: null, anterior: null, fora: {}, saiu: {} };
+ m.fichas = deTodos(m, FICHAS);
+ m.botao = botao && lados.includes(botao) ? botao : lados[randomInt(lados.length)];
  novaMao(m, embaralhado);
  return m;
 }
 
-const pagarDe = (m, lado) => Math.max(0, m.rodada[outro(lado)] - m.rodada[lado]);
-// A rodada fecha quando os dois falaram (ou estão sem fichas) e as apostas
-// batem, ou quem pôs menos está sem fichas (all-in).
+// A rodada fecha quando todo mundo que ainda está na mão falou e cobriu a
+// maior aposta (ou está sem fichas: all-in).
 function fechada(m) {
- const pronto = (l) => m.agiu[l] || m.fichas[l] === 0;
- if (!LADOS.every(pronto)) return false;
- const [a, b] = LADOS;
- if (m.rodada[a] === m.rodada[b]) return true;
- return m.fichas[m.rodada[a] < m.rodada[b] ? a : b] === 0;
+ const alto = maior(m);
+ return ativos(m).every((l) => m.fichas[l] === 0 || (m.agiu[l] && m.rodada[l] === alto));
 }
 
-// Fim da mão: quem largou perde o que pôs; no showdown, o pote casado vai para
-// a melhor mão (empate divide) e o que ninguém pagou volta para o dono.
-function fimDaMao(m, vencedor, showdown) {
- const casado = Math.min(m.posto.desafiante, m.posto.desafiado);
- const pote = m.posto.desafiante + m.posto.desafiado;
- if (!showdown) m.fichas[vencedor] += pote;
+// Fim da mão. Sem showdown (todo mundo largou), o pote vai para quem ficou.
+// No showdown, o pote é dividido em camadas pelo que cada um pôs: cada camada
+// vai para a melhor mão entre quem cobriu aquele valor (empate divide; a ficha
+// que sobra da divisão vai para o primeiro à esquerda do botão), e o que
+// ninguém pagou volta para o dono.
+function fimDaMao(m, sozinho, solucoes) {
+ const pote = m.lados.reduce((s, l) => s + m.posto[l], 0), ganhos = deTodos(m, 0);
+ // Quem levou o pote principal, o que todos disputam (dividido: "empate").
+ let principal = [sozinho];
+ if (sozinho) ganhos[sozinho] = pote;
  else {
-  for (const l of LADOS) m.fichas[l] += m.posto[l] - casado;
-  if (vencedor === 'empate') { m.fichas[m.botao] += casado; m.fichas[outro(m.botao)] += casado; }
-  else m.fichas[vencedor] += 2 * casado;
+  const disputam = ativos(m);
+  const niveis = [...new Set(m.lados.map((l) => m.posto[l]).filter((v) => v > 0))].sort((a, b) => a - b);
+  let antes = 0;
+  principal = null;
+  for (const nivel of niveis) {
+   const camada = m.lados.reduce((s, l) => s + Math.min(m.posto[l], nivel) - Math.min(m.posto[l], antes), 0);
+   const podem = disputam.filter((l) => m.posto[l] >= nivel);
+   // Ninguém que ainda disputa cobriu: é sobra de quem largou, volta para ele.
+   const melhores = podem.length ? Hand.winners(podem.map((l) => solucoes[l])).map((h) => podem.find((l) => solucoes[l] === h)) : m.lados.filter((l) => m.posto[l] >= nivel);
+   if (podem.length && !principal) principal = melhores;
+   const parte = Math.floor(camada / melhores.length);
+   for (const l of melhores) ganhos[l] += parte;
+   if (camada - parte * melhores.length) ganhos[proximo(m, m.botao, melhores)] += camada - parte * melhores.length;
+   antes = nivel;
+  }
  }
- m.anterior = { mao: m.mao, vencedor, pote, comunitarias: m.comunitarias,
-  maos: showdown ? Object.fromEntries(LADOS.map((l) => [l, { cartas: m.cartas[l], nome: showdown[l] }])) : null };
- const quebrado = LADOS.find((l) => m.fichas[l] === 0);
- if (quebrado) return { resultado: outro(quebrado), motivo: 'fichas' };
+ for (const l of m.lados) m.fichas[l] += ganhos[l];
+ m.anterior = { mao: m.mao, vencedor: principal.length > 1 ? 'empate' : principal[0], pote, comunitarias: m.comunitarias,
+  ganhos: Object.fromEntries(m.lados.filter((l) => ganhos[l] > 0).map((l) => [l, ganhos[l]])),
+  maos: solucoes ? Object.fromEntries(ativos(m).map((l) => [l, { cartas: m.cartas[l], nome: NOMES[solucoes[l].name] || solucoes[l].name }])) : null };
+ const restam = m.lados.filter((l) => m.fichas[l] > 0 && !m.saiu[l]);
+ if (restam.length === 1) return { resultado: restam[0], motivo: 'fichas' };
  novaMao(m);
  // Blind maior que as fichas já deixa alguém all-in: a mão anda sozinha.
  return andar(m);
 }
 function showdown(m) {
  while (m.comunitarias.length < 5) m.comunitarias.push(m.baralho.pop());
- const maos = Object.fromEntries(LADOS.map((l) => [l, Hand.solve([...m.cartas[l], ...m.comunitarias])]));
- const ganhou = Hand.winners([maos.desafiante, maos.desafiado]);
- const vencedor = ganhou.length > 1 ? 'empate' : ganhou[0] === maos.desafiante ? 'desafiante' : 'desafiado';
- return fimDaMao(m, vencedor, Object.fromEntries(LADOS.map((l) => [l, NOMES[maos[l].name] || maos[l].name])));
+ return fimDaMao(m, null, Object.fromEntries(ativos(m).map((l) => [l, Hand.solve([...m.cartas[l], ...m.comunitarias])])));
 }
-// Depois de cada jogada: fecha a rodada, abre o flop/turn/river, vai ao
-// showdown, ou passa a vez (pulando quem está sem fichas).
+// Depois de cada jogada: acaba a mão se só sobrou um, fecha a rodada, abre o
+// flop/turn/river, vai ao showdown, ou passa a vez (pulando quem está sem fichas).
 function andar(m) {
  for (;;) {
+  if (ativos(m).length === 1) return fimDaMao(m, ativos(m)[0], null);
   if (fechada(m)) {
-   if (m.fase === 'river' || LADOS.some((l) => m.fichas[l] === 0)) return showdown(m);
+   if (m.fase === 'river' || ativos(m).filter((l) => m.fichas[l] > 0).length <= 1) return showdown(m);
    m.fase = m.fase === 'preflop' ? 'flop' : m.fase === 'flop' ? 'turn' : 'river';
    m.comunitarias.push(...Array.from({ length: m.fase === 'flop' ? 3 : 1 }, () => m.baralho.pop()));
-   m.rodada = dosDois(0); m.agiu = dosDois(false); m.aumento = m.blind;
-   m.vez = outro(m.botao);
+   m.rodada = deTodos(m, 0); m.agiu = deTodos(m, false); m.aumento = m.blind;
+   m.vez = proximo(m, m.botao, ativos(m).filter((l) => m.fichas[l] > 0));
    continue;
   }
-  if (m.fichas[m.vez] === 0) { m.agiu[m.vez] = true; m.vez = outro(m.vez); continue; }
+  if (m.fichas[m.vez] === 0 || m.fora[m.vez]) { m.agiu[m.vez] = true; m.vez = proximo(m, m.vez, ativos(m)); continue; }
   return null;
  }
 }
@@ -108,18 +150,20 @@ function andar(m) {
 // O que quem tem a vez pode fazer: passar (mesa), pagar, aumentar até um
 // total da rodada entre min e max, ou largar.
 function acoes(m, lado) {
- const pagar = pagarDe(m, lado), tudo = m.rodada[lado] + m.fichas[lado], maior = Math.max(m.rodada.desafiante, m.rodada.desafiado);
- const pode = m.fichas[outro(lado)] > 0 && tudo > maior;
- return { pagar: Math.min(pagar, m.fichas[lado]), mesa: pagar === 0, aumentar: pode ? { min: Math.min(maior + m.aumento, tudo), max: tudo } : null };
+ const alto = maior(m), pagar = Math.max(0, alto - m.rodada[lado]), tudo = m.rodada[lado] + m.fichas[lado];
+ const pode = ativos(m).some((l) => l !== lado && m.fichas[l] > 0) && tudo > alto;
+ return { pagar: Math.min(pagar, m.fichas[lado]), mesa: pagar === 0, aumentar: pode ? { min: Math.min(alto + m.aumento, tudo), max: tudo } : null };
 }
 
-export function vistaPoker(m, lado, fim) {
+export function vistaPoker(mesa, lado, fim) {
+ const m = completar(structuredClone(mesa));
  const vez = !fim && lado && m.vez === lado;
  return {
   mao: m.mao, blind: m.blind, botao: m.botao, fase: m.fase, comunitarias: m.comunitarias,
-  fichas: m.fichas, rodada: m.rodada, pote: m.posto.desafiante + m.posto.desafiado,
-  minhas: lado ? m.cartas[lado] : null,
-  minha_mao: lado && !fim ? minhaMao(m, lado) : null,
+  lados: m.lados, na_mao: m.naMao, fora: m.lados.filter((l) => m.fora[l]), saiu: m.lados.filter((l) => m.saiu[l]),
+  fichas: m.fichas, rodada: m.rodada, pote: m.lados.reduce((s, l) => s + m.posto[l], 0),
+  minhas: lado ? m.cartas[lado] || null : null,
+  minha_mao: lado && !fim && m.cartas[lado] ? minhaMao(m, lado) : null,
   acoes: vez ? acoes(m, lado) : null,
   ultimo: m.ultimo || null, anterior: m.anterior || null,
  };
@@ -133,40 +177,61 @@ function minhaMao(m, lado) {
 
 // pedido: { tipo: 'largar' | 'mesa' | 'pagar' | 'aumentar', valor } (valor = total da rodada).
 export function jogarPoker(mesa, lado, pedido) {
- if (mesa.vez !== lado) throw erro('Agora é a vez da outra pessoa.', 409);
- const m = structuredClone(mesa), a = acoes(m, lado), tipo = pedido?.tipo;
+ if (mesa.vez !== lado) throw erro('Agora é a vez de outra pessoa.', 409);
+ const m = completar(structuredClone(mesa)), a = acoes(m, lado), tipo = pedido?.tipo;
  m.n = (m.n || 0) + 1;
  if (tipo === 'largar') {
+  m.fora[lado] = true;
   m.ultimo = { lado, acao: 'largou', mao: m.mao };
-  return { mesa: m, fim: fimDaMao(m, outro(lado), null) };
- }
- if (tipo === 'mesa') {
+ } else if (tipo === 'mesa') {
   if (!a.mesa) throw erro(`Para continuar, pague ${a.pagar} fichas.`, 409);
   m.ultimo = { lado, acao: 'mesa', mao: m.mao };
  } else if (tipo === 'pagar') {
   if (a.mesa) throw erro('Não há aposta para pagar: passe ou aposte.', 409);
   apostar(m, lado, a.pagar);
-  m.ultimo = { lado, acao: 'pagou', valor: a.pagar, mao: m.mao };
+  m.ultimo = { lado, acao: m.fichas[lado] === 0 ? 'all-in' : 'pagou', valor: a.pagar, mao: m.mao };
  } else if (tipo === 'aumentar') {
   const alvo = Number(pedido.valor);
   if (!a.aumentar) throw erro('Não dá para aumentar agora.', 409);
   if (!Number.isInteger(alvo) || alvo < a.aumentar.min || alvo > a.aumentar.max) throw erro(`Aposte de ${a.aumentar.min} a ${a.aumentar.max} fichas.`);
-  const maior = Math.max(m.rodada.desafiante, m.rodada.desafiado);
-  m.aumento = Math.max(m.aumento, alvo - maior);
+  const alto = maior(m);
+  m.aumento = Math.max(m.aumento, alvo - alto);
   apostar(m, lado, alvo - m.rodada[lado]);
-  m.agiu[outro(lado)] = false;
-  m.ultimo = { lado, acao: m.fichas[lado] === 0 ? 'all-in' : maior ? 'aumentou' : 'apostou', valor: alvo, mao: m.mao };
+  for (const l of ativos(m)) if (l !== lado) m.agiu[l] = false;
+  m.ultimo = { lado, acao: m.fichas[lado] === 0 ? 'all-in' : alto ? 'aumentou' : 'apostou', valor: alvo, mao: m.mao };
  } else throw erro('Jogada inválida.');
  m.agiu[lado] = true;
- m.vez = outro(lado);
- if (m.fichas[lado] === 0 && tipo !== 'aumentar') m.ultimo.acao = 'all-in';
+ m.vez = proximo(m, lado, ativos(m)) || lado;
  return { mesa: m, fim: andar(m) };
+}
+
+// Alguém sai da partida em grupo (desistiu ou sumiu na vez dele): larga a mão
+// e as fichas dele saem do jogo. Se sobrou um só, a partida acaba com ele.
+export function sairPoker(mesa, lado, motivo) {
+ const m = completar(structuredClone(mesa));
+ m.n = (m.n || 0) + 1;
+ m.saiu[lado] = true; m.fichas[lado] = 0;
+ if (m.naMao.includes(lado)) { m.fora[lado] = true; m.agiu[lado] = true; }
+ m.ultimo = { lado, acao: 'saiu', mao: m.mao };
+ const restam = naPartida(m);
+ if (restam.length === 1) return { mesa: m, fim: { resultado: restam[0], motivo } };
+ if (m.vez === lado) m.vez = proximo(m, lado, ativos(m));
+ return { mesa: m, fim: andar(m) };
+}
+// Partida largada: ganha quem tem mais fichas.
+export function liderPoker(mesa) {
+ const m = completar(structuredClone(mesa));
+ return naPartida(m).sort((a, b) => (m.fichas[b] + m.posto[b]) - (m.fichas[a] + m.posto[a]))[0];
 }
 
 export const motorPoker = {
  nome: 'Pôquer',
  motivos: { fichas: 'Ficou com todas as fichas' },
- iniciar: () => iniciarPoker(),
+ // Até quantos na mesma mesa (os outros jogos são de dois).
+ grupo: 4,
+ iniciar: (lados) => iniciarPoker(undefined, undefined, lados),
  vista: vistaPoker,
  jogar: jogarPoker,
+ sair: sairPoker,
+ lider: liderPoker,
 };

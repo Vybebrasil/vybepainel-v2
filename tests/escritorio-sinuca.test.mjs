@@ -81,6 +81,7 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
  const {db,sql}=await bancoEscritorio(t);
  await db.exec(readFileSync('migrations/2026-10-18-escritorio-postits-presentes.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-mesas.sql','utf8'));
+ await db.exec(readFileSync('migrations/2026-10-27-escritorio-poker-mesa-cheia.sql','utf8'));
  const x=await import('../server/escritorio-mesas.js');
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'}]);

@@ -1,8 +1,9 @@
 // ─── O SUBSOLO DO ESCRITÓRIO ──────────────────────────────────────────────────
 //
 // Easter egg do Centro de Operação (Paulo, 27/10/2026). A estante do canto do
-// Centro é secreta: quem administra puxa o livro certo e desce para o subsolo,
-// uma cripta onde ficam os clientes e os colaboradores desativados. Cliente
+// Centro é secreta: quem puxa o livro certo desce para o subsolo, uma cripta
+// onde ficam os clientes e os colaboradores desativados (só quem administra
+// os vê; para os outros a cripta está vazia). Cliente
 // fica na frente de uma lápide, com a fantasia que usava na mesa; colaborador
 // fica ao lado de uma cripta, com o boneco que usava no Escritório.
 //
@@ -26,16 +27,19 @@ const ESCRITORIO_FANTASMA = "hd-6003-27";
 const ESCRITORIO_ESQUELETO = "hd-6248-27.cc-4277-110";
 
 // O que cada peça do segredo faz ao ser usada (escritorioAcaoDoMovel).
+// A passagem é de todos (Paulo, 27/10/2026: o Reriston entrou no armário e
+// não apareceu nada; "todos podendo entrar na sala do easter eggs"). Quem está
+// lá embaixo (nomes e motivos de saída) e o livro de registros seguem só de
+// quem administra: para os outros a cripta aparece vazia.
 function escritorioAcaoDoSubsolo(m) {
-  if (!escritorio.base?.admin) return null;
   if (m.classe === ESCRITORIO_ESTANTE_SECRETA && escritorio.quarto === "operacao") return { item: m, texto: "Puxar o livro torto", fazer: () => descerAoSubsoloEscritorio() };
+  if (!escritorio.base?.admin) return null;
   if (m.classe === ESCRITORIO_LIVRO_DE_REGISTROS && escritorio.quarto === "subsolo") return { item: m, texto: "Abrir o livro de registros", fazer: () => abrirLivroDeRegistrosEscritorio() };
   return null;
 }
 const escritorioEhPecaDoSubsolo = (m) => m.classe === ESCRITORIO_ESTANTE_SECRETA || m.classe === ESCRITORIO_LIVRO_DE_REGISTROS;
 
 function descerAoSubsoloEscritorio() {
-  if (!escritorio.base?.admin) return;
   escritorioAviso("A estante range e abre uma passagem para baixo…");
   setTimeout(() => { escritorio.pelaPortaSecreta = true; escritorioIrParaAmbiente("subsolo", true); }, 600);
 }

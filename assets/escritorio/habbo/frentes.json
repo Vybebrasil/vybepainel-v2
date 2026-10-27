@@ -15,7 +15,7 @@
   "antique_c21_pennyfarthing": "regra",
   "antique_c21_teaset": "regra",
   "arcade_c23_cyberpunk": "regra",
-  "arcade_c23_pinball": "regra",
+  "arcade_c23_pinball": { "0": [1, 0], "2": [0, 1] },
   "arcade_c23_space": "regra",
   "arcade_c23_vrmachine": "regra",
   "army15_ltddesk": "regra",
