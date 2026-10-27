@@ -70,3 +70,23 @@ test('ações: permissões por papel, confirmação de uso único e execução p
     await assert.rejects(() => prepararAcao(sql, 2, { acao: 'status', item: '10', para: 'finalizado' }, segredo), /administração/);
   } finally { await db.close(); }
 });
+
+test('criar demanda: nome no padrão, prazo 2 dias antes, cliente e responsável sem ambiguidade, SIM cria pelo cadastro do painel', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec("INSERT INTO vybe_clientes VALUES(8,'Gonzalez'),(9,'Gonzalez Pães');ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true;");
+    const agora = Date.parse('2026-10-26T15:00:00Z');
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'criar', titulo: 'Agenda Musical', formato: 'card', cliente: 'Gonz', veiculacao: '2026-10-30' }, segredo, agora), /Mais de um cliente/);
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'criar', titulo: 'Agenda Musical', formato: 'banner', cliente: 'Gonzalez', veiculacao: '2026-10-30' }, segredo, agora), /Formato desconhecido/);
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'criar', titulo: 'Agenda Musical', formato: 'card', cliente: 'Gonzalez', veiculacao: '2026-10-20' }, segredo, agora), /veiculação/);
+    const p = await prepararAcao(sql, 2, { acao: 'criar', titulo: 'Agenda Musical', formato: 'card', cliente: 'Gonzalez', veiculacao: '2026-10-30', responsavel: 'Jady' }, segredo, agora);
+    assert.equal(p.resumo, '🆕 Criar na Produção:\n*Card - Agenda Musical* (Gonzalez)\nveicula 30/10 · prazo da equipe 28/10 · Jady');
+    const criados = [];
+    const executarCriar = { criarConteudo: async (s, quem, dados) => { criados.push([quem.pessoa.email, dados]); return { conteudo_id: 99, item_id: 'vybe:99' }; } };
+    const ok = await confirmarAcao(sql, 2, p.codigo, segredo, { agora, executar: executarCriar });
+    assert.equal(ok.feito, '✅ Criada: *Card - Agenda Musical* (Gonzalez).');
+    assert.equal(ok.link, 'https://vybepainel-v2.vercel.app/?atividade=vybe:99');
+    assert.deepEqual(criados[0], ['jady@x', { titulo: 'Card - Agenda Musical', cliente: 'Gonzalez', formato: 'Card', veiculacao: '2026-10-30', prazo: '2026-10-28', responsaveis: ['100482777'] }]);
+    await assert.rejects(() => confirmarAcao(sql, 2, p.codigo, segredo, { agora, executar: executarCriar }), /já foi usada/);
+  } finally { await db.close(); }
+});

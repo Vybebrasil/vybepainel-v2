@@ -80,10 +80,42 @@ async function statusDoQuadro(sql, c, para) {
   return alvo;
 }
 
+// Criar demanda na Produção, pelo mesmo cadastro do painel. Nome no padrão "Formato - Título" (vybe-nomenclatura);
+// prazo da equipe 2 dias antes da veiculação (nunca antes de hoje). Cliente e responsável pelo nome, sem ambiguidade.
+const FORMATOS = ['Card', 'Carrossel', 'Reels', 'Story', 'Fotografia', 'Feed', 'Vídeo', 'Motion'];
+async function montarCriacao(sql, pedido, agora) {
+  const titulo = String(pedido.titulo || '').replace(/\s+/g, ' ').trim();
+  if (titulo.length < 3 || titulo.length > 150) throw invalido('Diga o título da peça (3 a 150 letras).');
+  const formato = FORMATOS.find((f) => normal(f) === normal(pedido.formato));
+  if (!formato) throw invalido(`Formato desconhecido. Use: ${FORMATOS.join(', ')}.`);
+  const veiculacao = String(pedido.veiculacao || '');
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date(agora));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje) throw invalido('Diga a data de veiculação (hoje ou depois).');
+  const menos2 = new Date(Date.parse(veiculacao + 'T12:00:00Z') - 2 * 864e5).toISOString().slice(0, 10);
+  const prazo = menos2 < hoje ? hoje : menos2;
+  const clientes = await sql`SELECT nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
+  const cliente = clientes.length === 1 ? clientes[0] : clientes.find((c) => normal(c.nome) === normal(pedido.cliente));
+  if (!String(pedido.cliente || '').trim() || !cliente) throw invalido(clientes.length ? `Mais de um cliente com esse nome: ${clientes.map((c) => c.nome).join(', ')}.` : 'Não achei esse cliente.');
+  let responsavel = null;
+  if (String(pedido.responsavel || '').trim()) {
+    const ps = await sql`SELECT nome, monday_user_id::text AS monday_id FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL AND nome ILIKE ${String(pedido.responsavel).trim() + '%'} LIMIT 5`;
+    responsavel = ps.length === 1 ? ps[0] : null;
+    if (!responsavel) throw invalido(ps.length ? `Mais de uma pessoa com esse nome: ${ps.map((p) => p.nome).join(', ')}.` : 'Não achei esse responsável.');
+  }
+  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo, responsavel };
+}
+
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (acao === 'criar') {
+    const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
+    const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}`;
+    const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
+  }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, item);
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
@@ -108,6 +140,21 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   const t = JSON.parse(Buffer.from(dados, 'base64url').toString());
   if (String(t.p) !== String(pessoaId)) throw negar('Só quem pediu pode confirmar.');
   if (!(t.e > agora)) throw invalido('A confirmação expirou. Peça de novo.');
+  if (t.a === 'criar') {
+    const p = await pessoaAtiva(sql, pessoaId), d = t.v;
+    await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
+      acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
+    const hashCodigo = createHash('sha256').update(String(codigo)).digest('hex');
+    const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'criar', ${String(d.titulo).slice(0, 300)})
+      ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
+    if (!nova) throw invalido('Esta confirmação já foi usada.');
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const fazer = executar || await import('../api/conteudo.js');
+    const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, formato: d.formato, veiculacao: d.veiculacao, prazo: d.prazo,
+      responsaveis: d.responsavel ? [d.responsavel.monday_id] : [] });
+    const ref = r?.item_id || (r?.conteudo_id ? 'vybe:' + r.conteudo_id : null);
+    return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).`, link: ref ? linkDaAtividade(ref) : null };
+  }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, 'vybe:' + t.c);
   // A peça mudou entre o pedido e o SIM: não executa sobre um estado que a pessoa não viu.
   if (t.a === 'status' && normal(c.status) !== normal(t.de)) throw invalido(`A peça mudou para ${c.status} enquanto isso. Peça de novo.`);
