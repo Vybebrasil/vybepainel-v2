@@ -16,6 +16,10 @@ const FUSO = 'America/Bahia';
 const ESCOPO_AGENDA = 'https://www.googleapis.com/auth/calendar.events';
 const LIMITE_PECAS = 40;
 
+// A peça vai ao painel (trocarEscolha e companhia) como "vybe:<id>": o id
+// puro só bate com monday_item_id, e era assim que "Captação Feita" falhava
+// calado (Paulo, 27/10/2026: a Lions gravada ficou em Aguardo, sem captação).
+const ref = (id) => `vybe:${id}`;
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const diaValido = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d)) && new Date(`${d}T12:00:00Z`).toISOString().slice(0, 10) === d;
 const horaValida = (h) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(h));
@@ -176,7 +180,7 @@ export async function montarCaptacao(sql, quem, dados, { trocar, agenda = evento
   });
   const avisos = [];
   for (const id of d.pecas) {
-    try { await trocar(sql, quem, { item: id, campo: 'captacao', para: CAPTACAO.agendada }); }
+    try { await trocar(sql, quem, { item: ref(id), campo: 'captacao', para: CAPTACAO.agendada }); }
     catch (e) { avisos.push(`Não deu para marcar uma peça como "Captação Agendada": ${e.message}`); }
   }
   if (!d.evento) await sincronizarAgenda(sql, criada.id, { agenda, avisos });
@@ -224,7 +228,7 @@ export async function marcarGravado(sql, quem, { captacao_id, conteudo_id, desfa
     await tx`UPDATE vybe_captacoes SET estado = ${estado}, atualizado_em = now() WHERE id = ${captacao_id}`;
     return { estado, faltam };
   });
-  await trocar(sql, quem, { item: String(conteudo_id), campo: 'captacao', para: desfazer ? CAPTACAO.agendada : CAPTACAO.feita });
+  await trocar(sql, quem, { item: ref(conteudo_id), campo: 'captacao', para: desfazer ? CAPTACAO.agendada : CAPTACAO.feita });
   return r;
 }
 
@@ -242,7 +246,7 @@ export async function cancelarCaptacao(sql, quem, { id } = {}, { trocar, agenda 
   });
   const avisos = [];
   for (const item of pendentes) {
-    try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.pronta }); }
+    try { await trocar(sql, quem, { item: ref(item), campo: 'captacao', para: CAPTACAO.pronta }); }
     catch (e) { avisos.push(`Uma peça não voltou para "Agendar Captação": ${e.message}`); }
   }
   if (evento) {
@@ -337,7 +341,7 @@ export async function roteiroDaCaptacao(sql, quem, { captacao_id, link } = {}) {
   return ligarRoteiroNasPecas(sql, quem, { link, cliente_id: k.cliente_id, titulo: `Roteiro ${k.cliente || ''} ${k.dia.split('-').reverse().join('/')}`.trim(), pecas });
 }
 
-export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, prazo = null } = {}) {
+export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, prazo = null, painel = null } = {}) {
   await exigirTabelas(sql);
   if (!(await fechamentoPronto(sql))) throw erro('Fechar gravação aguarda a migração do banco.', 503);
   const d = validarFechamento(dados);
@@ -412,13 +416,14 @@ export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, p
   });
   const avisos = [];
   for (const item of r.feitas) {
-    try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.feita }); }
+    try { await trocar(sql, quem, { item: ref(item), campo: 'captacao', para: CAPTACAO.feita }); }
     catch (e) { avisos.push(`Uma peça não foi para "Captação Feita": ${e.message}`); }
   }
   for (const item of r.soltas) {
-    try { await trocar(sql, quem, { item, campo: 'captacao', para: CAPTACAO.pronta }); }
+    try { await trocar(sql, quem, { item: ref(item), campo: 'captacao', para: CAPTACAO.pronta }); }
     catch (e) { avisos.push(`Uma peça não voltou para "Agendar Captação": ${e.message}`); }
   }
+  avisos.push(...await semVeiculacaoParaRedacao(sql, quem, [...d.gravadas, ...r.criadas], r.cliente_id, painel));
   if (d.roteiro) {
     try {
       const [k] = await sql`SELECT k.dia::text AS dia, cl.nome AS cliente FROM vybe_captacoes k LEFT JOIN vybe_clientes cl ON cl.id = k.cliente_id WHERE k.id = ${r.id}`;
@@ -427,6 +432,36 @@ export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, p
     } catch (e) { avisos.push(`O roteiro não foi ligado: ${e.message}`); }
   }
   return { id: r.id, gravadas: d.gravadas.length + r.criadas.length, novas: r.criadas.length, soltas: r.soltas.length, com_drive: r.brutos, avisos };
+}
+
+// Gravada sem dia de ir ao ar (Paulo, 27/10/2026: "o Mizinho não escolhe o dia
+// de veiculação"): depois da Captação Feita (e das automações dela), a peça vai
+// para o grupo Redação, o head do cliente entra nos responsáveis e recebe um
+// aviso na peça para escolher o dia. Pelo mesmo caminho da gaveta; falha vira aviso.
+const GRUPO_REDACAO = 'group_title';
+async function semVeiculacaoParaRedacao(sql, quem, ids, clienteId, painel) {
+  if (!ids.length) return [];
+  const pecas = await sql`SELECT c.id::text AS id, c.titulo,
+      COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id), '{}') AS responsaveis
+    FROM vybe_conteudos c WHERE c.id = ANY(${ids}::bigint[]) AND c.veiculacao IS NULL AND c.removido_em IS NULL`;
+  if (!pecas.length) return [];
+  const heads = await sql`SELECT p.id::text AS id, p.nome FROM vybe_cliente_pessoas h JOIN vybe_pessoas p ON p.id = h.pessoa_id
+    WHERE h.cliente_id = ${clienteId} AND COALESCE(p.ativo, true) ORDER BY p.nome`;
+  const f = painel || await import('../api/conteudo.js');
+  const avisos = [];
+  const quemAvisar = heads.map((h) => '@' + String(h.nome).split(' ')[0]).join(' ');
+  for (const p of pecas) {
+    try {
+      await f.moverGrupo(sql, quem, { item: ref(p.id), grupo_id: GRUPO_REDACAO });
+      // Os responsáveis de agora (já com as automações da Captação Feita) mais os heads.
+      const [atual] = await sql`SELECT COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = ${p.id}), '{}') AS responsaveis`;
+      const pessoas = [...new Set([...(atual?.responsaveis || p.responsaveis), ...heads.map((h) => h.id)])];
+      if (heads.length) await f.trocarResponsaveis(sql, quem, { item: ref(p.id), pessoas });
+      await f.comentar(sql, quem, { item: ref(p.id), texto: `${quemAvisar ? quemAvisar + ' ' : ''}Conteúdo gravado e sem dia de veiculação: escolha o dia de ir ao ar. A peça está em Redação até lá.` });
+    } catch (e) { avisos.push(`"${p.titulo}" ficou sem ir para Redação: ${e.message}`); }
+  }
+  if (!heads.length) avisos.push(`${pecas.length === 1 ? 'Uma peça gravada está' : `${pecas.length} peças gravadas estão`} sem dia de veiculação e o cliente não tem head cadastrado para avisar.`);
+  return avisos;
 }
 
 // Evento da captação no Google Agenda da Vybe (conta de serviço com permissão
