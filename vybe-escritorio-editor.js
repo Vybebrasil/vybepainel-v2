@@ -796,6 +796,8 @@ const ESCRITORIO_GRUPOS_CATALOGO = [
   ["Acabamentos", (m) => m.categoria === "Acabamentos"],
   ["Janelas e portas", (m) => /window|door|gate/.test(m.classe)],
   ["Jogos e música", (m) => ["Jogos", "Música", "Festa"].includes(m.categoria)],
+  // Os móveis que abrem partida com quem está online (xadrez, dominó, pôquer, sinuca).
+  ["Jogos com a equipe", (m) => typeof escritorioJogoDoMovel === "function" && Boolean(escritorioJogoDoMovel(m.classe))],
   ["Cozinha e bar", (m) => m.categoria === "Cozinha" || /bardesk|bartable|minibar|fridge|drinks/.test(m.classe)],
   ["Na parede (janelas, quadros, luzes)", (m) => m.parede],
   ["Animados (luz, água, fogo…)", (m) => m.anima],
@@ -822,7 +824,7 @@ const ESCRITORIO_SECOES_CATALOGO = [
   ["Decoração", ["Luzes", "Tapetes", "Plantas", "Decoração (quadros, estátuas…)", "Na parede (janelas, quadros, luzes)", "Troféus", "Animados (luz, água, fogo…)"]],
   ["Ambientes", ["Cozinha e bar", "Detalhes de cozinha", "Jardim e área externa", "Lazer (piscina, rede, carro…)", "Jogos e música", "Objetos de estúdio"]],
   ["Construção", ["Construção e arquitetura", "Blocos e materiais", "Divisórias", "Janelas e portas", "Acabamentos", "Pisos do acervo"]],
-  ["Jogos e efeitos", ["Física (esteira, gelo, portão, trampolim)", "Gatilhos e efeitos (Wired)", "Ferramentas (relógio, votos, placar, altura)", "Barracas e veículos"]],
+  ["Jogos e efeitos", ["Jogos com a equipe", "Física (esteira, gelo, portão, trampolim)", "Gatilhos e efeitos (Wired)", "Ferramentas (relógio, votos, placar, altura)", "Barracas e veículos"]],
 ];
 function escritorioTipoAssento(m) {
   if (m.categoria !== "Cadeiras e sofás" && !/armchair|beanbag|lounger|hangingchair/.test(m.classe)) return "";
@@ -968,16 +970,19 @@ function escritorioCartaoMovel(m, opcoes) {
     : comum ? (m.parede ? "Na parede" : "Acervo da sala") : q === Infinity ? "Grátis"
     : inventario && q > 0 ? `${q} seu${q > 1 ? "s" : ""}` : i.marco ? (/^ranking_/.test(i.marco) ? "Só no ranking" : "Só por conquista") : i.restante === 0 ? "Esgotado" : !i.naVitrine ? "Só na vitrine" : `${i.preco.toLocaleString("pt-BR")} moedas${restam}`;
   const travado = /^(Só|Esgotado)/.test(estado);
+  // Móvel que abre partida com a equipe (xadrez, dominó, pôquer, sinuca).
+  const jogo = typeof escritorioJogoDoMovel === "function" ? escritorioJogoDoMovel(m.classe) : null;
+  const etiquetaJogo = jogo ? `<i class="ofc-movel-jogo" title="Abre uma partida de ${jogo.toLowerCase()} com quem está online">Jogo</i>` : "";
   // Na loja, o preço numa etiqueta só (a raridade já vem na cor da borda).
   if (naLoja && !travado && !meu && q !== Infinity && !(inventario && q > 0)) {
     const arrastaL = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
-    return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${i.preco > Number(escritorio.base?.economia?.saldo || 0) ? " caro" : ""}" draggable="${arrastaL}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)}${i.raridade !== "comum" ? ` · ${safeText(i.nome)}` : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha ofc-preco">${i.raridade !== "comum" ? `${safeText(i.nome)} · ` : ""}${i.preco.toLocaleString("pt-BR")} moedas${i.restante > 0 ? `<small>${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}</small>` : ""}</em>${!meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : ""}</button>`;
+    return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${i.preco > Number(escritorio.base?.economia?.saldo || 0) ? " caro" : ""}" draggable="${arrastaL}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)}${i.raridade !== "comum" ? ` · ${safeText(i.nome)}` : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha ofc-preco">${i.raridade !== "comum" ? `${safeText(i.nome)} · ` : ""}${i.preco.toLocaleString("pt-BR")} moedas${i.restante > 0 ? `<small>${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}</small>` : ""}</em>${!meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : ""}${etiquetaJogo}</button>`;
   }
   // Prêmio (conquista ou ranking) traz a etiqueta no cartão do inventário.
   const faixa = (meu && i.marco ? "Prêmio · " : "") + (!comum && i.raridade !== "comum" ? `${safeText(i.nome)} · ` : "");
   const arrasta = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
   const desejo = !meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : "";
-  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${q === Infinity && !meu ? " gratis" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}</button>`;
+  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${q === Infinity && !meu ? " gratis" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}${etiquetaJogo}</button>`;
 }
 // O que a loja sabe do móvel: faixa, preço, restantes, se está na vitrine e se
 // vem só por marco. Quem não está na tabela é comum (preço único); sem a tabela

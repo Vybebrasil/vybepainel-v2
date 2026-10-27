@@ -1068,6 +1068,7 @@ function escritorioIcone(nome) {
     ajustes: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     mais: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     alvo: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    jogo: '<path d="M7 8h10a4 4 0 014 4v1a3.5 3.5 0 01-6.3 2.1L14 14h-4l-.7 1.1A3.5 3.5 0 013 13v-1a4 4 0 014-4z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="15.5" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/>',
     voltar: '<path d="M18 6l-8 6 8 6zM6 6v12"/>',
     avancar: '<path d="M6 6l8 6-8 6zM18 6v12"/>',
     musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
