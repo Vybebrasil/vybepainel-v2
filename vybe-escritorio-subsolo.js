@@ -16,8 +16,14 @@
 
 const ESCRITORIO_ESTANTE_SECRETA = "hween_c20_secretbkshelf";
 const ESCRITORIO_LIVRO_DE_REGISTROS = "hween_c22_bookofdead";
-// Alma sem boneco salvo: o uniforme pálido da cena.
+// Alma sem boneco salvo: o uniforme pálido da cena (aparece na ficha).
 const ESCRITORIO_ALMA = "hr-828-61.hd-180-1.ch-215-1408.lg-280-1408.sh-305-1408";
+// Lá embaixo ninguém tem a roupa de antes (Paulo, 27/10/2026: "fantasma,
+// morte, algo que combina com o ambiente"): cliente vira fantasma e o time
+// vira esqueleto de manto preto. A ficha ainda mostra o boneco de quando
+// estava vivo, para reconhecer quem é.
+const ESCRITORIO_FANTASMA = "hd-6003-27";
+const ESCRITORIO_ESQUELETO = "hd-6248-27.cc-4277-110";
 
 // O que cada peça do segredo faz ao ser usada (escritorioAcaoDoMovel).
 function escritorioAcaoDoSubsolo(m) {
@@ -58,16 +64,15 @@ async function escritorioOcuparSubsolo() {
   const lugares = mapa.alasDosPostos ? mapa.alasDosPostos() : [];
   const livres = { clientes: lugares.filter((l) => l.ala === "clientes").map((l) => l.posto), time: lugares.filter((l) => l.ala === "time").map((l) => l.posto) };
   const ocupados = [];
-  dados.clientes.forEach((c, i) => {
+  dados.clientes.forEach((c) => {
     const posto = livres.clientes.shift();
     if (posto === undefined) return;
-    const a = { cliente: c.nome, segmento: c.segmento, personagem: c.personagem };
-    ocupados.push(escritorioAlmaNoPosto("cliente", c, posto, escritorioFiguraDoAgente(a, i), escritorioMaoDoAgente(a)));
+    ocupados.push(escritorioAlmaNoPosto("cliente", c, posto, ESCRITORIO_FANTASMA, ""));
   });
   dados.pessoas.forEach((p) => {
     const posto = livres.time.shift();
     if (posto === undefined) return;
-    ocupados.push(escritorioAlmaNoPosto("pessoa", p, posto, p.figura || ESCRITORIO_ALMA, ""));
+    ocupados.push(escritorioAlmaNoPosto("pessoa", p, posto, ESCRITORIO_ESQUELETO, ""));
   });
   mapa.ocuparPostos(ocupados, { clientes: { texto: "Clientes", cor: "#8fb58a" }, time: { texto: "Time", cor: "#9b8fc9" } });
   const total = dados.clientes.length + dados.pessoas.length, fora = total - ocupados.length;
