@@ -12323,3 +12323,7 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .mesa-placar small {color:#9da4b4}
 .mesa-ocupada {display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:#10161fe6;box-shadow:0 2px 8px #0008,0 0 0 1px color-mix(in srgb,var(--ofc-laranja,#ff9548) 60%,transparent);color:#e7ecf5;font:600 11px var(--mac-ui);white-space:nowrap}
 .mesa-ocupada b {color:#ffd18d;font-weight:800}
+/* Sinuca: efeito na branca e ajuste fino da mira. */
+.snc-efeito span {color:#9da4b4;font-weight:600}
+.snc-mira-fina {display:flex;gap:4px}
+.snc-mira-fina button {min-width:40px;padding:6px 10px}
