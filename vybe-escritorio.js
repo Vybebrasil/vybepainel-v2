@@ -3110,6 +3110,8 @@ function escritorioAplicarComando(id, cmd) {
   // VybeCoins de Paulo: quem recebe relê a carteira.
   else if (k === "vbc") moedasChegaramEscritorio(id, v);
   else if (k === "trc") trocaChegouEscritorio(id, v);
+  // Xadrez: convite novo para mim ou a partida aberta mudou.
+  else if (k === "xdz") xadrezSinalEscritorio(id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3687,6 +3689,7 @@ function escritorioAcaoDoMovel(m) {
   if (ESCRITORIO_GARRAFA.test(m.classe)) return { item: m, texto: "Girar a garrafa", fazer: () => girarGarrafaEscritorio(m) };
   if (ESCRITORIO_ROLETA.test(m.classe)) return { item: m, texto: "Girar a roleta", fazer: () => girarRoletaEscritorio(m) };
   if (ESCRITORIO_TELEPORTE.test(m.classe)) return { item: m, texto: "Teletransportar", fazer: () => abrirTeleporteEscritorio(m) };
+  if (ESCRITORIO_XADREZ.test(m.classe)) return { item: m, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(m) };
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
   if (ESCRITORIO_LIGAVEIS.some(([re]) => re.test(m.classe))) return { item: m, fazer: () => alternarMovelEscritorio(m) };
   return null;
@@ -3777,6 +3780,8 @@ function escritorioAcoesPerto() {
     const nome = ESCRITORIO_LIGAVEIS.find(([re]) => re.test(m.classe))?.[1];
     if (nome) return { item: m, texto: (m.estado ? "Desligar " : "Ligar ") + nome, fazer: () => alternarMovelEscritorio(m) };
   }
+  const xadrez = perto.find((m) => ESCRITORIO_XADREZ.test(m.classe));
+  if (xadrez) return { item: xadrez, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(xadrez) };
   const jogo = perto.map((m) => [m, ESCRITORIO_JOGOS.find(([re]) => re.test(m.classe))?.[1]]).find(([, n]) => n);
   if (jogo) {
     const texto = jogo[1] === "sinuca" ? "Bora uma partida de sinuca?" : "Bora um pebolim?";

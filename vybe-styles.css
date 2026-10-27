@@ -12109,3 +12109,75 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .previa-pasta-lista button[aria-pressed=true] {background:#ff8a3526;color:#fff}
 /* Conteúdo mais alto que o palco (player + lista) rola em vez de vazar por cima da barra da peça. */
 .previa-grande-palco {align-items:safe center;overflow-y:auto}
+/* Xadrez do Escritório (vybe-escritorio-xadrez.js): convite, aposta e a partida. */
+.workflow-modal.ofc-xdz {width:min(560px,calc(100vw - 32px));overflow:auto}
+.workflow-modal.ofc-xdz-jogo {width:min(900px,calc(100vw - 24px));overflow:auto}
+.ofc-xdz .xdz-sub {margin:14px 0 6px;color:#b7c3d2;font:700 11px var(--mac-ui);letter-spacing:.3px}
+.xdz-pessoas {display:flex;flex-wrap:wrap;gap:6px}
+.xdz-pessoa {display:grid;justify-items:center;gap:2px;width:68px;padding:6px 4px;border:1px solid #ffffff14;border-radius:12px;background:#ffffff06;color:#d7deeb;font:600 11px var(--mac-ui);cursor:pointer}
+.xdz-pessoa img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated}
+.xdz-pessoa i {width:40px;height:40px;border-radius:50%;background:#ffffff10}
+.xdz-pessoa.sim {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent);color:#fff}
+.xdz-modo {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.xdz-modo button {display:grid;gap:2px;padding:10px;border:1px solid #ffffff14;border-radius:12px;background:#ffffff06;color:#d7deeb;text-align:left;cursor:pointer}
+.xdz-modo button b {font:700 13px var(--mac-ui)}
+.xdz-modo button small {color:#9da4b4;font-size:11px}
+.xdz-modo button.sim {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.xdz-aguardando {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:8px 10px;border-radius:10px;background:#ffffff08;color:#d7deeb;font-size:12px}
+.xdz-convite {display:flex;align-items:center;gap:10px}
+.xdz-convite img {image-rendering:pixelated}
+.xdz-aposta {margin-top:10px;padding:10px;border:1px solid #ffffff12;border-radius:12px;background:#ffffff05}
+.xdz-aposta h4 {margin:8px 0 4px;color:#b7c3d2;font:700 11px var(--mac-ui)}
+.xdz-aposta ul {display:flex;flex-wrap:wrap;gap:4px;margin:0;padding:0;list-style:none}
+.xdz-aposta li {display:flex;align-items:center;gap:4px;padding:2px 8px 2px 2px;border-radius:8px;background:#ffffff08;color:#d7deeb;font-size:11px}
+.xdz-aposta li img {width:24px;height:24px;object-fit:contain;image-rendering:pixelated}
+.xdz-moedas {margin:0;color:#ffe0a6;font-size:12px}
+.xdz-gratis {margin:10px 0 0;color:#9da4b4;font-size:12px}
+.xdz-jogo {display:grid;grid-template-columns:minmax(0,auto) minmax(220px,1fr);gap:16px;align-items:start;margin-top:8px}
+.xdz-lado-tab {display:grid;gap:6px;width:min(480px,calc(100vw - 56px))}
+.xdz-jogador {display:grid;grid-template-columns:12px 36px minmax(0,1fr) auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;color:#d7deeb;font-size:12px}
+.xdz-jogador img {width:36px;height:36px;object-fit:contain;image-rendering:pixelated}
+.xdz-jogador > i {width:36px;height:36px;border-radius:50%;background:#ffffff10}
+.xdz-jogador small {color:#9da4b4}
+.xdz-jogador.vez {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.xdz-jogador.vez small {color:#ffd18d;font-weight:700}
+.xdz-cor {width:12px;height:12px;border-radius:50%;border:1px solid #0008}
+.xdz-cor.brancas {background:#f4f1ea}
+.xdz-cor.pretas {background:#1b1b1b;border-color:#ffffff40}
+.xdz-tabuleiro {position:relative;display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:6px;overflow:hidden;box-shadow:0 0 0 2px #2a1d10,0 10px 30px #0008}
+.xdz-casa {position:relative;display:grid;place-items:center;min-width:0;padding:0;border:0;cursor:default}
+.xdz-casa.clara {background:#e9d9b6}
+.xdz-casa.escura {background:#a97c52}
+.xdz-casa svg {width:92%;height:92%;pointer-events:none}
+.xdz-tabuleiro.vez .xdz-casa.minha,.xdz-casa.alvo {cursor:pointer}
+.xdz-casa.ultimo::before {content:"";position:absolute;inset:0;background:#ffcf4a59}
+.xdz-casa.sel::before {content:"";position:absolute;inset:0;background:#ff9548a6}
+.xdz-casa.alvo::after {content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:#1d140b55}
+.xdz-casa.alvo.captura::after {width:86%;height:86%;background:transparent;border:4px solid #1d140b55}
+.xdz-casa.xeque {background:radial-gradient(circle,#ff3b30 0,#ff3b3080 40%,transparent 72%),#a97c52}
+.xdz-casa:focus-visible {outline:3px solid #fff;outline-offset:-3px;z-index:1}
+.xdz-fil,.xdz-col {position:absolute;font:700 10px var(--mac-ui);font-style:normal;pointer-events:none}
+.xdz-fil {top:2px;left:3px}
+.xdz-col {right:3px;bottom:1px}
+.xdz-casa.clara .xdz-fil,.xdz-casa.clara .xdz-col {color:#a97c52}
+.xdz-casa.escura .xdz-fil,.xdz-casa.escura .xdz-col {color:#e9d9b6}
+.xdz-promo {position:absolute;inset:auto 8% 38% 8%;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:14px;background:#0d1520f2;box-shadow:0 10px 30px #000a;color:#d7deeb;font:700 12px var(--mac-ui);z-index:2}
+.xdz-promo button {width:52px;height:52px;padding:2px;border:1px solid #ffffff20;border-radius:10px;background:#e9d9b6;cursor:pointer}
+.xdz-promo button svg {width:100%;height:100%}
+.xdz-promo .xdz-promo-x {width:32px;height:32px;background:transparent;color:#d7deeb;font-size:18px}
+.xdz-painel {display:grid;gap:8px;align-content:start;min-width:0}
+.xdz-painel .xdz-aposta {margin-top:0}
+.xdz-status {margin:0;padding:8px 10px;border-radius:10px;background:#ffffff08;color:#e7ecf5;font:600 12px var(--mac-ui)}
+.xdz-status.xeque {background:#ff3b3024;color:#ffb4ae}
+.xdz-lances {display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;max-height:220px;overflow:auto;margin:0;padding:0;list-style:none;font:12px ui-monospace,Menlo,Consolas,monospace;color:#d7deeb}
+.xdz-lances li {display:grid;grid-template-columns:26px 1fr 1fr;gap:4px}
+.xdz-lances i {color:#7d8696;font-style:normal}
+.xdz-acoes {display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.xdz-empate {display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:8px 10px;border-radius:10px;background:#ffffff0a;color:#e7ecf5;font-size:12px}
+.xdz-desistir {margin-left:auto}
+.xdz-fim {display:grid;gap:2px;padding:12px;border-radius:12px;background:#ffffff0a;color:#d7deeb;font-size:12px}
+.xdz-fim b {color:#fff;font:800 18px var(--mac-ui)}
+.xdz-fim.ganhou {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 22%,transparent)}
+.xdz-fim.ganhou b {color:#ffe0a6}
+.xdz-fim.perdeu b {color:#c9d1dd}
+@media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}

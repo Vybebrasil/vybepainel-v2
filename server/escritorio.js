@@ -34,6 +34,7 @@ import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
 import { listarPostits, colarPostit, apagarPostit, darPresente, darMoedas, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
+import { listarXadrez, verXadrez, desafiarXadrez, responderXadrez, lanceXadrez, acaoXadrez } from "./escritorio-xadrez.js";
 import { dimensoesDosMoveis, salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe, copaDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
@@ -419,6 +420,14 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(200).json({ ok: true, ...(await origemDoMovel(sql, salas, { camada: String(req.query?.camada || ""), classe: String(req.query?.classe || "") })) });
     }
     if (acao === "trocas") return res.status(200).json({ ok: true, trocas: await listarTrocas(sql, pessoa) });
+    if (acao === "xadrez") {
+      try {
+        if (req.query?.id) return res.status(200).json({ ok: true, jogo: await verXadrez(sql, pessoa, String(req.query.id)) });
+        return res.status(200).json({ ok: true, ...(await listarXadrez(sql, pessoa, { camada: String(req.query?.camada || ""), movel: String(req.query?.movel || "") })) });
+      } catch (e) {
+        return res.status(e.status || 400).json({ error: e.message });
+      }
+    }
     // Guarda-roupa do criador: faixas, peças grátis/raras, as da pessoa e os kits.
     if (acao === "roupas") return res.status(200).json({ ok: true, ...(await roupasDaPessoa(sql, pessoa.id)) });
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
@@ -583,6 +592,19 @@ export async function areaEscritorio(req, res, quem, sql) {
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message });
     }
+  // Xadrez no tabuleiro: desafio, resposta, lance e desistir/empate/tempo.
+  if (["xadrez-desafiar", "xadrez-responder", "xadrez-lance", "xadrez-acao"].includes(acao)) {
+    try {
+      const corpo = req.body || {};
+      if (acao === "xadrez-lance") return res.status(200).json({ ok: true, ...(await lanceXadrez(sql, pessoa, corpo)) });
+      if (acao === "xadrez-acao") return res.status(200).json({ ok: true, ...(await acaoXadrez(sql, pessoa, corpo)) });
+      const { salas } = await carregarEscritorio(sql, pessoa);
+      if (acao === "xadrez-desafiar") return res.status(200).json({ ok: true, ...(await desafiarXadrez(sql, pessoa, salas, corpo)) });
+      return res.status(200).json({ ok: true, ...(await responderXadrez(sql, pessoa, salas, corpo)) });
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+  }
   if (acao === "troca" || acao === "troca-responder") {
     try {
       const { salas } = await carregarEscritorio(sql, pessoa);
