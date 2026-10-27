@@ -3055,10 +3055,14 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       b.type = "button";
       b.className = "mapa-bau";
       b.innerHTML = '<span class="mapa-bau-luz" aria-hidden="true"></span><img alt="" draggable="false"><b></b>';
-      b.addEventListener("click", (e) => { e.stopPropagation(); b.info?.aoClicar?.(b); });
-      // Prende o ponteiro no baú: a fala de um cliente que surge por cima
-      // entre apertar e soltar engolia o clique (Paulo, 27/10/2026).
-      b.addEventListener("pointerdown", (e) => { e.stopPropagation(); try { b.setPointerCapture(e.pointerId); } catch {} });
+      // Prende o ponteiro no baú (a fala de um cliente que surge por cima entre
+      // apertar e soltar engolia o clique) e abre ao soltar: no Safari o click
+      // não chega depois de prender o ponteiro (Paulo, 27/10/2026, no Mac).
+      // Enter e Espaço chegam como click sem ponteiro.
+      b.addEventListener("pointerdown", (e) => { e.stopPropagation(); if (e.button !== 0) return; b.apertado = true; try { b.setPointerCapture(e.pointerId); } catch {} });
+      b.addEventListener("pointerup", (e) => { e.stopPropagation(); if (!b.apertado) return; b.apertado = false; b.abriuEm = Date.now(); b.info?.aoClicar?.(b); });
+      b.addEventListener("pointercancel", () => { b.apertado = false; });
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (Date.now() - (b.abriuEm || 0) < 800) return; b.info?.aoClicar?.(b); });
       palco.append(b);
       p.bau = b;
     }
