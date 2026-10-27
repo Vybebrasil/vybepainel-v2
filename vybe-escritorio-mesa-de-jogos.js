@@ -32,12 +32,13 @@ async function abrirMesaDeJogosEscritorio(m) {
   x.mesa = mesa;
   const cfgDe = (j) => MESA_DE_JOGOS.map((k) => ESCRITORIO_MESAS[k]).find((c) => c.extra.jogo === j.jogo);
   const daqui = (l) => l.filter((j) => cfgDe(j));
-  const meu = daqui(d.jogos)[0], aqui = d.mesa && cfgDe(d.mesa) ? d.mesa : null, convite = daqui(d.convites)[0];
+  const meu = daqui(d.jogos)[0];
   if (meu) return cfgDe(meu).abrir(meu);
-  if (aqui) return cfgDe(aqui).abrir(aqui);
-  if (convite) return desenharConviteXadrez(convite, cfgDe(convite));
-  x.enviadosMesa = daqui(d.enviados);
-  escolherJogoDaMesa();
+  // O lobby da mesa, com os quatro jogos: convites, espera, o que está rolando aqui.
+  const filtrar = (v) => ({ ...v, convites: daqui(v.convites || []), aguardando: daqui(v.aguardando || []), enviados: daqui(v.enviados || []), mesa: v.mesa && cfgDe(v.mesa) ? v.mesa : null });
+  const lobby = { nome: "Mesa de Jogos", artigo: "um jogo", nota: "Dominó, dama, jogo da velha e truco: chame alguém e escolha o jogo.", lista: "mesa", extra: { jogo: "todos" }, responder: "mesa-responder",
+    escolher: true, filtrar, abrir: (j) => cfgDe(j).abrir(j) };
+  desenharSalaMesa(filtrar(d), lobby);
 }
 function escolherJogoDaMesa() {
   const botoes = MESA_DE_JOGOS.map((k) => {
@@ -45,12 +46,13 @@ function escolherJogoDaMesa() {
     return `<button type="button" onclick="jogoDaMesaEscolhido('${k}')"><i aria-hidden="true">${MESA_DE_JOGOS_ICONES[k]}</i><b>${c.nome}</b><small>${safeText(c.nota)}</small></button>`;
   }).join("");
   xadrezModal(`<div class="workflow-kicker">Mesa de Jogos<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
-<h2 class="workflow-title">O que vamos jogar?</h2><div class="mesa-escolha">${botoes}</div>`, "ofc-xdz-escolha");
+<h2 class="workflow-title">O que vamos jogar?</h2><div class="mesa-escolha">${botoes}</div>
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="abrirSalaMesa()">Voltar</button></div>`, "ofc-xdz-escolha");
 }
 function jogoDaMesaEscolhido(chave) {
   const x = escritorioXadrez(), cfg = ESCRITORIO_MESAS[chave];
   x.cfg = cfg;
-  novoXadrez((x.enviadosMesa || []).find((j) => j.jogo === cfg.extra.jogo) || null);
+  novoXadrez(null);
 }
 
 // --- Jogo da velha ---------------------------------------------------------

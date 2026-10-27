@@ -242,7 +242,11 @@ function escritorioResumoJogos(agora) {
       const k = c.jogo + ":" + c.id;
       if (r.avisados.has(k)) continue;
       r.avisados.add(k);
-      escritorioAviso(`${String(c.de).split(" ")[0]} te chamou para ${MESAS_NOMES[c.jogo]?.toLowerCase() || "um jogo"}. Clique na mesa do jogo para responder.`);
+      // O aviso com Aceitar, Ver e Recusar (vybe-escritorio-xadrez.js).
+      const cfg = c.jogo === "xadrez" ? XADREZ_CFG : Object.values(ESCRITORIO_MESAS).find((x) => x.extra.jogo === c.jogo);
+      if (!cfg) continue;
+      escritorioApi(cfg.lista, null, { id: c.id }).then((v) => v.jogo?.estado === "convite" && mesaConviteAviso(v.jogo, cfg))
+        .catch(() => escritorioAviso(`${String(c.de).split(" ")[0]} te chamou para ${MESAS_NOMES[c.jogo]?.toLowerCase() || "um jogo"}. Clique na mesa do jogo para responder.`));
     }
   }).catch(() => {});
 }

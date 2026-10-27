@@ -12557,3 +12557,117 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 /* Peça arrastada no xadrez e na dama: segue o ponteiro por cima de tudo. */
 .tab-fantasma {position:fixed;left:0;top:0;z-index:10000;pointer-events:none;filter:drop-shadow(0 8px 10px #000a);transform-origin:center}
 .xdz-tabuleiro.vez .xdz-casa.minha,.dam-tabuleiro.vez .dam-casa.minha {cursor:grab;touch-action:none}
+/* Lobby da mesa de jogo: cartões de convite, espera e partida rolando, que se atualizam sozinhos. */
+.workflow-modal.ofc-xdz-sala {width:min(620px,calc(100vw - 24px))}
+.sala-cartao {display:grid;gap:10px;margin:10px 0;padding:14px;border-radius:16px;background:#ffffff08;border:1px solid #ffffff14}
+.sala-cartao.destaque {background:linear-gradient(135deg,color-mix(in srgb,var(--ofc-laranja,#ff9548) 22%,transparent),#ffffff08);border-color:color-mix(in srgb,var(--ofc-laranja,#ff9548) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent)}
+.sala-cartao .sala-topo {display:flex;align-items:center;gap:10px}
+.sala-cartao .sala-topo > div {display:grid;gap:2px}
+.sala-cartao .sala-topo b {color:#fff;font:700 15px var(--mac-ui)}
+.sala-cartao .sala-topo small {color:#9da4b4;font-size:12px}
+.sala-prazo {justify-self:start;margin-top:2px;padding:1px 8px;border-radius:999px;background:#ffffff12;color:#d7deeb;font:700 11px var(--mac-ui);font-variant-numeric:tabular-nums}
+.sala-prazo.pouco {background:#e2462e33;color:#ffb3a6}
+.sala-lugares {display:flex;flex-wrap:wrap;gap:8px}
+.sala-pessoa {display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;background:#0b0d12;border:1px solid #ffffff14}
+.sala-pessoa img,.sala-pessoa > i {width:28px;height:28px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12}
+.sala-pessoa b {color:#fff;font:700 12px var(--mac-ui)}
+.sala-pessoa small {color:#9da4b4;font:600 11px var(--mac-ui)}
+.sala-pessoa.aceitou {border-color:#3fbf7a88}
+.sala-pessoa.aceitou small {color:#7fe0a8}
+.sala-pessoa.espera small {color:#ffd56a}
+.sala-pessoa.espera small::before {content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#ffd56a;vertical-align:middle;animation:sala-pulso 1.2s ease-in-out infinite}
+@keyframes sala-pulso {50% {opacity:.25}}
+@media (prefers-reduced-motion: reduce) {.sala-pessoa.espera small::before {animation:none}}
+.sala-acoes {display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.sala-vazia {margin:14px 0}
+.xdz-pessoa {position:relative}
+.xdz-pessoa.online::after {content:"";position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:#3fbf7a;box-shadow:0 0 0 2px #14171e}
+.xdz-pessoa:not(.online) img {opacity:.6}
+/* Convite que chega com outra tela aberta: aviso no canto com os botões. */
+.mesa-convite-aviso {position:fixed;right:18px;bottom:18px;z-index:10001;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:12px 14px;border-radius:16px;background:#14171ef2;border:1px solid color-mix(in srgb,var(--ofc-laranja,#ff9548) 60%,transparent);box-shadow:0 18px 40px #000b;animation:convite-entra .3s cubic-bezier(.2,.8,.3,1)}
+.mesa-convite-aviso img {width:40px;height:40px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12}
+.mesa-convite-aviso > div {display:grid;gap:2px;margin-right:6px}
+.mesa-convite-aviso b {color:#fff;font:700 13px var(--mac-ui)}
+.mesa-convite-aviso small {color:#9da4b4;font-size:12px}
+.mesa-convite-aviso button {padding:8px 12px}
+@keyframes convite-entra {from {opacity:0;transform:translateY(20px)}}
+@media(max-width:640px){.mesa-convite-aviso{left:12px;right:12px;bottom:12px;flex-wrap:wrap}.mesa-convite-aviso > div{flex:1 1 70%}}
+/* Lobby com cara de joguinho: faixa temática, assentos redondos, selos, relógio e botões em relevo. */
+.workflow-modal.ofc-xdz-sala {width:min(640px,calc(100vw - 24px));padding:0;overflow:hidden auto;background:#12151c}
+.ofc-xdz-sala > .sala-mesa,.ofc-xdz-sala > .ofc-erro {margin-left:16px;margin-right:16px}
+.sala-banner {position:relative;display:flex;align-items:center;gap:14px;min-height:118px;padding:18px 54px 18px 20px;overflow:hidden;color:#fff;background:radial-gradient(ellipse at 20% 0%,#2fae6c,#155c39 70%);box-shadow:inset 0 -4px 0 #0004}
+.sala-banner.tema-xadrez {background:repeating-conic-gradient(#3b2a1a 0 25%,#5a4028 0 50%) 0 0/36px 36px;box-shadow:inset 0 0 0 999px #0007}
+.sala-banner.tema-sinuca {background:radial-gradient(ellipse at 30% 0%,#2fb06e,#14603b 75%)}
+.sala-banner.tema-domino,.sala-banner.tema-todos {background:radial-gradient(ellipse at 30% 0%,#3f7bd6,#1d3f7a 75%)}
+.sala-banner.tema-dama {background:radial-gradient(ellipse at 30% 0%,#c0563a,#6b2414 75%)}
+.sala-banner.tema-velha {background:radial-gradient(ellipse at 30% 0%,#8b5cf6,#43207f 75%)}
+.sala-banner.tema-truco {background:radial-gradient(ellipse at 30% 0%,#d9a12b,#7a4a08 75%)}
+.sala-banner small {color:#ffffffb3;font:800 11px var(--mac-ui);letter-spacing:1.5px;text-transform:uppercase}
+.sala-banner h2 {margin:2px 0 4px;font:900 28px/1.05 var(--mac-ui);letter-spacing:-.5px;text-shadow:0 3px 0 #0005}
+.sala-banner p {margin:0;max-width:44ch;color:#ffffffd9;font:600 12.5px var(--mac-ui)}
+.sala-banner .workflow-close {position:absolute;top:12px;right:12px}
+.sala-simbolos {position:absolute;right:-8px;bottom:-22px;display:flex;gap:2px;pointer-events:none}
+.sala-simbolos i {font-style:normal;font-size:84px;line-height:1;color:#ffffff1f;transform:rotate(calc(var(--i) * 12deg - 12deg));text-shadow:0 4px 0 #0002}
+.sala-mesa {position:relative;display:grid;gap:12px;margin:14px 0;padding:16px;border-radius:20px;background:radial-gradient(ellipse at 50% 0%,#1f3a2c,#141b1a 80%);border:2px solid #ffffff12;box-shadow:inset 0 2px 0 #ffffff10,0 8px 0 #0004}
+.sala-mesa.destaque {background:radial-gradient(ellipse at 50% 0%,#5a3a12,#1d1810 80%);border-color:#ffb94a;box-shadow:0 0 0 4px #ffb94a33,0 0 30px #ffb94a33,0 8px 0 #0005;animation:sala-chamando 1.6s ease-in-out infinite}
+@keyframes sala-chamando {50% {box-shadow:0 0 0 6px #ffb94a22,0 0 44px #ffb94a55,0 8px 0 #0005}}
+.sala-mesa.rolando {background:radial-gradient(ellipse at 50% 0%,#1d2f55,#121827 80%)}
+.sala-topo {display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sala-topo b {color:#fff;font:900 17px var(--mac-ui);letter-spacing:-.2px;text-shadow:0 2px 0 #0006}
+.sala-prazo {display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#000a;color:#fff;font:800 13px var(--mac-ui);font-variant-numeric:tabular-nums;box-shadow:inset 0 -2px 0 #fff2}
+.sala-prazo i {width:12px;height:12px;border-radius:50%;border:2px solid #7fe0a8;border-top-color:transparent;animation:sala-gira 1s linear infinite}
+.sala-prazo.pouco {background:#a3261a;animation:sala-pisca .8s ease-in-out infinite}
+.sala-prazo.pouco i {border-color:#fff;border-top-color:transparent}
+@keyframes sala-gira {to {transform:rotate(360deg)}}
+@keyframes sala-pisca {50% {opacity:.6}}
+.sala-lugares {display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px}
+.sala-lugar {display:grid;justify-items:center;gap:3px;width:84px;padding:0;border:0;background:none;color:#fff}
+.sala-assento {display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#1a1f2a);box-shadow:0 0 0 4px #ffffff22,0 6px 0 #0006}
+.sala-assento img {width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
+.sala-assento i {font:900 24px var(--mac-ui);font-style:normal;color:#ffffffb0}
+.sala-lugar b {max-width:84px;overflow:hidden;color:#fff;font:800 12px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.sala-lugar em {padding:1px 8px;border-radius:999px;font:900 9.5px var(--mac-ui);font-style:normal;letter-spacing:.6px;text-transform:uppercase;box-shadow:0 2px 0 #0005}
+.sala-lugar.chamou .sala-assento {box-shadow:0 0 0 4px #ffcf4a,0 6px 0 #0006}
+.sala-lugar.chamou em {background:#ffcf4a;color:#2a1800}
+.sala-lugar.aceitou .sala-assento {box-shadow:0 0 0 4px #3fd17f,0 0 18px #3fd17f88,0 6px 0 #0006}
+.sala-lugar.aceitou em {background:#3fd17f;color:#062712}
+.sala-lugar.espera .sala-assento {box-shadow:0 0 0 4px #ffffff40,0 6px 0 #0006;animation:sala-espera 1.4s ease-in-out infinite}
+.sala-lugar.espera em {background:#ffffff26;color:#ffe9a8}
+@keyframes sala-espera {50% {box-shadow:0 0 0 4px #ffcf4a99,0 6px 0 #0006}}
+.sala-lugar.jogando .sala-assento {box-shadow:0 0 0 4px #5aa7ff,0 6px 0 #0006}
+.sala-lugar.vazio {cursor:pointer}
+.sala-lugar.vazio .sala-assento {background:transparent;border:3px dashed #ffffff40;box-shadow:none;transition:transform .15s,border-color .15s}
+.sala-lugar.vazio .sala-assento i {color:#ffffff80;font-size:30px}
+.sala-lugar.vazio b {color:#ffffff99}
+.sala-lugar.vazio em {background:#ff9548;color:#2a1400}
+.sala-lugar.vazio:hover .sala-assento {transform:scale(1.08);border-color:#ff9548}
+.sala-vs {color:#ffcf4a;font:900 18px var(--mac-ui);font-style:italic;text-shadow:0 3px 0 #0007}
+.sala-aovivo {display:inline-block;margin-right:6px;padding:1px 7px;border-radius:5px;background:#e2462e;color:#fff;font:900 10px var(--mac-ui);font-style:normal;letter-spacing:.6px;text-transform:uppercase;vertical-align:middle;animation:sala-pisca 1.2s ease-in-out infinite}
+.sala-dica {margin:0;text-align:center;color:#c9d1dd;font:600 12px var(--mac-ui)}
+.sala-mesa .xdz-aposta {margin:0}
+.sala-acoes {display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sala-rodape {position:sticky;bottom:0;display:flex;justify-content:space-between;gap:10px;padding:14px 16px;background:linear-gradient(transparent,#12151c 30%)}
+.sala-botao {padding:11px 20px;border:0;border-radius:14px;color:#fff;font:900 14px var(--mac-ui);letter-spacing:.3px;text-transform:uppercase;cursor:pointer;box-shadow:inset 0 2px 0 #ffffff40,0 5px 0 var(--sombra,#0008);transition:transform .08s,box-shadow .08s}
+.sala-botao:hover {transform:translateY(-1px)}
+.sala-botao:active {transform:translateY(4px);box-shadow:inset 0 2px 0 #ffffff40,0 1px 0 var(--sombra,#0008)}
+.sala-botao:disabled {opacity:.5;cursor:default;transform:none}
+.sala-botao.verde {--sombra:#0d6b36;background:linear-gradient(#4fe08f,#22a85c)}
+.sala-botao.laranja {--sombra:#a3480d;background:linear-gradient(#ffb067,#ff7a1f)}
+.sala-botao.azul {--sombra:#1c4d99;background:linear-gradient(#6fb2ff,#3577e0)}
+.sala-botao.cinza {--sombra:#0b0d12;background:linear-gradient(#4a5160,#2e333e)}
+.sala-botao.grande {padding:13px 26px;font-size:15px}
+@media (prefers-reduced-motion: reduce) {.sala-mesa.destaque,.sala-prazo i,.sala-prazo.pouco,.sala-lugar.espera .sala-assento,.sala-aovivo {animation:none}}
+@media(max-width:560px){.sala-banner h2{font-size:22px}.sala-simbolos i{font-size:60px}.sala-lugar{width:70px}.sala-assento{width:54px;height:54px}.sala-assento img{width:46px;height:46px}}
+/* Convite novo com cara de jogo: a mesma faixa, as pessoas em assentos redondos e o modo como botões grandes. */
+.workflow-modal.ofc-xdz-novo {width:min(640px,calc(100vw - 24px));padding:0;overflow:hidden auto;background:#12151c}
+.ofc-xdz-novo .sala-corpo {padding:4px 16px 8px}
+.ofc-xdz-novo .xdz-pessoas {gap:12px;justify-content:center}
+.ofc-xdz-novo .xdz-pessoa {width:84px;padding:6px 2px;border:0;background:none;color:#fff;font:800 12px var(--mac-ui)}
+.ofc-xdz-novo .xdz-pessoa img,.ofc-xdz-novo .xdz-pessoa > i {width:60px;height:60px;padding:2px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#1a1f2a);box-shadow:0 0 0 3px #ffffff22,0 5px 0 #0006;transition:transform .12s,box-shadow .12s}
+.ofc-xdz-novo .xdz-pessoa:hover img,.ofc-xdz-novo .xdz-pessoa:hover > i {transform:translateY(-3px)}
+.ofc-xdz-novo .xdz-pessoa.sim {background:none}
+.ofc-xdz-novo .xdz-pessoa.sim img,.ofc-xdz-novo .xdz-pessoa.sim > i {box-shadow:0 0 0 4px #ff9548,0 0 20px #ff954888,0 5px 0 #0006;transform:translateY(-3px)}
+.ofc-xdz-novo .xdz-pessoa.online::after {top:8px;right:14px;width:12px;height:12px}
+.ofc-xdz-novo .xdz-modo button {border-radius:14px;box-shadow:inset 0 2px 0 #ffffff20,0 5px 0 #0007}
+.ofc-xdz-novo .xdz-modo button.sim {background:linear-gradient(#ffb067,#ff7a1f);color:#2a1400;box-shadow:inset 0 2px 0 #ffffff50,0 5px 0 #a3480d}
+.ofc-xdz-novo .xdz-modo button.sim small {color:#4a2400}

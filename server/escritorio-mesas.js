@@ -172,18 +172,31 @@ async function comecar(tx, j, salas, quemAceita) {
  await tx`UPDATE vybe_escritorio_partidas SET estado='jogando',mesa=${JSON.stringify(inicio)}::jsonb,iniciado_em=now(),ultimo_lance_em=now() WHERE id=${j.id}`;
 }
 
-// acao: "aceitar"/"recusar" (quem foi chamado) ou "cancelar" (quem chamou).
-// A partida começa quando o último chamado aceita. Em grupo, quem recusa sai
-// da lista (se era o primeiro chamado, o seguinte toma o lugar dele).
+// acao: "aceitar"/"recusar" (quem foi chamado), "cancelar" ou "comecar" (quem
+// chamou). A partida começa quando o último chamado aceita. Em grupo, quem
+// recusa sai da lista (se era o primeiro chamado, o seguinte toma o lugar
+// dele), e quem chamou pode começar só com quem já aceitou (Paulo, 27/10/2026:
+// a mesa ficava parada esperando quem não respondia).
 export async function responderMesa(sql, pessoa, salas, { id, acao }) {
  await exigirTabela(sql);
- if (!['aceitar', 'recusar', 'cancelar'].includes(acao)) throw erro('Pedido inválido.');
+ if (!['aceitar', 'recusar', 'cancelar', 'comecar'].includes(acao)) throw erro('Pedido inválido.');
  const r = await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
   if (!j) throw erro('Partida não encontrada.', 404);
   const eu = String(pessoa.id);
-  if (acao === 'cancelar' ? eu !== String(j.desafiante) : !chamados(j).includes(eu)) throw erro('Só quem foi chamado responde; só quem chamou cancela.', 403);
+  const quemChamou = acao === 'cancelar' || acao === 'comecar';
+  if (quemChamou ? eu !== String(j.desafiante) : !chamados(j).includes(eu)) throw erro('Só quem foi chamado responde; só quem chamou cancela ou começa.', 403);
   if (j.estado !== 'convite') return { repetido: true };
+  if (acao === 'comecar') {
+   if (conviteVencido(j)) throw erro('O convite venceu. Chame de novo.', 409);
+   const prontos = chamados(j).filter((x) => aceitos(j).includes(x));
+   if (!prontos.length) throw erro('Ninguém aceitou ainda.', 409);
+   // Quem não respondeu sai do convite; quem aceitou senta, na ordem.
+   j.desafiado = prontos[0]; j.mais = prontos.slice(1);
+   await tx`UPDATE vybe_escritorio_partidas SET desafiado=${j.desafiado},mais=${j.mais}::bigint[] WHERE id=${j.id}`;
+   await comecar(tx, j, salas, eu);
+   return {};
+  }
   if (acao === 'cancelar' || conviteVencido(j) || (acao === 'recusar' && !emGrupo(j))) {
    await tx`UPDATE vybe_escritorio_partidas SET estado=${acao === 'recusar' ? 'recusado' : 'cancelado'},terminado_em=now() WHERE id=${j.id}`;
    if (acao === 'aceitar') throw erro('O convite venceu. Chame de novo.', 409);
