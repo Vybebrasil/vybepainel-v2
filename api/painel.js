@@ -1621,9 +1621,12 @@ async function areaCaptacoes(req,res,quem) {
       // Os últimos 7 dias também: captação que já passou e ninguém fechou
       // aparece como "falta fechar" (Fechar gravação, 26/10/2026).
       const semanaPassada=dia(hoje,-7);
+      // `dias`: 7 na semana, 42 no mês (seis semanas da grade); 1 a 42.
+      const nDias=Math.min(42,Math.max(1,Number.parseInt(String(req.query?.dias||'7'),10)||7));
+      const fimPeriodo=dia(semana,nDias-1);
       const [lista, agenda, proximas, recentes] = await Promise.all([
-        listarCaptacoes(banco,{de:semana<semanaPassada?semana:semanaPassada,ate:dia(semana,6)>dia(hoje,30)?dia(semana,6):dia(hoje,30)}),
-        ler({inicio:semana,dias:7}), ler({inicio:hoje,dias:31}), ler({inicio:semanaPassada,dias:8})]);
+        listarCaptacoes(banco,{de:semana<semanaPassada?semana:semanaPassada,ate:fimPeriodo>dia(hoje,30)?fimPeriodo:dia(hoje,30)}),
+        ler({inicio:semana,dias:nDias}), ler({inicio:hoje,dias:31}), ler({inicio:semanaPassada,dias:8})]);
       // As peças que saíram de um roteiro do Docs trazem o link dele.
       const roteiros=await roteirosDosConteudos(banco,lista.captacoes.flatMap((k)=>k.pecas.map((p)=>p.id)));
       for(const k of lista.captacoes) k.pecas=k.pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}));
