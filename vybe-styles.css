@@ -12863,3 +12863,50 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .temporada-lista span {color:#ffd56a;font:800 12px var(--mac-ui)}
 @media(max-width:560px){.desafio{grid-template-columns:48px 1fr}.desafio .sala-botao{grid-column:1/-1}}
 .jogo-selo.lendario {background:#d62a14;box-shadow:0 2px 0 #7a140a}
+
+/* Sinuca, 28/10/2026 (Paulo: "não dá pra ver as bolas par, as ímpar"): mesa maior, e as bolas do placar
+   desenhadas em CSS (a folha de bolas reduzida a 18 px cortava o número). A 1 é a bola final. */
+.workflow-modal.ofc-snc-jogo {width:min(1360px,calc(100vw - 16px))}
+.snc-area {grid-template-columns:40px minmax(0,1fr) 58px;gap:8px}
+.snc-grupo {gap:4px}
+.snc-grupo i {display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#111;font:800 10.5px/1 var(--mac-ui);font-style:normal;
+  background:radial-gradient(circle,#fff 0 36%,transparent 38%),var(--c);box-shadow:inset 0 -3px 4px #0006,inset 0 2px 3px #ffffff40,0 1px 2px #0008}
+.snc-grupo i.listra {background:radial-gradient(circle,#fff 0 36%,transparent 38%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
+.snc-grupo i.final {margin-left:6px;outline:2px solid #ffd35c;outline-offset:1px}
+.snc-grupo i.caiu {opacity:.25;filter:grayscale(1)}
+@media (max-width:700px){.snc-grupo i {width:19px;height:19px;font-size:9px}.snc-area {grid-template-columns:34px minmax(0,1fr) 50px}}
+/* Jogos: a regra geral das janelas (.workflow-modal width:min(940px,94vw)!important, linha ~1442) prendia
+   todas as mesas em 940 px; cada jogo agora tem a largura que precisa. */
+#workflow-modal.ofc-snc-jogo {width:min(1360px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+#workflow-modal.ofc-pkr-jogo {width:min(1180px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+#workflow-modal.ofc-dmn-jogo {width:min(1120px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+#workflow-modal.ofc-xdz-jogo,#workflow-modal.ofc-dam-jogo {width:min(1000px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+#workflow-modal.ofc-vlh-jogo,#workflow-modal.ofc-trc-jogo {width:min(1000px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+/* A mesa cabe na altura da tela (a janela larga deixava a tabela de baixo para fora em telas baixas). */
+.ofc-snc-jogo .snc-area {align-items:center}
+.ofc-snc-jogo .snc-canvas {width:auto;max-width:100%;max-height:calc(100vh - 230px);margin:0 auto;aspect-ratio:108/58}
+.ofc-snc-jogo .snc-forca {align-self:stretch}
+/* Auditoria dos jogos, 28/10/2026: o pôquer cabe na altura da tela (os botões de aposta ficavam para fora
+   em 768 px) e a fileira do dominó fica no meio da mesa. */
+.ofc-pkr-jogo .pkr-salao {height:clamp(360px,calc(100vh - 330px),500px)}
+.ofc-dmn-jogo .dmn-mesa {align-content:center}
+/* Pré-lance do xadrez: as duas casas em vermelho até a vez voltar. */
+.xdz-casa.pre::before {content:"";position:absolute;inset:0;background:#e2462e70}
+.xdz-tabuleiro:not(.vez) .xdz-casa:has(svg) {cursor:pointer}
+/* Dominó: a peça da mão pega com o dedo/mouse (arrastar até a mesa) e a última jogada encaixa com um tranco. */
+.dmn-mao-peca.pode {cursor:grab;touch-action:none}
+.dmn-mao-peca.pode:hover {transform:translateY(-6px)}
+.dmn-lugar .dmn-peca.nova {animation:dmn-encaixa .38s cubic-bezier(.2,1.6,.4,1)}
+@keyframes dmn-encaixa {0% {transform:scale(1.35) rotate(-8deg);opacity:.2} 70% {transform:scale(.96)} 100% {transform:none;opacity:1}}
+/* Pôquer: carta da mesa que acabou de sair vira, uma depois da outra; o pote que cresceu pulsa. */
+.pkr-vira {display:inline-block;animation:pkr-vira .45s calc(var(--k) * .18s) both cubic-bezier(.3,1.4,.5,1)}
+@keyframes pkr-vira {from {opacity:0;transform:perspective(400px) rotateY(90deg) translateY(-14px)}}
+.pkr-pote.cresceu {animation:pkr-pote .6s ease-out}
+.pkr-pote.cresceu i {animation:pkr-ficha .6s ease-out}
+@keyframes pkr-pote {30% {transform:scale(1.12);box-shadow:0 0 0 3px #ffd35c88,0 0 24px #ffd35c66}}
+@keyframes pkr-ficha {0% {transform:translateY(-30px) rotate(-180deg);opacity:0}}
+/* Velha: a rodada que fechou fica 2 s na tela com a linha acesa. */
+.vlh-tab {position:relative}
+.vlh-tab.replay .vlh-casa {pointer-events:none}
+.vlh-tab.replay .vlh-casa:not(.linha) {opacity:.35}
+.vlh-aviso {position:absolute;left:50%;top:50%;margin:0;padding:10px 18px;border-radius:999px;background:#1b1230ee;border:2px solid #b48cff;color:#fff;font:900 20px var(--mac-ui);white-space:nowrap;transform:translate(-50%,-50%);animation:trc-faixa .3s ease-out;box-shadow:0 0 30px #b48cff88}

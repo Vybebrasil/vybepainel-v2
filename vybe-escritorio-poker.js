@@ -101,7 +101,13 @@ function desenharPoker(j, s) {
   // A mão acabou de fechar e ninguém jogou a nova: mostra o showdown e o vencedor.
   const a = m.anterior, revela = Boolean(a) && (j.estado !== "jogando" || (a.mao === m.mao - 1 && (!m.ultimo || m.ultimo.mao !== m.mao)));
   const centro = revela && a.comunitarias?.length ? a.comunitarias : m.comunitarias;
-  const mesa = [0, 1, 2, 3, 4].map((k) => (centro[k] ? pokerCartaHtml(centro[k]) : '<span class="pkr-carta vaga" aria-hidden="true"></span>')).join("");
+  // Cartas da mesa que acabaram de sair (flop, turn, river) viram na hora; o pote que cresceu pulsa.
+  const chaveMao = j.id + ":" + m.mao, vistas = s.mesaVista?.mao === chaveMao ? s.mesaVista.n : centro.length;
+  const poteAgora = revela ? a.pote : m.pote, cresceu = s.poteVisto?.mao === chaveMao && poteAgora > s.poteVisto.v;
+  s.mesaVista = { mao: chaveMao, n: centro.length }; s.poteVisto = { mao: chaveMao, v: poteAgora };
+  if (centro.length > vistas) jogosSom("carta", 0.6);
+  if (cresceu) jogosSom("fichas", 0.5);
+  const mesa = [0, 1, 2, 3, 4].map((k) => (centro[k] ? (k >= vistas ? `<span class="pkr-vira" style="--k:${k - vistas}">${pokerCartaHtml(centro[k])}</span>` : pokerCartaHtml(centro[k])) : '<span class="pkr-carta vaga" aria-hidden="true"></span>')).join("");
   const nome = (l) => (l === eu ? "Você" : xadrezPrimeiroNome(j[l]));
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : (m.saiu || []).includes(eu) ? "Você saiu da mesa: está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[j.vez])}.`
     : m.acoes?.mesa ? "Sua vez: passe, aposte ou largue." : `Sua vez: pague ${pokerFichas(m.acoes?.pagar)}, aumente ou largue.`;
@@ -115,7 +121,7 @@ function desenharPoker(j, s) {
     status,
     mesa: `<div class="pkr-salao${nova ? " nova" : ""}"><div class="pkr-feltro"><div class="pkr-centro">
 ${revela ? `<p class="pkr-vencedor">${safeText(faixa)}</p>` : ""}<div class="pkr-comunitarias">${mesa}</div>
-<p class="pkr-pote"><i aria-hidden="true"></i>Total do pote: <b>${pokerFichas(revela ? a.pote : m.pote)}</b></p>
+<p class="pkr-pote${cresceu ? " cresceu" : ""}"><i aria-hidden="true"></i>Total do pote: <b>${pokerFichas(poteAgora)}</b></p>
 <small>Mão ${m.mao} · ${POKER_FASES[m.fase] || ""} · blinds ${pokerFichas(m.blind / 2)}/${pokerFichas(m.blind)}</small></div></div>
 ${outros.map((l, k) => pokerLugarHtml(j, l, pos[k], revela)).join("")}${pokerLugarHtml(j, baixo, "baixo", revela)}</div>
 ${m.minha_mao && !revela ? `<p class="pkr-tenho">Você tem: <b>${safeText(m.minha_mao)}</b></p>` : ""}${eu ? pokerAcoesHtml(j, s) : ""}`,

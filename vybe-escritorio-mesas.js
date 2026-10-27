@@ -258,7 +258,7 @@ function mesaAcionarBot(chave) {
 }
 
 // --- HUD comum dos jogos -------------------------------------------------
-const JOGO_ICONES = { xadrez: "♞", poker: "♠", sinuca: "🎱", domino: "⚃", dama: "⛂", velha: "✕", truco: "♣" };
+const JOGO_ICONES = { xadrez: "♞", poker: "♠", sinuca: "🎱", domino: "⚃", dama: "⛂", velha: "#", truco: "♣" };
 function jogoTopoHtml(jogo, nome, assistindo, selos, botoes, fechar) {
   return `<div class="jogo-topo tema-${safeText(jogo)}"><div class="jogo-titulo"><i aria-hidden="true">${JOGO_ICONES[jogo] || "🎲"}</i><b>${safeText(nome)}</b>${assistindo ? '<em class="sala-aovivo">Assistindo</em>' : ""}</div>
 <div class="jogo-selos">${selos}</div><div class="jogo-botoes">${botoes}

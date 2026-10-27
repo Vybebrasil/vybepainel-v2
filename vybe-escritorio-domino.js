@@ -78,12 +78,15 @@ function dominoLinhaHtml(j, s) {
   const escolher = s.sel ? (m.jogaveis.find((o) => dominoMesma(o.peca, s.sel))?.pontas || []) : [];
   const ultimo = m.ultimo?.acao === "jogou" ? m.ultimo.peca : null;
   const pos = dominoCobra(m.linha), alto = Math.max(...pos.map((q) => q.y + q.h));
+  // A fileira fica no meio da mesa (antes começava grudada na borda esquerda).
+  const de = Math.min(...pos.map((q) => q.x)), ate = Math.max(...pos.map((q) => q.x + q.w)), desloca = Math.max(0, (DOMINO_LARGURA - (ate - de)) / 2) - de;
+  for (const q of pos) q.x += desloca;
   const pecas = pos.map((q, i) => {
     const ponta = i === 0 ? "esq" : i === pos.length - 1 ? "dir" : null, alvo = ponta && escolher.includes(ponta);
     const nova = ultimo && dominoMesma(q.p, ultimo) && ponta;
     const estilo = `left:calc(${q.x} * var(--u));top:calc(${q.y} * var(--u));width:calc(${q.w} * var(--u));height:calc(${q.h} * var(--u))`;
     const peca = dominoPecaHtml(q.ordem, `${q.o === "h" ? "deitada" : "empe"}${nova ? " nova" : ""}`);
-    return alvo ? `<button type="button" class="dmn-lugar alvo" style="${estilo}" onclick="jogarDominoEscritorio('${ponta}')" aria-label="Jogar na ponta do ${ponta === "esq" ? m.pontas[0] : m.pontas[1]}">${peca}</button>`
+    return alvo ? `<button type="button" class="dmn-lugar alvo" data-ponta="${ponta}" style="${estilo}" onclick="jogarDominoEscritorio('${ponta}')" aria-label="Jogar na ponta do ${ponta === "esq" ? m.pontas[0] : m.pontas[1]}">${peca}</button>`
       : `<span class="dmn-lugar" style="${estilo}">${peca}</span>`;
   }).join("");
   const botoes = escolher.length > 1 ? `<div class="dmn-escolher">${escolher.map((p) => `<button type="button" class="workflow-primary" onclick="jogarDominoEscritorio('${p}')">Na ponta do ${p === "esq" ? m.pontas[0] : m.pontas[1]}</button>`).join("")}</div>` : "";
@@ -100,7 +103,7 @@ function dominoMaoHtml(j, s) {
   const minhaVez = j.vez === j.eu;
   const pecas = m.mao.map((p) => {
     const pode = minhaVez && m.jogaveis.some((o) => dominoMesma(o.peca, p)), sel = s.sel && dominoMesma(s.sel, p);
-    return `<button type="button" class="dmn-mao-peca${pode ? " pode" : ""}${sel ? " sel" : ""}" ${pode ? `onclick="escolherPecaDomino(${p[0]},${p[1]})"` : "disabled"} aria-label="Peça ${p[0]} e ${p[1]}${pode ? ", pode jogar" : ""}">${dominoPecaHtml(p, "empe")}</button>`;
+    return `<button type="button" class="dmn-mao-peca${pode ? " pode" : ""}${sel ? " sel" : ""}" ${pode ? `onclick="escolherPecaDomino(${p[0]},${p[1]})" onpointerdown="dominoArrastar(event,${p[0]},${p[1]})"` : "disabled"} aria-label="Peça ${p[0]} e ${p[1]}${pode ? ", pode jogar" : ""}">${dominoPecaHtml(p, "empe")}</button>`;
   }).join("");
   const botoes = !minhaVez ? "" : m.pode_comprar ? `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('dmn',{tipo:'comprar'},this)">Comprar do monte</button>`
     : m.pode_passar ? `<button type="button" class="workflow-primary" onclick="lanceMesaEscritorio('dmn',{tipo:'passar'},this)">Passar a vez</button>` : "";
@@ -153,6 +156,49 @@ function escolherPecaDomino(a, b) {
   if (op.pontas.length === 1 || (pontas && pontas[0] === pontas[1])) return lanceMesaEscritorio("dmn", { tipo: "jogar", peca: p, ponta: op.pontas[op.pontas.length - 1] });
   s.sel = s.sel && dominoMesma(s.sel, p) ? null : p;
   desenharJogoMesa("dmn");
+}
+// Arrastar a peça da mão até a mesa (como nos dominós online): ao pegar, as
+// pontas onde ela encaixa piscam; solta perto de uma ponta e a peça vai para
+// ela (com uma ponta só, solta em qualquer lugar da mesa). Fora da mesa, volta.
+function dominoArrastar(ev, a, b) {
+  const s = escritorioMesa("dmn"), j = s.jogo;
+  if (ev.button > 0 || !j || j.vez !== j.eu || s.enviando) return;
+  const p = [a, b], op = j.mesa.jogaveis.find((o) => dominoMesma(o.peca, p)), peca = ev.currentTarget.querySelector(".dmn-peca");
+  if (!op || !peca) return;
+  const x0 = ev.clientX, y0 = ev.clientY;
+  let fantasma = null;
+  const mover = (e) => {
+    if (!fantasma) {
+      if (Math.hypot(e.clientX - x0, e.clientY - y0) < 6) return;
+      const r = peca.getBoundingClientRect();
+      fantasma = peca.cloneNode(true);
+      fantasma.classList.add("tab-fantasma");
+      Object.assign(fantasma.style, { width: r.width + "px", height: r.height + "px" });
+      document.body.append(fantasma);
+      s.sel = p; desenharJogoMesa("dmn");
+    }
+    fantasma.style.transform = `translate(${e.clientX - fantasma.offsetWidth / 2}px,${e.clientY - fantasma.offsetHeight / 2}px) rotate(${Math.max(-12, Math.min(12, (e.clientX - x0) / 20))}deg)`;
+  };
+  const fim = (e) => {
+    document.removeEventListener("pointermove", mover);
+    document.removeEventListener("pointerup", fim);
+    if (!fantasma) return;
+    fantasma.remove();
+    const solto = document.elementFromPoint(e.clientX, e.clientY);
+    const engole = (c) => { c.stopPropagation(); c.preventDefault(); };
+    document.addEventListener("click", engole, true);
+    setTimeout(() => document.removeEventListener("click", engole, true), 60);
+    if (!solto?.closest(".dmn-mesa")) { s.sel = null; desenharJogoMesa("dmn"); return; }
+    // A ponta mais perto de onde soltou (ou a única que serve).
+    let ponta = solto.closest("[data-ponta]")?.dataset.ponta;
+    if (!ponta) {
+      const alvos = [...document.querySelectorAll(".dmn-lugar.alvo[data-ponta]")].map((el) => { const r = el.getBoundingClientRect(); return [el.dataset.ponta, Math.hypot(r.left + r.width / 2 - e.clientX, r.top + r.height / 2 - e.clientY)]; });
+      ponta = alvos.sort((u, v) => u[1] - v[1])[0]?.[0] || op.pontas[op.pontas.length - 1];
+    }
+    lanceMesaEscritorio("dmn", { tipo: "jogar", peca: p, ponta });
+  };
+  document.addEventListener("pointermove", mover);
+  document.addEventListener("pointerup", fim);
 }
 function jogarDominoEscritorio(ponta) {
   const s = escritorioMesa("dmn");
