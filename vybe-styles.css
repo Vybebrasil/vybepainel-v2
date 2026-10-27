@@ -12181,7 +12181,7 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .xdz-fim.perdeu b {color:#c9d1dd}
 @media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}
 /* Dominó do Escritório (vybe-escritorio-domino.js): a mesa, a linha e a mão. */
-.workflow-modal.ofc-dmn-jogo,.workflow-modal.ofc-pkr-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
+.workflow-modal.ofc-dmn-jogo,.workflow-modal.ofc-pkr-jogo,.workflow-modal.ofc-snc-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
 .mesa-lado {display:grid;gap:8px;width:min(560px,calc(100vw - 56px))}
 .mesa-jogador {grid-template-columns:36px minmax(0,1fr) auto}
 .dmn-mesa {position:relative;display:grid;gap:8px;min-height:190px;padding:12px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#1f6b4a,#124631 75%);box-shadow:inset 0 0 0 3px #5a3a1f,inset 0 0 0 5px #2a1a0c,0 10px 30px #0008}
@@ -12304,3 +12304,15 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 @keyframes ofc-bau-treme {25% {rotate:-5deg} 75% {rotate:5deg}}
 @media (prefers-reduced-motion:reduce) {.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li {animation:none!important}}
 [data-motion=reduce] :is(.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li) {animation:none!important}
+/* Sinuca do Escritório (vybe-escritorio-sinuca.js): mesa no canvas e a tacada. */
+.snc-canvas {display:block;width:100%;height:auto;border-radius:14px;box-shadow:0 10px 30px #0008;touch-action:manipulation}
+.snc-canvas.vez {cursor:crosshair}
+.snc-controles {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:12px;background:#ffffff06}
+.snc-controles label {display:flex;flex:1 1 200px;align-items:center;gap:8px;color:#d7deeb;font:600 12px var(--mac-ui)}
+.snc-controles input[type=range] {flex:1;accent-color:var(--ofc-laranja,#ff9548)}
+/* Loja: os jogos com a equipe em destaque (prateleira, atalho e etiqueta). */
+.ofc-loja-jogos {padding:12px;border:1px solid color-mix(in srgb,var(--ofc-laranja,#ff9548) 45%,transparent);border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent),#ffffff04)}
+.ofc-loja-jogos h3 {display:flex;align-items:center;gap:6px}
+.ofc-loja-jogos > .ofc-nota {margin:2px 0 8px}
+.ofc-loja-nav.jogos {color:#ffd18d}
+.ofc-movel-jogo {position:absolute;top:4px;left:4px;padding:1px 6px;border-radius:999px;background:var(--ofc-laranja,#ff9548);color:#1b1006;font:800 9px var(--mac-ui);font-style:normal;letter-spacing:.3px;pointer-events:none}

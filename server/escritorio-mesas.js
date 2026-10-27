@@ -8,8 +8,9 @@ import { carregarEconomia } from './escritorio-economia.js';
 import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobrarAposta, pagarAposta } from './escritorio-apostas.js';
 import { motorDomino } from './escritorio-domino.js';
 import { motorPoker } from './escritorio-poker.js';
+import { motorSinuca } from './escritorio-sinuca.js';
 
-const MOTORES = { domino: motorDomino, poker: motorPoker };
+const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca };
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
 // partida largada um dia inteiro termina sozinha (perde quem tinha a vez).
 const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;

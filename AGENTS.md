@@ -265,7 +265,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e `vybe-escritorio-xadrez.js`; regras pelo chess.js só no servidor; aposta
   (moedas e itens) sai ao aceitar e vai para quem ganha numa transação, pelo
   mesmo razão (`xadrez:<id>:…`, sem regra nem XP). Ver docs/escritorio-plano.md.
-  Os outros jogos de mesa (dominó, pôquer; sinuca depois) não ganham tabela nem
+  Os outros jogos de mesa (dominó, pôquer, sinuca) não ganham tabela nem
   rota própria: são motores em `server/escritorio-mesas.js` (tabela
   `vybe_escritorio_partidas`) e usam a aposta comum de `escritorio-apostas.js`,
   as telas de convite do xadrez e a moldura de `vybe-escritorio-mesas.js`

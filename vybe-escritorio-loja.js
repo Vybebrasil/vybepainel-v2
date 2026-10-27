@@ -24,12 +24,12 @@ function escritorioContaLoja(categoria) {
 function escritorioArvoreLojaHtml(ativo, acao) {
   const vai = (valor) => acao.replace("%", safeText(valor));
   const item = (valor, rotulo, icone, n, extra = "") => `<button type="button" class="ofc-loja-nav${extra}" aria-pressed="${ativo === valor}" onclick="${vai(valor)}">${escritorioIcone(icone)}<span>${safeText(rotulo)}</span>${n != null ? `<small>${n.toLocaleString("pt-BR")}</small>` : ""}</button>`;
-  const vitrine = (escritorio.base?.economia?.loja?.vitrine || []).length, desejos = escritorioDesejos().size;
+  const vitrine = (escritorio.base?.economia?.loja?.vitrine || []).length, desejos = escritorioDesejos().size, jogos = escritorioContaLoja("Jogos com a equipe");
   const secoes = ESCRITORIO_SECOES_LOJA.map(([t, ico]) => {
     const n = escritorioContaLoja(`secao:${t}`);
     return n ? item(`secao:${t}`, t, ico, n) : "";
   }).join("");
-  return `<div class="ofc-loja-grupo">${item("*", "Destaques", "estrela", null, " forte")}${vitrine ? item("Vitrine da semana", "Vitrine da semana", "alvo", vitrine, " vitrine") : ""}${desejos ? `<button type="button" class="ofc-loja-nav" aria-pressed="${Boolean(escritorio.cat?.desejos)}" onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.categoria='*';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">${escritorioIcone("estrela")}<span>Meus desejos</span><small>${desejos}</small></button>` : ""}${escritorioRecentes().length ? item("Recentes", "Vistos por você", "lista", escritorioRecentes().length) : ""}</div><div class="ofc-loja-grupo"><h5>Categorias</h5>${secoes}</div>`;
+  return `<div class="ofc-loja-grupo">${item("*", "Destaques", "estrela", null, " forte")}${jogos ? item("Jogos com a equipe", "Jogos com a equipe", "jogo", jogos, " jogos") : ""}${vitrine ? item("Vitrine da semana", "Vitrine da semana", "alvo", vitrine, " vitrine") : ""}${desejos ? `<button type="button" class="ofc-loja-nav" aria-pressed="${Boolean(escritorio.cat?.desejos)}" onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.categoria='*';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">${escritorioIcone("estrela")}<span>Meus desejos</span><small>${desejos}</small></button>` : ""}${escritorioRecentes().length ? item("Recentes", "Vistos por você", "lista", escritorioRecentes().length) : ""}</div><div class="ofc-loja-grupo"><h5>Categorias</h5>${secoes}</div>`;
 }
 // Dentro de uma seção: as categorias dela como fichas no topo da grade.
 function escritorioSubcategoriasLojaHtml(categoria) {
@@ -53,7 +53,10 @@ function escritorioCapaLojaHtml() {
     return `<section class="ofc-loja-prateleira"><div class="ofc-loja-prat-topo"><h3>${safeText(escritorioRotuloCategoria(cat))}</h3><small>${l.length.toLocaleString("pt-BR")}</small><button type="button" onclick="escritorio.cat.categoria='${safeText(cat)}';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">ver tudo ›</button></div><div class="ofc-loja-fila">${l.slice(0, 6).map((m) => escritorioCartaoMovel(m, { loja: true })).join("")}</div></section>`;
   };
   const baratos = escritorioCatalogoGeralLista({ categoria: "*", busca: "", raridade: "", posso: true, desejos: false }).filter((m) => escritorioInfoLoja(m.classe).raridade === "comum").length;
-  return `<div class="ofc-loja-capa"><div class="ofc-loja-saudacao"><b>Loja da Vybelândia</b><span>Você tem <i>${saldo.toLocaleString("pt-BR")} VybeCoins</i>${baratos ? ` · ${baratos.toLocaleString("pt-BR")} peças cabem no seu saldo` : ""}. Pisos, paredes e blocos são grátis na construção.</span></div>${escritorioDestaquesLojaHtml().replace('<h4 class="ofc-loja-todos">Todos os móveis</h4>', "")}${typeof escritorioAmbientesCapaHtml === "function" ? escritorioAmbientesCapaHtml() : ""}${ESCRITORIO_PRATELEIRAS_LOJA.map(prateleira).join("")}</div>`;
+  // Jogos com a equipe primeiro (Paulo, 27/10/2026: são as coisas interativas).
+  const jogos = escritorioCatalogoGeralLista({ categoria: "Jogos com a equipe", busca: "", raridade: "", posso: false, desejos: false });
+  const prateleiraJogos = !jogos.length ? "" : `<section class="ofc-loja-prateleira ofc-loja-jogos"><div class="ofc-loja-prat-topo"><h3>${escritorioIcone("jogo")}Jogos com a equipe</h3><small>${jogos.length}</small></div><p class="ofc-nota">Ponha no escritório e chame quem está online: de graça ou valendo VybeCoins, móveis ou roupas.</p><div class="ofc-loja-fila">${jogos.map((m) => escritorioCartaoMovel(m, { loja: true })).join("")}</div></section>`;
+  return `<div class="ofc-loja-capa"><div class="ofc-loja-saudacao"><b>Loja da Vybelândia</b><span>Você tem <i>${saldo.toLocaleString("pt-BR")} VybeCoins</i>${baratos ? ` · ${baratos.toLocaleString("pt-BR")} peças cabem no seu saldo` : ""}. Pisos, paredes e blocos são grátis na construção.</span></div>${prateleiraJogos}${escritorioDestaquesLojaHtml().replace('<h4 class="ofc-loja-todos">Todos os móveis</h4>', "")}${typeof escritorioAmbientesCapaHtml === "function" ? escritorioAmbientesCapaHtml() : ""}${ESCRITORIO_PRATELEIRAS_LOJA.map(prateleira).join("")}</div>`;
 }
 
 // Venda à loja (Paulo, 26/10/2026): o que a pessoa comprou volta pelo mesmo
