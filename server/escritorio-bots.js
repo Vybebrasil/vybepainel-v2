@@ -18,6 +18,7 @@ export const BOTS = {
  domino: { facil: ['Seu Zé da Praça', '🧓', 'Bate a pedra na mesa com força.'], medio: ['Dona Cotinha', '👵', 'Conta as pedras de cabeça.'], lendario: ['O Carroceiro', '🁫', 'Tranca o jogo quando quer.'] },
  dama: { facil: ['Peão Novato', '🐣', 'Ainda aprendendo a comer.'], medio: ['Dona Dama', '👑', 'Pensa dois lances à frente.'], lendario: ['Grão-Mestre', '🧠', 'Enxerga o tabuleiro inteiro.'] },
  velha: { facil: ['Bebê', '👶', 'Marca onde der.'], medio: ['A Velha', '🧶', 'Às vezes se distrai.'], lendario: ['Invencível', '🤖', 'Nunca perde. No máximo empata.'] },
+ xadrez: { facil: ['Peão de Praça', '♟️', 'Joga rápido e sem pensar muito.'], medio: ['Professor Xeque', '🎓', 'Enxerga dois lances à frente.'], lendario: ['Mequinho', '♚', 'Pensa fundo. Quase ninguém ganha dele.'] },
  truco: { facil: ['Pato', '🦆', 'Aceita qualquer truco.'], medio: ['Truqueiro', '🤠', 'Pede truco com mão boa.'], lendario: ['Rei do Truco', '🎩', 'Blefa no truco sem piscar.'] },
 };
 // Prêmio por vitória e teto por dia, somando todos os bots (XP sempre o dobro
@@ -25,6 +26,17 @@ export const BOTS = {
 export const PREMIOS = { facil: { moedas: 5, xp: 10 }, medio: { moedas: 15, xp: 30 }, lendario: { moedas: 50, xp: 100 } };
 export const TETO_DIA = 80;
 
+// Vitória sobre um bot: VybeCoins e XP do nível, até o teto do dia somando
+// todos os bots e jogos (dia da Bahia). Pelo razão, sem regra (fora da Copa e
+// do teto da semana do trabalho). `origem` começa com 'bot:'.
+export async function pagarBot(tx, pessoaId, bot, origem) {
+ const info = botInfo(bot);
+ const [{ hoje }] = await tx`SELECT COALESCE(sum(quantidade),0)::int AS hoje FROM vybe_escritorio_moedas WHERE pessoa_id=${pessoaId} AND origem LIKE 'bot:%'
+   AND criado_em >= (date_trunc('day', now() AT TIME ZONE 'America/Bahia') AT TIME ZONE 'America/Bahia')`;
+ const moedas = Math.max(0, Math.min(info.premio.moedas, TETO_DIA - Number(hoje))), xp = moedas * 2;
+ if (moedas > 0) await tx`SELECT vybe_lancar_pontos(${pessoaId},${origem},NULL,NULL,${moedas},${xp})`;
+ return { moedas, xp, teto: moedas < info.premio.moedas };
+}
 export function botValido(jogo, nivel) { return Boolean(BOTS[jogo]?.[nivel]); }
 export function botInfo(bot) {
  const [jogo, nivel] = String(bot || '').split(':');
