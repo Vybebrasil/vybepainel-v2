@@ -219,7 +219,7 @@ async function vitoriasNasMesas(sql, pessoaId) {
  // Pôquer em grupo: quem ganhou venceu cada um dos outros da mesa.
  const LADOS = ['desafiante', 'desafiado', 'jogador3', 'jogador4'];
  if (ex?.partidas) for (const l of await sql`SELECT jogo, desafiante, desafiado, mais, resultado, terminado_em FROM vybe_escritorio_partidas WHERE estado='fim'
-   AND resultado <> 'empate' AND (desafiante=${pessoaId} OR desafiado=${pessoaId} OR ${pessoaId} = ANY(mais))`) {
+   AND resultado <> 'empate' AND bot IS NULL AND (desafiante=${pessoaId} OR desafiado=${pessoaId} OR ${pessoaId} = ANY(mais))`) {
   const mesa = [l.desafiante, l.desafiado, ...(l.mais || [])].map(String);
   if (mesa[LADOS.indexOf(l.resultado)] !== String(pessoaId)) continue;
   for (const outro of mesa) if (outro !== String(pessoaId)) chaves.add(`${l.jogo}:${outro}:${dia(l.terminado_em)}`);

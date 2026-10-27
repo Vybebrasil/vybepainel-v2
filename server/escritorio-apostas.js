@@ -14,7 +14,8 @@ export const idValido = (id) => { if (!/^\d{1,18}$/.test(String(id))) throw erro
 export const minutosDesde = (t, agora) => (agora - new Date(t).getTime()) / 60000;
 
 export async function nomes(sql, ids) {
- const linhas = await sql`SELECT id,nome FROM vybe_pessoas WHERE id = ANY(${ids.map(String)}::bigint[])`;
+ // O lugar do bot não tem pessoa (desafiado vazio): fica de fora.
+ const linhas = await sql`SELECT id,nome FROM vybe_pessoas WHERE id = ANY(${ids.map(String).filter((id) => /^\d+$/.test(id))}::bigint[])`;
  return Object.fromEntries(linhas.map((l) => [String(l.id), l.nome]));
 }
 

@@ -76,7 +76,7 @@ function sinucaUltimoTexto(j) {
 // Jogador no placar de cima: cabeça, nome, de quem é a vez e as bolas do grupo
 // (as que já caíram ficam apagadas).
 function sinucaJogadorHtml(j, lado) {
-  const p = j[lado], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
+  const p = j[lado], u = mesaCabecaUrl(j, p), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
   const nums = SINUCA_GRUPOS[g] || [];
   const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]};--n:${n}">${n}</i>`).join("")
     : '<small>Mesa aberta</small>';
