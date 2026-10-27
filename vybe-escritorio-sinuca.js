@@ -44,7 +44,7 @@ function desenharSinuca(j, s) {
   const chave = j.id + ":" + j.n;
   // Tacada nova (minha ou do outro): anima os quadros antes de mostrar a mesa parada.
   if (s.visto !== chave) {
-    if (s.visto && s.visto.split(":")[0] === j.id && m.ultimo?.quadros?.length) s.anim = { quadros: m.ultimo.quadros, inicio: 0 };
+    if (s.visto && s.visto.split(":")[0] === j.id && m.ultimo?.quadros?.length) s.anim = { quadros: m.ultimo.quadros, eventos: m.ultimo.eventos || [], inicio: 0 };
     s.visto = chave; s.branca = null;
   }
   const grupo = (l) => (m.grupos[l] ? `${m.grupos[l] === "lisas" ? "Lisas" : "Listradas"} · faltam ${m.restam[m.grupos[l]]}` : "Mesa aberta");
@@ -52,7 +52,10 @@ function desenharSinuca(j, s) {
   const minha = sinucaMinhaVez(j), poe = minha && (m.bolaNaMao || !m.bolas[0]) && !s.branca;
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
     : poe ? "Bola na mão: toque na mesa onde quer pôr a branca." : "Sua vez: mire tocando na mesa, escolha a força e tacar.";
+  const efeito = Math.round((s.efeito || 0) * 100);
   const controles = !minha ? "" : `<div class="snc-controles"><label><span>Força</span><input type="range" min="5" max="100" value="${Math.round((s.forca || 0.5) * 100)}" oninput="sinucaEstado().forca=this.value/100;sinucaPintar()" aria-label="Força da tacada"></label>
+<label class="snc-efeito"><span>Puxar</span><input type="range" min="-100" max="100" step="10" value="${efeito}" oninput="sinucaEstado().efeito=this.value/100" aria-label="Efeito na branca: puxar ou seguir"><span>Seguir</span></label>
+<div class="snc-mira-fina" role="group" aria-label="Ajuste fino da mira"><button type="button" class="workflow-secondary" onclick="sinucaGirar(-1)" aria-label="Mira meio grau para um lado">◀</button><button type="button" class="workflow-secondary" onclick="sinucaGirar(1)" aria-label="Mira meio grau para o outro lado">▶</button></div>
 ${m.bolaNaMao && s.branca ? `<button type="button" class="workflow-secondary" onclick="sinucaEstado().branca=null;desenharJogoMesa('snc')">Mudar a branca</button>` : ""}
 <button type="button" class="workflow-primary" onclick="tacarSinuca(this)" ${poe ? "disabled" : ""}>Tacar</button></div>`;
   const ultimo = sinucaUltimoTexto(j);
@@ -87,10 +90,17 @@ function sinucaPonteiro(ev, clicou) {
   s.angulo = Math.atan2(y - b[1], x - b[0]);
   sinucaPintar();
 }
+// Ajuste fino da mira (no celular o dedo erra): meio grau por toque.
+function sinucaGirar(lado) {
+  const s = sinucaEstado();
+  if (!sinucaMinhaVez(s.jogo) || s.anim) return;
+  s.angulo = (s.angulo ?? 0) + lado * (Math.PI / 360);
+  sinucaPintar();
+}
 function tacarSinuca(botao) {
   const s = sinucaEstado(), j = s.jogo;
   if (!sinucaMinhaVez(j) || s.anim) return;
-  const pedido = { tipo: "tacar", angulo: Math.round((s.angulo ?? 0) * 10000) / 10000, forca: s.forca || 0.5 };
+  const pedido = { tipo: "tacar", angulo: Math.round((s.angulo ?? 0) * 10000) / 10000, forca: s.forca || 0.5, efeito: s.efeito || 0 };
   if (j.mesa.bolaNaMao || !j.mesa.bolas[0]) pedido.branca = s.branca;
   lanceMesaEscritorio("snc", pedido, botao);
 }
@@ -143,6 +153,14 @@ function sinucaPintar(agora) {
     const i = Math.min(a.quadros.length - 1, Math.floor((t - a.inicio) / (1000 / 30)));
     const q = a.quadros[i];
     bolas = Array.from({ length: 16 }, (_, n) => (q[2 * n] < 0 ? null : [q[2 * n] / 10, q[2 * n + 1] / 10]));
+    // Som dos eventos que já passaram: taco, choque entre bolas, tabela, caçapa.
+    if (a.som === undefined) { a.som = 0; escritorioTocar(180, 0.05, 0.05); }
+    while (a.som < (a.eventos || []).length && a.eventos[a.som].q <= i) {
+      const e = a.eventos[a.som++];
+      if (e.t === "bola") escritorioTocar(1200 + 400 * e.f, 0.03, 0.03 + 0.05 * e.f);
+      else if (e.t === "tabela") escritorioTocar(140, 0.06, 0.02 + 0.04 * e.f);
+      else if (e.t === "caiu") escritorioTocar(90, 0.18, 0.07);
+    }
     if (i >= a.quadros.length - 1) { s.anim = null; bolas = j.mesa.bolas; } else requestAnimationFrame(sinucaPintar);
   }
   const branca = !s.anim && sinucaMinhaVez(j) ? sinucaBranca(j, s) : null;
@@ -157,7 +175,15 @@ function sinucaPintar(agora) {
   g.setLineDash([P * 0.8, P * 0.6]); g.strokeStyle = "#ffffffaa"; g.lineWidth = 2;
   g.beginPath(); g.moveTo((branca[0] + B) * P, (branca[1] + B) * P); g.lineTo((alvo.x + B) * P, (alvo.y + B) * P); g.stroke();
   g.setLineDash([]);
-  if (alvo.alvo !== null) { g.beginPath(); g.arc((alvo.x + B) * P, (alvo.y + B) * P, SINUCA_R * P, 0, Math.PI * 2); g.strokeStyle = "#ffffffcc"; g.stroke(); }
+  if (alvo.alvo !== null) {
+    g.beginPath(); g.arc((alvo.x + B) * P, (alvo.y + B) * P, SINUCA_R * P, 0, Math.PI * 2); g.strokeStyle = "#ffffffcc"; g.stroke();
+    // Para onde vai a bola acertada: do centro da bola fantasma ao centro dela, até a tabela.
+    const ob = bolas[alvo.alvo], ox = ob[0] - alvo.x, oy = ob[1] - alvo.y, d = Math.hypot(ox, oy) || 1;
+    const fim = sinucaMira([], ob, Math.atan2(oy / d, ox / d));
+    g.setLineDash([P * 0.5, P * 0.5]); g.strokeStyle = "#ffe08aaa"; g.lineWidth = 2;
+    g.beginPath(); g.moveTo((ob[0] + B) * P, (ob[1] + B) * P); g.lineTo((fim.x + B) * P, (fim.y + B) * P); g.stroke();
+    g.setLineDash([]);
+  }
   const recuo = (2 + 8 * (s.forca || 0.5)) * P, cx = (branca[0] + B) * P - Math.cos(ang) * recuo, cy = (branca[1] + B) * P - Math.sin(ang) * recuo;
   g.strokeStyle = "#d9b57a"; g.lineWidth = P * 0.7; g.lineCap = "round";
   g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx - Math.cos(ang) * 40 * P, cy - Math.sin(ang) * 40 * P); g.stroke();

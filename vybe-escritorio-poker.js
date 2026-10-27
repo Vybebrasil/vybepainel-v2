@@ -51,6 +51,7 @@ function pokerAcoesHtml(j, s) {
   if (a.aumentar) s.valor = Math.min(a.aumentar.max, Math.max(a.aumentar.min, Number(s.valor) || a.aumentar.min));
   const aumentar = !a.aumentar ? "" : `<div class="pkr-aumentar"><input type="range" min="${a.aumentar.min}" max="${a.aumentar.max}" step="${j.mesa.blind / 2}" value="${s.valor}" aria-label="Quanto apostar" oninput="valorPoker(this.value)">
 <input type="number" min="${a.aumentar.min}" max="${a.aumentar.max}" value="${s.valor}" aria-label="Fichas" oninput="valorPoker(this.value)">
+${[["½ pote", 0.5], ["Pote", 1]].map(([rotulo, f]) => { const v = Math.round(maior + f * (j.mesa.pote + a.pagar)); return v > a.aumentar.min && v < a.aumentar.max ? `<button type="button" class="workflow-secondary" onclick="valorPoker(${v})">${rotulo}</button>` : ""; }).join("")}
 ${a.aumentar.max > a.aumentar.min ? `<button type="button" class="workflow-secondary" onclick="valorPoker(${a.aumentar.max});aumentarPoker(this)">All-in (${pokerFichas(a.aumentar.max)})</button>` : ""}
 <button type="button" class="workflow-primary" id="pkr-aumentar" onclick="aumentarPoker(this)">${s.valor >= a.aumentar.max ? "All-in" : maior ? "Aumentar para " + pokerFichas(s.valor) : "Apostar " + pokerFichas(s.valor)}</button></div>`;
   return `<div class="pkr-acoes"><button type="button" class="workflow-secondary" onclick="lanceMesaEscritorio('pkr',{tipo:'largar'},this)">Largar</button>
@@ -65,13 +66,17 @@ function desenharPoker(j, s) {
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
     : m.acoes?.mesa ? "Sua vez: passe, aposte ou largue." : `Sua vez: pague ${pokerFichas(m.acoes?.pagar)}, aumente ou largue.`;
   const ultimo = pokerUltimoTexto(j);
+  // Mão nova: as cartas entram com animação uma vez (a tela relê a cada 4 s).
+  const nova = s.maoVista !== undefined && s.maoVista !== j.id + ":" + m.mao;
+  s.maoVista = j.id + ":" + m.mao;
+  if (nova) escritorioTocar(700, 0.05, 0.04);
   return {
     status,
     mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}
 <div class="pkr-mesa"><div class="pkr-dele">${pokerCartaHtml(null, "mini")}${pokerCartaHtml(null, "mini")}</div>
 <div class="pkr-centro"><div class="pkr-comunitarias">${mesa}</div><p class="pkr-pote">Pote <b>${pokerFichas(m.pote)}</b></p>
 <small>Mão ${m.mao} · ${POKER_FASES[m.fase] || ""} · blinds ${pokerFichas(m.blind / 2)}/${pokerFichas(m.blind)}</small></div></div>
-${mesaJogadorHtml(j, baixo, detalhe(baixo))}<div class="pkr-minhas">${minhas}</div>${eu ? pokerAcoesHtml(j, s) : ""}`,
+${mesaJogadorHtml(j, baixo, detalhe(baixo))}<div class="pkr-minhas${nova ? " nova" : ""}">${minhas}</div>${m.minha_mao ? `<p class="pkr-tenho">Você tem: <b>${safeText(m.minha_mao)}</b>${nova ? ` · <span>Mão ${m.mao}</span>` : ""}</p>` : ""}${eu ? pokerAcoesHtml(j, s) : ""}`,
     painel: `${ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : ""}${pokerAnteriorHtml(j)}`,
   };
 }

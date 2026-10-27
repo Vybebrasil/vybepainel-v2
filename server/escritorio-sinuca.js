@@ -39,12 +39,19 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
 }
 
 // Roda a tacada até tudo parar. Devolve as bolas no fim, o que caiu (na
-// ordem), a primeira bola que a branca tocou e os quadros para a animação.
-export function simular(bolasIni, angulo, forca) {
+// ordem), a primeira bola que a branca tocou, os quadros para a animação e os
+// eventos para o som (choque, tabela, caçapa, com o quadro em que acontecem).
+// `efeito` (-1 a 1): no primeiro choque a branca ganha velocidade para a
+// frente (seguir) ou para trás (puxar), proporcional à força do choque.
+export function simular(bolasIni, angulo, forca, efeito = 0) {
  const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], vx: 0, vy: 0 } : null));
- const v = VEL_MIN + (VEL_MAX - VEL_MIN) * forca;
- b[0].vx = Math.cos(angulo) * v; b[0].vy = Math.sin(angulo) * v;
- const caiu = [], quadros = [];
+ const v = VEL_MIN + (VEL_MAX - VEL_MIN) * forca, dirX = Math.cos(angulo), dirY = Math.sin(angulo);
+ b[0].vx = dirX * v; b[0].vy = dirY * v;
+ const caiu = [], quadros = [], eventos = [];
+ const evento = (t, f) => {
+  const q = quadros.length, ultimo = eventos[eventos.length - 1];
+  if (eventos.length < 80 && !(ultimo && ultimo.q === q && ultimo.t === t)) eventos.push({ q, t, f: Math.round(Math.min(1, f / VEL_MAX) * 100) / 100 });
+ };
  let primeiro = null;
  const foto = () => quadros.push(b.flatMap((p) => (p ? [Math.round(p.x * 10), Math.round(p.y * 10)] : [-1, -1])));
  foto();
@@ -60,11 +67,13 @@ export function simular(bolasIni, angulo, forca) {
    p.vx *= nova / vel; p.vy *= nova / vel;
    p.x += p.vx * PASSO; p.y += p.vy * PASSO;
    andando = true;
-   if (CACAPAS.some(([cx, cy, cr]) => Math.hypot(p.x - cx, p.y - cy) < cr)) { b[n] = null; caiu.push(n); continue; }
+   if (CACAPAS.some(([cx, cy, cr]) => Math.hypot(p.x - cx, p.y - cy) < cr)) { b[n] = null; caiu.push(n); evento('caiu', nova); continue; }
+   const bateu = p.x < R || p.x > LARGURA - R || p.y < R || p.y > ALTURA - R;
    if (p.x < R) { p.x = R; p.vx = -p.vx * RESTITUICAO_TABELA; }
    if (p.x > LARGURA - R) { p.x = LARGURA - R; p.vx = -p.vx * RESTITUICAO_TABELA; }
    if (p.y < R) { p.y = R; p.vy = -p.vy * RESTITUICAO_TABELA; }
    if (p.y > ALTURA - R) { p.y = ALTURA - R; p.vy = -p.vy * RESTITUICAO_TABELA; }
+   if (bateu && nova > 8) evento('tabela', nova);
   }
   // Choques entre bolas (massas iguais, quase elástico).
   for (let i = 0; i < 16; i++) for (let k = i + 1; k < 16; k++) {
@@ -76,7 +85,9 @@ export function simular(bolasIni, angulo, forca) {
    if (rel > 0) {
     const j = rel * 0.97;
     p.vx -= j * nx; p.vy -= j * ny; q.vx += j * nx; q.vy += j * ny;
-    if (primeiro === null && (i === 0 || k === 0)) primeiro = i === 0 ? k : i;
+    // A branca é sempre a 0, então é o `p` do par.
+    if (primeiro === null && i === 0) { primeiro = k; if (efeito) { p.vx += efeito * 0.75 * j * dirX; p.vy += efeito * 0.75 * j * dirY; } }
+    if (j > 3) evento('bola', j);
     andando = true;
    }
    const sobra = (2 * R - d) / 2;
@@ -85,7 +96,7 @@ export function simular(bolasIni, angulo, forca) {
   if (passo % QUADRO === 0 || !andando) foto();
   if (!andando) break;
  }
- return { bolas: b.map((p) => (p ? [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100] : null)), caiu, primeiro, quadros };
+ return { bolas: b.map((p) => (p ? [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100] : null)), caiu, primeiro, quadros, eventos };
 }
 
 const livre = (bolas, x, y, ignorar = -1) => bolas.every((p, n) => !p || n === ignorar || Math.hypot(p[0] - x, p[1] - y) >= 2 * R + 0.05);
@@ -103,13 +114,15 @@ export function vistaSinuca(m, lado, fim) {
  };
 }
 
-// pedido: { tipo: 'tacar', angulo (radianos), forca (0,05 a 1), branca: {x, y} (com bola na mão) }.
+// pedido: { tipo: 'tacar', angulo (radianos), forca (0,05 a 1), efeito (-1 puxar a 1 seguir),
+// branca: {x, y} (com bola na mão) }.
 export function jogarSinuca(mesa, lado, pedido) {
  if (mesa.vez !== lado) throw erro('Agora é a vez da outra pessoa.', 409);
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
- const angulo = Number(pedido.angulo), forca = Number(pedido.forca);
+ const angulo = Number(pedido.angulo), forca = Number(pedido.forca), efeito = Number(pedido.efeito || 0);
  if (!Number.isFinite(angulo) || Math.abs(angulo) > 7) throw erro('Mire de novo.');
  if (!Number.isFinite(forca) || forca < 0.05 || forca > 1) throw erro('Escolha a força da tacada.');
+ if (!Number.isFinite(efeito) || Math.abs(efeito) > 1) throw erro('Efeito inválido.');
  const m = structuredClone(mesa);
  if (m.bolaNaMao || !m.bolas[0]) {
   const x = Number(pedido.branca?.x), y = Number(pedido.branca?.y);
@@ -118,12 +131,12 @@ export function jogarSinuca(mesa, lado, pedido) {
   m.bolas[0] = [x, y];
  }
  const saida = m.tacadas === 0, grupo = m.grupos[lado], limpo = grupo ? restam(m.bolas, grupo) === 0 : false;
- const r = simular(m.bolas, angulo, forca);
+ const r = simular(m.bolas, angulo, forca, efeito);
  m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
  // Falta: branca na caçapa, não tocou em nada, tocou primeiro a bola errada.
  const errada = r.primeiro !== null && (grupo ? !(doGrupo(grupo, r.primeiro) || (limpo && r.primeiro === 8)) : r.primeiro === 8 && !saida);
  const falta = r.caiu.includes(0) ? 'branca' : r.primeiro === null ? 'nenhuma' : errada ? 'errada' : null;
- m.ultimo = { lado, angulo, forca, quadros: r.quadros, caiu: r.caiu, primeiro: r.primeiro, falta };
+ m.ultimo = { lado, angulo, forca, efeito, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta };
  if (r.caiu.includes(8)) {
   if (saida) recolocar(m.bolas, 8);
   else return { mesa: m, fim: !falta && limpo ? { resultado: lado, motivo: 'oito' } : { resultado: outro(lado), motivo: falta ? 'oito-falta' : 'oito-cedo' } };

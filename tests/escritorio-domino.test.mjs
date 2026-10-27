@@ -83,7 +83,7 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);
  await sql`INSERT INTO vybe_escritorio_carteiras(pessoa_id,saldo) VALUES(1,100),(3,30),(7,0)`;
  await sql`INSERT INTO vybe_escritorio_inventario(pessoa_id,classe,quantidade) VALUES(1,'shelves_norja',1),(3,'pura_mdl1',2)`;
- await assert.rejects(x.desafiarMesa(sql,{id:1},salas,{...MESA,jogo:'truco',para:'3',chave:'domino-0001'}),/Jogo inválido/);
+ await assert.rejects(x.desafiarMesa(sql,{id:1},salas,{...MESA,jogo:'bingo',para:'3',chave:'domino-0001'}),/Jogo inválido/);
  await assert.rejects(x.desafiarMesa(sql,{id:7},salas,{para:'1',...MESA,moedas:10,chave:'domino-0001'}),/não tem essas VybeCoins/);
  const d=await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,moedas:20,oferece:[['shelves_norja',1]],pede:[['pura_mdl1',1]],chave:'domino-0001'});
  assert.equal((await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,moedas:20,chave:'domino-0001'})).repetido,true);
@@ -126,4 +126,23 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  await sql`UPDATE vybe_escritorio_partidas SET ultimo_lance_em=now()-interval '6 minutes' WHERE id=${h.id}`;
  const tempo=await x.acaoMesa(sql,esperando,{id:h.id,acao:'reivindicar'});
  assert.equal(tempo.jogo.motivo_nome,'Tempo esgotado');assert.equal(tempo.jogo.resultado,jh.vez==='desafiante'?'desafiado':'desafiante');
+});
+
+test('dominó até 100 pontos: quem bate ganha os pontos do outro e a mão seguinte começa',()=>{
+ const base={linha:[[2,5]],abertura:null,passes:0,n:9,ultimo:null,alvo:100,mao:3,anterior:null};
+ // Bateu com 40 pontos: ganha os 7 da mão do outro e vem a mão 4.
+ let r=jogarDomino({...base,vez:'desafiado',placar:{desafiante:10,desafiado:40},maos:{desafiante:[[3,4]],desafiado:[[5,5]]},monte:[]},'desafiado',{tipo:'jogar',peca:[5,5]});
+ assert.equal(r.fim,null);
+ assert.deepEqual(r.mesa.placar,{desafiante:10,desafiado:47});
+ assert.equal(r.mesa.mao,4);assert.equal(r.mesa.linha.length,0);
+ assert.equal(r.mesa.maos.desafiante.length+r.mesa.maos.desafiado.length+r.mesa.monte.length,28,'mão nova com as 28 peças');
+ assert.deepEqual({v:r.mesa.anterior.vencedor,g:r.mesa.anterior.ganho,m:r.mesa.anterior.motivo},{v:'desafiado',g:7,m:'batida'});
+ assert.equal(vistaDomino(r.mesa,'desafiante',false).anterior.ganho,7);
+ // Com 95, os 7 levam a 102: acabou a partida.
+ r=jogarDomino({...base,vez:'desafiado',placar:{desafiante:10,desafiado:95},maos:{desafiante:[[3,4]],desafiado:[[5,5]]},monte:[]},'desafiado',{tipo:'jogar',peca:[5,5]});
+ assert.deepEqual(r.fim,{resultado:'desafiado',motivo:'pontos'});
+ // Trancado empatado não dá ponto e segue.
+ const tr={...base,vez:'desafiante',placar:{desafiante:0,desafiado:0},maos:{desafiante:[[0,4]],desafiado:[[1,3]]},monte:[]};
+ r=jogarDomino(jogarDomino(tr,'desafiante',{tipo:'passar'}).mesa,'desafiado',{tipo:'passar'});
+ assert.equal(r.fim,null);assert.deepEqual(r.mesa.placar,{desafiante:0,desafiado:0});assert.equal(r.mesa.anterior.vencedor,'empate');
 });

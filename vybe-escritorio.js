@@ -3218,6 +3218,8 @@ function escritorioAplicarComando(id, cmd) {
   else if (k === "dmn") dominoSinalEscritorio(id, v);
   else if (k === "pkr") pokerSinalEscritorio(id, v);
   else if (k === "snc") sinucaSinalEscritorio(id, v);
+  // As outras mesas de jogo (dama, velha, truco…) pela chave que cada uma registrou.
+  else if (typeof ESCRITORIO_MESAS !== "undefined" && ESCRITORIO_MESAS[k]) mesaSinalEscritorio(ESCRITORIO_MESAS[k], id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3801,7 +3803,7 @@ function escritorioAcaoDoMovel(m) {
   const doSubsolo = typeof escritorioAcaoDoSubsolo === "function" ? escritorioAcaoDoSubsolo(m) : null;
   if (doSubsolo) return doSubsolo;
   if (ESCRITORIO_XADREZ.test(m.classe)) return { item: m, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(m) };
-  if (ESCRITORIO_DOMINO.test(m.classe)) return { item: m, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(m) };
+  if (ESCRITORIO_DOMINO.test(m.classe)) return { item: m, texto: "Abrir a Mesa de Jogos", fazer: () => abrirMesaDeJogosEscritorio(m) };
   if (ESCRITORIO_POKER.test(m.classe)) return { item: m, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(m) };
   if (ESCRITORIO_SINUCA.test(m.classe)) return { item: m, texto: "Jogar sinuca", fazer: () => abrirSinucaEscritorio(m) };
   if (ESCRITORIO_SOM.test(m.classe) && escritorioNaPista()) return { item: m, fazer: abrirMusicaEscritorio };
@@ -3897,7 +3899,7 @@ function escritorioAcoesPerto() {
   const xadrez = perto.find((m) => ESCRITORIO_XADREZ.test(m.classe));
   if (xadrez) return { item: xadrez, texto: "Jogar xadrez", fazer: () => abrirXadrezEscritorio(xadrez) };
   const domino = perto.find((m) => ESCRITORIO_DOMINO.test(m.classe));
-  if (domino) return { item: domino, texto: "Jogar dominó", fazer: () => abrirDominoEscritorio(domino) };
+  if (domino) return { item: domino, texto: "Abrir a Mesa de Jogos", fazer: () => abrirMesaDeJogosEscritorio(domino) };
   const poker = perto.find((m) => ESCRITORIO_POKER.test(m.classe));
   if (poker) return { item: poker, texto: "Jogar pôquer", fazer: () => abrirPokerEscritorio(poker) };
   const sinuca = perto.find((m) => ESCRITORIO_SINUCA.test(m.classe));
