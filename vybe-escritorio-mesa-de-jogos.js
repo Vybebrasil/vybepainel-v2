@@ -85,7 +85,8 @@ function desenharDama(j, s) {
     const pode = minhaVez && m.legais[i];
     const cls = ["dam-casa", escura ? "escura" : "clara", s.sel === i ? "sel" : "", alvos.has(i) ? "alvo" : "", ultimo.has(i) ? "ultimo" : "", pode ? "minha" : ""].filter(Boolean).join(" ");
     const peca = p ? `<span class="dam-peca ${p.toLowerCase() === "b" ? "branca" : "preta"}${p === "B" || p === "P" ? " dama" : ""}" aria-hidden="true"></span>` : "";
-    return `<button type="button" class="${cls}" ${escura ? `onclick="casaDama(${i})"` : "disabled"} aria-label="Casa ${"abcdefgh"[c]}${8 - r}${p ? (p.toLowerCase() === "b" ? ", branca" : ", preta") + (p === "B" || p === "P" ? " dama" : "") : ""}">${peca}</button>`;
+    const arrasta = pode ? ` onpointerdown="tabuleiroArrastar(event,${i},(c)=>{if(escritorioMesa('dam').sel!==c)casaDama(c)},(c)=>casaDama(Number(c)))"` : "";
+    return `<button type="button" class="${cls}" data-casa="${i}" ${escura ? `onclick="casaDama(${i})"` : "disabled"}${arrasta} aria-label="Casa ${"abcdefgh"[c]}${8 - r}${p ? (p.toLowerCase() === "b" ? ", branca" : ", preta") + (p === "B" || p === "P" ? " dama" : "") : ""}">${peca}</button>`;
   }).join("");
   const detalhe = (l) => `${m.cores[l] === "brancas" ? "Brancas" : "Pretas"} · ${m.pecas[m.cores[l]]} peças`;
   const cima = outro || "desafiado", baixo = eu || "desafiante";
