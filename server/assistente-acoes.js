@@ -76,7 +76,7 @@ const parecido = (a, b) => { const ma = pares(a), mb = pares(b); let c = 0; for 
 // entre as peças abertas em que a própria pessoa é responsável. Cada palavra que sobra (cliente, pedaço do título) conta
 // ponto se bate pelo começo ou pelo som com o cliente ou o título; duas palavras juntas também ("bruce lou" = brusolo).
 // A peça com mais pontos, se for só uma, segue para a confirmação; empate vira lista com o número; nada, diz isso.
-async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, recentes = false } = {}) {
+async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, recentes = false, todas = false } = {}) {
   const termos = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((x) => x.length >= 3 && !GENERICAS.has(x));
   if (!termos.length) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
   const consultas = [...termos.map((t) => [t]), ...termos.slice(1).map((t, i) => [termos[i], t])];
@@ -88,7 +88,8 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, re
       -- Alteração e comentário também valem para a peça já agendada que veicula de ontem em diante (Ewerton, 27/10/2026:
       -- "a agenda de hoje" já estava agendada e não aparecia na lista).
       AND (NOT COALESCE(s.final, false) OR (${recentes} AND c.veiculacao >= (now() AT TIME ZONE 'America/Bahia')::date - 1))
-      AND (EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
+      -- Quem faz captação (Mizinho) procura em todas as peças: a captação não é dele como responsável.
+      AND (${todas} OR EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
         -- Captação: o head do cliente também acha as peças dos clientes dele (Ewerton, 27/10/2026: "o reels da MR Fit").
         OR (${comoHead} AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc JOIN vybe_cliente_pessoas h ON h.cliente_id = cc.cliente_id
           WHERE cc.conteudo_id = c.id AND h.pessoa_id = ${pessoaId})))
@@ -174,7 +175,7 @@ async function captacaoDaPeca(sql, c, para) {
   return { alvo, atual: atual?.rotulo || '' };
 }
 async function conferirPermissaoCaptacao(sql, p, c) {
-  if (p.admin || c.responsaveis.includes(p.id) || c.heads.includes(p.id) || await temFuncao(sql, p.id, 'captacao')) return;
+  if (p.admin || c.responsaveis.includes(p.id) || c.heads.includes(p.id) || await temFuncao(sql, p.id, 'captacao') || await temFuncao(sql, p.id, 'producao')) return;
   throw negar('A captação desta peça é de quem é responsável por ela, dos heads do cliente ou de quem faz captação.');
 }
 async function statusDoQuadro(sql, c, para) {
@@ -222,7 +223,8 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
-  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao), recentes: ['alteracao', 'comentar'].includes(acao) }) : item));
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao), recentes: ['alteracao', 'comentar'].includes(acao),
+    todas: acao === 'captacao' && (await temFuncao(sql, Number(p.id), 'captacao') || await temFuncao(sql, Number(p.id), 'producao')) }) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
   if (acao === 'comentar') {
