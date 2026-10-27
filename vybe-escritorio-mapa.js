@@ -3143,13 +3143,18 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     tique = (tique + 1) % 4;
     if (tique && typeof vbOcioso === "function" && vbOcioso()) return;
     quadro++;
+    // Animações desligadas (botão do Escritório ou "Reduzir movimento" da
+    // Aparência): móveis, focos e piscadas ficam parados; só quem anda mexe as
+    // pernas e uma passagem de estado já começada vai até o fim.
+    const leve = typeof escritorioAnimacoesLeves === "function" && escritorioAnimacoesLeves();
     // Bonecos (10 vezes por segundo): piscada, fala, aceno e cabeça de quem está parado.
     const agora = performance.now();
     const pulso = Math.floor(agora / 100);
     if (pulso !== pulsoBonecos) {
       pulsoBonecos = pulso;
-      if (pulso % 5 === 0) virarCabecas();
+      if (pulso % 5 === 0 && !leve) virarCabecas();
       for (const p of pessoas.values()) {
+        if (leve && p.acao !== "wlk") continue;
         if (p.acao !== "wlk" && (!p.piscaEm || agora > p.piscaEm)) { p.piscaEm = agora + 2800 + Math.random() * 4200; p.piscaAte = agora + 170; }
         trocarImagem(p);
       }
@@ -3158,8 +3163,9 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     // O feixe anda por transform (a placa de vídeo só desloca a camada): com
     // left/top, cada passo refazia o layout e redesenhava a cena inteira
     // atrás da luz (Paulo, 19/10/2026: o Auditório caía de FPS).
-    if (focos.length && quadro % 2 === 0) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.transform = `translate(${Math.round(dx)}px,${Math.round(dy)}px)`; }
+    if (focos.length && quadro % 2 === 0 && !leve) for (const f of focos) { const [dx, dy] = mapaPassoFeixe(f); f.no.style.transform = `translate(${Math.round(dx)}px,${Math.round(dy)}px)`; }
     for (const item of [...animados]) {
+      if (leve && !item.transicao) continue;
       // Passagem entre estados: do primeiro quadro dela até o fim; depois, o estado novo.
       let estado = item.estado, q = quadro;
       if (item.transicao && quadro < item.transicao.fim) { estado = item.transicao.chave; q = quadro - item.transicao.inicio; }
