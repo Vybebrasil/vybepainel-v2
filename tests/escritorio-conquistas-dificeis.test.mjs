@@ -61,22 +61,32 @@ test('revisão tira só o nível perdido, com o troféu do quarto, e não repete
   assert.equal((await revisarNiveisEscritorio(sql, 'teste-dificeis', { tirarDoQuarto: true })).repetida, true);
 });
 
-test('entrada: notícias da semana com o título e o baú com os ganhos das últimas 24 horas', async (t) => {
+test('entrada: notícias da semana e o baú sobre a cabeça, peça por peça desde o último aberto', async (t) => {
   const { db, sql } = await banco(t);
   await db.exec(ler('2026-10-21-escritorio-conquistas-dificeis.sql'));
   await cards(db, 3, 1, 40);
   await conferirMarcos(sql, 3, new Date());
   const { noticiasDaEquipe } = await import('../server/escritorio-marcos.js');
-  const { ganhosRecentes } = await import('../server/escritorio-pontos.js');
+  const { bauDaPessoa } = await import('../server/escritorio-pontos.js');
   const n = await noticiasDaEquipe(sql);
   assert.ok(n.some((x) => x.pessoa === '3' && x.titulo === 'Aprendiz de Cards' && x.nomeNivel === 'Bronze'));
-  // Ganho com regra entra; compra (sem regra) fica de fora.
-  await sql`SELECT vybe_lancar_pontos(3,'teste:ganho','entrega_prazo',NULL,5,7)`;
+  const antes = await bauDaPessoa(sql, 3);
+  const [peca] = await sql`SELECT id,titulo FROM vybe_conteudos ORDER BY id LIMIT 1`;
+  // Duas partes da mesma peça viram uma entrada; ganho sem peça vem à parte;
+  // compra (sem regra) fica de fora.
+  await sql`SELECT vybe_lancar_pontos(3,'teste:feita','peca_criacao',${peca.id},10,20)`;
+  await sql`SELECT vybe_lancar_pontos(3,'teste:prazo','entrega_prazo',${peca.id},1,2)`;
+  await sql`SELECT vybe_lancar_pontos(3,'teste:dia','dia_ativo',NULL,2,2)`;
   await sql`SELECT vybe_lancar_pontos(3,'compra:teste',NULL,NULL,-3,0)`;
-  const g = await ganhosRecentes(sql, 3);
-  assert.ok(g.moedas >= 5 && g.pontos >= 7);
-  assert.ok(g.itens.every((x) => x.descricao));
-  assert.ok(!g.itens.some((x) => x.moedas === -3), 'compra não entra no baú');
+  const b = await bauDaPessoa(sql, 3, { desde: antes.ultimo ?? 0 });
+  assert.equal(b.pecas.length, 1);
+  assert.equal(b.pecas[0].titulo, peca.titulo || 'Sem título');
+  assert.deepEqual([b.pecas[0].moedas, b.pecas[0].pontos, b.pecas[0].partes.length], [11, 22, 2]);
+  assert.deepEqual([b.moedas, b.pontos, b.abatidas], [13, 24, 1]);
+  assert.equal(b.outros.length, 1);
+  // Aberto até a última linha: o próximo baú vem vazio.
+  const depois = await bauDaPessoa(sql, 3, { desde: b.ultimo });
+  assert.deepEqual([depois.pecas.length, depois.outros.length, depois.ultimo], [0, 0, null]);
 });
 
 test('Pódio com 1 semana (taça prata no Bronze) e a escada do Artilheiro pelas semanas em 1º', async (t) => {

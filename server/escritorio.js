@@ -27,7 +27,7 @@ function planoValido(valor, tipo) {
 }
 import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico, venderMovel, REVESTIMENTOS_DE_PAREDE } from "./escritorio-economia.js";
-import { missoesDaPessoa, rankingEscritorio, ganhosRecentes, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
+import { missoesDaPessoa, rankingEscritorio, bauDaPessoa, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
 import { diaDaEquipe } from "./escritorio-dia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
@@ -444,10 +444,14 @@ export async function areaEscritorio(req, res, quem, sql) {
     if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
     // Recado global: o que a pessoa ainda não viu e se ela pode mandar.
     if (acao === "avisos") return res.status(200).json({ ok: true, ...(await avisosDaPessoa(sql, pessoa.id)) });
-    // A tela de entrada: o baú (ganhos das últimas 24 h) e as notícias da semana.
-    if (acao === "lobby") {
-      const [ganhos, noticias] = await Promise.all([ganhosRecentes(sql, pessoa.id), noticiasDaEquipe(sql)]);
-      return res.status(200).json({ ok: true, ganhos, noticias });
+    // A tela de entrada: as notícias da semana.
+    if (acao === "lobby") return res.status(200).json({ ok: true, noticias: await noticiasDaEquipe(sql) });
+    // Baú sobre a cabeça: o que a pessoa ganhou desde o último baú aberto
+    // (o navegador guarda o id da última linha vista).
+    if (acao === "bau") {
+      const desde = String(req.query?.desde || "");
+      if (desde && !/^\d{1,18}$/.test(desde)) return res.status(400).json({ error: "Baú inválido." });
+      return res.status(200).json({ ok: true, bau: await bauDaPessoa(sql, pessoa.id, { desde: desde || null }) });
     }
     // Clientes cobrando no quarto de alguém: todos que estão no quarto veem
     // (decisão do Paulo, 19/10/2026); a equipe já vê todas as demandas.
