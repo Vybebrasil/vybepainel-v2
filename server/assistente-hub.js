@@ -18,7 +18,7 @@ function headersDaPonte(base, config, segredo) {
 
 // Mesmo slugify do sincronizador de clientes do Hub (server/syncVybeClientes.ts).
 export const slugDoHub=nome=>String(nome).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'cliente';
-export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
+async function ponteDoHub(sql,clienteId,config){
  if(config.VYBE_AI_HUB_ATIVO!=='1')throw Object.assign(new Error('Métricas do VybeHub ainda não configuradas neste ambiente.'),{status:503});
  let base,mapa;try{base=new URL(config.VYBE_AI_HUB_URL);mapa=config.VYBE_AI_HUB_CLIENTES==='auto'?'auto':JSON.parse(config.VYBE_AI_HUB_CLIENTES||'{}');}catch{throw new TypeError('Configuração do Hub inválida.');}
  // Production do Hub (vybehub.vercel.app) ou um Preview autorizado; nunca outro host.
@@ -27,12 +27,16 @@ export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  const segredo=config.VYBE_OS_METRICAS_TOKEN;
  if(!/^[A-Za-z0-9_-]{48,256}$/.test(segredo||''))throw new TypeError('Ponte de métricas não configurada.');
  const headers = headersDaPonte(base, config, segredo);
- const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${a.cliente_id} AND COALESCE(ativo,true)`;
+ const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${clienteId} AND COALESCE(ativo,true)`;
  if(!cliente)throw new TypeError('Cliente inválido.');
  // VYBE_AI_HUB_CLIENTES="auto": o slug sai do nome, igual ao sincronizador do Hub (syncVybeClientes); o Hub
  // ainda confere slug e nome exatos. Fora do modo auto, só a lista aprovada {cliente_id: slug}.
- const slug=mapa==='auto'?slugDoHub(cliente.nome):mapa[String(a.cliente_id)];
+ const slug=mapa==='auto'?slugDoHub(cliente.nome):mapa[String(clienteId)];
  if(typeof slug!=='string'||!/^[-a-z0-9]{1,80}$/.test(slug))throw new TypeError('Cliente sem correspondência aprovada no VybeHub.');
+ return {base,headers,cliente,slug};
+}
+export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
+ const {base,headers,cliente,slug}=await ponteDoHub(sql,a.cliente_id,config);
  const modulo=a.modulo||'trafego',limite=a.limite||25,offset=a.deslocamento||0;
  const input=JSON.stringify({json:{slug,cliente_nome:cliente.nome,since:a.de,until:a.ate,modulo,limite,deslocamento:offset}});
  let r;
@@ -81,4 +85,19 @@ export async function resumosDaSemana(sql,dia,opcoes={}){
  }));
  resumos.sort((a,b)=>a.cliente.localeCompare(b.cliente,'pt-BR'));semDados.sort((a,b)=>a.localeCompare(b,'pt-BR'));
  return {resumos,sem_dados:semDados};
+}
+
+// Relatório mensal em PDF (27/10/2026): o Hub devolve um convite de 10 minutos para o mesmo relatório do admin;
+// o bot abre o link no navegador dele e salva o PDF. Só o caminho do Hub de Production ou Preview autorizado.
+export async function linkDoRelatorio(sql,{cliente_id:clienteId,mes},{config=process.env,buscar=fetch}={}){
+ if(typeof mes!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(mes))throw new TypeError('Mês inválido.');
+ const {base,headers,cliente,slug}=await ponteDoHub(sql,clienteId,config);
+ const input=JSON.stringify({json:{slug,cliente_nome:cliente.nome,mes:mes.slice(0,7)}});
+ let r;
+ try{r=await buscar(base.origin+'/api/trpc/portal.conviteRelatorio?input='+encodeURIComponent(input),{headers,redirect:'error',signal:AbortSignal.timeout(15000)});}
+ catch{throw Object.assign(new Error('Não foi possível pedir o relatório ao VybeHub.'),{status:503});}
+ if(!r.ok)throw Object.assign(new Error('Cliente sem BI no VybeHub ou relatório indisponível.'),{status:503});
+ let d;try{d=(await r.json()).result.data.json;}catch{throw new TypeError('Resposta do relatório inválida.');}
+ if(typeof d?.caminho!=='string'||!/^\/relatorio-ai\/[-a-z0-9]{1,80}\?mes=\d{4}-\d{2}&c=[A-Za-z0-9_.-]{20,600}$/.test(d.caminho))throw new TypeError('Resposta do relatório inválida.');
+ return {cliente:cliente.nome,mes:mes.slice(0,7),url:base.origin+d.caminho};
 }
