@@ -20,7 +20,8 @@ function resumoPessoas(responsavel) {
   return nomes.length ? nomes.join(', ') : 'sem responsável';
 }
 
-function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [], baseAnterior = null, alertaBase = '', geradoEm = '' }) {
+// linkDe (opcional): a Vybe AI no WhatsApp põe o link de cada peça embaixo da linha; o botão do painel não usa.
+function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [], baseAnterior = null, alertaBase = '', geradoEm = '', linkDe = null }) {
   const normal = v => resumoTexto(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const status = i => normal(statusDe(i));
   const pedido = i => i.origem === 'solicitacao';
@@ -69,7 +70,8 @@ function resumosPorGrupo(itens, dia, { statusDe, clientesDe, equipe = [], baseAn
     return partes.join(' · ');
   };
   const linha=(i,pessoa=true)=>`- ${atraso(i)?'🔴 ':''}${resumoTexto(i.nome)||'Sem título'} (${cliente(i)})${pedido(i)?' [demanda]':''}`
-    + `${pessoa?` · ${resumoPessoas(i.responsavel)}`:''} · ${resumoTexto(statusDe(i))||'Sem status'} · ${periodo(i)}`;
+    + `${pessoa?` · ${resumoPessoas(i.responsavel)}`:''} · ${resumoTexto(statusDe(i))||'Sem status'} · ${periodo(i)}`
+    + (linkDe&&i.id?`\n  🔗 ${linkDe(i.id)}`:'');
   const linhasLote=(lista,pessoa)=>{
     const lotes=new Map();
     for(const i of [...lista].sort(ordenar)) {

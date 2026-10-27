@@ -141,7 +141,7 @@ export async function rondaDosClientes(sql, rotulo, agora = new Date()) {
       texto.push('', `🤖 *${c.nome}* está cobrando:`);
       for (const l of c.itens) {
         if (n >= MAX_LINHAS) break;
-        texto.push(`- ${fraseDaCobranca(l)}: ${l.titulo} → ${marcarIds(l.alvo) || 'sem responsável'}${l.escala.size ? ` · ⬆️ ${marcarIds(l.escala)}` : ''}`);
+        texto.push(`- ${fraseDaCobranca(l)}: ${l.titulo} → ${marcarIds(l.alvo) || 'sem responsável'}${l.escala.size ? ` · ⬆️ ${marcarIds(l.escala)}` : ''}${l.ref ? `\n  🔗 ${linkDaAtividade(l.ref)}` : ''}`);
         n++;
       }
     }

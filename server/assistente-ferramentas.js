@@ -121,7 +121,8 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
   // Finalizadas hoje: o último evento de status caiu hoje (fuso Bahia); o status final é conferido abaixo.
   const finalHoje=situacao==='finalizadas_hoje'?(await sql`SELECT conteudo_id::text AS id FROM vybe_conteudo_eventos WHERE tipo='status'
    GROUP BY conteudo_id HAVING vybe_dia_bahia(max(em))=${hoje}::date`).map(x=>x.id):null;
-  itens=await sql`SELECT c.id::text AS id,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
+  // link: o mesmo da gaveta do painel, para toda demanda citada no WhatsApp levar o link (27/10/2026).
+  itens=await sql`SELECT c.id::text AS id,COALESCE(c.monday_item_id::text,'vybe:'||c.id) AS ref,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.atualizado_em::text,s.rotulo AS status,
    CASE WHEN c.board_id=${BOARD_DEMANDAS} THEN 'solicitacoes' ELSE 'producao' END AS quadro,
    COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes,
    COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_responsaveis cr JOIN vybe_pessoas p ON p.id=cr.pessoa_id WHERE cr.conteudo_id=c.id),'[]') AS responsaveis

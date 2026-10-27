@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { rotinaDoDia, codigoDoPainel, itensDoDia } from '../server/assistente-rotinas.js';
+import { rotinaDoDia, codigoDoPainel, itensDoDia, linkDaAtividade } from '../server/assistente-rotinas.js';
+// As linhas de peça agora levam o link embaixo; as comparações de texto conferem o resto sem ele.
+const semLink = (t) => t.replace(/\n  🔗 [^\n]+/g, '');
 import { atenderBotAssistente } from '../server/assistente-servico.js';
 import { identificadorProtegido } from '../server/assistente-identidade.js';
 
@@ -67,7 +69,10 @@ test('manhã: é exatamente o texto do gerador do painel para os mesmos itens', 
     const itens = await itensDoDia(sql, dia), { ctx: painel, equipe } = codigoDoPainel();
     const ref = vm.createContext({ itens, dia, equipe, statusDoPainel: (i) => painel.operationalFlowStatus(i) });
     vm.runInContext(fs.readFileSync('vybe-resumo.js', 'utf8'), ref);
-    const esperado = vm.runInContext(`resumosPorGrupo(itens,dia,{statusDe:statusDoPainel,clientesDe:i=>i.clientes,equipe,geradoEm:'2026-10-26T08:00:00-03:00'})`, ref);
+    ref.linkDe = linkDaAtividade;
+    const esperado = vm.runInContext(`resumosPorGrupo(itens,dia,{statusDe:statusDoPainel,clientesDe:i=>i.clientes,equipe,geradoEm:'2026-10-26T08:00:00-03:00',linkDe})`, ref);
+    assert.match(r.mensagens.find((m) => m.id === 'geral').texto, /\n  🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=/);
+    assert.match(r.mensagens.find((m) => m.id === 'correcao').texto, /Nenhuma peça em alteração/);
     assert.match(r.mensagens.find((m) => m.id === 'geral').texto, /Panfleto evento .* · A Fazer ·/); // status traduzido como no painel
     assert.equal(r.mensagens.find((m) => m.id === 'geral').texto, esperado.find((m) => m.id === 'geral').texto);
     assert.match(r.mensagens.find((m) => m.id === 'publicacoes').texto, /^Bom dia, Tai!/);
@@ -81,7 +86,9 @@ test('manhã: é exatamente o texto do gerador do painel para os mesmos itens', 
 test('meio-dia e fim do dia: risco, espera do cliente, prazo vencido e percentual', async () => {
   const { db, sql } = await banco();
   try {
-    const meio = (await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto;
+    const meioCompleto = (await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto;
+    assert.match(meioCompleto, /- Card - Promo \(Cliente A\) · Jady\n  🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=m100/);
+    const meio = semLink(meioCompleto);
     assert.match(meio, /^🕐 \*Meio-dia, como estamos\? Seg 26\/10\*/);
     assert.match(meio, /Conteúdos que veiculam hoje: 5 · ✅ 1 entregues · 📅 1 para agendar · ⏳ 3 em aberto/);
     // Dividido por status; dentro de cada status, o prazo mais antigo primeiro.
@@ -93,10 +100,10 @@ test('meio-dia e fim do dia: risco, espera do cliente, prazo vencido e percentua
     await sql`INSERT INTO vybe_status VALUES (${PROD},'aguardo','Aguardo',false)`;
     await sql`INSERT INTO vybe_conteudos VALUES (106,${PROD},'Reels - Esperando gravação','Reels',NULL,${dia},'2026-10-30',NULL,'b','aguardo','m106',NULL)`;
     await sql`INSERT INTO vybe_conteudo_responsaveis VALUES (106,1,0)`;
-    const meio2 = (await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto;
+    const meio2 = semLink((await rotinaDoDia(sql, { momento: 'meio_dia', dia })).mensagens[0].texto);
     assert.doesNotMatch(meio2, /Esperando gravação/);
     assert.match(meio2, /⏳ 1 com prazo hoje aguardando informação, redação ou gravação \(fora da cobrança\)/);
-    const fim = (await rotinaDoDia(sql, { momento: 'fim_dia', dia })).mensagens[0].texto;
+    const fim = semLink((await rotinaDoDia(sql, { momento: 'fim_dia', dia })).mensagens[0].texto);
     assert.match(fim, /^🌙 \*Fechamento de Seg 26\/10\*\n\n📊 20% dos conteúdos de hoje entregues: 1 de 5/);
     assert.match(fim, /🔴 Não saíram hoje \(3\)/); assert.match(fim, /Amanhã \(Ter 27\/10\): 0 conteúdos/);
   } finally { await db.close(); }
@@ -139,7 +146,9 @@ test('dia da agência: resumo com as regras da rotina e o que cada pessoa tem ab
     item('Card velho', 'Pode Fazer', 'Jady Lima', { prazo_iso: '2026-10-20', veiculacao_iso: '2026-10-30' }),
     item('Pedido', 'A Fazer', 'Deivid Souza', { origem: 'solicitacao', conclusao_iso: dia }),
   ];
-  const t = mensagemDiaAgencia(itens, dia, (i) => i.status, 'Seg 26/10');
+  const completo = mensagemDiaAgencia(itens, dia, (i) => i.status, 'Seg 26/10');
+  assert.match(completo, /- Card B \(Cli\) · Pode Fazer\n  🔗 .*atividade=Card%20B/);
+  const t = semLink(completo);
   assert.match(t, /^🏢 \*Dia da agência · Seg 26\/10\*/);
   assert.match(t, /📊 Veiculam hoje: 3 · ✅ 1 entregues · 📅 0 para agendar · ⏳ 2 em aberto/);
   assert.match(t, /📌 Solicitações com conclusão hoje: 1 · 1 em aberto/);

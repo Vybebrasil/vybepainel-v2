@@ -98,7 +98,8 @@ function retrato(itens, dia, statusDe) {
 }
 function linhaItem(i) {
   const pessoas = i.responsavel ? i.responsavel.split(',').map(primeiroNome).filter(Boolean).join(', ') : 'sem responsável';
-  return `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${pessoas}`;
+  // Link da peça em toda demanda citada (Paulo, 27/10/2026: "sempre que mandar uma demanda, o link vai junto").
+  return `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${pessoas}\n  🔗 ${linkDaAtividade(i.id)}`;
 }
 // Cada bloco dividido por status (pedido do Paulo, 26/10/2026), status com mais itens primeiro;
 // dentro do status, o prazo mais antigo primeiro.
@@ -164,8 +165,19 @@ export async function rotinaDoDia(sql, { momento, dia, baseAnterior = null }, ag
   const rotulo = (iso) => ctx.resumoDiaCurto(iso);
   let mensagens;
   if (momento === 'manha') {
-    ctx.__itens = itens; ctx.__dia = dia; ctx.__opcoes = { statusDe, clientesDe: (i) => i.clientes, equipe, baseAnterior, geradoEm: agoraIso };
+    ctx.__itens = itens; ctx.__dia = dia; ctx.__opcoes = { statusDe, clientesDe: (i) => i.clientes, equipe, baseAnterior, geradoEm: agoraIso, linkDe: linkDaAtividade };
     mensagens = JSON.parse(JSON.stringify(vm.runInContext('resumosPorGrupo(__itens, __dia, __opcoes)', ctx)));
+    // Produção: no painel a agenda é preenchida no navegador; aqui vem do Google Agenda (regras de Captações),
+    // pelo mesmo texto do painel (resumoProducaoAgenda). Antes a mensagem saía vazia e era descartada.
+    const producao = mensagens.find((m) => m.agenda && !m.texto);
+    if (producao) try {
+      const { agendaDeCaptacoes } = await import('./captacoes.js');
+      const eventos = (await agendaDeCaptacoes(sql, { inicio: dia, dias: 6, hoje: dia })).filter((e) => e.tipo === 'captacao');
+      ctx.__eventos = eventos.map((e) => ({ dia: e.dia, horario: e.horario, titulo: e.titulo, local: e.local }));
+      producao.texto = vm.runInContext('resumoProducaoAgenda(__eventos, __dia)', ctx);
+    } catch { /* Agenda fora do ar: a Produção fica sem mensagem, como antes. */ }
+    // Correção: sem peça em alteração, o grupo recebe a confirmação em vez de silêncio.
+    if (!mensagens.some((m) => m.id === 'correcao')) mensagens.push({ id: 'correcao', nome: 'Correção', texto: `Bom dia! ✏️ Nenhuma peça em alteração em ${rotulo(dia)}. ✅` });
   } else if (momento === 'semana') {
     mensagens = [{ id: 'geral', nome: 'Geral', texto: await fechamentoDaSemana(sql, dia, new Date(agoraIso)) }];
   } else if (momento === 'meio_dia') {
@@ -204,7 +216,7 @@ export function mensagemDiaAgencia(itens, dia, statusDe, rotuloDia, maxPorPessoa
     .map(([n, p]) => {
       const resumo = [p.prontas && `✅ ${p.prontas}`, p.abertas.length && `⏳ ${p.abertas.length} em aberto`, p.atrasadas && `🔴 ${p.atrasadas} atrasada(s)`].filter(Boolean).join(' · ');
       p.abertas.sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999')));
-      const lista = p.abertas.slice(0, maxPorPessoa).map((i) => `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${statusDe(i) || 'Sem status'}`);
+      const lista = p.abertas.slice(0, maxPorPessoa).map((i) => `- ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'}) · ${statusDe(i) || 'Sem status'}\n  🔗 ${linkDaAtividade(i.id)}`);
       if (p.abertas.length > maxPorPessoa) lista.push(`- e mais ${p.abertas.length - maxPorPessoa} no painel`);
       return [`*${n}* — ${resumo}`, ...lista].join('\n');
     });
