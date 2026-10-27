@@ -46,3 +46,18 @@ test('calendário do mês no banco: sem nada, só planejamento e com peças', as
   assert.match(r.texto, /- Gonzalez · 2 peça\(s\), 1 finalizada\(s\) · sem planejamento/);
   assert.match(r.texto, /- Hebravet · 1 peça\(s\), 0 finalizada\(s\) · planejamento com o cliente/);
 });
+
+test('legendas aprovadas: só de planejamento aprovado ou cadastrado, filtrando formato', async () => {
+  const { legendasAprovadas } = await import('../server/assistente-memoria.js');
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+    CREATE TABLE vybe_planejamentos(id bigint,cliente_id bigint,mes date,estado text,conteudo jsonb);
+    INSERT INTO vybe_clientes VALUES (10,'Gonzalez',true);
+    INSERT INTO vybe_planejamentos VALUES
+     (1,10,'2026-10-01','aprovado','{"pecas":[{"data":"2026-10-05","formato":"Reels","tema":"Rodízio","legenda":"Quarta é dia de rodízio no Gonzalez: massa fina, forno quente e música ao vivo."},{"data":"2026-10-06","formato":"Card","tema":"Executivo","legenda":"Almoço executivo servido com calma, do jeito que um bom almoço merece ser."}]}'),
+     (2,10,'2026-11-01','revisar','{"pecas":[{"data":"2026-11-05","formato":"Reels","tema":"Rascunho","legenda":"Legenda ainda em revisão e que não pode servir de exemplo para ninguém."}]}');`);
+  const r = await legendasAprovadas(sql, { cliente_id: 10, formato: 'reels' });
+  assert.equal(r.cliente, 'Gonzalez');
+  assert.deepEqual(r.itens.map((x) => x.tema), ['Rodízio']);
+  assert.equal((await legendasAprovadas(sql, { cliente_id: 10 })).itens.length, 2);
+});

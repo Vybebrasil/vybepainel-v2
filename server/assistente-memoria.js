@@ -48,3 +48,24 @@ export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '',
   const alteracoes = voltas.map((v) => ({ ...v, ref: ref(v) }));
   return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes }), fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }] };
 }
+
+// Legendas que o cliente já aprovou (planejamentos aprovados ou já cadastrados no quadro), as mais recentes primeiro.
+// Servem de exemplo de tom para a Vybe AI escrever legendas novas do mesmo cliente.
+export async function legendasAprovadas(sql, { cliente_id: clienteId, formato = '', limite = 8 }, { normalizar } = {}) {
+  if (!Number.isSafeInteger(clienteId) || clienteId <= 0) throw new TypeError('Cliente inválido.');
+  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND COALESCE(ativo, true)`;
+  if (!cliente) throw new TypeError('Cliente inválido.');
+  const ler = normalizar || (await import('./planejamentos.js')).normalizarConteudo;
+  const planos = await sql`SELECT mes::text, conteudo FROM vybe_planejamentos
+    WHERE cliente_id = ${clienteId} AND estado IN ('aprovado', 'cadastrado') ORDER BY mes DESC, id DESC LIMIT 6`;
+  const f = normal(formato).trim();
+  const itens = [];
+  for (const p of planos) {
+    for (const peca of ler(p.conteudo || {}).pecas || []) {
+      if (!peca?.legenda || peca.legenda.length < 40) continue;
+      if (f && !normal(peca.formato).startsWith(f.slice(0, 4))) continue;
+      itens.push({ mes: p.mes.slice(0, 7), formato: peca.formato, tema: peca.tema || '', legenda: peca.legenda.slice(0, 1200) });
+    }
+  }
+  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)) };
+}

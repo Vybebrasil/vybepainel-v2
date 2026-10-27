@@ -33,3 +33,16 @@ test('consulta: mês inteiro e cliente inválido recusado', async () => {
  assert.match(r.texto, /Sem nada cadastrado \(1\)\*\n- Copirecê/);
  await assert.rejects(calendarioClientes(sql, '2026-11-01', 99), /Cliente inválido/);
 });
+
+test('previsão de atraso: pelo tempo que o formato costuma levar do status atual até finalizar', async () => {
+  const { preverAtrasos } = await import('../server/assistente-rotinas.js');
+  // Cards levam 4 dias de "Em produção" até finalizar (5 casos).
+  const historico = [1, 2, 3, 4, 5].map((n) => ({ formato: 'Card', final_em: `2026-10-${10 + n}T12:00:00Z`, eventos: [{ para: 'Em produção', em: `2026-10-${String(6 + n).padStart(2, '0')}T12:00:00Z` }] }));
+  const abertas = [
+    { id: '1', titulo: 'Card - Vai atrasar', formato: 'Card', status: 'Em produção', status_em: '2026-10-26T12:00:00Z', prazo: '2026-10-28' },
+    { id: '2', titulo: 'Card - Dá tempo', formato: 'Card', status: 'Em produção', status_em: '2026-10-26T12:00:00Z', prazo: '2026-10-31' },
+    { id: '3', titulo: 'Reels - Sem histórico', formato: 'Reels', status: 'Roteiro', status_em: '2026-10-26T12:00:00Z', prazo: '2026-10-28' },
+  ];
+  const r = preverAtrasos({ historico, abertas, dia: '2026-10-27' });
+  assert.deepEqual(r.map((x) => [x.titulo, x.atraso, x.costuma]), [['Card - Vai atrasar', 2, 4]]);
+});
