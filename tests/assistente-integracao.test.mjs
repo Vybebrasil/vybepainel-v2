@@ -53,7 +53,7 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
   assert.deepEqual(r.map(x=>x.codigo).sort(),[200,403]);
   assert.equal(Number((await sql`SELECT count(*) AS n FROM vybe_ai_vinculos`)[0].n),1);
  });
- await db.exec(`CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,titulo text,prazo date,veiculacao date,atualizado_em timestamptz,board_id bigint,status_chave text,removido_em timestamptz);
+ await db.exec(`CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,titulo text,prazo date,veiculacao date,atualizado_em timestamptz,board_id bigint,status_chave text,removido_em timestamptz);ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS monday_item_id bigint;
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);
  CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);

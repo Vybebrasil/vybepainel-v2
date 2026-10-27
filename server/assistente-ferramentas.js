@@ -118,7 +118,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    AND (${diaDaPessoa}::date IS NULL OR COALESCE(c.prazo,c.veiculacao)=${diaDaPessoa}::date)
    AND (${situacao}='todas' OR (${situacao}='finalizadas_hoje' AND s.final IS TRUE AND c.id::text=ANY(${finalHoje}::text[]))
     OR (${situacao} IN ('pendentes','atrasadas') AND s.final IS FALSE AND (${situacao}='pendentes' OR c.prazo<${hoje}::date)))
-   AND (${id}::bigint IS NULL OR c.id=${id}) AND (${q}='' OR c.titulo ILIKE '%'||${q}||'%')
+   AND (${id}::bigint IS NULL OR c.id=${id} OR c.monday_item_id=${id}) AND (${q}='' OR c.titulo ILIKE '%'||${q}||'%')
    AND (${cid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id=c.id AND cc.cliente_id=${cid}))
    AND (${rid}::bigint IS NULL OR EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis cr WHERE cr.conteudo_id=c.id AND cr.pessoa_id=${rid}))
    AND (${status}='' OR s.rotulo ILIKE ${status}) AND (${de}::date IS NULL OR c.prazo>=${de}::date) AND (${ate}::date IS NULL OR c.prazo<=${ate}::date)

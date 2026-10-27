@@ -17,7 +17,7 @@ async function preparar(){
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean,pode_entrar boolean,senha_hash text);
  INSERT INTO vybe_pessoas VALUES(42,'Pessoa fictícia',true,true,'ficticio'),(43,'Outra pessoa fictícia',true,true,'ficticio'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;
  CREATE TABLE vybe_clientes(id bigint,nome text);
- CREATE TABLE vybe_conteudos(id bigint,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz);
+ CREATE TABLE vybe_conteudos(id bigint,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz);ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS monday_item_id bigint;
  INSERT INTO vybe_conteudos VALUES(1,'Aberta vencida fictícia',NULL,'2020-01-01',NULL,now(),'aberta',8385559107,NULL),(2,'Finalizada fictícia',NULL,'2020-01-01',NULL,now(),'final',8385559107,NULL),(3,'Futura fictícia',NULL,'2099-01-01',NULL,now(),'aberta',8385559107,NULL),(4,'Outra pessoa fictícia',NULL,'2020-01-01',NULL,now(),'aberta',8385559107,NULL),(5,'Sem prazo fictícia',NULL,NULL,NULL,now(),'aberta',8385559107,NULL);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);INSERT INTO vybe_status VALUES(8385559107,'aberta','Em andamento',false),(8385559107,'final','Finalizado',true);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(1,42),(2,42),(3,42),(4,43),(5,42);

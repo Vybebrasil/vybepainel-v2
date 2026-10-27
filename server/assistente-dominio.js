@@ -42,8 +42,10 @@ export async function secaoDaDemanda(sql,a){
  COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_responsaveis cr JOIN vybe_pessoas p ON p.id=cr.pessoa_id WHERE cr.conteudo_id=c.id),'[]') AS responsaveis,
  COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes
  FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
- WHERE c.id=${a.id} AND c.removido_em IS NULL AND c.board_id IN (${BOARD_DEMANDAS},${BOARD_PRODUCAO})`;
+ WHERE (c.id=${a.id} OR c.monday_item_id=${a.id}) AND c.removido_em IS NULL AND c.board_id IN (${BOARD_DEMANDAS},${BOARD_PRODUCAO})`;
  if(!c)return resposta('detalhar_demanda',[],a,{limitado:false});
+ // O link do painel pode trazer o número do Monday: daqui em diante vale o id interno.
+ a={...a,id:Number(c.id)};
  const secao=a.secao||'ficha',limite=a.limite||25,offset=a.deslocamento||0;let itens,limitado;
  if(secao==='ficha'){
   const [estado]=await sql`SELECT EXISTS(SELECT 1 FROM vybe_conteudo_eventos WHERE conteudo_id=${a.id} AND tipo='briefing') AS briefing_definido`;

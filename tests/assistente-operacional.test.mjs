@@ -22,7 +22,7 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
  INSERT INTO vybe_pessoas VALUES(1,'Pessoa A','Criação','Design',true,true,'senha','sigilo@example.com'),(2,'Pessoa B','Atendimento','Estratégia',true,true,'senha','pessoal@example.com'); ALTER TABLE vybe_pessoas ADD COLUMN admin boolean DEFAULT true;
  CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean,responsavel text);
  INSERT INTO vybe_clientes VALUES(10,'Cliente A',true,'Vinícius'),(20,'Cliente B',true,'Ewerton');
- CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz,briefing text);
+ CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,titulo text,formato text,prazo date,veiculacao date,atualizado_em timestamptz,status_chave text,board_id bigint,removido_em timestamptz,briefing text);ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS monday_item_id bigint;
  INSERT INTO vybe_conteudos VALUES(100,'Card A','Card','2026-10-23','2026-10-24',now(),'agendado',8385559107,NULL,'senha=NAO_EXPOR'),(200,'Peça da outra pessoa','Vídeo','2026-10-25','2026-10-26',now(),'agendado',7829537690,NULL,'NAO_EXPOR'),(300,'Excluída',NULL,NULL,NULL,now(),NULL,8385559107,now(),NULL);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(100,1),(200,2);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);INSERT INTO vybe_conteudo_clientes VALUES(100,10),(100,20),(200,20);
