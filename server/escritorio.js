@@ -33,8 +33,8 @@ import { diaDaEquipe } from "./escritorio-dia.js";
 import { prepararChamadaEscritorio } from "./escritorio-chamadas.js";
 import { criarConvite, cancelarConvites } from "./escritorio-convite.js";
 import { conferirFiguraDaPessoa, roupasDaPessoa } from "./escritorio-roupas.js";
-import { listarPostits, colarPostit, apagarPostit, darPresente, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
-import { dimensoesDosMoveis, salasDoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
+import { listarPostits, colarPostit, apagarPostit, darPresente, darMoedas, listarTrocas, proporTroca, responderTroca, origemDoMovel } from "./escritorio-social.js";
+import { dimensoesDosMoveis, salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe, copaDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -222,6 +222,8 @@ export async function carregarEscritorio(sql, pessoa) {
     economia: await carregarEconomia(sql, pessoa.id, { loja: false, marcos: false }),
     eu: String(pessoa.id),
     admin: Boolean(pessoa.admin),
+    // Só Paulo vê "Dar VybeCoins" na ficha (o servidor confere de novo).
+    paulo: ehPauloNoEscritorio(pessoa, salasDoEscritorio(lista)),
     equipe: lista,
     // Dono de cada sala individual e o mapa salvo (camadas editadas).
     salas: salasDoEscritorio(lista),
@@ -590,10 +592,11 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 400).json({ error: e.message });
     }
   }
-  if (acao === "postit" || acao === "postit-apagar" || acao === "presente" || acao === "vender") {
+  if (acao === "postit" || acao === "postit-apagar" || acao === "presente" || acao === "vender" || acao === "moedas") {
     try {
       if (acao === "postit") return res.status(200).json({ ok: true, id: await colarPostit(sql, pessoa, req.body || {}) });
       const { salas } = await carregarEscritorio(sql, pessoa);
+      if (acao === "moedas") return res.status(200).json({ ok: true, ...(await darMoedas(sql, pessoa, salas, req.body || {})) });
       if (acao === "vender") return res.status(200).json({ ok: true, ...(await venderMovel(sql, pessoa, salas, req.body || {})) });
       if (acao === "postit-apagar") return res.status(200).json({ ok: true, camada: await apagarPostit(sql, pessoa, salas, String(req.body?.id || "")) });
       return res.status(200).json({ ok: true, ...(await darPresente(sql, pessoa, salas, req.body || {})) });
