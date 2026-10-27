@@ -12109,3 +12109,26 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .previa-pasta-lista button[aria-pressed=true] {background:#ff8a3526;color:#fff}
 /* Conteúdo mais alto que o palco (player + lista) rola em vez de vazar por cima da barra da peça. */
 .previa-grande-palco {align-items:safe center;overflow-y:auto}
+
+/* Ciclo de vida (vybe-ciclo.js): as janelas de criar, mandar para o subsolo e apagar. */
+.ciclo-janela .conta-form{margin:14px 0 4px}
+.ciclo-janela .ciclo-erro{min-height:1.2em;margin:6px 0 0;color:#ff9fa9;font-size:12px}
+/* O laranja do painel vem com !important; o vermelho do perigo precisa vencer. */
+.workflow-modal .ciclo-janela .ciclo-perigo{color:#ff9fa9!important}
+.workflow-modal .workflow-primary.perigo{background:#c8303f!important;border-color:#c8303f!important;color:#fff!important}
+.workflow-modal .workflow-primary.perigo:hover:not(:disabled){background:#e03a4a!important}
+.workflow-modal .workflow-primary.perigo:disabled{opacity:.45;cursor:not-allowed}
+.workflow-secondary.perigo{border-color:rgba(240,71,86,.42);color:#ffb9c0}
+.workflow-secondary.perigo:hover{background:rgba(240,71,86,.16);border-color:rgba(240,71,86,.7)}
+.eq-acoes button.perigo{border-color:rgba(240,71,86,.35);color:#ffb9c0}
+.eq-acoes button.perigo:hover{background:rgba(240,71,86,.14);border-color:rgba(240,71,86,.6)}
+
+/* Subsolo do Escritório (vybe-escritorio-subsolo.js): as almas aparecem pálidas e com brilho frio. */
+.mapa-pessoa.figurante.fantasma img{opacity:.62;filter:grayscale(1) brightness(1.35) sepia(.35) hue-rotate(95deg) drop-shadow(0 0 7px rgba(140,255,200,.7));animation:alma-flutua 3.2s ease-in-out infinite}
+.mapa-pessoa.figurante.fantasma:hover img{opacity:.92}
+@keyframes alma-flutua{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.mapa-pessoa.figurante.fantasma img{animation:none}}
+.ofc-alma .ofc-agente-nome small{display:block;color:#a9b4ad;margin-top:2px}
+.ofc-alma-palco{background:radial-gradient(circle at 50% 60%,rgba(120,200,160,.18),transparent 70%)}
+.workflow-modal .ofc-alma-apagar{font-weight:700}
+.ofc-livro-novos{justify-content:flex-start;margin:6px 0 14px}

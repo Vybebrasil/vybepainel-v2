@@ -293,6 +293,14 @@ function blocoEquipe(eu) {
   const linhas = EQUIPE.map((p) => {
     const travado = p.bloqueado_ate && new Date(p.bloqueado_ate) > new Date();
     const sou = String(p.email).toLowerCase() === String(eu.email).toLowerCase();
+    // Quem está no subsolo aparece só com o caminho de volta: liberar acesso de
+    // quem saiu seria abrir a porta sem trazer a pessoa de volta.
+    if (p.ativo === false) return `
+    <div class="eq-linha fora">
+      <div class="eq-quem"><b>${safeText(p.nome)}</b><span class="eq-tag">no subsolo</span><span class="eq-email">${safeText(p.email)}</span></div>
+      <div class="eq-estado">desativado · sem login</div>
+      <div class="eq-acoes"><button data-id="${safeText(String(p.id))}" data-nome="${safeText(p.nome)}" onclick="reviverNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})">reviver</button></div>
+    </div>`;
     return `
     <div class="eq-linha ${p.pode_entrar ? '' : 'fora'}">
       <div class="eq-quem">
@@ -313,11 +321,13 @@ function blocoEquipe(eu) {
           : `<button onclick="acaoPessoa('${safeText(p.email)}','tornar_admin')">tornar admin</button>`}
         ${travado ? `<button onclick="acaoPessoa('${safeText(p.email)}','destravar')">destravar</button>` : ''}
         <button onclick="redefinirSenhaDe('${safeText(p.email)}','${safeText(p.nome)}')">definir senha</button>
+        ${sou ? '' : `<button class="perigo" data-id="${safeText(String(p.id))}" data-nome="${safeText(p.nome)}" onclick="abrirDesativarNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})">mandar para o subsolo</button>`}
       </div>
     </div>`;
   }).join('');
   return cabecaDaSecao('Equipe',
-    'Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora.')
+    'Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora. Quem sai do time vai para o subsolo do Escritório; de lá volta ou é apagado para sempre.')
+    + `<div class="conta-form-acoes"><button class="conta-botao primario" onclick="abrirNovoNoCiclo('pessoa',{depois:carregarConta})">Novo colaborador</button></div>`
     + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>`;
 }
 

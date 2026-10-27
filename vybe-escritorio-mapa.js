@@ -1416,7 +1416,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       const dirAssento = grade?.assento.get(grade.ind(f0.x, f0.y));
       const f = f0.acao === "sit" ? (dirAssento === undefined ? { ...f0, acao: "std" } : { ...f0, dir: dirAssento }) : f0;
       const no = document.createElement(agente ? "button" : "div");
-      no.className = "mapa-pessoa figurante" + (agente ? " agente" : "");
+      no.className = "mapa-pessoa figurante" + (agente ? " agente" : "") + (agente?.fantasma ? " fantasma" : "");
       const etiqueta = document.createElement("span");
       if (agente) {
         no.type = "button";

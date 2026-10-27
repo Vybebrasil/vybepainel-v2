@@ -525,7 +525,8 @@ export function novaCena(id, o = {}) {
       // Em pé só em chão ou em peça onde se pisa (esteira, colchonete, palco).
       const sob = at(x, y, 0).solido;
       if (sob && !peca(sob.classe).pisa) return falha(`figurante de pé em ${x},${y}, em cima de ${sob.nome}`);
-      figurantes.push({ figura, x, y, dir });
+      // De pé também pode ser posto: no subsolo, o desativado fica ao lado da lápide.
+      figurantes.push({ figura, x, y, dir, ...(posto !== undefined ? { posto } : {}), ...(ala ? { ala } : {}) });
     },
     // Confere o que só dá para ver com tudo posto: item de parede atrás de
     // móvel alto encostado e fio de lâmpada cruzando item de parede perto.

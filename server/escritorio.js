@@ -46,12 +46,13 @@ export const SALAS_ESCRITORIO = [
   "atendimento",
   "producao",
   "reuniao",
-  "foco",
+  "foco",  // Conversa escrita do subsolo (o mesmo nome no Worker).
+  "subsolo",
 ];
 // Zonas de conversa do mapa: cada sala individual e cada espaço tem a sua.
 export const ZONAS_ESCRITORIO = [
   ...Array.from({ length: 9 }, (_, i) => ["sala-" + i,"sala-" + i+"-andar-1"]).flat(),
-  "auditorio", "reuniao", "recepcao", "cafe", "academia", "foco", "jogos", "producao", "lounge", "operacao",
+  "auditorio", "reuniao", "recepcao", "cafe", "academia", "foco", "jogos", "producao", "lounge", "operacao", "subsolo",
 ];
 export const CORES_ESCRITORIO = [
   "laranja",

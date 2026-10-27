@@ -1828,3 +1828,28 @@ animando 24 vezes por segundo por trás da entrada. Agora:
   limitada volta ao estoque. Sem a migração, a venda responde 503.
 - Testes em PGlite: venda pelo valor pago, idempotência, quarto, prêmio,
   presente, grátis, estoque e reembolso que não repete.
+
+### Subsolo (easter egg) e ciclo de vida — 27/10/2026
+
+- Pedido do Paulo: um fluxo só para criar, desativar, reativar e apagar cliente
+  e colaborador (`server/ciclo-de-vida.js`, janelas em `vybe-ciclo.js`), e um
+  andar secreto embaixo do Centro de Operação com os desativados.
+- Sala comum nova `subsolo` (24 × 18), montada pelo motor
+  (`scripts/cenas/subsolo.mjs`), luz `verde`, conversa e voz próprias (sala
+  `subsolo` no Worker e em `SALAS_ESCRITORIO`). Conceito aprovado e revisto
+  pelo Paulo ("não tá nada com cara de cripta", "mais rico, piso com
+  textura"): cemitério velho dentro de cripta de pedra. Esquerda: chão de
+  musgo, lápides variadas (`hal_grave`, `vikings_tombstone`,
+  `hween_c21_gravestone`) com o cliente de pé na frente, cerca de ferro,
+  árvores secas, rosas, ossos, névoa. Direita: laje de pedra com caixões
+  góticos (`hween_r22_coffin`) e o colaborador ao lado. Fundo: poço das almas
+  entre dois anjos; livro de registros (`hween_c22_bookofdead`) no caminho.
+- É segredo (Paulo): `oculta: true` na planta. Não aparece em lista nenhuma
+  (nem para quem está lá), quem está fora não recebe a presença de quem está
+  dentro (`escritorioPresencaVisivel`) e só se entra pela estante secreta
+  (`hween_c20_secretbkshelf`, no Centro, em 0,10), só para quem administra.
+- Postos de pé: `figurante()` aceita `posto`/`ala` sem assento. O navegador
+  ocupa as lápides (ala `clientes`) e os caixões (ala `time`) com
+  `area=subsolo`; quem não cabe aparece no livro de registros.
+- Antes de publicar: migração `migrations/2026-10-27-escritorio-subsolo.sql`
+  no banco de Production e o Worker publicado (zona e sala `subsolo`).
