@@ -27,5 +27,14 @@ test('o subsolo é sala escondida na planta e não aparece na lista lateral', ()
   assert.match(fonte, /subsolo: \{[^\n]*oculta: true/);
   const tela = readFileSync('vybe-escritorio.js', 'utf8');
   assert.match(tela, /a\.id !== "operacao" && !a\.oculta\)/);
-  assert.match(tela, /a\.oculta && !\(escritorio\.base\?\.admin && escritorio\.pelaPortaSecreta\)/);
+  // S\xc3\xb3 pela porta secreta, mas a porta \xc3\xa9 de todos (n\xc3\xa3o s\xc3\xb3 de quem administra).
+  assert.match(tela, /a\.oculta && !escritorio\.pelaPortaSecreta\) return/);
+});
+
+test('a estante secreta abre a passagem para todos; o livro de registros só para quem administra', () => {
+  const fonte = readFileSync('vybe-escritorio-subsolo.js', 'utf8');
+  const corpo = fonte.slice(fonte.indexOf('function escritorioAcaoDoSubsolo'), fonte.indexOf('const escritorioEhPecaDoSubsolo'));
+  assert.ok(corpo.indexOf('ESCRITORIO_ESTANTE_SECRETA') < corpo.indexOf('escritorio.base?.admin'));
+  assert.ok(corpo.indexOf('escritorio.base?.admin') < corpo.indexOf('ESCRITORIO_LIVRO_DE_REGISTROS'));
+  assert.doesNotMatch(fonte, /function descerAoSubsoloEscritorio\(\) \{\s*if \(!escritorio\.base\?\.admin\)/);
 });

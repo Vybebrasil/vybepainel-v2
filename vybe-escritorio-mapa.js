@@ -272,7 +272,7 @@ function mapaDesenharMovel({ dados, imagem }, dir, estadoSalvo, quadro, semente 
     if (!grupos.has(k)) grupos.set(k, { chave: k, prof: c.sombra ? MAPA_PROF_SOMBRA : mapaProfCamada(c.z, c.ordem), luz: true });
     if (c.ink !== "ADD") grupos.get(k).luz = false;
   }
-  return { canvas, ox: minX, oy: minY, grupos: [...grupos.values()] };
+  return { canvas, ox: minX, oy: minY, grupos: [...grupos.values()], caixas };
 }
 // Camadas de um móvel para desenhar separadas, cada uma com a sua
 // profundidade. Móvel de um grupo só reaproveita o desenho inteiro.
@@ -312,11 +312,32 @@ function mapaCamadasMovel(m, dir, estado, quadro, semente = 0) {
   cache.set(chave, d);
   return d;
 }
+// Desenho de cada grupo de camadas, guardado pelo que ele mostra (as artes do
+// grupo e o tamanho do desenho inteiro). Num móvel animado só parte das camadas
+// muda: o caixão do subsolo tem 7 grupos e 3 nunca mudam. Com o mesmo canvas
+// para o grupo parado, o mapa vê que nada mudou e não copia de novo (antes cada
+// troca de quadro redesenhava todos os grupos: ~350 cópias por segundo só nos
+// caixões).
+const MAPA_CACHE_GRUPOS = new WeakMap();
 function mapaCamadasMovelNovo(m, dir, estado, quadro, semente = 0) {
   const d = mapaDesenharMovel(m, dir, estado, quadro, semente);
   if (!d) return null;
   if (d.grupos.length <= 1) return { ...d, camadas: [{ canvas: d.canvas, prof: d.grupos[0]?.prof || 0, luz: d.grupos[0]?.luz }] };
-  const camadas = d.grupos.map((g) => ({ canvas: mapaDesenharMovel(m, dir, estado, quadro, semente, (p) => mapaGrupoCamada(p) === g.chave)?.canvas, prof: g.prof, luz: g.luz })).filter((c) => c.canvas);
+  let cache = m.dados && MAPA_CACHE_GRUPOS.get(m.dados);
+  if (m.dados && !cache) MAPA_CACHE_GRUPOS.set(m.dados, (cache = new Map()));
+  const caixa = `${d.ox},${d.oy},${d.canvas.width},${d.canvas.height}|`;
+  const camadas = d.grupos.map((g) => {
+    const chave = caixa + g.chave + "|" + d.caixas.filter((c) => mapaGrupoCamada(c) === g.chave).map((c) => c.asset + (c.cor || "")).join(",");
+    let canvas = cache?.get(chave);
+    if (!canvas) {
+      canvas = mapaDesenharMovel(m, dir, estado, quadro, semente, (p) => mapaGrupoCamada(p) === g.chave)?.canvas;
+      if (canvas && cache) {
+        if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value);
+        cache.set(chave, canvas);
+      }
+    }
+    return { canvas, prof: g.prof, luz: g.luz };
+  }).filter((c) => c.canvas);
   return { ...d, camadas };
 }
 // Paisagem vista pela janela, como no Habbo (FurnitureWindow: a máscara da
@@ -1662,15 +1683,24 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     for (const a of alvos) {
       const filtro = a.chave == null ? item.filtro : (p) => mapaGrupoCamada(p) === a.chave && (!item.filtro || item.filtro(p));
       // Mesmo ciclo dos móveis de chão: cada quadro desenhado uma vez só.
+      // Arte com mais desenhos diferentes do que cabem no cache não se guarda:
+      // passando em ciclo por um cache menor que o ciclo, nada acertava, e cada
+      // quadro novo ficava guardado (com a cópia tingida) até ser descartado.
+      // Encheu uma vez, o item passa a desenhar direto no canvas da parede.
       const cache = (item.cacheDesenho ??= new Map()), chave = `${a.chave}|${item.dir}|${estado}|${mapaChaveQuadro(item.m.dados, estado, q, item.semente || 0)}`;
-      if (!cache.has(chave)) { if (cache.size >= MAPA_CACHE_QUADROS) cache.delete(cache.keys().next().value); cache.set(chave, mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro)); }
-      const d = cache.get(chave);
+      const semCache = Boolean(item.semCache);
+      let d = semCache ? null : cache.get(chave);
+      if (!d && (semCache || !cache.has(chave))) {
+        d = mapaDesenharMovel(item.m, item.dir, estado, q, item.semente || 0, filtro);
+        if (!semCache) { if (cache.size >= MAPA_CACHE_QUADROS) { item.semCache = true; cache.clear(); } else cache.set(chave, d); }
+      }
       const g = a.no.getContext("2d");
       if (!d) { g.clearRect(0, 0, a.no.width, a.no.height); continue; }
       ref ??= d;
       if (a.no.width !== d.canvas.width || a.no.height !== d.canvas.height) { a.no.width = d.canvas.width; a.no.height = d.canvas.height; }
       else g.clearRect(0, 0, a.no.width, a.no.height);
-      g.drawImage(tingido(d.canvas), 0, 0);
+      if (semCache) { g.drawImage(d.canvas, 0, 0); tingir(a.no); }
+      else g.drawImage(tingido(d.canvas), 0, 0);
     }
     return ref;
   };
@@ -1717,10 +1747,16 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     const antigas = m.camadas || [];
     m.camadas = d.camadas.map((c, i) => {
       const cv = antigas[i]?.no || document.createElement("canvas");
-      const g = cv.getContext("2d");
-      if (cv.width !== c.canvas.width || cv.height !== c.canvas.height) { cv.width = c.canvas.width; cv.height = c.canvas.height; }
-      else g.clearRect(0, 0, cv.width, cv.height);
-      g.drawImage(tingido(c.canvas), 0, 0);
+      // Camada que já mostra este desenho fica como está: copiar de novo
+      // mandaria a mesma imagem para a placa de vídeo (mapaCamadasMovelNovo).
+      const fonte = tingido(c.canvas);
+      if (cv._fonte !== fonte) {
+        const g = cv.getContext("2d");
+        if (cv.width !== c.canvas.width || cv.height !== c.canvas.height) { cv.width = c.canvas.width; cv.height = c.canvas.height; }
+        else g.clearRect(0, 0, cv.width, cv.height);
+        g.drawImage(fonte, 0, 0);
+        cv._fonte = fonte;
+      }
       // Camada de luz (ADD): soma com o que está atrás, como no Habbo.
       cv.style.mixBlendMode = c.luz ? "plus-lighter" : "";
       if (!cv.parentNode) no.append(cv);
