@@ -20,8 +20,8 @@ test('sinuca: triângulo com 15 bolas, a 8 no meio e um canto de cada grupo',()=
  const nums=m.bolas.map((p,n)=>p&&n).filter(n=>n!==null&&n!==false);
  assert.equal(m.bolas.filter(Boolean).length,16);assert.deepEqual(m.bolas[0],[25,25]);assert.equal(m.vez,'desafiado');
  const oito=m.bolas[8],x8=75+2*(2*m.r*0.866+0.02);assert.ok(Math.abs(oito[1]-25)<0.01&&Math.abs(oito[0]-x8)<0.01,'a 8 no meio da terceira fileira');
- assert.equal(m.r,1.45,'partida nova usa a bola maior');
- const tras=m.bolas.map((p,n)=>[n,p]).filter(([n,p])=>p&&n&&p[0]>83).map(([n])=>n);
+ assert.equal(m.r,1.6,'partida nova usa a bola maior');
+ const tras=m.bolas.map((p,n)=>[n,p]).filter(([n,p])=>p&&n&&p[0]>75+3.5*(2*m.r*0.866+0.02)).map(([n])=>n);
  assert.equal(tras.length,5);
  const cantos=tras.filter(n=>Math.abs(m.bolas[n][1]-25)>4.5);
  assert.equal(cantos.filter(n=>n<8).length,1);assert.equal(cantos.filter(n=>n>8).length,1);
@@ -90,7 +90,7 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
  const MESA={jogo:'sinuca',camada:'jogos',movel:'bling15_pooltable@4,4'};
  const d=await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,chave:'sinuca-0001'});
  const r=await x.responderMesa(sql,{id:3},salas,{id:d.id,acao:'aceitar'});
- assert.equal(r.jogo.jogo,'sinuca');assert.equal(r.jogo.mesa.bolas.filter(Boolean).length,15,'par ou ímpar: a branca e 14 bolas');assert.equal(r.jogo.mesa.modo,'parimpar');
+ assert.equal(r.jogo.jogo,'sinuca');assert.equal(r.jogo.mesa.bolas.filter(Boolean).length,16,'par ou ímpar: a branca e as 15 bolas');assert.equal(r.jogo.mesa.modo,'parimpar');
  const quem=r.jogo.vez==='desafiante'?{id:1}:{id:3},outro=quem.id===1?{id:3}:{id:1};
  await assert.rejects(x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0,forca:2}),/força/);
  const l=await x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0.01,forca:0.9});
@@ -111,13 +111,13 @@ test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',(
 });
 
 test('sinuca: a bola maior das partidas novas e a partida antiga com a bola de antes',()=>{
- // Partida gravada antes (sem m.r) segue com a bola de 1,15; a nova usa 1,45.
+ // Partida gravada antes (sem m.r) segue com a bola de 1,15; a nova usa 1,6.
  assert.equal(vistaSinuca(mesa({0:[50,25]}),'desafiante',false).r,1.15);
  const nova=iniciarSinuca('desafiante');
- assert.equal(vistaSinuca(nova,'desafiante',false).r,1.45);
+ assert.equal(vistaSinuca(nova,'desafiante',false).r,1.6);
  // Nenhuma bola do triângulo encosta na outra (com folga).
  const b=nova.bolas.filter(Boolean);
- for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],b[i][1]-b[k][1])>=2*1.45,'bolas sem sobreposição');
+ for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],b[i][1]-b[k][1])>=2*1.6,'bolas sem sobreposição');
  // A bola maior vai para a caçapa do mesmo jeito.
  const r=simular(mesa({0:[85,35],3:[95,45]}).bolas,DIAG,0.5,0,1.45);
  assert.deepEqual(r.caiu,[3]);
@@ -126,11 +126,7 @@ test('sinuca: a bola maior das partidas novas e a partida antiga com a bola de a
  assert.ok(s.mesa.bolas.some((p,n)=>p&&Math.hypot(p[0]-nova.bolas[n][0],p[1]-nova.bolas[n][1])>3));
 });
 
-test('sinuca par ou ímpar: 14 bolas sem a 1, grupos sorteados, falta, continua e quem ganha',()=>{
- const m=iniciarSinuca('desafiante');
- assert.equal(m.modo,'parimpar');assert.equal(m.bolas[1],null,'sem a bola 1');
- assert.equal(m.bolas.filter(Boolean).length,15);
- assert.deepEqual(new Set(Object.values(m.grupos)),new Set(['pares','impares']),'um grupo para cada, já na saída');
+test('sinuca par ou ímpar (partida de antes, sem a 1): grupos, falta, continua e quem ganha',()=>{
  const pi=(bolas,extra={})=>({...mesa(bolas,extra),modo:'parimpar',r:1.15,grupos:{desafiante:'pares',desafiado:'impares'}});
  // Encaçapou bola sua: continua.
  let r=tacar(pi({0:[85,35],4:[95,45],6:[20,20],3:[50,10],5:[10,40]}),'desafiante',DIAG,0.5);
@@ -142,4 +138,30 @@ test('sinuca par ou ímpar: 14 bolas sem a 1, grupos sorteados, falta, continua 
  r=tacar(pi({0:[85,35],4:[95,45],3:[20,20]}),'desafiante',DIAG,0.5);
  assert.deepEqual(r.fim,{resultado:'desafiante',motivo:'todas'});
  assert.equal(vistaSinuca(r.mesa,'desafiante',true).modo,'parimpar');
+});
+
+// Paulo, 28/10/2026: "não tá todas as bolas". As 15 vão para a mesa e a 1 é a
+// bola final: limpa o grupo e encaçapa a 1 para ganhar.
+test('sinuca par ou ímpar com as 15 bolas: a 1 é a última, a 1 antes da hora perde e volta na saída',()=>{
+ const m=iniciarSinuca('desafiante');
+ assert.equal(m.modo,'parimpar');assert.equal(m.bola1,true);
+ assert.equal(m.bolas.filter(Boolean).length,16,'a branca e as 15');
+ assert.ok(m.bolas[1],'a 1 está na mesa');
+ assert.deepEqual(new Set(Object.values(m.grupos)),new Set(['pares','impares']),'um grupo para cada, já na saída');
+ const pi=(bolas,extra={})=>({...mesa(bolas,extra),modo:'parimpar',bola1:true,r:1.15,tacadas:3,grupos:{desafiante:'pares',desafiado:'impares'}});
+ // Encaçapou a última sua: não ganha ainda, continua (falta a 1).
+ let r=tacar(pi({0:[85,35],4:[95,45],1:[20,20],3:[50,10]}),'desafiante',DIAG,0.5);
+ assert.equal(r.fim,null);assert.equal(r.mesa.vez,'desafiante');
+ // Grupo limpo: tocar primeiro outra bola que não a 1 é falta.
+ r=tacar(pi({0:[85,35],3:[95,45],1:[20,20]}),'desafiante',DIAG,0.5);
+ assert.equal(r.mesa.ultimo.falta,'errada');assert.equal(r.mesa.vez,'desafiado');
+ // Grupo limpo e a 1 na caçapa sem falta: ganhou.
+ r=tacar(pi({0:[85,35],1:[95,45],3:[20,20]}),'desafiante',DIAG,0.5);
+ assert.deepEqual(r.fim,{resultado:'desafiante',motivo:'um'});
+ // Tacar na 1 antes de limpar o grupo: é falta, e a 1 na caçapa com falta perde.
+ r=tacar(pi({0:[85,35],1:[95,45],4:[20,20]}),'desafiante',DIAG,0.5);
+ assert.deepEqual(r.fim,{resultado:'desafiado',motivo:'um-falta'});
+ // Na saída, a 1 que cai volta para a mesa.
+ r=tacar({...pi({0:[85,35],1:[95,45],4:[20,20]}),tacadas:0},'desafiante',DIAG,0.5);
+ assert.equal(r.fim,null);assert.ok(r.mesa.bolas[1],'a 1 voltou');
 });
