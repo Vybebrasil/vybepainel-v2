@@ -345,3 +345,37 @@ export async function resumoCliente(sql, clienteId, dia) {
     proxima: p.filter((x) => x.veiculacao >= segunda) });
   return { texto, fontes: [{ modulo: 'resumo_cliente', id: String(clienteId) }] };
 }
+
+// Alertas antes do problema (Paulo, 26/10/2026: "mais Jarvis"). Mesmo recorte e regras de status da rotina.
+// - Risco de furo: veicula em até 2 dias, parada no mesmo status há 3+ dias e ainda antes da aprovação
+//   (nem entregue, nem para agendar, nem em aprovação, nem pausa/espera do cliente) → privado de cada responsável.
+// - Sobrecarga: alguém com 6+ peças em aberto com prazo amanhã enquanto outra pessoa tem 0 ou 1 → administração.
+export function riscosDoDia(itens, dia, statusDe, { paradoDias = 3, antecedencia = 2, limiteSobrecarga = 6 } = {}) {
+  const r = retrato(itens, dia, statusDe), limite = somarDias(dia, antecedencia), amanha = somarDias(dia, 1);
+  const s = (i) => normal(statusDe(i));
+  const parado = (i) => { const d = textoData(i.status_updated_at); return d && d <= somarDias(dia, -paradoDias) ? Math.round((Date.parse(dia) - Date.parse(d)) / 864e5) : 0; };
+  const emAprovacao = (i) => ['para aprovacao', 'em aprovacao'].includes(s(i));
+  const furo = itens.filter((i) => i.origem !== 'solicitacao' && i.veiculacao_iso && i.veiculacao_iso >= dia && i.veiculacao_iso <= limite
+    && r.aberto(i) && !r.pausa(i) && !r.cliente(i) && !r.faltaInfo(i) && !emAprovacao(i) && parado(i) && i.responsavel_ids.length);
+  const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  const porPessoa = new Map();
+  for (const i of furo) for (const id of new Set(i.responsavel_ids)) {
+    if (!porPessoa.has(id)) porPessoa.set(id, []);
+    porPessoa.get(id).push(`⚠️ *Risco de furo* · ${i.nome || 'Sem título'} (${(i.clientes || []).join(' / ') || 'Sem cliente'})\nveicula ${curto(i.veiculacao_iso)} e está em *${statusDe(i) || 'sem status'}* há ${parado(i)} dias\n🔗 ${linkDaAtividade(i.id)}`);
+  }
+  const pessoas = [...porPessoa.entries()].map(([monday_id, linhas]) => ({ monday_id,
+    texto: `${linhas.join('\n\n')}\n\nPrecisa de ajuda ou de mudar a data? Responda citando esta mensagem com "comenta: ..." que eu registro na peça.`, ids: furo.filter((i) => i.responsavel_ids.includes(monday_id)).map((i) => i.id) }));
+  // Sobrecarga: só peças com prazo amanhã, em aberto, por primeiro nome.
+  const conta = new Map();
+  for (const i of itens.filter((i) => i.prazo_iso === amanha && r.aberto(i) && !r.pausa(i))) for (const n of new Set((i.responsavel || '').split(',').map(primeiroNome).filter(Boolean))) conta.set(n, (conta.get(n) || 0) + 1);
+  const ordem = [...conta.entries()].sort((a, b) => b[1] - a[1]);
+  const livres = [...new Set(itens.flatMap((i) => (i.responsavel || '').split(',').map(primeiroNome).filter(Boolean)))].filter((n) => (conta.get(n) || 0) <= 1);
+  const sobrecarga = ordem.length && ordem[0][1] >= limiteSobrecarga && livres.length
+    ? `⚖️ *Sobrecarga amanhã (${curto(amanha)})*\n${ordem.filter(([, q]) => q >= limiteSobrecarga).map(([n, q]) => `- ${n}: ${q} peças com prazo amanhã`).join('\n')}\nCom pouca coisa: ${livres.slice(0, 6).join(', ')}.\nVale redistribuir?` : null;
+  return { pessoas, sobrecarga };
+}
+export async function riscos(sql, dia) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const { ctx } = codigoDoPainel();
+  return riscosDoDia(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i));
+}

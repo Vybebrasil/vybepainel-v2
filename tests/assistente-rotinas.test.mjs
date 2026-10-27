@@ -184,3 +184,22 @@ test('resumo para o cliente: publicados, aguardando aprovação do cliente e pr�
   assert.match(t, /🕐 \*Aguardando a aprovação de vocês\* \(1\)\n- Card - Vacina · veicula 03\/11/);
   assert.match(t, /📅 \*Próxima semana\* \(0\)\n- Ainda sem conteúdos programados\.[\s\S]*— Equipe Vybe$/);
 });
+
+test('riscos: peça parada perto da veiculação vai para o responsável; sobrecarga vai para a administração', async () => {
+  const { riscosDoDia } = await import('../server/assistente-rotinas.js');
+  const dia = '2026-10-26';
+  const item = (id, nome, status, ids, extra = {}) => ({ id, nome, status, responsavel: ids.map((x) => ({ 1: 'Jady Lima', 2: 'Deivid Souza', 3: 'Reriston Souza' })[x]).join(', '),
+    responsavel_ids: ids.map(String), clientes: ['Cli'], origem: 'producao_conteudo', veiculacao_iso: '2026-10-27', prazo_iso: '2026-10-26', status_updated_at: '2026-10-20T10:00:00Z', ...extra });
+  const itens = [
+    item('11', 'Card parado', 'Pode Fazer', [1]),
+    item('12', 'Card em aprovação', 'Para aprovação', [1]),
+    item('13', 'Card mexido ontem', 'Pode Fazer', [2], { status_updated_at: '2026-10-25T10:00:00Z' }),
+    item('14', 'Card longe', 'Pode Fazer', [2], { veiculacao_iso: '2026-11-10' }),
+    ...[1, 2, 3, 4, 5, 6].map((n) => item('2' + n, 'Reels ' + n, 'Em andamento', [3], { prazo_iso: '2026-10-27', veiculacao_iso: '2026-11-05' })),
+  ];
+  const r = riscosDoDia(itens, dia, (i) => i.status);
+  assert.deepEqual(r.pessoas.map((p) => [p.monday_id, p.ids]), [['1', ['11']]]);
+  assert.match(r.pessoas[0].texto, /Risco de furo\* · Card parado \(Cli\)\nveicula 27\/10 e está em \*Pode Fazer\* há 6 dias\n🔗 https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=11/);
+  assert.match(r.sobrecarga, /Sobrecarga amanhã \(27\/10\)\*\n- Reriston: 6 peças com prazo amanhã\nCom pouca coisa: Jady, Deivid/);
+  assert.equal(riscosDoDia(itens.slice(0, 4), dia, (i) => i.status).sobrecarga, null);
+});
