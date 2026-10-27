@@ -338,7 +338,8 @@ export async function lerRecadosEscritorio(sql, pessoaId, com) {
 }
 export const PASTA_ARTE_ESCRITORIO = join(process.cwd(), "assets", "escritorio", "habbo");
 export async function enviarArteEscritorio(res, arquivo) {
-  const m = /^([a-z0-9_]+)\.(png|json)$/.exec(arquivo);
+  // Há móveis com maiúsculas no nome (CF_250_goldenchessboard, LT_pillar).
+  const m = /^([A-Za-z0-9_]+)\.(png|json)$/.exec(arquivo);
   if (!m) return res.status(400).json({ error: "Arquivo inválido." });
   let dados;
   try {
