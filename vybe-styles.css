@@ -9911,7 +9911,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 @media (prefers-reduced-motion:reduce) {.rot-cartao {animation:none}}
 /* O cartão do evento fica no body, fora de .capt: sem ele aqui, o texto para
    leitor de tela ("Gravado: …") aparecia escrito dentro do cartão. */
-.capt .sr-only,.ag-cartao .sr-only,.capt-folha .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.capt .sr-only,.ofc-salas .sr-only,.ag-cartao .sr-only,.capt-folha .sr-only,.rot .sr-only,.rot-ligar-busca .sr-only,.rot-candidatos .sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* Cartão do evento (agCartaoAbrir): ao lado do bloco clicado, como no
    calendário; no celular é uma folha que sobe de baixo. */
@@ -11918,3 +11918,171 @@ html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-p
 .capt-trocar > summary::-webkit-details-marker {display:none}
 .capt-trocar > summary:hover {color:#cfd3dc;text-decoration:underline}
 .capt-trocar[open] {display:grid;gap:8px}
+
+/* Escritório · aba Pessoas (27/10/2026). Uma coluna por ordem de
+   importância: você (uma linha), Centro de Operação (o destaque, único botão
+   laranja), quem está onde (pessoas agrupadas por sala) e Ir para (fichas
+   pequenas). Uma cor de destaque só; o resto em cinzas. */
+.ofc-salas {display:grid;gap:12px}
+#office-roster:empty {display:none}
+.ofc-p-cabeca {display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#2a2d3c}
+.ofc-p-cabeca.inicial {display:grid;place-items:center;color:#cfd3dc;font:800 13px var(--mac-ui)}
+.ofc-p-avatar {position:relative;flex:none;display:block;width:32px;height:32px;border-radius:50%;background:#2a2d3c}
+.ofc-p-avatar > i {position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--st);box-shadow:0 0 0 2px #181a24}
+/* 1. Você */
+.ofc-p-eu {display:flex;align-items:center;gap:10px;padding:2px 2px 0}
+.ofc-p-eu-texto {flex:1;min-width:0;display:grid}
+.ofc-p-eu-texto b {color:#fff;font:700 13.5px var(--mac-ui)}
+.ofc-p-eu-texto small {overflow:hidden;color:#8b92a3;font:500 12px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-p-status {position:relative;flex:none;display:flex;align-items:center}
+.ofc-p-status > i {position:absolute;left:10px;width:8px;height:8px;border-radius:50%;background:var(--st);pointer-events:none}
+.ofc-p-status select {height:30px;max-width:128px;padding:0 26px 0 24px;border:1px solid #ffffff1a;border-radius:99px;background:#ffffff0a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239aa1b2' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center;color:#e6e8ee;font:600 12px var(--mac-ui);appearance:none;cursor:pointer}
+.ofc-p-status select:hover:not(:disabled) {border-color:#ffffff33}
+.ofc-p-status select:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:1px}
+.ofc-p-status select:disabled {opacity:.5;cursor:default}
+.ofc-p-status option {background:#1d2030;color:#fff}
+/* 2. Centro de Operação */
+.ofc-p-centro {display:grid;gap:12px;padding:14px;border:1px solid #ff8a354d;border-radius:16px;background:linear-gradient(160deg,#ff8a351f,transparent 55%),#1e2130;box-shadow:0 1px 0 #ffffff0d inset,0 8px 24px #0006}
+.ofc-p-centro-topo {display:flex;align-items:center;gap:12px}
+.ofc-p-centro-arte {position:relative;flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#00000040}
+.ofc-p-centro-arte .ofc-arte {position:static;transform:none;max-width:90%;max-height:90%;width:auto;height:auto;object-fit:contain}
+.ofc-p-centro-arte .ofc-ico {width:24px;height:24px;color:#ff8a35}
+.ofc-p-centro-arte:has(.ofc-arte.pronta) .ofc-ico {display:none}
+.ofc-p-centro-topo > span:last-child {min-width:0;display:grid;gap:2px}
+.ofc-p-centro-topo small {color:#ffb27a;font:700 10.5px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-p-centro-topo b {color:#fff;font:800 17px/1.2 var(--mac-ui);letter-spacing:-.01em}
+.ofc-p-nums {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ofc-p-num {display:grid;justify-items:center;align-content:center;gap:2px;min-height:54px;padding:6px 4px;border-radius:10px;background:#00000038}
+.ofc-p-num b {color:#fff;font:800 19px/1 var(--mac-ui)}
+.ofc-p-num small {color:#9aa1b2;font:600 11px var(--mac-ui)}
+.ofc-p-num.laranja b {color:#ffb15c}
+.ofc-p-num.vermelho b {color:#ff7676}
+.ofc-p-num.zero b {color:#5d6372}
+.ofc-p-cabecas {display:flex;height:22px}
+.ofc-p-cabecas > * {width:22px;height:22px;box-shadow:0 0 0 2px #1e2130}
+.ofc-p-cabecas > * + * {margin-left:-6px}
+.ofc-p-entrar {height:38px;border:0;border-radius:10px;background:var(--jg-laranja-fundo);box-shadow:0 2px 0 #a8461a,inset 0 1px 0 #ffffff40;color:#1a0e04;font:800 13px var(--mac-ui);cursor:pointer;transition:filter .15s,transform .15s}
+.ofc-p-entrar:hover:not(:disabled) {filter:brightness(1.07)}
+.ofc-p-entrar:active:not(:disabled) {transform:translateY(1px);box-shadow:0 1px 0 #a8461a}
+.ofc-p-entrar:focus-visible {outline:2px solid #fff;outline-offset:2px}
+.ofc-p-entrar:disabled {background:#ffffff0d;box-shadow:inset 0 0 0 1px #ff8a3540;color:#ffb27a;cursor:default}
+/* Blocos */
+.ofc-p-bloco {display:grid;gap:8px}
+.ofc-p-titulo {display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 2px}
+.ofc-p-titulo h5 {margin:0;padding:0;color:#9aa1b2;font:700 11px var(--mac-ui);letter-spacing:.08em;text-transform:uppercase}
+.ofc-p-titulo h5::after {content:none !important}
+.ofc-p-titulo small {color:#7d8495;font:500 12px var(--mac-ui)}
+.ofc-p-titulo.sub {margin-top:6px}
+.ofc-p-vazio {margin:0;padding:12px;border-radius:12px;background:#ffffff06;color:#7d8495;font:500 12.5px var(--mac-ui);text-align:center}
+/* 3. Quem está onde */
+.ofc-p-grupos, .ofc-p-grupos ul, .ofc-p-fora ul {display:grid;gap:0;margin:0;padding:0;list-style:none}
+.ofc-p-grupos {gap:8px}
+.ofc-p-grupo {overflow:hidden;border-radius:12px;background:#ffffff07;box-shadow:inset 0 0 0 1px #ffffff0d}
+.ofc-p-grupo-topo {display:flex;align-items:center;gap:8px;min-height:34px;padding:0 6px 0 10px;border-bottom:1px solid #ffffff0a}
+.ofc-p-grupo-topo > i {flex:none;width:8px;height:8px;border-radius:2px;background:var(--sala)}
+.ofc-p-grupo-topo > span {min-width:0;overflow:hidden;color:#e6e8ee;font:700 12.5px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-p-grupo-topo > small {color:#7d8495;font:600 12px var(--mac-ui)}
+.ofc-p-grupo-topo > em, .ofc-p-grupo-topo > button {margin-left:auto;flex:none}
+.ofc-p-grupo-topo > em {color:#ffb27a;font:600 11px var(--mac-ui);font-style:normal}
+.ofc-p-grupo-topo > button {height:24px;padding:0 10px;border:1px solid #ffffff1a;border-radius:99px;background:transparent;color:#cfd3dc;font:600 11.5px var(--mac-ui);cursor:pointer}
+.ofc-p-grupo-topo > button:hover {border-color:#ffffff40;color:#fff}
+.ofc-p-pessoa {position:relative}
+.ofc-p-pessoa-abrir {display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:6px 10px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ofc-p-pessoa-abrir:hover, .ofc-p-pessoa:focus-within .ofc-p-pessoa-abrir {background:#ffffff08}
+.ofc-p-pessoa-abrir:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:-2px}
+.ofc-p-pessoa-texto {flex:1;min-width:0;display:grid}
+.ofc-p-pessoa-texto b {overflow:hidden;color:#eef0f4;font:600 13px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-p-pessoa-texto b em {margin-left:4px;color:#7d8495;font:500 11.5px var(--mac-ui);font-style:normal}
+.ofc-p-pessoa-texto small {overflow:hidden;color:#8b92a3;font:500 11.5px var(--mac-ui);white-space:nowrap;text-overflow:ellipsis}
+.ofc-p-pessoa.fora .ofc-p-avatar {filter:grayscale(.8);opacity:.55}
+.ofc-p-pessoa.fora .ofc-p-pessoa-texto b {color:#a3a9b7}
+.ofc-p-badge {flex:none;min-width:18px;padding:0 5px;border-radius:99px;background:#ff8a35;color:#1a0e04;font:800 10.5px/18px var(--mac-ui);text-align:center}
+/* Chamar e Recado aparecem por cima da linha: o nome nunca encolhe por eles. */
+.ofc-p-acoes {position:absolute;top:50%;right:8px;display:flex;gap:4px;padding-left:16px;translate:0 -50%;background:linear-gradient(90deg,transparent,#22252f 14px);opacity:0;pointer-events:none;transition:opacity .12s}
+.ofc-p-pessoa:hover .ofc-p-acoes, .ofc-p-pessoa:focus-within .ofc-p-acoes {opacity:1;pointer-events:auto}
+.ofc-p-acoes button {display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid #ffffff1a;border-radius:8px;background:#2a2d3c;color:#cfd3dc;cursor:pointer}
+.ofc-p-acoes button:hover {border-color:#ffffff40;color:#fff}
+.ofc-p-acoes button:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:1px}
+.ofc-p-acoes svg {width:15px;height:15px}
+@media (hover:none) {.ofc-p-acoes {display:none}}
+.ofc-p-fora > summary {display:flex;align-items:center;gap:6px;padding:8px 4px;color:#9aa1b2;font:600 12.5px var(--mac-ui);cursor:pointer;list-style:none}
+.ofc-p-fora > summary::-webkit-details-marker {display:none}
+.ofc-p-fora > summary::before {content:"";width:5px;height:5px;margin:0 4px 0 2px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.ofc-p-fora[open] > summary::before {transform:rotate(45deg)}
+.ofc-p-fora > summary small {color:#7d8495;font:600 12px var(--mac-ui)}
+.ofc-p-fora > summary:hover {color:#fff}
+.ofc-p-fora > summary:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:-2px;border-radius:8px}
+.ofc-p-fora ul {border-radius:12px;background:#ffffff05}
+/* 4. Ir para */
+.ofc-p-salas {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.ofc-p-sala {display:flex;align-items:center;gap:8px;min-width:0;height:36px;padding:0 8px 0 4px;border:0;border-radius:9px;background:#ffffff07;color:#cfd3dc;font:600 12px var(--mac-ui);text-align:left;cursor:pointer;transition:background .12s,color .12s}
+.ofc-p-sala:hover {background:#ffffff12;color:#fff}
+.ofc-p-sala:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:1px}
+.ofc-p-sala.aqui {background:#ff8a3514;box-shadow:inset 0 0 0 1px #ff8a3559;color:#fff}
+.ofc-p-sala-arte {position:relative;flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:color-mix(in srgb,var(--sala) 14%,#0000004d)}
+.ofc-p-sala-arte .ofc-arte {position:static;transform:none;max-width:90%;max-height:90%;width:auto;height:auto;object-fit:contain}
+.ofc-p-sala-arte .ofc-ico {width:16px;height:16px;color:var(--sala)}
+.ofc-p-sala-arte:has(.ofc-arte.pronta) .ofc-ico {display:none}
+.ofc-p-sala-nome {flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ofc-p-sala > small {flex:none;min-width:18px;padding:0 5px;border-radius:99px;background:#3fbf7f26;color:#7fe0a8;font:700 10.5px/18px var(--mac-ui);text-align:center}
+.ofc-p-quartos {display:flex;flex-wrap:wrap;gap:6px 4px}
+.ofc-p-quarto {display:grid;justify-items:center;gap:3px;width:48px;padding:4px 0;border:0;border-radius:9px;background:transparent;color:#a3a9b7;font:600 10.5px var(--mac-ui);cursor:pointer}
+.ofc-p-quarto:hover {background:#ffffff0a;color:#fff}
+.ofc-p-quarto:focus-visible {outline:2px solid var(--jg-laranja);outline-offset:1px}
+.ofc-p-quarto.aqui .ofc-p-avatar {box-shadow:0 0 0 2px #ff8a35}
+.ofc-p-quarto.fora .ofc-p-avatar {filter:grayscale(.8);opacity:.55}
+.ofc-p-quarto > small {max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* Linguagem de jogo a serviço da hierarquia: retrato com anel de XP,
+   marcador de missão no Centro, party frames e grade de inventário. */
+/* Títulos de seção como divisória de jogo: rótulo + linha. */
+.ofc-p-titulo {align-items:center}
+.ofc-p-titulo h5 {display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.ofc-p-titulo h5::after {content:"" !important;flex:1;height:1px;background:linear-gradient(90deg,#ffffff24,transparent)}
+.ofc-p-titulo > small {flex:none}
+/* Retrato do jogador */
+.ofc-p-retrato {position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:conic-gradient(#ffb15c var(--xp),#ffffff14 0)}
+.ofc-p-retrato::before {content:"";position:absolute;inset:3px;border-radius:50%;background:#181a24}
+.ofc-p-retrato > .ofc-p-avatar {width:34px;height:34px}
+.ofc-p-nivel {position:absolute;left:50%;bottom:-6px;translate:-50% 0;min-width:18px;padding:0 4px;border-radius:6px;background:linear-gradient(180deg,#ffb15c,#ff7a1f);box-shadow:0 0 0 2px #181a24;color:#1a0e04;font:900 10px/15px var(--mac-ui);text-align:center}
+.ofc-p-eu {padding:4px 2px 6px}
+/* Centro de Operação: marcador de missão e botão de jogo */
+.ofc-p-centro {position:relative;overflow:hidden;border-color:#ff8a3566;background:radial-gradient(120% 80% at 0% 0%,#ff8a3529,transparent 60%),linear-gradient(180deg,#232638,#1b1e2b);box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0b0c12,0 10px 26px #0007}
+.ofc-p-centro::after {content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,#ffffff10 48%,transparent 60%) -150% 0/250% 100% no-repeat;pointer-events:none;animation:ofc-p-brilho 7s ease-in-out infinite}
+@keyframes ofc-p-brilho {0%,70% {background-position:-150% 0} 100% {background-position:150% 0}}
+.ofc-p-centro-arte {width:52px;height:52px;overflow:visible;background:radial-gradient(70% 70% at 50% 60%,#ff8a3533,#00000059);box-shadow:inset 0 0 0 1px #ff8a3540}
+.ofc-p-missao {position:absolute;top:-9px;right:-7px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc531 55%,#d98a00);box-shadow:0 0 0 2px #1e2130,0 0 12px #ffc53199;color:#3a2200;font:900 13px/1 var(--mac-ui);font-style:normal;animation:ofc-p-pula 1.6s ease-in-out infinite}
+@keyframes ofc-p-pula {0%,100% {translate:0 0} 50% {translate:0 -3px}}
+.ofc-p-num {background:#00000045;box-shadow:inset 0 1px 2px #0009,0 1px 0 #ffffff0a}
+.ofc-p-num.laranja {box-shadow:inset 0 0 0 1px #ffb15c33,inset 0 1px 2px #0009}
+.ofc-p-num.vermelho {box-shadow:inset 0 0 0 1px #ff767633,inset 0 1px 2px #0009}
+.ofc-p-entrar {display:flex;align-items:center;justify-content:center;gap:6px;height:40px;box-shadow:0 3px 0 #a8461a,inset 0 1px 0 #ffffff59,inset 0 -2px 0 #0000001f}
+.ofc-p-entrar svg {width:14px;height:14px}
+.ofc-p-entrar:active:not(:disabled) {transform:translateY(2px);box-shadow:0 1px 0 #a8461a,inset 0 1px 0 #ffffff40}
+@media (prefers-reduced-motion: reduce) {.ofc-p-centro::after, .ofc-p-missao {animation:none}}
+/* Party frames: retrato em moldura na cor do status */
+.ofc-p-grupo {background:linear-gradient(180deg,#ffffff0a,#ffffff04);box-shadow:inset 0 0 0 1px #ffffff12,0 2px 0 #0b0c12}
+.ofc-p-grupo-topo {gap:8px;min-height:38px;padding-left:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--sala) 16%,transparent),transparent 70%)}
+.ofc-p-grupo-topo .ofc-p-sala-arte {width:26px;height:26px}
+.ofc-p-pessoa .ofc-p-avatar {width:34px;height:34px;border-radius:10px;box-shadow:0 0 0 2px color-mix(in srgb,var(--st) 70%,transparent),0 2px 0 #0b0c12}
+.ofc-p-pessoa .ofc-p-avatar .ofc-p-cabeca {border-radius:9px}
+.ofc-p-pessoa .ofc-p-avatar > i {display:none}
+.ofc-p-pessoa-texto small {display:flex;align-items:center;gap:5px}
+.ofc-p-pessoa:not(.fora) .ofc-p-pessoa-texto small::before {content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--st-texto,#8b92a3)}
+/* Ir para: grade de inventário */
+.ofc-p-salas {grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ofc-p-sala {position:relative;flex-direction:column;justify-content:center;gap:3px;height:68px;padding:6px 4px 5px;border-radius:10px;background:linear-gradient(180deg,#262a3a,#1c1f2b);box-shadow:inset 0 1px 0 #ffffff12,inset 0 -2px 0 #00000059,0 2px 0 #0b0c12;color:#b9bfcc;font:650 11px var(--mac-ui);text-align:center;transition:transform .12s,box-shadow .12s,color .12s}
+.ofc-p-sala:hover {background:linear-gradient(180deg,#2d3245,#20243a);color:#fff;transform:translateY(-1px)}
+.ofc-p-sala:active {transform:translateY(2px);box-shadow:inset 0 1px 3px #0009}
+.ofc-p-sala .ofc-p-sala-arte {width:36px;height:34px;background:radial-gradient(60% 50% at 50% 80%,color-mix(in srgb,var(--sala) 30%,transparent),transparent 70%)}
+.ofc-p-sala-nome {flex:none;width:100%}
+.ofc-p-sala > small {position:absolute;top:4px;right:4px;background:#3fbf7f;box-shadow:0 0 8px #3fbf7f66;color:#06210f}
+.ofc-p-sala.aqui {background:linear-gradient(180deg,#3a2a20,#241c18);box-shadow:inset 0 0 0 2px #ff8a35,0 0 14px #ff8a3533,0 2px 0 #0b0c12}
+.ofc-p-pino {position:absolute;top:4px;left:4px;padding:0 5px;border-radius:5px;background:#ff8a35;color:#1a0e04;font:900 8.5px/14px var(--mac-ui);font-style:normal;text-transform:uppercase;letter-spacing:.04em}
+/* As artes nunca vazam do slot. */
+.ofc-p-sala-arte {overflow:hidden}
+.ofc-p-sala-arte .ofc-arte, .ofc-p-centro-arte .ofc-arte {position:static !important;transform:none !important;max-width:90% !important;max-height:90% !important;width:auto !important;height:auto !important;object-fit:contain;image-rendering:pixelated}
+/* Quartos: retratos em moldura */
+.ofc-p-quarto .ofc-p-avatar {width:36px;height:36px;border-radius:10px;box-shadow:0 0 0 2px color-mix(in srgb,var(--st) 70%,#ffffff1a),0 2px 0 #0b0c12}
+.ofc-p-quarto .ofc-p-avatar .ofc-p-cabeca {border-radius:9px}
+.ofc-p-quarto .ofc-p-avatar > i {display:none}
+.ofc-p-quarto.aqui .ofc-p-avatar {box-shadow:0 0 0 2px #ff8a35,0 0 10px #ff8a3555}
