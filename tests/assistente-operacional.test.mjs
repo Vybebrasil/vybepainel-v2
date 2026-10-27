@@ -190,3 +190,15 @@ test('agenda de gravações: sem a conta do Google, responde indisponível (503)
   await assert.rejects(()=>executar(sqlFalso,'consultar_agenda_captacoes',{dias:30}));}
  finally{if(antes!==undefined)process.env.GOOGLE_SERVICE_ACCOUNT=antes;}
 });
+
+test('ponte do Hub: slug automático igual ao do Hub e só o Hub de Production ou Preview autorizado',async()=>{
+ const {slugDoHub,metricasDoHub:metricas}=await import('../server/assistente-hub.js');
+ assert.equal(slugDoHub('Brussolo Ristorante'),'brussolo-ristorante');assert.equal(slugDoHub('Copirecê'),'copirece');assert.equal(slugDoHub('Academia Lions'),'academia-lions');
+ const sqlCli=async()=>[{id:'7',nome:'Hebravet'}];
+ const base={VYBE_AI_HUB_ATIVO:'1',VYBE_AI_HUB_CLIENTES:'auto',VYBE_OS_METRICAS_TOKEN:'T'.repeat(64)};
+ let pedido;const buscar=async u=>{pedido=u;throw new Error('rede');};
+ await assert.rejects(()=>metricas(sqlCli,{cliente_id:7,de:'2026-10-01',ate:'2026-10-26'},{config:{...base,VYBE_AI_HUB_URL:'https://vybehub.vercel.app'},buscar}));
+ assert.match(decodeURIComponent(pedido),/^https:\/\/vybehub\.vercel\.app\/api\/trpc\/portal\.metricasOperacionais\?input=.*"slug":"hebravet","cliente_nome":"Hebravet"/);
+ for(const url of ['https://evil.vercel.app','https://vybehub-git-main-vybe-hub.vercel.app','http://vybehub.vercel.app'])
+  await assert.rejects(()=>metricas(sqlCli,{cliente_id:7,de:'2026-10-01',ate:'2026-10-26'},{config:{...base,VYBE_AI_HUB_URL:url},buscar:async()=>{throw new Error('não deveria chamar');}}),/Production ou um Preview/);
+});

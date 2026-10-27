@@ -16,16 +16,23 @@ function headersDaPonte(base, config, segredo) {
  return headers;
 }
 
+// Mesmo slugify do sincronizador de clientes do Hub (server/syncVybeClientes.ts).
+export const slugDoHub=nome=>String(nome).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'cliente';
 export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
  if(config.VYBE_AI_HUB_ATIVO!=='1')throw Object.assign(new Error('Métricas do VybeHub ainda não configuradas neste ambiente.'),{status:503});
- let base,mapa;try{base=new URL(config.VYBE_AI_HUB_URL);mapa=JSON.parse(config.VYBE_AI_HUB_CLIENTES||'{}');}catch{throw new TypeError('Configuração do Hub inválida.');}
- if(base.protocol!=='https:'||base.username||base.password||base.port||base.pathname!=='/'||base.search||base.hash||!/^vybehub-[a-z0-9-]+-vybe-hub\.vercel\.app$/.test(base.hostname)||base.hostname.includes('-git-main-'))throw new TypeError('Use um Preview autorizado do VybeHub.');
+ let base,mapa;try{base=new URL(config.VYBE_AI_HUB_URL);mapa=config.VYBE_AI_HUB_CLIENTES==='auto'?'auto':JSON.parse(config.VYBE_AI_HUB_CLIENTES||'{}');}catch{throw new TypeError('Configuração do Hub inválida.');}
+ // Production do Hub (vybehub.vercel.app) ou um Preview autorizado; nunca outro host.
+ const hostOk=base.hostname==='vybehub.vercel.app'||(/^vybehub-[a-z0-9-]+-vybe-hub\.vercel\.app$/.test(base.hostname)&&!base.hostname.includes('-git-main-'));
+ if(base.protocol!=='https:'||base.username||base.password||base.port||base.pathname!=='/'||base.search||base.hash||!hostOk)throw new TypeError('Use o VybeHub de Production ou um Preview autorizado.');
  const segredo=config.VYBE_OS_METRICAS_TOKEN;
  if(!/^[A-Za-z0-9_-]{48,256}$/.test(segredo||''))throw new TypeError('Ponte de métricas não configurada.');
  const headers = headersDaPonte(base, config, segredo);
- const slug=mapa[String(a.cliente_id)];if(typeof slug!=='string'||!/^[-a-z0-9]{1,80}$/.test(slug))throw new TypeError('Cliente sem correspondência aprovada no VybeHub.');
  const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${a.cliente_id} AND COALESCE(ativo,true)`;
  if(!cliente)throw new TypeError('Cliente inválido.');
+ // VYBE_AI_HUB_CLIENTES="auto": o slug sai do nome, igual ao sincronizador do Hub (syncVybeClientes); o Hub
+ // ainda confere slug e nome exatos. Fora do modo auto, só a lista aprovada {cliente_id: slug}.
+ const slug=mapa==='auto'?slugDoHub(cliente.nome):mapa[String(a.cliente_id)];
+ if(typeof slug!=='string'||!/^[-a-z0-9]{1,80}$/.test(slug))throw new TypeError('Cliente sem correspondência aprovada no VybeHub.');
  const modulo=a.modulo||'trafego',limite=a.limite||25,offset=a.deslocamento||0;
  const input=JSON.stringify({json:{slug,cliente_nome:cliente.nome,since:a.de,until:a.ate,modulo,limite,deslocamento:offset}});
  let r;
