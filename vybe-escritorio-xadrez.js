@@ -404,7 +404,7 @@ async function recarregarJogoXadrez() {
     const mudou = r.jogo.lances.length !== j.lances.length || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     x.jogo = r.jogo;
     if (mudou) {
-      if (r.jogo.lances.length !== j.lances.length) { x.sel = null; x.promo = null; escritorioTocar(r.jogo.xeque ? 880 : 520, 0.06, 0.05); }
+      if (r.jogo.lances.length !== j.lances.length) { x.sel = null; x.promo = null; jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca"); }
       if (r.jogo.estado === "fim" && j.estado !== "fim") xadrezAcabou(r.jogo);
       desenharJogoXadrez();
     }
@@ -533,7 +533,7 @@ async function lanceXadrezEscritorio(de, para, promocao) {
     const r = await escritorioApi("xadrez-lance", { id: j.id, de, para, ...(promocao ? { promocao } : {}), n: j.lances.length });
     x.jogo = r.jogo; x.sel = null; x.promo = null;
     if (r.economia) xadrezEconomia(r.economia);
-    escritorioTocar(r.jogo.xeque ? 880 : 520, 0.06, 0.05);
+    jogosSom(r.jogo.xeque || /x/.test(r.jogo.san?.at(-1) || "") ? "peca2" : "peca");
     xadrezSinal(j.id, j[j.eu === "brancas" ? "pretas" : "brancas"].id, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
   } catch (e) {

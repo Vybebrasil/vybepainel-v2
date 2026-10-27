@@ -7,6 +7,29 @@
 // que vai no painel, e chama `lanceMesaEscritorio(chave, pedido)` para jogar.
 const ESCRITORIO_MESAS = {};
 
+// Sons dos jogos (Kenney, CC0; assets/jogos/sons): carta, embaralhar,
+// fichas, ficha, peça, peça2, taco, bola, tabela e caçapa. Carregados uma vez
+// pelo Web Audio; onde o navegador não toca OGG, fica o bipe de antes. Respeita
+// o som desligado do escritório.
+const JOGOS_SONS = {};
+let jogosAudio = null;
+function jogosSom(nome, volume = 0.7) {
+  if (!nome || (typeof escritorioSomLigado === "function" && !escritorioSomLigado())) return;
+  try {
+    jogosAudio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const tocar = (buf) => {
+      const fonte = jogosAudio.createBufferSource(), ganho = jogosAudio.createGain();
+      ganho.gain.value = Math.max(0, Math.min(1, volume));
+      fonte.buffer = buf; fonte.connect(ganho).connect(jogosAudio.destination); fonte.start();
+    };
+    const atual = JOGOS_SONS[nome];
+    if (atual === false) return escritorioTocar(520, 0.05, 0.04);
+    if (atual && !(atual instanceof Promise)) return tocar(atual);
+    (JOGOS_SONS[nome] ||= fetch(`/assets/jogos/sons/${nome}.ogg`).then((r) => r.arrayBuffer()).then((a) => jogosAudio.decodeAudioData(a))
+      .then((b) => (JOGOS_SONS[nome] = b)).catch(() => (JOGOS_SONS[nome] = false))).then((b) => b && tocar(b));
+  } catch { escritorioTocar(520, 0.05, 0.04); }
+}
+
 function registrarMesaEscritorio(cfg) {
   cfg.lista = "mesa"; cfg.desafiar = "mesa-desafiar"; cfg.responder = "mesa-responder";
   cfg.abrir = (j) => abrirJogoMesa(cfg.sinal, j);
@@ -62,7 +85,7 @@ async function recarregarJogoMesa(chave) {
     const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     s.jogo = r.jogo;
     if (mudou) {
-      if (r.jogo.n !== j.n) { s.sel = null; escritorioTocar(r.jogo.vez === r.jogo.eu ? 660 : 440, 0.06, 0.05); }
+      if (r.jogo.n !== j.n) { s.sel = null; jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca"); }
       if (r.jogo.estado === "fim" && j.estado !== "fim") xadrezAcabou(r.jogo);
       desenharJogoMesa(chave);
     }
@@ -79,7 +102,7 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
     const r = await escritorioApi("mesa-lance", { id: j.id, n: j.n, ...pedido });
     s.jogo = r.jogo; s.sel = null;
     if (r.economia) xadrezEconomia(r.economia);
-    escritorioTocar(520, 0.06, 0.05);
+    jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca");
     mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
   } catch (e) {

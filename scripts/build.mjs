@@ -48,6 +48,9 @@ for (const f of await readdir('assets/app')) await writeFile(`dist/assets/app/${
 // fixo, recortadas pelo CSS (vybe-styles.css, .pkr-carta.img).
 await mkdir('dist/assets/jogos', { recursive: true });
 for (const f of (await readdir('assets/jogos')).filter((f) => /\.webp$/.test(f))) await writeFile(`dist/assets/jogos/${f}`, await readFile(`assets/jogos/${f}`));
+// Sons dos jogos (Kenney, CC0): tocados pelo Web Audio (jogosSom).
+await mkdir('dist/assets/jogos/sons', { recursive: true });
+for (const f of (await readdir('assets/jogos/sons')).filter((f) => /\.ogg$/.test(f))) await writeFile(`dist/assets/jogos/sons/${f}`, await readFile(`assets/jogos/sons/${f}`));
 // Página pública /instalar (link para mandar no grupo): ensina ou oferece a
 // instalação conforme o aparelho. Não pede login nem mostra dados.
 await writeFile('dist/instalar.html', await readFile('instalar.html'));

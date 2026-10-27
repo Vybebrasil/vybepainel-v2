@@ -12777,3 +12777,16 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-carta.img.costas {background:url(/assets/jogos/cartas.webp) 0 100% / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008}
 .pkr-pote i,.pkr-aposta i {width:18px;height:18px;border-radius:50%;background:url(/assets/jogos/fichas.webp) 0 0 / 500% 100% no-repeat;box-shadow:0 2px 3px #0009}
 .pkr-aposta i {background-position:25% 0}
+/* Dominó com as peças do Kenney: a imagem em pé dentro da peça e girada quando a peça está deitada. */
+.dmn-peca.img {--m:22px;position:relative;display:inline-block;width:calc(var(--m) * 1.08);height:calc(var(--m) * 2.16);padding:0;background:none;box-shadow:none;overflow:visible}
+.dmn-peca.img.deitada {width:calc(var(--m) * 2.16);height:calc(var(--m) * 1.08)}
+.dmn-peca.img i {position:absolute;left:50%;top:50%;width:calc(var(--m) * 1.08);height:calc(var(--m) * 2.16);margin:calc(var(--m) * -1.08) 0 0 calc(var(--m) * -.54);background:url(/assets/jogos/domino.webp) calc(var(--cx) * 100% / 6) calc(var(--cy) * 100% / 4) / 700% 500% no-repeat;transform:rotate(var(--giro));filter:drop-shadow(0 2px 2px #0008)}
+.dmn-peca.img > b,.dmn-peca.img .dmn-meia {display:none}
+.dmn-lugar .dmn-peca.img {--m:calc(var(--u) - 2px);margin:auto}
+.dmn-lugar .dmn-peca.img.deitada,.dmn-lugar .dmn-peca.img.empe,.dmn-lugar .dmn-peca.img.carroca {position:absolute;inset:0;margin:auto}
+.dmn-peca.img.nova i {filter:drop-shadow(0 0 4px #ffcf4a) drop-shadow(0 0 8px #ffcf4a)}
+.dmn-mao-peca .dmn-peca.img {--m:34px}
+.dmn-virada {width:16px;height:30px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none;filter:drop-shadow(0 2px 2px #0008)}
+.dmn-costas {width:12px;height:22px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none}
+/* Bolinhas do placar da sinuca com a mesma arte da mesa. */
+.snc-grupo i {background:url(/assets/jogos/bolas.webp) calc(var(--n) * 100% / 15) 0 / 1600% 100% no-repeat;color:transparent;box-shadow:0 1px 2px #0008}

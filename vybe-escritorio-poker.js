@@ -7,6 +7,8 @@
 const ESCRITORIO_POKER = /^wildwest_table$/;
 const POKER_CFG = registrarMesaEscritorio({
   nome: "Pôquer", artigo: "o pôquer", extra: { jogo: "poker" }, sinal: "pkr", grupo: 4,
+  som: (j, antes) => (j.mesa?.mao !== antes?.mesa?.mao ? "embaralhar" : ["pagou", "apostou", "aumentou", "all-in"].includes(j.mesa?.ultimo?.acao) ? "fichas"
+    : j.mesa?.comunitarias?.length !== antes?.mesa?.comunitarias?.length ? "carta" : j.mesa?.ultimo?.acao === "mesa" ? "ficha" : "carta"),
   nota: "Texas Hold'em de 2 a 4 na mesa: cada um começa com 1.000 fichas e ganha quem ficar com todas.", desenhar: (j, s) => desenharPoker(j, s),
 });
 const POKER_NAIPES = { s: ["♠", "espadas"], h: ["♥", "copas"], d: ["♦", "ouros"], c: ["♣", "paus"] };
@@ -107,7 +109,7 @@ function desenharPoker(j, s) {
   // Mão nova: as cartas entram com animação uma vez (a tela relê a cada 4 s).
   const nova = s.maoVista !== undefined && s.maoVista !== j.id + ":" + m.mao;
   s.maoVista = j.id + ":" + m.mao;
-  if (nova) escritorioTocar(700, 0.05, 0.04);
+  if (nova) jogosSom("embaralhar", 0.5);
   const faixa = revela ? (a.vencedor === "empate" ? `Mão ${a.mao}: empate, pote dividido` : `${nome(a.vencedor)} levou ${pokerFichas(a.ganhos?.[a.vencedor] ?? a.pote)}`) : "";
   return {
     status,
