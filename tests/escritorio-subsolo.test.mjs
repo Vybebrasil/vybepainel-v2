@@ -38,3 +38,12 @@ test('a estante secreta abre a passagem para todos; o livro de registros só par
   assert.ok(corpo.indexOf('escritorio.base?.admin') < corpo.indexOf('ESCRITORIO_LIVRO_DE_REGISTROS'));
   assert.doesNotMatch(fonte, /function descerAoSubsoloEscritorio\(\) \{\s*if \(!escritorio\.base\?\.admin\)/);
 });
+test('todos veem as almas do subsolo; o motivo da saída só vai para quem administra', async () => {
+  const { semMotivoDoSubsolo } = await import('../api/painel.js');
+  const dados = { ok: true, clientes: [{ id: '7', nome: 'Padaria', motivo: 'Encerrou' }], pessoas: [{ id: '9', nome: 'Ana', motivo: 'Saiu' }] };
+  assert.deepEqual(semMotivoDoSubsolo(dados), { ok: true, clientes: [{ id: '7', nome: 'Padaria' }], pessoas: [{ id: '9', nome: 'Ana' }] });
+  const fonte = readFileSync('api/painel.js', 'utf8');
+  assert.doesNotMatch(fonte.slice(fonte.indexOf('async function areaSubsolo'), fonte.indexOf('export function semMotivoDoSubsolo')), /403/);
+  const tela = readFileSync('vybe-escritorio-subsolo.js', 'utf8');
+  assert.match(tela, /escritorio\.base\?\.admin \? `<div class="workflow-actions">/);
+});
