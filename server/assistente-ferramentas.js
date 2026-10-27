@@ -3,6 +3,7 @@ import {metricasDoHub} from './assistente-hub.js';
 import {diaDaAgencia,meuDia,resumoCliente,calendarioClientes} from './assistente-rotinas.js';
 import {agendaDeCaptacoes} from './captacoes.js';
 import {memoriaDoCliente,legendasAprovadas} from './assistente-memoria.js';
+import {sugerirResponsavel} from './assistente-saude.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
 import {pecasComRevisao} from './planejamento-documento.js';
@@ -43,6 +44,7 @@ const defs=[
  ['calendario_clientes','Calendário do mês: sem cliente_id, a carteira inteira (quem está sem nada cadastrado, só com planejamento ou com peças); com cliente_id, as peças do cliente no mês com data, status e link. mes = qualquer dia do mês (AAAA-MM-DD). Peças contam pela data do cliente (veiculação), nos quadros Produção e Solicitações.',{mes:data,cliente_id:inteiro},['mes']],
  ['memoria_cliente','Memória do cliente: comentários das peças (pedidos de mudança primeiro) e quantas vezes voltaram para Alteração, nos últimos dias. busca = assunto (ex.: "logo", "cor", "preço"). Use para "o que o cliente pediu", "o que já falaram sobre", "histórico da".',{cliente_id:inteiro,busca,dias:{type:'integer',minimum:7,maximum:365}},['cliente_id']],
  ['legendas_aprovadas','Legendas que o cliente já aprovou nos planejamentos (exemplos de tom para escrever legendas novas). formato opcional (Reels, Card, Carrossel...).',{cliente_id:inteiro,formato:busca,limite:{type:'integer',minimum:1,maximum:12}},['cliente_id']],
+ ['sugerir_responsavel','Quem pode pegar uma demanda nova de um formato (Reels, Card, Carrossel...): experiência no formato em 90 dias e carga dos próximos 3 dias. Só sugere.',{formato:busca}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -96,6 +98,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
   const itens=eventos.filter(e=>e.tipo==='captacao').slice(0,25).map(e=>({id:e.id,titulo:e.titulo,dia:e.dia,horario:e.horario,local:e.local,cliente:e.cliente||null}));
   return limpar({fonte:'google-agenda',ferramenta:nome,itens,de,dias,fontes:itens.map(e=>({modulo:'agenda',id:e.dia.replace(/-/g,'')})),limitado:eventos.filter(e=>e.tipo==='captacao').length>25});
  }
+ if(nome==='sugerir_responsavel'){const d=await sugerirResponsavel(sql,{formato:a.formato||'',dia:diaAssistente(identidade.agora)});return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:[{modulo:'responsaveis',id:'sugestao'}],limitado:false});}
  if(nome==='legendas_aprovadas'){const d=await legendasAprovadas(sql,a);return limpar({fonte:'vybe-neon',ferramenta:nome,cliente:d.cliente,itens:d.itens,fontes:[{modulo:'planejamentos',id:String(a.cliente_id)}],limitado:false});}
  if(nome==='memoria_cliente'){const d=await memoriaDoCliente(sql,a);return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='calendario_clientes'){const d=await calendarioClientes(sql,a.mes,a.cliente_id||null);return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}

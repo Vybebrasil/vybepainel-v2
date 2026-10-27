@@ -22,6 +22,7 @@ import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
 import { resumosDaSemana } from './assistente-hub.js';
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
+import { saudeDosClientes } from './assistente-saude.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
@@ -65,7 +66,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca'].includes(consulta)) {
+    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -73,6 +74,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
       if (consulta === 'identificar') return res.status(200).json({ ok: true, pessoas: await identificarParticipantes(banco, req.body?.participantes, segredo) });
       if (consulta === 'avisos') return res.status(200).json({ ok: true, avisos: await avisosDeStatus(banco, { desde: req.body?.desde }) });
+      if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });

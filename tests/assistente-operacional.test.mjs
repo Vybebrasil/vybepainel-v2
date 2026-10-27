@@ -9,7 +9,7 @@ const contexto=(grupoAtivo=false)=>({tipo:grupoAtivo?'grupo':'privado',...(grupo
 test('contrato fechado: sem SQL, datas impossíveis, campos administrativos e excesso',()=>{
  for(const [n,a] of [['sql',{}],['buscar_demandas',{sql:'SELECT *'}],['listar_responsaveis',{admin:true}],['buscar_demandas',{limite:26}],['buscar_demandas',{de:'2026-02-30'}],['consultar_metricas_trafego',{cliente_id:1,de:'2026-01-01',ate:'2026-12-31'}]])assert.throws(()=>validarFerramenta(n,a));
  assert.throws(()=>validarFerramenta('buscar_demandas',JSON.parse('{"__proto__":{}}')));
- assert.equal(FERRAMENTAS_ASSISTENTE.length,22);
+ assert.equal(FERRAMENTAS_ASSISTENTE.length,23);
  assert.ok(!textoOperacional('senha=ABC teste@example.com https://host/link').includes('ABC'));
 });
 test('conversa exige evidência recente, grupo aprovado, remetente e audiência válidos',()=>{
