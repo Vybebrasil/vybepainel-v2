@@ -13,6 +13,11 @@ const situacao={type:'string',enum:['todas','pendentes','atrasadas']};
 // finalizadas_hoje: status final alcançado hoje, pelo histórico de status (a mesma regra do Dia da equipe).
 const PAPEIS_PECA={peca_criacao:'criacao',peca_da:'direcao_arte',peca_producao:'captacao',peca_agendamento:'agendamento',peca_atendimento:'atendimento',peca_gestao:'gestao'};
 const ORDEM_PAPEIS=['criacao','direcao_arte','captacao','agendamento','atendimento','gestao'];
+// Dia pedido nas ferramentas de dia: hoje ou amanhã (fuso Bahia).
+const quando={type:'string',enum:['hoje','amanha']};
+const diaPedido=(a,agora)=>{const hoje=diaAssistente(agora);return a.quando==='amanha'?new Date(Date.parse(hoje+'T12:00:00Z')+864e5).toISOString().slice(0,10):hoje;};
+// Os textos dos geradores falam do dia como "hoje"; pedido de amanhã troca para "no dia" (a data vai no título).
+const paraAmanha=(a,texto)=>a.quando!=='amanha'?texto:texto.replace(/Prazo amanhã/g,'Prazo no dia seguinte').replace(/hoje nem amanhã/g,'nesse dia nem no seguinte').replace(/hoje/g,'no dia');
 const situacaoBusca={type:'string',enum:[...situacao.enum,'finalizadas_hoje']};
 const pagina={limite:{type:'integer',minimum:1,maximum:25},deslocamento:{type:'integer',minimum:0,maximum:2000}};
 const defs=[
@@ -32,8 +37,8 @@ const defs=[
  ['consultar_ranking','Ranking de trabalho e patrimônio da equipe, usando as regras existentes.',{periodo:{type:'string',enum:['dia','semana','mes','total']},...pagina}],
  ['consultar_dia_equipe','Previsto, pronto, adiado e atrasado de toda a equipe hoje, pela mesma conta do Escritório.',{...pagina}],
  ['resumo_cliente','Texto pronto para o atendimento revisar e mandar ao cliente: publicados na semana, o que espera a aprovação do cliente e a próxima semana (Produção).',{cliente_id:inteiro},['cliente_id']],
- ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem hoje, atrasadas e prazo amanhã, com o link de cada peça. Sem escolher pessoa.',{}],
- ['consultar_dia_agencia','Resumo do dia da agência hoje (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto hoje.',{}],
+ ['meu_dia','O dia da pessoa autenticada (vínculo do WhatsApp): o que tem no dia, atrasadas e prazo no dia seguinte, com o link de cada peça. quando = hoje (padrão) ou amanha. Sem escolher pessoa.',{quando}],
+ ['consultar_dia_agencia','Resumo do dia da agência (mesmas regras da rotina do meio-dia): veiculações, entregues, para agendar, em aberto, solicitações, atrasadas e o que cada pessoa tem aberto no dia. quando = hoje (padrão) ou amanha.',{quando}],
  ['cobertura_modulos','Informa módulos disponíveis e limitações de campanhas, publicações e resultados.',{}]
 ];
 export const FERRAMENTAS_ASSISTENTE=defs.map(([name,description,properties,required=[]])=>({type:'function',function:{name,description,parameters:{type:'object',properties,required,additionalProperties:false}}}));
@@ -90,10 +95,10 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  if(nome==='resumo_cliente'){const d=await resumoCliente(sql,a.cliente_id,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
  if(nome==='meu_dia'){
   if(!Number.isSafeInteger(identidade.pessoaId)||identidade.pessoaId<=0)throw new TypeError('Identidade autenticada obrigatória.');
-  const d=await meuDia(sql,identidade.pessoaId,diaAssistente(identidade.agora));
-  return {fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false,escopo:'pessoa_autenticada'};
+  const d=await meuDia(sql,identidade.pessoaId,diaPedido(a,identidade.agora));
+  return {fonte:'vybe-neon',ferramenta:nome,itens:[{texto:paraAmanha(a,d.texto)}],fontes:d.fontes,limitado:false,escopo:'pessoa_autenticada'};
  }
- if(nome==='consultar_dia_agencia'){const d=await diaDaAgencia(sql,diaAssistente(identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:d.texto}],fontes:d.fontes,limitado:false});}
+ if(nome==='consultar_dia_agencia'){const d=await diaDaAgencia(sql,diaPedido(a,identidade.agora));return limpar({fonte:'vybe-neon',ferramenta:nome,itens:[{texto:paraAmanha(a,d.texto)}],fontes:d.fontes,limitado:false});}
  if(nome==='consultar_dia_equipe')return limpar(await consultarDiaEquipe(sql,a,identidade.agora));
  if(nome==='detalhar_demanda')return limpar(await secaoDaDemanda(sql,a));
  if(nome==='consultar_metricas_trafego')return limpar(await metricasDoHub(sql,a));

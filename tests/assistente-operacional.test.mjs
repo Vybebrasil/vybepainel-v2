@@ -202,3 +202,9 @@ test('ponte do Hub: slug automático igual ao do Hub e só o Hub de Production o
  for(const url of ['https://evil.vercel.app','https://vybehub-git-main-vybe-hub.vercel.app','http://vybehub.vercel.app'])
   await assert.rejects(()=>metricas(sqlCli,{cliente_id:7,de:'2026-10-01',ate:'2026-10-26'},{config:{...base,VYBE_AI_HUB_URL:url},buscar:async()=>{throw new Error('não deveria chamar');}}),/Production ou um Preview/);
 });
+
+test('dia da agência e meu dia aceitam amanhã (data do dia seguinte, sem dizer "hoje")',()=>{
+ assert.doesNotThrow(()=>validarFerramenta('consultar_dia_agencia',{quando:'amanha'}));
+ assert.doesNotThrow(()=>validarFerramenta('meu_dia',{quando:'hoje'}));
+ assert.throws(()=>validarFerramenta('consultar_dia_agencia',{quando:'ontem'}));
+});
