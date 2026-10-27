@@ -196,7 +196,7 @@ async function montarCriacao(sql, pedido, agora) {
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar', 'criar', 'captacao'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao'].includes(acao)) throw invalido('Ação desconhecida.');
   if (acao === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
@@ -205,13 +205,26 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
-  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: acao === 'captacao' }) : item));
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao) }) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
   if (acao === 'comentar') {
     const texto = String(pedido.texto || '').replace(/\s+/g, ' ').trim();
     if (!texto || texto.length > 1000) throw invalido('Escreva o comentário (até 1000 caracteres).');
     resumo = `💬 Comentar em ${nome}:\n“${texto}”`; valor = texto;
+  } else if (acao === 'alteracao') {
+    // Pedido de alteração (Ewerton, 27/10/2026: "adicione uma alteração na agenda musical do Gonzalez alterando a quarta
+    // para Maria Luísa e a sexta para Greyce Pires"): o pedido vira comentário na peça e, se a pessoa pode mexer no
+    // status (mesma regra das outras trocas), a peça vai para Alteração. Sem permissão, fica só o comentário.
+    const texto = String(pedido.texto || '').replace(/\s+/g, ' ').trim();
+    if (!texto || texto.length > 1000) throw invalido('Diga o que precisa mudar (até 1000 caracteres).');
+    let alvo = null;
+    try { alvo = await statusDoQuadro(sql, c, 'Alteração'); if (normal(alvo.rotulo) === normal(c.status)) alvo = null; else await conferirPermissao(sql, p, c, alvo); }
+    catch { alvo = null; }
+    resumo = `🔧 Pedido de alteração em ${nome}:\n“${texto}”\n` + (alvo ? `e status de *${c.status || 'sem status'}* para *${alvo.rotulo}*`
+      : `(fica registrado como comentário na peça; o status segue *${c.status || 'sem status'}*)`);
+    const dados = b64(JSON.stringify({ p: p.id, c: c.id, a: acao, v: { t: texto, s: alvo?.chave || null }, de: c.status || '', e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: linkDaAtividade(c.ref), validade_min: 5 };
   } else if (acao === 'captacao') {
     const { alvo, atual } = await captacaoDaPeca(sql, c, pedido.para);
     if (normal(alvo.rotulo) === normal(atual)) throw invalido(`A captação já está em ${alvo.rotulo}.`);
@@ -253,8 +266,9 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, 'vybe:' + t.c);
   // A peça mudou entre o pedido e o SIM: não executa sobre um estado que a pessoa não viu.
-  if (t.a === 'status' && normal(c.status) !== normal(t.de)) throw invalido(`A peça mudou para ${c.status} enquanto isso. Peça de novo.`);
+  if ((t.a === 'status' || (t.a === 'alteracao' && t.v?.s)) && normal(c.status) !== normal(t.de)) throw invalido(`A peça mudou para ${c.status} enquanto isso. Peça de novo.`);
   if (t.a === 'status') await conferirPermissao(sql, p, c, await statusDoQuadro(sql, c, t.v));
+  if (t.a === 'alteracao' && t.v?.s) await conferirPermissao(sql, p, c, await statusDoQuadro(sql, c, t.v.s));
   if (t.a === 'captacao') {
     const { atual } = await captacaoDaPeca(sql, c, t.v);
     if (normal(atual) !== normal(t.de)) throw invalido(`A captação mudou para ${atual || 'vazia'} enquanto isso. Peça de novo.`);
@@ -264,7 +278,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
     acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
   const hashCodigo = createHash('sha256').update(String(codigo)).digest('hex');
-  const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, ${c.id}, ${t.a}, ${String(t.v).slice(0, 1000)})
+  const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, ${c.id}, ${t.a}, ${String(typeof t.v === 'object' ? t.v?.t : t.v).slice(0, 1000)})
     ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
   if (!nova) throw invalido('Esta confirmação já foi usada.');
   // Mesma sessão que o painel usa, identificada pela pessoa do vínculo.
@@ -273,6 +287,12 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   if (t.a === 'comentar') {
     await fazer.comentar(sql, quem, { item: c.ref, texto: t.v });
     return { feito: `✅ Comentário registrado em "${c.titulo}".`, link: linkDaAtividade(c.ref) };
+  }
+  if (t.a === 'alteracao') {
+    await fazer.comentar(sql, quem, { item: c.ref, texto: `🔧 Alteração pedida pelo WhatsApp: ${t.v.t}` });
+    if (!t.v.s) return { feito: `✅ Pedido de alteração registrado em "${c.titulo}". Status segue *${c.status || 'sem status'}*.`, link: linkDaAtividade(c.ref) };
+    const r = await fazer.trocarStatus(sql, quem, { item: c.ref, para: t.v.s });
+    return { feito: `✅ Pedido de alteração registrado em "${c.titulo}", que agora está em *${r?.para || t.v.s}*.`, link: linkDaAtividade(c.ref) };
   }
   if (t.a === 'captacao') {
     const r = await fazer.trocarEscolha(sql, quem, { item: c.ref, campo: 'captacao', para: t.v });
