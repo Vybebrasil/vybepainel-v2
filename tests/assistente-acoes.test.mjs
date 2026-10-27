@@ -90,3 +90,24 @@ test('criar demanda: nome no padrão, prazo 2 dias antes, cliente e responsável
     await assert.rejects(() => confirmarAcao(sql, 2, p.codigo, segredo, { agora, executar: executarCriar }), /já foi usada/);
   } finally { await db.close(); }
 });
+
+test('ação sem número: acha a peça da própria pessoa pelo cliente ou título; várias viram lista com número', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_status ADD COLUMN final boolean DEFAULT false;
+      CREATE TABLE IF NOT EXISTS vybe_conteudos_extra(x int);
+      ALTER TABLE vybe_conteudos ADD COLUMN prazo date;
+      INSERT INTO vybe_clientes VALUES(8,'Brussolo Ristorante');
+      INSERT INTO vybe_conteudos VALUES(20,NULL,'Reels - Massa da casa','Reels',${PROD},'pode_fazer',NULL,'2026-10-27');
+      INSERT INTO vybe_conteudo_clientes VALUES(20,8);INSERT INTO vybe_conteudo_responsaveis VALUES(20,2);`);
+    // Jady (2): uma peça do Brussolo → segue para a confirmação daquela peça.
+    const r = await prepararAcao(sql, 2, { acao: 'status', busca: 'brussulo', para: 'Pode Fazer' }, segredo).catch((e) => e);
+    assert.match(String(r.message || r.resumo), /Massa da casa|já está em Pode Fazer/);
+    // Hebravet: duas peças abertas da Jady → lista com os números.
+    const varias = await prepararAcao(sql, 2, { acao: 'status', busca: 'hebravet', para: 'Em andamento' }, segredo).catch((e) => e);
+    assert.match(varias.message, /Achei 2 peças suas com "hebravet":\n- Card A \(Hebravet\) · número vybe:10\n- Card C \(Hebravet\) · número vybe:12/);
+    // Peça de outra pessoa nunca entra: Tainara (3) não é responsável por nada do Brussolo.
+    const nada = await prepararAcao(sql, 3, { acao: 'status', busca: 'brussolo', para: 'Em andamento' }, segredo).catch((e) => e);
+    assert.match(nada.message, /Não achei peça aberta sua com "brussolo"/);
+  } finally { await db.close(); }
+});

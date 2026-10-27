@@ -40,6 +40,29 @@ async function pecaPorReferencia(sql, ref) {
   if (!c) throw invalido('Não encontrei essa peça no Vybe OS.');
   return { ...c, ref: c.monday_item_id || 'vybe:' + c.id };
 }
+// Peça sem número (Reriston, 27/10/2026: "coloque a tarefa que tenho hoje do Brussolo como em andamento"): procura só
+// entre as peças abertas em que a própria pessoa é responsável, pelo nome do cliente ou por um pedaço do título.
+// Uma só: segue para a confirmação. Várias: lista com o número de cada uma. Nenhuma: diz isso.
+const semAcento = (v) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+async function pecaDaPessoaPorBusca(sql, pessoaId, busca) {
+  const termo = semAcento(busca).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (termo.length < 3) throw invalido('Diga o cliente ou um pedaço do título da peça (ou o número dela).');
+  const linhas = await sql`SELECT c.id::text AS id, c.monday_item_id::text AS monday_item_id, c.titulo, c.prazo::text AS prazo,
+      COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id), '{}') AS clientes
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND NOT COALESCE(s.final, false)
+      AND EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${pessoaId})
+    ORDER BY c.prazo NULLS LAST, c.id LIMIT 200`;
+  // Cada palavra do termo (com 3+ letras) precisa aparecer no cliente ou no título, pelo começo (60% da palavra):
+  // a transcrição de áudio erra o fim ("brussulo" acha "Brussolo Ristorante").
+  const palavras = termo.split(' ').filter((x) => x.length >= 3);
+  const achadas = linhas.filter((l) => { const alvo = semAcento(l.titulo + ' ' + l.clientes.join(' ')); return palavras.every((x) => alvo.includes(x.slice(0, Math.max(4, Math.ceil(x.length * 0.6))))); });
+  if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${String(busca).slice(0, 60)}". Mande o número da peça (o do link).`);
+  if (achadas.length > 1) throw invalido(`Achei ${achadas.length} peças suas com "${String(busca).slice(0, 60)}":\n` +
+    achadas.slice(0, 6).map((l) => `- ${l.titulo || 'Sem título'} (${l.clientes.join(' / ') || 'sem cliente'}) · número ${l.monday_item_id || 'vybe:' + l.id}`).join('\n') +
+    '\n\nRepita com o número, por exemplo: muda a ' + (achadas[0].monday_item_id || 'vybe:' + achadas[0].id) + ' para Em andamento');
+  return achadas[0].monday_item_id || 'vybe:' + achadas[0].id;
+}
 async function temFuncao(sql, pessoaId, funcao) {
   const [t] = await sql`SELECT to_regclass('public.vybe_escritorio_funcoes') IS NOT NULL AS ok`;
   if (!t?.ok) return false;
@@ -116,7 +139,8 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
-  const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, item);
+  const p = await pessoaAtiva(sql, pessoaId);
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
   if (acao === 'comentar') {

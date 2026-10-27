@@ -68,12 +68,20 @@ export function validarFerramenta(nome,args={}){
 }
 // Defesa adicional, não classificação perfeita de texto livre. Excluímos fontes
 // Campos operacionais livres são autorizados à equipe, mas tratados como dados não confiáveis.
-export function textoOperacional(v,max=300){return String(v??'').slice(0,max)
- .replace(/(?:https?:\/\/|postgres(?:ql)?:\/\/)[^\s]+/gi,'[link omitido]')
+// Exceção única: o link da gaveta de uma peça no próprio painel (o mesmo de linkDaAtividade). Ele é guardado antes
+// dos filtros e devolvido intacto; sem isso o número do Monday no link virava "[número omitido]" (27/10/2026).
+const LINK_DA_PECA=/^https:\/\/vybepainel-v2\.vercel\.app\/\?atividade=(?:vybe:)?\d{1,20}$/;
+export function textoOperacional(v,max=300){
+ const guardados=[];
+ // O marcador interno ( ) nunca vem de fora: um texto com ele não consegue forjar um link guardado.
+ const t=String(v??'').replace(/ /g,'').slice(0,max)
+ .replace(/(?:https?:\/\/|postgres(?:ql)?:\/\/)[^\s]+/gi,(l)=>LINK_DA_PECA.test(l)?`\u0000${guardados.push(l)-1}\u0000`:'[link omitido]')
  .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,'[contato omitido]')
  .replace(/\b(?:token|senha|password|secret|api[_ -]?key)["']?\s*[:=]\s*["']?[^\s,}]+/gi,'[credencial omitida]')
  .replace(/\b[A-Za-z0-9_-]{40,}\b/g,'[identificador omitido]')
- .replace(/(?:\+?\d[\d(). -]{9,}\d)/g,'[número omitido]');}
+ .replace(/(?:\+?\d[\d(). -]{9,}\d)/g,'[número omitido]');
+ return t.replace(/\u0000(\d+)\u0000/g,(_,i)=>guardados[Number(i)]??'');
+}
 const limpar=v=>v instanceof Date?v.toISOString():typeof v==='string'&&/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(v)?v:Array.isArray(v)?v.map(limpar):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,typeof x==='string'&&!['id','cliente_id','prazo','veiculacao','mes','dia','inicio','fim','atualizado_em','data','criado_em','editado_em','em','quando','modifiedTime','createdAt','updatedAt'].includes(k)?(/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(x)?x:textoOperacional(x,['texto','corpo','resumo','material_bruto'].includes(k)?6000:300)):limpar(x)])):v;
 export function diaAssistente(agora=new Date()){
  return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(agora);

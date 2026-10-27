@@ -208,3 +208,11 @@ test('dia da agência e meu dia aceitam amanhã (data do dia seguinte, sem dizer
  assert.doesNotThrow(()=>validarFerramenta('meu_dia',{quando:'hoje'}));
  assert.throws(()=>validarFerramenta('consultar_dia_agencia',{quando:'ontem'}));
 });
+
+test('texto operacional: só o link da gaveta da peça passa, inteiro (com o número do Monday)', async () => {
+  const { textoOperacional } = await import('../server/assistente-ferramentas.js');
+  const t = textoOperacional('🔗 https://vybepainel-v2.vercel.app/?atividade=12673411686\n🔗 https://vybepainel-v2.vercel.app/?atividade=vybe:10937\nhttps://outro.site/x 75 99999-1234 \u00000\u0000', 2000);
+  assert.match(t, /atividade=12673411686\n/); assert.match(t, /atividade=vybe:10937\n/);
+  assert.match(t, /\[link omitido\] \[número omitido\]/); assert.doesNotMatch(t, /\u0000/);
+  assert.equal((t.match(/vybepainel/g) || []).length, 2);
+});
