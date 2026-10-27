@@ -7101,6 +7101,8 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .mapa-raio-sol {position:absolute;z-index:90000;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(170deg,rgba(255,226,160,.30),rgba(255,214,140,.12) 55%,rgba(255,210,130,0))}
 .mapa-pessoa.figurante {pointer-events:none}
 @keyframes mapa-luz-fogo {0%,100% {opacity:1} 50% {opacity:.78}}
+/* Fogo fora do enquadramento não tremula (vybe-escritorio-mapa.js, conferirNaTela). */
+.mapa-luz.fogo.fora-da-tela {animation-play-state:paused}
 /* Mapa fora de vista (criarMapaEscritorio: atrás do lobby, outra aba): nada anima. */
 .mapa-em-pausa, .mapa-em-pausa *, .mapa-em-pausa *::before, .mapa-em-pausa *::after {animation-play-state:paused!important}
 @media (prefers-reduced-motion: reduce) {.mapa-luz.fogo {animation:none}}

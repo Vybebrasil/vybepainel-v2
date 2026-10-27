@@ -19,7 +19,7 @@ test('a escolha fica guardada e, sem escolha, vale o Reduzir movimento da Aparê
   assert.match(tela, /async function abrirEscritorio\(\) \{\s*aplicarAnimacoesEscritorio\(\);/);
 });
 test('desligadas, o mapa não troca quadro de móvel parado nem pisca bonecos', () => {
-  assert.match(mapa, /if \(leve && !item\.transicao\) continue;/);
+  assert.match(mapa, /if \(\(leve \|\| item\.foraDaTela\) && !item\.transicao\) continue;/);
   assert.match(mapa, /if \(leve && p\.acao !== "wlk"\) continue;/);
 });
 test('desligadas, as animações de CSS acabam na hora em vez de pausar no primeiro quadro', () => {
