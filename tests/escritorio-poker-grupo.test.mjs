@@ -126,3 +126,49 @@ test('mesa de pôquer em grupo: convite, recusa, aceite de todos, aposta e conqu
  assert.equal((await conferirMarcos(sql, 5)).find((m) => m.id === 'jogos').valor, 2, 'venceu Paulo e Bia');
  assert.equal((await conferirMarcos(sql, 7)).find((m) => m.id === 'jogos').valor, 0);
 });
+
+test('mesa de pôquer em grupo: quem chamou começa só com quem já aceitou', async (t) => {
+ const { db, sql } = await bancoEscritorio(t);
+ for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+ await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
+ const x = await import('../server/escritorio-mesas.js');
+ const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');
+ const salas = salasDoEscritorio([{ id: 1, nome: 'Paulo' }, { id: 3, nome: 'Vinícius' }, { id: 7, nome: 'Bia' }, { id: 5, nome: 'Tainara' }]);
+ const MESA = { jogo: 'poker', camada: 'jogos', movel: 'wildwest_table@19,2' };
+ const d = await x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', mais: ['7', '5'], ...MESA, chave: 'grupo-1000' });
+ await assert.rejects(x.responderMesa(sql, { id: 1 }, salas, { id: d.id, acao: 'comecar' }), /Ninguém aceitou/);
+ await assert.rejects(x.responderMesa(sql, { id: 7 }, salas, { id: d.id, acao: 'comecar' }), /só quem chamou/);
+ // Bia aceita; Vinícius e Tainara não respondem. Paulo começa com Bia.
+ await x.responderMesa(sql, { id: 7 }, salas, { id: d.id, acao: 'aceitar' });
+ const r = await x.responderMesa(sql, { id: 1 }, salas, { id: d.id, acao: 'comecar' });
+ assert.equal(r.jogo.estado, 'jogando');
+ assert.deepEqual(r.jogo.jogadores.map((p) => p.id), ['1', '7'], 'só quem aceitou senta');
+ assert.equal(r.jogo.grupo, false, 'dois na mesa: pôquer mano a mano');
+ assert.equal((await x.listarMesa(sql, { id: 3 }, MESA)).convites.length, 0, 'o convite saiu da lista de quem não respondeu');
+});
+
+test('tempo da vez: estourou, o jogo faz a jogada mínima; três estouros seguidos perdem', async (t) => {
+ const { db, sql } = await bancoEscritorio(t);
+ for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+ await db.exec(`CREATE TABLE vybe_notificacoes(id serial PRIMARY KEY, pessoa_id bigint, conteudo_id bigint, texto text, lida_em timestamptz, criada_em timestamptz DEFAULT now())`);
+ const x = await import('../server/escritorio-mesas.js');
+ const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');
+ const salas = salasDoEscritorio([{ id: 1, nome: 'Paulo' }, { id: 3, nome: 'Vinícius' }]);
+ const MESA = { jogo: 'poker', camada: 'jogos', movel: 'wildwest_table@16,2' };
+ const d = await x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', ...MESA, chave: 'tempo-0001' });
+ let j = (await x.responderMesa(sql, { id: 3 }, salas, { id: d.id, acao: 'aceitar' })).jogo;
+ assert.ok(j.prazo_vez, 'a vista diz até quando vai a vez');
+ const atrasar = (s) => sql`UPDATE vybe_escritorio_partidas SET ultimo_lance_em = now() - ${s + ' seconds'}::interval WHERE id=${d.id}`;
+ // Ainda no tempo: nada acontece.
+ await atrasar(10);
+ assert.equal((await x.verMesa(sql, { id: 1 }, d.id)).n, j.n);
+ // Estourou: quem tinha a vez larga (no pré-flop tem aposta para pagar) e a mão segue.
+ const vez = j.vez;
+ await atrasar(40);
+ j = await x.verMesa(sql, { id: 1 }, d.id);
+ assert.equal(j.n, 1);
+ assert.equal(j.mesa.anterior.vencedor, vez === 'desafiante' ? 'desafiado' : 'desafiante', 'quem estourou largou');
+ // Três estouros seguidos do mesmo lado: perde a partida.
+ for (let k = 0; k < 6 && j.estado === 'jogando'; k++) { await atrasar(40); j = await x.verMesa(sql, { id: 1 }, d.id); }
+ assert.equal(j.estado, 'fim'); assert.equal(j.motivo, 'tempo');
+});

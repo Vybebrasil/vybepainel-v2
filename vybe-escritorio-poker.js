@@ -84,7 +84,7 @@ function pokerLugarHtml(j, l, pos, revela) {
 <div class="pkr-cartas-lugar">${cartas}</div>
 <div class="pkr-quem">${u ? `<img src="${safeText(u)}" alt="" width="48" height="48">` : "<i class=\"pkr-sem\"></i>"}${m.botao === l ? '<span class="pkr-dealer" title="Botão">D</span>' : ""}
 <div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span>${pokerFichas(m.fichas?.[l])}</span></div></div>
-${legenda ? `<small class="pkr-legenda">${legenda}</small>` : ""}${aposta}</div>`;
+${legenda ? `<small class="pkr-legenda">${legenda}</small>` : ""}${vez ? mesaPrazoVezHtml(j) : ""}${aposta}</div>`;
 }
 function desenharPoker(j, s) {
   const m = j.mesa, eu = j.eu, lados = m.lados || ["desafiante", "desafiado"];

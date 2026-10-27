@@ -140,4 +140,10 @@ export const motorDomino = {
  iniciar: () => ({ ...iniciarDomino(), placar: { desafiante: 0, desafiado: 0 }, alvo: DOMINO_ALVO, mao: 1, anterior: null }),
  vista: vistaDomino,
  jogar: jogarDomino,
+ // Tempo da vez: acabou, joga a primeira peça que encaixa, ou compra, ou passa.
+ tempo: 30,
+ automatico: (mesa, lado) => {
+  const v = vistaDomino(mesa, lado, false), p = v.jogaveis[0];
+  return p ? { tipo: 'jogar', peca: p.peca, ponta: p.pontas[0] } : v.pode_comprar ? { tipo: 'comprar' } : { tipo: 'passar' };
+ },
 };
