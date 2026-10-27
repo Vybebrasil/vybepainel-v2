@@ -2839,7 +2839,7 @@ let ARQUIVO_DIAS = 15;
 
 function alternarArquivo() {
   const caixa = document.getElementById('arquivadas-painel');
-  if (caixa) { caixa.remove(); return; }
+  if (caixa) { caixa.remove(); if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando(); return; }
   const alvo = document.getElementById('ops-selection-summary') || document.body;
   alvo.insertAdjacentHTML('afterend', `<section id="arquivadas-painel" class="arquivadas-painel">
       <header class="arquivadas-topo">
@@ -2850,6 +2850,7 @@ function alternarArquivo() {
       </header>
       <div id="arquivadas-lista" class="arquivadas-lista"><div class="arquivadas-vazio">Carregando…</div></div>
     </section>`);
+  if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando();
   carregarArquivadas();
 }
 

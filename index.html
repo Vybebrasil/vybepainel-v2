@@ -156,7 +156,12 @@
   <div id="production-command-banner" class="production-command-banner"><div class="production-command-ident"><i>◫</i><div><span>Unidade de comando</span><b>PRODUÇÃO · CAPTAÇÃO, FOTO E EDIÇÃO</b></div></div><button class="mode-switch-btn" onclick="openModeGate()">Trocar modo</button></div>
   <section id="production-command-dashboard" class="production-command-dashboard"></section>
 
-  <div class="workspace-heading"><div><span class="workspace-eyebrow">Operação</span><h2>Painel de trabalho</h2></div><label class="filtro-carteira">Responsável geral
+  <div class="workspace-heading"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.5"/></svg></span><div><span class="workspace-eyebrow">Operação · Gestor</span><h2>Painel de trabalho</h2></div><div class="ops-acoes" role="group" aria-label="Ferramentas">        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
+        <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
+<button class="ops-close-btn tab-btn" onclick="showWeek(0,this)">Equipe</button>
+        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
+        
+      </div><label class="filtro-carteira">Responsável geral
       <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
         <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
       </select></label></div>
@@ -174,18 +179,15 @@
         <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">0</span></button>
         <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">0</span></button>
       </div>
-      <div class="ops-segmentos" role="group" aria-label="Visões da operação">
-        <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board">Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
-        <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente">Calendário <span id="ops-agenda-count" class="ops-action-count">0</span></button>
-        <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias">Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button>
+      <div class="ops-segmentos" role="tablist" aria-label="Ver como"><span class="toolbar-label">Ver como</span>
+        <button id="ops-semana-btn" class="ops-close-btn active" onclick="mostrarAgendaDaSemana()" aria-expanded="true" title="Agenda da equipe, dia a dia"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="4" height="12" rx="1.2"/><rect x="8" y="4" width="4" height="12" rx="1.2"/><rect x="13" y="4" width="4" height="12" rx="1.2"/></svg>Agenda da semana</button>
+        <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3.5" width="14" height="4" rx="1.2"/><rect x="3" y="9.5" width="14" height="3" rx="1"/><rect x="3" y="14" width="14" height="3" rx="1"/></svg>Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
+        <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3"/></svg>Calendário do mês <span id="ops-agenda-count" class="ops-action-count">0</span></button>
+        <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="14" height="4" rx="1.2"/><path d="M4.5 8v8h11V8M8 11h4"/></svg>Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button>
       </div>
+      <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
       <div class="ops-vao"></div>
-      <div class="ops-acoes"><span class="toolbar-label">Ferramentas</span>        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
-        <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
-<button class="ops-close-btn tab-btn" onclick="showWeek(0,this)">Equipe</button>
-        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
-        <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
-      </div>
+      
     </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
     <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
