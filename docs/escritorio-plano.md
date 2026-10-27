@@ -1952,3 +1952,25 @@ Quarto e último jogo do pedido. Sem migração (`jogo = 'sinuca'` já valia).
 - Tela (`vybe-escritorio-sinuca.js`): canvas com mira (linha, bola fantasma e
   taco), força, bola na mão e a animação da última tacada. Aviso pelo balão
   `snc=<id>:<para>:<c|l>`.
+
+### Jogos de mesa: revanche, placar, placas e conquistas — 27/10/2026
+
+Etapa 1 das melhorias pedidas pelo Paulo para os quatro jogos (sem partida contra o computador, por decisão dele).
+
+- Revanche: no fim, quem jogou chama a mesma pessoa para a mesma mesa, valendo as mesmas VybeCoins (os itens já mudaram de dono e não se repetem).
+- Placar dos dois em cada jogo, de todas as partidas terminadas entre eles (`placar` na vista do xadrez e das mesas).
+- Placa em cima da mesa com partida (`mapa.marcador`) e aviso dos convites pendentes ao entrar: rota `jogos-resumo` (`resumoDosJogos`), relida a cada 20 s, na troca de cena e quando chega aviso de jogo.
+- Convite também no sino do painel (`vybe_notificacoes`), fora da transação do convite.
+- Escada de conquistas "Mesas de jogo" (`migrations/2026-10-27-escritorio-conquista-jogos.sql`): vitórias contra outra pessoa, uma por jogo, adversário e dia; Bronze 1, Prata 10, Ouro 30, Diamante 100; troféus: taças aladas e o Trono Real; títulos Jogador de Mesa, Competidor, Rei da Mesa, Lenda das Mesas.
+
+### Mesas de jogo: sinuca, pôquer, dominó, xadrez e jogos novos — 27/10/2026
+
+Etapas 2 a 4 das melhorias pedidas pelo Paulo (sem partida contra o computador).
+
+- Sinuca: trajetória da bola acertada na mira, ajuste fino (◀ ▶, meio grau), efeito puxar/seguir (física no servidor) e som dos eventos da tacada (choque, tabela, caçapa), que o servidor devolve com o quadro em que acontecem.
+- Pôquer: "Você tem: Par" (pokersolver), atalhos ½ pote e pote, animação e som da mão nova.
+- Dominó: partida em várias mãos até 100 pontos (quem bate ou ganha o trancado leva os pontos da mão do outro); linha em cobra (fileiras de 7). Partidas antigas, sem `alvo`, acabam na primeira mão.
+- Xadrez: relógio de 10 minutos + 2 s por lance (`migrations/2026-10-27-escritorio-xadrez-relogio.sql`); quem fica sem tempo na vez perde, o servidor encerra ao abrir ou ao jogar. Peças tomadas ao lado do nome e o último lance destacado.
+- Jogos novos na mesma tabela (`migrations/2026-10-27-escritorio-mesas-jogos-novos.sql` amplia a lista de jogos): dama brasileira (`server/escritorio-dama.js`: captura obrigatória, lei da maioria, dama voadora, coroa ao terminar na última fileira), jogo da velha melhor de 5 (`escritorio-velha.js`) e truco paulista para dois até 12 (`escritorio-truco.js`: vira e manilha, melhor de 3 rodadas, truco/seis/nove/doze, correr, mão de onze).
+- A mesa do dominó (`hobbies_c26_gamingtable`) virou a "Mesa de Jogos": clicando, abre a partida que estiver rolando, o convite recebido ou a escolha entre dominó, dama, velha e truco (`vybe-escritorio-mesa-de-jogos.js`; a lista usa `jogo: "todos"`). Avisos pelo balão dam=, vlh=, trc=.
+- Extrato: as apostas de pôquer, sinuca e dos jogos novos aparecem com o nome do jogo e ficam fora do "no seu ritmo" (antes só xadrez e dominó).

@@ -95,3 +95,14 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
  const visto=await x.verMesa(sql,outro,d.id);
  assert.ok(visto.mesa.ultimo.quadros.length>2,'o outro recebe os quadros para animar');
 });
+
+test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',()=>{
+ const b=Array(16).fill(null);b[0]=[30,25];b[5]=[50,25];
+ const parada=simular(b,0,0.35,0).bolas[0][0],segue=simular(b,0,0.35,1).bolas[0][0],puxa=simular(b,0,0.35,-1).bolas[0][0];
+ assert.ok(segue>parada+5,'seguir leva a branca para a frente');
+ assert.ok(puxa<parada-10,'puxar traz a branca para trás');
+ const r=simular(b,0,0.35,0);
+ assert.deepEqual(r.eventos.map(e=>e.t),['bola','tabela']);
+ assert.ok(r.eventos.every(e=>e.q<r.quadros.length&&e.f>0&&e.f<=1));
+ assert.throws(()=>jogarSinuca(mesa({0:[30,25],5:[50,25]}),'desafiante',{tipo:'tacar',angulo:0,forca:0.3,efeito:2}),/Efeito/);
+});

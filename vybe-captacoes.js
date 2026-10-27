@@ -897,7 +897,10 @@ function captAbrirFechar(eventoId) {
   const k = e.nossa;
   const ligadas = k ? k.pecas : [];
   const esperando = e.cliente_id ? captPendentesDo(e.cliente_id, e).filter((p) => !ligadas.some((l) => l.id === p.id)) : [];
-  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>`; };
+  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<div class="capt-escolha-linha"><label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>
+    <button type="button" class="capt-editar-btn" onclick="captEditarPeca(this)" aria-expanded="false" title="Gravou diferente? Mude o título ou o dia de ir ao ar">Editar</button>
+    <div class="capt-editar" data-peca="${safeText(p.id)}" hidden><label><span class="sr-only">Título</span><input name="ed_titulo" maxlength="200" value="${safeText(p.titulo)}" data-antes="${safeText(p.titulo)}"></label>
+    <label title="Vai ao ar"><span class="sr-only">Vai ao ar</span><input type="date" name="ed_veiculacao" value="${safeText(p.veiculacao || "")}" data-antes="${safeText(p.veiculacao || "")}"></label></div></div>`; };
   const nome = e.cliente || k?.cliente || "";
   captAbrirFolha(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">Fechar gravação</h2>
@@ -920,6 +923,39 @@ function captAbrirFechar(eventoId) {
       <p class="capt-erro" role="alert" hidden></p>
       <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Fechar gravação</button></div>
     </form>`);
+}
+// Gravou diferente do cadastrado (Paulo, 27/10/2026: "na Lions mudou os 2
+// conteúdos já cadastrados"): o Mizinho muda o título e o dia de ir ao ar da
+// peça ali mesmo. Vale ao fechar a gravação, pelo mesmo caminho da gaveta.
+function captEditarPeca(botao) {
+  const caixa = botao.nextElementSibling, abrir = caixa.hidden;
+  caixa.hidden = !abrir;
+  botao.setAttribute("aria-expanded", String(abrir));
+  botao.textContent = abrir ? "Pronto" : "Editar";
+  if (abrir) caixa.querySelector("input").focus();
+}
+// O que mudou em cada peça editada: só o campo diferente do que estava.
+function captEdicoesDoForm(form) {
+  return [...form.querySelectorAll(".capt-editar")].map((caixa) => {
+    const t = caixa.querySelector("[name=ed_titulo]"), v = caixa.querySelector("[name=ed_veiculacao]");
+    const titulo = t.value.replace(/\s+/g, " ").trim(), veiculacao = v.value;
+    return { id: caixa.dataset.peca, titulo: titulo !== t.dataset.antes ? titulo : null, veiculacao: veiculacao !== v.dataset.antes ? veiculacao : null };
+  }).filter((x) => x.titulo !== null || x.veiculacao !== null);
+}
+async function captSalvarEdicoes(edicoes) {
+  const falhas = [];
+  const enviar = async (corpo) => {
+    const r = await fetch("/api/conteudo", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || "não salvou");
+  };
+  for (const x of edicoes) {
+    try { if (x.titulo !== null) await enviar({ acao: "titulo", item: x.id, titulo: x.titulo }); }
+    catch (e) { falhas.push(`título de "${x.titulo}": ${e.message}`); }
+    try { if (x.veiculacao !== null) await enviar({ acao: "veiculacao", item: x.id, data: x.veiculacao || null }); }
+    catch (e) { falhas.push(`dia de ir ao ar: ${e.message}`); }
+  }
+  return falhas;
 }
 // Uma linha de peça gravada fora do sistema: título, formato e, se já se
 // sabe, o dia de ir ao ar.
@@ -965,7 +1001,9 @@ async function captFechar(form) {
     return { titulo: linha.querySelector("[name=nova_titulo]").value.trim(), formato, veiculacao: linha.querySelector("[name=nova_veiculacao]").value,
       destino: d ? { grupo_id: d.group, status: chaveDeStatus(d.status), responsaveis: (d.assignees || []).map(String) } : null };
   });
+  const edicoes = captEdicoesDoForm(form);
   if (!e) return mostrar("Esta captação não está mais na tela. Feche e atualize.");
+  if (edicoes.some((x) => x.titulo === "")) return mostrar("O título de uma peça editada ficou vazio.");
   if (novas.some((n) => !n.titulo)) return mostrar("Dê um título a cada peça nova (ou tire a linha).");
   if (novas.some((n) => !n.destino)) return mostrar("Não deu para calcular o destino da peça nova. Recarregue a página.");
   if (!gravadas.length && !novas.length) return mostrar("Marque ao menos uma peça gravada, ou adicione a que foi gravada.");
@@ -977,8 +1015,10 @@ async function captFechar(form) {
     const k = e.nossa;
     const dados = k ? { captacao_id: k.id } : { evento_google: e.id, cliente_id: e.cliente_id, dia: e.dia, inicio: e.inicio || "", fim: e.fim || "", local: e.local || "" };
     const r = await captPedir("", { acao: "fechar", gravadas, novas, roteiro, drive, observacao: f.get("observacao") || "", ...dados });
+    const falhas = edicoes.length ? await captSalvarEdicoes(edicoes) : [];
     closeWorkflowModal();
-    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.novas ? `${captPlural(r.novas, "nova cadastrada", "novas cadastradas")}` : "", r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
+    if (falhas.length) r.avisos = [`Não deu para salvar ${falhas.join("; ")}.`, ...(r.avisos || [])];
+    const partes = [`Gravação fechada: ${captPlural(r.gravadas, "peça", "peças")}`, r.novas ? `${captPlural(r.novas, "nova cadastrada", "novas cadastradas")}` : "", edicoes.length - falhas.length > 0 ? `${captPlural(edicoes.length - falhas.length, "editada", "editadas")}` : "", r.com_drive ? `${r.com_drive} com a pasta do Drive` : "", r.soltas ? `${r.soltas} de volta para "Agendar Captação"` : ""].filter(Boolean).join(" · ");
     showToast(r.avisos?.length ? `${partes}. ${r.avisos[0]}` : `${partes}.`, r.avisos?.length ? "info" : "ok", 7000);
     if (typeof refreshData === "function") refreshData();
     CAPT.sel = e.id; captRecarregar();
