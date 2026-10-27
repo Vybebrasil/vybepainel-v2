@@ -55,7 +55,7 @@ function abrirNovoNoCiclo(tipo, { depois } = {}) {
       : 'Senta numa mesa livre do Centro de Operação e aparece no Hub. Se o nome já foi de um cliente do subsolo, ele volta em vez de duplicar.'}</p>
     <div class="conta-form">
       <label>Nome<input id="ciclo-nome" maxlength="${pessoa ? 120 : 200}" autocomplete="off"></label>
-      ${pessoa ? `<label>E-mail<input id="ciclo-email" type="email" autocomplete="off"></label>
+      ${pessoa ? `<label>E-mail (é o login)<input id="ciclo-email" type="email" required autocomplete="off"></label>
       <label>Papel<input id="ciclo-papel" maxlength="80" placeholder="Design, Vídeo, Atendimento…" autocomplete="off"></label>` : ''}
     </div>
     <p class="ciclo-erro" id="ciclo-erro" role="alert"></p>

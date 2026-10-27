@@ -142,13 +142,14 @@ export async function criarPessoa(db, { nome, email, papel, autor }) {
   const nomeLimpo = limpo(nome, 120);
   const emailLimpo = limpo(email, 200).toLowerCase() || null;
   if (!nomeLimpo) throw invalido('Informe o nome do colaborador.');
-  if (emailLimpo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) throw invalido('E-mail inválido.');
+  // Sem e-mail a pessoa não entra nem aparece na Equipe (o acesso é pelo
+  // e-mail): o cadastro ficava invisível (Paulo, 27/10/2026).
+  if (!emailLimpo) throw invalido('Informe o e-mail: é com ele que a pessoa entra no painel.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) throw invalido('E-mail inválido.');
   return db.comTransacao(async (tx) => {
-    if (emailLimpo) {
-      const [existe] = await tx`SELECT id, nome, ativo FROM vybe_pessoas WHERE LOWER(email)=${emailLimpo} FOR UPDATE`;
-      if (existe && existe.ativo !== false) return { ok: true, pessoa: { id: existe.id, nome: existe.nome, ativo: true }, ja_existia: true };
-      if (existe) return { ok: true, reativado: true, pessoa: await mudarPessoa(tx, existe.id, 'reativar', { autor, motivo: 'Cadastrado de novo' }) };
-    }
+    const [existe] = await tx`SELECT id, nome, ativo FROM vybe_pessoas WHERE LOWER(email)=${emailLimpo} FOR UPDATE`;
+    if (existe && existe.ativo !== false) return { ok: true, pessoa: { id: existe.id, nome: existe.nome, ativo: true }, ja_existia: true };
+    if (existe) return { ok: true, reativado: true, pessoa: await mudarPessoa(tx, existe.id, 'reativar', { autor, motivo: 'Cadastrado de novo' }) };
     // pode_entrar nasce FALSE de propósito, como na importação: o acesso se
     // libera quando quem administra define a senha, na Equipe.
     const [p] = await tx`INSERT INTO vybe_pessoas (nome, email, papel, ativo, pode_entrar, ciclo_em)
