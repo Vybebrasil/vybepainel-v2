@@ -19,7 +19,9 @@
 const ESCRITORIO_SINUCA = /pooltable/;
 const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
-  nota: "Bola 8: quem sai é sorteado, lisas contra listradas.", desenhar: (j, s) => desenharSinuca(j, s),
+  // A tacada já toca os sons dela na animação.
+  som: () => null,
+  nota: "Par ou ímpar, como no bar: 14 bolas (sem a 1), cada um com as suas, sorteadas na saída. Ganha quem encaçapar todas primeiro.", desenhar: (j, s) => desenharSinuca(j, s),
 });
 // Mesa de 100 × 50 com 4 de tabela em volta; 10 px por unidade no canvas.
 const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 4, SINUCA_PX = 10;
@@ -31,6 +33,10 @@ const SINUCA_DICA = { livre: "Sua vez: mire com o mouse. Segure o botão na mesa
 // Quanto puxar o mouse (em unidades da mesa) para a força toda.
 const SINUCA_PUXADA = 26;
 const sinucaRaio = (j) => j?.mesa?.r || 1.15;
+// Bolas desenhadas (8-Ball pool assets, CC0; assets/jogos/bolas.webp): folha
+// com a branca e as 15 numeradas, 96 px cada, na ordem do número.
+const SINUCA_BOLAS = typeof Image === "function" ? Object.assign(new Image(), { src: "/assets/jogos/bolas.webp" }) : null;
+SINUCA_BOLAS?.addEventListener?.("load", () => sinucaPintar());
 
 function abrirSinucaEscritorio(m) {
   return abrirMesaEscritorio(m, SINUCA_CFG);
@@ -49,8 +55,11 @@ function sinucaBranca(j, s) {
   return j.mesa.bolas[0];
 }
 // Bola que eu posso tocar primeiro: do meu grupo (a 8 com o grupo limpo); mesa aberta, qualquer uma menos a 8.
+const SINUCA_GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
+const SINUCA_NOME_GRUPO = { lisas: "Lisas", listradas: "Listradas", pares: "Pares", impares: "Ímpares" };
 function sinucaPodeTocar(j, n) {
   const g = j.mesa.grupos?.[j.eu];
+  if (j.mesa.modo === "parimpar") return SINUCA_GRUPOS[g]?.includes(n);
   if (!g) return n !== 8 || !j.mesa.tacadas;
   if (n === 8) return !j.mesa.restam?.[g];
   return g === "lisas" ? n < 8 : n > 8;
@@ -68,11 +77,11 @@ function sinucaUltimoTexto(j) {
 // (as que já caíram ficam apagadas).
 function sinucaJogadorHtml(j, lado) {
   const p = j[lado], u = escritorioCabecaUrl(p.id), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
-  const nums = g === "lisas" ? [1, 2, 3, 4, 5, 6, 7] : g === "listradas" ? [9, 10, 11, 12, 13, 14, 15] : [];
-  const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]}">${n}</i>`).join("")
+  const nums = SINUCA_GRUPOS[g] || [];
+  const bolas = nums.length ? nums.map((n) => `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${n > 8 ? " listra" : ""}" style="--c:${SINUCA_CORES[n > 8 ? n - 8 : n]};--n:${n}">${n}</i>`).join("")
     : '<small>Mesa aberta</small>';
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" ? " direita" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="40" height="40">` : "<i class=\"snc-sem\"></i>"}
-${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${g === "lisas" ? "Lisas" : "Listradas"}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${bolas}</span></div></div>`;
+${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
 }
 function desenharSinuca(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
@@ -266,6 +275,8 @@ function sinucaBolaPintar(g, n, x, y, R, transparente) {
   if (transparente) g.globalAlpha = 0.55;
   // Sombra no pano, a bola, a faixa da listrada, o número e o brilho.
   g.beginPath(); g.ellipse(px + r * 0.2, py + r * 0.3, r * 0.95, r * 0.8, 0, 0, Math.PI * 2); g.fillStyle = "#00000045"; g.fill();
+  // Com a folha carregada, a bola desenhada; antes dela, a feita à mão.
+  if (SINUCA_BOLAS?.complete && SINUCA_BOLAS.naturalWidth) { g.drawImage(SINUCA_BOLAS, n * 96, 0, 96, 96, px - r, py - r, 2 * r, 2 * r); g.restore(); return; }
   g.beginPath(); g.arc(px, py, r, 0, Math.PI * 2);
   g.fillStyle = n > 8 ? "#f7f4ea" : SINUCA_CORES[n]; g.fill();
   if (n > 8) { g.save(); g.clip(); g.fillStyle = SINUCA_CORES[n - 8]; g.fillRect(px - r, py - r * 0.55, 2 * r, r * 1.1); g.restore(); }
@@ -325,12 +336,12 @@ function sinucaPintar(agora) {
     bolas = Array.from({ length: 16 }, (_, n) => (q[2 * n] < 0 ? null : q2[2 * n] < 0 ? [q[2 * n] / 10, q[2 * n + 1] / 10]
       : [(q[2 * n] + (q2[2 * n] - q[2 * n]) * k) / 10, (q[2 * n + 1] + (q2[2 * n + 1] - q[2 * n + 1]) * k) / 10]));
     // Som dos eventos que já passaram: taco, choque entre bolas, tabela, caçapa.
-    if (a.som === undefined) { a.som = 0; escritorioTocar(180, 0.05, 0.05); }
+    if (a.som === undefined) { a.som = 0; jogosSom("taco", 0.8); }
     while (a.som < (a.eventos || []).length && a.eventos[a.som].q <= i) {
       const e = a.eventos[a.som++];
-      if (e.t === "bola") escritorioTocar(1200 + 400 * e.f, 0.03, 0.03 + 0.05 * e.f);
-      else if (e.t === "tabela") escritorioTocar(140, 0.06, 0.02 + 0.04 * e.f);
-      else if (e.t === "caiu") escritorioTocar(90, 0.18, 0.07);
+      if (e.t === "bola") jogosSom("bola", 0.3 + 0.7 * e.f);
+      else if (e.t === "tabela") jogosSom("tabela", 0.2 + 0.5 * e.f);
+      else if (e.t === "caiu") jogosSom("cacapa", 0.8);
     }
     if (i >= a.quadros.length - 1) { s.anim = null; bolas = j.mesa.bolas; } else requestAnimationFrame(sinucaPintar);
   }

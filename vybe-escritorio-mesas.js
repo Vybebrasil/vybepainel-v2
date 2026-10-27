@@ -7,6 +7,29 @@
 // que vai no painel, e chama `lanceMesaEscritorio(chave, pedido)` para jogar.
 const ESCRITORIO_MESAS = {};
 
+// Sons dos jogos (Kenney, CC0; assets/jogos/sons): carta, embaralhar,
+// fichas, ficha, peça, peça2, taco, bola, tabela e caçapa. Carregados uma vez
+// pelo Web Audio; onde o navegador não toca OGG, fica o bipe de antes. Respeita
+// o som desligado do escritório.
+const JOGOS_SONS = {};
+let jogosAudio = null;
+function jogosSom(nome, volume = 0.7) {
+  if (!nome || (typeof escritorioSomLigado === "function" && !escritorioSomLigado())) return;
+  try {
+    jogosAudio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const tocar = (buf) => {
+      const fonte = jogosAudio.createBufferSource(), ganho = jogosAudio.createGain();
+      ganho.gain.value = Math.max(0, Math.min(1, volume));
+      fonte.buffer = buf; fonte.connect(ganho).connect(jogosAudio.destination); fonte.start();
+    };
+    const atual = JOGOS_SONS[nome];
+    if (atual === false) return escritorioTocar(520, 0.05, 0.04);
+    if (atual && !(atual instanceof Promise)) return tocar(atual);
+    (JOGOS_SONS[nome] ||= fetch(`/assets/jogos/sons/${nome}.ogg`).then((r) => r.arrayBuffer()).then((a) => jogosAudio.decodeAudioData(a))
+      .then((b) => (JOGOS_SONS[nome] = b)).catch(() => (JOGOS_SONS[nome] = false))).then((b) => b && tocar(b));
+  } catch { escritorioTocar(520, 0.05, 0.04); }
+}
+
 function registrarMesaEscritorio(cfg) {
   cfg.lista = "mesa"; cfg.desafiar = "mesa-desafiar"; cfg.responder = "mesa-responder";
   cfg.abrir = (j) => abrirJogoMesa(cfg.sinal, j);
@@ -62,7 +85,7 @@ async function recarregarJogoMesa(chave) {
     const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     s.jogo = r.jogo;
     if (mudou) {
-      if (r.jogo.n !== j.n) { s.sel = null; escritorioTocar(r.jogo.vez === r.jogo.eu ? 660 : 440, 0.06, 0.05); }
+      if (r.jogo.n !== j.n) { s.sel = null; jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca"); }
       if (r.jogo.estado === "fim" && j.estado !== "fim") xadrezAcabou(r.jogo);
       desenharJogoMesa(chave);
     }
@@ -79,7 +102,7 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
     const r = await escritorioApi("mesa-lance", { id: j.id, n: j.n, ...pedido });
     s.jogo = r.jogo; s.sel = null;
     if (r.economia) xadrezEconomia(r.economia);
-    escritorioTocar(520, 0.06, 0.05);
+    jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca");
     mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
     if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
   } catch (e) {
@@ -90,7 +113,7 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
   desenharJogoMesa(chave);
 }
 function desistirMesa(chave, botao) {
-  if (botao.dataset.certeza !== "1") { botao.dataset.certeza = "1"; botao.textContent = "Desistir mesmo?"; setTimeout(() => { if (botao.isConnected) { botao.dataset.certeza = ""; botao.textContent = "Desistir"; } }, 4000); return; }
+  if (botao.dataset.certeza !== "1") { const antes = botao.textContent; botao.dataset.certeza = "1"; botao.textContent = "Desistir mesmo?"; setTimeout(() => { if (botao.isConnected) { botao.dataset.certeza = ""; botao.textContent = antes; } }, 4000); return; }
   acaoMesaEscritorio(chave, "desistir", botao);
 }
 async function acaoMesaEscritorio(chave, acao, botao) {
@@ -188,12 +211,48 @@ ${empateDele ? `<div class="xdz-empate"><span>${xadrezPrimeiroNome(j[outro])} pr
 ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="acaoMesaEscritorio('${chave}','reivindicar',this)">${xadrezPrimeiroNome(j[outro])} sumiu: ganhar por tempo</button>` : ""}
 <button type="button" class="workflow-secondary" onclick="acaoMesaEscritorio('${chave}','empate',this)" ${j.empate_de ? "disabled" : ""}>${empateMeu ? "Empate proposto" : "Propor empate"}</button>
 <button type="button" class="workflow-secondary xdz-desistir" onclick="desistirMesa('${chave}',this)">Desistir</button></div>`;
-  const perspectiva = eu ? (String(j.desafiante.id) === String(escritorio.base?.eu) ? "desafiante" : "desafiado") : null;
-  xadrezModal(`<div class="workflow-kicker">${cfg.nome}${!eu ? " · assistindo" : ""}<button type="button" class="workflow-close" aria-label="Fechar" onclick="mesaFechar('${chave}')">×</button></div>
-<div class="xdz-jogo mesa-jogo"><div class="mesa-lado">${mesa}</div>
-<aside class="xdz-painel">${xadrezResultadoHtml(j)}${status ? `<p class="xdz-status" aria-live="polite">${status}</p>` : ""}
-${xadrezApostaHtml(j, perspectiva)}${mesaPlacarHtml(j)}${painel}${acoes}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
-${!jogando ? mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`) : ""}</aside></div>`, `ofc-${chave}-jogo`);
+  // HUD de jogo (Paulo, 27/10/2026: "modernizar toda a interface ao redor do
+  // jogo"): faixa no tema do jogo com selos de aposta e placar e botões de
+  // ícone; a mesa no palco com a pílula de status por cima; os avisos (empate
+  // proposto, quem sumiu) numa barra; o histórico discreto embaixo; e o fim da
+  // partida numa tela de vitória/derrota por cima da mesa.
+  const sair = !jogando || !eu || saiu ? "" : `${j.grupo ? "" : `<button type="button" class="jogo-icone" onclick="acaoMesaEscritorio('${chave}','empate',this)" ${j.empate_de ? "disabled" : ""} title="${empateMeu ? "Empate proposto" : "Propor empate"}" aria-label="${empateMeu ? "Empate proposto" : "Propor empate"}">🤝</button>`}
+<button type="button" class="jogo-icone perigo" onclick="desistirMesa('${chave}',this)" title="Desistir" aria-label="Desistir">⚑</button>`;
+  const alerta = !jogando || !eu || saiu ? "" : [
+    empateDele && !j.grupo ? `<div class="jogo-alerta"><span>🤝 ${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="sala-botao verde" onclick="acaoMesaEscritorio('${chave}','aceitar-empate',this)">Aceitar</button><button type="button" class="sala-botao cinza" onclick="acaoMesaEscritorio('${chave}','recusar-empate',this)">Recusar</button></div>` : "",
+    j.pode_reivindicar ? `<div class="jogo-alerta"><span>⏰ ${xadrezPrimeiroNome(sumiu)} sumiu.</span><button type="button" class="sala-botao laranja" onclick="acaoMesaEscritorio('${chave}','reivindicar',this)">${j.grupo ? "Tirar da mesa" : "Ganhar por tempo"}</button></div>` : "",
+  ].join("");
+  xadrezModal(`${jogoTopoHtml(cfg.extra?.jogo || chave, cfg.nome, !eu, jogoSelosHtml(j), sair, `mesaFechar('${chave}')`)}${alerta}
+<div class="jogo-palco">${status && jogando ? `<p class="jogo-status${eu && j.vez === eu ? " minha" : ""}" aria-live="polite">${status}</p>` : ""}${mesa}
+${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`)) : ""}</div>
+<p class="ofc-erro" id="xdz-erro" role="alert"></p>${painel ? `<div class="jogo-feed">${painel}</div>` : ""}`, `ofc-${chave}-jogo`);
+}
+
+// --- HUD comum dos jogos -------------------------------------------------
+const JOGO_ICONES = { xadrez: "♞", poker: "♠", sinuca: "🎱", domino: "⚃", dama: "⛂", velha: "✕", truco: "♣" };
+function jogoTopoHtml(jogo, nome, assistindo, selos, botoes, fechar) {
+  return `<div class="jogo-topo tema-${safeText(jogo)}"><div class="jogo-titulo"><i aria-hidden="true">${JOGO_ICONES[jogo] || "🎲"}</i><b>${safeText(nome)}</b>${assistindo ? '<em class="sala-aovivo">Assistindo</em>' : ""}</div>
+<div class="jogo-selos">${selos}</div><div class="jogo-botoes">${botoes}
+<button type="button" class="jogo-icone" onclick="alternarSomEscritorio();this.textContent=escritorioSomLigado()?'🔊':'🔇'" title="Som" aria-label="Ligar ou desligar o som">${escritorioSomLigado() ? "🔊" : "🔇"}</button>
+<button type="button" class="jogo-icone" onclick="${fechar}" title="Fechar" aria-label="Fechar">✕</button></div></div>`;
+}
+// Selos da faixa: o que está em jogo e o placar entre os dois.
+function jogoSelosHtml(j) {
+  const n = j.jogadores?.length || 2, itens = (j.itens?.desafiante?.length || 0) + (j.itens?.desafiado?.length || 0);
+  const aposta = j.moedas ? `<span class="jogo-selo ouro">🪙 ${(n * j.moedas).toLocaleString("pt-BR")} na mesa${itens ? " + itens" : ""}</span>` : itens ? '<span class="jogo-selo ouro">🎁 Itens na mesa</span>' : '<span class="jogo-selo">Amistoso</span>';
+  const p = j.placar, a = j.desafiante, b = j.desafiado;
+  const placar = p && (p[String(a.id)] || p[String(b.id)] || p.empates) ? `<span class="jogo-selo">🏆 ${xadrezPrimeiroNome(a)} ${p[String(a.id)] || 0} × ${p[String(b.id)] || 0} ${xadrezPrimeiroNome(b)}</span>` : "";
+  return aposta + placar;
+}
+// Fim da partida por cima da mesa: vitória, derrota ou empate, o motivo, o prêmio e as ações.
+function jogoFimHtml(j, acoes) {
+  if (j.estado !== "fim") return "";
+  const ganhou = j.resultado !== "empate" && j.eu && j.eu === j.resultado, perdeu = j.resultado !== "empate" && j.eu && j.eu !== j.resultado;
+  const vencedor = j.resultado === "empate" ? null : xadrezPrimeiroNome(j[j.resultado]);
+  const titulo = j.resultado === "empate" ? "Empate" : ganhou ? "Vitória!" : perdeu ? "Derrota" : `${vencedor} venceu`;
+  const n = j.jogadores?.length || 2, valendo = j.moedas || j.itens?.desafiante?.length || j.itens?.desafiado?.length;
+  const premio = !valendo ? "" : j.resultado === "empate" ? "Cada um recebeu a aposta de volta." : ganhou ? `+${(n * (j.moedas || 0)).toLocaleString("pt-BR")} VybeCoins${j.itens?.desafiante?.length || j.itens?.desafiado?.length ? " e os itens" : ""}` : `${vencedor} levou a mesa.`;
+  return `<div class="jogo-fim ${ganhou ? "ganhou" : perdeu ? "perdeu" : "empate"}"><div class="jogo-fim-caixa xdz-fim"><small>${safeText(j.motivo_nome || "Fim de jogo")}</small><b>${titulo}</b>${premio ? `<span>${safeText(premio)}</span>` : ""}${acoes}</div></div>`;
 }
 
 // Placar dos dois neste jogo, de todas as partidas que já terminaram.

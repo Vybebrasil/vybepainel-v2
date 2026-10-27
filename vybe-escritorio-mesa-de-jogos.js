@@ -5,14 +5,17 @@
 // (server/escritorio-dama.js, escritorio-velha.js, escritorio-truco.js).
 // Avisos pelo balão de comando: dam=, vlh=, trc= (<id>:<para>:<c|l>).
 const DAMA_CFG = registrarMesaEscritorio({
+  som: (j, antes) => ((j.mesa?.pecas?.brancas ?? 0) + (j.mesa?.pecas?.pretas ?? 0) < (antes?.mesa?.pecas?.brancas ?? 0) + (antes?.mesa?.pecas?.pretas ?? 0) ? "peca2" : "peca"),
   nome: "Dama", artigo: "a dama", extra: { jogo: "dama" }, sinal: "dam",
   nota: "Dama brasileira: captura obrigatória, a maior captura vale e a dama voa. As cores são sorteadas.", desenhar: (j, s) => desenharDama(j, s),
 });
 const VELHA_CFG = registrarMesaEscritorio({
+  som: () => "peca2",
   nome: "Jogo da velha", artigo: "o jogo da velha", extra: { jogo: "velha" }, sinal: "vlh",
   nota: "Melhor de 5: ganha quem fizer 3 rodadas primeiro.", desenhar: (j, s) => desenharVelha(j, s),
 });
 const TRUCO_CFG = registrarMesaEscritorio({
+  som: (j) => (j.mesa?.ultimo?.acao === "jogou" ? "carta" : "ficha"),
   nome: "Truco", artigo: "o truco", extra: { jogo: "truco" }, sinal: "trc",
   nota: "Truco paulista para dois, até 12 pontos, com vira e manilha.", desenhar: (j, s) => desenharTruco(j, s),
 });
