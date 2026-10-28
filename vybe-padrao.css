@@ -1120,3 +1120,50 @@
 }
 /* Tela de módulos no celular: uma coluna (a grade de 4 espremia os cartões) */
 @media (max-width:760px){#mode-gate#mode-gate .identity-command-grid{grid-template-columns:1fr!important;grid-template-rows:none!important}#mode-gate#mode-gate .identity-station[data-station]{grid-row:auto!important;min-height:0!important}#mode-gate#mode-gate .identity-station[data-station="escritorio"]{min-height:190px!important}#mode-gate#mode-gate .identity-hero{grid-template-columns:1fr!important}#mode-gate#mode-gate .identity-hero .identity-brand{display:flex!important;grid-row:auto!important;justify-content:space-between;align-items:center}#mode-gate#mode-gate .identity-hero .identity-brand img{height:40px!important}#mode-gate#mode-gate .identity-shell{padding:14px 16px!important}}
+
+/* ===== Lateral do jogo no padrão da tela de módulos =====
+   Um cartão só (o do Centro de Operação, como um cartão de módulo); o resto
+   são seções abertas sobre o fundo, com a etiqueta turquesa em cima, sem
+   caixa dentro de caixa. Salas em duas colunas com o nome inteiro. */
+.ofc .ofc-lateral .ofc-salas{display:grid;gap:20px;padding:14px 14px 22px!important}
+.ofc .ofc-lateral-topo b{font:700 18px var(--pv-titulo)!important;letter-spacing:-.015em}
+.ofc .ofc-lateral-topo small{color:#a8a39c!important;font:400 12px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-eu,.ofc .ofc-lateral .ofc-p-bloco{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:0!important;border-radius:0!important}
+.ofc .ofc-lateral .ofc-p-eu::before,.ofc .ofc-lateral .ofc-p-bloco::before{display:none!important}
+.ofc .ofc-lateral .ofc-p-eu-texto b{font:600 14px var(--pv-titulo)!important}
+.ofc .ofc-lateral .ofc-p-status select{border-radius:10px!important;background:rgba(255,255,255,.05)!important;border-color:rgba(255,255,255,.1)!important}
+
+/* o cartão: Centro de Operação */
+.ofc .ofc-lateral .ofc-p-centro{--c:#38d9c5;gap:14px!important;padding:16px!important;border-radius:20px!important;border:1px solid color-mix(in srgb,var(--c) 26%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important}
+.ofc .ofc-lateral .ofc-p-centro-arte{border-radius:13px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 8%,transparent))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)!important}
+.ofc .ofc-lateral .ofc-p-centro-topo small{color:var(--c)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important}
+.ofc .ofc-lateral .ofc-p-centro-topo b{font:700 19px/1.15 var(--pv-titulo)!important;letter-spacing:-.015em!important}
+/* números como a métrica dos cartões de módulo: sem caixinha, divididos por fio */
+.ofc .ofc-lateral .ofc-p-nums{gap:0!important;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+.ofc .ofc-lateral .ofc-p-num{min-height:0!important;padding:0 4px!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;justify-items:start!important}
+.ofc .ofc-lateral .ofc-p-num + .ofc-p-num{border-left:1px solid rgba(255,255,255,.07)!important;padding-left:12px!important}
+.ofc .ofc-lateral .ofc-p-num b{font:700 24px/1 var(--pv-titulo)!important}
+.ofc .ofc-lateral .ofc-p-num small{color:#a8a39c!important;font:400 11.5px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-entrar{height:40px!important;border-radius:12px!important;font:700 13px var(--mac-ui)!important}
+
+/* seções abertas */
+.ofc .ofc-lateral .ofc-p-titulo{padding:0 2px!important;margin:0 0 2px!important;align-items:center!important}
+.ofc .ofc-lateral .ofc-p-titulo h5{color:#38d9c5!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important}
+.ofc .ofc-lateral .ofc-p-titulo small{color:#7d7871!important;font:500 11.5px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-titulo.sub{margin-top:10px!important}
+.ofc .ofc-lateral .ofc-p-vazio{padding:14px!important;border-radius:14px!important;border:1px dashed rgba(255,255,255,.1)!important;background:none!important;color:#8f8a83!important;font:400 12.5px/1.45 var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-grupo{border-radius:14px!important;background:rgba(255,255,255,.035)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > span{font:600 13px var(--pv-titulo)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > em{color:#38d9c5!important}
+.ofc .ofc-lateral .ofc-p-fora > summary{color:#a8a39c!important}
+
+/* ir para: duas colunas, ícone num quadradinho, o nome inteiro */
+.ofc .ofc-lateral .ofc-p-salas{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+.ofc .ofc-lateral .ofc-p-sala{flex-direction:row!important;justify-content:flex-start!important;gap:10px!important;height:auto!important;min-height:46px;padding:6px 8px 6px 6px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.06)!important;background:rgba(255,255,255,.03)!important;box-shadow:none!important;color:#ece8e3!important;transform:none!important}
+.ofc .ofc-lateral .ofc-p-sala:hover{border-color:rgba(56,217,197,.4)!important;background:rgba(56,217,197,.07)!important}
+.ofc .ofc-lateral .ofc-p-sala.aqui{border-color:rgba(56,217,197,.6)!important;background:rgba(56,217,197,.1)!important}
+.ofc .ofc-lateral .ofc-p-sala .ofc-p-sala-arte{width:32px!important;height:32px!important;border-radius:10px!important;background:color-mix(in srgb,var(--sala) 16%,rgba(0,0,0,.35))!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.ofc .ofc-lateral .ofc-p-sala-nome{flex:1!important;width:auto!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;font:600 12.5px/1.2 var(--mac-ui)!important;text-align:left}
+.ofc .ofc-lateral .ofc-p-sala > small{position:static!important;margin-left:auto}
+.ofc .ofc-lateral .ofc-p-quarto{border:0!important;background:none!important;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-quarto.aqui .ofc-p-avatar{box-shadow:0 0 0 2px #38d9c5,0 0 10px rgba(56,217,197,.35)!important}
