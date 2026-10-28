@@ -78,6 +78,28 @@ export async function pecasSemMaterial(sql) {
     ORDER BY COALESCE(c.prazo, c.veiculacao) NULLS LAST, c.id`, [BOARD_PRODUCAO])).map((l) => ({ ...l, id: String(l.id) }));
 }
 
+// Outras peças do cliente que dá para gravar (Paulo, 27/10/2026: "não apareceu
+// o Reels da Mr Fit pra o Mizinho selecionar"): foto ou vídeo da Produção, ainda
+// por fazer, fora de uma captação marcada, mesmo que já tenha "Captação Feita"
+// ou esteja em outro status de captação. Entram no Fechar gravação quando o
+// Mizinho abre "outras peças do cliente"; as que já esperam captação vêm pela fila.
+const GRAVAVEL_SQL = (c, s) => `(${EH_FOTO(c)} OR ${EH_VIDEO(c)}) AND NOT COALESCE(${s}.final, false)`;
+export async function outrasPecasDoCliente(sql, { cliente_id } = {}) {
+  await exigirTabelas(sql);
+  if (!/^\d{1,18}$/.test(String(cliente_id || ''))) throw erro('Cliente inválido.');
+  return (await sql.query(`SELECT c.id, c.titulo, c.formato, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao,
+      c.status_chave, s.rotulo AS status, c.captacao_chave, btrim(COALESCE(c.material_bruto, '')) <> '' AS tem_material,
+      CASE WHEN ${EH_FOTO('c')} THEN 'foto' ELSE 'video' END AS tipo
+    FROM vybe_conteudos c
+    JOIN vybe_conteudo_clientes cc ON cc.conteudo_id = c.id AND cc.cliente_id = $2
+    LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id = $1 AND ${GRAVAVEL_SQL('c', 's')}
+      AND NOT EXISTS (SELECT 1 FROM vybe_captacao_pecas p JOIN vybe_captacoes k ON k.id = p.captacao_id
+        WHERE p.conteudo_id = c.id AND k.estado = 'agendada')
+    ORDER BY COALESCE(c.prazo, c.veiculacao) DESC NULLS LAST, c.id DESC
+    LIMIT 60`, [BOARD_PRODUCAO, cliente_id])).map((l) => ({ ...l, id: String(l.id) }));
+}
+
 // Captações de um período (padrão: de hoje a 30 dias), com as peças e o roteiro.
 export async function listarCaptacoes(sql, { de = '', ate = '' } = {}) {
   await exigirTabelas(sql);
@@ -367,13 +389,14 @@ export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, p
           WHERE p.conteudo_id = c.id AND o.estado = 'agendada' AND o.id <> ${k.id}) AS em_outra
       FROM vybe_conteudos c WHERE c.id = ANY(${d.gravadas}::bigint[]) ORDER BY c.id FOR UPDATE OF c` : [];
     if (linhas.length !== d.gravadas.length) throw erro('Alguma peça não existe mais.', 409);
-    const semMaterial = d.gravadas.length ? new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
+    const gravaveis = d.gravadas.length ? new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
       LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-      WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.gravadas])).map((l) => l.id)) : new Set();
+      WHERE c.id = ANY($1::bigint[]) AND ((${SEM_MATERIAL_SQL('c', 's')}) OR (${GRAVAVEL_SQL('c', 's')}))`, [d.gravadas])).map((l) => l.id)) : new Set();
     // Peça ligada a esta captação entra sempre; as outras, se são do cliente e
-    // estavam esperando captação (como em "Levar peças").
+    // estavam esperando captação (como em "Levar peças") ou são foto/vídeo ainda
+    // por fazer (outras peças do cliente, mesmo com "Captação Feita").
     const fora = linhas.filter((l) => !ligadas.has(l.id) && (l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || !l.do_cliente || l.em_outra
-      || (l.captacao_chave !== CAPTACAO.pronta && !semMaterial.has(l.id))));
+      || (l.captacao_chave !== CAPTACAO.pronta && !gravaveis.has(l.id))));
     if (fora.length) throw erro(`Não dá para pôr nesta gravação: ${fora.map((l) => l.titulo).join('; ')}. Atualize a tela.`, 409);
     // A que já tinha "Gravado" (marcado peça a peça) fica, mesmo desmarcada aqui.
     const soltas = doLaco.filter((l) => !l.gravado && !d.gravadas.includes(l.id)).map((l) => l.id);
@@ -496,6 +519,75 @@ export async function eventoNaAgenda(acao, k, { buscar = fetch, obterToken = tok
   if (!r.ok) throw new Error(r.status === 403 ? 'a conta do painel não pode mudar a agenda (confira o compartilhamento com "Fazer alterações")' : `Google respondeu ${r.status}`);
   const e = await r.json();
   return e.id;
+}
+
+// Horário do evento no formato do Google (sem fim: `horas` de duração).
+function quandoNoGoogle(dia, inicio, fim, horas = 1) {
+  const fimDia = new Date(`${dia}T12:00:00Z`); fimDia.setUTCDate(fimDia.getUTCDate() + 1);
+  if (!inicio) return { start: { date: dia, dateTime: null }, end: { date: fimDia.toISOString().slice(0, 10), dateTime: null } };
+  const fimHora = fim ? `${dia}T${fim}:00-03:00` : new Date(new Date(`${dia}T${inicio}:00-03:00`).getTime() + horas * 3600e3).toISOString();
+  return { start: { dateTime: `${dia}T${inicio}:00-03:00`, timeZone: FUSO, date: null }, end: { dateTime: fimHora, timeZone: FUSO, date: null } };
+}
+
+// A captação de um evento do Google (ou pelo id dela), se existe e não foi cancelada.
+async function captacaoDoEvento(sql, { captacao_id, evento }) {
+  if (captacao_id && !/^\d{1,18}$/.test(String(captacao_id))) throw erro('Captação inválida.');
+  if (evento && !/^[A-Za-z0-9_-]{5,1024}$/.test(String(evento))) throw erro('Evento da agenda inválido.');
+  if (!captacao_id && !evento) throw erro('Escolha a captação.');
+  const [k] = captacao_id
+    ? await sql`SELECT id::text AS id, estado, evento_google, evento_do_painel FROM vybe_captacoes WHERE id = ${captacao_id} AND estado <> 'cancelada'`
+    : await sql`SELECT id::text AS id, estado, evento_google, evento_do_painel FROM vybe_captacoes WHERE evento_google = ${evento} AND estado <> 'cancelada'`;
+  if (captacao_id && !k) throw erro('Captação não encontrada.', 404);
+  return k || null;
+}
+
+// REAGENDAR (Paulo, 27/10/2026: "poder reagendar a atividade"): muda o dia e o
+// horário. Captação montada aqui: muda nela e o evento do painel acompanha.
+// Evento que só está no Google (ou marcado por alguém lá): muda o evento.
+export async function reagendarCaptacao(sql, quem, d = {}, { buscar = fetch, obterToken = tokenGoogle, agenda = eventoNaAgenda } = {}) {
+  await exigirTabelas(sql);
+  if (!diaValido(d.dia)) throw erro('Escolha o novo dia.');
+  if (d.inicio && !horaValida(d.inicio)) throw erro('Horário de início inválido.');
+  if (d.fim && !horaValida(d.fim)) throw erro('Horário de fim inválido.');
+  if (d.inicio && d.fim && d.fim <= d.inicio) throw erro('O fim precisa ser depois do início.');
+  const inicio = d.inicio || null, fim = d.inicio && d.fim ? d.fim : null;
+  const k = await captacaoDoEvento(sql, d);
+  if (k?.estado === 'gravada') throw erro('Esta gravação já foi fechada; não dá para reagendar.', 409);
+  const avisos = [];
+  if (k) await sql`UPDATE vybe_captacoes SET dia = ${d.dia}::date, inicio = ${inicio}::time, fim = ${fim}::time, atualizado_em = now() WHERE id = ${k.id}`;
+  if (k?.evento_do_painel) { await sincronizarAgenda(sql, k.id, { agenda, avisos }); return { avisos }; }
+  const evento = k?.evento_google || (d.evento ? String(d.evento) : '');
+  if (!evento) return { avisos };
+  const cal = encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || 'gestaovybe@gmail.com');
+  try {
+    const token = await obterToken(ESCOPO_AGENDA);
+    const r = await buscar(`https://www.googleapis.com/calendar/v3/calendars/${cal}/events/${encodeURIComponent(evento)}`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(quandoNoGoogle(d.dia, inicio, fim)), signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error(r.status === 403 ? 'a conta do painel não pode mudar a agenda (confira o compartilhamento com "Fazer alterações")' : `Google respondeu ${r.status}`);
+  } catch (e) {
+    if (!k) throw erro(`Não deu para mudar no Google Agenda: ${e.message}.`, 502);
+    avisos.push(`A captação mudou no painel, mas o evento continua no horário antigo no Google Agenda: ${e.message}`);
+  }
+  return { avisos };
+}
+
+// CAIU A PAUTA / APAGAR (Paulo, 27/10/2026: "não gravou, apagar e tal"): o evento
+// sai do Google Agenda, mesmo o marcado por alguém lá, e a captação montada aqui
+// é cancelada, com as peças não gravadas de volta em "Agendar Captação".
+// Gravação já fechada não se apaga por aqui.
+export async function apagarCaptacao(sql, quem, d = {}, { trocar, agenda = eventoNaAgenda } = {}) {
+  await exigirTabelas(sql);
+  const k = await captacaoDoEvento(sql, d);
+  if (k?.estado === 'gravada') throw erro('Esta gravação já foi fechada; não dá para apagar.', 409);
+  const avisos = [];
+  if (k) avisos.push(...(await cancelarCaptacao(sql, quem, { id: k.id }, { trocar, agenda })).avisos);
+  const evento = k ? (k.evento_do_painel ? '' : k.evento_google) : String(d.evento || '');
+  if (evento) {
+    try { await agenda('apagar', { evento_google: evento }); }
+    catch (e) { if (!k) throw erro(`Não deu para tirar do Google Agenda: ${e.message}.`, 502); avisos.push(`O evento continua no Google Agenda: ${e.message}`); }
+  }
+  return { avisos };
 }
 
 // Cliente do evento pelo nome no título.
