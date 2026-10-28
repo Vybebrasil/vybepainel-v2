@@ -8,7 +8,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
@@ -1619,6 +1619,7 @@ async function areaCaptacoes(req,res,quem) {
         const pecas=[...await pecasParaCaptar(banco),...await pecasSemMaterial(banco)], roteiros=await roteirosDosConteudos(banco,pecas.map((p)=>p.id));
         return res.status(200).json({ok:true,pecas:pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}))});
       }
+      if(acao==='outras') return res.status(200).json({ok:true,pecas:await outrasPecasDoCliente(banco,{cliente_id:req.query?.cliente})});
       // A agenda do Google é a das captações de verdade; falha dela vira aviso.
       // Semana pedida (segunda-feira); sem ela, a semana de hoje.
       // A semana pedida (segunda-feira) para a agenda e os próximos 30 dias
@@ -1651,6 +1652,8 @@ async function areaCaptacoes(req,res,quem) {
     if(acao==='evento') return res.status(200).json({ok:true,...await criarEvento(banco,quem,corpo)});
     if(acao==='cancelar') return res.status(200).json({ok:true,...await cancelarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     if(acao==='agenda') return res.status(200).json({ok:true,avisos:await sincronizarAgenda(banco,String(corpo.id||''))});
+    if(acao==='reagendar') return res.status(200).json({ok:true,...await reagendarCaptacao(banco,quem,corpo)});
+    if(acao==='apagar') return res.status(200).json({ok:true,...await apagarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     return res.status(400).json({error:'Ação desconhecida.'});
   } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
 }

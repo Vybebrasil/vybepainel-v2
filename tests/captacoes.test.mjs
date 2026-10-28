@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao, vincularCliente, criarEvento } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao, vincularCliente, criarEvento, outrasPecasDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -354,4 +354,45 @@ test('criar evento vai ao Google com a cor do tipo, o cliente no título e o ví
   await assert.rejects(criarEvento(sql, quem, { tipo: 'festa', titulo: 'x', dia: '2026-10-29' }, { buscar, obterToken }), /captação, reunião ou compromisso/);
   await assert.rejects(criarEvento(sql, quem, { tipo: 'reuniao', titulo: 'x', dia: '2026-10-29', inicio: '10:00', fim: '09:00' }, { buscar, obterToken }), /fim/);
   assert.equal(pedidos.length, 3);
+});
+
+test('fechar aceita outra peça de foto/vídeo do cliente, mesmo com Captação Feita; card continua fora', async (t) => {
+  const { sql, trocar, trocas } = await comFechamento(t);
+  await sql`INSERT INTO vybe_conteudos VALUES (14, 'Reels - Mr Fit', 'Reels', '2026-10-28', '2026-10-29', '', 'pode_fazer', 'captacao_feita', ${PRODUCAO}, NULL, 'https://drive.google.com/ja-tinha')`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (14, 1)`;
+  assert.deepEqual((await outrasPecasDoCliente(sql, { cliente_id: '1' })).map((p) => p.id).sort(), ['10', '11', '14']);
+  const r = await fecharGravacao(sql, quem, { evento_google: 'g1brussolo', cliente_id: '1', dia: '2026-10-27', gravadas: ['14'], drive: DRIVE }, { trocar });
+  assert.deepEqual([r.gravadas, r.com_drive], [1, 0]);
+  // Já estava em Captação Feita: não troca de novo e não perde o material que tinha.
+  assert.deepEqual(trocas, []);
+  assert.equal((await sql`SELECT material_bruto FROM vybe_conteudos WHERE id = 14`)[0].material_bruto, 'https://drive.google.com/ja-tinha');
+  await assert.rejects(fecharGravacao(sql, quem, { evento_google: 'g2brussolo', cliente_id: '1', dia: '2026-10-27', gravadas: ['13'] }, { trocar }), /Card - Promo/);
+});
+
+test('reagendar muda a captação do painel e o evento dela; o do Google muda pelo PATCH', async (t) => {
+  const { sql, trocar, agenda, eventos } = await banco(t);
+  const { id } = await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', inicio: '09:00', fim: '11:00', pecas: ['10'] }, { trocar, agenda });
+  eventos.length = 0;
+  await assert.rejects(reagendarCaptacao(sql, quem, { captacao_id: id, dia: '2026-10-30', inicio: '11:00', fim: '10:00' }, { agenda }), /depois do início/);
+  const r = await reagendarCaptacao(sql, quem, { captacao_id: id, dia: '2026-10-30', inicio: '14:00', fim: '15:00' }, { agenda });
+  assert.deepEqual(r.avisos, []);
+  const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
+  assert.deepEqual([k.dia, k.inicio, k.fim], ['2026-10-30', '14:00', '15:00']);
+  assert.deepEqual(eventos, [['criar', 'ev-1']]);
+  const pedidos = [];
+  const buscar = async (url, o) => { pedidos.push([o.method, url.split('/events/')[1], JSON.parse(o.body).start]); return { ok: true, json: async () => ({}) }; };
+  await reagendarCaptacao(sql, quem, { evento: 'g1semcaptacao', dia: '2026-11-02', inicio: '08:00' }, { buscar, obterToken: async () => 't' });
+  assert.deepEqual(pedidos, [['PATCH', 'g1semcaptacao', { dateTime: '2026-11-02T08:00:00-03:00', timeZone: 'America/Bahia', date: null }]]);
+});
+
+test('apagar cancela a captação, devolve as peças e tira o evento; o evento só do Google também sai', async (t) => {
+  const { sql, trocar, trocas, agenda, eventos } = await banco(t);
+  const { id } = await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['10'] }, { trocar, agenda });
+  trocas.length = 0; eventos.length = 0;
+  await apagarCaptacao(sql, quem, { captacao_id: id }, { trocar, agenda });
+  assert.deepEqual(trocas, [['10', 'captacao', CAPTACAO.pronta]]);
+  assert.deepEqual(eventos, [['apagar', 'ev-1']]);
+  eventos.length = 0;
+  await apagarCaptacao(sql, quem, { evento: 'g1sodogoogle' }, { trocar, agenda });
+  assert.deepEqual(eventos, [['apagar', 'g1sodogoogle']]);
 });
