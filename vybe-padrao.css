@@ -898,3 +898,65 @@
 .ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
 .ai-usage-head.ai-usage-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important}
 .ai-usage-head > div:nth-of-type(1),.auto-cabeca > div:nth-of-type(1){flex:1;min-width:0}
+
+/* ===== Escritório como extensão da tela de módulos =====
+   O mesmo vidro escuro dos cartões de módulo (linha de luz no topo), títulos
+   em Space Grotesk, etiquetas em maiúsculas na cor do Escritório (turquesa,
+   a cor do cartão dele na tela de módulos) e o laranja só nos botões
+   principais. A arte do jogo (mapa, bonecos, móveis) não muda. */
+:root{--esc:#38d9c5;--esc-vidro:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012) 46%),rgba(19,21,28,.9);--esc-borda:rgba(255,255,255,.09)}
+.lg .lg-jogador,.lg .lg-pilula,.lg .lg-noticias,.lg .lg-botao,.lg .lg-online,.lg .lg-bandeja,
+.ofc .ofc-caixa,.ofc .ofc-dock,.ofc .ofc-sala-atual,.ofc .ofc-andares,.ofc .ofc-voltar-mapa,.ofc .ofc-p-centro,.ofc .ofc-p-eu,.ofc .ofc-p-bloco{
+  position:relative;border:1px solid var(--esc-borda)!important;background:var(--esc-vidro)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 40px -24px rgba(0,0,0,.85)!important;backdrop-filter:blur(14px)}
+/* a linha de luz no topo, como nos cartões de módulo */
+.lg .lg-jogador::before,.lg .lg-botao::before,.lg .lg-online::before,.ofc .ofc-caixa::before,.ofc .ofc-p-centro::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--c,var(--esc)),transparent);opacity:.7;pointer-events:none}
+
+/* --- Entrada (lobby) --- */
+.lg .lg-jogador{border-radius:22px!important;padding:12px 16px 12px 12px!important}
+.lg .lg-jogador-txt b,.lg .lg-jogador-txt strong{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.lg .lg-pilula{border-radius:14px!important}
+.lg .lg-noticias{border-radius:14px!important}
+.lg .lg-lado{gap:10px!important}
+.lg .lg-botao{--c:var(--esc);display:flex!important;align-items:center;gap:12px;border-radius:18px!important;padding:12px 14px!important;color:#fff!important;transition:transform .15s,box-shadow .15s}
+.lg .lg-botao:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 24px 44px -22px color-mix(in srgb,var(--c) 60%,#000)!important}
+.lg .lg-botao.jg-missoes{--c:#b99cff}.lg .lg-botao.jg-cobrancas{--c:#ff6b8a}.lg .lg-botao.jg-recados{--c:#7aa7ff}.lg .lg-botao.jg-ranking{--c:#f7c948}.lg .lg-botao.jg-conquistas{--c:#ff9a5c}
+.lg .lg-botao-icone{width:44px!important;height:44px!important;flex:none;border-radius:14px!important;display:grid;place-items:center;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)!important}
+.lg .lg-botao-txt b,.lg .lg-botao-txt strong{font:700 15px var(--pv-titulo)!important;letter-spacing:-.01em;color:#fff!important}
+.lg .lg-botao-txt small{color:#a8a39c!important}
+.lg .lg-botao::after{content:"→";margin-left:auto;width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;font:600 13px var(--mac-ui);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.lg .lg-online{border-radius:18px!important;padding:12px 14px!important}
+.lg .lg-online h3{color:var(--esc)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em;text-transform:uppercase}
+.lg .lg-bandeja{border-radius:20px!important}
+.lg .lg-entrar{border-radius:20px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:0 18px 40px -16px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.4)!important}
+.lg .lg-entrar b,.lg .lg-entrar span{font-family:var(--pv-titulo)!important;letter-spacing:.02em}
+.lg .lg-secundario{border-radius:14px!important;border:1px solid var(--esc-borda)!important;background:rgba(255,255,255,.04)!important}
+
+/* --- Jogo aberto: trilho e lateral no mesmo vidro da tela de módulos --- */
+.ofc .ofc-rail{background:linear-gradient(180deg,#14161d,#0f1116)!important;border-right:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-rail-btn[aria-current],.ofc .ofc-rail-btn.ativo,.ofc .ofc-rail-btn.on,.ofc .ofc-rail-btn[aria-pressed="true"]{color:var(--esc)!important;background:color-mix(in srgb,var(--esc) 14%,transparent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--esc) 45%,transparent)!important}
+.ofc .ofc-lateral{background:linear-gradient(180deg,#191b23,#121419)!important;border-right:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-lateral-topo b,.ofc .ofc-lateral-topo strong,.ofc .ofc-lateral-topo h2{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-abas{border-radius:14px!important;background:rgba(0,0,0,.3)!important;border:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-abas button[aria-selected="true"],.ofc .ofc-abas button.on,.ofc .ofc-abas button.ativa{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;color:#fff!important}
+.ofc .ofc-p-eu,.ofc .ofc-p-bloco{border-radius:16px!important}
+.ofc .ofc-p-centro{--c:#f7c948;border-radius:20px!important}
+.ofc .ofc-p-titulo h5{color:var(--esc)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.ofc .ofc-p-centro-topo b,.ofc .ofc-p-centro-topo strong{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-p-num{border-radius:12px!important;border:1px solid var(--esc-borda)!important;background:rgba(255,255,255,.035)!important}
+.ofc .ofc-p-num b{font-family:var(--pv-titulo)!important}
+.ofc .ofc-p-entrar{border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.ofc .ofc-p-sala,.ofc .ofc-p-quarto{border-radius:14px!important;border:1px solid var(--esc-borda)!important;background:linear-gradient(180deg,#232633,#1a1c25)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important}
+.ofc .ofc-p-sala:hover,.ofc .ofc-p-quarto:hover{border-color:color-mix(in srgb,var(--esc) 50%,transparent)!important}
+
+/* --- Jogo aberto: topo, coluna da direita e barra de baixo --- */
+.ofc .ofc-voltar-mapa,.ofc .ofc-andares{border-radius:14px!important}
+.ofc .ofc-sala-atual{border-radius:16px!important}
+.ofc .ofc-sala-atual h2{font:700 15px var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-sala-emblema{border-radius:12px!important;background:color-mix(in srgb,var(--esc) 14%,transparent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--esc) 40%,transparent)!important}
+.ofc .ofc-caixa{--c:var(--esc);border-radius:18px!important}
+.ofc .ofc-cobrancas{--c:#ff6b8a}.ofc #office-missoes{--c:#b99cff}.ofc .ofc-musica{--c:#7aa7ff}
+.ofc .ofc-missoes-topo b,.ofc .ofc-missoes-topo strong,.ofc .ofc-musica-topo b{font:700 14px var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-dock{border-radius:20px!important}
+.ofc .ofc-dock-btn{border-radius:12px!important}
+.ofc .ofc-dock-btn.principal{background:var(--pv-laranja)!important;color:#1b0d06!important;border:0!important}
+.lg .lg-botao{height:auto!important;min-height:64px}
