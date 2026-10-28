@@ -280,3 +280,21 @@ test('criar com briefing (áudio do cliente pedindo peça nova): o resumo mostra
     assert.equal(criados[0].briefing, 'Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante.');
   } finally { await db.close(); }
 });
+
+test('comentário e alteração marcam quem faz o próximo passo (responsáveis, menos quem pediu)', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudo_responsaveis ADD COLUMN ordem int DEFAULT 0; INSERT INTO vybe_conteudo_responsaveis VALUES(13,4,0);`);
+    feitos.length = 0;
+    const a = await prepararAcao(sql, 5, { acao: 'alteracao', item: 'vybe:13', texto: 'adicionar ilustrações' }, segredo);
+    const ok = await confirmarAcao(sql, 5, a.codigo, segredo, { executar });
+    assert.equal(feitos[0][2].texto, '🔧 Alteração pedida pelo WhatsApp: adicionar ilustrações\n\n👉 Próximo passo: @Deivid');
+    assert.match(ok.feito, /\n👉 Próximo passo: \{\{pessoa:68997024:Deivid\}\}$/);
+    // Quem pediu e é o único responsável: sem linha de próximo passo.
+    feitos.length = 0;
+    const b = await prepararAcao(sql, 2, { acao: 'comentar', item: 'vybe:10', texto: 'falta a legenda' }, segredo);
+    const ok2 = await confirmarAcao(sql, 2, b.codigo, segredo, { executar });
+    assert.equal(feitos[0][2].texto, 'falta a legenda');
+    assert.doesNotMatch(ok2.feito, /Próximo passo/);
+  } finally { await db.close(); }
+});

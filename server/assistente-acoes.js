@@ -136,6 +136,18 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, re
 }
 const curtoDia = (iso) => (iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) : '');
 const semanaCurta = (iso) => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(String(iso).slice(0, 10) + 'T12:00:00Z').getUTCDay()];
+// Quem faz o próximo passo (Paulo, 27/10/2026: "sempre que o JARVIS deixar um comentário, marca quem tem que fazer"):
+// os responsáveis da peça, menos quem pediu. No comentário do painel vai "@Nome"; para o bot, o marcador
+// {{pessoa:ID:Nome}}, que ele troca pela menção do WhatsApp (ou pelo nome, se a pessoa não estiver na conversa).
+async function proximoPassoDe(sql, c, pessoaId) {
+  try {
+    return (await sql`SELECT p.nome, p.monday_user_id::text AS monday_id FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+      WHERE r.conteudo_id = ${Number(c.id)} AND p.id <> ${Number(pessoaId)} ORDER BY r.ordem`).filter((x) => x.nome);
+  } catch { return []; }
+}
+const primeiroNome = (n) => String(n || '').trim().split(/\s+/)[0];
+const linhaPainel = (ps) => (ps.length ? `\n\n👉 Próximo passo: ${ps.map((x) => '@' + primeiroNome(x.nome)).join(', ')}` : '');
+const linhaBot = (ps) => (ps.length ? `\n👉 Próximo passo: ${ps.map((x) => (x.monday_id ? `{{pessoa:${x.monday_id}:${primeiroNome(x.nome)}}}` : primeiroNome(x.nome))).join(', ')}` : '');
 async function temFuncao(sql, pessoaId, funcao) {
   const [t] = await sql`SELECT to_regclass('public.vybe_escritorio_funcoes') IS NOT NULL AS ok`;
   if (!t?.ok) return false;
@@ -359,8 +371,9 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
   const fazer = executar || await import('../api/conteudo.js');
   if (t.a === 'comentar') {
-    await fazer.comentar(sql, quem, { item: c.ref, texto: t.v });
-    return { feito: `✅ Comentário registrado em "${c.titulo}".`, link: linkDaAtividade(c.ref) };
+    const proximos = await proximoPassoDe(sql, c, p.id);
+    await fazer.comentar(sql, quem, { item: c.ref, texto: t.v + linhaPainel(proximos) });
+    return { feito: `✅ Comentário registrado em "${c.titulo}".${linhaBot(proximos)}`, link: linkDaAtividade(c.ref) };
   }
   if (t.a === 'responsavel') {
     const v = JSON.parse(t.v);
@@ -370,11 +383,12 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     return { feito: `✅ "${c.titulo}" agora é de *${v.nome}*.`, link: linkDaAtividade(c.ref) };
   }
   if (t.a === 'alteracao') {
-    await fazer.comentar(sql, quem, { item: c.ref, texto: `🔧 Alteração pedida pelo WhatsApp: ${t.v.t}` });
+    const proximos = await proximoPassoDe(sql, c, p.id);
+    await fazer.comentar(sql, quem, { item: c.ref, texto: `🔧 Alteração pedida pelo WhatsApp: ${t.v.t}${linhaPainel(proximos)}` });
     const pedidoTxt = `“${String(t.v.t).slice(0, 300)}”`;
-    if (!t.v.s) return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Status segue *${c.status || 'sem status'}*.`, link: linkDaAtividade(c.ref) };
+    if (!t.v.s) return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Status segue *${c.status || 'sem status'}*.${linhaBot(proximos)}`, link: linkDaAtividade(c.ref) };
     const r = await fazer.trocarStatus(sql, quem, { item: c.ref, para: t.v.s });
-    return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Agora está em *${r?.para || t.v.s}*.`, link: linkDaAtividade(c.ref) };
+    return { feito: `✅ Pedido de alteração registrado em "${c.titulo}": ${pedidoTxt}. Agora está em *${r?.para || t.v.s}*.${linhaBot(proximos)}`, link: linkDaAtividade(c.ref) };
   }
   if (t.a === 'captacao') {
     const r = await fazer.trocarEscolha(sql, quem, { item: c.ref, campo: 'captacao', para: t.v });
