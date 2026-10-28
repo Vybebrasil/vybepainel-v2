@@ -1212,6 +1212,8 @@ function escolherPresenteEscritorio(classe) {
 // Montar uma proposta: com quem, o que você dá (guardados) e o que pede (o
 // inventário da pessoa, do perfil público; o servidor confere o guardado).
 async function abrirTrocaEscritorio(para = null, classe = null) {
+  // Espera o catálogo, como o presente: sem ele o móvel aparecia pelo nome interno ("shelves_norja").
+  if (typeof carregarCatalogoEscritorio === "function" && !(escritorioCatalogo || []).length) { try { await carregarCatalogoEscritorio(); } catch {} }
   const equipe = (escritorio.base.equipe || []).filter((p) => String(p.id) !== String(escritorio.base.eu));
   const f = (escritorio.trocaNova = { para: para || escritorio.trocaNova?.para || "", oferece: new Map(classe ? [[classe, 1]] : []), pede: new Map() });
   desenharTrocaEscritorio(equipe);
@@ -1231,11 +1233,12 @@ function desenharTrocaEscritorio(equipe = (escritorio.base.equipe || []).filter(
   if (!f) return;
   const meus = escritorioMeuInventario().filter((i) => i.guardados > 0);
   const linha = (lado, c, max) => { const n = f[lado].get(c) || 0; return `<li class="${n ? "sim" : ""}">${escritorioMiniaturaHtml(c)}<span>${safeText(escritorioNomeDaClasse(c))}</span><div class="ofc-qtd"><button type="button" aria-label="Menos" onclick="mudarItemTrocaEscritorio('${lado}','${safeText(c)}',-1,${max})" ${n ? "" : "disabled"}>−</button><b>${n}</b><button type="button" aria-label="Mais" onclick="mudarItemTrocaEscritorio('${lado}','${safeText(c)}',1,${max})" ${n >= max ? "disabled" : ""}>+</button></div></li>`; };
-  const html = `<div class="workflow-kicker">Troca</div><h2 class="workflow-title">Propor troca</h2>
-<label class="ofc-troca-com"><span>Com quem</span><select onchange="carregarInventarioDoOutroEscritorio(this.value)"><option value="">Escolha uma pessoa</option>${equipe.map((p) => `<option value="${safeText(String(p.id))}"${String(p.id) === f.para ? " selected" : ""}>${safeText(p.nome)}</option>`).join("")}</select></label>
+  // As pessoas em pílulas com a foto (como no desenho); o select segue lá, escondido.
+  const pilulas = `<div class="ofc-troca-pessoas" role="radiogroup" aria-label="Com quem">${equipe.map((p) => `<button type="button" role="radio" aria-checked="${String(p.id) === f.para}" class="${String(p.id) === f.para ? "on" : ""}" onclick="carregarInventarioDoOutroEscritorio('${safeText(String(p.id))}')">${typeof escritorioAvatar === "function" ? escritorioAvatar(p.perfil, p.nome) : ""}<span>${safeText(String(p.nome).split(" ")[0])}</span></button>`).join("")}</div>`;
+  const html = `<div class="workflow-kicker"><span>Troca</span><button class="workflow-close" type="button" onclick="escritorio.trocaNova=null;closeWorkflowModal()" aria-label="Fechar">×</button></div><h2 class="workflow-title">Propor troca</h2><p class="workflow-copy">A pessoa recebe a proposta no inventário e aceita ou recusa. Vale só para móveis guardados.</p>
+<label class="ofc-troca-com"><span>Com quem?</span>${pilulas}<select hidden onchange="carregarInventarioDoOutroEscritorio(this.value)"><option value="">Escolha uma pessoa</option>${equipe.map((p) => `<option value="${safeText(String(p.id))}"${String(p.id) === f.para ? " selected" : ""}>${safeText(p.nome)}</option>`).join("")}</select></label>
 <div class="ofc-troca-montar"><section><h3>Você dá</h3>${meus.length ? `<ul>${meus.map((i) => linha("oferece", i.classe, i.guardados)).join("")}</ul>` : '<p class="ofc-nota">Nenhum móvel guardado. Tire do quarto o que quiser trocar.</p>'}</section>
 <section><h3>Você pede</h3>${!f.para ? '<p class="ofc-nota">Escolha com quem trocar.</p>' : !f.deles ? '<p class="ofc-nota">Carregando o inventário…</p>' : f.deles.length ? `<ul>${f.deles.map((i) => linha("pede", i.classe, Number(i.quantidade))).join("")}</ul>` : '<p class="ofc-nota">Essa pessoa ainda não tem móveis para trocar. Você pode só dar.</p>'}</section></div>
-<p class="ofc-nota">A pessoa recebe a proposta no inventário dela e aceita ou recusa. Só vale com os móveis guardados (fora do quarto) dos dois lados.</p>
 <p class="ofc-erro" id="office-troca-erro" role="alert"></p>
 <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="escritorio.trocaNova=null;closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="enviarTrocaEscritorio(this)" ${f.para && (f.oferece.size || f.pede.size) ? "" : "disabled"}>Enviar proposta</button></div>`;
   // Redesenha no mesmo diálogo (sem piscar o fundo nem perder a rolagem).
