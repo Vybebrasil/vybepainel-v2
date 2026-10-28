@@ -960,3 +960,52 @@
 .ofc .ofc-dock-btn{border-radius:12px!important}
 .ofc .ofc-dock-btn.principal{background:var(--pv-laranja)!important;color:#1b0d06!important;border:0!important}
 .lg .lg-botao{height:auto!important;min-height:64px}
+
+/* --- Continuidade com a tela de módulos: o mesmo fundo (noite com o brilho
+   laranja no alto à esquerda, lilás à direita e turquesa embaixo) e o
+   mesmo cartão (tinta da cor no canto de cima, borda puxada para a cor). --- */
+.ofc-lobby.lg .abr-vinheta{background:radial-gradient(ellipse 60% 50% at 12% 0%,rgba(232,96,46,.3),transparent 70%),radial-gradient(ellipse 50% 45% at 95% 15%,rgba(185,156,255,.16),transparent 70%),radial-gradient(ellipse 60% 50% at 70% 110%,rgba(56,217,197,.16),transparent 70%),radial-gradient(120% 90% at 50% 55%,transparent 38%,rgba(11,12,17,.88) 100%),linear-gradient(180deg,rgba(11,12,17,.82),rgba(11,12,17,.2) 26%,rgba(11,12,17,.2) 58%,rgba(11,12,17,.95))!important}
+.lg .lg-jogador,.lg .lg-noticias,.lg .lg-botao,.lg .lg-online,.lg .lg-bandeja,
+.ofc .ofc-caixa,.ofc .ofc-dock,.ofc .ofc-sala-atual,.ofc .ofc-p-centro,.ofc .ofc-p-eu,.ofc .ofc-p-bloco{
+  border-color:color-mix(in srgb,var(--c,var(--esc)) 24%,rgba(255,255,255,.08))!important;
+  background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c,var(--esc)) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),rgba(19,21,28,.94)!important}
+
+/* Cabeçalho da entrada = o cartão do Escritório */
+.lg-topo{grid-template-columns:auto auto minmax(0,1fr)!important;grid-template-areas:"cabeca jogador recursos" "cabeca jogador noticias"!important;align-items:center!important}
+.lg-topo > .lg-cabeca{grid-area:cabeca;display:flex;align-items:center;gap:14px;padding-right:8px}
+.lg-cabeca-icone{width:52px;height:52px;flex:none;border-radius:16px;display:grid;place-items:center;color:var(--esc);background:linear-gradient(180deg,color-mix(in srgb,var(--esc) 30%,transparent),color-mix(in srgb,var(--esc) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 0 1px color-mix(in srgb,var(--esc) 45%,transparent),0 10px 26px -10px var(--esc)}
+.lg-cabeca-icone svg{width:24px;height:24px}
+.lg-cabeca-txt{display:grid;gap:2px}
+.lg-cabeca-txt small{color:var(--esc);font:700 11px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase}
+.lg-cabeca-txt b{font:700 40px/1 var(--pv-titulo);letter-spacing:-.025em;background:linear-gradient(180deg,#fff,#c9c3bb);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* Jogo aberto: o mesmo fundo de noite em volta do quarto, e o trilho e a lateral nele */
+.ofc .ofc-mapa{background:radial-gradient(ellipse 60% 50% at 20% 0%,rgba(232,96,46,.2),transparent 70%),radial-gradient(ellipse 50% 45% at 95% 10%,rgba(185,156,255,.12),transparent 70%),radial-gradient(ellipse 60% 50% at 60% 110%,rgba(56,217,197,.12),transparent 70%),#0b0c11!important}
+.ofc .ofc-rail{background:#0b0c11!important}
+.ofc .ofc-lateral{background:radial-gradient(ellipse 120% 40% at 0% 0%,rgba(232,96,46,.16),transparent 70%),#0e0f15!important}
+
+/* --- Dentro do Escritório a cor de ação é a do cartão dele (turquesa), como
+   o "Entrar no escritório →" da tela de módulos; o laranja sai dos botões do
+   jogo. Botões secundários no vidro neutro, sem contorno laranja. --- */
+.lg .lg-entrar,.lg-base .lg-entrar{background:linear-gradient(180deg,#5ff0dc,#2cc4b1)!important;color:#04201c!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 18px 40px -16px rgba(56,217,197,.75)!important;animation:none!important}
+.lg .lg-entrar::before{display:none!important}
+.lg .lg-entrar:active{transform:translateY(1px)}
+.lg-entrar-txt b,.lg .lg-entrar > span:only-child{font:700 24px/1 var(--pv-titulo)!important;letter-spacing:-.01em!important;text-transform:none!important;text-shadow:none!important}
+.lg-entrar-txt small{font:500 12px var(--mac-ui)!important;opacity:.75}
+.lg-entrar kbd{background:rgba(4,32,28,.14)!important;color:#04201c!important;box-shadow:none!important}
+.ofc .ofc-p-entrar,.ofc .ofc-dock-btn.destaque.principal,.ofc .ofc-dock-btn.destaque[data-avisos=true]{background:linear-gradient(180deg,#5ff0dc,#2cc4b1)!important;color:#04201c!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 10px 24px -12px rgba(56,217,197,.8)!important}
+.ofc .ofc-dock-btn.destaque:not(.principal):not([data-avisos=true]){background:rgba(255,255,255,.05)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important;color:#ece8e3!important}
+.ofc .ofc-dock-btn.destaque:not(.principal):hover{background:rgba(255,255,255,.09)!important}
+/* abas dos andares no mesmo trilho de pílulas do painel */
+.ofc .ofc-andares button{border-radius:10px!important;color:#a8a39c!important;background:none!important;box-shadow:none!important}
+.ofc .ofc-andares button[aria-pressed="true"]{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important}
+/* bônus da Copa: um cartão como os outros, com a cor dourada do Ranking */
+.ofc-bonus{--c:#f7c948;border:1px solid color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),rgba(19,21,28,.94)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 40px -24px rgba(0,0,0,.85)!important;border-radius:18px!important}
+.ofc-bonus-txt small{color:var(--c)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em!important}
+.ofc-bonus-txt b{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+/* baú da lateral: cartão dourado no vidro, sem o fundo marrom */
+.ofc .ofc-p-bau{--c:#f7c948;border:1px solid color-mix(in srgb,var(--c) 30%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 90% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 70%),rgba(19,21,28,.94)!important;color:#fff!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+/* trilho: o item ativo turquesa, não laranja */
+.ofc .ofc-rail-btn.on,.ofc .ofc-rail-btn.ativo,.ofc .ofc-rail-btn[aria-current],.ofc .ofc-rail-btn[aria-pressed="true"]{color:var(--esc)!important}
+.ofc .ofc-rail-btn.on svg,.ofc .ofc-rail-btn[aria-pressed="true"] svg{stroke:var(--esc)!important}
+.ofc .ofc-p-centro .ofc-p-entrar{font-family:var(--pv-titulo)!important}
