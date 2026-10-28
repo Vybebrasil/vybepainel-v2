@@ -898,3 +898,330 @@
 .ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
 .ai-usage-head.ai-usage-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important}
 .ai-usage-head > div:nth-of-type(1),.auto-cabeca > div:nth-of-type(1){flex:1;min-width:0}
+
+/* ===== Escritório como extensão da tela de módulos =====
+   O mesmo vidro escuro dos cartões de módulo (linha de luz no topo), títulos
+   em Space Grotesk, etiquetas em maiúsculas na cor do Escritório (turquesa,
+   a cor do cartão dele na tela de módulos) e o laranja só nos botões
+   principais. A arte do jogo (mapa, bonecos, móveis) não muda. */
+:root{--esc:#38d9c5;--esc-vidro:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012) 46%),rgba(19,21,28,.9);--esc-borda:rgba(255,255,255,.09)}
+.lg .lg-jogador,.lg .lg-pilula,.lg .lg-noticias,.lg .lg-botao,.lg .lg-online,.lg .lg-bandeja,
+.ofc .ofc-caixa,.ofc .ofc-dock,.ofc .ofc-sala-atual,.ofc .ofc-andares,.ofc .ofc-voltar-mapa,.ofc .ofc-p-centro,.ofc .ofc-p-eu,.ofc .ofc-p-bloco{
+  position:relative;border:1px solid var(--esc-borda)!important;background:var(--esc-vidro)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 40px -24px rgba(0,0,0,.85)!important;backdrop-filter:blur(14px)}
+/* a linha de luz no topo, como nos cartões de módulo */
+.lg .lg-jogador::before,.lg .lg-botao::before,.lg .lg-online::before,.ofc .ofc-caixa::before,.ofc .ofc-p-centro::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--c,var(--esc)),transparent);opacity:.7;pointer-events:none}
+
+/* --- Entrada (lobby) --- */
+.lg .lg-jogador{border-radius:22px!important;padding:12px 16px 12px 12px!important}
+.lg .lg-jogador-txt b,.lg .lg-jogador-txt strong{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.lg .lg-pilula{border-radius:14px!important}
+.lg .lg-noticias{border-radius:14px!important}
+.lg .lg-lado{gap:10px!important}
+.lg .lg-botao{--c:var(--esc);display:flex!important;align-items:center;gap:12px;border-radius:18px!important;padding:12px 14px!important;color:#fff!important;transition:transform .15s,box-shadow .15s}
+.lg .lg-botao:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 24px 44px -22px color-mix(in srgb,var(--c) 60%,#000)!important}
+.lg .lg-botao.jg-missoes{--c:#b99cff}.lg .lg-botao.jg-cobrancas{--c:#ff6b8a}.lg .lg-botao.jg-recados{--c:#7aa7ff}.lg .lg-botao.jg-ranking{--c:#f7c948}.lg .lg-botao.jg-conquistas{--c:#ff9a5c}
+.lg .lg-botao-icone{width:44px!important;height:44px!important;flex:none;border-radius:14px!important;display:grid;place-items:center;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)!important}
+.lg .lg-botao-txt b,.lg .lg-botao-txt strong{font:700 15px var(--pv-titulo)!important;letter-spacing:-.01em;color:#fff!important}
+.lg .lg-botao-txt small{color:#a8a39c!important}
+.lg .lg-botao::after{content:"→";margin-left:auto;width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;font:600 13px var(--mac-ui);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.lg .lg-online{border-radius:18px!important;padding:12px 14px!important}
+.lg .lg-online h3{color:var(--esc)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em;text-transform:uppercase}
+.lg .lg-bandeja{border-radius:20px!important}
+.lg .lg-entrar{border-radius:20px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:0 18px 40px -16px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.4)!important}
+.lg .lg-entrar b,.lg .lg-entrar span{font-family:var(--pv-titulo)!important;letter-spacing:.02em}
+.lg .lg-secundario{border-radius:14px!important;border:1px solid var(--esc-borda)!important;background:rgba(255,255,255,.04)!important}
+
+/* --- Jogo aberto: trilho e lateral no mesmo vidro da tela de módulos --- */
+.ofc .ofc-rail{background:linear-gradient(180deg,#14161d,#0f1116)!important;border-right:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-lateral{background:linear-gradient(180deg,#191b23,#121419)!important;border-right:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-lateral-topo b,.ofc .ofc-lateral-topo strong,.ofc .ofc-lateral-topo h2{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-abas{border-radius:14px!important;background:rgba(0,0,0,.3)!important;border:1px solid rgba(255,255,255,.06)!important}
+.ofc .ofc-abas button[aria-selected="true"],.ofc .ofc-abas button.on,.ofc .ofc-abas button.ativa{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;color:#fff!important}
+.ofc .ofc-p-eu,.ofc .ofc-p-bloco{border-radius:16px!important}
+.ofc .ofc-p-centro{--c:#f7c948;border-radius:20px!important}
+.ofc .ofc-p-titulo h5{color:var(--esc)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.ofc .ofc-p-centro-topo b,.ofc .ofc-p-centro-topo strong{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-p-num{border-radius:12px!important;border:1px solid var(--esc-borda)!important;background:rgba(255,255,255,.035)!important}
+.ofc .ofc-p-num b{font-family:var(--pv-titulo)!important}
+.ofc .ofc-p-entrar{border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.ofc .ofc-p-sala,.ofc .ofc-p-quarto{border-radius:14px!important;border:1px solid var(--esc-borda)!important;background:linear-gradient(180deg,#232633,#1a1c25)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important}
+.ofc .ofc-p-sala:hover,.ofc .ofc-p-quarto:hover{border-color:color-mix(in srgb,var(--esc) 50%,transparent)!important}
+
+/* --- Jogo aberto: topo, coluna da direita e barra de baixo --- */
+.ofc .ofc-voltar-mapa,.ofc .ofc-andares{border-radius:14px!important}
+.ofc .ofc-sala-atual{border-radius:16px!important}
+.ofc .ofc-sala-atual h2{font:700 15px var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-sala-emblema{border-radius:12px!important;background:color-mix(in srgb,var(--esc) 14%,transparent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--esc) 40%,transparent)!important}
+.ofc .ofc-caixa{--c:var(--esc);border-radius:18px!important}
+.ofc .ofc-cobrancas{--c:#ff6b8a}.ofc #office-missoes{--c:#b99cff}.ofc .ofc-musica{--c:#7aa7ff}
+.ofc .ofc-missoes-topo b,.ofc .ofc-missoes-topo strong,.ofc .ofc-musica-topo b{font:700 14px var(--pv-titulo)!important;letter-spacing:-.01em}
+.ofc .ofc-dock{border-radius:20px!important}
+.ofc .ofc-dock-btn{border-radius:12px!important}
+.ofc .ofc-dock-btn.principal{background:var(--pv-laranja)!important;color:#1b0d06!important;border:0!important}
+.lg .lg-botao{height:auto!important;min-height:64px}
+
+/* --- Continuidade com a tela de módulos: o mesmo fundo (noite com o brilho
+   laranja no alto à esquerda, lilás à direita e turquesa embaixo) e o
+   mesmo cartão (tinta da cor no canto de cima, borda puxada para a cor). --- */
+.ofc-lobby.lg .abr-vinheta{background:radial-gradient(ellipse 60% 50% at 12% 0%,rgba(232,96,46,.3),transparent 70%),radial-gradient(ellipse 50% 45% at 95% 15%,rgba(185,156,255,.16),transparent 70%),radial-gradient(ellipse 60% 50% at 70% 110%,rgba(56,217,197,.16),transparent 70%),radial-gradient(120% 90% at 50% 55%,transparent 38%,rgba(11,12,17,.88) 100%),linear-gradient(180deg,rgba(11,12,17,.82),rgba(11,12,17,.2) 26%,rgba(11,12,17,.2) 58%,rgba(11,12,17,.95))!important}
+.lg .lg-jogador,.lg .lg-noticias,.lg .lg-botao,.lg .lg-online,.lg .lg-bandeja,
+.ofc .ofc-caixa,.ofc .ofc-dock,.ofc .ofc-sala-atual,.ofc .ofc-p-centro,.ofc .ofc-p-eu,.ofc .ofc-p-bloco{
+  border-color:color-mix(in srgb,var(--c,var(--esc)) 24%,rgba(255,255,255,.08))!important;
+  background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c,var(--esc)) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),rgba(19,21,28,.94)!important}
+
+/* Cabeçalho da entrada = o cartão do Escritório */
+.lg-topo{grid-template-columns:auto auto minmax(0,1fr)!important;grid-template-areas:"cabeca jogador recursos" "cabeca jogador noticias"!important;align-items:center!important}
+.lg-topo > .lg-cabeca{grid-area:cabeca;display:flex;align-items:center;gap:14px;padding-right:8px}
+.lg-cabeca-icone{width:52px;height:52px;flex:none;border-radius:16px;display:grid;place-items:center;color:var(--esc);background:linear-gradient(180deg,color-mix(in srgb,var(--esc) 30%,transparent),color-mix(in srgb,var(--esc) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 0 1px color-mix(in srgb,var(--esc) 45%,transparent),0 10px 26px -10px var(--esc)}
+.lg-cabeca-icone svg{width:24px;height:24px}
+.lg-cabeca-txt{display:grid;gap:2px}
+.lg-cabeca-txt small{color:var(--esc);font:700 11px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase}
+.lg-cabeca-txt b{font:700 40px/1 var(--pv-titulo);letter-spacing:-.025em;background:linear-gradient(180deg,#fff,#c9c3bb);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* Jogo aberto: o mesmo fundo de noite em volta do quarto, e o trilho e a lateral nele */
+.ofc .ofc-mapa{background:radial-gradient(ellipse 60% 50% at 20% 0%,rgba(232,96,46,.2),transparent 70%),radial-gradient(ellipse 50% 45% at 95% 10%,rgba(185,156,255,.12),transparent 70%),radial-gradient(ellipse 60% 50% at 60% 110%,rgba(56,217,197,.12),transparent 70%),#0b0c11!important}
+.ofc .ofc-rail{background:#0b0c11!important}
+.ofc .ofc-lateral{background:radial-gradient(ellipse 120% 40% at 0% 0%,rgba(232,96,46,.16),transparent 70%),#0e0f15!important}
+
+/* --- Dentro do Escritório a cor de ação é a do cartão dele (turquesa), como
+   o "Entrar no escritório →" da tela de módulos; o laranja sai dos botões do
+   jogo. Botões secundários no vidro neutro, sem contorno laranja. --- */
+.lg .lg-entrar,.lg-base .lg-entrar{background:linear-gradient(180deg,#ffb15c,#ff7a1f)!important;color:#1c0b00!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 18px 44px -16px rgba(255,122,31,.8)!important;animation:none!important}
+.lg .lg-entrar::before{display:none!important}
+.lg .lg-entrar:active{transform:translateY(1px)}
+.lg-entrar-txt b,.lg .lg-entrar > span:only-child{font:700 24px/1 var(--pv-titulo)!important;letter-spacing:-.01em!important;text-transform:none!important;text-shadow:none!important}
+.lg-entrar-txt small{font:500 12px var(--mac-ui)!important;opacity:.75}
+.lg-entrar kbd{background:rgba(28,11,0,.14)!important;color:#3a1800!important;box-shadow:none!important}
+.ofc .ofc-p-entrar,.ofc .ofc-dock-btn.destaque.principal,.ofc .ofc-dock-btn.destaque[data-avisos=true]{background:linear-gradient(180deg,#5ff0dc,#2cc4b1)!important;color:#04201c!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 10px 24px -12px rgba(56,217,197,.8)!important}
+.ofc .ofc-dock-btn.destaque:not(.principal):not([data-avisos=true]){background:rgba(255,255,255,.05)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important;color:#ece8e3!important}
+.ofc .ofc-dock-btn.destaque:not(.principal):hover{background:rgba(255,255,255,.09)!important}
+/* abas dos andares no mesmo trilho de pílulas do painel */
+.ofc .ofc-andares button{border-radius:10px!important;color:#a8a39c!important;background:none!important;box-shadow:none!important}
+.ofc .ofc-andares button[aria-pressed="true"]{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important}
+/* bônus da Copa: um cartão como os outros, com a cor dourada do Ranking */
+.ofc-bonus{--c:#f7c948;border:1px solid color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),rgba(19,21,28,.94)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 40px -24px rgba(0,0,0,.85)!important;border-radius:18px!important}
+.ofc-bonus-txt small{color:var(--c)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.14em!important}
+.ofc-bonus-txt b{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
+/* baú da lateral: cartão dourado no vidro, sem o fundo marrom */
+.ofc .ofc-p-bau{--c:#f7c948;border:1px solid color-mix(in srgb,var(--c) 30%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 90% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 70%),rgba(19,21,28,.94)!important;color:#fff!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+/* trilho: o item ativo turquesa, não laranja */
+.ofc .ofc-p-centro .ofc-p-entrar{font-family:var(--pv-titulo)!important}
+
+/* ===== Entrada do Escritório: caminho B do moodboard (vitrine) =====
+   Paulo, 28/10/2026. A cidade em tela cheia, como abertura de jogo; a sua
+   sala flutua no centro com o nome em cima; à esquerda o bônus da Copa, o
+   "Na semana" e quem está online; embaixo os cinco cartões pequenos e o
+   botão de entrar (laranja). Tela cheia: o trilho e a lateral voltam ao
+   entrar. No celular segue a montagem de antes. */
+@media (min-width:1100px) and (min-height:640px){
+  .ofc:has(.ofc-lobby.lg){grid-template-columns:minmax(0,1fr)!important}
+  .ofc:has(.ofc-lobby.lg) > .ofc-rail,.ofc:has(.ofc-lobby.lg) > .ofc-lateral{display:none!important}
+}
+.lg-cartao-eti,.lg-cartao-ico,.lg-cartao-desc,.lg-cartao-num,.lg-cartao-acao,.lg-modulos,.lg-online-vazio{display:none}
+@container (min-width:901px) and (min-height:621px){
+  /* a cidade, com o centro limpo e as bordas escuras para o texto */
+  .ofc-lobby.lg .abr-vinheta{background:radial-gradient(ellipse 55% 55% at 50% 52%,rgba(11,12,17,0),rgba(11,12,17,.55) 70%,rgba(11,12,17,.92)),linear-gradient(180deg,rgba(11,12,17,.85),rgba(11,12,17,.1) 22%,rgba(11,12,17,.1) 60%,rgba(11,12,17,.96))!important}
+  .lg .lg-ceu{display:none!important}
+
+  .lg-tela{grid-template-columns:300px minmax(0,1fr) 360px!important;grid-template-rows:auto minmax(0,1fr) auto auto!important;grid-template-areas:"topo topo topo" "esq palco ." "band band band" "lado lado cta"!important;gap:14px 16px!important;padding:30px 48px 30px!important}
+
+  /* topo: saudação e Escritório à esquerda; moedas, sequência, você e Módulos à direita */
+  .lg .lg-topo{grid-area:topo;display:flex!important;align-items:center!important;gap:10px!important}
+  .lg-topo > .lg-cabeca{flex:1;padding:0!important}
+  .lg-cabeca-icone{display:none!important}
+  .lg-cabeca-txt small{color:#ff9a5c!important}
+  .lg-cabeca-txt b{font-size:44px!important}
+  .lg-cabeca-txt em{display:none}
+  .lg .lg-recursos{display:flex!important;flex-direction:row!important;gap:8px!important;align-items:center}
+  .lg .lg-pilula{height:40px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(19,21,28,.82)!important;box-shadow:none!important}
+  .lg-topo > .lg-jogador{order:3;gap:10px!important;padding:5px 14px 5px 5px!important;border-radius:14px!important;min-height:0!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(19,21,28,.82)!important;box-shadow:none!important}
+  .lg .lg-jogador::before{display:none!important}
+  .lg .lg-jogador .lg-anel{width:38px!important;height:38px!important}
+  .lg .lg-jogador .lg-anel img{width:32px!important;height:32px!important}
+  .lg .lg-jogador-txt small,.lg .lg-jogador-txt .lg-xp,.lg .lg-jogador-txt em,.lg .lg-jogador-txt .lg-conv{display:none!important}
+  .lg .lg-jogador-txt .vb-titulo{font-size:10.5px!important}
+  .lg .lg-jogador-txt b{font:600 14px var(--pv-titulo)!important}
+  .lg-modulos{order:4;display:inline-flex!important;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(19,21,28,.82);color:#ece8e3;font:600 12px var(--mac-ui);cursor:pointer}
+  .lg-modulos:hover{background:rgba(40,43,54,.9)}
+
+  /* coluna da esquerda: bônus da Copa e "Na semana" no alto, quem está online embaixo */
+  .lg .ofc-bonus.entrada,.lg .lg-noticias{position:absolute!important;left:48px;width:300px!important;max-width:300px!important;box-sizing:border-box;z-index:3;margin:0!important}
+  .lg .ofc-bonus.entrada{top:130px}
+  /* o bônus mora dentro das moedas, que entram animadas: sem o deslocamento, ele se posiciona pela tela */
+  .lg .lg-recursos{animation:none!important;transform:none!important;translate:none!important}
+  .lg .lg-noticias{top:236px;height:auto!important;display:grid!important;gap:6px;padding:14px!important;border-radius:18px!important;border:1px solid rgba(185,156,255,.26)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;overflow:hidden}
+  .lg .lg-noticias-tag{justify-self:start;padding:0!important;background:none!important;color:#b99cff!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em;text-transform:uppercase}
+  .lg .lg-noticias-trilho{white-space:normal!important;font:500 13px/1.4 var(--mac-ui)!important}
+  .lg .lg-online,.lg .lg-tela:has(.lg-colega) .lg-turma{grid-area:esq!important;align-self:end!important;justify-self:stretch!important;max-width:none!important;width:auto!important;margin:0!important;padding:12px 14px!important;border-radius:18px!important;border:1px solid rgba(56,217,197,.28)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;z-index:3}
+  .lg .lg-turma{display:none!important}
+  .lg .lg-tela:has(.lg-colega) .lg-turma{display:flex!important;flex-direction:column;gap:8px!important;pointer-events:auto}
+  .lg .lg-tela:has(.lg-colega) .lg-online{display:none!important}
+  .lg .lg-online h3,.lg .lg-turma-titulo{color:#38d9c5!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important;text-shadow:none!important}
+  .lg-online-vazio{display:block;margin:6px 0 0;font:500 13px/1.4 var(--mac-ui);color:#a8a39c}
+  .lg .lg-online:has(.lg-online-vazio) .lg-rostos{display:none!important}
+  .lg .lg-colega{width:100%!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.08)!important;background:rgba(255,255,255,.04)!important;box-shadow:none!important}
+
+  /* a sala no centro, flutuando, com o nome em cima */
+  .lg .lg-palco{grid-area:palco;display:grid!important;place-items:center!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;pointer-events:none}
+  .lg .lg-palco::before,.lg .lg-palco::after{display:none!important}
+  .lg .lg-quarto{width:min(440px,100%)!important;max-height:100%;margin:0!important;border-radius:24px!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 40px 90px -20px rgba(0,0,0,.95)!important}
+  .lg .lg-quarto-placa{display:inline-flex!important;top:-46px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;font-family:var(--pv-titulo);padding:7px 14px!important;border-radius:12px!important}
+  .lg .lg-quarto-placa svg{stroke:#ff9a5c!important}
+  .lg .lg-quarto-placa em{background:none!important;color:#38d9c5!important}
+  .lg .lg-quarto{overflow:visible!important}
+
+  /* os cinco cartões pequenos */
+  .lg .lg-lado{grid-area:lado;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;align-content:stretch!important;justify-items:stretch!important}
+  .lg .lg-botao{width:auto!important;height:auto!important;min-height:112px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;grid-template-areas:"ico num" "tit tit" "rot rot"!important;align-items:start!important;gap:6px 8px!important;padding:14px!important;border-radius:18px!important;text-align:left;
+    background:radial-gradient(ellipse 90% 80% at 100% 0%,color-mix(in srgb,var(--c) 22%,transparent),transparent 70%),rgba(19,21,28,.94)!important;border:1px solid color-mix(in srgb,var(--c) 26%,rgba(255,255,255,.08))!important;box-shadow:0 20px 40px -24px rgba(0,0,0,.9)!important}
+  .lg .lg-botao:hover{transform:translateY(-3px)!important;border-color:color-mix(in srgb,var(--c) 55%,transparent)!important}
+  .lg .lg-botao::before,.lg .lg-botao::after{display:none!important}
+  .lg .lg-botao-icone,.lg .lg-botao-txt small{display:none!important}
+  .lg-cartao-ico{grid-area:ico;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;color:var(--c);background:color-mix(in srgb,var(--c) 20%,transparent)}
+  .lg-cartao-ico svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .lg-cartao-num{display:contents}
+  .lg-cartao-num b{grid-area:num;justify-self:end;font:700 24px/1 var(--pv-titulo);color:var(--c)}
+  .lg-cartao-num.zero b{color:#6f6a64}
+  .lg .lg-botao.alerta .lg-cartao-num b{color:#ff6b8a}
+  .lg-cartao-num small{grid-area:rot;font:400 11.5px/1.35 var(--mac-ui);color:#a8a39c;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .lg .lg-botao-txt{grid-area:tit;display:block!important;padding:0!important}
+  .lg .lg-botao-txt b{font:700 15px var(--pv-titulo)!important}
+  .lg .lg-botao.jg-conquistas .lg-botao-txt small{display:block!important;grid-area:rot;margin-top:4px;font:400 11.5px var(--mac-ui)!important;color:#a8a39c!important}
+
+  /* atalhos numa linha fina e o botão de entrar ao lado dos cartões */
+  .lg .lg-base{display:contents!important}
+  .lg .lg-bandeja{grid-area:band;justify-self:center;display:flex!important;gap:6px!important;padding:6px!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(19,21,28,.88)!important;box-shadow:none!important}
+  .lg .lg-bandeja .lg-secundario{height:38px!important;border:0!important;background:rgba(255,255,255,.05)!important}
+  .lg .lg-entrar,.lg-base .lg-entrar{grid-area:cta;align-self:stretch;justify-self:stretch;height:auto!important;min-height:112px!important;margin:0!important;border-radius:20px!important}
+  .lg .ofc-lobby-outra{grid-area:band!important}
+}
+/* notebook baixo: a sala menor e a coluna da esquerda mais alta */
+@container (min-width:901px) and (min-height:621px) and (max-height:800px){
+  .lg .lg-quarto{width:min(330px,100%)!important}
+  .lg-cabeca-txt b{font-size:34px!important}
+  .lg .ofc-bonus.entrada{top:112px}
+  .lg .lg-noticias{top:206px}
+  .lg .lg-botao{min-height:96px!important;padding:12px!important}
+  .lg .lg-entrar,.lg-base .lg-entrar{min-height:96px!important}
+}
+.lg-cabeca-txt em{font:400 13px var(--mac-ui);font-style:normal;color:#a8a39c;margin-top:4px}
+.lg-palco-info{display:none}
+/* ===== Lateral do jogo no padrão da tela de módulos =====
+   Caminho D do moodboard (Paulo, 28/10/2026): cabeçalho com saudação e
+   "Escritório", você numa linha, quatro números como os da tela de módulos
+   e cada bloco um cartão de módulo na sua cor (Centro de Operação turquesa,
+   Quem está onde lilás, Lugares laranja, Quartos azul). */
+.ofc .ofc-lateral{background:radial-gradient(ellipse 120% 22% at 0% 0%,rgba(232,96,46,.2),transparent 70%),radial-gradient(ellipse 100% 18% at 100% 100%,rgba(56,217,197,.1),transparent 70%),#0b0c11!important}
+.ofc .ofc-lateral-topo{align-items:flex-start!important;padding:18px 16px 10px!important}
+.ofc .ofc-lateral-topo > div{display:grid;gap:3px}
+.ofc .ofc-lateral-ola{color:#ff9a5c;font:700 10px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase}
+.ofc .ofc-lateral-topo b{font:700 26px/1 var(--pv-titulo)!important;letter-spacing:-.02em}
+.ofc .ofc-lateral-topo small{color:#a8a39c!important;font:400 12px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-abas{margin:0 12px!important}
+.ofc .ofc-lateral .ofc-salas{display:grid;gap:12px;padding:14px 12px 28px!important}
+
+/* você */
+.ofc .ofc-lateral .ofc-p-eu{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:0 4px 2px!important;border-radius:0!important;gap:10px!important}
+.ofc .ofc-lateral .ofc-p-eu::before{display:none!important}
+.ofc .ofc-lateral .ofc-p-eu-texto b{font:600 14px var(--pv-titulo)!important}
+.ofc .ofc-lateral .ofc-p-eu-texto small{color:#8f8a83!important;font-size:11.5px!important}
+.ofc .ofc-lateral .ofc-p-status select{height:28px!important;max-width:118px!important;border:0!important;border-radius:9px!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important;font:500 12px var(--mac-ui)!important}
+
+/* os quatro números */
+.ofc-p-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ofc-p-tile{display:grid;gap:4px;justify-items:start;padding:12px;border-radius:16px;border:1px solid color-mix(in srgb,var(--c) 22%,transparent);background:radial-gradient(ellipse 90% 80% at 100% 0%,color-mix(in srgb,var(--c) 16%,transparent),transparent 70%),#13151c;color:#ece8e3;font:inherit;text-align:left}
+button.ofc-p-tile{cursor:pointer;transition:transform .15s,border-color .15s}
+button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--c) 50%,transparent)}
+.ofc-p-tile small{color:var(--c);font:700 9.5px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
+.ofc-p-tile b{color:var(--c);font:700 28px/1 var(--pv-titulo);text-shadow:0 0 22px color-mix(in srgb,var(--c) 45%,transparent)}
+.ofc-p-tile span{color:#a8a39c;font:400 11px var(--mac-ui)}
+.ofc-p-tile.zero b{color:#6f6a64;text-shadow:none}
+
+/* cartão de módulo */
+.ofc .ofc-lateral .ofc-p-modulo{position:relative;display:grid!important;gap:8px!important;padding:16px!important;border-radius:20px!important;border:1px solid color-mix(in srgb,var(--c) 26%,rgba(255,255,255,.06))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important;backdrop-filter:none!important}
+.ofc .ofc-lateral .ofc-p-modulo::before{display:none!important}
+.ofc-p-modulo-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ofc-p-modulo-topo > small:first-child{color:var(--c);font:700 10px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase}
+.ofc-p-modulo-topo > small + small{color:#a8a39c;font:400 11.5px var(--mac-ui)}
+.ofc-p-seta{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--c);font:600 12px var(--mac-ui)}
+.ofc .ofc-lateral .ofc-p-modulo .ofc-p-centro-arte{width:42px!important;height:42px!important;border-radius:13px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 30%,transparent),color-mix(in srgb,var(--c) 10%,transparent))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent),0 10px 26px -10px var(--c)!important}
+.ofc-p-modulo-nome{font:700 20px/1.1 var(--pv-titulo);letter-spacing:-.015em;color:#fff}
+.ofc-p-modulo-desc{display:flex;align-items:center;gap:8px;color:#a8a39c;font:400 12px/1.45 var(--mac-ui)}
+.ofc-p-modulo-acao{justify-self:start;margin-top:2px;padding:0;border:0;background:none;color:var(--c);font:700 12px var(--mac-ui);cursor:pointer}
+.ofc-p-modulo-acao:hover:not(:disabled){text-decoration:underline}
+.ofc-p-modulo-acao:disabled{color:#a8a39c;cursor:default}
+.ofc .ofc-lateral .ofc-p-nota{margin:0;color:#a8a39c;font:400 12px/1.45 var(--mac-ui)}
+
+/* quem está onde */
+.ofc .ofc-lateral .ofc-p-grupos{gap:6px!important}
+.ofc .ofc-lateral .ofc-p-grupo{border-radius:12px!important;background:rgba(255,255,255,.035)!important;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo{min-height:40px!important;padding:0 6px!important;gap:8px!important;border-bottom:1px solid rgba(255,255,255,.05)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > span:not(.ofc-p-sala-arte){font:600 13px var(--pv-titulo)!important;color:#fff!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > small{min-width:18px;padding:0 6px;border-radius:99px;background:rgba(70,212,140,.15);color:#7fe0a8!important;font:700 10.5px/18px var(--mac-ui)!important;text-align:center}
+.ofc .ofc-lateral .ofc-p-grupo-topo > em{color:var(--c)!important;font:600 11px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > button{border:0!important;background:none!important;color:var(--c)!important;font:700 12px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo .ofc-p-sala-arte{width:26px!important;height:26px!important;border-radius:8px!important;background:color-mix(in srgb,var(--sala) 14%,rgba(255,255,255,.04))!important}
+.ofc .ofc-lateral .ofc-p-fora{margin-top:2px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
+.ofc .ofc-lateral .ofc-p-fora > summary{display:flex!important;align-items:center;gap:8px;padding:0!important;color:#a8a39c!important;font:400 11.5px var(--mac-ui)!important;border:0!important}
+.ofc .ofc-lateral .ofc-p-fora > summary::before{display:none!important}
+.ofc .ofc-lateral .ofc-p-fora > summary .ofc-p-cabecas > *{filter:grayscale(.6);opacity:.7;box-shadow:0 0 0 2px #13151c!important}
+.ofc .ofc-lateral .ofc-p-fora > summary em{margin-left:auto;font-style:normal;color:var(--c);font:700 12px var(--mac-ui)}
+.ofc .ofc-lateral .ofc-p-fora > summary em::after{content:"Ver todos →"}
+.ofc .ofc-lateral .ofc-p-fora[open] > summary em::after{content:"Esconder"}
+.ofc .ofc-lateral .ofc-p-fora ul{margin-top:8px!important;background:none!important}
+
+/* lugares: duas colunas compactas */
+.ofc .ofc-lateral .ofc-p-salas{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2px 8px!important}
+.ofc .ofc-lateral .ofc-p-sala{position:relative;flex-direction:row!important;justify-content:flex-start!important;gap:8px!important;height:36px!important;min-height:0!important;padding:0 4px!important;border:0!important;border-radius:9px!important;background:none!important;box-shadow:none!important;color:#ece8e3!important;transform:none!important;font:500 12.5px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-sala:hover{background:rgba(255,255,255,.05)!important}
+.ofc .ofc-lateral .ofc-p-sala.aqui{background:color-mix(in srgb,var(--c) 12%,transparent)!important}
+.ofc .ofc-lateral .ofc-p-sala::before,.ofc .ofc-lateral .ofc-p-sala::after{display:none!important}
+.ofc .ofc-lateral .ofc-p-sala .ofc-p-sala-arte{width:26px!important;height:26px!important;border-radius:8px!important;background:color-mix(in srgb,var(--sala) 16%,rgba(255,255,255,.04))!important;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-sala-nome{flex:1!important;width:auto!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font:inherit!important;text-align:left}
+.ofc .ofc-lateral .ofc-p-sala > small{position:static!important;margin-left:auto;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-pino{display:none}
+
+/* quartos */
+.ofc .ofc-lateral .ofc-p-quartos{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 4px!important}
+.ofc .ofc-lateral .ofc-p-quarto{width:auto!important;border:0!important;background:none!important;box-shadow:none!important;color:#a8a39c!important}
+.ofc .ofc-lateral .ofc-p-quarto:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
+.ofc .ofc-lateral .ofc-p-quarto.aqui .ofc-p-avatar{box-shadow:0 0 0 2px #38d9c5,0 0 10px rgba(56,217,197,.35)!important}
+.ofc .ofc-lateral .ofc-p-fora > summary{white-space:nowrap}
+.ofc .ofc-lateral .ofc-p-fora > summary em{white-space:nowrap}
+.ofc .ofc-lateral .ofc-p-sala{height:auto!important;min-height:38px!important;padding:5px 4px!important}
+.ofc .ofc-lateral .ofc-p-sala-nome{white-space:normal!important;overflow:visible!important;line-height:1.15!important}
+.ofc .ofc-lateral .ofc-p-sala-nome{flex:1 1 0!important;min-width:0!important}
+.ofc .ofc-lateral .ofc-p-sala > small{flex:none!important}
+/* o número de gente vai no canto do ícone, para o nome caber inteiro */
+.ofc .ofc-lateral .ofc-p-sala > small{position:absolute!important;left:22px;top:1px;min-width:15px!important;height:15px;padding:0 4px!important;font:700 9.5px/15px var(--mac-ui)!important;background:#46d48c!important;color:#06210f!important;box-shadow:0 0 0 2px #13151c!important}
+.ofc .ofc-lateral .ofc-p-sala > small{right:auto!important;width:auto!important;margin:0!important;box-sizing:border-box}
+
+/* ===== Trilho de ícones do Escritório no padrão novo =====
+   Todos os ícones no mesmo traço e tamanho, cada um num quadradinho como os
+   ícones dos cartões de módulo; o ativo acende o quadradinho em turquesa (a
+   cor do Escritório) com o fio na borda, sem caixa laranja em volta do botão.
+   No celular a barra de baixo segue como era. */
+@media (min-width:761px){
+  .ofc .ofc-rail{gap:2px!important;padding:12px 6px!important;background:#0b0c11!important;box-shadow:inset -1px 0 0 rgba(255,255,255,.06)!important;border:0!important}
+  .ofc .ofc-rail .ofc-logo{margin-bottom:10px!important}
+  .ofc .ofc-rail-btn{width:56px!important;gap:3px!important;padding:4px 0 6px!important;border-radius:12px!important;background:none!important;box-shadow:none!important;color:#8f8a83!important;font:500 10px/1.15 var(--mac-ui)!important;transform:none!important}
+  .ofc .ofc-rail-btn svg{box-sizing:content-box;width:19px!important;height:19px!important;padding:8px;border-radius:11px;fill:none!important;stroke:currentColor!important;stroke-width:1.7!important;stroke-linecap:round;stroke-linejoin:round;transition:background .15s,color .15s,box-shadow .15s}
+  .ofc .ofc-rail-btn:hover{color:#ece8e3!important}
+  .ofc .ofc-rail-btn:hover svg{background:rgba(255,255,255,.07)}
+  .ofc .ofc-rail-btn[aria-pressed="true"]{color:#fff!important;background:none!important;box-shadow:none!important}
+  .ofc .ofc-rail-btn[aria-pressed="true"] svg{color:#38d9c5;stroke:#38d9c5!important;background:linear-gradient(180deg,rgba(56,217,197,.26),rgba(56,217,197,.08));box-shadow:inset 0 0 0 1px rgba(56,217,197,.4),0 8px 20px -10px #38d9c5}
+  .ofc .ofc-rail-btn[aria-pressed="true"]::before{left:-6px!important;top:12px!important;bottom:auto!important;height:18px;width:3px!important;background:#38d9c5!important;box-shadow:0 0 10px #38d9c5!important}
+  .ofc .ofc-rail-btn:focus-visible{outline:2px solid #38d9c5!important;outline-offset:1px}
+  .ofc .ofc-rail-fim{flex:1;min-height:12px}
+}
+@media (min-width:761px) and (max-height:800px){
+  .ofc .ofc-rail-btn{width:48px!important;padding:3px 0!important}
+  .ofc .ofc-rail-btn svg{padding:7px}
+}
+@media (min-width:761px) and (max-height:940px){
+  .ofc .ofc-rail{padding:10px 6px!important}
+  .ofc .ofc-rail .ofc-logo{margin-bottom:6px!important}
+  .ofc .ofc-rail-btn{gap:2px!important;padding:2px 0 4px!important}
+  .ofc .ofc-rail-btn svg{padding:6px}
+  .ofc .ofc-rail-btn[aria-pressed="true"]::before{top:9px!important}
+}
