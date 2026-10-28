@@ -6,7 +6,7 @@
 // mostra (não espia a mão de ninguém) e devolve o pedido da jogada.
 // Ganhar de um bot dá VybeCoins e XP, com teto por dia (premioDoBot).
 import pokersolver from 'pokersolver';
-import { simular } from './escritorio-sinuca.js';
+import { simular, cacapas } from './escritorio-sinuca.js';
 import { lancesDama } from './escritorio-dama.js';
 
 const { Hand } = pokersolver;
@@ -187,8 +187,11 @@ function poker(vista, nivel) {
 }
 
 // --- Sinuca: testa tacadas na física de verdade e escolhe a melhor ----------
-// Para onde mirar em cada caçapa: a boca, um pouco para dentro do buraco.
+// Para onde mirar em cada caçapa: o meio da boca e um pouco para cada lado dela
+// (com bocas de 1,5 bola, desde 28/10/2026, a bola que chega torta precisa de
+// outro ponto da boca para não bater no dente).
 const CACAPAS = [[-0.5, -0.5], [50, -1], [100.5, -0.5], [-0.5, 50.5], [50, 51], [100.5, 50.5]];
+const LADOS_DA_BOCA = { '-0.5,-0.5': [[1, -1], [-1, 1]], '100.5,-0.5': [[1, 1], [-1, -1]], '-0.5,50.5': [[1, 1], [-1, -1]], '100.5,50.5': [[1, -1], [-1, 1]], '50,-1': [[1, 0], [-1, 0]], '50,51': [[1, 0], [-1, 0]] };
 const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
 // A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
 const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);
@@ -206,6 +209,20 @@ function notaTacada(r, mesa, lado) {
  for (const n of r.caiu) if (n && n !== 0) s += meu(n) ? 30 : n === fim ? (limpo ? 500 : -200) : -15;
  return s;
 }
+// O vale: quantas bolas do outro a branca enxerga em linha reta (menos é
+// melhor) e quantas minhas ficaram paradas na boca de uma caçapa.
+function valeSinuca(bolas, deles, minhas, R, buracos) {
+ const b = bolas[0];
+ if (!b) return -100;
+ const livre = (alvo) => bolas.every((p, n) => {
+  if (!p || n === 0 || p === alvo) return true;
+  const dx = alvo[0] - b[0], dy = alvo[1] - b[1], l2 = dx * dx + dy * dy, t = Math.max(0, Math.min(1, ((p[0] - b[0]) * dx + (p[1] - b[1]) * dy) / l2));
+  return Math.hypot(b[0] + dx * t - p[0], b[1] + dy * t - p[1]) >= 2 * R;
+ });
+ const vistas = deles.filter((n) => bolas[n] && livre(bolas[n])).length;
+ const naBoca = minhas.filter((n) => bolas[n] && buracos.some(([cx, cy, cr]) => Math.hypot(bolas[n][0] - cx, bolas[n][1] - cy) - cr < 1.6)).length;
+ return -12 * vistas + 8 * naBoca;
+}
 function sinuca(mesa, lado, nivel) {
  const R = mesa.r || 1.15, bolas = mesa.bolas.map((p) => (p ? [...p] : null));
  const pedidoBase = {};
@@ -220,25 +237,67 @@ function sinuca(mesa, lado, nivel) {
  // Mira de bola fantasma: para cada bola alvo e cada caçapa.
  for (const n of alvosSinuca({ ...mesa, bolas }, lado)) {
   const o = bolas[n];
-  for (const [cx, cy] of CACAPAS) {
-   const dx = cx - o[0], dy = cy - o[1], d = Math.hypot(dx, dy) || 1;
+  for (const [px, py] of CACAPAS) for (const [ox, oy] of [[0, 0], ...(nivel === 'facil' ? [] : LADOS_DA_BOCA[`${px},${py}`])]) {
+   const cx = px + ox * 0.45, cy = py + oy * 0.45, dx = cx - o[0], dy = cy - o[1], d = Math.hypot(dx, dy) || 1;
    const gx = o[0] - (dx / d) * 2 * R, gy = o[1] - (dy / d) * 2 * R;
    candidatas.push(Math.atan2(gy - b[1], gx - b[0]));
   }
  }
- const extras = nivel === 'lendario' ? 24 : nivel === 'medio' ? 8 : 2;
+ const extras = nivel === 'lendario' ? 8 : nivel === 'medio' ? 6 : 2;
  for (let i = 0; i < extras; i++) candidatas.push(Math.random() * Math.PI * 2);
- const forcas = nivel === 'lendario' ? [0.35, 0.55, 0.8] : nivel === 'medio' ? [0.45, 0.7] : [0.6];
- const limite = nivel === 'lendario' ? 90 : nivel === 'medio' ? 30 : 6;
- let melhor = { nota: -Infinity, angulo: candidatas[0] || 0, forca: 0.6 };
- for (const angulo of candidatas.slice(0, limite)) for (const forca of forcas) {
-  const r = simular(bolas, angulo, forca, 0, R, 0), nota = notaTacada(r, { ...mesa, bolas }, lado) + Math.random();
-  if (nota > melhor.nota) melhor = { nota, angulo, forca };
+ const forcas = nivel === 'lendario' ? [0.35, 0.5, 0.68] : nivel === 'medio' ? [0.45, 0.65] : [0.55];
+ const limite = nivel === 'lendario' ? 160 : nivel === 'medio' ? 60 : 20;
+ const m2 = { ...mesa, bolas }, buracos = cacapas(), g = mesa.grupos?.[lado];
+ // Quanto a bola que eu queria passou perto de cair (para refinar as tacadas
+ // que quase entraram): a menor folga até a borda de um buraco.
+ const quase = (r) => {
+  let menor = Infinity;
+  const minhas = alvosSinuca(m2, lado);
+  for (const q of r.quadros) for (const n of minhas) {
+   if (q[2 * n] < 0) continue;
+   const x = q[2 * n] / 10, y = q[2 * n + 1] / 10;
+   for (const [cx, cy, cr] of buracos) menor = Math.min(menor, Math.hypot(x - cx, y - cy) - cr);
+  }
+  return menor;
+ };
+ const tentar = (angulo, forca) => { const r = simular(bolas, angulo, forca, 0, R, 0), nota = notaTacada(r, m2, lado); return { nota, perto: nota >= 30 ? 0 : quase(r), angulo, forca, fim: r.bolas }; };
+ const todas = [];
+ for (const angulo of candidatas.slice(0, limite)) for (const forca of forcas) todas.push(tentar(angulo, forca));
+ // O médio e o Baianinho corrigem a mira em volta das que quase entraram (o
+ // arrasto do corte e o dente da caçapa desviam a bola um pouco do que a bola
+ // fantasma diz), e o Baianinho escolhe a tacada que entra mesmo errando um pouco.
+ if (nivel !== 'facil') {
+  const grau = Math.PI / 180, passos = nivel === 'lendario' ? [-0.4, -0.25, -0.12, 0.12, 0.25, 0.4] : [-0.25, 0.25];
+  const quaseLa = todas.filter((c) => c.nota > -40 && c.perto < 2.5).sort((a, b) => b.nota - a.nota || a.perto - b.perto).slice(0, nivel === 'lendario' ? 24 : 5);
+  for (const c of quaseLa) for (const d of passos) todas.push(tentar(c.angulo + d * grau, c.forca));
  }
- // O erro da mão: o lendário quase não erra (o Baianinho), o fácil erra muito.
- const erroMao = { facil: 0.06, medio: 0.02, lendario: 0.003 }[nivel];
+ const ordem = todas.map((c) => ({ ...c, valor: c.nota - c.perto * 2 + Math.random() })).sort((a, b) => b.valor - a.valor);
+ let melhor = ordem[0] || { angulo: candidatas[0] || 0, forca: 0.6 };
+ // Sem bola boa, o Baianinho joga como malandro de bar (Paulo, 28/10/2026:
+ // "tirando onda da pessoa, deixando bola na boca, dando vale"): uma tacada sem
+ // falta que esconde a branca das bolas do outro (o vale) e, se der, deixa bola
+ // dele parada na boca da caçapa (tampa a caçapa e fica para a próxima).
+ if (nivel === 'lendario' && !(melhor.nota >= 30)) {
+  const outroLado = lado === 'desafiante' ? 'desafiado' : 'desafiante';
+  const vale = (c) => valeSinuca(c.fim, alvosSinuca({ ...m2, bolas: c.fim, grupos: mesa.grupos }, outroLado), alvosSinuca({ ...m2, bolas: c.fim }, lado), R, buracos);
+  const legais = todas.filter((c) => c.nota > -15).map((c) => ({ ...c, valor: vale(c) + Math.random() })).sort((a, b) => b.valor - a.valor);
+  if (legais.length) melhor = legais[0];
+ } else if (nivel === 'lendario') {
+  // Firmeza: entre as melhores que entram, a que ainda entra 0,08° para cada lado.
+  const boas = ordem.filter((c) => c.nota >= 30).slice(0, 6);
+  let firme = -1;
+  for (const c of boas) {
+   const f = [-0.08, 0.08].filter((d) => tentar(c.angulo + (d * Math.PI) / 180, c.forca).nota >= 30).length;
+   if (f > firme) { firme = f; melhor = c; }
+   if (f === 2) break;
+  }
+ }
+ // O erro da mão (calibrado com a mesa de bocas de 1,5 bola, 28/10/2026, para o
+ // fácil encaçapar ~20% das tacadas, o médio ~40% e o Baianinho ~85%). No vale
+ // a mão não importa tanto, e ele erra igual.
+ const erroMao = { facil: 0.015, medio: 0.0055, lendario: 0.0006 }[nivel];
  const angulo = melhor.angulo + (Math.random() * 2 - 1) * erroMao;
- return { tipo: 'tacar', angulo: Math.round(angulo * 10000) / 10000, forca: melhor.forca, efeito: 0, ...pedidoBase };
+ return { tipo: 'tacar', angulo: Math.round(angulo * 100000) / 100000, forca: melhor.forca, efeito: 0, ...pedidoBase };
 }
 
 // O pedido da jogada do bot, pelo jogo. `mesa` é o estado completo (o bot só

@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {bancoEscritorio} from './escritorio-esquema.mjs';
-import {iniciarSinuca,simular,jogarSinuca,vistaSinuca,RAIO,geometria,velocidadeDaForca,METROS_POR_UNIDADE,MEIO} from '../server/escritorio-sinuca.js';
+import {iniciarSinuca,simular,jogarSinuca,vistaSinuca,RAIO,geometria,velocidadeDaForca,METROS_POR_UNIDADE,MEIO,CANTO} from '../server/escritorio-sinuca.js';
 
 // Mesa arrumada: só as bolas dadas, o resto já caiu.
 function mesa(bolas,extra={}){
@@ -262,7 +262,7 @@ test('sinuca real: efeito lateral abre a volta para o lado do taco',()=>{
 test('sinuca real: a saída espalha e derruba perto de uma bola, e a mira tem folga de gente',()=>{
  let cai=0;const n=40;
  for(let i=0;i<n;i++){let s=i*7919;const m=iniciarSinuca('desafiante',(k)=>(s=(s*48271+11)%2147483647)%k);cai+=simular(m.bolas,(i-n/2)*0.0008,1,0,m.r).caiu.filter(Boolean).length;}
- assert.ok(cai/n>0.6&&cai/n<3,`saída derrubou ${cai/n} em média`);
+ assert.ok(cai/n>0.2&&cai/n<2,`saída derrubou ${cai/n} em média`);
  // Bola reta no canto, a branca a 28 da bola e a bola a 28 do canto: a física
  // honesta pede uns 0,7° de precisão (errar 0,1° na branca já desvia a bola
  // acertada em 1°); a medida é a de mesa de verdade, não de arcade.
@@ -270,9 +270,9 @@ test('sinuca real: a saída espalha e derruba perto de uma bola, e a mira tem fo
  const entra=[];for(let a=-3;a<=3;a+=0.05){const r=simular(so({0:B,2:O}),base+a*Math.PI/180,0.4,0,RAIO);if(r.caiu.includes(2))entra.push(a);}
  assert.ok(entra.at(-1)-entra[0]>0.4&&entra.at(-1)-entra[0]<2,`janela de ${entra.at(-1)-entra[0]}°`);
 });
-test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com a boca do canto de 2 bolas',()=>{
+test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com a boca do canto de 1,5 bola',()=>{
  const g=geometria();assert.equal(g.paredes.length,18);assert.equal(g.buracos.length,6);
- const boca=Math.hypot(4.17,4.17);assert.ok(Math.abs(boca/(2*RAIO)-2.07)<0.02);
+ const boca=Math.hypot(CANTO.boca,CANTO.boca);assert.ok(Math.abs(boca/(2*RAIO)-1.5)<0.01,`boca do canto de ${boca/(2*RAIO)} bolas`);
 });
 test('sinuca real: o arrasto do corte é maior devagar, e o efeito lateral desvia a branca (squirt)',()=>{
  // Corte de meia bola com a branca escorregando (perto): a bola acertada sai a menos de 30°, mais ainda devagar.
@@ -306,7 +306,7 @@ test('sinuca real: bola rápida demais sacode na boca; caçapa do meio na medida
  assert.equal(cai,13,'a 5 m/s a reta no canto entra');
  let forte=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,1,0,RAIO).caiu.includes(0))forte++;
  assert.ok(forte<13,'a 9 m/s ela bate no fundo e às vezes volta');
- assert.ok(Math.abs((2*MEIO.boca)/(2*RAIO)-2.25)<0.01,'boca do meio de 2,25 bolas');
+ assert.ok(Math.abs((2*MEIO.boca)/(2*RAIO)-1.5)<0.01,'boca do meio de 1,5 bola');
  assert.equal(iniciarSinuca('desafiante').pano,'bar');
  const anda=(pano)=>simular(so({0:[10,25]}),0,F(0.6),0,RAIO,0,{pano}).bolas[0][0];
  assert.ok(anda('torneio')>anda('bar')+3,'pano de torneio é mais rápido');

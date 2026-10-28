@@ -31,16 +31,15 @@ const G = 9.81 / METROS_POR_UNIDADE;
 // "dente" da caçapa, da boca até o fundo, atrás da linha da tabela): a bola
 // que chega torta bate no dente e volta, ou entra quicando nele. A bola cai
 // quando o centro passa por cima do buraco.
-// - canto: boca a 4,17 do canto (2 bolas de largura, como mesa oficial); dente
-//   até 2,12 ao longo e 2,41 para trás; buraco de raio 3,58 com o centro 1,37
-//   para fora nas duas direções;
-// - meio: na arte a boca tinha 2,9 bolas (larga demais para simulador); em
-//   28/10/2026 foi para a medida oficial, 2,25 bolas (boca a 3,2 do centro), e
-//   as pontas das borrachas foram redesenhadas na arte para bater. Dente até
-//   2,54 do centro e 2,19 para trás; buraco de raio 3,36 com o centro 2,92
-//   atrás da tabela.
-export const CANTO = { boca: 4.17, fundo: [2.12, 2.41], buraco: [1.37, 3.58] };
-export const MEIO = { boca: 3.2, fundo: [2.54, 2.19], buraco: [2.92, 3.36] };
+// Bocas de 1,5 bola, as duas (Paulo, 28/10/2026: "as bocas tá fácil demais
+// matar... no máximo 1,5 bola"; na arte eram 2,07 no canto e 2,9 no meio, e
+// as pontas das borrachas foram redesenhadas nela para bater):
+// - canto: a borracha acaba a 3,01 do canto; dente até 0,96 ao longo e 2,41
+//   para trás; buraco de raio 3,58 com o centro 1,37 para fora nas duas direções;
+// - meio: a borracha acaba a 2,13 do centro; dente até 1,47 do centro e 2,19
+//   para trás; buraco de raio 3,36 com o centro 2,92 atrás da tabela.
+export const CANTO = { boca: 3.01, fundo: [0.96, 2.41], buraco: [1.37, 3.58] };
+export const MEIO = { boca: 2.13, fundo: [1.47, 2.19], buraco: [2.92, 3.36] };
 // As paredes (segmentos [x1, y1, x2, y2]: o nariz das seis borrachas e os doze
 // dentes) e os seis buracos [x, y, raio].
 export function geometria() {

@@ -21,3 +21,8 @@ Baixados em 27/10/2026 com autorização do Paulo.
 
 Mesa de bar da sinuca (assets/jogos/mesa-bar.webp): arte enviada pelo Paulo em
 28/10/2026; o pano foi esticado para 2:1 e o fundo escurecido (sem marcas).
+
+Mesa de pôquer e mesa com tabuleiro da dama (assets/jogos/mesa-poker.webp e
+tabuleiro-dama.webp): artes enviadas pelo Paulo em 28/10/2026; fundo escurecido
+(sem marcas), contornos de lugar apagados do pano do pôquer e tabuleiro da dama
+endireitado (perspectiva).
