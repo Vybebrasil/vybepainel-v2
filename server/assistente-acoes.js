@@ -66,7 +66,8 @@ const GENERICAS = new Set(('a o as os um uma de da do das dos na no em para pra 
   + 'tarefa tareza tarefas demanda demandas peca pecas card cards reels post posts carrossel story video arte atividade job trabalho '
   + 'tenho to estou tava hoje agora amanha cliente clientes coloque coloca colocar muda mude mudar passa passe marca marque bota bote '
   + 'deixa deixe poe ponha atualiza status como vou iniciar comecar comecando fazendo andamento execucao nao e era disse falei quis '
-  + 'dizer isso aquela aquele sim ok certo vybe ia ja furar furo atrasar atrasada gravando gravou gravacao captacao captando').split(' '));
+  + 'dizer isso aquela aquele sim ok certo vybe ia ja furar furo atrasar atrasada gravando gravou gravacao captacao captando '
+  + 'data janeiro fevereiro marco abril maio junho julho agosto setembro outubro novembro dezembro').split(' '));
 // Forma "pelo som" (Reriston, 27/10/2026: o áudio escreveu "Bruce Lou" para Brussolo): c/ç/z/ss viram s, ou vira o,
 // letras dobradas viram uma, sem acento.
 const pelaFala = (w) => semAcento(w).replace(/ph/g, 'f').replace(/ch/g, 'x').replace(/lh/g, 'l').replace(/nh/g, 'n').replace(/qu/g, 'k')
@@ -113,10 +114,13 @@ async function pecaDaPessoaPorBusca(sql, pessoaId, busca, { comoHead = false, re
   const formato = ['reels', 'card', 'carrossel', 'story', 'video', 'motion', 'foto', 'feed'].find((f) => semAcento(busca).split(/[^a-z0-9]+/).some((w) => w.startsWith(f)));
   if (achadas.length > 1 && formato) { const doFormato = achadas.filter((l) => semAcento(l.titulo).startsWith(formato)); if (doFormato.length) achadas = doFormato; }
   // Data falada desempata também ("a agenda musical de 29/10").
-  const data = /\b(\d{1,2})\/(\d{1,2})\b/.exec(busca);
+  // "24 de outubro" vale como 24/10 (Ewerton, 27/10/2026: "vídeo com data de 24 de outubro").
+  const MESES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const porExtenso = /\b(\d{1,2}) de (janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/.exec(semAcento(busca));
+  const data = /\b(\d{1,2})\/(\d{1,2})\b/.exec(busca) || (porExtenso ? [porExtenso[0], porExtenso[1], String(MESES.indexOf(porExtenso[2]) + 1)] : null);
   if (achadas.length > 1 && data) { const dm = data[1].padStart(2, '0') + '/' + data[2].padStart(2, '0'); const doDia = achadas.filter((l) => curtoDia(l.veiculacao) === dm); if (doDia.length) achadas = doDia; }
   const pedido = termos.join(' ');
-  if (!achadas.length) throw invalido(`Não achei peça aberta sua com "${pedido.slice(0, 60)}". Responda citando esta mensagem com o nome do cliente ou o número da peça (o do link).`);
+  if (!achadas.length) throw invalido(`Não achei peça aberta sua (nem dos clientes em que você é head) com "${pedido.slice(0, 60)}". Responda com o nome do cliente ou o número da peça (o do link).`);
   // Várias (Ewerton, 27/10/2026: cinco "Agenda Musical" da Gonzalez): em ordem de veiculação, com o dia da semana e o status,
   // numeradas, e a próxima a veicular marcada; a resposta pode ser a posição, a data ou "a próxima".
   if (achadas.length > 1) {
@@ -249,7 +253,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
-  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: ['captacao', 'alteracao'].includes(acao), recentes: ['alteracao', 'comentar'].includes(acao),
+  const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: true, recentes: ['alteracao', 'comentar'].includes(acao),
     todas: acao === 'captacao' && (await temFuncao(sql, Number(p.id), 'captacao') || await temFuncao(sql, Number(p.id), 'producao')) }) : item));
   const nome = `"${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})`;
   let resumo, valor;
