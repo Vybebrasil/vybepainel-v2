@@ -13016,7 +13016,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-cli-rodape input {width:80px;padding:5px 8px;border:1px solid #ffffff20;border-radius:8px;background:#0b1118;color:#fff}
 @media(max-width:760px){.pkr-lugar{width:96px}.pkr-lugar .pkr-quem{min-width:0;padding-right:8px}.pkr-lugar .pkr-quem img,.pkr-lugar .pkr-quem .pkr-sem,.pkr-lugar .pkr-cliente{width:28px;height:28px;font-size:10px}.pkr-lugar .pkr-quem b{max-width:52px;font-size:10px}.pkr-carta.pequena{--w:18px}.pkr-salao .pkr-comunitarias .pkr-carta{--w:30px}.pkr-botao{min-width:90px;padding:10px}}
 @media (prefers-reduced-motion:reduce){.pkr-dando,.pkr-voo{display:none}.pkr-aposta.entrou,.pkr-fala{animation:none}}
-/* Sinuca na mesa de bar (28/10/2026): a mesa é a arte (assets/jogos/mesa-bar.webp);
+/* Sinuca na mesa de bar (28/10/2026): a mesa é a arte (assets/jogos/mesa-laranja.webp);
    o resto segue o padrão visual (vybe-padrao.css: vidro, borda clara e o laranja
    como única cor de destaque). Só o que é novo: a proporção da mesa e o tubo
    das bolas encaçapadas, embaixo do Tacar. */
@@ -13044,3 +13044,65 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 /* Sinuca: na mira o cursor some (fica o taco e o traço curto da branca); só aparece para pôr a branca. */
 .snc-canvas.vez,.snc-canvas.vez.travada {cursor:none}
 .snc-canvas.vez.pondo {cursor:default}
+/* Sinuca com cara de boteco (Paulo, 28/10/2026: "dá o visual de boteco e refaz isso, tá bem feio"): a faixa de cima é uma tábua com plaquinhas de latão, o placar é de madeira com o confronto em giz, a coluna dos controles é um porta-tacos e embaixo da mesa fica a lousa do bar. Só cor e material: o tamanho e a grade da coluna lateral continuam os mesmos. */
+.workflow-modal.ofc-snc-jogo {background:radial-gradient(ellipse at 50% 0,#3a2416 0,#1a100a 60%,#120b07 100%)}
+.ofc-snc-jogo .jogo-topo.tema-sinuca {background:repeating-linear-gradient(90deg,#ffffff06 0 2px,transparent 2px 9px),linear-gradient(#6b3d1c,#4a2810 60%,#3a1f0c);border-bottom:3px solid #c99a4e;box-shadow:0 4px 0 #0007,inset 0 1px 0 #ffffff1c}
+.ofc-snc-jogo .jogo-titulo i {background:radial-gradient(circle at 35% 30%,#3b3b3b,#0d0d0d);border:2px solid #c99a4e;border-radius:50%;box-shadow:0 2px 0 #0008}
+.ofc-snc-jogo .jogo-titulo b {color:#ffe2a8;font:900 20px var(--mac-ui);letter-spacing:.5px;text-shadow:0 0 10px #ff9a3c88,0 2px 0 #0008}
+.ofc-snc-jogo .jogo-selo {background:linear-gradient(#f1d08a,#c99a4e);color:#2a1806;border:1px solid #7a5520;box-shadow:inset 0 1px 0 #fff6,0 2px 0 #0007;border-radius:6px}
+.ofc-snc-jogo .jogo-selo.placar {display:none}
+.ofc-snc-jogo .jogo-icone {background:radial-gradient(circle at 35% 30%,#f3d595,#c99a4e 55%,#8a6328);color:#2a1806;border-radius:50%;box-shadow:inset 0 -2px 0 #0004,0 2px 0 #0007}
+.ofc-snc-jogo .jogo-icone:hover {background:radial-gradient(circle at 35% 30%,#fff0c8,#e0b260 55%,#9a7030)}
+.ofc-snc-jogo .jogo-icone.perigo:hover {background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0392b 60%,#7a1a10);color:#fff}
+.ofc-snc-jogo .jogo-status {background:#1c120b;border:1px solid #c99a4e66;color:#ffe2a8;box-shadow:inset 0 0 0 1px #0006}
+.ofc-snc-jogo .jogo-status.minha {background:#1c120b;color:#ffcf7a;border-color:#ff9a3c;text-shadow:0 0 8px #ff9a3c;box-shadow:0 0 14px #ff8a2a66,inset 0 0 10px #ff8a2a33;animation:snc-neon 1.8s ease-in-out infinite}
+@keyframes snc-neon {50% {box-shadow:0 0 24px #ff8a2aaa,inset 0 0 14px #ff8a2a55}}
+.ofc-snc-jogo .snc-jogador {background:linear-gradient(#4a2a14,#2e190b);border:2px solid #7a5520;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0007}
+.ofc-snc-jogo .snc-jogador.vez {border-color:#ff9a3c;background:linear-gradient(#5a3418,#341c0c);box-shadow:0 0 0 2px #ff9a3c44,0 0 18px #ff8a2a55,0 3px 0 #0007}
+.ofc-snc-jogo .snc-jogador b {color:#ffe9c2}
+.ofc-snc-jogo .snc-jogador small {color:#d9b98a}
+.snc-ficha {margin-left:6px;padding:1px 6px;border-radius:4px;background:#c99a4e;color:#2a1806;font:800 10px var(--mac-ui);font-style:normal;vertical-align:1px}
+.snc-confronto {display:grid;justify-items:center;gap:1px;min-width:92px;padding:6px 10px;border-radius:8px;background:#1f2a24;border:5px solid #6b3d1c;box-shadow:inset 0 0 12px #0009,0 3px 0 #0007;font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;color:#f2efe6;text-shadow:0 0 1px #fff8}
+.snc-confronto small {font-size:10px;opacity:.75;white-space:nowrap}
+.snc-confronto b {font-size:24px;line-height:1.1;letter-spacing:1px}
+.snc-confronto b i {margin:0 6px;font-style:normal;opacity:.6;font-size:16px}
+.ofc-snc-jogo .snc-forca {background:linear-gradient(90deg,#3a1f0c,#7a4a22 45%,#a8733d 55%,#4a2810);border:2px solid #c99a4e88}
+.ofc-snc-jogo .snc-lado {padding:6px 3px;border-radius:12px;background:repeating-linear-gradient(0deg,#ffffff05 0 2px,transparent 2px 8px),linear-gradient(90deg,#3a1f0c,#5a3418 50%,#3a1f0c);border:2px solid #7a5520;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0007}
+.ofc-snc-jogo .snc-lado small {color:#e8cfa2}
+.ofc-snc-jogo .snc-lado .snc-mira-fina button,.ofc-snc-jogo .snc-mudar {background:radial-gradient(circle at 35% 30%,#f3d595,#c99a4e 60%,#8a6328);color:#2a1806;border:1px solid #6b4a1a;box-shadow:0 2px 0 #0007}
+.ofc-snc-jogo .snc-tacar {background:linear-gradient(#ff8a5c,#d9431f);color:#fff;border:2px solid #f3d595;text-shadow:0 1px 0 #0006;box-shadow:0 3px 0 #6a1a08,0 0 12px #ff6a3a55;letter-spacing:.3px}
+.ofc-snc-jogo .snc-tubo {background:#140b06;border:1px solid #7a5520}
+.ofc-snc-jogo .snc-canvas {box-shadow:0 14px 34px #000c}
+.ofc-snc-jogo .jogo-feed {background:none;border:0;padding:0 0 4px;color:#e8cfa2}
+.ofc-snc-jogo .jogo-feed .ofc-nota {margin:0 0 8px;padding:8px 12px;border-radius:8px;background:#f3e6c8;color:#3a2410;font:700 13px var(--mac-ui);box-shadow:0 2px 0 #0007;border-left:5px solid #c0392b}
+.snc-lousa {display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:14px;padding:14px 16px;border-radius:10px;background:radial-gradient(ellipse at 30% 20%,#2c3a32,#1c2620 70%);border:10px solid #5a3418;box-shadow:inset 0 0 26px #000a,inset 0 0 0 1px #ffffff10,0 4px 0 #0008;font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;color:#f2efe6;text-shadow:0 0 1px #fff8}
+.lousa-bloco {display:grid;align-content:start;gap:6px;min-width:0}
+.lousa-bloco h4 {margin:0 0 2px;font:inherit;font-size:14px;font-weight:700;color:#ffe08a;border-bottom:1px dashed #f2efe655;padding-bottom:3px}
+.lousa-giz {display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:8px;font-size:13px}
+.lousa-giz b {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.lousa-giz span {display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:20px}
+.lousa-giz span em {font-size:11px;opacity:.6}
+.lousa-giz strong {font-size:20px}
+.lousa-giz i {position:relative;display:inline-block;height:18px;background:repeating-linear-gradient(90deg,#f2efe6dd 0 2px,transparent 2px 6px)}
+.lousa-giz i.giz-1 {width:2px}.lousa-giz i.giz-2 {width:8px}.lousa-giz i.giz-3 {width:14px}.lousa-giz i.giz-4,.lousa-giz i.giz-5 {width:20px}
+.lousa-giz i.giz-5::after {content:"";position:absolute;left:-3px;right:-3px;top:50%;height:2px;background:#f2efe6dd;transform:rotate(-28deg)}
+.lousa-seq {margin:2px 0 0;font-size:12px;color:#ffb2a2}
+.lousa-hist,.lousa-rank {display:grid;gap:3px;margin:0;padding:0;list-style:none;font-size:12px}
+.lousa-hist li {display:grid;grid-template-columns:12px auto 1fr auto;gap:6px;align-items:baseline;padding:2px 4px;border-radius:4px}
+.lousa-hist li::before {content:"•";color:#f2efe699}
+.lousa-hist li.ganhei::before {content:"✓";color:#9ef0b5}
+.lousa-hist li.perdi::before {content:"✗";color:#ff9a8a}
+.lousa-hist li b {font-weight:700;white-space:nowrap}
+.lousa-hist li span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lousa-hist li small {opacity:.65;font-size:11px}
+.lousa-rank li {display:grid;grid-template-columns:28px 1fr auto;gap:6px;align-items:baseline;padding:2px 6px;border-radius:4px}
+.lousa-rank li i {font-style:normal;text-align:center}
+.lousa-rank li b {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.lousa-rank li span {font-size:11px;opacity:.85}
+.lousa-rank li.da-mesa {background:#ffe08a22;box-shadow:inset 3px 0 0 #ffe08a}
+.lousa-rank li.eu b {color:#ffe08a}
+.lousa-rank li.lousa-pulo {display:block;padding:0;text-align:center;opacity:.5;line-height:.8}
+.lousa-pe,.lousa-vazio {margin:0;font-size:11px;opacity:.65}
+.ofc-snc-jogo .snc-lado .snc-mira-fina button {min-width:0}
+@media(max-width:760px){.snc-lousa{grid-template-columns:1fr;border-width:7px}.snc-confronto{grid-auto-flow:column;align-items:baseline;justify-content:center;gap:10px;min-width:0;padding:2px 10px;border-width:4px}.snc-confronto b{font-size:18px}.ofc-snc-jogo .snc-lado{padding:6px 8px}.ofc-snc-jogo .snc-area{grid-template-columns:30px minmax(0,1fr)}}
+@media (prefers-reduced-motion: reduce) {.ofc-snc-jogo .jogo-status.minha {animation:none}}

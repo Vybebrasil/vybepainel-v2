@@ -19,8 +19,10 @@ impactGeneric_light_000, bola = impactPlate_light_000, tabela =
 impactSoft_medium_000, cacapa = impactSoft_heavy_000.
 Baixados em 27/10/2026 com autorização do Paulo.
 
-Mesa de bar da sinuca (assets/jogos/mesa-bar.webp): arte enviada pelo Paulo em
-28/10/2026; o pano foi esticado para 2:1 e o fundo escurecido (sem marcas).
+Mesa laranja da sinuca (assets/jogos/mesa-laranja.webp): arte enviada pelo Paulo
+em 28/10/2026; o pano foi levado para 2:1 (a altura esticada 5%) e posto na
+escala da física (15 px por unidade, 8 unidades de moldura); as bocas da física
+foram medidas nela.
 
 Mesa de pôquer e mesa com tabuleiro da dama (assets/jogos/mesa-poker.webp e
 tabuleiro-dama.webp): artes enviadas pelo Paulo em 28/10/2026; fundo escurecido

@@ -21,13 +21,18 @@ const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
   // A tacada já toca os sons dela na animação.
   som: () => null,
-  nota: "Par ou ímpar, como no bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e encaçape a 1 para ganhar.", desenhar: (j, s) => desenharSinuca(j, s),
+  nota: "Par ou ímpar, regra de bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e mate o ás (a 1, colado na cabeceira) para ganhar. Suicida, cegar ou bater primeiro na bola do outro tira uma bola do outro da mesa; na suicida o outro põe a branca no D.", desenhar: (j, s) => desenharSinuca(j, s),
+  // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
+  // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
+  // assistia via a mesa piscar a cada tacada (Paulo, 28/10/2026).
+  depois: () => sinucaPintar(),
 });
 // Mesa de 100 × 50 (o pano, 1,90 m × 0,95 m) com 8 de moldura em volta; 10 px
-// por unidade no canvas. A moldura é a da arte da mesa de bar
-// (assets/jogos/mesa-bar.webp, recortada com o pano a 8 unidades de cada borda).
+// por unidade no canvas. A arte é a mesa laranja da Vybe (Paulo, 28/10/2026:
+// "a mesa não fica melhor essa?"; assets/jogos/mesa-laranja.webp, com o pano a
+// 8 unidades de cada borda e as pontas das borrachas nas bocas de 1,5 bola).
 const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 8, SINUCA_PX = 10;
-const SINUCA_MESA = typeof Image === "function" ? Object.assign(new Image(), { src: "/assets/jogos/mesa-bar.webp" }) : null;
+const SINUCA_MESA = typeof Image === "function" ? Object.assign(new Image(), { src: "/assets/jogos/mesa-laranja.webp" }) : null;
 SINUCA_MESA?.addEventListener?.("load", () => sinucaPintar());
 const SINUCA_CORES = ["#f7f4ea", "#f2c12e", "#1f5fbf", "#d23a2a", "#6a3fa0", "#f07a1a", "#1e8a4a", "#8a2a1e", "#151515"];
 // Jogo de bolas do par ou ímpar (Paulo, 28/10/2026: "par (bolas preenchidas) ou
@@ -47,7 +52,7 @@ const SINUCA_DICA = { livre: "Sua vez: mire com o mouse. Segure o botão na mesa
 // força baixa (onde fica quase toda tacada) ter curso.
 const SINUCA_PUXADA = 40;
 // A velocidade que sai de cada força, a mesma conta do servidor (velocidadeDaForca).
-const sinucaMetrosPorSegundo = (f) => 0.1 + 8.9 * Math.max(0, f) ** 2.5;
+const sinucaMetrosPorSegundo = (f) => 0.1 + 6.9 * Math.max(0, f) ** 2.5;
 const sinucaRaio = (j) => j?.mesa?.r || 1.15;
 // Bolas desenhadas (8-Ball pool assets, CC0; assets/jogos/bolas.webp): folha
 // com a branca e as 15 numeradas, 96 px cada, na ordem do número.
@@ -65,6 +70,19 @@ function sinucaEstado() {
 }
 const sinucaMinhaVez = (j) => j?.estado === "jogando" && j.eu && j.vez === j.eu && j.mesa.pode_tacar;
 const sinucaPondo = (j, s) => sinucaMinhaVez(j) && (j.mesa.bolaNaMao || !j.mesa.bolas[0]) && !s.branca;
+// Onde a branca pode ir com bola na mão, como no servidor (brancaPode): na
+// saída, atrás da linha (x ≤ 25); depois da suicida, dentro do D (raio 9,15 com
+// o centro na marca de baixo); nas partidas de antes, a mesa toda.
+const SINUCA_LINHA = 25, SINUCA_D = 9.15;
+function sinucaPrender(area, x, y, R) {
+  x = Math.min(SINUCA_L - R, Math.max(R, x)); y = Math.min(SINUCA_A - R, Math.max(R, y));
+  if (area === "saida" || area === "D") x = Math.min(x, SINUCA_LINHA);
+  if (area === "D") {
+    const dx = x - SINUCA_LINHA, dy = y - SINUCA_A / 2, d = Math.hypot(dx, dy);
+    if (d > SINUCA_D) { x = SINUCA_LINHA + dx * SINUCA_D / d; y = SINUCA_A / 2 + dy * SINUCA_D / d; }
+  }
+  return [x, y];
+}
 // A branca de onde sai a tacada: a da mesa ou a que a pessoa acabou de pôr.
 function sinucaBranca(j, s) {
   if (j.mesa.bolaNaMao || !j.mesa.bolas[0]) return s.branca ? [s.branca.x, s.branca.y] : null;
@@ -90,20 +108,64 @@ function sinucaUltimoTexto(j, u = j.mesa?.ultimo) {
   const quem = u.lado === j.eu ? "Você" : xadrezPrimeiroNome(j[u.lado]);
   if (u.falta === "tempo") return `${quem} deixou o tempo acabar: falta, bola na mão para o outro.`;
   const caiu = u.caiu.filter((n) => n !== 0);
-  const falta = { branca: "a branca caiu", "branca-fora": "a branca pulou para fora da mesa", fora: "bola pulou para fora da mesa (voltou para a marca)", nenhuma: "não tocou em nenhuma bola", errada: "tocou primeiro a bola errada" }[u.falta];
+  const bar = j.mesa.regra === "bar";
+  const falta = (bar ? { branca: "suicida", "branca-fora": "suicida (a branca pulou da mesa)", nenhuma: "cegou (não tocou em nenhuma bola)", errada: u.primeiro === 1 ? "bateu primeiro no ás" : "bateu primeiro na bola do outro" } : {})[u.falta]
+    || { branca: "a branca caiu", "branca-fora": "a branca pulou para fora da mesa", fora: "bola pulou para fora da mesa (voltou para a marca)", nenhuma: "não tocou em nenhuma bola", errada: "tocou primeiro a bola errada" }[u.falta];
   const grupo = u.grupo ? ` e ficou com ${{ pares: "o par (as lisas)", impares: "o ímpar (as listradas)" }[u.grupo] || `as ${SINUCA_NOME_GRUPO[u.grupo].toLowerCase()}`}` : "";
-  return `${quem} tacou${caiu.length ? ` e encaçapou ${caiu.length > 1 ? "as bolas" : "a"} ${caiu.join(", ")}` : " e não encaçapou nada"}${grupo}${falta ? `: falta, ${falta}` : ""}.`;
+  const dono = u.lado === "desafiante" ? "desafiado" : "desafiante", deQuem = dono === j.eu ? "sua" : `de ${xadrezPrimeiroNome(j[dono])}`;
+  const multa = u.tirou ? `; sai a ${u.tirou} (${deQuem})` : "", volta = u.voltou?.length ? `; a ${u.voltou.join(", ")} voltou para a mesa` : "";
+  return `${quem} tacou${caiu.length ? ` e encaçapou ${caiu.length > 1 ? "as bolas" : "a"} ${caiu.join(", ")}` : " e não encaçapou nada"}${grupo}${falta ? `: falta, ${falta}${multa}${volta}` : ""}.`;
 }
 // Jogador no placar de cima: cabeça, nome, de quem é a vez e as bolas do grupo
 // (as que já caíram ficam apagadas).
-function sinucaJogadorHtml(j, lado) {
+function sinucaJogadorHtml(j, lado, q) {
   const p = j[lado], u = mesaCabecaUrl(j, p), vez = j.estado === "jogando" && j.vez === lado, eu = j.eu === lado, g = j.mesa.grupos[lado];
+  // No ranking geral da sinuca: a posição e as vitórias e derrotas.
+  const rk = q?.ranking?.lista?.find((r) => r.id === String(p?.id));
+  const ficha = rk ? `<em class="snc-ficha" title="${rk.posicao}º no ranking da sinuca">${rk.posicao}º · ${rk.vitorias}V ${rk.derrotas}D</em>` : "";
   // Com as 15 bolas, a 1 vem no fim da fila: é a bola final de cada um.
   const nums = g ? [...SINUCA_GRUPOS[g], ...(j.mesa.bola1 ? [1] : j.mesa.modo === "parimpar" ? [] : [8])] : [];
   const bolas = nums.length ? nums.map((n) => { const v = sinucaVisual(j.mesa.modo, n); return `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${v.listra ? " listra" : ""}${n === sinucaFinal(j) ? " final" : ""}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join("")
     : `<small>${j.mesa.modo === "parimpar" ? "Mesa aberta: quem matar primeiro fica com par (lisas) ou ímpar (listradas)" : "Mesa aberta"}</small>`;
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" ? " direita" : ""}">${u ? `<img src="${safeText(u)}" alt="" width="40" height="40">` : "<i class=\"snc-sem\"></i>"}
-${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}</b><span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
+${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : ""}${ficha}</b><span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
+}
+// O confronto no meio do placar: quantas cada um ganhou do outro, em giz.
+function sinucaConfrontoHtml(j, q) {
+  const p = q?.placar || j.placar, a = String(j.desafiante?.id), b = String(j.desafiado?.id);
+  if (!p || j.bot) return '<span class="snc-x" aria-hidden="true">×</span>';
+  return `<div class="snc-confronto" title="Partidas de sinuca entre vocês"><small>Entre vocês</small><b>${p[a] || 0}<i>×</i>${p[b] || 0}</b>${p.empates ? `<small>${p.empates} empate${p.empates > 1 ? "s" : ""}</small>` : ""}</div>`;
+}
+// Tracinhos de giz (de cinco em cinco, o quinto riscando os outros quatro).
+function sinucaGizHtml(n) {
+  const cinco = Math.floor(n / 5), resto = n % 5;
+  return `${'<i class="giz-5"></i>'.repeat(Math.min(cinco, 6))}${resto ? `<i class="giz-${resto}"></i>` : ""}${cinco > 6 ? `<em>+${(cinco - 6) * 5}</em>` : ""}`;
+}
+// A lousa do bar embaixo da mesa (Paulo, 28/10/2026: "o placar... o histórico
+// e o ranking da sinuca tá ruim, refaça"; "dá o visual de boteco"): o placar
+// de vocês em tracinhos de giz, as últimas partidas entre os dois e o ranking
+// geral da sinuca, com os dois da mesa marcados.
+function sinucaLousaHtml(j, q) {
+  if (!q || j.bot || !j.desafiante || !j.desafiado) return "";
+  const a = j.desafiante, b = j.desafiado, eu = String(escritorio.base?.eu || ""), p = q.placar || {};
+  const nome = (id) => (String(id) === String(a.id) ? xadrezPrimeiroNome(a) : String(id) === String(b.id) ? xadrezPrimeiroNome(b) : "");
+  const linha = (pessoa) => `<div class="lousa-giz"><b>${xadrezPrimeiroNome(pessoa)}</b><span>${sinucaGizHtml(p[String(pessoa.id)] || 0) || "<em>nenhuma ainda</em>"}</span><strong>${p[String(pessoa.id)] || 0}</strong></div>`;
+  const dia = (d) => { const t = d ? new Date(d) : null; return t && !Number.isNaN(t.getTime()) ? t.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Bahia" }) : ""; };
+  const hist = (q.historico || []).map((h) => `<li class="${h.vencedor === eu ? "ganhei" : h.vencedor ? "perdi" : ""}"><b>${h.vencedor ? nome(h.vencedor) : "Empate"}</b><span>${safeText((h.vencedor ? h.motivo : String(h.motivo || "").replace(/^Empate\s*/i, "")) || (h.vencedor ? "ganhou" : ""))}${h.moedas ? ` · ${h.moedas} 🪙` : ""}</span><small>${dia(h.em)}</small></li>`).join("");
+  const seq = q.sequencia && q.sequencia.vitorias > 1 ? `<p class="lousa-seq">${nome(q.sequencia.quem)} vem de ${q.sequencia.vitorias} vitórias seguidas</p>` : "";
+  const rk = q.ranking?.lista || [];
+  let antes = 0;
+  const ranking = rk.map((r) => {
+    const pulo = r.posicao > antes + 1 ? '<li class="lousa-pulo" aria-hidden="true">⋯</li>' : "";
+    antes = r.posicao;
+    const da = r.id === String(a.id) || r.id === String(b.id);
+    return `${pulo}<li class="${da ? "da-mesa" : ""}${r.id === eu ? " eu" : ""}"><i>${["🥇", "🥈", "🥉"][r.posicao - 1] || `${r.posicao}º`}</i><b>${safeText(String(r.nome).split(" ")[0])}</b><span>${r.vitorias}V · ${r.derrotas}D</span></li>`;
+  }).join("");
+  return `<section class="snc-lousa" aria-label="Lousa do bar: placar, últimas partidas e ranking">
+<div class="lousa-bloco"><h4>Placar de vocês</h4>${linha(a)}${linha(b)}${seq}</div>
+<div class="lousa-bloco"><h4>Últimas entre vocês</h4>${hist ? `<ol class="lousa-hist">${hist}</ol>` : '<p class="lousa-vazio">Primeira partida entre os dois. Vale o giz!</p>'}</div>
+<div class="lousa-bloco"><h4>Ranking da sinuca</h4>${ranking ? `<ol class="lousa-rank">${ranking}</ol><small class="lousa-pe">${q.ranking.total} ${q.ranking.total === 1 ? "jogador" : "jogadores"} · todas as partidas entre a equipe</small>` : '<p class="lousa-vazio">Ninguém ganhou ainda.</p>'}</div>
+</section>`;
 }
 function desenharSinuca(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
@@ -120,10 +182,17 @@ function desenharSinuca(j, s) {
     if (novas.length) { if (s.anim) s.anim.fila.push(...novas); else s.anim = { fila: novas, k: 0, inicio: 0 }; }
     s.vistoN = nMesa;
   }
-  if (s.visto !== chave) { s.visto = chave; s.branca = null; s.travada = false; s.puxando = null; s.forcaAgora = null; }
+  if (s.visto !== chave) {
+    s.visto = chave; s.branca = null; s.travada = false; s.puxando = null; s.forcaAgora = null;
+    // Regra de bar: a branca já vem posta no meio da área; dá para tacar dali ou arrastar.
+    if (sinucaMinhaVez(j) && m.bolaNaMao && m.bolas[0]) s.branca = { x: m.bolas[0][0], y: m.bolas[0][1] };
+  }
   const minha = sinucaMinhaVez(j), poe = sinucaPondo(j, s);
-  const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
-    : poe ? "Bola na mão: toque na mesa onde quer pôr a branca." : SINUCA_DICA[s.travada ? "travada" : "livre"];
+  const naMao = minha && m.bolaNaMao ? { saida: "Saída: a branca fica atrás da linha. Arraste-a se quiser, mire e taque.", D: "Bola na mão no D: arraste a branca dentro do D, mire e taque." }[m.bolaNaMao] : null;
+  const passando = s.anim?.fila?.find((t) => t.lado !== eu);
+  const status = j.estado !== "jogando" ? "" : passando ? `${xadrezPrimeiroNome(j[passando.lado])} tacou: veja a jogada.` : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
+    : poe ? (m.bolaNaMao === "D" ? "Bola na mão: toque dentro do D para pôr a branca." : m.bolaNaMao === "saida" ? "Toque atrás da linha de saída para pôr a branca." : "Bola na mão: toque na mesa onde quer pôr a branca.")
+    : naMao && s.branca ? naMao : SINUCA_DICA[s.travada ? "travada" : "livre"];
   const efeito = s.efeito || 0, giro = s.giro || 0, ativo = minha && !poe;
   const forca = `<div class="snc-forca${ativo ? "" : " parada"}" role="slider" tabindex="${ativo ? 0 : -1}" aria-label="Força da tacada: puxe para baixo e solte para tacar" aria-valuemin="5" aria-valuemax="100" aria-valuenow="${Math.round((s.forca ?? 0.4) * 100)}"
  onpointerdown="sinucaForcaComeca(event)" onpointermove="sinucaForcaMove(event)" onpointerup="sinucaForcaSolta(event)" onpointercancel="sinucaForcaCancela()" onkeydown="sinucaForcaTecla(event)"><b style="height:0%"></b><span>Força</span></div>`;
@@ -135,14 +204,18 @@ function desenharSinuca(j, s) {
 <div class="snc-tubo" aria-label="Bolas encaçapadas">${m.bolas.map((p, n) => (!p && n ? n : null)).filter((n) => n !== null).map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? "listra" : ""}" style="--c:${v.cor};--n:${n}" title="Bola ${n}">${n}</i>`; }).join("")}</div>
 ${m.bolaNaMao && s.branca && minha ? `<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa('snc')">Mudar a branca</button>` : ""}</div>`;
   const ultimo = sinucaUltimoTexto(j);
+  // O histórico e o ranking vêm na leitura da mesa (verMesa); a resposta da
+  // tacada não traz, então a lousa usa o último que chegou desta partida.
+  if (j.ranking) s.quadro = { id: j.id, placar: j.placar, historico: j.historico, sequencia: j.sequencia, ranking: j.ranking };
+  const q = j.ranking ? j : s.quadro?.id === j.id ? s.quadro : null;
   // Pinta logo que o canvas entra na tela (rAF não roda com a aba escondida).
   setTimeout(() => sinucaPintar());
   return {
     status,
-    mesa: `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante")}<span class="snc-x">×</span>${sinucaJogadorHtml(j, "desafiado")}</div>
+    mesa: `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>
 <div class="snc-area">${forca}<canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${(SINUCA_L + 2 * SINUCA_B) * SINUCA_PX}" height="${(SINUCA_A + 2 * SINUCA_B) * SINUCA_PX}" role="img" aria-label="Mesa de sinuca"
  onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')"></canvas>${lado}</div>`,
-    painel: ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : "",
+    painel: `${ultimo ? `<p class="ofc-nota">${safeText(ultimo)}</p>` : ""}${sinucaLousaHtml(j, q)}`,
   };
 }
 
@@ -160,7 +233,7 @@ function sinucaPonteiro(ev, tipo) {
   const R = sinucaRaio(j), r = c.getBoundingClientRect();
   const x = (ev.clientX - r.left) / r.width * (SINUCA_L + 2 * SINUCA_B) - SINUCA_B, y = (ev.clientY - r.top) / r.height * (SINUCA_A + 2 * SINUCA_B) - SINUCA_B;
   if (sinucaPondo(j, s)) {
-    const px = Math.min(SINUCA_L - R, Math.max(R, x)), py = Math.min(SINUCA_A - R, Math.max(R, y));
+    const [px, py] = sinucaPrender(j.mesa.bolaNaMao, x, y, R);
     const livre = j.mesa.bolas.every((b, n) => !b || n === 0 || Math.hypot(b[0] - px, b[1] - py) >= 2 * R + 0.1);
     s.fantasma = { x: px, y: py, livre };
     // Põe ao soltar o dedo/botão ou no clique (no celular o toque às vezes só chega como clique).
@@ -336,11 +409,18 @@ function sinucaRolarBola(n, x, y, R) {
   return o;
 }
 const sinucaCorRgb = (hex) => { const h = String(hex || "#888").replace("#", ""); const v = parseInt(h.length === 3 ? h.replace(/./g, "$&$&") : h.slice(0, 6), 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; };
-let SINUCA_TELA_BOLA = null;
+// Cada bola guarda o próprio desenho (cache) e só repinta ponto a ponto quando
+// girou: parada, ela é só copiada (antes as 16 eram pintadas pixel a pixel em
+// todo quadro, e a animação engasgava no computador mais fraco).
+const SINUCA_TELAS = new Map();
 function sinucaEsferaPintar(g, px, py, r, cor, listra, m, numero, rapido = 0) {
   const lado = Math.max(4, Math.ceil(r * 2));
-  if (!SINUCA_TELA_BOLA) SINUCA_TELA_BOLA = document.createElement("canvas");
-  const tela = SINUCA_TELA_BOLA;
+  const chave = `${lado}|${cor}|${listra ? 1 : 0}|${m.map((v) => v.toFixed(2)).join(",")}|${rapido >= 0.8 ? 1 : 0}`;
+  let c = SINUCA_TELAS.get(numero);
+  if (!c) { c = { tela: document.createElement("canvas"), chave: "" }; SINUCA_TELAS.set(numero, c); }
+  const tela = c.tela;
+  if (c.chave === chave) { g.drawImage(tela, px - r, py - r, 2 * r, 2 * r); sinucaNumeroPintar(g, px, py, r, m, numero, rapido); return; }
+  c.chave = chave;
   if (tela.width !== lado) { tela.width = lado; tela.height = lado; }
   const tg = tela.getContext("2d"), img = tg.createImageData(lado, lado), d = img.data;
   const [cr, cg, cb] = sinucaCorRgb(cor), branco = [247, 244, 234];
@@ -360,7 +440,10 @@ function sinucaEsferaPintar(g, px, py, r, cor, listra, m, numero, rapido = 0) {
   }
   tg.putImageData(img, 0, 0);
   g.drawImage(tela, px - r, py - r, 2 * r, 2 * r);
-  // O número no círculo branco do lado que está para cima (o que encara a luz).
+  sinucaNumeroPintar(g, px, py, r, m, numero, rapido);
+}
+// O número no círculo branco do lado que está para cima (o que encara a luz).
+function sinucaNumeroPintar(g, px, py, r, m, numero, rapido) {
   if (numero && rapido < 1) {
     const lados = [[m[6], m[7], m[8]], [-m[6], -m[7], -m[8]]];
     for (const [zx, zy, zz] of lados) {
@@ -399,18 +482,16 @@ function sinucaLinha(g, a, b, cor, traco, largura = 2) {
   g.beginPath(); g.moveTo(sinucaPx(a[0]), sinucaPx(a[1])); g.lineTo(sinucaPx(b[0]), sinucaPx(b[1])); g.stroke();
   g.setLineDash([]);
 }
-// Caçapas medidas na arte da mesa, as mesmas da física (CANTO e MEIO em
-// server/escritorio-sinuca.js): a borracha acaba a 3,01 do canto e a 2,13 do
-// meio (bocas de 1,5 bola; as pontas foram redesenhadas na arte); o buraco do canto tem raio 3,58 com o centro 1,37 para fora nas duas
-// direções, e o do meio raio 3,36 com o centro 2,92 atrás da tabela.
-const SINUCA_BOCA_CANTO = 3.01, SINUCA_BOCA_MEIO = 2.13;
+// Caçapas medidas na arte da mesa laranja, as mesmas da física (BOCAS em
+// server/escritorio-sinuca.js): os buracos, para a bola que cai escorregar
+// para o certo. A mesa desenhada (sem a arte) usa a boca média.
+const SINUCA_BOCA_CANTO = 2.8, SINUCA_BOCA_MEIO = 3.06;
 function sinucaBuracos() {
-  const L = SINUCA_L, A = SINUCA_A, c = 1.37, cr = 3.58, f = 2.92, mr = 3.36;
-  return [[-c, -c, cr], [50, -f, mr], [L + c, -c, cr], [-c, A + c, cr], [50, A + f, mr], [L + c, A + c, cr]].map(([x, y, r]) => ({ x, y, r }));
+  return [[-1.57, -1.5, 2.57], [49.6, -2.43, 2.93], [101.23, -1.5, 2.57], [-1.23, 51.23, 2.57], [49.63, 52.73, 3.03], [101.23, 51.4, 2.57]].map(([x, y, r]) => ({ x, y, r }));
 }
 // A mesa é a arte (a de bar, com o pano gasto); sem ela carregada, a desenhada.
 function sinucaMesaPintar(g, W, H, R) {
-  if (SINUCA_MESA?.complete && SINUCA_MESA.naturalWidth) { g.drawImage(SINUCA_MESA, 0, 0, W, H); return; }
+  if (SINUCA_MESA?.complete && SINUCA_MESA.naturalWidth) { g.fillStyle = "#181412"; g.fillRect(0, 0, W, H); g.drawImage(SINUCA_MESA, 0, 0, W, H); return; }
   const P = SINUCA_PX, B = SINUCA_B, L = SINUCA_L, A = SINUCA_A, K = 1.5;
   const m = SINUCA_BOCA_CANTO, h = SINUCA_BOCA_MEIO;
   const X = (v) => (v + B) * P;
@@ -477,6 +558,7 @@ function sinucaPintar(agora) {
   // Sem anel nas minhas bolas (Paulo, 28/10/2026): quem joga vê pela bola se é
   // pintada (par) ou tem a faixa branca (ímpar), como no bar.
   if (s.anim) { if (cena) sinucaCenaPintar(g, W, cena, R, P); return; }
+  if (sinucaMinhaVez(j) && j.mesa.bolaNaMao && (sinucaPondo(j, s) || s.branca)) sinucaAreaPintar(g, j.mesa.bolaNaMao, P);
   if (sinucaPondo(j, s) && s.fantasma) sinucaBolaPintar(g, 0, s.fantasma.x, s.fantasma.y, R, true);
   if (!branca) return;
   if (s.branca) sinucaBolaPintar(g, 0, branca[0], branca[1], R);
@@ -484,18 +566,96 @@ function sinucaPintar(agora) {
   // da bola branca"): o taco e um traço curto na direção dele, sem guia até a
   // bola nem cursor de mira em cima da mesa.
   const ang = s.angulo ?? 0, dx = Math.cos(ang), dy = Math.sin(ang);
-  sinucaLinha(g, [branca[0] + dx * (R + 0.6), branca[1] + dy * (R + 0.6)], [branca[0] + dx * (R + 9), branca[1] + dy * (R + 9)], "#ffffff70", [P * 0.5, P * 0.5], 1.5);
+  sinucaMiraPintar(g, j, branca, dx, dy, R, P);
   sinucaTacoPintar(g, branca, dx, dy, (R + 0.5 + 10 * (s.forcaAgora ?? 0)) * P, P);
+}
+// Mira (Paulo, 28/10/2026: "tão reclamando que tá muito difícil mirar... coloca
+// a listrinha pontilhada do bolão branco até a bola que vai bater, mas a linha
+// meio que vai sumindo pra não ficar tão fácil"): pontos da branca até onde ela
+// encosta na primeira bola (ou na tabela), cada vez mais apagados; no fim, o
+// contorno quase sumido de onde a branca encosta. Sem a volta das bolas.
+function sinucaMiraAlvo(bolas, b, dx, dy, R) {
+  let s = Infinity, alvo = null;
+  bolas.forEach((p, n) => {
+    if (!p || n === 0) return;
+    const ox = p[0] - b[0], oy = p[1] - b[1], t = ox * dx + oy * dy, d2 = ox * ox + oy * oy - t * t, r2 = 4 * R * R;
+    if (t <= 0 || d2 > r2) return;
+    const k = t - Math.sqrt(r2 - d2);
+    if (k > 0 && k < s) { s = k; alvo = n; }
+  });
+  // Tabela: o centro da branca para a um raio do nariz.
+  for (const [v, lim] of [[dx, dx > 0 ? SINUCA_L - R - b[0] : R - b[0]], [dy, dy > 0 ? SINUCA_A - R - b[1] : R - b[1]]]) {
+    if (Math.abs(v) > 1e-9) { const k = lim / v; if (k > 0 && k < s) { s = k; alvo = null; } }
+  }
+  return { s: Number.isFinite(s) ? s : 0, alvo };
+}
+function sinucaMiraPintar(g, j, b, dx, dy, R, P) {
+  const { s: dist, alvo } = sinucaMiraAlvo(j.mesa.bolas, b, dx, dy, R);
+  const ini = R + 0.6, passo = 1.6;
+  g.save();
+  for (let k = ini; k < dist; k += passo) {
+    const f = (k - ini) / Math.max(1, dist - ini);
+    g.globalAlpha = 0.75 * (1 - f) ** 1.6 + 0.04;
+    g.beginPath(); g.arc(sinucaPx(b[0] + dx * k), sinucaPx(b[1] + dy * k), P * 0.17, 0, Math.PI * 2); g.fillStyle = "#fff"; g.fill();
+  }
+  if (alvo !== null) {
+    g.globalAlpha = 0.16; g.strokeStyle = "#fff"; g.lineWidth = 1.2;
+    g.beginPath(); g.arc(sinucaPx(b[0] + dx * dist), sinucaPx(b[1] + dy * dist), R * P, 0, Math.PI * 2); g.stroke();
+  }
+  g.restore();
+}
+// A área onde a branca pode ir (a saída atrás da linha, ou o D), enquanto se põe.
+function sinucaAreaPintar(g, area, P) {
+  if (area !== "saida" && area !== "D") return;
+  g.save();
+  g.fillStyle = "#ffffff1c"; g.strokeStyle = "#ffffffa0"; g.lineWidth = 1.5; g.setLineDash([P * 0.6, P * 0.5]);
+  g.beginPath();
+  if (area === "saida") g.rect(sinucaPx(0), sinucaPx(0), SINUCA_LINHA * P, SINUCA_A * P);
+  else { g.moveTo(sinucaPx(SINUCA_LINHA), sinucaPx(SINUCA_A / 2 - SINUCA_D)); g.arc(sinucaPx(SINUCA_LINHA), sinucaPx(SINUCA_A / 2), SINUCA_D * P, -Math.PI / 2, Math.PI / 2, true); g.closePath(); }
+  g.fill(); g.stroke();
+  g.restore();
 }
 // --- Animação das tacadas (a fila de s.anim) --------------------------------
 // Cada tacada tem três tempos: o taco (puxa e bate; do outro, devagar, para dar
 // para ver de onde e para onde ele mirou), as bolas andando (os quadros do
 // servidor, a 30 por segundo) e a faixa com o que aconteceu.
 const SINUCA_QPS = 30;
+// Quem assiste vê o taco puxar (0,8 s) e a faixa (1,4 s); com tacadas na fila,
+// os tempos encurtam para alcançar a mesa de verdade (Paulo, 28/10/2026: "tô
+// assistindo a partida... tá bem ruim, travando").
 function sinucaAnimTempos(t, j) {
-  const taco = t.falta === "tempo" ? 0 : t.lado === j.eu ? 180 : 1100;
-  const bolas = (t.quadros?.length || 0) * (1000 / SINUCA_QPS);
-  return { taco, bolas, faixa: t.lado === j.eu ? 1200 : 1700 };
+  const fila = sinucaEstado().anim?.fila, atras = fila ? fila.length - 1 - fila.indexOf(t) : 0;
+  const taco = t.falta === "tempo" ? 0 : t.lado === j.eu ? 180 : atras > 0 ? 350 : 800;
+  const bolas = t.trilhas ? t.dur || 0 : (t.quadros?.length || 0) * (1000 / SINUCA_QPS);
+  return { taco, bolas, faixa: t.lado === j.eu ? 1100 : atras > 0 ? 700 : 1400 };
+}
+// Onde está cada bola no instante `ms` da tacada, pelas trilhas exatas (os
+// pontos de 30 por segundo e os das batidas): antes do primeiro ponto a bola
+// está onde estava; depois do último, onde parou ou, com x = -1, sumiu.
+function sinucaTrilhaCena(t, ms) {
+  const bolas = [], caindo = [], z = {}, buracos = sinucaBuracos();
+  for (let n = 0; n < 16; n++) {
+    const x0 = t.inicio?.[2 * n] ?? -1, y0 = t.inicio?.[2 * n + 1] ?? -1, l = t.trilhas[n];
+    if (!l) { bolas.push(x0 < 0 ? null : [x0 / 10, y0 / 10]); continue; }
+    let i = 0;
+    while (i + 4 < l.length && l[i + 4] <= ms) i += 4;
+    if (ms < l[0]) { bolas.push([x0 / 10, y0 / 10]); continue; }
+    if (l[i + 1] < 0) {
+      // Sumiu: nos primeiros 230 ms escorrega para o buraco e diminui.
+      bolas.push(null);
+      const a = l.slice(Math.max(0, i - 4), i), p = Math.min(1, (ms - l[i]) / 230);
+      if (a.length === 4 && p < 1) {
+        const x = a[1] / 10, y = a[2] / 10, h = buracos.reduce((m, b) => (Math.hypot(b.x - x, b.y - y) < Math.hypot(m.x - x, m.y - y) ? b : m));
+        caindo.push({ n, x: x + (h.x - x) * Math.min(1, p * 1.6), y: y + (h.y - y) * Math.min(1, p * 1.6), escala: 1 - 0.65 * p });
+      }
+      continue;
+    }
+    const b = i + 4 < l.length && l[i + 5] >= 0 ? l.slice(i + 4, i + 8) : null, k = b ? (ms - l[i]) / Math.max(1, b[0] - l[i]) : 0;
+    const x = b ? l[i + 1] + (b[1] - l[i + 1]) * k : l[i + 1], y = b ? l[i + 2] + (b[2] - l[i + 2]) * k : l[i + 2], h = b ? l[i + 3] + (b[3] - l[i + 3]) * k : l[i + 3];
+    bolas.push([x / 10, y / 10]);
+    if (h > 0.5) z[n] = h / 10;
+  }
+  return { bolas, caindo, z };
 }
 function sinucaAnimDuracao(t, j) {
   const d = sinucaAnimTempos(t, j);
@@ -513,6 +673,23 @@ function sinucaAnimQuadro(s, j, agora, R) {
   if (!s.quadroPedido) { s.quadroPedido = true; requestAnimationFrame((tempo) => { s.quadroPedido = false; sinucaPintar(tempo); }); }
   const d = sinucaAnimTempos(t, j), e = agora - a.inicio, quadros = t.quadros?.length ? t.quadros : null;
   const quem = t.lado === j.eu ? "Você" : xadrezPrimeiroNome(j[t.lado]);
+  if (t.trilhas && t.inicio) {
+    const ini = sinucaQuadroBolas(t.inicio);
+    if (e < d.taco) {
+      const p = e / d.taco, recuo = p < 0.78 ? Math.sin((p / 0.78) * Math.PI / 2) : 1 - (p - 0.78) / 0.22;
+      return { bolas: ini, taco: { b: ini[0], ang: t.angulo ?? 0, recuo: Math.max(0, recuo) * (0.15 + (t.forca ?? 0.5)) }, mira: t.lado !== j.eu, faixa: t.lado === j.eu ? "" : `${quem} vai tacar` };
+    }
+    if (a.som === undefined) { a.som = 0; jogosSom("taco", 0.4 + 0.6 * (t.forca ?? 0.5)); }
+    const ms = Math.min(t.dur || 0, e - d.taco);
+    while (a.som < (t.eventos || []).length && (t.eventos[a.som].ms ?? Infinity) <= ms) {
+      const ev = t.eventos[a.som++];
+      if (ev.t === "bola") jogosSom("bola", 0.3 + 0.7 * ev.f);
+      else if (ev.t === "tabela") jogosSom("tabela", 0.2 + 0.5 * ev.f);
+      else if (ev.t === "caiu") jogosSom("cacapa", 0.8);
+    }
+    const acabou = e >= d.taco + d.bolas;
+    return { ...sinucaTrilhaCena(t, ms), faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
+  }
   if (!quadros) return { bolas: j.mesa.bolas, faixa: sinucaUltimoTexto(j, t), ruim: true };
   const ini = sinucaQuadroBolas(quadros[0]);
   if (e < d.taco) {
@@ -554,7 +731,7 @@ function sinucaCenaPintar(g, W, cena, R, P) {
   if (cena.taco) {
     const { b, ang, recuo } = cena.taco, dx = Math.cos(ang), dy = Math.sin(ang);
     // A mira do outro: um traço curto na direção do taco.
-    if (cena.mira) sinucaLinha(g, [b[0] + dx * (R + 0.6), b[1] + dy * (R + 0.6)], [b[0] + dx * (R + 9), b[1] + dy * (R + 9)], "#ffffff70", [P * 0.5, P * 0.5], 1.5);
+    if (cena.mira) sinucaMiraPintar(g, { mesa: { bolas: cena.bolas } }, b, dx, dy, R, P);
     sinucaTacoPintar(g, b, dx, dy, (R + 0.4 + 10 * recuo) * P, P);
   }
   if (!cena.faixa) return;
