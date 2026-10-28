@@ -331,3 +331,140 @@
 .conta-botao.primario,.auto-novo{height:34px!important;padding:0 14px!important;border-radius:11px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .eq-linha{border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 .eq-linha:hover{border-color:rgba(255,179,92,.3)!important}
+
+/* ===== Telas que faltavam (direção de arte, rodada 2) ===== */
+
+/* Menus que abrem no lugar (menu do grupo, mudar em lote, trocar status e
+   responsável): vidro escuro, título em etiqueta, opções com folga */
+.status-editor{min-width:230px!important;padding:8px!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.97),rgba(24,26,34,.97))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 24px 50px -16px rgba(0,0,0,.75)!important;backdrop-filter:blur(14px)}
+.status-editor-head{padding:6px 10px 8px!important;margin:0 0 4px!important;border-bottom:1px solid rgba(255,255,255,.07)!important;color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em!important;text-transform:uppercase!important;background:none!important}
+.status-editor-option{display:flex!important;align-items:center;gap:9px;width:100%;min-height:34px;padding:0 10px!important;border-radius:10px!important;border:0!important;background:none!important;color:#ece8e3!important;font:500 13px var(--mac-ui)!important;text-align:left}
+.status-editor-option:hover:not([disabled]),.status-editor-option:focus-visible{background:rgba(255,255,255,.07)!important;outline:0}
+.status-editor-option[disabled]{opacity:.4}
+.status-editor-option.perigo{color:#ff8a9c!important;border-top:1px solid rgba(255,255,255,.07)!important;border-radius:0 0 10px 10px!important;margin-top:4px}
+.status-editor-dot{width:9px!important;height:9px!important;border-radius:50%!important;flex:none;box-shadow:0 0 8px currentColor}
+.grupo-menu-cores{display:grid!important;grid-template-columns:repeat(6,22px);gap:7px!important;padding:8px 10px 10px!important;border-bottom:1px solid rgba(255,255,255,.07)}
+.grupo-menu-cor{width:22px!important;height:22px!important;border-radius:7px!important;border:0!important;background:var(--cor)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.grupo-menu-cor.atual{outline:2px solid #fff;outline-offset:2px}
+
+/* Janelas da Direção de arte (radar, linha do tempo, o time fez hoje): a
+   mesma moldura das outras janelas, centralizada; o radar deixa de ser faixa */
+.da-approval-radar-overlay,.da-activity-history-overlay,.da-today-production-overlay{display:grid!important;place-items:center!important;padding:24px!important;background:rgba(6,7,10,.6)!important;backdrop-filter:blur(8px)!important}
+.da-approval-radar,.da-activity-history-modal,.da-today-production-modal{position:relative!important;inset:auto!important;width:min(640px,100%)!important;max-height:min(86vh,820px)!important;height:auto!important;margin:0!important;overflow:auto!important;padding:24px!important;border-radius:22px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -30px rgba(0,0,0,.85)!important;transform:none!important}
+.da-approval-radar-head,.da-activity-history-head,.da-today-production-modal-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 0 14px!important;margin:0!important;border:0!important;background:none!important}
+.da-approval-radar-head span,.da-activity-history-head span,.da-today-production-modal-head span{display:block;color:#ff6b8a!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.da-approval-radar-head b,.da-activity-history-head b,.da-today-production-modal-head b{display:block;margin-top:6px;color:#fff!important;font:700 24px/1.1 var(--pv-titulo)!important;letter-spacing:-.015em;text-transform:none!important}
+.da-today-production-modal-head b::first-letter{text-transform:uppercase}
+.da-approval-radar-head small,.da-activity-history-head small,.da-today-production-modal-head small{display:block;margin-top:6px;color:#a8a39c!important;font:400 12.5px/1.45 var(--mac-ui)!important}
+.da-approval-radar-close,.da-activity-history-modal .x-fechar,.da-today-production-modal .x-fechar{width:32px!important;height:32px!important;flex:none;border-radius:50%!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important;font-size:16px!important}
+.da-approval-radar-summary{display:flex!important;justify-content:space-between;gap:10px;padding:10px 12px!important;margin:0 0 12px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important;color:#a8a39c!important;font:500 12px var(--mac-ui)!important}
+.da-approval-radar-empty,.da-history-empty,.da-today-timeline-empty,.da-today-production-modal .da-history-empty,.da-command-modal .da-approval-radar-empty{display:grid;place-items:center;min-height:150px;padding:24px!important;border-radius:16px!important;border:1px dashed rgba(255,255,255,.12)!important;background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 10px,transparent 10px 20px)!important;color:#a8a39c!important;font:500 13px/1.5 var(--mac-ui)!important;text-align:center}
+.da-command-modal .workflow-title{font-size:26px!important}
+
+/* Resumo por grupo: os grupos em cartões à esquerda, a mensagem como balão do WhatsApp à direita */
+#workflow-modal:has(.resumo-grade){width:min(920px,calc(100vw - 32px))!important;max-width:none!important}
+.resumo-grade{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;margin-top:12px}
+.resumo-select{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.resumo-grupos{display:grid;gap:6px}
+.resumo-grupo{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#ece8e3;font:600 13px var(--mac-ui);text-align:left;cursor:pointer}
+.resumo-grupo i{width:8px;height:8px;border-radius:50%;background:#6b6760}
+.resumo-grupo.on{border-color:rgba(70,212,140,.55);background:linear-gradient(90deg,rgba(70,212,140,.16),rgba(70,212,140,.04));color:#fff}
+.resumo-grupo.on i{background:#46d48c;box-shadow:0 0 8px #46d48c}
+.resumo-lado .daily-summary-meta{margin-top:10px!important;font-size:11px!important;line-height:1.5}
+.resumo-whats{display:flex;flex-direction:column;min-width:0;border-radius:16px;border:1px solid var(--pv-linha);background:#0e1512;overflow:hidden}
+.resumo-whats-topo{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1b2420;border-bottom:1px solid rgba(255,255,255,.06)}
+.resumo-whats-topo b{display:block;color:#fff;font:600 13px var(--mac-ui)}
+.resumo-whats-topo small{display:block;color:#8aa196;font-size:11px}
+.resumo-whats-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#46d48c;color:#06240f;font:800 13px var(--mac-ui)}
+.resumo-whats .daily-summary-meta{margin:8px 14px 0!important}
+.resumo-whats .daily-summary-preview{flex:1;min-height:300px!important;margin:12px!important;width:auto!important;padding:12px 14px!important;border-radius:4px 14px 14px 14px!important;border:0!important;background:#065f46!important;background:linear-gradient(180deg,#0b6e50,#075a42)!important;color:#ecfdf5!important;font:400 13px/1.5 var(--mac-ui)!important;box-shadow:0 2px 0 rgba(0,0,0,.3)!important;resize:vertical}
+@media (max-width:720px){.resumo-grade{grid-template-columns:1fr}.resumo-grupos{grid-auto-flow:column;grid-auto-columns:max-content;overflow:auto}}
+
+/* Cabeçalho do padrão para qualquer página: ícone na cor do módulo, etiqueta e título */
+.pv-cabeca{--c:#ee83b7;display:flex;align-items:center;gap:14px;margin:4px 0 14px}
+.pv-cabeca .pv-ic{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent),0 10px 24px -12px var(--c)}
+.pv-cabeca .pv-ic svg{width:21px;height:21px;display:block}
+.pv-etiqueta{display:block;color:var(--c);font:700 10.5px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
+.pv-cabeca h2{margin:2px 0 0!important;color:#fff;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
+.pv-cabeca p{margin:4px 0 0!important}
+#painel-demandas .pv-cabeca{margin-top:18px}
+
+/* Minhas tarefas: números em cartões coloridos, plano do dia em cartões */
+.focus-hero{align-items:center!important}
+.vybe-desktop .focus-metrics.focus-metrics,.focus-metrics.focus-metrics{display:flex!important;gap:8px!important;border:0!important;background:none!important;padding:0!important}
+.vybe-desktop .focus-metrics .focus-metric.focus-metric,.focus-metrics .focus-metric.focus-metric{display:flex!important;flex-direction:column-reverse;align-items:flex-start!important;min-width:86px;padding:9px 14px!important;border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:radial-gradient(90% 120% at 100% 0,color-mix(in srgb,var(--focus-color,#9aa0ab) 18%,transparent),transparent 60%),var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+.vybe-desktop .focus-metrics .focus-metric.focus-metric strong,.focus-metrics .focus-metric.focus-metric strong{font:700 24px/1 var(--pv-titulo)!important;color:var(--focus-color,#fff)!important}
+.vybe-desktop .focus-metrics .focus-metric.neutro.neutro strong,.focus-metrics .focus-metric.neutro.neutro strong{color:#fff!important}
+.vybe-desktop .focus-metrics .focus-metric.focus-metric span,.focus-metrics .focus-metric.focus-metric span{margin:0 0 4px!important;color:#a8a39c!important;font:700 9.5px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase}
+.focus-lente{display:inline-flex!important;gap:2px;padding:3px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:rgba(0,0,0,.25)!important}
+.focus-lente-opcao{height:30px;padding:0 12px!important;border-radius:9px!important;border:0!important;background:none!important;color:#a8a39c!important;font:600 12px var(--mac-ui)!important}
+.focus-lente-opcao.ativa{background:linear-gradient(180deg,rgba(185,156,255,.3),rgba(185,156,255,.14))!important;color:#fff!important}
+.focus-daily-plan{border:0!important;background:none!important;padding:0!important}
+.focus-daily-plan-head{border:0!important;padding:0 0 8px!important}
+.focus-daily-plan-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important;border:0!important}
+.focus-daily-plan-row{padding:12px 14px!important;border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+.focus-next-action{border-radius:18px!important}
+
+/* Demandas: cada grupo num cartão com a cor dele na borda */
+#grupos-board-demandas .grupo-bloco{margin-bottom:10px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;overflow:hidden}
+
+.vybe-desktop .focus-metrics .focus-metric.calado.calado strong,.focus-metrics .focus-metric.calado.calado strong{color:#a4aab6!important}
+
+/* Escritório · livro de registros: as listas primeiro, os botões de cadastrar embaixo */
+.ofc-livro{display:flex;flex-direction:column}
+.ofc-livro .ofc-livro-novos{order:9;flex-direction:row-reverse;justify-content:flex-start!important;margin-top:16px!important;padding-top:14px!important;border-top:1px solid var(--pv-linha)!important}
+.ofc-livro .ofc-livro-novos .workflow-primary + .workflow-primary{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:var(--pv-brilho)!important}
+.ofc-livro .ofc-agente-grade{display:grid!important;grid-template-columns:1fr 1fr;gap:14px!important;margin-top:8px}
+.ofc-livro .ofc-agente-bloco{border:0!important;background:none!important;padding:0!important}
+.ofc-livro .ofc-agente-bloco-topo h4{color:#ece8e3!important;font:600 13px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
+.ofc-livro .ofc-agente-lista{display:grid;gap:6px;padding:0!important}
+.ofc-livro .ofc-agente-peca{width:100%;padding:10px 12px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+.ofc-livro .ofc-agente-peca:hover{border-color:rgba(255,179,92,.4)!important}
+
+/* Escritório · ajustes de áudio: painel de vidro e chaves no lugar das caixinhas */
+.ofc-ajustes-audio{border-radius:18px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 30px 60px -20px rgba(0,0,0,.8)!important;padding:16px!important}
+.ofc-ajustes-audio .ofc-recado-topo b,.ofc-ajustes-audio h3,.ofc-ajustes-audio h4{font:700 17px var(--pv-titulo)!important;color:#fff!important}
+.ofc-ajustes-audio .ofc-chave{display:flex!important;align-items:flex-start;gap:10px;padding:10px 12px!important;margin:6px 0!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important}
+.ofc-ajustes-audio input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:34px;height:20px;margin:1px 0 0;border-radius:99px;background:#3a3d48;position:relative;cursor:pointer;transition:background .15s}
+.ofc-ajustes-audio input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.ofc-ajustes-audio input[type=checkbox]:checked{background:#2fbf8a}
+.ofc-ajustes-audio input[type=checkbox]:checked::after{transform:translateX(14px)}
+.ofc-ajustes-audio input[type=range]{accent-color:#ff8f4f}
+
+/* Escritório · menu da pessoa e cartão rápido */
+#office-menu-pessoa{min-width:170px;padding:6px!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.97),rgba(24,26,34,.97))!important;box-shadow:0 20px 40px -14px rgba(0,0,0,.8)!important}
+#office-menu-pessoa > b{display:block;padding:6px 10px 8px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07);color:#fff;font:700 13px var(--pv-titulo)}
+#office-menu-pessoa button{display:flex;align-items:center;width:100%;min-height:32px;padding:0 10px!important;border-radius:9px!important;border:0!important;background:none!important;color:#ece8e3!important;font:500 13px var(--mac-ui)!important;text-align:left}
+#office-menu-pessoa button:hover{background:rgba(255,255,255,.07)!important}
+#office-movel-card{border-radius:18px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:0 24px 50px -18px rgba(0,0,0,.85)!important}
+#office-movel-card .ofc-mini{height:32px;border-radius:10px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
+
+/* Escritório · prévia do móvel na loja: a arte grande à esquerda, a ficha à direita */
+#office-previa-movel[open]{display:grid!important;grid-template-columns:260px minmax(0,1fr);column-gap:18px;align-items:start;width:min(680px,calc(100vw - 32px))!important;max-width:none!important;padding:22px!important;border-radius:22px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -30px rgba(0,0,0,.85)!important}
+#office-previa-movel > *{grid-column:2}
+#office-previa-movel > .ofc-dialogo-topo,#office-previa-movel > .workflow-actions{grid-column:1/-1}
+#office-previa-movel > .ofc-previa-palco{grid-column:1;grid-row:2/span 6;align-self:stretch;min-height:240px;border-radius:16px!important}
+#office-previa-movel .ofc-dialogo-topo h3{font:700 24px/1.1 var(--pv-titulo)!important;color:#fff}
+#office-previa-movel .ofc-previa-ficha{display:grid!important;grid-template-columns:1fr 1fr;gap:6px 14px!important;margin:0!important}
+#office-previa-movel .ofc-previa-ficha > div{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+#office-previa-movel .ofc-previa-ficha dt{color:#7d7870;font:600 10px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase}
+#office-previa-movel .ofc-previa-ficha dd{margin:2px 0 0;color:#ece8e3;font:600 13px var(--mac-ui)}
+#office-previa-movel .ofc-previa-falta{margin:10px 0 0!important;padding:10px 12px!important;border-radius:12px!important;background:rgba(255,179,92,.1)!important;border:1px solid rgba(255,179,92,.25)!important;color:#ffcf9a!important;font:600 12px var(--mac-ui)!important}
+#office-previa-movel .ofc-previa-extras{display:flex;gap:6px;margin-top:10px}
+#office-previa-movel .workflow-actions{margin-top:16px!important}
+@media (max-width:640px){#office-previa-movel[open]{grid-template-columns:1fr}#office-previa-movel > *,#office-previa-movel > .ofc-previa-palco{grid-column:1;grid-row:auto}}
+
+/* Escritório · recados: busca e cada pessoa num cartão */
+.ofc-recados-busca{flex:0 0 36px!important;width:100%;height:36px!important;min-height:0!important;margin:8px 0;padding:0 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(8,9,13,.6);color:#fff;font:500 13px var(--mac-ui)}
+.ofc-recados-lista{display:grid;gap:6px;padding:0!important;margin:0!important;list-style:none}
+.ofc-recados-lista > li > button{display:flex!important;align-items:center;gap:10px;width:100%;padding:9px 10px!important;border-radius:13px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 13px var(--mac-ui)!important;text-align:left}
+.ofc-recados-lista > li > button:hover{border-color:rgba(70,212,140,.45)!important}
+.ofc-recados-lista > li > button:has(.ofc-badge){border-color:rgba(70,212,140,.5)!important;background:linear-gradient(90deg,rgba(70,212,140,.14),rgba(70,212,140,.03)),#161820!important}
+.ofc-recados-lista .ofc-badge{margin-left:auto;background:#46d48c!important;color:#06240f!important}
+
+/* Mizinho Agenda: o cabeçalho do padrão, sem a caixa em volta */
+.prod-v2-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important;align-items:center!important}
+.prod-v2-head .pv-cabeca h3{margin:2px 0 0!important;color:#fff!important;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
+.prod-v2-head .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
+.prod-v2-layout .prod-v2-head.prod-v2-head,.vybe-desktop .prod-v2-layout .prod-v2-head.prod-v2-head{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:4px 0 10px!important}
+.p-head-title.pv-cabeca{display:flex!important;flex-direction:row!important;align-items:center!important;gap:14px!important}
