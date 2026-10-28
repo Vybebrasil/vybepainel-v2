@@ -276,6 +276,8 @@ function pintarQuemSou() {
   // marca do painel que ainda mostrava as duas letras. As iniciais ficam como
   // alternativa: enquanto a foto não chega, e para quem não tem foto.
   vestirFotoDeQuemSou(marca);
+  const avatar = document.getElementById('quem-sou-avatar');
+  if (avatar && !avatar.querySelector('img')) { avatar.textContent = iniciais; vestirFotoDeQuemSou(avatar); }
   document.getElementById('quem-sou-nome').textContent = primeiro;
   document.getElementById('quem-sou-completo').textContent = eu.nome || '';
   document.getElementById('quem-sou-email').textContent = eu.email || '';

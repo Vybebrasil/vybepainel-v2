@@ -590,3 +590,311 @@
 .dmn-mao-pecas:has(.pode) .dmn-mao-peca:not(.pode),.dmn-mao:has(.pode) .dmn-mao-peca:not(.pode){opacity:.35!important;filter:grayscale(.5)}
 .dmn-mao-peca.pode .dmn-peca{box-shadow:0 0 0 2px #46d48c,0 0 14px rgba(70,212,140,.55),0 4px 10px #0008!important}
 .dmn-mao-peca .dmn-peca{--m:38px!important}
+
+/* ===== Telas com volume real ===== */
+/* Calendário do mês: com centenas de peças, cada uma pintada inteira na cor do
+   status virava um mosaico verde-limão. Como no desenho: cartão escuro, a cor
+   só na barra da esquerda e no ponto; título claro, cliente em cinza. */
+.manager-calendar{border-radius:22px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-vidro,linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 42%),#12141a)!important}
+.manager-calendar-toolbar{background:transparent!important;box-shadow:none!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+.manager-calendar-grid{gap:1px!important;background:rgba(255,255,255,.05)!important}
+.manager-calendar-weekday{background:#14161d!important;color:#7d7870!important;font:700 10px var(--mac-ui)!important;letter-spacing:.1em;text-transform:uppercase}
+.manager-calendar-day{background:#101218!important}
+.manager-calendar-day.is-other{background:#0c0d12!important;opacity:.6}
+.manager-calendar-day.is-today{background:linear-gradient(180deg,rgba(255,143,79,.08),#101218 40%)!important;box-shadow:inset 0 2px 0 #ff8f4f!important}
+.manager-calendar-event{grid-template-columns:3px minmax(0,1fr) 8px!important;padding:6px 6px 6px 5px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:9px!important;background:linear-gradient(180deg,#1f222c,#191b23)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
+.manager-calendar-event:hover{border-color:color-mix(in srgb,var(--event-color,#ff8b38) 55%,transparent)!important;background:linear-gradient(180deg,#252834,#1d1f28)!important}
+.manager-calendar-event-bar{width:3px!important;background:var(--event-color,#ff8b38)!important;box-shadow:0 0 8px color-mix(in srgb,var(--event-color,#ff8b38) 60%,transparent)}
+.manager-calendar-event-copy b{color:#f2efe9!important;font:600 11.5px/1.3 var(--mac-ui)!important}
+.manager-calendar-event-copy small{color:#8b877f!important}
+.manager-calendar-event-status{color:var(--event-color,#ff8b38)!important;font-weight:600}
+.manager-calendar-more,.manager-calendar-day [class*="mais"]{border-radius:8px!important;background:rgba(255,255,255,.04)!important;color:#a8a39c!important;border:1px dashed rgba(255,255,255,.1)!important}
+
+/* Prévia (olhinho): um visualizador de verdade. Fundo escuro desfocado, a arte
+   grande com brilho, o cabeçalho da peça em vidro (título no padrão, "peça 2 de
+   20" em pílula), Baixar e Trocar como botões do padrão e as setas de peça
+   redondas nas laterais. */
+.previa-grande{background:radial-gradient(80% 70% at 50% 45%,rgba(30,32,44,.72),rgba(6,7,10,.94))!important;backdrop-filter:blur(14px)!important}
+.previa-grande-vidro{position:relative;width:min(1180px,94vw)!important;max-width:none!important;max-height:94vh!important;gap:12px!important;padding:16px 18px 18px!important;border-radius:26px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.9),rgba(20,22,30,.92))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 50px 120px -30px rgba(0,0,0,.95)!important}
+.previa-grande-topo{gap:8px!important;color:#a8a39c!important}
+#previa-grande-nome{margin-right:auto;color:#a8a39c;font:600 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.previa-grande-topo button:not(.x-fechar){height:34px!important;padding:0 14px!important;border-radius:11px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+.previa-grande-topo .previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.previa-grande-topo .x-fechar{width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;color:#ece8e3!important}
+.previa-grande-pecas{display:flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important;background:none!important}
+.previa-peca-info{display:grid;justify-items:center;gap:4px;text-align:center}
+#previa-peca-nome{color:#fff;font:700 22px/1.15 var(--pv-titulo);letter-spacing:-.015em}
+#previa-peca-onde{display:inline-block;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.06);color:#a8a39c!important;font:600 11.5px var(--mac-ui)!important}
+/* As setas de peça: botões redondos grandes, fora da janela, nas laterais */
+.previa-peca-passo{position:absolute!important;top:50%;z-index:2;width:52px!important;height:52px!important;padding:0!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:linear-gradient(180deg,#2c2f3c,#1d1f28)!important;color:#fff!important;font:400 26px/1 var(--mac-ui)!important;box-shadow:0 14px 30px -10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1)!important;transform:translateY(-50%)}
+.previa-peca-passo span{display:none!important}
+#previa-peca-antes{left:-70px}
+#previa-peca-depois{right:-70px}
+.previa-peca-passo:hover:not(:disabled){border-color:#ffb35c!important;box-shadow:0 0 0 3px rgba(255,179,92,.25),0 14px 30px -10px rgba(0,0,0,.8)!important}
+@media (max-width:1320px){#previa-peca-antes{left:8px}#previa-peca-depois{right:8px}}
+.previa-grande-palco{padding:6px 0 0;border-radius:18px;background:repeating-conic-gradient(rgba(255,255,255,.025) 0 25%,transparent 0 50%) 0 0/24px 24px}
+.previa-grande-palco img,.previa-grande-palco video{border-radius:14px!important;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06)!important}
+.previa-grande-seta{width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(20,22,30,.8)!important;color:#ece8e3!important}
+.previa-grande-topo button.previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.previa-peca-passo{display:grid!important;place-items:center!important;text-align:center!important}
+
+/* ===== Direção de arte, execução completa ===== */
+/* Agenda da semana: a peça como no desenho, pelas áreas do grid que já existem
+   (o cartão usa display:contents; não mexer no display dos blocos de dentro).
+   Linha 1: título numa linha só; linha 2: cliente; rodapé: status (e formato,
+   discreto) à esquerda e o responsável à direita. */
+.dias-colunas > .day-scroll-card .day-activity-content{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"titulo titulo" "legenda legenda" "acoes pessoas"!important;gap:4px 8px!important}
+.dias-colunas > .day-scroll-card .day-activity-pessoas{align-self:center!important}
+.dias-colunas > .day-scroll-card .day-activity-row .item-name{display:block!important;-webkit-line-clamp:unset!important;white-space:nowrap!important;text-overflow:ellipsis!important;font:600 12.5px/1.3 var(--mac-ui)!important}
+.dias-colunas > .day-scroll-card .day-activity-actions{justify-content:flex-start!important;margin-top:3px}
+.dias-colunas > .day-scroll-card .day-activity-actions .manager-status-control{order:-1}
+.week-panel .day-activity-formato{background:none!important;box-shadow:none!important;padding:0!important;color:#7d7870!important;font:500 10.5px var(--mac-ui)!important}
+.week-panel .day-activity-row .dia-marcar{opacity:.5}
+.week-panel .day-activity-row:hover .dia-marcar,.week-panel .day-activity-row.marcada .dia-marcar{opacity:1}
+/* Cabeçalho do dia: a data em destaque e a barrinha de progresso */
+.week-panel .day-scroll-card .client-name{font:700 16px/1.1 var(--pv-titulo)!important;color:#fff!important;letter-spacing:-.01em}
+.week-panel .day-scroll-card .day-progress-label{color:#7d7870!important;font:600 10.5px var(--mac-ui)!important}
+.dias-colunas > .day-scroll-card .item-row.day-activity-row{align-items:start!important}.dias-colunas > .day-scroll-card .day-activity-row .dia-marcar{align-self:start!important;margin-top:2px!important}
+/* A barra da peça na cor do status (antes só A fazer estava mapeado) */
+.week-panel .day-activity-row:has(.pill-pode-fazer){--pv-status:#ffcb00}
+.week-panel .day-activity-row:has(.pill-em-andamento),.week-panel .day-activity-row:has(.pill-em-execucao){--pv-status:#ff9f40}
+.week-panel .day-activity-row:has(.pill-para-aprovacao),.week-panel .day-activity-row:has(.pill-em-aprovacao),.week-panel .day-activity-row:has(.pill-ag-aprovacao){--pv-status:#c084fc}
+.week-panel .day-activity-row:has(.pill-agendado),.week-panel .day-activity-row:has(.pill-para-agendar){--pv-status:#579bfc}
+.week-panel .day-activity-row:has(.pill-finalizado),.week-panel .day-activity-row:has(.pill-aprovado),.week-panel .day-activity-row:has(.pill-feito),.week-panel .day-activity-row:has(.pill-concluido){--pv-status:#46d48c}
+.week-panel .day-activity-row:has(.pill-alteracao),.week-panel .day-activity-row:has(.pill-alteracao-d){--pv-status:#ff6b8a}
+.week-panel .day-activity-row:has(.pill-ag-info),.week-panel .day-activity-row:has(.pill-aguardando-info),.week-panel .day-activity-row:has(.pill-falta-info),.week-panel .day-activity-row:has(.pill-falta-da){--pv-status:#a1a1aa}
+.week-panel .day-activity-row:has(.pill-aguardo),.week-panel .day-activity-row:has(.pill-aguardo-redacao){--pv-status:#a78bfa}
+
+/* Gaveta da peça: faixa com status, prazo, veiculação e responsável; rodapé
+   fixo com atualização rápida, Comentar e Passar bastão (como no desenho). */
+#workspace-drawer .workspace-meta{display:none!important}
+.workspace-faixa{display:grid;grid-template-columns:auto auto auto minmax(0,1fr);margin:12px 0 14px!important;border-radius:14px;border:1px solid var(--pv-linha);background:rgba(255,255,255,.025);overflow:hidden}
+.workspace-faixa > div{display:grid;align-content:start;gap:5px;padding:10px 14px;border-left:1px solid rgba(255,255,255,.06)}
+.workspace-faixa > div:first-child{border-left:0}
+.workspace-faixa dt{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.workspace-faixa dd{margin:0;display:flex;align-items:center;gap:6px;color:#fff;font:700 14px var(--pv-titulo)}
+.workspace-faixa .owner-editor-trigger{display:inline-flex!important;align-items:center;gap:6px;padding:0!important;border:0!important;background:none!important;color:#fff!important;font:600 13px var(--mac-ui)!important}
+#workspace-drawer .workspace-rodape{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:18px -24px 0;padding:14px 24px 18px;border-top:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(24,26,34,.96),#15171e)}
+.workspace-rodape .workspace-textarea{min-height:46px!important;height:46px;resize:none;border-radius:12px!important}
+#workspace-drawer .workspace-rodape .workspace-action.workspace-comentar{border:0!important;background:none!important;color:#ece8e3!important;font:600 13px var(--mac-ui)!important}
+#workspace-drawer .workspace-rodape .workspace-action.workspace-bastao{height:42px!important;padding:0 18px!important;border:0!important;border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13.5px var(--mac-ui)!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+#workspace-drawer .entrega-depois{display:none!important}
+
+/* Seu espaço de trabalho: o anel do Gestor, a seta de cada cartão e a saudação */
+#mode-gate#mode-gate .identity-ola{display:block;color:#ff9a5c;font:700 11px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
+#mode-gate#mode-gate .identity-hero{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:18px;align-items:center}
+#mode-gate#mode-gate .identity-hero .identity-brand{grid-row:1/4;display:contents!important}
+#mode-gate#mode-gate .identity-hero .identity-brand img{grid-row:1/4;grid-column:1}
+#mode-gate#mode-gate .identity-hero .identity-appearance-actions{position:absolute;top:0;right:0}
+#mode-gate#mode-gate .identity-hero{position:relative}
+#mode-gate#mode-gate .identity-hero > .identity-ola,#mode-gate#mode-gate .identity-hero > h2,#mode-gate#mode-gate .identity-hero > p{grid-column:2}
+#mode-gate#mode-gate .station-anel{--p:0;position:relative;z-index:2;align-self:center;justify-self:center;width:min(170px,62%);aspect-ratio:1;border-radius:50%;display:grid;place-content:center;justify-items:center;margin:8px 0;background:conic-gradient(var(--station-color) calc(var(--p) * 1%),rgba(255,255,255,.08) 0)}
+#mode-gate#mode-gate .station-anel::before{content:"";position:absolute;inset:12px;border-radius:50%;background:#16181f;box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
+#mode-gate#mode-gate .station-anel b{position:relative;color:#fff;font:700 46px/1 var(--pv-titulo)}
+#mode-gate#mode-gate .station-anel small{position:relative;margin-top:4px;color:#a8a39c;font:700 10px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
+#mode-gate#mode-gate .identity-station[data-station="gestor"]{grid-template-rows:auto minmax(0,1fr) auto auto auto auto!important}
+/* A seta no canto de cada cartão */
+#mode-gate#mode-gate .identity-station[data-station] .station-top{display:flex!important;align-items:center;justify-content:space-between;width:100%}
+#mode-gate#mode-gate .identity-station[data-station] .station-top::after{content:"→";width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font:600 14px var(--mac-ui);color:var(--station-color);border:1px solid color-mix(in srgb,var(--station-color) 45%,transparent);background:color-mix(in srgb,var(--station-color) 10%,transparent)}
+#mode-gate#mode-gate .identity-station[data-station] .station-ready{display:none!important}
+/* Painel de trabalho: "+ Novo conteúdo" no cabeçalho, como no desenho */
+.workspace-heading .ops-novo-conteudo{height:38px;padding:0 16px;border:0;border-radius:12px;background:var(--pv-laranja);color:#1b0d06;font:700 13px var(--mac-ui);cursor:pointer;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)}
+.workspace-heading .ops-novo-conteudo:hover{filter:brightness(1.06)}
+/* Carga da equipe: o botão fica no cabeçalho; aberta, as pessoas em pílulas com a foto */
+.team-load-disclosure > summary{display:none!important}
+.team-load-disclosure:not([open]){display:none!important}
+.team-load-disclosure[open]{margin:2px 0 10px!important}
+.team-load-strip{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important;padding:2px 0!important}
+.team-load-label{color:#7d7870!important;font:700 10px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase;margin-right:4px}
+.team-load-chip{display:inline-flex!important;align-items:center;gap:6px;height:30px;padding:0 10px 0 3px!important;border-radius:99px!important;border:1px solid color-mix(in srgb,var(--load-color,#7aa7ff) 35%,transparent)!important;background:color-mix(in srgb,var(--load-color,#7aa7ff) 10%,#1b1d26)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
+.team-load-avatar,.team-load-avatar-fallback{width:24px!important;height:24px!important;border-radius:50%!important}
+
+/* Janelas de troca de status: o cartão da peça como no desenho */
+.workflow-modal .workflow-item{display:flex!important;align-items:center;gap:12px;padding:12px 14px!important;margin:4px 0 14px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important}
+.workflow-item-ic{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4)}
+.workflow-item-ic svg{width:19px;height:19px}
+.workflow-item-texto{display:grid;gap:2px;min-width:0;flex:1}
+.workflow-modal .workflow-item-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em!important;text-transform:uppercase}
+.workflow-modal .workflow-item-name{color:#fff!important;font:700 14px/1.3 var(--mac-ui)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workflow-item-fluxo{display:flex;align-items:center;gap:6px;flex:none}
+.workflow-item-fluxo > i{font-style:normal;color:#7d7870}
+.workflow-item-destino{color:#7aa7ff!important;background:rgba(122,167,255,.12)!important}
+.workflow-item-destino .pill-dot{background:currentColor}
+/* Conferência e checklist: a peça em cima do título; barra de conferidos;
+   cada item conferido fica verde; a prévia num cartão */
+.workflow-modal.status-context-split{display:flex;flex-direction:column}
+.workflow-modal > .workflow-kicker{order:0}
+.workflow-modal.status-context-split > .workflow-item{order:1}
+.workflow-modal.status-context-split > .workflow-title{order:2}
+.workflow-modal.status-context-split > .workflow-copy{order:3}
+.workflow-modal.status-context-split > *:not(.workflow-kicker):not(.workflow-item):not(.workflow-title):not(.workflow-copy){order:4}
+.workflow-conferidos{display:grid;gap:6px;margin:0 0 8px}
+.workflow-conferidos span{color:#a8a39c;font:500 12px var(--mac-ui)}
+.workflow-conferidos b{color:#fff;font:700 13px var(--pv-titulo)}
+.workflow-conferidos i{display:block;height:4px;border-radius:4px;background:linear-gradient(90deg,#ff8f4f var(--p),rgba(255,255,255,.08) var(--p))}
+.workflow-checks .workflow-check.feito{border-color:rgba(70,212,140,.5)!important;background:linear-gradient(90deg,rgba(70,212,140,.14),rgba(70,212,140,.03))!important}
+.workflow-check input[type=checkbox]{accent-color:#46d48c}
+.status-context-preview{border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.025)!important;overflow:hidden}
+.status-context-preview-head b{color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
+.status-context-preview-media{border:0!important;background:none!important}
+.status-context-preview-empty{display:grid!important;justify-items:center;gap:6px;padding:22px 14px!important;color:#a8a39c!important;font:500 12px/1.45 var(--mac-ui)!important;text-align:center}
+.status-context-preview-empty b{color:#fff!important;font:700 14px var(--pv-titulo)!important}
+.status-context-preview-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#ff9a5c;background:rgba(255,143,79,.14)}
+.status-context-preview-ic svg{width:18px;height:18px}
+.status-context-anexar{margin-top:4px;height:32px!important;padding:0 14px!important;font-size:12px!important}
+/* Troca de status com etapas: os passos numerados com o nome (como no desenho) */
+.context-passos{display:flex!important;align-items:center;gap:6px;margin:10px 0 4px!important;padding:0!important;list-style:none;height:auto!important;background:none!important}
+.context-passos li{display:flex;align-items:center;gap:6px;flex:1;min-width:0;color:#7d7870;font:600 11.5px var(--mac-ui);background:none!important;height:auto!important}
+.context-passos li + li::before{content:"";flex:1;max-width:28px;height:1px;background:rgba(255,255,255,.12);margin-right:2px}
+.context-passos li i{width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 10.5px var(--mac-ui);font-style:normal;border:1px solid rgba(255,255,255,.18);color:#a8a39c}
+.context-passos li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.context-passos li.atual{color:#fff}
+.context-passos li.atual i{border-color:transparent;background:var(--pv-laranja);color:#1b0d06}
+.context-passos li.feito i{border-color:transparent;background:#46d48c;color:#06240f;font-size:0}
+.context-passos li.feito i::before{content:"✓";font-size:11px}
+#context-progress{display:none!important}
+.status-context-dialog .workflow-item{margin:10px 0 0!important}
+.context-passos li span,.context-passos li span.complete{height:auto!important;flex:0 1 auto!important;border-radius:0!important;background:none!important}
+/* A pergunta do passo como título (como no desenho), não um rótulo pequeno */
+.status-context-dialog [data-context-step] > .workflow-field > span:first-child{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em;text-transform:none!important}
+.status-context-dialog [data-context-step] .context-field-help{color:#a8a39c!important;font-size:12.5px!important}
+.status-context-dialog .context-title{display:none!important}
+/* Passagem de bastão em 3 passos */
+.bastao-passos{margin:6px 0 12px!important}
+.bastao-onde{margin-right:auto;color:#7d7870;font-size:11.5px}
+.bastao-revisao{display:grid;gap:0;margin:0;border-radius:14px;border:1px solid var(--pv-linha);overflow:hidden}
+.bastao-revisao > div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.06)}
+.bastao-revisao > div:first-child{border-top:0}
+.bastao-revisao dt{color:#7d7870;font:600 11.5px var(--mac-ui)}
+.bastao-revisao dd{margin:0;color:#ece8e3;font-size:13px;word-break:break-word}
+.workflow-modal [data-bastao] > .workflow-field:first-child > span{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;text-transform:none!important;letter-spacing:-.01em}
+/* Direção de arte: a pergunta em destaque e quem age resumido */
+.workflow-modal .direcao-pergunta > span:first-child{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;text-transform:none!important;letter-spacing:-.01em}
+.direcao-resumo{display:flex;align-items:center;gap:12px;margin:10px 0 4px;padding:12px 14px;border-radius:14px;border:1px solid rgba(70,212,140,.3);background:linear-gradient(90deg,rgba(70,212,140,.1),rgba(70,212,140,.02))}
+.direcao-resumo[hidden]{display:none}
+.direcao-resumo > span{font-size:18px}
+.direcao-resumo > div{display:grid;gap:2px;flex:1;min-width:0}
+.direcao-resumo b{color:#fff;font:700 13px var(--mac-ui)}
+.direcao-resumo small{color:#a8a39c;font-size:12px}
+.direcao-resumo .workflow-secondary{height:32px!important;padding:0 14px!important}
+/* Números em cartões dentro das janelas (comando do dia, o time fez hoje) */
+.pv-numeros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.pv-numeros > div{display:grid;gap:4px;padding:12px 14px;border-radius:14px;border:1px solid var(--pv-linha);background:radial-gradient(90% 120% at 100% 0,rgba(70,212,140,.12),transparent 60%),var(--pv-tile);box-shadow:var(--pv-brilho)}
+.pv-numeros > div:nth-child(2){background:radial-gradient(90% 120% at 100% 0,rgba(122,167,255,.12),transparent 60%),var(--pv-tile)}
+.pv-numeros > div:nth-child(3){background:radial-gradient(90% 120% at 100% 0,rgba(255,107,138,.12),transparent 60%),var(--pv-tile)}
+.pv-numeros small{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.pv-numeros b{color:#fff;font:700 26px/1 var(--pv-titulo)}
+.pv-vazio-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#ff9a5c;background:rgba(255,143,79,.12);font-size:16px}
+.da-approval-radar-empty b,.da-history-empty b,.da-today-timeline-empty b{color:#fff;font:700 14px var(--pv-titulo)}
+.da-approval-radar-empty,.da-history-empty,.da-today-timeline-empty{gap:6px!important;align-content:center}
+.pv-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.pv-filtros button{height:28px;padding:0 12px;border-radius:9px;border:1px solid var(--pv-linha);background:rgba(255,255,255,.03);color:#a8a39c;font:600 12px var(--mac-ui);cursor:pointer}
+.pv-filtros button.on{border-color:transparent;background:linear-gradient(180deg,#46d48c,#2fbf78);color:#06240f}
+.da-approval-radar-summary .context-passos{flex:1;margin:0!important}
+.da-approval-radar .workflow-actions,.da-activity-history-modal .workflow-actions,.da-today-production-modal .workflow-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px!important;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.da-activity-history-modal .workflow-item{margin:6px 0 0!important}
+.da-activity-history-modal .workflow-item{display:flex!important;flex-direction:row!important}
+.da-activity-history-modal .workflow-item-texto{flex:1}
+.da-approval-radar .workflow-secondary,.da-activity-history-modal .workflow-secondary,.da-today-production-modal .workflow-secondary{height:34px!important;padding:0 14px!important;border-radius:11px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important}
+.da-approval-radar-close,.da-activity-history-modal .x-fechar,.da-today-production-modal .x-fechar,.previa-grande-topo .x-fechar,.meeting-head .x-fechar{font-size:0!important}
+.da-activity-history-modal .workflow-item{display:flex!important;align-items:center;gap:12px;padding:12px 14px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important}
+.da-activity-history-modal .workflow-item-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em!important;text-transform:uppercase}
+.da-activity-history-modal .workflow-item-name{color:#fff!important;font:700 14px/1.3 var(--mac-ui)!important}
+
+/* Escritório · TV da sala */
+.ofc-tvform{display:grid;gap:12px}
+.ofc-tv-tela{display:grid;place-items:center;align-content:center;gap:10px;aspect-ratio:16/7;border-radius:16px;background:radial-gradient(60% 80% at 50% 40%,#1c1f2b,#0b0c11);border:1px solid var(--pv-linha)}
+.ofc-tv-tela span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#e5484d;color:#fff;font-size:18px;box-shadow:0 0 30px rgba(229,72,77,.5)}
+.ofc-tv-tela small{color:#7d7870;font-size:12px}
+.ofc-tv-opcoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ofc-tv-opcao{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--pv-linha);background:var(--pv-tile);color:#fff;font:600 13.5px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-tv-opcao b{flex:1}
+.ofc-tv-opcao.on{border-color:rgba(229,72,77,.55);background:linear-gradient(90deg,rgba(229,72,77,.18),rgba(229,72,77,.04))}
+.ofc-tv-opcao i{color:#e5484d;font-style:normal}
+.ofc-tv-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(229,72,77,.2);color:#ff8a8f;font-size:13px}
+.ofc-tv-opcao.tela .ofc-tv-ic{background:rgba(122,167,255,.18);color:#9fc0ff}
+.ofc-tv-opcao:disabled{opacity:.45;cursor:not-allowed}
+.ofc-tv-link input{width:100%;height:40px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(8,9,13,.6);color:#fff}
+.ofc-tv-desligar{margin-right:auto;border:0;background:none;color:#ff8a9c;font:600 13px var(--mac-ui);cursor:pointer}
+/* Escritório · post-it com o papel ao lado; presente com o móvel marcado */
+.ofc-postit-form{display:grid!important;grid-template-columns:200px minmax(0,1fr);gap:8px 18px;align-items:start}
+.ofc-postit-form > .ofc-postit-papel{grid-row:1/4;grid-column:1}
+.ofc-postit-form > *:not(.ofc-postit-papel){grid-column:2}
+.ofc-postit-form > .workflow-actions,.ofc-postit-form > .ofc-erro{grid-column:1/-1}
+.ofc-postit-papel{position:relative;display:flex;flex-direction:column;justify-content:space-between;aspect-ratio:1;padding:16px;border-radius:3px;background:#ffe27a;color:#3b2f06;transform:rotate(-2deg);box-shadow:0 18px 30px -12px rgba(0,0,0,.7),inset 0 -14px 20px -16px rgba(0,0,0,.25)}
+.ofc-postit-papel[data-cor="rosa"]{background:#ffb3cf;color:#4a1023}
+.ofc-postit-papel[data-cor="azul"]{background:#a9d4ff;color:#0e2c4a}
+.ofc-postit-papel[data-cor="verde"]{background:#b9f0b5;color:#123d12}
+.ofc-postit-papel span{font:600 17px/1.3 "Caveat","Comic Sans MS",cursive;word-break:break-word}
+.ofc-postit-papel small{align-self:flex-end;opacity:.7;font-size:12px}
+.ofc-presente-movel.on{border-color:#ffb35c!important;box-shadow:0 0 0 2px rgba(255,179,92,.35)!important;position:relative}
+.ofc-presente-movel.on::after{content:"✓";position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#ff8f4f;color:#1b0d06;font:800 11px var(--mac-ui)}
+/* A janela é coluna flex (para a ordem do cartão da peça): os filhos não encolhem */
+.workflow-modal > *{flex-shrink:0}
+/* Escritório · troca: pessoas em pílulas, móveis em cartões lado a lado */
+.ofc-troca-pessoas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ofc-troca-pessoas button{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 4px;border-radius:99px;border:1px solid var(--pv-linha);background:var(--pv-tile);color:#ece8e3;font:600 12.5px var(--mac-ui);cursor:pointer}
+.ofc-troca-pessoas button.on{border-color:rgba(70,212,140,.55);background:linear-gradient(90deg,rgba(70,212,140,.18),rgba(70,212,140,.04));color:#fff}
+.ofc-troca-pessoas img,.ofc-troca-pessoas .ofc-avatar{width:26px!important;height:26px!important;border-radius:50%}
+.ofc-troca-montar{display:grid!important;grid-template-columns:1fr 1fr;gap:14px}
+.ofc-troca-montar h3{color:#ffb35c!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px!important}
+.ofc-troca-montar ul{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;padding:0!important;margin:0!important;list-style:none}
+.ofc-troca-montar li{position:relative;display:grid!important;justify-items:center;gap:4px;padding:10px 8px!important;border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:linear-gradient(180deg,#2a2d3c,#1e2130)!important;text-align:center}
+.ofc-troca-montar li.sim{border-color:#ffb35c!important;box-shadow:0 0 0 2px rgba(255,179,92,.3)}
+.ofc-troca-montar li.sim::after{content:"✓";position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#ff8f4f;color:#1b0d06;font:800 10px var(--mac-ui)}
+.ofc-troca-montar li img{height:54px;image-rendering:pixelated}
+.ofc-troca-montar li > span{color:#fff;font:600 12px var(--mac-ui)}
+.ofc-troca-montar li{grid-template-rows:60px auto auto}
+.ofc-troca-montar li > *:first-child{display:grid;place-items:center;height:60px}
+.ofc-troca-montar li .ofc-qtd{display:flex;align-items:center;justify-content:center;gap:8px}
+.ofc-troca-montar li .ofc-qtd button{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#ece8e3;font-size:13px;line-height:1}
+.ofc-troca-montar li .ofc-qtd b{color:#fff;font:700 12px var(--mac-ui);min-width:12px;text-align:center}
+.ofc-troca-montar li{grid-template-columns:1fr!important}.ofc-troca-montar li img{width:auto!important;height:54px!important}.ofc-troca-montar li span{white-space:normal!important}
+/* Escritório · ajustes de áudio como janela central (como no desenho) */
+.ofc-ajustes-audio{position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;width:min(460px,calc(100vw - 32px))!important;max-height:86vh;overflow:auto;z-index:900!important;padding:20px!important;border-radius:22px!important}
+.ofc-ajustes-audio{box-shadow:0 0 0 100vmax rgba(6,7,10,.55),0 40px 90px -30px rgba(0,0,0,.85)!important}
+/* Escritório · Dia da equipe: os estados em colunas lado a lado, cada peça num cartão */
+.dia-detalhe{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px!important;padding:10px 4px 4px!important;background:none!important;border:0!important}
+.dia-grupo{min-width:0}
+.dia-grupo .vb-jogo-rotulo{display:block;margin-bottom:6px;color:#ffb35c!important;font:700 10px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase}
+.dia-grupo.fazendo .vb-jogo-rotulo{color:#ffb35c!important}
+.dia-grupo:not(.fazendo):not(.feita):not(.alerta):not(.adiada) .vb-jogo-rotulo{color:#7aa7ff!important}
+.dia-grupo.feita .vb-jogo-rotulo{color:#46d48c!important}
+.dia-grupo.alerta .vb-jogo-rotulo{color:#ff6b8a!important}
+.dia-grupo ul{display:grid;gap:6px;padding:0!important;margin:0!important;list-style:none}
+.dia-grupo li > button{position:relative;display:grid!important;grid-template-columns:minmax(0,1fr);gap:6px;width:100%;padding:9px 10px 9px 13px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;text-align:left}
+.dia-grupo li > button::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:#7aa7ff}
+.dia-grupo.fazendo li > button::before{background:#ffb35c}
+.dia-grupo.feita li > button::before{background:#46d48c}
+.dia-grupo.alerta li > button::before{background:#ff6b8a}
+.dia-grupo .dia-ponto{display:none!important}
+.dia-grupo .dia-nome{display:grid;gap:2px;color:#fff;font:600 12.5px var(--mac-ui)}
+.dia-grupo .dia-nome small{color:#7d7870;font-size:10.5px}
+.dia-grupo li > button > .pill{justify-self:end}
+/* Mizinho · Novo na agenda como janela central, rótulos à esquerda */
+.ag-cartao.centro{position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;width:min(520px,calc(100vw - 32px))!important;max-width:none!important;padding:22px!important;border-radius:22px!important;box-shadow:0 0 0 100vmax rgba(6,7,10,.55),0 40px 90px -30px rgba(0,0,0,.9)!important}
+.ag-cartao.centro .capt-novo h4{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em;text-transform:uppercase;margin:0 0 10px!important}
+.ag-cartao.centro .capt-novo input[name=titulo]{height:auto!important;padding:4px 0 10px!important;border:0!important;border-bottom:2px solid rgba(238,131,183,.6)!important;border-radius:0!important;background:none!important;font:700 24px var(--pv-titulo)!important;color:#fff!important}
+.ag-cartao.centro .capt-novo-tipos{grid-template-columns:repeat(3,1fr)!important;margin:14px 0!important}
+.ag-cartao.centro .capt-novo-tipo{min-height:52px}
+/* Avisos: abas Todos / Não lidos */
+.notif-abas{display:inline-flex;gap:2px;margin:8px 10px 4px;padding:3px;border-radius:10px;background:rgba(0,0,0,.3)}
+.notif-abas button{height:26px;padding:0 12px;border:0;border-radius:8px;background:none;color:#a8a39c;font:600 12px var(--mac-ui);cursor:pointer}
+.notif-abas button.on{background:rgba(255,255,255,.12);color:#fff}
+/* Menu da conta: avatar ao lado do nome */
+.quem-sou-cabeca{grid-template-columns:40px minmax(0,1fr);column-gap:10px!important}
+.quem-sou-avatar{grid-row:1/4;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#ff8f4f;color:#1b0d06;font:700 13px var(--mac-ui)}
+.quem-sou-avatar img{width:100%;height:100%;object-fit:cover}
+.quem-sou-cabeca .quem-sou-avatar.quem-sou-avatar{color:#1b0d06!important;font:700 14px var(--mac-ui)!important}
+/* Cabeçalho com ícone nas abas (Diário, Performance, Automações, IA & Custos) */
+.pv-ic-aba{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent),0 10px 24px -12px var(--c)}
+.pv-ic-aba svg{width:21px;height:21px}
+.vb-cabecalho:has(.pv-ic-aba){flex-wrap:nowrap!important;align-items:center!important}
+.vb-cabecalho .pv-etiqueta{margin-bottom:2px}
+.auto-cabeca:has(.pv-ic-aba){display:flex!important;align-items:center;gap:14px}
+.auto-kicker,.ai-usage-kicker{color:#ff8f4f!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.ai-usage-kicker{color:#b99cff!important}
+.ai-usage-head,.ai-usage-cab{display:flex!important;align-items:center;gap:14px}
+.ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
+.ai-usage-head.ai-usage-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important}
+.ai-usage-head > div:nth-of-type(1),.auto-cabeca > div:nth-of-type(1){flex:1;min-width:0}

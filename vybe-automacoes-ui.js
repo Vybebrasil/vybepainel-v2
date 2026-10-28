@@ -261,9 +261,9 @@ function pintarAutomacoes() {
   const temRegraDeData = AUTOMACOES.some((a) => a.gatilho?.tipo === 'data' && a.ativa);
 
   raiz.innerHTML = `
-    <div class="auto-cabeca">
+    <div class="auto-cabeca"><span class="pv-ic pv-ic-aba" style="--c:#ff8f4f" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3 5 11h5l-1 6 6-8h-5l1-6Z"/></svg></span>
       <div>
-        <div class="auto-kicker">Vybe OS · Operação</div>
+        <div class="auto-kicker">Regras do quadro</div>
         <h2 class="auto-titulo">Automações</h2>
         <p class="auto-sub">As regras que movem, atribuem e avisam sozinhas. ${admin
           ? 'Alterar aqui vale na hora, sem publicar nada.'

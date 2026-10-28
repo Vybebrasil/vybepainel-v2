@@ -49,6 +49,13 @@ function quandoFoi(iso) {
   return `${Math.floor(minutos / 1440)} d`;
 }
 
+// Abas do sino: Todos ou só os não lidos (a lista é a mesma, o filtro é na tela).
+let AVISOS_SO_NAO_LIDOS = false;
+function filtrarAvisos(botao, soNaoLidos) {
+  AVISOS_SO_NAO_LIDOS = soNaoLidos;
+  botao.parentElement.querySelectorAll('button').forEach((b) => { const on = b === botao; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  pintarListaNotificacoes();
+}
 function pintarListaNotificacoes() {
   const lista = document.getElementById('notif-lista');
   if (!lista) return;
@@ -57,7 +64,9 @@ function pintarListaNotificacoes() {
     document.getElementById('notif-caixa')?.classList.remove('tem-mais');
     return;
   }
-  lista.innerHTML = notificacoes.map((n) => `
+  const visiveis = AVISOS_SO_NAO_LIDOS ? notificacoes.filter((n) => !n.lida_em) : notificacoes;
+  if (!visiveis.length) { lista.innerHTML = '<div class="notif-vazio">Nenhum aviso não lido.</div>'; return; }
+  lista.innerHTML = visiveis.map((n) => `
     <div class="notif-item ${n.lida_em ? '' : 'nao-lida'}" ${n.conteudo_id ? `onclick="abrirDoNotificacao('${n.id}','${n.conteudo_id}')"` : ''}>
       <div class="notif-texto">${safeText(n.texto)}</div>
       <div class="notif-meta">${safeText(n.conteudo_nome || '')}<span>${quandoFoi(n.criada_em)}</span></div>

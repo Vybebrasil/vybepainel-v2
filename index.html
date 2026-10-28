@@ -52,7 +52,7 @@
       <button type="button" class="topo-clima" id="topo-clima" onclick="usarMinhaLocalizacaoNoTopo()"></button>
       <span class="identity-quem-slot" id="identity-quem-slot"></span>
     </div>
-    <div class="identity-hero"><div class="identity-brand"><img src="/assets/vybe-branca.png" alt="Vybe" width="148" height="88"><div class="identity-appearance-actions"><button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button><button type="button" class="universe-toggle" aria-pressed="false" onclick="const gate=document.getElementById('mode-gate');const paused=gate.classList.toggle('universe-paused');this.setAttribute('aria-pressed',String(paused));this.textContent=paused?'Retomar animação':'Pausar animação'">Pausar animação</button></div></div><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
+    <div class="identity-hero"><div class="identity-brand"><img src="/assets/vybe-branca.png" alt="Vybe" width="148" height="88"><div class="identity-appearance-actions"><button type="button" class="appearance-button" data-open-appearance aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" stroke="none"/></svg>Aparência</button><button type="button" class="universe-toggle" aria-pressed="false" onclick="const gate=document.getElementById('mode-gate');const paused=gate.classList.toggle('universe-paused');this.setAttribute('aria-pressed',String(paused));this.textContent=paused?'Retomar animação':'Pausar animação'">Pausar animação</button></div></div><span id="workspace-ola" class="identity-ola"></span><h2 id="workspace-title">Seu espaço de trabalho</h2><p>Escolha um módulo para acompanhar a equipe ou continuar seu trabalho.</p></div>
     <div class="identity-pulse" id="identity-pulse" hidden aria-hidden="true"></div>
     <div class="identity-command-grid">
       <div class="identity-network" aria-hidden="true"><i class="identity-link gestor"></i><i class="identity-link foco"></i><i class="identity-link controler"></i><i class="identity-link cadastros"></i><i class="identity-link producao"></i><i class="identity-link clientes"></i></div>
@@ -116,7 +116,7 @@
         <span class="quem-sou-nome" id="quem-sou-nome"></span>
       </button>
       <div class="quem-sou-menu" id="quem-sou-menu" style="display:none">
-        <div class="quem-sou-cabeca">
+        <div class="quem-sou-cabeca"><span class="quem-sou-avatar" id="quem-sou-avatar" aria-hidden="true"></span>
           <b id="quem-sou-completo"></b>
           <span id="quem-sou-email"></span>
           <span class="quem-sou-papel" id="quem-sou-papel"></span>
@@ -129,7 +129,7 @@
       <button type="button" id="notif-sino" class="notif-sino" onclick="alternarNotificacoes()" aria-label="Avisos"><svg class="icone" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2a4 4 0 0 0-4 4c0 2.5-.6 3.9-1.2 4.6-.3.3-.1.9.4.9h9.6c.5 0 .7-.6.4-.9C12.6 9.9 12 8.5 12 6a4 4 0 0 0-4-4Z"/><path d="M6.6 13.5a1.6 1.6 0 0 0 2.8 0"/></svg><span id="notif-contador" class="notif-contador" style="display:none">0</span>
       </button>
       <div id="notif-caixa" class="notif-caixa" style="display:none">
-        <div class="notif-cabeca"><span>Avisos</span><button type="button" onclick="marcarNotificacoesLidas()">marcar todos como lidos</button></div>
+        <div class="notif-cabeca"><span>Avisos</span><button type="button" onclick="marcarNotificacoesLidas()">marcar todos como lidos</button></div><div class="notif-abas" role="tablist" aria-label="Filtrar avisos"><button type="button" role="tab" aria-selected="true" class="on" onclick="filtrarAvisos(this,false)">Todos</button><button type="button" role="tab" aria-selected="false" onclick="filtrarAvisos(this,true)">Não lidos</button></div>
         <div id="notif-lista" class="notif-lista"></div>
       </div>
     </div>
@@ -159,15 +159,16 @@
   <div class="workspace-heading"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.5"/></svg></span><div><span class="workspace-eyebrow">Operação · Gestor</span><h2>Painel de trabalho</h2></div><div class="ops-acoes" role="group" aria-label="Ferramentas">        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
         <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
 
-        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
+        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button><button id="ops-carga-btn" class="ops-close-btn" type="button" aria-expanded="false" onclick="const d=document.querySelector('.team-load-disclosure');if(d){d.open=!d.open;this.setAttribute('aria-expanded',String(d.open));this.classList.toggle('active',d.open)}">▸ Carga da equipe</button>
         
       </div><label class="filtro-carteira">Responsável geral
       <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
         <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label></div>
+      </select></label><button type="button" class="ops-novo-conteudo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">+ Novo conteúdo</button></div>
   <!-- Barra de resumo compacta -->
   <div id="compact-summary" class="resumo focus-hidden"><div class="resumo-principal"><div class="resumo-numero">—<i>%</i></div><div class="resumo-legenda"><span>da semana fechada</span><div class="resumo-barra"><i style="width:0"></i></div><small>carregando…</small></div></div></div>
 
+  <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
   <!-- Central operacional -->
   <div class="ops-command-bar focus-hidden">
     <div class="global-search-wrap">
@@ -190,7 +191,6 @@
       
     </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
-    <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
   </div>
   <div id="ops-action-panel" class="ops-panel focus-hidden"></div>
   <div id="ops-today-panel" class="ops-panel ops-today-panel"></div>
@@ -306,9 +306,9 @@
 <!-- ===== PAINEL DIÁRIO DE PRODUÇÃO ===== -->
 <div id="painel-diario" style="display:none;">
   <div class="container">
-    <div class="vb-cabecalho">
+    <div class="vb-cabecalho"><span class="pv-ic pv-ic-aba" style="--c:#ee83b7" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/></svg></span>
       <div class="vb-cabecalho-texto">
-        <h2>Diário de Produção</h2>
+        <span class="pv-etiqueta" style="--c:#ee83b7">Diário</span><h2>Diário de Produção</h2>
         <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
       </div>
       <div class="vb-cabecalho-acoes">
@@ -485,7 +485,7 @@
 <!-- ===== PAINEL PERFORMANCE ===== -->
 <div id="painel-performance" style="display:none;">
   <div class="container">
-    <div class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>Performance de Produção</h2><p>Prazos, veiculação e produtividade da equipe</p></div></div>
+    <div class="vb-cabecalho"><span class="pv-ic pv-ic-aba" style="--c:#46d48c" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V9M9 16V5M14 16v-4"/></svg></span><div class="vb-cabecalho-texto"><span class="pv-etiqueta" style="--c:#46d48c">Performance</span><h2>Performance de Produção</h2><p>Prazos, veiculação e produtividade da equipe</p></div></div>
     <!-- Seletor de período -->
     <div class="perf-period-bar">
       <button class="perf-period-btn" onclick="setPerfPeriod(7,this)">7 dias</button>
