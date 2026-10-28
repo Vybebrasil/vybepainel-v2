@@ -187,7 +187,8 @@ function poker(vista, nivel) {
 }
 
 // --- Sinuca: testa tacadas na física de verdade e escolhe a melhor ----------
-const CACAPAS = [[0, 0], [50, -0.3], [100, 0], [0, 50], [50, 50.3], [100, 50]];
+// Para onde mirar em cada caçapa: a boca, um pouco para dentro do buraco.
+const CACAPAS = [[-0.5, -0.5], [50, -1], [100.5, -0.5], [-0.5, 50.5], [50, 51], [100.5, 50.5]];
 const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
 // A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
 const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);
