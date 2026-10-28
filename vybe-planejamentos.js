@@ -208,7 +208,7 @@ async function pljSalvarPecaDoDocumento(indice, peca) {
   const c = PLJ_ABERTO.conteudo || {};
   const pecas = (c.pecas || []).map((x, i) => (i === indice ? { ...x, ...peca } : x));
   if (!pecas[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
-  if (PLJ_ABERTO.estado === 'enviado' && !confirm('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) throw new Error('Edição cancelada.');
+  if (PLJ_ABERTO.estado === 'enviado' && !await confirmarNoPainel('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) throw new Error('Edição cancelada.');
   const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO.titulo, conteudo: { ...c, pecas } });
   const novo = (await pljPedir(`acao=detalhe&id=${encodeURIComponent(d.planejamento.id)}`)).planejamento;
   const alvo = (novo.conteudo?.pecas || []).findIndex((x) => x.tema === (peca.tema || '') && x.data === (peca.data || ''));
@@ -221,9 +221,9 @@ async function pljSalvarPecaDoDocumento(indice, peca) {
   showToast('Peça salva.', 'success');
   pljAtualizarFora();
 }
-function pljTrocarAba(aba) {
+async function pljTrocarAba(aba) {
   if (document.getElementById('workflow-modal')?.dataset.aba === 'editar' && aba !== 'editar' && PLJ_SUJO) {
-    if (!confirm('Sair sem salvar as alterações?')) return;
+    if (!await confirmarNoPainel('Sair sem salvar as alterações?')) return;
     pljEdDescartar(false);
   }
   pintarPlanejamento(aba);
@@ -247,7 +247,8 @@ function pljAcoesHtml(aba) {
   if (['revisar', 'ajustes'].includes(p.estado)) botoes.push(p.identidade?.nao_aprova
     ? `<button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente</button><button type="button" class="workflow-primary" onclick="confirmarAprovacaoHead(true)">Aprovar e cadastrar →</button>`
     : `<button type="button" class="workflow-secondary" onclick="confirmarAprovacaoHead(false)">Aprovar sem o cliente</button><button type="button" class="workflow-primary" onclick="confirmarEnvioPlanejamento()">Mandar para o cliente →</button>`);
-  if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="if(confirm('Reabrir tira o planejamento do cliente: o link enviado deixa de valer até você mandar de novo. Reabrir?'))mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
+  if (p.estado === 'enviado') botoes.push(`<button type="button" class="workflow-secondary" onclick="confirmarNoPainel('Reabrir o planejamento?
+O link que o cliente recebeu deixa de valer até você mandar de novo.',{confirmar:'Reabrir'}).then((ok)=>{if(ok)mudarEstadoPlanejamento('revisar')})">Reabrir para editar</button>
     <button type="button" class="workflow-secondary" onclick="confirmarEnvioPlanejamento()">Gerar um link novo</button>`);
   if (p.estado === 'aprovado') botoes.push(`<button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('revisar')">Reabrir para editar</button>
     <button type="button" class="workflow-secondary" onclick="mudarEstadoPlanejamento('cadastrado')">Já cadastrei à mão</button>
@@ -389,9 +390,9 @@ function pljEdAcrescentar(k) {
   (PLJ_RASCUNHO[k] ||= []).push(k === 'linhas' ? { titulo: '', texto: '' } : { data: '', nome: '', texto: '' });
   pljEdMarcarSujo(); pljEdRepintarTudo();
 }
-function pljEdTirar(k, i) {
+async function pljEdTirar(k, i) {
   const nome = k === 'pecas' ? `a peça ${String(i + 1).padStart(2, '0')}` : k === 'linhas' ? 'esta linha' : 'esta data';
-  if (!confirm(`Tirar ${nome}? Só vale depois de salvar.`)) return;
+  if (!await confirmarNoPainel(`Tirar ${nome}? Só vale depois de salvar.`)) return;
   PLJ_RASCUNHO[k].splice(i, 1);
   if (k === 'pecas') PLJ_SEL = PLJ_RASCUNHO.pecas.length ? `peca:${Math.min(i, PLJ_RASCUNHO.pecas.length - 1)}` : 'mes';
   pljEdMarcarSujo(); pljEdRepintarTudo();
@@ -523,7 +524,7 @@ async function salvarIdentidadePlanejamento(botao) {
 async function confirmarAprovacaoHead(cadastrar) {
   const p = PLJ_ABERTO, r = p.revisao || {}, falta = (r.total || 0) - (r.head_ok || 0);
   const aviso = falta > 0 ? `\n\n${r.head_ajustar ? `${r.head_ajustar} ${r.head_ajustar === 1 ? 'peça está marcada' : 'peças estão marcadas'} para ajustar` : `${falta} ${falta === 1 ? 'peça está' : 'peças estão'} sem o seu OK`}.` : '';
-  if (!confirm(`Aprovar o planejamento de ${p.cliente} sem mandar ao cliente?${aviso}\n\nFica registrado no histórico como aprovado pelo head.`)) return;
+  if (!await confirmarNoPainel(`Aprovar o planejamento de ${p.cliente} sem mandar ao cliente?${aviso}\n\nFica registrado no histórico como aprovado pelo head.`)) return;
   try {
     const d = await pljPedir('', { acao: 'aprovar_head', id: p.id, versao: p.versao });
     showToast('Planejamento aprovado.', 'success');

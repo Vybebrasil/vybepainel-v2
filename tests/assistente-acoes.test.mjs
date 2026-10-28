@@ -119,7 +119,7 @@ test('ação sem número: acha a peça da própria pessoa pelo cliente ou títul
     }
     // Peça de outra pessoa nunca entra: Tainara (3) não é responsável por nada do Brussolo.
     const nada = await prepararAcao(sql, 3, { acao: 'status', busca: 'brussolo', para: 'Em andamento' }, segredo).catch((e) => e);
-    assert.match(nada.message, /Não achei peça aberta sua com "brussolo"/);
+    assert.match(nada.message, /Não achei peça aberta sua \(nem dos clientes em que você é head\) com "brussolo"/);
   } finally { await db.close(); }
 });
 
@@ -173,8 +173,13 @@ test('captação por busca: o head do cliente acha a peça pelo nome falado ("o 
       UPDATE vybe_conteudos SET titulo='Reels - Treino na Hebravet' WHERE id=13; UPDATE vybe_conteudos SET removido_em=now() WHERE id=11;`);
     const a = await prepararAcao(sql, 5, { acao: 'captacao', busca: 'o reels do treino da hebravet que ia furar', para: 'Captação em Andamento' }, segredo);
     assert.match(a.resumo, /Captação de "Reels - Treino na Hebravet"/);
-    // Status continua sendo só dos responsáveis: a mesma busca para status não acha nada do Ewerton.
-    await assert.rejects(() => prepararAcao(sql, 5, { acao: 'status', busca: 'hebravet', para: 'Pode Fazer' }, segredo), /Não achei peça aberta sua/);
+    // Status: o head também acha a peça pela busca; a permissão segue a mesma regra (vídeo em aprovação: o head aprova).
+    const st = await prepararAcao(sql, 5, { acao: 'status', busca: 'hebravet treino', para: 'Pode Fazer' }, segredo);
+    assert.match(st.resumo, /Mudar "Reels - Treino na Hebravet"/);
+    // Data por extenso desempata ("24 de outubro" = 24/10) e não conta como palavra do título.
+    await db.exec(`UPDATE vybe_conteudos SET veiculacao='2026-10-24' WHERE id=13; INSERT INTO vybe_conteudos VALUES(14,NULL,'Reels - Outro da Hebravet','Reels',${PROD},'para_aprovacao',NULL,'2026-10-30'); INSERT INTO vybe_conteudo_clientes VALUES(14,7);`);
+    const porData = await prepararAcao(sql, 5, { acao: 'alteracao', busca: 'reels da hebravet com data de 24 de outubro', texto: 'adicionar ilustrações' }, segredo);
+    assert.match(porData.resumo, /Treino na Hebravet/);
   } finally { await db.close(); }
 });
 

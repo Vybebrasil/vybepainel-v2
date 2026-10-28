@@ -3784,7 +3784,7 @@ async function vestirManequimEscritorio(m) {
   const it = escritorioItensDaCamada(escritorio.quarto || "geral")[m.origem?.i];
   const f = it?.[6]?.f;
   if (!f) return escritorioAviso("Este manequim ainda não tem um visual guardado.");
-  if (!confirm("Vestir o visual do manequim? Seu personagem muda para todos.")) return;
+  if (!await confirmarNoPainel("Vestir o visual do manequim? Seu personagem muda para todos.")) return;
   const perfil = { ...escritorio.perfil, figura: f };
   try {
     const salvo = escritorio.base.demo ? perfil : (await escritorioApi("perfil", { perfil })).perfil;

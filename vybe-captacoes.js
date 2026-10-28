@@ -876,7 +876,7 @@ async function captGravado(id, peca, desfazer) {
   captRecarregar();
 }
 async function captCancelar(id, doGoogle = false) {
-  if (!confirm(doGoogle ? "Soltar as peças desta captação? As não gravadas voltam para \"Agendar Captação\". O evento continua no Google Agenda." : "Cancelar esta captação? As peças não gravadas voltam para \"Agendar Captação\" e o evento sai do Google Agenda.")) return;
+  if (!await confirmarNoPainel(doGoogle ? "Soltar as peças desta captação? As não gravadas voltam para \"Agendar Captação\". O evento continua no Google Agenda." : "Cancelar esta captação? As peças não gravadas voltam para \"Agendar Captação\" e o evento sai do Google Agenda.")) return;
   try { const r = await captPedir("", { acao: "cancelar", id }); showToast(r.avisos?.[0] || (doGoogle ? "Peças soltas da captação." : "Captação cancelada."), r.avisos?.length ? "info" : "ok", 6000); if (typeof refreshData === "function") refreshData(); }
   catch (e) { showToast(e.message, "err", 6000); }
   CAPT.sel = ""; captRecarregar();
@@ -1012,7 +1012,7 @@ async function captFechar(form) {
   if (!gravadas.length && !novas.length) return mostrar("Marque ao menos uma peça gravada, ou adicione a que foi gravada.");
   if (roteiro && !/docs\.google\.com\/document\//.test(roteiro)) return mostrar("O roteiro precisa ser o link do Google Docs.");
   if (drive && !/^https?:\/\/\S+$/i.test(drive)) return mostrar("O link do Drive precisa começar com https://");
-  if (!drive && !confirm("Fechar sem a pasta do Drive? A edição não vai achar o material pela peça.")) return;
+  if (!drive && !await confirmarNoPainel("Fechar sem a pasta do Drive? A edição não vai achar o material pela peça.")) return;
   botao.disabled = true; botao.textContent = "Fechando…";
   try {
     const k = e.nossa;

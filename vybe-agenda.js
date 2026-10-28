@@ -1677,7 +1677,7 @@ async function recarregarCatalogos() {
 }
 
 async function renomearEtiqueta(coluna, campo, chave, atual) {
-  const novo = window.prompt('Nome da etiqueta:', atual);
+  const novo = await nomearNoPainel('Nome da etiqueta:', atual);
   if (novo === null || novo.trim() === atual) return;
   try {
     await chamarEtiqueta({ acao: 'renomear', coluna, chave, rotulo: novo.trim() });
@@ -1687,7 +1687,7 @@ async function renomearEtiqueta(coluna, campo, chave, atual) {
 }
 
 async function recolorirEtiqueta(coluna, campo, chave, corAtual) {
-  const nova = window.prompt('Cor da etiqueta em hexadecimal (ex.: #ff6b00):', corAtual || '#7c8797');
+  const nova = await nomearNoPainel('Cor da etiqueta em hexadecimal (ex.: #ff6b00):', corAtual || '#7c8797');
   if (nova === null) return;
   try {
     await chamarEtiqueta({ acao: 'cor', coluna, chave, cor: nova.trim() });
@@ -1715,7 +1715,7 @@ async function removerEtiqueta(coluna, campo, chave, rotulo) {
 
 async function criarEtiqueta(coluna, campo, rotuloDoCampoDado) {
   const nome = rotuloDoCampoDado || CAMPOS_DE_ESCOLHA[campo]?.rotulo || 'este campo';
-  const rotulo = window.prompt(`Nova etiqueta em ${nome}:`, '');
+  const rotulo = await nomearNoPainel(`Nova etiqueta em ${nome}:`, '');
   if (!rotulo || !rotulo.trim()) return;
   try {
     await chamarEtiqueta({ acao: 'criar', coluna, rotulo: rotulo.trim() });
@@ -2839,7 +2839,7 @@ let ARQUIVO_DIAS = 15;
 
 function alternarArquivo() {
   const caixa = document.getElementById('arquivadas-painel');
-  if (caixa) { caixa.remove(); return; }
+  if (caixa) { caixa.remove(); if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando(); return; }
   const alvo = document.getElementById('ops-selection-summary') || document.body;
   alvo.insertAdjacentHTML('afterend', `<section id="arquivadas-painel" class="arquivadas-painel">
       <header class="arquivadas-topo">
@@ -2850,6 +2850,7 @@ function alternarArquivo() {
       </header>
       <div id="arquivadas-lista" class="arquivadas-lista"><div class="arquivadas-vazio">Carregando…</div></div>
     </section>`);
+  if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando();
   carregarArquivadas();
 }
 

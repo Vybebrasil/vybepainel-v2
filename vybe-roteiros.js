@@ -126,7 +126,7 @@ function rotAbrirEditar(id) {
     </form>`);
 }
 async function rotEditar(form, id, remover = false) {
-  if (remover && !confirm("Tirar este roteiro da biblioteca? O doc continua no Google Docs.")) return;
+  if (remover && !await confirmarNoPainel("Tirar este roteiro da biblioteca? O doc continua no Google Docs.")) return;
   const f = new FormData(form), erro = form.querySelector(".capt-erro");
   try {
     await rotPedir("", remover ? { acao: "editar", id, remover: true } : { acao: "editar", id, titulo: f.get("titulo"), cliente_id: f.get("cliente_id") });

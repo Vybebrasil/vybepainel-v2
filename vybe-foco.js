@@ -212,9 +212,77 @@ function focusNextActionHtml(data) {
       </div>
     </div></section>`;
 }
+// Uma pergunta por vez (padrão visual, 27/10/2026): a janela pedia quatro
+// coisas de uma vez. Agora pergunta o porquê com quatro cartões (tocar já
+// avança), depois o que falta com respostas prontas, e o próximo passo já vem
+// escrito. Os campos continuam com os mesmos ids, e submitFocusBlocker não muda.
+const BLOQUEIO_TIPOS = [
+  { tipo:'info', titulo:'Falta informação ou material', cor:'#f7c948', depende:'Cliente', proximo:'Atendimento cobra o cliente; quando chegar, a peça volta para quem estava.', sugestoes:['Fotos do produto','Logo em alta','Texto ou legenda do cliente','Preço e condições','Acesso à conta'] },
+  { tipo:'feedback', titulo:'Esperando feedback ou aprovação', cor:'#7aa7ff', depende:'Cliente', proximo:'Atendimento cobra a resposta; com o retorno, a peça segue para a próxima etapa.', sugestoes:['Aprovação da arte','Escolha entre versões','Resposta sobre a pauta','Ok do texto'] },
+  { tipo:'direction', titulo:'Falta direção de arte ou referência', cor:'#ff6b8a', depende:'Direção de arte', proximo:'A Direção de arte manda a referência; com ela, a arte é retomada.', sugestoes:['Referência visual','Paleta ou fonte','Definir o formato','Revisar o caminho da arte'] },
+  { tipo:'dependency', titulo:'Outra etapa ou área precisa agir', cor:'#c7a6ff', depende:'', proximo:'A outra etapa termina a parte dela; depois a peça volta para quem estava.', sugestoes:['Captação ainda não feita','Edição do vídeo','Copy da redação','Agendamento'] },
+];
+const BLOQUEIO_ICONES = {
+  info:'<rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 8h14"/>',
+  feedback:'<circle cx="8" cy="7" r="3"/><path d="M2.5 17c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5"/>',
+  direction:'<path d="M10 3l1.6 3.9L15.5 8.5l-3.9 1.6L10 14l-1.6-3.9L4.5 8.5l3.9-1.6Z"/>',
+  dependency:'<path d="M4 5h12M4 10h12M4 15h8"/>',
+};
 function openFocusBlocker(itemId) {
   const item=findOperationalItem(itemId); if(!item) return showToast('Demanda não encontrada.','err');
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Bloqueio inteligente</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">O que está impedindo o avanço?</h2><p class="workflow-copy">Este registro cria contexto, muda a demanda para a etapa adequada e avisa a Mesa de Comando sobre o bloqueio.</p>${workflowItemHtml(item,'sinalizar bloqueio')}<label class="workflow-field"><span>Tipo de bloqueio</span><select id="focus-blocker-type"><option value="info">Informação ou material pendente</option><option value="feedback">Feedback, aprovação ou decisão pendente</option><option value="direction">Direção de arte ou referência visual</option><option value="dependency">Outra etapa ou área ainda precisa agir</option></select></label><label class="workflow-field"><span>O que está faltando ou precisa ser resolvido?</span><textarea id="focus-blocker-reason" rows="3" placeholder="Ex.: Cliente ainda não enviou as fotos do produto solicitadas no briefing."></textarea></label><label class="workflow-field"><span>De quem depende?</span><input id="focus-blocker-owner" type="text" placeholder="Ex.: Cliente, Paulo, Direção de Arte..."/></label><label class="workflow-field"><span>Qual é o próximo passo?</span><textarea id="focus-blocker-next" rows="3" placeholder="Ex.: Atendimento cobra as fotos; assim que chegarem, retomo a arte."></textarea></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitFocusBlocker('${item.id}')">Registrar bloqueio →</button></div>`);
+  const passos=['Por quê','O que falta','Confirmar'].map((n,i)=>`<span data-bloqueio-marca="${i}"><i>${i+1}</i>${n}</span>`).join('<em></em>');
+  const opcoes=BLOQUEIO_TIPOS.map(t=>`<button type="button" class="pv-opcao" style="--c:${t.cor}" onclick="escolherTipoDeBloqueio('${t.tipo}')"><span class="pv-opcao-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${BLOQUEIO_ICONES[t.tipo]}</svg></span><b>${t.titulo}</b><i>→</i></button>`).join('');
+  const donos=['Cliente','Atendimento','Direção de arte','Paulo'].map(n=>`<button type="button" onclick="escolherDonoDoBloqueio(this)">${n}</button>`).join('');
+  openWorkflowModal(`<div class="workflow-kicker"><span>Bloqueio</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>${workflowItemHtml(item,'sinalizar bloqueio')}<div class="pv-passos">${passos}</div>`
+    + `<section data-bloqueio-passo="0"><h2 class="workflow-title">Por que a peça parou?</h2><p class="workflow-copy">Toque numa opção: já segue para a próxima pergunta.</p><div class="pv-opcoes">${opcoes}</div></section>`
+    + `<section data-bloqueio-passo="1" hidden><h2 class="workflow-title">O que está faltando?</h2><p class="workflow-copy">Toque no que serve, ou escreva com suas palavras.</p><div class="pv-sugestoes" id="focus-blocker-sugestoes"></div><label class="workflow-field"><textarea id="focus-blocker-reason" rows="2" placeholder="Ex.: o cliente ainda não mandou as fotos do produto."></textarea></label><div class="workflow-field"><span>De quem depende?</span><div class="pv-sugestoes" id="focus-blocker-donos">${donos}</div><input id="focus-blocker-owner" type="text" placeholder="Ou escreva quem: Cliente, Paulo, Direção de arte…"></div></section>`
+    + `<section data-bloqueio-passo="2" hidden><h2 class="workflow-title">Confere e registra</h2><p class="workflow-copy">O próximo passo já vem sugerido; mude se precisar.</p><label class="workflow-field"><span>Próximo passo</span><textarea id="focus-blocker-next" rows="3" oninput="this.dataset.editado='1'"></textarea></label><p class="workflow-hint">A peça muda para a etapa certa e a Mesa de Comando fica sabendo.</p></section>`
+    + `<select id="focus-blocker-type" hidden>${BLOQUEIO_TIPOS.map(t=>`<option value="${t.tipo}">${t.titulo}</option>`).join('')}</select>`
+    + `<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="voltarPassoDoBloqueio()">Cancelar</button><button type="button" class="workflow-primary" hidden onclick="avancarPassoDoBloqueio('${item.id}')">Continuar →</button></div>`);
+  mostrarPassoDoBloqueio(0);
+}
+function mostrarPassoDoBloqueio(n) {
+  const modal=document.getElementById('workflow-modal'); if(!modal) return;
+  modal.dataset.bloqueioPasso=String(n);
+  modal.querySelectorAll('[data-bloqueio-passo]').forEach(s=>{ s.hidden=Number(s.dataset.bloqueioPasso)!==n; });
+  modal.querySelectorAll('[data-bloqueio-marca]').forEach(m=>{ const i=Number(m.dataset.bloqueioMarca); m.className=i<n?'feito':i===n?'on':''; });
+  const avancar=modal.querySelector('.workflow-primary'); const voltar=modal.querySelector('.workflow-secondary');
+  if(avancar){ avancar.hidden=n===0; avancar.textContent=n===2?'Registrar bloqueio →':'Continuar →'; }
+  if(voltar) voltar.textContent=n===0?'Cancelar':'← Voltar';
+  setTimeout(()=>modal.querySelector(n===1?'#focus-blocker-reason':n===2?'#focus-blocker-next':'.pv-opcao')?.focus(),40);
+}
+function escolherTipoDeBloqueio(tipo) {
+  const t=BLOQUEIO_TIPOS.find(x=>x.tipo===tipo); if(!t) return;
+  document.getElementById('focus-blocker-type').value=tipo;
+  document.getElementById('focus-blocker-sugestoes').innerHTML=t.sugestoes.map(s=>`<button type="button" onclick="escolherSugestaoDoBloqueio(this)">${safeText(s)}</button>`).join('');
+  const dono=document.getElementById('focus-blocker-owner');
+  if(dono && !dono.dataset.escolhido) { dono.value=t.depende; document.querySelectorAll('#focus-blocker-donos button').forEach(b=>b.classList.toggle('on',b.textContent===t.depende)); }
+  const proximo=document.getElementById('focus-blocker-next'); if(proximo && !proximo.dataset.editado) proximo.value=t.proximo;
+  mostrarPassoDoBloqueio(1);
+}
+function escolherSugestaoDoBloqueio(botao) {
+  botao.classList.toggle('on');
+  const marcadas=[...document.querySelectorAll('#focus-blocker-sugestoes button.on')].map(b=>b.textContent);
+  document.getElementById('focus-blocker-reason').value=marcadas.join(' · ');
+}
+function escolherDonoDoBloqueio(botao) {
+  document.querySelectorAll('#focus-blocker-donos button').forEach(b=>b.classList.toggle('on',b===botao));
+  const dono=document.getElementById('focus-blocker-owner'); dono.value=botao.textContent; dono.dataset.escolhido='1';
+}
+function avancarPassoDoBloqueio(itemId) {
+  const n=Number(document.getElementById('workflow-modal')?.dataset.bloqueioPasso||0);
+  if(n===1){
+    const motivo=String(document.getElementById('focus-blocker-reason')?.value||'').trim();
+    const dono=String(document.getElementById('focus-blocker-owner')?.value||'').trim();
+    if(!motivo||!dono) return showToast('Diga o que falta e de quem depende.','info');
+    return mostrarPassoDoBloqueio(2);
+  }
+  if(n===2) return submitFocusBlocker(itemId);
+}
+function voltarPassoDoBloqueio() {
+  const n=Number(document.getElementById('workflow-modal')?.dataset.bloqueioPasso||0);
+  if(n===0) return closeWorkflowModal();
+  mostrarPassoDoBloqueio(n-1);
 }
 async function submitFocusBlocker(itemId) {
   const item=findOperationalItem(itemId); const type=String(document.getElementById('focus-blocker-type')?.value||''); const reason=String(document.getElementById('focus-blocker-reason')?.value||'').trim(); const owner=String(document.getElementById('focus-blocker-owner')?.value||'').trim(); const next=String(document.getElementById('focus-blocker-next')?.value||'').trim();
