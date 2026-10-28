@@ -86,6 +86,11 @@ async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
     versao: salvo?.versao || 0,
     sel: null, novo: null, mudou: false,
   };
+  if (typeof escritorioTacaEditavel === "function" && escritorioTacaEditavel(camada)) {
+    const t = escritorio.mapa?.tacaLugar || escritorioTacaSalva() || escritorioLugarDaTaca();
+    if (t) escritorio.edicao.itens.push(["fball_trophy", t.x, t.y, t.dir ?? 2, 0, 0, { copa: true }]);
+  }
+  escritorio.mapa?.marcador?.("copa", 0, 0, "");
   // Histórico para desfazer/refazer (fotos da lista de itens).
   escritorio.edicao.passos = [escritorioFotoEdicao(escritorio.edicao)];
   escritorio.edicao.inicial = escritorio.edicao.passos[0];
@@ -126,7 +131,17 @@ async function sairEditorEscritorio() {
   escritorio.mapa?.previa(null);
   escritorio.mapa?.grade(null);
   escritorio.mapa?.definirMoveis(escritorioMoveisAtuais());
+  escritorioRecolocarPlacaDaTaca();
   renderEscritorio();
+}
+// A taça da Copa no editor: peça do quarto que o dono move e gira, mas que não
+// é dele (não vende, não guarda, não duplica, não troca e não conta no inventário).
+function escritorioEhTaca(it) { return it?.[6]?.copa === true; }
+function escritorioSemTaca(itens) { return (itens || []).filter((it) => !escritorioEhTaca(it)); }
+function escritorioAvisoTaca() { escritorioAviso("A taça da Copa fica no quarto: dá para mover e girar, mas não para vender, guardar ou duplicar."); }
+function escritorioRecolocarPlacaDaTaca() {
+  const t = escritorio.mapa?.tacaLugar;
+  if (t && typeof escritorioCopaPlacaHtml === "function") escritorio.mapa.marcador("copa", t.x, t.y, escritorioCopaPlacaHtml(), 96);
 }
 async function salvarEditorEscritorio() {
   const e = escritorio.edicao;
@@ -149,10 +164,13 @@ async function salvarEditorEscritorio() {
     if (conferencia.problemas.length && !await confirmarNoPainel(`A conferência encontrou ${conferencia.problemas.length} pontos na construção. Salvar assim mesmo? Você pode consultar a lista em Conferir construção.`)) {
       e.salvando = false; renderBarraEditorEscritorio(); return;
     }
+    const taca = e.itens.find(escritorioEhTaca), itens = escritorioSemTaca(e.itens);
+    if (taca) e.decoracao.sala_taca = `${taca[1]},${taca[2]},${taca[3] || 0}`;
     // A planta desenhada vai junto com os móveis (o servidor confere os dois).
     const planta = { ...(e.celdas !== undefined ? { celdas: e.celdas } : {}), ...(!escritorioCamadaComum(e.camada) ? {decoracao:escritorioAcabamento(e.decoracao)} : {}) };
-    let r = { camada: e.camada, itens: e.itens, versao: e.versao + 1, ...planta };
-    if (!escritorio.base.demo) r = await escritorioApi("mapa", { camada: e.camada, itens: e.itens, versao: e.versao, ...planta });
+    let r = { camada: e.camada, itens, versao: e.versao + 1, ...planta };
+    if (!escritorio.base.demo) r = await escritorioApi("mapa", { camada: e.camada, itens, versao: e.versao, ...planta });
+    if (taca && escritorio.mapa) escritorio.mapa.tacaLugar = { x: taca[1], y: taca[2], dir: taca[3] || 0 };
     if (r.perfil) escritorio.perfil = {...escritorio.perfil,...r.perfil};
     else if (escritorio.base.demo && !escritorioCamadaComum(e.camada)) {
       if (e.camada.endsWith('-andar-1')) escritorio.perfil.sala_andares = [{...e.decoracao,andar:1}];
@@ -174,6 +192,7 @@ async function salvarEditorEscritorio() {
     escritorio.mapa?.grade(null);
     if (r.celdas !== undefined || planta.decoracao) { escritorioAplicarSalas(); escritorioRedesenharMapa(); }
     else await escritorio.mapa?.definirMoveis(escritorioMoveisAtuais());
+    escritorioRecolocarPlacaDaTaca();
     renderEscritorio();
     escritorioAvisarDecoracao(r.camada);
     escritorioAviso("Mudanças salvas em " + escritorioNomeCamada(r.camada) + ".");
@@ -412,6 +431,7 @@ async function girarSelecionadoEscritorio() {
 function apagarSelecionadoEscritorio() {
   const e = escritorio.edicao;
   if (!e || e.sel === null) return;
+  if ([...escritorioGrupo()].some(i=>escritorioEhTaca(e.itens[i]))) return escritorioAvisoTaca();
   if ([...escritorioGrupo()].some(i=>e.bloqueados?.has(e.itens[i])))return escritorioAviso("A seleção contém peças bloqueadas.");
   if (escritorioGrupo().size > 1) {
     const g = escritorioGrupo();
@@ -429,9 +449,9 @@ function apagarSelecionadoEscritorio() {
 async function guardarTudoEscritorio() {
   const e = escritorio.edicao;
   if (!e || escritorioCamadaComum(e.camada)) return;
-  const n = e.itens.filter((it) => !escritorioImagemDe(it[0])).length;
+  const n = e.itens.filter((it) => !escritorioImagemDe(it[0]) && !escritorioEhTaca(it)).length;
   if (!n || !await confirmarNoPainel(`Guardar os ${n} móveis desta sala no inventário? Você ainda pode desfazer antes de salvar.`)) return;
-  e.itens = e.itens.filter((it) => escritorioImagemDe(it[0]));
+  e.itens = e.itens.filter((it) => escritorioImagemDe(it[0]) || escritorioEhTaca(it));
   e.sel = null; e.selVarios = new Set();
   escritorio.mapa?.destacar(null);
   escritorioEditorMudou();
@@ -1677,6 +1697,7 @@ async function duplicarSelecionadoEscritorio() {
   if (!e || e.sel === null) return;
   if (escritorioGrupo().size > 1) { copiarSelecaoEscritorio(true); return colarEscritorio(); }
   const it = e.itens[e.sel];
+  if (escritorioEhTaca(it)) return escritorioAvisoTaca();
   if (escritorioImagemDe(it[0])) return escritorioAviso("Imagens não se duplicam; envie outra na aba Imagens.");
   if (!escritorioPodeColocarMovel(it[0])) return escritorioColocarOutro();
   for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [2, 0], [0, 2], [-2, 0], [0, -2]]) {
@@ -1756,7 +1777,9 @@ function acompanharSelecaoEditorEscritorio() {
   const chave = `${e.sel}|${it[0]}|${it[5]}|${e.passoParede}|${giros}|${grupo}|${escritorio.base?.economia?.saldo}|${escritorioUnidadesColocadas(it[0])}|${e.bloqueados?.has(it)}|${Boolean(e.selAjustes)}`;
   if (barra.dataset.chave !== chave) {
     barra.dataset.chave = chave;
-    barra.innerHTML = grupo > 1
+    barra.innerHTML = grupo === 1 && escritorioEhTaca(it)
+      ? `<span class="ofc-sel-linha">${giros === 1 ? "" : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)">↻ Girar <kbd>R</kbd></button>`}<span class="ofc-sel-nota">Taça da Copa: arraste para mudar de lugar. Ela fica no quarto (não vende nem guarda).</span></span>`
+      : grupo > 1
       ? `<span class="ofc-grupo-n">${grupo} móveis</span><span class="ofc-fino" role="group" aria-label="Mover o grupo ¼ de ladrilho"><button type="button" onclick="moverGrupoEscritorio(-0.25,0)" aria-label="Para cima e esquerda">↖</button><button type="button" onclick="moverGrupoEscritorio(0,-0.25)" aria-label="Para cima e direita">↗</button><button type="button" onclick="moverGrupoEscritorio(0,0.25)" aria-label="Para baixo e esquerda">↙</button><button type="button" onclick="moverGrupoEscritorio(0.25,0)" aria-label="Para baixo e direita">↘</button></span><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar para colar em outra sala (Ctrl+C)">Copiar</button><button type="button" onclick="salvarConjuntoEscritorio()">Guardar conjunto</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar todos</button>`
       : escritorioEhParede(it[0])
       ? `${escritorioAjusteParedeHtml()}<button type="button" onclick="copiarSelecaoEscritorio()">Copiar</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Guardar</button>`
@@ -1773,14 +1796,15 @@ function acompanharSelecaoEditorEscritorio() {
   barra.style.left = "";
   barra.style.top = "";
   // Nome e quantos ainda estão guardados (grátis não conta).
-  const onde = !img && grupo === 1 ? escritorioOndeEstaMovel(it[0]) : null;
+  const onde = !img && grupo === 1 && !escritorioEhTaca(it) ? escritorioOndeEstaMovel(it[0]) : null;
   const guardados = onde && onde.guardados !== Infinity ? ` · ${onde.guardados} guardado${onde.guardados === 1 ? "" : "s"}` : onde ? " · grátis" : "";
-  barra.dataset.movel = grupo > 1 ? `${grupo} móveis selecionados` : escritorioNomeMovel((escritorioCatalogo || []).find(m=>m.classe===it[0]) || {nome:it[0]}) + guardados;
+  barra.dataset.movel = grupo > 1 ? `${grupo} móveis selecionados` : escritorioEhTaca(it) ? "Taça da Copa" : escritorioNomeMovel((escritorioCatalogo || []).find(m=>m.classe===it[0]) || {nome:it[0]}) + guardados;
   escritorio.selQuadro = 0;
 }
 function trocarModeloEditorEscritorio() {
   const e = escritorio.edicao;
   if (!e || e.sel === null) return;
+  if (escritorioEhTaca(e.itens[e.sel])) return escritorioAvisoTaca();
   e.trocar = e.sel;
   renderBarraEditorEscritorio();
   escritorioAviso("Escolha no catálogo o novo modelo.");
@@ -1881,7 +1905,7 @@ async function moverGrupoEscritorio(dx, dy) {
 // Área de transferência do editor: fica no navegador, vale entre salas.
 function copiarSelecaoEscritorio(silencioso = false) {
   const e = escritorio.edicao;
-  const lista = [...escritorioGrupo()].map((i) => e.itens[i]).filter((it) => it && !escritorioImagemDe(it[0]));
+  const lista = [...escritorioGrupo()].map((i) => e.itens[i]).filter((it) => it && !escritorioImagemDe(it[0]) && !escritorioEhTaca(it));
   if (!lista.length) return false;
   const mx = Math.min(...lista.map((it) => Math.floor(it[1]))), my = Math.min(...lista.map((it) => Math.floor(it[2])));
   const copia = lista.map(([c, x, y, d, est = 0, alt = 0]) => [c, Math.round((x - mx) * 100) / 100, Math.round((y - my) * 100) / 100, d, est, alt]);
@@ -2033,12 +2057,12 @@ function escritorioOutrosAndares() {
   return Object.entries(escritorio.base.mapa?.camadas || {}).filter(([id])=>id!==camada && (id===raiz || id===raiz+'-andar-1')).flatMap(([,m])=>m.itens || []);
 }
 function escritorioUnidadesColocadas(classe) {
-  return [...(escritorio.edicao?.itens || []),...escritorioOutrosAndares()].filter(it=>it[0]===classe).length;
+  return [...escritorioSemTaca(escritorio.edicao?.itens),...escritorioOutrosAndares()].filter(it=>it[0]===classe).length;
 }
 // Onde estão as unidades de um móvel: neste andar, no outro e guardadas.
 function escritorioOndeEstaMovel(classe) {
   const tem = escritorioQuantidadeMovel(classe);
-  const aqui = (escritorio.edicao?.itens || []).filter((it) => it[0] === classe).length;
+  const aqui = escritorioSemTaca(escritorio.edicao?.itens).filter((it) => it[0] === classe).length;
   const outro = escritorioOutrosAndares().filter((it) => it[0] === classe).length;
   return { tem, aqui, outro, guardados: tem === Infinity ? Infinity : Math.max(0, tem - aqui - outro) };
 }
@@ -2055,7 +2079,7 @@ function escritorioInventarioPara(novos) {
  if (!e) return false;
  if (escritorioCamadaComum(e.camada)) return true;
  const usados = new Map();
- for (const [classe] of [...e.itens, ...escritorioOutrosAndares(), ...novos]) usados.set(classe,(usados.get(classe)||0)+1);
+ for (const [classe] of [...escritorioSemTaca(e.itens), ...escritorioOutrosAndares(), ...novos]) usados.set(classe,(usados.get(classe)||0)+1);
  for (const [classe,n] of usados) if (n > escritorioQuantidadeMovel(classe)) {
   escritorioAviso("Você não tem unidades livres deste móvel. Compre mais na Loja ou use uma unidade que já está no quarto.");
   return false;
@@ -2269,7 +2293,7 @@ async function conferirConstrucaoEditorEscritorio() {
   e.conferindo = true;
   escritorioAviso('Conferindo a construção…');
   try {
-    const foto = JSON.stringify(e.itens), celdas = e.celdas, edicao=escritorioFotoEdicao(e);
+    const foto = JSON.stringify(escritorioSemTaca(e.itens)), celdas = e.celdas, edicao=escritorioFotoEdicao(e);
     const r = await escritorioApi('construcao-conferir', { camada:e.camada, itens:JSON.parse(foto), ...(celdas !== undefined ? {celdas} : {}), ...(!escritorioCamadaComum(e.camada)?{decoracao:escritorioAcabamento(e.decoracao)}:{}) });
     if (escritorio.edicao !== e) return null;
     if (escritorioFotoEdicao(e) !== edicao) { escritorioAviso('A sala mudou durante a conferência. Confira novamente.'); return null; }
@@ -2460,7 +2484,7 @@ ${ganhos.length ? `<section class="ofc-cart-ganhos"><h4>De onde vieram</h4><ul>$
 
 // Acabamento e rascunho pertencem à mesma edição que os móveis. Nunca guardar
 // identidade, cookies ou economia no rascunho; uma compra não é um passo de decoração.
-const ESCRITORIO_ACABAMENTO = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
+const ESCRITORIO_ACABAMENTO = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_taca','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
 function escritorioAcabamento(p) { return Object.fromEntries(ESCRITORIO_ACABAMENTO.map(k=>[k,p?.[k] ?? (k==='sala_sem_paredes' ? false : '')])); }
 function escritorioChaveRascunho() { return `vybe-construcao:${escritorio.base?.eu}:${escritorio.edicao?.camada}`; }
 function escritorioGuardarRascunho() {
