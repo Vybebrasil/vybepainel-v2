@@ -987,12 +987,12 @@
 /* --- Dentro do Escritório a cor de ação é a do cartão dele (turquesa), como
    o "Entrar no escritório →" da tela de módulos; o laranja sai dos botões do
    jogo. Botões secundários no vidro neutro, sem contorno laranja. --- */
-.lg .lg-entrar,.lg-base .lg-entrar{background:linear-gradient(180deg,#5ff0dc,#2cc4b1)!important;color:#04201c!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 18px 40px -16px rgba(56,217,197,.75)!important;animation:none!important}
+.lg .lg-entrar,.lg-base .lg-entrar{background:linear-gradient(180deg,#ffb15c,#ff7a1f)!important;color:#1c0b00!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 18px 44px -16px rgba(255,122,31,.8)!important;animation:none!important}
 .lg .lg-entrar::before{display:none!important}
 .lg .lg-entrar:active{transform:translateY(1px)}
 .lg-entrar-txt b,.lg .lg-entrar > span:only-child{font:700 24px/1 var(--pv-titulo)!important;letter-spacing:-.01em!important;text-transform:none!important;text-shadow:none!important}
 .lg-entrar-txt small{font:500 12px var(--mac-ui)!important;opacity:.75}
-.lg-entrar kbd{background:rgba(4,32,28,.14)!important;color:#04201c!important;box-shadow:none!important}
+.lg-entrar kbd{background:rgba(28,11,0,.14)!important;color:#3a1800!important;box-shadow:none!important}
 .ofc .ofc-p-entrar,.ofc .ofc-dock-btn.destaque.principal,.ofc .ofc-dock-btn.destaque[data-avisos=true]{background:linear-gradient(180deg,#5ff0dc,#2cc4b1)!important;color:#04201c!important;border:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 10px 24px -12px rgba(56,217,197,.8)!important}
 .ofc .ofc-dock-btn.destaque:not(.principal):not([data-avisos=true]){background:rgba(255,255,255,.05)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important;color:#ece8e3!important}
 .ofc .ofc-dock-btn.destaque:not(.principal):hover{background:rgba(255,255,255,.09)!important}
@@ -1010,117 +1010,105 @@
 .ofc .ofc-rail-btn.on svg,.ofc .ofc-rail-btn[aria-pressed="true"] svg{stroke:var(--esc)!important}
 .ofc .ofc-p-centro .ofc-p-entrar{font-family:var(--pv-titulo)!important}
 
-/* ===== Entrada do Escritório montada como a tela de módulos =====
-   Tela cheia (sem o trilho e a lateral do jogo, que voltam ao entrar), o
-   mesmo fundo de noite, o mesmo cabeçalho e a mesma grade de cartões: o
-   cartão grande é a sua sala sobre a Vybelândia (a arte do cartão do
-   Escritório) com o botão de entrar dentro dele, como o "Abrir Gestor →";
-   os outros têm a anatomia dos cartões de módulo. No celular segue a
-   montagem de antes. */
+/* ===== Entrada do Escritório: caminho B do moodboard (vitrine) =====
+   Paulo, 28/10/2026. A cidade em tela cheia, como abertura de jogo; a sua
+   sala flutua no centro com o nome em cima; à esquerda o bônus da Copa, o
+   "Na semana" e quem está online; embaixo os cinco cartões pequenos e o
+   botão de entrar (laranja). Tela cheia: o trilho e a lateral voltam ao
+   entrar. No celular segue a montagem de antes. */
 @media (min-width:1100px) and (min-height:640px){
   .ofc:has(.ofc-lobby.lg){grid-template-columns:minmax(0,1fr)!important}
   .ofc:has(.ofc-lobby.lg) > .ofc-rail,.ofc:has(.ofc-lobby.lg) > .ofc-lateral{display:none!important}
 }
 .lg-cartao-eti,.lg-cartao-ico,.lg-cartao-desc,.lg-cartao-num,.lg-cartao-acao,.lg-modulos,.lg-online-vazio{display:none}
 @container (min-width:901px) and (min-height:621px){
-  .ofc-lobby.lg{background:radial-gradient(ellipse 60% 50% at 12% 0%,rgba(232,96,46,.26),transparent 70%),radial-gradient(ellipse 50% 45% at 95% 15%,rgba(185,156,255,.14),transparent 70%),radial-gradient(ellipse 60% 50% at 70% 110%,rgba(56,217,197,.12),transparent 70%),#0b0c11!important}
-  .ofc-lobby.lg::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.05) 1px,transparent 0);background-size:24px 24px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%);opacity:.6}
-  .ofc-lobby.lg .abr-cena,.ofc-lobby.lg .abr-vinheta,.lg .lg-ceu{display:none!important}
+  /* a cidade, com o centro limpo e as bordas escuras para o texto */
+  .ofc-lobby.lg .abr-vinheta{background:radial-gradient(ellipse 55% 55% at 50% 52%,rgba(11,12,17,0),rgba(11,12,17,.55) 70%,rgba(11,12,17,.92)),linear-gradient(180deg,rgba(11,12,17,.85),rgba(11,12,17,.1) 22%,rgba(11,12,17,.1) 60%,rgba(11,12,17,.96))!important}
+  .lg .lg-ceu{display:none!important}
 
-  .lg-tela{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:auto repeat(3,minmax(0,1fr)) auto!important;grid-template-areas:"topo topo topo" "palco b1 b2" "palco b3 b4" "palco b5 on" "palco band band"!important;gap:14px!important;padding:26px 34px 24px!important;width:min(1320px,100%);margin:0 auto;inset:0 0 0 0!important;left:50%!important;translate:-50% 0}
+  .lg-tela{grid-template-columns:300px minmax(0,1fr) 360px!important;grid-template-rows:auto minmax(0,1fr) auto auto!important;grid-template-areas:"topo topo topo" "esq palco ." "band band band" "lado lado cta"!important;gap:14px 16px!important;padding:30px 48px 30px!important}
 
-  /* cabeçalho, como o da tela de módulos */
-  .lg-topo{grid-template-columns:auto minmax(0,1fr) auto auto auto!important;grid-template-areas:"cabeca noticias recursos jogador modulos"!important;align-items:center!important;gap:12px!important;padding-bottom:10px}
-  .lg-topo > .lg-cabeca{padding-right:18px}
+  /* topo: saudação e Escritório à esquerda; moedas, sequência, você e Módulos à direita */
+  .lg .lg-topo{grid-area:topo;display:flex!important;align-items:center!important;gap:10px!important}
+  .lg-topo > .lg-cabeca{flex:1;padding:0!important}
+  .lg-cabeca-icone{display:none!important}
   .lg-cabeca-txt small{color:#ff9a5c!important}
-  .lg-cabeca-txt b{font-size:40px!important}
-  .lg-topo > .lg-noticias{grid-area:noticias;justify-self:center!important;width:auto!important;max-width:440px;height:36px!important;border-radius:999px!important;align-self:center!important}
-  .lg-topo > .lg-recursos{grid-area:recursos;display:flex!important;flex-direction:row!important;gap:8px;align-items:center;justify-self:end!important}
-  .lg .lg-pilula{height:36px!important;border-radius:11px!important}
-  .lg-topo > .lg-jogador{grid-area:jogador;gap:10px!important;padding:5px 12px 5px 5px!important;border-radius:14px!important;min-height:0!important}
-  .lg .lg-jogador .lg-anel{width:40px!important;height:40px!important}
-  .lg .lg-jogador .lg-anel img{width:34px!important;height:34px!important}
-  .lg .lg-jogador-txt small,.lg .lg-jogador-txt .lg-xp,.lg .lg-jogador-txt em,.lg .lg-jogador-txt .vb-titulo,.lg .lg-jogador-txt .lg-conv{display:none!important}
+  .lg-cabeca-txt b{font-size:44px!important}
+  .lg-cabeca-txt em{display:none}
+  .lg .lg-recursos{display:flex!important;flex-direction:row!important;gap:8px!important;align-items:center}
+  .lg .lg-pilula{height:40px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(19,21,28,.82)!important;box-shadow:none!important}
+  .lg-topo > .lg-jogador{order:3;gap:10px!important;padding:5px 14px 5px 5px!important;border-radius:14px!important;min-height:0!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(19,21,28,.82)!important;box-shadow:none!important}
+  .lg .lg-jogador::before{display:none!important}
+  .lg .lg-jogador .lg-anel{width:38px!important;height:38px!important}
+  .lg .lg-jogador .lg-anel img{width:32px!important;height:32px!important}
+  .lg .lg-jogador-txt small,.lg .lg-jogador-txt .lg-xp,.lg .lg-jogador-txt em,.lg .lg-jogador-txt .lg-conv{display:none!important}
+  .lg .lg-jogador-txt .vb-titulo{font-size:10.5px!important}
   .lg .lg-jogador-txt b{font:600 14px var(--pv-titulo)!important}
-  .lg .lg-jogador .lg-nivel{scale:.8}
-  .lg-modulos{grid-area:modulos;display:inline-flex!important;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));color:#ece8e3;font:600 12px var(--mac-ui);cursor:pointer}
-  .lg-modulos:hover{background:rgba(255,255,255,.1)}
+  .lg-modulos{order:4;display:inline-flex!important;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(19,21,28,.82);color:#ece8e3;font:600 12px var(--mac-ui);cursor:pointer}
+  .lg-modulos:hover{background:rgba(40,43,54,.9)}
 
-  /* cartões de módulo */
-  .lg .lg-lado{display:contents!important}
-  .lg .lg-botao.jg-missoes{grid-area:b1}.lg .lg-botao.jg-cobrancas{grid-area:b2}.lg .lg-botao.jg-recados{grid-area:b3}.lg .lg-botao.jg-ranking{grid-area:b4}.lg .lg-botao.jg-conquistas{grid-area:b5}
-  .lg .lg-botao{width:auto!important;height:auto!important;min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto minmax(0,1fr) auto auto auto auto!important;grid-template-areas:"eti seta" "ico ." ". ." "tit tit" "desc desc" "num num" "acao acao"!important;align-items:start!important;gap:4px!important;padding:16px 18px!important;border-radius:22px!important;text-align:left;overflow:hidden;
-    background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 22%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important;
-    border:1px solid color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.08))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 24px 50px -28px rgba(0,0,0,.95)!important}
-  .lg .lg-botao:hover{transform:translateY(-3px)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 60px -26px color-mix(in srgb,var(--c) 55%,#000)!important}
-  .lg .lg-botao::after{grid-area:seta;margin:0!important;width:26px!important;height:26px!important}
-  .lg .lg-botao-icone,.lg .lg-botao-txt small{display:none!important}
-  .lg-cartao-eti{grid-area:eti;display:block;font:700 10px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase;color:var(--c);padding-top:6px}
-  .lg-cartao-ico{grid-area:ico;display:grid;place-items:center;width:40px;height:40px;margin-top:8px;border-radius:13px;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 30%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent),0 10px 26px -10px var(--c)}
-  .lg-cartao-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  .lg .lg-botao-txt{grid-area:tit;display:block!important;padding:0!important}
-  .lg .lg-botao-txt b{font:700 20px/1.1 var(--pv-titulo)!important;letter-spacing:-.015em}
-  .lg-cartao-desc{grid-area:desc;display:block;font:400 12px/1.4 var(--mac-ui);color:#a8a39c}
-  .lg-cartao-num{grid-area:num;display:flex;align-items:baseline;gap:7px;min-width:0;margin-top:8px;padding-top:9px;border-top:1px solid rgba(255,255,255,.07);color:#a8a39c;font:400 12px var(--mac-ui)}
-  .lg-cartao-num b{font:700 26px/1 var(--pv-titulo);color:var(--c);text-shadow:0 0 22px color-mix(in srgb,var(--c) 60%,transparent)}
-  .lg-cartao-num small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .lg-cartao-acao{grid-area:acao;display:block;margin-top:6px;color:var(--c);font:700 12px var(--mac-ui)}
-  .lg .lg-botao.alerta .lg-cartao-num b{color:#ff6b8a;text-shadow:0 0 22px rgba(255,107,138,.55)}
-
-  /* quem está online: o sexto cartão; com colegas na sala, o cartão deles */
-  .lg .lg-online{--c:#38d9c5;grid-area:on!important;align-self:stretch!important;justify-self:stretch!important;max-width:none!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto;padding:16px 18px!important;border-radius:22px!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,rgba(56,217,197,.2),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important}
-  .lg .lg-online h3{font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important;color:#38d9c5!important;padding-top:6px}
-  .lg-online-vazio{display:block;align-self:end;margin:0;font:600 15px/1.35 var(--pv-titulo);color:#ece8e3}
-  .lg .lg-online:has(.lg-online-vazio) .lg-rostos{display:none!important}
-  .lg .lg-amigo{width:46px!important;height:46px!important}
+  /* coluna da esquerda: bônus da Copa e "Na semana" no alto, quem está online embaixo */
+  .lg .ofc-bonus.entrada,.lg .lg-noticias{position:absolute!important;left:48px;width:300px!important;max-width:300px!important;box-sizing:border-box;z-index:3;margin:0!important}
+  .lg .ofc-bonus.entrada{top:130px}
+  /* o bônus mora dentro das moedas, que entram animadas: sem o deslocamento, ele se posiciona pela tela */
+  .lg .lg-recursos{animation:none!important;transform:none!important;translate:none!important}
+  .lg .lg-noticias{top:236px;height:auto!important;display:grid!important;gap:6px;padding:14px!important;border-radius:18px!important;border:1px solid rgba(185,156,255,.26)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;overflow:hidden}
+  .lg .lg-noticias-tag{justify-self:start;padding:0!important;background:none!important;color:#b99cff!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em;text-transform:uppercase}
+  .lg .lg-noticias-trilho{white-space:normal!important;font:500 13px/1.4 var(--mac-ui)!important}
+  .lg .lg-online,.lg .lg-tela:has(.lg-colega) .lg-turma{grid-area:esq!important;align-self:end!important;justify-self:stretch!important;max-width:none!important;width:auto!important;margin:0!important;padding:12px 14px!important;border-radius:18px!important;border:1px solid rgba(56,217,197,.28)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;z-index:3}
   .lg .lg-turma{display:none!important}
-  .lg .lg-tela:has(.lg-colega) .lg-turma{grid-area:on!important;display:flex!important;flex-direction:column;align-self:stretch!important;justify-self:stretch!important;width:auto!important;margin:0!important;padding:16px 18px!important;gap:8px!important;border-radius:22px;border:1px solid rgba(56,217,197,.24);background:radial-gradient(ellipse 90% 70% at 100% 0%,rgba(56,217,197,.2),transparent 65%),#13151c;overflow:auto;pointer-events:auto;z-index:3}
+  .lg .lg-tela:has(.lg-colega) .lg-turma{display:flex!important;flex-direction:column;gap:8px!important;pointer-events:auto}
   .lg .lg-tela:has(.lg-colega) .lg-online{display:none!important}
-  .lg .lg-turma-titulo{color:#38d9c5!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important;text-shadow:none!important}
-  .lg .lg-colega{width:100%!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.08)!important;background:rgba(255,255,255,.035)!important;box-shadow:none!important}
+  .lg .lg-online h3,.lg .lg-turma-titulo{color:#38d9c5!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important;text-shadow:none!important}
+  .lg-online-vazio{display:block;margin:6px 0 0;font:500 13px/1.4 var(--mac-ui);color:#a8a39c}
+  .lg .lg-online:has(.lg-online-vazio) .lg-rostos{display:none!important}
+  .lg .lg-colega{width:100%!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.08)!important;background:rgba(255,255,255,.04)!important;box-shadow:none!important}
 
-  /* o cartão grande: a sua sala */
-  .lg .lg-palco{grid-area:palco;position:relative;display:grid!important;place-items:center!important;padding:44px 22px 104px!important;border-radius:26px;overflow:hidden;border:1px solid rgba(56,217,197,.26);
-    background:radial-gradient(ellipse 70% 50% at 50% 55%,rgba(56,217,197,.16),transparent 70%),linear-gradient(180deg,rgba(19,21,28,.92) 0,rgba(19,21,28,.72) 30%,rgba(19,21,28,.74) 62%,rgba(19,21,28,.98) 100%),url("/assets/vybelandia.webp") 55% 40%/cover no-repeat!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 24px 50px -28px rgba(0,0,0,.95)}
-  .lg .lg-palco::before{content:"Sua sala";position:absolute;top:20px;left:22px;z-index:4;font:700 10px var(--mac-ui);letter-spacing:.15em;text-transform:uppercase;color:#38d9c5}
-  .lg .lg-palco::after{content:"";position:absolute;left:22px;right:22px;top:0;height:1px;background:linear-gradient(90deg,transparent,#38d9c5,transparent)}
-  .lg .lg-quarto{width:min(380px,82%)!important;margin:0!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 60px -20px rgba(0,0,0,.9)!important}
-  .lg .lg-quarto-placa{border:1px solid rgba(255,255,255,.12)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;font-family:var(--pv-titulo)}
-  .lg .lg-quarto-placa svg{stroke:#38d9c5!important}
+  /* a sala no centro, flutuando, com o nome em cima */
+  .lg .lg-palco{grid-area:palco;display:grid!important;place-items:center!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;pointer-events:none}
+  .lg .lg-palco::before,.lg .lg-palco::after{display:none!important}
+  .lg .lg-quarto{width:min(440px,100%)!important;max-height:100%;margin:0!important;border-radius:24px!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 40px 90px -20px rgba(0,0,0,.95)!important}
+  .lg .lg-quarto-placa{display:inline-flex!important;top:-46px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(19,21,28,.92)!important;box-shadow:none!important;font-family:var(--pv-titulo);padding:7px 14px!important;border-radius:12px!important}
+  .lg .lg-quarto-placa svg{stroke:#ff9a5c!important}
+  .lg .lg-quarto-placa em{background:none!important;color:#38d9c5!important}
+  .lg .lg-quarto{overflow:visible!important}
 
-  /* o botão de entrar mora no cartão grande; os atalhos na linha de baixo */
+  /* os cinco cartões pequenos */
+  .lg .lg-lado{grid-area:lado;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;align-content:stretch!important;justify-items:stretch!important}
+  .lg .lg-botao{width:auto!important;height:auto!important;min-height:112px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;grid-template-areas:"ico num" "tit tit" "rot rot"!important;align-items:start!important;gap:6px 8px!important;padding:14px!important;border-radius:18px!important;text-align:left;
+    background:radial-gradient(ellipse 90% 80% at 100% 0%,color-mix(in srgb,var(--c) 22%,transparent),transparent 70%),rgba(19,21,28,.94)!important;border:1px solid color-mix(in srgb,var(--c) 26%,rgba(255,255,255,.08))!important;box-shadow:0 20px 40px -24px rgba(0,0,0,.9)!important}
+  .lg .lg-botao:hover{transform:translateY(-3px)!important;border-color:color-mix(in srgb,var(--c) 55%,transparent)!important}
+  .lg .lg-botao::before,.lg .lg-botao::after{display:none!important}
+  .lg .lg-botao-icone,.lg .lg-botao-txt small{display:none!important}
+  .lg-cartao-ico{grid-area:ico;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;color:var(--c);background:color-mix(in srgb,var(--c) 20%,transparent)}
+  .lg-cartao-ico svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .lg-cartao-num{display:contents}
+  .lg-cartao-num b{grid-area:num;justify-self:end;font:700 24px/1 var(--pv-titulo);color:var(--c)}
+  .lg-cartao-num.zero b{color:#6f6a64}
+  .lg .lg-botao.alerta .lg-cartao-num b{color:#ff6b8a}
+  .lg-cartao-num small{grid-area:rot;font:400 11.5px/1.35 var(--mac-ui);color:#a8a39c;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .lg .lg-botao-txt{grid-area:tit;display:block!important;padding:0!important}
+  .lg .lg-botao-txt b{font:700 15px var(--pv-titulo)!important}
+  .lg .lg-botao.jg-conquistas .lg-botao-txt small{display:block!important;grid-area:rot;margin-top:4px;font:400 11.5px var(--mac-ui)!important;color:#a8a39c!important}
+
+  /* atalhos numa linha fina e o botão de entrar ao lado dos cartões */
   .lg .lg-base{display:contents!important}
-  .lg .lg-entrar,.lg-base .lg-entrar{grid-area:palco;align-self:end;justify-self:stretch;z-index:5;margin:0 20px 20px;min-height:62px!important;height:62px!important;border-radius:16px!important}
-  .lg .lg-bandeja{grid-area:band;align-self:stretch;border-radius:20px!important;padding:8px!important}
-  .lg .lg-bandeja .lg-secundario{height:44px!important;background:rgba(255,255,255,.04)!important}
+  .lg .lg-bandeja{grid-area:band;justify-self:center;display:flex!important;gap:6px!important;padding:6px!important;border-radius:16px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(19,21,28,.88)!important;box-shadow:none!important}
+  .lg .lg-bandeja .lg-secundario{height:38px!important;border:0!important;background:rgba(255,255,255,.05)!important}
+  .lg .lg-entrar,.lg-base .lg-entrar{grid-area:cta;align-self:stretch;justify-self:stretch;height:auto!important;min-height:112px!important;margin:0!important;border-radius:20px!important}
   .lg .ofc-lobby-outra{grid-area:band!important}
+}
+/* notebook baixo: a sala menor e a coluna da esquerda mais alta */
+@container (min-width:901px) and (min-height:621px) and (max-height:800px){
+  .lg .lg-quarto{width:min(330px,100%)!important}
+  .lg-cabeca-txt b{font-size:34px!important}
+  .lg .ofc-bonus.entrada{top:112px}
+  .lg .lg-noticias{top:206px}
+  .lg .lg-botao{min-height:96px!important;padding:12px!important}
+  .lg .lg-entrar,.lg-base .lg-entrar{min-height:96px!important}
 }
 .lg-cabeca-txt em{font:400 13px var(--mac-ui);font-style:normal;color:#a8a39c;margin-top:4px}
 .lg-palco-info{display:none}
-@container (min-width:901px) and (min-height:621px){
-  .lg-cartao-num.zero b{color:#6f6a64!important;text-shadow:none!important}
-  .lg .lg-botao.jg-conquistas .lg-cartao-acao{margin-top:auto}
-  /* a sala: nome e nível embaixo, o quarto no meio, sem a placa repetida */
-  .lg .lg-palco{grid-template-rows:minmax(0,1fr) auto!important;padding:48px 24px 104px!important;gap:12px}
-  .lg .lg-quarto-placa{display:none!important}
-  .lg .lg-quarto{width:min(330px,72%)!important;align-self:center}
-  .lg-palco-info{display:grid;gap:4px;justify-self:stretch;z-index:4}
-  .lg-palco-info b{font:700 28px/1.05 var(--pv-titulo);letter-spacing:-.02em;color:#fff}
-  .lg-palco-info small{display:flex;align-items:center;gap:8px;color:#a8a39c;font:400 12px var(--mac-ui)}
-  .lg-palco-info em{font-style:normal;font:700 12px var(--pv-titulo);color:#38d9c5;padding:2px 8px;border-radius:7px;background:rgba(56,217,197,.12);box-shadow:inset 0 0 0 1px rgba(56,217,197,.35)}
-}
-/* tela mais baixa (notebook): tira a descrição dos cartões para caber */
-@container (min-width:901px) and (min-height:621px) and (max-height:800px){
-  .lg-cartao-desc{display:none!important}
-  .lg-cartao-ico{width:34px!important;height:34px!important;margin-top:4px!important}
-  .lg-tela{padding-top:18px!important;gap:12px!important}
-  .lg-cabeca-txt b{font-size:32px!important}
-  .lg-cabeca-txt em{display:none}
-  .lg .lg-quarto{width:min(260px,62%)!important}
-}
-/* Tela de módulos no celular: uma coluna (a grade de 4 espremia os cartões) */
-@media (max-width:760px){#mode-gate#mode-gate .identity-command-grid{grid-template-columns:1fr!important;grid-template-rows:none!important}#mode-gate#mode-gate .identity-station[data-station]{grid-row:auto!important;min-height:0!important}#mode-gate#mode-gate .identity-station[data-station="escritorio"]{min-height:190px!important}#mode-gate#mode-gate .identity-hero{grid-template-columns:1fr!important}#mode-gate#mode-gate .identity-hero .identity-brand{display:flex!important;grid-row:auto!important;justify-content:space-between;align-items:center}#mode-gate#mode-gate .identity-hero .identity-brand img{height:40px!important}#mode-gate#mode-gate .identity-shell{padding:14px 16px!important}}
-
 /* ===== Lateral do jogo no padrão da tela de módulos =====
    Caminho D do moodboard (Paulo, 28/10/2026): cabeçalho com saudação e
    "Escritório", você numa linha, quatro números como os da tela de módulos
