@@ -581,3 +581,12 @@
 #sidebar .sort-btn.active{border-color:rgba(255,179,92,.5)!important;background:linear-gradient(180deg,rgba(255,143,79,.22),rgba(255,143,79,.08))!important;color:#fff!important}
 #sidebar #btn-clear-filters{color:#ff8a9c!important;border-color:rgba(255,107,138,.4)!important}
 #sidebar .pill{font-size:11px!important;padding:3px 8px!important}
+
+/* ===== Jogos ===== */
+/* Dominó: peças maiores na mesa (18 unidades na largura, eram 26) e, na sua
+   vez, as que encaixam acesas em verde e as outras apagadas (uma regra antiga
+   deixava todas iguais e não dava para saber qual jogar). */
+.dmn-cobra{--u:calc(100cqw / 18)!important;min-height:110px!important}
+.dmn-mao-pecas:has(.pode) .dmn-mao-peca:not(.pode),.dmn-mao:has(.pode) .dmn-mao-peca:not(.pode){opacity:.35!important;filter:grayscale(.5)}
+.dmn-mao-peca.pode .dmn-peca{box-shadow:0 0 0 2px #46d48c,0 0 14px rgba(70,212,140,.55),0 4px 10px #0008!important}
+.dmn-mao-peca .dmn-peca{--m:38px!important}
