@@ -459,13 +459,8 @@ function sinucaPintar(agora) {
   bolas.forEach((p, n) => { if (p && !(n === 0 && branca && s.branca)) sinucaBolaPintar(g, n, p[0], p[1], R); });
   // Bola caindo na caçapa: escorrega para o buraco, diminui e some.
   for (const c of cena?.caindo || []) sinucaBolaPintar(g, c.n, c.x, c.y, R, Math.max(0.15, c.escala), c.escala);
-  // As minhas bolas ganham um anel (verde; a 1, dourado, quando é a vez dela):
-  // dá para ver de longe quais são as pares e quais são as ímpares.
-  if (j.eu && j.mesa.grupos?.[j.eu]) bolas.forEach((p, n) => {
-    if (!p || !n || !sinucaPodeTocar(j, n)) return;
-    g.beginPath(); g.arc(sinucaPx(p[0]), sinucaPx(p[1]), R * P + 2.5, 0, Math.PI * 2);
-    g.strokeStyle = n === sinucaFinal(j) ? "#ffd35c" : "#5ef08f"; g.lineWidth = 3; g.stroke();
-  });
+  // Sem anel nas minhas bolas (Paulo, 28/10/2026): quem joga vê pela bola se é
+  // pintada (par) ou tem a faixa branca (ímpar), como no bar.
   if (s.anim) { if (cena) sinucaCenaPintar(g, W, cena, R, P); return; }
   if (sinucaPondo(j, s) && s.fantasma) sinucaBolaPintar(g, 0, s.fantasma.x, s.fantasma.y, R, true);
   if (!branca) return;

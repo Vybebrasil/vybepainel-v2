@@ -246,7 +246,7 @@ test('sinuca real: a regra dos 30° e o arrasto do corte',()=>{
  const branca=Math.atan2(a[1]-c[1],a[0]-c[0])*180/Math.PI,bola=Math.atan2(a[11]-c[11],a[10]-c[10])*180/Math.PI;
  assert.ok(branca<-27&&branca>-36,`branca saiu a ${branca}°`);
  // A bola acertada sai a menos de 30° (o atrito entre as bolas a arrasta).
- assert.ok(bola>25&&bola<29.5,`bola acertada a ${bola}°`);
+ assert.ok(bola>24&&bola<29.5,`bola acertada a ${bola}°`);
 });
 test('sinuca real: efeito lateral abre a volta para o lado do taco',()=>{
  const volta=(lado)=>{const q=simular(so({0:[70,25]}),0,0.3,0,RAIO,lado).quadros,i=q.findIndex((f,k)=>k&&f[0]<q[k-1][0]);return q[i+15][1]/10-25;};
@@ -266,4 +266,14 @@ test('sinuca real: a saída espalha e derruba perto de uma bola, e a mira tem fo
 test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com a boca do canto de 2 bolas',()=>{
  const g=geometria();assert.equal(g.paredes.length,18);assert.equal(g.buracos.length,6);
  const boca=Math.hypot(4.17,4.17);assert.ok(Math.abs(boca/(2*RAIO)-2.07)<0.02);
+});
+test('sinuca real: o arrasto do corte é maior devagar, e o efeito lateral desvia a branca (squirt)',()=>{
+ // Corte de meia bola com a branca escorregando (perto): a bola acertada sai a menos de 30°, mais ainda devagar.
+ // Direção da bola acertada logo depois do choque (antes de chegar numa tabela).
+ const saida=(f)=>{const z=simular(so({0:[35,25],5:[40,25+RAIO]}),0,f,0,RAIO).quadros,k=z.findIndex((q)=>Math.hypot(q[10]/10-40,q[11]/10-(25+RAIO))>0.3),a=z[k],b=f<0.3?z.at(-1):z[k+5];return Math.atan2(b[11]-a[11],b[10]-a[10])*180/Math.PI;};
+ const devagar=saida(0.12),forte=saida(0.6);
+ assert.ok(devagar<forte-1,`devagar ${devagar}° e forte ${forte}°`);assert.ok(30-devagar>3&&30-devagar<7,`arrasto devagar de ${30-devagar}°`);
+ // Taco à direita: a branca sai um pouco para a esquerda de quem taca (y diminui tacando para a direita).
+ const y=(lado)=>simular(so({0:[20,25]}),0,0.3,0,RAIO,lado).quadros[15][1]/10-25;
+ assert.ok(y(1)<-0.05&&y(-1)>0.05&&Math.abs(y(0))<1e-9,`desvio ${y(1)} / ${y(-1)}`);
 });

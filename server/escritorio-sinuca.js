@@ -64,14 +64,22 @@ export const cacapas = () => GEO.buracos;
 //   deslizando e passa a rolar com 5/7 da velocidade.
 // - Rolando: a resistência do pano (μ 0,01) freia as duas juntas.
 // - O pano gasta o efeito lateral devagar (GIRO_PANO).
-// - Choque entre bolas: restituição 0,95 e atrito bola-bola 0,06. A bola
-//   acertada num corte sai arrastada um pouco para o lado do corte (o "throw"),
-//   e o efeito lateral da branca também arrasta.
-// - Tabela: devolve 80% na direção da batida; o atrito da borracha (0,2) age
-//   no escorregão do ponto de contato, então o efeito lateral abre ou fecha a
-//   volta e a bola que chega torta perde um pouco ao longo da tabela.
+// - Choque entre bolas: restituição 0,95 e atrito bola-bola que depende da
+//   velocidade do escorregão no contato (medido: μ = 0,01 + 0,108·e^(-1,088·v),
+//   v em m/s): devagar a bola acertada num corte é bem arrastada para o lado
+//   do corte (o "throw"), forte quase nada. O efeito lateral também arrasta.
+// - Tabela: devolve mais na batida fraca (90%) que na forte (até 70%); o atrito
+//   da borracha (0,2) age no escorregão do ponto de contato, então o efeito
+//   lateral abre ou fecha a volta. A bola sai da tabela rolando na direção
+//   da volta e guarda o giro ao longo dela (com efeito para a frente, faz a
+//   curva depois da tabela). Sair escorregando (a borracha pega acima do
+//   centro) fechava demais a entrada rente ao dente da caçapa: ficou de fora.
+// - Desvio da branca (squirt): com efeito lateral a branca sai um pouco para o
+//   lado oposto ao do taco (1,5° no limite), como com taco de verdade.
 const DESLIZE = 0.2 * G, ROLAGEM = 0.01 * G, GIRO_PANO = 0.02 * G;
-const E_BOLA = 0.95, MU_BOLA = 0.06, E_TABELA = 0.8, MU_TABELA = 0.2;
+const E_BOLA = 0.95, MU_TABELA = 0.2, SQUIRT = (1.5 * Math.PI) / 180;
+const muBola = (desliza) => 0.01 + 0.108 * Math.exp(-1.088 * Math.abs(desliza) * METROS_POR_UNIDADE);
+const eTabela = (vn) => Math.max(0.7, 0.9 - 0.03 * Math.abs(vn) * METROS_POR_UNIDADE);
 // Força: de 0,25 m/s (encostar) a 9 m/s (saída forte), em curva, para a força
 // baixa ser fina de controlar.
 export const V_MIN = 0.25 / METROS_POR_UNIDADE, V_MAX = 9 / METROS_POR_UNIDADE;
@@ -132,7 +140,8 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
 // `R` é o raio da bola da partida.
 export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0) {
  const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], vx: 0, vy: 0, wx: 0, wy: 0, s: 0 } : null));
- const v = velocidadeDaForca(forca), dx = Math.cos(angulo), dy = Math.sin(angulo);
+ // Taco à direita de quem taca (lado > 0) desvia a branca para a esquerda dele.
+ const v = velocidadeDaForca(forca), a0 = angulo - lado * SQUIRT, dx = Math.cos(a0), dy = Math.sin(a0);
  b[0].vx = dx * v; b[0].vy = dy * v;
  b[0].wx = dx * v * efeito * 1.25; b[0].wy = dy * v * efeito * 1.25;
  // s > 0 é o giro em que o ponto da bola na direção m anda para (-m.y, m.x)
@@ -189,12 +198,12 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0)
     const nx = ddx / d, ny = ddy / d, tx = ny, ty = -nx, vn = p.vx * nx + p.vy * ny;
     p.x = qx + nx * R; p.y = qy + ny * R;
     if (vn >= 0) continue;
-    // A normal volta com 80%; o atrito da borracha freia o escorregão do
-    // ponto de contato (velocidade ao longo da tabela + efeito lateral).
-    const jn = -(1 + E_TABELA) * vn, desliza = p.vx * tx + p.vy * ty + p.s;
+    // A normal volta (90% devagar, 70% na pancada); o atrito da borracha
+    // freia o escorregão do ponto de contato (ao longo da tabela + efeito lateral).
+    const jn = -(1 + eTabela(vn)) * vn, desliza = p.vx * tx + p.vy * ty + p.s;
     const jt = -Math.sign(desliza) * Math.min(MU_TABELA * jn, Math.abs(desliza) / 3.5);
     p.vx += jn * nx + jt * tx; p.vy += jn * ny + jt * ty; p.s += 2.5 * jt;
-    // A borracha pega a bola acima do centro: ela sai rolando na direção nova.
+    // Sai rolando na direção da volta; o giro ao longo da tabela fica.
     const wn = p.wx * nx + p.wy * ny, vn2 = p.vx * nx + p.vy * ny;
     p.wx += (vn2 - wn) * nx; p.wy += (vn2 - wn) * ny;
     if (-vn > 12) evento('tabela', -vn);
@@ -215,7 +224,7 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0)
      // Atrito no ponto de contato: o escorregão é a velocidade relativa ao
      // longo do contato (t = (-n.y, n.x)) mais o efeito lateral das duas.
      const tx = -ny, ty = nx, desliza = (p.vx - q.vx) * tx + (p.vy - q.vy) * ty + p.s + q.s;
-     const jt = -Math.sign(desliza) * Math.min(MU_BOLA * jn, Math.abs(desliza) / 7);
+     const jt = -Math.sign(desliza) * Math.min(muBola(desliza) * jn, Math.abs(desliza) / 7);
      p.vx += -jn * nx + jt * tx; p.vy += -jn * ny + jt * ty;
      q.vx += jn * nx - jt * tx; q.vy += jn * ny - jt * ty;
      p.s += 2.5 * jt; q.s += 2.5 * jt;
