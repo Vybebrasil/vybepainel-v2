@@ -539,7 +539,10 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
   const modeLabel = dateMode === 'prazo' ? 'Prazo' : 'Veiculação';
   const rows = [...fi].sort((a,b)=>getDateIso(a).localeCompare(getDateIso(b))).map(d=>{
     const prazoAtrasadoBadge = (dateMode === 'prazo' && d.prazo_atrasado) ? '<span class="prazo-badge">Atrasado</span>' : '';
-    const diaSem = dateMode === 'prazo' ? (d.prazo_iso ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(d.prazo_iso+'T12:00:00').getDay()] : '') : d.dia_semana;
+    // O dia da semana sai da própria data (prazo ou veiculação): peça sem
+    // dia_semana gravado mostrava "undefined" antes da data.
+    const isoDoDia = dateMode === 'prazo' ? d.prazo_iso : getDateIso(d);
+    const diaSem = isoDoDia ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(isoDoDia+'T12:00:00').getDay()] : (d.dia_semana || '');
     const isUrgent = !['Finalizado','Agendado','Para agendar'].includes(d.status) && isDateTodayOrTomorrow(getDateIso(d));
     // Mesmas peças da fila de demandas e da visão por grupo, arrumadas para a
     // largura desta coluna. O ID e a captação entram aqui: faltavam.
