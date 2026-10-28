@@ -874,7 +874,7 @@ function renderByDay(sem, filter, dayFilter) {
       <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}${dia.iso===hoje?'<span class="day-today-label">Hoje</span>':''}</div><span class="day-date-context">${contexto}</span></div>
         <div class="day-header-actions"><span class="day-progress-label">${concluidas.length}/${lista.length} concluídas</span><details class="day-menu"><summary aria-label="Ações de ${dataCurta}">Ações</summary><div class="day-menu-options">${panelMode==='gestor'?`<button type="button" onclick="this.closest('details').open=false;adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>`:''}<button type="button" onclick="this.closest('details').open=false;openDailySummary('${dia.iso}')">Gerar resumo</button></div></details></div>
       </div>
-      ${panelMode==='gestor'?`<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">${[['social','Redes sociais',redes.length],['demandas','Demandas',demandas.length],['pendencias','Pendências',pendencias.length]].map(([id,nome,total])=>`<button type="button" aria-pressed="${aba===id}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}','${id}')">${nome}<span>${id!=='social'&&aviso?'!':total}</span></button>`).join('')}</div>`:''}
+      ${panelMode==='gestor'?`<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">${[['social','Redes',redes.length],['demandas','Demandas',demandas.length],['pendencias','Pendências',pendencias.length]].map(([id,nome,total])=>`<button type="button" aria-pressed="${aba===id}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}','${id}')">${nome}<span>${id!=='social'&&aviso?'!':total}</span></button>`).join('')}</div>`:''}
       <div class="client-progress" role="progressbar" aria-label="Progresso de ${tituloAba} em ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="client-progress-bar"><div class="client-progress-fill" style="width:${pct}%;background:${pct===100?'var(--green,#00c875)':'var(--accent,#ff6b00)'}"></div></div><span class="client-progress-text">${pct}%</span></div>
       ${aba==='pendencias'?'<p class="day-pending-note">Solicitações abertas anteriores a este dia ou sem data. Datas originais preservadas.</p>':''}
       <div class="item-list day-activity-scroll" id="${listaId}" role="region" aria-label="${tituloAba} de ${dataCurta}" tabindex="0">${avisoHtml}${abertas.map(linha).join('')}${!abertas.length?`<p class="day-pending-note">${lista.length?'Tudo concluído nesta aba.':vazio}</p>`:''}${concluidas.length?`<details class="day-completed" ${mostrarConcluidas?'open':''} ontoggle="registrarConcluidasDoDia('${dia.iso}','${aba}',this)"><summary>Concluídas <span>${concluidas.length}</span></summary>${concluidas.map(linha).join('')}</details>`:''}</div>
@@ -1095,28 +1095,18 @@ function renderCompactSummary() {
     <span class="resumo-item${risco && valor > 0 ? ' risco' : ''}">
       <b>${valor}</b><span>${rotulo}</span></span>`;
 
-  document.getElementById('compact-summary').innerHTML = `
-    <div class="resumo-principal">
-      <div class="resumo-numero">${pct}<i>%</i></div>
-      <div class="resumo-legenda">
-        <span>da semana fechada</span>
-        <div class="resumo-barra"><i style="width:${pct}%"></i></div>
-        <small>${done} de ${total} conteúdos</small>
-      </div>
-    </div>
-    <div class="resumo-hoje">
-      ${todayItems.length === 0
-        ? '<b>Nada publica hoje</b>'
-        : `<b>${todayItems.length} ${todayItems.length === 1 ? 'publica' : 'publicam'} hoje</b>
-           ${todayPending > 0 ? `<span class="resumo-alerta">${todayPending} sem estar pronto</span>` : '<span class="resumo-ok">tudo pronto</span>'}`}
-    </div>
-    <div class="resumo-detalhes">
-      ${detalhe(clientes.length, 'clientes')}
-      ${detalhe(podeFazer, 'pode fazer')}
-      ${detalhe(captacao, 'captação')}
-      ${detalhe(pendentes, 'pendentes', true)}
-      ${detalhe(clientesLow, 'clientes com menos de 3', true)}
-    </div>`;
+  // Padrão visual: os números viram cartões. Um lidera (a semana fechada, com
+  // o anel), o dia vem ao lado e o resto fica junto num cartão só.
+  const cartao = (cls, conteudo) => `<div class="pv-kpi ${cls}">${conteudo}</div>`;
+  document.getElementById('compact-summary').innerHTML =
+    cartao('pv-kpi-semana', `<span class="pv-anel" style="--p:${pct}"><i>${done}/${total}</i></span>
+      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} conteúdos</span></div>`) +
+    cartao(todayPending > 0 ? 'pv-kpi-risco' : '', `<b>${todayItems.length}</b><div><small>Publica hoje</small>
+      <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span></div>`) +
+    cartao(pendentes > 0 ? 'pv-kpi-atencao' : '', `<b>${pendentes}</b><div><small>Pendentes</small><span>a fazer ou falta D.A</span></div>`) +
+    cartao('pv-kpi-semana-mini', `<div><small>Na semana</small><div class="pv-mini">
+      ${detalhe(clientes.length, 'clientes')}${detalhe(podeFazer, 'pode fazer')}${detalhe(captacao, 'captação')}${detalhe(clientesLow, 'com menos de 3', true)}
+    </div></div>`);
 }
 
 // ─── Resumo do Dia ──────────────────────────────────────────────────────────
@@ -1377,8 +1367,25 @@ function pintarBarraDeComando() {
     const dito = b.getAttribute('aria-expanded') === 'true';
     if (dito !== aberto) b.setAttribute('aria-expanded', String(aberto));
   });
+  const semana = document.getElementById('ops-semana-btn');
+  if (semana) {
+    const naSemana = !Object.values(PAINEIS_DA_BARRA).some((o) => o.grupo === 'visao' && o.aberto()) && !document.getElementById('arquivadas-painel');
+    if (semana.classList.contains('active') !== naSemana) semana.classList.toggle('active', naSemana);
+    semana.setAttribute('aria-expanded', String(naSemana));
+  }
+  const arquivo = document.getElementById('ops-arquivo-btn');
+  if (arquivo) arquivo.classList.toggle('active', Boolean(document.getElementById('arquivadas-painel')));
 }
 
+// "Ver como": a agenda da semana é a visão de sempre. Ela fica marcada quando
+// nenhuma outra visão (grupos, calendário do mês, arquivo) está aberta, e
+// clicar nela fecha as outras.
+function mostrarAgendaDaSemana() {
+  Object.entries(PAINEIS_DA_BARRA).filter(([, o]) => o.grupo === 'visao' && o.aberto()).forEach(([nome]) => definirPainel(nome, false));
+  if (document.getElementById('arquivadas-painel')) alternarArquivo();
+  pintarBarraDeComando();
+  document.getElementById('ops-semana-btn')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function toggleActionQueue() { alternarPainelDaBarra('acao'); }
 
 

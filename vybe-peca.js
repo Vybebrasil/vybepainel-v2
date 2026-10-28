@@ -234,7 +234,7 @@ async function restaurarPeca(itemId, botao) {
 async function moverPecaDeBoard(itemId) {
   const item = findOperationalItem(itemId);
   if (!item) return;
-  if (!confirm(`Mover “${item.nome}” para o board de Demandas?\n\nEla sai do painel de Produção. Demandas ainda é lido do Monday, então a peça passa a viver lá.`)) return;
+  if (!await confirmarNoPainel(`Mover “${item.nome}” para o board de Demandas?\n\nEla sai do painel de Produção. Demandas ainda é lido do Monday, então a peça passa a viver lá.`)) return;
   try {
     const r = await fetch('/api/conteudo', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
