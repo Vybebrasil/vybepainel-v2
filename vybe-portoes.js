@@ -321,5 +321,28 @@ function alternarProntoDoBastao(botao) {
   const feito = document.getElementById('handoff-done');
   if (feito) feito.value = marcados.join(' · ');
 }
-function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<label class="workflow-field"><span>O que foi concluído?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label><div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" onclick="submitHandoff()">Registrar e ${option ? 'atualizar o status' : 'salvar'} →</button></div>`); facilitarPassagemDeBastao(item, option); }
+function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<ol class="context-passos bastao-passos" aria-hidden="true"><li data-bastao-passo="0" class="atual"><i>1</i><span>Entregou</span></li><li data-bastao-passo="1"><i>2</i><span>Próximo</span></li><li data-bastao-passo="2"><i>3</i><span>Confirmar</span></li></ol>
+<section data-bastao="0"><label class="workflow-field"><span>O que você deixou pronto?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label></section>
+<section data-bastao="1" hidden><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label></section>
+<section data-bastao="2" hidden><div class="workflow-field"><span>Confira antes de registrar</span></div><dl id="bastao-revisao" class="bastao-revisao"></dl></section>
+<div class="workflow-actions"><small id="bastao-onde" class="bastao-onde">Passo 1 de 3</small><button type="button" id="bastao-voltar" class="workflow-secondary" onclick="passoDoBastao(-1)">Cancelar</button><button type="button" id="bastao-seguir" class="workflow-primary" onclick="passoDoBastao(1)">Continuar →</button></div>`); facilitarPassagemDeBastao(item, option); BASTAO_FIM = `Registrar e ${option ? 'atualizar o status' : 'salvar'} →`; }
+// Uma pergunta por vez (direção de arte): Entregou → Próximo → Confirmar. Os
+// campos são os mesmos (submitHandoff lê handoff-done, handoff-next e
+// handoff-link); só um passo fica à vista e o último mostra o resumo.
+let BASTAO_FIM = 'Registrar →';
+function passoDoBastao(dir) {
+  const modal = document.getElementById('workflow-modal'); if (!modal) return;
+  const secoes = [...modal.querySelectorAll('[data-bastao]')];
+  const atual = secoes.findIndex((x) => !x.hidden), ir = atual + dir;
+  if (ir < 0) return closeWorkflowModal();
+  if (ir >= secoes.length) return submitHandoff();
+  secoes.forEach((x, i) => { x.hidden = i !== ir; });
+  modal.querySelectorAll('[data-bastao-passo]').forEach((li) => { const n = Number(li.dataset.bastaoPasso); li.classList.toggle('atual', n === ir); li.classList.toggle('feito', n < ir); });
+  const v = (id) => String(document.getElementById(id)?.value || '').trim();
+  if (ir === secoes.length - 1) { const rev = document.getElementById('bastao-revisao'); if (rev) rev.innerHTML = [['Pronto', v('handoff-done')], ['Próximo passo', v('handoff-next')], ['Link', v('handoff-link')]].map(([k, x]) => `<div><dt>${k}</dt><dd>${safeText(x || '—')}</dd></div>`).join(''); }
+  document.getElementById('bastao-onde').textContent = `Passo ${ir + 1} de ${secoes.length}`;
+  document.getElementById('bastao-voltar').textContent = ir ? '← Voltar' : 'Cancelar';
+  document.getElementById('bastao-seguir').textContent = ir === secoes.length - 1 ? BASTAO_FIM : 'Continuar →';
+  secoes[ir].querySelector('textarea,input')?.focus();
+}
 function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if (item) openHandoffGate(item,null); }

@@ -759,3 +759,12 @@
 .status-context-dialog [data-context-step] > .workflow-field > span:first-child{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em;text-transform:none!important}
 .status-context-dialog [data-context-step] .context-field-help{color:#a8a39c!important;font-size:12.5px!important}
 .status-context-dialog .context-title{display:none!important}
+/* Passagem de bastão em 3 passos */
+.bastao-passos{margin:6px 0 12px!important}
+.bastao-onde{margin-right:auto;color:#7d7870;font-size:11.5px}
+.bastao-revisao{display:grid;gap:0;margin:0;border-radius:14px;border:1px solid var(--pv-linha);overflow:hidden}
+.bastao-revisao > div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.06)}
+.bastao-revisao > div:first-child{border-top:0}
+.bastao-revisao dt{color:#7d7870;font:600 11.5px var(--mac-ui)}
+.bastao-revisao dd{margin:0;color:#ece8e3;font-size:13px;word-break:break-word}
+.workflow-modal [data-bastao] > .workflow-field:first-child > span{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;text-transform:none!important;letter-spacing:-.01em}
