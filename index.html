@@ -159,15 +159,16 @@
   <div class="workspace-heading"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.5"/></svg></span><div><span class="workspace-eyebrow">Operação · Gestor</span><h2>Painel de trabalho</h2></div><div class="ops-acoes" role="group" aria-label="Ferramentas">        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
         <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
 
-        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button>
+        <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button><button id="ops-carga-btn" class="ops-close-btn" type="button" aria-expanded="false" onclick="const d=document.querySelector('.team-load-disclosure');if(d){d.open=!d.open;this.setAttribute('aria-expanded',String(d.open));this.classList.toggle('active',d.open)}">▸ Carga da equipe</button>
         
       </div><label class="filtro-carteira">Responsável geral
       <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
         <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label></div>
+      </select></label><button type="button" class="ops-novo-conteudo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">+ Novo conteúdo</button></div>
   <!-- Barra de resumo compacta -->
   <div id="compact-summary" class="resumo focus-hidden"><div class="resumo-principal"><div class="resumo-numero">—<i>%</i></div><div class="resumo-legenda"><span>da semana fechada</span><div class="resumo-barra"><i style="width:0"></i></div><small>carregando…</small></div></div></div>
 
+  <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
   <!-- Central operacional -->
   <div class="ops-command-bar focus-hidden">
     <div class="global-search-wrap">
@@ -190,7 +191,6 @@
       
     </div>
     <div id="ops-selection-summary" class="ops-selection-summary" aria-live="polite"></div>
-    <details class="team-load-disclosure"><summary>Carga da equipe</summary><div id="team-load-strip" class="team-load-strip"></div></details>
   </div>
   <div id="ops-action-panel" class="ops-panel focus-hidden"></div>
   <div id="ops-today-panel" class="ops-panel ops-today-panel"></div>

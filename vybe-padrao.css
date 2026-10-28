@@ -697,3 +697,14 @@
 #mode-gate#mode-gate .identity-station[data-station] .station-top{display:flex!important;align-items:center;justify-content:space-between;width:100%}
 #mode-gate#mode-gate .identity-station[data-station] .station-top::after{content:"→";width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font:600 14px var(--mac-ui);color:var(--station-color);border:1px solid color-mix(in srgb,var(--station-color) 45%,transparent);background:color-mix(in srgb,var(--station-color) 10%,transparent)}
 #mode-gate#mode-gate .identity-station[data-station] .station-ready{display:none!important}
+/* Painel de trabalho: "+ Novo conteúdo" no cabeçalho, como no desenho */
+.workspace-heading .ops-novo-conteudo{height:38px;padding:0 16px;border:0;border-radius:12px;background:var(--pv-laranja);color:#1b0d06;font:700 13px var(--mac-ui);cursor:pointer;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)}
+.workspace-heading .ops-novo-conteudo:hover{filter:brightness(1.06)}
+/* Carga da equipe: o botão fica no cabeçalho; aberta, as pessoas em pílulas com a foto */
+.team-load-disclosure > summary{display:none!important}
+.team-load-disclosure:not([open]){display:none!important}
+.team-load-disclosure[open]{margin:2px 0 10px!important}
+.team-load-strip{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important;padding:2px 0!important}
+.team-load-label{color:#7d7870!important;font:700 10px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase;margin-right:4px}
+.team-load-chip{display:inline-flex!important;align-items:center;gap:6px;height:30px;padding:0 10px 0 3px!important;border-radius:99px!important;border:1px solid color-mix(in srgb,var(--load-color,#7aa7ff) 35%,transparent)!important;background:color-mix(in srgb,var(--load-color,#7aa7ff) 10%,#1b1d26)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
+.team-load-avatar,.team-load-avatar-fallback{width:24px!important;height:24px!important;border-radius:50%!important}
