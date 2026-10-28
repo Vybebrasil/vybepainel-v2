@@ -60,11 +60,8 @@ export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='', { 
  for (const it of itens) {
   const d=dimensoes.get(it[0]) || {x:1,y:1};
   const w=it[3]===2||it[3]===6 ? d.y : d.x,h=it[3]===2||it[3]===6 ? d.x : d.y;
-  if (construcaoLivre) {
-   if (it[1] < 0 || it[2] < 0 || it[1]+w > p.celdas[0].length || it[2]+h > p.celdas.length)
-    throw Object.assign(new Error(`Um móvel ficou fora da área do quarto (${it[0]} em ${it[1]}, ${it[2]}). Arraste-o para dentro e salve de novo.`),{status:400});
-   continue;
-  }
+  // Construção livre: a peça vai onde o dono quiser, até fora do piso.
+  if (construcaoLivre) continue;
   const nivel=p.celdas[Math.floor(it[2])]?.[Math.floor(it[1])];
   for(let x=Math.floor(it[1]);x<Math.ceil(it[1]+w);x++) for(let y=Math.floor(it[2]);y<Math.ceil(it[2]+h);y++) {
    const n=p.celdas[y]?.[x] ?? -1;

@@ -36,7 +36,9 @@ test('grade alterna sem mudar decoração e construção permite decorar a escad
  const {r}=contexto();r('gradeEditorEscritorio(true)');assert.equal(r('escritorio.mapa.ultimaGrade'),null);r('gradeEditorEscritorio(true)');assert.equal(r('escritorio.mapa.ultimaGrade.x1'),8);
  r(`escritorioAmbienteDoQuarto=()=>({});escritorioModeloPlanta=()=>({escada:[[3,3]]})`);
  assert.equal(await r(`escritorioCabe('gratis',3,3,2)`),true);assert.equal(await r(`escritorioCabe('gratis',4,3,2)`),true);
- assert.equal(await r(`escritorioCabe('gratis',8,3,2)`),false);
+ // No quarto a peça pode ir para fora do piso (Paulo, 28/10/2026), até um quarto em volta.
+ assert.equal(await r(`escritorioCabe('gratis',8,3,2)`),true);assert.equal(await r(`escritorioCabe('gratis',-5,3,2)`),true);
+ assert.equal(await r(`escritorioCabe('gratis',40,3,2)`),false);
 });
 test('cancelar colocação enquanto o modelo carrega não insere móvel atrasado',async()=>{
  const {c,r}=contexto();let liberar;c.pendente=new Promise(ok=>liberar=ok);r(`escritorio.mapa.medidas=()=>pendente;escritorio.edicao.novo='gratis';escritorio.edicao.sel=null`);

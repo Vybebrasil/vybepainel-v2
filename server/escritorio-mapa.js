@@ -61,7 +61,9 @@ export function itensValidos(camada, itens) {
     // a partir do encaixe da arte; o catálogo do servidor define o tipo.
     if (!num(estado, 0, 200) || !num(altura, Number(altura) < 0 && itemDeParede(classe) ? -40 : 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
-    const dentro = (v, max) => Math.min(Math.max(0, Number(v)), max - 1);
+    const folga = lim === LIMITE.sala ? LIMITE.sala.x : 0;
+    if (folga && (Number(x) < -folga || Number(y) < -folga || Number(x) >= lim.x + folga || Number(y) >= lim.y + folga)) throw new Error(`Móvel longe demais do quarto: ${classe}.`);
+    const dentro = (v, max) => (folga ? Number(v) : Math.min(Math.max(0, Number(v)), max - 1));
     const item = [classe, r(dentro(x, lim.x)), r(dentro(y, lim.y)), Number(dir), Math.round(Number(estado)), r(altura)];
     const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]) || configFundo(classe, it[6]);
     return cfg ? [...item, cfg] : item;
