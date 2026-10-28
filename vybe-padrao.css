@@ -664,3 +664,18 @@
 .week-panel .day-activity-row:has(.pill-alteracao),.week-panel .day-activity-row:has(.pill-alteracao-d){--pv-status:#ff6b8a}
 .week-panel .day-activity-row:has(.pill-ag-info),.week-panel .day-activity-row:has(.pill-aguardando-info),.week-panel .day-activity-row:has(.pill-falta-info),.week-panel .day-activity-row:has(.pill-falta-da){--pv-status:#a1a1aa}
 .week-panel .day-activity-row:has(.pill-aguardo),.week-panel .day-activity-row:has(.pill-aguardo-redacao){--pv-status:#a78bfa}
+
+/* Gaveta da peça: faixa com status, prazo, veiculação e responsável; rodapé
+   fixo com atualização rápida, Comentar e Passar bastão (como no desenho). */
+#workspace-drawer .workspace-meta{display:none!important}
+.workspace-faixa{display:grid;grid-template-columns:auto auto auto minmax(0,1fr);margin:12px 0 14px!important;border-radius:14px;border:1px solid var(--pv-linha);background:rgba(255,255,255,.025);overflow:hidden}
+.workspace-faixa > div{display:grid;align-content:start;gap:5px;padding:10px 14px;border-left:1px solid rgba(255,255,255,.06)}
+.workspace-faixa > div:first-child{border-left:0}
+.workspace-faixa dt{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.workspace-faixa dd{margin:0;display:flex;align-items:center;gap:6px;color:#fff;font:700 14px var(--pv-titulo)}
+.workspace-faixa .owner-editor-trigger{display:inline-flex!important;align-items:center;gap:6px;padding:0!important;border:0!important;background:none!important;color:#fff!important;font:600 13px var(--mac-ui)!important}
+#workspace-drawer .workspace-rodape{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:18px -24px 0;padding:14px 24px 18px;border-top:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(24,26,34,.96),#15171e)}
+.workspace-rodape .workspace-textarea{min-height:46px!important;height:46px;resize:none;border-radius:12px!important}
+#workspace-drawer .workspace-rodape .workspace-action.workspace-comentar{border:0!important;background:none!important;color:#ece8e3!important;font:600 13px var(--mac-ui)!important}
+#workspace-drawer .workspace-rodape .workspace-action.workspace-bastao{height:42px!important;padding:0 18px!important;border:0!important;border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13.5px var(--mac-ui)!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+#workspace-drawer .entrega-depois{display:none!important}

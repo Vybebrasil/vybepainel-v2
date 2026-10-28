@@ -126,13 +126,19 @@ let DETALHE_DA_GAVETA = null;
   const datasDoTopo = [dataDoTopo(item.prazo) && `Prazo ${item.prazo}`,
     dataDoTopo(item.veiculacao) && `Veiculação ${item.veiculacao}`].filter(Boolean).join(' · ') || 'Sem datas definidas';
   drawer.innerHTML = `
-      <div style="flex:1;overflow-y:auto;padding:22px 24px 120px;box-sizing:border-box;width:100%;height:100%;">
+      <div style="flex:1;overflow-y:auto;padding:22px 24px 0;box-sizing:border-box;width:100%;height:100%;">
       <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id)}${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
     <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
     <div class="workspace-meta">${pillHtml(item.status,item.status_color,item.status_border)}<small class="workspace-meta-datas">${safeText(datasDoTopo)}</small></div>
+    <dl class="workspace-faixa">
+      <div><dt>Status</dt><dd>${pillHtml(item.status,item.status_color,item.status_border)}</dd></div>
+      <div><dt>Prazo</dt><dd>${safeText(dataDoTopo(item.prazo) || '—')}</dd></div>
+      <div><dt>Veiculação</dt><dd>${safeText(dataDoTopo(item.veiculacao) || '—')}</dd></div>
+      <div><dt>Responsável</dt><dd>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'workspace-faixa-dono', { comNome: true }) : ''}</dd></div>
+    </dl>
     ${blocoDoBriefingHtml(detail, item)}
     ${faixaDeMaterialBrutoHtml(detail, item)}
     ${workspaceFichaHtml(detail, item.id)}
@@ -160,10 +166,10 @@ let DETALHE_DA_GAVETA = null;
     ${assets.length
       ? `<section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body">${workspaceUploadHtml()}<div class="workspace-assets">${assets.map(workspaceAssetCard).join('')}</div></div></section>`
       : `<details class="workspace-section workspace-recolhida"><summary>Arquivos<small>nenhum</small></summary><div class="workspace-section-body"><div class="workspace-empty">Nenhum arquivo anexado ainda.</div></div></details>`}
-    <section class="workspace-section"><div class="workspace-section-head">Atualização rápida</div><div class="workspace-section-body"><textarea id="workspace-comment-input" class="workspace-textarea" placeholder="Ex.: Card finalizado e enviado para aprovação."></textarea><div class="workspace-form-row"><button type="button" class="workspace-action" onclick="saveWorkspaceComment()">Registrar atualização</button></div></div></section>
     ${workspaceHistoryHtml(detail, item)}
     ${workspaceExecutiveHistoryHtml(updates)}
-    <details class="workspace-section workspace-recolhida"><summary>Todo o histórico<small>${updates.length} registro${updates.length===1?'':'s'}</small></summary><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></details></div>`;
+    <details class="workspace-section workspace-recolhida"><summary>Todo o histórico<small>${updates.length} registro${updates.length===1?'':'s'}</small></summary><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></details>
+    <div class="workspace-rodape"><textarea id="workspace-comment-input" class="workspace-textarea" rows="2" placeholder="Atualização rápida: ex. Card finalizado e enviado para aprovação." aria-label="Atualização rápida"></textarea><button type="button" class="workspace-action workspace-comentar" onclick="saveWorkspaceComment()">Comentar</button><button type="button" class="workspace-action primary workspace-bastao" onclick="openManualHandoff('${item.id}')">Passar bastão →</button></div></div>`;
 }
 async function openItemWorkspace(itemId) {
   closeItemWorkspace();
