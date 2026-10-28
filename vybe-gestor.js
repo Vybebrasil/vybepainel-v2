@@ -1393,9 +1393,12 @@ function pintarBarraDeComando() {
   });
   const semana = document.getElementById('ops-semana-btn');
   if (semana) {
-    const naSemana = !Object.values(PAINEIS_DA_BARRA).some((o) => o.grupo === 'visao' && o.aberto()) && !document.getElementById('arquivadas-painel');
+    const semVisao = !Object.values(PAINEIS_DA_BARRA).some((o) => o.grupo === 'visao' && o.aberto()) && !document.getElementById('arquivadas-painel');
+    const naSemana = semVisao && !equipeNaTela();
     if (semana.classList.contains('active') !== naSemana) semana.classList.toggle('active', naSemana);
     semana.setAttribute('aria-expanded', String(naSemana));
+    const equipe = document.getElementById('ops-equipe-btn');
+    if (equipe) { const naEquipe = semVisao && equipeNaTela(); if (equipe.classList.contains('active') !== naEquipe) equipe.classList.toggle('active', naEquipe); equipe.setAttribute('aria-expanded', String(naEquipe)); }
   }
   const arquivo = document.getElementById('ops-arquivo-btn');
   if (arquivo) arquivo.classList.toggle('active', Boolean(document.getElementById('arquivadas-painel')));
@@ -1404,9 +1407,23 @@ function pintarBarraDeComando() {
 // "Ver como": a agenda da semana é a visão de sempre. Ela fica marcada quando
 // nenhuma outra visão (grupos, calendário do mês, arquivo) está aberta, e
 // clicar nela fecha as outras.
-function mostrarAgendaDaSemana() {
+// "Equipe" é uma visão como as outras (Paulo, 27/10/2026: o botão ficava
+// marcado e o calendário continuava por cima): fecha grupos, calendário e
+// arquivo e mostra a carga de cada pessoa. A agenda da semana volta dela.
+const equipeNaTela = () => Boolean(document.getElementById('panel-team')?.classList.contains('active'));
+function fecharVisoesDaBarra() {
   Object.entries(PAINEIS_DA_BARRA).filter(([, o]) => o.grupo === 'visao' && o.aberto()).forEach(([nome]) => definirPainel(nome, false));
   if (document.getElementById('arquivadas-painel')) alternarArquivo();
+}
+function mostrarEquipeDaSemana(botao) {
+  fecharVisoesDaBarra();
+  showWeek(0, botao);
+  pintarBarraDeComando();
+  document.getElementById('ops-equipe-btn')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function mostrarAgendaDaSemana() {
+  fecharVisoesDaBarra();
+  if (equipeNaTela()) showWeek(typeof currentWeek === 'number' && currentWeek > 0 ? currentWeek : 1, null);
   pintarBarraDeComando();
   document.getElementById('ops-semana-btn')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

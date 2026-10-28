@@ -484,3 +484,72 @@
 .jogo-fora-pessoa img{width:22px;height:22px;border-radius:50%;object-fit:cover;image-rendering:pixelated;background:#2a2d3c}
 .jogo-fora-vazia{color:#7d7870;font-size:12px}
 .jogo-fora small{flex-basis:100%;color:#7d7870;font-size:11px}
+
+/* ===== Telas de prioridade média ===== */
+
+/* Menus do topo (avisos, Ferramentas, conta): o mesmo vidro escuro */
+.notif-caixa,.header-utilities-menu,.quem-sou-menu{border-radius:16px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.97),rgba(24,26,34,.97))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 24px 50px -16px rgba(0,0,0,.75)!important;backdrop-filter:blur(14px)}
+.notif-caixa{min-width:320px;padding:6px 6px 8px!important}
+.notif-cabeca{display:flex!important;align-items:center;justify-content:space-between;padding:8px 10px!important;border-bottom:1px solid rgba(255,255,255,.07)!important}
+.notif-cabeca > span{color:#fff!important;font:700 15px var(--pv-titulo)!important}
+.notif-cabeca button{color:#ffb35c!important;font:600 11.5px var(--mac-ui)!important;background:none!important;border:0!important}
+.notif-vazio{display:grid;justify-items:center;gap:8px;margin:8px!important;padding:22px 16px!important;border-radius:14px;border:1px dashed rgba(255,255,255,.12);color:#a8a39c!important;font:500 12.5px/1.5 var(--mac-ui)!important;text-align:center}
+.notif-vazio::before{content:"";width:34px;height:34px;border-radius:12px;background:linear-gradient(180deg,rgba(247,201,72,.28),rgba(247,201,72,.1));box-shadow:inset 0 0 0 1px rgba(247,201,72,.4);-webkit-mask:none}
+.header-utilities-menu{min-width:240px;padding:6px!important}
+.header-utilities-menu > button{display:flex!important;align-items:center;gap:8px;width:100%;min-height:36px;padding:0 10px!important;border-radius:10px!important;border:0!important;background:none!important;color:#ece8e3!important;font:500 13px var(--mac-ui)!important;text-align:left}
+.header-utilities-menu > button:hover{background:rgba(255,255,255,.07)!important}
+.quem-sou-menu{min-width:250px;padding:6px!important}
+.quem-sou-cabeca{display:grid;gap:2px;padding:10px 10px 12px!important;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07)!important}
+.quem-sou-cabeca b{color:#fff;font:700 15px var(--pv-titulo)}
+.quem-sou-cabeca span{color:#a8a39c;font-size:12px}
+.quem-sou-papel{justify-self:start;margin-top:4px;padding:2px 8px;border-radius:99px;background:rgba(255,143,79,.16);color:#ffb35c!important;font:700 10.5px var(--mac-ui)!important}
+.quem-sou-menu > button{display:flex!important;align-items:center;width:100%;min-height:36px;padding:0 10px!important;border-radius:10px!important;border:0!important;background:none!important;color:#ece8e3!important;font:500 13px var(--mac-ui)!important;text-align:left}
+.quem-sou-menu > button:hover{background:rgba(255,255,255,.07)!important}
+.quem-sou-menu > .quem-sou-sair{color:#ff8a9c!important}
+
+/* Grupos (Gestor e Demandas): cada grupo num cartão com a cor dele */
+.grupos-board .grupo-bloco{margin-bottom:10px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;overflow:hidden}
+/* O topo tem backdrop-filter (camada própria, sem z-index): os menus dele
+   (avisos, Ferramentas, conta) abriam atrás dos cartões do Painel de trabalho. */
+.app-header{z-index:200!important}
+/* Dentro do topo o desfoque não funciona (o topo já tem o dele): fundo sólido,
+   senão o que está atrás aparece nítido através do menu. */
+.vybe-desktop .notif-caixa.notif-caixa,.vybe-desktop .header-utilities-menu.header-utilities-menu,.vybe-desktop .quem-sou-menu.quem-sou-menu,.notif-caixa.notif-caixa,.header-utilities-menu.header-utilities-menu,.quem-sou-menu.quem-sou-menu{background:linear-gradient(180deg,#262834,#1b1d26)!important}
+
+/* Clientes: o cabeçalho do padrão, sem a caixa em volta */
+.client-module-hero{display:flex!important;align-items:center!important;justify-content:space-between;border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 6px!important}
+.client-module-hero .pv-cabeca{margin:0}
+.client-module-hero .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
+.client-module-hero .client-module-kicker{color:#7aa7ff!important}
+
+/* Avisos rápidos (toast): cartão de vidro com o ícone do tipo, texto claro */
+#toast{display:flex!important;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.1)!important;border-left-width:1px!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;color:#ece8e3!important;font:600 13px/1.4 var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 44px -16px rgba(0,0,0,.8)!important}
+#toast::before{content:"i";flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--mac-ui);color:#06240f;background:#7aa7ff}
+#toast.ok::before{content:"✓";background:#46d48c}
+#toast.err::before{content:"!";background:#ff6b8a;color:#2a0610}
+#toast.ok,#toast.err,#toast.info{color:#ece8e3!important}
+
+/* Editor de regra (Automações): os passos à esquerda; a frase da regra e os
+   botões numa coluna à direita, sempre à vista */
+@media (min-width:980px){
+.auto-construtor{display:grid!important;grid-template-columns:minmax(0,1fr) 300px;column-gap:16px;align-items:start}
+.auto-construtor > .auto-construtor-topo{grid-column:1/-1}
+.auto-construtor > .auto-bloco{grid-column:1}
+.auto-construtor > .auto-frase-final{grid-column:2;grid-row:2;position:sticky;top:90px;margin:0!important}
+.auto-construtor > .auto-construtor-botoes{grid-column:2;grid-row:3;align-self:start;margin-top:10px!important}
+}
+.auto-frase-final{padding:14px!important;border-radius:16px!important;border:1px solid rgba(255,179,92,.3)!important;background:linear-gradient(180deg,rgba(255,143,79,.12),rgba(255,143,79,.03)),#1b1d26!important}
+.auto-frase-final > span{color:#ffb35c!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase}
+.auto-frase-final b{display:block;margin-top:6px;color:#fff;font:600 14px/1.45 var(--mac-ui)}
+.auto-salvar{border:0!important;border-radius:11px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important}
+.auto-cancelar{border-radius:11px!important}
+.vybe-desktop .client-module-hero.client-module-hero,.client-module-hero.client-module-hero{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:4px 0 6px!important}
+
+/* Escritório: "Conexão indisponível" como uma pílula compacta embaixo, com o
+   botão pequeno ao lado (antes, faixa larga com botão enorme) */
+.ofc-entrada.erro{display:flex!important;align-items:center;gap:12px;width:auto!important;max-width:min(520px,calc(100% - 32px));padding:8px 8px 8px 16px!important;border-radius:14px!important;border:1px solid rgba(255,107,138,.35)!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;box-shadow:0 18px 40px -16px rgba(0,0,0,.8)!important}
+.ofc-entrada.erro p{margin:0!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important}
+.ofc-entrada.erro p::before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:#ff6b8a;box-shadow:0 0 8px #ff6b8a;vertical-align:1px}
+.ofc-entrada.erro .ofc-primario{flex:none;width:auto!important;height:32px!important;padding:0 14px!important;border-radius:10px!important;font:700 12px var(--mac-ui)!important}
+/* Lateral do escritório · clientes em cartões */
+.ofc-clientes-lista > li,#office-clientes li{padding:10px 12px!important;margin-bottom:6px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;list-style:none}
