@@ -553,3 +553,22 @@
 .ofc-entrada.erro .ofc-primario{flex:none;width:auto!important;height:32px!important;padding:0 14px!important;border-radius:10px!important;font:700 12px var(--mac-ui)!important}
 /* Lateral do escritório · clientes em cartões */
 .ofc-clientes-lista > li,#office-clientes li{padding:10px 12px!important;margin-bottom:6px!important;border-radius:12px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;list-style:none}
+
+/* Modo Reunião: título do padrão, fechar no canto, números em cartões */
+.meeting-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px}
+.meeting-head > div > span{color:#ffb35c!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.meeting-head h2{margin:4px 0 2px!important;color:#fff!important;font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em}
+.meeting-head .x-fechar{flex:none;width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important}
+.meeting-priority{border-radius:18px!important;border:1px solid rgba(255,107,138,.35)!important;background:radial-gradient(80% 140% at 0 0,rgba(255,107,138,.16),transparent 60%),#1b1d26!important}
+.meeting-priority.stable{border-color:rgba(70,212,140,.35)!important;background:radial-gradient(80% 140% at 0 0,rgba(70,212,140,.14),transparent 60%),#1b1d26!important}
+.meeting-priority b{color:#fff!important;font:700 19px var(--pv-titulo)!important}
+.meeting-priority button{border:0!important;border-radius:11px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important}
+.meeting-metrics{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px!important}
+.meeting-metrics > span{display:flex!important;flex-direction:column-reverse;align-items:flex-start!important;gap:4px;padding:12px 16px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;color:#a8a39c!important;font:700 10px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase;text-align:left!important}
+.meeting-metrics > span b{color:#fff!important;font:700 28px/1 var(--pv-titulo)!important;letter-spacing:0;text-transform:none}
+.meeting-capacity,.meeting-grid > *{border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important}
+
+/* Mizinho: a aba ativa na cor do módulo (Audiovisual) */
+.prod-v2-head .p-segment button.active{background:linear-gradient(180deg,rgba(56,217,197,.3),rgba(56,217,197,.12))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(56,217,197,.45)!important}
+.capt-tb-criar{border:0!important;border-radius:10px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.meeting-mode-sheet .meeting-head.meeting-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}.meeting-mode-sheet .meeting-head .x-fechar{position:static!important;margin:0!important;order:2}
