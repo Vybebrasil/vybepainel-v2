@@ -18,21 +18,28 @@ import { erro } from './escritorio-apostas.js';
 // RAIO: bola das partidas novas (1,6 desde 28/10/2026: a 1,45 ficava pequena
 // demais na tela para ler o número; a partida guarda o dela em m.r).
 export const LARGURA = 100, ALTURA = 50, R = 1.15, RAIO = 1.6;
-// Caçapas como nas mesas de verdade (28/10/2026, Paulo: "melhorar a física"):
-// a tabela tem uma abertura em cada caçapa e a bola só cai se passar por ela.
-// As pontas da abertura são quinas: a bola que chega torta bate na quina e
-// volta ("bateu na boca e não caiu"). Antes a caçapa era um círculo grande e
-// qualquer bola que encostasse perto caía.
-// Boca de canto: BOCA_CANTO raios ao longo de cada tabela a partir do canto;
-// do meio: BOCA_MEIO raios para cada lado do centro.
-export const BOCA_CANTO = 2.6, BOCA_MEIO = 2.05;
+// Caçapas medidas no 8 Ball Pool (28/10/2026, Paulo: "por que não copia do
+// que já existe?"; em raios de bola, contados do nariz da borracha):
+// - canto: a borracha acaba a BOCA_CANTO (2,5) do canto; o buraco, de raio
+//   2,2, tem o centro 1,15 para fora nas duas direções (fica na madeira e mal
+//   entra no pano);
+// - meio: a borracha acaba a BOCA_MEIO (2,2) do centro; o buraco, de raio
+//   1,73, tem o centro 2 para fora (fica todo atrás da borracha).
+// A ponta da borracha é uma quina: a bola que chega torta bate e volta. A
+// bola cai quando passa da linha da borracha pela boca ou quando o centro
+// entra no buraco desenhado.
+export const BOCA_CANTO = 2.5, BOCA_MEIO = 2.2;
+export function cacapas(r) {
+ const L = LARGURA, A = ALTURA, c = 1.15 * r, cr = 2.2 * r, f = 2 * r, mr = 1.73 * r;
+ return [[-c, -c, cr], [50, -f, mr], [L + c, -c, cr], [-c, A + c, cr], [50, A + f, mr], [L + c, A + c, cr]];
+}
 function bocas(r) {
  const m = BOCA_CANTO * r, h = BOCA_MEIO * r, L = LARGURA, A = ALTURA;
  const quinas = [[0, m], [m, 0], [L - m, 0], [L, m], [0, A - m], [m, A], [L - m, A], [L, A - m], [50 - h, 0], [50 + h, 0], [50 - h, A], [50 + h, A]];
  // Onde a tabela está aberta (sem borracha para a bola bater).
  const abertaX = (y) => y < m || y > A - m; // tabelas da esquerda e da direita
  const abertaY = (x) => x < m || x > L - m || Math.abs(x - 50) < h; // tabelas de cima e de baixo
- return { quinas, abertaX, abertaY };
+ return { quinas, abertaX, abertaY, buracos: cacapas(r) };
 }
 const RESTITUICAO_QUINA = 0.6;
 const PASSO = 1 / 240, QUADRO = 8, PASSOS_MAX = 240 * 15;
@@ -50,8 +57,11 @@ const restam = (bolas, g) => (GRUPOS[g] || []).filter((n) => bolas[n]).length;
 
 // Triângulo com o ápice na marca (75, 25): a 8 no meio da terceira fileira e
 // uma lisa e uma listrada nos cantos de trás.
-// modo 'parimpar' (o padrão das partidas novas): 14 bolas no triângulo, sem a
-// 1 e com o meio da fileira de trás vazio, e os grupos sorteados já na saída.
+// modo 'parimpar' (o padrão das partidas novas), a sinuca de bar: 7 pares, 7
+// ímpares e a 1, a bola final. A mesa começa aberta (28/10/2026, Paulo: "quem
+// matar primeiro fica com o que matou, se foi par (bolas preenchidas) ou ímpar
+// (bola com listra branca)"): a primeira bola encaçapada sem falta define o
+// grupo. As partidas de 27 e 28/10 sortearam os grupos na saída e terminam assim.
 // modo 'bola8': a regra de antes (a partida gravada sem modo é bola 8).
 export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', sortear = randomInt, r = RAIO, modo = 'parimpar') {
  const misturar = (l) => { for (let i = l.length - 1; i > 0; i--) { const k = sortear(i + 1); [l[i], l[k]] = [l[k], l[i]]; } return l; };
@@ -64,8 +74,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
    const n = pos === 4 ? 1 : ordem[i++];
    bolas[n] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
   }
-  const g = sortear(2) ? 'pares' : 'impares';
-  return { modo, bola1: true, r, bolas, vez: quemSai, grupos: { [quemSai]: g, [outro(quemSai)]: g === 'pares' ? 'impares' : 'pares' }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null };
+  return { modo, bola1: true, r, bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null, recentes: [] };
  }
  const lisas = misturar([...LISAS]), listradas = misturar([...LISTRADAS]);
  // Posições do triângulo: 4 = meio da terceira fileira, 10 e 14 = cantos de trás.
@@ -77,7 +86,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
  for (let fila = 0; fila < 5; fila++) for (let k = 0; k <= fila; k++) {
   bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
  }
- return { r, bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null };
+ return { modo: 'bola8', r, bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null, recentes: [] };
 }
 
 // Roda a tacada até tudo parar. Devolve as bolas no fim, o que caiu (na
@@ -113,8 +122,9 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0)
    p.vx *= nova / vel; p.vy *= nova / vel;
    p.x += p.vx * PASSO; p.y += p.vy * PASSO;
    andando = true;
-   // Passou da linha da tabela: só acontece pela boca, então caiu.
-   if (p.x < 0 || p.x > LARGURA || p.y < 0 || p.y > ALTURA) { b[n] = null; caiu.push(n); evento('caiu', nova); continue; }
+   // O centro entrou no buraco (ou passou da linha da tabela, o que só
+   // acontece pela boca): caiu.
+   if (p.x < 0 || p.x > LARGURA || p.y < 0 || p.y > ALTURA || BOCAS.buracos.some(([cx, cy, cr]) => Math.hypot(p.x - cx, p.y - cy) < cr)) { b[n] = null; caiu.push(n); evento('caiu', nova); continue; }
    // Quinas da boca: a bola bate na ponta da tabela e volta (com menos força).
    for (const [qx, qy] of BOCAS.quinas) {
     const dx = p.x - qx, dy = p.y - qy, d = Math.hypot(dx, dy);
@@ -163,12 +173,27 @@ function recolocar(bolas, n, r) {
  for (let x = 75; x < LARGURA - r; x += 0.5) if (livre(bolas, x, 25, -1, r)) { bolas[n] = [x, 25]; return; }
 }
 
+// As tacadas mais recentes, para a tela de quem não viu passar todas (Paulo,
+// 28/10/2026: "quando o Vinícius dá uma tacada eu não vejo o que ele fez"):
+// quem encaçapa continua, e entre uma consulta e outra cabem várias tacadas.
+// Guarda a série da vez atual e a da anterior (até 4), cada uma com o número.
+function guardarTacada(m, t) {
+ t.n = m.n;
+ const lista = (m.recentes || []).concat(t);
+ let series = 0;
+ for (let i = lista.length - 1; i > 0; i--) if (lista[i].lado !== lista[i - 1].lado && ++series >= 2) { lista.splice(0, i); break; }
+ m.recentes = lista.slice(-4);
+ m.ultimo = t;
+}
+
 export function vistaSinuca(m, lado, fim) {
  const vez = !fim && lado && m.vez === lado;
  return {
-  modo: m.modo || 'bola8', bola1: Boolean(m.bola1), r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas,
+  modo: m.modo || 'bola8', bola1: Boolean(m.bola1), r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas, n: m.n || 0,
   restam: Object.fromEntries(Object.keys(GRUPOS).map((g) => [g, restam(m.bolas, g)])),
-  pode_tacar: Boolean(vez), ultimo: m.ultimo || null,
+  // Os quadros vão só em `recentes` (a partida gravada antes não tem: a última tacada vale como a lista).
+  pode_tacar: Boolean(vez), ultimo: m.ultimo ? { ...m.ultimo, quadros: undefined, eventos: undefined } : null,
+  recentes: m.recentes || (m.ultimo ? [{ ...m.ultimo, n: m.n || 0 }] : []),
  };
 }
 
@@ -180,7 +205,7 @@ export function jogarSinuca(mesa, lado, pedido) {
  if (pedido?.tipo === 'tempo') {
   const m = structuredClone(mesa);
   m.n = (m.n || 0) + 1; m.vez = outro(lado); m.bolaNaMao = true;
-  m.ultimo = { lado, quadros: [], eventos: [], caiu: [], primeiro: null, falta: 'tempo' };
+  guardarTacada(m, { lado, quadros: [], eventos: [], caiu: [], primeiro: null, falta: 'tempo' });
   return { mesa: m, fim: null };
  }
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
@@ -202,7 +227,7 @@ export function jogarSinuca(mesa, lado, pedido) {
  // Falta: branca na caçapa, não tocou em nada, tocou primeiro a bola errada.
  const errada = r.primeiro !== null && (grupo ? !(doGrupo(grupo, r.primeiro) || (limpo && r.primeiro === 8)) : r.primeiro === 8 && !saida);
  const falta = r.caiu.includes(0) ? 'branca' : r.primeiro === null ? 'nenhuma' : errada ? 'errada' : null;
- m.ultimo = { lado, angulo, forca, efeito, giro: lado2, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta };
+ guardarTacada(m, { lado, angulo, forca, efeito, giro: lado2, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta });
  if (r.caiu.includes(8)) {
   if (saida) recolocar(m.bolas, 8, r0);
   else return { mesa: m, fim: !falta && limpo ? { resultado: lado, motivo: 'oito' } : { resultado: outro(lado), motivo: falta ? 'oito-falta' : 'oito-cedo' } };
@@ -212,6 +237,7 @@ export function jogarSinuca(mesa, lado, pedido) {
  if (!grupo && !falta && caidas.length) {
   const g = caidas[0] < 8 ? 'lisas' : 'listradas';
   m.grupos = { [lado]: g, [outro(lado)]: g === 'lisas' ? 'listradas' : 'lisas' };
+  m.ultimo.grupo = g;
  }
  const meu = m.grupos[lado];
  const continua = !falta && caidas.some((n) => !meu || doGrupo(meu, n));
@@ -225,14 +251,17 @@ export function jogarSinuca(mesa, lado, pedido) {
 // com bola na mão). Continua quem encaçapa bola sua sem falta. Ganha quem
 // encaçapa todas as suas; encaçapar a última do outro dá a vitória a ele; a
 // última sua que cai com falta volta para a mesa.
+// Com a 1 (bola1): a mesa começa aberta (vale tocar primeiro qualquer bola
+// menos a 1) e a primeira bola encaçapada sem falta define os grupos.
 function parImpar(m, lado, r, { angulo, forca, efeito, lado2, r0 }) {
- const meu = m.grupos[lado], dele = m.grupos[outro(lado)];
+ let meu = m.grupos[lado];
+ const dele = m.grupos[outro(lado)], aberta = m.bola1 && !meu;
  // Com a 1 na mesa: grupo limpo, a primeira bola a tocar é a 1.
- const limpo = m.bola1 && restam(m.bolas, meu) === 0, saida = m.tacadas === 0;
+ const limpo = m.bola1 && !aberta && restam(m.bolas, meu) === 0, saida = m.tacadas === 0;
  m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
- const certa = (n) => (limpo ? n === 1 : doGrupo(meu, n));
+ const certa = (n) => (aberta ? n !== 1 : limpo ? n === 1 : doGrupo(meu, n));
  const falta = r.caiu.includes(0) ? 'branca' : r.primeiro === null ? 'nenhuma' : !certa(r.primeiro) ? 'errada' : null;
- m.ultimo = { lado, angulo, forca, efeito, giro: lado2, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta };
+ guardarTacada(m, { lado, angulo, forca, efeito, giro: lado2, quadros: r.quadros, eventos: r.eventos, caiu: r.caiu, primeiro: r.primeiro, falta });
  if (m.bola1) {
   // A 1 na saída volta para a mesa; depois, ganha quem a encaçapa com o grupo
   // limpo e sem falta, e perde quem a derruba antes da hora ou com falta.
@@ -240,7 +269,14 @@ function parImpar(m, lado, r, { angulo, forca, efeito, lado2, r0 }) {
    if (saida) recolocar(m.bolas, 1, r0);
    else return { mesa: m, fim: !falta && limpo ? { resultado: lado, motivo: 'um' } : { resultado: outro(lado), motivo: falta ? 'um-falta' : 'um-cedo' } };
   }
-  const continua1 = !falta && r.caiu.some((n) => doGrupo(meu, n));
+  // Mesa aberta: a primeira bola encaçapada sem falta define os grupos.
+  const caidas = r.caiu.filter((n) => n !== 0 && n !== 1);
+  if (aberta && !falta && caidas.length) {
+   meu = doGrupo('pares', caidas[0]) ? 'pares' : 'impares';
+   m.grupos = { [lado]: meu, [outro(lado)]: meu === 'pares' ? 'impares' : 'pares' };
+   m.ultimo.grupo = meu;
+  }
+  const continua1 = !falta && r.caiu.some((n) => meu && doGrupo(meu, n));
   if (falta) { m.vez = outro(lado); m.bolaNaMao = true; if (m.bolas[0] && falta === 'branca') m.bolas[0] = null; }
   else { m.bolaNaMao = false; if (!continua1) m.vez = outro(lado); }
   return { mesa: m, fim: null };

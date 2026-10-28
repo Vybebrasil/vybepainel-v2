@@ -71,13 +71,16 @@ export async function conferirDesafio(tx, pessoa, salas, { para, n, da, quer }) 
 
 // Quem está na mesa: os dois de sempre e, no pôquer em grupo, os de `mais`.
 export const pessoasDaMesa = (j) => [j.desafiante, j.desafiado, ...(j.mais || [])].map(String);
+// Só as pessoas (o lugar do bot, sem pessoa, fica de fora; os clientes do
+// pôquer pagam pela carteira deles, em escritorio-clientes-poker.js).
+const humanosDaMesa = (j) => pessoasDaMesa(j).filter((id) => /^\d+$/.test(id));
 
 // Aceite (quem responde é o desafiado, ou o último do grupo a aceitar): confere
 // tudo de novo e tira a aposta de todas as carteiras e dos dois inventários
 // (em grupo a aposta é só de VybeCoins). `razao` = '<jogo>:<id>'.
 export async function cobrarAposta(tx, j, salas, razao, quemAceita = j.desafiado) {
  // Carteiras e inventários trancados sempre na mesma ordem (menor id primeiro).
- const todos = pessoasDaMesa(j).sort((a, b) => Number(a) - Number(b));
+ const todos = humanosDaMesa(j).sort((a, b) => Number(a) - Number(b));
  const n = Number(j.moedas) || 0;
  if (n) {
   for (const p of todos) await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${p}) ON CONFLICT DO NOTHING`;
@@ -99,8 +102,9 @@ export async function cobrarAposta(tx, j, salas, razao, quemAceita = j.desafiado
 
 // Fim da partida: prêmio para quem ganhou (vencedor = id da pessoa: as moedas
 // de todos da mesa e os itens), ou cada um recebe o seu de volta (vencedor = null).
-export async function pagarAposta(tx, j, vencedor, razao) {
- const n = Number(j.moedas) || 0, todos = pessoasDaMesa(j);
+// `cadeiras`: quantos puseram a aposta (no pôquer com clientes, eles também).
+export async function pagarAposta(tx, j, vencedor, razao, cadeiras = null) {
+ const n = Number(j.moedas) || 0, todos = humanosDaMesa(j);
  const daqui = [...(j.itens_desafiante || [])], dali = [...(j.itens_desafiado || [])];
  const creditar = async (p, origem, valor) => {
   const [r] = await tx`INSERT INTO vybe_escritorio_moedas(pessoa_id,origem,quantidade) VALUES(${p},${origem},${valor}) ON CONFLICT(pessoa_id,origem) DO NOTHING RETURNING id`;
@@ -111,7 +115,7 @@ export async function pagarAposta(tx, j, vencedor, razao) {
   await porNoInventario(tx, j.desafiante, daqui);
   await porNoInventario(tx, j.desafiado, dali);
  } else {
-  if (n) await creditar(vencedor, `${razao}:premio`, todos.length * n);
+  if (n) await creditar(vencedor, `${razao}:premio`, (cadeiras ?? todos.length) * n);
   await porNoInventario(tx, vencedor, [...daqui, ...dali]);
  }
 }

@@ -91,7 +91,7 @@ test('mesa de pôquer em grupo: convite, recusa, aceite de todos, aposta e conqu
  const MESA = { jogo: 'poker', camada: 'jogos', movel: 'wildwest_table@16,2' };
  const saldo = async (p) => Number((await sql`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${p}`)[0].saldo);
  // Regras do convite em grupo.
- await assert.rejects(x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', mais: ['7', '5', '2'], ...MESA, chave: 'grupo-0000' }), /até 4 pessoas/);
+ await assert.rejects(x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', mais: ['7', '5', '2', '4', '6', '24', '28'], ...MESA, chave: 'grupo-0000' }), /até 8 pessoas/);
  await assert.rejects(x.desafiarMesa(sql, { id: 1 }, salas, { jogo: 'domino', camada: 'jogos', movel: 'hobbies_c26_gamingtable@15,8', para: '3', mais: ['7'], chave: 'grupo-dom1' }), /de dois/);
  await assert.rejects(x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', mais: ['7'], ...MESA, chave: 'grupo-0001', oferece: [['bench', 1]] }), /só em VybeCoins/);
  const d = await x.desafiarMesa(sql, { id: 1 }, salas, { para: '3', mais: ['7', '5'], ...MESA, moedas: 20, chave: 'grupo-0002' });

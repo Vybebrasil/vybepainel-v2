@@ -10,8 +10,9 @@
 // Baralho e cartas ficam só no servidor: a vista de cada um mostra as próprias
 // cartas, e as dos outros só quando a mão vai ao showdown.
 //
-// Lados: 'desafiante', 'desafiado', 'jogador3', 'jogador4' (m.lados, na ordem
-// da mesa). Partida gravada antes do pôquer em grupo não tem m.lados: é a dois.
+// Lados: 'desafiante', 'desafiado', 'jogador3' … 'jogador8' (m.lados, na ordem
+// da mesa; até 8 desde 28/10/2026). Partida gravada antes do pôquer em grupo
+// não tem m.lados: é a dois.
 import { randomInt } from 'node:crypto';
 import pokersolver from 'pokersolver';
 import { erro } from './escritorio-apostas.js';
@@ -228,7 +229,7 @@ export const motorPoker = {
  nome: 'Pôquer',
  motivos: { fichas: 'Ficou com todas as fichas' },
  // Até quantos na mesma mesa (os outros jogos são de dois).
- grupo: 4,
+ grupo: 8,
  iniciar: (lados) => iniciarPoker(undefined, undefined, lados),
  vista: vistaPoker,
  jogar: jogarPoker,
