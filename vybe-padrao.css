@@ -637,3 +637,30 @@
 .previa-grande-seta{width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(20,22,30,.8)!important;color:#ece8e3!important}
 .previa-grande-topo button.previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .previa-peca-passo{display:grid!important;place-items:center!important;text-align:center!important}
+
+/* ===== Direção de arte, execução completa ===== */
+/* Agenda da semana: a peça como no desenho, pelas áreas do grid que já existem
+   (o cartão usa display:contents; não mexer no display dos blocos de dentro).
+   Linha 1: título numa linha só; linha 2: cliente; rodapé: status (e formato,
+   discreto) à esquerda e o responsável à direita. */
+.dias-colunas > .day-scroll-card .day-activity-content{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"titulo titulo" "legenda legenda" "acoes pessoas"!important;gap:4px 8px!important}
+.dias-colunas > .day-scroll-card .day-activity-pessoas{align-self:center!important}
+.dias-colunas > .day-scroll-card .day-activity-row .item-name{display:block!important;-webkit-line-clamp:unset!important;white-space:nowrap!important;text-overflow:ellipsis!important;font:600 12.5px/1.3 var(--mac-ui)!important}
+.dias-colunas > .day-scroll-card .day-activity-actions{justify-content:flex-start!important;margin-top:3px}
+.dias-colunas > .day-scroll-card .day-activity-actions .manager-status-control{order:-1}
+.week-panel .day-activity-formato{background:none!important;box-shadow:none!important;padding:0!important;color:#7d7870!important;font:500 10.5px var(--mac-ui)!important}
+.week-panel .day-activity-row .dia-marcar{opacity:.5}
+.week-panel .day-activity-row:hover .dia-marcar,.week-panel .day-activity-row.marcada .dia-marcar{opacity:1}
+/* Cabeçalho do dia: a data em destaque e a barrinha de progresso */
+.week-panel .day-scroll-card .client-name{font:700 16px/1.1 var(--pv-titulo)!important;color:#fff!important;letter-spacing:-.01em}
+.week-panel .day-scroll-card .day-progress-label{color:#7d7870!important;font:600 10.5px var(--mac-ui)!important}
+.dias-colunas > .day-scroll-card .item-row.day-activity-row{align-items:start!important}.dias-colunas > .day-scroll-card .day-activity-row .dia-marcar{align-self:start!important;margin-top:2px!important}
+/* A barra da peça na cor do status (antes só A fazer estava mapeado) */
+.week-panel .day-activity-row:has(.pill-pode-fazer){--pv-status:#ffcb00}
+.week-panel .day-activity-row:has(.pill-em-andamento),.week-panel .day-activity-row:has(.pill-em-execucao){--pv-status:#ff9f40}
+.week-panel .day-activity-row:has(.pill-para-aprovacao),.week-panel .day-activity-row:has(.pill-em-aprovacao),.week-panel .day-activity-row:has(.pill-ag-aprovacao){--pv-status:#c084fc}
+.week-panel .day-activity-row:has(.pill-agendado),.week-panel .day-activity-row:has(.pill-para-agendar){--pv-status:#579bfc}
+.week-panel .day-activity-row:has(.pill-finalizado),.week-panel .day-activity-row:has(.pill-aprovado),.week-panel .day-activity-row:has(.pill-feito),.week-panel .day-activity-row:has(.pill-concluido){--pv-status:#46d48c}
+.week-panel .day-activity-row:has(.pill-alteracao),.week-panel .day-activity-row:has(.pill-alteracao-d){--pv-status:#ff6b8a}
+.week-panel .day-activity-row:has(.pill-ag-info),.week-panel .day-activity-row:has(.pill-aguardando-info),.week-panel .day-activity-row:has(.pill-falta-info),.week-panel .day-activity-row:has(.pill-falta-da){--pv-status:#a1a1aa}
+.week-panel .day-activity-row:has(.pill-aguardo),.week-panel .day-activity-row:has(.pill-aguardo-redacao){--pv-status:#a78bfa}

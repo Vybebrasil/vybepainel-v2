@@ -146,7 +146,7 @@ export async function demoApi(req,res,url,body) {
     }
     return reply(200,{ok:true,board_id:demanda?8385559107:7829537690,
       total:itens.length,gerado_em:new Date().toISOString(),assinatura,total_no_recorte:itens.length,
-      status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#579bfc',borda:'#579bfc',monday_index:0}],
+      status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#579bfc',borda:'#579bfc',monday_index:0},...(process.env.DEMO_VOLUME?[['pode_fazer','Pode Fazer','#fdab3d'],['em_andamento','Em Andamento','#ff9f40'],['para_aprovacao','Para aprovação','#a25ddc'],['agendado','Agendado','#579bfc'],['finalizado','Finalizado','#00c875'],['alteracao','Alteração','#e2445c'],['ag_info_cliente','Ag. Info Cliente','#a1a1a1']].map(([chave,rotulo,cor],i)=>({chave,rotulo,cor,borda:cor,monday_index:i+1})):[])],
       captacao:[],opcoes:[],pessoas:[{id:'68035537',nome:'Operador de teste'}],itens});
   }
   if(url.pathname==='/api/painel'){
