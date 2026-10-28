@@ -93,3 +93,34 @@ test('Mesa de Jogos: dama pela mesa genérica e a lista de todos os jogos', asyn
   assert.equal(todos.mesa?.jogo, 'dama', 'quem passa pela Mesa de Jogos vê a dama rolando');
   await assert.rejects(x.desafiarMesa(sql, { id: 7 }, salas, { jogo: 'truco', para: '1', ...MESA, chave: 'truco-0001' }).then((c) => x.responderMesa(sql, { id: 1 }, salas, { id: c.id, acao: 'aceitar' })), /mesa já está com uma partida/);
 });
+
+test('a fora: quem assiste pede fora, quem perde sai e o primeiro da fila entra contra quem ganhou', async (t) => {
+  const { db, sql } = await bancoEscritorio(t);
+  for (const f of ['2026-10-18-escritorio-postits-presentes.sql', '2026-10-27-escritorio-mesas.sql', '2026-10-27-escritorio-mesas-jogos-novos.sql', '2026-10-27-escritorio-poker-mesa-cheia.sql', '2026-10-27-escritorio-bots-temporadas.sql']) await db.exec(readFileSync('migrations/' + f, 'utf8'));
+  const x = await import('../server/escritorio-mesas.js');
+  const { salasDoEscritorio } = await import('../server/escritorio-mapa.js');
+  const salas = salasDoEscritorio([{ id: 1, nome: 'Paulo' }, { id: 3, nome: 'Vinícius' }, { id: 7, nome: 'Ewerton' }, { id: 9, nome: 'Bia' }]);
+  const MESA = { camada: 'jogos', movel: 'hobbies_c26_gamingtable@5,6' };
+  const d = await x.desafiarMesa(sql, { id: 1 }, salas, { jogo: 'velha', para: '3', ...MESA, chave: 'velha-0001' });
+  let j = (await x.responderMesa(sql, { id: 3 }, salas, { id: d.id, acao: 'aceitar' })).jogo;
+  // Quem joga não pede fora; quem assiste pede, na ordem, uma vez só.
+  await assert.rejects(x.acaoMesa(sql, { id: 1 }, { id: j.id, acao: 'pedir-fora' }), /está jogando/);
+  let v = (await x.acaoMesa(sql, { id: 7 }, { id: j.id, acao: 'pedir-fora' })).jogo;
+  assert.equal(v.pode_pedir_fora, false);
+  await x.acaoMesa(sql, { id: 7 }, { id: j.id, acao: 'pedir-fora' });
+  v = (await x.acaoMesa(sql, { id: 9 }, { id: j.id, acao: 'pedir-fora' })).jogo;
+  assert.deepEqual(v.fora.map((p) => p.id), ['7', '9']); assert.ok(v.fora[0].nome, 'a fila mostra o nome de quem espera');
+  // A fila não se perde com as jogadas.
+  const quem = { desafiante: { id: 1 }, desafiado: { id: 3 } };
+  j = (await x.lanceMesa(sql, quem[j.vez], { id: j.id, n: j.n, tipo: 'marcar', casa: 4 })).jogo;
+  assert.equal(j.fora.length, 2);
+  // Vinícius desiste: Paulo fica, Ewerton entra e a Bia segue na fora da partida nova.
+  const fim = (await x.acaoMesa(sql, { id: 3 }, { id: j.id, acao: 'desistir' })).jogo;
+  assert.equal(fim.estado, 'fim'); assert.ok(fim.proxima);
+  const nova = await x.verMesa(sql, { id: 9 }, fim.proxima);
+  assert.equal(nova.estado, 'jogando'); assert.equal(nova.desafiante.id, '1'); assert.equal(nova.desafiado.id, '7');
+  assert.deepEqual(nova.fora.map((p) => p.id), ['9']);
+  // Sair da fora.
+  const sem = (await x.acaoMesa(sql, { id: 9 }, { id: nova.id, acao: 'sair-fora' })).jogo;
+  assert.deepEqual(sem.fora, []); assert.equal(sem.pode_pedir_fora, true);
+});

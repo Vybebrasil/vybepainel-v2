@@ -4285,10 +4285,15 @@ function escritorioRecadosHtml() {
     const resumo = escritorio.recadosResumo || {};
     const outros = (escritorio.base?.equipe || []).filter((p) => String(p.id) !== eu)
       .sort((a, b) => (resumo[b.id] || 0) - (resumo[a.id] || 0) || a.nome.localeCompare(b.nome));
-    return `<div class="office-chat-head"><h3>Recados</h3></div><p class="ofc-nota">Mensagem só para uma pessoa. Fica guardada até ela ler, mesmo fora do escritório.</p><ul class="ofc-recados-lista">${outros.map((p) => `<li><button type="button" onclick="abrirRecadosEscritorio('${safeText(p.id)}')">${escritorioAvatar(p.perfil, p.nome)}<span>${safeText(p.nome)}</span>${resumo[p.id] ? `<span class="ofc-badge" aria-label="${resumo[p.id]} não lidos">${resumo[p.id]}</span>` : ""}</button></li>`).join("")}</ul>`;
+    return `<div class="office-chat-head"><h3>Recados</h3></div><p class="ofc-nota">Mensagem só para uma pessoa. Fica guardada até ela ler, mesmo fora do escritório.</p><input type="search" class="ofc-recados-busca" placeholder="Buscar pessoa" aria-label="Buscar pessoa" autocomplete="off" oninput="filtrarRecadosEscritorio(this.value)"><ul class="ofc-recados-lista">${outros.map((p) => `<li data-nome="${safeText(escritorioSemAcento(p.nome))}"><button type="button" onclick="abrirRecadosEscritorio('${safeText(p.id)}')">${escritorioAvatar(p.perfil, p.nome)}<span>${safeText(p.nome)}</span>${resumo[p.id] ? `<span class="ofc-badge" aria-label="${resumo[p.id]} não lidos">${resumo[p.id]}</span>` : ""}</button></li>`).join("")}</ul>`;
   }
   const nome = escritorioNomePessoa(com);
   return `<div class="office-chat-head"><button type="button" class="office-text-button" onclick="escritorio.recadoCom=null;atualizarRecadosEscritorio()">‹ Recados</button><h3>${safeText(nome)}</h3></div><div id="office-recados-lista" role="log" aria-live="polite">Carregando recados…</div><form onsubmit="event.preventDefault();enviarRecadoEscritorioForm(this)"><input aria-label="Recado para ${safeText(nome)}" name="texto" oninput="delete this.form.dataset.chave" maxlength="2000" placeholder="Recado para ${safeText(nome.split(" ")[0])}" required autocomplete="off"><button class="workflow-primary">Enviar</button></form>`;
+}
+// Com o time inteiro na lista, achar a pessoa pelo nome (direção de arte, recados).
+function filtrarRecadosEscritorio(texto) {
+  const q = escritorioSemAcento(texto).trim();
+  document.querySelectorAll(".ofc-recados-lista > li").forEach((li) => { li.hidden = Boolean(q) && !String(li.dataset.nome || "").includes(q); });
 }
 function atualizarRecadosEscritorio() {
   const el = document.getElementById("office-recados");

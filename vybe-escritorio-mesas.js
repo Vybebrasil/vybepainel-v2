@@ -69,6 +69,17 @@ function abrirJogoMesa(chave, j) {
     if (s.jogo?.estado === "jogando" && !document.hidden) recarregarJogoMesa(chave);
   }, 4000);
 }
+// Acabou com gente na fora: depois do placar, todo mundo que está olhando vai
+// para a próxima partida (quem ganhou contra o primeiro da fila).
+function seguirProximaMesa(chave, j) {
+  if (!j?.proxima) return;
+  setTimeout(async () => {
+    const s = escritorioMesa(chave);
+    if (s.jogo?.id !== j.id) return;
+    try { const r = await escritorioApi("mesa", null, { id: j.proxima }); if (escritorioMesa(chave).jogo?.id === j.id) abrirJogoMesa(chave, r.jogo); }
+    catch { /* fica no placar; dá para abrir pela mesa */ }
+  }, 3500);
+}
 function mesaFechar(chave) {
   const s = escritorioMesa(chave);
   clearInterval(s.timer);
@@ -86,7 +97,7 @@ async function recarregarJogoMesa(chave) {
     s.jogo = r.jogo;
     if (mudou) {
       if (r.jogo.n !== j.n) { s.sel = null; jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca"); }
-      if (r.jogo.estado === "fim" && j.estado !== "fim") xadrezAcabou(r.jogo);
+      if (r.jogo.estado === "fim" && j.estado !== "fim") { xadrezAcabou(r.jogo); seguirProximaMesa(chave, r.jogo); }
       desenharJogoMesa(chave);
     }
   } catch { /* tenta de novo no próximo ciclo */ } finally { s.carregando = false; }
@@ -104,7 +115,7 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
     if (r.economia) xadrezEconomia(r.economia);
     jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca");
     mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
-    if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
+    if (r.jogo.estado === "fim") { xadrezAcabou(r.jogo); seguirProximaMesa(chave, r.jogo); }
   } catch (e) {
     s.sel = null;
     escritorioAviso(e.message);
@@ -125,7 +136,7 @@ async function acaoMesaEscritorio(chave, acao, botao) {
     s.jogo = r.jogo;
     if (r.economia) xadrezEconomia(r.economia);
     mesaSinalTodos(ESCRITORIO_MESAS[chave], j, "l");
-    if (r.jogo.estado === "fim") xadrezAcabou(r.jogo);
+    if (r.jogo.estado === "fim") { xadrezAcabou(r.jogo); seguirProximaMesa(chave, r.jogo); }
     desenharJogoMesa(chave);
   } catch (e) {
     if (botao) botao.disabled = false;
@@ -222,7 +233,10 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
     empateDele && !j.grupo ? `<div class="jogo-alerta"><span>🤝 ${xadrezPrimeiroNome(j[outro])} propôs empate.</span><button type="button" class="sala-botao verde" onclick="acaoMesaEscritorio('${chave}','aceitar-empate',this)">Aceitar</button><button type="button" class="sala-botao cinza" onclick="acaoMesaEscritorio('${chave}','recusar-empate',this)">Recusar</button></div>` : "",
     j.pode_reivindicar ? `<div class="jogo-alerta"><span>⏰ ${xadrezPrimeiroNome(sumiu)} sumiu.</span><button type="button" class="sala-botao laranja" onclick="acaoMesaEscritorio('${chave}','reivindicar',this)">${j.grupo ? "Tirar da mesa" : "Ganhar por tempo"}</button></div>` : "",
   ].join("");
-  xadrezModal(`${jogoTopoHtml(cfg.extra?.jogo || chave, cfg.nome, !eu, jogoSelosHtml(j), sair, `mesaFechar('${chave}')`)}${alerta}
+  // A fora: quem espera para entrar (quem perder sai) e o botão de pedir.
+  const naFora = (j.fora || []).some((p) => String(p.id) === String(escritorio.base?.eu));
+  const fora = jogando && !j.bot && !j.grupo && (j.fora?.length || j.pode_pedir_fora || naFora) ? `<div class="jogo-fora"><span class="jogo-fora-rotulo">Na fora</span>${(j.fora || []).length ? (j.fora || []).map((p, i) => `<span class="jogo-fora-pessoa"><img src="${safeText(escritorioCabecaUrl(p.id))}" alt="" width="22" height="22">${i + 1}. ${safeText(xadrezPrimeiroNome(p))}</span>`).join("") : '<span class="jogo-fora-vazia">ninguém esperando</span>'}${j.pode_pedir_fora ? `<button type="button" class="sala-botao laranja" onclick="acaoMesaEscritorio('${chave}','pedir-fora',this)">Pedir fora</button>` : naFora ? `<button type="button" class="sala-botao cinza" onclick="acaoMesaEscritorio('${chave}','sair-fora',this)">Sair da fora</button>` : ""}<small>quem perder sai e o primeiro da fila entra</small></div>` : "";
+  xadrezModal(`${jogoTopoHtml(cfg.extra?.jogo || chave, cfg.nome, !eu, jogoSelosHtml(j), sair, `mesaFechar('${chave}')`)}${alerta}${fora}
 <div class="jogo-palco">${status && jogando ? `<p class="jogo-status${eu && j.vez === eu ? " minha" : ""}" aria-live="polite">${status}</p>` : ""}${mesa}
 ${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`)) : ""}</div>
 <p class="ofc-erro" id="xdz-erro" role="alert"></p>${painel ? `<div class="jogo-feed">${painel}</div>` : ""}`, `ofc-${chave}-jogo`);

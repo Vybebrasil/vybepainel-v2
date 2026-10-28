@@ -927,6 +927,22 @@ function buildDailySummary(dayIso, contexto = {}) {
       {id:PESSOAS.EWERTON_L,nome:'Ewerton',grupo:'atendimento'},
     ] });
 }
+// Os grupos viram cartões para tocar (uma escolha à vista em vez da lista);
+// o select continua lá, escondido, e é ele que selectDailySummary lê.
+function escolherGrupoDoResumo(id) {
+  const sel = document.getElementById('daily-summary-group');
+  if (!sel || sel.value === id) return;
+  sel.value = id;
+  selectDailySummary();
+  marcarGrupoDoResumo();
+}
+function marcarGrupoDoResumo() {
+  const id = document.getElementById('daily-summary-group')?.value;
+  document.querySelectorAll('.resumo-grupo').forEach((b) => { const on = b.dataset.grupo === id; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+  const nome = dailySummaryMessages.find((m) => m.id === id)?.nome;
+  const rotulo = document.getElementById('daily-summary-nome');
+  if (rotulo && nome) rotulo.textContent = nome;
+}
 async function selectDailySummary() {
   const grupo = document.getElementById('daily-summary-group')?.value;
   const mensagem = dailySummaryMessages.find(m=>m.id===grupo);
@@ -1014,11 +1030,19 @@ async function openDailySummary(dayIso) {
   openWorkflowModal(`<div class="workflow-kicker"><span>Comunicação interna · ${safeText(resumoDiaCurto(dayIso))}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar resumo">×</button></div>
     <h2 class="workflow-title">Resumo por grupo</h2>
     <p class="daily-summary-meta">Escolha o destino, revise e copie. Dados consultados agora. Criação usa prazo; Publicações usa veiculação e antecipa amanhã (sábado e domingo às sextas). A busca e os filtros da lista não limitam este resumo. Nada é enviado automaticamente.</p>
-    <label class="workflow-field"><span>Grupo do WhatsApp</span><select id="daily-summary-group" onchange="selectDailySummary()">${dailySummaryMessages.map(m=>`<option value="${m.id}">${safeText(m.nome)}</option>`).join('')}</select></label>
+    <div class="resumo-grade">
+    <div class="resumo-lado">
+    <label class="workflow-field resumo-select"><span>Grupo do WhatsApp</span><select id="daily-summary-group" onchange="selectDailySummary();marcarGrupoDoResumo()">${dailySummaryMessages.map(m=>`<option value="${m.id}">${safeText(m.nome)}</option>`).join('')}</select></label>
+    <div class="resumo-grupos" role="radiogroup" aria-label="Grupo do WhatsApp">${dailySummaryMessages.map((m,i)=>`<button type="button" role="radio" aria-checked="${i===0}" class="resumo-grupo${i===0?' on':''}" data-grupo="${m.id}" onclick="escolherGrupoDoResumo('${m.id}')"><i aria-hidden="true"></i>${safeText(m.nome)}</button>`).join('')}</div>
     <p class="daily-summary-meta">Conteúdos usam veiculação; solicitações usam conclusão ou prazo. Finalizado, Para agendar e Agendado são contados separadamente, conforme o status da atividade. Produção consulta gravações no Google Agenda. Criação: design com mínimo de 5 demandas por pessoa, conforme disponibilidade; editor com 4. Aprovações de Deivid entram à parte.</p>
+    </div>
+    <div class="resumo-whats">
+    <div class="resumo-whats-topo"><span class="resumo-whats-av" aria-hidden="true">V</span><span><b id="daily-summary-nome">${safeText(dailySummaryMessages[0].nome)}</b><small>prévia da mensagem · dá para editar antes de copiar</small></span></div>
     <p id="daily-summary-personal" class="daily-summary-meta" hidden>Uso pessoal. Estes pontos são para sua conferência, fora das mensagens dos grupos.</p>
     <p id="daily-summary-agenda-status" class="daily-summary-meta" hidden>Gravações e captações dos hoje e dos próximos 5 dias · horário de Brasília. <button type="button" class="workflow-secondary" onclick="loadDailySummaryAgenda()">Consultar agenda novamente</button></p>
     <textarea id="daily-summary-preview" class="daily-summary-preview" aria-label="Mensagem para revisar e copiar">${safeText(dailySummaryMessages[0].texto)}</textarea>
+    </div>
+    </div>
     <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button><button type="button" id="daily-summary-copy" class="workflow-primary" onclick="copyDailySummary()">Copiar mensagem</button></div>`);
 }
 async function copyDailySummary() {

@@ -931,7 +931,28 @@ function previaDoDiaAttrs(itens, rotulo) {
   const ids = (itens || []).filter((i) => jaTemMaterial(i)).map((i) => String(i.id));
   return ids.length ? ` data-previa-sequencia="${safeText(rotulo)}" data-previa-ids="${safeText(ids.join(','))}"` : '';
 }
+// Uma pergunta por vez: os sete dias da semana da data atual viram botões para
+// tocar; o campo de data continua embaixo para qualquer outro dia, e é ele que
+// saveDemandaCalendarDate lê.
+function facilitarDataDaSolicitacao() {
+  const campo = document.getElementById('demanda-calendar-date');
+  if (!campo || document.getElementById('demanda-dias')) return;
+  const base = campo.value ? new Date(`${campo.value}T12:00:00`) : new Date();
+  const seg = new Date(base); seg.setDate(base.getDate() - ((base.getDay() + 6) % 7));
+  const nomes = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dias = Array.from({ length: 7 }, (_, i) => { const d = new Date(seg); d.setDate(seg.getDate() + i); return d; });
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  campo.closest('label')?.insertAdjacentHTML('beforebegin', `<div class="pv-dias" id="demanda-dias" role="radiogroup" aria-label="Dia">${dias.map((d) => `<button type="button" role="radio" data-dia="${iso(d)}" class="${iso(d) === campo.value ? 'on' : ''}" aria-checked="${iso(d) === campo.value}" onclick="escolherDiaDaSolicitacao(this)"><small>${nomes[d.getDay()]}</small><b>${d.getDate()}</b></button>`).join('')}</div>`);
+  campo.addEventListener('input', () => document.querySelectorAll('#demanda-dias button').forEach((b) => { const on = b.dataset.dia === campo.value; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }));
+}
+function escolherDiaDaSolicitacao(botao) {
+  const campo = document.getElementById('demanda-calendar-date');
+  if (!campo) return;
+  campo.value = botao.dataset.dia;
+  campo.dispatchEvent(new Event('input', { bubbles: true }));
+}
 function openDemandaPlanningEditor(itemId, targetDate='') {
+  setTimeout(() => facilitarDataDaSolicitacao(), 0);
   const item = (DADOS_DEMANDAS || []).find(entry => String(entry.id) === String(itemId));
   if (!item) return showToast('Solicitação não encontrada.', 'err');
   const modo = activeBoard === 'demandas' ? currentDemandaDateMode : dateMode;

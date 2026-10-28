@@ -402,9 +402,12 @@
     root.innerHTML = `
       <div class="prod-v2-layout">
          <header class="prod-v2-head">
-            <div class="p-head-title">
+            <div class="p-head-title pv-cabeca" style="--c:#38d9c5">
+               <span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="10" height="9" rx="2"/><path d="m13 9 4-2v7l-4-2"/></svg></span>
+               <div><span class="pv-etiqueta">Audiovisual</span>
                <h3>Mizinho Agenda</h3>
                <p>Controle central de captações, roteiros e agendamentos.</p>
+               </div>
             </div>
             <div class="p-controls-row">
                <div class="p-segment">
