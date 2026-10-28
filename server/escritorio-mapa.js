@@ -238,7 +238,7 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
     const { salvarPerfilNaTransacao } = await import('./escritorio.js');
     const [atual] = await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=${pessoa.id} FOR UPDATE`;
     const andar = partesDaCamada(camada).andar;
-    const campos = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
+    const campos = ['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_taca','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'];
     const patch = Object.fromEntries(campos.filter(k => Object.hasOwn(decoracao,k)).map(k => [k,decoracao[k]]));
     perfil = await salvarPerfilNaTransacao(sql,pessoa.id,{...atual.preferencias,...perfilDoAndar(atual.preferencias,andar),...patch,...(andar ? {andar:1} : {})},async()=>partesDaCamada(camada).raiz);
   }

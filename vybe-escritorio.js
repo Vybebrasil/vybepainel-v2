@@ -326,16 +326,30 @@ function escritorioLugarDaTaca() {
   lugares.sort((a, b) => b.frente - a.frente || (a.x + a.y) - (b.x + b.y));
   return lugares[0] || null;
 }
+// O lugar que o dono do quarto escolheu para a taça no modo edição ("x,y,giro"),
+// se ainda couber no quarto atual; senão, o lugar automático.
+function escritorioTacaSalva() {
+  if (!escritorio.quarto) return null;
+  const v = String(escritorioPerfilDecoracao(escritorio.quarto)?.sala_taca || "").split(",").map(Number);
+  const t = escritorio.mapa?.tamanho?.();
+  if (v.length !== 3 || v.some((n) => !Number.isFinite(n)) || !t || v[0] < 0 || v[1] < 0 || v[0] >= t.W || v[1] >= t.H) return null;
+  return { x: v[0], y: v[1], dir: v[2] };
+}
 async function posicionarTacaEscritorio() {
   const c = escritorio.base?.copa, m = escritorio.mapa;
   if (!c || !m?.acrescentarMovel || escritorio.edicao || escritorio.base?.convidado) return;
   if (m.tacaPosta) return;
-  const lugar = escritorioLugarDaTaca();
+  const lugar = escritorioTacaSalva() || escritorioLugarDaTaca();
   if (!lugar) return;
   m.tacaPosta = true;
   m.tacaLugar = lugar;
-  await m.acrescentarMovel(["fball_trophy", lugar.x, lugar.y, 2, 0, 0, { copa: true }]);
+  await m.acrescentarMovel(["fball_trophy", lugar.x, lugar.y, lugar.dir ?? 2, 0, 0, { copa: true }]);
   if (escritorio.mapa === m) m.marcador("copa", lugar.x, lugar.y, escritorioCopaPlacaHtml(), 96);
+}
+// Dono no próprio quarto, com a Copa valendo: a taça entra no editor para mover.
+function escritorioTacaEditavel(camada) {
+  if (!escritorio.base?.copa || escritorio.base?.convidado || !camada || escritorioCamadaComum(camada)) return false;
+  return escritorioDonos().get(escritorio.base?.eu)?.id === escritorioRaizQuarto(camada);
 }
 async function carregarCopaEscritorio() {
   if (escritorio.copaCarregando || !escritorio.base || escritorio.base.convidado) return;
@@ -1255,7 +1269,7 @@ function escritorioMoveisAtuais() {
   const lista = escritorioItensDaCamada(camada).map((it, i) => [...it.slice(0, 6), { camada, i, ...(it[6] && typeof it[6] === "object" && !Array.isArray(it[6]) ? { cfg: it[6] } : {}) }]);
   // A taça da Copa continua na sala quando o mapa redesenha os móveis.
   const taca = !escritorio.edicao && escritorio.mapa?.tacaLugar;
-  return taca ? [...lista, ["fball_trophy", taca.x, taca.y, 2, 0, 0, { copa: true }]] : lista;
+  return taca ? [...lista, ["fball_trophy", taca.x, taca.y, taca.dir ?? 2, 0, 0, { copa: true }]] : lista;
 }
 function escritorioRaizQuarto(id) { return String(id || '').replace(/-andar-1$/,''); }
 function escritorioPerfilDecoracao(id=escritorio.quarto || escritorioMinhaMesa()?.ambiente.id) {
