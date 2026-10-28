@@ -708,3 +708,54 @@
 .team-load-label{color:#7d7870!important;font:700 10px var(--mac-ui)!important;letter-spacing:.12em;text-transform:uppercase;margin-right:4px}
 .team-load-chip{display:inline-flex!important;align-items:center;gap:6px;height:30px;padding:0 10px 0 3px!important;border-radius:99px!important;border:1px solid color-mix(in srgb,var(--load-color,#7aa7ff) 35%,transparent)!important;background:color-mix(in srgb,var(--load-color,#7aa7ff) 10%,#1b1d26)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
 .team-load-avatar,.team-load-avatar-fallback{width:24px!important;height:24px!important;border-radius:50%!important}
+
+/* Janelas de troca de status: o cartão da peça como no desenho */
+.workflow-modal .workflow-item{display:flex!important;align-items:center;gap:12px;padding:12px 14px!important;margin:4px 0 14px!important;border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important}
+.workflow-item-ic{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4)}
+.workflow-item-ic svg{width:19px;height:19px}
+.workflow-item-texto{display:grid;gap:2px;min-width:0;flex:1}
+.workflow-modal .workflow-item-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.12em!important;text-transform:uppercase}
+.workflow-modal .workflow-item-name{color:#fff!important;font:700 14px/1.3 var(--mac-ui)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workflow-item-fluxo{display:flex;align-items:center;gap:6px;flex:none}
+.workflow-item-fluxo > i{font-style:normal;color:#7d7870}
+.workflow-item-destino{color:#7aa7ff!important;background:rgba(122,167,255,.12)!important}
+.workflow-item-destino .pill-dot{background:currentColor}
+/* Conferência e checklist: a peça em cima do título; barra de conferidos;
+   cada item conferido fica verde; a prévia num cartão */
+.workflow-modal{display:flex;flex-direction:column}
+.workflow-modal > .workflow-kicker{order:0}
+.workflow-modal.status-context-split > .workflow-item{order:1}
+.workflow-modal.status-context-split > .workflow-title{order:2}
+.workflow-modal.status-context-split > .workflow-copy{order:3}
+.workflow-modal.status-context-split > *:not(.workflow-kicker):not(.workflow-item):not(.workflow-title):not(.workflow-copy){order:4}
+.workflow-conferidos{display:grid;gap:6px;margin:0 0 8px}
+.workflow-conferidos span{color:#a8a39c;font:500 12px var(--mac-ui)}
+.workflow-conferidos b{color:#fff;font:700 13px var(--pv-titulo)}
+.workflow-conferidos i{display:block;height:4px;border-radius:4px;background:linear-gradient(90deg,#ff8f4f var(--p),rgba(255,255,255,.08) var(--p))}
+.workflow-checks .workflow-check.feito{border-color:rgba(70,212,140,.5)!important;background:linear-gradient(90deg,rgba(70,212,140,.14),rgba(70,212,140,.03))!important}
+.workflow-check input[type=checkbox]{accent-color:#46d48c}
+.status-context-preview{border-radius:16px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.025)!important;overflow:hidden}
+.status-context-preview-head b{color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
+.status-context-preview-media{border:0!important;background:none!important}
+.status-context-preview-empty{display:grid!important;justify-items:center;gap:6px;padding:22px 14px!important;color:#a8a39c!important;font:500 12px/1.45 var(--mac-ui)!important;text-align:center}
+.status-context-preview-empty b{color:#fff!important;font:700 14px var(--pv-titulo)!important}
+.status-context-preview-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#ff9a5c;background:rgba(255,143,79,.14)}
+.status-context-preview-ic svg{width:18px;height:18px}
+.status-context-anexar{margin-top:4px;height:32px!important;padding:0 14px!important;font-size:12px!important}
+/* Troca de status com etapas: os passos numerados com o nome (como no desenho) */
+.context-passos{display:flex!important;align-items:center;gap:6px;margin:10px 0 4px!important;padding:0!important;list-style:none;height:auto!important;background:none!important}
+.context-passos li{display:flex;align-items:center;gap:6px;flex:1;min-width:0;color:#7d7870;font:600 11.5px var(--mac-ui);background:none!important;height:auto!important}
+.context-passos li + li::before{content:"";flex:1;max-width:28px;height:1px;background:rgba(255,255,255,.12);margin-right:2px}
+.context-passos li i{width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 10.5px var(--mac-ui);font-style:normal;border:1px solid rgba(255,255,255,.18);color:#a8a39c}
+.context-passos li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.context-passos li.atual{color:#fff}
+.context-passos li.atual i{border-color:transparent;background:var(--pv-laranja);color:#1b0d06}
+.context-passos li.feito i{border-color:transparent;background:#46d48c;color:#06240f;font-size:0}
+.context-passos li.feito i::before{content:"✓";font-size:11px}
+#context-progress{display:none!important}
+.status-context-dialog .workflow-item{margin:10px 0 0!important}
+.context-passos li span,.context-passos li span.complete{height:auto!important;flex:0 1 auto!important;border-radius:0!important;background:none!important}
+/* A pergunta do passo como título (como no desenho), não um rótulo pequeno */
+.status-context-dialog [data-context-step] > .workflow-field > span:first-child{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em;text-transform:none!important}
+.status-context-dialog [data-context-step] .context-field-help{color:#a8a39c!important;font-size:12.5px!important}
+.status-context-dialog .context-title{display:none!important}
