@@ -15,7 +15,7 @@
 
 /* ---- Janelas (workflow-modal): troca de status, bloqueio, direção, bastão, resumo e outras ---- */
 .workflow-backdrop{background:rgba(5,6,10,.62)!important;backdrop-filter:blur(3px)!important}
-.workflow-modal{border-radius:26px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
+.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){border-radius:26px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
 .workflow-kicker,.workflow-kicker>span{font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase!important;color:#ff9a5c!important}
 .workflow-title,.context-title{font-family:var(--pv-titulo)!important;font-weight:700!important;letter-spacing:-.015em!important}
 .workflow-copy,.context-field-help,.workflow-hint{color:#a8a39c!important}

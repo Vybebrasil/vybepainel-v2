@@ -91,7 +91,7 @@ test('trilhas: a animação tem o ponto exato da batida na tabela e na outra bol
  const pontos = (n) => { const l = r.trilhas[n], o = []; for (let i = 0; i < l.length; i += 4) o.push(l.slice(i, i + 4)); return o; };
  const da5 = pontos(5);
  assert.ok(Math.abs(da5[0][1] - 800) <= 1, 'a 5 começa a andar de onde estava');
- assert.ok(da5.some((p) => p[1] === Math.round((LARGURA - R) * 10)), 'a 5 encosta exatamente na tabela');
+ assert.ok(da5.some((p) => Math.abs(p[1] - (LARGURA - R) * 10) < 0.00001), 'a 5 encosta exatamente na tabela');
  assert.ok(pontos(0).some((p) => Math.abs(p[1] - Math.round((80 - 2 * R) * 10)) <= 1), 'a branca encosta exatamente na 5');
  assert.ok(r.dur > 0 && r.dur === Math.max(...r.trilhas.filter(Boolean).map((l) => l[l.length - 4])), 'a duração é o último ponto');
  assert.equal(r.trilhas[3], null, 'bola parada não manda nada');

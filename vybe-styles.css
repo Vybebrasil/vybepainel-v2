@@ -12,7 +12,7 @@
       --neon-glow-mag: 0 0 10px rgba(255,176,0,.32), 0 0 30px rgba(255,176,0,.1)}
     * { box-sizing:border-box;margin:0;padding:0}
     body { background:var(--bg);color:var(--text);font-family:var(--mac-ui);font-size:13px;line-height:1.5;background-image:linear-gradient(rgba(255,107,0,.035) 1px, transparent 1px),linear-gradient(90deg,rgba(255,107,0,.035) 1px, transparent 1px);background-size:40px 40px}
-    header { background:linear-gradient(135deg,#080503 0%,#120a04 50%,#211005 100%);border-bottom:1px solid rgba(255,107,0,.24);padding:18px 28px 14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 30px rgba(255,107,0,.08)}
+    header:where(:not(.tema-sinuca)) { background:linear-gradient(135deg,#080503 0%,#120a04 50%,#211005 100%);border-bottom:1px solid rgba(255,107,0,.24);padding:18px 28px 14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 30px rgba(255,107,0,.08)}
     .header-row1 { display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;flex-wrap:wrap}
     .header-row2 { display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .header-left { display:flex;align-items:center;gap:14px}
@@ -600,7 +600,7 @@
     @media(max-width:768px) {
       .clients-grid { grid-template-columns:1fr}
       .kpi-grid { grid-template-columns:repeat(2,1fr)}
-      header { flex-direction:column;align-items:flex-start}
+      header:where(:not(.tema-sinuca)) { flex-direction:column;align-items:flex-start}
     }
   /* ─── Performance ─── */
   .perf-period-bar { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
@@ -900,7 +900,7 @@
  * ATRAS da mesa, invisivel. Da frente parecia que o clique nao fazia nada, e
  * foi exatamente esse o relato. A regra vale para sempre: o que abre por cima
  * precisa estar acima de quem o abriu. */
-.workflow-backdrop{position:fixed;z-index:840;inset:0;background:rgba(2,5,10,.78);backdrop-filter:blur(4px)}.workflow-modal{position:fixed;z-index:841;top:50%;left:50%;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;transform:translate(-50%,-50%);border:1px solid rgba(255,153,28,.45);background:linear-gradient(145deg,#101926,#080d16 66%);box-shadow:0 22px 72px rgba(0,0,0,.55);padding:18px}.workflow-kicker{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffb451;font:700 10px var(--mac-ui)}.workflow-close{border:0;background:transparent;color:#a9b1bf;font-size:20px;cursor:pointer}.workflow-title{margin:10px 0 4px;color:#f7fbff;font:700 20px var(--mac-ui)}.workflow-copy{margin:0;color:#9da4b4;font-size:11px;line-height:1.5}.workflow-item{margin-top:12px;padding:10px 10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025)}.workflow-item-client{display:block;color:#c084fc;font:700 10px var(--mac-ui)}.workflow-item-name{display:block;margin-top:2px;color:#e7ecf5;font:700 12px var(--mac-ui)}.workflow-field{display:block;margin-top:12px}.workflow-field span{display:block;margin-bottom:4px;color:#b7c3d2;font:700 10px var(--mac-ui)}.workflow-field textarea,.workflow-field input,.workflow-field select{box-sizing:border-box;width:100%;border:1px solid rgba(255,174,51,.2);background:#07101b;color:#e7ecf5;padding:8px;font:11px var(--mac-ui);outline:none;resize:vertical}.workflow-field textarea:focus,.workflow-field input:focus,.workflow-field select:focus{border-color:#ff9d00}.workflow-checks{display:grid;gap:6px;margin-top:12px}.workflow-check{display:flex;align-items:flex-start;gap:8px;padding:8px 8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.018);color:#c3cad6;font-size:10px;line-height:1.35;cursor:pointer}.workflow-check input{accent-color:#ff850d;margin-top:1px}.workflow-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}.workflow-secondary,.workflow-primary{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);padding:8px 10px;color:#d7deeb;font:700 10px var(--mac-ui);letter-spacing:.5px;cursor:pointer}.workflow-primary{border-color:rgba(255,151,21,.7);background:rgba(255,107,0,.16);color:#ffe0a6}.workflow-primary:disabled{opacity:.35;cursor:not-allowed}.workflow-hint{margin-top:8px;color:#8f98a9;font-size:10px;line-height:1.45}.workspace-handoff{border-color:rgba(255,164,31,.22);background:linear-gradient(90deg,rgba(255,107,0,.07),rgba(255,255,255,.012))}.workspace-handoff .workspace-action{border-color:rgba(255,164,31,.38);color:#ffd18d}@media(max-width:900px){}@media(max-width:560px){.workflow-modal{padding:14px}.workflow-title{font-size:16px}}
+.workflow-backdrop{position:fixed;z-index:840;inset:0;background:rgba(2,5,10,.78);backdrop-filter:blur(4px)}.workflow-modal{position:fixed;z-index:841;top:50%;left:50%;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;transform:translate(-50%,-50%);border:1px solid rgba(255,153,28,.45);background:linear-gradient(145deg,#101926,#080d16 66%);box-shadow:0 22px 72px rgba(0,0,0,.55);padding:18px}.workflow-kicker{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffb451;font:700 10px var(--mac-ui)}.workflow-close{border:0;background:transparent;color:#a9b1bf;font-size:20px;cursor:pointer}.workflow-title{margin:10px 0 4px;color:#f7fbff;font:700 20px var(--mac-ui)}.workflow-copy{margin:0;color:#9da4b4;font-size:11px;line-height:1.5}.workflow-item{margin-top:12px;padding:10px 10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025)}.workflow-item-client{display:block;color:#c084fc;font:700 10px var(--mac-ui)}.workflow-item-name{display:block;margin-top:2px;color:#e7ecf5;font:700 12px var(--mac-ui)}.workflow-field{display:block;margin-top:12px}.workflow-field span{display:block;margin-bottom:4px;color:#b7c3d2;font:700 10px var(--mac-ui)}.workflow-field textarea,.workflow-field input,.workflow-field select{box-sizing:border-box;width:100%;border:1px solid rgba(255,174,51,.2);background:#07101b;color:#e7ecf5;padding:8px;font:11px var(--mac-ui);outline:none;resize:vertical}.workflow-field textarea:focus,.workflow-field input:focus,.workflow-field select:focus{border-color:#ff9d00}.workflow-checks{display:grid;gap:6px;margin-top:12px}.workflow-check{display:flex;align-items:flex-start;gap:8px;padding:8px 8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.018);color:#c3cad6;font-size:10px;line-height:1.35;cursor:pointer}.workflow-check input{accent-color:#ff850d;margin-top:1px}.workflow-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}.workflow-secondary,.workflow-primary{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);padding:8px 10px;color:#d7deeb;font:700 10px var(--mac-ui);letter-spacing:.5px;cursor:pointer}.workflow-primary{border-color:rgba(255,151,21,.7);background:rgba(255,107,0,.16);color:#ffe0a6}.workflow-primary:disabled{opacity:.35;cursor:not-allowed}.workflow-hint{margin-top:8px;color:#8f98a9;font-size:10px;line-height:1.45}.workspace-handoff{border-color:rgba(255,164,31,.22);background:linear-gradient(90deg,rgba(255,107,0,.07),rgba(255,255,255,.012))}.workspace-handoff .workspace-action{border-color:rgba(255,164,31,.38);color:#ffd18d}@media(max-width:900px){}@media(max-width:560px){.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){padding:14px}.workflow-title{font-size:16px}}
 
     /* Identificação V4 — direção de arte cinética, sem alterar fluxos operacionais. */
     .identity-shell{isolation:isolate;perspective:1200px}
@@ -1358,7 +1358,7 @@ body{
   letter-spacing:normal}
 body:before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.20;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse at 50% 0,black 0,transparent 78%)}
 button,input,select,textarea{font-family:var(--mac-ui)!important}
-header,.topbar{
+header:where(:not(.tema-sinuca)),.topbar{
   position:relative;background:linear-gradient(115deg,rgba(13,15,22,.94),rgba(10,11,16,.78))!important;
   border-bottom:1px solid var(--vybe-line)!important;box-shadow:0 1px 0 rgba(255,255,255,.035) inset,0 14px 34px rgba(0,0,0,.18)!important;
   backdrop-filter:blur(22px) saturate(1.15)}
@@ -1432,15 +1432,15 @@ html:has(body>.workspace-drawer),body:has(>.workspace-drawer){overflow:hidden;ov
 .sync-health-indicator{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(15,17,24,.88)!important;box-shadow:var(--vybe-shadow-1)!important;backdrop-filter:blur(18px)}
 .da-command-daily-card.is-primary{background:var(--sup-1)}.da-command-daily-card.is-primary .da-command-daily-count{font-size:44px}.da-command-daily-card.is-primary .da-command-daily-go{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:auto;padding:6px 8px;border-radius:999px;background:rgba(0,209,132,.14);color:#9df1d7}.da-command-daily-card.is-risk .da-command-daily-count{color:#ff9aa4}.da-command-daily-card.is-risk:before{height:3px}.da-command-daily-card .da-command-daily-label{margin-top:8px;font-size:13px;color:#e7ecf5}.da-command-daily-card .da-command-daily-kicker{opacity:.82}.da-command-daily-card .da-command-daily-go{color:var(--command-color)}
 @media(max-width:900px){.container{padding:16px 14px 28px!important}.da-command-daily-card{min-height:138px}.da-command-daily-card:nth-child(2){border-right:0}.da-command-daily-card:nth-child(-n+2){border-bottom:1px solid var(--vybe-line-quiet)}.identity-shell{border-radius:16px!important}}
-@media(max-width:620px){.da-command-daily-card{border-right:0;border-bottom:1px solid var(--vybe-line-quiet)}.da-command-daily-card:last-child{border-bottom:0}.da-command-daily-head{align-items:flex-start;flex-direction:column;gap:6px}.workspace-drawer,.workflow-modal{border-radius:16px!important}}
+@media(max-width:620px){.da-command-daily-card{border-right:0;border-bottom:1px solid var(--vybe-line-quiet)}.da-command-daily-card:last-child{border-bottom:0}.da-command-daily-head{align-items:flex-start;flex-direction:column;gap:6px}.workspace-drawer,.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){border-radius:16px!important}}
 /* Estrutura global: contexto de operação compacto e legível. */
 .header-row1{gap:18px!important}.header-row2{gap:8px!important;padding-top:2px!important}
 #month-nav{padding:2px!important;border:1px solid var(--vybe-line)!important;border-radius:10px!important;background:rgba(255,255,255,.028)!important}#month-nav button{border:0!important;border-radius:6px!important;background:rgba(255,255,255,.045)!important;color:#e7ecf5!important;transition:background .14s!important}#month-nav button:hover{background:rgba(255,122,26,.12)!important}#month-nav-label{font-family:var(--mac-ui)!important;color:#e7ecf5!important;font-size:12px!important}
 #compact-summary{border-color:var(--vybe-line)!important;border-radius:var(--vybe-radius-card)!important;background:rgba(255,255,255,.026)!important;box-shadow:var(--vybe-shadow-1)!important;color:var(--vybe-muted)!important}.ops-command-bar{position:relative;gap:8px!important;padding:8px!important;margin:0 0 14px!important;border:1px solid var(--vybe-line)!important;border-radius:var(--vybe-radius-card)!important;background:rgba(15,17,24,.66)!important;box-shadow:var(--vybe-shadow-1)!important;backdrop-filter:blur(18px)!important}.global-search-wrap{max-width:390px!important}.ops-action-count{border-radius:999px!important;background:rgba(255,255,255,.13)!important;color:#fff!important;font-family:var(--mac-mono)!important}.sidebar-toggle{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(16,18,25,.78)!important;color:#e7ecf5!important;box-shadow:var(--vybe-shadow-1)!important;backdrop-filter:blur(16px)!important}.sidebar{border-right-color:var(--vybe-line)!important;background:rgba(13,15,21,.93)!important;backdrop-filter:blur(24px)!important}.sidebar-section-label{border-bottom-color:var(--vybe-line-quiet)!important;color:var(--vybe-muted)!important}
 /* Workspace e formulários: hierarquia de leitura e ação fixa. */
 .workspace-drawer{box-sizing:border-box!important;width:min(760px,94vw)!important}.workspace-drawer-head{padding:22px 24px 18px!important}.workspace-client{color:var(--vybe-orange-soft)!important;font-family:var(--mac-ui)!important}.workspace-title{font-size:clamp(27px,3vw,40px)!important;line-height:1.05!important}.workspace-drawer-body{padding:16px 24px 26px!important}.workspace-section{border:1px solid var(--vybe-line)!important;border-radius:12px!important;background:rgba(255,255,255,.018);overflow:hidden!important}.workspace-section-title{padding:12px 14px!important;border-bottom:1px solid var(--vybe-line-quiet)!important;background:rgba(255,255,255,.018)!important;font-family:var(--mac-ui)!important}.workspace-actions,.workflow-actions{position:sticky;bottom:0!important;z-index:3!important;margin-top:16px!important;padding:12px!important;border:1px solid var(--vybe-line)!important;border-radius:12px!important;background:rgba(18,21,29,.84);box-shadow:0 -10px 24px rgba(9,10,14,.22)!important;backdrop-filter:blur(16px)!important}.workspace-actions{gap:6px!important}.workspace-action{min-height:38px!important;font-weight:700!important}.workspace-assets{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(185px,1fr))!important;gap:10px!important;padding:12px!important}.workspace-asset{padding:10px!important;transition:transform .14s var(--curva),border-color .14s var(--curva),background .14s var(--curva)!important}.workspace-asset:hover{transform:translateY(-2px)!important;border-color:rgba(255,148,79,.48)!important;background:rgba(255,255,255,.045)!important}.workspace-asset-name{font-family:var(--mac-ui)!important;font-weight:700!important;color:#f2f2f5!important}.workspace-delivery-dock{position:relative!important;overflow:hidden!important}.workspace-delivery-dock:before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#3de8a2}.workspace-delivery-kicker{font-family:var(--mac-ui)!important}.workspace-timeline-event{border-left-color:var(--vybe-line)!important}.workspace-timeline-event:before{box-shadow:none!important}
-.workflow-modal{width:min(940px,94vw)!important;max-height:88vh!important;padding:22px!important}.workflow-kicker{padding-bottom:12px!important}.workflow-title{margin:14px 0 6px!important;font-size:clamp(25px,3vw,36px)!important}.workflow-copy{max-width:680px!important;font-size:14px!important;line-height:1.55!important}.workflow-item{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.025)!important}.workflow-field>span,.workflow-hint{color:#aeb9c9!important;font-family:var(--mac-ui)!important}.workflow-field input,.workflow-field select,.workflow-field textarea{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(4,5,9,.45)!important}.workflow-check{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.023)!important}.workflow-primary,.workflow-secondary{min-height:40px!important}.da-approval-radar{border-radius:20px 0 0 20px;border-left-color:var(--vybe-line);background:var(--sup-1);box-shadow:-24px 0 60px rgba(0,0,0,.32)}.da-approval-card{border-radius:12px;border-color:var(--vybe-line);background:rgba(255,255,255,.025)}.da-approval-preview{border-radius:10px;overflow:hidden}
-@media(max-width:720px){.workspace-drawer{width:100%!important}.workspace-drawer-head,.workspace-drawer-body{padding-left:16px!important;padding-right:16px!important}.workflow-modal{padding:16px!important;width:calc(100vw - 18px)!important}.workspace-assets{grid-template-columns:1fr!important}.workspace-actions,.workflow-actions{border-radius:12px!important}}
+.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){width:min(940px,94vw)!important;max-height:88vh!important;padding:22px!important}.workflow-kicker{padding-bottom:12px!important}.workflow-title{margin:14px 0 6px!important;font-size:clamp(25px,3vw,36px)!important}.workflow-copy{max-width:680px!important;font-size:14px!important;line-height:1.55!important}.workflow-item{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.025)!important}.workflow-field>span,.workflow-hint{color:#aeb9c9!important;font-family:var(--mac-ui)!important}.workflow-field input,.workflow-field select,.workflow-field textarea{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(4,5,9,.45)!important}.workflow-check{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.023)!important}.workflow-primary,.workflow-secondary{min-height:40px!important}.da-approval-radar{border-radius:20px 0 0 20px;border-left-color:var(--vybe-line);background:var(--sup-1);box-shadow:-24px 0 60px rgba(0,0,0,.32)}.da-approval-card{border-radius:12px;border-color:var(--vybe-line);background:rgba(255,255,255,.025)}.da-approval-preview{border-radius:10px;overflow:hidden}
+@media(max-width:720px){.workspace-drawer{width:100%!important}.workspace-drawer-head,.workspace-drawer-body{padding-left:16px!important;padding-right:16px!important}.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){padding:16px!important;width:calc(100vw - 18px)!important}.workspace-assets{grid-template-columns:1fr!important}.workspace-actions,.workflow-actions{border-radius:12px!important}}
 /* Estações e módulos complementares: mesma linguagem, cores por contexto. */
 .identity-network{opacity:.42!important;filter:saturate(.72)!important}.identity-core-wrap{filter:drop-shadow(0 14px 28px rgba(0,0,0,.34))!important}.identity-core{box-shadow:0 14px 32px rgba(0,0,0,.36)!important}.identity-orbit{opacity:.52!important}.identity-pulse{font-family:var(--mac-ui)!important;color:var(--vybe-muted)!important}.station-top,.station-action,.station-tags{font-family:var(--mac-ui)!important}
 .focus-dashboard,.manager-intelligence,.production-command-dashboard{isolation:isolate}.focus-metric,.command-summary-item,.ops-daily-kpi,.meeting-metrics span,.production-command-meta span{border-radius:10px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.028)!important}.focus-metric strong,.command-summary-item b,.production-command-meta b{font-family:var(--mac-ui)!important;letter-spacing:-.05em!important}.focus-task-priority{border-radius:999px!important;box-shadow:none!important}.manager-card-head,.focus-section-head,.production-section-head{font-family:var(--mac-ui)!important;color:#d7deeb!important}.manager-client,.pending-client,.command-client{color:#c5adff!important}.risk-level{border-radius:999px!important;background:rgba(255,255,255,.035)!important}.production-command-ident i,.production-item-icon{border-radius:12px!important}.production-item-copy b,.production-ready-row b,.production-command-head h2{font-family:var(--mac-ui)!important}.production-control-note,.production-item-copy small,.production-ready-row small{font-family:var(--mac-ui)!important;color:var(--vybe-muted)!important}.cadastros-preview-modal,.cad-v2-modal{border-radius:var(--vybe-radius-overlay)!important}.cadastros-preview-grid div{border-radius:12px!important;border-color:var(--vybe-line)!important;background:rgba(255,255,255,.026)!important}.cad-preview{border-radius:12px!important}.cad-preview b{font-family:var(--mac-ui)!important}
@@ -2961,7 +2961,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
    resposta, caixa verde gritando no meio e — o mais datado — o <select> com a
    moldura nativa do macOS, que nao se parece com nada no resto do painel.
    A pergunta passa a ser o assunto, como no CADASTROS; o resto e apoio. */
-.workflow-modal{border-radius:18px!important;
+.workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){border-radius:18px!important;
   background:linear-gradient(180deg,rgba(20,23,31,.99),rgba(13,16,23,.99))!important;
   box-shadow:0 34px 90px rgba(0,0,0,.66),inset 0 1px 0 rgba(255,255,255,.06)!important}
 .workflow-kicker{color:var(--accent,#ff6b00)!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.08em}
@@ -12199,9 +12199,8 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .xdz-fim.ganhou {background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 22%,transparent)}
 .xdz-fim.ganhou b {color:#ffe0a6}
 .xdz-fim.perdeu b {color:#c9d1dd}
-@media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}
-/* Dominó do Escritório (vybe-escritorio-domino.js): a mesa, a linha e a mão. */
-.workflow-modal.ofc-dmn-jogo,.workflow-modal.ofc-pkr-jogo,.workflow-modal.ofc-snc-jogo {width:min(960px,calc(100vw - 24px));overflow:auto}
+@media(max-width:760px){.xdz-jogo{grid-template-columns:1fr}.xdz-lado-tab{width:100%}.workflow-modal.ofc-xdz-jogo{padding:10px}}
+.workflow-modal.ofc-dmn-jogo,.workflow-modal.ofc-pkr-jogo{width:min(960px,calc(100vw - 24px));overflow:auto}
 .mesa-lado {display:grid;gap:8px;width:min(560px,calc(100vw - 56px))}
 .mesa-jogador {grid-template-columns:36px minmax(0,1fr) auto}
 .dmn-mesa {position:relative;display:grid;gap:8px;min-height:190px;padding:12px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#1f6b4a,#124631 75%);box-shadow:inset 0 0 0 3px #5a3a1f,inset 0 0 0 5px #2a1a0c,0 10px 30px #0008}
@@ -12327,12 +12326,11 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @keyframes ofc-bau-treme {25% {rotate:-5deg} 75% {rotate:5deg}}
 @media (prefers-reduced-motion:reduce) {.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li {animation:none!important}}
 [data-motion=reduce] :is(.mapa-bau,.mapa-bau-luz,.ofc-bau,.ofc-bau-caixa,.ofc-bau-raios,.ofc-bau-peca,.ofc-bau-bonus li) {animation:none!important}
-/* Sinuca do Escritório (vybe-escritorio-sinuca.js): mesa no canvas e a tacada. */
-.snc-canvas {display:block;width:100%;height:auto;border-radius:14px;box-shadow:0 10px 30px #0008;touch-action:manipulation}
-.snc-canvas.vez {cursor:crosshair}
-.snc-controles {display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:12px;background:#ffffff06}
-.snc-controles label {display:flex;flex:1 1 200px;align-items:center;gap:8px;color:#d7deeb;font:600 12px var(--mac-ui)}
-.snc-controles input[type=range] {flex:1;accent-color:var(--ofc-laranja,#ff9548)}
+
+
+
+
+
 /* Loja: os jogos com a equipe em destaque (prateleira, atalho e etiqueta). */
 .ofc-loja-jogos {padding:12px;border:1px solid color-mix(in srgb,var(--ofc-laranja,#ff9548) 45%,transparent);border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent),#ffffff04)}
 .ofc-loja-jogos h3 {display:flex;align-items:center;gap:6px}
@@ -12356,10 +12354,9 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .mesa-placar small {color:#9da4b4}
 .mesa-ocupada {display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:#10161fe6;box-shadow:0 2px 8px #0008,0 0 0 1px color-mix(in srgb,var(--ofc-laranja,#ff9548) 60%,transparent);color:#e7ecf5;font:600 11px var(--mac-ui);white-space:nowrap}
 .mesa-ocupada b {color:#ffd18d;font-weight:800}
-/* Sinuca: efeito na branca e ajuste fino da mira. */
-.snc-efeito span {color:#9da4b4;font-weight:600}
-.snc-mira-fina {display:flex;gap:4px}
-.snc-mira-fina button {min-width:40px;padding:6px 10px}
+
+
+
 /* Pôquer: a mão de agora e as cartas da mão nova entrando. */
 .pkr-tenho {margin:0;text-align:center;color:#c9d1dd;font-size:12px}
 .pkr-tenho b {color:#ffe0a6}
@@ -12441,46 +12438,51 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-p-bau img {flex:none;height:26px;width:auto;image-rendering:pixelated}
 .ofc-p-bau span {min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ofc-p-bau:hover {border-color:#ffd35c;color:#fff}
-/* Sinuca no jeito dos jogos online: a mesa em cima, larga, com o placar dos dois e as bolas de cada grupo; força vertical à esquerda e efeito à direita. */
-.workflow-modal.ofc-snc-jogo {width:min(1120px,calc(100vw - 24px))}
-.ofc-snc-jogo .mesa-jogo {grid-template-columns:1fr}
-.ofc-snc-jogo .mesa-lado {width:100%}
-.ofc-snc-jogo .xdz-painel {grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:start}
-.snc-placar {display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
-.snc-x {color:#9da4b4;font:800 14px var(--mac-ui)}
-.snc-jogador {display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10;min-width:0}
-.snc-jogador.direita {flex-direction:row-reverse;text-align:right}
-.snc-jogador.vez {border-color:var(--ofc-laranja,#ff9548);background:color-mix(in srgb,var(--ofc-laranja,#ff9548) 14%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ofc-laranja,#ff9548) 20%,transparent)}
-.snc-jogador img {width:40px;height:40px;object-fit:contain;image-rendering:pixelated;border-radius:50%;background:#ffffff10}
-.snc-jogador .snc-sem {width:40px;height:40px;border-radius:50%;background:#ffffff10}
-.snc-jogador > div {display:grid;gap:4px;min-width:0}
-.snc-jogador b {color:#fff;font:700 13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.snc-jogador small {color:#9da4b4;font-size:11px}
-.snc-grupo {display:flex;flex-wrap:wrap;gap:3px}
-.snc-jogador.direita .snc-grupo {justify-content:flex-end}
-.snc-grupo i {display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c);color:#111;font:800 9px var(--mac-ui);font-style:normal;box-shadow:inset 0 -2px 3px #0005}
-.snc-grupo i.listra {background:linear-gradient(#f7f4ea 0 26%,var(--c) 26% 74%,#f7f4ea 74%)}
-.snc-grupo i.caiu {opacity:.22;filter:grayscale(1)}
-.snc-area {display:grid;grid-template-columns:44px minmax(0,1fr) 64px;gap:10px;align-items:stretch}
-.snc-forca {position:relative;display:grid;place-items:end center;border-radius:22px;background:linear-gradient(#2a2f3a,#14171e);border:1px solid #ffffff14;touch-action:none;cursor:ns-resize;overflow:hidden;user-select:none}
-.snc-forca b {position:absolute;left:0;right:0;top:0;background:linear-gradient(#ffe08a,#ff9548 60%,#e2462e);border-radius:0 0 22px 22px;transition:height .05s}
-.snc-forca span {position:relative;writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:10px;color:#e9eef7;font:700 11px var(--mac-ui);text-shadow:0 1px 2px #000}
-.snc-forca.parada {opacity:.35;cursor:default}
-.snc-forca:focus-visible {outline:2px solid var(--ofc-laranja,#ff9548);outline-offset:2px}
-.snc-canvas.travada {cursor:pointer;box-shadow:0 10px 30px #0008,0 0 0 3px #ffffff40}
-.snc-lado {display:grid;justify-items:center;align-content:start;gap:6px}
-.snc-lado small {color:#9da4b4;font:600 11px var(--mac-ui)}
-.snc-efeito-bola {position:relative;width:54px;height:54px;border-radius:50%;border:0;background:radial-gradient(circle at 35% 30%,#fff,#e9e4d6 55%,#b9b2a0);box-shadow:0 3px 8px #0008;cursor:pointer}
-.snc-efeito-bola::before,.snc-efeito-bola::after {content:"";position:absolute;background:#0002}
-.snc-efeito-bola::before {left:50%;top:8px;bottom:8px;width:1px}
-.snc-efeito-bola::after {top:50%;left:8px;right:8px;height:1px}
-.snc-efeito-bola i {position:absolute;left:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#e2462e;box-shadow:0 0 0 2px #fff}
-.snc-efeito-bola:disabled {opacity:.4;cursor:default}
-.snc-lado .snc-mira-fina {display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%}
-.snc-lado .snc-mira-fina button,.snc-mudar {padding:8px 0;border:1px solid #ffffff1a;border-radius:10px;background:#ffffff0a;color:#e9eef7;font:700 14px var(--mac-ui);cursor:pointer}
-.snc-mudar {font-size:11px;padding:6px 4px}
-.snc-lado .snc-mira-fina button:disabled {opacity:.4;cursor:default}
-@media(max-width:760px){.snc-area{grid-template-columns:34px minmax(0,1fr)}.snc-lado{grid-column:1/-1;grid-template-columns:auto auto 1fr auto;align-items:center}.snc-placar{grid-template-columns:1fr}.snc-x{display:none}.snc-jogador.direita{flex-direction:row;text-align:left}.snc-jogador.direita .snc-grupo{justify-content:flex-start}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media(max-width:760px){
+
+
+
+
+
+}
 /* Pôquer na mesa oval (referências das salas online): fundo escuro, feltro verde com borda de madeira, lugares em volta. */
 .workflow-modal.ofc-pkr-jogo {width:min(1080px,calc(100vw - 24px))}
 .ofc-pkr-jogo .mesa-jogo {grid-template-columns:1fr}
@@ -12522,8 +12524,8 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-salao.nova .pkr-lugar.eu .pkr-carta:nth-child(2) {animation-delay:.12s}
 @media (prefers-reduced-motion: reduce) {.pkr-salao.nova .pkr-lugar.eu .pkr-carta {animation:none}}
 @media(max-width:760px){.pkr-salao{height:430px}.pkr-feltro{left:6%;right:6%}.pkr-lugar{width:112px}.pkr-lugar.esq{left:13%}.pkr-lugar.dir{left:87%}.pkr-quem img,.pkr-quem .pkr-sem{width:34px;height:34px}.pkr-salao .pkr-carta{--w:30px}.pkr-carta.media{--w:24px}.pkr-carta.grande{--w:44px}}
-.snc-tacar {width:100%;padding:10px 0;border:0;border-radius:12px;background:linear-gradient(#ffb067,#ff8a3d);color:#2a1400;font:800 13px var(--mac-ui);cursor:pointer;box-shadow:0 4px 10px #0007}
-.snc-tacar:disabled {opacity:.4;cursor:default}
+
+
 .pkr-salao {height:500px}
 .pkr-feltro {top:22%;bottom:20%}
 .pkr-lugar.topo {top:19%}
@@ -12671,15 +12673,14 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-xdz-novo .xdz-modo button {border-radius:14px;box-shadow:inset 0 2px 0 #ffffff20,0 5px 0 #0007}
 .ofc-xdz-novo .xdz-modo button.sim {background:linear-gradient(#ffb067,#ff7a1f);color:#2a1400;box-shadow:inset 0 2px 0 #ffffff50,0 5px 0 #a3480d}
 .ofc-xdz-novo .xdz-modo button.sim small {color:#4a2400}
-/* Na vez de tacar, o toque na mesa não rola a página (o navegador cancelava o toque e a branca não entrava). */
-.snc-canvas.vez {touch-action:none}
+
 /* Relógio da vez: anel que esvazia com os segundos no meio; vermelho e pulsando nos últimos 10. */
 .vez-prazo {--p:1;position:relative;display:inline-grid;place-items:center;flex:0 0 auto;width:30px;height:30px;margin-left:auto;border-radius:50%;background:conic-gradient(#3fd17f calc(var(--p) * 360deg),#ffffff1a 0);box-shadow:0 2px 6px #0008}
 .vez-prazo i {position:absolute;inset:3px;border-radius:50%;background:#12151c}
 .vez-prazo b {position:relative;color:#fff;font:900 11px var(--mac-ui);font-variant-numeric:tabular-nums}
 .vez-prazo.pouco {background:conic-gradient(#ff4a3a calc(var(--p) * 360deg),#ffffff1a 0);animation:sala-pisca .6s ease-in-out infinite}
 .pkr-lugar .vez-prazo {position:absolute;top:-10px;right:4px;margin:0}
-.snc-jogador .vez-prazo {margin:0}
+
 @media (prefers-reduced-motion: reduce) {.vez-prazo.pouco {animation:none}}
 /* Xadrez mais legível, no jeito do lichess e do chess.com: casas possíveis com pontos fortes, captura com anel, peça escolhida e último lance bem marcados. */
 .xdz-casa.alvo::after {width:32%;height:32%;background:#14141473}
@@ -12788,8 +12789,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .dmn-mao-peca .dmn-peca.img {--m:34px}
 .dmn-virada {width:16px;height:30px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none;filter:drop-shadow(0 2px 2px #0008)}
 .dmn-costas {width:12px;height:22px;border-radius:0;background:url(/assets/jogos/domino.webp) 0 100% / 700% 500% no-repeat;box-shadow:none}
-/* Bolinhas do placar da sinuca com a mesma arte da mesa. */
-.snc-grupo i {background:url(/assets/jogos/bolas.webp) calc(var(--n) * 100% / 15) 0 / 1600% 100% no-repeat;color:transparent;box-shadow:0 1px 2px #0008}
+
 /* HUD dos jogos: faixa no tema, palco com a pílula de status, barra de aviso, histórico discreto e tela de fim por cima da mesa. */
 .workflow-modal[class*="ofc-"][class*="-jogo"] {padding:0;overflow:hidden auto;background:#0f1218}
 .jogo-topo {position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;background:linear-gradient(90deg,#155c39,#1f7a4d);box-shadow:0 4px 0 #0005}
@@ -12864,28 +12864,23 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @media(max-width:560px){.desafio{grid-template-columns:48px 1fr}.desafio .sala-botao{grid-column:1/-1}}
 .jogo-selo.lendario {background:#d62a14;box-shadow:0 2px 0 #7a140a}
 
-/* Sinuca, 28/10/2026 (Paulo: "não dá pra ver as bolas par, as ímpar"): mesa maior, e as bolas do placar
-   desenhadas em CSS (a folha de bolas reduzida a 18 px cortava o número). A 1 é a bola final. */
-.workflow-modal.ofc-snc-jogo {width:min(1360px,calc(100vw - 16px))}
-.snc-area {grid-template-columns:40px minmax(0,1fr) 58px;gap:8px}
-.snc-grupo {gap:4px}
-.snc-grupo i {display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#111;font:800 10.5px/1 var(--mac-ui);font-style:normal;
-  background:radial-gradient(circle,#fff 0 36%,transparent 38%),var(--c);box-shadow:inset 0 -3px 4px #0006,inset 0 2px 3px #ffffff40,0 1px 2px #0008}
-.snc-grupo i.listra {background:radial-gradient(circle,#fff 0 36%,transparent 38%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
-.snc-grupo i.final {margin-left:6px;outline:2px solid #ffd35c;outline-offset:1px}
-.snc-grupo i.caiu {opacity:.25;filter:grayscale(1)}
-@media (max-width:700px){.snc-grupo i {width:19px;height:19px;font-size:9px}.snc-area {grid-template-columns:34px minmax(0,1fr) 50px}}
-/* Jogos: a regra geral das janelas (.workflow-modal width:min(940px,94vw)!important, linha ~1442) prendia
-   todas as mesas em 940 px; cada jogo agora tem a largura que precisa. */
-#workflow-modal.ofc-snc-jogo {width:min(1360px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
+
+
+
+
+
+
+@media (max-width:700px){
+
+}
+
 #workflow-modal.ofc-pkr-jogo {width:min(1180px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
 #workflow-modal.ofc-dmn-jogo {width:min(1120px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
 #workflow-modal.ofc-xdz-jogo,#workflow-modal.ofc-dam-jogo {width:min(1000px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
 #workflow-modal.ofc-vlh-jogo,#workflow-modal.ofc-trc-jogo {width:min(1000px,calc(100vw - 16px))!important;max-height:calc(100vh - 16px)!important}
-/* A mesa cabe na altura da tela (a janela larga deixava a tabela de baixo para fora em telas baixas). */
-.ofc-snc-jogo .snc-area {align-items:center}
-.ofc-snc-jogo .snc-canvas {width:auto;max-width:100%;max-height:calc(100vh - 230px);margin:0 auto;aspect-ratio:108/58}
-.ofc-snc-jogo .snc-forca {align-self:stretch}
+
+
+
 /* Auditoria dos jogos, 28/10/2026: o pôquer cabe na altura da tela (os botões de aposta ficavam para fora
    em 768 px) e a fileira do dominó fica no meio da mesa. */
 .ofc-pkr-jogo .pkr-salao {height:clamp(360px,calc(100vh - 330px),500px)}
@@ -13016,19 +13011,17 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-cli-rodape input {width:80px;padding:5px 8px;border:1px solid #ffffff20;border-radius:8px;background:#0b1118;color:#fff}
 @media(max-width:760px){.pkr-lugar{width:96px}.pkr-lugar .pkr-quem{min-width:0;padding-right:8px}.pkr-lugar .pkr-quem img,.pkr-lugar .pkr-quem .pkr-sem,.pkr-lugar .pkr-cliente{width:28px;height:28px;font-size:10px}.pkr-lugar .pkr-quem b{max-width:52px;font-size:10px}.pkr-carta.pequena{--w:18px}.pkr-salao .pkr-comunitarias .pkr-carta{--w:30px}.pkr-botao{min-width:90px;padding:10px}}
 @media (prefers-reduced-motion:reduce){.pkr-dando,.pkr-voo{display:none}.pkr-aposta.entrou,.pkr-fala{animation:none}}
-/* Sinuca na mesa de bar (28/10/2026): a mesa é a arte (assets/jogos/mesa-laranja.webp);
-   o resto segue o padrão visual (vybe-padrao.css: vidro, borda clara e o laranja
-   como única cor de destaque). Só o que é novo: a proporção da mesa e o tubo
-   das bolas encaçapadas, embaixo do Tacar. */
-.ofc-snc-jogo .snc-canvas {aspect-ratio:116/66}
-.snc-tubo {display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;min-height:60px;padding:6px 0;border-radius:12px;border:1px solid var(--pv-linha,#ffffff14);background:var(--pv-campo,#08090d99);box-shadow:var(--pv-brilho,none)}
-.snc-tubo i {display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#fff 0 34%,transparent 36%),var(--c);color:#111;font:800 9.5px/1 var(--mac-ui);font-style:normal;box-shadow:inset 0 -3px 4px #0006}
-.snc-tubo i.listra {background:radial-gradient(circle,#fff 0 36%,transparent 38%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
-@media (max-width:760px){.snc-tubo {flex-direction:row;flex-wrap:wrap;justify-content:center;min-height:0;padding:4px 8px}}
-.snc-lado > * {min-width:0;max-width:100%}
-@media (min-width:761px){.snc-lado {grid-template-columns:minmax(0,1fr)}}
-.snc-taco {display:grid;justify-items:center;gap:2px;width:100%}
-.snc-taco input {width:100%;min-width:0;margin:0;accent-color:#ff8f4f}
+
+
+
+
+@media (max-width:760px){
+}
+
+@media (min-width:761px){
+}
+
+
 /* Mesas com arte (Paulo, 28/10/2026): o pôquer na mesa oval de bar e a dama no
    tabuleiro da mesa de madeira. As medidas em % saem do recorte das artes
    (assets/jogos/mesa-poker.webp, 1640×960; tabuleiro-dama.webp, 1120×960 com o
@@ -13041,41 +13034,39 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .dam-mesa {position:relative;width:min(100%,720px,calc((100vh - 300px) * 1120 / 960));aspect-ratio:1120/960;margin:0 auto;background:url(/assets/jogos/tabuleiro-dama.webp) center/100% 100% no-repeat;border-radius:12px}
 .dam-mesa .dam-tabuleiro {position:absolute;left:21.4286%;top:15.625%;width:57.1429%;height:66.6667%;margin:0;aspect-ratio:auto;border-radius:0;box-shadow:none;background:none}
 .dam-mesa .dam-casa.clara,.dam-mesa .dam-casa.escura {background:transparent}
-/* Sinuca: na mira o cursor some (fica o taco e o traço curto da branca); só aparece para pôr a branca. */
-.snc-canvas.vez,.snc-canvas.vez.travada {cursor:none}
-.snc-canvas.vez.pondo {cursor:default}
-/* Sinuca com cara de boteco (Paulo, 28/10/2026: "dá o visual de boteco e refaz isso, tá bem feio"): a faixa de cima é uma tábua com plaquinhas de latão, o placar é de madeira com o confronto em giz, a coluna dos controles é um porta-tacos e embaixo da mesa fica a lousa do bar. Só cor e material: o tamanho e a grade da coluna lateral continuam os mesmos. */
-.workflow-modal.ofc-snc-jogo {background:radial-gradient(ellipse at 50% 0,#3a2416 0,#1a100a 60%,#120b07 100%)}
-.ofc-snc-jogo .jogo-topo.tema-sinuca {background:repeating-linear-gradient(90deg,#ffffff06 0 2px,transparent 2px 9px),linear-gradient(#6b3d1c,#4a2810 60%,#3a1f0c);border-bottom:3px solid #c99a4e;box-shadow:0 4px 0 #0007,inset 0 1px 0 #ffffff1c}
-.ofc-snc-jogo .jogo-titulo i {background:radial-gradient(circle at 35% 30%,#3b3b3b,#0d0d0d);border:2px solid #c99a4e;border-radius:50%;box-shadow:0 2px 0 #0008}
-.ofc-snc-jogo .jogo-titulo b {color:#ffe2a8;font:900 20px var(--mac-ui);letter-spacing:.5px;text-shadow:0 0 10px #ff9a3c88,0 2px 0 #0008}
-.ofc-snc-jogo .jogo-selo {background:linear-gradient(#f1d08a,#c99a4e);color:#2a1806;border:1px solid #7a5520;box-shadow:inset 0 1px 0 #fff6,0 2px 0 #0007;border-radius:6px}
-.ofc-snc-jogo .jogo-selo.placar {display:none}
-.ofc-snc-jogo .jogo-icone {background:radial-gradient(circle at 35% 30%,#f3d595,#c99a4e 55%,#8a6328);color:#2a1806;border-radius:50%;box-shadow:inset 0 -2px 0 #0004,0 2px 0 #0007}
-.ofc-snc-jogo .jogo-icone:hover {background:radial-gradient(circle at 35% 30%,#fff0c8,#e0b260 55%,#9a7030)}
-.ofc-snc-jogo .jogo-icone.perigo:hover {background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0392b 60%,#7a1a10);color:#fff}
-.ofc-snc-jogo .jogo-status {background:#1c120b;border:1px solid #c99a4e66;color:#ffe2a8;box-shadow:inset 0 0 0 1px #0006}
-.ofc-snc-jogo .jogo-status.minha {background:#1c120b;color:#ffcf7a;border-color:#ff9a3c;text-shadow:0 0 8px #ff9a3c;box-shadow:0 0 14px #ff8a2a66,inset 0 0 10px #ff8a2a33;animation:snc-neon 1.8s ease-in-out infinite}
-@keyframes snc-neon {50% {box-shadow:0 0 24px #ff8a2aaa,inset 0 0 14px #ff8a2a55}}
-.ofc-snc-jogo .snc-jogador {background:linear-gradient(#4a2a14,#2e190b);border:2px solid #7a5520;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0007}
-.ofc-snc-jogo .snc-jogador.vez {border-color:#ff9a3c;background:linear-gradient(#5a3418,#341c0c);box-shadow:0 0 0 2px #ff9a3c44,0 0 18px #ff8a2a55,0 3px 0 #0007}
-.ofc-snc-jogo .snc-jogador b {color:#ffe9c2}
-.ofc-snc-jogo .snc-jogador small {color:#d9b98a}
-.snc-ficha {margin-left:6px;padding:1px 6px;border-radius:4px;background:#c99a4e;color:#2a1806;font:800 10px var(--mac-ui);font-style:normal;vertical-align:1px}
-.snc-confronto {display:grid;justify-items:center;gap:1px;min-width:92px;padding:6px 10px;border-radius:8px;background:#1f2a24;border:5px solid #6b3d1c;box-shadow:inset 0 0 12px #0009,0 3px 0 #0007;font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;color:#f2efe6;text-shadow:0 0 1px #fff8}
-.snc-confronto small {font-size:10px;opacity:.75;white-space:nowrap}
-.snc-confronto b {font-size:24px;line-height:1.1;letter-spacing:1px}
-.snc-confronto b i {margin:0 6px;font-style:normal;opacity:.6;font-size:16px}
-.ofc-snc-jogo .snc-forca {background:linear-gradient(90deg,#3a1f0c,#7a4a22 45%,#a8733d 55%,#4a2810);border:2px solid #c99a4e88}
-.ofc-snc-jogo .snc-lado {padding:6px 3px;border-radius:12px;background:repeating-linear-gradient(0deg,#ffffff05 0 2px,transparent 2px 8px),linear-gradient(90deg,#3a1f0c,#5a3418 50%,#3a1f0c);border:2px solid #7a5520;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0007}
-.ofc-snc-jogo .snc-lado small {color:#e8cfa2}
-.ofc-snc-jogo .snc-lado .snc-mira-fina button,.ofc-snc-jogo .snc-mudar {background:radial-gradient(circle at 35% 30%,#f3d595,#c99a4e 60%,#8a6328);color:#2a1806;border:1px solid #6b4a1a;box-shadow:0 2px 0 #0007}
-.ofc-snc-jogo .snc-tacar {background:linear-gradient(#ff8a5c,#d9431f);color:#fff;border:2px solid #f3d595;text-shadow:0 1px 0 #0006;box-shadow:0 3px 0 #6a1a08,0 0 12px #ff6a3a55;letter-spacing:.3px}
-.ofc-snc-jogo .snc-tubo {background:#140b06;border:1px solid #7a5520}
-.ofc-snc-jogo .snc-canvas {box-shadow:0 14px 34px #000c}
-.ofc-snc-jogo .jogo-feed {background:none;border:0;padding:0 0 4px;color:#e8cfa2}
-.ofc-snc-jogo .jogo-feed .ofc-nota {margin:0 0 8px;padding:8px 12px;border-radius:8px;background:#f3e6c8;color:#3a2410;font:700 13px var(--mac-ui);box-shadow:0 2px 0 #0007;border-left:5px solid #c0392b}
-.snc-lousa {display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:14px;padding:14px 16px;border-radius:10px;background:radial-gradient(ellipse at 30% 20%,#2c3a32,#1c2620 70%);border:10px solid #5a3418;box-shadow:inset 0 0 26px #000a,inset 0 0 0 1px #ffffff10,0 4px 0 #0008;font-family:"Segoe Print","Bradley Hand","Comic Sans MS",cursive;color:#f2efe6;text-shadow:0 0 1px #fff8}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .lousa-bloco {display:grid;align-content:start;gap:6px;min-width:0}
 .lousa-bloco h4 {margin:0 0 2px;font:inherit;font-size:14px;font-weight:700;color:#ffe08a;border-bottom:1px dashed #f2efe655;padding-bottom:3px}
 .lousa-giz {display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:8px;font-size:13px}
@@ -13103,6 +13094,159 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .lousa-rank li.eu b {color:#ffe08a}
 .lousa-rank li.lousa-pulo {display:block;padding:0;text-align:center;opacity:.5;line-height:.8}
 .lousa-pe,.lousa-vazio {margin:0;font-size:11px;opacity:.65}
-.ofc-snc-jogo .snc-lado .snc-mira-fina button {min-width:0}
-@media(max-width:760px){.snc-lousa{grid-template-columns:1fr;border-width:7px}.snc-confronto{grid-auto-flow:column;align-items:baseline;justify-content:center;gap:10px;min-width:0;padding:2px 10px;border-width:4px}.snc-confronto b{font-size:18px}.ofc-snc-jogo .snc-lado{padding:6px 8px}.ofc-snc-jogo .snc-area{grid-template-columns:30px minmax(0,1fr)}}
-@media (prefers-reduced-motion: reduce) {.ofc-snc-jogo .jogo-status.minha {animation:none}}
+
+@media(max-width:760px){
+
+
+
+
+}
+@media (prefers-reduced-motion: reduce) {
+}
+
+/* Sinuca: tema único. Substitui os estilos antigos espalhados; não altera outros jogos. */
+.workflow-modal.ofc-snc-jogo,.workflow-modal.ofc-snc-menu {--snc-creme:#f0e5ca;--snc-dim:#b4b5a0;--snc-ouro:#d8b775;--snc-linha:#d6c69c24;color:var(--snc-creme);background:#10201a url(/assets/jogos/boteco-ambiente.webp) center top/cover no-repeat;border:1px solid #aa86564d;border-radius:18px;box-shadow:0 30px 100px #000b;isolation:isolate}
+#workflow-modal.ofc-snc-jogo {width:min(1380px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;overflow:auto}
+.ofc-snc-jogo .jogo-topo.tema-sinuca {position:relative;z-index:4;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:24px;padding:14px 24px;background:linear-gradient(90deg,#142117e0,#14211780),url(/assets/jogos/boteco-madeira.webp) center/cover;border-bottom:1px solid var(--snc-linha);box-shadow:none}
+.snc-marca {display:flex;align-items:center;gap:12px;flex:none}
+.snc-marca>i {display:grid;place-items:center;width:40px;height:40px;border:1px solid #d6b77b8c;border-radius:50%;background:radial-gradient(circle at 35% 25%,#45463b,#111913 70%);box-shadow:inset 0 -4px 8px #0009;color:#f4ecd8;font:700 24px Georgia,serif;font-style:normal}
+.snc-marca>div {display:grid;gap:3px}
+.snc-marca small {font:600 9px/1.2 var(--mac-ui);letter-spacing:2.4px;color:#d1b57e}
+.snc-marca b {color:#f5ead0;font:500 24px/1.1 Georgia,'Times New Roman',serif;letter-spacing:-.5px}
+.ofc-snc-jogo .jogo-selos {display:flex;gap:6px;flex:1;margin:0;justify-content:flex-end;flex-wrap:wrap}
+.ofc-snc-jogo .jogo-selo {padding:6px 10px;border:1px solid var(--snc-linha);border-radius:4px;background:#0b1713a6;color:#dccba6;font:600 10px var(--mac-ui);box-shadow:none}
+.ofc-snc-jogo .jogo-selo.placar {display:none}
+.snc-menu {position:relative;flex:none;font:600 12px var(--mac-ui)}
+.snc-menu summary {display:flex;align-items:center;gap:9px;min-height:40px;padding:0 13px;border:1px solid #d6c69c42;border-radius:5px;background:#14241c;color:var(--snc-creme);list-style:none;cursor:pointer}
+.snc-menu summary::-webkit-details-marker {display:none}
+.snc-menu[open] summary {border-color:var(--snc-ouro)}
+.snc-menu-lista {position:absolute;right:0;top:calc(100% + 9px);width:220px;padding:6px;background:#15251e;border:1px solid #a68b58;border-radius:7px;box-shadow:0 12px 32px #0009;z-index:20}
+.snc-menu-lista button,.snc-menu-lista .jogo-icone {display:block;width:100%;height:auto;margin:0;padding:12px 10px;text-align:left;border:0;border-radius:3px;background:transparent;color:#e4ddca;font:500 12px var(--mac-ui);box-shadow:none;cursor:pointer}
+.snc-menu-lista button:hover {background:#e8cf9520}
+.snc-menu-lista .perigo {color:#efb2a3;border-top:1px solid var(--snc-linha)}
+.ofc-snc-jogo .jogo-palco {gap:10px;padding:12px 22px 0;background:linear-gradient(#0e1b1570,#0b1611c9)}
+.ofc-snc-jogo .jogo-status,.ofc-snc-jogo .jogo-status.minha {justify-self:center;max-width:100%;padding:0 4px;margin:0;color:#bcbda9;background:none;border:0;border-radius:0;box-shadow:none;font:500 11px/1.4 var(--mac-ui);animation:none;text-shadow:none}
+.ofc-snc-jogo .jogo-status.minha {color:#e2c68a}
+.snc-placar {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:20px}
+.snc-jogador {display:flex;align-items:center;gap:12px;min-width:0;padding:8px 12px;border:1px solid transparent;border-bottom:2px solid #ffffff14;border-radius:5px 5px 0 0;background:#101a15a6;transition:border-color .15s}
+.snc-jogador.direita {flex-direction:row-reverse;text-align:right}
+.snc-jogador.vez {border-bottom-color:#d2b777;background:linear-gradient(90deg,#ccb06e12,#10201866)}
+.snc-jogador img,.snc-jogador .snc-sem {flex:none;display:grid;place-items:center;width:38px;height:38px;object-fit:contain;border:1px solid #b9a47754;border-radius:50%;background:#76806c25;image-rendering:pixelated;color:#e7d3a3;font:500 20px Georgia,serif;font-style:normal}
+.snc-jogador>div {display:grid;gap:5px;min-width:0}
+.snc-jogador b {font:600 13px/1.2 var(--mac-ui);color:#f0e5ca;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snc-jogador small {font:400 10px/1.4 var(--mac-ui);color:#a8af9b}
+.snc-jogador .vez-prazo {margin:0;flex:none}
+.snc-grupo {display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.snc-jogador.direita .snc-grupo {justify-content:flex-end}
+.snc-grupo i,.snc-tubo i {display:inline-grid;place-items:center;flex:none;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle,#fff 0 34%,transparent 37%),var(--c);box-shadow:inset 0 -3px 4px #0006;color:#151714;font:800 9px/1 var(--mac-ui);font-style:normal}
+.snc-grupo i.listra,.snc-tubo i.listra {background:radial-gradient(circle,#fff 0 34%,transparent 37%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
+.snc-grupo i.final {margin-left:5px;outline:1px solid #d6b77b;outline-offset:2px}
+.snc-grupo i.caiu {opacity:.25;filter:grayscale(1)}
+.snc-ficha {margin-left:7px;color:#b7b6a0;font:400 9px var(--mac-ui);font-style:normal}
+.snc-confronto {display:grid;justify-items:center;gap:3px;min-width:76px;color:#eee7d3;font-family:'Segoe Print','Bradley Hand',cursive}
+.snc-confronto small {font:500 8px var(--mac-ui);text-transform:uppercase;letter-spacing:1.5px;color:#aaa992}
+.snc-confronto b {font-size:24px;font-weight:400;line-height:1}
+.snc-confronto b i {font:400 14px Georgia,serif;margin:0 7px;opacity:.5}
+.snc-x {color:#b9aa8259;font:400 20px Georgia,serif}
+.snc-area {display:grid;place-items:center;min-width:0;width:100%;padding:2px 0 6px}
+.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 340px)*1.791667));height:auto;max-width:100%;aspect-ratio:2752/1536;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
+.snc-canvas.vez,.snc-canvas.vez.travada {touch-action:none;cursor:none}
+.snc-canvas.vez.pondo {cursor:default}
+.snc-comandos {display:grid;grid-template-columns:260px minmax(220px,1fr) 162px;gap:22px;padding:13px 18px 12px;border:1px solid #9d7c484a;border-radius:7px;background:linear-gradient(#17251dd9,#101b16e8),url(/assets/jogos/boteco-madeira.webp) center/420px;box-shadow:inset 0 1px #ffffff06}
+.snc-controle {min-width:0}
+.snc-controle-titulo {display:flex;gap:8px;align-items:center;min-height:24px;margin-bottom:8px}
+.snc-controle-titulo>small {font:400 10px Georgia,serif;color:#ac9768}
+.snc-controle-titulo>b {font:500 11px var(--mac-ui);color:#d9d5bc}
+.snc-ajustes {display:flex;align-items:center;gap:12px}
+.snc-efeito-bola {position:relative;flex:none;width:39px;height:39px;border:1px solid #fff8;border-radius:50%;background:radial-gradient(circle at 32% 24%,#fff,#eae7d8 55%,#a6a796);box-shadow:0 3px 6px #0008;cursor:crosshair}
+.snc-efeito-bola::before,.snc-efeito-bola::after {content:'';position:absolute;background:#0002}
+.snc-efeito-bola::before {left:50%;top:6px;bottom:6px;width:1px}
+.snc-efeito-bola::after {top:50%;left:6px;right:6px;height:1px}
+.snc-efeito-bola i {position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#9b442e;box-shadow:0 0 0 1.5px #fff}
+.snc-mira-fina {display:flex;gap:4px}
+.snc-mira-fina button,.snc-mudar {min-width:34px;min-height:34px;padding:4px 7px;border:1px solid #bda77940;border-radius:4px;background:#25352b;color:#e0d3af;font:400 22px Georgia,serif;cursor:pointer}
+.snc-mira-fina button:hover,.snc-mudar:hover {border-color:#d6b77b;background:#344438}
+.snc-taco {display:grid;gap:5px;flex:1;min-width:65px}
+.snc-taco small {display:flex;justify-content:space-between;gap:4px;color:#a5ab97;font:400 9px var(--mac-ui);white-space:nowrap}
+.snc-taco small b {font-weight:500;color:#d7c396}
+.snc-taco input {width:100%;min-width:0;margin:0;accent-color:#c7ad76;height:19px}
+.snc-controle-forca {padding:0 22px;border-left:1px solid var(--snc-linha);border-right:1px solid var(--snc-linha)}
+.snc-forca-exata {display:flex;align-items:center;gap:5px;margin-left:auto;color:#d2b777;font:500 12px var(--mac-ui)}
+.snc-forca-exata input {width:66px;height:26px;padding:3px 6px;text-align:right;border:1px solid #bda77947;border-radius:3px;background:#0b1713;color:#eee2c7;font:600 13px var(--mac-ui);appearance:textfield}
+.snc-forca-exata input::-webkit-inner-spin-button {appearance:none}
+.snc-forca {position:relative;display:grid;place-items:center;height:32px;border:1px solid #ad97664d;border-radius:4px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),#e0d3af1c calc(10% - 1px) 10%),#0a1510;overflow:hidden;touch-action:none;user-select:none;cursor:ew-resize}
+.snc-forca b {position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#4e7860,#a0a16a 70%,#c69b5a);box-shadow:inset 0 1px #ffffff24;pointer-events:none}
+.snc-forca span {position:relative;color:#fff8dc;text-shadow:0 1px 3px #000;font:700 13px var(--mac-ui);pointer-events:none}
+.snc-escala {display:flex;justify-content:space-between;margin-top:5px;gap:8px;color:#929c89;font:400 8px var(--mac-ui)}
+.snc-escala span:nth-child(2) {color:#c2b992}
+.snc-controle-tacar {display:flex;flex-direction:column;justify-content:center;gap:7px;align-items:stretch}
+.snc-tacar {display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:45px;padding:9px 17px;border:1px solid #e0ca8d;border-radius:5px;background:linear-gradient(#dfc388,#bc9c5f);box-shadow:inset 0 1px #fff5,0 3px 0 #574829;color:#243026;font:700 15px Georgia,serif;cursor:pointer}
+.snc-tacar span {font:500 23px var(--mac-ui)}
+.snc-tacar:hover {background:linear-gradient(#ead49f,#cfb478)}
+.snc-tacar:active {transform:translateY(1px);box-shadow:inset 0 1px #fff5,0 2px 0 #574829}
+.snc-controle-tacar>small {text-align:center;font:400 9px var(--mac-ui);color:#999d87}
+.snc-mudar {min-height:25px;font:400 9px var(--mac-ui);background:none;border-color:transparent}
+.snc-comandos button:disabled,.snc-comandos input:disabled,.snc-forca.parada {opacity:.38;cursor:default;box-shadow:none}
+.snc-comandos :focus-visible,.snc-menu :focus-visible,.snc-abas :focus-visible {outline:2px solid #e3c68a;outline-offset:3px}
+.ofc-snc-jogo .jogo-feed {margin:0;padding:0 22px 18px;border:0;border-radius:0;background:#0c1712d9;color:#d7d2bc;font-size:12px}
+.ofc-snc-jogo .ofc-erro {margin:0 22px;background:#0c1712d9}
+.snc-caderno {padding-top:5px}
+.snc-abas {display:flex;align-items:center;gap:20px;border-bottom:1px solid var(--snc-linha)}
+.snc-abas button {min-height:40px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:none;color:#919e8d;font:500 11px var(--mac-ui);cursor:pointer}
+.snc-abas button[aria-selected=true] {border-bottom-color:#d2b777;color:#e4d4ac}
+.snc-abas>span {margin-left:auto;color:#7e8b79;font:500 8px var(--mac-ui);letter-spacing:1.2px}
+.snc-painel {padding:13px 0 0;color:#bdc3ae;line-height:1.6}
+.snc-painel[hidden] {display:none}
+.snc-painel[data-snc-painel=partida] {display:grid;grid-template-columns:1fr auto;gap:25px;align-items:start}
+.snc-painel[data-snc-painel=partida][hidden] {display:none}
+.snc-painel small {color:#8e9a85;font:500 8px var(--mac-ui);letter-spacing:1.4px}
+.snc-ultima p {margin:5px 0 0;font:400 11px/1.5 var(--mac-ui);color:#d4d8c4}
+.snc-tubo {display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:24px;margin-top:5px}
+.snc-tubo>span {font:400 10px var(--mac-ui);color:#8e9a85}
+.snc-regras {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:18px 0 6px}
+.snc-regras h3 {margin:7px 0;color:#dfd2b0;font:400 19px Georgia,serif}
+.snc-regras p,.snc-vazio p {margin:0;font:400 11px/1.7 var(--mac-ui);color:#a9b5a0}
+.snc-vazio {padding:7px 0}
+.snc-vazio b {display:block;margin-bottom:5px;color:#e4d6b3;font:400 19px Georgia,serif}
+.snc-lousa {display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:25px;padding:18px;border:5px solid #59422a;background:radial-gradient(ellipse at 30% 20%,#344438,#19291f 75%);box-shadow:inset 0 0 24px #0006;color:#e8e5d5;font-family:'Segoe Print','Bradley Hand',cursive}
+.snc-lousa h4 {margin:0 0 10px;font-size:14px;color:#e4d4a5;font-weight:500}
+.ofc-snc-jogo .jogo-fim-caixa {border:1px solid #a88b55;background:#16271e url(/assets/jogos/boteco-madeira.webp) center/cover;color:#f0e5ca;border-radius:8px;box-shadow:0 20px 80px #000b}
+.ofc-snc-jogo .jogo-fim-caixa>b {font-family:Georgia,serif}
+.ofc-snc-jogo .jogo-alerta,.ofc-snc-jogo .jogo-fora {margin:8px 22px;background:#1c3024;border:1px solid #bda77940;color:#d8d4bc;border-radius:5px}
+/* O mesmo acabamento no lobby, convite, aposta e resultado da sinuca. */
+.workflow-modal.ofc-snc-menu {padding:0;overflow:auto}
+.ofc-snc-menu .sala-banner.tema-sinuca {padding:30px;background:linear-gradient(90deg,#102018e6,#10201844),url(/assets/jogos/boteco-ambiente.webp) center 30%/cover;border-bottom:1px solid #c3a26855;min-height:155px}
+.ofc-snc-menu .sala-banner h2 {font:400 32px Georgia,serif;color:#f0e5ca;letter-spacing:-.5px;text-shadow:0 2px 10px #000}
+.ofc-snc-menu .sala-banner small {color:#dbbf88;letter-spacing:2px;text-transform:uppercase;font-size:10px}
+.ofc-snc-menu .sala-banner p {max-width:660px;color:#c5cbb5;font-size:11px;line-height:1.7}
+.ofc-snc-menu .sala-simbolos {opacity:.18}
+.ofc-snc-menu .sala-mesa,.ofc-snc-menu .sala-desafios,.ofc-snc-menu .sala-temporada,.ofc-snc-menu .xdz-novo {margin:16px;padding:18px;border:1px solid #c3a26838;border-radius:7px;background:#13251ee8;box-shadow:none}
+.ofc-snc-menu .sala-topo>b,.ofc-snc-menu h3 {font-family:Georgia,serif;color:#e9ddba;font-weight:400}
+.ofc-snc-menu .sala-rodape {position:sticky;bottom:0;padding:14px 20px;border-top:1px solid #c3a26838;background:#13221bf5;backdrop-filter:blur(8px)}
+.ofc-snc-menu .sala-botao,.ofc-snc-menu .workflow-primary,.ofc-snc-jogo .workflow-primary {border-radius:5px;box-shadow:none;background:#cdb079;color:#1d2a20;border:1px solid #e0c58e;text-shadow:none;font-weight:600}
+.ofc-snc-menu .sala-botao.cinza,.ofc-snc-menu .workflow-secondary,.ofc-snc-jogo .workflow-secondary {background:#23392b;color:#d7d3bc;border:1px solid #9c92624a;box-shadow:none;border-radius:5px}
+.ofc-snc-menu .workflow-kicker,.ofc-snc-menu .xdz-convite {margin:0;padding:20px 24px;background:#15291ee6;color:#d9c08d}
+.ofc-snc-menu .workflow-title {font-family:Georgia,serif;color:#e7dcc2}
+.ofc-snc-menu>.ofc-nota,.ofc-snc-menu>.ofc-erro {margin:14px 24px;background:none;color:#bac3ac;border:0}
+.ofc-snc-menu .workflow-actions {padding:16px 24px;background:#102019e6;border-top:1px solid #c3a26838}
+.ofc-snc-menu .sala-assento {border-color:#998957;background:#2a3f2d;box-shadow:0 3px 9px #0006}
+.ofc-snc-menu .xdz-moedas,.ofc-snc-menu .ofc-troca-montar section {background:#0d1c15;border-color:#c3a26838;color:#d7d3bc}
+@media(max-width:1050px){.snc-comandos{grid-template-columns:220px minmax(180px,1fr) 130px;gap:14px;padding:12px}.snc-controle-forca{padding:0 14px}.snc-ajustes{gap:8px}.snc-mira-fina button{min-width:30px}.snc-taco{min-width:52px}.snc-taco small{font-size:8px}.snc-escala span:nth-child(2){display:none}}
+@media(max-width:760px){#workflow-modal.ofc-snc-jogo{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);border-radius:10px}.ofc-snc-jogo .jogo-topo.tema-sinuca{padding:12px 13px;gap:12px}.snc-marca b{font-size:21px}.snc-marca small{font-size:7px;letter-spacing:1.7px}.snc-marca>i{width:33px;height:33px;font-size:21px}.ofc-snc-jogo .jogo-selos{display:none}.snc-menu{margin-left:auto}.snc-menu summary{font-size:11px;min-height:36px;padding:0 9px}.ofc-snc-jogo .jogo-palco{padding:10px 10px 0}.snc-placar{gap:7px}.snc-jogador{padding:7px 5px;gap:7px}.snc-jogador img,.snc-jogador .snc-sem{width:29px;height:29px;font-size:16px}.snc-jogador b{font-size:11px}.snc-jogador small{font-size:8px}.snc-grupo{gap:2px}.snc-grupo i{width:14px;height:14px;font-size:7px}.snc-ficha{display:none}.snc-confronto{min-width:45px}.snc-confronto small{font-size:6px;letter-spacing:0}.snc-confronto b{font-size:19px}.ofc-snc-jogo .snc-canvas{width:100%}.snc-comandos{grid-template-columns:minmax(0,1fr) 112px;gap:12px;padding:12px}.snc-controle-mira{grid-column:1}.snc-controle-tacar{grid-column:2;grid-row:1;justify-content:flex-end}.snc-controle-forca{grid-column:1/-1;grid-row:2;border:0;border-top:1px solid var(--snc-linha);padding:10px 0 0}.snc-efeito-bola{width:36px;height:36px}.snc-mira-fina button{min-width:31px;min-height:36px}.snc-taco{max-width:100px}.snc-controle-titulo{margin-bottom:6px}.snc-tacar{min-height:42px;font-size:14px;padding:8px 13px}.ofc-snc-jogo .jogo-feed{padding:0 10px 14px}.snc-abas{gap:18px}.snc-abas>span{display:none}.snc-painel[data-snc-painel=partida]{grid-template-columns:1fr;gap:12px}.snc-regras,.snc-lousa{grid-template-columns:1fr;gap:16px}.snc-regras{padding:14px 3px}.snc-encaçapadas{display:flex;align-items:center;gap:12px}.snc-tubo{margin:0}.snc-ultima p{font-size:10px}.ofc-snc-menu .sala-banner.tema-sinuca{padding:24px 18px}.ofc-snc-menu .sala-banner h2{font-size:27px}}
+@media(max-width:420px){.snc-marca b{font-size:19px}.snc-menu summary span{display:none}.snc-comandos{grid-template-columns:minmax(0,1fr) 100px;gap:10px}.snc-ajustes{gap:5px}.snc-mira-fina{gap:3px}.snc-mira-fina button{min-width:28px;padding:4px}.snc-taco{min-width:44px}.snc-taco small{font-size:7px}.snc-controle-tacar>small{font-size:7px}.snc-jogador .snc-sem{display:none}.snc-grupo i{width:13px;height:13px}.snc-abas{gap:18px}}
+@media(prefers-reduced-motion:reduce){.snc-jogador{transition:none}}
+
+.ofc-snc-menu .snc-lobby-regras{margin-top:10px;max-width:620px}
+.ofc-snc-menu .snc-lobby-regras summary{width:max-content;padding:6px 0;color:#e3c68c;font:500 11px var(--mac-ui);cursor:pointer}
+.ofc-snc-menu .snc-lobby-regras p{padding:12px;border:1px solid #d6c69c26;background:#11231cdd;border-radius:4px}
+.ofc-snc-menu .sala-mesa.desafios .desafio{border-color:#b49b6330;background:#101e17;border-radius:5px}
+.ofc-snc-menu .sala-mesa.desafios .desafio.lendario{border-color:#bda46170;background:linear-gradient(90deg,#6a53242b,#101e17)}
+.ofc-snc-menu .xdz-modo button{background:#162d20;border:1px solid #9b885447;border-radius:5px;color:#b9c5ae;box-shadow:none}
+.ofc-snc-menu .xdz-modo button.sim{background:#cbb078;border-color:#e1c68d;color:#243126;box-shadow:inset 0 1px #fff3}
+.ofc-snc-menu .xdz-modo button.sim small{color:#46533b}
+
+#workflow-modal.ofc-snc-menu{width:min(900px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0}
+
+.ofc-snc-menu .sala-corpo{padding:18px 22px;background:#102019e8}
+.ofc-snc-menu .sala-lugar.chamou .sala-assento,.ofc-snc-menu .sala-lugar.aceitou .sala-assento{border-color:#c4ac6d;box-shadow:0 0 0 2px #bba36a40,0 3px 9px #0006}
+.ofc-snc-menu .sala-lugar.chamou em,.ofc-snc-menu .sala-lugar.vazio em{background:#c6ad77;color:#223025;border-radius:3px}

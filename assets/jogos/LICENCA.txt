@@ -28,3 +28,12 @@ Mesa de pôquer e mesa com tabuleiro da dama (assets/jogos/mesa-poker.webp e
 tabuleiro-dama.webp): artes enviadas pelo Paulo em 28/10/2026; fundo escurecido
 (sem marcas), contornos de lugar apagados do pano do pôquer e tabuleiro da dama
 endireitado (perspectiva).
+
+Mesa verde Vybe (assets/jogos/mesa-vybe.webp): arte enviada pelo Paulo em
+28/10/2026, convertida para WebP nas dimensões originais 2752 × 1536, sem
+esticar ou recortar. Mapa dos narizes, dentes e regiões sem apoio em
+shared/escritorio-sinuca-mesa.js, compartilhado pelo navegador e servidor.
+
+Boteco: ambiente e madeira (boteco-ambiente.webp, boteco-madeira.webp)
+criados com a ferramenta integrada de geração de imagens do Codex em
+28/10/2026 para a sinuca da Vybe. Prompts em docs/sinuca-visual.md.

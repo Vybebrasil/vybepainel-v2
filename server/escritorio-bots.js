@@ -192,8 +192,9 @@ function poker(vista, nivel) {
 // outro ponto da boca para não bater no dente).
 // O meio de cada boca, pelas bocas da arte (BOCAS do motor da sinuca): as do
 // meio ficam um pouco à esquerda do meio da tabela.
-const CACAPAS = [[-0.5, -0.5], [49.67, -1], [100.5, -0.5], [-0.5, 50.5], [49.53, 51], [100.5, 50.5]];
-const LADOS_DA_BOCA = { '-0.5,-0.5': [[1, -1], [-1, 1]], '100.5,-0.5': [[1, 1], [-1, -1]], '-0.5,50.5': [[1, 1], [-1, -1]], '100.5,50.5': [[1, -1], [-1, 1]], '49.67,-1': [[1, 0], [-1, 0]], '49.53,51': [[1, 0], [-1, 0]] };
+const CACAPAS=cacapas().map(([x,y])=>[x,y]);
+const direcoes=[[[1,-1],[-1,1]],[[1,0],[-1,0]],[[1,1],[-1,-1]],[[1,1],[-1,-1]],[[1,0],[-1,0]],[[1,-1],[-1,1]]];
+const LADOS_DA_BOCA=Object.fromEntries(CACAPAS.map((p,i)=>[p.join(','),direcoes[i]]));
 const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
 // A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
 const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);

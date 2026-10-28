@@ -14,6 +14,7 @@
 // Na saída a 8 encaçapada volta para a marca.
 import { randomInt } from 'node:crypto';
 import { erro } from './escritorio-apostas.js';
+import mesaSinuca from '../shared/escritorio-sinuca-mesa.js';
 
 // ESCALA REAL (Paulo, 28/10/2026: "simular uma partida real pra medidas de
 // bola, física, batidas de bola"). O pano tem 100 × 50 unidades e mede 1,90 m
@@ -25,49 +26,14 @@ import { erro } from './escritorio-apostas.js';
 export const METROS_POR_UNIDADE = 0.019, BOLA_MM = 54;
 export const LARGURA = 100, ALTURA = 50, R = 1.15, RAIO = Math.round((BOLA_MM / 2000 / METROS_POR_UNIDADE) * 1000) / 1000;
 const G = 9.81 / METROS_POR_UNIDADE;
-// Caçapas, bocas e borrachas medidas na arte da mesa (assets/jogos/mesa-laranja.webp,
-// 15 px por unidade), contadas do canto do pano (o nariz da borracha). A
-// borracha acaba na boca e a ponta é cortada em diagonal para o buraco (o
-// "dente" da caçapa, da boca até o fundo, atrás da linha da tabela): a bola
-// que chega torta bate no dente e volta, ou entra quicando nele. A bola cai
-// quando o centro passa por cima do buraco.
-// As bocas são as da arte, uma por uma (Paulo, 28/10/2026: "qual proporção
-// seria pra seguir a física do tamanho das bocas da mesa da imagem? pra
-// encaixar 100% no corte das bocas"). A arte não é simétrica: os cantos ficam
-// entre 1,3 e 1,56 bola de boca e as do meio com 2,1 (em cima) e 2,2 (embaixo).
-// Cada ponta é [onde acaba no nariz, onde acaba no fundo], contada ao longo da
-// tabela a partir do canto (ou do meio da tabela, nas do meio), com o fundo
-// DENTE para trás. Os buracos são [x, y, raio].
-export const BOCAS = {
- dente: 2.6,
- // [ponta na tabela de cima ou de baixo, ponta na tabela do lado]
- canto: { tl: [[2.13, 0.47], [3.0, 0.73]], tr: [[2.67, 0.67], [2.67, 0.67]], bl: [[2.67, 0.47], [3.53, 1.4]], br: [[2.67, 0.67], [3.0, 1.53]] },
- // [ponta da esquerda, ponta da direita], do meio da tabela (x = 50)
- meio: { cima: [[3.33, 2.83], [2.67, 2.17]], baixo: [[3.6, 3.27], [2.67, 2.4]] },
- buracos: [[-1.57, -1.5, 2.57], [49.6, -2.43, 2.93], [101.23, -1.5, 2.57], [-1.23, 51.23, 2.57], [49.63, 52.73, 3.03], [101.23, 51.4, 2.57]],
-};
-// As paredes (segmentos [x1, y1, x2, y2]: o nariz das seis borrachas e os doze
-// dentes) e os seis buracos [x, y, raio].
+// Seis narizes e doze dentes medidos na arte, compartilhados com a tela.
+// A bola pode ficar apoiada na beirada; não há atração para a caçapa.
+export const BOCAS={canto:mesaSinuca.canto,meio:mesaSinuca.meio,buracos:mesaSinuca.buracos};
 export function geometria() {
- const L = LARGURA, A = ALTURA, D = BOCAS.dente, c = BOCAS.canto, m = BOCAS.meio;
- const paredes = [
-  // Narizes: de cima, de baixo (cada um em duas partes, pela caçapa do meio) e dos lados.
-  [c.tl[0][0], 0, 50 - m.cima[0][0], 0], [50 + m.cima[1][0], 0, L - c.tr[0][0], 0],
-  [c.bl[0][0], A, 50 - m.baixo[0][0], A], [50 + m.baixo[1][0], A, L - c.br[0][0], A],
-  [0, c.tl[1][0], 0, A - c.bl[1][0]], [L, c.tr[1][0], L, A - c.br[1][0]],
-  // Dentes das caçapas do meio.
-  [50 - m.cima[0][0], 0, 50 - m.cima[0][1], -D], [50 + m.cima[1][0], 0, 50 + m.cima[1][1], -D],
-  [50 - m.baixo[0][0], A, 50 - m.baixo[0][1], A + D], [50 + m.baixo[1][0], A, 50 + m.baixo[1][1], A + D],
- ];
- // Dentes dos cantos: a ponta da tabela de cima/baixo e a do lado.
- for (const [k, X, Y, sx, sy] of [['tl', 0, 0, 1, 1], ['tr', L, 0, -1, 1], ['bl', 0, A, 1, -1], ['br', L, A, -1, -1]]) {
-  const [h, v] = c[k];
-  paredes.push([X + sx * h[0], Y, X + sx * h[1], Y - sy * D], [X, Y + sy * v[0], X - sx * D, Y + sy * v[1]]);
- }
- return { paredes, buracos: BOCAS.buracos.map((b) => [...b]) };
+ return {paredes:mesaSinuca.paredes.map(p=>[...p]),buracos:mesaSinuca.buracos.map(p=>[...p])};
 }
-const GEO = geometria();
-export const cacapas = () => GEO.buracos;
+const GEO=geometria();
+export const cacapas=()=>GEO.buracos;
 // FÍSICA, com os valores medidos em mesa de verdade (Alciatore, "The
 // Illustrated Principles of Pool and Billiards"). Cada bola tem a velocidade
 // (v), o giro de rolar (w: a velocidade com que rolaria sem escorregar) e o
@@ -110,13 +76,13 @@ const PULO = 0.25, E_ARDOSIA = 0.5, NARIZ = 1.27, E_FORRO = 0.3, SALTO_TABELA = 
 const E_BOLA = 0.95, MU_TABELA = 0.2, SQUIRT = (1.5 * Math.PI) / 180;
 const muBola = (desliza) => 0.01 + 0.108 * Math.exp(-1.088 * Math.abs(desliza) * METROS_POR_UNIDADE);
 const eTabela = (vn) => Math.max(0.55, 0.85 - 0.06 * Math.abs(vn) * METROS_POR_UNIDADE);
-// Força: de 0,10 m/s (encostar: a bola anda 2 a 3 cm) a 7 m/s (saída forte de
+// Força: de 0,1% (toque mínimo, sem piso de impulso) a 100% / 7 m/s (saída forte de
 // bar, 25 km/h), em curva, porque quase toda tacada de verdade fica entre
 // 0,5 e 2 m/s (Paulo, 28/10/2026: "mesmo quando pegava fraco tava parecendo
 // forte"): metade da barra dá 1,3 m/s, três quartos 3,4 m/s e só o último
 // quarto é pancada.
-export const V_MIN = 0.1 / METROS_POR_UNIDADE, V_MAX = 7 / METROS_POR_UNIDADE;
-export const velocidadeDaForca = (f) => V_MIN + (V_MAX - V_MIN) * f ** 2.5;
+export const V_MIN=mesaSinuca.velocidade(mesaSinuca.forcaMinima)/METROS_POR_UNIDADE,V_MAX=7/METROS_POR_UNIDADE;
+export const velocidadeDaForca=(f)=>mesaSinuca.velocidade(f)/METROS_POR_UNIDADE;
 const PASSO = 1 / 600, QUADRO = 20, PASSOS_MAX = 600 * 30, V_SOM = 320;
 const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
 // Par ou ímpar, a sinuca de bar do Brasil (Paulo, 27/10/2026: "tem que ser
@@ -243,13 +209,13 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
  const amostra = (n) => {
   const p = b[n], l = trilhas[n], t = Math.round(tempo * 1000);
   if (l.length && l[l.length - 4] === t) l.length -= 4;
-  l.push(t, Math.round(p.x * 10), Math.round(p.y * 10), Math.round(p.z * 10));
+  l.push(t, Number((p.x * 10).toFixed(5)), Number((p.y * 10).toFixed(5)), Math.round(p.z * 10));
   ultimaAmostra[n] = tempo;
  };
  const sumiu = (n) => { if (trilhas) { amostra(n); trilhas[n].push(Math.round(tempo * 1000) + 1, -1, -1, 0); } };
  let primeiro = null;
  const foto = () => {
-  quadros.push(b.flatMap((p) => (p ? [Math.round(p.x * 10), Math.round(p.y * 10)] : [-1, -1])));
+  quadros.push(b.flatMap((p) => (p ? [Number((p.x * 10).toFixed(5)), Number((p.y * 10).toFixed(5))] : [-1, -1])));
   const ar = b.flatMap((p, n) => (p && p.z > 0.05 ? [n, Math.round(p.z * 10)] : []));
   alturas.push(ar.length ? ar : null);
  };
@@ -287,7 +253,7 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
     if (p.s) p.s = Math.sign(p.s) * Math.max(0, Math.abs(p.s) - GIRO_PANO * PASSO);
    }
    const vel = Math.hypot(p.vx, p.vy);
-   if (!noAr && !p.queda && vel < 0.2 && Math.hypot(p.wx, p.wy) < 0.2) { p.vx = 0; p.vy = 0; p.wx = 0; p.wy = 0; p.s = 0; andando[n] = false; if (trilhas) amostra(n); continue; }
+   if (!noAr && !p.queda && vel < 0.00001 && Math.hypot(p.wx, p.wy) < 0.00001) { p.vx = 0; p.vy = 0; p.wx = 0; p.wy = 0; p.s = 0; andando[n] = false; if (trilhas) amostra(n); continue; }
    algum = true;
    p.x += p.vx * PASSO; p.y += p.vy * PASSO;
    // Por cima do buraco (e não voando por cima dele): a bola começa a cair e
@@ -377,7 +343,7 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
   }
   if (!algum) break;
  }
- const fim = { bolas: b.map((p) => (p ? [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100] : null)), caiu, fora, primeiro, quadros, alturas, eventos };
+ const fim = { bolas: b.map((p) => (p ? [p.x, p.y] : null)), caiu, fora, primeiro, quadros, alturas, eventos };
  if (trilhas) Object.assign(fim, { inicio: quadros[0], trilhas: trilhas.map((l) => (l.length ? l : null)), dur: Math.round(tempo * 1000) });
  return fim;
 }
@@ -426,7 +392,7 @@ export function vistaSinuca(m, lado, fim) {
  };
 }
 
-// pedido: { tipo: 'tacar', angulo (radianos), forca (0,05 a 1), efeito (-1 puxar a 1 seguir),
+// pedido: { tipo: 'tacar', angulo (radianos), forca (0,001 a 1), efeito (-1 puxar a 1 seguir),
 // lado (-1 a 1, efeito lateral), branca: {x, y} (com bola na mão) }.
 export function jogarSinuca(mesa, lado, pedido) {
  if (mesa.vez !== lado) throw erro('Agora é a vez da outra pessoa.', 409);
@@ -442,7 +408,7 @@ export function jogarSinuca(mesa, lado, pedido) {
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
  const angulo = Number(pedido.angulo), forca = Number(pedido.forca), efeito = Number(pedido.efeito || 0), lado2 = Number(pedido.lado || 0), elevacao = Number(pedido.elevacao || 0);
  if (!Number.isFinite(angulo) || Math.abs(angulo) > 7) throw erro('Mire de novo.');
- if (!Number.isFinite(forca) || forca < 0.05 || forca > 1) throw erro('Escolha a força da tacada.');
+ if (!Number.isFinite(forca) || forca < mesaSinuca.forcaMinima || forca > 1) throw erro('Escolha a força da tacada.');
  if (!Number.isFinite(efeito) || Math.abs(efeito) > 1 || !Number.isFinite(lado2) || Math.abs(lado2) > 1) throw erro('Efeito inválido.');
  if (!Number.isFinite(elevacao) || elevacao < 0 || elevacao > 60) throw erro('Incline o taco entre 0 e 60 graus.');
  const m = structuredClone(mesa), r0 = m.r || R;

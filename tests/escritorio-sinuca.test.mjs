@@ -243,7 +243,7 @@ const so=(o)=>{const a=Array(16).fill(null);for(const[k,v] of Object.entries(o))
 test('sinuca real: medidas, força e distância rolando',()=>{
  assert.equal(METROS_POR_UNIDADE,0.019,'pano de 1,90 m');
  assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-7)<1e-9,'saída forte a 7 m/s');
- assert.ok(Math.abs(velocidadeDaForca(0)*METROS_POR_UNIDADE-0.1)<1e-9,'encostar a 0,10 m/s');
+ assert.equal(velocidadeDaForca(0),0,'sem impulso em força zero');
  // Tacada média (2,4 m/s) percorre umas 2 a 4 mesas no pano de bar, com as voltas na tabela.
  const r=simular(so({0:[10,25]}),0,F(2.44),0,RAIO);let d=0;
  for(let i=1;i<r.quadros.length;i++)d+=Math.hypot(r.quadros[i][0]-r.quadros[i-1][0],r.quadros[i][1]-r.quadros[i-1][1])/10;
@@ -274,16 +274,16 @@ test('sinuca real: a saída espalha e derruba perto de uma bola, e a mira tem fo
  assert.ok(cai/n>0.2&&cai/n<2,`saída derrubou ${cai/n} em média`);
  // Bola reta no canto, a branca a 28 da bola e a bola a 28 do canto: a física
  // honesta pede uns 0,7° de precisão (errar 0,1° na branca já desvia a bola
- // acertada em 1°); a medida é a de mesa de verdade, não de arcade.
+ // acertada em 1°); a mesa verde tem bocas mais justas e uma janela de aproximadamente 0,4°.
  const B=[65,35],O=[85,15],C=[100,0],dx=C[0]-O[0],dy=C[1]-O[1],d=Math.hypot(dx,dy),g=[O[0]-dx/d*2*RAIO,O[1]-dy/d*2*RAIO],base=Math.atan2(g[1]-B[1],g[0]-B[0]);
  const entra=[];for(let a=-3;a<=3;a+=0.05){const r=simular(so({0:B,2:O}),base+a*Math.PI/180,F(1),0,RAIO);if(r.caiu.includes(2))entra.push(a);}
- assert.ok(entra.at(-1)-entra[0]>0.4&&entra.at(-1)-entra[0]<2,`janela de ${entra.at(-1)-entra[0]}°`);
+ assert.ok(entra.at(-1)-entra[0]>=0.35&&entra.at(-1)-entra[0]<2,`janela de ${entra.at(-1)-entra[0]}°`);
 });
-// As bocas são as da arte da mesa laranja (Paulo, 28/10/2026: "pra encaixar 100% no corte das bocas").
+// As bocas são as da arte da mesa verde (Paulo, 28/10/2026: "pra encaixar 100% no corte das bocas").
 test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com as bocas da arte',()=>{
  const g=geometria();assert.equal(g.paredes.length,18);assert.equal(g.buracos.length,6);
  const bolas=(v)=>v/(2*RAIO);
- for(const [k,[h,l]] of Object.entries(BOCAS.canto)){const b=bolas(Math.hypot(h[0],l[0]));assert.ok(b>1.25&&b<1.6,`canto ${k}: ${b.toFixed(2)} bola`);}
+ for(const [k,[h,l]] of Object.entries(BOCAS.canto)){const b=bolas(Math.hypot(h[0],l[0]));assert.ok(b>1.24&&b<1.43,`canto ${k}: ${b.toFixed(2)} bola`);}
  for(const [k,[e,d]] of Object.entries(BOCAS.meio)){const b=bolas(e[0]+d[0]);assert.ok(b>2&&b<2.3,`meio ${k}: ${b.toFixed(2)} bolas`);}
  // Cada nariz acaba onde começa o dente da mesma ponta (a borracha é fechada).
  for(const [x1,y1,x2,y2] of g.paredes.slice(0,6))assert.ok(g.paredes.slice(6).some(([a,b])=>Math.hypot(a-x1,b-y1)<1e-9)&&g.paredes.slice(6).some(([a,b])=>Math.hypot(a-x2,b-y2)<1e-9));
