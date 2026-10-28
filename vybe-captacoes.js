@@ -146,8 +146,12 @@ function agCartaoPosicionar() {
   if (!pop || pop.hidden) return;
   const ancora = [...document.querySelectorAll(`[data-ev="${CSS.escape(pop.dataset.ev || "")}"]`)].find((el) => el.offsetParent !== null);
   const estreito = window.innerWidth < 700;
-  pop.classList.toggle("folha", estreito || (!ancora && !pop._ponto));
-  if (estreito || (!ancora && !pop._ponto)) { pop.style.left = pop.style.top = ""; return; }
+  // "Novo na agenda" sem um horário clicado: janela no centro (como no desenho),
+  // não a faixa larga de baixo. No celular continua a folha.
+  const centro = !estreito && pop.dataset.ev === "novo" && !pop._ponto;
+  pop.classList.toggle("centro", centro);
+  pop.classList.toggle("folha", !centro && (estreito || (!ancora && !pop._ponto)));
+  if (centro || estreito || (!ancora && !pop._ponto)) { pop.style.left = pop.style.top = ""; return; }
   const r = ancora ? ancora.getBoundingClientRect() : pop._ponto, w = pop.offsetWidth, h = pop.offsetHeight, m = 12;
   const direita = r.right + m + w <= window.innerWidth - m;
   pop.style.left = `${Math.max(m, direita ? r.right + m : r.left - m - w)}px`;

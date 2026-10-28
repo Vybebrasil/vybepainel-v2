@@ -871,3 +871,9 @@
 .dia-grupo .dia-nome{display:grid;gap:2px;color:#fff;font:600 12.5px var(--mac-ui)}
 .dia-grupo .dia-nome small{color:#7d7870;font-size:10.5px}
 .dia-grupo li > button > .pill{justify-self:end}
+/* Mizinho · Novo na agenda como janela central, rótulos à esquerda */
+.ag-cartao.centro{position:fixed!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;width:min(520px,calc(100vw - 32px))!important;max-width:none!important;padding:22px!important;border-radius:22px!important;box-shadow:0 0 0 100vmax rgba(6,7,10,.55),0 40px 90px -30px rgba(0,0,0,.9)!important}
+.ag-cartao.centro .capt-novo h4{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em;text-transform:uppercase;margin:0 0 10px!important}
+.ag-cartao.centro .capt-novo input[name=titulo]{height:auto!important;padding:4px 0 10px!important;border:0!important;border-bottom:2px solid rgba(238,131,183,.6)!important;border-radius:0!important;background:none!important;font:700 24px var(--pv-titulo)!important;color:#fff!important}
+.ag-cartao.centro .capt-novo-tipos{grid-template-columns:repeat(3,1fr)!important;margin:14px 0!important}
+.ag-cartao.centro .capt-novo-tipo{min-height:52px}
