@@ -1,3 +1,19 @@
+# Construção livre — 28 de outubro de 2026
+
+- Entrega em `codex/construcao-livre`, reaplicada sobre `5abab81` da main.
+  Preservados jogos, taça móvel e a interface atual. Sem migração de banco.
+- Dependências instaladas pelo lockfile com `npm ci`. Os 28 testes específicos
+  do editor passaram após a integração, incluindo altura e cópia com a taça.
+- Antes da integração: `npm run check` passou com 844 testes, sintaxe e build.
+  Chrome local conferido no desktop e em 390 × 844: campo com vírgula, Shift + ↑,
+  passo 0,1 e colagem pelo botão mantendo 2,5 níveis; console sem erros.
+- Ctrl+V tem teste automatizado. A área de transferência virtual da ferramenta
+  impediu a conferência manual desse atalho no navegador.
+- Escritas verificadas somente em PGlite isolado; nenhum dado fictício em produção.
+  A prévia e o domínio oficial recebem somente conferência de leitura.
+- A publicação exige a suíte completa e o preview aprovados no commit exato;
+  o resultado final fica registrado no PR e no deployment correspondente.
+
 # Evidências de homologação — 9 de setembro de 2026
 
 Código validado: `92be304`, PR #1. A produção permanece em `309c5b4`.

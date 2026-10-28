@@ -59,14 +59,14 @@ test('rollback da finalização reverte moedas e recibo',async t=>{
  assert.equal((await carregarEconomia(sql,1)).saldo,0);
  const recibos=await sql`SELECT * FROM vybe_escritorio_demandas_premiadas WHERE conteudo_id=1`;assert.equal(recibos.length,0);
 });
-test('salvamento exige inventário do dono, não aceita classe livre ou móvel atravessando o piso',async t=>{
+test('salvamento exige inventário do dono e mantém o limite da área do quarto',async t=>{
  const {sql}=await banco(t);
  const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const pessoa={id:1};
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'compacto',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['shelves_norja',4,4,2]],versao:setup.mapa.versao}),(e)=>/Faltam no inventário: .+\(no quarto 1, você tem 0\)/.test(e.message)&&e.status===409&&e.faltam?.[0]?.classe==='shelves_norja'); // diz qual peça e quantas (Tainara, 20/10/2026)
- await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['chair_polyfon',0,0,2]],versao:setup.mapa.versao}),/fora/);
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['chair_polyfon',-1,0,2]],versao:setup.mapa.versao}),/fora/);
  await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:'sala-0',itens:[],versao:setup.mapa.versao}),/sua sala/);
  const [mapa]=await sql`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada='sala-0'`;assert.equal(mapa.itens.length,0);assert.equal(mapa.versao,setup.mapa.versao);
  assert.throws(()=>validarPisoQuarto('niveis',[['chair_polyfon',3,3,2]]),/escada/);
@@ -224,7 +224,7 @@ test('segundo andar tem planta própria, preserva térreo e compartilha unidades
  assert.equal(malicioso.sala_andares[0].sala_planta,'terracos-g');assert.equal(malicioso.sala_andares[0].quarto_configurado,true);
  await assert.rejects(configurarQuarto(sql,p,{},{planta:'quadrado-m',modelo:'vazio',andar:2}),/inválido/);
 });
-test('planta desenhada salva junto com os móveis; porta e escada não mudam; móvel não fica sem piso',async t=>{
+test('planta desenhada salva junto com os móveis; decoração pode ocupar vãos e patamares',async t=>{
  const {sql}=await banco(t);
  const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const {plantaQuarto}=await import('../server/escritorio-quartos.js');
@@ -237,14 +237,16 @@ test('planta desenhada salva junto com os móveis; porta e escada não mudam; m�
  const p=plantaQuarto('amplo',livres);
  assert.equal(p.celdas[0][0],-1);assert.equal(p.celdas[0][1],1);assert.equal(p.celdas[7][3],0,'porta fica');
  assert.equal(plantaQuarto('amplo').celdas[0][0],0,'a planta original não muda');
- await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2]],versao:setup.mapa.versao,celdas:livres}),/fora/);
+ // Móvel sobre o vão é uma escolha de construção, sem bloquear o salvamento.
  await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[],versao:setup.mapa.versao,celdas:'x'}),/inválida/);
- const r=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',4,4,2]],versao:setup.mapa.versao,celdas:livres});
+ const r=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2],['exe_table',0,0,2,0,3.5]],versao:setup.mapa.versao,celdas:livres});
  assert.equal(r.celdas,livres);
  const [perfil]=await sql`SELECT preferencias FROM vybe_escritorio_perfis WHERE pessoa_id=1`;
  assert.equal(perfil.preferencias.sala_celdas,livres);
- // Salvar só os móveis (sem celdas) mantém a planta e continua conferindo o piso.
- await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2]],versao:r.versao}),/fora/);
+ assert.equal(r.itens[1][5],3.5);
+ // Salvar só os móveis mantém a planta, inclusive quando a peça cobre níveis diferentes.
+ const outro=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['exe_table',0,0,2]],versao:r.versao});
+ assert.equal(outro.itens.length,1);
 });
 test('perfil aceita luz conhecida e não muda a planta desenhada pelo salvamento de pintura',async t=>{
  const {sql}=await banco(t);
@@ -323,7 +325,7 @@ test('post-its: qualquer um cola, só autor, dono da sala ou admin tira; present
  const inv=await sql`SELECT pessoa_id,quantidade FROM vybe_escritorio_inventario WHERE classe='shelves_norja' ORDER BY pessoa_id`;
  assert.deepEqual(inv.map(i=>[String(i.pessoa_id),Number(i.quantidade)]),[['2',1]]);
 });
-test('porta do quarto muda de lado só com o vão livre',async t=>{
+test('porta do quarto muda de lado mesmo com decoração no vão',async t=>{
  const {sql}=await banco(t);
  const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const {salvarPerfilEscritorio}=await import('../server/escritorio.js');
@@ -331,9 +333,9 @@ test('porta do quarto muda de lado só com o vão livre',async t=>{
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'amplo',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  const sala=salas.find(s=>s.pessoa_id==='1').id;
- // A porta da direita do "amplo" fica em x=7, y=3 e 4: uma cadeira ali impede.
+ // A cadeira no vão é escolha do jogador e não impede mudar a porta.
  const r=await salvarCamadaEscritorio(sql,pessoa,salas,{camada:sala,itens:[['hc26_10',7,3,0]],versao:setup.mapa.versao});
- await assert.rejects(salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala),/porta nova/);
+ assert.equal((await salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala)).sala_porta,'direita');
  await salvarCamadaEscritorio(sql,pessoa,salas,{camada:sala,itens:[['hc26_10',2,2,0]],versao:r.versao});
  const p=await salvarPerfilEscritorio(sql,1,{sala_porta:'direita'},async()=>sala);
  assert.equal(p.sala_porta,'direita');

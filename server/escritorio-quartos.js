@@ -54,12 +54,17 @@ export function itensDoModelo(planta,modelo) {
  const [dx,dy]=a;
  return (modelo?.itens || []).map(([c,x,y,...r])=>[c,x+dx,y+dy,...r]);
 }
-export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='') {
+export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='', { construcaoLivre = false } = {}) {
  const p=plantaQuarto(planta,livres);
  if (!p) throw Object.assign(new Error('Escolha uma planta válida.'),{status:400});
  for (const it of itens) {
   const d=dimensoes.get(it[0]) || {x:1,y:1};
   const w=it[3]===2||it[3]===6 ? d.y : d.x,h=it[3]===2||it[3]===6 ? d.x : d.y;
+  if (construcaoLivre) {
+   if (it[1] < 0 || it[2] < 0 || it[1]+w > p.celdas[0].length || it[2]+h > p.celdas.length)
+    throw Object.assign(new Error('Há móveis fora da área do quarto.'),{status:400});
+   continue;
+  }
   const nivel=p.celdas[Math.floor(it[2])]?.[Math.floor(it[1])];
   for(let x=Math.floor(it[1]);x<Math.ceil(it[1]+w);x++) for(let y=Math.floor(it[2]);y<Math.ceil(it[2]+h);y++) {
    const n=p.celdas[y]?.[x] ?? -1;
