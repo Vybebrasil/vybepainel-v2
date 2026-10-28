@@ -886,3 +886,15 @@
 .quem-sou-avatar{grid-row:1/4;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#ff8f4f;color:#1b0d06;font:700 13px var(--mac-ui)}
 .quem-sou-avatar img{width:100%;height:100%;object-fit:cover}
 .quem-sou-cabeca .quem-sou-avatar.quem-sou-avatar{color:#1b0d06!important;font:700 14px var(--mac-ui)!important}
+/* Cabeçalho com ícone nas abas (Diário, Performance, Automações, IA & Custos) */
+.pv-ic-aba{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent),0 10px 24px -12px var(--c)}
+.pv-ic-aba svg{width:21px;height:21px}
+.vb-cabecalho:has(.pv-ic-aba){flex-wrap:nowrap!important;align-items:center!important}
+.vb-cabecalho .pv-etiqueta{margin-bottom:2px}
+.auto-cabeca:has(.pv-ic-aba){display:flex!important;align-items:center;gap:14px}
+.auto-kicker,.ai-usage-kicker{color:#ff8f4f!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:.14em!important;text-transform:uppercase}
+.ai-usage-kicker{color:#b99cff!important}
+.ai-usage-head,.ai-usage-cab{display:flex!important;align-items:center;gap:14px}
+.ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
+.ai-usage-head.ai-usage-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important}
+.ai-usage-head > div:nth-of-type(1),.auto-cabeca > div:nth-of-type(1){flex:1;min-width:0}
