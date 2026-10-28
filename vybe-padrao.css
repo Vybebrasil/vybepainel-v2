@@ -132,6 +132,8 @@
 #mode-gate#mode-gate .identity-brand img{width:150px!important;height:auto!important;filter:drop-shadow(0 10px 30px rgba(232,96,46,.25))}
 #mode-gate#mode-gate #workspace-title,#mode-gate#mode-gate .identity-hero h1,#mode-gate#mode-gate .identity-hero h2{font:700 40px/1 var(--pv-titulo)!important;letter-spacing:-.025em!important;background:linear-gradient(180deg,#fff,#c9c3bb);-webkit-background-clip:text;background-clip:text;color:transparent!important}
 #mode-gate#mode-gate .identity-command-grid{display:grid!important;grid-template-columns:1.35fr 1fr 1fr 1fr!important;grid-template-rows:minmax(230px,auto) minmax(230px,auto)!important;grid-template-areas:none!important;gap:14px!important;max-width:none!important}
+/* na escolha de perfil (Foco) o mosaico some de vez; com opacity:0 ele ainda ocupava 500px em cima dos perfis */
+#mode-gate#mode-gate.focus-selecting .identity-command-grid,#mode-gate#mode-gate.focus-selecting .identity-hero,#mode-gate#mode-gate.focus-selecting .identity-topline,#mode-gate#mode-gate.focus-selecting .identity-footer{display:none!important}
 #mode-gate#mode-gate .identity-station[data-station]{grid-area:auto!important;position:relative;overflow:hidden;display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto auto auto;align-content:start;gap:6px;padding:18px!important;border-radius:24px!important;border:1px solid color-mix(in srgb,var(--station-color) 24%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--station-color) 22%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 24px 50px -28px rgba(0,0,0,.95)!important;text-align:left;transition:transform .18s ease,box-shadow .18s ease}
 #mode-gate#mode-gate .identity-station[data-station]:hover{transform:translateY(-3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 30px 60px -26px color-mix(in srgb,var(--station-color) 55%,#000)!important}
 #mode-gate#mode-gate .identity-station[data-station]::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--station-color),transparent);opacity:.8}
@@ -146,7 +148,7 @@
 #mode-gate#mode-gate .station-metrica b,#mode-gate#mode-gate .station-metrica strong{font:700 30px/1 var(--pv-titulo)!important;color:var(--station-color)!important;text-shadow:0 0 22px color-mix(in srgb,var(--station-color) 60%,transparent)}
 #mode-gate#mode-gate .identity-station[data-station="gestor"] .station-metrica b,#mode-gate#mode-gate .identity-station[data-station="gestor"] .station-metrica strong{font-size:56px!important}
 #mode-gate#mode-gate .station-action{position:relative;z-index:2;color:var(--station-color)!important;font:700 12px var(--mac-ui)!important}
-#mode-gate#mode-gate .identity-station[data-station="escritorio"]::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,#13151c 8%,rgba(19,21,28,.75) 45%,rgba(19,21,28,.15) 80%),url("/assets/vybelandia.webp") 55% 35%/cover no-repeat;display:block!important;opacity:1!important;width:auto!important;height:auto!important;transform:none!important;animation:none!important;border-radius:inherit!important;border:0!important}
+#mode-gate#mode-gate .identity-station[data-station="escritorio"]::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(19,21,28,.82) 0,rgba(19,21,28,.25) 30%,rgba(19,21,28,.25) 45%,rgba(19,21,28,.8) 68%,#13151c 88%),url("/assets/vybelandia.webp") 55% 35%/cover no-repeat;display:block!important;opacity:1!important;width:auto!important;height:auto!important;transform:none!important;animation:none!important;border-radius:inherit!important;border:0!important}
 #mode-gate#mode-gate .identity-station[data-station] .station-icon{margin:6px 0!important}
 #mode-gate#mode-gate .identity-station[data-station] .station-name{font:700 22px/1.1 var(--pv-titulo)!important}
 #mode-gate#mode-gate .identity-station[data-station="gestor"] .station-name{font-size:36px!important}
@@ -273,3 +275,59 @@
 .ofc-presente-movel img{height:64px;max-width:90%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5))}
 .ofc-presente-movel b{font:600 12px var(--mac-ui)}
 .ofc-presente-movel small{font-size:10.5px;color:#7d7870}
+
+/* As regras deste arquivo usam display com !important; sem esta trava elas
+   venciam o focus-hidden (que esconde o que é só do Gestor nos outros módulos)
+   e o atributo hidden, e o Painel de trabalho aparecia no fim da Direção de arte. */
+.focus-hidden.focus-hidden.focus-hidden,.workspace-heading[hidden],.resumo[hidden],.ops-command-bar[hidden],.ops-segmentos button[hidden]{display:none!important}
+
+/* "Todos os módulos" no topo laranja: texto cinza sobre laranja sumia; vira a
+   mesma cápsula escura das abas do Gestor */
+.app-header .btn-voltar-menu{height:40px!important;padding:0 16px!important;border-radius:12px!important;border:1px solid rgba(0,0,0,.2)!important;background:rgba(22,17,15,.88)!important;color:#fff!important;font:600 13px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+.app-header .btn-voltar-menu span{color:#ffb35c!important}
+.app-header .btn-voltar-menu:hover{background:#16110f!important}
+
+/* título de cada módulo na mesma fonte do Painel de trabalho */
+.da-tactical-title,.focus-hero-title,.client-module-hero h2,.p-head-title h3,.profile-heading h2{font-family:var(--pv-titulo)!important;font-weight:700!important;letter-spacing:-.015em!important}
+
+/* Escritório: a faixa de cima escurece para "Equipe conectada" e o ícone não
+   sumirem na arte. Telas baixas (notebook): a tela de módulos encolhe o cabeçalho
+   e as linhas do mosaico para caber sem rolar. */
+@media (max-height:860px){
+#mode-gate#mode-gate .identity-brand img{height:58px!important;width:auto!important}
+#mode-gate#mode-gate #workspace-title,#mode-gate#mode-gate .identity-hero h2{font-size:30px!important}
+#mode-gate#mode-gate .identity-hero p{margin-top:4px!important}
+#mode-gate#mode-gate .identity-topline{margin-bottom:0!important}
+#mode-gate#mode-gate .identity-command-grid{grid-template-rows:minmax(186px,auto) minmax(186px,auto)!important;gap:12px!important}
+#mode-gate#mode-gate .identity-station[data-station]{padding:16px 18px!important}
+#mode-gate#mode-gate .identity-station[data-station] .station-icon{width:38px;height:38px;margin:4px 0!important}
+#mode-gate#mode-gate .identity-station[data-station] .station-name{font-size:20px!important}
+#mode-gate#mode-gate .identity-station[data-station="gestor"] .station-name{font-size:30px!important}
+#mode-gate#mode-gate .identity-station[data-station="gestor"] .station-metrica b,#mode-gate#mode-gate .identity-station[data-station="gestor"] .station-metrica strong{font-size:44px!important}
+#mode-gate#mode-gate .station-metrica b,#mode-gate#mode-gate .station-metrica strong{font-size:24px!important}
+}
+
+/* a linha de "Carga da equipe" cruzava só 2/3 da tela */
+.ops-command-bar .team-load-disclosure{grid-column:1/-1}
+
+/* Cartão do evento: Reagendar / Não gravou / Apagar em pílulas, separadas do link do Google */
+.capt-rodape{flex-wrap:wrap;gap:10px!important}
+.capt-gerir{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.capt-gerir .vb-link{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#ece8e3!important;text-decoration:none!important;font:600 12px var(--mac-ui)}
+.capt-gerir .vb-link:hover{border-color:rgba(255,179,92,.5)}
+.capt-gerir .vb-link.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.3)}
+.pv-opcao > span:not(.pv-opcao-ic){display:grid;gap:2px;text-align:left}
+.pv-opcao small.capt-discreto{margin:0}
+.capt-outras{margin-top:8px}
+
+/* ---- Abas do topo que ainda estavam no estilo antigo (Demandas, Diário,
+   Performance, IA & Custos, Automações, Conta & Equipe): mesmo título, mesmos
+   botões e mesmos seletores de período do Painel de trabalho ---- */
+.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
+.auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
+.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal){height:32px!important;padding:0 12px!important;border-radius:10px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
+.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover{border-color:rgba(255,179,92,.45)!important}
+.eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
+.conta-botao.primario,.auto-novo{height:34px!important;padding:0 14px!important;border-radius:11px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.eq-linha{border-radius:14px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
+.eq-linha:hover{border-color:rgba(255,179,92,.3)!important}
