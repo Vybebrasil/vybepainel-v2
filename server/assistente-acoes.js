@@ -9,6 +9,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import vm from 'node:vm';
 import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
 import { tabelaRegras } from './assistente-regras.js';
+import { marcarEncaixe } from './assistente-encaixe.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -203,6 +204,34 @@ async function statusDoQuadro(sql, c, para) {
   return alvo;
 }
 
+// Prazo realista (Paulo, 27/10/2026): quanto esse formato costuma levar da criação até ir para aprovação, nos últimos
+// 120 dias (com a pessoa, se tiver responsável e histórico dela; senão, o time todo). Mediana de 5+ peças; prazo da
+// equipe abaixo de 60% disso vira um aviso no resumo (a criação continua permitida).
+export function avisoDePrazo({ amostras, diasDisponiveis, formato, nome }) {
+  const ds = amostras.filter((x) => Number.isFinite(x) && x >= 0).sort((a, b) => a - b);
+  if (ds.length < 5) return null;
+  const mediana = ds[Math.floor(ds.length / 2)];
+  if (diasDisponiveis >= mediana * 0.6 || mediana < 1) return null;
+  const d = Math.max(1, Math.round(mediana));
+  return `⏱️ ${formato}${nome ? ' com ' + nome : ''} costuma levar ~${d} dia(s) até ir para aprovação; esse prazo dá ${Math.max(0, diasDisponiveis)}. Quer ajustar a veiculação ou o responsável?`;
+}
+async function prazoRealista(sql, d, agora) {
+  try {
+    const amostrasDe = (mondayId) => sql`SELECT EXTRACT(EPOCH FROM (MIN(e2.em) - MIN(e1.em))) / 86400 AS dias
+      FROM vybe_conteudos c JOIN vybe_conteudo_eventos e1 ON e1.conteudo_id = c.id AND e1.tipo = 'criacao'
+      JOIN vybe_conteudo_eventos e2 ON e2.conteudo_id = c.id AND e2.tipo = 'status' AND e2.para ILIKE 'para aprova%'
+      WHERE c.formato ILIKE ${d.formato + '%'} AND e1.em >= now() - interval '120 days'
+        AND (${mondayId}::text IS NULL OR EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id = c.id AND p.monday_user_id::text = ${mondayId}::text))
+      GROUP BY c.id`;
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date(agora));
+    const diasDisponiveis = Math.round((Date.parse(d.prazo) - Date.parse(hoje)) / 864e5);
+    let amostras = d.responsavel ? (await amostrasDe(d.responsavel.monday_id)).map((x) => Number(x.dias)) : [];
+    let nome = d.responsavel ? d.responsavel.nome.split(' ')[0] : null;
+    if (amostras.length < 5) { amostras = (await amostrasDe(null)).map((x) => Number(x.dias)); nome = null; }
+    return avisoDePrazo({ amostras, diasDisponiveis, formato: d.formato, nome });
+  } catch { return null; }
+}
+
 // Criar demanda na Produção, pelo mesmo cadastro do painel. Nome no padrão "Formato - Título" (vybe-nomenclatura);
 // prazo da equipe 2 dias antes da veiculação (nunca antes de hoje). Cliente e responsável pelo nome, sem ambiguidade.
 const FORMATOS = ['Card', 'Carrossel', 'Reels', 'Story', 'Fotografia', 'Feed', 'Vídeo', 'Motion'];
@@ -233,7 +262,19 @@ async function montarCriacao(sql, pedido, agora) {
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao', 'regra', 'responsavel'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao', 'regra', 'responsavel', 'agendar_captacao'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (acao === 'agendar_captacao') {
+    // Encaixe de captação sugerido: marca na agenda (um evento por cliente). Administração ou quem faz captação.
+    const p = await pessoaAtiva(sql, pessoaId), cod = String(pedido.encaixe || '');
+    if (!/^\d{4}-\d{2}-\d{2}\|\d{1,18}@\d{2}:\d{2}-\d{2}:\d{2}(?:,\d{1,18}@\d{2}:\d{2}-\d{2}:\d{2}){0,3}$/.test(cod)) throw invalido('Encaixe inválido.');
+    if (!p.admin && !(await temFuncao(sql, p.id, 'captacao')) && !(await temFuncao(sql, p.id, 'producao'))) throw negar('Marcar captação na agenda é da administração ou de quem faz captação.');
+    const [dia, lista] = cod.split('|');
+    const itens = lista.split(',').map((x) => { const [id, h] = x.split('@'); return { id, h }; });
+    const nomes = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ANY(${itens.map((x) => x.id)}::bigint[])`;
+    const resumo = `📅 Marcar captação na agenda em ${dia.slice(8, 10)}/${dia.slice(5, 7)}:\n` + itens.map((x) => `- ${(nomes.find((n) => n.id === x.id) || {}).nome || 'cliente'} · ${x.h.replace('-', ' às ')}`).join('\n');
+    const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'agendar_captacao', v: cod, de: '', e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
+  }
   if (acao === 'regra') {
     // Regra do cliente: pela peça (cliente dela) ou pelo nome do cliente. Quem pode: administração e heads do cliente.
     const p = await pessoaAtiva(sql, pessoaId);
@@ -258,9 +299,9 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
   if (acao === 'criar') {
-    const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora);
+    const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora), aviso = await prazoRealista(sql, d, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}`;
+    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
@@ -323,6 +364,18 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
   const t = JSON.parse(Buffer.from(dados, 'base64url').toString());
   if (String(t.p) !== String(pessoaId)) throw negar('Só quem pediu pode confirmar.');
   if (!(t.e > agora)) throw invalido('A confirmação expirou. Peça de novo.');
+  if (t.a === 'agendar_captacao') {
+    const p = await pessoaAtiva(sql, pessoaId);
+    await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
+      acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
+    const hashCodigo = createHash('sha256').update(String(codigo)).digest('hex');
+    const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'agendar_captacao', ${String(t.v)})
+      ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
+    if (!nova) throw invalido('Esta confirmação já foi usada.');
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const n = await (executar?.marcarEncaixe || marcarEncaixe)(sql, quem, t.v);
+    return { feito: `✅ ${n} captação(ões) marcada(s) na agenda da Vybe. O Mizinho recebe o lembrete 1 hora e 30 minutos antes.`, link: null };
+  }
   if (t.a === 'regra') {
     const p = await pessoaAtiva(sql, pessoaId), d = t.v;
     await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,

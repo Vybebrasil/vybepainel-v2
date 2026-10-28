@@ -24,6 +24,8 @@ import { resumosDaSemana, resultadoDosPosts, diagnosticoJarvis } from './assiste
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
 import { saudeDosClientes, pecasSemBriefing } from './assistente-saude.js';
 import { compromissosProximos } from './assistente-compromissos.js';
+import { guardarIdeia } from './assistente-regras.js';
+import { encaixeCaptacao } from './assistente-encaixe.js';
 import { acompanhamento, focoDaPessoa } from './assistente-acompanhamento.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
@@ -65,6 +67,12 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
         throw erro;
       }
     }
+    // Banco de ideias: qualquer pessoa vinculada guarda uma ideia para um cliente.
+    if (consulta === 'ideia') {
+      const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
+      try { return res.status(200).json({ ok: true, ...(await guardarIdeia(criarBanco(), id, req.body?.ideia || {})) }); }
+      catch (erro) { if (erro.publica) return res.status(200).json({ ok: true, texto: '⛔ ' + erro.message }); throw erro; }
+    }
     // "O que eu faço agora?": a fila da própria pessoa, no privado ou no grupo aprovado.
     if (consulta === 'foco') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
@@ -75,7 +83,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico'].includes(consulta)) {
+    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -83,6 +91,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
       if (consulta === 'identificar') return res.status(200).json({ ok: true, pessoas: await identificarParticipantes(banco, req.body?.participantes, segredo) });
       if (consulta === 'avisos') return res.status(200).json({ ok: true, avisos: await avisosDeStatus(banco, { desde: req.body?.desde }) });
+      if (consulta === 'encaixe') return res.status(200).json({ ok: true, ...(await encaixeCaptacao(banco, req.body?.dia)) });
       if (consulta === 'diagnostico') return res.status(200).json({ ok: true, ...(await diagnosticoJarvis(banco)) });
       if (consulta === 'acompanhamento') return res.status(200).json({ ok: true, ...(await acompanhamento(banco, { tipo: req.body?.tipo, dia: req.body?.dia })) });
       if (consulta === 'resultado_posts') return res.status(200).json({ ok: true, ...(await resultadoDosPosts(banco, req.body?.dia)) });

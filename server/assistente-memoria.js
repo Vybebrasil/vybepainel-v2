@@ -4,7 +4,7 @@
 import { textoDoHistorico } from './texto-historico.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { linkDaAtividade } from './assistente-rotinas.js';
-import { regrasDoCliente } from './assistente-regras.js';
+import { regrasDoCliente, ideiasDoCliente } from './assistente-regras.js';
 
 const curto = (iso) => (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -71,5 +71,5 @@ export async function legendasAprovadas(sql, { cliente_id: clienteId, formato = 
       itens.push({ mes: p.mes.slice(0, 7), formato: peca.formato, tema: peca.tema || '', legenda: peca.legenda.slice(0, 1200) });
     }
   }
-  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)), regras: await regrasDoCliente(sql, clienteId) };
+  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)), regras: await regrasDoCliente(sql, clienteId), ideias: await ideiasDoCliente(sql, clienteId) };
 }
