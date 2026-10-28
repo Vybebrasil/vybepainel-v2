@@ -251,10 +251,38 @@ export async function verMesa(sql, pessoa, id) {
  const v = vista(j, pessoa.id, await nomesDaMesa(sql, [j]));
  // Placar dos dois neste jogo (todas as partidas terminadas entre eles; em grupo e contra bot não há).
  if (emGrupo(j) || j.bot) return v;
- const feitas = await sql`SELECT resultado, desafiante, desafiado FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='fim' AND cardinality(mais)=0
-   AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante}))`;
+ const feitas = await sql`SELECT id, resultado, motivo, moedas, desafiante, desafiado, terminado_em FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='fim' AND cardinality(mais)=0
+   AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante})) ORDER BY terminado_em DESC NULLS LAST, id DESC`;
  v.placar = placarDe(feitas.map((l) => ({ vencedor: l.resultado === 'empate' ? null : l[l.resultado] })), j.desafiante, j.desafiado);
+ // Histórico entre os dois (Paulo, 28/10/2026: "o placar... e o histórico e
+ // ranking da sinuca tá ruim, refaça, tanto o histórico entre os jogadores que
+ // estão se enfrentando quanto o ranking geral"): as últimas 8, da mais nova,
+ // com quem ganhou, o motivo e o valor; e a sequência de quem vem ganhando.
+ const motor = MOTORES[j.jogo];
+ v.historico = feitas.slice(0, 8).map((l) => ({ id: String(l.id), vencedor: l.resultado === 'empate' ? null : String(l[l.resultado]), motivo: motor?.motivos?.[l.motivo] || MOTIVOS[l.motivo] || null, moedas: l.moedas || 0, em: l.terminado_em }));
+ const seq = feitas.findIndex((l) => l.resultado === 'empate' || String(l[l.resultado]) !== String(feitas[0] && feitas[0][feitas[0].resultado]));
+ v.sequencia = feitas.length && feitas[0].resultado !== 'empate' ? { quem: String(feitas[0][feitas[0].resultado]), vitorias: seq < 0 ? feitas.length : seq } : null;
+ v.ranking = await rankingGeral(sql, j.jogo, [j.desafiante, j.desafiado]);
  return v;
+}
+// Ranking geral de um jogo (todas as partidas terminadas entre pessoas, sem
+// bot): vitórias, derrotas e a posição. Vem o top 8 e, se estiverem fora dele,
+// as pessoas pedidas (`com`), cada uma com a posição dela.
+export async function rankingGeral(sql, jogo, com = []) {
+ const linhas = await sql`SELECT desafiante, desafiado, mais, resultado FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='fim' AND bot IS NULL AND resultado IS NOT NULL`;
+ const placar = new Map(), de = (id) => placar.get(id) || placar.set(id, { id, vitorias: 0, derrotas: 0, empates: 0 }).get(id);
+ for (const l of linhas) {
+  const mesa = [l.desafiante, l.desafiado, ...(l.mais || [])].filter((p) => p != null).map(String);
+  if (l.resultado === 'empate') { for (const p of mesa) de(p).empates++; continue; }
+  const v = mesa[LADOS.indexOf(l.resultado)];
+  if (!v) continue;
+  for (const p of mesa) if (p === v) de(p).vitorias++; else de(p).derrotas++;
+ }
+ const todos = [...placar.values()].sort((a, b) => b.vitorias - a.vitorias || a.derrotas - b.derrotas || a.id.localeCompare(b.id));
+ todos.forEach((p, i) => { p.posicao = i + 1; });
+ const pedir = new Set(com.map(String)), lista = todos.filter((p, i) => i < 8 || pedir.has(p.id));
+ const nome = await nomes(sql, lista.map((p) => p.id));
+ return { total: todos.length, lista: lista.map((p) => ({ ...p, nome: nome[p.id] || 'Alguém' })) };
 }
 // Convites, partidas e o que está rolando nesta mesa (para assistir), de um jogo.
 // `aguardando`: convites em grupo que eu já aceitei, esperando os outros.

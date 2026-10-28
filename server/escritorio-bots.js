@@ -6,7 +6,7 @@
 // mostra (não espia a mão de ninguém) e devolve o pedido da jogada.
 // Ganhar de um bot dá VybeCoins e XP, com teto por dia (premioDoBot).
 import pokersolver from 'pokersolver';
-import { simular, cacapas } from './escritorio-sinuca.js';
+import { simular, cacapas, brancaPode } from './escritorio-sinuca.js';
 import { lancesDama } from './escritorio-dama.js';
 
 const { Hand } = pokersolver;
@@ -190,8 +190,10 @@ function poker(vista, nivel) {
 // Para onde mirar em cada caçapa: o meio da boca e um pouco para cada lado dela
 // (com bocas de 1,5 bola, desde 28/10/2026, a bola que chega torta precisa de
 // outro ponto da boca para não bater no dente).
-const CACAPAS = [[-0.5, -0.5], [50, -1], [100.5, -0.5], [-0.5, 50.5], [50, 51], [100.5, 50.5]];
-const LADOS_DA_BOCA = { '-0.5,-0.5': [[1, -1], [-1, 1]], '100.5,-0.5': [[1, 1], [-1, -1]], '-0.5,50.5': [[1, 1], [-1, -1]], '100.5,50.5': [[1, -1], [-1, 1]], '50,-1': [[1, 0], [-1, 0]], '50,51': [[1, 0], [-1, 0]] };
+// O meio de cada boca, pelas bocas da arte (BOCAS do motor da sinuca): as do
+// meio ficam um pouco à esquerda do meio da tabela.
+const CACAPAS = [[-0.5, -0.5], [49.67, -1], [100.5, -0.5], [-0.5, 50.5], [49.53, 51], [100.5, 50.5]];
+const LADOS_DA_BOCA = { '-0.5,-0.5': [[1, -1], [-1, 1]], '100.5,-0.5': [[1, 1], [-1, -1]], '-0.5,50.5': [[1, 1], [-1, -1]], '100.5,50.5': [[1, -1], [-1, 1]], '49.67,-1': [[1, 0], [-1, 0]], '49.53,51': [[1, 0], [-1, 0]] };
 const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14, 15], pares: [2, 4, 6, 8, 10, 12, 14], impares: [3, 5, 7, 9, 11, 13, 15] };
 // A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
 const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);
@@ -229,8 +231,9 @@ function sinuca(mesa, lado, nivel) {
  // Bola na mão: põe a branca num lugar livre perto do meio da cabeceira.
  if (mesa.bolaNaMao || !bolas[0]) {
   const livre = (x, y) => bolas.every((p, n) => !p || n === 0 || Math.hypot(p[0] - x, p[1] - y) >= 2 * R + 0.2);
-  const lugares = [[25, 25], [30, 20], [30, 30], [20, 25], [40, 25], [25, 15], [25, 35]];
-  const [x, y] = lugares.find(([a, b]) => livre(a, b)) || [25, 25];
+  // Na regra de bar, só dentro da área (atrás da linha na saída, no D depois da suicida).
+  const lugares = [[25, 25], [30, 20], [30, 30], [20, 25], [40, 25], [25, 15], [25, 35], [22, 25], [18, 25], [20, 21], [20, 29], [23, 19], [23, 31], [17, 21], [17, 29]];
+  const [x, y] = lugares.find(([a, b]) => livre(a, b) && brancaPode(mesa.bolaNaMao, a, b, R)) || bolas[0] || [20, 25];
   bolas[0] = [x, y]; pedidoBase.branca = { x, y };
  }
  const b = bolas[0], candidatas = [];
@@ -245,7 +248,7 @@ function sinuca(mesa, lado, nivel) {
  }
  const extras = nivel === 'lendario' ? 8 : nivel === 'medio' ? 6 : 2;
  for (let i = 0; i < extras; i++) candidatas.push(Math.random() * Math.PI * 2);
- const forcas = nivel === 'lendario' ? [0.35, 0.5, 0.68] : nivel === 'medio' ? [0.45, 0.65] : [0.55];
+ const forcas = nivel === 'lendario' ? [0.4, 0.55, 0.72] : nivel === 'medio' ? [0.48, 0.68] : [0.58];
  const limite = nivel === 'lendario' ? 160 : nivel === 'medio' ? 60 : 20;
  const m2 = { ...mesa, bolas }, buracos = cacapas(), g = mesa.grupos?.[lado];
  // Quanto a bola que eu queria passou perto de cair (para refinar as tacadas

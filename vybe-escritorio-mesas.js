@@ -244,6 +244,8 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
 <div class="jogo-palco">${status && jogando ? `<p class="jogo-status${eu && j.vez === eu ? " minha" : ""}" aria-live="polite">${status}</p>` : ""}${mesa}
 ${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`)) : ""}</div>
 <p class="ofc-erro" id="xdz-erro" role="alert"></p>${painel ? `<div class="jogo-feed">${painel}</div>` : ""}`, `ofc-${chave}-jogo`);
+  // O jogo pinta o que depende da tela montada (o canvas da sinuca) na mesma volta.
+  cfg.depois?.(j, s);
   mesaAcionarBot(chave);
 }
 
@@ -291,7 +293,7 @@ function jogoSelosHtml(j) {
   if (j.bot) return `<span class="jogo-selo ${j.bot.nivel === "lendario" ? "lendario" : ""}">⚔️ Desafio · ${{ facil: "Fácil", medio: "Médio", lendario: "Lendário" }[j.bot.nivel]}</span><span class="jogo-selo ouro">+${j.bot.premio.moedas} 🪙 se vencer</span>`;
   const aposta = j.moedas ? `<span class="jogo-selo ouro">🪙 ${(n * j.moedas).toLocaleString("pt-BR")} na mesa${itens ? " + itens" : ""}</span>` : itens ? '<span class="jogo-selo ouro">🎁 Itens na mesa</span>' : '<span class="jogo-selo">Amistoso</span>';
   const p = j.placar, a = j.desafiante, b = j.desafiado;
-  const placar = p && (p[String(a.id)] || p[String(b.id)] || p.empates) ? `<span class="jogo-selo">🏆 ${xadrezPrimeiroNome(a)} ${p[String(a.id)] || 0} × ${p[String(b.id)] || 0} ${xadrezPrimeiroNome(b)}</span>` : "";
+  const placar = p && (p[String(a.id)] || p[String(b.id)] || p.empates) ? `<span class="jogo-selo placar">🏆 ${xadrezPrimeiroNome(a)} ${p[String(a.id)] || 0} × ${p[String(b.id)] || 0} ${xadrezPrimeiroNome(b)}</span>` : "";
   return aposta + placar;
 }
 // Fim da partida por cima da mesa: vitória, derrota ou empate, o motivo, o prêmio e as ações.

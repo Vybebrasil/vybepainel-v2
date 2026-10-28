@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {bancoEscritorio} from './escritorio-esquema.mjs';
-import {iniciarSinuca,simular,jogarSinuca,vistaSinuca,RAIO,geometria,velocidadeDaForca,METROS_POR_UNIDADE,MEIO,CANTO} from '../server/escritorio-sinuca.js';
+import {iniciarSinuca,simular,jogarSinuca,vistaSinuca,RAIO,geometria,velocidadeDaForca,METROS_POR_UNIDADE,BOCAS} from '../server/escritorio-sinuca.js';
 
 // Mesa arrumada: só as bolas dadas, o resto já caiu.
 function mesa(bolas,extra={}){
@@ -19,7 +19,7 @@ const DIAG=Math.PI/4; // da branca em (85,35) para a bola em (95,45) e a caçapa
 const PARADA=-0.35;
 // A força da barra que dá esta velocidade (m/s), pela mesma curva do servidor:
 // os testes de física falam em velocidade, que é o que se mede numa mesa.
-const F=(mps)=>((mps-0.1)/8.9)**0.4;
+const F=(mps)=>((mps-0.1)/6.9)**0.4;
 const tacar=(m,lado,angulo,forca,branca,efeito=PARADA)=>jogarSinuca(m,lado,{tipo:'tacar',angulo,forca,efeito,...(branca?{branca}:{})});
 
 test('sinuca: triângulo com 15 bolas, a 8 no meio e um canto de cada grupo',()=>{
@@ -103,7 +103,16 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
  const l=await x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0.01,forca:0.9});
  assert.equal(l.jogo.n,1);
  const visto=await x.verMesa(sql,outro,d.id);
- assert.ok(visto.mesa.recentes.at(-1).quadros.length>2,'o outro recebe os quadros para animar');assert.equal(visto.mesa.recentes.at(-1).n,visto.mesa.n);
+ assert.ok(visto.mesa.recentes.at(-1).trilhas.filter(Boolean).length>2,'o outro recebe as trilhas para animar');assert.equal(visto.mesa.recentes.at(-1).n,visto.mesa.n);
+ // Quem desistir perde: o placar, o histórico entre os dois e o ranking geral aparecem na próxima.
+ await x.acaoMesa(sql,quem,{id:d.id,acao:'desistir'});
+ const d2=await x.desafiarMesa(sql,{id:1},salas,{para:'3',...MESA,chave:'sinuca-0002'});
+ const r2=await x.responderMesa(sql,{id:3},salas,{id:d2.id,acao:'aceitar'});
+ const v2=await x.verMesa(sql,{id:1},d2.id);
+ assert.equal(v2.historico.length,1);assert.equal(v2.historico[0].vencedor,String(outro.id));assert.equal(v2.historico[0].motivo,'Desistência');
+ assert.deepEqual(v2.sequencia,{quem:String(outro.id),vitorias:1});
+ assert.equal(v2.ranking.total,2);assert.deepEqual(v2.ranking.lista.map((p)=>[p.id,p.vitorias,p.derrotas,p.posicao]),[[String(outro.id),1,0,1],[String(quem.id),0,1,2]]);
+ assert.ok(v2.ranking.lista[0].nome);assert.equal(r2.jogo.estado,'jogando');
 });
 
 test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',()=>{
@@ -233,12 +242,12 @@ test('sinuca: caçapas medidas na arte da mesa e as tacadas recentes',()=>{
 const so=(o)=>{const a=Array(16).fill(null);for(const[k,v] of Object.entries(o))a[k]=v;return a;};
 test('sinuca real: medidas, força e distância rolando',()=>{
  assert.equal(METROS_POR_UNIDADE,0.019,'pano de 1,90 m');
- assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-9)<1e-9,'saída forte a 9 m/s');
+ assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-7)<1e-9,'saída forte a 7 m/s');
  assert.ok(Math.abs(velocidadeDaForca(0)*METROS_POR_UNIDADE-0.1)<1e-9,'encostar a 0,10 m/s');
- // Tacada média (2,4 m/s) percorre umas 3 a 5 mesas, com as voltas na tabela.
+ // Tacada média (2,4 m/s) percorre umas 2 a 4 mesas no pano de bar, com as voltas na tabela.
  const r=simular(so({0:[10,25]}),0,F(2.44),0,RAIO);let d=0;
  for(let i=1;i<r.quadros.length;i++)d+=Math.hypot(r.quadros[i][0]-r.quadros[i-1][0],r.quadros[i][1]-r.quadros[i-1][1])/10;
- assert.ok(d>300&&d<500,`tacada média andou ${(d/100).toFixed(1)} mesas`);
+ assert.ok(d>200&&d<400,`tacada média andou ${(d/100).toFixed(1)} mesas`);
  // Tacada fraca anda pouco.
  const f=simular(so({0:[50,25]}),0,F(0.19),0,RAIO).bolas[0][0]-50;assert.ok(f>2&&f<20,`tacada fraca andou ${f}`);
  // A mais fraca encosta: anda poucos centímetros.
@@ -246,7 +255,7 @@ test('sinuca real: medidas, força e distância rolando',()=>{
 });
 test('sinuca real: a regra dos 30° e o arrasto do corte',()=>{
  // Branca rolando, corte de meia bola: ela sai a uns 30° da linha da mira.
- const r=simular(so({0:[10,25],5:[40,25+RAIO]}),0,0.3,0,RAIO),q=r.quadros;
+ const r=simular(so({0:[10,25],5:[40,25+RAIO]}),0,F(0.8),0,RAIO),q=r.quadros;
  const k=q.findIndex((f)=>Math.hypot(f[10]/10-40,f[11]/10-(25+RAIO))>0.5),a=q[k+25],c=q[k+5];
  const branca=Math.atan2(a[1]-c[1],a[0]-c[0])*180/Math.PI,bola=Math.atan2(a[11]-c[11],a[10]-c[10])*180/Math.PI;
  assert.ok(branca<-27&&branca>-36,`branca saiu a ${branca}°`);
@@ -267,12 +276,17 @@ test('sinuca real: a saída espalha e derruba perto de uma bola, e a mira tem fo
  // honesta pede uns 0,7° de precisão (errar 0,1° na branca já desvia a bola
  // acertada em 1°); a medida é a de mesa de verdade, não de arcade.
  const B=[65,35],O=[85,15],C=[100,0],dx=C[0]-O[0],dy=C[1]-O[1],d=Math.hypot(dx,dy),g=[O[0]-dx/d*2*RAIO,O[1]-dy/d*2*RAIO],base=Math.atan2(g[1]-B[1],g[0]-B[0]);
- const entra=[];for(let a=-3;a<=3;a+=0.05){const r=simular(so({0:B,2:O}),base+a*Math.PI/180,0.4,0,RAIO);if(r.caiu.includes(2))entra.push(a);}
+ const entra=[];for(let a=-3;a<=3;a+=0.05){const r=simular(so({0:B,2:O}),base+a*Math.PI/180,F(1),0,RAIO);if(r.caiu.includes(2))entra.push(a);}
  assert.ok(entra.at(-1)-entra[0]>0.4&&entra.at(-1)-entra[0]<2,`janela de ${entra.at(-1)-entra[0]}°`);
 });
-test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com a boca do canto de 1,5 bola',()=>{
+// As bocas são as da arte da mesa laranja (Paulo, 28/10/2026: "pra encaixar 100% no corte das bocas").
+test('sinuca real: a geometria tem 18 paredes (6 borrachas e 12 dentes) e 6 buracos, com as bocas da arte',()=>{
  const g=geometria();assert.equal(g.paredes.length,18);assert.equal(g.buracos.length,6);
- const boca=Math.hypot(CANTO.boca,CANTO.boca);assert.ok(Math.abs(boca/(2*RAIO)-1.5)<0.01,`boca do canto de ${boca/(2*RAIO)} bolas`);
+ const bolas=(v)=>v/(2*RAIO);
+ for(const [k,[h,l]] of Object.entries(BOCAS.canto)){const b=bolas(Math.hypot(h[0],l[0]));assert.ok(b>1.25&&b<1.6,`canto ${k}: ${b.toFixed(2)} bola`);}
+ for(const [k,[e,d]] of Object.entries(BOCAS.meio)){const b=bolas(e[0]+d[0]);assert.ok(b>2&&b<2.3,`meio ${k}: ${b.toFixed(2)} bolas`);}
+ // Cada nariz acaba onde começa o dente da mesma ponta (a borracha é fechada).
+ for(const [x1,y1,x2,y2] of g.paredes.slice(0,6))assert.ok(g.paredes.slice(6).some(([a,b])=>Math.hypot(a-x1,b-y1)<1e-9)&&g.paredes.slice(6).some(([a,b])=>Math.hypot(a-x2,b-y2)<1e-9));
 });
 test('sinuca real: o arrasto do corte é maior devagar, e o efeito lateral desvia a branca (squirt)',()=>{
  // Corte de meia bola com a branca escorregando (perto): a bola acertada sai a menos de 30°, mais ainda devagar.
@@ -303,10 +317,10 @@ test('sinuca real: bola voando passa a tabela e sai da mesa; volta para a marca 
 });
 test('sinuca real: bola rápida demais sacode na boca; caçapa do meio na medida oficial; pano de bar e de torneio',()=>{
  let cai=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,F(5),0,RAIO).caiu.includes(0))cai++;
- assert.equal(cai,13,'a 5 m/s a reta no canto entra');
- let forte=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,1,0,RAIO).caiu.includes(0))forte++;
- assert.ok(forte<13,'a 9 m/s ela bate no fundo e às vezes volta');
- assert.ok(Math.abs((2*MEIO.boca)/(2*RAIO)-1.5)<0.01,'boca do meio de 1,5 bola');
+ assert.ok(cai>=10,`a 5 m/s a reta no canto (o mais apertado, 1,3 bola) entra quase sempre: ${cai} de 13`);
+ let forte=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,F(9),0,RAIO).caiu.includes(0))forte++;
+ assert.ok(forte<cai,'a 9 m/s ela bate no fundo e volta mais vezes');
+ assert.ok((BOCAS.meio.cima[0][0]+BOCAS.meio.cima[1][0])/(2*RAIO)>2,'boca do meio da arte, de 2 bolas e pouco');
  assert.equal(iniciarSinuca('desafiante').pano,'bar');
  const anda=(pano)=>simular(so({0:[10,25]}),0,F(0.6),0,RAIO,0,{pano}).bolas[0][0];
  assert.ok(anda('torneio')>anda('bar')+3,'pano de torneio é mais rápido');
