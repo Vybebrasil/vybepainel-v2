@@ -18,7 +18,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
-import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
+import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes.js';
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
 import { resumosDaSemana, resultadoDosPosts, diagnosticoJarvis } from './assistente-hub.js';
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
@@ -77,6 +77,12 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     if (consulta === 'foco') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
       return res.status(200).json({ ok: true, ...(await focoDaPessoa(criarBanco(), id, new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia'}).format(new Date()))) });
+    }
+    // Opções do cadastro guiado (grupos, status, captação e pessoas da Produção): qualquer pessoa vinculada.
+    if (consulta === 'opcoes_criacao') {
+      const banco = criarBanco();
+      await autorizarConversa(banco, jid, contexto, segredo, config);
+      return res.status(200).json({ ok: true, ...(await opcoesDeCriacao(banco)) });
     }
     if (consulta === 'minhas_demandas') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);

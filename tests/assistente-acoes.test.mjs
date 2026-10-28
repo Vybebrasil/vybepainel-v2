@@ -332,3 +332,31 @@ test('marcar encaixe de captação: administração (ou captação) com SIM; có
     assert.match(ok.feito, /1 captação\(ões\) marcada\(s\) na agenda/);
   } finally { await db.close(); }
 });
+
+test('criar guiado (28/10/2026): grupo, status, captação, vários responsáveis e prazo conferidos no quadro; SIM cria com eles e marca a captação', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`INSERT INTO vybe_clientes VALUES(8,'Antonov');ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true;
+      CREATE TABLE vybe_captacao(chave text,rotulo text,monday_index int);INSERT INTO vybe_captacao VALUES('agendar','Agendar Captação',1),('feita','Captação Feita',2);
+      CREATE TABLE vybe_grupos(board_id bigint,grupo_id text,titulo text,cor text,ordem int);INSERT INTO vybe_grupos VALUES(${PROD},'g_stories','Stories','blue',1),(${PROD},'g_reels','Reels','red',2);`);
+    const agora = Date.parse('2026-10-28T15:00:00Z');
+    const base = { acao: 'criar', titulo: 'Horário do dia 2', formato: 'story', cliente: 'Antonov', veiculacao: '2026-10-29' };
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, status: 'voando' }, segredo, agora), /Status desconhecido: "voando". Opções: Pode Fazer/);
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, grupo: 'Nada' }, segredo, agora), /Grupo desconhecido.*Opções: Stories, Reels/);
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, prazo: '2026-10-30' }, segredo, agora), /não pode passar da veiculação/);
+    const p = await prepararAcao(sql, 2, { ...base, grupo: 'stories', status: 'pode fazer', captacao: 'Agendar Captação', responsavel: 'Jady', responsaveis: ['Tainara'], prazo: '2026-10-28' }, segredo, agora);
+    assert.match(p.resumo, /^🆕 Criar na Produção:\n\*Story - Horário do dia 2\* \(Antonov\)\nveicula 29\/10 · prazo da equipe 28\/10 · Jady, Tainara\n📁 Stories · 🚦 Pode Fazer · 🎬 Agendar Captação/);
+    const criados = [], escolhas = [];
+    const ex = { criarConteudo: async (s, quem, dados) => { criados.push(dados); return { conteudo_id: 77 }; },
+      trocarEscolha: async (s, quem, a) => { escolhas.push(a); } };
+    const ok = await confirmarAcao(sql, 2, p.codigo, segredo, { agora, executar: ex });
+    assert.equal(ok.feito, '✅ Criada: *Story - Horário do dia 2* (Antonov).');
+    assert.deepEqual(criados[0], { titulo: 'Story - Horário do dia 2', cliente: 'Antonov', formato: 'Story', veiculacao: '2026-10-29', prazo: '2026-10-28',
+      status: 'pode_fazer', grupo_id: 'g_stories', responsaveis: ['100482777', '80146924'] });
+    assert.deepEqual(escolhas, [{ item: 'vybe:77', campo: 'captacao', para: 'agendar' }]);
+    // Captação que falha não desfaz a peça: avisa para marcar no painel.
+    const p2 = await prepararAcao(sql, 2, { ...base, captacao: 'feita' }, segredo, agora);
+    const ok2 = await confirmarAcao(sql, 2, p2.codigo, segredo, { agora, executar: { criarConteudo: async () => ({ conteudo_id: 78 }), trocarEscolha: async () => { throw new Error('x'); } } });
+    assert.match(ok2.feito, /A captação \(Captação Feita\) não foi marcada; marque no painel/);
+  } finally { await db.close(); }
+});

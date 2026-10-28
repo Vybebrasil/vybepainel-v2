@@ -10,6 +10,7 @@ import vm from 'node:vm';
 import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
 import { tabelaRegras } from './assistente-regras.js';
 import { marcarEncaixe } from './assistente-encaixe.js';
+import { gruposDoQuadro } from './grupos.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -248,15 +249,56 @@ async function montarCriacao(sql, pedido, agora) {
   const clientes = await sql`SELECT nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
   const cliente = clientes.length === 1 ? clientes[0] : clientes.find((c) => normal(c.nome) === normal(pedido.cliente));
   if (!String(pedido.cliente || '').trim() || !cliente) throw invalido(clientes.length ? `Mais de um cliente com esse nome: ${clientes.map((c) => c.nome).join(', ')}.` : 'Não achei esse cliente.');
-  let responsavel = null;
-  if (String(pedido.responsavel || '').trim()) {
-    const ps = await sql`SELECT nome, monday_user_id::text AS monday_id FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL AND nome ILIKE ${String(pedido.responsavel).trim() + '%'} LIMIT 5`;
-    responsavel = ps.length === 1 ? ps[0] : null;
-    if (!responsavel) throw invalido(ps.length ? `Mais de uma pessoa com esse nome: ${ps.map((p) => p.nome).join(', ')}.` : 'Não achei esse responsável.');
+  // Um ou mais responsáveis (o cadastro guiado pergunta "pra quem?"), cada um pelo nome, sem ambiguidade.
+  const nomes = [...new Set([pedido.responsavel, ...(Array.isArray(pedido.responsaveis) ? pedido.responsaveis : [])]
+    .map((n) => String(n || '').trim()).filter(Boolean))].slice(0, 5);
+  const responsaveis = [];
+  for (const n of nomes) {
+    const ps = await sql`SELECT nome, monday_user_id::text AS monday_id FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL AND nome ILIKE ${n + '%'} LIMIT 5`;
+    const r = ps.length === 1 ? ps[0] : ps.find((x) => normal(x.nome) === normal(n));
+    if (!r) throw invalido(ps.length ? `Mais de uma pessoa com esse nome: ${ps.map((p) => p.nome).join(', ')}.` : `Não achei o responsável "${n.slice(0, 40)}".`);
+    if (!responsaveis.some((x) => x.monday_id === r.monday_id)) responsaveis.push(r);
+  }
+  const responsavel = responsaveis[0] || null;
+  // Cadastro guiado (Paulo, 28/10/2026: "qual grupo, qual status, qual status de captação, pra quem, qual veiculação,
+  // qual prazo"): cada campo só entra quando vem no pedido e é conferido contra o que existe no quadro de Produção.
+  let prazoFinal = prazo;
+  if (pedido.prazo) {
+    const pz = String(pedido.prazo);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(pz) || pz < hoje) throw invalido('Diga o prazo da equipe (hoje ou depois).');
+    if (pz > veiculacao) throw invalido('O prazo da equipe não pode passar da veiculação.');
+    prazoFinal = pz;
+  }
+  const status = pedido.status ? opcaoDaLista(await sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${BOARD_PRODUCAO_CRIACAO}`, pedido.status, 'Status') : null;
+  const captacao = pedido.captacao ? opcaoDaLista(await sql`SELECT chave, rotulo FROM vybe_captacao`, pedido.captacao, 'Captação') : null;
+  let grupo = null;
+  if (pedido.grupo) {
+    const g = opcaoDaLista((await gruposDoQuadro(sql, BOARD_PRODUCAO_CRIACAO)).map((x) => ({ chave: x.grupo_id, rotulo: x.titulo })), pedido.grupo, 'Grupo');
+    grupo = { id: g.chave, titulo: g.rotulo };
   }
   // Briefing junto (áudio do cliente pedindo peça nova, 27/10/2026): vai no campo de briefing da peça criada.
   const briefing = String(pedido.briefing || '').trim().slice(0, 3000);
-  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo, responsavel, ...(briefing ? { briefing } : {}) };
+  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo: prazoFinal, responsavel,
+    ...(responsaveis.length > 1 ? { responsaveis } : {}), ...(status ? { status } : {}), ...(captacao ? { captacao } : {}), ...(grupo ? { grupo } : {}),
+    ...(briefing ? { briefing } : {}) };
+}
+const BOARD_PRODUCAO_CRIACAO = 7829537690;
+// Escolha pela chave ou pelo rótulo, sem acento e sem caixa; fora da lista, diz as opções.
+function opcaoDaLista(lista, valor, nome) {
+  const v = normal(valor);
+  const achada = lista.find((x) => normal(x.chave) === v) || lista.find((x) => normal(x.rotulo) === v);
+  if (!achada) throw invalido(`${nome} desconhecido: "${String(valor).slice(0, 40)}". Opções: ${lista.map((x) => x.rotulo).join(', ')}.`);
+  return { chave: achada.chave, rotulo: achada.rotulo };
+}
+// Opções do cadastro guiado no WhatsApp: as mesmas listas que o painel usa para a Produção.
+export async function opcoesDeCriacao(sql) {
+  const [grupos, status, captacao, pessoas] = await Promise.all([
+    gruposDoQuadro(sql, BOARD_PRODUCAO_CRIACAO).then((l) => l.map((g) => ({ chave: g.grupo_id, rotulo: g.titulo }))).catch(() => []),
+    sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${BOARD_PRODUCAO_CRIACAO} ORDER BY ordem, monday_index`.catch(() => []),
+    sql`SELECT chave, rotulo FROM vybe_captacao ORDER BY monday_index`.catch(() => []),
+    sql`SELECT nome FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL ORDER BY nome`.catch(() => []),
+  ]);
+  return { grupos, status, captacao, pessoas: pessoas.map((p) => p.nome) };
 }
 
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
@@ -301,7 +343,9 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
   if (acao === 'criar') {
     const p = await pessoaAtiva(sql, pessoaId), d = await montarCriacao(sql, pedido, agora), aviso = await prazoRealista(sql, d, agora);
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
-    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${d.responsavel ? ' · ' + d.responsavel.nome.split(' ')[0] : ' · sem responsável'}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
+    const quem = (d.responsaveis || (d.responsavel ? [d.responsavel] : [])).map((x) => x.nome.split(' ')[0]).join(', ');
+    const campos = [d.grupo && '📁 ' + d.grupo.titulo, d.status && '🚦 ' + d.status.rotulo, d.captacao && '🎬 ' + d.captacao.rotulo].filter(Boolean).join(' · ');
+    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${quem ? ' · ' + quem : ' · sem responsável'}${campos ? '\n' + campos : ''}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
@@ -399,9 +443,16 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
     const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, formato: d.formato, veiculacao: d.veiculacao, prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
-      responsaveis: d.responsavel ? [d.responsavel.monday_id] : [] });
+      ...(d.status ? { status: d.status.chave } : {}), ...(d.grupo ? { grupo_id: d.grupo.id } : {}),
+      responsaveis: (d.responsaveis || (d.responsavel ? [d.responsavel] : [])).map((x) => x.monday_id) });
     const ref = r?.item_id || (r?.conteudo_id ? 'vybe:' + r.conteudo_id : null);
-    return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).`, link: ref ? linkDaAtividade(ref) : null };
+    // Captação pela mesma troca do painel (chave, rótulo e gatilhos), logo depois de criar.
+    let semCaptacao = '';
+    if (d.captacao && ref) {
+      try { await fazer.trocarEscolha(sql, quem, { item: ref, campo: 'captacao', para: d.captacao.chave }); }
+      catch { semCaptacao = `\n⚠️ A captação (${d.captacao.rotulo}) não foi marcada; marque no painel.`; }
+    }
+    return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).${semCaptacao}`, link: ref ? linkDaAtividade(ref) : null };
   }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, 'vybe:' + t.c);
   // A peça mudou entre o pedido e o SIM: não executa sobre um estado que a pessoa não viu.
