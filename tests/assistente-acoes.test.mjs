@@ -298,3 +298,37 @@ test('comentário e alteração marcam quem faz o próximo passo (responsáveis,
     assert.doesNotMatch(ok2.feito, /Próximo passo/);
   } finally { await db.close(); }
 });
+
+test('prazo realista: mediana do formato (com a pessoa, se houver histórico); prazo curto vira aviso', async () => {
+  const { avisoDePrazo } = await import('../server/assistente-acoes.js');
+  assert.equal(avisoDePrazo({ amostras: [3, 4, 4, 5, 6], diasDisponiveis: 1, formato: 'Reels', nome: 'Jady' }), '⏱️ Reels com Jady costuma levar ~4 dia(s) até ir para aprovação; esse prazo dá 1. Quer ajustar a veiculação ou o responsável?');
+  assert.equal(avisoDePrazo({ amostras: [3, 4, 4, 5, 6], diasDisponiveis: 3, formato: 'Reels', nome: 'Jady' }), null);
+  assert.equal(avisoDePrazo({ amostras: [3, 4], diasDisponiveis: 0, formato: 'Reels' }), null); // pouco histórico: não opina
+});
+
+test('banco de ideias: guarda pelo nome do cliente e a pauta lê as recentes', async () => {
+  const { db, sql } = await banco();
+  try {
+    const { guardarIdeia, ideiasDoCliente } = await import('../server/assistente-regras.js');
+    await db.exec('ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true');
+    assert.deepEqual(await ideiasDoCliente(sql, 7), []);
+    const r = await guardarIdeia(sql, 2, { cliente: 'hebra', texto: 'bastidores da tosa' });
+    assert.equal(r.texto, '💡 Ideia guardada para *Hebravet*: “bastidores da tosa”. Entra na próxima pauta do cliente.');
+    assert.deepEqual(await ideiasDoCliente(sql, 7), ['bastidores da tosa']);
+    await assert.rejects(() => guardarIdeia(sql, 2, { cliente: 'Nada', texto: 'x y z' }), /Não achei o cliente/);
+  } finally { await db.close(); }
+});
+
+test('marcar encaixe de captação: administração (ou captação) com SIM; código validado', async () => {
+  const { db, sql } = await banco();
+  try {
+    await assert.rejects(() => prepararAcao(sql, 2, { acao: 'agendar_captacao', encaixe: '2026-10-30|7@10:00-11:00' }, segredo), /administração ou de quem faz captação/);
+    await assert.rejects(() => prepararAcao(sql, 1, { acao: 'agendar_captacao', encaixe: 'qualquer coisa' }, segredo), /Encaixe inválido/);
+    const a = await prepararAcao(sql, 1, { acao: 'agendar_captacao', encaixe: '2026-10-30|7@10:00-11:00' }, segredo);
+    assert.match(a.resumo, /Marcar captação na agenda em 30\/10:\n- Hebravet · 10:00 às 11:00/);
+    const marcados = [];
+    const ok = await confirmarAcao(sql, 1, a.codigo, segredo, { executar: { marcarEncaixe: async (s, quem, cod) => { marcados.push(cod); return 1; } } });
+    assert.deepEqual(marcados, ['2026-10-30|7@10:00-11:00']);
+    assert.match(ok.feito, /1 captação\(ões\) marcada\(s\) na agenda/);
+  } finally { await db.close(); }
+});
