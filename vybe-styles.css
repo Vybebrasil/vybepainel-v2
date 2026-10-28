@@ -12935,3 +12935,84 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .trc-placar.tentos em {justify-self:center;color:#9d8f78}
 @media (prefers-reduced-motion: reduce) {.trc-feltro.tranco,.trc-balao,.trc-tentos g.novo,.trc-tentos g.novo ellipse {animation:none}}
 .dam-tomada {display:grid;place-items:center;border-radius:50%}
+/* Pôquer no jeito das salas online (28/10/2026): até 8 lugares em volta do feltro, fichas na mesa, falas dos clientes. */
+.pkr-salao {position:relative;height:clamp(420px,calc(100vh - 300px),580px);border-radius:18px;background:radial-gradient(ellipse at 50% 40%,#2a2f3b,#101218 72%);overflow:hidden}
+.pkr-feltro {position:absolute;left:9%;right:9%;top:13%;bottom:13%;border-radius:999px;background:radial-gradient(ellipse at 50% 42%,#2fa866,#1d7a45 55%,#11512c);box-shadow:0 0 0 12px #5a3416,0 0 0 15px #2c1808,0 0 0 16px #e0b45c55,inset 0 0 40px #0008,0 18px 40px #000a}
+.pkr-marca {position:absolute;left:50%;top:22%;transform:translateX(-50%);color:#ffffff14;font:900 34px var(--mac-ui);letter-spacing:.3em;pointer-events:none}
+.pkr-salao .pkr-centro {position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:6px;color:#d9f2e3;font-size:11px;z-index:1}
+.pkr-salao .pkr-comunitarias {display:flex;gap:6px}
+.pkr-salao .pkr-pote {display:flex;align-items:center;gap:8px;margin:0;padding:3px 14px 3px 6px;border-radius:999px;background:#000a;color:#e9f7ee;font:600 13px var(--mac-ui)}
+.pkr-salao .pkr-pote b {color:#ffd56a;font-size:16px}
+.pkr-salao .pkr-pote > i {display:none}
+.pkr-pilha {position:relative;display:inline-block;width:22px;height:22px}
+.pkr-pilha i {position:absolute;left:0;bottom:calc(var(--k) * 3px);width:22px;height:22px;border-radius:50%;background:url(/assets/jogos/fichas.webp) calc(var(--f) * 25%) 0 / 500% 100% no-repeat;box-shadow:0 2px 2px #0008}
+.pkr-lugar {position:absolute;display:grid;justify-items:center;gap:3px;width:140px;transform:translate(-50%,-50%);z-index:2}
+.pkr-lugar .pkr-quem {position:relative;display:flex;align-items:center;gap:8px;min-width:118px;padding:4px 12px 4px 4px;border-radius:999px;background:linear-gradient(#1b1f29,#0b0d12);border:1.5px solid #ffffff24;box-shadow:0 6px 14px #000a}
+.pkr-lugar .pkr-quem img,.pkr-lugar .pkr-quem .pkr-sem,.pkr-cliente {width:40px;height:40px;border-radius:50%;object-fit:contain;image-rendering:pixelated;background:#ffffff12;flex:0 0 auto}
+.pkr-cliente {display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 70%,#fff),var(--c) 60%,color-mix(in srgb,var(--c) 70%,#000));color:#fff;font:900 14px var(--mac-ui);font-style:normal;text-shadow:0 1px 2px #0008;box-shadow:inset 0 0 0 2px #ffffff40}
+.sala-assento .pkr-cliente {width:56px;height:56px;font-size:18px}
+.pkr-lugar .pkr-quem div {display:grid;line-height:1.2;min-width:0}
+.pkr-lugar .pkr-quem b {color:#fff;font:700 12px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:78px}
+.pkr-lugar .pkr-quem span {color:#ffd56a;font:800 13px var(--mac-ui)}
+.pkr-lugar.vez .pkr-quem {border-color:#ffb15c;box-shadow:0 0 0 3px #ff954855,0 0 22px #ff954866}
+.pkr-lugar.fora .pkr-quem,.pkr-lugar.fora .pkr-cartas-lugar {opacity:.45}
+.pkr-lugar.ganhou .pkr-quem {border-color:#ffd56a;box-shadow:0 0 0 3px #ffd56a88,0 0 28px #ffd56a88}
+.pkr-lugar .vez-prazo {position:absolute;top:-8px;right:-8px;margin:0}
+.pkr-cartas-lugar {display:flex;gap:2px;min-height:18px;margin-bottom:-14px;z-index:-1}
+.pkr-lugar.eu .pkr-cartas-lugar {margin-bottom:-10px;gap:4px}
+.pkr-carta.pequena {--w:26px}
+.pkr-legenda {padding:1px 9px;border-radius:999px;background:#000c;color:#e9eef7;font:800 10px var(--mac-ui);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.pkr-legenda.largou {color:#ff8a7a}
+.pkr-legenda.aumentou,.pkr-legenda.apostou {background:#b8501a}
+.pkr-legenda.all-in {background:#c8202f}
+.pkr-legenda.pagou {background:#1f5fbf}
+.pkr-legenda.mesa {background:#3b4252}
+.pkr-lugar.ganhou .pkr-legenda {background:linear-gradient(#ffd56a,#e6a21a);color:#2a1800}
+.pkr-fala {position:absolute;bottom:calc(100% + 6px);left:50%;width:max-content;max-width:230px;margin:0;padding:8px 12px;border-radius:14px;background:#fff;color:#1b1b1b;font:600 12px/1.3 var(--mac-ui);transform:translateX(-50%);box-shadow:0 8px 20px #000a;animation:pkr-fala .35s cubic-bezier(.3,1.5,.5,1) both;z-index:5}
+.pkr-fala::after {content:"";position:absolute;left:50%;top:100%;border:7px solid transparent;border-top-color:#fff;transform:translateX(-50%)}
+.pkr-lugar.em-cima .pkr-fala {bottom:auto;top:calc(100% + 6px)}
+.pkr-lugar.em-cima .pkr-fala::after {top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#fff}
+@keyframes pkr-fala {from {opacity:0;transform:translateX(-50%) scale(.6)}}
+.pkr-salao .pkr-aposta {position:absolute;right:auto;bottom:auto;display:flex;align-items:center;gap:4px;padding:2px 9px 2px 3px;border-radius:999px;background:#000b;color:#fff;font:800 11px var(--mac-ui);transform:translate(-50%,-50%);z-index:1}
+.pkr-salao .pkr-aposta > i {display:none}
+.pkr-aposta.entrou {animation:pkr-aposta .45s cubic-bezier(.2,.8,.3,1) both}
+@keyframes pkr-aposta {from {transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.6);opacity:.2}}
+.pkr-salao .pkr-dealer {position:absolute;bottom:auto;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#ddd);color:#111;font:900 11px var(--mac-ui);transform:translate(-50%,-50%);box-shadow:0 2px 5px #0009;z-index:1}
+.pkr-dando {position:absolute;left:50%;top:50%;width:26px;height:36px;margin:-18px 0 0 -13px;border-radius:3px;background:url(/assets/jogos/cartas.webp) 0 100% / 1300% 500% no-repeat;box-shadow:0 3px 6px #0008;opacity:0;animation:pkr-dando .5s var(--t) cubic-bezier(.2,.7,.3,1) both;z-index:3;pointer-events:none}
+@keyframes pkr-dando {0% {opacity:1;left:50%;top:50%;transform:rotate(0)} 90% {opacity:1} 100% {opacity:0;left:calc(50% + var(--x) * 1%);top:calc(50% + var(--y) * 1%);transform:rotate(360deg)}}
+.pkr-voo {position:absolute;transform:translate(-50%,-50%);animation:pkr-voo .6s var(--t) cubic-bezier(.5,0,.3,1) both;z-index:4;pointer-events:none}
+.pkr-voo.ganho {animation-duration:.9s}
+@keyframes pkr-voo {to {translate:calc(var(--x) * 1cqw) calc(var(--y) * 1cqh);opacity:.2}}
+.pkr-salao {container-type:size}
+.pkr-salao.nova .pkr-lugar.eu .pkr-carta {animation:pkr-dar .45s .5s cubic-bezier(.2,.8,.3,1) both}
+.pkr-tenho {margin:8px 0 0;text-align:center;color:#c9d1dd;font-size:12px}
+.pkr-barra {display:flex;flex-wrap:wrap;align-items:stretch;justify-content:center;gap:8px;margin-top:8px;padding:10px;border-radius:16px;background:linear-gradient(#1b1f29,#12151c);border:1px solid #ffffff12}
+.pkr-botao {min-width:120px;padding:12px 18px;border:0;border-radius:12px;color:#fff;font:800 14px var(--mac-ui);cursor:pointer;box-shadow:0 4px 0 #0006,inset 0 1px 0 #ffffff30;text-transform:uppercase;letter-spacing:.03em}
+.pkr-botao b {display:block;font-size:13px;color:#ffe9b8}
+.pkr-botao:active {transform:translateY(2px);box-shadow:0 2px 0 #0006}
+.pkr-botao:disabled {opacity:.5;cursor:default}
+.pkr-botao.largar {background:linear-gradient(#d24a3a,#a3271b)}
+.pkr-botao.passar,.pkr-botao.pagar {background:linear-gradient(#2f8fe0,#1c5fae)}
+.pkr-botao.aumentar {background:linear-gradient(#36b56a,#1f8547)}
+.pkr-barra .pkr-aumentar {display:grid;gap:6px;flex:1 1 260px;max-width:420px;padding:0;background:none}
+.pkr-atalhos {display:flex;gap:4px}
+.pkr-atalhos button {flex:1;padding:5px 0;border:1px solid #ffffff22;border-radius:8px;background:#ffffff0c;color:#e9eef7;font:700 11px var(--mac-ui);cursor:pointer}
+.pkr-atalhos button:hover {background:#ffffff1c}
+.pkr-valor {display:flex;align-items:center;gap:6px}
+.pkr-valor input[type=range] {flex:1;accent-color:#36b56a}
+.pkr-valor input[type=number] {width:80px;padding:5px 8px;border:1px solid #ffffff20;border-radius:8px;background:#0b1118;color:#fff;font:700 13px var(--mac-ui)}
+.pkr-falas {display:grid;gap:4px;margin:0 0 6px;padding:0;list-style:none}
+.pkr-falas li {padding:6px 10px;border-radius:10px;background:#ffffff0a;color:#d7deeb;font-size:12px}
+.pkr-falas b {color:#ffd56a}
+.pkr-cli-lista {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:240px;overflow:auto}
+.pkr-cli {display:grid;grid-template-columns:36px 1fr;column-gap:8px;align-items:center;padding:6px 8px;border:1.5px solid #ffffff14;border-radius:12px;background:#ffffff08;color:#e9eef7;text-align:left;cursor:pointer}
+.pkr-cli i {grid-row:span 2;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--c);color:#fff;font:900 12px var(--mac-ui);font-style:normal}
+.pkr-cli b {font:700 12px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkr-cli small {color:#9da4b4;font-size:10px}
+.pkr-cli.sim {border-color:#36b56a;background:#36b56a22}
+.pkr-cli:disabled {opacity:.4;cursor:default}
+.pkr-cli-rodape {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.pkr-cli-rodape label {display:flex;align-items:center;gap:6px;color:#c9d1dd;font:600 12px var(--mac-ui)}
+.pkr-cli-rodape input {width:80px;padding:5px 8px;border:1px solid #ffffff20;border-radius:8px;background:#0b1118;color:#fff}
+@media(max-width:760px){.pkr-lugar{width:96px}.pkr-lugar .pkr-quem{min-width:0;padding-right:8px}.pkr-lugar .pkr-quem img,.pkr-lugar .pkr-quem .pkr-sem,.pkr-lugar .pkr-cliente{width:28px;height:28px;font-size:10px}.pkr-lugar .pkr-quem b{max-width:52px;font-size:10px}.pkr-carta.pequena{--w:18px}.pkr-salao .pkr-comunitarias .pkr-carta{--w:30px}.pkr-botao{min-width:90px;padding:10px}}
+@media (prefers-reduced-motion:reduce){.pkr-dando,.pkr-voo{display:none}.pkr-aposta.entrou,.pkr-fala{animation:none}}

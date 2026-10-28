@@ -93,6 +93,8 @@ function mesaPrazoHtml(ate) {
   return `<time class="sala-prazo${ms < 60000 ? " pouco" : ""}" data-ate="${new Date(ate).getTime()}"><i aria-hidden="true"></i>${xadrezTempo(ms)}</time>`;
 }
 function mesaPessoaChipHtml(p, estado) {
+  // Cliente na mesa de pôquer: as iniciais na cor dele.
+  if (p.cliente) return `<span class="sala-lugar ${estado}"><span class="sala-assento"><i class="pkr-cliente" style="--c:${safeText(p.cor || "#555")}">${safeText(p.iniciais || "?")}</i></span><b>${xadrezPrimeiroNome(p)}</b><em>Cliente</em></span>`;
   const u = escritorioCabecaUrl(p.id);
   const selo = { aceitou: "Pronto", espera: "Esperando", chamou: "Anfitrião" }[estado] || "";
   return `<span class="sala-lugar ${estado}"><span class="sala-assento">${u ? `<img src="${safeText(u)}" alt="" width="56" height="56">` : `<i>${safeText(String(p.nome || "?")[0])}</i>`}</span><b>${xadrezPrimeiroNome(p)}</b>${selo ? `<em>${selo}</em>` : ""}</span>`;
@@ -139,7 +141,7 @@ ${mesaLugaresHtml(j)}<p class="sala-dica">${j.grupo ? "Começa quando todos esti
   // Mesa vazia: eu sentado e os lugares vagos esperando gente.
   const meu = (escritorio.base?.equipe || []).find((p) => String(p.id) === eu) || { id: eu, nome: "Você" };
   const vagos = cfg.grupo ? cfg.grupo - 1 : cfg.escolher ? 1 : 1;
-  const extras = mesaDesafiosHtml(cfg) + mesaTemporadaHtml(cfg);
+  const extras = (typeof pokerClientesHtml === "function" ? pokerClientesHtml(cfg) : "") + mesaDesafiosHtml(cfg) + mesaTemporadaHtml(cfg);
   const vazia = !convites && !aguardando && !enviados ? `<section class="sala-mesa"><div class="sala-topo"><b>Monte a sua mesa</b></div>
 <div class="sala-lugares">${mesaPessoaChipHtml({ ...meu, nome: "Você" }, "chamou")}${Array.from({ length: vagos }, () => mesaLugarVagoHtml(chamar)).join("")}</div></section>` : "";
   xadrezModal(`${mesaBannerHtml(cfg, cfg.escolher ? "Mesa de Jogos" : `Mesa de ${cfg.nome.toLowerCase()}`, cfg.nota)}
