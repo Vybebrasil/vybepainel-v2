@@ -135,21 +135,6 @@ async function sairEditorEscritorio() {
   escritorioRecolocarPlacaDaTaca();
   renderEscritorio();
 }
-// Peça que ficou fora da área do quarto (por um caminho que não confere o
-// limite) volta para a borda antes de salvar, com o tamanho dela: o
-// servidor recusava o salvamento inteiro por causa de uma peça.
-async function escritorioTrazerParaDentro(e) {
-  const c = escritorioCantoCamada(e.camada);
-  if (!c?.w || !c?.h) return 0;
-  let n = 0;
-  for (const it of e.itens) {
-    const d = escritorioEhParede(it[0]) ? { x: 1, y: 1 } : await escritorio.mapa?.medidas?.(it[0], it[3]).catch(() => null) || { x: 1, y: 1 };
-    const w = Math.max(1, Math.round(d.x || 1)), h = Math.max(1, Math.round(d.y || 1));
-    const nx = Math.min(Math.max(0, it[1]), Math.max(0, c.w - w)), ny = Math.min(Math.max(0, it[2]), Math.max(0, c.h - h));
-    if (nx !== it[1] || ny !== it[2]) { it[1] = nx; it[2] = ny; n++; }
-  }
-  return n;
-}
 // A taça da Copa no editor: peça do quarto que o dono move e gira, mas que não
 // é dele (não vende, não guarda, não duplica, não troca e não conta no inventário).
 function escritorioEhTaca(it) { return it?.[6]?.copa === true; }
@@ -177,9 +162,6 @@ async function salvarEditorEscritorio() {
   try {
     // Conferir construção é consultivo: composição e disponibilidade da arte
     // nunca impedem salvar. Permissões, inventário e versão ficam na API.
-    const foraDoQuarto = await escritorioTrazerParaDentro(e);
-    if (escritorio.edicao !== e) return;
-    if (foraDoQuarto) escritorioAviso(`${foraDoQuarto === 1 ? "Uma peça estava" : `${foraDoQuarto} peças estavam`} fora do quarto e ${foraDoQuarto === 1 ? "voltou" : "voltaram"} para a borda.`);
     const taca = e.itens.find(escritorioEhTaca), itens = escritorioSemTaca(e.itens);
     if (taca) e.decoracao.sala_taca = `${taca[1]},${taca[2]},${taca[3] || 0}`;
     // A planta desenhada vai junto com os móveis (o servidor confere os dois).
@@ -220,6 +202,10 @@ async function salvarEditorEscritorio() {
   }
 }
 // Converte ladrilho do mapa ↔ coordenadas da camada.
+// No próprio quarto a peça pode ir para fora do piso (Paulo, 28/10/2026: "o
+// jogador é livre pra colocar peça onde quiser"), até um quarto inteiro em
+// volta (o mesmo limite do servidor).
+const ESCRITORIO_FOLGA_QUARTO = 24;
 function escritorioCantoCamada(camada) {
   const quarto=escritorioAmbienteDoQuarto(camada);
   const a = quarto?.x1 != null ? quarto : ESCRITORIO_PLANTA.ambientes.find(a=>a.id===camada);
@@ -272,8 +258,8 @@ async function escritorioCabe(classe, lx, ly, dir, ignorar = null, colisao = tru
   const c = escritorioCantoCamada(ed.camada);
   const d = await escritorio.mapa.medidas(classe, dir);
   if (escritorio.edicao !== ed) return false;
-  if (!(lx >= 0 && ly >= 0 && lx + d.x <= c.w && ly + d.y <= c.h)) return false;
-  const ambiente=escritorioAmbienteDoQuarto(ed.camada);
+  const ambiente=escritorioAmbienteDoQuarto(ed.camada), folga = ambiente ? ESCRITORIO_FOLGA_QUARTO : 0;
+  if (!(lx >= -folga && ly >= -folga && lx + d.x <= c.w + folga && ly + d.y <= c.h + folga)) return false;
   // O jogador decide o desenho: pode sobrepor, atravessar patamares e
   // construir sobre vãos. O limite continua sendo a área do próprio quarto.
   if (ambiente) return true;
@@ -646,7 +632,8 @@ async function empurrarSelecionadoEscritorio(dx, dy, fino = false) {
   if (fino) {
     const c = escritorioCantoCamada(e.camada), r = (v) => Math.round(v * 100) / 100;
     const nx = r(it[1] + dx * 0.25), ny = r(it[2] + dy * 0.25);
-    if (nx < 0 || ny < 0 || nx > c.w - 1 || ny > c.h - 1) return;
+    const folga = escritorioAmbienteDoQuarto(e.camada) ? ESCRITORIO_FOLGA_QUARTO : 0;
+    if (nx < -folga || ny < -folga || nx > c.w - 1 + folga || ny > c.h - 1 + folga) return;
     // Peça no alto mantém a altura ao andar (altura livre, como no Habbo).
     const ox = it[1], oy = it[2];
     it[1] = nx; it[2] = ny;
@@ -1838,7 +1825,7 @@ function acompanharSelecaoEditorEscritorio() {
   if (barra.dataset.chave !== chave) {
     barra.dataset.chave = chave;
     barra.innerHTML = grupo === 1 && escritorioEhTaca(it)
-      ? `<span class="ofc-sel-linha">${giros === 1 ? "" : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)">↻ Girar <kbd>R</kbd></button>`}<span class="ofc-sel-nota">Taça da Copa: arraste para mudar de lugar. Ela fica no quarto (não vende nem guarda).</span></span>`
+      ? `<span class="ofc-sel-linha">${giros === 1 ? "" : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)">↻ Girar <kbd>R</kbd></button>`}<span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><span class="ofc-sel-nota">Taça da Copa: arraste para mudar de lugar. Ela fica no quarto (não vende nem guarda).</span></span>`
       : grupo > 1
       ? `<span class="ofc-grupo-n">${grupo} móveis</span>${escritorioAlturaSelecionadoHtml()}<span class="ofc-fino" role="group" aria-label="Mover o grupo ¼ de ladrilho"><button type="button" onclick="moverGrupoEscritorio(-0.25,0)" aria-label="Para cima e esquerda">↖</button><button type="button" onclick="moverGrupoEscritorio(0,-0.25)" aria-label="Para cima e direita">↗</button><button type="button" onclick="moverGrupoEscritorio(0,0.25)" aria-label="Para baixo e esquerda">↙</button><button type="button" onclick="moverGrupoEscritorio(0.25,0)" aria-label="Para baixo e direita">↘</button></span><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar para colar em outra sala (Ctrl+C)">Copiar</button><button type="button" onclick="salvarConjuntoEscritorio()">Guardar conjunto</button><button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()">Apagar todos</button>`
       : escritorioEhParede(it[0])
@@ -1848,7 +1835,7 @@ function acompanharSelecaoEditorEscritorio() {
       // Construção como jogo (26/10/2026): o que se faz toda hora fica à vista
       // (girar, copiar, trocar, guardar, altura e cor); ajustes secundários
       // ficam em Ajustes, numa segunda linha.
-      : `<span class="ofc-sel-linha">${typeof ESCRITORIO_GATILHOS !== "undefined" && ESCRITORIO_GATILHOS[it[0]] ? '<button type="button" onclick="configurarGatilhoEscritorio()" title="Escolher móveis, texto ou tempo">Configurar</button>' : ""}${["trofeu", "cadeado"].includes(mapaFisica(it[0]).logica) ? '<button type="button" onclick="gravarTrofeuEscritorio()" title="Nome, data e dedicatória, como no Habbo">Gravar</button>' : ""}${mapaFisica(it[0]).logica === "fundo" ? '<button type="button" onclick="corDoFundoEscritorio()" title="A cor do vazio em volta do quarto, como o fundo colorido do Habbo">Cor do fundo</button>' : ""}${mapaFisica(it[0]).logica === "manequim" ? '<button type="button" onclick="guardarVisualManequimEscritorio()" title="Guarda o seu visual atual no manequim">Guardar meu visual</button>' : ""}${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar <kbd>R</kbd></button>`}${escritorioOutroIgualHtml(it[0])}<button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button>${/_recolorable$/.test(it[0]) ? `<span class="ofc-cores-bloco" role="group" aria-label="Cor do bloco">${MAPA_CORES_BLOCO.map((cor, i) => `<button type="button" style="--cor:${cor}" aria-label="Cor ${i + 1}" aria-pressed="${it[4] >= 100 && Math.floor((it[4] - 100) / 5) === i}" onclick="corBlocoEscritorio(${i})"></button>`).join("")}</span>` : ""}${escritorioAlturaSelecionadoHtml()}<button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" aria-expanded="${Boolean(e.selAjustes)}" onclick="escritorio.edicao.selAjustes=!escritorio.edicao.selAjustes;document.getElementById('office-editor-sel').dataset.chave='';acompanharSelecaoEditorEscritorio()">Ajustes ${e.selAjustes ? "▴" : "▾"}</button>${typeof escritorioVendaSelecionadoHtml === "function" ? escritorioVendaSelecionadoHtml(it[0]) : ""}<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="${e.camada === 'geral' ? 'Tirar do mapa' : 'Guardar no inventário'} (Delete)">${e.camada === 'geral' ? 'Remover' : 'Guardar'} <kbd>Del</kbd></button></span>${e.selAjustes ? `<span class="ofc-sel-linha ofc-sel-ajustes"><button type="button" onclick="noTopoEscritorio()" title="Põe a peça em cima do que está embaixo dela">No topo</button><button type="button" onclick="noChaoEscritorio()" ${it[5] ? "" : "disabled"} title="Volta a peça para o chão">No chão</button><small>Ajuste fino</small><span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar no lugar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" onclick="escritorioBloquearSelecionado()" title="Trava a peça para não mexer sem querer">${e.bloqueados?.has(it) ? "Desbloquear" : "Bloquear"}</button><button type="button" onclick="escritorioSelecionarSobreposto()" title="Escolhe a outra peça que está no mesmo ladrilho">Outra peça neste lugar</button><button type="button" onclick="escritorio.edicao.moverClique=true;escritorioAviso('Clique no piso para mover a peça selecionada. Esc cancela.')">Mover pelo clique</button></span>` : ""}`;
+      : `<span class="ofc-sel-linha">${typeof ESCRITORIO_GATILHOS !== "undefined" && ESCRITORIO_GATILHOS[it[0]] ? '<button type="button" onclick="configurarGatilhoEscritorio()" title="Escolher móveis, texto ou tempo">Configurar</button>' : ""}${["trofeu", "cadeado"].includes(mapaFisica(it[0]).logica) ? '<button type="button" onclick="gravarTrofeuEscritorio()" title="Nome, data e dedicatória, como no Habbo">Gravar</button>' : ""}${mapaFisica(it[0]).logica === "fundo" ? '<button type="button" onclick="corDoFundoEscritorio()" title="A cor do vazio em volta do quarto, como o fundo colorido do Habbo">Cor do fundo</button>' : ""}${mapaFisica(it[0]).logica === "manequim" ? '<button type="button" onclick="guardarVisualManequimEscritorio()" title="Guarda o seu visual atual no manequim">Guardar meu visual</button>' : ""}${giros === 1 ? '<button type="button" disabled title="Este móvel não gira">Não gira</button>' : `<button type="button" class="ofc-sel-principal" onclick="girarSelecionadoEscritorio()" title="Girar (R)${giros ? ` · ${giros} lados` : ""}">↻ Girar <kbd>R</kbd></button>`}${escritorioOutroIgualHtml(it[0])}<button type="button" onclick="trocarModeloEditorEscritorio()" title="Trocar por outro modelo no mesmo lugar">Trocar</button>${/_recolorable$/.test(it[0]) ? `<span class="ofc-cores-bloco" role="group" aria-label="Cor do bloco">${MAPA_CORES_BLOCO.map((cor, i) => `<button type="button" style="--cor:${cor}" aria-label="Cor ${i + 1}" aria-pressed="${it[4] >= 100 && Math.floor((it[4] - 100) / 5) === i}" onclick="corBlocoEscritorio(${i})"></button>`).join("")}</span>` : ""}${escritorioAlturaSelecionadoHtml()}<span class="ofc-fino" role="group" aria-label="Ajuste fino (Alt + setas)" title="Ajuste fino: um quarto de ladrilho (Alt + setas)"><button type="button" onclick="empurrarSelecionadoEscritorio(-1,0,true)" aria-label="Ajuste fino para cima e esquerda">↖</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,-1,true)" aria-label="Ajuste fino para cima e direita">↗</button><button type="button" onclick="empurrarSelecionadoEscritorio(0,1,true)" aria-label="Ajuste fino para baixo e esquerda">↙</button><button type="button" onclick="empurrarSelecionadoEscritorio(1,0,true)" aria-label="Ajuste fino para baixo e direita">↘</button></span><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" aria-expanded="${Boolean(e.selAjustes)}" onclick="escritorio.edicao.selAjustes=!escritorio.edicao.selAjustes;document.getElementById('office-editor-sel').dataset.chave='';acompanharSelecaoEditorEscritorio()">Ajustes ${e.selAjustes ? "▴" : "▾"}</button>${typeof escritorioVendaSelecionadoHtml === "function" ? escritorioVendaSelecionadoHtml(it[0]) : ""}<button type="button" class="perigo" onclick="apagarSelecionadoEscritorio()" title="${e.camada === 'geral' ? 'Tirar do mapa' : 'Guardar no inventário'} (Delete)">${e.camada === 'geral' ? 'Remover' : 'Guardar'} <kbd>Del</kbd></button></span>${e.selAjustes ? `<span class="ofc-sel-linha ofc-sel-ajustes"><button type="button" onclick="noTopoEscritorio()" title="Põe a peça em cima do que está embaixo dela">No topo</button><button type="button" onclick="noChaoEscritorio()" ${it[5] ? "" : "disabled"} title="Volta a peça para o chão">No chão</button><button type="button" onclick="duplicarSelecionadoEscritorio()" title="Duplicar no lugar usando uma unidade livre (Ctrl+D)">Duplicar guardado</button><button type="button" onclick="copiarSelecaoEscritorio()" title="Copiar (Ctrl+C)">Copiar</button><button type="button" onclick="escritorioBloquearSelecionado()" title="Trava a peça para não mexer sem querer">${e.bloqueados?.has(it) ? "Desbloquear" : "Bloquear"}</button><button type="button" onclick="escritorioSelecionarSobreposto()" title="Escolhe a outra peça que está no mesmo ladrilho">Outra peça neste lugar</button><button type="button" onclick="escritorio.edicao.moverClique=true;escritorioAviso('Clique no piso para mover a peça selecionada. Esc cancela.')">Mover pelo clique</button></span>` : ""}`;
   }
   if(e.bloqueados?.has(it))barra.querySelectorAll('button').forEach(b=>{b.disabled=b.textContent!=='Desbloquear'&&b.textContent!=='Outra peça neste lugar';});
   // Ações em posição estável no rodapé: não seguem nem encobrem a peça.

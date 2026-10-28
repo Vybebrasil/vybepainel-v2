@@ -66,7 +66,7 @@ test('salvamento exige inventário do dono e mantém o limite da área do quarto
  const setup=await configurarQuarto(sql,pessoa,{},{planta:'compacto',modelo:'vazio'});
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:2,nome:'Jady'}]);
  await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['shelves_norja',4,4,2]],versao:setup.mapa.versao}),(e)=>/Faltam no inventário: .+\(no quarto 1, você tem 0\)/.test(e.message)&&e.status===409&&e.faltam?.[0]?.classe==='shelves_norja'); // diz qual peça e quantas (Tainara, 20/10/2026)
- await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['chair_polyfon',20,0,2]],versao:setup.mapa.versao}),/fora da área do quarto \(chair_polyfon em 20, 0\)/); // diz qual peça e onde
+ await assert.rejects(salvarCamadaEscritorio(sql,pessoa,salas,{camada:'sala-0',itens:[['chair_polyfon',60,0,2]],versao:setup.mapa.versao}),/longe demais do quarto: chair_polyfon/); // fora do piso pode; longe demais, não
  await assert.rejects(salvarCamadaEscritorio(sql,{id:2},salas,{camada:'sala-0',itens:[],versao:setup.mapa.versao}),/sua sala/);
  const [mapa]=await sql`SELECT itens,versao FROM vybe_escritorio_mapa WHERE camada='sala-0'`;assert.equal(mapa.itens.length,0);assert.equal(mapa.versao,setup.mapa.versao);
  assert.throws(()=>validarPisoQuarto('niveis',[['chair_polyfon',3,3,2]]),/escada/);
