@@ -3734,13 +3734,15 @@ function abrirTvEscritorio(m) {
   // preciso); Foco e Praça não têm conversa.
   const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco");
   escritorio.tvAtual = m;
-  openWorkflowModal(`<div class="workflow-kicker">TV</div><h2 class="workflow-title">O que passar?</h2>
-<form class="ofc-gatilho" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
-<label>Vídeo do YouTube (link)<input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
-<div class="workflow-actions"><button type="submit" class="workflow-primary">Passar o vídeo</button>
-<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}>Compartilhar minha tela</button>
-<button type="button" class="workflow-secondary" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar</button></div>
-${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}</form>`);
+  // Como no desenho: a tela da TV em cima, as duas opções em cartões (vídeo ou
+  // a própria tela), o link embaixo e Desligar à esquerda.
+  openWorkflowModal(`<div class="workflow-kicker"><span>TV da sala</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div><h2 class="workflow-title">O que passar?</h2><p class="workflow-copy">Todo mundo que está na sala assiste junto.</p>
+<form class="ofc-tvform" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
+<div class="ofc-tv-tela" aria-hidden="true"><span>▶</span><small>A TV está desligada</small></div>
+<div class="ofc-tv-opcoes"><button type="button" class="ofc-tv-opcao on" onclick="this.form.elements.url.focus()"><span class="ofc-tv-ic">▶</span><b>Vídeo do YouTube</b><i aria-hidden="true">✓</i></button><button type="button" class="ofc-tv-opcao tela" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}><span class="ofc-tv-ic">▭</span><b>Compartilhar minha tela</b></button></div>
+<label class="ofc-tv-link"><span class="sr-only">Link do vídeo do YouTube</span><input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
+${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}
+<div class="workflow-actions"><button type="button" class="ofc-tv-desligar" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar a TV</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Passar o vídeo</button></div></form>`);
 }
 function escritorioIdYoutube(url) {
   const m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(String(url || "").trim());

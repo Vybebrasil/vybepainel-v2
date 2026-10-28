@@ -888,13 +888,15 @@ async function carregarPostitsEscritorio() {
 }
 function abrirNovoPostitEscritorio() {
   if (!escritorio.quarto) return escritorioAviso("Na Praça não há parede: entre numa sala para colar um post-it.");
-  openWorkflowModal(`<div class="workflow-kicker">Post-it</div><h2 class="workflow-title">Colar na parede</h2>
-<form class="ofc-postit-form" onsubmit="event.preventDefault();colarPostitEscritorio(this)">
-<label>Recado<textarea name="texto" maxlength="280" rows="4" required placeholder="Ex.: reunião com o cliente às 15h"></textarea></label>
-<fieldset><legend>Cor</legend>${ESCRITORIO_CORES_POSTIT.map(([id, nome], i) => `<label class="ofc-postit-cor" data-cor="${id}"><input type="radio" name="cor" value="${id}"${i ? "" : " checked"}><span>${nome}</span></label>`).join("")}</fieldset>
-<p class="ofc-nota">Vai para a parede mais perto de você. Todos que entrarem na sala veem.</p>
+  // Como no desenho: o papel ao lado, na cor escolhida, com o recado escrito.
+  const autor = String(escritorio.base?.equipe?.find((x) => String(x.id) === String(escritorio.base?.eu))?.nome || "").split(" ")[0];
+  openWorkflowModal(`<div class="workflow-kicker"><span>Recado na parede</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div><h2 class="workflow-title">Colar um post-it</h2><p class="workflow-copy">Vai para a parede mais perto de você. Quem entrar na sala vê.</p>
+<form class="ofc-postit-form" onsubmit="event.preventDefault();colarPostitEscritorio(this)" oninput="const p=this.querySelector('.ofc-postit-papel');p.querySelector('span').textContent=this.elements.texto.value||'Seu recado aqui';p.dataset.cor=this.elements.cor.value">
+<div class="ofc-postit-papel" data-cor="${safeText(ESCRITORIO_CORES_POSTIT[0]?.[0] || "")}" aria-hidden="true"><span>Seu recado aqui</span><small>— ${safeText(autor || "você")}</small></div>
+<label>O recado<textarea name="texto" maxlength="280" rows="4" required placeholder="Ex.: reunião com o cliente às 15h"></textarea></label>
+<fieldset><legend>Cor do papel</legend>${ESCRITORIO_CORES_POSTIT.map(([id, nome], i) => `<label class="ofc-postit-cor" data-cor="${id}"><input type="radio" name="cor" value="${id}"${i ? "" : " checked"}><span>${nome}</span></label>`).join("")}</fieldset>
 <p class="ofc-erro" id="office-postit-erro" role="alert"></p>
-<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button class="workflow-primary">Colar</button></div></form>`);
+<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button class="workflow-primary">Colar na parede</button></div></form>`);
   setTimeout(() => document.querySelector(".ofc-postit-form textarea")?.focus(), 50);
 }
 async function colarPostitEscritorio(form) {
@@ -969,10 +971,19 @@ async function abrirPresenteEscritorio(id) {
   const nome = (classe) => { const m = (typeof escritorioCatalogo !== "undefined" && escritorioCatalogo || []).find((x) => x.classe === classe); return m ? escritorioNomeMovel(m) : classe; };
   const primeiro = String(pessoa.nome).split(" ")[0];
   openWorkflowModal(`<div class="workflow-kicker"><span>Presente</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Dar um móvel para ${safeText(primeiro)}</h2>
-${lista.length ? `<p class="workflow-copy">Escolha um móvel guardado (fora do quarto). Ele sai do seu inventário e vai para o da pessoa.</p><div class="ofc-presente-grade">${lista.map((i) => `<button type="button" class="ofc-presente-movel" onclick="darPresenteEscritorio('${safeText(String(id))}','${safeText(i.classe)}',this)">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(i.classe) : ""}<b>${safeText(nome(i.classe))}</b><small>${i.livres > 1 ? `${i.livres} guardados` : "1 guardado"}</small></button>`).join("")}</div>`
+${lista.length ? `<p class="workflow-copy">Escolha um móvel guardado (fora do quarto). Ele sai do seu inventário e vai para o da pessoa.</p><div class="ofc-presente-grade">${lista.map((i) => `<button type="button" class="ofc-presente-movel" onclick="escolherPresenteNaGrade(this,'${safeText(String(id))}','${safeText(i.classe)}','${safeText(nome(i.classe)).replace(/'/g, "")}')">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml(i.classe) : ""}<b>${safeText(nome(i.classe))}</b><small>${i.livres > 1 ? `${i.livres} guardados` : "1 guardado"}</small></button>`).join("")}</div>`
     : `<p class="ofc-nota">Você não tem móveis guardados para dar. Os essenciais grátis não contam; para dar um móvel que está no quarto, guarde-o antes (editor → Guardar).</p>`}
 <p class="ofc-erro" id="office-presente-erro" role="alert"></p>
-<div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button></div>`);
+<div class="workflow-actions"><small class="bastao-onde">A pessoa recebe no sino e no inventário.</small><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>${lista.length ? `<button type="button" id="presente-dar" class="workflow-primary" disabled>Escolha um móvel</button>` : ""}</div>`);
+}
+// Toque no móvel marca; o botão do rodapé diz qual vai e entrega.
+function escolherPresenteNaGrade(cartao, para, classe, nome) {
+  cartao.parentElement.querySelectorAll('.ofc-presente-movel').forEach((c) => c.classList.toggle('on', c === cartao));
+  const dar = document.getElementById('presente-dar');
+  if (!dar) return darPresenteEscritorio(para, classe, cartao);
+  dar.disabled = false;
+  dar.textContent = `Dar ${nome} 🎁`;
+  dar.onclick = () => darPresenteEscritorio(para, classe, dar);
 }
 async function darPresenteEscritorio(para, classe, botao) {
   if (botao) botao.disabled = true;
