@@ -190,7 +190,7 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
       const dimensoes=await dimensoesDosMoveis(limpos);
       const livres = celdas !== undefined ? celdas : decoracao.sala_celdas;
       conferiuPlanta = true;
-      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres);
+      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres,{construcaoLivre:true});
       if (celdas !== undefined && celdas !== (decoracao.sala_celdas || "")) novaPlanta = { preferencias: p.preferencias, andar: partesDaCamada(camada)?.andar };
       const usados = new Map();
       const raiz=partesDaCamada(camada).raiz;
