@@ -135,6 +135,21 @@ async function sairEditorEscritorio() {
   escritorioRecolocarPlacaDaTaca();
   renderEscritorio();
 }
+// Peça que ficou fora da área do quarto (por um caminho que não confere o
+// limite) volta para a borda antes de salvar, com o tamanho dela: o
+// servidor recusava o salvamento inteiro por causa de uma peça.
+async function escritorioTrazerParaDentro(e) {
+  const c = escritorioCantoCamada(e.camada);
+  if (!c?.w || !c?.h) return 0;
+  let n = 0;
+  for (const it of e.itens) {
+    const d = escritorioEhParede(it[0]) ? { x: 1, y: 1 } : await escritorio.mapa?.medidas?.(it[0], it[3]).catch(() => null) || { x: 1, y: 1 };
+    const w = Math.max(1, Math.round(d.x || 1)), h = Math.max(1, Math.round(d.y || 1));
+    const nx = Math.min(Math.max(0, it[1]), Math.max(0, c.w - w)), ny = Math.min(Math.max(0, it[2]), Math.max(0, c.h - h));
+    if (nx !== it[1] || ny !== it[2]) { it[1] = nx; it[2] = ny; n++; }
+  }
+  return n;
+}
 // A taça da Copa no editor: peça do quarto que o dono move e gira, mas que não
 // é dele (não vende, não guarda, não duplica, não troca e não conta no inventário).
 function escritorioEhTaca(it) { return it?.[6]?.copa === true; }
@@ -162,6 +177,9 @@ async function salvarEditorEscritorio() {
   try {
     // Conferir construção é consultivo: composição e disponibilidade da arte
     // nunca impedem salvar. Permissões, inventário e versão ficam na API.
+    const foraDoQuarto = await escritorioTrazerParaDentro(e);
+    if (escritorio.edicao !== e) return;
+    if (foraDoQuarto) escritorioAviso(`${foraDoQuarto === 1 ? "Uma peça estava" : `${foraDoQuarto} peças estavam`} fora do quarto e ${foraDoQuarto === 1 ? "voltou" : "voltaram"} para a borda.`);
     const taca = e.itens.find(escritorioEhTaca), itens = escritorioSemTaca(e.itens);
     if (taca) e.decoracao.sala_taca = `${taca[1]},${taca[2]},${taca[3] || 0}`;
     // A planta desenhada vai junto com os móveis (o servidor confere os dois).

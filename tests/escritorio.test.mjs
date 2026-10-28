@@ -872,7 +872,9 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
-  assert.throws(() => itensValidos("sala-0", [["exe_table", 24, 2, 0]]), /fora/);
+  // Fora da grade, a peça volta para a borda (Paulo, 28/10/2026: o jogador é livre no quarto dele); posição que não é número é recusada.
+  assert.deepEqual(itensValidos("sala-0", [["exe_table", 24, 2, 0], ["exe_table", -3, 5, 0]]), [["exe_table", 23, 2, 0, 0, 0], ["exe_table", 0, 5, 0, 0, 0]]);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", "x", 2, 0]]), /Posição/);
   assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
   assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
   assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);

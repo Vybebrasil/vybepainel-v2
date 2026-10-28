@@ -62,7 +62,7 @@ export function validarPisoQuarto(planta,itens,dimensoes=new Map(),livres='', { 
   const w=it[3]===2||it[3]===6 ? d.y : d.x,h=it[3]===2||it[3]===6 ? d.x : d.y;
   if (construcaoLivre) {
    if (it[1] < 0 || it[2] < 0 || it[1]+w > p.celdas[0].length || it[2]+h > p.celdas.length)
-    throw Object.assign(new Error('Há móveis fora da área do quarto.'),{status:400});
+    throw Object.assign(new Error(`Um móvel ficou fora da área do quarto (${it[0]} em ${it[1]}, ${it[2]}). Arraste-o para dentro e salve de novo.`),{status:400});
    continue;
   }
   const nivel=p.celdas[Math.floor(it[2])]?.[Math.floor(it[1])];
