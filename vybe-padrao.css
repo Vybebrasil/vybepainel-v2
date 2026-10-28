@@ -679,3 +679,21 @@
 #workspace-drawer .workspace-rodape .workspace-action.workspace-comentar{border:0!important;background:none!important;color:#ece8e3!important;font:600 13px var(--mac-ui)!important}
 #workspace-drawer .workspace-rodape .workspace-action.workspace-bastao{height:42px!important;padding:0 18px!important;border:0!important;border-radius:12px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13.5px var(--mac-ui)!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 #workspace-drawer .entrega-depois{display:none!important}
+
+/* Seu espaço de trabalho: o anel do Gestor, a seta de cada cartão e a saudação */
+#mode-gate#mode-gate .identity-ola{display:block;color:#ff9a5c;font:700 11px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
+#mode-gate#mode-gate .identity-hero{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:18px;align-items:center}
+#mode-gate#mode-gate .identity-hero .identity-brand{grid-row:1/4;display:contents!important}
+#mode-gate#mode-gate .identity-hero .identity-brand img{grid-row:1/4;grid-column:1}
+#mode-gate#mode-gate .identity-hero .identity-appearance-actions{position:absolute;top:0;right:0}
+#mode-gate#mode-gate .identity-hero{position:relative}
+#mode-gate#mode-gate .identity-hero > .identity-ola,#mode-gate#mode-gate .identity-hero > h2,#mode-gate#mode-gate .identity-hero > p{grid-column:2}
+#mode-gate#mode-gate .station-anel{--p:0;position:relative;z-index:2;align-self:center;justify-self:center;width:min(170px,62%);aspect-ratio:1;border-radius:50%;display:grid;place-content:center;justify-items:center;margin:8px 0;background:conic-gradient(var(--station-color) calc(var(--p) * 1%),rgba(255,255,255,.08) 0)}
+#mode-gate#mode-gate .station-anel::before{content:"";position:absolute;inset:12px;border-radius:50%;background:#16181f;box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
+#mode-gate#mode-gate .station-anel b{position:relative;color:#fff;font:700 46px/1 var(--pv-titulo)}
+#mode-gate#mode-gate .station-anel small{position:relative;margin-top:4px;color:#a8a39c;font:700 10px var(--mac-ui);letter-spacing:.14em;text-transform:uppercase}
+#mode-gate#mode-gate .identity-station[data-station="gestor"]{grid-template-rows:auto minmax(0,1fr) auto auto auto auto!important}
+/* A seta no canto de cada cartão */
+#mode-gate#mode-gate .identity-station[data-station] .station-top{display:flex!important;align-items:center;justify-content:space-between;width:100%}
+#mode-gate#mode-gate .identity-station[data-station] .station-top::after{content:"→";width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font:600 14px var(--mac-ui);color:var(--station-color);border:1px solid color-mix(in srgb,var(--station-color) 45%,transparent);background:color-mix(in srgb,var(--station-color) 10%,transparent)}
+#mode-gate#mode-gate .identity-station[data-station] .station-ready{display:none!important}

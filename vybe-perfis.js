@@ -87,7 +87,7 @@ function estadoDasEstacoes() {
   const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions().length : 0;
 
   return {
-    gestor:    { n: risco, rot: risco === 1 ? 'atividade da equipe em risco' : 'atividades da equipe em risco', alerta: risco > 0 },
+    gestor:    { n: risco, abertos: abertos.length, rot: risco === 1 ? 'atividade da equipe em risco' : 'atividades da equipe em risco', alerta: risco > 0 },
     foco:      minha
       ? { n: minha.abertas,
           // "1 atrasadas" estava escrito na tela. O plural nao pode ser fixo:
@@ -118,6 +118,20 @@ function renderEstacoesAoVivo() {
     alvo.className = `station-metrica${dado.alerta ? ' alerta' : dado.n === 0 ? ' calmo' : ''}`;
     alvo.innerHTML = `<b>${dado.n}</b><span>${safeText(dado.rot)}</span>`;
   });
+  // Como no desenho: o cartão do Gestor mostra o risco num anel grande (a parte
+  // cheia é a fatia das peças abertas que está em risco), e o título da tela
+  // ganha a saudação com o primeiro nome de quem entrou.
+  const gestor = document.getElementById('station-gestor'), risco = estado.gestor;
+  if (gestor && risco) {
+    let anel = gestor.querySelector('.station-anel');
+    if (!anel) { anel = document.createElement('span'); anel.className = 'station-anel'; anel.setAttribute('aria-hidden', 'true'); gestor.querySelector('.station-name')?.before(anel); }
+    const abertos = Math.max(1, risco.abertos || risco.n);
+    anel.style.setProperty('--p', String(Math.min(100, Math.round((risco.n / abertos) * 100))));
+    anel.innerHTML = `<b>${risco.n}</b><small>em risco</small>`;
+  }
+  const ola = document.getElementById('workspace-ola');
+  const nome = String(document.getElementById('quem-sou-completo')?.textContent || '').trim().split(/\s+/)[0];
+  if (ola) ola.textContent = `${typeof saudacao === 'function' ? saudacao() : 'Olá'}${nome ? `, ${nome}` : ''}`;
 }
 
 function renderFocusUserPicker() {
