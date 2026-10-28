@@ -151,3 +151,22 @@ export async function linkDoRelatorio(sql,{cliente_id:clienteId,mes},{config=pro
  if(typeof d?.caminho!=='string'||!/^\/relatorio-ai\/[-a-z0-9]{1,80}\?mes=\d{4}-\d{2}&c=[A-Za-z0-9_.-]{20,600}$/.test(d.caminho))throw new TypeError('Resposta do relatório inválida.');
  return {cliente:cliente.nome,mes:mes.slice(0,7),url:base.origin+d.caminho};
 }
+
+// Saúde do JARVIS (Paulo, 27/10/2026: "nada pode cair sem ninguém ver"): o banco do painel e o VybeHub, de hora em hora.
+// O VybeHub conta como de pé se ao menos um cliente responder; "Cliente não corresponde" é do cliente, não do Hub.
+export async function diagnosticoJarvis(sql, opcoes = {}) {
+  const itens = [];
+  try { await sql`SELECT 1 AS ok`; itens.push({ nome: 'Banco do painel', ok: true }); }
+  catch { itens.push({ nome: 'Banco do painel', ok: false, detalhe: 'sem conexão com o banco' }); return { itens }; }
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
+  const de = new Date(Date.parse(hoje + 'T12:00:00Z') - 6 * 864e5).toISOString().slice(0, 10);
+  const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome LIMIT 40`;
+  const erros = [];
+  for (const c of clientes) {
+    if (erros.length >= 3) break;
+    try { await metricasDoHub(sql, { cliente_id: Number(c.id), de, ate: hoje, modulo: 'objetivos', limite: 1 }, opcoes); itens.push({ nome: 'VybeHub', ok: true }); return { itens }; }
+    catch (e) { if (!/Cliente não corresponde|Fonte|BI|planilha/i.test(String(e.message))) erros.push(String(e.message).slice(0, 200)); }
+  }
+  itens.push(erros.length ? { nome: 'VybeHub', ok: false, detalhe: erros[0] } : { nome: 'VybeHub', ok: true, detalhe: 'sem cliente com BI para testar' });
+  return { itens };
+}

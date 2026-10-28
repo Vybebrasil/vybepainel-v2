@@ -87,3 +87,26 @@ export async function acompanhamento(sql, { tipo, dia }) {
   if (tipo === 'fim_de_semana') return { texto: mensagemFimDeSemana(itens, dia, statusDe) };
   throw new TypeError('Tipo inválido.');
 }
+
+// "O que eu faço agora?" (Paulo, 27/10/2026): a fila da pessoa em ordem — atrasada primeiro, depois o que veicula ou vence
+// antes, alteração na frente do resto. Fica de fora o que está com outra pessoa (em aprovação, com o cliente, em pausa).
+export function mensagemFoco(itens, dia, statusDe, mondayId, nome) {
+  const s = (i) => normal(statusDe(i));
+  const fora = ['para aprovacao', 'em aprovacao', 'ag. aprovacao cliente', 'ag. info cliente', 'segurar post', 'para agendar', ...ENTREGUE];
+  const minhas = itens.filter((i) => i.responsavel_ids.map(String).includes(String(mondayId)) && !fora.includes(s(i)));
+  if (!minhas.length) return `✅ ${primeiro(nome)}, nada esperando por você agora. Bom momento para adiantar a próxima semana.`;
+  const dias = (iso) => (iso ? Math.round((Date.parse(iso) - Date.parse(dia)) / 864e5) : 99);
+  const ponto = (i) => (i.prazo_iso && i.prazo_iso < dia ? 1000 - dias(i.prazo_iso) : 0) + (s(i) === 'alteracao' ? 200 : 0) + Math.max(0, 100 - 20 * Math.min(dias(i.veiculacao_iso), dias(i.prazo_iso)));
+  const motivo = (i) => i.prazo_iso && i.prazo_iso < dia ? `⏰ atrasada há ${-dias(i.prazo_iso)} dia(s)` : i.veiculacao_iso === dia ? '📣 veicula hoje' : dias(i.veiculacao_iso) === 1 ? '📣 veicula amanhã'
+    : i.prazo_iso === dia ? '📌 prazo hoje' : s(i) === 'alteracao' ? '🔧 cliente pediu ajuste' : i.veiculacao_iso ? `veicula ${curto(i.veiculacao_iso)}` : 'sem data';
+  const ordem = [...minhas].sort((a, b) => ponto(b) - ponto(a)).slice(0, 8);
+  return `🎯 *${primeiro(nome)}, sua ordem agora*\n\n` + ordem.map((i, k) => `${k + 1}. ${i.nome || 'Sem título'} (${i.cliente || 'sem cliente'}) · *${statusDe(i) || 'sem status'}* · ${motivo(i)}\n   🔗 ${linkDaAtividade(i.id)}`).join('\n') +
+    (minhas.length > 8 ? `\n… e mais ${minhas.length - 8}.` : '') + '\n\nComeçou uma? Responda citando esta mensagem com o nome dela e *em andamento*.';
+}
+export async function focoDaPessoa(sql, pessoaId, dia) {
+  if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
+  const [p] = await sql`SELECT nome, monday_user_id::text AS monday_id FROM vybe_pessoas WHERE id = ${Number(pessoaId)}`;
+  if (!p?.monday_id) return { texto: 'Seu cadastro no painel não tem as peças ligadas a você ainda.' };
+  const { ctx } = codigoDoPainel();
+  return { texto: mensagemFoco(await itensDoDia(sql, dia), dia, (i) => ctx.operationalFlowStatus(i), p.monday_id, p.nome) };
+}

@@ -36,3 +36,15 @@ test('ranking da semana: entregas por pessoa (uma vez por peça), no prazo e alt
   assert.match(t, /🥇 Bia: 3 entregas · 100% no prazo\n🥈 Jady: 2 entregas · 50% no prazo · 1 alteração\(ões\)/);
   assert.match(t, /Mais entregas: \*Bia\*\n⏱️ 100% no prazo: \*Bia\*\n🎯 Sem nenhuma alteração: \*Bia\*/);
 });
+
+test('"o que eu faço agora": atrasada primeiro, depois alteração e o que veicula antes; fora o que está com outra pessoa', async () => {
+  const { mensagemFoco } = await import('../server/assistente-acompanhamento.js');
+  const it = (id, nome, status, extra = {}) => ({ id, nome, status, cliente: 'Gonzalez', origem: 'producao_conteudo', responsavel_ids: ['7'], prazo_iso: '2026-10-29', veiculacao_iso: '2026-10-31', ...extra });
+  const t = mensagemFoco([it('1', 'Card longe', 'Pode Fazer'), it('2', 'Card atrasado', 'Em andamento', { prazo_iso: '2026-10-25' }), it('3', 'Reels ajuste', 'Alteração'),
+    it('4', 'Card hoje', 'Pode Fazer', { veiculacao_iso: '2026-10-27', prazo_iso: '2026-10-27' }), it('5', 'Em aprovação', 'Para aprovação'), it('6', 'De outra pessoa', 'Pode Fazer', { responsavel_ids: ['9'] })],
+    '2026-10-27', (i) => i.status, '7', 'Jady Lima');
+  assert.match(t, /^🎯 \*Jady, sua ordem agora\*\n\n1\. Card atrasado \(Gonzalez\) · \*Em andamento\* · ⏰ atrasada há 2 dia\(s\)/);
+  assert.match(t, /2\. Reels ajuste[\s\S]*3\. Card hoje[\s\S]*📣 veicula hoje[\s\S]*4\. Card longe/);
+  assert.doesNotMatch(t, /Em aprovação|De outra pessoa/);
+  assert.match(mensagemFoco([], '2026-10-27', (i) => i.status, '7', 'Jady Lima'), /nada esperando por você/);
+});
