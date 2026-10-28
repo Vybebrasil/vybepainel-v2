@@ -13031,3 +13031,15 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .snc-taco input {width:100%;min-width:0;margin:0;accent-color:#ff8f4f}
 .snc-guia {width:100%;padding:6px 0;border:1px solid var(--pv-borda,#ffffff1f);border-radius:10px;background:var(--pv-tile,#ffffff0a);color:#cfd3dc;font:700 11px var(--mac-ui);cursor:pointer}
 .snc-guia.ligada {border-color:#ff8f4f;color:#ffb07a}
+/* Mesas com arte (Paulo, 28/10/2026): o pôquer na mesa oval de bar e a dama no
+   tabuleiro da mesa de madeira. As medidas em % saem do recorte das artes
+   (assets/jogos/mesa-poker.webp, 1640×960; tabuleiro-dama.webp, 1120×960 com o
+   tabuleiro endireitado num quadrado de 640 a partir de 240,150). */
+.ofc-pkr-jogo .pkr-salao,.pkr-salao {height:auto;aspect-ratio:1640/960;width:min(100%,calc((100vh - 330px) * 1640 / 960));margin:0 auto;background:#0b0c10 url(/assets/jogos/mesa-poker.webp) center/100% 100% no-repeat;container-type:inline-size}
+.pkr-salao .pkr-feltro {display:none}
+.pkr-salao .pkr-centro {top:calc(44.5% - 2.85cqw);transform:translateX(-50%)}
+.pkr-salao .pkr-comunitarias {gap:.67cqw}
+.pkr-salao .pkr-comunitarias .pkr-carta {--w:4.2cqw}
+.dam-mesa {position:relative;width:min(100%,720px,calc((100vh - 300px) * 1120 / 960));aspect-ratio:1120/960;margin:0 auto;background:url(/assets/jogos/tabuleiro-dama.webp) center/100% 100% no-repeat;border-radius:12px}
+.dam-mesa .dam-tabuleiro {position:absolute;left:21.4286%;top:15.625%;width:57.1429%;height:66.6667%;margin:0;aspect-ratio:auto;border-radius:0;box-shadow:none;background:none}
+.dam-mesa .dam-casa.clara,.dam-mesa .dam-casa.escura {background:transparent}

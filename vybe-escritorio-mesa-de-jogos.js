@@ -110,7 +110,10 @@ function desenharDama(j, s) {
   const chave = j.id + ":" + j.n, anima = s.damVisto && s.damVisto.split(":")[0] === j.id && s.damVisto !== chave && m.ultimo;
   s.damVisto = chave;
   if (anima) setTimeout(() => damaAnimar(m.ultimo));
-  return { status, mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}<div class="dam-tabuleiro${minhaVez ? " vez" : ""}">${casas}</div>${mesaJogadorHtml(j, baixo, detalhe(baixo))}` };
+  // O tabuleiro fica em cima da mesa da arte (assets/jogos/tabuleiro-dama.webp):
+  // as casas são transparentes e a arte mostra as cores; seleção, alvo e último
+  // lance continuam por cima.
+  return { status, mesa: `${mesaJogadorHtml(j, cima, detalhe(cima))}<div class="dam-mesa"><div class="dam-tabuleiro${minhaVez ? " vez" : ""}">${casas}</div></div>${mesaJogadorHtml(j, baixo, detalhe(baixo))}` };
 }
 // O último lance da dama animado: uma cópia da peça sai da casa de origem e
 // pula por cada casa do caminho (com arco); cada peça tomada fica na tela até
