@@ -2049,7 +2049,7 @@ function atualizarPessoasEscritorio() {
           <span class="ofc-p-num${aqui.length ? "" : " zero"}" title="${aqui.length ? safeText(aqui.map((p) => p.nome).join(", ")) : "Ninguém na sala agora"}">${aqui.length ? `<span class="ofc-p-cabecas">${aqui.slice(0, 3).map(cabecaDe).join("")}</span>` : "<b>0</b>"}<small>${aqui.length > 3 ? `+${aqui.length - 3} ` : ""}na sala</small></span></div>
         <button type="button" class="ofc-p-entrar" onclick="escritorioIrParaAmbiente('operacao')"${estou ? " disabled" : ""}>${estou ? "Você está aqui" : "Ir para o Centro de Operação <span aria-hidden=\"true\">→</span>"}</button></section>`;
     })() : "";
-    // 3. Quem está onde
+    // 3. Lugares: quem está onde e para onde ir
     const recados = escritorio.recadosResumo || {};
     const linha = (p, o) => {
       const st = o ? ESCRITORIO_STATUS[o.status] || ESCRITORIO_STATUS.disponivel : null, sou = String(p.id) === String(eu);
@@ -2067,12 +2067,8 @@ function atualizarPessoasEscritorio() {
     const grupos = new Map();
     for (const [p, o] of online) { const l = escritorioLugarDe(o); if (!grupos.has(l.id)) grupos.set(l.id, { l, itens: [] }); grupos.get(l.id).itens.push([p, o]); }
     const ordem = [...grupos.values()].sort((x, y) => (y.l.id === "operacao") - (x.l.id === "operacao") || (y.l.id === meu) - (x.l.id === meu) || y.itens.length - x.itens.length);
-    const grupo = ({ l, itens }) => `<li class="ofc-p-grupo"><div class="ofc-p-grupo-topo" style="--sala:${corDe(l)}"><span class="ofc-p-sala-arte" aria-hidden="true">${escritorioEmblemaSala(l.id)}</span><span>${safeText(l.nome)}</span><small>${itens.length}</small>${l.id === meu ? '<em>você está aqui</em>' : `<button type="button" onclick="escritorioIrParaAmbiente('${safeText(l.id)}')" aria-label="Ir para ${safeText(l.nome)}">Ir</button>`}</div>
+    const grupo = ({ l, itens }) => `<li class="ofc-p-grupo"><div class="ofc-p-grupo-topo" style="--sala:${corDe(l)}"><span class="ofc-p-sala-arte" aria-hidden="true">${escritorioEmblemaSala(l.id)}</span><span>${safeText(l.nome)}</span><small>${itens.length}</small>${l.id === meu ? '<em title="Você está aqui">aqui</em>' : `<button type="button" onclick="escritorioIrParaAmbiente('${safeText(l.id)}')" aria-label="Ir para ${safeText(l.nome)}">Ir</button>`}</div>
       <ul>${itens.map(([p, o]) => linha(p, o)).join("")}</ul></li>`;
-    const onde = `<section class="ofc-p-bloco" aria-label="Quem está onde">
-      <div class="ofc-p-titulo"><h5>Quem está onde</h5><small class="vb-jogo-dica" data-dica="Online indica presença, não produtividade." tabindex="0">${online.length} online</small></div>
-      ${escritorio.conectado ? `<ul class="ofc-p-grupos">${ordem.map(grupo).join("") || '<li class="ofc-p-vazio">Ninguém além de você por aqui.</li>'}</ul>` : '<p class="ofc-p-vazio">Entre no escritório para ver quem está onde.</p>'}
-      ${fora.length ? `<details class="ofc-p-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary>Fora do escritório <small>${fora.length}</small></summary><ul>${fora.map((p) => linha(p, null)).join("")}</ul></details>` : ""}</section>`;
     // 4. Ir para
     const comuns = [ESCRITORIO_PRACA, ...A.filter((a) => !a.pessoal && a.id !== "operacao" && !a.oculta)];
     const ficha = (a) => {
@@ -2086,11 +2082,14 @@ function atualizarPessoasEscritorio() {
       return `<button type="button" class="ofc-p-quarto${a.id === meu ? " aqui" : ""}${o ? "" : " fora"}" aria-haspopup="menu" onclick="abrirMenuQuartoEscritorio('${a.id}',this)" title="${safeText(a.nome)}" aria-label="${safeText(a.nome)}${o ? `, ${safeText(primeiro(dono.nome))} online` : ""}"><span class="ofc-p-avatar" style="--st:${st ? st[1] : "transparent"}">${cabecaDe(dono)}<i aria-hidden="true"></i></span><small>${safeText(primeiro(dono.nome))}</small></button>`;
     };
     const quartos = A.filter((a) => a.pessoal).map(quarto).join("");
-    const ir = `<section class="ofc-p-bloco" aria-label="Ir para">
-      <div class="ofc-p-titulo"><h5>Ir para</h5></div>
-      <div class="ofc-p-salas">${comuns.map(ficha).join("")}</div>
+    const vazias = escritorio.conectado ? comuns.filter((a) => !grupos.has(a.id)) : comuns;
+    const lugares = `<section class="ofc-p-bloco ofc-p-lugares" aria-label="Lugares do escritório">
+      <div class="ofc-p-titulo"><h5>Lugares</h5><small class="vb-jogo-dica" data-dica="Online indica presença, não produtividade." tabindex="0">${online.length} online</small></div>
+      ${escritorio.conectado ? (ordem.length ? `<ul class="ofc-p-grupos">${ordem.map(grupo).join("")}</ul>` : "") : '<p class="ofc-p-nota">Entre no escritório para ver quem está em cada lugar.</p>'}
+      <div class="ofc-p-salas">${vazias.map(ficha).join("")}</div>
+      ${fora.length ? `<details class="ofc-p-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary>Fora do escritório <small>${fora.length}</small></summary><ul>${fora.map((p) => linha(p, null)).join("")}</ul></details>` : ""}
       ${quartos ? `<div class="ofc-p-titulo sub"><h5>Quartos</h5></div><div class="ofc-p-quartos">${quartos}</div>` : ""}</section>`;
-    salas.innerHTML = `${voce}${centro}${onde}${ir}<div id="office-quarto-menu" class="ofc-menu-pessoa ofc-menu-quarto" role="menu" hidden></div>`;
+    salas.innerHTML = `${voce}${centro}${lugares}<div id="office-quarto-menu" class="ofc-menu-pessoa ofc-menu-quarto" role="menu" hidden></div>`;
     queueMicrotask(() => pintarArtesEscritorio(salas));
   }
   escritorioAtualizarPortas();

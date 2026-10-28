@@ -1122,48 +1122,76 @@
 @media (max-width:760px){#mode-gate#mode-gate .identity-command-grid{grid-template-columns:1fr!important;grid-template-rows:none!important}#mode-gate#mode-gate .identity-station[data-station]{grid-row:auto!important;min-height:0!important}#mode-gate#mode-gate .identity-station[data-station="escritorio"]{min-height:190px!important}#mode-gate#mode-gate .identity-hero{grid-template-columns:1fr!important}#mode-gate#mode-gate .identity-hero .identity-brand{display:flex!important;grid-row:auto!important;justify-content:space-between;align-items:center}#mode-gate#mode-gate .identity-hero .identity-brand img{height:40px!important}#mode-gate#mode-gate .identity-shell{padding:14px 16px!important}}
 
 /* ===== Lateral do jogo no padrão da tela de módulos =====
-   Um cartão só (o do Centro de Operação, como um cartão de módulo); o resto
-   são seções abertas sobre o fundo, com a etiqueta turquesa em cima, sem
-   caixa dentro de caixa. Salas em duas colunas com o nome inteiro. */
-.ofc .ofc-lateral .ofc-salas{display:grid;gap:20px;padding:14px 14px 22px!important}
+   Hierarquia em três níveis: você (uma linha), o cartão em destaque (Centro
+   de Operação, o único com caixa) e a navegação (Lugares) como lista limpa,
+   linha a linha, sem borda: o lugar com gente mostra quem está lá, o vazio é
+   uma linha que leva até ele. */
+.ofc .ofc-lateral{background:radial-gradient(ellipse 140% 35% at 0% 0%,rgba(232,96,46,.13),transparent 70%),#0e0f15!important}
+.ofc .ofc-lateral-topo{padding:16px 16px 8px!important}
 .ofc .ofc-lateral-topo b{font:700 18px var(--pv-titulo)!important;letter-spacing:-.015em}
-.ofc .ofc-lateral-topo small{color:#a8a39c!important;font:400 12px var(--mac-ui)!important}
-.ofc .ofc-lateral .ofc-p-eu,.ofc .ofc-lateral .ofc-p-bloco{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:0!important;border-radius:0!important}
-.ofc .ofc-lateral .ofc-p-eu::before,.ofc .ofc-lateral .ofc-p-bloco::before{display:none!important}
+.ofc .ofc-lateral-topo small{color:#8f8a83!important;font:400 12px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-abas{margin:0 12px!important}
+.ofc .ofc-lateral .ofc-salas{display:grid;gap:22px;padding:14px 12px 28px!important}
+
+/* você: uma linha */
+.ofc .ofc-lateral .ofc-p-eu{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:0 4px!important;border-radius:0!important;gap:10px!important}
+.ofc .ofc-lateral .ofc-p-eu::before{display:none!important}
 .ofc .ofc-lateral .ofc-p-eu-texto b{font:600 14px var(--pv-titulo)!important}
-.ofc .ofc-lateral .ofc-p-status select{border-radius:10px!important;background:rgba(255,255,255,.05)!important;border-color:rgba(255,255,255,.1)!important}
+.ofc .ofc-lateral .ofc-p-eu-texto small{color:#8f8a83!important;font-size:11.5px!important}
+.ofc .ofc-lateral .ofc-p-status select{height:28px!important;max-width:118px!important;border:0!important;border-radius:9px!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important;font:500 12px var(--mac-ui)!important}
 
-/* o cartão: Centro de Operação */
-.ofc .ofc-lateral .ofc-p-centro{--c:#38d9c5;gap:14px!important;padding:16px!important;border-radius:20px!important;border:1px solid color-mix(in srgb,var(--c) 26%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 20%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important}
-.ofc .ofc-lateral .ofc-p-centro-arte{border-radius:13px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 8%,transparent))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)!important}
-.ofc .ofc-lateral .ofc-p-centro-topo small{color:var(--c)!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important}
-.ofc .ofc-lateral .ofc-p-centro-topo b{font:700 19px/1.15 var(--pv-titulo)!important;letter-spacing:-.015em!important}
-/* números como a métrica dos cartões de módulo: sem caixinha, divididos por fio */
-.ofc .ofc-lateral .ofc-p-nums{gap:0!important;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
-.ofc .ofc-lateral .ofc-p-num{min-height:0!important;padding:0 4px!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;justify-items:start!important}
-.ofc .ofc-lateral .ofc-p-num + .ofc-p-num{border-left:1px solid rgba(255,255,255,.07)!important;padding-left:12px!important}
-.ofc .ofc-lateral .ofc-p-num b{font:700 24px/1 var(--pv-titulo)!important}
-.ofc .ofc-lateral .ofc-p-num small{color:#a8a39c!important;font:400 11.5px var(--mac-ui)!important}
-.ofc .ofc-lateral .ofc-p-entrar{height:40px!important;border-radius:12px!important;font:700 13px var(--mac-ui)!important}
+/* o destaque: Centro de Operação */
+.ofc .ofc-lateral .ofc-p-centro{--c:#38d9c5;gap:12px!important;padding:14px!important;border-radius:18px!important;border:1px solid color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 70% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 65%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 50%),#13151c!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 40px -24px rgba(0,0,0,.9)!important}
+.ofc .ofc-lateral .ofc-p-centro-topo{gap:12px!important}
+.ofc .ofc-lateral .ofc-p-centro-arte{width:40px!important;height:40px!important;border-radius:12px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 8%,transparent))!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent)!important}
+.ofc .ofc-lateral .ofc-p-centro-topo small{color:var(--c)!important;font:700 9.5px var(--mac-ui)!important;letter-spacing:.15em!important}
+.ofc .ofc-lateral .ofc-p-centro-topo b{font:700 16px/1.15 var(--pv-titulo)!important;letter-spacing:-.01em!important;white-space:nowrap}
+.ofc .ofc-lateral .ofc-p-nums{gap:0!important;padding:0!important;border:0!important}
+.ofc .ofc-lateral .ofc-p-num{min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;justify-items:start!important;gap:3px!important}
+.ofc .ofc-lateral .ofc-p-num + .ofc-p-num{border:0!important;padding-left:0!important}
+.ofc .ofc-lateral .ofc-p-num b{font:700 22px/1 var(--pv-titulo)!important}
+.ofc .ofc-lateral .ofc-p-num small{color:#8f8a83!important;font:400 11px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-entrar{height:36px!important;border-radius:11px!important;font:700 12.5px var(--mac-ui)!important}
 
-/* seções abertas */
-.ofc .ofc-lateral .ofc-p-titulo{padding:0 2px!important;margin:0 0 2px!important;align-items:center!important}
+/* lugares: lista limpa */
+.ofc .ofc-lateral .ofc-p-bloco{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:0!important;border-radius:0!important;gap:6px!important}
+.ofc .ofc-lateral .ofc-p-bloco::before{display:none!important}
+.ofc .ofc-lateral .ofc-p-titulo{padding:0 6px!important;margin:0 0 4px!important;align-items:center!important}
 .ofc .ofc-lateral .ofc-p-titulo h5{color:#38d9c5!important;font:700 10px var(--mac-ui)!important;letter-spacing:.15em!important}
+.ofc .ofc-lateral .ofc-p-titulo h5::after{content:none!important}
 .ofc .ofc-lateral .ofc-p-titulo small{color:#7d7871!important;font:500 11.5px var(--mac-ui)!important}
-.ofc .ofc-lateral .ofc-p-titulo.sub{margin-top:10px!important}
-.ofc .ofc-lateral .ofc-p-vazio{padding:14px!important;border-radius:14px!important;border:1px dashed rgba(255,255,255,.1)!important;background:none!important;color:#8f8a83!important;font:400 12.5px/1.45 var(--mac-ui)!important}
-.ofc .ofc-lateral .ofc-p-grupo{border-radius:14px!important;background:rgba(255,255,255,.035)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)!important}
-.ofc .ofc-lateral .ofc-p-grupo-topo > span{font:600 13px var(--pv-titulo)!important}
-.ofc .ofc-lateral .ofc-p-grupo-topo > em{color:#38d9c5!important}
-.ofc .ofc-lateral .ofc-p-fora > summary{color:#a8a39c!important}
+.ofc .ofc-lateral .ofc-p-titulo.sub{margin-top:14px!important}
+.ofc .ofc-lateral .ofc-p-nota{margin:0 6px 6px;color:#8f8a83;font:400 12px/1.45 var(--mac-ui)}
 
-/* ir para: duas colunas, ícone num quadradinho, o nome inteiro */
-.ofc .ofc-lateral .ofc-p-salas{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
-.ofc .ofc-lateral .ofc-p-sala{flex-direction:row!important;justify-content:flex-start!important;gap:10px!important;height:auto!important;min-height:46px;padding:6px 8px 6px 6px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.06)!important;background:rgba(255,255,255,.03)!important;box-shadow:none!important;color:#ece8e3!important;transform:none!important}
-.ofc .ofc-lateral .ofc-p-sala:hover{border-color:rgba(56,217,197,.4)!important;background:rgba(56,217,197,.07)!important}
-.ofc .ofc-lateral .ofc-p-sala.aqui{border-color:rgba(56,217,197,.6)!important;background:rgba(56,217,197,.1)!important}
-.ofc .ofc-lateral .ofc-p-sala .ofc-p-sala-arte{width:32px!important;height:32px!important;border-radius:10px!important;background:color-mix(in srgb,var(--sala) 16%,rgba(0,0,0,.35))!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
-.ofc .ofc-lateral .ofc-p-sala-nome{flex:1!important;width:auto!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;font:600 12.5px/1.2 var(--mac-ui)!important;text-align:left}
-.ofc .ofc-lateral .ofc-p-sala > small{position:static!important;margin-left:auto}
-.ofc .ofc-lateral .ofc-p-quarto{border:0!important;background:none!important;box-shadow:none!important}
+/* lugar com gente: um bloco leve com o lugar em cima e as pessoas embaixo */
+.ofc .ofc-lateral .ofc-p-grupos{gap:6px!important;margin-bottom:4px!important}
+.ofc .ofc-lateral .ofc-p-grupo{border-radius:14px!important;background:rgba(255,255,255,.035)!important;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo{min-height:44px!important;padding:0 8px 0 6px!important;gap:10px!important;border-bottom:1px solid rgba(255,255,255,.05)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > span:not(.ofc-p-sala-arte){font:600 13.5px var(--pv-titulo)!important;color:#fff!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > small{min-width:18px;padding:0 6px;border-radius:99px;background:rgba(70,212,140,.15);color:#7fe0a8!important;font:700 10.5px/18px var(--mac-ui)!important;text-align:center}
+.ofc .ofc-lateral .ofc-p-grupo-topo > em{color:#38d9c5!important;font:600 11px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > button{border:0!important;background:rgba(255,255,255,.06)!important;color:#ece8e3!important;border-radius:8px!important}
+.ofc .ofc-lateral .ofc-p-grupo-topo > button:hover{background:rgba(56,217,197,.16)!important;color:#fff!important}
+
+/* lugar vazio: uma linha */
+.ofc .ofc-lateral .ofc-p-salas{display:grid!important;grid-template-columns:1fr!important;gap:1px!important}
+.ofc .ofc-lateral .ofc-p-sala{position:relative;flex-direction:row!important;justify-content:flex-start!important;gap:12px!important;height:42px!important;min-height:0!important;padding:0 10px 0 6px!important;border:0!important;border-radius:11px!important;background:none!important;box-shadow:none!important;color:#cfcac3!important;transform:none!important;font:500 13.5px var(--mac-ui)!important}
+.ofc .ofc-lateral .ofc-p-sala::after{content:"→";margin-left:auto;color:#38d9c5;font:600 13px var(--mac-ui);opacity:0;translate:-4px 0;transition:opacity .15s,translate .15s}
+.ofc .ofc-lateral .ofc-p-sala:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
+.ofc .ofc-lateral .ofc-p-sala:hover::after{opacity:1;translate:0 0}
+.ofc .ofc-lateral .ofc-p-sala.aqui{background:rgba(56,217,197,.08)!important;color:#fff!important}
+.ofc .ofc-lateral .ofc-p-sala.aqui::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:#38d9c5}
+.ofc .ofc-lateral .ofc-p-sala .ofc-p-sala-arte,.ofc .ofc-lateral .ofc-p-grupo-topo .ofc-p-sala-arte{width:30px!important;height:30px!important;border-radius:9px!important;background:color-mix(in srgb,var(--sala) 14%,rgba(255,255,255,.04))!important;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-sala-nome{flex:1!important;width:auto!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font:inherit!important;text-align:left}
+.ofc .ofc-lateral .ofc-p-sala > small{position:static!important;margin-left:auto;box-shadow:none!important}
+.ofc .ofc-lateral .ofc-p-sala:has(> small)::after{display:none}
+.ofc .ofc-lateral .ofc-p-pino{display:none}
+
+/* fora do escritório e quartos */
+.ofc .ofc-lateral .ofc-p-fora{margin-top:6px}
+.ofc .ofc-lateral .ofc-p-fora > summary{padding:8px 6px!important;color:#a8a39c!important;font:500 12.5px var(--mac-ui)!important;border-top:1px solid rgba(255,255,255,.06)}
+.ofc .ofc-lateral .ofc-p-fora ul{background:none!important}
+.ofc .ofc-lateral .ofc-p-quartos{padding:0 2px;gap:8px 4px!important}
+.ofc .ofc-lateral .ofc-p-quarto{border:0!important;background:none!important;box-shadow:none!important;color:#a8a39c!important}
+.ofc .ofc-lateral .ofc-p-quarto:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
 .ofc .ofc-lateral .ofc-p-quarto.aqui .ofc-p-avatar{box-shadow:0 0 0 2px #38d9c5,0 0 10px rgba(56,217,197,.35)!important}
