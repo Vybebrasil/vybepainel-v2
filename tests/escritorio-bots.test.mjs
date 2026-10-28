@@ -49,7 +49,9 @@ test('bots: o Baianinho encaçapa mais que o Zé do Taco', () => {
    m.vez = lado;
    for (let i = 0; i < 4; i++) {
     const r = motorSinuca.jogar(m, m.vez, jogadaDoBot('sinuca', nivel, m, m.vez, motorSinuca.vista(m, m.vez, false)));
-    if (r.mesa.ultimo.lado === lado) total += r.mesa.ultimo.caiu.filter((n) => n && (r.mesa.grupos[lado] === 'pares' ? n % 2 === 0 : n % 2 === 1)).length;
+    // Mesa aberta (ninguém com grupo ainda): conta qualquer bola menos a 1.
+    const g = r.mesa.grupos[lado];
+    if (r.mesa.ultimo.lado === lado) total += r.mesa.ultimo.caiu.filter((n) => n && n !== 1 && (!g || (g === 'pares' ? n % 2 === 0 : n % 2 === 1))).length;
     if (r.fim) break;
     m = r.mesa;
    }
