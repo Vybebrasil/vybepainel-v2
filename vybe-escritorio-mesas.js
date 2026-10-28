@@ -240,7 +240,9 @@ function mesaCabecaUrl(j, p) {
 function mesaAcionarBot(chave) {
   const s = escritorioMesa(chave), j = s.jogo;
   clearTimeout(s.botTimer);
-  if (!j?.bot || j.estado !== "jogando" || j.vez !== "desafiado") return;
+  // Pôquer com clientes: na vez de um cliente, quem está na mesa pede a jogada dele.
+  const cliente = j?.estado === "jogando" && j.eu && j[j.vez]?.cliente;
+  if (!cliente && (!j?.bot || j.estado !== "jogando" || j.vez !== "desafiado")) return;
   s.botTimer = setTimeout(async () => {
     const atual = escritorioMesa(chave);
     if (atual.jogo?.id !== j.id || atual.jogo.n !== j.n) return;

@@ -21,6 +21,8 @@ import { motorDama } from './escritorio-dama.js';
 import { motorVelha } from './escritorio-velha.js';
 import { motorTruco } from './escritorio-truco.js';
 import { botValido, botInfo, jogadaDoBot, TETO_DIA, listaDeBots, pagarBot } from './escritorio-bots.js';
+import { CAMADA, MOVEL, MESA_MOEDAS_MAX } from './escritorio-apostas.js';
+import { clientesProntos, clientesDaMesa, conferirClientes, sentarClientes, demandasDosClientes, pagarCliente, nivelDoCliente, marcaDoCliente, falaDoCliente } from './escritorio-clientes-poker.js';
 
 const MOTORES = { domino: motorDomino, poker: motorPoker, sinuca: motorSinuca, dama: motorDama, velha: motorVelha, truco: motorTruco };
 // Convite sem resposta caduca; quem some na vez dele pode perder por tempo;
@@ -31,8 +33,9 @@ const CONVITE_MIN = 10, REIVINDICAR_MIN = 5, ABANDONO_H = 24;
 const ESTOUROS_MAX = 3;
 const NOME_DO_JOGO = { domino: 'o dominó', poker: 'o pôquer', sinuca: 'a sinuca', dama: 'a dama', velha: 'o jogo da velha', truco: 'o truco' };
 const MOTIVOS = { desistencia: 'Desistência', acordo: 'Empate combinado', tempo: 'Tempo esgotado', abandono: 'Partida abandonada' };
-// Lugares na mesa, na ordem: quem chamou, o primeiro chamado e os do grupo.
-const LADOS = ['desafiante', 'desafiado', 'jogador3', 'jogador4'];
+// Lugares na mesa, na ordem: quem chamou, o primeiro chamado, os do grupo e,
+// no pôquer, os clientes (até 8 lugares; Paulo, 28/10/2026).
+const LADOS = ['desafiante', 'desafiado', 'jogador3', 'jogador4', 'jogador5', 'jogador6', 'jogador7', 'jogador8'];
 const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
 
 export async function mesasProntas(sql) {
@@ -41,16 +44,32 @@ export async function mesasProntas(sql) {
 }
 const exigirTabela = async (sql) => { if (!await mesasProntas(sql)) throw erro('As mesas de jogo aguardam a migração do banco.', 503); };
 const motorDe = (jogo) => { const m = MOTORES[jogo]; if (!m) throw erro('Jogo inválido.'); return m; };
-const jogadores = (j) => pessoasDaMesa(j).map((id, i) => [LADOS[i], id]);
+// Os clientes sentados (pôquer): lugares depois das pessoas, com id 'c<id do cliente>'.
+const clientesDe = (j) => (j.clientes || []).map(String);
+const jogadores = (j) => {
+ const c = clientesDe(j);
+ if (!c.length) return pessoasDaMesa(j).map((id, i) => [LADOS[i], id]);
+ return [...pessoasDaMesa(j).filter((id) => id !== 'null'), ...c.map((id) => 'c' + id)].map((id, i) => [LADOS[i], id]);
+};
 const idDoLado = (j, lado) => jogadores(j).find(([l]) => l === lado)?.[1] ?? null;
 const ladoDe = (j, pessoaId) => jogadores(j).find(([, id]) => id === String(pessoaId))?.[0] ?? null;
-const emGrupo = (j) => (j.mais || []).length > 0;
-const chamados = (j) => pessoasDaMesa(j).slice(1);
+const ehCliente = (id) => /^c\d+$/.test(String(id));
+const clienteDoLado = (j, lado) => { const id = idDoLado(j, lado); return id && ehCliente(id) ? id.slice(1) : null; };
+const emGrupo = (j) => (j.mais || []).length > 0 || clientesDe(j).length > 0;
+const chamados = (j) => pessoasDaMesa(j).slice(1).filter((id) => id !== 'null');
 const aceitos = (j) => (j.aceitos || []).map(String);
 const todosAceitaram = (j) => chamados(j).every((id) => aceitos(j).includes(id));
 const conviteVencido = (j, agora = Date.now()) => j.estado === 'convite' && minutosDesde(j.criado_em, agora) > CONVITE_MIN;
 
 async function encerrar(tx, j, resultado, motivo) {
+ // Pôquer com clientes: o pote é de todas as cadeiras; se um cliente ganhou, vai para a carteira dele.
+ if (clientesDe(j).length) {
+  const razao = `${j.jogo}:${j.id}`, cliente = clienteDoLado(j, resultado);
+  if (cliente) await pagarCliente(tx, cliente, (Number(j.moedas) || 0) * jogadores(j).length, razao);
+  else await pagarAposta(tx, j, idDoLado(j, resultado), razao, jogadores(j).length);
+  await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
+  return;
+ }
  if (j.bot) {
   const premio = resultado === 'desafiante' ? await pagarBot(tx, j.desafiante, j.bot, 'bot:' + j.id) : null;
   await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now(),
@@ -70,6 +89,41 @@ async function jogarBot(tx, j) {
  if (fim) await encerrar(tx, { ...j, mesa }, fim.resultado, fim.motivo);
  return true;
 }
+// Os clientes falam (as piadas sobre as demandas) depois de uma jogada: o que
+// o cliente fez, e quem levou a mão que acabou de fechar. Guarda as últimas 8.
+function comFalas(j, antes, depois) {
+ const info = depois.clientesInfo;
+ if (!info) return depois;
+ const falas = [...(depois.falas || [])], n = depois.n || 0;
+ const falar = (lado, evento, valor) => { const texto = falaDoCliente(info[lado], evento, Math.random(), valor); if (texto) falas.push({ lado, texto, n }); };
+ const u = depois.ultimo;
+ if (u && u !== antes.ultimo && info[u.lado]) falar(u.lado, { apostou: 'aumentou', aumentou: 'aumentou' }[u.acao] || u.acao, u.valor || 0);
+ const a = depois.anterior;
+ if (a && a.mao !== antes.anterior?.mao) {
+  for (const l of Object.keys(a.ganhos || {})) if (info[l] && a.pote >= 60) falar(l, 'ganhou', a.pote);
+  for (const l of Object.keys(info)) if (!a.ganhos?.[l] && (antes.posto?.[l] || 0) >= 150) falar(l, 'perdeu', antes.posto[l]);
+ }
+ depois.falas = falas.slice(-8);
+ return depois;
+}
+// Mesa com clientes: se só sobraram clientes (as pessoas saíram), a partida
+// acaba com quem tem mais fichas.
+function soClientes(j, mesa, fim) {
+ if (fim || !clientesDe(j).length) return fim;
+ const restam = (mesa.lados || []).filter((l) => !mesa.saiu?.[l] && (mesa.fichas?.[l] > 0));
+ return restam.every((l) => clienteDoLado(j, l)) ? { resultado: MOTORES[j.jogo].lider(mesa), motivo: 'abandono' } : null;
+}
+// A vez de um cliente: joga pelo bot do pôquer, no nível dele.
+async function jogarCliente(tx, j) {
+ const lado = j.mesa?.vez, cliente = j.estado === 'jogando' ? clienteDoLado(j, lado) : null, motor = MOTORES[j.jogo];
+ if (!cliente) return false;
+ const pedido = jogadaDoBot(j.jogo, nivelDoCliente(cliente), j.mesa, lado, motor.vista(j.mesa, lado, false));
+ const r = motor.jogar(j.mesa, lado, pedido), mesa = comFalas(j, j.mesa, r.mesa);
+ await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
+ if (r.fim) await encerrar(tx, { ...j, mesa }, r.fim.resultado, r.fim.motivo);
+ return true;
+}
+
 // Partidas largadas há um dia: perde quem tinha a vez (a aposta não fica presa).
 // Em grupo, ganha quem tem mais fichas.
 async function encerrarAbandonadas(sql, agora = Date.now()) {
@@ -83,15 +137,19 @@ async function encerrarAbandonadas(sql, agora = Date.now()) {
 async function vencerTempos(sql, agora = Date.now()) {
  const velhas = await sql`SELECT id FROM vybe_escritorio_partidas WHERE estado='jogando' AND (ultimo_lance_em < ${new Date(agora - 20000)}::timestamptz
    OR (bot IS NOT NULL AND ultimo_lance_em < ${new Date(agora - 3000)}::timestamptz))`;
- for (const { id } of velhas) await sql.comTransacao(async (tx) => {
+ // Mesas com clientes: o cliente joga sozinho 2,5 s depois do último lance (a tela pede antes, se estiver aberta).
+ const comClientes = await clientesProntos(sql) ? await sql`SELECT id FROM vybe_escritorio_partidas WHERE estado='jogando' AND cardinality(clientes) > 0
+   AND ultimo_lance_em < ${new Date(agora - 2500)}::timestamptz` : [];
+ for (const id of [...new Set([...velhas, ...comClientes].map((l) => String(l.id)))]) await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${id} FOR UPDATE`;
   const motor = MOTORES[j?.jogo], lado = j?.mesa?.vez;
   if (j?.bot && lado === 'desafiado' && j.estado === 'jogando') { await jogarBot(tx, j); return; }
+  if (j?.estado === 'jogando' && clienteDoLado(j, lado)) { await jogarCliente(tx, j); return; }
   if (j?.estado !== 'jogando' || !motor?.tempo || !lado || (agora - new Date(j.ultimo_lance_em).getTime()) / 1000 < motor.tempo) return;
   const estouros = (j.mesa.tempos?.[lado] || 0) + 1;
   if (estouros >= ESTOUROS_MAX) {
    if (!emGrupo(j)) return encerrar(tx, j, outro(lado), 'tempo');
-   const { mesa, fim } = motor.sair(j.mesa, lado, 'tempo');
+   const { mesa, fim: f } = motor.sair(j.mesa, lado, 'tempo'), fim = soClientes(j, mesa, f);
    await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
    if (fim) await encerrar(tx, j, fim.resultado, fim.motivo);
    return;
@@ -100,6 +158,7 @@ async function vencerTempos(sql, agora = Date.now()) {
   try { r = motor.jogar(j.mesa, lado, motor.automatico(j.mesa, lado)); } catch { return; }
   r.mesa.tempos = { ...(j.mesa.tempos || {}), [lado]: estouros };
   if (r.mesa.ultimo) r.mesa.ultimo.porTempo = true;
+  comFalas(j, j.mesa, r.mesa);
   await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(r.mesa)}::jsonb,ultimo_lance_em=now(),empate_de=NULL WHERE id=${j.id}`;
   if (r.fim) await encerrar(tx, j, r.fim.resultado, r.fim.motivo);
  });
@@ -108,15 +167,19 @@ async function vencerTempos(sql, agora = Date.now()) {
 function vista(j, eu, nome, agora = Date.now()) {
  const motor = MOTORES[j.jogo], lado = ladoDe(j, eu), jogando = j.estado === 'jogando', vez = jogando ? j.mesa?.vez : null;
  const info = j.bot ? botInfo(j.bot) : null;
- const pessoa = (id) => (info && (id == null || id === 'null') ? { id: 'bot', nome: info.nome, bot: j.bot, avatar: info.avatar, frase: info.frase } : { id: String(id), nome: nome[String(id)] || '' });
+ // O cliente na mesa: nome, iniciais e cor (o avatar dele) e o jeito de jogar.
+ const cliente = (id) => { const c = id.slice(1); return { id, nome: nome[id] || 'Cliente', cliente: true, nivel: nivelDoCliente(c), ...marcaDoCliente(c, nome[id]) }; };
+ const pessoa = (id) => (ehCliente(id) ? cliente(String(id)) : info && (id == null || id === 'null') ? { id: 'bot', nome: info.nome, bot: j.bot, avatar: info.avatar, frase: info.frase } : { id: String(id), nome: nome[String(id)] || '' });
  const lugares = jogadores(j).map(([l, id]) => ({ lado: l, ...pessoa(id), aceitou: l === 'desafiante' || aceitos(j).includes(id) }));
  return {
   id: String(j.id), jogo: j.jogo, estado: j.estado, camada: j.camada, movel: j.movel,
   // Cada lugar também pelo nome do lado (j.desafiado, j.jogador3…), como nos jogos de dois.
-  ...Object.fromEntries(lugares.map((p) => [p.lado, { id: p.id, nome: p.nome }])),
+  ...Object.fromEntries(lugares.map((p) => [p.lado, { id: p.id, nome: p.nome, ...(p.cliente ? { cliente: true, iniciais: p.iniciais, cor: p.cor } : {}) }])),
   jogadores: lugares, grupo: emGrupo(j), eu: lado, vez, n: Number(j.mesa?.n) || 0,
   bot: info ? { id: j.bot, nivel: info.nivel, nome: info.nome, avatar: info.avatar, premio: info.premio } : null, premio_bot: j.mesa?.premioBot || null,
   mesa: jogando || j.estado === 'fim' ? motor.vista(j.mesa, lado, !jogando) : null,
+  // As falas dos clientes (pôquer), com o número do lance em que saíram.
+  falas: j.mesa?.falas || [], clientes: clientesDe(j).length,
   moedas: Number(j.moedas) || 0, itens: { desafiante: j.itens_desafiante || [], desafiado: j.itens_desafiado || [] },
   resultado: j.resultado || null, motivo: j.motivo || null, motivo_nome: motor.motivos[j.motivo] || MOTIVOS[j.motivo] || null,
   empate_de: j.empate_de ? String(j.empate_de) : null,
@@ -129,6 +192,14 @@ function vista(j, eu, nome, agora = Date.now()) {
  };
 }
 
+// Nomes de quem está na mesa: as pessoas pelo id e os clientes por 'c<id>'.
+async function nomesDaMesa(sql, linhas) {
+ const nome = await nomes(sql, [...new Set(linhas.flatMap(pessoasDaMesa))]);
+ const ids = [...new Set(linhas.flatMap(clientesDe))];
+ if (ids.length) for (const c of await sql`SELECT id,nome FROM vybe_clientes WHERE id = ANY(${ids}::bigint[])`) nome['c' + c.id] = c.nome;
+ return nome;
+}
+
 export async function verMesa(sql, pessoa, id) {
  await exigirTabela(sql);
  await encerrarAbandonadas(sql);
@@ -138,7 +209,7 @@ export async function verMesa(sql, pessoa, id) {
  // Convite é só de quem está nele; partida começada, qualquer um da equipe assiste.
  if (j.estado === 'convite' && !ladoDe(j, pessoa.id)) throw erro('Partida não encontrada.', 404);
  if (conviteVencido(j)) j.estado = 'cancelado';
- const v = vista(j, pessoa.id, await nomes(sql, pessoasDaMesa(j)));
+ const v = vista(j, pessoa.id, await nomesDaMesa(sql, [j]));
  // Placar dos dois neste jogo (todas as partidas terminadas entre eles; em grupo e contra bot não há).
  if (emGrupo(j) || j.bot) return v;
  const feitas = await sql`SELECT resultado, desafiante, desafiado FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='fim' AND cardinality(mais)=0
@@ -159,7 +230,7 @@ export async function listarMesa(sql, pessoa, { jogo, camada, movel } = {}) {
  const linhas = await sql`SELECT * FROM vybe_escritorio_partidas WHERE (${todos} OR jogo=${String(jogo)}) AND ((estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id} OR ${pessoa.id} = ANY(mais)
    OR (camada=${String(camada || '')} AND movel=${String(movel || '')})))
   OR (estado='convite' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id} OR ${pessoa.id} = ANY(mais)) AND criado_em > ${desde}::timestamptz)) ORDER BY id DESC LIMIT 20`;
- const nome = await nomes(sql, [...new Set(linhas.flatMap(pessoasDaMesa))]);
+ const nome = await nomesDaMesa(sql, linhas);
  const eu = String(pessoa.id), v = linhas.map((l) => ({ ...vista(l, pessoa.id, nome), _aceitei: aceitos(l).includes(eu) }));
  const limpar = (j) => { const { _aceitei, ...resto } = j; return resto; };
  const convites = v.filter((j) => j.estado === 'convite' && j.eu && j.eu !== 'desafiante');
@@ -180,8 +251,14 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
  await exigirTabela(sql);
  const jogo = String(pedido?.jogo || '');
  const motor = motorDe(jogo);
+ const clientes = Array.isArray(pedido?.clientes) ? [...new Set(pedido.clientes.map(String))] : [];
+ if (clientes.length && jogo !== 'poker') throw erro('Só o pôquer tem clientes na mesa.');
+ // Só eu e os clientes: começa na hora (cliente não precisa aceitar).
+ if (clientes.length && !pedido?.para) return desafiarClientes(sql, pessoa, pedido, clientes);
  const d = lerDesafio(pessoa, pedido), { para, camada, movel, chave, n, da, quer } = d;
  const mais = [...new Set((Array.isArray(pedido?.mais) ? pedido.mais : []).map(String))];
+ if (clientes.length && 2 + mais.length + clientes.length > motor.grupo) throw erro(`${motor.nome} é de até ${motor.grupo} lugares na mesa.`);
+ if (clientes.length && (da.length || quer.length)) throw erro('Com clientes na mesa, a aposta é só em VybeCoins.');
  if (mais.length) {
   if (!motor.grupo) throw erro(`${motor.nome} é de dois.`);
   if (mais.length > motor.grupo - 2) throw erro(`${motor.nome} é de até ${motor.grupo} pessoas na mesa.`);
@@ -198,9 +275,12 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
    const achados = await tx`SELECT id FROM vybe_pessoas WHERE id = ANY(${mais}::bigint[]) AND ativo=TRUE AND pode_entrar=TRUE`;
    if (achados.length !== mais.length) throw erro('Alguém escolhido não está na equipe do escritório.', 404);
   }
+  const ids = await conferirClientes(tx, clientes);
   // Um convite aberto por vez de quem chama, por jogo: o novo substitui o antigo.
   await tx`UPDATE vybe_escritorio_partidas SET estado='cancelado',terminado_em=now() WHERE jogo=${jogo} AND estado='convite' AND desafiante=${pessoa.id}`;
-  const [j] = await tx`INSERT INTO vybe_escritorio_partidas(jogo,chave,desafiante,desafiado,mais,camada,movel,moedas,itens_desafiante,itens_desafiado)
+  const [j] = ids.length ? await tx`INSERT INTO vybe_escritorio_partidas(jogo,chave,desafiante,desafiado,mais,clientes,camada,movel,moedas,itens_desafiante,itens_desafiado)
+   VALUES(${jogo},${chave},${pessoa.id},${para},${mais}::bigint[],${ids}::bigint[],${camada},${movel},${n},'[]'::jsonb,'[]'::jsonb) RETURNING id`
+   : await tx`INSERT INTO vybe_escritorio_partidas(jogo,chave,desafiante,desafiado,mais,camada,movel,moedas,itens_desafiante,itens_desafiado)
    VALUES(${jogo},${chave},${pessoa.id},${para},${mais}::bigint[],${camada},${movel},${n},${JSON.stringify(da)}::jsonb,${JSON.stringify(quer)}::jsonb) RETURNING id`;
   return { repetido: false, id: String(j.id) };
  });
@@ -211,16 +291,59 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
  return r;
 }
 
+// Partida com clientes que acabou de começar: junta a foto das demandas de
+// cada um (as piadas) à mesa. Fora da transação que começou a partida.
+async function anotarDemandas(sql, id) {
+ try {
+  const [j] = await sql`SELECT * FROM vybe_escritorio_partidas WHERE id=${id}`;
+  if (!j || j.estado !== 'jogando' || !clientesDe(j).length || !j.mesa?.clientesInfo) return;
+  const demandas = await demandasDosClientes(sql, clientesDe(j));
+  const info = Object.fromEntries(Object.entries(j.mesa.clientesInfo).map(([l, c]) => [l, { ...c, ...(demandas[clienteDoLado(j, l)] || {}) }]));
+  await sql`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{clientesInfo}',${JSON.stringify(info)}::jsonb) WHERE id=${id} AND estado='jogando'`;
+ } catch { /* sem a foto, as piadas ficam genéricas */ }
+}
+
+// Eu e os clientes no pôquer: sem convite, a partida começa na hora.
+async function desafiarClientes(sql, pessoa, { camada, movel, moedas = 0, chave }, clientes) {
+ if (!/^[A-Za-z0-9_-]{8,64}$/.test(String(chave))) throw erro('Pedido inválido.');
+ if (!CAMADA.test(String(camada)) || !MOVEL.test(String(movel))) throw erro('Mesa inválida.');
+ const n = Number(moedas);
+ if (!Number.isInteger(n) || n < 0 || n > MESA_MOEDAS_MAX) throw erro(`Aposte de 0 a ${MESA_MOEDAS_MAX.toLocaleString('pt-BR')} VybeCoins.`);
+ if (1 + clientes.length > MOTORES.poker.grupo) throw erro(`O pôquer é de até ${MOTORES.poker.grupo} lugares na mesa.`);
+ const r = await sql.comTransacao(async (tx) => {
+  const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_partidas WHERE chave=${chave}`;
+  if (ja) { if (String(ja.desafiante) !== String(pessoa.id)) throw erro('Pedido inválido.'); return { id: String(ja.id) }; }
+  const [jogando] = await tx`SELECT id FROM vybe_escritorio_partidas WHERE jogo='poker' AND estado='jogando' AND (desafiante=${pessoa.id} OR desafiado=${pessoa.id} OR ${pessoa.id} = ANY(mais))`;
+  if (jogando) throw erro('Termine a sua partida antes de começar outra.', 409);
+  const ids = await conferirClientes(tx, clientes);
+  if (n) {
+   const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoa.id}`;
+   if (Number(c?.saldo || 0) < n) throw erro('Você não tem essas VybeCoins para apostar.', 409);
+  }
+  const [j] = await tx`INSERT INTO vybe_escritorio_partidas(jogo,chave,desafiante,desafiado,clientes,camada,movel,moedas,itens_desafiante,itens_desafiado)
+   VALUES('poker',${chave},${pessoa.id},NULL,${ids}::bigint[],${String(camada)},${String(movel)},${n},'[]'::jsonb,'[]'::jsonb) RETURNING *`;
+  await comecar(tx, j, null, String(pessoa.id));
+  return { id: String(j.id) };
+ });
+ await anotarDemandas(sql, r.id);
+ return { ...r, jogo: await verMesa(sql, pessoa, r.id) };
+}
+
 // Começa a partida: confere que ninguém está jogando outra nem a mesa está
-// ocupada, tira a aposta de todos e dá as cartas/peças.
+// ocupada, tira a aposta de todos e dá as cartas/peças. Com clientes, eles
+// pagam a aposta pela carteira e a mesa guarda a foto das demandas de cada um.
 async function comecar(tx, j, salas, quemAceita) {
- const ids = pessoasDaMesa(j);
+ const ids = pessoasDaMesa(j).filter((id) => id !== 'null');
  const [ocupado] = await tx`SELECT id FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='jogando' AND (desafiante = ANY(${ids}::bigint[]) OR desafiado = ANY(${ids}::bigint[]) OR mais && ${ids}::bigint[])`;
  if (ocupado) throw erro(ids.length > 2 ? 'Alguém da mesa já está numa partida. Terminem aquela primeiro.' : 'Um de vocês já está numa partida. Terminem aquela primeiro.', 409);
  const [mesa] = await tx`SELECT id FROM vybe_escritorio_partidas WHERE estado='jogando' AND camada=${j.camada} AND movel=${j.movel}`;
  if (mesa) throw erro('Essa mesa já está com uma partida. Esperem acabar.', 409);
  await cobrarAposta(tx, j, salas, `${j.jogo}:${j.id}`, quemAceita);
  const inicio = motorDe(j.jogo).iniciar(jogadores(j).map(([l]) => l));
+ if (clientesDe(j).length) {
+  const info = await sentarClientes(tx, clientesDe(j), j.moedas, `${j.jogo}:${j.id}`);
+  inicio.clientesInfo = Object.fromEntries(jogadores(j).filter(([, id]) => ehCliente(id)).map(([l, id]) => [l, info[id.slice(1)]]));
+ }
  await tx`UPDATE vybe_escritorio_partidas SET estado='jogando',mesa=${JSON.stringify(inicio)}::jsonb,iniciado_em=now(),ultimo_lance_em=now() WHERE id=${j.id}`;
 }
 
@@ -270,6 +393,7 @@ export async function responderMesa(sql, pessoa, salas, { id, acao }) {
  });
  // Quem recusou um convite em grupo não está mais nele.
  if (acao === 'recusar' && !r.repetido) return { ...r, economia: await carregarEconomia(sql, pessoa.id) };
+ await anotarDemandas(sql, id);
  return { ...r, jogo: await verMesa(sql, pessoa, id), economia: await carregarEconomia(sql, pessoa.id) };
 }
 
@@ -285,6 +409,7 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
   if (j.estado !== 'jogando') throw erro('A partida já acabou.', 409);
   if (Number(n) !== (Number(j.mesa?.n) || 0)) throw erro('A mesa mudou. Olhe de novo.', 409);
   const { mesa, fim } = motorDe(j.jogo).jogar(j.mesa, lado, pedido);
+  comFalas(j, j.mesa, mesa);
   if (mesa.tempos?.[lado]) mesa.tempos = { ...mesa.tempos, [lado]: 0 };
   // Quem recebeu a proposta de empate e jogou, recusou.
   const empate = j.empate_de && String(j.empate_de) !== String(pessoa.id) ? null : j.empate_de;
@@ -314,7 +439,7 @@ export async function acaoMesa(sql, pessoa, { id, acao }) {
   }
   // Tira alguém da partida em grupo e grava a mesa; acaba se sobrou um.
   const tirar = async (quem, motivo) => {
-   const { mesa, fim } = MOTORES[j.jogo].sair(j.mesa, quem, motivo);
+   const { mesa, fim: f } = MOTORES[j.jogo].sair(j.mesa, quem, motivo), fim = soClientes(j, mesa, f);
    await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
    if (fim) await encerrar(tx, j, fim.resultado, fim.motivo);
    return { fim: Boolean(fim) };
@@ -354,9 +479,9 @@ export async function resumoDosJogos(sql, pessoa, camada) {
     WHERE x.estado='convite' AND x.desafiado=${pessoa.id} AND x.criado_em > ${desde}::timestamptz`) convites.push({ jogo: 'xadrez', id: String(l.id), de: l.nome });
  }
  if (await mesasProntas(sql)) {
-  const rolando = await sql`SELECT jogo, movel, desafiante, desafiado, mais, bot FROM vybe_escritorio_partidas WHERE estado='jogando' AND camada=${cena}`;
-  const nome = await nomes(sql, [...new Set(rolando.flatMap(pessoasDaMesa))]);
-  for (const l of rolando) ativas.push({ jogo: l.jogo, movel: l.movel, nomes: pessoasDaMesa(l).map((id) => (id === 'null' ? botInfo(l.bot)?.nome || 'Bot' : nome[id] || '')) });
+  const rolando = await sql`SELECT * FROM vybe_escritorio_partidas WHERE estado='jogando' AND camada=${cena}`;
+  const nome = await nomesDaMesa(sql, rolando);
+  for (const l of rolando) ativas.push({ jogo: l.jogo, movel: l.movel, nomes: jogadores(l).map(([, id]) => (id === 'null' ? botInfo(l.bot)?.nome || 'Bot' : nome[id] || '')) });
   for (const l of await sql`SELECT x.id, x.jogo, p.nome FROM vybe_escritorio_partidas x JOIN vybe_pessoas p ON p.id=x.desafiante
     WHERE x.estado='convite' AND (x.desafiado=${pessoa.id} OR ${pessoa.id} = ANY(x.mais)) AND NOT (${pessoa.id} = ANY(x.aceitos)) AND x.criado_em > ${desde}::timestamptz`) convites.push({ jogo: l.jogo, id: String(l.id), de: l.nome });
  }
@@ -371,7 +496,8 @@ export async function botsDoJogo(sql, pessoa, jogo) {
    AND criado_em >= (date_trunc('day', now() AT TIME ZONE 'America/Bahia') AT TIME ZONE 'America/Bahia')`;
  const vitorias = await sql`SELECT bot, count(*)::int AS n FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND bot IS NOT NULL AND desafiante=${pessoa.id} AND estado='fim' AND resultado='desafiante' GROUP BY bot`;
  const venceu = Object.fromEntries(vitorias.map((l) => [l.bot, l.n]));
- return { bots: listaDeBots(jogo).map((b) => ({ ...b, vitorias: venceu[b.bot] || 0 })), resta_hoje: Math.max(0, TETO_DIA - Number(hoje)), teto_dia: TETO_DIA };
+ return { bots: listaDeBots(jogo).map((b) => ({ ...b, vitorias: venceu[b.bot] || 0 })), resta_hoje: Math.max(0, TETO_DIA - Number(hoje)), teto_dia: TETO_DIA,
+  ...(jogo === 'poker' ? { clientes: await clientesDaMesa(sql) } : {}) };
 }
 // Começa na hora: o bot não precisa aceitar. Uma partida contra bot por vez, por jogo.
 export async function desafiarBot(sql, pessoa, { jogo, nivel, camada, movel, chave } = {}) {
@@ -397,6 +523,10 @@ export async function vezDoBot(sql, pessoa, { id, n } = {}) {
  await exigirTabela(sql);
  await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
+  if (j && clientesDe(j).length && ladoDe(j, pessoa.id)) {
+   if (Number(n) === (Number(j.mesa?.n) || 0)) await jogarCliente(tx, j);
+   return;
+  }
   if (!j?.bot || String(j.desafiante) !== String(pessoa.id)) throw erro('Partida não encontrada.', 404);
   if (Number(n) !== (Number(j.mesa?.n) || 0)) return;
   await jogarBot(tx, j);
