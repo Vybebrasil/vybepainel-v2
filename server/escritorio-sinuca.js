@@ -23,27 +23,50 @@ export const LARGURA = 100, ALTURA = 50, R = 1.15, RAIO = 1.6;
 // - canto: a borracha acaba a BOCA_CANTO (2,5) do canto; o buraco, de raio
 //   2,2, tem o centro 1,15 para fora nas duas direções (fica na madeira e mal
 //   entra no pano);
-// - meio: a borracha acaba a BOCA_MEIO (2,2) do centro; o buraco, de raio
+// - meio: a borracha acaba a BOCA_MEIO (2,2; hoje 2,0) do centro; o buraco, de raio
 //   1,73, tem o centro 2 para fora (fica todo atrás da borracha).
 // A ponta da borracha é uma quina: a bola que chega torta bate e volta. A
 // bola cai quando passa da linha da borracha pela boca ou quando o centro
 // entra no buraco desenhado.
-export const BOCA_CANTO = 2.5, BOCA_MEIO = 2.2;
+export const BOCA_CANTO = 2.5, BOCA_MEIO = 2.0;
+// A bola cresceu (1,6) para o número ler na tela, e as caçapas, medidas em raios
+// de bola, cresceram junto: ficaram enormes (Paulo, 27/10/2026: "as bocas tão
+// grandes demais"). Depois, mesa de bar (Paulo, 27/10/2026: "estilo barzinho, pra ter
+// que colocar as bolas na boca"): medidas em 1,0 de raio, a boca do canto tem
+// 1,1 bola de largura e a do meio 1,25 (BOCA_MEIO 2,0); a bola torta bate na
+// quina e volta.
+export const RAIO_BOCA = 1.0;
+const raioDaBoca = (r) => Math.min(r, RAIO_BOCA);
 export function cacapas(r) {
+ r = raioDaBoca(r);
  const L = LARGURA, A = ALTURA, c = 1.15 * r, cr = 2.2 * r, f = 2 * r, mr = 1.73 * r;
  return [[-c, -c, cr], [50, -f, mr], [L + c, -c, cr], [-c, A + c, cr], [50, A + f, mr], [L + c, A + c, cr]];
 }
 function bocas(r) {
+ const buracos = cacapas(r);
+ r = raioDaBoca(r);
  const m = BOCA_CANTO * r, h = BOCA_MEIO * r, L = LARGURA, A = ALTURA;
  const quinas = [[0, m], [m, 0], [L - m, 0], [L, m], [0, A - m], [m, A], [L - m, A], [L, A - m], [50 - h, 0], [50 + h, 0], [50 - h, A], [50 + h, A]];
  // Onde a tabela está aberta (sem borracha para a bola bater).
  const abertaX = (y) => y < m || y > A - m; // tabelas da esquerda e da direita
  const abertaY = (x) => x < m || x > L - m || Math.abs(x - 50) < h; // tabelas de cima e de baixo
- return { quinas, abertaX, abertaY, buracos: cacapas(r) };
+ return { quinas, abertaX, abertaY, buracos };
 }
 const RESTITUICAO_QUINA = 0.6;
-const PASSO = 1 / 240, QUADRO = 8, PASSOS_MAX = 240 * 15;
-const ATRITO = 40, RESTITUICAO_TABELA = 0.78, VEL_MIN = 20, VEL_MAX = 260;
+const PASSO = 1 / 240, QUADRO = 8, PASSOS_MAX = 240 * 20;
+const RESTITUICAO_TABELA = 0.78, VEL_MIN = 20, VEL_MAX = 260;
+// FÍSICA COM GIRO (Paulo, 27/10/2026: "as bolas nem giram, saem deslizando...
+// tá longe do que acontece na vida real"). A mesa tem 100 de comprido (2,54 m),
+// então 1 = 2,54 cm e g = 386 por s². Cada bola tem a velocidade (v) e o giro,
+// guardado como a velocidade com que ela rolaria sem escorregar (w).
+// - Escorregando (v ≠ w): o atrito do pano (μ 0,2: DESLIZE) freia v e puxa w
+//   até as duas se igualarem, em 5v + 2w constante (bola maciça): a bola tacada
+//   no centro sai deslizando e passa a rolar com 5/7 da velocidade.
+// - Rolando (v = w): a resistência do pano (ROLAGEM) freia as duas juntas.
+// - Choque entre bolas troca só a velocidade; o giro fica. A branca com giro
+//   para a frente segue depois do choque e a com giro para trás volta (puxar);
+//   a bola acertada sai deslizando e logo rola.
+const DESLIZE = 77, ROLAGEM = 25;
 const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
 // Par ou ímpar, a sinuca de bar do Brasil (Paulo, 27/10/2026: "tem que ser
 // estilo Brasil, ímpar e par"): 7 pares e 7 ímpares. Desde 28/10 (Paulo: "não
@@ -99,9 +122,11 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
 // tabela, e o choque com outra bola tira quase todo).
 export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0) {
  const BOCAS = bocas(R);
- const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], vx: 0, vy: 0 } : null));
+ const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], vx: 0, vy: 0, wx: 0, wy: 0 } : null));
  const v = VEL_MIN + (VEL_MAX - VEL_MIN) * forca, dirX = Math.cos(angulo), dirY = Math.sin(angulo);
- b[0].vx = dirX * v; b[0].vy = dirY * v;
+ // O taco acima do centro dá giro para a frente (seguir); abaixo, para trás
+ // (puxar). Na altura máxima do taco o giro chega a 1,25 da velocidade.
+ b[0].vx = dirX * v; b[0].vy = dirY * v; b[0].wx = dirX * v * efeito * 1.25; b[0].wy = dirY * v * efeito * 1.25;
  const caiu = [], quadros = [], eventos = [];
  const evento = (t, f) => {
   const q = quadros.length, ultimo = eventos[eventos.length - 1];
@@ -115,11 +140,25 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0)
   for (let n = 0; n < 16; n++) {
    const p = b[n];
    if (!p) continue;
-   const vel = Math.hypot(p.vx, p.vy);
-   if (vel === 0) continue;
-   const nova = Math.max(0, vel - ATRITO * PASSO);
-   if (nova < 0.3) { p.vx = 0; p.vy = 0; continue; }
-   p.vx *= nova / vel; p.vy *= nova / vel;
+   const sx = p.vx - p.wx, sy = p.vy - p.wy, escorrega = Math.hypot(sx, sy);
+   if (escorrega > 1e-6) {
+    // Escorregando: o atrito empurra contra o escorregão até a bola rolar.
+    if (escorrega <= 3.5 * DESLIZE * PASSO) {
+     const rx = (5 * p.vx + 2 * p.wx) / 7, ry = (5 * p.vy + 2 * p.wy) / 7;
+     p.vx = rx; p.vy = ry; p.wx = rx; p.wy = ry;
+    } else {
+     const ux = sx / escorrega, uy = sy / escorrega, a = DESLIZE * PASSO;
+     p.vx -= ux * a; p.vy -= uy * a; p.wx += ux * 2.5 * a; p.wy += uy * 2.5 * a;
+    }
+   } else {
+    // Rolando: freia devagar, velocidade e giro juntos.
+    const vel = Math.hypot(p.vx, p.vy);
+    if (vel === 0) continue;
+    const f = Math.max(0, vel - ROLAGEM * PASSO) / vel;
+    p.vx *= f; p.vy *= f; p.wx = p.vx; p.wy = p.vy;
+   }
+   const nova = Math.hypot(p.vx, p.vy);
+   if (nova < 0.3 && Math.hypot(p.wx, p.wy) < 0.3) { p.vx = 0; p.vy = 0; p.wx = 0; p.wy = 0; continue; }
    p.x += p.vx * PASSO; p.y += p.vy * PASSO;
    andando = true;
    // O centro entrou no buraco (ou passou da linha da tabela, o que só
@@ -130,17 +169,19 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0)
     const dx = p.x - qx, dy = p.y - qy, d = Math.hypot(dx, dy);
     if (d >= R || d === 0) continue;
     const nx = dx / d, ny = dy / d, vn = p.vx * nx + p.vy * ny;
-    if (vn < 0) { p.vx -= (1 + RESTITUICAO_QUINA) * vn * nx; p.vy -= (1 + RESTITUICAO_QUINA) * vn * ny; if (-vn > 8) evento('tabela', -vn); }
+    if (vn < 0) { p.vx -= (1 + RESTITUICAO_QUINA) * vn * nx; p.vy -= (1 + RESTITUICAO_QUINA) * vn * ny; const wn = p.wx * nx + p.wy * ny; p.wx += (-RESTITUICAO_QUINA * vn - wn) * nx; p.wy += (-RESTITUICAO_QUINA * vn - wn) * ny; if (-vn > 8) evento('tabela', -vn); }
     p.x = qx + nx * R; p.y = qy + ny * R;
    }
    const bateuX = (p.x < R || p.x > LARGURA - R) && !BOCAS.abertaX(p.y), bateuY = (p.y < R || p.y > ALTURA - R) && !BOCAS.abertaY(p.x);
    // Giro lateral da branca: na tabela, empurra ao longo dela (para a direita
    // de quem tacou com giro positivo) na proporção da batida.
    const torce = (normal) => { const t = giro * 0.35 * Math.abs(normal); giro *= 0.6; return t; };
-   if (bateuX && p.x < R) { p.x = R; if (n === 0 && giro) p.vy -= torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
-   if (bateuX && p.x > LARGURA - R) { p.x = LARGURA - R; if (n === 0 && giro) p.vy += torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; }
-   if (bateuY && p.y < R) { p.y = R; if (n === 0 && giro) p.vx += torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
-   if (bateuY && p.y > ALTURA - R) { p.y = ALTURA - R; if (n === 0 && giro) p.vx -= torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; }
+   // Na tabela, o giro na direção da batida vira junto com a bola (a borracha
+   // pega a bola acima do centro); o giro ao longo da tabela continua.
+   if (bateuX && p.x < R) { p.x = R; if (n === 0 && giro) p.vy -= torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; p.wx = p.vx; }
+   if (bateuX && p.x > LARGURA - R) { p.x = LARGURA - R; if (n === 0 && giro) p.vy += torce(p.vx); p.vx = -p.vx * RESTITUICAO_TABELA; p.wx = p.vx; }
+   if (bateuY && p.y < R) { p.y = R; if (n === 0 && giro) p.vx += torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; p.wy = p.vy; }
+   if (bateuY && p.y > ALTURA - R) { p.y = ALTURA - R; if (n === 0 && giro) p.vx -= torce(p.vy); p.vy = -p.vy * RESTITUICAO_TABELA; p.wy = p.vy; }
    if ((bateuX || bateuY) && nova > 8) evento('tabela', nova);
   }
   // Choques entre bolas (massas iguais, quase elástico).
@@ -154,7 +195,8 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = 1.15, lado = 0)
     const j = rel * 0.97;
     p.vx -= j * nx; p.vy -= j * ny; q.vx += j * nx; q.vy += j * ny;
     // A branca é sempre a 0, então é o `p` do par.
-    if (primeiro === null && i === 0) { primeiro = k; giro *= 0.25; if (efeito) { p.vx += efeito * 0.75 * j * dirX; p.vy += efeito * 0.75 * j * dirY; } }
+    // O efeito já está no giro da branca (dado na tacada): o choque não mexe nele.
+    if (primeiro === null && i === 0) { primeiro = k; giro *= 0.25; }
     if (j > 3) evento('bola', j);
     andando = true;
    }

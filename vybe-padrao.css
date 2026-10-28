@@ -468,3 +468,19 @@
 .prod-v2-head .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
 .prod-v2-layout .prod-v2-head.prod-v2-head,.vybe-desktop .prod-v2-layout .prod-v2-head.prod-v2-head{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:4px 0 10px!important}
 .p-head-title.pv-cabeca{display:flex!important;flex-direction:row!important;align-items:center!important;gap:14px!important}
+
+/* Faixa de dias para tocar (mover solicitação) */
+.pv-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0 8px}
+.pv-dias button{display:grid;justify-items:center;gap:2px;padding:8px 0;border-radius:12px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#ece8e3;cursor:pointer}
+.pv-dias button small{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:.1em;text-transform:uppercase}
+.pv-dias button b{font:700 18px/1 var(--pv-titulo)}
+.pv-dias button.on{border-color:#ffb35c;background:linear-gradient(180deg,rgba(255,143,79,.28),rgba(255,143,79,.08));color:#fff;box-shadow:0 0 0 2px rgba(255,179,92,.25)}
+.pv-dias button.on small{color:#ffcf9a}
+
+/* Jogos · a fora (fila de quem espera para entrar) */
+.jogo-fora{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:12px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho)}
+.jogo-fora-rotulo{color:#ffb35c;font:700 10.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.jogo-fora-pessoa{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 3px;border-radius:99px;background:rgba(255,255,255,.06);color:#ece8e3;font:600 12px var(--mac-ui)}
+.jogo-fora-pessoa img{width:22px;height:22px;border-radius:50%;object-fit:cover;image-rendering:pixelated;background:#2a2d3c}
+.jogo-fora-vazia{color:#7d7870;font-size:12px}
+.jogo-fora small{flex-basis:100%;color:#7d7870;font-size:11px}

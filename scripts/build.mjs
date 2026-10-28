@@ -31,7 +31,11 @@ const estilo = await asset(css.code, 'css');
 const appearance = await transform(await readFile('vybe-appearance.css','utf8'), { loader: 'css', minify: true });
 const appearancePath = await asset(appearance.code, 'css', 'appearance');
 const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loader: 'css', minify: true });
-const padraoPath = await asset(padrao.code, 'css', 'padrao');
+// A arte da Vybelândia (cartão do Escritório na tela de módulos) vai com hash;
+// o CSS do padrão aponta para ela, então troca o caminho lá também (sem isto a
+// foto sumia em produção: /assets/vybelandia.webp não existe no dist).
+const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
+const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia), 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
 html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
@@ -39,7 +43,6 @@ html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
-const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
 // App instalável (tela inicial do celular, Dock, Windows): manifesto e ícones
 // ficam com caminho fixo, sem hash, porque o sistema guarda o endereço.
