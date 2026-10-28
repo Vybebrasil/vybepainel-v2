@@ -13016,3 +13016,18 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .pkr-cli-rodape input {width:80px;padding:5px 8px;border:1px solid #ffffff20;border-radius:8px;background:#0b1118;color:#fff}
 @media(max-width:760px){.pkr-lugar{width:96px}.pkr-lugar .pkr-quem{min-width:0;padding-right:8px}.pkr-lugar .pkr-quem img,.pkr-lugar .pkr-quem .pkr-sem,.pkr-lugar .pkr-cliente{width:28px;height:28px;font-size:10px}.pkr-lugar .pkr-quem b{max-width:52px;font-size:10px}.pkr-carta.pequena{--w:18px}.pkr-salao .pkr-comunitarias .pkr-carta{--w:30px}.pkr-botao{min-width:90px;padding:10px}}
 @media (prefers-reduced-motion:reduce){.pkr-dando,.pkr-voo{display:none}.pkr-aposta.entrou,.pkr-fala{animation:none}}
+/* Sinuca na mesa de bar (28/10/2026): a mesa é a arte (assets/jogos/mesa-bar.webp);
+   o resto segue o padrão visual (vybe-padrao.css: vidro, borda clara e o laranja
+   como única cor de destaque). Só o que é novo: a proporção da mesa e o tubo
+   das bolas encaçapadas, embaixo do Tacar. */
+.ofc-snc-jogo .snc-canvas {aspect-ratio:116/66}
+.snc-tubo {display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;min-height:60px;padding:6px 0;border-radius:12px;border:1px solid var(--pv-linha,#ffffff14);background:var(--pv-campo,#08090d99);box-shadow:var(--pv-brilho,none)}
+.snc-tubo i {display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#fff 0 34%,transparent 36%),var(--c);color:#111;font:800 9.5px/1 var(--mac-ui);font-style:normal;box-shadow:inset 0 -3px 4px #0006}
+.snc-tubo i.listra {background:radial-gradient(circle,#fff 0 36%,transparent 38%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
+@media (max-width:760px){.snc-tubo {flex-direction:row;flex-wrap:wrap;justify-content:center;min-height:0;padding:4px 8px}}
+.snc-lado > * {min-width:0;max-width:100%}
+@media (min-width:761px){.snc-lado {grid-template-columns:minmax(0,1fr)}}
+.snc-taco {display:grid;justify-items:center;gap:2px;width:100%}
+.snc-taco input {width:100%;min-width:0;margin:0;accent-color:#ff8f4f}
+.snc-guia {width:100%;padding:6px 0;border:1px solid var(--pv-borda,#ffffff1f);border-radius:10px;background:var(--pv-tile,#ffffff0a);color:#cfd3dc;font:700 11px var(--mac-ui);cursor:pointer}
+.snc-guia.ligada {border-color:#ff8f4f;color:#ffb07a}
