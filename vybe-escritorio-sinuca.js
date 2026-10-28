@@ -58,7 +58,29 @@ function abrirSinucaEscritorio(m) {
   return abrirMesaEscritorio(m, SINUCA_CFG);
 }
 function sinucaSinalEscritorio(de, v) {
+  const [id, , tipo, ang, forca, bx, by] = String(v || "").split(":");
+  if (tipo === "m") return sinucaMiraRecebida(de, id, Number(ang), Number(forca), Number(bx), Number(by));
   mesaSinalEscritorio(SINUCA_CFG, de, v);
+}
+// A mira de quem está na vez, ao vivo para quem está na partida (Paulo,
+// 28/10/2026: "a partida 1x1 precisa melhorar... um jogador vendo o que o
+// outro faz também"). Antes só se via a tacada depois que ela acontecia.
+function sinucaMandarMira(j, s, ang, forca, branca) {
+  if (!j?.id || escritorio.base?.demo || !branca) return;
+  const chave = `${ang.toFixed(3)}:${(forca || 0).toFixed(2)}:${branca[0].toFixed(2)}:${branca[1].toFixed(2)}`;
+  if (chave === s.miraMandada) return;
+  const agora = performance.now(), espera = 180 - (agora - (s.miraEm || 0));
+  clearTimeout(s.miraTimer);
+  if (espera > 0) { s.miraTimer = setTimeout(() => { const e = sinucaEstado(); if (e.jogo?.id === j.id && sinucaMinhaVez(e.jogo)) sinucaMandarMira(e.jogo, e, ang, forca, branca); }, espera); return; }
+  s.miraEm = agora; s.miraMandada = chave;
+  for (const para of mesaOutrosIds(j)) mesaSinal(SINUCA_CFG, j.id, para, "m:" + chave);
+}
+function sinucaMiraRecebida(de, id, ang, forca, bx, by) {
+  const s = sinucaEstado(), j = s.jogo;
+  if (!j || String(j.id) !== String(id) || j.estado !== "jogando" || String(de) === String(escritorio.base?.eu)) return;
+  if (String(j[j.vez]?.id) !== String(de) || ![ang, forca, bx, by].every(Number.isFinite)) return;
+  s.miraOutro = { ang, forca: Math.max(0, Math.min(1, forca)), b: [bx, by], em: performance.now(), n: j.mesa?.n ?? 0 };
+  sinucaPintar();
 }
 function sinucaEstado() {
   return escritorioMesa("snc");
@@ -120,7 +142,7 @@ function desenharSinuca(j, s) {
     if (novas.length) { if (s.anim) s.anim.fila.push(...novas); else s.anim = { fila: novas, k: 0, inicio: 0 }; }
     s.vistoN = nMesa;
   }
-  if (s.visto !== chave) { s.visto = chave; s.branca = null; s.travada = false; s.puxando = null; s.forcaAgora = null; }
+  if (s.visto !== chave) { s.visto = chave; s.branca = null; s.travada = false; s.puxando = null; s.forcaAgora = null; s.miraOutro = null; s.miraMandada = null; }
   const minha = sinucaMinhaVez(j), poe = sinucaPondo(j, s);
   const status = j.estado !== "jogando" ? "" : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${xadrezPrimeiroNome(j[outro])}.`
     : poe ? "Bola na mão: toque na mesa onde quer pôr a branca." : SINUCA_DICA[s.travada ? "travada" : "livre"];
@@ -317,18 +339,28 @@ const sinucaPx = (v) => (v + SINUCA_B) * SINUCA_PX;
 // o giro, e o número aparece dos dois lados, como na bola de verdade.
 const SINUCA_GIRO = new Map(), SINUCA_GIRO_QUADRO = 0.35;
 function sinucaRolarBola(n, x, y, R) {
+  const agora = performance.now();
   let o = SINUCA_GIRO.get(n);
-  if (!o) { o = { m: [1, 0, 0, 0, 1, 0, 0, 0, 1], x, y }; SINUCA_GIRO.set(n, o); return o; }
-  const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy);
-  o.x = x; o.y = y;
-  // Parada ou pulo (bola que voltou à mesa, partida nova): não gira.
-  if (!d || d > 8 * R) { o.rapido = 0; return o; }
+  if (!o) { o = { m: [1, 0, 0, 0, 1, 0, 0, 0, 1], x, y, t: agora, mov: 0, rapido: 0 }; SINUCA_GIRO.set(n, o); return o; }
+  const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy), dt = Math.max(1, agora - (o.t || agora));
+  o.x = x; o.y = y; o.t = agora;
+  // Pulo (bola que voltou à mesa, partida nova): não gira.
+  if (d > 8 * R) { o.rapido = 0; return o; }
+  // Parada: o borrão só some um pouco depois (a mesa é pintada de novo no mesmo
+  // quadro pelo mouse e pela releitura, e a bola "parava" entre duas pinturas).
+  if (!d) { if (agora - (o.mov || 0) > 150) o.rapido = 0; return o; }
+  o.mov = agora;
   // Rápida, a bola de verdade vira um borrão; desenhada quadro a quadro, girando
   // mais de ~20° por quadro, a listra e o número trocam de lado a cada quadro e
-  // ela pisca (Paulo, 28/10/2026). O giro desenhado para em SINUCA_GIRO_QUADRO e
-  // o número some com a velocidade (o).
-  const kx = -dy / d, ky = dx / d, a = Math.min(d / R, SINUCA_GIRO_QUADRO), c = Math.cos(a), sn = Math.sin(a), t = 1 - c;
-  o.rapido = Math.max(0, Math.min(1, (d / R - 0.15) / 0.35));
+  // ela pisca (Paulo, 28/10/2026). O giro e a velocidade contam pelo TEMPO (por
+  // quadro de 60 Hz), não por pintura: duas pinturas no mesmo quadro mediam a
+  // bola parada na segunda, e o número e a listra acendiam e apagavam (Paulo,
+  // 28/10/2026: "as bolas parece que fica piscando trocando cor").
+  const quadros = Math.max(dt, 16.7) / 16.7, porQuadro = d / R / quadros;
+  const kx = -dy / d, ky = dx / d, a = Math.min(d / R, SINUCA_GIRO_QUADRO * Math.min(3, dt / 16.7)), c = Math.cos(a), sn = Math.sin(a), t = 1 - c;
+  const alvo = Math.max(0, Math.min(1, (porQuadro - 0.15) / 0.35));
+  // Acende o borrão na hora e apaga devagar (não volta a piscar na desaceleração).
+  o.rapido = alvo >= (o.rapido || 0) ? alvo : o.rapido + (alvo - o.rapido) * Math.min(1, dt / 160);
   const G = [t * kx * kx + c, t * kx * ky, sn * ky, t * kx * ky, t * ky * ky + c, -sn * kx, -sn * ky, sn * kx, c];
   const m = o.m, r = new Array(9);
   for (let i = 0; i < 3; i++) for (let k = 0; k < 3; k++) r[i * 3 + k] = G[i * 3] * m[k] + G[i * 3 + 1] * m[3 + k] + G[i * 3 + 2] * m[6 + k];
@@ -345,6 +377,9 @@ function sinucaEsferaPintar(g, px, py, r, cor, listra, m, numero, rapido = 0) {
   const tg = tela.getContext("2d"), img = tg.createImageData(lado, lado), d = img.data;
   const [cr, cg, cb] = sinucaCorRgb(cor), branco = [247, 244, 234];
   const rr = lado / 2;
+  // Rápida, a listrada vira a mistura da cor com o branco (o borrão de verdade).
+  const mistura = listra ? Math.min(0.85, rapido) : 0, media = [(cr + branco[0]) / 2, (cg + branco[1]) / 2, (cb + branco[2]) / 2];
+  const disco = numero ? Math.max(0, 1 - rapido / 0.8) : 0;
   for (let yy = 0; yy < lado; yy++) for (let xx = 0; xx < lado; xx++) {
     const nx = (xx + 0.5 - rr) / rr, ny = (yy + 0.5 - rr) / rr, q = nx * nx + ny * ny;
     if (q > 1) continue;
@@ -352,7 +387,8 @@ function sinucaEsferaPintar(g, px, py, r, cor, listra, m, numero, rapido = 0) {
     // O ponto no corpo da bola: transposta da orientação vezes a normal.
     const by = m[1] * nx + m[4] * ny + m[7] * nz, bz = m[2] * nx + m[5] * ny + m[8] * nz;
     let c = listra ? (Math.abs(by) < 0.5 ? [cr, cg, cb] : branco) : [cr, cg, cb];
-    if (numero && rapido < 0.8 && Math.abs(bz) > 0.86) c = [251, 248, 239];
+    if (mistura) c = [c[0] + (media[0] - c[0]) * mistura, c[1] + (media[1] - c[1]) * mistura, c[2] + (media[2] - c[2]) * mistura];
+    if (disco && Math.abs(bz) > 0.86) c = [c[0] + (251 - c[0]) * disco, c[1] + (248 - c[1]) * disco, c[2] + (239 - c[2]) * disco];
     // Luz de cima à esquerda, um pouco de brilho e a borda mais escura.
     const luz = Math.max(0, -0.45 * nx - 0.5 * ny + 0.74 * nz), f = 0.42 + 0.68 * luz, esp = Math.pow(luz, 28) * 210;
     const i = (yy * lado + xx) * 4, borda = q > 0.86 ? (1 - q) / 0.14 : 1;
@@ -478,7 +514,20 @@ function sinucaPintar(agora) {
   // pintada (par) ou tem a faixa branca (ímpar), como no bar.
   if (s.anim) { if (cena) sinucaCenaPintar(g, W, cena, R, P); return; }
   if (sinucaPondo(j, s) && s.fantasma) sinucaBolaPintar(g, 0, s.fantasma.x, s.fantasma.y, R, true);
+  // O outro mirando (ao vivo): o taco dele, a linha curta e a branca onde ele pôs.
+  const mo = s.miraOutro, viva = mo && mo.n === (j.mesa?.n ?? 0) && performance.now() - mo.em < 4000;
+  if (viva && !sinucaMinhaVez(j)) {
+    if (!j.mesa.bolas[0] || j.mesa.bolaNaMao) sinucaBolaPintar(g, 0, mo.b[0], mo.b[1], R, 0.7);
+    const dx = Math.cos(mo.ang), dy = Math.sin(mo.ang);
+    g.save(); g.globalAlpha = 0.85;
+    sinucaLinha(g, [mo.b[0] + dx * (R + 0.6), mo.b[1] + dy * (R + 0.6)], [mo.b[0] + dx * (R + 9), mo.b[1] + dy * (R + 9)], "#ffffff70", [P * 0.5, P * 0.5], 1.5);
+    sinucaTacoPintar(g, mo.b, dx, dy, (R + 0.5 + 10 * mo.forca) * P, P);
+    g.restore();
+    sinucaCenaPintar(g, W, { faixa: `${xadrezPrimeiroNome(j[j.vez])} está mirando` }, R, P);
+    clearTimeout(s.miraApaga); s.miraApaga = setTimeout(() => sinucaPintar(), 4100);
+  }
   if (!branca) return;
+  sinucaMandarMira(j, s, s.angulo ?? 0, s.forcaAgora ?? 0, branca);
   if (s.branca) sinucaBolaPintar(g, 0, branca[0], branca[1], R);
   // Mira de mesa de bar (Paulo, 28/10/2026: "só a linha que mostra no comecinho
   // da bola branca"): o taco e um traço curto na direção dele, sem guia até a
