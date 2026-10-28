@@ -590,3 +590,50 @@
 .dmn-mao-pecas:has(.pode) .dmn-mao-peca:not(.pode),.dmn-mao:has(.pode) .dmn-mao-peca:not(.pode){opacity:.35!important;filter:grayscale(.5)}
 .dmn-mao-peca.pode .dmn-peca{box-shadow:0 0 0 2px #46d48c,0 0 14px rgba(70,212,140,.55),0 4px 10px #0008!important}
 .dmn-mao-peca .dmn-peca{--m:38px!important}
+
+/* ===== Telas com volume real ===== */
+/* Calendário do mês: com centenas de peças, cada uma pintada inteira na cor do
+   status virava um mosaico verde-limão. Como no desenho: cartão escuro, a cor
+   só na barra da esquerda e no ponto; título claro, cliente em cinza. */
+.manager-calendar{border-radius:22px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-vidro,linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 42%),#12141a)!important}
+.manager-calendar-toolbar{background:transparent!important;box-shadow:none!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+.manager-calendar-grid{gap:1px!important;background:rgba(255,255,255,.05)!important}
+.manager-calendar-weekday{background:#14161d!important;color:#7d7870!important;font:700 10px var(--mac-ui)!important;letter-spacing:.1em;text-transform:uppercase}
+.manager-calendar-day{background:#101218!important}
+.manager-calendar-day.is-other{background:#0c0d12!important;opacity:.6}
+.manager-calendar-day.is-today{background:linear-gradient(180deg,rgba(255,143,79,.08),#101218 40%)!important;box-shadow:inset 0 2px 0 #ff8f4f!important}
+.manager-calendar-event{grid-template-columns:3px minmax(0,1fr) 8px!important;padding:6px 6px 6px 5px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:9px!important;background:linear-gradient(180deg,#1f222c,#191b23)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
+.manager-calendar-event:hover{border-color:color-mix(in srgb,var(--event-color,#ff8b38) 55%,transparent)!important;background:linear-gradient(180deg,#252834,#1d1f28)!important}
+.manager-calendar-event-bar{width:3px!important;background:var(--event-color,#ff8b38)!important;box-shadow:0 0 8px color-mix(in srgb,var(--event-color,#ff8b38) 60%,transparent)}
+.manager-calendar-event-copy b{color:#f2efe9!important;font:600 11.5px/1.3 var(--mac-ui)!important}
+.manager-calendar-event-copy small{color:#8b877f!important}
+.manager-calendar-event-status{color:var(--event-color,#ff8b38)!important;font-weight:600}
+.manager-calendar-more,.manager-calendar-day [class*="mais"]{border-radius:8px!important;background:rgba(255,255,255,.04)!important;color:#a8a39c!important;border:1px dashed rgba(255,255,255,.1)!important}
+
+/* Prévia (olhinho): um visualizador de verdade. Fundo escuro desfocado, a arte
+   grande com brilho, o cabeçalho da peça em vidro (título no padrão, "peça 2 de
+   20" em pílula), Baixar e Trocar como botões do padrão e as setas de peça
+   redondas nas laterais. */
+.previa-grande{background:radial-gradient(80% 70% at 50% 45%,rgba(30,32,44,.72),rgba(6,7,10,.94))!important;backdrop-filter:blur(14px)!important}
+.previa-grande-vidro{position:relative;width:min(1180px,94vw)!important;max-width:none!important;max-height:94vh!important;gap:12px!important;padding:16px 18px 18px!important;border-radius:26px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.9),rgba(20,22,30,.92))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 50px 120px -30px rgba(0,0,0,.95)!important}
+.previa-grande-topo{gap:8px!important;color:#a8a39c!important}
+#previa-grande-nome{margin-right:auto;color:#a8a39c;font:600 11px var(--mac-ui);letter-spacing:.06em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.previa-grande-topo button:not(.x-fechar){height:34px!important;padding:0 14px!important;border-radius:11px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+.previa-grande-topo .previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.previa-grande-topo .x-fechar{width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;color:#ece8e3!important}
+.previa-grande-pecas{display:flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important;background:none!important}
+.previa-peca-info{display:grid;justify-items:center;gap:4px;text-align:center}
+#previa-peca-nome{color:#fff;font:700 22px/1.15 var(--pv-titulo);letter-spacing:-.015em}
+#previa-peca-onde{display:inline-block;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.06);color:#a8a39c!important;font:600 11.5px var(--mac-ui)!important}
+/* As setas de peça: botões redondos grandes, fora da janela, nas laterais */
+.previa-peca-passo{position:absolute!important;top:50%;z-index:2;width:52px!important;height:52px!important;padding:0!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:linear-gradient(180deg,#2c2f3c,#1d1f28)!important;color:#fff!important;font:400 26px/1 var(--mac-ui)!important;box-shadow:0 14px 30px -10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1)!important;transform:translateY(-50%)}
+.previa-peca-passo span{display:none!important}
+#previa-peca-antes{left:-70px}
+#previa-peca-depois{right:-70px}
+.previa-peca-passo:hover:not(:disabled){border-color:#ffb35c!important;box-shadow:0 0 0 3px rgba(255,179,92,.25),0 14px 30px -10px rgba(0,0,0,.8)!important}
+@media (max-width:1320px){#previa-peca-antes{left:8px}#previa-peca-depois{right:8px}}
+.previa-grande-palco{padding:6px 0 0;border-radius:18px;background:repeating-conic-gradient(rgba(255,255,255,.025) 0 25%,transparent 0 50%) 0 0/24px 24px}
+.previa-grande-palco img,.previa-grande-palco video{border-radius:14px!important;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06)!important}
+.previa-grande-seta{width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(20,22,30,.8)!important;color:#ece8e3!important}
+.previa-grande-topo button.previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+.previa-peca-passo{display:grid!important;place-items:center!important;text-align:center!important}

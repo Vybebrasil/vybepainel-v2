@@ -129,6 +129,10 @@ export async function demoApi(req,res,url,body) {
     const itens=demanda?[{id:'vybe:2',nome:'Reunião de alinhamento fictícia',cliente:'Cliente demonstração',formato:'Reunião',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Solicitações',responsavel_ids:['68035537']}]:[{id:'vybe:1',nome:'Peça fictícia para verificar o painel',cliente:'Cliente demonstração',clientes:['Cliente demonstração'],
       formato:'Card',prazo_iso:hoje,veiculacao_iso:hoje,status_chave:'a_fazer',grupo:'Redação',grupo_id:'group_title',
       responsavel_ids:['68035537'],updated_at:new Date().toISOString()}];
+    // DEMO_VOLUME=1: o mês cheio, para conferir as telas com volume de verdade
+    // (Paulo, 28/10/2026: o calendário com 478 peças "parece que nem passou
+    // perto"). Determinístico; desligado por padrão.
+    if(process.env.DEMO_VOLUME&&!demanda) itens.push(...volumeDemonstracao());
     // A demonstração responde como o servidor de verdade também na leitura
     // incremental: sem isto, o ambiente local só exercitaria o plano B — a
     // releitura inteira — e o caminho que roda quatro vezes por minuto em
@@ -319,6 +323,21 @@ export async function demoApi(req,res,url,body) {
 }
 
 // Dados explicitamente fictícios, exclusivos da revisão local da aba Trabalho.
+function volumeDemonstracao() {
+  const clientes=['Academia Lions','Alpha1','Antonov','Brussolo Ristorante','ConectaSim','Copirecê','DiaCenter','DiaLab','Gonzalez','Hebravet','Hellen','Mangaba AI','Serra Grande Bebidas','VOA','Experimente Papelaria'];
+  const formatos=['Card','Carrossel','Reels','Fotografia','Story','Feed','Motion'];
+  const status=[['Pode Fazer','pode_fazer'],['Em Andamento','em_andamento'],['Para aprovação','para_aprovacao'],['Agendado','agendado'],['Finalizado','finalizado'],['Alteração','alteracao'],['Ag. Info Cliente','ag_info_cliente'],['A Fazer','a_fazer']];
+  const temas=['Dia do cliente','Promoção da semana','Bastidores','Depoimento','Lançamento','Feriado','Dica rápida','Antes e depois','Equipe','Novidade do mês','Pergunta do dia','Outubro Rosa'];
+  const base=new Date(); base.setDate(1);
+  const out=[];
+  for(let i=0;i<300;i++){
+    const d=new Date(base); d.setDate(1+(i*13)%28); const iso=d.toISOString().slice(0,10);
+    const [rot,chave]=status[(i*5)%status.length], fmt=formatos[(i*3)%formatos.length], cli=clientes[(i*11)%clientes.length];
+    out.push({id:`vybe:${1000+i}`,nome:`${fmt} - ${temas[(i*7)%temas.length]}`,cliente:cli,clientes:[cli],formato:fmt,prazo_iso:iso,veiculacao_iso:iso,
+      status:rot,status_chave:chave,grupo:'Redação',grupo_id:'group_title',responsavel_ids:[['68035537','68035538','68035539'][i%3]],updated_at:new Date().toISOString()});
+  }
+  return out;
+}
 function trabalhoDemonstracao(id,consulta={}) {
  const hoje=diaBahia(), periodo=periodoTrabalho(hoje,consulta), desde=periodo.desde, linhas=[];
  const ndias=Math.round((Date.parse(periodo.fim)-Date.parse(desde))/864e5)+1;
