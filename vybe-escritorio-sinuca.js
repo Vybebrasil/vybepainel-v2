@@ -23,9 +23,12 @@ const SINUCA_CFG = registrarMesaEscritorio({
   som: () => null,
   nota: "Par ou ímpar, como no bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e encaçape a 1 para ganhar.", desenhar: (j, s) => desenharSinuca(j, s),
 });
-// Mesa de 100 × 50 com 4 de tabela em volta; 10 px por unidade no canvas.
-// A borda (madeira e borracha) tem 6,5: cabem as caçapas, que ficam fora do pano.
-const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 6.5, SINUCA_PX = 10;
+// Mesa de 100 × 50 (o pano, 1,90 m × 0,95 m) com 8 de moldura em volta; 10 px
+// por unidade no canvas. A moldura é a da arte da mesa de bar
+// (assets/jogos/mesa-bar.webp, recortada com o pano a 8 unidades de cada borda).
+const SINUCA_L = 100, SINUCA_A = 50, SINUCA_B = 8, SINUCA_PX = 10;
+const SINUCA_MESA = typeof Image === "function" ? Object.assign(new Image(), { src: "/assets/jogos/mesa-bar.webp" }) : null;
+SINUCA_MESA?.addEventListener?.("load", () => sinucaPintar());
 const SINUCA_CORES = ["#f7f4ea", "#f2c12e", "#1f5fbf", "#d23a2a", "#6a3fa0", "#f07a1a", "#1e8a4a", "#8a2a1e", "#151515"];
 // Jogo de bolas do par ou ímpar (Paulo, 28/10/2026: "par (bolas preenchidas) ou
 // ímpar (bola com listra branca)"; "bola par com listra também, faz direito"):
@@ -125,6 +128,7 @@ function desenharSinuca(j, s) {
 <button type="button" class="snc-efeito-bola" onclick="sinucaEfeito(event)" ${ativo ? "" : "disabled"} aria-label="Efeito: ${sinucaEfeitoNome(efeito, giro)}"><i style="top:${50 - efeito * 34}%;left:${50 + giro * 34}%"></i></button><small>Efeito</small>
 <div class="snc-mira-fina" role="group" aria-label="Ajuste fino da mira"><button type="button" onclick="sinucaGirar(-1)" ${ativo ? "" : "disabled"} aria-label="Mira um pouco para um lado">↺</button><button type="button" onclick="sinucaGirar(1)" ${ativo ? "" : "disabled"} aria-label="Mira um pouco para o outro lado">↻</button></div>
 <button type="button" class="snc-tacar" onclick="tacarSinuca()" ${ativo ? "" : "disabled"}>Tacar</button>
+<div class="snc-tubo" aria-label="Bolas encaçapadas">${m.bolas.map((p, n) => (!p && n ? n : null)).filter((n) => n !== null).map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? "listra" : ""}" style="--c:${v.cor};--n:${n}" title="Bola ${n}">${n}</i>`; }).join("")}</div>
 ${m.bolaNaMao && s.branca && minha ? `<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa('snc')">Mudar a branca</button>` : ""}</div>`;
   const ultimo = sinucaUltimoTexto(j);
   // Pinta logo que o canvas entra na tela (rAF não roda com a aba escondida).
@@ -385,28 +389,20 @@ function sinucaLinha(g, a, b, cor, traco, largura = 2) {
   g.beginPath(); g.moveTo(sinucaPx(a[0]), sinucaPx(a[1])); g.lineTo(sinucaPx(b[0]), sinucaPx(b[1])); g.stroke();
   g.setLineDash([]);
 }
-// A mesa copiada do 8 Ball Pool (28/10/2026, Paulo: "por que não copia do que
-// já existe?"), com as medidas tiradas do jogo (em raios de bola, contadas do
-// nariz da borracha; as mesmas da física em server/escritorio-sinuca.js):
-// - borracha verde-escura de 1,5 de largura, que acaba a 2,5 do canto e a 2,2
-//   do centro da tabela comprida, com a ponta cortada em direção ao buraco;
-// - buraco do canto de raio 2,2, com o centro 1,15 para fora nas duas
-//   direções (fica na madeira e mal entra no pano);
-// - buraco do meio de raio 1,73, com o centro 2 para fora (todo atrás da borracha).
-const SINUCA_BOCA_CANTO = 2.5, SINUCA_BOCA_MEIO = 2.0;
-// Caçapas de mesa de bar, como no servidor (RAIO_BOCA e BOCA_MEIO): boca do
-// canto com 1,1 bola e a do meio com 1,25.
-const sinucaRaioBoca = (R) => Math.min(R, 1.0);
-function sinucaBuracos(R) {
-  R = sinucaRaioBoca(R);
-  const L = SINUCA_L, A = SINUCA_A, c = 1.15 * R, cr = 2.2 * R, f = 2 * R, mr = 1.73 * R;
+// Caçapas medidas na arte da mesa, as mesmas da física (CANTO e MEIO em
+// server/escritorio-sinuca.js): a borracha acaba a 4,17 do canto e a 4,1 do
+// meio; o buraco do canto tem raio 3,58 com o centro 1,37 para fora nas duas
+// direções, e o do meio raio 3,36 com o centro 2,92 atrás da tabela.
+const SINUCA_BOCA_CANTO = 4.17, SINUCA_BOCA_MEIO = 4.1;
+function sinucaBuracos() {
+  const L = SINUCA_L, A = SINUCA_A, c = 1.37, cr = 3.58, f = 2.92, mr = 3.36;
   return [[-c, -c, cr], [50, -f, mr], [L + c, -c, cr], [-c, A + c, cr], [50, A + f, mr], [L + c, A + c, cr]].map(([x, y, r]) => ({ x, y, r }));
 }
-const sinucaBocaCanto = (R) => SINUCA_BOCA_CANTO * sinucaRaioBoca(R);
-const sinucaBocaMeio = (R) => SINUCA_BOCA_MEIO * sinucaRaioBoca(R);
+// A mesa é a arte (a de bar, com o pano gasto); sem ela carregada, a desenhada.
 function sinucaMesaPintar(g, W, H, R) {
-  const P = SINUCA_PX, B = SINUCA_B, L = SINUCA_L, A = SINUCA_A, K = 1.5 * R;
-  const m = sinucaBocaCanto(R), h = sinucaBocaMeio(R);
+  if (SINUCA_MESA?.complete && SINUCA_MESA.naturalWidth) { g.drawImage(SINUCA_MESA, 0, 0, W, H); return; }
+  const P = SINUCA_PX, B = SINUCA_B, L = SINUCA_L, A = SINUCA_A, K = 1.5;
+  const m = SINUCA_BOCA_CANTO, h = SINUCA_BOCA_MEIO;
   const X = (v) => (v + B) * P;
   const poli = (pts, cor) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(X(x), X(y)) : g.moveTo(X(x), X(y)))); g.closePath(); g.fillStyle = cor; g.fill(); };
   // Madeira da tabela, clara como a do jogo, com o filete escuro por dentro.
@@ -428,7 +424,7 @@ function sinucaMesaPintar(g, W, H, R) {
   g.strokeStyle = "#ffffff30"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(25), X(0)); g.lineTo(X(25), X(A)); g.stroke();
   g.beginPath(); g.arc(X(75), X(25), P * 0.3, 0, Math.PI * 2); g.fillStyle = "#ffffff50"; g.fill();
   // Caçapas: o buraco (com a sombra da boca) por baixo da borracha.
-  for (const b of sinucaBuracos(R)) {
+  for (const b of sinucaBuracos()) {
     const fundo = g.createRadialGradient(X(b.x), X(b.y) + b.r * P * 0.25, 0, X(b.x), X(b.y), b.r * P);
     fundo.addColorStop(0, "#000"); fundo.addColorStop(0.7, "#0b0303"); fundo.addColorStop(1, "#3a1208");
     g.beginPath(); g.arc(X(b.x), X(b.y), b.r * P, 0, Math.PI * 2); g.fillStyle = fundo; g.fill();
@@ -474,13 +470,20 @@ function sinucaPintar(agora) {
   if (sinucaPondo(j, s) && s.fantasma) sinucaBolaPintar(g, 0, s.fantasma.x, s.fantasma.y, R, true);
   if (!branca) return;
   if (s.branca) sinucaBolaPintar(g, 0, branca[0], branca[1], R);
-  // Mira de mesa de bar (Paulo, 27/10/2026: "pra simular mais, oculta a direção
-  // pra onde a bola vai"): só o taco e um traço curto na direção dele. Sem bola
-  // fantasma, sem o caminho da bola acertada, sem o desvio da branca e sem a
-  // volta na tabela: quem joga calcula, como no bar.
-  const ang = s.angulo ?? 0, dx = Math.cos(ang), dy = Math.sin(ang);
+  // Mira como na referência do Paulo (28/10/2026, a tela do "Boteco"): a linha
+  // da branca até onde ela encosta na primeira bola (ou na tabela) e o círculo
+  // da bola fantasma nesse ponto. Para onde a bola acertada e a branca vão
+  // depois continua por conta de quem joga, como no bar.
+  const ang = s.angulo ?? 0, dx = Math.cos(ang), dy = Math.sin(ang), alvo = sinucaMira(j.mesa.bolas, branca, ang, R);
   g.save();
-  sinucaLinha(g, [branca[0] + dx * (R + 0.6), branca[1] + dy * (R + 0.6)], [branca[0] + dx * (R + 9), branca[1] + dy * (R + 9)], "#ffffff55", [P * 0.5, P * 0.5], 1.5);
+  sinucaLinha(g, [branca[0] + dx * (R + 0.4), branca[1] + dy * (R + 0.4)], [alvo.x - dx * R, alvo.y - dy * R], "#ffffffb0", [], 1.6);
+  g.beginPath(); g.arc(sinucaPx(alvo.x), sinucaPx(alvo.y), R * P, 0, Math.PI * 2);
+  g.strokeStyle = alvo.alvo !== null && !sinucaPodeTocar(j, alvo.alvo) ? "#ff6a5a" : "#ffffffd0"; g.lineWidth = 1.6; g.stroke();
+  // Na bola que não pode ser tocada primeiro, um X.
+  if (alvo.alvo !== null && !sinucaPodeTocar(j, alvo.alvo)) {
+    const cx = sinucaPx(alvo.x), cy = sinucaPx(alvo.y), d = R * P * 0.5;
+    g.beginPath(); g.moveTo(cx - d, cy - d); g.lineTo(cx + d, cy + d); g.moveTo(cx + d, cy - d); g.lineTo(cx - d, cy + d); g.stroke();
+  }
   g.restore();
   sinucaTacoPintar(g, branca, dx, dy, (R + 0.5 + 10 * (s.forcaAgora ?? 0)) * P, P);
 }
@@ -530,7 +533,7 @@ function sinucaAnimQuadro(s, j, agora, R) {
     else if (ev.t === "caiu") jogosSom("cacapa", 0.8);
   }
   // As que sumiram há pouco (até 7 quadros) aparecem escorregando para o buraco.
-  const caindo = [], buracos = sinucaBuracos(R);
+  const caindo = [], buracos = sinucaBuracos();
   for (let n = 0; n < 16; n++) {
     if (bolas[n]) continue;
     let fq = -1;
@@ -547,8 +550,8 @@ function sinucaAnimQuadro(s, j, agora, R) {
 function sinucaCenaPintar(g, W, cena, R, P) {
   if (cena.taco) {
     const { b, ang, recuo } = cena.taco, dx = Math.cos(ang), dy = Math.sin(ang);
-    // A mira do outro, como a minha: só o traço curto do taco (mesa de bar).
-    if (cena.mira) sinucaLinha(g, [b[0] + dx * (R + 0.6), b[1] + dy * (R + 0.6)], [b[0] + dx * (R + 9), b[1] + dy * (R + 9)], "#ffffff55", [P * 0.5, P * 0.5], 1.5);
+    // A mira do outro: um traço curto na direção do taco.
+    if (cena.mira) sinucaLinha(g, [b[0] + dx * (R + 0.6), b[1] + dy * (R + 0.6)], [b[0] + dx * (R + 9), b[1] + dy * (R + 9)], "#ffffff70", [P * 0.5, P * 0.5], 1.5);
     sinucaTacoPintar(g, b, dx, dy, (R + 0.4 + 10 * recuo) * P, P);
   }
   if (!cena.faixa) return;
