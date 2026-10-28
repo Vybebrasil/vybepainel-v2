@@ -38,7 +38,7 @@ function dominoPecaHtml([a, b], cls = "") {
 // referência): as peças correm deitadas; na borda a fileira vira para baixo
 // com duas peças em pé e volta no sentido contrário. Carroça fica atravessada.
 // Posições em unidades (meia peça = 1); a mesa tem DOMINO_LARGURA de largura.
-const DOMINO_LARGURA = 26;
+const DOMINO_LARGURA = 18;
 function dominoCobra(linha) {
   const pos = [];
   let x = 0, yc = 1, dir = 1, curva = 0, cy = 0, coluna = 0;
