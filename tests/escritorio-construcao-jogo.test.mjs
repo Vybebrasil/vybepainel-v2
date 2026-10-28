@@ -143,3 +143,12 @@ test('revestimento de parede: o perfil guarda só revestimentos grátis em trech
   assert.equal(p.sala_paredes_texturas, '1:stone_wall,3:sb_wall', 'só trechos válidos, só revestimentos, o último vale');
   assert.equal(perfilEscritorio({}).sala_paredes_texturas, '');
 });
+
+test('taça da Copa: o lugar escolhido pelo dono vai no acabamento do quarto, só no formato x,y,giro', async () => {
+  const { perfilEscritorio } = await import('../server/escritorio.js');
+  assert.equal(perfilEscritorio({ sala_taca: '6,2,4' }).sala_taca, '6,2,4');
+  assert.equal(perfilEscritorio({ sala_taca: '6.25,2.5,2' }).sala_taca, '6.25,2.5,2', 'ajuste fino de quarto de ladrilho');
+  for (const ruim of ['', '6,2', '6,2,9', '-1,2,2', 'a,b,c', '6,2,4;drop']) assert.equal(perfilEscritorio({ sala_taca: ruim }).sala_taca, '', ruim);
+  const andar = perfilEscritorio({ sala_andares: [{ andar: 1, sala_taca: '3,3,2' }] }).sala_andares[0];
+  assert.equal(andar.sala_taca, '3,3,2', 'cada andar guarda o seu');
+});

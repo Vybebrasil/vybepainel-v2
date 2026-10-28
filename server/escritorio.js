@@ -88,7 +88,7 @@ export function perfilEscritorio(valor = {}) {
     sala_planta: opcao("sala_planta", QUARTOS.plantas.map(p => p.id), "quadrado-m"),
     quarto_configurado: valor.quarto_configurado === true,
     sala_andares: Array.isArray(valor.sala_andares) ? valor.sala_andares.filter(a=>a?.andar===1).slice(0,1).map(a=>{
-      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
+      const limpo=perfilEscritorio(Object.fromEntries(Object.entries(a).filter(([k])=>['sala_planta','sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_taca','sala_luz','sala_celdas','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede','quarto_configurado'].includes(k))));
       return {andar:1,...Object.fromEntries(Object.entries(limpo).filter(([k])=>k.startsWith('sala_') && k!=='sala_andares' || k==='quarto_configurado'))};
     }) : [],
     roupa: opcao("roupa", CORES_ESCRITORIO, "laranja"),
@@ -142,6 +142,10 @@ export function perfilEscritorio(valor = {}) {
     // Revestimento do acervo cobrindo o trecho inteiro (26/10/2026): "trecho:classe"
     // separados por vírgula; só revestimentos grátis da construção, um por trecho.
     sala_paredes_texturas: texturasDeParede(valor.sala_paredes_texturas),
+    // Onde o dono deixou a taça da Copa no quarto (Paulo, 28/10/2026: "o dono do
+    // quarto no modo edição pode mover o troféu de lugar... só não pode vender ou
+    // guardar"): "x,y,giro" no ladrilho da camada; vazio = o lugar automático.
+    sala_taca: /^\d{1,2}(\.\d{1,2})?,\d{1,2}(\.\d{1,2})?,[0-7]$/.test(String(valor.sala_taca || "")) ? String(valor.sala_taca) : "",
     // Versão da abertura que a pessoa já viu (data). Vazio: ainda não viu.
     abertura: /^\d{4}-\d{2}-\d{2}$/.test(String(valor.abertura || "")) ? String(valor.abertura) : "",
     // Convites para a sala (server/escritorio-convite.js): mudar o número
@@ -247,7 +251,7 @@ export async function salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala = 
       const andar=perfilDoAndar(atual.preferencias,1);
       if(!andar?.quarto_configurado) throw Object.assign(new Error('Configure esse andar antes de pintar.'),{status:409});
       const pintura=perfilEscritorio(valor);
-      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
+      perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_taca','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
     }
     const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
     if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {
