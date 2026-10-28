@@ -2034,22 +2034,26 @@ function atualizarPessoasEscritorio() {
       <span class="ofc-p-retrato" style="--st:${corSt};--xp:${xpPct}%"${pts?.nivel ? ` title="Nível ${pts.nivel} · ${xpPct}% até o próximo"` : ""}><span class="ofc-p-avatar">${cabecaDe({ id: eu, nome: "Você" })}<i aria-hidden="true"></i></span>${pts?.nivel ? `<b class="ofc-p-nivel" aria-label="Nível ${pts.nivel}">${pts.nivel}</b>` : ""}</span>
       <span class="ofc-p-eu-texto"><b>Você</b><small>${escritorio.conectado ? safeText(escritorioLugarDe(escritorio.perfil).nome) : "Fora do escritório"}</small></span>
       <label class="ofc-p-status" style="--st:${corSt}"><span class="sr-only">Sua disponibilidade</span><i aria-hidden="true"></i>
-        <select onchange="escritorioTrocarStatus(this.value)"${escritorio.conectado ? "" : " disabled"}>${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}"${meuStatus === id ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select></label></div>${escritorio.bau && !escritorio.bauAberto ? (() => { const n = escritorio.bau.abatidas || escritorio.bau.pecas.length; return `<button type="button" class="ofc-p-bau" onclick="abrirBauEscritorio();abrirBauEscritorio(true)">${escritorio.bauArte ? `<img src="${escritorio.bauArte}" alt="">` : ""}<span>Abrir o baú${n ? ` · ${n} ${n === 1 ? "demanda abatida" : "demandas abatidas"}` : ""}</span></button>`; })() : ""}`;
+        <select onchange="escritorioTrocarStatus(this.value)"${escritorio.conectado ? "" : " disabled"}>${Object.entries(ESCRITORIO_STATUS).map(([id, [nome]]) => `<option value="${id}"${meuStatus === id ? " selected" : ""}>${safeText(nome)}</option>`).join("")}</select></label></div>`;
     // 2. Centro de Operação
     const principal = A.find((a) => a.id === "operacao");
+    const revisar = escritorio.planosPendentes?.length || 0;
+    const avisos = (typeof PLJ_ALERTAS !== "undefined" ? PLJ_ALERTAS : []).reduce((t, x) => t + (x.total || 0), 0);
+    const listaMissoes = escritorio.missoes?.missoes || [];
+    const atrasadas = listaMissoes.filter((m) => m.atrasada).length, hoje = listaMissoes.filter((m) => m.hoje || m.atrasada).length;
+    const bauN = escritorio.bau && !escritorio.bauAberto ? escritorio.bau.abatidas || escritorio.bau.pecas.length : 0;
+    const tile = (cor, eti, n, rotulo, dica, acao) => `<${acao ? `button type="button" onclick="${acao}"` : "div"} class="ofc-p-tile${n ? "" : " zero"}" style="--c:${cor}" title="${safeText(dica)}"><small>${eti}</small><b>${n}</b><span>${rotulo}</span></${acao ? "button" : "div"}>`;
+    const numeros = `<div class="ofc-p-tiles">${tile("#ffb15c", "Revisar", revisar, revisar === 1 ? "planejamento" : "planejamentos", "Planejamentos esperando a sua revisão")}${tile("#ff6b8a", "Avisos", avisos, "nos seus clientes", "Avisos nos seus clientes")}${tile("#b99cff", "Missões", atrasadas || hoje, atrasadas ? (atrasadas === 1 ? "atrasada" : "atrasadas") : "para hoje", "Suas missões", "alternarMissoesEscritorio()")}${tile("#f7c948", "Baú", bauN, bauN ? (bauN === 1 ? "demanda abatida" : "demandas abatidas") : "nada para abrir", "Baú de missões", bauN ? "abrirBauEscritorio();abrirBauEscritorio(true)" : "")}</div>`;
     const centro = principal ? (() => {
       const aqui = gente(principal), estou = meu === "operacao";
-      const revisar = escritorio.planosPendentes?.length || 0;
-      const avisos = (typeof PLJ_ALERTAS !== "undefined" ? PLJ_ALERTAS : []).reduce((t, x) => t + (x.total || 0), 0);
-      const numero = (n, rotulo, classe, dica) => `<span class="ofc-p-num${n ? ` ${classe}` : " zero"}" title="${safeText(dica)}"><b>${n}</b><small>${rotulo}</small></span>`;
-      return `<section class="ofc-p-centro${estou ? " aqui" : ""}" aria-label="Centro de Operação, sala principal">
-        <div class="ofc-p-centro-topo"><span class="ofc-p-centro-arte" aria-hidden="true">${escritorioEmblemaSala("operacao")}${revisar || avisos ? '<i class="ofc-p-missao">!</i>' : ""}</span>
-          <span><small>Sala principal</small><b>Centro de Operação</b></span></div>
-        <div class="ofc-p-nums">${numero(revisar, "revisar", "laranja", "Planejamentos esperando a sua revisão")}${numero(avisos, "avisos", "vermelho", "Avisos nos seus clientes")}
-          <span class="ofc-p-num${aqui.length ? "" : " zero"}" title="${aqui.length ? safeText(aqui.map((p) => p.nome).join(", ")) : "Ninguém na sala agora"}">${aqui.length ? `<span class="ofc-p-cabecas">${aqui.slice(0, 3).map(cabecaDe).join("")}</span>` : "<b>0</b>"}<small>${aqui.length > 3 ? `+${aqui.length - 3} ` : ""}na sala</small></span></div>
-        <button type="button" class="ofc-p-entrar" onclick="escritorioIrParaAmbiente('operacao')"${estou ? " disabled" : ""}>${estou ? "Você está aqui" : "Ir para o Centro de Operação <span aria-hidden=\"true\">→</span>"}</button></section>`;
+      return `<section class="ofc-p-centro ofc-p-modulo${estou ? " aqui" : ""}" style="--c:#38d9c5" aria-label="Centro de Operação, sala principal">
+        <div class="ofc-p-modulo-topo"><small>Sala principal</small><span class="ofc-p-seta" aria-hidden="true">→</span></div>
+        <span class="ofc-p-centro-arte" aria-hidden="true">${escritorioEmblemaSala("operacao")}</span>
+        <b class="ofc-p-modulo-nome">Centro de Operação</b>
+        <span class="ofc-p-modulo-desc">${aqui.length ? `<span class="ofc-p-cabecas">${aqui.slice(0, 4).map(cabecaDe).join("")}</span>${aqui.length === 1 ? "1 pessoa" : `${aqui.length} pessoas`} na sala agora` : "Planejamentos, avisos e a equipe junta. Ninguém na sala agora."}</span>
+        <button type="button" class="ofc-p-modulo-acao" onclick="escritorioIrParaAmbiente('operacao')"${estou ? " disabled" : ""}>${estou ? "Você está aqui" : "Ir para a sala <span aria-hidden=\"true\">→</span>"}</button></section>`;
     })() : "";
-    // 3. Lugares: quem está onde e para onde ir
+    // 3. Quem está onde, Lugares e Quartos
     const recados = escritorio.recadosResumo || {};
     const linha = (p, o) => {
       const st = o ? ESCRITORIO_STATUS[o.status] || ESCRITORIO_STATUS.disponivel : null, sou = String(p.id) === String(eu);
@@ -2082,14 +2086,13 @@ function atualizarPessoasEscritorio() {
       return `<button type="button" class="ofc-p-quarto${a.id === meu ? " aqui" : ""}${o ? "" : " fora"}" aria-haspopup="menu" onclick="abrirMenuQuartoEscritorio('${a.id}',this)" title="${safeText(a.nome)}" aria-label="${safeText(a.nome)}${o ? `, ${safeText(primeiro(dono.nome))} online` : ""}"><span class="ofc-p-avatar" style="--st:${st ? st[1] : "transparent"}">${cabecaDe(dono)}<i aria-hidden="true"></i></span><small>${safeText(primeiro(dono.nome))}</small></button>`;
     };
     const quartos = A.filter((a) => a.pessoal).map(quarto).join("");
-    const vazias = escritorio.conectado ? comuns.filter((a) => !grupos.has(a.id)) : comuns;
-    const lugares = `<section class="ofc-p-bloco ofc-p-lugares" aria-label="Lugares do escritório">
-      <div class="ofc-p-titulo"><h5>Lugares</h5><small class="vb-jogo-dica" data-dica="Online indica presença, não produtividade." tabindex="0">${online.length} online</small></div>
-      ${escritorio.conectado ? (ordem.length ? `<ul class="ofc-p-grupos">${ordem.map(grupo).join("")}</ul>` : "") : '<p class="ofc-p-nota">Entre no escritório para ver quem está em cada lugar.</p>'}
-      <div class="ofc-p-salas">${vazias.map(ficha).join("")}</div>
-      ${fora.length ? `<details class="ofc-p-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary>Fora do escritório <small>${fora.length}</small></summary><ul>${fora.map((p) => linha(p, null)).join("")}</ul></details>` : ""}
-      ${quartos ? `<div class="ofc-p-titulo sub"><h5>Quartos</h5></div><div class="ofc-p-quartos">${quartos}</div>` : ""}</section>`;
-    salas.innerHTML = `${voce}${centro}${lugares}<div id="office-quarto-menu" class="ofc-menu-pessoa ofc-menu-quarto" role="menu" hidden></div>`;
+    const modulo = (cor, nome, extra, corpo, rotulo) => `<section class="ofc-p-bloco ofc-p-modulo" style="--c:${cor}" aria-label="${rotulo || nome}"><div class="ofc-p-modulo-topo"><small>${nome}</small>${extra}</div>${corpo}</section>`;
+    const onde = modulo("#b99cff", "Quem está onde", `<small class="vb-jogo-dica" data-dica="Online indica presença, não produtividade." tabindex="0">${online.length} online</small>`,
+      `${escritorio.conectado ? (ordem.length ? `<ul class="ofc-p-grupos">${ordem.map(grupo).join("")}</ul>` : '<p class="ofc-p-nota">Ninguém além de você por aqui.</p>') : '<p class="ofc-p-nota">Entre no escritório para ver quem está em cada lugar.</p>'}
+      ${fora.length ? `<details class="ofc-p-fora" ${escritorio.foraAberto ? "open" : ""} ontoggle="escritorio.foraAberto=this.open"><summary><span class="ofc-p-cabecas">${fora.slice(0, 3).map(cabecaDe).join("")}</span>${fora.length} fora do escritório<em aria-hidden="true"></em></summary><ul>${fora.map((p) => linha(p, null)).join("")}</ul></details>` : ""}`);
+    const lugares = modulo("#ff9a5c", "Lugares", `<small>${comuns.length} salas</small>`, `<div class="ofc-p-salas">${comuns.map(ficha).join("")}</div>`, "Lugares do escritório");
+    const quartosHtml = quartos ? modulo("#7aa7ff", "Quartos", "", `<div class="ofc-p-quartos">${quartos}</div>`, "Quartos da equipe") : "";
+    salas.innerHTML = `${voce}${numeros}${centro}${onde}${lugares}${quartosHtml}<div id="office-quarto-menu" class="ofc-menu-pessoa ofc-menu-quarto" role="menu" hidden></div>`;
     queueMicrotask(() => pintarArtesEscritorio(salas));
   }
   escritorioAtualizarPortas();
@@ -2261,7 +2264,7 @@ function renderEscritorio() {
  <button type="button" class="ofc-rail-btn ofc-rail-so-celular" data-principal onclick="escritorio.railMais=!escritorio.railMais;renderEscritorio()" aria-expanded="${Boolean(escritorio.railMais)}" aria-label="Mais opções do escritório">${escritorioIcone("mais")}<span>Mais</span></button>
 </nav>${escritorio.railMais ? '<button type="button" class="ofc-rail-fundo" aria-label="Fechar o menu" onclick="escritorio.railMais=false;renderEscritorio()"></button>' : ""}
 <aside class="ofc-lateral" aria-label="${escritorio.edicao && aba === "catalogo" ? "Construção" : aba === "conversa" ? "Conversa da sala" : "Pessoas e salas"}">
- <div class="ofc-lateral-topo">${escritorio.edicao && typeof escritorioTopoConstrucaoHtml === "function" ? escritorioTopoConstrucaoHtml() : `<div><b>${escritorio.edicao && aba === "catalogo" ? "Oficina" : "Vybe"}</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div>`}<button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
+ <div class="ofc-lateral-topo">${escritorio.edicao && typeof escritorioTopoConstrucaoHtml === "function" ? escritorioTopoConstrucaoHtml() : `<div>${escritorio.edicao && aba === "catalogo" ? "" : `<span class="ofc-lateral-ola">${{ manha: "Bom dia", tarde: "Boa tarde", noite: "Boa noite" }[escritorioPeriodoDoDia()]}${(() => { const n = (escritorio.base?.equipe || []).find((x) => String(x.id) === String(escritorio.base?.eu))?.nome; return n ? `, ${safeText(escritorioNomeCurto(n).split(" ")[0])}` : ""; })()}</span>`}<b>${escritorio.edicao && aba === "catalogo" ? "Oficina" : "Escritório"}</b><small id="office-online">${escritorio.conectado ? escritorio.online.length + " online" : "Você está fora"}</small></div>`}<button type="button" class="ofc-x" onclick="escritorio.lateral=false;renderEscritorio()" aria-label="Recolher painel lateral">×</button></div>
  <div class="ofc-abas" role="tablist"${escritorio.edicao ? " hidden" : ""}${escritorio.edicao ? ' style="grid-template-columns:repeat(4,1fr)"' : ' style="grid-template-columns:repeat(3,1fr)"'}>${escritorio.edicao ? `<button role="tab" aria-selected="${aba === "catalogo"}" onclick="alternarAbaEscritorio('catalogo',true)">Edição</button>` : ""}<button role="tab" aria-selected="${aba === "pessoas"}" onclick="alternarAbaEscritorio('pessoas',true)">Pessoas</button><button role="tab" aria-selected="${aba === "conversa"}" onclick="alternarAbaEscritorio('conversa',true)">Conversa</button><button role="tab" aria-selected="${aba === "recados"}" onclick="alternarAbaEscritorio('recados',true)">Recados${escritorioRecadosNaoLidos() ? ` <span class="ofc-badge">${escritorioRecadosNaoLidos()}</span>` : ""}</button></div>
  ${escritorio.edicao ? `<div class="ofc-aba ofc-catalogo ofc-oficina" ${aba === "catalogo" ? "" : "hidden"}>${escritorioCatalogoHtml()}</div><div class="ofc-oficina-info" id="office-oficina-info" role="status" hidden></div>` : ""}
  <div class="ofc-aba" ${aba === "pessoas" ? "" : "hidden"}><div id="office-rooms" class="ofc-salas"></div><div id="office-roster"></div></div>
