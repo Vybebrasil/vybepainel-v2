@@ -13025,3 +13025,9 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .snc-tubo i {display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#fff 0 34%,transparent 36%),var(--c);color:#111;font:800 9.5px/1 var(--mac-ui);font-style:normal;box-shadow:inset 0 -3px 4px #0006}
 .snc-tubo i.listra {background:radial-gradient(circle,#fff 0 36%,transparent 38%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
 @media (max-width:760px){.snc-tubo {flex-direction:row;flex-wrap:wrap;justify-content:center;min-height:0;padding:4px 8px}}
+.snc-lado > * {min-width:0;max-width:100%}
+@media (min-width:761px){.snc-lado {grid-template-columns:minmax(0,1fr)}}
+.snc-taco {display:grid;justify-items:center;gap:2px;width:100%}
+.snc-taco input {width:100%;min-width:0;margin:0;accent-color:#ff8f4f}
+.snc-guia {width:100%;padding:6px 0;border:1px solid var(--pv-borda,#ffffff1f);border-radius:10px;background:var(--pv-tile,#ffffff0a);color:#cfd3dc;font:700 11px var(--mac-ui);cursor:pointer}
+.snc-guia.ligada {border-color:#ff8f4f;color:#ffb07a}
