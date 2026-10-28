@@ -95,7 +95,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'diagnostico') return res.status(200).json({ ok: true, ...(await diagnosticoJarvis(banco)) });
       if (consulta === 'acompanhamento') return res.status(200).json({ ok: true, ...(await acompanhamento(banco, { tipo: req.body?.tipo, dia: req.body?.dia })) });
       if (consulta === 'resultado_posts') return res.status(200).json({ ok: true, ...(await resultadoDosPosts(banco, req.body?.dia)) });
-      if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco) });
+      if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco, { diaInteiro: req.body?.tipo === 'dia' }) });
       if (consulta === 'sem_briefing') return res.status(200).json({ ok: true, pecas: await pecasSemBriefing(banco, req.body?.dia) });
       if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
