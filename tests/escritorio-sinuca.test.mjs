@@ -101,8 +101,12 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
 
 test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',()=>{
  const b=Array(16).fill(null);b[0]=[30,25];b[5]=[50,25];
- const parada=simular(b,0,0.35,0).bolas[0][0],segue=simular(b,0,0.35,1).bolas[0][0],puxa=simular(b,0,0.35,-1).bolas[0][0];
- assert.ok(segue>parada+5,'seguir leva a branca para a frente');
+ // Com giro (desde 27/10/2026), a branca tacada no centro já segue um pouco
+ // (rola depois do choque); com efeito para cima, segue bem mais (até alcançar
+ // a bola acertada); para baixo, volta. Mede o ponto mais à frente da branca.
+ const frente=(e)=>Math.max(...simular(b,0,0.35,e).quadros.map((q)=>q[0]/10));
+ const parada=simular(b,0,0.35,0).bolas[0][0],puxa=simular(b,0,0.35,-1).bolas[0][0];
+ assert.ok(frente(1)>frente(0)+5,'seguir leva a branca para a frente');
  assert.ok(puxa<parada-10,'puxar traz a branca para trás');
  const r=simular(b,0,0.35,0);
  assert.deepEqual(r.eventos.map(e=>e.t),['bola','tabela']);

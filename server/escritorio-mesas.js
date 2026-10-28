@@ -61,6 +61,33 @@ const aceitos = (j) => (j.aceitos || []).map(String);
 const todosAceitaram = (j) => chamados(j).every((id) => aceitos(j).includes(id));
 const conviteVencido = (j, agora = Date.now()) => j.estado === 'convite' && minutosDesde(j.criado_em, agora) > CONVITE_MIN;
 
+// A FORA (Paulo, 27/10/2026: "to jogando com o Vinícius e o Ewerton de fora
+// esperando... ele PEDE FORA, e quem perder ele entra no lugar, e assim pode ir
+// pegando fila na fora"): quem assiste uma partida de dois pede fora e entra no
+// fim da fila (mesa.filaFora, os ids na ordem; mesa.fora já é do pôquer). Quando a partida acaba, quem perdeu
+// sai e a próxima começa na hora entre quem ganhou e o primeiro da fila, sem
+// aposta, na mesma mesa; a fila que sobra vai junto. No empate, sai quem foi
+// chamado. Quem da fila já está noutra partida perde a vez. A partida que acabou
+// guarda o id da próxima (mesa.proxima) para as telas irem atrás.
+const comFora = (j, mesa) => (j.mesa?.filaFora?.length && mesa && !mesa.fora ? { ...mesa, fora: j.mesa.fora } : mesa);
+async function chamarDaFora(tx, j, resultado) {
+ const fila = (j.mesa?.filaFora || []).map(String);
+ if (!fila.length || j.bot || emGrupo(j)) return;
+ const fica = resultado === 'desafiado' ? String(j.desafiado) : String(j.desafiante);
+ for (let i = 0; i < fila.length; i++) {
+  const entra = fila[i];
+  if (entra === fica) continue;
+  const [ocupado] = await tx`SELECT id FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado IN ('jogando','convite') AND (desafiante=${entra} OR desafiado=${entra} OR ${entra} = ANY(mais))`;
+  if (ocupado) continue;
+  const resto = fila.slice(i + 1).filter((id) => id !== fica);
+  const [nova] = await tx`INSERT INTO vybe_escritorio_partidas(jogo,chave,desafiante,desafiado,mais,camada,movel,moedas,itens_desafiante,itens_desafiado)
+   VALUES(${j.jogo},${'fora-' + j.id + '-' + entra},${fica},${entra},'{}'::bigint[],${j.camada},${j.movel},0,'[]'::jsonb,'[]'::jsonb) RETURNING *`;
+  await comecar(tx, nova, null, fica);
+  if (resto.length) await tx`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{filaFora}',${JSON.stringify(resto)}::jsonb) WHERE id=${nova.id}`;
+  await tx`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{proxima}',${JSON.stringify(String(nova.id))}::jsonb) WHERE id=${j.id}`;
+  return { id: String(nova.id), entra, fica };
+ }
+}
 async function encerrar(tx, j, resultado, motivo) {
  // Pôquer com clientes: o pote é de todas as cadeiras; se um cliente ganhou, vai para a carteira dele.
  if (clientesDe(j).length) {
@@ -78,6 +105,14 @@ async function encerrar(tx, j, resultado, motivo) {
  }
  await pagarAposta(tx, j, resultado === 'empate' ? null : idDoLado(j, resultado), `${j.jogo}:${j.id}`);
  await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
+ const proxima = await chamarDaFora(tx, j, resultado);
+ // Num savepoint: erro de SQL no aviso aborta a transação inteira (e desfaria o
+ // fim da partida), então só o aviso volta atrás.
+ if (proxima) {
+  await tx`SAVEPOINT aviso_fora`;
+  try { const quem = (await nomes(tx, [proxima.fica]))[proxima.fica] || 'quem ganhou'; await avisarConvite(tx, proxima.entra, `Sua vez na fora: ${NOME_DO_JOGO[j.jogo] || j.jogo} contra ${quem.split(' ')[0]}, na mesma mesa.`); await tx`RELEASE SAVEPOINT aviso_fora`; }
+  catch { await tx`ROLLBACK TO SAVEPOINT aviso_fora`; }
+ }
 }
 // Uma jogada do bot, se for a vez dele: pelo mesmo motor, com a vista do lado dele.
 async function jogarBot(tx, j) {
@@ -155,7 +190,7 @@ async function vencerTempos(sql, agora = Date.now()) {
    return;
   }
   let r;
-  try { r = motor.jogar(j.mesa, lado, motor.automatico(j.mesa, lado)); } catch { return; }
+  try { r = motor.jogar(j.mesa, lado, motor.automatico(j.mesa, lado)); r.mesa = comFora(j, r.mesa); } catch { return; }
   r.mesa.tempos = { ...(j.mesa.tempos || {}), [lado]: estouros };
   if (r.mesa.ultimo) r.mesa.ultimo.porTempo = true;
   comFalas(j, j.mesa, r.mesa);
@@ -186,6 +221,10 @@ function vista(j, eu, nome, agora = Date.now()) {
   // Até quando vai a vez de quem joga agora (o relógio da tela).
   prazo_vez: jogando && motor.tempo && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + motor.tempo * 1000).toISOString() : null,
   tempo_vez: motor.tempo || null,
+  // A fora: quem está na fila (com o nome), se eu posso pedir e a próxima partida.
+  fora: (j.mesa?.filaFora || []).map((id) => ({ id: String(id), nome: nome[String(id)] || 'Alguém' })),
+  pode_pedir_fora: jogando && !lado && !j.bot && !emGrupo(j) && Boolean(eu) && !(j.mesa?.filaFora || []).map(String).includes(String(eu)),
+  proxima: j.mesa?.proxima || null,
   pode_reivindicar: jogando && Boolean(lado) && lado !== vez && !j.mesa?.saiu?.[lado] && minutosDesde(j.ultimo_lance_em, agora) >= REIVINDICAR_MIN,
   reivindicar_em: jogando && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + REIVINDICAR_MIN * 60000).toISOString() : null,
   convite_ate: j.estado === 'convite' ? new Date(new Date(j.criado_em).getTime() + CONVITE_MIN * 60000).toISOString() : null,
@@ -194,7 +233,7 @@ function vista(j, eu, nome, agora = Date.now()) {
 
 // Nomes de quem está na mesa: as pessoas pelo id e os clientes por 'c<id>'.
 async function nomesDaMesa(sql, linhas) {
- const nome = await nomes(sql, [...new Set(linhas.flatMap(pessoasDaMesa))]);
+ const nome = await nomes(sql, [...new Set(linhas.flatMap((l) => [...pessoasDaMesa(l), ...(l.mesa?.filaFora || []).map(String)]))]);
  const ids = [...new Set(linhas.flatMap(clientesDe))];
  if (ids.length) for (const c of await sql`SELECT id,nome FROM vybe_clientes WHERE id = ANY(${ids}::bigint[])`) nome['c' + c.id] = c.nome;
  return nome;
@@ -408,7 +447,7 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
   if (!lado) throw erro('Você está assistindo esta partida.', 403);
   if (j.estado !== 'jogando') throw erro('A partida já acabou.', 409);
   if (Number(n) !== (Number(j.mesa?.n) || 0)) throw erro('A mesa mudou. Olhe de novo.', 409);
-  const { mesa, fim } = motorDe(j.jogo).jogar(j.mesa, lado, pedido);
+  const { mesa: jogada, fim } = motorDe(j.jogo).jogar(j.mesa, lado, pedido), mesa = comFora(j, jogada);
   comFalas(j, j.mesa, mesa);
   if (mesa.tempos?.[lado]) mesa.tempos = { ...mesa.tempos, [lado]: 0 };
   // Quem recebeu a proposta de empate e jogou, recusou.
@@ -425,6 +464,7 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
 // mesa só quem desistiu ou sumiu; a partida acaba quando sobra um.
 export async function acaoMesa(sql, pessoa, { id, acao }) {
  await exigirTabela(sql);
+ if (acao === 'pedir-fora' || acao === 'sair-fora') return foraMesa(sql, pessoa, { id, acao });
  if (!['desistir', 'empate', 'aceitar-empate', 'recusar-empate', 'reivindicar'].includes(acao)) throw erro('Pedido inválido.');
  const r = await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
@@ -464,6 +504,25 @@ export async function acaoMesa(sql, pessoa, { id, acao }) {
   return { fim: true };
  });
  return { ...r, jogo: await verMesa(sql, pessoa, id), ...(r.fim ? { economia: await carregarEconomia(sql, pessoa.id) } : {}) };
+}
+
+async function foraMesa(sql, pessoa, { id, acao }) {
+ await sql.comTransacao(async (tx) => {
+  const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
+  if (!j) throw erro('Partida não encontrada.', 404);
+  const eu = String(pessoa.id), fila = (j.mesa?.filaFora || []).map(String);
+  if (acao === 'sair-fora') {
+   if (fila.includes(eu)) await tx`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{filaFora}',${JSON.stringify(fila.filter((x) => x !== eu))}::jsonb) WHERE id=${j.id}`;
+   return;
+  }
+  if (j.estado !== 'jogando') throw erro('A partida já acabou.', 409);
+  if (j.bot || emGrupo(j)) throw erro('Esta mesa não tem fora.', 409);
+  if (ladoDe(j, eu)) throw erro('Você está jogando esta partida.', 409);
+  if (fila.includes(eu)) return;
+  if (fila.length >= 8) throw erro('A fora já tem 8 pessoas.', 409);
+  await tx`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{filaFora}',${JSON.stringify([...fila, eu])}::jsonb) WHERE id=${j.id}`;
+ });
+ return { jogo: await verMesa(sql, pessoa, id) };
 }
 
 // O que a sala mostra sem abrir nada: as mesas com partida rolando nesta cena
