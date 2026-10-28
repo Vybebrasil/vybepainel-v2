@@ -424,3 +424,29 @@ CI completa e preview do commit exato.
   execução do roteiro HTTP; evidências finais serão registradas no PR.
 - Escritório/Vybelândia/jogos não foram editados. A conferência cobre APIs e
   regressões automatizadas, sem alegar aprovação visual nem teste de voz/vídeo.
+
+
+## Sinuca: mesa verde e interface de boteco — 28/10/2026
+
+Publicação solicitada por Paulo nesta entrega. Base sincronizada com
+`origin/main` em `3158ef6301a7270f87c542b24f071de69c772bfd` (PR #433).
+Produção anterior: deployment GitHub `7390555984`, URL
+`https://vybepainel-v2-93heoq4sy-vybe-hub.vercel.app`, versão `60186feca5c6`,
+igual à servida em `https://vybepainel-v2.vercel.app/versao.json`.
+
+- 33 testes focados de sinuca/menus aprovados, incluindo apoio na beirada
+  nas seis caçapas, doze dentes, força mínima e isolamento visual entre jogos.
+- Navegador local: controles, porcentagens 0,1/12,5/100, tacada/animação,
+  contraste adaptativo da branca sobre o logo, abas, som e menu.
+- Telas de 390/844 px sem transbordamento horizontal; mesa sem esticar.
+- Lobby, convite e aposta renderizados pelos módulos reais com APIs bloqueadas.
+- Comparação da árvore CSS preservou regras dos componentes fora da sinuca.
+- Sintaxe/escopo global e build local aprovados. Dependências reinstaladas
+  com `npm ci`, sem mudar o lockfile. Check completo local e CI são as portas
+  da publicação; seus resultados e a prévia devem ser conferidos no commit do PR.
+- Nenhuma migração, escrita de teste em produção, mudança de credenciais,
+  automação de WhatsApp ou envio de mensagens faz parte desta publicação.
+
+Prompts, assets e limites: `docs/sinuca-visual.md`. Após o merge, conferir
+commit/deployment, versão no domínio, assets e recusas sem autenticação;
+não executar testes de escrita em produção.

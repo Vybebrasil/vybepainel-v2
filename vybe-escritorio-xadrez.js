@@ -44,9 +44,11 @@ function xadrezPoeSprite() {
 }
 function xadrezModal(html, classe) {
   const modal = document.getElementById("workflow-modal");
-  if (modal?.classList.contains(classe)) { const y = modal.scrollTop; modal.innerHTML = html; modal.scrollTop = y; return; }
+  const sinuca = mesaCfg().extra?.jogo === "sinuca" && classe !== "ofc-snc-jogo";
+  if (modal?.classList.contains(classe)) { const y = modal.scrollTop; modal.innerHTML = html; modal.classList.toggle("ofc-snc-menu", sinuca); modal.scrollTop = y; return; }
   openWorkflowModal(html);
   document.getElementById("workflow-modal")?.classList.add("ofc-xdz", classe);
+  document.getElementById("workflow-modal")?.classList.toggle("ofc-snc-menu", sinuca);
 }
 function xadrezFechar() {
   const x = escritorioXadrez();
@@ -111,6 +113,7 @@ function mesaLugaresHtml(j, vagos = 0, acao = "") {
 }
 // Faixa do topo com o tema do jogo (lobby e convite novo).
 function mesaBannerHtml(cfg, titulo, texto) {
+  if (cfg.extra?.jogo === "sinuca") return sinucaBannerHtml(cfg, titulo, texto);
   const jogo = cfg.extra?.jogo || "xadrez", simbolos = (MESA_TEMAS[jogo] || MESA_TEMAS.xadrez).map((c, i) => `<i style="--i:${i}">${c}</i>`).join("");
   return `<div class="sala-banner tema-${safeText(jogo)}"><div class="sala-simbolos" aria-hidden="true">${simbolos}</div>
 <div><small>${safeText(cfg.nome)}</small><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ""}</div>

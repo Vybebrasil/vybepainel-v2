@@ -1987,3 +1987,46 @@ Paulo, sobre a primeira versão: "as paredes só com objetos soltos pendurados; 
 6. **Densidade**: sala do tamanho do conteúdo (melhor menor e cheia do que grande e vazia); corredor marcado por passadeira.
 
 Salão de jogos (`scripts/cenas/jogos.mjs`, 22 × 14): fliperama (piso de neon, parede de pixel art, máquinas e pinballs), sinuca e pebolim (carpete, madeira, banco da plateia, placares, jukebox), saloon do pôquer no tablado (papel de saloon, armário de garrafas, balcão com caixa, barman, mesas de barril), clube do xadrez (tábuas, madeira, estantes do chão ao teto, tabuleiros sobre mesinhas) e Mesas de Jogos (dominó, dama, velha, truco). O verificador aceita tabuleiro de jogo como foco de quem senta. Partida que estivesse rolando na posição antiga da mesa continua: clicar em qualquer mesa do mesmo jogo abre a partida da pessoa.
+
+### Sinuca: mesa verde e bocas da arte — 28/10/2026
+
+A mesa enviada pelo Paulo substitui a laranja na interface local. A imagem
+conserva 2752 × 1536; o mapeamento do pano considera cada eixo e desenha bolas
+redondas no raio da partida (54 mm nas novas). `shared/escritorio-sinuca-mesa.js`
+é a fonte dos seis narizes, doze dentes e seis regiões sem apoio, usada pela
+física, mira, animação e desenho provisório. O ponteiro inverte o mesmo mapa.
+A queda continua exigindo o centro sobre a região sem apoio, sem atração:
+a bola pode parar apoiada na beirada; dentes devolvem tacadas que chegam tortas.
+Regras, apostas e raios de partidas gravadas são preservados. Alteração local,
+sem publicação ou migração.
+
+Força: 0,1% a 100% em todos os controles e no servidor, com campo numérico
+para toque preciso. A curva abaixo de 5% chega continuamente a zero; acima
+disso preserva a calibração anterior. O limiar de repouso não apaga o impulso
+dos toques mínimos. Curva compartilhada para animação e física.
+
+Verificado localmente: 31 testes de sinuca, 5 testes de bots, sintaxe de 383
+arquivos e ordem global, e build. Navegador: mesa sem distorção em desktop e
+telas de 390/844 px, ponteiro e guia alinhados, porcentagens 0,1/12,5/100
+correspondendo a 0,001/0,125/1 na tacada, e animação concluída sem erro.
+As regiões sem apoio são aproximações medidas na arte, não medidas de uma
+ardósia física. Posição final e trilhas preservam os toques abaixo de 5%.
+
+
+### Sinuca: interface de boteco — 28/10/2026
+
+Layout com cabeçalho compacto, menu com rótulos, placar, mesa livre de avisos
+sobrepostos e controles agrupados abaixo. Força horizontal de 0,1% a 100%,
+com porcentagem visível e campo numérico. Abas Partida, Lousa e Como jogar
+conservam os dados e ações existentes. Lobby e convites recebem os mesmos
+materiais; as regras longas ficam recolhíveis. Nenhuma nova API ou regra de aposta.
+
+A branca recebe sombra e contorno proporcionais à luminosidade do pano sob
+ela. O mapa de luminosidade é lido uma vez, em cache, sem leitura do canvas
+por quadro. A mesa, os raios e a física anterior continuam os mesmos.
+
+Estilos da sinuca consolidados; temas genéricos de modal/cabeçalho deixam de
+se aplicar só à sinuca, com :where para preservar a especificidade. Validação
+pela árvore CSS do navegador confirmou regras dos demais componentes iguais.
+Assets, prompts, limites e verificações em `docs/sinuca-visual.md`.
+Publicação solicitada em 28/10/2026, acompanhada em `HOMOLOGACAO.md`.
