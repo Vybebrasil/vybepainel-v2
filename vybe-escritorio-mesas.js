@@ -93,6 +93,10 @@ async function recarregarJogoMesa(chave) {
   try {
     const r = await escritorioApi("mesa", null, { id: j.id });
     if (s.jogo?.id !== j.id) return;
+    // Uma jogada (minha ou do bot) chegou enquanto esta leitura ia: a mesa
+    // dela é mais nova, e a leitura antiga a desfaria (as bolas voltavam para o
+    // lugar e a próxima tacada era recusada).
+    if (s.jogo !== j || r.jogo.n < j.n) return;
     const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     s.jogo = r.jogo;
     if (mudou) {
