@@ -400,10 +400,10 @@ function sinucaLinha(g, a, b, cor, traco, largura = 2) {
   g.setLineDash([]);
 }
 // Caçapas medidas na arte da mesa, as mesmas da física (CANTO e MEIO em
-// server/escritorio-sinuca.js): a borracha acaba a 4,17 do canto e a 3,2 do
-// meio (medida oficial; as pontas foram redesenhadas na arte); o buraco do canto tem raio 3,58 com o centro 1,37 para fora nas duas
+// server/escritorio-sinuca.js): a borracha acaba a 3,01 do canto e a 2,13 do
+// meio (bocas de 1,5 bola; as pontas foram redesenhadas na arte); o buraco do canto tem raio 3,58 com o centro 1,37 para fora nas duas
 // direções, e o do meio raio 3,36 com o centro 2,92 atrás da tabela.
-const SINUCA_BOCA_CANTO = 4.17, SINUCA_BOCA_MEIO = 3.2;
+const SINUCA_BOCA_CANTO = 3.01, SINUCA_BOCA_MEIO = 2.13;
 function sinucaBuracos() {
   const L = SINUCA_L, A = SINUCA_A, c = 1.37, cr = 3.58, f = 2.92, mr = 3.36;
   return [[-c, -c, cr], [50, -f, mr], [L + c, -c, cr], [-c, A + c, cr], [50, A + f, mr], [L + c, A + c, cr]].map(([x, y, r]) => ({ x, y, r }));
