@@ -466,3 +466,18 @@ igual à servida em `https://vybepainel-v2.vercel.app/versao.json`.
 Prompts, assets e limites: `docs/sinuca-visual.md`. Após o merge, conferir
 commit/deployment, versão no domínio, assets e recusas sem autenticação;
 não executar testes de escrita em produção.
+
+## 29/10/2026 — sinuca: física, inscrições, áudio e salão
+
+Publicação autorizada por Paulo. Entrega inclui colisões limitadas ao impacto,
+resolução iterativa, escala física isotrópica, curva de força suave de 0,1% a
+100%, efeito com energia limitada e números alinhados ao disco branco.
+Salão, convites, apostas e HUD próprios; sons gravados de taco, bola, tabela e
+caçapa com créditos visíveis. Auditoria: docs/sinuca-auditoria.md.
+
+Validação anterior à integração da base: 996 testes, build e diff aprovados;
+navegação desktop/celular/paisagem e inscrições em 15 posições conferidas.
+Dependências instaladas por npm ci. O CI e a prévia devem confirmar o SHA exato
+antes do merge. Base integrada: 3d88b80c1608f93f71124eb987cf52566eb79511.
+Produção anterior: deployment GitHub 7402665270. Sem migração, alteração de
+ambiente ou teste de escrita em produção; recuperação de banco não revalidada.
