@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { conexao } from './postgres.mjs';
-import { prepararAcao, confirmarAcao } from '../server/assistente-acoes.js';
+import { prepararAcao, confirmarAcao, opcoesDeCriacao } from '../server/assistente-acoes.js';
 
 // Ações pelo WhatsApp: permissão por papel, confirmação assinada de uso único e execução pelas funções do painel.
 const segredo = 's'.repeat(40), PROD = 7829537690;
@@ -358,5 +358,46 @@ test('criar guiado (28/10/2026): grupo, status, captação, vários responsávei
     const p2 = await prepararAcao(sql, 2, { ...base, captacao: 'feita' }, segredo, agora);
     const ok2 = await confirmarAcao(sql, 2, p2.codigo, segredo, { agora, executar: { criarConteudo: async () => ({ conteudo_id: 78 }), trocarEscolha: async () => { throw new Error('x'); } } });
     assert.match(ok2.feito, /A captação \(Captação Feita\) não foi marcada; marque no painel/);
+  } finally { await db.close(); }
+});
+
+test('criar em Solicitações de Demandas (29/10/2026): tipo de demanda do quadro, sem veiculação, prazo de entrega obrigatório, sem captação', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`INSERT INTO vybe_clientes VALUES(8,'ConectaSim');ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true;
+      INSERT INTO vybe_status VALUES(8385559107,'a_fazer_d','A fazer'),(8385559107,'feito_d','Feito');
+      CREATE TABLE vybe_opcoes(coluna_id text,chave text,rotulo text,indice int);INSERT INTO vybe_opcoes VALUES('dropdown_mkv8d52z','imp','Impresso',1),('dropdown_mkv8d52z','des','Design',2);
+      CREATE TABLE vybe_grupos(board_id bigint,grupo_id text,titulo text,cor text,ordem int);INSERT INTO vybe_grupos VALUES(8385559107,'g_sol','Solicitações novas','blue',1),(${PROD},'g_stories','Stories','blue',1);`);
+    const agora = Date.parse('2026-10-29T15:00:00Z');
+    const base = { acao: 'criar', quadro: 'demandas', titulo: 'Arte para backdrop 3,00 x 2,50 m', cliente: 'ConectaSim', responsavel: 'Deivid' };
+    await assert.rejects(() => prepararAcao(sql, 2, base, segredo, agora), /prazo de entrega/);
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, prazo: '2026-11-03', formato: 'Reels' }, segredo, agora), /Tipo de demanda desconhecido.*Opções: Impresso, Design/);
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, prazo: '2026-11-03', captacao: 'x' }, segredo, agora), /não têm captação/);
+    await assert.rejects(() => prepararAcao(sql, 2, { ...base, prazo: '2026-11-03', grupo: 'Stories' }, segredo, agora), /Grupo desconhecido.*Opções: Solicitações novas/);
+    const p = await prepararAcao(sql, 2, { ...base, prazo: '2026-11-03', formato: 'impresso', status: 'a fazer', grupo: 'solicitações novas', briefing: 'Logo e cores marsala e laranja; evitar o branco.' }, segredo, agora);
+    assert.match(p.resumo, /^🆕 Criar em Solicitações de Demandas:\n\*Impresso - Arte para backdrop 3,00 x 2,50 m\* \(ConectaSim\)\nprazo de entrega 03\/11 · Deivid\n📁 Solicitações novas · 🚦 A fazer/);
+    const criados = [];
+    await confirmarAcao(sql, 2, p.codigo, segredo, { agora, executar: { criarConteudo: async (s, quem, dados) => { criados.push(dados); return { conteudo_id: 91 }; } } });
+    assert.deepEqual(criados[0], { titulo: 'Impresso - Arte para backdrop 3,00 x 2,50 m', cliente: 'ConectaSim', formato: 'Impresso', prazo: '2026-11-03', briefing: 'Logo e cores marsala e laranja; evitar o branco.',
+      board: 8385559107, status: 'a_fazer_d', grupo_id: 'g_sol', responsaveis: ['68997024'] });
+    // Sem tipo: o título fica como foi dito.
+    const p2 = await prepararAcao(sql, 2, { ...base, prazo: '2026-11-03' }, segredo, agora);
+    assert.match(p2.resumo, /\*Arte para backdrop 3,00 x 2,50 m\* \(ConectaSim\)/);
+  } finally { await db.close(); }
+});
+
+test('opções do cadastro guiado: Produção no topo e Solicitações em "demandas", com o banco de verdade (sem .catch no sql)', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`INSERT INTO vybe_status VALUES(8385559107,'a_fazer_d','A fazer');ALTER TABLE vybe_status ADD COLUMN ordem int;ALTER TABLE vybe_status ADD COLUMN monday_index int;
+      CREATE TABLE vybe_captacao(chave text,rotulo text,monday_index int);INSERT INTO vybe_captacao VALUES('agendar','Agendar Captação',1);
+      CREATE TABLE vybe_opcoes(coluna_id text,chave text,rotulo text,indice int);INSERT INTO vybe_opcoes VALUES('dropdown_mkv8d52z','imp','Impresso',1);
+      CREATE TABLE vybe_grupos(board_id bigint,grupo_id text,titulo text,cor text,ordem int);INSERT INTO vybe_grupos VALUES(8385559107,'g_sol','Solicitações novas','blue',1),(${PROD},'g_stories','Stories','blue',1);`);
+    const o = await opcoesDeCriacao(sql);
+    assert.deepEqual(o.grupos, [{ chave: 'g_stories', rotulo: 'Stories' }]);
+    assert.ok(o.status.some((x) => x.rotulo === 'Pode Fazer'));
+    assert.deepEqual(o.captacao, [{ chave: 'agendar', rotulo: 'Agendar Captação' }]);
+    assert.ok(o.pessoas.includes('Jady Lima'));
+    assert.deepEqual(o.demandas, { grupos: [{ chave: 'g_sol', rotulo: 'Solicitações novas' }], status: [{ chave: 'a_fazer_d', rotulo: 'A fazer' }], tipos: [{ chave: 'imp', rotulo: 'Impresso' }] });
   } finally { await db.close(); }
 });

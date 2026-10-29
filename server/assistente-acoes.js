@@ -236,15 +236,30 @@ async function prazoRealista(sql, d, agora) {
 // Criar demanda na Produção, pelo mesmo cadastro do painel. Nome no padrão "Formato - Título" (vybe-nomenclatura);
 // prazo da equipe 2 dias antes da veiculação (nunca antes de hoje). Cliente e responsável pelo nome, sem ambiguidade.
 const FORMATOS = ['Card', 'Carrossel', 'Reels', 'Story', 'Fotografia', 'Feed', 'Vídeo', 'Motion'];
+// Solicitações de Demandas (Taynara e Deivid, 29/10/2026: "arte para backdrop" não é conteúdo): o mesmo cadastro, no
+// quadro de Solicitações, com o "Tipo de demanda" dele, sem veiculação e com o prazo de entrega obrigatório.
+const COLUNA_TIPO_DEMANDA = 'dropdown_mkv8d52z';
 async function montarCriacao(sql, pedido, agora) {
+  const demandas = ['demandas', 'solicitacoes', 'solicitacao'].includes(normal(pedido.quadro));
+  const board = demandas ? BOARD_DEMANDAS_CRIACAO : BOARD_PRODUCAO_CRIACAO;
   const titulo = String(pedido.titulo || '').replace(/\s+/g, ' ').trim();
-  if (titulo.length < 3 || titulo.length > 150) throw invalido('Diga o título da peça (3 a 150 letras).');
-  const formato = FORMATOS.find((f) => normal(f) === normal(pedido.formato));
-  if (!formato) throw invalido(`Formato desconhecido. Use: ${FORMATOS.join(', ')}.`);
+  if (titulo.length < 3 || titulo.length > 150) throw invalido(demandas ? 'Diga o que é a demanda (3 a 150 letras).' : 'Diga o título da peça (3 a 150 letras).');
+  let formato = null;
+  if (demandas) {
+    if (String(pedido.formato || '').trim()) {
+      const tipos = await semErro(() => sql`SELECT chave, rotulo FROM vybe_opcoes WHERE coluna_id = ${COLUNA_TIPO_DEMANDA} ORDER BY indice`);
+      formato = opcaoDaLista(tipos, pedido.formato, 'Tipo de demanda').rotulo;
+    }
+  } else {
+    formato = FORMATOS.find((f) => normal(f) === normal(pedido.formato));
+    if (!formato) throw invalido(`Formato desconhecido. Use: ${FORMATOS.join(', ')}.`);
+  }
   const veiculacao = String(pedido.veiculacao || '');
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date(agora));
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje) throw invalido('Diga a data de veiculação (hoje ou depois).');
-  const menos2 = new Date(Date.parse(veiculacao + 'T12:00:00Z') - 2 * 864e5).toISOString().slice(0, 10);
+  if (!demandas && (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje)) throw invalido('Diga a data de veiculação (hoje ou depois).');
+  if (demandas && veiculacao && (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje)) throw invalido('A data de veiculação tem que ser hoje ou depois.');
+  if (demandas && !pedido.prazo) throw invalido('Diga o prazo de entrega da demanda.');
+  const menos2 = veiculacao ? new Date(Date.parse(veiculacao + 'T12:00:00Z') - 2 * 864e5).toISOString().slice(0, 10) : hoje;
   const prazo = menos2 < hoje ? hoje : menos2;
   const clientes = await sql`SELECT nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
   const cliente = clientes.length === 1 ? clientes[0] : clientes.find((c) => normal(c.nome) === normal(pedido.cliente));
@@ -266,23 +281,27 @@ async function montarCriacao(sql, pedido, agora) {
   if (pedido.prazo) {
     const pz = String(pedido.prazo);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(pz) || pz < hoje) throw invalido('Diga o prazo da equipe (hoje ou depois).');
-    if (pz > veiculacao) throw invalido('O prazo da equipe não pode passar da veiculação.');
+    if (veiculacao && pz > veiculacao) throw invalido('O prazo da equipe não pode passar da veiculação.');
     prazoFinal = pz;
   }
-  const status = pedido.status ? opcaoDaLista(await sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${BOARD_PRODUCAO_CRIACAO}`, pedido.status, 'Status') : null;
+  const status = pedido.status ? opcaoDaLista(await sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${board}`, pedido.status, 'Status') : null;
+  if (demandas && pedido.captacao) throw invalido('Solicitações de Demandas não têm captação.');
   const captacao = pedido.captacao ? opcaoDaLista(await sql`SELECT chave, rotulo FROM vybe_captacao`, pedido.captacao, 'Captação') : null;
   let grupo = null;
   if (pedido.grupo) {
-    const g = opcaoDaLista((await gruposDoQuadro(sql, BOARD_PRODUCAO_CRIACAO)).map((x) => ({ chave: x.grupo_id, rotulo: x.titulo })), pedido.grupo, 'Grupo');
+    const g = opcaoDaLista((await gruposDoQuadro(sql, board)).map((x) => ({ chave: x.grupo_id, rotulo: x.titulo })), pedido.grupo, 'Grupo');
     grupo = { id: g.chave, titulo: g.rotulo };
   }
   // Briefing junto (áudio do cliente pedindo peça nova, 27/10/2026): vai no campo de briefing da peça criada.
   const briefing = String(pedido.briefing || '').trim().slice(0, 3000);
-  return { titulo: `${formato} - ${titulo}`, formato, cliente: cliente.nome, veiculacao, prazo: prazoFinal, responsavel,
+  return { titulo: formato ? `${formato} - ${titulo}` : titulo, ...(formato ? { formato } : {}), cliente: cliente.nome, ...(veiculacao ? { veiculacao } : {}), prazo: prazoFinal, responsavel,
+    ...(demandas ? { quadro: 'demandas' } : {}),
     ...(responsaveis.length > 1 ? { responsaveis } : {}), ...(status ? { status } : {}), ...(captacao ? { captacao } : {}), ...(grupo ? { grupo } : {}),
     ...(briefing ? { briefing } : {}) };
 }
-const BOARD_PRODUCAO_CRIACAO = 7829537690;
+const BOARD_PRODUCAO_CRIACAO = 7829537690, BOARD_DEMANDAS_CRIACAO = 8385559107;
+// Lista que falha (tabela ainda não criada neste banco) vira lista vazia, sem derrubar o resto.
+async function semErro(consulta) { try { return await consulta(); } catch { return []; } }
 // Escolha pela chave ou pelo rótulo, sem acento e sem caixa; fora da lista, diz as opções.
 function opcaoDaLista(lista, valor, nome) {
   const v = normal(valor);
@@ -292,13 +311,17 @@ function opcaoDaLista(lista, valor, nome) {
 }
 // Opções do cadastro guiado no WhatsApp: as mesmas listas que o painel usa para a Produção.
 export async function opcoesDeCriacao(sql) {
-  const [grupos, status, captacao, pessoas] = await Promise.all([
-    gruposDoQuadro(sql, BOARD_PRODUCAO_CRIACAO).then((l) => l.map((g) => ({ chave: g.grupo_id, rotulo: g.titulo }))).catch(() => []),
-    sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${BOARD_PRODUCAO_CRIACAO} ORDER BY ordem, monday_index`.catch(() => []),
-    sql`SELECT chave, rotulo FROM vybe_captacao ORDER BY monday_index`.catch(() => []),
-    sql`SELECT nome FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL ORDER BY nome`.catch(() => []),
+  const grupos = (b) => gruposDoQuadro(sql, b).then((l) => l.map((g) => ({ chave: g.grupo_id, rotulo: g.titulo }))).catch(() => []);
+  const status = (b) => semErro(() => sql`SELECT chave, rotulo FROM vybe_status WHERE board_id = ${b} ORDER BY ordem, monday_index`);
+  const [gp, sp, captacao, pessoas, gd, sd, tipos] = await Promise.all([
+    grupos(BOARD_PRODUCAO_CRIACAO), status(BOARD_PRODUCAO_CRIACAO),
+    semErro(() => sql`SELECT chave, rotulo FROM vybe_captacao ORDER BY monday_index`),
+    semErro(() => sql`SELECT nome FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL ORDER BY nome`),
+    grupos(BOARD_DEMANDAS_CRIACAO), status(BOARD_DEMANDAS_CRIACAO),
+    semErro(() => sql`SELECT chave, rotulo FROM vybe_opcoes WHERE coluna_id = ${COLUNA_TIPO_DEMANDA} ORDER BY indice`),
   ]);
-  return { grupos, status, captacao, pessoas: pessoas.map((p) => p.nome) };
+  // Produção no nível de cima (compatível com o bot de antes); Solicitações em "demandas".
+  return { grupos: gp, status: sp, captacao, pessoas: pessoas.map((p) => p.nome), demandas: { grupos: gd, status: sd, tipos } };
 }
 
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
@@ -345,7 +368,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     const curto = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
     const quem = (d.responsaveis || (d.responsavel ? [d.responsavel] : [])).map((x) => x.nome.split(' ')[0]).join(', ');
     const campos = [d.grupo && '📁 ' + d.grupo.titulo, d.status && '🚦 ' + d.status.rotulo, d.captacao && '🎬 ' + d.captacao.rotulo].filter(Boolean).join(' · ');
-    const resumo = `🆕 Criar na Produção:\n*${d.titulo}* (${d.cliente})\nveicula ${curto(d.veiculacao)} · prazo da equipe ${curto(d.prazo)}${quem ? ' · ' + quem : ' · sem responsável'}${campos ? '\n' + campos : ''}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
+    const resumo = `🆕 Criar ${d.quadro === 'demandas' ? 'em Solicitações de Demandas' : 'na Produção'}:\n*${d.titulo}* (${d.cliente})\n${d.veiculacao ? 'veicula ' + curto(d.veiculacao) + ' · ' : ''}${d.quadro === 'demandas' ? 'prazo de entrega' : 'prazo da equipe'} ${curto(d.prazo)}${quem ? ' · ' + quem : ' · sem responsável'}${campos ? '\n' + campos : ''}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
   }
@@ -442,7 +465,8 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     if (!nova) throw invalido('Esta confirmação já foi usada.');
     const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
-    const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, formato: d.formato, veiculacao: d.veiculacao, prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
+    const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, ...(d.formato ? { formato: d.formato } : {}), ...(d.veiculacao ? { veiculacao: d.veiculacao } : {}), prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
+      ...(d.quadro === 'demandas' ? { board: BOARD_DEMANDAS_CRIACAO } : {}),
       ...(d.status ? { status: d.status.chave } : {}), ...(d.grupo ? { grupo_id: d.grupo.id } : {}),
       responsaveis: (d.responsaveis || (d.responsavel ? [d.responsavel] : [])).map((x) => x.monday_id) });
     const ref = r?.item_id || (r?.conteudo_id ? 'vybe:' + r.conteudo_id : null);
