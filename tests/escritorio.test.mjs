@@ -58,6 +58,20 @@ test("entrada assinada não permite falsificar pessoa, renovar validade ou usar 
   );
   assert.throws(() => assinarEntradaEscritorio({ id: 1 }, {}, "curto"), /32/);
 });
+test("crachá de quem decorou o quarto inteiro cabe no limite do Worker", async () => {
+  const now = Date.now();
+  const perfil = {
+    sala: "convivencia",
+    sala_pisos: "a".repeat(400),
+    sala_paredes: "-12".repeat(80),
+    sala_paredes_texturas: Array.from({ length: 60 }, (_, i) => `${i}:hygge_c25_wallpaper1`).join(","),
+  };
+  const token = assinarEntradaEscritorio({ id: 1, nome: "Paulo" }, perfil, segredo, now);
+  assert.ok(token.length < 3000);
+  const c = await verificarEntrada(token, segredo, now);
+  assert.equal(c.perfil.sala, "convivencia");
+  assert.equal(Object.keys(c.perfil).some((k) => k.startsWith("sala_")), false);
+});
 test("perfil é persistido por pessoa e descarta HTML, sala e cores arbitrárias", async (t) => {
   const { db, sql } = await banco();
   t.after(() => db.close());
@@ -872,7 +886,12 @@ test("salas: dono pelo primeiro nome ou apelido do cadastro; livres sem dono", (
 });
 
 test("itens: fora da área, classe estranha ou direção inválida são recusados", () => {
-  assert.throws(() => itensValidos("sala-0", [["exe_table", 24, 2, 0]]), /fora/);
+  // No quarto a peça pode ficar fora do piso (Paulo, 28/10/2026: "o jogador é livre pra colocar peça onde quiser"), até um quarto em volta;
+  // nas áreas comuns, fora da grade vai para a borda. Posição que não é número é recusada.
+  assert.deepEqual(itensValidos("sala-0", [["exe_table", 24, 2, 0], ["exe_table", -3, 5, 0]]), [["exe_table", 24, 2, 0, 0, 0], ["exe_table", -3, 5, 0, 0, 0]]);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", 60, 2, 0]]), /longe demais/);
+  assert.deepEqual(itensValidos("recepcao", [["exe_table", 40, 2, 0]]), [["exe_table", 29, 2, 0, 0, 0]]);
+  assert.throws(() => itensValidos("sala-0", [["exe_table", "x", 2, 0]]), /Posição/);
   assert.throws(() => itensValidos("geral", [["<script>", 1, 1, 0]]), /inválido/);
   assert.throws(() => itensValidos("geral", [["exe_table", 1, 1, 3]]), /Direção/);
   assert.deepEqual(itensValidos("sala-0", [["exe_table", 4, 1, 0]]), [["exe_table", 4, 1, 0, 0, 0]]);

@@ -503,6 +503,13 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
 
 ## Construção — continuação autorizada em 23/10/2026
 
+- Liberdade de montagem (decisão do Paulo, 28/10/2026): a conferência de
+  composição é opcional e nunca faz parte do salvamento. No editor, permitir
+  sobreposição, vãos, patamares e decoração no vão da porta/escada; manter
+  limites externos do quarto, altura válida, inventário, identidade e versão.
+  A validação estrita dos modelos iniciais permanece no criador de quartos.
+  Shift + ↑/↓ muda 1 nível; Page Up/Down muda 0,1 (com Shift, 1). Altura tem
+  campo digitável e passo 0,1/1. Copiar, colar e arrastar preservam o nível.
 - No editor, acabamento, luz, planta e móveis ficam em rascunho até Salvar.
   A rota de mapa grava acabamento e móveis na mesma transação e usa o
   normalizador do perfil. Fora do editor, preservar os fluxos de perfil.

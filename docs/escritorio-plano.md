@@ -5,7 +5,33 @@ trabalho do Escritório lê isto antes de mexer, e quem terminar uma etapa
 atualiza este arquivo no mesmo commit. As regras fixas continuam no `AGENTS.md`;
 aqui ficam o plano em andamento, as decisões recentes e o que falta.
 
-Última atualização: 18/10/2026.
+Última atualização: 28/10/2026.
+
+## Modo construção — 28/10/2026
+
+- Shift + ↑/↓ sobe/desce 1 nível, inclusive seleção múltipla e prévia de
+  colagem; Page Up/Down mantém precisão de 0,1. Altura sempre visível no
+  selecionado, com valor digitável (ponto ou vírgula) e passo 0,1 ou 1.
+- Ctrl+C/V preserva altura, deslocamento fino, direção, estado e configuração;
+  colar sai da câmera/pintura, mostra a primeira peça na altura copiada e
+  admite sobreposição. A colagem usa uma cópia independente e bloqueia clique
+  simultâneo para não duplicar. Arrastar preserva a altura escolhida.
+  A barra também oferece Colar para uso com mouse ou toque.
+- Salvar chama diretamente a rota de mapa: a conferência de composição
+  permanece disponível no menu, consultiva. Construção permite vãos,
+  patamares e decoração no lugar da escada/porta. Os limites externos, altura,
+  inventário compartilhado entre andares, permissões, transação e controle
+  de versão continuam validados; o criador mantém a validação dos modelos.
+- Empilhar começa ligado ao abrir a construção. O jogador pode desligar no
+  botão existente. No chão preserva o ajuste fino da posição.
+- Publicação autorizada em 28/10/2026 na branch `codex/construcao-livre`,
+  reaplicada sobre a main atual, preservando a taça móvel e os jogos. Sem migração.
+- Verificação anterior à integração: `npm run check` aprovado (844 testes, sintaxe de 318 arquivos
+  e build), `git diff --check` aprovado. Persistência e permissões verificadas
+  em PGlite isolado. Chrome local: altura com vírgula, Shift + ↑, passo 0,1,
+  colagem pelo botão na altura 2,5 e layout em 390 × 844; console sem erros.
+  Ctrl+V tem regressão automatizada; o teste manual desse atalho ficou limitado
+  pela área de transferência virtual da ferramenta do navegador.
 
 ## Objetivo
 

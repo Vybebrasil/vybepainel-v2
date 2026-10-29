@@ -52,13 +52,19 @@ export function itensValidos(camada, itens) {
     const [classe, x, y, dir, estado = 0, altura = 0] = it;
     if (typeof classe !== "string" || !/^[a-z0-9_]{1,64}$/i.test(classe)) throw new Error("Móvel inválido.");
     const num = (v, min, max) => Number.isFinite(Number(v)) && Number(v) >= min && Number(v) <= max;
-    if (!num(x, 0, lim.x - 0.01) || !num(y, 0, lim.y - 0.01)) throw new Error("Móvel fora da área que você pode editar.");
+    // Número que não é número ainda é recusado; fora da grade, a peça volta para
+    // a borda em vez de impedir o salvamento inteiro (Paulo, 28/10/2026: "o
+    // jogador é livre na edição do quarto dele").
+    if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) throw new Error(`Posição inválida: ${classe}.`);
     if (![0, 2, 4, 6].includes(Number(dir))) throw new Error("Direção inválida.");
     // No chão, altura de 0 a 40. Na parede, deslocamento assinado
     // a partir do encaixe da arte; o catálogo do servidor define o tipo.
     if (!num(estado, 0, 200) || !num(altura, Number(altura) < 0 && itemDeParede(classe) ? -40 : 0, 40)) throw new Error("Estado ou altura inválidos.");
     const r = (v) => Math.round(Number(v) * 100) / 100;
-    const item = [classe, r(x), r(y), Number(dir), Math.round(Number(estado)), r(altura)];
+    const folga = lim === LIMITE.sala ? LIMITE.sala.x : 0;
+    if (folga && (Number(x) < -folga || Number(y) < -folga || Number(x) >= lim.x + folga || Number(y) >= lim.y + folga)) throw new Error(`Móvel longe demais do quarto: ${classe}.`);
+    const dentro = (v, max) => (folga ? Number(v) : Math.min(Math.max(0, Number(v)), max - 1));
+    const item = [classe, r(dentro(x, lim.x)), r(dentro(y, lim.y)), Number(dir), Math.round(Number(estado)), r(altura)];
     const cfg = configGatilho(classe, it[6], lim) || configTrofeu(classe, it[6]) || configManequim(classe, it[6]) || configFundo(classe, it[6]);
     return cfg ? [...item, cfg] : item;
   });
@@ -190,7 +196,7 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
       const dimensoes=await dimensoesDosMoveis(limpos);
       const livres = celdas !== undefined ? celdas : decoracao.sala_celdas;
       conferiuPlanta = true;
-      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres);
+      validarPisoQuarto(decoracao.sala_planta,limpos,dimensoes,livres,{construcaoLivre:true});
       if (celdas !== undefined && celdas !== (decoracao.sala_celdas || "")) novaPlanta = { preferencias: p.preferencias, andar: partesDaCamada(camada)?.andar };
       const usados = new Map();
       const raiz=partesDaCamada(camada).raiz;

@@ -32,10 +32,13 @@ test('câmera não seleciona nem move móveis; espaço solto e blur devolvem a s
  eventos.keyup({key:' '});assert.equal(r('escritorioCameraEditor()'),false);
  r('escritorio.espacoEditor=true');eventos.blur();assert.equal(r('escritorioCameraEditor()'),false);
 });
-test('grade alterna sem mudar decoração e escada não aceita colocação',async()=>{
+test('grade alterna sem mudar decoração e construção permite decorar a escada dentro da área',async()=>{
  const {r}=contexto();r('gradeEditorEscritorio(true)');assert.equal(r('escritorio.mapa.ultimaGrade'),null);r('gradeEditorEscritorio(true)');assert.equal(r('escritorio.mapa.ultimaGrade.x1'),8);
  r(`escritorioAmbienteDoQuarto=()=>({});escritorioModeloPlanta=()=>({escada:[[3,3]]})`);
- assert.equal(await r(`escritorioCabe('gratis',3,3,2)`),false);assert.equal(await r(`escritorioCabe('gratis',4,3,2)`),true);
+ assert.equal(await r(`escritorioCabe('gratis',3,3,2)`),true);assert.equal(await r(`escritorioCabe('gratis',4,3,2)`),true);
+ // No quarto a peça pode ir para fora do piso (Paulo, 28/10/2026), até um quarto em volta.
+ assert.equal(await r(`escritorioCabe('gratis',8,3,2)`),true);assert.equal(await r(`escritorioCabe('gratis',-5,3,2)`),true);
+ assert.equal(await r(`escritorioCabe('gratis',40,3,2)`),false);
 });
 test('cancelar colocação enquanto o modelo carrega não insere móvel atrasado',async()=>{
  const {c,r}=contexto();let liberar;c.pendente=new Promise(ok=>liberar=ok);r(`escritorio.mapa.medidas=()=>pendente;escritorio.edicao.novo='gratis';escritorio.edicao.sel=null`);
@@ -126,4 +129,98 @@ test('ajuste de parede respeita limites, bloqueio e salvamento em andamento',asy
 test('parede pode descer abaixo do encaixe inicial',async()=>{
  const {r}=contexto();r(`escritorioEhParede=()=>true;escritorio.edicao.itens=[['poster',1,0,4,0,0]]`);
  await r('empurrarSelecionadoEscritorio(0,1,true)');assert.equal(r('escritorio.edicao.itens[0][5]'),-.25);
+});
+
+test('Shift + cima/baixo muda altura em 1 sem mover no piso; Page Up mantém ajuste de 0,1',()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.itens=[['gratis',2,3,2,0,1.25]];var tecla=(key,extra={})=>teclaEditorEscritorio({key,target:{closest:()=>false},preventDefault(){},...extra});tecla('ArrowUp',{shiftKey:true})`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),2.25);
+ assert.equal(r('escritorio.edicao.itens[0][2]'),3);
+ r(`tecla('ArrowDown',{shiftKey:true});tecla('PageUp')`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),1.35);
+ r(`tecla('ArrowUp',{shiftKey:true,target:{closest:()=>true}})`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),1.35,'digitar no campo não aciona atalhos');
+});
+
+test('altura digitada aceita vírgula, limita extremos e ignora entradas inválidas',()=>{
+ const {r,avisos}=contexto();
+ r(`definirAlturaSelecionadoEscritorio('12,75')`);assert.equal(r('escritorio.edicao.itens[0][5]'),12.75);
+ r(`definirAlturaSelecionadoEscritorio('100')`);assert.equal(r('escritorio.edicao.itens[0][5]'),40);
+ r(`definirAlturaSelecionadoEscritorio('-3')`);assert.equal(r('escritorio.edicao.itens[0][5]'),0);
+ r(`definirAlturaSelecionadoEscritorio('abc')`);assert.equal(r('escritorio.edicao.itens[0][5]'),0);assert.match(avisos.at(-1),/altura válida/);
+ assert.match(r('escritorioAlturaSelecionadoHtml()'),/Passo da altura/);
+});
+
+test('Shift ajusta a altura do móvel na mão sem mover uma seleção anterior',()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.selVarios=new Set([0]);escritorio.edicao.sel=null;escritorio.edicao.novo='gratis';teclaEditorEscritorio({key:'ArrowUp',shiftKey:true,target:{closest:()=>false}})`);
+ assert.equal(r('escritorio.construtor.altura'),1);assert.equal(r('escritorio.edicao.itens[0][5]'),undefined);
+});
+
+test('altura do grupo preserva desníveis e bloqueio não causa alteração parcial',()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.itens=[['gratis',1,1,2,0,0.5],['gratis',2,1,2,0,2.5]];escritorio.edicao.selVarios=new Set([0,1]);alturaLivreEscritorio(-1)`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),0);assert.equal(r('escritorio.edicao.itens[1][5]'),2);
+ r(`escritorio.edicao.bloqueados=new Set([escritorio.edicao.itens[1]]);alturaLivreEscritorio(1)`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),0);assert.equal(r('escritorio.edicao.itens[1][5]'),2);
+ r(`escritorio.edicao.bloqueados.clear();escritorio.edicao.salvando=true;alturaLivreEscritorio(1)`);
+ assert.equal(r('escritorio.edicao.itens[1][5]'),2);
+});
+
+test('ajuste de altura e cópia preservam a taça móvel da Copa sem transformá-la em inventário',()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.itens=[['gratis',1,1,2,0,1],['fball_trophy',2,1,2,0,0,{copa:true}]];escritorio.edicao.selVarios=new Set([0,1]);alturaLivreEscritorio(1);copiarSelecaoEscritorio(true)`);
+ assert.equal(r('escritorio.edicao.itens[0][5]'),2);
+ assert.equal(r('escritorio.edicao.itens[1][5]'),0);
+ assert.equal(r('escritorio.copiaEditor.length'),1);
+ assert.equal(r('escritorio.copiaEditor[0][0]'),'gratis');
+});
+
+test('Ctrl+C/V preserva altura, ajuste fino e dedicatória; sai da câmera e permite colar no mesmo lugar',async()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.itens=[['gratis',1.25,2.5,4,3,5.75,{t:'Minha peça'}]];escritorio.edicao.ferramenta='camera';escritorio.catalogoCategoria='Sala';escritorio.mapa.moveisEm=()=>[{altura:0}];var tecla=(key)=>teclaEditorEscritorio({key,ctrlKey:true,target:{closest:()=>false},preventDefault(){}});tecla('c');tecla('v')`);
+ assert.equal(r('escritorioCameraEditor()'),false);assert.equal(r('escritorioPintando()'),false);
+ await r('soltarColarEscritorio(1,2)');
+ assert.deepEqual(JSON.parse(r('JSON.stringify(escritorio.edicao.itens[1])')),['gratis',1.25,2.5,4,3,5.75,{t:'Minha peça'}]);
+ r(`escritorio.edicao.itens[1][6].t='Editada'`);
+ assert.equal(r('escritorio.copiaEditor[0][6].t'),'Minha peça');
+});
+
+test('ajustar altura da prévia não altera a cópia original e colagem simultânea não duplica',async()=>{
+ const {c,r}=contexto();let liberar;c.pendente=new Promise(ok=>liberar=ok);
+ r(`escritorio.edicao.itens=[['gratis',1,1,2,0,2]];copiarSelecaoEscritorio(true);colarEscritorio();alturaLivreEscritorio(1);escritorio.mapa.medidas=()=>pendente`);
+ const primeira=r('soltarColarEscritorio(3,3)'),segunda=r('soltarColarEscritorio(3,3)');
+ liberar({x:1,y:1,z:1});await Promise.all([primeira,segunda]);
+ assert.equal(r('escritorio.edicao.itens.length'),2);assert.equal(r('escritorio.edicao.itens[1][5]'),3);
+ assert.equal(r('escritorio.copiaEditor[0][5]'),2);
+});
+
+test('falha ao carregar a peça mantém a colagem e libera nova tentativa',async()=>{
+ const {r,avisos}=contexto();
+ r(`copiarSelecaoEscritorio(true);colarEscritorio();escritorio.mapa.medidas=async()=>{throw Error('Arte indisponível')}`);
+ await r('soltarColarEscritorio(3,3)');
+ assert.equal(r('escritorio.edicao.colando'),false);assert.equal(r('escritorio.edicao.colar.length'),1);
+ assert.equal(r('escritorio.edicao.itens.length'),1);assert.match(avisos.at(-1),/Não foi possível colar/);
+});
+
+test('arrastar uma cópia alta preserva o nível em vez de voltar ao chão',async()=>{
+ const {r}=contexto();
+ r(`escritorio.edicao.itens=[['gratis',1,1,2,0,3.25]];escritorio.edicao.arrasto={i:0,dx:0,dy:0}`);
+ await r('soltarNoEditorEscritorio(4,4,true)');
+ assert.equal(r('escritorio.edicao.itens[0][1]'),4);assert.equal(r('escritorio.edicao.itens[0][5]'),3.25);
+});
+
+test('salvar não depende da conferência consultiva nem pede aprovação do layout',async()=>{
+ const {c,r}=contexto();c.pedidos=[];c.confirm=()=>{throw Error('Layout não exige confirmação')};
+ r(`escritorio.edicao.versao=1;escritorio.edicao.decoracao={};escritorio.base.mapa={camadas:{}};escritorioApi=async(rota,pedido)=>{pedidos.push(rota);if(rota!=='mapa')throw Error('Conferência indisponível');return {...pedido,versao:2}};escritorioAplicarSalas=()=>{};escritorioRedesenharMapa=()=>{};renderEscritorio=()=>{};escritorioAvisarDecoracao=()=>{}`);
+ await r('salvarEditorEscritorio()');
+ assert.deepEqual(c.pedidos,['mapa']);assert.equal(r('escritorio.edicao'),null);assert.equal(r("escritorio.base.mapa.camadas['sala-0'].versao"),2);
+});
+
+test('conflito ao salvar preserva a edição e libera nova tentativa',async()=>{
+ const {r,avisos}=contexto();
+ r(`escritorio.edicao.versao=1;escritorio.edicao.decoracao={};escritorioApi=async()=>{throw Object.assign(Error('Alguém salvou antes'),{status:409})};`);
+ await r('salvarEditorEscritorio()');
+ assert.equal(r('escritorio.edicao.itens.length'),1);assert.equal(r('escritorio.edicao.salvando'),false);
+ assert.match(avisos.at(-1),/rascunho foi preservado/);
 });

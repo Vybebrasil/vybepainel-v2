@@ -7067,8 +7067,10 @@ body.no-escritorio .workspace-drawer {z-index:701}
 .clients-grid.dias-encaixados > .day-scroll-card {margin-bottom:0}
 .ofc-fino {display:inline-grid;grid-template-columns:repeat(2,22px);gap:2px}
 .ofc-editor-flutua .ofc-fino button {padding:0;width:22px;height:16px;font-size:11px;line-height:1}
-.ofc-altura {display:inline-flex;align-items:center;gap:2px}
-.ofc-altura > span {min-width:30px;text-align:center;font:600 11px var(--mac-ui);font-variant-numeric:tabular-nums;color:var(--ofc-suave)}
+.ofc-altura {display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.ofc-altura label {display:grid;gap:3px;font:600 10px var(--mac-ui);color:var(--ofc-suave)}
+.ofc-altura input,.ofc-altura select {box-sizing:border-box;min-height:32px;width:64px;padding:5px;border:1px solid #ffffff30;border-radius:7px;background:#252832;color:#f4f4f7;font:600 12px var(--mac-ui);font-variant-numeric:tabular-nums}
+.ofc-altura :is(input,select):focus-visible {outline:2px solid var(--ofc-laranja);outline-offset:2px}
 .ofc-filtro-meus {margin:6px 0}
 .ofc-filtro-meus + .ofc-filtro-meus {margin-top:0}
 /* Nome das pessoas numa camada acima dos móveis. */

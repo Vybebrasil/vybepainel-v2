@@ -410,6 +410,20 @@ function mapaTom(cor, f) {
 }
 // Linhas com desenho de verdade num canvas (a arte do Habbo tem margens
 // transparentes; as paredes ladrilham só a parte visível).
+function mapaColunasOpacas(canvas) {
+  const { width: w, height: h } = canvas;
+  const col = new Int16Array(w * 2).fill(-1);
+  if (!w || !h) return { col, periodo: 0 };
+  const d = canvas.getContext("2d").getImageData(0, 0, w, h).data, alturas = [];
+  for (let x = 0; x < w; x++) {
+    let y0 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) if (d[(y * w + x) * 4 + 3] > 8) { if (y0 < 0) y0 = y; y1 = y + 1; }
+    col[x * 2] = y0; col[x * 2 + 1] = y1;
+    if (y0 >= 0) alturas.push(y1 - y0);
+  }
+  alturas.sort((a, b) => a - b);
+  return { col, periodo: alturas.length ? alturas[alturas.length >> 1] : 0 };
+}
 function mapaRecorteOpaco(canvas) {
   const g = canvas.getContext("2d"), { width: w, height: h } = canvas;
   if (!w || !h) return { y0: 0, y1: h };
@@ -749,10 +763,18 @@ function mapaDivisoria(x, y, eixo, cor, fatias = [], estilo = "a", altura = 0, t
     const r = tex.recorte?.[sobe ? 4 : 2] || { y0: 0, y1: arte.height }, h = r.y1, passo = Math.max(8, r.y1 - r.y0 - 16 * n);
     g.save();
     g.beginPath(); g.moveTo(p0.x + 3, p0.y); g.lineTo(p1.x + 3, p1.y); g.lineTo(p1.x + 3, p1.y - alt); g.lineTo(p0.x + 3, p0.y - alt); g.closePath(); g.clip();
-    for (let v = 0; v < alt + 40; v += passo) {
-      if (sobe) g.drawImage(arte, 3 - 32 * k, alt - (h - 16 * n + 16 * k) - v);
-      else g.drawImage(arte, 35 - 32 * (n - k), alt - h + 16 * (n - k) - v);
-    }
+    const ox = sobe ? 3 - 32 * k : 35 - 32 * (n - k), oy = sobe ? alt - (h - 16 * n + 16 * k) : alt - h + 16 * (n - k);
+    const cols = tex.colunas?.[sobe ? 4 : 2], H = cols?.periodo || 0;
+    if (cols && H > 8) {
+      g.drawImage(arte, ox, oy);
+      for (let cx = 0; cx < c.width; cx++) {
+        const ax = cx - ox, fim = ax >= 0 && ax < arte.width ? cols.col[ax * 2 + 1] : -1;
+        if (fim < 0) continue;
+        const ini = Math.max(0, fim - H), hh = fim - ini;
+        if (hh < 4) continue;
+        for (let y = oy + ini - hh; y + hh > 0; y -= hh) g.drawImage(arte, ax, ini, 1, hh, cx, y, 1, hh);
+      }
+    } else for (let v = 0; v < alt + 40; v += passo) g.drawImage(arte, ox, oy - v);
     // Sala individual: o painel ganha a cor do dono.
     if (tingir) { g.globalCompositeOperation = "multiply"; g.globalAlpha = 0.7; g.fillStyle = cor; g.fillRect(0, 0, c.width, c.height); }
     g.globalCompositeOperation = "source-over";
@@ -1359,7 +1381,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       // Só a parte desenhada do painel ladrilha a parede (as margens
       // transparentes da arte deixavam faixas da base escura aparecendo nas
       // paredes mais altas que o painel).
-      if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n, recorte: { 4: mapaRecorteOpaco(d4.canvas), 2: mapaRecorteOpaco(d2.canvas) } });
+      if (d4 && d2) MAPA_TEXTURAS_PAREDE.set(c, { 4: d4.canvas, 2: d2.canvas, n, recorte: { 4: mapaRecorteOpaco(d4.canvas), 2: mapaRecorteOpaco(d2.canvas) }, colunas: { 4: mapaColunasOpacas(d4.canvas), 2: mapaColunasOpacas(d2.canvas) } });
     } catch {}
   })).then(() => { try { if (!destruido) pintarParedes(true); } catch {} });
   carregarTexturasParede(classesParede);

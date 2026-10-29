@@ -25,7 +25,7 @@ function planoValido(valor, tipo) {
   const m = /^plano:(piso|parede):(\d{1,5})$/.exec(String(valor || ""));
   return m && m[1] === tipo && planosQuarto()[tipo].has(m[2]) ? m[0] : "";
 }
-import { QUARTOS, configurarQuarto, perfilDoAndar, plantaQuarto, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
+import { QUARTOS, configurarQuarto, perfilDoAndar, LADO_QUARTO, CELDAS_LIVRES, ampliarGrade, ampliarParedes, ampliarCeldas } from "./escritorio-quartos.js";
 import { carregarEconomia, comprarMovel, comprarKit, perfilPublico, venderMovel, REVESTIMENTOS_DE_PAREDE } from "./escritorio-economia.js";
 import { missoesDaPessoa, rankingEscritorio, bauDaPessoa, campeaoDaCopaEm, diaBahia } from "./escritorio-pontos.js";
 import { cobrancasDaPessoa } from "./escritorio-cobrancas.js";
@@ -37,7 +37,7 @@ import { listarPostits, colarPostit, apagarPostit, darPresente, darMoedas, lista
 import { listarXadrez, verXadrez, desafiarXadrez, responderXadrez, lanceXadrez, acaoXadrez, botsDoXadrez, desafiarBotXadrez, vezDoBotXadrez } from "./escritorio-xadrez.js";
 import { listarMesa, verMesa, desafiarMesa, responderMesa, lanceMesa, acaoMesa, resumoDosJogos, botsDoJogo, desafiarBot, vezDoBot } from "./escritorio-mesas.js";
 import { verTemporada } from "./escritorio-temporadas.js";
-import { dimensoesDosMoveis, salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
+import { salasDoEscritorio, ehPauloNoEscritorio, carregarMapaEscritorio, salvarCamadaEscritorio, arteRemotaEscritorio, bonecoEscritorio, enviarImagemEscritorio, imagemEscritorio, apagarImagemEscritorio, versoesDaCamada, itensDaVersao } from "./escritorio-mapa.js";
 import { titulosDaPessoa, tituloDe, partesDoMarco, noticiasDaEquipe, copaDoMarco } from "./escritorio-marcos.js";
 import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -168,7 +168,14 @@ export function assinarEntradaEscritorio(
     sub: String(pessoa.id),
     nome: pessoa.nome,
     admin: Boolean(pessoa.admin),
-    perfil: perfilEscritorio(perfil),
+    // Só o boneco e onde ele está: a decoração do quarto (sala_*) vem da API
+    // e fazia o crachá passar dos 3.000 caracteres que o Worker aceita
+    // (28/10/2026: "a conexão com o escritório caiu" para quem decorou mais).
+    perfil: Object.fromEntries(
+      Object.entries(perfilEscritorio(perfil)).filter(
+        ([k]) => !k.startsWith("sala_") && k !== "quarto_configurado",
+      ),
+    ),
     // Sala individual da pessoa (decidida aqui): só ela e quem administra a trancam.
     minhaSala: /^sala-([0-9]|1[01])$/.test(String(minhaSala)) ? String(minhaSala) : "",
     aud: "vybe-escritorio",
@@ -238,8 +245,7 @@ export async function carregarEscritorio(sql, pessoa) {
     mapa: await carregarMapaEscritorio(sql),
   };
 }
-// "buscarSala" só é chamada se a porta mudar: devolve a sala da pessoa, para
-// conferir que nenhum móvel ficou no vão da porta nova.
+// Acabamentos usam o mesmo normalizador dentro e fora da construção.
 export async function salvarPerfilEscritorio(sql, pessoaId, valor, buscarSala = null) {
   return sql.comTransacao(tx => salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala));
 }
@@ -253,20 +259,7 @@ export async function salvarPerfilNaTransacao(tx, pessoaId, valor, buscarSala = 
       const pintura=perfilEscritorio(valor);
       perfil={...atual.preferencias,sala_andares:[{...andar,...Object.fromEntries(['sala_piso','sala_parede','sala_piso_plano','sala_parede_plano','sala_pisos','sala_paredes','sala_paredes_texturas','sala_taca','sala_luz','sala_porta','sala_sem_paredes','sala_espessura_parede','sala_espessura_piso','sala_altura_parede'].map(k=>[k,pintura[k]]))}]};
     }
-    const andarNovo=perfilDoAndar(perfil,valor.andar===1 ? 1 : 0), andarAntes=perfilDoAndar(atual.preferencias,valor.andar===1 ? 1 : 0);
-    if((andarNovo?.sala_porta || '')!==(andarAntes?.sala_porta || '') && andarNovo?.sala_porta) {
-      const sala=buscarSala ? await buscarSala() : '';
-      if(!sala) throw Object.assign(new Error('Abra o seu quarto para mudar a porta.'),{status:409});
-      const camada=valor.andar===1 ? sala+'-andar-1' : sala;
-      const [m]=await tx`SELECT itens FROM vybe_escritorio_mapa WHERE camada=${camada}`;
-      const p=plantaQuarto(andarNovo.sala_planta,andarNovo.sala_celdas), h=p?.celdas.length, w=p?.celdas[0].length;
-      const vao=andarNovo.sala_porta==='direita' ? [[w-1,p.portas.direita],[w-1,p.portas.direita+1]] : [[p.portas.baixo,h-1],[p.portas.baixo+1,h-1]];
-      const itens=(m?.itens || []).filter(it=>!/^vybeimg_/.test(it[0]));
-      const dims=await dimensoesDosMoveis(itens);
-      const cobre=itens.some(it=>{const d=dims.get(it[0]) || {x:1,y:1},gira=it[3]===2||it[3]===6,dw=gira?d.y:d.x,dh=gira?d.x:d.y;
-        return (d.z ?? 1)>0.05 && vao.some(([x,y])=>x>=Math.floor(it[1]) && x<Math.floor(it[1])+dw && y>=Math.floor(it[2]) && y<Math.floor(it[2])+dh);});
-      if(cobre) throw Object.assign(new Error('Tire os móveis do lugar da porta nova antes de mudar.'),{status:409});
-    }
+    // O jogador escolhe onde fica a porta, inclusive com decoração no vão.
     // Skins: o visual novo só com peças grátis, compradas ou que já vestia.
     if (perfil.figura && perfil.figura !== (atual.preferencias.figura || "")) await conferirFiguraDaPessoa(tx, pessoaId, perfil.figura, atual.preferencias.figura || "");
     await tx`UPDATE vybe_escritorio_perfis SET preferencias=${JSON.stringify(perfil)}::jsonb,atualizado_em=NOW() WHERE pessoa_id=${pessoaId}`;
