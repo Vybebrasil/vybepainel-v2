@@ -41,8 +41,8 @@ function sinucaVisual(modo, n) {
   if (modo === "parimpar") return { cor: n ? SINUCA_PARIMPAR[n] : SINUCA_CORES[0], listra: n % 2 === 1 && n !== 1 };
   return { cor: SINUCA_CORES[n > 8 ? n - 8 : n], listra: n > 8 };
 }
-const SINUCA_DICA = { livre: "Sua vez: clique no pano para mirar. Escolha a força e use TACAR, ou puxe para trás e solte.",
-  travada: "Direção confirmada. Clique em outro ponto para mudar. Na barra, clique escolhe a força; arrastar e soltar taca." };
+const SINUCA_DICA = { livre: "Sua vez: o taco segue o mouse; clique no pano para travar a mira. Escolha a força e use TACAR, ou puxe para trás e solte.",
+  travada: "Mira travada. Clique de novo no pano para soltar. Na barra, clique escolhe a força; arrastar e soltar taca." };
 // Quanto puxar o mouse (em unidades da mesa) para a força toda: 40, para a
 // força baixa (onde fica quase toda tacada) ter curso.
 const SINUCA_PUXADA = 40;
@@ -235,13 +235,14 @@ function desenharSinuca(j, s) {
   };
 }
 
-// Ponteiro na mesa. Clique escolhe a mira; dedo arrastado ajusta a direção.
-// Bola na mão: o toque põe a branca. Hover nunca muda a mira confirmada.
+// Ponteiro na mesa. Com o mouse o taco segue o cursor ao vivo; um clique trava
+// a mira (o caminho até a barra não a altera) e outro clique solta (Paulo,
+// 29/10/2026: "o taco com a mira não mexe mais... perdeu o real time").
+// Dedo arrastado ajusta a direção. Bola na mão: o toque põe a branca.
 // Um gesto pertence a um único ponteiro e a uma única vez da partida.
-// A mira só muda por ação deliberada: o caminho até a barra não a altera.
 const SINUCA_GESTO_MIN_PX = 4;
 function sinucaGestoNovo(s, ev, tipo) {
-  return { tipo, pointerId:ev.pointerId, jogoId:s.jogo.id, n:s.jogo.n, lado:s.jogo.eu,
+  return { tipo, estavaTravada:!!s.travada, pointerId:ev.pointerId, jogoId:s.jogo.id, n:s.jogo.n, lado:s.jogo.eu,
     angulo:s.angulo??0, inicioX:ev.clientX, inicioY:ev.clientY, distancia:0 };
 }
 function sinucaGestoValido(s, g, ev) {
@@ -291,9 +292,15 @@ function sinucaPonteiro(ev,tipo) {
     if(s.branca&&Math.hypot(x-branca[0],y-branca[1])<R*1.6){
       const anterior=s.branca;s.branca=null;s.fantasma={...anterior,livre:true};s.gesto={...sinucaGestoNovo(s,ev,'branca'),anterior};c.setPointerCapture?.(ev.pointerId);sinucaPintar();return;
     }
-    if(Math.hypot(x-branca[0],y-branca[1])>0.5)s.angulo=Math.atan2(y-branca[1],x-branca[0]);
-    s.travada=true;s.gesto=sinucaGestoNovo(s,ev,ev.pointerType==='mouse'?'mesa':'toque');
-    s.puxada=s.gesto;c.setPointerCapture?.(ev.pointerId);c.classList.add('travada');sinucaPintar();return;
+    // Mira travada fica onde está: puxar taca nela, clicar solta.
+    if(!(s.travada&&ev.pointerType==='mouse')&&Math.hypot(x-branca[0],y-branca[1])>0.5)s.angulo=Math.atan2(y-branca[1],x-branca[0]);
+    s.gesto=sinucaGestoNovo(s,ev,ev.pointerType==='mouse'?'mesa':'toque');sinucaTravar(s,c,true);
+    s.puxada=s.gesto;c.setPointerCapture?.(ev.pointerId);sinucaPintar();return;
+  }
+  // Mouse passando pela mesa sem botão: o taco segue o cursor enquanto a mira está solta.
+  if(tipo==='move'&&!s.gesto&&ev.pointerType==='mouse'){
+    if(!s.travada&&Math.hypot(x-branca[0],y-branca[1])>0.5){s.angulo=Math.atan2(y-branca[1],x-branca[0]);sinucaPintar();}
+    return;
   }
   const g=s.gesto;if(!sinucaGestoValido(s,g,ev))return;
   if(g.tipo==='toque'){
@@ -307,8 +314,17 @@ function sinucaPonteiro(ev,tipo) {
     const disparar=g.distancia>SINUCA_GESTO_MIN_PX&&forca>=SINUCA_FORCA_MIN;
     sinucaGestoLimpar(s);
     if(disparar){s.forca=forca;tacarSinuca({...g,forca});}
-    else{sinucaForcaAtualizar(s.forca??0.4);sinucaPintar();}
+    else{
+      // Clique sem puxar numa mira que já estava travada: solta, e o taco volta a seguir o mouse.
+      if(g.estavaTravada&&g.distancia<=SINUCA_GESTO_MIN_PX)sinucaTravar(s,c,false);
+      sinucaForcaAtualizar(s.forca??0.4);sinucaPintar();
+    }
   }
+}
+function sinucaTravar(s,c,travar) {
+  s.travada=travar;c.classList?.toggle?.('travada',travar);
+  const st=document.querySelector('.ofc-snc-jogo .xdz-status');
+  if(st&&!s.branca)st.textContent=SINUCA_DICA[travar?'travada':'livre'];
 }
 // Taco inclinado (0 a 60 graus): a física faz a bola pular e, com efeito
 // lateral, fazer a curva.
