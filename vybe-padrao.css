@@ -1233,3 +1233,16 @@ button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srg
 .ofc .ofc-lateral .ofc-salas > *,.ofc .ofc-lateral .ofc-p-modulo > *{min-width:0}
 .ofc .ofc-lateral .ofc-p-fora > summary{white-space:normal!important;flex-wrap:wrap;row-gap:4px}
 .ofc .ofc-lateral .ofc-p-fora > summary em{white-space:nowrap}
+
+/* Prazo e veiculação de cada demanda dos clientes no quarto (Paulo, 29/10/2026):
+   o botãozinho de calendário no canto da demanda abre as duas datas ali mesmo. */
+.ofc-cobranca-item{position:relative;list-style:none}
+.ofc-cobranca-item > .ofc-cobranca{padding-right:36px!important}
+.ofc-cobranca-datas-abrir{position:absolute;top:6px;right:6px;width:26px;height:26px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(19,21,28,.9);color:#a8a39c;cursor:pointer}
+.ofc-cobranca-datas-abrir svg{width:15px;height:15px}
+.ofc-cobranca-datas-abrir:hover,.ofc-cobranca-datas-abrir[aria-expanded="true"]{color:#38d9c5;border-color:rgba(56,217,197,.5);background:rgba(56,217,197,.1)}
+.ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:8px;margin-top:6px;padding:10px;border-radius:10px;border:1px solid rgba(56,217,197,.25);background:rgba(56,217,197,.06)}
+.ofc-cobranca-datas label{display:grid;gap:3px;min-width:0}
+.ofc-cobranca-datas small{color:#38d9c5;font:700 9.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
+.ofc-cobranca-datas input{width:100%;min-width:0;height:32px;padding:0 6px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0e0f15;color:#ece8e3;font:500 12px var(--mac-ui);color-scheme:dark}
+.ofc-cobranca-datas .ofc-p-entrar{height:32px;padding:0 12px;border:0;border-radius:8px;font:700 12px var(--mac-ui);cursor:pointer}
