@@ -84,6 +84,12 @@ const eTabela = (vn) => Math.max(0.55, 0.85 - 0.06 * Math.abs(vn) * METROS_POR_U
 // quarto é pancada.
 export const V_MIN=mesaSinuca.velocidade(mesaSinuca.forcaMinima)/METROS_POR_UNIDADE,V_MAX=7/METROS_POR_UNIDADE;
 export const velocidadeDaForca=(f)=>mesaSinuca.velocidade(f)/METROS_POR_UNIDADE;
+// Bater fora do centro: parte do golpe vira giro e a branca sai um pouco mais
+// devagar. Pelo choque taco-bola (taco ~540 g, bola 170 g; Alciatore), no limite
+// de meia bola sai com 87% da velocidade da tacada no centro, não 78%
+// como antes (o efeito parecia "morrer").
+const MASSA_BOLA_TACO = 0.17 / 0.54;
+export const fatorEfeito = (e = 0, l = 0) => (1 + MASSA_BOLA_TACO) / (1 + MASSA_BOLA_TACO * (1 + 0.625 * Math.min(1, e * e + l * l)));
 const PASSO = 1 / 600, QUADRO = 20, PASSOS_MAX = 600 * 30, V_SOM = 320;
 // Tempo até contato de esferas/cápsulas. Não avança além do primeiro impacto.
 function tempoEsfera(x,y,z,vx,vy,vz,raio,maximo) {
@@ -212,6 +218,8 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
  return r;
 }
 function simularFisica(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, opc = {}) {
+ // O ponto do taco fica dentro do círculo de meia bola (o taco escorrega fora dele).
+ { const k = Math.hypot(efeito, lado); if (k > 1) { efeito /= k; lado /= k; } }
  const passoMaximo=Number.isFinite(opc.passoMaximo)?Math.max(1/9600,Math.min(PASSO,opc.passoMaximo)):PASSO;
  const ALTURA=50*METRICA_Y,GEO={paredes:mesaSinuca.paredes.map(([a,b,c,d])=>[a,b*METRICA_Y,c,d*METRICA_Y]),buracos:mesaSinuca.buracos.map(([x,y,r])=>[x,y*METRICA_Y,r*METRICA_Y])};
  const ROLA = (PANOS[opc.pano] || PANOS.bar) * G, el = (Math.min(60, Math.max(0, Number(opc.elevacao) || 0)) * Math.PI) / 180;
@@ -219,7 +227,7 @@ function simularFisica(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, 
  const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, s: 0, queda: 0 } : null));
  // Taco à direita de quem taca (lado > 0) desvia a branca para a esquerda dele.
  const normaEfeito=Math.max(1,Math.hypot(efeito,lado));efeito/=normaEfeito;lado/=normaEfeito;
- const v = velocidadeDaForca(forca)/Math.sqrt(1+0.625*(efeito*efeito+lado*lado)), a0 = angulo - lado * SQUIRT, dx = Math.cos(a0), dy = Math.sin(a0);
+ const v = velocidadeDaForca(forca)*fatorEfeito(efeito, lado), a0 = angulo - lado * SQUIRT, dx = Math.cos(a0), dy = Math.sin(a0);
  // Taco inclinado: só a parte deitada da força empurra a bola para a frente; a
  // de pé a aperta contra a ardósia, que a devolve para cima (a bola pula).
  b[0].vx = dx * v * ce; b[0].vy = dy * v * ce; b[0].vz = PULO * v * se;

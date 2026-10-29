@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import mapa from '../shared/escritorio-sinuca-mesa.js';
-import {simular,RAIO} from '../server/escritorio-sinuca.js';
+import {simular,RAIO,fatorEfeito} from '../server/escritorio-sinuca.js';
 const so=ps=>{const b=Array(16).fill(null);for(const[n,p]of Object.entries(ps))b[n]=p;return b;};
 function medir(ps,f=1,dt=1/600,e=0,l=0){
  let primeiro=null,maxSobreposicao=0,energiaInicial=0;
@@ -25,11 +25,11 @@ test('física: renumerar bolas encostadas preserva os movimentos físicos',()=>{
  for(let i=0;i<4;i++){const p=x.bolas[i+2],q=y.bolas[5-i];assert.equal(Boolean(p),Boolean(q));if(p)erro=Math.max(erro,Math.hypot(p[0]-q[0],p[1]-q[1]));}
  assert.ok(erro<1e-7,`diferença ${erro}`);
 });
-test('física: força tem derivada contínua e efeito não cria energia',()=>{
+test('física: força tem derivada contínua e efeito segue o choque real do taco (nada de energia inventada)',()=>{
  const h=1e-7,v=mapa.velocidade,esq=(v(.05)-v(.05-h))/h,dir=(v(.05+h)-v(.05))/h;
  assert.ok(Math.abs(esq-dir)<.001,`derivadas ${esq} / ${dir}`);
  const b=so({0:[50,25]}),base=medir(b,.5).energiaInicial;
- for(const [e,l]of [[1,0],[0,1],[1,1],[-1,-1]]){const a=medir(b,.5,1/600,e,l);assert.ok(Math.abs(a.energiaInicial/base-1)<1e-9);}
+ for(const [e,l]of [[1,0],[0,1],[1,1],[-1,-1]]){const a=medir(b,.5,1/600,e,l),q=Math.min(1,e*e+l*l),real=(1+0.625*q)*fatorEfeito(e,l)**2;assert.ok(Math.abs(a.energiaInicial/base-real)<1e-9);assert.ok(real<1.25,'o taco não dá mais que o choque taco-bola permite');}
 });
 test('física: mesma distância física horizontal e vertical tem mesmo alcance sem tabela',()=>{
  const b=so({0:[50,25]}),x=simular(b,0,.15),y=simular(b,Math.PI/2,.15),dx=x.bolas[0][0]-50,dy=(y.bolas[0][1]-25)*mapa.metricaY;

@@ -13373,3 +13373,25 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @media(prefers-reduced-motion:reduce){.snc-sala *,.snc-btn{scroll-behavior:auto;transition:none;animation:none}}
 
 .snc-creditos{grid-column:1/-1;margin-top:20px;padding-top:12px;border-top:1px solid #c9ae6a33;font:400 10px/1.8 Arial,sans-serif;color:#a6b59c}.snc-creditos summary{cursor:pointer;color:#ccb478}.snc-creditos p{max-width:850px;font:400 10px/1.8 Arial,sans-serif}.snc-creditos a{color:#e9c885;text-decoration:underline}
+
+/* Sinuca: efeito livre, arrastando o ponto na bola (29/10/2026). */
+.snc-efeito {display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.snc-efeito .snc-efeito-bola {width:58px;height:58px;touch-action:none;cursor:grab}
+.snc-efeito .snc-efeito-bola:active {cursor:grabbing}
+.snc-efeito .snc-efeito-bola:disabled {cursor:default;opacity:.7}
+.snc-efeito .snc-efeito-bola i {width:11px;height:11px;margin:-5.5px 0 0 -5.5px;transition:none;pointer-events:none}
+.snc-efeito-nome {max-width:96px;font-size:9px;line-height:1.15;text-align:center;opacity:.8}
+@media(max-width:760px){.snc-efeito .snc-efeito-bola{width:50px;height:50px}.snc-efeito-nome{max-width:80px}}
+.snc-taco {display:flex;flex-direction:column;gap:3px;max-width:150px}
+.snc-taco-vista {display:block;width:100%;max-width:120px;height:auto}
+.snc-taco-vista .pano {stroke:#2f7a4f;stroke-width:2}
+.snc-taco-vista .bola {fill:#f3f0e2;stroke:#0005;stroke-width:.6}
+.snc-taco-vista .taco {stroke:#c8955a;stroke-width:2.4;stroke-linecap:round}
+.snc-taco-vista .ponto {fill:#c0392b}
+.snc-taco-texto {font-style:normal;font-size:9px;line-height:1.2;opacity:.8}
+@media(max-width:760px){.snc-taco{max-width:120px}.snc-taco-texto{font-size:8px}}
+.snc-controle-mira .snc-ajustes {flex-wrap:wrap}
+.snc-controle-mira .snc-taco {flex:1 1 100%;max-width:none;display:grid;grid-template-columns:92px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:10px;row-gap:2px;align-items:center}
+.snc-controle-mira .snc-taco .snc-taco-vista {grid-column:1;grid-row:1/4;max-width:92px}
+.snc-controle-mira .snc-taco small,.snc-controle-mira .snc-taco input,.snc-controle-mira .snc-taco-texto {grid-column:2}
+@media(max-width:760px){.snc-controle-mira .snc-taco{grid-template-columns:72px minmax(0,1fr)}.snc-controle-mira .snc-taco .snc-taco-vista{max-width:72px}}

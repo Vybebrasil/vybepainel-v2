@@ -251,7 +251,8 @@ function sinuca(mesa, lado, nivel) {
  }
  const extras = nivel === 'lendario' ? 8 : nivel === 'medio' ? 6 : 2;
  for (let i = 0; i < extras; i++) candidatas.push(Math.random() * Math.PI * 2);
- const forcas = nivel === 'lendario' ? [0.4, 0.55, 0.72] : nivel === 'medio' ? [0.48, 0.68] : [0.58];
+ // Mesmas velocidades de antes da barra nova (29/10/2026): 0,8/1,65/3,1 m/s etc.
+ const forcas = nivel === 'lendario' ? [0.232, 0.444, 0.687] : nivel === 'medio' ? [0.339, 0.633] : [0.489];
  const limite = nivel === 'lendario' ? 160 : nivel === 'medio' ? 60 : 20;
  const m2 = { ...mesa, bolas }, buracos = cacapas(), g = mesa.grupos?.[lado];
  // Quanto a bola que eu queria passou perto de cair (para refinar as tacadas
@@ -278,7 +279,7 @@ function sinuca(mesa, lado, nivel) {
   for (const c of quaseLa) for (const d of passos) todas.push(tentar(c.angulo + d * grau, c.forca));
  }
  const ordem = todas.map((c) => ({ ...c, valor: c.nota - c.perto * 2 + Math.random() })).sort((a, b) => b.valor - a.valor);
- let melhor = ordem[0] || { angulo: candidatas[0] || 0, forca: 0.6 };
+ let melhor = ordem[0] || { angulo: candidatas[0] || 0, forca: 0.519 };
  // Sem bola boa, o Baianinho joga como malandro de bar (Paulo, 28/10/2026:
  // "tirando onda da pessoa, deixando bola na boca, dando vale"): uma tacada sem
  // falta que esconde a branca das bolas do outro (o vale) e, se der, deixa bola

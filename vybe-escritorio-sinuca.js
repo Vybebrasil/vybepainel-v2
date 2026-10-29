@@ -216,7 +216,7 @@ function desenharSinuca(j, s) {
   const efeito = s.efeito || 0, giro = s.giro || 0, ativo = minha && !poe;
   const forca = `<div class="snc-forca${ativo ? '' : ' parada'}" role="slider" tabindex="${ativo ? 0 : -1}" aria-orientation="horizontal" aria-label="Força da tacada: clique seleciona; arraste e solte para tacar" aria-valuemin="0.1" aria-valuemax="100" aria-valuenow="${Number(((s.forca??0.4)*100).toFixed(1))}" onpointerdown="sinucaForcaComeca(event)" onpointermove="sinucaForcaMove(event)" onpointerup="sinucaForcaSolta(event)" onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onkeydown="sinucaForcaTecla(event)"><b style="width:${(s.forca??0.4)*100}%"></b><span>${sinucaPercentual(s.forca??0.4)}%</span></div>`;
   const controles = `<section class="snc-comandos" aria-label="Controles da tacada">
-<div class="snc-controle snc-controle-mira"><div class="snc-controle-titulo"><small>01</small><b>Mira e efeito</b></div><div class="snc-ajustes"><button type="button" class="snc-efeito-bola" onclick="sinucaEfeito(event)" ${ativo?'':'disabled'} aria-label="Efeito: ${sinucaEfeitoNome(efeito,giro)}"><i style="top:${50-efeito*34}%;left:${50+giro*34}%"></i></button><div class="snc-mira-fina" role="group" aria-label="Ajuste fino da mira"><button type="button" onclick="sinucaGirar(-1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para um lado">↶</button><button type="button" onclick="sinucaGirar(1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para o outro lado">↷</button></div><label class="snc-taco"><small>Inclinação <b>${s.elevacao||0}°</b></small><input type="range" min="0" max="60" step="5" value="${s.elevacao||0}" oninput="sinucaElevacao(this)" ${ativo?'':'disabled'} aria-label="Inclinação do taco"></label></div></div>
+<div class="snc-controle snc-controle-mira"><div class="snc-controle-titulo"><small>01</small><b>Mira e efeito</b></div><div class="snc-ajustes"><div class="snc-efeito"><button type="button" class="snc-efeito-bola" onpointerdown="sinucaEfeitoComeca(event)" onpointermove="sinucaEfeito(event)" onpointerup="sinucaEfeitoSolta(event)" onpointercancel="sinucaEfeitoSolta(event)" ondblclick="sinucaEfeitoCentro(event)" onkeydown="sinucaEfeitoTecla(event)" ${ativo?'':'disabled'} title="Arraste para onde o taco bate na branca; duplo clique centraliza" aria-label="Efeito: ${sinucaEfeitoNome(efeito,giro)}"><i style="top:${50-efeito*34}%;left:${50+giro*34}%"></i></button><small class="snc-efeito-nome">${sinucaEfeitoNome(efeito,giro)}</small></div><div class="snc-mira-fina" role="group" aria-label="Ajuste fino da mira"><button type="button" onclick="sinucaGirar(-1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para um lado">↶</button><button type="button" onclick="sinucaGirar(1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para o outro lado">↷</button></div><label class="snc-taco"><small>Inclinação <b>${s.elevacao||0}°</b></small>${sinucaTacoDesenho(s.elevacao||0,efeito)}<input type="range" min="0" max="60" step="5" value="${s.elevacao||0}" oninput="sinucaElevacao(this)" ${ativo?'':'disabled'} aria-label="Inclinação do taco"><em class="snc-taco-texto">${sinucaTacoTexto(s.elevacao||0,giro)}</em></label></div></div>
 <div class="snc-controle snc-controle-forca"><div class="snc-controle-titulo"><small>02</small><b>Força da tacada</b><label class="snc-forca-exata"><input type="number" min="0.1" max="100" step="0.1" value="${Number(((s.forca??0.4)*100).toFixed(1))}" oninput="sinucaForcaEscolher(this)" ${ativo?'':'disabled'} aria-label="Força da tacada em porcentagem"><span>%</span></label></div>${forca}<div class="snc-escala"><span>Toque de leve</span><span>Arraste e solte</span><span>Saída forte</span></div></div>
 <div class="snc-controle snc-controle-tacar"><button type="button" class="snc-tacar" onclick="tacarSinuca()" ${ativo?'':'disabled'}>TACAR <span>↗</span></button>${m.bolaNaMao&&s.branca&&minha?'<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa(\'snc\')">Reposicionar branca</button>':'<small>Mire. Dose. Encaçape.</small>'}</div></section>`;
   const ultimo = sinucaUltimoTexto(j);
@@ -332,8 +332,29 @@ function sinucaElevacao(el) {
   const s = sinucaEstado();
   if(s.gesto||s.enviando)return;
   s.elevacao = Number(el.value) || 0;
-  const r = el.closest(".snc-taco")?.querySelector("small");
-  if (r) r.innerHTML = `Inclinação <b>${s.elevacao}°</b>`;
+  sinucaTacoAtualizar(s);
+}
+// O taco visto de lado (Paulo, 29/10/2026: "a inclinação também do taco...
+// mostrar mais o que tá acontecendo"): bola, pano e o taco no ângulo escolhido,
+// batendo na altura do efeito, e uma frase do que a física vai fazer.
+function sinucaTacoTexto(elev, giro) {
+  if (!elev) return "Taco deitado: a branca sai rente ao pano.";
+  if (elev <= 15) return "Inclinação leve: quase igual, com um pouco menos de força.";
+  if (elev <= 35) return giro ? "A branca dá um pulinho e faz curva para o lado do efeito." : "A branca dá um pulinho. Com efeito lateral, faz curva.";
+  return giro ? "Massé: a branca pula e faz curva forte; sai com bem menos força." : "Taco em pé: a branca pula e perde força. Com efeito lateral vira massé.";
+}
+function sinucaTacoDesenho(elev, efeito) {
+  const a = (elev * Math.PI) / 180, cx = 60, cy = 27, r = 7, h = Math.max(-0.85, Math.min(0.85, efeito * 0.5));
+  const px = cx - r * Math.sqrt(1 - h * h), py = cy - r * h, ex = px - Math.cos(a) * 52, ey = py - Math.sin(a) * 52;
+  return `<svg class="snc-taco-vista" viewBox="0 0 80 40" aria-hidden="true"><line x1="2" y1="34.5" x2="78" y2="34.5" class="pano"/><circle cx="${cx}" cy="${cy}" r="${r}" class="bola"/><line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${(px - Math.cos(a) * 1.5).toFixed(1)}" y2="${(py - Math.sin(a) * 1.5).toFixed(1)}" class="taco"/><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="1.4" class="ponto"/></svg>`;
+}
+function sinucaTacoAtualizar(s) {
+  const el = document.querySelector(".ofc-snc-jogo .snc-taco");
+  if (!el) return;
+  const t = el.querySelector("small"), v = el.querySelector(".snc-taco-vista"), d = el.querySelector(".snc-taco-texto");
+  if (t) t.innerHTML = `Inclinação <b>${s.elevacao || 0}°</b>`;
+  if (v) v.outerHTML = sinucaTacoDesenho(s.elevacao || 0, s.efeito || 0);
+  if (d) d.textContent = sinucaTacoTexto(s.elevacao || 0, s.giro || 0);
 }
 // Pular a animação da tacada que está passando (as bolas vão para onde pararam).
 function sinucaPular(s, j) {
@@ -358,17 +379,43 @@ function sinucaEfeitoNome(e, g) {
   const v = e > 0 ? "seguir" : e < 0 ? "puxar" : "", h = g > 0 ? "abrir para a direita" : g < 0 ? "abrir para a esquerda" : "";
   return [v, h].filter(Boolean).join(" e ") || "no centro";
 }
-function sinucaEfeito(ev) {
-  const s = sinucaEstado(), el = ev.currentTarget, r = el.getBoundingClientRect();
-  if(s.gesto||s.enviando||s.anim||!sinucaMinhaVez(s.jogo))return;
-  let vy = -((ev.clientY - r.top) / r.height - 0.5) / 0.34, vx = ((ev.clientX - r.left) / r.width - 0.5) / 0.34;
-  const d = Math.hypot(vx, vy);
+// Ponto livre na bola (Paulo, 29/10/2026: "tá muito travado... devia deixar
+// escolher onde quer bater solto na bola"): clicar ou arrastar põe o ponto em
+// qualquer lugar do círculo (o limite é meia bola do centro, onde o taco ainda
+// não escorrega), sem zona morta e em passos de 2%. Duplo clique centraliza;
+// setas do teclado movem 5%.
+const sinucaEfeitoPode = (s) => !(s.gesto || s.enviando || s.anim || !sinucaMinhaVez(s.jogo));
+function sinucaEfeitoPor(el, vy, vx) {
+  const s = sinucaEstado(), d = Math.hypot(vx, vy);
   if (d > 1) { vx /= d; vy /= d; }
-  s.efeito = Math.abs(vy) < 0.2 ? 0 : Math.round(vy * 10) / 10;
-  s.giro = Math.abs(vx) < 0.2 ? 0 : Math.round(vx * 10) / 10;
+  const passo = (v) => (Math.abs(v) < 0.03 ? 0 : Math.round(v * 50) / 50);
+  s.efeito = passo(vy); s.giro = passo(vx);
   const i = el.querySelector("i");
   i.style.top = `${50 - s.efeito * 34}%`; i.style.left = `${50 + s.giro * 34}%`;
   el.setAttribute("aria-label", `Efeito: ${sinucaEfeitoNome(s.efeito, s.giro)}`);
+  const t = el.closest(".snc-ajustes")?.querySelector(".snc-efeito-nome");
+  if (t) t.textContent = sinucaEfeitoNome(s.efeito, s.giro);
+  sinucaTacoAtualizar(s);
+}
+function sinucaEfeito(ev) {
+  const s = sinucaEstado(), el = ev.currentTarget, r = el.getBoundingClientRect();
+  if (!sinucaEfeitoPode(s)) return;
+  if (ev.type === "pointermove" && !(s.efeitoArrasto === ev.pointerId)) return;
+  sinucaEfeitoPor(el, -((ev.clientY - r.top) / r.height - 0.5) / 0.34, ((ev.clientX - r.left) / r.width - 0.5) / 0.34);
+}
+function sinucaEfeitoComeca(ev) {
+  const s = sinucaEstado();
+  if (!sinucaEfeitoPode(s) || (ev.button !== undefined && ev.button !== 0)) return;
+  ev.preventDefault(); s.efeitoArrasto = ev.pointerId; ev.currentTarget.setPointerCapture?.(ev.pointerId);
+  sinucaEfeito(ev);
+}
+function sinucaEfeitoSolta(ev) { const s = sinucaEstado(); if (s.efeitoArrasto === ev.pointerId) s.efeitoArrasto = null; }
+function sinucaEfeitoCentro(ev) { if (sinucaEfeitoPode(sinucaEstado())) sinucaEfeitoPor(ev.currentTarget, 0, 0); }
+function sinucaEfeitoTecla(ev) {
+  const s = sinucaEstado(), d = { ArrowUp: [0.05, 0], ArrowDown: [-0.05, 0], ArrowLeft: [0, -0.05], ArrowRight: [0, 0.05] }[ev.key];
+  if (!d || !sinucaEfeitoPode(s)) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sinucaEfeitoPor(ev.currentTarget, (s.efeito || 0) + d[0], (s.giro || 0) + d[1]);
 }
 
 // Barra de força ao lado da mesa: arrasta-se para a direita; a distância
@@ -841,7 +888,7 @@ function sinucaTacoPintar(g, branca, dx, dy, recuo, P) {
 // Setas do teclado ajustam a mira enquanto a sinuca está aberta: meio grau, e
 // com Shift cinco centésimos.
 document.addEventListener?.("keydown", (ev) => {
-  if (!document.querySelector("#workflow-modal.ofc-snc-jogo") || ev.target?.closest?.("input,textarea,.snc-forca")) return;
+  if (!document.querySelector("#workflow-modal.ofc-snc-jogo") || ev.target?.closest?.("input,textarea,.snc-forca,.snc-efeito-bola")) return;
   if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
   const s = sinucaEstado();
   if (!sinucaMinhaVez(s.jogo) || s.anim) return;
