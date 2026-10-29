@@ -58,6 +58,20 @@ test("entrada assinada não permite falsificar pessoa, renovar validade ou usar 
   );
   assert.throws(() => assinarEntradaEscritorio({ id: 1 }, {}, "curto"), /32/);
 });
+test("crachá de quem decorou o quarto inteiro cabe no limite do Worker", async () => {
+  const now = Date.now();
+  const perfil = {
+    sala: "convivencia",
+    sala_pisos: "a".repeat(400),
+    sala_paredes: "-12".repeat(80),
+    sala_paredes_texturas: Array.from({ length: 60 }, (_, i) => `${i}:hygge_c25_wallpaper1`).join(","),
+  };
+  const token = assinarEntradaEscritorio({ id: 1, nome: "Paulo" }, perfil, segredo, now);
+  assert.ok(token.length < 3000);
+  const c = await verificarEntrada(token, segredo, now);
+  assert.equal(c.perfil.sala, "convivencia");
+  assert.equal(Object.keys(c.perfil).some((k) => k.startsWith("sala_")), false);
+});
 test("perfil é persistido por pessoa e descarta HTML, sala e cores arbitrárias", async (t) => {
   const { db, sql } = await banco();
   t.after(() => db.close());

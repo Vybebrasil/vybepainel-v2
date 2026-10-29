@@ -168,7 +168,14 @@ export function assinarEntradaEscritorio(
     sub: String(pessoa.id),
     nome: pessoa.nome,
     admin: Boolean(pessoa.admin),
-    perfil: perfilEscritorio(perfil),
+    // Só o boneco e onde ele está: a decoração do quarto (sala_*) vem da API
+    // e fazia o crachá passar dos 3.000 caracteres que o Worker aceita
+    // (28/10/2026: "a conexão com o escritório caiu" para quem decorou mais).
+    perfil: Object.fromEntries(
+      Object.entries(perfilEscritorio(perfil)).filter(
+        ([k]) => !k.startsWith("sala_") && k !== "quarto_configurado",
+      ),
+    ),
     // Sala individual da pessoa (decidida aqui): só ela e quem administra a trancam.
     minhaSala: /^sala-([0-9]|1[01])$/.test(String(minhaSala)) ? String(minhaSala) : "",
     aud: "vybe-escritorio",
