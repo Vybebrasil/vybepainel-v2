@@ -1,0 +1,27 @@
+{
+  "sinucaGameLobby": {
+    "prompt": "Use case: stylized-concept. Asset type: actual widescreen background for a premium Brazilian pool videogame lobby, not a UI mockup. Cinematic high quality 3D game key art of an authentic Brazilian neighborhood boteco at night, old warm walnut wood, dark moss green tiled walls, warm copper and green industrial pool lamps, a magnificent worn emerald felt pool table in three-quarter perspective in the lower left and center, two crossed cues resting at the edge, restrained beer glasses and bottles in the distant background, soft smoke-free golden dust light. Welcoming competitive sports videogame mood, rich tactile materials, realistic stylized rendering like polished console game environment art, strong dramatic lighting. Broad dark negative space in the upper left for game title and on the right for game mode controls. Landscape 16:9. No people, no lettering, no text, no logos, no watermark, no user interface. Keep composition sophisticated, vibrant felt and warm rim light, background pleasantly defocused.",
+    "path": "C:\\Users\\pichau\\.codex\\generated_images\\01a18352-9c60-7041-a873-0849b7f3ca3b\\exec-cc6d4f5c-f7de-4a30-87d4-4193f285bcc0.png",
+    "arquivo": "assets/jogos/sinuca-lobby.webp"
+  },
+  "sinucaGameCrest": {
+    "prompt": "Use case: stylized-concept. Asset type: transparent videogame emblem for a Brazilian boteco billiards game. A large glossy black billiard 8 ball with ivory number disc, two finely crafted walnut pool cues crossing behind it and a small blue chalk cube, framed by a restrained aged brass circular badge. Front view, symmetrical compact composition, isolated centered, all elements contained with generous transparent padding. Premium sports videogame UI icon, detailed high quality 3D materials, warm golden edge highlights, readable at small size. Only text is the single numeral 8 on the ball. No other text, no words, no ribbons, no watermark. Actual transparent background.",
+    "path": "C:\\Users\\pichau\\.codex\\generated_images\\01a18352-9c60-7041-a873-0849b7f3ca3b\\exec-343de4bc-8d11-4395-8924-2c6b0fffda2d.png",
+    "arquivo": "assets/jogos/sinuca-emblema.webp"
+  },
+  "sinucaBotEasy": {
+    "prompt": "Use case: stylized-concept. Asset type: square videogame opponent portrait. A fictional friendly Brazilian young adult pool player nicknamed Ze do Taco, relaxed humble boteco regular, warm brown skin, short dark hair beneath a backwards faded olive baseball cap, casual cream t-shirt, one wooden pool cue held over shoulder. Chest-up centered face, amused confident smile. Stylized realistic 3D videogame character portrait, premium console sports game quality, warm amber rim lighting, emerald-green dark bar blurred background, natural expressive face, strong clean silhouette. The face fills most of square, no frame, no text, no logos, no watermark. Completely fictional person.",
+    "path": "C:\\Users\\pichau\\.codex\\generated_images\\01a18352-9c60-7041-a873-0849b7f3ca3b\\exec-25906abf-ccbc-4a50-a292-ee7157a35241.png",
+    "arquivo": "assets/jogos/sinuca-ze.webp"
+  },
+  "sinucaBotMedium": {
+    "prompt": "Use case: stylized-concept. Asset type: square videogame opponent portrait. A fictional seasoned Brazilian middle-aged pool player nicknamed Tio do Boteco, light brown skin, short salt-and-pepper hair, distinct friendly thick moustache, faded burgundy polo shirt, holding a wooden billiard cue. Chest-up centered face, shrewd playful half smile, experienced competitive bar regular. Stylized realistic 3D videogame character portrait, premium console sports game quality, warm copper rim lighting, emerald-green dark bar blurred background, natural expressive face, strong clean silhouette. Face fills most of square, no frame, no text, no logos, no watermark. Completely fictional person.",
+    "path": "C:\\Users\\pichau\\.codex\\generated_images\\01a18352-9c60-7041-a873-0849b7f3ca3b\\exec-b4fe7768-6b62-4764-85a5-42d01596db4a.png",
+    "arquivo": "assets/jogos/sinuca-tio.webp"
+  },
+  "sinucaBotLegend": {
+    "prompt": "Use case: stylized-concept. Asset type: square videogame opponent portrait. A completely fictional Brazilian veteran pool champion bot opponent, dark brown skin, mature adult, closely shaved dark hair with a little grey at temples, short neat grey goatee, black casual collared shirt with subtle golden collar edging, holding a walnut billiard cue upright. Chest-up centered portrait, calm formidable knowing smile, understated charisma. Stylized realistic 3D videogame character portrait, premium console sports game quality, dramatic gold rim lighting, emerald-green dark bar blurred background, sharp expressive face, strong clean silhouette. Do not resemble any actual professional billiards player. Face fills most of square, no frame, no text, no logos, no watermark.",
+    "path": "C:\\Users\\pichau\\.codex\\generated_images\\01a18352-9c60-7041-a873-0849b7f3ca3b\\exec-a4076fb9-4bcb-43df-ae74-4fafbfeb5b3a.png",
+    "arquivo": "assets/jogos/sinuca-lenda.webp"
+  }
+}

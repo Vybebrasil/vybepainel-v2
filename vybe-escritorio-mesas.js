@@ -306,6 +306,7 @@ function jogoFimHtml(j, acoes) {
   const n = j.jogadores?.length || 2, valendo = j.moedas || j.itens?.desafiante?.length || j.itens?.desafiado?.length;
   const pb = j.premio_bot;
   const premio = j.bot ? (ganhou ? (pb?.moedas ? `+${pb.moedas} VybeCoins e +${pb.xp} XP${pb.teto ? " (teto de hoje)" : ""}` : "Você já bateu o teto de prêmios de bots de hoje.") : "") : !valendo ? "" : j.resultado === "empate" ? "Cada um recebeu a aposta de volta." : ganhou ? `+${(n * (j.moedas || 0)).toLocaleString("pt-BR")} VybeCoins${j.itens?.desafiante?.length || j.itens?.desafiado?.length ? " e os itens" : ""}` : `${vencedor} levou a mesa.`;
+  if (j.jogo === "sinuca") return sinucaFimHtml(j,acoes,{titulo,premio,ganhou,perdeu});
   return `<div class="jogo-fim ${ganhou ? "ganhou" : perdeu ? "perdeu" : "empate"}"><div class="jogo-fim-caixa xdz-fim"><small>${safeText(j.motivo_nome || "Fim de jogo")}</small><b>${titulo}</b>${premio ? `<span>${safeText(premio)}</span>` : ""}${acoes}</div></div>`;
 }
 

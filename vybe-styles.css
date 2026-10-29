@@ -13151,7 +13151,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .snc-confronto b i {font:400 14px Georgia,serif;margin:0 7px;opacity:.5}
 .snc-x {color:#b9aa8259;font:400 20px Georgia,serif}
 .snc-area {display:grid;place-items:center;min-width:0;width:100%;padding:2px 0 6px}
-.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 340px)*1.791667));height:auto;max-width:100%;aspect-ratio:2752/1536;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
+.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 430px)*1.791667));height:auto;max-width:100%;aspect-ratio:2752/1536;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
 .snc-canvas.vez,.snc-canvas.vez.travada {touch-action:none;cursor:none}
 .snc-canvas.vez.pondo {cursor:default}
 .snc-comandos {display:grid;grid-template-columns:260px minmax(220px,1fr) 162px;gap:22px;padding:13px 18px 12px;border:1px solid #9d7c484a;border-radius:7px;background:linear-gradient(#17251dd9,#101b16e8),url(/assets/jogos/boteco-madeira.webp) center/420px;box-shadow:inset 0 1px #ffffff06}
@@ -13215,40 +13215,161 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-snc-jogo .jogo-fim-caixa {border:1px solid #a88b55;background:#16271e url(/assets/jogos/boteco-madeira.webp) center/cover;color:#f0e5ca;border-radius:8px;box-shadow:0 20px 80px #000b}
 .ofc-snc-jogo .jogo-fim-caixa>b {font-family:Georgia,serif}
 .ofc-snc-jogo .jogo-alerta,.ofc-snc-jogo .jogo-fora {margin:8px 22px;background:#1c3024;border:1px solid #bda77940;color:#d8d4bc;border-radius:5px}
-/* O mesmo acabamento no lobby, convite, aposta e resultado da sinuca. */
-.workflow-modal.ofc-snc-menu {padding:0;overflow:auto}
-.ofc-snc-menu .sala-banner.tema-sinuca {padding:30px;background:linear-gradient(90deg,#102018e6,#10201844),url(/assets/jogos/boteco-ambiente.webp) center 30%/cover;border-bottom:1px solid #c3a26855;min-height:155px}
-.ofc-snc-menu .sala-banner h2 {font:400 32px Georgia,serif;color:#f0e5ca;letter-spacing:-.5px;text-shadow:0 2px 10px #000}
-.ofc-snc-menu .sala-banner small {color:#dbbf88;letter-spacing:2px;text-transform:uppercase;font-size:10px}
-.ofc-snc-menu .sala-banner p {max-width:660px;color:#c5cbb5;font-size:11px;line-height:1.7}
-.ofc-snc-menu .sala-simbolos {opacity:.18}
-.ofc-snc-menu .sala-mesa,.ofc-snc-menu .sala-desafios,.ofc-snc-menu .sala-temporada,.ofc-snc-menu .xdz-novo {margin:16px;padding:18px;border:1px solid #c3a26838;border-radius:7px;background:#13251ee8;box-shadow:none}
-.ofc-snc-menu .sala-topo>b,.ofc-snc-menu h3 {font-family:Georgia,serif;color:#e9ddba;font-weight:400}
-.ofc-snc-menu .sala-rodape {position:sticky;bottom:0;padding:14px 20px;border-top:1px solid #c3a26838;background:#13221bf5;backdrop-filter:blur(8px)}
-.ofc-snc-menu .sala-botao,.ofc-snc-menu .workflow-primary,.ofc-snc-jogo .workflow-primary {border-radius:5px;box-shadow:none;background:#cdb079;color:#1d2a20;border:1px solid #e0c58e;text-shadow:none;font-weight:600}
-.ofc-snc-menu .sala-botao.cinza,.ofc-snc-menu .workflow-secondary,.ofc-snc-jogo .workflow-secondary {background:#23392b;color:#d7d3bc;border:1px solid #9c92624a;box-shadow:none;border-radius:5px}
-.ofc-snc-menu .workflow-kicker,.ofc-snc-menu .xdz-convite {margin:0;padding:20px 24px;background:#15291ee6;color:#d9c08d}
-.ofc-snc-menu .workflow-title {font-family:Georgia,serif;color:#e7dcc2}
-.ofc-snc-menu>.ofc-nota,.ofc-snc-menu>.ofc-erro {margin:14px 24px;background:none;color:#bac3ac;border:0}
-.ofc-snc-menu .workflow-actions {padding:16px 24px;background:#102019e6;border-top:1px solid #c3a26838}
-.ofc-snc-menu .sala-assento {border-color:#998957;background:#2a3f2d;box-shadow:0 3px 9px #0006}
-.ofc-snc-menu .xdz-moedas,.ofc-snc-menu .ofc-troca-montar section {background:#0d1c15;border-color:#c3a26838;color:#d7d3bc}
 @media(max-width:1050px){.snc-comandos{grid-template-columns:220px minmax(180px,1fr) 130px;gap:14px;padding:12px}.snc-controle-forca{padding:0 14px}.snc-ajustes{gap:8px}.snc-mira-fina button{min-width:30px}.snc-taco{min-width:52px}.snc-taco small{font-size:8px}.snc-escala span:nth-child(2){display:none}}
 @media(max-width:760px){#workflow-modal.ofc-snc-jogo{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);border-radius:10px}.ofc-snc-jogo .jogo-topo.tema-sinuca{padding:12px 13px;gap:12px}.snc-marca b{font-size:21px}.snc-marca small{font-size:7px;letter-spacing:1.7px}.snc-marca>i{width:33px;height:33px;font-size:21px}.ofc-snc-jogo .jogo-selos{display:none}.snc-menu{margin-left:auto}.snc-menu summary{font-size:11px;min-height:36px;padding:0 9px}.ofc-snc-jogo .jogo-palco{padding:10px 10px 0}.snc-placar{gap:7px}.snc-jogador{padding:7px 5px;gap:7px}.snc-jogador img,.snc-jogador .snc-sem{width:29px;height:29px;font-size:16px}.snc-jogador b{font-size:11px}.snc-jogador small{font-size:8px}.snc-grupo{gap:2px}.snc-grupo i{width:14px;height:14px;font-size:7px}.snc-ficha{display:none}.snc-confronto{min-width:45px}.snc-confronto small{font-size:6px;letter-spacing:0}.snc-confronto b{font-size:19px}.ofc-snc-jogo .snc-canvas{width:100%}.snc-comandos{grid-template-columns:minmax(0,1fr) 112px;gap:12px;padding:12px}.snc-controle-mira{grid-column:1}.snc-controle-tacar{grid-column:2;grid-row:1;justify-content:flex-end}.snc-controle-forca{grid-column:1/-1;grid-row:2;border:0;border-top:1px solid var(--snc-linha);padding:10px 0 0}.snc-efeito-bola{width:36px;height:36px}.snc-mira-fina button{min-width:31px;min-height:36px}.snc-taco{max-width:100px}.snc-controle-titulo{margin-bottom:6px}.snc-tacar{min-height:42px;font-size:14px;padding:8px 13px}.ofc-snc-jogo .jogo-feed{padding:0 10px 14px}.snc-abas{gap:18px}.snc-abas>span{display:none}.snc-painel[data-snc-painel=partida]{grid-template-columns:1fr;gap:12px}.snc-regras,.snc-lousa{grid-template-columns:1fr;gap:16px}.snc-regras{padding:14px 3px}.snc-encaçapadas{display:flex;align-items:center;gap:12px}.snc-tubo{margin:0}.snc-ultima p{font-size:10px}.ofc-snc-menu .sala-banner.tema-sinuca{padding:24px 18px}.ofc-snc-menu .sala-banner h2{font-size:27px}}
 @media(max-width:420px){.snc-marca b{font-size:19px}.snc-menu summary span{display:none}.snc-comandos{grid-template-columns:minmax(0,1fr) 100px;gap:10px}.snc-ajustes{gap:5px}.snc-mira-fina{gap:3px}.snc-mira-fina button{min-width:28px;padding:4px}.snc-taco{min-width:44px}.snc-taco small{font-size:7px}.snc-controle-tacar>small{font-size:7px}.snc-jogador .snc-sem{display:none}.snc-grupo i{width:13px;height:13px}.snc-abas{gap:18px}}
 @media(prefers-reduced-motion:reduce){.snc-jogador{transition:none}}
+/* Salão, desafio e convite: interface de jogo sobre arte própria. */
+.workflow-modal.ofc-snc-menu{width:min(1120px,calc(100vw - 28px));max-height:calc(100dvh - 28px);padding:0;overflow:auto;background:#0d1714;color:#f7edcf;font-family:'Segoe UI',Arial,sans-serif;border:1px solid #af8a4e77;border-radius:14px;box-shadow:0 35px 110px #000c}
+.snc-sala{--snc-ouro:#e9bb65;--snc-dim:#b9c3b4;background:radial-gradient(ellipse at top,#25453555,transparent 65%),#0d1714;color:#f7edcf}
+.snc-sala button,.snc-menu button{cursor:pointer;font-family:inherit}
+.snc-sala button:disabled{opacity:.4;cursor:default;filter:grayscale(.8)}
+.snc-sala :focus-visible,.snc-menu :focus-visible{outline:2px solid #ffdf93;outline-offset:3px}
+.snc-sala-topo{display:flex;gap:20px;align-items:center;min-height:78px;padding:8px 26px;background:linear-gradient(110deg,#1d3028,#101b17);border-bottom:1px solid #e9bb652e}
+.snc-emblema{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 3px 7px #0008)}
+.snc-marca{display:flex;align-items:center;gap:10px;min-width:0}
+.snc-marca>span{display:grid;gap:4px}
+.snc-marca small{font:600 8px/1.2 'Segoe UI',sans-serif;letter-spacing:2px;color:#bfb798}
+.snc-marca b{display:block;font:900 24px/1 Impact,'Arial Black',sans-serif;letter-spacing:1px;color:#f7edcf}
+.snc-marca b em{display:block;margin-top:4px;font:800 10px/1 'Segoe UI',sans-serif;letter-spacing:4.4px;color:#e9bb65;font-style:normal}
+.snc-local{margin-left:auto;font-size:11px;letter-spacing:.5px;color:#b9c3b4}
+.snc-icone{display:grid;place-items:center;width:35px;height:35px;padding:0;border:1px solid #e9bb6544;border-radius:7px;background:#111d18;color:#e9d2a2;font:24px/1 Arial,sans-serif}
+.snc-hero{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:415px;padding:42px 48px;isolation:isolate;background:linear-gradient(90deg,#07120fdb 0%,#07120f38 65%,#07120f44),url(/assets/jogos/sinuca-lobby.webp) center 60%/cover;border-bottom:1px solid #d7a45755;overflow:hidden}
+.snc-hero:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent 65%,#0d1714)}
+.snc-etiqueta{display:inline-block;margin-bottom:20px;padding:6px 9px;border-left:3px solid #d8ab61;background:#0b1b14aa;font:700 8px/1.4 'Segoe UI',sans-serif;letter-spacing:1.8px;color:#e9ce97}
+.snc-hero h1,.snc-duelo h1{margin:0;color:#f9edcd;text-shadow:0 4px 2px #0008;font:900 76px/.91 Impact,'Arial Black',sans-serif;letter-spacing:1px}
+.snc-hero h1 em{font-style:normal;color:#f1be66}
+.snc-hero p{margin:19px 0 22px;font:400 13px/1.65 'Segoe UI',sans-serif;color:#dedcca}
+.snc-hero-texto>small{display:block;margin-top:16px;font-size:8px;letter-spacing:2px;color:#b8b99c}
+.snc-btn{display:inline-flex;align-items:center;justify-content:center;gap:22px;min-height:42px;padding:11px 19px;border:1px solid #ffe0a1;border-radius:6px;background:linear-gradient(#f1ca81,#cf9f4b);box-shadow:inset 0 1px #fff6,0 3px 0 #72501f,0 5px 14px #0004;color:#222a1e;font:800 11px/1.2 'Segoe UI',sans-serif;letter-spacing:.5px;text-decoration:none;cursor:pointer}
+.snc-btn:hover:not(:disabled){filter:brightness(1.12)}
+.snc-btn:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 1px #fff6,0 1px 0 #72501f}
+.snc-btn.grande{min-height:48px;padding:13px 22px;font-size:12px}
+.snc-btn span{font-size:20px;line-height:.8}
+.snc-btn.secundario{background:#263d31;color:#e8dfc6;border-color:#9fa78155;box-shadow:inset 0 1px #fff1,0 3px 0 #0a120e}
+.snc-link{background:none;border:0;padding:8px 0;color:#dfc28d;font-size:11px;cursor:pointer}
+.snc-hero-selo{display:grid;justify-items:center;width:250px;margin:30px 30px 0;transform:rotate(5deg);text-shadow:0 2px 5px #000}
+.snc-hero-selo img{width:220px;filter:drop-shadow(0 10px 15px #000b)}
+.snc-hero-selo b{font:900 23px Impact,'Arial Black',sans-serif;letter-spacing:2px;color:#f3d091}
+.snc-hero-selo small{margin-top:5px;font-size:11px;color:#e1dfc5}
+.snc-carteira{position:absolute;top:19px;right:28px;padding:8px 12px;background:#0b1711cd;border:1px solid #e2bd7144;border-radius:6px;font-size:7px;letter-spacing:1.5px;color:#b9c3b4}
+.snc-carteira b{display:block;margin-top:3px;color:#efce8a;font-size:17px;letter-spacing:0}
+.snc-carteira small{font-size:9px;font-weight:400}
+.snc-sala-nav{display:flex;gap:0;padding:0 30px;background:#13231c;border-bottom:1px solid #d7b87730}
+.snc-sala-nav button{display:flex;align-items:center;gap:9px;min-height:59px;padding:12px 25px;border:0;border-bottom:3px solid transparent;background:none;color:#aebaaa;font-size:12px;font-weight:700;letter-spacing:.3px}
+.snc-sala-nav button small{font-size:8px;color:#687e6b}
+.snc-sala-nav button[aria-pressed=true]{border-color:#e9bb65;color:#f5d79b;background:linear-gradient(transparent,#e9bb650b)}
+.snc-sala-corpo{padding:28px 32px 32px}
+.snc-secao-titulo{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:22px}
+.snc-secao-titulo small,.snc-pendente small,.snc-desafio-recebido small,.snc-duelo>small{font-size:8px;letter-spacing:1.7px;color:#c8ab75}
+.snc-secao-titulo h2,.snc-passo h2{margin:6px 0 0;font:800 23px/1.2 'Segoe UI',sans-serif;letter-spacing:-.6px;color:#f6e7c4}
+.snc-secao-titulo>p{max-width:220px;color:#9dac98;font-size:10px;line-height:1.5}
+.snc-equipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.snc-colega{display:flex;align-items:center;gap:10px;min-width:0;min-height:73px;padding:12px;border:1px solid #b4a06c2e;border-radius:7px;background:linear-gradient(135deg,#1b3026,#13231c);color:#f3e7c9;text-align:left}
+.snc-colega>img,.snc-inicial{display:grid;place-items:center;flex:none;width:38px;height:38px;object-fit:contain;border:1px solid #8b9e7555;border-radius:50%;background:#304538;color:#d8c08b;font:700 20px Georgia,serif;font-style:normal}
+.snc-colega>span{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:700}
+.snc-colega small{display:block;margin-top:5px;color:#8fa48d;font-size:9px;font-weight:400}
+.snc-colega.online small:before{content:'● ';color:#8acb92;font-size:8px}
+.snc-colega>i{margin-left:auto;color:#c4af77;font-style:normal}
+.snc-colega:hover,.snc-colega.selecionado{border-color:#e3bd71;background:linear-gradient(135deg,#425136,#203427);box-shadow:inset 0 0 0 1px #e3bd7122}
+.snc-modo-card{display:flex;align-items:center;gap:23px;position:relative;width:100%;min-height:132px;padding:15px 28px 0;margin-top:25px;overflow:hidden;text-align:left;border:1px solid #d7b16444;border-radius:9px;background:radial-gradient(ellipse at 0 50%,#c3963c24,transparent 65%),#16291f;color:#eee4c7}
+.snc-modo-card img{height:120px;width:120px;align-self:end;object-fit:cover;object-position:top;border-radius:8px 8px 0 0;mask-image:linear-gradient(#000 70%,transparent)}
+.snc-modo-card small{font-size:8px;letter-spacing:1.5px;color:#beaa74}
+.snc-modo-card b{display:block;margin:7px 0;font:800 22px 'Segoe UI',sans-serif;letter-spacing:-.5px}
+.snc-modo-card p{color:#a9b8a2;font-size:11px}
+.snc-modo-card>i{margin-left:auto;font-size:28px;font-style:normal;color:#e9c47b}
+.snc-sala-pe{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 32px;background:#101e17;border-top:1px solid #e0c88e24}
+.snc-sala-pe>span{font-size:10px;color:#8e9f89}
+.snc-adversarios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:19px}
+.snc-adversario{position:relative;overflow:hidden;border:1px solid #a69a623d;border-radius:10px;background:linear-gradient(#284536,#14261c)}
+.snc-adversario>img{display:block;width:100%;aspect-ratio:1.12;object-fit:cover;object-position:50% 35%;mask-image:linear-gradient(#000 72%,transparent)}
+.snc-adversario.lendario{border-color:#d5a65388;background:linear-gradient(#6b512c,#242718)}
+.snc-adversario-dados{position:relative;margin-top:-38px;padding:0 21px 22px}
+.snc-nivel{display:inline-block;padding:5px 9px;border:1px solid #d6b37466;border-radius:3px;background:#17291eed;color:#ecd29b;font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase}
+.snc-adversario h3{margin:13px 0 7px;font:800 22px 'Segoe UI',sans-serif;letter-spacing:-.7px;color:#f9eac7}
+.snc-adversario p{min-height:34px;font-size:11px;line-height:1.6;color:#b5c0ab}
+.snc-recompensa{margin:16px 0;font-size:10px;color:#aab89c}
+.snc-recompensa b{color:#e3c484}
+.snc-recompensa small{display:block;margin-top:6px;font-size:9px}
+.snc-adversario .snc-btn{width:100%;justify-content:space-between}
+.snc-pendente,.snc-desafio-recebido{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:20px;border:1px solid #d5ae5866;border-radius:8px;background:linear-gradient(100deg,#4d4b292b,#192c20)}
+.snc-pendente b,.snc-desafio-recebido b{display:block;margin-top:6px;font-size:15px;color:#f5e4bb}
+.snc-pendente p{font-size:11px;color:#a7b59d}
+.snc-desafio-recebido{display:block}
+.snc-desafio-recebido>div{display:flex;gap:15px;align-items:center}
+.snc-desafio-recebido .sala-prazo{margin-left:auto}
+.snc-desafio-recebido footer{display:flex;justify-content:flex-end;gap:12px;margin-top:15px}
+.snc-sala .temporada{margin:0;padding:24px;background:#16291f;border:1px solid #a78e553d;border-radius:9px}
+.snc-sala .temporada .sala-topo{background:none;color:#ecdbb0}
+.snc-sala .temporada-lista li{background:#20362a;border-color:#c9ab5c33;color:#e8dec6}
+.snc-sala .temporada-lista li span,.snc-sala .sala-dica{color:#aab69f;font-size:11px}
+.snc-sala .temporada-premios span{background:#4a452755;border:1px solid #c9ab5c33;color:#e8cd8f}
+.snc-vazio{padding:20px;color:#a4b49f;font-size:12px;line-height:1.7}
+.snc-duelo{position:relative;min-height:210px;padding:35px 35px 30px;background:linear-gradient(90deg,#0b1710e8,#0b1710a0),url(/assets/jogos/sinuca-lobby.webp) center 45%/cover;border-bottom:1px solid #d5ab5944}
+.snc-duelo>img{position:absolute;right:40px;top:20px;width:190px;height:190px;object-fit:contain;filter:drop-shadow(0 6px 12px #0008)}
+.snc-duelo h1{font-size:43px;margin-top:15px;max-width:75%;line-height:1.1}
+.snc-duelo p{max-width:70%;color:#bbcab3;font-size:12px;line-height:1.6}
+.snc-duelo.recebido>img,.snc-duelo.recebido>.snc-inicial{width:130px;height:130px;position:absolute;right:55px;top:45px;border-radius:50%;background:#294331}
+.snc-duelo.recebido>.snc-inicial{display:grid;place-items:center;font-size:60px}
+.snc-passo{display:flex;align-items:center;gap:12px;margin:5px 0 18px}
+.snc-passo>b{display:grid;place-items:center;width:30px;height:30px;border:1px solid #d2ac5b55;border-radius:5px;color:#d9b976;font-size:10px;background:#243a2a}
+.snc-passo h2{font-size:18px;margin:0}
+.snc-passo>small{margin-left:auto;color:#93a28b;font-size:10px}
+.snc-passo:not(:first-child){margin-top:30px}
+.snc-modos{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.snc-modos button{position:relative;display:grid;gap:6px;padding:18px 20px 18px 53px;border:1px solid #a89b6744;border-radius:7px;background:#192c21;text-align:left;color:#c2c7ae}
+.snc-modos button>span{position:absolute;left:19px;top:21px;font-size:18px;color:#7f936f}
+.snc-modos b{font-size:12px;letter-spacing:.8px}
+.snc-modos small{font-size:10px;font-weight:400}
+.snc-modos button[aria-checked=true]{border-color:#eac16d;color:#f6d493;background:linear-gradient(100deg,#7c6a2a44,#263d28)}
+.snc-modos button[aria-checked=true]>span{color:#eac16d}
+.snc-aposta{margin-top:20px;padding:20px;background:#0a1710;border:1px solid #b19a5844;border-radius:7px}
+.snc-aposta-moedas{display:flex;align-items:center;justify-content:space-between;gap:15px;font-size:12px}
+.snc-aposta-moedas small{display:block;margin-top:5px;color:#92a28b;font-size:10px}
+.snc-aposta-moedas input{width:120px;padding:12px;color:#edce88;background:#1a3021;border:1px solid #bfa15c66;border-radius:5px;font:700 18px 'Segoe UI',sans-serif}
+.snc-aposta details{margin-top:20px}
+.snc-aposta summary,.snc-regras-convite summary{cursor:pointer;font-size:12px;color:#d8bb80}
+.snc-aposta>p,.snc-regras-convite p{font-size:11px;line-height:1.8;color:#a4b098}
+.snc-sala .ofc-troca-montar section{padding:15px;background:#203525;border:1px solid #a4955833;color:#c7cbb2}
+.snc-sala .ofc-troca-montar h3{color:#e1c386;font:700 13px 'Segoe UI',sans-serif}
+.snc-sala .ofc-troca-montar li{background:#14231a;color:#c9d0b8}
+.snc-sala .xdz-moedas{background:#2d3c2266;color:#e9d39b;border-color:#cbb46a44}
+/* HUD da partida: menos moldura de aplicativo, mais mesa e controles táteis. */
+.workflow-modal.ofc-snc-jogo{background:radial-gradient(ellipse at top,#35543d88,transparent 65%),#0d1912}
+.ofc-snc-jogo .jogo-topo.tema-sinuca{padding:4px 23px;background:linear-gradient(110deg,#233b2b,#122119);border-bottom-color:#c9a45755;gap:18px}
+.ofc-snc-jogo .snc-emblema{width:61px;height:61px}
+.ofc-snc-jogo .snc-marca b{font:900 22px/1 Impact,'Arial Black',sans-serif;letter-spacing:1px}
+.ofc-snc-jogo .snc-marca b em{font-size:8px;letter-spacing:4.3px}
+.snc-menu summary{font-size:11px;letter-spacing:1px;background:linear-gradient(#354c35,#223524);border-color:#d1b66b66;border-radius:6px}
+.snc-menu-lista{background:linear-gradient(140deg,#2b402d,#14241a);border-color:#d1ae61aa;padding:10px;border-radius:9px;width:235px}
+.snc-menu-lista>b{display:block;padding:12px 10px 10px;color:#c8b375;font-size:9px;letter-spacing:1.5px;border-bottom:1px solid #c8b37533}
+.snc-menu-lista button{font-size:12px;min-height:43px}
+.snc-placar{gap:15px}
+.snc-jogador{padding:10px 15px;background:linear-gradient(120deg,#29422caa,#13241c);border:1px solid #b29a5933;border-radius:9px;border-bottom:3px solid #596543;min-height:73px}
+.snc-jogador.vez{border-color:#ddbd72;box-shadow:0 0 18px #ddb64b15,inset 0 1px #ffe0a52a;background:linear-gradient(120deg,#5d61312e,#1b3524)}
+.snc-jogador img,.snc-jogador .snc-sem{width:44px;height:44px;box-shadow:0 2px 10px #0007;border:2px solid #a39d5f77}
+.snc-jogador img.snc-bot-retrato{object-fit:cover;image-rendering:auto}
+.snc-jogador b{font-size:14px;font-weight:750}
+.snc-grupo i,.snc-tubo i{width:21px;height:21px;font-size:9px;box-shadow:inset 0 -4px 4px #0008,0 2px 4px #0008}
+.snc-comandos{border:1px solid #be9d5355;border-radius:10px;background:linear-gradient(#2b402aeb,#19291bef),url(/assets/jogos/boteco-madeira.webp) center/cover;box-shadow:inset 0 1px #fff1,0 6px 18px #0004}
+.snc-controle-titulo>b{font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#cbd0b0}
+.snc-controle-titulo>small{color:#dfbc70}
+.snc-forca{height:35px;border-color:#dac47777;border-radius:6px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),#e0d3af22 calc(10% - 1px) 10%),#0a170d;box-shadow:inset 0 3px 8px #0009}
+.snc-forca b{background:linear-gradient(90deg,#598b55,#cec966 65%,#dc873c);box-shadow:inset 0 2px #fff3}
+.snc-forca span{font-size:16px;letter-spacing:.7px}
+.snc-forca-exata input{height:29px;font-size:15px;color:#ffda85}
+.snc-tacar{min-height:50px;border-radius:7px;background:linear-gradient(#f3ce82,#d0a14e);box-shadow:inset 0 1px #fff8,0 4px 0 #755225,0 7px 15px #0006;color:#252c19;font:900 19px Impact,'Arial Black',sans-serif;letter-spacing:1.7px}
+.snc-tacar:hover{background:linear-gradient(#ffde9e,#e5b660)}
+.ofc-snc-jogo .jogo-feed{background:linear-gradient(#101f15cc,#0b160f);padding-bottom:12px}
+.snc-abas button{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.snc-encacapadas{min-width:100px}
+.snc-resultado>img{width:155px;height:155px;object-fit:contain;filter:drop-shadow(0 8px 12px #0006)}
+.ofc-snc-jogo .snc-resultado{display:flex;flex-direction:column;align-items:center;gap:12px;background:radial-gradient(ellipse at top,#52603288,transparent 70%),#17271b;border:1px solid #e0bd70;border-radius:15px;padding:25px 38px}
+.ofc-snc-jogo .snc-resultado>b{font:900 51px/1 Impact,'Arial Black',sans-serif;color:#f7d58f;text-transform:uppercase;letter-spacing:1px}
+.snc-resultado>p{font-size:9px;letter-spacing:1.5px;color:#c8c9a7}
+.snc-resultado>span{font-size:13px;color:#f2d386}
+@media(max-width:900px){.snc-equipe{grid-template-columns:repeat(3,minmax(0,1fr))}.snc-hero{padding:35px;min-height:390px}.snc-hero-selo{margin:45px 0 0;width:190px}.snc-hero-selo img{width:180px}.snc-hero-selo b{font-size:19px}.snc-hero h1{font-size:68px}.snc-adversarios{gap:12px}.snc-adversario-dados{padding:0 15px 18px}.snc-adversario h3{font-size:20px}}
+@media(max-width:650px){.workflow-modal.ofc-snc-menu{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);border-radius:9px}.snc-sala-topo{padding:6px 13px;min-height:64px;gap:10px}.snc-sala-topo .snc-emblema{width:50px;height:50px}.snc-marca b{font-size:21px}.snc-local{display:none}.snc-sala-topo .snc-icone{margin-left:auto}.snc-hero{padding:30px 23px 35px;min-height:370px;background-position:57% center}.snc-hero h1{font-size:61px}.snc-hero-selo{display:none}.snc-hero p{font-size:12px}.snc-etiqueta{font-size:6px;letter-spacing:1.1px;max-width:185px}.snc-carteira{right:14px;top:13px;padding:7px 8px;font-size:6px;letter-spacing:.7px}.snc-carteira b{font-size:13px}.snc-carteira small{display:none}.snc-sala-nav{padding:0 10px}.snc-sala-nav button{flex:1;justify-content:center;padding:15px 4px;font-size:10px;gap:5px;min-height:53px}.snc-sala-nav button small{font-size:7px}.snc-sala-corpo{padding:23px 17px}.snc-secao-titulo{gap:10px;align-items:flex-start}.snc-secao-titulo h2{font-size:21px}.snc-secao-titulo small{font-size:6px;letter-spacing:1px}.snc-secao-titulo .snc-link{font-size:9px;max-width:90px;text-align:right}.snc-equipe{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.snc-colega{padding:10px 8px;gap:7px;min-height:64px}.snc-colega>img,.snc-colega .snc-inicial{width:31px;height:31px;font-size:15px}.snc-colega>span{font-size:11px}.snc-colega small{font-size:8px}.snc-modo-card{padding:13px 12px 0;gap:12px;min-height:120px}.snc-modo-card img{width:75px;height:105px}.snc-modo-card b{font-size:16px}.snc-modo-card small{font-size:6px;letter-spacing:.7px}.snc-modo-card p{font-size:10px}.snc-modo-card>i{font-size:22px}.snc-sala-pe{padding:17px;gap:12px}.snc-sala-pe>span{font-size:9px;max-width:160px}.snc-btn{font-size:10px;padding:11px 13px;gap:12px}.snc-adversarios{grid-template-columns:1fr}.snc-adversario{display:grid;grid-template-columns:40% 1fr;min-height:230px}.snc-adversario>img{height:100%;aspect-ratio:auto;object-position:50% 30%;mask-image:linear-gradient(90deg,#000 70%,transparent)}.snc-adversario-dados{padding:22px 15px 20px 0;margin:0}.snc-adversario h3{font-size:21px}.snc-adversario p{min-height:0}.snc-recompensa{margin:12px 0}.snc-secao-titulo>p{font-size:8px;max-width:120px}.snc-duelo{padding:28px 22px;min-height:190px}.snc-duelo>img{width:100px;height:100px;right:9px;top:46px;opacity:.7}.snc-duelo h1{font-size:31px;max-width:80%}.snc-duelo p{font-size:10px;max-width:75%}.snc-duelo.recebido>img,.snc-duelo.recebido>.snc-inicial{width:85px;height:85px;right:15px;top:55px}.snc-duelo.recebido>.snc-inicial{font-size:40px}.snc-passo h2{font-size:15px}.snc-passo>small{display:none}.snc-modos{gap:8px}.snc-modos button{padding:15px 11px 15px 34px}.snc-modos button>span{left:11px;top:16px;font-size:15px}.snc-modos b{font-size:10px;letter-spacing:.2px}.snc-modos small{font-size:8px}.snc-aposta{padding:15px}.snc-aposta-moedas{font-size:10px}.snc-aposta-moedas input{width:90px;font-size:16px}.snc-pendente{flex-wrap:wrap;padding:16px;gap:10px}.snc-pendente b{font-size:13px}.snc-desafio-recebido{padding:16px}.snc-desafio-recebido .sala-prazo{font-size:9px}.snc-desafio-recebido b{font-size:13px}.snc-sala .temporada{padding:15px}.ofc-snc-jogo .snc-emblema{width:45px;height:45px}.ofc-snc-jogo .jogo-topo.tema-sinuca{padding:5px 10px;gap:9px}.ofc-snc-jogo .snc-marca b{font-size:19px}.ofc-snc-jogo .snc-marca b em{font-size:7px;letter-spacing:3.6px}.ofc-snc-jogo .snc-marca small{font-size:6px;letter-spacing:1px}.snc-jogador{padding:8px 7px;min-height:66px;gap:7px}.snc-jogador b{font-size:11px}.snc-jogador img,.snc-jogador .snc-sem{width:30px;height:30px}.snc-grupo i,.snc-tubo i{width:15px;height:15px;font-size:7px}.snc-placar{gap:7px}.snc-comandos{gap:12px}.snc-tacar{font-size:18px}.snc-controle-titulo>b{font-size:8px;letter-spacing:.5px}.snc-encacapadas{display:flex;align-items:center;gap:12px}.snc-resultado>img{width:120px;height:120px}.ofc-snc-jogo .snc-resultado{padding:20px}.ofc-snc-jogo .snc-resultado>b{font-size:40px}}
+@media(prefers-reduced-motion:reduce){.snc-sala *,.snc-btn{scroll-behavior:auto;transition:none;animation:none}}
 
-.ofc-snc-menu .snc-lobby-regras{margin-top:10px;max-width:620px}
-.ofc-snc-menu .snc-lobby-regras summary{width:max-content;padding:6px 0;color:#e3c68c;font:500 11px var(--mac-ui);cursor:pointer}
-.ofc-snc-menu .snc-lobby-regras p{padding:12px;border:1px solid #d6c69c26;background:#11231cdd;border-radius:4px}
-.ofc-snc-menu .sala-mesa.desafios .desafio{border-color:#b49b6330;background:#101e17;border-radius:5px}
-.ofc-snc-menu .sala-mesa.desafios .desafio.lendario{border-color:#bda46170;background:linear-gradient(90deg,#6a53242b,#101e17)}
-.ofc-snc-menu .xdz-modo button{background:#162d20;border:1px solid #9b885447;border-radius:5px;color:#b9c5ae;box-shadow:none}
-.ofc-snc-menu .xdz-modo button.sim{background:#cbb078;border-color:#e1c68d;color:#243126;box-shadow:inset 0 1px #fff3}
-.ofc-snc-menu .xdz-modo button.sim small{color:#46533b}
-
-#workflow-modal.ofc-snc-menu{width:min(900px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0}
-
-.ofc-snc-menu .sala-corpo{padding:18px 22px;background:#102019e8}
-.ofc-snc-menu .sala-lugar.chamou .sala-assento,.ofc-snc-menu .sala-lugar.aceitou .sala-assento{border-color:#c4ac6d;box-shadow:0 0 0 2px #bba36a40,0 3px 9px #0006}
-.ofc-snc-menu .sala-lugar.chamou em,.ofc-snc-menu .sala-lugar.vazio em{background:#c6ad77;color:#223025;border-radius:3px}
+.snc-creditos{grid-column:1/-1;margin-top:20px;padding-top:12px;border-top:1px solid #c9ae6a33;font:400 10px/1.8 Arial,sans-serif;color:#a6b59c}.snc-creditos summary{cursor:pointer;color:#ccb478}.snc-creditos p{max-width:850px;font:400 10px/1.8 Arial,sans-serif}.snc-creditos a{color:#e9c885;text-decoration:underline}

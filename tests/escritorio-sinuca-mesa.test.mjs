@@ -17,7 +17,7 @@ test('mesa verde: as seis caçapas deixam a bola apoiada na beirada e caem com m
       if(r.caiu.includes(0))hi=v;else {lo=v;fica=r;}
     }
     assert.ok(fica?.bolas[0],`caçapa ${i}: permanece apoiada`);
-    const p=fica.bolas[0],folga=Math.hypot(p[0]-cx,p[1]-cy)-cr;
+    const p=fica.bolas[0],folga=Math.hypot(p[0]-cx,(p[1]-cy)*mapa.metricaY)-cr*mapa.metricaY;
     assert.ok(folga>=0&&folga<0.002,`caçapa ${i}: folga ${folga}, corpo avançado sobre a boca`);
     // Outra tacada longe dela não atrai a bola que ficou pendurada.
     const outra=so(50,25);outra[2]=p;

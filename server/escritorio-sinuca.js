@@ -25,6 +25,7 @@ import mesaSinuca from '../shared/escritorio-sinuca-mesa.js';
 // gravadas antes têm 1,6, 1,45 ou nenhum: R, 1,15).
 export const METROS_POR_UNIDADE = 0.019, BOLA_MM = 54;
 export const LARGURA = 100, ALTURA = 50, R = 1.15, RAIO = Math.round((BOLA_MM / 2000 / METROS_POR_UNIDADE) * 1000) / 1000;
+const METRICA_Y=mesaSinuca.metricaY;
 const G = 9.81 / METROS_POR_UNIDADE;
 // Seis narizes e doze dentes medidos na arte, compartilhados com a tela.
 // A bola pode ficar apoiada na beirada; não há atração para a caçapa.
@@ -84,6 +85,29 @@ const eTabela = (vn) => Math.max(0.55, 0.85 - 0.06 * Math.abs(vn) * METROS_POR_U
 export const V_MIN=mesaSinuca.velocidade(mesaSinuca.forcaMinima)/METROS_POR_UNIDADE,V_MAX=7/METROS_POR_UNIDADE;
 export const velocidadeDaForca=(f)=>mesaSinuca.velocidade(f)/METROS_POR_UNIDADE;
 const PASSO = 1 / 600, QUADRO = 20, PASSOS_MAX = 600 * 30, V_SOM = 320;
+// Tempo até contato de esferas/cápsulas. Não avança além do primeiro impacto.
+function tempoEsfera(x,y,z,vx,vy,vz,raio,maximo) {
+ const c=x*x+y*y+z*z-raio*raio,a=vx*vx+vy*vy+vz*vz,b=x*vx+y*vy+z*vz;
+ if(a<1e-16||b>=0)return maximo;
+ if(c<=1e-8)return Math.min(maximo,1e-7);
+ const disc=b*b-a*c;if(disc<0)return maximo;
+ const t=c/(-b+Math.sqrt(disc));return t>1e-8&&t<maximo?t:maximo;
+}
+function passoContato(b,R,maximo,GEO,ALTURA) {
+ let dt=maximo;
+ for(let i=0;i<b.length;i++){
+  const p=b[i];if(!p)continue;
+  for(let k=i+1;k<b.length;k++){const q=b[k];if(q)dt=tempoEsfera(p.x-q.x,p.y-q.y,p.z-q.z,p.vx-q.vx,p.vy-q.vy,p.vz-q.vz,2*R,dt);}
+  if(p.z>=NARIZ*R||Math.hypot(p.vx,p.vy)<1e-9)continue;
+  if(p.x>R+1&&p.x<LARGURA-R-1&&p.y>R+1&&p.y<ALTURA-R-1)continue;
+  for(const [x1,y1,x2,y2]of GEO.paredes){
+   dt=tempoEsfera(p.x-x1,p.y-y1,0,p.vx,p.vy,0,R,dt);dt=tempoEsfera(p.x-x2,p.y-y2,0,p.vx,p.vy,0,R,dt);
+   const ex=x2-x1,ey=y2-y1,len=Math.hypot(ex,ey),nx=-ey/len,ny=ex/len,d=(p.x-x1)*nx+(p.y-y1)*ny,vn=p.vx*nx+p.vy*ny;
+   if(Math.abs(d)>R+1e-8&&d*vn<0){const t=(Math.sign(d)*R-d)/vn,u=((p.x+p.vx*t-x1)*ex+(p.y+p.vy*t-y1)*ey)/(len*len);if(t>1e-8&&t<dt&&u>=0&&u<=1)dt=t;}
+  }
+ }
+ return Math.max(1e-7,dt);
+}
 const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
 // Par ou ímpar, a sinuca de bar do Brasil (Paulo, 27/10/2026: "tem que ser
 // estilo Brasil, ímpar e par"): 7 pares e 7 ímpares. Desde 28/10 (Paulo: "não
@@ -102,16 +126,16 @@ const restam = (bolas, g) => (GRUPOS[g] || []).filter((n) => bolas[n]).length;
 // o centro na marca de baixo). `true` (partidas de antes): a mesa toda.
 export const LINHA_SAIDA = 25, D_RAIO = 9.15;
 export function brancaPode(area, x, y, r = R) {
- if (!(x >= r && x <= LARGURA - r && y >= r && y <= ALTURA - r)) return false;
+ if (!(x >= r && x <= LARGURA - r && y >= r/METRICA_Y && y <= ALTURA - r/METRICA_Y)) return false;
  if (area === 'saida') return x <= LINHA_SAIDA;
- if (area === 'D') return x <= LINHA_SAIDA && Math.hypot(x - LINHA_SAIDA, y - ALTURA / 2) <= D_RAIO;
+ if (area === 'D') return x <= LINHA_SAIDA && Math.hypot(x - LINHA_SAIDA, (y - ALTURA / 2)*METRICA_Y) <= D_RAIO;
  return true;
 }
 // A branca posta sozinha (quem joga pode arrastar): no meio da área, o mais
 // perto livre; null se não couber.
 function lugarDaBranca(bolas, area, r) {
  for (const [x, y] of [[20, 25], [22, 25], [18, 25], [20, 21], [20, 29], [23, 19], [23, 31], [17, 21], [17, 29]]) {
-  if (brancaPode(area, x, y, r) && bolas.every((p, n) => !p || n === 0 || Math.hypot(p[0] - x, p[1] - y) >= 2 * r + 0.05)) return [x, y];
+  if (brancaPode(area, x, y, r) && bolas.every((p, n) => !p || n === 0 || Math.hypot(p[0] - x, (p[1] - y)*METRICA_Y) >= 2 * r + 0.05)) return [x, y];
  }
  return null;
 }
@@ -136,7 +160,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
   const ordem = misturar([...PARES, ...IMPARES]), bolas = Array(16).fill(null);
   let i = 0;
   for (let fila = 1; fila < 5; fila++) for (let k = 0; k <= fila; k++) {
-   bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
+   bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)/METRICA_Y) * 1000) / 1000];
   }
   bolas[1] = [Math.round((r + 0.01) * 1000) / 1000, 25];
   bolas[0] = lugarDaBranca(bolas, 'saida', r);
@@ -149,7 +173,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
   for (let fila = 0; fila < 5; fila++) for (let k = 0; k <= fila; k++, pos++) {
    // A 1 no meio da terceira fileira (como a 8 da bola 8).
    const n = pos === 4 ? 1 : ordem[i++];
-   bolas[n] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
+   bolas[n] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)/METRICA_Y) * 1000) / 1000];
   }
   return { modo, bola1: true, r, pano: 'bar', bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null, recentes: [] };
  }
@@ -161,7 +185,7 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
  bolas[0] = [25, 25];
  let i = 0;
  for (let fila = 0; fila < 5; fila++) for (let k = 0; k <= fila; k++) {
-  bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)) * 1000) / 1000];
+  bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)/METRICA_Y) * 1000) / 1000];
  }
  return { modo: 'bola8', r, bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, bolaNaMao: false, tacadas: 0, n: 0, ultimo: null, recentes: [] };
 }
@@ -176,12 +200,26 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
 // de 1,25 da velocidade (bola maciça: 5/2 × velocidade × distância / raio).
 // `R` é o raio da bola da partida. `opc.elevacao` (0 a 60 graus) é o taco
 // inclinado; `opc.pano` é o pano da partida (PANOS).
+// Coordenadas persistidas continuam 100 × 50; internamente, um metro é igual
+// em qualquer eixo. Arte, bolas e partidas salvas não são deformadas.
 export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, opc = {}) {
+ const a=Math.atan2(Math.sin(angulo)*METRICA_Y,Math.cos(angulo));
+ const r=simularFisica(bolasIni.map(p=>p?[p[0],p[1]*METRICA_Y]:null),a,forca,efeito,R,lado,opc);
+ r.bolas=r.bolas.map(p=>p?[p[0],p[1]/METRICA_Y]:null);
+ for(const q of r.quadros)for(let i=1;i<q.length;i+=2)if(q[i]>=0)q[i]=Number((q[i]/METRICA_Y).toFixed(5));
+ if(r.inicio)r.inicio=r.quadros[0];
+ if(r.trilhas)for(const l of r.trilhas)if(l)for(let i=2;i<l.length;i+=4)if(l[i]>=0)l[i]=Number((l[i]/METRICA_Y).toFixed(5));
+ return r;
+}
+function simularFisica(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, opc = {}) {
+ const passoMaximo=Number.isFinite(opc.passoMaximo)?Math.max(1/9600,Math.min(PASSO,opc.passoMaximo)):PASSO;
+ const ALTURA=50*METRICA_Y,GEO={paredes:mesaSinuca.paredes.map(([a,b,c,d])=>[a,b*METRICA_Y,c,d*METRICA_Y]),buracos:mesaSinuca.buracos.map(([x,y,r])=>[x,y*METRICA_Y,r*METRICA_Y])};
  const ROLA = (PANOS[opc.pano] || PANOS.bar) * G, el = (Math.min(60, Math.max(0, Number(opc.elevacao) || 0)) * Math.PI) / 180;
  const ce = Math.cos(el), se = Math.sin(el), QUEDA = Math.sqrt((2 * R) / G);
  const b = bolasIni.map((p) => (p ? { x: p[0], y: p[1], z: 0, vx: 0, vy: 0, vz: 0, wx: 0, wy: 0, s: 0, queda: 0 } : null));
  // Taco à direita de quem taca (lado > 0) desvia a branca para a esquerda dele.
- const v = velocidadeDaForca(forca), a0 = angulo - lado * SQUIRT, dx = Math.cos(a0), dy = Math.sin(a0);
+ const normaEfeito=Math.max(1,Math.hypot(efeito,lado));efeito/=normaEfeito;lado/=normaEfeito;
+ const v = velocidadeDaForca(forca)/Math.sqrt(1+0.625*(efeito*efeito+lado*lado)), a0 = angulo - lado * SQUIRT, dx = Math.cos(a0), dy = Math.sin(a0);
  // Taco inclinado: só a parte deitada da força empurra a bola para a frente; a
  // de pé a aperta contra a ardósia, que a devolve para cima (a bola pula).
  b[0].vx = dx * v * ce; b[0].vy = dy * v * ce; b[0].vz = PULO * v * se;
@@ -194,9 +232,15 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
  b[0].wx += -dy * lado * 1.25 * v * se; b[0].wy += dx * lado * 1.25 * v * se;
  const caiu = [], fora = [], quadros = [], alturas = [], eventos = [];
  let tempo = 0;
- const evento = (t, f) => {
-  const q = quadros.length, ultimo = eventos[eventos.length - 1];
-  if (eventos.length < 80 && !(ultimo && ultimo.q === q && ultimo.t === t)) eventos.push({ q, ms: Math.round(tempo * 1000), t, f: Math.round(Math.min(1, f / V_SOM) * 100) / 100 });
+ // Contatos de pares diferentes no mesmo quadro não são o mesmo som.
+ // Só agrupa o mesmo contato em 8 ms para evitar ruído de repouso nas quinas.
+ const ultimosSons = new Map();
+ const evento = (t, f, contato = t) => {
+  if (f < 0.15) return;
+  const ms = Math.round(tempo * 1000), anterior = ultimosSons.get(contato);
+  if (anterior !== undefined && ms - anterior < 8) return;
+  ultimosSons.set(contato, ms);
+  if (eventos.length < 320) eventos.push({ q: quadros.length, ms, t, f: Math.round(Math.max(.001, Math.min(1, f / V_SOM)) * 1000) / 1000 });
  };
  // Trilhas para a animação (opc.trilhas; Paulo, 28/10/2026: "a física da bola
  // quando bate na parede e nelas mesmo parece ruim, não tá real"): com 30
@@ -223,58 +267,60 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
  andando[0] = true;
  foto();
  if (trilhas) amostra(0);
- for (let passo = 1; passo <= PASSOS_MAX; passo++) {
+ let proximoQuadro=1/30;
+ for (let passo = 1; tempo < 30 && passo <= PASSOS_MAX * 12; passo++) {
   let algum = false;
-  tempo = passo * PASSO;
+  const dt=passoContato(b,R,Math.min(passoMaximo,proximoQuadro-tempo),GEO,ALTURA);
+  tempo += dt;
   for (let n = 0; n < 16; n++) {
    const p = b[n];
    if (!p || !andando[n]) continue;
    const noAr = p.z > 0 || p.vz > 0;
    if (noAr) {
     // No ar: só a gravidade. Na ardósia, quica com metade da velocidade.
-    p.vz -= G * PASSO; p.z += p.vz * PASSO;
-    if (p.z <= 0) { p.z = 0; batida[n] = true; if (p.vz < -8) { if (p.vz < -40) evento('bola', -p.vz * 0.3); p.vz = -p.vz * E_ARDOSIA; } else p.vz = 0; }
+    p.vz -= G * dt; p.z += p.vz * dt;
+    if (p.z <= 0) { p.z = 0; batida[n] = true; if (p.vz < -8) { if (p.vz < -40) evento('tabela', -p.vz * 0.3, `ardosia:${n}`); p.vz = -p.vz * E_ARDOSIA; } else p.vz = 0; }
    } else {
     // Pano: escorregando ou rolando.
     const sx = p.vx - p.wx, sy = p.vy - p.wy, escorrega = Math.hypot(sx, sy);
     if (escorrega > 1e-9) {
-     if (escorrega <= 3.5 * DESLIZE * PASSO) {
+     if (escorrega <= 3.5 * DESLIZE * dt) {
       const rx = (5 * p.vx + 2 * p.wx) / 7, ry = (5 * p.vy + 2 * p.wy) / 7;
       p.vx = rx; p.vy = ry; p.wx = rx; p.wy = ry;
      } else {
-      const ux = sx / escorrega, uy = sy / escorrega, a = DESLIZE * PASSO;
+      const ux = sx / escorrega, uy = sy / escorrega, a = DESLIZE * dt;
       p.vx -= ux * a; p.vy -= uy * a; p.wx += ux * 2.5 * a; p.wy += uy * 2.5 * a;
      }
     } else {
      const vel = Math.hypot(p.vx, p.vy);
-     if (vel > 0) { const f = Math.max(0, vel - ROLA * PASSO) / vel; p.vx *= f; p.vy *= f; }
+     if (vel > 0) { const f = Math.max(0, vel - ROLA * dt) / vel; p.vx *= f; p.vy *= f; }
      p.wx = p.vx; p.wy = p.vy;
     }
-    if (p.s) p.s = Math.sign(p.s) * Math.max(0, Math.abs(p.s) - GIRO_PANO * PASSO);
+    if (p.s) p.s = Math.sign(p.s) * Math.max(0, Math.abs(p.s) - GIRO_PANO * dt);
    }
    const vel = Math.hypot(p.vx, p.vy);
    if (!noAr && !p.queda && vel < 0.00001 && Math.hypot(p.wx, p.wy) < 0.00001) { p.vx = 0; p.vy = 0; p.wx = 0; p.wy = 0; p.s = 0; andando[n] = false; if (trilhas) amostra(n); continue; }
    algum = true;
-   p.x += p.vx * PASSO; p.y += p.vy * PASSO;
+   p.x += p.vx * dt; p.y += p.vy * dt;
    // Por cima do buraco (e não voando por cima dele): a bola começa a cair e
    // leva QUEDA (o tempo de descer meio corpo) para sumir. Rápida demais, bate
    // no fundo da caçapa (o forro devolve pouco) e pode voltar para a mesa:
    // a bola sacode na boca. Se o centro sai de cima do buraco, voltou ao jogo.
    const h = p.z < 0.3 * R ? GEO.buracos.find(([cx, cy, cr]) => (p.x - cx) ** 2 + (p.y - cy) ** 2 < cr * cr) : null;
    if (h) {
-    p.queda += PASSO;
+    p.queda += dt;
     const [cx, cy, cr] = h, ox = p.x - cx, oy = p.y - cy, d = Math.hypot(ox, oy) || 1, ux = ox / d, uy = oy / d;
     // Fundo da caçapa: a parte do buraco que fica do lado de fora da mesa.
     const fx = cx - LARGURA / 2, fy = cy - ALTURA / 2, fl = Math.hypot(fx, fy);
     if (d > cr - 0.4 * R && (ux * fx + uy * fy) / fl > 0.3) {
      const vn = p.vx * ux + p.vy * uy;
-     if (vn > 0) { p.vx -= (1 + E_FORRO) * vn * ux; p.vy -= (1 + E_FORRO) * vn * uy; p.wx = p.vx; p.wy = p.vy; batida[n] = true; if (vn > 15) evento('tabela', vn * 0.5); }
+     if (vn > 0) { p.vx -= (1 + E_FORRO) * vn * ux; p.vy -= (1 + E_FORRO) * vn * uy; p.wx = p.vx; p.wy = p.vy; batida[n] = true; evento('tabela', vn * 0.5, `forro:${n}`); }
     }
-    if (p.queda >= QUEDA) { sumiu(n); b[n] = null; andando[n] = false; caiu.push(n); evento('caiu', vel); continue; }
+    if (p.queda >= QUEDA) { sumiu(n); b[n] = null; andando[n] = false; caiu.push(n); evento('caiu', Math.hypot(vel, G * QUEDA), `queda:${n}`); continue; }
    } else p.queda = 0;
    // Pulou a tabela: voando acima do nariz da borracha e já fora do pano.
    if (p.x < -2 || p.x > LARGURA + 2 || p.y < -2 || p.y > ALTURA + 2) {
-    if (p.z >= NARIZ * R || p.x < -6 || p.x > LARGURA + 6 || p.y < -6 || p.y > ALTURA + 6) { sumiu(n); b[n] = null; andando[n] = false; fora.push(n); evento('tabela', vel); continue; }
+    if (p.z >= NARIZ * R || p.x < -6 || p.x > LARGURA + 6 || p.y < -6 || p.y > ALTURA + 6) { sumiu(n); b[n] = null; andando[n] = false; fora.push(n); evento('tabela', vel, `fora:${n}`); continue; }
    }
    // Paredes (o nariz das borrachas e os dentes das caçapas): só perto da
    // tabela, e só se a bola não passa por cima do nariz.
@@ -282,7 +328,7 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
    for (const [x1, y1, x2, y2] of GEO.paredes) {
     const ex = x2 - x1, ey = y2 - y1, t = Math.max(0, Math.min(1, ((p.x - x1) * ex + (p.y - y1) * ey) / (ex * ex + ey * ey)));
     const qx = x1 + ex * t, qy = y1 + ey * t, ddx = p.x - qx, ddy = p.y - qy, d = Math.hypot(ddx, ddy);
-    if (d >= R || d === 0) continue;
+    if (d > R + 1e-7 || d === 0) continue;
     // n: da parede para a bola. O ponto de contato fica em -R·n, e o efeito
     // lateral faz esse ponto andar ao longo de t = (n.y, -n.x).
     const nx = ddx / d, ny = ddy / d, tx = ny, ty = -nx, vn = p.vx * nx + p.vy * ny;
@@ -300,21 +346,26 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
     // Pancada forte na tabela ou no dente: a bola dá um pulinho.
     const forte = -vn - SALTO_TABELA;
     if (forte > 0 && p.z === 0) p.vz = Math.max(p.vz, 0.08 * forte);
-    if (-vn > 12) evento('tabela', -vn);
+    evento('tabela', -vn, `tabela:${n}`);
    }
   }
   // Choques entre bolas (massas iguais), no espaço: a bola que vem voando
   // passa por cima ou bate no alto da outra e sobe.
-  for (let i = 0; i < 16; i++) {
-   const p = b[i];
+  // A ordem depende da geometria, nunca dos números estampados nas bolas.
+  const ordem=b.map((p,i)=>p?i:null).filter(i=>i!==null).sort((i,k)=>b[i].x-b[k].x||b[i].y-b[k].y||b[i].z-b[k].z);
+  for(let iteracao=0;iteracao<12;iteracao++){
+  let corrigiu=false;
+  for (let ai = 0; ai < ordem.length; ai++) {
+   const i=ordem[ai],p = b[i];
    if (!p) continue;
-   for (let k = i + 1; k < 16; k++) {
-    const q = b[k];
+   for (let ak = ai + 1; ak < ordem.length; ak++) {
+    const k=ordem[ak],q = b[k];
     if (!q || (!andando[i] && !andando[k])) continue;
     const ddx = q.x - p.x, ddy = q.y - p.y, ddz = q.z - p.z, d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-    if (d2 >= 4 * R * R || d2 === 0) continue;
+    if (d2 > (2 * R + 1e-7) ** 2 || d2 === 0) continue;
     const d = Math.sqrt(d2), nx = ddx / d, ny = ddy / d, nz = ddz / d, rel = (p.vx - q.vx) * nx + (p.vy - q.vy) * ny + (p.vz - q.vz) * nz;
-    if (rel > 0) {
+    if (rel > 1e-8) {
+     corrigiu=true;
      const jn = ((1 + E_BOLA) / 2) * rel, h = Math.hypot(nx, ny) || 1;
      // Atrito no ponto de contato: o escorregão é a velocidade relativa ao
      // longo do contato (t = (-n.y, n.x) no plano) mais o efeito lateral das duas.
@@ -328,15 +379,18 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
      p.s += 2.5 * jt; q.s += 2.5 * jt;
      andando[i] = andando[k] = true;
      batida[i] = batida[k] = true;
-     if (primeiro === null && i === 0) primeiro = k;
-     if (jn > 4) evento('bola', jn);
+     if (primeiro === null && (i === 0 || k === 0)) primeiro = i === 0 ? k : i;
+     evento('bola', jn, `bola:${i}:${k}`);
     }
-    const sobra = (2 * R - d) / 2;
+    const sobra = Math.max(0,2 * R - d) / 2;
+    if(sobra>1e-8)corrigiu=true;
     p.x -= nx * sobra; p.y -= ny * sobra; q.x += nx * sobra; q.y += ny * sobra;
     if (Math.abs(nz) > 0.01) { p.z = Math.max(0, p.z - nz * sobra); q.z = Math.max(0, q.z + nz * sobra); }
    }
   }
-  if (passo % QUADRO === 0 || !algum) foto();
+  if(!corrigiu)break;
+  }
+  if (tempo >= proximoQuadro-1e-9 || !algum) {foto();proximoQuadro+=1/30;}
   if (trilhas) for (let n = 0; n < 16; n++) {
    if (b[n] && andando[n] && (batida[n] || tempo - ultimaAmostra[n] >= 1 / 30 - 1e-9)) amostra(n);
    batida[n] = false;
@@ -348,7 +402,7 @@ export function simular(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0,
  return fim;
 }
 
-const livre = (bolas, x, y, ignorar = -1, r = R) => bolas.every((p, n) => !p || n === ignorar || Math.hypot(p[0] - x, p[1] - y) >= 2 * r + 0.05);
+const livre = (bolas, x, y, ignorar = -1, r = R) => bolas.every((p, n) => !p || n === ignorar || Math.hypot(p[0] - x, (p[1] - y)*METRICA_Y) >= 2 * r + 0.05);
 // A 8 que cai na saída volta para a marca (ou o mais perto livre atrás dela).
 function recolocar(bolas, n, r) {
  for (let x = 75; x < LARGURA - r; x += 0.5) if (livre(bolas, x, 25, -1, r)) { bolas[n] = [x, 25]; return; }
@@ -417,7 +471,7 @@ export function jogarSinuca(mesa, lado, pedido) {
   // tacar dali ou mudá-la de lugar dentro da área.
   if (pedido.branca || !m.bolas[0]) {
    const x = Number(pedido.branca?.x), y = Number(pedido.branca?.y);
-   if (!Number.isFinite(x) || !Number.isFinite(y) || x < r0 || x > LARGURA - r0 || y < r0 || y > ALTURA - r0) throw erro('Ponha a branca na mesa.');
+   if (!Number.isFinite(x) || !Number.isFinite(y) || x < r0 || x > LARGURA - r0 || y < r0/METRICA_Y || y > ALTURA - r0/METRICA_Y) throw erro('Ponha a branca na mesa.');
    if (!brancaPode(m.bolaNaMao, x, y, r0)) throw erro(m.bolaNaMao === 'D' ? 'Depois da suicida a branca vai dentro do D da saída.' : 'Na saída a branca fica atrás da linha de saída.');
    if (!livre(m.bolas, x, y, 0, r0)) throw erro('A branca está em cima de outra bola.');
    m.bolas[0] = [x, y];

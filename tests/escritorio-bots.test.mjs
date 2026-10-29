@@ -41,25 +41,26 @@ test('bots: o Invencível da velha não perde de quem marca ao acaso', () => {
  }
 });
 
-test('bots: o Baianinho encaçapa mais que o Zé do Taco', () => {
- const encacapadas = (nivel) => {
-  let total = 0;
-  for (let k = 0; k < 3; k++) {
-   let m = motorSinuca.iniciar(), lado = 'desafiante';
-   m.vez = lado;
-   for (let i = 0; i < 4; i++) {
-    const r = motorSinuca.jogar(m, m.vez, jogadaDoBot('sinuca', nivel, m, m.vez, motorSinuca.vista(m, m.vez, false)));
-    // Mesa aberta (ninguém com grupo ainda): conta qualquer bola menos a 1.
-    const g = r.mesa.grupos[lado];
-    if (r.mesa.ultimo.lado === lado) total += r.mesa.ultimo.caiu.filter((n) => n && n !== 1 && (!g || (g === 'pares' ? n % 2 === 0 : n % 2 === 1))).length;
-    if (r.fim) break;
-    m = r.mesa;
-   }
-  }
-  return total;
- };
- assert.equal(botInfo('sinuca:lendario').nome, 'Baianinho');
- assert.ok(encacapadas('lendario') >= encacapadas('facil'), 'o lendário encaçapa pelo menos tanto quanto o fácil');
+test('bots: o Baianinho encaçapa pelo menos tanto quanto o Zé nos mesmos cenários', () => {
+ // Compara situações idênticas e a mesma sequência de erro da mão. Partidas
+ // aleatórias de quatro tacadas confundiam dificuldade com sorte da saída.
+ const cenarios=[[[85,35],[95,45],[50,12]],[[15,35],[5,45],[50,12]],[[50,20],[50,5],[75,30]]];
+ const original=Math.random;
+ try{
+  const encacapadas=(nivel)=>cenarios.reduce((total,[branca,alvo,outra],i)=>{
+   let seed=12345+i;Math.random=()=>((seed=(seed*16807)%2147483647)-1)/2147483646;
+   const m=motorSinuca.iniciar('desafiante');m.bolas=Array(16).fill(null);
+   m.bolas[0]=branca;m.bolas[2]=alvo;m.bolas[4]=outra;m.bolas[1]=[1.431,25];
+   m.bolaNaMao=false;m.tacadas=5;
+   const pedido=jogadaDoBot('sinuca',nivel,m,m.vez,motorSinuca.vista(m,m.vez,false));
+   const r=motorSinuca.jogar(m,m.vez,pedido);
+   return total+r.mesa.ultimo.caiu.filter(n=>n&&n!==1).length;
+  },0);
+  const lendario=encacapadas('lendario'),facil=encacapadas('facil');
+  assert.equal(botInfo('sinuca:lendario').nome,'Baianinho');
+  assert.ok(lendario>0,'o lendário precisa converter oportunidades abertas');
+  assert.ok(lendario>=facil,`cenários iguais: lendário ${lendario}, fácil ${facil}`);
+ }finally{Math.random=original;}
 });
 
 test('mesa contra bot: começa na hora, o bot joga, desistir e vitória com prêmio e teto', async (t) => {

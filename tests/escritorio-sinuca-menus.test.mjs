@@ -18,7 +18,7 @@ test('sinuca: tema do lobby é removido quando outro jogo reutiliza o mesmo moda
 test('sinuca: menu mantém as ações existentes e rótulos de empate e desistência',()=>{
  const estado={},c=vm.createContext({registrarMesaEscritorio:v=>v,escritorioMesa:()=>estado,document:{addEventListener(){}},escritorioSomLigado:()=>true});
  vm.runInContext(readFileSync('shared/escritorio-sinuca-mesa.js','utf8'),c);
- vm.runInContext(readFileSync('vybe-escritorio-sinuca.js','utf8'),c);
+ vm.runInContext(readFileSync('vybe-escritorio-sinuca-ui.js','utf8'),c);vm.runInContext(readFileSync('vybe-escritorio-sinuca.js','utf8'),c);
  const html=vm.runInContext(`sinucaTopoHtml('Sinuca',false,'', '<button type="button" title="Propor empate" onclick="empateExistente()">🤝</button><button type="button" title="Desistir" onclick="desistirExistente()">⚑</button>', 'fecharExistente()')`,c);
  assert.match(html,/onclick="empateExistente\(\)">Propor empate/);
  assert.match(html,/onclick="desistirExistente\(\)">Desistir/);
