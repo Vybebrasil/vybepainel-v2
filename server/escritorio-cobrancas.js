@@ -49,7 +49,7 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
   const cobrar = (ids, item) => { for (const id of new Set(ids)) { if (!por.has(id)) por.set(id, []); if (!por.get(id).some((x) => x.ref === item.ref && x.cliente_id === item.cliente_id)) por.get(id).push(item); } };
   for (const l of linhas) {
     const base = { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: String(l.board_id) === '8385559107' ? 'demandas' : 'producao',
-      titulo: l.titulo || 'Sem título', status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null, personagem: l.personagem || null, com: l.com || [] };
+      titulo: l.titulo || 'Sem título', prazo: l.prazo || null, veiculacao: l.veiculacao || null, status: l.status || '', status_chave: l.status_chave || '', cliente_id: String(l.cliente_id), cliente: l.cliente, segmento: l.segmento || null, personagem: l.personagem || null, com: l.com || [] };
     const heads = l.heads.length ? l.heads : gestao;
     if (l.status_chave === 'para_agendar') {
       if (l.veiculacao && l.veiculacao <= hoje) cobrar(agendamento, { ...base, tipo: 'agendar', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });

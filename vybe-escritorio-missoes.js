@@ -210,8 +210,56 @@ function cobrancaItemHtml(c, aoAbrir = "") {
   const status = item?.status || c.status;
   const pilula = status && typeof pillHtmlDemanda === "function" ? pillHtmlDemanda(status, item?.status_color || "", item?.status_border || "") : status ? `<small>${safeText(status)}</small>` : "";
   const tom = c.tipo === "atrasada" ? "atrasada" : c.tipo === "hoje" || c.tipo === "agendar" ? "hoje" : "";
-  return `<li><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
-  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span>${cobrancaFotosHtml(c, item)}</button></li>`;
+  return `<li class="ofc-cobranca-item"><button type="button" class="ofc-cobranca" onclick="abrirMissaoEscritorio('${safeText(c.ref)}','${c.quadro}',event);${aoAbrir}" title="Abrir a demanda">
+  <span class="ofc-cobranca-titulo">${safeText(c.titulo)}</span><span class="ofc-cobranca-linha"><em class="ofc-missao-prazo ${tom}">${safeText(cobrancaRotulo(c))}</em>${pilula}</span>${cobrancaFotosHtml(c, item)}</button>
+  <button type="button" class="ofc-cobranca-datas-abrir" onclick="abrirDatasCobrancaEscritorio(this)" data-ref="${safeText(c.ref)}" data-quadro="${safeText(c.quadro)}" data-prazo="${safeText(cobrancaData(c, item, "prazo"))}" data-veic="${safeText(cobrancaData(c, item, "veiculacao"))}" aria-expanded="false" title="Ver e mudar prazo e ${c.quadro === "demandas" ? "conclusão" : "veiculação"}" aria-label="Prazo e ${c.quadro === "demandas" ? "conclusão" : "veiculação"}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3"/></svg></button></li>`;
+}
+// Prazo e veiculação (ou conclusão, nas demandas) da peça: a que veio com a
+// cobrança (lida do banco agora); sem ela, a do painel.
+function cobrancaData(c, item, campo) {
+  if (campo === "prazo") return String(c.prazo || item?.prazo_iso || "");
+  return String(c.veiculacao || (c.quadro === "demandas" ? item?.conclusao_iso || item?.veiculacao_iso : item?.veiculacao_iso) || "");
+}
+// Botãozinho em cada demanda dos clientes no quarto (Paulo, 29/10/2026:
+// "um botãozinho em cada demanda que eu consiga clicar e vai me mostrar o
+// prazo e veiculação que tá aquela demanda e deixar eu mudar por aí mesmo").
+// Abre os dois campos ali, embaixo da demanda; salvar usa a mesma gravação
+// do painel (moverDataDoItem) e o quarto relê as cobranças.
+function abrirDatasCobrancaEscritorio(botao) {
+  const li = botao.closest("li"), aberto = li.querySelector(".ofc-cobranca-datas");
+  document.querySelectorAll(".ofc-cobranca-datas").forEach((el) => { el.closest("li")?.querySelector(".ofc-cobranca-datas-abrir")?.setAttribute("aria-expanded", "false"); el.remove(); });
+  if (aberto) return;
+  const { ref, quadro, prazo, veic } = botao.dataset, demanda = quadro === "demandas";
+  const div = document.createElement("div");
+  div.className = "ofc-cobranca-datas";
+  div.innerHTML = `<label><small>Prazo</small><input type="date" name="prazo" value="${safeText(prazo)}"></label>
+<label><small>${demanda ? "Conclusão" : "Veiculação"}</small><input type="date" name="veiculacao" value="${safeText(veic)}"></label>
+<button type="button" class="ofc-p-entrar" onclick="salvarDatasCobrancaEscritorio(this,'${safeText(ref)}','${safeText(quadro)}')">Salvar</button>`;
+  li.append(div);
+  botao.setAttribute("aria-expanded", "true");
+  div.querySelector("input")?.focus();
+}
+async function salvarDatasCobrancaEscritorio(botao, ref, quadro) {
+  const div = botao.closest(".ofc-cobranca-datas"), abrir = div.closest("li").querySelector(".ofc-cobranca-datas-abrir");
+  const novos = { prazo: div.querySelector('[name="prazo"]').value, veiculacao: div.querySelector('[name="veiculacao"]').value };
+  const antes = { prazo: abrir.dataset.prazo, veiculacao: abrir.dataset.veic };
+  const mudou = ["prazo", "veiculacao"].filter((k) => novos[k] && novos[k] !== antes[k]);
+  if (!mudou.length) { escritorioAviso("Nenhuma data mudou."); return; }
+  botao.disabled = true; botao.textContent = "Salvando…";
+  try {
+    const item = typeof findOperationalItem === "function" ? findOperationalItem(ref) : null;
+    for (const campo of mudou) {
+      if (item && typeof moverDataDoItem === "function") await moverDataDoItem(item, campo, novos[campo], { request: quadro === "demandas" });
+      else if (!(await tentarEscritaDupla({ id: ref }, { acao: campo, item: ref, data: novos[campo] }))) throw new Error("A gravação não foi confirmada.");
+    }
+    abrir.dataset.prazo = novos.prazo || antes.prazo; abrir.dataset.veic = novos.veiculacao || antes.veiculacao;
+    if (!item) escritorioAviso("Datas salvas.");
+    div.remove(); abrir.setAttribute("aria-expanded", "false");
+    escritorioAposMudancaDeDemanda();
+  } catch (e) {
+    botao.disabled = false; botao.textContent = "Salvar";
+    escritorioAviso(e?.message || "Não foi possível salvar as datas.");
+  }
 }
 // Com quem está a peça (primeiros nomes), para o head saber quem cobrar
 // (Paulo, 20/10/2026: "mostrar com quem tá a demanda, no hover").
