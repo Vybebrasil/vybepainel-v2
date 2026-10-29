@@ -40,3 +40,17 @@ test('gesto: toque e arrasto no celular ajustam a mira sem tacada involuntária'
  const t=preparar();t.mesa(996,383.5,'down',7,'touch');t.mesa(800,500,'move',7,'touch');t.mesa(800,500,'up',7,'touch');
  assert.equal(t.pedidos.length,0);assert.ok(t.estado.angulo>0);assert.equal(t.estado.gesto,null);
 });
+test('mira ao vivo: com a mira solta o taco segue o mouse; clique trava e outro clique solta',()=>{
+ const t=preparar();t.mesa(688,600,'move');const seguindo=t.estado.angulo;assert.ok(seguindo>0,'hover mira com a mira solta');
+ t.mesa(996,383.5,'move');assert.equal(t.estado.angulo,0);
+ t.mesa(996,383.5,'down');t.mesa(996,383.5,'up');assert.equal(t.estado.travada,true);
+ t.mesa(688,600,'move');assert.equal(t.estado.angulo,0,'travada não segue');
+ t.mesa(688,600,'down');assert.equal(t.estado.angulo,0,'clicar na mira travada não a move');t.mesa(688,600,'up');
+ assert.equal(t.estado.travada,false);assert.equal(t.pedidos.length,0);
+ t.mesa(688,600,'move');assert.equal(t.estado.angulo,seguindo,'solta volta a seguir');
+});
+test('mira travada: puxar para trás taca na direção travada',()=>{
+ const t=preparar();t.mesa(996,383.5,'down');t.mesa(996,383.5,'up');
+ t.mesa(688,600,'down');t.mesa(588,600,'move');t.mesa(588,600,'up');
+ assert.equal(t.pedidos.length,1);assert.equal(t.pedidos[0].angulo,0);
+});
