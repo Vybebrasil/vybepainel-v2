@@ -26,11 +26,13 @@ function dentro(e) {
     && (!e.eventType || e.eventType === 'default') && !/\b(pessoal|aniversario|niver|ferias|folga)\b/.test(t);
 }
 
-export async function compromissosProximos(sql, { agora = Date.now(), listar = listarAgendaProducao } = {}) {
+// diaInteiro (central do PC do Paulo, 27/10/2026): todos os compromissos de hoje, inclusive os que já passaram e os
+// sem dono vinculado, para a linha do tempo da tela. Os lembretes continuam só com a janela.
+export async function compromissosProximos(sql, { agora = Date.now(), listar = listarAgendaProducao, diaInteiro = false } = {}) {
   const hoje = diaLocal(agora), fim = agora + JANELA_MIN * 60e3;
-  const { eventos = [] } = await listar(hoje, { dias: diaLocal(fim) === hoje ? 1 : 2, bruto: true });
+  const { eventos = [] } = await listar(hoje, { dias: diaInteiro || diaLocal(fim) === hoje ? 1 : 2, bruto: true });
   const fimEntre = (e) => { const f = Date.parse(e.end.dateTime); return f <= agora - ENCERRADA_MIN[0] * 60e3 && f > agora - ENCERRADA_MIN[1] * 60e3; };
-  const proximos = eventos.filter((e) => dentro(e) && ((Date.parse(e.start.dateTime) > agora && Date.parse(e.start.dateTime) <= fim)
+  const proximos = eventos.filter((e) => dentro(e) && (diaInteiro ? diaLocal(e.start.dateTime) === hoje : (Date.parse(e.start.dateTime) > agora && Date.parse(e.start.dateTime) <= fim)
     || (tipoNaAgenda(e) === 'captacao' && fimEntre(e))));
   if (!proximos.length) return [];
   let clientes = [];
@@ -57,5 +59,5 @@ export async function compromissosProximos(sql, { agora = Date.now(), listar = l
       terminou: Date.parse(e.start.dateTime) <= agora, fim_iso: new Date(e.end.dateTime).toISOString(),
       cliente: clientes.length ? clienteDoEvento(e.summary, clientes)?.nome || '' : '',
       pessoas: [...donos.values()].map((p) => ({ monday_id: p.monday_id, nome: p.nome, admin: Boolean(p.admin) })) };
-  }).filter((c) => c.pessoas.length);
+  }).filter((c) => diaInteiro || c.pessoas.length).sort((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio));
 }
