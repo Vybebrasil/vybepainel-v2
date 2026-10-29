@@ -33,15 +33,15 @@ const ESCRITORIO_SINUCA_MESA = (() => {
   }
   const meio={cima:[[50-dentes[8][0],50-dentes[8][2]],[dentes[9][0]-50,dentes[9][2]-50]],
     baixo:[[50-dentes[10][0],50-dentes[10][2]],[dentes[11][0]-50,dentes[11][2]-50]]};
-  // Abaixo de 5%, estende a curva até zero, sem o impulso mínimo antigo.
-  // Acima disso conserva a calibração do pano e das tacadas existentes.
+  // Força como o braço de quem taca (Paulo, 29/10/2026: "17% quase não anda...
+  // pensa como um ser humano batendo, de 0,1% tocar devagarzinho até 100% a
+  // pancada"): a barra é quase a velocidade do taco, em reta, e só o fim curva
+  // para a pancada. Na branca sozinha, pano de bar: 10% anda ~20 cm, 17% meio
+  // metro, 30% quase a mesa inteira, 50% umas 3 tabelas, 100% = 7 m/s.
   const forcaMinima=0.001;
   const velocidade=(valor)=>{
     const f=Math.max(0,Math.min(1,Number(valor)||0));
-    // Hermite: valor e derivada contínuos na junção com a calibração existente.
-    if(f>=0.05)return 0.1+6.9*f**2.5;
-    const u=f/0.05,v=0.1+6.9*0.05**2.5,m0=v,m1=0.05*17.25*0.05**1.5;
-    return (u*u*u-2*u*u+u)*m0+(-2*u*u*u+3*u*u)*v+(u*u*u-u*u)*m1;
+    return 3.4*f+3.6*f**4;
   };
   return {arte,paredes,buracos,canto,meio,forcaMinima,velocidade,metricaY:arte.pano.altura/(arte.pano.largura/2)};
 })();

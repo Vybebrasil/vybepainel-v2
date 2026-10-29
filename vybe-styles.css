@@ -13373,3 +13373,46 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @media(prefers-reduced-motion:reduce){.snc-sala *,.snc-btn{scroll-behavior:auto;transition:none;animation:none}}
 
 .snc-creditos{grid-column:1/-1;margin-top:20px;padding-top:12px;border-top:1px solid #c9ae6a33;font:400 10px/1.8 Arial,sans-serif;color:#a6b59c}.snc-creditos summary{cursor:pointer;color:#ccb478}.snc-creditos p{max-width:850px;font:400 10px/1.8 Arial,sans-serif}.snc-creditos a{color:#e9c885;text-decoration:underline}
+
+/* Sinuca: efeito livre, arrastando o ponto na bola (29/10/2026). */
+.snc-efeito {display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.snc-efeito .snc-efeito-bola {width:58px;height:58px;touch-action:none;cursor:grab}
+.snc-efeito .snc-efeito-bola:active {cursor:grabbing}
+.snc-efeito .snc-efeito-bola:disabled {cursor:default;opacity:.7}
+.snc-efeito .snc-efeito-bola i {width:11px;height:11px;margin:-5.5px 0 0 -5.5px;transition:none;pointer-events:none}
+.snc-efeito-nome {max-width:96px;font-size:9px;line-height:1.15;text-align:center;opacity:.8}
+@media(max-width:760px){.snc-efeito .snc-efeito-bola{width:50px;height:50px}.snc-efeito-nome{max-width:80px}}
+.snc-taco {display:flex;flex-direction:column;gap:3px;max-width:150px}
+.snc-taco-vista {display:block;width:100%;max-width:120px;height:auto}
+.snc-taco-vista .pano {stroke:#2f7a4f;stroke-width:2}
+.snc-taco-vista .bola {fill:#f3f0e2;stroke:#0005;stroke-width:.6}
+.snc-taco-vista .taco {stroke:#c8955a;stroke-width:2.4;stroke-linecap:round}
+.snc-taco-vista .ponto {fill:#c0392b}
+.snc-taco-texto {font-style:normal;font-size:9px;line-height:1.2;opacity:.8}
+@media(max-width:760px){.snc-taco{max-width:120px}.snc-taco-texto{font-size:8px}}
+.snc-controle-mira .snc-ajustes {flex-wrap:wrap}
+.snc-controle-mira .snc-taco {flex:1 1 100%;max-width:none;display:grid;grid-template-columns:92px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:10px;row-gap:2px;align-items:center}
+.snc-controle-mira .snc-taco .snc-taco-vista {grid-column:1;grid-row:1/4;max-width:92px}
+.snc-controle-mira .snc-taco small,.snc-controle-mira .snc-taco input,.snc-controle-mira .snc-taco-texto {grid-column:2}
+@media(max-width:760px){.snc-controle-mira .snc-taco{grid-template-columns:72px minmax(0,1fr)}.snc-controle-mira .snc-taco .snc-taco-vista{max-width:72px}}
+/* Sinuca: anúncio do que caiu/saiu/multa no meio da mesa (29/10/2026). */
+.snc-anuncio {position:fixed;z-index:100000;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;animation:sncAnuncioEntra .28s cubic-bezier(.2,1.4,.4,1) both}
+.snc-anuncio.sai {animation:sncAnuncioSai .45s ease-in both}
+.snc-anuncio-cartao {display:flex;flex-direction:column;align-items:center;gap:3px;min-width:170px;padding:12px 20px 11px;border-radius:14px;background:radial-gradient(circle at 50% 0,#ffffff1c,transparent 70%),#10170fe8;border:1px solid #d6b77b88;box-shadow:0 14px 40px #000a,inset 0 1px 0 #fff2;color:#f6efd9;text-align:center;backdrop-filter:blur(3px)}
+.snc-anuncio-cartao.bom {border-color:#8fd18f;box-shadow:0 14px 40px #000a,0 0 28px #6fd26f55}
+.snc-anuncio-cartao.ruim {border-color:#e2735f;box-shadow:0 14px 40px #000a,0 0 28px #e2735f55}
+.snc-anuncio-cartao.multa {border-color:#f0b54a;box-shadow:0 14px 40px #000a,0 0 28px #f0b54a55}
+.snc-anuncio-cartao b {font:800 22px/1.05 var(--mac-ui,system-ui);letter-spacing:.5px;text-transform:uppercase}
+.snc-anuncio-cartao.bom b {color:#a8f0a0}.snc-anuncio-cartao.ruim b {color:#ff9a86}.snc-anuncio-cartao.multa b {color:#ffd27a}
+.snc-anuncio-cartao small {font-size:12px;opacity:.85}
+.snc-anuncio-bolas {display:flex;gap:8px;min-height:4px}
+.snc-anuncio-bola {display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#ffffffb0 0 7%,transparent 22%),radial-gradient(circle,#fff 0 30%,transparent 33%),var(--c);box-shadow:inset -5px -7px 12px #0007,0 6px 12px #0008;color:#151714;font:800 17px/1 var(--mac-ui,system-ui);font-style:normal;animation:sncBolaRola .55s cubic-bezier(.2,.9,.3,1.15) both}
+.snc-anuncio-bola.listra {background:radial-gradient(circle at 34% 28%,#ffffffb0 0 7%,transparent 22%),radial-gradient(circle,#fff 0 30%,transparent 33%),linear-gradient(#f7f4ea 0 24%,var(--c) 24% 76%,#f7f4ea 76%)}
+.snc-anuncio-bola.branca {background:radial-gradient(circle at 34% 28%,#fff 0 10%,transparent 30%),#efeadb}
+.snc-anuncio-cartao.multa .snc-anuncio-bolas {animation:sncBolaSome .6s 1.3s ease-in forwards}
+@keyframes sncAnuncioEntra {from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes sncAnuncioSai {to{opacity:0;transform:translate(-50%,-62%) scale(.92)}}
+@keyframes sncBolaRola {from{opacity:0;transform:translateX(-70px) rotate(-300deg) scale(.5)}70%{opacity:1}to{opacity:1;transform:none}}
+@keyframes sncBolaSome {to{opacity:.15;transform:translateY(18px) scale(.6);filter:grayscale(1)}}
+@media(prefers-reduced-motion:reduce){.snc-anuncio,.snc-anuncio-bola{animation:none}}
+@media(max-width:760px){.snc-anuncio-cartao{min-width:140px;padding:9px 14px}.snc-anuncio-cartao b{font-size:17px}.snc-anuncio-bola{width:40px;height:40px;font-size:14px}}

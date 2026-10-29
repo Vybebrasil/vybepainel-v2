@@ -19,7 +19,7 @@ const DIAG=Math.PI/4; // da branca em (85,35) para a bola em (95,45) e a caçapa
 const PARADA=-0.35;
 // A força da barra que dá esta velocidade (m/s), pela mesma curva do servidor:
 // os testes de física falam em velocidade, que é o que se mede numa mesa.
-const F=(mps)=>((mps-0.1)/6.9)**0.4;
+const F=(mps)=>{let a=0,b=1;for(let i=0;i<60;i++){const m=(a+b)/2;velocidadeDaForca(m)*METROS_POR_UNIDADE<mps?a=m:b=m;}return (a+b)/2;};
 const tacar=(m,lado,angulo,forca,branca,efeito=PARADA)=>jogarSinuca(m,lado,{tipo:'tacar',angulo,forca,efeito,...(branca?{branca}:{})});
 
 test('sinuca: triângulo com 15 bolas, a 8 no meio e um canto de cada grupo',()=>{

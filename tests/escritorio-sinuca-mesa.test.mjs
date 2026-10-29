@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import mapa from '../shared/escritorio-sinuca-mesa.js';
 import {simular,RAIO,BOCAS,geometria,velocidadeDaForca,METROS_POR_UNIDADE,jogarSinuca} from '../server/escritorio-sinuca.js';
 const so=(x,y)=>{const b=Array(16).fill(null);b[0]=[x,y];return b;};
-const F=v=>((v-0.1)/6.9)**0.4;
+const F=(mps)=>{let a=0,b=1;for(let i=0;i<60;i++){const m=(a+b)/2;velocidadeDaForca(m)*METROS_POR_UNIDADE<mps?a=m:b=m;}return (a+b)/2;};
 
 test('mesa verde: as seis caçapas deixam a bola apoiada na beirada e caem com mais impulso',()=>{
   BOCAS.buracos.forEach(([cx,cy,cr],i)=>{

@@ -105,13 +105,13 @@ test('trilhas: a animação tem o ponto exato da batida na tabela e na outra bol
 // meio e no canto) com metade do corpo quase em cima do buraco; ela só cai
 // quando o centro passa da borda, e aí cai mesmo chegando quase parada.
 test('bola na boca: devagar ela para na beirada e só cai com o centro por cima do buraco', async () => {
- const { BOCAS, RAIO: R0, simular: sim } = await import('../server/escritorio-sinuca.js');
+ const { BOCAS, RAIO: R0, simular: sim, velocidadeDaForca: vf, METROS_POR_UNIDADE: M } = await import('../server/escritorio-sinuca.js');
  for (const [nome, b0, alvo] of [['meio', [49.6, 10], 1], ['canto', [10, 10], 0]]) {
   const [cx, cy, cr] = BOCAS.buracos[alvo], ang = Math.atan2(cy - b0[1], cx - b0[0]);
   let ficou = Infinity, caiu = false;
   for (let v = 0.3; v <= 0.45 && !caiu; v += 0.0005) {
    const b = Array(16).fill(null); b[0] = b0;
-   const r = sim(b, ang, ((v - 0.1) / 6.9) ** 0.4, 0, R0);
+   const r = sim(b, ang, (() => { let a = 0, z = 1; for (let i = 0; i < 60; i++) { const m = (a + z) / 2; vf(m) * M < v ? a = m : z = m; } return a; })(), 0, R0);
    if (r.caiu.includes(0)) caiu = true;
    else ficou = Math.min(ficou, Math.hypot(r.bolas[0][0] - cx, r.bolas[0][1] - cy) - cr);
   }
