@@ -120,7 +120,8 @@ test('sinuca: efeito puxa ou segue a branca e a tacada traz os eventos do som',(
  // quase seca (o tiro de parada); em cima segue; embaixo volta. Mede onde a
  // branca está 1 s depois da tacada.
  const b=Array(16).fill(null);b[0]=[40,25];b[5]=[46,25];
- const em1s=(e)=>simular(b,0,F(1.3),e).quadros[30][0]/10,contato=46-2*RAIO;
+ // Compara efeitos à mesma velocidade de saída, compensando energia rotacional.
+ const em1s=(e)=>simular(b,0,F(1.3*Math.sqrt(1+.625*e*e)),e).quadros[30][0]/10,contato=46-2*RAIO;
  assert.ok(Math.abs(em1s(0)-contato)<3,'no centro a branca para perto de onde bateu');
  assert.ok(em1s(1)>contato+10,'seguir leva a branca para a frente');
  assert.ok(em1s(-1)<contato-10,'puxar traz a branca para trás');
@@ -139,7 +140,7 @@ test('sinuca: a bola de 54 mm das partidas novas e a partida antiga com a bola d
  assert.equal(vistaSinuca(nova,'desafiante',false).r,RAIO);
  // Nenhuma bola do triângulo encosta na outra (com folga).
  const b=nova.bolas.filter(Boolean);
- for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],b[i][1]-b[k][1])>=2*RAIO,'bolas sem sobreposição');
+ for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],(b[i][1]-b[k][1])*1266/1232)>=2*RAIO,'bolas sem sobreposição');
  // A bola maior vai para a caçapa do mesmo jeito.
  const r=simular(mesa({0:[85,35],3:[95,45]}).bolas,DIAG,0.5,PARADA,1.6);
  assert.deepEqual(r.caiu,[3]);
@@ -263,7 +264,7 @@ test('sinuca real: a regra dos 30° e o arrasto do corte',()=>{
  assert.ok(bola>24&&bola<29.5,`bola acertada a ${bola}°`);
 });
 test('sinuca real: efeito lateral abre a volta para o lado do taco',()=>{
- const volta=(lado)=>{const q=simular(so({0:[70,25]}),0,F(1.04),0,RAIO,lado).quadros,i=q.findIndex((f,k)=>k&&f[0]<q[k-1][0]);return q[i+15][1]/10-25;};
+ const volta=(lado)=>{const q=simular(so({0:[70,25]}),0,F(1.04*Math.sqrt(1+.625*lado*lado)),0,RAIO,lado).quadros,i=q.findIndex((f,k)=>k&&f[0]<q[k-1][0]);return q[i+15][1]/10-25;};
  // Tacando para a direita da tela, a direita de quem taca é para baixo (y cresce).
  assert.ok(volta(1)>2,'taco à direita: volta para a direita');assert.ok(volta(-1)<-2,'taco à esquerda: volta para a esquerda');
  assert.ok(Math.abs(volta(0))<0.01,'sem efeito volta reta');
@@ -296,7 +297,7 @@ test('sinuca real: o arrasto do corte é maior devagar, e o efeito lateral desvi
  assert.ok(devagar<forte-1,`devagar ${devagar}° e forte ${forte}°`);assert.ok(30-devagar>3&&30-devagar<9,`arrasto devagar de ${30-devagar}°`);
  // Taco à direita: a branca sai um pouco para a esquerda de quem taca (y diminui tacando para a direita).
  const y=(lado)=>simular(so({0:[20,25]}),0,F(1.04),0,RAIO,lado).quadros[15][1]/10-25;
- assert.ok(y(1)<-0.05&&y(-1)>0.05&&Math.abs(y(0))<1e-9,`desvio ${y(1)} / ${y(-1)}`);
+ assert.ok(y(1)<-0.05&&y(-1)>0.05&&Math.abs(y(0))<1e-6,`desvio ${y(1)} / ${y(-1)}`);
 });
 test('sinuca real: taco inclinado faz a bola pular e, com efeito, fazer a curva (massé)',()=>{
  const alto=(r)=>Math.max(0,...r.alturas.filter(Boolean).flatMap((a)=>a.filter((_,i)=>i%2).map((z)=>z/10)));

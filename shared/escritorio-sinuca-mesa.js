@@ -36,7 +36,13 @@ const ESCRITORIO_SINUCA_MESA = (() => {
   // Abaixo de 5%, estende a curva até zero, sem o impulso mínimo antigo.
   // Acima disso conserva a calibração do pano e das tacadas existentes.
   const forcaMinima=0.001;
-  const velocidade=(f)=>f<0.05?(0.1+6.9*0.05**2.5)*Math.max(0,f)/0.05:0.1+6.9*f**2.5;
-  return {arte,paredes,buracos,canto,meio,forcaMinima,velocidade};
+  const velocidade=(valor)=>{
+    const f=Math.max(0,Math.min(1,Number(valor)||0));
+    // Hermite: valor e derivada contínuos na junção com a calibração existente.
+    if(f>=0.05)return 0.1+6.9*f**2.5;
+    const u=f/0.05,v=0.1+6.9*0.05**2.5,m0=v,m1=0.05*17.25*0.05**1.5;
+    return (u*u*u-2*u*u+u)*m0+(-2*u*u*u+3*u*u)*v+(u*u*u-u*u)*m1;
+  };
+  return {arte,paredes,buracos,canto,meio,forcaMinima,velocidade,metricaY:arte.pano.altura/(arte.pano.largura/2)};
 })();
 if(typeof module!=='undefined'&&module.exports) module.exports=ESCRITORIO_SINUCA_MESA;

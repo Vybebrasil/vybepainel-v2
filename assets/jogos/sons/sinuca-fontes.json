@@ -1,0 +1,38 @@
+[
+  {
+    "tipo": "bola",
+    "fonte": "https://directory.audio/sound-effects/sports/15759-billiard-ball-clack",
+    "preview": "audio_preview/539854-za-games-billiard-ball-clack.mp3",
+    "inicio": 0,
+    "duracao": 0.239,
+    "alteracoes": "Recorte, mono 44100 Hz, filtro passa-altas 70 Hz, fade e limitador; sem alteração de afinação.",
+    "licenca": "CC0 1.0"
+  },
+  {
+    "tipo": "cacapa",
+    "fonte": "https://directory.audio/sound-effects/sports/15767-pool-table-ball-hit-sink",
+    "preview": "audio_preview/443066-amberdemeillon-pool-table-ball-hit-sink.mp3",
+    "inicio": 4.265,
+    "duracao": 0.65,
+    "alteracoes": "Recorte, mono 44100 Hz, filtro passa-altas 70 Hz, fade e limitador; sem alteração de afinação.",
+    "licenca": "CC0 1.0"
+  },
+  {
+    "tipo": "taco",
+    "fonte": "https://directory.audio/sound-effects/sports/26417-pool-cue-hitting-ball",
+    "preview": "audio_preview/pool-cue-hitting-ball.mp3",
+    "inicio": 0,
+    "duracao": 0.55,
+    "alteracoes": "Recorte, mono 44100 Hz, filtro passa-altas 70 Hz, fade e limitador; sem alteração de afinação.",
+    "licenca": "CC BY 3.0"
+  },
+  {
+    "tipo": "tabela",
+    "fonte": "https://directory.audio/sound-effects/sports/26225-pool-ball-bouncing-off-a-rail-of-a-pool-table",
+    "preview": "audio_preview/pool-ball-bouncing-off-a-rail-of-a-pool-table.mp3",
+    "inicio": 0,
+    "duracao": 0.55,
+    "alteracoes": "Recorte, mono 44100 Hz, filtro passa-altas 70 Hz, fade e limitador; sem alteração de afinação.",
+    "licenca": "CC BY 3.0"
+  }
+]

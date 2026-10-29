@@ -1,3 +1,5 @@
+import mesaSinuca from '../shared/escritorio-sinuca-mesa.js';
+const SINUCA_Y=mesaSinuca.metricaY;
 // Bots dos jogos de mesa, para os Desafios do Escritório (pedido do Paulo,
 // 27/10/2026: "cada jogo vai ter os bots para os jogadores desafiarem… no
 // sinuca um bot quase impossível de ganhar chamado Baianinho"). Três níveis
@@ -219,11 +221,11 @@ function valeSinuca(bolas, deles, minhas, R, buracos) {
  if (!b) return -100;
  const livre = (alvo) => bolas.every((p, n) => {
   if (!p || n === 0 || p === alvo) return true;
-  const dx = alvo[0] - b[0], dy = alvo[1] - b[1], l2 = dx * dx + dy * dy, t = Math.max(0, Math.min(1, ((p[0] - b[0]) * dx + (p[1] - b[1]) * dy) / l2));
-  return Math.hypot(b[0] + dx * t - p[0], b[1] + dy * t - p[1]) >= 2 * R;
+  const dx = alvo[0] - b[0], dy = (alvo[1] - b[1])*SINUCA_Y, l2 = dx * dx + dy * dy, t = Math.max(0, Math.min(1, ((p[0] - b[0]) * dx + (p[1] - b[1])*SINUCA_Y * dy) / l2));
+  return Math.hypot(b[0] + dx * t - p[0], (b[1]-p[1])*SINUCA_Y + dy*t) >= 2 * R;
  });
  const vistas = deles.filter((n) => bolas[n] && livre(bolas[n])).length;
- const naBoca = minhas.filter((n) => bolas[n] && buracos.some(([cx, cy, cr]) => Math.hypot(bolas[n][0] - cx, bolas[n][1] - cy) - cr < 1.6)).length;
+ const naBoca = minhas.filter((n) => bolas[n] && buracos.some(([cx, cy, cr]) => Math.hypot(bolas[n][0] - cx, (bolas[n][1] - cy)*SINUCA_Y) - cr*SINUCA_Y < 1.6)).length;
  return -12 * vistas + 8 * naBoca;
 }
 function sinuca(mesa, lado, nivel) {
@@ -231,7 +233,7 @@ function sinuca(mesa, lado, nivel) {
  const pedidoBase = {};
  // Bola na mão: põe a branca num lugar livre perto do meio da cabeceira.
  if (mesa.bolaNaMao || !bolas[0]) {
-  const livre = (x, y) => bolas.every((p, n) => !p || n === 0 || Math.hypot(p[0] - x, p[1] - y) >= 2 * R + 0.2);
+  const livre = (x, y) => bolas.every((p, n) => !p || n === 0 || Math.hypot(p[0] - x, (p[1] - y)*SINUCA_Y) >= 2 * R + 0.2);
   // Na regra de bar, só dentro da área (atrás da linha na saída, no D depois da suicida).
   const lugares = [[25, 25], [30, 20], [30, 30], [20, 25], [40, 25], [25, 15], [25, 35], [22, 25], [18, 25], [20, 21], [20, 29], [23, 19], [23, 31], [17, 21], [17, 29]];
   const [x, y] = lugares.find(([a, b]) => livre(a, b) && brancaPode(mesa.bolaNaMao, a, b, R)) || bolas[0] || [20, 25];
@@ -242,8 +244,8 @@ function sinuca(mesa, lado, nivel) {
  for (const n of alvosSinuca({ ...mesa, bolas }, lado)) {
   const o = bolas[n];
   for (const [px, py] of CACAPAS) for (const [ox, oy] of [[0, 0], ...(nivel === 'facil' ? [] : LADOS_DA_BOCA[`${px},${py}`])]) {
-   const cx = px + ox * 0.45, cy = py + oy * 0.45, dx = cx - o[0], dy = cy - o[1], d = Math.hypot(dx, dy) || 1;
-   const gx = o[0] - (dx / d) * 2 * R, gy = o[1] - (dy / d) * 2 * R;
+   const cx = px + ox * 0.45, cy = py + oy * 0.45, dx = cx - o[0], dy = (cy - o[1])*SINUCA_Y, d = Math.hypot(dx, dy) || 1;
+   const gx = o[0] - (dx / d) * 2 * R, gy = o[1] - (dy / d) * 2 * R/SINUCA_Y;
    candidatas.push(Math.atan2(gy - b[1], gx - b[0]));
   }
  }
@@ -260,7 +262,7 @@ function sinuca(mesa, lado, nivel) {
   for (const q of r.quadros) for (const n of minhas) {
    if (q[2 * n] < 0) continue;
    const x = q[2 * n] / 10, y = q[2 * n + 1] / 10;
-   for (const [cx, cy, cr] of buracos) menor = Math.min(menor, Math.hypot(x - cx, y - cy) - cr);
+   for (const [cx, cy, cr] of buracos) menor = Math.min(menor, Math.hypot(x - cx, (y - cy)*SINUCA_Y) - cr*SINUCA_Y);
   }
   return menor;
  };

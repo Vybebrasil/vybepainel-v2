@@ -122,6 +122,7 @@ function mesaBannerHtml(cfg, titulo, texto) {
 function desenharSalaMesa(d, cfg = mesaCfg()) {
   const x = escritorioXadrez(), eu = String(escritorio.base?.eu);
   x.cfg = cfg; x.salaCfg = cfg; x.sala = d; x.nova = null;
+  if (cfg.salaUI) return cfg.salaUI(d,cfg);
   const id = (j) => safeText(j.id), jogo = cfg.extra?.jogo || "xadrez";
   const chamar = cfg.escolher ? "escolherJogoDaMesa()" : "novoXadrez(null)";
   // Na Mesa de Jogos cada convite é de um jogo: o artigo vem dele.
@@ -283,6 +284,7 @@ function xadrezItemHtml(lado, it) {
 function desenharNovoXadrez() {
   const f = escritorioXadrez().nova;
   if (!f) return;
+  if (mesaCfg().novoUI) return mesaCfg().novoUI();
   const online = mesaPessoasParaChamar(), saldo = Number(escritorio.base?.economia?.saldo || 0), cfg = mesaCfg();
   // Jogo de grupo (pôquer): escolhe até `grupo - 1` pessoas; os outros, uma só.
   const grupo = cfg.grupo ? cfg.grupo - 1 : 0, emGrupo = f.grupo.length > 1;
@@ -378,6 +380,7 @@ ${quem ? `${meu.length ? `<h4>Você põe</h4><ul>${itens(meu)}</ul>` : ""}${dele
 function desenharConviteXadrez(j, cfg = mesaCfg()) {
   xadrezPoeSprite();
   escritorioXadrez().cfg = cfg;
+  if (cfg.conviteUI) return cfg.conviteUI(j,cfg);
   const u = escritorioCabecaUrl(j.desafiante.id);
   xadrezModal(`<div class="workflow-kicker">${cfg.nome}<button type="button" class="workflow-close" aria-label="Fechar" onclick="xadrezFechar()">×</button></div>
 <div class="xdz-convite">${u ? `<img src="${safeText(u)}" alt="" width="54" height="54">` : ""}<h2 class="workflow-title">${xadrezPrimeiroNome(j.desafiante)} te chamou para ${cfg.artigo}</h2></div>
