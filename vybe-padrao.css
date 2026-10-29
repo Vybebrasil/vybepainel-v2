@@ -1244,5 +1244,20 @@ button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srg
 .ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:8px;margin-top:6px;padding:10px;border-radius:10px;border:1px solid rgba(56,217,197,.25);background:rgba(56,217,197,.06)}
 .ofc-cobranca-datas label{display:grid;gap:3px;min-width:0}
 .ofc-cobranca-datas small{color:#38d9c5;font:700 9.5px var(--mac-ui);letter-spacing:.12em;text-transform:uppercase}
-.ofc-cobranca-datas input{width:100%;min-width:0;height:32px;padding:0 6px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0e0f15;color:#ece8e3;font:500 12px var(--mac-ui);color-scheme:dark}
 .ofc-cobranca-datas .ofc-p-entrar{height:32px;padding:0 12px;border:0;border-radius:8px;font:700 12px var(--mac-ui);cursor:pointer}
+.ofc-datas-campo{display:grid;gap:3px;min-width:0}
+.ofc-datas-valor{height:32px;padding:0 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0e0f15;color:#ece8e3;font:600 12.5px var(--mac-ui);text-align:left;cursor:pointer}
+.ofc-datas-valor[aria-expanded="true"]{border-color:#38d9c5}
+.ofc-datas-valor.mudou{color:#38d9c5}
+/* o calendário dentro do cartão */
+.ofc-datas-calendario{grid-column:1/-1;display:grid;gap:6px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0e0f15}
+.ofc-datas-mes{display:flex;align-items:center;justify-content:space-between}
+.ofc-datas-mes b{font:700 13px var(--pv-titulo);color:#fff}
+.ofc-datas-mes button{width:30px;height:30px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#ece8e3;font:700 16px var(--mac-ui);cursor:pointer}
+.ofc-datas-mes button:hover{background:rgba(56,217,197,.16);color:#38d9c5}
+.ofc-datas-semana,.ofc-datas-dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.ofc-datas-semana i{font:700 10px var(--mac-ui);color:#7d7871;text-align:center;font-style:normal}
+.ofc-datas-dias button{height:28px;border:0;border-radius:7px;background:transparent;color:#ece8e3;font:500 12px var(--mac-ui);cursor:pointer}
+.ofc-datas-dias button:hover{background:rgba(255,255,255,.08)}
+.ofc-datas-dias button.hoje{box-shadow:inset 0 0 0 1px rgba(255,154,92,.6)}
+.ofc-datas-dias button.escolhido{background:#38d9c5;color:#04201c;font-weight:700}

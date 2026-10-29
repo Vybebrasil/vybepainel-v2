@@ -232,16 +232,49 @@ function abrirDatasCobrancaEscritorio(botao) {
   const { ref, quadro, prazo, veic } = botao.dataset, demanda = quadro === "demandas";
   const div = document.createElement("div");
   div.className = "ofc-cobranca-datas";
-  div.innerHTML = `<label><small>Prazo</small><input type="date" name="prazo" value="${safeText(prazo)}"></label>
-<label><small>${demanda ? "Conclusão" : "Veiculação"}</small><input type="date" name="veiculacao" value="${safeText(veic)}"></label>
+  const campo = (nome, rotulo, valor) => `<div class="ofc-datas-campo"><small>${rotulo}</small><button type="button" class="ofc-datas-valor" data-campo="${nome}" data-valor="${safeText(valor)}" aria-expanded="false" onclick="abrirCalendarioDatasEscritorio(this)">${safeText(cobrancaDataBr(valor))}</button></div>`;
+  div.innerHTML = `${campo("prazo", "Prazo", prazo)}${campo("veiculacao", demanda ? "Conclusão" : "Veiculação", veic)}
 <button type="button" class="ofc-p-entrar" onclick="salvarDatasCobrancaEscritorio(this,'${safeText(ref)}','${safeText(quadro)}')">Salvar</button>`;
   li.append(div);
   botao.setAttribute("aria-expanded", "true");
-  div.querySelector("input")?.focus();
+  div.querySelector(".ofc-datas-valor")?.focus();
+}
+const cobrancaDataBr = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "sem data");
+// Calendário desenhado dentro do cartão (Paulo, 29/10/2026: "quando passo o mês
+// fecha e não consigo confirmar"): o calendário do navegador abre fora da
+// página e fechava quando o Escritório tirava o foco do campo ou relia as
+// cobranças. Este fica no cartão: trocar o mês não fecha nada.
+const COBRANCA_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+function abrirCalendarioDatasEscritorio(campo, mes) {
+  const div = campo.closest(".ofc-cobranca-datas");
+  const jaAberto = div.querySelector(".ofc-datas-calendario");
+  if (jaAberto && mes === undefined && jaAberto.dataset.campo === campo.dataset.campo) { jaAberto.remove(); campo.setAttribute("aria-expanded", "false"); return; }
+  jaAberto?.remove();
+  div.querySelectorAll(".ofc-datas-valor").forEach((b) => b.setAttribute("aria-expanded", String(b === campo)));
+  const hoje = typeof escritorioHojeBahia === "function" ? escritorioHojeBahia() : new Date().toISOString().slice(0, 10);
+  const valor = campo.dataset.valor || "", base = mes || (valor || hoje).slice(0, 7);
+  const [ano, m] = base.split("-").map(Number), inicio = new Date(Date.UTC(ano, m - 1, 1)), dias = new Date(Date.UTC(ano, m, 0)).getUTCDate();
+  const vazios = inicio.getUTCDay(), iso = (d) => `${ano}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const outro = (k) => { const d = new Date(Date.UTC(ano, m - 1 + k, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
+  const cal = document.createElement("div");
+  cal.className = "ofc-datas-calendario";
+  cal.dataset.campo = campo.dataset.campo;
+  cal.innerHTML = `<div class="ofc-datas-mes"><button type="button" aria-label="Mês anterior" data-mes="${outro(-1)}">‹</button><b>${COBRANCA_MESES[m - 1]} ${ano}</b><button type="button" aria-label="Próximo mês" data-mes="${outro(1)}">›</button></div>
+<div class="ofc-datas-semana" aria-hidden="true">${["D", "S", "T", "Q", "Q", "S", "S"].map((d) => `<i>${d}</i>`).join("")}</div>
+<div class="ofc-datas-dias">${"<span></span>".repeat(vazios)}${Array.from({ length: dias }, (_, i) => i + 1).map((d) => `<button type="button" data-dia="${iso(d)}" class="${iso(d) === valor ? "escolhido" : ""}${iso(d) === hoje ? " hoje" : ""}" aria-label="${d} de ${COBRANCA_MESES[m - 1]}">${d}</button>`).join("")}</div>`;
+  cal.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    ev.stopPropagation();
+    if (b.dataset.mes) return abrirCalendarioDatasEscritorio(campo, b.dataset.mes);
+    if (b.dataset.dia) { campo.dataset.valor = b.dataset.dia; campo.textContent = cobrancaDataBr(b.dataset.dia); campo.classList.add("mudou"); campo.setAttribute("aria-expanded", "false"); cal.remove(); }
+  });
+  div.append(cal);
 }
 async function salvarDatasCobrancaEscritorio(botao, ref, quadro) {
   const div = botao.closest(".ofc-cobranca-datas"), abrir = div.closest("li").querySelector(".ofc-cobranca-datas-abrir");
-  const novos = { prazo: div.querySelector('[name="prazo"]').value, veiculacao: div.querySelector('[name="veiculacao"]').value };
+  const valor = (k) => div.querySelector(`.ofc-datas-valor[data-campo="${k}"]`)?.dataset.valor || "";
+  const novos = { prazo: valor("prazo"), veiculacao: valor("veiculacao") };
   const antes = { prazo: abrir.dataset.prazo, veiculacao: abrir.dataset.veic };
   const mudou = ["prazo", "veiculacao"].filter((k) => novos[k] && novos[k] !== antes[k]);
   if (!mudou.length) { escritorioAviso("Nenhuma data mudou."); return; }
@@ -289,6 +322,8 @@ function cobrancaClienteHtml(g) {
 function pintarCobrancasEscritorio(grupos, dono) {
   const el = document.getElementById("office-cobrancas");
   if (!el) return;
+  // Alguém mudando as datas de uma demanda aqui: espera ele terminar.
+  if (el.querySelector(".ofc-cobranca-datas")) return;
   if (!grupos.length) { el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   const total = grupos.reduce((t, g) => t + g.itens.length, 0);
