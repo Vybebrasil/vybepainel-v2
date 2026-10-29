@@ -135,6 +135,42 @@ function sinucaUltimoTexto(j, u = j.mesa?.ultimo) {
   const multa = u.tirou ? `; sai a ${u.tirou} (${deQuem})` : "", volta = u.voltou?.length ? `; a ${u.voltou.join(", ")} voltou para a mesa` : "";
   return `${quem} tacou${caiu.length ? ` e encaçapou ${caiu.length > 1 ? "as bolas" : "a"} ${caiu.join(", ")}` : " e não encaçapou nada"}${grupo}${falta ? `: falta, ${falta}${multa}${volta}` : ""}.`;
 }
+
+// Anúncio no meio da mesa quando a tacada termina (Paulo, 29/10/2026: "tá
+// confuso saber o que matou, o que saiu... uma animação rápida e fluida no
+// meio com a bola que tirou pro outro ou a que morreu", "com a própria bola
+// que caiu"): cada bola entra rolando, grande, com a mensagem embaixo.
+// Fica por cima da página (não do canvas), porque a mesa se redesenha no fim.
+function sinucaAnuncioBola(j, n) {
+  const v = sinucaVisual(j.mesa.modo, n);
+  return `<i class="snc-anuncio-bola${v.listra ? " listra" : ""}${n === 0 ? " branca" : ""}" style="--c:${v.cor}">${n || ""}</i>`;
+}
+function sinucaAnuncio(j, u) {
+  if (typeof document === "undefined" || !u || u.falta === "tempo") return;
+  const canvas = document.getElementById("snc-canvas");
+  if (!canvas) return;
+  const bar = j.mesa.regra === "bar", quem = u.lado === j.eu ? "Você" : xadrezPrimeiroNome(j[u.lado]);
+  const dono = u.lado === "desafiante" ? "desafiado" : "desafiante", deQuem = dono === j.eu ? "sua" : `de ${xadrezPrimeiroNome(j[dono])}`;
+  const fora = (u.fora || []).filter((n) => n !== 0), caiu = (u.caiu || []).filter((n) => n !== 0 && !fora.includes(n));
+  const cartoes = [];
+  if (caiu.length) cartoes.push({ tipo: u.falta ? "neutro" : "bom", bolas: caiu, titulo: u.falta ? `Caiu a ${caiu.join(", ")}` : caiu.length > 1 ? `Matou ${caiu.length}!` : "Matou!", texto: `${quem} encaçapou ${caiu.length > 1 ? "as bolas" : "a"} ${caiu.join(", ")}` });
+  if ((u.caiu || []).includes(0) || u.falta === "branca") cartoes.push({ tipo: "ruim", bolas: [0], titulo: bar ? "Suicida!" : "A branca caiu", texto: "Falta: bola na mão para o outro" });
+  if (u.falta === "branca-fora") cartoes.push({ tipo: "ruim", bolas: [0], titulo: "A branca pulou!", texto: "Saiu da mesa: falta" });
+  if (fora.length) cartoes.push({ tipo: "ruim", bolas: fora, titulo: "Pulou da mesa", texto: `${fora.length > 1 ? "As bolas voltaram" : "A bola voltou"} para a marca` });
+  if (u.tirou) cartoes.push({ tipo: "multa", bolas: [u.tirou], titulo: "Multa", texto: `Sai a ${u.tirou} (${deQuem})` });
+  if (!cartoes.length && (u.falta === "nenhuma" || u.falta === "errada")) cartoes.push({ tipo: "ruim", bolas: [], titulo: u.falta === "nenhuma" ? (bar ? "Cegou!" : "Não tocou") : "Bola errada", texto: u.falta === "nenhuma" ? "Não tocou em nenhuma bola" : u.primeiro === 1 ? "Bateu primeiro no ás" : "Bateu primeiro na bola do outro" });
+  if (!cartoes.length) return;
+  document.querySelector(".snc-anuncio")?.remove();
+  const r = canvas.getBoundingClientRect(), el = document.createElement("div");
+  el.className = "snc-anuncio";
+  el.setAttribute("role", "status");
+  el.style.left = `${r.left + r.width / 2}px`; el.style.top = `${r.top + r.height / 2}px`;
+  let atraso = 0;
+  el.innerHTML = cartoes.map((c) => `<div class="snc-anuncio-cartao ${c.tipo}"><div class="snc-anuncio-bolas">${c.bolas.map((n) => { const h = sinucaAnuncioBola(j, n).replace('style="', `style="animation-delay:${(atraso += 90)}ms;`); return h; }).join("")}</div><b>${safeText(c.titulo)}</b><small>${safeText(c.texto)}</small></div>`).join("");
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add("sai"), 2300);
+  setTimeout(() => el.remove(), 2800);
+}
 // Jogador no placar de cima: cabeça, nome, de quem é a vez e as bolas do grupo
 // (as que já caíram ficam apagadas).
 function sinucaJogadorHtml(j, lado, q) {
@@ -820,6 +856,7 @@ function sinucaAnimQuadro(s, j, agora, R) {
       else if (ev.t === "caiu") sinucaSom("cacapa", Math.max(.15,ev.f));
     }
     const acabou = e >= d.taco + d.bolas;
+    if (acabou && a.anunciado !== t.n) { a.anunciado = t.n; sinucaAnuncio(j, t); }
     return { ...sinucaTrilhaCena(t, ms), faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
   }
   if (!quadros) return { bolas: j.mesa.bolas, faixa: sinucaUltimoTexto(j, t), ruim: true };
@@ -856,6 +893,7 @@ function sinucaAnimQuadro(s, j, agora, R) {
   const z = {}, ar = t.alturas?.[i];
   if (ar) for (let w = 0; w < ar.length; w += 2) z[ar[w]] = ar[w + 1] / 10;
   const acabou = e >= d.taco + d.bolas;
+  if (acabou && a.anunciado !== t.n) { a.anunciado = t.n; sinucaAnuncio(j, t); }
   return { bolas, caindo, z, faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
 }
 // O taco da tacada que está saindo, a mira do outro e a faixa de cima.
