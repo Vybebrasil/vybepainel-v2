@@ -300,6 +300,13 @@ async function montarCriacao(sql, pedido, agora) {
     ...(briefing ? { briefing } : {}) };
 }
 const BOARD_PRODUCAO_CRIACAO = 7829537690, BOARD_DEMANDAS_CRIACAO = 8385559107;
+// Datas da peça (AAAA-MM-DD) e como chamá-las: em Solicitações a data do cliente é a de conclusão.
+async function datasDaPeca(sql, c) {
+  const [d] = await sql`SELECT TO_CHAR(prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(veiculacao,'YYYY-MM-DD') AS veiculacao FROM vybe_conteudos WHERE id = ${Number(c.id)}`;
+  return { prazo: d?.prazo || null, veiculacao: d?.veiculacao || null };
+}
+const rotuloData = (c, campo) => campo === 'prazo' ? 'O prazo da equipe' : Number(c.board_id) === BOARD_DEMANDAS_CRIACAO ? 'A data de conclusão' : 'A veiculação';
+const curtoData = (iso) => String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7);
 // Lista que falha (tabela ainda não criada neste banco) vira lista vazia, sem derrubar o resto.
 async function semErro(consulta) { try { return await consulta(); } catch { return []; } }
 // Escolha pela chave ou pelo rótulo, sem acento e sem caixa; fora da lista, diz as opções.
@@ -327,7 +334,7 @@ export async function opcoesDeCriacao(sql) {
 export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.now()) {
   if (!/^.{32,}$/.test(String(segredo || ''))) throw Object.assign(new Error('Ações indisponíveis.'), { status: 503 });
   const { acao, item } = pedido || {};
-  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao', 'regra', 'responsavel', 'agendar_captacao'].includes(acao)) throw invalido('Ação desconhecida.');
+  if (!['status', 'comentar', 'criar', 'captacao', 'alteracao', 'regra', 'responsavel', 'agendar_captacao', 'data'].includes(acao)) throw invalido('Ação desconhecida.');
   if (acao === 'agendar_captacao') {
     // Encaixe de captação sugerido: marca na agenda (um evento por cliente). Administração ou quem faz captação.
     const p = await pessoaAtiva(sql, pessoaId), cod = String(pedido.encaixe || '');
@@ -371,6 +378,24 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
     const resumo = `🆕 Criar ${d.quadro === 'demandas' ? 'em Solicitações de Demandas' : 'na Produção'}:\n*${d.titulo}* (${d.cliente})\n${d.veiculacao ? 'veicula ' + curto(d.veiculacao) + ' · ' : ''}${d.quadro === 'demandas' ? 'prazo de entrega' : 'prazo da equipe'} ${curto(d.prazo)}${quem ? ' · ' + quem : ' · sem responsável'}${campos ? '\n' + campos : ''}${d.briefing ? '\n📝 Briefing: “' + d.briefing.slice(0, 300) + (d.briefing.length > 300 ? '…' : '') + '”' : ''}${aviso ? '\n' + aviso : ''}`;
     const dados = b64(JSON.stringify({ p: p.id, c: null, a: 'criar', v: d, de: '', e: agora + VALIDADE_MS }));
     return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: null, validade_min: 5 };
+  }
+  if (acao === 'data') {
+    // Mudar o prazo da equipe ou a data do cliente (Paulo, 02/11/2026: "Vybes, muda os prazos desses reels da DiaLab pro
+    // dia 03"). Pela mesma troca do painel (trocarData: banco, histórico e réplica). Administração ou head do cliente.
+    const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, item);
+    const campo = pedido.campo === 'veiculacao' ? 'veiculacao' : pedido.campo === 'prazo' ? 'prazo' : null;
+    const data = String(pedido.data || '');
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date(agora));
+    if (!campo) throw invalido('Diga se é o prazo da equipe ou a veiculação.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data < hoje) throw invalido('Diga a nova data (hoje ou depois).');
+    if (!p.admin && !c.heads.includes(p.id)) throw negar('Mudar data de peça é com a administração ou com os heads do cliente.');
+    const atual = await datasDaPeca(sql, c), de = atual[campo];
+    if (de === data) throw invalido(`${rotuloData(c, campo)} já é ${curtoData(data)}.`);
+    const prazo = campo === 'prazo' ? data : atual.prazo, veic = campo === 'veiculacao' ? data : atual.veiculacao;
+    const aviso = Number(c.board_id) === BOARD_PRODUCAO_CRIACAO && prazo && veic && prazo > veic ? '\n⚠️ O prazo da equipe fica depois da veiculação.' : '';
+    const resumo = `📅 Mudar ${rotuloData(c, campo).toLowerCase()} de "${c.titulo || 'Sem título'}" (${c.clientes.join(' / ') || 'sem cliente'})\nde *${de ? curtoData(de) : 'sem data'}* para *${curtoData(data)}*${aviso}`;
+    const dados = b64(JSON.stringify({ p: p.id, c: c.id, a: 'data', v: { campo, data }, de: de || '', e: agora + VALIDADE_MS }));
+    return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: linkDaAtividade(c.ref), validade_min: 5 };
   }
   const p = await pessoaAtiva(sql, pessoaId);
   const c = await pecaPorReferencia(sql, item || (pedido.busca ? await pecaDaPessoaPorBusca(sql, Number(p.id), pedido.busca, { comoHead: true, recentes: ['alteracao', 'comentar'].includes(acao),
@@ -479,6 +504,21 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).${semCaptacao}`, link: ref ? linkDaAtividade(ref) : null };
   }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, 'vybe:' + t.c);
+  if (t.a === 'data') {
+    if (!p.admin && !c.heads.includes(p.id)) throw negar('Mudar data de peça é com a administração ou com os heads do cliente.');
+    const atual = await datasDaPeca(sql, c);
+    if (String(atual[t.v.campo] || '') !== String(t.de || '')) throw invalido(`${rotuloData(c, t.v.campo)} mudou para ${atual[t.v.campo] ? curtoData(atual[t.v.campo]) : 'sem data'} enquanto isso. Peça de novo.`);
+    await sql`CREATE TABLE IF NOT EXISTS vybe_ai_acoes(codigo_hash char(64) PRIMARY KEY, pessoa_id bigint NOT NULL, conteudo_id bigint NOT NULL,
+      acao text NOT NULL, valor text, criado_em timestamptz NOT NULL DEFAULT now())`;
+    const hashCodigo = createHash('sha256').update(String(codigo)).digest('hex');
+    const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, ${c.id}, 'data', ${t.v.campo + ':' + t.v.data})
+      ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
+    if (!nova) throw invalido('Esta confirmação já foi usada.');
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const fazer = executar || await import('../api/conteudo.js');
+    const r = await fazer.trocarData(sql, quem, { item: c.ref, campo: t.v.campo, data: t.v.data });
+    return { feito: `✅ ${rotuloData(c, t.v.campo)} de "${c.titulo}" agora é *${curtoData(t.v.data)}*.${r?.aviso ? '\n⚠️ ' + r.aviso : ''}`, link: linkDaAtividade(c.ref) };
+  }
   // A peça mudou entre o pedido e o SIM: não executa sobre um estado que a pessoa não viu.
   if ((t.a === 'status' || (t.a === 'alteracao' && t.v?.s)) && normal(c.status) !== normal(t.de)) throw invalido(`A peça mudou para ${c.status} enquanto isso. Peça de novo.`);
   if (t.a === 'status') await conferirPermissao(sql, p, c, await statusDoQuadro(sql, c, t.v));
