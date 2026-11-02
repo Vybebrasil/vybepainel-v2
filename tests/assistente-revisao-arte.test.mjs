@@ -61,4 +61,6 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
   } });
   assert.deepEqual(pedidas, ['d1', 'd2', 'd3']);
   assert.equal(r.midias.length, 3); assert.equal(r.midias[2].video, true);
+  // Cosmos (central do bot) mostra qual arquivo e de quando é a lâmina: identidade e data do arquivo vão junto.
+  assert.equal(r.midias[0].arquivo_id, '2'); assert.ok(r.midias[0].criado_em);
 });
