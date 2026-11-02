@@ -26,7 +26,7 @@ test('operações consultam domínio real e autorizam a audiência inteira',asyn
  INSERT INTO vybe_conteudos VALUES(100,'Card A','Card','2026-10-23','2026-10-24',now(),'agendado',8385559107,NULL,'senha=NAO_EXPOR'),(200,'Peça da outra pessoa','Vídeo','2026-10-25','2026-10-26',now(),'agendado',7829537690,NULL,'NAO_EXPOR'),(300,'Excluída',NULL,NULL,NULL,now(),NULL,8385559107,now(),NULL);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(100,1),(200,2);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);INSERT INTO vybe_conteudo_clientes VALUES(100,10),(100,20),(200,20);
- CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);INSERT INTO vybe_status VALUES(8385559107,'agendado','Agendado',false),(7829537690,'agendado','Agendado',false);
+ CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean,cor text,borda text);INSERT INTO vybe_status VALUES(8385559107,'agendado','Agendado',false),(7829537690,'agendado','Agendado',false);
  CREATE TABLE vybe_planejamentos(id bigint PRIMARY KEY,cliente_id bigint,mes date,titulo text,estado text,conteudo jsonb,atualizado_em timestamptz,link_hash text);
  INSERT INTO vybe_planejamentos VALUES(5,10,'2026-10-01','Plano A','enviado','{"resumo":"Posicionamento da marca","pecas":[{"data":"2026-10-23","tema":"Criatividade","formato":"Card","ajuste_cliente":"privado"}],"observacoes":"senha=NAO_EXPOR"}',now(),'NAO_EXPOR');
  CREATE TABLE vybe_captacoes(id bigint,cliente_id bigint,dia date,inicio time,fim time,estado text,observacao text);INSERT INTO vybe_captacoes VALUES(1,10,'2026-10-23','10:00','11:00','marcada','NAO_EXPOR');

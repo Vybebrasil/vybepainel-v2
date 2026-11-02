@@ -66,7 +66,7 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
   const midias = [];
   for (const a of entrega) {
     const m = await miniatura(String(a.drive_file_id), buscar, pegarToken).catch(() => null);
-    if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || '') });
+    if (m) midias.push({ ...m, arquivo_id: a.id, criado_em: a.criado_em, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || '') });
   }
   return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length };
 }

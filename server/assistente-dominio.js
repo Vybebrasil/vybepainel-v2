@@ -36,9 +36,10 @@ export async function consultarDiaEquipe(sql,a,agora=new Date()){
  return resposta('consultar_dia_equipe',itens,a,{hoje:r.hoje,fontes:itens.map(x=>({modulo:'dia_equipe',id:String(x.id||x.pessoa_id)}))});
 }
 export async function secaoDaDemanda(sql,a){
- const [c]=await sql`SELECT c.id::text,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.criado_em::text,c.briefing,c.material_bruto,
+ const [c]=await sql`SELECT c.id::text,c.board_id::text,c.titulo,c.formato,c.prazo::text,c.veiculacao::text,c.criado_em::text,c.atualizado_em::text,c.briefing,c.material_bruto,
  COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_editores e JOIN vybe_pessoas p ON p.id=e.pessoa_id WHERE e.conteudo_id=c.id),'[]') AS editores,
  c.etapa,c.grupo_id::text,c.status_chave,c.prioridade_chave,c.captacao_chave,c.off_audio_chave,c.tipo_conteudo_chaves,c.formato_chaves,s.rotulo AS status,s.final AS status_final,
+ s.cor AS status_cor,s.borda AS status_borda,
  COALESCE((SELECT json_agg(json_build_object('id',p.id::text,'nome',p.nome)) FROM vybe_conteudo_responsaveis cr JOIN vybe_pessoas p ON p.id=cr.pessoa_id WHERE cr.conteudo_id=c.id),'[]') AS responsaveis,
  COALESCE((SELECT json_agg(json_build_object('id',cl.id::text,'nome',cl.nome)) FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id=cc.cliente_id WHERE cc.conteudo_id=c.id),'[]') AS clientes
  FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
