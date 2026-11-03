@@ -1,7 +1,7 @@
 // Revisão da arte pela Vybe AI (Paulo, 27/10/2026): quando a peça vai para aprovação, a Vybe AI olha a arte com o
 // critério de um diretor de marketing e criação e deixa a opinião como comentário. Nunca muda status.
 // A imagem sai do Drive da peça; a leitura (visão) acontece no PC do bot, com o modelo local.
-import { tokenGoogle, baixarDoDrive } from '../vybe_drive.js';
+import { tokenGoogle, baixarDoDrive, tornarPublico } from '../vybe_drive.js';
 import { linkDaAtividade } from './assistente-rotinas.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { MARCAS_BRIEFING } from './briefing.js';
@@ -25,13 +25,19 @@ async function pecaDaReferencia(sql, ref) {
 
 // Miniatura grande (1600 px) que o próprio Drive gera, para arquivo pesado, vídeo ou PDF.
 async function miniatura(fileId, buscar = fetch, pegarToken = tokenGoogle) {
-  const token = await pegarToken();
-  const meta = await buscar(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=thumbnailLink&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
-  const link = meta.ok ? (await meta.json()).thumbnailLink : null;
-  if (!link) return null;
-  const r = await buscar(String(link).replace(/=s\d+$/, '=s1600'), { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) return null;
-  return { data: Buffer.from(await r.arrayBuffer()).toString('base64'), mimetype: r.headers.get('content-type') || 'image/jpeg', miniatura: true };
+  const imagem = async (r) => (r?.ok && /^image\//.test(r.headers.get('content-type') || 'image/jpeg')
+    ? { data: Buffer.from(await r.arrayBuffer()).toString('base64'), mimetype: r.headers.get('content-type') || 'image/jpeg', miniatura: true } : null);
+  try {
+    const token = await pegarToken();
+    const meta = await buscar(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=thumbnailLink&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
+    const link = meta.ok ? (await meta.json()).thumbnailLink : null;
+    const r = link ? await imagem(await buscar(String(link).replace(/=s\d+$/, '=s1600'), { headers: { Authorization: `Bearer ${token}` } })) : null;
+    if (r) return r;
+  } catch { /* segue para o endereço público */ }
+  // O mesmo endereço que o olho do painel usa (api/painel.js: drive.google.com/thumbnail, liberado ao abrir a peça).
+  // Paulo, 03/11/2026: "tem muita coisa sem prévia; não tá usando a lógica do Vybe OS?" — a API do Drive às vezes não
+  // devolve miniatura onde o painel mostra a arte.
+  return imagem(await buscar(`https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1600`).catch(() => null));
 }
 
 export async function arteDaPeca(sql, ref, { baixar = baixarDoDrive, buscar = fetch } = {}) {
@@ -83,8 +89,15 @@ async function videoDaEntrega(sql, c, { buscar, pegarToken, pasta = videosDaPast
   return m ? { ...m, nome, video: Boolean(pastaId) || VIDEO_DO_FORMATO.test(c.formato || ''), drive: id, entrega: true } : null;
 }
 
-export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = tokenGoogle, pasta } = {}) {
+export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = tokenGoogle, pasta, liberar = tornarPublico } = {}) {
   const c = await pecaDaReferencia(sql, ref);
+  // Como o painel faz ao abrir a peça (api/painel.js): libera a miniatura dos arquivos que ainda não foram liberados,
+  // poucos por vez e uma vez só; falhar aqui não impede a prévia.
+  try {
+    const presas = await sql`SELECT id, drive_file_id FROM vybe_conteudo_arquivos WHERE conteudo_id = ${c.id} AND ausente_em IS NULL
+      AND drive_file_id IS NOT NULL AND previa_liberada_em IS NULL ORDER BY criado_em DESC NULLS LAST LIMIT 8`;
+    for (const a of presas) { try { await liberar(String(a.drive_file_id)); await sql`UPDATE vybe_conteudo_arquivos SET previa_liberada_em = NOW() WHERE id = ${a.id}`; } catch { /* tenta na próxima */ } }
+  } catch { /* coluna ausente em banco antigo: segue */ }
   const arquivos = await sql`SELECT id::text, nome, extensao, drive_file_id, criado_em FROM vybe_conteudo_arquivos
     WHERE conteudo_id = ${c.id} AND ausente_em IS NULL AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC LIMIT 30`;
   const ultimo = arquivos[0] ? new Date(arquivos[0].criado_em || 0).getTime() : 0;
