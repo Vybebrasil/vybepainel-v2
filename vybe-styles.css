@@ -25641,9 +25641,8 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @media(prefers-reduced-motion:reduce){.snc-anuncio,.snc-anuncio-bola{animation:none}}
 @media(max-width:760px){.snc-anuncio-cartao{min-width:140px;padding:9px 14px}.snc-anuncio-cartao b{font-size:17px}.snc-anuncio-bola{width:40px;height:40px;font-size:14px}}
 
-/* ---------- VYBES (módulo; decisão do Paulo, 02/11/2026) ----------
-   O dia da agência pela central do VYBES. Padrão Vybe: cartão escuro e neutro, laranja só na ação principal,
-   verde/amarelo/vermelho só para estado. Faixa de entrada embaixo das estações da tela inicial. */
+/* ---------- VYBES (decisão do Paulo, 02/11/2026) ----------
+   Faixa embaixo das estações da tela inicial: abre a central do VYBES (a do PC do Paulo) com o crachá de quem entra. */
 .identity-vybes{position:relative;z-index:1;display:flex;align-items:center;gap:18px;width:min(100%,1010px);margin:18px auto 0;padding:14px 20px;border-radius:18px;
   border:1px solid rgba(255,138,53,.28);background:linear-gradient(90deg,rgba(255,138,53,.10),rgba(20,18,26,.55) 45%);color:#fff4e8;text-align:left;cursor:pointer;
   transition:border-color .2s var(--curva,ease),transform .2s var(--curva,ease)}
@@ -25653,64 +25652,3 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .identity-vybes-texto{flex:1;min-width:0;font-size:13px;color:rgba(255,244,232,.72)}
 .identity-vybes-acao{white-space:nowrap;font-weight:700;font-size:13px;color:var(--vb-laranja-2,#ffb15c)}
 @media(max-width:820px){.identity-vybes{flex-wrap:wrap;gap:6px 12px}.identity-vybes-texto{flex-basis:100%;order:3}}
-
-.painel-vybes{padding:18px 4px 40px}
-/* O cabeçalho padrão herda a regra geral de <header> do topo do painel; aqui ele é só o título (como em .ofc-trabalho). */
-.painel-vybes > .vb-cabecalho{flex-direction:row;align-items:center;min-height:0;height:auto;padding:0;margin:0 0 12px;background:none;border:0;box-shadow:none}
-.vybes-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:16px;align-items:start}
-@media(max-width:1180px){.vybes-grade{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.vybes-grade{grid-template-columns:minmax(0,1fr)}}
-.vybes-coluna{display:grid;gap:18px;min-width:0}
-.vybes-coluna-bloco{padding:16px 18px;border-radius:16px;background:#1d2029;border:1px solid rgba(255,255,255,.07);min-width:0}
-.vybes-coluna-bloco h2{margin:0 0 12px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:800}
-.vybes-coluna-bloco h3{margin:12px 0 6px;font-size:13px;font-weight:700}
-.vybes-cartao{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid rgba(255,255,255,.07)}
-.vybes-cartao:first-of-type{border-top:0;padding-top:0}
-.vybes-cartao h3{margin:2px 0 4px;font-size:15px;line-height:1.3}
-.vybes-cartao p{margin:0;font-size:13px;line-height:1.45;color:rgba(255,255,255,.7)}
-.vybes-num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:rgba(255,255,255,.1)}
-.vybes-cartao.critico .vybes-num{background:rgba(255,107,90,.3);color:#ffd2cb}
-.vybes-cartao.atencao .vybes-num{background:rgba(245,197,66,.25);color:#ffe9a8}
-.vybes-sugestao{margin-top:6px!important;color:#fff!important;font-weight:600}
-.vybes-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
-.vybes-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.vybes-decisao{padding:12px 0;border-top:1px solid rgba(255,255,255,.07)}
-.vybes-decisao:first-of-type{border-top:0;padding-top:0}
-.vybes-decisao h3{margin:6px 0 2px;font-size:14px}
-.vybes-decisao p{margin:0;font-size:12.5px;color:rgba(255,255,255,.65)}
-.vybes-decisao-topo{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.vybes-decisao-topo small{font-size:11px;color:rgba(255,255,255,.5)}
-.vybes-etiqueta{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-amarelo,#f5c542)}
-.vybes-alteracao{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
-.vybes-alteracao label{flex-basis:100%;font-size:12px;color:rgba(255,255,255,.6)}
-.vybes-alteracao input{flex:1;min-width:180px;min-height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:#14161c;color:#fff;font:inherit}
-.vybes-alteracao input:focus-visible{outline:2px solid var(--vb-laranja,#ff8a35);outline-offset:1px}
-.vybes-dia-linha{display:grid;grid-template-columns:86px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;row-gap:4px;align-items:center;padding:6px 0}
-.vybes-dia-rotulo{grid-row:1/3;display:flex;align-items:baseline;gap:6px;font-size:13px;color:rgba(255,255,255,.65)}
-.vybes-dia-rotulo b{font-size:22px;font-weight:300;color:#fff;font-variant-numeric:tabular-nums}
-.vybes-barra{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.06)}
-.vybes-barra i{display:block;min-width:4px}
-.vybes-sit-saiu{background:var(--vb-verde,#4cc98a)}.vybes-sit-agendar{background:#7cc4ff}.vybes-sit-aprovacao{background:#9a8bff}.vybes-sit-cliente{background:rgba(255,255,255,.35)}.vybes-sit-fazer{background:var(--vb-laranja,#ff8a35)}
-.vybes-dia-texto{font-size:12px;color:rgba(255,255,255,.65)}
-.vybes-agenda{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
-.vybes-agenda b{font-variant-numeric:tabular-nums;margin-right:6px}
-.vybes-encaixe{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0}
-.vybes-sol{font-size:13px;margin-bottom:6px}.vybes-sol b{font-size:20px;font-weight:300;margin-right:4px}.vybes-sol.critico{color:#ffb4a8}
-.vybes-linha{all:unset;cursor:pointer;display:grid;gap:2px;width:100%;padding:7px 9px;border-radius:10px;box-sizing:border-box}
-.vybes-linha:hover,.vybes-linha:focus-visible{background:rgba(255,255,255,.06)}
-.vybes-linha span{font-size:13px}.vybes-linha small{font-size:11.5px;color:rgba(255,255,255,.55)}
-.vybes-espera{padding:8px 10px;border-radius:12px;background:rgba(255,107,90,.08);border:1px solid rgba(255,107,90,.22);margin-bottom:8px}
-.vybes-espera span{display:flex;justify-content:space-between;gap:8px;font-size:13px}.vybes-espera em{font-style:normal;color:#ffb4a8;font-size:12px}
-.vybes-espera p{margin:4px 0 0;font-size:12.5px;color:rgba(255,255,255,.75)}
-.vybes-time{font-size:12.5px;color:rgba(255,255,255,.6)}.vybes-time.atencao{color:#ffe08a}
-.vybes-ideia{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
-.vybes-ideia b{display:block;font-size:13.5px}.vybes-ideia small{font-size:11.5px;color:rgba(255,255,255,.55)}.vybes-ideia p{margin:4px 0 0;font-size:12.5px;color:rgba(255,255,255,.7)}
-.vybes-lista{margin:0;padding-left:18px;display:grid;gap:4px;font-size:12.5px;color:rgba(255,255,255,.75)}
-.vybes-discreto{font-size:12.5px;color:rgba(255,255,255,.55);margin:4px 0}
-.vybes-aviso{margin:10px 0 0;padding:10px 14px;border-radius:12px;background:rgba(245,197,66,.1);border:1px solid rgba(245,197,66,.3);color:#ffe9a8;font-size:13px}
-.vybes-confirmar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:12px 0 0;padding:14px 16px;border-radius:14px;background:#1d2029;border:1px solid var(--vb-laranja,#ff8a35)}
-.vybes-confirmar p{margin:4px 0 0;font-size:13px;color:rgba(255,255,255,.8)}
-.vybes-jornada{margin-top:18px;padding:12px 16px;border-radius:14px;background:#1d2029;border:1px solid rgba(255,255,255,.07)}
-.vybes-jornada summary{cursor:pointer;font-weight:700;font-size:13px}
-.vybes-jornada ol{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;font-size:13px;line-height:1.5;color:rgba(255,255,255,.8)}
-.vybes-rodape{margin:14px 0 0;font-size:12px;color:rgba(255,255,255,.5)}

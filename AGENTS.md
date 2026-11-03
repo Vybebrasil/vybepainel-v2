@@ -154,14 +154,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 
 ## VYBES no painel (decisão do Paulo, 02/11/2026)
 
-- O VYBES roda no PC do Paulo (WhatsApp, modelo local, turno da noite) e publica a cada 3 min o mesmo dia que a
-  central dele mostra (consulta `vybes_publicar` do bot, só no privado da administração). Aqui ele é a aba e a faixa
-  VYBES (`vybe-vybes.js`, `server/vybes.js`, área `vybes`), sem link novo e sem túnel.
-- Quem age (`vybe_vybes_operadores`: Paulo, Vinícius, Ewerton L. e Deivid) vê tudo e age pelo MESMO executor das
-  ações do assistente (`prepararAcao`/`confirmarAcao`, resumo e "Sim, fazer"; a permissão de cada ação é a da pessoa).
-  O resto da equipe só vê, sem o texto das conversas (`semConversas`). Diretoria e Vybe CEO nunca entram no estado.
-- Não crie outra fila de decisões, outro executor de ações nem outra prévia de peça: a peça abre na prévia grande
-  (`abrirPecaNaPrevia`). Migração `2026-11-02-vybes.sql`.
+- É o próprio VYBES (a central do PC do Paulo: o ser, a voz, a sala, a jornada), não uma tela do painel. Não recrie
+  a interface dele aqui. A faixa VYBES da tela inicial (`vybe-vybes.js`) pede um crachá (`area=vybes`, etapa
+  `entrar`, `server/vybes.js`) e abre a central pelo túnel cujo endereço o bot publica (`vybes_publicar`).
+- O crachá vale 2 min, é assinado com a chave derivada de `VYBE_AI_BOT_TOKEN` (rótulo `vybes-entrada-v1`) e diz quem é,
+  se age e se é o Paulo; a central confere e troca por um cookie de até 12 h. "Senhor" é só do Paulo.
+- Quem age (`vybe_vybes_operadores`: Paulo, Vinícius, Ewerton L. e Deivid): os pedidos feitos na central chegam pelo
+  bot (`vybes_acao`) e passam pelo MESMO executor das ações do assistente (`prepararAcao`/`confirmarAcao`) com a
+  permissão da pessoa. O resto só vê. Migração `2026-11-02-vybes.sql`.
 
 ## Escritório integrado
 

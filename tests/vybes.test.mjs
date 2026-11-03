@@ -1,29 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHmac } from 'node:crypto';
 import { conexao } from './postgres.mjs';
-import { guardarEstadoVybes, lerEstadoVybes, acaoVybes, podeAgirNoVybes, semConversas } from '../server/vybes.js';
+import { guardarEstadoVybes, entradaVybes, acaoVybes, podeAgirNoVybes } from '../server/vybes.js';
 
 // Paulo (1), Vinícius (2), Ewerton (3) e Deivid (4) são autores de recado hoje; Bia (5) não.
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean);
-    INSERT INTO vybe_pessoas VALUES (1,'Paulo',true),(2,'Vinícius',true),(3,'Ewerton L.',true),(4,'Deivid',true),(5,'Bia',true);
+    INSERT INTO vybe_pessoas VALUES (1,'Paulo Martins',true),(2,'Vinícius',true),(3,'Ewerton L.',true),(4,'Deivid',true),(5,'Bia',true);
     CREATE TABLE vybe_escritorio_avisos_autores (pessoa_id bigint PRIMARY KEY);
     INSERT INTO vybe_escritorio_avisos_autores VALUES (1),(2),(3),(4);`);
   await db.exec(readFileSync(new URL('../migrations/2026-11-02-vybes.sql', import.meta.url), 'utf8'));
   return { db, sql };
 }
 const sessao = (id) => ({ tipo: 'sessao', pessoa: { id } });
-const ESTADO = {
-  geradoEm: 1, estadoDia: { frase: 'Dia com 2 pontos de atenção.' },
-  prioridades: [{ id: 'hoje', titulo: 'Hoje: Reels da VOA ainda não saiu', fato: 'Para aprovação' },
-    { id: 'clientes', titulo: 'Gonzalez esperando resposta', fato: 'Precisamos das guarnições', itens: [{ titulo: 'Gonzalez', detalhe: 'texto do cliente' }] }],
-  whatsapp: { clientes: [{ cliente: 'Gonzalez', n: 3, ultimo: 'Precisamos das guarnições' }], esperando: [{ cliente: 'Gonzalez', minutos: 540, texto: 'Precisamos das guarnições' }],
-    internos: { n: 3, grupos: ['Produção', 'Vybe CEO'], alertas: [{ grupo: 'Diretoria', autor: 'Paulo', texto: 'assunto da direção' }, { grupo: 'Produção', autor: 'Reriston', texto: 'travado no áudio' }],
-      mensagens: [{ grupo: 'Vybe CEO', texto: 'reservado' }, { grupo: 'Produção', texto: 'ok' }] } },
-  jornada: [{ tipo: 'whatsapp', texto: 'Gonzalez pediu as guarnições', dados: { clientes: [] } }, { tipo: 'dia', texto: 'Primeiro, o hoje' }],
-};
+const BASE = 'b'.repeat(60);
+const env = { VYBE_AI_BOT_TOKEN: BASE, VYBE_AI_ADMIN_PESSOA_ID: '1' };
+const TUNEL = 'https://alegre-vybes-123.trycloudflare.com';
+// O mesmo conferidor da central (entrada-vybes.js no PC): chave derivada da credencial do bot, HMAC do corpo.
+function conferir(token) {
+  const chave = createHmac('sha256', BASE).update('vybes-entrada-v1').digest();
+  const [corpo, ass] = token.split('.');
+  assert.equal(createHmac('sha256', chave).update(corpo).digest('base64url'), ass, 'assinatura que a central aceita');
+  return JSON.parse(Buffer.from(corpo, 'base64url').toString());
+}
 
 test('vybes: a migração cria o estado e copia quem age (os autores de recado de hoje)', async () => {
   const { sql } = await banco();
@@ -34,34 +36,30 @@ test('vybes: a migração cria o estado e copia quem age (os autores de recado d
   assert.equal(await podeAgirNoVybes(sql, { tipo: 'servico' }), false);
 });
 
-test('vybes: o estado publicado nunca guarda Diretoria nem Vybe CEO; uma linha só', async () => {
+test('vybes: o bot publica só o endereço do túnel; endereço de fora do padrão é recusado', async () => {
   const { sql } = await banco();
-  await guardarEstadoVybes(sql, ESTADO);
-  await guardarEstadoVybes(sql, { ...ESTADO, geradoEm: 2 });
-  const linhas = await sql`SELECT estado FROM vybe_vybes_estado`;
-  assert.equal(linhas.length, 1); assert.equal(linhas[0].estado.geradoEm, 2);
-  const i = linhas[0].estado.whatsapp.internos;
-  assert.deepEqual(i.grupos, ['Produção']);
-  assert.deepEqual(i.alertas.map((a) => a.grupo), ['Produção']);
-  assert.deepEqual(i.mensagens.map((m) => m.grupo), ['Produção']);
-  await assert.rejects(guardarEstadoVybes(sql, [1, 2]), /Estado inválido/);
+  await guardarEstadoVybes(sql, { tunel: TUNEL, outra: 'coisa' });
+  const [l] = await sql`SELECT estado FROM vybe_vybes_estado`;
+  assert.deepEqual(l.estado, { versao: 2, tunel: TUNEL });
+  await assert.rejects(guardarEstadoVybes(sql, { tunel: 'https://site-qualquer.com' }), /túnel inválido/);
+  await assert.rejects(guardarEstadoVybes(sql, [1]), /Estado inválido/);
 });
 
-test('vybes: quem age vê tudo; quem só vê não recebe o texto das conversas', async () => {
+test('vybes: a faixa abre a central com o crachá de quem entrou (age ou só vê; o Paulo é o dono)', async () => {
   const { sql } = await banco();
-  await guardarEstadoVybes(sql, ESTADO);
-  const op = await lerEstadoVybes(sql, sessao(3));
-  assert.equal(op.podeAgir, true);
-  assert.equal(op.estado.whatsapp.esperando[0].texto, 'Precisamos das guarnições');
-  const ve = await lerEstadoVybes(sql, sessao(5));
-  assert.equal(ve.podeAgir, false);
-  assert.equal(ve.estado.whatsapp.esperando[0].texto, undefined);
-  assert.equal(ve.estado.whatsapp.clientes[0].ultimo, undefined);
-  assert.deepEqual(ve.estado.whatsapp.internos, { n: 3, grupos: ['Produção'] });
-  assert.equal(ve.estado.prioridades[1].fato, '');
-  assert.match(ve.estado.jornada[0].texto, /disponível para quem acompanha/);
-  assert.equal(ve.estado.prioridades[0].fato, 'Para aprovação', 'o que não é conversa continua igual');
-  assert.equal(JSON.stringify(semConversas(null)), '{}');
+  await guardarEstadoVybes(sql, { tunel: TUNEL });
+  const agora = Date.now();
+  const v = await entradaVybes(sql, sessao(2), { env, agora });
+  assert.equal(v.agir, true);
+  assert.match(v.url, /^https:\/\/alegre-vybes-123\.trycloudflare\.com\/entrar\?t=/);
+  const cv = conferir(decodeURIComponent(v.url.split('t=')[1]));
+  assert.deepEqual({ ...cv, e: 0 }, { p: 2, n: 'Vinícius', a: true, d: false, e: 0 });
+  assert.ok(cv.e > agora && cv.e <= agora + 120e3, 'vale 2 min');
+  const b = conferir(decodeURIComponent((await entradaVybes(sql, sessao(5), { env, agora })).url.split('t=')[1]));
+  assert.equal(b.a, false);
+  assert.equal(conferir(decodeURIComponent((await entradaVybes(sql, sessao(1), { env, agora })).url.split('t=')[1])).d, true);
+  await assert.rejects(entradaVybes(sql, { tipo: 'servico' }, { env, agora }), /Entre no painel/);
+  await assert.rejects(entradaVybes(sql, sessao(2), { env, agora: agora + 11 * 60e3 }), /desligado agora/);
 });
 
 test('vybes: quem só vê não toma ação; quem age passa pelo executor das ações (preparar → confirmar)', async () => {

@@ -1,36 +1,29 @@
-// VYBES dentro do Vybe OS (decisão do Paulo, 02/11/2026: "os heads usam a interface como eu; Vinícius, Ewerton e Deivid
-// veem exatamente como eu e podem tomar as ações; os outros só veem"). O VYBES roda no PC do Paulo (WhatsApp, modelo
-// local, turno da noite) e publica aqui o mesmo estado que a central dele mostra (consulta `vybes_publicar` do bot).
-// - Quem está em vybe_vybes_operadores vê tudo e age, pelo MESMO executor das ações do assistente
-//   (prepararAcao/confirmarAcao: resumo, SIM e a permissão de cada pessoa conferida aqui no servidor).
-// - O resto da equipe só vê, e sem o texto das conversas (clientes e grupos internos).
-// - Diretoria e Vybe CEO nunca entram no estado publicado.
+// VYBES dentro do Vybe OS (decisão do Paulo, 02/11/2026: "é o nosso VYBES dentro lá, não uma interface nova").
+// A central do VYBES roda no PC do Paulo (o ser, a voz, o WhatsApp, o modelo local) e fica acessível por um túnel.
+// O bot publica aqui o endereço atual do túnel (consulta `vybes_publicar`); a faixa VYBES do painel pede um crachá
+// (`entradaVybes`) e abre a central com ele. O crachá diz quem é e se pode agir; a central confere a assinatura.
+// - Quem age (vybe_vybes_operadores: Paulo, Vinícius, Ewerton L., Deivid): as ações que pedem na central chegam pelo
+//   bot (consulta `vybes_acao`) e passam pelo MESMO executor das ações do assistente, com a permissão da pessoa.
+// - O resto da equipe só vê (a central não aceita pedido de quem não age).
 // Migração: migrations/2026-11-02-vybes.sql.
+import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 
-const LIMITE_BYTES = 700 * 1024;
-const GRUPOS_RESERVADOS = /diretoria|vybe\s*ceo/i;
+const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
+const CRACHA_VALE_MS = 2 * 60e3;
+const TUNEL_VELHO_MS = 10 * 60e3;
 
 function erro(mensagem, status) { return Object.assign(new Error(mensagem), { status }); }
 
-// O que o bot manda, conferido: objeto, tamanho limitado e sem os grupos reservados da direção.
-export function estadoPublicavel(estado) {
-  if (!estado || typeof estado !== 'object' || Array.isArray(estado)) throw erro('Estado inválido.', 400);
-  const e = structuredClone(estado);
-  const internos = e?.whatsapp?.internos;
-  if (internos && Array.isArray(internos.mensagens)) internos.mensagens = internos.mensagens.filter((m) => !GRUPOS_RESERVADOS.test(String(m?.grupo || '')));
-  if (internos && Array.isArray(internos.alertas)) internos.alertas = internos.alertas.filter((m) => !GRUPOS_RESERVADOS.test(String(m?.grupo || '')));
-  if (internos && Array.isArray(internos.grupos)) internos.grupos = internos.grupos.filter((g) => !GRUPOS_RESERVADOS.test(String(g || '')));
-  const bytes = Buffer.byteLength(JSON.stringify(e));
-  if (bytes > LIMITE_BYTES) throw erro('Estado grande demais.', 413);
-  return { e, bytes };
-}
-
+// O que o bot publica: só o endereço do túnel (e quando). Nada de dado de cliente passa por aqui.
 export async function guardarEstadoVybes(sql, estado) {
-  const { e, bytes } = estadoPublicavel(estado);
+  if (!estado || typeof estado !== 'object' || Array.isArray(estado)) throw erro('Estado inválido.', 400);
+  const tunel = estado.tunel == null ? null : String(estado.tunel);
+  if (tunel !== null && !TUNEL.test(tunel)) throw erro('Endereço do túnel inválido.', 400);
+  const e = { versao: 2, tunel };
   await sql`INSERT INTO vybe_vybes_estado (id, estado, atualizado_em) VALUES (1, ${JSON.stringify(e)}::jsonb, now())
     ON CONFLICT (id) DO UPDATE SET estado = EXCLUDED.estado, atualizado_em = now()`;
-  return { guardado: true, bytes };
+  return { guardado: true };
 }
 
 export async function podeAgirNoVybes(sql, quem) {
@@ -41,30 +34,34 @@ export async function podeAgirNoVybes(sql, quem) {
   return Boolean(r?.ok);
 }
 
-// Para quem só vê: os números, nomes e peças ficam; o texto das conversas (cliente e time) sai.
-export function semConversas(estado) {
-  const e = structuredClone(estado || {});
-  const w = e.whatsapp;
-  if (w) {
-    for (const c of w.clientes || []) { delete c.ultimo; delete c.texto; }
-    for (const c of w.esperando || []) delete c.texto;
-    if (w.internos) w.internos = { n: w.internos.n || 0, grupos: w.internos.grupos || [] };
-    delete w.mensagens;
-  }
-  for (const s of e.jornada || []) if (s.tipo === 'whatsapp') { s.texto = 'Resumo do WhatsApp disponível para quem acompanha os clientes.'; s.dados = {}; }
-  for (const p of e.prioridades || []) if (/^clientes$|^pedido-/.test(String(p.id || ''))) { p.fato = ''; p.itens = (p.itens || []).map((i) => ({ titulo: i.titulo })); }
-  return e;
+// Mesmo formato do crachá que a central confere (entrada-vybes.js no PC): corpo base64url + HMAC com a chave derivada
+// da credencial que os dois já compartilham (VYBE_AI_BOT_TOKEN), só para isto.
+export function assinarCracha(dados, base = process.env.VYBE_AI_BOT_TOKEN) {
+  const b = String(base || '').trim();
+  if (!/^[A-Za-z0-9_-]{48,256}$/.test(b)) throw erro('VYBES indisponível agora.', 503);
+  const chave = createHmac('sha256', b).update('vybes-entrada-v1').digest();
+  const corpo = Buffer.from(JSON.stringify(dados)).toString('base64url');
+  return corpo + '.' + createHmac('sha256', chave).update(corpo).digest('base64url');
 }
 
-export async function lerEstadoVybes(sql, quem) {
+// Faixa VYBES: o link de entrada na central, com o crachá de quem está logado (vale 2 min; a central troca por um cookie).
+export async function entradaVybes(sql, quem, { env = process.env, agora = Date.now() } = {}) {
+  const id = Number(quem?.pessoa?.id);
+  if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) throw erro('Entre no painel para abrir o VYBES.', 401);
   const [linha] = await sql`SELECT estado, atualizado_em FROM vybe_vybes_estado WHERE id = 1`;
-  const podeAgir = await podeAgirNoVybes(sql, quem);
-  if (!linha) return { estado: null, atualizadoEm: null, podeAgir };
-  return { estado: podeAgir ? linha.estado : semConversas(linha.estado), atualizadoEm: linha.atualizado_em, podeAgir };
+  const tunel = linha?.estado?.tunel;
+  if (!tunel || !TUNEL.test(tunel) || agora - Date.parse(linha.atualizado_em) > TUNEL_VELHO_MS)
+    throw erro('O VYBES do PC do Paulo está desligado agora. Tente de novo em alguns minutos.', 503);
+  const [p] = await sql`SELECT id, nome FROM vybe_pessoas WHERE id = ${id} AND ativo IS TRUE`;
+  if (!p) throw erro('Pessoa inativa.', 403);
+  const agir = await podeAgirNoVybes(sql, quem);
+  const dono = id === Number(env.VYBE_AI_ADMIN_PESSOA_ID);
+  const t = assinarCracha({ p: id, n: String(p.nome || '').slice(0, 60), a: agir, d: dono, e: agora + CRACHA_VALE_MS }, env.VYBE_AI_BOT_TOKEN);
+  return { url: `${tunel}/entrar?t=${encodeURIComponent(t)}`, agir };
 }
 
-// Ação pelo VYBES: só quem é operador; o resto é o executor das ações do assistente (que confere a permissão da pessoa
-// em cada ação, como no WhatsApp). preparar → resumo + código; confirmar → executa (o "SIM").
+// Ação pedida na central por quem entrou pelo Vybe OS: só quem age; o resto é o executor das ações do assistente
+// (que confere a permissão da pessoa em cada ação, como no WhatsApp). preparar → resumo + código; confirmar → executa.
 export async function acaoVybes(sql, quem, corpo, { segredo = process.env.VYBE_AI_LINK_SECRET, executar } = {}) {
   if (!(await podeAgirNoVybes(sql, quem))) throw erro('No VYBES, só Paulo, Vinícius, Ewerton e Deivid tomam ações. Você pode ver tudo.', 403);
   const pessoaId = Number(quem.pessoa.id);
@@ -75,11 +72,10 @@ export async function acaoVybes(sql, quem, corpo, { segredo = process.env.VYBE_A
 
 export async function areaVybes(req, res, quem, sql) {
   try {
-    if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await lerEstadoVybes(sql, quem)) });
-    if (req.method === 'POST') return res.status(200).json({ ok: true, ...(await acaoVybes(sql, quem, req.body || {})) });
-    return res.status(405).json({ error: 'Método não permitido.' });
+    if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
+    return res.status(405).json({ error: 'Use a faixa VYBES para abrir a central.' });
   } catch (e) {
     const status = e.status || (e instanceof TypeError ? 400 : 500);
-    return res.status(status).json({ error: status >= 500 ? 'Não foi possível concluir agora.' : e.message });
+    return res.status(status).json({ error: status >= 500 && status !== 503 ? 'Não foi possível abrir o VYBES agora.' : e.message });
   }
 }
