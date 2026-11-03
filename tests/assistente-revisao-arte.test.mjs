@@ -89,3 +89,25 @@ test('prévia da peça: o vídeo do link de entrega (arquivo ou pasta do dia) ve
   const a = await previaDaPeca(sql, 'vybe:201', { buscar, pegarToken: async () => 't', pasta: async () => { throw Error('não é pasta'); } });
   assert.equal(a.midias[0].drive, 'ARQUIVO_FINAL_9'); assert.equal(a.midias[0].video, true);
 });
+
+test('prévia da peça: sem miniatura pela API do Drive, usa o endereço público que o painel usa', async () => {
+  const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
+    CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+    CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text,criado_em timestamptz);
+    CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,drive_file_id text,criado_em timestamptz,ausente_em timestamptz);
+    INSERT INTO vybe_conteudos VALUES (300,7829537690,'Card - Agenda Musical','Card',NULL,NULL,NULL);
+    INSERT INTO vybe_conteudo_arquivos VALUES (1,300,'agenda.png','png',1,'ARTE_DA_AGENDA','2026-11-02 10:00',NULL);`);
+  const pedidas = [];
+  const r = await previaDaPeca(sql, 'vybe:300', { pegarToken: async () => 't', buscar: async (url) => {
+    pedidas.push(url);
+    if (/googleapis/.test(url)) return new Response(JSON.stringify({}), { status: 200 }); // a API não dá miniatura
+    if (/drive\.google\.com\/thumbnail\?id=ARTE_DA_AGENDA&sz=w1600/.test(url)) return new Response(Buffer.from('PNG'), { headers: { 'content-type': 'image/png' } });
+    return new Response('nada', { status: 404 });
+  } });
+  assert.equal(r.midias.length, 1); assert.equal(r.midias[0].drive, 'ARTE_DA_AGENDA'); assert.equal(r.midias[0].mimetype, 'image/png');
+  assert.ok(pedidas.some((u) => /drive\.google\.com\/thumbnail/.test(u)));
+});
