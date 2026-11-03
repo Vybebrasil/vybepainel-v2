@@ -156,6 +156,15 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
      .sort((a,b)=>ORDEM_PAPEIS.indexOf(a.papel)-ORDEM_PAPEIS.indexOf(b.papel)||a.nome.localeCompare(b.nome,'pt-BR'));
    }
   }
+  // O grupo do quadro em que cada demanda está (Redação, Produção, Design & Edição, Gestão de publicações…), para o
+  // VYBES mostrar a etapa na tela (Paulo, 03/11/2026). Sem a tabela de grupos ou a coluna, a resposta fica igual.
+  if(itens.length){
+   const [tg]=await sql`SELECT (to_regclass('public.vybe_grupos') IS NOT NULL AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='grupo_id')) AS ok`;
+   if(tg?.ok){
+    const gs=await sql`SELECT c.id::text AS id,g.titulo AS grupo FROM vybe_conteudos c JOIN vybe_grupos g ON g.board_id=c.board_id AND g.grupo_id=c.grupo_id WHERE c.id::text=ANY(${itens.map(i=>i.id)}::text[])`;
+    const por=new Map(gs.map(x=>[x.id,x.grupo]));for(const i of itens)if(por.has(i.id))i.grupo=por.get(i.id);
+   }
+  }
  }else if(nome==='listar_clientes'){
   modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_responsaveis'){
