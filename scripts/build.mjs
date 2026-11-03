@@ -3,7 +3,10 @@ import { createHash } from 'node:crypto';
 import { transform } from 'esbuild';
 
 let html = await readFile('index.html', 'utf8');
-const fontes = [...html.matchAll(/<script\s+src="\/([^"?]+)"\s*><\/script>/g)].map((m) => m[1]);
+// Os módulos sob demanda (vybe-sob-demanda.js) ganham hash como os outros;
+// só não rodam na abertura.
+const SCRIPT = /<script(\s+type="vybe\/sob-demanda"\s+data-grupo="[\w-]+")?\s+src="\/([^"?]+)"\s*><\/script>/g;
+const fontes = [...html.matchAll(SCRIPT)].map((m) => m[2]);
 if (!fontes.length) throw new Error('Nenhum módulo encontrado.');
 // Preserva os limites entre scripts: concatenar mudaria o momento em que
 // declarações globais substituem funções anteriores (hoisting).
@@ -40,8 +43,9 @@ const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'v
 const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia).replaceAll('/assets/vybes-ser.webp', vybesSer), 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
-html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
-  (_,fonte) => `<script defer src="${caminhos.get(fonte)}"></script>`);
+html = html.replace(SCRIPT, (_, sobDemanda, fonte) => sobDemanda
+  ? `<script${sobDemanda} src="${caminhos.get(fonte)}"></script>`
+  : `<script defer src="${caminhos.get(fonte)}"></script>`);
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);

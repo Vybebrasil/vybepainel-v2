@@ -5,7 +5,6 @@
 // e prêmio ficam no servidor (server/escritorio-domino.js e escritorio-mesas.js);
 // aqui só se desenha a mesa e se pede a jogada. O aviso de "a partida mudou"
 // vai pelo balão de comando (dmn=<id>:<para>:<c|l>).
-const ESCRITORIO_DOMINO = /gamingtable/;
 const DOMINO_CFG = registrarMesaEscritorio({
   nome: "Dominó", artigo: "o dominó", extra: { jogo: "domino" }, sinal: "dmn",
   nota: "Até 100 pontos, em várias mãos; começa quem tem a maior carroça.", desenhar: (j, s) => desenharDomino(j, s),

@@ -90,15 +90,20 @@ function escritorioFotoDoPersonagem(perfil) {
   u.fotoReal ??= u.photo;
   u.photo = mapaCabecaUrl(perfil) || u.fotoReal;
 }
+// Leituras iguais em andamento (o lobby e o cartão de missões pedem as missões
+// juntos ao abrir): uma ida ao servidor serve a todos, e cada um lê a sua
+// própria cópia da resposta.
+const ESCRITORIO_LEITURAS = new Map();
 async function escritorioApi(acao, corpo, consulta = null) {
   // Convidado: só a entrada e a voz, pela área dele (o resto é da equipe).
   if (window.ESCRITORIO_CONVIDADO) {
     if (acao === "entrada" || acao === "chamada") return convidadoPedir(acao, acao === "chamada" ? corpo : null);
     throw new Error("Isto é só da equipe da Vybe.");
   }
-  const r = await fetch(
-    "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao) + (consulta ? "&" + new URLSearchParams(consulta) : ""),
-    {
+  const endereco = "/api/painel?area=escritorio&acao=" + encodeURIComponent(acao) + (consulta ? "&" + new URLSearchParams(consulta) : "");
+  let resposta = !corpo && ESCRITORIO_LEITURAS.get(endereco);
+  if (!resposta) {
+    resposta = fetch(endereco, {
       credentials: "same-origin",
       cache: "no-store",
       method: corpo ? "POST" : "GET",
@@ -106,11 +111,17 @@ async function escritorioApi(acao, corpo, consulta = null) {
       // A rota vai no endereço; o "acao" do próprio pedido (aceitar, recusar,
       // desistir…) não pode ser trocado pelo nome da rota.
       body: corpo ? JSON.stringify({ acao, ...corpo }) : undefined,
-    },
-  );
+    }).then(async (r) => ({ ok: r.ok, status: r.status, texto: await r.text().catch(() => "") }));
+    if (!corpo) {
+      ESCRITORIO_LEITURAS.set(endereco, resposta);
+      resposta.finally(() => ESCRITORIO_LEITURAS.delete(endereco)).catch(() => {});
+    }
+  }
+  const r = await resposta;
   // Resposta sem JSON (página de erro da hospedagem, envio grande demais):
   // avisa em português, em vez de "Unexpected token".
-  const d = await r.json().catch(() => ({}));
+  let d;
+  try { d = JSON.parse(r.texto) ?? {}; } catch { d = {}; }
   if (!r.ok || !d.ok)
     throw Object.assign(new Error(d.error || (r.status === 413 ? "O envio é grande demais para o servidor." : `Não foi possível acessar o escritório (${r.status}).`)), {status:r.status});
   if (acao === "perfil" && corpo && d.perfil) escritorioFotoDoPersonagem(d.perfil);
@@ -625,7 +636,7 @@ async function carregarLobbyEscritorio() {
   };
   const tarefas = [
     escritorioApi("missoes").then((d) => { const l = d.missoes || []; espera.missoes = l.filter((m) => m.hoje || m.atrasada).length; espera.atrasadas = l.filter((m) => m.atrasada).length; pintar(); }).catch(() => {}),
-    escritorioApi("cobrancas", null, { pessoa: eu }).then((d) => { espera.cobrancas = (d.cobrancas || []).length; pintar(); }).catch(() => {}),
+    escritorioApi("cobrancas", null, { pessoa: eu }).then((d) => { escritorio.cobrancasDoLobby = { pessoa: eu, em: Date.now(), lista: d.cobrancas || [] }; espera.cobrancas = (d.cobrancas || []).length; pintar(); }).catch(() => {}),
     escritorioApi("recados-resumo").then((d) => { espera.recados = (d.resumo || []).reduce((t, r) => t + Number(r.nao_lidos || 0), 0); pintar(); }).catch(() => {}),
     escritorioApi("lobby").then((d) => { escritorio.lobbyNovidades = d.noticias || []; montarNoticiasLobbyEscritorio(); }).catch(() => {}),
     escritorioApi("ranking").then((d) => {
@@ -2384,7 +2395,7 @@ function montarMapaEscritorio() {
     requestAnimationFrame(() => escritorio.mapa?.enquadrarQuarto());
     // Se a posição salva ficou presa (móvel em volta), sai pelo ladrilho livre
     // mais perto que tenha caminho até a recepção.
-    escritorio.mapa.prontos.then(() => { posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); carregarBauEscritorio(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof escritorioOcuparSubsolo === "function") escritorioOcuparSubsolo(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
+    escritorio.mapa.prontos.then(() => { escritorio.timerResumoJogos ||= setInterval(() => escritorioResumoJogos(false), 5000); posicionarTacaEscritorio(); escritorioDestravar(); escritorioMarcarRecados(); escritorioMarcarDia(); carregarBauEscritorio(); escritorioAtualizarPortas(); escritorioAcenderReguladores(); carregarPostitsEscritorio(); escritorioOcuparOperacao(); if (typeof escritorioOcuparSubsolo === "function") escritorioOcuparSubsolo(); if (typeof vigiarCobrancasEscritorio === "function") vigiarCobrancasEscritorio(); });
     if (escritorio.estadosMoveis) escritorio.mapa.estadosMoveis(escritorio.estadosMoveis);
     escritorio.mapa.prontos.then(() => { if (typeof notificacoes !== "undefined") escritorioAvisos(notificacoes); });
     // Cópia do próprio boneco no nosso banco, para quando o Habbo estiver fora.
@@ -3297,7 +3308,7 @@ function escritorioAplicarComando(id, cmd) {
   else if (k === "pkr") pokerSinalEscritorio(id, v);
   else if (k === "snc") sinucaSinalEscritorio(id, v);
   // As outras mesas de jogo (dama, velha, truco…) pela chave que cada uma registrou.
-  else if (typeof ESCRITORIO_MESAS !== "undefined" && ESCRITORIO_MESAS[k]) mesaSinalEscritorio(ESCRITORIO_MESAS[k], id, v);
+  else if (ESCRITORIO_SINAIS_MESAS.includes(k)) mesaSinalPorChave(k, id, v);
   // Item de mão entregue (como no Habbo): só quem recebe aplica.
   else if (k === "dar") {
     const [para, pose] = String(v || "").split(":");
@@ -3455,6 +3466,53 @@ function escritorioDigitando(sim) {
     escritorio.digitando = false;
     escritorioComandoBoneco("dig=0");
   }
+}
+// Mesas de jogo: o móvel diz que jogo abre. O jogo em si (xadrez, dominó,
+// pôquer, sinuca, dama, velha, truco) carrega no primeiro clique.
+const ESCRITORIO_XADREZ = /chessboard/;
+const ESCRITORIO_DOMINO = /gamingtable/;
+const ESCRITORIO_POKER = /^wildwest_table$/;
+const ESCRITORIO_SINUCA = /pooltable/;
+// Chaves de sinal registradas pelas mesas (registrarMesaEscritorio).
+const ESCRITORIO_SINAIS_MESAS = ["dmn", "pkr", "snc", "dam", "vlh", "trc"];
+// Móveis que abrem um jogo com a equipe (a Loja os destaca e o cartão ganha a
+// etiqueta "Jogo"): o nome do jogo, ou null.
+function escritorioJogoDoMovel(classe) {
+  const c = String(classe || "");
+  return ESCRITORIO_XADREZ.test(c) ? "Xadrez" : ESCRITORIO_DOMINO.test(c) ? "Dominó, dama, velha e truco" : ESCRITORIO_POKER.test(c) ? "Pôquer" : ESCRITORIO_SINUCA.test(c) ? "Sinuca" : null;
+}
+// Placas em cima das mesas com partida nesta cena (quem passa sabe que pode
+// assistir) e aviso dos convites que chegaram enquanto a pessoa não estava no
+// escritório. Relê a cada 20 s, logo que a cena muda e quando chega aviso
+// de jogo. Fica no núcleo porque roda com a cena; os jogos em si carregam
+// sob demanda (vybe-sob-demanda.js).
+const MESAS_NOMES = { xadrez: "Xadrez", domino: "Dominó", poker: "Pôquer", sinuca: "Sinuca", dama: "Dama", velha: "Velha", truco: "Truco" };
+function escritorioResumoJogos(agora) {
+  if (typeof escritorio === "undefined" || !escritorio.mapa?.marcador || !escritorio.base || escritorio.base.demo || document.hidden) return;
+  const r = (escritorio.resumoJogos ||= { cena: null, em: 0, placas: new Set(), avisados: new Set() });
+  const cena = escritorio.quarto || "praca";
+  if (!agora && cena === r.cena && Date.now() - r.em < 20000) return;
+  r.cena = cena; r.em = Date.now();
+  escritorioApi("jogos-resumo", null, { camada: cena }).then((d) => {
+    if ((escritorio.quarto || "praca") !== cena || !escritorio.mapa) return;
+    const novas = new Set();
+    for (const a of d.ativas || []) {
+      const m = /@(\d+),(\d+)$/.exec(a.movel);
+      if (!m) continue;
+      const id = "jogo-" + a.movel;
+      novas.add(id);
+      escritorio.mapa.marcador(id, Number(m[1]), Number(m[2]), `<span class="mesa-ocupada"><b>${MESAS_NOMES[a.jogo] || "Jogo"}</b>${a.nomes.map((n) => safeText(String(n).split(" ")[0])).join(" × ")}</span>`, 70);
+    }
+    for (const id of r.placas) if (!novas.has(id)) escritorio.mapa.marcador(id, 0, 0, null);
+    r.placas = novas;
+    for (const c of d.convites || []) {
+      const k = c.jogo + ":" + c.id;
+      if (r.avisados.has(k)) continue;
+      r.avisados.add(k);
+      // O aviso com Aceitar, Ver e Recusar fica nos jogos, que carregam só aqui.
+      avisarConviteDeJogo(c);
+    }
+  }).catch(() => {});
 }
 // Dado do Habbo: rola (estado 100) e cai num número de 1 a 6, que todos veem.
 const ESCRITORIO_DADO = /^edice/;

@@ -9,7 +9,6 @@
 // Clique/toque no pano confirma a mira. Um clique na força apenas escolhe;
 // arrasto deliberado dispara com a direção capturada no início do gesto.
 // Cancelamento, troca de vez e ponteiros concorrentes nunca concluem uma tacada.
-const ESCRITORIO_SINUCA = /pooltable/;
 const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
   // A tacada já toca os sons dela na animação.

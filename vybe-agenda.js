@@ -91,7 +91,7 @@ function commandResponsibleHtml(d) {
   }
   const names = users.map(u => u.name).join(', ');
   const avatars = users.slice(0,3).map(user => user.photo
-    ? `<img class="command-avatar" src="${user.photo}" alt="${safeText(user.name)}" title="${safeText(user.name)}" onerror="this.outerHTML='<span class=command-avatar-fallback style=background:${user.color}>${user.name.slice(0,2).toUpperCase()}</span>'">`
+    ? `<img class="command-avatar" src="${user.photo}" loading="lazy" decoding="async" alt="${safeText(user.name)}" title="${safeText(user.name)}" onerror="this.outerHTML='<span class=command-avatar-fallback style=background:${user.color}>${user.name.slice(0,2).toUpperCase()}</span>'">`
     : `<span class="command-avatar-fallback" style="background:${user.color}" title="${safeText(user.name)}">${user.name.slice(0,2).toUpperCase()}</span>`
   ).join('');
   const suffix = users.length > 3 ? `<span class="command-avatar-fallback" style="background:#4b5563" title="${safeText(names)}">+${users.length-3}</span>` : '';

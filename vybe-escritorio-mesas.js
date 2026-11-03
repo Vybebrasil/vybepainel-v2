@@ -37,12 +37,6 @@ function registrarMesaEscritorio(cfg) {
   ESCRITORIO_MESAS[cfg.sinal] = cfg;
   return cfg;
 }
-// Móveis que abrem um jogo com a equipe (a Loja os destaca e o cartão ganha a
-// etiqueta "Jogo"): o nome do jogo, ou null.
-function escritorioJogoDoMovel(classe) {
-  const c = String(classe || "");
-  return ESCRITORIO_XADREZ.test(c) ? "Xadrez" : ESCRITORIO_DOMINO.test(c) ? "Dominó, dama, velha e truco" : ESCRITORIO_POKER.test(c) ? "Pôquer" : ESCRITORIO_SINUCA.test(c) ? "Sinuca" : null;
-}
 function escritorioMesa(chave) {
   return ((escritorio.mesas ||= {})[chave] ||= { jogo: null, sel: null, timer: null });
 }
@@ -347,38 +341,17 @@ async function revancheEscritorio(chave, botao) {
   }
 }
 
-// Placas em cima das mesas com partida nesta cena (quem passa sabe que pode
-// assistir) e aviso dos convites que chegaram enquanto a pessoa não estava no
-// escritório. Relê a cada 20 s, logo que a cena muda e quando chega aviso de jogo.
-const MESAS_NOMES = { xadrez: "Xadrez", domino: "Dominó", poker: "Pôquer", sinuca: "Sinuca", dama: "Dama", velha: "Velha", truco: "Truco" };
-function escritorioResumoJogos(agora) {
-  if (typeof escritorio === "undefined" || !escritorio.mapa?.marcador || !escritorio.base || escritorio.base.demo || document.hidden) return;
-  const r = (escritorio.resumoJogos ||= { cena: null, em: 0, placas: new Set(), avisados: new Set() });
-  const cena = escritorio.quarto || "praca";
-  if (!agora && cena === r.cena && Date.now() - r.em < 20000) return;
-  r.cena = cena; r.em = Date.now();
-  escritorioApi("jogos-resumo", null, { camada: cena }).then((d) => {
-    if ((escritorio.quarto || "praca") !== cena || !escritorio.mapa) return;
-    const novas = new Set();
-    for (const a of d.ativas || []) {
-      const m = /@(\d+),(\d+)$/.exec(a.movel);
-      if (!m) continue;
-      const id = "jogo-" + a.movel;
-      novas.add(id);
-      escritorio.mapa.marcador(id, Number(m[1]), Number(m[2]), `<span class="mesa-ocupada"><b>${MESAS_NOMES[a.jogo] || "Jogo"}</b>${a.nomes.map((n) => safeText(String(n).split(" ")[0])).join(" × ")}</span>`, 70);
-    }
-    for (const id of r.placas) if (!novas.has(id)) escritorio.mapa.marcador(id, 0, 0, null);
-    r.placas = novas;
-    for (const c of d.convites || []) {
-      const k = c.jogo + ":" + c.id;
-      if (r.avisados.has(k)) continue;
-      r.avisados.add(k);
-      // O aviso com Aceitar, Ver e Recusar (vybe-escritorio-xadrez.js).
-      const cfg = c.jogo === "xadrez" ? XADREZ_CFG : Object.values(ESCRITORIO_MESAS).find((x) => x.extra.jogo === c.jogo);
-      if (!cfg) continue;
-      escritorioApi(cfg.lista, null, { id: c.id }).then((v) => v.jogo?.estado === "convite" && mesaConviteAviso(v.jogo, cfg))
-        .catch(() => escritorioAviso(`${String(c.de).split(" ")[0]} te chamou para ${MESAS_NOMES[c.jogo]?.toLowerCase() || "um jogo"}. Clique na mesa do jogo para responder.`));
-    }
-  }).catch(() => {});
+// Convite que chegou enquanto a pessoa não estava no escritório: o resumo das
+// mesas (vybe-escritorio.js) acha; o aviso com Aceitar, Ver e Recusar é o do
+// xadrez (vybe-escritorio-xadrez.js), que só carrega quando há o que mostrar.
+function avisarConviteDeJogo(c) {
+  const cfg = c.jogo === "xadrez" ? XADREZ_CFG : Object.values(ESCRITORIO_MESAS).find((x) => x.extra.jogo === c.jogo);
+  if (!cfg) return;
+  escritorioApi(cfg.lista, null, { id: c.id }).then((v) => v.jogo?.estado === "convite" && mesaConviteAviso(v.jogo, cfg))
+    .catch(() => escritorioAviso(`${String(c.de).split(" ")[0]} te chamou para ${MESAS_NOMES[c.jogo]?.toLowerCase() || "um jogo"}. Clique na mesa do jogo para responder.`));
 }
-setInterval(() => escritorioResumoJogos(false), 5000);
+// Sinal das mesas sem chave própria no núcleo (dama, velha…), pela chave que
+// cada jogo registrou.
+function mesaSinalPorChave(k, de, v) {
+  if (ESCRITORIO_MESAS[k]) mesaSinalEscritorio(ESCRITORIO_MESAS[k], de, v);
+}

@@ -8,7 +8,6 @@
 // O convite, a aposta e o aviso servem a todas as mesas de jogo: cada jogo
 // passa a sua configuração (o dominó, em vybe-escritorio-domino.js, usa as
 // mesmas telas com as rotas "mesa").
-const ESCRITORIO_XADREZ = /chessboard/;
 const XADREZ_CFG = {
   nome: "Xadrez", artigo: "o xadrez", lista: "xadrez", desafiar: "xadrez-desafiar", responder: "xadrez-responder", extra: { jogo: "xadrez" },
   sinal: "xdz", nota: "As cores são sorteadas.", abrir: (j) => abrirJogoXadrez(j),

@@ -12,7 +12,6 @@
 // nova; o balão com a fala dos clientes (os bots, com as piadas sobre as
 // demandas) e a barra de ações embaixo (largar, passar/pagar e aumentar com
 // os atalhos de valor).
-const ESCRITORIO_POKER = /^wildwest_table$/;
 const POKER_CFG = registrarMesaEscritorio({
   nome: "Pôquer", artigo: "o pôquer", extra: { jogo: "poker" }, sinal: "pkr", grupo: 8,
   som: (j, antes) => (j.mesa?.mao !== antes?.mesa?.mao ? "embaralhar" : ["pagou", "apostou", "aumentou", "all-in"].includes(j.mesa?.ultimo?.acao) ? "fichas"

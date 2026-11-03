@@ -217,7 +217,11 @@ test('o diagnóstico de automação explica cada recusa em português, com nome 
 
 test('o diagnóstico nunca responde silêncio: as três situações têm texto próprio', () => {
   // A data "em 09/09 às 11:20" vem do núcleo, como no painel.
-  const c = carregar('vybe-core.js', 'vybe-automacoes-ui.js');
+  const c = carregar('vybe-core.js');
+  // Os nomes dos grupos moram no vybe-grupos.js (sempre carregado); as automações leem.
+  const grupos = fs.readFileSync('vybe-grupos.js', 'utf8');
+  vm.runInContext(grupos.slice(grupos.indexOf('const GRUPOS_NOME'), grupos.indexOf('};', grupos.indexOf('const GRUPOS_NOME')) + 2), c);
+  vm.runInContext(fs.readFileSync('vybe-automacoes-ui.js', 'utf8'), c);
   c.safeText = (v) => String(v ?? '');
   vm.runInContext(`CATALOGOS = { status: [], captacao: [{chave:'captacao_feita',rotulo:'Captação Feita'}],
     formatos: [], grupos: [], pessoas: [] };`, c);

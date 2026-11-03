@@ -17,16 +17,6 @@
 
 const AUTOMACOES_API = '/api/painel?area=automacoes';
 
-// Os grupos do quadro têm id técnico e nome de gente. O servidor manda os dois,
-// mas este mapa fica como rede: grupo que sumiu do quadro ainda aparece nomeado
-// nas regras antigas em vez de virar "novo_grupo22352__1" na cara da pessoa.
-const GRUPOS_NOME = {
-  'novo_grupo31348__1': 'Finalizados',
-  'novo_grupo57911__1': 'Produção (Foto e Vídeo, à Captar)',
-  'novo_grupo__1': 'Design & Edição',
-  'group_title': 'Redação',
-  'novo_grupo22352__1': 'Gestão de publicações',
-};
 
 let AUTOMACOES = [];
 let EXECUCOES = [];
