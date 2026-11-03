@@ -6,6 +6,7 @@ import {memoriaDoCliente,legendasAprovadas} from './assistente-memoria.js';
 import {sugerirResponsavel} from './assistente-saude.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
 import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
+import {figuraDoPerfil} from './escritorio-figura.js';
 import {pecasComRevisao} from './planejamento-documento.js';
 import {normalizarConteudo} from './planejamentos.js';
 const inteiro={type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER};
@@ -158,7 +159,12 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
  }else if(nome==='listar_clientes'){
   modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_responsaveis'){
-  modulo='pessoas';itens=await sql`SELECT id::text,nome,papel,disciplina FROM vybe_pessoas WHERE ativo AND pode_entrar AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
+  modulo='pessoas';
+  // Com o boneco do Escritório (só a figura do Habbo; o resto das preferências não sai), para o VYBES mostrar cada pessoa.
+  const [perfis]=await sql`SELECT to_regclass('public.vybe_escritorio_perfis') IS NOT NULL AS existe`;
+  itens=perfis?.existe?await sql`SELECT p.id::text,p.nome,p.papel,p.disciplina,e.preferencias FROM vybe_pessoas p LEFT JOIN vybe_escritorio_perfis e ON e.pessoa_id=p.id WHERE p.ativo AND p.pode_entrar AND (${q}='' OR p.nome ILIKE '%'||${q}||'%') ORDER BY p.nome,p.id LIMIT ${limit} OFFSET ${offset}`
+   :await sql`SELECT id::text,nome,papel,disciplina FROM vybe_pessoas WHERE ativo AND pode_entrar AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
+  if(perfis?.existe)itens=itens.map(({preferencias,...p})=>({...p,figura:figuraDoPerfil(preferencias)}));
  }else if(['listar_planejamentos','detalhar_planejamento'].includes(nome)){
   modulo='planejamentos';const id=a.id||null,limiteConsulta=id?1:limit,offsetConsulta=id?0:offset;
   itens=await sql`SELECT p.id::text,p.cliente_id::text,cl.nome AS cliente,p.mes::text,p.titulo,p.estado,p.atualizado_em::text,
