@@ -22,6 +22,7 @@ import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes
 import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './assistente-avisos.js';
 import { resumosDaSemana, resultadoDosPosts, diagnosticoJarvis } from './assistente-hub.js';
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
+import { guardarEstadoVybes, acaoVybes } from './vybes.js';
 import { saudeDosClientes, pecasSemBriefing } from './assistente-saude.js';
 import { compromissosProximos } from './assistente-compromissos.js';
 import { guardarIdeia } from './assistente-regras.js';
@@ -89,12 +90,19 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
       const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
+      // VYBES: o estado que a central do PC do Paulo mostra, publicado para o módulo VYBES do painel (server/vybes.js).
+      if (consulta === 'vybes_publicar') return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(banco, req.body?.estado)) });
+      // Ação pedida na central do VYBES por quem entrou pelo Vybe OS: com a permissão DELA (não a do Paulo).
+      if (consulta === 'vybes_acao') {
+        try { return res.status(200).json({ ok: true, ...(await acaoVybes(banco, { tipo: 'sessao', pessoa: { id: Number(req.body?.pessoa) } }, req.body || {}, { segredo })) }); }
+        catch (erro) { if (erro.publica || erro.status === 403) return res.status(200).json({ ok: true, recusa: erro.message }); throw erro; }
+      }
       if (consulta === 'identificar') return res.status(200).json({ ok: true, pessoas: await identificarParticipantes(banco, req.body?.participantes, segredo) });
       if (consulta === 'avisos') return res.status(200).json({ ok: true, avisos: await avisosDeStatus(banco, { desde: req.body?.desde }) });
       if (consulta === 'encaixe') return res.status(200).json({ ok: true, ...(await encaixeCaptacao(banco, req.body?.dia)) });

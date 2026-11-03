@@ -152,6 +152,17 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   guarda a demanda criada; o planejamento vira "Cadastrado" junto, sem duplicar. Migração `2026-10-20-planejamentos.sql` já aplicada em
   19/10/2026. Consulte `docs/planejamentos-plano.md`.
 
+## VYBES no painel (decisão do Paulo, 02/11/2026)
+
+- É o próprio VYBES (a central do PC do Paulo: o ser, a voz, a sala, a jornada), não uma tela do painel. Não recrie
+  a interface dele aqui. A faixa VYBES da tela inicial (`vybe-vybes.js`) pede um crachá (`area=vybes`, etapa
+  `entrar`, `server/vybes.js`) e abre a central pelo túnel cujo endereço o bot publica (`vybes_publicar`).
+- O crachá vale 2 min, é assinado com a chave derivada de `VYBE_AI_BOT_TOKEN` (rótulo `vybes-entrada-v1`) e diz quem é,
+  se age e se é o Paulo; a central confere e troca por um cookie de até 12 h. "Senhor" é só do Paulo.
+- Quem age (`vybe_vybes_operadores`: Paulo, Vinícius, Ewerton L. e Deivid): os pedidos feitos na central chegam pelo
+  bot (`vybes_acao`) e passam pelo MESMO executor das ações do assistente (`prepararAcao`/`confirmarAcao`) com a
+  permissão da pessoa. O resto só vê. Migração `2026-11-02-vybes.sql`.
+
 ## Escritório integrado
 
 - Edição de decoração (decisão do Paulo, 19/10/2026): cada pessoa edita
