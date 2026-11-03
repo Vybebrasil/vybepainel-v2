@@ -7,6 +7,7 @@ import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { MARCAS_BRIEFING } from './briefing.js';
 import { textoDoHistorico } from './texto-historico.js';
 import { regrasDaPeca } from './assistente-regras.js';
+import { videosDaPasta, notaDoVideo } from './drive-videos.js';
 
 const IMAGEM = /^(png|jpe?g|webp)$/i;
 const MAX_DIRETO = 2.5 * 1024 * 1024; // A resposta da função cabe em ~4 MB; acima disso vai a miniatura do Drive.
@@ -57,7 +58,32 @@ export async function arteDaPeca(sql, ref, { baixar = baixarDoDrive, buscar = fe
 // Prévia da peça para ir junto do aviso no WhatsApp (Paulo, 27/10/2026: "mandar a demanda junto, seja card,
 // carrossel ou vídeo"). A última entrega inteira (arquivos subidos até 15 min antes do mais recente, até 10, como as
 // lâminas de um carrossel), sempre pela miniatura do Drive: leve, e vale para imagem, vídeo (capa) e PDF.
-export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = tokenGoogle } = {}) {
+// O link de entrega, do mesmo jeito que o olho da prévia do painel acha o vídeo (vybe-material.js: materialDaPeca e
+// pastaDaPrevia). Paulo, 03/11/2026: "pode pegar as peças do mesmo jeito que o Vybe OS pega, até pra não duplicar".
+// Reels costuma entrar como link do Drive (o vídeo passa do limite do upload): arquivo → ele mesmo; pasta do dia → o
+// vídeo que mais combina com a peça (cliente e título). Só leitura; o player abre para quem vê o arquivo no Drive.
+const VIDEO_DO_FORMATO = /reels|v[ií]deo|audiovisual|motion/i;
+async function videoDaEntrega(sql, c, { buscar, pegarToken, pasta = videosDaPasta } = {}) {
+  let notas = [];
+  try { notas = await sql`SELECT corpo FROM vybe_conteudo_updates WHERE conteudo_id = ${c.id} ORDER BY criado_em DESC NULLS LAST LIMIT 40`; } catch { return null; }
+  const nota = notas.map((n) => textoDoHistorico(n.corpo)).find((t) => /Link de entrega|Link final|Entrega final/i.test(t) && /https?:\/\//.test(t));
+  if (!nota) return null;
+  const url = (nota.match(/https?:\/\/[^\s<>"']+/i)?.[0] || '').replace(/[),.;]+$/, '');
+  const arquivo = (url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/i) || [])[1];
+  const pastaId = (url.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([\w-]{10,})/i) || [])[1];
+  let id = arquivo, nome = 'Vídeo · link de entrega';
+  if (!id && pastaId) {
+    const videos = await pasta(pastaId).catch(() => []);
+    const melhor = videos.map((v, i) => ({ v, i, nota: notaDoVideo(v, { cliente: c.cliente, nome: c.titulo }) })).sort((x, y) => y.nota - x.nota || x.i - y.i)[0];
+    if (!melhor) return null;
+    id = melhor.v.id; nome = melhor.v.nome;
+  }
+  if (!id) return null;
+  const m = await miniatura(id, buscar, pegarToken).catch(() => null);
+  return m ? { ...m, nome, video: Boolean(pastaId) || VIDEO_DO_FORMATO.test(c.formato || ''), drive: id, entrega: true } : null;
+}
+
+export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = tokenGoogle, pasta } = {}) {
   const c = await pecaDaReferencia(sql, ref);
   const arquivos = await sql`SELECT id::text, nome, extensao, drive_file_id, criado_em FROM vybe_conteudo_arquivos
     WHERE conteudo_id = ${c.id} AND ausente_em IS NULL AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC LIMIT 30`;
@@ -70,7 +96,10 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
     // a central do PC toca o vídeo pelo player do próprio Drive, com o acesso de quem está olhando.
     if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || ''), drive: String(a.drive_file_id) });
   }
-  return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length };
+  // O vídeo do link de entrega vem primeiro (como no painel), se ainda não está entre os arquivos.
+  const doLink = await videoDaEntrega(sql, c, { buscar, pegarToken, ...(pasta ? { pasta } : {}) });
+  if (doLink && !midias.some((m) => m.drive === doLink.drive)) midias.unshift(doLink);
+  return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length + (doLink ? 1 : 0) };
 }
 
 // Opinião como comentário da Vybe AI (autor "Vybe IA"), pela mesma função de comentar do painel.
