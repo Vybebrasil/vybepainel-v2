@@ -57,7 +57,7 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
   const r = await previaDaPeca(sql, '555', { pegarToken: async () => 'token-de-teste', buscar: async (url) => {
     const id = /files\/([^?]+)\?fields/.exec(url)?.[1];
     if (id) { pedidas.push(id); return new Response(JSON.stringify({ thumbnailLink: 'https://lh3/thumb-' + id + '=s220' })); }
-    assert.match(url, /=s1600$/); return new Response(Buffer.from('JPG'), { headers: { 'content-type': 'image/jpeg' } });
+    assert.match(url, /=s1600-rj$/, 'miniatura em JPEG'); return new Response(Buffer.from('JPG'), { headers: { 'content-type': 'image/jpeg' } });
   } });
   assert.deepEqual(pedidas, ['d1', 'd2', 'd3']);
   assert.equal(r.midias.length, 3); assert.equal(r.midias[2].video, true);
@@ -110,4 +110,24 @@ test('prévia da peça: sem miniatura pela API do Drive, usa o endereço públic
   } });
   assert.equal(r.midias.length, 1); assert.equal(r.midias[0].drive, 'ARTE_DA_AGENDA'); assert.equal(r.midias[0].mimetype, 'image/png');
   assert.ok(pedidas.some((u) => /drive\.google\.com\/thumbnail/.test(u)));
+});
+
+test('prévia da peça: carrossel pesado não estoura a resposta — entram as lâminas que cabem, em JPEG', async () => {
+  const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
+    CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+    CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text,criado_em timestamptz);
+    CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,drive_file_id text,criado_em timestamptz,ausente_em timestamptz);
+    INSERT INTO vybe_conteudos VALUES (400,7829537690,'Card - Agenda Musical','Card',NULL,NULL,NULL);
+    INSERT INTO vybe_conteudo_arquivos VALUES (1,400,'S1.png','png',1,'L1','2026-10-30 16:20',NULL),(2,400,'QUA.png','png',1,'L2','2026-10-30 16:21',NULL),
+      (3,400,'QUI.png','png',1,'L3','2026-10-30 16:22',NULL),(4,400,'SEX.png','png',1,'L4','2026-10-30 16:23',NULL),(5,400,'SAB.png','png',1,'L5','2026-10-30 16:24',NULL);`);
+  const pesada = Buffer.alloc(1024 * 1024, 1); // ~1,33 MB em base64 por lâmina
+  const r = await previaDaPeca(sql, 'vybe:400', { pegarToken: async () => 't', buscar: async (url) =>
+    /googleapis/.test(url) ? new Response(JSON.stringify({ thumbnailLink: 'https://lh3/x=s220' })) : new Response(pesada, { headers: { 'content-type': 'image/jpeg' } }) });
+  assert.deepEqual(r.midias.map((m) => m.drive), ['L1', 'L2']);
+  assert.ok(r.midias.reduce((t, m) => t + m.data.length, 0) <= 3.4 * 1024 * 1024);
+  assert.equal(r.total, 5, 'o total continua dizendo quantas lâminas a peça tem');
 });

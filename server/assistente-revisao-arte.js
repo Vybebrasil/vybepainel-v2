@@ -11,6 +11,7 @@ import { videosDaPasta, notaDoVideo } from './drive-videos.js';
 
 const IMAGEM = /^(png|jpe?g|webp)$/i;
 const MAX_DIRETO = 2.5 * 1024 * 1024; // A resposta da função cabe em ~4 MB; acima disso vai a miniatura do Drive.
+const MAX_PREVIA = 3.4 * 1024 * 1024; // Soma das lâminas em base64 na prévia, com folga para o resto da resposta.
 const referencia = (c) => (c.monday_item_id ? String(c.monday_item_id) : 'vybe:' + c.id);
 const idLocal = (ref) => (/^vybe:\d+$/.test(String(ref)) ? Number(String(ref).slice(5)) : -1);
 
@@ -24,16 +25,24 @@ async function pecaDaReferencia(sql, ref) {
 }
 
 // Miniatura grande (1600 px) que o próprio Drive gera, para arquivo pesado, vídeo ou PDF.
+// Sempre em JPEG ("-rj"): a miniatura de um PNG vinha em PNG, ~2,5 MB por lâmina, e um carrossel de 5 passava do
+// limite de resposta da função (4,5 MB) — a prévia inteira voltava vazia (Paulo, 03/11/2026, "Card - Agenda Musical").
+// Em JPEG a mesma lâmina tem ~280 KB.
 async function miniatura(fileId, buscar = fetch, pegarToken = tokenGoogle) {
   const imagem = async (r) => (r?.ok && /^image\//.test(r.headers.get('content-type') || 'image/jpeg')
     ? { data: Buffer.from(await r.arrayBuffer()).toString('base64'), mimetype: r.headers.get('content-type') || 'image/jpeg', miniatura: true } : null);
+  let token = null, link = null;
   try {
-    const token = await pegarToken();
+    token = await pegarToken();
     const meta = await buscar(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=thumbnailLink&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } });
-    const link = meta.ok ? (await meta.json()).thumbnailLink : null;
-    const r = link ? await imagem(await buscar(String(link).replace(/=s\d+$/, '=s1600'), { headers: { Authorization: `Bearer ${token}` } })) : null;
-    if (r) return r;
+    link = meta.ok ? (await meta.json()).thumbnailLink : null;
   } catch { /* segue para o endereço público */ }
+  const pedir = (fim) => (link ? buscar(String(link).replace(/=s\d+$/, fim), { headers: { Authorization: `Bearer ${token}` } }).then(imagem).catch(() => null) : null);
+  // Ordem: JPEG pela API → JPEG público (arquivo liberado; a prévia libera antes) → o tamanho original pela API.
+  const r = (await pedir('=s1600-rj'))
+    || (await imagem(await buscar(`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w1600-rj`).catch(() => null)).catch(() => null))
+    || (await pedir('=s1600'));
+  if (r) return r;
   // O mesmo endereço que o olho do painel usa (api/painel.js: drive.google.com/thumbnail, liberado ao abrir a peça).
   // Paulo, 03/11/2026: "tem muita coisa sem prévia; não tá usando a lógica do Vybe OS?" — a API do Drive às vezes não
   // devolve miniatura onde o painel mostra a arte.
@@ -103,15 +112,22 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
   const ultimo = arquivos[0] ? new Date(arquivos[0].criado_em || 0).getTime() : 0;
   const entrega = arquivos.filter((a) => ultimo - new Date(a.criado_em || 0).getTime() <= 15 * 60e3).slice(0, 10).reverse();
   const midias = [];
+  // Teto da resposta: o que passar disso fica de fora (as primeiras lâminas aparecem, em vez de nenhuma).
+  let usado = 0;
+  const cabe = (m) => { const n = String(m?.data || '').length; if (!m || (midias.length && usado + n > MAX_PREVIA)) return false; usado += n; return true; };
   for (const a of entrega) {
     const m = await miniatura(String(a.drive_file_id), buscar, pegarToken).catch(() => null);
+    if (m && !cabe(m)) break;
     // O id do arquivo no Drive vai junto (Paulo, 02/11/2026: "mostra o vídeo como o Vybe OS mostra, pegando do Drive"):
     // a central do PC toca o vídeo pelo player do próprio Drive, com o acesso de quem está olhando.
     if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || ''), drive: String(a.drive_file_id) });
   }
   // O vídeo do link de entrega vem primeiro (como no painel), se ainda não está entre os arquivos.
   const doLink = await videoDaEntrega(sql, c, { buscar, pegarToken, ...(pasta ? { pasta } : {}) });
-  if (doLink && !midias.some((m) => m.drive === doLink.drive)) midias.unshift(doLink);
+  if (doLink && !midias.some((m) => m.drive === doLink.drive)) {
+    while (midias.length && usado + doLink.data.length > MAX_PREVIA) usado -= midias.pop().data.length;
+    midias.unshift(doLink);
+  }
   return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length + (doLink ? 1 : 0) };
 }
 
