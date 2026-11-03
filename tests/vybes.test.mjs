@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
 import { conexao } from './postgres.mjs';
-import { guardarEstadoVybes, entradaVybes, acaoVybes, podeAgirNoVybes, esquecerTabelasVybes } from '../server/vybes.js';
+import { guardarEstadoVybes, entradaVybes, estadoVybes, acaoVybes, podeAgirNoVybes, esquecerTabelasVybes } from '../server/vybes.js';
 
 // Paulo (1), Vinícius (2), Ewerton (3) e Deivid (4) são autores de recado hoje; Bia (5) não.
 async function banco({ migrar = true } = {}) {
@@ -61,6 +61,17 @@ test('vybes: a faixa abre a central com o crachá de quem entrou (age ou só vê
   assert.equal(conferir(decodeURIComponent((await entradaVybes(sql, sessao(1), { env, agora })).url.split('t=')[1])).d, true);
   await assert.rejects(entradaVybes(sql, { tipo: 'servico' }, { env, agora }), /Entre no painel/);
   await assert.rejects(entradaVybes(sql, sessao(2), { env, agora: agora + 11 * 60e3 }), /desligado agora/);
+});
+
+test('vybes: o cartão diz se a central está no ar e se quem olha age', async () => {
+  const { sql } = await banco();
+  const agora = Date.now();
+  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: false, agir: true }, 'sem túnel publicado');
+  await guardarEstadoVybes(sql, { tunel: TUNEL });
+  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, agir: true });
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, agir: false });
+  assert.equal((await estadoVybes(sql, sessao(2), { agora: agora + 11 * 60e3 })).noAr, false, 'túnel velho = fora do ar');
+  await assert.rejects(estadoVybes(sql, { tipo: 'servico' }, { agora }), /Entre no painel/);
 });
 
 test('vybes: quem só vê não toma ação; quem age passa pelo executor das ações (preparar → confirmar)', async () => {

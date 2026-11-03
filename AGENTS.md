@@ -155,7 +155,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
 ## VYBES no painel (decisão do Paulo, 02/11/2026)
 
 - É o próprio VYBES (a central do PC do Paulo: o ser, a voz, a sala, a jornada), não uma tela do painel. Não recrie
-  a interface dele aqui. A faixa VYBES da tela inicial (`vybe-vybes.js`) pede um crachá (`area=vybes`, etapa
+  a interface dele aqui. O módulo VYBES da tela de módulos (cartão alto à direita, espelhando o Gestor, com o ser pulsando; `vybe-vybes.js`,
+  CSS no fim de `vybe-padrao.css`, imagem `assets/vybes-ser.webp` com hash no build) mostra se a central está no ar
+  (GET `area=vybes`) e pede um crachá (`area=vybes`, etapa
   `entrar`, `server/vybes.js`) e abre a central pelo túnel cujo endereço o bot publica (`vybes_publicar`).
 - O crachá vale 2 min, é assinado com a chave derivada de `VYBE_AI_BOT_TOKEN` (rótulo `vybes-entrada-v1`) e diz quem é,
   se age e se é o Paulo; a central confere e troca por um cookie de até 12 h. "Senhor" é só do Paulo.
