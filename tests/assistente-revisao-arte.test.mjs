@@ -61,4 +61,5 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
   } });
   assert.deepEqual(pedidas, ['d1', 'd2', 'd3']);
   assert.equal(r.midias.length, 3); assert.equal(r.midias[2].video, true);
+  assert.deepEqual(r.midias.map((m) => m.drive), ['d1', 'd2', 'd3']);
 });
