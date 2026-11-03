@@ -1313,3 +1313,10 @@ button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srg
 #mode-gate#mode-gate #station-vybes .station-metrica{text-align:left;border-top:1px solid rgba(255,255,255,.07);padding-top:10px}
 #mode-gate#mode-gate #station-vybes .station-action{justify-self:start}
 }
+
+/* Escritório sem desfoque vivo (Paulo, 03/11/2026: o Mac esquentava na sala).
+   O mapa redesenha 24 vezes por segundo e cada painel de vidro por cima dele
+   refazia o desfoque a cada quadro. Os painéis já têm 86–94% de fundo escuro, então
+   sem o desfoque a cara fica a mesma; o aviso de baixo, mais claro, escurece. */
+body.no-escritorio :is(.app-header,.header-utilities-menu,#toast,.ofc-voltar-mapa,.ofc-andares,.ofc-sala-atual,.ofc-aviso,.ofc-zoom,.ofc-dock,.ofc-onde,.ofc-mesa-card,.ofc-menu-pessoa,.office-call,#office-feedback,#office-cobrancas,#office-missoes,#office-controls){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
