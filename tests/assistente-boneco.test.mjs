@@ -25,7 +25,7 @@ test('figura colada inválida cai nas escolhas do perfil; quem nunca montou fica
 });
 
 // O VYBES mostra em que grupo do quadro cada demanda está (Redação, Design & Edição…).
-test('buscar_demandas leva o grupo do quadro; sem a tabela de grupos, sai igual',async t=>{
+test('buscar_demandas leva o grupo do quadro: da lista de partida sem a tabela, da tabela quando ela existe',async t=>{
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,papel text,disciplina text,ativo boolean,pode_entrar boolean);
   CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean,responsavel text);
@@ -34,9 +34,11 @@ test('buscar_demandas leva o grupo do quadro; sem a tabela de grupos, sai igual'
   CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
   CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);INSERT INTO vybe_status VALUES(7829537690,'pode','Pode Fazer',false);`);
  let r=await executarFerramenta(sql,'buscar_demandas',{});
- assert.equal(r.itens.length,2);assert.ok(r.itens.every(i=>!('grupo' in i)),'sem a tabela de grupos, nada muda');
- await db.exec(`CREATE TABLE vybe_grupos(board_id bigint,grupo_id text,titulo text,cor text,ordem int);INSERT INTO vybe_grupos VALUES(7829537690,'novo_grupo__1','Design & Edição','#9d50dd',3);`);
+ assert.equal(r.itens.length,2);
+ // Sem a tabela (Production hoje): os nomes da lista de partida do painel.
+ assert.equal(r.itens.find(i=>i.titulo==='Card - A').grupo,'Design & Edição');assert.equal(r.itens.find(i=>i.titulo==='Reels - B').grupo,undefined,'grupo que não existe fica sem nome');
+ await db.exec(`CREATE TABLE vybe_grupos(board_id bigint,grupo_id text,titulo text,cor text,ordem int);INSERT INTO vybe_grupos VALUES(7829537690,'novo_grupo__1','Design e Edição (renomeado)','#9d50dd',3);`);
  r=await executarFerramenta(sql,'buscar_demandas',{});
  const por=Object.fromEntries(r.itens.map(i=>[i.titulo,i.grupo]));
- assert.equal(por['Card - A'],'Design & Edição');assert.equal(por['Reels - B'],undefined,'grupo que não existe mais fica sem nome');
+ assert.equal(por['Card - A'],'Design e Edição (renomeado)','com a tabela, vale o nome dela');assert.equal(por['Reels - B'],undefined);
 });
