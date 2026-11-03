@@ -403,12 +403,17 @@ function alternarCobrancasEscritorio() {
   pintarCobrancasEscritorio(escritorio.cobrancasGrupos || [], null);
   if (!aberto) pintarMissoesEscritorio();
 }
-async function carregarCobrancasEscritorio() {
+// `reusar`: a chegada ao quarto aproveita a lista que o lobby acabou de ler
+// (até 30 s, da mesma pessoa), em vez de pedir de novo.
+async function carregarCobrancasEscritorio(reusar) {
   const mapa = escritorio.mapa, quarto = escritorio.quarto, dono = escritorioDonoDoQuarto();
   if (!mapa?.definirVisitantes) return;
   if (!dono) { mapa.definirVisitantes([]); escritorio.cobrancasAntes = null; escritorio.cobrancasGrupos = []; pintarCobrancasEscritorio([], null); return; }
   let lista;
-  try { lista = (await escritorioApi("cobrancas", null, { pessoa: dono })).cobrancas || []; } catch { return; }
+  const lida = escritorio.cobrancasDoLobby;
+  escritorio.cobrancasDoLobby = null;
+  if (reusar && lida?.pessoa === dono && Date.now() - lida.em < 30_000) lista = lida.lista;
+  else try { lista = (await escritorioApi("cobrancas", null, { pessoa: dono })).cobrancas || []; } catch { return; }
   if (mapa !== escritorio.mapa || quarto !== escritorio.quarto) return;
   const pessoa = (escritorio.base?.equipe || []).find((p) => String(p.id) === dono);
   const nomeDono = String(pessoa?.nome || "").split(" ")[0] || "pessoal";
@@ -448,7 +453,7 @@ function escritorioAposMudancaDeDemanda() {
 }
 let RELOGIO_COBRANCAS = 0;
 function vigiarCobrancasEscritorio() {
-  carregarCobrancasEscritorio();
+  carregarCobrancasEscritorio(true);
   clearInterval(RELOGIO_COBRANCAS);
   RELOGIO_COBRANCAS = setInterval(() => { if (!document.hidden && escritorio.mapa && (typeof painelDeveConsultar !== "function" || painelDeveConsultar())) carregarCobrancasEscritorio(); }, 2 * 60 * 1000);
 }

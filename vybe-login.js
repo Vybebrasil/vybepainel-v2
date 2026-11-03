@@ -230,9 +230,16 @@ function montarTelaDeLogin() {
   });
 }
 
+// A abertura pergunta uma vez: o convite do Escritório (vybe-escritorio-convidado.js)
+// e o portão abaixo usam a mesma resposta.
+let SESSAO_DA_ABERTURA = null;
+function consultarSessaoDaAbertura() {
+  return (SESSAO_DA_ABERTURA ??= consultarSessao());
+}
+
 // Chamado pelo vybe-init.js: devolve a sessão, ou mostra o login e devolve null.
 async function garantirSessao() {
-  SESSAO_ATUAL = await consultarSessao();
+  SESSAO_ATUAL = await consultarSessaoDaAbertura();
   if (SESSAO_ATUAL) return SESSAO_ATUAL;
   // O painel não pode aparecer por trás do login.
   document.getElementById('loading')?.classList.remove('show');
@@ -297,13 +304,15 @@ async function vestirFotoDeQuemSou(marca) {
     img.alt = '';
     img.src = url;
   };
-  if (FOTO_DE_QUEM_SOU !== undefined) return pintar(FOTO_DE_QUEM_SOU);
-  try {
-    const r = await fetch('/api/painel?area=conta', { credentials: 'same-origin' });
-    const d = r.ok ? await r.json() : null;
-    FOTO_DE_QUEM_SOU = d?.pessoa?.foto_url || null;
-  } catch { FOTO_DE_QUEM_SOU = null; }
-  pintar(FOTO_DE_QUEM_SOU);
+  // A marca do topo e o avatar pedem juntos: a mesma consulta serve aos dois.
+  FOTO_DE_QUEM_SOU ??= (async () => {
+    try {
+      const r = await fetch('/api/painel?area=conta', { credentials: 'same-origin' });
+      const d = r.ok ? await r.json() : null;
+      return d?.pessoa?.foto_url || null;
+    } catch { return null; }
+  })();
+  pintar(await FOTO_DE_QUEM_SOU);
 }
 
 function alternarMenuDaConta() {

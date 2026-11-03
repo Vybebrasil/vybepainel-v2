@@ -56,7 +56,20 @@ function iniciarPainel() {
   const legacyKpi = document.getElementById('kpi-grid');
   if (legacyKpi) legacyKpi.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px 0;">Carregando dados do banco Vybe...</div>';
   initPanelMode();
-  if (typeof iniciarNoEscritorio === 'function') iniciarNoEscritorio();
+  // O ESCRITÓRIO DESENHA PRIMEIRO. Montar o quadro (do cache e depois do banco)
+  // ocupava o navegador por segundos enquanto a pessoa via só a cidade, e o
+  // Escritório esperava atrás (Paulo, 03/11/2026: painel pesado nos notebooks).
+  // Quando ele abre, o quadro monta depois do primeiro desenho; quando não abre
+  // (celular, link de atividade, painel em outra aba, servidor sem Escritório),
+  // monta logo em seguida, como antes. O limite de 8 s é o da cortina da entrada.
+  if (typeof iniciarNoEscritorio !== 'function') return carregarPainelDeTrabalho();
+  const desenhou = iniciarNoEscritorio().then(() => typeof escritorio !== 'undefined' && escritorio.mapa?.prontos);
+  Promise.race([desenhou, new Promise((ok) => setTimeout(ok, 8000))])
+    .catch(() => {})
+    .then(() => new Promise((ok) => setTimeout(ok, 0)))
+    .then(carregarPainelDeTrabalho);
+}
+function carregarPainelDeTrabalho() {
   if (hydrateProductionCache()) {
     setSyncHealth('checking', 'Cache operacional carregado · aguardando confirmação do banco Vybe…');
     // A tela entra com o último estado válido e confirma o domínio próprio; o espelho apenas observa a contingência.

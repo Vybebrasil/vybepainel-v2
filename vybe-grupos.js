@@ -7,6 +7,18 @@
 // lugar — as telas continuam lendo de onde sempre leram, e deixam de discordar
 // entre si. Sem resposta do servidor, fica o que já estava no código.
 
+// Os grupos do quadro têm id técnico e nome de gente (as automações leem;
+// elas carregam sob demanda, este arquivo não). O servidor manda os dois,
+// mas este mapa fica como rede: grupo que sumiu do quadro ainda aparece nomeado
+// nas regras antigas em vez de virar "novo_grupo22352__1" na cara da pessoa.
+const GRUPOS_NOME = {
+  'novo_grupo31348__1': 'Finalizados',
+  'novo_grupo57911__1': 'Produção (Foto e Vídeo, à Captar)',
+  'novo_grupo__1': 'Design & Edição',
+  'group_title': 'Redação',
+  'novo_grupo22352__1': 'Gestão de publicações',
+};
+
 const GRUPOS_DO_PAINEL = { lista: [], cores: [], pronto: false, carregado: false, carregando: null };
 
 const QUADRO_ID = () => ({ producao: typeof BOARD_ID !== 'undefined' ? BOARD_ID : 7829537690,
@@ -50,7 +62,7 @@ function aplicarGruposNaTela(lista) {
   producao.forEach((g) => {
     if (typeof CORES_DOS_GRUPOS !== 'undefined') CORES_DOS_GRUPOS[g.grupo_id] = g.cor;
     if (typeof GROUP_MAP !== 'undefined') GROUP_MAP[g.grupo_id] = g.titulo;
-    if (typeof GRUPOS_NOME !== 'undefined') GRUPOS_NOME[g.grupo_id] = g.titulo;
+    GRUPOS_NOME[g.grupo_id] = g.titulo;
   });
   demandas.forEach((g) => {
     if (typeof CORES_GRUPOS_DEMANDAS !== 'undefined') CORES_GRUPOS_DEMANDAS[g.grupo_id] = g.cor;

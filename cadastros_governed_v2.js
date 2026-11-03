@@ -23,10 +23,43 @@ const FC_CORES_STATUS = {
   'Captação em Andamento': { color: '#579bfc', bg: 'rgba(87,155,252,0.15)', border: 'rgba(87,155,252,0.3)' },
   'Aguardo Redação': { color: '#ff5ac4', bg: 'rgba(255,90,196,0.15)', border: 'rgba(255,90,196,0.3)' },
 };
+// Mapa de cores padrão Monday.com por status (também dos relatórios, que
+// carregam sob demanda).
+const MONDAY_STATUS_COLORS = {
+  // Cores EXATAS extraídas via API do Monday.com (board 7829537690)
+  'Em andamento':          { bg:'rgba(253,171,61,.15)',  color:'#fdab3d', border:'rgba(253,171,61,.3)' },
+  'Em Andamento':          { bg:'rgba(253,171,61,.15)',  color:'#fdab3d', border:'rgba(253,171,61,.3)' },
+  'Falta D.A':             { bg:'rgba(78,204,198,.15)',  color:'#4eccc6', border:'rgba(78,204,198,.3)' },
+  'Alteração':             { bg:'rgba(223,47,74,.15)',   color:'#df2f4a', border:'rgba(223,47,74,.3)' },
+  'Finalizado':            { bg:'rgba(156,211,38,.15)',  color:'#9cd326', border:'rgba(156,211,38,.3)' },
+  'Aguardo':               { bg:'rgba(157,80,221,.15)',  color:'#9d50dd', border:'rgba(157,80,221,.3)' },
+  'A Fazer':               { bg:'rgba(196,196,196,.12)', color:'#c4c4c4', border:'rgba(196,196,196,.25)' },
+  'Para agendar':          { bg:'rgba(3,127,76,.15)',    color:'#037f4c', border:'rgba(3,127,76,.3)' },
+  'Para Agendar':          { bg:'rgba(3,127,76,.15)',    color:'#037f4c', border:'rgba(3,127,76,.3)' },
+  'Para aprovação':        { bg:'rgba(87,155,252,.15)',  color:'#579bfc', border:'rgba(87,155,252,.3)' },
+  'Para Aprovação':        { bg:'rgba(87,155,252,.15)',  color:'#579bfc', border:'rgba(87,155,252,.3)' },
+  'Cap. Agendada':         { bg:'rgba(255,0,127,.15)',   color:'#ff007f', border:'rgba(255,0,127,.3)' },
+  'Ag. Aprovação Cliente': { bg:'rgba(250,161,241,.15)', color:'#faa1f1', border:'rgba(250,161,241,.3)' },
+  'Ag. Info Cliente':      { bg:'rgba(188,165,138,.15)', color:'#bca58a', border:'rgba(188,165,138,.3)' },
+  'Falta Info':            { bg:'rgba(255,109,59,.15)',  color:'#ff6d3b', border:'rgba(255,109,59,.3)' },
+  'Agendando Cap':         { bg:'rgba(255,90,196,.15)',  color:'#ff5ac4', border:'rgba(255,90,196,.3)' },
+  'Agendando Cap.':        { bg:'rgba(255,90,196,.15)',  color:'#ff5ac4', border:'rgba(255,90,196,.3)' },
+  'Segurar Post':          { bg:'rgba(127,83,71,.15)',   color:'#7f5347', border:'rgba(127,83,71,.3)' },
+  'Agendado':              { bg:'rgba(161,227,246,.15)', color:'#a1e3f6', border:'rgba(161,227,246,.3)' },
+  'Pode Fazer':            { bg:'rgba(255,203,0,.15)',   color:'#ffcb00', border:'rgba(255,203,0,.3)' },
+  // Status adicionais
+  'Ag. Interno':           { bg:'rgba(188,165,138,.15)', color:'#bca58a', border:'rgba(188,165,138,.3)' },
+  'Em execução':           { bg:'rgba(253,171,61,.15)',  color:'#fdab3d', border:'rgba(253,171,61,.3)' },
+  'Em aprovação':          { bg:'rgba(87,155,252,.15)',  color:'#579bfc', border:'rgba(87,155,252,.3)' },
+  'Aprovado':              { bg:'rgba(156,211,38,.15)',  color:'#9cd326', border:'rgba(156,211,38,.3)' },
+  'Nova Demanda':          { bg:'rgba(161,227,246,.15)', color:'#a1e3f6', border:'rgba(161,227,246,.3)' },
+  'Aguardando Info.':      { bg:'rgba(255,203,0,.15)',   color:'#ffcb00', border:'rgba(255,203,0,.3)' },
+  'Falta Briefing':        { bg:'rgba(255,109,59,.15)',  color:'#ff6d3b', border:'rgba(255,109,59,.3)' },
+  'Revisão':               { bg:'rgba(253,171,61,.15)',  color:'#fdab3d', border:'rgba(253,171,61,.3)' },
+};
 function fcCorDeStatus(s) {
   if (FC_CORES_STATUS[s]) return FC_CORES_STATUS[s];
-  const c = typeof MONDAY_STATUS_COLORS !== 'undefined' ? MONDAY_STATUS_COLORS : {};
-  return c[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
+  return MONDAY_STATUS_COLORS[s] || { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
 }
 function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
   const q = Number(quantidade), passo = Number(intervalo);

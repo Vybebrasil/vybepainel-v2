@@ -14,7 +14,7 @@ const fim = fonte.indexOf('\n}', inicio) + 2;
 test('escritorioApi manda a rota no endereço e o acao do pedido no corpo', async () => {
  const pedidos = [];
  const ctx = vm.createContext({ window: {}, URLSearchParams, JSON, Object, Error,
-  fetch: async (url, op) => { pedidos.push({ url, corpo: JSON.parse(op.body) }); return { ok: true, status: 200, json: async () => ({ ok: true }) }; } });
+  fetch: async (url, op) => { pedidos.push({ url, corpo: JSON.parse(op.body) }); return { ok: true, status: 200, text: async () => JSON.stringify({ ok: true }) }; } });
  vm.runInContext(fonte.slice(inicio, fim), ctx);
  await ctx.escritorioApi('mesa-responder', { id: '7', acao: 'aceitar' });
  await ctx.escritorioApi('mesa-lance', { id: '7', n: 0, tipo: 'largar' });

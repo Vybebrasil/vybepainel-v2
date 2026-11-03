@@ -28,7 +28,7 @@ async function convidadoPedir(acao, corpo) {
 
 // Chamado pelo vybe-init.js antes do login: devolve true se a tela é do convidado.
 async function convidadoAntesDoLogin() {
-  const sessao = typeof consultarSessao === "function" ? await consultarSessao().catch(() => null) : null;
+  const sessao = typeof consultarSessaoDaAbertura === "function" ? await consultarSessaoDaAbertura().catch(() => null) : null;
   // Quem é da equipe e abriu um link de convite segue para o próprio painel.
   if (sessao) { if (CONVITE_LINK) limparLinkDoConvite(); return false; }
   if (CONVITE_LINK) { await abrirBoasVindasConvidado(); return true; }

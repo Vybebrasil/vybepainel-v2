@@ -16,6 +16,8 @@ for (const path of files) {
   if (r.status) { process.stderr.write(r.stderr); process.exit(1); }
 }
 const html = await readFile('index.html', 'utf8');
-const scripts = [...html.matchAll(/<script\s+src="\/([^"?]+)"\s*><\/script>/g)].map((m) => m[1]);
+// Inclui os sob demanda (vybe-sob-demanda.js): quando carregam, dividem o
+// mesmo escopo global dos outros.
+const scripts = [...html.matchAll(/<script(?:\s+type="vybe\/sob-demanda"\s+data-grupo="[\w-]+")?\s+src="\/([^"?]+)"\s*><\/script>/g)].map((m) => m[1]);
 new vm.Script((await Promise.all(scripts.map((f) => readFile(f, 'utf8')))).join('\n;\n'));
 console.log(`Sintaxe válida: ${files.length} arquivos e ordem global do frontend.`);
