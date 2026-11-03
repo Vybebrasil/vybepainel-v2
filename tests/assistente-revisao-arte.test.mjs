@@ -63,3 +63,29 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
   assert.equal(r.midias.length, 3); assert.equal(r.midias[2].video, true);
   assert.deepEqual(r.midias.map((m) => m.drive), ['d1', 'd2', 'd3']);
 });
+
+test('prévia da peça: o vídeo do link de entrega (arquivo ou pasta do dia) vem primeiro, como no olho do painel', async () => {
+  const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
+    CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+    CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text,criado_em timestamptz);
+    CREATE TABLE vybe_conteudo_arquivos(id bigint,conteudo_id bigint,nome text,extensao text,tamanho_bytes bigint,drive_file_id text,criado_em timestamptz,ausente_em timestamptz);
+    INSERT INTO vybe_clientes VALUES (27,'VOA');
+    INSERT INTO vybe_conteudos VALUES (200,7829537690,'Reels - Cinematic produto 11','Reels',NULL,NULL,NULL),(201,7829537690,'Reels - Bastidores','Reels',NULL,NULL,NULL);
+    INSERT INTO vybe_conteudo_clientes VALUES (200,27),(201,27);
+    INSERT INTO vybe_conteudo_updates VALUES
+      (200,'<p>[Vybe OS · Link de entrega] https://drive.google.com/drive/folders/PASTA_DO_DIA_26</p>','2026-11-01'),
+      (201,'<p>Link de entrega: https://drive.google.com/file/d/ARQUIVO_FINAL_9/view?usp=sharing</p>','2026-11-01');`);
+  const buscar = async (url) => /files\/[^?]+\?fields/.test(url) ? new Response(JSON.stringify({ thumbnailLink: 'https://lh3/t=s220' })) : new Response(Buffer.from('JPG'), { headers: { 'content-type': 'image/jpeg' } });
+  const pasta = async (id) => { assert.equal(id, 'PASTA_DO_DIA_26'); return [
+    { id: 'VIDEO_OUTRO_CLIENTE', nome: 'gonzalez grelhados.mp4', caminho: 'GONZALEZ' },
+    { id: 'VIDEO_DA_VOA_11', nome: 'cinematic produto 11.mp4', caminho: 'VOA' }]; };
+  const r = await previaDaPeca(sql, 'vybe:200', { buscar, pegarToken: async () => 't', pasta });
+  assert.equal(r.midias[0].drive, 'VIDEO_DA_VOA_11', 'na pasta, o vídeo que combina com cliente e título');
+  assert.equal(r.midias[0].video, true);
+  const a = await previaDaPeca(sql, 'vybe:201', { buscar, pegarToken: async () => 't', pasta: async () => { throw Error('não é pasta'); } });
+  assert.equal(a.midias[0].drive, 'ARQUIVO_FINAL_9'); assert.equal(a.midias[0].video, true);
+});

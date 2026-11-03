@@ -29,6 +29,15 @@ export async function videosDaPasta(pastaId, { listar = listarNoDrive, niveis = 
   return videos;
 }
 
+// Qual vídeo da pasta é o da peça: palavras do cliente valem 3, do título 1 (a mesma conta do olho da prévia do painel,
+// notaDoVideo em vybe-material.js; a central do PC usa esta, pelo servidor).
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export function notaDoVideo(v, peca) {
+  const alvo = semAcento(`${v.caminho || ''} ${v.nome || ''}`);
+  const palavras = (t) => semAcento(t).split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^(reels|video|post|card|carrossel|para|com|dos|das|the)$/.test(w));
+  return palavras(peca?.cliente).filter((w) => alvo.includes(w)).length * 3 + palavras(peca?.nome).filter((w) => alvo.includes(w)).length;
+}
+
 export async function areaDriveVideos(req, res, quem, { buscar = videosDaPasta } = {}) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Use GET.' });
   if (!quem) return res.status(401).json({ error: 'Entre no painel.' });
