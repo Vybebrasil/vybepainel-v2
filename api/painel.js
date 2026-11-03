@@ -13,6 +13,7 @@ import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
+import { areaVybes } from '../server/vybes.js';
 // api/painel.js — as telas que o painel ganhou depois do Monday.
 //
 // Roteador, e não um arquivo por assunto, por um motivo concreto: o plano da
@@ -1720,7 +1721,8 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
 
 const AREAS = { assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
-                planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()) };
+                planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
+                vybes: (req, res, quem) => areaVybes(req, res, quem, sql()) };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');

@@ -292,6 +292,7 @@ function switchBoard(board, btn) {
     'ai-usage':  'Uso, custos estimados e limites do Jarvis',
     automacoes:  'Regras que movem, atribuem e avisam sozinhas',
     escritorio:  'Presença, conversas e o espaço da equipe',
+    vybes:       'O dia da agência pela central do VYBES',
     conta:       'Sua conta e, para quem administra, a equipe'
   };
   document.getElementById('header-sub').textContent = subs[board] || '';
@@ -304,10 +305,12 @@ function switchBoard(board, btn) {
   document.getElementById('painel-automacoes').style.display   = board==='automacoes' ? 'block' : 'none';
   document.getElementById('painel-conta').style.display        = board==='conta' ? 'block' : 'none';
   document.getElementById('painel-escritorio').style.display = board==='escritorio'?'block':'none';
+  document.getElementById('painel-vybes').style.display = board==='vybes'?'block':'none';
   // O escritório ocupa a tela inteira; fora dele, a página volta a rolar.
   document.body.classList.toggle('no-escritorio', board==='escritorio');
   if (typeof atualizarDockEscritorio === 'function') atualizarDockEscritorio();
   if(board==='escritorio')abrirEscritorio();
+  if (board === 'vybes' && typeof abrirVybes === 'function') abrirVybes();
   if (board === 'demandas') {
     if (DADOS_DEMANDAS.length === 0) refreshDemandas();
     else renderDemandas();

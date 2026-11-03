@@ -152,6 +152,17 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   guarda a demanda criada; o planejamento vira "Cadastrado" junto, sem duplicar. Migração `2026-10-20-planejamentos.sql` já aplicada em
   19/10/2026. Consulte `docs/planejamentos-plano.md`.
 
+## VYBES no painel (decisão do Paulo, 02/11/2026)
+
+- O VYBES roda no PC do Paulo (WhatsApp, modelo local, turno da noite) e publica a cada 3 min o mesmo dia que a
+  central dele mostra (consulta `vybes_publicar` do bot, só no privado da administração). Aqui ele é a aba e a faixa
+  VYBES (`vybe-vybes.js`, `server/vybes.js`, área `vybes`), sem link novo e sem túnel.
+- Quem age (`vybe_vybes_operadores`: Paulo, Vinícius, Ewerton L. e Deivid) vê tudo e age pelo MESMO executor das
+  ações do assistente (`prepararAcao`/`confirmarAcao`, resumo e "Sim, fazer"; a permissão de cada ação é a da pessoa).
+  O resto da equipe só vê, sem o texto das conversas (`semConversas`). Diretoria e Vybe CEO nunca entram no estado.
+- Não crie outra fila de decisões, outro executor de ações nem outra prévia de peça: a peça abre na prévia grande
+  (`abrirPecaNaPrevia`). Migração `2026-11-02-vybes.sql`.
+
 ## Escritório integrado
 
 - Edição de decoração (decisão do Paulo, 19/10/2026): cada pessoa edita
