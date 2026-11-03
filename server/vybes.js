@@ -1,6 +1,6 @@
 // VYBES dentro do Vybe OS (decisão do Paulo, 02/11/2026: "é o nosso VYBES dentro lá, não uma interface nova").
 // A central do VYBES roda no PC do Paulo (o ser, a voz, o WhatsApp, o modelo local) e fica acessível por um túnel.
-// O bot publica aqui o endereço atual do túnel (consulta `vybes_publicar`); a faixa VYBES do painel pede um crachá
+// O bot publica aqui o endereço atual do túnel (consulta `vybes_publicar`); o cartão VYBES da tela de módulos pede um crachá
 // (`entradaVybes`) e abre a central com ele. O crachá diz quem é e se pode agir; a central confere a assinatura.
 // - Quem age (vybe_vybes_operadores: Paulo, Vinícius, Ewerton L., Deivid): as ações que pedem na central chegam pelo
 //   bot (consulta `vybes_acao`) e passam pelo MESMO executor das ações do assistente, com a permissão da pessoa.
@@ -64,7 +64,18 @@ export function assinarCracha(dados, base = process.env.VYBE_AI_BOT_TOKEN) {
   return corpo + '.' + createHmac('sha256', chave).update(corpo).digest('base64url');
 }
 
-// Faixa VYBES: o link de entrada na central, com o crachá de quem está logado (vale 2 min; a central troca por um cookie).
+// Cartão VYBES na tela de módulos: se a central está no ar (o bot publicou o túnel há pouco) e se quem olha pode agir.
+export async function estadoVybes(sql, quem, { agora = Date.now() } = {}) {
+  const id = Number(quem?.pessoa?.id);
+  if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) throw erro('Entre no painel para abrir o VYBES.', 401);
+  await garantirTabelasVybes(sql);
+  const [linha] = await sql`SELECT estado, atualizado_em FROM vybe_vybes_estado WHERE id = 1`;
+  const tunel = linha?.estado?.tunel;
+  const noAr = Boolean(tunel && TUNEL.test(tunel) && agora - Date.parse(linha.atualizado_em) <= TUNEL_VELHO_MS);
+  return { noAr, agir: await podeAgirNoVybes(sql, quem) };
+}
+
+// Cartão VYBES: o link de entrada na central, com o crachá de quem está logado (vale 2 min; a central troca por um cookie).
 export async function entradaVybes(sql, quem, { env = process.env, agora = Date.now() } = {}) {
   const id = Number(quem?.pessoa?.id);
   if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) throw erro('Entre no painel para abrir o VYBES.', 401);
@@ -93,8 +104,9 @@ export async function acaoVybes(sql, quem, corpo, { segredo = process.env.VYBE_A
 
 export async function areaVybes(req, res, quem, sql) {
   try {
+    if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
-    return res.status(405).json({ error: 'Use a faixa VYBES para abrir a central.' });
+    return res.status(405).json({ error: 'Use o cartão VYBES para abrir a central.' });
   } catch (e) {
     const status = e.status || (e instanceof TypeError ? 400 : 500);
     return res.status(status).json({ error: status >= 500 && status !== 503 ? 'Não foi possível abrir o VYBES agora.' : e.message });

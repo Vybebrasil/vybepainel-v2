@@ -25640,15 +25640,3 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @keyframes sncBolaSome {to{opacity:.15;transform:translateY(18px) scale(.6);filter:grayscale(1)}}
 @media(prefers-reduced-motion:reduce){.snc-anuncio,.snc-anuncio-bola{animation:none}}
 @media(max-width:760px){.snc-anuncio-cartao{min-width:140px;padding:9px 14px}.snc-anuncio-cartao b{font-size:17px}.snc-anuncio-bola{width:40px;height:40px;font-size:14px}}
-
-/* ---------- VYBES (decisão do Paulo, 02/11/2026) ----------
-   Faixa embaixo das estações da tela inicial: abre a central do VYBES (a do PC do Paulo) com o crachá de quem entra. */
-.identity-vybes{position:relative;z-index:1;display:flex;align-items:center;gap:18px;width:min(100%,1010px);margin:18px auto 0;padding:14px 20px;border-radius:18px;
-  border:1px solid rgba(255,138,53,.28);background:linear-gradient(90deg,rgba(255,138,53,.10),rgba(20,18,26,.55) 45%);color:#fff4e8;text-align:left;cursor:pointer;
-  transition:border-color .2s var(--curva,ease),transform .2s var(--curva,ease)}
-.identity-vybes:hover,.identity-vybes:focus-visible{border-color:var(--vb-laranja,#ff8a35);outline:none;transform:translateY(-1px)}
-.identity-vybes-marca{display:inline-flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;font-size:13px;color:var(--vb-laranja-2,#ffb15c);white-space:nowrap}
-.identity-vybes-marca svg{width:18px;height:18px}
-.identity-vybes-texto{flex:1;min-width:0;font-size:13px;color:rgba(255,244,232,.72)}
-.identity-vybes-acao{white-space:nowrap;font-weight:700;font-size:13px;color:var(--vb-laranja-2,#ffb15c)}
-@media(max-width:820px){.identity-vybes{flex-wrap:wrap;gap:6px 12px}.identity-vybes-texto{flex-basis:100%;order:3}}

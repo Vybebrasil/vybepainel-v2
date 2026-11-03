@@ -59,8 +59,8 @@ export function createDevServer() {
       const html = await readFile(resolve(ROOT,'index.html'),'utf8');
       const publicFiles = new Set(['index.html','cadastros_governed_v2.js',
         ...[...html.matchAll(/(?:src|href)="\/([^"?]+)"/g)].map((m)=>m[1])]);
-      // As artes e os sons dos jogos (assets/jogos) vêm pelo CSS e pelo código, não pelo index.html.
-      const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file);
+      // As artes e os sons dos jogos (assets/jogos) e o ser do VYBES vêm pelo CSS e pelo código, não pelo index.html.
+      const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file) || file === 'assets/vybes-ser.webp';
       if ((!publicFiles.has(file) && !daArte) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',

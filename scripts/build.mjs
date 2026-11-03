@@ -35,7 +35,9 @@ const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loade
 // o CSS do padrão aponta para ela, então troca o caminho lá também (sem isto a
 // foto sumia em produção: /assets/vybelandia.webp não existe no dist).
 const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
-const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia), 'css', 'padrao');
+// O mesmo para o ser do VYBES (cartão do VYBES na tela de módulos).
+const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'vybes-ser');
+const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia).replaceAll('/assets/vybes-ser.webp', vybesSer), 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
 html = html.replace(/<script\s+src="\/([^"?]+)"\s*><\/script>/g,
