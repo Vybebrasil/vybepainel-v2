@@ -109,8 +109,9 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
   } catch { /* coluna ausente em banco antigo: segue */ }
   const arquivos = await sql`SELECT id::text, nome, extensao, drive_file_id, criado_em FROM vybe_conteudo_arquivos
     WHERE conteudo_id = ${c.id} AND ausente_em IS NULL AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC LIMIT 30`;
-  const ultimo = arquivos[0] ? new Date(arquivos[0].criado_em || 0).getTime() : 0;
-  const entrega = arquivos.filter((a) => ultimo - new Date(a.criado_em || 0).getTime() <= 15 * 60e3).slice(0, 10).reverse();
+  // As mesmas lâminas e na mesma ordem do olho do painel (api/painel.js: arquivos da peça, do mais novo para o mais
+  // antigo). Paulo, 03/11/2026: "na prévia do sistema tá um, no VYBES outra — tem que aparecer o mesmo que tá no Vybe OS".
+  const entrega = arquivos.slice(0, 10);
   const midias = [];
   // Teto da resposta: o que passar disso fica de fora (as primeiras lâminas aparecem, em vez de nenhuma).
   let usado = 0;

@@ -42,7 +42,7 @@ test('revisão vira comentário da Vybe IA pela função do painel; status não 
   assert.ok(r.ok);
 });
 
-test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela miniatura do Drive', async () => {
+test('prévia da peça: as lâminas do olho do painel, na mesma ordem (mais nova primeiro), pela miniatura do Drive', async () => {
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
@@ -59,9 +59,9 @@ test('prévia da peça: a última entrega inteira (lâminas do carrossel) pela m
     if (id) { pedidas.push(id); return new Response(JSON.stringify({ thumbnailLink: 'https://lh3/thumb-' + id + '=s220' })); }
     assert.match(url, /=s1600-rj$/, 'miniatura em JPEG'); return new Response(Buffer.from('JPG'), { headers: { 'content-type': 'image/jpeg' } });
   } });
-  assert.deepEqual(pedidas, ['d1', 'd2', 'd3']);
-  assert.equal(r.midias.length, 3); assert.equal(r.midias[2].video, true);
-  assert.deepEqual(r.midias.map((m) => m.drive), ['d1', 'd2', 'd3']);
+  assert.deepEqual(pedidas, ['d3', 'd2', 'd1', 'd0']);
+  assert.equal(r.midias.length, 4); assert.equal(r.midias[0].video, true);
+  assert.deepEqual(r.midias.map((m) => m.drive), ['d3', 'd2', 'd1', 'd0']);
 });
 
 test('prévia da peça: o vídeo do link de entrega (arquivo ou pasta do dia) vem primeiro, como no olho do painel', async () => {
@@ -127,7 +127,7 @@ test('prévia da peça: carrossel pesado não estoura a resposta — entram as l
   const pesada = Buffer.alloc(1024 * 1024, 1); // ~1,33 MB em base64 por lâmina
   const r = await previaDaPeca(sql, 'vybe:400', { pegarToken: async () => 't', buscar: async (url) =>
     /googleapis/.test(url) ? new Response(JSON.stringify({ thumbnailLink: 'https://lh3/x=s220' })) : new Response(pesada, { headers: { 'content-type': 'image/jpeg' } }) });
-  assert.deepEqual(r.midias.map((m) => m.drive), ['L1', 'L2']);
+  assert.deepEqual(r.midias.map((m) => m.drive), ['L5', 'L4']);
   assert.ok(r.midias.reduce((t, m) => t + m.data.length, 0) <= 3.4 * 1024 * 1024);
   assert.equal(r.total, 5, 'o total continua dizendo quantas lâminas a peça tem');
 });
