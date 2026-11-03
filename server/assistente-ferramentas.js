@@ -5,7 +5,7 @@ import {agendaDeCaptacoes} from './captacoes.js';
 import {memoriaDoCliente,legendasAprovadas} from './assistente-memoria.js';
 import {sugerirResponsavel} from './assistente-saude.js';
 // Projeções operacionais do domínio existente; sem SQL fornecido pelo modelo.
-import {BOARD_DEMANDAS,BOARD_PRODUCAO} from './grupos.js';
+import {BOARD_DEMANDAS,BOARD_PRODUCAO,listarGrupos} from './grupos.js';
 import {figuraDoPerfil} from './escritorio-figura.js';
 import {pecasComRevisao} from './planejamento-documento.js';
 import {normalizarConteudo} from './planejamentos.js';
@@ -157,12 +157,14 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    }
   }
   // O grupo do quadro em que cada demanda está (Redação, Produção, Design & Edição, Gestão de publicações…), para o
-  // VYBES mostrar a etapa na tela (Paulo, 03/11/2026). Sem a tabela de grupos ou a coluna, a resposta fica igual.
+  // VYBES mostrar a etapa na tela (Paulo, 03/11/2026). Os nomes vêm de listarGrupos: a tabela, ou a lista de partida
+  // quando ela ainda não foi criada (é o caso de Production). Sem a coluna grupo_id, a resposta fica igual.
   if(itens.length){
-   const [tg]=await sql`SELECT (to_regclass('public.vybe_grupos') IS NOT NULL AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='grupo_id')) AS ok`;
+   const [tg]=await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='vybe_conteudos' AND column_name='grupo_id') AS ok`;
    if(tg?.ok){
-    const gs=await sql`SELECT c.id::text AS id,g.titulo AS grupo FROM vybe_conteudos c JOIN vybe_grupos g ON g.board_id=c.board_id AND g.grupo_id=c.grupo_id WHERE c.id::text=ANY(${itens.map(i=>i.id)}::text[])`;
-    const por=new Map(gs.map(x=>[x.id,x.grupo]));for(const i of itens)if(por.has(i.id))i.grupo=por.get(i.id);
+    const nomes=new Map((await listarGrupos(sql)).map(g=>[String(g.board_id)+'|'+g.grupo_id,g.titulo]));
+    const cs=await sql`SELECT id::text AS id,board_id::text AS board,grupo_id FROM vybe_conteudos WHERE id::text=ANY(${itens.map(i=>i.id)}::text[])`;
+    const por=new Map(cs.map(c=>[c.id,nomes.get(c.board+'|'+c.grupo_id)]));for(const i of itens)if(por.get(i.id))i.grupo=por.get(i.id);
    }
   }
  }else if(nome==='listar_clientes'){
