@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
 import { conexao } from './postgres.mjs';
-import { guardarEstadoVybes, entradaVybes, acaoVybes, podeAgirNoVybes } from '../server/vybes.js';
+import { guardarEstadoVybes, entradaVybes, acaoVybes, podeAgirNoVybes, esquecerTabelasVybes } from '../server/vybes.js';
 
 // Paulo (1), Vinícius (2), Ewerton (3) e Deivid (4) são autores de recado hoje; Bia (5) não.
-async function banco() {
+async function banco({ migrar = true } = {}) {
+  esquecerTabelasVybes();
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean);
     INSERT INTO vybe_pessoas VALUES (1,'Paulo Martins',true),(2,'Vinícius',true),(3,'Ewerton L.',true),(4,'Deivid',true),(5,'Bia',true);
     CREATE TABLE vybe_escritorio_avisos_autores (pessoa_id bigint PRIMARY KEY);
     INSERT INTO vybe_escritorio_avisos_autores VALUES (1),(2),(3),(4);`);
-  await db.exec(readFileSync(new URL('../migrations/2026-11-02-vybes.sql', import.meta.url), 'utf8'));
+  if (migrar) await db.exec(readFileSync(new URL('../migrations/2026-11-02-vybes.sql', import.meta.url), 'utf8'));
   return { db, sql };
 }
 const sessao = (id) => ({ tipo: 'sessao', pessoa: { id } });
@@ -69,4 +70,16 @@ test('vybes: quem só vê não toma ação; quem age passa pelo executor das aç
   // Operador chega ao executor: uma ação que ele não conhece volta a recusa dele (prova que a chamada foi feita lá).
   await assert.rejects(acaoVybes(sql, sessao(4), { etapa: 'preparar', pedido: { acao: 'apagar_tudo' } }, { segredo }), /Ação desconhecida/);
   await assert.rejects(acaoVybes(sql, sessao(4), { etapa: 'outra' }, { segredo }), /Informe a etapa/);
+});
+
+test('vybes: sem a migração rodada, o primeiro uso cria as tabelas e copia quem age uma vez só', async () => {
+  const { sql } = await banco({ migrar: false });
+  await guardarEstadoVybes(sql, { tunel: TUNEL });
+  const ops = await sql`SELECT pessoa_id::int AS id FROM vybe_vybes_operadores ORDER BY pessoa_id`;
+  assert.deepEqual(ops.map((o) => o.id), [1, 2, 3, 4]);
+  // Paulo tira o Deivid: o próximo uso não repõe ninguém.
+  await sql`DELETE FROM vybe_vybes_operadores WHERE pessoa_id = 4`;
+  esquecerTabelasVybes();
+  assert.equal(await podeAgirNoVybes(sql, sessao(4)), false);
+  assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_vybes_operadores`)[0].n, 3);
 });

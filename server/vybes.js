@@ -15,12 +15,31 @@ const TUNEL_VELHO_MS = 10 * 60e3;
 
 function erro(mensagem, status) { return Object.assign(new Error(mensagem), { status }); }
 
+// A migração 2026-11-02-vybes.sql aplicada pelo próprio servidor no primeiro uso (autorizada pelo Paulo em
+// 02/11/2026; mesmo padrão de vybe_ai_acoes em assistente-acoes.js). Só cria; a cópia de quem age acontece uma vez,
+// quando a tabela nasce — depois, mudar quem age é mudar a tabela, e nada aqui repõe ninguém.
+let tabelasVybes = null;
+export function garantirTabelasVybes(sql) {
+  if (!tabelasVybes) tabelasVybes = (async () => {
+    const [r] = await sql`SELECT to_regclass('public.vybe_vybes_operadores') IS NOT NULL AS ok`;
+    if (r?.ok) return;
+    await sql.query(`CREATE TABLE IF NOT EXISTS vybe_vybes_estado (id smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      estado jsonb NOT NULL, atualizado_em timestamptz NOT NULL DEFAULT now())`);
+    await sql.query(`CREATE TABLE IF NOT EXISTS vybe_vybes_operadores (pessoa_id bigint PRIMARY KEY REFERENCES vybe_pessoas(id),
+      desde timestamptz NOT NULL DEFAULT now())`);
+    await sql.query(`INSERT INTO vybe_vybes_operadores (pessoa_id) SELECT pessoa_id FROM vybe_escritorio_avisos_autores ON CONFLICT (pessoa_id) DO NOTHING`);
+  })().catch((e) => { tabelasVybes = null; throw e; });
+  return tabelasVybes;
+}
+export function esquecerTabelasVybes() { tabelasVybes = null; } // só para os testes (cada um tem um banco novo)
+
 // O que o bot publica: só o endereço do túnel (e quando). Nada de dado de cliente passa por aqui.
 export async function guardarEstadoVybes(sql, estado) {
   if (!estado || typeof estado !== 'object' || Array.isArray(estado)) throw erro('Estado inválido.', 400);
   const tunel = estado.tunel == null ? null : String(estado.tunel);
   if (tunel !== null && !TUNEL.test(tunel)) throw erro('Endereço do túnel inválido.', 400);
   const e = { versao: 2, tunel };
+  await garantirTabelasVybes(sql);
   await sql`INSERT INTO vybe_vybes_estado (id, estado, atualizado_em) VALUES (1, ${JSON.stringify(e)}::jsonb, now())
     ON CONFLICT (id) DO UPDATE SET estado = EXCLUDED.estado, atualizado_em = now()`;
   return { guardado: true };
@@ -29,6 +48,7 @@ export async function guardarEstadoVybes(sql, estado) {
 export async function podeAgirNoVybes(sql, quem) {
   const id = Number(quem?.pessoa?.id);
   if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) return false;
+  await garantirTabelasVybes(sql);
   const [r] = await sql`SELECT 1 AS ok FROM vybe_vybes_operadores o JOIN vybe_pessoas p ON p.id = o.pessoa_id
     WHERE o.pessoa_id = ${id} AND p.ativo IS TRUE`;
   return Boolean(r?.ok);
@@ -48,6 +68,7 @@ export function assinarCracha(dados, base = process.env.VYBE_AI_BOT_TOKEN) {
 export async function entradaVybes(sql, quem, { env = process.env, agora = Date.now() } = {}) {
   const id = Number(quem?.pessoa?.id);
   if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) throw erro('Entre no painel para abrir o VYBES.', 401);
+  await garantirTabelasVybes(sql);
   const [linha] = await sql`SELECT estado, atualizado_em FROM vybe_vybes_estado WHERE id = 1`;
   const tunel = linha?.estado?.tunel;
   if (!tunel || !TUNEL.test(tunel) || agora - Date.parse(linha.atualizado_em) > TUNEL_VELHO_MS)
