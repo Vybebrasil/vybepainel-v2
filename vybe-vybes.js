@@ -12,6 +12,8 @@ async function chooseVybesMode() {
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) throw new Error(d.error || 'Não foi possível abrir o VYBES agora.');
     if (janela) janela.location.href = d.url; else location.href = d.url;
+    // O Escritório pausa enquanto esta janela estiver aberta e em uso (mapaForaDeVista).
+    window.vybesJanela = janela || null;
   } catch (erro) {
     if (janela) janela.close();
     showToast(erro.message, 'error', 6000);

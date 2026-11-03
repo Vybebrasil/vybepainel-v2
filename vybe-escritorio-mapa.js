@@ -1167,6 +1167,9 @@ const MAPA_FEIXE_AREA = 31;
 // tempo aberta (Paulo, 26/10/2026: o Mac esquentava e o Centro travava).
 function mapaForaDeVista(el) {
   if (document.hidden || !el.isConnected) return true;
+  // Com a janela do VYBES aberta e em uso (o painel sem foco), o mapa para: os dois disputavam o mesmo notebook e o
+  // VYBES travava (Paulo, 03/11/2026). Voltou para o painel, o mapa volta no tique seguinte.
+  if (window.vybesJanela && !window.vybesJanela.closed && !document.hasFocus()) return true;
   const agora = Date.now(), guardado = el._mapaVista;
   if (guardado && agora - guardado.t < 500) return guardado.fora;
   const fora = !el.offsetParent || (!el.closest(".ofc-lobby, .ofc-abertura") && Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura")));
