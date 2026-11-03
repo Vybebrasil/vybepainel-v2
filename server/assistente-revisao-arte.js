@@ -66,7 +66,9 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
   const midias = [];
   for (const a of entrega) {
     const m = await miniatura(String(a.drive_file_id), buscar, pegarToken).catch(() => null);
-    if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || '') });
+    // O id do arquivo no Drive vai junto (Paulo, 02/11/2026: "mostra o vídeo como o Vybe OS mostra, pegando do Drive"):
+    // a central do PC toca o vídeo pelo player do próprio Drive, com o acesso de quem está olhando.
+    if (m) midias.push({ ...m, nome: a.nome, video: /^(mp4|mov|m4v|webm|avi)$/i.test(a.extensao || ''), drive: String(a.drive_file_id) });
   }
   return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length };
 }
