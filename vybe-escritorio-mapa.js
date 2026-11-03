@@ -904,6 +904,10 @@ const MAPA_CAMADA_MAX_PX = 4096 * 4096;
 // atualiza a cada 41 ms e troca o quadro a cada 2 atualizações = 82 ms, uns
 // 12 por segundo). Antes eram 125 ms e as pernas pareciam travadas.
 const MAPA_QUADRO_PASSO = 82; // ms por quadro de passo
+// O boneco anda na tela no mesmo ritmo (41 ms, 24 por segundo), não no da
+// tela: no Mac de 120 Hz cada passo refazia o estilo 120 vezes por segundo e
+// o notebook esquentava só com um cliente andando (Paulo, 03/11/2026).
+const MAPA_PASSO_TELA_MS = 41;
 // Direção do Habbo (0–7) para um passo na grade.
 function mapaDirecaoDoPasso(dx, dy) {
   const a = Math.atan2(dy, dx);
@@ -1550,6 +1554,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     const passo = (agora) => {
       if (!palco.isConnected) return;
       const k = Math.min(1, (agora - ini) / MAPA_PASSO_MS);
+      if (k < 1 && agora - (p.passoTela || 0) < MAPA_PASSO_TELA_MS) { p.passo = requestAnimationFrame(passo); return; }
+      p.passoTela = agora;
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
       trocarImagem(p); posicionarPessoa(p);
       if (k < 1) p.passo = requestAnimationFrame(passo); else andarVisitante(p, resto, fim);
@@ -2295,12 +2301,21 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     if (etiquetasQuadro) return;
     etiquetasQuadro = requestAnimationFrame(() => {
       etiquetasQuadro = 0;
-      const lista = [...pessoas.values()].map((p) => ({ p, x: parseFloat(p.no.style.left), y: parseFloat(p.no.style.top), w: p.etiqueta.offsetWidth || 80 })).sort((a, b) => b.y - a.y);
+      // A largura só é medida quando o texto da etiqueta muda: medir a cada
+      // passo obrigava o navegador a refazer estilo e layout no meio do quadro.
+      const largura = (p) => {
+        const texto = p.etiqueta.textContent;
+        if (p.etiquetaTexto !== texto || !p.etiquetaLarg) { p.etiquetaTexto = texto; p.etiquetaLarg = p.etiqueta.offsetWidth; }
+        return p.etiquetaLarg || 80;
+      };
+      const lista = [...pessoas.values()].map((p) => ({ p, x: parseFloat(p.no.style.left), y: parseFloat(p.no.style.top), w: largura(p) })).sort((a, b) => b.y - a.y);
       const postas = [];
       for (const it of lista) {
         let sobe = 0;
         while (sobe < 108 && postas.some((u) => Math.abs(u.x - it.x) < (u.w + it.w) / 2 + 4 && Math.abs((u.y - u.sobe) - (it.y - sobe)) < 19)) sobe += 19;
         postas.push({ ...it, sobe });
+        if (it.p.etiquetaSobe === sobe && (!it.p.bau || it.p.bau.style.getPropertyValue("--sobe"))) continue;
+        it.p.etiquetaSobe = sobe;
         it.p.etiqueta.style.setProperty("--sobe", sobe + "px");
         it.p.bau?.style.setProperty("--sobe", sobe + "px");
       }
@@ -2389,6 +2404,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     const dur = Math.min(4000, dist < 1.5 ? 150 : passos * MAPA_PASSO_MS), ini = performance.now();
     const passo = (agora) => {
       const k = Math.min(1, (agora - ini) / dur);
+      if (k < 1 && agora - (p.passoTela || 0) < MAPA_PASSO_TELA_MS) { p.passo = requestAnimationFrame(passo); return; }
+      p.passoTela = agora;
       p.x = de.x + (alvo.x - de.x) * k; p.y = de.y + (alvo.y - de.y) * k;
       trocarImagem(p); posicionarPessoa(p);
       if (k < 1) p.passo = requestAnimationFrame(passo);

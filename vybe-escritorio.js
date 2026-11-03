@@ -4719,6 +4719,7 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     meeting.self.on("roomLeft", () => {
       if (escritorio.chamada !== meeting) return;
       escritorio.chamada = null;
+      escritorioFiltroVoz.geracao++;
       escritorioNivelAudio.parar();
       escritorioPararVozes();
       escritorioAviso("A conversa caiu. Reconectando…");
@@ -4779,7 +4780,10 @@ function escritorioPrefsAudio() {
 // carro, ar-condicionado) e fecha o microfone quando o som fica abaixo do
 // limite de sensibilidade (cachorro longe, TV baixa, teclado). Roda no próprio
 // navegador, como um passo antes de enviar a voz.
-const escritorioFiltroVoz = { limite: 0.018 };
+// geracao: cada filtro aplicado (ou chamada encerrada) aposenta o anterior.
+// O laço do portão só parava com o áudio fechado; trocando de sala, o velho
+// seguia medindo 50 vezes por segundo junto com o novo.
+const escritorioFiltroVoz = { limite: 0.018, geracao: 0 };
 function escritorioLimiteFiltro() {
   const p = escritorioLerPrefsAudio();
   // Sensibilidade 1 (pega tudo) a 10 (só voz próxima); padrão 5.
@@ -4787,21 +4791,24 @@ function escritorioLimiteFiltro() {
   return 0.004 + (sens - 1) * 0.0045;
 }
 function escritorioMiddlewaresVoz() {
+  const geracao = escritorioFiltroVoz.geracao;
   const passaAlta = async (ctx) => { const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 110; f.Q.value = 0.7; return f; };
   const corteAgudo = async (ctx) => { const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 7500; return f; };
   let medidor = null;
   const medir = async (ctx) => { medidor = ctx.createAnalyser(); medidor.fftSize = 512; return medidor; };
   const portao = async (ctx) => {
     const g = ctx.createGain(), dados = new Uint8Array(512);
-    let aberto = 0;
+    let aberto = 0, ganho = null;
     const tick = () => {
-      if (!medidor || ctx.state === "closed") return;
+      if (!medidor || ctx.state === "closed" || geracao !== escritorioFiltroVoz.geracao) return;
       medidor.getByteTimeDomainData(dados);
       let soma = 0; for (const v of dados) soma += (v - 128) * (v - 128);
       const nivel = Math.sqrt(soma / dados.length) / 128;
       // Abre rápido, fecha devagar (não corta o fim das palavras).
       if (nivel > escritorioFiltroVoz.limite) aberto = 12; else if (aberto > 0) aberto--;
-      g.gain.setTargetAtTime(aberto > 0 ? 1 : 0.03, ctx.currentTime, aberto > 0 ? 0.01 : 0.08);
+      // Só agenda a rampa quando o portão muda (antes eram 50 por segundo).
+      const alvo = aberto > 0 ? 1 : 0.03;
+      if (alvo !== ganho) { ganho = alvo; g.gain.setTargetAtTime(alvo, ctx.currentTime, alvo === 1 ? 0.01 : 0.08); }
       setTimeout(tick, 20);
     };
     tick();
@@ -4813,6 +4820,7 @@ async function escritorioAplicarFiltroVoz(meeting) {
   const self = meeting?.self;
   if (!self?.addAudioMiddleware) return;
   escritorioFiltroVoz.limite = escritorioLimiteFiltro();
+  escritorioFiltroVoz.geracao++;
   try { await self.removeAllAudioMiddlewares?.(); } catch {}
   if (escritorioLerPrefsAudio().filtro === false) return;
   try { for (const m of escritorioMiddlewaresVoz()) await self.addAudioMiddleware(m); }
@@ -5217,6 +5225,7 @@ async function trocarTelaEscritorio() {
 async function sairChamadaEscritorio() {
   const m = escritorio.chamada;
   escritorio.chamada = null;
+  escritorioFiltroVoz.geracao++;
   escritorio.canalChamada = null;
   escritorio.ouvindoAntes = "";
   escritorio.somBloqueado = false;

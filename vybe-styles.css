@@ -17022,7 +17022,7 @@ img[src*="headonly=1"] {object-fit:cover;object-view-box:inset(24% 20% 12% 20%);
 
    no painel da esquerda, mostra os mesmos avisos e leva até eles. */
 
-body:has(#painel-escritorio[style*="block"]) .plj-aviso {display:none}
+body.no-escritorio .plj-aviso {display:none}
 
 
 
