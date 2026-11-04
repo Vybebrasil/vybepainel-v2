@@ -1,6 +1,8 @@
 // Apresentação exclusiva da sinuca. As ações e a economia seguem os contratos das mesas.
-const SINUCA_RETRATOS={facil:'sinuca-ze',medio:'sinuca-tio',lendario:'sinuca-lenda'};
-const sinucaRetrato=(nivel)=>`/assets/jogos/${SINUCA_RETRATOS[nivel]||'sinuca-ze'}.webp`;
+// Endereços inteiros: o build põe a versão (?v=) em cada um, e a foto nova
+// chega mesmo para quem tinha a antiga guardada no navegador.
+const SINUCA_RETRATOS={facil:'/assets/jogos/sinuca-ze.webp',medio:'/assets/jogos/sinuca-tio.webp',lendario:'/assets/jogos/sinuca-lenda.webp'};
+const sinucaRetrato=(nivel)=>SINUCA_RETRATOS[nivel]||SINUCA_RETRATOS.facil;
 function sinucaMarcaHtml(){return '<img class="snc-emblema" src="/assets/jogos/sinuca-emblema.webp" alt=""><span><small>VYBE · SALÃO DE JOGOS</small><b>SINUCA <em>DE BOTECO</em></b></span>';}
 function sinucaCabecalhoHtml(titulo,voltar='xadrezFechar()'){
  return `<header class="snc-sala-topo tema-sinuca"><div class="snc-marca">${sinucaMarcaHtml()}</div><span class="snc-local">${safeText(titulo)}</span><button type="button" class="snc-icone" aria-label="Fechar sinuca" onclick="${voltar}">×</button></header>`;
