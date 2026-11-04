@@ -31,6 +31,7 @@ test('a luz do quarto vem pintada no chão, na janela, nas imagens e nos bonecos
   assert.match(mapa, /g\.globalCompositeOperation = "source-over";\n    tingir\(p\.c\);/);
   assert.match(mapa, /const t = luzRgb && mapaBonecoTingido\(url, luzRgb, aplicar\);/);
   assert.match(mapa, /p\.img\.classList\.toggle\("sem-tinta", Boolean\(t\?\.falhou\)\);/);
+  assert.match(mapa, /baixar\("default"\)\.catch\(\(\) => baixar\("no-store"\)\)/, 'cópia do cache com CORS de outra origem: pede de novo sem cache');
   const animadas = readFileSync('vybe-escritorio-animadas.js', 'utf8');
   assert.match(animadas, /const folha = animadasTingida\(dado\.folha, hex, luz\);/);
 });
