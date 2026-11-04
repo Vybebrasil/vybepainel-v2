@@ -127,6 +127,23 @@ const LISAS = [1, 2, 3, 4, 5, 6, 7], LISTRADAS = [9, 10, 11, 12, 13, 14, 15];
 const PARES = [2, 4, 6, 8, 10, 12, 14], IMPARES = [3, 5, 7, 9, 11, 13, 15];
 const GRUPOS = { lisas: LISAS, listradas: LISTRADAS, pares: PARES, impares: IMPARES };
 const outro = (lado) => (lado === 'desafiante' ? 'desafiado' : 'desafiante');
+// SINUCA EM DUPLA (Paulo, 04/11/2026: "como tá funcionando pra jogar de dupla?
+// ... no par ou ímpar, jogar alternado"): quem chama e o parceiro (A1, A2)
+// contra os dois chamados (B1, B2). A vez roda A1 → B1 → A2 → B2: quem
+// encaçapa a certa continua; errou ou fez falta, passa para o próximo da outra
+// dupla. O par ou o ímpar é da dupla; a falta tira bolas da dupla que errou.
+export const RODIZIO_DUPLA = ['desafiante', 'desafiado', 'jogador3', 'jogador4'];
+const TIMES_DUPLA = { desafiante: 'A', jogador3: 'A', desafiado: 'B', jogador4: 'B' };
+// O próximo a jogar quando a vez passa: na dupla, o seguinte do rodízio (sempre da outra dupla).
+const proximo = (m, lado) => (m?.rodizio ? m.rodizio[(m.rodizio.indexOf(lado) + 1) % m.rodizio.length] : outro(lado));
+// Os lados da mesma dupla (no 1×1, só o próprio).
+export const timeDe = (m, lado) => (m?.rodizio ? m.rodizio.filter((l) => m.times[l] === m.times[lado]) : [lado]);
+// Grupo do par ou ímpar para a dupla inteira de quem matou e a outra para os adversários.
+function definirGrupos(m, lado, meu) {
+ const dele = meu === 'pares' ? 'impares' : meu === 'impares' ? 'pares' : meu === 'lisas' ? 'listradas' : 'lisas';
+ const lados = m.rodizio || ['desafiante', 'desafiado'];
+ m.grupos = Object.fromEntries(lados.map((l) => [l, timeDe(m, l).includes(lado) ? meu : dele]));
+}
 const doGrupo = (g, n) => Boolean(GRUPOS[g]?.includes(n));
 const restam = (bolas, g) => (GRUPOS[g] || []).filter((n) => bolas[n]).length;
 // Onde a branca pode ir com bola na mão (Paulo, 28/10/2026: "a regra de onde
@@ -173,7 +190,13 @@ function lugarDaBranca(bolas, area, r) {
 // (a 1) colado no meio da tabela de cabeceira, do lado contrário das outras
 // (Paulo: "o ás começando colado no lado contrário das outras bolas"), e a
 // branca na mão de quem sai, atrás da linha de saída.
-export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', sortear = randomInt, r = RAIO, modo = 'bar') {
+export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', sortear = randomInt, r = RAIO, modo = 'bar', lados = null) {
+ if (lados?.length === 4 && modo === 'bar') {
+  const m = iniciarSinuca(quemSai, sortear, r, modo);
+  m.rodizio = [...RODIZIO_DUPLA]; m.times = { ...TIMES_DUPLA };
+  m.grupos = Object.fromEntries(RODIZIO_DUPLA.map((l) => [l, null]));
+  return m;
+ }
  const misturar = (l) => { for (let i = l.length - 1; i > 0; i--) { const k = sortear(i + 1); [l[i], l[k]] = [l[k], l[i]]; } return l; };
  if (modo === 'bar') {
   const ordem = misturar([...PARES, ...IMPARES]), bolas = Array(16).fill(null);
@@ -487,6 +510,7 @@ export function vistaSinuca(m, lado, fim) {
   modo: m.modo || 'bola8', regra: m.regra || null, rb: m.rb || m.r || R, casa: m.regra === 'bar' ? regrasDaCasa(m.casa) : null, bola1: Boolean(m.bola1), pontos: m.pontos || null, daVez: m.regra === 'bolavez' ? bolaDaVezNaMesa(m.bolas) : null, r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas, n: m.n || 0,
   restam: Object.fromEntries(Object.keys(GRUPOS).map((g) => [g, restam(m.bolas, g)])),
   // Os quadros vão só em `recentes` (a partida gravada antes não tem: a última tacada vale como a lista).
+  rodizio: m.rodizio || null, times: m.times || null,
   pode_tacar: Boolean(vez), ultimo: m.ultimo ? { ...m.ultimo, quadros: undefined, trilhas: undefined, inicio: undefined, eventos: undefined } : null,
   recentes: m.recentes || (m.ultimo ? [{ ...m.ultimo, n: m.n || 0 }] : []),
  };
@@ -530,10 +554,10 @@ function jogarSinucaBruto(mesa, lado, pedido) {
  // Tempo esgotado: falta sem tacada, a vez passa com bola na mão.
  if (pedido?.tipo === 'tempo') {
   const m = structuredClone(mesa);
-  m.n = (m.n || 0) + 1; m.vez = outro(lado); m.bolaNaMao = m.regra === 'bar' ? m.bolaNaMao : true;
+  m.n = (m.n || 0) + 1; m.vez = proximo(m, lado); m.bolaNaMao = m.regra === 'bar' ? m.bolaNaMao : true;
   guardarTacada(m, { lado, quadros: [], eventos: [], caiu: [], primeiro: null, falta: 'tempo' });
   // Na regra de bar o tempo é falta como as outras: sai uma bola do outro.
-  if (m.regra === 'bar' && m.tacadas > 0) { const fim = multa(m, outro(lado)); if (fim) return { mesa: m, fim }; }
+  if (m.regra === 'bar' && m.tacadas > 0) { const fim = multa(m, proximo(m, lado)); if (fim) return { mesa: m, fim }; }
   // Na bola da vez, 7 pontos para o outro.
   if (m.regra === 'bolavez') { (m.pontos ||= { desafiante: 0, desafiado: 0 })[outro(lado)] += PONTOS_FALTA; m.ultimo.pontosOutro = PONTOS_FALTA; m.bolaNaMao = m.bolaNaMao || false; }
   return { mesa: m, fim: null };
@@ -659,7 +683,7 @@ function parImpar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
 //   (art. 17); nas outras faltas joga de onde a branca parou.
 // Com a mesa aberta a falta só passa a vez (ainda não há bola do outro a tirar).
 function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
- const dono = outro(lado), meu0 = m.grupos[lado], aberta = !meu0, limpo = !aberta && restam(m.bolas, meu0) === 0, saida = m.tacadas === 0;
+ const dono = proximo(m, lado), meu0 = m.grupos[lado], aberta = !meu0, limpo = !aberta && restam(m.bolas, meu0) === 0, saida = m.tacadas === 0;
  m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
  // O ás que pula para fora volta para a cabeceira; as outras, para a marca.
  const asFora = r.fora.includes(1);
@@ -677,7 +701,7 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
  let meu = meu0;
  if (aberta && !falta && caidas.length) {
   meu = doGrupo('pares', caidas[0]) ? 'pares' : 'impares';
-  m.grupos = { [lado]: meu, [dono]: meu === 'pares' ? 'impares' : 'pares' };
+  definirGrupos(m, lado, meu);
   m.ultimo.grupo = meu;
  }
  if (falta) {
@@ -817,8 +841,14 @@ export function fichaSinuca(id, partidas, posicao = null) {
 
 export const motorSinuca = {
  nome: 'Sinuca',
+ // Dupla: 4 na mesa (2 contra 2), só na regra de bar (par ou ímpar).
+ grupo: 4, dupla: true,
+ time: timeDe,
+ // Na dupla, quem sai (desistiu, sumiu na vez) entrega a partida para a outra dupla.
+ sair: (mesa, lado, motivo) => ({ mesa, fim: { resultado: proximo(mesa, lado), motivo } }),
+ lider: (mesa) => proximo(mesa, mesa.vez),
  motivos: { um: 'Encaçapou a 1', 'um-cedo': 'A 1 caiu antes da hora', 'um-falta': 'A 1 caiu com falta', oito: 'Encaçapou a 8', 'oito-cedo': 'A 8 caiu antes da hora', 'oito-falta': 'A 8 caiu com falta', todas: 'Encaçapou todas as suas', 'ultima-do-outro': 'O outro encaçapou a última bola dele por ele', 'falta-no-as': 'Falta com o outro já no ás', pontos: 'Mais pontos na bola da vez', 'pontos-empate': 'Empate nos pontos' },
- iniciar: () => iniciarSinuca(),
+ iniciar: (lados) => iniciarSinuca(undefined, undefined, undefined, undefined, lados),
  vista: vistaSinuca,
  jogar: jogarSinuca,
  // Tempo da vez: acabou, é falta (como nos jogos online): a vez passa com bola na mão.

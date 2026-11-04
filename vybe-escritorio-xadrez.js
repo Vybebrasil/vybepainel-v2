@@ -307,7 +307,7 @@ ${aposta}<p class="ofc-erro" id="xdz-erro" role="alert"></p>
 }
 function atualizarBotaoXadrez() {
   const b = document.getElementById("xdz-chamar"), f = escritorioXadrez().nova;
-  if (b && f) b.disabled = !f.para;
+  if (b && f) b.disabled = !f.para || (f.dupla && (!f.parceiro || (f.advs || []).length < 2));
 }
 function modoXadrez(valendo) {
   const f = escritorioXadrez().nova;
@@ -350,7 +350,7 @@ async function desafiarXadrezEscritorio(botao) {
   if (!f?.para || !x.mesa) return;
   botao.disabled = true;
   try {
-    const mais = cfg.grupo ? f.grupo.slice(1) : [], doGrupo = mais.length > 0;
+    const mais = cfg.grupo || f.dupla ? f.grupo.slice(1) : [], doGrupo = mais.length > 0;
     const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: f.para, ...(doGrupo ? { mais } : {}), ...x.mesa, ...(f.casa ? { casa: f.casa } : {}), moedas: f.valendo ? f.moedas : 0,
       oferece: f.valendo && !doGrupo ? [...f.oferece] : [], pede: f.valendo && !doGrupo ? [...f.pede] : [], chave: xadrezChave() });
     for (const id of [f.para, ...mais]) mesaSinal(cfg, r.id, id, "c");

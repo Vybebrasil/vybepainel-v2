@@ -89,6 +89,14 @@ async function chamarDaFora(tx, j, resultado) {
  }
 }
 async function encerrar(tx, j, resultado, motivo) {
+ // Sinuca em dupla: cada um da dupla que ganhou leva a parte dele do pote.
+ const motorFim = MOTORES[j.jogo];
+ if (motorFim?.dupla && j.mesa?.rodizio && resultado !== 'empate') {
+  const lados = motorFim.time(j.mesa, resultado), razao = `${j.jogo}:${j.id}`;
+  for (const l of lados) await pagarAposta(tx, j, idDoLado(j, l), razao, jogadores(j).length / lados.length);
+  await tx`UPDATE vybe_escritorio_partidas SET estado='fim',resultado=${resultado},motivo=${motivo},empate_de=NULL,terminado_em=now() WHERE id=${j.id} AND estado='jogando'`;
+  return;
+ }
  // Pôquer com clientes: o pote é de todas as cadeiras; se um cliente ganhou, vai para a carteira dele.
  if (clientesDe(j).length) {
   const razao = `${j.jogo}:${j.id}`, cliente = clienteDoLado(j, resultado);
@@ -298,7 +306,7 @@ export async function verMesa(sql, pessoa, id, { visto } = {}) {
 export async function fichasDoBar(sql, jogo, ids) {
  ids = [...new Set(ids.map(String).filter((id) => /^\d+$/.test(id)))];
  if (jogo !== 'sinuca' || !ids.length) return {};
- const linhas = await sql`SELECT desafiante, desafiado, resultado, bot, moedas FROM vybe_escritorio_partidas WHERE jogo='sinuca' AND estado='fim' AND resultado IS NOT NULL
+ const linhas = await sql`SELECT desafiante, desafiado, resultado, bot, moedas FROM vybe_escritorio_partidas WHERE jogo='sinuca' AND estado='fim' AND resultado IS NOT NULL AND cardinality(mais)=0
    AND (desafiante = ANY(${ids}::bigint[]) OR desafiado = ANY(${ids}::bigint[])) ORDER BY terminado_em NULLS FIRST, id`;
  const rk = await rankingGeral(sql, jogo, ids);
  return Object.fromEntries(ids.map((id) => [id, fichaSinuca(id, linhas, rk.lista.find((r) => r.id === id)?.posicao ?? null)]));
@@ -310,6 +318,8 @@ export async function rankingGeral(sql, jogo, com = []) {
  const linhas = await sql`SELECT desafiante, desafiado, mais, resultado FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='fim' AND bot IS NULL AND resultado IS NOT NULL`;
  const placar = new Map(), de = (id) => placar.get(id) || placar.set(id, { id, vitorias: 0, derrotas: 0, empates: 0 }).get(id);
  for (const l of linhas) {
+  // A sinuca em dupla não entra no ranking (ele conta vitória por pessoa).
+  if (jogo === 'sinuca' && (l.mais || []).length) continue;
   const mesa = [l.desafiante, l.desafiado, ...(l.mais || [])].filter((p) => p != null).map(String);
   if (l.resultado === 'empate') { for (const p of mesa) de(p).empates++; continue; }
   const v = mesa[LADOS.indexOf(l.resultado)];
@@ -369,6 +379,14 @@ export async function desafiarMesa(sql, pessoa, salas, pedido) {
   if (mais.length > motor.grupo - 2) throw erro(`${motor.nome} é de até ${motor.grupo} pessoas na mesa.`);
   if (mais.some((id) => !/^\d{1,18}$/.test(id) || id === String(pessoa.id) || id === para)) throw erro('Escolha pessoas diferentes da equipe.');
   if (da.length || quer.length) throw erro('Com mais de duas pessoas na mesa, a aposta é só em VybeCoins.');
+  // Sinuca em dupla: são 4 (você, o parceiro e os dois adversários), no par ou ímpar.
+  if (motor.dupla && mais.length !== 2) throw erro('A sinuca em dupla é com 4: você, seu parceiro e os dois adversários.');
+  if (motor.dupla && pedido?.casa?.modo === 'bolavez') throw erro('A dupla é no par ou ímpar (regra de bar).');
+  // O banco precisa da migração 2026-11-04-escritorio-sinuca-dupla.sql (antes só o pôquer tinha `mais`).
+  if (motor.dupla) {
+   const [c] = await sql`SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname='vybe_escritorio_partidas_mais_check'`;
+   if (c && !String(c.def).includes('sinuca')) throw erro('A sinuca em dupla ainda aguarda a atualização do banco. Por enquanto, jogue 1 × 1.', 503);
+  }
  }
  const r = await sql.comTransacao(async (tx) => {
   const [ja] = await tx`SELECT id,desafiante FROM vybe_escritorio_partidas WHERE chave=${chave}`;
@@ -475,13 +493,15 @@ export async function responderMesa(sql, pessoa, salas, { id, acao }) {
    if (conviteVencido(j)) throw erro('O convite venceu. Chame de novo.', 409);
    const prontos = chamados(j).filter((x) => aceitos(j).includes(x));
    if (!prontos.length) throw erro('Ninguém aceitou ainda.', 409);
+   // Dupla é com os 4: não dá para começar sem todos (a mesa ficaria de 3).
+   if (MOTORES[j.jogo]?.dupla && emGrupo(j) && prontos.length < chamados(j).length) throw erro('Na dupla, os quatro precisam aceitar.', 409);
    // Quem não respondeu sai do convite; quem aceitou senta, na ordem.
    j.desafiado = prontos[0]; j.mais = prontos.slice(1);
    await tx`UPDATE vybe_escritorio_partidas SET desafiado=${j.desafiado},mais=${j.mais}::bigint[] WHERE id=${j.id}`;
    await comecar(tx, j, salas, eu);
    return {};
   }
-  if (acao === 'cancelar' || conviteVencido(j) || (acao === 'recusar' && !emGrupo(j))) {
+  if (acao === 'cancelar' || conviteVencido(j) || (acao === 'recusar' && (!emGrupo(j) || MOTORES[j.jogo]?.dupla))) {
    await tx`UPDATE vybe_escritorio_partidas SET estado=${acao === 'recusar' ? 'recusado' : 'cancelado'},terminado_em=now() WHERE id=${j.id}`;
    if (acao === 'aceitar') throw erro('O convite venceu. Chame de novo.', 409);
    return {};
