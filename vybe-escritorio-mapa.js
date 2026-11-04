@@ -892,6 +892,49 @@ function mapaBonecoPronto(url, aoCarregar) {
   img.addEventListener("load", aoCarregar, { once: true });
   return false;
 }
+// Boneco com a luz do quarto já pintada (04/11/2026): o filtro SVG em cada
+// <img> rodava no processador e era refeito a cada piscada, fala e passo.
+// Cada quadro é pintado uma vez (multiplica pela cor, como o regulador do
+// Habbo) e guardado como imagem; a troca de quadro só aponta para ela. O
+// imager do Habbo responde com CORS para qualquer origem, mas a resposta sem
+// CORS (o mesmo boneco no saguão, no cartão) fica no cache do navegador e era
+// reaproveitada: o pedido daqui leva "&cors=1", um endereço só dele (o imager
+// ignora o parâmetro). Se algum quadro não puder ser pintado, ele volta
+// "falhou" e o boneco usa o filtro de reserva.
+const MAPA_BONECOS_TINGIDOS = new Map();
+function mapaBonecoTingido(url, rgb, aoPronto) {
+  const chave = rgb.join(",") + "|" + url;
+  let t = MAPA_BONECOS_TINGIDOS.get(chave);
+  if (!t) {
+    t = { src: "", falhou: false, espera: [] };
+    MAPA_BONECOS_TINGIDOS.set(chave, t);
+    if (MAPA_BONECOS_TINGIDOS.size > 600) {
+      const [velha, v] = MAPA_BONECOS_TINGIDOS.entries().next().value;
+      MAPA_BONECOS_TINGIDOS.delete(velha);
+      if (v.src) URL.revokeObjectURL(v.src);
+    }
+    const pronto = () => { const fila = t.espera; t.espera = []; for (const f of fila) f(); };
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.referrerPolicy = "no-referrer";
+    img.src = url + (url.includes("?") ? "&" : "?") + "cors=1";
+    img.decode().then(() => {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      g.globalCompositeOperation = "multiply";
+      g.fillStyle = `rgb(${rgb.map((v) => Math.round(v * 255)).join(",")})`;
+      g.fillRect(0, 0, c.width, c.height);
+      g.globalCompositeOperation = "destination-in";
+      g.drawImage(img, 0, 0);
+      c.toBlob((b) => { if (b) t.src = URL.createObjectURL(b); else t.falhou = true; pronto(); });
+    }).catch(() => { t.falhou = true; pronto(); });
+  }
+  if (t.src || t.falhou) return t;
+  if (aoPronto) t.espera.push(aoPronto);
+  return null;
+}
 // Ritmo do passo como no Habbo: um ladrilho por passada, com os 4 quadros da
 // passada cabendo no tempo de um ladrilho (antes o boneco deslizava: cada
 // ladrilho levava 172 ms e só dois quadros apareciam).
@@ -1171,6 +1214,10 @@ function mapaForaDeVista(el) {
   // VYBES travava (Paulo, 03/11/2026). Voltou para o painel, o mapa volta no tique seguinte.
   const vybes = globalThis.vybesJanela;
   if (vybes && !vybes.closed && !document.hasFocus()) return true;
+  // Jogo, ranking ou outra janela aberta por cima (sinuca, xadrez, poker…): a
+  // sala fica atrás do escurecido e ninguém olha para ela (Paulo, 04/11/2026:
+  // "só renderiza a sala quando ela está aberta"). Fechou, volta no tique seguinte.
+  if (document.getElementById("workflow-modal") && !el.closest("#workflow-modal")) return true;
   const agora = Date.now(), guardado = el._mapaVista;
   if (guardado && agora - guardado.t < 500) return guardado.fora;
   const fora = !el.offsetParent || (!el.closest(".ofc-lobby, .ofc-abertura") && Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura")));
@@ -1211,9 +1258,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // A mesma cor, pintada direto no desenho de móveis e paredes (uma vez por
   // desenho). Antes o filtro ia em cada um dos centenas de canvases da cena,
   // e o navegador refazia todos a cada passo de quem andava ou de um feixe de
-  // luz (era o que mais derrubava o FPS no Auditório e na Convivência). O
-  // filtro de CSS ficou só no chão, nos bonecos e na paisagem das janelas.
-  const corLuz = MAPA_LUZES_RGB[P.luz] && `rgb(${MAPA_LUZES_RGB[P.luz].map((v) => Math.round(v * 255)).join(",")})`;
+  // luz (era o que mais derrubava o FPS no Auditório e na Convivência).
+  // Desde 04/11/2026 o chão, a paisagem das janelas, as imagens da equipe e os
+  // bonecos também vêm pintados (filtro SVG roda no processador e era refeito a
+  // cada piscada de boneco: o Mac esquentava). O filtro de CSS ficou só de
+  // reserva, no boneco cuja cópia pintada não pôde ser feita (sem-tinta).
+  const luzRgb = MAPA_LUZES_RGB[P.luz] || null;
+  const corLuz = luzRgb && `rgb(${luzRgb.map((v) => Math.round(v * 255)).join(",")})`;
   const copiaLuz = document.createElement("canvas");
   const tingir = (cv) => {
     if (!corLuz || !cv?.width || !cv.height) return;
@@ -1307,7 +1358,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     palco.append(gradeNo);
   }
   el.replaceChildren(palco);
-  const pintarFundo = () => { fundo.getContext("2d").clearRect(0, 0, fundo.width, fundo.height); mapaDesenharFundo(fundo, P, origem); };
+  const pintarFundo = () => { fundo.getContext("2d").clearRect(0, 0, fundo.width, fundo.height); mapaDesenharFundo(fundo, P, origem); tingir(fundo); };
   pintarFundo();
   fundoPronto = pintarFundo;
   // Pisos do acervo: carrega a arte de cada um uma vez e redesenha o fundo.
@@ -1686,10 +1737,96 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     mapaPintarPaisagem(p.c, el.dataset.ceu);
     g.globalCompositeOperation = "destination-in"; g.drawImage(p.mascara.canvas, 0, 0);
     g.globalCompositeOperation = "source-over";
+    tingir(p.c);
   }
   // Móveis (animados ficam numa lista para trocar de quadro)
   const animados = [];
   const moveis = [];
+  // Foto do chão (Paulo, 04/11/2026: "o que é fixo faz uma imagem só, pra não
+  // ficar redesenhando tudo"). Tapetes e pisos parados (rentes ao chão, sem
+  // animação) são copiados num canvas só, na ordem de profundidade, e as
+  // camadas deles ficam escondidas (continuam no lugar para o clique, o
+  // editor e o destaque). Uma sala comum tinha mais de 130 canvases só de chão.
+  // O chão tem a faixa de profundidade dele (mapaZPlano); peça de fora dessa
+  // faixa (parede, móvel, boneco) fica atrás ou na frente da foto como ficava.
+  // Dentro da faixa, peça que fica de fora da foto (tapete animado, escolhido
+  // no editor) e encosta numa da foto leva a vizinha junto para fora.
+  const fotoChao = { no: null, itens: [], timer: 0 };
+  function soltarFoto() {
+    for (const m of fotoChao.itens) m.no.classList.remove("na-foto");
+    fotoChao.itens = [];
+    fotoChao.no?.remove();
+    fotoChao.no = null;
+  }
+  function pedirFoto() {
+    clearTimeout(fotoChao.timer);
+    fotoChao.timer = setTimeout(montarFoto, 400);
+  }
+  // Mexeram numa peça (moveu, trocou de estado, foi escolhida): ela volta a
+  // ser desenhada solta na hora, e a foto se refaz quando parar de mexer.
+  function fotoMexeu(m) {
+    if (!m || !fotoChao.itens.includes(m)) return;
+    soltarFoto();
+    pedirFoto();
+  }
+  // Peças que ganharam ou perderam um destaque: se estão na foto, voltam a ser
+  // soltas; se são do chão, a foto se refaz (com ou sem elas).
+  function fotoConfere(lista) {
+    const doChao = lista.filter((m) => m?.plano && !m.parede);
+    if (!doChao.length) return;
+    if (doChao.some((m) => fotoChao.itens.includes(m))) soltarFoto();
+    pedirFoto();
+  }
+  function montarFoto() {
+    fotoChao.timer = 0;
+    soltarFoto();
+    if (destruido) return;
+    // Com a sala escondida as medidas da tela vêm zeradas: tenta de novo depois.
+    if (!el.offsetParent) { fotoChao.timer = setTimeout(montarFoto, 2000); return; }
+    const naFaixa = (z) => z >= 1000 && z <= 1899;
+    const fixo = (m) => m.plano && !m.parede && m.camadas?.length && m.quadros <= 1 && !m.transicao && !m.filtro && !animados.includes(m)
+      && !["mapa-selecionado", "mapa-interativo", "mapa-aviso"].some((c) => m.no.classList.contains(c))
+      && m.camadas.every((c) => !c.no.style.mixBlendMode && naFaixa(Number(c.no.style.zIndex)));
+    let itens = moveis.filter(fixo);
+    const nossas = new Set(itens.flatMap((m) => m.camadas.map((c) => c.no)));
+    const caixa = (n) => n.getBoundingClientRect();
+    const toca = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    // O que fica de fora mas cai na faixa do chão.
+    let fora = [...palco.querySelectorAll("[style*='z-index']")].filter((n) => !nossas.has(n) && naFaixa(Number(n.style.zIndex))).map(caixa);
+    for (let mudou = true; mudou;) {
+      mudou = false;
+      itens = itens.filter((m) => {
+        const cs = m.camadas.map((c) => caixa(c.no));
+        if (!cs.some((c) => fora.some((f) => toca(c, f)))) return true;
+        fora = fora.concat(cs); mudou = true;
+        return false;
+      });
+    }
+    if (itens.length < 2) return;
+    const camadas = itens.flatMap((m) => m.camadas.filter((c) => !c.no.hidden && c.no.width && c.no.height).map((c) => ({
+      no: c.no, z: Number(c.no.style.zIndex),
+      x: parseFloat(m.no.style.left) + (parseFloat(c.no.style.left) || 0),
+      y: parseFloat(m.no.style.top) + (parseFloat(c.no.style.top) || 0),
+    })));
+    // Mesma profundidade: vale a ordem na página, como no empilhamento do CSS.
+    camadas.sort((a, b) => a.z - b.z || (a.no.compareDocumentPosition(b.no) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    const x0 = Math.floor(Math.min(...camadas.map((c) => c.x))), y0 = Math.floor(Math.min(...camadas.map((c) => c.y)));
+    const x1 = Math.ceil(Math.max(...camadas.map((c) => c.x + c.no.width))), y1 = Math.ceil(Math.max(...camadas.map((c) => c.y + c.no.height)));
+    const foto = document.createElement("canvas");
+    foto.width = x1 - x0; foto.height = y1 - y0;
+    if (!foto.width || !foto.height || foto.width * foto.height > MAPA_CAMADA_MAX_PX) return;
+    const g = foto.getContext("2d");
+    for (const c of camadas) g.drawImage(c.no, c.x - x0, c.y - y0);
+    foto.className = "mapa-obj mapa-foto-chao";
+    foto.setAttribute("aria-hidden", "true");
+    foto.style.left = x0 + "px"; foto.style.top = y0 + "px";
+    foto.style.zIndex = String(camadas[0].z);
+    // Antes das camadas na página: no empate de profundidade, as soltas (que não encostam nela) ficam na frente.
+    palco.prepend(foto);
+    for (const m of itens) m.no.classList.add("na-foto");
+    fotoChao.no = foto;
+    fotoChao.itens = itens;
+  }
   // Fogo, água, telas e máquinas são o cenário, não efeito de interface: com
   // "reduzir movimento" eles continuam, só mais devagar (metade dos tiques).
   // O que a preferência desliga é a câmera com inércia, o fundo e os pulsos.
@@ -1739,6 +1876,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     return ref;
   };
   const ordenarMovel = (m) => {
+    fotoMexeu(m);
     if (m.revestimento) { m.no.style.zIndex = m.prof = mapaZRevestimento(m.profArte); return; }
     const base = profMovel(m);
     const z = (prof) => (m.plano && !m.parede ? mapaZPlano(prof) : mapaZ(prof));
@@ -1889,6 +2027,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
       const g = m.no.getContext("2d");
       g.clearRect(0, 0, m.no.width, m.no.height);
       g.drawImage(d.canvas, 0, 0);
+      tingir(m.no); // como na primeira pintura (quadro novo na parede saía sem a luz)
       m.pintado = fatias.length > 0;
     }
   }
@@ -1906,6 +2045,8 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     g.imageSmoothingQuality = "high";
     g.setTransform(w * MAPA_TW / 2, w * MAPA_TH / 2, -h * MAPA_TW / 2, h * MAPA_TH / 2, h * MAPA_TW / 2, 0);
     g.drawImage(img, 0, 0, 1, 1);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    tingir(c);
     c.className = "mapa-obj";
     c.dataset.classe = "vybeimg_" + meta.id;
     colocar(c, x, y, { ox: -h * (MAPA_TW / 2), oy: 0 }, 1);
@@ -2078,7 +2219,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   // Quantos móveis já carregaram (a tela de entrada mostra a porcentagem).
   const carga = { feitos: 0, total: P.moveis.length, pronto: false };
   // A grade só é montada com a ficha de física do Habbo carregada.
-  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { if (destruido) return; ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) { montarFigurantes(); montarVisitantes(); } carga.pronto = true; });
+  const prontos = Promise.all([mapaCarregarFisica(), ...P.moveis.map((item) => montar(item).finally(() => { carga.feitos++; }))]).then(() => { if (destruido) return; ordenar(); pintarParedes(); luzesLigadas = true; pintarLuzes(); aplicarFundoColorido(); montarFigurantesDepois = true; grade = mapaMontarGrade(P, moveis); for (const p of pessoas.values()) posicionarPessoa(p); if (montarFigurantesDepois) { montarFigurantes(); montarVisitantes(); } carga.pronto = true; pedirFoto(); });
   // Editor: troca toda a mobília (os modelos já carregados vêm do cache).
   // Uma troca por vez: duas seguidas (editar e salvar) desenhavam os móveis
   // em dobro, porque a segunda limpava enquanto a primeira ainda montava.
@@ -2093,6 +2234,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     if (postitsAtuais) postits(...postitsAtuais);
   }
   async function trocarMoveisAgora(lista) {
+    soltarFoto();
     for (const item of moveis) { item.no.remove(); for (const e of item.extras || []) e.no.remove(); }
     for (const p of paisagens) p.c.remove();
     paisagens.length = 0;
@@ -2106,6 +2248,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     grade = mapaMontarGrade(P, moveis);
     for (const p of pessoas.values()) posicionarPessoa(p);
     destacar(selecionado);
+    pedirFoto();
   }
   // Uma peça a mais na cena sem trocar as outras (a taça da Copa, que aparece
   // em toda sala e não é salva na decoração de ninguém).
@@ -2137,11 +2280,13 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   function destacar(origem) {
     selecionado = origem;
     const lista = Array.isArray(origem) ? origem : origem ? [origem] : [];
+    const antes = moveis.filter((m) => m.no.classList.contains("mapa-selecionado"));
     for (const m of moveis) {
       const sel = lista.some((o) => m.origem?.camada === o.camada && m.origem?.i === o.i);
       m.no.classList.toggle("mapa-selecionado", sel);
       for (const e of m.extras || []) e.no.classList.toggle("mapa-selecionado", sel);
     }
+    fotoConfere([...antes, ...moveis.filter((m) => m.no.classList.contains("mapa-selecionado"))]);
   }
   // Medidas no chão de um móvel numa direção (carrega o modelo se precisar).
   // Prévia do editor: o móvel meio transparente no ladrilho do mouse (verde
@@ -2363,15 +2508,29 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     const url = mapaAvatarUrl(figura, p.dir, acao, mao, quadro, gesto, cabeca);
     if (p.img.dataset.url === url) return;
     p.img.dataset.url = url;
-    const aplicar = () => { if (p.img.dataset.url === url) { delete p.img.dataset.reserva; p.img.src = url; } };
+    const aplicar = () => {
+      if (p.img.dataset.url !== url) return;
+      // Quarto com luz: troca para a cópia já pintada quando ela fica pronta.
+      // Sem nenhuma imagem ainda (entrou agora), mostra a comum com o filtro de
+      // reserva para não ficar invisível enquanto o Habbo responde.
+      const t = luzRgb && mapaBonecoTingido(url, luzRgb, aplicar);
+      if (luzRgb && !t) {
+        if (!p.img.getAttribute("src") && mapaBonecoPronto(url, aplicar)) { p.img.classList.add("sem-tinta"); p.img.src = url; }
+        return;
+      }
+      delete p.img.dataset.reserva;
+      p.img.classList.toggle("sem-tinta", Boolean(t?.falhou));
+      p.img.src = t?.src || url;
+    };
+    const baixar = (u) => (luzRgb ? mapaBonecoTingido(u, luzRgb) : mapaBonecoPronto(u, () => {}));
     // Primeira imagem (ou quadro que falhou) entra direto; as outras esperam
     // estar baixadas para trocar, e os 4 passos da direção já vão sendo pedidos.
-    if (!p.img.getAttribute("src") || mapaBonecoPronto(url, aplicar)) aplicar();
-    if (p.acao === "wlk") for (let i = 0; i < 4; i++) mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, "wlk", p.mao, i), () => {});
+    if (luzRgb || !p.img.getAttribute("src") || mapaBonecoPronto(url, aplicar)) aplicar();
+    if (p.acao === "wlk") for (let i = 0; i < 4; i++) baixar(mapaAvatarUrl(figura, p.dir, "wlk", p.mao, i));
     // Parado: a piscada e o quadro de "em pé" do aceno já ficam baixados.
     else {
-      mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, acao, p.mao, 0, "eyb", cabeca), () => {});
-      if (p.acao === "wav") mapaBonecoPronto(mapaAvatarUrl(figura, p.dir, "std", p.mao, 0, "sml", cabeca), () => {});
+      baixar(mapaAvatarUrl(figura, p.dir, acao, p.mao, 0, "eyb", cabeca));
+      if (p.acao === "wav") baixar(mapaAvatarUrl(figura, p.dir, "std", p.mao, 0, "sml", cabeca));
     }
   };
   // Para onde cada boneco parado olha: quem está falando perto, senão a
@@ -2438,7 +2597,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
         img.draggable = false;
         img.referrerPolicy = "no-referrer";
         // Sem o imager do Habbo, a cópia guardada no nosso banco (em pé).
-        img.onerror = () => { if (!img.dataset.reserva) { img.dataset.reserva = "1"; img.src = mapaBonecoGuardado(p.figura, p.dir); } };
+        img.onerror = () => { if (!img.dataset.reserva) { img.dataset.reserva = "1"; img.classList.add("sem-tinta"); img.src = mapaBonecoGuardado(p.figura, p.dir); } };
         const etiqueta = document.createElement("span");
         etiqueta.className = "mapa-etiqueta solta" + (q.id === eu ? " voce" : "");
         etiqueta.setAttribute("aria-hidden", "true");
@@ -2922,15 +3081,19 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
   function realcar(item) {
     if (realcado === item) return;
     realcado?.no.classList.remove("mapa-interativo");
+    const antes = realcado;
     realcado = item;
     item?.no.classList.add("mapa-interativo");
+    fotoConfere([antes, item]);
   }
   // Vários móveis realçados de uma vez (os escolhidos de um gatilho).
   let realcados = [];
   function realcarVarios(lista) {
     for (const m of realcados) if (m !== realcado) m.no.classList.remove("mapa-interativo");
+    const antes = realcados;
     realcados = lista || [];
     for (const m of realcados) m.no.classList.add("mapa-interativo");
+    fotoConfere([...antes, ...realcados]);
   }
   function posicoes() { return [...pessoas].map(([id, p]) => ({ id, x: p.x, y: p.y })); }
   // Balão de fala sobre a cabeça (some sozinho).
@@ -3328,6 +3491,7 @@ function criarMapaEscritorio(el, { planta, aoClicar, aoDuploClique, aoPassar, ao
     tela: (x, y) => mapaTela(x, y, origem),
     destruir() {
       destruido = true;
+      clearTimeout(fotoChao.timer);
       for (const timer of [setaRelogio, relogioConversa, relogio, relogioCeu, relogioAgentes, relogioFalas, relogioPasseio]) clearInterval(timer);
       tamanhoQuarto?.disconnect();
       clearTimeout(timerPassar);

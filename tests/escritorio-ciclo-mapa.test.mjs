@@ -15,7 +15,7 @@ function ambiente() {
     destruido: false, relogio: 3, setaRelogio: 1, relogioConversa: 2,
     relogioCeu: 4, relogioAgentes: 5, relogioFalas: 6, relogioPasseio: 7,
     quadroCam: 8, etiquetasQuadro: 9, quadroPassar: 10,
-    timerPassar: 14,
+    timerPassar: 14, fotoChao: { timer: 15 },
     pessoas: new Map([['eu', { passo: 11, parar: 12 }]]),
     noMapa: [{ p: { passo: 13 } }],
     tamanhoQuarto: { disconnect() { desconectado++; } },
@@ -34,7 +34,7 @@ test('sair cancela relógios da cena, visitantes, hover e movimentos pendentes',
   a.c.mapa.destruir();
   assert.deepEqual(a.intervalos, [1, 2, 3, 4, 5, 6, 7]);
   assert.deepEqual(a.quadros, [8, 9, 10, 11, 13]);
-  assert.deepEqual(a.tempos, [14, 12]);
+  assert.deepEqual(a.tempos, [15, 14, 12]);
   assert.equal(a.removido(), 1);
   assert.equal(a.desconectado(), 1);
 });
