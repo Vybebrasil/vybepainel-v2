@@ -102,6 +102,9 @@ function sinucaEstado() {
 const sinucaProximo = (j, lado) => { const r = j?.mesa?.rodizio; return r ? r[(r.indexOf(lado) + 1) % r.length] : lado === "desafiante" ? "desafiado" : "desafiante"; };
 const sinucaDupla = (j, lado) => { const t = j?.mesa?.times; return t ? Object.keys(t).filter((l) => t[l] === t[lado]) : [lado]; };
 const sinucaNomeVez = (j) => xadrezPrimeiroNome(j?.[j?.vez]);
+// O ângulo da mira sempre dentro de uma volta (-π a π): somar o giro sem voltar
+// a zero passava do limite do servidor e toda tacada era recusada.
+const sinucaVolta = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 const sinucaMinhaVez = (j) => j?.estado === "jogando" && j.eu && j.vez === j.eu && j.mesa.pode_tacar;
 const sinucaPondo = (j, s) => sinucaMinhaVez(j) && (j.mesa.bolaNaMao || !j.mesa.bolas[0]) && !s.branca;
 // Onde a branca pode ir com bola na mão, como no servidor (brancaPode): na
@@ -467,7 +470,7 @@ function sinucaGirar(lado) {
   const s = sinucaEstado();
   if (!sinucaMinhaVez(s.jogo) || s.anim || s.enviando || s.gesto) return;
   s.travada=true;
-  s.angulo = (s.angulo ?? 0) + lado * (Math.PI / 1800);
+  s.angulo = sinucaVolta((s.angulo ?? 0) + lado * (Math.PI / 1800));
   sinucaPintar();
 }
 // Câmera do jogador (Paulo, 04/11/2026: "zoom in e out... e pra cima e pra
@@ -517,7 +520,7 @@ function sinucaRoda(ev, tipo) {
 }
 function sinucaRodaGirar(el, px) {
   const s = sinucaEstado();
-  s.angulo = (s.angulo ?? 0) + px * Math.PI / 7200;
+  s.angulo = sinucaVolta((s.angulo ?? 0) + px * Math.PI / 7200);
   s.rodaPx = (s.rodaPx || 0) + px; el?.style?.setProperty("--roda", `${s.rodaPx}px`);
   sinucaPintar();
 }
@@ -720,7 +723,7 @@ function tacarSinuca(gesto) {
   if(gesto&&(gesto.jogoId!==j.id||gesto.n!==j.n||gesto.lado!==j.eu))return sinucaNaoTacou(s, "A mesa mudou: mire de novo.");
   const angulo=gesto?.angulo??s.angulo??0,forca=gesto?.forca??s.forca??0.4;
   const minima = sinucaElevacaoMinima(j, sinucaBranca(j, s), angulo);
-  const pedido = { tipo: "tacar", angulo: Math.round(angulo * 10000) / 10000, forca: Math.max(SINUCA_FORCA_MIN, Math.min(1, Math.round(forca * 1000) / 1000)), efeito: s.efeito || 0, lado: s.giro || 0, elevacao: Math.max(s.elevacao || 0, minima) };
+  const pedido = { tipo: "tacar", angulo: Math.round(sinucaVolta(angulo) * 10000) / 10000, forca: Math.max(SINUCA_FORCA_MIN, Math.min(1, Math.round(forca * 1000) / 1000)), efeito: s.efeito || 0, lado: s.giro || 0, elevacao: Math.max(s.elevacao || 0, minima) };
   if (j.mesa.bolaNaMao || !j.mesa.bolas[0]) pedido.branca = s.branca;
   lanceMesaEscritorio("snc", pedido);
 }
@@ -1485,7 +1488,7 @@ function sinucaPonteiro3d(ev, tipo) {
   const dx = ev.clientX - g.x0, dy = ev.clientY - g.y0, altura = ev.currentTarget.getBoundingClientRect().height || 400;
   if (!g.modo && Math.hypot(dx, dy) > 8) g.modo = !sinucaTravadoAtivo() && dy > Math.abs(dx) ? "puxar" : "girar";
   if (tipo === "move") {
-    if (g.modo === "girar") { s.angulo = (s.angulo ?? 0) + (ev.clientX - g.x) * Math.PI / 1200; s.travada = true; }
+    if (g.modo === "girar") { s.angulo = sinucaVolta((s.angulo ?? 0) + (ev.clientX - g.x) * Math.PI / 1200); s.travada = true; }
     if (g.modo === "puxar") {
       // Como no taco de verdade (Paulo, 04/11/2026: "deixa eu puxar e voltar o
       // taco, só não bate"; no vídeo do Deivid ele bombeia o taco sem soltar e
@@ -1536,7 +1539,7 @@ document.addEventListener?.("keydown", (ev) => {
   const s = sinucaEstado();
   if (!sinucaMinhaVez(s.jogo) || s.anim) return;
   ev.preventDefault();
-  s.angulo = (s.angulo ?? 0) + (ev.key === "ArrowLeft" ? -1 : 1) * (ev.shiftKey ? Math.PI / 3600 : Math.PI / 360);
+  s.angulo = sinucaVolta((s.angulo ?? 0) + (ev.key === "ArrowLeft" ? -1 : 1) * (ev.shiftKey ? Math.PI / 3600 : Math.PI / 360));
   sinucaPintar();
 });
 
