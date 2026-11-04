@@ -40,6 +40,21 @@ test('grupos e calendário de conteúdos usam a mesma carteira; Todos inclui sem
  assert.deepEqual(ids(c.managerCalendarItems({apenas:'content'})),['e','ambas']);
  vm.runInContext("filtroCarteira='all'",c);assert.equal(c.itensPorGrupo()[0].itens.length,5);
 });
+test('Viniceta e Galeguinho são as carteiras de Vinícius e Ewerton e contam sem o recorte ativo',()=>{
+ const c=contexto();
+ assert.deepEqual(vm.runInContext("CARTEIRAS_DA_AGENDA.map(x=>x.apelido+'='+x.id).join(',')",c).split(','),['Viniceta=vinicius','Galeguinho=ewerton']);
+ vm.runInContext("filtroCarteira='ewerton'",c);
+ assert.deepEqual(ids(c.managerCalendarItems({apenas:'content'})),['e','ambas']);
+ assert.equal(c.managerCalendarItems({apenas:'content',ignorarCarteira:true}).length,5);
+});
+test('status e Só pendentes da barra também recortam o calendário do mês',()=>{
+ const c=contexto();vm.runInContext("filtroCarteira='all'; currentFilter='status:Feito'",c);
+ assert.deepEqual(ids(c.managerCalendarItems({apenas:'content'})),['final']);
+ vm.runInContext("currentFilter='status:pending_all'; atividadeDoDiaConcluida=(i)=>i.status==='Feito'",c);
+ assert.deepEqual(ids(c.managerCalendarItems({apenas:'content'})),['v','e','ambas','sem']);
+ vm.runInContext("currentFilter='all'",c);
+ assert.equal(c.managerCalendarItems({apenas:'content'}).length,5);
+});
 test('seletor recusa valor desconhecido e sincroniza controles sem alterar dados',()=>{
  const c=contexto();const controles=[{dataset:{}},{dataset:{}}];c.document.querySelectorAll=()=>controles;
  c.atualizarVisoesDaCarteira=()=>c.pintarFiltroCarteira();c.ensureClientMasterSources=()=>Promise.resolve();

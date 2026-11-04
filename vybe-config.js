@@ -120,6 +120,13 @@ const CARTEIRAS_CLIENTES = Object.freeze({
     'ConectaSim', 'Copirecê', 'DiaCenter', 'DiaLab', 'Serra Grande Bebidas'],
   ewerton: ['Gonzalez', 'Antonov', 'Hellen', 'Experimente Papelaria', 'Hebravet', 'Escola Viva']
 });
+// Como o Paulo chama cada carteira nos filtros da agenda (04/11/2026):
+// Viniceta é o Vinícius, Galeguinho é o Ewerton. Só o rótulo do botão muda;
+// quem pertence a quem continua sendo carteiraDoCliente quem decide.
+const CARTEIRAS_DA_AGENDA = Object.freeze([
+  { id: 'vinicius', apelido: 'Viniceta', dono: 'Vinícius' },
+  { id: 'ewerton', apelido: 'Galeguinho', dono: 'Ewerton' },
+]);
 
 function normalizarCliente(nome) {
   if (!nome) return nome;

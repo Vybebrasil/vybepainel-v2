@@ -139,6 +139,7 @@ function setDateMode(mode, btn) {
   const weeksCount = META.weeks ? META.weeks.length : 4;
   for (let s = 1; s <= weeksCount; s++) renderWeek(s, currentFilter, currentDayFilter);
   renderOperationalTools();
+  renderManagerCalendar();
   renderManagerIntelligence();
   updateClearFiltersState();
 }

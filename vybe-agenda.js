@@ -291,7 +291,10 @@ function managerCalendarStatusColor(item, fallback='#ff8b38') {
 // 'ignorarCliente' existe para a régua de clientes: ela precisa enxergar o mês
 // inteiro, senão some todo mundo assim que alguém é escolhido — e a única saída
 // vira voltar em 'Todos' para depois escolher outro.
-function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
+// 'ignorarCarteira' é para os botões Viniceta e Galeguinho: cada um conta o que
+// mostraria se fosse clicado, e não o que sobrou do recorte que já está ativo.
+function managerCalendarItems({ ignorarCliente = false, ignorarCarteira = false, apenas = '' } = {}) {
+  const naCarteira = (item) => ignorarCarteira || itemNaCarteira(item);
   // Demandas usa a mesma seleção da tabela, inclusive clientes secundários.
   // Filtros de equipe, origem e feed do Gestor não pertencem a esta aba.
   if (apenas === 'request') {
@@ -301,10 +304,10 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
     })).filter(item => Boolean(item.calendarDateIso));
   }
   const porPrazo = dateMode === 'prazo';
-  const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => itemNaCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
+  const production = (DADOS_ALL?.length ? DADOS_ALL : DADOS || []).filter(item => naCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'content', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.veiculacao_iso || ''), calendarType: item.formato || 'Conteúdo'
   }));
-  const requests = (DADOS_DEMANDAS || []).filter(item => itemNaCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
+  const requests = (DADOS_DEMANDAS || []).filter(item => naCarteira(item) && (!selectedPersonIds.size || itemMatchesSelectedPeople(item))).map(item => ({
     ...item, cliente:clientMasterResolveName(item.cliente), calendarSource:'request', calendarDateIso: porPrazo ? (item.prazo_iso || '') : (item.conclusao_iso || ''), calendarType: item.tipo || 'Solicitação'
   }));
   // Aqui mora a regra: a tag da solicitacao decide se ela e publicacao.
@@ -320,8 +323,20 @@ function managerCalendarItems({ ignorarCliente = false, apenas = '' } = {}) {
     if (apenas && item.calendarSource !== apenas) return false;
     if (managerCalendarSourceFilter !== 'all' && item.calendarSource !== managerCalendarSourceFilter) return false;
     if (!ignorarCliente && managerCalendarClientFilter !== 'all' && !itemTemCliente(item, managerCalendarClientFilter)) return false;
+    if (!passaNoStatusDaAgenda(item)) return false;
     return Boolean(item.calendarDateIso);
   });
+}
+// O filtro de Status e o "Só pendentes" da barra valem para o mês também, pela
+// MESMA regra da agenda da semana (renderClientCard): status igual ao escolhido,
+// ou nada que já esteja concluído.
+function passaNoStatusDaAgenda(item) {
+  const filtro = typeof currentFilter === 'string' ? currentFilter : 'all';
+  if (filtro === 'status:pending_all') {
+    return typeof atividadeDoDiaConcluida === 'function' ? !atividadeDoDiaConcluida(item) : true;
+  }
+  if (filtro.startsWith('status:')) return item.status === filtro.slice('status:'.length);
+  return true;
 }
 // Todo cliente da base entra na lista, mesmo com zero no mes aberto. Antes a
 // lista era montada so com quem tinha peca naquele mes: mudar de mes fazia
@@ -499,6 +514,24 @@ function managerCalendarSetClient(client) {
   managerCalendarClientFilter = client || 'all';
   renderManagerCalendar();
 }
+// VINICETA E GALEGUINHO SÃO A CARTEIRA, NÃO UMA LISTA NOVA.
+//
+// O recorte é o mesmo "Responsável geral" do Painel de trabalho e de
+// Solicitações (filtroCarteira): escolher aqui vale lá, e vice-versa. Clicar de
+// novo no mesmo botão, ou em Todos, volta para todos.
+function managerCalendarSetCarteira(id) {
+  const nova = filtroCarteira === id ? 'all' : id;
+  // O cliente escolhido é de outra carteira: ficaria uma agenda vazia sem
+  // explicação. Volta para todos os clientes da carteira nova.
+  if (nova !== 'all' && managerCalendarClientFilter !== 'all'
+    && carteiraDoCliente(managerCalendarClientFilter) !== nova) managerCalendarClientFilter = 'all';
+  definirFiltroCarteira(nova);
+}
+function managerCalendarTodos() {
+  managerCalendarClientFilter = 'all';
+  if (filtroCarteira !== 'all') definirFiltroCarteira('all');
+  else renderManagerCalendar();
+}
 function managerCalendarOpenClientMaster() {
   const client=managerCalendarClientFilter && managerCalendarClientFilter !== 'all' ? clientMasterResolveName(managerCalendarClientFilter) : '';
   const button=document.getElementById('btn-board-clientes');
@@ -525,8 +558,8 @@ function managerCalendarGoToday() {
 }
 function managerCalendarSetDateMode(mode) {
   const button = document.getElementById(mode === 'prazo' ? 'btn-mode-prazo' : 'btn-mode-veiculacao');
+  // setDateMode já redesenha o mês.
   setDateMode(mode, button);
-  renderManagerCalendar();
 }
 // ── cartão rápido ────────────────────────────────────────────────────────────
 //
@@ -1002,16 +1035,22 @@ function renderManagerCalendar(forcar = false) {
     const contador = document.getElementById('ops-agenda-count');
     if (contador) contador.textContent = total;
   }
+  const barra = document.getElementById('agenda-filtros');
   if (!forcar && !emprestadaAoDa('manager-calendar') && !abertaPeloGestor(agendaMensalAberta)) {
+    barra?.classList.remove('com-mes');
     wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
+  barra?.classList.add('com-mes');
+  pintarFiltrosDaAgenda();
   const meta = managerCalendarMonthMeta();
   const semRecorte = managerCalendarItems({ ignorarCliente: true });
   const allItems = managerCalendarClientFilter === 'all'
     ? semRecorte
     : semRecorte.filter(item => itemTemCliente(item, managerCalendarClientFilter));
   const monthItems = allItems.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso));
-  const clients = managerCalendarClientList(semRecorte, meta);
+  // Com Viniceta ou Galeguinho escolhido, a fileira mostra só os clientes dele.
+  const clients = managerCalendarClientList(semRecorte, meta)
+    .filter(({ client }) => filtroCarteira === 'all' || carteiraDoCliente(client) === filtroCarteira);
   const grouped = new Map();
   monthItems.forEach(item => { if (!grouped.has(item.calendarDateIso)) grouped.set(item.calendarDateIso, []); grouped.get(item.calendarDateIso).push(item); });
   const sourceCount = {content: monthItems.filter(item => item.calendarSource === 'content').length, request: monthItems.filter(item => item.calendarSource === 'request').length};
@@ -1026,6 +1065,21 @@ function renderManagerCalendar(forcar = false) {
   }).join('');
   CLIENTES_DO_CALENDARIO = clients;
   const totalNoMes = semRecorte.filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso)).length;
+  // Todos, Viniceta e Galeguinho contam sem o recorte de carteira: o número é o
+  // que aparece ao clicar, esteja qual carteira estiver escolhida agora.
+  const semCarteira = managerCalendarItems({ ignorarCliente: true, ignorarCarteira: true })
+    .filter(item => meta.cells.some(cell => cell.iso === item.calendarDateIso));
+  const carteiraAtiva = CARTEIRAS_DA_AGENDA.find(c => c.id === filtroCarteira) || null;
+  const todosAtivo = managerCalendarClientFilter === 'all' && !carteiraAtiva;
+  const fichaTodos = `<button type="button" class="manager-calendar-client ${todosAtivo ? 'active' : ''}"
+      aria-pressed="${todosAtivo}" onclick="managerCalendarTodos()"><b>Todos</b> ${semCarteira.length}</button>`;
+  const fichasCarteira = CARTEIRAS_DA_AGENDA.map(({ id, apelido, dono }) => {
+    const ativo = filtroCarteira === id;
+    const total = semCarteira.filter(item => clientesDoItem(item).some(nome => carteiraDoCliente(nome) === id)).length;
+    return `<button type="button" class="manager-calendar-client manager-calendar-carteira ${ativo ? 'active' : ''}"
+      data-carteira-fixa="${id}" aria-pressed="${ativo}" onclick="managerCalendarSetCarteira('${id}')"
+      title="${ativo ? 'Voltar para todos os clientes' : `Só os clientes de ${dono}`}"><b>${apelido}</b> ${total}</button>`;
+  }).join('') + '<span class="manager-calendar-carteira-sep" aria-hidden="true"></span>';
   TOTAL_DO_CALENDARIO = totalNoMes;
   const modoClientes = modoDaListaDeClientes();
   // Cliente sem nada no mes continua na lista, so que apagado: some do caminho
@@ -1046,14 +1100,14 @@ function renderManagerCalendar(forcar = false) {
       aria-pressed="${managerCalendarClientFilter === client}"
       data-cliente="${safeText(client)}" onclick="managerCalendarSetClient(this.dataset.cliente)"><b>${
       safeText(client)}</b> ${count}${xis(client)}</button>`;
-  const fichas = [`<button type="button" class="manager-calendar-client ${managerCalendarClientFilter==='all'?'active':''}" onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
+  const fichas = [fichaTodos, fichasCarteira,
     // Quem tem peça no mês vem primeiro, em ordem alfabética; os zerados vão
     // para o fim, apagados. No meio da lista eles empurravam quem tem trabalho.
     ...[...clients].sort((a, b) => (b.count > 0) - (a.count > 0)).map(ficha)].join('');
   const escolhido = managerCalendarClientFilter === 'all'
-    ? { rotulo: 'Todos os clientes', total: totalNoMes }
+    ? { rotulo: carteiraAtiva ? `Clientes de ${carteiraAtiva.apelido}` : 'Todos os clientes', total: totalNoMes }
     : { rotulo: managerCalendarClientFilter, total: (clients.find(c => c.client === managerCalendarClientFilter)?.count ?? 0) };
-  const busca = `<button type="button" class="manager-calendar-client escolha" data-carteira="${carteiraDoCliente(managerCalendarClientFilter)}" onclick="abrirBuscaDeCliente(event)"
+  const busca = fichaTodos + fichasCarteira + `<button type="button" class="manager-calendar-client escolha" data-carteira="${carteiraDoCliente(managerCalendarClientFilter)}" onclick="abrirBuscaDeCliente(event)"
       title="Escolher ou buscar cliente${managerCalendarClientFilter === 'all' ? '' : ' — ' + safeText(descricaoCarteiraCliente(managerCalendarClientFilter))}"><b>${safeText(escolhido.rotulo)}</b> ${escolhido.total}
       <i class="cliente-seta">▾</i></button>`;
   const alternar = `<button type="button" class="manager-calendar-modo" onclick="trocarModoDaListaDeClientes()"
@@ -1073,8 +1127,7 @@ function renderManagerCalendar(forcar = false) {
   const mostrados = [...primeiros, ...(escolhidoDeFora ? [escolhidoDeFora] : [])];
   const restantes = clients.length - mostrados.length;
   const resumo = [
-    `<button type="button" class="manager-calendar-client ${managerCalendarClientFilter === 'all' ? 'active' : ''}"
-      onclick="managerCalendarSetClient('all')"><b>Todos</b> ${totalNoMes}</button>`,
+    fichaTodos, fichasCarteira,
     ...mostrados.map(ficha),
     restantes > 0 ? `<button type="button" class="manager-calendar-client escolha" onclick="abrirBuscaDeCliente(event)"
       title="Ver os outros ${restantes} clientes"><b>+${restantes}</b><i class="cliente-seta">▾</i></button>` : '',
@@ -1158,19 +1211,30 @@ function openSearchItem(itemId) {
   setTimeout(() => panel && panel.scrollIntoView({behavior:'smooth',block:'start'}), 60);
 }
 
-// ─── Legenda Toggle ─────────────────────────────────────────────────────────
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const toggle = document.getElementById('sidebar-toggle');
-  const overlay = document.getElementById('sidebar-overlay');
-  const aberto = sidebar.classList.toggle('open');
-  toggle.classList.toggle('open', aberto);
-  overlay.classList.toggle('show', aberto);
-  // troca apenas o ícone: trocar o textContent do botão apagava o rótulo "Filtros" para sempre
-  const icone = toggle.querySelector('.sidebar-toggle-icon');
-  if (icone) icone.textContent = aberto ? '✕' : '☰';
-  toggle.setAttribute('aria-expanded', String(aberto));
-  toggle.setAttribute('aria-label', aberto ? 'Fechar filtros' : 'Abrir filtros');
+// ─── Barra de filtros da agenda ──────────────────────────────────────────────
+// A barra fica sempre à vista (era a gaveta do canto de baixo). Os botões dizem
+// por escrito o que está escolhido — "Status · Pode Fazer", "Equipe · 2" — para
+// o recorte não depender só de uma cor acesa lá dentro do menu.
+function pintarFiltrosDaAgenda() {
+  const filtro = typeof currentFilter === 'string' ? currentFilter : 'all';
+  const status = filtro.startsWith('status:') && filtro !== 'status:pending_all' ? filtro.slice('status:'.length) : '';
+  const rotuloStatus = document.getElementById('agenda-filtro-status');
+  if (rotuloStatus) {
+    rotuloStatus.textContent = status;
+    rotuloStatus.parentElement?.classList.toggle('tem-escolha', Boolean(status));
+  }
+  const pessoas = typeof selectedPersonIds !== 'undefined' ? [...selectedPersonIds] : [];
+  const rotuloEquipe = document.getElementById('agenda-filtro-equipe');
+  if (rotuloEquipe) {
+    const uma = pessoas.length === 1 && typeof TEAM_USERS !== 'undefined'
+      ? TEAM_USERS.find(u => String(u.id) === pessoas[0]) : null;
+    rotuloEquipe.textContent = !pessoas.length ? '' : uma ? firstName(uma.name) : `${pessoas.length} pessoas`;
+    rotuloEquipe.parentElement?.classList.toggle('tem-escolha', pessoas.length > 0);
+  }
+  const pendentes = document.getElementById('btn-pending-only');
+  if (pendentes) pendentes.setAttribute('aria-pressed', String(filtro === 'status:pending_all'));
+  const critico = document.getElementById('sort-critico-btn');
+  if (critico) critico.setAttribute('aria-pressed', String(typeof sortCritico !== 'undefined' && sortCritico));
 }
 
 function toggleLegend() {
