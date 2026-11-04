@@ -204,53 +204,57 @@
        lugar. A marca nao ocupa espaco e nunca sai daqui. -->
   <section id="grupos-board" class="grupos-board focus-hidden" aria-label="Conteúdos por grupo"></section>
   <span id="grupos-board-lugar" hidden></span>
+  <!-- FILTROS À VISTA (Paulo, 04/11/2026).
+       Status, equipe e o resto moravam numa gaveta escondida atrás de um botão
+       no canto de baixo da tela: quem não sabia dela não filtrava nada. Agora
+       ficam numa barra logo acima da agenda — a do mês e a da semana — com o
+       mesmo desenho da barra de Solicitações. Os ids continuam os mesmos, então
+       as funções de filtro não mudaram de lugar. -->
+  <div id="agenda-filtros" class="dem-controles agenda-filtros focus-hidden" role="group" aria-label="Filtros da agenda"
+    onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
+    <span class="agenda-filtros-rotulo">Filtros</span>
+    <details class="dem-filtro" name="filtros-agenda">
+      <summary>Status<b class="agenda-filtro-escolha" id="agenda-filtro-status"></b></summary>
+      <div class="dem-filtro-popover">
+        <div class="legend" id="status-legend">
+          <button type="button" class="pill pill-agendado" onclick="filterByStatus('Agendado',this)"><span class="pill-dot"></span>Agendado</button>
+          <button type="button" class="pill pill-pode-fazer" onclick="filterByStatus('Pode Fazer',this)" style="background: rgba(255, 203, 0, 0.15); color: rgb(255, 203, 0); border-color: rgb(192, 171, 27);"><span class="pill-dot" style="background: rgb(255, 203, 0);"></span>Pode Fazer</button>
+          <button type="button" class="pill pill-falta-da" onclick="filterByStatus('Falta D.A',this)"><span class="pill-dot"></span>Falta D.A</button>
+          <button type="button" class="pill pill-a-fazer" onclick="filterByStatus('A Fazer',this)" style="background: rgba(196, 196, 196, 0.15); color: rgb(196, 196, 196); border-color: rgb(176, 176, 176);"><span class="pill-dot" style="background: rgb(196, 196, 196);"></span>A Fazer</button>
+          <button type="button" class="pill pill-aguardo" onclick="filterByStatus('Aguardo',this)" style="background: rgba(157, 80, 221, 0.15); color: rgb(157, 80, 221); border-color: rgb(146, 56, 175);"><span class="pill-dot" style="background: rgb(157, 80, 221);"></span>Aguardo</button>
+          <button type="button" class="pill pill-finalizado" onclick="filterByStatus('Finalizado',this)" style="background: rgba(156, 211, 38, 0.15); color: rgb(156, 211, 38); border-color: rgb(137, 185, 33);"><span class="pill-dot" style="background: rgb(156, 211, 38);"></span>Finalizado</button>
+          <button type="button" class="pill pill-para-agendar" onclick="filterByStatus('Para agendar',this)" style="background: rgba(3, 127, 76, 0.15); color: rgb(3, 127, 76); border-color: rgb(0, 107, 56);"><span class="pill-dot" style="background: rgb(3, 127, 76);"></span>Para Agendar</button>
+          <button type="button" class="pill pill-em-andamento" onclick="filterByStatus('Em andamento',this)" style="background: rgba(253, 171, 61, 0.15); color: rgb(253, 171, 61); border-color: rgb(233, 151, 41);"><span class="pill-dot" style="background: rgb(253, 171, 61);"></span>Em Andamento</button>
+          <button type="button" class="pill pill-para-aprovacao" onclick="filterByStatus('Para aprovação',this)"><span class="pill-dot"></span>Para Aprovação</button>
+          <button type="button" class="pill pill-ag-aprovacao" onclick="filterByStatus('Ag. Aprovação Cliente',this)"><span class="pill-dot"></span>Ag. Aprovação Cliente</button>
+          <button type="button" class="pill pill-ag-info" onclick="filterByStatus('Ag. Info Cliente',this)" style="background: rgba(188, 165, 138, 0.15); color: rgb(188, 165, 138); border-color: rgb(188, 165, 138);"><span class="pill-dot" style="background: rgb(188, 165, 138);"></span>Ag. Info Cliente</button>
+          <button type="button" class="pill pill-falta-info" onclick="filterByStatus('Falta Info',this)" style="background: rgba(255, 109, 59, 0.15); color: rgb(255, 109, 59); border-color: rgb(224, 88, 40);"><span class="pill-dot" style="background: rgb(255, 109, 59);"></span>Falta Info</button>
+          <button type="button" class="pill pill-alteracao" onclick="filterByStatus('Alteração',this)" style="background: rgba(223, 47, 74, 0.15); color: rgb(223, 47, 74); border-color: rgb(206, 48, 72);"><span class="pill-dot" style="background: rgb(223, 47, 74);"></span>Alteração</button>
+          <button type="button" class="pill pill-ag-interno" onclick="filterByStatus('Ag. Interno',this)"><span class="pill-dot"></span>Ag. Interno</button>
+        </div>
+      </div>
+    </details>
+    <details class="dem-filtro" name="filtros-agenda">
+      <summary>Equipe<b class="agenda-filtro-escolha" id="agenda-filtro-equipe"></b></summary>
+      <div class="dem-filtro-popover"><div id="person-filter-bar" class="person-filter-bar"></div></div>
+    </details>
+    <button type="button" class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" aria-pressed="false"
+      title="Esconde o que já está Finalizado, Agendado ou Para agendar">Só pendentes</button>
+    <!-- Estes três só mexem na agenda da semana; com o mês aberto, o mês tem a
+         própria Veiculação/Prazo e não há "dia" nem ordem para escolher. -->
+    <div id="filter-bar" class="filter-bar agenda-filtros-semana">
+      <div class="date-mode-bar" id="date-mode-bar" role="group" aria-label="Data de referência">
+        <button type="button" class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">Veiculação</button>
+        <button type="button" class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">Prazo</button>
+      </div>
+      <select id="day-select" onchange="filterByDay(this)" aria-label="Filtrar por dia"><option value="">Todos os dias</option></select>
+      <button type="button" class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" aria-pressed="false" title="Ordenar por criticidade">Crítico primeiro</button>
+    </div>
+  </div>
   <section id="manager-calendar" class="manager-calendar focus-hidden" aria-label="Agenda mensal do GESTOR"></section>
   <span id="manager-calendar-lugar" hidden></span>
 
-<!-- Sidebar Toggle -->
-  <button class="sidebar-toggle focus-hidden" id="sidebar-toggle" onclick="toggleSidebar()" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir filtros"><span class="sidebar-toggle-icon" aria-hidden="true">☰</span><span class="sidebar-toggle-label">Filtros</span></button>
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-  <!-- Sidebar -->
-  <aside class="sidebar focus-hidden" id="sidebar">
-    <div class="sidebar-section-label">Status</div>
-    <div class="legend expanded" id="status-legend">
-      <span class="pill pill-agendado" onclick="filterByStatus('Agendado',this)"><span class="pill-dot"></span>Agendado</span>
-      <span class="pill pill-pode-fazer" onclick="filterByStatus('Pode Fazer',this)" style="background: rgba(255, 203, 0, 0.15); color: rgb(255, 203, 0); border-color: rgb(192, 171, 27);"><span class="pill-dot" style="background: rgb(255, 203, 0);"></span>Pode Fazer</span>
-      <span class="pill pill-falta-da" onclick="filterByStatus('Falta D.A',this)"><span class="pill-dot"></span>Falta D.A</span>
-      <span class="pill pill-a-fazer" onclick="filterByStatus('A Fazer',this)" style="background: rgba(196, 196, 196, 0.15); color: rgb(196, 196, 196); border-color: rgb(176, 176, 176);"><span class="pill-dot" style="background: rgb(196, 196, 196);"></span>A Fazer</span>
-      <span class="pill pill-aguardo" onclick="filterByStatus('Aguardo',this)" style="background: rgba(157, 80, 221, 0.15); color: rgb(157, 80, 221); border-color: rgb(146, 56, 175);"><span class="pill-dot" style="background: rgb(157, 80, 221);"></span>Aguardo</span>
-      <span class="pill pill-finalizado" onclick="filterByStatus('Finalizado',this)" style="background: rgba(156, 211, 38, 0.15); color: rgb(156, 211, 38); border-color: rgb(137, 185, 33);"><span class="pill-dot" style="background: rgb(156, 211, 38);"></span>Finalizado</span>
-      <span class="pill pill-para-agendar" onclick="filterByStatus('Para agendar',this)" style="background: rgba(3, 127, 76, 0.15); color: rgb(3, 127, 76); border-color: rgb(0, 107, 56);"><span class="pill-dot" style="background: rgb(3, 127, 76);"></span>Para Agendar</span>
-      <span class="pill pill-em-andamento" onclick="filterByStatus('Em andamento',this)" style="background: rgba(253, 171, 61, 0.15); color: rgb(253, 171, 61); border-color: rgb(233, 151, 41);"><span class="pill-dot" style="background: rgb(253, 171, 61);"></span>Em Andamento</span>
-      <span class="pill pill-para-aprovacao" onclick="filterByStatus('Para aprovação',this)"><span class="pill-dot"></span>Para Aprovação</span>
-      <span class="pill pill-ag-aprovacao" onclick="filterByStatus('Ag. Aprovação Cliente',this)"><span class="pill-dot"></span>Ag. Aprovação Cliente</span>
-      <span class="pill pill-ag-info" onclick="filterByStatus('Ag. Info Cliente',this)" style="background: rgba(188, 165, 138, 0.15); color: rgb(188, 165, 138); border-color: rgb(188, 165, 138);"><span class="pill-dot" style="background: rgb(188, 165, 138);"></span>Ag. Info Cliente</span>
-      <span class="pill pill-falta-info" onclick="filterByStatus('Falta Info',this)" style="background: rgba(255, 109, 59, 0.15); color: rgb(255, 109, 59); border-color: rgb(224, 88, 40);"><span class="pill-dot" style="background: rgb(255, 109, 59);"></span>Falta Info</span>
-      <span class="pill pill-alteracao" onclick="filterByStatus('Alteração',this)" style="background: rgba(223, 47, 74, 0.15); color: rgb(223, 47, 74); border-color: rgb(206, 48, 72);"><span class="pill-dot" style="background: rgb(223, 47, 74);"></span>Alteração</span>
-      <span class="pill pill-ag-interno" onclick="filterByStatus('Ag. Interno',this)"><span class="pill-dot"></span>Ag. Interno</span>
-    </div>
-
-    <div class="sidebar-section-label">Modo de Data</div>
-    <div class="date-mode-bar" id="date-mode-bar">
-      <button class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">Veiculação</button>
-      <button class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">⏰ Prazo</button>
-    </div>
-
-
-
-    <div class="sidebar-section-label">Equipe</div>
-    <div id="person-filter-bar" class="person-filter-bar"></div>
-
-    <div class="sidebar-section-label">Filtros</div>
-    <div id="filter-bar" class="filter-bar">
-      <select id="day-select" onchange="filterByDay(this)" aria-label="Filtrar por dia" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;border-radius:20px;font-size:11px;cursor:pointer;width:100%;"><option value="">Todos os dias</option></select>
-      <button class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" title="Ordenar por criticidade">Crítico primeiro</button>
-
-      <button class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" title="Só pendentes">Só Pendentes</button>
-      <button class="sort-btn" id="btn-clear-filters" onclick="clearAllFilters()" title="Limpar filtros" style="border-color:#df2f4a;color:#df2f4a;">✕ Limpar Filtros</button>
-    </div>
-  </aside>
 
   <!-- Tabs de semana + Toggle View fixo -->
   <div class="agenda-navigation"><div class="agenda-navigation-heading"><h2>Agenda da equipe</h2>    <div id="month-nav" class="mes-nav"><button type="button" class="mes-passo" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><span id="month-nav-label" class="mes-rotulo">—</span><button type="button" class="mes-passo" onclick="changeMonth(1)" aria-label="Próximo mês">›</button></div>

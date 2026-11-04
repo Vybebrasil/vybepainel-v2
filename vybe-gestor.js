@@ -608,8 +608,12 @@ function togglePendingOnly(btn) {
   } else {
     currentFilter = 'all';
   }
+  // "Só pendentes" toma o lugar do status escolhido: a pílula apaga junto.
+  document.querySelectorAll('#status-legend .pill').forEach(p=>p.classList.remove('active-legend'));
   const numWeeks = META.weeks ? META.weeks.length : 4;
   for (let s = 1; s <= numWeeks; s++) renderWeek(s, currentFilter, currentDayFilter);
+  renderManagerCalendar();
+  updateClearFiltersState();
 }
 
 // ─── Limpar todos os filtros ──────────────────────────────────────────────────
@@ -621,6 +625,7 @@ function updateClearFiltersState() {
   btn.classList.toggle('is-idle', !hasActiveFilter);
   btn.textContent = hasActiveFilter ? '✕ Limpar filtros' : '✓ Sem filtros';
   btn.title = hasActiveFilter ? 'Limpar busca e todos os filtros ativos' : 'Nenhum filtro ativo';
+  if (typeof pintarFiltrosDaAgenda === 'function') pintarFiltrosDaAgenda();
 }
 
 function clearAllFilters(preserveDateMode = false) {
