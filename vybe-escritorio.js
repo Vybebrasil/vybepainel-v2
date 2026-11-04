@@ -2016,7 +2016,8 @@ function atualizarPessoasEscritorio() {
         aoPassar: p.convidado || escritorio.base?.convidado ? null : (id, on, el) => typeof passarSobreJogadorEscritorio === "function" && passarSobreJogadorEscritorio(id, on, el),
         aoClicar: p.convidado || escritorio.base?.convidado ? () => escritorioAviso(voce ? "Este é você." : p.convidado ? `${p.nome} é convidado de ${escritorioNomeCurto(escritorio.base?.equipe?.find((e) => String(e.id) === String(p.anfitriao))?.nome || "alguém da equipe")}.` : `${p.nome} é da equipe da Vybe.`) : (id) => abrirMenuPessoaEscritorio(id),
       };
-    }));
+    // O VYBES chamado pela sala fica ao lado de quem chamou (vybe-vybes.js), só na tela de quem chamou.
+    }).concat(typeof vybesNaSala === "function" ? vybesNaSala() : []));
   }
   // As listas laterais só mudam quando alguém troca de lugar, status ou
   // entra/sai; a presença chega a cada passo, então refazê-las sempre
