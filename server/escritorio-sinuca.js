@@ -142,6 +142,14 @@ export function brancaPode(area, x, y, r = R) {
  if (area === 'D') return x <= LINHA_SAIDA && Math.hypot(x - LINHA_SAIDA, (y - ALTURA / 2)*METRICA_Y) <= D_RAIO;
  return true;
 }
+// O ponto válido mais perto dentro da área (com uma folga de 0,01 nas bordas).
+export function prenderBranca(area, x, y, r = R) {
+ const f = 0.01, ry = (r + f) / METRICA_Y;
+ x = Math.min(LARGURA - r - f, Math.max(r + f, x)); y = Math.min(ALTURA - ry, Math.max(ry, y));
+ if (area === 'saida' || area === 'D') x = Math.min(x, LINHA_SAIDA - f);
+ if (area === 'D') { const dx = x - LINHA_SAIDA, dy = (y - ALTURA / 2) * METRICA_Y, d = Math.hypot(dx, dy), max = D_RAIO - f; if (d > max) { x = LINHA_SAIDA + dx * max / d; y = ALTURA / 2 + dy * max / d / METRICA_Y; } }
+ return [x, y];
+}
 // A branca posta sozinha (quem joga pode arrastar): no meio da área, o mais
 // perto livre; null se não couber.
 function lugarDaBranca(bolas, area, r) {
@@ -541,9 +549,15 @@ function jogarSinucaBruto(mesa, lado, pedido) {
   // Na regra de bar a branca já vem posta (no meio da área) e quem joga pode
   // tacar dali ou mudá-la de lugar dentro da área.
   if (pedido.branca || !m.bolas[0]) {
-   const x = Number(pedido.branca?.x), y = Number(pedido.branca?.y);
+   let x = Number(pedido.branca?.x), y = Number(pedido.branca?.y);
    const rb = m.rb || r0;
-   if (!Number.isFinite(x) || !Number.isFinite(y) || x < rb || x > LARGURA - rb || y < rb/METRICA_Y || y > ALTURA - rb/METRICA_Y) throw erro('Ponha a branca na mesa.');
+   if (!Number.isFinite(x) || !Number.isFinite(y)) throw erro('Ponha a branca na mesa.');
+   // Um fio fora da área (arredondamento da tela, ou a tela antiga que prendia
+   // com o raio das outras bolas): encaixa no ponto válido mais perto. Antes
+   // recusava e toda tacada daquela vez travava (Paulo, 04/11/2026).
+   const [px, py] = prenderBranca(m.bolaNaMao, x, y, rb);
+   if (Math.hypot(px - x, (py - y) * METRICA_Y) <= 0.15) { x = px; y = py; }
+   if (x < rb || x > LARGURA - rb || y < rb/METRICA_Y || y > ALTURA - rb/METRICA_Y) throw erro('Ponha a branca na mesa.');
    if (!brancaPode(m.bolaNaMao, x, y, rb)) throw erro(m.bolaNaMao === 'D' ? 'Depois da suicida a branca vai dentro do D da saída.' : 'Na saída a branca fica atrás da linha de saída.');
    if (!livre(m.bolas, x, y, 0, (r0 + rb) / 2)) throw erro('A branca está em cima de outra bola.');
    m.bolas[0] = [x, y];
