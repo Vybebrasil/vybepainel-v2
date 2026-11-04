@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 function preparar(){
  const bolas=Array(16).fill(null);bolas[0]=[25,25];bolas[2]=[75,25];
  const estado={jogo:{id:17,n:2,eu:'desafiante',vez:'desafiante',estado:'jogando',mesa:{bolas,r:1.421,bolaNaMao:false,pode_tacar:true}},angulo:0,forca:.4};
- const pedidos=[],canvas={width:1376,height:768,getBoundingClientRect:()=>({left:0,top:0,width:1376,height:768}),setPointerCapture(){},classList:{add(){}}};
+ const pedidos=[],canvas={width:1376,height:828.5,getBoundingClientRect:()=>({left:0,top:0,width:1376,height:828.5}),setPointerCapture(){},classList:{add(){}}};
  const barra={getBoundingClientRect:()=>({left:0,top:0,width:500,height:32}),setPointerCapture(){}};
  const c=vm.createContext({registrarMesaEscritorio:v=>v,escritorioMesa:()=>estado,document:{addEventListener(){},querySelector:()=>null,activeElement:null},performance:{now:()=>0},lanceMesaEscritorio:(_,p)=>pedidos.push(p),escritorioAviso(){}});
  vm.runInContext(readFileSync('shared/escritorio-sinuca-mesa.js','utf8'),c);vm.runInContext(readFileSync('vybe-escritorio-sinuca-ui.js','utf8'),c);vm.runInContext(readFileSync('vybe-escritorio-sinuca.js','utf8'),c);vm.runInContext('sinucaPintar=()=>{}',c);
@@ -15,18 +15,18 @@ function preparar(){
  return {estado,pedidos,c,mesa,forca,evento};
 }
 test('gesto: clique e tremor de 1 px miram sem disparar; caminho até a barra preserva a mira',()=>{
- const t=preparar();t.mesa(996,383.5,'down');t.mesa(995,383.5,'up');
+ const t=preparar();t.mesa(996,414.25,'down');t.mesa(995,414.25,'up');
  assert.equal(t.pedidos.length,0);assert.equal(t.estado.travada,true);assert.equal(t.estado.angulo,0);
  t.mesa(900,680,'move');assert.equal(t.estado.angulo,0,'hover não muda a direção confirmada');
  t.forca(125,'Comeca');t.forca(125,'Solta');assert.equal(t.pedidos.length,0,'clique na força só seleciona');assert.equal(t.estado.forca,.25);assert.equal(t.estado.angulo,0);
 });
 test('gesto: arrasto deliberado usa o ângulo fotografado ao começar, não um estado mutável',()=>{
- const t=preparar();t.mesa(996,383.5,'down');t.estado.angulo=.7;t.mesa(896,383.5,'move');t.mesa(896,383.5,'up');
+ const t=preparar();t.mesa(996,414.25,'down');t.estado.angulo=.7;t.mesa(896,414.25,'move');t.mesa(896,414.25,'up');
  assert.equal(t.pedidos.length,1);assert.equal(t.pedidos[0].angulo,0);assert.ok(t.pedidos[0].forca>.1);assert.equal(t.estado.gesto,null);
 });
 test('gesto: cancelamento limpa a carga; movimento ou soltura posterior não disparam',()=>{
- const t=preparar();t.mesa(996,383.5,'down');t.mesa(896,383.5,'move');t.c.cancel={pointerId:1};vm.runInContext('sinucaGestoCancelar(cancel)',t.c);
- t.mesa(850,383.5,'move');t.mesa(850,383.5,'up');assert.equal(t.pedidos.length,0);assert.equal(t.estado.puxada,null);assert.equal(t.estado.gesto,null);assert.equal(t.estado.puxando,null);
+ const t=preparar();t.mesa(996,414.25,'down');t.mesa(896,414.25,'move');t.c.cancel={pointerId:1};vm.runInContext('sinucaGestoCancelar(cancel)',t.c);
+ t.mesa(850,414.25,'move');t.mesa(850,414.25,'up');assert.equal(t.pedidos.length,0);assert.equal(t.estado.puxada,null);assert.equal(t.estado.gesto,null);assert.equal(t.estado.puxando,null);
 });
 test('gesto: mudança de rodada ou outro ponteiro não conclui uma tacada antiga',()=>{
  const t=preparar();t.forca(50,'Comeca',1);t.forca(300,'Move',2);t.forca(300,'Solta',2);assert.equal(t.pedidos.length,0);assert.equal(t.estado.gesto.pointerId,1);
@@ -37,20 +37,20 @@ test('gesto: barra arrastada só escolhe a força, não taca (quem taca é o TAC
  assert.equal(t.pedidos.length,0);assert.equal(t.estado.forca,.5);assert.equal(t.estado.gesto,null);
 });
 test('gesto: toque e arrasto no celular ajustam a mira sem tacada involuntária',()=>{
- const t=preparar();t.mesa(996,383.5,'down',7,'touch');t.mesa(800,500,'move',7,'touch');t.mesa(800,500,'up',7,'touch');
+ const t=preparar();t.mesa(996,414.25,'down',7,'touch');t.mesa(800,500,'move',7,'touch');t.mesa(800,500,'up',7,'touch');
  assert.equal(t.pedidos.length,0);assert.ok(t.estado.angulo>0);assert.equal(t.estado.gesto,null);
 });
 test('mira ao vivo: com a mira solta o taco segue o mouse; clique trava e outro clique solta',()=>{
  const t=preparar();t.mesa(688,600,'move');const seguindo=t.estado.angulo;assert.ok(seguindo>0,'hover mira com a mira solta');
- t.mesa(996,383.5,'move');assert.equal(t.estado.angulo,0);
- t.mesa(996,383.5,'down');t.mesa(996,383.5,'up');assert.equal(t.estado.travada,true);
+ t.mesa(996,414.25,'move');assert.equal(t.estado.angulo,0);
+ t.mesa(996,414.25,'down');t.mesa(996,414.25,'up');assert.equal(t.estado.travada,true);
  t.mesa(688,600,'move');assert.equal(t.estado.angulo,0,'travada não segue');
  t.mesa(688,600,'down');assert.equal(t.estado.angulo,0,'clicar na mira travada não a move');t.mesa(688,600,'up');
  assert.equal(t.estado.travada,false);assert.equal(t.pedidos.length,0);
  t.mesa(688,600,'move');assert.equal(t.estado.angulo,seguindo,'solta volta a seguir');
 });
 test('mira travada: puxar para trás taca na direção travada',()=>{
- const t=preparar();t.mesa(996,383.5,'down');t.mesa(996,383.5,'up');
+ const t=preparar();t.mesa(996,414.25,'down');t.mesa(996,414.25,'up');
  t.mesa(688,600,'down');t.mesa(588,600,'move');t.mesa(588,600,'up');
  assert.equal(t.pedidos.length,1);assert.equal(t.pedidos[0].angulo,0);
 });

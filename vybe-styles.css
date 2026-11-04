@@ -25375,7 +25375,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .snc-confronto b i {font:400 14px Georgia,serif;margin:0 7px;opacity:.5}
 .snc-x {color:#b9aa8259;font:400 20px Georgia,serif}
 .snc-area {display:grid;place-items:center;min-width:0;width:100%;padding:2px 0 6px}
-.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 430px)*1.791667));height:auto;max-width:100%;aspect-ratio:2752/1536;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
+.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 430px)*1.660833));height:auto;max-width:100%;aspect-ratio:2752/1657;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
 .snc-canvas.vez,.snc-canvas.vez.travada {touch-action:none;cursor:none}
 .snc-canvas.vez.pondo {cursor:default}
 .snc-comandos {display:grid;grid-template-columns:260px minmax(220px,1fr) 162px;gap:22px;padding:13px 18px 12px;border:1px solid #9d7c484a;border-radius:7px;background:linear-gradient(#17251dd9,#101b16e8),url(/assets/jogos/boteco-madeira.webp) center/420px;box-shadow:inset 0 1px #ffffff06}
@@ -25788,7 +25788,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-snc-jogo .snc-arena{position:relative;display:grid;grid-template-columns:var(--snc-col-forca) minmax(0,1fr) var(--snc-col-cmd);gap:14px;align-items:stretch}
 .ofc-snc-jogo .snc-arena::before{content:"";position:absolute;left:12%;right:12%;top:-40px;height:75%;background:radial-gradient(ellipse at 50% 0%,rgba(255,226,170,.17),rgba(255,226,170,.05) 45%,transparent 70%);pointer-events:none}
 #workflow-modal.ofc-snc-jogo .snc-area{position:relative;display:grid;place-items:center;padding:0;min-width:0}
-#workflow-modal.ofc-snc-jogo .snc-canvas{width:min(100%,calc((100dvh - var(--snc-reserva))*1.791667));box-shadow:0 34px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06),0 0 120px rgba(255,214,140,.07)}
+#workflow-modal.ofc-snc-jogo .snc-canvas{width:min(100%,calc((100dvh - var(--snc-reserva))*1.660833));box-shadow:0 34px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06),0 0 120px rgba(255,214,140,.07)}
 /* Medidor de força em pé */
 .ofc-snc-jogo .snc-medidor{display:grid;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;gap:10px;padding:12px 8px;border:1px solid var(--snc-b);border-radius:18px;background:var(--snc-vidro)}
 .ofc-snc-jogo .snc-medidor>small{font:700 10px var(--snc-f);letter-spacing:2.4px;color:var(--snc-d)}
@@ -25939,3 +25939,9 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 #workflow-modal .snc-sala .snc-casa{display:grid;gap:8px;margin-bottom:6px}
 #workflow-modal.ofc-snc-jogo .snc-pontos{font:800 18px var(--snc-f);color:#fff}#workflow-modal.ofc-snc-jogo .snc-pontos small{font-size:10px;color:var(--snc-d)}
 #workflow-modal .snc-sala .snc-casa-nota{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,138,61,.08);border:1px solid rgba(255,138,61,.25);font-size:12px;line-height:1.5;color:var(--snc-t)}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola.levantado{box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 -6px 12px rgba(0,0,0,.18),0 0 0 3px rgba(255,138,61,.55)}
+.ofc-snc-jogo .snc-camera-botoes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+.ofc-snc-jogo .snc-camera-botoes button{min-height:32px;border:1px solid var(--snc-b);border-radius:9px;background:rgba(255,255,255,.05);color:#fff;font:700 14px var(--snc-f);cursor:pointer}
+.ofc-snc-jogo .snc-camera-botoes button:hover{border-color:rgba(255,138,61,.6)}
+.ofc-snc-jogo .snc-camera-dica{font-size:9px;color:var(--snc-d);font-style:normal;text-align:center}
+@media (orientation:landscape) and (max-height:520px){.ofc-snc-jogo .snc-camera-dica{display:none}}

@@ -116,7 +116,8 @@ test('bola na boca: devagar ela para na beirada e só cai com o centro por cima 
    else ficou = Math.min(ficou, Math.hypot(r.bolas[0][0] - cx, r.bolas[0][1] - cy) - cr);
   }
   assert.ok(caiu, `${nome}: um pouco mais forte, cai`);
-  assert.ok(ficou >= 0 && ficou < 0.1, `${nome}: parou na beirada com o centro a ${ficou.toFixed(2)} da borda do buraco`);
+  // Na beirada: o centro a menos de ~3 mm da borda do buraco (0,2 unidade de 1,65 cm).
+  assert.ok(ficou >= 0 && ficou < 0.2, `${nome}: parou na beirada com o centro a ${ficou.toFixed(2)} da borda do buraco`);
  }
 });
 
