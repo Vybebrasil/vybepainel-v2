@@ -161,3 +161,27 @@ test('bar: branca um fio fora do D ou colada na tabela encaixa e taca; longe da 
  }
  assert.throws(() => jogarSinuca(comecar('D'), 'desafiante', { tipo: 'tacar', angulo: 0.3, forca: 0.3, branca: { x: 40, y: 25 } }), /dentro do D/);
 });
+
+// Paulo, 04/11/2026: "se eu sou par e bato direto na bola ímpar do cara...
+// multa de 2 bolas". Vale mesmo com a casa cobrando 1 bola nas outras faltas.
+test('bar: bater direto na bola do outro tira 2 bolas dele e passa a vez; a outra falta segue a multa da casa', () => {
+ const montar = () => {
+  const m = iniciarSinuca('desafiante'); m.bolaNaMao = false; m.tacadas = 6; m.vez = 'desafiante';
+  m.grupos = { desafiante: 'pares', desafiado: 'impares' }; m.casa = { multa: 1, doOutro: 'falta', modo: 'parimpar' };
+  m.bolas = m.bolas.map(() => null);
+  m.bolas[0] = [30, 25]; m.bolas[3] = [50, 25]; m.bolas[5] = [70, 10]; m.bolas[7] = [80, 40]; m.bolas[9] = [85, 12];
+  m.bolas[2] = [40, 10]; m.bolas[4] = [60, 42]; m.bolas[1] = [3, 25];
+  return m;
+ };
+ const r = jogarSinuca(montar(), 'desafiante', { tipo: 'tacar', angulo: 0, forca: 0.15 });
+ assert.equal(r.mesa.ultimo.primeiro, 3, 'tocou primeiro a 3 (ímpar, do outro)');
+ assert.equal(r.mesa.ultimo.falta, 'errada');
+ const sai = [r.mesa.ultimo.tirou, ...(r.mesa.ultimo.tirouMais || [])];
+ assert.equal(sai.length, 2, `multa de 2 bolas: ${sai}`);
+ assert.ok(sai.every((n) => n % 2 === 1 && !r.mesa.bolas[n]), 'saíram duas ímpares do outro');
+ assert.equal(r.mesa.vez, 'desafiado');
+ // Cegou (não tocou nenhuma): multa da casa, 1 bola.
+ const m2 = montar(); m2.bolas[3] = null;
+ const r2 = jogarSinuca(m2, 'desafiante', { tipo: 'tacar', angulo: Math.PI, forca: 0.05 });
+ if (r2.mesa.ultimo.falta === 'nenhuma') assert.equal([r2.mesa.ultimo.tirou, ...(r2.mesa.ultimo.tirouMais || [])].filter(Boolean).length, 1);
+});

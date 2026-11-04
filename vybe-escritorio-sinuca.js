@@ -13,9 +13,12 @@ const SINUCA_CFG = registrarMesaEscritorio({
   nome: "Sinuca", artigo: "a sinuca", extra: { jogo: "sinuca" }, sinal: "snc",
   // A tacada já toca os sons dela na animação.
   som: () => null,
-  aviso: (texto) => sinucaAvisar(texto),
+  aviso: (texto) => { sinucaAvisar(texto); sinucaDiag("servidor: " + texto); },
+  // "Tá dando vitória antes de mostrar a bola caindo" (Paulo, 04/11/2026): o
+  // placar do fim espera a animação da última tacada terminar.
+  segurarFim: (s) => Boolean(s.anim),
   salaUI: desenharLobbySinuca, novoUI: desenharNovoSinuca, conviteUI: desenharConviteSinuca,
-  nota: "Par ou ímpar, regra de bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e mate o ás (a 1, colado na cabeceira) para ganhar. Suicida, cegar, bater primeiro na bola do outro ou matar bola do outro (mesmo junto com a sua) é falta: sai mais uma bola do outro, nada volta para a mesa e a vez passa; na suicida o outro põe a branca no D.", desenhar: (j, s) => desenharSinuca(j, s),
+  nota: "Par ou ímpar, regra de bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e mate o ás (a 1, colado na cabeceira) para ganhar. Suicida, cegar ou matar bola do outro (mesmo junto com a sua) é falta: sai mais uma bola do outro; bater direto na bola do outro é multa de 2 bolas. Na falta nada volta para a mesa e a vez passa; na suicida o outro põe a branca no D.", desenhar: (j, s) => desenharSinuca(j, s),
   // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
   // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
   // assistia via a mesa piscar a cada tacada (Paulo, 28/10/2026).
@@ -159,7 +162,8 @@ function sinucaUltimoTexto(j, u = j.mesa?.ultimo) {
     || { branca: "a branca caiu", "branca-fora": "a branca pulou para fora da mesa", fora: "bola pulou para fora da mesa (voltou para a marca)", nenhuma: "não tocou em nenhuma bola", errada: "tocou primeiro a bola errada" }[u.falta];
   const grupo = u.grupo ? ` e ficou com ${{ pares: "o par (as lisas)", impares: "o ímpar (as listradas)" }[u.grupo] || `as ${SINUCA_NOME_GRUPO[u.grupo].toLowerCase()}`}` : "";
   const dono = u.lado === "desafiante" ? "desafiado" : "desafiante", deQuem = dono === j.eu ? "sua" : `de ${xadrezPrimeiroNome(j[dono])}`;
-  const multa = u.tirou ? `; sai a ${u.tirou} (${deQuem})` : "", volta = u.voltou?.length ? `; a ${u.voltou.join(", ")} voltou para a mesa` : "";
+  const sai = u.tirou ? [u.tirou, ...(u.tirouMais || [])] : [];
+  const multa = sai.length ? `; sai${sai.length > 1 ? "em as" : " a"} ${sai.join(" e ")} (${deQuem})` : "", volta = u.voltou?.length ? `; a ${u.voltou.join(", ")} voltou para a mesa` : "";
   const pontos = u.marcou ? `: +${u.marcou} ponto${u.marcou > 1 ? "s" : ""}` : u.pontosOutro ? `; ${u.pontosOutro} pontos para ${xadrezPrimeiroNome(j[dono]) || "o outro"}` : "";
   return `${quem} tacou${caiu.length ? ` e encaçapou ${caiu.length > 1 ? "as bolas" : "a"} ${caiu.join(", ")}` : " e não encaçapou nada"}${grupo}${falta ? `: falta, ${falta}${multa}${volta}` : ""}${pontos}.`;
 }
@@ -660,8 +664,11 @@ function sinucaElevacaoMinima(j, branca, ang) {
 function sinucaAnimVencida(s, j) {
   const a = s.anim;
   if (!a || !j) return false;
-  const total = a.fila.reduce((soma, t) => soma + sinucaAnimDuracao(t, j), 0) / (a.lento || 1);
-  if (performance.now() - (a.criada || performance.now()) < total + 3000) return false;
+  const total = a.fila.reduce((soma, t) => soma + sinucaAnimDuracao(t, j), 0) / (a.lento || 1), agora = performance.now();
+  // Parada: a tela não desenha um quadro dela há 1,5 s (redesenhada no meio, aba
+  // que voltou, mesa que sumiu) — antes ficava esperando o relógio da fila toda.
+  const parada = !document.hidden && agora - (a.visto || a.criada || agora) > 1500;
+  if (!parada && agora - (a.criada || agora) < total + 3000) return false;
   s.anim = null; sinucaPintar(); desenharJogoMesa("snc");
   return true;
 }
@@ -679,7 +686,21 @@ function sinucaAvisar(texto) {
 // parada na puxada, calada: "trava com a força e não solta").
 function sinucaNaoTacou(s, motivo) {
   s.forcaAgora = null; sinucaForcaAtualizar(s.forca ?? 0.4); sinucaPintar();
-  if (motivo) sinucaAvisar(motivo);
+  if (motivo) { sinucaAvisar(motivo); sinucaDiag(motivo); }
+}
+// Foto do estado quando uma tacada é barrada, para o registro da Vercel (no
+// máximo uma a cada 20 s; nada vai para o banco). É assim que dá para ver a
+// causa de "parou de tacar no meio da partida" sem adivinhar.
+function sinucaDiag(motivo) {
+  const s = sinucaEstado(), j = s.jogo, agora = Date.now();
+  if (!j?.id || escritorio.base?.demo || agora - (sinucaDiag.em || 0) < 20000) return;
+  sinucaDiag.em = agora;
+  const a = s.anim, p = performance.now();
+  escritorioApi("sinuca-diag", { motivo: String(motivo).slice(0, 120), id: j.id, n: j.n, mesaN: j.mesa?.n, estado: j.estado, vez: j.vez, eu: j.eu,
+    minha: sinucaMinhaVez(j), anim: a ? `${a.k}/${a.fila?.length}` : "", animIdade: a ? Math.round(p - (a.criada || p)) : 0, animParada: a ? Math.round(p - (a.visto || a.criada || p)) : 0,
+    enviando: Boolean(s.enviando), enviandoHa: s.enviando ? agora - (s.enviandoEm || agora) : 0, gesto: s.gesto?.tipo || "", gira3d: Boolean(s.gira3d),
+    pondo: sinucaPondo(j, s), bolaNaMao: j.mesa?.bolaNaMao || "", branca: Boolean(s.branca), modo: sinucaTravadoAtivo() ? "travado" : "puxar",
+    tela: `${innerWidth}x${innerHeight}` }).catch(() => {});
 }
 function tacarSinuca(gesto) {
   const s = sinucaEstado(), j = s.jogo;
@@ -689,6 +710,7 @@ function tacarSinuca(gesto) {
   if (!j || j.estado !== "jogando") return sinucaNaoTacou(s, "A partida não está em jogo.");
   if (!sinucaMinhaVez(j)) return sinucaNaoTacou(s, j.eu ? `Vez de ${xadrezPrimeiroNome(j[mesaOutro(j.eu)])}.` : "Você está assistindo.");
   if (s.anim) return sinucaNaoTacou(s, "Espere a jogada terminar.");
+  if (s.enviando && Date.now() - (s.enviandoEm || 0) > 35000) s.enviando = false;
   if (s.enviando) return sinucaNaoTacou(s, "A tacada anterior ainda está indo para a mesa…");
   if (sinucaPondo(j, s)) return sinucaNaoTacou(s, "Ponha a branca na mesa primeiro.");
   if(gesto&&(gesto.jogoId!==j.id||gesto.n!==j.n||gesto.lado!==j.eu))return sinucaNaoTacou(s, "A mesa mudou: mire de novo.");
@@ -1038,7 +1060,7 @@ function sinucaAnimQuadro(s, j, agora, R) {
   // Replay em câmera lenta: o relógio da animação anda mais devagar.
   if (a.lento) { a.t0 ||= agora; agora = a.t0 + (agora - a.t0) * a.lento; }
   let t = a.fila[a.k];
-  a.inicio ||= agora;
+  a.inicio ||= agora; a.visto = performance.now();
   while (t && agora - a.inicio >= sinucaAnimDuracao(t, j)) { a.inicio += sinucaAnimDuracao(t, j); t = a.fila[++a.k]; a.som = undefined; }
   if (!t) { s.anim = null; setTimeout(() => { sinucaPintar(); if (escritorioMesa("snc").jogo?.id === j.id) desenharJogoMesa("snc"); }); return null; }
   if (!s.quadroPedido) { s.quadroPedido = true; requestAnimationFrame((tempo) => { s.quadroPedido = false; sinucaPintar(tempo); }); }
@@ -1444,7 +1466,10 @@ function sinucaPonteiro3d(ev, tipo) {
   const s = sinucaEstado(), j = s.jogo;
   if (tipo === "down") sinucaAnimVencida(s, j);
   if (s.anim && tipo === "clique") return sinucaPular(s, j);
-  if (!sinucaMinhaVez(j) || s.anim || s.enviando) return;
+  if (!sinucaMinhaVez(j) || s.anim || s.enviando) {
+    if (tipo === "down" && j?.estado === "jogando") sinucaNaoTacou(s, !sinucaMinhaVez(j) ? (j.eu ? `Vez de ${xadrezPrimeiroNome(j[mesaOutro(j.eu)])}.` : "Você está assistindo.") : s.anim ? "Espere a jogada terminar." : "A tacada anterior ainda está indo para a mesa…");
+    return;
+  }
   if (tipo === "down") {
     if (ev.button !== undefined && ev.button !== 0) return;
     s.gira3d = { id: ev.pointerId, x0: ev.clientX, y0: ev.clientY, x: ev.clientX, modo: null, n: j.n, jogoId: j.id, lado: j.eu, max: 0 };

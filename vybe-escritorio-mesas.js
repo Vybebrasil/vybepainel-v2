@@ -79,9 +79,11 @@ function mesaRitmo(j) {
 // para a próxima partida (quem ganhou contra o primeiro da fila).
 function seguirProximaMesa(chave, j) {
   if (!j?.proxima) return;
-  setTimeout(async () => {
+  setTimeout(async function ir() {
     const s = escritorioMesa(chave);
     if (s.jogo?.id !== j.id) return;
+    // A última jogada ainda passando na tela (a bola caindo): espera ela acabar.
+    if (ESCRITORIO_MESAS[chave]?.segurarFim?.(s)) return setTimeout(ir, 500);
     try { const r = await escritorioApi("mesa", null, { id: j.proxima }); if (escritorioMesa(chave).jogo?.id === j.id) abrirJogoMesa(chave, r.jogo); }
     catch { /* fica no placar; dá para abrir pela mesa */ }
   }, 3500);
@@ -118,7 +120,7 @@ async function recarregarJogoMesa(chave) {
 async function lanceMesaEscritorio(chave, pedido, botao) {
   const s = escritorioMesa(chave), j = s.jogo;
   if (!j || s.enviando) return;
-  s.enviando = true;
+  s.enviando = true; s.enviandoEm = Date.now();
   if (botao) botao.disabled = true;
   try {
     const r = await escritorioApi("mesa-lance", { id: j.id, n: j.n, ...pedido });
@@ -251,7 +253,7 @@ ${j.pode_reivindicar ? `<button type="button" class="workflow-primary" onclick="
   const fora = jogando && !j.bot && !j.grupo && (j.fora?.length || j.pode_pedir_fora || naFora) ? `<div class="jogo-fora"><span class="jogo-fora-rotulo">Na fora</span>${(j.fora || []).length ? (j.fora || []).map((p, i) => `<span class="jogo-fora-pessoa"><img src="${safeText(escritorioCabecaUrl(p.id))}" alt="" width="22" height="22">${i + 1}. ${safeText(xadrezPrimeiroNome(p))}</span>`).join("") : '<span class="jogo-fora-vazia">ninguém esperando</span>'}${j.pode_pedir_fora ? `<button type="button" class="sala-botao laranja" onclick="acaoMesaEscritorio('${chave}','pedir-fora',this)">Pedir fora</button>` : naFora ? `<button type="button" class="sala-botao cinza" onclick="acaoMesaEscritorio('${chave}','sair-fora',this)">Sair da fora</button>` : ""}<small>quem perder sai e o primeiro da fila entra</small></div>` : "";
   xadrezModal(`${jogoTopoHtml(cfg.extra?.jogo || chave, cfg.nome, !eu, jogoSelosHtml(j), sair, `mesaFechar('${chave}')`)}${alerta}${fora}
 <div class="jogo-palco">${status && jogando ? `<p class="jogo-status${eu && j.vez === eu ? " minha" : ""}" aria-live="polite">${status}</p>` : ""}${mesa}
-${!jogando ? jogoFimHtml(j, mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`)) : ""}</div>
+${!jogando && !cfg.segurarFim?.(s) ? jogoFimHtml(j, mesaFimAcoesHtml(chave, j, `mesaFechar('${chave}')`)) : ""}</div>
 <p class="ofc-erro" id="xdz-erro" role="alert"></p>${painel ? `<div class="jogo-feed">${painel}</div>` : ""}`, `ofc-${chave}-jogo`);
   // O jogo pinta o que depende da tela montada (o canvas da sinuca) na mesma volta.
   cfg.depois?.(j, s);
