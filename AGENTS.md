@@ -169,10 +169,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (GET `area=vybes`) e pede um crachá (`area=vybes`, etapa
   `entrar`, `server/vybes.js`) e abre a central pelo túnel cujo endereço o bot publica (`vybes_publicar`).
 - O crachá vale 2 min, é assinado com a chave derivada de `VYBE_AI_BOT_TOKEN` (rótulo `vybes-entrada-v1`) e diz quem é,
-  se age e se é o Paulo; a central confere e troca por um cookie de até 12 h. "Senhor" é só do Paulo.
-- Quem age (`vybe_vybes_operadores`: Paulo, Vinícius, Ewerton L. e Deivid): os pedidos feitos na central chegam pelo
-  bot (`vybes_acao`) e passam pelo MESMO executor das ações do assistente (`prepararAcao`/`confirmarAcao`) com a
-  permissão da pessoa. O resto só vê. Migração `2026-11-02-vybes.sql`.
+  se age e se é o Paulo; a central confere e troca por um cookie de até 12 h. "Senhor" é dos quatro donos (Paulo,
+  Vinícius, Ewerton e Deivid, `core/donos.js` na central); o resto da equipe é chamado pelo nome.
+- Quem age: todos da equipe que entraram no painel (Paulo, 04/11/2026: "os comandos funcionam com todos e todos podem
+  agir"). Os pedidos feitos na central chegam pelo bot (`vybes_acao`) e passam pelo MESMO executor das ações do
+  assistente (`prepararAcao`/`confirmarAcao`) com a permissão da pessoa. A tabela `vybe_vybes_operadores` ficou guardada,
+  sem decidir mais. Migração `2026-11-02-vybes.sql`.
 
 ## Escritório integrado
 

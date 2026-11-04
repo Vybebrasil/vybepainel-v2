@@ -33,8 +33,12 @@ test('vybes: a migração cria o estado e copia quem age (os autores de recado d
   const ops = await sql`SELECT pessoa_id::int AS id FROM vybe_vybes_operadores ORDER BY pessoa_id`;
   assert.deepEqual(ops.map((o) => o.id), [1, 2, 3, 4]);
   assert.equal(await podeAgirNoVybes(sql, sessao(2)), true);
-  assert.equal(await podeAgirNoVybes(sql, sessao(5)), false);
+  // Todos da equipe agem (Paulo, 04/11/2026); convidado e serviço, não; pessoa inativa, não.
+  assert.equal(await podeAgirNoVybes(sql, sessao(5)), true);
   assert.equal(await podeAgirNoVybes(sql, { tipo: 'servico' }), false);
+  await sql`UPDATE vybe_pessoas SET ativo = false WHERE id = 5`;
+  assert.equal(await podeAgirNoVybes(sql, sessao(5)), false);
+  await sql`UPDATE vybe_pessoas SET ativo = true WHERE id = 5`;
 });
 
 test('vybes: o bot publica só o endereço do túnel; endereço de fora do padrão é recusado', async () => {
@@ -57,7 +61,7 @@ test('vybes: a faixa abre a central com o crachá de quem entrou (age ou só vê
   assert.deepEqual({ ...cv, e: 0 }, { p: 2, n: 'Vinícius', a: true, d: false, e: 0 });
   assert.ok(cv.e > agora && cv.e <= agora + 120e3, 'vale 2 min');
   const b = conferir(decodeURIComponent((await entradaVybes(sql, sessao(5), { env, agora })).url.split('t=')[1]));
-  assert.equal(b.a, false);
+  assert.equal(b.a, true, 'todos da equipe agem (Paulo, 04/11/2026)');
   assert.equal(conferir(decodeURIComponent((await entradaVybes(sql, sessao(1), { env, agora })).url.split('t=')[1])).d, true);
   await assert.rejects(entradaVybes(sql, { tipo: 'servico' }, { env, agora }), /Entre no painel/);
   await assert.rejects(entradaVybes(sql, sessao(2), { env, agora: agora + 11 * 60e3 }), /desligado agora/);
@@ -69,7 +73,7 @@ test('vybes: o cartão diz se a central está no ar e se quem olha age', async (
   assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: false, agir: true }, 'sem túnel publicado');
   await guardarEstadoVybes(sql, { tunel: TUNEL });
   assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, agir: true });
-  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, agir: false });
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, agir: true });
   assert.equal((await estadoVybes(sql, sessao(2), { agora: agora + 11 * 60e3 })).noAr, false, 'túnel velho = fora do ar');
   await assert.rejects(estadoVybes(sql, { tipo: 'servico' }, { agora }), /Entre no painel/);
 });
@@ -77,7 +81,9 @@ test('vybes: o cartão diz se a central está no ar e se quem olha age', async (
 test('vybes: quem só vê não toma ação; quem age passa pelo executor das ações (preparar → confirmar)', async () => {
   const { sql } = await banco();
   const segredo = 'x'.repeat(40);
-  await assert.rejects(acaoVybes(sql, sessao(5), { etapa: 'preparar', pedido: { acao: 'status', item: 'vybe:1', para: 'Para agendar' } }, { segredo }), (e) => e.status === 403 && /só Paulo, Vinícius, Ewerton e Deivid/.test(e.message));
+  // Todos da equipe agem; quem não entrou com a conta da equipe (serviço, convidado), não.
+  await assert.rejects(acaoVybes(sql, { tipo: 'servico' }, { etapa: 'preparar', pedido: { acao: 'status', item: 'vybe:1', para: 'Para agendar' } }, { segredo }), (e) => e.status === 403 && /conta da equipe/.test(e.message));
+  await assert.rejects(acaoVybes(sql, sessao(5), { etapa: 'preparar', pedido: { acao: 'apagar_tudo' } }, { segredo }), /Ação desconhecida/);
   // Operador chega ao executor: uma ação que ele não conhece volta a recusa dele (prova que a chamada foi feita lá).
   await assert.rejects(acaoVybes(sql, sessao(4), { etapa: 'preparar', pedido: { acao: 'apagar_tudo' } }, { segredo }), /Ação desconhecida/);
   await assert.rejects(acaoVybes(sql, sessao(4), { etapa: 'outra' }, { segredo }), /Informe a etapa/);
@@ -88,9 +94,28 @@ test('vybes: sem a migração rodada, o primeiro uso cria as tabelas e copia que
   await guardarEstadoVybes(sql, { tunel: TUNEL });
   const ops = await sql`SELECT pessoa_id::int AS id FROM vybe_vybes_operadores ORDER BY pessoa_id`;
   assert.deepEqual(ops.map((o) => o.id), [1, 2, 3, 4]);
-  // Paulo tira o Deivid: o próximo uso não repõe ninguém.
+  // A tabela não decide mais quem age (todos agem), e o próximo uso não repõe ninguém nela.
   await sql`DELETE FROM vybe_vybes_operadores WHERE pessoa_id = 4`;
   esquecerTabelasVybes();
-  assert.equal(await podeAgirNoVybes(sql, sessao(4)), false);
+  assert.equal(await podeAgirNoVybes(sql, sessao(4)), true);
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_vybes_operadores`)[0].n, 3);
+});
+
+test('vybes: a pergunta da sala vai à central com o crachá de quem chamou e volta com a fala e o áudio', async () => {
+  const { sql } = await banco();
+  await guardarEstadoVybes(sql, { tunel: TUNEL });
+  const { perguntarVybes } = await import('../server/vybes.js');
+  let pedido;
+  const fetchImpl = async (url, o) => { pedido = { url, o }; return new Response(JSON.stringify({ ok: true, fala: 'Hoje tem 3 peças pra aprovar, Bia.', audio: 'QUJD', tipo: 'audio/mpeg' }), { status: 200 }); };
+  const r = await perguntarVybes(sql, sessao(5), '  Vybes, como tá o dia?  ', { env, fetchImpl });
+  assert.equal(pedido.url, TUNEL + '/api/cosmos/sala');
+  assert.equal(JSON.parse(pedido.o.body).texto, 'Vybes, como tá o dia?');
+  const c = conferir(pedido.o.headers['X-Vybes-Cracha']);
+  assert.equal(c.p, 5); assert.equal(c.a, true);
+  assert.deepEqual(r, { fala: 'Hoje tem 3 peças pra aprovar, Bia.', audio: 'QUJD', tipo: 'audio/mpeg' });
+  // Áudio que não é base64 não passa; recusa da central vira recusa daqui; sem texto, nem pergunta.
+  assert.equal((await perguntarVybes(sql, sessao(5), 'oi', { env, fetchImpl: async () => new Response(JSON.stringify({ fala: 'x', audio: '<script>' }), { status: 200 }) })).audio, null);
+  await assert.rejects(perguntarVybes(sql, sessao(5), 'oi', { env, fetchImpl: async () => new Response('{}', { status: 403 }) }), (e) => e.status === 403);
+  await assert.rejects(perguntarVybes(sql, sessao(5), '   ', { env, fetchImpl }), (e) => e.status === 400);
+  await assert.rejects(perguntarVybes(sql, { tipo: 'servico' }, 'oi', { env, fetchImpl }), (e) => e.status === 401);
 });
