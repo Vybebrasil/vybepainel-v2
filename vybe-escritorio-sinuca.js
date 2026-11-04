@@ -1136,22 +1136,22 @@ function sinucaSobTaco(g, bolas, branca, dx, dy, recuo, R) {
 // do impacto na mesa.
 const SINUCA_TACOS = {
   casa:   { nome: "Taco da Casa", requisito: "De todo mundo", brilho: null,
-    haste: "#e6cf9c", madeira: "#9a6a38", veio: "#6e4520", pontas: null, anel: ["#1a1714"], junta: "#1a1714",
+    haste: "#e6cf9c", hasteVeio: "#a77b45", estampa: { tipo: "fita" }, madeira: "#9a6a38", veio: "#6e4520", pontas: null, anel: ["#1a1714"], junta: "#1a1714",
     pega: { tipo: "liso", cor: "#2a1d14" }, luva: "#2a1d14", enfeite: null, pe: "#141210" },
   bronze: { nome: "Bronze", requisito: "Top 8 do ranking ou 5 vitórias", brilho: "#e0954a",
-    haste: "#ead3a0", madeira: "#5a2a17", veio: "#3a170b", pontas: { cor: "#e8cf9c", filetes: ["#111", "#c97a3a", "#111"] },
+    haste: "#cf9455", hasteVeio: "#8a5426", faixas: ["#b0703a", "#111"], estampa: { tipo: "frisos", cor: "#7a3a14", nome: "BRONZE", letra: "#5a2a10" }, madeira: "#5a2a17", veio: "#3a170b", pontas: { cor: "#e8cf9c", filetes: ["#111", "#c97a3a", "#111"] },
     anel: ["#111", "#efe6d2"], junta: "#8c5a2e", pega: { tipo: "couro", cor: "#5b1d18", ponto: "#2a0c0a" }, luva: "#5a2a17",
     enfeite: { tipo: "diamante", cor: "#e8cf9c", borda: "#111" }, pe: "#120e0b" },
   prata:  { nome: "Prata", requisito: "Top 3 ou derrubar o Tio", brilho: "#cfe3ff",
-    haste: "#eed8a8", madeira: "#17130f", veio: "#2c241c", pontas: { cor: "#efe2c4", filetes: ["#f4f4f4", "#2b5fa8", "#f4f4f4"] },
+    haste: "#2b2e35", carbono: "#3d424c", virola: "#f1ead8", faixas: ["#2b5fa8", "#f4f4f4"], estampa: { tipo: "corrida", cor: "#2b6fd0", cor2: "#f4f4f4", nome: "PRATA", letra: "#dfe4ea" }, madeira: "#17130f", veio: "#2c241c", pontas: { cor: "#efe2c4", filetes: ["#f4f4f4", "#2b5fa8", "#f4f4f4"] },
     anel: ["#2b5fa8", "#f4f4f4"], junta: "#a9aeb6", pega: { tipo: "linho", cor: "#4b4f57", ponto: "#22252a" }, luva: "#17130f",
     enfeite: { tipo: "oval", cor: "#c9ced6", borda: "#2b5fa8" }, pe: "#0e0c0a" },
   ouro:   { nome: "Ouro", requisito: "1º do ranking ou 25 vitórias", brilho: "#ffd36a",
-    haste: "#f0dbac", madeira: "#7a3b1c", veio: "#4a1f0c", pontas: { cor: "#120e0b", filetes: ["#d9a640", "#111", "#efe6d2"] },
+    haste: "#e0b066", hasteVeio: "#9a6a24", faixas: ["#d9a640", "#111", "#d9a640"], estampa: { tipo: "arabesco", cor: "#8a5a10", nome: "OURO", letra: "#6a4208" }, madeira: "#7a3b1c", veio: "#4a1f0c", pontas: { cor: "#120e0b", filetes: ["#d9a640", "#111", "#efe6d2"] },
     anel: ["#d9a640", "#111"], junta: "#efe6d2", pega: { tipo: "lagarto", cor: "#15120f", ponto: "#3a3128" }, luva: "#7a3b1c",
     enfeite: { tipo: "diamante", cor: "#efe6d2", borda: "#d9a640", pingo: "#d9a640" }, pe: "#efe6d2" },
   lenda:  { nome: "Lenda", requisito: "Derrubar o Baianinho", brilho: "#ff8a1f",
-    haste: "#f2ddb0", madeira: "#120b16", veio: "#24182a", entalhe: "#c8742a", pontas: { cor: "abalone", filetes: ["#ff8a1f", "#111", "#d9a640"] },
+    haste: "#141117", carbono: "#2a2430", virola: "#ff8a1f", faixas: ["#ff8a1f", "#111", "#d9a640"], estampa: { tipo: "chamas", cor: "#ff8a1f", cor2: "#ffd36a", nome: "LENDA", letra: "#ff8a1f" }, madeira: "#120b16", veio: "#24182a", entalhe: "#c8742a", pontas: { cor: "abalone", filetes: ["#ff8a1f", "#111", "#d9a640"] },
     anel: ["#ff8a1f", "#111", "#d9a640"], junta: "#120b16", pega: { tipo: "couro", cor: "#1c120c", ponto: "#ff8a1f" }, luva: "#120b16",
     enfeite: { tipo: "oval", cor: "abalone", borda: "#d9a640" }, pe: "#120b16" },
 };
@@ -1266,11 +1266,62 @@ function sinucaTacoDesenhar(g, L, P, modelo = "casa", forca = 0, sombra = true, 
       if (e.pingo) for (const d of [-1, 1]) { g.beginPath(); g.arc(x + d * comp * 1.45, v.y, Math.max(0.8, P * 0.035 * v.k), 0, Math.PI * 2); g.fillStyle = e.pingo; g.fill(); }
     }
   });
+  // A marca de cada taco na haste: o que se reconhece de longe jogando
+  // (Paulo, 04/11/2026: "pode trazer mais personalidade pro taco").
+  // No 3D a volta inteira é o retângulo; as marcas se repetem dos dois lados.
+  const lados = textura ? [-P / 4, P / 4] : [0];
+  const nome = (txt, cor, t) => recorte(0.03, 0.5, () => {
+    g.fillStyle = cor; g.font = `900 italic ${Math.max(6, P * (textura ? 0.22 : 0.42))}px sans-serif`; g.textBaseline = "middle"; g.globalAlpha = 0.9;
+    for (const y of lados) g.fillText(txt, t * L, y);
+    g.globalAlpha = 1;
+  });
+  const estampa = (e) => {
+    if (e.tipo === "fita") recorte(0.03, 0.5, () => {             // taco da casa: fita isolante e giz
+      g.fillStyle = "#151515";
+      for (const [t, w] of [[0.3, 0.018], [0.44, 0.012]]) { g.beginPath(); g.moveTo(t * L, -P); g.lineTo((t + w) * L, -P); g.lineTo((t + w + 0.004) * L, P); g.lineTo((t + 0.004) * L, P); g.closePath(); g.fill(); }
+      const r = sinucaTacoSorte(31); g.fillStyle = "rgba(60,120,200,.35)";
+      for (let i = 0; i < 14; i++) { g.beginPath(); g.ellipse((0.035 + r() * 0.07) * L, (r() - 0.5) * P, P * (0.12 + r() * 0.2), P * 0.07, 0, 0, Math.PI * 2); g.fill(); }
+    });
+    if (e.tipo === "frisos") { recorte(0.03, 0.5, () => {           // bronze: frisos de cobre ao comprido
+      g.strokeStyle = e.cor; g.lineWidth = Math.max(0.8, P * 0.05);
+      for (const y of (textura ? [-P * 0.42, -P * 0.08, P * 0.08, P * 0.42] : [-P * 0.18, P * 0.18])) { g.beginPath(); g.moveTo(0.06 * L, y); g.lineTo(0.49 * L, y); g.stroke(); }
+    }); nome(e.nome, e.letra, 0.36); }
+    if (e.tipo === "corrida") { recorte(0.03, 0.5, () => {          // prata: faixa de corrida no carbono
+      for (const y of lados) { g.fillStyle = e.cor; g.fillRect(0.05 * L, y - P * 0.13, 0.44 * L, P * 0.26); g.fillStyle = e.cor2; g.fillRect(0.05 * L, y - P * 0.02, 0.44 * L, P * 0.04); }
+    }); nome(e.nome, e.letra, 0.12); }
+    if (e.tipo === "arabesco") { recorte(0.03, 0.5, () => {         // ouro: ramos subindo da junta
+      g.strokeStyle = e.cor; g.lineWidth = Math.max(0.8, P * 0.04); g.globalAlpha = 0.85;
+      for (const y0 of lados) for (let i = 0; i < 6; i++) {
+        const x = (0.48 - i * 0.055) * L, a = P * 0.28;
+        g.beginPath(); g.moveTo(x, y0); g.bezierCurveTo(x - P * 0.6, y0 - a, x - P * 1.2, y0 + a, x - P * 1.8, y0); g.stroke();
+        g.beginPath(); g.arc(x - P * 0.9, y0 - a * 0.6, P * 0.08, 0, Math.PI * 2); g.stroke();
+      }
+      g.globalAlpha = 1;
+    }); nome(e.nome, e.letra, 0.1); }
+    if (e.tipo === "chamas") { recorte(0.03, 0.5, () => {           // lenda: chamas subindo da junta
+      for (const y0 of lados) for (let i = 0; i < 7; i++) {
+        const base = 0.5 * L, ponta = (0.5 - 0.12 - ((i * 37) % 9) * 0.012) * L, y = y0 + (i - 3) * P * (textura ? 0.035 : 0.07), w = P * 0.16;
+        const gr = g.createLinearGradient(base, 0, ponta, 0); gr.addColorStop(0, e.cor); gr.addColorStop(0.6, e.cor2); gr.addColorStop(1, "rgba(255,211,106,0)");
+        g.fillStyle = gr; g.beginPath(); g.moveTo(base, y - w); g.quadraticCurveTo((base + ponta) / 2, y - w * 2.2, ponta, y); g.quadraticCurveTo((base + ponta) / 2, y + w * 0.6, base, y + w); g.closePath(); g.fill();
+      }
+    }); nome(e.nome, e.letra, 0.1); }
+  };
   // Ponta de couro com giz azul e virola de marfim.
   parte(0, 0.012, "#2f6fb8"); recorte(0, 0.012, () => { g.fillStyle = "rgba(190,225,255,.5)"; const r = sinucaTacoSorte(7); for (let i = 0; i < 9; i++) { g.beginPath(); g.arc(r() * 0.012 * L, (r() - 0.5) * P * 0.5, P * 0.03, 0, Math.PI * 2); g.fill(); } }); volume(0, 0.012);
-  parte(0.012, 0.03, "#f1ead8"); volume(0.012, 0.03);
-  // Haste de maple: clara, com o veio reto e fino.
-  parte(0.03, 0.5, m.haste); veio(0.03, 0.5, "#a77b45", 7, 11); volume(0.03, 0.5);
+  parte(0.012, 0.03, m.virola || "#f1ead8"); volume(0.012, 0.03);
+  // A haste é o que se vê jogando (a câmera fica atrás do taco), então cada taco
+  // tem a sua (Paulo, 04/11/2026: "todos têm a sensação de estar com o mesmo
+  // taco"): maple natural, maple tingido ou carbono, com os anéis da cor do taco.
+  parte(0.03, 0.5, m.haste);
+  if (m.carbono) recorte(0.03, 0.5, () => {                    // trama do carbono
+    g.strokeStyle = m.carbono; g.globalAlpha = 0.55; g.lineWidth = Math.max(0.6, P * 0.025);
+    for (let x = 0.03 * L; x < 0.5 * L; x += P * 0.09) { g.beginPath(); g.moveTo(x, -P); g.lineTo(x + P * 0.5, P); g.stroke(); g.beginPath(); g.moveTo(x + P * 0.5, -P); g.lineTo(x, P); g.stroke(); }
+    g.globalAlpha = 1;
+  });
+  else veio(0.03, 0.5, m.hasteVeio || "#a77b45", 7, 11);
+  if (m.estampa) estampa(m.estampa);
+  if (m.faixas) for (const t of [0.045, 0.2, 0.35, 0.47]) anel(t, t + 0.006, m.faixas);
+  volume(0.03, 0.5);
   // Junta: colar, o pino (risco escuro) e o anel.
   anel(0.5, 0.507, m.anel); parte(0.507, 0.526, m.junta); recorte(0.507, 0.526, () => { g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0.5155 * L, -P, Math.max(1, 0.001 * L), 2 * P); }); volume(0.507, 0.526); anel(0.526, 0.533, m.anel);
   // Antebraço: a madeira nobre com veio, as pontas e (no Lenda) o entalhe.
