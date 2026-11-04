@@ -26328,6 +26328,15 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-snc-jogo .snc-arena .snc-aviso.ver{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #workflow-modal.ofc-snc-jogo .snc-hud .snc-tacar[aria-disabled="true"]{filter:grayscale(1) brightness(.55);cursor:default}
 .ofc-snc-jogo .snc-tacar[aria-disabled="true"]{opacity:.55}
+/* Bolinha do efeito parada (Paulo, 04/11/2026: "ficando doida mexendo de um lado
+   pro outro"): o bloco preso pela direita tinha a largura do texto de baixo, que
+   muda ao arrastar ("no centro", "alto à esquerda"…), e a bola andava junto. */
+@media (min-width:761px){
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-efeito{width:176px}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-efeito-nome{display:block;max-width:176px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+}
+@media (min-width:761px) and (max-height:760px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-efeito{width:150px}#workflow-modal.ofc-snc-jogo .snc-hud .snc-efeito-nome{max-width:150px}}
+@media (min-width:761px) and (max-height:520px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-efeito{width:64px}}
 /* Jeito de tacar: PUXAR ou TRAVADO (escolha do jogador). */
 .ofc-snc-jogo .snc-modo-botoes{display:flex;gap:4px}
 .ofc-snc-jogo .snc-modo-botoes button{flex:1;min-height:30px;padding:0 12px;border:0;border-radius:0;clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);background:#0a0c12b3;box-shadow:inset 0 0 0 1px #ffffff26;color:#cfd5df;font:900 italic 11px var(--snc-f);letter-spacing:1px;cursor:pointer}
