@@ -7,7 +7,7 @@ function sinucaCabecalhoHtml(titulo,voltar='xadrezFechar()'){
 }
 function sinucaPessoaHtml(p){const u=escritorioCabecaUrl(p?.id);return u?`<img src="${safeText(u)}" alt="">`:`<i class="snc-inicial">${safeText(String(p?.nome||'?')[0])}</i>`;}
 function sinucaLobbySecao(aba){
- if(!['sala','desafios','temporada'].includes(aba))return;
+ if(!['sala','desafios','ranking','temporada'].includes(aba))return;
  const x=escritorioXadrez();x.sinucaSecao=aba;desenharLobbySinuca(x.sala||{},x.salaCfg||x.cfg);
 }
 // A Jornada dos bares: o caminho dos três bares, cada um com o dono, o prêmio e
@@ -19,20 +19,43 @@ function sinucaBotsHtml(cfg){
  const bares=e.bots.bares||e.bots.bots.map(b=>({nivel:b.nivel,bar:b.nome,aberto:true,vencido:b.vitorias>0}));
  const passo=(bar,i)=>{const b=e.bots.bots.find(x=>x.nivel===bar.nivel);if(!b)return'';const estado=bar.vencido?'vencido':bar.aberto?'aberto':'fechado';
   return `<article class="snc-bar ${estado}"><span class="snc-bar-num">${String(i+1).padStart(2,'0')}</span><img src="${sinucaRetrato(b.nivel)}" alt="Retrato de ${safeText(b.nome)}"><div class="snc-bar-dados"><small>${safeText(bar.bar)}</small><h3>${safeText(b.nome)}</h3><p>${safeText(b.frase)}</p><div class="snc-recompensa">${e.bots.resta_hoje?`<b>+${Math.min(b.premio.moedas,e.bots.resta_hoje)} moedas</b> · +${b.premio.xp} XP`:'Treino · sem prêmio em moedas'}${b.vitorias?`<small>${b.vitorias} vitória${b.vitorias>1?'s':''} sua${b.vitorias>1?'s':''}</small>`:''}</div>${estado==='fechado'?`<span class="snc-bar-tranca">🔒 Vença o dono do bar anterior</span>`:`<button type="button" class="snc-btn" onclick="desafiarBotEscritorio('${safeText(b.bot)}',this)">${estado==='vencido'?'Jogar de novo':'Entrar no bar'} <span>↗</span></button>`}</div>${estado==='vencido'?'<i class="snc-bar-selo">DONO DERRUBADO</i>':''}</article>`;};
- return `<div class="snc-secao-titulo"><div><small>JORNADA DOS BARES</small><h2>Do boteco da esquina ao salão do Baianinho.</h2></div><p>${e.bots.resta_hoje?`Até ${Number(e.bots.resta_hoje).toLocaleString('pt-BR')} moedas em prêmios hoje.`:'Limite de prêmios de hoje atingido. Ainda vale o treino.'}</p></div><div class="snc-jornada">${bares.map(passo).join('<i class="snc-jornada-seta" aria-hidden="true">›</i>')}</div>`;
+ return `<div class="snc-painel-topo"><div><small>JORNADA DOS BARES</small><h2>Do boteco da esquina ao salão do Baianinho.</h2></div><p>${e.bots.resta_hoje?`Até ${Number(e.bots.resta_hoje).toLocaleString('pt-BR')} moedas em prêmios hoje.`:'Limite de prêmios de hoje atingido. Ainda vale o treino.'}</p></div><div class="snc-jornada">${bares.map(passo).join('<i class="snc-jornada-seta" aria-hidden="true">›</i>')}</div>`;
 }
 function sinucaConvitesHtml(d){
  const recebidos=(d.convites||[]).map(j=>`<article class="snc-desafio-recebido"><div>${sinucaPessoaHtml(j.desafiante)}<span><small>DESAFIO RECEBIDO</small><b>${xadrezPrimeiroNome(j.desafiante)} quer jogar.</b></span>${mesaPrazoHtml(j.convite_ate)}</div>${xadrezApostaHtml(j,'desafiado')}<footer><button class="snc-btn secundario" onclick="responderXadrezEscritorio('${safeText(j.id)}','recusar',this)">Recusar</button><button class="snc-btn" onclick="responderXadrezEscritorio('${safeText(j.id)}','aceitar',this)">Aceitar e jogar ↗</button></footer></article>`).join('');
  const espera=[...(d.enviados||[]),...(d.aguardando||[])].map(j=>`<article class="snc-pendente"><div><small>DESAFIO NA MESA</small><b>${xadrezPrimeiroNome(j.desafiante)} × ${xadrezPrimeiroNome(j.desafiado)}</b><p>Aguardando o aceite. A partida abre automaticamente.</p></div>${mesaPrazoHtml(j.convite_ate)}<button class="snc-btn secundario" onclick="responderXadrezEscritorio('${safeText(j.id)}','${(d.enviados||[]).some(v=>v.id===j.id)?'cancelar':'recusar'}',this)">Cancelar</button></article>`).join('');
  return recebidos+espera;
 }
+// O salão como menu de jogo (Paulo, 04/11/2026: "ficou preso na estrutura que já
+// existia... quero algo mais jogo, não balão de dashboard"): a cena do bar ocupa
+// a tela, o menu principal fica à esquerda em placas grandes, o painel da opção
+// escolhida à direita, e o jogador (cabeça, posição, taco, carteira) no topo.
+const SINUCA_MENU=[
+ ['sala','Desafiar a equipe','Quem está no escritório','<circle cx="9" cy="8" r="3.2"/><circle cx="16.5" cy="9" r="2.6"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6M14 19c.3-2.6 1.6-4.6 4-4.6 2.2 0 3 1.6 3 4.6"/>'],
+ ['desafios','Jornada dos bares','Três bares, três donos','<path d="M5 20V9l7-5 7 5v11"/><path d="M9 20v-6h6v6"/>'],
+ ['ranking','Ranking do salão','Quem manda no taco','<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5M12 14v3M8 20h8M9.5 17h5"/>'],
+ ['temporada','Temporada','A glória do boteco','<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>'],
+];
+function sinucaIcone(d){return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;}
+function sinucaBannerJogador(saldo){
+ const salao=escritorioXadrez().extras?.bots?.salao,eu=String(escritorio.base?.eu||''),f=salao?.fichas?.[eu],r=salao?.ranking?.lista?.find(p=>p.id===eu);
+ const nome=r?.nome||escritorio.base?.nome||'Você',taco=f?.taco||'casa';
+ return `<button type="button" class="snc-banner" onclick="sinucaFichaDoSalao('${safeText(eu)}')" title="Minha ficha do bar"><span class="snc-banner-cabeca">${sinucaPessoaHtml({id:eu,nome})}</span><span class="snc-banner-nome"><b>${safeText(String(nome).split(' ')[0])}</b><small>${r?`${r.posicao}º do salão · ${r.vitorias}V ${r.derrotas}D`:'Fora do ranking'}</small><canvas data-snc-taco="${safeText(taco)}" aria-hidden="true"></canvas></span>${saldo!==undefined?`<span class="snc-banner-moedas"><b>${Number(saldo).toLocaleString('pt-BR')}</b><small>moedas</small></span>`:''}</button>`;
+}
 function desenharLobbySinuca(d,cfg){
  const x=escritorioXadrez(),aba=x.sinucaSecao||'sala',online=mesaPessoasParaChamar(),saldo=escritorio.base?.economia?.saldo;
  mesaLerExtras(cfg);
- const equipe=online.slice(0,8).map(p=>`<button type="button" class="snc-colega ${p.online?'online':''}" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(String(p.id))}')">${sinucaPessoaHtml(p)}<span>${xadrezPrimeiroNome(p)}<small>${p.online?'No escritório':'Convidar'}</small></span><i>↗</i></button>`).join('');
- const aoVivo=d.mesa?`<article class="snc-pendente"><div><small>● PARTIDA AO VIVO</small><b>${xadrezPrimeiroNome(d.mesa.desafiante)} × ${xadrezPrimeiroNome(d.mesa.desafiado)}</b></div><button class="snc-btn" onclick="mesaAssistir()">Assistir ↗</button></article>`:'';
+ const equipe=online.slice(0,8).map(p=>`<button type="button" class="snc-carta-pessoa ${p.online?'online':''}" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(String(p.id))}')"><span class="snc-carta-cabeca">${sinucaPessoaHtml(p)}</span><b>${xadrezPrimeiroNome(p)}</b><small>${p.online?'No escritório':'Convidar'}</small><em>DESAFIAR</em></button>`).join('');
+ const aoVivo=d.mesa?`<button type="button" class="snc-ao-vivo" onclick="mesaAssistir()"><i></i>AO VIVO · ${xadrezPrimeiroNome(d.mesa.desafiante)} × ${xadrezPrimeiroNome(d.mesa.desafiado)}<b>ASSISTIR</b></button>`:'';
  const temporada=mesaTemporadaHtml(cfg);
- xadrezModal(`<div class="snc-sala">${sinucaCabecalhoHtml('O salão está aberto')}<section class="snc-hero"><div class="snc-hero-texto"><span class="snc-etiqueta">O PONTO DE ENCONTRO DA EQUIPE</span><h1>RESPEITA<br>O <em>TACO.</em></h1><p>Uma mesa. Uma boa disputa.<br>Quem fecha a partida ganha o respeito do bar.</p><button class="snc-btn grande" onclick="novoXadrez(null)">DESAFIAR UM AMIGO <span>↗</span></button><small>PAR OU ÍMPAR · REGRA DE BAR</small></div><div class="snc-hero-selo"><img src="/assets/jogos/sinuca-emblema.webp" alt=""><b>CAI PRA DENTRO.</b><small>O próximo jogo é seu.</small></div>${saldo!==undefined?`<span class="snc-carteira">SUA CARTEIRA <b>${Number(saldo).toLocaleString('pt-BR')} <small>moedas</small></b></span>`:''}</section><nav class="snc-sala-nav" aria-label="Seções do salão">${[['sala','01','O salão'],['desafios','02','Jornada dos bares'],['temporada','03','Temporada']].map(([id,n,nome])=>`<button type="button" aria-pressed="${aba===id}" onclick="sinucaLobbySecao('${id}')"><small>${n}</small>${nome}</button>`).join('')}</nav><main class="snc-sala-corpo">${sinucaConvitesHtml(d)}${aba==='sala'?`${aoVivo}<div class="snc-secao-titulo"><div><small>A DISPUTA FICA MELHOR COM COMPANHIA</small><h2>Quem vai pra mesa?</h2></div><button class="snc-link" onclick="novoXadrez(null)">Ver equipe inteira ↗</button></div><div class="snc-equipe">${equipe||'<p class="snc-vazio">Ninguém mais na equipe por enquanto. Treine contra os adversários da casa.</p>'}</div>${sinucaSalaoHtml()}<button class="snc-modo-card" onclick="sinucaLobbySecao('desafios')"><img src="${sinucaRetrato('medio')}" alt=""><span><small>JORNADA DOS BARES</small><b>Acha que manda no taco?</b><p>Três bares, três donos. Derrube um para entrar no próximo.</p></span><i>↗</i></button>`:aba==='desafios'?sinucaBotsHtml(cfg):`<div class="snc-secao-titulo"><div><small>A GLÓRIA DO BOTECO</small><h2>Seu nome no topo.</h2></div></div>${temporada||'<div class="snc-vazio"><p>Temporada indisponível no momento.</p><button class="snc-btn secundario" onclick="escritorioXadrez().extras=null;mesaLerExtras(mesaCfg())">Atualizar temporada</button></div>'}`}${sinucaCreditosHtml()}<p class="ofc-erro" id="xdz-erro" role="alert"></p></main><footer class="snc-sala-pe"><span>O talento resolve. A resenha continua.</span><button class="snc-link" onclick="xadrezFechar()">Sair do salão</button></footer></div>`,'ofc-xdz-sala');
+ const painel=aba==='sala'?`<div class="snc-painel-topo"><div><small>A DISPUTA FICA MELHOR COM COMPANHIA</small><h2>Quem vai pra mesa?</h2></div><button class="snc-btn" onclick="novoXadrez(null)">DESAFIAR UM AMIGO</button></div><div class="snc-cartas-pessoas">${equipe||'<p class="snc-vazio">Ninguém mais na equipe por enquanto. Treine na Jornada dos bares.</p>'}</div>`
+  :aba==='desafios'?sinucaBotsHtml(cfg)
+  :aba==='ranking'?sinucaSalaoHtml()
+  :`<div class="snc-painel-topo"><div><small>A GLÓRIA DO BOTECO</small><h2>Seu nome no topo.</h2></div></div>${temporada||'<div class="snc-vazio"><p>Temporada indisponível no momento.</p><button class="snc-btn secundario" onclick="escritorioXadrez().extras=null;mesaLerExtras(mesaCfg())">Atualizar temporada</button></div>'}`;
+ xadrezModal(`<div class="snc-sala snc-jogo-menu"><div class="snc-cena" aria-hidden="true"></div>
+<header class="snc-menu-topo tema-sinuca"><div class="snc-marca">${sinucaMarcaHtml()}</div>${sinucaBannerJogador(saldo)}<button type="button" class="snc-icone" aria-label="Fechar sinuca" onclick="xadrezFechar()">×</button></header>
+<nav class="snc-menu-principal" aria-label="Menu da sinuca"><h1>RESPEITA<br>O <em>TACO.</em></h1>${SINUCA_MENU.map(([id,nome,sub,ic])=>`<button type="button" class="snc-opcao" aria-pressed="${aba===id}" onclick="sinucaLobbySecao('${id}')">${sinucaIcone(ic)}<span><b>${nome}</b><small>${sub}</small></span></button>`).join('')}<small class="snc-menu-regra">PAR OU ÍMPAR · REGRA DE BAR</small></nav>
+<main class="snc-menu-painel" data-aba="${aba}">${sinucaConvitesHtml(d)}${aoVivo}${painel}<p class="ofc-erro" id="xdz-erro" role="alert"></p>${sinucaCreditosHtml()}</main></div>`,'ofc-xdz-sala');
  mesaLobbyRelogio();
  sinucaTacosVitrine(document.querySelector('.snc-sala')||document);
 }
@@ -112,14 +135,21 @@ function sinucaFichaDaMesa(lado) {
  sinucaFichaAbrir(p.nome || xadrezPrimeiroNome(p), sinucaFichas(j)?.[String(p.id)], mesaCabecaUrl(j, p));
 }
 const sinucaFichas = (j) => j?.fichas || (sinucaEstado().fichas?.id === j?.id ? sinucaEstado().fichas.lista : null);
-// O ranking do salão no lobby: posição, cabeça, taco na mão e troféus de cada um.
+// O ranking do salão como placar de jogo: pódio com os três primeiros (o 1º no
+// meio, mais alto), cada um com a cabeça, o placar e o taco na mão; do 4º em
+// diante, em linhas.
 function sinucaSalaoHtml() {
  const x = escritorioXadrez(), salao = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao : null;
- if (!salao) return "";
- const eu = String(escritorio.base?.eu || ""), minha = salao.fichas?.[eu];
- const linha = (r) => { const f = salao.fichas?.[r.id], tr = f ? f.trofeus.filter((t) => t.tem) : [];
-  return `<li class="${r.id === eu ? "eu" : ""}"><button type="button" onclick="sinucaFichaDoSalao('${safeText(r.id)}')"><em>${["🥇", "🥈", "🥉"][r.posicao - 1] || r.posicao + "º"}</em>${sinucaPessoaHtml({ id: r.id, nome: r.nome })}<span><b>${safeText(String(r.nome).split(" ")[0])}</b><small>${r.vitorias}V · ${r.derrotas}D</small></span><canvas data-snc-taco="${safeText(f?.taco || "casa")}" aria-hidden="true"></canvas><i class="snc-salao-trofeus" title="Troféus do bar">${tr.slice(0, 4).map((t) => t.icone).join("") || "—"}</i></button></li>`; };
- return `<div class="snc-secao-titulo"><div><small>QUEM MANDA NO TACO</small><h2>Ranking do salão</h2></div>${minha ? `<button class="snc-link" onclick="sinucaFichaDoSalao('${safeText(eu)}')">Minha ficha ↗</button>` : ""}</div>${salao.ranking?.lista?.length ? `<ol class="snc-salao">${salao.ranking.lista.map(linha).join("")}</ol>` : '<p class="snc-vazio">Ninguém ganhou ainda. A primeira vitória põe seu nome aqui.</p>'}`;
+ const topo = '<div class="snc-painel-topo"><div><small>QUEM MANDA NO TACO</small><h2>Ranking do salão</h2></div></div>';
+ if (!salao) return `${topo}<p class="snc-vazio">Carregando o ranking…</p>`;
+ const eu = String(escritorio.base?.eu || ""), lista = salao.ranking?.lista || [];
+ if (!lista.length) return `${topo}<p class="snc-vazio">Ninguém ganhou ainda. A primeira vitória põe seu nome aqui.</p>`;
+ const taco = (r) => safeText(salao.fichas?.[r.id]?.taco || "casa");
+ const trofeus = (r) => (salao.fichas?.[r.id]?.trofeus || []).filter((t) => t.tem).slice(0, 4).map((t) => t.icone).join("");
+ const degrau = (r) => r ? `<button type="button" class="snc-degrau p${r.posicao}${r.id === eu ? " eu" : ""}" onclick="sinucaFichaDoSalao('${safeText(r.id)}')"><span class="snc-degrau-cabeca">${sinucaPessoaHtml({ id: r.id, nome: r.nome })}</span><b>${safeText(String(r.nome).split(" ")[0])}</b><small>${r.vitorias}V · ${r.derrotas}D</small><canvas data-snc-taco="${taco(r)}" aria-hidden="true"></canvas><i>${trofeus(r)}</i><em>${r.posicao}</em></button>` : "<span></span>";
+ const [p1, p2, p3] = lista;
+ const resto = lista.slice(3, 10).map((r) => `<li class="${r.id === eu ? "eu" : ""}"><button type="button" onclick="sinucaFichaDoSalao('${safeText(r.id)}')"><em>${r.posicao}º</em>${sinucaPessoaHtml({ id: r.id, nome: r.nome })}<b>${safeText(String(r.nome).split(" ")[0])}</b><small>${r.vitorias}V · ${r.derrotas}D</small><canvas data-snc-taco="${taco(r)}" aria-hidden="true"></canvas></button></li>`).join("");
+ return `${topo}<div class="snc-podio">${degrau(p2)}${degrau(p1)}${degrau(p3)}</div>${resto ? `<ol class="snc-placar-lista">${resto}</ol>` : ""}`;
 }
 function sinucaFichaDoSalao(id) {
  const salao = escritorioXadrez().extras?.bots?.salao, r = salao?.ranking?.lista?.find((p) => p.id === String(id));

@@ -23,7 +23,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const arteY0 = -P.y / uy, arteY1 = (A.altura - P.y) / uy;
   const mundo = (x, y) => [x, y * MY];                               // Z métrico, como a física
   const R = raio, RB = raioBranca || raio;                          // a branca de 57 mm é maior
-  const renderer = new WebGLRenderer({ canvas: alvo, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  const renderer = new WebGLRenderer({ canvas: alvo, antialias: true, alpha: false, powerPreference: 'default' });   // 'high-performance' ligava a placa dedicada e esquentava notebook
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFSoftShadowMap; renderer.shadowMap.autoUpdate = true;
@@ -214,8 +214,8 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const tacoTex = {};
   const texTaco = (modelo) => {
     if (tacoTex[modelo]) return tacoTex[modelo];
-    const c = document.createElement('canvas'); c.width = 1024; c.height = 64; const g = c.getContext('2d');
-    g.translate(0, 32); tacoDesenhar(g, 1024, 64, modelo, 0, false);
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 128; const g = c.getContext('2d');
+    g.translate(0, 64); tacoDesenhar(g, 2048, 128, modelo, 0, false, true);   // a volta inteira, sem volume pintado
     const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; return (tacoTex[modelo] = t);
   };
   const LT = 52, tacoGeo = new CylinderGeometry(0.62, 0.33, LT, 24, 1);          // cabo grosso em cima, ponta fina embaixo
@@ -223,17 +223,9 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   // O desenho do taco corre ao longo do cilindro (u do canvas = comprimento).
   const uv = tacoGeo.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); uv.setXY(i, v, u); }
   const tacos = [0, 1].map(() => { const m = new Mesh(tacoGeo, new MeshStandardMaterial({ roughness: 0.35, metalness: 0.05 })); m.castShadow = true; m.visible = false; cena.add(m); return m; });
-  // Reflexo que corre pelos tacos nobres (Ouro e Lenda): uma capa transparente com
-  // uma faixa de luz que anda ao longo do taco.
-  const NOBRES = new Set(['ouro', 'lenda']);
-  const faixa = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 4; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 512, 0);
-    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.45, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,245,220,0.9)'); gr.addColorStop(0.55, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 512, 4); const t = new CanvasTexture(c); t.wrapS = RepeatWrapping; return t; })();
-  const capas = tacos.map((m) => { const c = new Mesh(tacoGeo, new MeshBasicMaterial({ map: faixa, transparent: true, depthWrite: false, blending: 2 })); c.scale.set(1.04, 1, 1.04); c.visible = false; m.add(c); return c; });
   const cima = new Vector3(0, 1, 0);
   const porTaco = (m, b, ang, recuo, elev, modelo, efeito = 0, giro = 0) => {
     m.material.map = texTaco(modelo || 'casa'); m.material.needsUpdate = true;
-    capas[tacos.indexOf(m)].visible = NOBRES.has(modelo);
     const dir = new Vector3(Math.cos(ang), 0, Math.sin(ang) * MY).normalize();
     const e = MathUtils.degToRad(Math.max(4, elev || 0)), atras = dir.clone().multiplyScalar(-Math.cos(e)).add(new Vector3(0, Math.sin(e), 0)).normalize();
     const lado = new Vector3(-dir.z, 0, dir.x);
@@ -244,7 +236,6 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   };
   // --- Efeitos: brilho na ponta (cresce com a força), clarão e anel no impacto ---
   const aditivo = (cor) => new MeshBasicMaterial({ color: cor, transparent: true, opacity: 0, depthWrite: false, blending: 2 });
-  const pontaBrilho = new Mesh(new SphereGeometry(1, 20, 12), aditivo(0xffb36b)); pontaBrilho.visible = false; cena.add(pontaBrilho);
   const anelImpacto = new Mesh(new RingGeometry(0.8, 1, 48), aditivo(0xe8f4ff)); anelImpacto.rotation.x = -Math.PI / 2; anelImpacto.visible = false; cena.add(anelImpacto);
   const clarao = new PointLight(0xfff1dc, 0, 40, 2); cena.add(clarao);
   // --- Mira: a linha que some até onde a branca encosta ----------------------
@@ -305,15 +296,8 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     for (const c of d.caindo || []) { const m = bolas[c.n], [x, z] = mundo(c.x, c.y); m.visible = true; sombras[c.n].visible = false; m.position.set(x, R - (1 - c.escala) * 2.6 * R, z); m.scale.setScalar(Math.max(0.4, c.escala)); }
     if (d.fantasma) { const [x, z] = mundo(d.fantasma[0], d.fantasma[1]); fantasma.position.set(x, R, z); fantasma.visible = true; } else fantasma.visible = false;
     // Tacos (o meu e/ou o do outro, ou o da animação)
-    let ponta0 = null;
-    tacos.forEach((m, i) => { const t = d.tacos?.[i]; if (t) { const pt = porTaco(m, t.b, t.ang, t.recuo, t.elev, t.modelo, t.efeito, t.giro); if (i === 0) ponta0 = pt; } else m.visible = false; });
-    // Brilho na ponta do taco: cresce e pulsa com a força escolhida.
-    const f = d.forca || 0;
-    if (ponta0 && f > 0.02) {
-      const pulso = 0.85 + 0.15 * Math.sin(performance.now() / 90);
-      pontaBrilho.position.copy(ponta0); pontaBrilho.scale.setScalar(0.35 + 0.7 * f); pontaBrilho.material.opacity = Math.min(0.45, 0.08 + 0.35 * f) * pulso;
-      pontaBrilho.material.color.set(f > 0.8 ? 0xff6a3d : 0xffb36b); pontaBrilho.visible = true; pedir();
-    } else pontaBrilho.visible = false;
+
+    tacos.forEach((m, i) => { const t = d.tacos?.[i]; if (t) { const pt = porTaco(m, t.b, t.ang, t.recuo, t.elev, t.modelo, t.efeito, t.giro); void pt; } else m.visible = false; });
     // Clarão da tacada: luz que acende na branca e anel que abre no pano.
     if (d.impacto) {
       const [x, z] = mundo(d.impacto.b[0], d.impacto.b[1]), p = d.impacto.p, k = Math.max(0.25, d.impacto.forca || 0.5);
@@ -340,8 +324,6 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
       persp.position.copy(camAtual.pos); persp.lookAt(camAtual.olha);
       if (camAtual.pos.distanceTo(alvoCam.pos) > 0.05) pedir();
     }
-    // O reflexo dos tacos nobres anda: um quadro a cada ~42 ms enquanto aparece.
-    if (capas.some((c, i) => c.visible && tacos[i].visible)) { faixa.offset.x = ((performance.now() / 1800) % 1.6) - 0.3; if (!pedido) setTimeout(pedir, 42); }
     cupula.visible = lampada.visible = cam !== orto && persp.position.y < 48; // de cima o lustre não tapa a mesa
     renderer.render(cena, cam);
     // Peso: se o quadro passar de ~20 ms, baixa a resolução (até 1x).

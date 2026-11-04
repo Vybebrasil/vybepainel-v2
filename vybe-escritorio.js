@@ -111,7 +111,11 @@ async function escritorioApi(acao, corpo, consulta = null) {
       // A rota vai no endereço; o "acao" do próprio pedido (aceitar, recusar,
       // desistir…) não pode ser trocado pelo nome da rota.
       body: corpo ? JSON.stringify({ acao, ...corpo }) : undefined,
-    }).then(async (r) => ({ ok: r.ok, status: r.status, texto: await r.text().catch(() => "") }));
+      // Conexão engasgada não pode prender a jogada (Paulo, 04/11/2026: "clico
+      // pra tacar e não vai"): o pedido desiste em 30 s e a mesa é relida.
+      signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined,
+    }).then(async (r) => ({ ok: r.ok, status: r.status, texto: await r.text().catch(() => "") }),
+      (e) => { throw e?.name === "TimeoutError" ? new Error("O servidor demorou para responder. Tente de novo.") : e; });
     if (!corpo) {
       ESCRITORIO_LEITURAS.set(endereco, resposta);
       resposta.finally(() => ESCRITORIO_LEITURAS.delete(endereco)).catch(() => {});

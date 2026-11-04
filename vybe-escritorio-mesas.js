@@ -57,11 +57,23 @@ function abrirJogoMesa(chave, j) {
   s.jogo = j; s.sel = null;
   escritorioXadrez().nova = null;
   desenharJogoMesa(chave);
-  clearInterval(s.timer);
-  s.timer = setInterval(() => {
-    if (!document.querySelector(`#workflow-modal.ofc-${chave}-jogo`)) { clearInterval(s.timer); s.timer = null; s.jogo = null; return; }
+  clearTimeout(s.timer);
+  const ciclo = () => {
+    if (!document.querySelector(`#workflow-modal.ofc-${chave}-jogo`)) { s.timer = null; s.jogo = null; return; }
     if (s.jogo?.estado === "jogando" && !document.hidden) recarregarJogoMesa(chave);
-  }, 4000);
+    s.timer = setTimeout(ciclo, mesaRitmo(s.jogo));
+  };
+  s.timer = setTimeout(ciclo, mesaRitmo(j));
+}
+// Releitura da mesa (cada uma é uma chamada na Vercel e uma consulta no Neon, e
+// segura o banco acordado): o aviso de quem jogou chega na hora pelo escritório
+// (mesaSinalTodos) e a jogada do bot é pedida pela tela (mesa-bot-vez), então a
+// releitura é só a rede de segurança. Era a cada 4 s para todo mundo (04/11/2026).
+function mesaRitmo(j) {
+  if (!j || j.estado !== "jogando") return 4000;
+  if (!j.eu) return 6000;                       // assistindo: não recebe o aviso
+  if (j.bot) return 30000;                      // contra o bot: só a rede de segurança
+  return j.vez === j.eu ? 20000 : 10000;        // na minha vez o outro não mexe; esperando, o aviso chega antes
 }
 // Acabou com gente na fora: depois do placar, todo mundo que está olhando vai
 // para a próxima partida (quem ganhou contra o primeiro da fila).
@@ -76,7 +88,7 @@ function seguirProximaMesa(chave, j) {
 }
 function mesaFechar(chave) {
   const s = escritorioMesa(chave);
-  clearInterval(s.timer);
+  clearTimeout(s.timer);
   s.timer = null; s.jogo = null; s.sel = null;
   xadrezFechar();
 }
