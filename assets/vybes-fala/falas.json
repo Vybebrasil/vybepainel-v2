@@ -56,5 +56,39 @@
    "arquivo": "dispensa-2-64315d33.mp3",
    "texto": "Certo. Qualquer coisa é só chamar."
   }
+ ],
+ "dia": [
+  {
+   "arquivo": "dia-1-06053eb3.mp3",
+   "texto": "Bora ver o dia. Toca em mim que eu abro a central já nele."
+  },
+  {
+   "arquivo": "dia-2-5add5c02.mp3",
+   "texto": "Já te mostro o dia. É só tocar em mim."
+  }
+ ],
+ "calado": [
+  {
+   "arquivo": "calado-1-4e819269.mp3",
+   "texto": "Opa, parei. Falei alguma coisa errada?"
+  },
+  {
+   "arquivo": "calado-2-eaec1cea.mp3",
+   "texto": "Foi mal. Tô atrapalhando? Se eu errei algo, me fala que eu corrijo."
+  },
+  {
+   "arquivo": "calado-3-71e2422d.mp3",
+   "texto": "Parei. Falei besteira ou é só pra ficar quieto?"
+  }
+ ],
+ "caladoOk": [
+  {
+   "arquivo": "caladoOk-1-d383e34c.mp3",
+   "texto": "Beleza. Fico quieto até você me chamar."
+  },
+  {
+   "arquivo": "caladoOk-2-095ccf4c.mp3",
+   "texto": "Tranquilo, fico na minha."
+  }
  ]
 }

@@ -54,8 +54,28 @@ conferirCartaoVybes(true);
 // não deixa abrir aba sem um clique). O boneco do VYBES aparece ao lado de quem chamou, só na tela de quem chamou.
 // O nome como a transcrição escreve: a mesma lista que o Paulo ensinou ao VYBES (NOMES_FALADOS em chamadas.js, na
 // central). Mudou lá, muda aqui. As trocas de nomes de clientes ("copy recê") a central corrige ao receber o pedido.
-const VYBES_NOME = /\b(?:jarvis|jarves|v[iy]bes?|v[aá]ib(?:e|es|is|io)?|v[aá]ipe|vibi|vai\s?bes?)\b/i;
-const vybesSala = { rec: null, ouvindo: false, querParar: false, bloqueado: false, conversaAte: 0, agir: null, agirEm: 0, aqui: 0, fala: null, cartao: null };
+// As formas longas vêm primeiro ("Vybes" não vira "Vybe" + "s"); 04/11/2026: mais o que o Whisper e o navegador
+// escreveram quando o Reriston chamou (Vibs, Vybis, Bybes, Wibes, Vives, Vipes, Vaives, "vai bis").
+const VYBES_NOMES = 'jarvis|jarves|v[iy]b(?:es|is|e|s)?|[bw][iy]bes?|vi[pv]es|v[aá]ives?|v[aá]ib(?:es|is|io|e|s)?|v[aá]ipes?|vibi|vai\\s?b(?:es|is|e|i)';
+const VYBES_NOME = new RegExp(`\\b(?:${VYBES_NOMES})\\b`, 'i');
+// O que a frase pede, com as regras do despertar.js da central (Paulo, 04/11/2026): "calar" ("para", "espera") ou
+// "bronca" ("cala a boca, Vybes", "cala a porra da boca aí", "para de falar"); "dia" ("como tá meu dia?", "quais as
+// demandas de hoje?": abre a central no dia, não vira pergunta); "chamado" (o nome e só palavras de chamar: "bora Vybes,
+// quero trabalhar", "ô Vybes, bora trabalhar"); o resto é "pedido". Um cliente no meio ("como tá a Voa hoje?") é pedido.
+const vybesNormal = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+const VYBES_XINGO = 'desgraca|desgracado|satanas|satanais|satanaz|satana|carai|caralho|caraio|karai|porra|pai|cudja|cudia|cuja|cudi';
+const VYBES_DIA = /^(?:e |mas |entao |ai )?(?:como (?:que |e que )?(?:ta|esta|anda|vai) (?:o |meu |o meu |nosso |o nosso )?(?:dia|hoje)(?: de hoje| hoje)?|como (?:ta|esta) (?:a )?(?:minha )?agenda(?: de)? hoje|(?:quais|qual|que|o que) (?:sao |e |tem |temos |eu tenho |tenho )?(?:as |os |a |o )?(?:minhas? |meus? |nossas? )?(?:demandas?|missao|missoes|funcao|funcoes|prioridades?|tarefas?|pecas?|entregas?|coisas?)(?: (?:de|pra|para|pro|do|fazer|que|tenho|tem|eu))* (?:hoje|dia)|o que (?:tem|temos|eu tenho|tenho) (?:pra|para|de) (?:fazer )?hoje)$/;
+const VYBES_CHAMAR = /^(?:bora|vamos|vamo|simbora|acorda|acordar|trabalhar|trabalho|trampar|comecar|partiu|quero|queria|la|agora|entao|hora|de|o|oh|e|ei|oi|ola|fala|ai|ae|bom|dia|boa|tarde|noite|meu)$/;
+function vybesEntender(texto) {
+  const resto = vybesNormal(texto).replace(new RegExp(`\\b(?:${VYBES_NOMES}|${VYBES_XINGO}|bb|bebe|chefe|mano)\\b`, 'g'), ' ').replace(/\s+/g, ' ').trim();
+  const calar = resto.replace(/\b(?:ai|ae|ei|o|oh|agora|por favor)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/^(?:(?:cala|fecha)(?: a)?(?: porra da| merda da| da)? (?:boca|matraca)|cala|cala te|calado|fica calado|para de falar|pare de falar|chega de falar|faz silencio|faca silencio|shh+|psiu)$/.test(calar)) return 'bronca';
+  if (/^(?:espera|espere|para|pare|pausa|silencio|fica quieto|chega|pode parar)$/.test(calar)) return 'calar';
+  if (VYBES_DIA.test(resto)) return 'dia';
+  if (!resto || resto.split(' ').every((w) => VYBES_CHAMAR.test(w))) return 'chamado';
+  return 'pedido';
+}
+const vybesSala = { rec: null, ouvindo: false, querParar: false, bloqueado: false, conversaAte: 0, agir: null, agirEm: 0, aqui: 0, fala: null, cartao: null, calouAte: 0 };
 const vybesReconhecedor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
 async function vybesPodeAgir() {
   if (Date.now() - vybesSala.agirEm < 120e3) return vybesSala.agir;
@@ -98,15 +118,13 @@ async function vybesFalar(tipo) {
     return f.texto;
   } catch { return null; }
 }
-// O que sobra da frase sem o nome, a saudação e o chamado ("bora", "acorda"): vazio é só chamado; o resto é pedido.
-const vybesResto = (t) => String(t).replace(new RegExp(VYBES_NOME.source, 'gi'), ' ').replace(/\b(?:oi|ei|ola|olá|e a[ií]|fala|bom dia|boa tarde|boa noite|bora|acorda|vamos|simbora|pai|porra|desgra[cç]a)\b/gi, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 function vybesSerFechar() {
   const el = vybesSala.serEl; vybesSala.serEl = null; vybesSala.pedido = '';
   if (!el) return;
   el.classList.add('saindo'); setTimeout(() => el.remove(), 400);
 }
 async function vybesCartaoAbrir(texto) {
-  const pedido = vybesResto(texto) ? texto : '';
+  const tipo = vybesEntender(texto), pedido = tipo === 'pedido' || tipo === 'dia' ? texto : '';
   vybesSala.pedido = pedido || vybesSala.pedido || '';
   let el = vybesSala.serEl;
   if (!el) {
@@ -121,6 +139,8 @@ async function vybesCartaoAbrir(texto) {
   clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(() => { if (vybesSala.serEl === el) vybesSerFechar(); }, 25e3);
   const mostra = (t) => { if (vybesSala.serEl === el) el.querySelector('.vybes-sala-fala').textContent = t; };
   if (!pedido) { mostra(await vybesFalar('chamado') || 'Toque em mim para abrir a central.'); return; }
+  // O dia não é pergunta para a IA: tocar nele abre a central já no dia (a central leva "como tá meu dia?" à Geral).
+  if (tipo === 'dia') { mostra(await vybesFalar('dia') || 'Toca em mim que eu abro a central no dia.'); return; }
   // Com pergunta, ele responde ali mesmo (Paulo, 04/11/2026): "deixa eu ver", a central responde pela sala, e a resposta
   // sai na voz dela. Sem resposta, o convite de sempre: tocar nele abre a central já com a pergunta.
   mostra(await vybesFalar('olhando') || 'Deixa eu ver…'); el.classList.add('pensando');
@@ -147,9 +167,27 @@ async function vybesCartaoAbrir(texto) {
     mostra(await vybesFalar('pedido') || 'Toque em mim que eu abro a central com isso.');
   }
 }
+// Mandaram calar (Paulo, 04/11/2026): ele para na hora. Com bronca, pergunta uma vez se falou algo errado ou se está
+// atrapalhando; mandou calar de novo, aceita sem dizer nada. Com a central aberta e o ser fora da tela, quem cala é ela.
+function vybesCalar(bronca, texto) {
+  const falava = Date.now() < (vybesSala.falandoAte || 0);
+  if (!falava && !vybesSala.serEl) { if (vybesJanelaAberta()) vybesEnviar(texto); return; }
+  vybesSala.fala?.pause(); vybesSala.falandoAte = 0; vybesSala.pergunta = (vybesSala.pergunta || 0) + 1;
+  vybesSala.serEl?.classList.remove('falando', 'pensando');
+  if (Date.now() < vybesSala.calouAte || !bronca) { vybesSala.calouAte = 0; vybesSerFechar(); return; }
+  vybesSala.calouAte = Date.now() + 20e3; vybesSala.conversaAte = Date.now() + 20e3;
+  clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(vybesSerFechar, 25e3);
+  setTimeout(() => { if (Date.now() < vybesSala.calouAte) vybesFalar('calado').then((d) => { if (d && vybesSala.serEl) vybesSala.serEl.querySelector('.vybes-sala-fala').textContent = d; }); }, 700);
+}
 // Com o ser na tela, a resposta curta é com ele: "sim" (tocar), "não" (dispensa) ou um pedido novo.
 function vybesSerResponder(texto) {
   const t = texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Depois de mandarem calar ele perguntou se errou: "não, nada" ele fica na dele; outra resposta segue como pedido.
+  if (Date.now() < vybesSala.calouAte) {
+    vybesSala.calouAte = 0;
+    if (/^(?:nao|nada|tudo certo|ta tudo certo|ta de boa|de boa|relaxa|so isso|era so isso)\b/.test(t)) { vybesFalar('caladoOk').then((d) => { if (d && vybesSala.serEl) vybesSala.serEl.querySelector('.vybes-sala-fala').textContent = d; }); setTimeout(vybesSerFechar, 3500); return true; }
+    return false;
+  }
   if (/^(?:nao|agora nao|deixa|depois|nada|esquece|pode fechar)\b/.test(t)) { vybesFalar('dispensa'); setTimeout(vybesSerFechar, 2500); return true; }
   if (/^(?:sim|quero|pode|abre|abrir|claro|bora|isso|ok|beleza|manda)\b/.test(t) && t.split(' ').length <= 4) {
     vybesFalar('toque').then((d) => { if (d && vybesSala.serEl) vybesSala.serEl.querySelector('.vybes-sala-fala').textContent = d; });
@@ -172,6 +210,9 @@ function vybesSalaLigar(Rec) {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (!e.results[i].isFinal) continue;
       const texto = String(e.results[i][0]?.transcript || '').trim(); if (!texto) continue;
+      // Mandar calar vale até por cima da voz dele (o eco dele não diz "cala a boca"); sem o nome, só com ele na conversa.
+      const tipo = vybesEntender(texto), comNome = VYBES_NOME.test(texto);
+      if ((tipo === 'calar' || tipo === 'bronca') && (comNome || vybesSala.serEl || Date.now() < (vybesSala.falandoAte || 0))) { vybesCalar(tipo === 'bronca', texto); continue; }
       if (Date.now() < (vybesSala.falandoAte || 0)) continue; // a própria voz dele voltando pelo microfone
       // Com o ser na tela, a resposta curta fica com ele (sem o nome também vale).
       if (vybesSala.serEl && !VYBES_NOME.test(texto) && vybesSerResponder(texto)) continue;
