@@ -1877,9 +1877,7 @@ function applyPanelMode() {
   document.getElementById('manager-calendar')?.classList.toggle('focus-hidden',
     !temVisoesDoQuadro || (isDaController && !emprestadaAoDa('manager-calendar')));
   document.getElementById('ops-agenda-btn')?.classList.toggle('focus-hidden', !temVisoesDoQuadro);
-  document.getElementById('sidebar')?.classList.toggle('focus-hidden', isDedicatedMode);
-  document.getElementById('sidebar-toggle')?.classList.toggle('focus-hidden', isDedicatedMode);
-  document.getElementById('sidebar-overlay')?.classList.remove('show');
+  document.getElementById('agenda-filtros')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('week-tabs-container')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.getElementById('btn-view-day')?.classList.toggle('focus-hidden', isDedicatedMode);
   document.querySelectorAll('.week-panel').forEach(panel => panel.classList.toggle('focus-hidden', isDedicatedMode));
@@ -2040,6 +2038,7 @@ function filterByPerson(personId, wrap) {
   const weeksCount = META.weeks ? META.weeks.length : 4;
   for (let s = 1; s <= weeksCount; s++) renderWeek(s, currentFilter, currentDayFilter);
   renderOperationalTools();
+  renderManagerCalendar();
   renderManagerIntelligence();
   updateClearFiltersState();
 }
@@ -2049,6 +2048,7 @@ function toggleSortCritico(btn) {
   sortCritico = !sortCritico;
   btn.classList.toggle('active', sortCritico);
   for (let s = 1; s <= 4; s++) renderWeek(s, currentFilter, currentDayFilter);
+  updateClearFiltersState();
 }
 
 // ─── Filtros ──────────────────────────────────────────────────────────────────
@@ -2056,9 +2056,11 @@ function filterByDay(sel) {
   currentDayFilter = sel.value || '';
   // Resetar filtros de texto ao filtrar por dia
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.filter-btn').classList.add('active');
+  document.querySelector('.filter-btn')?.classList.add('active');
+  document.querySelectorAll('#status-legend .pill').forEach(p=>p.classList.remove('active-legend'));
   currentFilter = 'all';
   for (let s = 1; s <= 4; s++) renderWeek(s,'all',currentDayFilter);
+  updateClearFiltersState();
   if(currentDayFilter) {
     // Encontrar qual semana contém esse dia
     let targetSem = 1;
@@ -2110,10 +2112,12 @@ function filterByStatus(status, pill) {
   if(currentFilter===key) {
     document.querySelectorAll('#status-legend .pill').forEach(p=>p.classList.remove('active-legend'));
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelector('.filter-btn[onclick*="\'all\'"]').classList.add('active');
+    // Não existe mais .filter-btn na página: sem o ?, desmarcar o status quebrava.
+    document.querySelector('.filter-btn[onclick*="\'all\'"]')?.classList.add('active');
     currentFilter='all'; currentDayFilter='';
     document.getElementById('day-select').value='';
-    renderWeek(currentWeek,'all'); return;
+    for (let s = 1; s <= 4; s++) renderWeek(s,'all');
+    depoisDoFiltroDeStatus(); return;
   }
   document.querySelectorAll('#status-legend .pill').forEach(p=>p.classList.remove('active-legend'));
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
@@ -2122,5 +2126,19 @@ function filterByStatus(status, pill) {
   document.getElementById('day-select').value='';
   for (let s = 1; s <= 4; s++) renderWeek(s,key);
   document.querySelectorAll('.week-content').forEach(w=>w.style.display='block');
+  depoisDoFiltroDeStatus();
+}
+// Status e "Só pendentes" disputam o mesmo currentFilter: escolher um desliga
+// o outro, e o mês acompanha. O menu fecha porque status é escolha única.
+function depoisDoFiltroDeStatus() {
+  if (typeof pendingOnlyActive !== 'undefined' && pendingOnlyActive && currentFilter !== 'status:pending_all') {
+    pendingOnlyActive = false;
+    const pend = document.getElementById('btn-pending-only');
+    if (pend) { pend.classList.remove('pending-active'); pend.textContent = 'Só pendentes'; }
+  }
+  const menu = document.getElementById('status-legend')?.closest('details');
+  if (menu) menu.open = false;
+  renderManagerCalendar();
+  updateClearFiltersState();
 }
 

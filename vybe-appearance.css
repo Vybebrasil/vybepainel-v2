@@ -139,7 +139,7 @@ body.vybe-desktop {
 /* Janelas, menus e gavetas compartilham profundidade e contraste. */
 .vybe-desktop :is(.workspace-drawer,.workflow-modal,.production-sheet,.meeting-mode-sheet,
   .cadastros-preview-modal,.da-member-workload-modal,.fc-modal,.p-create-modal,
-  .sidebar,.status-editor,.quem-sou-menu,.notif-caixa,.cli-acoes-modal,.appearance-dialog,.spotlight-dialog) {
+  .status-editor,.quem-sou-menu,.notif-caixa,.cli-acoes-modal,.appearance-dialog,.spotlight-dialog) {
   background: var(--glass) !important; color: var(--text) !important;
   border: 1px solid #ffffff30 !important; border-radius: var(--radius-window) !important;
   box-shadow: var(--glass-highlight),var(--shadow-window) !important;
@@ -1495,6 +1495,48 @@ body.vybe-desktop {
 }
 #painel-demandas .dem-filtro-popover .person-wrap { border:0; padding:4px; border-radius:50%; background:transparent; cursor:pointer; }
 #painel-demandas .kpi-value { font-size:28px; line-height:1.2; }
+
+/* BARRA DE FILTROS DA AGENDA (Paulo, 04/11/2026).
+   Era a gaveta escondida no canto de baixo. Fica à vista, logo acima da agenda,
+   com o mesmo desenho da barra de Solicitações: menus de Status e Equipe e as
+   fichas de recorte ao lado. */
+#agenda-filtros { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; padding:10px 12px; position:relative; z-index:25; }
+#agenda-filtros.focus-hidden { display:none !important; }
+#agenda-filtros .agenda-filtros-rotulo { color:#8f98a9; font:600 11.5px var(--mac-ui); margin-right:2px; }
+#agenda-filtros .dem-filtro { position:relative; }
+#agenda-filtros summary { cursor:pointer; list-style:none; display:inline-flex; align-items:center; min-height:30px; box-sizing:border-box; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.09); font:600 12px var(--mac-ui); color:#e0e3eb; }
+#agenda-filtros summary::-webkit-details-marker { display:none; }
+#agenda-filtros summary::after { content:'⌄'; margin-left:10px; color:#a5adbc; }
+#agenda-filtros summary:hover { background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.2); }
+#agenda-filtros details[open]>summary { background:#ff984f18; border-color:#ff984f70; }
+#agenda-filtros summary.tem-escolha { border-color:rgba(255,179,92,.5); background:rgba(255,143,79,.14); color:#fff; }
+#agenda-filtros .agenda-filtro-escolha { margin-left:6px; color:#ffbb87; font-weight:600; }
+#agenda-filtros .agenda-filtro-escolha:empty { display:none; }
+#agenda-filtros .agenda-filtro-escolha::before { content:'· '; color:#8f98a9; }
+#agenda-filtros .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:320px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:16px; box-shadow:0 16px 48px #0008; z-index:40; }
+#agenda-filtros .dem-filtro-popover :is(.legend,.person-filter-bar) { display:flex; flex-wrap:wrap; gap:8px; max-height:280px; overflow:auto; margin:0; }
+#agenda-filtros .dem-filtro-popover .person-wrap { border:0; padding:4px; border-radius:50%; background:transparent; }
+#agenda-filtros .dem-filtro-popover .person-wrap::after { display:none; }
+#agenda-filtros .filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; }
+/* Com o mês aberto, Veiculação/Prazo mora no cabeçalho do mês, e dia e ordem
+   só existem na agenda da semana: os três saem do caminho. */
+#agenda-filtros.com-mes .agenda-filtros-semana { display:none !important; }
+#agenda-filtros #day-select { min-height:30px; padding:0 12px; border-radius:999px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.035); color:#e0e3eb; font:600 12px var(--mac-ui); cursor:pointer; }
+#agenda-filtros .sort-btn.pending-active, #agenda-filtros .sort-btn[aria-pressed="true"] { border-color:rgba(255,179,92,.5); background:rgba(255,143,79,.16); color:#fff; }
+#agenda-filtros :is(summary,button,select):focus-visible { outline:2px solid #ffc08a; outline-offset:3px; }
+@media(max-width:600px) {
+ #agenda-filtros .dem-filtro { position:static; }
+ #agenda-filtros .dem-filtro-popover { left:8px; top:auto; margin-top:8px; width:calc(100% - 16px); box-sizing:border-box; }
+}
+
+/* Viniceta e Galeguinho: a carteira inteira, com a cor da carteira e contorno
+   para se destacar dos clientes. data-carteira-fixa (e não data-carteira) para
+   atualizarCoresDasCarteiras não recalcular a cor pelo apelido. */
+.manager-calendar-client.manager-calendar-carteira[data-carteira-fixa="vinicius"] { --carteira-fundo:#ff8b3826; --carteira-texto:#ffbb87; --carteira-hover:#ff8b3838; }
+.manager-calendar-client.manager-calendar-carteira[data-carteira-fixa="ewerton"] { --carteira-fundo:#579bfc26; --carteira-texto:#a3caff; --carteira-hover:#579bfc38; }
+.manager-calendar-client.manager-calendar-carteira { border-color:color-mix(in srgb,var(--carteira-texto) 55%,transparent); }
+.manager-calendar-client.manager-calendar-carteira b { font-weight:700; }
+.manager-calendar-carteira-sep { flex:none; width:1px; height:18px; margin:0 4px; background:rgba(255,255,255,.14); }
 
 #dem-visoes { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
 #dem-visoes button { display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--border); border-radius:12px; color:var(--text); background:#ffffff06; font:500 13px var(--mac-ui); cursor:pointer; }
