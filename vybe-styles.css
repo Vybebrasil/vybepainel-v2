@@ -26353,3 +26353,17 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
    do painel saem da renderização até o jogo fechar (só os filhos diretos do
    body entram na conta, sem [style]: não pesa como o :has do Escritório #458). */
 body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.versao-nova,.snc-perfil,script,style){content-visibility:hidden}
+/* HUD vazada (Paulo, 04/11/2026: "ainda tá ficando travada a tacada em alguns
+   lugares"): os blocos da HUD seguravam o clique na área inteira, e 19% da mesa
+   não recebia o puxar — inclusive o meio de baixo, onde fica o taco. Agora só o
+   que é de mexer pega o clique; o resto deixa passar para a mesa. A mira fina
+   sai do meio e vai para perto do efeito. */
+@media (min-width:761px){
+#workflow-modal.ofc-snc-jogo .snc-hud :is(.snc-placar,.snc-bloco,.snc-medidor,.snc-medidor>small){pointer-events:none}
+#workflow-modal.ofc-snc-jogo .snc-hud :is(.snc-jogador,.snc-x,.snc-confronto,.snc-bloco button,.snc-bloco input,.snc-roda,.snc-efeito-bola,.snc-forca,.snc-forca-exata,.snc-tacar,.snc-rever,.snc-mudar){pointer-events:auto}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-jogador{justify-self:start;max-width:100%}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-jogador.direita{justify-self:end}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-mira{left:90px;right:auto;bottom:138px;width:200px;transform:none}
+}
+@media (min-width:761px) and (max-height:760px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-mira{bottom:108px}}
+@media (min-width:761px) and (max-height:520px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-mira{left:58px;bottom:50px;width:150px}#workflow-modal.ofc-snc-jogo .snc-hud .snc-mudar{top:100px;right:46px}}
