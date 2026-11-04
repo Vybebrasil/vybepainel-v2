@@ -52,7 +52,9 @@ conferirCartaoVybes(true);
 // VYBES, que decide com as mesmas regras do microfone dela (despertar.js na central). Enquanto a sala ouve, a aba do VYBES
 // não atende o próprio microfone: nada é feito duas vezes. Aba do VYBES fechada: um cartão abre com o pedido (o navegador
 // não deixa abrir aba sem um clique). O boneco do VYBES aparece ao lado de quem chamou, só na tela de quem chamou.
-const VYBES_NOME = /\b(?:v[iy]bes?|v[aá]ib(?:e|es|is)?|vai bes|jarvis|jarves)\b/i;
+// O nome como a transcrição escreve: a mesma lista que o Paulo ensinou ao VYBES (NOMES_FALADOS em chamadas.js, na
+// central). Mudou lá, muda aqui. As trocas de nomes de clientes ("copy recê") a central corrige ao receber o pedido.
+const VYBES_NOME = /\b(?:jarvis|jarves|v[iy]bes?|v[aá]ib(?:e|es|is|io)?|v[aá]ipe|vibi|vai\s?bes?)\b/i;
 const vybesSala = { rec: null, ouvindo: false, querParar: false, bloqueado: false, conversaAte: 0, agir: null, agirEm: 0, aqui: 0, fala: null, cartao: null };
 const vybesReconhecedor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
 async function vybesPodeAgir() {
