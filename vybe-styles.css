@@ -19517,6 +19517,8 @@ body.ag-arrastando .ag-col {background-image:repeating-linear-gradient(180deg,tr
 .tom-ok {--tom:#3ccf8e;--tom-txt:#a5f0c9}
 
 .tom-atencao {--tom:#f2c14e;--tom-txt:#ffe19a}
+/* Falta fechar: roxo, para não se confundir com o amarelo das reuniões. */
+.tom-fechar {--tom:#a78bfa;--tom-txt:#d6c6ff}
 
 .tom-alerta {--tom:#ff6b6b;--tom-txt:#ffb0b0}
 
@@ -23292,9 +23294,9 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 
 .ag-col.passou {background:#0000001f}
 
-.ag-ev.passou:not(.tom-atencao):not(.tom-alerta) {opacity:.5}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta):not(.tom-fechar):not(.est-gravada) {opacity:.5}
 
-.ag-ev.passou:not(.tom-atencao):not(.tom-alerta):hover {opacity:.85}
+.ag-ev.passou:not(.tom-atencao):not(.tom-alerta):not(.tom-fechar):not(.est-gravada):hover {opacity:.85}
 
 .capt-cal .ag-ev {border-radius:7px;padding:5px 8px 5px 11px;background:color-mix(in srgb,var(--ag-cor) 20%,#14161c);box-shadow:inset 3px 0 0 var(--ag-cor),0 1px 2px #0005}
 
@@ -23454,7 +23456,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 
 .ag-chip.sel {box-shadow:0 0 0 2px #ff8a35}
 
-.ag-chip.passou:not(.tom-atencao):not(.tom-alerta) {opacity:.5}
+.ag-chip.passou:not(.tom-atencao):not(.tom-alerta):not(.tom-fechar):not(.est-gravada) {opacity:.5}
 
 .ag-chip i {flex:none;width:7px;height:7px;border-radius:50%;background:var(--ag-cor)}
 
@@ -23596,7 +23598,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 
 .capt-cal .capt-tb-pend {height:auto;padding:4px 2px;border:0;background:transparent;color:#aeb4c2;font:600 12.5px var(--mac-ui)}
 
-.capt-cal .capt-tb-pend.atencao {color:#f2c14e}
+.capt-cal .capt-tb-pend.atencao {color:#c4a8ff}
 
 .capt-cal .capt-tb-pend:hover {background:transparent;text-decoration:underline}
 
@@ -23658,11 +23660,20 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 
 .capt-cal .ag-ev .ag-selo,.capt-cal .ag-ev.curto[class*="tom-"]::after {display:none}
 
-.capt-cal .ag-ev.est-fechar {background:#f2c14e14;box-shadow:inset 3px 0 0 #f2c14e}
+/* Falta fechar é roxo (Paulo, 04/11/2026): o amarelo é a cor das reuniões e
+   as duas se confundiam na semana. */
+.capt-cal .ag-ev.est-fechar {background:#a78bfa1c;box-shadow:inset 3px 0 0 #a78bfa}
 
-.capt-cal .ag-ev.est-fechar b,.capt-cal .ag-ev.est-fechar small {color:#f5d27e}
+.capt-cal .ag-ev.est-fechar b,.capt-cal .ag-ev.est-fechar small {color:#d6c6ff}
+.capt-cal .ag-ev.est-fechar:hover {background:#a78bfa2b;box-shadow:inset 3px 0 0 #a78bfa}
 
-.capt-cal .ag-ev.passou:not(.est-fechar) {opacity:.45}
+.capt-cal .ag-ev.passou:not(.est-fechar):not(.est-gravada) {opacity:.45}
+/* Captação fechada fica verde e não recua (Paulo, 04/11/2026: "difícil saber
+   qual pauta foi fechada"): o amarelo diz o que falta fechar, o verde o que já foi. */
+.capt-cal .ag-ev.est-gravada {background:#3ccf8e17;box-shadow:inset 3px 0 0 #3ccf8e}
+.capt-cal .ag-ev.est-gravada b {color:#c9f5dd}
+.capt-cal .ag-ev.est-gravada small {color:#8fe3b8}
+.capt-cal .ag-ev.est-gravada:hover {background:#3ccf8e26;box-shadow:inset 3px 0 0 #3ccf8e}
 
 .capt-cal .ag-ev.sel {box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 1.5px #ffffff66}
 
@@ -23672,11 +23683,13 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 
 .capt-cal .ag-chip:hover {background:#ffffff0d}
 
-.capt-cal .ag-chip.est-fechar {background:#f2c14e14;color:#f5d27e}
+.capt-cal .ag-chip.est-fechar {background:#a78bfa1c;color:#d6c6ff}
 
-.capt-cal .ag-chip.est-fechar i {background:#f2c14e}
+.capt-cal .ag-chip.est-fechar i {background:#a78bfa}
 
-.capt-cal .ag-chip.passou:not(.est-fechar) {opacity:.45}
+.capt-cal .ag-chip.passou:not(.est-fechar):not(.est-gravada) {opacity:.45}
+.capt-cal .ag-chip.est-gravada {background:#3ccf8e17;color:#a5f0c9}
+.capt-cal .ag-chip.est-gravada i {background:#3ccf8e}
 
 .capt-cal .capt-rd {box-shadow:none;background:#16171d}
 

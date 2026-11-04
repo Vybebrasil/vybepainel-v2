@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao, vincularCliente, criarEvento, outrasPecasDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, eventoDaCaptacao, CAPTACAO, clienteDoEvento, agendaDeCaptacoes, fecharGravacao, vincularCliente, criarEvento, outrasPecasDoCliente, pecasLigaveisDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
 import { ehCaptacaoNaAgenda } from '../server/agenda-producao.js';
 
 const PRODUCAO = 7829537690;
@@ -64,13 +64,41 @@ test('monta a captação com as peças do cliente, marca cada uma e cria o event
 test('recusa peça de outro cliente, fora da fila ou já marcada; nada fica pela metade', async (t) => {
   const { sql, trocar, trocas, agenda } = await banco(t);
   await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['10', '12'] }, { trocar, agenda }), /Reels - Exame/);
-  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['13'] }, { trocar, agenda }), /Card - Promo/);
+  // Peça finalizada não entra (o Card - Promo em "Pode Fazer" entra: ver o teste das ligáveis).
+  await sql`INSERT INTO vybe_status VALUES (${PRODUCAO}, 'finalizado', 'Finalizado', '#00c875', true)`;
+  await sql`INSERT INTO vybe_conteudos VALUES (14, 'Card - Antigo', 'Card', NULL, NULL, '', 'finalizado', NULL, ${PRODUCAO}, NULL)`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (14, 1)`;
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['14'] }, { trocar, agenda }), /Card - Antigo/);
   await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '28/10', pecas: ['10'] }, { trocar, agenda }), /dia/);
   await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', inicio: '11:00', fim: '09:00', pecas: ['10'] }, { trocar, agenda }), /fim/);
   assert.equal(trocas.length, 0);
   assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_captacoes`)[0].n, 0);
   await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['10'] }, { trocar, agenda });
   await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-29', pecas: ['10'] }, { trocar, agenda }), /Prato do dia/);
+});
+
+test('ligáveis: toda peça do cliente que não está Finalizado, Para agendar ou Agendado, e dá para levar', async (t) => {
+  const { sql, trocar, trocas, agenda } = await banco(t);
+  await sql`INSERT INTO vybe_status VALUES (${PRODUCAO}, 'finalizado', 'Finalizado', '#00c875', true), (${PRODUCAO}, 'para_agendar', 'Para agendar', '#037f4c', false),
+    (${PRODUCAO}, 'agendado', 'Agendado', '#579bfc', false), (${PRODUCAO}, 'pode_fazer', 'Pode Fazer', '#ffcb00', false)`;
+  await sql`INSERT INTO vybe_conteudos VALUES (20, 'Carrossel - Menu', 'Carrossel', '2026-11-08', NULL, '', 'pode_fazer', NULL, ${PRODUCAO}, NULL),
+    (21, 'Card - Feito', 'Card', NULL, NULL, '', 'finalizado', NULL, ${PRODUCAO}, NULL),
+    (22, 'Reels - Pronto pra agendar', 'Reels', NULL, NULL, '', 'para_agendar', NULL, ${PRODUCAO}, NULL),
+    (23, 'Foto - Agendada', 'Fotografia', NULL, NULL, '', 'agendado', NULL, ${PRODUCAO}, NULL),
+    (24, 'Card - Removido', 'Card', NULL, NULL, '', 'pode_fazer', NULL, ${PRODUCAO}, now())`;
+  await sql`INSERT INTO vybe_conteudo_clientes VALUES (20, 1), (21, 1), (22, 1), (23, 1), (24, 1)`;
+  const ligaveis = await pecasLigaveisDoCliente(sql, { cliente_id: '1' });
+  assert.deepEqual(ligaveis.map((p) => p.id), ['10', '11', '20', '13']);
+  assert.deepEqual(ligaveis.map((p) => p.tipo), ['video', 'foto', 'outro', 'outro']);
+  assert.equal(ligaveis.find((p) => p.id === '20').status, 'Pode Fazer');
+  await assert.rejects(pecasLigaveisDoCliente(sql, { cliente_id: 'x' }), /Cliente/);
+  // O Carrossel e o Card em Pode Fazer vão para a captação junto com a fila.
+  await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['10', '13', '20'] }, { trocar, agenda });
+  assert.deepEqual(trocas.map((x) => x[0]), ['10', '13', '20']);
+  // Já ligadas, saem da lista; as finalizadas e agendadas nunca entram.
+  assert.deepEqual((await pecasLigaveisDoCliente(sql, { cliente_id: '1' })).map((p) => p.id), ['11']);
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-29', pecas: ['22'] }, { trocar, agenda }), /Pronto pra agendar/);
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-29', pecas: ['23'] }, { trocar, agenda }), /Agendada/);
 });
 
 test('falha do Google vira aviso guardado e a captação continua', async (t) => {
@@ -132,9 +160,11 @@ test('fotografia sem banco de fotos aparece e pode ir para a captação; o resto
   await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['20', '10'] }, { trocar, agenda });
   assert.deepEqual(trocas.map((x) => x[0]), ['20', '10']);
   assert.deepEqual((await pecasSemMaterial(sql)).map((p) => p.id), ['24']);
-  // Foto com material, pronta ou para agendar não entra numa captação.
-  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['21'] }, { trocar, agenda }), /com material/);
+  // Foto pronta ou para agendar não entra numa captação. A com material ainda
+  // por fazer entra como qualquer peça não finalizada (Paulo, 04/11/2026).
   await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['22'] }, { trocar, agenda }), /pronta/);
+  await assert.rejects(montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-28', pecas: ['23'] }, { trocar, agenda }), /para agendar/);
+  await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-29', pecas: ['21'] }, { trocar, agenda });
 });
 
 test('o evento da agenda leva cliente, peças, local e horário de Irecê', () => {

@@ -60,7 +60,7 @@ export async function pecasParaCaptar(sql) {
 const EH_FOTO = (c) => `(${c}.formato ILIKE '%foto%' OR ${c}.titulo ILIKE 'foto%')`;
 const EH_VIDEO = (c) => `(${c}.formato ~* '(reel|v[ií]deo|story|stories)' OR ${c}.titulo ~* '^(reels?|v[ií]deo|story|stories)\\M')`;
 const SEM_MATERIAL_SQL = (c, s) => `${c}.captacao_chave IS NULL AND (${EH_FOTO(c)} OR ${EH_VIDEO(c)})
-  AND btrim(COALESCE(${c}.material_bruto, '')) = '' AND NOT COALESCE(${s}.final, false) AND ${c}.status_chave IS DISTINCT FROM 'para_agendar'`;
+  AND btrim(COALESCE(${c}.material_bruto, '')) = '' AND NOT COALESCE(${s}.final, false) AND COALESCE(${c}.status_chave, '') NOT IN ('para_agendar', 'agendado')`;
 export async function pecasSemMaterial(sql) {
   await exigirTabelas(sql);
   return (await sql.query(`SELECT c.id, c.titulo, c.formato, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, c.briefing,
@@ -98,6 +98,31 @@ export async function outrasPecasDoCliente(sql, { cliente_id } = {}) {
         WHERE p.conteudo_id = c.id AND k.estado = 'agendada')
     ORDER BY COALESCE(c.prazo, c.veiculacao) DESC NULLS LAST, c.id DESC
     LIMIT 60`, [BOARD_PRODUCAO, cliente_id])).map((l) => ({ ...l, id: String(l.id) }));
+}
+
+// QUALQUER PEÇA DO CLIENTE AINDA POR PUBLICAR PODE IR PARA A CAPTAÇÃO (Paulo,
+// 04/11/2026: "aparece todos os conteúdos do cliente que não tiver como
+// FINALIZADO, PARA AGENDAR ou AGENDADO pra eu poder linkar com algum"). Vale
+// para qualquer formato — um Card ou Carrossel também sai das fotos de uma
+// captação — e fica de fora o que já está numa captação marcada. Ao "Levar
+// peças" e ao "Marcar captação", estas aparecem desmarcadas, abaixo da fila.
+const LIGAVEL_SQL = (c, s) => `NOT COALESCE(${s}.final, false)
+  AND lower(btrim(COALESCE(${s}.rotulo, ''))) NOT IN ('finalizado', 'para agendar', 'agendado')
+  AND COALESCE(${c}.status_chave, '') NOT IN ('finalizado', 'para_agendar', 'agendado')`;
+export async function pecasLigaveisDoCliente(sql, { cliente_id } = {}) {
+  await exigirTabelas(sql);
+  if (!/^\d{1,18}$/.test(String(cliente_id || ''))) throw erro('Cliente inválido.');
+  return (await sql.query(`SELECT c.id, c.titulo, c.formato, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, c.briefing,
+      c.status_chave, s.rotulo AS status, s.cor AS status_cor, c.captacao_chave,
+      CASE WHEN ${EH_FOTO('c')} THEN 'foto' WHEN ${EH_VIDEO('c')} THEN 'video' ELSE 'outro' END AS tipo
+    FROM vybe_conteudos c
+    JOIN vybe_conteudo_clientes cc ON cc.conteudo_id = c.id AND cc.cliente_id = $2
+    LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.board_id = $1 AND ${LIGAVEL_SQL('c', 's')}
+      AND NOT EXISTS (SELECT 1 FROM vybe_captacao_pecas p JOIN vybe_captacoes k ON k.id = p.captacao_id
+        WHERE p.conteudo_id = c.id AND k.estado = 'agendada')
+    ORDER BY COALESCE(c.prazo, c.veiculacao) NULLS LAST, c.id
+    LIMIT 80`, [BOARD_PRODUCAO, cliente_id])).map((l) => ({ ...l, id: String(l.id) }));
 }
 
 // Captações de um período (padrão: de hoje a 30 dias), com as peças e o roteiro.
@@ -185,9 +210,13 @@ export async function montarCaptacao(sql, quem, dados, { trocar, agenda = evento
     const semMaterial = new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
       LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
       WHERE c.id = ANY($1::bigint[]) AND ${SEM_MATERIAL_SQL('c', 's')}`, [d.pecas])).map((l) => l.id));
-    for (const l of linhas) l.sem_material = semMaterial.has(String(l.id));
-    // Entra a peça em "Agendar Captação" e a fotografia sem banco de fotos.
-    const fora = linhas.filter((l) => l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || (l.captacao_chave !== CAPTACAO.pronta && !l.sem_material) || l.ja_marcada || !l.do_cliente);
+    const ligaveis = new Set((await tx.query(`SELECT c.id::text AS id FROM vybe_conteudos c
+      LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+      WHERE c.id = ANY($1::bigint[]) AND ${LIGAVEL_SQL('c', 's')}`, [d.pecas])).map((l) => l.id));
+    for (const l of linhas) { l.sem_material = semMaterial.has(String(l.id)); l.ligavel = ligaveis.has(String(l.id)); }
+    // Entra a peça em "Agendar Captação", a fotografia sem banco de fotos e
+    // qualquer outra do cliente que ainda não foi finalizada nem agendada.
+    const fora = linhas.filter((l) => l.removido_em || String(l.board_id) !== String(BOARD_PRODUCAO) || (l.captacao_chave !== CAPTACAO.pronta && !l.sem_material && !l.ligavel) || l.ja_marcada || !l.do_cliente);
     if (fora.length) throw erro(`Já não estão prontas para esta captação: ${fora.map((l) => l.titulo).join('; ')}. Atualize a lista.`, 409);
     if (d.evento) {
       const [ja] = await tx`SELECT id FROM vybe_captacoes WHERE evento_google = ${d.evento} AND estado <> 'cancelada' FOR UPDATE`;
