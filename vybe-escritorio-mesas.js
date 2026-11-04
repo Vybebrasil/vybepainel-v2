@@ -311,8 +311,10 @@ function jogoSelosHtml(j) {
 // Fim da partida por cima da mesa: vitória, derrota ou empate, o motivo, o prêmio e as ações.
 function jogoFimHtml(j, acoes) {
   if (j.estado !== "fim") return "";
-  const ganhou = j.resultado !== "empate" && j.eu && j.eu === j.resultado, perdeu = j.resultado !== "empate" && j.eu && j.eu !== j.resultado;
-  const vencedor = j.resultado === "empate" ? null : xadrezPrimeiroNome(j[j.resultado]);
+  // Dupla (sinuca): ganha ou perde a dupla inteira; o vencedor são os dois.
+  const times = j.mesa?.times, mesmoTime = (a, b) => a === b || Boolean(times && times[a] && times[a] === times[b]);
+  const ganhou = j.resultado !== "empate" && j.eu && mesmoTime(j.eu, j.resultado), perdeu = j.resultado !== "empate" && j.eu && !mesmoTime(j.eu, j.resultado);
+  const vencedor = j.resultado === "empate" ? null : times ? Object.keys(times).filter((l) => mesmoTime(l, j.resultado)).map((l) => xadrezPrimeiroNome(j[l])).join(" e ") : xadrezPrimeiroNome(j[j.resultado]);
   const titulo = j.resultado === "empate" ? "Empate" : ganhou ? "Vitória!" : perdeu ? "Derrota" : `${vencedor} venceu`;
   const n = j.jogadores?.length || 2, valendo = j.moedas || j.itens?.desafiante?.length || j.itens?.desafiado?.length;
   const pb = j.premio_bot;
