@@ -149,3 +149,15 @@ test('bola da vez: a menor primeiro, marca o valor e continua; falta dá 7 ao ou
  r = tacar(base({ 0: [85, 35], 7: [95, 45] }, { pontos: { desafiante: 10, desafiado: 12 } }), DIAG, 0.5);
  assert.deepEqual(r.fim, { resultado: 'desafiante', motivo: 'pontos' });
 });
+
+// Paulo, 04/11/2026 ("trava com a força e não deixa bater nem no TACAR"): a tela
+// punha a branca um fio fora da área (raio das outras bolas e arredondamento) e o
+// servidor recusava toda tacada daquela vez. Um fio fora encaixa; longe, recusa.
+test('bar: branca um fio fora do D ou colada na tabela encaixa e taca; longe da área recusa', () => {
+ const comecar = (area) => { const m = iniciarSinuca('desafiante'); m.bolaNaMao = area; m.bolas[0] = null; return m; };
+ for (const [area, x, y] of [['D', 21.04, 32.32], ['saida', 19.15, 1.21]]) {
+  const r = jogarSinuca(comecar(area), 'desafiante', { tipo: 'tacar', angulo: 0.3, forca: 0.3, branca: { x, y } });
+  assert.equal(r.mesa.n, 1, `${area} ${x},${y} tacou`);
+ }
+ assert.throws(() => jogarSinuca(comecar('D'), 'desafiante', { tipo: 'tacar', angulo: 0.3, forca: 0.3, branca: { x: 40, y: 25 } }), /dentro do D/);
+});

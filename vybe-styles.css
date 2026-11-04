@@ -26328,3 +26328,19 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .ofc-snc-jogo .snc-arena .snc-aviso.ver{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #workflow-modal.ofc-snc-jogo .snc-hud .snc-tacar[aria-disabled="true"]{filter:grayscale(1) brightness(.55);cursor:default}
 .ofc-snc-jogo .snc-tacar[aria-disabled="true"]{opacity:.55}
+/* Jeito de tacar: PUXAR ou TRAVADO (escolha do jogador). */
+.ofc-snc-jogo .snc-modo-botoes{display:flex;gap:4px}
+.ofc-snc-jogo .snc-modo-botoes button{flex:1;min-height:30px;padding:0 12px;border:0;border-radius:0;clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);background:#0a0c12b3;box-shadow:inset 0 0 0 1px #ffffff26;color:#cfd5df;font:900 italic 11px var(--snc-f);letter-spacing:1px;cursor:pointer}
+.ofc-snc-jogo .snc-modo-botoes button[aria-pressed="true"]{background:linear-gradient(180deg,#ffb36b,#ff8a3d 45%,#d4561a);color:#fff;box-shadow:none}
+@media (min-width:761px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-modo{right:62px;top:96px;width:178px}}
+@media (min-width:761px) and (max-height:520px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-modo{right:46px;top:52px;width:150px}#workflow-modal.ofc-snc-jogo .snc-hud .snc-modo-botoes button{min-height:26px;font-size:9px}}
+/* Sinuca em tela cheia (Paulo, 04/11/2026: "o jogo tá abrindo dentro de um HUD
+   com o escritório lá no fundo animado... não era melhor abrir tela cheia?"):
+   lobby e partida ocupam a janela inteira, sem moldura nem cantos. */
+#workflow-modal.ofc-snc-jogo,#workflow-modal.ofc-snc-menu{top:0;left:0;transform:none;width:100vw;max-width:none;height:100dvh;max-height:100dvh;border:0;border-radius:0;box-shadow:none;margin:0}
+#workflow-modal.ofc-snc-menu .snc-jogo-menu{height:100dvh}
+#workflow-modal.ofc-snc-jogo .snc-arena.snc-hud{--snc-reserva:160px}
+/* Com um jogo aberto, nada atrás anima nem é desenhado: o escritório e o resto
+   do painel saem da renderização até o jogo fechar (só os filhos diretos do
+   body entram na conta, sem [style]: não pesa como o :has do Escritório #458). */
+body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.versao-nova,.snc-perfil,script,style){content-visibility:hidden}
