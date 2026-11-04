@@ -914,13 +914,17 @@ function mapaBonecoTingido(url, rgb, aoPronto) {
       if (v.src) URL.revokeObjectURL(v.src);
     }
     const pronto = () => { const fila = t.espera; t.espera = []; for (const f of fila) f(); };
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.referrerPolicy = "no-referrer";
-    img.src = url + (url.includes("?") ? "&" : "?") + "cors=1";
-    img.decode().then(() => {
+    // O imager não marca a resposta como dependente da origem (sem "Vary:
+    // Origin"): uma cópia no cache com a liberação de outra origem fazia o
+    // pedido falhar (visto na Production, 04/11/2026). Falhou, pede de novo sem cache.
+    const endereco = url + (url.includes("?") ? "&" : "?") + "cors=1";
+    const baixar = (cache) => fetch(endereco, { mode: "cors", referrerPolicy: "no-referrer", cache }).then((r) => {
+      if (!r.ok) throw new Error("Boneco indisponível.");
+      return r.blob();
+    });
+    baixar("default").catch(() => baixar("no-store")).then((b) => createImageBitmap(b)).then((img) => {
       const c = document.createElement("canvas");
-      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.width = img.width; c.height = img.height;
       const g = c.getContext("2d");
       g.drawImage(img, 0, 0);
       g.globalCompositeOperation = "multiply";
