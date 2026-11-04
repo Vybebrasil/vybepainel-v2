@@ -685,7 +685,10 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
   const suicida = falta === 'branca' || falta === 'branca-fora';
   m.bolaNaMao = suicida ? (saida ? 'saida' : 'D') : false;
   if (suicida) m.bolas[0] = lugarDaBranca(m.bolas, m.bolaNaMao, r0);
-  return { mesa: m, fim: multa(m, dono) };
+  // Bateu direto na bola do outro (sou par e acertei primeiro uma ímpar dele):
+  // multa de 2 bolas, qualquer que seja a multa da casa (Paulo, 04/11/2026).
+  const naDoOutro = falta === 'errada' && Boolean(meu0) && r.primeiro > 1 && !doGrupo(meu0, r.primeiro);
+  return { mesa: m, fim: multa(m, dono, naDoOutro ? 2 : undefined) };
  }
  m.bolaNaMao = false;
  if (!caidas.some((n) => meu && doGrupo(meu, n))) m.vez = dono;
@@ -693,11 +696,12 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
 }
 // A pena da falta na regra de bar: sai da mesa a menor bola de quem ganhou a
 // falta (fica em m.ultimo.tirou). Quem já estava no ás ganha a partida.
-function multa(m, dono) {
+function multa(m, dono, minimo = 1) {
  const g = m.grupos[dono];
  if (!g) return null;
- // A casa pode cobrar 2 bolas por falta; se o outro ficar sem bolas, só falta o ás.
- for (let k = 0; k < regrasDaCasa(m.casa).multa; k++) {
+ // A casa pode cobrar 2 bolas por falta (e bater na bola do outro sempre cobra
+ // 2); se o outro ficar sem bolas, só falta o ás.
+ for (let k = 0; k < Math.max(minimo, regrasDaCasa(m.casa).multa); k++) {
   const menor = GRUPOS[g].find((n) => m.bolas[n]);
   if (menor === undefined) return k ? null : { resultado: dono, motivo: 'falta-no-as' };
   m.bolas[menor] = null;

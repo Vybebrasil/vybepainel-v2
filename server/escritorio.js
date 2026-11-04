@@ -632,6 +632,15 @@ export async function areaEscritorio(req, res, quem, sql) {
       return res.status(e.status || 400).json({ error: e.message });
     }
   }
+  // Diagnóstico da sinuca (Paulo, 04/11/2026: "para de conseguir tacar no meio
+  // da partida"): quando a tela barra uma tacada, manda o estado dela para o
+  // registro da Vercel. Não grava nada; campos e tamanho limitados.
+  if (acao === "sinuca-diag") {
+    const c = req.body || {}, campos = ["motivo", "id", "n", "mesaN", "estado", "vez", "eu", "minha", "anim", "animIdade", "animParada", "enviando", "enviandoHa", "gesto", "gira3d", "pondo", "bolaNaMao", "branca", "modo", "tela"];
+    const d = Object.fromEntries(campos.filter((k) => k in c).map((k) => [k, typeof c[k] === "string" ? c[k].slice(0, 120) : c[k]]));
+    console.warn("sinuca_diag " + JSON.stringify({ pessoa: String(pessoa.id), ...d }).slice(0, 1500));
+    return res.status(200).json({ ok: true });
+  }
   // Mesas de jogo (dominó; poker e sinuca depois): o mesmo caminho do xadrez.
   if (["mesa-desafiar", "mesa-responder", "mesa-lance", "mesa-acao", "mesa-bot", "mesa-bot-vez"].includes(acao)) {
     try {

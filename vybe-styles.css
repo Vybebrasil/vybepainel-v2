@@ -26367,3 +26367,4 @@ body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.v
 }
 @media (min-width:761px) and (max-height:760px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-mira{bottom:108px}}
 @media (min-width:761px) and (max-height:520px){#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-mira{left:58px;bottom:50px;width:150px}#workflow-modal.ofc-snc-jogo .snc-hud .snc-mudar{top:100px;right:46px}}
+.snc-casa-nota{grid-column:1/-1;display:block;margin-top:2px;font-size:10px;color:var(--snc-l2,#ffb36b)}
