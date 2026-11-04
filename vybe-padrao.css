@@ -1320,3 +1320,11 @@ button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srg
    sem o desfoque a cara fica a mesma; o aviso de baixo, mais claro, escurece. */
 body.no-escritorio :is(.app-header,.header-utilities-menu,#toast,.ofc-voltar-mapa,.ofc-andares,.ofc-sala-atual,.ofc-aviso,.ofc-zoom,.ofc-dock,.ofc-onde,.ofc-mesa-card,.ofc-menu-pessoa,.office-call,#office-feedback,#office-cobrancas,#office-missoes,#office-controls){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
+/* VYBES chamado pela sala com a aba dele fechada (vybe-vybes.js): o cartão do padrão de jogo, no canto dos avisos, logo acima do #toast (z 950, embaixo a 24px), para um não cobrir o outro. */
+.vybes-chamado{position:fixed;right:24px;bottom:88px;z-index:949;width:min(340px,calc(100vw - 36px));padding:14px 16px;display:grid;gap:8px;color:#e8e9ee}
+.vybes-chamado p{margin:0;font:500 13.5px var(--mac-ui);line-height:1.4;color:#d7d9e0}
+.vybes-chamado div{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vybes-chamado-fechar{border:0;background:none;color:#a3a9b7;font:400 20px var(--mac-ui);cursor:pointer;padding:2px 8px;border-radius:8px}
+.vybes-chamado-fechar:focus-visible,.vybes-chamado .vb-jogo-botao:focus-visible{outline:2px solid #ff8a35;outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.vybes-chamado{animation:vybesChamado .35s var(--curva,ease) both}}
+@keyframes vybesChamado{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
