@@ -8,7 +8,7 @@ import { listarFalhasDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
-import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
+import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, pecasLigaveisDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
 import { trocarEscolha } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
@@ -1621,6 +1621,11 @@ async function areaCaptacoes(req,res,quem) {
         return res.status(200).json({ok:true,pecas:pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}))});
       }
       if(acao==='outras') return res.status(200).json({ok:true,pecas:await outrasPecasDoCliente(banco,{cliente_id:req.query?.cliente})});
+      // Todas as peças do cliente ainda por publicar, para ligar à captação.
+      if(acao==='ligaveis') {
+        const pecas=await pecasLigaveisDoCliente(banco,{cliente_id:req.query?.cliente}), roteiros=await roteirosDosConteudos(banco,pecas.map((p)=>p.id));
+        return res.status(200).json({ok:true,pecas:pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}))});
+      }
       // A agenda do Google é a das captações de verdade; falha dela vira aviso.
       // Semana pedida (segunda-feira); sem ela, a semana de hoje.
       // A semana pedida (segunda-feira) para a agenda e os próximos 30 dias
