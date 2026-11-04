@@ -46,9 +46,9 @@ test('força: aceita 0,1% a 100%, curva contínua sem impulso mínimo e transfer
   for(const f of [.001,.002,.01,.0499,.05,.0501,.1,.25,.5,1]){
     const v=velocidadeDaForca(f)*METROS_POR_UNIDADE;
     assert.ok(v>anterior,`força ${f}: velocidade ${v}`);anterior=v;
-    assert.equal(v,mapa.velocidade(f));
+    assert.ok(Math.abs(v-mapa.velocidade(f))<1e-12,`força ${f}: mesma conta na tela e no servidor`);
   }
-  assert.equal(anterior,7);
+  assert.ok(Math.abs(anterior-9)<1e-9,`100%: ${anterior} m/s`);
   let distancia=0;
   for(const f of [.001,.005,.01,.02,.05,.1,.2]){
     const b=so(30,25);b[2]=[30+2*RAIO+0.000001,25];

@@ -433,7 +433,7 @@ export async function areaEscritorio(req, res, quem, sql) {
     if (acao === "jogos-resumo") return res.status(200).json({ ok: true, ...(await resumoDosJogos(sql, pessoa, String(req.query?.camada || ""))) });
     if (acao === "mesa") {
       try {
-        if (req.query?.id) return res.status(200).json({ ok: true, jogo: await verMesa(sql, pessoa, String(req.query.id)) });
+        if (req.query?.id) return res.status(200).json({ ok: true, jogo: await verMesa(sql, pessoa, String(req.query.id), { visto: req.query?.visto }) });
         return res.status(200).json({ ok: true, ...(await listarMesa(sql, pessoa, { jogo: String(req.query?.jogo || ""), camada: String(req.query?.camada || ""), movel: String(req.query?.movel || "") })) });
       } catch (e) {
         return res.status(e.status || 400).json({ error: e.message });

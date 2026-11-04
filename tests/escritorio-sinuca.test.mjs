@@ -243,7 +243,7 @@ test('sinuca: caçapas medidas na arte da mesa e as tacadas recentes',()=>{
 const so=(o)=>{const a=Array(16).fill(null);for(const[k,v] of Object.entries(o))a[k]=v;return a;};
 test('sinuca real: medidas, força e distância rolando',()=>{
  assert.equal(METROS_POR_UNIDADE,0.019,'pano de 1,90 m');
- assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-7)<1e-9,'saída forte a 7 m/s');
+ assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-9)<1e-9,'saída forte a 9 m/s');
  assert.equal(velocidadeDaForca(0),0,'sem impulso em força zero');
  // Tacada média (2,4 m/s) percorre umas 2 a 4 mesas no pano de bar, com as voltas na tabela.
  const r=simular(so({0:[10,25]}),0,F(2.44),0,RAIO);let d=0;
@@ -325,4 +325,24 @@ test('sinuca real: bola rápida demais sacode na boca; caçapa do meio na medida
  assert.equal(iniciarSinuca('desafiante').pano,'bar');
  const anda=(pano)=>simular(so({0:[10,25]}),0,F(0.6),0,RAIO,0,{pano}).bolas[0][0];
  assert.ok(anda('torneio')>anda('bar')+3,'pano de torneio é mais rápido');
+});
+
+// Saída forte que abre o triângulo (Paulo, 04/11/2026: simulador de boteco). Montado
+// alinhado perfeito, a pancada atravessava as fileiras e só as bolas do fundo
+// saíam (4,8 das 14 na força toda); com as folgas de quem arruma na mão, abre.
+test('sinuca real: a saída forte abre o triângulo e a fraca não',()=>{
+ let semente=7;const sortear=(n)=>{semente=(semente*1103515245+12345)%2147483648;return Math.floor(semente/2147483648*n);};
+ const abriu=(forca)=>{let mexeu=0;for(let k=0;k<6;k++){const ini=iniciarSinuca('desafiante',sortear);
+  const r=simular(ini.bolas,0,forca,0,ini.r,0,{pano:'bar'});
+  for(let n=2;n<16;n++){const a=ini.bolas[n],b=r.bolas[n];if(!b||Math.hypot(b[0]-a[0],b[1]-a[1])>3)mexeu++;}}
+  return mexeu/6;};
+ const forte=abriu(1),media=abriu(0.6);
+ assert.ok(forte>=9,`saída forte mexeu ${forte.toFixed(1)} de 14`);
+ assert.ok(media<forte,`a força média (${media.toFixed(1)}) abre menos que a forte`);
+});
+// A mesa salva guarda a animação uma vez só (em recentes), não também em ultimo.
+test('sinuca: a última tacada é gravada sem a animação',()=>{
+ const ini=iniciarSinuca('desafiante');
+ const r=jogarSinuca(ini,'desafiante',{tipo:'tacar',angulo:0,forca:0.4,branca:{x:20,y:25}});
+ assert.equal(r.mesa.ultimo.trilhas,undefined);assert.ok(r.mesa.recentes.at(-1).trilhas,'a animação continua em recentes');
 });

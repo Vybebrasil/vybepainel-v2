@@ -32,9 +32,9 @@ test('gesto: mudança de rodada ou outro ponteiro não conclui uma tacada antiga
  const t=preparar();t.forca(50,'Comeca',1);t.forca(300,'Move',2);t.forca(300,'Solta',2);assert.equal(t.pedidos.length,0);assert.equal(t.estado.gesto.pointerId,1);
  t.estado.jogo.n++;t.forca(300,'Solta',1);assert.equal(t.pedidos.length,0);assert.equal(t.estado.gesto,null);
 });
-test('gesto: barra arrastada dispara uma única vez com a força final e o ângulo original',()=>{
- const t=preparar();t.forca(50,'Comeca');t.estado.angulo=.5;t.forca(250,'Move');t.forca(250,'Solta');t.forca(250,'Solta');
- assert.equal(t.pedidos.length,1);assert.equal(t.pedidos[0].angulo,0);assert.equal(t.pedidos[0].forca,.5);
+test('gesto: barra arrastada só escolhe a força, não taca (quem taca é o TACAR ou puxar o taco)',()=>{
+ const t=preparar();t.forca(50,'Comeca');t.forca(250,'Move');t.forca(250,'Solta');t.forca(250,'Solta');
+ assert.equal(t.pedidos.length,0);assert.equal(t.estado.forca,.5);assert.equal(t.estado.gesto,null);
 });
 test('gesto: toque e arrasto no celular ajustam a mira sem tacada involuntária',()=>{
  const t=preparar();t.mesa(996,383.5,'down',7,'touch');t.mesa(800,500,'move',7,'touch');t.mesa(800,500,'up',7,'touch');

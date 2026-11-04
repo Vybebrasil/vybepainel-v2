@@ -73,16 +73,16 @@ export const cacapas=()=>GEO.buracos;
 //   E_FORRO) e pode voltar para a mesa.
 const DESLIZE = 0.2 * G, GIRO_PANO = 0.02 * G;
 export const PANOS = { bar: 0.018, torneio: 0.010 };
-const PULO = 0.25, E_ARDOSIA = 0.5, NARIZ = 1.27, E_FORRO = 0.3, SALTO_TABELA = 4 / METROS_POR_UNIDADE;
+const E_DENTE = 0.8, PULO = 0.25, E_ARDOSIA = 0.5, NARIZ = 1.27, E_FORRO = 0.3, SALTO_TABELA = 4 / METROS_POR_UNIDADE;
 const E_BOLA = 0.95, MU_TABELA = 0.2, SQUIRT = (1.5 * Math.PI) / 180;
 const muBola = (desliza) => 0.01 + 0.108 * Math.exp(-1.088 * Math.abs(desliza) * METROS_POR_UNIDADE);
 const eTabela = (vn) => Math.max(0.55, 0.85 - 0.06 * Math.abs(vn) * METROS_POR_UNIDADE);
-// Força: de 0,1% (toque mínimo, sem piso de impulso) a 100% / 7 m/s (saída forte de
-// bar, 25 km/h), em curva, porque quase toda tacada de verdade fica entre
+// Força: de 0,1% (toque mínimo, sem piso de impulso) a 100% / 9 m/s (saída forte de
+// bar, 32 km/h; até 04/11/2026 era 7 m/s e a saída não abria), em curva, porque quase toda tacada de verdade fica entre
 // 0,5 e 2 m/s (Paulo, 28/10/2026: "mesmo quando pegava fraco tava parecendo
 // forte"): metade da barra dá 1,3 m/s, três quartos 3,4 m/s e só o último
 // quarto é pancada.
-export const V_MIN=mesaSinuca.velocidade(mesaSinuca.forcaMinima)/METROS_POR_UNIDADE,V_MAX=7/METROS_POR_UNIDADE;
+export const V_MIN=mesaSinuca.velocidade(mesaSinuca.forcaMinima)/METROS_POR_UNIDADE,V_MAX=9/METROS_POR_UNIDADE;
 export const velocidadeDaForca=(f)=>mesaSinuca.velocidade(f)/METROS_POR_UNIDADE;
 // Bater fora do centro: parte do golpe vira giro e a branca sai um pouco mais
 // devagar. Pelo choque taco-bola (taco ~540 g, bola 170 g; Alciatore), no limite
@@ -130,7 +130,7 @@ const restam = (bolas, g) => (GRUPOS[g] || []).filter((n) => bolas[n]).length;
 // linha de saída (x ≤ 25, a área de saída); depois da suicida, dentro do D (o
 // semicírculo de 26 cm na mesa de 2,84 m, na escala desta: 9,15 de raio, com
 // o centro na marca de baixo). `true` (partidas de antes): a mesa toda.
-export const LINHA_SAIDA = 25, D_RAIO = 9.15;
+export const LINHA_SAIDA = 25, D_RAIO = 9.15, FOLGA_TRIANGULO = 0.06;
 export function brancaPode(area, x, y, r = R) {
  if (!(x >= r && x <= LARGURA - r && y >= r/METRICA_Y && y <= ALTURA - r/METRICA_Y)) return false;
  if (area === 'saida') return x <= LINHA_SAIDA;
@@ -164,9 +164,25 @@ export function iniciarSinuca(quemSai = randomInt(2) ? 'desafiante' : 'desafiado
  const misturar = (l) => { for (let i = l.length - 1; i > 0; i--) { const k = sortear(i + 1); [l[i], l[k]] = [l[k], l[i]]; } return l; };
  if (modo === 'bar') {
   const ordem = misturar([...PARES, ...IMPARES]), bolas = Array(16).fill(null);
+  // Triângulo de verdade (Paulo, 04/11/2026: "a saída não abre"): nenhum fica
+  // alinhado ao décimo de milímetro. Montado perfeito, a pancada atravessava as
+  // fileiras como no pêndulo de Newton e só as duas bolas do fundo saíam (4,8 das
+  // 14 mexiam na saída forte); com cada bola até ~1 mm fora do lugar, como a
+  // mão arruma, 11. A bola fica onde a mão a pôs só se não encostar em outra.
+  const folga = () => sortear(1001) / 1000 * FOLGA_TRIANGULO;
   let i = 0;
   for (let fila = 1; fila < 5; fila++) for (let k = 0; k <= fila; k++) {
-   bolas[ordem[i++]] = [Math.round((75 + fila * (2 * r * 0.866 + 0.02)) * 1000) / 1000, Math.round((25 + (k - fila / 2) * (2 * r + 0.02)/METRICA_Y) * 1000) / 1000];
+   const x0 = 75 + fila * (2 * r * 0.866 + 0.02), y0 = 25 + (k - fila / 2) * (2 * r + 0.02) / METRICA_Y;
+   // Fica o lugar mais longe das vizinhas entre as tentativas (a primeira que não encosta).
+   const afastamento = (x, y) => Math.min(...bolas.map((p) => (p ? Math.hypot(p[0] - x, (p[1] - y) * METRICA_Y) : Infinity)));
+   let lugar = null, melhor = -Infinity;
+   for (let tentativa = 0; tentativa < 24 && melhor < 2 * r + 0.002; tentativa++) {
+    const x = Math.round((x0 + folga()) * 1000) / 1000, y = Math.round((y0 + (folga() - FOLGA_TRIANGULO / 2) / METRICA_Y) * 1000) / 1000, d = afastamento(x, y);
+    if (d > melhor) { melhor = d; lugar = [x, y]; }
+   }
+   // Nenhuma tentativa coube: vai um pouquinho para o fundo, para longe das fileiras de antes.
+   while (afastamento(...lugar) < 2 * r + 0.002) lugar = [Math.round((lugar[0] + 0.005) * 1000) / 1000, lugar[1]];
+   bolas[ordem[i++]] = lugar;
   }
   bolas[1] = [Math.round((r + 0.01) * 1000) / 1000, 25];
   bolas[0] = lugarDaBranca(bolas, 'saida', r);
@@ -333,7 +349,8 @@ function simularFisica(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, 
    // Paredes (o nariz das borrachas e os dentes das caçapas): só perto da
    // tabela, e só se a bola não passa por cima do nariz.
    if (p.z >= NARIZ * R || (p.x > R + 0.5 && p.x < LARGURA - R - 0.5 && p.y > R + 0.5 && p.y < ALTURA - R - 0.5)) continue;
-   for (const [x1, y1, x2, y2] of GEO.paredes) {
+   for (let w = 0; w < GEO.paredes.length; w++) {
+    const [x1, y1, x2, y2] = GEO.paredes[w];
     const ex = x2 - x1, ey = y2 - y1, t = Math.max(0, Math.min(1, ((p.x - x1) * ex + (p.y - y1) * ey) / (ex * ex + ey * ey)));
     const qx = x1 + ex * t, qy = y1 + ey * t, ddx = p.x - qx, ddy = p.y - qy, d = Math.hypot(ddx, ddy);
     if (d > R + 1e-7 || d === 0) continue;
@@ -345,7 +362,10 @@ function simularFisica(bolasIni, angulo, forca, efeito = 0, R = RAIO, lado = 0, 
     batida[n] = true;
     // A normal volta (90% devagar, 70% na pancada); o atrito da borracha
     // freia o escorregão do ponto de contato (ao longo da tabela + efeito lateral).
-    const jn = -(1 + eTabela(vn)) * vn, desliza = p.vx * tx + p.vy * ty + p.s;
+    // A face do corte da boca (os dentes, w >= 6) é borracha viva e devolve mais
+    // que a tabela na pancada: a bola forte espirra para fora da boca em vez de
+    // morrer lá dentro (Paulo, 04/11/2026: "tremicar na boca e não cair porque bateu forte").
+    const jn = -(1 + (w >= 6 ? E_DENTE : eTabela(vn))) * vn, desliza = p.vx * tx + p.vy * ty + p.s;
     const jt = -Math.sign(desliza) * Math.min(MU_TABELA * jn, Math.abs(desliza) / 3.5);
     p.vx += jn * nx + jt * tx; p.vy += jn * ny + jt * ty; p.s += 2.5 * jt;
     // Sai rolando na direção da volta; o giro ao longo da tabela fica.
@@ -446,7 +466,7 @@ const animacao = (r) => (r.trilhas ? { inicio: r.inicio, trilhas: r.trilhas, dur
 export function vistaSinuca(m, lado, fim) {
  const vez = !fim && lado && m.vez === lado;
  return {
-  modo: m.modo || 'bola8', regra: m.regra || null, bola1: Boolean(m.bola1), r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas, n: m.n || 0,
+  modo: m.modo || 'bola8', regra: m.regra || null, casa: m.regra === 'bar' ? regrasDaCasa(m.casa) : null, bola1: Boolean(m.bola1), pontos: m.pontos || null, daVez: m.regra === 'bolavez' ? bolaDaVezNaMesa(m.bolas) : null, r: m.r || R, bolas: m.bolas, vez: m.vez, grupos: m.grupos, bolaNaMao: m.bolaNaMao, tacadas: m.tacadas, n: m.n || 0,
   restam: Object.fromEntries(Object.keys(GRUPOS).map((g) => [g, restam(m.bolas, g)])),
   // Os quadros vão só em `recentes` (a partida gravada antes não tem: a última tacada vale como a lista).
   pode_tacar: Boolean(vez), ultimo: m.ultimo ? { ...m.ultimo, quadros: undefined, trilhas: undefined, inicio: undefined, eventos: undefined } : null,
@@ -456,7 +476,14 @@ export function vistaSinuca(m, lado, fim) {
 
 // pedido: { tipo: 'tacar', angulo (radianos), forca (0,001 a 1), efeito (-1 puxar a 1 seguir),
 // lado (-1 a 1, efeito lateral), branca: {x, y} (com bola na mão) }.
+// A última tacada fica gravada sem a animação: ela já está em `recentes` (o
+// mesmo objeto) e a mesa salva levava as trilhas duas vezes (~50 KB por tacada).
 export function jogarSinuca(mesa, lado, pedido) {
+ const r = jogarSinucaBruto(mesa, lado, pedido);
+ if (r.mesa.ultimo) r.mesa.ultimo = Object.fromEntries(Object.entries(r.mesa.ultimo).filter(([k]) => !['trilhas', 'quadros', 'alturas', 'inicio', 'eventos'].includes(k)));
+ return r;
+}
+function jogarSinucaBruto(mesa, lado, pedido) {
  if (mesa.vez !== lado) throw erro('Agora é a vez da outra pessoa.', 409);
  // Tempo esgotado: falta sem tacada, a vez passa com bola na mão.
  if (pedido?.tipo === 'tempo') {
@@ -465,6 +492,8 @@ export function jogarSinuca(mesa, lado, pedido) {
   guardarTacada(m, { lado, quadros: [], eventos: [], caiu: [], primeiro: null, falta: 'tempo' });
   // Na regra de bar o tempo é falta como as outras: sai uma bola do outro.
   if (m.regra === 'bar' && m.tacadas > 0) { const fim = multa(m, outro(lado)); if (fim) return { mesa: m, fim }; }
+  // Na bola da vez, 7 pontos para o outro.
+  if (m.regra === 'bolavez') { (m.pontos ||= { desafiante: 0, desafiado: 0 })[outro(lado)] += PONTOS_FALTA; m.ultimo.pontosOutro = PONTOS_FALTA; m.bolaNaMao = m.bolaNaMao || false; }
   return { mesa: m, fim: null };
  }
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
@@ -486,6 +515,7 @@ export function jogarSinuca(mesa, lado, pedido) {
   }
  }
  const opc = { elevacao, pano: m.pano, trilhas: true };
+ if (m.regra === 'bolavez') return bolaDaVez(m, lado, simular(m.bolas, angulo, forca, efeito, r0, lado2, opc), { angulo, forca, efeito, lado2, r0, elevacao });
  if (m.regra === 'bar') return bar(m, lado, simular(m.bolas, angulo, forca, efeito, r0, lado2, opc), { angulo, forca, efeito, lado2, r0, elevacao });
  if (m.modo === 'parimpar') return parImpar(m, lado, simular(m.bolas, angulo, forca, efeito, r0, lado2, opc), { angulo, forca, efeito, lado2, r0, elevacao });
  const saida = m.tacadas === 0, grupo = m.grupos[lado], limpo = grupo ? restam(m.bolas, grupo) === 0 : false;
@@ -569,12 +599,13 @@ function parImpar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
 //   com falta, perde. Na saída o ás que cai volta para a tabela de cabeceira.
 // - Falta: suicida (a branca na caçapa ou fora da mesa), cegar (não tocar em
 //   nada), tocar primeiro a bola do outro (direto ou pela tabela) ou o ás fora
-//   de hora, bola que pula para fora, e o tempo da vez. A pena é uma só por
-//   tacada (art. 25): sai da mesa a menor bola do outro e a vez passa para ele;
-//   se ele já estava no ás, ganha. A bola sua que caiu na tacada com falta
-//   volta para a mesa (art. 18). Na suicida o outro põe a branca no D (art.
-//   17); nas outras faltas joga de onde a branca parou.
-// - Bola do outro que você encaçapa fica fora (é dele) e a vez passa.
+//   de hora, bola que pula para fora, encaçapar bola do outro (sozinha ou junto
+//   com a sua) e o tempo da vez. A pena é uma só por tacada (art. 25): sai da
+//   mesa a menor bola do outro e a vez passa para ele; se ele já estava no ás,
+//   ganha. O que caiu fica na caçapa, nada volta (Paulo, 04/11/2026: "não volta
+//   a que matou... se eu sou par e mato a minha e caiu uma ímpar junto, tira
+//   mais uma ímpar e eu perco a vez"). Na suicida o outro põe a branca no D
+//   (art. 17); nas outras faltas joga de onde a branca parou.
 // Com a mesa aberta a falta só passa a vez (ainda não há bola do outro a tirar).
 function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
  const dono = outro(lado), meu0 = m.grupos[lado], aberta = !meu0, limpo = !aberta && restam(m.bolas, meu0) === 0, saida = m.tacadas === 0;
@@ -584,7 +615,8 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
  const pulou = devolverFora(m, { fora: r.fora.filter((n) => n !== 1) }, r0) || asFora;
  if (asFora) recolocarAs(m.bolas, r0);
  const certa = (n) => (aberta ? n !== 1 : limpo ? n === 1 : doGrupo(meu0, n));
- const falta = r.caiu.includes(0) ? 'branca' : r.fora.includes(0) ? 'branca-fora' : r.primeiro === null ? 'nenhuma' : !certa(r.primeiro) ? 'errada' : pulou ? 'fora' : null;
+ const doOutro = Boolean(meu0) && regrasDaCasa(m.casa).doOutro === 'falta' && r.caiu.some((n) => n > 1 && !doGrupo(meu0, n));
+ const falta = r.caiu.includes(0) ? 'branca' : r.fora.includes(0) ? 'branca-fora' : r.primeiro === null ? 'nenhuma' : !certa(r.primeiro) ? 'errada' : pulou ? 'fora' : doOutro ? 'do-outro' : null;
  guardarTacada(m, { lado, angulo, forca, efeito, giro: lado2, elevacao, ...animacao(r), caiu: r.caiu, fora: r.fora, primeiro: r.primeiro, falta });
  if (r.caiu.includes(1)) {
   if (saida) recolocarAs(m.bolas, r0);
@@ -598,8 +630,6 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
   m.ultimo.grupo = meu;
  }
  if (falta) {
-  // A minha que caiu com falta volta para a mesa.
-  if (meu0) for (const n of caidas) if (doGrupo(meu0, n)) { recolocar(m.bolas, n, r0); (m.ultimo.voltou ||= []).push(n); }
   m.vez = dono;
   const suicida = falta === 'branca' || falta === 'branca-fora';
   m.bolaNaMao = suicida ? (saida ? 'saida' : 'D') : false;
@@ -615,10 +645,13 @@ function bar(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
 function multa(m, dono) {
  const g = m.grupos[dono];
  if (!g) return null;
- const menor = GRUPOS[g].find((n) => m.bolas[n]);
- if (menor === undefined) return { resultado: dono, motivo: 'falta-no-as' };
- m.bolas[menor] = null;
- if (m.ultimo) m.ultimo.tirou = menor;
+ // A casa pode cobrar 2 bolas por falta; se o outro ficar sem bolas, só falta o ás.
+ for (let k = 0; k < regrasDaCasa(m.casa).multa; k++) {
+  const menor = GRUPOS[g].find((n) => m.bolas[n]);
+  if (menor === undefined) return k ? null : { resultado: dono, motivo: 'falta-no-as' };
+  m.bolas[menor] = null;
+  if (m.ultimo) { if (m.ultimo.tirou) (m.ultimo.tirouMais ||= []).push(menor); else m.ultimo.tirou = menor; }
+ }
  return null;
 }
 // O ás de volta colado na tabela de cabeceira, no meio (ou o mais perto livre).
@@ -631,9 +664,105 @@ function recolocarAs(bolas, r) {
  recolocar(bolas, 1, r);
 }
 
+// FICHA DO BAR (Paulo, 04/11/2026: "os tacos fodas também têm que aparecer no
+// perfil de cada jogador... ver os troféus que o outro cara tem... ter o perfil do
+// cara no bar"). Sai só das partidas terminadas (sem tabela nova): vitórias e
+// derrotas entre a equipe (as do ranking), a maior sequência, os bots que a
+// pessoa derrubou, as partidas valendo. Os tacos são a coleção: um taco ganho
+// pelo ranking ou por um feito fica na coleção; o Ouro é de quem é o 1º (ou de
+// quem tem 25 vitórias). Na mesa, cada um joga com o melhor taco que tem.
+
+// BOLA DA VEZ (Paulo, 04/11/2026: a sinuca brasileira, escolhida nas regras da
+// casa). Sete bolas nas marcas valendo de 1 a 7 pontos e a branca na mão, no D.
+// A bola da vez é a menor da mesa: tem que ser a primeira tocada; encaçapada,
+// marca o valor dela e quem tacou continua. Falta (suicida, cegar, tocar
+// primeiro outra bola, encaçapar outra bola, bola fora da mesa ou tempo) dá 7
+// pontos ao outro, que joga; a bola que caiu errada volta para a marca. Acabaram
+// as bolas, ganha quem tem mais pontos.
+export const MARCAS_BOLA_DA_VEZ = { 1: [77.6, 25], 2: [25, 33.5], 3: [25, 16.5], 4: [25, 25], 5: [50, 25], 6: [74.5, 25], 7: [91, 25] };
+const PONTOS_FALTA = 7;
+export function iniciarBolaDaVez(quemSai = randomInt(2) ? 'desafiante' : 'desafiado', r = RAIO) {
+ const bolas = Array(16).fill(null);
+ for (const [n, p] of Object.entries(MARCAS_BOLA_DA_VEZ)) bolas[n] = [...p];
+ bolas[0] = [18, 25];
+ return { modo: 'bolavez', regra: 'bolavez', r, pano: 'bar', bolas, vez: quemSai, grupos: { desafiante: null, desafiado: null }, pontos: { desafiante: 0, desafiado: 0 },
+  bolaNaMao: 'D', tacadas: 0, n: 0, ultimo: null, recentes: [] };
+}
+const bolaDaVezNaMesa = (bolas) => [1, 2, 3, 4, 5, 6, 7].find((n) => bolas[n]) ?? null;
+// A bola que caiu errada volta para a marca dela (ou o mais perto livre atrás).
+function remarcar(bolas, n, r) {
+ const [x, y] = MARCAS_BOLA_DA_VEZ[n];
+ for (let k = 0; k < 60; k++) { const xx = x + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.6; if (xx > r && xx < LARGURA - r && livre(bolas, xx, y, n, r)) { bolas[n] = [xx, y]; return; } }
+ recolocar(bolas, n, r);
+}
+function bolaDaVez(m, lado, r, { angulo, forca, efeito, lado2, r0, elevacao }) {
+ const dono = outro(lado), daVez = bolaDaVezNaMesa(m.bolas);
+ m.bolas = r.bolas; m.n = (m.n || 0) + 1; m.tacadas += 1;
+ const pulou = devolverFora(m, r, r0);
+ const erradas = r.caiu.filter((n) => n > 0 && n !== daVez);
+ const falta = r.caiu.includes(0) ? 'branca' : r.fora.includes(0) ? 'branca-fora' : r.primeiro === null ? 'nenhuma' : r.primeiro !== daVez ? 'errada' : erradas.length ? 'outra-bola' : pulou ? 'fora' : null;
+ guardarTacada(m, { lado, angulo, forca, efeito, giro: lado2, elevacao, ...animacao(r), caiu: r.caiu, fora: r.fora, primeiro: r.primeiro, falta, daVez });
+ m.pontos ||= { desafiante: 0, desafiado: 0 };
+ for (const n of erradas) { remarcar(m.bolas, n, r0); (m.ultimo.voltou ||= []).push(n); }
+ if (falta) {
+  // A da vez que caiu na falta também volta: o ponto não vale.
+  if (r.caiu.includes(daVez)) { remarcar(m.bolas, daVez, r0); (m.ultimo.voltou ||= []).push(daVez); }
+  m.pontos[dono] += PONTOS_FALTA; m.ultimo.pontosOutro = PONTOS_FALTA;
+  m.vez = dono;
+  const suicida = falta === 'branca' || falta === 'branca-fora';
+  m.bolaNaMao = suicida ? 'D' : false;
+  if (suicida) m.bolas[0] = lugarDaBranca(m.bolas, 'D', r0);
+ } else {
+  m.bolaNaMao = false;
+  if (r.caiu.includes(daVez)) { m.pontos[lado] += daVez; m.ultimo.marcou = daVez; } else m.vez = dono;
+ }
+ return { mesa: m, fim: fimBolaDaVez(m) };
+}
+function fimBolaDaVez(m) {
+ if (bolaDaVezNaMesa(m.bolas) !== null) return null;
+ const { desafiante: a, desafiado: b } = m.pontos;
+ return a === b ? { resultado: 'empate', motivo: 'pontos-empate' } : { resultado: a > b ? 'desafiante' : 'desafiado', motivo: 'pontos' };
+}
+
+// REGRAS DA CASA (Paulo, 04/11/2026: cada bar tem a sua; combina-se no convite):
+// a multa da falta (1 ou 2 bolas do outro) e se a bola do outro que cai na sua
+// tacada é falta ('falta', o padrão) ou só passa a vez ('livre').
+export function regrasDaCasa(c) {
+ return { multa: Number(c?.multa) === 2 ? 2 : 1, doOutro: c?.doOutro === 'livre' ? 'livre' : 'falta', modo: c?.modo === 'bolavez' ? 'bolavez' : 'parimpar' };
+}
+export const TACOS_SINUCA = ['casa', 'bronze', 'prata', 'ouro', 'lenda'];
+export function fichaSinuca(id, partidas, posicao = null) {
+ id = String(id);
+ let vitorias = 0, derrotas = 0, seq = 0, maior = 0, valendo = 0;
+ const bots = { facil: 0, medio: 0, lendario: 0 };
+ for (const l of partidas) {
+  const meu = String(l.desafiante) === id ? 'desafiante' : l.desafiado != null && String(l.desafiado) === id ? 'desafiado' : null;
+  if (!meu || !l.resultado) continue;
+  const ganhou = l.resultado === meu;
+  if (l.bot) { if (ganhou) { const nivel = String(l.bot).split(':')[1]; if (nivel in bots) bots[nivel]++; } continue; }
+  if (l.resultado === 'empate') { seq = 0; continue; }
+  if (ganhou) { vitorias++; seq++; maior = Math.max(maior, seq); if (Number(l.moedas) > 0) valendo++; } else { derrotas++; seq = 0; }
+ }
+ const pos = vitorias ? posicao : null;
+ const tem = { casa: true, bronze: (pos && pos <= 8) || vitorias >= 5, prata: (pos && pos <= 3) || bots.medio > 0, ouro: pos === 1 || vitorias >= 25, lenda: bots.lendario > 0 };
+ const tacos = TACOS_SINUCA.filter((t) => tem[t]);
+ const trofeus = [
+  ['primeira', '🎱', 'Primeira vitória', 'Ganhou uma partida da equipe', vitorias > 0],
+  ['ze', '🧢', 'Derrubou o Zé', 'Venceu o Zé do Taco', bots.facil > 0],
+  ['tio', '🍺', 'Derrubou o Tio', 'Venceu o Tio do Boteco', bots.medio > 0],
+  ['baianinho', '👑', 'Derrubou o Baianinho', 'Venceu o Baianinho', bots.lendario > 0],
+  ['embalado', '🔥', 'Embalado', '3 vitórias seguidas', maior >= 3],
+  ['imparavel', '⚡', 'Imparável', '5 vitórias seguidas', maior >= 5],
+  ['valendo', '💰', 'Valendo', 'Ganhou partida apostada', valendo > 0],
+  ['veterano', '🎯', 'Veterano', '25 vitórias na equipe', vitorias >= 25],
+  ['dono', '🏆', 'Dono do salão', '1º no ranking da sinuca', pos === 1],
+ ].map(([chave, icone, nome, texto, ok]) => ({ chave, icone, nome, texto, tem: Boolean(ok) }));
+ return { id, vitorias, derrotas, jogos: vitorias + derrotas, posicao: pos, sequencia: seq, maior_sequencia: maior, valendo, bots, tacos, taco: tacos[tacos.length - 1], trofeus };
+}
+
 export const motorSinuca = {
  nome: 'Sinuca',
- motivos: { um: 'Encaçapou a 1', 'um-cedo': 'A 1 caiu antes da hora', 'um-falta': 'A 1 caiu com falta', oito: 'Encaçapou a 8', 'oito-cedo': 'A 8 caiu antes da hora', 'oito-falta': 'A 8 caiu com falta', todas: 'Encaçapou todas as suas', 'ultima-do-outro': 'O outro encaçapou a última bola dele por ele', 'falta-no-as': 'Falta com o outro já no ás' },
+ motivos: { um: 'Encaçapou a 1', 'um-cedo': 'A 1 caiu antes da hora', 'um-falta': 'A 1 caiu com falta', oito: 'Encaçapou a 8', 'oito-cedo': 'A 8 caiu antes da hora', 'oito-falta': 'A 8 caiu com falta', todas: 'Encaçapou todas as suas', 'ultima-do-outro': 'O outro encaçapou a última bola dele por ele', 'falta-no-as': 'Falta com o outro já no ás', pontos: 'Mais pontos na bola da vez', 'pontos-empate': 'Empate nos pontos' },
  iniciar: () => iniciarSinuca(),
  vista: vistaSinuca,
  jogar: jogarSinuca,

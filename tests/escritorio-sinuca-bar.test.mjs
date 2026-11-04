@@ -53,14 +53,14 @@ test('bar: cegar, tocar a do outro primeiro e a suicida tiram a menor bola do ou
  assert.equal(tacar(m2, 0, 0.5, { x: 25 - D_RAIO + 1, y: 25 }).mesa.n, m2.n + 1);
 });
 
-test('bar: a minha que cai com falta volta, a do outro que eu derrubo é dele, e falta com o outro no ás dá a partida a ele', () => {
- // A 4 entra mas a branca vai junto (suicida): a 4 volta para a mesa.
+test('bar: nada volta na falta, matar a do outro é falta com multa, e falta com o outro no ás dá a partida a ele', () => {
+ // A 4 entra mas a branca vai junto (suicida): a 4 fica na caçapa (Paulo, 04/11/2026: "não volta a que matou").
  let r = tacar(mesa({ 0: [85, 35], 4: [95, 45], 3: [20, 10], 6: [20, 40] }), DIAG, 0.6, null, 0.6);
  assert.ok(r.mesa.ultimo.caiu.includes(4) && r.mesa.ultimo.caiu.includes(0), 'a 4 e a branca caíram');
- assert.ok(r.mesa.bolas[4], 'a 4 voltou'); assert.deepEqual(r.mesa.ultimo.voltou, [4]);
- // Derrubei a do outro (tocando a minha primeiro): fica fora e a vez passa, sem multa.
+ assert.equal(r.mesa.bolas[4], null, 'a 4 não volta'); assert.equal(r.mesa.ultimo.voltou, undefined);
+ // Derrubei a do outro (tocando a minha primeiro): é falta, sai mais uma dele e a vez passa.
  r = tacar(mesa({ 0: [75, 25], 2: [85, 35], 5: [95, 45], 3: [20, 10] }), DIAG, 0.75);
- assert.equal(r.mesa.ultimo.falta, null); assert.equal(r.mesa.bolas[5], null); assert.equal(r.mesa.vez, 'desafiado'); assert.equal(r.mesa.ultimo.tirou, undefined);
+ assert.equal(r.mesa.ultimo.falta, 'do-outro'); assert.equal(r.mesa.bolas[5], null); assert.equal(r.mesa.vez, 'desafiado'); assert.equal(r.mesa.ultimo.tirou, 3);
  // O outro só tem o ás para matar: a minha falta dá a partida para ele.
  r = tacar(mesa({ 0: [20, 25], 2: [50, 40], 1: [60, 10] }), Math.PI, 0.05);
  assert.deepEqual(r.fim, { resultado: 'desafiado', motivo: 'falta-no-as' });
@@ -118,4 +118,33 @@ test('bola na boca: devagar ela para na beirada e só cai com o centro por cima 
   assert.ok(caiu, `${nome}: um pouco mais forte, cai`);
   assert.ok(ficou >= 0 && ficou < 0.1, `${nome}: parou na beirada com o centro a ${ficou.toFixed(2)} da borda do buraco`);
  }
+});
+
+test('bar: regras da casa (multa de 2 bolas; bola do outro livre)', () => {
+ // Multa de 2: tempo esgotado tira a 3 e a 5 do outro.
+ let r = jogarSinuca(mesa({ 0: [20, 25], 2: [50, 40], 3: [60, 10], 5: [70, 10] }, { casa: { multa: 2 } }), 'desafiante', { tipo: 'tempo' });
+ assert.equal(r.mesa.ultimo.tirou, 3); assert.deepEqual(r.mesa.ultimo.tirouMais, [5]); assert.equal(r.mesa.bolas[5], null);
+ // Bola do outro livre: a 5 cai junto e não é falta, a vez passa sem multa.
+ r = tacar(mesa({ 0: [75, 25], 2: [85, 35], 5: [95, 45], 3: [20, 10] }, { casa: { doOutro: 'livre' } }), DIAG, 0.75);
+ assert.equal(r.mesa.ultimo.falta, null); assert.equal(r.mesa.ultimo.tirou, undefined); assert.equal(r.mesa.vez, 'desafiado');
+ assert.deepEqual(vistaSinuca(mesa({ 0: [20, 25] }, { casa: { multa: 2 } }), 'desafiante').casa, { multa: 2, doOutro: 'falta', modo: 'parimpar' });
+});
+
+test('bola da vez: a menor primeiro, marca o valor e continua; falta dá 7 ao outro e a errada volta', async () => {
+ const { iniciarBolaDaVez, MARCAS_BOLA_DA_VEZ } = await import('../server/escritorio-sinuca.js');
+ const m = iniciarBolaDaVez('desafiante');
+ assert.equal(m.bolaNaMao, 'D'); assert.deepEqual(m.pontos, { desafiante: 0, desafiado: 0 });
+ const b = Array(16).fill(null); for (const [n, p] of Object.entries(MARCAS_BOLA_DA_VEZ)) b[n] = p;
+ for (let i = 1; i <= 7; i++) for (let k = i + 1; k <= 7; k++) assert.ok(Math.hypot(b[i][0] - b[k][0], (b[i][1] - b[k][1]) * 1.0276) >= 2 * RAIO, `marcas ${i} e ${k} sem encostar`);
+ // Só a 2 e a 5: a 2 é a da vez e entra (marca 2 e continua).
+ const base = (bolas, extra = {}) => ({ ...iniciarBolaDaVez('desafiante'), bolas: (() => { const a = Array(16).fill(null); for (const [n, p] of Object.entries(bolas)) a[n] = p; return a; })(), bolaNaMao: false, tacadas: 3, ...extra });
+ let r = tacar(base({ 0: [85, 35], 2: [95, 45], 5: [50, 10] }), DIAG, 0.5);
+ assert.equal(r.mesa.pontos.desafiante, 2); assert.equal(r.mesa.vez, 'desafiante'); assert.equal(r.mesa.ultimo.marcou, 2);
+ // Bater primeiro na 5 com a 2 na mesa: falta, 7 pontos para o outro, a vez passa.
+ r = tacar(base({ 0: [85, 35], 5: [95, 45], 2: [20, 10] }), DIAG, 0.5);
+ assert.equal(r.mesa.ultimo.falta, 'errada'); assert.equal(r.mesa.pontos.desafiado, 7); assert.equal(r.mesa.vez, 'desafiado');
+ assert.ok(r.mesa.bolas[5], 'a 5 que caiu errada voltou para a marca');
+ // Última bola encaçapada: fim, ganha quem tem mais pontos.
+ r = tacar(base({ 0: [85, 35], 7: [95, 45] }, { pontos: { desafiante: 10, desafiado: 12 } }), DIAG, 0.5);
+ assert.deepEqual(r.fim, { resultado: 'desafiante', motivo: 'pontos' });
 });

@@ -33,7 +33,9 @@ function sinucaSom(tipo,intensidade=.5){
   // Um download atrasado não deve tocar a tacada que já passou, nem ignorar mute.
   if(!buffer||!sinucaAudioLigado()||a.ctx.state!=='running'||performance.now()-em>100)return;
   if(a.vozes.size>=24){const antiga=a.vozes.values().next().value;antiga.stop();a.vozes.delete(antiga);}
-  const fonte=a.ctx.createBufferSource(),ganho=a.ctx.createGain();fonte.buffer=buffer;ganho.gain.value=volume;
+  // Nenhuma batida igual à outra: altura ±5% (a caçapa um pouco mais grave) e volume ±10%.
+  const fonte=a.ctx.createBufferSource(),ganho=a.ctx.createGain();fonte.buffer=buffer;ganho.gain.value=volume*(0.9+Math.random()*0.2);
+  fonte.playbackRate.value=(tipo==='cacapa'?0.94:1)+(Math.random()-0.5)*0.1;
   fonte.connect(ganho).connect(a.master);a.vozes.add(fonte);fonte.onended=()=>{a.vozes.delete(fonte);fonte.disconnect();ganho.disconnect();};fonte.start();
  });
 }

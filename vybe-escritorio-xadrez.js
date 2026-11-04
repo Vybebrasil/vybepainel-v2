@@ -351,7 +351,7 @@ async function desafiarXadrezEscritorio(botao) {
   botao.disabled = true;
   try {
     const mais = cfg.grupo ? f.grupo.slice(1) : [], doGrupo = mais.length > 0;
-    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: f.para, ...(doGrupo ? { mais } : {}), ...x.mesa, moedas: f.valendo ? f.moedas : 0,
+    const r = await escritorioApi(cfg.desafiar, { ...cfg.extra, para: f.para, ...(doGrupo ? { mais } : {}), ...x.mesa, ...(f.casa ? { casa: f.casa } : {}), moedas: f.valendo ? f.moedas : 0,
       oferece: f.valendo && !doGrupo ? [...f.oferece] : [], pede: f.valendo && !doGrupo ? [...f.pede] : [], chave: xadrezChave() });
     for (const id of [f.para, ...mais]) mesaSinal(cfg, r.id, id, "c");
     const nomes = [f.para, ...mais].map((id) => String(mesaPessoasParaChamar().find((o) => o.id === id)?.nome || "a pessoa").split(" ")[0]);
