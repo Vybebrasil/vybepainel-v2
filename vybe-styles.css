@@ -12124,7 +12124,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 
    filtro por elemento em centenas de canvases derrubava o FPS. */
 
-.mapa-palco[data-luz] :is(.mapa-fundo,canvas.mapa-paisagem,canvas.mapa-obj[data-classe^="vybeimg_"],.mapa-pessoa > img,.mapa-pessoa > canvas.ofc-animada) {filter:var(--mapa-luz)}
+.mapa-palco[data-luz] .mapa-pessoa > img.sem-tinta {filter:var(--mapa-luz)}
 
 .mapa-fundo,.mapa-obj {position:absolute;pointer-events:none;user-select:none;image-rendering:pixelated}
 
@@ -12135,6 +12135,8 @@ body.no-escritorio .workspace-drawer {z-index:701}
    profundidade, como no Habbo. Efeitos vão nas camadas, nunca no contêiner. */
 
 .mapa-movel > canvas {position:absolute;left:0;top:0;image-rendering:pixelated}
+/* Chão parado já desenhado na foto do chão (vybe-escritorio-mapa.js, montarFoto): as camadas soltas ficam escondidas. */
+.mapa-movel.na-foto > canvas {visibility:hidden}
 
 /* Parede com alguém logo atrás: fica translúcida para o boneco aparecer. */
 

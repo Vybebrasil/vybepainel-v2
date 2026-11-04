@@ -110,11 +110,17 @@ test('a contagem da área só aparece no retângulo, na linha e no balde', () =>
 
 test('a checagem de visibilidade do mapa é guardada por meio segundo (não varre a página a cada quadro)', () => {
   let consultas = 0;
-  const c = vm.createContext({ document: { hidden: false, querySelector: () => { consultas++; return null; } } });
+  let modal = null;
+  const c = vm.createContext({ document: { hidden: false, querySelector: () => { consultas++; return null; }, getElementById: (id) => (id === 'workflow-modal' ? modal : null) } });
   vm.runInContext(readFileSync('vybe-escritorio-mapa.js', 'utf8').replace(/\r\n/g, '\n').match(/function mapaForaDeVista[\s\S]*?\n}\n/)[0], c);
   c.m = { isConnected: true, offsetParent: {}, closest: () => null };
   for (let i = 0; i < 24; i++) assert.equal(vm.runInContext('mapaForaDeVista(m)', c), false);
   assert.equal(consultas, 1);
+  modal = {};
+  assert.equal(vm.runInContext('mapaForaDeVista(m)', c), true, 'jogo ou janela por cima pausa a sala na hora');
+  c.m.closest = (s) => (s === '#workflow-modal' ? {} : null);
+  assert.equal(vm.runInContext('mapaForaDeVista(m)', c), false, 'mapa dentro da própria janela continua');
+  modal = null; c.m.closest = () => null;
   c.m.isConnected = false;
   assert.equal(vm.runInContext('mapaForaDeVista(m)', c), true, 'fora do documento responde na hora');
 });

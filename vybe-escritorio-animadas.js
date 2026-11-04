@@ -73,7 +73,14 @@ function animadasFolha(nome) {
   return img.complete && img.naturalWidth ? img : null;
 }
 // Folha pintada na cor (multiplica, como o Habbo pinta as peças coloríveis).
-function animadasTingida(nome, hex) {
+// A luz do quarto (luz = [r, g, b]) multiplica junto, na mesma pintura: antes
+// era um filtro SVG por cima da tela, refeito oito vezes por segundo.
+function animadasTingida(nome, hex, luz) {
+  if (luz) {
+    const n = parseInt((hex || "#ffffff").slice(1), 16);
+    hex = "#" + [n >> 16, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * luz[i]).toString(16).padStart(2, "0")).join("");
+  }
+  if (!hex) return animadasFolha(nome);
   const chave = nome + hex;
   if (ANIMADAS.tingidas.has(chave)) return ANIMADAS.tingidas.get(chave);
   const img = animadasFolha(nome);
@@ -91,6 +98,7 @@ function animadasDesenhar(tela) {
   const { info, dir, escala, atras, margem } = tela.animada, frente = tela.getContext("2d"), fundo = atras.getContext("2d");
   for (const g of [frente, fundo]) { g.clearRect(0, 0, tela.width, tela.height); g.imageSmoothingEnabled = false; }
   const parado = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const luz = typeof MAPA_LUZES_RGB === "object" ? MAPA_LUZES_RGB[tela.closest(".mapa-palco")?.dataset.luz] || null : null;
   for (const a of info.achadas) {
     const dado = ANIMADAS.dados[a.chave];
     for (const camada of dado.camadas) {
@@ -100,7 +108,7 @@ function animadasDesenhar(tela) {
       if (!quadros || (a.parcial && (quadros.length <= 1 || ["mcl", "mcr"].includes(camada.p)))) continue;
       const q = quadros[parado ? 0 : ANIMADAS.relogio % quadros.length];
       const hex = camada.cor ? animadasHex(a.tipo, a.cores[camada.cor - 1]) : null;
-      const folha = hex ? animadasTingida(dado.folha, hex) : animadasFolha(dado.folha);
+      const folha = animadasTingida(dado.folha, hex, luz);
       if (!folha) continue;
       const [x, y, w, h, ax, ay, giro] = q, virar = Boolean(espelho !== undefined && espelho !== null) !== Boolean(giro);
       const g = camada.a?.includes(dir) ? fundo : frente;
