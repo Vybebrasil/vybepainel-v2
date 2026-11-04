@@ -1389,17 +1389,24 @@ function sinucaPonteiro3d(ev, tipo) {
     if (g.modo === "girar") { s.angulo = (s.angulo ?? 0) + (ev.clientX - g.x) * Math.PI / 1200; s.travada = true; }
     if (g.modo === "puxar") {
       // Como no taco de verdade (Paulo, 04/11/2026: "deixa eu puxar e voltar o
-      // taco, só não bate"): a força é a da puxada mais funda; empurrou de volta
-      // para perto do começo, a tacada sai, sem precisar soltar.
-      const v = Math.max(0, Math.min(1, dy / (altura * 0.45)));
+      // taco, só não bate"; no vídeo do Deivid ele bombeia o taco sem soltar e
+      // nunca volta até o começo): o EMPURRÃO RÁPIDO para a frente bate, com a
+      // força da última puxada; voltar devagar só ajusta a força.
+      const v = Math.max(0, Math.min(1, dy / (altura * 0.45))), agora = performance.now();
       g.max = Math.max(g.max, v);
-      if (g.max >= 0.03 && v < g.max * 0.3) { s.gira3d = null; s.forcaAgora = g.max; return sinucaPonteiro3dSolta(s, j, g, g.max); }
+      (g.hist ||= []).push([agora, v]);
+      while (g.hist.length && agora - g.hist[0][0] > 400) g.hist.shift();
+      const [tPico, pico] = g.hist.reduce((m, h) => (h[1] >= m[1] ? h : m), [agora, 0]);
+      const golpe = pico >= 0.03 && v < pico && agora - tPico <= 220 && pico - v >= Math.max(0.12, pico * 0.35);
+      if (golpe || (g.max >= 0.03 && v < g.max * 0.3)) { const f = golpe ? pico : g.max; s.gira3d = null; s.forcaAgora = f; return sinucaPonteiro3dSolta(s, j, g, f); }
+      g.v = v;
       sinucaForcaMostrar(v, true);
     }
     g.x = ev.clientX; sinucaPintar(); return;
   }
   if (tipo === "up" || tipo === "cancel") {
-    const forca = g.modo === "puxar" ? g.max : s.forcaAgora;
+    // Soltou parado: a força daquele ponto; soltou já de volta perto do começo: a da puxada.
+    const forca = g.modo === "puxar" ? ((g.v ?? 0) >= 0.05 ? g.v : g.max) : s.forcaAgora;
     s.gira3d = null;
     if (g.modo === "puxar" && tipo === "up") return sinucaPonteiro3dSolta(s, j, g, forca);
     s.forcaAgora = null; sinucaForcaAtualizar(s.forca ?? 0.4); sinucaPintar();
