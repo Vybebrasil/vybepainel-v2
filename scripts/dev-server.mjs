@@ -8,7 +8,7 @@ const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
 const upstream = process.env.VYBE_DEV_UPSTREAM;
 const allowWrites = process.env.VYBE_DEV_ALLOW_WRITES === '1';
-const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.webp':'image/webp', '.ogg':'audio/ogg', '.webmanifest':'application/manifest+json', '.mp4':'video/mp4' };
+const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.webp':'image/webp', '.ogg':'audio/ogg', '.webmanifest':'application/manifest+json', '.mp4':'video/mp4', '.mp3':'audio/mpeg', '.json':'application/json; charset=utf-8' };
 
 // O DIAGNOSTICO DE AUTOMACAO CHEGA POR POST E NAO ESCREVE NADA.
 //
@@ -59,8 +59,9 @@ export function createDevServer() {
       const html = await readFile(resolve(ROOT,'index.html'),'utf8');
       const publicFiles = new Set(['index.html','cadastros_governed_v2.js',
         ...[...html.matchAll(/(?:src|href)="\/([^"?]+)"/g)].map((m)=>m[1])]);
-      // As artes e os sons dos jogos (assets/jogos) e o ser do VYBES vêm pelo CSS e pelo código, não pelo index.html.
-      const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file) || file === 'assets/vybes-ser.webp';
+      // As artes e os sons dos jogos (assets/jogos), o ser do VYBES e as falas dele (assets/vybes-fala) vêm pelo CSS e
+      // pelo código, não pelo index.html.
+      const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file) || file === 'assets/vybes-ser.webp' || /^assets\/vybes-fala\/[\w-]+\.(mp3|json)$/.test(file);
       if ((!publicFiles.has(file) && !daArte) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',

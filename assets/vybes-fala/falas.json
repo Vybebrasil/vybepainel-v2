@@ -1,0 +1,46 @@
+{
+ "chamado": [
+  {
+   "arquivo": "chamado-1-329e9fed.mp3",
+   "texto": "Pois não, senhor? Quer que eu abra a central?"
+  },
+  {
+   "arquivo": "chamado-2-bea845b4.mp3",
+   "texto": "Tô aqui, senhor. Abro a central pra gente ver o dia?"
+  },
+  {
+   "arquivo": "chamado-3-593e8f00.mp3",
+   "texto": "Às ordens, senhor. Quer ver como tá o dia?"
+  }
+ ],
+ "pedido": [
+  {
+   "arquivo": "pedido-1-dc27d7e5.mp3",
+   "texto": "Deixa comigo, senhor. Toca em mim que eu abro a central já com isso."
+  },
+  {
+   "arquivo": "pedido-2-d30b2601.mp3",
+   "texto": "Já vejo isso, senhor. É só tocar em mim que eu abro a central."
+  }
+ ],
+ "toque": [
+  {
+   "arquivo": "toque-1-ca648f22.mp3",
+   "texto": "É só tocar em mim, senhor, que eu abro."
+  },
+  {
+   "arquivo": "toque-2-87bf838f.mp3",
+   "texto": "Toca aqui em mim, senhor, que a central abre na hora."
+  }
+ ],
+ "dispensa": [
+  {
+   "arquivo": "dispensa-1-bf2fc48c.mp3",
+   "texto": "Tudo bem, senhor. Tô por aqui."
+  },
+  {
+   "arquivo": "dispensa-2-1344e722.mp3",
+   "texto": "Certo, senhor. Qualquer coisa é só chamar."
+  }
+ ]
+}

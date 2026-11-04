@@ -50,7 +50,7 @@ conferirCartaoVybes(true);
 // Quem age no VYBES, na chamada do Escritório com o microfone ligado e com esta aba na frente, chama "Vybes, …": o
 // reconhecimento de voz do próprio navegador (Paulo escolheu: rápido, sem custo) ouve a frase e ela vai para a aba do
 // VYBES, que decide com as mesmas regras do microfone dela (despertar.js na central). Enquanto a sala ouve, a aba do VYBES
-// não atende o próprio microfone: nada é feito duas vezes. Aba do VYBES fechada: um cartão abre com o pedido (o navegador
+// não atende o próprio microfone: nada é feito duas vezes. Aba do VYBES fechada: o ser aparece e fala (tocar nele abre; o navegador
 // não deixa abrir aba sem um clique). O boneco do VYBES aparece ao lado de quem chamou, só na tela de quem chamou.
 // O nome como a transcrição escreve: a mesma lista que o Paulo ensinou ao VYBES (NOMES_FALADOS em chamadas.js, na
 // central). Mudou lá, muda aqui. As trocas de nomes de clientes ("copy recê") a central corrige ao receber o pedido.
@@ -76,15 +76,60 @@ function vybesEnviar(texto) {
   try { window.vybesJanela.postMessage({ tipo: 'vybes-pedido', texto }, window.vybesOrigem); } catch {}
   setTimeout(() => { removeEventListener('message', recebeu); if (!ok) vybesCartaoAbrir(texto); }, 2000);
 }
-function vybesCartaoAbrir(texto) {
-  vybesSala.cartao?.remove();
-  const c = document.createElement('div');
-  c.className = 'vybes-chamado vb-jogo-cartao'; c.setAttribute('role', 'alertdialog'); c.setAttribute('aria-label', 'Abrir o VYBES');
-  c.innerHTML = `<span class="vb-jogo-rotulo">VYBES · chamado da sala</span><p>“${safeText(texto.slice(0, 120))}”</p><div><button type="button" class="vb-jogo-botao" data-abrir>Abrir o VYBES com o pedido</button><button type="button" class="vybes-chamado-fechar" data-fechar aria-label="Fechar">×</button></div>`;
-  c.querySelector('[data-abrir]').onclick = () => { c.remove(); chooseVybesMode({ pedido: texto }); };
-  c.querySelector('[data-fechar]').onclick = () => c.remove();
-  document.body.appendChild(c); vybesSala.cartao = c;
-  setTimeout(() => { if (vybesSala.cartao === c) c.remove(); }, 45e3);
+// Central fechada (Paulo, 04/11/2026: "apareceu só a mensagem… o VYBES não deveria falar? ser prestativo?… no lugar do
+// box, o ser bonito no meio da tela"): o ser aparece no meio da tela e responde na voz do VYBES (áudios gerados da
+// SALA de core/frases.js, em assets/vybes-fala). Tocar nele abre a central, já com o pedido quando houve um; "sim"
+// lembra que é só tocar (o navegador não abre aba pela voz); "não" o dispensa. Some sozinho em 25 s.
+let vybesFalas = null;
+async function vybesFalar(tipo) {
+  try {
+    // A lista é sempre reconferida (/assets fica guardado por um ano); os áudios têm a impressão do texto no nome.
+    vybesFalas ||= await fetch('/assets/vybes-fala/falas.json', { cache: 'no-cache' }).then((r) => r.json());
+    const lista = vybesFalas[tipo] || []; if (!lista.length) return null;
+    const f = lista[Math.floor(Math.random() * lista.length)];
+    const a = new Audio('/assets/vybes-fala/' + f.arquivo);
+    vybesSala.fala?.pause(); vybesSala.fala = a;
+    // Enquanto ele fala, o que o microfone ouve é a voz dele: não vira pedido.
+    vybesSala.falandoAte = Date.now() + 6000;
+    a.onended = () => { vybesSala.falandoAte = Date.now() + 300; vybesSala.serEl?.classList.remove('falando'); };
+    vybesSala.serEl?.classList.add('falando');
+    a.play().catch(() => { vybesSala.serEl?.classList.remove('falando'); });
+    return f.texto;
+  } catch { return null; }
+}
+// O que sobra da frase sem o nome, a saudação e o chamado ("bora", "acorda"): vazio é só chamado; o resto é pedido.
+const vybesResto = (t) => String(t).replace(new RegExp(VYBES_NOME.source, 'gi'), ' ').replace(/\b(?:oi|ei|ola|olá|e a[ií]|fala|bom dia|boa tarde|boa noite|bora|acorda|vamos|simbora|pai|porra|desgra[cç]a)\b/gi, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+function vybesSerFechar() {
+  const el = vybesSala.serEl; vybesSala.serEl = null; vybesSala.pedido = '';
+  if (!el) return;
+  el.classList.add('saindo'); setTimeout(() => el.remove(), 400);
+}
+async function vybesCartaoAbrir(texto) {
+  const pedido = vybesResto(texto) ? texto : '';
+  vybesSala.pedido = pedido || vybesSala.pedido || '';
+  let el = vybesSala.serEl;
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'vybes-sala-ser'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'VYBES');
+    el.innerHTML = '<button type="button" class="vybes-sala-orbe" aria-label="Abrir a central do VYBES"><i></i><i></i></button><p class="vybes-sala-fala"></p><small>Toque no VYBES para abrir a central · Esc fecha</small>';
+    el.querySelector('button').onclick = () => { const p = vybesSala.pedido; vybesSerFechar(); chooseVybesMode(p ? { pedido: p } : undefined); };
+    document.body.appendChild(el); vybesSala.serEl = el;
+    const esc = (e) => { if (e.key === 'Escape' && vybesSala.serEl === el) { vybesSerFechar(); removeEventListener('keydown', esc); } };
+    addEventListener('keydown', esc);
+  }
+  clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(() => { if (vybesSala.serEl === el) vybesSerFechar(); }, 25e3);
+  const dito = await vybesFalar(pedido ? 'pedido' : 'chamado');
+  if (vybesSala.serEl === el) el.querySelector('.vybes-sala-fala').textContent = dito || 'Toque em mim para abrir a central.';
+}
+// Com o ser na tela, a resposta curta é com ele: "sim" (tocar), "não" (dispensa) ou um pedido novo.
+function vybesSerResponder(texto) {
+  const t = texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/^(?:nao|agora nao|deixa|depois|nada|esquece|pode fechar)\b/.test(t)) { vybesFalar('dispensa'); setTimeout(vybesSerFechar, 2500); return true; }
+  if (/^(?:sim|quero|pode|abre|abrir|claro|bora|isso|ok|beleza|manda)\b/.test(t) && t.split(' ').length <= 4) {
+    vybesFalar('toque').then((d) => { if (d && vybesSala.serEl) vybesSala.serEl.querySelector('.vybes-sala-fala').textContent = d; });
+    clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(vybesSerFechar, 25e3); return true;
+  }
+  return false;
 }
 // Ligado só quando faz sentido: quem age, na chamada, microfone ligado, esta aba na frente.
 async function vybesSalaConferir() {
@@ -101,6 +146,9 @@ function vybesSalaLigar(Rec) {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (!e.results[i].isFinal) continue;
       const texto = String(e.results[i][0]?.transcript || '').trim(); if (!texto) continue;
+      if (Date.now() < (vybesSala.falandoAte || 0)) continue; // a própria voz dele voltando pelo microfone
+      // Com o ser na tela, a resposta curta fica com ele (sem o nome também vale).
+      if (vybesSala.serEl && !VYBES_NOME.test(texto) && vybesSerResponder(texto)) continue;
       // Com o nome, ou logo depois de uma conversa com ele (a resposta "sim", "próximo"); o resto é conversa da sala.
       if (VYBES_NOME.test(texto) || Date.now() < vybesSala.conversaAte) { vybesSala.conversaAte = Date.now() + 30e3; vybesEnviar(texto); }
     }

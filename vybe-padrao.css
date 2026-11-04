@@ -1320,11 +1320,24 @@ button.ofc-p-tile:hover{transform:translateY(-2px);border-color:color-mix(in srg
    sem o desfoque a cara fica a mesma; o aviso de baixo, mais claro, escurece. */
 body.no-escritorio :is(.app-header,.header-utilities-menu,#toast,.ofc-voltar-mapa,.ofc-andares,.ofc-sala-atual,.ofc-aviso,.ofc-zoom,.ofc-dock,.ofc-onde,.ofc-mesa-card,.ofc-menu-pessoa,.office-call,#office-feedback,#office-cobrancas,#office-missoes,#office-controls){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
-/* VYBES chamado pela sala com a aba dele fechada (vybe-vybes.js): o cartão do padrão de jogo, no canto dos avisos, logo acima do #toast (z 950, embaixo a 24px), para um não cobrir o outro. */
-.vybes-chamado{position:fixed;right:24px;bottom:88px;z-index:949;width:min(340px,calc(100vw - 36px));padding:14px 16px;display:grid;gap:8px;color:#e8e9ee}
-.vybes-chamado p{margin:0;font:500 13.5px var(--mac-ui);line-height:1.4;color:#d7d9e0}
-.vybes-chamado div{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.vybes-chamado-fechar{border:0;background:none;color:#a3a9b7;font:400 20px var(--mac-ui);cursor:pointer;padding:2px 8px;border-radius:8px}
-.vybes-chamado-fechar:focus-visible,.vybes-chamado .vb-jogo-botao:focus-visible{outline:2px solid #ff8a35;outline-offset:2px}
-@media (prefers-reduced-motion:no-preference){.vybes-chamado{animation:vybesChamado .35s var(--curva,ease) both}}
-@keyframes vybesChamado{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* VYBES chamado pela sala com a central fechada (vybe-vybes.js; Paulo, 04/11/2026: "no lugar do box, o ser bonito no meio
+   da tela… que não fique grotesco"): o ser do cartão de módulos, no meio da tela, sem cobrir a sala inteira (sem fundo
+   escuro); a fala dele embaixo, numa pílula de vidro. Acima do #toast (z 950). */
+.vybes-sala-ser{position:fixed;left:50%;top:42%;z-index:951;display:grid;justify-items:center;gap:12px;transform:translate(-50%,-50%);pointer-events:none;animation:vybesSalaEntra .55s var(--curva,cubic-bezier(.22,1,.36,1)) both}
+.vybes-sala-ser::before{content:"";position:absolute;z-index:-1;inset:-70px -120px -40px;border-radius:50%;background:radial-gradient(ellipse at 50% 42%,rgba(9,7,20,.82) 0,rgba(9,7,20,.55) 42%,rgba(9,7,20,0) 72%);pointer-events:none}
+.vybes-sala-ser.saindo{animation:vybesSalaSai .4s ease forwards}
+.vybes-sala-orbe{position:relative;width:clamp(140px,17vmin,200px);aspect-ratio:1;display:grid;border:0;padding:0;background:none;cursor:pointer;pointer-events:auto;border-radius:50%}
+.vybes-sala-orbe::before{content:"";position:absolute;inset:-28%;border-radius:50%;background:radial-gradient(circle,rgba(168,150,255,.34) 0,rgba(168,150,255,.1) 45%,transparent 70%);animation:vybes-halo 3.6s ease-in-out infinite}
+.vybes-sala-orbe::after{content:"";position:absolute;inset:2%;border-radius:50%;border:1px solid rgba(190,176,255,.55);animation:vybes-onda 3.6s ease-out infinite}
+.vybes-sala-orbe i{grid-area:1/1;filter:drop-shadow(0 0 18px rgba(168,150,255,.55));border-radius:50%;background:url("/assets/vybes-ser.webp") center/contain no-repeat}
+.vybes-sala-orbe i:first-child{animation:vybes-respira 3.6s ease-in-out infinite}
+.vybes-sala-orbe i:last-child{mix-blend-mode:screen;opacity:.2;animation:vybes-gira 30s linear infinite,vybes-brilho 3.6s ease-in-out infinite}
+.vybes-sala-ser.falando .vybes-sala-orbe::after{animation-duration:1.2s}
+.vybes-sala-ser.falando .vybes-sala-orbe i:first-child{animation-duration:1.2s}
+.vybes-sala-orbe:focus-visible{outline:2px solid #ff8a35;outline-offset:6px}
+.vybes-sala-fala{margin:0;max-width:min(420px,80vw);padding:9px 16px;border-radius:999px;background:rgba(16,14,28,.86);box-shadow:inset 0 0 0 1px rgba(168,150,255,.35),0 10px 30px rgba(0,0,0,.35);color:#f1efff;font:600 14px var(--mac-ui);text-align:center;line-height:1.35}
+.vybes-sala-fala:empty{display:none}
+.vybes-sala-ser small{color:rgba(241,239,255,.62);font:500 11.5px var(--mac-ui);text-shadow:0 1px 6px rgba(0,0,0,.6)}
+@keyframes vybesSalaEntra{from{opacity:0;transform:translate(-50%,-46%) scale(.86)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes vybesSalaSai{to{opacity:0;transform:translate(-50%,-52%) scale(.92)}}
+@media (prefers-reduced-motion:reduce){.vybes-sala-ser,.vybes-sala-ser *,.vybes-sala-orbe::before,.vybes-sala-orbe::after{animation:none!important}}
