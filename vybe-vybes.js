@@ -78,7 +78,8 @@ function vybesEnviar(texto) {
 }
 // Central fechada (Paulo, 04/11/2026: "apareceu só a mensagem… o VYBES não deveria falar? ser prestativo?… no lugar do
 // box, o ser bonito no meio da tela"): o ser aparece no meio da tela e responde na voz do VYBES (áudios gerados da
-// SALA de core/frases.js, em assets/vybes-fala). Tocar nele abre a central, já com o pedido quando houve um; "sim"
+// SALA de core/frases.js, em assets/vybes-fala). Com pergunta, ele responde ali mesmo (perguntarVybes, a central pelo túnel).
+// Tocar nele abre a central, já com o pedido quando houve um; "sim"
 // lembra que é só tocar (o navegador não abre aba pela voz); "não" o dispensa. Some sozinho em 25 s.
 let vybesFalas = null;
 async function vybesFalar(tipo) {
@@ -118,8 +119,33 @@ async function vybesCartaoAbrir(texto) {
     addEventListener('keydown', esc);
   }
   clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(() => { if (vybesSala.serEl === el) vybesSerFechar(); }, 25e3);
-  const dito = await vybesFalar(pedido ? 'pedido' : 'chamado');
-  if (vybesSala.serEl === el) el.querySelector('.vybes-sala-fala').textContent = dito || 'Toque em mim para abrir a central.';
+  const mostra = (t) => { if (vybesSala.serEl === el) el.querySelector('.vybes-sala-fala').textContent = t; };
+  if (!pedido) { mostra(await vybesFalar('chamado') || 'Toque em mim para abrir a central.'); return; }
+  // Com pergunta, ele responde ali mesmo (Paulo, 04/11/2026): "deixa eu ver", a central responde pela sala, e a resposta
+  // sai na voz dela. Sem resposta, o convite de sempre: tocar nele abre a central já com a pergunta.
+  mostra(await vybesFalar('olhando') || 'Deixa eu ver…'); el.classList.add('pensando');
+  const vez = (vybesSala.pergunta = (vybesSala.pergunta || 0) + 1);
+  try {
+    const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ etapa: 'perguntar', texto: pedido }) });
+    const d = await r.json().catch(() => ({}));
+    if (vez !== vybesSala.pergunta || vybesSala.serEl !== el) return;
+    el.classList.remove('pensando');
+    if (!r.ok || !d.fala) throw new Error();
+    mostra(d.fala);
+    clearTimeout(vybesSala.serTempo); vybesSala.serTempo = setTimeout(() => { if (vybesSala.serEl === el) vybesSerFechar(); }, 30e3);
+    if (d.audio) {
+      const bytes = Uint8Array.from(atob(d.audio), (c) => c.charCodeAt(0)), url = URL.createObjectURL(new Blob([bytes], { type: d.tipo || 'audio/mpeg' }));
+      const a = new Audio(url); vybesSala.fala?.pause(); vybesSala.fala = a;
+      vybesSala.falandoAte = Date.now() + 30000; el.classList.add('falando');
+      a.onended = () => { vybesSala.falandoAte = Date.now() + 300; el.classList.remove('falando'); URL.revokeObjectURL(url); vybesSala.conversaAte = Date.now() + 30e3; };
+      a.onloadedmetadata = () => { vybesSala.falandoAte = Date.now() + (a.duration || 20) * 1000 + 300; };
+      a.play().catch(() => el.classList.remove('falando'));
+    }
+  } catch {
+    if (vez !== vybesSala.pergunta || vybesSala.serEl !== el) return;
+    el.classList.remove('pensando');
+    mostra(await vybesFalar('pedido') || 'Toque em mim que eu abro a central com isso.');
+  }
 }
 // Com o ser na tela, a resposta curta é com ele: "sim" (tocar), "não" (dispensa) ou um pedido novo.
 function vybesSerResponder(texto) {

@@ -2,9 +2,9 @@
 // A central do VYBES roda no PC do Paulo (o ser, a voz, o WhatsApp, o modelo local) e fica acessível por um túnel.
 // O bot publica aqui o endereço atual do túnel (consulta `vybes_publicar`); o cartão VYBES da tela de módulos pede um crachá
 // (`entradaVybes`) e abre a central com ele. O crachá diz quem é e se pode agir; a central confere a assinatura.
-// - Quem age (vybe_vybes_operadores: Paulo, Vinícius, Ewerton L., Deivid): as ações que pedem na central chegam pelo
-//   bot (consulta `vybes_acao`) e passam pelo MESMO executor das ações do assistente, com a permissão da pessoa.
-// - O resto da equipe só vê (a central não aceita pedido de quem não age).
+// - Quem age: todos da equipe que entraram no painel (Paulo, 04/11/2026: "todos podem agir"). As ações pedidas na central
+//   chegam pelo bot (consulta `vybes_acao`) e passam pelo MESMO executor das ações do assistente, com a permissão da
+//   pessoa. A tabela vybe_vybes_operadores (dos donos) ficou guardada, sem decidir mais nada.
 // Migração: migrations/2026-11-02-vybes.sql.
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
@@ -45,12 +45,12 @@ export async function guardarEstadoVybes(sql, estado) {
   return { guardado: true };
 }
 
+// Quem age (Paulo, 04/11/2026: "os comandos funcionam com todos e todos podem agir"): qualquer pessoa ativa da equipe que
+// entrou no painel (convidado e serviço, não). A tabela vybe_vybes_operadores fica guardada, sem uso para decidir.
 export async function podeAgirNoVybes(sql, quem) {
   const id = Number(quem?.pessoa?.id);
   if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) return false;
-  await garantirTabelasVybes(sql);
-  const [r] = await sql`SELECT 1 AS ok FROM vybe_vybes_operadores o JOIN vybe_pessoas p ON p.id = o.pessoa_id
-    WHERE o.pessoa_id = ${id} AND p.ativo IS TRUE`;
+  const [r] = await sql`SELECT 1 AS ok FROM vybe_pessoas WHERE id = ${id} AND ativo IS TRUE`;
   return Boolean(r?.ok);
 }
 
@@ -95,17 +95,38 @@ export async function entradaVybes(sql, quem, { env = process.env, agora = Date.
 // Ação pedida na central por quem entrou pelo Vybe OS: só quem age; o resto é o executor das ações do assistente
 // (que confere a permissão da pessoa em cada ação, como no WhatsApp). preparar → resumo + código; confirmar → executa.
 export async function acaoVybes(sql, quem, corpo, { segredo = process.env.VYBE_AI_LINK_SECRET, executar } = {}) {
-  if (!(await podeAgirNoVybes(sql, quem))) throw erro('No VYBES, só Paulo, Vinícius, Ewerton e Deivid tomam ações. Você pode ver tudo.', 403);
+  if (!(await podeAgirNoVybes(sql, quem))) throw erro('Entre no painel com a sua conta da equipe para pedir ações ao VYBES.', 403);
   const pessoaId = Number(quem.pessoa.id);
   if (corpo?.etapa === 'preparar') return prepararAcao(sql, pessoaId, corpo.pedido, segredo);
   if (corpo?.etapa === 'confirmar') return confirmarAcao(sql, pessoaId, corpo.codigo, segredo, executar ? { executar } : {});
   throw erro('Informe a etapa: preparar ou confirmar.', 400);
 }
 
+// O VYBES responde na sala do Escritório (Paulo, 04/11/2026): a pergunta vai à central pelo túnel, com o crachá recém-
+// assinado de quem chamou no cabeçalho (vale 2 min e só na rota da sala, na central). Volta a fala curta e o áudio na voz
+// da central (base64, até ~300 KB). A central decide o que responder com as permissões dessa pessoa.
+export async function perguntarVybes(sql, quem, texto, { env = process.env, agora = Date.now(), fetchImpl = globalThis.fetch } = {}) {
+  const t = String(texto || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  if (!t) throw erro('Diga a pergunta.', 400);
+  const { url } = await entradaVybes(sql, quem, { env, agora });
+  const u = new URL(url), cracha = u.searchParams.get('t');
+  let r;
+  try {
+    r = await fetchImpl(`${u.origin}/api/cosmos/sala`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Vybes-Cracha': cracha },
+      body: JSON.stringify({ texto: t }), signal: AbortSignal.timeout(28000) });
+  } catch { throw erro('O VYBES não respondeu agora.', 504); }
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 429) return { fala: String(d.fala || 'Tô terminando outra conversa. Já te respondo.').slice(0, 400), audio: null, ocupado: true };
+  if (!r.ok) throw erro(r.status === 403 ? 'Sua conta não pode perguntar ao VYBES pela sala.' : 'O VYBES não respondeu agora.', r.status === 403 ? 403 : 502);
+  const audio = typeof d.audio === 'string' && /^[A-Za-z0-9+/=]+$/.test(d.audio) && d.audio.length <= 400000 ? d.audio : null;
+  return { fala: String(d.fala || '').slice(0, 600), audio, tipo: /^audio\/(?:mpeg|ogg|wav)$/.test(String(d.tipo || '')) ? d.tipo : 'audio/mpeg' };
+}
+
 export async function areaVybes(req, res, quem, sql) {
   try {
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
+    if (req.method === 'POST' && req.body?.etapa === 'perguntar') return res.status(200).json({ ok: true, ...(await perguntarVybes(sql, quem, req.body?.texto)) });
     return res.status(405).json({ error: 'Use o cartão VYBES para abrir a central.' });
   } catch (e) {
     const status = e.status || (e instanceof TypeError ? 400 : 500);

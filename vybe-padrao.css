@@ -1333,6 +1333,8 @@ body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
 .vybes-sala-orbe i:first-child{animation:vybes-respira 3.6s ease-in-out infinite}
 .vybes-sala-orbe i:last-child{mix-blend-mode:screen;opacity:.2;animation:vybes-gira 30s linear infinite,vybes-brilho 3.6s ease-in-out infinite}
 .vybes-sala-ser.falando .vybes-sala-orbe::after{animation-duration:1.2s}
+/* Pensando (a central está respondendo): a fita gira mais rápido. */
+.vybes-sala-ser.pensando .vybes-sala-orbe i:last-child{opacity:.45;animation-duration:5s,1.2s}
 .vybes-sala-ser.falando .vybes-sala-orbe i:first-child{animation-duration:1.2s}
 .vybes-sala-orbe:focus-visible{outline:2px solid #ff8a35;outline-offset:6px}
 .vybes-sala-fala{margin:0;max-width:min(420px,80vw);padding:9px 16px;border-radius:999px;background:rgba(16,14,28,.86);box-shadow:inset 0 0 0 1px rgba(168,150,255,.35),0 10px 30px rgba(0,0,0,.35);color:#f1efff;font:600 14px var(--mac-ui);text-align:center;line-height:1.35}
