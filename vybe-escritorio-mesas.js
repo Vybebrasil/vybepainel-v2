@@ -129,7 +129,9 @@ async function lanceMesaEscritorio(chave, pedido, botao) {
     if (r.jogo.estado === "fim") { xadrezAcabou(r.jogo); seguirProximaMesa(chave, r.jogo); }
   } catch (e) {
     s.sel = null;
-    escritorioAviso(e.message);
+    // A faixa de aviso do escritório fica atrás da mesa aberta: o jogo que tem
+    // aviso próprio mostra na tela dele (Paulo, 04/11/2026: "clico e não vai").
+    (ESCRITORIO_MESAS[chave]?.aviso || escritorioAviso)(e.message);
     recarregarJogoMesa(chave);
   } finally { s.enviando = false; }
   desenharJogoMesa(chave);

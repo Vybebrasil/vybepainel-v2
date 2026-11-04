@@ -26321,3 +26321,8 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 #workflow-modal .snc-jogo-menu .snc-bar{min-width:0}
 #workflow-modal .snc-jogo-menu .snc-bar-dados{min-width:0;overflow-wrap:anywhere}
 }
+/* Aviso dentro da mesa (por que a tacada não saiu, erro do servidor). */
+.ofc-snc-jogo .snc-arena .snc-aviso{position:absolute;left:50%;top:42%;z-index:6;margin:0;padding:12px 26px;transform:translate(-50%,-50%) scale(.96);opacity:0;pointer-events:none;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);background:#0a0c12e6;box-shadow:inset 0 0 0 1px #ff8a3d88;color:#fff;font:800 italic 14px var(--snc-f);letter-spacing:.5px;text-align:center;transition:opacity .18s,transform .18s}
+.ofc-snc-jogo .snc-arena .snc-aviso.ver{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-tacar[aria-disabled="true"]{filter:grayscale(1) brightness(.55);cursor:default}
+.ofc-snc-jogo .snc-tacar[aria-disabled="true"]{opacity:.55}
