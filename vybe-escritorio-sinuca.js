@@ -247,7 +247,7 @@ function desenharSinuca(j, s) {
   if (s.vistoJogo !== j.id) { s.vistoJogo = j.id; s.vistoN = nMesa; s.anim = null; }
   else if (nMesa > s.vistoN) {
     const novas = (m.recentes || []).filter((t) => t.n > s.vistoN && !s.anim?.fila.some((x) => x.n === t.n));
-    if (novas.length) { if (s.anim) s.anim.fila.push(...novas); else s.anim = { fila: novas, k: 0, inicio: 0 }; }
+    if (novas.length) { if (s.anim) s.anim.fila.push(...novas); else s.anim = { fila: novas, k: 0, inicio: 0, criada: performance.now() }; }
     const comTrilha = novas.filter((t) => t.trilhas || t.quadros?.length);
     if (comTrilha.length) s.replay = comTrilha[comTrilha.length - 1];
     s.vistoN = nMesa;
@@ -292,8 +292,10 @@ function desenharSinuca(j, s) {
   setTimeout(() => sinucaPintar());
   return {
     status,
-    mesa: `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>
-<div class="snc-arena">${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
+    // HUD de jogo (Paulo, 04/11/2026: "mais cara de jogo e menos dashboard com
+    // botão de balão"; o moodboard A): a mesa ocupa a tela e o placar, a força,
+    // o efeito e o TACAR flutuam por cima, nas bordas, sem cartões.
+    mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}"><div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
  onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}</div>${bandeja}`,
     painel: sinucaPainelHtml(j, s, q, ultimo),
   };
@@ -333,7 +335,7 @@ function sinucaArrastoForca(ev,c,g) {
 function sinucaPonteiro(ev,tipo) {
   const s=sinucaEstado(),j=s.jogo,c=ev.currentTarget;
   if(sinuca3dAtivo()&&!sinucaPondo(j,s))return sinucaPonteiro3d(ev,tipo);
-  if(s.anim&&!s.anim.lento&&s.anim.inicio&&performance.now()-s.anim.inicio>sinucaAnimDuracao(s.anim.fila[s.anim.k]||{},j)+1500){s.anim=null;sinucaPintar();}
+  sinucaAnimVencida(s,j);
   if(s.anim&&tipo==='clique')return sinucaPular(s,j);
   if(!sinucaMinhaVez(j)||s.anim||s.enviando)return;
   if(tipo==='down'&&ev.button!==undefined&&ev.button!==0)return;
@@ -471,7 +473,7 @@ function sinucaAvisoLevantado(graus) {
 function sinucaRever() {
   const s = sinucaEstado();
   if (!s.replay || s.anim || s.enviando || s.gesto) return;
-  s.anim = { fila: [{ ...s.replay }], k: 0, inicio: 0, lento: 0.5 };
+  s.anim = { fila: [{ ...s.replay }], k: 0, inicio: 0, lento: 0.5, criada: performance.now() };
   desenharJogoMesa("snc");
 }
 // Roda da mira fina (o "dial" dos jogos de sinuca): arrastar para os lados gira
@@ -630,8 +632,23 @@ function sinucaElevacaoMinima(j, branca, ang) {
   if (atras.s > 0) precisa(atras.s * Math.hypot(Math.cos(ang), Math.sin(ang) * MY) + RB, SINUCA_TABELA_ALTURA);
   return Math.min(60, Math.ceil(graus / 5) * 5);
 }
+// Animação vencida pelo relógio (Paulo, 04/11/2026: "fica a % mas não vai,
+// clico pra tacar e não vai"): ela só anda enquanto a mesa é pintada; se a tela
+// foi redesenhada ou a aba ficou escondida no meio, ficava "rodando" para sempre
+// e toda tacada era descartada calada. Passado o tempo da fila inteira (mais
+// folga), a mesa volta para o estado de verdade.
+function sinucaAnimVencida(s, j) {
+  const a = s.anim;
+  if (!a || !j) return false;
+  const total = a.fila.reduce((soma, t) => soma + sinucaAnimDuracao(t, j), 0) / (a.lento || 1);
+  if (performance.now() - (a.criada || performance.now()) < total + 3000) return false;
+  s.anim = null; sinucaPintar(); desenharJogoMesa("snc");
+  return true;
+}
+document.addEventListener?.("visibilitychange", () => { if (!document.hidden) { const s = sinucaEstado(); if (s?.anim) { sinucaAnimVencida(s, s.jogo); sinucaPintar(); } } });
 function tacarSinuca(gesto) {
   const s = sinucaEstado(), j = s.jogo;
+  sinucaAnimVencida(s, j);
   if (!sinucaMinhaVez(j) || s.anim || s.enviando || (s.gesto&&!gesto)) return;
   if(gesto&&(gesto.jogoId!==j.id||gesto.n!==j.n||gesto.lado!==j.eu))return;
   const angulo=gesto?.angulo??s.angulo??0,forca=gesto?.forca??s.forca??0.4;
@@ -855,8 +872,6 @@ function sinucaPintar(agora) {
   sinucaMiraPintar(g, j, branca, dx, dy, R, P);
   const meuTaco = sinucaTacoModelo(j, j.eu);
   sinucaTacoPintar(g, branca, dx, dy, (R + 0.5 + 10 * (s.forcaAgora ?? 0)) * P, P, meuTaco, s.forcaAgora ?? 0);
-  // Taco nobre: o reflexo corre e a ponta pulsa, a uns 24 quadros por segundo.
-  if (SINUCA_TACOS[meuTaco]?.reflexo && !s.tacoQuadro && !document.hidden) s.tacoQuadro = setTimeout(() => { s.tacoQuadro = null; requestAnimationFrame(() => sinucaPintar()); }, 42);
   sinucaSobTaco(g, j.mesa.bolas, branca, dx, dy, (R + 0.5 + 10 * (s.forcaAgora ?? 0)) * P, R);
 }
 // Mira (Paulo, 28/10/2026: "tão reclamando que tá muito difícil mirar... coloca
@@ -1062,17 +1077,33 @@ function sinucaSobTaco(g, bolas, branca, dx, dy, recuo, R) {
   });
   g.restore();
 }
-// Coleção de tacos pelo ranking da sinuca (Paulo, 04/11/2026: "os tacos bem
-// feitos, detalhados", "coleção de tacos de cada um por ranking"). A coleção de
-// cada um vem da ficha do bar (fichaSinuca, no servidor): ranking e feitos; o
-// Baianinho joga com o Lenda. Cada taco tem as madeiras, os bicos (as incrustações em ponta), os
-// anéis, a empunhadura e o brilho dele.
+// Os tacos da coleção (Paulo, 04/11/2026: "os tacos são bem feitos nos detalhes
+// de entalhamento... cabos diferentes... e não um brilho branco rolando no
+// taco"): a anatomia de um taco de verdade, sem luz animada. Da ponta ao cabo:
+// sola de couro com giz, virola, haste de maple, junta, antebraço com as pontas
+// incrustadas (cada ponta com os seus filetes), anéis, empunhadura (linho,
+// couro ou lagarto), luva com incrustações e o pé. `brilho` é só a cor do anel
+// do impacto na mesa.
 const SINUCA_TACOS = {
-  casa:   { nome: "Taco da Casa", requisito: "De todo mundo", haste: "#e6cf9c", bico: "#5a321b", ponta: null,      anel: "#c9c2b0", punho: "#1e1a17", trama: "#3a332c", sola: "#4a2814", brilho: null },
-  bronze: { nome: "Bronze",       requisito: "Top 8 do ranking ou 5 vitórias", haste: "#ead3a0", bico: "#6e2f17", ponta: "#e8d2a2", anel: "#b0793f", punho: "#5b1d18", trama: "#8a3a2c", sola: "#6e2f17", brilho: "#e0954a" },
-  prata:  { nome: "Prata",        requisito: "Top 3 ou derrubar o Tio", haste: "#eed8a8", bico: "#17130f", ponta: "#dfe4ea", anel: "#d9dee5", punho: "#2b2d31", trama: "#6b7079", sola: "#17130f", brilho: "#cfe3ff" },
-  ouro:   { nome: "Ouro",         requisito: "1º do ranking ou 25 vitórias", haste: "#f0dbac", bico: "#120e0b", ponta: "#e8b64a", anel: "#f2c35a", punho: "#141210", trama: "#a8842f", sola: "#120e0b", brilho: "#ffd36a", reflexo: true },
-  lenda:  { nome: "Lenda",        requisito: "Derrubar o Baianinho", haste: "#f2ddb0", bico: "#1a0f22", ponta: "#ff8a1f", anel: "#f2c35a", punho: "#120b16", trama: "#ff8a1f", sola: "#1a0f22", brilho: "#ff8a1f", reflexo: true },
+  casa:   { nome: "Taco da Casa", requisito: "De todo mundo", brilho: null,
+    haste: "#e6cf9c", madeira: "#9a6a38", veio: "#6e4520", pontas: null, anel: ["#1a1714"], junta: "#1a1714",
+    pega: { tipo: "liso", cor: "#2a1d14" }, luva: "#2a1d14", enfeite: null, pe: "#141210" },
+  bronze: { nome: "Bronze", requisito: "Top 8 do ranking ou 5 vitórias", brilho: "#e0954a",
+    haste: "#ead3a0", madeira: "#5a2a17", veio: "#3a170b", pontas: { cor: "#e8cf9c", filetes: ["#111", "#c97a3a", "#111"] },
+    anel: ["#111", "#efe6d2"], junta: "#8c5a2e", pega: { tipo: "couro", cor: "#5b1d18", ponto: "#2a0c0a" }, luva: "#5a2a17",
+    enfeite: { tipo: "diamante", cor: "#e8cf9c", borda: "#111" }, pe: "#120e0b" },
+  prata:  { nome: "Prata", requisito: "Top 3 ou derrubar o Tio", brilho: "#cfe3ff",
+    haste: "#eed8a8", madeira: "#17130f", veio: "#2c241c", pontas: { cor: "#efe2c4", filetes: ["#f4f4f4", "#2b5fa8", "#f4f4f4"] },
+    anel: ["#2b5fa8", "#f4f4f4"], junta: "#a9aeb6", pega: { tipo: "linho", cor: "#4b4f57", ponto: "#22252a" }, luva: "#17130f",
+    enfeite: { tipo: "oval", cor: "#c9ced6", borda: "#2b5fa8" }, pe: "#0e0c0a" },
+  ouro:   { nome: "Ouro", requisito: "1º do ranking ou 25 vitórias", brilho: "#ffd36a",
+    haste: "#f0dbac", madeira: "#7a3b1c", veio: "#4a1f0c", pontas: { cor: "#120e0b", filetes: ["#d9a640", "#111", "#efe6d2"] },
+    anel: ["#d9a640", "#111"], junta: "#efe6d2", pega: { tipo: "lagarto", cor: "#15120f", ponto: "#3a3128" }, luva: "#7a3b1c",
+    enfeite: { tipo: "diamante", cor: "#efe6d2", borda: "#d9a640", pingo: "#d9a640" }, pe: "#efe6d2" },
+  lenda:  { nome: "Lenda", requisito: "Derrubar o Baianinho", brilho: "#ff8a1f",
+    haste: "#f2ddb0", madeira: "#120b16", veio: "#24182a", entalhe: "#c8742a", pontas: { cor: "abalone", filetes: ["#ff8a1f", "#111", "#d9a640"] },
+    anel: ["#ff8a1f", "#111", "#d9a640"], junta: "#120b16", pega: { tipo: "couro", cor: "#1c120c", ponto: "#ff8a1f" }, luva: "#120b16",
+    enfeite: { tipo: "oval", cor: "abalone", borda: "#d9a640" }, pe: "#120b16" },
 };
 const SINUCA_TACO_POSICAO = (pos) => (pos === 1 ? "ouro" : pos <= 3 ? "prata" : pos <= 8 ? "bronze" : "casa");
 function sinucaTacoModelo(j, lado) {
@@ -1097,56 +1128,116 @@ function sinucaTacoPintar(g, branca, dx, dy, recuo, P, modelo = "casa", forca = 
   sinucaTacoDesenhar(g, 48 * P, P, modelo, forca, true);
   g.restore();
 }
+// Sorteio fixo por taco (o veio é sempre o mesmo desenho).
+const sinucaTacoSorte = (semente) => () => { semente = (semente * 16807) % 2147483647; return semente / 2147483647; };
 // O desenho do taco, com a ponta na origem e o cabo para +x (mesa e perfil).
-function sinucaTacoDesenhar(g, L, P, modelo = "casa", forca = 0, sombra = true) {
+// `textura`: a volta inteira do taco num retângulo L × P (o 3D enrola no
+// cilindro), sem a sombra e o volume pintados, que a luz da cena já dá.
+function sinucaTacoDesenhar(g, L, P, modelo = "casa", forca = 0, sombra = true, textura = false) {
   const m = SINUCA_TACOS[modelo] || SINUCA_TACOS.casa, traco = typeof SINUCA_TRACO === "number" ? SINUCA_TRACO : 1;
-  const larg = (t) => P * (0.36 + 0.62 * Math.min(1, t * 1.15));
+  const larg = textura ? () => P : (t) => P * (0.36 + 0.62 * Math.min(1, t * 1.15));
   const contorno = (t0, t1) => { g.beginPath(); g.moveTo(t0 * L, -larg(t0) / 2); g.lineTo(t1 * L, -larg(t1) / 2); g.lineTo(t1 * L, larg(t1) / 2); g.lineTo(t0 * L, larg(t0) / 2); g.closePath(); };
-  if (sombra) { g.save(); g.shadowColor = "rgba(0,0,0,.5)"; g.shadowBlur = 7 * traco; g.shadowOffsetX = 2 * traco; g.shadowOffsetY = 6 * traco; contorno(0, 1); g.fillStyle = "#000"; g.fill(); g.restore(); }
+  // Um enfeite no ângulo `a` da volta: no 3D vai na sua altura do retângulo; de
+  // cima, só a metade de cima aparece, apertada para as bordas (a curva do taco).
+  const volta = (t, a) => { const w = larg(t) / 2; if (textura) return { y: ((((a / (2 * Math.PI)) % 1) + 1) % 1 - 0.5) * 2 * w, k: 1 }; const c = Math.cos(a); return c <= 0.05 ? null : { y: Math.sin(a) * w, k: c }; };
+  const abalone = (x0, x1) => { const gr = g.createLinearGradient(x0, -P / 2, x1, P / 2); gr.addColorStop(0, "#2e8f8a"); gr.addColorStop(0.3, "#6a4fa3"); gr.addColorStop(0.55, "#2f6fae"); gr.addColorStop(0.8, "#c87a3a"); gr.addColorStop(1, "#2e8f8a"); return gr; };
+  const cor = (c, x0, x1) => (c === "abalone" ? abalone(x0, x1) : c);
+  if (sombra && !textura) { g.save(); g.shadowColor = "rgba(0,0,0,.5)"; g.shadowBlur = 7 * traco; g.shadowOffsetX = 2 * traco; g.shadowOffsetY = 6 * traco; contorno(0, 1); g.fillStyle = "#000"; g.fill(); g.restore(); }
   const volume = (t0, t1) => {
+    if (textura) return;
     const w = larg((t0 + t1) / 2) / 2, v = g.createLinearGradient(0, -w, 0, w);
-    v.addColorStop(0, "rgba(0,0,0,.42)"); v.addColorStop(0.22, "rgba(255,255,255,.30)"); v.addColorStop(0.34, "rgba(255,255,255,.06)"); v.addColorStop(0.75, "rgba(0,0,0,.12)"); v.addColorStop(1, "rgba(0,0,0,.55)");
+    v.addColorStop(0, "rgba(0,0,0,.45)"); v.addColorStop(0.24, "rgba(255,255,255,.16)"); v.addColorStop(0.4, "rgba(255,255,255,.03)"); v.addColorStop(0.75, "rgba(0,0,0,.14)"); v.addColorStop(1, "rgba(0,0,0,.58)");
     contorno(t0, t1); g.fillStyle = v; g.fill();
   };
-  const parte = (t0, t1, cor) => { contorno(t0, t1); g.fillStyle = cor; g.fill(); volume(t0, t1); };
-  const metal = (t0, t1, cor) => { parte(t0, t1, cor); contorno(t0, t1); g.fillStyle = "rgba(255,255,255,.18)"; g.fill(); };
-  parte(0, 0.012, "#2f7fd8");                       // ponteira com giz
-  g.fillStyle = "rgba(190,225,255,.55)"; for (const [a, b] of [[0.003, -0.1], [0.007, 0.12], [0.01, -0.02]]) { g.beginPath(); g.arc(a * L, b * P, P * 0.05, 0, Math.PI * 2); g.fill(); }
-  parte(0.012, 0.03, "#f3eee0");                    // virola
-  parte(0.03, 0.54, m.haste);                       // haste de maple, com veio fino
-  g.save(); contorno(0.03, 0.54); g.clip(); g.strokeStyle = "rgba(120,80,30,.12)"; g.lineWidth = Math.max(1, P * 0.03);
-  for (const k of [-0.18, 0.05, 0.21]) { g.beginPath(); g.moveTo(0.03 * L, k * P * 0.5); g.lineTo(0.54 * L, k * P * 0.9); g.stroke(); }
-  g.restore();
-  metal(0.54, 0.552, m.anel); parte(0.552, 0.556, "#111"); metal(0.556, 0.566, m.anel); // junta
-  parte(0.566, 0.78, m.bico);                       // bico e as pontas incrustadas
-  if (m.ponta) {
-    g.save(); contorno(0.566, 0.78); g.clip();
-    for (const lado of [-1, 0, 1]) {
-      const y = lado * larg(0.7) * 0.42, w = larg(0.78) * (lado ? 0.32 : 0.42);
-      g.beginPath(); g.moveTo(0.6 * L, y * 0.4); g.lineTo(0.78 * L, y - w / 2); g.lineTo(0.78 * L, y + w / 2); g.closePath();
-      g.fillStyle = m.ponta; g.fill(); g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = Math.max(1, P * 0.025); g.stroke();
+  const recorte = (t0, t1, fn) => { g.save(); contorno(t0, t1); g.clip(); fn(); g.restore(); };
+  const parte = (t0, t1, c) => { contorno(t0, t1); g.fillStyle = cor(c, t0 * L, t1 * L); g.fill(); };
+  // Veio da madeira: linhas compridas que ondulam, sempre o mesmo por taco.
+  const veio = (t0, t1, c, n, sem) => recorte(t0, t1, () => {
+    const r = sinucaTacoSorte(sem); g.strokeStyle = c; g.lineCap = "round";
+    for (let i = 0; i < n; i++) {
+      const y0 = (r() - 0.5) * P, amp = P * (0.04 + r() * 0.08), fase = r() * 6, onda = 2 + r() * 5;
+      g.globalAlpha = 0.18 + r() * 0.3; g.lineWidth = Math.max(0.6, P * (0.012 + r() * 0.025)); g.beginPath();
+      for (let k = 0; k <= 24; k++) { const t = t0 + (t1 - t0) * k / 24; g[k ? "lineTo" : "moveTo"](t * L, y0 + Math.sin(fase + onda * k / 24 * Math.PI) * amp); }
+      g.stroke();
     }
-    g.restore(); volume(0.566, 0.78);
-  }
-  metal(0.78, 0.786, m.anel);
-  parte(0.786, 0.92, m.punho);                      // empunhadura trançada
-  g.save(); contorno(0.786, 0.92); g.clip(); g.strokeStyle = m.trama; g.globalAlpha = 0.55; g.lineWidth = Math.max(1, P * 0.035);
-  for (let t = 0.786; t < 0.92; t += 0.006) { const w = larg(t); g.beginPath(); g.moveTo(t * L, -w / 2); g.lineTo((t + 0.008) * L, w / 2); g.stroke(); g.beginPath(); g.moveTo((t + 0.008) * L, -w / 2); g.lineTo(t * L, w / 2); g.stroke(); }
-  g.restore(); volume(0.786, 0.92);
-  metal(0.92, 0.926, m.anel);
-  parte(0.926, 0.99, m.sola);
-  if (m.ponta) { const t = 0.958, w = larg(t) * 0.22; g.beginPath(); g.moveTo(t * L - w * 1.4, 0); g.lineTo(t * L, -w); g.lineTo(t * L + w * 1.4, 0); g.lineTo(t * L, w); g.closePath(); g.fillStyle = m.ponta; g.fill(); }
-  parte(0.99, 1, "#0d0d0d");                        // sola de borracha
-  if (m.reflexo) {                                  // reflexo que corre pelo taco nobre
-    const k = (performance.now() / 1800) % 1.6 - 0.3, r = g.createLinearGradient((k - 0.08) * L, 0, (k + 0.08) * L, 0);
-    r.addColorStop(0, "rgba(255,255,255,0)"); r.addColorStop(0.5, "rgba(255,255,255,.38)"); r.addColorStop(1, "rgba(255,255,255,0)");
-    g.save(); contorno(0, 1); g.clip(); g.globalCompositeOperation = "lighter"; g.fillStyle = r; g.fillRect(0, -P, L, 2 * P); g.restore();
-  }
-  if (forca > 0.02) {                               // brilho na ponta que cresce com a força
-    const raio = P * (0.8 + 2.6 * forca), a = Math.min(0.85, 0.18 + 0.6 * forca ** 1.4) * (0.85 + 0.15 * Math.sin(performance.now() / 90));
-    const rg = g.createRadialGradient(0, 0, 0, 0, 0, raio); rg.addColorStop(0, m.brilho || "#bfe3ff"); rg.addColorStop(1, "rgba(0,0,0,0)");
-    g.save(); g.globalCompositeOperation = "lighter"; g.globalAlpha = a; g.fillStyle = rg; g.beginPath(); g.arc(0, 0, raio, 0, Math.PI * 2); g.fill(); g.restore();
-  }
+    g.globalAlpha = 1;
+  });
+  // Anel pontilhado (os quadradinhos da junta e do cabo), ou liso.
+  const anel = (t0, t1, cores) => {
+    parte(t0, t1, cores[0]);
+    if (cores.length > 1) recorte(t0, t1, () => { const n = textura ? 24 : 9, w = larg(t1); for (let i = 0; i < n; i++) { g.fillStyle = cores[1 + (i % (cores.length - 1))]; const y = textura ? -w / 2 + (i + 0.5) * w / n : (Math.sin(-Math.PI / 2 + Math.PI * (i + 0.5) / n)) * w / 2; g.fillRect(t0 * L + (t1 - t0) * L * 0.2, y - w / n * 0.32, (t1 - t0) * L * 0.6, w / n * 0.64); } });
+    volume(t0, t1);
+  };
+  // Pontas incrustadas: quatro triângulos em volta do antebraço, cada um com
+  // os filetes por fora (as lâminas coloridas que o marceneiro cola uma a uma).
+  const pontas = (t0, t1, p) => recorte(t0, t1, () => {
+    for (const a of [1, 3, 5, 7].map((k) => k * Math.PI / 4)) {
+      const v = volta(t1, a); if (!v) continue;
+      const base = larg(t1) * (textura ? 0.16 : 0.2) * Math.max(0.6, v.k), xs = t0 * L + (t1 - t0) * L * 0.08, xe = t1 * L;
+      const camadas = [...p.filetes, null];
+      camadas.forEach((c, i) => {
+        const enc = (camadas.length - 1 - i) * P * 0.03;
+        g.beginPath(); g.moveTo(xs + enc * 3, v.y); g.lineTo(xe, v.y - base + enc); g.lineTo(xe, v.y + base - enc); g.closePath();
+        g.fillStyle = c ? c : cor(p.cor, xs, xe); g.fill();
+      });
+      if (textura && Math.abs(v.y) > P / 2 - base) for (const d of [-P, P]) { g.beginPath(); g.moveTo(xs, v.y + d); g.lineTo(xe, v.y + d - base); g.lineTo(xe, v.y + d + base); g.closePath(); g.fillStyle = cor(p.cor, xs, xe); g.fill(); }
+    }
+  });
+  // Entalhe (Lenda): arabescos cavados na madeira escura, com o fundo dourado.
+  const entalhe = (t0, t1, c) => recorte(t0, t1, () => {
+    g.strokeStyle = c; g.lineWidth = Math.max(0.7, P * 0.03); g.globalAlpha = 0.75; const n = 5, passo = (t1 - t0) * L / n;
+    for (let i = 0; i < n; i++) for (const lado of [-1, 1]) {
+      const x = t0 * L + passo * (i + 0.5), y = lado * P * 0.16;
+      g.beginPath(); g.moveTo(x - passo * 0.45, y); g.bezierCurveTo(x - passo * 0.2, y - lado * P * 0.22, x + passo * 0.2, y + lado * P * 0.22, x + passo * 0.45, y); g.stroke();
+      g.beginPath(); g.arc(x, y, P * 0.05, 0, Math.PI * 2); g.stroke();
+    }
+    g.globalAlpha = 1;
+  });
+  // Empunhadura: linho (fio cruzado fino), couro (liso com pesponto) ou lagarto (escamas).
+  const pega = (t0, t1, p) => {
+    parte(t0, t1, p.cor);
+    recorte(t0, t1, () => {
+      const w = larg(t1), x0 = t0 * L, x1 = t1 * L;
+      if (p.tipo === "linho") { g.strokeStyle = p.ponto; g.globalAlpha = 0.7; g.lineWidth = Math.max(0.6, P * 0.02); for (let x = x0; x < x1; x += P * 0.07) { g.beginPath(); g.moveTo(x, -w / 2); g.lineTo(x + P * 0.06, w / 2); g.stroke(); } }
+      if (p.tipo === "couro") { g.strokeStyle = p.ponto; g.globalAlpha = 0.85; g.lineWidth = Math.max(0.6, P * 0.025); g.setLineDash([P * 0.06, P * 0.05]); for (const y of textura ? [-w * 0.45, w * 0.05] : [-w * 0.38, w * 0.38]) { g.beginPath(); g.moveTo(x0 + P * 0.1, y); g.lineTo(x1 - P * 0.1, y); g.stroke(); } g.setLineDash([]); }
+      if (p.tipo === "lagarto") { g.strokeStyle = p.ponto; g.globalAlpha = 0.8; g.lineWidth = Math.max(0.6, P * 0.02); const e = P * 0.12; for (let x = x0, k = 0; x < x1; x += e * 0.8, k++) for (let y = -w / 2 + (k % 2) * e / 2; y < w / 2; y += e) { g.beginPath(); g.ellipse(x, y, e * 0.42, e * 0.36, 0, 0, Math.PI * 2); g.stroke(); } }
+      g.globalAlpha = 1;
+    });
+    volume(t0, t1);
+  };
+  // Incrustações da luva: diamantes ou ovais em volta, com borda e pingos.
+  const enfeites = (t0, t1, e) => recorte(t0, t1, () => {
+    const x = (t0 + t1) / 2 * L, comp = (t1 - t0) * L * 0.32;
+    for (const a of [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) {
+      const v = volta((t0 + t1) / 2, a); if (!v) continue;
+      const alt = larg(t1) * 0.16 * v.k;
+      g.beginPath(); if (e.tipo === "diamante") { g.moveTo(x - comp, v.y); g.lineTo(x, v.y - alt); g.lineTo(x + comp, v.y); g.lineTo(x, v.y + alt); g.closePath(); } else g.ellipse(x, v.y, comp * 0.8, alt, 0, 0, Math.PI * 2);
+      g.fillStyle = cor(e.cor, x - comp, x + comp); g.fill(); g.strokeStyle = e.borda; g.lineWidth = Math.max(0.7, P * 0.03); g.stroke();
+      if (e.pingo) for (const d of [-1, 1]) { g.beginPath(); g.arc(x + d * comp * 1.45, v.y, Math.max(0.8, P * 0.035 * v.k), 0, Math.PI * 2); g.fillStyle = e.pingo; g.fill(); }
+    }
+  });
+  // Ponta de couro com giz azul e virola de marfim.
+  parte(0, 0.012, "#2f6fb8"); recorte(0, 0.012, () => { g.fillStyle = "rgba(190,225,255,.5)"; const r = sinucaTacoSorte(7); for (let i = 0; i < 9; i++) { g.beginPath(); g.arc(r() * 0.012 * L, (r() - 0.5) * P * 0.5, P * 0.03, 0, Math.PI * 2); g.fill(); } }); volume(0, 0.012);
+  parte(0.012, 0.03, "#f1ead8"); volume(0.012, 0.03);
+  // Haste de maple: clara, com o veio reto e fino.
+  parte(0.03, 0.5, m.haste); veio(0.03, 0.5, "#a77b45", 7, 11); volume(0.03, 0.5);
+  // Junta: colar, o pino (risco escuro) e o anel.
+  anel(0.5, 0.507, m.anel); parte(0.507, 0.526, m.junta); recorte(0.507, 0.526, () => { g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0.5155 * L, -P, Math.max(1, 0.001 * L), 2 * P); }); volume(0.507, 0.526); anel(0.526, 0.533, m.anel);
+  // Antebraço: a madeira nobre com veio, as pontas e (no Lenda) o entalhe.
+  parte(0.533, 0.76, m.madeira); veio(0.533, 0.76, m.veio, 9, modelo.length * 97 + 3);
+  if (m.entalhe) entalhe(0.56, 0.68, m.entalhe);
+  if (m.pontas) pontas(0.533, 0.76, m.pontas);
+  volume(0.533, 0.76);
+  anel(0.76, 0.768, m.anel);
+  pega(0.768, 0.9, m.pega);
+  anel(0.9, 0.908, m.anel);
+  // Luva do cabo e o pé.
+  parte(0.908, 0.982, m.luva); veio(0.908, 0.982, m.veio, 5, modelo.length * 31 + 5);
+  if (m.enfeite) enfeites(0.908, 0.982, m.enfeite);
+  volume(0.908, 0.982);
+  parte(0.982, 0.994, m.pe); volume(0.982, 0.994);
+  parte(0.994, 1, "#0b0b0b"); volume(0.994, 1);
+  void forca;
 }
 // Clarão da tacada: o anel que abre na branca e o pó do giz voando (Paulo,
 // 04/11/2026: "uns efeitos visual foda").
@@ -1250,6 +1341,7 @@ function sinucaPintar3d(agora) {
 // decide nos primeiros 8 px; puxar quase nada e soltar desiste.
 function sinucaPonteiro3d(ev, tipo) {
   const s = sinucaEstado(), j = s.jogo;
+  if (tipo === "down") sinucaAnimVencida(s, j);
   if (s.anim && tipo === "clique") return sinucaPular(s, j);
   if (!sinucaMinhaVez(j) || s.anim || s.enviando) return;
   if (tipo === "down") {

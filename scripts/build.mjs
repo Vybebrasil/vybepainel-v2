@@ -25,10 +25,16 @@ const cena3d = (await build({ entryPoints: ['vybe-escritorio-sinuca-3d.mjs'], bu
   target: 'es2022', write: false, legalComments: 'none' })).outputFiles[0].text;
 const nome3d = `sinuca-3d-${createHash('sha256').update(cena3d).digest('hex').slice(0, 12)}.js`;
 const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`));
+// Artes dos jogos (o pano da sinuca, cartas, fichas): caminho fixo, mas o
+// navegador guarda /assets/* por um ano (immutable). Sem a versão no endereço o
+// pano novo não aparecia para quem já tinha aberto a sinuca (04/11/2026).
+const artesJogos = await Promise.all((await readdir('assets/jogos')).filter((f) => /\.webp$/.test(f)).map(async (f) =>
+  [`/assets/jogos/${f}`, `/assets/jogos/${f}?v=${createHash('sha256').update(await readFile(`assets/jogos/${f}`)).digest('hex').slice(0, 12)}`]));
+const comArtes = (codigo) => artesJogos.reduce((c, [de, para]) => c.replaceAll(de, para), codigo);
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
-  ...(await transform(com3d(comSprites(await readFile(fonte,'utf8'))), { loader:'js', minifyWhitespace:true,
+  ...(await transform(comArtes(com3d(comSprites(await readFile(fonte,'utf8')))), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
-const css = await transform(await readFile('vybe-styles.css', 'utf8'), { loader: 'css', minify: true });
+const css = await transform(comArtes(await readFile('vybe-styles.css', 'utf8')), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
 for (const f of await readdir('dist/assets')) if (/^[\w-]+-[a-f0-9]{12}\.(js|css)$/.test(f)) await unlink(`dist/assets/${f}`);
 const asset = async (code, ext, prefixo='painel') => {
