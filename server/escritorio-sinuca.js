@@ -563,8 +563,12 @@ function jogarSinucaBruto(mesa, lado, pedido) {
   return { mesa: m, fim: null };
  }
  if (pedido?.tipo !== 'tacar') throw erro('Jogada inválida.');
- const angulo = Number(pedido.angulo), forca = Number(pedido.forca), efeito = Number(pedido.efeito || 0), lado2 = Number(pedido.lado || 0), elevacao = Number(pedido.elevacao || 0);
- if (!Number.isFinite(angulo) || Math.abs(angulo) > 7) throw erro('Mire de novo.');
+ const angulo0 = Number(pedido.angulo), forca = Number(pedido.forca), efeito = Number(pedido.efeito || 0), lado2 = Number(pedido.lado || 0), elevacao = Number(pedido.elevacao || 0);
+ // Qualquer ângulo vale (a tela somava o giro e passava de uma volta: depois de
+ // girar o taco mais de uma vez, toda tacada era recusada e a vez acabava —
+ // "Reriston foi bater e perdeu o turno", 04/11/2026); entra dentro de uma volta.
+ if (!Number.isFinite(angulo0)) throw erro('Mire de novo.');
+ const angulo = Math.atan2(Math.sin(angulo0), Math.cos(angulo0));
  if (!Number.isFinite(forca) || forca < mesaSinuca.forcaMinima || forca > 1) throw erro('Escolha a força da tacada.');
  if (!Number.isFinite(efeito) || Math.abs(efeito) > 1 || !Number.isFinite(lado2) || Math.abs(lado2) > 1) throw erro('Efeito inválido.');
  if (!Number.isFinite(elevacao) || elevacao < 0 || elevacao > 60) throw erro('Incline o taco entre 0 e 60 graus.');

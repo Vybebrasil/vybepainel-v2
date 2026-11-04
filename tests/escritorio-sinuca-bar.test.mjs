@@ -185,3 +185,15 @@ test('bar: bater direto na bola do outro tira 2 bolas dele e passa a vez; a outr
  const r2 = jogarSinuca(m2, 'desafiante', { tipo: 'tacar', angulo: Math.PI, forca: 0.05 });
  if (r2.mesa.ultimo.falta === 'nenhuma') assert.equal([r2.mesa.ultimo.tirou, ...(r2.mesa.ultimo.tirouMais || [])].filter(Boolean).length, 1);
 });
+
+// "Reriston foi bater e perdeu o turno" (04/11/2026): a tela somava o giro da
+// mira e passava de uma volta; o servidor recusava ("Mire de novo") toda tacada
+// até a vez acabar. Ângulo de várias voltas taca igual ao mesmo dentro de uma volta.
+test('bar: mira girada mais de uma volta ainda taca, igual à mesma mira dentro de uma volta', () => {
+ const base = 0.3, voltas = base + 4 * Math.PI;
+ const a = jogarSinuca(iniciarSinuca('desafiante', () => 0), 'desafiante', { tipo: 'tacar', angulo: base, forca: 0.6 });
+ const b = jogarSinuca(iniciarSinuca('desafiante', () => 0), 'desafiante', { tipo: 'tacar', angulo: voltas, forca: 0.6 });
+ assert.equal(b.mesa.n, 1, 'a tacada saiu');
+ assert.deepEqual(b.mesa.bolas.map((p) => p && p.map((v) => Math.round(v * 100))), a.mesa.bolas.map((p) => p && p.map((v) => Math.round(v * 100))));
+ assert.throws(() => jogarSinuca(iniciarSinuca('desafiante'), 'desafiante', { tipo: 'tacar', angulo: 'x', forca: 0.6 }), /Mire de novo/);
+});
