@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { transform } from 'esbuild';
+import { transform, build } from 'esbuild';
 
 let html = await readFile('index.html', 'utf8');
 // Os módulos sob demanda (vybe-sob-demanda.js) ganham hash como os outros;
@@ -19,8 +19,14 @@ for (const f of (await readdir('assets/escritorio/habbo')).filter((f) => /\.(png
 const versaoArte = hashArte.digest('hex').slice(0, 12);
 const comSprites = (codigo) => codigo.replace(/const MAPA_BASE = "[^"]*";/,
   (m) => `${m} const ESCRITORIO_ARTE_VERSAO = ${JSON.stringify(versaoArte)};`);
+// Sinuca em 3D: a cena e o three.js num arquivo só, com hash, carregado sob
+// demanda pela própria sinuca (o endereço é trocado no cliente).
+const cena3d = (await build({ entryPoints: ['vybe-escritorio-sinuca-3d.mjs'], bundle: true, format: 'esm', minify: true,
+  target: 'es2022', write: false, legalComments: 'none' })).outputFiles[0].text;
+const nome3d = `sinuca-3d-${createHash('sha256').update(cena3d).digest('hex').slice(0, 12)}.js`;
+const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`));
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
-  ...(await transform(comSprites(await readFile(fonte,'utf8')), { loader:'js', minifyWhitespace:true,
+  ...(await transform(com3d(comSprites(await readFile(fonte,'utf8'))), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
 const css = await transform(await readFile('vybe-styles.css', 'utf8'), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
@@ -58,6 +64,8 @@ for (const f of await readdir('assets/app')) await writeFile(`dist/assets/app/${
 // Cartas e fichas dos jogos de mesa (Kenney, CC0): folhas únicas com caminho
 // fixo, recortadas pelo CSS (vybe-styles.css, .pkr-carta.img).
 await mkdir('dist/assets/jogos', { recursive: true });
+for (const f of await readdir('dist/assets/jogos')) if (/^sinuca-3d-[a-f0-9]{12}\.js$/.test(f)) await unlink(`dist/assets/jogos/${f}`);
+await writeFile(`dist/assets/jogos/${nome3d}`, cena3d);
 for (const f of (await readdir('assets/jogos')).filter((f) => /\.webp$/.test(f))) await writeFile(`dist/assets/jogos/${f}`, await readFile(`assets/jogos/${f}`));
 // Sons dos jogos (Kenney, CC0): tocados pelo Web Audio (jogosSom).
 await mkdir('dist/assets/jogos/sons', { recursive: true });

@@ -136,11 +136,11 @@ test('sinuca: a bola de 54 mm das partidas novas e a partida antiga com a bola d
  // Partida gravada antes (sem m.r) segue com a bola de 1,15; a nova usa a de 54 mm.
  assert.equal(vistaSinuca(mesa({0:[50,25]}),'desafiante',false).r,1.15);
  const nova=iniciarSinuca('desafiante');
- assert.equal(RAIO,1.421,'54 mm numa mesa de 1,90 m');
+ assert.equal(RAIO,1.364,'54 mm numa mesa de 1,98 m');
  assert.equal(vistaSinuca(nova,'desafiante',false).r,RAIO);
  // Nenhuma bola do triângulo encosta na outra (com folga).
  const b=nova.bolas.filter(Boolean);
- for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],(b[i][1]-b[k][1])*1266/1232)>=2*RAIO,'bolas sem sobreposição');
+ for(let i=0;i<b.length;i++)for(let k=i+1;k<b.length;k++)assert.ok(Math.hypot(b[i][0]-b[k][0],(b[i][1]-b[k][1])*(93/165)*2)>=2*RAIO,'bolas sem sobreposição');
  // A bola maior vai para a caçapa do mesmo jeito.
  const r=simular(mesa({0:[85,35],3:[95,45]}).bolas,DIAG,0.5,PARADA,1.6);
  assert.deepEqual(r.caiu,[3]);
@@ -242,8 +242,8 @@ test('sinuca: caçapas medidas na arte da mesa e as tacadas recentes',()=>{
 // de verdade faz.
 const so=(o)=>{const a=Array(16).fill(null);for(const[k,v] of Object.entries(o))a[k]=v;return a;};
 test('sinuca real: medidas, força e distância rolando',()=>{
- assert.equal(METROS_POR_UNIDADE,0.019,'pano de 1,90 m');
- assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-7)<1e-9,'saída forte a 7 m/s');
+ assert.ok(Math.abs(METROS_POR_UNIDADE-0.0198)<1e-12,'pano de 1,98 m (mesa de bar 20% maior)');
+ assert.ok(Math.abs(velocidadeDaForca(1)*METROS_POR_UNIDADE-9)<1e-9,'saída forte a 9 m/s');
  assert.equal(velocidadeDaForca(0),0,'sem impulso em força zero');
  // Tacada média (2,4 m/s) percorre umas 2 a 4 mesas no pano de bar, com as voltas na tabela.
  const r=simular(so({0:[10,25]}),0,F(2.44),0,RAIO);let d=0;
@@ -256,9 +256,11 @@ test('sinuca real: medidas, força e distância rolando',()=>{
 });
 test('sinuca real: a regra dos 30° e o arrasto do corte',()=>{
  // Branca rolando, corte de meia bola: ela sai a uns 30° da linha da mira.
- const r=simular(so({0:[10,25],5:[40,25+RAIO]}),0,F(0.8),0,RAIO),q=r.quadros;
- const k=q.findIndex((f)=>Math.hypot(f[10]/10-40,f[11]/10-(25+RAIO))>0.5),a=q[k+25],c=q[k+5];
- const branca=Math.atan2(a[1]-c[1],a[0]-c[0])*180/Math.PI,bola=Math.atan2(a[11]-c[11],a[10]-c[10])*180/Math.PI;
+ // Meia bola no espaço métrico (o y gravado vale metricaY em x).
+ const MY=(93/165)*2;
+ const r=simular(so({0:[10,25],5:[40,25+RAIO/MY]}),0,F(0.8),0,RAIO),q=r.quadros;
+ const k=q.findIndex((f)=>Math.hypot(f[10]/10-40,(f[11]/10-(25+RAIO/MY))*MY)>0.5),a=q[k+25],c=q[k+5];
+ const branca=Math.atan2((a[1]-c[1])*MY,a[0]-c[0])*180/Math.PI,bola=Math.atan2((a[11]-c[11])*MY,a[10]-c[10])*180/Math.PI;
  assert.ok(branca<-27&&branca>-36,`branca saiu a ${branca}°`);
  // A bola acertada sai a menos de 30° (o atrito entre as bolas a arrasta).
  assert.ok(bola>24&&bola<29.5,`bola acertada a ${bola}°`);
@@ -317,7 +319,9 @@ test('sinuca real: bola voando passa a tabela e sai da mesa; volta para a marca 
  if(j.mesa.ultimo.fora.includes(4)){assert.ok(j.mesa.bolas[4],'a 4 voltou');assert.equal(j.mesa.ultimo.falta,'fora');assert.equal(j.mesa.vez,'desafiado');}
 });
 test('sinuca real: bola rápida demais sacode na boca; caçapa do meio na medida oficial; pano de bar e de torneio',()=>{
- let cai=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,F(5),0,RAIO).caiu.includes(0))cai++;
+ // Mira no centro do buraco do canto (com a mesa de bar, o y gravado não é métrico).
+ const mira=Math.atan2(BOCAS.buracos[0][1]-20,BOCAS.buracos[0][0]-20);
+ let cai=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),mira+d*Math.PI/180,F(5),0,RAIO).caiu.includes(0))cai++;
  assert.ok(cai>=10,`a 5 m/s a reta no canto (o mais apertado, 1,3 bola) entra quase sempre: ${cai} de 13`);
  let forte=0;for(let d=-0.6;d<=0.6;d+=0.1)if(simular(so({0:[20,20]}),-3*Math.PI/4+d*Math.PI/180,F(9),0,RAIO).caiu.includes(0))forte++;
  assert.ok(forte<cai,'a 9 m/s ela bate no fundo e volta mais vezes');
@@ -325,4 +329,38 @@ test('sinuca real: bola rápida demais sacode na boca; caçapa do meio na medida
  assert.equal(iniciarSinuca('desafiante').pano,'bar');
  const anda=(pano)=>simular(so({0:[10,25]}),0,F(0.6),0,RAIO,0,{pano}).bolas[0][0];
  assert.ok(anda('torneio')>anda('bar')+3,'pano de torneio é mais rápido');
+});
+
+// Saída forte que abre o triângulo (Paulo, 04/11/2026: simulador de boteco). Montado
+// alinhado perfeito, a pancada atravessava as fileiras e só as bolas do fundo
+// saíam (4,8 das 14 na força toda); com as folgas de quem arruma na mão, abre.
+test('sinuca real: a saída forte abre o triângulo e a fraca não',()=>{
+ let semente=7;const sortear=(n)=>{semente=(semente*1103515245+12345)%2147483648;return Math.floor(semente/2147483648*n);};
+ const abriu=(forca)=>{let mexeu=0;for(let k=0;k<6;k++){const ini=iniciarSinuca('desafiante',sortear);
+  const r=simular(ini.bolas,0,forca,0,ini.r,0,{pano:'bar'});
+  for(let n=2;n<16;n++){const a=ini.bolas[n],b=r.bolas[n];if(!b||Math.hypot(b[0]-a[0],b[1]-a[1])>3)mexeu++;}}
+  return mexeu/6;};
+ const forte=abriu(1),media=abriu(0.6);
+ // Na mesa de 1,98 m o triângulo fica mais longe da branca: mexem ~8 a 10 (eram 4,8 com ele alinhado).
+ assert.ok(forte>=8,`saída forte mexeu ${forte.toFixed(1)} de 14`);
+ assert.ok(media<forte,`a força média (${media.toFixed(1)}) abre menos que a forte`);
+});
+// A mesa salva guarda a animação uma vez só (em recentes), não também em ultimo.
+test('sinuca: a última tacada é gravada sem a animação',()=>{
+ const ini=iniciarSinuca('desafiante');
+ const r=jogarSinuca(ini,'desafiante',{tipo:'tacar',angulo:0,forca:0.4,branca:{x:20,y:25}});
+ assert.equal(r.mesa.ultimo.trilhas,undefined);assert.ok(r.mesa.recentes.at(-1).trilhas,'a animação continua em recentes');
+});
+
+// Branca de 57 mm (mesa de bar com ficheiro; Paulo, 04/11/2026): maior e ~18% mais
+// pesada; num choque reto ela empurra a colorida mais rápido do que vem e segue
+// para a frente, em vez de parar seca como com bolas iguais.
+test('sinuca real: a branca maior e mais pesada segue depois do choque reto',async()=>{
+ const {RAIO_BRANCA}=await import('../server/escritorio-sinuca.js');
+ assert.ok(Math.abs(RAIO_BRANCA/RAIO-57/54)<0.002,'57 mm contra 54 mm');
+ const b=so({0:[30,25],5:[45,25]});
+ const igual=simular(b,0,F(1.2),PARADA,RAIO),maior=simular(b,0,F(1.2),PARADA,RAIO,0,{raioBranca:RAIO_BRANCA});
+ assert.ok(maior.bolas[0][0]-igual.bolas[0][0]>0.5,`a branca maior seguiu ${(maior.bolas[0][0]-30).toFixed(2)} (igual: ${(igual.bolas[0][0]-30).toFixed(2)})`);
+ assert.equal(maior.primeiro,5);
+ const nova=iniciarSinuca('desafiante');assert.equal(nova.rb,RAIO_BRANCA);assert.equal(vistaSinuca(nova,'desafiante').rb,RAIO_BRANCA);
 });

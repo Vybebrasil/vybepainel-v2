@@ -25375,7 +25375,7 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 .snc-confronto b i {font:400 14px Georgia,serif;margin:0 7px;opacity:.5}
 .snc-x {color:#b9aa8259;font:400 20px Georgia,serif}
 .snc-area {display:grid;place-items:center;min-width:0;width:100%;padding:2px 0 6px}
-.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 430px)*1.791667));height:auto;max-width:100%;aspect-ratio:2752/1536;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
+.ofc-snc-jogo .snc-canvas {display:block;width:min(100%,calc((100dvh - 430px)*1.660833));height:auto;max-width:100%;aspect-ratio:2752/1657;margin:0 auto;border:0;border-radius:8px;box-shadow:0 12px 32px #000a;touch-action:manipulation}
 .snc-canvas.vez,.snc-canvas.vez.travada {touch-action:none;cursor:none}
 .snc-canvas.vez.pondo {cursor:default}
 .snc-comandos {display:grid;grid-template-columns:260px minmax(220px,1fr) 162px;gap:22px;padding:13px 18px 12px;border:1px solid #9d7c484a;border-radius:7px;background:linear-gradient(#17251dd9,#101b16e8),url(/assets/jogos/boteco-madeira.webp) center/420px;box-shadow:inset 0 1px #ffffff06}
@@ -25640,3 +25640,308 @@ html.vb-sem-animacao *, html.vb-sem-animacao *::before, html.vb-sem-animacao *::
 @keyframes sncBolaSome {to{opacity:.15;transform:translateY(18px) scale(.6);filter:grayscale(1)}}
 @media(prefers-reduced-motion:reduce){.snc-anuncio,.snc-anuncio-bola{animation:none}}
 @media(max-width:760px){.snc-anuncio-cartao{min-width:140px;padding:9px 14px}.snc-anuncio-cartao b{font-size:17px}.snc-anuncio-bola{width:40px;height:40px;font-size:14px}}
+
+
+/* Ficha do bar, taco no placar e ranking do salão (Paulo, 04/11/2026: "o perfil
+   do cara no bar", tacos e troféus de cada um). */
+.snc-jogador[role=button]{cursor:pointer}
+.snc-jogador[role=button]:hover{border-color:#d8b77588}
+.snc-jogador-taco{display:flex;align-items:center;gap:6px;min-width:0}
+.snc-jogador.direita .snc-jogador-taco{flex-direction:row-reverse}
+.snc-jogador-taco canvas{width:110px;height:12px;flex:none}
+.snc-jogador-taco i{font-style:normal;font-size:11px;letter-spacing:1px;white-space:nowrap}
+.snc-perfil{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;padding:16px;background:#050a07b3;backdrop-filter:blur(3px);animation:snc-perfil-entra .18s ease-out}
+@keyframes snc-perfil-entra{from{opacity:0}to{opacity:1}}
+.snc-perfil-caixa{position:relative;box-sizing:border-box;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #c9a45777;border-radius:14px;background:linear-gradient(160deg,#233b2bf2,#0f1d15f7),url(/assets/jogos/boteco-madeira.webp) center/cover;color:#f0e5ca;box-shadow:0 30px 90px #000c,inset 0 1px #fff2;font-family:var(--mac-ui)}
+.snc-perfil-fechar{position:absolute;top:10px;right:12px;width:34px;height:34px;border:1px solid #d6c69c40;border-radius:50%;background:#0b1510;color:#e9dcb8;font-size:20px;cursor:pointer}
+.snc-perfil-topo{display:flex;gap:16px;align-items:center;padding-right:36px}
+.snc-perfil-topo>img,.snc-perfil-topo>.snc-inicial{flex:none;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #d8b775;box-shadow:0 0 0 4px #0006,0 6px 18px #0008;display:grid;place-items:center;font:600 34px Georgia,serif;font-style:normal;background:#2a3b2c;color:#e8d6a6}
+.snc-perfil-topo small{font:700 9px var(--mac-ui);letter-spacing:2.4px;color:#c4a868}
+.snc-perfil-topo h2{margin:2px 0 6px;font:900 26px/1.05 Impact,'Arial Black',sans-serif;letter-spacing:.6px;color:#f6ebcf}
+.snc-perfil-topo p{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0;font-size:11px;color:#c9c6ad}
+.snc-perfil-pos{padding:3px 9px;border-radius:999px;background:linear-gradient(#f3ce82,#c99a45);color:#2a2410;font:800 10px var(--mac-ui);font-style:normal}
+.snc-perfil-pos.sem{background:#ffffff14;color:#c9c6ad}
+.snc-perfil-frase{margin:6px 0 0;font:italic 12px Georgia,serif;color:#d8cfae}
+.snc-perfil-taco{display:block;width:100%;height:30px;margin:16px 0 4px}
+.snc-perfil-numeros{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:10px 0 16px}
+.snc-perfil-numeros div{padding:8px 4px;border:1px solid #d6c69c24;border-radius:8px;background:#0b1510a6;text-align:center}
+.snc-perfil-numeros dt{font:600 8px var(--mac-ui);letter-spacing:.6px;text-transform:uppercase;color:#a9a88f}
+.snc-perfil-numeros dd{margin:3px 0 0;font:900 21px Impact,'Arial Black',sans-serif;color:#f3d48c}
+.snc-perfil-caixa h3{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 8px;font:700 11px var(--mac-ui);letter-spacing:1.6px;text-transform:uppercase;color:#d8c38e}
+.snc-perfil-caixa h3 small{font-size:10px;color:#a9a88f;letter-spacing:0}
+.snc-perfil-tacos,.snc-perfil-trofeus{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.snc-perfil-tacos li{display:grid;grid-template-columns:1fr 128px;gap:10px;align-items:center;padding:7px 10px;border:1px solid #d6c69c24;border-radius:8px;background:#0b1510a6}
+.snc-perfil-tacos li canvas{width:100%;height:16px}
+.snc-perfil-tacos li span{display:grid;gap:1px;text-align:right}
+.snc-perfil-tacos b{font-size:12px;color:#f0e5ca}.snc-perfil-tacos small{font-size:9px;color:#a9a88f}
+.snc-perfil-tacos li.usando{border-color:#d8b775;box-shadow:inset 0 0 0 1px #d8b77555,0 0 14px #d8b77522}
+.snc-perfil-tacos li.falta canvas{filter:grayscale(1) brightness(.45);opacity:.6}
+.snc-perfil-tacos li.falta b{color:#8f8f7c}
+.snc-perfil-trofeus{grid-template-columns:repeat(3,minmax(0,1fr))}
+.snc-perfil-trofeus li{display:grid;justify-items:center;gap:2px;padding:10px 6px;border:1px solid #d6c69c24;border-radius:8px;background:#0b1510a6;text-align:center}
+.snc-perfil-trofeus i{font-style:normal;font-size:24px;line-height:1}
+.snc-perfil-trofeus b{font-size:10px;color:#f0e5ca}.snc-perfil-trofeus small{font-size:8px;color:#a9a88f}
+.snc-perfil-trofeus li.tem{border-color:#d8b77566;background:radial-gradient(circle at 50% 20%,#d8b77522,#0b1510a6 70%)}
+.snc-perfil-trofeus li.falta i{filter:grayscale(1);opacity:.3}.snc-perfil-trofeus li.falta b{color:#8f8f7c}
+.snc-salao{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:6px}
+.snc-salao button{display:grid;grid-template-columns:34px 34px minmax(0,1fr) 140px auto;gap:10px;align-items:center;width:100%;padding:8px 12px;border:1px solid #d6c69c24;border-radius:9px;background:#0b1510a6;color:#f0e5ca;font:inherit;text-align:left;cursor:pointer}
+.snc-salao button:hover{border-color:#d8b77577}
+.snc-salao li.eu button{border-color:#d8b775;background:linear-gradient(90deg,#d8b7751c,#0b1510a6)}
+.snc-salao em{font:900 15px Impact,'Arial Black',sans-serif;font-style:normal;text-align:center;color:#f3d48c}
+.snc-salao img,.snc-salao .snc-inicial{width:34px;height:34px;border-radius:50%;object-fit:cover}
+.snc-salao span{display:grid;min-width:0}.snc-salao b{font-size:13px}.snc-salao small{font-size:10px;color:#a9a88f}
+.snc-salao canvas{width:140px;height:14px}
+.snc-salao-trofeus{font-style:normal;font-size:13px;letter-spacing:1px;min-width:40px;text-align:right}
+@media(max-width:620px){.snc-perfil-numeros{grid-template-columns:repeat(3,minmax(0,1fr))}.snc-perfil-trofeus{grid-template-columns:repeat(2,minmax(0,1fr))}.snc-salao button{grid-template-columns:28px 30px minmax(0,1fr) 80px}.snc-salao canvas{width:80px}.snc-salao-trofeus{display:none}.snc-jogador-taco canvas{width:64px}.snc-perfil-topo h2{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.snc-perfil{animation:none}}
+
+/* Sinuca moderna (Paulo, 04/11/2026: "o visual continua igual... quero tudo mais
+   foda e moderno"). A pele de madeira do HUD sai; entra o padrão da Vybe (vidro
+   escuro, laranja como destaque, Space Grotesk), com placar de transmissão, a
+   força com brilho e o TACAR em laranja. A mesa continua sendo a arte. Mesmas
+   grades e tamanhos de antes: só cor, material e tipografia. */
+#workflow-modal.ofc-snc-jogo,.snc-perfil-caixa,.snc-sala{--snc-l:#ff8a3d;--snc-l2:#ffb36b;--snc-vidro:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015) 40%),rgba(16,18,25,.86);--snc-b:rgba(255,255,255,.1);--snc-t:#eef1f6;--snc-d:#9aa3b2;--snc-f:var(--pv-titulo,"Space Grotesk",sans-serif)}
+#workflow-modal.ofc-snc-jogo{background:radial-gradient(1200px 600px at 50% -10%,rgba(255,138,61,.13),transparent 60%),radial-gradient(900px 500px at 50% 110%,rgba(46,160,110,.10),transparent 60%),#0a0c11;border:1px solid var(--snc-b);color:var(--snc-t)}
+#workflow-modal.ofc-snc-jogo .jogo-topo.tema-sinuca{background:var(--snc-vidro);border-bottom:1px solid var(--snc-b);box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+#workflow-modal.ofc-snc-jogo .snc-marca b{font:700 22px/1 var(--snc-f);letter-spacing:.5px;color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-marca b em{color:var(--snc-l);font:700 8px var(--snc-f);letter-spacing:4px}
+#workflow-modal.ofc-snc-jogo .snc-marca small{color:var(--snc-d);letter-spacing:2px}
+#workflow-modal.ofc-snc-jogo .snc-menu summary,#workflow-modal.ofc-snc-jogo .jogo-selo{background:rgba(255,255,255,.05);border:1px solid var(--snc-b);border-radius:10px;color:var(--snc-t)}
+#workflow-modal.ofc-snc-jogo .jogo-palco{background:none}
+#workflow-modal.ofc-snc-jogo .jogo-status,#workflow-modal.ofc-snc-jogo .jogo-status.minha{font:600 11px var(--snc-f);letter-spacing:1.4px;text-transform:uppercase;color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .jogo-status.minha{color:var(--snc-l2)}
+/* Placar de transmissão */
+#workflow-modal.ofc-snc-jogo .snc-jogador{position:relative;overflow:hidden;background:var(--snc-vidro);border:1px solid var(--snc-b);border-radius:14px;border-bottom:1px solid var(--snc-b);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#workflow-modal.ofc-snc-jogo .snc-jogador::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06)}
+#workflow-modal.ofc-snc-jogo .snc-jogador.vez{border-color:rgba(255,138,61,.55);box-shadow:0 0 0 1px rgba(255,138,61,.25),0 10px 34px rgba(255,138,61,.14)}
+#workflow-modal.ofc-snc-jogo .snc-jogador.vez::after{background:linear-gradient(90deg,transparent,var(--snc-l),transparent);background-size:200% 100%;animation:snc-vez 2.2s linear infinite}
+@keyframes snc-vez{from{background-position:100% 0}to{background-position:-100% 0}}
+#workflow-modal.ofc-snc-jogo .snc-jogador b{font:700 14px var(--snc-f);color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-jogador small{color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .snc-jogador img,#workflow-modal.ofc-snc-jogo .snc-jogador .snc-sem{border:2px solid rgba(255,255,255,.18);background:#1b1e27;color:#fff;font-family:var(--snc-f)}
+#workflow-modal.ofc-snc-jogo .snc-jogador.vez img,#workflow-modal.ofc-snc-jogo .snc-jogador.vez .snc-sem{border-color:var(--snc-l)}
+#workflow-modal.ofc-snc-jogo .snc-ficha{background:rgba(255,138,61,.14);color:var(--snc-l2);border:0;border-radius:6px}
+#workflow-modal.ofc-snc-jogo .snc-confronto,#workflow-modal.ofc-snc-jogo .snc-x{font-family:var(--snc-f);color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-confronto b i{color:var(--snc-l);font-style:normal}
+#workflow-modal.ofc-snc-jogo .snc-confronto small{color:var(--snc-d);font-family:var(--mac-ui)}
+/* Mesa: sombra de palco */
+#workflow-modal.ofc-snc-jogo .snc-canvas{border-radius:14px;box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.06)}
+/* Comandos em vidro */
+#workflow-modal.ofc-snc-jogo .snc-comandos{background:var(--snc-vidro);border:1px solid var(--snc-b);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
+#workflow-modal.ofc-snc-jogo .snc-controle-titulo>small{font:700 10px var(--snc-f);color:var(--snc-l)}
+#workflow-modal.ofc-snc-jogo .snc-controle-titulo>b{font:600 10px var(--snc-f);letter-spacing:1.6px;text-transform:uppercase;color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .snc-controle-forca{border-color:var(--snc-b)}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola{background:radial-gradient(circle at 34% 28%,#fff,#e9edf3 50%,#9aa3b2);border:1px solid rgba(255,255,255,.5);box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 -6px 12px rgba(0,0,0,.18)}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola::before,#workflow-modal.ofc-snc-jogo .snc-efeito-bola::after{content:"";position:absolute;background:rgba(10,12,17,.18);pointer-events:none}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola::before{left:50%;top:12%;bottom:12%;width:1px}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola::after{top:50%;left:12%;right:12%;height:1px}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola i{background:var(--snc-l);box-shadow:0 0 0 2px #fff,0 0 12px rgba(255,138,61,.8)}
+#workflow-modal.ofc-snc-jogo .snc-efeito-nome,#workflow-modal.ofc-snc-jogo .snc-taco small,#workflow-modal.ofc-snc-jogo .snc-taco-texto,#workflow-modal.ofc-snc-jogo .snc-escala{color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .snc-mira-fina button{background:rgba(255,255,255,.05);border:1px solid var(--snc-b);border-radius:10px;color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-mira-fina button:hover:not(:disabled){border-color:rgba(255,138,61,.6)}
+#workflow-modal.ofc-snc-jogo .snc-taco input[type=range]{accent-color:var(--snc-l)}
+#workflow-modal.ofc-snc-jogo .snc-forca{height:38px;border:1px solid var(--snc-b);border-radius:12px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(255,255,255,.07) calc(10% - 1px) 10%),rgba(6,8,12,.7);box-shadow:inset 0 2px 10px rgba(0,0,0,.6)}
+#workflow-modal.ofc-snc-jogo .snc-forca b{background:linear-gradient(90deg,#2fbf7a,#d9d24a 55%,#ff8a3d 80%,#ff4d4d);box-shadow:0 0 18px rgba(255,138,61,.45),inset 0 1px 0 rgba(255,255,255,.35);border-radius:11px 0 0 11px}
+#workflow-modal.ofc-snc-jogo .snc-forca span{font:700 15px var(--snc-f);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#workflow-modal.ofc-snc-jogo .snc-forca-exata input{background:rgba(6,8,12,.7);border:1px solid var(--snc-b);border-radius:8px;color:#fff;font-family:var(--snc-f)}
+#workflow-modal.ofc-snc-jogo .snc-tacar{border:0;border-radius:14px;background:var(--pv-laranja,linear-gradient(180deg,#ff8f4f,#e8602e));color:#fff;font:700 18px var(--snc-f);letter-spacing:2px;box-shadow:0 10px 28px rgba(232,96,46,.45),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .12s,box-shadow .12s}
+#workflow-modal.ofc-snc-jogo .snc-tacar:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 36px rgba(232,96,46,.6),inset 0 1px 0 rgba(255,255,255,.35)}
+#workflow-modal.ofc-snc-jogo .snc-tacar:active:not(:disabled){transform:translateY(1px)}
+#workflow-modal.ofc-snc-jogo .snc-mudar{background:none;border:1px solid var(--snc-b);border-radius:10px;color:var(--snc-d)}
+/* Caderno de baixo */
+#workflow-modal.ofc-snc-jogo .jogo-feed{background:none;color:var(--snc-t)}
+#workflow-modal.ofc-snc-jogo .snc-abas{border-bottom-color:var(--snc-b)}
+#workflow-modal.ofc-snc-jogo .snc-abas button{font-family:var(--snc-f);color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .snc-abas button[aria-selected=true]{color:#fff;border-bottom-color:var(--snc-l)}
+#workflow-modal.ofc-snc-jogo .snc-ultima,#workflow-modal.ofc-snc-jogo .snc-encacapadas,#workflow-modal.ofc-snc-jogo .snc-regras article,#workflow-modal.ofc-snc-jogo .lousa-bloco{background:var(--snc-vidro);border:1px solid var(--snc-b);border-radius:14px}
+/* Ficha do bar moderna */
+.snc-perfil-caixa{background:var(--snc-vidro);border:1px solid var(--snc-b);border-radius:20px;color:var(--snc-t);box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(255,138,61,.12),inset 0 1px 0 rgba(255,255,255,.07)}
+.snc-perfil-topo h2{font:700 28px/1.05 var(--snc-f);color:#fff}
+.snc-perfil-topo small,.snc-perfil-caixa h3{color:var(--snc-l);font-family:var(--snc-f)}
+.snc-perfil-topo>img,.snc-perfil-topo>.snc-inicial{border-color:var(--snc-l);box-shadow:0 0 0 4px rgba(255,138,61,.15),0 10px 26px rgba(0,0,0,.6)}
+.snc-perfil-pos{background:var(--pv-laranja,linear-gradient(180deg,#ff8f4f,#e8602e));color:#fff}
+.snc-perfil-numeros div,.snc-perfil-tacos li,.snc-perfil-trofeus li,.snc-salao button{background:rgba(255,255,255,.035);border-color:var(--snc-b);border-radius:12px}
+.snc-perfil-numeros dd{font:700 22px var(--snc-f);color:#fff}
+.snc-perfil-tacos li.usando,.snc-salao li.eu button{border-color:rgba(255,138,61,.6);box-shadow:0 0 18px rgba(255,138,61,.14)}
+.snc-perfil-trofeus li.tem{border-color:rgba(255,138,61,.45);background:radial-gradient(circle at 50% 15%,rgba(255,138,61,.16),rgba(255,255,255,.03) 70%)}
+.snc-salao em{font-family:var(--snc-f);color:var(--snc-l)}
+@media(prefers-reduced-motion:reduce){#workflow-modal.ofc-snc-jogo .snc-jogador.vez::after{animation:none}}
+
+/* ARENA DE JOGO da sinuca (Paulo, 04/11/2026: "mudou praticamente as cores só...
+   mais cara de jogo"): faixas de jogador com o VS no meio, a mesa sob a luz do
+   lustre, o medidor de força em pé à esquerda, os comandos em blocos à direita
+   (bola de efeito grande, roda da mira, inclinação, TACAR), a bandeja das bolas
+   que caíram e o letreiro da vez. Tudo numa tela, sem rolar e sem cobrir nada. */
+#workflow-modal.ofc-snc-jogo{--snc-reserva:282px;--snc-col-forca:78px;--snc-col-cmd:236px}
+#workflow-modal.ofc-snc-jogo .jogo-palco{gap:10px;padding:12px 18px 6px}
+/* Faixas dos jogadores */
+#workflow-modal.ofc-snc-jogo .snc-placar{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:0;align-items:stretch}
+#workflow-modal.ofc-snc-jogo .snc-jogador{min-height:72px;padding:8px 34px 8px 12px;border-radius:14px 0 0 14px;clip-path:polygon(0 0,100% 0,calc(100% - 26px) 100%,0 100%)}
+#workflow-modal.ofc-snc-jogo .snc-jogador.direita{padding:8px 12px 8px 34px;border-radius:0 14px 14px 0;clip-path:polygon(0 0,100% 0,100% 100%,26px 100%)}
+#workflow-modal.ofc-snc-jogo .snc-jogador img,#workflow-modal.ofc-snc-jogo .snc-jogador .snc-sem{width:54px;height:54px;font-size:24px}
+#workflow-modal.ofc-snc-jogo .snc-jogador b{font-size:16px}
+#workflow-modal.ofc-snc-jogo .snc-x,#workflow-modal.ofc-snc-jogo .snc-confronto{position:relative;z-index:2;display:grid;place-items:center;align-self:center;width:64px;min-width:64px;height:64px;margin:0 -16px;border-radius:50%;background:var(--pv-laranja,linear-gradient(180deg,#ff8f4f,#e8602e));box-shadow:0 0 0 4px #0a0c11,0 0 26px rgba(255,138,61,.55);color:#fff;font:800 20px var(--snc-f);letter-spacing:1px}
+#workflow-modal.ofc-snc-jogo .snc-confronto small{display:none}
+#workflow-modal.ofc-snc-jogo .snc-confronto b{font:800 17px var(--snc-f);color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-confronto b i{color:#ffe0c4}
+/* Arena: medidor | mesa | comandos */
+.ofc-snc-jogo .snc-arena{position:relative;display:grid;grid-template-columns:var(--snc-col-forca) minmax(0,1fr) var(--snc-col-cmd);gap:14px;align-items:stretch}
+.ofc-snc-jogo .snc-arena::before{content:"";position:absolute;left:12%;right:12%;top:-40px;height:75%;background:radial-gradient(ellipse at 50% 0%,rgba(255,226,170,.17),rgba(255,226,170,.05) 45%,transparent 70%);pointer-events:none}
+#workflow-modal.ofc-snc-jogo .snc-area{position:relative;display:grid;place-items:center;padding:0;min-width:0}
+#workflow-modal.ofc-snc-jogo .snc-canvas{width:min(100%,calc((100dvh - var(--snc-reserva))*1.660833));box-shadow:0 34px 80px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06),0 0 120px rgba(255,214,140,.07)}
+/* Medidor de força em pé */
+.ofc-snc-jogo .snc-medidor{display:grid;grid-template-rows:auto minmax(0,1fr) auto;justify-items:center;gap:10px;padding:12px 8px;border:1px solid var(--snc-b);border-radius:18px;background:var(--snc-vidro)}
+.ofc-snc-jogo .snc-medidor>small{font:700 10px var(--snc-f);letter-spacing:2.4px;color:var(--snc-d)}
+#workflow-modal.ofc-snc-jogo .snc-forca b{width:calc(var(--f,0)*100%)}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca{display:block;position:relative;width:38px;height:100%;min-height:160px;border-radius:19px;background:repeating-linear-gradient(0deg,transparent 0 calc(10% - 1px),rgba(255,255,255,.09) calc(10% - 1px) 10%),rgba(6,8,12,.8);cursor:ns-resize}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca b{inset:auto 0 0 0;width:auto;height:calc(var(--f,0)*100%);border-radius:0 0 18px 18px;background:linear-gradient(0deg,#2fbf7a,#d9d24a 50%,#ff8a3d 78%,#ff4d4d);box-shadow:0 0 26px rgba(255,138,61,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca span{position:absolute;left:50%;bottom:calc(var(--f,0)*100%);transform:translate(-50%,-6px);font:800 11px var(--snc-f);text-shadow:0 1px 4px #000}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca-exata{display:flex;align-items:center;gap:2px}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca-exata input{width:50px;padding:4px;text-align:center;font-size:13px}
+#workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca-exata span{font-size:11px;color:var(--snc-d)}
+/* Comandos em blocos */
+#workflow-modal.ofc-snc-jogo .snc-comandos{display:flex;flex-direction:column;gap:10px;padding:12px;min-height:0;overflow:auto}
+.ofc-snc-jogo .snc-bloco{display:grid;justify-items:center;gap:8px;padding:10px 12px;border:1px solid var(--snc-b);border-radius:14px;background:rgba(255,255,255,.03)}
+.ofc-snc-jogo .snc-bloco>small,.ofc-snc-jogo .snc-taco>small{justify-self:start;font:700 10px var(--snc-f);letter-spacing:2.2px;color:var(--snc-d)}
+.ofc-snc-jogo .snc-taco>small b{color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-bloco-efeito .snc-efeito-bola{width:96px;height:96px}
+#workflow-modal.ofc-snc-jogo .snc-bloco-efeito .snc-efeito-bola i{width:14px;height:14px;margin:-7px 0 0 -7px}
+#workflow-modal.ofc-snc-jogo .snc-efeito-nome{max-width:none;font:600 11px var(--snc-f);color:#fff;text-align:center}
+.ofc-snc-jogo .snc-roda{position:relative;width:100%;height:36px;border:1px solid var(--snc-b);border-radius:10px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 1px,transparent 1px 7px),linear-gradient(90deg,#05070a,#2a2f3a 50%,#05070a);background-position:var(--roda,0px) 0,0 0;box-shadow:inset 0 2px 8px rgba(0,0,0,.7);cursor:ew-resize;touch-action:none;user-select:none}
+.ofc-snc-jogo .snc-roda i{position:absolute;left:50%;top:5px;bottom:5px;width:2px;margin-left:-1px;background:var(--snc-l);box-shadow:0 0 10px var(--snc-l)}
+.ofc-snc-jogo .snc-roda.parada{opacity:.38;cursor:default}
+#workflow-modal.ofc-snc-jogo .snc-bloco-mira .snc-mira-fina{display:flex;gap:8px}
+#workflow-modal.ofc-snc-jogo .snc-bloco-mira .snc-mira-fina button{min-width:44px;min-height:32px}
+#workflow-modal.ofc-snc-jogo .snc-bloco-taco .snc-taco{display:grid;gap:6px;width:100%;max-width:none}
+#workflow-modal.ofc-snc-jogo .snc-bloco-taco .snc-taco-vista{width:100%;height:46px}
+#workflow-modal.ofc-snc-jogo .snc-bloco-taco input{width:100%}
+#workflow-modal.ofc-snc-jogo .snc-bloco-taco .snc-taco-texto{font-size:10px;line-height:1.35;text-align:left}
+#workflow-modal.ofc-snc-jogo .snc-comandos .snc-tacar{flex:none;justify-content:center;min-height:62px;margin-top:auto;font-size:22px;letter-spacing:4px}
+#workflow-modal.ofc-snc-jogo .snc-comandos .snc-mudar{flex:none;min-height:34px}
+/* Bandeja das bolas que saíram */
+.ofc-snc-jogo .snc-bandeja{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;justify-self:center;min-height:32px;max-width:100%;padding:6px 18px;border-radius:999px;background:linear-gradient(#05070a,#161a22);box-shadow:inset 0 4px 10px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.06)}
+.ofc-snc-jogo .snc-bandeja i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#111;font:800 9px var(--pv-titulo,"Space Grotesk",sans-serif);font-style:normal;background:radial-gradient(circle,#fff 0 30%,transparent 32%),radial-gradient(circle at 34% 28%,rgba(255,255,255,.55) 0 14%,transparent 16%),var(--c);box-shadow:inset -3px -4px 6px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.6);animation:snc-cai .5s ease-out}
+.ofc-snc-jogo .snc-bandeja i.listra{background:radial-gradient(circle,#fff 0 30%,transparent 32%),linear-gradient(#f3f0e6 0 26%,var(--c) 26% 74%,#f3f0e6 74%)}
+.ofc-snc-jogo .snc-bandeja span{font:500 10px var(--mac-ui);color:var(--snc-d)}
+@keyframes snc-cai{from{opacity:0;transform:translateY(-14px) scale(.5)}to{opacity:1;transform:none}}
+/* Letreiro da vez */
+.snc-letreiro{position:fixed;z-index:4500;display:grid;justify-items:center;gap:6px;transform:translate(-50%,-50%);pointer-events:none;animation:snc-letreiro .45s cubic-bezier(.2,1.5,.4,1);transition:opacity .35s,transform .35s}
+.snc-letreiro b{font:800 clamp(36px,6vw,76px)/1 var(--pv-titulo,"Space Grotesk",sans-serif);letter-spacing:5px;color:#fff;text-shadow:0 0 28px rgba(255,138,61,.95),0 4px 0 #b4471c,0 12px 34px rgba(0,0,0,.7)}
+.snc-letreiro small{font:700 13px var(--pv-titulo,"Space Grotesk",sans-serif);letter-spacing:3px;text-transform:uppercase;color:#ffe0c4;text-shadow:0 2px 8px #000}
+.snc-letreiro.sai{opacity:0;transform:translate(-50%,-62%) scale(1.06)}
+@keyframes snc-letreiro{from{opacity:0;transform:translate(-50%,-50%) scale(.55)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+/* Tela média */
+@media (max-width:1180px) and (orientation:landscape){#workflow-modal.ofc-snc-jogo{--snc-col-forca:66px;--snc-col-cmd:204px}#workflow-modal.ofc-snc-jogo .snc-bloco-efeito .snc-efeito-bola{width:78px;height:78px}}
+/* Celular deitado: tudo menor, a mesa manda */
+@media (orientation:landscape) and (max-height:520px){
+ #workflow-modal.ofc-snc-jogo{width:calc(100vw - 8px);max-height:calc(100dvh - 8px);border-radius:8px;--snc-reserva:132px;--snc-col-forca:50px;--snc-col-cmd:180px}
+ #workflow-modal.ofc-snc-jogo .jogo-topo.tema-sinuca{padding:2px 10px}
+ #workflow-modal.ofc-snc-jogo .snc-emblema{width:32px;height:32px}
+ #workflow-modal.ofc-snc-jogo .snc-marca small,#workflow-modal.ofc-snc-jogo .jogo-selos,#workflow-modal.ofc-snc-jogo .jogo-status,#workflow-modal.ofc-snc-jogo .snc-bandeja{display:none}
+ #workflow-modal.ofc-snc-jogo .snc-menu{margin-left:auto}
+ #workflow-modal.ofc-snc-jogo .jogo-palco{padding:4px 6px 0;gap:4px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador{min-height:0;padding:3px 26px 3px 8px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador.direita{padding:3px 8px 3px 26px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador img,#workflow-modal.ofc-snc-jogo .snc-jogador .snc-sem{width:30px;height:30px;font-size:14px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador b{font-size:12px}
+ #workflow-modal.ofc-snc-jogo .snc-grupo>small{display:none}
+ #workflow-modal.ofc-snc-jogo .snc-x,#workflow-modal.ofc-snc-jogo .snc-confronto{width:40px;min-width:40px;height:40px;font-size:13px;margin:0 -10px}
+ .ofc-snc-jogo .snc-arena{gap:6px}
+ #workflow-modal.ofc-snc-jogo .snc-arena{max-height:calc(100dvh - var(--snc-reserva) + 4px)}
+ #workflow-modal.ofc-snc-jogo .snc-medidor{padding:6px 4px;gap:4px}
+ #workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca{width:28px;min-height:100px}
+ #workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca-exata{display:none}
+ #workflow-modal.ofc-snc-jogo .snc-comandos{padding:6px;gap:6px}
+ .ofc-snc-jogo .snc-bloco{padding:6px 8px;gap:4px}
+ #workflow-modal.ofc-snc-jogo .snc-bloco-efeito .snc-efeito-bola{width:54px;height:54px}
+ #workflow-modal.ofc-snc-jogo .snc-bloco-taco .snc-taco-vista,#workflow-modal.ofc-snc-jogo .snc-taco-texto,#workflow-modal.ofc-snc-jogo .snc-efeito-nome{display:none}
+ #workflow-modal.ofc-snc-jogo .snc-comandos .snc-tacar{order:-1;margin-top:0;min-height:44px;font-size:16px}
+ #workflow-modal.ofc-snc-jogo .snc-comandos .snc-mudar{order:-1}
+}
+/* Celular em pé: mesa no alto, medidor deitado e comandos em grade embaixo */
+@media (orientation:portrait) and (max-width:760px){
+ #workflow-modal.ofc-snc-jogo{--snc-reserva:0px}
+ .ofc-snc-jogo .snc-arena{grid-template-columns:1fr;gap:10px}
+ .ofc-snc-jogo .snc-arena>.snc-area{order:-1}
+ #workflow-modal.ofc-snc-jogo .snc-canvas{width:100%}
+ .ofc-snc-jogo .snc-medidor{grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:none;align-items:center;padding:8px 12px}
+ #workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca{width:100%;height:38px;min-height:0;border-radius:12px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(255,255,255,.09) calc(10% - 1px) 10%),rgba(6,8,12,.8);cursor:ew-resize}
+ #workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca b{inset:0 auto 0 0;height:auto;width:calc(var(--f,0)*100%);border-radius:11px 0 0 11px;background:linear-gradient(90deg,#2fbf7a,#d9d24a 50%,#ff8a3d 78%,#ff4d4d)}
+ #workflow-modal.ofc-snc-jogo .snc-medidor .snc-forca span{left:auto;right:8px;bottom:50%;transform:translateY(50%)}
+ #workflow-modal.ofc-snc-jogo .snc-comandos{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+ #workflow-modal.ofc-snc-jogo .snc-bloco-taco,#workflow-modal.ofc-snc-jogo .snc-comandos .snc-tacar,#workflow-modal.ofc-snc-jogo .snc-comandos .snc-mudar{grid-column:1/-1}
+ #workflow-modal.ofc-snc-jogo .snc-comandos .snc-tacar{order:-1;margin-top:0;min-height:52px}
+ #workflow-modal.ofc-snc-jogo .snc-bloco-efeito .snc-efeito-bola{width:70px;height:70px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador{padding:6px 22px 6px 8px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador.direita{padding:6px 8px 6px 22px}
+ #workflow-modal.ofc-snc-jogo .snc-jogador img,#workflow-modal.ofc-snc-jogo .snc-jogador .snc-sem{width:34px;height:34px}
+ #workflow-modal.ofc-snc-jogo .snc-x,#workflow-modal.ofc-snc-jogo .snc-confronto{width:44px;min-width:44px;height:44px;font-size:14px;margin:0 -12px}
+ .ofc-snc-jogo .snc-area::after{content:"Deite o celular: a mesa fica do tamanho da tela.";margin-top:6px;color:var(--snc-d);font:500 10px var(--mac-ui)}
+}
+@media(prefers-reduced-motion:reduce){.snc-letreiro,.ofc-snc-jogo .snc-bandeja i{animation:none}}
+
+/* Mesa em 3D: o canvas 3D embaixo, o 2D por cima, transparente, recebendo os
+   toques; os dois no mesmo lugar e do mesmo tamanho. */
+#workflow-modal.ofc-snc-jogo .snc-area.com-3d>canvas{grid-area:1/1}
+#workflow-modal.ofc-snc-jogo .snc-area.com-3d>.snc-3d{pointer-events:none;background:#07080b}
+#workflow-modal.ofc-snc-jogo .snc-area.com-3d>#snc-canvas{background:transparent;box-shadow:none;position:relative;z-index:1}
+.ofc-snc-jogo .snc-cameras{display:flex;gap:4px;width:100%}
+.ofc-snc-jogo .snc-cameras button{flex:1;min-height:30px;padding:4px 6px;border:1px solid var(--snc-b);border-radius:9px;background:rgba(255,255,255,.04);color:var(--snc-d);font:600 10px var(--snc-f);cursor:pointer}
+.ofc-snc-jogo .snc-cameras button[aria-pressed=true]{border-color:var(--snc-l);background:rgba(255,138,61,.16);color:#fff}
+
+#workflow-modal.ofc-snc-jogo .snc-area.com-3d>#snc-canvas.vez{cursor:grab;touch-action:none}
+#workflow-modal.ofc-snc-jogo .snc-area.com-3d>#snc-canvas.vez:active{cursor:grabbing}
+
+/* Lobby da sinuca no visual de jogo (Paulo, 04/11/2026: "tudo mais foda e
+   moderno"): vidro escuro, laranja da Vybe e Space Grotesk; a foto do boteco
+   fica só no herói, escurecida. Mesmas grades de antes. */
+#workflow-modal .snc-sala{background:radial-gradient(1000px 500px at 50% -10%,rgba(255,138,61,.12),transparent 60%),#0a0c11;color:var(--snc-t)}
+#workflow-modal .snc-sala .snc-sala-topo{background:var(--snc-vidro);border-bottom:1px solid var(--snc-b)}
+#workflow-modal .snc-sala .snc-marca b{font:700 22px/1 var(--snc-f);color:#fff}
+#workflow-modal .snc-sala .snc-marca b em{color:var(--snc-l);font:700 8px var(--snc-f);letter-spacing:4px}
+#workflow-modal .snc-sala .snc-hero{background:linear-gradient(90deg,rgba(10,12,17,.94) 30%,rgba(10,12,17,.5)),url(/assets/jogos/boteco-ambiente.webp) center/cover;border-bottom:1px solid var(--snc-b)}
+#workflow-modal .snc-sala .snc-hero h1,#workflow-modal .snc-sala .snc-duelo h1{font:800 clamp(40px,6vw,76px)/.95 var(--snc-f);letter-spacing:-1px;color:#fff;text-shadow:0 10px 40px rgba(0,0,0,.6)}
+#workflow-modal .snc-sala .snc-hero h1 em,#workflow-modal .snc-sala .snc-etiqueta{color:var(--snc-l);font-style:normal}
+#workflow-modal .snc-sala .snc-btn{border:0;border-radius:12px;background:var(--pv-laranja,linear-gradient(180deg,#ff8f4f,#e8602e));color:#fff;font:700 13px var(--snc-f);letter-spacing:1.4px;box-shadow:0 10px 26px rgba(232,96,46,.4)}
+#workflow-modal .snc-sala .snc-btn.secundario{background:rgba(255,255,255,.06);border:1px solid var(--snc-b);box-shadow:none}
+#workflow-modal .snc-sala .snc-sala-nav{background:rgba(255,255,255,.02);border-bottom:1px solid var(--snc-b)}
+#workflow-modal .snc-sala .snc-sala-nav button{font-family:var(--snc-f);color:var(--snc-d)}
+#workflow-modal .snc-sala .snc-sala-nav button[aria-pressed=true]{color:#fff;box-shadow:inset 0 -3px 0 var(--snc-l)}
+#workflow-modal .snc-sala .snc-sala-nav button small{color:var(--snc-l)}
+#workflow-modal .snc-sala .snc-secao-titulo h2,#workflow-modal .snc-sala .snc-passo h2{font:700 24px var(--snc-f);color:#fff}
+#workflow-modal .snc-sala .snc-secao-titulo small{color:var(--snc-l);font-family:var(--snc-f);letter-spacing:2px}
+#workflow-modal .snc-sala .snc-colega,#workflow-modal .snc-sala .snc-modo-card,#workflow-modal .snc-sala .snc-adversario,#workflow-modal .snc-sala .snc-pendente,#workflow-modal .snc-sala .snc-desafio-recebido,#workflow-modal .snc-sala .snc-modos button,#workflow-modal .snc-sala .snc-aposta,#workflow-modal .snc-sala .temporada{background:var(--snc-vidro);border:1px solid var(--snc-b);border-radius:16px;color:var(--snc-t);box-shadow:0 14px 34px rgba(0,0,0,.35)}
+#workflow-modal .snc-sala .snc-colega:hover,#workflow-modal .snc-sala .snc-modo-card:hover,#workflow-modal .snc-sala .snc-adversario:hover{border-color:rgba(255,138,61,.55)}
+#workflow-modal .snc-sala .snc-colega.selecionado,#workflow-modal .snc-sala .snc-modos button[aria-checked=true]{border-color:var(--snc-l);box-shadow:0 0 0 1px rgba(255,138,61,.35),0 14px 34px rgba(255,138,61,.12)}
+#workflow-modal .snc-sala .snc-adversario h3,#workflow-modal .snc-sala .snc-modo-card b{font-family:var(--snc-f);color:#fff}
+#workflow-modal .snc-sala .snc-nivel,#workflow-modal .snc-sala .snc-recompensa b{color:var(--snc-l)}
+#workflow-modal .snc-sala .snc-carteira{background:rgba(10,12,17,.7);border:1px solid var(--snc-b);border-radius:12px;font-family:var(--snc-f)}
+#workflow-modal .snc-sala .snc-sala-pe{background:rgba(255,255,255,.02);border-top:1px solid var(--snc-b)}
+#workflow-modal .snc-sala .snc-link{color:var(--snc-l2)}
+
+/* Jornada dos bares: três cartões em caminho, com seta entre eles. */
+#workflow-modal .snc-sala .snc-jornada{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin:0 0 22px}
+#workflow-modal .snc-sala .snc-jornada-seta{align-self:center;font:700 34px var(--snc-f);font-style:normal;color:var(--snc-l)}
+#workflow-modal .snc-sala .snc-bar{position:relative;display:grid;grid-template-rows:auto 1fr;overflow:hidden;border:1px solid var(--snc-b);border-radius:18px;background:var(--snc-vidro);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+#workflow-modal .snc-sala .snc-bar>img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:50% 25%}
+#workflow-modal .snc-sala .snc-bar-num{position:absolute;left:12px;top:10px;z-index:1;padding:3px 9px;border-radius:999px;background:rgba(10,12,17,.75);font:700 12px var(--snc-f);color:var(--snc-l)}
+#workflow-modal .snc-sala .snc-bar-dados{display:grid;gap:6px;align-content:start;padding:14px}
+#workflow-modal .snc-sala .snc-bar-dados>small{font:700 10px var(--snc-f);letter-spacing:2px;text-transform:uppercase;color:var(--snc-l)}
+#workflow-modal .snc-sala .snc-bar-dados h3{margin:0;font:700 20px var(--snc-f);color:#fff}
+#workflow-modal .snc-sala .snc-bar-dados p{margin:0;font-size:12px;color:var(--snc-d)}
+#workflow-modal .snc-sala .snc-bar .snc-btn{justify-self:start;margin-top:4px}
+#workflow-modal .snc-sala .snc-bar.aberto{border-color:rgba(255,138,61,.55);box-shadow:0 0 0 1px rgba(255,138,61,.25),0 18px 44px rgba(255,138,61,.14)}
+#workflow-modal .snc-sala .snc-bar.fechado>img{filter:grayscale(1) brightness(.4)}
+#workflow-modal .snc-sala .snc-bar.fechado h3,#workflow-modal .snc-sala .snc-bar.fechado p{opacity:.55}
+#workflow-modal .snc-sala .snc-bar-tranca{font:600 12px var(--snc-f);color:var(--snc-d)}
+#workflow-modal .snc-sala .snc-bar-selo{position:absolute;right:-34px;top:20px;transform:rotate(35deg);padding:4px 40px;background:#2fbf7a;color:#08130d;font:800 10px var(--snc-f);letter-spacing:1.5px;font-style:normal}
+@media(max-width:760px){#workflow-modal .snc-sala .snc-jornada{grid-template-columns:1fr}#workflow-modal .snc-sala .snc-jornada-seta{justify-self:center;transform:rotate(90deg)}}
+#workflow-modal .snc-sala .snc-casa{display:grid;gap:8px;margin-bottom:6px}
+#workflow-modal.ofc-snc-jogo .snc-pontos{font:800 18px var(--snc-f);color:#fff}#workflow-modal.ofc-snc-jogo .snc-pontos small{font-size:10px;color:var(--snc-d)}
+#workflow-modal .snc-sala .snc-casa-nota{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,138,61,.08);border:1px solid rgba(255,138,61,.25);font-size:12px;line-height:1.5;color:var(--snc-t)}
+#workflow-modal.ofc-snc-jogo .snc-efeito-bola.levantado{box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 -6px 12px rgba(0,0,0,.18),0 0 0 3px rgba(255,138,61,.55)}
+.ofc-snc-jogo .snc-camera-botoes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+.ofc-snc-jogo .snc-camera-botoes button{min-height:32px;border:1px solid var(--snc-b);border-radius:9px;background:rgba(255,255,255,.05);color:#fff;font:700 14px var(--snc-f);cursor:pointer}
+.ofc-snc-jogo .snc-camera-botoes button:hover{border-color:rgba(255,138,61,.6)}
+.ofc-snc-jogo .snc-camera-dica{font-size:9px;color:var(--snc-d);font-style:normal;text-align:center}
+@media (orientation:landscape) and (max-height:520px){.ofc-snc-jogo .snc-camera-dica{display:none}}

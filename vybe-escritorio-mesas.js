@@ -85,7 +85,8 @@ async function recarregarJogoMesa(chave) {
   if (!j || s.carregando) return;
   s.carregando = true;
   try {
-    const r = await escritorioApi("mesa", null, { id: j.id });
+    // `visto`: o lance da mesa que esta tela já tem; as tacadas até ele voltam sem a animação.
+    const r = await escritorioApi("mesa", null, { id: j.id, ...(Number.isFinite(j.mesa?.n) ? { visto: j.mesa.n } : {}) });
     if (s.jogo?.id !== j.id) return;
     // Uma jogada (minha ou do bot) chegou enquanto esta leitura ia: a mesa
     // dela é mais nova, e a leitura antiga a desfaria (as bolas voltavam para o

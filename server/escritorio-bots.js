@@ -201,17 +201,26 @@ const GRUPOS = { lisas: [1, 2, 3, 4, 5, 6, 7], listradas: [9, 10, 11, 12, 13, 14
 // A bola final: a 8 na bola 8, a 1 no par ou ímpar com as 15 bolas.
 const finalSinuca = (mesa) => (mesa.modo === 'parimpar' ? (mesa.bola1 ? 1 : null) : 8);
 function alvosSinuca(mesa, lado) {
+ if (mesa.regra === 'bolavez') { const n = [1, 2, 3, 4, 5, 6, 7].find((k) => mesa.bolas[k]); return n ? [n] : []; }
  const g = mesa.grupos?.[lado], fim = finalSinuca(mesa);
  const lista = g ? GRUPOS[g].filter((n) => mesa.bolas[n]) : mesa.bolas.map((p, n) => (p && n && n !== fim ? n : null)).filter((n) => n !== null);
  return lista.length ? lista : (fim && mesa.bolas[fim] ? [fim] : []);
 }
 function notaTacada(r, mesa, lado) {
+ if (mesa.regra === 'bolavez') {
+  const daVez = alvosSinuca(mesa, lado)[0];
+  let s = r.caiu.includes(0) ? -60 : 0;
+  if (r.primeiro !== daVez) s -= 40;
+  for (const n of r.caiu) if (n) s += n === daVez ? 30 + daVez : -40;
+  return s;
+ }
  const g = mesa.grupos?.[lado], fim = finalSinuca(mesa), limpo = !alvosSinuca(mesa, lado).some((n) => n !== fim);
  const meu = (n) => (g ? GRUPOS[g].includes(n) : n !== fim && n !== 0);
  let s = 0;
  if (r.caiu.includes(0)) s -= 60;
  if (r.primeiro === null) s -= 40; else if (limpo ? r.primeiro !== fim : !meu(r.primeiro)) s -= 40;
- for (const n of r.caiu) if (n && n !== 0) s += meu(n) ? 30 : n === fim ? (limpo ? 500 : -200) : -15;
+ // Bola do outro que cai é falta na regra de bar (sai mais uma dele e a vez passa).
+ for (const n of r.caiu) if (n && n !== 0) s += meu(n) ? 30 : n === fim ? (limpo ? 500 : -200) : mesa.regra === 'bar' && g ? -45 : -15;
  return s;
 }
 // O vale: quantas bolas do outro a branca enxerga em linha reta (menos é
@@ -229,7 +238,7 @@ function valeSinuca(bolas, deles, minhas, R, buracos) {
  return -12 * vistas + 8 * naBoca;
 }
 function sinuca(mesa, lado, nivel) {
- const R = mesa.r || 1.15, bolas = mesa.bolas.map((p) => (p ? [...p] : null));
+ const R = mesa.r || 1.15, RB = mesa.rb || R, bolas = mesa.bolas.map((p) => (p ? [...p] : null));
  const pedidoBase = {};
  // Bola na mão: põe a branca num lugar livre perto do meio da cabeceira.
  if (mesa.bolaNaMao || !bolas[0]) {
@@ -240,12 +249,20 @@ function sinuca(mesa, lado, nivel) {
   bolas[0] = [x, y]; pedidoBase.branca = { x, y };
  }
  const b = bolas[0], candidatas = [];
+ // Saída de boteco (Paulo, 04/11/2026): quem sai bate forte no meio do
+ // triângulo (o vértice vazio), não procura caçapa. A mão de cada um decide
+ // quanto acerta o meio e a força.
+ if (!mesa.tacadas) {
+  const forca = { facil: 0.8, medio: 0.92, lendario: 1 }[nivel], mira = { facil: 0.012, medio: 0.005, lendario: 0.0015 }[nivel];
+  const angulo = Math.atan2(25 - b[1], 75 - b[0]) + (Math.random() * 2 - 1) * mira;
+  return { tipo: 'tacar', angulo: Math.round(angulo * 100000) / 100000, forca, efeito: 0, ...pedidoBase };
+ }
  // Mira de bola fantasma: para cada bola alvo e cada caçapa.
  for (const n of alvosSinuca({ ...mesa, bolas }, lado)) {
   const o = bolas[n];
   for (const [px, py] of CACAPAS) for (const [ox, oy] of [[0, 0], ...(nivel === 'facil' ? [] : LADOS_DA_BOCA[`${px},${py}`])]) {
    const cx = px + ox * 0.45, cy = py + oy * 0.45, dx = cx - o[0], dy = (cy - o[1])*SINUCA_Y, d = Math.hypot(dx, dy) || 1;
-   const gx = o[0] - (dx / d) * 2 * R, gy = o[1] - (dy / d) * 2 * R/SINUCA_Y;
+   const gx = o[0] - (dx / d) * (R + RB), gy = o[1] - (dy / d) * (R + RB)/SINUCA_Y;
    candidatas.push(Math.atan2(gy - b[1], gx - b[0]));
   }
  }
@@ -267,9 +284,12 @@ function sinuca(mesa, lado, nivel) {
   }
   return menor;
  };
- const tentar = (angulo, forca) => { const r = simular(bolas, angulo, forca, 0, R, 0), nota = notaTacada(r, m2, lado); return { nota, perto: nota >= 30 ? 0 : quase(r), angulo, forca, fim: r.bolas }; };
- const todas = [];
- for (const angulo of candidatas.slice(0, limite)) for (const forca of forcas) todas.push(tentar(angulo, forca));
+ const tentar = (angulo, forca) => { const r = simular(bolas, angulo, forca, 0, R, 0, { raioBranca: RB }), nota = notaTacada(r, m2, lado); return { nota, perto: nota >= 30 ? 0 : quase(r), angulo, forca, fim: r.bolas }; };
+ // Primeiro cada mira na força do meio; as outras forças só nas miras que
+ // prestaram (o Baianinho testava todas as forças em todas: ~6 s por tacada).
+ const meio = forcas[Math.floor(forcas.length / 2)], todas = candidatas.slice(0, limite).map((angulo) => tentar(angulo, meio));
+ const promissoras = [...todas].sort((x, y) => y.nota - x.nota || x.perto - y.perto).slice(0, nivel === 'lendario' ? 40 : 15);
+ for (const c of promissoras) for (const forca of forcas) if (forca !== meio) todas.push(tentar(c.angulo, forca));
  // O médio e o Baianinho corrigem a mira em volta das que quase entraram (o
  // arrasto do corte e o dente da caçapa desviam a bola um pouco do que a bola
  // fantasma diz), e o Baianinho escolhe a tacada que entra mesmo errando um pouco.

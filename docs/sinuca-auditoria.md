@@ -1,5 +1,23 @@
 # Auditoria da sinuca — 28/10/2026
 
+## Simulador — 04/11/2026 (pedido do Paulo: "é um simulador de sinuca de boteco")
+
+- Mesa em 3D (three.js 0.187.0, `vybe-escritorio-sinuca-3d.mjs`, empacotada pelo build em
+  `/assets/jogos/sinuca-3d-<hash>.js` e carregada só ao abrir a sinuca; sem WebGL fica o 2D).
+  Câmera atrás do taco; sobe na tacada; de cima com bola na mão. Arrastar para os lados gira a
+  mira, puxar para baixo dá a força e soltar taca; o taco levanta sozinho sobre tabela/bola.
+- Física: saída de até 9 m/s e triângulo com folgas de ~1 mm (11,9 das 14 bolas mexem na saída
+  forte, eram 4,8); face do corte da boca devolve 80% (bola torta e forte sacode e volta).
+  Geometria das bocas simétrica e a arte da mesa desenhada a partir dela.
+- Regra de bar: matar bola do outro é falta; nada volta; regras da casa no convite (multa de 1
+  ou 2 bolas, bola do outro falta/livre) e a modalidade bola da vez (7 bolas, 1 a 7 pontos).
+- Ficha do bar (troféus, coleção de tacos pelo ranking e por feitos), jornada dos bares (o Bar
+  do Tio abre depois de vencer o Zé; o Salão do Baianinho depois do Tio), replay em câmera lenta.
+- Servidor: o bot pensa fora da transação; a mesa salva guarda a animação uma vez só e a
+  releitura de 4 s não reenvia a animação já vista.
+- Pendente: bola rente à tabela entrando forte no canto ainda cai sempre; o bot não levanta o
+  taco sozinho; física por eventos (passos maiores fora dos contatos) não foi feita.
+
 Base analisada: 2ee066c291c7065006392b500f6e3b594458ae2f, integrada pela PR 434. Mudanças seguintes estão na branch codex/sinuca-lobby-controles-jogo, ainda locais.
 
 ## Atualização — física corrigida em 29/10/2026
