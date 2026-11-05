@@ -83,7 +83,7 @@ export function textoOperacional(v,max=300){
  .replace(/(?:\+?\d[\d(). -]{9,}\d)/g,'[número omitido]');
  return t.replace(/\u0000(\d+)\u0000/g,(_,i)=>guardados[Number(i)]??'');
 }
-const limpar=v=>v instanceof Date?v.toISOString():typeof v==='string'&&/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(v)?v:Array.isArray(v)?v.map(limpar):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,typeof x==='string'&&!['id','figura','cliente_id','prazo','veiculacao','mes','dia','inicio','fim','atualizado_em','data','criado_em','editado_em','em','quando','modifiedTime','createdAt','updatedAt'].includes(k)?(/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(x)?x:textoOperacional(x,['texto','corpo','resumo','material_bruto'].includes(k)?6000:300)):limpar(x)])):v;
+const limpar=v=>v instanceof Date?v.toISOString():typeof v==='string'&&/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(v)?v:Array.isArray(v)?v.map(limpar):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,k==='thumbnail'&&typeof x==='string'&&/^https:\/\/(?:[a-z0-9-]+\.)*(?:fbcdn\.net|cdninstagram\.com)\//i.test(x)?x:typeof x==='string'&&!['id','figura','cliente_id','prazo','veiculacao','mes','dia','inicio','fim','atualizado_em','data','criado_em','editado_em','em','quando','modifiedTime','createdAt','updatedAt'].includes(k)?(/^\d{4}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(x)?x:textoOperacional(x,['texto','corpo','resumo','material_bruto'].includes(k)?6000:300)):limpar(x)])):v;
 export function diaAssistente(agora=new Date()){
  return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(agora);
 }

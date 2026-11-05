@@ -118,3 +118,11 @@ test('link do relatório: convite do Hub vira URL absoluta só do Hub autorizado
  assert.equal(r.url, origin + '/relatorio-ai/cliente-ficticio-ai?mes=2026-10&c=' + 'a'.repeat(30) + '.' + 'b'.repeat(43));
  await assert.rejects(linkDoRelatorio(sql, { cliente_id: '1', mes: '2026-10-15' }, { config, buscar: async () => new Response(JSON.stringify({ result: { data: { json: { caminho: 'https://outro.site/x' } } } })) }), /inválida/);
 });
+
+test('anúncios: a imagem do criativo passa só se for HTTPS dos servidores da Meta', async () => {
+ const meta='https://scontent.fssa1-1.fna.fbcdn.net/v/t45.1600-4/abc.jpg?stp=dst-jpg';
+ const linhas=[{id:'1',name:'AD09',status:'ACTIVE',thumbnail:meta},{id:'2',name:'AD10',status:'ACTIVE',thumbnail:'https://evil.example.com/a.jpg'},{id:'3',name:'AD11',status:'ACTIVE',thumbnail:'https://evilfbcdn.net/a.jpg'}];
+ const r = await metricasDoHub(sql,{...args,modulo:'anuncios'},{config,buscar:async()=>new Response(JSON.stringify({result:{data:{json:{
+  slug:'cliente-ficticio-ai',cliente_nome:'Cliente Ficticio AI',de:args.de,ate:args.ate,modulo:'anuncios',linhas,origem_dados:'meta'}}}}))});
+ assert.deepEqual(r.itens.map(x=>x.thumbnail),[meta,null,null]);
+});
