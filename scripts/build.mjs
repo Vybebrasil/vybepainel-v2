@@ -64,9 +64,11 @@ html = html.replaceAll('/assets/vybe-branca.png', logo);
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
 // App instalável (tela inicial do celular, Dock, Windows): manifesto e ícones
 // ficam com caminho fixo, sem hash, porque o sistema guarda o endereço.
-await mkdir('dist/assets/app', { recursive: true });
+// Ícones coloridos (05/11/2026) em assets/app/cor, com nome novo: o endereço
+// antigo fica um ano no cache (immutable) e o celular pegaria o ícone velho.
+await mkdir('dist/assets/app/cor', { recursive: true });
 await writeFile('dist/manifest.webmanifest', await readFile('manifest.webmanifest'));
-for (const f of await readdir('assets/app')) await writeFile(`dist/assets/app/${f}`, await readFile(`assets/app/${f}`));
+for (const f of await readdir('assets/app/cor')) await writeFile(`dist/assets/app/cor/${f}`, await readFile(`assets/app/cor/${f}`));
 // Cartas e fichas dos jogos de mesa (Kenney, CC0): folhas únicas com caminho
 // fixo, recortadas pelo CSS (vybe-styles.css, .pkr-carta.img).
 await mkdir('dist/assets/jogos', { recursive: true });
@@ -101,15 +103,12 @@ await writeFile('dist/agenda.webmanifest', await readFile('agenda.webmanifest'))
 await writeFile('dist/agenda.html', trocar(html, [
   ['<title>Vybe OS — Painel de Produção v2</title>', '<title>Agenda Vybe</title>'],
   ['href="/manifest.webmanifest"', 'href="/agenda.webmanifest"'],
-  ['href="/assets/app/favicon-32.png"', 'href="/assets/app/agenda-favicon-32.png"'],
-  ['href="/assets/app/apple-touch-icon.png"', 'href="/assets/app/agenda-apple-touch-icon.png"'],
+  ['/assets/app/cor/os-', '/assets/app/cor/agenda-'],
   ['name="apple-mobile-web-app-title" content="Vybe OS"', 'name="apple-mobile-web-app-title" content="Agenda Vybe"'],
 ], 'agenda.html'));
 await writeFile('dist/instalar-agenda.html', trocar(await readFile('instalar.html', 'utf8'), [
   ['href="/manifest.webmanifest"', 'href="/agenda.webmanifest"'],
-  ['/assets/app/icon-192.png', '/assets/app/agenda-icon-192.png'],
-  ['/assets/app/icon-512.png', '/assets/app/agenda-icon-512.png'],
-  ['/assets/app/apple-touch-icon.png', '/assets/app/agenda-apple-touch-icon.png'],
+  ['/assets/app/cor/os-', '/assets/app/cor/agenda-'],
   ['content="Vybe OS"', 'content="Agenda Vybe"'],
   ['Instalar o Vybe OS', 'Instalar a Agenda Vybe'],
   ['Instalar Vybe OS', 'Instalar Agenda Vybe'],
