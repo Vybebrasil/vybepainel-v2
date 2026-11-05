@@ -196,10 +196,13 @@ function vybesSerResponder(texto) {
   return false;
 }
 // Ligado só quando faz sentido: quem age, na chamada, microfone ligado, esta aba na frente.
+// Fora do Escritório por enquanto (Paulo, 05/11/2026: "tô trabalhando falando com o povo e ele achando que tô falando
+// com ele… só funciona com ele aberto"): a sala não escuta o VYBES; ele atende só com a central aberta. Volta com true.
+const VYBES_OUVE_NA_SALA = false;
 async function vybesSalaConferir() {
   const Rec = vybesReconhecedor();
   const naChamada = typeof escritorio !== 'undefined' && escritorio.conectado && escritorio.chamada?.self?.audioEnabled;
-  const quer = Boolean(Rec && !vybesSala.bloqueado && naChamada && document.visibilityState === 'visible' && await vybesPodeAgir());
+  const quer = Boolean(VYBES_OUVE_NA_SALA && Rec && !vybesSala.bloqueado && naChamada && document.visibilityState === 'visible' && await vybesPodeAgir());
   if (quer && !vybesSala.ouvindo) vybesSalaLigar(Rec);
   else if (!quer && vybesSala.ouvindo) vybesSalaDesligar();
   if (vybesSala.ouvindo) vybesAvisarJanela(true);
