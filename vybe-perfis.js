@@ -1944,7 +1944,10 @@ function meuFoco() {
 }
 
 function initPanelMode() {
-  const savedMode = getStorage('vybePanelMode');
+  // App "Agenda Vybe" (/agenda): sempre abre no módulo Produção, sem mudar o
+  // módulo que o Vybe OS normal (/) lembra neste aparelho.
+  const appAgenda = /^\/agenda\/?$/.test(location.pathname);
+  const savedMode = appAgenda ? 'producao' : getStorage('vybePanelMode');
   const savedUser = getStorage('vybePanelFocusUser');
 
 

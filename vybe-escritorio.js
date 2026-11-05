@@ -4278,6 +4278,8 @@ function voltarAoEscritorio() {
 // configurado. No celular, segue o painel.
 async function iniciarNoEscritorio() {
   if (window.matchMedia?.("(max-width: 760px)").matches) return;
+  // App "Agenda Vybe" (/agenda): abre direto na Produção, sem passar pelo Escritório.
+  if (/^\/agenda\/?$/.test(location.pathname)) return;
   // Aba aberta pelo "Painel em outra aba": fica no trabalho.
   const pedido = new URLSearchParams(location.search);
   if (pedido.get("painel") === "1") {
