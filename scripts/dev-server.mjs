@@ -55,7 +55,7 @@ export function createDevServer() {
         if(up.headers.get('location'))res.setHeader('Location',up.headers.get('location'));
         res.end(Buffer.from(await up.arrayBuffer())); return;
       }
-      const file = decodeURIComponent(url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
+      const file = decodeURIComponent(['/', '/agenda'].includes(url.pathname) ? 'index.html' : url.pathname.slice(1));
       const html = await readFile(resolve(ROOT,'index.html'),'utf8');
       const publicFiles = new Set(['index.html','cadastros_governed_v2.js',
         ...[...html.matchAll(/(?:src|href)="\/([^"?]+)"/g)].map((m)=>m[1])]);

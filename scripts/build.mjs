@@ -89,6 +89,36 @@ const versaoPainel = createHash('sha256').update(html).digest('hex').slice(0, 12
 html = html.replace('</head>', `  <meta name="vybe-versao" content="${versaoPainel}">\n</head>`);
 await writeFile('dist/versao.json', JSON.stringify({ versao: versaoPainel }));
 await writeFile('dist/index.html', html);
+// App "Agenda Vybe" (05/11/2026, pedido do Paulo para o Mizinho): o mesmo painel
+// em /agenda, com manifesto, nome e ícone próprios. Instalado, abre direto no
+// módulo Produção (initPanelMode olha o endereço). /instalar-agenda é a página
+// de instalar com o mesmo texto do /instalar, apontando para este app.
+const trocar = (texto, trocas, nome) => trocas.reduce((t, [de, para]) => {
+  if (!t.includes(de)) throw new Error(`${nome}: não achei "${de}" para trocar.`);
+  return t.replaceAll(de, para);
+}, texto);
+await writeFile('dist/agenda.webmanifest', await readFile('agenda.webmanifest'));
+await writeFile('dist/agenda.html', trocar(html, [
+  ['<title>Vybe OS — Painel de Produção v2</title>', '<title>Agenda Vybe</title>'],
+  ['href="/manifest.webmanifest"', 'href="/agenda.webmanifest"'],
+  ['href="/assets/app/favicon-32.png"', 'href="/assets/app/agenda-favicon-32.png"'],
+  ['href="/assets/app/apple-touch-icon.png"', 'href="/assets/app/agenda-apple-touch-icon.png"'],
+  ['name="apple-mobile-web-app-title" content="Vybe OS"', 'name="apple-mobile-web-app-title" content="Agenda Vybe"'],
+], 'agenda.html'));
+await writeFile('dist/instalar-agenda.html', trocar(await readFile('instalar.html', 'utf8'), [
+  ['href="/manifest.webmanifest"', 'href="/agenda.webmanifest"'],
+  ['/assets/app/icon-192.png', '/assets/app/agenda-icon-192.png'],
+  ['/assets/app/icon-512.png', '/assets/app/agenda-icon-512.png'],
+  ['/assets/app/apple-touch-icon.png', '/assets/app/agenda-apple-touch-icon.png'],
+  ['content="Vybe OS"', 'content="Agenda Vybe"'],
+  ['Instalar o Vybe OS', 'Instalar a Agenda Vybe'],
+  ['Instalar Vybe OS', 'Instalar Agenda Vybe'],
+  ['O painel da equipe Vybe, com ícone na tela inicial.', 'A produção da Vybe (captações, fotografia e edição), com ícone na tela inicial.'],
+  ['Abrir o Vybe OS', 'Abrir a Agenda Vybe'],
+  ['ícone do Vybe OS', 'ícone da Agenda Vybe'],
+  ['href="/"', 'href="/agenda"'],
+  ['vercel.app/instalar"', 'vercel.app/instalar-agenda"'],
+], 'instalar-agenda.html'));
 // Rota de recuperação já utilizada pelo módulo de cadastros.
 await writeFile('dist/cadastros_governed_v2.js', (await transform(await readFile('cadastros_governed_v2.js','utf8'),
   { minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false })).code);

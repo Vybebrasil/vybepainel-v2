@@ -31,6 +31,10 @@
       "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
     },
     {
+      "source": "/agenda",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -42,6 +46,8 @@
   ],
   "rewrites": [
     { "source": "/instalar", "destination": "/instalar.html" },
+    { "source": "/agenda", "destination": "/agenda.html" },
+    { "source": "/instalar-agenda", "destination": "/instalar-agenda.html" },
     { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" }
   ],
   "fluid": true,
