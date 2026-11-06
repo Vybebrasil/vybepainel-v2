@@ -75,12 +75,17 @@ Correção do editor: as molduras do painel agora permitem formulários
 submit antes do handler, embora o editor abrisse normalmente.
 
 O calendário mostra o título de cada peça, com o formato na dica e na cor.
-Na revisão do head, arrastar por mouse ou toque para outro dia usa o mesmo
-salvamento das datas. Cliques curtos continuam navegando; Escape, cancelamento
-ou soltar fora do calendário não gravam. Durante um salvamento, outro arraste
-é bloqueado. Erros preservam as datas e aparecem junto ao calendário.
-Cliente/leitor e planejamentos aprovados não recebem controles de arraste.
-Os botões de veiculação continuam disponíveis como alternativa ao gesto.
+Na revisão do head, arrastar por mouse ou toque para outro dia move a peça
+imediatamente no calendário e atualiza a ficha no documento e o rascunho em
+memória, sem travar esperando rede nem gerar arquivos no Drive a cada
+movimento. A barra inferior do documento passa a exibir **Alterações não
+salvas**, **Descartar** e **Salvar alterações** (ou `⌘S` / `Ctrl+S`), gravando
+uma única versão no banco e no Drive quando o head confirma. Cliques curtos
+continuam navegando; Escape, cancelamento ou soltar fora do calendário não
+alteram. Erros de validação (como prazo posterior à veiculação) preservam as
+datas na hora e aparecem junto ao calendário. Cliente/leitor e planejamentos
+aprovados não recebem controles de arraste. Os botões de veiculação e prazo na
+ficha seguem o mesmo fluxo fluido em memória.
 
 Teste de navegador isolado reproduziu o botão sem efeito e confirmou a
 correção, com a data reordenada pela interface e pela API em memória.

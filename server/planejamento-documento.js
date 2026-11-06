@@ -242,34 +242,82 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-acao
 if(a==='abrir'){d.querySelector('.nota').hidden=false;d.querySelector('textarea').focus();return;}
 if(['editar','prazo','veiculacao'].includes(a)){abrirEdicao(d,a);return;}
 const nota=a==='ajustar'?d.querySelector('textarea').value.trim():'';if(a==='ajustar'&&!nota){alert('Escreva o que ajustar nesta peça.');return;}
-b.disabled=true;try{await falar({assinatura:d.dataset.assinatura,estado:a,nota});const s=[...d.querySelectorAll('.sit')].pop();
+b.disabled=true;try{await falar({indice:Number(d.dataset.indice),assinatura:d.dataset.assinatura,estado:a,nota});const s=[...d.querySelectorAll('.sit')].pop();
 d.dataset.estado=a==='ok'?'aprovada':a==='ajustar'?'ajuste':'';s.className='sit'+(a==='ok'?' ok':a==='ajustar'?' ajuste':'');s.textContent=a==='ok'?'OK na revisão':a==='ajustar'?'Ajustar: '+nota:'Ainda não revisada';d.querySelector('.nota').hidden=true;contarHead();if(a!=='limpar')document.dispatchEvent(new Event('vybe-respondida'));}
 catch(x){alert(x.message);}finally{b.disabled=false;}});
 let arrastando=null,salvandoCalendario=false,ignorarClique=false;
-const limparArraste=()=>{if(arrastando?.a.hasPointerCapture(arrastando.id))arrastando.a.releasePointerCapture(arrastando.id);document.querySelectorAll('.cal .arrastando,.cal .destino').forEach(el=>el.classList.remove('arrastando','destino'));arrastando=null;};
+const SEMANA=['dom','seg','ter','qua','qui','sex','sáb'],CORES=${JSON.stringify(CORES_FORMATO)};
+const fmtDia=iso=>{const [a,m,d]=String(iso||'').split('-').map(Number);if(!d)return '';const w=new Date(Date.UTC(a,m-1,d)).getUTCDay();return String(d).padStart(2,'0')+'/'+String(m).padStart(2,'0')+' · '+SEMANA[w];};
+const semNum=t=>String(t||'').replace(/^\\s*\\d{1,2}\\s*[·.\\-–:)]\\s*/,'');
+function aplicarPecaNoDom(indice,peca,soDatas,tdAlvo,linkCal){
+ const a=linkCal||document.querySelector?.('.cal a[data-indice="'+indice+'"]');
+ if(peca.data!==undefined){
+  const td=tdAlvo||(peca.data&&document.querySelector?.('.cal td[data-data="'+peca.data+'"]'));
+  if(a&&td&&a.closest('td')!==td)td.append?.(a);
+ }
+ const art=document.getElementById?.('peca-'+(indice+1));
+ const dec=art?.querySelector?.('.decisao');
+ const atual=dec?.dataset?.peca?JSON.parse(dec.dataset.peca):{...peca};
+ Object.assign(atual,peca);
+ if(dec?.querySelector){
+  dec.dataset.peca=JSON.stringify(atual);
+  const bp=dec.querySelector('[data-acao="prazo"]'),bv=dec.querySelector('[data-acao="veiculacao"]');
+  if(bp)bp.textContent='Prazo: '+(atual.prazo?fmtDia(atual.prazo):'automático');
+  if(bv)bv.textContent='Veiculação: '+(atual.data?fmtDia(atual.data):'definir');
+  const sit=[...dec.querySelectorAll('.sit')].pop();
+  if(soDatas){dec.dataset.estado='';if(sit){sit.className='sit';sit.textContent='Ainda não revisada';}}
+  else{dec.dataset.estado='aprovada';if(sit){sit.className='sit ok';sit.textContent='OK na revisão';}}
+ }
+ if(a&&(peca.tema!==undefined||peca.formato!==undefined)){
+  const t=semNum(atual.tema)||'Sem tema',f=atual.formato||'Card';
+  a.textContent=t;a.title=f+' · '+t;a.style?.setProperty?.('--f',CORES[f]||'#6b7280');
+ }
+ const mini=document.querySelector?.('.cal-mini a[data-n="'+indice+'"]');
+ if(mini?.querySelector){
+  if(peca.data!==undefined){const b=mini.querySelector('b');if(b)b.textContent=atual.data?atual.data.slice(8,10)+'/'+atual.data.slice(5,7):'--';}
+  if(peca.formato!==undefined){const s=mini.querySelector('span');if(s)s.textContent=atual.formato||'Card';mini.style?.setProperty?.('--f',CORES[atual.formato]||'#6b7280');}
+ }
+ if(art?.querySelector){
+  const q=art.querySelector('header .quando');if(q)q.textContent=atual.data?fmtDia(atual.data):'sem data';
+  let pp=art.querySelector('.prazo-peca');
+  if(atual.prazo){if(!pp){pp=document.createElement('p');pp.className='prazo-peca';art.querySelector('header')?.after(pp);}pp.textContent='Prazo de produção: '+fmtDia(atual.prazo);}
+  else pp?.remove();
+  if(!soDatas){
+   const tag=art.querySelector('header .tag');if(tag)tag.textContent=atual.formato||'Card';
+   art.style?.setProperty?.('--f',CORES[atual.formato]||'#6b7280');
+   const h3=art.querySelector('h3');if(h3)h3.textContent=semNum(atual.tema)||'Sem tema';
+   const lin=art.querySelector('header .linha');
+   if(atual.linha){if(lin)lin.textContent=atual.linha;else{const sp=document.createElement('span');sp.className='linha';sp.textContent=atual.linha;art.querySelector('header')?.append(sp);}}else lin?.remove();
+   let obj=art.querySelector('.objetivo');
+   if(atual.objetivo){if(!obj){obj=document.createElement('p');obj.className='objetivo';art.querySelector('h3')?.after(obj);}obj.textContent=atual.objetivo;}else obj?.remove();
+  }
+ }
+ if(typeof contarHead==='function')contarHead();
+}
+const limparArraste=()=>{if(arrastando?.a.hasPointerCapture(arrastando.id))arrastando.a.releasePointerCapture(arrastando.id);arrastando?.a.style?.removeProperty?.('--dx');arrastando?.a.style?.removeProperty?.('--dy');document.querySelectorAll('.cal .arrastando,.cal .destino').forEach(el=>el.classList.remove('arrastando','destino'));arrastando=null;};
 const diaNoPonto=e=>document.elementFromPoint(e.clientX,e.clientY)?.closest('.cal td[data-data]');
 document.addEventListener('pointerdown',e=>{const a=e.target.closest('.cal a[data-mover]');if(!a||e.button!==0||salvandoCalendario)return;
 arrastando={a,id:e.pointerId,x:e.clientX,y:e.clientY,ativo:false};});
 document.addEventListener('pointermove',e=>{if(!arrastando||e.pointerId!==arrastando.id)return;
 if(!arrastando.ativo){if(Math.hypot(e.clientX-arrastando.x,e.clientY-arrastando.y)<8)return;arrastando.ativo=true;arrastando.a.setPointerCapture(e.pointerId);arrastando.a.classList.add('arrastando');}
-e.preventDefault();document.querySelectorAll('.cal td.destino').forEach(el=>el.classList.remove('destino'));diaNoPonto(e)?.classList.add('destino');});
+e.preventDefault();arrastando.a.style?.setProperty?.('--dx',(e.clientX-arrastando.x)+'px');arrastando.a.style?.setProperty?.('--dy',(e.clientY-arrastando.y)+'px');document.querySelectorAll('.cal td.destino').forEach(el=>el.classList.remove('destino'));diaNoPonto(e)?.classList.add('destino');});
 document.addEventListener('pointerup',async e=>{if(!arrastando||e.pointerId!==arrastando.id)return;
 const a=arrastando.a,ativo=arrastando.ativo,td=diaNoPonto(e);limparArraste();if(!ativo)return;
 ignorarClique=true;setTimeout(()=>{ignorarClique=false;},0);e.preventDefault();if(!td||salvandoCalendario)return;
 const indice=Number(a.dataset.indice),antes=a.closest('td').dataset.data,data=td.dataset.data;if(antes===data)return;
-const aviso=document.getElementById('cal-estado');salvandoCalendario=true;aviso.hidden=false;aviso.className='cal-estado';aviso.textContent='Salvando a nova veiculação…';
-try{await falar({acao:'editar',indice,peca:{data},soDatas:true,modo});aviso.textContent='Veiculação salva. Calendário e documento atualizados.';}
+const aviso=document.getElementById('cal-estado');salvandoCalendario=true;aviso.hidden=false;aviso.className='cal-estado';aviso.textContent='Atualizando veiculação…';
+try{await falar({acao:'editar',indice,peca:{data},soDatas:true,modo});aplicarPecaNoDom(indice,{data},true,td,a);aviso.textContent='Veiculação alterada. Clique em Salvar alterações na barra para gravar.';}
 catch(x){aviso.className='cal-estado erro';aviso.textContent=x.message;}finally{salvandoCalendario=false;}});
 document.addEventListener('click',e=>{if(ignorarClique){e.preventDefault();e.stopPropagation();ignorarClique=false;}},true);
-document.addEventListener('pointercancel',limparArraste);document.addEventListener('keydown',e=>{if(e.key==='Escape')limparArraste();});addEventListener('blur',limparArraste);
+document.addEventListener('pointercancel',limparArraste);document.addEventListener('keydown',e=>{if(e.key==='Escape')limparArraste();if((e.metaKey||e.ctrlKey)&&String(e.key).toLowerCase()==='s'){e.preventDefault();parent?.postMessage?.({vybe:'planejamento-head-salvar'},'*');}});addEventListener('blur',limparArraste);
 const dlg=document.getElementById('editar-peca');let editando=null;
 function abrirEdicao(d,acao='editar'){editando=d;dlg.classList.toggle('so-datas',acao!=='editar');const p=JSON.parse(d.dataset.peca);for(const el of dlg.querySelectorAll('[name]')){const v=p[el.name];el.value=Array.isArray(v)?v.join('\\n'):(v||'');}
 dlg.querySelector('h3').textContent=(acao==='editar'?'Editar a peça ':'Datas da peça ')+String(Number(d.dataset.indice)+1).padStart(2,'0');
-dlg.querySelector('[data-dica-edicao]').textContent=acao==='editar'?'Salvar cria uma versão nova do planejamento. A peça editada fica com o seu OK.':'A veiculação reorganiza o calendário e o documento. Deixe o prazo vazio para usar o Prazo de Ouro. Alterar as datas pede nova revisão da peça.';
+dlg.querySelector('[data-dica-edicao]').textContent=acao==='editar'?'A peça editada fica com o seu OK. Clique em Salvar alterações na barra para gravar a versão nova.':'Deixe o prazo vazio para usar o Prazo de Ouro. Alterar as datas pede nova revisão da peça. Clique em Salvar alterações na barra para gravar.';
 dlg.showModal();dlg.querySelector('[name='+(acao==='prazo'?'prazo':acao==='veiculacao'?'data':'tema')+']').focus();}
 dlg.querySelector('[data-fechar]').addEventListener('click',()=>dlg.close());
-dlg.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const b=dlg.querySelector('[type=submit]');const peca=Object.fromEntries([...dlg.querySelectorAll(dlg.classList.contains('so-datas')?'[name=data],[name=prazo]':'[name]')].map(el=>[el.name,el.name==='telas'?el.value.split('\\n').map(t=>t.trim()).filter(Boolean):el.value.trim()]));
-b.disabled=true;b.textContent='Salvando…';try{await falar({acao:'editar',indice:Number(editando.dataset.indice),peca,soDatas:dlg.classList.contains('so-datas'),modo});dlg.close();}catch(x){alert(x.message);}finally{b.disabled=false;b.textContent='Salvar a peça';}});
+dlg.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const b=dlg.querySelector('[type=submit]'),soDatas=dlg.classList.contains('so-datas'),indice=Number(editando.dataset.indice);const peca=Object.fromEntries([...dlg.querySelectorAll(soDatas?'[name=data],[name=prazo]':'[name]')].map(el=>[el.name,el.name==='telas'?el.value.split('\\n').map(t=>t.trim()).filter(Boolean):el.value.trim()]));
+b.disabled=true;b.textContent='Salvando…';try{await falar({acao:'editar',indice,peca,soDatas,modo});aplicarPecaNoDom(indice,peca,soDatas);dlg.close();}catch(x){alert(x.message);}finally{b.disabled=false;b.textContent='Salvar a peça';}});
 addEventListener('message',e=>{if(e.source===parent&&e.data?.vybe==='planejamento-ir'){aplicarModo(e.data.modo==='um'?'um':'doc');if(modo==='um')mostrar(e.data.n-1);else document.getElementById('peca-'+e.data.n)?.scrollIntoView({block:'start'});}});
 function contarHead(){const ds=[...document.querySelectorAll('.decisao[data-assinatura]')],r=ds.filter(d=>d.dataset.estado).length;document.getElementById('progresso').textContent=r+' de '+ds.length+' peças revisadas';document.getElementById('barra').style.width=(ds.length?Math.round(r/ds.length*100):0)+'%';}
 ${modosJs({ chave: 'vybe-modo-revisao', envio: false })}
@@ -308,7 +356,7 @@ h2{font:800 22px/1.2 Sora,sans-serif;margin:44px 0 14px;text-wrap:balance}h2 sma
 .datas td{padding:11px 14px;border-bottom:1px solid var(--linha);vertical-align:top}.datas tr:last-child td{border-bottom:0}.datas td:first-child{color:var(--vybe);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 .cal{min-width:620px;table-layout:fixed}.cal th{background:var(--escuro);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:9px}.cal td{height:78px;vertical-align:top;border:1px solid var(--linha);padding:6px}
 .cal-dica,.cal-estado{font-size:13px;color:var(--sub);margin:8px 0}
-.cal a[data-mover]{cursor:grab;touch-action:none;user-select:none}.cal a.arrastando{cursor:grabbing;opacity:.4}.cal td.destino{background:#fff0df;outline:2px solid var(--vybe);outline-offset:-2px}
+.cal a[data-mover]{cursor:grab;touch-action:none;user-select:none}.cal a.arrastando{cursor:grabbing;opacity:.92;pointer-events:none;position:relative;z-index:5;box-shadow:0 8px 20px #0003;transform:translate3d(var(--dx,0px),var(--dy,0px),0) scale(1.03)}.cal td.destino{background:#fff0df;outline:2px solid var(--vybe);outline-offset:-2px}
 .cal td.vazio{background:#efebe3}.cal b{font-size:12px;color:var(--sub)}.cal a{display:block;margin-top:4px;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--f) 14%,#fff);border-left:3px solid var(--f);font-size:10.5px;font-weight:700;color:var(--tinta);text-decoration:none}
 .pecas{display:grid;gap:14px}.peca{background:var(--cartao);border:1px solid var(--linha);border-left:4px solid var(--f);border-radius:16px;padding:18px 20px;display:grid;gap:10px;scroll-margin-top:16px}
 .peca header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.peca .num{font:800 20px/1 Sora,sans-serif;color:var(--f);font-variant-numeric:tabular-nums}
