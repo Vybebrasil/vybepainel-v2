@@ -4,6 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {generateKeyPairSync} from 'node:crypto';
 import {conexao} from './postgres.mjs';
 import * as P from '../server/planejamentos.js';
 import {documentoHtml} from '../server/planejamento-documento.js';
@@ -186,7 +188,7 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  INSERT INTO vybe_conteudo_clientes VALUES(900,10),(901,10);
  INSERT INTO vybe_conteudo_responsaveis VALUES(900,52,0),(901,52,0),(901,51,1);
  SELECT setval('vybe_conteudos_id_seq', 1000);`);
- const pecas=[{data:'2026-11-20',formato:'Card',tema:'Consciência',legenda:'Texto do card'},{data:'2026-11-25',formato:'Reels',tema:'Bastidores',legenda:'Roteiro'},{data:'2026-11-26',formato:'Outro',tema:'Panfleto'}];
+ const pecas=[{data:'2026-11-20',prazo:'2026-11-10',formato:'Card',tema:'Consciência',legenda:'Texto do card'},{data:'2026-11-25',formato:'Reels',tema:'Bastidores',legenda:'Roteiro'},{data:'2026-11-26',formato:'Outro',tema:'Panfleto'}];
  const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas}});
  const destinos={Card:{grupo_id:'novo_grupo__1',status:'pode_fazer',responsaveis:['51','52','53']},Reels:{grupo_id:'novo_grupo57911__1',status:'a_fazer',captacao:'Agendar Captação',responsaveis:[]}};
  const vini={tipo:'sessao',pessoa:{id:3}};
@@ -202,13 +204,16 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  await db.exec(`ALTER TABLE vybe_conteudo_eventos DROP CONSTRAINT falha`);
  const r=await P.cadastrarPecas(sql,vini,{id:p.id,versao:atual.versao,destinos});
  assert.equal(r.criadas.length,3);assert.equal(r.planejamento.estado,'cadastrado');
- const linhas=await sql`SELECT c.titulo,c.board_id::text AS board,c.status_chave,c.grupo_id,c.captacao,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veic,c.briefing,
+ const linhas=await sql`SELECT c.titulo,c.board_id::text AS board,c.status_chave,c.grupo_id,c.captacao,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veic,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,c.briefing,
   ARRAY(SELECT pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id ORDER BY 1) AS resp FROM vybe_conteudos c WHERE id>1000 ORDER BY id`;
  assert.deepEqual(linhas.map(l=>[l.titulo,l.board,l.status_chave,l.veic]),[['Card - Consciência','7829537690','pode_fazer','2026-11-20'],['Reels - Bastidores','7829537690','a_fazer','2026-11-25'],['Avulso - Panfleto','8385559107','nova_demanda','2026-11-26']]);
  assert.deepEqual(linhas[0].resp,['52'],'card vai para quem mais fez peças do cliente (Bia)');
  assert.equal(linhas[1].captacao,'Agendar Captação');assert.deepEqual(linhas[1].resp,[]);
  assert.deepEqual(linhas[2].resp,[],'solicitação entra sem responsável, para triagem');
  assert.match(linhas[0].briefing,/Texto do card/);
+ assert.equal(linhas[0].prazo,'2026-11-10','o prazo escolhido pelo head chega à demanda');
+ const [{hoje}]=await sql`SELECT (now() AT TIME ZONE 'America/Bahia')::date::text AS hoje`;
+ assert.equal(linhas[1].prazo,P.prazoDaPeca('2026-11-25',hoje),'sem escolha mantém o Prazo de Ouro');
  const salvo=await P.detalhePlanejamento(sql,{id:3},p.id);
  assert.ok(salvo.conteudo.pecas.every(x=>/^\d+$/.test(x.conteudo_id)),'cada peça guarda a demanda criada');
  await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:salvo.versao,destinos}),/já foram cadastradas/);
@@ -338,4 +343,140 @@ test('links internos do documento só rolam (não saem do quadro)',()=>{
  const html=documentoHtml({id:'1',cliente:'C',titulo:'P',mes:'2026-11-01',versao:1,estado:'revisar',identidade:{},conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'Um'}]}},{revisor:'head'});
  assert.match(html,/href="#peca-1"/);
  assert.match(html,/closest\('a\[href\^="#"\]'\)[\s\S]*preventDefault/);
+});
+
+test('datas do planejamento: validação real, prazo separado e virada de mês/ano',()=>{
+ const normalizar=pecas=>P.normalizarConteudo({pecas}).pecas;
+ for(const campo of ['data','prazo'])for(const valor of ['2026-02-30','2026-13-01','10/11/2026','<script>'])
+  assert.throws(()=>normalizar([{tema:'Teste',data:'2026-11-20',[campo]:valor}]),/data válida/);
+ assert.throws(()=>normalizar([{tema:'Teste',data:'2026-11-20',prazo:'2026-11-21'}]),/depois da veiculação/);
+ const p=normalizar([{tema:'Ano novo',data:'2027-01-01',prazo:'2026-12-29'},{tema:'Antes',data:'2026-12-31'},{tema:'Bissexto',data:'2028-02-29'}]);
+ assert.deepEqual(p.map(x=>x.tema),['Antes','Ano novo','Bissexto']);
+ assert.equal(p[1].prazo,'2026-12-29');
+ assert.equal(p[0].prazo,undefined);
+ const html=documentoHtml({mes:'2026-12-01',estado:'revisar',conteudo:{pecas:p}});
+ assert.match(html,/Janeiro de 2027/);
+ assert.match(html,/<b>1<\/b><a href="#peca-2"/,'remarcada para outro mês continua no calendário');
+ assert.equal(normalizar([{tema:'Sem dia',data:'',prazo:''}])[0].data,'');
+});
+
+test('mudar datas salva, reordena calendário/documento e invalida só a revisão da peça alterada',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo});
+ const d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ for(const x of d.conteudo.pecas)await P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:x.assinatura,estado:'ok'});
+ await P.registrarArquivos(sql,p.id,{docId:'doc-v1',pdfId:'pdf-v1',versao:1});
+ const editado={...d.conteudo,pecas:d.conteudo.pecas.map((x,i)=>i===0?{...x,data:'2026-11-25',prazo:'2026-11-23'}:x)};
+ await assert.rejects(P.editarPlanejamento(sql,{id:24},{id:p.id,versao:1,conteudo:editado}),/Só o head/);
+ const e=await P.editarPlanejamento(sql,{id:3},{id:p.id,versao:1,conteudo:editado});
+ assert.equal(e.drive_doc_id,null,'não oferece o documento antigo como se fosse atual');
+ assert.equal(e.drive_pdf_id,null);
+ const novo=await P.detalhePlanejamento(sql,{id:3},p.id);
+ assert.deepEqual(novo.conteudo.pecas.map(x=>x.tema),['Consciência Negra','Finados']);
+ assert.equal(novo.conteudo.pecas[1].prazo,'2026-11-23');
+ assert.equal(novo.revisao.head_ok,1);
+ const html=documentoHtml(novo,{revisor:'head'});
+ const fichas=html.slice(html.indexOf('<section id="area-pecas">'));
+ assert.ok(fichas.indexOf('Consciência Negra')<fichas.indexOf('Finados'));
+ assert.match(html,/<b>25<\/b><a href="#peca-2"/);
+ assert.match(html,/Prazo: 23\/11/);
+ assert.match(html,/Veiculação: 25\/11/);
+ assert.match(html,/name="prazo"/);
+ for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))assert.doesNotThrow(()=>new vm.Script(script[1]));
+ assert.doesNotMatch(documentoHtml(novo,{paraCliente:true}),/data-acao="prazo"|Prazo de produção/);
+ await assert.rejects(P.editarPlanejamento(sql,{id:3},{id:p.id,versao:1,conteudo:editado}),/outra versão/);
+ assert.equal(await P.registrarArquivos(sql,p.id,{docId:'antigo',pdfId:'antigo',versao:1}),false);
+ assert.equal(await P.registrarArquivos(sql,p.id,{docId:'doc-v2',pdfId:'pdf-v2',versao:2}),true);
+ assert.equal((await P.detalhePlanejamento(sql,{id:3},p.id)).drive_doc_id,'doc-v2');
+ const prazoApenas={...novo.conteudo,pecas:novo.conteudo.pecas.map((x,i)=>i===0?{...x,prazo:'2026-11-18'}:x)};
+ const prazoSalvo=await P.editarPlanejamento(sql,{id:3},{id:p.id,versao:2,conteudo:prazoApenas});
+ assert.deepEqual(prazoSalvo.conteudo.pecas.map(x=>x.data),['2026-11-20','2026-11-25']);
+});
+
+test('API de edição: falha do Drive avisa e mantém as datas salvas sem arquivo obsoleto',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo});
+ const {areaPlanejamentos}=await import('../server/planejamentos-api.js');
+ const antes=process.env.VYBE_HOMOLOGACAO;
+ process.env.VYBE_HOMOLOGACAO='1';
+ t.after(()=>{if(antes===undefined)delete process.env.VYBE_HOMOLOGACAO;else process.env.VYBE_HOMOLOGACAO=antes;});
+ t.mock.method(globalThis,'fetch',()=>{assert.fail('Nenhum acesso externo é permitido neste teste.');});
+ const r=resposta();
+ await areaPlanejamentos({method:'POST',query:{acao:'editar'},body:{id:p.id,versao:1,conteudo:{pecas:[{data:'2026-11-10',prazo:'2026-11-06',tema:'Remarcada'}]}}},r,{pessoa:{id:3}},sql);
+ assert.equal(r.codigo,200);
+ assert.equal(r.corpo.planejamento.conteudo.pecas[0].data,'2026-11-10');
+ assert.equal(r.corpo.planejamento.conteudo.pecas[0].prazo,'2026-11-06');
+ assert.match(r.corpo.avisos[0],/salvo.*Drive/);
+ assert.equal((await P.detalhePlanejamento(sql,{id:3},p.id)).drive_doc_id,null);
+});
+
+test('atalho de datas preserva textos, acompanha a peça reordenada e não aprova automaticamente',async()=>{
+ const chamadas=[],mensagens=[],toasts=[];
+ const quadro={contentWindow:{postMessage:m=>mensagens.push(m)},addEventListener:(tipo,fn)=>fn()};
+ const ctx=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},querySelector:()=>quadro},showToast:(...x)=>toasts.push(x),confirm:()=>true});
+ vm.runInContext(readFileSync('vybe-planejamentos.js','utf8'),ctx);
+ ctx.registrar=(a,b)=>chamadas.push([a,b]);
+ ctx.simular=corpo=>({planejamento:{id:'1',versao:2,estado:'revisar',conteudo:P.normalizarConteudo(corpo)}});
+ vm.runInContext(`
+ PLJ_ABERTO={id:'1',versao:1,estado:'revisar',titulo:'Mês',conteudo:{pecas:[
+ {tema:'Mesmo tema',data:'2026-11-20',legenda:'Primeira',formato:'Card'},
+ {tema:'Mesmo tema',data:'2026-11-10',legenda:'Segunda',formato:'Card'}
+ ]}};
+ let salvo;
+ pljPedir=async(params,b)=>{registrar(params,b);if(b){salvo=simular(b.conteudo);return {...salvo,avisos:['Drive indisponível']};}return salvo;};
+ abrirPlanejamento=async()=>{};
+ pljAtualizarFora=()=>{};
+ `,ctx);
+ await ctx.pljSalvarPecaDoDocumento(0,{data:'2026-11-25',prazo:'2026-11-23'},{soDatas:true});
+ assert.equal(chamadas.filter(([,b])=>b?.acao==='revisar_peca').length,0);
+ assert.equal(chamadas[0][1].conteudo.pecas[0].legenda,'Primeira');
+ assert.equal(chamadas[0][1].conteudo.pecas[1].legenda,'Segunda');
+ assert.equal(mensagens[0].n,2);
+ assert.ok(toasts.some(([m])=>m==='Drive indisponível'));
+ await assert.rejects(ctx.pljSalvarPecaDoDocumento(-1,{}),/Peça não encontrada/);
+});
+
+test('API de edição gera documento/PDF da nova data e registra só a versão atual (Drive simulado)',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo});
+ const envKeys=['GOOGLE_SERVICE_ACCOUNT','DRIVE_PASTA_RAIZ','VYBE_HOMOLOGACAO','VERCEL_ENV'];
+ const antes=Object.fromEntries(envKeys.map(k=>[k,process.env[k]]));
+ t.after(()=>{for(const [k,v] of Object.entries(antes)){if(v===undefined)delete process.env[k];else process.env[k]=v;}});
+ const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pkcs8',format:'pem'},publicKeyEncoding:{type:'spki',format:'pem'}});
+ process.env.GOOGLE_SERVICE_ACCOUNT=JSON.stringify({client_email:'teste@example.invalid',private_key:privateKey});
+ process.env.DRIVE_PASTA_RAIZ='raiz-teste-planejamentos';
+ process.env.VYBE_HOMOLOGACAO='0';
+ process.env.VERCEL_ENV='development';
+ const uploads=[],rede=[];
+ t.mock.method(globalThis,'fetch',async(u,op={})=>{
+  const url=new URL(u);rede.push(url.pathname);
+  if(url.hostname==='oauth2.googleapis.com')return Response.json({access_token:'token-ficticio',expires_in:3600});
+  assert.equal(url.hostname,'www.googleapis.com');
+  if(url.pathname==='/drive/v3/files')return Response.json({files:[{id:'cliente',name:'Serra Grande'},{id:'planos',name:'Planejamentos'},{id:'ano',name:'2026'}]});
+  if(url.pathname==='/upload/drive/v3/files'){
+   const body=op.body.toString();uploads.push(body);
+   return Response.json({id:body.includes('Content-Type: text/html')?'doc-v2':'pdf-v2',webViewLink:'https://example.invalid/arquivo'});
+  }
+  if(url.pathname==='/drive/v3/files/doc-v2/export')return new Response('%PDF-simulado');
+  assert.fail('Rota inesperada no Drive simulado: '+url.pathname);
+ });
+ const {areaPlanejamentos}=await import('../server/planejamentos-api.js');
+ const r=resposta();
+ await areaPlanejamentos({method:'POST',query:{acao:'editar'},body:{id:p.id,versao:1,conteudo:{pecas:[{data:'2026-11-10',prazo:'2026-11-06',tema:'Remarcada',legenda:'Legenda preservada'}]}}},r,{pessoa:{id:3}},sql);
+ assert.equal(r.codigo,200);
+ assert.deepEqual(r.corpo.avisos,[]);
+ assert.equal(r.corpo.planejamento.drive_doc_id,'doc-v2');
+ assert.equal(r.corpo.planejamento.drive_pdf_id,'pdf-v2');
+ const d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ assert.equal(d.drive_doc_id,'doc-v2');
+ assert.equal(d.drive_pdf_id,'pdf-v2');
+ assert.equal(uploads.length,2);
+ assert.match(uploads[0],/<b>10<\/b><a href="#peca-1"/);
+ assert.match(uploads[0],/Prazo de produção: 06\/11/);
+ assert.match(uploads[0],/Legenda preservada/);
+ assert.match(uploads[0],/v2/);
+ assert.ok(rede.includes('/drive/v3/files/doc-v2/export'));
 });

@@ -187,7 +187,7 @@ window.addEventListener('message', async (e) => {
   const responde = (r) => quadro.contentWindow?.postMessage({ vybe: 'planejamento-head-resposta', id: e.data.id, ...r }, '*');
   const { assinatura, estado, nota } = e.data.dados || {};
   if (e.data.dados?.acao === 'editar') {
-    try { await pljSalvarPecaDoDocumento(e.data.dados.indice, e.data.dados.peca); responde({ ok: true }); }
+    try { await pljSalvarPecaDoDocumento(e.data.dados.indice, e.data.dados.peca, { soDatas: e.data.dados.soDatas === true, modo: e.data.dados.modo }); responde({ ok: true }); }
     catch (erro) { responde({ ok: false, erro: erro.message }); }
     return;
   }
@@ -204,21 +204,23 @@ window.addEventListener('message', async (e) => {
 });
 // Edição de uma peça direto no documento: grava a versão nova, deixa a peça com
 // o OK de quem editou e volta para a mesma peça (Paulo, 20/10/2026).
-async function pljSalvarPecaDoDocumento(indice, peca) {
+async function pljSalvarPecaDoDocumento(indice, peca, { soDatas = false, modo = 'doc' } = {}) {
   const c = PLJ_ABERTO.conteudo || {};
+  if (!Number.isInteger(indice) || indice < 0 || !c.pecas?.[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
   const pecas = (c.pecas || []).map((x, i) => (i === indice ? { ...x, ...peca } : x));
-  if (!pecas[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
   if (PLJ_ABERTO.estado === 'enviado' && !await confirmarNoPainel('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) throw new Error('Edição cancelada.');
   const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO.titulo, conteudo: { ...c, pecas } });
   const novo = (await pljPedir(`acao=detalhe&id=${encodeURIComponent(d.planejamento.id)}`)).planejamento;
-  const alvo = (novo.conteudo?.pecas || []).findIndex((x) => x.tema === (peca.tema || '') && x.data === (peca.data || ''));
-  if (alvo >= 0 && novo.conteudo.pecas[alvo].assinatura && ['revisar', 'ajustes'].includes(novo.estado)) {
+  // Mesma ordenação estável do servidor; títulos e datas podem se repetir.
+  const alvo = [...pecas].sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')).indexOf(pecas[indice]);
+  if (!soDatas && alvo >= 0 && novo.conteudo.pecas[alvo].assinatura && ['revisar', 'ajustes'].includes(novo.estado)) {
     try { await pljPedir('', { acao: 'revisar_peca', id: novo.id, assinatura: novo.conteudo.pecas[alvo].assinatura, estado: 'ok', nota: '' }); } catch { /* fica sem o OK */ }
   }
   await abrirPlanejamento(novo.id, 'documento');
   const quadro = document.querySelector('#workflow-modal .plj-previa');
-  quadro?.addEventListener('load', () => quadro.contentWindow?.postMessage({ vybe: 'planejamento-ir', n: alvo + 1 }, '*'), { once: true });
-  showToast('Peça salva.', 'success');
+  quadro?.addEventListener('load', () => quadro.contentWindow?.postMessage({ vybe: 'planejamento-ir', n: alvo + 1, modo }, '*'), { once: true });
+  showToast(soDatas ? 'Datas salvas. Calendário e documento atualizados.' : 'Peça salva.', 'success');
+  for (const aviso of d.avisos || []) showToast(aviso, 'warning', 9000);
   pljAtualizarFora();
 }
 async function pljTrocarAba(aba) {
@@ -319,7 +321,7 @@ function pljEdDetalheHtml() {
   return `<div class="plj-ed-cab plj-ed-cab-peca" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}"><span class="n">${n}</span><div><h3>${pljEsc(pljSemNumero(x.tema) || 'Peça sem tema')}</h3><p><b class="pill">${pljEsc(x.formato || 'Card')}</b> ${pljEsc(x.data ? new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'sem dia')}</p></div>
       <div class="plj-ed-nav"><button type="button" onclick="pljEdSelecionar('peca:${i - 1}')" ${i === 0 ? 'disabled' : ''} aria-label="Peça anterior">↑</button><button type="button" onclick="pljEdSelecionar('peca:${i + 1}')" ${i >= c.pecas.length - 1 ? 'disabled' : ''} aria-label="Próxima peça">↓</button></div></div>
     ${pljRevisaoPecaHtml(x)}
-    ${pljGrupo('Quando e formato', `<div class="plj-ed-lado">${pljCampo(`pecas.${i}.data`, x.data, { rotulo: 'Dia', tipo: 'date' })}<label class="plj-ed-campo"><span>Formato</span><select data-campo="pecas.${i}.formato" onchange="pljEdRepintarTudo()">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label></div>`)}
+    ${pljGrupo('Quando e formato', `<div class="plj-ed-lado">${pljCampo(`pecas.${i}.data`, x.data, { rotulo: 'Veiculação', tipo: 'date' })}${pljCampo(`pecas.${i}.prazo`, x.prazo, { rotulo: 'Prazo de produção', tipo: 'date', dica: 'Vazio = Prazo de Ouro' })}<label class="plj-ed-campo"><span>Formato</span><select data-campo="pecas.${i}.formato" onchange="pljEdRepintarTudo()">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label></div>`)}
     ${pljGrupo('Conteúdo', pljCampo(`pecas.${i}.tema`, x.tema, { rotulo: 'Tema', max: 200 })
       + `<label class="plj-ed-campo"><span>Linha de conteúdo</span><select data-campo="pecas.${i}.linha"><option value="">Sem linha</option>${[...new Set([...linhas, x.linha].filter(Boolean))].map((l) => `<option${l === x.linha ? ' selected' : ''}>${pljEsc(l)}</option>`).join('')}</select></label>`
       + pljCampo(`pecas.${i}.objetivo`, x.objetivo, { rotulo: 'Objetivo', linhas: 2, max: 800, dica: 'Uma frase com o que a peça quer causar.' }))}
@@ -448,6 +450,7 @@ async function salvarPlanejamento(botao) {
     showToast(PLJ_ABERTO.estado === 'enviado' ? 'Salvo. O link antigo deixou de valer; mande de novo quando quiser.' : 'Planejamento salvo.', 'success', 4000);
     PLJ_SUJO = false;
     await abrirPlanejamento(d.planejamento.id, 'editar');
+    for (const aviso of d.avisos || []) showToast(aviso, 'warning', 9000);
     pljAtualizarFora();
   } catch (e) { botao.disabled = false; showToast(e.message, 'error', 6000); }
 }

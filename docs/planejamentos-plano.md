@@ -43,6 +43,31 @@ Paulo** (quem administra); todos da equipe veem.
 
 Cada mudança de status fica registrada (quem, quando, o quê).
 
+## Datas por peça — 06/11/2026
+
+Na revisão do head, cada peça tem os botões **Prazo** e **Veiculação**, que
+abrem os campos de data no editor da própria peça. A edição completa oferece
+os mesmos campos. Prazo vazio mantém o Prazo de Ouro; um prazo explícito é
+preservado no cadastro das demandas e não pode ser posterior à veiculação.
+
+Salvar veiculação reordena as peças e seus vínculos no calendário/documento.
+Alterar somente prazo preserva a publicação. Peças remarcadas para outro mês
+ganham o calendário desse mês no mesmo documento, sem trocar o mês de origem
+do planejamento. A revisão da peça alterada deixa de valer; os atalhos de
+datas não aprovam a peça automaticamente. Permissões e bloqueios de estado
+continuam os mesmos: head do cliente/admin, com controle de versão.
+
+O salvamento no painel gera o documento e o PDF da nova versão usando o
+gerador existente. Os arquivos anteriores permanecem como versões no Drive;
+os links oficiais passam a apontar para os novos. A gravação dos IDs confere
+a versão para impedir que uma geração lenta substitua arquivos mais recentes.
+Se o Drive falhar, as datas continuam salvas, a tela exibe um aviso e não
+oferece os arquivos antigos como atuais; salvar novamente tenta a geração.
+Não há novo envio de e-mail ou de mensagem ao alterar datas.
+
+Validação local: npm run check aprovado em 06/11/2026: sintaxe de 401 arquivos e ordem global do frontend, 1.064 testes aprovados e build concluído, sobre a main 6deefed. No Windows, dois testes existentes do Escritório exigiram LF no checkout; o conteúdo do arquivo permaneceu idêntico ao blob da main. As regressões do fluxo usam PostgreSQL em memória e Drive simulado, sem escritas externas. A revisão visual em navegador está pendente: o navegador
+da sessão bloqueou a abertura da prévia HTML por arquivo local.
+
 ## Documento padrão
 
 - Estrutura fixa para todos os clientes: capa; visão do mês (números e

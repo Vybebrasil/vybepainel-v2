@@ -156,7 +156,7 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   20/10/2026) cria todas as demandas numa transação (`cadastrarPecas`, mesma
   `criarConteudoNaTransacao` do formulário), com destino, status e equipe da
   regra do formulário (`cadastrosDestiny`). O prazo é o Prazo de Ouro (7 dias
-  antes), ou hoje, nunca a menos de 2 dias da veiculação. A pessoa da equipe é
+  antes), ou hoje, nunca a menos de 2 dias da veiculação. Desde 06/11/2026, um prazo explícito escolhido pelo head na peça prevalece; prazo vazio mantém essa regra automática. A pessoa da equipe é
   quem mais fez peças do cliente. "Outro" vai para Solicitações. Cada peça
   guarda a demanda criada; o planejamento vira "Cadastrado" junto, sem duplicar. Migração `2026-10-20-planejamentos.sql` já aplicada em
   19/10/2026. Consulte `docs/planejamentos-plano.md`.
