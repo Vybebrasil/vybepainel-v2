@@ -36,6 +36,14 @@ export function normalizarConteudo(c = {}) {
   datas: lista(o.datas, 20, (d) => (texto(d?.nome, 80) ? { data: texto(d.data, 20), nome: texto(d.nome, 80), texto: texto(d.texto, 300) } : null)),
   pecas: lista(o.pecas, 80, (p) => {
    const data = dataIso(p?.data);
+   const prazo = dataIso(p?.prazo);
+   for (const [nome, valor] of [['veiculação', p?.data], ['prazo', p?.prazo]]) {
+    if (!valor) continue;
+    const iso = dataIso(valor), d = new Date(iso + 'T12:00:00Z');
+    if (!iso || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso)
+     throw erro(`Informe uma data válida para ${nome} da peça "${texto(p?.tema, 80)}".`);
+   }
+   if (prazo && data && prazo > data) throw erro('O prazo da peça não pode ser depois da veiculação.');
    if (!data && !texto(p?.tema, 160)) return null;
    const formato = FORMATOS.find((f) => f.toLowerCase() === String(p?.formato || '').toLowerCase()) || (texto(p?.formato, 30) ? 'Outro' : 'Card');
    // conteudo_id: a demanda criada a partir da peça (cadastrarPecas).
@@ -47,7 +55,7 @@ export function normalizarConteudo(c = {}) {
    // objetivo, linha e telas: o que o PDF do agente já trazia por peça e o
    // painel não tinha onde guardar (Paulo, 20/10/2026: "não copiou tudo").
    const telas = (Array.isArray(p?.telas) ? p.telas : typeof p?.telas === 'string' ? p.telas.split(/\n+/) : []).map((t) => texto(typeof t === 'object' ? t?.texto : t, 600)).filter(Boolean).slice(0, 20);
-   return { data, formato, tema: texto(p?.tema, 200), linha: texto(p?.linha, 80), objetivo: texto(p?.objetivo, 800), telas, legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
+   return { data, ...(prazo ? { prazo } : {}), formato, tema: texto(p?.tema, 200), linha: texto(p?.linha, 80), objetivo: texto(p?.objetivo, 800), telas, legenda: texto(p?.legenda, 5000), referencia: texto(p?.referencia, 6000), observacao: texto(p?.observacao, 1500), ...(cid ? { conteudo_id: cid } : {}), ...(ajuste ? { ajuste_cliente: ajuste } : {}) };
   }).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')),
   observacoes: texto(o.observacoes, 2000),
   revisoes: normalizarRevisoes(o.revisoes),
@@ -215,7 +223,7 @@ export async function editarPlanejamento(sql, pessoa, { id, versao, titulo, cont
   corpo.revisoes = revisoesQueValem(p.conteudo?.revisoes, corpo.pecas);
   const [n] = await tx`UPDATE vybe_planejamentos SET titulo=${texto(titulo, 160) || p.titulo},conteudo=${JSON.stringify(corpo)}::jsonb,
    versao=versao+1,estado=CASE WHEN estado='enviado' THEN 'revisar' ELSE estado END,
-   link_hash=CASE WHEN estado='enviado' THEN NULL ELSE link_hash END,atualizado_em=now() WHERE id=${id} RETURNING *`;
+   link_hash=CASE WHEN estado='enviado' THEN NULL ELSE link_hash END,drive_doc_id=NULL,drive_pdf_id=NULL,atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, 'editado', { autor: pessoa.id, versao: n.versao, texto: voltou ? 'Editado depois de enviado: o link anterior deixou de valer.' : null });
   return publico(n);
  });
@@ -331,7 +339,7 @@ export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
    const d = destinos?.[peca.formato] || {}, avulso = peca.formato === 'Outro';
    const r = await criarConteudoNaTransacao(tx, quem, {
     board: avulso ? BOARD_DEMANDAS : BOARD_PRODUCAO, titulo: `${formato} - ${peca.tema || 'Sem tema'}`.slice(0, 240), cliente: p.cliente, formato,
-    prazo: prazoDaPeca(peca.data, hoje), veiculacao: peca.data, status: avulso ? 'nova_demanda' : d.status || 'a_fazer', grupo_id: avulso ? null : d.grupo_id || null,
+    prazo: peca.prazo || prazoDaPeca(peca.data, hoje), veiculacao: peca.data, status: avulso ? 'nova_demanda' : d.status || 'a_fazer', grupo_id: avulso ? null : d.grupo_id || null,
     briefing: briefingDaPeca(peca, mesTexto), tipo_conteudo: avulso ? null : 3,
     captacao: avulso ? null : d.captacao || null, responsaveis: avulso ? [] : await quemFaz(d.responsaveis),
    });
@@ -353,8 +361,11 @@ export async function comentarPlanejamento(sql, pessoa, { id, texto: t }) {
  await registrar(sql, id, 'comentario', { autor: pessoa.id, texto: limpo });
  return { ok: true };
 }
-export async function registrarArquivos(sql, id, { docId, pdfId }) {
- await sql`UPDATE vybe_planejamentos SET drive_doc_id=COALESCE(${docId || null},drive_doc_id),drive_pdf_id=COALESCE(${pdfId || null},drive_pdf_id) WHERE id=${id}`;
+export async function registrarArquivos(sql, id, { docId, pdfId, versao = null }) {
+ // Arquivos de uma geração lenta não podem substituir os de uma edição posterior.
+ const linhas = await sql`UPDATE vybe_planejamentos SET drive_doc_id=COALESCE(${docId || null},drive_doc_id),drive_pdf_id=COALESCE(${pdfId || null},drive_pdf_id)
+  WHERE id=${id} AND (${versao}::int IS NULL OR versao=${versao}) RETURNING id`;
+ return linhas.length > 0;
 }
 export async function registrarEvento(sql, id, tipo, opcoes) { await registrar(sql, id, tipo, opcoes); }
 

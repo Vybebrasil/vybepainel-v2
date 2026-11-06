@@ -38,7 +38,7 @@ export function separarReferencia(ref = '') {
 // esta versão da peça. Se a peça mudar, a decisão deixa de valer (Paulo,
 // 20/10/2026: aprovar peça por peça; o que não mudou continua aprovado).
 export function assinaturaDaPeca(p) {
- const c = [p.data, p.formato, p.tema, p.linha, p.objetivo, (p.telas || []).join('\u0001'), p.legenda, p.referencia, p.observacao].map((v) => String(v || '')).join('\u0002');
+ const c = [...(p.prazo ? ['prazo:' + p.prazo] : []), p.data, p.formato, p.tema, p.linha, p.objetivo, (p.telas || []).join('\u0001'), p.legenda, p.referencia, p.observacao].map((v) => String(v || '')).join('\u0002');
  return createHash('sha1').update(c).digest('hex').slice(0, 12);
 }
 // Peças prontas para mostrar, com a assinatura e as decisões que valem para
@@ -90,13 +90,14 @@ function decisaoDaPeca(x, n, respondendo) {
 // ruim pro head ver e aprovar o documento e cada conteúdo"). Mostra também o
 // que o cliente respondeu na rodada anterior.
 // Os campos guardados da peça, para o head editar ali mesmo (Paulo, 20/10/2026).
-const CAMPOS_DA_PECA = ['data', 'formato', 'tema', 'linha', 'objetivo', 'telas', 'legenda', 'referencia', 'observacao'];
+const CAMPOS_DA_PECA = ['data', 'prazo', 'formato', 'tema', 'linha', 'objetivo', 'telas', 'legenda', 'referencia', 'observacao'];
 function decisaoDoHead(x, n, revisando, i) {
  const h = x.revisao_head, c = x.revisao_cliente;
  const doCliente = c ? `<p class="sit ${c.estado === 'aprovada' ? 'ok' : 'ajuste'}">Cliente: ${c.estado === 'aprovada' ? 'aprovou' : `pediu ajuste: ${esc(c.nota)}`}</p>` : '';
  const sit = h?.estado === 'ok' ? `<p class="sit ok">OK na revisão${h.por ? ` de ${esc(h.por)}` : ''}</p>` : h?.estado === 'ajustar' ? `<p class="sit ajuste">Ajustar: ${esc(h.nota)}</p>` : '<p class="sit">Ainda não revisada</p>';
  if (!revisando) return `<div class="decisao">${doCliente}${h ? sit : ''}</div>`;
  return `<div class="decisao" data-assinatura="${esc(x.assinatura)}" data-indice="${i}" data-peca="${esc(JSON.stringify(Object.fromEntries(CAMPOS_DA_PECA.map((k) => [k, x[k] ?? (k === 'telas' ? [] : '')]))))}" data-estado="${h?.estado === 'ok' ? 'aprovada' : h?.estado === 'ajustar' ? 'ajuste' : ''}">${doCliente}${sit}
+<div class="acoes datas-peca"><button type="button" class="nao" data-acao="prazo">Prazo: ${esc(x.prazo ? dia(x.prazo) : 'automático')}</button><button type="button" class="nao" data-acao="veiculacao">Veiculação: ${esc(x.data ? dia(x.data) : 'definir')}</button></div>
 <div class="acoes"><button type="button" class="sim" data-acao="ok">Peça OK</button><button type="button" class="nao" data-acao="abrir">Ajustar</button><button type="button" class="nao" data-acao="editar">Editar peça</button>${h ? '<button type="button" class="link" data-acao="limpar">Desfazer</button>' : ''}</div>
 <div class="nota" hidden><label>O que ajustar na peça ${n}? (o agente lê)<textarea rows="3" maxlength="1500">${h?.estado === 'ajustar' ? esc(h.nota) : ''}</textarea></label><button type="button" class="sim" data-acao="ajustar">Salvar ajuste</button></div></div>`;
 }
@@ -111,6 +112,7 @@ function fichaDaPeca(x0, i, { paraCliente, respondendo, revisor, revisando }) {
   : `<div class="ref"><b>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência'}</b><p>${esc(x.referencia)}</p></div>`) : '';
  return `<article class="peca" id="peca-${i + 1}" style="--f:${corF}">
 <header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span>${x.linha ? `<span class="linha">${esc(x.linha)}</span>` : ''}</header>
+${!paraCliente && x.prazo ? `<p class="prazo-peca">Prazo de produção: ${esc(dia(x.prazo))}</p>` : ''}
 <h3>${esc(semNumero(x.tema) || 'Sem tema')}</h3>
 ${x.objetivo ? `<p class="objetivo">${esc(x.objetivo)}</p>` : ''}
 ${telas ? `<div class="duas">${telas}${legenda}</div>` : legenda}
@@ -159,6 +161,7 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', 
  const id = p.identidade || {}, base = PAINEL();
  const logo = url(id.logo) || (id.logo_drive && p.cliente_id ? `${base}/api/painel?area=logo&c=${encodeURIComponent(p.cliente_id)}` : '');
  const c = p.conteudo || {}, pecas = pecasComRevisao(c, { paraCliente });
+ const outrosMeses = [...new Set(pecas.map((x) => String(x.data || '').slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m) && !String(p.mes).startsWith(m)))].sort();
  const contagem = {};
  for (const x of pecas) contagem[x.formato] = (contagem[x.formato] || 0) + 1;
  const numeros = c.numeros?.length ? c.numeros : [{ rotulo: pecas.length === 1 ? 'publicação no mês' : 'publicações no mês', valor: String(pecas.length) }, ...Object.entries(contagem).map(([f, n]) => ({ rotulo: f, valor: String(n) }))];
@@ -197,7 +200,7 @@ ${escolha('Como você quer revisar?', 'Antes de mandar ao cliente, dê OK ou pe�
 ${c.linhas?.length ? `${secao('02', 'Linhas de conteúdo', 'Os assuntos do mês')}<div class="linhas">${c.linhas.map((l) => `<div><b>${esc(l.titulo)}</b><p>${esc(l.texto)}</p></div>`).join('')}</div>` : ''}
 ${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div class="rolar"><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table></div>` : ''}
 </div>
-${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}
+${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}${outrosMeses.map((mes) => `<h3 class="mes-cal">${esc(nomeDoMes(mes).replace(/^./, (x) => x.toUpperCase()))}</h3>${calendario(mes, pecas)}`).join('')}
 ${navegando ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
 <section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${navegando ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
 ${c.observacoes ? `<div class="so-doc">${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div></div>` : ''}`;
@@ -237,30 +240,32 @@ const falar=(dados)=>new Promise((ok,nao)=>{const id=++seq;espera[id]={ok,nao};p
 addEventListener('message',e=>{if(e.source!==parent||!e.data||e.data.vybe!=='planejamento-head-resposta')return;const w=espera[e.data.id];if(!w)return;delete espera[e.data.id];e.data.ok?w.ok(e.data):w.nao(new Error(e.data.erro||'Não deu para salvar.'));});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-acao]');if(!b)return;const d=b.closest('.decisao');if(!d)return;const a=b.dataset.acao;
 if(a==='abrir'){d.querySelector('.nota').hidden=false;d.querySelector('textarea').focus();return;}
-if(a==='editar'){abrirEdicao(d);return;}
+if(['editar','prazo','veiculacao'].includes(a)){abrirEdicao(d,a);return;}
 const nota=a==='ajustar'?d.querySelector('textarea').value.trim():'';if(a==='ajustar'&&!nota){alert('Escreva o que ajustar nesta peça.');return;}
 b.disabled=true;try{await falar({assinatura:d.dataset.assinatura,estado:a,nota});const s=[...d.querySelectorAll('.sit')].pop();
 d.dataset.estado=a==='ok'?'aprovada':a==='ajustar'?'ajuste':'';s.className='sit'+(a==='ok'?' ok':a==='ajustar'?' ajuste':'');s.textContent=a==='ok'?'OK na revisão':a==='ajustar'?'Ajustar: '+nota:'Ainda não revisada';d.querySelector('.nota').hidden=true;contarHead();if(a!=='limpar')document.dispatchEvent(new Event('vybe-respondida'));}
 catch(x){alert(x.message);}finally{b.disabled=false;}});
 const dlg=document.getElementById('editar-peca');let editando=null;
-function abrirEdicao(d){editando=d;const p=JSON.parse(d.dataset.peca);for(const el of dlg.querySelectorAll('[name]')){const v=p[el.name];el.value=Array.isArray(v)?v.join('\\n'):(v||'');}
-dlg.querySelector('h3').textContent='Editar a peça '+String(Number(d.dataset.indice)+1).padStart(2,'0');dlg.showModal();dlg.querySelector('[name=tema]').focus();}
+function abrirEdicao(d,acao='editar'){editando=d;dlg.classList.toggle('so-datas',acao!=='editar');const p=JSON.parse(d.dataset.peca);for(const el of dlg.querySelectorAll('[name]')){const v=p[el.name];el.value=Array.isArray(v)?v.join('\\n'):(v||'');}
+dlg.querySelector('h3').textContent=(acao==='editar'?'Editar a peça ':'Datas da peça ')+String(Number(d.dataset.indice)+1).padStart(2,'0');
+dlg.querySelector('[data-dica-edicao]').textContent=acao==='editar'?'Salvar cria uma versão nova do planejamento. A peça editada fica com o seu OK.':'A veiculação reorganiza o calendário e o documento. Deixe o prazo vazio para usar o Prazo de Ouro. Alterar as datas pede nova revisão da peça.';
+dlg.showModal();dlg.querySelector('[name='+(acao==='prazo'?'prazo':acao==='veiculacao'?'data':'tema')+']').focus();}
 dlg.querySelector('[data-fechar]').addEventListener('click',()=>dlg.close());
-dlg.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const b=dlg.querySelector('[type=submit]');const peca=Object.fromEntries([...dlg.querySelectorAll('[name]')].map(el=>[el.name,el.name==='telas'?el.value.split('\\n').map(t=>t.trim()).filter(Boolean):el.value.trim()]));
-b.disabled=true;b.textContent='Salvando…';try{await falar({acao:'editar',indice:Number(editando.dataset.indice),peca});dlg.close();}catch(x){alert(x.message);}finally{b.disabled=false;b.textContent='Salvar a peça';}});
-addEventListener('message',e=>{if(e.source===parent&&e.data?.vybe==='planejamento-ir'){document.getElementById('peca-'+e.data.n)?.scrollIntoView({block:'start'});}});
+dlg.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const b=dlg.querySelector('[type=submit]');const peca=Object.fromEntries([...dlg.querySelectorAll(dlg.classList.contains('so-datas')?'[name=data],[name=prazo]':'[name]')].map(el=>[el.name,el.name==='telas'?el.value.split('\\n').map(t=>t.trim()).filter(Boolean):el.value.trim()]));
+b.disabled=true;b.textContent='Salvando…';try{await falar({acao:'editar',indice:Number(editando.dataset.indice),peca,soDatas:dlg.classList.contains('so-datas'),modo});dlg.close();}catch(x){alert(x.message);}finally{b.disabled=false;b.textContent='Salvar a peça';}});
+addEventListener('message',e=>{if(e.source===parent&&e.data?.vybe==='planejamento-ir'){aplicarModo(e.data.modo==='um'?'um':'doc');if(modo==='um')mostrar(e.data.n-1);else document.getElementById('peca-'+e.data.n)?.scrollIntoView({block:'start'});}});
 function contarHead(){const ds=[...document.querySelectorAll('.decisao[data-assinatura]')],r=ds.filter(d=>d.dataset.estado).length;document.getElementById('progresso').textContent=r+' de '+ds.length+' peças revisadas';document.getElementById('barra').style.width=(ds.length?Math.round(r/ds.length*100):0)+'%';}
 ${modosJs({ chave: 'vybe-modo-revisao', envio: false })}
 contarHead();})();</script>` : '';
  const dialogoEdicao = revisando ? `<dialog id="editar-peca" class="editar"><form method="dialog"><h3>Editar a peça</h3>
-<div class="campos"><label>Dia<input type="date" name="data"></label><label>Formato<select name="formato">${['Card', 'Carrossel', 'Reels', 'Fotografia', 'Vídeo', 'Stories', 'Outro'].map((f) => `<option>${f}</option>`).join('')}</select></label><label class="largo">Tema<input name="tema" maxlength="200"></label>
-<label>Linha de conteúdo<input name="linha" maxlength="80"></label><label class="largo">Objetivo<input name="objetivo" maxlength="800"></label></div>
-<label>Texto das telas (uma por linha)<textarea name="telas" rows="5"></textarea></label>
-<label>Legenda ou roteiro<textarea name="legenda" rows="6" maxlength="5000"></textarea></label>
-<label>Referência<textarea name="referencia" rows="2" maxlength="6000"></textarea></label>
-<label>Para o cliente decidir<textarea name="observacao" rows="2" maxlength="1500"></textarea></label>
+<div class="campos"><label>Veiculação<input type="date" name="data"></label><label>Prazo de produção<input type="date" name="prazo"><small>Vazio = Prazo de Ouro</small></label><label data-completo>Formato<select name="formato">${['Card', 'Carrossel', 'Reels', 'Fotografia', 'Vídeo', 'Stories', 'Outro'].map((f) => `<option>${f}</option>`).join('')}</select></label><label class="largo" data-completo>Tema<input name="tema" maxlength="200"></label>
+<label data-completo>Linha de conteúdo<input name="linha" maxlength="80"></label><label class="largo" data-completo>Objetivo<input name="objetivo" maxlength="800"></label></div>
+<label data-completo>Texto das telas (uma por linha)<textarea name="telas" rows="5"></textarea></label>
+<label data-completo>Legenda ou roteiro<textarea name="legenda" rows="6" maxlength="5000"></textarea></label>
+<label data-completo>Referência<textarea name="referencia" rows="2" maxlength="6000"></textarea></label>
+<label data-completo>Para o cliente decidir<textarea name="observacao" rows="2" maxlength="1500"></textarea></label>
 <div class="botoes"><button type="submit" class="sim">Salvar a peça</button><button type="button" class="nao" data-fechar>Cancelar</button></div>
-<small>Salvar cria uma versão nova do planejamento. A peça editada fica com o seu OK.</small></form></dialog>` : '';
+<small data-dica-edicao>Salvar cria uma versão nova do planejamento. A peça editada fica com o seu OK.</small></form></dialog>` : '';
  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>${esc(p.titulo)} · ${esc(p.cliente)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap">
@@ -307,6 +312,10 @@ h2{font:800 22px/1.2 Sora,sans-serif;margin:44px 0 14px;text-wrap:balance}h2 sma
 .decisao{border-top:1px dashed var(--linha);padding-top:12px;display:grid;gap:8px}
 .decisao .sit{margin:0;font-weight:700;font-size:14px;color:var(--sub)}.decisao .sit.ok{color:#1f7a4a}.decisao .sit.ok::before{content:"✓ "}.decisao .sit.ajuste{color:#a33}
 .decisao .acoes{display:flex;flex-wrap:wrap;gap:8px}.decisao .acoes button{padding:10px 14px;font-size:14px}
+.decisao .datas-peca button{padding:7px 11px;font-size:12.5px;background:#faf8f4;color:var(--tinta);border:1px solid var(--linha)}
+.prazo-peca{font-size:12.5px;color:var(--sub)}
+.mes-cal{margin:22px 0 12px;font:700 18px Sora,sans-serif}
+dialog.editar.so-datas [data-completo]{display:none}
 .decisao[data-estado=aprovada]{background:#eef8f1;margin:0 -20px -18px;padding:12px 20px 16px;border-radius:0 0 16px 16px}
 .decisao[data-estado=ajuste]{background:#fdf0f0;margin:0 -20px -18px;padding:12px 20px 16px;border-radius:0 0 16px 16px}
 .decisao .nota{display:grid;gap:8px}.decisao .nota[hidden]{display:none}.decisao .nota button{justify-self:start}.decisao .nota label{display:grid;gap:6px;font-weight:600;font-size:14px}
@@ -317,7 +326,7 @@ button.link{background:none;border:0;color:var(--sub);text-decoration:underline;
 dialog.editar{width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);border:0;border-radius:20px;padding:22px;box-shadow:0 30px 80px #0006}
 dialog.editar::backdrop{background:#0008}dialog.editar h3{margin:0 0 12px;font:800 20px Sora,sans-serif}
 dialog.editar form{display:grid;gap:10px}dialog.editar label{display:grid;gap:4px;font-weight:700;font-size:13px}
-dialog.editar .campos{display:grid;grid-template-columns:160px 150px 1fr;gap:10px}dialog.editar .campos .largo{grid-column:span 1}
+dialog.editar .campos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}dialog.editar .campos .largo{grid-column:span 1}
 @media(max-width:640px){dialog.editar .campos{grid-template-columns:1fr 1fr}dialog.editar .campos .largo{grid-column:1/-1}}
 select{font:inherit;padding:10px;border:1px solid var(--linha);border-radius:12px;background:#fff}
 .como-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}

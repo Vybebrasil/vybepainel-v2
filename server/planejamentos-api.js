@@ -43,7 +43,21 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const b = corpoDe(req);
   if (acao === 'criar') return res.status(200).json({ ok: true, planejamento: await P.criarNoPainel(sql, pessoa, { clienteId: b.cliente_id, mes: b.mes, titulo: b.titulo, conteudo: b.conteudo }) });
-  if (acao === 'editar') return res.status(200).json({ ok: true, planejamento: await P.editarPlanejamento(sql, pessoa, b) });
+  if (acao === 'editar') {
+   const p = await P.editarPlanejamento(sql, pessoa, b);
+   const avisos = [];
+   try {
+    const [c] = await sql`SELECT nome,identidade FROM vybe_clientes WHERE id=${p.cliente_id}`;
+    const pasta = await pastaDePlanejamento({ cliente: c.nome, mes: p.mes });
+    const arq = await salvarDocumentoEPdf({ html: documentoHtml({ ...p, cliente: c.nome, identidade: c.identidade }), nome: `${c.nome} · Planejamento ${nomeDoMes(p.mes)} · v${p.versao}`, pastaId: pasta });
+    if (await P.registrarArquivos(sql, p.id, { ...arq, versao: p.versao })) {
+     p.drive_doc_id = arq.docId; p.drive_pdf_id = arq.pdfId;
+    } else avisos.push('Outra versão foi salva durante a geração dos arquivos. Recarregue o planejamento.');
+   } catch {
+    avisos.push('Planejamento salvo. Não foi possível atualizar o documento e o PDF no Drive; salve novamente para tentar de novo.');
+   }
+   return res.status(200).json({ ok: true, planejamento: p, avisos });
+  }
   if (acao === 'estado') return res.status(200).json({ ok: true, planejamento: await P.mudarEstadoInterno(sql, pessoa, b) });
   if (acao === 'cadastrar') return res.status(200).json({ ok: true, ...(await P.cadastrarPecas(sql, quem, b)) });
   if (acao === 'aprovar_head') return res.status(200).json({ ok: true, planejamento: await P.aprovarPeloHead(sql, pessoa, b) });
@@ -89,7 +103,7 @@ export async function areaPlanejamentos(req, res, quem, sql) {
    try {
     const pasta = await pastaDePlanejamento({ cliente: p.cliente, mes: p.mes });
     const arq = await salvarDocumentoEPdf({ html: documentoHtml(p), nome: `${p.cliente} · Planejamento ${nomeDoMes(p.mes)} · v${p.versao}`, pastaId: pasta });
-    await P.registrarArquivos(sql, p.id, { docId: arq.docId, pdfId: arq.pdfId });
+    await P.registrarArquivos(sql, p.id, { docId: arq.docId, pdfId: arq.pdfId, versao: p.versao });
    } catch (e) { avisos.push('Drive: ' + e.message); }
    if (b.email !== false) {
     try {
