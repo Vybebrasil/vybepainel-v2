@@ -62,13 +62,13 @@ export function pecaParaMostrar(p) {
  return { ...p, objetivo: s.objetivo, telas: s.telas, referencia: s.resto };
 }
 
-function calendario(mes, pecas) {
+function calendario(mes, pecas, { editavel = false } = {}) {
  const [a, m] = String(mes).split('-').map(Number);
  const dias = new Date(Date.UTC(a, m, 0)).getUTCDate(), inicio = (new Date(Date.UTC(a, m - 1, 1)).getUTCDay() + 6) % 7; // segunda primeiro
  const por = new Map();
  pecas.forEach((p, i) => { if (p.data?.startsWith(`${a}-${String(m).padStart(2, '0')}`)) { const d = Number(p.data.slice(8)); por.set(d, [...(por.get(d) || []), [p, i]]); } });
  const celulas = [...Array(inicio).fill('<td class="vazio"></td>')];
- for (let d = 1; d <= dias; d++) celulas.push(`<td><b>${d}</b>${(por.get(d) || []).map(([p, i]) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[p.formato] || '#6b7280'}">${esc(p.formato)}</a>`).join('')}</td>`);
+ for (let d = 1; d <= dias; d++) celulas.push(`<td data-data="${a}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}"><b>${d}</b>${(por.get(d) || []).map(([p, i]) => `<a href="#peca-${i + 1}" data-indice="${i}"${editavel ? ' data-mover="true" draggable="false"' : ''} title="${esc(p.formato + ' · ' + (semNumero(p.tema) || 'Sem tema'))}" style="--f:${CORES_FORMATO[p.formato] || '#6b7280'}">${esc(semNumero(p.tema) || 'Sem tema')}</a>`).join('')}</td>`);
  while (celulas.length % 7) celulas.push('<td class="vazio"></td>');
  const linhas = [];
  for (let i = 0; i < celulas.length; i += 7) linhas.push(`<tr>${celulas.slice(i, i + 7).join('')}</tr>`);
@@ -200,7 +200,7 @@ ${escolha('Como você quer revisar?', 'Antes de mandar ao cliente, dê OK ou pe�
 ${c.linhas?.length ? `${secao('02', 'Linhas de conteúdo', 'Os assuntos do mês')}<div class="linhas">${c.linhas.map((l) => `<div><b>${esc(l.titulo)}</b><p>${esc(l.texto)}</p></div>`).join('')}</div>` : ''}
 ${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div class="rolar"><table class="datas"><tbody>${c.datas.map((d) => `<tr><td>${esc(d.data)}</td><td><b>${esc(d.nome)}</b></td><td>${esc(d.texto)}</td></tr>`).join('')}</tbody></table></div>` : ''}
 </div>
-${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${calendario(p.mes, pecas)}${outrosMeses.map((mes) => `<h3 class="mes-cal">${esc(nomeDoMes(mes).replace(/^./, (x) => x.toUpperCase()))}</h3>${calendario(mes, pecas)}`).join('')}
+${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${revisando ? '<p class="cal-dica">Arraste uma peça para outro dia para mudar a veiculação. Você também pode usar o botão Veiculação na ficha.</p><p id="cal-estado" role="status" aria-live="polite" hidden></p>' : ''}${calendario(p.mes, pecas, { editavel: revisando })}${outrosMeses.map((mes) => `<h3 class="mes-cal">${esc(nomeDoMes(mes).replace(/^./, (x) => x.toUpperCase()))}</h3>${calendario(mes, pecas, { editavel: revisando })}`).join('')}
 ${navegando ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
 <section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${navegando ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
 ${c.observacoes ? `<div class="so-doc">${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div></div>` : ''}`;
@@ -245,6 +245,23 @@ const nota=a==='ajustar'?d.querySelector('textarea').value.trim():'';if(a==='aju
 b.disabled=true;try{await falar({assinatura:d.dataset.assinatura,estado:a,nota});const s=[...d.querySelectorAll('.sit')].pop();
 d.dataset.estado=a==='ok'?'aprovada':a==='ajustar'?'ajuste':'';s.className='sit'+(a==='ok'?' ok':a==='ajustar'?' ajuste':'');s.textContent=a==='ok'?'OK na revisão':a==='ajustar'?'Ajustar: '+nota:'Ainda não revisada';d.querySelector('.nota').hidden=true;contarHead();if(a!=='limpar')document.dispatchEvent(new Event('vybe-respondida'));}
 catch(x){alert(x.message);}finally{b.disabled=false;}});
+let arrastando=null,salvandoCalendario=false,ignorarClique=false;
+const limparArraste=()=>{if(arrastando?.a.hasPointerCapture(arrastando.id))arrastando.a.releasePointerCapture(arrastando.id);document.querySelectorAll('.cal .arrastando,.cal .destino').forEach(el=>el.classList.remove('arrastando','destino'));arrastando=null;};
+const diaNoPonto=e=>document.elementFromPoint(e.clientX,e.clientY)?.closest('.cal td[data-data]');
+document.addEventListener('pointerdown',e=>{const a=e.target.closest('.cal a[data-mover]');if(!a||e.button!==0||salvandoCalendario)return;
+arrastando={a,id:e.pointerId,x:e.clientX,y:e.clientY,ativo:false};});
+document.addEventListener('pointermove',e=>{if(!arrastando||e.pointerId!==arrastando.id)return;
+if(!arrastando.ativo){if(Math.hypot(e.clientX-arrastando.x,e.clientY-arrastando.y)<8)return;arrastando.ativo=true;arrastando.a.setPointerCapture(e.pointerId);arrastando.a.classList.add('arrastando');}
+e.preventDefault();document.querySelectorAll('.cal td.destino').forEach(el=>el.classList.remove('destino'));diaNoPonto(e)?.classList.add('destino');});
+document.addEventListener('pointerup',async e=>{if(!arrastando||e.pointerId!==arrastando.id)return;
+const a=arrastando.a,ativo=arrastando.ativo,td=diaNoPonto(e);limparArraste();if(!ativo)return;
+ignorarClique=true;setTimeout(()=>{ignorarClique=false;},0);e.preventDefault();if(!td||salvandoCalendario)return;
+const indice=Number(a.dataset.indice),antes=a.closest('td').dataset.data,data=td.dataset.data;if(antes===data)return;
+const aviso=document.getElementById('cal-estado');salvandoCalendario=true;aviso.hidden=false;aviso.className='cal-estado';aviso.textContent='Salvando a nova veiculação…';
+try{await falar({acao:'editar',indice,peca:{data},soDatas:true,modo});aviso.textContent='Veiculação salva. Calendário e documento atualizados.';}
+catch(x){aviso.className='cal-estado erro';aviso.textContent=x.message;}finally{salvandoCalendario=false;}});
+document.addEventListener('click',e=>{if(ignorarClique){e.preventDefault();e.stopPropagation();ignorarClique=false;}},true);
+document.addEventListener('pointercancel',limparArraste);document.addEventListener('keydown',e=>{if(e.key==='Escape')limparArraste();});addEventListener('blur',limparArraste);
 const dlg=document.getElementById('editar-peca');let editando=null;
 function abrirEdicao(d,acao='editar'){editando=d;dlg.classList.toggle('so-datas',acao!=='editar');const p=JSON.parse(d.dataset.peca);for(const el of dlg.querySelectorAll('[name]')){const v=p[el.name];el.value=Array.isArray(v)?v.join('\\n'):(v||'');}
 dlg.querySelector('h3').textContent=(acao==='editar'?'Editar a peça ':'Datas da peça ')+String(Number(d.dataset.indice)+1).padStart(2,'0');
@@ -290,6 +307,8 @@ h2{font:800 22px/1.2 Sora,sans-serif;margin:44px 0 14px;text-wrap:balance}h2 sma
 .rolar{overflow-x:auto;border-radius:14px}table{width:100%;border-collapse:collapse;background:var(--cartao)}
 .datas td{padding:11px 14px;border-bottom:1px solid var(--linha);vertical-align:top}.datas tr:last-child td{border-bottom:0}.datas td:first-child{color:var(--vybe);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 .cal{min-width:620px;table-layout:fixed}.cal th{background:var(--escuro);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:9px}.cal td{height:78px;vertical-align:top;border:1px solid var(--linha);padding:6px}
+.cal-dica,.cal-estado{font-size:13px;color:var(--sub);margin:8px 0}
+.cal a[data-mover]{cursor:grab;touch-action:none;user-select:none}.cal a.arrastando{cursor:grabbing;opacity:.4}.cal td.destino{background:#fff0df;outline:2px solid var(--vybe);outline-offset:-2px}
 .cal td.vazio{background:#efebe3}.cal b{font-size:12px;color:var(--sub)}.cal a{display:block;margin-top:4px;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--f) 14%,#fff);border-left:3px solid var(--f);font-size:10.5px;font-weight:700;color:var(--tinta);text-decoration:none}
 .pecas{display:grid;gap:14px}.peca{background:var(--cartao);border:1px solid var(--linha);border-left:4px solid var(--f);border-radius:16px;padding:18px 20px;display:grid;gap:10px;scroll-margin-top:16px}
 .peca header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.peca .num{font:800 20px/1 Sora,sans-serif;color:var(--f);font-variant-numeric:tabular-nums}

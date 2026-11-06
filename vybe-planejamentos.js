@@ -145,7 +145,7 @@ function pintarPlanejamento(aba) {
   }
   if (aba === 'documento') {
     const revisando = p.pode_editar && ['revisar', 'ajustes'].includes(p.estado);
-    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>
+    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
     ${barra}
     ${resposta ? `<div class="plj-flut plj-flut-aviso">${resposta}</div>` : ''}
     <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div></div>`;
@@ -159,7 +159,7 @@ function pintarPlanejamento(aba) {
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
-      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-popups allow-modals"></iframe>`}</div>
+      : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
   m.dataset.aba = aba;
   if (aba === 'identidade') pljCarregarLogosDrive();
