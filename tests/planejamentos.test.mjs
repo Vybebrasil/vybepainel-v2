@@ -412,30 +412,36 @@ test('API de edição: falha do Drive avisa e mantém as datas salvas sem arquiv
  assert.equal((await P.detalhePlanejamento(sql,{id:3},p.id)).drive_doc_id,null);
 });
 
-test('atalho de datas preserva textos, acompanha a peça reordenada e não aprova automaticamente',async()=>{
+test('atalho de datas edita o rascunho na hora (sem ir ao servidor) e grava tudo quando o head salva',async()=>{
  const chamadas=[],mensagens=[],toasts=[];
  const quadro={contentWindow:{postMessage:m=>mensagens.push(m)},addEventListener:(tipo,fn)=>fn()};
- const ctx=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},querySelector:()=>quadro},showToast:(...x)=>toasts.push(x),confirm:()=>true});
+ const modal={dataset:{aba:'documento'},querySelector:s=>s==='.plj-previa'?quadro:null};
+ const ctx=vm.createContext({window:{addEventListener(){}},document:{addEventListener(){},querySelector:()=>quadro,getElementById:id=>id==='workflow-modal'?modal:null},showToast:(...x)=>toasts.push(x),confirm:()=>true});
  vm.runInContext(readFileSync('vybe-planejamentos.js','utf8'),ctx);
  ctx.registrar=(a,b)=>chamadas.push([a,b]);
  ctx.simular=corpo=>({planejamento:{id:'1',versao:2,estado:'revisar',conteudo:P.normalizarConteudo(corpo)}});
  vm.runInContext(`
- PLJ_ABERTO={id:'1',versao:1,estado:'revisar',titulo:'Mês',conteudo:{pecas:[
+ PLJ_ABERTO={id:'1',versao:1,estado:'revisar',pode_editar:true,titulo:'Mês',conteudo:{pecas:[
  {tema:'Mesmo tema',data:'2026-11-20',legenda:'Primeira',formato:'Card'},
  {tema:'Mesmo tema',data:'2026-11-10',legenda:'Segunda',formato:'Card'}
  ]}};
+ PLJ_RASCUNHO=JSON.parse(JSON.stringify(PLJ_ABERTO.conteudo));
  let salvo;
  pljPedir=async(params,b)=>{registrar(params,b);if(b){salvo=simular(b.conteudo);return {...salvo,avisos:['Drive indisponível']};}return salvo;};
  abrirPlanejamento=async()=>{};
  pljAtualizarFora=()=>{};
  `,ctx);
  await ctx.pljSalvarPecaDoDocumento(0,{data:'2026-11-25',prazo:'2026-11-23'},{soDatas:true});
+ assert.equal(chamadas.length,0,'arrastar ou mudar data não chama o servidor nem o Drive a cada movimento');
+ await assert.rejects(ctx.pljSalvarPecaDoDocumento(0,{data:'2026-11-20',prazo:'2026-11-22'},{soDatas:true}),/depois da veiculação/);
+ await assert.rejects(ctx.pljSalvarPecaDoDocumento(-1,{}),/Peça não encontrada/);
+ await ctx.salvarPlanejamento({});
+ assert.equal(chamadas.filter(([,b])=>b?.acao==='editar').length,1,'salva uma única versão quando o head clica em Salvar alterações');
  assert.equal(chamadas.filter(([,b])=>b?.acao==='revisar_peca').length,0);
  assert.equal(chamadas[0][1].conteudo.pecas[0].legenda,'Primeira');
  assert.equal(chamadas[0][1].conteudo.pecas[1].legenda,'Segunda');
  assert.equal(mensagens[0].n,2);
  assert.ok(toasts.some(([m])=>m==='Drive indisponível'));
- await assert.rejects(ctx.pljSalvarPecaDoDocumento(-1,{}),/Peça não encontrada/);
 });
 
 test('API de edição gera documento/PDF da nova data e registra só a versão atual (Drive simulado)',async t=>{
@@ -508,18 +514,18 @@ function calendarioDeTeste({falhar=false,pendente=false}={}){
  const eventos={},chamadas=[],classes=new Set(),avisos={hidden:true,textContent:''};
  let alvo,liberar;
  const classe={add:x=>classes.add(x),remove:(...xs)=>xs.forEach(x=>classes.delete(x))};
- const origem={dataset:{data:'2026-11-03'}};
- const celula=data=>({dataset:{data},classList:classe,closest(){return this;}});
- const a={dataset:{indice:'1'},classList:classe,closest:s=>s==='td'?origem:a,setPointerCapture(){},hasPointerCapture:()=>false,releasePointerCapture(){}};
+ let onde={dataset:{data:'2026-11-03'}};
+ const celula=data=>({dataset:{data},classList:classe,closest(){return this;},append(){onde=this;}});
+ const a={dataset:{indice:'1'},classList:classe,closest:s=>s==='td'?onde:a,setPointerCapture(){},hasPointerCapture:()=>false,releasePointerCapture(){}};
  const doc={addEventListener:(n,f)=>eventos[n]=f,querySelectorAll:()=>[{classList:classe}],elementFromPoint:()=>alvo,getElementById:()=>avisos};
  const c=vm.createContext({document:doc,addEventListener:(n,f)=>eventos[n]=f,setTimeout:fn=>fn(),modo:'doc',
  falar:async dados=>{chamadas.push(dados);if(falhar)throw Error('Prazo posterior à veiculação');if(pendente)await new Promise(r=>liberar=r);}});
  vm.runInContext(codigo,c);
  const evento=(x=10,id=1)=>({target:a,button:0,pointerId:id,clientX:x,clientY:10,preventDefault(){},stopPropagation(){}});
- return {eventos,chamadas,avisos,a,origem,setAlvo:data=>alvo=data?celula(data):null,evento,liberar:()=>liberar?.()};
+ return {eventos,chamadas,avisos,a,get origem(){return onde;},setAlvo:data=>alvo=data?celula(data):null,evento,liberar:()=>liberar?.()};
 }
 
-test('arraste grava só a veiculação, uma vez; clique, cancelamento e saída do calendário não gravam',async()=>{
+test('arraste move na hora no calendário e avisa o rascunho; clique, cancelamento e saída não gravam',async()=>{
  const t=calendarioDeTeste();t.setAlvo('2026-11-09');
  t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(14));await t.eventos.pointerup(t.evento(14));
  assert.equal(t.chamadas.length,0,'clique curto continua sendo navegação');
@@ -532,8 +538,8 @@ test('arraste grava só a veiculação, uma vez; clique, cancelamento e saída d
  assert.equal(t.chamadas.length,0,'fora do calendário e mesmo dia não salvam');
  t.setAlvo('2026-11-09');t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
  assert.deepEqual(JSON.parse(JSON.stringify(t.chamadas)),[{acao:'editar',indice:1,peca:{data:'2026-11-09'},soDatas:true,modo:'doc'}]);
- assert.equal(t.origem.dataset.data,'2026-11-03','a tela aguarda o documento salvo; não antecipa a mudança');
- assert.match(t.avisos.textContent,/Veiculação salva/);
+ assert.equal(t.origem.dataset.data,'2026-11-09','a peça muda de dia imediatamente no calendário');
+ assert.match(t.avisos.textContent,/Veiculação alterada/);
 });
 
 test('arraste: falha preserva data e mostra erro; gravação pendente bloqueia outro movimento',async()=>{

@@ -129,7 +129,7 @@ function pintarPlanejamento(aba) {
   // "quando coloca pra editar o mês não devia ser tela cheia também?").
   m.classList.toggle('plj-modo-editar', aba === 'editar');
   const barra = `<div class="plj-flut plj-flut-topo">
-      <button class="plj-flut-x" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button>
+      <button class="plj-flut-x" type="button" aria-label="Fechar" onclick="pljFecharModal()">×</button>
       <div class="plj-flut-nome"><b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · versão ${pljEsc(p.versao)}</small></div>
       ${pljSelo(p.estado)}${pljEtapasHtml(p)}
       <div class="plj-flut-links">${abas.filter(([k]) => k !== aba).map(([k, r]) => k === 'editar'
@@ -154,7 +154,7 @@ function pintarPlanejamento(aba) {
     return;
   }
   m.innerHTML = `<div class="workflow-kicker"><span>Planejamento · ${pljEsc(p.cliente)}</span>
-      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="pljFecharModal()">×</button></div>
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
@@ -183,64 +183,115 @@ window.addEventListener('message', async (e) => {
   const quadro = document.querySelector('#workflow-modal .plj-previa');
   // "Editar no sistema" na escolha do head abre a edição completa (Paulo, 21/10/2026).
   if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-head-editar' && PLJ_ABERTO) { pljTrocarAba('editar'); return; }
+  if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-head-salvar' && PLJ_ABERTO && PLJ_SUJO) {
+    document.querySelector('#workflow-modal .plj-acoes .workflow-primary')?.click();
+    return;
+  }
   if (!quadro || e.source !== quadro.contentWindow || e.data?.vybe !== 'planejamento-head' || !PLJ_ABERTO) return;
   const responde = (r) => quadro.contentWindow?.postMessage({ vybe: 'planejamento-head-resposta', id: e.data.id, ...r }, '*');
-  const { assinatura, estado, nota } = e.data.dados || {};
+  const { indice: idxMsg, assinatura, estado, nota } = e.data.dados || {};
   if (e.data.dados?.acao === 'editar') {
     try { await pljSalvarPecaDoDocumento(e.data.dados.indice, e.data.dados.peca, { soDatas: e.data.dados.soDatas === true, modo: e.data.dados.modo }); responde({ ok: true }); }
     catch (erro) { responde({ ok: false, erro: erro.message }); }
     return;
   }
   try {
+    const rasc = Number.isInteger(idxMsg) ? PLJ_RASCUNHO?.pecas?.[idxMsg] : (PLJ_RASCUNHO?.pecas || []).find((x) => x.assinatura === assinatura);
+    const orig = Number.isInteger(idxMsg) ? PLJ_ABERTO.conteudo?.pecas?.[idxMsg] : (PLJ_ABERTO.conteudo?.pecas || []).find((x) => x.assinatura === assinatura);
+    const alteradaNoRascunho = PLJ_SUJO && rasc && (!orig || rasc.data !== orig.data || (rasc.prazo || '') !== (orig.prazo || '') || rasc.tema !== orig.tema || rasc.legenda !== orig.legenda || rasc.formato !== orig.formato);
+    if (alteradaNoRascunho) {
+      rasc.revisao_head = estado === 'limpar' ? null : { estado, nota };
+      rasc._revisao_head_pendente = estado === 'limpar' ? null : { estado, nota };
+      delete rasc._ok_head;
+      pljAtualizarResumoRascunho();
+      responde({ ok: true });
+      return;
+    }
     const d = await pljPedir('', { acao: 'revisar_peca', id: PLJ_ABERTO.id, assinatura, estado, nota });
     PLJ_ABERTO.revisao = d.resumo;
     const peca = (PLJ_ABERTO.conteudo?.pecas || []).find((x) => x.assinatura === assinatura);
     if (peca) peca.revisao_head = estado === 'limpar' ? null : { estado, nota };
-    const rasc = (PLJ_RASCUNHO?.pecas || []).find((x) => x.assinatura === assinatura);
     if (rasc) rasc.revisao_head = peca?.revisao_head || null;
-    document.querySelector('#workflow-modal .plj-etapas')?.replaceWith(Object.assign(document.createElement('div'), { innerHTML: pljEtapasHtml(PLJ_ABERTO) }).firstElementChild);
+    const el = document.querySelector?.('#workflow-modal .plj-etapas');
+  if (el?.replaceWith && document.createElement) el.replaceWith(Object.assign(document.createElement('div'), { innerHTML: pljEtapasHtml(PLJ_ABERTO) }).firstElementChild);
     responde({ ok: true });
   } catch (erro) { responde({ ok: false, erro: erro.message }); }
 });
-// Edição de uma peça direto no documento: grava a versão nova, deixa a peça com
-// o OK de quem editou e volta para a mesma peça (Paulo, 20/10/2026).
-async function pljSalvarPecaDoDocumento(indice, peca, { soDatas = false, modo = 'doc' } = {}) {
-  const c = PLJ_ABERTO.conteudo || {};
-  if (!Number.isInteger(indice) || indice < 0 || !c.pecas?.[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
-  const pecas = (c.pecas || []).map((x, i) => (i === indice ? { ...x, ...peca } : x));
-  if (PLJ_ABERTO.estado === 'enviado' && !await confirmarNoPainel('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) throw new Error('Edição cancelada.');
-  const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO.titulo, conteudo: { ...c, pecas } });
-  const novo = (await pljPedir(`acao=detalhe&id=${encodeURIComponent(d.planejamento.id)}`)).planejamento;
-  // Mesma ordenação estável do servidor; títulos e datas podem se repetir.
-  const alvo = [...pecas].sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999')).indexOf(pecas[indice]);
-  if (!soDatas && alvo >= 0 && novo.conteudo.pecas[alvo].assinatura && ['revisar', 'ajustes'].includes(novo.estado)) {
-    try { await pljPedir('', { acao: 'revisar_peca', id: novo.id, assinatura: novo.conteudo.pecas[alvo].assinatura, estado: 'ok', nota: '' }); } catch { /* fica sem o OK */ }
+let PLJ_ULTIMO_EDITADO = null;
+function pljValidarDatasPeca(p) {
+  const iso = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '');
+  for (const [nome, valor] of [['veiculação', p?.data], ['prazo', p?.prazo]]) {
+    if (!valor) continue;
+    const s = iso(valor), d = new Date(s + 'T12:00:00Z');
+    if (!s || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s)
+      throw new Error(`Informe uma data válida para ${nome} da peça "${String(p?.tema || '').trim().slice(0, 80)}".`);
   }
-  await abrirPlanejamento(novo.id, 'documento');
-  const quadro = document.querySelector('#workflow-modal .plj-previa');
-  quadro?.addEventListener('load', () => quadro.contentWindow?.postMessage({ vybe: 'planejamento-ir', n: alvo + 1, modo }, '*'), { once: true });
-  showToast(soDatas ? 'Datas salvas. Calendário e documento atualizados.' : 'Peça salva.', 'success');
-  for (const aviso of d.avisos || []) showToast(aviso, 'warning', 9000);
-  pljAtualizarFora();
+  if (p?.prazo && p?.data && p.prazo > p.data)
+    throw new Error('O prazo da peça não pode ser depois da veiculação.');
+}
+function pljAtualizarResumoRascunho() {
+  if (!PLJ_ABERTO) return;
+  const pecas = PLJ_RASCUNHO?.pecas || [];
+  const conta = (f) => pecas.filter(f).length;
+  PLJ_ABERTO.revisao = {
+    total: pecas.length,
+    head_ok: conta((p) => p.revisao_head?.estado === 'ok'),
+    head_ajustar: conta((p) => p.revisao_head?.estado === 'ajustar'),
+    cliente_aprovadas: conta((p) => p.revisao_cliente?.estado === 'aprovada'),
+    cliente_ajustes: conta((p) => p.revisao_cliente?.estado === 'ajuste'),
+  };
+  const el = document.querySelector?.('#workflow-modal .plj-etapas');
+  if (el?.replaceWith && document.createElement) el.replaceWith(Object.assign(document.createElement('div'), { innerHTML: pljEtapasHtml(PLJ_ABERTO) }).firstElementChild);
+}
+// Edição de uma peça ou data direto no documento: atualiza o rascunho na hora
+// (fluido, sem ir ao Drive a cada movimento); o head grava tudo junto em Salvar alterações.
+async function pljSalvarPecaDoDocumento(indice, peca, { soDatas = false, modo = 'doc' } = {}) {
+  const base = PLJ_RASCUNHO?.pecas ? PLJ_RASCUNHO : (PLJ_RASCUNHO = JSON.parse(JSON.stringify(PLJ_ABERTO?.conteudo || {})));
+  if (!Number.isInteger(indice) || indice < 0 || !base.pecas?.[indice]) throw new Error('Peça não encontrada. Recarregue o planejamento.');
+  const atual = { ...base.pecas[indice], ...peca };
+  if (!atual.prazo) delete atual.prazo;
+  pljValidarDatasPeca(atual);
+  if (soDatas) {
+    delete atual.revisao_head;
+    delete atual._revisao_head_pendente;
+    delete atual._ok_head;
+  } else {
+    atual.revisao_head = { estado: 'ok', nota: '' };
+    atual._ok_head = true;
+    delete atual._revisao_head_pendente;
+  }
+  base.pecas[indice] = atual;
+  PLJ_ULTIMO_EDITADO = { item: atual, modo };
+  pljAtualizarResumoRascunho();
+  pljEdMarcarSujo();
+}
+async function pljFecharModal() {
+  if (PLJ_SUJO && !await confirmarNoPainel('Sair sem salvar as alterações?')) return;
+  PLJ_SUJO = false;
+  PLJ_ULTIMO_EDITADO = null;
+  closeWorkflowModal();
 }
 async function pljTrocarAba(aba) {
-  if (document.getElementById('workflow-modal')?.dataset.aba === 'editar' && aba !== 'editar' && PLJ_SUJO) {
+  const atual = document.getElementById('workflow-modal')?.dataset.aba;
+  if (PLJ_SUJO && aba !== atual && !(atual === 'documento' && aba === 'editar')) {
     if (!await confirmarNoPainel('Sair sem salvar as alterações?')) return;
     pljEdDescartar(false);
   }
   pintarPlanejamento(aba);
 }
 function pljEdDescartar(repintar = true) {
+  const aba = document.getElementById('workflow-modal')?.dataset.aba || 'editar';
   PLJ_RASCUNHO = JSON.parse(JSON.stringify(PLJ_ABERTO.conteudo || {}));
   delete PLJ_ABERTO._titulo;
   PLJ_SUJO = false;
-  if (repintar) pintarPlanejamento('editar');
+  PLJ_ULTIMO_EDITADO = null;
+  if (repintar) pintarPlanejamento(aba);
 }
 
 function pljAcoesHtml(aba) {
   const p = PLJ_ABERTO;
   if (!p.pode_editar) return '<small class="workflow-hint">Só o head do cliente e quem administra editam e mandam este planejamento.</small>';
-  if (aba === 'editar') return `<span class="plj-ed-sujo${PLJ_SUJO ? ' sujo' : ''}" id="plj-ed-sujo" aria-live="polite">${PLJ_SUJO ? 'Alterações não salvas' : 'Tudo salvo'}</span><small class="plj-ed-atalho">⌘S salva</small>
+  if (aba === 'editar' || (aba === 'documento' && PLJ_SUJO)) return `<span class="plj-ed-sujo${PLJ_SUJO ? ' sujo' : ''}" id="plj-ed-sujo" aria-live="polite">${PLJ_SUJO ? 'Alterações não salvas' : 'Tudo salvo'}</span><small class="plj-ed-atalho">⌘S salva</small>
     <button type="button" class="workflow-secondary" onclick="pljEdDescartar()">Descartar</button>
     <button type="button" class="workflow-primary" onclick="salvarPlanejamento(this)">Salvar alterações</button>`;
   if (aba === 'identidade') return `<button type="button" class="workflow-primary" onclick="salvarIdentidadePlanejamento(this)">Salvar marca</button>`;
@@ -349,7 +400,12 @@ function pljEdRepintarTudo() {
 function pljEdMarcarSujo() {
   PLJ_SUJO = true;
   const el = document.getElementById('plj-ed-sujo');
-  if (el) { el.textContent = 'Alterações não salvas'; el.classList.add('sujo'); }
+  if (el) { el.textContent = 'Alterações não salvas'; el.classList.add('sujo'); return; }
+  const m = document.getElementById('workflow-modal');
+  if (m?.dataset?.aba === 'documento') {
+    const acoes = m.querySelector('.plj-acoes');
+    if (acoes) acoes.innerHTML = pljAcoesHtml('documento');
+  }
 }
 // Grava no rascunho o que a pessoa digita, pelo caminho do campo.
 function pljEdAplicar(el) {
@@ -371,9 +427,10 @@ function pljEdAplicar(el) {
 document.addEventListener('input', (e) => { const el = e.target.closest?.('#workflow-modal .plj-ed [data-campo]'); if (el) pljEdAplicar(el); });
 document.addEventListener('change', (e) => { const el = e.target.closest?.('#workflow-modal .plj-ed select[data-campo]'); if (el) pljEdAplicar(el); });
 document.addEventListener('keydown', (e) => {
-  if (document.getElementById('workflow-modal')?.dataset.aba !== 'editar') return;
+  const aba = document.getElementById('workflow-modal')?.dataset.aba;
+  if (aba !== 'editar' && !(aba === 'documento' && PLJ_SUJO)) return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); document.querySelector('#workflow-modal .plj-acoes .workflow-primary')?.click(); return; }
-  if (['ArrowUp', 'ArrowDown'].includes(e.key) && e.target.closest?.('#plj-ed-lista') && PLJ_SEL.startsWith('peca:')) {
+  if (aba === 'editar' && ['ArrowUp', 'ArrowDown'].includes(e.key) && e.target.closest?.('#plj-ed-lista') && PLJ_SEL.startsWith('peca:')) {
     e.preventDefault(); pljEdSelecionar(`peca:${Number(PLJ_SEL.slice(5)) + (e.key === 'ArrowUp' ? -1 : 1)}`);
     document.querySelector('#plj-ed-lista .sel')?.focus();
   }
@@ -443,16 +500,35 @@ function pljEtapasHtml(p) {
 // O editor grava no rascunho a cada tecla (pljEdAplicar); nada a colher da tela.
 function pljColher() {}
 async function salvarPlanejamento(botao) {
+  const aba = document.getElementById('workflow-modal')?.dataset.aba || 'editar';
   pljColher();
-  botao.disabled = true;
+  if (PLJ_ABERTO.estado === 'enviado' && !await confirmarNoPainel('O planejamento está com o cliente. Salvar tira dele até você mandar de novo. Salvar?')) return;
+  if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
   try {
+    const pecasRascunho = [...(PLJ_RASCUNHO?.pecas || [])];
     const d = await pljPedir('', { acao: 'editar', id: PLJ_ABERTO.id, versao: PLJ_ABERTO.versao, titulo: PLJ_ABERTO._titulo ?? PLJ_ABERTO.titulo, conteudo: PLJ_RASCUNHO });
+    const ordenadas = [...pecasRascunho].sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999'));
+    const pendentes = ordenadas.map((x, i) => [i, x._revisao_head_pendente || (x._ok_head ? { estado: 'ok', nota: '' } : null)]).filter(([, r]) => r);
+    if (pendentes.length && ['revisar', 'ajustes'].includes(d.planejamento.estado)) {
+      const novo = (await pljPedir(`acao=detalhe&id=${encodeURIComponent(d.planejamento.id)}`)).planejamento;
+      for (const [i, rev] of pendentes) {
+        const sig = novo.conteudo?.pecas?.[i]?.assinatura;
+        if (sig) { try { await pljPedir('', { acao: 'revisar_peca', id: novo.id, assinatura: sig, estado: rev.estado, nota: rev.nota || '' }); } catch { /* fica sem o OK */ } }
+      }
+    }
+    const alvo = PLJ_ULTIMO_EDITADO?.item ? ordenadas.indexOf(PLJ_ULTIMO_EDITADO.item) : -1;
+    const modoIr = PLJ_ULTIMO_EDITADO?.modo || 'doc';
     showToast(PLJ_ABERTO.estado === 'enviado' ? 'Salvo. O link antigo deixou de valer; mande de novo quando quiser.' : 'Planejamento salvo.', 'success', 4000);
     PLJ_SUJO = false;
-    await abrirPlanejamento(d.planejamento.id, 'editar');
+    PLJ_ULTIMO_EDITADO = null;
+    await abrirPlanejamento(d.planejamento.id, aba);
+    if (aba === 'documento' && alvo >= 0) {
+      const quadro = document.querySelector('#workflow-modal .plj-previa');
+      quadro?.addEventListener('load', () => quadro.contentWindow?.postMessage({ vybe: 'planejamento-ir', n: alvo + 1, modo: modoIr }, '*'), { once: true });
+    }
     for (const aviso of d.avisos || []) showToast(aviso, 'warning', 9000);
     pljAtualizarFora();
-  } catch (e) { botao.disabled = false; showToast(e.message, 'error', 6000); }
+  } catch (e) { if (botao) { botao.disabled = false; botao.textContent = 'Salvar alterações'; } showToast(e.message, 'error', 6000); }
 }
 
 // ── Histórico e identidade ───────────────────────────────────────────────────
