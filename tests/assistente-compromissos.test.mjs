@@ -48,3 +48,19 @@ test('captação que terminou há 25 a 50 minutos volta com terminou e o cliente
     assert.deepEqual(r.map((c) => [c.id, c.terminou, c.cliente, c.pessoas.map((p) => p.nome)]), [['a', true, 'MR Fit', ['Ademir Souza']]]);
   } finally { await db.close(); }
 });
+
+test('dia inteiro (central do PC): todos os de hoje em ordem, inclusive os que passaram e os sem dono vinculado', async () => {
+  const { db, sql } = conexao();
+  try {
+    await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean,monday_user_id bigint,admin boolean);
+      INSERT INTO vybe_pessoas VALUES(2,'Ademir Souza',true,78158742,false);`);
+    const agora = Date.parse('2026-10-27T15:00:00-03:00');
+    const ev = (id, summary, ini, extra = {}) => ({ id, summary, status: 'confirmed', start: { dateTime: ini }, end: { dateTime: new Date(Date.parse(ini) + 3600e3).toISOString() }, ...extra });
+    const eventos = [ev('tarde', 'Reunião Copirecê', '2026-10-27T17:00:00-03:00', { colorId: '5' }), ev('manha', 'Captação - MR Fit', '2026-10-27T08:00:00-03:00'),
+      ev('amanha', 'Captação amanhã', '2026-10-28T09:00:00-03:00'), ev('priv', 'Particular', '2026-10-27T10:00:00-03:00', { visibility: 'private' })];
+    let pedido;
+    const r = await compromissosProximos(sql, { agora, diaInteiro: true, listar: async (dia, o) => { pedido = { dia, ...o }; return { eventos }; } });
+    assert.deepEqual(pedido, { dia: '2026-10-27', dias: 1, bruto: true });
+    assert.deepEqual(r.map((c) => [c.id, c.terminou, c.pessoas.length]), [['manha', true, 1], ['tarde', false, 0]]);
+  } finally { await db.close(); }
+});
