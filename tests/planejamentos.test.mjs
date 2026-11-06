@@ -480,3 +480,68 @@ test('API de edição gera documento/PDF da nova data e registra só a versão a
  assert.match(uploads[0],/v2/);
  assert.ok(rede.includes('/drive/v3/files/doc-v2/export'));
 });
+
+test('molduras do planejamento permitem o submit do editor sem liberar a origem',()=>{
+ const s=readFileSync('vybe-planejamentos.js','utf8');
+ const frames=[...s.matchAll(/<iframe[^>]*sandbox="([^"]+)"/g)];
+ assert.equal(frames.length,2);
+ for(const [,sandbox]of frames){assert.ok(sandbox.split(' ').includes('allow-forms'));assert.ok(!sandbox.split(' ').includes('allow-same-origin'));}
+});
+
+test('calendário mostra títulos escapados e só o head em revisão pode mover peças',()=>{
+ const p={mes:'2026-11-01',estado:'revisar',conteudo:{pecas:[{data:'2026-11-03',formato:'Card',tema:'01 - Título & <teste>'},{data:'2026-11-05',formato:'Reels',tema:''}]}};
+ const html=documentoHtml(p,{revisor:'head'});
+ const cal=html.slice(html.indexOf('<table class="cal">'),html.indexOf('</table>',html.indexOf('<table class="cal">')));
+ assert.match(cal,/>Título &amp; &lt;teste&gt;<\/a>/);
+ assert.match(cal,/>Sem tema<\/a>/);
+ assert.match(cal,/data-data="2026-11-03"/);
+ assert.match(cal,/data-indice="0" data-mover="true"/);
+ for(const opcoes of [{paraCliente:true},{revisor:'leitor'}])
+  assert.doesNotMatch(documentoHtml(p,opcoes),/data-mover="true"/);
+ assert.doesNotMatch(documentoHtml({...p,estado:'aprovado'},{revisor:'head'}),/data-mover="true"/);
+});
+
+function calendarioDeTeste({falhar=false,pendente=false}={}){
+ const html=documentoHtml({mes:'2026-11-01',estado:'revisar',conteudo:{pecas:[]}},{revisor:'head'});
+ const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]).find(s=>s.includes('let arrastando='));
+ const codigo=script.slice(script.indexOf('let arrastando='),script.indexOf('const dlg='));
+ const eventos={},chamadas=[],classes=new Set(),avisos={hidden:true,textContent:''};
+ let alvo,liberar;
+ const classe={add:x=>classes.add(x),remove:(...xs)=>xs.forEach(x=>classes.delete(x))};
+ const origem={dataset:{data:'2026-11-03'}};
+ const celula=data=>({dataset:{data},classList:classe,closest(){return this;}});
+ const a={dataset:{indice:'1'},classList:classe,closest:s=>s==='td'?origem:a,setPointerCapture(){},hasPointerCapture:()=>false,releasePointerCapture(){}};
+ const doc={addEventListener:(n,f)=>eventos[n]=f,querySelectorAll:()=>[{classList:classe}],elementFromPoint:()=>alvo,getElementById:()=>avisos};
+ const c=vm.createContext({document:doc,addEventListener:(n,f)=>eventos[n]=f,setTimeout:fn=>fn(),modo:'doc',
+ falar:async dados=>{chamadas.push(dados);if(falhar)throw Error('Prazo posterior à veiculação');if(pendente)await new Promise(r=>liberar=r);}});
+ vm.runInContext(codigo,c);
+ const evento=(x=10,id=1)=>({target:a,button:0,pointerId:id,clientX:x,clientY:10,preventDefault(){},stopPropagation(){}});
+ return {eventos,chamadas,avisos,a,origem,setAlvo:data=>alvo=data?celula(data):null,evento,liberar:()=>liberar?.()};
+}
+
+test('arraste grava só a veiculação, uma vez; clique, cancelamento e saída do calendário não gravam',async()=>{
+ const t=calendarioDeTeste();t.setAlvo('2026-11-09');
+ t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(14));await t.eventos.pointerup(t.evento(14));
+ assert.equal(t.chamadas.length,0,'clique curto continua sendo navegação');
+ for(const cancelar of [()=>t.eventos.pointercancel(),()=>t.eventos.keydown({key:'Escape'}),()=>t.eventos.blur()]){
+  t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));cancelar();await t.eventos.pointerup(t.evento(30));
+ }
+ assert.equal(t.chamadas.length,0);
+ t.setAlvo(null);t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
+ t.setAlvo('2026-11-03');t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
+ assert.equal(t.chamadas.length,0,'fora do calendário e mesmo dia não salvam');
+ t.setAlvo('2026-11-09');t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
+ assert.deepEqual(JSON.parse(JSON.stringify(t.chamadas)),[{acao:'editar',indice:1,peca:{data:'2026-11-09'},soDatas:true,modo:'doc'}]);
+ assert.equal(t.origem.dataset.data,'2026-11-03','a tela aguarda o documento salvo; não antecipa a mudança');
+ assert.match(t.avisos.textContent,/Veiculação salva/);
+});
+
+test('arraste: falha preserva data e mostra erro; gravação pendente bloqueia outro movimento',async()=>{
+ const erro=calendarioDeTeste({falhar:true});erro.setAlvo('2026-11-01');
+ erro.eventos.pointerdown(erro.evento());erro.eventos.pointermove(erro.evento(30));await erro.eventos.pointerup(erro.evento(30));
+ assert.match(erro.avisos.textContent,/Prazo posterior/);assert.equal(erro.origem.dataset.data,'2026-11-03');
+ const t=calendarioDeTeste({pendente:true});t.setAlvo('2026-11-09');
+ t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));const salva=t.eventos.pointerup(t.evento(30));
+ t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
+ assert.equal(t.chamadas.length,1);t.liberar();await salva;
+});

@@ -68,6 +68,25 @@ Não há novo envio de e-mail ou de mensagem ao alterar datas.
 Validação local: npm run check aprovado em 06/11/2026: sintaxe de 401 arquivos e ordem global do frontend, 1.064 testes aprovados e build concluído, sobre a main 6deefed. No Windows, dois testes existentes do Escritório exigiram LF no checkout; o conteúdo do arquivo permaneceu idêntico ao blob da main. As regressões do fluxo usam PostgreSQL em memória e Drive simulado, sem escritas externas. A revisão visual em navegador está pendente: o navegador
 da sessão bloqueou a abertura da prévia HTML por arquivo local.
 
+## Salvamento e arraste no calendário — 06/11/2026
+
+Correção do editor: as molduras do painel agora permitem formulários
+(allow-forms), mantendo a origem isolada. Sem isso o navegador bloqueava o
+submit antes do handler, embora o editor abrisse normalmente.
+
+O calendário mostra o título de cada peça, com o formato na dica e na cor.
+Na revisão do head, arrastar por mouse ou toque para outro dia usa o mesmo
+salvamento das datas. Cliques curtos continuam navegando; Escape, cancelamento
+ou soltar fora do calendário não gravam. Durante um salvamento, outro arraste
+é bloqueado. Erros preservam as datas e aparecem junto ao calendário.
+Cliente/leitor e planejamentos aprovados não recebem controles de arraste.
+Os botões de veiculação continuam disponíveis como alternativa ao gesto.
+
+Teste de navegador isolado reproduziu o botão sem efeito e confirmou a
+correção, com a data reordenada pela interface e pela API em memória.
+A automação não completou o gesto de arraste na moldura; os eventos, erros,
+cancelamento e bloqueio de duplicação têm regressões automatizadas.
+
 ## Documento padrão
 
 - Estrutura fixa para todos os clientes: capa; visão do mês (números e
