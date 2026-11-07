@@ -1,3 +1,4 @@
+import { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS } from './atividade-agentes.mjs';
 // Entrada do mundo voxel (empacotada com o three.js pelo build; carregada sob
 // demanda por vybe-mundo.js). Monta Irecê, o Prédio da Vybe e os clientes.
 import { criarMotor } from './motor.mjs';
@@ -151,7 +152,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   function curvaEntre(a, b, alto = .3) { const m = a.clone().lerp(b, .5); m.y += a.distanceTo(b) * alto + 3; return new T.QuadraticBezierCurve3(a, m, b); }
   function mostrarCerebro(ligar, lista = [], { camadas = {}, agentes = [], aoNo = null } = {}) {
     motor.invalidar();
-    if (cerebro) { motor.cena.remove(cerebro.g); cerebro.g.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); }); cerebro.rotulos.forEach((r) => motor.removerRotulo(r)); cerebro = null; }
+    if (cerebro) { motor.cena.remove(cerebro.g); cerebro.g.traverse((o) => { if (o.userData?.alvo) motor.naoClicavel(o); o.geometry?.dispose?.(); o.material?.dispose?.(); }); cerebro.rotulos.forEach((r) => motor.removerRotulo(r)); cerebro = null; }
     if (!ligar) return;
     const g = new T.Group(), pulsos = [], rotulos = [];
     const C = new T.Vector3(base.x, 46, base.z);
@@ -190,9 +191,9 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     for (const ag of agentes) {
       const pos = predio.posDoSetor?.(ag.setor); if (!pos) continue;
       const fim = new T.Vector3(pos.x, pos.y, pos.z), cv = curvaEntre(posCam.agentes, fim, .08);
-      const ativo = ag.estado !== 'planejado';
+      const ativo = ag.estado === 'executando' && ag.conectado;
       g.add(new T.Mesh(new T.TubeGeometry(cv, 32, ativo ? .09 : .05, 4, false), mat('#D6409F', ativo ? .5 : .18)));
-      if (ativo) { const m = new T.Mesh(new T.BoxGeometry(.35, .35, .35), mat('#FFE3F3')); g.add(m); pulsos.push({ m, curva: cv, fase: Math.random(), vel: ag.estado === 'ativo' ? .45 : .2 }); }
+      if (ativo) { const m = new T.Mesh(new T.BoxGeometry(.35, .35, .35), mat('#FFE3F3')); g.add(m); pulsos.push({ m, curva: cv, fase: Math.random(), vel: .45 }); }
     }
     // Sinapses dos clientes: um fio por origem do conhecimento.
     for (const cli of lista) {
@@ -212,7 +213,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
       const no = new T.Mesh(new T.BoxGeometry(1.3, 1.3, 1.3), mat(cli.cor || '#8E7CFF')); no.position.copy(fim); no.userData.alvo = { tipo: 'cliente', nome: cli.nome }; g.add(no); motor.clicavel(no);
     }
     motor.adicionar(g);
-    cerebro = { g, pulsos, nucleo, rotulos };
+    cerebro = { g, pulsos, nucleo, rotulos, lista, opcoes:{camadas,agentes,aoNo} };
   }
   motor.animar((t) => {
     if (!cerebro) return;
@@ -239,6 +240,8 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     get empresas() { return Empresas.EMPRESAS; }, get fonteEmpresas() { return Empresas.FONTE_EMPRESAS; }, tipoLegivel: Empresas.TIPO_LEGIVEL, agencia: { x: base.x, z: base.z },
     focarPonto(x, z) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist: 80, incl: .7 }); },
     cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },
+    criarFonteAgentes, apresentarAgente, referenciaDaPeca, estadosReais: ESTADOS_REAIS, atividadeAgentes: predio.atividadeAgentes,
+    atualizarAgentesCerebro(agentes,camadas) { if(cerebro) mostrarCerebro(true,cerebro.lista,{...cerebro.opcoes,agentes,camadas}); },
     agentesDoPredio: () => predio.agentes?.() || [],
     definirCaptacoes,
     diaNaBahia: () => relogioBahia().dia,
