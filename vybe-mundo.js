@@ -1878,6 +1878,12 @@
     const original = window.chooseOfficeMode;
     window.chooseOfficeMode = function (...a) { if (ligado && !jogandoAgora) return irAoPredio(); return original.apply(this, a); };
   }
+  // A arte da Vybelândia (abertura e saguão do Escritório antigo, ~0,5 MB) não aparece no Irecity: o mundo é a
+  // abertura. Sem a imagem, o navegador nem baixa. No modo legado (?legado=1), tudo como antes.
+  if (typeof window !== 'undefined' && typeof window.vybelandiaCenaHtml === 'function') {
+    const cenaOriginal = window.vybelandiaCenaHtml;
+    window.vybelandiaCenaHtml = function (...a) { return ligado ? '<div class="abr-cena" aria-hidden="true"></div>' : cenaOriginal.apply(this, a); };
+  }
   desviarEscritorio(); if (typeof setInterval === 'function') { const t = setInterval(() => { desviarEscritorio(); if (desviarEscritorio.feito) clearInterval(t); }, 1500); }
 
   // ---------- Lobby: a entrada nova (Irecity) ou o modo legado ----------
@@ -1929,7 +1935,10 @@
     const quadro = typeof activeBoard !== 'undefined' ? activeBoard : '';
     if (ligado && autenticado && !gateAberto && !andarAberto && quadro === 'escritorio' && !redirecionando && !jogandoAgora) {
       redirecionando = true;
-      setTimeout(() => { redirecionando = false; if (typeof openModeGate === 'function') openModeGate(); setTimeout(() => usarTrilho('predio'), 300); }, 0);
+      // Na abertura do sistema o código antigo leva ao quadro do Escritório: no Irecity a pessoa fica na cidade.
+      // Depois disso, pedir o Escritório de propósito leva ao Prédio (o Escritório é o prédio).
+      const naAbertura = !sincronizar.abriu; sincronizar.abriu = true;
+      setTimeout(() => { redirecionando = false; if (typeof openModeGate === 'function') openModeGate(); setTimeout(() => usarTrilho(naAbertura ? 'hoje' : 'predio'), 300); }, 0);
     }
     const modulo = ligado && autenticado && !gateAberto && !andarAberto && quadro !== 'escritorio';
     // Lobby: antes do login, Irecê ao vivo atrás do portão (vale para os dois modos; a escolha é no portão).

@@ -63,6 +63,14 @@ function iniciarPainel() {
   // (celular, link de atividade, painel em outra aba, servidor sem Escritório),
   // monta logo em seguida, como antes. O limite de 8 s é o da cortina da entrada.
   if (typeof iniciarNoEscritorio !== 'function') return carregarPainelDeTrabalho();
+  // Irecity (Paulo, 07/11/2026: "nada do legado pesando"): a cidade é a primeira tela, então os dados da
+  // produção carregam já, sem esperar o mapa antigo do Escritório desenhar (ele levava até 8 s). O Escritório
+  // sobe 1,5 s depois, por baixo, só como motor da voz, da presença e dos jogos.
+  if (document.body.classList.contains('mundo') && !/[?&]legado=1/.test(location.search)) {
+    carregarPainelDeTrabalho();
+    setTimeout(() => { iniciarNoEscritorio().catch?.(() => {}); }, 1500);
+    return;
+  }
   const desenhou = iniciarNoEscritorio().then(() => typeof escritorio !== 'undefined' && escritorio.mapa?.prontos);
   Promise.race([desenhou, new Promise((ok) => setTimeout(ok, 8000))])
     .catch(() => {})

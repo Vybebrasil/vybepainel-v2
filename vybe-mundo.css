@@ -4179,3 +4179,8 @@ body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}
 
 /* modo escuro: o 3D do andar (e o do personagem) não inverte; ganha a mesma luz de fim de tarde do mapa */
 html.tema-escuro body.mundo #mundo-andar canvas{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.9)}
+
+/* Abertura: no Irecity não existe a tela da Vybelândia (arte do Escritório antigo, 1 MB). O mundo é a abertura. */
+html body.mundo.abrindo-escritorio{background:#F6F3EE!important;background-image:none!important}
+html body.mundo #mode-gate .identity-station::after{background-image:none!important}
+html body.mundo .abr-cena{background-image:none!important}
