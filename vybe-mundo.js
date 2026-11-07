@@ -525,7 +525,75 @@
   };
   let crmLinhas = [], crmBusca = '', crmTipo = '', crmBairro = '', crmAce = false, crmPagina = 1;
   const CRM_CHAVE = 'vybe.crm.propostas';
-  const crmPropostas = () => { try { return JSON.parse(localStorage.getItem(CRM_CHAVE) || '[]'); } catch { return []; } };
+  let crmBanco = null, crmErro = '', crmAviso = '', crmDetalhe = null, crmOcupado = false, crmConsulta = 0;
+  const crmPropostas = () => crmBanco?.oportunidades || [];
+  async function crmPedido(corpo, query = '') {
+    const r = await fetch('/api/painel?area=crm' + query, { credentials: 'same-origin', cache: 'no-store',
+      ...(corpo ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) } : {}) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Não foi possível acessar o CRM.');
+    return d;
+  }
+  async function crmImportar(dados) {
+    let antigas, bruto;
+    try { bruto = localStorage.getItem(CRM_CHAVE) || '[]'; antigas = JSON.parse(bruto); }
+    catch { crmAviso = 'Não foi possível ler as propostas antigas deste navegador. Elas foram preservadas.'; return; }
+    if (!Array.isArray(antigas)) { crmAviso = 'As propostas antigas estão em formato inválido; nada foi removido.'; return; }
+    const chave = CRM_CHAVE + '.importado:' + dados.pessoa_id;
+    try { if (!antigas.length || localStorage.getItem(chave) === bruto) return; } catch { /* banco deduplica */ }
+    if (!dados.pode_editar) { crmAviso = 'Há propostas antigas neste navegador. Abra este CRM com uma conta autorizada para importá-las.'; return; }
+    for (let i = 0; i < antigas.length; i += 100) await crmPedido({ acao: 'importar', propostas: antigas.slice(i, i + 100) });
+    try { localStorage.setItem(chave, bruto); } catch { /* repetição segura pela chave única no banco */ }
+    crmAviso = 'Propostas antigas levadas ao banco. A cópia local foi preservada.';
+  }
+  async function crmCarregar(mais = false, importar = false) {
+    const n = ++crmConsulta;
+    const d = await crmPedido(null, '&pagina=' + (mais ? crmBanco.pagina + 1 : 1));
+    if (importar) { if (n !== crmConsulta) return; crmBanco = d; await crmImportar(d); Object.assign(d, await crmPedido()); }
+    if (n !== crmConsulta) return;
+    if (mais) d.oportunidades = [...crmBanco.oportunidades, ...d.oportunidades].filter((o, i, a) => a.findIndex(x => String(x.id) === String(o.id)) === i);
+    crmBanco = d;
+    if (crmDetalhe) crmDetalhe = await crmPedido(null, '&id=' + encodeURIComponent(crmDetalhe.oportunidade.id));
+    crmRepintar();
+  }
+  async function crmExecutar(corpo, b) {
+    if (crmOcupado) return;
+    crmOcupado = true; if (b) b.disabled = true;
+    crmErro = ''; const erroEl = placa().querySelector('#vv-crm-erro'); if (erroEl) erroEl.textContent = '';
+    try { await crmPedido(corpo); await crmCarregar(); }
+    catch (e) { crmErro = e.message; const el = placa().querySelector('#vv-crm-erro'); if (el) el.textContent = crmErro; }
+    finally { crmOcupado = false; if (b?.isConnected) b.disabled = false; }
+  }
+  function crmQuadroHtml() {
+    if (!crmBanco) return '<p class="vv-dica">Oportunidades ainda não carregadas.</p><button type="button" class="vv-botao" data-crm-recarregar>Tentar carregar</button>';
+    const { etapas, oportunidades, contagens } = crmBanco;
+    return `<div class="vv-rotulo-secao"><i></i>Funil comercial <span class="vv-pilula">${crmBanco.total}</span></div>
+      <p class="vv-dica">O SDR propõe. Uma pessoa aprova. A equipe faz o contato; o CRM não envia mensagens.</p>
+      <button type="button" class="vv-botao" data-crm-recarregar>Atualizar quadro</button>
+      <div class="vv-crm-quadro" id="vv-crm-quadro" role="region" aria-label="Oportunidades por etapa" tabindex="0">${etapas.map(et => `<section class="vv-crm-coluna"><h4>${esc(et.nome)} <small>${contagens.find(c => c.etapa === et.id)?.total || 0}</small></h4>${oportunidades.filter(o => o.etapa === et.id).map(o => `<button type="button" class="vv-crm-oportunidade" data-crm-detalhe="${esc(o.id)}"><b>${esc(o.nome)}</b><small>${esc(o.responsavel_nome || 'Sem responsável')}</small><span>${esc(o.proxima_acao || 'Definir próxima ação')}</span>${o.proxima_acao_data ? `<small>${esc(String(o.proxima_acao_data).slice(0,10))}</small>` : ''}</button>`).join('') || '<p class="vv-dica">Nenhuma carregada.</p>'}</section>`).join('')}</div>
+      ${oportunidades.length < crmBanco.total ? `<button type="button" class="vv-botao" data-crm-pagina>Carregar mais oportunidades (${oportunidades.length} de ${crmBanco.total})</button>` : ''}
+      ${crmDetalheHtml()}`;
+  }
+  function crmDetalheHtml() {
+    if (!crmDetalhe) return '';
+    const { oportunidade: o, historico, historico_pagina } = crmDetalhe, pode = crmBanco.pode_editar;
+    const etapaNome = id => crmBanco.etapas.find(e => e.id === id)?.nome || 'Início';
+    const indice = crmBanco.etapas.findIndex(e => e.id === o.etapa), fim = ['ganho','perdido'].includes(o.etapa), proxima = crmBanco.etapas[indice + 1];
+    return `<section class="vv-crm-ficha"><button type="button" class="vv-botao" data-crm-fechar>Fechar oportunidade</button><h4>${esc(o.nome)}</h4>
+      <p>${esc(o.cnpj || 'Sem CNPJ')} · ${esc(o.setor_empresa)} · ${esc(etapaNome(o.etapa))}</p>
+      ${pode ? `<form data-crm-editar><label>Responsável<select name="responsavel" aria-label="Responsável"><option value="">Sem responsável</option>${crmBanco.pessoas.map(p => `<option value="${esc(p.id)}"${String(p.id) === String(o.responsavel) ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
+        <label>Próxima ação<textarea aria-label="Próxima ação" name="proxima_acao" maxlength="2000">${esc(o.proxima_acao)}</textarea></label><label>Data da próxima ação<input aria-label="Data da próxima ação" type="date" name="proxima_acao_data" value="${esc(o.proxima_acao_data ? String(o.proxima_acao_data).slice(0,10) : '')}"></label><button type="submit" class="vv-botao">Salvar responsável e ação</button></form>
+        ${!fim ? `<div class="vv-crm-movimentos"><button type="button" class="vv-botao acao" data-crm-mover="${esc(proxima.id)}">${o.etapa === 'abordagem_proposta' ? 'Aprovar abordagem' : 'Registrar: ' + esc(proxima.nome)}</button><button type="button" class="vv-botao" data-crm-mover="perdido">Marcar perdido</button></div>` : ''}
+        <form data-crm-comentario><label>Comentário<textarea aria-label="Comentário" name="observacao" maxlength="4000" required></textarea></label><button type="submit" class="vv-botao">Registrar comentário</button></form>` : `<p class="vv-dica">Responsável: ${esc(o.responsavel_nome || 'Não definido')} · Próxima ação: ${esc(o.proxima_acao || 'Não definida')}${o.proxima_acao_data ? ' · ' + esc(String(o.proxima_acao_data).slice(0,10)) : ''}. Somente a equipe autorizada edita.</p>`}
+      <h4>Histórico</h4><ol class="vv-crm-historico">${historico.map(h => `<li><b>${esc(h.quem_nome)}</b> · ${esc(new Date(h.quando).toLocaleString('pt-BR', { timeZone: 'America/Bahia' }))}<small>${esc(h.tipo)} · ${esc(etapaNome(h.de_etapa))} → ${esc(etapaNome(h.para_etapa))}</small><p>${esc(h.observacao)}</p>${h.tipo === 'edicao' ? `<p>Responsável: ${esc(crmBanco.pessoas.find(p => String(p.id) === String(h.detalhes?.depois?.responsavel))?.nome || 'Não definido')} · Próxima ação: ${esc(h.detalhes?.depois?.proxima_acao || 'Não definida')}${h.detalhes?.depois?.proxima_acao_data ? ' · ' + esc(h.detalhes.depois.proxima_acao_data) : ''}</p>` : ''}</li>`).join('')}</ol>
+      ${historico.length === 50 ? `<button type="button" class="vv-botao" data-crm-historico="${historico_pagina + 1}">Histórico anterior</button>` : historico_pagina > 1 ? '<p>Fim do histórico.</p>' : ''}
+      ${historico_pagina > 1 ? '<button type="button" class="vv-botao" data-crm-historico="1">Voltar ao histórico recente</button>' : ''}</section>`;
+  }
+  hud.addEventListener('submit', (e) => {
+    const form = e.target.closest('[data-crm-editar],[data-crm-comentario]'); if (!form || !crmDetalhe) return;
+    e.preventDefault(); const d = Object.fromEntries(new FormData(form)), o = crmDetalhe.oportunidade;
+    crmExecutar({ ...d, acao: form.hasAttribute('data-crm-editar') ? 'atualizar' : 'comentar', id: o.id, versao: o.versao }, form.querySelector('button[type="submit"]'));
+  });
   const anosDe = (iso) => { const a = new Date(iso); return isNaN(a) ? '' : Math.max(0, Math.floor((Date.now() - a) / 31557600000)); };
   const PORTE = { ME: 'Microempresa', EPP: 'Pequeno porte', DEMAIS: 'Médio/grande', MEI: 'MEI' };
   function crmHtml() {
@@ -537,7 +605,7 @@
         && (!crmTipo || (l.setor || mundo.tipoLegivel(l)) === crmTipo) && (!crmBairro || l.bairro === crmBairro) && (!crmAce || l.ace));
     const vis = filtradas.slice(0, 40 * crmPagina);
     const tel = (t) => String(t || '').replace(/\D/g, '');
-    return `<div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Prospecção em Irecê<span class="vv-pilula">${filtradas.length.toLocaleString('pt-BR')}</span></div>
+    return `<div data-crm-painel><p id="vv-crm-erro" role="alert">${esc(crmErro)}</p>${crmAviso ? `<p class="vv-dica">${esc(crmAviso)}</p>` : ''}${crmQuadroHtml()}<div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Prospecção em Irecê<span class="vv-pilula">${filtradas.length.toLocaleString('pt-BR')}</span></div>
       <div class="vv-crm-filtros"><input type="search" placeholder="Empresa, atividade ou CNPJ…" value="${esc(crmBusca)}" data-crm-busca></div>
       <div class="vv-crm-filtros"><select data-crm-tipo><option value="">Todos os setores</option>${setores.map((t) => `<option${t === crmTipo ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
         <select data-crm-bairro><option value="">Todos os bairros</option>${bairros.map((t) => `<option${t === crmBairro ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
@@ -549,11 +617,11 @@
         <small>${esc([l.bairro, PORTE[l.porte] || l.porte, anos !== '' ? (anos < 1 ? 'aberta este ano' : anos + (anos === 1 ? ' ano' : ' anos')) : '', l.dist < 1000 ? l.dist + ' m da Vybe' : (l.dist / 1000).toFixed(1).replace('.', ',') + ' km da Vybe'].filter(Boolean).join(' · '))}</small>
         ${l.onde && !['rua', 'numero'].includes(l.onde) ? `<small class="vv-crm-aprox">Posição aproximada (${l.onde === 'bairro' ? 'bairro' : 'cidade'})</small>` : ''}</button>
         <div class="vv-crm-acoes">${l.telefone ? `<a class="vv-crm-contato" href="tel:${tel(l.telefone)}" title="${esc(l.telefone)}">${esc(l.telefone)}</a>` : ''}${l.email ? `<a class="vv-crm-contato" href="mailto:${esc(l.email)}" title="${esc(l.email)}">e-mail</a>` : ''}
-        ${l.cliente ? '<span class="vv-selo" style="--e:#18A957"><i></i>Cliente</span>' : propostas.has(chave) ? '<span class="vv-selo" style="--e:#8E4EC6"><i></i>Proposta criada</span>' : `<button type="button" class="vv-botao" data-crm-propor="${esc(chave)}">Propor abordagem</button>`}</div></div>`; }).join('')}
+        ${l.cliente ? '<span class="vv-selo" style="--e:#18A957"><i></i>Cliente</span>' : propostas.has(chave) ? '<span class="vv-selo" style="--e:#8E4EC6"><i></i>No funil</span>' : crmBanco?.pode_editar ? `<button type="button" class="vv-botao" data-crm-incluir="${esc(chave)}">Adicionar ao funil</button><button type="button" class="vv-botao" data-crm-propor="${esc(chave)}">Propor abordagem</button>` : '<small>Somente leitura</small>'}</div></div>`; }).join('')}
       ${filtradas.length > vis.length ? `<button type="button" class="vv-botao vv-crm-mais" data-crm-mais>Mostrar mais ${Math.min(40, filtradas.length - vis.length)} de ${(filtradas.length - vis.length).toLocaleString('pt-BR')}</button>` : ''}
-      <p class="vv-dica">${esc(mundo.fonteEmpresas || '')} Mais perto da Vybe primeiro. "Propor abordagem" fica em modo sombra: vira proposta do Qualificador, ninguém recebe mensagem.</p>`;
+      <p class="vv-dica">${esc(mundo.fonteEmpresas || '')} Mais perto da Vybe primeiro. "Propor abordagem" registra a oportunidade no banco para aprovação humana; ninguém recebe mensagem.</p></div>`;
   }
-  const crmRepintar = (foco) => { const d = placa().querySelector('#vv-agente-dados'); if (!d) return; d.innerHTML = crmHtml(); if (foco) { const i = d.querySelector(foco); i?.focus(); if (i?.setSelectionRange) i.setSelectionRange(i.value.length, i.value.length); } };
+  const crmRepintar = (foco) => { const d = placa().querySelector('#vv-agente-dados'); if (!d?.querySelector('[data-crm-painel]')) return; const scroll = d.querySelector('#vv-crm-quadro')?.scrollLeft || 0; d.innerHTML = crmHtml(); const quadro = d.querySelector('#vv-crm-quadro'); if (quadro) quadro.scrollLeft = scroll; if (foco) { const i = d.querySelector(foco); i?.focus(); if (i?.setSelectionRange) i.setSelectionRange(i.value.length, i.value.length); } };
   let crmTimer = 0;
   hud.addEventListener('input', (e) => { const b = e.target.closest('[data-crm-busca]'); if (!b) return; clearTimeout(crmTimer); crmTimer = setTimeout(() => { crmBusca = b.value.trim().toLowerCase(); crmPagina = 1; crmRepintar('[data-crm-busca]'); }, 180); });
   hud.addEventListener('change', (e) => { const t = e.target.closest('[data-crm-tipo],[data-crm-bairro]'); if (!t) return; if (t.dataset.crmTipo !== undefined) crmTipo = t.value; else crmBairro = t.value; crmPagina = 1; crmRepintar(); });
@@ -588,7 +656,7 @@
       agoraEl.textContent = r.agora;
       const daPeca = (id) => (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL.find((d) => String(d.id) === String(id)) : null);
       const linha = (x) => (x.peca && daPeca(x.peca)) ? linhaDemanda(daPeca(x.peca)) : `<button type="button" class="vv-linha-agente"${x.peca ? ` data-hoje-acao="peca" data-valor="${esc(x.peca)}"` : ''}>${x.quando ? `<small>${esc(x.quando)}</small>` : ''}<b>${esc(x.texto)}</b>${x.sub ? `<span>${esc(x.sub)}</span>` : ''}</button>`;
-      if (r.crm) { dados.innerHTML = crmHtml(); return; }
+      if (r.crm) { crmErro = ''; crmDetalhe = null; dados.innerHTML = crmHtml(); try { await crmCarregar(false, true); } catch (e) { crmErro = e.message; crmRepintar(); } return; }
       dados.innerHTML = (r.fila?.length ? `<div class="vv-rotulo-secao" style="--c:var(--sit-aprovar)"><i></i>${esc(r.rotuloFila || 'Na fila')}<span class="vv-pilula">${r.fila.length}</span></div>${r.fila.map(linha).join('')}` : '')
         + (r.feitos?.length ? `<div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>${esc(r.rotuloFeitos || 'O que fez')}</div>${r.feitos.map(linha).join('')}` : '')
         + (!r.fila?.length && !r.feitos?.length ? '<p class="vv-dica">Nada registrado agora.</p>' : '');
@@ -882,11 +950,21 @@
     else if (b.dataset.crmMais !== undefined) { crmPagina++; crmRepintar(); }
     else if (b.dataset.crmAce !== undefined) { crmAce = !crmAce; crmPagina = 1; crmRepintar(); }
     else if (b.dataset.crmVer) { const [x, z] = b.dataset.crmVer.split(',').map(Number); mundo.focarPonto(x, z); }
-    else if (b.dataset.crmPropor) {
-      const l = crmLinhas.find((x) => (x.cnpj || x.nome) === b.dataset.crmPropor); if (!l) return;
-      const lista = crmPropostas(); lista.push({ cnpj: l.cnpj || '', nome: l.nome, setorEmpresa: l.setor || '', tipo: l.tipo || '', rua: l.rua, em: new Date().toISOString(), agenteResponsavel: 'sdr', status: 'proposta', quem: (typeof operadorDoTopo === 'function' && operadorDoTopo()?.name) || '' });
-      try { localStorage.setItem(CRM_CHAVE, JSON.stringify(lista)); } catch { /* sem armazenamento */ }
-      const d = placa().querySelector('#vv-agente-dados'); if (d) d.innerHTML = crmHtml();
+    else if (b.hasAttribute('data-crm-recarregar') || b.hasAttribute('data-crm-pagina')) {
+      crmErro = ''; b.disabled = true;
+      crmCarregar(b.hasAttribute('data-crm-pagina'), b.hasAttribute('data-crm-recarregar')).catch(e => { crmErro = e.message; crmRepintar(); });
+    }
+    else if (b.hasAttribute('data-crm-fechar')) { crmDetalhe = null; crmRepintar(); }
+    else if (b.dataset.crmDetalhe || b.dataset.crmHistorico) {
+      const id = b.dataset.crmDetalhe || crmDetalhe?.oportunidade.id; if (!id) return;
+      b.disabled = true;
+      crmPedido(null, '&id=' + encodeURIComponent(id) + '&historico_pagina=' + (b.dataset.crmHistorico || 1)).then(d => { crmDetalhe = d; crmErro = ''; crmRepintar(); }).catch(e => { crmErro = e.message; crmRepintar(); });
+    }
+    else if (b.dataset.crmMover && crmDetalhe) crmExecutar({ acao: 'mover', id: crmDetalhe.oportunidade.id, de_etapa: crmDetalhe.oportunidade.etapa, etapa: b.dataset.crmMover }, b);
+    else if (b.dataset.crmPropor || b.dataset.crmIncluir) {
+      const chave = b.dataset.crmPropor || b.dataset.crmIncluir;
+      const l = crmLinhas.find(x => (x.cnpj || x.nome) === chave); if (!l) return;
+      crmExecutar({ acao: 'criar', cnpj: l.cnpj || '', nome: l.nome, setor_empresa: l.setor || '', etapa: b.dataset.crmPropor ? 'abordagem_proposta' : 'empresa' }, b);
     }
     else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);
     else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mostrarAgente(an, se); }
