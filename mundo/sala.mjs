@@ -240,6 +240,21 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
   for (let x = 1.5; x < W; x += 3.5) casca.luz(x, .2, .03, .06, H - .4, .02, '#FF9A4A');
   for (let z = 1.5; z < D; z += 3.5) casca.luz(.03, .2, z, .02, H - .4, .06, '#FF9A4A');
   casca.caixa(W - .02, 0, D / 2, .04, .1, D, '#FF7A2F').caixa(W / 2, 0, D - .02, W, .1, .04, '#FF7A2F');
+  // Corredor e cantos sem sala (Paulo, 07/11/2026: "as salas… muito mal feito"): passadeira, plantas, bancos, bebedouro
+  // e luminárias nos corredores; o canto que sobra vira um lounge com sofás, tapete, mesa de centro e estante.
+  for (let r = 0; r < linhas - 1; r++) {
+    const zc = (r + 1) * LADO_SALA + r * CORREDOR + CORREDOR / 2;
+    casca.caixa(W / 2, -.09, zc, W - 1.2, .02, .9, '#C8553D').caixa(W / 2, -.085, zc, W - 1.5, .02, .7, '#D9774E');
+    for (let x = 1.6; x < W - 1; x += 3.4) { planta(casca, x, zc - .7, .8); casca.caixa(x + 1.1, 0, zc + .62, 1.1, .38, .34, '#B98552').caixa(x + 1.1, .38, zc + .76, 1.1, .32, .06, '#B98552'); luminaria(casca, x + 2.3, zc - .7); }
+    casca.caixa(W - .6, 0, zc, .4, .9, .4, '#E9EEF0').caixa(W - .6, .9, zc, .3, .35, .3, '#BDE3F2');
+  }
+  for (let i = salas.length; i < porLinha * linhas; i++) {
+    const ox = (i % porLinha) * LADO_SALA, oz = Math.floor(i / porLinha) * (LADO_SALA + CORREDOR), cx2 = ox + LADO_SALA / 2, cz2 = oz + LADO_SALA / 2;
+    tapete(casca, cx2, cz2, 3.6, 2.8, '#FF7A2F');
+    sofa(casca, cx2, cz2 + 1.9, '#E8A848'); sofa(casca, cx2 - 2.1, cz2, '#38A3A5', true);
+    casca.caixa(cx2, 0, cz2, 1.3, .38, .75, '#C99A6B').caixa(cx2 + .2, .38, cz2, .14, .14, .14, '#FF7A2F').caixa(cx2 - .3, .38, cz2 + .1, .3, .03, .22, '#F4F1EA');
+    estante(casca, ox + LADO_SALA - .5, cz2 - 1.2, true); planta(casca, ox + .7, oz + .7, 1.2); planta(casca, ox + LADO_SALA - .7, oz + LADO_SALA - .7, 1.1); luminaria(casca, ox + .8, oz + LADO_SALA - .8);
+  }
   cena.add(casca.montar());
 
   // Cada sala: piso próprio, divisória de vidro baixo com vão de porta, placa e móveis.

@@ -1976,7 +1976,7 @@
   window.mundoVoxel = { ligar, ligado: () => ligado, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
     // Conferência visual (presença e clientes) sem mexer nos dados do painel.
     desenharCaptacoes: (lista) => mundo?.definirCaptacoes(lista),
-    focar: (x, z) => mundo?.focarPonto(x, z),
+    focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
     conferirClientes: () => mundo?.conferirClientes?.(),
     desempenho: () => mundo?.desempenho?.(),
     orcamento: () => mundo?.orcamento?.(),

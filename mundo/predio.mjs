@@ -45,10 +45,11 @@ export function construirPredio(motor, { x, z, y }) {
     o.caixa(-M + 1.3, .05, M + 2.6, .5, 2.4, .5, '#1F1D1A').luz(-M + 1.3, 1.4, M + 2.86, .36, .9, .02, '#FF7A2F');
     raiz.add(o.montar());
   }
-  for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) raiz.add(blocos([
-    { x: a * (LADO / 2 + 2), y: .5, z: b * (LADO / 2 + 2), w: .2, h: .8, d: .2, cor: '#7A5534' },
-    { x: a * (LADO / 2 + 2), y: 1.2, z: b * (LADO / 2 + 2), w: 1.1, h: 1, d: 1.1, cor: '#5FA34E' },
-  ]));
+  { // as quatro árvores da praça do prédio, em cachos
+    const o = new Obra();
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o.arvore(a * (LADO / 2 + 2), .45, b * (LADO / 2 + 2), { s: 1.25, cor: a * b > 0 ? '#5FA34E' : '#4F9A4E', fruta: a > 0 && b < 0 ? '#F2C230' : null });
+    raiz.add(o.montar());
+  }
 
   for (const andar of PLANTA) {
     const g = new THREE.Group();
@@ -63,7 +64,10 @@ export function construirPredio(motor, { x, z, y }) {
     if (!terraco) fachada(g, andar, terreo);
     else {
       // Guarda-corpo do terraço.
-      for (const [px, pz, w, d] of [[0, -LADO / 2, LADO, .12], [0, LADO / 2, LADO, .12], [-LADO / 2, 0, .12, LADO], [LADO / 2, 0, .12, LADO]]) pecas.push({ x: px, y: .22, z: pz, w, h: .55, d, cor: '#DDE6E8' });
+      for (const [px, pz, w, d] of [[0, -LADO / 2, LADO, .12], [0, LADO / 2, LADO, .12], [-LADO / 2, 0, .12, LADO], [LADO / 2, 0, .12, LADO]]) {
+        pecas.push({ x: px, y: .22, z: pz, w, h: .08, d, cor: '#3A3F44' }, { x: px, y: .3, z: pz, w: w > 1 ? w : .04, h: .5, d: d > 1 ? d : .04, cor: '#CFE6EC' }, { x: px, y: .8, z: pz, w: w + .04, h: .05, d: d + .04, cor: '#8A939A' });
+        for (let k = 0; k <= 10; k++) pecas.push({ x: w > 1 ? px - w / 2 + k * w / 10 : px, y: .22, z: d > 1 ? pz - d / 2 + k * d / 10 : pz, w: .05, h: .6, d: .05, cor: '#8A939A' });
+      }
     }
     // Salas: o andar dividido em faixas, uma por setor.
     const n = andar.setores.length;
@@ -229,27 +233,30 @@ export function construirPredio(motor, { x, z, y }) {
   }
   // ----- O ser do VYBES, flutuando sobre o terraço -----
   const ser = new THREE.Group();
+  // O V da Vybe em voxel, laranja (Paulo, 07/11/2026: "troca por um V da Vybe", "muda de roxo pra laranja"):
+  // dois braços inclinados que se encontram embaixo, em três camadas de cubinhos, girando devagar.
   const cubos = [];
-  const R = 1.9, b = .32;
-  for (let i = -R; i <= R; i += b) for (let j = -R; j <= R; j += b) for (let k = -R; k <= R; k += b) {
-    const d = Math.hypot(i, j, k);
-    if (d <= R && d > R - b * 1.2) cubos.push([i, j, k]);
+  const R = 1.9, b = .2, ALT = 3.8, LARG = 4.4, GROSSO = .95;
+  const distSeg = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))); return Math.hypot(px - ax - dx * t, py - ay - dy * t); };
+  for (let i = -LARG / 2; i <= LARG / 2 + 1e-6; i += b) for (let j = -ALT / 2; j <= ALT / 2 + 1e-6; j += b) {
+    const d = Math.min(distSeg(i, j, -LARG / 2 + GROSSO / 2, ALT / 2 - GROSSO / 2, 0, -ALT / 2 + GROSSO / 2), distSeg(i, j, LARG / 2 - GROSSO / 2, ALT / 2 - GROSSO / 2, 0, -ALT / 2 + GROSSO / 2));
+    if (d <= GROSSO / 2) for (const k of [-b, 0, b]) cubos.push([i, j, k]);
   }
-  const matSer = new THREE.MeshStandardMaterial({ roughness: .3, metalness: .1, emissive: '#5B4BD6', emissiveIntensity: .55 });
+  const matSer = new THREE.MeshStandardMaterial({ roughness: .35, metalness: .1, emissive: '#E8602E', emissiveIntensity: .45 });
   const casca = new THREE.InstancedMesh(new THREE.BoxGeometry(b * .9, b * .9, b * .9), matSer, cubos.length);
   const m = new THREE.Matrix4(), c = new THREE.Color();
   cubos.forEach(([i, j, k], n) => {
     m.makeTranslation(i, j, k); casca.setMatrixAt(n, m);
-    const t = (j + R) / (2 * R);
-    casca.setColorAt(n, c.set('#8B7DFF').lerp(new THREE.Color('#FF9A5C'), Math.max(0, t - .35) * 1.2).offsetHSL(0, 0, (ruido(n, 3) - .5) * .1));
+    const t = (j + ALT / 2) / ALT;
+    casca.setColorAt(n, c.set('#E8602E').lerp(new THREE.Color('#FFB27A'), t * .9).offsetHSL(0, 0, (ruido(n, 3) - .5) * .12));
   });
   casca.castShadow = true;
   ser.add(casca);
   const nucleo = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), new THREE.MeshBasicMaterial({ color: '#FFE3C8' }));
-  ser.add(nucleo);
+  nucleo.visible = false; ser.add(nucleo); // o miolo era da esfera; o V não tem
   const anel = new THREE.Mesh(new THREE.TorusGeometry(2.9, .07, 6, 48), new THREE.MeshBasicMaterial({ color: '#FFB27A', transparent: true, opacity: .75 }));
   anel.rotation.x = Math.PI / 2.3; ser.add(anel);
-  const luz = new THREE.PointLight('#A89BFF', 6, 22, 1.6); ser.add(luz);
+  const luz = new THREE.PointLight('#FFB07A', 6, 22, 1.6); ser.add(luz);
   ser.position.y = PE * 7 + 3.2;
   ser.userData.alvo = { tipo: 'vybes' };
   motor.clicavel(ser);
@@ -292,13 +299,49 @@ export function construirPredio(motor, { x, z, y }) {
   function mobiliar(pecas, { andar, setor, sx, largura, terraco, terreo }) {
     const zMesa = -LADO / 2 + 2.2;
     if (terraco) {
-      // O Escritório no terraço: mesa de sinuca, ombrelones, sofás e plantas.
-      pecas.push({ x: -1.5, y: .22, z: 0, w: 3.2, h: .55, d: 1.8, cor: '#5A3A22' }, { x: -1.5, y: .77, z: 0, w: 2.9, h: .06, d: 1.5, cor: '#1F8A4C' });
+      // O Escritório no terraço (Paulo, 07/11/2026: "muito mal feito"): deque de tábuas, sinuca de verdade (pés, caçapas,
+      // tacos), ombrelones listrados em degraus com mesinha e cadeiras, sofás com almofadas, floreiras com flores,
+      // bar com bancos e um cordão de luzinhas no guarda-corpo.
+      for (let k = 0; k < 26; k++) pecas.push({ x: 0, y: .222, z: -LADO / 2 + .4 + k * .44, w: LADO - .3, h: .012, d: .03, cor: '#A87B52' }); // juntas do deque
+      // sinuca
+      const sx0 = -1.5;
+      pecas.push({ x: sx0, y: .72, z: 0, w: 3.2, h: .14, d: 1.8, cor: '#5A3A22' }, { x: sx0, y: .8, z: 0, w: 2.9, h: .07, d: 1.5, cor: '#1F8A4C' });
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pecas.push({ x: sx0 + a * 1.4, y: .22, z: b * .72, w: .2, h: .5, d: .2, cor: '#4A2E1A' });
+      for (const [a, b] of [[-1, -1], [0, -1], [1, -1], [-1, 1], [0, 1], [1, 1]]) pecas.push({ x: sx0 + a * 1.43, y: .84, z: b * .74, w: .14, h: .04, d: .14, cor: '#14171A' });
+      for (const [px, pz, c] of [[-.6, .2, '#F7C948'], [-.3, -.3, '#E5484D'], [-1.1, 0, '#0D74CE'], [-2.4, .1, '#F4F1EA']]) pecas.push({ x: sx0 + px + 1.5, y: .87, z: pz, w: .1, h: .1, d: .1, cor: c });
+      pecas.push({ x: sx0 - .4, y: .88, z: .45, w: 1.9, h: .03, d: .03, cor: '#D8B48A' }, { x: sx0 + 2.3, y: .22, z: -1.6, w: .3, h: 1.1, d: .1, cor: '#5A3A22' });
+      // ombrelones: haste, copa em três degraus com gomos, mesinha e duas cadeiras
       for (const [px, pz, cor] of [[2.6, -2.6, '#FF7A2F'], [2.6, 2.4, '#38D9C5'], [-3.6, 3.4, '#F7C948']]) {
-        pecas.push({ x: px, y: .22, z: pz, w: .12, h: 1.6, d: .12, cor: '#E9E4DA' }, { x: px, y: 1.8, z: pz, w: 2, h: .14, d: 2, cor });
-        pecas.push({ x: px + .7, y: .22, z: pz, w: .5, h: .4, d: .5, cor: '#F4F1EA' }, { x: px - .7, y: .22, z: pz, w: .5, h: .4, d: .5, cor: '#F4F1EA' });
+        pecas.push({ x: px, y: .22, z: pz, w: .5, h: .05, d: .5, cor: '#8A939A' }, { x: px, y: .27, z: pz, w: .08, h: 1.7, d: .08, cor: '#E9E4DA' });
+        for (const [w, yy] of [[2.1, 1.82], [1.5, 1.93], [.8, 2.03]]) {
+          pecas.push({ x: px, y: yy, z: pz, w, h: .1, d: w, cor });
+          for (const g of [-1, 1]) pecas.push({ x: px + g * w * .25, y: yy + .001, z: pz, w: w * .17, h: .102, d: w + .004, cor: '#FFFFFF' });
+        }
+        pecas.push({ x: px, y: 1.6, z: pz, w: 2.15, h: .06, d: .06, cor }, { x: px, y: 1.6, z: pz, w: .06, h: .06, d: 2.15, cor });
+        pecas.push({ x: px, y: .62, z: pz, w: .7, h: .05, d: .7, cor: '#F4F1EA' });
+        for (const g of [-1, 1]) {
+          pecas.push({ x: px + g * .75, y: .22, z: pz, w: .42, h: .26, d: .42, cor: '#E9E4DA' }, { x: px + g * .75, y: .48, z: pz, w: .46, h: .08, d: .44, cor: '#F4F1EA' });
+          pecas.push({ x: px + g * .95, y: .5, z: pz, w: .07, h: .4, d: .44, cor: '#E9E4DA' });
+        }
       }
-      for (const [px, pz] of [[-4.6, -4.4], [4.5, -4.5], [4.4, 4.6], [-4.6, 0]]) pecas.push({ x: px, y: .22, z: pz, w: .7, h: .5, d: .7, cor: '#C9A271' }, { x: px, y: .72, z: pz, w: .9, h: .9, d: .9, cor: '#4F9A4E' });
+      // sofás em L com almofadas
+      for (const [px, pz, giro, alm] of [[4.6, 0, 1, '#FF7A2F'], [-4.4, -1.4, -1, '#38D9C5']]) {
+        pecas.push({ x: px, y: .22, z: pz, w: .9, h: .28, d: 2.6, cor: '#E8E1D3' }, { x: px, y: .5, z: pz, w: .86, h: .1, d: 2.5, cor: '#F4F1EA' });
+        pecas.push({ x: px + giro * .38, y: .5, z: pz, w: .18, h: .5, d: 2.6, cor: '#E8E1D3' });
+        for (const g of [-1, 1]) pecas.push({ x: px, y: .5, z: pz + g * 1.24, w: .9, h: .3, d: .14, cor: '#E8E1D3' });
+        for (const k of [-.8, 0, .8]) pecas.push({ x: px + giro * .22, y: .6, z: pz + k, w: .14, h: .3, d: .45, cor: k ? alm : '#FFFFFF' });
+      }
+      // floreiras: caixa de madeira, cachos verdes e flores
+      for (const [px, pz] of [[-4.6, -4.4], [4.5, -4.5], [4.4, 4.6], [-4.6, 1.6], [0, -4.6], [-1, 4.6]]) {
+        pecas.push({ x: px, y: .22, z: pz, w: .8, h: .45, d: .8, cor: '#B98552' }, { x: px, y: .62, z: pz, w: .7, h: .06, d: .7, cor: '#6E4B33' });
+        for (const [a, b, c, cr] of [[0, 0, .3, '#4F9A4E'], [.2, .18, 0, '#5FA34E'], [-.2, .15, .1, '#3F8A3E'], [.15, -.2, .05, '#6FB35C'], [-.18, -.18, .15, '#4F9A4E']]) pecas.push({ x: px + a, y: .66 + c, z: pz + b, w: .42, h: .4, d: .42, cor: cr });
+        for (const [a, b] of [[.3, .05], [-.05, .32], [-.3, -.1]]) pecas.push({ x: px + a, y: 1.02, z: pz + b, w: .09, h: .09, d: .09, cor: ['#E87FB0', '#F2C230', '#FFFFFF'][(Math.abs(a * 10) | 0) % 3] });
+      }
+      // bar no canto, com bancos
+      pecas.push({ x: 1.4, y: .22, z: 4.5, w: 2.6, h: .78, d: .55, cor: '#1F1D1A' }, { x: 1.4, y: 1, z: 4.5, w: 2.7, h: .06, d: .65, cor: '#D8B48A' }, { x: 1.4, y: .5, z: 4.22, w: 2.5, h: .05, d: .02, cor: '#FF7A2F' });
+      for (const k of [-.8, 0, .8]) pecas.push({ x: 1.4 + k, y: .22, z: 3.9, w: .06, h: .5, d: .06, cor: '#8A939A' }, { x: 1.4 + k, y: .72, z: 3.9, w: .32, h: .06, d: .32, cor: '#FF7A2F' });
+      // cordão de luzinhas no guarda-corpo
+      for (let k = 0; k < 18; k++) for (const lado of [-1, 1]) pecas.push({ x: -LADO / 2 + .4 + k * (LADO - .8) / 17, y: .84, z: lado * (LADO / 2 - .02), w: .07, h: .07, d: .07, cor: '#FFE2A8' });
       return {};
     }
     if (terreo) {

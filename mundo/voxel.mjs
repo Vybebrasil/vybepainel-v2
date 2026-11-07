@@ -15,6 +15,59 @@ const F = {
 };
 export const semAcento = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 
+// Superfície "de cubinhos" (Paulo, 07/11/2026: "tudo muito bem detalhado, no nível da baleia"): toda face ganha a
+// grade de voxels de 1 m (0,1 da unidade do mundo) com cada cubinho num tom levemente diferente, a quina de cada
+// bloco escurecida e o pé das paredes mais escuro (oclusão de contato). Tudo no shader: nenhum triângulo a mais.
+// De longe (cubinho menor que 1 pixel) a grade some sozinha, sem tremer.
+// borda: só para caixas (BoxGeometry de 1×1×1 escalada), que sabem onde fica a quina de cada uma.
+export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = true } = {}) {
+  material.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+#ifdef USE_INSTANCING
+  mat4 vxM = modelMatrix * instanceMatrix;
+#else
+  mat4 vxM = modelMatrix;
+#endif
+  vVxPos = (vxM * vec4(transformed, 1.0)).xyz;
+  vVxNor = normalize(mat3(vxM) * objectNormal);
+  vVxLoc = position;
+  vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));`);
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{
+  vec3 vxN = normalize(vVxNor), vxA = abs(vxN);
+  vec3 vxP = (vVxPos - vxN * 0.004) / ${tam.toFixed(4)};
+  vec3 vxC = floor(vxP);
+  float vxH = fract(sin(dot(vxC, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  vec3 vxD = fwidth(vxP);
+  float vxVis = 1.0 - smoothstep(0.3, 0.85, max(max(vxD.x, vxD.y), vxD.z));
+  vec3 vxF = fract(vxP), vxM2 = min(vxF, 1.0 - vxF);
+  float vxS = 1.0;
+  if (vxA.x < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.x));
+  if (vxA.y < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.y));
+  if (vxA.z < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.z));
+  diffuseColor.rgb *= (1.0 + (vxH - 0.5) * ${amp.toFixed(3)} * vxVis) * mix(1.0, mix(0.8, 1.0, vxS), vxVis * ${grade.toFixed(2)});
+${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
+  float vxE = 1e3;
+  if (vxA.x < 0.5) vxE = min(vxE, vxL.x);
+  if (vxA.y < 0.5) vxE = min(vxE, vxL.y);
+  if (vxA.z < 0.5) vxE = min(vxE, vxL.z);
+  float vxQ = smoothstep(0.0, 0.03 + fwidth(vxE), vxE);
+  diffuseColor.rgb *= mix(0.74, 1.0, vxQ) * (1.0 + step(0.5, vxN.y) * 0.05);
+  float vxB = (vVxLoc.y + 0.5) * vVxEsc.y;
+  diffuseColor.rgb *= mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0));` : ''}
+}`);
+  };
+  material.customProgramCacheKey = () => `voxel:${tam}:${amp}:${grade}:${borda}`;
+  return material;
+}
+// Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
+let matCaixa = null;
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 })));
+
 export class Obra {
   constructor() { this.solidos = []; this.luzes = []; }
   caixa(x, y, z, w, h, d, cor) { this.solidos.push({ x, y, z, w, h, d, cor }); return this; }
@@ -44,11 +97,14 @@ export class Obra {
     return { largura, altura };
   }
   // Árvore em blocos (copa em dois andares, frutinhas opcionais).
+  // Copa em cachos (miolo + seis cachos + topo, em três verdes), como nas árvores da cidade.  
   arvore(x, y, z, { s = 1, cor = '#5FA34E', fruta = null } = {}) {
-    this.caixa(x, y, z, .18 * s, .7 * s, .18 * s, '#7A5534');
-    this.caixa(x, y + .55 * s, z, .9 * s, .6 * s, .9 * s, cor);
-    this.caixa(x, y + 1.1 * s, z, .55 * s, .35 * s, .55 * s, cor);
-    if (fruta) for (const [a, b] of [[.3, .46], [-.46, .1], [.1, -.46]]) this.caixa(x + a * s, y + .85 * s, z + b * s, .1, .1, .1, fruta);
+    const c0 = new THREE.Color(cor), tons = [c0, c0.clone().offsetHSL(.02, .05, -.07), c0.clone().offsetHSL(-.02, 0, .06)].map((c) => '#' + c.getHexString());
+    this.caixa(x, y, z, .18 * s, .75 * s, .18 * s, '#6E4B33');
+    this.caixa(x, y + .55 * s, z, .95 * s, .62 * s, .95 * s, tons[0]);
+    [[.4, 0, .1], [-.4, 0, 0], [0, .4, .05], [0, -.4, .14], [.24, .22, .34], [-.24, -.2, .3]].forEach(([a, b, c], k) => this.caixa(x + a * s, y + (.55 + c) * s, z + b * s, .52 * s, .48 * s, .52 * s, tons[k % 3]));
+    this.caixa(x, y + 1.12 * s, z, .5 * s, .28 * s, .5 * s, tons[2]);
+    if (fruta) for (const [a, b] of [[.3, .52], [-.52, .1], [.1, -.52]]) this.caixa(x + a * s, y + .85 * s, z + b * s, .1, .1, .1, fruta);
     return this;
   }
   pessoa(x, y, z, { roupa = '#3A6EA5', calca = '#2B2F33', pele = '#C68E6A', cabelo = '#2B1D14' } = {}) {
@@ -72,7 +128,7 @@ export class Obra {
       mesh.castShadow = s; mesh.receiveShadow = true;
       raiz.add(mesh);
     };
-    unir(this.solidos, new THREE.MeshStandardMaterial({ roughness: .82 }), sombra);
+    unir(this.solidos, materialVoxel(), sombra);
     unir(this.luzes, new THREE.MeshBasicMaterial({ toneMapped: false }), false);
     return raiz;
   }
