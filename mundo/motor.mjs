@@ -83,7 +83,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const camera = new THREE.PerspectiveCamera(22, 1, 1, 6000);
   const orb = { alvo: new THREE.Vector3(0, 0, 0), dist: 420, giro: -0.75, incl: 0.92 };
   const quer = { alvo: orb.alvo.clone(), dist: orb.dist, giro: orb.giro, incl: orb.incl };
-  const LIM = { dist: [24, 1100], incl: [0.35, 1.25], raio: 330 };
+  const LIM = { dist: [18, 460], incl: [0.35, 1.25], raio: 150 };
 
   function posicionarCamera() {
     const { alvo, dist, giro, incl } = orb;
