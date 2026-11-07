@@ -204,3 +204,92 @@ function domFalso(html) {
   };
   return { raiz, clicar, caixas, ouvintes };
 }
+
+// ---------- Visão única (Paulo, 07/11/2026): saúde, contrato e financeiro, peças do mês, clima e cérebro ----------
+const RESUMO = readFileSync('vybe-relatorio-resumo.js', 'utf8');
+function visao({ socio = false, admin = false, extra = {}, pecas } = {}) {
+  const amb = ambiente({ admin, pecas, extra: { operadorDoTopo: () => ({ name: socio ? 'Paulo Henrique' : 'Bia Souza' }), ...extra } });
+  vm.runInContext(RESUMO, amb.c);
+  return amb;
+}
+const CARTEIRA = { dados: () => ({ clientes: [
+  { cliente_id: 42, cliente: 'Padaria Sol', saude: 'atenção', pontuacao: 62, motivos: ['Pagamento atrasado', { texto: 'Grupo sem resposta há 5 dias' }],
+    contrato: { plano: 'Social + Tráfego', valor_mensal: 2500, renovacao: '2027-01-10' }, clima: { nivel: 'tenso', resumo: 'Cliente cobrou a arte do sábado.', atualizado_em: '2026-11-10T15:00:00Z' } },
+  { cliente_id: 7, cliente: 'Outra Loja', saude: 'ok' },
+] }) };
+const COMERCIAL = { dados: () => [{ cliente: 'padaria sol', financeiro: { em_aberto: 1200.5, ultimo_pagamento: '2026-10-05', situacao: 'Atrasado' } }] };
+
+test('visão única: sem os outros módulos, saúde e negócio somem e o mês aparece com o botão do relatório', () => {
+  const { api } = visao({ socio: true });
+  const html = api.html('Padaria Sol');
+  assert.ok(!html.includes('data-vv-cli-secao="saude"'), 'sem Carteira e sem VybeDono: sem bloco de saúde');
+  assert.ok(!html.includes('data-vv-cli-secao="negocio"'));
+  assert.ok(!html.includes('data-vv-cli-secao="clima"'));
+  const s = secao(html, 'mes');
+  assert.match(s, /Peças de novembro de 2026/);
+  assert.match(s, /data-vv-cli-relatorio="2026-11"/);
+  // Novembro pela veiculação: 1, 2, 3, 4, 5 e 6 (a conjunta e a 9 são de dezembro).
+  assert.match(s, /vv-cli-conta">6</);
+  assert.match(s, /<b class="u1">1<\/b><small>atrasadas/, 'atrasada como no resto do mundo: a 3 tem o prazo vencido');
+  assert.ok(html.indexOf('data-vv-cli-secao="mes"') < html.indexOf('data-vv-cli-secao="espera"'), 'o mês vem antes da operação');
+});
+
+test('visão única: Carteira e Comercial alimentam saúde, contrato, financeiro e clima; dinheiro só para donos e admin', () => {
+  const dono = visao({ socio: true, extra: { VybeCarteira: CARTEIRA, VybeComercial: COMERCIAL } });
+  const html = dono.api.html('Padaria Sol');
+  const saude = secao(html, 'saude');
+  assert.match(saude, /vv-cli-tag u2">Atenção · 62/);
+  assert.match(saude, /Pagamento atrasado[\s\S]*Grupo sem resposta há 5 dias/);
+  const negocio = secao(html, 'negocio');
+  assert.match(negocio, /Plano<\/dt><dd>Social \+ Tráfego/);
+  assert.match(negocio, /Mensalidade<\/dt><dd>R\$\s?2\.500,00/);
+  assert.match(negocio, /Renovação<\/dt><dd>10\/01\/2027/);
+  assert.match(negocio, /Em aberto<\/dt><dd>R\$\s?1\.200,50/);
+  assert.match(negocio, /Situação<\/dt><dd>Atrasado/);
+  assert.match(secao(html, 'clima'), /Cliente cobrou a arte do sábado/);
+
+  const equipe = visao({ socio: false, extra: { VybeCarteira: CARTEIRA, VybeComercial: COMERCIAL } });
+  const h2 = equipe.api.html('Padaria Sol');
+  assert.ok(!h2.includes('data-vv-cli-secao="negocio"'), 'equipe não vê contrato nem financeiro');
+  assert.ok(h2.includes('data-vv-cli-secao="saude"'), 'a saúde todos veem');
+  const admin = visao({ admin: true, extra: { VybeCarteira: CARTEIRA } });
+  assert.ok(admin.api.html('Padaria Sol').includes('data-vv-cli-secao="negocio"'));
+});
+
+test('visão única: sem Carteira, a saúde vem da Gestão (VybeDono)', () => {
+  const amb = visao({ extra: {} });
+  vm.runInContext(readFileSync('vybe-dono-metricas.js', 'utf8'), amb.c);
+  const s = secao(amb.api.html('Padaria Sol'), 'saude');
+  assert.match(s, /vv-cli-tag u2">Atenção/);
+  assert.match(s, /1 peça com o prazo interno vencido/); // a peça 3 (prazo 08/11)
+  assert.match(s, /Pela produção/);
+});
+
+test('visão única: objetivo e aprovação pelo VybeConteudo; botão do relatório chama VybeRelatorio.abrir', () => {
+  const abertos = [];
+  const { api } = visao({ extra: {
+    VybeConteudo: { dados: () => ({ 1: { objetivo: 'Conversão', aprovacao: 'Aprovada' }, 4: { objetivo: 'Atração' } }) },
+    VybeRelatorio: { abrir: (...a) => abertos.push(a) },
+  } });
+  const html = api.html('Padaria Sol');
+  const s = secao(html, 'mes');
+  assert.match(s, /vv-cli-obj conversao">Conversão[^<]*<\/span>[^<]*aprovação: Aprovada/);
+  assert.match(s, /vv-cli-equilibrio/);
+  assert.match(s, /Conversão <b>50%<\/b>/);
+  const { raiz, clicar } = domFalso(html);
+  api.ligar(raiz);
+  clicar({ vvCliRelatorio: '2026-11' });
+  assert.deepEqual(abertos, [['Padaria Sol', '2026-11']]);
+});
+
+test('visão única: cérebro do cliente com o estudo do VYBES e o botão do canvas', () => {
+  const { api } = visao({ extra: {
+    abrirModalCerebroCliente: () => {},
+    encontrarBaseCerebro: () => ({ segmento: 'Padaria artesanal', tom: 'Acolhedor e simples.', paleta: [{ nome: 'Trigo', hex: '#E8C07A' }, { nome: 'ruim', hex: 'red;x' }] }),
+  } });
+  const s = secao(api.html('Padaria Sol'), 'cerebro');
+  assert.match(s, /Padaria artesanal[\s\S]*Acolhedor e simples/);
+  assert.match(s, /background:#E8C07A/);
+  assert.ok(!s.includes('red;x'), 'cor fora do formato não entra no estilo');
+  assert.match(s, /data-cerebro-cliente="Padaria Sol">Abrir o cérebro/);
+});
