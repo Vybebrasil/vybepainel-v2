@@ -416,12 +416,9 @@ body.mundo .plj-aviso b{color:var(--vv-tinta)!important;font:700 12.5px/1.35 var
 body.mundo .plj-aviso small{color:var(--vv-apagado)!important;font:500 11.5px var(--vv-texto)!important}
 body.mundo .plj-aviso.urgente{box-shadow:var(--vv-sombra),inset 4px 0 0 var(--sit-atrasada)!important}
 body.mundo .plj-aviso .plj-aviso-x{color:var(--vv-apagado)!important;background:var(--vv-papel)!important;border-radius:10px!important;width:30px;height:30px}
-/* O atalho "Fora do escritório · Entrar" some: no mundo, entrar é entrar numa sala do prédio.
-   Na sala, a barra vira uma pílula de voz embaixo, ao centro (microfone e sair da chamada). */
-body.mundo .office-dock[data-estado^="[false"]{display:none!important}
-body.mundo .office-dock{left:50%!important;right:auto!important;bottom:var(--vv-m)!important;transform:translateX(-50%);background:var(--vv-tinta)!important;color:#fff!important;border:0!important;border-radius:99px!important;box-shadow:var(--vv-sombra)!important;padding:5px 6px 5px 14px!important}
-body.mundo .office-dock button{color:#fff!important;font:600 12px var(--vv-texto)!important}
-body.mundo.mundo-modulo .plj-aviso ~ .office-dock,body.mundo.mundo-modulo .office-dock{bottom:calc(var(--vv-m) + 64px)!important}
+/* No Irecity, a barra .vv-chamada reúne os controles de voz, inclusive dentro dos módulos.
+   O dock do Escritório permanece disponível somente fora do modo mundo. */
+body.mundo .office-dock{display:none!important}
 
 /* ---------- Janelas por cima (camada 3 da roupagem nova) ---------- */
 /* A ficha da peça mora na camada 501: com o mundo aberto (ex.: clique numa peça do painel Hoje), sobe acima dele. */
@@ -4126,11 +4123,15 @@ html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 @media (min-width:901px){html body.mundo .vv-conversa:not(#ds-a){left:calc(max(var(--vv-livre-esq, 0px), 90px) + 12px)!important}}
 
 /* ===== Palco do Irecity: vídeos da chamada (espelho), TV da sala e recado rápido por cima do mapa ===== */
-.vv-palco{display:none;position:fixed;z-index:630;right:calc(var(--vv-m) + 70px);bottom:calc(var(--vv-m) + 6px);width:min(420px,40vw);max-height:60vh;overflow:auto;padding:8px;border-radius:20px;background:rgba(24,23,21,.94);box-shadow:0 20px 50px rgba(31,29,26,.35);gap:6px;flex-direction:column}
+.vv-palco{display:none;position:fixed;z-index:630;right:calc(var(--vv-m) + 70px);bottom:calc(var(--vv-m) + var(--vv-voz-alto,64px) + 12px);width:min(420px,40vw);max-height:60vh;overflow:auto;padding:8px;border-radius:20px;background:rgba(24,23,21,.94);box-shadow:0 20px 50px rgba(31,29,26,.35);gap:6px;flex-direction:column}
 .vv-palco.com-video{display:flex}
 .vv-palco.recolhido .vv-palco-video{display:none}
 .vv-palco-topo{display:flex;justify-content:space-between;align-items:center;padding:2px 6px;color:#F2EEE8;font:700 12px var(--vv-texto)}
-.vv-palco-topo button{appearance:none;border:0;background:rgba(255,255,255,.14);color:#fff;width:26px;height:22px;border-radius:7px;cursor:pointer}
+.vv-palco-topo button{appearance:none;border:0;background:rgba(255,255,255,.14);color:#fff;min-width:26px;min-height:28px;padding:4px 8px;border-radius:7px;cursor:pointer}
+.vv-palco-topo button[hidden]{display:none}
+.vv-palco:fullscreen{inset:0;width:100%;height:100%;max-height:none;border-radius:0;box-sizing:border-box}
+.vv-palco:fullscreen .vv-palco-video video{max-height:calc(100vh - 80px)}
+@media(max-width:700px){.vv-palco{right:var(--vv-m);width:calc(100vw - 2 * var(--vv-m));max-height:45vh}}
 .vv-palco-video{margin:0;position:relative;border-radius:14px;overflow:hidden;background:#000}
 .vv-palco-video video{display:block;width:100%;max-height:240px;object-fit:contain}
 .vv-palco-video figcaption{position:absolute;left:8px;bottom:6px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font:600 11px var(--vv-texto)}

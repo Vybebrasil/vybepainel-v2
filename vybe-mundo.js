@@ -1620,15 +1620,15 @@
     sair: '<svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
   };
   // Leva a pessoa até uma sala do Escritório sem sair do Irecity (a voz segue a sala).
-  // Entrar numa sala de propósito é como entrar num canal do Discord: a voz liga junto (o microfone só começa
-  // desligado na abertura do sistema). Sala trancada: o Escritório avisa e a pessoa fica onde estava.
+  // A conversa acompanha a sala, preservando a escolha de mute. Uma porta recusada não altera o microfone.
   function irParaSala(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!zona) return;
-    if (e) { e.microfoneQuer = true; e.erroMic = null; }
     moverParaSala(zona);
-    setTimeout(() => { if (e?.zona === zona) fn('escritorioConversaAutomatica')?.(); pintarChamada(); }, 700);
-    setTimeout(() => { if (e?.zona === zona) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
+    if (e?.zona === zona) e.vozPausada = false;
+    const geracaoVoz = e?.geracaoVoz || 0;
+    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); } pintarChamada(); }, 700);
+    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz && !e.vozPausada) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
   }
   window.vybesIrParaSala = irParaSala;
   // Move a pessoa (e a voz) para a sala sem trocar a tela: a função original do Escritório, guardada antes do desvio.
@@ -1672,28 +1672,34 @@
       return;
     }
     const canal = fn('escritorioCanal')?.(e.zona);
-    const naChamada = Boolean(canal && e.chamada);
+    const naChamada = Boolean(!e.vozPausada && e.conectado && canal && e.chamada && e.canalChamada === canal);
     const juntos = outros.filter((o) => o.zona && o.zona === e.zona);
     const mic = Boolean(e.chamada?.self?.audioEnabled), cam = Boolean(e.chamada?.self?.videoEnabled);
-    const falando = new Set((e.chamada?.participants?.joined?.toArray?.() || []).filter((p) => p.audioEnabled).map((p) => String(p.customParticipantId || '').split(':')[0]));
+    const falando = fn('escritorioPessoasFalando')?.() || new Set();
+    const tela = Boolean(e.chamada?.self?.screenShareEnabled);
     const estado = fn('escritorioEstadoVozTexto')?.() || (naChamada ? 'Na conversa da sala' : 'Sem voz aqui');
     const temSom = Boolean(fn('escritorioNaPista')?.());
     const salas = {}; for (const o of outros) if (o.zona && o.zona !== e.zona) (salas[o.zona] ||= []).push(o);
     const pessoa = pessoaAberta && outros.find((o) => String(o.id) === pessoaAberta);
-    const ouvem = juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa ouve você' : ' pessoas ouvem você') : 'só você aqui';
+    const participantes = new Set((naChamada ? fn('escritorioOuvindo')?.(e.chamada) || [] : []).map((p) => String(p.customParticipantId || '').split(':')[0]));
+    const naVoz = juntos.filter((o) => participantes.has(String(o.id))).length;
+    const foraDaVoz = juntos.length - naVoz;
+    const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
     const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
-      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' · falando' : ''}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       ${musicaHtml(e, temSom)}
       <span class="acoes">
+        ${e.vozPausada && canal ? '<button type="button" class="vv-botao" data-chamada="entrar-voz">Entrar na chamada</button>' : ''}
         <button type="button" class="vv-botao ic${mic ? ' on' : ''}${naChamada && !mic && juntos.length ? ' chama' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
         <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
         <button type="button" class="vv-botao ic" data-chamada="musica" ${temSom ? '' : 'disabled'} title="${temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)'}">${IC.musica}</button>
-        <button type="button" class="vv-botao ic${cam ? ' on' : ''}" data-chamada="camera" aria-pressed="${cam}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (cam ? 'Desligar a câmera' : 'Ligar a câmera') : 'Entre numa sala com voz para usar a câmera'}">${IC.camera}</button>
-        <button type="button" class="vv-botao ic" data-chamada="tv" ${e.zona ? '' : 'disabled'} title="TV da sala: passar um vídeo do YouTube ou mostrar a sua tela">${IC.tela}</button>
+        <button type="button" class="vv-botao ic${cam ? ' on' : ''}" data-chamada="camera" aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'} title="${cam ? 'Desligar a câmera' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera'}">${IC.camera}</button>
+        <button type="button" class="vv-botao ic${tela ? ' on' : ''}" data-chamada="tela" aria-pressed="${tela}" ${naChamada || tela ? '' : 'disabled'} title="${tela ? 'Parar de mostrar a tela' : 'Mostrar minha tela'}">${IC.tela}</button>
+        <button type="button" class="vv-botao ic" data-chamada="tv" ${e.zona ? '' : 'disabled'} title="TV da sala: passar um vídeo do YouTube">TV</button>
         <button type="button" class="vv-botao ic" data-chamada="chamar" aria-expanded="${chamarAberto}" title="Salas de voz: quem está em cada sala; entrar, ir até alguém ou chamar">${IC.chamar}</button>
-        ${e.zona ? `<button type="button" class="vv-botao ic sair" data-chamada="sair" title="Sair da sala">${IC.sair}</button>` : ''}
+        ${!e.vozPausada && (e.chamada || e.entrandoChamada) ? `<button type="button" class="vv-botao ic sair" data-chamada="sair" title="Sair da chamada">${IC.sair}</button>` : ''}
       </span>
-      ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}${falando.has(String(pessoa.id)) ? ' · falando agora' : ''}</small>
+      ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
         ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
       ${chamarAberto && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
     // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
@@ -1727,7 +1733,7 @@
       const gente = [...(minha ? [eu] : []), ...aqui];
       return `<button type="button" class="vv-voz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
         <span class="ic" aria-hidden="true">${tranc ? '🔒' : '🔊'}</span>
-        <span class="meio"><b>${esc(z.nome || nomeZona(id))}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'EU' : iniciais(o.nome))}</i>`).join('')}</span>` : '<small>vazia</small>'}</span>
+        <span class="meio"><b>${esc(z.nome || nomeZona(id))}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'EU' : iniciais(o.nome))}</i>`).join('')}</span>` : '<small>vazia</small>'}</span>
         ${minha ? '<em>aqui</em>' : '<em>Entrar</em>'}</button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
@@ -1735,7 +1741,7 @@
       <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar</small></div>
       ${ordem.map((k) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${porAndar.get(k).map(linha).join('')}`).join('')}
       <div class="vv-rotulo-secao"><i></i>Pessoas online</div>
-      ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
+      ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
         ${o.zona && o.zona !== e.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}${o.zona !== e.zona ? `<button type="button" class="vv-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button>` : '<small class="junto">com você</small>'}</div>`).join('') : '<p class="vv-dica">Ninguém mais online agora.</p>'}
       ${fora.length ? `<p class="vv-dica">${fora.length} na recepção ou fora das salas.</p>` : ''}
     </div>`;
@@ -1751,13 +1757,14 @@
     if (c === 'mic') fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada);
     else if (c === 'ajustes') abrirAjustesAudio();
     else if (c === 'musica') fn('abrirMusicaEscritorio')?.();
-    else if (c === 'tela') fn('compartilharTelaNaTvEscritorio')?.();
+    else if (c === 'tela') fn('alternarMidiaEscritorio')?.('screen')?.finally?.(() => { pintarChamada(); trazerProPalco(); });
     else if (c === 'camera') fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada);
     else if (c === 'tv') fn('abrirTvEscritorio')?.(typeof escritorio !== 'undefined' ? escritorio.tvAtual || null : null);
     else if (c === 'reconectar') { const e = typeof escritorio !== 'undefined' ? escritorio : null; pintarChamada.tentou = true; (e?.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); } // a mesma entrada do botão "Entrar no escritório"
     else if (c === 'assumir') { fn('trazerEscritorioParaEstaAba')?.(); setTimeout(pintarChamada, 1500); }
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
-    else if (c === 'sair') { fn('escritorioSairDoQuarto')?.(); chamarAberto = false; setTimeout(pintarChamada, 400); }
+    else if (c === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(() => { pintarChamada(); trazerProPalco(); }); chamarAberto = false; pintarChamada(); }
+    else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); pintarChamada(); } }
     else if (b.dataset.pessoa) { pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false; pintarChamada(); }
     else if (b.dataset.irSala) { irParaSala(b.dataset.irSala); chamarAberto = false; pessoaAberta = null; }
     else if (b.dataset.chamarPessoa) { fn('chamarParaSalaEscritorio')?.(b.dataset.chamarPessoa); chamarAberto = false; pessoaAberta = null; pintarChamada(); }
@@ -1770,22 +1777,33 @@
   // flutuante; o recado rápido como cartão no canto, com o botão de responder abrindo a conversa.
   const palco = document.createElement('section');
   palco.className = 'vv-palco'; palco.setAttribute?.('aria-label', 'Vídeos da chamada');
-  palco.innerHTML = '<div class="vv-palco-topo"><b>Na chamada</b><button type="button" data-palco="min" aria-label="Recolher os vídeos">–</button></div>';
+  palco.innerHTML = '<div class="vv-palco-topo"><b>Na chamada</b><button type="button" data-palco="parar" hidden>Parar de mostrar</button><button type="button" data-palco="cheia" aria-label="Ampliar vídeos em tela cheia">Ampliar</button><button type="button" data-palco="min" aria-label="Recolher os vídeos" aria-expanded="true">–</button></div>';
   document.body.append?.(palco);
-  palco.addEventListener?.('click', (ev) => { if (ev.target.closest('[data-palco="min"]')) palco.classList.toggle('recolhido'); });
+  palco.addEventListener?.('click', async (ev) => {
+    const b = ev.target.closest('[data-palco]'); if (!b) return;
+    if (b.dataset.palco === 'min') { const recolhido = palco.classList.toggle('recolhido'); b.setAttribute('aria-expanded', String(!recolhido)); b.setAttribute('aria-label', recolhido ? 'Mostrar os vídeos' : 'Recolher os vídeos'); b.textContent = recolhido ? '+' : '–'; }
+    else if (b.dataset.palco === 'parar') { if (typeof escritorio !== 'undefined' && escritorio.chamada?.self?.screenShareEnabled) await fn('alternarMidiaEscritorio')?.('screen'); pintarChamada(); trazerProPalco(); }
+    else if (b.dataset.palco === 'cheia') {
+      try { if (document.fullscreenElement === palco) await document.exitFullscreen(); else if (palco.requestFullscreen) await palco.requestFullscreen(); else fn('escritorioAviso')?.('Use o controle do vídeo para ampliar a tela.'); }
+      catch { fn('escritorioAviso')?.('Não foi possível ampliar o vídeo. Tente pelo controle do vídeo.'); }
+    }
+  });
   function trazerProPalco() {
     if (!ligado) return;
     // Espelho dos vídeos: o palco liga os próprios <video> ao mesmo MediaStream (mover o contêiner da
     // chamada pausaria o áudio das vozes, que mora junto).
     const media = document.getElementById('office-call-media');
-    const originais = [...(media?.querySelectorAll('video') || [])].filter((v) => v.srcObject);
+    const e = typeof escritorio !== 'undefined' ? escritorio : null, canal = fn('escritorioCanal')?.();
+    const naChamada = Boolean(!e?.vozPausada && e?.conectado && canal && e.chamada && e.canalChamada === canal);
+    const originais = (naChamada ? [...(media?.querySelectorAll('video') || [])] : []).filter((v) => v.srcObject);
+    palco.querySelector('[data-palco="parar"]').hidden = !e?.chamada?.self?.screenShareEnabled;
     const atuais = new Set(originais.map((v) => v.srcObject));
     palco.querySelectorAll('video').forEach((v) => { if (!atuais.has(v.srcObject)) v.closest('.vv-palco-video')?.remove(); });
     for (const v of originais) {
       if ([...palco.querySelectorAll('video')].some((x) => x.srcObject === v.srcObject)) continue;
       const caixa = document.createElement('figure'); caixa.className = 'vv-palco-video';
-      const nome = v.closest('[class*="tile"], div')?.querySelector('b')?.textContent || '';
-      const novo = document.createElement('video'); novo.autoplay = true; novo.playsInline = true; novo.muted = true; novo.srcObject = v.srcObject;
+      const nome = v.closest('.office-call-pessoa')?.querySelector('b')?.textContent || '';
+      const novo = document.createElement('video'); novo.autoplay = true; novo.playsInline = true; novo.muted = true; novo.controls = true; novo.srcObject = v.srcObject;
       caixa.append(novo); if (nome) { const f = document.createElement('figcaption'); f.textContent = nome; caixa.append(f); }
       palco.append(caixa); novo.play?.().catch(() => {});
     }
