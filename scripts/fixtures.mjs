@@ -154,6 +154,14 @@ export async function demoApi(req,res,url,body) {
     if(url.searchParams.get('area')==='historico')return reply(200,{ok:true,logs:{moveEvents:{},prazoEvents:{},statusEvents:{},veiculacaoEvents:{},ownerEvents:{}}});
     const area=url.searchParams.get('area');
     if(area==='conta')return reply(200,{ok:true,pessoa});
+    // Módulo Conteúdo (vybe-mundo-conteudo.js): objetivos determinísticos nas peças do DEMO_VOLUME
+    // (de vez em quando nenhum, para a tela mostrar "sem objetivo") e um cliente para o link de aprovação.
+    if(area==='conteudo_modulo'&&url.searchParams.get('acao')==='objetivos'){
+      const objetivos={'vybe:1':'atracao'},respostas={};
+      if(process.env.DEMO_VOLUME)for(let i=0;i<300;i++){const o=['atracao','atracao','educacao','conversao',null][(i*7)%5];if(o)objetivos[`vybe:${1000+i}`]=o;if(i%9===0)respostas[`vybe:${1000+i}`]={acao:i%2?'ajuste':'aprovar',nome:'Cliente fictício',em:new Date().toISOString()};}
+      return reply(200,{ok:true,pronto:true,objetivos,respostas});
+    }
+    if(area==='conteudo_modulo'&&url.searchParams.get('acao')==='aprovacao')return reply(200,{ok:true,pronto:true,clientes:[{id:'1',nome:'Cliente demonstração',pendentes:2,links:[{id:'1',cliente_id:'1',criado_em:new Date().toISOString(),expira_em:new Date(Date.now()+14*864e5).toISOString(),ultimo_acesso_em:null,criado_por:'Operador de teste',respostas:0}]}]});
     if(area==='escritorio') {
       // Convite de demonstração (a demo não grava): o link fictício só mostra a tela.
       if(url.searchParams.get('acao')==='convite')return reply(200,{ok:true,link:url.origin+'/#convite=demonstracao-do-convite-local',expira:new Date(Date.now()+12*3600e3).toISOString()});

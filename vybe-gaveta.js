@@ -138,6 +138,7 @@ let DETALHE_DA_GAVETA = null;
       <div><dt>Prazo</dt><dd>${safeText(dataDoTopo(item.prazo) || '—')}</dd></div>
       <div><dt>Veiculação</dt><dd>${safeText(dataDoTopo(item.veiculacao) || '—')}</dd></div>
       <div><dt>Responsável</dt><dd>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'workspace-faixa-dono', { comNome: true }) : ''}</dd></div>
+      ${window.VybeConteudo?.campoObjetivoHtml ? `<div><dt>Objetivo</dt><dd>${window.VybeConteudo.campoObjetivoHtml(item)}</dd></div>` : ''}
     </dl>
     ${blocoDoBriefingHtml(detail, item)}
     ${faixaDeMaterialBrutoHtml(detail, item)}
