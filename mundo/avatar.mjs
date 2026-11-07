@@ -78,6 +78,55 @@ export function avatarVoxel(figura, { cabeca = false, direcao = 2 } = {}) {
   return url;
 }
 
+// Prévia ao vivo do criador de personagem do Irecity (vybe-mundo-personagem.js, 07/11/2026): o MESMO
+// boneco do avatarVoxel (boneco(lerFigura(figura)), mesma luz, mesma câmera de corpo inteiro), num canvas
+// da própria janela, que gira com o arrasto. Desenha só quando algo muda (figura, giro, tamanho).
+// Devolve { trocar(figura), girar(delta), angulo(), destruir() }.
+export function desenharPreviaAvatar(canvas, figura = '', { angulo = .3 } = {}) {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  r.setPixelRatio(Math.min(2, globalThis.devicePixelRatio || 1));
+  r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+  const c = new THREE.Scene();
+  c.add(new THREE.HemisphereLight('#F3F7FF', '#4A3B2C', 1.3)); // mesma luz do preparar()
+  const sol = new THREE.DirectionalLight('#FFF1D8', 1.6); sol.position.set(3, 5, 4); c.add(sol);
+  const contorno = new THREE.DirectionalLight('#FFB27A', 1.2); contorno.position.set(-3, 2, -3); c.add(contorno);
+  const cam = new THREE.PerspectiveCamera(26, 128 / 160, .1, 50);
+  cam.position.set(0, 1.05, 4.6); cam.lookAt(0, .9, 0);
+  let g = null, atual = null, giro = Number(angulo) || 0, quadro = 0, vivo = true;
+  const pedir = () => { if (vivo && !quadro) quadro = requestAnimationFrame(desenhar); };
+  // A Obra cria geometria e material para cada boneco: os dois saem juntos.
+  const soltar = (o) => o.traverse((x) => { x.geometry?.dispose?.(); x.material?.dispose?.(); });
+  function desenhar() {
+    quadro = 0;
+    const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height;
+    if (!vivo || !w || !h) return;
+    r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+    if (g) g.rotation.y = giro;
+    r.render(c, cam);
+  }
+  function trocar(f) {
+    const nova = String(f || '');
+    if (!vivo || nova === atual) return;
+    atual = nova;
+    if (g) { c.remove(g); soltar(g); }
+    g = boneco(lerFigura(nova)); c.add(g); pedir();
+  }
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(pedir) : null;
+  ro?.observe(canvas);
+  trocar(figura);
+  return {
+    trocar,
+    girar(delta) { giro += Number(delta) || 0; pedir(); },
+    angulo: () => giro,
+    destruir() {
+      if (!vivo) return;
+      vivo = false; ro?.disconnect(); if (quadro) cancelAnimationFrame(quadro);
+      if (g) soltar(g);
+      r.dispose(); r.forceContextLoss?.();
+    },
+  };
+}
+
 // ---------- Ícones voxel dos móveis (no lugar da arte do Habbo) ----------
 // A classe do móvel do Habbo (ex.: "shelves_norja", "bling_sofa_mu", "hc3_stereo") diz o tipo;
 // o ícone voxel é desse tipo, numa cor fixa pela classe. Mesmo tamanho do desenho antigo.

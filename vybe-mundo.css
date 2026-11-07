@@ -4171,3 +4171,11 @@ body.mundo.mundo-modulo .vv-chamada{left:auto!important;right:calc(var(--vv-m) +
 body.mundo.mundo-modulo .vv-chamada .sala small,body.mundo.mundo-modulo .vv-chamada .gente{display:none}
 body.mundo.mundo-modulo .vv-chamada .sala{min-width:0}
 body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}
+/* linha da sala de voz: vence a regra genérica de botão da lista (grid de 2 colunas) */
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala{display:grid!important;grid-template-columns:22px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .ic{grid-row:auto!important;grid-column:1!important}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .meio{grid-row:auto!important;grid-column:2!important;min-width:0}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > em{grid-row:auto!important;grid-column:3!important;align-self:center}
+
+/* modo escuro: o 3D do andar (e o do personagem) não inverte; ganha a mesma luz de fim de tarde do mapa */
+html.tema-escuro body.mundo #mundo-andar canvas{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.9)}

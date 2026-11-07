@@ -1,0 +1,126 @@
+/* Criador de personagem do Irecity (vybe-mundo-personagem.js, 07/11/2026).
+   Janela do padrão claro (docs/padrao-visual.md): branca, raio 24, borda --ds-linha, sombra de janela,
+   fundo atrás rgba(31,29,26,.3) com blur, X no canto e Esc fecha. Prévia grande do boneco voxel à
+   esquerda e as opções em abas à direita; no celular, empilhado. Uma ação principal (Salvar, laranja).
+   Sem <header>: uma regra antiga do painel pinta todo <header> de grafite.
+   Camada: acima da conversa (650) e do módulo aberto (640); abaixo das janelas de confirmação
+   (.workflow-backdrop 840 / .workflow-modal 841) e do aviso (#toast 950). Os valores repetem os tokens
+   como reserva, para a janela não perder a cara se os tokens do mundo ainda não tiverem carregado. */
+.vv-personagem-fundo{position:fixed;inset:0;z-index:830;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  animation:vv-personagem-fundo .2s ease both}
+.vv-personagem-fundo[hidden],.vv-personagem[hidden]{display:none}
+.vv-personagem{position:fixed;z-index:831;top:50%;left:50%;translate:-50% -50%;
+  width:min(860px,calc(100vw - 24px));height:min(620px,calc(100vh - 24px));
+  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--ds-linha,#E6E0D6);border-radius:24px;
+  box-shadow:0 30px 80px rgba(31,29,26,.25);
+  font:500 13px/1.45 var(--vv-texto,system-ui,sans-serif);color-scheme:light;
+  animation:vv-personagem-entra .2s cubic-bezier(.22,1,.36,1) both}
+.vv-personagem *,.vv-personagem *::before,.vv-personagem *::after{box-sizing:border-box}
+.vv-personagem:focus{outline:none}
+/* Entrada: opacidade e escala, com scale separado do translate que centraliza. */
+@keyframes vv-personagem-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vv-personagem-fundo{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.vv-personagem,.vv-personagem-fundo{animation:none}}
+
+/* Topo: kicker, título, apoio e fechar */
+.vv-personagem-topo{flex:none;display:flex;align-items:flex-start;gap:12px;padding:18px 16px 14px 22px}
+.vv-personagem-titulo{flex:1;min-width:0}
+.vv-personagem-kicker{display:block;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase}
+.vv-personagem-titulo h2{margin:3px 0 0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif);letter-spacing:-.01em}
+.vv-personagem-titulo p{margin:2px 0 0;color:#6B675F;font:500 12px/1.4 var(--vv-texto,system-ui,sans-serif)}
+.vv-personagem-x{appearance:none;flex:none;margin:0;width:34px;height:34px;padding:0;border:0;border-radius:12px;background:transparent;color:#6B675F;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+.vv-personagem-x:hover{background:#F3EFE8;color:#1F1D1A}
+
+/* Corpo: estados (carregando, sem Escritório, erro) ou a grade prévia | opções + rodapé */
+.vv-personagem-corpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.vv-personagem-corpo.pronto{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:20px;padding:0 20px 0 22px}
+.vv-personagem-estado{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px 32px 40px;text-align:center}
+.vv-personagem-estado b{color:#1F1D1A;font:700 17px/1.3 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif)}
+.vv-personagem-estado p{max-width:380px;margin:0;color:#6B675F;font:500 13px/1.5 var(--vv-texto,system-ui,sans-serif)}
+.vv-personagem-estado button{margin-top:12px}
+.vv-personagem-girando{width:28px;height:28px;margin-bottom:6px;border-radius:50%;border:3px solid #EFEAE2;border-top-color:#FF7A2F;animation:vv-personagem-gira .8s linear infinite}
+@keyframes vv-personagem-gira{to{rotate:360deg}}
+@media (prefers-reduced-motion:reduce){.vv-personagem-girando{animation-duration:2.4s}}
+
+/* Prévia: palco claro com sombra no chão; o boneco (canvas vivo ou imagem) gira com o arrasto */
+.vv-personagem-palco{grid-row:1;grid-column:1;position:relative;min-height:0;margin-bottom:16px;overflow:hidden;border:1px solid #EFEAE2;border-radius:18px;
+  background:radial-gradient(ellipse 70% 45% at 50% 40%,#FFFFFF 0%,rgba(255,255,255,0) 72%),linear-gradient(180deg,#FBF8F3 0%,#F1ECE3 100%)}
+.vv-personagem-palco::before{content:"";position:absolute;left:50%;bottom:4%;width:44%;height:7%;translate:-50% 0;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(31,29,26,.18),rgba(31,29,26,0));pointer-events:none}
+.vv-personagem-tela{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-drag:none}
+.vv-personagem-tela:active{cursor:grabbing}
+img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
+.vv-personagem-tela[hidden]{display:none}
+.vv-personagem-giro{position:absolute;z-index:1;top:10px;right:10px;display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(255,255,255,.86);border:1px solid #EFEAE2}
+.vv-personagem-giro button{appearance:none;margin:0;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#1F1D1A;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+.vv-personagem-giro button:hover{background:#F3EFE8;color:#C2490C}
+
+/* Opções: abas segmentadas e os grupos de amostras */
+.vv-personagem-lado{grid-row:1;grid-column:2;min-width:0;min-height:0;display:flex;flex-direction:column}
+.vv-personagem-abas{flex:none;display:flex;gap:2px;padding:3px;border-radius:12px;background:#EFEAE2;overflow-x:auto;scrollbar-width:none}
+.vv-personagem-abas::-webkit-scrollbar{display:none}
+.vv-personagem-abas button{appearance:none;flex:1 0 auto;margin:0;border:0;height:30px;padding:0 12px;border-radius:9px;background:transparent;color:#6B675F;
+  font:600 12.5px var(--vv-texto,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s,color .15s}
+.vv-personagem-abas button:hover{color:#1F1D1A}
+.vv-personagem-abas button[aria-selected="true"]{background:#FFFFFF;color:#C2490C;font-weight:700;box-shadow:0 1px 2px rgba(31,29,26,.08),0 2px 8px rgba(31,29,26,.06)}
+.vv-personagem-opcoes{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 2px 16px;scrollbar-width:thin}
+.vv-personagem-grupo + .vv-personagem-grupo{margin-top:20px}
+.vv-personagem-grupo h3{margin:0 0 10px;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase}
+.vv-personagem-dica{margin:10px 0 0;color:#6B675F;font:500 12px/1.45 var(--vv-texto,system-ui,sans-serif)}
+.vv-personagem-grade{display:flex;flex-wrap:wrap;gap:8px}
+/* Amostra: círculo da cor do boneco; escolhida = anel laranja (borda, para o anel de foco do mundo somar) */
+.vv-personagem-amostra{appearance:none;margin:0;width:42px;height:42px;padding:3px;border:2px solid transparent;border-radius:999px;background:#FFFFFF;
+  display:grid;place-items:center;cursor:pointer;transition:border-color .15s,translate .15s}
+.vv-personagem-amostra:hover:not(:disabled){translate:0 -1px;border-color:#E6E0D6}
+.vv-personagem-amostra i{display:block;width:100%;height:100%;border-radius:999px;background:var(--c,#F3EFE8);box-shadow:inset 0 0 0 1px rgba(31,29,26,.14)}
+.vv-personagem-amostra[aria-pressed="true"],.vv-personagem-amostra[aria-pressed="true"]:hover{border-color:#FF7A2F}
+.vv-personagem-amostra.nenhum i{background:linear-gradient(135deg,transparent calc(50% - 1.5px),#D9D1C4 calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px)),#FFFFFF}
+/* Desligada (peça que a pessoa ainda não tem): sem cor, para não parecer um tom pastel escolhível */
+.vv-personagem-amostra:disabled{opacity:.4;filter:grayscale(1);cursor:not-allowed}
+.vv-personagem-chips{display:flex;flex-wrap:wrap;gap:8px}
+.vv-personagem-chip{appearance:none;margin:0;height:34px;padding:0 14px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:#1F1D1A;
+  font:600 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.vv-personagem-chip:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
+.vv-personagem-chip[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDF);border-color:var(--ds-sel-borda,#FFD3B9);color:var(--ds-sel-texto,#C2490C);font-weight:700}
+.vv-personagem-chip:disabled{opacity:.45;cursor:not-allowed}
+
+/* Rodapé: aviso/erro à esquerda; Aleatório e Cancelar (secundários) e Salvar (a ação principal) */
+.vv-personagem-rodape{grid-row:2;grid-column:1 / -1;display:flex;align-items:center;gap:12px;padding:12px 0 16px;border-top:1px solid #F0EBE3}
+.vv-personagem-msgs{flex:1;min-width:0}
+.vv-personagem-msgs p{margin:0;font:500 12px/1.4 var(--vv-texto,system-ui,sans-serif)}
+.vv-personagem-msgs p[hidden]{display:none}
+.vv-personagem-aviso{color:#6B675F}
+.vv-personagem-erro{color:#B42318;font-weight:600}
+.vv-personagem-acoes{flex:none;display:flex;align-items:center;gap:8px}
+.vv-personagem-sec,.vv-personagem-principal{appearance:none;margin:0;height:34px;padding:0 14px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font:600 12.5px var(--vv-texto,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.vv-personagem-sec{border:1px solid var(--ds-linha,#E6E0D6);background:#FFFFFF;color:#1F1D1A}
+.vv-personagem-sec:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
+.vv-personagem-principal{padding:0 18px;border:0;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700;box-shadow:0 8px 20px -8px #E8602E}
+.vv-personagem-principal:hover:not(:disabled){background:var(--ds-acao-hover,#E8602E)}
+.vv-personagem :is(.vv-personagem-sec,.vv-personagem-principal):disabled{opacity:.6;cursor:not-allowed}
+.vv-personagem :is(button,[tabindex="0"]):focus-visible{outline:none;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+
+/* Celular: prévia em cima, opções embaixo, botões numa linha */
+@media (max-width:720px){
+  .vv-personagem{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:22px}
+  .vv-personagem-topo{padding:14px 12px 10px 16px}
+  .vv-personagem-corpo.pronto{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(190px,32dvh,270px) minmax(0,1fr) auto;padding:0 14px}
+  .vv-personagem-palco{grid-row:1;grid-column:1;margin-bottom:12px}
+  .vv-personagem-lado{grid-row:2;grid-column:1}
+  .vv-personagem-abas button{padding:0 8px}
+  .vv-personagem-rodape{grid-row:3;flex-wrap:wrap;gap:8px;padding:10px 0 12px}
+  .vv-personagem-msgs{flex-basis:100%}
+  .vv-personagem-acoes{flex:1 1 100%}
+  .vv-personagem-acoes button{flex:1 1 0;padding:0 10px}
+  .vv-personagem-amostra{width:40px;height:40px}
+}
+
+/* Modo escuro (html.tema-escuro): a janela é filho do body e entra na inversão do bloco MODO ESCURO do
+   vybe-mundo.css; o que tem cor própria volta ao original, como na lista de desinverter de lá (a <img>
+   da prévia já está nela): a prévia 3D (canvas), as amostras de cor e a ação laranja. */
+html.tema-escuro body.mundo .vv-personagem :is(canvas.vv-personagem-tela,.vv-personagem-amostra > i,.vv-personagem-principal){filter:invert(1) hue-rotate(180deg)}
+/* O fundo de escurecer não inverte (escurece, como .workflow-backdrop). !important: a regra que inverte os
+   filhos do body tem três :not(#id) e venceria pela especificidade. */
+html.tema-escuro body.mundo > .vv-personagem-fundo{filter:none!important;background:rgba(0,0,0,.45)}

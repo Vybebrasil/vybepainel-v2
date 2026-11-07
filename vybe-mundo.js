@@ -697,18 +697,20 @@
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
     const zonas = Object.entries(mundo.zonasDoPredio).filter(([, z]) => z.andar === idAndar)
       .map(([id, z]) => ({ id, nome: z.nome, dono: z.dono || null, tipo: TIPO_DA_ZONA(id), perfil: perfilDoDono(id), L: tamanhoDaZona(id),
-        itens: /^sala-\d+$/.test(id) && typeof escritorioItensDaCamada === 'function' ? (() => { try { return escritorioItensDaCamada(id) || []; } catch { return []; } })() : [] }));
+        itens: /^sala-\d+$/.test(id) && typeof escritorioItensDaCamada === 'function' ? (() => { try { return escritorioItensDaCamada(id) || []; } catch { return []; } })() : [], ...(window.VybeDecorar?.acabamentoDaSala?.(id) || {}) }));
     if (!zonas.length) return;
+    const minhaSala = window.VybeDecorar?.salaDecoravel?.(zonas.map((z) => z.id)) || '';
     const el = document.createElement('section'); el.id = 'mundo-andar';
     el.innerHTML = `<canvas aria-label="${esc(a.nome)} por dentro"></canvas>
       <header class="vv-ilha andar-topo"><button type="button" class="vv-botao" data-sair-andar>← Prédio</button>
         <span><small>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'}</small><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b></span>
-        <span class="andar-voz" id="andar-voz"></span></header>
+        <span class="andar-voz" id="andar-voz"></span>${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</header>
       <p class="andar-dica">Todo mundo do andar aparece aqui. Clique numa sala para entrar nela: a voz liga só com quem está na mesma sala.</p>`;
     body.append(el); body.classList.add('mundo-andar');
     window.VybeTutorial?.dica?.('andar');
     const m = await import(MUNDO_JS);
     andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome });
+    window.VybeDecorar?.ligarCena?.(andarAberto, m);
     andarAberto.aoClicarSala((zona, fx, fz, jogo) => {
       if (jogo) { abrirJogo(jogo); return; }
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
@@ -716,7 +718,8 @@
         const L = tamanhoDaZona(zona); if (L && typeof escritorioIrPara === 'function') escritorioIrPara(Math.round(fx * L.w), Math.round(fz * L.d));
       } else if (typeof irParaSalaEscritorio === 'function') { irParaSalaEscritorio(zona); andarAberto.focarSala(zona); }
     });
-    el.querySelector('[data-sair-andar]').addEventListener('click', () => fecharAndarVoxel(true));
+    el.querySelector('[data-sair-andar]').addEventListener('click', async () => { if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return; fecharAndarVoxel(true); });
+    el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
     const pintar = () => {
       if (!andarAberto) return;
       const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
@@ -729,6 +732,7 @@
   }
   function fecharAndarVoxel(voltar) {
     clearInterval(timerAndar); timerAndar = null;
+    window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
     document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar');
     if (voltar && typeof openModeGate === 'function' && !document.getElementById('mode-gate')?.classList.contains('open')) openModeGate();
