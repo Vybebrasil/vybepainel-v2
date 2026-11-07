@@ -18,7 +18,7 @@ test('toda sala com módulo aponta para um módulo que existe no painel', () => 
   const fontes = fs.readdirSync('.').filter((f) => /^vybe-.*\.js$/.test(f)).map((f) => fs.readFileSync(f, 'utf8')).join('\n');
   for (const a of PLANTA) for (const s of a.setores) {
     if (!s.modulo) continue;
-    if (s.modulo.tipo === 'link') { assert.match(s.modulo.url, /^https:\/\/[a-z0-9-]+\.vercel\.app\/$/, `link ${s.modulo.alvo}`); continue; } // sistema irmão (Vybe Finanças)
+    if (s.modulo.tipo === 'link') { assert.match(s.modulo.url, /^https:\/\/[a-z0-9-]+\.vercel\.app\/[a-z0-9/-]*$/, `link ${s.modulo.alvo}`); continue; } // sistema irmão (Vybe Finanças)
     if (s.modulo.tipo === 'quadro') assert.ok(html.includes(`id="btn-board-${s.modulo.alvo}"`), `quadro ${s.modulo.alvo}`);
     else assert.match(fontes, new RegExp(`function ${MODOS[s.modulo.alvo]}\\(`), `modo ${s.modulo.alvo}`);
   }

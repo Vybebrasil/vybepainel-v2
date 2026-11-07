@@ -3436,7 +3436,8 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
 
 /* ===== Movimento: fluido, curto e leve (só transform/opacity) ===== */
 @keyframes vv-entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@keyframes vv-surge{from{opacity:0;transform:scale(.97) translateY(4px)}to{opacity:1;transform:none}}
+/* scale/translate separados: não apagam o transform de quem se centraliza com translate(-50%,-50%) */
+@keyframes vv-surge{from{opacity:0;scale:.97;translate:0 4px}to{opacity:1;scale:1;translate:0 0}}
 @keyframes vv-aba{from{opacity:.4}to{opacity:1}}
 @media (prefers-reduced-motion:no-preference){
   /* clique: o botão afunda de leve */
@@ -3785,3 +3786,162 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 .vv-placa:has(.vv-op-tabela){width:400px}
 @media (min-width:901px){.vv-chamada{left:calc(max(var(--vv-livre-esq, 0px), 90px) + 10px)!important}}
 .mundo-rotulo.rotulo-agente:is(:hover,:focus-visible){opacity:1!important}
+
+/* ===== Terraço: equipe e lazer ===== */
+.vv-lazer-grade{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.vv-lazer{appearance:none;display:flex;gap:8px;align-items:center;text-align:left;padding:9px 10px;border-radius:14px;border:1px solid #EFEAE2;background:#fff;cursor:pointer;font-family:var(--vv-texto);transition:transform .15s var(--vv-mola),box-shadow .15s}
+.vv-lazer:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(31,29,26,.08);border-color:color-mix(in srgb,var(--c) 40%,#fff)}
+.vv-lazer i{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:15px;color:#fff;background:var(--c)}
+.vv-lazer b{display:block;font:700 12px var(--vv-texto);color:var(--vv-tinta)}.vv-lazer small{font:500 10.5px/1.3 var(--vv-texto);color:var(--vv-apagado)}
+
+/* ===== Menu de troca de status: claro e opaco (era grafite translúcido com texto escuro, ilegível) ===== */
+html body.mundo .status-editor:not(#vv-x){background:#FFFFFF!important;backdrop-filter:none!important;border:1px solid #E6E0D6!important;border-radius:16px!important;box-shadow:0 22px 50px rgba(31,29,26,.22)!important;color:#1F1D1A!important;color-scheme:light;max-height:min(420px,calc(100vh - 40px))!important;overflow:auto!important}
+html body.mundo .status-editor-head:not(#vv-x),html body.mundo .status-editor-head *:not(#vv-x){color:#6B675F!important}
+html body.mundo .status-editor-option:not(#vv-x){color:#1F1D1A!important;background:transparent!important;border-radius:10px!important}
+html body.mundo .status-editor-option:hover:not(#vv-x){background:#FAF5EE!important}
+html body.mundo .status-editor-option.current:not(#vv-x){background:#FFF1E6!important;font-weight:700!important}
+html body.mundo .status-editor-check:not(#vv-x){color:#C2490C!important}
+html body.mundo .status-editor-backdrop{background:rgba(31,29,26,.08)!important}
+
+/* ===== Opções das janelas de contexto (bloqueio, direção…): cartão branco, texto escuro ===== */
+html body.mundo .pv-opcao:not(#vv-x){background:#FFFFFF!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important}
+html body.mundo .pv-opcao:is(:hover,:focus-visible):not(#vv-x){background:color-mix(in srgb,var(--c,#FF7A2F) 8%,#FFFFFF)!important;border-color:color-mix(in srgb,var(--c,#FF7A2F) 45%,#FFFFFF)!important}
+html body.mundo .pv-opcao :is(b,strong,span:not(.pv-opcao-ic)):not(#vv-x){color:#1F1D1A!important}
+html body.mundo .pv-opcao small:not(#vv-x){color:#6B675F!important}
+html body.mundo .pv-opcao-ic:not(#vv-x){filter:saturate(1.4) brightness(.72)}
+/* janelas de workflow: rótulo, passos e destino legíveis no claro */
+html body.mundo .workflow-modal .workflow-kicker:not(#vv-x),html body.mundo .workflow-modal .workflow-kicker > span:not(#vv-x){color:#A84E00!important}
+html body.mundo .pv-passos span.on:not(#vv-x){color:#1F1D1A!important;font-weight:700!important}
+html body.mundo .pv-passos span:not(.on):not(#vv-x){color:#6B675F!important}
+html body.mundo .workflow-item-destino:not(#vv-x){color:#1F4FA8!important;background:#EAF1FF!important}
+html body.mundo .workflow-item-client:not(#vv-x){color:#A3366F!important}
+
+/* ===== Cérebro do cliente (Clientes): no padrão claro (era o último quadro grafite) ===== */
+html body.mundo .vybes-cerebro-shell.cb:not(#vv-x){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;color-scheme:light}
+html body.mundo .vybes-cerebro-shell header:not(#vv-x),html body.mundo .vybes-cerebro-shell .cb-topo:not(#vv-x){background:rgba(255,255,255,.96)!important;border-color:#EFEAE2!important;backdrop-filter:blur(10px)}
+html body.mundo .vybes-cerebro-shell .cb-inspetor:not(#vv-x){background:#FFFFFF!important;border-color:#E6E0D6!important;color:#1F1D1A!important}
+html body.mundo .vybes-cerebro-shell :is(input,select,textarea):not(#vv-x){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E1DACE!important}
+html body.mundo .vybes-cerebro-shell :is(h1,h2,h3,h4,b,strong):not(#vv-x){color:#1F1D1A!important}
+html body.mundo{--cb-rotulo-fundo:rgba(255,255,255,.95);--cb-rotulo-borda:#E1DACE}
+html body.mundo .vybes-cerebro-shell .cb-contexto button:not(#vv-x),html body.mundo .vybes-cerebro-shell .cb-palco ~ * button:not(#vv-x){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E1DACE!important}
+
+/* ===== Cérebro do cliente: quem cuida de cada área ===== */
+.cb-quem-cuida .cb-agente-linha{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:color-mix(in srgb,var(--ag) 7%,#fff);border:1px solid color-mix(in srgb,var(--ag) 25%,#fff)}
+.cb-quem-cuida .cb-agente-av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--ag);color:#fff;font:800 12px var(--vv-texto);box-shadow:0 0 0 3px #fff,0 0 0 4px color-mix(in srgb,var(--ag) 40%,#fff)}
+.cb-quem-cuida .cb-agente-linha > span:nth-child(2){flex:1;min-width:0}
+.cb-quem-cuida b{display:block;font:700 13px var(--vv-texto);color:#1F1D1A}.cb-quem-cuida small{font:500 11px var(--vv-texto);color:#6B675F}
+.cb-quem-cuida .vb-link{white-space:nowrap;color:#C2490C!important;font-weight:700}
+html body.mundo .cb-palco-acoes .vb-botao:not(#vv-x){background:rgba(255,255,255,.92)!important;color:#1F1D1A!important;border:1px solid #E1DACE!important;box-shadow:0 4px 12px rgba(31,29,26,.08)!important;backdrop-filter:blur(10px)}
+html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
+
+/* ===== Cadastro rápido e botão principal das janelas ===== */
+html body.mundo #fc-overlay .fc-kicker:not(#vv-x){color:#A84E00!important}
+html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B675F!important}
+html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
+html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#C2490C!important;color:#FFFFFF!important;box-shadow:0 8px 20px -8px #C2490C!important}
+html body.mundo .workflow-primary:hover:not(#vv-x){background:#A93D08!important}
+
+/* ======================================================================================
+   DESIGN SYSTEM · LARANJA ÚNICO (Paulo, 07/11/2026: "olha os botões laranjas todos diferentes…
+   eu gosto do padrão do dock lateral, esse do Criar").
+   1) AÇÃO PRINCIPAL = o botão Criar do dock: #FF7A2F sólido, texto branco 700, brilho embaixo.
+   2) SELECIONADO (aba, filtro, segmento, dia) = o Gestor do dock: laranja 13% de fundo, texto laranja escuro.
+   Nada de degradê, nada de laranja escuro chapado. Fica por último para vencer as regras antigas.
+   ====================================================================================== */
+html body.mundo{--ds-acao:#FF7A2F;--ds-acao-hover:#E8602E;--ds-acao-sombra:0 8px 20px -8px #E8602E;--ds-sel-fundo:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);--ds-sel-texto:#C2490C;--ds-sel-borda:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important;font-weight:700!important;text-shadow:none!important}
+html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao-hover)!important}
+html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,button.primary,.btn-primary) *:not(svg):not(path):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-sel-fundo)!important;background-image:none!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important;box-shadow:none!important;text-shadow:none!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill) :is(span,b,strong,small,em,i):not([class*="badge"]):not([class*="count"]):not([class*="dot"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
+
+/* ======================================================================================
+   DESIGN SYSTEM · COMPONENTES (manual em docs/padrao-visual.md). Escalas únicas:
+   raio 8 / 12 / 18 / 24 / 999 · altura 28 / 34 / 40 · botão 12.5px 600 · campo 38px.
+   ====================================================================================== */
+html body.mundo{--ds-r-chip:8px;--ds-r-botao:12px;--ds-r-cartao:18px;--ds-r-janela:24px;--ds-h-compacto:28px;--ds-h-botao:34px;--ds-h-destaque:40px;--ds-linha:#E6E0D6;--ds-linha-forte:#D9D1C4;--ds-foco:0 0 0 3px rgba(255,122,47,.22)}
+
+/* Botão secundário: branco, borda fina, texto tinta. Hover: borda e texto laranja. */
+html body.mundo.mundo-modulo :is(.acao-abrir,.focus-brief-btn,.btn-refresh,.mode-switch-btn,.ops-close-btn:not(.tab-btn),.ops-command-toggle,.focus-command-btn,.vb-botao:not(.principal):not(.perigo),.workflow-secondary,.fc-btn-cancel,.sort-btn,.manager-calendar-actions button:not(.primary),.capt-tb button:not(.capt-tb-criar),.da-checkin-btn):not(.active):not(.ativo):not([aria-pressed="true"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;color:#1F1D1A!important;border-radius:var(--ds-r-botao)!important;min-height:var(--ds-h-compacto);font-size:12.5px!important;font-weight:600!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;text-shadow:none!important}
+html body.mundo.mundo-modulo :is(.acao-abrir,.focus-brief-btn,.btn-refresh,.mode-switch-btn,.ops-close-btn:not(.tab-btn),.ops-command-toggle,.focus-command-btn,.vb-botao:not(.principal):not(.perigo),.workflow-secondary,.fc-btn-cancel,.sort-btn,.manager-calendar-actions button:not(.primary),.capt-tb button:not(.capt-tb-criar),.da-checkin-btn):not(.active):not(.ativo):not([aria-pressed="true"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#FF7A2F!important;color:#C2490C!important;background:#FFFCF9!important}
+/* Botão de perigo: só contorno vermelho. */
+html body.mundo :is(.vb-botao.perigo,button.perigo,.workflow-danger):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#B42318!important;border:1px solid #F6BBC4!important;border-radius:var(--ds-r-botao)!important}
+/* Pílulas e chips (pessoas, carteiras, visões): branco, borda, raio cheio; a cor da pessoa só no detalhe. */
+html body.mundo.mundo-modulo :is(.team-load-chip,.clientes-visao-btn,.manager-calendar-client,.owner-chip,.vb-chip):not(.active):not(.ativo):not([aria-pressed="true"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;color:#1F1D1A!important;border-radius:999px!important;min-height:var(--ds-h-compacto);font-size:12px!important;font-weight:600!important;box-shadow:none!important}
+html body.mundo.mundo-modulo .team-load-chip:not(#ds-a):not(#ds-b):not(#ds-c){box-shadow:inset 3px 0 0 var(--load-color,#9AA3A8)!important}
+html body.mundo.mundo-modulo .team-load-chip *:not(img):not([class*="badge"]):not([class*="count"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
+/* Campos: raio 12, borda fina, foco laranja. */
+html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:#1F1D1A!important;box-shadow:none!important;color-scheme:light}
+html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#FF7A2F!important;box-shadow:var(--ds-foco)!important;outline:0!important}
+/* Cartões clicáveis: branco, raio 18, borda e sombra curta. */
+html body.mundo.mundo-modulo :is(.da-capacity-card,.da-command-daily-card,.da-week-rail-day:not(.active),.focus-daily-plan-row):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-cartao)!important;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)!important}
+/* Foco de teclado igual em tudo. */
+html body.mundo :is(button,a,[role="button"],[role="tab"]):focus-visible{outline:0!important;box-shadow:var(--ds-foco)!important}
+
+/* ===== Modo Reunião e Mesa de comando: no padrão claro (eram painéis grafite) ===== */
+html body.mundo .meeting-mode-overlay:not(#ds-a){background:rgba(31,29,26,.3)!important;backdrop-filter:blur(8px)!important}
+html body.mundo .meeting-mode-sheet:not(#ds-a):not(#ds-b){background:#F6F3EE!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-janela)!important;box-shadow:0 30px 80px rgba(31,29,26,.25)!important;color-scheme:light;max-height:calc(100vh - 40px)!important;overflow:auto!important}
+html body.mundo .meeting-mode-sheet *:not(#ds-a):not(#ds-b){border-color:var(--ds-linha)}
+html body.mundo .meeting-mode-sheet :is(header,section,article,.meeting-metrics > span,.meeting-capacity,.meeting-grid > *,.meeting-row,.meeting-col):not(.meeting-priority):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important}
+html body.mundo .meeting-mode-sheet > header:not(#ds-a):not(#ds-b){background:transparent!important}
+html body.mundo .meeting-mode-sheet :is(h1,h2,h3,h4,b,strong,td,th,li,div,em,span):not([class*="pill"]):not([class*="badge"]):not(#ds-a):not(#ds-b):not(#ds-c){color:#1F1D1A!important}
+html body.mundo .meeting-mode-sheet :is(p,small,label,footer,.meeting-section-label,.meeting-row-owner,header span):not(#ds-a):not(#ds-b):not(#ds-c){color:#6B675F!important}
+html body.mundo .meeting-mode-sheet .meeting-section-label:not(#ds-a):not(#ds-b):not(#ds-c){color:#A84E00!important}
+html body.mundo .meeting-mode-sheet .meeting-row-client:not(#ds-a):not(#ds-b):not(#ds-c){color:#A3366F!important}
+html body.mundo .meeting-mode-sheet .meeting-priority:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:linear-gradient(90deg,#FDECEE,#FFFFFF 45%)!important;border:1px solid #F6BBC4!important;border-radius:var(--ds-r-cartao)!important}
+html body.mundo .meeting-mode-sheet .meeting-priority.stable:not(#ds-a):not(#ds-b){background-image:linear-gradient(90deg,#E7F6EE,#FFFFFF 45%)!important;border-color:#B7E4CB!important}
+html body.mundo .meeting-mode-sheet i:is(.atenção,.atencao):not(#ds-a):not(#ds-b){color:#8A5A00!important}
+html body.mundo .meeting-mode-sheet i:is(.estável,.estavel):not(#ds-a):not(#ds-b){color:#11613A!important}
+html body.mundo .meeting-mode-sheet .x-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo .meeting-mode-sheet .meeting-priority button:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
+html body.mundo .meeting-mode-sheet .vybe-id:not(#ds-a):not(#ds-b){color:#6B675F!important;background:#F3EFE8!important}
+html body.mundo .manager-command-drawer:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border-left:1px solid var(--ds-linha)!important;box-shadow:-20px 0 50px rgba(31,29,26,.15)!important;color-scheme:light}
+html body.mundo .manager-command-drawer-head:not(#ds-a):not(#ds-b){background:rgba(255,255,255,.96)!important;background-image:none!important;border-bottom:1px solid #EFEAE2!important}
+html body.mundo .manager-command-drawer-title:not(#ds-a):not(#ds-b){color:#1F1D1A!important}
+html body.mundo .manager-command-drawer-context:not(#ds-a):not(#ds-b){color:#6B675F!important}
+html body.mundo .manager-command-close:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important;border-radius:10px!important}
+/* Cadastro rápido, resumo, detalhes e editor de responsável: textos que sumiam */
+html body.mundo #fc-overlay :is(.fc-escolha,.fc-mais):not(.marcada):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo #fc-overlay .fc-escolha.marcada:not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
+html body.mundo #fc-overlay .fc-helper-text:not(#ds-a){color:#6B675F!important}
+html body.mundo .resumo-grupo:not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo .workspace-client:not(#ds-a):not(#ds-b){color:#A3366F!important}
+html body.mundo .dono-ver-todos:not(#ds-a):not(#ds-b){color:#C2490C!important;background:transparent!important}
+html body.mundo .status-editor button:not(.status-editor-option):not(#ds-a):not(#ds-b){color:#C2490C!important}
+
+/* ======================================================================================
+   DESIGN SYSTEM · ESCALA DE URGÊNCIA (Paulo, 07/11/2026: "tem que estar claro visualmente o que
+   está mais urgente"). Só o nível 1 é cheio; do 2 para baixo, tons suaves que se distinguem pelo tipo.
+   1 Crítico  (atrasado / falhou)       → vermelho cheio, texto branco
+   2 Alto     (vence hoje)              → âmbar com borda, texto âmbar escuro
+   3 Bloqueio (alteração, falta info)   → rosa / lilás suave
+   4 Espera   (aprovação do cliente)    → azul suave
+   5 Neutro   (sem responsável)         → cinza
+   6 Andando  (em execução / em dia)    → verde suave
+   ====================================================================================== */
+html body.mundo{--u1:#D93D42;--u2-f:#FFF1CC;--u2-t:#8A5A00;--u2-b:#F3D48B;--u3a-f:#FCE7F1;--u3a-t:#A3366F;--u3b-f:#F1EAFD;--u3b-t:#6E3DB8;--u4-f:#EAF1FF;--u4-t:#1F4FA8;--u5-f:#F1F2F3;--u5-t:#5B6268;--u6-f:#E7F6EE;--u6-t:#11613A}
+html body.mundo .acao-motivo:not(#ds-a):not(#ds-b){display:inline-flex!important;align-items:center;padding:2px 8px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1.5!important;border:1px solid transparent}
+html body.mundo .acao-motivo.m-vencido:not(#ds-a):not(#ds-b){background:var(--u1)!important;color:#FFFFFF!important}
+html body.mundo .acao-motivo.m-hoje:not(#ds-a):not(#ds-b){background:var(--u2-f)!important;color:var(--u2-t)!important;border-color:var(--u2-b)!important}
+html body.mundo .acao-motivo.m-alteracao:not(#ds-a):not(#ds-b){background:var(--u3a-f)!important;color:var(--u3a-t)!important}
+html body.mundo .acao-motivo.m-info:not(#ds-a):not(#ds-b){background:var(--u3b-f)!important;color:var(--u3b-t)!important}
+html body.mundo .acao-motivo.m-aprovacao:not(#ds-a):not(#ds-b){background:var(--u4-f)!important;color:var(--u4-t)!important}
+html body.mundo .acao-motivo.m-semdono:not(#ds-a):not(#ds-b){background:var(--u5-f)!important;color:var(--u5-t)!important}
+html body.mundo .acao-motivo.m-andando:not(#ds-a):not(#ds-b){background:var(--u6-f)!important;color:var(--u6-t)!important}
+/* a linha atrasada ganha a barra vermelha à esquerda; a de hoje, âmbar */
+html body.mundo.mundo-modulo :is(.acao-linha,.command-row,.manager-row,.focus-task):has(.m-vencido):not(#ds-a){box-shadow:inset 3px 0 0 var(--u1)!important}
+html body.mundo.mundo-modulo :is(.acao-linha,.command-row,.manager-row,.focus-task):has(.m-hoje):not(:has(.m-vencido)):not(#ds-a){box-shadow:inset 3px 0 0 #E2A11B!important}
+
+/* Direção: chips de formato e "Nova Demanda" na janela do comando do dia */
+html body.mundo .da-command-modal-list :is(span.fmt,span.pill):not(#ds-a):not(#ds-b){background:#F3EFE8!important;color:#3A3F44!important;border:1px solid var(--ds-linha)!important;filter:none!important}
+/* Editor de responsável: pessoa marcada = selecionado do sistema */
+html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-checked="true"]):not(#ds-a):not(#ds-b),html body.mundo .dono-pessoa:has(input:checked):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
+html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
+/* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */
+html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
+
+/* HUD do mapa segue o mesmo selecionado (era preto cheio) */
+html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-sel-borda)!important}
+html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"] svg{stroke:currentColor}

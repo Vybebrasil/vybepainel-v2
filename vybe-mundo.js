@@ -283,7 +283,7 @@
     const btn = document.getElementById('btn-board-' + mod.alvo);
     if (btn) chamar('switchBoard', mod.alvo, btn);
   }
-  const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
+  const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybehub: 'Abrir o VybeHub', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
 
   // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------
@@ -379,9 +379,9 @@
         <span><b>${esc(s.nome)}${s.agente ? ' · ' + esc(s.agente) : ''}</b><p class="papel">${esc(s.papel)}</p></span></div>
         ${s.agente ? seloAgente(s.id) : ''}
         ${s.skills.length ? `<ul class="vv-skills">${s.skills.map((k) => `<li>${esc(k)}</li>`).join('')}</ul>` : ''}
-        <div class="vv-sala-acoes">${s.agente ? `<button type="button" class="vv-botao" data-agente="${esc(a.id)}|${esc(s.id)}">Ver o dia</button>` : ''}${s.modulo ? `<button type="button" class="vv-botao acao" data-modulo='${esc(JSON.stringify(s.modulo))}'>${esc(NOME_MODULO[s.modulo.alvo] || 'Abrir')} →</button>` : '<span class="vv-dica">Sem módulo no painel ainda.</span>'}</div>
+        <div class="vv-sala-acoes">${s.agente ? `<button type="button" class="vv-botao" data-agente="${esc(a.id)}|${esc(s.id)}">Ver o dia</button>` : ''}${s.modulo ? `<button type="button" class="vv-botao acao" data-modulo='${esc(JSON.stringify(s.modulo))}'>${esc(NOME_MODULO[s.modulo.alvo] || 'Abrir')} →</button>` : '<span class="vv-dica">Ainda sem sistema próprio: começa quando o setor tiver ferramenta.</span>'}</div>
       </article>`).join('')}
-      ${salasDaEquipeHtml(a.id)}`;
+      ${salasDaEquipeHtml(a.id)}${a.id === 'terraco' ? equipeLazerHtml() : ''}`;
     if (Object.values(mundo.zonasDoPredio || {}).some((z) => z.andar === a.id))
       p.querySelector('.vv-sub').insertAdjacentHTML('afterend', `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(a.id)}">Entrar no andar →</button>`);
     p.hidden = false; ajustarAreaLivre();
@@ -419,6 +419,25 @@
       return `<div class="vv-zona"><span><b>${esc(z.nome)}</b><small>${aqui.length ? esc(aqui.map((p) => p.nome.split(' ')[0]).join(', ')) : 'ninguém agora'}</small></span>
         <button type="button" class="vv-botao" data-entrar-zona="${esc(id)}">Entrar</button></div>`;
     }).join('') + '<p class="vv-dica">Todos se veem no andar; a voz liga só com quem está na mesma sala.</p>';
+  }
+
+  // ---------- Equipe e lazer (o que vinha do Escritório clássico) ----------
+  // Ficha e conquistas abrem em janela própria, por cima do mapa. Jogos, sinuca e música são lugares:
+  // a pessoa entra na sala. Missões, baú, loja e construção ainda vivem só no Escritório clássico.
+  function equipeLazerHtml() {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null, base = Boolean(e?.base);
+    const Z = mundo.zonasDoPredio || {}, temZona = (id) => Boolean(Z[id]);
+    const item = (attr, titulo, sub, cor, icone) => `<button type="button" class="vv-lazer" ${attr} style="--c:${cor}"><i>${icone}</i><span><b>${titulo}</b><small>${sub}</small></span></button>`;
+    return `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Equipe e lazer</div>
+      ${base ? '' : '<p class="vv-dica">Entre no Escritório (barra de voz, embaixo) para ver sua ficha e as conquistas.</p>'}
+      <div class="vv-lazer-grade">
+        ${base ? item('data-legado="ficha"', 'Sua ficha', 'nível, moedas e troféus', '#FF7A2F', '★') : ''}
+        ${base ? item('data-legado="conquistas"', 'Conquistas', 'ranking da equipe', '#E2A11B', '♛') : ''}
+        ${temZona('jogos') ? item('data-entrar-zona="jogos"', 'Sala de jogos', 'sinuca, xadrez, pôquer, dominó, truco', '#18A957', '●') : ''}
+        ${temZona('lounge') ? item('data-entrar-zona="lounge"', 'Lounge', 'música da sala, todos ouvem junto', '#8E4EC6', '♪') : ''}
+        ${temZona('cafe') ? item('data-entrar-zona="cafe"', 'Café', 'pausa e conversa', '#B07A45', '☕') : ''}
+        ${item('data-legado="classico"', 'Escritório clássico', 'missões, baú, loja e construção', '#5B6268', '⌂')}
+      </div>`;
   }
 
   // ---------- O andar por dentro (escritório aberto; a voz é da sala onde você entra) ----------
@@ -758,6 +777,12 @@
     await fonteAgentes?.atualizar(forcar); pintarAtividadeAgentes();
   }
 
+  // Atalho global: de qualquer módulo (ex.: Cérebro do cliente), fecha o módulo e mostra o agente no prédio.
+  if (typeof window !== 'undefined') window.vybesAbrirAgente = (idAndar, idSetor) => {
+    if (!ligado || !mundo) return;
+    if (body.classList.contains('mundo-modulo')) { body.classList.remove('mundo-tela-cheia'); chamar('voltarAoMenu'); }
+    setTimeout(() => { mundo.cerebro?.(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); body.classList.add('mundo-predio'); mostrarAgente(idAndar, idSetor); }, 350);
+  };
   async function mostrarAgente(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar), s = a?.setores.find((x) => x.id === idSetor); if (!s) return;
     const E = estadoDoAgente(s.id), p = placa();
@@ -1104,6 +1129,12 @@
     else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);
     else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mostrarAgente(an, se); }
     else if (b.dataset.entrarAndar) abrirAndarVoxel(b.dataset.entrarAndar);
+    else if (b.dataset.legado) {
+      const e = typeof escritorio !== 'undefined' ? escritorio : null;
+      if (b.dataset.legado === 'ficha' && e?.base) chamar('abrirFichaEscritorio', e.base.eu);
+      else if (b.dataset.legado === 'conquistas') chamar('abrirConquistasEscritorio');
+      else if (b.dataset.legado === 'classico') chamar('chooseOfficeMode');
+    }
     else if (b.dataset.entrarZona) { const z = mundo.zonasDoPredio?.[b.dataset.entrarZona]; if (z) abrirAndarVoxel(z.andar).then(() => { irParaSalaEscritorio?.(b.dataset.entrarZona); andarAberto?.focarSala(b.dataset.entrarZona); }); }
     else if (b.hasAttribute('data-agenda-recolher')) { const ag = hud.querySelector('#vv-agenda'); const fechada = ag.classList.toggle('recolhida'); b.setAttribute('aria-expanded', String(!fechada)); }
     else if (b.hasAttribute('data-abrir-agenda')) abrirAgenda();
