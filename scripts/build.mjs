@@ -36,9 +36,9 @@ const nomeIrece = `irece-${createHash('sha256').update(irece).digest('hex').slic
 const crmIrece = await readFile('assets/mundo/crm-irece.json');
 const nomeCrm = `crm-irece-${createHash('sha256').update(crmIrece).digest('hex').slice(0, 12)}.json`;
 const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`))
-  .replace('"/assets/mundo/mundo-3d.js"', JSON.stringify(`/assets/mundo/${nomeMundo}`))
-  .replace('"/assets/mundo/irece.json"', JSON.stringify(`/assets/mundo/${nomeIrece}`))
-  .replace('"/assets/mundo/crm-irece.json"', JSON.stringify(`/assets/mundo/${nomeCrm}`));
+  .replaceAll('"/assets/mundo/mundo-3d.js"', JSON.stringify(`/assets/mundo/${nomeMundo}`))
+  .replaceAll('"/assets/mundo/irece.json"', JSON.stringify(`/assets/mundo/${nomeIrece}`))
+  .replaceAll('"/assets/mundo/crm-irece.json"', JSON.stringify(`/assets/mundo/${nomeCrm}`));
 // Artes dos jogos (o pano da sinuca, cartas, fichas): caminho fixo, mas o
 // navegador guarda /assets/* por um ano (immutable). Sem a versão no endereço o
 // pano novo não aparecia para quem já tinha aberto a sinuca (04/11/2026).
@@ -48,6 +48,8 @@ const comArtes = (codigo) => artesJogos.reduce((c, [de, para]) => c.replaceAll(d
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
   ...(await transform(comArtes(com3d(comSprites(await readFile(fonte,'utf8')))), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
+for (const m of modulos) if (/"\/assets\/mundo\/(mundo-3d\.js|irece\.json|crm-irece\.json)"/.test(m.code))
+  throw new Error(`Build: ${m.fonte} ainda pede um arquivo do mundo sem hash (daria 404 em produção).`);
 const css = await transform(comArtes(await readFile('vybe-styles.css', 'utf8')), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
 for (const f of await readdir('dist/assets')) if (/^[\w-]+-[a-f0-9]{12}\.(js|css)$/.test(f)) await unlink(`dist/assets/${f}`);

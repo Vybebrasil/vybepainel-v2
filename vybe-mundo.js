@@ -6,8 +6,8 @@
 // dela, o HUD de mapa e as portas do prédio, que abrem os módulos existentes.
 // Desligado (Aparência → "Mundo voxel"), o painel é exatamente o de antes.
 //
-// O 3D (three.js) é carregado sob demanda: "/assets/mundo/mundo-3d.js" e
-// "/assets/mundo/irece.json" ganham hash no build (scripts/build.mjs).
+// O 3D (three.js) é carregado sob demanda: o módulo do mundo, o relevo e a base de empresas
+// ganham hash no nome no build (scripts/build.mjs troca os três endereços abaixo).
 (() => {
   const CHAVE = 'vybe.mundo.v1';
   const MUNDO_JS = "/assets/mundo/mundo-3d.js";
