@@ -1,6 +1,6 @@
 // Empresas de Irecê no mapa e base do CRM de prospecção do 1º andar (setor SDR).
-// Fonte principal: base de CNPJ (dados-locais/crm-irece.json, só no servidor local: tem telefone e
-// e-mail, então não vai para o build nem para o Git; publicar exige rota com login).
+// Fonte principal: assets/mundo/crm-irece.json, base pública de CNPJ cuja publicação
+// foi autorizada pelo Paulo; o build publica esse arquivo com hash.
 // Sem ela, vale a lista pública do OpenStreetMap (assets/mundo/empresas-irece.json).
 import OSM from '../assets/mundo/empresas-irece.json' with { type: 'json' };
 import { Obra } from './voxel.mjs';

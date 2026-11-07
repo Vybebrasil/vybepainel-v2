@@ -11,7 +11,47 @@ import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTilt
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
 
+// Em repouso só confere relógios/visibilidade duas vezes por segundo; nenhum quadro é desenhado.
+export function criarAgendadorQuadros(passo, { frame = requestAnimationFrame, cancelarFrame = cancelAnimationFrame, timer = setTimeout, cancelarTimer = clearTimeout, agora = () => performance.now() } = {}) {
+  let raf = null, espera = null, encerrado = false;
+  function acordar() {
+    if (encerrado) return;
+    if (espera !== null) { cancelarTimer(espera); espera = null; }
+    if (raf === null) raf = frame(executar);
+  }
+  function executar(t) {
+    raf = null;
+    if (encerrado) return;
+    const continuar = passo(t);
+    if (encerrado) return;
+    // Uma atualização dentro de passo pode ter pedido o próximo RAF; não deixe um timer paralelo.
+    if (continuar || raf !== null) acordar();
+    else espera = timer(() => { espera = null; executar(agora()); }, 500);
+  }
+  return { acordar, destruir() { encerrado = true; if (raf !== null) cancelarFrame(raf); if (espera !== null) cancelarTimer(espera); raf = espera = null; } };
+}
+
+// Recursos compartilhados entre malhas são liberados uma só vez, inclusive texturas de uniforms.
+export function liberarCena(cena) {
+  const recursos = new Set();
+  const textura = (v) => { if (v?.isTexture) recursos.add(v); else if (Array.isArray(v)) v.forEach(textura); };
+  const material = (m) => { if (!m || recursos.has(m)) return; recursos.add(m); Object.values(m).forEach(textura); for (const u of Object.values(m.uniforms || {})) textura(u.value); };
+  textura(cena.background); textura(cena.environment);
+  cena.traverse((o) => {
+    if (o.geometry) recursos.add(o.geometry);
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(material);
+    if (o.isInstancedMesh) recursos.add(o);
+    if (o.shadow) recursos.add(o.shadow);
+  });
+  for (const recurso of recursos) recurso.dispose?.();
+  cena.clear();
+}
+
 export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
+  const eventos = new AbortController();
+  const ouvir = (alvo, nome, fn, opcoes = {}) => alvo.addEventListener(nome, fn, { ...opcoes, signal: eventos.signal });
+  let ciclo, destruido = false;
+  function invalidar() { if (destruido) return; sujo = true; ciclo?.acordar(); }
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   // 1,5× já é nítido no Retina e desenha ~44% menos pixels que 2×.
   renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
@@ -76,7 +116,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     camera.aspect = W / H;
     const forca = 2.2 / Math.max(W, H);
     tiltH.uniforms.h.value = forca; tiltV.uniforms.v.value = forca;
-    aplicarDeslocamento(); camera.updateProjectionMatrix(); sujo = true;
+    aplicarDeslocamento(); camera.updateProjectionMatrix(); invalidar();
     // Mudar o tamanho apaga o canvas: parado (módulo aberto, aba escondida), redesenha uma vez.
     if (typeof pausado !== 'undefined' && (pausado || !visivel)) { try { posicionarCamera(); composer.render(); } catch { /* ainda montando */ } }
   }
@@ -118,8 +158,10 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     prender(quer.alvo);
     orb.alvo.copy(quer.alvo);
   }
-  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  canvas.addEventListener('pointerdown', (e) => {
+  for (const nome of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'wheel', 'dblclick']) ouvir(canvas, nome, () => ciclo?.acordar(), { passive: true });
+  ouvir(document, 'visibilitychange', () => { if (!document.hidden) invalidar(); });
+  ouvir(canvas, 'contextmenu', (e) => e.preventDefault());
+  ouvir(canvas, 'pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
     ultimoGesto = performance.now();
@@ -131,7 +173,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     arrasto = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, girar: e.button === 2 || e.shiftKey, t: performance.now() };
     vel.set(0, 0); cancelarVoo();
   });
-  canvas.addEventListener('pointermove', (e) => {
+  ouvir(canvas, 'pointermove', (e) => {
     if (ponteiros.has(e.pointerId)) ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinca && ponteiros.size === 2) {
       const [a, b] = [...ponteiros.values()];
@@ -158,9 +200,9 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     if (performance.now() - ultimoGesto > 60) vel.set(0, 0);
     arrasto = null;
   }
-  canvas.addEventListener('pointerup', soltar);
-  canvas.addEventListener('pointercancel', soltar);
-  canvas.addEventListener('wheel', (e) => {
+  ouvir(canvas, 'pointerup', soltar);
+  ouvir(canvas, 'pointercancel', soltar);
+  ouvir(canvas, 'wheel', (e) => {
     e.preventDefault(); cancelarVoo();
     const k = e.ctrlKey ? 0.012 : 0.0015; // trackpad (pinça) tem escala própria
     const novo = limitar(quer.dist * Math.exp(e.deltaY * k), ...LIM.dist);
@@ -169,7 +211,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     if (p) { const f = 1 - novo / quer.dist; quer.alvo.x += (p.x - quer.alvo.x) * f; quer.alvo.z += (p.z - quer.alvo.z) * f; prender(quer.alvo); }
     quer.dist = novo; sujo = true;
   }, { passive: false });
-  canvas.addEventListener('dblclick', (e) => {
+  ouvir(canvas, 'dblclick', (e) => {
     const p = pontoNoChao(e.clientX, e.clientY);
     if (p) voar({ alvo: p, dist: Math.max(LIM.dist[0], quer.dist * 0.5) });
   });
@@ -207,7 +249,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       giro: destino.giro ?? de.giro, incl: destino.incl ?? de.incl };
     let dg = para.giro - de.giro; dg = Math.atan2(Math.sin(dg), Math.cos(dg)); para.giro = de.giro + dg;
     voo = { de, para, t0: performance.now(), ms: reduzirMovimento ? 1 : ms };
-    sujo = true;
+    invalidar();
   }
 
   // ---------- Rótulos em HTML ----------
@@ -222,9 +264,9 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     camadaRotulos.appendChild(el);
     el.classList.add('escondido');
     const r = { el, pos: pos.clone(), distMax, prioridade, desce: 0, visivel: false, fixo };
-    rotulos.push(r); return r;
+    rotulos.push(r); invalidar(); return r;
   }
-  function removerRotulo(r) { r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
+  function removerRotulo(r) { invalidar(); r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
   const v3 = new THREE.Vector3();
   let quadro = 0;
   function posicionarRotulos() {
@@ -255,17 +297,34 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     for (const r of caixas) r.el.style.transform = `translate(-50%,-100%) translate(${r.x.toFixed(1)}px,${(r.y + r.desce).toFixed(1)}px)`;
   }
 
+  const frustum = new THREE.Frustum(), projecao = new THREE.Matrix4(), esferaVista = new THREE.Sphere();
+  const limites = new WeakMap();
+  function emVista(o) {
+    if (!o) return false;
+    for (let p = o; p; p = p.parent) if (!p.visible) return false;
+    o.updateWorldMatrix(true, false);
+    let esfera = o.isInstancedMesh && o.boundingSphere ? o.boundingSphere : limites.get(o);
+    if (!esfera) {
+      esfera = new THREE.Box3().setFromObject(o).getBoundingSphere(new THREE.Sphere());
+      esfera.applyMatrix4(new THREE.Matrix4().copy(o.matrixWorld).invert()); limites.set(o, esfera);
+    }
+    if (esfera.isEmpty()) return false;
+    esferaVista.copy(esfera).applyMatrix4(o.matrixWorld);
+    camera.updateMatrixWorld();
+    frustum.setFromProjectionMatrix(projecao.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    return frustum.intersectsSphere(esferaVista);
+  }
+
   // ---------- Laço ----------
   let sujo = true, pausado = false, ultimo = performance.now(), visivel = true;
   const animadores = [];
-  const io = new IntersectionObserver(([e]) => { visivel = e.isIntersecting; }, { threshold: 0.01 });
+  const io = new IntersectionObserver(([e]) => { visivel = e.isIntersecting; if (visivel) invalidar(); }, { threshold: 0.01 });
   io.observe(canvas);
   function passo(t) {
-    requestAnimationFrame(passo);
-    if (pausado || !visivel || document.hidden) return;
-    const interagindo = arrasto || pinca || voo || t - ultimoGesto < 1500 || vel.lengthSq() > 0.01;
+    if (destruido || pausado || !visivel || document.hidden) return false;
+    const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
     // Em repouso 30 qps; mexendo, todo quadro.
-    if (!interagindo && t - ultimo < 33) return;
+    if (!interagindo && t - ultimo < 33) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -277,6 +336,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       quer.incl = voo.de.incl + (voo.para.incl - voo.de.incl) * k;
       if (k >= 1) voo = null;
     }
+    const movendo = orb.alvo.distanceToSquared(quer.alvo) > 1e-6 || Math.abs(orb.dist - quer.dist) > .001 || Math.abs(orb.giro - quer.giro) > .00001 || Math.abs(orb.incl - quer.incl) > .00001;
     const f = 1 - Math.pow(0.0001, dt); // aproxima sem degrau
     orb.alvo.lerp(quer.alvo, f); orb.dist += (quer.dist - orb.dist) * f;
     orb.giro += (quer.giro - orb.giro) * f; orb.incl += (quer.incl - orb.incl) * f;
@@ -284,38 +344,53 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     for (const k2 of ['esq', 'dir', 'baixo']) { const d = livre[k2] - a[k2]; if (Math.abs(d) > 0.5) { a[k2] += d * f; mudouLivre = true; } else a[k2] = livre[k2]; }
     if (mudouLivre) { aplicarDeslocamento(); camera.updateProjectionMatrix(); }
     posicionarCamera();
-    for (const fn of animadores) fn(t / 1000, dt);
-    if (t - (passo.sombra || 0) > 2000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    let animando = false;
+    for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
+    const precisa = sujo || movendo || interagindo || mudouLivre || animando;
+    if (!precisa) return false;
+    if (animando && t - (passo.sombra || 0) > 2000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
     renderer.info.reset();
     const t0 = performance.now();
     composer.render();
     medida.ms = medida.ms * .9 + (performance.now() - t0) * .1; medida.quadros++;
     posicionarRotulos();
     sujo = false;
+    return Boolean(movendo || interagindo || mudouLivre || animando);
   }
   const ro = new ResizeObserver(medir); ro.observe(canvas);
-  medir(); posicionarCamera(); requestAnimationFrame(passo);
-
   const medida = { ms: 0, quadros: 0 };
+  ciclo = criarAgendadorQuadros(passo);
+  medir(); posicionarCamera(); ciclo.acordar();
   return {
     THREE, cena, camera, renderer, LIM,
     desempenho: () => ({ chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles, msPorQuadro: Math.round(medida.ms * 10) / 10, quadros: medida.quadros, pixelRatio: renderer.getPixelRatio() }),
-    adicionar: (o) => cena.add(o),
+    adicionar: (o) => { cena.add(o); invalidar(); },
+    invalidar, emVista,
     clicavel: (o) => clicaveis.push(o),
     naoClicavel: (o) => { const i = clicaveis.indexOf(o); if (i >= 0) clicaveis.splice(i, 1); },
-    animar: (fn) => animadores.push(fn),
+    // true = a animação alterou algo visível; false/undefined = manutenção sem novo desenho.
+    animar: (fn) => { animadores.push(fn); invalidar(); },
     rotulo, removerRotulo,
     aoClicar: (f) => ouvintes.clique.push(f),
     emitirClique: (alvo) => { for (const f of ouvintes.clique) f(alvo, null); },
     aoPassar: (f) => ouvintes.passar.push(f),
     aoMexer: (f) => ouvintes.mexeu.push(f),
     voar,
-    zoom: (fator) => { cancelarVoo(); quer.dist = limitar(quer.dist * fator, ...LIM.dist); ultimoGesto = performance.now(); },
+    zoom: (fator) => { cancelarVoo(); quer.dist = limitar(quer.dist * fator, ...LIM.dist); ultimoGesto = performance.now(); invalidar(); },
     girar90: () => voar({ giro: Math.round((quer.giro + Math.PI / 2) / (Math.PI / 2)) * (Math.PI / 2) - 0.75 + 0.75 }, 700),
-    areaLivre: (esq = 0, dir = 0, baixo = 0) => { livre.esq = esq; livre.dir = dir; livre.baixo = baixo; ultimoGesto = performance.now(); },
-    pausar: (sim) => { const antes = pausado; pausado = !!sim; if (!sim) { ultimo = performance.now(); sujo = true; } else if (!antes) { try { composer.render(); } catch { /* sem quadro ainda */ } } },
+    areaLivre: (esq = 0, dir = 0, baixo = 0) => { if (livre.esq === esq && livre.dir === dir && livre.baixo === baixo) return; livre.esq = esq; livre.dir = dir; livre.baixo = baixo; ultimoGesto = performance.now(); invalidar(); },
+    pausar: (sim) => { const antes = pausado; pausado = !!sim; if (!sim && antes) { ultimo = performance.now(); invalidar(); } else if (sim && !antes) { try { composer.render(); } catch { /* sem quadro ainda */ } } },
     estado: () => ({ alvo: orb.alvo.clone(), dist: orb.dist, giro: orb.giro, incl: orb.incl, W, H, vo: camera.view && { ...camera.view }, aspect: camera.aspect }),
     projetar: (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camera); return [(v.x * .5 + .5) * W, (-v.y * .5 + .5) * H]; },
-    destruir: () => { pausado = true; io.disconnect(); ro.disconnect(); renderer.dispose(); camadaRotulos.remove(); },
+    destruir: () => {
+      if (destruido) return;
+      destruido = true; pausado = true; ciclo.destruir(); eventos.abort(); io.disconnect(); ro.disconnect();
+      liberarCena(cena);
+      for (const pass of composer.passes) pass.dispose?.();
+      composer.dispose(); renderer.renderLists.dispose(); renderer.dispose();
+      animadores.length = clicaveis.length = rotulos.length = 0;
+      for (const lista of Object.values(ouvintes)) lista.length = 0;
+      camadaRotulos.remove();
+    },
   };
 }

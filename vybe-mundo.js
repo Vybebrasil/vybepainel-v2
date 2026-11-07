@@ -419,7 +419,7 @@
   let agendaEm = 0, agendaEventos = null;
   async function carregarAgenda(forcar = false) {
     if (!forcar && agendaEventos && Date.now() - agendaEm < 5 * 60e3) return pintarAgenda();
-    const hoje = hojeIso();
+    const hoje = mundo?.diaNaBahia?.() || hojeIso();
     try {
       const r = await fetch(`/api/painel?area=captacoes&semana=${hoje}&dias=7`, { credentials: 'same-origin', cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
@@ -427,9 +427,9 @@
       agendaEventos = (d.agenda || []).filter((e) => e.dia >= hoje); agendaEm = Date.now();
     } catch (e) { agendaEventos = null; hud.querySelector('#vv-agenda-lista').innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; return; }
     pintarAgenda();
-    const hoje2 = hojeIso();
+    const hoje2 = mundo?.diaNaBahia?.() || hojeIso();
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
-      .map((e) => ({ cliente: e.cliente, inicio: e.inicio || '', fim: e.fim || '' })));
+      .map((e) => ({ cliente: e.cliente, dia: e.dia, inicio: e.inicio || '', fim: e.fim || '' })));
   }
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
@@ -884,7 +884,7 @@
     else if (b.dataset.crmVer) { const [x, z] = b.dataset.crmVer.split(',').map(Number); mundo.focarPonto(x, z); }
     else if (b.dataset.crmPropor) {
       const l = crmLinhas.find((x) => (x.cnpj || x.nome) === b.dataset.crmPropor); if (!l) return;
-      const lista = crmPropostas(); lista.push({ cnpj: l.cnpj || '', nome: l.nome, setor: l.setor || '', tipo: l.tipo || '', rua: l.rua, em: new Date().toISOString(), setor: 'sdr', status: 'proposta', quem: (typeof operadorDoTopo === 'function' && operadorDoTopo()?.name) || '' });
+      const lista = crmPropostas(); lista.push({ cnpj: l.cnpj || '', nome: l.nome, setorEmpresa: l.setor || '', tipo: l.tipo || '', rua: l.rua, em: new Date().toISOString(), agenteResponsavel: 'sdr', status: 'proposta', quem: (typeof operadorDoTopo === 'function' && operadorDoTopo()?.name) || '' });
       try { localStorage.setItem(CRM_CHAVE, JSON.stringify(lista)); } catch { /* sem armazenamento */ }
       const d = placa().querySelector('#vv-agente-dados'); if (d) d.innerHTML = crmHtml();
     }

@@ -140,6 +140,7 @@ export function construirPredio(motor, { x, z, y }) {
   let grupoPessoas = [], rotulosPessoas = [];
   const CORES_ROUPA = { laranja: '#FF9548', azul: '#78AAFF', verde: '#72CCAC', roxo: '#AC9BFF', rosa: '#EF9FBC', grafite: '#64738A' };
   function presenca(lista) {
+    motor.invalidar();
     for (const m of grupoPessoas) m.parent?.remove(m);
     for (const r of rotulosPessoas) motor.removerRotulo(r);
     grupoPessoas = []; rotulosPessoas = [];
@@ -225,11 +226,13 @@ export function construirPredio(motor, { x, z, y }) {
   let abre = 0, abreQuer = 0, estadoSer = 'calmo', foco = null;
   const tira = new Map(); // nível → quanto o andar subiu para fora da vista (foco num andar)
   motor.animar((t, dt) => {
+    let abrindo = Math.abs(abreQuer - abre) > .001;
     abre += (abreQuer - abre) * (1 - Math.pow(.002, dt));
     for (const a of andares) {
       // Com um andar em foco, os de cima saem para o alto e somem: a sala fica à vista.
       const quer = foco !== null && a.andar.nivel > foco ? 60 : 0;
-      const t0 = tira.get(a.andar.nivel) || 0, t1 = t0 + (quer - t0) * (1 - Math.pow(.004, dt));
+      const t0 = tira.get(a.andar.nivel) || 0; abrindo = abrindo || Math.abs(quer - t0) > .001;
+      const t1 = t0 + (quer - t0) * (1 - Math.pow(.004, dt));
       tira.set(a.andar.nivel, t1);
       a.g.position.y = a.andar.nivel * PE + .15 + a.andar.nivel * ABRE * abre + t1;
       a.g.visible = t1 < 45;
@@ -247,6 +250,7 @@ export function construirPredio(motor, { x, z, y }) {
     for (const a of andares) a.rotulo.pos.y = y + a.g.position.y + 1.2;
     for (const ag of agentesRot) { const a = andares[ag.andarIdx]; if (!a) continue; ag.r.pos.y = y + a.g.position.y + 2.6; const ver = foco === ag.nivel && a.g.visible; ag.r.el.hidden = !ver; ag.r.forcarEscondido = !ver; }
     for (const f of animaveis) f(t);
+    return abrindo || (ser.visible && motor.emVista(ser)) || [...salas.values()].some((s) => s.figura && motor.emVista(s.figura));
   });
 
   function mobiliar(pecas, { andar, setor, sx, largura, terraco, terreo }) {
@@ -300,20 +304,21 @@ export function construirPredio(motor, { x, z, y }) {
 
   return {
     LADO, PE, raiz,
-    focar: (nivel) => { foco = nivel ?? null; },
+    focar: (nivel) => { foco = nivel ?? null; motor.invalidar(); },
     presenca,
     zonas: () => [...centros.keys()],
     // Posição de cada agente no mundo (para as sinapses do cérebro).
     posDoSetor: (id) => { const ag = agentesRot.find((q) => q.setor === id); const a = ag && andares[ag.andarIdx]; return a ? { x: x + ag.sx, y: y + a.g.position.y + 1.6, z: z + 1, nivel: ag.nivel, andar: ag.andarId } : null; },
     agentes: () => agentesRot.map((q) => ({ setor: q.setor, andar: q.andarId, nivel: q.nivel })),
     abrir: (sim) => {
+      motor.invalidar();
       abreQuer = sim ? 1 : 0;
       if (!sim) foco = null;
       for (const a of andares) { a.rotulo.el.hidden = !sim; a.rotulo.el.classList.toggle('escondido', !sim); }
     },
     aberto: () => abreQuer > 0,
     alturaDoAndar: (nivel) => y + nivel * PE + nivel * ABRE * abreQuer,
-    alerta: (sim) => { estadoSer = sim ? 'alerta' : 'calmo'; },
+    alerta: (sim) => { const estado = sim ? 'alerta' : 'calmo'; if (estadoSer !== estado) { estadoSer = estado; motor.invalidar(); } },
     salas,
   };
 }
