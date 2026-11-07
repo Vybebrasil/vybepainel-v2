@@ -4273,3 +4273,12 @@ body.mundo .ofc-musica-painel .ofc-erro{color:#D93D42}
 #mundo .mundo-carregando[hidden]{display:none}
 #mundo .mundo-carregando{max-width:calc(100vw - 40px);box-sizing:border-box;white-space:normal;text-align:center}
 #mundo .mundo-carregando .vv-botao{display:block;margin:10px auto 0}
+
+/* Prédio vivo e roteiro da semana (07/11/2026) */
+.vv-motivo-andar{max-width:100%;white-space:normal;line-height:1.3}
+.vv-roteiros{margin:4px 0 8px}
+.vv-agenda.recolhida .vv-roteiros{display:none}
+.vv-roteiro{padding:8px 11px;margin-bottom:6px;border-radius:13px;border:1px solid var(--vv-linha);background:rgba(255,255,255,.88);box-shadow:inset 4px 0 0 #0E9A45;font-family:var(--vv-texto);color:var(--vv-tinta)}
+.vv-roteiro b{display:block;font:700 12.5px/1.3 var(--vv-texto)}
+.vv-roteiro small{display:block;margin-top:3px;font:600 11px/1.35 var(--vv-texto);color:var(--vv-apagado)}
+.vv-roteiro span{display:block;margin-top:2px;font:700 11px var(--vv-texto);color:#11613A}
