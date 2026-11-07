@@ -116,6 +116,15 @@ function desenho(id) {
 
 export function construirMarcos(motor, irece, THREE) {
   for (const m of MARCOS) {
+    if (irece.noRecorte && !irece.noRecorte(m.x, m.z, m.r)) {
+      // Fora do Centro (Atacadão, AGES, UNEB…): placa na borda da maquete, apontando para lá, com a distância real.
+      const b = irece.naBorda(m.x, m.z), y = irece.alturaEm(b.x, b.z), ang = Math.atan2(m.x - b.x, m.z - b.z), o = new Obra();
+      o.caixa(0, 0, 0, .18, 3.2, .18, '#5A6268').caixa(0, 2.6, 0, 3.2, .9, .14, '#1F1D1A').caixa(1.75, 2.6, 0, .4, .5, .14, '#FF7A2F');
+      const g = o.montar(); g.position.set(b.x, y, b.z); g.rotation.y = ang - Math.PI / 2; motor.adicionar(g);
+      const km = (m.dist ?? b.dist) * 10 / 1000;
+      motor.rotulo({ pos: new THREE.Vector3(b.x, y + 4.4, b.z), classe: 'rotulo-marco borda', html: `${m.nome.replace(/[<>&]/g, '')} <small>→ ${km.toFixed(1).replace('.', ',')} km</small>`, distMax: 600, prioridade: 1 });
+      continue;
+    }
     const g = desenho(m.id).montar();
     g.position.set(m.x, irece.alturaEm(m.x, m.z), m.z);
     g.scale.setScalar(.95);

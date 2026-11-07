@@ -9,6 +9,7 @@ import { criarClientes } from './clientes.mjs';
 import { PLANTA, ESTADOS, ZONAS_DO_PREDIO } from './planta.mjs';
 import { Obra } from './voxel.mjs';
 import { MARCOS, construirMarcos } from './marcos.mjs';
+import { construirAnimais } from './animais.mjs';
 import * as Empresas from './empresas.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
 
@@ -22,7 +23,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   const [dados] = await Promise.all([fetch(dadosUrl).then((r) => r.json()), Empresas.carregarEmpresas(crmUrl)]);
   // A Vybe no endereço dela (mundo/locais.json: x/z ou rua). Sem local, perto do centro de Irecê.
   const vybeLocal = LOCAIS?.vybe && Number.isFinite(LOCAIS.vybe.x) ? LOCAIS.vybe : null;
-  const reservas = { predio: { x: vybeLocal?.x ?? 0, z: vybeLocal?.z ?? 0, r: vybeLocal ? 6 : 9, exato: !!vybeLocal }, lotes: { quantos: 90, raioMin: 18, raioMax: 240, r: 3, folga: 0 }, marcos: MARCOS };
+  const reservas = { predio: { x: vybeLocal?.x ?? 0, z: vybeLocal?.z ?? 0, r: vybeLocal ? 6 : 9, exato: !!vybeLocal }, lotes: { quantos: 40, raioMin: 14, raioMax: 100, r: 3, folga: 0 }, marcos: MARCOS };
   if (LOCAIS?.vybe?.rua && !vybeLocal) {
     // Rua da Vybe: primeiro acha a rua (sem montar a cidade), depois reserva o terreno perto dela.
     const r = construirIrece.pontoSemMontar?.(dados, LOCAIS.vybe.rua); if (r) { reservas.predio.x = r.x; reservas.predio.z = r.z; }
@@ -32,6 +33,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   const predio = construirPredio(motor, { x: base.x, z: base.z, y: irece.alturaEm(base.x, base.z) + .05 });
   const clientes = criarClientes(motor, irece, reservas.lotes.achados || []);
   construirMarcos(motor, irece, motor.THREE);
+  construirAnimais(motor, irece, dados);
   Empresas.construirEmpresas(motor, irece, motor.THREE);
   let posicoes = [];
 
@@ -42,7 +44,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   }
 
   const VISTAS = {
-    cidade: { alvo: { x: base.x, z: base.z }, dist: 520, incl: .92, giro: -.75 },
+    cidade: { alvo: { x: 4, z: 18 }, dist: 300, incl: .86, giro: -.75 },
     predio: { alvo: { x: base.x, y: 15, z: base.z }, dist: 175, incl: .42, giro: -.6 },
   };
   motor.voar(VISTAS.cidade, 1);
@@ -236,7 +238,30 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     return inteiro ? e : { x: e.x, z: e.z };
   }
   let ultimoComPonto = [];
+  // ---------- Camada de prospecção: empresas (não clientes) como pinos pequenos na cor da etapa do CRM ----------
+  let camadaPros = null;
+  function mostrarEmpresasNoMapa(lista = []) {
+    if (camadaPros) { motor.cena.remove(camadaPros.g); camadaPros.g.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); }); camadaPros.rotulos.forEach((r) => motor.removerRotulo(r)); camadaPros = null; }
+    if (!lista.length) { motor.invalidar(); return 0; }
+    const T3 = motor.THREE, g = new T3.Group(), rotulos = [];
+    const haste = new T3.InstancedMesh(new T3.BoxGeometry(.07, 1, .07), new T3.MeshBasicMaterial({ color: '#5A6268' }), lista.length);
+    const cabeca = new T3.InstancedMesh(new T3.BoxGeometry(.42, .42, .42), new T3.MeshBasicMaterial({ toneMapped: false }), lista.length);
+    const m4 = new T3.Matrix4(), cor = new T3.Color();
+    lista.forEach((e, k) => {
+      const y = irece.alturaEm(e.x, e.z);
+      m4.makeScale(1, 1.6, 1).setPosition(e.x, y + .8, e.z); haste.setMatrixAt(k, m4);
+      m4.makeTranslation(e.x, y + 1.75, e.z); cabeca.setMatrixAt(k, m4); cabeca.setColorAt(k, cor.set(e.cor));
+      if (e.rotulo) rotulos.push(motor.rotulo({ pos: new T3.Vector3(e.x, y + 2.3, e.z), classe: 'rotulo-prospect', html: `<i style="--c:${e.cor}"></i>${String(e.nome).replace(/[<>&]/g, '')}${e.etapa ? `<small>${String(e.etapa).replace(/[<>&]/g, '')}</small>` : ''}`, distMax: e.distMax || 70, prioridade: e.prioridade || -3, aoClicar: () => e.aoClicar?.() }));
+    });
+    haste.computeBoundingSphere(); cabeca.computeBoundingSphere(); if (cabeca.instanceColor) cabeca.instanceColor.needsUpdate = true;
+    g.add(haste, cabeca); motor.adicionar(g);
+    camadaPros = { g, rotulos };
+    return lista.length;
+  }
   return {
+    mostrarEmpresasNoMapa,
+    situacaoDosAndares: (m) => predio.situacaoDosAndares?.(m),
+    noRecorte: (x, z) => irece.noRecorte(x, z),
     get empresas() { return Empresas.EMPRESAS; }, get fonteEmpresas() { return Empresas.FONTE_EMPRESAS; }, tipoLegivel: Empresas.TIPO_LEGIVEL, agencia: { x: base.x, z: base.z },
     focarPonto(x, z) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist: 80, incl: .7 }); },
     cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },

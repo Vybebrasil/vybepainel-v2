@@ -227,6 +227,7 @@
         <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}</button>
+        <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="conta" title="Sua conta e equipe" aria-label="Conta">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>')}</button>
       </div>
@@ -281,16 +282,58 @@
   const NOME_MODULO = { vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
 
+  // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------
+  const SIT_COR = { verde: '#18A957', amarelo: '#E2A11B', vermelho: '#D93D42', cinza: '#9AA3A8' };
+  function numerosDoAndar(a) {
+    const pecas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+    const sits = pecas.map((d) => situacaoDaPeca(d));
+    const conta = (k) => sits.filter((x) => x === k).length;
+    const agentes = a.setores.filter((s) => s.agente).map((s) => estadoDoAgente(s.id).estado);
+    const falhou = agentes.includes('falhou'), aguardando = agentes.filter((e) => e === 'aguardando_aprovacao').length, executando = agentes.filter((e) => e === 'executando').length;
+    let n = [], sit = falhou ? 'vermelho' : aguardando ? 'amarelo' : 'verde';
+    if (a.id === 'criacao') {
+      const atr = conta('atrasada'), apr = conta('aprovar');
+      n = [[sits.filter((x) => x !== 'concluida').length, 'em produção'], [atr, 'atrasadas'], [apr, 'para aprovar']];
+      sit = falhou || atr ? 'vermelho' : apr || aguardando ? 'amarelo' : 'verde';
+    } else if (a.id === 'comercial') {
+      const crm = crmCache || [], contato = crm.filter((o) => ['abordagem_proposta', 'aprovada', 'contato_feito', 'reuniao', 'proposta_comercial'].includes(o.etapa)).length;
+      n = [[naTela.length, 'clientes ativos'], [contato, 'em contato'], [crm.filter((o) => o.etapa === 'ganho').length, 'ganhos']];
+      sit = falhou ? 'vermelho' : crm.some((o) => o.etapa === 'abordagem_proposta') || aguardando ? 'amarelo' : 'verde';
+    } else if (a.id === 'terreo') {
+      n = [[sits.filter((x) => x !== 'concluida').length, 'peças em aberto'], [conta('hoje'), 'saem hoje'], [executando, 'agentes trabalhando']];
+    } else if (a.id === 'terraco') {
+      const gente = presencaDoEscritorio();
+      n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(mundo.zonasDoPredio || {}).length, 'salas']];
+      sit = 'verde';
+    } else {
+      n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis']];
+      if (!agentes.length || agentes.every((e) => ['sem_execucao', 'indisponivel'].includes(e))) sit = 'cinza';
+    }
+    return { n, sit };
+  }
+  function pintarSituacaoDosAndares() {
+    if (!mundo?.situacaoDosAndares) return;
+    const m = {}; for (const a of mundo.planta) m[a.id] = numerosDoAndar(a).sit;
+    mundo.situacaoDosAndares(m);
+  }
+  // Elevador: os andares de cima para baixo, cada um com a cor da situação, os números e os agentes.
   function mostrarAndares() {
     const p = placa(), E = mundo.estadosReais;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <h3>Prédio da Vybe</h3><p class="vv-sub">A operação inteira, andar por andar. Em cada sala trabalha o VYBES com as ferramentas daquele setor.</p>
-      ${[...mundo.planta].reverse().map((a) => `<button type="button" class="vv-andar" data-andar="${a.id}" style="--c:${a.cor}">
-        <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span><span><b>${esc(a.nome)}</b><small>${esc(a.resumo)}</small></span>
-        <span class="pontos">${a.setores.map((s) => `<i data-indicador-agente="${esc(s.id)}" style="--e:${estadoDoAgente(s.id).cor}" title="${esc(s.nome)}: ${esc(estadoDoAgente(s.id).rotulo)}"></i>`).join('')}</span></button>`).join('')}
-      <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Legenda</div>
+      <small class="vv-cb-kicker">Elevador</small><h3>Prédio da Vybe</h3>
+      <p class="vv-sub">O VYBES orquestra; cada andar é um setor com seus agentes. A faixa de luz de cada andar no prédio tem a cor da situação dele.</p>
+      <p class="vv-dica" style="margin:-4px 0 8px">${esc(avisoDosAgentes())}</p>
+      ${[...mundo.planta].reverse().map((a) => { const { n, sit } = numerosDoAndar(a);
+        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}">
+          <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span>
+          <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b>
+            <span class="kpis">${n.map(([v, r]) => `<em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em>`).join('')}</span></span>
+          <span class="pontos">${a.setores.filter((s) => s.agente).map((s) => `<i data-indicador-agente="${esc(s.id)}" style="--e:${estadoDoAgente(s.id).cor}" title="${esc(s.agente)} (${esc(s.nome)}): ${esc(estadoDoAgente(s.id).rotulo)}"></i>`).join('')}</span>
+          <span class="sit" aria-hidden="true"></span></button>`; }).join('')}
+      <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Legenda dos agentes</div>
       ${Object.values(E).map((e) => `<span class="vv-selo" style="--e:${e.cor};margin:0 6px 6px 0"><i></i>${esc(e.rotulo)}</span>`).join('')}`;
     p.hidden = false; ajustarAreaLivre();
+    pintarSituacaoDosAndares();
   }
   function mostrarAndar(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
@@ -298,6 +341,10 @@
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <button type="button" class="vv-botao" data-voltar style="margin:-6px 0 6px -8px;height:28px">← Andares</button>
       <h3>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</h3><p class="vv-sub">${esc(a.resumo)}</p>
+      ${(() => { const { n, sit } = numerosDoAndar(a); return `<div class="vv-andar-kpis" style="--s:${SIT_COR[sit]}">${n.map(([v, r]) => `<div><b>${Number(v).toLocaleString('pt-BR')}</b><small>${esc(r)}</small></div>`).join('')}</div>`; })()}
+      ${(() => { const espera = a.setores.filter((s) => s.agente && estadoDoAgente(s.id).estado === 'aguardando_aprovacao');
+        return espera.length ? `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Precisa de você<span class="vv-pilula">${espera.length}</span></div>${espera.map((s) => { const e = estadoDoAgente(s.id); return `<button type="button" class="vv-cb-camada" data-agente="${esc(a.id)}|${esc(s.id)}" style="--c:#8E4EC6"><i></i><span><b>${esc(s.agente)}</b><small>${esc(e.tarefa || 'Aguardando aprovação')}${e.desde ? ' · desde ' + esc(horaAgentes(e.desde)) : ''}</small></span><em>Ver →</em></button>`; }).join('')}` : ''; })()}
+      <div class="vv-rotulo-secao" style="--c:${a.cor}"><i></i>Agentes do andar</div>
       ${a.setores.map((s) => `<article class="vv-sala" ${s.id === idSetor ? 'style="outline:2px solid ' + a.cor + '"' : ''}>
         <div class="vv-sala-topo"><span class="vv-agente ${['sem_execucao','indisponivel'].includes(estadoDoAgente(s.id).estado) ? 'planejado' : ''}" data-avatar-agente="${esc(s.id)}">${s.agente ? esc(s.agente.slice(0, 2).toUpperCase()) : '★'}</span>
         <span><b>${esc(s.nome)}${s.agente ? ' · ' + esc(s.agente) : ''}</b><p class="papel">${esc(s.papel)}</p></span></div>
@@ -662,6 +709,7 @@
   function pintarAtividadeAgentes() {
     if (!mundo) return;
     const f = fonteAgentes?.ler(); mundo.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
+    pintarSituacaoDosAndares();
     const el = placa()?.querySelector('[data-atividade-setor]');
     if (el) el.innerHTML = atividadeDoAgenteHtml(el.dataset.atividadeSetor);
     hud.querySelectorAll('[data-estado-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.estadoAgente); el.style.setProperty('--e',a.cor); el.innerHTML = '<i></i>' + esc(a.rotulo); });
@@ -945,6 +993,7 @@
   function usarFerramenta(id) {
     if (id === 'busca') document.querySelector('[data-open-spotlight]')?.click();
     else if (id === 'aparencia') document.querySelector('[data-open-appearance]')?.click();
+    else if (id === 'camadas') mostrarCamadas();
     else if (id === 'notas') chamar('abrirNotas');
     else if (id === 'conta') chamar('irParaMinhaConta');
     else if (id === 'avisos') { chamar('chooseManagerMode'); setTimeout(() => chamar('alternarNotificacoes'), 350); }
@@ -987,6 +1036,7 @@
     if (b.dataset.vista) {
       hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       body.classList.toggle('mundo-cerebro', b.dataset.vista === 'cerebro');
+      body.classList.toggle('mundo-predio', b.dataset.vista === 'predio');
       if (b.dataset.vista === 'cerebro') ligarCerebro(); else mundo.cerebro(false);
       if (b.dataset.vista === 'predio') { mundo.verPredio(); mostrarAndares(); }
       else if (b.dataset.vista === 'cerebro') mostrarCerebroPlaca();
@@ -1059,6 +1109,7 @@
       }});
       void carregarAgentes();
       raiz.querySelector('.mundo-carregando')?.remove();
+      setTimeout(() => aplicarProspeccao(), 1500);
       mundo.aoClicar((alvo) => {
         if (!alvo) return;
         if (alvo.tipo === 'setor') { hud.querySelector('[data-vista="predio"]')?.setAttribute('aria-pressed', 'true'); hud.querySelector('[data-vista="cidade"]')?.setAttribute('aria-pressed', 'false'); mostrarAgente(alvo.andar, alvo.setor); }
@@ -1190,6 +1241,147 @@
     d.addEventListener('toggle', () => { c.checked = ligado; });
   }
   chaveNaAparencia(); if (typeof setTimeout === 'function') setTimeout(chaveNaAparencia, 1500);
+
+  // ---------- Barra de chamada: quem está na sala com você, microfone, chamar e sair ----------
+  // A voz é a do Escritório de sempre (ouve quem está na mesma sala; Foco é silenciosa; sala trancada tem
+  // conversa própria). A barra só mostra e controla isso no Irecity.
+  const barra = document.createElement('div');
+  barra.className = 'vv-chamada'; barra.hidden = true; barra.setAttribute?.('role', 'region'); barra.setAttribute?.('aria-label', 'Chamada da sala');
+  hud.append?.(barra);
+  let chamarAberto = false;
+  function pintarChamada() {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    const naSala = ligado && e?.conectado && e.zona && typeof escritorioCanal === 'function' && escritorioCanal(e.zona);
+    barra.hidden = !naSala || body.classList.contains('auth-pending');
+    if (barra.hidden) return;
+    const Z = mundo?.zonasDoPredio || {}, nomeSala = Z[e.zona]?.nome || (typeof escritorioLugarDe === 'function' ? escritorioLugarDe(e.perfil)?.nome : '') || 'Sala';
+    const eu = String(e.base?.eu || ''), juntos = (e.online || []).filter((o) => o.zona === e.zona && String(o.id) !== eu);
+    const mic = Boolean(e.chamada?.self?.audioEnabled);
+    const falando = new Set((e.chamada?.participants?.joined?.toArray?.() || []).filter((p) => p.audioEnabled).map((p) => String(p.customParticipantId || '').split(':')[0]));
+    const fora = (e.online || []).filter((o) => o.zona !== e.zona && String(o.id) !== eu);
+    barra.innerHTML = `<span class="sala"><i></i><b>${esc(nomeSala)}</b><small>${juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa' : ' pessoas') + ' com você' : 'só você aqui'}</small></span>
+      <span class="gente">${juntos.slice(0, 6).map((o) => `<span class="p${falando.has(String(o.id)) ? ' fala' : ''}" title="${esc(o.nome)}">${esc(String(o.nome || '?').split(' ')[0])}</span>`).join('')}</span>
+      <button type="button" class="vv-botao${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" title="${mic ? 'Desligar' : 'Ligar'} o microfone">${mic ? 'Microfone ligado' : 'Microfone desligado'}</button>
+      <button type="button" class="vv-botao" data-chamada="chamar" aria-expanded="${chamarAberto}">Chamar alguém</button>
+      <button type="button" class="vv-botao" data-chamada="sair">Sair da sala</button>
+      ${chamarAberto ? `<div class="vv-chamar">${fora.length ? fora.map((o) => `<button type="button" data-chamar-pessoa="${esc(o.id)}"><b>${esc(o.nome)}</b><small>${esc(Z[o.zona]?.nome || 'fora das salas')}</small></button>`).join('') : '<p class="vv-dica">Ninguém online fora desta sala.</p>'}</div>` : ''}`;
+  }
+  barra.addEventListener?.('click', (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.chamada === 'mic' && typeof alternarMidiaEscritorio === 'function') alternarMidiaEscritorio('audio').finally?.(pintarChamada);
+    else if (b.dataset.chamada === 'chamar') { chamarAberto = !chamarAberto; pintarChamada(); }
+    else if (b.dataset.chamada === 'sair' && typeof escritorioSairDoQuarto === 'function') { escritorioSairDoQuarto(); chamarAberto = false; setTimeout(pintarChamada, 400); }
+    else if (b.dataset.chamarPessoa && typeof chamarParaSalaEscritorio === 'function') { chamarParaSalaEscritorio(b.dataset.chamarPessoa); chamarAberto = false; pintarChamada(); }
+  });
+  if (typeof setInterval === 'function') setInterval(pintarChamada, 1500);
+
+  // ---------- Esc fecha o que está por cima; módulo com "tela cheia" e "fechar" ----------
+  const cantoModulo = document.createElement('div');
+  cantoModulo.className = 'vv-canto-modulo';
+  cantoModulo.innerHTML = `<button type="button" class="vv-botao" data-modulo-acao="cheia" title="Tela cheia (F)" aria-label="Tela cheia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button type="button" class="vv-botao" data-modulo-acao="fechar" title="Fechar e voltar ao mapa (Esc)" aria-label="Fechar e voltar ao mapa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+  document.body.append?.(cantoModulo);
+  const alternarTelaCheia = () => { body.classList.toggle('mundo-tela-cheia'); cantoModulo.querySelector('[data-modulo-acao="cheia"]')?.setAttribute('aria-pressed', String(body.classList.contains('mundo-tela-cheia'))); };
+  const fecharModulo = () => { body.classList.remove('mundo-tela-cheia'); chamar('voltarAoMenu'); };
+  cantoModulo.addEventListener?.('click', (e) => { const b = e.target.closest('[data-modulo-acao]'); if (!b) return; if (b.dataset.moduloAcao === 'cheia') alternarTelaCheia(); else fecharModulo(); });
+  // Janelas por cima do módulo (briefing, cartão, menus, notificações, busca…): o Esc é delas.
+  const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
+  const visivel = (el) => { if (!el.getClientRects?.().length) return false; const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > .05; };
+  const janelaPorCima = () => [...document.querySelectorAll(POR_CIMA)].filter((el) => !el.closest('#mundo-hud, #mundo') && visivel(el)).pop() || null;
+  const FECHAR_JANELA = '[data-fechar], .brief-fechar, [aria-label="Fechar"], [aria-label="Fechar janela"], .modal-close, .fechar, .close, [onclick*="fechar"], [onclick*="close"]';
+  let janelaNoEsc = null;
+  // Captura: anota a janela aberta ANTES que o Esc dela rode (senão o Esc fecharia a janela e o módulo juntos).
+  window.addEventListener?.('keydown', (e) => { if (e.key === 'Escape') janelaNoEsc = janelaPorCima(); }, true);
+  document.addEventListener?.('keydown', (e) => {
+    if (!ligado || body.classList.contains('auth-pending')) return;
+    const campo = e.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+    if (e.key === 'f' && !campo && !e.metaKey && !e.ctrlKey && !e.altKey && body.classList.contains('mundo-modulo')) { alternarTelaCheia(); return; }
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (campo) { campo.blur(); return; }
+    if (janelaNoEsc) { // a janela de cima fecha com o próprio Esc; se não fechou, aperta o X dela
+      const jan = janelaNoEsc; janelaNoEsc = null;
+      setTimeout(() => { if (visivel(jan)) (jan.querySelector(FECHAR_JANELA) || (jan.matches('details > *') ? jan.parentElement.querySelector('summary') : null))?.click(); if (jan.tagName === 'DETAILS' || jan.parentElement?.tagName === 'DETAILS') jan.closest('details')?.removeAttribute('open'); }, 0);
+      return;
+    }
+    if (chamarAberto) { chamarAberto = false; pintarChamada(); return; }
+    if (!placa().hidden) { fecharPlaca(); return; }
+    if (andarAberto) { fecharAndarVoxel(true); return; }
+    if (body.classList.contains('mundo-modulo')) { fecharModulo(); return; }
+    const v = hud.querySelector('[data-vista][aria-pressed="true"]');
+    if (v && v.dataset.vista !== 'cidade') hud.querySelector('[data-vista="cidade"]')?.click();
+  });
+
+  // ---------- Camadas do mapa ----------
+  // Clientes, marcos/ruas e captações ligam e desligam as etiquetas; Prospecção mostra as empresas de
+  // Irecê que NÃO são clientes, filtradas pelo funil do CRM (sem contato, em contato, sim, não).
+  const CAMADAS_CHAVE = 'vybe.mundo.camadas';
+  const camadas = (() => { try { return { clientes: true, marcos: true, captacoes: true, prospeccao: 'nenhuma', ...JSON.parse(localStorage.getItem(CAMADAS_CHAVE) || '{}') }; } catch { return { clientes: true, marcos: true, captacoes: true, prospeccao: 'nenhuma' }; } })();
+  const ETAPA_COR = { empresa: '#9AA3A8', qualificacao: '#3B9EFF', abordagem_proposta: '#8E7CFF', aprovada: '#7A4FD0', contato_feito: '#FF7A2F', reuniao: '#C2490C', proposta_comercial: '#E2A11B', ganho: '#18A957', perdido: '#D93D42' };
+  const ETAPA_NOME = { empresa: 'Empresa', qualificacao: 'Qualificação', abordagem_proposta: 'Abordagem proposta', aprovada: 'Aprovada', contato_feito: 'Contato feito', reuniao: 'Reunião', proposta_comercial: 'Proposta comercial', ganho: 'Sim · virou cliente', perdido: 'Não' };
+  const FILTROS_PROS = [['nenhuma', 'Desligada'], ['todas', 'Todas que não são clientes'], ['sem_contato', 'Sem contato ainda'], ['em_contato', 'Em contato (SDR já falou)'], ['sim', 'Disseram sim'], ['nao', 'Disseram não']];
+  let crmCache = null, crmEm = 0;
+  async function lerCrmTodo() {
+    if (crmCache && Date.now() - crmEm < 60e3) return crmCache;
+    const todas = []; let pagina = 1, total = Infinity;
+    while (todas.length < total && pagina <= 50) {
+      const r = await fetch(`/api/painel?area=crm&pagina=${pagina}`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!r.ok) break;
+      const d = await r.json(); total = d.total || 0; todas.push(...(d.oportunidades || [])); if (!(d.oportunidades || []).length) break; pagina++;
+    }
+    crmCache = todas; crmEm = Date.now(); return todas;
+  }
+  function aplicarCamadasEtiquetas() {
+    body.classList.toggle('cam-sem-clientes', !camadas.clientes);
+    body.classList.toggle('cam-sem-marcos', !camadas.marcos);
+    body.classList.toggle('cam-sem-captacoes', !camadas.captacoes);
+  }
+  async function aplicarProspeccao() {
+    if (!mundo?.mostrarEmpresasNoMapa) return;
+    const f = camadas.prospeccao;
+    if (f === 'nenhuma') { mundo.mostrarEmpresasNoMapa([]); return; }
+    const clientes = naTela.map((c) => norm(c.nome).toLowerCase()).filter((c) => c.length > 3);
+    const ehCliente = (e) => { const n = String(e.nome || '').toLowerCase(), r = String(e.razao || '').toLowerCase(); return clientes.some((c) => n === c || n.startsWith(c + ' ') || r.startsWith(c + ' ')); };
+    let crm = []; try { crm = await lerCrmTodo(); } catch { /* sem CRM: só a base */ }
+    const porCnpj = new Map(crm.filter((o) => o.cnpj).map((o) => [o.cnpj, o])), porNome = new Map(crm.map((o) => [String(o.nome || '').toLowerCase(), o]));
+    const EM_CONTATO = new Set(['abordagem_proposta', 'aprovada', 'contato_feito', 'reuniao', 'proposta_comercial']);
+    const lista = [];
+    for (const e of mundo.empresas || []) {
+      if (e.x == null || !mundo.noRecorte(e.x, e.z) || !['rua', 'numero'].includes(e.onde) || ehCliente(e)) continue;
+      const o = porCnpj.get(e.cnpj) || porNome.get(String(e.nome || '').toLowerCase()) || null, etapa = o?.etapa || null;
+      const ok = f === 'todas' || (f === 'sem_contato' && (!etapa || etapa === 'empresa' || etapa === 'qualificacao')) || (f === 'em_contato' && EM_CONTATO.has(etapa)) || (f === 'sim' && etapa === 'ganho') || (f === 'nao' && etapa === 'perdido');
+      if (!ok) continue;
+      lista.push({ x: e.x, z: e.z, nome: e.nome, etapa: etapa ? ETAPA_NOME[etapa] : '', cor: ETAPA_COR[etapa] || '#9AA3A8', rotulo: true, distMax: etapa ? 220 : 70, prioridade: etapa ? 2 : -3,
+        aoClicar: () => { mostrarAgente('comercial', 'sdr'); setTimeout(() => { const i = placa().querySelector('[data-crm-busca]'); if (i) { i.value = e.nome; i.dispatchEvent(new Event('input', { bubbles: true })); } }, 600); } });
+    }
+    // Muitos pinos sem contato: os mais perto da Vybe primeiro (o resto aparece quando filtrar o funil).
+    const ag = mundo.agencia || { x: 0, z: 0 };
+    lista.sort((a, b) => Math.hypot(a.x - ag.x, a.z - ag.z) - Math.hypot(b.x - ag.x, b.z - ag.z));
+    mundo.mostrarEmpresasNoMapa(lista.slice(0, 900));
+    return lista.length;
+  }
+  function salvarCamadas() { try { localStorage.setItem(CAMADAS_CHAVE, JSON.stringify(camadas)); } catch { /* sem armazenamento */ } }
+  function mostrarCamadas() {
+    const p = placa();
+    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
+      <small class="vv-cb-kicker">Mapa</small><h3>Camadas</h3>
+      <p class="vv-sub">Escolha o que aparece sobre Irecê. A prospecção mostra as empresas que ainda não são clientes, pela etapa do CRM do Qualificador.</p>
+      ${[['clientes', 'Clientes', 'Pinos com a situação de cada cliente'], ['marcos', 'Marcos e ruas', 'Prefeitura, praças, avenidas'], ['captacoes', 'Captações', 'Vans da Vybe a caminho dos clientes']].map(([k, n, d]) => `<label class="vv-camada"><input type="checkbox" data-camada="${k}"${camadas[k] ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}
+      <div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Prospecção (CRM)</div>
+      <div class="vv-camada-filtros">${FILTROS_PROS.map(([k, n]) => `<button type="button" class="vv-cb-aba${camadas.prospeccao === k ? ' on' : ''}" data-prospeccao="${k}">${n}</button>`).join('')}</div>
+      <div class="vv-cb-legenda">${Object.entries(ETAPA_NOME).map(([k, n]) => `<span><i style="background:${ETAPA_COR[k]}"></i>${n}</span>`).join('')}</div>
+      <p class="vv-dica" id="vv-camada-conta"></p>`;
+    p.hidden = false; ajustarAreaLivre();
+  }
+  hud.addEventListener('change', (e) => { const c = e.target.closest('[data-camada]'); if (!c) return; camadas[c.dataset.camada] = c.checked; salvarCamadas(); aplicarCamadasEtiquetas(); });
+  hud.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-prospeccao]'); if (!b) return;
+    camadas.prospeccao = b.dataset.prospeccao; salvarCamadas();
+    hud.querySelectorAll('[data-prospeccao]').forEach((x) => x.classList.toggle('on', x === b));
+    const conta = hud.querySelector('#vv-camada-conta'); if (conta) conta.textContent = 'Carregando…';
+    const n = await aplicarProspeccao();
+    if (conta) conta.textContent = camadas.prospeccao === 'nenhuma' ? '' : `${(n || 0).toLocaleString('pt-BR')} empresas neste filtro${n > 900 ? ' (no mapa, as 900 mais perto da Vybe)' : ''}.`;
+  });
+  aplicarCamadasEtiquetas();
 
   // ---------- Nada leva ao Escritório antigo no Irecity: o Escritório é o Prédio ----------
   // A aba "Escritório" (a casinha) e o chooseOfficeMode viram o Prédio. Exceção: a mesa de jogo,

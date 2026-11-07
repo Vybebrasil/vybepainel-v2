@@ -3347,8 +3347,8 @@ html body.mundo.mundo-modulo footer,html body.mundo.mundo-modulo #footer-update{
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="vinicius"]{--carteira-texto:#9C4209}
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="ewerton"]{--carteira-texto:#1A54A6}
 /* Texto com cor fixa no HTML (Performance, nomes de grupo…): escurece mantendo o tom */
-html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(span,strong,b,em,small,div,button,td)[style*="color:"]:not([style*="background"]):not(:has(img,svg,canvas)){filter:brightness(.72) saturate(1.2)}
-html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(.grupo-nome b,td.grupo-nome){filter:brightness(.75) saturate(1.2)}
+html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(span,strong,b,em,small)[style*="color:"]:not([style*="background"]):not(:has(img,svg,canvas)){filter:brightness(.72) saturate(1.2)}
+html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(.grupo-nome b){filter:brightness(.75) saturate(1.2)}
 html body.mundo.mundo-modulo :is(.ai-budget-line span,.pv-cabeca p,.conta-campo-linha>span,.grupos-total span,.pv-kpi span:not([class])){color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-numeros span{color:#1F1D1A!important;background:#F2EEE7!important;border-radius:6px}
 html body.mundo :is(.cli-situacao.ativo,.cli-painel.novo,.posts-count.ok,.auto-selo.trabalhando,.diario-varia.sobe){color:#0E6E3F!important}
@@ -3502,7 +3502,7 @@ html body.mundo.mundo-modulo button[onclick^="setProdV2View"]:not(.active):not(#
 /* Selecionado vence qualquer regra antiga (id na especificidade): fundo de ação + texto branco */
 html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"]):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"]):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira):not(#vv-x):not(#vv-y){background:var(--vv-acao)!important;border-color:var(--vv-acao)!important;color:#fff!important}
 /* Últimos textos coloridos fracos (mesmo tom, mais fundo) */
-html body.mundo.mundo-modulo :is(#grupos-board-demandas b,td.grupo-nome,.da-discipline-tag,.da-capacity-card strong,#painel-performance button:not(.active)):not(#vv-x){filter:brightness(.72) saturate(1.2)}
+html body.mundo.mundo-modulo :is(#grupos-board-demandas b,.da-discipline-tag,.da-capacity-card strong,#painel-performance button:not(.active)):not(#vv-x){filter:brightness(.72) saturate(1.2)}
 /* Pino cravado no endereço: quando dois clientes ficam perto, os nomes se sobrepõem em vez de sair do lugar;
    passar o mouse traz o pino para a frente. A ponta (seta) marca o ponto exato. */
 .rotulo-cliente:hover{z-index:20!important}
@@ -3533,3 +3533,144 @@ html body.mundo.mundo-modulo :is(#grupos-board-demandas b,td.grupo-nome,.da-disc
 .vv-agentes-conexao{font-size:11px;color:var(--vv-apagado,#6B675F)}
 .rotulo-agente:is(.executando,.falhou,.aguardando_aprovacao){border-color:var(--ag-cor)}
 .rotulo-agente.falhou{color:#A62D28}.rotulo-agente:is(.sem_execucao,.indisponivel){opacity:.65}
+
+.rotulo-marco.borda{background:#1F1D1A;color:#fff;border-color:#1F1D1A}
+.rotulo-marco.borda small{color:#FFB57D;font-weight:700;margin-left:4px}
+
+/* ===== Camadas do mapa ===== */
+body.cam-sem-clientes .mundo-rotulo.rotulo-cliente,body.cam-sem-marcos .mundo-rotulo:is(.rotulo-marco,.rotulo-rua,.rotulo-lugar),body.cam-sem-captacoes .mundo-rotulo.rotulo-van{display:none!important}
+.vv-camada{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-bottom:6px;border-radius:14px;border:1px solid #EFEAE2;background:#fff;cursor:pointer}
+.vv-camada span{display:flex;flex-direction:column}.vv-camada b{font:700 13px var(--vv-texto);color:var(--vv-tinta)}.vv-camada small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}
+.vv-camada-filtros{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}
+.vv-camada-filtros .vv-cb-aba.on{background:var(--vv-acao,#C2490C);border-color:var(--vv-acao,#C2490C);color:#fff}
+.rotulo-prospect{display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9px;background:rgba(255,255,255,.94);border:1px solid #E6E0D6;font:600 10px var(--vv-texto);color:#1F1D1A;cursor:pointer}
+.rotulo-prospect i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.rotulo-prospect small{font:600 9px var(--vv-texto);color:#6B675F;margin-left:2px}
+
+/* ===== Elevador e painel do andar ===== */
+.vv-elevador{position:relative;display:flex;align-items:center;gap:10px;width:100%;margin-bottom:6px;padding:10px 14px 10px 12px;border-radius:16px;border:1px solid #EFEAE2;background:#fff;text-align:left;cursor:pointer;font-family:var(--vv-texto);overflow:hidden;transition:box-shadow .15s,transform .15s var(--vv-mola)}
+.vv-elevador:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.09)}
+.vv-elevador .num{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font:800 13px var(--vv-texto);color:#fff;background:var(--c)}
+.vv-elevador .meio{flex:1;min-width:0}.vv-elevador .meio>b{display:block;font:700 13px var(--vv-texto);color:var(--vv-tinta)}
+.vv-elevador .kpis{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.vv-elevador .kpis em{font:500 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}.vv-elevador .kpis strong{color:var(--vv-tinta);font-weight:800}
+.vv-elevador .pontos{display:flex;gap:3px;flex:none}.vv-elevador .pontos i{width:9px;height:9px;border-radius:50%;background:var(--e)}
+.vv-elevador .sit{position:absolute;right:0;top:0;bottom:0;width:4px;background:var(--s)}
+.vv-andar-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 10px;padding:4px;border-radius:16px;background:linear-gradient(90deg,var(--s) 0 4px,#FAF8F4 4px)}
+.vv-andar-kpis div{padding:8px 10px;border-radius:12px;background:#fff;border:1px solid #F0EBE3}
+.vv-andar-kpis b{display:block;font:800 20px var(--vv-texto);color:var(--vv-tinta)}.vv-andar-kpis small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}
+
+/* ===== Barra de chamada ===== */
+.vv-chamada{position:absolute;left:calc(var(--vv-m) + 86px);bottom:var(--vv-m);display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-radius:18px;background:rgba(31,29,26,.9);color:#fff;box-shadow:0 14px 34px rgba(31,29,26,.3);pointer-events:auto;z-index:5;font-family:var(--vv-texto);max-width:calc(100vw - 2*var(--vv-m) - 110px);flex-wrap:wrap}
+.vv-chamada .sala{display:flex;flex-direction:column;margin-right:4px}.vv-chamada .sala b{font:700 13px var(--vv-texto);display:flex;align-items:center;gap:6px}
+.vv-chamada .sala i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.3)}
+.vv-chamada .sala small{font:500 11px var(--vv-texto);color:rgba(255,255,255,.7)}
+.vv-chamada .gente{display:flex;gap:4px}.vv-chamada .gente .p{padding:3px 8px;border-radius:9px;background:rgba(255,255,255,.12);font:600 11px var(--vv-texto)}
+.vv-chamada .gente .p.fala{background:#18A957;box-shadow:0 0 0 2px rgba(24,169,87,.45)}
+.vv-chamada .vv-botao{height:32px;background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;font-size:12px}
+.vv-chamada .vv-botao.on{background:#18A957!important}
+.vv-chamar{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;padding-top:6px}
+.vv-chamar button{appearance:none;text-align:left;padding:8px 10px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-family:var(--vv-texto)}
+.vv-chamar button b{display:block;font:700 12px var(--vv-texto)}.vv-chamar button small{font:500 10.5px var(--vv-texto);color:rgba(255,255,255,.7)}
+@media (max-width:900px){.vv-chamada{left:var(--vv-m);bottom:calc(64px + 2*var(--vv-m))}}
+
+/* Vista do prédio: só o prédio, os agentes e os clientes; o resto das etiquetas da cidade some */
+body.mundo-predio .mundo-rotulo:is(.rotulo-prospect,.rotulo-empresa,.rotulo-rua,.rotulo-lugar,.rotulo-marco){display:none!important}
+
+/* Demandas: a coluna fixa do nome volta a ser branca (o filtro de contraste escurecia a célula inteira) */
+html body.mundo.mundo-modulo td.grupo-nome:not(#vv-x):not(#vv-y){filter:none!important;background:#fff!important;color:#2E4A72!important}
+html body.mundo.mundo-modulo tr:hover td.grupo-nome:not(#vv-x):not(#vv-y){background:#FAF8F4!important}
+/* Resumo (atrasadas, sem tipo, pode fazer…): selo legível na cor da situação */
+html body.mundo .vb-resumo-item.alerta:not(#vv-x){background:#FDECEE!important;color:#B42318!important;border-color:#F6BBC4!important}
+html body.mundo .vb-resumo-item.atencao:not(#vv-x){background:#FFF4DC!important;color:#8A5A00!important;border-color:#F3D48B!important}
+html body.mundo .vb-resumo-item:is(.ok,.sucesso):not(#vv-x){background:#E6F6EC!important;color:#0E6E3F!important;border-color:#B5E3C7!important}
+html body.mundo .vb-resumo-item:is(.info,.neutro):not(#vv-x){background:#EEF4FC!important;color:#1A54A6!important;border-color:#C9DBF4!important}
+html body.mundo .vb-resumo-item b{color:inherit!important}
+
+/* ===== Módulo: tela cheia e fechar no canto ===== */
+.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 10px);right:calc(var(--vv-m) + 14px);z-index:640;gap:6px}
+body.mundo.mundo-modulo .vv-canto-modulo{display:flex}
+.vv-canto-modulo .vv-botao{width:36px;height:36px;padding:0;justify-content:center;border-radius:12px;background:rgba(255,255,255,.92)!important;border:1px solid #E6E0D6!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
+.vv-canto-modulo .vv-botao:hover{background:#fff!important;border-color:var(--vv-acao,#C2490C)!important}
+.vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vv-canto-modulo .vv-botao[aria-pressed="true"]{background:var(--vv-acao,#C2490C)!important}.vv-canto-modulo .vv-botao[aria-pressed="true"] svg{stroke:#fff}
+html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
+body.mundo.mundo-modulo.mundo-tela-cheia #mundo-moldura{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
+body.mundo.mundo-modulo.mundo-tela-cheia #mundo-hud .vv-trilho{display:none!important}
+body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:10px;right:14px}
+@media (max-width:900px){.vv-canto-modulo{top:8px;right:8px}}
+
+/* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
+html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:22px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
+html body.mundo dialog.appearance-dialog::backdrop{background:rgba(31,29,26,.28);backdrop-filter:blur(3px)}
+html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:#1F1D1A!important}
+html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:#5B574F!important}
+html body.mundo .appearance-dialog header button:not(#vv-x){background:#F3EFE8!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+html body.mundo .appearance-dialog input[type="range"]{accent-color:#C2490C}
+html body.mundo .appearance-dialog input[type="checkbox"]{accent-color:#C2490C}
+html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:#C2490C!important;color:#fff!important;border:0!important}
+
+/* ===== Briefing aberto: folha branca de verdade (o vidro escuro com o texto já escurecido ficava ilegível) ===== */
+html body.mundo .brief-overlay:not(#vv-x){background:rgba(31,29,26,.32)!important;backdrop-filter:blur(8px) saturate(1.05)!important}
+html body.mundo .brief-folha:not(#vv-x){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:0 30px 80px rgba(31,29,26,.25)!important}
+html body.mundo .brief-topo:not(#vv-x){background:rgba(255,255,255,.96)!important;border-bottom:1px solid #EFEAE2!important;backdrop-filter:blur(10px)}
+html body.mundo .brief-topo h2:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .brief-topo :is(p,small,span:not(.brief-kicker)):not(#vv-x){color:#5B574F!important}
+html body.mundo .brief-kicker:not(#vv-x),html body.mundo .brief-subtitulo:not(#vv-x),html body.mundo .brief-secao h3:not(#vv-x){color:#A84E00!important;filter:none!important}
+html body.mundo .brief-secao:not(#vv-x){background:#FAF8F4!important;border:1px solid #EFEAE2!important;color:#1F1D1A!important}
+html body.mundo .brief-secao-topo:not(#vv-x){background:#F3EFE8!important;border-bottom:1px solid #EFEAE2!important}
+html body.mundo :is(.brief-secao-corpo,.brief-corpo,.brief-par,.brief-item) :is(p,div,li,b,strong):not(#vv-x),html body.mundo .brief-texto:not(#vv-x){color:#1F1D1A!important}
+html body.mundo :is(.brief-secao-corpo,.brief-par) :is(span,small):not(#vv-x){color:#5B574F!important}
+html body.mundo :is(.brief-copiar,.brief-fechar,.brief-topo-acoes button):not(#vv-x){background:#fff!important;color:#1F1D1A!important;border:1px solid #E1DACE!important}
+html body.mundo :is(.brief-copiar,.brief-fechar,.brief-topo-acoes button):hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
+
+/* ===== Direção de arte: cores feitas para o fundo escuro, ajustadas para o claro ===== */
+/* ícones das abas do topo: continuam coloridos, mas com tinta suficiente para o fundo branco */
+html body.mundo .board-switch-btn:not(.active) .aba-ic{filter:saturate(1.5) brightness(.7)}
+/* nome do dono na agenda (Viniceta, Galeguinho…): a cor dele, escurecida para ler */
+html body.mundo .manager-calendar-carteira:not([aria-pressed="true"]):not(.active) b{filter:saturate(1.6) brightness(.55)}
+html body.mundo .workspace-eyebrow:not(#vv-x){filter:saturate(1.3) brightness(.62)}
+/* cabeçalho dos dias da semana do calendário mensal: barra clara, como o resto */
+html body.mundo .manager-calendar-weekday:not(#vv-x){background:#F3EFE8!important;color:#5B574F!important;border-color:#E6E0D6!important;font-weight:700}
+html body.mundo .ops-clear-btn.is-idle:not(#vv-x){color:#6B675F!important}
+
+/* ===== Gestor · calendário mensal na pele clara (era o último bloco escuro do Gestor) ===== */
+html body.mundo .manager-calendar:not(#vv-x){background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:0 10px 30px rgba(31,29,26,.07)!important}
+html body.mundo .manager-calendar-toolbar:not(#vv-x){background:rgba(255,255,255,.97)!important;border-bottom:1px solid #EFEAE2!important;box-shadow:0 6px 14px rgba(31,29,26,.06)!important;backdrop-filter:blur(10px)}
+html body.mundo .manager-calendar-month-label:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .manager-calendar-legend:not(#vv-x){background:#FAF8F4!important;border-bottom:1px solid #EFEAE2!important}
+html body.mundo .manager-calendar-grid:not(#vv-x){background:#EFEAE2!important}
+html body.mundo .manager-calendar-day:not(#vv-x){background:#FFFFFF!important}
+html body.mundo .manager-calendar-day.is-other:not(#vv-x){background:#FAF8F4!important;opacity:.7}
+html body.mundo .manager-calendar-day.is-today:not(#vv-x){background:linear-gradient(180deg,#FFF1E6,#FFFFFF 40%)!important;box-shadow:inset 0 3px 0 #C2490C!important}
+html body.mundo .manager-calendar-day-head:not(#vv-x),html body.mundo .manager-calendar-day-head :is(span,small):not(#vv-x){color:#6B675F!important}
+html body.mundo .manager-calendar-day-head b:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .manager-calendar-day.is-today .manager-calendar-day-head b:not(#vv-x){color:#C2490C!important}
+html body.mundo .manager-calendar-event:not(#vv-x){background:color-mix(in srgb,var(--event-color,#c4c4c4) 11%,#FFFFFF)!important;border:1px solid color-mix(in srgb,var(--event-color,#c4c4c4) 30%,#FFFFFF)!important;color:#1F1D1A!important}
+html body.mundo .manager-calendar-event:hover:not(#vv-x){border-color:var(--event-color,#c4c4c4)!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
+html body.mundo .manager-calendar-event :is(.manager-calendar-event-copy,b,strong):not(#vv-x){color:#1F1D1A!important}
+html body.mundo .manager-calendar-event :is(.manager-calendar-event-meta,.manager-calendar-event-status,small,span:not(.manager-calendar-event-bar):not(.manager-calendar-event-copy)):not(#vv-x){color:#5B574F!important}
+html body.mundo :is(.manager-calendar-add,.manager-calendar-more):not(#vv-x){background:#FAF8F4!important;border:1px solid #E6E0D6!important;color:#8A3A08!important}
+html body.mundo .manager-calendar-actions button:not(.active):not(.primary):not(#vv-x),html body.mundo .manager-calendar-month button:not(#vv-x){background:#fff!important;border:1px solid #E1DACE!important;color:#1F1D1A!important}
+/* barras que grudam no topo ao rolar deixam o canto do "tela cheia / fechar" livre */
+@media (min-width:901px){html body.mundo.mundo-modulo :is(.manager-calendar-toolbar,.capt-toolbar,.ag-cabeca,.da-barra):not(#vv-x){padding-right:104px!important}}
+/* rótulos neon (pensados para o escuro): mesma cor, com tinta para ler no claro */
+html body.mundo.mundo-modulo :is(.client-module-kicker,.da-discipline-tag,.da-command-daily-kicker,.da-capacity-signal strong):not(#vv-x){filter:saturate(1.4) brightness(.58)}
+/* agenda: o número do dia de hoje fica branco sobre o laranja */
+html body.mundo.mundo-modulo .ag-dia-cab.hoje b:not(#vv-x){color:#fff!important}
+/* controles nativos (caixa de marcar, select, data) no tema claro, sem quadrado preto */
+html body.mundo :is(dialog.appearance-dialog,.brief-overlay,#workflow-modal,#cartao-rapido,.header-utilities-menu,#notas-janela,#quem-sou-menu){color-scheme:light}
+html body.mundo.mundo-modulo{color-scheme:light}
+
+/* ===== Caixa de avisos (sino): clara, título legível, abas no padrão ===== */
+html body.mundo .notif-caixa:not(#vv-x){background:rgba(255,255,255,.98)!important;border:1px solid #E6E0D6!important;border-radius:18px!important;box-shadow:0 20px 50px rgba(31,29,26,.18)!important;color:#1F1D1A!important;max-height:min(520px,calc(100vh - 170px))!important;color-scheme:light}
+html body.mundo .notif-cabeca:not(#vv-x),html body.mundo .notif-cabeca > span:not(#vv-x),html body.mundo .notif-cabeca b:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .notif-cabeca button:not(.on):not(#vv-x){color:#A84E00!important}
+html body.mundo .notif-abas:not(#vv-x){background:#F3EFE8!important;border:1px solid #E6E0D6!important}
+html body.mundo .notif-abas button:not(.on):not(#vv-x){color:#5B574F!important}
+html body.mundo .notif-abas button:not(.on) span:not(#vv-x){color:#5B574F!important}
+html body.mundo .notif-item:not(#vv-x){border-bottom:1px solid #F0EBE3!important}
+html body.mundo .notif-item.nao-lida:not(#vv-x){background:#FFF6EE!important;box-shadow:inset 3px 0 0 #C2490C}
+html body.mundo .notif-texto:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .notif-meta:not(#vv-x){color:#6B675F!important}
+html body.mundo .notif-caixa.tem-mais::after{background:linear-gradient(180deg,rgba(255,255,255,0),#FFFFFF)!important;box-shadow:none!important}

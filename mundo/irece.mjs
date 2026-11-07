@@ -6,14 +6,17 @@ export const ruido = (x, z) => (((Math.imul(x | 0, 73856093) ^ Math.imul(z | 0, 
 const COR = (h) => new THREE.Color(h);
 const PASSO_M = 3;          // um degrau a cada 3 m de altitude
 const ALTURA_DEGRAU = 0.45; // relevo 1,5× exagerado: a maquete precisa mostrar
-const RAIO = 330;           // recorte do disco da maquete, em células
+// Recorte: o Centro de Irecê com TODOS os clientes ativos (de ACE e Serra Grande ao sul até DiaLab ao norte,
+// da Vybe a oeste até Lions e DiaCenter a leste). Menor que a cidade inteira para caber mais detalhe.
+export const CENTRO_RECORTE = { x: 4, z: 18 };
+const RAIO = 118;           // raio do disco da maquete, em células (1 célula = 10 m)
 
 export function construirIrece(motor, dados, { reservas = {}, comercios = [] } = {}) {
   const { w: GW, h: GH } = dados;
   const alt8 = Uint8Array.from(atob(dados.alt), (c) => c.charCodeAt(0));
   const cx = GW / 2, cz = GH / 2;
   const idx = (gx, gz) => gz * GW + gx;
-  const dentro = (gx, gz) => gx >= 0 && gz >= 0 && gx < GW && gz < GH && (gx - cx) ** 2 + (gz - cz) ** 2 < RAIO * RAIO;
+  const dentro = (gx, gz) => gx >= 0 && gz >= 0 && gx < GW && gz < GH && (gx - cx - CENTRO_RECORTE.x) ** 2 + (gz - cz - CENTRO_RECORTE.z) ** 2 < RAIO * RAIO;
 
   // ----- Ruas: rasterizar as linhas com a largura de cada tipo -----
   const rua = new Uint8Array(GW * GH); // 0 nada, 1..4 largura
@@ -303,6 +306,8 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     detalhes.push({ x: dx, y, z: dz, w: faceW(.32), h: .58, d: faceD(.32), cor: pega(PORTAS, gx + 1, gz + 4) });
     for (let a = 0; a < andares; a++) for (const l of a ? [-.35, .35] : [.38]) {
       const [wx, wz] = em((fz ? ld : lw) / 2 + .03, l);
+      detalhes.push({ x: wx, y: y + .26 + a * .8, z: wz, w: faceW(.4), h: .34, d: faceD(.4), cor: '#F4F1EA' });
+      const [px2, pz2] = em((fz ? ld : lw) / 2 + .07, l); detalhes.push({ x: px2, y: y + .24 + a * .8, z: pz2, w: fz ? .44 : .08, h: .04, d: fz ? .08 : .44, cor: '#D9D2C2' });
       ((a + gx + gz) % 5 === 0 ? luzes : detalhes).push({ x: wx + fx * .01, y: y + .31 + a * .8, z: wz + fz * .01, w: faceW(.28), h: .24, d: faceD(.28), cor: (a + gx + gz) % 5 === 0 ? '#FFE2A8' : '#4E6A78' });
     }
     if (tipo === 'sobrado') { // varanda com guarda-corpo no segundo andar
@@ -329,10 +334,10 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
       telhados.push({ x, y: y + h, z, w: lw + .06, d: ld + .06, h: .14, cor: pega(LAJES, gx + 2, gz + 5) });
       if (ruido(gx + 9, gz + 4) < .4) telhados.push({ x: x + .35, y: y + h + .14, z: z - .35, w: .42, d: .42, h: .32, cor: '#3F7FB3' });
     } else {
-      const telha = pega(TELHAS, gx + 5, gz + 2), passos = 2, aoLongo = ruido(gx, gz + 7) < .5;
+      const telha = pega(TELHAS, gx + 5, gz + 2), passos = 3, aoLongo = ruido(gx, gz + 7) < .5;
       for (let k = 0; k < passos; k++) {
         const enc = 1 - k / passos;
-        telhados.push({ x, y: y + h + k * .18, z, w: aoLongo ? lw + .16 : (lw + .16) * enc, h: .2, d: aoLongo ? (ld + .16) * enc : ld + .16, cor: k % 2 ? telha : TELHAS[(TELHAS.indexOf(telha) + 1) % TELHAS.length] });
+        telhados.push({ x, y: y + h + k * .13, z, w: aoLongo ? lw + .16 : (lw + .16) * enc, h: .14, d: aoLongo ? (ld + .16) * enc : ld + .16, cor: k % 2 ? telha : TELHAS[(TELHAS.indexOf(telha) + 1) % TELHAS.length] });
       }
     }
     // Carro estacionado na rua em frente, de vez em quando.
@@ -437,11 +442,12 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
   motor.animar(() => {
     let mudou = false;
     const c = motor.camera.position;
-    const alvo = motor.estado?.().alvo || { x: c.x, z: c.z }, perto = c.y < 170;
+    const alvo = motor.estado?.().alvo || { x: c.x, z: c.z };
     for (const q of pedacos) {
       const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz);
       // 3D só nos quadrantes perto de onde se olha; detalhes miúdos ainda mais perto.
-      const ver = perto && (q.detalhe ? c.y < 95 && d < 45 : d < 60 + c.y * .12);
+      // No recorte do Centro, casas e telhados ficam sempre em 3D; janelas, portas e luzes de perto.
+      const ver = q.detalhe ? c.y < 150 && d < 95 + c.y * .2 : true;
       mudou = mudou || q.m.visible !== ver; q.m.visible = ver;
     }
     return mudou;
@@ -487,7 +493,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     if (!dentro(gx, gz) || rua[i] || reservado[i] || area[i] === 2) continue;
     const n = ruido(gx * 5 + 11, gz * 3 + 7);
     const naPraca = area[i] === 1 && n < .22, noCampo = !urbano(gx, gz) && n < (ruido((gx >> 3) + 7, (gz >> 3) + 3) < .18 ? .3 : .012);
-    const naRua = urbano(gx, gz) && !area[i] && n < .01;
+    const naRua = urbano(gx, gz) && !area[i] && n < .028;
     if (!naPraca && !noCampo && !naRua) continue;
     const x = gx - cx + .5, z = gz - cz + .5, y = Y(nivel[i]), s = .7 + ruido(gz, gx) * .6;
     // Espécies do sertão de Irecê: na cidade, coqueiro e ipê (amarelo, rosa, roxo) entre as árvores de rua;
@@ -528,7 +534,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     for (const b of copas) { const gx = Math.round(b.x + cx - .5), gz = Math.round(b.z + cz - .5); tmp.set(b.cor); pinta(gx, gz, tmp, .92); }
     imagem.needsUpdate = true;
     const arv = [...qs(troncos, { sombra: false }, true), ...qs(copas, { sombra: true }, false)];
-    motor.animar(() => { let mudou = false; const c = motor.camera.position, alvo = motor.estado?.().alvo || c, perto = c.y < 300; for (const q of arv) { const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz), ver = perto && d < (q.detalhe ? 40 : 60) + c.y * .12; mudou = mudou || q.m.visible !== ver; q.m.visible = ver; } return mudou; });
+    motor.animar(() => { let mudou = false; const c = motor.camera.position, alvo = motor.estado?.().alvo || c; for (const q of arv) { const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz); const ver = q.detalhe ? c.y < 160 && d < 110 : true; mudou = mudou || q.m.visible !== ver; q.m.visible = ver; } return mudou; });
   }
 
   // ----- Nuvens deslizando -----
@@ -547,7 +553,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     nuvens.add(g);
   }
   motor.adicionar(nuvens);
-  motor.animar((t) => { let visivel = false; for (const g of nuvens.children) { g.position.x = ((g.userData.x0 + g.userData.v * t + 320) % 640) - 320; visivel = motor.emVista(g) || visivel; } return visivel; });
+  motor.animar((t) => { let visivel = false; for (const g of nuvens.children) { g.position.x = ((g.userData.x0 + g.userData.v * t + 170) % 340) - 170; visivel = motor.emVista(g) || visivel; } return visivel; });
 
   // Caminho pelas ruas de verdade (busca em largura no raster de ruas), para a van da Vybe.
   function ruaMaisPerto(gx0, gz0) {
@@ -589,7 +595,9 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     const m = Math.floor(achada.p.length / 4) * 2;
     return { x: achada.p[m] - cx, z: achada.p[m + 1] - cz, rua: achada.n };
   }
-  return { construidas, limparArea, achaTerreno, pontoDoEndereco, caminho, alturaEm, lugares, cx, cz, GW, GH, livreParaLote: (x, z) => { const gx = Math.round(x + cx), gz = Math.round(z + cz); return dentro(gx, gz) && !rua[idx(gx, gz)] && !area[idx(gx, gz)]; },
+  const noRecorte = (x, z, folga = 4) => (x - CENTRO_RECORTE.x) ** 2 + (z - CENTRO_RECORTE.z) ** 2 < (RAIO - folga) ** 2;
+  const naBorda = (x, z, folga = 6) => { const dx = x - CENTRO_RECORTE.x, dz = z - CENTRO_RECORTE.z, d = Math.hypot(dx, dz) || 1; return { x: CENTRO_RECORTE.x + dx / d * (RAIO - folga), z: CENTRO_RECORTE.z + dz / d * (RAIO - folga), dist: d }; };
+  return { construidas, limparArea, achaTerreno, noRecorte, naBorda, pontoDoEndereco, caminho, alturaEm, lugares, cx, cz, GW, GH, livreParaLote: (x, z) => { const gx = Math.round(x + cx), gz = Math.round(z + cz); return dentro(gx, gz) && !rua[idx(gx, gz)] && !area[idx(gx, gz)]; },
     ehRua: (x, z) => { const gx = Math.round(x + cx), gz = Math.round(z + cz); return gx >= 0 && gz >= 0 && gx < GW && gz < GH && rua[idx(gx, gz)] > 0; } };
 }
 

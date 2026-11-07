@@ -90,7 +90,10 @@ export function construirPredio(motor, { x, z, y }) {
     const r = motor.rotulo({ pos: new THREE.Vector3(x + LADO / 2 + .4, y + andar.nivel * PE + 1.2, z), classe: 'rotulo-andar escondido',
       html: `<i style="--c:${andar.cor}"></i><b>${andar.nivel === 0 ? 'Térreo' : andar.nivel === 6 ? 'Terraço' : andar.nivel + 'º'}</b><span>${andar.nome.replace(/^Terraço · /, '')}</span>`, distMax: 260, prioridade: 5 - andar.nivel / 10 });
     r.forcarEscondido = true; r.el.hidden = true;
-    andares.push({ andar, g, rotulo: r });
+    // Faixa de luz da situação do andar (verde em dia, amarelo pede aprovação, vermelho atraso/falha).
+    const faixa = new THREE.Mesh(new THREE.BoxGeometry(LADO + .42, .09, LADO + .42), new THREE.MeshBasicMaterial({ color: '#18A957', toneMapped: false }));
+    faixa.position.y = .08; g.add(faixa);
+    andares.push({ andar, g, rotulo: r, faixa });
   }
   // ---------- Salas da equipe (o Escritório dentro do prédio) ----------
   // A frente de cada andar tem as salas pessoais e os espaços comuns daquele andar,
@@ -237,7 +240,7 @@ export function construirPredio(motor, { x, z, y }) {
       tira.set(a.andar.nivel, t1);
       a.g.position.y = a.andar.nivel * PE + .15 + a.andar.nivel * ABRE * abre + t1;
       a.g.visible = t1 < 45;
-      a.rotulo.el.hidden = !abreQuer || t1 > 2;
+      a.rotulo.el.hidden = true;
     }
     ser.visible = foco === null;
     vidro.opacity = foco !== null ? .04 : .3 - .22 * abre;
@@ -330,7 +333,14 @@ export function construirPredio(motor, { x, z, y }) {
     if (mudou) motor.invalidar();
   }
 
+  const CORES_SIT = { verde: '#18A957', amarelo: '#E2A11B', vermelho: '#D93D42', cinza: '#9AA3A8' };
+  function situacaoDosAndares(mapa = {}) {
+    let mudou = false;
+    for (const a of andares) { const c = CORES_SIT[mapa[a.andar.id]] || CORES_SIT.cinza; if ('#' + a.faixa.material.color.getHexString().toUpperCase() !== c.toUpperCase()) { a.faixa.material.color.set(c); mudou = true; } }
+    if (mudou) motor.invalidar?.();
+  }
   return {
+    situacaoDosAndares,
     LADO, PE, raiz, atividadeAgentes,
     focar: (nivel) => { foco = nivel ?? null; motor.invalidar(); },
     presenca,
