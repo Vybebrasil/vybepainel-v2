@@ -25,6 +25,7 @@
   <link rel="preload" id="vybelandia-img" href="/assets/vybelandia.webp" as="image" media="(max-width: 1px)">
 </head>
 <body class="auth-pending vybe-desktop">
+<script>if (new URLSearchParams(location.search).get('legado') !== '1') document.body.classList.add('mundo');</script>
 
 <div id="loading" aria-live="polite" aria-label="Inicializando Vybe OS">
   <div class="boot-shell">

@@ -255,7 +255,7 @@
 
   function calcular(entrada) {
     const {
-      demandas = [], clientes = [], planejamentos = null, pessoas = null, finalizado = null, hoje = new Date(),
+      demandas = [], clientes = [], planejamentos = null, pessoas = null, finalizado = null, hoje = new Date(), graficoSemana = {},
     } = entrada || {};
     const R = REGRAS;
     const agora = ehData(hoje) ? hoje : new Date();
@@ -273,6 +273,11 @@
     const contaSemana = new Map([...semanasHist, ...semanasFuturas].map((s) => [s, { previstas: 0, abertas: 0, entregues: 0, noPrazo: 0, atrasadasEntregues: 0 }]));
     const diasDaSemana = Array.from({ length: 7 }, (_, i) => somarDias(inicioSem, i));
     const contaDia = new Map(diasDaSemana.map((d) => [d, { previstas: 0, entregues: 0 }]));
+    // O recorte do gráfico não muda o hoje real, os alertas ou a cobertura da agência.
+    const campoGrafico = graficoSemana?.campo === 'prazo' ? 'prazo' : 'veiculacao';
+    const inicioGrafico = inicioDaSemana(soData(graficoSemana?.referencia) || dia);
+    const diasGrafico = Array.from({ length: 7 }, (_, i) => somarDias(inicioGrafico, i));
+    const contaGrafico = new Map(diasGrafico.map((d) => [d, { previstas: 0, entregues: 0 }]));
     const cacheSemana = new Map();
     const semanaDe = (iso) => { let s = cacheSemana.get(iso); if (!s) { s = inicioDaSemana(iso); cacheSemana.set(iso, s); } return s; };
     // Dias parada: poucos dias distintos para milhares de peças.
@@ -410,14 +415,19 @@
         if (!p.ids.length) semResponsavel.push(p);
         if (p.d.tem_briefing === false) semBriefing.push(p);
         let g = gargalos.get(p.chave);
-        if (!g) { g = { status: rotuloDe(p), qtd: 0, idades: [], maisAntiga: null }; gargalos.set(p.chave, g); }
+        if (!g) { g = { status: rotuloDe(p), qtd: 0, idades: [], maisAntiga: null, pecas: [] }; gargalos.set(p.chave, g); }
         g.qtd++;
+        g.pecas.push(p);
         if (p.idade != null) {
           g.idades.push(p.idade);
           if (!g.maisAntiga || p.idade > g.maisAntiga.idade || (p.idade === g.maisAntiga.idade && porData(p, g.maisAntiga) < 0)) g.maisAntiga = p;
         }
       }
       // Semanas e dias
+      const previstoGrafico = contaGrafico.get(campoGrafico === 'prazo' ? p.prazo : p.veic);
+      if (previstoGrafico) previstoGrafico.previstas++;
+      const entregueGrafico = p.entregue && contaGrafico.get(p.diaStatus);
+      if (entregueGrafico) entregueGrafico.entregues++;
       if (p.data && p.data >= primeiroDiaContado && p.data <= ultimoDiaContado) {
         const s = contaSemana.get(semanaDe(p.data));
         if (s) { s.previstas++; if (!p.entregue) s.abertas++; }
@@ -548,6 +558,11 @@
         semana: st.semana, proximaSemana: st.proximaSemana, esquecidas: st.esquecidas,
         temPlanejamento, planejamento: planoDoCliente.get(st.cliente) || null,
         saude: critico ? 'critico' : atencao ? 'atencao' : 'ok', motivos, gravidade,
+        pendencias: pecas.filter((p) => p.clientes.includes(st.cliente) && (p.atrasada || p.emRisco || p.esquecida))
+          .sort(porAtraso).map((p) => ({ ...peca(p), cliente: st.cliente, motivos: [
+            p.furo && 'Veiculação vencida', p.prazoVencido && 'Prazo interno vencido',
+            p.emRisco && 'Risco de furo', p.esquecida && 'Aberta esquecida',
+          ].filter(Boolean) })),
       };
     }).sort((a, b) => (ORDEM_SAUDE[a.saude] - ORDEM_SAUDE[b.saude]) || (b.gravidade - a.gravidade) || compararNomes(a.cliente, b.cliente));
     for (const c of listaClientes) delete c.gravidade;
@@ -569,6 +584,7 @@
       pecasDia: g.idades.reduce((t, x) => t + x, 0),
       maisAntiga: g.maisAntiga ? peca(g.maisAntiga) : null,
       maisAntigaDias: g.maisAntiga ? g.maisAntiga.idade : null,
+      lista: g.pecas.sort((a, b) => (b.idade || 0) - (a.idade || 0) || porData(a, b)).map(peca),
     })).sort((a, b) => (b.pecasDia - a.pecasDia) || (b.qtd - a.qtd) || compararNomes(a.status, b.status));
 
     // ── Time ─────────────────────────────────────────────────────────────────────
@@ -680,6 +696,7 @@
       fonte,
       hoje: blocoHoje,
       semana: blocoSemana,
+      graficoSemana: { campo: campoGrafico, inicio: inicioGrafico, fim: diasGrafico[6], porDia: diasGrafico.map((dia) => ({ dia, ...contaGrafico.get(dia) })) },
       cobertura,
       clientes: listaClientes,
       gargalos: listaGargalos,

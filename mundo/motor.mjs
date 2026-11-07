@@ -50,7 +50,7 @@ export function liberarCena(cena) {
 export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const eventos = new AbortController();
   const ouvir = (alvo, nome, fn, opcoes = {}) => alvo.addEventListener(nome, fn, { ...opcoes, signal: eventos.signal });
-  let ciclo, destruido = false;
+  let ciclo, destruido = false, contextoPerdido = false;
   function invalidar() { if (destruido) return; sujo = true; ciclo?.acordar(); }
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   // 1,5× já é nítido no Retina e desenha ~44% menos pixels que 2×.
@@ -162,6 +162,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
   for (const nome of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'wheel', 'dblclick']) ouvir(canvas, nome, () => ciclo?.acordar(), { passive: true });
   ouvir(document, 'visibilitychange', () => { if (!document.hidden) invalidar(); });
+  ouvir(canvas, 'webglcontextlost', (e) => { e.preventDefault(); contextoPerdido = true; });
+  ouvir(canvas, 'webglcontextrestored', () => { contextoPerdido = false; medir(); invalidar(); });
   ouvir(canvas, 'contextmenu', (e) => e.preventDefault());
   ouvir(canvas, 'pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
@@ -332,7 +334,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const io = new IntersectionObserver(([e]) => { visivel = e.isIntersecting; if (visivel) invalidar(); }, { threshold: 0.01 });
   io.observe(canvas);
   function passo(t) {
-    if (destruido || pausado || !visivel || document.hidden) return false;
+    if (destruido || pausado || contextoPerdido || !visivel || document.hidden) return false;
     const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
     // Mexendo: todo quadro. Parado, a cidade vira "foto" aos poucos (Paulo, 07/11/2026: "não ficar renderizando a cidade
     // toda o tempo todo"): o que só enfeita (nuvem, água, o V girando) cai para 30 qps, depois de 6 s para 15, depois de

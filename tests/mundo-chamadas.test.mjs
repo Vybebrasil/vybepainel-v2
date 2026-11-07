@@ -22,7 +22,7 @@ function chamada() {
   const e = { conectado: true, zona: 'sala-a', canalChamada: 'escritorio', microfoneQuer: false, erroMic: null, base: {}, online: [], trancas: new Map(), chamada: { self } };
   const c = vm.createContext({ escritorio: e, Set, Map, window: {},
     setTimeout: f => { timers.push(f); return timers.length; },
-    pintarChamada() {}, moverParaSala: zona => { e.zona = zona; },
+    pintarChamada() {}, focarSalaDaChamada() {}, moverParaSala: zona => { e.zona = zona; },
     escritorioTocarVozes() {}, renderMidiaEscritorio() {}, atualizarControlesEscritorio() {},
     escritorioAviso: m => avisos.push(m), escritorioDiagnosticarMic: async () => ({ titulo: 'Negado' }),
     aplicarQualidadeTelaEscritorio: async () => eventos.push('qualidade'),
@@ -86,7 +86,7 @@ function barra(e, participantes, falando = new Set()) {
     escritorioPessoasFalando: () => falando, escritorioEstadoVozTexto: () => 'Conectando' };
   const c = vm.createContext({ escritorio: e, mundo: { zonasDoPredio: {} }, barra: el,
     body: { classList: { contains: () => false } }, ligado: true, window: {},
-    pessoaAberta: null, chamarAberto: false, fn: n => funcoes[n], esc: String, iniciais: n => n[0],
+    pessoaAberta: null, chamarAberto: false, minhaSalaDaConta: () => '', fn: n => funcoes[n], esc: String, iniciais: n => n[0],
     musicaHtml: () => '', IC: {}, Set,
   });
   vm.runInContext(fonte(world, 'pintarChamada', '  '), c); c.pintarChamada(); return el.innerHTML;
