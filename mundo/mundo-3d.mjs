@@ -270,7 +270,8 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
         const f = fixos[c.nome], cadastro = naBase(c.nome, true);
         const confirmado = f && Number.isFinite(f.x) && Number.isFinite(f.z) && /google maps/i.test(f.fonte || '') && !f.conferir;
         const pt = f && Number.isFinite(f.x) ? f : f?.rua ? irece.pontoDoEndereco(f.rua) : (cadastro || irece.pontoDoEndereco(c.endereco));
-        const precisao = confirmado ? 'confirmada' : cadastro && pt === cadastro ? cadastro.onde : pt ? 'rua' : 'sem';
+        const definida = f && Number.isFinite(f.x) && Number.isFinite(f.z) && !/google maps/i.test(f.fonte || '');
+        const precisao = confirmado ? 'confirmada' : definida ? 'definida' : cadastro && pt === cadastro ? cadastro.onde : pt ? 'rua' : 'sem';
         return { ...c, ponto: pt || null, precisao };
       });
       posicoes = clientes.definir(comPonto, opcoes);

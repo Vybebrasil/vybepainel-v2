@@ -9,7 +9,7 @@ import { Obra } from './voxel.mjs';
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export function precisaoDoPino(origem) {
-  return ({ confirmada: ['confirmada', 'Confirmada', 'Localização confirmada pelo Google Maps'], numero: ['numero', 'Estimada', 'Posição estimada pelo número na rua'],
+  return ({ definida: ['definida', 'Definida', 'Posição definida pelo Paulo'], confirmada: ['confirmada', 'Confirmada', 'Localização confirmada pelo Google Maps'], numero: ['numero', 'Estimada', 'Posição estimada pelo número na rua'],
     rua: ['rua', 'Rua', 'Posição estimada pela rua, sem número confirmado'], bairro: ['bairro', 'Bairro', 'Posição aproximada pelo bairro'], cidade: ['cidade', 'Cidade', 'Posição aproximada pela cidade'] })[origem]
     || ['sem', 'Sem local', 'Endereço ainda não localizado; sede em lote de referência'];
 }
