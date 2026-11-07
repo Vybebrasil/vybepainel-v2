@@ -3945,3 +3945,182 @@ html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#d
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
 html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-sel-borda)!important}
 html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"] svg{stroke:currentColor}
+
+/* ======================================================================================
+   VISÃO DO DONO (HUD "Agência") e MÓDULO GESTÃO — no design system (docs/padrao-visual.md)
+   ====================================================================================== */
+/* item Gestão no dock: só para os sócios */
+.vv-trilho-btn[data-trilho="gestao"]{display:none}
+body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
+/* seletor segmentado (Agência | Minhas tarefas; abas da Gestão) */
+.vv-seg{display:flex;gap:2px;padding:3px;margin:0 0 12px;border-radius:12px;background:#EFEAE2;border:1px solid #E6E0D6}
+.vv-seg button{appearance:none;flex:1;border:0;background:transparent;padding:6px 10px;border-radius:9px;font:600 12px var(--vv-texto);color:#5B574F;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.vv-seg button:hover{color:#1F1D1A}
+.vv-seg button[aria-selected="true"]{background:#FFFFFF;color:#C2490C;box-shadow:0 1px 2px rgba(31,29,26,.08),0 0 0 1px #E6E0D6}
+/* KPIs do HUD */
+.vv-dono-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 12px}
+.vv-dono-kpis button{appearance:none;text-align:left;padding:8px 9px;border-radius:12px;border:1px solid #E6E0D6;background:#fff;cursor:pointer;font-family:var(--vv-texto);transition:transform .15s var(--vv-mola),box-shadow .15s}
+.vv-dono-kpis button:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(31,29,26,.08)}
+.vv-dono-kpis b{display:block;font:800 19px/1.1 var(--vv-texto);color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-dono-kpis b i{font-style:normal;font-size:12px;color:#6B675F;font-weight:700}
+.vv-dono-kpis small{font:600 10.5px var(--vv-texto);color:#6B675F}
+.vv-dono-kpis .u1{background:#FDECEE;border-color:#F6BBC4}.vv-dono-kpis .u1 b{color:#B42318}
+.vv-dono-kpis .u2{background:#FFF6DE;border-color:#F3D48B}.vv-dono-kpis .u2 b{color:#8A5A00}
+.vv-dono-kpis .u6 b{color:#11613A}
+.vv-dono-cartao{padding:10px 12px;border-radius:16px;background:#fff;border:1px solid #E6E0D6;margin-bottom:10px}
+.vv-graf{display:block;width:100%;height:auto}
+.vv-graf text{font:600 9.5px var(--vv-texto);fill:#6B675F}.vv-graf text.hoje{fill:#C2490C;font-weight:800}
+.vv-legenda{display:flex;gap:12px;align-items:center;margin:4px 0 0;font:600 10.5px var(--vv-texto);color:#6B675F}
+.vv-legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:-6px;vertical-align:-1px}
+.vv-legenda i.pv{background:#E1DACE}.vv-legenda i.en{background:#18A957}.vv-legenda i.en2{background:#FF7A2F;height:3px;border-radius:2px}.vv-legenda i.md{background:repeating-linear-gradient(90deg,#6B675F 0 3px,transparent 3px 5px);height:2px}.vv-legenda i.pj{background:repeating-linear-gradient(90deg,#8B7DFF 0 2px,transparent 2px 4px);height:3px}
+.vv-dono-linha{appearance:none;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;border-radius:12px;border:1px solid #EFEAE2;background:#fff;font-family:var(--vv-texto);cursor:pointer;transition:background .12s}
+.vv-dono-linha:not(.estatica):hover{background:#FAF5EE}
+.vv-dono-linha.estatica{cursor:default}
+.vv-dono-linha .meio{flex:1;min-width:0}.vv-dono-linha b{display:block;font:700 12.5px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-dono-linha small{display:block;font:500 11px/1.35 var(--vv-texto);color:#6B675F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-dono-linha em{font:800 12px var(--vv-texto);font-style:normal;color:#8A5A00;font-variant-numeric:tabular-nums}
+.vv-dono-linha .saude{flex:none;width:8px;height:28px;border-radius:4px;background:#9AA3A8}
+.saude.u1,.vv-g-alerta.n1 i{background:#D93D42!important}.saude.u2,.vv-g-alerta.n2 i{background:#E2A11B!important}.saude.u6,.vv-g-alerta.n6 i{background:#18A957!important}
+.vv-dono-linha .av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#E9E3D8;color:#1F1D1A;font:800 10.5px var(--vv-texto)}
+.vv-dono-linha .av.bot{background:#ECE9FF;color:#5B4BD6}
+.vv-cobertura .barra{height:8px;border-radius:5px;background:#F1E9DE;overflow:hidden}.vv-cobertura .barra i{display:block;height:100%;background:#18A957;border-radius:5px}
+.vv-cobertura p{margin:7px 0 0;font:500 11.5px/1.4 var(--vv-texto);color:#3A3F44}.vv-cobertura p b{color:#1F1D1A}
+.t-u1{color:#B42318!important;font-weight:700}.t-u2{color:#8A5A00!important;font-weight:700}
+.vv-chips-mini{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.vv-chips-mini span{font:600 10.5px var(--vv-texto);padding:2px 7px;border-radius:999px;background:#FFF6DE;color:#8A5A00;border:1px solid #F3D48B}.vv-chips-mini b{font-weight:800}
+.vv-dono-abrir{width:100%;justify-content:center;height:40px;margin:6px 0 10px;border-radius:12px!important}
+
+/* ---------- Módulo Gestão ---------- */
+.vv-gestao{position:fixed;z-index:640;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + 76px);overflow:auto;overscroll-behavior:contain;padding:0 22px 30px;border-radius:var(--vv-r-placa);background:rgba(246,243,238,.97);border:1px solid rgba(255,255,255,.7);box-shadow:0 18px 50px rgba(40,26,10,.22);backdrop-filter:blur(18px) saturate(1.4);color:#1F1D1A;font-family:var(--vv-texto);color-scheme:light;animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
+.vv-gestao[hidden]{display:none}
+body.mundo-gestao.mundo-tela-cheia .vv-gestao{top:0;bottom:0;left:0;right:0;border-radius:0;z-index:900}
+body.mundo-gestao #mundo-hud :is(.vv-hoje,.vv-agenda,.vv-placa,.vv-controles,.vv-chamada,.vv-topo){visibility:hidden}
+body.mundo-gestao .plj-aviso{visibility:hidden}
+.vv-g-topo{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 0 10px;margin:0 -22px;padding-left:22px;padding-right:22px;background:linear-gradient(180deg,rgba(246,243,238,.98) 70%,rgba(246,243,238,0))}
+.vv-g-topo h2{margin:2px 0 2px;font:700 26px/1.1 var(--vv-titulo);letter-spacing:-.02em}
+.vv-g-topo p{margin:0;font:500 12px var(--vv-texto);color:#6B675F}
+.vv-g-acoes{display:flex;gap:6px}.vv-g-acoes .vv-botao{width:36px;height:36px;padding:0;justify-content:center;background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:12px!important}
+.vv-g-abas{max-width:720px;margin-bottom:16px}
+.vv-g-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.vv-g-kpi{padding:14px 16px;border-radius:18px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)}
+.vv-g-kpi b{display:block;font:800 28px/1.05 var(--vv-texto);font-variant-numeric:tabular-nums;color:#1F1D1A}
+.vv-g-kpi b i{font-style:normal;font-size:15px;color:#6B675F}
+.vv-g-kpi small{display:block;margin-top:4px;font:600 11.5px var(--vv-texto);color:#6B675F}
+.vv-g-kpi em{display:block;margin-top:2px;font:600 10.5px var(--vv-texto);font-style:normal;color:#8A847A}
+.vv-g-kpi.u1{background:linear-gradient(180deg,#FDECEE,#fff);border-color:#F6BBC4}.vv-g-kpi.u1 b{color:#B42318}
+.vv-g-kpi.u2{background:linear-gradient(180deg,#FFF6DE,#fff);border-color:#F3D48B}.vv-g-kpi.u2 b{color:#8A5A00}
+.vv-g-kpi.u6 b{color:#11613A}
+.vv-g-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.vv-g-cartao{padding:14px 16px;border-radius:18px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05);min-width:0}
+.vv-g-cartao.largo{grid-column:1/-1}
+.vv-g-cartao h4{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:700 14px var(--vv-titulo);color:#1F1D1A}
+.vv-g-cartao h4 span{font:800 11px var(--vv-texto);padding:2px 8px;border-radius:999px;background:#F1F2F3;color:#5B6268}
+.vv-g-cartao h4 span.u1{background:#D93D42;color:#fff}.vv-g-cartao h4 span.u2{background:#FFF1CC;color:#8A5A00}
+.vv-g-linha{appearance:none;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;width:100%;text-align:left;padding:7px 8px;border:0;border-bottom:1px solid #F0EBE3;background:transparent;font-family:var(--vv-texto)}
+.vv-g-linha.peca{cursor:pointer;border-radius:10px}.vv-g-linha.peca:hover{background:#FAF5EE}
+.vv-g-linha b{font:700 12.5px var(--vv-texto);color:#1F1D1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vv-g-linha small{grid-column:1;font:500 11px var(--vv-texto);color:#6B675F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vv-g-linha em{grid-row:1/3;grid-column:2;font:700 11.5px var(--vv-texto);font-style:normal;color:#5B574F;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font:700 10.5px var(--vv-texto);background:#F1F2F3;color:#5B6268}
+.pill.u1{background:#D93D42;color:#fff}.pill.u2{background:#FFF1CC;color:#8A5A00}.pill.u6{background:#E7F6EE;color:#11613A}
+.pill[style*="--e"]{background:color-mix(in srgb,var(--e) 14%,#fff);color:color-mix(in srgb,var(--e) 70%,#1F1D1A)}
+.vv-g-alerta{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid #F0EBE3;font:500 12.5px var(--vv-texto);color:#1F1D1A}
+.vv-g-alerta i{flex:none;width:8px;height:8px;border-radius:50%;background:#9AA3A8}
+.vv-g-alerta.n3 i{background:#D6409F}.vv-g-alerta.n4 i{background:#0D74CE}
+.vv-g-gargalo{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:5px 0}
+.vv-g-gargalo b{display:block;font:700 12px var(--vv-texto)}.vv-g-gargalo small{font:500 10.5px var(--vv-texto);color:#6B675F}
+.vv-g-gargalo i{display:block;height:10px;border-radius:6px;background:#F3EFE8;overflow:hidden}.vv-g-gargalo u{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#F3D48B,#E2A11B)}
+.vv-g-tabela{width:100%;border-collapse:separate;border-spacing:0;font:500 12.5px var(--vv-texto);color:#1F1D1A}
+.vv-g-tabela th{position:sticky;top:0;background:#fff;font:700 9.5px var(--vv-texto);letter-spacing:.08em;text-transform:uppercase;color:#6B675F;text-align:left;padding:7px 8px;border-bottom:1px solid #E6E0D6}
+.vv-g-tabela td{padding:9px 8px;border-bottom:1px solid #F0EBE3;vertical-align:middle}
+.vv-g-tabela td small{display:block;color:#6B675F;font-size:10.5px}
+.vv-g-tabela .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vv-g-tabela .mot{color:#5B574F;font-size:11.5px;max-width:340px}
+.vv-g-tabela tbody tr[data-cerebro-cliente],.vv-g-tabela tbody tr[data-agente]{cursor:pointer}
+.vv-g-tabela tbody tr:hover{background:#FAF5EE}
+.vv-g-tabela .ok{color:#11613A;font-weight:800}.vv-g-tabela .nao{color:#B8B2A7}
+.vv-graf.linha .grade{stroke:#F0EBE3;stroke-width:1}
+.vv-graf.linha .mediana{stroke:#6B675F;stroke-width:1.2;stroke-dasharray:4 3}
+.vv-graf.linha .serie{fill:none;stroke:#FF7A2F;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.vv-graf.linha .proj{fill:none;stroke:#8B7DFF;stroke-width:2.2;stroke-dasharray:2 4;stroke-linecap:round}
+.vv-graf.linha circle.pt{fill:#fff;stroke:#FF7A2F;stroke-width:2}.vv-graf.linha circle.atual{fill:#FF7A2F;stroke:#fff;stroke-width:2}.vv-graf.linha circle.ptproj{fill:#fff;stroke:#8B7DFF;stroke-width:2}
+.vv-graf.linha .rot,.vv-graf.linha .eixo{font:600 9.5px var(--vv-texto);fill:#6B675F}
+@media (max-width:900px){.vv-gestao{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 24px 24px;padding:0 12px 20px}.vv-g-topo{margin:0 -12px;padding-left:12px;padding-right:12px}.vv-dono-kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Agenda (cartão da captação), Notas, menu "Mais" da peça, pergunta de briefing: padrão claro ===== */
+html body.mundo :is(.ag-cartao,.capt-menu-painel):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:18px!important;box-shadow:0 22px 50px rgba(31,29,26,.2)!important;backdrop-filter:none!important;color-scheme:light}
+html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(h3,h4,b,strong,.capt-detalhe-titulo):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
+html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(p,small,.capt-detalhe-quando,.capt-progresso,.capt-discreto,.capt-menu-rotulo):not(#ds-a):not(#ds-b){color:#6B675F!important}
+html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(#ds-a):not(#ds-b){background:transparent!important;color:#C2490C!important;border:0!important}
+html body.mundo .ag-cartao-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:10px!important}
+html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:22px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;color-scheme:light}
+html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
+html body.mundo #notas-janela :is(.notas-caderno.ativo,.notas-caderno.active,.notas-caderno[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important}
+html body.mundo #notas-janela :is(.notas-item-pe,small):not(#ds-a):not(#ds-b){color:#6B675F!important}
+html body.mundo #notas-janela :is(textarea,input):not(#ds-a):not(#ds-b){background:#FFFCF6!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
+html body.mundo .workspace-mais-menu:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:14px!important;box-shadow:0 18px 40px rgba(31,29,26,.18)!important;color:#1F1D1A!important}
+html body.mundo .workspace-mais-menu :is(button,a):not(.perigo):not(#ds-a):not(#ds-b){background:transparent!important;color:#1F1D1A!important;border:0!important}
+html body.mundo .workspace-mais-menu :is(button,a):hover:not(#ds-a):not(#ds-b){background:#FAF5EE!important}
+html body.mundo .cli-pergunta:not(#ds-a){background:rgba(31,29,26,.3)!important;backdrop-filter:blur(6px)!important}
+html body.mundo .cli-pergunta-caixa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:24px!important;box-shadow:0 30px 80px rgba(31,29,26,.25)!important;color-scheme:light}
+html body.mundo .cli-pergunta-caixa :is(h3,b,strong):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
+html body.mundo .cli-pergunta-caixa :is(p,small,label):not(#ds-a):not(#ds-b){color:#6B675F!important}
+/* cartão rápido: seta, traço vazio e trecho do briefing legíveis */
+html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:#6B675F!important}
+html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B675F!important}
+/* prévia grande (fundo escuro de propósito): textos claros */
+html body.mundo .previa-grande :is(small,p,b,span):not(.pill):not(#ds-a):not(#ds-b){color:#F4F1EA!important}
+html body.mundo .previa-grande-seta:not(#ds-a):not(#ds-b){color:#FFFFFF!important;background:rgba(255,255,255,.14)!important}
+
+/* ===== Menu da conta (topo do mapa) ===== */
+.vv-menu-conta{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;padding:6px;border-radius:16px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 20px 44px rgba(31,29,26,.2);pointer-events:auto;animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}
+.vv-topo{position:absolute}
+.vv-barra-topo{position:relative}
+.vv-menu-conta button{appearance:none;display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:10px;background:transparent;cursor:pointer;font-family:var(--vv-texto)}
+.vv-menu-conta button:hover{background:#FAF5EE}
+.vv-menu-conta b{display:block;font:700 12.5px var(--vv-texto);color:#1F1D1A}.vv-menu-conta small{font:500 11px var(--vv-texto);color:#6B675F}
+.vv-menu-conta .perigo b{color:#B42318}
+.vv-menu-conta hr{border:0;border-top:1px solid #EFEAE2;margin:4px 6px}
+
+/* ===== Login e chegada no design system (ação principal = Criar) ===== */
+html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario,#login-chegar):not(#ds-a):not(#ds-b){background:#FF7A2F!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:0 8px 20px -8px #E8602E!important}
+html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario):hover:not(#ds-a):not(#ds-b){background:#E8602E!important}
+html body.mundo #login-gate .abr-primario :is(b,small):not(#ds-a):not(#ds-b){color:#FFFFFF!important}
+html body.mundo #login-gate .login-rosto:not(#ds-a):not(#ds-b){background:#FFFFFF!important;border:1px solid #E6E0D6!important;border-radius:16px!important}
+html body.mundo #login-gate .login-rosto:is(.ativo,.selecionado,[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;border-color:var(--ds-sel-borda)!important;color:var(--ds-sel-texto)!important}
+html body.mundo #login-gate .login-outro:not(#ds-a):not(#ds-b){color:#C2490C!important}
+
+/* ======================================================================================
+   MODO ESCURO (botão de aparência do topo: Claro / Escuro / Automático)
+   Inversão inteligente: o vidro claro inteiro vira escuro de uma vez (painéis, módulos, janelas),
+   e o que tem cor própria volta ao original (fotos, avatares, o VYBES, a ação laranja, o vermelho
+   de atrasado). O filtro fica nos filhos do body e do HUD, nunca no body: assim nada que é "fixed"
+   muda de lugar. O mapa 3D não é invertido: ganha luz de fim de tarde.
+   ====================================================================================== */
+html.tema-escuro body.mundo{--vv-vidro:rgba(250,248,244,.95);--vv-vidro-forte:rgba(251,250,247,.98);--vv-vidro-leve:rgba(250,248,244,.9)}
+html.tema-escuro body.mundo > :not(#mundo):not(#mundo-hud):not(#mundo-moldura):not(script):not(style):not(link):not(.workflow-backdrop):not(#workflow-backdrop):not(.cartao-rapido-fundo):not(.status-editor-backdrop):not(.workspace-backdrop),
+html.tema-escuro body.mundo #mundo-hud > *,
+html.tema-escuro body.mundo #mundo .mundo-rotulos{filter:invert(.92) hue-rotate(180deg)}
+/* desinverte o que tem cor própria */
+html.tema-escuro body.mundo :is(img,video,picture,iframe,[style*="background-image"],.vv-ser,.vv-trilho-btn.criar,.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.login-entrar,.abr-primario,.acao-motivo.m-vencido,.pill.u1,[data-chamada="reconectar"]){filter:invert(1) hue-rotate(180deg)}
+html.tema-escuro body.mundo :is(.vv-g-cartao h4 span.u1){filter:invert(1) hue-rotate(180deg)}
+/* fundos de escurecer (atrás das janelas) continuam escurecendo */
+html.tema-escuro body.mundo :is(.workflow-backdrop,#workflow-backdrop,.cartao-rapido-fundo,.status-editor-backdrop,.workspace-backdrop){background:rgba(0,0,0,.45)!important}
+/* a moldura dos módulos: grafite quente */
+html.tema-escuro body.mundo #mundo-moldura{background:rgba(22,21,19,.94)!important;border-color:rgba(255,255,255,.08)!important}
+/* o mapa: fim de tarde (mais escuro, menos saturado), sem custo de inverter o 3D */
+html.tema-escuro body.mundo #mundo canvas{filter:brightness(.6) saturate(.85) contrast(1.06)}
+html.tema-escuro body.mundo .mundo-vinheta{background:radial-gradient(ellipse at center,transparent 45%,rgba(10,9,8,.55))!important}
+/* menu de tema */
+.vv-menu-tema{width:260px}
+.vv-menu-tema .vv-tema-titulo{padding:6px 10px 4px;font:700 10.5px var(--vv-texto);letter-spacing:.12em;text-transform:uppercase;color:#A84E00}
+.vv-menu-tema button{display:flex!important;align-items:center;gap:10px}
+.vv-menu-tema button i{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-style:normal;font-size:15px;background:#F3EFE8;color:#1F1D1A}
+.vv-menu-tema button[aria-checked="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff)}
+.vv-menu-tema button[aria-checked="true"] b{color:#C2490C}
+.vv-menu-tema button[aria-checked="true"] i{background:#FF7A2F;color:#fff}
+.vv-dono-linha em.ok{color:#11613A}
+
+/* Conversa da equipe: cabeçalho claro (a regra antiga pinta todo <header> de grafite) e ao lado do "Seu dia" */
+html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border-bottom:1px solid #EFEAE2!important;box-shadow:none!important;color:#1F1D1A!important}
+@media (min-width:901px){html body.mundo .vv-conversa:not(#ds-a){left:calc(max(var(--vv-livre-esq, 0px), 90px) + 12px)!important}}

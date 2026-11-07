@@ -135,3 +135,21 @@ O mapa só redesenha quando algo muda.
 5. Raios e alturas das escalas do item 5.
 6. Fechar visível, Esc fecha, nada abre fora da tela, menus opacos.
 7. Conferida com dados reais, em 6 tamanhos de tela, abrindo **todas** as janelas e menus.
+
+## 12. Visão do dono e módulo Gestão
+
+- Para os sócios (Paulo, Vinícius, Ewerton e Deivid), o painel da esquerda abre em **Agência**; **Minhas tarefas** fica no seletor ao lado. O resto da equipe vê só as próprias tarefas.
+- A Agência responde, nesta ordem: como está a produção de hoje (anel feitas/previstas); o que está atrasado e com risco de furo; a semana (barras previstas × entregues); os clientes que pedem atenção; quem tem 3 posts na semana; os gargalos; o que cobrar de cada pessoa e dos bots.
+- O módulo **Gestão** (item do dock só para sócios) tem cinco abas: Agora, Semana, Clientes, Time e bots, Histórico e projeção. Gráfico de linha de 12 semanas com mediana tracejada e as 4 próximas semanas previstas em lilás pontilhado.
+- Os números vêm de `vybe-dono-metricas.js` (`VybeDono.calcular`), funções puras com as definições escritas no topo do arquivo. A cor segue a escala de urgência do item 3.
+
+## 13. Modo escuro
+
+- Botão de aparência no topo: **Claro** (padrão), **Escuro** e **Automático** (segue o computador). Guardado em `irecity.tema`, que sobrevive ao Sair.
+- Escuro = inversão inteligente dos filhos do `body` e do HUD (nunca do `body`, para não deslocar o que é `fixed`), com desinversão do que tem cor própria: fotos, avatares, o VYBES, a ação laranja e o vermelho de atrasado. O mapa 3D não inverte: ganha luz de fim de tarde.
+- Tela nova tem de funcionar nos dois temas sem CSS extra; se algo de cor própria ficar estranho no escuro, entra na lista de desinverter (bloco MODO ESCURO do `vybe-mundo.css`).
+
+## 14. O VYBES guia
+
+- Primeiro acesso: passeio de boas-vindas pelo VYBES (painel do dia, dock, Criar, ferramentas, vistas, mapa, voz e "Pergunte ao VYBES"). Primeira vez em cada módulo, vista, ferramenta, andar e ficha: uma dica curta dele. O botão **?** no topo revê tudo.
+- Conteúdo em `vybe-mundo-tutorial.js` (`VybeTutorial.CONTEUDO`). O VYBES trata os quatro donos por "senhor" e o resto da equipe pelo primeiro nome.
