@@ -8,6 +8,12 @@ import { Obra } from './voxel.mjs';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+export function precisaoDoPino(origem) {
+  return ({ confirmada: ['confirmada', 'Confirmada', 'Localização confirmada pelo Google Maps'], numero: ['numero', 'Estimada', 'Posição estimada pelo número na rua'],
+    rua: ['rua', 'Rua', 'Posição estimada pela rua, sem número confirmado'], bairro: ['bairro', 'Bairro', 'Posição aproximada pelo bairro'], cidade: ['cidade', 'Cidade', 'Posição aproximada pela cidade'] })[origem]
+    || ['sem', 'Sem local', 'Endereço ainda não localizado; sede em lote de referência'];
+}
+
 export function tipoDoSegmento(seg) {
   const s = String(seg || '').toLowerCase();
   if (/prefeit|c[aâ]mara|governo|secretar|p[uú]blic/.test(s)) return 'publico';
@@ -51,11 +57,14 @@ export function criarClientes(motor, irece, lotes) {
   let grupo = null;
   const rotulos = [], alvos = [], farois = [];
   motor.animar((t) => {
+    let animando = false;
     for (const f of farois) {
       const pulsa = f.userData.pulsa;
+      animando = animando || (pulsa && motor.emVista(f));
       f.material.opacity = pulsa ? .55 + Math.sin(t * 5) * .35 : .9;
       f.scale.setScalar(pulsa ? 1 + Math.sin(t * 5) * .12 : 1);
     }
+    return animando;
   });
 
   function definir(lista, { aoClicar } = {}) {
@@ -103,9 +112,10 @@ export function criarClientes(motor, irece, lotes) {
         const mundo = pontoCli && lote.noEndereco
           ? new THREE.Vector3(pontoCli.x + (n > 1 ? (i - (n - 1) / 2) * 1.2 : 0), irece.alturaEm(pontoCli.x, pontoCli.z) + sede.alto * raiz.scale.x + 1.2, pontoCli.z)
           : new THREE.Vector3(dx, sede.alto + 1.6, 0).multiplyScalar(raiz.scale.x).applyEuler(raiz.rotation).add(raiz.position);
+        const [precisao, nomePrecisao, detalhePrecisao] = precisaoDoPino(cli.precisao);
         rotulos.push(motor.rotulo({ pos: mundo, classe: 'rotulo-cliente',
           // Pino do cliente (como na Central de Operações): bolinha da situação, nome e o resumo do que está em aberto.
-          html: `<i class="pino" style="--c:${cli.cor}"></i><b>${esc(cli.nome)}</b>${[['atrasada', 'a'], ['hoje', 'h'], ['aprovar', 'p']].map(([k, c]) => cli.por?.[k] ? `<span class="m ${c}" title="${{ atrasada: 'atrasadas', hoje: 'saem hoje', aprovar: 'para aprovar' }[k]}">${cli.por[k]}</span>` : '').join('')}<span class="n" style="--c:${cli.cor}" title="em aberto">${cli.total}</span>`, distMax: Infinity, prioridade: (cli.peso || 0) + 10, fixo: true,
+          html: `<span class="pino-precisao ${precisao}" title="${detalhePrecisao}" aria-label="${detalhePrecisao}">${nomePrecisao}</span><i class="pino" style="--c:${cli.cor}"></i><b>${esc(cli.nome)}</b>${[['atrasada', 'a'], ['hoje', 'h'], ['aprovar', 'p']].map(([k, c]) => cli.por?.[k] ? `<span class="m ${c}" title="${{ atrasada: 'atrasadas', hoje: 'saem hoje', aprovar: 'para aprovar' }[k]}">${cli.por[k]}</span>` : '').join('')}<span class="n" style="--c:${cli.cor}" title="em aberto">${cli.total}</span>`, distMax: Infinity, prioridade: (cli.peso || 0) + 10, fixo: true,
           aoClicar: () => aoClicar?.({ tipo: 'cliente', nome: cli.nome }) }));
         posicoes.push({ nome: cli.nome, x: raiz.position.x, z: raiz.position.z });
       });
@@ -119,6 +129,7 @@ export function criarClientes(motor, irece, lotes) {
       if (ruido(lote.x | 0, lote.z | 0) > .35) vazio.arvore(lote.x - 1.5, y + .08, lote.z + 1, { s: 1.1 }).arvore(lote.x + 1.8, y + .08, lote.z - 1.4, { s: .8, fruta: '#F7C948' });
     }
     grupo.add(vazio.montar());
+    motor.invalidar();
     return posicoes;
   }
   return { definir };

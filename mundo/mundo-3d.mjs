@@ -1,6 +1,7 @@
 // Entrada do mundo voxel (empacotada com o three.js pelo build; carregada sob
 // demanda por vybe-mundo.js). Monta Irecê, o Prédio da Vybe e os clientes.
 import { criarMotor } from './motor.mjs';
+import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan } from './captacoes.mjs';
 import { construirIrece } from './irece.mjs';
 import { construirPredio } from './predio.mjs';
 import { criarClientes } from './clientes.mjs';
@@ -68,13 +69,14 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
           }
         }
       }
-      asa.instanceMatrix.needsUpdate = true;
+      asa.instanceMatrix.needsUpdate = true; asa.computeBoundingSphere();
+      return motor.emVista(asa);
     });
   }
 
   // ---------- Vans da Vybe: as captações do dia, pelas ruas, da agência até o cliente ----------
   const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  let vans = [];
+  let vans = [], captacoes = [], selecaoVans = '';
   function novaVan() {
     const o = new Obra();
     o.caixa(0, .18, 0, 1.1, .55, 2.2, '#FF7A2F').caixa(0, .73, -.15, 1.06, .42, 1.6, '#FF7A2F').caixa(0, .73, .72, 1, .34, .3, '#BFD9E2');
@@ -86,12 +88,18 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   }
   // A van segue o relógio da agenda: 30 min antes sai da agência, durante a captação fica parada na
   // porta do cliente ("gravando"), depois volta. Sem horário marcado, faz ida e volta contínua.
-  const minutos = (hm) => { const m = /^(\d{1,2}):(\d{2})/.exec(hm || ''); return m ? +m[1] * 60 + +m[2] : null; };
-  const VIAGEM = 30;
   function definirCaptacoes(lista) {
+    captacoes = lista; atualizarVans();
+  }
+  function atualizarVans() {
+    const agora = relogioBahia();
+    const lista = priorizarCaptacoes(captacoes, agora).filter((cap) => posicoes.some((p) => norm(p.nome) === norm(cap.cliente) || norm(p.nome).length > 3 && norm(cap.cliente).includes(norm(p.nome)))).slice(0, 6);
+    const chave = JSON.stringify([agora.dia, lista]);
+    if (chave === selecaoVans) return false;
+    selecaoVans = chave;
     for (const v of vans) { motor.cena.remove(v.g); motor.removerRotulo(v.r); }
     vans = [];
-    lista.slice(0, 6).forEach((cap, n) => {
+    lista.forEach((cap, n) => {
       const destino = posicoes.find((p) => norm(p.nome) === norm(cap.cliente)) || posicoes.find((p) => norm(cap.cliente).includes(norm(p.nome)) && norm(p.nome).length > 3);
       if (!destino) return;
       const rota = irece.caminho(base.x + 8 + n * 1.6, base.z + 8, destino.x, destino.z);
@@ -100,26 +108,17 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
       const g = novaVan();
       const nome = String(cap.cliente).replace(/[<>&]/g, ''), hora = cap.inicio ? cap.inicio.replace(':00', 'h').replace(':', 'h') : '';
       const r = motor.rotulo({ pos: new motor.THREE.Vector3(), classe: 'rotulo-van', html: `<b>Captação</b> ${nome}${hora ? ' · ' + hora : ''}`, distMax: 420, prioridade: 4 });
-      const ini = minutos(cap.inicio), fim = minutos(cap.fim) ?? (ini != null ? ini + 60 : null);
-      vans.push({ g, r, rota, comp, total: comp[comp.length - 1], fase: Math.random() * 10, ini, fim, nome, hora, fase0: '' });
+      const { ini, fim } = horarioDaCaptacao(cap);
+      vans.push({ g, r, rota, comp, total: comp[comp.length - 1], fase: Math.random() * 10, ini, fim, nome, hora, fase0: '', dia: cap.dia || agora.dia });
     });
   }
-  function faseDaVan(v, t) {
-    if (v.ini == null) {
-      const ida = v.total / TV, ciclo = ida * 2 + 8, tc = (t + v.fase) % ciclo;
-      return { d: tc < ida ? tc * TV : tc < ida + 4 ? v.total : tc < ida * 2 + 4 ? v.total - (tc - ida - 4) * TV : 0, volta: tc >= ida + 4 && tc < ida * 2 + 4, fase: '' };
-    }
-    const h = new Date(), m = h.getHours() * 60 + h.getMinutes() + h.getSeconds() / 60;
-    if (m < v.ini - VIAGEM) return { d: 0, volta: false, fase: 'espera' };
-    if (m < v.ini) return { d: v.total * (m - (v.ini - VIAGEM)) / VIAGEM, volta: false, fase: 'indo' };
-    if (m < v.fim) return { d: v.total, volta: false, fase: 'gravando' };
-    if (m < v.fim + VIAGEM) return { d: v.total * (1 - (m - v.fim) / VIAGEM), volta: true, fase: 'voltando' };
-    return { d: 0, volta: true, fase: 'feita' };
-  }
-  const TV = 7; // unidades por segundo (70 m/s na escala da maquete: uma van de brinquedo)
   motor.animar((t) => {
+    let mudou = atualizarVans();
+    const agora = relogioBahia();
     for (const v of vans) {
-      const { d, volta, fase } = faseDaVan(v, t);
+      const { d, volta, fase } = faseDaVan(v, t, agora);
+      const deslocou = Math.abs(d - (v.dAnterior ?? -1)) > .0001; v.dAnterior = d;
+      mudou = mudou || ((deslocou || fase !== v.fase0) && motor.emVista(v.g));
       if (fase !== v.fase0) {
         v.fase0 = fase;
         const txt = { espera: `sai às ${v.hora}`, indo: 'a caminho', gravando: 'gravando agora', voltando: 'voltando', feita: 'feita' }[fase];
@@ -133,6 +132,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
       if (Math.hypot(b.x - a.x, b.z - a.z) > .01) v.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z) + (volta ? Math.PI : 0);
       v.r.pos.set(x, y + 2.4, z);
     }
+    return mudou;
   });
 
   // ---------- Cérebro: o VYBES ligado a cada cliente (cor = situação; pulsos = peças em aberto) ----------
@@ -150,6 +150,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   ];
   function curvaEntre(a, b, alto = .3) { const m = a.clone().lerp(b, .5); m.y += a.distanceTo(b) * alto + 3; return new T.QuadraticBezierCurve3(a, m, b); }
   function mostrarCerebro(ligar, lista = [], { camadas = {}, agentes = [], aoNo = null } = {}) {
+    motor.invalidar();
     if (cerebro) { motor.cena.remove(cerebro.g); cerebro.g.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); }); cerebro.rotulos.forEach((r) => motor.removerRotulo(r)); cerebro = null; }
     if (!ligar) return;
     const g = new T.Group(), pulsos = [], rotulos = [];
@@ -218,6 +219,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     for (const p of cerebro.pulsos) p.m.position.copy(p.curva.getPoint((t * p.vel + p.fase) % 1));
     cerebro.nucleo.rotation.y = t * .18;
     cerebro.nucleo.scale.setScalar(1.35 + Math.sin(t * 1.8) * .04);
+    return motor.emVista(cerebro.g);
   });
 
   const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -239,6 +241,8 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },
     agentesDoPredio: () => predio.agentes?.() || [],
     definirCaptacoes,
+    diaNaBahia: () => relogioBahia().dia,
+    destruir: motor.destruir,
     planta: PLANTA, estados: ESTADOS, zonasDoPredio: ZONAS_DO_PREDIO, presenca: predio.presenca,
     aoClicar: motor.aoClicar, aoPassar: motor.aoPassar,
     zoom: motor.zoom, girar90: motor.girar90, areaLivre: motor.areaLivre, pausar: motor.pausar,
@@ -262,7 +266,13 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     definirClientes(lista, opcoes) {
       // Cada cliente no lugar dele: local fixo (locais.json) > endereço do cadastro (rua do mapa) > lote perto da agência.
       const fixos = LOCAIS?.clientes || {};
-      const comPonto = lista.map((c) => { const f = fixos[c.nome]; const pt = f && Number.isFinite(f.x) ? f : f?.rua ? irece.pontoDoEndereco(f.rua) : (naBase(c.nome) || irece.pontoDoEndereco(c.endereco)); return { ...c, ponto: pt || null }; });
+      const comPonto = lista.map((c) => {
+        const f = fixos[c.nome], cadastro = naBase(c.nome, true);
+        const confirmado = f && Number.isFinite(f.x) && Number.isFinite(f.z) && /google maps/i.test(f.fonte || '') && !f.conferir;
+        const pt = f && Number.isFinite(f.x) ? f : f?.rua ? irece.pontoDoEndereco(f.rua) : (cadastro || irece.pontoDoEndereco(c.endereco));
+        const precisao = confirmado ? 'confirmada' : cadastro && pt === cadastro ? cadastro.onde : pt ? 'rua' : 'sem';
+        return { ...c, ponto: pt || null, precisao };
+      });
       posicoes = clientes.definir(comPonto, opcoes);
       ultimoComPonto = comPonto;
     },

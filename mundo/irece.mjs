@@ -216,7 +216,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     const paredes = new THREE.Mesh(g2, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide }));
     paredes.receiveShadow = true; motor.adicionar(paredes);
     // De longe os degraus quase não aparecem: as paredes só entram com a câmera mais baixa.
-    let nP = 0; motor.animar(() => { if (++nP % 12) return; paredes.visible = motor.camera.position.y < 230; });
+    motor.animar(() => { const ver = motor.camera.position.y < 230, mudou = ver !== paredes.visible; paredes.visible = ver; return mudou; });
   }
 
   // Água "respirando".
@@ -228,7 +228,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     const m = new THREE.Matrix4();
     celulasAgua.forEach((i, k) => { const gx = i % GW, gz = (i / GW) | 0; m.makeTranslation(gx - cx + .5, Y(nivel[i]) + .12, gz - cz + .5); agua.setMatrixAt(k, m); });
     motor.adicionar(agua);
-    motor.animar((t) => { matAgua.opacity = .78 + Math.sin(t * 1.4) * .05; });
+    motor.animar((t) => { matAgua.opacity = .78 + Math.sin(t * 1.4) * .05; return motor.emVista(agua); });
   }
 
   // ----- Casas: lotes de 2×2 células (20 m), com cinco tipos e as cores das cidades do interior da Bahia -----
@@ -432,18 +432,19 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
   imagem.needsUpdate = true;
   const malhas = pedacos.map((q) => [q.m, q.l]);
   for (const q of pedacos) motor.adicionar(q.m);
-  // Nível de detalhe: confere a cada ~10 quadros a distância da câmera a cada quadrante.
+  // Nível de detalhe: só solicita desenho quando a visibilidade de um quadrante muda.
   const DIST_DETALHE = 230;
-  let contaLod = 0;
   motor.animar(() => {
-    if (++contaLod % 10) return;
+    let mudou = false;
     const c = motor.camera.position;
     const alvo = motor.estado?.().alvo || { x: c.x, z: c.z }, perto = c.y < 170;
     for (const q of pedacos) {
       const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz);
       // 3D só nos quadrantes perto de onde se olha; detalhes miúdos ainda mais perto.
-      q.m.visible = perto && (q.detalhe ? c.y < 95 && d < 45 : d < 60 + c.y * .12);
+      const ver = perto && (q.detalhe ? c.y < 95 && d < 45 : d < 60 + c.y * .12);
+      mudou = mudou || q.m.visible !== ver; q.m.visible = ver;
     }
+    return mudou;
   });
   // Abre espaço na cidade já montada (a sede de um cliente no endereço dele): some com o que estiver no quadrado.
   const zero = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -527,8 +528,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     for (const b of copas) { const gx = Math.round(b.x + cx - .5), gz = Math.round(b.z + cz - .5); tmp.set(b.cor); pinta(gx, gz, tmp, .92); }
     imagem.needsUpdate = true;
     const arv = [...qs(troncos, { sombra: false }, true), ...qs(copas, { sombra: true }, false)];
-    let n = 0;
-    motor.animar(() => { if (++n % 10) return; const c = motor.camera.position, alvo = motor.estado?.().alvo || c, perto = c.y < 300; for (const q of arv) { const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz); q.m.visible = perto && d < (q.detalhe ? 40 : 60) + c.y * .12; } });
+    motor.animar(() => { let mudou = false; const c = motor.camera.position, alvo = motor.estado?.().alvo || c, perto = c.y < 300; for (const q of arv) { const d = Math.hypot(alvo.x - q.cx, alvo.z - q.cz), ver = perto && d < (q.detalhe ? 40 : 60) + c.y * .12; mudou = mudou || q.m.visible !== ver; q.m.visible = ver; } return mudou; });
   }
 
   // ----- Nuvens deslizando -----
@@ -543,11 +543,11 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
       b.castShadow = true; g.add(b);
     }
     g.position.set((ruido(k, 7) - .5) * 600, 70 + ruido(k, 8) * 30, (ruido(k, 9) - .5) * 600);
-    g.userData.v = 1.5 + ruido(k, 10) * 2;
+    g.userData.v = 1.5 + ruido(k, 10) * 2; g.userData.x0 = g.position.x;
     nuvens.add(g);
   }
   motor.adicionar(nuvens);
-  motor.animar((t, dt) => { for (const g of nuvens.children) { g.position.x += g.userData.v * dt; if (g.position.x > 320) g.position.x = -320; } });
+  motor.animar((t) => { let visivel = false; for (const g of nuvens.children) { g.position.x = ((g.userData.x0 + g.userData.v * t + 320) % 640) - 320; visivel = motor.emVista(g) || visivel; } return visivel; });
 
   // Caminho pelas ruas de verdade (busca em largura no raster de ruas), para a van da Vybe.
   function ruaMaisPerto(gx0, gz0) {
