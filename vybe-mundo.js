@@ -1312,8 +1312,8 @@
     const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     if (!e.conectado) {
-      barra.innerHTML = `<span class="sala off"><i></i><b>Voz desligada</b><small>O Escritório ainda não conectou</small></span>
-        <button type="button" class="vv-botao" data-chamada="reconectar">Conectar</button>`;
+      barra.innerHTML = `<span class="sala off"><i></i><b>Fora do Escritório</b><small>Entre para falar e ver quem está nas salas</small></span>
+        <button type="button" class="vv-botao" data-chamada="reconectar">Entrar</button>`;
       return;
     }
     const canal = fn('escritorioCanal')?.(e.zona);
@@ -1352,7 +1352,7 @@
     else if (c === 'ajustes') abrirAjustesAudio();
     else if (c === 'musica') fn('abrirMusicaEscritorio')?.();
     else if (c === 'tela') fn('compartilharTelaNaTvEscritorio')?.();
-    else if (c === 'reconectar') { (fn('escritorioReconectar') || fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); }
+    else if (c === 'reconectar') { const e = typeof escritorio !== 'undefined' ? escritorio : null; ((e?.base && fn('escritorioReconectar')) || fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); } // sem entrada ainda: a entrada normal do Escritório
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
     else if (c === 'sair') { fn('escritorioSairDoQuarto')?.(); chamarAberto = false; setTimeout(pintarChamada, 400); }
     else if (b.dataset.pessoa) { pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false; pintarChamada(); }
