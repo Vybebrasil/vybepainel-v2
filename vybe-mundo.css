@@ -3784,3 +3784,4 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 .vv-op-tabela .mod{color:#B8B2A7}.vv-op-tabela .mod.ok{color:#18A957}
 .vv-placa:has(.vv-op-tabela){width:400px}
 @media (min-width:901px){.vv-chamada{left:calc(max(var(--vv-livre-esq, 0px), 90px) + 10px)!important}}
+.mundo-rotulo.rotulo-agente:is(:hover,:focus-visible){opacity:1!important}

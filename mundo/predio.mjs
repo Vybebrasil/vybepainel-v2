@@ -69,9 +69,16 @@ export function construirPredio(motor, { x, z, y }) {
     const n = andar.setores.length;
     andar.setores.forEach((setor, s) => {
       const largura = (LADO - .6) / n, sx = -LADO / 2 + .3 + largura * (s + .5);
-      const piso = new THREE.Color(andar.cor).lerp(new THREE.Color('#FFFFFF'), .58 + (s % 2) * .1);
-      if (!terraco) pecas.push({ x: sx, y: .22, z: 0, w: largura - .12, h: .03, d: LADO - .6, cor: '#' + piso.getHexString() });
-      if (s > 0 && !terraco) pecas.push({ x: -LADO / 2 + .3 + largura * s, y: .25, z: -LADO / 4 - .2, w: .1, h: .55, d: LADO / 2 - .7, cor: '#F8F8F6' });
+      // Piso de madeira clara; a cor do setor fica no tapete da sala (antes o piso inteiro era colorido).
+      if (!terraco) pecas.push({ x: sx, y: .22, z: 0, w: largura - .12, h: .03, d: LADO - .6, cor: s % 2 ? '#E9DFCF' : '#EFE7DA' });
+      if (s > 0 && !terraco && !terreo) {
+        // Divisória de vidro entre as salas: rodapé, montantes de alumínio, vidro claro e travessa no alto.
+        const dx = -LADO / 2 + .3 + largura * s, z0 = -LADO / 2 + .35, z1 = -.55, dz = z1 - z0, zc = (z0 + z1) / 2;
+        pecas.push({ x: dx, y: .25, z: zc, w: .08, h: .12, d: dz, cor: '#D9D2C2' });
+        pecas.push({ x: dx, y: .37, z: zc, w: .04, h: 1.15, d: dz, cor: '#D7E8EE' });
+        pecas.push({ x: dx, y: 1.52, z: zc, w: .07, h: .06, d: dz, cor: '#8A939A' });
+        for (let k = 0; k <= 4; k++) pecas.push({ x: dx, y: .25, z: z0 + dz * k / 4, w: .07, h: 1.33, d: .07, cor: '#8A939A' });
+      }
       const sala = mobiliar(pecas, { andar, setor, sx, largura, terraco, terreo });
       salas.set(setor.id, sala);
       // Caixa invisível de clique (a sala inteira).
@@ -133,13 +140,21 @@ export function construirPredio(motor, { x, z, y }) {
     const n = zonas.length, w = (LADO - .7) / n, zc = M / 2 + .05, d = M - .9;
     zonas.forEach((z, k) => {
       const x = -M + .35 + w * (k + .5), pessoal = Boolean(z.dono);
-      o.caixa(x, y0 - .02, zc, w - .08, .03, d, pessoal ? '#E4C9A3' : '#D6E6F2');
+      o.caixa(x, y0 - .02, zc, w - .08, .03, d, pessoal ? '#EBE1D2' : '#E4ECF0');
+      if (pessoal) o.caixa(x, y0, zc + .1, w - .7, .02, d - 1, '#' + new THREE.Color(andar.cor).lerp(new THREE.Color('#FFFFFF'), .7).getHexString());
       if (k > 0) o.caixa(x - w / 2, y0, zc, .08, .95, d, '#F8F8F6').caixa(x - w / 2, y0 + .95, zc, .08, .5, d, '#CFE6EC');
       o.caixa(x, y0, zc - d / 2 + .05, w - .1, 1.25, .08, '#F2EEE6');
       o.letreiro((z.dono || z.nome).slice(0, Math.max(4, Math.floor((w - .2) / .2))), { x, y: y0 + 1.05, z: zc - d / 2 + .1, px: .05, cor: '#1F1D1A', fundo: pessoal ? '#FFFFFF' : '#FFE6D6' });
       if (pessoal) {
-        o.caixa(x, y0, zc - .5, Math.min(1.1, w - .3), .55, .5, '#C99A6B').caixa(x, y0, zc + .15, .35, .4, .35, '#3A3F44');
-        o.luz(x, y0 + .58, zc - .62, .5, .32, .05, '#9FF0C8').caixa(x + w / 2 - .3, y0, zc + d / 2 - .35, .3, .3, .3, '#C9A271').caixa(x + w / 2 - .3, y0 + .3, zc + d / 2 - .35, .38, .45, .38, '#5FA34E');
+        // sala pessoal: mesa com tampo e pés, monitor aceso, cadeira com encosto, poltrona, planta e quadro
+        const mw = Math.min(1.2, w - .35);
+        o.caixa(x, y0 + .55, zc - .5, mw, .05, .55, '#D8B48A');
+        for (const k of [-1, 1]) o.caixa(x + k * (mw / 2 - .04), y0, zc - .5, .05, .55, .5, '#F4F1EA');
+        o.caixa(x, y0 + .6, zc - .68, .04, .2, .04, '#3A3F44').luz(x, y0 + .72, zc - .68, .55, .32, .04, '#9FD9F0');
+        o.caixa(x, y0, zc + .12, .38, .3, .38, '#2B2F33').caixa(x, y0 + .3, zc + .3, .38, .38, .06, '#2B2F33');
+        o.caixa(x - w / 2 + .35, y0, zc + d / 2 - .45, .5, .3, .5, '#8E4EC6').caixa(x - w / 2 + .35, y0 + .3, zc + d / 2 - .22, .5, .3, .08, '#8E4EC6');
+        o.caixa(x + w / 2 - .3, y0, zc + d / 2 - .35, .3, .3, .3, '#C9A271').caixa(x + w / 2 - .3, y0 + .3, zc + d / 2 - .35, .38, .45, .38, '#5FA34E').caixa(x + w / 2 - .3, y0 + .72, zc + d / 2 - .35, .22, .22, .22, '#7FB069');
+        o.luz(x - w / 4, y0 + .85, zc - d / 2 + .1, .35, .26, .02, ['#FFB27A', '#9FD9F0', '#C7B8FF', '#A8E6B8'][(ruido(x * 7, zc) * 4) | 0]);
       } else if (z.id === 'reuniao') { o.caixa(x, y0, zc, w * .55, .5, 1.2, '#FFFFFF'); for (const a of [-1, 1]) for (const b of [-.5, 0, .5]) o.caixa(x + b * w * .5, y0, zc + a * .85, .3, .4, .3, '#2B2F33'); o.luz(x, y0 + .4, zc - d / 2 + .14, w * .6, .55, .03, '#BFE3EA'); }
       else if (z.id === 'producao') { o.caixa(x - .3, y0, zc, .06, .9, .06, '#2B2F33').caixa(x - .3, y0 + .9, zc, .35, .22, .25, '#1F1D1A').luz(x - .3, y0 + .96, zc + .14, .12, .1, .02, '#E5484D'); o.caixa(x + .5, y0, zc + .4, .06, 1.1, .06, '#2B2F33').luz(x + .5, y0 + 1.1, zc + .4, .4, .3, .1, '#FFF1D2'); }
       else if (z.id === 'operacao') { for (const a of [-1, 0, 1]) o.luz(x + a * w * .28, y0 + .5, zc - d / 2 + .14, w * .26, .55, .03, ['#9FF0C8', '#BFE3EA', '#FFD6A8'][a + 1]); o.caixa(x, y0, zc - .2, w * .8, .5, .5, '#2B2F33'); }
@@ -294,15 +309,42 @@ export function construirPredio(motor, { x, z, y }) {
       for (const px of [-4, -3, 3, 4]) pecas.push({ x: px, y: .25, z: 3.2, w: .8, h: .45, d: .8, cor: '#E8E1D3' });
       pecas.push({ x: -4.4, y: .25, z: -4.4, w: .7, h: .5, d: .7, cor: '#C9A271' }, { x: -4.4, y: .75, z: -4.4, w: .9, h: 1.2, d: .9, cor: '#4F9A4E' });
     } else {
-      // Baia: mesa, cadeira e estante, mais um sofá de espera.
-      pecas.push({ x: sx, y: .25, z: zMesa, w: Math.min(2.6, largura - .6), h: .62, d: .9, cor: '#C99A6B' });
-      pecas.push({ x: sx, y: .25, z: zMesa + 1, w: .6, h: .45, d: .6, cor: '#3A3F44' });
-      pecas.push({ x: sx - largura / 2 + .45, y: .25, z: -LADO / 2 + .8, w: .5, h: 1.6, d: .9, cor: '#E3D8C4' });
-      for (let k = 0; k < 3; k++) pecas.push({ x: sx - largura / 2 + .45, y: .55 + k * .45, z: -LADO / 2 + .8 + (ruido(k, sx * 9) - .5) * .4, w: .52, h: .22, d: .3, cor: ['#FF7A2F', '#0D74CE', '#D6409F', '#18A957'][(ruido(k + 3, sx) * 4) | 0] });
+      // Sala do agente: tapete na cor do setor, mesa com tampo e pés, cadeira com encosto, dois monitores,
+      // luminária, estante com livros, planta no canto e um telão na parede com o painel do setor.
+      const W = Math.min(2.4, largura - .7), cor = new THREE.Color(andar.cor);
+      const tapete = '#' + cor.clone().lerp(new THREE.Color('#FFFFFF'), .72).getHexString(), borda = '#' + cor.clone().lerp(new THREE.Color('#FFFFFF'), .35).getHexString();
+      pecas.push({ x: sx, y: .25, z: zMesa + .35, w: largura - .9, h: .02, d: 2.9, cor: borda }, { x: sx, y: .26, z: zMesa + .35, w: largura - 1.05, h: .02, d: 2.75, cor: tapete });
+      // mesa: tampo fino, dois painéis laterais e gaveteiro
+      pecas.push({ x: sx, y: .84, z: zMesa, w: W, h: .06, d: .85, cor: '#D8B48A' });
+      for (const a of [-1, 1]) pecas.push({ x: sx + a * (W / 2 - .04), y: .25, z: zMesa, w: .06, h: .6, d: .8, cor: '#F4F1EA' });
+      pecas.push({ x: sx + W / 2 - .38, y: .25, z: zMesa + .05, w: .5, h: .5, d: .6, cor: '#F4F1EA' });
+      // segundo monitor (o primeiro é o que acende na cor do estado do agente), teclado e caneca
+      pecas.push({ x: sx + .62, y: .9, z: zMesa - .26, w: .05, h: .32, d: .05, cor: '#3A3F44' }, { x: sx + .62, y: 1.08, z: zMesa - .25, w: .62, h: .38, d: .05, cor: '#22272B' });
+      pecas.push({ x: sx, y: .9, z: zMesa + .12, w: .6, h: .03, d: .18, cor: '#3A3F44' }, { x: sx - .7, y: .9, z: zMesa + .1, w: .1, h: .12, d: .1, cor: '#FF7A2F' });
+      // cadeira: base, assento e encosto
+      const zc = zMesa + .78;
+      pecas.push({ x: sx, y: .25, z: zc, w: .44, h: .05, d: .44, cor: '#3A3F44' }, { x: sx, y: .3, z: zc, w: .07, h: .22, d: .07, cor: '#5A6268' });
+      pecas.push({ x: sx, y: .52, z: zc, w: .5, h: .08, d: .48, cor: '#2B2F33' }, { x: sx, y: .6, z: zc + .24, w: .5, h: .55, d: .07, cor: '#2B2F33' });
+      // estante com livros na lateral
+      const ex = sx - largura / 2 + .42, ez = -LADO / 2 + 1;
+      pecas.push({ x: ex, y: .25, z: ez, w: .42, h: 1.55, d: 1, cor: '#F4F1EA' });
+      for (let k = 0; k < 3; k++) {
+        pecas.push({ x: ex + .03, y: .5 + k * .45, z: ez, w: .38, h: .03, d: .92, cor: '#E3D8C4' });
+        for (let l = 0; l < 4; l++) pecas.push({ x: ex + .06, y: .53 + k * .45, z: ez - .34 + l * .2 + (ruido(k, l + sx) - .5) * .05, w: .3, h: .22 + ruido(l, k) * .1, d: .12, cor: ['#FF7A2F', '#0D74CE', '#D6409F', '#18A957', '#E2A11B', '#3A3F44'][(ruido(k * 4 + l, sx) * 6) | 0] });
+      }
+      // planta no canto
+      const px = sx + largura / 2 - .45, pz = -LADO / 2 + .75;
+      pecas.push({ x: px, y: .25, z: pz, w: .4, h: .38, d: .4, cor: '#C9A271' }, { x: px, y: .63, z: pz, w: .55, h: .45, d: .55, cor: '#4F9A4E' }, { x: px, y: 1.05, z: pz, w: .38, h: .35, d: .38, cor: '#5FA34E' }, { x: px, y: 1.38, z: pz, w: .2, h: .22, d: .2, cor: '#7FB069' });
+      // luminária pendente sobre a mesa
+      pecas.push({ x: sx, y: 1.75, z: zMesa, w: .03, h: .3, d: .03, cor: '#5A6268' }, { x: sx, y: 1.6, z: zMesa, w: .5, h: .16, d: .5, cor: '#1F1D1A' });
+      // telão na parede do fundo: moldura escura e barrinhas na cor do setor (o painel do setor)
+      const tz = -LADO / 2 + .22;
+      pecas.push({ x: sx + .1, y: 1.0, z: tz, w: Math.min(1.8, largura - 1.4), h: .9, d: .06, cor: '#1F2328' });
+      for (let k = 0; k < 5; k++) { const h = .18 + ruido(k, sx * 3 + andar.nivel) * .5; pecas.push({ x: sx + .1 - .6 + k * .3, y: 1.1, z: tz + .04, w: .16, h, d: .02, cor: k % 2 ? andar.cor : borda }); }
     }
     // Sem leitura da central, a mesa fica neutra e não simula trabalho.
-    const monitor = new THREE.Mesh(new THREE.BoxGeometry(.9, .55, .08), new THREE.MeshBasicMaterial({ color: '#2C3A33' }));
-    monitor.position.set(sx, .25 + .62 + .35, (terreo ? -1 : zMesa) - .25);
+    const monitor = new THREE.Mesh(new THREE.BoxGeometry(terreo ? .9 : .72, terreo ? .55 : .42, .06), new THREE.MeshBasicMaterial({ color: '#2C3A33' }));
+    monitor.position.set(terreo ? sx : sx - .3, terreo ? .25 + .62 + .35 : 1.1, (terreo ? -1 : zMesa) - .25);
     let figura = null;
     const sala = { monitor, figura: null, estado: 'indisponivel', conectado: false };
     if (setor.agente) {
@@ -314,7 +356,7 @@ export function construirPredio(motor, { x, z, y }) {
       const pernas = new THREE.Mesh(new THREE.BoxGeometry(.44, .32, .3), mat); pernas.position.y = .16;
       figura.add(corpo, cabeca, pernas);
       figura.position.set(sx, .25, (terreo ? -1 : zMesa) + (terreo ? -.55 : .75));
-      figura.rotation.y = Math.PI; figura.scale.setScalar(1.5);
+      figura.rotation.y = Math.PI; figura.scale.setScalar(terreo ? 1.5 : 1.15);
       if (terreo) figura.rotation.y = 0;
       const fase = ruido(sx * 13, andar.nivel) * 6;
       sala.figura = figura;
