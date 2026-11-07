@@ -278,7 +278,7 @@ function renderClientMasterDetail(cli) {
         ${campo('Solicitações em aberto', String(record.requests.filter((d) =>
           !['Feito','Finalizado','feito','finalizado','Concluídas'].includes(String(d.status||''))).length))}
       </div>
-    </div>${typeof planejamentosDoClienteHtml === 'function' ? planejamentosDoClienteHtml() : ''}`;
+    </div>${typeof cerebroDoClienteCardHtml === 'function' ? cerebroDoClienteCardHtml(nome) : ''}${typeof planejamentosDoClienteHtml === 'function' ? planejamentosDoClienteHtml() : ''}`;
   if (typeof carregarPlanejamentosDoCliente === 'function') carregarPlanejamentosDoCliente(id, nome);
 }
 // A ficha usa os mesmos editores da tabela; so precisa saber se quem olha pode
@@ -487,8 +487,10 @@ function renderClientesBoard() {
 //
 // O cartao continua para quem prefere; a escolha fica guardada no navegador.
 function visaoDeClientes() {
-  try { return localStorage.getItem('vybe_clientes_visao') === 'fichas' ? 'fichas' : 'tabela'; }
-  catch { return 'tabela'; }
+  try {
+    const v = localStorage.getItem('vybe_clientes_visao');
+    return v === 'fichas' || v === 'sinapses' ? v : 'tabela';
+  } catch { return 'tabela'; }
 }
 function trocarVisaoDeClientes(qual) {
   try { localStorage.setItem('vybe_clientes_visao', qual); } catch { /* sem armazenamento */ }
@@ -499,7 +501,7 @@ function selosDeVisaoDeClientes() {
   const alvo = document.getElementById('clientes-visao');
   if (!alvo) return;
   const atual = visaoDeClientes();
-  alvo.innerHTML = [['tabela', 'Tabela'], ['fichas', 'Fichas']].map(([id, rotulo]) =>
+  alvo.innerHTML = [['tabela', 'Tabela'], ['fichas', 'Fichas'], ['sinapses', 'Cérebro VYBES']].map(([id, rotulo]) =>
     `<button type="button" class="clientes-visao-btn ${atual === id ? 'ativo' : ''}"
       onclick="trocarVisaoDeClientes('${id}')">${rotulo}</button>`).join('')
     + (podeEditarClientes() ? `<button type="button" class="clientes-visao-btn novo"
@@ -1705,7 +1707,16 @@ async function alternarAtivoDoCliente(id, estaAtivo) {
 function renderClientesLista(clientes) {
   const grid = document.getElementById('grid-clientes-lista');
   selosDeVisaoDeClientes();
-  if (visaoDeClientes() === 'tabela') {
+  const visao = visaoDeClientes();
+  if (visao === 'sinapses' && typeof renderCerebroVybesHtml === 'function') {
+    grid.classList.remove('em-tabela');
+    grid.classList.add('em-sinapses');
+    grid.innerHTML = renderCerebroVybesHtml();
+    if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
+    return;
+  }
+  grid.classList.remove('em-sinapses');
+  if (visao === 'tabela') {
     grid.classList.add('em-tabela');
     grid.innerHTML = tabelaDeClientesHtml(clientes);
     pintarDeckDeClientes();

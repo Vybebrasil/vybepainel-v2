@@ -69,19 +69,22 @@ async function renderDiarioLista(forcar=false) {
       acao: '<button type="button" class="vb-botao principal" onclick="salvarSnapshot()">Registrar agora</button>' });
     return;
   }
-  el.innerHTML = lista.map(s => `
-    <div class="client-card alert-ok" style="cursor:pointer;margin-bottom:10px;" onclick="abrirSnapshot(${s.id})">
-      <div class="client-header">
-        <div>
-          <div class="client-name">${s.dataHora}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${qtdItens(s.total)} capturados</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="posts-count ok">${qtdItens(s.total)}</span>
-          <button class="sort-btn" style="border-color:#df2f4a;color:#df2f4a;" onclick="event.stopPropagation();excluirSnapshot(${s.id})">✕</button>
-        </div>
-      </div>
-    </div>`).join('');
+  // Linha do tempo: dia legível, hora, total e a variação para o registro anterior.
+  const diaDe = (txt) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\D+(\d{2}:\d{2}))?/.exec(String(txt || '')); return m ? { d: new Date(+m[3], +m[2] - 1, +m[1]), hora: m[4] || '' } : null; };
+  const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0);
+  const rotuloDia = (d) => { const dif = Math.round((hojeD - d) / 864e5); if (dif === 0) return 'Hoje'; if (dif === 1) return 'Ontem';
+    const t = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, ''); return t.charAt(0).toUpperCase() + t.slice(1); };
+  el.innerHTML = `<div class="diario-linha-tempo">${lista.map((s, i) => {
+    const info = diaDe(s.dataHora), ant = lista[i + 1], dif = ant ? Number(s.total || 0) - Number(ant.total || 0) : null;
+    const varia = dif === null ? '' : `<span class="diario-varia ${dif > 0 ? 'sobe' : dif < 0 ? 'desce' : 'igual'}">${dif > 0 ? '+' : ''}${dif === 0 ? 'igual' : dif.toLocaleString('pt-BR')}</span>`;
+    return `<div class="diario-registro" role="button" tabindex="0" onclick="abrirSnapshot(${s.id})" onkeydown="if(event.key==='Enter')abrirSnapshot(${s.id})">
+      <span class="diario-ponto" aria-hidden="true"></span>
+      <div class="diario-quando"><b>${info ? rotuloDia(info.d) : String(s.dataHora || '').replace(/[<>&]/g, '')}</b><small>${info?.hora ? 'às ' + info.hora : ''}</small></div>
+      <div class="diario-total"><b>${Number(s.total || 0).toLocaleString('pt-BR')}</b><small>conteúdos</small></div>
+      ${varia}
+      <span class="diario-abrir">Abrir →</span>
+      <button type="button" class="diario-apagar" title="Apagar este registro" aria-label="Apagar este registro" onclick="event.stopPropagation();excluirSnapshot(${s.id})">×</button>
+    </div>`; }).join('')}</div>`;
 }
 
 async function abrirSnapshot(id) {

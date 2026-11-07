@@ -1,0 +1,321 @@
+// Motor do mundo voxel: renderizador, luz, câmera de maquete, controles de mapa,
+// efeito tilt-shift e rótulos em HTML. Sem dados da Vybe aqui: só o palco.
+import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { HorizontalTiltShiftShader } from 'three/examples/jsm/shaders/HorizontalTiltShiftShader.js';
+import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTiltShiftShader.js';
+
+const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
+const suave = (t) => 1 - Math.pow(1 - t, 3);
+
+export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  // 1,5× já é nítido no Retina e desenha ~44% menos pixels que 2×.
+  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // Sombra só é recalculada quando a câmera (ou a área iluminada) muda: o sol é parado e a cidade também.
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+  renderer.info.autoReset = false; // o composer desenha várias passadas: zera uma vez por quadro, para medir o quadro inteiro
+
+  const cena = new THREE.Scene();
+  cena.fog = new THREE.Fog(0xcfe2e6, 900, 2200);
+
+  cena.add(new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9));
+  const sol = new THREE.DirectionalLight(0xfff1d8, 2.1);
+  sol.position.set(-110, 160, 70);
+  sol.castShadow = true;
+  sol.shadow.mapSize.set(4096, 4096);
+  sol.shadow.bias = -0.0004;
+  sol.shadow.normalBias = 0.4;
+  const sc = sol.shadow.camera; sc.left = -140; sc.right = 140; sc.top = 140; sc.bottom = -140; sc.near = 10; sc.far = 600;
+  cena.add(sol, sol.target);
+  const preenche = new THREE.DirectionalLight(0xcfe4ff, 0.35);
+  preenche.position.set(120, 80, -90);
+  cena.add(preenche);
+
+  const camera = new THREE.PerspectiveCamera(22, 1, 1, 6000);
+  const orb = { alvo: new THREE.Vector3(0, 0, 0), dist: 420, giro: -0.75, incl: 0.92 };
+  const quer = { alvo: orb.alvo.clone(), dist: orb.dist, giro: orb.giro, incl: orb.incl };
+  const LIM = { dist: [24, 1100], incl: [0.35, 1.25], raio: 330 };
+
+  function posicionarCamera() {
+    const { alvo, dist, giro, incl } = orb;
+    camera.position.set(alvo.x + dist * Math.cos(incl) * Math.sin(giro), alvo.y + dist * Math.sin(incl), alvo.z + dist * Math.cos(incl) * Math.cos(giro));
+    camera.lookAt(alvo);
+    // A sombra acompanha o que se olha: 4096 px cobrindo só a área visível.
+    const lado = limitar(dist * 0.42, 40, 260);
+    sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix();
+    sol.position.set(alvo.x - 110, 160, alvo.z + 70); sol.target.position.copy(alvo);
+    const chave = `${alvo.x.toFixed(1)},${alvo.z.toFixed(1)},${dist.toFixed(0)},${giro.toFixed(2)},${incl.toFixed(2)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; renderer.shadowMap.needsUpdate = true; }
+  }
+
+  // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(cena, camera));
+  const tiltH = new ShaderPass(HorizontalTiltShiftShader);
+  const tiltV = new ShaderPass(VerticalTiltShiftShader);
+  tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
+  composer.addPass(tiltH); composer.addPass(tiltV);
+  composer.addPass(new OutputPass());
+
+  // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
+  const livre = { esq: 0, dir: 0, baixo: 0, atual: { esq: 0, dir: 0, baixo: 0 } };
+  let W = 1, H = 1;
+  function medir() {
+    const r = canvas.getBoundingClientRect();
+    W = Math.max(1, r.width); H = Math.max(1, r.height);
+    renderer.setSize(W, H, false); composer.setSize(W, H);
+    camera.aspect = W / H;
+    const forca = 2.2 / Math.max(W, H);
+    tiltH.uniforms.h.value = forca; tiltV.uniforms.v.value = forca;
+    aplicarDeslocamento(); camera.updateProjectionMatrix(); sujo = true;
+    // Mudar o tamanho apaga o canvas: parado (módulo aberto, aba escondida), redesenha uma vez.
+    if (typeof pausado !== 'undefined' && (pausado || !visivel)) { try { posicionarCamera(); composer.render(); } catch { /* ainda montando */ } }
+  }
+  function aplicarDeslocamento() {
+    const a = livre.atual;
+    const dx = (a.esq - a.dir) / 2, dy = a.baixo / 2;
+    if (Math.abs(dx) < .5 && Math.abs(dy) < .5) camera.clearViewOffset();
+    else camera.setViewOffset(W, H, -dx, dy, W, H);
+  }
+
+  // ---------- Controles ----------
+  const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  function pontoNoChao(x, y) {
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const p = new THREE.Vector3();
+    return ray.ray.intersectPlane(chao, p) ? p : null;
+  }
+  const vel = new THREE.Vector2();
+  let arrasto = null, ultimoGesto = performance.now();
+  const ponteiros = new Map();
+  let pinca = null;
+  const ouvintes = { clique: [], passar: [], mexeu: [] };
+
+  function prender(alvo) {
+    const d = Math.hypot(alvo.x, alvo.z);
+    if (d > LIM.raio) alvo.multiplyScalar(LIM.raio / d);
+  }
+  function arrastar(dxPx, dyPx) {
+    // Anda pelo chão na escala certa: 1 px = quanto o chão anda naquela distância.
+    const escala = (2 * orb.dist * Math.tan((camera.fov * Math.PI) / 360)) / H;
+    const s = Math.sin(orb.giro), c = Math.cos(orb.giro);
+    const kz = 1 / Math.max(0.35, Math.sin(orb.incl));
+    quer.alvo.x -= (dxPx * c + dyPx * s * kz) * escala;
+    quer.alvo.z -= (-dxPx * s + dyPx * c * kz) * escala;
+    prender(quer.alvo);
+    orb.alvo.copy(quer.alvo);
+  }
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    ultimoGesto = performance.now();
+    if (ponteiros.size === 2) {
+      const [a, b] = [...ponteiros.values()];
+      pinca = { d: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x), dist: quer.dist, giro: quer.giro };
+      arrasto = null; return;
+    }
+    arrasto = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, girar: e.button === 2 || e.shiftKey, t: performance.now() };
+    vel.set(0, 0); cancelarVoo();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (ponteiros.has(e.pointerId)) ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinca && ponteiros.size === 2) {
+      const [a, b] = [...ponteiros.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+      quer.dist = limitar(pinca.dist * (pinca.d / d), ...LIM.dist);
+      quer.giro = pinca.giro - (ang - pinca.ang);
+      sujo = true; return;
+    }
+    if (!arrasto) { emitirPassar(e); return; }
+    const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
+    arrasto.x = e.clientX; arrasto.y = e.clientY;
+    if (arrasto.girar) {
+      quer.giro -= dx * 0.006; quer.incl = limitar(quer.incl + dy * 0.004, ...LIM.incl);
+    } else { arrastar(dx, dy); vel.set(dx, dy); }
+    ultimoGesto = performance.now(); sujo = true;
+    for (const f of ouvintes.mexeu) f();
+  });
+  function soltar(e) {
+    ponteiros.delete(e.pointerId);
+    if (ponteiros.size < 2) pinca = null;
+    if (!arrasto) return;
+    const parado = Math.hypot(e.clientX - arrasto.x0, e.clientY - arrasto.y0) < 5 && performance.now() - arrasto.t < 400;
+    if (parado && e.button === 0) emitirClique(e);
+    if (performance.now() - ultimoGesto > 60) vel.set(0, 0);
+    arrasto = null;
+  }
+  canvas.addEventListener('pointerup', soltar);
+  canvas.addEventListener('pointercancel', soltar);
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault(); cancelarVoo();
+    const k = e.ctrlKey ? 0.012 : 0.0015; // trackpad (pinça) tem escala própria
+    const novo = limitar(quer.dist * Math.exp(e.deltaY * k), ...LIM.dist);
+    // Zoom em direção ao cursor.
+    const p = pontoNoChao(e.clientX, e.clientY);
+    if (p) { const f = 1 - novo / quer.dist; quer.alvo.x += (p.x - quer.alvo.x) * f; quer.alvo.z += (p.z - quer.alvo.z) * f; prender(quer.alvo); }
+    quer.dist = novo; sujo = true;
+  }, { passive: false });
+  canvas.addEventListener('dblclick', (e) => {
+    const p = pontoNoChao(e.clientX, e.clientY);
+    if (p) voar({ alvo: p, dist: Math.max(LIM.dist[0], quer.dist * 0.5) });
+  });
+
+  // Picking: quem se registra recebe o objeto sob o cursor.
+  const clicaveis = [];
+  function alvoSob(e) {
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hits = ray.intersectObjects(clicaveis, true);
+    for (const h of hits) {
+      let o = h.object;
+      while (o && !o.userData.alvo && !o.userData.alvoPorInstancia) o = o.parent;
+      if (!o) continue;
+      if (o.userData.alvoPorInstancia) { const a = o.userData.alvoPorInstancia(h.instanceId); if (a) return a; continue; }
+      return o.userData.alvo;
+    }
+    return null;
+  }
+  function emitirClique(e) { const a = alvoSob(e); for (const f of ouvintes.clique) f(a, e); }
+  let ultimoPassar = 0;
+  function emitirPassar(e) {
+    const t = performance.now(); if (t - ultimoPassar < 50) return; ultimoPassar = t;
+    const a = alvoSob(e); canvas.style.cursor = a ? 'pointer' : 'grab';
+    for (const f of ouvintes.passar) f(a, e);
+  }
+
+  // Voo de câmera (focar um prédio, ver a região toda).
+  let voo = null;
+  function cancelarVoo() { voo = null; }
+  function voar(destino, ms = 1100) {
+    const de = { alvo: quer.alvo.clone(), dist: quer.dist, giro: quer.giro, incl: quer.incl };
+    const para = { alvo: destino.alvo ? new THREE.Vector3(destino.alvo.x, destino.alvo.y ?? 0, destino.alvo.z) : de.alvo, dist: destino.dist ?? de.dist,
+      giro: destino.giro ?? de.giro, incl: destino.incl ?? de.incl };
+    let dg = para.giro - de.giro; dg = Math.atan2(Math.sin(dg), Math.cos(dg)); para.giro = de.giro + dg;
+    voo = { de, para, t0: performance.now(), ms: reduzirMovimento ? 1 : ms };
+    sujo = true;
+  }
+
+  // ---------- Rótulos em HTML ----------
+  const camadaRotulos = document.createElement('div');
+  camadaRotulos.className = 'mundo-rotulos';
+  canvas.parentElement.appendChild(camadaRotulos);
+  const rotulos = [];
+  function rotulo({ pos, html, classe = '', distMax = Infinity, aoClicar = null, prioridade = 0, fixo = false }) {
+    const el = document.createElement(aoClicar ? 'button' : 'div');
+    if (aoClicar) { el.type = 'button'; el.addEventListener('click', (e) => { e.stopPropagation(); aoClicar(e); }); }
+    el.className = 'mundo-rotulo ' + classe; el.innerHTML = html;
+    camadaRotulos.appendChild(el);
+    el.classList.add('escondido');
+    const r = { el, pos: pos.clone(), distMax, prioridade, desce: 0, visivel: false, fixo };
+    rotulos.push(r); return r;
+  }
+  function removerRotulo(r) { r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
+  const v3 = new THREE.Vector3();
+  let quadro = 0;
+  function posicionarRotulos() {
+    const caixas = [];
+    for (const r of rotulos) {
+      v3.copy(r.pos).project(camera);
+      const longe = camera.position.distanceTo(r.pos) > r.distMax;
+      const fora = v3.z > 1 || v3.x < -1.1 || v3.x > 1.1 || v3.y < -1.1 || v3.y > 1.1;
+      const mostra = !longe && !fora && !r.el.hidden;
+      if (mostra !== r.visivel) { r.visivel = mostra; r.el.classList.toggle('escondido', !mostra); }
+      if (!mostra) continue;
+      r.x = (v3.x * 0.5 + 0.5) * W; r.y = (-v3.y * 0.5 + 0.5) * H;
+      caixas.push(r);
+    }
+    // A cada 4 quadros: quem colide desce um pouco (o mais importante fica).
+    if (quadro % 4 === 0) {
+      // Fixos (pino de cliente) nunca saem do lugar: entram primeiro e os outros desviam deles.
+      caixas.sort((a, b) => (b.fixo - a.fixo) || b.prioridade - a.prioridade || a.y - b.y);
+      const postos = [];
+      for (const r of caixas) {
+        const w = r.el.offsetWidth || 80, h = r.el.offsetHeight || 22;
+        if (r.fixo) { r.desce = 0; postos.push({ x: r.x, y: r.y, w, h }); continue; }
+        let y = r.y, tent = 0;
+        while (tent++ < 6 && postos.some((p) => Math.abs(p.x - r.x) < (p.w + w) / 2 && Math.abs(p.y - y) < (p.h + h) / 2)) y += h * 0.8;
+        r.desce = y - r.y; postos.push({ x: r.x, y, w, h });
+      }
+    }
+    for (const r of caixas) r.el.style.transform = `translate(-50%,-100%) translate(${r.x.toFixed(1)}px,${(r.y + r.desce).toFixed(1)}px)`;
+  }
+
+  // ---------- Laço ----------
+  let sujo = true, pausado = false, ultimo = performance.now(), visivel = true;
+  const animadores = [];
+  const io = new IntersectionObserver(([e]) => { visivel = e.isIntersecting; }, { threshold: 0.01 });
+  io.observe(canvas);
+  function passo(t) {
+    requestAnimationFrame(passo);
+    if (pausado || !visivel || document.hidden) return;
+    const interagindo = arrasto || pinca || voo || t - ultimoGesto < 1500 || vel.lengthSq() > 0.01;
+    // Em repouso 30 qps; mexendo, todo quadro.
+    if (!interagindo && t - ultimo < 33) return;
+    const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
+    // Inércia ao soltar o arrasto.
+    if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
+    if (voo) {
+      const k = suave(limitar((t - voo.t0) / voo.ms, 0, 1));
+      quer.alvo.lerpVectors(voo.de.alvo, voo.para.alvo, k);
+      quer.dist = voo.de.dist + (voo.para.dist - voo.de.dist) * k;
+      quer.giro = voo.de.giro + (voo.para.giro - voo.de.giro) * k;
+      quer.incl = voo.de.incl + (voo.para.incl - voo.de.incl) * k;
+      if (k >= 1) voo = null;
+    }
+    const f = 1 - Math.pow(0.0001, dt); // aproxima sem degrau
+    orb.alvo.lerp(quer.alvo, f); orb.dist += (quer.dist - orb.dist) * f;
+    orb.giro += (quer.giro - orb.giro) * f; orb.incl += (quer.incl - orb.incl) * f;
+    const a = livre.atual; let mudouLivre = false;
+    for (const k2 of ['esq', 'dir', 'baixo']) { const d = livre[k2] - a[k2]; if (Math.abs(d) > 0.5) { a[k2] += d * f; mudouLivre = true; } else a[k2] = livre[k2]; }
+    if (mudouLivre) { aplicarDeslocamento(); camera.updateProjectionMatrix(); }
+    posicionarCamera();
+    for (const fn of animadores) fn(t / 1000, dt);
+    if (t - (passo.sombra || 0) > 2000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    renderer.info.reset();
+    const t0 = performance.now();
+    composer.render();
+    medida.ms = medida.ms * .9 + (performance.now() - t0) * .1; medida.quadros++;
+    posicionarRotulos();
+    sujo = false;
+  }
+  const ro = new ResizeObserver(medir); ro.observe(canvas);
+  medir(); posicionarCamera(); requestAnimationFrame(passo);
+
+  const medida = { ms: 0, quadros: 0 };
+  return {
+    THREE, cena, camera, renderer, LIM,
+    desempenho: () => ({ chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles, msPorQuadro: Math.round(medida.ms * 10) / 10, quadros: medida.quadros, pixelRatio: renderer.getPixelRatio() }),
+    adicionar: (o) => cena.add(o),
+    clicavel: (o) => clicaveis.push(o),
+    naoClicavel: (o) => { const i = clicaveis.indexOf(o); if (i >= 0) clicaveis.splice(i, 1); },
+    animar: (fn) => animadores.push(fn),
+    rotulo, removerRotulo,
+    aoClicar: (f) => ouvintes.clique.push(f),
+    emitirClique: (alvo) => { for (const f of ouvintes.clique) f(alvo, null); },
+    aoPassar: (f) => ouvintes.passar.push(f),
+    aoMexer: (f) => ouvintes.mexeu.push(f),
+    voar,
+    zoom: (fator) => { cancelarVoo(); quer.dist = limitar(quer.dist * fator, ...LIM.dist); ultimoGesto = performance.now(); },
+    girar90: () => voar({ giro: Math.round((quer.giro + Math.PI / 2) / (Math.PI / 2)) * (Math.PI / 2) - 0.75 + 0.75 }, 700),
+    areaLivre: (esq = 0, dir = 0, baixo = 0) => { livre.esq = esq; livre.dir = dir; livre.baixo = baixo; ultimoGesto = performance.now(); },
+    pausar: (sim) => { const antes = pausado; pausado = !!sim; if (!sim) { ultimo = performance.now(); sujo = true; } else if (!antes) { try { composer.render(); } catch { /* sem quadro ainda */ } } },
+    estado: () => ({ alvo: orb.alvo.clone(), dist: orb.dist, giro: orb.giro, incl: orb.incl, W, H, vo: camera.view && { ...camera.view }, aspect: camera.aspect }),
+    projetar: (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camera); return [(v.x * .5 + .5) * W, (-v.y * .5 + .5) * H]; },
+    destruir: () => { pausado = true; io.disconnect(); ro.disconnect(); renderer.dispose(); camadaRotulos.remove(); },
+  };
+}

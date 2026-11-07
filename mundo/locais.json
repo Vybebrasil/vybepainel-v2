@@ -1,0 +1,206 @@
+{
+  "_como": "Onde fica cada lugar em Irecê, conferido no Google Maps (06/11/2026). x/z = célula do mundo (1 = 10 m, centro de Irecê em 0,0), convertidos de lat/lng pela mesma grade do irece.json. Nome do cliente igual ao do painel. Sem entrada aqui, vale a base de CNPJ (endereço + número) e, sem ela, o endereço do cadastro.",
+  "vybe": {
+    "x": -55,
+    "z": 3.1,
+    "endereco": "R. São Francisco, 194 - Coopirecê",
+    "latlng": [
+      -11.3052658,
+      -41.8600385
+    ],
+    "fonte": "Google Maps: Vybe Brasil - Marketing e Publicidade"
+  },
+  "clientes": {
+    "Copirecê": {
+      "x": -49.4,
+      "z": 5.7,
+      "latlng": [
+        -11.3055077,
+        -41.8595213
+      ],
+      "endereco": "R. São Francisco, 165",
+      "fonte": "Google Maps"
+    },
+    "DiaCenter": {
+      "x": 65.4,
+      "z": 64.5,
+      "latlng": [
+        -11.3108247,
+        -41.8490087
+      ],
+      "endereco": "R. Rio São Francisco, 349 - Recanto das Árvores",
+      "fonte": "Google Maps"
+    },
+    "DiaLab": {
+      "x": -12.7,
+      "z": -51.9,
+      "latlng": [
+        -11.3002902,
+        -41.8561614
+      ],
+      "endereco": "R. Caetano Moreira, 50",
+      "fonte": "Google Maps"
+    },
+    "Gonzalez": {
+      "x": 67.3,
+      "z": 68.5,
+      "latlng": [
+        -11.3111833,
+        -41.8488331
+      ],
+      "endereco": "R. Rio São Francisco, 385",
+      "fonte": "Google Maps"
+    },
+    "Antonov": {
+      "x": 16.4,
+      "z": 44,
+      "latlng": [
+        -11.3089689,
+        -41.853495
+      ],
+      "endereco": "Av. Primeiro de Janeiro, 422 - Antonov Center",
+      "fonte": "Google Maps"
+    },
+    "Hebravet": {
+      "x": 16.5,
+      "z": 44.6,
+      "latlng": [
+        -11.3090274,
+        -41.8534872
+      ],
+      "endereco": "Antonov Center - Av. Primeiro de Janeiro, 422",
+      "fonte": "Google Maps"
+    },
+    "VOA": {
+      "x": 16.4,
+      "z": 44,
+      "endereco": "Antonov Center (mesmo complexo)",
+      "fonte": "Paulo: VOA fica no complexo do Antonov",
+      "conferir": true
+    },
+    "Academia Lions": {
+      "x": 70.1,
+      "z": -11.3,
+      "latlng": [
+        -11.3039664,
+        -41.8485791
+      ],
+      "endereco": "Av. Primeiro de Janeiro, 763 - Centro",
+      "fonte": "Google Maps"
+    },
+    "Brussolo Ristorante": {
+      "x": 31.5,
+      "z": -47,
+      "latlng": [
+        -11.3007388,
+        -41.8521105
+      ],
+      "endereco": "R. Lafaiete Coutinho, 217 - Alto do Moura",
+      "fonte": "Google Maps"
+    },
+    "Hellen": {
+      "x": -18.1,
+      "z": -19.9,
+      "latlng": [
+        -11.303193,
+        -41.8566596
+      ],
+      "endereco": "Rua Aurélio José Marques, 66 - 1º andar - Centro",
+      "fonte": "Google Maps"
+    },
+    "Serra Grande Bebidas": {
+      "x": -7.8,
+      "z": 69.1,
+      "latlng": [
+        -11.311236,
+        -41.8557091
+      ],
+      "endereco": "Serra Grande Bebidas LTDA - Nova Schin",
+      "fonte": "Google Maps + Paulo: saída para Lapão, perto do Posto Modelo (Av. Raimundo Bonfim, 25)"
+    },
+    "ConectaSim": {
+      "x": -48.2,
+      "z": -19.1,
+      "latlng": [
+        -11.3032654,
+        -41.8594122
+      ],
+      "endereco": "Centro Comercial Fiesta - R. Augusto Pereira Nunes, 205",
+      "fonte": "Google Maps"
+    },
+    "Experimente Papelaria": {
+      "x": -61.8,
+      "z": -20.8,
+      "latlng": [
+        -11.303111,
+        -41.8606629
+      ],
+      "endereco": "R. Febrônio Barreto, 64 - Centro",
+      "fonte": "Google Maps"
+    },
+    "Ace - Associação Comercial": {
+      "x": -42.5,
+      "z": 87.9,
+      "latlng": [
+        -11.3129416,
+        -41.858894
+      ],
+      "endereco": "R. Demétrio da Silva Dourado",
+      "fonte": "Google Maps"
+    },
+    "Alpha1": {
+      "x": -62,
+      "z": 9,
+      "endereco": "Fora de Irecê",
+      "fonte": "Paulo: Alpha1 não fica em Irecê; fica perto da Vybe no mapa"
+    },
+    "Mangaba AI": {
+      "x": -48,
+      "z": 12,
+      "endereco": "Fora de Irecê",
+      "fonte": "Paulo: Mangaba AI não fica em Irecê; fica perto da Vybe no mapa"
+    }
+  },
+  "semLocal": [],
+  "marcos": {
+    "prefeitura": {
+      "praca": "Praça Teotônio Marques Dourado",
+      "fonte": "Prefeitura Municipal de Irecê, Pça. Teotônio Marques Dourado Filho, 01"
+    },
+    "feijao": {
+      "latlng": [
+        -11.30444,
+        -41.8537485
+      ],
+      "fonte": "Google Maps: Praça do Feijão"
+    },
+    "atacadao": {
+      "latlng": [
+        -11.2837063,
+        -41.8473396
+      ],
+      "fonte": "Google Maps: Atacadão - Irecê, BA-052 km 353"
+    },
+    "uneb": {
+      "latlng": [
+        -11.2985086,
+        -41.8302459
+      ],
+      "fonte": "Google Maps: Universidade Estadual da Bahia - Campus Irecê"
+    },
+    "faculdade": {
+      "latlng": [
+        -11.3122931,
+        -41.8505628
+      ],
+      "fonte": "Google Maps: Faculdade Irecê - FAI"
+    },
+    "ages": {
+      "latlng": [
+        -11.2792901,
+        -41.8440702
+      ],
+      "fonte": "Google Maps: Faculdade Ages de Medicina Irecê (perto do Atacadão)"
+    }
+  }
+}
