@@ -1,3 +1,4 @@
+import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 // VYBES dentro do Vybe OS (decisão do Paulo, 02/11/2026: "é o nosso VYBES dentro lá, não uma interface nova").
 // A central do VYBES roda no PC do Paulo (o ser, a voz, o WhatsApp, o modelo local) e fica acessível por um túnel.
 // O bot publica aqui o endereço atual do túnel (consulta `vybes_publicar`); o cartão VYBES da tela de módulos pede um crachá
@@ -143,11 +144,31 @@ export async function lerCerebroDaCentral(urlEntrada, { fetchImpl = globalThis.f
     estudando: d.estudando || null, clientes: d.clientes };
 }
 
+// O token da entrada só vira cookie no servidor. Não segue redirecionamentos nem devolve o crachá.
+export async function lerAgentesDaCentral(urlEntrada, { fetchImpl = globalThis.fetch } = {}) {
+ let u;
+ try { u=new URL(urlEntrada); } catch { throw erro('Entrada da central inválida.',502); }
+ if(!TUNEL.test(u.origin) || u.username || u.password || u.hash || u.pathname!=='/entrar' || !u.searchParams.get('t')) throw erro('Entrada da central inválida.',502);
+ let r;
+ try { r=await fetchImpl(`${u.origin}/api/cosmos/agentes`,{method:'GET',redirect:'error',signal:AbortSignal.timeout(20000),headers:{Cookie:`vybes_quem=${encodeURIComponent(u.searchParams.get('t'))}`,Accept:'application/json'}}); }
+ catch { throw erro('A central do VYBES não respondeu à leitura.',504); }
+ if(!r.ok) throw erro('Não foi possível consultar os agentes do VYBES.',r.status===403?403:502);
+ const limite=256*1024; let corpo='';
+ try {
+  if(Number(r.headers?.get('content-length'))>limite) throw new Error('limite');
+  const leitor=r.body?.getReader();
+  if(leitor){const partes=[];let bytes=0;try{while(true){const {done,value}=await leitor.read();if(done)break;bytes+=value.byteLength;if(bytes>limite)throw new Error('limite');partes.push(Buffer.from(value));}corpo=Buffer.concat(partes).toString('utf8');}finally{await leitor.cancel().catch(()=>{});}}
+  else {corpo=await r.text();if(Buffer.byteLength(corpo)>limite)throw new Error('limite');}
+  const dados=validarAgentes(JSON.parse(corpo));
+  return {...dados,fonte:'central-vybes',lidoEm:Date.now()};
+ } catch { try { await r.body?.cancel(); } catch {} throw erro('Resposta inválida da central.',502); }
+}
+
 export async function areaVybes(req, res, quem, sql) {
   try {
-    if (req.method === 'GET' && req.query?.etapa === 'cerebro') {
+    if (req.method === 'GET' && ['cerebro','agentes'].includes(req.query?.etapa)) {
       const { url } = await entradaVybes(sql, quem);
-      return res.status(200).json(await lerCerebroDaCentral(url));
+      return res.status(200).json(await (req.query.etapa==='agentes'?lerAgentesDaCentral:lerCerebroDaCentral)(url));
     }
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });

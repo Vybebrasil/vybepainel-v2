@@ -3526,3 +3526,10 @@ html body.mundo.mundo-modulo :is(#grupos-board-demandas b,td.grupo-nome,.da-disc
 .vv-crm-ficha textarea{min-height:64px;resize:vertical}.vv-crm-movimentos{display:flex;gap:8px;flex-wrap:wrap}
 .vv-crm-historico{padding-left:22px;font-size:12px}.vv-crm-historico li{margin:12px 0}.vv-crm-historico small{display:block;color:#6B675F}.vv-crm-historico p{white-space:pre-wrap;overflow-wrap:anywhere}
 #vv-crm-erro{color:#AA3028;font-size:13px}#vv-crm-erro:empty{display:none}
+
+/* Estado observado da central; indisponibilidade preserva a última leitura. */
+.vv-agente-atividade{margin:12px 0;padding:12px;border:1px solid var(--vv-borda,#DDD7CD);border-radius:12px}
+.vv-agente-tarefa{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.vv-agentes-conexao{font-size:11px;color:var(--vv-apagado,#6B675F)}
+.rotulo-agente:is(.executando,.falhou,.aguardando_aprovacao){border-color:var(--ag-cor)}
+.rotulo-agente.falhou{color:#A62D28}.rotulo-agente:is(.sem_execucao,.indisponivel){opacity:.65}
