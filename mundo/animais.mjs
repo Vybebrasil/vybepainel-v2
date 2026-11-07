@@ -1,6 +1,7 @@
 // Animais do Centro de Irecê: cachorro caramelo andando pelas ruas, jumentos e cabras pastando na
 // beira da cidade e galinhas ciscando nos quintais. Só aparecem e se mexem com a câmera perto.
 import { Obra } from './voxel.mjs';
+import { CENTRO_RECORTE as C } from './irece.mjs';
 
 const semente = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -54,8 +55,8 @@ export function construirAnimais(motor, irece, dados) {
   // Pasto na beira da cidade: pontos do recorte que não são rua nem cidade.
   let n = 0;
   for (let k = 0; k < 400 && n < 26; k++) {
-    const ang = semente(k * 3 + 1) * Math.PI * 2, raio = 70 + semente(k * 7 + 2) * 40;
-    const x = 4 + Math.cos(ang) * raio, z = 18 + Math.sin(ang) * raio;
+    const ang = semente(k * 3 + 1) * Math.PI * 2, raio = 78 + semente(k * 7 + 2) * 40;
+    const x = C.x + Math.cos(ang) * raio, z = C.z + Math.sin(ang) * raio;
     if (!irece.noRecorte(x, z, 6) || irece.ehRua(x, z) || !irece.livreParaLote(x, z)) continue;
     const jeg = n % 4 === 0, g = jeg ? jumento() : cabra(['#EFE8DA', '#8A6B4E', '#2F2A26', '#C9B79C'][n % 4]);
     g.position.set(x, irece.alturaEm(x, z), z); g.rotation.y = semente(k) * 6.28; motor.adicionar(g);
@@ -64,7 +65,7 @@ export function construirAnimais(motor, irece, dados) {
   // Galinhas nos quintais perto do centro.
   n = 0;
   for (let k = 0; k < 600 && n < 30; k++) {
-    const x = 4 + (semente(k * 5 + 3) - .5) * 160, z = 18 + (semente(k * 11 + 7) - .5) * 160;
+    const x = C.x + (semente(k * 5 + 3) - .5) * 170, z = C.z + (semente(k * 11 + 7) - .5) * 170;
     if (!irece.noRecorte(x, z, 10) || irece.ehRua(x, z) || !irece.livreParaLote(x, z)) continue;
     for (let q = 0; q < 3; q++) {
       const gx = x + (q - 1) * .3, gz = z + (q % 2) * .25, g = galinha(['#F4F1EA', '#B5462F', '#2B2F33'][q]);

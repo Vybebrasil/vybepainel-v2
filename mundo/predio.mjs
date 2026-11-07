@@ -22,7 +22,7 @@ export function construirPredio(motor, { x, z, y }) {
   raiz.position.set(x, y, z);
   motor.adicionar(raiz);
 
-  const vidro = new THREE.MeshStandardMaterial({ color: '#8FA9B2', transparent: true, opacity: .26, roughness: .08, metalness: .2, depthWrite: false });
+  const vidro = new THREE.MeshStandardMaterial({ color: '#B9D6DE', transparent: true, opacity: .22, roughness: .08, metalness: .2, depthWrite: false });
   const andares = [];
   const salas = new Map(); // setorId → { monitor, figura, estado }
   const animaveis = [];
@@ -35,6 +35,16 @@ export function construirPredio(motor, { x, z, y }) {
     { x: 0, y: .05, z: 0, w: LADO + 1.2, h: .1, d: LADO + 1.2, cor: '#D9D2C2' },
     ...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => ({ x: a * (LADO / 2 + 2), y: 0, z: b * (LADO / 2 + 2), w: 1.2, h: .5, d: 1.2, cor: '#C9C1AE' })),
   ]));
+  // Praça da Vybe: canteiros de grama, bancos, bicicletário e o totem com a marca na entrada.
+  {
+    const o = new Obra(), M = LADO / 2, F = LADO / 2 + 2.6;
+    for (const [px, pz, w, d] of [[-F + .6, 0, 1.2, LADO - 1], [0, -F + .6, LADO - 1, 1.2]]) { o.caixa(px, .02, pz, w, .14, d, '#CFC6B2').caixa(px, .16, pz, w - .2, .06, d - .2, '#7FB069'); }
+    for (const k of [-3, 0, 3]) { o.caixa(-F + .6, .2, k, .5, .5 + Math.abs(k) * .06, .5, '#5FA34E'); o.caixa(k, .2, -F + .6, .5, .45, .5, '#4C8F3F'); }
+    for (const k of [-3.2, 3.2]) o.caixa(k, .05, M + 2.1, 1.6, .28, .45, '#B98552').caixa(k, .05, M + 2.1, .12, .22, .4, '#5A6268');
+    for (let k = 0; k < 4; k++) o.caixa(M + 2.2, .05, -2 + k * .55, .06, .5, .4, '#5A6268');
+    o.caixa(-M + 1.3, .05, M + 2.6, .5, 2.4, .5, '#1F1D1A').luz(-M + 1.3, 1.4, M + 2.86, .36, .9, .02, '#FF7A2F');
+    raiz.add(o.montar());
+  }
   for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) raiz.add(blocos([
     { x: a * (LADO / 2 + 2), y: .5, z: b * (LADO / 2 + 2), w: .2, h: .8, d: .2, cor: '#7A5534' },
     { x: a * (LADO / 2 + 2), y: 1.2, z: b * (LADO / 2 + 2), w: 1.1, h: 1, d: 1.1, cor: '#5FA34E' },
@@ -49,7 +59,7 @@ export function construirPredio(motor, { x, z, y }) {
     const pecas = [];
     // Laje: piso claro por dentro, borda preta por fora (a caixa preta da maquete da Vybe).
     pecas.push({ x: 0, y: 0, z: 0, w: LADO, h: .22, d: LADO, cor: terraco ? '#C99A6B' : '#F4F1EA' });
-    pecas.push({ x: 0, y: .02, z: 0, w: LADO + .16, h: .2, d: LADO + .16, cor: '#1C1C1F' });
+    pecas.push({ x: 0, y: .02, z: 0, w: LADO + .3, h: .2, d: LADO + .3, cor: '#ECE7DD' }, { x: 0, y: .2, z: 0, w: LADO + .32, h: .03, d: LADO + .32, cor: '#3A3F44' });
     if (!terraco) fachada(g, andar, terreo);
     else {
       // Guarda-corpo do terraço.
@@ -73,7 +83,7 @@ export function construirPredio(motor, { x, z, y }) {
       if (setor.agente) {
         const est = 'indisponivel';
         const r = motor.rotulo({ pos: new THREE.Vector3(x + sx, y + andar.nivel * PE + 2.6, z + 1), classe: 'rotulo-agente escondido ' + est,
-          html: `<b>${setor.agente}</b><small>${setor.nome} · sem leitura da central</small>`, distMax: 140, prioridade: 3,
+          html: `<b>${setor.agente}</b><small>${setor.nome} · sem leitura da central</small><span class="det"><em>${setor.papel || ''}</em><span class="op">Sem leitura da central agora.</span><span class="sk">${(setor.skills || []).slice(0, 4).map((k) => `<i>${k}</i>`).join('')}</span></span>`, distMax: 140, prioridade: 3,
           aoClicar: () => motor.emitirClique?.({ tipo: 'setor', andar: andar.id, setor: setor.id }) });
         r.forcarEscondido = true; r.el.hidden = true;
         agentesRot.push({ r, andarIdx: andares.length, nivel: andar.nivel, setor: setor.id, andarId: andar.id, sx });
@@ -168,35 +178,40 @@ export function construirPredio(motor, { x, z, y }) {
   // a coluna laranja na quina da frente (com VYBE no alto) e a marquise laranja acesa.
   function fachada(g, andar, terreo) {
     const o = new Obra(), H = PE - .22, y0 = .22, M = LADO / 2;
-    // Ripado: fundo (-z) e lado esquerdo (-x).
-    for (let a = -M; a <= M; a += .24) {
-      const cor = Math.round((a + M) / .24) % 2 ? '#1C1C1F' : '#2A2A2E';
-      o.caixa(a, y0, -M - .06, .12, H, .1, cor);
-      o.caixa(-M - .06, y0, a, .1, H, .12, cor);
+    // Fundo (-z) e lado esquerdo (-x): brise de madeira com folga entre as ripas; a luz das salas aparece no meio.
+    for (let a = -M + .2; a <= M - .1; a += .42) {
+      const cor = Math.round((a + M) / .42) % 3 ? '#B98552' : '#A8743F';
+      o.caixa(a, y0, -M - .1, .14, H, .14, cor);
+      o.caixa(-M - .1, y0, a, .14, H, .14, cor);
     }
-    for (const a of [-M + 1.6, -1.2, 2.4]) { o.luz(a, y0 + .1, -M - .12, .05, H - .2, .03, '#FF9A4A'); o.luz(-M - .12, y0 + .1, a, .03, H - .2, .05, '#FF9A4A'); }
-    // Caixilhos da frente (+z) e do lado direito (+x).
-    for (let k = 0; k <= 6; k++) { const p = -M + k * LADO / 6; o.caixa(p, y0, M + .03, .06, H, .06, '#1C1C1F'); o.caixa(M + .03, y0, p, .06, H, .06, '#1C1C1F'); }
-    // Coluna laranja na quina da frente.
-    o.caixa(-M + 1.3, y0 - .02, M + .1, 2.6, H + .04, .22, '#FF6A1F');
-    if (andar.nivel === 5) o.letreiro('VYBE', { x: -M + 1.3, y: y0 + H / 2, z: M + .22, px: .15, cor: '#FFFFFF', aceso: true });
-    // Luz quente no teto de cada sala (vista de fora pelo vidro).
-    for (const a of [-3, 0, 3]) o.luz(a + .8, y0 + H - .06, 0, 1.6, .05, 6, '#FFE2B0');
-    if (terreo) {
-      // Marquise laranja acesa, contornando frente e lado direito, e o "vybe." no vidro.
-      o.luz(.9, y0 + H - .3, M + .55, LADO - 1.6, .26, 1.1, '#FF7A2F');
-      o.luz(M + .55, y0 + H - .3, 0, 1.1, .26, LADO + 1, '#FF7A2F');
-      o.letreiro('vybe.', { x: 2.6, y: y0 + 1.25, z: M + .07, px: .13, cor: '#FFFFFF', aceso: true });
-      // Gente da equipe no térreo (o atendimento é de gente; os agentes são o VYBES).
-      o.pessoa(-2.2, y0, 3.2, { roupa: '#FF7A2F' }).pessoa(-1.7, y0, 3.5, { roupa: '#2B2F33', cabelo: '#6B4A2E' }).pessoa(3.6, y0, 2.2, { roupa: '#F4F1EA' });
-    } else {
-      o.luz(.9, y0 + H - .05, M + .14, LADO - 1.6, .06, .06, '#FF7A2F');
-      o.luz(M + .14, y0 + H - .05, 0, .06, .06, LADO, '#FF7A2F');
+    // Pilares de concreto claro nas quinas.
+    for (const [px, pz] of [[-M, -M], [M, -M], [-M, M], [M, M]]) o.caixa(px, y0 - .02, pz, .34, H + .04, .34, '#ECE7DD');
+    // Caixilhos finos de alumínio na frente (+z) e no lado direito (+x).
+    for (let k = 1; k < 6; k++) { const p = -M + k * LADO / 6; o.caixa(p, y0, M + .03, .05, H, .05, '#5A6268'); o.caixa(M + .03, y0, p, .05, H, .05, '#5A6268'); }
+    o.caixa(0, y0 + H * .55, M + .03, LADO, .04, .05, '#5A6268').caixa(M + .03, y0 + H * .55, 0, .05, .04, LADO, '#5A6268');
+    // Coluna laranja na quina da frente: a marca da Vybe, sobe o prédio inteiro.
+    o.caixa(-M + 1.3, y0 - .02, M + .12, 2.4, H + .04, .2, '#FF6A1F');
+    if (andar.nivel === 5) o.letreiro('VYBE', { x: -M + 1.3, y: y0 + H / 2, z: M + .24, px: .15, cor: '#FFFFFF', aceso: true });
+    // Luz quente no teto das salas, vista de fora pelo vidro: luminárias lineares finas, num desenho separado
+    // que some quando se entra no andar (antes eram placas de 1,6×6 que cobriam as salas na vista de dentro).
+    const teto = new Obra();
+    for (const a of [-3.4, -.6, 2.2]) for (const b of [-2.6, 0, 2.6]) teto.luz(a + .8, y0 + H - .05, b, 1.4, .04, .14, '#FFE2B0');
+    const tetoM = teto.montar({ sombra: false }); g.add(tetoM); g.userData.teto = tetoM;
+    // Jardineira com plantas na borda da frente (andares de cima).
+    if (!terreo) {
+      o.caixa(1.2, y0 - .02, M + .32, LADO - 3.2, .26, .34, '#ECE7DD');
+      for (let k = 0; k < 7; k++) o.caixa(-2.2 + k * 1.05, y0 + .24, M + .32, .42, .22 + (k % 3) * .08, .26, k % 2 ? '#5FA34E' : '#4C8F3F');
       if (andar.nivel % 2) o.pessoa(3.4, y0, 1.6, { roupa: andar.nivel === 3 ? '#18A957' : '#FF7A2F' });
+    } else {
+      // Térreo: marquise laranja acesa, porta de vidro, "vybe." no vidro e gente no atendimento.
+      o.luz(.9, y0 + H - .3, M + .55, LADO - 1.6, .22, 1.1, '#FF7A2F');
+      o.luz(M + .55, y0 + H - .3, 0, 1.1, .22, LADO + 1, '#FF7A2F');
+      o.caixa(2.6, y0, M + .05, 1.6, H - .4, .06, '#3A3F44').luz(2.6, y0 + .05, M + .09, 1.4, H - .5, .02, '#BFE3EA');
+      o.letreiro('vybe.', { x: -.4, y: y0 + 1.25, z: M + .07, px: .13, cor: '#FFFFFF', aceso: true });
+      o.pessoa(-2.2, y0, 3.2, { roupa: '#FF7A2F' }).pessoa(-1.7, y0, 3.5, { roupa: '#2B2F33', cabelo: '#6B4A2E' }).pessoa(3.6, y0, 2.2, { roupa: '#F4F1EA' });
     }
     g.add(o.montar());
   }
-
   // ----- O ser do VYBES, flutuando sobre o terraço -----
   const ser = new THREE.Group();
   const cubos = [];
@@ -241,9 +256,10 @@ export function construirPredio(motor, { x, z, y }) {
       a.g.position.y = a.andar.nivel * PE + .15 + a.andar.nivel * ABRE * abre + t1;
       a.g.visible = t1 < 45;
       a.rotulo.el.hidden = true;
+      if (a.g.userData.teto) a.g.userData.teto.visible = foco === null && abre < .05;
     }
     ser.visible = foco === null;
-    vidro.opacity = foco !== null ? .04 : .3 - .22 * abre;
+    vidro.opacity = foco !== null ? .04 : .22 - .16 * abre;
     const pulso = estadoSer === 'alerta' ? 1 + Math.sin(t * 7) * .06 : 1 + Math.sin(t * 1.6) * .035;
     casca.scale.setScalar(pulso);
     casca.rotation.y = t * .25; anel.rotation.z = t * .6;
@@ -315,9 +331,18 @@ export function construirPredio(motor, { x, z, y }) {
   function atividadeAgentes(agentes = [], conectado = false) {
     const porSetor = new Map(agentes.map(a => [a.setor, a]));
     let mudou = false;
+    const hora = (v) => { const d = new Date(v); return Number.isFinite(d.getTime()) ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''; };
+    const limpa = (t) => String(t || '').replace(/[<>&]/g, '');
     for (const [id, sala] of salas) {
       if (!sala.monitor) continue;
       const atual = apresentarAgente(porSetor.get(id));
+      // Cartão do hover: o que está fazendo agora, desde quando, quantas em curso e as últimas execuções.
+      const rh = agentesRot.find(a => a.setor === id)?.r, op = rh?.el.querySelector('.op');
+      if (op) {
+        const ult = (atual.ultimos || []).slice(0, 3).map((e) => `<span class="u ${e.estado}"><b>${hora(e.em)}</b> ${limpa(e.tarefa)}${e.erro ? ' · ' + limpa(e.erro) : ''}</span>`).join('');
+        const html = !conectado ? 'Sem leitura da central agora.' : `${atual.tarefa ? `<span class="agora"><b>Agora:</b> ${limpa(atual.tarefa)}${atual.desde ? ' · desde ' + hora(atual.desde) : ''}</span>` : '<span class="agora">Sem tarefa em curso.</span>'}${atual.emCurso ? `<span class="agora">${atual.emCurso} em curso</span>` : ''}${ult || '<span class="u">Nenhuma execução registrada.</span>'}`;
+        if (op.innerHTML !== html) op.innerHTML = html;
+      }
       const assinatura = atual.estado + ':' + conectado;
       if (sala.assinatura === assinatura) continue;
       sala.assinatura = assinatura; sala.estado = atual.estado; sala.conectado = conectado; mudou = true;
