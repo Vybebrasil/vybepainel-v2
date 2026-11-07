@@ -716,7 +716,7 @@
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
       if (naSala) {
         const L = tamanhoDaZona(zona); if (L && typeof escritorioIrPara === 'function') escritorioIrPara(Math.round(fx * L.w), Math.round(fz * L.d));
-      } else if (typeof irParaSalaEscritorio === 'function') { irParaSalaEscritorio(zona); andarAberto.focarSala(zona); }
+      } else { irParaSala(zona); andarAberto.focarSala(zona); }
     });
     el.querySelector('[data-sair-andar]').addEventListener('click', async () => { if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return; fecharAndarVoxel(true); });
     el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
@@ -1213,10 +1213,13 @@
     if (desviarIdaAoQuarto.feito || typeof window.escritorioIrParaAmbiente !== 'function') return;
     desviarIdaAoQuarto.feito = true;
     const irOriginal = window.escritorioIrParaAmbiente;
+    // A ida de verdade (move a pessoa e a voz). Antes o desvio chamava irParaSalaEscritorio, que chamava de novo
+    // escritorioIrParaAmbiente (este desvio): andava em círculo e a pessoa nunca saía do lugar.
+    moverParaSala.original = irOriginal;
     window.escritorioIrParaAmbiente = function (id, ...r) {
       const z = ligado && mundo?.zonasDoPredio?.[id];
       if (!z) return irOriginal.call(this, id, ...r);
-      abrirAndarVoxel(z.andar).then(() => { if (typeof irParaSalaEscritorio === 'function') irParaSalaEscritorio(id); andarAberto?.focarSala(id); });
+      abrirAndarVoxel(z.andar).then(() => { irParaSala(id); andarAberto?.focarSala(id); });
     };
   }
   setInterval(desviarIdaAoQuarto, 2000); desviarIdaAoQuarto();
@@ -1253,6 +1256,9 @@
       // Direto no jogo (Paulo, 06/11/2026: "não precisa pôr a sala"): o motor vai à sala Jogos por baixo,
       // sem mostrar nada; a janela do jogo abre por cima do mundo.
       sincronizar();
+      // A mesa vem do quarto de verdade: na sala Jogos com o mapa sem desenho, monta o quarto real agora.
+      quartoRealNosJogos = true;
+      if (escritorio.zona === 'jogos' && escritorio.mapa?.semDesenho) { escritorio.mapa = null; chamar('renderEscritorio'); }
       if (escritorio.zona !== 'jogos' || !escritorio.mapa) irParaSalaEscritorio('jogos');
       const t0 = Date.now();
       while ((escritorio.zona !== 'jogos' || !escritorio.mapa) && Date.now() - t0 < 10000) await new Promise((r) => setTimeout(r, 250));
@@ -1418,7 +1424,7 @@
       else if (b.dataset.legado === 'conquistas') chamar('abrirConquistasEscritorio');
       else if (b.dataset.legado === 'missoes') { if (window.VybeMissoes?.abrir) window.VybeMissoes.abrir('missoes'); else chamar('showToast', 'Missões chegando nesta versão.', 'info'); }
     }
-    else if (b.dataset.entrarZona) { const z = mundo.zonasDoPredio?.[b.dataset.entrarZona]; if (z) abrirAndarVoxel(z.andar).then(() => { irParaSalaEscritorio?.(b.dataset.entrarZona); andarAberto?.focarSala(b.dataset.entrarZona); }); }
+    else if (b.dataset.entrarZona) { const z = mundo.zonasDoPredio?.[b.dataset.entrarZona]; if (z) abrirAndarVoxel(z.andar).then(() => { if (window.vybesIrParaSala) window.vybesIrParaSala(b.dataset.entrarZona); else irParaSalaEscritorio?.(b.dataset.entrarZona); andarAberto?.focarSala(b.dataset.entrarZona); }); }
     else if (b.hasAttribute('data-agenda-recolher')) { const ag = hud.querySelector('#vv-agenda'); const fechada = ag.classList.toggle('recolhida'); b.setAttribute('aria-expanded', String(!fechada)); }
     else if (b.hasAttribute('data-abrir-agenda')) abrirAgenda();
     else if (b.dataset.agendaDia) abrirAgenda(b.dataset.agendaDia);
@@ -1593,6 +1599,12 @@
   const barra = document.createElement('div');
   barra.className = 'vv-chamada'; barra.hidden = true; barra.setAttribute?.('role', 'region'); barra.setAttribute?.('aria-label', 'Chamada da sala');
   hud.append?.(barra);
+  // Altura real da barra (com a música ela pode ir para duas linhas): o player e o aviso de planejamento
+  // sobem junto, para nada cobrir a barra (regra do Paulo: nada cobre, nada rola).
+  // Mede quando o conteúdo muda (MutationObserver não depende de a página estar desenhando) e quando a largura muda.
+  function medirBarra() { document.body?.style?.setProperty?.('--vv-voz-alto', (barra.hidden ? 0 : Math.round(barra.offsetHeight)) + 'px'); }
+  if (typeof MutationObserver === 'function') new MutationObserver(medirBarra).observe(barra, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(medirBarra).observe(barra);
   let chamarAberto = false, pessoaAberta = null;
   const primeiro = (n) => String(n || '?').split(' ')[0];
   const iniciais = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
@@ -1608,11 +1620,23 @@
     sair: '<svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
   };
   // Leva a pessoa até uma sala do Escritório sem sair do Irecity (a voz segue a sala).
+  // Entrar numa sala de propósito é como entrar num canal do Discord: a voz liga junto (o microfone só começa
+  // desligado na abertura do sistema). Sala trancada: o Escritório avisa e a pessoa fica onde estava.
   function irParaSala(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!zona) return;
-    if (e?.mapa && fn('escritorioIrParaAmbiente')) fn('escritorioIrParaAmbiente')(zona); else fn('irParaSalaEscritorio')?.(zona);
-    setTimeout(pintarChamada, 600);
+    if (e) { e.microfoneQuer = true; e.erroMic = null; }
+    moverParaSala(zona);
+    setTimeout(() => { if (e?.zona === zona) fn('escritorioConversaAutomatica')?.(); pintarChamada(); }, 700);
+    setTimeout(() => { if (e?.zona === zona) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
+  }
+  window.vybesIrParaSala = irParaSala;
+  // Move a pessoa (e a voz) para a sala sem trocar a tela: a função original do Escritório, guardada antes do desvio.
+  function moverParaSala(zona) {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    const mover = moverParaSala.original || (typeof window.escritorioIrParaAmbiente === 'function' ? window.escritorioIrParaAmbiente : null);
+    if (e?.mapa && mover) { mover.call(window, zona); return; }
+    fn('irParaSalaEscritorio')?.(zona);
   }
   // A janela de ajustes de áudio nasce dentro da tela do Escritório (que fica embaixo do mapa): traz para cima.
   async function abrirAjustesAudio() {
@@ -1657,10 +1681,11 @@
     const salas = {}; for (const o of outros) if (o.zona && o.zona !== e.zona) (salas[o.zona] ||= []).push(o);
     const pessoa = pessoaAberta && outros.find((o) => String(o.id) === pessoaAberta);
     const ouvem = juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa ouve você' : ' pessoas ouvem você') : 'só você aqui';
-    const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${esc(estado)}${naChamada ? ' · ' + ouvem : ''}</small></span>
+    const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
       <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' · falando' : ''}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+      ${musicaHtml(e, temSom)}
       <span class="acoes">
-        <button type="button" class="vv-botao ic${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
+        <button type="button" class="vv-botao ic${mic ? ' on' : ''}${naChamada && !mic && juntos.length ? ' chama' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
         <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
         <button type="button" class="vv-botao ic" data-chamada="musica" ${temSom ? '' : 'disabled'} title="${temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)'}">${IC.musica}</button>
         <button type="button" class="vv-botao ic${cam ? ' on' : ''}" data-chamada="camera" aria-pressed="${cam}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (cam ? 'Desligar a câmera' : 'Ligar a câmera') : 'Entre numa sala com voz para usar a câmera'}">${IC.camera}</button>
@@ -1680,6 +1705,16 @@
   }
   // Salas de voz, como no Discord: todas as salas do prédio por andar, quem está em cada uma (acende quem fala),
   // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa.
+  // Música da sala na barra (como o player do Escritório): o que toca, anterior/tocar-pausar/próxima,
+  // silenciar só para você e a fila. Vale também dentro dos módulos.
+  function musicaHtml(e, temSom) {
+    const m = e?.musica, f = m?.fila?.[m.indice];
+    if (!temSom || !f) return '';
+    let titulo = ''; try { titulo = e.player?.getVideoData?.()?.title || ''; } catch { /* sem player ainda */ }
+    const muda = Boolean(fn('escritorioMusicaMuda')?.());
+    return `<span class="vv-musica${m.tocando ? ' tocando' : ''}"><i aria-hidden="true">♪</i><span class="t"><b>${esc(titulo || (f.kind === 'playlist' ? 'Playlist da sala' : 'Música da sala'))}</b><small>${m.tocando ? 'Tocando' : 'Pausada'} · ${m.indice + 1} de ${m.fila.length}${f.por ? ' · de ' + esc(primeiro(f.por)) : ''}</small></span>
+      <button type="button" data-musica="anterior" ${m.indice > 0 ? '' : 'disabled'} title="Anterior" aria-label="Anterior">⏮</button><button type="button" data-musica="${m.tocando ? 'pausar' : 'tocar'}" title="${m.tocando ? 'Pausar para a sala' : 'Tocar'}" aria-label="${m.tocando ? 'Pausar' : 'Tocar'}">${m.tocando ? '⏸' : '▶'}</button><button type="button" data-musica="proxima" ${m.indice < m.fila.length - 1 ? '' : 'disabled'} title="Próxima" aria-label="Próxima">⏭</button><button type="button" data-musica="mudo" aria-pressed="${muda}" title="${muda ? 'Voltar a ouvir' : 'Silenciar só para você'}" aria-label="Silenciar só para você">${muda ? '🔈' : '🔇'}</button></span>`;
+  }
   function salasDeVozHtml({ e, Z, outros, falando, nomeZona }) {
     const planta = mundo?.planta || [], porAndar = new Map();
     for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
@@ -1707,6 +1742,11 @@
   }
   barra.addEventListener?.('click', (ev) => {
     const b = ev.target.closest('button'); if (!b || b.disabled) return;
+    if (b.dataset.musica) {
+      const a = b.dataset.musica;
+      if (a === 'mudo') fn('silenciarMusicaEscritorio')?.(); else fn('controleMusicaEscritorio')?.(a);
+      pintarChamada.ultimo = ''; setTimeout(pintarChamada, 300); return;
+    }
     const c = b.dataset.chamada;
     if (c === 'mic') fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada);
     else if (c === 'ajustes') abrirAjustesAudio();
@@ -1905,6 +1945,82 @@
   if (typeof window !== 'undefined' && typeof window.vybelandiaCenaHtml === 'function') {
     const cenaOriginal = window.vybelandiaCenaHtml;
     window.vybelandiaCenaHtml = function (...a) { return ligado ? '<div class="abr-cena" aria-hidden="true"></div>' : cenaOriginal.apply(this, a); };
+  }
+  // ---------- Escritório sem desenho no Irecity ----------
+  // Paulo, 07/11/2026: "não já mandei tirar o que tava escondido do modo legado que tivesse rodando por trás?".
+  // O motor do Escritório fica só com o que o Irecity usa: salas, presença, voz, música e recados. O quarto do
+  // Habbo não é mais montado escondido: no lugar do mapa desenhado entra um mapa "sem desenho" (sem canvas, sem
+  // a arte do Habbo, sem os sprites dos móveis e dos bonecos, sem as vitrines). Ele responde ao motor com os
+  // móveis da sala tirados dos dados que já vieram do servidor (assim a música ainda sabe se a sala tem vitrola).
+  // Exceção: o jogo precisa da mesa de verdade na sala Jogos; só aí o quarto real é montado, na hora.
+  let quartoRealNosJogos = false;
+  function mapaSemDesenho(planta) {
+    const moveis = [];
+    const pegar = (it) => (Array.isArray(it) ? { classe: String(it[0] || ''), x: Number(it[1]) || 0, y: Number(it[2]) || 0, dir: it[3], origem: it[6] || null } : it && it.classe ? it : null);
+    const somar = (lista) => { for (const it of Array.isArray(lista) ? lista : []) { const m = pegar(it); if (m) moveis.push(m); } };
+    somar(planta?.moveis); somar(planta?.fixos);
+    const perto = (x, y, r = 0) => moveis.filter((m) => Math.abs(m.x - x) <= r + 0.5 && Math.abs(m.y - y) <= r + 0.5);
+    const base = {
+      semDesenho: true, prontos: Promise.resolve(), camadas: [], imagens: [], editavel: false, pincel: null, tacaLugar: null,
+      moveisEm: (x, y) => moveis.filter((m) => Math.floor(m.x) === Math.floor(x) && Math.floor(m.y) === Math.floor(y)),
+      moveisPerto: perto,
+      moveisDaClasse: (re) => moveis.filter((m) => (re instanceof RegExp ? re.test(m.classe) : m.classe === re)),
+      acrescentarMovel: (it) => somar([it]),
+      chaveMovel: (m) => m?.chaveFixa || `${m?.classe}@${Math.floor(m?.x)},${Math.floor(m?.y)}`,
+      idsNoMapa: () => [], alasDosPostos: () => [], numeroDePostos: () => 0, noDaPessoa: () => null,
+      caminho: () => null, assentoEm: () => undefined, bloqueadoEm: () => false, podePassar: () => true, pisoEm: () => null, ladrilhoEm: () => null,
+      tela: () => ({ x: -9999, y: -9999 }), medidas: async () => ({ w: 1, h: 1 }),
+    };
+    // Qualquer outro pedido do motor (desenhar, mover boneco, balão, câmera…) não faz nada.
+    return new Proxy(base, { get: (t, k) => (k in t ? t[k] : typeof k === 'symbol' || k === 'then' || k === 'toJSON' ? undefined : () => undefined) });
+  }
+  window.vybesMapaSemDesenho = mapaSemDesenho; // para os testes
+  if (typeof window !== 'undefined' && typeof window.criarMapaEscritorio === 'function') {
+    const criarOriginal = window.criarMapaEscritorio;
+    window.criarMapaEscritorio = function (el, opcoes, ...r) {
+      const e = typeof escritorio !== 'undefined' ? escritorio : null;
+      if (e?.quarto !== 'jogos' && !jogandoAgora) quartoRealNosJogos = false;
+      const querQuarto = jogandoAgora || (quartoRealNosJogos && e?.quarto === 'jogos');
+      if (ligado && !querQuarto && el?.closest?.('#painel-escritorio')) return mapaSemDesenho(opcoes?.planta);
+      return criarOriginal.call(this, el, opcoes, ...r);
+    };
+  }
+
+  // A tela escondida também desenhava o troféu da Copa do saguão e os emblemas de cada sala com a arte do Habbo
+  // (um móvel baixado e pintado por sala). No Irecity ninguém vê: não baixa nem pinta. Fora da tela escondida
+  // (uma janela que ainda use o emblema), pinta como sempre.
+  if (typeof window !== 'undefined' && typeof window.carregarCopaEscritorio === 'function') {
+    const copaOriginal = window.carregarCopaEscritorio;
+    window.carregarCopaEscritorio = function (...a) { return ligado ? Promise.resolve() : copaOriginal.apply(this, a); };
+  }
+  if (typeof window !== 'undefined' && typeof window.pintarArtesEscritorio === 'function') {
+    const artesOriginal = window.pintarArtesEscritorio;
+    window.pintarArtesEscritorio = function (raiz = document, ...a) {
+      if (!ligado) return artesOriginal.call(this, raiz, ...a);
+      const painel = document.getElementById('painel-escritorio');
+      const fora = [...(raiz?.querySelectorAll?.('img.ofc-arte:not(.pronta)') || [])].filter((img) => !painel?.contains?.(img));
+      return fora.length ? artesOriginal.call(this, { querySelectorAll: () => fora }, ...a) : Promise.resolve();
+    };
+  }
+
+  // ---------- Player da música da sala: janela própria do Irecity ----------
+  // O player (clipe do YouTube, anterior/tocar/próxima, volume, fila) mora no body, numa janela do Irecity. O
+  // Escritório o recolocava na coluna da tela dele a cada redesenho; no Irecity ele recebe só um marcador vazio
+  // e o player não sai do lugar (mover o player recarregaria o vídeo e cortaria a música).
+  let redesenhandoEscritorio = false;
+  if (typeof window !== 'undefined' && typeof window.escritorioElementoMusica === 'function' && typeof window.renderEscritorio === 'function') {
+    const elementoOriginal = window.escritorioElementoMusica, renderOriginal = window.renderEscritorio;
+    window.escritorioElementoMusica = function (...a) {
+      const el = elementoOriginal.apply(this, a);
+      if (!ligado || !el) return el;
+      if (!el.classList.contains('vv-musica-janela')) { el.classList.add('vv-musica-janela'); document.body.append(el); }
+      if (redesenhandoEscritorio) { const marca = document.createElement('span'); marca.hidden = true; return marca; }
+      return el;
+    };
+    window.renderEscritorio = function (...a) {
+      redesenhandoEscritorio = true;
+      try { return renderOriginal.apply(this, a); } finally { redesenhandoEscritorio = false; }
+    };
   }
   desviarEscritorio(); if (typeof setInterval === 'function') { const t = setInterval(() => { desviarEscritorio(); if (desviarEscritorio.feito) clearInterval(t); }, 1500); }
 

@@ -3753,7 +3753,7 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 .vv-chamada .vv-botao.ic.sair:hover{background:#FDECEE!important;color:#B42318!important}
 .vv-chamada [data-chamada="reconectar"]{background:var(--vv-acao,#C2490C)!important;color:#fff!important;border:0!important;padding:0 14px}
 /* com a barra de chamada visível, o aviso de planejamentos sobe e não encosta nela */
-@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#mundo-hud .vv-chamada:not([hidden])) .plj-aviso{bottom:calc(var(--vv-m) + 64px)!important}}
+@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#mundo-hud .vv-chamada:not([hidden])) .plj-aviso{bottom:calc(var(--vv-m) + var(--vv-voz-alto,56px) + 14px)!important}}
 
 /* ===== Hover do agente no andar: a operação dele ===== */
 .mundo-rotulo.rotulo-agente .det{display:none}
@@ -4190,3 +4190,63 @@ html body.mundo .abr-cena{background-image:none!important}
    recados, TV, ajustes de áudio) vivem no body e continuam aparecendo. Modo legado (?legado=1) não tem body.mundo. */
 html body.mundo #painel-escritorio{visibility:hidden!important;pointer-events:none!important}
 html body.mundo :is(.ofc-lobby,.ofc-abertura,#ofc-abertura){display:none!important}
+.vv-chamada .sala small b.mudo{color:#B42318;font-weight:800}
+.vv-chamada .vv-botao.ic.chama{animation:vv-chama 1.2s ease-in-out infinite}
+@keyframes vv-chama{50%{box-shadow:0 0 0 5px rgba(217,61,66,.28)}}
+
+/* ===== Música da sala: controle na barra de voz e o player com o clipe flutuando por cima do mapa ===== */
+.vv-chamada .vv-musica{display:flex;align-items:center;gap:4px;padding:3px 6px 3px 8px;border-radius:14px;background:#F3EFE8;border:1px solid #E6E0D6;max-width:330px}
+.vv-chamada .vv-musica > i{font-style:normal;font-size:14px;color:#8E4EC6}
+.vv-chamada .vv-musica.tocando > i{animation:vv-nota 1.4s ease-in-out infinite}
+@keyframes vv-nota{50%{transform:translateY(-2px) rotate(-8deg)}}
+.vv-chamada .vv-musica .t{min-width:0;flex:1;margin-right:4px}
+.vv-chamada .vv-musica .t b{display:block;font:700 11.5px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.vv-chamada .vv-musica .t small{font:500 10px var(--vv-texto);color:#6B675F!important;white-space:nowrap}
+.vv-chamada .vv-musica button{appearance:none;width:26px;height:26px;border-radius:8px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;cursor:pointer;font-size:11px;line-height:1}
+.vv-chamada .vv-musica button:hover:not(:disabled){border-color:#FF7A2F}
+.vv-chamada .vv-musica button:disabled{opacity:.35;cursor:default}
+.vv-chamada .vv-musica button[aria-pressed="true"]{background:#FDECEE;border-color:#F6BBC4}
+body.mundo.mundo-modulo .vv-chamada .vv-musica .t{display:none}
+/* o player da sala (clipe do YouTube e controles) é uma janela própria do Irecity, no body: a tela escondida do
+   Escritório não sobe mais para cima do mapa. Nos módulos ele some da vista (a música segue; o controle fica na barra). */
+body.mundo #office-musica.vv-musica-janela{position:fixed!important;left:auto!important;top:auto!important;right:calc(var(--vv-m,16px) + 70px)!important;bottom:calc(var(--vv-m,16px) + var(--vv-voz-alto,64px) + 12px)!important;z-index:640;width:300px;display:grid;gap:8px;padding:10px 10px 12px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:18px;box-shadow:0 20px 50px rgba(31,29,26,.22);color:#1F1D1A;font:500 12px var(--vv-texto);color-scheme:light;backdrop-filter:none}
+body.mundo #office-musica.vv-musica-janela[hidden]{display:none!important}
+body.mundo.mundo-modulo #office-musica.vv-musica-janela,body.mundo.mundo-andar #office-musica.vv-musica-janela{visibility:hidden;pointer-events:none}
+.vv-musica-janela .ofc-musica-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:default}
+.vv-musica-janela .ofc-musica-topo b{display:flex;align-items:center;gap:6px;font:700 10.5px var(--vv-texto);letter-spacing:.12em;text-transform:uppercase;color:#8E4EC6}
+.vv-musica-janela .ofc-musica-topo b::after{content:" da sala"}
+.vv-musica-janela .ofc-musica-topo svg,.vv-musica-janela .ofc-ico{width:14px;height:14px}
+.vv-musica-janela .ofc-encaixar{display:none!important}
+.vv-musica-janela .ofc-musica-player{border-radius:12px;overflow:hidden;background:#1F1D1A;aspect-ratio:16/9}
+.vv-musica-janela .ofc-musica-player iframe,.vv-musica-janela #office-yt{display:block;width:100%!important;height:100%!important;border:0}
+.vv-musica-janela.mini{width:260px}
+.vv-musica-janela.mini .ofc-musica-player{height:0;aspect-ratio:auto;border:0}
+.vv-musica-janela .ofc-musica-info{display:grid;gap:8px}
+.vv-musica-janela .ofc-musica-info > b{font:700 13px var(--vv-texto);color:#1F1D1A}
+.vv-musica-janela .ofc-musica-info > small{margin-top:-6px;font:500 11px var(--vv-texto);color:#6B675F}
+.vv-musica-janela button{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:10px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;font:600 12px var(--vv-texto);cursor:pointer}
+.vv-musica-janela .ofc-musica-topo button{width:26px;height:26px;padding:0;border-radius:8px}
+.vv-musica-janela button:hover:not(:disabled){border-color:#FF7A2F}
+.vv-musica-janela button:disabled{opacity:.4;cursor:default}
+.vv-musica-janela .ofc-musica-ctl{display:grid;grid-template-columns:40px 1fr 40px;gap:6px}
+.vv-musica-janela .ofc-musica-ctl button:nth-child(2),.vv-musica-janela .ofc-primario{background:#FF7A2F;border-color:#FF7A2F;color:#fff}
+.vv-musica-janela .ofc-musica-vol{display:flex;align-items:center;gap:8px}
+.vv-musica-janela .ofc-musica-vol input{flex:1;min-width:0;accent-color:#FF7A2F}
+.vv-musica-janela .ofc-secundario{width:100%}
+html.tema-escuro body.mundo .vv-musica-janela :is(.ofc-musica-ctl button:nth-child(2),.ofc-primario){filter:invert(1) hue-rotate(180deg)}
+/* "Fila e link" da música: a janela no padrão claro */
+body.mundo .ofc-musica-painel{background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:0 30px 80px rgba(31,29,26,.28)!important;color-scheme:light}
+body.mundo .ofc-musica-painel::backdrop{background:rgba(31,29,26,.35)}
+body.mundo .ofc-musica-painel h3{font:700 17px var(--vv-texto);color:#1F1D1A}
+body.mundo .ofc-musica-painel :is(.ofc-nota,.ofc-musica-lista small){color:#6B675F!important}
+body.mundo .ofc-musica-painel .ofc-x{appearance:none;width:30px;height:30px;border-radius:10px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;cursor:pointer}
+body.mundo .ofc-musica-form input{background:#FBFAF7!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:10px!important}
+body.mundo .ofc-musica-form input:focus{outline:2px solid color-mix(in srgb,#FF7A2F 45%,transparent);outline-offset:1px}
+body.mundo .ofc-musica-lista li{background:#F7F4EF!important}
+body.mundo .ofc-musica-lista li[aria-current="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff)!important;outline:1px solid color-mix(in srgb,#FF7A2F 40%,transparent)!important}
+body.mundo .ofc-musica-lista li[aria-current="true"] b{color:#C2490C}
+body.mundo .ofc-musica-lista button,body.mundo .ofc-musica-rodape .ofc-secundario{background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:9px}
+body.mundo .ofc-musica-lista button.perigo{color:#D93D42!important}
+body.mundo .ofc-musica-painel .ofc-erro{color:#D93D42}
+/* com o player aberto, o aviso de planejamento centraliza no espaço que sobra à esquerda dele */
+@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#office-musica.vv-musica-janela:not([hidden])) .plj-aviso{right:calc(var(--vv-m) + 70px + 300px + 12px)!important}}
