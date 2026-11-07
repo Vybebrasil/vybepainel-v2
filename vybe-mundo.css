@@ -4124,3 +4124,8 @@ html.tema-escuro body.mundo .mundo-vinheta{background:radial-gradient(ellipse at
 /* Conversa da equipe: cabeçalho claro (a regra antiga pinta todo <header> de grafite) e ao lado do "Seu dia" */
 html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border-bottom:1px solid #EFEAE2!important;box-shadow:none!important;color:#1F1D1A!important}
 @media (min-width:901px){html body.mundo .vv-conversa:not(#ds-a){left:calc(max(var(--vv-livre-esq, 0px), 90px) + 12px)!important}}
+/* linha da sala de voz: vence a regra genérica de botão da lista (grid de 2 colunas) */
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala{display:grid!important;grid-template-columns:22px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .ic{grid-row:auto!important;grid-column:1!important}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .meio{grid-row:auto!important;grid-column:2!important;min-width:0}
+.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > em{grid-row:auto!important;grid-column:3!important;align-self:center}
