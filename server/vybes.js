@@ -122,8 +122,33 @@ export async function perguntarVybes(sql, quem, texto, { env = process.env, agor
   return { fala: String(d.fala || '').slice(0, 600), audio, tipo: /^audio\/(?:mpeg|ogg|wav)$/.test(String(d.tipo || '')) ? d.tipo : 'audio/mpeg' };
 }
 
+// Leitura do estudo existente: o crachá fica no servidor e nunca volta ao JavaScript.
+export async function lerCerebroDaCentral(urlEntrada, { fetchImpl = globalThis.fetch } = {}) {
+  const u = new URL(urlEntrada);
+  if (!TUNEL.test(u.origin) || u.pathname !== '/entrar' || !u.searchParams.get('t'))
+    throw erro('Entrada da central inválida.', 502);
+  let r;
+  try {
+    r = await fetchImpl(`${u.origin}/api/cosmos/ideias`, {
+      method: 'GET', redirect: 'error', signal: AbortSignal.timeout(20000),
+      headers: { Cookie: `vybes_quem=${encodeURIComponent(u.searchParams.get('t'))}`, Accept: 'application/json' }
+    });
+  } catch { throw erro('A central do VYBES não respondeu à leitura.', 504); }
+  if (!r.ok) throw erro('Não foi possível consultar o estudo do VYBES.', r.status === 403 ? 403 : 502);
+  const texto = await r.text();
+  if (texto.length > 2 * 1024 * 1024) throw erro('Estudo maior que o limite de leitura.', 502);
+  let d; try { d = JSON.parse(texto); } catch { throw erro('Resposta inválida da central.', 502); }
+  if (d?.ok !== true || !Array.isArray(d.clientes)) throw erro('Resposta inválida da central.', 502);
+  return { ok: true, fonte: 'central-vybes', lidoEm: Date.now(), geradoEm: d.geradoEm || null,
+    estudando: d.estudando || null, clientes: d.clientes };
+}
+
 export async function areaVybes(req, res, quem, sql) {
   try {
+    if (req.method === 'GET' && req.query?.etapa === 'cerebro') {
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await lerCerebroDaCentral(url));
+    }
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'perguntar') return res.status(200).json({ ok: true, ...(await perguntarVybes(sql, quem, req.body?.texto)) });

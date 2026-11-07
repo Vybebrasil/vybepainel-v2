@@ -176,6 +176,21 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   assistente (`prepararAcao`/`confirmarAcao`) com a permissão da pessoa. A tabela `vybe_vybes_operadores` ficou guardada,
   sem decidir mais. Migração `2026-11-02-vybes.sql`.
 
+## Mundo voxel (decisão do Paulo, 06/11/2026; branch codex/mundo-voxel, ainda local)
+
+- A cara nova do Vybe OS é um mundo voxel (Irecê real + Prédio da Vybe + sedes dos clientes) ATRÁS do painel.
+  Não é outro painel: `vybe-mundo.js` pousa a tela de módulos, o trilho de ícones, o painel Hoje e a Agenda sobre
+  o mundo e chama as MESMAS funções (`choose*Mode`, `switchBoard`, `openCadastrosStation`). Liga/desliga em Aparência.
+- 3D em `mundo/*.mjs` (three empacotado pelo build, sob demanda); dados de relevo/ruas em `assets/mundo/irece.json`.
+  Planta do prédio, agentes e zonas do Escritório em `mundo/planta.mjs`; sedes por cliente em `mundo/sedes.mjs`
+  (Antonov, VOA e Hebravet dividem um complexo; DiaCenter e DiaLab são vizinhas e separadas).
+- O Habbo vai embora (Paulo: "o Habbo vai virar o voxel"). Enquanto isso o Escritório segue como MOTOR (presença,
+  voz por zona, trancas, convites, jogos, VybeCoins) e o desenho antigo pausa com `body.mundo-sobre-escritorio`
+  (`mapaForaDeVista`). O andar por dentro é aberto (todos se veem); a voz liga só ao entrar numa sala (zona).
+  Não crie zonas novas nem mude as do Worker: as salas do prédio são as mesmas zonas.
+- Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
+  pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
+
 ## Escritório integrado
 
 - Edição de decoração (decisão do Paulo, 19/10/2026): cada pessoa edita

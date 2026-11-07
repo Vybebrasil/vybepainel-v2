@@ -1,0 +1,810 @@
+[
+{
+"id": "cadeira-escritorio-grafite",
+"nome": "Cadeira de escritório grafite",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_escritorio",
+"cor": "#3A3F44",
+"classe": "chair_polyfon"
+},
+{
+"id": "cadeira-escritorio-laranja",
+"nome": "Cadeira de escritório laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_escritorio",
+"cor": "#FF7A2F",
+"classe": "chair_silo"
+},
+{
+"id": "cadeira-escritorio-azul",
+"nome": "Cadeira de escritório azul",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_escritorio",
+"cor": "#0D74CE",
+"classe": "chair_norja"
+},
+{
+"id": "cadeira-escritorio-verde",
+"nome": "Cadeira de escritório verde",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_escritorio",
+"cor": "#18A957",
+"classe": "sofachair_polyfon"
+},
+{
+"id": "cadeira-escritorio-branco",
+"nome": "Cadeira de escritório branco",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_escritorio",
+"cor": "#F4F1EA",
+"classe": "sofachair_silo"
+},
+{
+"id": "cadeira-gamer-laranja",
+"nome": "Cadeira gamer laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_gamer",
+"cor": "#FF7A2F",
+"classe": "chair_plasty"
+},
+{
+"id": "cadeira-gamer-lilas",
+"nome": "Cadeira gamer lilas",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_gamer",
+"cor": "#8E4EC6",
+"classe": "chair_plasto"
+},
+{
+"id": "cadeira-gamer-vermelho",
+"nome": "Cadeira gamer vermelho",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_gamer",
+"cor": "#E5484D",
+"classe": "small_chair_armas"
+},
+{
+"id": "cadeira-gamer-turquesa",
+"nome": "Cadeira gamer turquesa",
+"categoria": "Cadeiras e sofás",
+"desenho": "cadeira_gamer",
+"cor": "#38D9C5",
+"classe": "bar_chair_armas"
+},
+{
+"id": "poltrona-amarelo",
+"nome": "Poltrona amarelo",
+"categoria": "Cadeiras e sofás",
+"desenho": "poltrona",
+"cor": "#F7C948",
+"classe": "sofachair_polyfon_girl"
+},
+{
+"id": "poltrona-verde",
+"nome": "Poltrona verde",
+"categoria": "Cadeiras e sofás",
+"desenho": "poltrona",
+"cor": "#18A957",
+"classe": "soft_sofachair_norja"
+},
+{
+"id": "poltrona-rosa",
+"nome": "Poltrona rosa",
+"categoria": "Cadeiras e sofás",
+"desenho": "poltrona",
+"cor": "#D6409F",
+"classe": "barchair_silo"
+},
+{
+"id": "poltrona-grafite",
+"nome": "Poltrona grafite",
+"categoria": "Cadeiras e sofás",
+"desenho": "poltrona",
+"cor": "#3A3F44",
+"classe": "chair_china"
+},
+{
+"id": "banco-madeira",
+"nome": "Banco madeira",
+"categoria": "Cadeiras e sofás",
+"desenho": "banco",
+"cor": "#B07A45",
+"classe": "bench_armas"
+},
+{
+"id": "banco-branco",
+"nome": "Banco branco",
+"categoria": "Cadeiras e sofás",
+"desenho": "banco",
+"cor": "#F4F1EA",
+"classe": "bench_lego"
+},
+{
+"id": "banco-laranja",
+"nome": "Banco laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "banco",
+"cor": "#FF7A2F",
+"classe": "glass_stool"
+},
+{
+"id": "pufe-laranja",
+"nome": "Pufe laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "pufe",
+"cor": "#FF7A2F",
+"classe": "gothic_stool"
+},
+{
+"id": "pufe-lilas",
+"nome": "Pufe lilas",
+"categoria": "Cadeiras e sofás",
+"desenho": "pufe",
+"cor": "#8E4EC6",
+"classe": "jp_pillow"
+},
+{
+"id": "pufe-turquesa",
+"nome": "Pufe turquesa",
+"categoria": "Cadeiras e sofás",
+"desenho": "pufe",
+"cor": "#38D9C5",
+"classe": "hcc_stool"
+},
+{
+"id": "pufe-amarelo",
+"nome": "Pufe amarelo",
+"categoria": "Cadeiras e sofás",
+"desenho": "pufe",
+"cor": "#F7C948",
+"classe": "bolly_pillow"
+},
+{
+"id": "sofa-laranja",
+"nome": "Sofá laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa",
+"cor": "#FF7A2F",
+"classe": "sofa_silo"
+},
+{
+"id": "sofa-grafite",
+"nome": "Sofá grafite",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa",
+"cor": "#3A3F44",
+"classe": "couch_norja"
+},
+{
+"id": "sofa-azul",
+"nome": "Sofá azul",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa",
+"cor": "#0D74CE",
+"classe": "sofa_polyfon"
+},
+{
+"id": "sofa-verde",
+"nome": "Sofá verde",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa",
+"cor": "#18A957",
+"classe": "sofa_polyfon_girl"
+},
+{
+"id": "sofa-rosa",
+"nome": "Sofá rosa",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa",
+"cor": "#D6409F",
+"classe": "soft_sofa_norja"
+},
+{
+"id": "sofa-l-grafite",
+"nome": "Sofá em L grafite",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa_l",
+"cor": "#3A3F44",
+"classe": "heartsofa"
+},
+{
+"id": "sofa-l-laranja",
+"nome": "Sofá em L laranja",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa_l",
+"cor": "#FF7A2F",
+"classe": "club_sofa"
+},
+{
+"id": "sofa-l-branco",
+"nome": "Sofá em L branco",
+"categoria": "Cadeiras e sofás",
+"desenho": "sofa_l",
+"cor": "#F4F1EA",
+"classe": "md_sofa"
+},
+{
+"id": "mesa-escritorio-madeira",
+"nome": "Mesa de trabalho madeira",
+"categoria": "Mesas",
+"desenho": "mesa_trabalho",
+"cor": "#B07A45",
+"classe": "table_polyfon_small"
+},
+{
+"id": "mesa-escritorio-branco",
+"nome": "Mesa de trabalho branco",
+"categoria": "Mesas",
+"desenho": "mesa_trabalho",
+"cor": "#F4F1EA",
+"classe": "table_norja_med"
+},
+{
+"id": "mesa-escritorio-grafite",
+"nome": "Mesa de trabalho grafite",
+"categoria": "Mesas",
+"desenho": "mesa_trabalho",
+"cor": "#3A3F44",
+"classe": "table_silo_med"
+},
+{
+"id": "mesa-escritorio-nogueira",
+"nome": "Mesa de trabalho nogueira",
+"categoria": "Mesas",
+"desenho": "mesa_trabalho",
+"cor": "#6B4A2E",
+"classe": "table_plasto_4leg"
+},
+{
+"id": "mesa-reuniao-branco",
+"nome": "Mesa de reunião branco",
+"categoria": "Mesas",
+"desenho": "mesa_reuniao",
+"cor": "#F4F1EA",
+"classe": "table_plasto_round"
+},
+{
+"id": "mesa-reuniao-nogueira",
+"nome": "Mesa de reunião nogueira",
+"categoria": "Mesas",
+"desenho": "mesa_reuniao",
+"cor": "#6B4A2E",
+"classe": "table_plasto_bigsquare"
+},
+{
+"id": "mesa-bistro-branco",
+"nome": "Mesa bistrô branco",
+"categoria": "Mesas",
+"desenho": "mesa_bistro",
+"cor": "#F4F1EA",
+"classe": "table_polyfon_med"
+},
+{
+"id": "mesa-bistro-laranja",
+"nome": "Mesa bistrô laranja",
+"categoria": "Mesas",
+"desenho": "mesa_bistro",
+"cor": "#FF7A2F",
+"classe": "table_plasto_square"
+},
+{
+"id": "mesa-bistro-grafite",
+"nome": "Mesa bistrô grafite",
+"categoria": "Mesas",
+"desenho": "mesa_bistro",
+"cor": "#3A3F44",
+"classe": "table_silo_small"
+},
+{
+"id": "mesa-centro-madeira",
+"nome": "Mesa de centro madeira",
+"categoria": "Mesas",
+"desenho": "mesa_centro",
+"cor": "#B07A45",
+"classe": "table_armas"
+},
+{
+"id": "mesa-centro-branco",
+"nome": "Mesa de centro branco",
+"categoria": "Mesas",
+"desenho": "mesa_centro",
+"cor": "#F4F1EA",
+"classe": "small_table_armas"
+},
+{
+"id": "mesa-centro-grafite",
+"nome": "Mesa de centro grafite",
+"categoria": "Mesas",
+"desenho": "mesa_centro",
+"cor": "#3A3F44",
+"classe": "bartable_armas"
+},
+{
+"id": "planta-0",
+"nome": "Costela-de-adão",
+"categoria": "Plantas",
+"desenho": "planta_costela",
+"cor": "#3E8F4E",
+"classe": "plant_cruddy"
+},
+{
+"id": "planta-1",
+"nome": "Palmeira",
+"categoria": "Plantas",
+"desenho": "planta_palmeira",
+"cor": "#3E8F4E",
+"classe": "plant_pineapple"
+},
+{
+"id": "planta-2",
+"nome": "Cacto",
+"categoria": "Plantas",
+"desenho": "planta_cacto",
+"cor": "#3E8F4E",
+"classe": "plant_fruittree"
+},
+{
+"id": "planta-3",
+"nome": "Samambaia",
+"categoria": "Plantas",
+"desenho": "planta_samambaia",
+"cor": "#3E8F4E",
+"classe": "plant_small_cactus"
+},
+{
+"id": "planta-4",
+"nome": "Árvore pequena",
+"categoria": "Plantas",
+"desenho": "planta_arvore",
+"cor": "#3E8F4E",
+"classe": "plant_bonsai"
+},
+{
+"id": "planta-5",
+"nome": "Suculentas",
+"categoria": "Plantas",
+"desenho": "planta_suculenta",
+"cor": "#3E8F4E",
+"classe": "plant_big_cactus"
+},
+{
+"id": "luminaria-piso-branco",
+"nome": "Luminária de piso branco",
+"categoria": "Luzes",
+"desenho": "luminaria_piso",
+"cor": "#F4F1EA",
+"classe": "lamp_armas"
+},
+{
+"id": "luminaria-piso-grafite",
+"nome": "Luminária de piso grafite",
+"categoria": "Luzes",
+"desenho": "luminaria_piso",
+"cor": "#3A3F44",
+"classe": "lamp_basic"
+},
+{
+"id": "luminaria-piso-laranja",
+"nome": "Luminária de piso laranja",
+"categoria": "Luzes",
+"desenho": "luminaria_piso",
+"cor": "#FF7A2F",
+"classe": "lamp2_armas"
+},
+{
+"id": "luminaria-mesa-amarelo",
+"nome": "Luminária de mesa amarelo",
+"categoria": "Luzes",
+"desenho": "luminaria_mesa",
+"cor": "#F7C948",
+"classe": "hockey_light"
+},
+{
+"id": "luminaria-mesa-branco",
+"nome": "Luminária de mesa branco",
+"categoria": "Luzes",
+"desenho": "luminaria_mesa",
+"cor": "#F4F1EA",
+"classe": "cn_lamp"
+},
+{
+"id": "luminaria-mesa-verde",
+"nome": "Luminária de mesa verde",
+"categoria": "Luzes",
+"desenho": "luminaria_mesa",
+"cor": "#18A957",
+"classe": "footylamp"
+},
+{
+"id": "neon-vybe",
+"nome": "Neon VYBE",
+"categoria": "Luzes",
+"desenho": "neon_vybe",
+"cor": "#FF7A2F",
+"classe": "spotlight"
+},
+{
+"id": "pendente-grafite",
+"nome": "Luminária pendente grafite",
+"categoria": "Luzes",
+"desenho": "pendente",
+"cor": "#3A3F44",
+"classe": "rom_lamp"
+},
+{
+"id": "pendente-laranja",
+"nome": "Luminária pendente laranja",
+"categoria": "Luzes",
+"desenho": "pendente",
+"cor": "#FF7A2F",
+"classe": "rclr_lamp"
+},
+{
+"id": "estante-branco",
+"nome": "Estante de livros branco",
+"categoria": "Estantes",
+"desenho": "estante_livros",
+"cor": "#F4F1EA",
+"classe": "shelves_norja"
+},
+{
+"id": "estante-madeira",
+"nome": "Estante de livros madeira",
+"categoria": "Estantes",
+"desenho": "estante_livros",
+"cor": "#B07A45",
+"classe": "shelves_polyfon"
+},
+{
+"id": "estante-grafite",
+"nome": "Estante de livros grafite",
+"categoria": "Estantes",
+"desenho": "estante_livros",
+"cor": "#3A3F44",
+"classe": "shelves_silo"
+},
+{
+"id": "nicho-branco",
+"nome": "Nicho de parede branco",
+"categoria": "Estantes",
+"desenho": "nicho",
+"cor": "#F4F1EA",
+"classe": "shelves_armas"
+},
+{
+"id": "nicho-madeira",
+"nome": "Nicho de parede madeira",
+"categoria": "Estantes",
+"desenho": "nicho",
+"cor": "#B07A45",
+"classe": "shelves_basic"
+},
+{
+"id": "estante-trofeus",
+"nome": "Estante de troféus",
+"categoria": "Estantes",
+"desenho": "estante_trofeus",
+"cor": "#F7C948",
+"classe": "glass_shelf"
+},
+{
+"id": "quadro-0",
+"nome": "Quadro VYBE",
+"categoria": "Na parede",
+"desenho": "quadro_vybe",
+"cor": "#FF7A2F",
+"classe": "hrella_poster_2"
+},
+{
+"id": "quadro-1",
+"nome": "Quadro abstrato",
+"categoria": "Na parede",
+"desenho": "quadro_abstrato",
+"cor": "#8E4EC6",
+"classe": "hrella_poster_1"
+},
+{
+"id": "quadro-2",
+"nome": "Mapa de Irecê",
+"categoria": "Na parede",
+"desenho": "quadro_mapa",
+"cor": "#18A957",
+"classe": "hrella_poster_3"
+},
+{
+"id": "quadro-3",
+"nome": "Foto da equipe",
+"categoria": "Na parede",
+"desenho": "quadro_foto",
+"cor": "#0D74CE",
+"classe": "easy_poster"
+},
+{
+"id": "tapete-redondo-laranja",
+"nome": "Tapete redondo laranja",
+"categoria": "Tapetes",
+"desenho": "tapete_redondo",
+"cor": "#FF7A2F",
+"classe": "carpet_standard"
+},
+{
+"id": "tapete-redondo-azul",
+"nome": "Tapete redondo azul",
+"categoria": "Tapetes",
+"desenho": "tapete_redondo",
+"cor": "#0D74CE",
+"classe": "carpet_armas"
+},
+{
+"id": "tapete-redondo-lilas",
+"nome": "Tapete redondo lilas",
+"categoria": "Tapetes",
+"desenho": "tapete_redondo",
+"cor": "#8E4EC6",
+"classe": "carpet_polar"
+},
+{
+"id": "tapete-grafite",
+"nome": "Tapete grafite",
+"categoria": "Tapetes",
+"desenho": "tapete_ret",
+"cor": "#3A3F44",
+"classe": "carpet_soft"
+},
+{
+"id": "tapete-verde",
+"nome": "Tapete verde",
+"categoria": "Tapetes",
+"desenho": "tapete_ret",
+"cor": "#18A957",
+"classe": "carpet_legocourt"
+},
+{
+"id": "tapete-amarelo",
+"nome": "Tapete amarelo",
+"categoria": "Tapetes",
+"desenho": "tapete_ret",
+"cor": "#F7C948",
+"classe": "sandrug"
+},
+{
+"id": "tapete-listrado-laranja",
+"nome": "Tapete listrado laranja",
+"categoria": "Tapetes",
+"desenho": "tapete_listras",
+"cor": "#FF7A2F",
+"classe": "exe_rug"
+},
+{
+"id": "tapete-listrado-azul",
+"nome": "Tapete listrado azul",
+"categoria": "Tapetes",
+"desenho": "tapete_listras",
+"cor": "#0D74CE",
+"classe": "carpet_soft_tut"
+},
+{
+"id": "monitor-duplo",
+"nome": "Monitor duplo",
+"categoria": "Tecnologia",
+"desenho": "monitor_duplo",
+"cor": "#9FF0C8",
+"classe": "computer_flatscreen"
+},
+{
+"id": "tv-grafite",
+"nome": "TV grafite",
+"categoria": "Tecnologia",
+"desenho": "tv",
+"cor": "#3A3F44",
+"classe": "lodge_dark_tv"
+},
+{
+"id": "tv-branco",
+"nome": "TV branco",
+"categoria": "Tecnologia",
+"desenho": "tv",
+"cor": "#F4F1EA",
+"classe": "easter14_screen"
+},
+{
+"id": "projetor",
+"nome": "Projetor e tela",
+"categoria": "Tecnologia",
+"desenho": "projetor",
+"cor": "#FFFFFF",
+"classe": "byesw_loadscreen"
+},
+{
+"id": "caixa-som-grafite",
+"nome": "Caixa de som grafite",
+"categoria": "Música",
+"desenho": "caixa_som",
+"cor": "#3A3F44",
+"classe": "classic5_speaker"
+},
+{
+"id": "caixa-som-laranja",
+"nome": "Caixa de som laranja",
+"categoria": "Música",
+"desenho": "caixa_som",
+"cor": "#FF7A2F",
+"classe": "modern_c17_speakers"
+},
+{
+"id": "toca-discos",
+"nome": "Toca-discos",
+"categoria": "Música",
+"desenho": "toca_discos",
+"cor": "#B07A45",
+"classe": "hc_djset"
+},
+{
+"id": "jukebox",
+"nome": "Jukebox",
+"categoria": "Música",
+"desenho": "jukebox",
+"cor": "#E5484D",
+"classe": "jukebox_big"
+},
+{
+"id": "fliperama-turquesa",
+"nome": "Fliperama turquesa",
+"categoria": "Jogos",
+"desenho": "fliperama",
+"cor": "#38D9C5",
+"classe": "arcade_c23_spinthewheel"
+},
+{
+"id": "fliperama-laranja",
+"nome": "Fliperama laranja",
+"categoria": "Jogos",
+"desenho": "fliperama",
+"cor": "#FF7A2F",
+"classe": "ads_capri_arcade"
+},
+{
+"id": "console",
+"nome": "Console e TV",
+"categoria": "Jogos",
+"desenho": "console",
+"cor": "#3A3F44",
+"classe": "arcade_c23_goldenconsole"
+},
+{
+"id": "filmagem-0",
+"nome": "Câmera no tripé",
+"categoria": "Produção",
+"desenho": "camera_tripe",
+"cor": "#1F1D1A",
+"classe": "eco_light2"
+},
+{
+"id": "filmagem-1",
+"nome": "Softbox",
+"categoria": "Produção",
+"desenho": "softbox",
+"cor": "#FFFFFF",
+"classe": "eco_light1"
+},
+{
+"id": "filmagem-2",
+"nome": "Ring light",
+"categoria": "Produção",
+"desenho": "ring_light",
+"cor": "#FFF1D2",
+"classe": "bump_lights"
+},
+{
+"id": "filmagem-3",
+"nome": "Fundo verde",
+"categoria": "Produção",
+"desenho": "fundo_verde",
+"cor": "#3DDC84",
+"classe": "ktchn_light"
+},
+{
+"id": "cafeteira",
+"nome": "Cafeteira",
+"categoria": "Cozinha",
+"desenho": "cafeteira",
+"cor": "#9AA3A8",
+"classe": "ktchn15_coffeemaker"
+},
+{
+"id": "frigobar-branco",
+"nome": "Frigobar branco",
+"categoria": "Cozinha",
+"desenho": "frigobar",
+"cor": "#F4F1EA",
+"classe": "fridge"
+},
+{
+"id": "frigobar-vermelho",
+"nome": "Frigobar vermelho",
+"categoria": "Cozinha",
+"desenho": "frigobar",
+"cor": "#E5484D",
+"classe": "ktchn_fridge"
+},
+{
+"id": "bebedouro",
+"nome": "Bebedouro",
+"categoria": "Cozinha",
+"desenho": "bebedouro",
+"cor": "#BFE3EA",
+"classe": "matic_dispenser"
+},
+{
+"id": "relogio-branco",
+"nome": "Relógio de parede branco",
+"categoria": "Decoração",
+"desenho": "relogio",
+"cor": "#F4F1EA",
+"classe": "pixel_clock_red"
+},
+{
+"id": "relogio-laranja",
+"nome": "Relógio de parede laranja",
+"categoria": "Decoração",
+"desenho": "relogio",
+"cor": "#FF7A2F",
+"classe": "pixel_clock_pink"
+},
+{
+"id": "globo",
+"nome": "Globo",
+"categoria": "Decoração",
+"desenho": "globo",
+"cor": "#0D74CE",
+"classe": "steampunk_globe"
+},
+{
+"id": "vinil-parede",
+"nome": "Discos na parede",
+"categoria": "Decoração",
+"desenho": "vinil_parede",
+"cor": "#1F1D1A",
+"classe": "netari_poster"
+},
+{
+"id": "aquario",
+"nome": "Aquário",
+"categoria": "Decoração",
+"desenho": "aquario",
+"cor": "#3FB4C7",
+"classe": "cmp_fish_s"
+},
+{
+"id": "escultura",
+"nome": "Escultura",
+"categoria": "Decoração",
+"desenho": "escultura",
+"cor": "#F4F1EA",
+"classe": "lt_statue"
+},
+{
+"id": "trofeu-0",
+"nome": "Troféu de ouro",
+"categoria": "Troféus",
+"desenho": "trofeu",
+"cor": "#F7C948",
+"classe": "legotrophy"
+},
+{
+"id": "trofeu-1",
+"nome": "Troféu de prata",
+"categoria": "Troféus",
+"desenho": "trofeu",
+"cor": "#C4C9CC",
+"classe": "se_trophyS"
+},
+{
+"id": "trofeu-2",
+"nome": "Troféu de bronze",
+"categoria": "Troféus",
+"desenho": "trofeu",
+"cor": "#C9773E",
+"classe": "ads_cp_trophy"
+}
+]

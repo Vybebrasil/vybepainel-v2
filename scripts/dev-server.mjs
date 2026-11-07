@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { demoApi } from './fixtures.mjs';
+import { lerCerebroDaCentral } from '../server/vybes.js';
 
 const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
 const upstream = process.env.VYBE_DEV_UPSTREAM;
 const allowWrites = process.env.VYBE_DEV_ALLOW_WRITES === '1';
-const TYPES = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.webp':'image/webp', '.ogg':'audio/ogg', '.webmanifest':'application/manifest+json', '.mp4':'video/mp4', '.mp3':'audio/mpeg', '.json':'application/json; charset=utf-8' };
+const TYPES = { '.html':'text/html; charset=utf-8', '.json':'application/json; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.webp':'image/webp', '.ogg':'audio/ogg', '.webmanifest':'application/manifest+json', '.mp4':'video/mp4', '.mp3':'audio/mpeg', '.json':'application/json; charset=utf-8' };
 
 // O DIAGNOSTICO DE AUTOMACAO CHEGA POR POST E NAO ESCREVE NADA.
 //
@@ -38,6 +39,27 @@ export function createDevServer() {
         }
         const body = Buffer.concat(chunks);
         if (!upstream) return demoApi(req, res, url, body);
+        // Reutiliza a ponte da produção; a entrada apenas emite um crachá de sessão.
+        if (req.method === 'GET' && url.pathname === '/api/painel'
+            && url.searchParams.get('area') === 'vybes' && url.searchParams.get('etapa') === 'cerebro') {
+          const entrada = await fetch(new URL('/api/painel?area=vybes', upstream), {
+            method: 'POST', redirect: 'error', signal: AbortSignal.timeout(20000),
+            headers: { 'Content-Type': 'application/json', ...(req.headers.cookie ? { Cookie: req.headers.cookie } : {}) },
+            body: JSON.stringify({ etapa: 'entrar' })
+          });
+          const d = await entrada.json().catch(() => ({}));
+          if (!entrada.ok || !d.url) {
+            res.writeHead(entrada.ok ? 502 : entrada.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: entrada.status === 401 ? 'Entre no painel para consultar o cérebro do VYBES.' : 'Não foi possível acessar a central com esta sessão. Verifique se o VYBES está online.' })); return;
+          }
+          try {
+            const estudo = await lerCerebroDaCentral(d.url);
+            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(estudo));
+          } catch (e) {
+            res.writeHead(e.status || 502, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message }));
+          }
+          return;
+        }
         // Somente a sessão pode escrever no modo de inspeção. Dados exigem opção explícita.
         if (!['GET','HEAD','OPTIONS'].includes(req.method) && url.pathname !== '/api/sessao'
             && !ehLeituraPorPost(url) && !allowWrites) {
@@ -62,7 +84,14 @@ export function createDevServer() {
       // As artes e os sons dos jogos (assets/jogos), o ser do VYBES e as falas dele (assets/vybes-fala) vêm pelo CSS e
       // pelo código, não pelo index.html.
       const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file) || file === 'assets/vybes-ser.webp' || /^assets\/vybes-fala\/[\w-]+\.(mp3|json)$/.test(file);
-      if ((!publicFiles.has(file) && !daArte) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
+      // Mundo voxel: no build vai empacotado com hash; aqui é empacotado na hora, para editar e recarregar.
+      if (file === 'assets/mundo/mundo-3d.js' && ['GET','HEAD'].includes(req.method) && ROOT === PROJECT) {
+        const { build } = await import('esbuild');
+        const r = await build({ entryPoints: [resolve(PROJECT, 'mundo/mundo-3d.mjs')], bundle: true, format: 'esm', write: false, target: 'es2022', sourcemap: 'inline' });
+        res.writeHead(200, { 'Content-Type': TYPES['.js'] }); res.end(req.method === 'HEAD' ? undefined : r.outputFiles[0].text); return;
+      }
+      const doMundo = file === 'assets/mundo/irece.json' || file === 'assets/mundo/crm-irece.json';
+      if ((!publicFiles.has(file) && !daArte && !doMundo) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',
         '<div style="position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#493700;color:white;text-align:center;font:12px sans-serif;padding:5px">AMBIENTE LOCAL · '+(upstream?'Proxy de inspeção':'Dados fictícios · senha: demo-local')+'</div></body>'));

@@ -24,7 +24,21 @@ const comSprites = (codigo) => codigo.replace(/const MAPA_BASE = "[^"]*";/,
 const cena3d = (await build({ entryPoints: ['vybe-escritorio-sinuca-3d.mjs'], bundle: true, format: 'esm', minify: true,
   target: 'es2022', write: false, legalComments: 'none' })).outputFiles[0].text;
 const nome3d = `sinuca-3d-${createHash('sha256').update(cena3d).digest('hex').slice(0, 12)}.js`;
-const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`));
+// Mundo voxel (Irecê + Prédio da Vybe): o mesmo esquema da sinuca. O three.js
+// vem junto e só baixa quando o mundo abre; o relevo/ruas (assets/mundo/irece.json)
+// vai com hash. vybe-mundo.js aponta para os dois pelos caminhos fixos abaixo.
+const mundo3d = (await build({ entryPoints: ['mundo/mundo-3d.mjs'], bundle: true, format: 'esm', minify: true,
+  target: 'es2022', write: false, legalComments: 'none' })).outputFiles[0].text;
+const nomeMundo = `mundo-3d-${createHash('sha256').update(mundo3d).digest('hex').slice(0, 12)}.js`;
+const irece = await readFile('assets/mundo/irece.json');
+const nomeIrece = `irece-${createHash('sha256').update(irece).digest('hex').slice(0, 12)}.json`;
+// Base pública de empresas de Irecê (CNPJ) para o CRM de prospecção do 1º andar: também com hash.
+const crmIrece = await readFile('assets/mundo/crm-irece.json');
+const nomeCrm = `crm-irece-${createHash('sha256').update(crmIrece).digest('hex').slice(0, 12)}.json`;
+const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`))
+  .replace('"/assets/mundo/mundo-3d.js"', JSON.stringify(`/assets/mundo/${nomeMundo}`))
+  .replace('"/assets/mundo/irece.json"', JSON.stringify(`/assets/mundo/${nomeIrece}`))
+  .replace('"/assets/mundo/crm-irece.json"', JSON.stringify(`/assets/mundo/${nomeCrm}`));
 // Artes dos jogos (o pano da sinuca, cartas, fichas): caminho fixo, mas o
 // navegador guarda /assets/* por um ano (immutable). Sem a versão no endereço o
 // pano novo não aparecia para quem já tinha aberto a sinuca (04/11/2026).
@@ -52,13 +66,15 @@ const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loade
 const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
 // O mesmo para o ser do VYBES (cartão do VYBES na tela de módulos).
 const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'vybes-ser');
+const mundoCss = await transform(await readFile('vybe-mundo.css','utf8'), { loader: 'css', minify: true });
+const mundoCssPath = await asset(mundoCss.code, 'css', 'mundo');
 const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia).replaceAll('/assets/vybes-ser.webp', vybesSer), 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
 html = html.replace(SCRIPT, (_, sobDemanda, fonte) => sobDemanda
   ? `<script${sobDemanda} src="${caminhos.get(fonte)}"></script>`
   : `<script defer src="${caminhos.get(fonte)}"></script>`);
-html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath);
+html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath).replace('/vybe-mundo.css', mundoCssPath);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
@@ -74,6 +90,11 @@ for (const f of await readdir('assets/app/cor')) await writeFile(`dist/assets/ap
 await mkdir('dist/assets/jogos', { recursive: true });
 for (const f of await readdir('dist/assets/jogos')) if (/^sinuca-3d-[a-f0-9]{12}\.js$/.test(f)) await unlink(`dist/assets/jogos/${f}`);
 await writeFile(`dist/assets/jogos/${nome3d}`, cena3d);
+await mkdir('dist/assets/mundo', { recursive: true });
+for (const f of await readdir('dist/assets/mundo')) if (/^(mundo-3d-[a-f0-9]{12}\.js|(crm-)?irece-[a-f0-9]{12}\.json)$/.test(f)) await unlink(`dist/assets/mundo/${f}`);
+await writeFile(`dist/assets/mundo/${nomeMundo}`, mundo3d);
+await writeFile(`dist/assets/mundo/${nomeIrece}`, irece);
+await writeFile(`dist/assets/mundo/${nomeCrm}`, crmIrece);
 for (const f of (await readdir('assets/jogos')).filter((f) => /\.webp$/.test(f))) await writeFile(`dist/assets/jogos/${f}`, await readFile(`assets/jogos/${f}`));
 // Sons dos jogos (Kenney, CC0): tocados pelo Web Audio (jogosSom).
 await mkdir('dist/assets/jogos/sons', { recursive: true });

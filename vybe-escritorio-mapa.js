@@ -1222,6 +1222,9 @@ function mapaForaDeVista(el) {
   // sala fica atrás do escurecido e ninguém olha para ela (Paulo, 04/11/2026:
   // "só renderiza a sala quando ela está aberta"). Fechou, volta no tique seguinte.
   if (document.getElementById("workflow-modal") && !el.closest("#workflow-modal")) return true;
+  // Mundo voxel ligado e por cima (vybe-mundo.js): o Escritório segue como motor (presença,
+  // voz, chamadas) e o desenho antigo para, porque ninguém o vê.
+  if (document.body?.classList.contains("mundo-sobre-escritorio")) return true;
   const agora = Date.now(), guardado = el._mapaVista;
   if (guardado && agora - guardado.t < 500) return guardado.fora;
   const fora = !el.offsetParent || (!el.closest(".ofc-lobby, .ofc-abertura") && Boolean(document.querySelector(".ofc-principal > .ofc-lobby, #ofc-abertura")));
