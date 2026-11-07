@@ -86,11 +86,15 @@
   }
 
   // ---------- Montagem ----------
-  let mundo = null, carregando = null, ultimaAssinatura = '', naTela = [];
+  let mundo = null, carregando = null, erroCarga = false, tentativasCarga = 0, ultimaAssinatura = '', naTela = [];
   const raiz = document.createElement('div'); raiz.id = 'mundo';
   raiz.innerHTML = '<canvas aria-label="Mapa de Irecê com o Prédio da Vybe e os clientes"></canvas><div class="mundo-vinheta"></div><div class="mundo-carregando">Montando Irecê…</div>'
     + '<div class="mundo-fonte">Relevo: Terrain Tiles (AWS/Mapzen) · Ruas: © OpenStreetMap · arraste para andar, botão direito ou Shift para girar</div>';
   const hud = document.createElement('div'); hud.id = 'mundo-hud';
+  raiz.addEventListener?.('click', (e) => {
+    if (!e.target.closest('[data-mundo-repetir]')) return;
+    erroCarga = false; tentativasCarga++; void carregar();
+  });
   const ic = {
     cidade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l5-3v15M14 21V4l5 3v14M8 11h0M8 15h0M17 10h0M17 14h0"/></svg>',
     predio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6M10 21v-3h4v3"/></svg>',
@@ -189,21 +193,57 @@
   let visaoHoje = (() => { try { return localStorage.getItem('vybe.mundo.visaoHoje') || 'agencia'; } catch { return 'agencia'; } })();
   function trocarVisaoHoje(v) { visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {} pintarHoje(); }
   let cacheDono = { chave: '', valor: null };
+  const semanaAgencia = { campo: 'veiculacao', referencia: '' };
   function numerosDoDono() {
     const D = typeof window !== 'undefined' ? window.VybeDono : null;
     if (!D?.calcular || typeof DADOS_ALL === 'undefined' || !Array.isArray(DADOS_ALL) || !DADOS_ALL.length) return null;
     const clientes = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
-    const chave = DADOS_ALL.length + ':' + clientes.length + ':' + Math.floor(Date.now() / 60000) + ':' + (DADOS_ALL[0]?.updated_at || '');
+    const chave = DADOS_ALL.length + ':' + clientes.length + ':' + Math.floor(Date.now() / 60000) + ':' + (DADOS_ALL[0]?.updated_at || '') + ':' + JSON.stringify(semanaAgencia);
     if (cacheDono.chave === chave) return cacheDono.valor;
     const time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const pessoas = Object.fromEntries(time.map((u) => [String(u.id), u.name || u.nome || '']));
     let valor = null;
-    try { valor = D.calcular({ demandas: DADOS_ALL, clientes, pessoas, hoje: new Date() }); } catch (e) { console.error('[mundo] números do dono', e); }
+    try { valor = D.calcular({ demandas: DADOS_ALL, clientes, pessoas, hoje: new Date(), graficoSemana: semanaAgencia }); } catch (e) { console.error('[mundo] números do dono', e); }
     cacheDono = { chave, valor };
     return valor;
   }
   const n0 = (v) => Number(v || 0).toLocaleString('pt-BR');
   const SAUDE = { critico: ['Crítico', 'u1'], atencao: ['Atenção', 'u2'], ok: ['Em dia', 'u6'] };
+  const dataCompleta = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : 'Não definido';
+  function controlesSemana(g) {
+    return `<div class="vv-semana-controles"><div class="vv-seg" role="group" aria-label="Data das peças previstas">${[['prazo', 'Prazo'], ['veiculacao', 'Veiculação']].map(([campo, nome]) => `<button type="button" data-semana-campo="${campo}" aria-pressed="${g.campo === campo}">${nome}</button>`).join('')}</div>
+      <nav aria-label="Navegar pelas semanas"><button type="button" data-semana-passo="-1" aria-label="Semana anterior">‹</button><span>${esc(dataCompleta(g.inicio))} – ${esc(dataCompleta(g.fim))}</span><button type="button" data-semana-passo="1" aria-label="Próxima semana">›</button><button type="button" data-semana-passo="0">Atual</button></nav></div>`;
+  }
+  function selecionarSemana(b) {
+    if (b.dataset.semanaCampo) {
+      if (!['prazo', 'veiculacao'].includes(b.dataset.semanaCampo)) return false;
+      semanaAgencia.campo = b.dataset.semanaCampo;
+    } else if (b.dataset.semanaPasso !== undefined) {
+      const passo = Number(b.dataset.semanaPasso); if (![-1, 0, 1].includes(passo)) return false;
+      const inicio = window.VybeDono.util.inicioDaSemana(semanaAgencia.referencia || hojeIso());
+      semanaAgencia.referencia = passo ? somar(inicio, passo * 7) : '';
+    } else return false;
+    cacheDono.chave = ''; pintarHoje(); pintarGestao(); return true;
+  }
+  function corDaPendencia(p) {
+    const d = (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []).find((d) => String(d.id) === String(p?.id));
+    return typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '#9AA3A8') : /^#[0-9a-f]{3,8}$/i.test(d?.status_color || '') ? d.status_color : '#9AA3A8';
+  }
+  function mostrarPendencias(cliente = '', status = '') {
+    const N = numerosDoDono(); if (!N) return;
+    const c = cliente ? N.clientes.find((c) => c.cliente === cliente) : null;
+    const g = status ? N.gargalos.find((g) => g.status === status) : null;
+    if (!c && !g) return;
+    if (!gestao.hidden) fecharGestao();
+    const lista = c ? c.pendencias : g.lista, titulo = c ? c.cliente : g.status;
+    const motivos = c ? c.motivos : [`${g.qtd} peças neste status · ${g.idadeMedianaDias} dias paradas (mediana)`];
+    const p = placa();
+    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button><h3>${esc(titulo)}</h3><p class="vv-sub">${c ? 'O que pede atenção' : 'Demandas neste gargalo'}</p>
+      <ul class="vv-pendencia-motivos">${motivos.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
+      <div class="vv-pendencias-lista">${lista.length ? lista.map((d) => `<button type="button" class="vv-pendencia" style="--st:${esc(corDaPendencia(d))}" data-hoje-acao="peca" data-valor="${esc(d.id)}"><b>${esc(d.nome)}</b><span class="vv-pendencia-status">${esc(d.status || 'Sem status')}</span><small>${esc(d.cliente)}</small><dl><div><dt>Responsável</dt><dd>${esc(d.responsavel || 'Sem responsável')}</dd></div><div><dt>Prazo</dt><dd>${esc(dataCompleta(d.prazo_iso))}</dd></div><div><dt>Veiculação</dt><dd>${esc(dataCompleta(d.veiculacao_iso))}</dd></div></dl>${d.motivos?.length ? `<small>${esc(d.motivos.join(' · '))}</small>` : ''}<span class="vv-pendencia-abrir">Abrir demanda →</span></button>`).join('') : '<p class="vv-vazio">Os alertas acima não têm uma demanda específica vinculada. Confira a cobertura de conteúdo e o planejamento do cliente.</p>'}</div>
+      ${c ? `<button type="button" class="vv-botao" data-abrir-cliente="${esc(c.cliente)}">Abrir o cliente →</button>` : ''}`;
+    p.hidden = false; ajustarAreaLivre();
+  }
   // Gráfico de barras da semana: previstas (cinza) e entregues (verde), um par por dia.
   function barrasSemana(porDia = [], { w = 300, h = 86 } = {}) {
     const max = Math.max(1, ...porDia.map((d) => Math.max(d.previstas || 0, d.entregues || 0)));
@@ -267,15 +307,15 @@
         <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
       </div>
       <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
-      <div class="vv-dono-cartao">${barrasSemana(S.porDia || [])}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues</p></div>
+      <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
       <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<span class="vv-pilula">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</span></div>
-      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-cerebro-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
+      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
       <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
       <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
         <p><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <b class="t-u1">${C.semConteudo.length} sem nenhum</b>` : ''}${(C.semPlanejamento || []).length ? ` · ${C.semPlanejamento.length} sem planejamento` : ''}</p>
         ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<span>+${sem3.length - 6}</span>` : ''}</div>` : ''}</div>
       ${gargalos.length ? `<div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
-      ${gargalos.map((g) => `<div class="vv-dono-linha estatica"><span class="saude u2"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></div>`).join('')}` : ''}
+      ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
       <div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>O que cobrar hoje</div>
       ${time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')}
       ${bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
@@ -328,7 +368,7 @@
     } else if (gestaoAba === 'semana') {
       corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
         <div class="vv-g-grade">
-          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${barrasSemana(S.porDia || [], { w: 640, h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues</p></section>
+          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: 640, h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
           <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
           <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
           <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
@@ -365,10 +405,12 @@
   function barrasGargalo(g = []) {
     if (!g.length) return '<p class="vv-vazio">Sem gargalo agora.</p>';
     const max = Math.max(1, ...g.map((x) => x.qtd || 0));
-    return g.slice(0, 7).map((x) => `<div class="vv-g-gargalo"><span><b>${esc(x.status)}</b><small>${n0(x.qtd)} · ${n0(x.idadeMedianaDias)} d parado</small></span><i><u style="width:${Math.round((x.qtd || 0) / max * 100)}%"></u></i></div>`).join('');
+    return g.slice(0, 7).map((x) => `<button type="button" class="vv-g-gargalo" data-gargalo="${esc(x.status)}" style="--st:${esc(corDaPendencia(x.lista[0]))}"><span><b>${esc(x.status)}</b><small>${n0(x.qtd)} · ${n0(x.idadeMedianaDias)} d parado</small></span><i><u style="width:${Math.round((x.qtd || 0) / max * 100)}%"></u></i></button>`).join('');
   }
   gestao.addEventListener?.('click', (ev) => {
     const b = ev.target.closest('button, tr[data-cerebro-cliente], tr[data-agente]'); if (!b) return;
+    if (selecionarSemana(b)) return;
+    if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
     if (b.dataset.gestaoFechar !== undefined) { fecharGestao(); return; }
     if (b.dataset.gestaoCheia !== undefined) { body.classList.toggle('mundo-tela-cheia'); return; }
     if (b.dataset.gestaoAba) { gestaoAba = b.dataset.gestaoAba; pintarGestao(); gestao.scrollTop = 0; return; }
@@ -668,7 +710,7 @@
   }
 
   // ---------- O andar por dentro (escritório aberto; a voz é da sala onde você entra) ----------
-  let andarAberto = null, timerAndar = null;
+  let andarAberto = null, timerAndar = null, andarAbertoId = '', geracaoAndar = 0, focoSala = 0;
   const TIPO_DA_ZONA = (id) => (/^sala-\d+$/.test(id) ? 'pessoal' : id === 'recepcao' ? 'convivencia' : id);
   function perfilDoDono(zona) {
     try {
@@ -693,7 +735,9 @@
     return gente;
   }
   async function abrirAndarVoxel(idAndar) {
+    if (andarAberto && andarAbertoId === idAndar) return;
     fecharAndarVoxel(false);
+    const geracao = geracaoAndar;
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
     const zonas = Object.entries(mundo.zonasDoPredio).filter(([, z]) => z.andar === idAndar)
       .map(([id, z]) => ({ id, nome: z.nome, dono: z.dono || null, tipo: TIPO_DA_ZONA(id), perfil: perfilDoDono(id), L: tamanhoDaZona(id),
@@ -709,14 +753,16 @@
     body.append(el); body.classList.add('mundo-andar');
     window.VybeTutorial?.dica?.('andar');
     const m = await import(MUNDO_JS);
+    if (geracao !== geracaoAndar || el.isConnected === false) return;
     andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome });
+    andarAbertoId = idAndar;
     window.VybeDecorar?.ligarCena?.(andarAberto, m);
     andarAberto.aoClicarSala((zona, fx, fz, jogo) => {
       if (jogo) { abrirJogo(jogo); return; }
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
       if (naSala) {
         const L = tamanhoDaZona(zona); if (L && typeof escritorioIrPara === 'function') escritorioIrPara(Math.round(fx * L.w), Math.round(fz * L.d));
-      } else { irParaSala(zona); andarAberto.focarSala(zona); }
+      } else irParaSala(zona);
     });
     el.querySelector('[data-sair-andar]').addEventListener('click', async () => { if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return; fecharAndarVoxel(true); });
     el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
@@ -731,6 +777,7 @@
     sincronizar();
   }
   function fecharAndarVoxel(voltar) {
+    geracaoAndar++; andarAbertoId = '';
     clearInterval(timerAndar); timerAndar = null;
     window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
@@ -1219,7 +1266,7 @@
     window.escritorioIrParaAmbiente = function (id, ...r) {
       const z = ligado && mundo?.zonasDoPredio?.[id];
       if (!z) return irOriginal.call(this, id, ...r);
-      abrirAndarVoxel(z.andar).then(() => { irParaSala(id); andarAberto?.focarSala(id); });
+      irParaSala(id);
     };
   }
   setInterval(desviarIdaAoQuarto, 2000); desviarIdaAoQuarto();
@@ -1369,7 +1416,12 @@
   function fecharPlaca() { placa().hidden = true; ajustarAreaLivre(); }
 
   hud.addEventListener('click', (e) => {
-    const b = e.target.closest('button, tr[data-agente]'); if (!b || !mundo) return;
+    const b = e.target.closest('button, tr[data-agente]'); if (!b) return;
+    if (selecionarSemana(b)) return;
+    if (b.dataset.atencaoCliente) { mostrarPendencias(b.dataset.atencaoCliente); return; }
+    if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
+    if (b.dataset.hojeAcao) { acaoDoHoje(b.dataset.hojeAcao, b.dataset.valor); return; }
+    if (!mundo) return;
     if (b.dataset.trilho) { usarTrilho(b.dataset.trilho, b); return; }
     if (b.dataset.ferr) { usarFerramenta(b.dataset.ferr); return; }
     if (b.dataset.visaoHoje) { trocarVisaoHoje(b.dataset.visaoHoje); return; }
@@ -1424,7 +1476,7 @@
       else if (b.dataset.legado === 'conquistas') chamar('abrirConquistasEscritorio');
       else if (b.dataset.legado === 'missoes') { if (window.VybeMissoes?.abrir) window.VybeMissoes.abrir('missoes'); else chamar('showToast', 'Missões chegando nesta versão.', 'info'); }
     }
-    else if (b.dataset.entrarZona) { const z = mundo.zonasDoPredio?.[b.dataset.entrarZona]; if (z) abrirAndarVoxel(z.andar).then(() => { if (window.vybesIrParaSala) window.vybesIrParaSala(b.dataset.entrarZona); else irParaSalaEscritorio?.(b.dataset.entrarZona); andarAberto?.focarSala(b.dataset.entrarZona); }); }
+    else if (b.dataset.entrarZona) irParaSala(b.dataset.entrarZona);
     else if (b.hasAttribute('data-agenda-recolher')) { const ag = hud.querySelector('#vv-agenda'); const fechada = ag.classList.toggle('recolhida'); b.setAttribute('aria-expanded', String(!fechada)); }
     else if (b.hasAttribute('data-abrir-agenda')) abrirAgenda();
     else if (b.dataset.agendaDia) abrirAgenda(b.dataset.agendaDia);
@@ -1446,10 +1498,12 @@
   }
 
   async function carregar() {
-    if (mundo || carregando) return carregando;
+    if (mundo || carregando || erroCarga) return carregando;
+    const avisoCarga = raiz.querySelector('.mundo-carregando');
+    if (avisoCarga) { avisoCarga.hidden = false; avisoCarga.textContent = 'Montando Irecê…'; }
     carregando = (async () => {
       const reduzir = matchMedia('(prefers-reduced-motion: reduce)').matches || body.dataset.motion === 'reduce';
-      const m = await import(MUNDO_JS);
+      const m = await import(MUNDO_JS + (tentativasCarga ? '?tentativa=' + tentativasCarga : ''));
       mundo = await m.iniciarMundo(raiz.querySelector('canvas'), { dadosUrl: MUNDO_DADOS, crmUrl: MUNDO_CRM, reduzirMovimento: reduzir });
       fonteAgentes = mundo.criarFonteAgentes({buscar:async()=>{
         const r = await fetch('/api/painel?area=vybes&etapa=agentes',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(25000)});
@@ -1457,7 +1511,6 @@
         return r.json();
       }});
       void carregarAgentes();
-      raiz.querySelector('.mundo-carregando')?.remove();
       setTimeout(() => aplicarProspeccao(), 1500);
       mundo.aoClicar((alvo) => {
         if (!alvo) return;
@@ -1493,10 +1546,14 @@
       pintarClientes(true);
       observarPresenca(); pintarPresenca(); void carregarAgentes();
       ajustarAreaLivre();
+      sincronizar();
+      if (avisoCarga) avisoCarga.hidden = true;
     })().catch((erro) => {
-      carregando = null;
+      erroCarga = true; carregando = null;
+      fonteAgentes?.limpar(); fonteAgentes = null;
+      mundo?.destruir(); mundo = null; ultimaAssinatura = '';
       const aviso = raiz.querySelector('.mundo-carregando');
-      if (aviso) aviso.textContent = 'O mundo não abriu neste aparelho (' + (erro?.message || 'erro') + '). O painel segue normal.';
+      if (aviso) { aviso.hidden = false; aviso.innerHTML = '<span>Não foi possível abrir o mapa. Confira a conexão e tente novamente.</span><button type="button" class="vv-botao" data-mundo-repetir>Tentar novamente</button>'; }
       console.error('[mundo]', erro);
     });
     return carregando;
@@ -1625,12 +1682,31 @@
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!zona) return;
     moverParaSala(zona);
+    let focou = false;
+    const focar = () => { if (!focou && e?.zona === zona) { focou = true; void focarSalaDaChamada(zona); } };
+    focar();
     if (e?.zona === zona) e.vozPausada = false;
     const geracaoVoz = e?.geracaoVoz || 0;
-    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); } pintarChamada(); }, 700);
+    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); focar(); } pintarChamada(); }, 700);
     setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz && !e.vozPausada) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
   }
   window.vybesIrParaSala = irParaSala;
+  function minhaSalaDaConta() {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    if (e?.base?.eu == null) return '';
+    return e.base.salas?.find((s) => s.pessoa_id != null && String(s.pessoa_id) === String(e.base.eu))?.id || '';
+  }
+  async function focarSalaDaChamada(zona) {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    if (!mundo && carregando) await carregando;
+    const z = mundo?.zonasDoPredio?.[zona]; if (!z || e?.zona !== zona) return;
+    const vez = ++focoSala;
+    try {
+      if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
+      await abrirAndarVoxel(z.andar);
+      if (vez === focoSala && e.zona === zona) andarAberto?.focarSala(zona);
+    } catch (erro) { fn('escritorioAviso')?.('Você entrou na sala, mas não foi possível abrir o andar. Tente novamente.'); console.error('[mundo] sala da chamada', erro); }
+  }
   // Move a pessoa (e a voz) para a sala sem trocar a tela: a função original do Escritório, guardada antes do desvio.
   function moverParaSala(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
@@ -1677,6 +1753,7 @@
     const mic = Boolean(e.chamada?.self?.audioEnabled), cam = Boolean(e.chamada?.self?.videoEnabled);
     const falando = fn('escritorioPessoasFalando')?.() || new Set();
     const tela = Boolean(e.chamada?.self?.screenShareEnabled);
+    const minhaSala = minhaSalaDaConta();
     const estado = fn('escritorioEstadoVozTexto')?.() || (naChamada ? 'Na conversa da sala' : 'Sem voz aqui');
     const temSom = Boolean(fn('escritorioNaPista')?.());
     const salas = {}; for (const o of outros) if (o.zona && o.zona !== e.zona) (salas[o.zona] ||= []).push(o);
@@ -1689,6 +1766,7 @@
       <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       ${musicaHtml(e, temSom)}
       <span class="acoes">
+        <button type="button" class="vv-botao" data-chamada="minha-sala" ${minhaSala ? '' : 'disabled'} title="Entrar na minha sala">Minha sala</button>
         ${e.vozPausada && canal ? '<button type="button" class="vv-botao" data-chamada="entrar-voz">Entrar na chamada</button>' : ''}
         <button type="button" class="vv-botao ic${mic ? ' on' : ''}${naChamada && !mic && juntos.length ? ' chama' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
         <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
@@ -1764,8 +1842,15 @@
     else if (c === 'assumir') { fn('trazerEscritorioParaEstaAba')?.(); setTimeout(pintarChamada, 1500); }
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
     else if (c === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(() => { pintarChamada(); trazerProPalco(); }); chamarAberto = false; pintarChamada(); }
-    else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); pintarChamada(); } }
-    else if (b.dataset.pessoa) { pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false; pintarChamada(); }
+    else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); void focarSalaDaChamada(e.zona); pintarChamada(); } }
+    else if (c === 'minha-sala') { const sala = minhaSalaDaConta(); if (sala) irParaSala(sala); }
+    else if (b.dataset.pessoa) {
+      pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false;
+      const e = typeof escritorio !== 'undefined' ? escritorio : null;
+      const pessoa = pessoaAberta && e?.online?.find((p) => String(p.id) === pessoaAberta);
+      if (pessoa?.zona && pessoa.zona === e.zona) void focarSalaDaChamada(pessoa.zona);
+      pintarChamada();
+    }
     else if (b.dataset.irSala) { irParaSala(b.dataset.irSala); chamarAberto = false; pessoaAberta = null; }
     else if (b.dataset.chamarPessoa) { fn('chamarParaSalaEscritorio')?.(b.dataset.chamarPessoa); chamarAberto = false; pessoaAberta = null; pintarChamada(); }
   });

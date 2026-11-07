@@ -10,7 +10,7 @@ export let EMPRESAS = OSM.empresas.map((e) => ({ ...e, setor: '', cnae: legivelO
 export let FONTE_EMPRESAS = OSM.fonte;
 export async function carregarEmpresas(url = '/assets/mundo/crm-irece.json') {
   try {
-    const r = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000) });
     if (!r.ok) return false;
     const d = await r.json();
     if (!Array.isArray(d.empresas) || !d.empresas.length) return false;

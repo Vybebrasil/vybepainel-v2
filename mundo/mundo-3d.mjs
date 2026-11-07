@@ -19,8 +19,13 @@ export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar }
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 
 export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento = false } = {}) {
+  // Não alocar WebGL enquanto os dados ainda podem falhar ou ficar aguardando rede.
+  const [dados] = await Promise.all([fetch(dadosUrl, { signal: AbortSignal.timeout(20000) }).then((r) => {
+    if (!r.ok) throw new Error('Não foi possível carregar o mapa de Irecê.');
+    return r.json();
+  }), Empresas.carregarEmpresas(crmUrl)]);
   const motor = criarMotor(canvas, { reduzirMovimento });
-  const [dados] = await Promise.all([fetch(dadosUrl).then((r) => r.json()), Empresas.carregarEmpresas(crmUrl)]);
+  try {
   // A Vybe no endereço dela (mundo/locais.json: x/z ou rua). Sem local, perto do centro de Irecê.
   const vybeLocal = LOCAIS?.vybe && Number.isFinite(LOCAIS.vybe.x) ? LOCAIS.vybe : null;
   const reservas = { predio: { x: vybeLocal?.x ?? 0, z: vybeLocal?.z ?? 0, r: vybeLocal ? 6 : 9, exato: !!vybeLocal }, lotes: { quantos: 40, raioMin: 14, raioMax: 100, r: 3, folga: 0 }, marcos: MARCOS };
@@ -310,4 +315,5 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     predioAberto: predio.aberto,
     estado: motor.estado, projetar: motor.projetar,
   };
+  } catch (erro) { motor.destruir(); throw erro; }
 }

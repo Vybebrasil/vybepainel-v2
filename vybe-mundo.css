@@ -4024,9 +4024,9 @@ body.mundo-gestao .plj-aviso{visibility:hidden}
 .vv-g-alerta{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid #F0EBE3;font:500 12.5px var(--vv-texto);color:#1F1D1A}
 .vv-g-alerta i{flex:none;width:8px;height:8px;border-radius:50%;background:#9AA3A8}
 .vv-g-alerta.n3 i{background:#D6409F}.vv-g-alerta.n4 i{background:#0D74CE}
-.vv-g-gargalo{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:5px 0}
+.vv-g-gargalo{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:5px 0;width:100%;text-align:left;border:0;background:transparent;color:inherit;cursor:pointer}
 .vv-g-gargalo b{display:block;font:700 12px var(--vv-texto)}.vv-g-gargalo small{font:500 10.5px var(--vv-texto);color:#6B675F}
-.vv-g-gargalo i{display:block;height:10px;border-radius:6px;background:#F3EFE8;overflow:hidden}.vv-g-gargalo u{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#F3D48B,#E2A11B)}
+.vv-g-gargalo i{display:block;height:10px;border-radius:6px;background:#F3EFE8;overflow:hidden}.vv-g-gargalo u{display:block;height:100%;border-radius:6px;background:var(--st,#9AA3A8)}
 .vv-g-tabela{width:100%;border-collapse:separate;border-spacing:0;font:500 12.5px var(--vv-texto);color:#1F1D1A}
 .vv-g-tabela th{position:sticky;top:0;background:#fff;font:700 9.5px var(--vv-texto);letter-spacing:.08em;text-transform:uppercase;color:#6B675F;text-align:left;padding:7px 8px;border-bottom:1px solid #E6E0D6}
 .vv-g-tabela td{padding:9px 8px;border-bottom:1px solid #F0EBE3;vertical-align:middle}
@@ -4251,3 +4251,25 @@ body.mundo .ofc-musica-lista button.perigo{color:#D93D42!important}
 body.mundo .ofc-musica-painel .ofc-erro{color:#D93D42}
 /* com o player aberto, o aviso de planejamento centraliza no espaço que sobra à esquerda dele */
 @media (min-width:901px){body.mundo:not(.mundo-modulo):has(#office-musica.vv-musica-janela:not([hidden])) .plj-aviso{right:calc(var(--vv-m) + 70px + 300px + 12px)!important}}
+/* Seleção semanal e detalhes operacionais usam as placas existentes do Irecity. */
+.vv-semana-controles{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.vv-semana-controles .vv-seg{margin:0;align-self:flex-start}
+.vv-semana-controles .vv-seg button[aria-pressed="true"]{background:#FFE6D6;color:#C2490C}
+.vv-semana-controles nav{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap}
+.vv-semana-controles nav span{font:600 10px var(--vv-texto);color:var(--vv-apagado);font-variant-numeric:tabular-nums}
+.vv-semana-controles nav button{border:1px solid var(--vv-linha);border-radius:8px;background:#fff;color:var(--vv-tinta);min-height:28px;min-width:28px;padding:3px 6px;cursor:pointer}
+.vv-pendencia-motivos{padding-left:18px;margin:8px 0 14px;font:500 12px/1.5 var(--vv-texto);color:var(--vv-apagado)}
+.vv-pendencias-lista{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.vv-pendencia{display:flex;flex-direction:column;align-items:flex-start;gap:5px;width:100%;box-sizing:border-box;padding:12px;text-align:left;border:1px solid var(--vv-linha);border-left:4px solid var(--st);border-radius:12px;background:#fff;color:var(--vv-tinta);cursor:pointer;font-family:var(--vv-texto)}
+.vv-pendencia:hover{background:#FAF5EE}
+.vv-pendencia>b{font-size:13px;overflow-wrap:anywhere}
+.vv-pendencia small{font-size:11px;color:var(--vv-apagado);text-align:left}
+.vv-pendencia-status{font-size:11px;font-weight:700;border-bottom:2px solid var(--st)}
+.vv-pendencia dl{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin:4px 0}
+.vv-pendencia dl>div:first-child{grid-column:1/-1}
+.vv-pendencia dt{font-size:10px;color:var(--vv-apagado)}
+.vv-pendencia dd{margin:2px 0 0;font-size:11px;font-weight:600;overflow-wrap:anywhere}
+.vv-pendencia-abrir{font-size:11px;color:#C2490C;font-weight:700}
+#mundo .mundo-carregando[hidden]{display:none}
+#mundo .mundo-carregando{max-width:calc(100vw - 40px);box-sizing:border-box;white-space:normal;text-align:center}
+#mundo .mundo-carregando .vv-botao{display:block;margin:10px auto 0}
