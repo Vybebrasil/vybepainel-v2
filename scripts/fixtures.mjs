@@ -1,4 +1,5 @@
 import { QUARTOS } from '../server/escritorio-quartos.js';
+import { demoWhatsapp } from './fixtures-whatsapp.mjs';
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
@@ -221,6 +222,7 @@ export async function demoApi(req,res,url,body) {
     if(area==='subsolo')return reply(200,{ok:true,clientes:[{id:'7',nome:'Padaria demonstração',segmento:'Alimentos',personagem:null,saiu_em:new Date(Date.now()-40*864e5).toISOString(),motivo:'Encerrou o contrato',pecas:38},{id:'8',nome:'Clínica demonstração',segmento:'Saúde',personagem:null,saiu_em:null,motivo:null,pecas:12}],
       pessoas:[{id:'9',nome:'Ex-colaborador demonstração',papel:'Design',foto_url:null,saiu_em:new Date(Date.now()-90*864e5).toISOString(),motivo:'Saiu da agência'}]});
     // Cartão VYBES: a central de verdade só existe no PC do Paulo; aqui ela aparece no ar para ver o cartão.
+    if(area==='vybes'&&req.method==='GET'&&url.searchParams.get('etapa')==='whatsapp')return reply(...demoWhatsapp(url));
     if(area==='vybes'&&req.method==='GET')return reply(200,{ok:true,noAr:true,agir:true});
     if(area==='pessoas'&&req.method==='GET')return reply(200,{ok:true,pessoas:[{id:'1',nome:'Operador de teste',email:'operador@vybe.invalid',admin:true,pode_entrar:true,ativo:true,tem_senha:true,ultimo_acesso:new Date().toISOString()},
       {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});

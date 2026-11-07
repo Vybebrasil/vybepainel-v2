@@ -9,6 +9,7 @@ import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 // Migração: migrations/2026-11-02-vybes.sql.
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
+import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 const CRACHA_VALE_MS = 2 * 60e3;
@@ -166,6 +167,13 @@ export async function lerAgentesDaCentral(urlEntrada, { fetchImpl = globalThis.f
 
 export async function areaVybes(req, res, quem, sql) {
   try {
+    // WhatsApp interno (server/vybes-whatsapp.js): só leitura; a central filtra pelo crachá de quem está logado.
+    if (req.method === 'GET' && req.query?.etapa === 'whatsapp') {
+      const conversa = req.query.conversa == null ? null : String(req.query.conversa);
+      if (conversa != null && !/^[a-f0-9]{20}$/.test(conversa)) throw erro('Conversa inválida.', 400);
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await lerWhatsappDaCentral(url, { conversa }));
+    }
     if (req.method === 'GET' && ['cerebro','agentes'].includes(req.query?.etapa)) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await (req.query.etapa==='agentes'?lerAgentesDaCentral:lerCerebroDaCentral)(url));
