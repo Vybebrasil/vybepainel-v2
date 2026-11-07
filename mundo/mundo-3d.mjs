@@ -15,7 +15,7 @@ import LOCAIS from './locais.json' with { type: 'json' };
 
 export { PLANTA, ESTADOS };
 export { abrirAndar } from './sala.mjs';
-export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel } from './avatar.mjs';
+export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 
 export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento = false } = {}) {

@@ -4129,3 +4129,6 @@ html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 .vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .ic{grid-row:auto!important;grid-column:1!important}
 .vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .meio{grid-row:auto!important;grid-column:2!important;min-width:0}
 .vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > em{grid-row:auto!important;grid-column:3!important;align-self:center}
+
+/* modo escuro: o 3D do andar (e o do personagem) não inverte; ganha a mesma luz de fim de tarde do mapa */
+html.tema-escuro body.mundo #mundo-andar canvas{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.9)}
