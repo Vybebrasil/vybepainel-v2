@@ -3512,3 +3512,17 @@ html body.mundo.mundo-modulo :is(#grupos-board-demandas b,td.grupo-nome,.da-disc
 .rotulo-cliente .pino-precisao{font:600 9px/1.4 var(--vv-texto);padding:1px 5px;border-radius:6px;background:#F1EEE8;color:#655E54;white-space:nowrap}
 .rotulo-cliente .pino-precisao.confirmada{background:#DCF3E4;color:#17663A}
 .rotulo-cliente .pino-precisao.numero,.rotulo-cliente .pino-precisao.rua{background:#FFF0D6;color:#7A4A08}
+
+/* CRM do SDR: o mesmo HUD recebe o funil, sem substituir a lista pública. */
+.vv-placa:has([data-crm-painel]){width:min(1040px,calc(100vw - 2*var(--vv-m)))}
+.vv-crm-quadro{display:flex;gap:10px;overflow-x:auto;padding:10px 0 14px;scroll-snap-type:x proximity}
+.vv-crm-coluna{flex:0 0 225px;scroll-snap-align:start;background:var(--vv-papel,#F4F1EB);border:1px solid var(--vv-borda,#D9D3CA);border-radius:12px;padding:10px}
+.vv-crm-coluna h4{margin:0 0 10px;font-size:13px}.vv-crm-coluna h4 small{float:right}
+.vv-crm-oportunidade{display:grid;gap:5px;width:100%;padding:10px;margin-bottom:8px;text-align:left;border:1px solid var(--vv-borda,#D9D3CA);border-radius:9px;background:#fff;color:#292722;cursor:pointer;font:inherit}
+.vv-crm-oportunidade small{color:#6B675F}.vv-crm-oportunidade span{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.vv-crm-ficha{border-top:1px solid var(--vv-borda,#D9D3CA);padding:14px 0;margin:8px 0}
+.vv-crm-ficha form{display:grid;gap:8px;margin:12px 0}.vv-crm-ficha label{display:grid;gap:4px;font-size:12px}
+.vv-crm-ficha :is(select,input,textarea){box-sizing:border-box;width:100%;padding:9px;border:1px solid #D9D3CA;border-radius:8px;background:white;color:#292722;font:inherit}
+.vv-crm-ficha textarea{min-height:64px;resize:vertical}.vv-crm-movimentos{display:flex;gap:8px;flex-wrap:wrap}
+.vv-crm-historico{padding-left:22px;font-size:12px}.vv-crm-historico li{margin:12px 0}.vv-crm-historico small{display:block;color:#6B675F}.vv-crm-historico p{white-space:pre-wrap;overflow-wrap:anywhere}
+#vv-crm-erro{color:#AA3028;font-size:13px}#vv-crm-erro:empty{display:none}
