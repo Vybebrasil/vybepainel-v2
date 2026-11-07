@@ -56,7 +56,7 @@ test('painel exibe tarefa/histórico, abre apenas ref explícita de peça e avis
  const ctx=vm.createContext({mundo:{apresentarAgente,referenciaDaPeca},Date,esc:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))});
  vm.runInContext(fonte.slice(fonte.indexOf('  let fonteAgentes = null;'),fonte.indexOf('  async function mostrarAgente('))+`;this.html=(id,d)=>{fonteAgentes={ler:()=>d};return atividadeDoAgenteHtml(id);};`,ctx);
  const snapshot={dados:dados(),atualizadoEm:Date.parse(em),erro:true};let html=ctx.html('copy',snapshot);
- assert.match(html,/O que está fazendo/);assert.match(html,/Estudar ideias dos clientes/);assert.match(html,/Desde/);assert.match(html,/O que fez/);assert.match(html,/data-valor="vybe:42"/);assert.match(html,/Central fora do ar — última atualização às 09:00/);
+ assert.match(html,/O que está fazendo/);assert.match(html,/Estudar ideias dos clientes/);assert.match(html,/Desde/);assert.match(html,/O que fez/);assert.match(html,/data-valor="vybe:42"/);assert.match(html,/Agentes sem sinal da central desde 09:00/);
  snapshot.dados=dados(agente('executando',{tarefa:'<script>privado</script>',ultimos:[{...agente().ultimos[0],ref:'12345678901234567890123456789012'}]}));html=ctx.html('copy',snapshot);assert.doesNotMatch(html,/<script>|data-valor=/);assert.match(html,/&lt;script&gt;/);
 });
 test('figuras e monitores só animam durante execução com leitura disponível',async()=>{

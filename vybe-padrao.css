@@ -1,7 +1,9 @@
 /* Padrão visual do Vybe OS (direção de arte aprovada em 27/10/2026).
    Carrega depois de vybe-styles.css e vybe-appearance.css e só mexe na aparência:
    nenhum seletor aqui muda o que a tela faz, só como ela se parece.
-   Fonte da verdade: https://claude.ai/artifact/EM8smE24xdncFqEz2byVe1 */
+   Fonte da verdade: https://claude.ai/artifact/EM8smE24xdncFqEz2byVe1
+   SUBSTITUÍDO em 07/11/2026 pelo padrão Irecity (docs/padrao-visual.md, tokens --vv-* em vybe-mundo.css).
+   Este arquivo fica só para as telas do legado e do Escritório até elas saírem; nada novo nasce aqui. */
 :root{
   --pv-titulo:"Space Grotesk",var(--mac-ui);
   --pv-vidro:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015) 30%),#14161d;

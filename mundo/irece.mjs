@@ -8,8 +8,9 @@ const PASSO_M = 3;          // um degrau a cada 3 m de altitude
 const ALTURA_DEGRAU = 0.45; // relevo 1,5× exagerado: a maquete precisa mostrar
 // Recorte: o Centro de Irecê com TODOS os clientes ativos (de ACE e Serra Grande ao sul até DiaLab ao norte,
 // da Vybe a oeste até Lions e DiaCenter a leste). Menor que a cidade inteira para caber mais detalhe.
-export const CENTRO_RECORTE = { x: 4, z: 18 };
-const RAIO = 118;           // raio do disco da maquete, em células (1 célula = 10 m)
+// Centro do disco: perto da Vybe (R. São Francisco), de modo que todos os clientes ativos caibam no raio.
+export const CENTRO_RECORTE = { x: -36, z: 12 };
+const RAIO = 126;           // raio do disco da maquete, em células (1 célula = 10 m)
 
 export function construirIrece(motor, dados, { reservas = {}, comercios = [] } = {}) {
   const { w: GW, h: GH } = dados;
@@ -120,7 +121,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
 
   // ----- Cor de cada célula -----
   const C = {
-    ruaGrande: COR('#8E8B85'), rua: COR('#ABA69C'), terraRua: COR('#CDB98F'), calcada: COR('#E7DDC6'), lote: COR('#DCD0B2'),
+    ruaGrande: COR('#8E8B85'), rua: COR('#ABA69C'), terraRua: COR('#CDB98F'), calcada: COR('#E9E1CC'), lote: COR('#E2D8C0'), quintal: COR('#C3CD93'), terra: COR('#D6C49B'),
     praca: COR('#79C267'), agua: COR('#3FB4C7'), publico: COR('#E9E1CF'), reserva: COR('#EFE8D8'),
     campos: ['#A8D27A', '#BBD98F', '#CFE3A0', '#C9B97C', '#8FBF63', '#B5CF7F', '#D6C68F'].map(COR),
     mata: COR('#6FB35C'), mataAlta: COR('#4F9A4E'),
@@ -132,7 +133,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     if (area[i] === 2) return C.agua;
     if (area[i] === 1) return C.praca;
     if (area[i] === 3) return C.publico;
-    if (urbano(gx, gz)) return n < .5 ? C.calcada : C.lote;
+    if (urbano(gx, gz)) { const q = ruido((gx >> 1) + 31, (gz >> 1) + 17); return q < .2 ? C.quintal : q < .28 ? C.terra : n < .12 ? C.calcada : C.lote; }
     const talhao = ruido(gx >> 4, gz >> 4) * C.campos.length | 0;
     if (ruido((gx >> 3) + 7, (gz >> 3) + 3) < .18) return n < .5 ? C.mata : C.mataAlta;
     return C.campos[talhao];
@@ -200,7 +201,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
         while (k < ao) {
           const gx = dx ? L : k, gz = dx ? k : L;
           const n0 = nv(gx, gz), nb = nv(gx + dx, gz + dz);
-          if (n0 === -9999 || nb >= n0) { k++; continue; }
+          if (n0 === -9999 || nb >= n0 || nb === -9999) { k++; continue; } // borda externa: a moldura redonda cobre
           let fim = k + 1;
           while (fim < ao) { const gx2 = dx ? L : fim, gz2 = dx ? fim : L; if (nv(gx2, gz2) !== n0 || nv(gx2 + dx, gz2 + dz) !== nb) break; fim++; }
           const ya = Y(n0), yb = nb === -9999 ? FUNDO : Y(nb), cor2 = nb === -9999 ? pedra : terra[(L + k) % 3];
@@ -220,6 +221,33 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     paredes.receiveShadow = true; motor.adicionar(paredes);
     // De longe os degraus quase não aparecem: as paredes só entram com a câmera mais baixa.
     motor.animar(() => { const ver = motor.camera.position.y < 230, mudou = ver !== paredes.visible; paredes.visible = ver; return mudou; });
+  }
+
+  // Moldura da maquete: um aro liso em volta do disco (antes a borda era em degraus de 10 m, serrilhada).
+  {
+    const N = 480, Rin = RAIO - 1.2, Rout = RAIO + 1, hs = [];
+    for (let k = 0; k < N; k++) {
+      const a = k / N * Math.PI * 2, c = Math.cos(a), s2 = Math.sin(a);
+      let h = -Infinity; for (const r of [RAIO - 2, RAIO - 1.3, RAIO - .6, RAIO]) h = Math.max(h, alturaEm(CENTRO_RECORTE.x + c * r, CENTRO_RECORTE.z + s2 * r));
+      hs.push(h);
+    }
+    const alto = hs.map((_, k) => Math.max(hs[(k + N - 1) % N], hs[k], hs[(k + 1) % N]) + .08);
+    const pos = [], cor = [], ind = []; let v = 0;
+    const borda = COR('#EFE7D6'), terraAlta = COR('#A97C4E'), terraBaixa = COR('#5E4532');
+    for (let k = 0; k <= N; k++) {
+      const a = k / N * Math.PI * 2, c = Math.cos(a), s2 = Math.sin(a), y = alto[k % N];
+      const ix = CENTRO_RECORTE.x + c * Rin, iz = CENTRO_RECORTE.z + s2 * Rin, ox = CENTRO_RECORTE.x + c * Rout, oz = CENTRO_RECORTE.z + s2 * Rout;
+      pos.push(ix, y, iz, ox, y, oz, ox, y, oz, ox, FUNDO, oz);
+      for (const q of [borda, borda, terraAlta, terraBaixa]) cor.push(q.r, q.g, q.b);
+      if (k) { const b = v - 4; ind.push(b, b + 4, b + 5, b, b + 5, b + 1, b + 2, b + 6, b + 7, b + 2, b + 7, b + 3); }
+      v += 4;
+    }
+    const g3 = new THREE.BufferGeometry();
+    g3.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g3.setAttribute('color', new THREE.Float32BufferAttribute(cor, 3));
+    g3.setIndex(ind); g3.computeVertexNormals();
+    const aro = new THREE.Mesh(g3, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, side: THREE.DoubleSide }));
+    aro.receiveShadow = true; motor.adicionar(aro);
   }
 
   // Água "respirando".
@@ -328,17 +356,32 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
       detalhes.push({ x: mx, y, z: mz, w: fz ? 1.95 : .08, h: .38, d: fz ? .08 : 1.95, cor: pega(PAREDES, gx + 9, gz + 1) });
       const [gx2, gz2] = em((fz ? ld : lw) / 2 + .46, .45); detalhes.push({ x: gx2, y, z: gz2, w: fz ? .5 : .09, h: .42, d: fz ? .09 : .5, cor: pega(FAIXAS, gx, gz + 3) });
     }
+    if (tipo === 'casa' && ruido(gx + 21, gz + 5) < .62) {
+      const f0 = (fz ? ld : lw) / 2 + .42, corMuro = pega(PAREDES, gx + 9, gz + 1);
+      for (const [l0, l1] of [[-1, -.08], [.52, 1]]) { const [mx, mz] = em(f0, (l0 + l1) / 2); const w = (l1 - l0); detalhes.push({ x: mx, y, z: mz, w: fz ? w : .08, h: .34, d: fz ? .08 : w, cor: corMuro }); }
+      const [gx2, gz2] = em(f0, .22); detalhes.push({ x: gx2, y, z: gz2, w: fz ? .58 : .06, h: .36, d: fz ? .06 : .58, cor: pega(['#3A3F44', '#2E5E8C', '#3E7D4F', '#7A5534'], gx + 4, gz) });
+      const [px3, pz3] = em(f0 - .22, -.6); detalhes.push({ x: px3, y, z: pz3, w: .2, h: .32, d: .2, cor: '#5FA34E' });
+    }
     // Telhado: duas águas em degraus (telha) ou laje com platibanda e caixa d'água.
     const laje = tipo === 'predio' || tipo === 'comercio' || ruido(gx + 7, gz + 11) < .35;
     if (laje) {
-      telhados.push({ x, y: y + h, z, w: lw + .06, d: ld + .06, h: .14, cor: pega(LAJES, gx + 2, gz + 5) });
-      if (ruido(gx + 9, gz + 4) < .4) telhados.push({ x: x + .35, y: y + h + .14, z: z - .35, w: .42, d: .42, h: .32, cor: '#3F7FB3' });
+      const corLaje = pega(LAJES, gx + 2, gz + 5);
+      telhados.push({ x, y: y + h, z, w: lw + .06, d: ld + .06, h: .14, cor: corLaje });
+      // platibanda: mureta na borda da laje, na cor da parede
+      for (const [ox, oz, w, d] of [[0, ld / 2, lw + .06, .06], [0, -ld / 2, lw + .06, .06], [lw / 2, 0, .06, ld + .06], [-lw / 2, 0, .06, ld + .06]]) detalhes.push({ x: x + ox, y: y + h + .14, z: z + oz, w, h: .12, d, cor: parede });
+      if (ruido(gx + 9, gz + 4) < .45) { // caixa d'água azul sobre base de concreto, com tampa
+        const tx = x + (lw / 2 - .35) * (ruido(gx, gz + 3) < .5 ? 1 : -1), tz = z - (ld / 2 - .35);
+        detalhes.push({ x: tx, y: y + h + .14, z: tz, w: .44, h: .1, d: .44, cor: '#B9B2A2' }, { x: tx, y: y + h + .24, z: tz, w: .38, h: .26, d: .38, cor: '#2F6FB0' }, { x: tx, y: y + h + .5, z: tz, w: .3, h: .04, d: .3, cor: '#5C93C8' });
+      }
     } else {
       const telha = pega(TELHAS, gx + 5, gz + 2), passos = 3, aoLongo = ruido(gx, gz + 7) < .5;
       for (let k = 0; k < passos; k++) {
         const enc = 1 - k / passos;
         telhados.push({ x, y: y + h + k * .13, z, w: aoLongo ? lw + .16 : (lw + .16) * enc, h: .14, d: aoLongo ? (ld + .16) * enc : ld + .16, cor: k % 2 ? telha : TELHAS[(TELHAS.indexOf(telha) + 1) % TELHAS.length] });
       }
+      // cumeeira escura no topo e beiral claro na borda (de perto)
+      detalhes.push({ x, y: y + h + passos * .13, z, w: aoLongo ? lw + .18 : .12, h: .05, d: aoLongo ? .12 : ld + .18, cor: '#8E3A26' });
+      detalhes.push({ x, y: y + h - .04, z, w: lw + .22, h: .05, d: ld + .22, cor: '#F2ECE0' });
     }
     // Carro estacionado na rua em frente, de vez em quando.
     if (ruido(gx + 11, gz + 13) < .09) {
@@ -393,14 +436,25 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
       for (const [x, z] of P) { pos.push(x, alturaEm(x, z) + alt, z); cor.push(c.r, c.g, c.b); }
       ind.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4;
     };
+    // Recorta o trecho [a,b] no disco da maquete (raio um pouco menor, para não passar da moldura).
+    const recortar = (ax, az, bx, bz) => {
+      const R = RAIO - 1.4, px = ax - CENTRO_RECORTE.x, pz = az - CENTRO_RECORTE.z, dx = bx - ax, dz = bz - az;
+      const A = dx * dx + dz * dz, B = 2 * (px * dx + pz * dz), Cq = px * px + pz * pz - R * R;
+      if (A < 1e-9) return Cq < 0 ? [ax, az, bx, bz] : null;
+      const D = B * B - 4 * A * Cq; if (D <= 0) return null;
+      const t0 = Math.max(0, (-B - Math.sqrt(D)) / (2 * A)), t1 = Math.min(1, (-B + Math.sqrt(D)) / (2 * A));
+      if (t1 <= t0) return null;
+      return [ax + dx * t0, az + dz * t0, ax + dx * t1, az + dz * t1];
+    };
     for (const r of dados.ruas) {
       const m = Math.floor(r.p.length / 4) * 2, gm = [Math.floor(r.p[m]), Math.floor(r.p[m + 1])];
-      if (!dentro(gm[0], gm[1])) continue;
+      if (!dentro(gm[0], gm[1]) && !r.p.some((_, k) => k % 2 === 0 && dentro(Math.floor(r.p[k]), Math.floor(r.p[k + 1])))) continue;
       const urb = urbano(gm[0], gm[1]), larga = r.l >= 2.8;
       const w = Math.max(.32, r.l * .4), c = !urb && r.l < 2.4 ? TERRA : larga ? AV : ASF;
       for (let i = 0; i + 3 < r.p.length; i += 2) {
-        const ax = r.p[i] - cx, az = r.p[i + 1] - cz, bx = r.p[i + 2] - cx, bz = r.p[i + 3] - cz;
-        if (!dentro(Math.floor(r.p[i]), Math.floor(r.p[i + 1])) && !dentro(Math.floor(r.p[i + 2]), Math.floor(r.p[i + 3]))) continue;
+        let ax = r.p[i] - cx, az = r.p[i + 1] - cz, bx = r.p[i + 2] - cx, bz = r.p[i + 3] - cz;
+        const corte = recortar(ax, az, bx, bz); if (!corte) continue;
+        [ax, az, bx, bz] = corte;
         quad(ax, az, bx, bz, w, .07, c);
         if (larga && r.l < 3.4) quad(ax, az, bx, bz, .045, .09, FAIXA);           // faixa amarela no meio
         else if (larga) { quad(ax, az, bx, bz, w * .92, .085, AV); }               // avenida com canteiro: o canteiro vem por cima

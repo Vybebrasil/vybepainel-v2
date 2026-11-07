@@ -3,7 +3,7 @@ import { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS } 
 // demanda por vybe-mundo.js). Monta Irecê, o Prédio da Vybe e os clientes.
 import { criarMotor } from './motor.mjs';
 import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan } from './captacoes.mjs';
-import { construirIrece } from './irece.mjs';
+import { construirIrece, CENTRO_RECORTE } from './irece.mjs';
 import { construirPredio } from './predio.mjs';
 import { criarClientes } from './clientes.mjs';
 import { PLANTA, ESTADOS, ZONAS_DO_PREDIO } from './planta.mjs';
@@ -44,7 +44,8 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   }
 
   const VISTAS = {
-    cidade: { alvo: { x: 4, z: 18 }, dist: 300, incl: .86, giro: -.75 },
+    // A cidade abre com a Vybe no meio da tela.
+    cidade: { alvo: { x: base.x, z: base.z }, dist: 290, incl: .86, giro: -.75 },
     predio: { alvo: { x: base.x, y: 15, z: base.z }, dist: 175, incl: .42, giro: -.6 },
   };
   motor.voar(VISTAS.cidade, 1);
@@ -54,7 +55,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     const T3 = motor.THREE, BANDOS = 5, POR = 7;
     const asa = new T3.InstancedMesh(new T3.BoxGeometry(.32, .03, .09), new T3.MeshBasicMaterial({ color: '#4A4F55' }), BANDOS * POR * 2);
     asa.frustumCulled = false; motor.adicionar(asa);
-    const bandos = Array.from({ length: BANDOS }, (_, k) => ({ cx: (k - 2) * 70 + 20, cz: ((k * 37) % 5 - 2) * 55, r: 60 + k * 18, alt: 34 + k * 5, vel: .05 + k * .012, fase: k * 1.7 }));
+    const bandos = Array.from({ length: BANDOS }, (_, k) => ({ cx: CENTRO_RECORTE.x + (k - 2) * 70, cz: CENTRO_RECORTE.z + ((k * 37) % 5 - 2) * 55, r: 60 + k * 18, alt: 34 + k * 5, vel: .05 + k * .012, fase: k * 1.7 }));
     const m4 = new T3.Matrix4(), q = new T3.Quaternion(), e = new T3.Euler(), p = new T3.Vector3(), sc = new T3.Vector3();
     motor.animar((t) => {
       let n = 0;

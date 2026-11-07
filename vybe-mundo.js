@@ -223,7 +223,8 @@
     <section class="vv-hoje" id="vv-hoje" aria-label="Seu dia"></section>
     <div class="vv-topo">
       <div class="vv-espaco"></div>
-      <div class="vv-ilha vv-ferramentas" role="group" aria-label="Ferramentas">
+      <div class="vv-ilha vv-barra-topo">
+      <div class="vv-ferramentas" role="group" aria-label="Ferramentas">
         <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}</button>
@@ -231,10 +232,12 @@
         <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="conta" title="Sua conta e equipe" aria-label="Conta">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>')}</button>
       </div>
-      <div class="vv-ilha" role="group" aria-label="Vista do mundo">
+      <span class="vv-divisor" aria-hidden="true"></span>
+      <div class="vv-vistas" role="group" aria-label="Vista do mundo">
         <button type="button" class="vv-botao" data-vista="cidade" aria-pressed="true">${ic.cidade}<span class="vv-rotulo-longo">Cidade</span></button>
         <button type="button" class="vv-botao" data-vista="predio" aria-pressed="false">${ic.predio}<span class="vv-rotulo-longo">Prédio da Vybe</span></button>
         <button type="button" class="vv-botao" data-vista="cerebro" aria-pressed="false">${svg('<path d="M9 4a3 3 0 0 0-3 3v.5A3 3 0 0 0 4 10.5 3 3 0 0 0 5 13a3 3 0 0 0 2 5 3 3 0 0 0 5 1V4.5A2.5 2.5 0 0 0 9 4zM15 4a3 3 0 0 1 3 3v.5a3 3 0 0 1 2 3 3 3 0 0 1-1 2.5 3 3 0 0 1-2 5 3 3 0 0 1-5 1"/>')}<span class="vv-rotulo-longo">Cérebro</span></button>
+      </div>
       </div>
     </div>
     <div class="vv-ilha vv-controles" role="group" aria-label="Controles do mapa">
@@ -269,6 +272,7 @@
   function abrirModulo(mod) {
     if (!mod) return;
     const chamar = (nome, ...a) => (typeof window[nome] === 'function' ? window[nome](...a) : undefined);
+    if (mod.tipo === 'link' && /^https:\/\//.test(mod.url || '')) { window.open(mod.url, '_blank', 'noopener'); return; } // sistema irmão (ex.: Vybe Finanças)
     if (mod.tipo === 'modo') {
       ({ vybes: () => chamar('chooseVybesMode'), escritorio: () => chamar('chooseOfficeMode'), clientes: () => chamar('chooseClientMode'),
         controler: () => chamar('chooseDaControllerMode'), producao: () => chamar('chooseProductionMode'), gestor: () => chamar('chooseManagerMode') })[mod.alvo]?.();
@@ -279,7 +283,7 @@
     const btn = document.getElementById('btn-board-' + mod.alvo);
     if (btn) chamar('switchBoard', mod.alvo, btn);
   }
-  const NOME_MODULO = { vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
+  const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
 
   // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------
@@ -316,24 +320,48 @@
     const m = {}; for (const a of mundo.planta) m[a.id] = numerosDoAndar(a).sit;
     mundo.situacaoDosAndares(m);
   }
-  // Elevador: os andares de cima para baixo, cada um com a cor da situação, os números e os agentes.
+  // Elevador: coluna fina colada ao prédio. Cada andar com número, nome, o número que mais importa e a cor
+  // da situação (a mesma da faixa de luz do andar). Clicar abre o andar com tudo.
   function mostrarAndares() {
-    const p = placa(), E = mundo.estadosReais;
-    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <small class="vv-cb-kicker">Elevador</small><h3>Prédio da Vybe</h3>
-      <p class="vv-sub">O VYBES orquestra; cada andar é um setor com seus agentes. A faixa de luz de cada andar no prédio tem a cor da situação dele.</p>
-      <p class="vv-dica" style="margin:-4px 0 8px">${esc(avisoDosAgentes())}</p>
-      ${[...mundo.planta].reverse().map((a) => { const { n, sit } = numerosDoAndar(a);
-        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}">
+    const p = placa();
+    const f = fonteAgentes?.ler(), semCentral = Boolean(f?.erro);
+    p.innerHTML = `<div class="vv-elevador-lista">
+      <div class="vv-elevador-topo"><small class="vv-cb-kicker">Elevador</small><button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button></div>
+      <h3>Prédio da Vybe</h3>
+      ${[...mundo.planta].reverse().map((a) => { const { n, sit } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
+        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc(n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
           <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span>
-          <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b>
-            <span class="kpis">${n.map(([v, r]) => `<em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em>`).join('')}</span></span>
-          <span class="pontos">${a.setores.filter((s) => s.agente).map((s) => `<i data-indicador-agente="${esc(s.id)}" style="--e:${estadoDoAgente(s.id).cor}" title="${esc(s.agente)} (${esc(s.nome)}): ${esc(estadoDoAgente(s.id).rotulo)}"></i>`).join('')}</span>
+          <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em></span>
           <span class="sit" aria-hidden="true"></span></button>`; }).join('')}
-      <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Legenda dos agentes</div>
-      ${Object.values(E).map((e) => `<span class="vv-selo" style="--e:${e.cor};margin:0 6px 6px 0"><i></i>${esc(e.rotulo)}</span>`).join('')}`;
+      <p class="vv-elevador-aviso${semCentral ? ' off' : ''}">${semCentral ? 'Agentes sem sinal: a central do VYBES está desligada. Os números de produção continuam valendo.' : esc(avisoDosAgentes())}</p>
+    </div>`;
     p.hidden = false; ajustarAreaLivre();
     pintarSituacaoDosAndares();
+  }
+  // Operação do andar em números: por agente, o estado agora, execuções de hoje, taxa de sucesso, última execução,
+  // maturidade (ativo / em sombra / planejado) e se já tem módulo. Só o que a central informa; sem número inventado.
+  const MATURIDADE = { ativo: ['Ativo', '#18A957'], sombra: ['Em sombra', '#E2A11B'], planejado: ['Planejado', '#9AA3A8'] };
+  function opAndarHtml(a) {
+    const ags = a.setores.filter((s) => s.agente); if (!ags.length) return '';
+    const hoje = new Date().toDateString(), f = fonteAgentes?.ler(), sinal = Boolean(f?.dados && !f.erro);
+    let exec = 0, ok = 0, falha = 0, curso = 0;
+    const linhas = ags.map((s) => {
+      const e = estadoDoAgente(s.id), ult = (e.ultimos || []), dHoje = ult.filter((u) => new Date(u.em).toDateString() === hoje);
+      const c = ult.filter((u) => u.estado === 'concluida').length, fl = ult.filter((u) => u.estado === 'falhou').length;
+      exec += dHoje.length; ok += c; falha += fl; curso += e.emCurso || 0;
+      const taxa = c + fl ? Math.round(c / (c + fl) * 100) + '%' : '—', m = MATURIDADE[s.estado] || MATURIDADE.planejado;
+      return `<tr data-agente="${esc(a.id)}|${esc(s.id)}" title="Abrir o dia de ${esc(s.agente)}">
+        <td><i class="pt" style="--e:${e.cor}"></i><b>${esc(s.agente)}</b><small>${esc(s.nome)}</small></td>
+        <td><span class="mat" style="--m:${m[1]}">${m[0]}</span></td>
+        <td class="n">${sinal ? dHoje.length : '—'}</td><td class="n">${sinal ? taxa : '—'}</td>
+        <td class="n">${sinal && ult[0] ? esc(horaAgentes(ult[0].em)) : '—'}</td>
+        <td class="n">${s.modulo ? '<span class="mod ok" title="Tem módulo">●</span>' : '<span class="mod" title="Sem módulo no painel ainda">○</span>'}</td></tr>`;
+    }).join('');
+    const taxa = ok + falha ? Math.round(ok / (ok + falha) * 100) + '%' : '—';
+    return `<div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>Operação do andar</div>
+      <div class="vv-op-resumo">${[[sinal ? exec : '—', 'execuções hoje'], [sinal ? taxa : '—', 'sucesso (últimas)'], [sinal ? falha : '—', 'falhas'], [sinal ? curso : '—', 'em curso']].map(([v, r]) => `<div><b>${v}</b><small>${r}</small></div>`).join('')}</div>
+      <table class="vv-op-tabela"><thead><tr><th>Agente</th><th>Fase</th><th class="n">Hoje</th><th class="n">Sucesso</th><th class="n">Última</th><th class="n">Mód.</th></tr></thead><tbody>${linhas}</tbody></table>
+      ${sinal ? '' : `<p class="vv-elevador-aviso off">${esc(avisoDosAgentes())}. A tabela enche quando a central voltar.</p>`}`;
   }
   function mostrarAndar(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
@@ -344,6 +372,7 @@
       ${(() => { const { n, sit } = numerosDoAndar(a); return `<div class="vv-andar-kpis" style="--s:${SIT_COR[sit]}">${n.map(([v, r]) => `<div><b>${Number(v).toLocaleString('pt-BR')}</b><small>${esc(r)}</small></div>`).join('')}</div>`; })()}
       ${(() => { const espera = a.setores.filter((s) => s.agente && estadoDoAgente(s.id).estado === 'aguardando_aprovacao');
         return espera.length ? `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Precisa de você<span class="vv-pilula">${espera.length}</span></div>${espera.map((s) => { const e = estadoDoAgente(s.id); return `<button type="button" class="vv-cb-camada" data-agente="${esc(a.id)}|${esc(s.id)}" style="--c:#8E4EC6"><i></i><span><b>${esc(s.agente)}</b><small>${esc(e.tarefa || 'Aguardando aprovação')}${e.desde ? ' · desde ' + esc(horaAgentes(e.desde)) : ''}</small></span><em>Ver →</em></button>`; }).join('')}` : ''; })()}
+      ${opAndarHtml(a)}
       <div class="vv-rotulo-secao" style="--c:${a.cor}"><i></i>Agentes do andar</div>
       ${a.setores.map((s) => `<article class="vv-sala" ${s.id === idSetor ? 'style="outline:2px solid ' + a.cor + '"' : ''}>
         <div class="vv-sala-topo"><span class="vv-agente ${['sem_execucao','indisponivel'].includes(estadoDoAgente(s.id).estado) ? 'planejado' : ''}" data-avatar-agente="${esc(s.id)}">${s.agente ? esc(s.agente.slice(0, 2).toUpperCase()) : '★'}</span>
@@ -681,7 +710,7 @@
   }
   function avisoDosAgentes() {
     const f = fonteAgentes?.ler();
-    if (f?.erro) return f.atualizadoEm ? 'Central fora do ar — última atualização às ' + horaAgentes(f.atualizadoEm) : 'Central fora do ar — sem atualização recebida';
+    if (f?.erro) return f.atualizadoEm ? 'Agentes sem sinal da central desde ' + horaAgentes(f.atualizadoEm) : 'Agentes sem sinal: a central do VYBES está desligada';
     return f?.atualizadoEm ? 'Central do VYBES · leitura às ' + horaAgentes(f.atualizadoEm) : 'Consultando a central do VYBES…';
   }
   function seloAgente(id) { const a = estadoDoAgente(id); return `<span class="vv-selo" data-estado-agente="${esc(id)}" style="--e:${a.cor}"><i></i>${esc(a.rotulo)}</span>`; }
@@ -1029,7 +1058,7 @@
   function fecharPlaca() { placa().hidden = true; ajustarAreaLivre(); }
 
   hud.addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b || !mundo) return;
+    const b = e.target.closest('button, tr[data-agente]'); if (!b || !mundo) return;
     if (b.dataset.trilho) { usarTrilho(b.dataset.trilho, b); return; }
     if (b.dataset.ferr) { usarFerramenta(b.dataset.ferr); return; }
     if (b.dataset.hojeAcao) { acaoDoHoje(b.dataset.hojeAcao, b.dataset.valor); return; }
@@ -1248,30 +1277,87 @@
   const barra = document.createElement('div');
   barra.className = 'vv-chamada'; barra.hidden = true; barra.setAttribute?.('role', 'region'); barra.setAttribute?.('aria-label', 'Chamada da sala');
   hud.append?.(barra);
-  let chamarAberto = false;
+  let chamarAberto = false, pessoaAberta = null;
+  const primeiro = (n) => String(n || '?').split(' ')[0];
+  const iniciais = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+  const fn = (nome) => (typeof window[nome] === 'function' ? window[nome] : null);
+  const IC = {
+    mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+    micOff: '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 10V6a3 3 0 0 0-6 0M5 11a7 7 0 0 0 11 5.7M19 11a7 7 0 0 1-.6 2.8M12 18v3"/></svg>',
+    musica: '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+    tela: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+    ajustes: '<svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+    chamar: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></svg>',
+    sair: '<svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
+  };
+  // Leva a pessoa até uma sala do Escritório sem sair do Irecity (a voz segue a sala).
+  function irParaSala(zona) {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    if (!zona) return;
+    if (e?.mapa && fn('escritorioIrParaAmbiente')) fn('escritorioIrParaAmbiente')(zona); else fn('irParaSalaEscritorio')?.(zona);
+    setTimeout(pintarChamada, 600);
+  }
+  // A janela de ajustes de áudio nasce dentro da tela do Escritório (que fica embaixo do mapa): traz para cima.
+  async function abrirAjustesAudio() {
+    await fn('abrirAjustesAudioEscritorio')?.();
+    const el = document.getElementById('office-ajustes-audio');
+    if (el && el.parentElement !== document.body) { el.classList.add('vv-flutuante'); document.body.append(el); }
+  }
   function pintarChamada() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
-    const naSala = ligado && e?.conectado && e.zona && typeof escritorioCanal === 'function' && escritorioCanal(e.zona);
-    barra.hidden = !naSala || body.classList.contains('auth-pending');
-    if (barra.hidden) return;
-    const Z = mundo?.zonasDoPredio || {}, nomeSala = Z[e.zona]?.nome || (typeof escritorioLugarDe === 'function' ? escritorioLugarDe(e.perfil)?.nome : '') || 'Sala';
-    const eu = String(e.base?.eu || ''), juntos = (e.online || []).filter((o) => o.zona === e.zona && String(o.id) !== eu);
+    const ver = ligado && !body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending') && Boolean(e);
+    barra.hidden = !ver;
+    if (!ver) return;
+    const Z = mundo?.zonasDoPredio || {}, eu = String(e.base?.eu || '');
+    const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
+    const outros = (e.online || []).filter((o) => String(o.id) !== eu);
+    if (!e.conectado) {
+      barra.innerHTML = `<span class="sala off"><i></i><b>Voz desligada</b><small>O Escritório ainda não conectou</small></span>
+        <button type="button" class="vv-botao" data-chamada="reconectar">Conectar</button>`;
+      return;
+    }
+    const canal = fn('escritorioCanal')?.(e.zona);
+    const naChamada = Boolean(canal && e.chamada);
+    const juntos = outros.filter((o) => o.zona && o.zona === e.zona);
     const mic = Boolean(e.chamada?.self?.audioEnabled);
     const falando = new Set((e.chamada?.participants?.joined?.toArray?.() || []).filter((p) => p.audioEnabled).map((p) => String(p.customParticipantId || '').split(':')[0]));
-    const fora = (e.online || []).filter((o) => o.zona !== e.zona && String(o.id) !== eu);
-    barra.innerHTML = `<span class="sala"><i></i><b>${esc(nomeSala)}</b><small>${juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa' : ' pessoas') + ' com você' : 'só você aqui'}</small></span>
-      <span class="gente">${juntos.slice(0, 6).map((o) => `<span class="p${falando.has(String(o.id)) ? ' fala' : ''}" title="${esc(o.nome)}">${esc(String(o.nome || '?').split(' ')[0])}</span>`).join('')}</span>
-      <button type="button" class="vv-botao${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" title="${mic ? 'Desligar' : 'Ligar'} o microfone">${mic ? 'Microfone ligado' : 'Microfone desligado'}</button>
-      <button type="button" class="vv-botao" data-chamada="chamar" aria-expanded="${chamarAberto}">Chamar alguém</button>
-      <button type="button" class="vv-botao" data-chamada="sair">Sair da sala</button>
-      ${chamarAberto ? `<div class="vv-chamar">${fora.length ? fora.map((o) => `<button type="button" data-chamar-pessoa="${esc(o.id)}"><b>${esc(o.nome)}</b><small>${esc(Z[o.zona]?.nome || 'fora das salas')}</small></button>`).join('') : '<p class="vv-dica">Ninguém online fora desta sala.</p>'}</div>` : ''}`;
+    const estado = fn('escritorioEstadoVozTexto')?.() || (naChamada ? 'Na conversa da sala' : 'Sem voz aqui');
+    const temSom = Boolean(fn('escritorioNaPista')?.());
+    const salas = {}; for (const o of outros) if (o.zona && o.zona !== e.zona) (salas[o.zona] ||= []).push(o);
+    const pessoa = pessoaAberta && outros.find((o) => String(o.id) === pessoaAberta);
+    const ouvem = juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa ouve você' : ' pessoas ouvem você') : 'só você aqui';
+    barra.innerHTML = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${esc(estado)}${naChamada ? ' · ' + ouvem : ''}</small></span>
+      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' · falando' : ''}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+      <span class="acoes">
+        <button type="button" class="vv-botao ic${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
+        <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
+        <button type="button" class="vv-botao ic" data-chamada="musica" ${temSom ? '' : 'disabled'} title="${temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)'}">${IC.musica}</button>
+        <button type="button" class="vv-botao ic" data-chamada="tela" ${naChamada ? '' : 'disabled'} title="Mostrar sua tela na TV da sala">${IC.tela}</button>
+        <button type="button" class="vv-botao ic" data-chamada="chamar" aria-expanded="${chamarAberto}" title="Quem está online: ir até a sala ou chamar para cá">${IC.chamar}</button>
+        ${e.zona ? `<button type="button" class="vv-botao ic sair" data-chamada="sair" title="Sair da sala">${IC.sair}</button>` : ''}
+      </span>
+      ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}${falando.has(String(pessoa.id)) ? ' · falando agora' : ''}</small>
+        ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
+      ${chamarAberto && !pessoa ? `<div class="vv-chamar">
+        <div class="vv-rotulo-secao"><i></i>Salas com gente agora</div>
+        ${Object.keys(salas).length ? Object.entries(salas).map(([z, g]) => `<button type="button" data-ir-sala="${esc(z)}"><b>${esc(nomeZona(z))}</b><small>${g.map((o) => esc(primeiro(o.nome))).join(', ')}</small><em>Entrar →</em></button>`).join('') : '<p class="vv-dica">Ninguém em outra sala agora.</p>'}
+        <div class="vv-rotulo-secao"><i></i>Chamar alguém</div>
+        ${outros.filter((o) => o.zona !== e.zona).map((o) => `<button type="button" data-chamar-pessoa="${esc(o.id)}"><b>${esc(o.nome)}</b><small>${esc(nomeZona(o.zona))}</small><em>Chamar</em></button>`).join('') || '<p class="vv-dica">Ninguém online fora desta sala.</p>'}
+      </div>` : ''}`;
   }
   barra.addEventListener?.('click', (ev) => {
-    const b = ev.target.closest('button'); if (!b) return;
-    if (b.dataset.chamada === 'mic' && typeof alternarMidiaEscritorio === 'function') alternarMidiaEscritorio('audio').finally?.(pintarChamada);
-    else if (b.dataset.chamada === 'chamar') { chamarAberto = !chamarAberto; pintarChamada(); }
-    else if (b.dataset.chamada === 'sair' && typeof escritorioSairDoQuarto === 'function') { escritorioSairDoQuarto(); chamarAberto = false; setTimeout(pintarChamada, 400); }
-    else if (b.dataset.chamarPessoa && typeof chamarParaSalaEscritorio === 'function') { chamarParaSalaEscritorio(b.dataset.chamarPessoa); chamarAberto = false; pintarChamada(); }
+    const b = ev.target.closest('button'); if (!b || b.disabled) return;
+    const c = b.dataset.chamada;
+    if (c === 'mic') fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada);
+    else if (c === 'ajustes') abrirAjustesAudio();
+    else if (c === 'musica') fn('abrirMusicaEscritorio')?.();
+    else if (c === 'tela') fn('compartilharTelaNaTvEscritorio')?.();
+    else if (c === 'reconectar') { (fn('escritorioReconectar') || fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); }
+    else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
+    else if (c === 'sair') { fn('escritorioSairDoQuarto')?.(); chamarAberto = false; setTimeout(pintarChamada, 400); }
+    else if (b.dataset.pessoa) { pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false; pintarChamada(); }
+    else if (b.dataset.irSala) { irParaSala(b.dataset.irSala); chamarAberto = false; pessoaAberta = null; }
+    else if (b.dataset.chamarPessoa) { fn('chamarParaSalaEscritorio')?.(b.dataset.chamarPessoa); chamarAberto = false; pessoaAberta = null; pintarChamada(); }
   });
   if (typeof setInterval === 'function') setInterval(pintarChamada, 1500);
 
@@ -1303,7 +1389,7 @@
       setTimeout(() => { if (visivel(jan)) (jan.querySelector(FECHAR_JANELA) || (jan.matches('details > *') ? jan.parentElement.querySelector('summary') : null))?.click(); if (jan.tagName === 'DETAILS' || jan.parentElement?.tagName === 'DETAILS') jan.closest('details')?.removeAttribute('open'); }, 0);
       return;
     }
-    if (chamarAberto) { chamarAberto = false; pintarChamada(); return; }
+    if (chamarAberto || pessoaAberta) { chamarAberto = false; pessoaAberta = null; pintarChamada(); return; }
     if (!placa().hidden) { fecharPlaca(); return; }
     if (andarAberto) { fecharAndarVoxel(true); return; }
     if (body.classList.contains('mundo-modulo')) { fecharModulo(); return; }

@@ -3674,3 +3674,113 @@ html body.mundo .notif-item.nao-lida:not(#vv-x){background:#FFF6EE!important;box
 html body.mundo .notif-texto:not(#vv-x){color:#1F1D1A!important}
 html body.mundo .notif-meta:not(#vv-x){color:#6B675F!important}
 html body.mundo .notif-caixa.tem-mais::after{background:linear-gradient(180deg,rgba(255,255,255,0),#FFFFFF)!important;box-shadow:none!important}
+
+/* ===== Barra de chamada v2: sala, quem ouve você, microfone, ajustes, música, tela, chamar, sair ===== */
+.vv-chamada{gap:10px!important;padding:7px 8px 7px 14px!important;border-radius:20px!important;background:rgba(24,23,21,.92)!important;backdrop-filter:blur(14px)}
+.vv-chamada .sala{min-width:150px}
+.vv-chamada .sala.off i{background:#9AA3A8;box-shadow:none}
+.vv-chamada .sala:not(.on):not(.off) i{background:#E2A11B;box-shadow:0 0 0 3px rgba(226,161,27,.28)}
+.vv-chamada .gente{gap:0}
+.vv-chamada .gente .p{appearance:none;border:2px solid #181715;width:30px;height:30px;padding:0;margin-left:-6px;border-radius:50%;background:#3A3F44;color:#fff;font:700 10.5px var(--vv-texto);cursor:pointer;transition:transform .15s}
+.vv-chamada .gente .p:first-child{margin-left:0}
+.vv-chamada .gente .p:hover{transform:translateY(-2px);z-index:1}
+.vv-chamada .gente .p.fala{background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.5);animation:vv-fala 1s ease-in-out infinite alternate}
+@keyframes vv-fala{to{box-shadow:0 0 0 5px rgba(24,169,87,.2)}}
+.vv-chamada .gente .mais{font:600 11px var(--vv-texto);color:rgba(255,255,255,.7);margin-left:6px}
+.vv-chamada .acoes{display:flex;gap:4px}
+.vv-chamada .vv-botao.ic{width:36px;height:36px;padding:0;justify-content:center;border-radius:12px!important}
+.vv-chamada .vv-botao.ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vv-chamada .vv-botao.ic:hover:not(:disabled){background:rgba(255,255,255,.22)!important}
+.vv-chamada .vv-botao.ic[data-chamada="mic"]:not(.on):not(:disabled){background:#D93D42!important}
+.vv-chamada .vv-botao.ic.sair:hover{background:#D93D42!important}
+.vv-chamada .vv-botao:disabled{opacity:.35;cursor:not-allowed}
+.vv-chamada .vv-chamar{position:absolute;left:0;bottom:calc(100% + 8px);width:300px;max-height:min(420px,60vh);overflow:auto;background:#fff;color:#1F1D1A;border-radius:18px;padding:10px;box-shadow:0 20px 50px rgba(31,29,26,.25);border:1px solid #E6E0D6}
+.vv-chamada .vv-chamar > button:not(.vv-botao){display:grid;grid-template-columns:1fr auto;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:12px;background:transparent;cursor:pointer;font-family:var(--vv-texto)}
+.vv-chamada .vv-chamar > button:not(.vv-botao):hover{background:#FAF5EE}
+.vv-chamada .vv-chamar > button b{font:700 13px var(--vv-texto);color:#1F1D1A}
+.vv-chamada .vv-chamar > button small{grid-column:1;font:500 11px var(--vv-texto);color:#6B675F}
+.vv-chamada .vv-chamar > button em{grid-row:1/3;grid-column:2;align-self:center;font:700 11px var(--vv-texto);font-style:normal;color:#C2490C}
+.vv-chamada .vv-pessoa{display:flex;flex-direction:column;gap:6px;width:240px}
+.vv-chamada .vv-pessoa > b{font:700 14px var(--vv-texto)}.vv-chamada .vv-pessoa > small{color:#6B675F;font:500 11.5px var(--vv-texto)}
+.vv-chamada .vv-pessoa .vv-botao{background:#F3EFE8!important;color:#1F1D1A!important;height:34px;justify-content:center}
+.vv-chamada .vv-pessoa .vv-botao:first-of-type{background:#C2490C!important;color:#fff!important}
+/* ajustes de áudio do Escritório, trazidos para cima do mapa */
+#office-ajustes-audio.vv-flutuante{position:fixed!important;left:calc(var(--vv-m) + 96px)!important;bottom:calc(var(--vv-m) + 64px)!important;top:auto!important;right:auto!important;z-index:900!important;width:min(380px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:18px!important;box-shadow:0 24px 60px rgba(31,29,26,.25)!important;padding:14px!important;color-scheme:light}
+#office-ajustes-audio.vv-flutuante :is(label,span,b,strong,h3,h4,p,small,option){color:#1F1D1A!important}
+#office-ajustes-audio.vv-flutuante select{background:#fff!important;color:#1F1D1A!important;border:1px solid #E1DACE!important;border-radius:10px}
+@media (max-width:900px){#office-ajustes-audio.vv-flutuante{left:16px!important;bottom:calc(64px + 80px)!important}}
+.vv-chamada .vv-chamar{display:block;padding-top:10px;flex-basis:auto}.vv-chamada .vv-chamar > button:not(.vv-botao){color:#1F1D1A}.vv-chamada .vv-chamar .vv-rotulo-secao{margin:6px 4px 4px}
+
+/* ===== Nomes do mapa sem amontoar ===== */
+.mundo-rotulo.colide{opacity:0!important;pointer-events:none!important}
+.mundo-rotulo[data-mais]{position:absolute}
+.mundo-rotulo[data-mais]::after{content:attr(data-mais);position:absolute;right:-8px;top:-8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#1F1D1A;color:#fff;font:800 10px/18px var(--vv-texto);text-align:center;box-shadow:0 0 0 2px #fff}
+/* vista do prédio: só o prédio, os andares e o VYBES (clientes e pessoas da rua saem) */
+body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,.rotulo-empresa,.rotulo-rua,.rotulo-lugar,.rotulo-marco){display:none!important}
+
+/* ===== Elevador fino ===== */
+.vv-placa:has(> .vv-elevador-lista){width:248px;padding:12px 10px 10px!important}
+.vv-elevador-topo{display:flex;align-items:center;justify-content:space-between;margin:0 2px 2px}
+.vv-elevador-lista h3{margin:0 4px 10px!important;font-size:17px!important}
+.vv-elevador-lista .vv-fechar{position:static!important}
+.vv-elevador-lista .vv-elevador{padding:8px 12px 8px 8px;margin-bottom:4px;gap:8px;border-radius:14px}
+.vv-elevador-lista .vv-elevador .num{width:26px;height:26px;border-radius:9px;font-size:12px}
+.vv-elevador-lista .vv-elevador .meio b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-elevador-lista .vv-elevador .meio em{display:block;font:500 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}
+.vv-elevador-lista .vv-elevador .meio em strong{color:var(--vv-tinta);font-weight:800}
+.vv-elevador-aviso{margin:8px 4px 2px;font:500 11px/1.4 var(--vv-texto);color:var(--vv-apagado)}
+.vv-elevador-aviso.off{color:#8A5A00;background:#FFF4DC;border-radius:10px;padding:7px 9px}
+
+/* ===== Barra de topo única: ferramentas | vistas ===== */
+.vv-barra-topo{gap:2px}
+.vv-barra-topo .vv-ferramentas,.vv-barra-topo .vv-vistas{display:flex;align-items:center;gap:2px}
+.vv-barra-topo .vv-divisor{width:1px;height:22px;background:rgba(31,29,26,.14);margin:0 6px}
+@media (max-width:900px){.vv-barra-topo .vv-ferramentas,.vv-barra-topo .vv-divisor{display:none}}
+/* barra de chamada nasce depois do painel "Seu dia", sem cobrir a lista */
+@media (min-width:901px){.vv-chamada{left:calc(var(--vv-livre-esq, 100px) + 10px)!important}}
+
+/* ===== Barra de chamada no padrão Irecity (vidro claro, não o cinza escuro antigo) ===== */
+.vv-chamada{background:var(--vv-vidro-forte)!important;color:var(--vv-tinta)!important;border:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra-curta)!important;backdrop-filter:var(--vv-desfoque)!important}
+.vv-chamada .sala small{color:var(--vv-apagado)!important}
+.vv-chamada .gente .p{border-color:#fff!important;background:#E9E3D8!important;color:var(--vv-tinta)!important}
+.vv-chamada .gente .p.fala{background:#18A957!important;color:#fff!important}
+.vv-chamada .gente .mais{color:var(--vv-apagado)!important}
+.vv-chamada .vv-botao{background:#fff!important;color:var(--vv-tinta)!important;border:1px solid var(--vv-linha)!important}
+.vv-chamada .vv-botao.ic:hover:not(:disabled){background:#FAF5EE!important;border-color:var(--vv-acao,#C2490C)!important}
+.vv-chamada .vv-botao.on{background:#18A957!important;color:#fff!important;border-color:#18A957!important}
+.vv-chamada .vv-botao.ic[data-chamada="mic"]:not(.on):not(:disabled){background:#FDECEE!important;color:#B42318!important;border-color:#F6BBC4!important}
+.vv-chamada .vv-botao.ic.sair:hover{background:#FDECEE!important;color:#B42318!important}
+.vv-chamada [data-chamada="reconectar"]{background:var(--vv-acao,#C2490C)!important;color:#fff!important;border:0!important;padding:0 14px}
+/* com a barra de chamada visível, o aviso de planejamentos sobe e não encosta nela */
+@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#mundo-hud .vv-chamada:not([hidden])) .plj-aviso{bottom:calc(var(--vv-m) + 64px)!important}}
+
+/* ===== Hover do agente no andar: a operação dele ===== */
+.mundo-rotulo.rotulo-agente .det{display:none}
+.mundo-rotulo.rotulo-agente:hover,.mundo-rotulo.rotulo-agente:focus-visible{z-index:50}
+.mundo-rotulo.rotulo-agente:hover .det,.mundo-rotulo.rotulo-agente:focus-visible .det{display:flex;flex-direction:column;gap:5px;position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:250px;padding:12px;border-radius:16px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 18px 40px rgba(31,29,26,.22);text-align:left;white-space:normal;font:500 11.5px/1.4 var(--vv-texto);color:#1F1D1A}
+.rotulo-agente .det em{font-style:normal;color:#5B574F}
+.rotulo-agente .det .op{display:flex;flex-direction:column;gap:3px;padding:7px 0;border-top:1px solid #F0EBE3;border-bottom:1px solid #F0EBE3}
+.rotulo-agente .det .agora b{color:#0D74CE}
+.rotulo-agente .det .u{color:#3A3F44;padding-left:10px;position:relative}
+.rotulo-agente .det .u::before{content:"";position:absolute;left:0;top:6px;width:6px;height:6px;border-radius:50%;background:#9AA3A8}
+.rotulo-agente .det .u.concluida::before{background:#18A957}.rotulo-agente .det .u.falhou::before{background:#D93D42}.rotulo-agente .det .u.executando::before{background:#0D74CE}.rotulo-agente .det .u.aguardando_aprovacao::before{background:#8E4EC6}
+.rotulo-agente .det .u b{font-weight:800;color:#1F1D1A}
+.rotulo-agente .det .sk{display:flex;flex-wrap:wrap;gap:4px}
+.rotulo-agente .det .sk i{font-style:normal;font:600 10.5px var(--vv-texto);padding:2px 7px;border-radius:7px;background:#F3EFE8;color:#5B574F}
+
+/* ===== Painel do andar: operação em números ===== */
+.vv-op-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:4px 0 8px}
+.vv-op-resumo div{padding:7px 8px;border-radius:12px;background:#F7F9FC;border:1px solid #E3E9F2}
+.vv-op-resumo b{display:block;font:800 16px var(--vv-texto);color:var(--vv-tinta);font-variant-numeric:tabular-nums}
+.vv-op-resumo small{font:600 10px var(--vv-texto);color:#5B6268}
+.vv-op-tabela{width:100%;border-collapse:separate;border-spacing:0;margin-bottom:12px;font:500 11.5px var(--vv-texto);color:var(--vv-tinta)}
+.vv-op-tabela th{font:700 9.5px var(--vv-texto);letter-spacing:.08em;text-transform:uppercase;color:#6B675F;text-align:left;padding:4px 6px;border-bottom:1px solid #E6E0D6}
+.vv-op-tabela td{padding:7px 6px;border-bottom:1px solid #F0EBE3;vertical-align:middle}
+.vv-op-tabela .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vv-op-tabela tbody tr{cursor:pointer;transition:background .12s}.vv-op-tabela tbody tr:hover{background:#FAF5EE}
+.vv-op-tabela td b{display:block;font:700 12px var(--vv-texto)}.vv-op-tabela td small{color:#6B675F;font-size:10.5px}
+.vv-op-tabela .pt{float:left;width:8px;height:8px;border-radius:50%;background:var(--e);margin:5px 7px 0 0}
+.vv-op-tabela .mat{display:inline-block;padding:2px 7px;border-radius:7px;font:700 10px var(--vv-texto);color:color-mix(in srgb,var(--m) 60%,#1F1D1A);background:color-mix(in srgb,var(--m) 14%,#fff)}
+.vv-op-tabela .mod{color:#B8B2A7}.vv-op-tabela .mod.ok{color:#18A957}
+.vv-placa:has(.vv-op-tabela){width:400px}
+@media (min-width:901px){.vv-chamada{left:calc(max(var(--vv-livre-esq, 0px), 90px) + 10px)!important}}

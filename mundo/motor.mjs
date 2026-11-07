@@ -92,6 +92,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // A sombra acompanha o que se olha: 4096 px cobrindo só a área visível.
     const lado = limitar(dist * 0.42, 40, 260);
     sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix();
+    // De perto (dentro dos andares) o piso fazia listras de sombra: mais folga no viés quando a área é pequena.
+    sol.shadow.bias = lado < 90 ? -0.0012 : -0.0004; sol.shadow.normalBias = lado < 90 ? 0.12 : 0.4;
     sol.position.set(alvo.x - 110, 160, alvo.z + 70); sol.target.position.copy(alvo);
     const chave = `${alvo.x.toFixed(1)},${alvo.z.toFixed(1)},${dist.toFixed(0)},${giro.toFixed(2)},${incl.toFixed(2)}`;
     if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; renderer.shadowMap.needsUpdate = true; }
@@ -281,17 +283,22 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       r.x = (v3.x * 0.5 + 0.5) * W; r.y = (-v3.y * 0.5 + 0.5) * H;
       caixas.push(r);
     }
-    // A cada 4 quadros: quem colide desce um pouco (o mais importante fica).
+    // A cada 4 quadros resolve as colisões, sem empilhar nome em cima de nome:
+    // pino fixo (cliente) que encosta noutro pino junta-se a ele ("+N"); nome comum que encosta some.
     if (quadro % 4 === 0) {
-      // Fixos (pino de cliente) nunca saem do lugar: entram primeiro e os outros desviam deles.
       caixas.sort((a, b) => (b.fixo - a.fixo) || b.prioridade - a.prioridade || a.y - b.y);
       const postos = [];
       for (const r of caixas) {
-        const w = r.el.offsetWidth || 80, h = r.el.offsetHeight || 22;
-        if (r.fixo) { r.desce = 0; postos.push({ x: r.x, y: r.y, w, h }); continue; }
-        let y = r.y, tent = 0;
-        while (tent++ < 6 && postos.some((p) => Math.abs(p.x - r.x) < (p.w + w) / 2 && Math.abs(p.y - y) < (p.h + h) / 2)) y += h * 0.8;
-        r.desce = y - r.y; postos.push({ x: r.x, y, w, h });
+        const w = r.el.offsetWidth, h = r.el.offsetHeight;
+        r.junto = 0; r.oculto = false; r.desce = 0;
+        if (!w || !h) { r.oculto = true; continue; } // escondido pela vista (CSS): não ocupa lugar
+        const bate = postos.find((p) => Math.abs(p.x - r.x) < (p.w + w) / 2 - 2 && Math.abs(p.y - r.y) < (p.h + h) / 2 - 1);
+        if (bate) { r.oculto = true; if (r.fixo && bate.r.fixo) bate.r.junto++; continue; }
+        postos.push({ x: r.x, y: r.y, w, h, r });
+      }
+      for (const r of caixas) {
+        r.el.classList.toggle('colide', r.oculto);
+        if (r.junto) r.el.dataset.mais = '+' + r.junto; else delete r.el.dataset.mais;
       }
     }
     for (const r of caixas) r.el.style.transform = `translate(-50%,-100%) translate(${r.x.toFixed(1)}px,${(r.y + r.desce).toFixed(1)}px)`;
