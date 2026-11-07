@@ -227,6 +227,7 @@
       <div class="vv-ferramentas" role="group" aria-label="Ferramentas">
         <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
+        <button type="button" class="vv-botao" data-ferr="whatsapp" title="WhatsApp da Vybe (só leitura)" aria-label="WhatsApp da Vybe" aria-pressed="false">${svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>')}<span class="vv-badge" id="vv-badge-whatsapp" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}</button>

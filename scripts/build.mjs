@@ -80,6 +80,9 @@ html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', 
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
+// WhatsApp interno do Irecity (vybe-mundo-whatsapp.js): folha própria, com hash como as outras.
+const whatsappCss = await transform(await readFile('vybe-mundo-whatsapp.css','utf8'), { loader: 'css', minify: true });
+html = html.replace('/vybe-mundo-whatsapp.css', await asset(whatsappCss.code, 'css', 'mundo-whatsapp'));
 // App instalável (tela inicial do celular, Dock, Windows): manifesto e ícones
 // ficam com caminho fixo, sem hash, porque o sistema guarda o endereço.
 // Ícones coloridos (05/11/2026) em assets/app/cor, com nome novo: o endereço
