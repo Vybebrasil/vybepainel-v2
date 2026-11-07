@@ -6,7 +6,7 @@
 // padrão claro (docs/padrao-visual.md), por cima do mapa, com as MESMAS funções
 // do Escritório (vybe-escritorio-missoes.js): a mesma carga, os mesmos filtros,
 // o mesmo agrupamento por cliente, a mesma linha de cobrança com o botão das
-// datas e a mesma gravação. Nada novo no servidor.
+// datas e a mesma gravação. No servidor, só a rota missoes aceitar `pessoa`.
 //
 //   VybeMissoes.abrir(aba = 'missoes' | 'cobrancas', pessoaId?)  → Promise (termina quando a leitura chega)
 //   VybeMissoes.fechar()
@@ -16,11 +16,13 @@
 // pessoaId é o id do Escritório (escritorio.base.equipe, o mesmo de
 // vybe_pessoas) ou o id da pessoa no painel (TEAM_USERS); sem ele, quem está
 // logado. Quem vê o quê, como no Escritório:
-//  - Missões: a rota escritorio/missoes só calcula as de quem está logado
-//    (server/escritorio.js). As de outra pessoa só para quem administra (o mesmo
-//    `admin` que libera a ficha de outra pessoa no servidor) e para os sócios;
-//    vêm das tarefas abertas dela no painel (focusOwnItems: as "Minhas tarefas"
-//    que viram missões), sem o valor em XP e moedas, que o servidor não calcula.
+//  - Missões: as próprias, pela rota escritorio/missoes de sempre. As de outra
+//    pessoa só para quem administra e para os sócios: a mesma rota com `pessoa`,
+//    que o servidor libera só para quem administra (a mesma regra da ficha de
+//    outra pessoa, server/escritorio.js), com o XP e as moedas de verdade. Se o
+//    servidor recusar (sócio sem admin) ou a leitura falhar, vêm as tarefas
+//    abertas dela no painel (focusOwnItems: as "Minhas tarefas" que viram
+//    missões), sem o valor em XP e moedas, com o aviso.
 //  - Cobranças: todos veem as de todos (a rota aceita qualquer pessoa: "todos
 //    que estão no quarto veem", decisão do Paulo, 19/10/2026).
 (function () {
@@ -33,6 +35,8 @@
   const estado = { raiz: null, janela: null, antes: null, aba: 'missoes', pessoa: '', carregandoMissoes: false, carregandoCobrancas: false, entrando: false, aviso: '' };
   // Cobranças lidas por pessoa (30 s, o mesmo prazo da leitura do saguão).
   const cobrancasLidas = new Map();
+  // Missões de outra pessoa lidas do servidor (60 s, a mesma memória do cartão do Escritório).
+  const missoesLidas = new Map();
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
@@ -60,7 +64,8 @@
   function alvoDe(pessoaId) {
     const eu = String(base()?.eu || ''), pedido = pessoaId == null ? '' : String(pessoaId);
     const p = pessoaDoEscritorio(pedido || eu), id = pedido ? String(p?.id || pedido) : eu, propria = id === eu;
-    return { id, pessoa: p || { id, nome: '' }, propria, permitido: propria || podeVerOutraPessoa() };
+    // `achada`: o id é o do Escritório (vybe_pessoas), o único que a rota de missões entende.
+    return { id, pessoa: p || { id, nome: '' }, propria, achada: Boolean(p), permitido: propria || podeVerOutraPessoa() };
   }
   const primeiroDe = (a) => String(a.pessoa?.nome || '').split(' ')[0] || 'esta pessoa';
 
@@ -89,8 +94,31 @@
       return m ? { lista: m.missoes || [], erro: m.erro || '', indisponivel: Boolean(m.indisponivel), valores: true } : null;
     }
     if (!a.permitido) return { proibido: true, lista: [] };
-    const lista = missoesDoPainel(a.pessoa);
-    return lista ? { lista, valores: false } : { semPainel: true, lista: [] };
+    // Do servidor (quem administra): com o XP e as moedas.
+    const lida = a.achada ? missoesLidas.get(a.id) : null;
+    if (lida?.lista) return { lista: lida.lista, erro: lida.erro || '', indisponivel: Boolean(lida.indisponivel), valores: true };
+    if (a.achada && !lida) return null; // ainda lendo
+    // Recusou, falhou ou a pessoa não está no Escritório: as tarefas do painel, sem o valor.
+    const motivo = lida?.recusado ? 'recusado' : lida?.erro ? 'falhou' : 'fora';
+    const lista = missoesDoPainel(a.pessoa), erro = lida?.erro || '';
+    return lista ? { lista, valores: false, motivo, erro } : { semPainel: true, lista: [], erro };
+  }
+  // As de outra pessoa: a mesma rota com `pessoa`. O servidor só libera para
+  // quem administra; a recusa (403) fica guardada como as leituras, e a tela
+  // volta às tarefas do painel. Nunca rejeita.
+  async function carregarMissoesDeOutra(id, forcar) {
+    const atual = missoesLidas.get(id);
+    if (!forcar && atual && !atual.erro && Date.now() - atual.em < 60_000) return atual;
+    let r;
+    try {
+      const d = await escritorioApi('missoes', null, { pessoa: id });
+      r = { em: Date.now(), lista: d.disponivel === false ? [] : d.missoes || [], indisponivel: d.disponivel === false };
+    } catch (e) {
+      r = e?.status === 403 ? { em: Date.now(), recusado: true }
+        : { em: Date.now(), lista: atual?.lista, indisponivel: atual?.indisponivel, erro: e?.message || 'Não foi possível ler as missões.' };
+    }
+    missoesLidas.set(id, r);
+    return r;
   }
   async function carregarMissoes(forcar) {
     await carregarMissoesEscritorio(forcar);
@@ -120,9 +148,10 @@
   async function carregar(forcar = false) {
     if (!base() || !legadoPronto()) return;
     const a = alvoDe(estado.pessoa), tarefas = [];
-    if (a.propria) {
+    if (a.propria || (a.permitido && a.achada)) {
       estado.carregandoMissoes = true;
-      tarefas.push(carregarMissoes(forcar).catch(() => {}).finally(() => { estado.carregandoMissoes = false; pintar(); }));
+      const leitura = a.propria ? carregarMissoes(forcar) : carregarMissoesDeOutra(a.id, forcar);
+      tarefas.push(leitura.catch(() => {}).finally(() => { estado.carregandoMissoes = false; pintar(); }));
     }
     estado.carregandoCobrancas = true;
     tarefas.push(carregarCobrancas(a.id, forcar).finally(() => { estado.carregandoCobrancas = false; pintar(); }));
@@ -133,6 +162,12 @@
   const carregandoHtml = (texto) => `<p class="vv-missoes-carregando" role="status">${esc(texto)}</p>`;
   const vazioHtml = (titulo, texto, extra = '') => `<div class="vv-missoes-vazio"><b>${esc(titulo)}</b>${texto ? `<p>${esc(texto)}</p>` : ''}${extra}</div>`;
   const erroHtml = (texto) => `<p class="vv-missoes-erro">Não foi possível atualizar: ${esc(texto)} <button type="button" data-vm-recarregar>Tentar de novo</button></p>`;
+  // Missões de outra pessoa sem o valor (as tarefas do painel): o porquê.
+  const NOTA_SEM_VALOR = {
+    recusado: 'Sem XP e moedas: o valor das missões de outra pessoa só sai para quem administra.',
+    falhou: 'Sem XP e moedas: o valor das missões não chegou. Estas são as tarefas abertas no painel.',
+    fora: 'Sem XP e moedas: esta pessoa não está no Escritório, onde o valor de cada missão é calculado.',
+  };
 
   function linhaMissao(m) {
     const tom = m.atrasada ? ' atrasada' : m.hoje ? ' hoje' : '';
@@ -149,9 +184,9 @@
     if (d?.proibido) return vazioHtml(`As missões de ${primeiroDe(a)} são só para a gestão`, 'Quem administra e os sócios veem as missões de outra pessoa. As cobranças estão na outra aba.');
     if (!d) return estado.carregandoMissoes ? carregandoHtml('Carregando as missões…') : vazioHtml('Sem missões por enquanto', 'Ainda não deu para ler as missões.', '<button type="button" class="vv-missoes-acao" data-vm-recarregar>Tentar de novo</button>');
     if (d.indisponivel) return vazioHtml('As missões ainda não estão ligadas', 'O banco do Escritório ainda não tem a tabela de pontos.');
-    if (d.semPainel) return vazioHtml(`Sem as tarefas de ${primeiroDe(a)}`, 'A produção ainda não carregou neste navegador. Abra a Produção e volte aqui.');
+    if (d.semPainel) return (d.erro ? erroHtml(d.erro) : '') + vazioHtml(`Sem as tarefas de ${primeiroDe(a)}`, 'A produção ainda não carregou neste navegador. Abra a Produção e volte aqui.');
     const lista = d.lista;
-    const nota = d.valores ? '' : '<p class="vv-missoes-nota">Sem XP e moedas: o valor de cada missão só é calculado para quem está logado.</p>';
+    const nota = d.valores ? '' : `<p class="vv-missoes-nota">${esc(NOTA_SEM_VALOR[d.motivo] || NOTA_SEM_VALOR.fora)}</p>`;
     if (!lista.length) return (d.erro ? erroHtml(d.erro) : '') + nota + vazioHtml('Nenhuma missão aberta', a.propria ? 'Nenhuma tarefa aberta com você. Quando uma demanda chegar, ela aparece aqui com o que vale.' : `${primeiroDe(a)} não tem tarefa aberta.`);
     // Os filtros e a escolha guardada são os do cartão do Escritório.
     const conta = Object.fromEntries(MISSOES_FILTROS.map(([k, , f]) => [k, lista.filter(f).length]));
@@ -313,12 +348,14 @@
   }
   const aberto = () => Boolean(estado.raiz);
   // Para o cartão do HUD. Número desconhecido vem null (sem Escritório, sem
-  // permissão, leitura que falhou); XP e moedas só nas missões de quem está logado.
+  // permissão, leitura que falhou); XP e moedas só quando o servidor calculou
+  // (as próprias, ou as de outra pessoa para quem administra).
   async function resumo(pessoaId) {
     const vazio = { missoesAtrasadas: null, missoesHoje: null, xpEmJogo: null, moedasEmJogo: null, cobrancas: null, clientesCobrando: null };
     if (!base() || !legadoPronto()) return { ...vazio, semEscritorio: !base() };
     const a = alvoDe(pessoaId);
-    const [, c] = await Promise.all([a.propria ? carregarMissoes(false).catch(() => {}) : null, carregarCobrancas(a.id, false)]);
+    const missoes = a.propria ? carregarMissoes(false).catch(() => {}) : a.permitido && a.achada ? carregarMissoesDeOutra(a.id, false) : null;
+    const [, c] = await Promise.all([missoes, carregarCobrancas(a.id, false)]);
     const m = dadosMissoes(a), lista = m?.lista || [];
     const temMissoes = Boolean(m && !m.proibido && !m.semPainel && !m.indisponivel && !(m.erro && !lista.length));
     const total = somaValores(lista);

@@ -356,6 +356,14 @@ export async function enviarArteEscritorio(res, arquivo) {
   res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
   return res.status(200).send(dados);
 }
+// Ficha (economia) e missões de outra pessoa: só quem administra vê; a própria,
+// todos. Devolve o id a ler ou o erro (403 antes de 400) para a rota responder.
+function pessoaDaConsulta(req, pessoa, oque) {
+  const outra = req.query?.pessoa && String(req.query.pessoa) !== String(pessoa.id) ? String(req.query.pessoa) : null;
+  if (outra && !pessoa.admin) return { status: 403, error: `Só quem administra vê ${oque} de outra pessoa.` };
+  if (outra && !/^\d+$/.test(outra)) return { status: 400, error: "Pessoa inválida." };
+  return { id: outra ? Number(outra) : pessoa.id, outra: Boolean(outra) };
+}
 export async function areaEscritorio(req, res, quem, sql) {
   if (quem.tipo !== "sessao")
     return res.status(403).json({
@@ -400,10 +408,9 @@ export async function areaEscritorio(req, res, quem, sql) {
   if (req.method === "GET") {
     if (acao === "economia") {
       // Quem administra pode ver os marcos de outra pessoa (a ficha dela); a loja é só a própria.
-      const outra = req.query?.pessoa && String(req.query.pessoa) !== String(pessoa.id) ? String(req.query.pessoa) : null;
-      if (outra && !pessoa.admin) return res.status(403).json({ error: "Só quem administra vê a ficha de outra pessoa." });
-      if (outra && !/^\d+$/.test(outra)) return res.status(400).json({ error: "Pessoa inválida." });
-      return res.status(200).json({ok:true,economia:await carregarEconomia(sql,outra ? Number(outra) : pessoa.id,{loja:!outra})});
+      const alvo = pessoaDaConsulta(req, pessoa, "a ficha");
+      if (alvo.error) return res.status(alvo.status).json({ error: alvo.error });
+      return res.status(200).json({ok:true,economia:await carregarEconomia(sql,alvo.id,{loja:!alvo.outra})});
     }
     // Perfil do jogo aberto a toda a equipe (decisão do Paulo, 19/10/2026):
     // moedas, nível, marcos e móveis. A aba Trabalho pode solicitar agregados
@@ -452,7 +459,14 @@ export async function areaEscritorio(req, res, quem, sql) {
     }
     // Guarda-roupa do criador: faixas, peças grátis/raras, as da pessoa e os kits.
     if (acao === "roupas") return res.status(200).json({ ok: true, ...(await roupasDaPessoa(sql, pessoa.id)) });
-    if (acao === "missoes") return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, pessoa.id)) });
+    // Missões (o XP e as moedas de cada tarefa aberta): as próprias; as de outra
+    // pessoa, com a mesma regra da ficha (Irecity, 07/11/2026). Só leitura: a
+    // mesma conta de sempre, com o id pedido.
+    if (acao === "missoes") {
+      const alvo = pessoaDaConsulta(req, pessoa, "as missões");
+      if (alvo.error) return res.status(alvo.status).json({ error: alvo.error });
+      return res.status(200).json({ ok: true, ...(await missoesDaPessoa(sql, alvo.id)) });
+    }
     // Recado global: o que a pessoa ainda não viu e se ela pode mandar.
     if (acao === "avisos") return res.status(200).json({ ok: true, ...(await avisosDaPessoa(sql, pessoa.id)) });
     // A tela de entrada: as notícias da semana.
