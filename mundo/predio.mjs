@@ -1,3 +1,4 @@
+import { apresentarAgente, ESTADOS_REAIS } from './atividade-agentes.mjs';
 // O Prédio da Vybe em voxel: um andar por departamento, uma sala por setor e a
 // baia do agente em cada sala. Fachada de vidro; ao focar, os andares se abrem
 // (vista explodida) para ver a operação por dentro. No topo, o ser do VYBES.
@@ -70,9 +71,9 @@ export function construirPredio(motor, { x, z, y }) {
       g.add(caixa); motor.clicavel(caixa);
       if (sala.figura) g.add(sala.figura);
       if (setor.agente) {
-        const est = sala.estado;
+        const est = 'indisponivel';
         const r = motor.rotulo({ pos: new THREE.Vector3(x + sx, y + andar.nivel * PE + 2.6, z + 1), classe: 'rotulo-agente escondido ' + est,
-          html: `<b>${setor.agente}</b><small>${setor.nome}${est === 'planejado' ? ' · falta ligar' : est === 'sombra' ? ' · aprendendo' : ''}</small>`, distMax: 140, prioridade: 3,
+          html: `<b>${setor.agente}</b><small>${setor.nome} · sem leitura da central</small>`, distMax: 140, prioridade: 3,
           aoClicar: () => motor.emitirClique?.({ tipo: 'setor', andar: andar.id, setor: setor.id }) });
         r.forcarEscondido = true; r.el.hidden = true;
         agentesRot.push({ r, andarIdx: andares.length, nivel: andar.nivel, setor: setor.id, andarId: andar.id, sx });
@@ -249,12 +250,13 @@ export function construirPredio(motor, { x, z, y }) {
     rotuloSer.pos.y = y + ser.position.y + 3.4;
     for (const a of andares) a.rotulo.pos.y = y + a.g.position.y + 1.2;
     for (const ag of agentesRot) { const a = andares[ag.andarIdx]; if (!a) continue; ag.r.pos.y = y + a.g.position.y + 2.6; const ver = foco === ag.nivel && a.g.visible; ag.r.el.hidden = !ver; ag.r.forcarEscondido = !ver; }
-    for (const f of animaveis) f(t);
-    return abrindo || (ser.visible && motor.emVista(ser)) || [...salas.values()].some((s) => s.figura && motor.emVista(s.figura));
+    let agenteAnimado = false;
+    for (const f of animaveis) agenteAnimado = (f(t) === true) || agenteAnimado;
+    return abrindo || (ser.visible && motor.emVista(ser)) || agenteAnimado;
   });
 
   function mobiliar(pecas, { andar, setor, sx, largura, terraco, terreo }) {
-    const zMesa = -LADO / 2 + 2.2, estado = setor.estado;
+    const zMesa = -LADO / 2 + 2.2;
     if (terraco) {
       // O Escritório no terraço: mesa de sinuca, ombrelones, sofás e plantas.
       pecas.push({ x: -1.5, y: .22, z: 0, w: 3.2, h: .55, d: 1.8, cor: '#5A3A22' }, { x: -1.5, y: .77, z: 0, w: 2.9, h: .06, d: 1.5, cor: '#1F8A4C' });
@@ -279,15 +281,15 @@ export function construirPredio(motor, { x, z, y }) {
       pecas.push({ x: sx - largura / 2 + .45, y: .25, z: -LADO / 2 + .8, w: .5, h: 1.6, d: .9, cor: '#E3D8C4' });
       for (let k = 0; k < 3; k++) pecas.push({ x: sx - largura / 2 + .45, y: .55 + k * .45, z: -LADO / 2 + .8 + (ruido(k, sx * 9) - .5) * .4, w: .52, h: .22, d: .3, cor: ['#FF7A2F', '#0D74CE', '#D6409F', '#18A957'][(ruido(k + 3, sx) * 4) | 0] });
     }
-    // Monitor: aceso quando o agente trabalha; apagado quando a sala espera ligar.
-    const ligado = estado !== 'planejado';
-    const monitor = new THREE.Mesh(new THREE.BoxGeometry(.9, .55, .08), new THREE.MeshBasicMaterial({ color: ligado ? '#9FF0C8' : '#2C3A33' }));
+    // Sem leitura da central, a mesa fica neutra e não simula trabalho.
+    const monitor = new THREE.Mesh(new THREE.BoxGeometry(.9, .55, .08), new THREE.MeshBasicMaterial({ color: '#2C3A33' }));
     monitor.position.set(sx, .25 + .62 + .35, (terreo ? -1 : zMesa) - .25);
     let figura = null;
-    if (setor.agente && ligado) {
-      // O agente é o VYBES naquele setor: figura de luz lilás (sombra = translúcida).
+    const sala = { monitor, figura: null, estado: 'indisponivel', conectado: false };
+    if (setor.agente) {
+      // O agente é o VYBES naquele setor: figura neutra até receber o estado observado.
       figura = new THREE.Group();
-      const mat = new THREE.MeshStandardMaterial({ color: '#B9B0FF', emissive: '#6A5CFF', emissiveIntensity: .7, transparent: estado === 'sombra', opacity: estado === 'sombra' ? .55 : 1 });
+      const mat = new THREE.MeshStandardMaterial({ color: '#7A8B82', emissive: '#7A8B82', emissiveIntensity: .2, transparent: true, opacity: .2 });
       const corpo = new THREE.Mesh(new THREE.BoxGeometry(.5, .6, .32), mat); corpo.position.y = .62;
       const cabeca = new THREE.Mesh(new THREE.BoxGeometry(.36, .36, .36), mat); cabeca.position.y = 1.15;
       const pernas = new THREE.Mesh(new THREE.BoxGeometry(.44, .32, .3), mat); pernas.position.y = .16;
@@ -296,14 +298,40 @@ export function construirPredio(motor, { x, z, y }) {
       figura.rotation.y = Math.PI; figura.scale.setScalar(1.5);
       if (terreo) figura.rotation.y = 0;
       const fase = ruido(sx * 13, andar.nivel) * 6;
-      animaveis.push((t) => { cabeca.position.y = 1.15 + Math.sin(t * 3 + fase) * .03; corpo.rotation.z = Math.sin(t * 1.3 + fase) * .03;
-        monitor.material.color.setHSL(.42, .7, .72 + Math.sin(t * 4 + fase) * .05); });
+      sala.figura = figura;
+      animaveis.push((t) => {
+        if (sala.estado !== 'executando' || !sala.conectado) return false;
+        cabeca.position.y = 1.15 + Math.sin(t * 3 + fase) * .03; corpo.rotation.z = Math.sin(t * 1.3 + fase) * .03;
+        monitor.material.color.setHSL(.57, .7, .65 + Math.sin(t * 4 + fase) * .08);
+        return motor.emVista(monitor) || motor.emVista(figura);
+      });
     }
-    return { monitor, figura, estado };
+    return sala;
+  }
+
+  function atividadeAgentes(agentes = [], conectado = false) {
+    const porSetor = new Map(agentes.map(a => [a.setor, a]));
+    let mudou = false;
+    for (const [id, sala] of salas) {
+      if (!sala.monitor) continue;
+      const atual = apresentarAgente(porSetor.get(id));
+      const assinatura = atual.estado + ':' + conectado;
+      if (sala.assinatura === assinatura) continue;
+      sala.assinatura = assinatura; sala.estado = atual.estado; sala.conectado = conectado; mudou = true;
+      const cor = conectado ? atual.cor : '#7A8B82';
+      sala.monitor.material.color.set(cor);
+      if (sala.figura) {
+        sala.figura.children.forEach(m => { if (m.material) { m.material.color.set(cor); m.material.emissive.set(cor); m.material.opacity = conectado ? (atual.estado === 'sem_execucao' ? .2 : .85) : .3; } });
+        if (atual.estado !== 'executando' || !conectado) { sala.figura.children[0].rotation.z = 0; sala.figura.children[1].position.y = 1.15; }
+      }
+      const r = agentesRot.find(a => a.setor === id)?.r;
+      if (r) { r.el.classList.remove(...Object.keys(ESTADOS_REAIS)); r.el.classList.add(atual.estado); r.el.style.setProperty('--ag-cor', cor); r.el.querySelector('small').textContent = atual.rotulo + (conectado ? '' : ' · última leitura'); }
+    }
+    if (mudou) motor.invalidar();
   }
 
   return {
-    LADO, PE, raiz,
+    LADO, PE, raiz, atividadeAgentes,
     focar: (nivel) => { foco = nivel ?? null; motor.invalidar(); },
     presenca,
     zonas: () => [...centros.keys()],

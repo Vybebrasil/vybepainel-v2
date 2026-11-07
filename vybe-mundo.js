@@ -282,26 +282,26 @@
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
 
   function mostrarAndares() {
-    const p = placa(), E = mundo.estados;
+    const p = placa(), E = mundo.estadosReais;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <h3>Prédio da Vybe</h3><p class="vv-sub">A operação inteira, andar por andar. Em cada sala trabalha o VYBES com as ferramentas daquele setor.</p>
       ${[...mundo.planta].reverse().map((a) => `<button type="button" class="vv-andar" data-andar="${a.id}" style="--c:${a.cor}">
         <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span><span><b>${esc(a.nome)}</b><small>${esc(a.resumo)}</small></span>
-        <span class="pontos">${a.setores.map((s) => `<i style="--e:${E[s.estado].cor}" title="${esc(s.nome)}: ${esc(E[s.estado].rotulo)}"></i>`).join('')}</span></button>`).join('')}
+        <span class="pontos">${a.setores.map((s) => `<i data-indicador-agente="${esc(s.id)}" style="--e:${estadoDoAgente(s.id).cor}" title="${esc(s.nome)}: ${esc(estadoDoAgente(s.id).rotulo)}"></i>`).join('')}</span></button>`).join('')}
       <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Legenda</div>
       ${Object.values(E).map((e) => `<span class="vv-selo" style="--e:${e.cor};margin:0 6px 6px 0"><i></i>${esc(e.rotulo)}</span>`).join('')}`;
     p.hidden = false; ajustarAreaLivre();
   }
   function mostrarAndar(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
-    const p = placa(), E = mundo.estados;
+    const p = placa(), E = mundo.estadosReais;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <button type="button" class="vv-botao" data-voltar style="margin:-6px 0 6px -8px;height:28px">← Andares</button>
       <h3>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</h3><p class="vv-sub">${esc(a.resumo)}</p>
       ${a.setores.map((s) => `<article class="vv-sala" ${s.id === idSetor ? 'style="outline:2px solid ' + a.cor + '"' : ''}>
-        <div class="vv-sala-topo"><span class="vv-agente ${s.estado === 'planejado' ? 'planejado' : ''}">${s.agente ? esc(s.agente.slice(0, 2).toUpperCase()) : '★'}</span>
+        <div class="vv-sala-topo"><span class="vv-agente ${['sem_execucao','indisponivel'].includes(estadoDoAgente(s.id).estado) ? 'planejado' : ''}" data-avatar-agente="${esc(s.id)}">${s.agente ? esc(s.agente.slice(0, 2).toUpperCase()) : '★'}</span>
         <span><b>${esc(s.nome)}${s.agente ? ' · ' + esc(s.agente) : ''}</b><p class="papel">${esc(s.papel)}</p></span></div>
-        <span class="vv-selo" style="--e:${E[s.estado].cor}"><i></i>${esc(E[s.estado].rotulo)}</span>
+        ${s.agente ? seloAgente(s.id) : ''}
         ${s.skills.length ? `<ul class="vv-skills">${s.skills.map((k) => `<li>${esc(k)}</li>`).join('')}</ul>` : ''}
         <div class="vv-sala-acoes">${s.agente ? `<button type="button" class="vv-botao" data-agente="${esc(a.id)}|${esc(s.id)}">Ver o dia</button>` : ''}${s.modulo ? `<button type="button" class="vv-botao acao" data-modulo='${esc(JSON.stringify(s.modulo))}'>${esc(NOME_MODULO[s.modulo.alvo] || 'Abrir')} →</button>` : '<span class="vv-dica">Sem módulo no painel ainda.</span>'}</div>
       </article>`).join('')}
@@ -625,16 +625,73 @@
   let crmTimer = 0;
   hud.addEventListener('input', (e) => { const b = e.target.closest('[data-crm-busca]'); if (!b) return; clearTimeout(crmTimer); crmTimer = setTimeout(() => { crmBusca = b.value.trim().toLowerCase(); crmPagina = 1; crmRepintar('[data-crm-busca]'); }, 180); });
   hud.addEventListener('change', (e) => { const t = e.target.closest('[data-crm-tipo],[data-crm-bairro]'); if (!t) return; if (t.dataset.crmTipo !== undefined) crmTipo = t.value; else crmBairro = t.value; crmPagina = 1; crmRepintar(); });
+  let fonteAgentes = null;
+  const horaAgentes = v => v ? new Date(v).toLocaleTimeString('pt-BR', { timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit' }) : '';
+  const dataAgentes = v => v ? new Date(v).toLocaleString('pt-BR', { timeZone:'America/Bahia',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' }) : '';
+  function estadoDoAgente(id) {
+    const a = fonteAgentes?.ler().dados?.agentes.find(x => x.setor === id);
+    return mundo?.apresentarAgente(a) || { estado:'indisponivel',rotulo:'Sem leitura da central',cor:'#7A8B82',ultimos:[] };
+  }
+  function avisoDosAgentes() {
+    const f = fonteAgentes?.ler();
+    if (f?.erro) return f.atualizadoEm ? 'Central fora do ar — última atualização às ' + horaAgentes(f.atualizadoEm) : 'Central fora do ar — sem atualização recebida';
+    return f?.atualizadoEm ? 'Central do VYBES · leitura às ' + horaAgentes(f.atualizadoEm) : 'Consultando a central do VYBES…';
+  }
+  function seloAgente(id) { const a = estadoDoAgente(id); return `<span class="vv-selo" data-estado-agente="${esc(id)}" style="--e:${a.cor}"><i></i>${esc(a.rotulo)}</span>`; }
+  function atividadeDoAgenteHtml(id) {
+    const a = estadoDoAgente(id), ref = mundo?.referenciaDaPeca(a.ultimos?.find(e => e.estado === a.estado)?.ref);
+    const tarefa = a.tarefa ? esc(a.tarefa) : a.estado === 'sem_execucao' ? 'Sem execução registrada.' : a.estado === 'indisponivel' ? 'Aguardando leitura da central.' : 'Nenhuma atividade em curso.';
+    const item = e => {
+      const ref = mundo?.referenciaDaPeca(e.ref), rotulo = {executando:'Executando',aguardando_aprovacao:'Aguardando aprovação',concluida:'Concluída',falhou:'Falhou'}[e.estado];
+      const corpo = `<small>${esc(dataAgentes(e.em))} · ${esc(rotulo)}</small><b>${esc(e.tarefa)}</b><span>${esc(e.resultado || e.erro || 'Sem resultado final.')} · ${esc(e.ferramenta)}</span>`;
+      return ref ? `<button type="button" class="vv-linha-agente" data-hoje-acao="peca" data-valor="${esc(ref)}">${corpo}</button>` : `<div class="vv-linha-agente">${corpo}</div>`;
+    };
+    return `${seloAgente(id)}<p class="vv-dica vv-agentes-conexao" role="status">${esc(avisoDosAgentes())}</p>
+      <div class="vv-rotulo-secao"><i></i>O que está fazendo</div>
+      ${ref ? `<button type="button" class="vv-linha-agente" data-hoje-acao="peca" data-valor="${esc(ref)}"><b>${tarefa}</b><small>Abrir a peça</small></button>` : `<p class="vv-agente-tarefa">${tarefa}</p>`}
+      ${a.tarefa && a.desde ? `<small>Desde ${esc(dataAgentes(a.desde))}</small>` : ''}
+      <div class="vv-rotulo-secao"><i></i>O que fez · últimos registros</div>${a.ultimos?.map(item).join('') || '<p class="vv-dica">Sem registros recebidos para este setor.</p>'}`;
+  }
+  function agentesCerebroHtml(ags) {
+    const nome = new Map(); for (const a of mundo.planta) for (const s of a.setores) nome.set(s.id, {s,a});
+    return `<p class="vv-dica vv-agentes-conexao">${esc(avisoDosAgentes())}</p>` + ags.map(g => {
+      const x = nome.get(g.setor); if (!x) return ''; const E = estadoDoAgente(g.setor);
+      return `<button type="button" class="vv-cb-camada" data-agente="${esc(x.a.id)}|${esc(x.s.id)}" style="--c:${E.cor}"><i></i><span><b>${esc(x.s.agente)}</b><small>${esc(x.s.nome)} · ${esc(x.a.nome)}</small></span><em>${esc(E.rotulo)}</em></button>`;
+    }).join('');
+  }
+  function pintarAtividadeAgentes() {
+    if (!mundo) return;
+    const f = fonteAgentes?.ler(); mundo.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
+    const el = placa()?.querySelector('[data-atividade-setor]');
+    if (el) el.innerHTML = atividadeDoAgenteHtml(el.dataset.atividadeSetor);
+    hud.querySelectorAll('[data-estado-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.estadoAgente); el.style.setProperty('--e',a.cor); el.innerHTML = '<i></i>' + esc(a.rotulo); });
+    hud.querySelectorAll('[data-avatar-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.avatarAgente); el.classList.toggle('planejado',['sem_execucao','indisponivel'].includes(a.estado)); });
+    hud.querySelectorAll('[data-indicador-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.indicadorAgente); el.style.setProperty('--e',a.cor); el.title = a.rotulo; });
+    if (cerebroCache) {
+      cerebroCache.ags = agentesDoCerebro(); cerebroCache.camadas = camadasDoCerebro(cerebroCache.cli,cerebroCache.ags);
+      const assinatura = JSON.stringify([cerebroCache.ags.map(a => [a.setor,a.estado,a.conectado]),cerebroCache.camadas.agentes]);
+      if (pintarAtividadeAgentes.assinatura !== assinatura) { pintarAtividadeAgentes.assinatura = assinatura; mundo.atualizarAgentesCerebro(cerebroCache.ags,cerebroCache.camadas); }
+      const quadro = placa()?.querySelector('#vv-cerebro-agentes'); if (quadro) quadro.innerHTML = agentesCerebroHtml(cerebroCache.ags);
+    }
+  }
+  async function carregarAgentes(forcar=false) {
+    if (!mundo) return;
+    if (body.classList.contains('auth-pending')) { fonteAgentes?.limpar(); pintarAtividadeAgentes(); return; }
+    if (document.hidden || body.classList.contains('mundo-lobby')) return;
+    await fonteAgentes?.atualizar(forcar); pintarAtividadeAgentes();
+  }
+
   async function mostrarAgente(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar), s = a?.setores.find((x) => x.id === idSetor); if (!s) return;
-    const E = mundo.estados[s.estado], p = placa();
+    const E = estadoDoAgente(s.id), p = placa();
     const iniciais = (s.agente || 'VY').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <button type="button" class="vv-botao" data-andar="${esc(a.id)}" style="margin:-6px 0 6px -8px;height:28px">← ${esc(a.nome)}</button>
-      <div class="vv-agente-topo"><span class="vv-agente ${s.estado === 'planejado' ? 'planejado' : ''}">${esc(iniciais)}</span>
+      <div class="vv-agente-topo"><span class="vv-agente ${['sem_execucao','indisponivel'].includes(estadoDoAgente(s.id).estado) ? 'planejado' : ''}" data-avatar-agente="${esc(s.id)}">${esc(iniciais)}</span>
         <span><small>VYBES · ${esc(s.nome)}</small><h3>${esc(s.agente || 'VYBES')}</h3></span></div>
       <p class="vv-sub">${esc(s.papel)}</p>
-      <span class="vv-selo" style="--e:${E.cor}"><i></i>${esc(E.rotulo)}</span>
+      <div class="vv-agente-atividade" data-atividade-setor="${esc(s.id)}">${atividadeDoAgenteHtml(s.id)}</div>
+      <div class="vv-rotulo-secao"><i></i>Operação do painel</div>
       <div class="vv-agente-agora" id="vv-agente-agora"><span class="vv-ser" aria-hidden="true"><i></i></span><span>Olhando o que ele está fazendo…</span></div>
       <div id="vv-agente-dados"></div>
       ${cerebroDoAgenteHtml(a, s)}
@@ -645,6 +702,7 @@
     p.hidden = false; ajustarAreaLivre();
     mundo.focarAndar(a.nivel);
     const agoraEl = p.querySelector('#vv-agente-agora span:last-child'), dados = p.querySelector('#vv-agente-dados');
+    void carregarAgentes();
     const fonte = FONTES[s.id];
     if (!fonte) {
       agoraEl.textContent = s.estado === 'planejado' ? `A sala está pronta. Falta ligar: ${s.skills.join(', ')}.` : 'Ainda sem leitura própria no painel.';
@@ -658,7 +716,7 @@
       const linha = (x) => (x.peca && daPeca(x.peca)) ? linhaDemanda(daPeca(x.peca)) : `<button type="button" class="vv-linha-agente"${x.peca ? ` data-hoje-acao="peca" data-valor="${esc(x.peca)}"` : ''}>${x.quando ? `<small>${esc(x.quando)}</small>` : ''}<b>${esc(x.texto)}</b>${x.sub ? `<span>${esc(x.sub)}</span>` : ''}</button>`;
       if (r.crm) { crmErro = ''; crmDetalhe = null; dados.innerHTML = crmHtml(); try { await crmCarregar(false, true); } catch (e) { crmErro = e.message; crmRepintar(); } return; }
       dados.innerHTML = (r.fila?.length ? `<div class="vv-rotulo-secao" style="--c:var(--sit-aprovar)"><i></i>${esc(r.rotuloFila || 'Na fila')}<span class="vv-pilula">${r.fila.length}</span></div>${r.fila.map(linha).join('')}` : '')
-        + (r.feitos?.length ? `<div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>${esc(r.rotuloFeitos || 'O que fez')}</div>${r.feitos.map(linha).join('')}` : '')
+        + (r.feitos?.length ? `<div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>${esc(r.rotuloFeitos || 'Registros do painel')}</div>${r.feitos.map(linha).join('')}` : '')
         + (!r.fila?.length && !r.feitos?.length ? '<p class="vv-dica">Nada registrado agora.</p>' : '');
     } catch (e) { agoraEl.textContent = e.message; }
   }
@@ -690,15 +748,15 @@
     });
   }
   function agentesDoCerebro() {
-    const est = new Map(); for (const a of mundo.planta) for (const s of a.setores) est.set(s.id, s.estado);
-    return (mundo.agentesDoPredio?.() || []).map((ag) => ({ ...ag, estado: est.get(ag.setor) || 'planejado' }));
+    const conectado = Boolean(fonteAgentes?.ler().dados && !fonteAgentes.ler().erro);
+    return (mundo.agentesDoPredio?.() || []).map(ag => ({...ag,estado:estadoDoAgente(ag.setor).estado,conectado}));
   }
   function camadasDoCerebro(cli, ags) {
     const abertas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL.filter((d) => situacaoDaPeca(d) !== 'concluida').length : 0;
     const itens = cli.reduce((n, c) => n + c.itens, 0);
     const conta = (k) => ags.filter((a) => a.estado === k).length;
     return { identidade: 'uma só, em todos os canais', clientes: `${cli.length} clientes · ${itens.toLocaleString('pt-BR')} itens`, conversas: 'grupos internos, pela central',
-      trabalho: `${abertas.toLocaleString('pt-BR')} peças em aberto`, agentes: `${conta('ativo')} ativos · ${conta('sombra')} aprendendo · ${conta('planejado')} a ligar` };
+      trabalho: `${abertas.toLocaleString('pt-BR')} peças em aberto`, agentes: `${conta('executando')} executando · ${conta('aguardando_aprovacao')} aguardando aprovação · ${conta('disponivel')} disponíveis · ${conta('falhou')} falharam · ${conta('sem_execucao')} sem execução · ${conta('indisponivel')} sem leitura${fonteAgentes?.ler().erro ? ' · última leitura, central fora do ar' : ''}` };
   }
   let cerebroCache = null;
   function ligarCerebro() {
@@ -729,9 +787,7 @@
         ${lista.map((c) => `<div class="vv-cb-cliente"><button type="button" class="vv-cb-cliente-nome" data-abrir-no="${esc(c.nome)}"><b>${esc(c.nome)}</b><small>${c.itens ? c.itens + ' coisas que o VYBES sabe' : 'ainda sem estudo próprio'} · ${c.total} em aberto</small>${barraOrigens(c.origens)}</button>
           ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="vv-botao" data-cerebro-cliente="${esc(c.nome)}">Sinapses</button>` : ''}</div>`).join('')}`;
     } else if (id === 'agentes') {
-      const nome = new Map(); for (const a of mundo.planta) for (const s of a.setores) nome.set(s.id, { s, a });
-      corpo = ags.map((g) => { const x = nome.get(g.setor); if (!x) return ''; const E = mundo.estados[x.s.estado];
-        return `<button type="button" class="vv-cb-camada" data-agente="${esc(x.a.id)}|${esc(x.s.id)}" style="--c:${E.cor}"><i></i><span><b>${esc(x.s.agente || 'VYBES')}</b><small>${esc(x.s.nome)} · ${esc(x.a.nome)}</small></span><em>${esc(E.rotulo)}</em></button>`; }).join('');
+      corpo = `<div id="vv-cerebro-agentes">${agentesCerebroHtml(ags)}</div>`;
     } else if (id === 'trabalho') {
       const sits = ['atrasada', 'aprovar', 'hoje', 'fazer'];
       const todas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL.map((d) => situacaoDaPeca(d)) : [];
@@ -996,6 +1052,12 @@
       const reduzir = matchMedia('(prefers-reduced-motion: reduce)').matches || body.dataset.motion === 'reduce';
       const m = await import(MUNDO_JS);
       mundo = await m.iniciarMundo(raiz.querySelector('canvas'), { dadosUrl: MUNDO_DADOS, crmUrl: MUNDO_CRM, reduzirMovimento: reduzir });
+      fonteAgentes = mundo.criarFonteAgentes({buscar:async()=>{
+        const r = await fetch('/api/painel?area=vybes&etapa=agentes',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(25000)});
+        if(!r.ok) throw new Error('Central indisponível');
+        return r.json();
+      }});
+      void carregarAgentes();
       raiz.querySelector('.mundo-carregando')?.remove();
       mundo.aoClicar((alvo) => {
         if (!alvo) return;
@@ -1018,7 +1080,7 @@
           html = `<b>${esc(z.nome)}</b><small>${aqui.length ? esc(aqui.map((p) => p.nome.split(' ')[0]).join(', ')) + ' aqui agora' : 'Ninguém agora'}</small>`;
         } else if (alvo.tipo === 'setor') {
           const a = mundo.planta.find((x) => x.id === alvo.andar), s = a?.setores.find((x) => x.id === alvo.setor); if (!s) { c.hidden = true; return; }
-          html = `<b>${esc(s.nome)}</b><small>${esc(a.nome)}${s.agente ? ' · agente ' + esc(s.agente) : ''}</small><span class="vv-selo" style="--e:${mundo.estados[s.estado].cor}"><i></i>${esc(mundo.estados[s.estado].rotulo)}</span>`;
+          html = `<b>${esc(s.nome)}</b><small>${esc(a.nome)}${s.agente ? ' · agente ' + esc(s.agente) : ''}</small>${s.agente ? seloAgente(s.id) : ''}`;
         }
         c.innerHTML = html + '<span class="clique">Clique para abrir</span>';
         c.style.left = Math.min(innerWidth - 296, e.clientX + 16) + 'px'; c.style.top = Math.min(innerHeight - 160, e.clientY + 16) + 'px';
@@ -1029,7 +1091,7 @@
         try { await ensureClientMasterSources(); } catch { /* sem cadastro: os nomes das peças servem */ }
       }
       pintarClientes(true);
-      observarPresenca(); pintarPresenca();
+      observarPresenca(); pintarPresenca(); void carregarAgentes();
       ajustarAreaLivre();
     })().catch((erro) => {
       carregando = null;
@@ -1186,6 +1248,7 @@
   // ---------- Mostrar o mundo junto com a tela de módulos ----------
   let timer = null;
   function sincronizar() {
+    if (body.classList.contains('auth-pending')) fonteAgentes?.limpar();
     const gateAberto = !!document.getElementById('mode-gate')?.classList.contains('open');
     const autenticado = !body.classList.contains('auth-pending');
     // Com o mundo ligado, o Escritório roda por baixo como motor (presença, voz, chamadas):
@@ -1213,8 +1276,8 @@
     body.classList.toggle('mundo-visivel', visivel);
     if (visivel) {
       carregar();
-      mundo?.pausar(false); pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca();
-      if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); }, 5000);
+      mundo?.pausar(false); pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
+      if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
     } else {
       mundo?.pausar(true); if (cartao()) cartao().hidden = true;
       clearInterval(timer); timer = null;
