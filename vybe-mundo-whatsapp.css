@@ -129,4 +129,4 @@
 html.vb-ocioso :is(.vv-wa,.vv-wa-toast,.vv-wa-msg.piscar){animation:none!important}
 
 /* modo escuro do Irecity: a janela vem invertida inteira; o laranja volta a ser laranja */
-html.tema-escuro body.mundo :is(.vv-wa-acao,.vv-wa-n,.vv-wa-toast-ic,#vv-badge-whatsapp){filter:invert(1) hue-rotate(180deg)}
+html.tema-escuro body.mundo :is(.vv-wa-acao,.vv-wa-n,#vv-badge-whatsapp){filter:invert(1) hue-rotate(180deg)}

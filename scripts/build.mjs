@@ -70,6 +70,14 @@ const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp',
 const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'vybes-ser');
 const mundoCss = await transform(await readFile('vybe-mundo.css','utf8'), { loader: 'css', minify: true });
 const mundoCssPath = await asset(mundoCss.code, 'css', 'mundo');
+// Folhas próprias das janelas do Irecity (vybe-mundo-*.css, ex.: vybe-mundo-conversa.css) ligadas no
+// index.html: cada uma com hash, como as outras. Sem isto o <link> ficaria apontando para um arquivo
+// que não vai para o dist (404 em produção).
+const folhasMundo = [];
+for (const [, f] of html.matchAll(/href="\/(vybe-mundo-[\w-]+\.css)"/g)) {
+  const folha = await transform(await readFile(f, 'utf8'), { loader: 'css', minify: true });
+  folhasMundo.push([`/${f}`, await asset(folha.code, 'css', f.replace(/^vybe-/, '').replace(/\.css$/, ''))]);
+}
 const padraoPath = await asset(padrao.code.replaceAll('/assets/vybelandia.webp', vybelandia).replaceAll('/assets/vybes-ser.webp', vybesSer), 'css', 'padrao');
 const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
   [m.fonte, await asset(m.code,'js',m.fonte.replace(/\.js$/,'').replaceAll('/','-'))])));
@@ -77,12 +85,10 @@ html = html.replace(SCRIPT, (_, sobDemanda, fonte) => sobDemanda
   ? `<script${sobDemanda} src="${caminhos.get(fonte)}"></script>`
   : `<script defer src="${caminhos.get(fonte)}"></script>`);
 html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath).replace('/vybe-mundo.css', mundoCssPath);
+for (const [de, para] of folhasMundo) html = html.replace(de, para);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
 html = html.replaceAll('/assets/vybelandia.webp', vybelandia);
-// WhatsApp interno do Irecity (vybe-mundo-whatsapp.js): folha própria, com hash como as outras.
-const whatsappCss = await transform(await readFile('vybe-mundo-whatsapp.css','utf8'), { loader: 'css', minify: true });
-html = html.replace('/vybe-mundo-whatsapp.css', await asset(whatsappCss.code, 'css', 'mundo-whatsapp'));
 // App instalável (tela inicial do celular, Dock, Windows): manifesto e ícones
 // ficam com caminho fixo, sem hash, porque o sistema guarda o endereço.
 // Ícones coloridos (05/11/2026) em assets/app/cor, com nome novo: o endereço

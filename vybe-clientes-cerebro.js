@@ -71,6 +71,25 @@ const VYBES_CEREBRO_GRUPOS = [
     porque: 'O que deu certo ou errado de verdade nesta conta. Pesa mais que regra genérica quando o VYBES monta uma sugestão nova.',
     fonte: 'Resultados do perfil e aprovações da equipe' },
 ];
+// Quem cuida de cada área do cérebro: o agente do Prédio da Vybe que lê, mantém e usa aquilo
+// (Paulo, 07/11/2026: o cérebro do cliente agora tem os agentes novos). andar/setor = mundo/planta.mjs.
+const CEREBRO_AGENTES = {
+  identidade: { agente: 'Diretor de Arte', andar: 'criacao', setor: 'design', lugar: '2º andar · Criação', cor: '#D6409F' },
+  regras: { agente: 'Diretor de Arte', andar: 'criacao', setor: 'design', lugar: '2º andar · Criação', cor: '#D6409F' },
+  instagram: { agente: 'Analista de Dados', andar: 'estrategia', setor: 'bi', lugar: '5º andar · Estratégia', cor: '#E8602E', apoio: 'Growth e Ads (VybeHub)' },
+  ideias: { agente: 'Redator', andar: 'criacao', setor: 'copy', lugar: '2º andar · Criação', cor: '#D6409F' },
+  atrasados: { agente: 'VYBES', andar: 'terreo', setor: 'orquestrador', lugar: 'Térreo · Recepção', cor: '#8B7DFF' },
+  producao: { agente: 'VYBES', andar: 'terreo', setor: 'orquestrador', lugar: 'Térreo · Recepção', cor: '#8B7DFF', apoio: 'Assistente de Edição' },
+  solicitacoes: { agente: 'Atendimento', andar: 'comercial', setor: 'concierge', lugar: '1º andar · Comercial', cor: '#0D74CE' },
+  arquivos: { agente: 'Atendimento', andar: 'comercial', setor: 'concierge', lugar: '1º andar · Comercial', cor: '#0D74CE' },
+  aprendizados: { agente: 'Analista de Dados', andar: 'estrategia', setor: 'bi', lugar: '5º andar · Estratégia', cor: '#E8602E', apoio: 'Growth e Ads (VybeHub)' },
+};
+function cerebroQuemCuidaHtml(gid) {
+  const a = CEREBRO_AGENTES[gid]; if (!a) return '';
+  const ini = a.agente.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
+  const ir = typeof window.vybesAbrirAgente === 'function' ? `<button type="button" class="vb-link" onclick="vybesAbrirAgente('${a.andar}','${a.setor}')">Ver no prédio →</button>` : '';
+  return `<section class="cb-insp-bloco cb-quem-cuida" style="--ag:${a.cor}"><h5>Quem cuida</h5><div class="cb-agente-linha"><span class="cb-agente-av">${ini}</span><span><b>${cerebroEsc(a.agente)}</b><small>${cerebroEsc(a.lugar)}${a.apoio ? ' · com ' + cerebroEsc(a.apoio) : ''}</small></span>${ir}</div></section>`;
+}
 const CEREBRO_ORDEM_MAPA = ['identidade', 'regras', 'instagram', 'ideias', 'atrasados', 'producao', 'solicitacoes', 'arquivos', 'aprendizados'];
 
 // Onde mora o dossiê de cada cliente no computador do VYBES (c:\whatsapp-ia).
@@ -1343,7 +1362,7 @@ function renderInspetorNoCerebroHtml(sel, c = null) {
   if (sel.tipo==='grupo') {
     const g=cerebroGrupo(sel.id),itens=c.categorias[sel.id] || [];
     const fontes=[...new Set(itens.map(i=>cerebroNomeOrigem(i.origem)))];
-    return `<div class="cb-insp"><div class="cb-insp-tipo"><i style="background:${g.cor}"></i>Área de conhecimento</div><h3>${cerebroEsc(g.nome)}</h3><p>${itens.length} registros · ${cerebroEsc(fontes.join(' · '))}</p><div class="cb-insp-itens">${itens.map(it=>`<button type="button" class="cb-insp-item" onclick="cerebroSelecionar('item','${cerebroAspas(it.id)}')"><small class="cb-origem-tag">${cerebroEsc(cerebroNomeOrigem(it.origem))}${it.estado?' · '+cerebroEsc(it.estado):''}</small><b>${cerebroEsc(it.titulo)}</b><span>${cerebroEsc(String(it.detalhe || it.sub || 'Abra para conferir a origem.').slice(0,180))}</span></button>`).join('') || '<p>Nenhum registro neste recorte. Experimente limpar a busca ou mudar a origem.</p>'}</div><button type="button" class="vb-botao" onclick="cerebroIrPara('${sel.id}')">Ver esta área na ficha</button></div>`;
+    return `<div class="cb-insp"><div class="cb-insp-tipo"><i style="background:${g.cor}"></i>Área de conhecimento</div><h3>${cerebroEsc(g.nome)}</h3><p>${itens.length} registros · ${cerebroEsc(fontes.join(' · '))}</p>${cerebroQuemCuidaHtml(sel.id)}<div class="cb-insp-itens">${itens.map(it=>`<button type="button" class="cb-insp-item" onclick="cerebroSelecionar('item','${cerebroAspas(it.id)}')"><small class="cb-origem-tag">${cerebroEsc(cerebroNomeOrigem(it.origem))}${it.estado?' · '+cerebroEsc(it.estado):''}</small><b>${cerebroEsc(it.titulo)}</b><span>${cerebroEsc(String(it.detalhe || it.sub || 'Abra para conferir a origem.').slice(0,180))}</span></button>`).join('') || '<p>Nenhum registro neste recorte. Experimente limpar a busca ou mudar a origem.</p>'}</div><button type="button" class="vb-botao" onclick="cerebroIrPara('${sel.id}')">Ver esta área na ficha</button></div>`;
   }
   const it=CEREBRO_STATE.itens.get(sel.id); if(!it)return '';
   const g=cerebroGrupo(it.grupo);
@@ -1574,7 +1593,7 @@ function iniciarMotorCanvasCerebro() {
   if (!canvas) { CEREBRO_STATE.desenhar = null; return; }
   const ctx = canvas.getContext('2d');
   const estilo = getComputedStyle(canvas);
-  const tema = { acento: estilo.getPropertyValue('--vb-laranja').trim() || '#ff8a35', texto: estilo.getPropertyValue('--text').trim() || '#f1f2f6', mudo: estilo.getPropertyValue('--text-muted').trim() || '#8b8f9c', fonte: estilo.getPropertyValue('--mac-ui').trim() || 'system-ui, sans-serif' };
+  const tema = { rotuloFundo: estilo.getPropertyValue('--cb-rotulo-fundo').trim() || 'rgba(8,9,13,0.84)', rotuloBorda: estilo.getPropertyValue('--cb-rotulo-borda').trim() || '', acento: estilo.getPropertyValue('--vb-laranja').trim() || '#ff8a35', texto: estilo.getPropertyValue('--text').trim() || '#f1f2f6', mudo: estilo.getPropertyValue('--text-muted').trim() || '#8b8f9c', fonte: estilo.getPropertyValue('--mac-ui').trim() || 'system-ui, sans-serif' };
   if (!ctx) return;
   const todos = CEREBRO_STATE.clienteFoco === 'todos';
   let vivo = true, naTela = true, temporizador = null, presenca = null;
@@ -1742,14 +1761,22 @@ function iniciarMotorCanvasCerebro() {
       if (bx < 8 || bx + bw > w - 8 || by < 8 || by + bh > h - 46) return;
       ocupado.push({ x: bx, y: by, w: bw, h: bh });
       CEREBRO_STATE.caixasRotulos.push({ x: bx, y: by, w: bw, h: bh, no: n });
-      ctx.fillStyle = n === foco && n.nivel > 0 ? 'rgba(255,138,53,0.09)' : 'rgba(8,9,13,0.84)';
+      ctx.fillStyle = n === foco && n.nivel > 0 ? 'rgba(255,138,53,0.09)' : tema.rotuloFundo;
       desenharPillCanvas(ctx, bx, by, bw, bh, 6);
       ctx.fill();
+      if (tema.rotuloBorda && !(n === foco && n.nivel > 0)) { ctx.strokeStyle = tema.rotuloBorda; ctx.lineWidth = 1; ctx.stroke(); }
       if (n === foco && n.nivel > 0) { ctx.strokeStyle = '#ff8a35'; ctx.lineWidth = 1; ctx.stroke(); }
       ctx.fillStyle = n.nivel === 2 ? tema.mudo : tema.texto;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
       ctx.fillText(texto, bx + 6, by + bh / 2 + 0.5);
+      const ag = n.nivel === 1 && CEREBRO_AGENTES[n.grupo];
+      if (ag) { // selo do agente que cuida da área, colado à direita do nome
+        const cx = bx + bw + 9, cy = by + bh / 2, ini = ag.agente.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
+        ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, Math.PI * 2); ctx.fillStyle = ag.cor; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
+        ctx.font = `700 8px ${tema.fonte}`; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center'; ctx.fillText(ini, cx, cy + .5); ctx.textAlign = 'left';
+      }
     });
     clearTimeout(temporizador);
     if (podeAnimar()) temporizador = setTimeout(pedir, 50);
