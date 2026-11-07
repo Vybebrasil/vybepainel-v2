@@ -1598,6 +1598,7 @@
     micOff: '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 10V6a3 3 0 0 0-6 0M5 11a7 7 0 0 0 11 5.7M19 11a7 7 0 0 1-.6 2.8M12 18v3"/></svg>',
     musica: '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
     tela: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+    camera: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/></svg>',
     ajustes: '<svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
     chamar: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></svg>',
     sair: '<svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
@@ -1617,7 +1618,8 @@
   }
   function pintarChamada() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
-    const ver = ligado && !body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending') && Boolean(e);
+    // A voz continua dentro dos módulos (como no Discord): lá a barra fica compacta.
+    const ver = ligado && !body.classList.contains('auth-pending') && Boolean(e);
     const antes = barra.hidden; barra.hidden = !ver;
     if (!ver) return;
     if (antes) window.VybeTutorial?.dica?.('chamada');
@@ -1625,14 +1627,25 @@
     const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     if (!e.conectado) {
-      barra.innerHTML = `<span class="sala off"><i></i><b>Fora do Escritório</b><small>Entre para falar e ver quem está nas salas</small></span>
-        <button type="button" class="vv-botao" data-chamada="reconectar">Entrar</button>`;
+      const outraAba = Boolean(e.emOutraAba || fn('escritorioOutraAbaConectada')?.());
+      if (!outraAba && !e.conectando && e.base && !e.base.demo && !pintarChamada.tentou && fn('conectarEscritorio')) {
+        pintarChamada.tentou = true;
+        if (e.microfoneQuer === undefined) e.microfoneQuer = false; // entra calado; liga o microfone quando quiser falar
+        fn('conectarEscritorio')();
+      }
+      barra.innerHTML = outraAba
+        ? `<span class="sala off"><i></i><b>Voz aberta em outra aba</b><small>Só uma aba fica na chamada, para não ouvir em dobro</small></span><button type="button" class="vv-botao" data-chamada="assumir">Usar nesta aba</button>`
+        : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3)
+          ? `<span class="sala off"><i></i><b>Conectando às salas…</b><small>Já já você vê quem está em cada sala</small></span>`
+          : `<span class="sala off"><i></i><b>Fora das salas de voz</b><small>Entre para falar e ver quem está em cada sala</small></span><button type="button" class="vv-botao" data-chamada="reconectar">Entrar</button>`;
+      // Não conectou: tenta de novo sozinho até 3 vezes (a cada 20 s); depois fica o botão Entrar.
+      if (pintarChamada.tentou && !e.conectando && !outraAba && (pintarChamada.vezes = (pintarChamada.vezes || 0) + (pintarChamada.agendado ? 0 : 1)) < 3 && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
       return;
     }
     const canal = fn('escritorioCanal')?.(e.zona);
     const naChamada = Boolean(canal && e.chamada);
     const juntos = outros.filter((o) => o.zona && o.zona === e.zona);
-    const mic = Boolean(e.chamada?.self?.audioEnabled);
+    const mic = Boolean(e.chamada?.self?.audioEnabled), cam = Boolean(e.chamada?.self?.videoEnabled);
     const falando = new Set((e.chamada?.participants?.joined?.toArray?.() || []).filter((p) => p.audioEnabled).map((p) => String(p.customParticipantId || '').split(':')[0]));
     const estado = fn('escritorioEstadoVozTexto')?.() || (naChamada ? 'Na conversa da sala' : 'Sem voz aqui');
     const temSom = Boolean(fn('escritorioNaPista')?.());
@@ -1645,18 +1658,41 @@
         <button type="button" class="vv-botao ic${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
         <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
         <button type="button" class="vv-botao ic" data-chamada="musica" ${temSom ? '' : 'disabled'} title="${temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)'}">${IC.musica}</button>
-        <button type="button" class="vv-botao ic" data-chamada="tela" ${naChamada ? '' : 'disabled'} title="Mostrar sua tela na TV da sala">${IC.tela}</button>
-        <button type="button" class="vv-botao ic" data-chamada="chamar" aria-expanded="${chamarAberto}" title="Quem está online: ir até a sala ou chamar para cá">${IC.chamar}</button>
+        <button type="button" class="vv-botao ic${cam ? ' on' : ''}" data-chamada="camera" aria-pressed="${cam}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (cam ? 'Desligar a câmera' : 'Ligar a câmera') : 'Entre numa sala com voz para usar a câmera'}">${IC.camera}</button>
+        <button type="button" class="vv-botao ic" data-chamada="tv" ${e.zona ? '' : 'disabled'} title="TV da sala: passar um vídeo do YouTube ou mostrar a sua tela">${IC.tela}</button>
+        <button type="button" class="vv-botao ic" data-chamada="chamar" aria-expanded="${chamarAberto}" title="Salas de voz: quem está em cada sala; entrar, ir até alguém ou chamar">${IC.chamar}</button>
         ${e.zona ? `<button type="button" class="vv-botao ic sair" data-chamada="sair" title="Sair da sala">${IC.sair}</button>` : ''}
       </span>
       ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}${falando.has(String(pessoa.id)) ? ' · falando agora' : ''}</small>
         ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
-      ${chamarAberto && !pessoa ? `<div class="vv-chamar">
-        <div class="vv-rotulo-secao"><i></i>Salas com gente agora</div>
-        ${Object.keys(salas).length ? Object.entries(salas).map(([z, g]) => `<button type="button" data-ir-sala="${esc(z)}"><b>${esc(nomeZona(z))}</b><small>${g.map((o) => esc(primeiro(o.nome))).join(', ')}</small><em>Entrar →</em></button>`).join('') : '<p class="vv-dica">Ninguém em outra sala agora.</p>'}
-        <div class="vv-rotulo-secao"><i></i>Chamar alguém</div>
-        ${outros.filter((o) => o.zona !== e.zona).map((o) => `<button type="button" data-chamar-pessoa="${esc(o.id)}"><b>${esc(o.nome)}</b><small>${esc(nomeZona(o.zona))}</small><em>Chamar</em></button>`).join('') || '<p class="vv-dica">Ninguém online fora desta sala.</p>'}
-      </div>` : ''}`;
+      ${chamarAberto && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
+  }
+  // Salas de voz, como no Discord: todas as salas do prédio por andar, quem está em cada uma (acende quem fala),
+  // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa.
+  function salasDeVozHtml({ e, Z, outros, falando, nomeZona }) {
+    const planta = mundo?.planta || [], porAndar = new Map();
+    for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
+    const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : 'Outras salas'; };
+    const ordem = [...porAndar.keys()].sort((x, y) => (planta.find((a) => a.id === y)?.nivel ?? -1) - (planta.find((a) => a.id === x)?.nivel ?? -1));
+    const eu = { id: String(e.base?.eu || ''), nome: 'Você' };
+    const trancas = e.trancas instanceof Map ? e.trancas : new Map();
+    const linha = ([id, z]) => {
+      const aqui = outros.filter((o) => o.zona === id), minha = e.zona === id, tranc = trancas.has(id);
+      const gente = [...(minha ? [eu] : []), ...aqui];
+      return `<button type="button" class="vv-voz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
+        <span class="ic" aria-hidden="true">${tranc ? '🔒' : '🔊'}</span>
+        <span class="meio"><b>${esc(z.nome || nomeZona(id))}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'EU' : iniciais(o.nome))}</i>`).join('')}</span>` : '<small>vazia</small>'}</span>
+        ${minha ? '<em>aqui</em>' : '<em>Entrar</em>'}</button>`;
+    };
+    const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
+    return `<div class="vv-chamar vv-salas-voz">
+      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar</small></div>
+      ${ordem.map((k) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${porAndar.get(k).map(linha).join('')}`).join('')}
+      <div class="vv-rotulo-secao"><i></i>Pessoas online</div>
+      ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
+        ${o.zona && o.zona !== e.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}${o.zona !== e.zona ? `<button type="button" class="vv-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button>` : '<small class="junto">com você</small>'}</div>`).join('') : '<p class="vv-dica">Ninguém mais online agora.</p>'}
+      ${fora.length ? `<p class="vv-dica">${fora.length} na recepção ou fora das salas.</p>` : ''}
+    </div>`;
   }
   barra.addEventListener?.('click', (ev) => {
     const b = ev.target.closest('button'); if (!b || b.disabled) return;
@@ -1665,7 +1701,10 @@
     else if (c === 'ajustes') abrirAjustesAudio();
     else if (c === 'musica') fn('abrirMusicaEscritorio')?.();
     else if (c === 'tela') fn('compartilharTelaNaTvEscritorio')?.();
-    else if (c === 'reconectar') { const e = typeof escritorio !== 'undefined' ? escritorio : null; ((e?.base && fn('escritorioReconectar')) || fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); } // sem entrada ainda: a entrada normal do Escritório
+    else if (c === 'camera') fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada);
+    else if (c === 'tv') fn('abrirTvEscritorio')?.(typeof escritorio !== 'undefined' ? escritorio.tvAtual || null : null);
+    else if (c === 'reconectar') { const e = typeof escritorio !== 'undefined' ? escritorio : null; pintarChamada.tentou = true; (e?.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); } // a mesma entrada do botão "Entrar no escritório"
+    else if (c === 'assumir') { fn('trazerEscritorioParaEstaAba')?.(); setTimeout(pintarChamada, 1500); }
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
     else if (c === 'sair') { fn('escritorioSairDoQuarto')?.(); chamarAberto = false; setTimeout(pintarChamada, 400); }
     else if (b.dataset.pessoa) { pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false; pintarChamada(); }
@@ -1673,6 +1712,41 @@
     else if (b.dataset.chamarPessoa) { fn('chamarParaSalaEscritorio')?.(b.dataset.chamarPessoa); chamarAberto = false; pessoaAberta = null; pintarChamada(); }
   });
   if (typeof setInterval === 'function') setInterval(pintarChamada, 1500);
+
+  // ---------- Palco do Irecity: vídeos da chamada, TV da sala e recado rápido ----------
+  // O Escritório desenha isso dentro da tela dele, que no Irecity fica escondida. Aqui eles sobem:
+  // os vídeos (câmera e tela compartilhada) num palco que só aparece quando há vídeo; a TV numa janela
+  // flutuante; o recado rápido como cartão no canto, com o botão de responder abrindo a conversa.
+  const palco = document.createElement('section');
+  palco.className = 'vv-palco'; palco.setAttribute?.('aria-label', 'Vídeos da chamada');
+  palco.innerHTML = '<div class="vv-palco-topo"><b>Na chamada</b><button type="button" data-palco="min" aria-label="Recolher os vídeos">–</button></div>';
+  document.body.append?.(palco);
+  palco.addEventListener?.('click', (ev) => { if (ev.target.closest('[data-palco="min"]')) palco.classList.toggle('recolhido'); });
+  function trazerProPalco() {
+    if (!ligado) return;
+    // Espelho dos vídeos: o palco liga os próprios <video> ao mesmo MediaStream (mover o contêiner da
+    // chamada pausaria o áudio das vozes, que mora junto).
+    const media = document.getElementById('office-call-media');
+    const originais = [...(media?.querySelectorAll('video') || [])].filter((v) => v.srcObject);
+    const atuais = new Set(originais.map((v) => v.srcObject));
+    palco.querySelectorAll('video').forEach((v) => { if (!atuais.has(v.srcObject)) v.closest('.vv-palco-video')?.remove(); });
+    for (const v of originais) {
+      if ([...palco.querySelectorAll('video')].some((x) => x.srcObject === v.srcObject)) continue;
+      const caixa = document.createElement('figure'); caixa.className = 'vv-palco-video';
+      const nome = v.closest('[class*="tile"], div')?.querySelector('b')?.textContent || '';
+      const novo = document.createElement('video'); novo.autoplay = true; novo.playsInline = true; novo.muted = true; novo.srcObject = v.srcObject;
+      caixa.append(novo); if (nome) { const f = document.createElement('figcaption'); f.textContent = nome; caixa.append(f); }
+      palco.append(caixa); novo.play?.().catch(() => {});
+    }
+    palco.classList.toggle('com-video', originais.length > 0);
+    for (const id of ['office-tv', 'office-recado-rapido']) {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== document.body) { el.classList.add('vv-flutuante-ofc'); document.body.append(el); }
+    }
+    const rr = document.getElementById('office-recado-rapido');
+    if (rr && !rr.dataset.vv) { rr.dataset.vv = '1'; rr.addEventListener('click', (ev) => { const b = ev.target.closest('[data-vv-responder]'); if (b) { window.VybeConversa?.abrir?.('recados', b.dataset.vvResponder); rr.remove(); } }); }
+  }
+  if (typeof setInterval === 'function') setInterval(trazerProPalco, 800);
 
   // ---------- Esc fecha o que está por cima; módulo com "tela cheia" e "fechar" ----------
   const cantoModulo = document.createElement('div');
@@ -1861,7 +1935,7 @@
     body.classList.toggle('mundo-modulo', modulo);
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
-    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; window.VybeTutorial?.dica?.('modulo'); } }
+    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
     if (modulo) marcarTrilhoDoModulo();
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);
