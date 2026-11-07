@@ -69,7 +69,7 @@ test('Irecity: o player da música é janela própria; a tela escondida do Escri
 
 test('Ir até: entrar na sala de alguém entra na conversa dela com o microfone pedido', () => {
   const ir = js.slice(js.indexOf('  function irParaSala(zona) {'), js.indexOf('  window.vybesIrParaSala = irParaSala;'));
-  assert.match(ir, /e\.microfoneQuer = true;/);
+  assert.doesNotMatch(ir, /e\.microfoneQuer = true;/);
   assert.match(ir, /escritorioConversaAutomatica/);
   assert.match(ir, /escritorioSincronizarVoz/);
   // O desvio da ida ao quarto usa o movimento original (sem chamar a si mesmo).
