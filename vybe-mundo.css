@@ -416,12 +416,9 @@ body.mundo .plj-aviso b{color:var(--vv-tinta)!important;font:700 12.5px/1.35 var
 body.mundo .plj-aviso small{color:var(--vv-apagado)!important;font:500 11.5px var(--vv-texto)!important}
 body.mundo .plj-aviso.urgente{box-shadow:var(--vv-sombra),inset 4px 0 0 var(--sit-atrasada)!important}
 body.mundo .plj-aviso .plj-aviso-x{color:var(--vv-apagado)!important;background:var(--vv-papel)!important;border-radius:10px!important;width:30px;height:30px}
-/* O atalho "Fora do escritório · Entrar" some: no mundo, entrar é entrar numa sala do prédio.
-   Na sala, a barra vira uma pílula de voz embaixo, ao centro (microfone e sair da chamada). */
-body.mundo .office-dock[data-estado^="[false"]{display:none!important}
-body.mundo .office-dock{left:50%!important;right:auto!important;bottom:var(--vv-m)!important;transform:translateX(-50%);background:var(--vv-tinta)!important;color:#fff!important;border:0!important;border-radius:99px!important;box-shadow:var(--vv-sombra)!important;padding:5px 6px 5px 14px!important}
-body.mundo .office-dock button{color:#fff!important;font:600 12px var(--vv-texto)!important}
-body.mundo.mundo-modulo .plj-aviso ~ .office-dock,body.mundo.mundo-modulo .office-dock{bottom:calc(var(--vv-m) + 64px)!important}
+/* No Irecity, a barra .vv-chamada reúne os controles de voz, inclusive dentro dos módulos.
+   O dock do Escritório permanece disponível somente fora do modo mundo. */
+body.mundo .office-dock{display:none!important}
 
 /* ---------- Janelas por cima (camada 3 da roupagem nova) ---------- */
 /* A ficha da peça mora na camada 501: com o mundo aberto (ex.: clique numa peça do painel Hoje), sobe acima dele. */
