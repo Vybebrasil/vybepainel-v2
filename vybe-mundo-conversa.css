@@ -1,0 +1,101 @@
+/* Conversa da equipe e recados no Irecity (vybe-mundo-conversa.js, 07/11/2026).
+   Janela flutuante do padrão claro (docs/padrao-visual.md): branca, raio 24, borda --ds-linha,
+   sombra de janela, abas segmentadas, uma ação principal laranja. Fica no <body>, fora do
+   #painel-escritorio (escondido no Irecity), ancorada embaixo à esquerda, logo acima da barra
+   de voz (.vv-chamada). Camada: acima do HUD (603) e do módulo aberto (640); abaixo das janelas
+   (.workflow-modal 841) e dos ajustes de áudio (900). Os valores repetem os tokens como reserva,
+   para a janela não perder a cara se os tokens do mundo ainda não tiverem carregado. */
+.vv-conversa{
+  position:fixed;z-index:650;left:calc(14px + 100px);bottom:84px;width:380px;
+  max-height:min(560px,70vh,calc(100vh - 98px));min-height:min(340px,70vh,calc(100vh - 98px));
+  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--ds-linha,#E6E0D6);border-radius:24px;
+  box-shadow:0 30px 80px rgba(31,29,26,.25);
+  font:500 13px/1.45 var(--vv-texto,system-ui,sans-serif);color-scheme:light;
+  animation:vv-conversa-entra .2s cubic-bezier(.22,1,.36,1) both}
+.vv-conversa[hidden]{display:none}
+.vv-conversa *,.vv-conversa *::before,.vv-conversa *::after{box-sizing:border-box}
+.vv-conversa:focus{outline:none}
+.vv-conversa:focus-visible{box-shadow:0 30px 80px rgba(31,29,26,.25),0 0 0 3px rgba(255,122,47,.22)}
+.vv-conversa :is(button,input):focus-visible{outline:none;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+/* Entrada: opacidade e escala com scale/translate separados (não desmonta transform). */
+@keyframes vv-conversa-entra{from{opacity:0;scale:.97;translate:0 8px}to{opacity:1;scale:1;translate:0 0}}
+
+/* Cabeçalho: abas segmentadas e fechar */
+.vv-conversa-topo{flex:none;display:flex;align-items:center;gap:8px;padding:12px 12px 10px 14px}
+.vv-conversa-abas{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;border-radius:12px;background:#EFEAE2}
+.vv-conversa-abas button{appearance:none;margin:0;border:0;height:30px;padding:0 10px;border-radius:9px;background:transparent;color:#6B675F;
+  font:600 12.5px var(--vv-texto,system-ui,sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;
+  transition:background .15s,color .15s}
+.vv-conversa-abas button:hover{color:#1F1D1A}
+.vv-conversa-abas button[aria-selected="true"]{background:#FFFFFF;color:#C2490C;font-weight:700;box-shadow:0 1px 2px rgba(31,29,26,.08),0 2px 8px rgba(31,29,26,.06)}
+.vv-conversa-x{appearance:none;flex:none;margin:0;width:34px;height:34px;padding:0;border:0;border-radius:12px;background:transparent;color:#6B675F;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+.vv-conversa-x:hover{background:#F3EFE8;color:#1F1D1A}
+
+/* Contador de não lidos: marca, não urgência (laranja claro, texto de selecionado) */
+.vv-conversa-badge{display:inline-block;min-width:18px;height:18px;padding:0 6px;border-radius:999px;background:#FFF1E6;color:#C2490C;font:800 11px/18px var(--vv-texto,system-ui,sans-serif);text-align:center;font-variant-numeric:tabular-nums}
+.vv-conversa-badge[hidden]{display:none}
+.vv-conversa-abas button[aria-selected="true"] .vv-conversa-badge{background:#FFE6D6}
+.vv-conversa-so-leitor{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Corpo de cada aba */
+.vv-conversa-corpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.vv-conversa-cab{flex:none;padding:2px 16px 10px;border-bottom:1px solid #F0EBE3}
+.vv-conversa-cab h3{margin:0;color:#1F1D1A;font:700 17px/1.2 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vv-conversa-cab small{display:block;margin-top:2px;color:#6B675F;font:500 11.5px/1.4 var(--vv-texto,system-ui,sans-serif)}
+.vv-conversa-cab-recado{display:flex;align-items:center;gap:8px;min-width:0}
+.vv-conversa-voltar{appearance:none;flex:none;margin:0;height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:#C2490C;font:700 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer}
+.vv-conversa-voltar:hover{background:#FAF5EE}
+
+/* Mensagens */
+.vv-conversa-log{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin}
+.vv-conversa-msg{align-self:flex-start;max-width:84%;padding:7px 11px 6px;border-radius:16px 16px 16px 6px;background:#F3EFE8;color:#1F1D1A}
+.vv-conversa-msg.meu{align-self:flex-end;background:#FFF1E6;border-radius:16px 16px 6px 16px}
+.vv-conversa-msg.seguido{margin-top:-3px}
+.vv-conversa-msg b{display:block;margin-bottom:1px;color:#1F1D1A;font:700 12px/1.3 var(--vv-texto,system-ui,sans-serif)}
+.vv-conversa-msg p{margin:0;color:#1F1D1A;font:500 13px/1.45 var(--vv-texto,system-ui,sans-serif);white-space:pre-wrap;overflow-wrap:anywhere}
+.vv-conversa-msg time{display:block;margin-top:2px;color:#6B675F;font:500 11px/1.2 var(--vv-texto,system-ui,sans-serif);text-align:right;font-variant-numeric:tabular-nums}
+
+/* Escrever */
+.vv-conversa-form{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:10px 12px 12px;border-top:1px solid #F0EBE3;background:#FFFFFF}
+.vv-conversa-campo{appearance:none;flex:1 1 0;min-width:0;height:38px;margin:0;padding:0 12px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:12px;background:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto,system-ui,sans-serif);color-scheme:light;transition:border-color .15s,box-shadow .15s}
+.vv-conversa-campo::placeholder{color:#7A756C;opacity:1}
+.vv-conversa .vv-conversa-campo:focus{outline:none;border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.vv-conversa-campo:disabled{background:#FAF8F4}
+.vv-conversa-enviar,.vv-conversa-acao{appearance:none;flex:none;margin:0;height:38px;padding:0 16px;border:0;border-radius:12px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer;box-shadow:0 8px 20px -8px #E8602E;transition:background .15s}
+.vv-conversa-enviar:hover,.vv-conversa-acao:hover{background:#E8602E}
+.vv-conversa-enviar:disabled{opacity:.6;cursor:default;box-shadow:none}
+.vv-conversa-erro{flex-basis:100%;margin:0;color:#B42318;font:600 12px/1.35 var(--vv-texto,system-ui,sans-serif)}
+.vv-conversa-erro[hidden]{display:none}
+.vv-conversa-sec{appearance:none;margin:0;height:34px;padding:0 14px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:12px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer;transition:border-color .15s,color .15s}
+.vv-conversa-sec:hover{border-color:#FF7A2F;color:#C2490C}
+
+/* Recados: lista de pessoas */
+.vv-conversa-busca{flex:none;margin:10px 14px 6px}
+.vv-conversa-pessoas{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;list-style:none;margin:0;padding:4px 10px 12px;scrollbar-width:thin}
+.vv-conversa-pessoas li{margin:0;padding:0}
+.vv-conversa-pessoa{appearance:none;width:100%;display:flex;align-items:center;gap:10px;margin:0 0 4px;padding:8px 10px;border:1px solid transparent;border-radius:14px;background:transparent;color:#1F1D1A;font:600 13px var(--vv-texto,system-ui,sans-serif);text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.vv-conversa-pessoa:hover{background:#FAF5EE;border-color:#F0EBE3}
+.vv-conversa-pessoa-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vv-conversa-av{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#F3EFE8;color:#6B675F;font:700 11.5px var(--vv-texto,system-ui,sans-serif);letter-spacing:.02em}
+
+/* Estados: vazio, carregando, erro */
+.vv-conversa-vazio{margin:auto;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.vv-conversa-vazio b{color:#1F1D1A;font:700 17px/1.25 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif);letter-spacing:-.01em}
+.vv-conversa-vazio p{margin:0;max-width:300px;color:#6B675F;font:500 12.5px/1.45 var(--vv-texto,system-ui,sans-serif)}
+.vv-conversa-vazio :is(.vv-conversa-acao,.vv-conversa-sec){margin-top:6px}
+.vv-conversa-nota{margin:auto 0;padding:16px 8px;color:#6B675F;font:500 12.5px/1.45 var(--vv-texto,system-ui,sans-serif);text-align:center}
+
+/* Tela estreita: ocupa a largura, acima da barra de voz (que sobe para 64px + 2 margens) */
+@media (max-width:899px){
+  .vv-conversa{left:14px;right:14px;width:auto;bottom:152px;
+    max-height:min(560px,70vh,calc(100vh - 166px));min-height:min(300px,70vh,calc(100vh - 166px))}
+}
+@supports (height:100dvh){
+  .vv-conversa{max-height:min(560px,70dvh,calc(100dvh - 98px));min-height:min(340px,70dvh,calc(100dvh - 98px))}
+  @media (max-width:899px){
+    .vv-conversa{max-height:min(560px,70dvh,calc(100dvh - 166px));min-height:min(300px,70dvh,calc(100dvh - 166px))}
+  }
+}
+@media (prefers-reduced-motion:reduce){.vv-conversa{animation:none}}
+html.vb-sem-animacao .vv-conversa,body[data-motion="reduce"] .vv-conversa{animation:none}

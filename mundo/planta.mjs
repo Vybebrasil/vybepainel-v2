@@ -73,7 +73,7 @@ export const PLANTA = [
     cor: '#F76808',
     setores: [
       { id: 'midia', nome: 'Mídia Paga', agente: 'Growth e Ads', papel: 'Analisa e protege o dinheiro investido em anúncios.',
-        skills: ['Criativos rodando (Hub)', 'ROAS', 'Alerta de campanha'], estado: 'sombra', modulo: null },
+        skills: ['Criativos rodando (Hub)', 'ROAS', 'Alerta de campanha'], estado: 'sombra', modulo: { tipo: 'link', alvo: 'vybehub', url: 'https://vybehub.vercel.app/admin' } },
       { id: 'bi', nome: 'Business Intelligence', agente: 'Analista de Dados', papel: 'Visão global unindo operação e tráfego.',
         skills: ['Cruzar andares', 'Painéis operacionais', 'Resumo semanal da diretoria'], estado: 'sombra', modulo: { tipo: 'quadro', alvo: 'performance' } },
     ],

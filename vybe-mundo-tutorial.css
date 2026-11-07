@@ -1,0 +1,130 @@
+/* vybe-mundo-tutorial.css — o VYBES apresentando o Vybe OS: passeio, dicas de primeira vez e Ajuda.
+   Padrão claro do Irecity (docs/padrao-visual.md). Tudo mora em .vv-tour-raiz, filho direto do body,
+   acima do HUD (603), das placas e das janelas comuns (até 900): z-index 2000.
+   As cores vêm das variáveis --tour-* para o modo escuro trocar só a paleta. */
+
+.vv-tour-raiz{position:fixed;inset:0;z-index:2000;pointer-events:none;color-scheme:light;
+  --tour-papel:#FFFFFF;--tour-tinta:#1F1D1A;--tour-apagado:#6B675F;--tour-linha:#E6E0D6;--tour-divisoria:#F0EBE3;
+  --tour-acao:#FF7A2F;--tour-acao-hover:#E8602E;--tour-sel:#C2490C;--tour-kicker:#A84E00;--tour-lilas:#5B4BD6;
+  --tour-sec:#FFFFFF;--tour-sec-hover:#FAF5EE;--tour-vista-f:#F1F2F3;--tour-vista-t:#5B6268;--tour-nova-f:#ECE9FF;--tour-nova-t:#5B4BD6;
+  --tour-veu:rgba(31,29,26,.45);--tour-veu-janela:rgba(31,29,26,.3);--tour-foco:0 0 0 3px rgba(255,122,47,.22);
+  --tour-curva:cubic-bezier(.2,.8,.2,1);
+  font-family:var(--vv-texto,system-ui),sans-serif;color:var(--tour-tinta)}
+.vv-tour-raiz [hidden]{display:none!important}
+:where(.vv-tour-raiz) :where(h2,h3,h4,p){margin:0}
+.vv-tour-raiz button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.vv-tour{position:fixed;inset:0;pointer-events:none}
+
+/* ---------- Passeio: o fundo segura os cliques; a luz escurece tudo menos o recorte do alvo ---------- */
+.vv-tour-fundo{position:fixed;inset:0;pointer-events:auto;background:transparent}
+.vv-tour-luz{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:16px;pointer-events:none;
+  box-shadow:0 0 0 2px rgba(139,125,255,.9),0 0 0 6px rgba(139,125,255,.18),0 0 0 9999px var(--tour-veu)}
+.vv-tour-luz.vazia{box-shadow:0 0 0 9999px var(--tour-veu)}
+.vv-tour-anda .vv-tour-luz{transition:left .25s var(--tour-curva),top .25s var(--tour-curva),width .25s var(--tour-curva),height .25s var(--tour-curva),box-shadow .25s}
+.vv-tour-anda .vv-tour-balao{transition:left .25s var(--tour-curva),top .25s var(--tour-curva)}
+
+/* ---------- Balão do VYBES (passeio e dicas) ---------- */
+.vv-tour-balao{position:fixed;left:0;top:0;box-sizing:border-box;width:min(320px,calc(100vw - 24px));padding:14px 16px;border-radius:20px;
+  background:var(--tour-papel);color:var(--tour-tinta);border:1px solid var(--tour-linha);box-shadow:0 24px 60px rgba(31,29,26,.25);
+  pointer-events:auto;outline:0;animation:vv-tour-surge .2s var(--tour-curva) both}
+.vv-tour-balao:focus-visible{box-shadow:var(--tour-foco),0 24px 60px rgba(31,29,26,.25)}
+@keyframes vv-tour-surge{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+
+/* bico apontando para o alvo (data-lado = de que lado do alvo o balão ficou) */
+.vv-tour-bico{position:absolute;display:none;box-sizing:border-box;width:12px;height:12px;background:var(--tour-papel);border:1px solid transparent;rotate:45deg;pointer-events:none}
+.vv-tour-balao[data-lado="direita"] .vv-tour-bico{display:block;left:-7px;top:calc(var(--bico,50%) - 6px);border-left-color:var(--tour-linha);border-bottom-color:var(--tour-linha)}
+.vv-tour-balao[data-lado="esquerda"] .vv-tour-bico{display:block;right:-7px;top:calc(var(--bico,50%) - 6px);border-top-color:var(--tour-linha);border-right-color:var(--tour-linha)}
+.vv-tour-balao[data-lado="baixo"] .vv-tour-bico{display:block;top:-7px;left:calc(var(--bico,50%) - 6px);border-left-color:var(--tour-linha);border-top-color:var(--tour-linha)}
+.vv-tour-balao[data-lado="cima"] .vv-tour-bico{display:block;bottom:-7px;left:calc(var(--bico,50%) - 6px);border-right-color:var(--tour-linha);border-bottom-color:var(--tour-linha)}
+
+.vv-tour-cabeca{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+/* O VYBES: a bolinha lilás → laranja com a luz no meio; a onda em volta é só scale/opacity (barata) */
+.vv-tour-avatar{position:relative;flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,#8B7DFF 0%,#FF9A5C 100%);box-shadow:0 6px 16px -6px rgba(91,75,214,.7)}
+.vv-tour-avatar i{width:12px;height:12px;border-radius:50%;background:#FFF4EA;box-shadow:0 0 0 3px rgba(255,244,234,.35),0 0 10px rgba(255,244,234,.9)}
+.vv-tour-avatar::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(139,125,255,.55);pointer-events:none;animation:vv-tour-onda 2.4s ease-out infinite}
+@keyframes vv-tour-onda{from{scale:1;opacity:.9}to{scale:1.5;opacity:0}}
+.vv-tour-quem{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vv-tour-quem b{font:700 11px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;color:var(--tour-lilas)}
+.vv-tour-quem small{font:500 11px/1.2 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.vv-tour-titulo{font:700 16px/1.25 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em;color:var(--tour-tinta);margin:0 0 4px}
+.vv-tour-texto{font:500 13.5px/1.5 var(--vv-texto,system-ui),sans-serif;color:var(--tour-tinta)}
+
+.vv-tour-rodape{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
+.vv-tour-esq{display:flex;align-items:center;gap:8px;min-width:0}
+.vv-tour-acoes{display:flex;align-items:center;gap:6px;margin-left:auto}
+.vv-tour-conta{font:600 11.5px/1 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vv-tour-mais{margin-top:8px}
+
+/* ---------- Botões (iguais ao padrão: ação principal = botão Criar; secundário branco com borda) ---------- */
+.vv-tour-principal{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 14px;border:0;border-radius:12px;
+  background:var(--tour-acao);color:#fff;font:700 12.5px/1 var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px var(--tour-acao-hover);transition:background .15s}
+.vv-tour-principal:hover{background:var(--tour-acao-hover)}
+.vv-tour-sec{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border:1px solid var(--tour-linha);border-radius:12px;
+  background:var(--tour-sec);color:var(--tour-tinta);font:600 12.5px/1 var(--vv-texto,system-ui),sans-serif;transition:border-color .15s,color .15s}
+.vv-tour-sec:hover{border-color:var(--tour-acao);color:var(--tour-sel)}
+.vv-tour-pular,.vv-tour-link{height:28px;padding:0 6px;border:0;border-radius:8px;background:none;color:var(--tour-apagado);font:600 12px/1 var(--vv-texto,system-ui),sans-serif;transition:color .15s}
+.vv-tour-pular:hover,.vv-tour-link:hover{color:var(--tour-sel)}
+.vv-tour-raiz :is(button,input):focus-visible{outline:0;box-shadow:var(--tour-foco)}
+
+/* ---------- Dica: sem escurecer a tela; um anel lilás em volta do que ela explica ---------- */
+.vv-tour-anel{position:fixed;border-radius:14px;pointer-events:none;box-shadow:0 0 0 2px #8B7DFF,0 0 0 6px rgba(139,125,255,.22);animation:vv-tour-surge .2s var(--tour-curva) both}
+
+/* ---------- Ajuda do VYBES: janela do padrão (branca, raio 24, sombra de janela, fundo com blur) ---------- */
+.vv-tour-ajuda{display:grid;place-items:center;padding:16px;pointer-events:auto}
+.vv-tour-veu{position:fixed;inset:0;background:var(--tour-veu-janela);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.vv-tour-janela{position:relative;box-sizing:border-box;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;overscroll-behavior:contain;
+  padding:20px 22px 18px;border-radius:24px;background:var(--tour-papel);color:var(--tour-tinta);border:1px solid var(--tour-linha);
+  box-shadow:0 30px 80px rgba(31,29,26,.25);outline:0;scrollbar-width:thin;animation:vv-tour-surge .2s var(--tour-curva) both}
+.vv-tour-janela-topo{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.vv-tour-janela-topo .vv-tour-titulo{font-size:19px;margin:0}
+.vv-tour-kicker{display:block;margin-bottom:2px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--tour-kicker)}
+.vv-tour-x{flex:none;margin-left:auto;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--tour-linha);border-radius:12px;
+  background:var(--tour-sec);color:var(--tour-tinta);font:500 20px/1 var(--vv-texto,system-ui),sans-serif;transition:border-color .15s,color .15s}
+.vv-tour-x:hover{border-color:var(--tour-acao);color:var(--tour-sel)}
+.vv-tour-largo{width:100%;height:40px;margin:14px 0 2px}
+.vv-tour-secao{margin:18px 0 8px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--tour-kicker)}
+.vv-tour-grupo{margin:12px 0 6px;font:700 12px/1.2 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado)}
+.vv-tour-lista{display:grid;gap:6px}
+.vv-tour-linha{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px 10px;width:100%;box-sizing:border-box;padding:10px 12px;text-align:left;
+  border:1px solid var(--tour-linha);border-radius:12px;background:var(--tour-sec);color:var(--tour-tinta);transition:border-color .15s,translate .15s}
+.vv-tour-linha:hover{border-color:var(--tour-acao);translate:0 -1px}
+.vv-tour-linha b{grid-column:1;font:600 13px/1.3 var(--vv-texto,system-ui),sans-serif}
+.vv-tour-linha small{grid-column:1;font:500 11.5px/1.4 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vv-tour-linha em{grid-column:2;grid-row:1 / span 2;padding:5px 9px;border-radius:999px;font:700 11px/1 var(--vv-texto,system-ui),sans-serif;font-style:normal;
+  background:var(--tour-vista-f);color:var(--tour-vista-t)}
+.vv-tour-linha em.nova{background:var(--tour-nova-f);color:var(--tour-nova-t)}
+.vv-tour-janela-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid var(--tour-divisoria)}
+.vv-tour-chave{display:flex;align-items:center;gap:8px;font:500 12.5px/1.35 var(--vv-texto,system-ui),sans-serif;color:var(--tour-tinta);cursor:pointer}
+.vv-tour-chave input{flex:none;width:16px;height:16px;margin:0;accent-color:var(--tour-acao);border-radius:4px}
+
+.vv-tour-so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
+/* ---------- Celular: balão de largura cheia, botões cabendo ---------- */
+@media (max-width:600px){
+  .vv-tour-balao{width:calc(100vw - 24px)}
+  .vv-tour-rodape{flex-wrap:wrap}
+  .vv-tour-janela{padding:16px 16px 14px}
+}
+
+/* ---------- Reduzir movimento: o do sistema e o da Aparência (o JS põe .vv-tour-quieto) ---------- */
+@media (prefers-reduced-motion:reduce){
+  .vv-tour-raiz *,.vv-tour-raiz *::after{animation:none!important;transition:none!important}
+}
+.vv-tour-raiz.vv-tour-quieto *,.vv-tour-raiz.vv-tour-quieto *::after{animation:none!important;transition:none!important}
+
+/* ---------- Modo escuro (html.tema-escuro) ----------
+   O MODO ESCURO de vybe-mundo.css inverte (filter: invert) todo filho direto do body. Aqui isso estragaria o
+   passeio: o véu escuro do recorte viraria um véu branco. Por isso o tutorial sai da inversão e tem a própria
+   paleta escura. O !important é inevitável: aquele seletor soma quatro ids (:not(#mundo)…) e não dá para
+   vencê-lo sem empilhar ids. O mesmo vale para o avatar, que lá é "desinvertido" pela lista de cor própria. */
+html.tema-escuro body.mundo > .vv-tour-raiz{filter:none!important}
+html.tema-escuro body.mundo .vv-tour-raiz .vv-tour-avatar.vv-tour-avatar{filter:none}
+html.tema-escuro .vv-tour-raiz{color-scheme:dark;
+  --tour-papel:#1C1B19;--tour-tinta:#F2EEE8;--tour-apagado:#ABA59B;--tour-linha:#3A3733;--tour-divisoria:#2E2C29;
+  --tour-sel:#FF9A5C;--tour-kicker:#FFB27A;--tour-lilas:#B3A8FF;--tour-sec:#24221F;--tour-sec-hover:#2B2926;
+  --tour-vista-f:#2A2926;--tour-vista-t:#C9C4BB;--tour-nova-f:#2D2947;--tour-nova-t:#CBC4FF;
+  --tour-veu:rgba(0,0,0,.58);--tour-veu-janela:rgba(0,0,0,.45)}
+html.tema-escuro .vv-tour-raiz :is(.vv-tour-balao,.vv-tour-janela){box-shadow:0 24px 60px rgba(0,0,0,.55)}
