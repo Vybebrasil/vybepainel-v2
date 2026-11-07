@@ -27,7 +27,7 @@ export const PLANTA = [
       { id: 'sdr', nome: 'SDR / Pré-vendas', agente: 'Qualificador', papel: 'Lê formulários e qualifica leads dos canais de atração.',
         skills: ['Mapa de empresas de Irecê (público)', 'Consultar CNPJ', 'Temperatura do lead', 'Agendar diagnóstico'], estado: 'sombra', modulo: { tipo: 'quadro', alvo: 'clientes' } },
       { id: 'closing', nome: 'Closing / Contratos', agente: 'Closer', papel: 'Elabora e negocia propostas e contratos.',
-        skills: ['Minuta de proposta (Vybe On-demand)', 'Contrato no LexFlow', 'Link de assinatura'], estado: 'planejado', modulo: { tipo: 'quadro', alvo: 'clientes' } },
+        skills: ['Funil comercial e motivos de perda', 'Pacotes e orçamento', 'Capacidade × vendas', 'Contrato no LexFlow'], estado: 'sombra', modulo: { tipo: 'janela', alvo: 'comercial', aba: 'funil' } },
       { id: 'concierge', nome: 'Concierge / CS', agente: 'Atendimento', papel: 'Ponto de contato e triagem do cliente.',
         skills: ['Transcrever áudios', 'Organizar briefing', 'Abrir tarefa', 'Esclarecimentos de rotina'], estado: 'sombra', modulo: { tipo: 'modo', alvo: 'clientes' } },
     ],
