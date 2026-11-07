@@ -4124,3 +4124,50 @@ html.tema-escuro body.mundo .mundo-vinheta{background:radial-gradient(ellipse at
 /* Conversa da equipe: cabeçalho claro (a regra antiga pinta todo <header> de grafite) e ao lado do "Seu dia" */
 html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border-bottom:1px solid #EFEAE2!important;box-shadow:none!important;color:#1F1D1A!important}
 @media (min-width:901px){html body.mundo .vv-conversa:not(#ds-a){left:calc(max(var(--vv-livre-esq, 0px), 90px) + 12px)!important}}
+
+/* ===== Palco do Irecity: vídeos da chamada (espelho), TV da sala e recado rápido por cima do mapa ===== */
+.vv-palco{display:none;position:fixed;z-index:630;right:calc(var(--vv-m) + 70px);bottom:calc(var(--vv-m) + 6px);width:min(420px,40vw);max-height:60vh;overflow:auto;padding:8px;border-radius:20px;background:rgba(24,23,21,.94);box-shadow:0 20px 50px rgba(31,29,26,.35);gap:6px;flex-direction:column}
+.vv-palco.com-video{display:flex}
+.vv-palco.recolhido .vv-palco-video{display:none}
+.vv-palco-topo{display:flex;justify-content:space-between;align-items:center;padding:2px 6px;color:#F2EEE8;font:700 12px var(--vv-texto)}
+.vv-palco-topo button{appearance:none;border:0;background:rgba(255,255,255,.14);color:#fff;width:26px;height:22px;border-radius:7px;cursor:pointer}
+.vv-palco-video{margin:0;position:relative;border-radius:14px;overflow:hidden;background:#000}
+.vv-palco-video video{display:block;width:100%;max-height:240px;object-fit:contain}
+.vv-palco-video figcaption{position:absolute;left:8px;bottom:6px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font:600 11px var(--vv-texto)}
+#office-tv.vv-flutuante-ofc{position:fixed!important;z-index:631!important;right:calc(var(--vv-m) + 70px)!important;top:calc(var(--vv-m) + 64px)!important;left:auto!important;bottom:auto!important;width:min(480px,44vw)!important;border-radius:18px!important;overflow:hidden;background:#111!important;box-shadow:0 24px 60px rgba(31,29,26,.35)!important}
+#office-tv.vv-flutuante-ofc > header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1C1B19!important;color:#F2EEE8!important;font:700 12px var(--vv-texto)}
+#office-tv.vv-flutuante-ofc > header button{background:rgba(255,255,255,.14)!important;color:#fff!important;border:0;border-radius:8px;width:26px;height:24px}
+#office-tv.vv-flutuante-ofc iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+#office-recado-rapido.vv-flutuante-ofc{position:fixed!important;z-index:660!important;right:calc(var(--vv-m) + 12px)!important;bottom:calc(var(--vv-m) + 70px)!important;top:auto!important;left:auto!important;width:320px!important;padding:12px 14px!important;border-radius:18px!important;background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:0 20px 50px rgba(31,29,26,.25)!important;color:#1F1D1A!important;color-scheme:light}
+#office-recado-rapido.vv-flutuante-ofc :is(b,p,span,label){color:#1F1D1A!important}
+#office-recado-rapido.vv-flutuante-ofc :is(input,textarea){background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:10px!important}
+#office-recado-rapido.vv-flutuante-ofc button:not(.ofc-x){background:#FF7A2F!important;color:#fff!important;border:0!important;border-radius:10px!important}
+html.tema-escuro body.mundo .vv-palco{filter:none!important}
+html.tema-escuro body.mundo #office-tv.vv-flutuante-ofc{filter:none!important}
+
+/* ===== Salas de voz (estilo Discord) ===== */
+.vv-chamada .vv-salas-voz{width:340px;max-height:min(560px,70vh)}
+.vv-voz-topo{padding:2px 6px 8px}.vv-voz-topo b{display:block;font:700 15px var(--vv-titulo);color:#1F1D1A}.vv-voz-topo small{font:500 11px var(--vv-texto);color:#6B675F}
+.vv-chamada .vv-salas-voz .vv-voz-sala{display:grid!important;grid-template-columns:22px 1fr auto;align-items:center;gap:8px;width:100%;padding:7px 8px!important;margin:1px 0;border-radius:10px!important;text-align:left}
+.vv-voz-sala .ic{font-size:13px;opacity:.75}
+.vv-voz-sala .meio b{display:block;font:600 12.5px var(--vv-texto)!important;color:#3A3F44!important}
+.vv-voz-sala.com-gente .meio b{color:#1F1D1A!important;font-weight:700!important}
+.vv-voz-sala .meio small{font:500 10.5px var(--vv-texto);color:#9A948A!important}
+.vv-voz-sala .gente{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.vv-voz-sala .gente i{font-style:normal;display:grid;place-items:center;min-width:22px;height:22px;padding:0 4px;border-radius:999px;background:#E9E3D8;color:#1F1D1A;font:700 9.5px var(--vv-texto)}
+.vv-voz-sala .gente i.fala{background:#18A957;color:#fff;box-shadow:0 0 0 2px rgba(24,169,87,.35)}
+.vv-voz-sala em{font:700 11px var(--vv-texto)!important;color:#C2490C!important;opacity:0;transition:opacity .12s}
+.vv-voz-sala:hover em,.vv-voz-sala.minha em{opacity:1}
+.vv-voz-sala.minha{background:color-mix(in srgb,#FF7A2F 11%,#fff)!important;box-shadow:inset 3px 0 0 #FF7A2F}
+.vv-voz-sala.minha em{color:#11613A!important}
+.vv-voz-pessoa{display:flex;align-items:center;gap:8px;padding:6px 6px;border-bottom:1px solid #F3EFE8}
+.vv-voz-pessoa .av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#E9E3D8;font:800 10px var(--vv-texto);color:#1F1D1A}
+.vv-voz-pessoa .av.fala{background:#18A957;color:#fff;box-shadow:0 0 0 3px rgba(24,169,87,.3)}
+.vv-voz-pessoa .meio{flex:1;min-width:0}.vv-voz-pessoa b{display:block;font:700 12px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vv-voz-pessoa small{font:500 10.5px var(--vv-texto);color:#6B675F}
+.vv-voz-pessoa .vv-botao{height:28px!important;padding:0 9px!important;font-size:11.5px!important;background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+.vv-voz-pessoa .junto{color:#11613A!important;font-weight:700}
+/* dentro dos módulos: a barra de voz continua, compacta, no canto de baixo */
+body.mundo.mundo-modulo .vv-chamada{left:auto!important;right:calc(var(--vv-m) + 64px)!important;bottom:calc(var(--vv-m) + 8px)!important;padding:5px 6px 5px 10px!important;transform-origin:bottom right;scale:.9;z-index:650}
+body.mundo.mundo-modulo .vv-chamada .sala small,body.mundo.mundo-modulo .vv-chamada .gente{display:none}
+body.mundo.mundo-modulo .vv-chamada .sala{min-width:0}
+body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}

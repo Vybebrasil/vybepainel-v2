@@ -18,6 +18,18 @@ const COBRANCAS = [
   { ref: '204', quadro: 'producao', titulo: 'Vence amanhã', tipo: 'vence', dias: -1, data: '2026-11-08', cliente_id: '3', cliente: 'VOA', status: 'A Fazer', com: ['Bruno Lima'] },
 ];
 const BASE = () => ({ eu: '5', admin: false, equipe: [{ id: '5', nome: 'Ana Paula' }, { id: '7', nome: 'Bruno Lima' }] });
+// As do Bruno (id 7), como o servidor calcula para quem administra.
+const DE_BRUNO = [
+  { ref: '401', quadro: 'producao', titulo: 'Vídeo do Bruno', prazo: '2026-11-06', tipo_data: 'prazo', atrasada: true, hoje: false, recompensa: { pontos: 80, moedas: 25 } },
+  { ref: '402', quadro: 'demandas', titulo: 'Arte do Bruno', prazo: '2026-11-07', tipo_data: 'prazo', atrasada: false, hoje: true, recompensa: { pontos: 40, moedas: 10 } },
+];
+// O servidor de verdade: as de outra pessoa só para quem administra (403, como a ficha).
+const recusa = () => Object.assign(new Error('Só quem administra vê as missões de outra pessoa.'), { status: 403 });
+const servidor = ({ admin }) => (consulta) => {
+  if (!consulta?.pessoa || consulta.pessoa === '5') return MISSOES;
+  if (!admin) throw recusa();
+  return consulta.pessoa === '7' ? DE_BRUNO : [];
+};
 
 // DOM mínimo: o painel só cria a camada com a janela dentro, troca o innerHTML
 // da janela e ouve cliques na camada.
@@ -46,7 +58,8 @@ function montar({ base = BASE(), missoes = MISSOES, cobrancas = COBRANCAS, extra
     escritorioHojeBahia: () => '2026-11-07',
     escritorioApi: async (acao, _corpo, consulta) => {
       chamadas.push(JSON.stringify([acao, consulta || null]));
-      if (acao === 'missoes') return { ok: true, disponivel: true, funcao: 'criacao', missoes };
+      // `missoes` pode ser uma função da consulta (a de outra pessoa) e lançar a recusa do servidor.
+      if (acao === 'missoes') return { ok: true, disponivel: true, funcao: 'criacao', missoes: typeof missoes === 'function' ? missoes(consulta) : missoes };
       if (acao === 'cobrancas') return { ok: true, cobrancas: typeof cobrancas === 'function' ? cobrancas(consulta) : cobrancas };
       throw new Error('rota inesperada: ' + acao);
     },
@@ -182,25 +195,69 @@ test('cobranças: agrupadas por cliente com o pior pedido primeiro, as datas e o
   assert.match(html(v), /Ninguém cobrando/);
 });
 
-test('missões de outra pessoa: só para quem administra e para os sócios, sem XP', async () => {
-  const PECAS = [{ id: '301', nome: 'Peça atrasada', prazo_iso: '2026-11-01' }, { id: '302', nome: 'Peça de hoje', veiculacao_iso: '2026-11-07' }, { id: '303', nome: 'Sem data' }];
+test('missões de outra pessoa: quem administra vê pelo servidor, com XP e moedas', async () => {
+  const PECAS = [{ id: '301', nome: 'Peça atrasada', prazo_iso: '2026-11-01' }];
   const extras = { TEAM_USERS: [{ id: '7', name: 'Bruno Lima' }], focusOwnItems: (u) => (u.id === '7' ? PECAS : []) };
-  const fechado = montar({ extras });
-  await fechado.M.abrir('missoes', '7');
-  assert.match(html(fechado), /As missões de Bruno são só para a gestão/);
-  assert.ok(!fechado.chamadas.some((c) => c.includes('"missoes"')), 'a rota de missões não serve para outra pessoa');
-  const admin = montar({ base: { ...BASE(), admin: true }, extras });
+  const admin = montar({ base: { ...BASE(), admin: true }, missoes: servidor({ admin: true }), extras });
   await admin.M.abrir('missoes', '7');
+  assert.ok(admin.chamadas.includes(JSON.stringify(['missoes', { pessoa: '7' }])), 'a rota de missões com a pessoa pedida');
+  assert.ok(!admin.chamadas.includes(JSON.stringify(['missoes', null])), 'as próprias não são lidas para mostrar as de outra pessoa');
+  assert.equal(admin.ctx.escritorio.missoes, undefined, 'as de outra pessoa não viram as missões de quem está logado');
   admin.clicar({ 'data-vm-filtro': 'todas' });
   const h = html(admin);
-  assert.match(h, /Sem XP e moedas/);
+  assert.match(h, /Missões e cobranças de Bruno/);
+  assert.match(h, /Concluir tudo vale <span class="ofc-missao-xp">\+120 XP<\/span><span class="ofc-missao-moeda">\+35<\/span>/);
+  assert.match(h, /class="vv-missoes-linha atrasada"[^>]*data-vm-missao="401"/);
+  assert.match(h, /Arte do Bruno/);
+  assert.doesNotMatch(h, /Sem XP e moedas/);
+  assert.doesNotMatch(h, /Peça atrasada/, 'com o servidor respondendo, as tarefas do painel não entram');
+  assert.match(h, /id="vv-missoes-aba-missoes"[^>]*>Missões<span class="vv-missoes-badge alerta">2<\/span>/);
+  // Reabrir em menos de 1 minuto não lê de novo (a mesma memória do Escritório).
+  await admin.M.abrir('missoes', '7');
+  assert.equal(admin.chamadas.filter((c) => c === JSON.stringify(['missoes', { pessoa: '7' }])).length, 1);
+});
+
+test('missões de outra pessoa: sem permissão, recusa do servidor ou falha voltam às tarefas do painel, sem XP', async () => {
+  const PECAS = [{ id: '301', nome: 'Peça atrasada', prazo_iso: '2026-11-01' }, { id: '302', nome: 'Peça de hoje', veiculacao_iso: '2026-11-07' }, { id: '303', nome: 'Sem data' }];
+  const extras = { TEAM_USERS: [{ id: '7', name: 'Bruno Lima' }, { id: '99', name: 'Fora do Escritório' }], focusOwnItems: (u) => (u.id === '7' || u.id === '99' ? PECAS : []) };
+  // Nem admin nem sócio: nada vai ao servidor.
+  const fechado = montar({ missoes: servidor({ admin: false }), extras });
+  await fechado.M.abrir('missoes', '7');
+  assert.match(html(fechado), /As missões de Bruno são só para a gestão/);
+  assert.ok(!fechado.chamadas.some((c) => c.includes('"missoes"')), 'sem permissão, a rota de missões nem é chamada');
+  // Sócio sem admin: o servidor recusa (403) e ficam as tarefas do painel, com o aviso.
+  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Vinícius Rocha' }, { id: '7', nome: 'Bruno Lima' }] }, missoes: servidor({ admin: false }), extras });
+  await socio.M.abrir('missoes', '7');
+  assert.ok(socio.chamadas.includes(JSON.stringify(['missoes', { pessoa: '7' }])), 'sócio pede ao servidor');
+  socio.clicar({ 'data-vm-filtro': 'todas' });
+  let h = html(socio);
+  assert.doesNotMatch(h, /só para a gestão/, 'sócio (pelo primeiro nome) vê');
+  assert.match(h, /Sem XP e moedas: o valor das missões de outra pessoa só sai para quem administra\./);
   assert.match(h, /Peça atrasada/);
   assert.match(h, /<em class="ofc-missao-prazo hoje">Veiculação hoje<\/em>/);
   assert.match(h, /<em class="ofc-missao-prazo">Sem prazo nem veiculação<\/em>/);
   assert.doesNotMatch(h, /Concluir tudo vale/);
-  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Vinícius Rocha' }, { id: '7', nome: 'Bruno Lima' }] }, extras });
-  await socio.M.abrir('missoes', '7');
-  assert.doesNotMatch(html(socio), /só para a gestão/, 'sócio (pelo primeiro nome) vê');
+  assert.doesNotMatch(h, /vv-missoes-erro/, 'a recusa não é erro: sem "Tentar de novo"');
+  // Admin com o servidor fora do ar: as tarefas do painel, o erro e o "Tentar de novo", que relê.
+  let fora = true;
+  const falha = montar({ base: { ...BASE(), admin: true }, missoes: (c) => { if (fora && c?.pessoa) throw new Error('fora do ar'); return servidor({ admin: true })(c); }, extras });
+  await falha.M.abrir('missoes', '7');
+  falha.clicar({ 'data-vm-filtro': 'todas' });
+  h = html(falha);
+  assert.match(h, /Não foi possível atualizar: fora do ar <button type="button" data-vm-recarregar>Tentar de novo<\/button>/);
+  assert.match(h, /Sem XP e moedas: o valor das missões não chegou/);
+  assert.match(h, /Peça atrasada/);
+  fora = false;
+  falha.clicar({ 'data-vm-recarregar': '' });
+  await esperar(); await esperar();
+  h = html(falha);
+  assert.match(h, /Concluir tudo vale <span class="ofc-missao-xp">\+120 XP<\/span>/, 'de volta, o valor de verdade');
+  assert.doesNotMatch(h, /Sem XP e moedas|vv-missoes-erro/);
+  // Quem não está no Escritório (só no painel): sem id para o servidor, as tarefas do painel.
+  const semId = montar({ base: { ...BASE(), admin: true }, missoes: servidor({ admin: true }), extras });
+  await semId.M.abrir('missoes', '99');
+  assert.ok(!semId.chamadas.some((c) => c.includes('"missoes"')), 'id do painel não vai para a rota de missões');
+  assert.match(html(semId), /Sem XP e moedas: esta pessoa não está no Escritório/);
 });
 
 test('resumo para o cartão do HUD', async () => {
@@ -211,9 +268,16 @@ test('resumo para o cartão do HUD', async () => {
   assert.equal(outra.missoesAtrasadas, null, 'sem permissão, missões de outra pessoa ficam sem número');
   assert.equal(outra.cobrancas, 4);
   const PECAS = [{ id: '301', nome: 'Peça atrasada', prazo_iso: '2026-11-01' }, { id: '302', nome: 'Peça de hoje', veiculacao_iso: '2026-11-07' }];
-  const admin = montar({ base: { ...BASE(), admin: true }, cobrancas: [], extras: { TEAM_USERS: [{ id: '7', name: 'Bruno Lima' }], focusOwnItems: () => PECAS } });
+  const extras = { TEAM_USERS: [{ id: '7', name: 'Bruno Lima' }], focusOwnItems: () => PECAS };
+  // Quem administra: o XP e as moedas de outra pessoa vêm do servidor.
+  const admin = montar({ base: { ...BASE(), admin: true }, cobrancas: [], missoes: servidor({ admin: true }), extras });
   const a = JSON.parse(JSON.stringify(await admin.M.resumo('7')));
-  assert.deepEqual(a, { missoesAtrasadas: 1, missoesHoje: 1, xpEmJogo: null, moedasEmJogo: null, cobrancas: 0, clientesCobrando: 0, pessoaId: '7' });
+  assert.deepEqual(a, { missoesAtrasadas: 1, missoesHoje: 1, xpEmJogo: 120, moedasEmJogo: 35, cobrancas: 0, clientesCobrando: 0, pessoaId: '7' });
+  assert.ok(admin.chamadas.includes(JSON.stringify(['missoes', { pessoa: '7' }])));
+  // Servidor recusou (sócio sem admin): as tarefas do painel contam, sem XP.
+  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Deivid Ribeiro' }, { id: '7', nome: 'Bruno Lima' }] }, cobrancas: [], missoes: servidor({ admin: false }), extras });
+  const s = JSON.parse(JSON.stringify(await socio.M.resumo('7')));
+  assert.deepEqual(s, { missoesAtrasadas: 1, missoesHoje: 1, xpEmJogo: null, moedasEmJogo: null, cobrancas: 0, clientesCobrando: 0, pessoaId: '7' });
   const sem = JSON.parse(JSON.stringify(await montar({ base: null }).M.resumo()));
   assert.equal(sem.semEscritorio, true);
   assert.equal(sem.missoesAtrasadas, null);

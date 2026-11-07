@@ -99,6 +99,8 @@
         texto: 'Aqui você escolhe o que aparece no mapa. Na Prospecção entram as empresas que ainda não são clientes, filtradas pelo CRM: sem contato, em contato, disseram sim ou disseram não.' },
       'ferr:conversa': { grupo: 'Topo', titulo: 'Conversa da equipe', alvo: ['section.vv-conversa', '[data-ferr="conversa"]'], lado: 'esquerda',
         texto: 'Aqui ficam a conversa da sala em que você está e os recados que deixaram para você. Nas duas abas dá para escrever.' },
+      'ferr:whatsapp': { grupo: 'Topo', titulo: 'WhatsApp da Vybe', alvo: ['#vv-whatsapp', '[data-ferr="whatsapp"]'], lado: 'esquerda',
+        texto: 'Aqui estão os grupos internos e os dos clientes de que você participa, com as menções a você numa aba só, e eu aviso quando chega mensagem nova. Por enquanto é só para ler: para responder, use o seu WhatsApp.' },
       'ferr:aparencia': { grupo: 'Topo', titulo: 'Aparência', alvo: '.vv-menu-tema', lado: 'esquerda',
         texto: 'Claro, escuro ou automático, que segue o seu computador. Em Mais ajustes dá para reduzir o movimento da tela.' },
       'ferr:conta': { grupo: 'Topo', titulo: 'Sua conta', alvo: '.vv-menu-conta:not(.vv-menu-tema)', lado: 'esquerda',
