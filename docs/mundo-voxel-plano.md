@@ -185,6 +185,38 @@ Ele é baseado no guia do Vale ao Vivo, traduzido para a Vybe. Os tokens ficam n
 - **Pente fino**: medição de contraste WCAG (fórmula oficial) em cada módulo; 2.391 regras antigas de texto claro escurecidas por gerador (`gera_texto_claro.py` no histórico; separar seletores respeitando parênteses, senão o CSS quebra); selecionado = fundo `--vv-acao` (#C2490C) + texto branco; caixinhas de marcar novas; cartões de peça como vidro separado; grade da linha da peça sem cortar selo/formato; cartão rápido da peça claro; Direção de Arte sem margem negativa; **rolagem dentro da moldura** (o body ocupa a área da moldura); animações curtas (clique afunda, conteúdo entra subindo, janelas surgem), desligadas com menos movimento/ocioso.
 - **Falta**: vegetação mais rica e passarinhos; **otimizar o mapa** (muitos blocos: juntar por quadra, LOD por distância, desenhar só o que a câmera vê); conferir telas restantes (Tarefas/Foco, Agenda de captações, Cadastros, VYBES, gaveta da peça) com o mesmo detector; publicar (só com o Paulo pedindo; seguir `CHECKLIST-DEPLOY.md`).
 
+## 5a3. Rodada de 07/11/2026 (tarde): cidade detalhada, V laranja e cidade que vira foto
+
+Pedido do Paulo: "tudo muito bem detalhado e bem feito, no nível da baleia, parecendo mais com Irecê"; "ruas e detalhes
+muito longe do esperado"; "áreas verdes e terrenos pobres"; "troca por um V da Vybe, de roxo pra laranja"; "otimiza tudo
+pra não ficar renderizando a cidade toda o tempo todo".
+- **Superfície de cubinhos** (`voxelizar`/`materialVoxel` em `voxel.mjs`): toda caixa do mundo ganha, no shader, a grade de
+  voxels de 1 m com tom levemente diferente por cubinho, quina escurecida e pé da parede mais escuro. Nenhum triângulo a
+  mais; de longe a grade some sozinha. Vale para casas, árvores, sedes, prédio, salas, chão e ruas (um material só).
+- **Chão em alta resolução** (`irece.mjs`): o disco virou uma imagem de 8 px por célula (1,25 m). Por cima, as ruas no
+  traçado real em camadas: calçada, meio-fio, leito (asfalto no centro, paralelepípedo nos bairros, terra na roça),
+  faixa dupla amarela, tracejado branco e faixa de pedestre nas esquinas do centro. As faixas de rua em 3D saíram (as juntas
+  viravam borrão).
+- **Quarteirões de Irecê**: casas geminadas de frente para a calçada, no ângulo da rua (`blocos()` aceita `rot`), lotes de
+  8 a 13 m, quintal atrás com frutífera. Loja com porta de enrolar, toldo e placa na cor do setor (empresas da base de CNPJ
+  no lote do endereço). De perto: porta com batente, janela com grade, garagem, barrado, fileiras de telha, caixa-d'água,
+  aquecedor solar, ar-condicionado; na calçada: nim, ipê, coqueiro, poste e carro estacionado.
+- **Praças**: grama no formato real, calçada em volta, caminhos até a roda do meio, canteiros com flores, coreto (grandes) ou
+  fonte, bancos, postes e mais árvores. Estádio e campo ficam de fora. **Terrenos vazios**: terra batida com mato, arbustos,
+  mandacaru e, às vezes, entulho.
+- **Árvores em cachos** (cidade e `Obra.arvore`): miolo de longe; cachos, tronco e flores de perto.
+- **Prédio**: o ser roxo virou o **V da Vybe em voxel, laranja** (rótulo "VYBES" laranja). Terraço com deque, sinuca com pés e
+  caçapas, ombrelones listrados, sofás com almofadas, floreiras, bar e cordão de luzinhas; guarda-corpo de vidro.
+- **Andar por dentro** (`sala.mjs`): corredor com passadeira, plantas, bancos, luminárias e bebedouro; o canto sem sala vira
+  um lounge.
+- **Relevo**: degrau de 0,28 (era 0,45) e paredes dos degraus em terra clara (riscavam as ruas de marrom).
+- **Cidade que vira foto** (`motor.mjs`): mexendo, todo quadro; parado, o enfeite cai para 30, 15 (6 s) e 4 qps (20 s), e
+  com 1 min sem mexer o mapa para de ser desenhado até alguém mexer o mouse/teclado (ou um dado novo chegar). A sombra da
+  cidade só é refeita quando a câmera anda (antes, a cada 2 s com qualquer animação); nuvens não fazem sombra. Longe do foco
+  (mais de 150 células), casas e árvores ficam só na imagem do chão (telhados pintados vistos de cima): é o "cenário em PNG".
+  `mundoVoxel.desempenho().laco` mostra o estado (pausado, visível, estacionado, parado há quanto tempo).
+- Medido neste PC (1366×768): vista geral ~315 mil triângulos e ~6 ms por quadro; de perto ~1,1 milhão e ~6 ms.
+
 ## 5b. Conferência geral (06/11/2026): onde ficou cada coisa do painel antigo
 
 | Do painel antigo | Agora, com o mundo ligado | Situação |

@@ -264,7 +264,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     situacaoDosAndares: (m) => predio.situacaoDosAndares?.(m),
     noRecorte: (x, z) => irece.noRecorte(x, z),
     get empresas() { return Empresas.EMPRESAS; }, get fonteEmpresas() { return Empresas.FONTE_EMPRESAS; }, tipoLegivel: Empresas.TIPO_LEGIVEL, agencia: { x: base.x, z: base.z },
-    focarPonto(x, z) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist: 80, incl: .7 }); },
+    focarPonto(x, z, dist = 80, incl = .7, giro) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist, incl, ...(giro == null ? {} : { giro }) }); },
     cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },
     criarFonteAgentes, apresentarAgente, referenciaDaPeca, estadosReais: ESTADOS_REAIS, atividadeAgentes: predio.atividadeAgentes,
     atualizarAgentesCerebro(agentes,camadas) { if(cerebro) mostrarCerebro(true,cerebro.lista,{...cerebro.opcoes,agentes,camadas}); },

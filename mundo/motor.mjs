@@ -246,6 +246,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   let voo = null;
   function cancelarVoo() { voo = null; }
   function voar(destino, ms = 1100) {
+    acordarDaFoto(); // voo de câmera (clicar num cliente, numa vista) conta como mexida
     const de = { alvo: quer.alvo.clone(), dist: quer.dist, giro: quer.giro, incl: quer.incl };
     const para = { alvo: destino.alvo ? new THREE.Vector3(destino.alvo.x, destino.alvo.y ?? 0, destino.alvo.z) : de.alvo, dist: destino.dist ?? de.dist,
       giro: destino.giro ?? de.giro, incl: destino.incl ?? de.incl };
@@ -323,15 +324,22 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
 
   // ---------- Laço ----------
-  let sujo = true, pausado = false, ultimo = performance.now(), visivel = true;
+  let sujo = true, pausado = false, ultimo = performance.now(), visivel = true, ultimaAcao = performance.now(), estacionado = false;
+  // Qualquer mexida na página (mouse, toque, roda, tecla) tira a cidade do modo "foto".
+  const acordarDaFoto = () => { ultimaAcao = performance.now(); if (estacionado) { estacionado = false; ciclo?.acordar(); } };
+  if (typeof window.addEventListener === 'function') for (const nome of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart']) ouvir(window, nome, acordarDaFoto, { passive: true, capture: true });
   const animadores = [];
   const io = new IntersectionObserver(([e]) => { visivel = e.isIntersecting; if (visivel) invalidar(); }, { threshold: 0.01 });
   io.observe(canvas);
   function passo(t) {
     if (destruido || pausado || !visivel || document.hidden) return false;
     const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
-    // Em repouso 30 qps; mexendo, todo quadro.
-    if (!interagindo && t - ultimo < 33) return true;
+    // Mexendo: todo quadro. Parado, a cidade vira "foto" aos poucos (Paulo, 07/11/2026: "não ficar renderizando a cidade
+    // toda o tempo todo"): o que só enfeita (nuvem, água, o V girando) cai para 30 qps, depois de 6 s para 15, depois de
+    // 20 s para 4, e depois de 1 min o mapa para de ser desenhado até alguém mexer (ou um dado novo chegar: invalidar).
+    const parado = performance.now() - ultimaAcao;
+    if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
+    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 66 : 33)) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -355,7 +363,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
-    if (animando && t - (passo.sombra || 0) > 2000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
+    if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
     renderer.info.reset();
     const t0 = performance.now();
     composer.render();
@@ -370,7 +379,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   medir(); posicionarCamera(); ciclo.acordar();
   return {
     THREE, cena, camera, renderer, LIM,
-    desempenho: () => ({ chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles, msPorQuadro: Math.round(medida.ms * 10) / 10, quadros: medida.quadros, pixelRatio: renderer.getPixelRatio() }),
+    desempenho: () => ({ chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles, msPorQuadro: Math.round(medida.ms * 10) / 10, quadros: medida.quadros, pixelRatio: renderer.getPixelRatio(), laco: { pausado, visivel, estacionado, paradoMs: Math.round(performance.now() - ultimaAcao), sujo } }),
     adicionar: (o) => { cena.add(o); invalidar(); },
     invalidar, emVista,
     clicavel: (o) => clicaveis.push(o),
@@ -383,7 +392,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     aoPassar: (f) => ouvintes.passar.push(f),
     aoMexer: (f) => ouvintes.mexeu.push(f),
     voar,
-    zoom: (fator) => { cancelarVoo(); quer.dist = limitar(quer.dist * fator, ...LIM.dist); ultimoGesto = performance.now(); invalidar(); },
+    zoom: (fator) => { cancelarVoo(); quer.dist = limitar(quer.dist * fator, ...LIM.dist); ultimoGesto = performance.now(); acordarDaFoto(); invalidar(); },
     girar90: () => voar({ giro: Math.round((quer.giro + Math.PI / 2) / (Math.PI / 2)) * (Math.PI / 2) - 0.75 + 0.75 }, 700),
     areaLivre: (esq = 0, dir = 0, baixo = 0) => { if (livre.esq === esq && livre.dir === dir && livre.baixo === baixo) return; livre.esq = esq; livre.dir = dir; livre.baixo = baixo; ultimoGesto = performance.now(); invalidar(); },
     pausar: (sim) => { const antes = pausado; pausado = !!sim; if (!sim && antes) { ultimo = performance.now(); invalidar(); } else if (sim && !antes) { try { composer.render(); } catch { /* sem quadro ainda */ } } },
