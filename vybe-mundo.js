@@ -1637,6 +1637,7 @@
         if (e.microfoneQuer === undefined) e.microfoneQuer = false; // entra calado; liga o microfone quando quiser falar
         fn('conectarEscritorio')();
       }
+      pintarChamada.ultimo = '';
       barra.innerHTML = outraAba
         ? `<span class="sala off"><i></i><b>Voz aberta em outra aba</b><small>Só uma aba fica na chamada, para não ouvir em dobro</small></span><button type="button" class="vv-botao" data-chamada="assumir">Usar nesta aba</button>`
         : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3)
@@ -1656,7 +1657,7 @@
     const salas = {}; for (const o of outros) if (o.zona && o.zona !== e.zona) (salas[o.zona] ||= []).push(o);
     const pessoa = pessoaAberta && outros.find((o) => String(o.id) === pessoaAberta);
     const ouvem = juntos.length ? juntos.length + (juntos.length === 1 ? ' pessoa ouve você' : ' pessoas ouvem você') : 'só você aqui';
-    barra.innerHTML = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${esc(estado)}${naChamada ? ' · ' + ouvem : ''}</small></span>
+    const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${esc(estado)}${naChamada ? ' · ' + ouvem : ''}</small></span>
       <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' · falando' : ''}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       <span class="acoes">
         <button type="button" class="vv-botao ic${mic ? ' on' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
@@ -1670,6 +1671,12 @@
       ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}${falando.has(String(pessoa.id)) ? ' · falando agora' : ''}</small>
         ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
       ${chamarAberto && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
+    // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
+    // da lista de salas (antes ela voltava para o topo enquanto a pessoa rolava).
+    if (html === pintarChamada.ultimo) return;
+    const lista = barra.querySelector('.vv-chamar'), rolagem = lista ? lista.scrollTop : 0;
+    barra.innerHTML = html; pintarChamada.ultimo = html;
+    const nova = barra.querySelector('.vv-chamar'); if (nova && rolagem) nova.scrollTop = rolagem;
   }
   // Salas de voz, como no Discord: todas as salas do prédio por andar, quem está em cada uma (acende quem fala),
   // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa.
@@ -1878,6 +1885,27 @@
     const original = window.chooseOfficeMode;
     window.chooseOfficeMode = function (...a) { if (ligado && !jogandoAgora) return irAoPredio(); return original.apply(this, a); };
   }
+  // Avisos do Escritório (erros de voz, "não achei essa mesa"…) moravam na barra da tela antiga, invisível no
+  // Irecity: aqui viram o aviso normal do painel (sem repetir o mesmo texto em menos de 4 s).
+  if (typeof window !== 'undefined' && typeof window.escritorioAviso === 'function') {
+    const avisoOriginal = window.escritorioAviso; let ultimoAviso = '', quandoAviso = 0;
+    window.escritorioAviso = function (texto, ...a) {
+      const r = avisoOriginal.call(this, texto, ...a);
+      if (ligado && texto && (texto !== ultimoAviso || Date.now() - quandoAviso > 4000)) { ultimoAviso = texto; quandoAviso = Date.now(); chamar('showToast', String(texto), /falh|não |erro|negad|bloque/i.test(texto) ? 'err' : 'info', 5000); }
+      return r;
+    };
+  }
+  // Primeiro acesso sem personagem: no Irecity abre o criador novo (o antigo ficava escondido atrás do mundo).
+  if (typeof window !== 'undefined' && typeof window.abrirAberturaEscritorio === 'function') {
+    const aberturaOriginal = window.abrirAberturaEscritorio;
+    window.abrirAberturaEscritorio = function (...a) { if (ligado && window.VybePersonagem?.abrir) return window.VybePersonagem.abrir(); return aberturaOriginal.apply(this, a); };
+  }
+  // A arte da Vybelândia (abertura e saguão do Escritório antigo, ~0,5 MB) não aparece no Irecity: o mundo é a
+  // abertura. Sem a imagem, o navegador nem baixa. No modo legado (?legado=1), tudo como antes.
+  if (typeof window !== 'undefined' && typeof window.vybelandiaCenaHtml === 'function') {
+    const cenaOriginal = window.vybelandiaCenaHtml;
+    window.vybelandiaCenaHtml = function (...a) { return ligado ? '<div class="abr-cena" aria-hidden="true"></div>' : cenaOriginal.apply(this, a); };
+  }
   desviarEscritorio(); if (typeof setInterval === 'function') { const t = setInterval(() => { desviarEscritorio(); if (desviarEscritorio.feito) clearInterval(t); }, 1500); }
 
   // ---------- Lobby: a entrada nova (Irecity) ou o modo legado ----------
@@ -1929,7 +1957,10 @@
     const quadro = typeof activeBoard !== 'undefined' ? activeBoard : '';
     if (ligado && autenticado && !gateAberto && !andarAberto && quadro === 'escritorio' && !redirecionando && !jogandoAgora) {
       redirecionando = true;
-      setTimeout(() => { redirecionando = false; if (typeof openModeGate === 'function') openModeGate(); setTimeout(() => usarTrilho('predio'), 300); }, 0);
+      // Na abertura do sistema o código antigo leva ao quadro do Escritório: no Irecity a pessoa fica na cidade.
+      // Depois disso, pedir o Escritório de propósito leva ao Prédio (o Escritório é o prédio).
+      const naAbertura = !sincronizar.abriu; sincronizar.abriu = true;
+      setTimeout(() => { redirecionando = false; if (typeof openModeGate === 'function') openModeGate(); setTimeout(() => usarTrilho(naAbertura ? 'hoje' : 'predio'), 300); }, 0);
     }
     const modulo = ligado && autenticado && !gateAberto && !andarAberto && quadro !== 'escritorio';
     // Lobby: antes do login, Irecê ao vivo atrás do portão (vale para os dois modos; a escolha é no portão).
