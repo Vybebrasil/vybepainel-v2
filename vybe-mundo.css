@@ -4184,3 +4184,9 @@ html.tema-escuro body.mundo #mundo-andar canvas{filter:invert(1) hue-rotate(180d
 html body.mundo.abrindo-escritorio{background:#F6F3EE!important;background-image:none!important}
 html body.mundo #mode-gate .identity-station::after{background-image:none!important}
 html body.mundo .abr-cena{background-image:none!important}
+
+/* O Escritório antigo nunca aparece no Irecity (nem o saguão "Entrar no escritório" no carregamento): fica
+   montado e invisível, só como motor da voz, da presença e dos jogos. As janelas que ele abre (jogos, ficha,
+   recados, TV, ajustes de áudio) vivem no body e continuam aparecendo. Modo legado (?legado=1) não tem body.mundo. */
+html body.mundo #painel-escritorio{visibility:hidden!important;pointer-events:none!important}
+html body.mundo :is(.ofc-lobby,.ofc-abertura,#ofc-abertura){display:none!important}
