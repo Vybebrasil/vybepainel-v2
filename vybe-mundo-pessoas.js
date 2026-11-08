@@ -6,6 +6,9 @@
 //   VybePessoas.carga(semana?)  → Promise<{ semana, fim, capacidade, pessoas: [{ id, nome, pecas, atrasadas, etapas, total, pct, nivel }] }>
 //                                 a carga atual por pessoa (demandas abertas do painel + etapas de projetos
 //                                 da semana), para o Comercial cruzar capacidade × vendas.
+//   VybePessoas.novoPedido()    → Promise  abre o RH já no formulário "Nova solicitação ao RH" (atalho do Hoje).
+//   window.VybeEspiarProvedores.pessoas    os números da fila do RH (abertos, fora, respondidos) e o
+//                                 histórico do clima no mini painel (data-espiar="pessoas:…").
 //
 // Os dados e as regras de acesso são do servidor (server/pessoas.js, GET/POST
 // /api/painel?area=setor_pessoas); as contas são as de shared/pessoas-calculos.js. A tela só
@@ -18,25 +21,25 @@
   const ABAS = [['produtividade', 'Produtividade'], ['rh', 'RH'], ['projetos', 'Projetos'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
   const SO_GESTAO = new Set(['recrutamento', 'documentos']);
   const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
-  const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate';
+  const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
   const AJUDA = {
     produtividade: 'O score de 0 a 100 sai das demandas do painel, sem nada para preencher: entregas no prazo (a data do cliente manda), volume do mês contra a meta do cargo, peças que voltaram para ajuste e o que está atrasado na fila. Cada pessoa vê só o próprio detalhe; o ranking, os pesos e as metas são dos donos.',
-    rh: 'Pedidos ao RH com prazo de resposta por tipo, aniversários (só dia e mês) e férias aprovadas. A pesquisa de clima é trimestral e anônima de verdade: a resposta não guarda quem respondeu nem a hora, e o resultado só aparece somado, com 3 respostas ou mais.',
+    rh: 'Pedidos ao RH (férias ou folga, documento, reembolso, equipamento) com prazo de resposta em dias úteis por tipo, que os donos ajustam; fora do prazo fica em vermelho. Aniversários (só dia e mês) e férias aprovadas. A pesquisa de clima é aberta pelos donos com período e é anônima de verdade: a resposta não guarda quem respondeu nem a hora, e o resultado só aparece somado, com 3 respostas ou mais.',
     projetos: 'Projetos fora do mensal (evento, lançamento, site) com etapas, responsáveis e datas, na linha do tempo. A carga da semana soma as demandas abertas do painel e as etapas de projeto de cada pessoa contra a capacidade semanal.',
     academy: 'Trilhas de treinamento para quem entra na Vybe. Cada aula é um link de vídeo ou documento; marque a aula como feita quando terminar. Os donos montam as trilhas e atribuem a cada pessoa.',
     recrutamento: 'Vagas abertas e os candidatos em cada etapa. As etapas são configuráveis; mover para Aprovado (ou Contratado) conta no tempo médio de contratação. Só os donos e quem administra veem.',
     documentos: 'Contratos e documentos de cada colaborador, com o aviso de renovação nos próximos 30 dias. Sem assinatura eletrônica: o link aponta para o arquivo no Drive. Só os donos e quem administra veem.',
   };
   const NIVEL = { sobrecarregada: ['Sobrecarregada', 'u2'], cheia: ['Cheia', 'u4'], ok: ['Em dia', 'u6'], leve: ['Folga', 'u5'] };
-  const SLA = { atrasado: ['Atrasado', 'u1'], vence_hoje: ['Vence hoje', 'u2'], no_prazo: ['No prazo', 'u6'], encerrado: ['Encerrado', 'u5'], sem_prazo: ['Sem prazo', 'u5'] };
+  const SLA = { atrasado: ['Fora do prazo', 'u1'], vence_hoje: ['Vence hoje', 'u2'], no_prazo: ['No prazo', 'u6'], encerrado: ['Encerrado', 'u5'], sem_prazo: ['Sem prazo', 'u5'] };
   const DOC = { vencido: ['Vencido', 'u1'], renovar: ['Renovar em breve', 'u2'], em_dia: ['Em dia', 'u6'], sem_renovacao: ['Sem renovação', 'u5'], encerrado: ['Encerrado', 'u5'] };
   const TIPOS_PROJETO = { evento: 'Evento', lancamento: 'Lançamento', site: 'Site', campanha: 'Campanha', outro: 'Outro' };
   const STATUS_PROJETO = { planejado: 'Planejado', andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado' };
 
   const hoje = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
   const estado = { raiz: null, janela: null, antes: null, aba: 'produtividade', dados: {}, carregando: false, erro: '', aviso: '', ajuda: false, form: '', editar: null,
-    mes: '', pessoa: '', periodo: 'mensal', ref: '', semana: '', vaga: '' };
+    mes: '', pessoa: '', periodo: 'mensal', ref: '', semana: '', vaga: '', tipoPedido: '', filtroPedidos: '', pesquisaVer: '' };
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
@@ -149,48 +152,145 @@
     const h = hoje(), md = h.slice(5);
     return [...(lista || [])].map((a) => ({ ...a, ordem: a.dia >= md ? a.dia : '13-' + a.dia })).sort((a, b) => a.ordem.localeCompare(b.ordem)).slice(0, 8);
   }
+  const nomeTipo = (d, id) => (d.tipos || []).find((t) => t.id === id)?.nome || id;
+  const ha = (n) => (n == null ? '' : n === 0 ? 'aberto hoje' : n === 1 ? 'aberto ontem' : `aberto há ${n} dias`);
+  const decimal = (v) => String(v).replace('.', ',');
+  // Filtros dos números da fila (o mini painel e a lista usam os mesmos).
+  const FILTROS_PEDIDO = {
+    abertos: ['Pedidos abertos', (p) => p.sla !== 'encerrado', '', 'Nenhum pedido aberto.'],
+    fora: ['Fora do prazo', (p) => p.sla === 'atrasado', 'u1', 'Nada fora do prazo.'],
+    respondidos: ['Respondidos', (p) => ['resolvido', 'recusado'].includes(p.status) && p.respondido_dia, '', 'Nenhum pedido respondido ainda.'],
+  };
+  function kpiEspiar(rotulo, valor, chave, { cls = '', extra = '' } = {}) {
+    return `<div class="vp-kpi espiavel${cls ? ' ' + cls : ''}" data-espiar="pessoas:${esc(chave)}" role="button" tabindex="0" title="Ver a lista"><span>${esc(rotulo)}</span><b>${esc(valor ?? '—')}</b>${extra}</div>`;
+  }
+  function kpisPedidos(d) {
+    const i = d.indicadores || {};
+    const tempo = i.tempoMedioDias == null ? '—' : `${decimal(i.tempoMedioDias)} ${i.tempoMedioDias === 1 ? 'dia útil' : 'dias úteis'}`;
+    return `<div class="vp-kpis vp-kpis-3">${kpiEspiar('Abertos', i.abertos ?? 0, 'abertos')}
+      ${kpiEspiar('Fora do prazo', i.foraDoPrazo ?? 0, 'fora', { cls: i.foraDoPrazo ? 'u1' : '' })}
+      ${kpiEspiar('Tempo médio de resposta', tempo, 'respondidos', { extra: i.noPrazoPct == null ? '<small class="vp-vs">nenhum respondido ainda</small>' : `<small class="vp-vs">${esc(i.noPrazoPct)}% respondidos no prazo</small>` })}</div>`;
+  }
   function linhaPedido(p, d) {
-    const [, cls] = SLA[p.sla] || SLA.sem_prazo, encerrado = p.sla === 'encerrado';
-    const status = (d.status || {})[p.status] || p.status;
-    const proprio = p.pessoa_id === d.eu?.id;
-    const botoes = d.gestao && !encerrado
-      ? `${p.status === 'aberto' ? sec('Em andamento', `data-vp-pedido="${esc(p.id)}" data-status="andamento"`) : ''}${sec(p.tipo === 'ferias' ? 'Aprovar' : 'Resolver', `data-vp-pedido="${esc(p.id)}" data-status="resolvido"`)}${sec('Recusar', `data-vp-pedido="${esc(p.id)}" data-status="recusado"`)}`
-      : proprio && p.status === 'aberto' ? sec('Cancelar', `data-vp-pedido="${esc(p.id)}" data-status="cancelado"`) : '';
+    const encerrado = p.sla === 'encerrado', [, cls] = SLA[p.sla] || SLA.sem_prazo;
+    const status = (d.status || {})[p.status] || p.status, proprio = p.pessoa_id === d.eu?.id;
+    const datas = p.inicio ? (p.inicio === p.fim ? br(p.inicio) : `${br(p.inicio)} a ${br(p.fim)}`) : p.data_desejada ? `para ${br(p.data_desejada)}` : '';
+    const linha = [d.gestao ? p.pessoa_nome : '', nomeTipo(d, p.tipo), datas, ha(p.idadeDias), `prazo ${br(p.prazo)}`].filter(Boolean).join(' · ');
+    const sla = p.sla === 'atrasado' && p.atrasoUteis ? ['Fora do prazo há ' + plural(p.atrasoUteis, 'dia útil', 'dias úteis'), 'u1'] : SLA[p.sla] || SLA.sem_prazo;
+    const final = p.tipo === 'ferias' && p.status === 'resolvido' ? 'Aprovado' : status;
+    let botoes = '';
+    if (d.gestao && !encerrado) {
+      botoes = `<details class="vp-det vp-responder"><summary>Responder</summary><form data-vp-form="responder" data-id="${esc(p.id)}" class="vp-form">
+        <label><span>Resposta para ${esc(String(p.pessoa_nome || '').split(' ')[0] || 'quem pediu')}</span><textarea name="resposta" maxlength="2000" rows="2" placeholder="Obrigatória para recusar"></textarea></label>
+        <div class="vp-botoes">${p.status === 'aberto' ? '<button type="submit" class="vp-sec" name="status" value="andamento">Em andamento</button>' : ''}
+        <button type="submit" class="vp-sec" name="status" value="recusado">Recusar</button><button type="submit" class="vp-acao" name="status" value="resolvido">${p.tipo === 'ferias' ? 'Aprovar' : 'Resolver'}</button></div></form></details>`;
+    } else if (proprio && p.status === 'aberto') botoes = `<div class="vp-botoes">${sec('Cancelar pedido', `data-vp-pedido="${esc(p.id)}" data-status="cancelado"`)}</div>`;
     return `<li class="vp-item ${cls}"><div class="vp-meio"><b>${esc(p.titulo)}</b>
-      <small>${d.gestao ? esc(p.pessoa_nome) + ' · ' : ''}${esc((d.tipos || []).find((t) => t.id === p.tipo)?.nome || p.tipo)}${p.inicio ? ` · ${br(p.inicio)} a ${br(p.fim)}` : ''} · prazo ${br(p.prazo)}</small>
-      ${p.resposta ? `<small class="vp-resposta">${esc(p.resposta)}</small>` : ''}</div>
-      <div class="vp-lado">${encerrado ? chip([p.tipo === 'ferias' && p.status === 'resolvido' ? 'Aprovado' : status, 'u5']) : chip(SLA[p.sla] || SLA.sem_prazo)}${encerrado ? '' : `<small>${esc(status)}</small>`}</div>
-      ${botoes ? `<div class="vp-botoes">${botoes}</div>` : ''}</li>`;
+      <small>${esc(linha)}</small>
+      ${p.descricao ? `<small class="vp-desc">${esc(p.descricao)}</small>` : ''}
+      ${p.resposta ? `<small class="vp-resposta"><b>Resposta do RH:</b> ${esc(p.resposta)}</small>` : ''}</div>
+      <div class="vp-lado">${encerrado ? chip([final, p.status === 'recusado' ? 'u2' : 'u5']) : chip(sla)}${encerrado ? '' : `<small>${esc(status)}</small>`}</div>
+      ${botoes}</li>`;
   }
   function formPedido(d) {
+    const tipos = (d.tipos || []).filter((t) => t.formulario !== false), atual = estado.tipoPedido && tipos.some((t) => t.id === estado.tipoPedido) ? estado.tipoPedido : tipos[0]?.id;
+    const ferias = atual === 'ferias';
     return `<form data-vp-form="pedido" class="vp-cartao vp-form">
-      <label><span>Tipo</span><select name="tipo" data-vp-tipo-pedido>${(d.tipos || []).map((t) => `<option value="${esc(t.id)}">${esc(t.nome)} (resposta em ${esc(t.dias)} dias úteis)</option>`).join('')}</select></label>
+      <h3 class="vp-titulo">Nova solicitação ao RH</h3>
+      <label><span>Tipo</span><select name="tipo" data-vp-tipo-pedido>${tipos.map((t) => `<option value="${esc(t.id)}"${t.id === atual ? ' selected' : ''}>${esc(t.nome)} (resposta em ${esc(plural(t.dias, 'dia útil', 'dias úteis'))})</option>`).join('')}</select></label>
       <label><span>Assunto</span><input name="titulo" maxlength="200" required placeholder="Ex.: declaração de vínculo"></label>
-      <label><span>Detalhes</span><textarea name="descricao" maxlength="2000" rows="3"></textarea></label>
-      <div class="vp-grade vp-ferias" hidden><label><span>Início das férias</span><input type="date" name="inicio"></label><label><span>Fim</span><input type="date" name="fim"></label></div>
+      <label><span>Descrição</span><textarea name="descricao" maxlength="2000" rows="3" placeholder="Conte o que precisa"></textarea></label>
+      <div class="vp-grade vp-ferias"${ferias ? '' : ' hidden'}><label><span>Primeiro dia</span><input type="date" name="inicio"${ferias ? ' required' : ''}></label><label><span>Último dia</span><input type="date" name="fim"${ferias ? ' required' : ''}></label>
+        <p class="vp-nota">Folga de um dia: repita a mesma data.</p></div>
+      <div class="vp-grade vp-desejada"${ferias ? ' hidden' : ''}><label><span>Data desejada (opcional)</span><input type="date" name="data_desejada" min="${esc(hoje())}"></label></div>
+      ${d.rhPronto === false ? `<p class="vp-nota">Reembolso e prazos ajustados pelos donos estão aguardando a migração ${esc(d.migracaoRh || '')}.</p>` : ''}
       <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Enviar ao RH</button></div></form>`;
   }
+  function formPrazos(d) {
+    const tipos = (d.tipos || []).filter((t) => t.formulario !== false);
+    return `<details class="vp-cartao vp-det"${estado.form === 'prazos' ? ' open' : ''}><summary>Prazos de resposta por tipo</summary>
+      <form data-vp-form="prazos" class="vp-form vp-grade">${tipos.map((t) => `<label><span>${esc(t.nome)} (dias úteis)</span><input type="number" name="${esc(t.id)}" min="1" max="30" step="1" value="${esc(t.dias)}" inputmode="numeric" required></label>`).join('')}
+      <p class="vp-nota">Conta só dias úteis (segunda a sexta). Vale para os pedidos novos; quem já pediu mantém o prazo que recebeu.</p>
+      <div class="vp-botoes"><button type="submit" class="vp-acao"${d.rhPronto === false ? ' disabled' : ''}>Salvar prazos</button></div></form></details>`;
+  }
+  function htmlPedidos(d) {
+    const todos = d.pedidos || [], f = FILTROS_PEDIDO[estado.filtroPedidos];
+    let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">${d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH'}</h3>${estado.form === 'pedido' ? '' : acao('Nova solicitação', 'data-vp-abrir-form="pedido"')}</div>`;
+    if (estado.form === 'pedido') html += formPedido(d);
+    if (todos.length || d.gestao) html += kpisPedidos(d);
+    if (f) {
+      const lista = todos.filter(f[1]);
+      html += `<p class="vp-nota">Mostrando: <b>${esc(f[0])}</b> (${lista.length}) · <button type="button" class="vp-link" data-vp-filtro-pedidos="">Mostrar todos</button></p>`;
+      return html + (lista.length ? `<ul class="vp-lista">${lista.map((p) => linhaPedido(p, d)).join('')}</ul>` : vazio(f[3], ''));
+    }
+    const abertos = todos.filter((p) => p.sla !== 'encerrado');
+    html += todos.length ? `<ul class="vp-lista">${[...abertos, ...todos.filter((p) => p.sla === 'encerrado').slice(0, 10)].map((p) => linhaPedido(p, d)).join('')}</ul>`
+      : estado.form === 'pedido' ? '' : vazio('Nenhum pedido por aqui', 'Precisa de uma declaração, de férias, de um reembolso ou de algo do RH? Abra uma solicitação e acompanhe o prazo.');
+    return html + (d.gestao ? formPrazos(d) : '');
+  }
+
+  // Pesquisa de clima com período (08/11/2026): os donos abrem; cada um responde uma vez, sem nome.
+  const escala = (nome, de, ate) => `<div class="vp-escala" role="radiogroup">${Array.from({ length: ate - de + 1 }, (_, i) => de + i).map((n) => `<label><input type="radio" name="${nome}" value="${n}" required><span>${n}</span></label>`).join('')}</div>`;
+  function formResponderPesquisa(c) {
+    return `<form data-vp-form="pesquisa" data-id="${esc(c.atual.id)}" class="vp-cartao vp-form">
+      <fieldset><legend>De 0 a 10, você recomendaria a Vybe como lugar para trabalhar? <small>0 = de jeito nenhum · 10 = com certeza</small></legend>${escala('enps', 0, 10)}</fieldset>
+      ${(c.dimensoes || []).map((x) => `<fieldset><legend>${esc(x.nome)} <small>1 = muito ruim · 5 = ótimo</small></legend>${escala(x.id, 1, 5)}</fieldset>`).join('')}
+      <label><span>Quer dizer mais alguma coisa? (opcional)</span><textarea name="comentario" maxlength="1000" rows="3"></textarea></label>
+      <p class="vp-nota">Ninguém vê a sua resposta, nem os donos: ela entra sem nome e sem hora, e o resultado só aparece somado, com ${esc(c.minimo || 3)} respostas ou mais. Evite escrever algo que identifique você no comentário.</p>
+      <div class="vp-botoes">${sec('Agora não', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Enviar anônimo</button></div></form>`;
+  }
+  function formAbrirPesquisa() {
+    return `<form data-vp-form="pesquisa-abrir" class="vp-cartao vp-form"><h3 class="vp-titulo">Iniciar pesquisa de clima</h3><div class="vp-grade">
+      <label><span>Nome</span><input name="titulo" maxlength="120" required value="Clima ${esc(hoje().slice(5, 7))}/${esc(hoje().slice(0, 4))}"></label>
+      <label><span>Abre em</span><input type="date" name="abre" required value="${esc(hoje())}" min="${esc(hoje())}"></label>
+      <label><span>Fecha em</span><input type="date" name="fecha" required value="${esc(somarDias(hoje(), 7))}" min="${esc(hoje())}"></label></div>
+      <p class="vp-nota">Todos da equipe respondem uma vez: recomendação (eNPS) e cinco notas de 1 a 5. Uma pesquisa por vez; fica aberta no máximo 60 dias.</p>
+      <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Abrir pesquisa</button></div></form>`;
+  }
+  function deltaDim(v) {
+    if (v == null) return '';
+    if (v === 0) return '<small class="vp-vs">=</small>';
+    return `<small class="vp-vs ${v > 0 ? 'bom' : 'ruim'}">${v > 0 ? '▲' : '▼'} ${esc(decimal(Math.abs(v)))}</small>`;
+  }
+  function vsEnps(vs) {
+    if (!vs || vs.delta == null) return '<small class="vp-vs">sem pesquisa anterior para comparar</small>';
+    if (vs.delta === 0) return '<small class="vp-vs">igual à pesquisa anterior</small>';
+    return `<small class="vp-vs ${vs.delta > 0 ? 'bom' : 'ruim'}">${vs.delta > 0 ? '▲' : '▼'} ${esc(Math.abs(vs.delta))} pontos vs anterior</small>`;
+  }
+  const SITUACAO_PESQUISA = { aberta: ['Aberta', 'u6'], agendada: ['Agendada', 'u4'], encerrada: ['Encerrada', 'u5'] };
+  function resultadoPesquisa(p, c) {
+    const r = p.resultado || {}, de = `${br(p.abre)} a ${br(p.fecha)}`;
+    let html = `<div class="vp-cartao"><div class="vp-linha-topo"><div><span class="vp-kicker">Resultado · ${esc(de)}</span><h3>${esc(p.titulo)}</h3></div>${chip(SITUACAO_PESQUISA[p.situacao] || SITUACAO_PESQUISA.encerrada)}</div>`;
+    if (!r.liberado) return html + `<p class="vp-nota">${esc(plural(r.respostas || 0, 'resposta', 'respostas'))}${c.equipe ? ` de ${esc(c.equipe)} pessoas` : ''}. O resultado aparece com ${esc(r.minimo || c.minimo || 3)} ou mais, para ninguém ser identificado.</p></div>`;
+    html += `<div class="vp-kpis">${kpi('eNPS', r.enps, vsEnps(p.vs))}${kpi('Respostas', c.equipe ? `${r.respostas} de ${c.equipe}` : r.respostas)}${kpi('Promotores (9–10)', r.promotores)}${kpi('Detratores (0–6)', r.detratores)}</div>
+      <ul class="vp-comps">${(r.dimensoes || []).map((x) => `<li><span>${esc(x.nome)}</span><span class="vp-barra" aria-hidden="true"><i style="width:${(x.media || 0) / 5 * 100}%"></i></span><b>${x.media == null ? '—' : esc(decimal(x.media))}</b>${deltaDim(p.vsDimensoes?.[x.id])}</li>`).join('')}</ul>
+      <p class="vp-nota">eNPS = % de promotores − % de detratores (de −100 a 100). Médias de 1 a 5.</p>
+      ${r.comentarios?.length ? `<ul class="vp-comentarios">${r.comentarios.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}`;
+    return html + '</div>';
+  }
   function htmlClima(d) {
-    const c = d.clima || {};
-    let html = `<h3 class="vp-titulo">Clima da equipe <small>${esc(c.trimestre || '')} · anônimo</small></h3>`;
-    if (c.respondeu) html += vazio('Obrigado por responder', 'A sua resposta entrou sem nome nem hora. A próxima pesquisa abre no trimestre que vem.');
-    else if (estado.form !== 'clima') html += vazio('Como está a Vybe para você?', 'Seis perguntas rápidas, sem nome: ninguém vê a sua resposta, nem os donos.', acao('Responder a pesquisa', 'data-vp-abrir-form="clima"'));
-    else {
-      const escala = (nome, de, ate) => `<div class="vp-escala" role="radiogroup">${Array.from({ length: ate - de + 1 }, (_, i) => de + i).map((n) => `<label><input type="radio" name="${nome}" value="${n}" required><span>${n}</span></label>`).join('')}</div>`;
-      html += `<form data-vp-form="clima" class="vp-cartao vp-form">
-        <fieldset><legend>De 0 a 10, quanto você recomendaria a Vybe para um amigo trabalhar?</legend>${escala('enps', 0, 10)}</fieldset>
-        ${(c.dimensoes || []).map((x) => `<fieldset><legend>${esc(x.nome)} <small>1 = muito ruim · 5 = ótimo</small></legend>${escala(x.id, 1, 5)}</fieldset>`).join('')}
-        <label><span>Quer dizer mais alguma coisa? (opcional)</span><textarea name="comentario" maxlength="1000" rows="3"></textarea></label>
-        <p class="vp-nota">O comentário só aparece misturado aos outros, e só com ${esc(c.minimo || 3)} respostas ou mais. Evite escrever algo que identifique você.</p>
-        <div class="vp-botoes">${sec('Agora não', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Enviar anônimo</button></div></form>`;
+    const c = d.pesquisa || {}, atual = c.atual;
+    let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">Pesquisa de clima <small>anônima</small></h3>
+      ${d.gestao && atual ? sec('Encerrar agora', `data-vp-encerrar-pesquisa="${esc(atual.id)}"`) : ''}${d.gestao && !atual && d.rhPronto !== false && estado.form !== 'pesquisa-abrir' ? acao('Iniciar pesquisa', 'data-vp-abrir-form="pesquisa-abrir"') : ''}</div>`;
+    if (d.rhPronto === false) html += `<p class="vp-nota">A pesquisa de clima com período está aguardando a migração ${esc(d.migracaoRh || '')}. Peça ao Paulo para aplicar.</p>`;
+    if (estado.form === 'pesquisa-abrir') html += formAbrirPesquisa();
+    if (atual?.situacao === 'aberta') {
+      if (atual.respondeu) html += vazio('Obrigado por responder', `A sua resposta entrou sem nome nem hora. "${atual.titulo}" fica aberta até ${br(atual.fecha)}.`);
+      else if (estado.form === 'pesquisa') html += formResponderPesquisa(c);
+      else html += vazio(atual.titulo, `Aberta até ${br(atual.fecha)}. Seis perguntas rápidas, sem nome: ninguém vê a sua resposta, nem os donos.`, acao('Responder a pesquisa', 'data-vp-abrir-form="pesquisa"'));
+    } else if (atual?.situacao === 'agendada') html += vazio('Pesquisa agendada', `"${atual.titulo}" abre em ${br(atual.abre)} e fica até ${br(atual.fecha)}.`);
+    else if (d.rhPronto !== false && estado.form !== 'pesquisa-abrir') html += vazio('Nenhuma pesquisa aberta agora', d.gestao ? 'Abra uma pesquisa com período: cada pessoa responde uma vez, sem nome.' : 'Quando os donos abrirem uma pesquisa, ela aparece aqui.');
+    if (!d.gestao) return html;
+    const hist = c.historico || [];
+    if (hist.length) {
+      const escolhida = hist.find((p) => p.id === estado.pesquisaVer) || hist[0];
+      html += resultadoPesquisa(escolhida, c);
+      if (hist.length > 1) html += `<span class="vp-kicker">Pesquisas anteriores</span><ul class="vp-lista">${hist.map((p) => `<li><button type="button" class="vp-linha${p.id === escolhida.id ? ' ativo' : ''}" data-vp-ver-pesquisa="${esc(p.id)}" aria-pressed="${p.id === escolhida.id}"><span class="vp-meio"><b>${esc(p.titulo)}</b><small>${br(p.abre)} a ${br(p.fecha)} · ${esc(plural(p.resultado?.respostas || 0, 'resposta', 'respostas'))}</small>
+        ${p.resultado?.liberado ? vsEnps(p.vs) : '<small class="vp-vs">abaixo do mínimo de respostas</small>'}</span><span class="vp-nota-n" title="eNPS">${p.resultado?.liberado ? esc(p.resultado.enps) : '—'}</span></button></li>`).join('')}</ul>`;
     }
-    const r = d.climaResultado;
-    if (d.gestao && r) {
-      if (!r.liberado) html += `<p class="vp-nota">${plural(r.respostas, 'resposta', 'respostas')} em ${esc(r.trimestre)}. O resultado aparece com ${esc(r.minimo)} ou mais, para ninguém ser identificado.</p>`;
-      else html += `<div class="vp-cartao"><div class="vp-kpis">${kpi('eNPS', r.enps)}${kpi('Respostas', r.respostas)}${kpi('Promotores', r.promotores)}${kpi('Detratores', r.detratores)}</div>
-        <ul class="vp-comps">${r.dimensoes.map((x) => `<li><span>${esc(x.nome)}</span><span class="vp-barra" aria-hidden="true"><i style="width:${x.media / 5 * 100}%"></i></span><b>${esc(String(x.media).replace('.', ','))}</b></li>`).join('')}</ul>
-        ${r.comentarios?.length ? `<ul class="vp-comentarios">${r.comentarios.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}</div>`;
-    }
+    // A pesquisa trimestral antiga (07/11), se alguém chegou a responder.
+    const antiga = d.climaResultado;
+    if (antiga && antiga.respostas > 0) html += `<p class="vp-nota">Pesquisa trimestral antiga (${esc(antiga.trimestre)}): ${esc(plural(antiga.respostas, 'resposta', 'respostas'))}${antiga.liberado ? `, eNPS ${esc(antiga.enps)}` : ', abaixo do mínimo'}.</p>`;
     return html;
   }
   function htmlRh(d) {
@@ -203,17 +303,13 @@
         ${kpi('Tempo médio de casa', a.tempoMedioMeses == null ? '—' : String(a.tempoMedioMeses).replace('.', ',') + ' meses', versus(v.vs.tempoMedioMeses, { unidade: ' meses' }))}</div>
         ${v.semEntrada ? `<p class="vp-nota">${plural(v.semEntrada, 'pessoa está', 'pessoas estão')} sem data de entrada: o tempo de casa não conta ${v.semEntrada === 1 ? 'ela' : 'elas'}. Preencha em Datas de RH.</p>` : ''}`;
     }
-    const abertos = (d.pedidos || []).filter((p) => p.sla !== 'encerrado');
-    html += `<div class="vp-linha-topo"><h3 class="vp-titulo">${d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH'}</h3>${estado.form === 'pedido' ? '' : acao('Novo pedido', 'data-vp-abrir-form="pedido"')}</div>`;
-    if (estado.form === 'pedido') html += formPedido(d);
-    html += (d.pedidos || []).length ? `<ul class="vp-lista">${[...abertos, ...(d.pedidos || []).filter((p) => p.sla === 'encerrado').slice(0, 10)].map((p) => linhaPedido(p, d)).join('')}</ul>`
-      : estado.form === 'pedido' ? '' : vazio('Nenhum pedido por aqui', 'Precisa de uma declaração, de férias ou de algo do RH? Abra um pedido e acompanhe o prazo.');
+    html += htmlPedidos(d);
     const aniv = proximosAniversarios(d.aniversarios);
     html += `<h3 class="vp-titulo">Calendário</h3><div class="vp-duas">
       <div class="vp-cartao"><span class="vp-kicker">Aniversários</span>${aniv.length ? `<ul class="vp-simples">${aniv.map((a) => `<li><b>${esc(a.dia.slice(3))}/${esc(a.dia.slice(0, 2))}</b> ${esc(a.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Ninguém cadastrou o aniversário ainda.</p>'}
         <form data-vp-form="meu-aniversario" class="vp-form vp-inline"><label><span>Seu aniversário</span><input type="date" name="nascimento" value="${esc(d.meuPerfil?.nascimento || '')}"></label><button type="submit" class="vp-sec">Salvar</button></form>
         <p class="vp-nota">Para a equipe aparecem só o dia e o mês.</p></div>
-      <div class="vp-cartao"><span class="vp-kicker">Férias aprovadas</span>${(d.ferias || []).length ? `<ul class="vp-simples">${d.ferias.map((f) => `<li><b>${br(f.inicio)}–${br(f.fim)}</b> ${esc(f.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Nenhuma férias marcada para os próximos dias.</p>'}</div></div>`;
+      <div class="vp-cartao"><span class="vp-kicker">Férias e folgas aprovadas</span>${(d.ferias || []).length ? `<ul class="vp-simples">${d.ferias.map((f) => `<li><b>${f.inicio === f.fim ? br(f.inicio) : `${br(f.inicio)}–${br(f.fim)}`}</b> ${esc(f.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Nenhuma férias ou folga marcada para os próximos dias.</p>'}</div></div>`;
     if (d.gestao) {
       const pessoas = d.pessoas || [];
       html += `<details class="vp-cartao vp-det"><summary>Datas de RH (entrada, saída e aniversário)</summary>
@@ -223,6 +319,23 @@
     }
     return html + htmlClima(d);
   }
+
+  // Mini painel dos números da fila e do clima (data-espiar="pessoas:…", desenhado por vybe-mundo.js).
+  (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {}).pessoas = (resto) => {
+    const d = estado.dados.rh; if (!d) return null;
+    if (resto === 'clima') {
+      const hist = d.pesquisa?.historico || [];
+      return { titulo: 'Pesquisas de clima', cls: '', vazio: 'Nenhuma pesquisa ainda.', rodape: 'Clique para ver o resultado',
+        itens: hist.map((p) => ({ id: p.id, nome: p.titulo, sub: `${br(p.abre)} a ${br(p.fecha)} · ${plural(p.resultado?.respostas || 0, 'resposta', 'respostas')}`, dir: p.resultado?.liberado ? `eNPS ${p.resultado.enps}` : 'abaixo do mínimo' })),
+        clicar: (it) => { estado.pesquisaVer = it.id; pintar(); } };
+    }
+    const f = FILTROS_PEDIDO[resto]; if (!f) return null;
+    const lista = (d.pedidos || []).filter(f[1]);
+    return { titulo: f[0], cls: f[2], vazio: f[3], rodape: 'Clique para filtrar a lista',
+      itens: lista.map((p) => ({ id: p.id, nome: p.titulo, sub: [d.gestao ? p.pessoa_nome : '', nomeTipo(d, p.tipo), ha(p.idadeDias)].filter(Boolean).join(' · '),
+        dir: p.sla === 'atrasado' ? `${plural(p.atrasoUteis || 0, 'dia útil', 'dias úteis')} fora` : p.respondido_dia ? `respondido ${br(p.respondido_dia)}` : `prazo ${br(p.prazo)}`, cls: p.sla === 'atrasado' ? 'u1' : '' })),
+      clicar: () => { estado.filtroPedidos = resto; estado.form = ''; pintar(); } };
+  };
 
   // ---------- Projetos ----------
   function htmlCarga(d) {
@@ -412,18 +525,29 @@
   // ---------- formulários ----------
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const linhas = (form, sel) => [...form.querySelectorAll(sel)].map((el) => Object.fromEntries([...el.querySelectorAll('input,select,textarea')].map((i) => [i.name, i.value])));
-  function enviar(form) {
+  function enviar(form, botao) {
     const f = Object.fromEntries(new FormData(form).entries()), nome = form.dataset.vpForm, d = estado.dados[estado.aba] || {};
     if (nome === 'pesos') return gravar({ acao: 'pesos', pesos: Object.fromEntries((d.componentes || []).map((c) => [c.id, num(f[c.id])])) }, 'Pesos salvos. O ranking já usa os novos.');
     if (nome === 'metas') return gravar({ acao: 'metas', metas: Object.fromEntries(Object.keys(d.cargos || {}).map((k) => [k, num(f[k])])) }, 'Metas salvas.');
-    if (nome === 'pedido') return gravar({ acao: 'pedido_criar', tipo: f.tipo, titulo: f.titulo, descricao: f.descricao, inicio: f.tipo === 'ferias' ? f.inicio : null, fim: f.tipo === 'ferias' ? f.fim : null }, 'Pedido enviado ao RH.');
-    if (nome === 'meu-aniversario') return gravar({ acao: 'perfil', nascimento: f.nascimento || null }, 'Aniversário salvo.');
-    if (nome === 'perfil') return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: f.nascimento || null, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
-    if (nome === 'clima') {
-      const r = { acao: 'clima_responder', enps: num(f.enps), comentario: f.comentario || '' };
-      for (const x of d.clima?.dimensoes || []) r[x.id] = num(f[x.id]);
+    if (nome === 'pedido') {
+      const dias = (d.tipos || []).find((t) => t.id === f.tipo)?.dias;
+      return gravar({ acao: 'pedido_criar', tipo: f.tipo, titulo: f.titulo, descricao: f.descricao, inicio: f.tipo === 'ferias' ? f.inicio : null, fim: f.tipo === 'ferias' ? f.fim : null,
+        data_desejada: f.tipo === 'ferias' ? null : f.data_desejada || null }, dias ? `Pedido enviado ao RH. Resposta em até ${plural(dias, 'dia útil', 'dias úteis')}.` : 'Pedido enviado ao RH.');
+    }
+    if (nome === 'responder') {
+      const status = botao?.value || 'resolvido', resposta = String(f.resposta || '').trim();
+      if (status === 'recusado' && !resposta) { estado.aviso = 'Escreva o motivo da recusa para quem pediu.'; avisar(); return null; }
+      return gravar({ acao: 'pedido_status', id: form.dataset.id, status, resposta }, status === 'andamento' ? 'Pedido em andamento.' : 'Resposta enviada.');
+    }
+    if (nome === 'prazos') return gravar({ acao: 'prazos_rh', prazos: Object.fromEntries((d.tipos || []).filter((t) => t.formulario !== false).map((t) => [t.id, num(f[t.id])])) }, 'Prazos salvos. Valem para os pedidos novos.');
+    if (nome === 'pesquisa-abrir') return gravar({ acao: 'pesquisa_abrir', titulo: f.titulo, abre: f.abre, fecha: f.fecha }, 'Pesquisa aberta. A equipe já pode responder.');
+    if (nome === 'pesquisa') {
+      const r = { acao: 'pesquisa_responder', pesquisa_id: form.dataset.id, enps: num(f.enps), comentario: f.comentario || '' };
+      for (const x of d.pesquisa?.dimensoes || []) r[x.id] = num(f[x.id]);
       return gravar(r, 'Resposta enviada sem nome. Obrigado!');
     }
+    if (nome === 'meu-aniversario') return gravar({ acao: 'perfil', nascimento: f.nascimento || null }, 'Aniversário salvo.');
+    if (nome === 'perfil') return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: f.nascimento || null, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
     if (nome === 'projeto') {
       const etapas = linhas(form, '.vp-etapa-form').map((e) => ({ id: e.e_id || null, nome: e.e_nome, responsavel: e.e_responsavel || null, inicio: e.e_inicio, fim: e.e_fim, esforco: num(e.e_esforco) || 1, feita: e.e_feita === '1' }));
       return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente: f.cliente, status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
@@ -448,7 +572,7 @@
   // ---------- eventos ----------
   function trocarAba(aba) {
     if (!DESENHO[aba] || (SO_GESTAO.has(aba) && !gestao())) aba = 'produtividade';
-    estado.aba = aba; estado.form = ''; estado.editar = null; estado.aviso = ''; estado.erro = '';
+    estado.aba = aba; estado.form = ''; estado.editar = null; estado.aviso = ''; estado.erro = ''; estado.filtroPedidos = '';
     pintar(); window.VybeTutorial?.dica?.('pessoas');
     return carregar(aba);
   }
@@ -466,6 +590,12 @@
     else if ((b = perto('[data-vp-periodo]'))) { estado.periodo = b.dataset.vpPeriodo; carregar(); }
     else if ((b = perto('[data-vp-semana]'))) { const n = Number(b.dataset.vpSemana); estado.semana = n ? somarDias(d.semana || hoje(), n) : ''; carregar(); }
     else if ((b = perto('[data-vp-pedido]'))) gravar({ acao: 'pedido_status', id: b.dataset.vpPedido, status: b.dataset.status }, 'Pedido atualizado.');
+    else if ((b = perto('[data-vp-filtro-pedidos]'))) { estado.filtroPedidos = b.dataset.vpFiltroPedidos; pintar(); }
+    else if ((b = perto('[data-vp-ver-pesquisa]'))) { estado.pesquisaVer = b.dataset.vpVerPesquisa; pintar(); }
+    else if ((b = perto('[data-vp-encerrar-pesquisa]'))) {
+      if (typeof confirm === 'function' && !confirm('Encerrar a pesquisa agora? Ninguém mais consegue responder.')) return;
+      gravar({ acao: 'pesquisa_encerrar', id: b.dataset.vpEncerrarPesquisa }, 'Pesquisa encerrada.');
+    }
     else if ((b = perto('[data-vp-editar-projeto]'))) abrirForm('projeto', (d.projetos || []).find((p) => p.id === b.dataset.vpEditarProjeto));
     else if ((b = perto('[data-vp-editar-trilha]'))) abrirForm('trilha', (d.trilhas || []).find((x) => x.id === b.dataset.vpEditarTrilha));
     else if ((b = perto('[data-vp-editar-vaga]'))) abrirForm('vaga', (d.vagas || []).find((x) => x.id === b.dataset.vpEditarVaga));
@@ -488,9 +618,15 @@
       const p = (estado.dados.rh?.perfis || []).find((x) => x.pessoa_id === t.value) || {}, form = t.closest('form');
       for (const k of ['nascimento', 'entrada', 'saida']) { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = p[k] || ''; }
     }
-    else if ('vpTipoPedido' in ds) { const f = t.closest('form')?.querySelector('.vp-ferias'); if (f) f.hidden = t.value !== 'ferias'; }
+    else if ('vpTipoPedido' in ds) {
+      // Férias ou folga: primeiro e último dia (obrigatórios); os outros tipos: data desejada.
+      estado.tipoPedido = t.value;
+      const form = t.closest('form'), ferias = t.value === 'ferias', f = form?.querySelector('.vp-ferias'), dz = form?.querySelector('.vp-desejada');
+      if (f) { f.hidden = !ferias; for (const i of f.querySelectorAll('input')) i.required = ferias; }
+      if (dz) dz.hidden = ferias;
+    }
   }
-  function aoEnviar(e) { const form = e.target?.closest?.('form[data-vp-form]'); if (!form) return; e.preventDefault(); enviar(form); }
+  function aoEnviar(e) { const form = e.target?.closest?.('form[data-vp-form]'); if (!form) return; e.preventDefault(); enviar(form, e.submitter); }
   const visivel = (el) => Boolean(el.getClientRects?.().length);
   function aoTeclar(e) {
     if (e.key !== 'Escape' || !estado.raiz || e.defaultPrevented) return;
@@ -530,6 +666,13 @@
     return { semana: d.semana, fim: d.fim, capacidade: d.capacidade, pessoas: d.carga || [] };
   }
 
+  // Atalho "Nova solicitação ao RH" do Hoje: abre o RH já com o formulário (o form sobrevive à leitura).
+  function novoPedido() {
+    const leitura = abrir('rh');
+    estado.form = 'pedido'; estado.editar = null;
+    return Promise.resolve(leitura).then(() => { estado.janela?.querySelector?.('[data-vp-form="pedido"] select')?.focus?.(); });
+  }
+
   window.addEventListener('keydown', aoTeclar, true);
-  window.VybePessoas = { abrir, fechar, aberto, carga };
+  window.VybePessoas = { abrir, fechar, aberto, carga, novoPedido };
 })();
