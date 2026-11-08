@@ -417,6 +417,140 @@
     return { cargos, estado: pior, ...NIVEIS_CAPACIDADE[pior], sem_cargo: semCargo, configurado: cargos.some((c) => c.capacidade > 0) };
   }
 
+  // ── Metas do mês, corrida comercial e séries mensais (Paulo, 08/11/2026; inspirado no AgencyFlow) ──────────
+  // Datas das oportunidades chegam do servidor já como dia de Irecê (YYYY-MM-DD):
+  //   criado_dia = quando entrou no funil (lead novo: SDR, cadastro à mão ou formulário);
+  //   ganho_dia  = quando foi para Ganho (encerrado_em), só nas que estão em Ganho.
+  // Propostas enviadas = oportunidades que entraram na etapa Proposta comercial no período (histórico do CRM),
+  //   cada oportunidade uma vez por período.
+  // Metas por mês: { 'AAAA-MM': { mrr, avulso, negocios, leads } }. Visão anual = soma dos meses do ano.
+  // Progresso = realizado ÷ meta (meta 0 ou ausente: sem %); a barra para em 100%, o % não.
+  // Corrida comercial: negócios ganhos no período por quem fechou = o responsável da oportunidade; sem responsável,
+  //   quem cadastrou (criado_por), menos no lead do formulário (quem "cadastrou" foi o link) — esse fica sem atribuição.
+  //   Ordem: valor total (MRR + avulso), depois quantidade, depois nome.
+  const METAS = Object.freeze([['mrr', 'MRR (recorrente)', 'dinheiro'], ['avulso', 'Avulso', 'dinheiro'], ['negocios', 'Negócios fechados', 'numero'], ['leads', 'Leads novos', 'numero']]
+    .map(([id, nome, tipo]) => Object.freeze({ id, nome, tipo })));
+  const erro400 = (m) => Object.assign(new Error(m), { status: 400 });
+  const ehMes = (m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m || ''));
+  function validarMetas(entrada) {
+    if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw erro400('Metas inválidas.');
+    const saida = {};
+    for (const m of METAS) {
+      const v = entrada[m.id];
+      if (v == null || v === '') { saida[m.id] = 0; continue; }
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0 || n > (m.tipo === 'dinheiro' ? 1e8 : 100000)) throw erro400(`Meta de ${m.nome.toLowerCase()} inválida.`);
+      if (m.tipo === 'numero' && !Number.isInteger(n)) throw erro400(`Meta de ${m.nome.toLowerCase()}: use número inteiro.`);
+      saida[m.id] = m.tipo === 'dinheiro' ? reais(centavos(n)) : n;
+    }
+    return saida;
+  }
+  function metasDoPeriodo(porMes, p) {
+    const soma = Object.fromEntries(METAS.map((m) => [m.id, 0]));
+    let meses = 0;
+    for (const [mes, v] of Object.entries(porMes && typeof porMes === 'object' ? porMes : {})) {
+      if (!ehMes(mes) || !noIntervalo(mes + '-01', p) || !v || typeof v !== 'object') continue;
+      let alguma = false;
+      for (const m of METAS) { const n = Math.max(0, Number(v[m.id]) || 0); if (n > 0) alguma = true; soma[m.id] += m.tipo === 'dinheiro' ? centavos(n) : n; }
+      if (alguma) meses++;
+    }
+    for (const m of METAS) if (m.tipo === 'dinheiro') soma[m.id] = reais(soma[m.id]);
+    return { ...soma, meses_com_meta: meses, definida: meses > 0 };
+  }
+  const diaDe = (v) => (/^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 10) : '');
+  const leadsDoPeriodo = (ops, p) => (ops || []).filter((o) => { const d = diaDe(o.criado_dia); return d && noIntervalo(d, p); });
+  const fechadosDoPeriodo = (ops, p) => (ops || []).filter((o) => { const d = diaDe(o.ganho_dia); return o.etapa === 'ganho' && d && noIntervalo(d, p); });
+  function propostasDoPeriodo(eventos, p) {
+    const ids = new Set();
+    for (const e of eventos || []) { const d = diaDe(e.dia); if (d && noIntervalo(d, p) && e.oportunidade_id != null) ids.add(String(e.oportunidade_id)); }
+    return [...ids];
+  }
+  function realizadoDoPeriodo({ oportunidades = [], propostas = [] } = {}, p) {
+    const ganhos = fechadosDoPeriodo(oportunidades, p);
+    return { leads: leadsDoPeriodo(oportunidades, p).length, propostas: propostasDoPeriodo(propostas, p).length, negocios: ganhos.length,
+      mrr: reais(ganhos.reduce((s, o) => s + Math.max(0, centavos(o.valor_mensal)), 0)), avulso: reais(ganhos.reduce((s, o) => s + Math.max(0, centavos(o.valor_avulso)), 0)) };
+  }
+  function progressoMetas(metas, realizado) {
+    return METAS.map((m) => {
+      const meta = Math.max(0, Number(metas?.[m.id]) || 0), feito = Math.max(0, Number(realizado?.[m.id]) || 0);
+      const percentual = meta > 0 ? Math.round((feito / meta) * 1000) / 10 : null;
+      const falta = meta > 0 ? (m.tipo === 'dinheiro' ? reais(Math.max(0, centavos(meta) - centavos(feito))) : Math.max(0, meta - feito)) : null;
+      return { id: m.id, nome: m.nome, tipo: m.tipo, meta, realizado: feito, percentual, barra: percentual == null ? 0 : Math.min(100, percentual), falta, batida: meta > 0 && feito >= meta };
+    });
+  }
+  function kpisComerciais(dados, p) {
+    const atual = realizadoDoPeriodo(dados, p), anterior = realizadoDoPeriodo(dados, p.anterior);
+    return { atual, anterior, variacao: Object.fromEntries(Object.keys(atual).map((k) => [k, variacao(atual[k], anterior[k])])) };
+  }
+  // De onde vem o nome de quem fechou (ver as definições acima). null = não há como atribuir.
+  function quemFechou(o) {
+    const r = String(o?.responsavel_nome || '').trim(); if (r) return { nome: r, fonte: 'responsavel' };
+    const c = String(o?.criado_por_nome || '').trim(); if (c && o?.origem !== 'formulario') return { nome: c, fonte: 'criado_por' };
+    return null;
+  }
+  function rankingFechamentos(oportunidades, p) {
+    const porNome = new Map(), sem = { quantidade: 0, mrr: 0, avulso: 0 };
+    for (const o of fechadosDoPeriodo(oportunidades, p)) {
+      const q = quemFechou(o), m = Math.max(0, centavos(o.valor_mensal)), a = Math.max(0, centavos(o.valor_avulso));
+      if (!q) { sem.quantidade++; sem.mrr += m; sem.avulso += a; continue; }
+      const k = semAcento(q.nome), x = porNome.get(k) || { nome: q.nome, quantidade: 0, mrr: 0, avulso: 0, pelo_cadastro: 0 };
+      x.quantidade++; x.mrr += m; x.avulso += a; if (q.fonte === 'criado_por') x.pelo_cadastro++; porNome.set(k, x);
+    }
+    const linhas = [...porNome.values()].sort((a, z) => (z.mrr + z.avulso) - (a.mrr + a.avulso) || z.quantidade - a.quantidade || a.nome.localeCompare(z.nome, 'pt-BR'))
+      .map((x, i) => ({ posicao: i + 1, nome: x.nome, quantidade: x.quantidade, mrr: reais(x.mrr), avulso: reais(x.avulso), total: reais(x.mrr + x.avulso), pelo_cadastro: x.pelo_cadastro }));
+    return { linhas, sem_atribuicao: { quantidade: sem.quantidade, mrr: reais(sem.mrr), avulso: reais(sem.avulso) } };
+  }
+  // Últimos n meses terminando em mesFinal (AAAA-MM), do mais antigo para o mais novo.
+  function seriesMensais(dados, mesFinal, n = 6) {
+    if (!ehMes(mesFinal)) throw erro400('Mês inválido (use AAAA-MM).');
+    const qtd = Math.max(1, Math.min(24, Math.floor(Number(n) || 6))), saida = [];
+    for (let i = qtd - 1; i >= 0; i--) {
+      const mes = somarMeses(mesFinal + '-01', -i).slice(0, 7);
+      saida.push({ mes, ...realizadoDoPeriodo(dados, periodo(mes)) });
+    }
+    return saida;
+  }
+
+  // ── Formulário público de captura de leads ──────────────────────────────────────────────────────────────
+  // Campos e limites (o servidor recusa acima disso; a página usa os mesmos maxlength). Obrigatórios: nome e WhatsApp.
+  // WhatsApp: só dígitos, de 10 a 13 (com ou sem 55). Interesse: um da lista (ou vazio). O campo "site" é a isca:
+  // gente não vê nem preenche; robô preenche. Isca preenchida = finge que deu certo e não grava nada.
+  const INTERESSES_LEAD = Object.freeze(['Gestão de redes sociais', 'Tráfego pago (anúncios)', 'Identidade visual e marca', 'Fotos e vídeos', 'Site', 'Outro']);
+  const LIMITES_LEAD = Object.freeze({ nome: 120, empresa: 160, whatsapp: 20, cidade: 80, interesse: 60, mensagem: 1000 });
+  const CAMPO_ISCA = 'site';
+  // Tira caracteres de controle e invisíveis (inclusive os que invertem a direção do texto); só a mensagem guarda quebra de linha.
+  const INVISIVEIS = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202E\u2066-\u2069\uFEFF]/g;
+  function limparTexto(s, multilinha) {
+    const t = String(s).normalize('NFC').replace(/\r\n?/g, '\n').replace(INVISIVEIS, ' ');
+    return multilinha ? t.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim() : t.replace(/\s+/g, ' ').trim();
+  }
+  const ROTULO_LEAD = { nome: 'Nome', empresa: 'Empresa', whatsapp: 'WhatsApp', cidade: 'Cidade', interesse: 'Interesse', mensagem: 'Mensagem' };
+  function validarLead(corpo) {
+    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) return { erro: 'Envio inválido.' };
+    const isca = corpo[CAMPO_ISCA];
+    if (isca != null && String(isca).trim() !== '') return { isca: true };
+    const dados = {};
+    for (const [campo, max] of Object.entries(LIMITES_LEAD)) {
+      const v = corpo[campo];
+      if (v != null && typeof v !== 'string') return { erro: `${ROTULO_LEAD[campo]} inválido.`, campo };
+      const s = v ? limparTexto(v.slice(0, max * 4), campo === 'mensagem') : '';
+      if (s.length > max || (v && v.length > max * 4)) return { erro: `${ROTULO_LEAD[campo]}: no máximo ${max} caracteres.`, campo };
+      dados[campo] = s;
+    }
+    if (dados.nome.length < 2) return { erro: 'Informe o seu nome.', campo: 'nome' };
+    const digitos = dados.whatsapp.replace(/\D/g, '');
+    if (digitos.length < 10 || digitos.length > 13) return { erro: 'Informe o WhatsApp com DDD (ex.: 74 99999-9999).', campo: 'whatsapp' };
+    dados.whatsapp = digitos;
+    if (dados.interesse && !INTERESSES_LEAD.includes(dados.interesse)) return { erro: 'Escolha um interesse da lista.', campo: 'interesse' };
+    return { dados };
+  }
+  function formatarWhatsapp(d) {
+    const s = String(d || '').replace(/\D/g, ''), n = s.length >= 12 && s.startsWith('55') ? s.slice(2) : s;
+    if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+    if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+    return s;
+  }
+
   const api = Object.freeze({
     FASES, ETAPAS_INICIO, ETAPAS_MEIO_PADRAO, montarFases, MOTIVOS_PERDA, STATUS_PAGAMENTO, ZONA_CRITICA,
     faseDaEtapa, validarMotivoPerda, custoPacote, margem, pacoteComMargem, financasCliente, resumoFinancas,
@@ -424,6 +558,8 @@
     CICLOS, GRUPOS_CONTAS, CATEGORIAS_FORNECEDOR, ehData, somarDias, somarMeses, periodo, proximoVencimento, statusRecebivel,
     resumoRecebimentos, resumoContas, inadimplencia, severidade, variacao, filtrarFornecedores,
     LIMITE_CONCENTRACAO, previsaoCaixa, CARGOS, NIVEIS_CAPACIDADE, cargaDosItens, capacidadeTime,
+    METAS, validarMetas, metasDoPeriodo, leadsDoPeriodo, fechadosDoPeriodo, propostasDoPeriodo, realizadoDoPeriodo, progressoMetas,
+    kpisComerciais, quemFechou, rankingFechamentos, seriesMensais, INTERESSES_LEAD, LIMITES_LEAD, CAMPO_ISCA, validarLead, formatarWhatsapp,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeComercialCalculos = api;
