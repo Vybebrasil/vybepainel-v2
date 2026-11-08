@@ -62,19 +62,24 @@ urgência: aparecem em pontos, barras finas e avatares, nunca como fundo cheio d
 
 ## 4. Tipografia
 
+Revisada em 08/11/2026 (Paulo: "mais sóbrio, como o AgencyFlow; pode ter mais de uma família, mas precisa
+combinar, porque hierarquia e peso contam no direcionamento visual"). Duas famílias da mesma linha:
+**Inter Tight** (títulos e números) e **Inter** (texto). A hierarquia vem de tamanho e peso; cor e caixa
+alta não fazem hierarquia.
+
 | Papel | Fonte | Tamanho / peso |
 |---|---|---|
-| Título de tela | Space Grotesk | 24–28px / 700, `letter-spacing:-.02em` |
-| Título de cartão/janela | Space Grotesk | 17–19px / 700 |
-| Texto | sistema | 13px / 500 |
-| Apoio | sistema | 11–12px / 500, `--vv-apagado` |
-| Rótulo de seção (kicker) | sistema | 10–11px / 700, maiúsculas, `.12em`, `#A84E00` |
-| Botão | sistema | 12,5px / 600 (ação principal 700) |
-| Número de KPI | sistema | 20–28px / 800, `tabular-nums` |
+| Título de tela | Inter Tight | 28px / 600, `letter-spacing:-.02em` |
+| Título de cartão/janela | Inter Tight | 17–19px / 600 |
+| Título de seção | Inter Tight | 13px / 600, tinta `#2B2925`, frase normal |
+| Texto | Inter | 13px / 400–500 |
+| Apoio / rótulo | Inter | 11–12px / 500–600, `#6F6A62`, frase normal (sem maiúsculas espaçadas) |
+| Botão | Inter | 12,5px / 600 |
+| Número de KPI | Inter Tight | 20–28px / 600, `tabular-nums` |
 
 ## 5. Escalas
 
-- **Raio**: 8 (chip interno) · 12 (botão, campo) · 18 (cartão) · 24 (janela) · 999 (pílula).
+- **Raio** (menos redondo, 08/11/2026): 6 (chip, pílula) · 8 (botão, campo, item) · 10 (cartão) · 14 (janela, painel). Círculo só para avatar, bolinha de status e ponto.
 - **Altura**: 28 (compacto/chip) · 34 (botão) · 38 (campo) · 40 (destaque).
 - **Espaço**: 4 · 8 · 12 · 16 · 24 · 32.
 - **Sombra**: curta `0 1px 2px` + `0 8px 24px` a 5% (cartões); janela `0 30px 80px` a 25%; ação laranja `0 8px 20px -8px #E8602E`.

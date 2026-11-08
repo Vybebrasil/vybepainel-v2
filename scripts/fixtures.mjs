@@ -147,7 +147,7 @@ export async function demoApi(req,res,url,body) {
     }
     return reply(200,{ok:true,board_id:demanda?8385559107:7829537690,
       total:itens.length,gerado_em:new Date().toISOString(),assinatura,total_no_recorte:itens.length,
-      status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#579bfc',borda:'#579bfc',monday_index:0},...(process.env.DEMO_VOLUME?[['pode_fazer','Pode Fazer','#fdab3d'],['em_andamento','Em Andamento','#ff9f40'],['para_aprovacao','Para aprovação','#a25ddc'],['agendado','Agendado','#579bfc'],['finalizado','Finalizado','#00c875'],['alteracao','Alteração','#e2445c'],['ag_info_cliente','Ag. Info Cliente','#a1a1a1']].map(([chave,rotulo,cor],i)=>({chave,rotulo,cor,borda:cor,monday_index:i+1})):[])],
+      status:[{chave:'a_fazer',rotulo:'A Fazer',cor:'#c4c4c4',borda:'#c4c4c4',monday_index:0},...(process.env.DEMO_VOLUME?[['pode_fazer','Pode Fazer','#ffcb00'],['em_andamento','Em Andamento','#fdab3d'],['para_aprovacao','Para aprovação','#579bfc'],['agendado','Agendado','#a1e3f6'],['finalizado','Finalizado','#9cd326'],['alteracao','Alteração','#df2f4a'],['ag_info_cliente','Ag. Info Cliente','#bca58a']].map(([chave,rotulo,cor],i)=>({chave,rotulo,cor,borda:cor,monday_index:i+1})):[])],
       captacao:[],opcoes:[],pessoas:[{id:'68035537',nome:'Operador de teste'}],itens});
   }
   if(url.pathname==='/api/painel'){

@@ -66,7 +66,9 @@
     const itens = [...(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []), ...(typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])];
     const mapa = new Map();
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', total: 0, por: {}, situacao: 'concluida' });
+    // id do cadastro: a logo do Drive sai por /api/painel?area=logo&c=<id> (a mesma da capa do planejamento).
+    const logoDe = (c) => { const id = String(c.id ?? c.cliente_id ?? ''); return /^\d{1,18}$/.test(id) ? `/api/painel?area=logo&c=${id}` : ''; };
+    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), total: 0, por: {}, situacao: 'concluida' });
     const semCadastro = !cadastro.length; // demonstração / cadastro ainda não carregado
     const vistos = new Set();
     const hoje = hojeIso();
@@ -79,17 +81,24 @@
         if (!c && semCadastro && n && n !== '—') { c = { nome: n, segmento: '', total: 0, por: {}, situacao: 'concluida' }; mapa.set(chave(n), c); }
         if (!c || sit === 'concluida') continue;
         c.total++; c.por[sit] = (c.por[sit] || 0) + 1;
+        // Bolinhas do Centro: o status de verdade da peça, na cor do quadro (Paulo: "aprovação azul 1, alteração vermelha 1").
+        const nomeSt = String(item.status || 'Sem status').trim() || 'Sem status';
+        const st = (c.status ||= {})[nomeSt] ||= { nome: nomeSt, n: 0, cor: corStatus(item, sit), ordem: ORDEM[sit] ?? 9 };
+        st.n++; st.ordem = Math.min(st.ordem, ORDEM[sit] ?? 9);
         if (ORDEM[sit] < ORDEM[c.situacao]) c.situacao = sit;
       }
     }
-    return [...mapa.values()].map((c) => ({ ...c, cor: COR[c.situacao], peso: 8 - ORDEM[c.situacao] }));
+    return [...mapa.values()].map((c) => ({ ...c, cor: COR[c.situacao], peso: 8 - ORDEM[c.situacao],
+      status: Object.values(c.status || {}).sort((a, b) => a.ordem - b.ordem || b.n - a.n) }));
   }
 
   // ---------- Montagem ----------
   let mundo = null, carregando = null, erroCarga = false, tentativasCarga = 0, ultimaAssinatura = '', naTela = [];
+  // Centro comercial aberto (Paulo, 08/11/2026): só com ele o 3D é montado e desenhado.
+  let centroAberto = false;
   const raiz = document.createElement('div'); raiz.id = 'mundo';
-  raiz.innerHTML = '<canvas aria-label="Mapa de Irecê com o Prédio da Vybe e os clientes"></canvas><div class="mundo-vinheta"></div><div class="mundo-carregando">Montando Irecê…</div>'
-    + '<div class="mundo-fonte">Relevo: Terrain Tiles (AWS/Mapzen) · Ruas: © OpenStreetMap · arraste para andar, botão direito ou Shift para girar</div>';
+  raiz.innerHTML = '<canvas aria-label="Mapa de Irecê com o Prédio da Vybe e os clientes"></canvas><div class="mundo-vinheta"></div><div class="mundo-carregando">Montando o Centro…</div>'
+    + '<div class="mundo-fonte">Arraste para andar · botão direito ou Shift para girar · clique numa loja para abrir o cliente</div>';
   const hud = document.createElement('div'); hud.id = 'mundo-hud';
   raiz.addEventListener?.('click', (e) => {
     if (!e.target.closest('[data-mundo-repetir]')) return;
@@ -156,6 +165,11 @@
       { id: 'academy', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'] },
       { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
     ] },
+    // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
+    // carrega quando ele (ou o Prédio) é aberto; Hoje, Gestão e os módulos ocupam a tela sem nada atrás.
+    { id: 'centro', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
+    // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
+    { id: 'agentes', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
     { id: 'predio', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
     { id: 'jogos', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
     '-',
@@ -194,6 +208,15 @@
   function usarTrilho(id, botao) {
     if (String(id).startsWith('setor:')) { abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
     window.VybeTutorial?.dica?.('trilho:' + id);
+    // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
+    if (id === 'centro' || id === 'predio') {
+      if (!gestao.hidden) fecharGestao();
+      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      abrirCentro(id === 'predio' ? 'predio' : 'cidade'); return;
+    }
+    if (centroAberto && id !== 'criar' && id !== 'vybes') fecharCentro();
+    if (id === 'agentes') { if (!gestao.hidden) fecharGestao(); marcarTrilho('agentes'); window.VybeAgentes?.abrir?.(); return; }
+    if (id !== 'criar' && id !== 'vybes') window.VybeAgentes?.fechar?.();
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
     const sub = SUBMODULOS.find((x) => x.id === id);
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
@@ -205,7 +228,6 @@
     if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
     if (id === 'hoje') { body.classList.remove('mundo-cartoes'); marcarTrilho('hoje'); pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
-    if (id === 'predio') { marcarTrilho('predio'); hud.querySelector('[data-vista="predio"]')?.click(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
@@ -233,8 +255,16 @@
   // status (status_color do quadro, a regra de sempre), cliente na cor da carteira do head
   // (tagClienteHtml), data em vermelho só se atrasou e o olhinho da prévia quando já há material.
   const semGrito = (t) => { const s = String(t || '').trim(); const letras = s.replace(/[^A-Za-zÀ-ÿ]/g, ''); return letras && letras === letras.toUpperCase() && letras.length > 4 ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
-  const corStatus = (d, sit) => (typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '') : String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0]) || COR_SIT(sit || 'fazer');
-  function linhaDemanda(d, { ref = '', sit = '' } = {}) {
+  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"): a cor do quadro (status_color) e, sem ela,
+  // as cores exatas do Monday que o painel já usa (vybe-relatorios.js, STATUS_CORES). A escala de situação é o último recurso.
+  const STATUS_CORES = { 'em andamento': '#fdab3d', 'falta d.a': '#4eccc6', 'alteracao': '#df2f4a', 'finalizado': '#9cd326', 'aguardo': '#9d50dd',
+    'a fazer': '#c4c4c4', 'para agendar': '#037f4c', 'para aprovacao': '#579bfc', 'em aprovacao': '#579bfc', 'aguardando aprovacao': '#579bfc', 'cap. agendada': '#ff007f',
+    'ag. aprovacao cliente': '#faa1f1', 'ag. info cliente': '#bca58a', 'falta info': '#ff6d3b', 'agendando cap': '#ff5ac4', 'agendando cap.': '#ff5ac4',
+    'segurar post': '#7f5347', 'agendado': '#a1e3f6', 'pode fazer': '#ffcb00', 'ag. interno': '#bca58a', 'revisao': '#fdab3d', 'aprovado': '#9cd326',
+    'falta briefing': '#ff6d3b', 'nova demanda': '#579bfc', 'em execucao': '#ff6b00', 'feito': '#00c875', 'aguardando info.': '#9d50dd' };
+  const chaveStatus = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || STATUS_CORES[chaveStatus(d?.status)] || COR_SIT(sit || 'fazer');
+  function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
     const hoje = hojeIso(), cor = corStatus(d, sit);
@@ -245,7 +275,7 @@
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${tagCli}${d.status ? `<span class="vv-demanda-status"><i></i>${esc(d.status)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${tagCli}${d.status ? `<span class="vv-demanda-status"><i></i>${esc(d.status)}</span>` : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
       <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${esc(quando)}</time>` : ''}</span>
     </div>`;
@@ -297,7 +327,7 @@
   }
   function corDaPendencia(p) {
     const d = (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []).find((d) => String(d.id) === String(p?.id));
-    return typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '#9AA3A8') : /^#[0-9a-f]{3,8}$/i.test(d?.status_color || '') ? d.status_color : '#9AA3A8';
+    return d ? corStatus(d, situacaoDaPeca(d)) : STATUS_CORES[chaveStatus(p?.status)] || '#9AA3A8';
   }
   function mostrarPendencias(cliente = '', status = '') {
     const N = numerosDoDono(); if (!N) return;
@@ -361,6 +391,7 @@
       return;
     }
     const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, prevHoje = H.previstas || 0, feitasHoje = H.feitas || 0;
+    const largo = !centroAberto; // em tela cheia mostra mais de cada lista
     const clientesRuins = (N.clientes || []).filter((c) => c.saude !== 'ok').slice(0, 4);
     const gargalos = (N.gargalos || []).slice(0, 3), time = (N.time || []).filter((t) => (t.cobrar || []).length).slice(0, 3), bots = botsParaCobrar();
     const sem3 = C.sem3 || [], ativos = C.clientesAtivos || 0;
@@ -376,21 +407,26 @@
         <button type="button" data-abrir-gestao="hoje"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
         <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
       </div>
+      <div class="vv-blocos"><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
       <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
+      </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<span class="vv-pilula">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</span></div>
       ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
+      </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
       <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
         <p><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <b class="t-u1">${C.semConteudo.length} sem nenhum</b>` : ''}${(C.semPlanejamento || []).length ? ` · ${C.semPlanejamento.length} sem planejamento` : ''}</p>
         ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<span>+${sem3.length - 6}</span>` : ''}</div>` : ''}</div>
-      ${gargalos.length ? `<div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
+      ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
       ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
+      </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>O que cobrar hoje</div>
       ${time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')}
       ${bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
       ${!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : ''}
       ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
+      </section></div>
       <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
       <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button></div>`;
   }
@@ -518,20 +554,37 @@
       : deHoje.length ? `Hoje saem <b>${deHoje.length}</b>. Comece por <b>${esc(titulo(primeiro))}</b>${cliente(primeiro) ? ' (' + esc(cliente(primeiro)) + ')' : ''}.`
       : abertas.length ? `Nada vence hoje. Nos próximos dias, <b>${proximos.reduce((n, p) => n + p.n, 0)} peças</b>. Dá para adiantar <b>${esc(titulo(primeiro))}</b>.`
       : 'Fila limpa. Bom momento para adiantar o que vem.';
-    const lista = diaEscolhido ? abertas.filter((x) => x.ref === diaEscolhido) : [...atrasadas, ...deHoje];
     const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const item = (x) => linhaDemanda(x.d, { ref: x.ref, sit: x.sit });
+    // A data do cliente manda (Paulo, 08/11/2026): a fila segue a VEICULAÇÃO. Prazo interno vencido com veiculação
+    // adiante é "prazo desatualizado" (o time não atualizou o prazo): alerta, mas não passa na frente de quem veicula antes.
+    const veic = (x) => String(x.d.veiculacao_iso || '');
+    const desatualizada = (x) => Boolean(x.d.prazo_iso && x.d.prazo_iso < hoje && veic(x) && veic(x) >= hoje);
+    const chaveFila = (x) => (veic(x) && veic(x) < hoje ? '0' : '1') + (veic(x) || x.d.prazo_iso || '9999');
+    const naFila = (diaEscolhido ? abertas.filter((x) => (veic(x) || x.ref) === diaEscolhido) : abertas).slice().sort((a, b) => chaveFila(a).localeCompare(chaveFila(b)));
+    const desatualizadas = abertas.filter(desatualizada);
+    // Por status, como o Minhas Tarefas: o grupo mais urgente primeiro (alteração, aprovação…), e dentro dele pela veiculação.
+    const grupos = new Map();
+    for (const x of naFila) { const st = String(x.d.status || 'Sem status').trim() || 'Sem status'; if (!grupos.has(st)) grupos.set(st, { st, itens: [], ordem: 9, cor: corStatus(x.d, x.sit) }); const g = grupos.get(st); g.itens.push(x); g.ordem = Math.min(g.ordem, ORDEM[x.sit === 'atrasada' && desatualizada(x) ? (/altera|ajuste/i.test(st) ? 'ajuste' : /aprova/i.test(st) ? 'aprovar' : 'fazer') : x.sit] ?? 9); }
+    // Ordem do fluxo (não do relógio): o que pede retrabalho e aprovação primeiro, depois produção, cliente e agendado.
+    const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
+    const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
+    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '' });
+    const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const seletor = admin && time.length ? `<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
     el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
-      <div class="vv-rotulo-secao" style="--c:${atrasadas.length ? 'var(--sit-atrasada)' : 'var(--sit-hoje)'}"><i></i>${diaEscolhido ? 'Dia ' + esc(diaEscolhido.slice(8) + '/' + diaEscolhido.slice(5, 7)) : 'Hoje'}<span class="vv-pilula">${lista.length}</span></div>
-      ${lista.length ? lista.slice(0, 5).map(item).join('') + (lista.length > 5 ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${lista.length - 5} na sua fila</button>` : '') : `<p class="vv-vazio">${diaEscolhido ? 'Nada neste dia.' : 'Nada vence hoje. Bom dia para adiantar o que vem.'}</p>`}
+      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
+      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
+      <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
+      ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
+      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}<section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
       <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
-      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
+      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      </section></div>`;
   }
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
@@ -601,7 +654,7 @@
   function ajustarAreaLivre() {
     if (!mundo) return;
     const celular = innerWidth <= 900;
-    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : hud.querySelector('#vv-hoje');
+    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : centroAberto ? hud.querySelector('.vv-trilho') : hud.querySelector('#vv-hoje');
     const esq = celular ? 0 : (gate?.getBoundingClientRect().right || 0) + 6;
     const dir = !celular && !placa().hidden ? placa().offsetWidth + 20 : 0;
     mundo.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
@@ -897,6 +950,7 @@
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
       .map((e) => ({ cliente: e.cliente, dia: e.dia, inicio: e.inicio || '', fim: e.fim || '' })));
   }
+  document.addEventListener('vybe-datas-prontas', () => pintarAgenda());
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
     pintarRoteiros();
@@ -904,13 +958,16 @@
     const amanha = (() => { const x = new Date(`${hoje}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
     const proximos = agendaEventos.filter((e) => e.dia > hoje || !e.fim || e.fim >= hm)
       .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00'))).slice(0, 3);
-    if (!proximos.length) { el.innerHTML = '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>'; return; }
+    // Datas comemorativas dos próximos 14 dias, abaixo dos compromissos e com menos destaque (Paulo, 08/11/2026).
+    const datas = window.VybeDatas?.proximas(hoje, 14) || [];
+    const datasHtml = datas.length ? `<div class="vd-agenda"><small class="vd-agenda-rotulo">Datas comemorativas</small>${datas.slice(0, centroAberto ? 3 : 6).map((d) => `<div class="vd-agenda-linha"><span>${d.iso === hoje ? 'Hoje' : d.iso.slice(8, 10) + '/' + d.iso.slice(5, 7)}</span>${window.VybeDatas.chipHtml(d)}</div>`).join('')}</div>` : '';
+    if (!proximos.length) { el.innerHTML = '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>' + datasHtml; return; }
     el.innerHTML = proximos.map((e) => {
       const quando = e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', '');
       const hora = e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : '';
       return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}">
         <small>${esc(quando + hora)} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
-    }).join('');
+    }).join('') + datasHtml;
   }
   // ---------- Roteiro da semana (Paulo, 07/11/2026): juntar captações por dia e bairro ----------
   // Só sugestão (mundo/captacoes.mjs, roteirosDaSemana): a agenda não muda. Ordem pelo vizinho mais próximo.
@@ -1108,11 +1165,22 @@
   hud.addEventListener('input', (e) => { const b = e.target.closest('[data-crm-busca]'); if (!b) return; clearTimeout(crmTimer); crmTimer = setTimeout(() => { crmBusca = b.value.trim().toLowerCase(); crmPagina = 1; crmRepintar('[data-crm-busca]'); }, 180); });
   hud.addEventListener('change', (e) => { const t = e.target.closest('[data-crm-tipo],[data-crm-bairro]'); if (!t) return; if (t.dataset.crmTipo !== undefined) crmTipo = t.value; else crmBairro = t.value; crmPagina = 1; crmRepintar(); });
   let fonteAgentes = null;
+  // A leitura dos agentes vem do módulo (sem montar o 3D): Hoje, Gestão e a página Agentes funcionam com o Centro fechado.
+  function criarFonte(m) {
+    if (fonteAgentes || !m?.criarFonteAgentes) return fonteAgentes;
+    fonteAgentes = m.criarFonteAgentes({buscar:async()=>{
+      const r = await fetch('/api/painel?area=vybes&etapa=agentes',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(25000)});
+      if(!r.ok) throw new Error('Central indisponível');
+      return r.json();
+    }});
+    return fonteAgentes;
+  }
+  const plantaDoPredio = () => mundo?.planta || modAvatar?.PLANTA || [];
   const horaAgentes = v => v ? new Date(v).toLocaleTimeString('pt-BR', { timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit' }) : '';
   const dataAgentes = v => v ? new Date(v).toLocaleString('pt-BR', { timeZone:'America/Bahia',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' }) : '';
   function estadoDoAgente(id) {
     const a = fonteAgentes?.ler().dados?.agentes.find(x => x.setor === id);
-    return mundo?.apresentarAgente(a) || { estado:'indisponivel',rotulo:'Sem leitura da central',cor:'#7A8B82',ultimos:[] };
+    return (mundo || modAvatar)?.apresentarAgente?.(a) || { estado:'indisponivel',rotulo:'Sem leitura da central',cor:'#7A8B82',ultimos:[] };
   }
   function avisoDosAgentes() {
     const f = fonteAgentes?.ler();
@@ -1121,10 +1189,10 @@
   }
   function seloAgente(id) { const a = estadoDoAgente(id); return `<span class="vv-selo" data-estado-agente="${esc(id)}" style="--e:${a.cor}"><i></i>${esc(a.rotulo)}</span>`; }
   function atividadeDoAgenteHtml(id) {
-    const a = estadoDoAgente(id), ref = mundo?.referenciaDaPeca(a.ultimos?.find(e => e.estado === a.estado)?.ref);
+    const a = estadoDoAgente(id), ref = (mundo || modAvatar)?.referenciaDaPeca?.(a.ultimos?.find(e => e.estado === a.estado)?.ref);
     const tarefa = a.tarefa ? esc(a.tarefa) : a.estado === 'sem_execucao' ? 'Sem execução registrada.' : a.estado === 'indisponivel' ? 'Aguardando leitura da central.' : 'Nenhuma atividade em curso.';
     const item = e => {
-      const ref = mundo?.referenciaDaPeca(e.ref), rotulo = {executando:'Executando',aguardando_aprovacao:'Aguardando aprovação',concluida:'Concluída',falhou:'Falhou'}[e.estado];
+      const ref = (mundo || modAvatar)?.referenciaDaPeca?.(e.ref), rotulo = {executando:'Executando',aguardando_aprovacao:'Aguardando aprovação',concluida:'Concluída',falhou:'Falhou'}[e.estado];
       const corpo = `<small>${esc(dataAgentes(e.em))} · ${esc(rotulo)}</small><b>${esc(e.tarefa)}</b><span>${esc(e.resultado || e.erro || 'Sem resultado final.')} · ${esc(e.ferramenta)}</span>`;
       return ref ? `<button type="button" class="vv-linha-agente" data-hoje-acao="peca" data-valor="${esc(ref)}">${corpo}</button>` : `<div class="vv-linha-agente">${corpo}</div>`;
     };
@@ -1142,15 +1210,16 @@
     }).join('');
   }
   function pintarAtividadeAgentes() {
-    if (!mundo) return;
-    const f = fonteAgentes?.ler(); mundo.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
+    if (!mundo && !modAvatar) return;
+    const f = fonteAgentes?.ler(); mundo?.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
+    window.VybeAgentes?.repintar?.();
     pintarSituacaoDosAndares();
     const el = placa()?.querySelector('[data-atividade-setor]');
     if (el) el.innerHTML = atividadeDoAgenteHtml(el.dataset.atividadeSetor);
     hud.querySelectorAll('[data-estado-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.estadoAgente); el.style.setProperty('--e',a.cor); el.innerHTML = '<i></i>' + esc(a.rotulo); });
     hud.querySelectorAll('[data-avatar-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.avatarAgente); el.classList.toggle('planejado',['sem_execucao','indisponivel'].includes(a.estado)); });
     hud.querySelectorAll('[data-indicador-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.indicadorAgente); el.style.setProperty('--e',a.cor); el.title = a.rotulo; });
-    if (cerebroCache) {
+    if (cerebroCache && mundo) {
       cerebroCache.ags = agentesDoCerebro(); cerebroCache.camadas = camadasDoCerebro(cerebroCache.cli,cerebroCache.ags);
       const assinatura = JSON.stringify([cerebroCache.ags.map(a => [a.setor,a.estado,a.conectado]),cerebroCache.camadas.agentes]);
       if (pintarAtividadeAgentes.assinatura !== assinatura) { pintarAtividadeAgentes.assinatura = assinatura; mundo.atualizarAgentesCerebro(cerebroCache.ags,cerebroCache.camadas); }
@@ -1158,7 +1227,8 @@
     }
   }
   async function carregarAgentes(forcar=false) {
-    if (!mundo) return;
+    if (!mundo && !modAvatar) return;
+    if (!fonteAgentes) criarFonte(mundo || modAvatar);
     if (body.classList.contains('auth-pending')) { fonteAgentes?.limpar(); pintarAtividadeAgentes(); return; }
     if (document.hidden || body.classList.contains('mundo-lobby')) return;
     await fonteAgentes?.atualizar(forcar); pintarAtividadeAgentes();
@@ -1171,7 +1241,9 @@
     setTimeout(() => { mundo.cerebro?.(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); body.classList.add('mundo-predio'); mostrarAgente(idAndar, idSetor); }, 350);
   };
   async function mostrarAgente(idAndar, idSetor) {
-    const a = mundo.planta.find((x) => x.id === idAndar), s = a?.setores.find((x) => x.id === idSetor); if (!s) return;
+    // Com o Centro fechado, o agente abre na página Agentes (tela cheia), não na placa do prédio.
+    if (!centroAberto && window.VybeAgentes?.abrir) { window.VybeAgentes.abrir(idSetor); return; }
+    const a = plantaDoPredio().find((x) => x.id === idAndar), s = a?.setores.find((x) => x.id === idSetor); if (!s) return;
     const E = estadoDoAgente(s.id), p = placa();
     const iniciais = (s.agente || 'VY').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
@@ -1183,7 +1255,7 @@
       <div class="vv-rotulo-secao"><i></i>Operação do painel</div>
       <div class="vv-agente-agora" id="vv-agente-agora"><span class="vv-ser" aria-hidden="true"><i></i></span><span>Olhando o que ele está fazendo…</span></div>
       <div id="vv-agente-dados"></div>
-      ${cerebroDoAgenteHtml(a, s)}
+      ${mundo ? cerebroDoAgenteHtml(a, s) : ''}
       <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Ferramentas</div>
       <ul class="vv-skills">${s.skills.map((k) => `<li>${esc(k)}</li>`).join('')}</ul>
       <form class="vv-pergunta" data-pergunta data-setor="${esc(s.nome)}"><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pedir algo a ${esc(s.agente || 'VYBES')}…" aria-label="Pedir algo a este agente"><button type="submit" aria-label="Pedir">→</button></form>
@@ -1499,10 +1571,10 @@
   }, 3000);
 
   function mostrarCliente(nome) {
-    const c = naTela.find((x) => x.nome === nome); if (!c) return;
+    const c = naTela.find((x) => x.nome === nome) || clientesDoMundo().find((x) => x.nome === nome); if (!c) return;
     const p = placa();
     const quadros = [['atrasada', 'atrasadas'], ['hoje', 'saem hoje'], ['aprovar', 'p/ aprovar'], ['fazer', 'a fazer']];
-    const base = mundo.acharNaBase?.(c.nome);
+    const base = mundo?.acharNaBase?.(c.nome);
     const chave = norm(c.nome).toLowerCase();
     const pecas = (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [])
       .filter((d) => { const cl = typeof clientesDoItem === 'function' ? clientesDoItem(d) : [d.cliente]; return cl.some((x) => norm(x).toLowerCase() === chave) && situacaoDaPeca(d) !== 'concluida'; })
@@ -1519,7 +1591,7 @@
       <div class="vv-acoes-cliente"><button type="button" class="vv-botao acao" data-abrir-cliente="${esc(c.nome)}">Abrir o cliente →</button>
       ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="vv-botao" data-cerebro-cliente="${esc(c.nome)}">Sinapses do cérebro</button>` : ''}</div>${window.VybeClientePlaca?.html(c.nome) || ''}`;
     p.hidden = false; ajustarAreaLivre(); window.VybeClientePlaca?.ligar(p); window.VybeTutorial?.dica?.('cliente');
-    mundo.focarCliente(nome);
+    mundo?.focarCliente(nome);
   }
   function fecharPlaca() { placa().hidden = true; ajustarAreaLivre(); }
 
@@ -1529,8 +1601,9 @@
     if (b.dataset.atencaoCliente) { mostrarPendencias(b.dataset.atencaoCliente); return; }
     if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
     if (b.dataset.hojeAcao) { acaoDoHoje(b.dataset.hojeAcao, b.dataset.valor); return; }
-    if (!mundo) return;
+    // O menu, as ferramentas e as placas funcionam sem o 3D; só vista, controles, andares e o mapa do CRM precisam dele.
     if (b.dataset.trilho) { usarTrilho(b.dataset.trilho, b); return; }
+    if (!mundo && (b.dataset.vista || b.dataset.ctl || b.dataset.andar || b.dataset.crmVer || b.hasAttribute('data-voltar'))) return;
     if (b.dataset.ferr) { usarFerramenta(b.dataset.ferr); return; }
     if (b.dataset.visaoHoje) { trocarVisaoHoje(b.dataset.visaoHoje); return; }
     if (b.dataset.abrirGestao !== undefined) { abrirGestao(b.dataset.abrirGestao || ''); return; }
@@ -1554,7 +1627,7 @@
     else if (b.dataset.equipe) usarEquipe(b.dataset.equipe);
     else if (b.dataset.cerebroNo) mostrarNoDoCerebro(b.dataset.cerebroNo);
     else if (b.dataset.cerebroCliente) { const nome = b.dataset.cerebroCliente; chamar('chooseClientMode'); setTimeout(() => { window.VybeTutorial?.dica?.('cerebro-cliente'); try { abrirModalCerebroCliente(nome); } catch (e) { console.error('[mundo] cérebro do cliente', e); } }, 450); }
-    else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mundo.cerebro(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); mostrarAgente(an, se); }
+    else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mundo?.cerebro(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); mostrarAgente(an, se); }
     else if (b.dataset.perfil) abrirPerfil(b.dataset.perfil);
     else if (b.dataset.crmMais !== undefined) { crmPagina++; crmRepintar(); }
     else if (b.dataset.crmAce !== undefined) { crmAce = !crmAce; crmPagina = 1; crmRepintar(); }
@@ -1598,7 +1671,7 @@
   function pintarClientes(forcar = false) {
     if (!mundo) return;
     const lista = clientesDoMundo();
-    const assinatura = lista.map((c) => `${c.nome}:${c.total}:${c.situacao}`).join('|');
+    const assinatura = lista.map((c) => `${c.nome}:${c.total}:${c.situacao}:${(c.status || []).map((s) => s.nome + s.n).join(',')}`).join('|');
     if (!forcar && assinatura === ultimaAssinatura) return;
     ultimaAssinatura = assinatura; naTela = lista;
     mundo.definirClientes(lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) });
@@ -1608,16 +1681,12 @@
   async function carregar() {
     if (mundo || carregando || erroCarga) return carregando;
     const avisoCarga = raiz.querySelector('.mundo-carregando');
-    if (avisoCarga) { avisoCarga.hidden = false; avisoCarga.textContent = 'Montando Irecê…'; }
+    if (avisoCarga) { avisoCarga.hidden = false; avisoCarga.textContent = 'Montando o Centro…'; }
     carregando = (async () => {
       const reduzir = matchMedia('(prefers-reduced-motion: reduce)').matches || body.dataset.motion === 'reduce';
       const m = await import(MUNDO_JS + (tentativasCarga ? '?tentativa=' + tentativasCarga : ''));
-      mundo = await m.iniciarMundo(raiz.querySelector('canvas'), { dadosUrl: MUNDO_DADOS, crmUrl: MUNDO_CRM, reduzirMovimento: reduzir });
-      fonteAgentes = mundo.criarFonteAgentes({buscar:async()=>{
-        const r = await fetch('/api/painel?area=vybes&etapa=agentes',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(25000)});
-        if(!r.ok) throw new Error('Central indisponível');
-        return r.json();
-      }});
+      mundo = await m.iniciarMundo(raiz.querySelector('canvas'), { reduzirMovimento: reduzir, quantos: clientesDoMundo().length });
+      if (!fonteAgentes) criarFonte(mundo);
       void carregarAgentes();
       setTimeout(() => aplicarProspeccao(), 1500);
       mundo.aoClicar((alvo) => {
@@ -2299,7 +2368,8 @@
     // Lobby: antes do login, Irecê ao vivo atrás do portão (vale para os dois modos; a escolha é no portão).
     const lobby = !semWebGL && !autenticado && !!document.getElementById('login-gate');
     body.classList.toggle('mundo-lobby', lobby);
-    if (lobby) { prepararLobby(); carregar().then(() => { mundo?.pausar(false); ajustarAreaLivre(); }); girarLobby(true); } else girarLobby(false);
+    // A entrada não monta mais Irecê atrás do portão: o login abre leve (Paulo, 08/11/2026).
+    if (lobby) prepararLobby();
     body.classList.toggle('mundo-modulo', modulo);
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
@@ -2308,10 +2378,10 @@
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);
     body.classList.toggle('mundo-visivel', visivel);
+    body.classList.toggle('mundo-centro', visivel && centroAberto);
     if (visivel) {
       if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => window.VybeTutorial?.iniciar?.(), 1200); }
-      carregar();
-      mundo?.pausar(false); pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
+      if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirModulo(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
       if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
     } else {
       mundo?.pausar(true); if (cartao()) cartao().hidden = true;
@@ -2332,12 +2402,34 @@
     const id = modo === 'foco' ? 'tarefas' : modo === 'controler' ? 'direcao' : modo === 'producao' ? 'agenda' : (modo === 'clientes' || quadro === 'clientes') ? 'clientes' : ['diario', 'performance', 'ai-usage', 'automacoes', 'conta', 'demandas'].includes(quadro) ? '' : 'gestor';
     marcarTrilho(id);
   }
+  // ---------- Centro: abrir e fechar o 3D ----------
+  function abrirCentro(vista = 'cidade') {
+    centroAberto = true; fecharPlaca();
+    marcarTrilho(vista === 'predio' ? 'predio' : 'centro');
+    sincronizar();
+    carregar()?.then?.(() => { if (!mundo || !centroAberto) return; mundo.pausar(false); hud.querySelector(`[data-vista="${vista}"]`)?.click(); ajustarAreaLivre(); });
+  }
+  function fecharCentro() {
+    if (!centroAberto) return;
+    centroAberto = false; fecharPlaca();
+    body.classList.remove('mundo-predio', 'mundo-cerebro');
+    try { mundo?.cerebro?.(false); } catch {}
+    mundo?.pausar(true); if (cartao()) cartao().hidden = true;
+    sincronizar();
+  }
+  // O módulo JS (avatares, planta e leitura dos agentes) carrega quando o navegador folga, sem montar a cena.
+  let modulo3d = null;
+  function garantirModulo() {
+    if (modAvatar) { criarFonte(modAvatar); return Promise.resolve(modAvatar); }
+    if (!modulo3d) modulo3d = import(MUNDO_JS).then((m) => { modAvatar = modAvatar || m; criarFonte(m); void carregarAgentes(); return m; }).catch(() => { modulo3d = null; return null; });
+    return modulo3d;
+  }
   function ligar(sim) {
     ligado = !!sim && !semWebGL;
     try { localStorage.setItem(CHAVE, JSON.stringify({ ligado })); } catch { /* sem armazenamento */ }
     sincronizar();
   }
-  window.mundoVoxel = { ligar, ligado: () => ligado, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
+  window.mundoVoxel = { ligar, ligado: () => ligado, abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
     // Conferência visual (presença e clientes) sem mexer nos dados do painel.
     desenharCaptacoes: (lista) => mundo?.definirCaptacoes(lista),
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
@@ -2351,7 +2443,21 @@
     // Conferência visual: desenha uma lista de clientes sem mexer nos dados do painel.
     desenharClientes: (lista) => { naTela = lista; ultimaAssinatura = 'manual'; return mundo?.definirClientes(lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) }); } };
 
+  // Módulo aberto no palco (Carteira, Comercial, Conteúdo, Pessoas, Planejamentos, Missões, WhatsApp): o trilho
+  // sobe por cima dele e o resto do HUD some. Os módulos não avisam quando abrem, então olhamos o body.
+  const PALCO = '.vc-camada,.vp-camada,.vv-missoes-camada,#vv-comercial,#vv-conteudo,.vv-plj,.vv-wa,#vv-agentes';
+  function marcarPalco() {
+    const aberto = [...document.querySelectorAll(PALCO)].some((e) => !e.hidden && e.getClientRects().length > 0);
+    if (body.classList.contains('palco-modulo') !== aberto) body.classList.toggle('palco-modulo', aberto);
+    if (aberto && centroAberto) fecharCentro();
+    // Altura real do aviso dos planejamentos e da barra de voz: a agenda termina acima deles (nada cobre nada).
+    const aviso = document.getElementById('plj-aviso'), voz = hud.querySelector('.vv-chamada');
+    const hAviso = aviso && !aviso.hidden && aviso.getClientRects().length ? aviso.offsetHeight + 8 : 0, hVoz = voz && voz.getClientRects().length ? voz.offsetHeight + 8 : 0;
+    body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz) + 'px'); body.style.setProperty('--vv-pe-voz', hVoz + 'px');
+  }
   function iniciar() {
+    let palcoAgendado = false;
+    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; requestAnimationFrame(() => { palcoAgendado = false; marcarPalco(); }); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
     const moldura = document.createElement('div'); moldura.id = 'mundo-moldura';
     body.append(raiz, moldura, hud);
     const gate = document.getElementById('mode-gate');
@@ -2372,7 +2478,11 @@
       caixa.addEventListener('change', () => ligar(caixa.checked));
     }
     sincronizar();
-    if (ligado) { trocarAvataresEm(document.body); import(MUNDO_JS).then((m) => { modAvatar = modAvatar || m; ligarIconesVoxel(); ligarCatalogoVoxel(); }).catch(() => {}); }
+    if (ligado) {
+      trocarAvataresEm(document.body);
+      const depois = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 1500));
+      depois(() => garantirModulo().then((m) => { if (m) { ligarIconesVoxel(); ligarCatalogoVoxel(); } }));
+    }
   }
   // Classe aplicada antes do primeiro desenho, para a tela de módulos não piscar no tema antigo.
   body.classList.toggle('mundo', ligado);

@@ -55,6 +55,7 @@ test('HUD usa lista inteira do gargalo, cor do painel e mostra campos distintos 
   const dados=lista.map(d=>({...d,status_color:'#00AABB'})), el={hidden:true,innerHTML:''};
   const N={clientes:[],gargalos:[{status:'Pode Fazer',qtd:65,idadeMedianaDias:1,lista}]};
   const c=vm.createContext({DADOS_ALL:dados,managerCalendarStatusColor:(d,f)=>d?.status_color||f,numerosDoDono:()=>N,gestao:{hidden:true},placa:()=>el,ic:{fechar:'×'},esc,ajustarAreaLivre(){}});
+  c.corStatus=(d)=>d?.status_color||'#9AA3A8'; c.situacaoDaPeca=()=>'fazer'; c.STATUS_CORES={}; c.chaveStatus=(s)=>String(s||'').toLowerCase();
   vm.runInContext('const dataCompleta = iso => iso ? iso.slice(8)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "Não definido";'+fonte('corDaPendencia')+fonte('mostrarPendencias'),c);
   c.mostrarPendencias('','Pode Fazer');
   assert.equal(el.hidden,false); assert.equal((el.innerHTML.match(/class="vv-pendencia"/g)||[]).length,65);
@@ -81,28 +82,26 @@ test('entrada tardia de andar não refaz o foco depois de trocar de sala', async
   assert.deepEqual(focou,['b']);
 });
 const cenaSrc=readFileSync('mundo/mundo-3d.mjs','utf8');
-function cena(fetchImpl) {
-  let motores=0,descartes=0;
-  const c=vm.createContext({fetch:fetchImpl,AbortSignal,Empresas:{EMPRESAS:[],carregarEmpresas:async()=>false},criarMotor:()=>{motores++;return{destruir:()=>descartes++}},LOCAIS:{},MARCOS:[],construirIrece:()=>{throw new Error('Falha simulada na construção')}});
+function cena(construir) {
+  let motores=0,descartes=0,baixou=0;
+  const c=vm.createContext({fetch:async()=>{baixou++;throw new Error('não deveria baixar')},AbortSignal,LOCAIS:{},criarMotor:()=>{motores++;return{destruir:()=>descartes++}},construirCentro:construir,construirPredio:()=>{throw new Error('Falha simulada no prédio')}});
   vm.runInContext(cenaSrc.slice(cenaSrc.indexOf('export async function iniciarMundo')).replace('export async','async'),c);
-  return {c,motores:()=>motores,descartes:()=>descartes};
+  return {c,motores:()=>motores,descartes:()=>descartes,baixou:()=>baixou};
 }
-test('rede e erro HTTP na abertura não alocam um contexto WebGL', async () => {
-  for(const fetch of [async()=>{throw new Error('Sem rede')},async()=>({ok:false})]) {
-    const s=cena(fetch); await assert.rejects(s.c.iniciarMundo({}, {dadosUrl:'simulado'})); assert.equal(s.motores(),0);
-  }
+// Centro comercial (08/11/2026): o 3D não baixa mais o mapa de Irecê nem a base de empresas.
+test('o Centro abre sem baixar dados (nem irece.json nem crm-irece.json)', () => {
+  assert.doesNotMatch(cenaSrc,/fetch\(/); assert.doesNotMatch(cenaSrc,/irece\.json|crm-irece|carregarEmpresas/);
 });
-test('construção com falha depois dos dados descarta o motor antes de permitir nova tentativa', async () => {
-  let resolver,signal;
-  const s=cena((url,op)=>{signal=op.signal;return new Promise(r=>resolver=r)});
-  const espera=s.c.iniciarMundo({}, {dadosUrl:'simulado'}); assert.equal(s.motores(),0); assert.ok(signal);
-  resolver({ok:true,json:async()=>({})}); await assert.rejects(espera,/Falha simulada/);
-  assert.equal(s.motores(),1); assert.equal(s.descartes(),1);
+test('construção com falha descarta o motor antes de permitir nova tentativa', async () => {
+  for(const construir of [()=>{throw new Error('Falha simulada na construção')},()=>({alturaEm:()=>0})]) {
+    const s=cena(construir); await assert.rejects(s.c.iniciarMundo({}, {}),/Falha simulada/);
+    assert.equal(s.motores(),1); assert.equal(s.descartes(),1); assert.equal(s.baixou(),0);
+  }
 });
 test('falha de abertura não dispara tentativas automáticas e oferece repetição explícita', async () => {
   let chamadas=0,descartes=0;
   const aviso={hidden:false,textContent:'',innerHTML:''};
-  const c=vm.createContext({mundo:null,carregando:null,erroCarga:false,tentativasCarga:0,fonteAgentes:null,ultimaAssinatura:'',raiz:{querySelector:()=>aviso},body:{dataset:{}},matchMedia:()=>({matches:false}),MUNDO_JS:'simulado',MUNDO_DADOS:'dados',MUNDO_CRM:'crm',console:{error(){}},importar:async()=>{chamadas++;return{iniciarMundo:async()=>({criarFonteAgentes(){throw new Error('Erro após iniciar')},destruir(){descartes++}})}}});
+  const c=vm.createContext({mundo:null,carregando:null,erroCarga:false,tentativasCarga:0,fonteAgentes:null,ultimaAssinatura:'',raiz:{querySelector:()=>aviso},body:{dataset:{}},matchMedia:()=>({matches:false}),MUNDO_JS:'simulado',MUNDO_DADOS:'dados',MUNDO_CRM:'crm',clientesDoMundo:()=>[],criarFonte:(m)=>m.criarFonteAgentes({}),console:{error(){}},importar:async()=>{chamadas++;return{iniciarMundo:async()=>({criarFonteAgentes(){throw new Error('Erro após iniciar')},destruir(){descartes++}})}}});
   vm.runInContext(fonte('carregar').replace(/import\(/g,'importar('),c);
   await c.carregar(); await c.carregar(); assert.equal(chamadas,1); assert.equal(descartes,1); assert.equal(c.mundo,null); assert.equal(c.erroCarga,true); assert.match(aviso.innerHTML,/data-mundo-repetir/);
   c.erroCarga=false;c.tentativasCarga++;await c.carregar();assert.equal(chamadas,2);assert.equal(descartes,2);

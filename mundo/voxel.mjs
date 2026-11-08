@@ -66,7 +66,8 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
 }
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
-export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 })));
+// Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
 
 export class Obra {
   constructor() { this.solidos = []; this.luzes = []; }

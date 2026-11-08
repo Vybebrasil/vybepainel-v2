@@ -1,23 +1,23 @@
 /* Planejamentos (Centro de Operação no Irecity): um cartão por cliente; abrir usa a janela de sempre. */
-.vv-plj{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 96px);display:flex;flex-direction:column;gap:14px;padding:22px 24px;background:#FBFAF7;border:1px solid #E6E0D6;border-radius:24px;box-shadow:0 30px 70px rgba(31,29,26,.22);color:#1F1D1A;font-family:var(--vv-texto);overflow:auto;color-scheme:light}
+.vv-plj{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 96px);display:flex;flex-direction:column;gap:14px;padding:22px 24px;background:#FBFAF7;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px rgba(31,29,26,.22);color:#1F1D1A;font-family:var(--vv-texto);overflow:auto;color-scheme:light}
 .vv-plj[hidden]{display:none}
 .vv-plj-cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.vv-plj-kicker{font:700 10.5px var(--vv-texto);letter-spacing:.12em;text-transform:uppercase;color:#A84E00}
+.vv-plj-kicker{font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:#A84E00}
 .vv-plj h2{margin:4px 0 4px;font:700 24px var(--vv-texto)}
 .vv-plj-cabeca p{margin:0;max-width:720px;color:#6B675F;font:500 13px/1.45 var(--vv-texto)}
 .vv-plj-abas{display:flex;gap:6px;flex-wrap:wrap}
-.vv-plj-abas button{appearance:none;border:1px solid #E6E0D6;background:#fff;border-radius:999px;padding:7px 14px;font:600 12.5px var(--vv-texto);color:#1F1D1A;cursor:pointer}
+.vv-plj-abas button{appearance:none;border:1px solid #E6E0D6;background:#fff;border-radius:8px;padding:7px 14px;font:600 12.5px var(--vv-texto);color:#1F1D1A;cursor:pointer}
 .vv-plj-abas button span{color:#6B675F;font-weight:500;margin-left:4px}
 .vv-plj-abas button[aria-selected="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff);border-color:color-mix(in srgb,#FF7A2F 40%,transparent);color:#C2490C}
 .vv-plj-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;align-content:start}
-.vv-plj-cartao{display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #ECE6DC;border-radius:18px}
+.vv-plj-cartao{display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #ECE6DC;border-radius:10px}
 .vv-plj-cartao.meu{border-color:color-mix(in srgb,#FF7A2F 35%,#ECE6DC)}
 .vv-plj-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .vv-plj-topo b{font:700 14.5px var(--vv-texto)}
 .vv-plj-sub{color:#6B675F;font:500 12px var(--vv-texto)}
 .vv-plj-placar{margin:0;font:600 12.5px var(--vv-texto)}
 .vv-plj-avisos{display:flex;gap:6px;flex-wrap:wrap}
-.vv-plj-aviso{font:600 11px var(--vv-texto);padding:3px 8px;border-radius:999px;background:#F3EFE8;color:#6B675F}
+.vv-plj-aviso{font:600 11px var(--vv-texto);padding:3px 8px;border-radius:8px;background:#F3EFE8;color:#6B675F}
 .vv-plj-aviso.u1{background:#FDECEE;color:#B4232A}.vv-plj-aviso.u2{background:#FFF1DB;color:#9E5F00}
 .vv-plj-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
 .vv-plj-vazio{color:#6B675F;font:500 13px var(--vv-texto)}

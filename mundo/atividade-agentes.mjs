@@ -45,7 +45,7 @@ export function criarFonteAgentes({buscar,agora=Date.now,intervalo=15000}) {
    if(pendente)return pendente;
    if(!forcar && agora()-tentadoEm<intervalo)return Promise.resolve(estado);
    tentadoEm=agora(); const requisicao=geracao;
-   pendente=Promise.resolve().then(buscar).then(d=>{if(requisicao===geracao)estado={dados:validarAgentes(d),atualizadoEm:agora(),erro:false};})
+   pendente=Promise.resolve().then(buscar).then(d=>{if(requisicao===geracao)estado={dados:{...validarAgentes(d),atribuicoes:Array.isArray(d?.atribuicoes)?d.atribuicoes:null,rotinas:d?.rotinas&&typeof d.rotinas==='object'&&!Array.isArray(d.rotinas)?d.rotinas:{}},atualizadoEm:agora(),erro:false};})
     .catch(()=>{if(requisicao===geracao)estado={...estado,erro:true};}).then(()=>estado).finally(()=>{pendente=null;});
    return pendente;
   }
