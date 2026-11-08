@@ -9,15 +9,12 @@ só tem `SELECT`, e mostra os números no Comercial, na Carteira e no RH. Nada �
 1. **Rodar o SQL de acesso no Supabase do Finanças**
    - Abra o projeto do **Vybe Finanças** no Supabase → **SQL Editor** → **New query**.
    - Cole o conteúdo de [`docs/vybe-financas-acesso-leitura.sql`](vybe-financas-acesso-leitura.sql).
-   - No topo do script, troque:
-     - `TROQUE-ESTA-SENHA` por uma senha forte nova (16 caracteres ou mais; só letras e números evita
-       ter que codificar caracteres na URL). O script se recusa a rodar com a senha de exemplo.
-     - o e-mail `gestaovybe@gmail.com`, se o dono da conta da Vybe no Finanças for outro.
-   - Clique em **Run**. O resultado final mostra, por tabela, quantas linhas o papel vai enxergar
-     (as do dono da Vybe), as tabelas com `SELECT` e quantas políticas foram criadas. A linha
-     "outras permissoes (deve ser 0)" tem que dar 0.
-   - Pode rodar de novo quando quiser (troca a senha e recria as políticas). Para desligar, use o
-     bloco comentado no fim do script.
+   - Não precisa mudar nada: o script gera sozinho uma senha forte (64 letras e números). Só troque o
+     e-mail `gestaovybe@gmail.com` no topo se o dono da conta da Vybe no Finanças for outro.
+   - Clique em **Run**. A tabela do resultado mostra a senha gerada (linha "COPIE"), quantas tabelas
+     ficaram liberadas para leitura (6) e "outras permissoes (deve ser 0)", que tem que dar 0.
+   - Rodar de novo gera OUTRA senha (a anterior deixa de valer): aí atualize a variável na Vercel.
+     Para desligar, use o bloco comentado no fim do script.
 
 2. **Montar a string de conexão (pooler em modo transação)**
    - No Supabase do Finanças: **Project Settings → Database → Connection pooling** (em algumas telas,

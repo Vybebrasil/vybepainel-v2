@@ -15,15 +15,21 @@
 --
 -- ANTES DE RODAR, troque as duas linhas abaixo:
 SELECT set_config('vybe.dono_email', 'gestaovybe@gmail.com', false);   -- e-mail do dono da conta da Vybe no Finanças
-SELECT set_config('vybe.senha_leitura', 'TROQUE-ESTA-SENHA', false);  -- senha forte nova (só letras e números evita problema na URL)
+SELECT set_config('vybe.senha_leitura', 'GERAR', false);  -- deixe GERAR: o script cria uma senha forte sozinho e mostra no fim
+-- (rodar de novo gera OUTRA senha: aí é preciso atualizar a VYBE_FINANCAS_DB_URL na Vercel)
 
 -- 1. O papel ---------------------------------------------------------------------------------------------------------
 DO $$
 DECLARE
   v_senha text := current_setting('vybe.senha_leitura');
 BEGIN
-  IF v_senha IS NULL OR v_senha = '' OR v_senha = 'TROQUE-ESTA-SENHA' OR length(v_senha) < 16 THEN
-    RAISE EXCEPTION 'Troque a senha TROQUE-ESTA-SENHA no topo do script por uma senha forte (16 caracteres ou mais) antes de rodar.';
+  -- Senha gerada aqui dentro (64 letras e números, aleatória): ninguém precisa inventar nem trocar senha nenhuma.
+  IF v_senha IS NULL OR v_senha IN ('', 'GERAR', 'TROQUE-ESTA-SENHA') THEN
+    v_senha := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
+  END IF;
+  PERFORM set_config('vybe.senha_gerada', v_senha, false);
+  IF length(v_senha) < 16 THEN
+    RAISE EXCEPTION 'A senha escolhida no topo é curta demais: deixe GERAR para o script criar uma.';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vybe_os_leitura') THEN
     EXECUTE format('CREATE ROLE vybe_os_leitura LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 5 PASSWORD %L', v_senha);
@@ -136,3 +142,8 @@ UNION ALL SELECT 'outras permissoes (deve ser 0)', count(*)
 --   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vybe_os_leitura') THEN DROP ROLE vybe_os_leitura; END IF;
 -- END $$;
 -- Depois apague VYBE_FINANCAS_DB_URL na Vercel: as telas voltam ao "Conectar o Vybe Finanças".
+
+-- ── RESULTADO PARA COPIAR (o SQL Editor mostra esta tabela) ─────────────────────
+SELECT 'COPIE: senha do vybe_os_leitura (vai no lugar de [YOUR-PASSWORD])' AS item, current_setting('vybe.senha_gerada') AS valor
+UNION ALL SELECT 'tabelas liberadas para leitura', count(*)::text FROM information_schema.role_table_grants WHERE grantee = 'vybe_os_leitura' AND privilege_type = 'SELECT'
+UNION ALL SELECT 'outras permissoes (deve ser 0)', count(*)::text FROM information_schema.role_table_grants WHERE grantee = 'vybe_os_leitura' AND privilege_type <> 'SELECT';
