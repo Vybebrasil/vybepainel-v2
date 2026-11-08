@@ -30,11 +30,13 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
   // A vida do Centro (gente, água, pássaros, lojas reagindo) e o dia e a noite pela hora da Bahia.
   const vida = criarVida(motor, irece, { reduzirMovimento });
   const clientes = { definir: (lista, opcoes) => { const r = irece.definir(lista, opcoes); vida.tamanhoMudou(); return r; } };
-  let noite = -1, conferiuHora = -1e9;
+  // horaManual (Paulo, 08/11/2026: "o usuário escolher dia, noite ou automático"): null segue a hora real da Bahia;
+  // um número (0–24) fixa a hora do mundo para quem escolheu.
+  let noite = -1, conferiuHora = -1e9, horaManual = null;
   motor.animar((t) => {
     if (t - conferiuHora < 30) return false;
     conferiuHora = t;
-    const k = Math.round(noiteDaHora(relogioBahia().minutos) * 20) / 20;
+    const k = Math.round(noiteDaHora(horaManual != null ? horaManual * 60 : relogioBahia().minutos) * 20) / 20;
     if (k === noite) return false;
     noite = k; motor.ambiente(k); vida.noite(k); return true;
   });
@@ -264,6 +266,7 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     // Conferência: onde cada cliente deveria estar (ponto real) e onde a sede ficou.
     desempenho: () => motor.desempenho(),
     // Conferência do dia e da noite (0 dia, 1 noite); o relógio da Bahia volta a mandar em até 30 s.
+    definirHora: (h) => { horaManual = Number.isFinite(Number(h)) && h !== null ? Math.max(0, Math.min(24, Number(h))) : null; noite = -1; conferiuHora = -1e9; motor.invalidar(); },
     ambiente: (k) => { motor.ambiente(k); vida.noite(k); noite = -1; conferiuHora = performance.now() / 1000; },
     orcamento: () => { const lista = []; motor.cena.traverse((o) => { if (!o.isMesh || !o.visible) return; let vis = true, p = o.parent; while (p) { if (!p.visible) { vis = false; break; } p = p.parent; } if (!vis) return; const g = o.geometry; const tri = ((g.index ? g.index.count : g.attributes.position.count) / 3) * (o.isInstancedMesh ? o.count : 1); lista.push({ tipo: o.isInstancedMesh ? 'inst' : 'mesh', tri: Math.round(tri), mat: o.material?.type, n: o.isInstancedMesh ? o.count : 1, sombra: o.castShadow }); }); lista.sort((a, b) => b.tri - a.tri); return { total: lista.reduce((n, x) => n + x.tri, 0), top: lista.slice(0, 12) }; },
     conferirClientes: () => ultimoComPonto.map((c) => { const p = posicoes.find((x) => x.nome === c.nome); return { nome: c.nome, ponto: c.ponto, sede: p ? { x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10 } : null, dist: c.ponto && p ? Math.round(Math.hypot(c.ponto.x - p.x, c.ponto.z - p.z) * 10) : null }; }),

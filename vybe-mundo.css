@@ -112,6 +112,21 @@ body.mundo.mundo-visivel #mundo-hud{display:block}
 .vv-espaco{flex:1}
 .vv-controles{position:absolute;right:var(--vv-m);bottom:96px;flex-direction:column}
 .vv-controles .vv-botao{width:38px;padding:0;justify-content:center}
+.vv-controles .vv-botao[aria-expanded="true"]{color:var(--vv-laranja)}
+/* Hora do mundo: abre ao lado dos controles do mapa. */
+.vv-hora{position:absolute;right:calc(100% + 8px);bottom:0;width:236px;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:var(--vv-r-placa);background:var(--vv-vidro-forte);box-shadow:var(--vv-sombra-curta);backdrop-filter:blur(14px);font:500 12px var(--vv-texto);color:var(--vv-tinta)}
+.vv-hora[hidden]{display:none}
+.vv-hora b{font:700 13px var(--vv-titulo)}
+.vv-hora-modos{display:flex;gap:6px;flex-wrap:wrap}
+.vv-hora-modos button{padding:6px 11px;border-radius:8px;border:1px solid rgba(31,29,26,.14);background:#fff;color:var(--vv-tinta);font:650 12px var(--vv-texto);cursor:pointer}
+.vv-hora-modos button:hover{border-color:var(--vv-laranja)}
+.vv-hora-modos button:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+.vv-hora-modos button[aria-pressed="true"]{background:var(--vv-laranja);border-color:var(--vv-laranja);color:#fff}
+.vv-hora-barra{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 8px}
+.vv-hora-barra span{grid-column:1/-1;font-weight:600;color:var(--vv-apagado)}
+.vv-hora-barra input{accent-color:var(--vv-laranja);width:100%}
+.vv-hora-barra output{font:700 12px var(--vv-texto);min-width:38px;text-align:right}
+.vv-hora-dica{color:var(--vv-apagado);font-size:11px;line-height:1.35}
 :focus-visible{outline-color:var(--vv-laranja)}
 body.mundo .vv-botao:focus-visible,body.mundo .vv-sala:focus-visible{outline:2px solid #B5C900;outline-offset:2px}
 
