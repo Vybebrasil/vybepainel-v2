@@ -2407,7 +2407,10 @@
     centroAberto = true; fecharPlaca();
     marcarTrilho(vista === 'predio' ? 'predio' : 'centro');
     sincronizar();
-    carregar()?.then?.(() => { if (!mundo || !centroAberto) return; mundo.pausar(false); hud.querySelector(`[data-vista="${vista}"]`)?.click(); ajustarAreaLivre(); });
+    // A vista vai depois de o 3D terminar de montar (clientes, presença, câmera inicial); antes, a câmera inicial
+    // da maquete passava por cima e o "Prédio" do menu abria o elevador com a câmera longe.
+    const aplicar = () => { if (!mundo || !centroAberto) return; mundo.pausar(false); hud.querySelector(`[data-vista="${vista}"]`)?.click(); ajustarAreaLivre(); };
+    Promise.resolve(carregar()).then(() => setTimeout(aplicar, 250));
   }
   function fecharCentro() {
     if (!centroAberto) return;
