@@ -50,7 +50,8 @@
     { "source": "/instalar-agenda", "destination": "/instalar-agenda.html" },
     { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" },
     { "source": "/aprovar-pecas/:t/arquivo/:a", "destination": "/api/painel?area=aprovar_pecas&t=:t&arquivo=:a" },
-    { "source": "/aprovar-pecas/:t", "destination": "/api/painel?area=aprovar_pecas&t=:t" }
+    { "source": "/aprovar-pecas/:t", "destination": "/api/painel?area=aprovar_pecas&t=:t" },
+    { "source": "/lead/:t", "destination": "/api/painel?area=lead&t=:t" }
   ],
   "fluid": true,
   "regions": ["gru1"],

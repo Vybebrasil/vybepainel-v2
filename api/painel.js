@@ -27,6 +27,7 @@ import { areaVybes } from '../server/vybes.js';
 import { areaCrm } from '../server/crm-api.js';
 import { areaCarteira } from '../server/carteira.js';
 import { areaComercial } from '../server/comercial-api.js';
+import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
 import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
 import { paginaAprovarPecas } from '../server/conteudo-aprovacao-pagina.js';
@@ -1783,6 +1784,9 @@ export default async function handler(req, res) {
   // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).
   if (areaPublica === 'aprovar_pecas') { const db = sql(); await garantirMigracoesIrecity(db); return paginaAprovarPecas(req, res, db, { baixarDoDrive,
     fazer: { trocarStatus, comentar } }); }
+  // Formulário de captura de leads do Comercial (/lead/<token>): o token é o segredo; vira oportunidade em Novo
+  // (server/comercial-leads.js, com isca, limite por campo e por IP).
+  if (areaPublica === 'lead') return paginaFormularioLeads(req, res, sql);
   if (areaPublica === 'logo') return logoDoCliente(req, res, sql());
   if (areaPublica === 'portal') {
     try { return await portalDoCliente(req, res, sql()); }
