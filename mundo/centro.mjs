@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { ruido } from './irece.mjs';
-import { construirSede, idDaSede } from './sedes.mjs';
+import { NICHOS, nichoDoCliente } from './nichos.mjs';
 
 export const PASSO = 6;          // distância entre lojas vizinhas
 const LW = 5, LD = 4.6;          // largura e fundo de cada loja
@@ -144,6 +144,20 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     C(0, .3, LD / 2 - .68, LW - 1, 2.1, .08, '#B9B2A6');
     for (let f = 0; f < 6; f++) C(0, .45 + f * .33, LD / 2 - .62, LW - 1.1, .05, .06, '#A39C90');
   }
+  const carregador = new T.TextureLoader();
+  function logoNaPlaca(g, v, url, placa) {
+    const mat = new T.MeshBasicMaterial({ transparent: true, toneMapped: false, color: '#FFFFFF' });
+    const m = new T.Mesh(new T.PlaneGeometry(placa.w, placa.h), mat);
+    const q = paraMundo(v, 0, placa.z + .01, 0, 0);
+    m.position.set(q.x, placa.y, q.z); m.rotation.y = [0, -Math.PI / 2, Math.PI, Math.PI / 2][v.lado];
+    m.visible = false; g.add(m);
+    carregador.load(url, (tx) => {
+      tx.colorSpace = T.SRGBColorSpace;
+      // Mantém a proporção da logo dentro da placa.
+      const a = tx.image.width / Math.max(1, tx.image.height), w = Math.min(placa.w, placa.h * a), h = w / a;
+      m.scale.set(w / placa.w, h / placa.h, 1); mat.map = tx; mat.needsUpdate = true; m.visible = true; motor.invalidar();
+    }, undefined, () => { g.remove(m); m.geometry.dispose(); mat.dispose(); });
+  }
   function bolinhasHtml(c) {
     const st = (c.status || []).filter((s) => s.n > 0).slice(0, 5);
     if (!st.length) return '<span class="loja-bolinhas vazia"><i style="--c:#18A957" title="Em dia">✓</i></span>';
@@ -162,12 +176,14 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     posicoes = ordem.map((c, k) => {
       const v = vagas[k];
       // Cliente com fachada própria (desenhada a partir da foto do lugar, mundo/sedes.mjs): a loja é a cara dele.
-      const id = idDaSede(c.nome);
-      if (id) {
-        const sede = construirSede({ id, nome: c.nome, tipo: c.segmento || '' }).malha;
-        sede.position.set(v.x, 0, v.z); sede.rotation.y = [0, -Math.PI / 2, Math.PI, Math.PI / 2][v.lado];
-        sede.scale.set(.76, 1.2, .76); g.add(sede);
-      } else loja(o, v, k);
+      // Fachada conceito pelo nicho do cliente, com a cor da marca e a logo na placa (a foto real substitui depois).
+      const nicho = nichoDoCliente(c.nome, c.segmento), cor = c.corMarca || TOLDOS[(k * 3) % TOLDOS.length];
+      const C = (lx, y, lz, w, h, d, cr, luz = false) => { const q = paraMundo(v, lx, lz, w, d); (luz ? o.luz : o.caixa).call(o, q.x, y, q.z, q.w, h, q.d, cr); };
+      C(0, 0, 0, LW + .6, CHAO, LD + .2, '#CFC6B4');
+      const { placa } = (NICHOS[nicho] || NICHOS.loja)(C, cor);
+      // Placa: fundo branco no bloco e a logo como imagem por cima (só aparece se o cliente tiver logo no Drive).
+      C(0, placa.y - placa.h / 2 - .06, placa.z - .08, placa.w + .12, placa.h + .12, .1, '#FFFFFF');
+      if (c.logo) logoNaPlaca(g, v, c.logo, placa);
       const alvo = new T.Mesh(new T.BoxGeometry(v.lado % 2 ? LD : LW, 4.4, v.lado % 2 ? LW : LD), invisivel);
       alvo.position.set(v.x, 2.2, v.z); alvo.userData.alvo = { tipo: 'cliente', nome: c.nome }; g.add(alvo); motor.clicavel(alvo); alvos.push(alvo);
       const atrasada = c.situacao === 'atrasada';

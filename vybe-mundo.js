@@ -66,7 +66,9 @@
     const itens = [...(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []), ...(typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])];
     const mapa = new Map();
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', total: 0, por: {}, situacao: 'concluida' });
+    // id do cadastro: a logo do Drive sai por /api/painel?area=logo&c=<id> (a mesma da capa do planejamento).
+    const logoDe = (c) => { const id = String(c.id ?? c.cliente_id ?? ''); return /^\d{1,18}$/.test(id) ? `/api/painel?area=logo&c=${id}` : ''; };
+    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), total: 0, por: {}, situacao: 'concluida' });
     const semCadastro = !cadastro.length; // demonstração / cadastro ainda não carregado
     const vistos = new Set();
     const hoje = hojeIso();
