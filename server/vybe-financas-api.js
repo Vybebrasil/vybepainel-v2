@@ -17,11 +17,11 @@
 // quem vê dinheiro). Finanças fora do ar: 502 com uma frase segura (nunca a URL, a senha ou a mensagem crua do Postgres).
 import calc from '../shared/financas-calculos.js';
 import { ehDono } from './crm.js';
+import { ehDonoPessoa } from './donos.js';
 import { conectorPadrao, ErroFinancas, MOTIVO_DESCONECTADO } from './vybe-financas.js';
 
-const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
-const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
-export const ehDonoDeFato = (pessoa) => DONOS.includes(primeiroNome(pessoa?.nome));
+// Os quatro donos de fato (sem a administração), pela regra única de server/donos.js.
+export const ehDonoDeFato = (pessoa) => ehDonoPessoa(pessoa);
 export const PARTES = Object.freeze(['comercial', 'carteira', 'rh']);
 export const hojeNaBahia = (agora = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(agora);
 export const PASSOS = Object.freeze([

@@ -27,7 +27,7 @@ async function montar(t, quem) {
   await db.exec(readFileSync('migrations/2026-11-07-crm-prospeccao.sql', 'utf8'));
   await db.exec(readFileSync('migrations/2026-11-07-comercial.sql', 'utf8'));
   const chamar = async (fn, req, pessoa) => { let codigo = 0, corpo = null; const res = { setHeader() {}, status(n) { codigo = n; return this; }, json(d) { corpo = d; return this; } }; await fn(req, res, pessoa, () => sql); return { codigo, corpo }; };
-  const dono = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false } };
+  const dono = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } };
   const hoje = hojeNaBahia();
   // Dados de verdade, pelo mesmo servidor.
   const post = (corpo) => chamar(areaComercial, { method: 'POST', body: corpo, query: {} }, dono);
@@ -60,7 +60,7 @@ async function montar(t, quem) {
 }
 
 test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML injetado', async (t) => {
-  const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false } });
+  const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
   const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'Inadimplente', contas: 'Aluguel',
     inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
@@ -86,7 +86,7 @@ test('equipe sem ser dono: abas de dinheiro escondidas e o servidor recusa se fo
 });
 
 test('sala de Closing abre a janela antes do HUD tratar o clique', async (t) => {
-  const { ctx, doc, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false } });
+  const { ctx, doc, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
   const ouvinte = doc.ouvintes.click.find((o) => o.cap);
   let parou = false;
   const botao = { dataset: { modulo: JSON.stringify({ tipo: 'janela', alvo: 'comercial', aba: 'pacotes' }) } };

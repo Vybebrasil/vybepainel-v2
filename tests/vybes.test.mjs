@@ -9,8 +9,8 @@ import { guardarEstadoVybes, entradaVybes, estadoVybes, acaoVybes, podeAgirNoVyb
 async function banco({ migrar = true } = {}) {
   esquecerTabelasVybes();
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean);
-    INSERT INTO vybe_pessoas VALUES (1,'Paulo Martins',true),(2,'Vinícius',true),(3,'Ewerton L.',true),(4,'Deivid',true),(5,'Bia',true);
+  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean, monday_user_id text);
+    INSERT INTO vybe_pessoas VALUES (1,'Paulo Martins',true,'68035537'),(2,'Vinícius',true,NULL),(3,'Ewerton L.',true,'68036687'),(4,'Deivid',true,'68997024'),(5,'Bia',true,'71130408'),(6,'Vinícius Damascena',true,'68035653');
     CREATE TABLE vybe_escritorio_avisos_autores (pessoa_id bigint PRIMARY KEY);
     INSERT INTO vybe_escritorio_avisos_autores VALUES (1),(2),(3),(4);`);
   if (migrar) await db.exec(readFileSync(new URL('../migrations/2026-11-02-vybes.sql', import.meta.url), 'utf8'));
@@ -45,7 +45,10 @@ test('vybes: o bot publica só o endereço do túnel; endereço de fora do padr�
   const { sql } = await banco();
   await guardarEstadoVybes(sql, { tunel: TUNEL, outra: 'coisa' });
   const [l] = await sql`SELECT estado FROM vybe_vybes_estado`;
-  assert.deepEqual(l.estado, { versao: 2, tunel: TUNEL });
+  assert.deepEqual(l.estado, { versao: 2, tunel: TUNEL, whatsapp: true });
+  // WhatsApp do bot desconectado: o túnel continua publicado, com whatsapp:false.
+  await guardarEstadoVybes(sql, { tunel: TUNEL, whatsapp: false });
+  assert.deepEqual((await sql`SELECT estado FROM vybe_vybes_estado`)[0].estado, { versao: 2, tunel: TUNEL, whatsapp: false });
   await assert.rejects(guardarEstadoVybes(sql, { tunel: 'https://site-qualquer.com' }), /túnel inválido/);
   await assert.rejects(guardarEstadoVybes(sql, [1]), /Estado inválido/);
 });
@@ -58,7 +61,14 @@ test('vybes: a faixa abre a central com o crachá de quem entrou (age ou só vê
   assert.equal(v.agir, true);
   assert.match(v.url, /^https:\/\/alegre-vybes-123\.trycloudflare\.com\/entrar\?t=/);
   const cv = conferir(decodeURIComponent(v.url.split('t=')[1]));
-  assert.deepEqual({ ...cv, e: 0 }, { p: 2, n: 'Vinícius', a: true, d: false, e: 0 });
+  // "Vinícius" sem o id do Monday dos donos (homônimo) não é dono: a regra é pelo id (server/donos.js).
+  assert.deepEqual({ ...cv, e: 0 }, { p: 2, n: 'Vinícius', a: true, d: false, m: '', e: 0 });
+  // Os quatro donos saem com d:true e o id do Monday no crachá; a equipe, d:false.
+  for (const [id, m] of [[1, '68035537'], [6, '68035653'], [3, '68036687'], [4, '68997024']]) {
+    const c = conferir(decodeURIComponent((await entradaVybes(sql, sessao(id), { env, agora })).url.split('t=')[1]));
+    assert.equal(c.d, true, 'dono ' + id); assert.equal(c.m, m);
+  }
+  assert.equal(conferir(decodeURIComponent((await entradaVybes(sql, sessao(5), { env, agora })).url.split('t=')[1])).d, false, 'Bia não é dona');
   assert.ok(cv.e > agora && cv.e <= agora + 120e3, 'vale 2 min');
   const b = conferir(decodeURIComponent((await entradaVybes(sql, sessao(5), { env, agora })).url.split('t=')[1]));
   assert.equal(b.a, true, 'todos da equipe agem (Paulo, 04/11/2026)');
@@ -70,10 +80,15 @@ test('vybes: a faixa abre a central com o crachá de quem entrou (age ou só vê
 test('vybes: o cartão diz se a central está no ar e se quem olha age', async () => {
   const { sql } = await banco();
   const agora = Date.now();
-  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: false, agir: true }, 'sem túnel publicado');
+  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: false, whatsapp: null, agir: true, dono: false }, 'sem túnel publicado');
   await guardarEstadoVybes(sql, { tunel: TUNEL });
-  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, agir: true });
-  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, agir: true });
+  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, whatsapp: true, agir: true, dono: false });
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: true, agir: true, dono: false });
+  assert.equal((await estadoVybes(sql, sessao(6), { agora })).dono, true, 'Vinícius (id do Monday) é dono');
+  // WhatsApp desconectado: a central continua no ar e o cartão diz "WhatsApp desconectado".
+  await guardarEstadoVybes(sql, { tunel: TUNEL, whatsapp: false });
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: false, agir: true, dono: false });
+  assert.match((await entradaVybes(sql, sessao(5), { env, agora })).url, /\/entrar\?t=/, 'a entrada continua valendo');
   assert.equal((await estadoVybes(sql, sessao(2), { agora: agora + 11 * 60e3 })).noAr, false, 'túnel velho = fora do ar');
   await assert.rejects(estadoVybes(sql, { tipo: 'servico' }, { agora }), /Entre no painel/);
 });

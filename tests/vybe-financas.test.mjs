@@ -199,7 +199,7 @@ test('erro do Postgres vira frase segura e fica 30 s guardado; tempo esgotado ta
 });
 
 // ---------- Área (permissões no servidor) ----------
-const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false } };
+const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false, dono: true } }; // dono vem da sessão (server/donos.js)
 const suporte = { tipo: 'sessao', pessoa: { id: 4, nome: 'Suporte', admin: true } };
 const bia = { tipo: 'sessao', pessoa: { id: 3, nome: 'Bia', admin: false } };
 const resposta = () => ({ codigo: 0, body: null, setHeader() {}, status(n) { this.codigo = n; return this; }, json(d) { this.body = d; return this; } });
@@ -229,7 +229,7 @@ test('Comercial: só quem vê dinheiro; a folha vai só como total, sem salário
 test('RH: só os quatro donos recebem a folha com salários (administração sem ser dono não)', async () => {
   assert.equal((await chamar(bia, { parte: 'rh' })).codigo, 403);
   assert.equal((await chamar(suporte, { parte: 'rh' })).codigo, 403);
-  assert.equal(ehDonoDeFato({ nome: 'Vinícius' }), true); assert.equal(ehDonoDeFato({ nome: 'Suporte', admin: true }), false);
+  assert.equal(ehDonoDeFato({ id: 3, nome: 'Vinícius', monday_user_id: '68035653' }), true); assert.equal(ehDonoDeFato({ id: 9, nome: 'Vinícius' }), false); assert.equal(ehDonoDeFato({ nome: 'Suporte', admin: true }), false);
   const r = await chamar(paulo, { parte: 'rh', mes: MES });
   assert.equal(r.codigo, 200); assert.equal(r.body.folha.funcionarios.find((f) => f.nome === 'Ana Souza').salario, 3000);
   assert.deepEqual(r.body.pode, { ver_dinheiro: true, ver_salarios: true });
@@ -302,7 +302,8 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
     t.ctx.fetch = async (url) => { const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
       const r = q.area === 'vybe_financas' ? await respostaDaArea(paulo, q, conector) : { codigo: 200, corpo: comercialVazio };
       return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
-    t.ctx.operadorDoTopo = () => ({ nome: 'Paulo Henrique' }); // palpite antes da resposta do servidor (que confirma)
+    t.ctx.operadorDoTopo = () => ({ nome: 'Paulo Henrique' });
+    t.ctx.souDonoDaSessao = () => true; // palpite pela sessão antes da resposta do servidor (que confirma)
     vm.runInContext(readFileSync('shared/comercial-calculos.js', 'utf8'), t.ctx);
     vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
     vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), t.ctx);

@@ -8,7 +8,7 @@ import calc from '../shared/pessoas-calculos.js';
 import handler from '../api/painel.js';
 
 const resposta = () => ({ codigo: 0, body: null, setHeader() {}, status(n) { this.codigo = n; return this; }, json(d) { this.body = d; return this; } });
-const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Martins', admin: false } };
+const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Martins', admin: false, dono: true } }; // dono vem da sessão (server/donos.js)
 const ana = { tipo: 'sessao', pessoa: { id: 2, nome: 'Ana Criação', admin: false } };
 const bruno = { tipo: 'sessao', pessoa: { id: 3, nome: 'Bruno Vídeo', admin: false } };
 const carla = { tipo: 'sessao', pessoa: { id: 4, nome: 'Carla Atendimento', admin: false } };
@@ -34,8 +34,10 @@ async function chamar(sql, quem, { body = null, query = {} } = {}) {
   const r = resposta(); await areaSetorPessoas({ method: body ? 'POST' : 'GET', body, query }, r, quem, sql); return r;
 }
 
-test('gestão = admin ou um dos quatro donos pelo primeiro nome', () => {
-  for (const nome of ['Paulo Martins', 'Vinícius Damascena', 'Ewerton L.', 'Deivid']) assert.equal(ehGestao({ nome }), true, nome);
+test('gestão = admin ou um dos quatro donos pelo id (nunca pelo primeiro nome)', () => {
+  for (const m of ['68035537', '68035653', '68036687', '68997024']) assert.equal(ehGestao({ id: 1, nome: 'X', monday_user_id: m }), true, m);
+  assert.equal(ehGestao({ id: 1, nome: 'Paulo Martins', dono: true }), true);
+  assert.equal(ehGestao({ id: 9, nome: 'Paulo Homônimo' }), false, 'primeiro nome não basta');
   assert.equal(ehGestao({ nome: 'Ana' }), false);
   assert.equal(ehGestao({ nome: 'Ana', admin: true }), true);
 });

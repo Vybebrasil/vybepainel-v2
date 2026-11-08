@@ -208,7 +208,7 @@ function domFalso(html) {
 // ---------- Visão única (Paulo, 07/11/2026): saúde, contrato e financeiro, peças do mês, clima e cérebro ----------
 const RESUMO = readFileSync('vybe-relatorio-resumo.js', 'utf8');
 function visao({ socio = false, admin = false, extra = {}, pecas } = {}) {
-  const amb = ambiente({ admin, pecas, extra: { operadorDoTopo: () => ({ name: socio ? 'Paulo Henrique' : 'Bia Souza' }), ...extra } });
+  const amb = ambiente({ admin, pecas, extra: { operadorDoTopo: () => ({ name: socio ? 'Paulo Henrique' : 'Bia Souza' }), souDonoDaSessao: () => socio, ...extra } }); // dono vem da sessão
   vm.runInContext(RESUMO, amb.c);
   return amb;
 }

@@ -23,10 +23,10 @@
 // Sem a migração aplicada, as leituras voltam vazias com provisionado=false (e a
 // produtividade funciona com os pesos padrão); as gravações respondem 503.
 import calc from '../shared/pessoas-calculos.js';
+import { ehDonoPessoa } from './donos.js';
 
-const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
-const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
-export const ehGestao = (pessoa) => Boolean(pessoa && (pessoa.admin || DONOS.includes(primeiroNome(pessoa.nome))));
+// Gestão = quem administra e os quatro donos, pela regra única de server/donos.js (nunca pelo primeiro nome).
+export const ehGestao = (pessoa) => Boolean(pessoa && (pessoa.admin || ehDonoPessoa(pessoa)));
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 const texto = (v, max, campo, obrigatorio = false) => {

@@ -4,6 +4,7 @@
 // motivo de perda obrigatório (fica no histórico) e valor da negociação (migração 2026-11-07-comercial.sql).
 // As fases que o time vê (Novo, Primeiro contato…) estão em shared/comercial-calculos.js.
 import calculos from '../shared/comercial-calculos.js';
+import { ehDonoPessoa } from './donos.js';
 export const ETAPAS_CRM = [
  ['empresa','Empresa'], ['qualificacao','Qualificação'], ['abordagem_proposta','Abordagem proposta'],
  ['aprovada','Aprovada'], ['contato_feito','Contato feito'], ['reuniao','Reunião'],
@@ -22,10 +23,10 @@ export async function etapasCrm(sql) {
  for (const id of calculos.ETAPAS_MEIO_PADRAO) if (!meio.some(e=>e.id===id)) meio.push({ id, nome: padrao.get(id), extra:false });
  return [...ETAPAS_CRM.filter(e=>calculos.ETAPAS_INICIO.includes(e.id)), ...meio, ...ETAPAS_CRM.filter(e=>['ganho','perdido'].includes(e.id))];
 }
-// Os quatro donos (Paulo, Vinícius, Ewerton e Deivid) e a administração: a mesma lista de souDono() em vybe-mundo.js,
-// pelo primeiro nome de quem está logado (vybe_pessoas.nome, da sessão).
-export const DONOS = ['paulo','vinicius','ewerton','deivid'];
-export const ehDono = (pessoa) => Boolean(pessoa?.admin) || DONOS.includes(String(pessoa?.nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().split(/\s+/)[0]);
+// Os quatro donos (Paulo, Vinícius, Ewerton e Deivid) e a administração. Dono pela regra única de server/donos.js (id do
+// Monday da pessoa, VYBE_AI_ADMIN_PESSOA_ID ou VYBE_DONOS_IDS), nunca pelo primeiro nome.
+export const DONOS = ['paulo','vinicius','ewerton','deivid']; // só para ler nomes (carteira, textos); não decide acesso
+export const ehDono = (pessoa) => Boolean(pessoa?.admin) || ehDonoPessoa(pessoa);
 const valorReais = (v, campo) => { if (v == null || v === '') return 0; const n=Number(v); if (!Number.isFinite(n) || n<0 || n>100000000) falhar(`${campo} inválido.`); return Math.round(n*100)/100; };
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 const texto = (v, max, campo) => { if (v != null && typeof v !== 'string') falhar(`${campo} inválido.`); const s = (v || '').trim(); if (s.length > max) falhar(`${campo}: máximo de ${max} caracteres.`); return s; };

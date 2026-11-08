@@ -5,12 +5,16 @@ import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 // (`entradaVybes`) e abre a central com ele. O crachá diz quem é e se pode agir; a central confere a assinatura.
 // - Quem age: todos da equipe que entraram no painel (Paulo, 04/11/2026: "todos podem agir"). As ações pedidas na central
 //   chegam pelo bot (consulta `vybes_acao`) e passam pelo MESMO executor das ações do assistente, com a permissão da
-//   pessoa. A tabela vybe_vybes_operadores (dos donos) ficou guardada, sem decidir mais nada.
+//   pessoa; o que sai no WhatsApp em nome dela leva o nome dela (whatsapp-ia/core/donos.js). A tabela
+//   vybe_vybes_operadores ficou guardada, sem decidir mais nada.
+// - Quem é dono (d:true no crachá): os quatro donos pela regra única de server/donos.js (id do Monday,
+//   VYBE_AI_ADMIN_PESSOA_ID ou VYBE_DONOS_IDS). O crachá leva também o id do Monday (m), para a central conferir.
 // Migração: migrations/2026-11-02-vybes.sql.
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
 import { ETAPAS_LEITURA, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
+import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 const CRACHA_VALE_MS = 2 * 60e3;
@@ -36,12 +40,13 @@ export function garantirTabelasVybes(sql) {
 }
 export function esquecerTabelasVybes() { tabelasVybes = null; } // só para os testes (cada um tem um banco novo)
 
-// O que o bot publica: só o endereço do túnel (e quando). Nada de dado de cliente passa por aqui.
+// O que o bot publica: só o endereço do túnel (e quando) e se o WhatsApp do bot está conectado. Nada de dado de cliente
+// passa por aqui. Com o WhatsApp desconectado a central continua no ar (o túnel segue valendo) e o cartão diz isso.
 export async function guardarEstadoVybes(sql, estado) {
   if (!estado || typeof estado !== 'object' || Array.isArray(estado)) throw erro('Estado inválido.', 400);
   const tunel = estado.tunel == null ? null : String(estado.tunel);
   if (tunel !== null && !TUNEL.test(tunel)) throw erro('Endereço do túnel inválido.', 400);
-  const e = { versao: 2, tunel };
+  const e = { versao: 2, tunel, whatsapp: estado.whatsapp !== false };
   await garantirTabelasVybes(sql);
   await sql`INSERT INTO vybe_vybes_estado (id, estado, atualizado_em) VALUES (1, ${JSON.stringify(e)}::jsonb, now())
     ON CONFLICT (id) DO UPDATE SET estado = EXCLUDED.estado, atualizado_em = now()`;
@@ -67,7 +72,16 @@ export function assinarCracha(dados, base = process.env.VYBE_AI_BOT_TOKEN) {
   return corpo + '.' + createHmac('sha256', chave).update(corpo).digest('base64url');
 }
 
-// Cartão VYBES na tela de módulos: se a central está no ar (o bot publicou o túnel há pouco) e se quem olha pode agir.
+// Dono pela sessão (vybe_sessao.js já calcula) ou, sem ela, pelo id do Monday no banco.
+async function donoDaSessao(sql, quem, env = process.env) {
+  const p = quem?.pessoa;
+  if (!p) return false;
+  if (typeof p.dono === 'boolean') return p.dono || ehDonoPessoa({ id: p.id }, env);
+  return ehDonoPessoa({ id: p.id, monday_user_id: (await mondayDaPessoa(sql, p.id)) || null }, env);
+}
+
+// Cartão VYBES na tela de módulos: se a central está no ar (o bot publicou o túnel há pouco), se o WhatsApp do bot está
+// conectado, se quem olha pode agir e se é dono (a tela dos agentes usa isto, não o primeiro nome).
 export async function estadoVybes(sql, quem, { agora = Date.now() } = {}) {
   const id = Number(quem?.pessoa?.id);
   if (quem?.tipo !== 'sessao' || !Number.isInteger(id) || id <= 0) throw erro('Entre no painel para abrir o VYBES.', 401);
@@ -75,7 +89,8 @@ export async function estadoVybes(sql, quem, { agora = Date.now() } = {}) {
   const [linha] = await sql`SELECT estado, atualizado_em FROM vybe_vybes_estado WHERE id = 1`;
   const tunel = linha?.estado?.tunel;
   const noAr = Boolean(tunel && TUNEL.test(tunel) && agora - Date.parse(linha.atualizado_em) <= TUNEL_VELHO_MS);
-  return { noAr, agir: await podeAgirNoVybes(sql, quem) };
+  // whatsapp: false só quando o bot publicou que está sem WhatsApp (estado antigo, sem o campo, conta como conectado).
+  return { noAr, whatsapp: noAr ? linha.estado.whatsapp !== false : null, agir: await podeAgirNoVybes(sql, quem), dono: await donoDaSessao(sql, quem) };
 }
 
 // Cartão VYBES: o link de entrada na central, com o crachá de quem está logado (vale 2 min; a central troca por um cookie).
@@ -90,8 +105,10 @@ export async function entradaVybes(sql, quem, { env = process.env, agora = Date.
   const [p] = await sql`SELECT id, nome FROM vybe_pessoas WHERE id = ${id} AND ativo IS TRUE`;
   if (!p) throw erro('Pessoa inativa.', 403);
   const agir = await podeAgirNoVybes(sql, quem);
-  const dono = id === Number(env.VYBE_AI_ADMIN_PESSOA_ID);
-  const t = assinarCracha({ p: id, n: String(p.nome || '').slice(0, 60), a: agir, d: dono, e: agora + CRACHA_VALE_MS }, env.VYBE_AI_BOT_TOKEN);
+  // Os quatro donos (server/donos.js), não só o Paulo; m vai junto para a central aplicar a mesma regra.
+  const m = await mondayDaPessoa(sql, id);
+  const dono = ehDonoPessoa({ id, monday_user_id: m || null }, env);
+  const t = assinarCracha({ p: id, n: String(p.nome || '').slice(0, 60), a: agir, d: dono, m, e: agora + CRACHA_VALE_MS }, env.VYBE_AI_BOT_TOKEN);
   return { url: `${tunel}/entrar?t=${encodeURIComponent(t)}`, agir };
 }
 
@@ -201,7 +218,7 @@ export async function atribuirNaCentral(urlEntrada, corpo, { fetchImpl = globalT
   } catch { throw erro('A central do VYBES não respondeu.', 504); }
   const d = await r.json().catch(() => ({}));
   if (r.status === 404) throw erro('A central ainda não tem atribuições: reinicie o VYBES com a versão nova.', 503);
-  if (r.status === 403) throw erro('Só os donos dão atribuições aos agentes.', 403);
+  if (r.status === 403) throw erro('Só os donos (Paulo, Vinícius, Ewerton e Deivid) dão atribuições aos agentes.', 403);
   if (!r.ok || d.ok !== true) throw erro({ SETOR_INVALIDO: 'Agente inválido.', TEXTO_CURTO: 'Escreva o que o agente deve fazer.', FREQUENCIA_INVALIDA: 'Frequência inválida.',
     HORARIO_INVALIDO: 'Horário inválido.', NAO_ENCONTRADA: 'Atribuição não encontrada.', LIMITE: 'Limite de atribuições ativas.' }[d.erro] || 'A central recusou a atribuição.', 400);
   const [a] = validarAtribuicoes([d.atribuicao]);

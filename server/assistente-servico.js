@@ -38,6 +38,12 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
   const { jid, codigo, consulta, contexto, ferramenta, argumentos } = req.body || {};
   const segredo = config.VYBE_AI_LINK_SECRET;
   if (!segredo || segredo.length < 32) return res.status(503).json({ error: 'Integração não configurada.' });
+  // Retrato da central com o WhatsApp do bot desconectado (sem jid nem contexto: sem WhatsApp o bot não monta o contexto
+  // da conta administradora). Só a credencial exclusiva do bot, já conferida acima; grava só {tunel, whatsapp}.
+  if (consulta === 'vybes_publicar' && jid == null && contexto == null) {
+    try { return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(criarBanco(), req.body?.estado)) }); }
+    catch (erro) { return res.status(erro.status === 400 ? 400 : 500).json({ error: erro.status === 400 ? erro.message : 'Falha ao guardar o estado do VYBES.' }); }
+  }
   try {
     const equipe = escopoEquipe(config);
     if (!equipe) exigirAdministradorPrivado(jid,contexto,config);
