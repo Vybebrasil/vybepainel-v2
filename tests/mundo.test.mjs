@@ -19,6 +19,7 @@ test('toda sala com módulo aponta para um módulo que existe no painel', () => 
   for (const a of PLANTA) for (const s of a.setores) {
     if (!s.modulo) continue;
     if (s.modulo.tipo === 'link') { assert.match(s.modulo.url, /^https:\/\/[a-z0-9-]+\.vercel\.app\/[a-z0-9/-]*$/, `link ${s.modulo.alvo}`); continue; } // sistema irmão (Vybe Finanças)
+    if (s.modulo.tipo === 'janela') { assert.ok(fontes.includes('window.Vybe' + s.modulo.alvo[0].toUpperCase() + s.modulo.alvo.slice(1) + ' = '), `janela ${s.modulo.alvo}`); continue; } // janela do Irecity (ex.: Comercial)
     if (s.modulo.tipo === 'quadro') assert.ok(html.includes(`id="btn-board-${s.modulo.alvo}"`), `quadro ${s.modulo.alvo}`);
     else assert.match(fontes, new RegExp(`function ${MODOS[s.modulo.alvo]}\\(`), `modo ${s.modulo.alvo}`);
   }

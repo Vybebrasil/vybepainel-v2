@@ -13,6 +13,8 @@ export async function areaCrm(req,res,quem,criarBanco) {
   return res.status(200).json({ok:true,pessoa_id:String(quem.pessoa.id),pode_editar,...dados});
  } catch(e) {
   if(e.code==='42P01') return res.status(503).json({error:'CRM ainda não provisionado. Peça ao Paulo para aplicar a migração 2026-11-07-crm-prospeccao.sql.'});
+  // Follow-up e valor da negociação dependem da migração do Comercial.
+  if(e.code==='42703' || (e.code==='23514' && /etapa/.test(String(e.constraint || e.message)))) return res.status(503).json({error:'Esta parte do CRM depende da migração 2026-11-07-comercial.sql. Peça ao Paulo para aplicá-la.'});
   return res.status(e.status || 500).json({error:e.status?e.message:'Não foi possível acessar o CRM. Tente novamente.'});
  }
 }
