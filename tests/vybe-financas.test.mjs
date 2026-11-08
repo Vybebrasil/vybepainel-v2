@@ -418,3 +418,13 @@ test('consultas do conector rodam num Postgres com o esquema do Finanças (PGlit
   // Escrever dentro da transação só leitura falha (o papel de produção ainda tem default_transaction_read_only).
   await assert.rejects(db.transaction(async (tx) => { await tx.query('SET TRANSACTION READ ONLY'); await tx.query("INSERT INTO subscriptions (name, cost) VALUES ('x', 1)"); }));
 });
+
+test('diagnóstico do erro: só o código e a etiqueta, nunca a mensagem', async () => {
+  const { traduzirErro } = await import('../server/vybe-financas.js');
+  const e = traduzirErro(Object.assign(new Error('FATAL: Tenant or user not found postgresql://u:SEGREDO@h'), { code: 'XX000' }));
+  assert.equal(e.codigo, 'login');
+  assert.deepEqual({ ...e.diagnostico }, { sqlstate: 'XX000', motivo: 'pooler_nao_achou_usuario' });
+  assert.ok(!JSON.stringify(e.diagnostico).includes('SEGREDO'));
+  const s = traduzirErro(Object.assign(new Error('password authentication failed for user "x"'), { code: '28P01' }));
+  assert.equal(s.diagnostico.motivo, 'senha_recusada');
+});
