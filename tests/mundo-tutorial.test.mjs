@@ -74,6 +74,7 @@ const HUD = () => ({
   '.vv-barra-topo .vv-ferramentas': [alvo(900, 14, 230, 44)],
   '.vv-barra-topo .vv-vistas': [alvo(1140, 14, 286, 44)],
   '#mundo': [alvo(0, 0, 1440, 900)],
+  '[data-trilho="centro"]': [alvo(14, 330, 76, 52)],
   '.vv-chamada': [alvo(560, 840, 400, 48, { hidden: true })],
   '.vv-trilho-btn[data-trilho="vybes"]': [alvo(20, 620, 64, 52)],
   '.vv-trilho-btn[data-trilho="tarefas"]': [alvo(20, 240, 64, 52)],
@@ -159,7 +160,7 @@ test('iniciar pula o alvo que não existe ou está escondido e marca como visto 
   const vistos = [t.titulo()];
   for (let n = 0; n < 20 && t.balao(); n++) { t.botao('proximo').click(); if (t.balao()) vistos.push(t.titulo()); }
   assert.ok(!vistos.includes('Barra de voz'), 'a barra de voz escondida não vira passo');
-  assert.deepEqual(vistos, ['Boas-vindas ao Vybe OS', 'Seu dia', 'O dock', 'Criar', 'Ferramentas', 'Cidade, Prédio e Cérebro', 'O mapa', 'Fale comigo', 'Pronto']);
+  assert.deepEqual(vistos, ['Boas-vindas ao Vybe OS', 'Seu dia', 'O dock', 'Criar', 'Ferramentas', 'Cidade, Prédio e Cérebro', 'O Centro', 'Fale comigo', 'Pronto']);
   assert.equal(t.balao(), undefined, 'Concluir fecha');
   assert.ok(salvo(t).passeios['boas-vindas'], 'guardado em vybe.tour.<id>');
   assert.equal(t.ouvindoTeclado(), 0, 'fechado, não escuta mais o teclado');
@@ -410,7 +411,7 @@ test('conteúdo: todos os passos e dicas pedidos, curtos (1 ou 2 frases) e sem e
   const passos = C.passeios['boas-vindas'].passos;
   assert.equal(passos.length, 10);
   assert.deepEqual(JSON.parse(JSON.stringify(passos.map((p) => p.alvo))), [null, '#vv-hoje', '.vv-trilho', '.vv-trilho-btn[data-trilho="criar"]', '.vv-barra-topo .vv-ferramentas',
-    '.vv-barra-topo .vv-vistas', '#mundo', '.vv-chamada', '.vv-trilho-btn[data-trilho="vybes"]', null]);
+    '.vv-barra-topo .vv-vistas', '[data-trilho="centro"]', '.vv-chamada', '.vv-trilho-btn[data-trilho="vybes"]', null]);
   const pedidas = ['trilho:gestao', 'trilho:tarefas', 'trilho:gestor', 'trilho:direcao', 'trilho:agenda', 'trilho:clientes', 'trilho:equipe', 'trilho:jogos',
     'trilho:predio', 'trilho:perfil', 'trilho:vybes', 'vista:predio', 'vista:cerebro', 'ferr:camadas', 'ferr:aparencia', 'ferr:conta', 'chamada', 'andar',
     'cliente', 'cerebro-cliente', 'modulo'];
