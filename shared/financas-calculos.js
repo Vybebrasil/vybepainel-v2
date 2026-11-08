@@ -66,6 +66,15 @@
       const c = cnpjValido(f.cnpj);
       let v = c ? porCnpj.get(c) : null, por = v ? 'cnpj' : '';
       if (!v) { v = porNome.get(normalizarNome(f.name)) || null; if (v) por = 'nome'; }
+      // Nome parecido (Paulo, 08/11: "Brussolo" × "Brussolo Ristorante", "Alpha 1" × "Alpha1"): sem espaços, igual ou um
+      // contendo o outro. Só liga quando há UM candidato só, para nunca ligar errado; o resto fica em "sem par".
+      if (!v) {
+        const fn = normalizarNome(f.name).replace(/ /g, '');
+        if (fn.length >= 3) {
+          const cand = vybe.filter((x) => { const vn = normalizarNome(x.nome).replace(/ /g, ''); return vn.length >= 3 && (vn === fn || vn.includes(fn) || fn.includes(vn)); });
+          if (cand.length === 1) { v = cand[0]; por = 'nome_parecido'; }
+        }
+      }
       if (v) { porFinancas[f.id] = { vybe_id: String(v.id), vybe_nome: v.nome, por }; ligados.push({ financas_id: f.id, financas_nome: f.name, vybe_id: String(v.id), vybe_nome: v.nome, por }); }
       else semPar.push({ financas_id: f.id, nome: f.name || 'Sem nome', status: f.contract_status || '' });
     }

@@ -428,3 +428,12 @@ test('diagnóstico do erro: só o código e a etiqueta, nunca a mensagem', async
   const s = traduzirErro(Object.assign(new Error('password authentication failed for user "x"'), { code: '28P01' }));
   assert.equal(s.diagnostico.motivo, 'senha_recusada');
 });
+
+test('ligação por nome parecido: sem espaços ou um contendo o outro, só com candidato único', () => {
+  const vybe = [{ id: '1', nome: 'Brussolo Ristorante' }, { id: '2', nome: 'Alpha1' }, { id: '3', nome: 'Academia Lions' }, { id: '4', nome: 'Antonov' }, { id: '5', nome: 'Gonzalez' }, { id: '6', nome: 'VOA' }, { id: '7', nome: 'Ótica Visão' }, { id: '8', nome: 'Ótica Visão Centro' }];
+  const fin = [{ id: 'a', name: 'Brussolo' }, { id: 'b', name: 'Alpha 1' }, { id: 'c', name: 'Academia LionsTop' }, { id: 'd', name: 'Antonov Center' }, { id: 'e', name: 'Gonzalez Gastronomia' }, { id: 'f', name: 'VOA Sportswear' }, { id: 'g', name: 'Grupo Serra Grande' }, { id: 'h', name: 'Ótica' }];
+  const l = calc.ligarClientes(fin, vybe);
+  assert.deepEqual(['a', 'b', 'c', 'd', 'e', 'f'].map((k) => l.porFinancas[k]?.vybe_id), ['1', '2', '3', '4', '5', '6']);
+  assert.equal(l.porFinancas.a.por, 'nome_parecido');
+  assert.deepEqual(l.sem_par.map((x) => x.nome), ['Grupo Serra Grande', 'Ótica']); // "Ótica" tem dois candidatos: não liga
+});
