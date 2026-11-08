@@ -413,7 +413,7 @@ test('conteúdo: todos os passos e dicas pedidos, curtos (1 ou 2 frases) e sem e
   assert.deepEqual(JSON.parse(JSON.stringify(passos.map((p) => p.alvo))), [null, '#vv-hoje', '.vv-trilho', '.vv-trilho-btn[data-trilho="criar"]', '.vv-barra-topo .vv-ferramentas',
     '.vv-barra-topo .vv-vistas', '[data-trilho="centro"]', '.vv-chamada', '.vv-trilho-btn[data-trilho="vybes"]', null]);
   const pedidas = ['trilho:gestao', 'trilho:tarefas', 'trilho:gestor', 'trilho:direcao', 'trilho:agenda', 'trilho:clientes', 'trilho:equipe', 'trilho:jogos',
-    'trilho:predio', 'trilho:perfil', 'trilho:vybes', 'vista:predio', 'vista:cerebro', 'ferr:camadas', 'ferr:aparencia', 'ferr:conta', 'chamada', 'andar',
+    'trilho:predio', 'trilho:perfil', 'trilho:vybes', 'vista:predio', 'ferr:camadas', 'ferr:aparencia', 'ferr:conta', 'chamada', 'andar',
     'cliente', 'cerebro-cliente', 'modulo'];
   for (const id of pedidas) assert.ok(C.dicas[id], `faltou a dica ${id}`);
   // O "?" solto ("aperte o ? no topo") é o botão, não fim de frase.

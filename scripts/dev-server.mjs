@@ -4,6 +4,7 @@ import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { demoApi } from './fixtures.mjs';
 import { lerCerebroDaCentral, lerAgentesDaCentral } from '../server/vybes.js';
+import { ETAPAS_LEITURA, lerEtapa } from '../server/vybes-agentes.js';
 
 const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
@@ -41,7 +42,7 @@ export function createDevServer() {
         if (!upstream) return demoApi(req, res, url, body);
         // Reutiliza a ponte da produção; a entrada apenas emite um crachá de sessão.
         if (req.method === 'GET' && url.pathname === '/api/painel'
-            && url.searchParams.get('area') === 'vybes' && ['cerebro','agentes'].includes(url.searchParams.get('etapa'))) {
+            && url.searchParams.get('area') === 'vybes' && ['cerebro','agentes',...ETAPAS_LEITURA].includes(url.searchParams.get('etapa'))) {
           const entrada = await fetch(new URL('/api/painel?area=vybes', upstream), {
             method: 'POST', redirect: 'error', signal: AbortSignal.timeout(20000),
             headers: { 'Content-Type': 'application/json', ...(req.headers.cookie ? { Cookie: req.headers.cookie } : {}) },
@@ -53,7 +54,8 @@ export function createDevServer() {
             res.end(JSON.stringify({ error: entrada.status === 401 ? 'Entre no painel para consultar o cérebro do VYBES.' : 'Não foi possível acessar a central com esta sessão. Verifique se o VYBES está online.' })); return;
           }
           try {
-            const estudo = await (url.searchParams.get('etapa') === 'agentes' ? lerAgentesDaCentral : lerCerebroDaCentral)(d.url);
+            const etapa = url.searchParams.get('etapa');
+            const estudo = ETAPAS_LEITURA.includes(etapa) ? await lerEtapa(etapa, d.url, Object.fromEntries(url.searchParams)) : await (etapa === 'agentes' ? lerAgentesDaCentral : lerCerebroDaCentral)(d.url);
             res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(estudo));
           } catch (e) {
             res.writeHead(e.status || 502, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message }));
