@@ -225,3 +225,16 @@
 @media (hover:hover){#vv-comercial .vc-cartao{transition:translate .15s}}
 @media (prefers-reduced-motion:reduce){#vv-comercial.vc,#vv-comercial .vc-folha{animation:none}}
 html.tema-escuro body.mundo :is(.vc-acao,#vv-comercial .vc-pill.u1,#vv-comercial .vc-alerta.u1,#vv-comercial .vc-grafico rect.ent){filter:invert(1) hue-rotate(180deg)}
+/* Calculadora de ROI em Orçamentos. */
+#vv-comercial .vc-roi{margin:0 0 18px;padding:14px 16px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:8px}
+#vv-comercial .vc-roi .vc-secao{margin-top:0}
+#vv-comercial .vc-roi-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:8px 0 12px}
+#vv-comercial .vc-roi-campos label{display:grid;gap:4px}
+#vv-comercial .vc-roi-campos span{font:600 11.5px Inter,system-ui,sans-serif;color:#6B675F}
+#vv-comercial .vc-roi-campos input{font:500 14px Inter,system-ui,sans-serif;padding:8px 10px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;min-width:0}
+#vv-comercial .vc-roi-campos input:focus{outline:2px solid #F76808;outline-offset:0;border-color:#F76808}
+#vv-comercial .vc-roi-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#vv-comercial .vc-roi-res > div{padding:10px 12px;border-radius:6px;background:#FBF9F5;border:1px solid #EFEAE2}
+#vv-comercial .vc-roi-res small{display:block;font:600 11px Inter,system-ui,sans-serif;color:#8A7F70}
+#vv-comercial .vc-roi-res b{display:block;margin-top:2px;font:700 17px "Inter Tight",Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#vv-comercial .vc-roi-res .bom b{color:#12813F}#vv-comercial .vc-roi-res .ruim b{color:#E5484D}

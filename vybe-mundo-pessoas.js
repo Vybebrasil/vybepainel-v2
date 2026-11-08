@@ -193,7 +193,9 @@
       ${botoes}</li>`;
   }
   function formPedido(d) {
-    const tipos = (d.tipos || []).filter((t) => t.formulario !== false), atual = estado.tipoPedido && tipos.some((t) => t.id === estado.tipoPedido) ? estado.tipoPedido : tipos[0]?.id;
+    // Sem a lista do servidor (versão antiga ou resposta parcial), usa os tipos padrão: o formulário nunca abre sem tipo.
+    const padrao = [['ferias', 'Férias ou folga', 5], ['documento', 'Documento ou declaração', 2], ['reembolso', 'Reembolso', 3], ['equipamento', 'Equipamento', 3], ['outro', 'Outro assunto', 3]].map(([id, nome, dias]) => ({ id, nome, dias }));
+    const tipos = ((d.tipos || []).length ? d.tipos : padrao).filter((t) => t.formulario !== false), atual = estado.tipoPedido && tipos.some((t) => t.id === estado.tipoPedido) ? estado.tipoPedido : tipos[0]?.id;
     const ferias = atual === 'ferias';
     return `<form data-vp-form="pedido" class="vp-cartao vp-form">
       <h3 class="vp-titulo">Nova solicitação ao RH</h3>

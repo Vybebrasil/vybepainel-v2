@@ -551,6 +551,19 @@
     return s;
   }
 
+  // Calculadora de ROI do orçamento (Toolkit do AgencyFlow, dentro de Orçamentos — Paulo, 08/11/2026).
+  // investimento: quanto o cliente paga por mês à Vybe; ticket: valor de uma venda dele; margem: % de lucro dele
+  // por venda; vendas: vendas a mais por mês que a campanha deve trazer. Tudo opcional; sem base, devolve null.
+  function roiCampanha({ investimento, ticket, margem, vendas } = {}) {
+    const n = (v) => { if (v == null || String(v).trim() === '') return null; const x = Number(String(v).replace(/\./g, '').replace(',', '.')); return Number.isFinite(x) && x >= 0 ? x : null; };
+    const inv = n(investimento), tk = n(ticket), mg = n(margem), vd = n(vendas);
+    if (!inv || !tk || mg == null || mg > 100) return null;
+    const lucroPorVenda = Math.round(tk * mg) / 100;
+    const empate = lucroPorVenda > 0 ? Math.ceil(inv / lucroPorVenda) : null;
+    if (vd == null) return { investimento: inv, lucroPorVenda, empate, faturamento: null, lucro: null, roi: null };
+    const faturamento = Math.round(vd * tk * 100) / 100, lucro = Math.round(vd * lucroPorVenda * 100) / 100;
+    return { investimento: inv, lucroPorVenda, empate, faturamento, lucro, roi: Math.round(((lucro - inv) / inv) * 1000) / 10 };
+  }
   const api = Object.freeze({
     FASES, ETAPAS_INICIO, ETAPAS_MEIO_PADRAO, montarFases, MOTIVOS_PERDA, STATUS_PAGAMENTO, ZONA_CRITICA,
     faseDaEtapa, validarMotivoPerda, custoPacote, margem, pacoteComMargem, financasCliente, resumoFinancas,
@@ -559,7 +572,7 @@
     resumoRecebimentos, resumoContas, inadimplencia, severidade, variacao, filtrarFornecedores,
     LIMITE_CONCENTRACAO, previsaoCaixa, CARGOS, NIVEIS_CAPACIDADE, cargaDosItens, capacidadeTime,
     METAS, validarMetas, metasDoPeriodo, leadsDoPeriodo, fechadosDoPeriodo, propostasDoPeriodo, realizadoDoPeriodo, progressoMetas,
-    kpisComerciais, quemFechou, rankingFechamentos, seriesMensais, INTERESSES_LEAD, LIMITES_LEAD, CAMPO_ISCA, validarLead, formatarWhatsapp,
+    roiCampanha, kpisComerciais, quemFechou, rankingFechamentos, seriesMensais, INTERESSES_LEAD, LIMITES_LEAD, CAMPO_ISCA, validarLead, formatarWhatsapp,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeComercialCalculos = api;

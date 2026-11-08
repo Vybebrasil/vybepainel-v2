@@ -342,9 +342,32 @@
       <div class="vc-lista grade">${lista || vazio('Nenhum pacote cadastrado. Cadastre a esteira de produtos da Vybe para montar orçamentos.', p.editar_pacotes ? 'Cadastrar pacote' : '', 'pacote')}</div>
       ${p.editar_pacotes ? `<div class="vc-secao"><h3>Capacidade do time</h3><button type="button" class="vc-link" data-vc="capacidade">Configurar</button></div>${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}` : ''}`;
   }
+  // Calculadora de ROI: quantas vendas a mais o cliente precisa para pagar a Vybe, e o retorno esperado.
+  st.roi = st.roi || { orc: '', investimento: '', ticket: '', margem: '', vendas: '' };
+  function roiDaProposta(o) {
+    const r = st.roi; if (String(r.orc) !== String(o.id)) return '';
+    const c = C().roiCampanha({ investimento: r.investimento, ticket: r.ticket, margem: r.margem, vendas: r.vendas }); if (!c) return '';
+    return `<h3>Retorno estimado</h3><div class="tot" style="margin-left:0;width:min(100%,420px)"><div><span>Lucro por venda (ticket ${din(Number(String(r.ticket).replace(/\./g, '').replace(',', '.')))} × margem ${esc(r.margem)}%)</span><span>${din(c.lucroPorVenda)}</span></div>`
+      + `<div><span>Vendas a mais por mês para pagar o investimento</span><span>${c.empate == null ? '—' : num(c.empate)}</span></div>`
+      + (c.roi == null ? '' : `<div><span>Com ${esc(r.vendas)} vendas a mais por mês: lucro a mais</span><span>${din(c.lucro)}</span></div><div class="g"><span>ROI estimado</span><span>${c.roi > 0 ? '+' : ''}${pc(c.roi)}</span></div>`)
+      + '</div><p class="m">Estimativa com os números informados pelo cliente; não é garantia de resultado.</p>';
+  }
+  function roiHtml(d) {
+    const r = st.roi, orcs = d.orcamentos.filter((o) => o.totais?.total_recorrente);
+    const calc = C().roiCampanha({ investimento: r.investimento, ticket: r.ticket, margem: r.margem, vendas: r.vendas });
+    const campo = (k, rot, ph, extra = '') => `<label><span>${rot}</span><input name="roi_${k}" data-vc-roi="${k}" inputmode="decimal" value="${esc(r[k] || '')}" placeholder="${ph}"${extra}></label>`;
+    const res = !calc ? '<p class="vc-dica">Preencha o investimento, o ticket e a margem do cliente para ver em quantas vendas a Vybe se paga.</p>'
+      : `<div class="vc-roi-res"><div><small>Lucro dele por venda</small><b>${din(calc.lucroPorVenda)}</b></div>`
+        + `<div><small>Vendas a mais para pagar a Vybe</small><b>${calc.empate == null ? '—' : num(calc.empate) + ' por mês'}</b></div>`
+        + (calc.roi == null ? '' : `<div><small>Faturamento a mais</small><b>${din(calc.faturamento)}</b></div><div><small>Lucro a mais</small><b>${din(calc.lucro)}</b></div><div class="${calc.roi >= 0 ? 'bom' : 'ruim'}"><small>ROI</small><b>${calc.roi > 0 ? '+' : ''}${pc(calc.roi)}</b></div>`)
+        + '</div>';
+    return `<section class="vc-roi"><div class="vc-secao"><h3>Calculadora de ROI</h3>${orcs.length ? `<select class="vc-mini" data-vc-roi-orc aria-label="Usar o valor de um orçamento"><option value="">Usar o valor de um orçamento…</option>${orcs.map((o) => `<option value="${esc(o.id)}"${String(o.id) === String(r.orc) ? ' selected' : ''}>${esc(o.cliente_nome)} · ${din(o.totais.total_recorrente)}/mês</option>`).join('')}</select>` : ''}</div>
+      <div class="vc-roi-campos">${campo('investimento', 'Investimento mensal (R$)', '2.500')}${campo('ticket', 'Ticket de uma venda do cliente (R$)', '180')}${campo('margem', 'Margem do cliente por venda (%)', '35')}${campo('vendas', 'Vendas a mais por mês (estimativa)', '60')}</div>
+      ${res}${calc && r.orc ? '<p class="vc-dica">Este cálculo sai na proposta impressa do orçamento escolhido.</p>' : ''}</section>`;
+  }
   function abaOrcamentos(d) {
     const p = d.pode || {};
-    return `<div class="vc-secao"><h3>Orçamentos</h3>${p.editar_comercial && d.pacotes.length ? botaoNovo('Novo orçamento', 'orcamento') : ''}</div>
+    return `${roiHtml(d)}<div class="vc-secao"><h3>Orçamentos</h3>${p.editar_comercial && d.pacotes.length ? botaoNovo('Novo orçamento', 'orcamento') : ''}</div>
       ${!d.pacotes.length ? '<p class="vc-dica">Sem pacotes ativos: os donos cadastram na aba Pacotes.</p>' : ''}
       <div class="vc-lista">${d.orcamentos.map((o) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.cliente_nome)}</b>${pill(...(STATUS_ORC[o.status] || [o.status]))}</div>
         <p class="vc-grande">${o.totais.total_recorrente ? din(o.totais.total_recorrente) + '<small>/mês</small>' : ''}${o.totais.total_recorrente && o.totais.total_avulso ? ' + ' : ''}${o.totais.total_avulso ? din(o.totais.total_avulso) + '<small> avulso</small>' : ''}</p>
@@ -627,7 +650,7 @@
         <div class="tot">${t.subtotal_recorrente ? `<div><span>Recorrente</span><span>${din(t.subtotal_recorrente)}/mês</span></div>` : ''}${t.subtotal_avulso ? `<div><span>Avulso</span><span>${din(t.subtotal_avulso)}</span></div>` : ''}
         ${t.desconto ? `<div><span>Desconto (${pc(o.desconto_percentual)})</span><span>− ${din(t.desconto)}</span></div>` : ''}
         ${t.total_recorrente ? `<div class="g"><span>Total mensal</span><span>${din(t.total_recorrente)}</span></div>` : ''}${t.total_avulso ? `<div class="g"><span>Total avulso</span><span>${din(t.total_avulso)}</span></div>` : ''}</div>
-        ${o.observacoes ? `<h3>Observações</h3><p class="obs">${esc(o.observacoes)}</p>` : ''}<p class="sem"><button onclick="print()">Imprimir ou salvar em PDF</button></p></body></html>`);
+        ${o.observacoes ? `<h3>Observações</h3><p class="obs">${esc(o.observacoes)}</p>` : ''}${roiDaProposta(o)}<p class="sem"><button onclick="print()">Imprimir ou salvar em PDF</button></p></body></html>`);
       w.document.close(); setTimeout(() => { try { w.print(); } catch {} }, 300);
     }).catch((e) => { w.document.body.textContent = e.message; });
   }
@@ -713,12 +736,14 @@
   function aoDigitar(e) {
     const t = e.target;
     if (t.dataset?.vcBusca) { st.filtro[t.dataset.vcBusca] = t.value.slice(0, 60); pintar(); return; }
+    if (t.dataset?.vcRoi) { st.roi[t.dataset.vcRoi] = t.value.slice(0, 14); pintar(); return; }
     if (t.closest?.('[data-vc-form]')) atualizarAoVivo(t.closest('[data-vc-form]'));
   }
   function aoMudar(e) {
     const t = e.target;
     if (t.dataset?.vcMes !== undefined && /^\d{4}-\d{2}$/.test(t.value)) { st.periodo.mes = t.value; carregar(); return; }
     if (t.dataset?.vcFiltro) { st.filtro[t.dataset.vcFiltro] = t.value; pintar(); return; }
+    if (t.dataset?.vcRoiOrc !== undefined) { const o = (st.dados.orcamentos?.orcamentos || []).find((x) => String(x.id) === t.value); st.roi.orc = t.value; if (o) st.roi.investimento = String(o.totais.total_recorrente).replace('.', ','); pintar(); return; }
     if (t.dataset?.vcStatusOrc) { executar(() => comercial({ acao: 'orcamento_status', id: t.dataset.vcStatusOrc, status: t.value }), 'Status do orçamento salvo.'); return; }
     if (t.closest?.('[data-vc-form]')) atualizarAoVivo(t.closest('[data-vc-form]'));
   }
