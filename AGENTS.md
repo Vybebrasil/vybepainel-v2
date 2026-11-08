@@ -200,6 +200,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa
   no botão de hora dos controles (`definirHora`, guardada só no navegador). O motor baixa a qualidade sozinho se os
   quadros ficam lentos e só desenha quando algo muda; o andar por dentro também. Não crie outro laço de animação.
+- Dock da esquerda (decisão do Paulo, 08/11/2026: "copiar o jeito do AgencyFlow"): o `TRILHO` de `vybe-mundo.js` com
+  categorias (`grupo`: Operação, Negócio, Time, Vybe); no computador o dock é largo, com nomes, e o setor clicado abre
+  para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
+  das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
+  Largura numa variável só (`--vv-trilho-w`). Não crie outro menu nem outra visão geral; a da Gestão continua a dela.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
 

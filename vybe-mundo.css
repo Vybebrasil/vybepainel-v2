@@ -214,7 +214,7 @@ html body.mundo.mundo-visivel:not(.mundo-cartoes) #mode-gate#mode-gate .identity
 html body.mundo.mundo-visivel.mundo-cartoes #mode-gate#mode-gate{padding-left:calc(var(--vv-m) + 88px)!important}
 /* O Escritório agora é o prédio: o atalho "Voltar ao escritório" sai; microfone e chamada ficam. */
 body.mundo .office-dock-volta{display:none!important}
-.vv-trilho{position:absolute;left:var(--vv-m);top:var(--vv-m);bottom:var(--vv-m);width:76px;flex-direction:column;gap:2px;padding:8px 6px;border-radius:12px}
+.vv-trilho{position:absolute;left:var(--vv-m);top:var(--vv-m);bottom:var(--vv-m);width:var(--vv-trilho-w,76px);flex-direction:column;gap:2px;padding:8px 6px;border-radius:12px}
 .vv-trilho-btn{appearance:none;border:0;background:transparent;width:64px;padding:8px 0 6px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--vv-apagado);font:600 10.5px var(--vv-texto);cursor:pointer;position:relative;transition:background .18s,color .18s,transform .08s}
 .vv-trilho-btn svg{width:20px;height:20px}
 .vv-trilho-btn:hover{background:rgba(255,255,255,.75);color:var(--vv-tinta)}
@@ -224,7 +224,7 @@ body.mundo .office-dock-volta{display:none!important}
 .vv-trilho-btn.criar{background:var(--vv-laranja);color:#fff;margin:4px 0;box-shadow:0 8px 20px -8px var(--vv-laranja-escuro)}
 .vv-trilho-btn.criar:hover{background:var(--vv-laranja-escuro);color:#fff}
 .vv-trilho-espaco{flex:1}
-.vv-hoje{position:absolute;left:calc(var(--vv-m) + 86px);top:var(--vv-m);bottom:var(--vv-m);width:390px;overflow:auto;pointer-events:auto;padding:18px;border-radius:var(--vv-r-placa);border:1px solid var(--vv-vidro-borda);background:var(--vv-vidro);backdrop-filter:var(--vv-desfoque);-webkit-backdrop-filter:var(--vv-desfoque);box-shadow:var(--vv-sombra);scrollbar-width:thin;animation:vv-entra .45s var(--vv-suave) both}
+.vv-hoje{position:absolute;left:calc(var(--vv-m) + var(--vv-trilho-w,76px) + 10px);top:var(--vv-m);bottom:var(--vv-m);width:390px;overflow:auto;pointer-events:auto;padding:18px;border-radius:var(--vv-r-placa);border:1px solid var(--vv-vidro-borda);background:var(--vv-vidro);backdrop-filter:var(--vv-desfoque);-webkit-backdrop-filter:var(--vv-desfoque);box-shadow:var(--vv-sombra);scrollbar-width:thin;animation:vv-entra .45s var(--vv-suave) both}
 body.mundo-cartoes .vv-hoje{display:none}
 .vv-hoje-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
 .vv-data{display:block;font:600 12px var(--vv-texto);color:var(--vv-apagado)}.vv-data::first-letter{text-transform:none}
@@ -367,12 +367,12 @@ body.mundo.mundo-sobre-escritorio :is(.ofc-abertura,#ofc-abertura,.ofc-lobby){vi
    moldura de vidro com respiro. A pele clara de cada módulo vem por cima, um módulo por vez
    (docs/mundo-voxel-plano.md, item 2). */
 html:has(body.mundo.mundo-modulo){background:linear-gradient(180deg,#EEF6F7 0%,#CFE2E6 55%,#B9D0D5 100%) fixed}
-body.mundo.mundo-modulo{background:transparent!important;background-image:none!important;padding-left:calc(var(--vv-m) * 2 + 76px)!important;padding-right:var(--vv-m)!important}
+body.mundo.mundo-modulo{background:transparent!important;background-image:none!important;padding-left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;padding-right:var(--vv-m)!important}
 body.mundo.mundo-modulo #mundo{display:block;z-index:-1}
 body.mundo.mundo-modulo #mundo .mundo-fonte,body.mundo.mundo-modulo #mundo .mundo-rotulos{display:none}
 body.mundo.mundo-modulo #mundo-hud{display:block}
 body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
-#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + 76px);border-radius:var(--vv-r-placa);
+#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
@@ -3495,7 +3495,7 @@ html.vb-ocioso body.mundo :is(.container>*,.cartao-rapido,.workflow-modal,.vv-pl
    passava da borda de vidro, aparecendo cortado por cima do mapa). O body ocupa a área da moldura;
    o que é fixo (mapa, trilho, avisos, janelas) não é afetado. ===== */
 html:has(> body.mundo.mundo-modulo){overflow:hidden!important;height:100%}
-html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:var(--vv-m)!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + 76px)!important;margin:0!important;
+html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:var(--vv-m)!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
   padding:0 18px 28px!important;overflow-x:hidden!important;overflow-y:auto!important;border-radius:var(--vv-r-placa);overscroll-behavior:contain;scrollbar-gutter:stable;scroll-behavior:smooth}
 @media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(64px + 2 * var(--vv-m))!important;border-radius:0 0 14px 14px;padding:0 10px 20px!important}}
 html body.mundo.mundo-modulo::-webkit-scrollbar{width:10px}
@@ -3597,7 +3597,7 @@ body.cam-sem-clientes .mundo-rotulo.rotulo-cliente,body.cam-sem-marcos .mundo-ro
 .vv-andar-kpis b{display:block;font:800 20px var(--vv-texto);color:var(--vv-tinta)}.vv-andar-kpis small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}
 
 /* ===== Barra de chamada ===== */
-.vv-chamada{position:absolute;left:calc(var(--vv-m) + 86px);bottom:var(--vv-m);display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-radius:10px;background:rgba(31,29,26,.9);color:#fff;box-shadow:0 14px 34px rgba(31,29,26,.3);pointer-events:auto;z-index:5;font-family:var(--vv-texto);max-width:calc(100vw - 2*var(--vv-m) - 110px);flex-wrap:wrap}
+.vv-chamada{position:absolute;left:calc(var(--vv-m) + var(--vv-trilho-w,76px) + 10px);bottom:var(--vv-m);display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-radius:10px;background:rgba(31,29,26,.9);color:#fff;box-shadow:0 14px 34px rgba(31,29,26,.3);pointer-events:auto;z-index:5;font-family:var(--vv-texto);max-width:calc(100vw - 2*var(--vv-m) - 110px);flex-wrap:wrap}
 .vv-chamada .sala{display:flex;flex-direction:column;margin-right:4px}.vv-chamada .sala b{font:700 13px var(--vv-texto);display:flex;align-items:center;gap:6px}
 .vv-chamada .sala i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.3)}
 .vv-chamada .sala small{font:500 11px var(--vv-texto);color:rgba(255,255,255,.7)}
@@ -4031,7 +4031,7 @@ body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
 .vv-dono-abrir{width:100%;justify-content:center;height:40px;margin:6px 0 10px;border-radius:8px!important}
 
 /* ---------- Módulo Gestão ---------- */
-.vv-gestao{position:fixed;z-index:640;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + 76px);overflow:auto;overscroll-behavior:contain;padding:0 22px 30px;border-radius:var(--vv-r-placa);background:rgba(246,243,238,.97);border:1px solid rgba(255,255,255,.7);box-shadow:0 18px 50px rgba(40,26,10,.22);backdrop-filter:blur(18px) saturate(1.4);color:#1F1D1A;font-family:var(--vv-texto);color-scheme:light;animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
+.vv-gestao{position:fixed;z-index:640;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));overflow:auto;overscroll-behavior:contain;padding:0 22px 30px;border-radius:var(--vv-r-placa);background:rgba(246,243,238,.97);border:1px solid rgba(255,255,255,.7);box-shadow:0 18px 50px rgba(40,26,10,.22);backdrop-filter:blur(18px) saturate(1.4);color:#1F1D1A;font-family:var(--vv-texto);color-scheme:light;animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
 .vv-gestao[hidden]{display:none}
 body.mundo-gestao.mundo-tela-cheia .vv-gestao{top:0;bottom:0;left:0;right:0;border-radius:0;z-index:900}
 body.mundo-gestao #mundo-hud :is(.vv-hoje,.vv-agenda,.vv-placa,.vv-controles,.vv-chamada,.vv-topo){visibility:hidden}
@@ -4346,7 +4346,7 @@ html.tema-escuro body.mundo .vv-setor{filter:invert(.92) hue-rotate(180deg)}
 /* ---------- Palco (Paulo, 08/11/2026): o módulo é a tela; o mapa só no Centro ----------
    Sem o Centro aberto, nada de 3D: Hoje (Minhas tarefas / Agência), Gestão e todo módulo ocupam a área à direita
    do trilho. O Centro comercial (botão do trilho) é o único lugar em que o mapa aparece. */
-body.mundo{--vv-palco-esq:calc(var(--vv-m) * 2 + 76px);--vv-palco-topo:calc(var(--vv-m) + 60px);--vv-palco-fundo:#EFEBE4}
+body.mundo{--vv-palco-esq:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));--vv-palco-topo:calc(var(--vv-m) + 60px);--vv-palco-fundo:#EFEBE4}
 html:has(body.mundo.mundo-visivel:not(.mundo-centro)){background:var(--vv-palco-fundo,#EFEBE4)}
 body.mundo.mundo-visivel:not(.mundo-centro) #mundo{background:var(--vv-palco-fundo)}
 body.mundo.mundo-visivel:not(.mundo-centro) #mundo > *{display:none!important}
@@ -4370,7 +4370,7 @@ body.mundo .vc-camada > .vc-janela,body.mundo .vp-camada > .vp-janela,body.mundo
 body.mundo #vv-comercial.vc,body.mundo #vv-conteudo.vc,body.mundo .vv-plj,body.mundo .vv-wa{inset:var(--vv-m) var(--vv-m) var(--vv-m) var(--vv-palco-esq)!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;transform:none!important;border-radius:var(--vv-r-placa)!important}
 /* Módulo ou Gestão abertos: o trilho fica por cima (a lista de submódulos aparece) e o resto do HUD some */
 body.palco-modulo #mundo-hud,body.mundo-gestao #mundo-hud{z-index:700}
-body.palco-modulo #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-gestao #mundo-hud > :not(.vv-trilho):not(.vv-setor){display:none!important}
+body.palco-modulo #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-gestao #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-setor-visao #mundo-hud > :not(.vv-trilho):not(.vv-setor){display:none!important}
 body.mundo.mundo-modulo #mundo-hud > .vv-setor{display:grid!important}
 body.mundo.mundo-modulo #mundo-hud{z-index:700}
 @media (max-width:900px){
@@ -4709,3 +4709,59 @@ html body.mundo #vv-wa-avisos{z-index:760!important}
 .vv-g-progresso b{font:600 12.5px var(--vv-titulo)}
 .vv-g-progresso small{color:#6B675F;font-size:11px}
 .vv-g-aviso-heads{margin:0 0 12px;padding:9px 12px;border-radius:8px;background:#F1F2F3;color:#5B6268}
+
+/* ---------- Dock largo (Paulo, 08/11/2026: "copiar o jeito do AgencyFlow") ----------
+   Nomes ao lado do ícone, categorias (Operação, Negócio, Time, Vybe) e o setor que abre para baixo com a Visão geral
+   e as abas, e fica aberto. Recolhido ou no celular volta a ser o trilho de ícones (as regras de cima). */
+body.mundo{--vv-trilho-w:76px}
+body.mundo.trilho-largo{--vv-trilho-w:216px}
+.vv-trilho-recolher{display:none}
+body:not(.trilho-largo) .vv-trilho :is(.vv-trilho-grupo,.vv-trilho-sub,.vv-trilho-seta){display:none!important}
+body.trilho-largo .vv-trilho{align-items:stretch;padding:8px 8px 10px;gap:1px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+body.trilho-largo .vv-trilho-recolher{display:grid;place-items:center;align-self:flex-end;width:28px;height:28px;margin:0 0 2px;border:0;border-radius:7px;background:transparent;color:var(--vv-apagado);cursor:pointer}
+body.trilho-largo .vv-trilho-recolher svg{width:16px;height:16px}
+body.trilho-largo .vv-trilho-recolher:hover{background:rgba(255,255,255,.75);color:var(--vv-tinta)}
+/* Recolhido (só no computador): a mesma seta, virada, abre o dock com os nomes de novo. */
+@media (min-width:901px){body:not(.trilho-largo) .vv-trilho-recolher{display:grid;place-items:center;align-self:center;width:28px;height:24px;margin:0 0 4px;border:0;border-radius:7px;background:transparent;color:var(--vv-apagado);cursor:pointer}body:not(.trilho-largo) .vv-trilho-recolher svg{width:16px;height:16px;transform:rotate(180deg)}body:not(.trilho-largo) .vv-trilho-recolher:hover{background:rgba(255,255,255,.75);color:var(--vv-tinta)}}
+body.trilho-largo .vv-trilho-btn{width:100%;flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;padding:8px 10px;text-align:left}
+body.trilho-largo .vv-trilho-btn svg{width:18px;height:18px;flex:none}
+html body.trilho-largo .vv-trilho-btn span{font:600 13px/1.2 var(--vv-texto)!important;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.trilho-largo .vv-trilho-btn[aria-current]::before{left:-8px;top:8px;bottom:8px}
+body.trilho-largo .vv-trilho-btn.criar{justify-content:center;margin:6px 0 4px}
+body.trilho-largo .vv-trilho-btn.criar span{flex:0 1 auto}
+.vv-trilho-seta{width:7px;height:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(-45deg);opacity:.55;transition:transform .18s var(--curva,ease)}
+.vv-trilho-btn[aria-expanded="true"] .vv-trilho-seta{transform:rotate(45deg);opacity:.9}
+body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){background:transparent;color:var(--vv-tinta)}
+.vv-trilho-grupo{display:block;padding:12px 10px 4px;font:700 10.5px/1.2 var(--vv-texto);letter-spacing:.06em;text-transform:uppercase;color:var(--vv-apagado);opacity:.85}
+.vv-trilho-sub{display:flex;flex-direction:column;gap:1px;margin:2px 0 6px 19px;padding-left:8px;border-left:1px solid rgba(31,29,26,.12);animation:vv-entra .18s var(--curva,ease) both}
+.vv-trilho-sub[hidden]{display:none}
+.vv-trilho-sub button{appearance:none;border:0;background:transparent;text-align:left;padding:6px 9px;border-radius:7px;font:500 12.5px/1.25 var(--vv-texto);color:var(--vv-apagado);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-trilho-sub button[hidden]{display:none}
+.vv-trilho-sub button:hover{background:rgba(255,255,255,.75);color:var(--vv-tinta)}
+.vv-trilho-sub button:focus-visible,.vv-trilho-recolher:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+.vv-trilho-sub button[aria-current]{background:color-mix(in srgb,var(--vv-laranja) 13%,transparent);color:var(--vv-laranja-escuro);font-weight:650}
+.vv-trilho-sub button i{font-style:normal;opacity:.6}
+@media (max-width:900px){.vv-trilho-recolher,.vv-trilho-grupo,.vv-trilho-sub,.vv-trilho-seta{display:none!important}}
+@media (prefers-reduced-motion:reduce){.vv-trilho-sub{animation:none}.vv-trilho-seta{transition:none}}
+
+/* ---------- Visão geral do setor (vybe-mundo-setor.js): o mesmo desenho da Gestão ---------- */
+.vv-setor-grade{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.vv-setor-cartao{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s}
+.vv-setor-cartao:hover{border-color:var(--vv-laranja);box-shadow:0 1px 2px rgba(31,29,26,.04),0 12px 28px rgba(31,29,26,.08)}
+.vv-setor-cartao:active{transform:translateY(1px)}
+.vv-setor-cartao:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+.vv-setor-cartao-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.vv-setor-cartao-topo b{font:700 14px/1.25 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+.vv-setor-cartao-topo em{font:600 11.5px var(--vv-texto);font-style:normal;color:var(--vv-laranja-escuro,#C2410C);white-space:nowrap}
+.vv-setor-cartao > small{font:500 12px/1.4 var(--vv-texto);color:#6B665E}
+.vv-setor-resumo{display:block;margin-top:4px;padding-top:8px;border-top:1px solid #EFEAE2}
+.vv-setor-linhas{display:grid;gap:4px}
+.vv-setor-linhas > span{display:flex;justify-content:space-between;gap:10px;font:500 12.5px var(--vv-texto)}
+.vv-setor-linhas small{color:#6B665E;font-size:12.5px}
+.vv-setor-linhas b{font-weight:700;color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-setor-lista{display:grid;gap:4px}
+.vv-setor-lista > span{display:flex;justify-content:space-between;gap:10px;font:500 12.5px var(--vv-texto)}
+.vv-setor-lista em{font-style:normal;color:#6B665E;font-variant-numeric:tabular-nums}
+.vv-setor-nota{display:block;margin-top:4px;font:500 11px var(--vv-texto);color:#8A847A}
+.vv-setor-falha{display:block;font:500 12px var(--vv-texto);color:#8A847A}
+.vv-setor-visao .t-u1{color:#C7362F}.vv-setor-visao .t-u2{color:#B26B00}

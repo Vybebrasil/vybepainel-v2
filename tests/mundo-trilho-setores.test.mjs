@@ -34,3 +34,21 @@ test('Planejamentos (Centro de Operação) está em Produção e usa a janela de
   assert.match(mod, /window\.abrirPlanejamento\(/);
   assert.match(mod, /zona === 'operacao'/);
 });
+
+// Dock no jeito do AgencyFlow (Paulo, 08/11/2026): categorias, setor que abre para baixo e a Visão geral de cada setor.
+test('dock: setores e atalhos em categorias, na ordem Operação, Negócio, Time e Vybe', () => {
+  const grupos = TRILHO.filter((t) => typeof t === 'object' && t.grupo).map((t) => t.grupo);
+  assert.deepEqual([...new Set(grupos)], ['Operação', 'Negócio', 'Time', 'Vybe']);
+  for (const t of TRILHO) if (typeof t === 'object' && Array.isArray(t.sub)) assert.ok(t.grupo, `${t.id} tem categoria`);
+  assert.equal(TRILHO.find((t) => t.id === 'hoje').grupo, undefined, 'Hoje fica no topo, fora das categorias');
+});
+
+test('dock: cada setor (menos a Gestão, que já é a visão geral) abre a Visão geral do setor', () => {
+  assert.match(js, /data-visao-setor="\$\{t\.id\}">Visão geral<\/button>/);
+  assert.match(js, /if \(id === 'setor:gestao'\) \{ usarTrilho\('gestao'\); return; \}/);
+  assert.match(js, /if \(dockLargo\(\)\) abrirVisaoSetor\(id\); else abrirSetor\(/);
+  const setor = readFileSync(new URL('../vybe-mundo-setor.js', import.meta.url), 'utf8');
+  for (const id of ['setor:producao', 'setor:clientes', 'setor:comercial', 'setor:financas', 'setor:pessoas']) assert.ok(setor.includes(`'${id}'`), `visão geral de ${id}`);
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('/vybe-mundo-setor.js') > html.indexOf('/vybe-mundo.js'), 'o painel do setor carrega depois do mundo');
+});
