@@ -4665,3 +4665,16 @@ button.vv-pilula{border:0;font:inherit;cursor:pointer}
 .vc-kpi.espiavel:focus-visible{outline:2px solid #F76808;outline-offset:2px}
 /* Avisos do WhatsApp por cima dos módulos (antes: z 645 atrás das camadas de 650, a mensagem chegava e ninguém via). Somem sozinhos em 7–12 s. */
 html body.mundo #vv-wa-avisos{z-index:760!important}
+/* Gestão › Carteiras: a carteira de cada head (08/11/2026), no padrão das tabelas da Gestão (.vv-g-tabela). */
+.vv-g-abas{max-width:840px}
+.vv-g-carteiras td.saude{white-space:nowrap}
+.vv-g-carteiras td.saude .pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;margin:0 4px 0 0;border-radius:6px;font:600 11px var(--vv-texto);border:0}
+.vv-g-carteiras tbody tr.sem-head td{color:#6B675F}
+.vv-g-carteiras tbody tr.sem-head td:first-child b{font-weight:600}
+.vv-g-carteiras td:first-child .vv-num b{font:600 13px var(--vv-texto)}
+.vv-g-progresso{display:inline-flex;align-items:center;gap:8px;min-width:150px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vv-g-progresso .barra{flex:1;min-width:80px;height:6px;border-radius:6px;background:#F0EBE3;overflow:hidden}
+.vv-g-progresso .barra i{display:block;height:100%;border-radius:6px;background:#2E9A62}
+.vv-g-progresso b{font:600 12.5px var(--vv-titulo)}
+.vv-g-progresso small{color:#6B675F;font-size:11px}
+.vv-g-aviso-heads{margin:0 0 12px;padding:9px 12px;border-radius:8px;background:#F1F2F3;color:#5B6268}
