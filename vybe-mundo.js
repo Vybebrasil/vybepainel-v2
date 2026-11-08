@@ -251,7 +251,15 @@
   // status (status_color do quadro, a regra de sempre), cliente na cor da carteira do head
   // (tagClienteHtml), data em vermelho só se atrasou e o olhinho da prévia quando já há material.
   const semGrito = (t) => { const s = String(t || '').trim(); const letras = s.replace(/[^A-Za-zÀ-ÿ]/g, ''); return letras && letras === letras.toUpperCase() && letras.length > 4 ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
-  const corStatus = (d, sit) => (typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '') : String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0]) || COR_SIT(sit || 'fazer');
+  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"): a cor do quadro (status_color) e, sem ela,
+  // as cores exatas do Monday que o painel já usa (vybe-relatorios.js, STATUS_CORES). A escala de situação é o último recurso.
+  const STATUS_CORES = { 'em andamento': '#fdab3d', 'falta d.a': '#4eccc6', 'alteracao': '#df2f4a', 'finalizado': '#9cd326', 'aguardo': '#9d50dd',
+    'a fazer': '#c4c4c4', 'para agendar': '#037f4c', 'para aprovacao': '#579bfc', 'em aprovacao': '#579bfc', 'aguardando aprovacao': '#579bfc', 'cap. agendada': '#ff007f',
+    'ag. aprovacao cliente': '#faa1f1', 'ag. info cliente': '#bca58a', 'falta info': '#ff6d3b', 'agendando cap': '#ff5ac4', 'agendando cap.': '#ff5ac4',
+    'segurar post': '#7f5347', 'agendado': '#a1e3f6', 'pode fazer': '#ffcb00', 'ag. interno': '#bca58a', 'revisao': '#fdab3d', 'aprovado': '#9cd326',
+    'falta briefing': '#ff6d3b', 'nova demanda': '#579bfc', 'em execucao': '#ff6b00', 'feito': '#00c875', 'aguardando info.': '#9d50dd' };
+  const chaveStatus = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || STATUS_CORES[chaveStatus(d?.status)] || COR_SIT(sit || 'fazer');
   function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
@@ -315,7 +323,7 @@
   }
   function corDaPendencia(p) {
     const d = (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []).find((d) => String(d.id) === String(p?.id));
-    return typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '#9AA3A8') : /^#[0-9a-f]{3,8}$/i.test(d?.status_color || '') ? d.status_color : '#9AA3A8';
+    return d ? corStatus(d, situacaoDaPeca(d)) : STATUS_CORES[chaveStatus(p?.status)] || '#9AA3A8';
   }
   function mostrarPendencias(cliente = '', status = '') {
     const N = numerosDoDono(); if (!N) return;
@@ -557,14 +565,14 @@
     const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
     const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
     const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '' });
-    const POR_GRUPO = 4;
+    const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const seletor = admin && time.length ? `<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
     el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
-      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco">
+      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
       </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}<section class="vv-bloco">

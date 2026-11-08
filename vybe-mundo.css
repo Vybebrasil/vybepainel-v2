@@ -4411,3 +4411,21 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vv-alerta-prazo{display:grid;gap:2px;width:100%;margin:10px 0 0;padding:10px 12px;border:1px solid #F3D19C;border-left:3px solid #E2A11B;border-radius:8px;background:#FFFAF0;text-align:left;cursor:pointer;font:500 12.5px/1.4 var(--vv-texto);color:#5C4A2A}
 .vv-alerta-prazo b{font:600 13px/1.3 var(--vv-titulo);color:#7A4A00}
 .vv-alerta-prazo:hover{border-color:#E2A11B}
+
+/* Abaixo de 1200px a agenda sai da coluna (fica no botão Agenda) e o Hoje usa a largura toda. */
+@media (max-width:1199px) and (min-width:901px){
+  body.mundo:not(.mundo-centro) .vv-agenda{display:none}
+  body.mundo:not(.mundo-centro) .vv-hoje{right:calc(var(--vv-m) * 2 + 260px);top:var(--vv-palco-topo)}
+  html body.mundo:not(.mundo-centro) .vv-chamada{width:260px!important}
+  html body.mundo:not(.mundo-centro) .plj-aviso{width:260px!important;max-width:260px!important}
+}
+
+/* Grupo de status com a cor do status no cartão todo (Paulo, 08/11/2026: "pra não parecer tudo igual"). */
+.vv-bloco-status{background:color-mix(in srgb,var(--st) 9%,#FFFFFF);border-color:color-mix(in srgb,var(--st) 32%,#FFFFFF);border-top:3px solid var(--st)}
+.vv-bloco-status > .vv-rotulo-secao{color:color-mix(in srgb,var(--st) 70%,#1F1D1A)!important}
+.vv-bloco-status > .vv-rotulo-secao .vv-pilula{background:var(--st);color:#FFFFFF}
+.vv-bloco-status .vv-demanda{background:#FFFFFF}
+.vv-bloco-status .vv-mais{color:color-mix(in srgb,var(--st) 75%,#1F1D1A)}
+@media (max-width:900px){
+  html body.mundo:not(.mundo-centro) .plj-aviso{bottom:calc(64px + 2 * var(--vv-m) + var(--vv-pe-voz,62px))!important}
+}
