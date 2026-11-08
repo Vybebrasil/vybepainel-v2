@@ -14,9 +14,9 @@
 /* topo, controles e abas: fixos; o corpo rola por dentro */
 #vv-carteira .vc-topo{flex:none;display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 14px 8px 16px;background:#FFFFFF;border-bottom:1px solid #E6E0D6}
 #vv-carteira .vc-titulo{flex:1;min-width:0}
-#vv-carteira .vc-kicker{display:block;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#vv-carteira .vc-kicker{display:block;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-carteira h2{margin:0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
-#vv-carteira h3{margin:0 0 8px;color:#A84E00;font:700 10.5px/1.3 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#vv-carteira h3{margin:0 0 8px;color:#A84E00;font:700 10.5px/1.3 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-carteira .vc-ico{flex:none;display:grid;place-items:center;min-width:38px;height:38px;padding:0 8px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:700 15px var(--vv-texto,system-ui),sans-serif;cursor:pointer;transition:border-color .15s,color .15s}
 #vv-carteira .vc-ico:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
 #vv-carteira .vc-ico:disabled{opacity:.4;cursor:default}
@@ -194,7 +194,7 @@
 #vv-carteira .vc-motivos-barras b{text-align:right;font-variant-numeric:tabular-nums}
 #vv-carteira .vc-tabela-rola{overflow-x:auto;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF}
 #vv-carteira .vc-cohort{width:100%;min-width:440px;border-collapse:collapse;font-variant-numeric:tabular-nums}
-#vv-carteira .vc-cohort th{padding:8px;border-bottom:1px solid #F0EBE3;color:#6B675F;font:700 9.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:right;white-space:nowrap}
+#vv-carteira .vc-cohort th{padding:8px;border-bottom:1px solid #F0EBE3;color:#6B675F;font:700 9.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none;text-align:right;white-space:nowrap}
 #vv-carteira .vc-cohort th:first-child,#vv-carteira .vc-cohort tbody th{text-align:left;position:sticky;left:0;background:#FFFFFF}
 #vv-carteira .vc-cohort tbody th{font-size:12px;letter-spacing:0;color:#1F1D1A}
 #vv-carteira .vc-cohort td{padding:8px;border-bottom:1px solid #F0EBE3;text-align:right;font-size:12.5px;font-weight:700}

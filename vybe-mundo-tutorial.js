@@ -39,10 +39,10 @@
     passeios: {
       'boas-vindas': {
         titulo: 'Boas-vindas ao Vybe OS',
-        resumo: 'O seu dia, o dock, as ferramentas, o mapa e onde me chamar.',
+        resumo: 'O seu dia, o menu, as ferramentas, o Centro e onde me chamar.',
         passos: [
           { id: 'oi', alvo: null, titulo: 'Boas-vindas ao Vybe OS',
-            texto: 'Oi, {nome}. Eu sou o VYBES, e vou te mostrar a casa nova: o Vybe OS agora é Irecê, com cada cliente no endereço dele e a Vybe bem no meio.' },
+            texto: 'Oi, {nome}. Eu sou o VYBES, e vou te mostrar a casa nova: o Vybe OS abre no seu dia, e cada módulo do menu ocupa a tela inteira.' },
           { id: 'hoje', alvo: '#vv-hoje', lado: 'direita', titulo: 'Seu dia',
             texto: 'Esse é o seu dia: o que vence hoje, o que está atrasado e o que vem nos próximos dias. Quando não souber por onde começar, comece por aqui.',
             variantes: [{ se: '#vv-hoje .vv-seg', titulo: 'Seu painel',
@@ -52,11 +52,11 @@
           { id: 'criar', alvo: '.vv-trilho-btn[data-trilho="criar"]', lado: 'direita', titulo: 'Criar',
             texto: 'Precisa cadastrar um conteúdo ou uma demanda nova? É aqui, no Criar.' },
           { id: 'ferramentas', alvo: '.vv-barra-topo .vv-ferramentas', lado: 'baixo', titulo: 'Ferramentas',
-            texto: 'Aqui em cima ficam as ferramentas: buscar qualquer coisa (⌘K ou Ctrl+K), avisos, a conversa da equipe, suas notas, as camadas do mapa, claro ou escuro e a sua conta.' },
+            texto: 'Aqui em cima ficam as ferramentas: buscar qualquer coisa (⌘K ou Ctrl+K), avisos, a conversa da equipe, suas notas, claro ou escuro e a sua conta.' },
           { id: 'vistas', alvo: '.vv-barra-topo .vv-vistas', lado: 'baixo', titulo: 'Cidade, Prédio e Cérebro',
             texto: 'Aqui você troca o que vê: a Cidade, o Prédio da Vybe, onde cada andar é um setor com os agentes dele, e o Cérebro, com tudo o que eu sei e consulto antes de agir.' },
-          { id: 'mapa', alvo: '#mundo', area: 'livre', titulo: 'O mapa',
-            texto: 'Esse é o mapa de Irecê. Arraste para andar, use a rodinha do mouse para chegar perto e clique num cliente para abrir a ficha dele.' },
+          { id: 'mapa', alvo: '[data-trilho="centro"]', titulo: 'O Centro',
+            texto: 'No Centro fica o Prédio da Vybe com a loja de cada cliente em volta. As bolinhas mostram o status das peças de cada um; clique na loja para abrir o cliente.' },
           { id: 'voz', alvo: '.vv-chamada', lado: 'cima', marca: 'chamada', titulo: 'Barra de voz',
             texto: 'Essa é a barra de voz. Por ela você entra no Escritório, fala com quem está na mesma sala, põe uma música e chama alguém para perto.' },
           { id: 'vybes', alvo: '.vv-trilho-btn[data-trilho="vybes"]', lado: 'direita', titulo: 'Fale comigo',
@@ -118,7 +118,7 @@
       'cerebro-cliente': { grupo: 'Telas', titulo: 'Cérebro do cliente', alvo: null,
         texto: 'Esse é o cérebro do cliente: tudo o que eu sei dele, em nove áreas, cada uma com o agente que cuida dela. Clique numa área para ver de onde veio cada informação.' },
       modulo: { grupo: 'Telas', titulo: 'Tela de trabalho', alvo: '.vv-canto-modulo', lado: 'esquerda',
-        texto: 'Você abriu uma tela de trabalho. Aperte F para tela cheia, e Esc ou o × para voltar ao mapa.' },
+        texto: 'Você abriu uma tela de trabalho: ela ocupa a tela toda. Esc ou o × voltam para o seu dia.' },
     },
   };
 

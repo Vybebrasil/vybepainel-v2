@@ -2,7 +2,7 @@
 .vv-plj{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 96px);display:flex;flex-direction:column;gap:14px;padding:22px 24px;background:#FBFAF7;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px rgba(31,29,26,.22);color:#1F1D1A;font-family:var(--vv-texto);overflow:auto;color-scheme:light}
 .vv-plj[hidden]{display:none}
 .vv-plj-cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.vv-plj-kicker{font:700 10.5px var(--vv-texto);letter-spacing:.12em;text-transform:uppercase;color:#A84E00}
+.vv-plj-kicker{font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:#A84E00}
 .vv-plj h2{margin:4px 0 4px;font:700 24px var(--vv-texto)}
 .vv-plj-cabeca p{margin:0;max-width:720px;color:#6B675F;font:500 13px/1.45 var(--vv-texto)}
 .vv-plj-abas{display:flex;gap:6px;flex-wrap:wrap}

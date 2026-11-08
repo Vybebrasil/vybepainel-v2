@@ -252,7 +252,7 @@
   // (tagClienteHtml), data em vermelho só se atrasou e o olhinho da prévia quando já há material.
   const semGrito = (t) => { const s = String(t || '').trim(); const letras = s.replace(/[^A-Za-zÀ-ÿ]/g, ''); return letras && letras === letras.toUpperCase() && letras.length > 4 ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
   const corStatus = (d, sit) => (typeof managerCalendarStatusColor === 'function' ? managerCalendarStatusColor(d, '') : String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0]) || COR_SIT(sit || 'fazer');
-  function linhaDemanda(d, { ref = '', sit = '' } = {}) {
+  function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
     const hoje = hojeIso(), cor = corStatus(d, sit);
@@ -263,7 +263,7 @@
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${tagCli}${d.status ? `<span class="vv-demanda-status"><i></i>${esc(d.status)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${tagCli}${d.status ? `<span class="vv-demanda-status"><i></i>${esc(d.status)}</span>` : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
       <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${esc(quando)}</time>` : ''}</span>
     </div>`;
@@ -380,8 +380,8 @@
     }
     const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, prevHoje = H.previstas || 0, feitasHoje = H.feitas || 0;
     const largo = !centroAberto; // em tela cheia mostra mais de cada lista
-    const clientesRuins = (N.clientes || []).filter((c) => c.saude !== 'ok').slice(0, largo ? 8 : 4);
-    const gargalos = (N.gargalos || []).slice(0, largo ? 6 : 3), time = (N.time || []).filter((t) => (t.cobrar || []).length).slice(0, largo ? 8 : 3), bots = botsParaCobrar();
+    const clientesRuins = (N.clientes || []).filter((c) => c.saude !== 'ok').slice(0, 4);
+    const gargalos = (N.gargalos || []).slice(0, 3), time = (N.time || []).filter((t) => (t.cobrar || []).length).slice(0, 3), bots = botsParaCobrar();
     const sem3 = C.sem3 || [], ativos = C.clientesAtivos || 0;
     const frase = (H.atrasadas || 0) || (H.emRisco || 0)
       ? `Hoje: <b>${n0(H.atrasadas)} atrasada${H.atrasadas === 1 ? '' : 's'}</b> e <b>${n0(H.emRisco)} com risco de furo</b>.${clientesRuins[0] ? ` O cliente mais apertado é <b>${esc(clientesRuins[0].cliente)}</b>.` : ''}`
@@ -411,7 +411,7 @@
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>O que cobrar hoje</div>
       ${time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')}
-      ${bots.lista.slice(0, largo ? 8 : 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
+      ${bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
       ${!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : ''}
       ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
       </section></div>
@@ -542,19 +542,32 @@
       : deHoje.length ? `Hoje saem <b>${deHoje.length}</b>. Comece por <b>${esc(titulo(primeiro))}</b>${cliente(primeiro) ? ' (' + esc(cliente(primeiro)) + ')' : ''}.`
       : abertas.length ? `Nada vence hoje. Nos próximos dias, <b>${proximos.reduce((n, p) => n + p.n, 0)} peças</b>. Dá para adiantar <b>${esc(titulo(primeiro))}</b>.`
       : 'Fila limpa. Bom momento para adiantar o que vem.';
-    const lista = diaEscolhido ? abertas.filter((x) => x.ref === diaEscolhido) : [...atrasadas, ...deHoje];
     const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const item = (x) => linhaDemanda(x.d, { ref: x.ref, sit: x.sit });
-    const LIMITE = centroAberto ? 5 : 12; // em tela cheia cabe a fila do dia inteira
+    // A data do cliente manda (Paulo, 08/11/2026): a fila segue a VEICULAÇÃO. Prazo interno vencido com veiculação
+    // adiante é "prazo desatualizado" (o time não atualizou o prazo): alerta, mas não passa na frente de quem veicula antes.
+    const veic = (x) => String(x.d.veiculacao_iso || '');
+    const desatualizada = (x) => Boolean(x.d.prazo_iso && x.d.prazo_iso < hoje && veic(x) && veic(x) >= hoje);
+    const chaveFila = (x) => (veic(x) && veic(x) < hoje ? '0' : '1') + (veic(x) || x.d.prazo_iso || '9999');
+    const naFila = (diaEscolhido ? abertas.filter((x) => (veic(x) || x.ref) === diaEscolhido) : abertas).slice().sort((a, b) => chaveFila(a).localeCompare(chaveFila(b)));
+    const desatualizadas = abertas.filter(desatualizada);
+    // Por status, como o Minhas Tarefas: o grupo mais urgente primeiro (alteração, aprovação…), e dentro dele pela veiculação.
+    const grupos = new Map();
+    for (const x of naFila) { const st = String(x.d.status || 'Sem status').trim() || 'Sem status'; if (!grupos.has(st)) grupos.set(st, { st, itens: [], ordem: 9, cor: corStatus(x.d, x.sit) }); const g = grupos.get(st); g.itens.push(x); g.ordem = Math.min(g.ordem, ORDEM[x.sit === 'atrasada' && desatualizada(x) ? (/altera|ajuste/i.test(st) ? 'ajuste' : /aprova/i.test(st) ? 'aprovar' : 'fazer') : x.sit] ?? 9); }
+    // Ordem do fluxo (não do relógio): o que pede retrabalho e aprovação primeiro, depois produção, cliente e agendado.
+    const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
+    const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
+    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '' });
+    const POR_GRUPO = 4;
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const seletor = admin && time.length ? `<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
     el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
-      <div class="vv-blocos"><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:${atrasadas.length ? 'var(--sit-atrasada)' : 'var(--sit-hoje)'}"><i></i>${diaEscolhido ? 'Dia ' + esc(diaEscolhido.slice(8) + '/' + diaEscolhido.slice(5, 7)) : 'Hoje'}<span class="vv-pilula">${lista.length}</span></div>
-      ${lista.length ? lista.slice(0, LIMITE).map(item).join('') + (lista.length > LIMITE ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${lista.length - LIMITE} na sua fila</button>` : '') : `<p class="vv-vazio">${diaEscolhido ? 'Nada neste dia.' : 'Nada vence hoje. Bom dia para adiantar o que vem.'}</p>`}
-      </section><section class="vv-bloco">
+      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
+      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco">
+      <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
+      ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
+      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}<section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
       <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
@@ -2425,6 +2438,10 @@
     const aberto = [...document.querySelectorAll(PALCO)].some((e) => !e.hidden && e.getClientRects().length > 0);
     if (body.classList.contains('palco-modulo') !== aberto) body.classList.toggle('palco-modulo', aberto);
     if (aberto && centroAberto) fecharCentro();
+    // Altura real do aviso dos planejamentos e da barra de voz: a agenda termina acima deles (nada cobre nada).
+    const aviso = document.getElementById('plj-aviso'), voz = hud.querySelector('.vv-chamada');
+    const hAviso = aviso && !aviso.hidden && aviso.getClientRects().length ? aviso.offsetHeight + 8 : 0, hVoz = voz && voz.getClientRects().length ? voz.offsetHeight + 8 : 0;
+    body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz) + 'px'); body.style.setProperty('--vv-pe-voz', hVoz + 'px');
   }
   function iniciar() {
     let palcoAgendado = false;

@@ -15,7 +15,7 @@
 
 /* topo */
 #vv-pessoas .vp-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 14px 8px 16px;background:#FFFFFF;border-bottom:1px solid #E6E0D6;padding-top:max(14px,env(safe-area-inset-top))}
-#vv-pessoas .vp-kicker{display:block;margin-bottom:2px;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#vv-pessoas .vp-kicker{display:block;margin-bottom:2px;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-pessoas h2{margin:0;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
 #vv-pessoas h3{margin:0;font:700 16px/1.25 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif}
 #vv-pessoas .vp-topo-botoes{display:flex;gap:8px}

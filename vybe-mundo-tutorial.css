@@ -45,7 +45,7 @@
 .vv-tour-avatar::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(139,125,255,.55);pointer-events:none;animation:vv-tour-onda 2.4s ease-out infinite}
 @keyframes vv-tour-onda{from{scale:1;opacity:.9}to{scale:1.5;opacity:0}}
 .vv-tour-quem{display:flex;flex-direction:column;gap:2px;min-width:0}
-.vv-tour-quem b{font:700 11px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;color:var(--tour-lilas)}
+.vv-tour-quem b{font:700 11px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;color:var(--tour-lilas)}
 .vv-tour-quem small{font:500 11px/1.2 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .vv-tour-titulo{font:700 16px/1.25 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em;color:var(--tour-tinta);margin:0 0 4px}
@@ -79,12 +79,12 @@
   box-shadow:0 30px 80px rgba(31,29,26,.25);outline:0;scrollbar-width:thin;animation:vv-tour-surge .2s var(--tour-curva) both}
 .vv-tour-janela-topo{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .vv-tour-janela-topo .vv-tour-titulo{font-size:19px;margin:0}
-.vv-tour-kicker{display:block;margin-bottom:2px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--tour-kicker)}
+.vv-tour-kicker{display:block;margin-bottom:2px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none;color:var(--tour-kicker)}
 .vv-tour-x{flex:none;margin-left:auto;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--tour-linha);border-radius:8px;
   background:var(--tour-sec);color:var(--tour-tinta);font:500 20px/1 var(--vv-texto,system-ui),sans-serif;transition:border-color .15s,color .15s}
 .vv-tour-x:hover{border-color:var(--tour-acao);color:var(--tour-sel)}
 .vv-tour-largo{width:100%;height:40px;margin:14px 0 2px}
-.vv-tour-secao{margin:18px 0 8px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--tour-kicker)}
+.vv-tour-secao{margin:18px 0 8px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none;color:var(--tour-kicker)}
 .vv-tour-grupo{margin:12px 0 6px;font:700 12px/1.2 var(--vv-texto,system-ui),sans-serif;color:var(--tour-apagado)}
 .vv-tour-lista{display:grid;gap:6px}
 .vv-tour-linha{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px 10px;width:100%;box-sizing:border-box;padding:10px 12px;text-align:left;

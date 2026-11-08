@@ -12,7 +12,7 @@
 
 /* cabeçalho */
 #vv-missoes .vv-missoes-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px 22px}
-#vv-missoes .vv-missoes-kicker{display:block;margin-bottom:2px;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#vv-missoes .vv-missoes-kicker{display:block;margin-bottom:2px;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-missoes h2{margin:0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
 #vv-missoes .vv-missoes-topo p{margin:3px 0 0;color:#6B675F;font-size:12px}
 #vv-missoes .vv-missoes-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
@@ -118,7 +118,7 @@
 #vv-missoes .ofc-cobranca-datas-abrir:hover,#vv-missoes .ofc-cobranca-datas-abrir[aria-expanded="true"]{border-color:#FF7A2F;color:#C2490C;background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF)}
 #vv-missoes .ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:10px;margin-top:6px;padding:12px;border-radius:8px;border:1px solid #E6E0D6;background:#FAF8F4}
 #vv-missoes .ofc-datas-campo{display:grid;gap:4px;min-width:0}
-#vv-missoes .ofc-cobranca-datas small{color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#vv-missoes .ofc-cobranca-datas small{color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-missoes .ofc-datas-valor{height:38px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
 #vv-missoes .ofc-datas-valor[aria-expanded="true"]{border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
 #vv-missoes .ofc-datas-valor.mudou{color:#C2490C}

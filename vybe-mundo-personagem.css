@@ -26,7 +26,7 @@
 /* Topo: kicker, título, apoio e fechar */
 .vv-personagem-topo{flex:none;display:flex;align-items:flex-start;gap:12px;padding:18px 16px 14px 22px}
 .vv-personagem-titulo{flex:1;min-width:0}
-.vv-personagem-kicker{display:block;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase}
+.vv-personagem-kicker{display:block;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:0;text-transform:none}
 .vv-personagem-titulo h2{margin:3px 0 0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif);letter-spacing:-.01em}
 .vv-personagem-titulo p{margin:2px 0 0;color:#6B675F;font:500 12px/1.4 var(--vv-texto,system-ui,sans-serif)}
 .vv-personagem-x{appearance:none;flex:none;margin:0;width:34px;height:34px;padding:0;border:0;border-radius:8px;background:transparent;color:#6B675F;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
@@ -66,7 +66,7 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 .vv-personagem-abas button[aria-selected="true"]{background:#FFFFFF;color:#C2490C;font-weight:700;box-shadow:0 1px 2px rgba(31,29,26,.08),0 2px 8px rgba(31,29,26,.06)}
 .vv-personagem-opcoes{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 2px 16px;scrollbar-width:thin}
 .vv-personagem-grupo + .vv-personagem-grupo{margin-top:20px}
-.vv-personagem-grupo h3{margin:0 0 10px;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase}
+.vv-personagem-grupo h3{margin:0 0 10px;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:0;text-transform:none}
 .vv-personagem-dica{margin:10px 0 0;color:#6B675F;font:500 12px/1.45 var(--vv-texto,system-ui,sans-serif)}
 .vv-personagem-grade{display:flex;flex-wrap:wrap;gap:8px}
 /* Amostra: círculo da cor do boneco; escolhida = anel laranja (borda, para o anel de foco do mundo somar) */
