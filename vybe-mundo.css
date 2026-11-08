@@ -293,7 +293,7 @@ html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-pla
 .andar-topo b{font:700 16px var(--vv-titulo);color:var(--vv-tinta)}
 .andar-voz{padding:5px 10px;border-radius:8px;background:var(--vv-papel);font:700 11.5px var(--vv-texto);color:var(--vv-apagado)}
 .andar-voz:not(:empty)::before{content:"●";margin-right:6px;color:var(--sit-pronta)}
-.andar-dica{position:absolute;left:calc(var(--vv-livre-esq,0px) + var(--vv-m));top:calc(var(--vv-m) + 66px);width:max-content;max-width:min(340px,calc(100% - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 28px));margin:0;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.86);color:var(--vv-tinta);box-shadow:0 6px 18px -8px rgba(30,40,50,.35);font:500 12px/1.4 var(--vv-texto);backdrop-filter:blur(8px);text-align:left}
+.andar-dica{position:absolute;left:calc(var(--vv-livre-esq,0px) + var(--vv-m));top:calc(var(--vv-m) + 88px);width:max-content;max-width:min(340px,calc(100% - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 28px));margin:0;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.86);color:var(--vv-tinta);box-shadow:0 6px 18px -8px rgba(30,40,50,.35);font:500 12px/1.4 var(--vv-texto);backdrop-filter:blur(8px);text-align:left}
 @media (max-width:900px){.andar-dica{display:none}}
 .sala-placa,.sala-nome{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform}
 .sala-placa{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.94);box-shadow:0 6px 16px -6px rgba(30,40,50,.35);font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}
@@ -303,6 +303,11 @@ html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-pla
 .sala-placa span:empty{display:none}
 .sala-nome{padding:2px 8px;border-radius:8px;background:rgba(20,22,25,.82);color:#fff;font:700 10.5px var(--vv-texto)}
 .sala-nome.eu{background:var(--vv-laranja)}
+/* Agente do setor na mesa dele (andar por dentro): nome, setor e a bolinha do estado (cinza sem leitura da central). */
+.sala-agente{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 7px;border-radius:8px;background:rgba(255,255,255,.94);box-shadow:0 6px 16px -6px rgba(30,40,50,.35);font:700 11px var(--vv-texto);color:var(--vv-tinta)}
+.sala-agente i{width:8px;height:8px;border-radius:50%;background:var(--ag-cor,#9AA3A8);box-shadow:0 0 0 2px rgba(0,0,0,.06)}
+.sala-agente span{font-weight:600;color:var(--vv-apagado)}
+.sala-agente.livre{background:rgba(255,255,255,.62);color:var(--vv-apagado);font-weight:600;box-shadow:none;border:1px dashed rgba(90,98,104,.35)}
 .sala-nome i{font-style:normal;margin-right:3px}
 .vv-entrar-andar{margin:-4px 0 12px}
 
@@ -3761,6 +3766,11 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 
 /* ===== Hover do agente no andar: a operação dele ===== */
 .mundo-rotulo.rotulo-agente .det{display:none}
+/* Andar de agentes com as mesas lado a lado (08/11/2026): o rótulo fica só com o nome e a bolinha do estado; o estado
+   em texto e o detalhe aparecem ao passar o mouse, para os nomes vizinhos não se cobrirem. */
+.mundo-rotulo.rotulo-agente{flex-direction:row;gap:5px;padding:2px 8px}
+.mundo-rotulo.rotulo-agente::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ag-cor,#9AA3A8)}
+.mundo-rotulo.rotulo-agente:not(:hover):not(:focus-visible) small{display:none}
 .mundo-rotulo.rotulo-agente:hover,.mundo-rotulo.rotulo-agente:focus-visible{z-index:50}
 .mundo-rotulo.rotulo-agente:hover .det,.mundo-rotulo.rotulo-agente:focus-visible .det{display:flex;flex-direction:column;gap:5px;position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:250px;padding:12px;border-radius:10px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 18px 40px rgba(31,29,26,.22);text-align:left;white-space:normal;font:500 11.5px/1.4 var(--vv-texto);color:#1F1D1A}
 .rotulo-agente .det em{font-style:normal;color:#5B574F}

@@ -78,8 +78,27 @@ export const PLANTA = [
         skills: ['Cruzar andares', 'Painéis operacionais', 'Resumo semanal da diretoria'], estado: 'sombra', modulo: { tipo: 'quadro', alvo: 'performance' } },
     ],
   },
+  // Andares do time humano (Paulo, 08/11/2026: "vai ter os andares dos HUMANOS onde fica o time todo junto e os
+  // outros andares para os bots"): as salas de cada um e a reunião num andar só; o estúdio e as salas de trabalho
+  // em grupo no de cima. As zonas são as MESMAS do Escritório (voz, presença e trancas no Worker não mudam).
   {
-    id: 'terraco', nivel: 6, nome: 'Terraço · Escritório', resumo: 'A equipe junta: salas, voz, jogos e VybeCoins.',
+    id: 'equipe', nivel: 6, tipo: 'equipe', nome: 'Time Vybe', resumo: 'O time todo junto: a sala de cada um e a reunião.',
+    cor: '#E2A11B',
+    setores: [
+      { id: 'time', nome: 'Salas do time', agente: null, papel: 'A sala de cada pessoa da equipe, lado a lado, e a sala de reunião.',
+        skills: [], estado: 'ativo', modulo: { tipo: 'modo', alvo: 'escritorio' } },
+    ],
+  },
+  {
+    id: 'estudio', nivel: 7, tipo: 'equipe', nome: 'Estúdio e Operação', resumo: 'Gravação, apresentações, operação e foco.',
+    cor: '#12A594',
+    setores: [
+      { id: 'estudio', nome: 'Estúdio e salas de trabalho', agente: null, papel: 'Produção audiovisual, auditório, centro de operação e a sala de foco.',
+        skills: [], estado: 'ativo', modulo: { tipo: 'modo', alvo: 'escritorio' } },
+    ],
+  },
+  {
+    id: 'terraco', nivel: 8, tipo: 'equipe', nome: 'Terraço · Escritório', resumo: 'A pausa do time: café, jogos, lounge e academia.',
     cor: '#38D9C5',
     setores: [
       { id: 'escritorio', nome: 'Escritório da equipe', agente: null, papel: 'O Escritório de sempre, com tudo que ele tem.',
@@ -87,6 +106,12 @@ export const PLANTA = [
     ],
   },
 ];
+
+// Andares só dos agentes (1º ao 5º): mesas para todos os agentes do setor e o resto livre para os que entrarem.
+for (const a of PLANTA) if (!a.tipo) a.tipo = a.id === 'terreo' ? 'recepcao' : 'agentes';
+export const MESAS_POR_ANDAR = 6;
+// Nome do andar pelo número (o terraço é sempre o último).
+export const nomeDoNivel = (a, curto = false) => (a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + (curto ? 'º' : 'º andar'));
 
 export const ESTADOS = {
   ativo: { rotulo: 'Trabalhando', cor: '#18A957' },
@@ -100,23 +125,23 @@ export const ESTADOS = {
 // Salas pessoais: os donos fixos de server/escritorio-mapa.js (DONOS_ESCRITORIO).
 export const ZONAS_DO_PREDIO = {
   recepcao: { andar: 'terreo', nome: 'Convivência' },
-  reuniao: { andar: 'comercial', nome: 'Sala de reunião' },
-  producao: { andar: 'criacao', nome: 'Produção (audiovisual)' },
-  foco: { andar: 'financeiro', nome: 'Foco (silêncio)' },
-  operacao: { andar: 'tecnologia', nome: 'Centro de Operação' },
-  auditorio: { andar: 'estrategia', nome: 'Auditório' },
+  reuniao: { andar: 'equipe', nome: 'Sala de reunião' },
+  producao: { andar: 'estudio', nome: 'Produção (audiovisual)' },
+  auditorio: { andar: 'estudio', nome: 'Auditório' },
+  operacao: { andar: 'estudio', nome: 'Centro de Operação' },
+  foco: { andar: 'estudio', nome: 'Foco (silêncio)' },
   cafe: { andar: 'terraco', nome: 'Café' },
   jogos: { andar: 'terraco', nome: 'Jogos' },
   lounge: { andar: 'terraco', nome: 'Lounge' },
   academia: { andar: 'terraco', nome: 'Academia' },
-  'sala-0': { andar: 'estrategia', nome: 'Sala do Paulo', dono: 'Paulo' },
-  'sala-1': { andar: 'comercial', nome: 'Sala do Vinícius', dono: 'Vinícius' },
-  'sala-2': { andar: 'comercial', nome: 'Sala do Ewerton', dono: 'Ewerton' },
-  'sala-3': { andar: 'criacao', nome: 'Sala do Deivid', dono: 'Deivid' },
-  'sala-4': { andar: 'criacao', nome: 'Sala da Bia', dono: 'Bia' },
-  'sala-5': { andar: 'criacao', nome: 'Sala da Jady', dono: 'Jady' },
-  'sala-6': { andar: 'criacao', nome: 'Sala do Mizinho', dono: 'Mizinho' },
-  'sala-7': { andar: 'criacao', nome: 'Sala da Taynara', dono: 'Taynara' },
-  'sala-8': { andar: 'criacao', nome: 'Sala do Reriston', dono: 'Reriston' },
+  'sala-0': { andar: 'equipe', nome: 'Sala do Paulo', dono: 'Paulo' },
+  'sala-1': { andar: 'equipe', nome: 'Sala do Vinícius', dono: 'Vinícius' },
+  'sala-2': { andar: 'equipe', nome: 'Sala do Ewerton', dono: 'Ewerton' },
+  'sala-3': { andar: 'equipe', nome: 'Sala do Deivid', dono: 'Deivid' },
+  'sala-4': { andar: 'equipe', nome: 'Sala da Bia', dono: 'Bia' },
+  'sala-5': { andar: 'equipe', nome: 'Sala da Jady', dono: 'Jady' },
+  'sala-6': { andar: 'equipe', nome: 'Sala do Mizinho', dono: 'Mizinho' },
+  'sala-7': { andar: 'equipe', nome: 'Sala da Taynara', dono: 'Taynara' },
+  'sala-8': { andar: 'equipe', nome: 'Sala do Reriston', dono: 'Reriston' },
 };
 export const zonasDoAndar = (andar) => Object.entries(ZONAS_DO_PREDIO).filter(([, z]) => z.andar === andar).map(([id, z]) => ({ id, ...z }));

@@ -13,7 +13,7 @@
   const primeiro = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
   const souDono = () => { const u = typeof G.operadorDoTopo === 'function' ? G.operadorDoTopo() : null; return Boolean(u && DONOS.includes(primeiro(u.name || u.nome))); };
   const ESTADO_SETOR = { ativo: ['Ativo', 'Já trabalha hoje.', '#18A957'], sombra: ['Sombra', 'Só propõe; um dono aprova.', '#0D74CE'], planejado: ['Planejado', 'Falta ligar as ferramentas: hoje não roda.', '#7A8B82'] };
-  const ANDAR = (n) => (n === 0 ? 'Térreo' : n === 6 ? 'Terraço' : n + 'º andar');
+  const ANDAR = (n, id) => (n === 0 ? 'Térreo' : id === 'terraco' ? 'Terraço' : n + 'º andar');
   const FREQ = { uma_vez: 'Uma vez', diaria: 'Todo dia', semanal: 'Toda semana', mensal: 'Todo mês' };
   const st = { aberto: false, setor: 'orquestrador', msg: '', enviando: false };
   let raiz = null;
@@ -26,7 +26,7 @@
   function setores() { return planta().flatMap((a) => a.setores.filter((s) => s.agente).map((s) => ({ ...s, andar: a }))); }
 
   function listaHtml() {
-    return planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
+    return planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel, a.id))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
       const E = mv().estadoDoAgente?.(s.id) || {}, [rot, , cor] = ESTADO_SETOR[s.estado] || ESTADO_SETOR.planejado;
       const ini = String(s.agente).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
       return `<button type="button" class="vga-linha${s.id === st.setor ? ' sel' : ''}" data-vga-setor="${esc(s.id)}">
