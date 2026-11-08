@@ -4295,3 +4295,54 @@ html.tema-escuro body.mundo .vv-setor{filter:invert(.92) hue-rotate(180deg)}
 .vv-roteiro b{display:block;font:700 12.5px/1.3 var(--vv-texto)}
 .vv-roteiro small{display:block;margin-top:3px;font:600 11px/1.35 var(--vv-texto);color:var(--vv-apagado)}
 .vv-roteiro span{display:block;margin-top:2px;font:700 11px var(--vv-texto);color:#11613A}
+
+/* ---------- Palco (Paulo, 08/11/2026): o módulo é a tela; o mapa só no Centro ----------
+   Sem o Centro aberto, nada de 3D: Hoje (Minhas tarefas / Agência), Gestão e todo módulo ocupam a área à direita
+   do trilho. O Centro comercial (botão do trilho) é o único lugar em que o mapa aparece. */
+body.mundo{--vv-palco-esq:calc(var(--vv-m) * 2 + 76px);--vv-palco-topo:calc(var(--vv-m) + 60px);--vv-palco-fundo:#EFEBE4}
+html:has(body.mundo.mundo-visivel:not(.mundo-centro)){background:var(--vv-palco-fundo,#EFEBE4)}
+body.mundo.mundo-visivel:not(.mundo-centro) #mundo{background:var(--vv-palco-fundo)}
+body.mundo.mundo-visivel:not(.mundo-centro) #mundo > *{display:none!important}
+body.mundo.mundo-visivel:not(.mundo-centro) #mode-gate{background:var(--vv-palco-fundo)!important}
+body.mundo:not(.mundo-centro) .vv-controles,body.mundo:not(.mundo-centro) .vv-vistas,body.mundo:not(.mundo-centro) .vv-divisor,
+body.mundo:not(.mundo-centro) [data-ferr="camadas"]{display:none!important}
+body.mundo.mundo-centro .vv-hoje{display:none}
+/* Hoje em tela cheia, com a agenda como coluna à direita */
+body.mundo:not(.mundo-centro) .vv-hoje{left:var(--vv-palco-esq);top:var(--vv-palco-topo);right:calc(var(--vv-m) * 2 + 300px);bottom:var(--vv-m);width:auto;padding:24px 28px 34px;background:rgba(255,255,255,.62);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.mundo:not(.mundo-centro) .vv-agenda{top:var(--vv-palco-topo);bottom:var(--vv-m);max-height:none;overflow:auto;background:rgba(255,255,255,.62);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+body.mundo:not(.mundo-centro) .vv-hoje h2{font-size:32px}
+body.mundo:not(.mundo-centro) .vv-hoje .vv-fala{max-width:880px}
+.vv-blocos{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:start;margin-top:16px}
+.vv-bloco{min-width:0;padding:12px 16px 14px;border-radius:var(--vv-r-cartao);background:#FFFFFF;border:1px solid #ECE6DC}
+.vv-bloco > .vv-rotulo-secao:first-child{margin-top:2px}
+.vv-bloco.largo{grid-column:1/-1}
+/* Placa (cliente, agente, pendências): sem o Centro, é a página inteira */
+body.mundo:not(.mundo-centro) .vv-placa{position:fixed;top:var(--vv-m);right:var(--vv-m);bottom:var(--vv-m);left:var(--vv-palco-esq);width:auto;max-width:none;max-height:none;z-index:5;padding:22px 26px 30px;background:#FAF8F4;backdrop-filter:none;-webkit-backdrop-filter:none}
+/* Módulos: a janela vira a tela (sem fundo borrado por cima de nada) */
+body.mundo .vc-camada,body.mundo .vp-camada,body.mundo .vv-missoes-camada{inset:var(--vv-m) var(--vv-m) var(--vv-m) var(--vv-palco-esq);padding:0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;display:flex;align-items:stretch;justify-content:stretch;place-items:stretch}
+body.mundo .vc-camada > .vc-janela,body.mundo .vp-camada > .vp-janela,body.mundo .vv-missoes-camada > .vv-missoes{flex:1;width:auto;max-width:none;height:auto;max-height:none;margin:0;border-radius:var(--vv-r-placa)}
+body.mundo #vv-comercial.vc,body.mundo #vv-conteudo.vc,body.mundo .vv-plj,body.mundo .vv-wa{inset:var(--vv-m) var(--vv-m) var(--vv-m) var(--vv-palco-esq)!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;transform:none!important;border-radius:var(--vv-r-placa)!important}
+/* Módulo ou Gestão abertos: o trilho fica por cima (a lista de submódulos aparece) e o resto do HUD some */
+body.palco-modulo #mundo-hud,body.mundo-gestao #mundo-hud{z-index:700}
+body.palco-modulo #mundo-hud > :not(.vv-trilho):not(.vv-setor),body.mundo-gestao #mundo-hud > :not(.vv-trilho):not(.vv-setor){display:none!important}
+body.mundo.mundo-modulo #mundo-hud > .vv-setor{display:grid!important}
+body.mundo.mundo-modulo #mundo-hud{z-index:700}
+@media (max-width:900px){
+  body.mundo{--vv-palco-topo:calc(var(--vv-m) + 56px)}
+  body.mundo:not(.mundo-centro) .vv-hoje{left:var(--vv-m);right:var(--vv-m);bottom:calc(64px + 2 * var(--vv-m));padding:16px 14px 24px}
+  body.mundo:not(.mundo-centro) .vv-agenda{display:none}
+  body.mundo:not(.mundo-centro) .vv-hoje h2{font-size:26px}
+  body.mundo:not(.mundo-centro) .vv-placa{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 24px 24px;padding:16px 14px 24px}
+  body.mundo .vc-camada,body.mundo .vp-camada,body.mundo .vv-missoes-camada{inset:0 0 calc(64px + 2 * var(--vv-m)) 0}
+  body.mundo .vc-camada > .vc-janela,body.mundo .vp-camada > .vp-janela,body.mundo .vv-missoes-camada > .vv-missoes{border-radius:0 0 24px 24px}
+  body.mundo #vv-comercial.vc,body.mundo #vv-conteudo.vc,body.mundo .vv-plj,body.mundo .vv-wa{inset:0 0 calc(64px + 2 * var(--vv-m)) 0!important;border-radius:0 0 24px 24px!important}
+}
+
+/* ---------- Centro comercial: céu, lojas e bolinhas de status ---------- */
+body.mundo.mundo-centro #mundo{background:linear-gradient(180deg,#9FD3F0 0%,#CBE8F6 45%,#EEF7FB 100%)}
+.mundo-rotulo.rotulo-loja{display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 9px 6px;border-radius:12px;background:rgba(255,255,255,.94);border:1px solid #E6E0D6;box-shadow:0 6px 16px rgba(31,29,26,.16);font:600 11px/1.15 var(--vv-texto);color:#1F1D1A;cursor:pointer;pointer-events:auto;white-space:nowrap;max-width:170px}
+.mundo-rotulo.rotulo-loja .loja-nome{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.mundo-rotulo.rotulo-loja.atrasada{border-color:#E5484D;box-shadow:0 0 0 2px rgba(229,72,77,.25),0 6px 16px rgba(31,29,26,.16)}
+.loja-bolinhas{display:flex;gap:3px}
+.loja-bolinhas i{min-width:18px;height:18px;padding:0 4px;border-radius:9px;display:grid;place-items:center;background:var(--c);color:#fff;font:700 10px/1 var(--vv-texto);font-style:normal;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+body.mundo.mundo-centro .vv-agenda{display:none}

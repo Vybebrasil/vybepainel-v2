@@ -4,14 +4,10 @@ import { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS } 
 import { criarMotor } from './motor.mjs';
 import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan, roteirosDaSemana, bairroDoEndereco } from './captacoes.mjs';
 import { saudeDosAndares, URGENCIA } from './saude-andares.mjs';
-import { construirIrece, CENTRO_RECORTE } from './irece.mjs';
+import { construirCentro } from './centro.mjs';
 import { construirPredio } from './predio.mjs';
-import { criarClientes } from './clientes.mjs';
 import { PLANTA, ESTADOS, ZONAS_DO_PREDIO } from './planta.mjs';
 import { Obra } from './voxel.mjs';
-import { MARCOS, construirMarcos } from './marcos.mjs';
-import { construirAnimais } from './animais.mjs';
-import * as Empresas from './empresas.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
 
 export { PLANTA, ESTADOS };
@@ -19,70 +15,23 @@ export { abrirAndar } from './sala.mjs';
 export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 
-export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento = false } = {}) {
-  // Não alocar WebGL enquanto os dados ainda podem falhar ou ficar aguardando rede.
-  const [dados] = await Promise.all([fetch(dadosUrl, { signal: AbortSignal.timeout(20000) }).then((r) => {
-    if (!r.ok) throw new Error('Não foi possível carregar o mapa de Irecê.');
-    return r.json();
-  }), Empresas.carregarEmpresas(crmUrl)]);
+// Centro comercial (Paulo, 08/11/2026): no lugar do mapa de Irecê (relevo, ruas, 5.148 empresas, ~3,9 MB de dados),
+// uma maquete pequena com o Prédio da Vybe no meio e uma loja por cliente ativo. Nada é baixado além deste módulo.
+export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos = 32 } = {}) {
   const motor = criarMotor(canvas, { reduzirMovimento });
   try {
-  // A Vybe no endereço dela (mundo/locais.json: x/z ou rua). Sem local, perto do centro de Irecê.
-  const vybeLocal = LOCAIS?.vybe && Number.isFinite(LOCAIS.vybe.x) ? LOCAIS.vybe : null;
-  const reservas = { predio: { x: vybeLocal?.x ?? 0, z: vybeLocal?.z ?? 0, r: vybeLocal ? 6 : 9, exato: !!vybeLocal }, lotes: { quantos: 40, raioMin: 14, raioMax: 100, r: 3, folga: 0 }, marcos: MARCOS };
-  if (LOCAIS?.vybe?.rua && !vybeLocal) {
-    // Rua da Vybe: primeiro acha a rua (sem montar a cidade), depois reserva o terreno perto dela.
-    const r = construirIrece.pontoSemMontar?.(dados, LOCAIS.vybe.rua); if (r) { reservas.predio.x = r.x; reservas.predio.z = r.z; }
-  }
-  const irece = construirIrece(motor, dados, { reservas, comercios: Empresas.EMPRESAS.filter((e) => e.cnpj && (e.onde === 'rua' || e.onde === 'numero')) });
-  const base = reservas.predio.achado || { x: 0, z: 0 };
-  const predio = construirPredio(motor, { x: base.x, z: base.z, y: irece.alturaEm(base.x, base.z) + .05 });
-  const clientes = criarClientes(motor, irece, reservas.lotes.achados || []);
-  construirMarcos(motor, irece, motor.THREE);
-  construirAnimais(motor, irece, dados);
-  Empresas.construirEmpresas(motor, irece, motor.THREE);
+  // `irece` continua sendo o nome do chão para o resto deste arquivo (caminho, alturaEm), agora é o centro.
+  const irece = construirCentro(motor, { quantos });
+  const base = { x: 0, z: 0 };
+  const predio = construirPredio(motor, { x: 0, z: 0, y: irece.alturaEm() + .02 });
+  const clientes = { definir: (lista, opcoes) => irece.definir(lista, opcoes) };
   let posicoes = [];
 
-  // Lugares reais (igrejas, praças, escolas) aparecem de perto.
-  for (const l of irece.lugares) {
-    if (!/igreja|par[oó]quia|catedral|pra[cç]a|mercado|hospital|est[aá]dio|escola|col[eé]gio/i.test(l.nome)) continue;
-    motor.rotulo({ pos: new motor.THREE.Vector3(l.x, irece.alturaEm(l.x, l.z) + 2, l.z), classe: 'rotulo-lugar', html: l.nome.replace(/[<>&]/g, ''), distMax: 160, prioridade: -1 });
-  }
-
   const VISTAS = {
-    // A cidade abre com a Vybe no meio da tela.
-    cidade: { alvo: { x: base.x, z: base.z }, dist: 290, incl: .86, giro: -.75 },
-    predio: { alvo: { x: base.x, y: 15, z: base.z }, dist: 175, incl: .42, giro: -.6 },
+    cidade: { alvo: { x: 0, y: 4, z: 0 }, dist: 330, incl: .74, giro: -.75 },
+    predio: { alvo: { x: 0, y: 15, z: 0 }, dist: 175, incl: .42, giro: -.6 },
   };
   motor.voar(VISTAS.cidade, 1);
-
-  // ---------- Passarinhos: bandos em V circulando sobre a cidade (uma malha só, leve) ----------
-  {
-    const T3 = motor.THREE, BANDOS = 5, POR = 7;
-    const asa = new T3.InstancedMesh(new T3.BoxGeometry(.32, .03, .09), new T3.MeshBasicMaterial({ color: '#4A4F55' }), BANDOS * POR * 2);
-    asa.frustumCulled = false; motor.adicionar(asa);
-    const bandos = Array.from({ length: BANDOS }, (_, k) => ({ cx: CENTRO_RECORTE.x + (k - 2) * 70, cz: CENTRO_RECORTE.z + ((k * 37) % 5 - 2) * 55, r: 60 + k * 18, alt: 34 + k * 5, vel: .05 + k * .012, fase: k * 1.7 }));
-    const m4 = new T3.Matrix4(), q = new T3.Quaternion(), e = new T3.Euler(), p = new T3.Vector3(), sc = new T3.Vector3();
-    motor.animar((t) => {
-      let n = 0;
-      for (const b of bandos) {
-        const a0 = t * b.vel + b.fase, hx = b.cx + Math.cos(a0) * b.r, hz = b.cz + Math.sin(a0) * b.r, dir = a0 + Math.PI / 2;
-        for (let i = 0; i < POR; i++) {
-          const fila = Math.ceil(i / 2), lado = i === 0 ? 0 : (i % 2 ? 1 : -1);
-          const bx = hx - Math.cos(dir) * fila * .7 + Math.cos(dir + Math.PI / 2) * lado * fila * .5;
-          const bz = hz - Math.sin(dir) * fila * .7 + Math.sin(dir + Math.PI / 2) * lado * fila * .5;
-          const bate = Math.sin(t * 9 + i * .7 + b.fase) * .55;
-          for (const s2 of [-1, 1]) {
-            e.set(0, -dir, s2 * bate); q.setFromEuler(e);
-            p.set(bx + Math.cos(dir + Math.PI / 2) * s2 * .1, b.alt + Math.sin(t * .8 + i) * .4, bz + Math.sin(dir + Math.PI / 2) * s2 * .1);
-            sc.set(.55, 1, 1); m4.compose(p, q, sc); asa.setMatrixAt(n++, m4);
-          }
-        }
-      }
-      asa.instanceMatrix.needsUpdate = true; asa.computeBoundingSphere();
-      return motor.emVista(asa);
-    });
-  }
 
   // ---------- Vans da Vybe: as captações do dia, pelas ruas, da agência até o cliente ----------
   const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -233,17 +182,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   });
 
   const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  function naBase(nome, inteiro = false) {
-    const n = semAcento(nome); if (n.length < 3) return null;
-    const junto = n.replace(/ /g, ''), sigla = semAcento(String(nome).split(/\s+-\s+/)[0]);
-    const cand = Empresas.EMPRESAS.filter((e) => e.cnpj && e.x != null).filter((e) => { const f = semAcento(e.nome), r = semAcento(e.razao), fj = f.replace(/ /g, '');
-      return f === n || f.startsWith(n + ' ') || r.startsWith(n + ' ') || (n.length >= 6 && (f.includes(n) || r.includes(n)))
-        || (junto.length >= 6 && (fj === junto || fj.startsWith(junto))) || (sigla !== n && sigla.length >= 3 && (f === sigla || f.startsWith(sigla + ' '))); });
-    if (!cand.length) return null;
-    cand.sort((a, b) => (a.onde === 'numero' ? 0 : a.onde === 'rua' ? 1 : 2) - (b.onde === 'numero' ? 0 : b.onde === 'rua' ? 1 : 2) || Number(b.matriz) - Number(a.matriz));
-    const e = cand[0];
-    return inteiro ? e : { x: e.x, z: e.z };
-  }
+  function naBase() { return null; } // a base de CNPJ não é mais baixada no Centro
   let ultimoComPonto = [];
   // ---------- Camada de prospecção: empresas (não clientes) como pinos pequenos na cor da etapa do CRM ----------
   let camadaPros = null;
@@ -281,7 +220,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
       return roteirosDaSemana(eventos, { pontoDe, origem: { x: base.x, z: base.z }, desde });
     },
     noRecorte: (x, z) => irece.noRecorte(x, z),
-    get empresas() { return Empresas.EMPRESAS; }, get fonteEmpresas() { return Empresas.FONTE_EMPRESAS; }, tipoLegivel: Empresas.TIPO_LEGIVEL, agencia: { x: base.x, z: base.z },
+    empresas: [], fonteEmpresas: '', tipoLegivel: () => '', agencia: { x: base.x, z: base.z },
     focarPonto(x, z, dist = 80, incl = .7, giro) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist, incl, ...(giro == null ? {} : { giro }) }); },
     cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },
     criarFonteAgentes, apresentarAgente, referenciaDaPeca, estadosReais: ESTADOS_REAIS, atividadeAgentes: predio.atividadeAgentes,
@@ -302,7 +241,7 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     },
     focarCliente(nome) {
       const p = posicoes.find((c) => c.nome === nome);
-      if (p) { predio.abrir(false); motor.voar({ alvo: { x: p.x, y: irece.alturaEm(p.x, p.z) + 1.5, z: p.z }, dist: 95, incl: .62, giro: Math.atan2(-p.x, -p.z) + Math.PI + .5 }); }
+      if (p) { predio.abrir(false); const l = p.loja || p; motor.voar({ alvo: { x: l.x, y: 2.5, z: l.z }, dist: 70, incl: .5, giro: Math.atan2(-l.x, -l.z) + .35 }); }
     },
     // Conferência: onde cada cliente deveria estar (ponto real) e onde a sede ficou.
     desempenho: () => motor.desempenho(),
@@ -311,18 +250,8 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
     // O cliente na base de CNPJ (nome fantasia ou razão social): é o endereço oficial dele.
     acharNaBase: (nome) => naBase(nome, true),
     definirClientes(lista, opcoes) {
-      // Cada cliente no lugar dele: local fixo (locais.json) > endereço do cadastro (rua do mapa) > lote perto da agência.
-      const fixos = LOCAIS?.clientes || {};
-      const comPonto = lista.map((c) => {
-        const f = fixos[c.nome], cadastro = naBase(c.nome, true);
-        const confirmado = f && Number.isFinite(f.x) && Number.isFinite(f.z) && /google maps/i.test(f.fonte || '') && !f.conferir;
-        const pt = f && Number.isFinite(f.x) ? f : f?.rua ? irece.pontoDoEndereco(f.rua) : (cadastro || irece.pontoDoEndereco(c.endereco));
-        const definida = f && Number.isFinite(f.x) && Number.isFinite(f.z) && !/google maps/i.test(f.fonte || '');
-        const precisao = confirmado ? 'confirmada' : definida ? 'definida' : cadastro && pt === cadastro ? cadastro.onde : pt ? 'rua' : 'sem';
-        return { ...c, ponto: pt || null, precisao };
-      });
-      posicoes = clientes.definir(comPonto, opcoes);
-      ultimoComPonto = comPonto;
+      posicoes = clientes.definir(lista, opcoes);
+      ultimoComPonto = lista.map((c) => ({ ...c, ponto: null, precisao: 'centro' }));
     },
     alertaVybes: predio.alerta,
     predioAberto: predio.aberto,
