@@ -4429,3 +4429,44 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 @media (max-width:900px){
   html body.mundo:not(.mundo-centro) .plj-aviso{bottom:calc(64px + 2 * var(--vv-m) + var(--vv-pe-voz,62px))!important}
 }
+
+/* ---------- Agentes da Vybe em tela cheia (vybe-mundo-agentes.js, 08/11/2026) ---------- */
+.vv-ag{position:fixed;z-index:650;top:var(--vv-m);right:var(--vv-m);bottom:var(--vv-m);left:var(--vv-palco-esq,104px);display:flex;flex-direction:column;background:#FAF8F4;border:1px solid #E6E0D6;border-radius:var(--vv-r-placa);box-shadow:var(--vv-sombra-curta,0 8px 24px rgba(0,0,0,.06));color:#1F1D1A;font-family:var(--vv-texto);overflow:hidden}
+.vv-ag[hidden]{display:none}
+.vga-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px 12px;border-bottom:1px solid #ECE6DC}
+.vga-topo small{font:600 12px var(--vv-texto);color:#6F6A62}.vga-topo h2{margin:2px 0 2px;font:600 26px/1.15 var(--vv-titulo);letter-spacing:-.02em}.vga-topo p{margin:0;font-size:12px;color:#8A8378}
+.vga-fechar{width:34px;height:34px;border-radius:8px;border:1px solid #E6E0D6;background:#FFF;font-size:20px;line-height:1;cursor:pointer;color:#4A4640}
+.vga-corpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(240px,300px) 1fr}
+.vga-lista{overflow:auto;padding:10px;border-right:1px solid #ECE6DC}
+.vga-andar{margin-bottom:10px}.vga-andar > small{display:block;padding:6px 8px;font:600 12px var(--vv-texto);color:#6F6A62}
+.vga-linha{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:1px solid transparent;border-radius:8px;background:transparent;text-align:left;cursor:pointer;color:inherit}
+.vga-linha:hover{background:#FFF;border-color:#ECE6DC}.vga-linha.sel{background:#FFF;border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.12)}
+.vga-av{flex:none;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--e) 16%,#FFF);border:2px solid var(--e);font:700 12px var(--vv-titulo);color:#2B2925}
+.vga-av.grande{width:52px;height:52px;font-size:18px}
+.vga-meio{flex:1;min-width:0;display:grid}.vga-meio b{font:600 13.5px var(--vv-titulo)}.vga-meio small{font-size:11.5px;color:#6F6A62;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vga-linha em,.vga-estado{font:600 10.5px/1.6 var(--vv-texto);font-style:normal;padding:0 7px;border-radius:6px;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#FFF);white-space:nowrap}
+.vga-detalhe{overflow:auto;padding:18px 22px 26px}
+.vga-cab{display:flex;gap:14px;align-items:flex-start}.vga-cab small{font-size:12px;color:#6F6A62}.vga-cab h3{margin:2px 0 4px;font:600 22px/1.2 var(--vv-titulo)}.vga-cab h3 i{font-style:normal;font-weight:500;color:#8A8378;font-size:15px}
+.vga-expl{margin-left:8px;font-size:12px;color:#6F6A62}
+.vga-papel{margin:12px 0 8px;font-size:14px;color:#3A3732;max-width:760px}
+.vga-skills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.vga-skills span{padding:3px 8px;border-radius:6px;background:#FFF;border:1px solid #E6E0D6;font-size:12px;color:#4A4640}
+.vga-colunas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.vga-bloco{margin-top:14px;padding:12px 14px 14px;background:#FFF;border:1px solid #ECE6DC;border-radius:var(--vv-r-cartao)}
+.vga-bloco h4{margin:0 0 8px;font:600 14px var(--vv-titulo);color:#2B2925}
+.vga-vazio{margin:0;font-size:12.5px;color:#8A8378}
+.vga-rotina,.vga-atrib{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vga-rotina li{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:baseline;font-size:13px}.vga-rotina time{font:600 12.5px var(--vv-titulo);font-variant-numeric:tabular-nums}.vga-rotina em{font-style:normal;font-size:11px;color:#8A8378}
+.vga-atrib li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border:1px solid #ECE6DC;border-radius:8px}
+.vga-atrib li.pausada{opacity:.6}.vga-atrib li.concluida{opacity:.5}
+.vga-atrib li span:first-child{display:grid;min-width:0}.vga-atrib b{font-weight:600;font-size:13px}.vga-atrib small{font-size:11.5px;color:#6F6A62}
+.vga-acoes{display:flex;gap:6px;flex:none}.vga-acoes button{padding:4px 9px;border-radius:6px;border:1px solid #E6E0D6;background:#FFF;font:600 11.5px var(--vv-texto);cursor:pointer}
+.vga-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
+.vga-form label{display:grid;gap:4px;font-size:12px;color:#6F6A62}.vga-form label.largo{grid-column:1/-1}
+.vga-form textarea,.vga-form select,.vga-form input{font:13px var(--vv-texto);padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFF;color:#1F1D1A;min-width:0}
+.vga-principal{height:38px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFF;font:600 13px var(--vv-texto);cursor:pointer}
+.vga-nota{grid-column:1/-1;margin:2px 0 0;font-size:11.5px;color:#8A8378}.vga-msg{margin:10px 0 0;font-size:12.5px;color:#7A4A00}
+@media (max-width:900px){
+  .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
+  .vga-corpo{grid-template-columns:1fr;grid-template-rows:auto 1fr}.vga-lista{max-height:30vh;border-right:0;border-bottom:1px solid #ECE6DC}
+  .vga-form{grid-template-columns:1fr 1fr}.vga-detalhe{padding:14px}
+}

@@ -168,6 +168,8 @@
     // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
     // carrega quando ele (ou o Prédio) é aberto; Hoje, Gestão e os módulos ocupam a tela sem nada atrás.
     { id: 'centro', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
+    // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
+    { id: 'agentes', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
     { id: 'predio', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
     { id: 'jogos', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
     '-',
@@ -213,6 +215,8 @@
       abrirCentro(id === 'predio' ? 'predio' : 'cidade'); return;
     }
     if (centroAberto && id !== 'criar' && id !== 'vybes') fecharCentro();
+    if (id === 'agentes') { if (!gestao.hidden) fecharGestao(); marcarTrilho('agentes'); window.VybeAgentes?.abrir?.(); return; }
+    if (id !== 'criar' && id !== 'vybes') window.VybeAgentes?.fechar?.();
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
     const sub = SUBMODULOS.find((x) => x.id === id);
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
@@ -2441,7 +2445,7 @@
 
   // Módulo aberto no palco (Carteira, Comercial, Conteúdo, Pessoas, Planejamentos, Missões, WhatsApp): o trilho
   // sobe por cima dele e o resto do HUD some. Os módulos não avisam quando abrem, então olhamos o body.
-  const PALCO = '.vc-camada,.vp-camada,.vv-missoes-camada,#vv-comercial,#vv-conteudo,.vv-plj,.vv-wa';
+  const PALCO = '.vc-camada,.vp-camada,.vv-missoes-camada,#vv-comercial,#vv-conteudo,.vv-plj,.vv-wa,#vv-agentes';
   function marcarPalco() {
     const aberto = [...document.querySelectorAll(PALCO)].some((e) => !e.hidden && e.getClientRects().length > 0);
     if (body.classList.contains('palco-modulo') !== aberto) body.classList.toggle('palco-modulo', aberto);

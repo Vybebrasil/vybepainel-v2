@@ -160,9 +160,51 @@ export async function lerAgentesDaCentral(urlEntrada, { fetchImpl = globalThis.f
   const leitor=r.body?.getReader();
   if(leitor){const partes=[];let bytes=0;try{while(true){const {done,value}=await leitor.read();if(done)break;bytes+=value.byteLength;if(bytes>limite)throw new Error('limite');partes.push(Buffer.from(value));}corpo=Buffer.concat(partes).toString('utf8');}finally{await leitor.cancel().catch(()=>{});}}
   else {corpo=await r.text();if(Buffer.byteLength(corpo)>limite)throw new Error('limite');}
-  const dados=validarAgentes(JSON.parse(corpo));
-  return {...dados,fonte:'central-vybes',lidoEm:Date.now()};
+  const bruto=JSON.parse(corpo), dados=validarAgentes(bruto);
+  return {...dados,atribuicoes:validarAtribuicoes(bruto.atribuicoes),rotinas:validarRotinas(bruto.rotinas),fonte:'central-vybes',lidoEm:Date.now()};
  } catch { try { await r.body?.cancel(); } catch {} throw erro('Resposta inválida da central.',502); }
+}
+
+// Atribuições dos agentes (Paulo, 08/11/2026): a central guarda; aqui só passa o que tem forma certa.
+const SETOR_ID = /^[a-z]{2,20}$/, TXT = (v, n) => typeof v === 'string' && v.length <= n, DATA = (v) => v == null || (TXT(v, 40) && Number.isFinite(Date.parse(v)));
+export function validarAtribuicoes(lista) {
+  if (!Array.isArray(lista)) return [];
+  return lista.slice(0, 300).filter((a) => a && TXT(a.id, 60) && SETOR_ID.test(a.setor) && TXT(a.texto, 500) && TXT(a.cliente || '', 80)
+    && ['uma_vez', 'diaria', 'semanal', 'mensal'].includes(a.frequencia) && ['ativa', 'pausada', 'concluida'].includes(a.estado)
+    && TXT(a.horario || '', 10) && DATA(a.proxima) && DATA(a.ultimaVez) && DATA(a.criadaEm) && TXT(a.criadaPor || '', 60))
+    .map((a) => ({ id: a.id, setor: a.setor, texto: a.texto, cliente: a.cliente || '', frequencia: a.frequencia, frequenciaTexto: TXT(a.frequenciaTexto, 30) ? a.frequenciaTexto : '',
+      horario: a.horario || '', estado: a.estado, proxima: a.proxima || null, ultimaVez: a.ultimaVez || null, criadaEm: a.criadaEm || null, criadaPor: a.criadaPor || '',
+      vezes: Number.isInteger(a.vezes) && a.vezes >= 0 ? a.vezes : 0 }));
+}
+export function validarRotinas(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(r).slice(0, 40)) if (SETOR_ID.test(k) && Array.isArray(v))
+    out[k] = v.slice(0, 12).filter((x) => x && TXT(x.horario, 12) && TXT(x.texto, 200)).map((x) => ({ horario: x.horario, texto: x.texto }));
+  return out;
+}
+// Dar ou mudar uma atribuição: o crachá de quem está logado vai junto; a central só aceita dos donos.
+export async function atribuirNaCentral(urlEntrada, corpo, { fetchImpl = globalThis.fetch } = {}) {
+  let u; try { u = new URL(urlEntrada); } catch { throw erro('Entrada da central inválida.', 502); }
+  if (!TUNEL.test(u.origin) || u.pathname !== '/entrar' || !u.searchParams.get('t')) throw erro('Entrada da central inválida.', 502);
+  const b = corpo || {}, acao = String(b.acao || '');
+  if (!['criar', 'pausar', 'retomar', 'concluir', 'remover'].includes(acao)) throw erro('Ação inválida.', 400);
+  const envio = acao === 'criar'
+    ? { acao, setor: String(b.setor || '').slice(0, 20), texto: String(b.texto || '').slice(0, 500), cliente: String(b.cliente || '').slice(0, 80),
+        frequencia: String(b.frequencia || 'uma_vez'), horario: String(b.horario || '09:00').slice(0, 5), inicio: String(b.inicio || '').slice(0, 10) }
+    : { acao, id: String(b.id || '').slice(0, 60) };
+  let r;
+  try {
+    r = await fetchImpl(`${u.origin}/api/cosmos/agentes/atribuicoes`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+      headers: { 'Content-Type': 'application/json', Cookie: `vybes_quem=${encodeURIComponent(u.searchParams.get('t'))}` }, body: JSON.stringify(envio) });
+  } catch { throw erro('A central do VYBES não respondeu.', 504); }
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 404) throw erro('A central ainda não tem atribuições: reinicie o VYBES com a versão nova.', 503);
+  if (r.status === 403) throw erro('Só os donos dão atribuições aos agentes.', 403);
+  if (!r.ok || d.ok !== true) throw erro({ SETOR_INVALIDO: 'Agente inválido.', TEXTO_CURTO: 'Escreva o que o agente deve fazer.', FREQUENCIA_INVALIDA: 'Frequência inválida.',
+    HORARIO_INVALIDO: 'Horário inválido.', NAO_ENCONTRADA: 'Atribuição não encontrada.', LIMITE: 'Limite de atribuições ativas.' }[d.erro] || 'A central recusou a atribuição.', 400);
+  const [a] = validarAtribuicoes([d.atribuicao]);
+  return { ok: true, atribuicao: a || null };
 }
 
 export async function areaVybes(req, res, quem, sql) {
@@ -180,6 +222,10 @@ export async function areaVybes(req, res, quem, sql) {
     }
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
+    if (req.method === 'POST' && req.body?.etapa === 'atribuir') {
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await atribuirNaCentral(url, req.body));
+    }
     if (req.method === 'POST' && req.body?.etapa === 'perguntar') return res.status(200).json({ ok: true, ...(await perguntarVybes(sql, quem, req.body?.texto)) });
     return res.status(405).json({ error: 'Use o cartão VYBES para abrir a central.' });
   } catch (e) {

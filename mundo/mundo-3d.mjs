@@ -11,6 +11,8 @@ import { Obra } from './voxel.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
 
 export { PLANTA, ESTADOS };
+// Leitura dos agentes sem montar a cena (Hoje, Gestão e a página Agentes com o Centro fechado).
+export { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS };
 export { abrirAndar } from './sala.mjs';
 export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
