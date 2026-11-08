@@ -588,6 +588,7 @@
     <aside class="vv-agenda" id="vv-agenda" aria-label="Agenda da Vybe">
       <button type="button" class="vv-agenda-topo" data-agenda-recolher aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b>Agenda</b><span class="vv-agenda-seta">⌃</span></button>
       <div class="vv-agenda-lista" id="vv-agenda-lista"><p class="vv-dica">Carregando a agenda…</p></div>
+      <div class="vv-roteiros" id="vv-roteiros" hidden></div>
       <button type="button" class="vv-botao vv-agenda-abrir" data-abrir-agenda>Abrir a agenda completa →</button>
     </aside>
     <aside class="vv-placa" id="vv-placa" hidden></aside>
@@ -627,6 +628,27 @@
 
   // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------
   const SIT_COR = { verde: '#18A957', amarelo: '#E2A11B', vermelho: '#D93D42', cinza: '#9AA3A8' };
+  // ---------- Prédio vivo (Paulo, 07/11/2026): a saúde do andar acende a faixa dele ----------
+  // Regra pura em mundo/saude-andares.mjs (Criação, Comercial/Atendimento e Financeiro); aqui só os dados
+  // do painel e dos módulos irmãos, se existirem. A cor vira 'u1'…'u6' (escala de urgência) em SIT_COR.
+  let saudeCache = null, saudeEm = 0;
+  const moduloIrmao = (ler) => { try { const d = ler(); return d && typeof d === 'object' && typeof d.then !== 'function' ? d : null; } catch { return null; } };
+  function saudeDoPredio() {
+    if (!mundo?.saudeDosAndares) return null;
+    if (saudeCache && Date.now() - saudeEm < 2000) return saudeCache;
+    const agentes = {}; for (const a of mundo.planta) agentes[a.id] = a.setores.filter((s) => s.agente).map((s) => estadoDoAgente(s.id).estado);
+    saudeCache = mundo.saudeDosAndares({ itens: itensDoPainel(), hoje: hojeIso(), situacao: (i, h) => situacaoDaPeca(i, h), agentes,
+      comercial: moduloIrmao(() => window.VybeComercial?.dados?.()), carteira: moduloIrmao(() => window.VybeCarteira?.dados?.()) });
+    saudeEm = Date.now(); return saudeCache;
+  }
+  function comSaude(a, r) {
+    const s = saudeDoPredio()?.[a.id]; if (!s) return r;
+    SIT_COR['u' + s.nivel] = s.cor;
+    return { ...r, sit: 'u' + s.nivel, motivo: s.motivo };
+  }
+  const MOTIVO_SIT = { vermelho: 'Um agente do andar falhou ou há peça atrasada.', amarelo: 'Tem coisa esperando aprovação.', verde: 'Tudo andando.', cinza: 'Agentes sem execução ou sem leitura da central.' };
+  function motivoDoAndar(a) { const r = numerosDoAndar(a); return { motivo: r.motivo || MOTIVO_SIT[r.sit] || '', cor: SIT_COR[r.sit] || SIT_COR.cinza }; }
+  // ---------- fim do prédio vivo ----------
   function numerosDoAndar(a) {
     const pecas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
     const sits = pecas.map((d) => situacaoDaPeca(d));
@@ -652,11 +674,11 @@
       n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis']];
       if (!agentes.length || agentes.every((e) => ['sem_execucao', 'indisponivel'].includes(e))) sit = 'cinza';
     }
-    return { n, sit };
+    return comSaude(a, { n, sit });
   }
   function pintarSituacaoDosAndares() {
     if (!mundo?.situacaoDosAndares) return;
-    const m = {}; for (const a of mundo.planta) m[a.id] = numerosDoAndar(a).sit;
+    const m = {}; for (const a of mundo.planta) { const s = numerosDoAndar(a).sit; m[a.id] = SIT_COR[s] || s; }
     mundo.situacaoDosAndares(m);
   }
   // Elevador: coluna fina colada ao prédio. Cada andar com número, nome, o número que mais importa e a cor
@@ -667,8 +689,8 @@
     p.innerHTML = `<div class="vv-elevador-lista">
       <div class="vv-elevador-topo"><small class="vv-cb-kicker">Elevador</small><button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button></div>
       <h3>Prédio da Vybe</h3>
-      ${[...mundo.planta].reverse().map((a) => { const { n, sit } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
-        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc(n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
+      ${[...mundo.planta].reverse().map((a) => { const { n, sit, motivo } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
+        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc((motivo ? motivo + ' · ' : '') + n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
           <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span>
           <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em></span>
           <span class="sit" aria-hidden="true"></span></button>`; }).join('')}
@@ -877,6 +899,7 @@
   }
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
+    pintarRoteiros();
     const hoje = hojeIso(), agora = new Date(), hm = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
     const amanha = (() => { const x = new Date(`${hoje}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
     const proximos = agendaEventos.filter((e) => e.dia > hoje || !e.fim || e.fim >= hm)
@@ -888,6 +911,21 @@
       return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}">
         <small>${esc(quando + hora)} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
     }).join('');
+  }
+  // ---------- Roteiro da semana (Paulo, 07/11/2026): juntar captações por dia e bairro ----------
+  // Só sugestão (mundo/captacoes.mjs, roteirosDaSemana): a agenda não muda. Ordem pelo vizinho mais próximo.
+  function pintarRoteiros() {
+    const el = hud.querySelector('#vv-roteiros'); if (!el) return;
+    const r = agendaEventos && mundo?.roteirosDaSemana ? mundo.roteirosDaSemana(agendaEventos, mundo.diaNaBahia?.() || hojeIso()) : null;
+    if (!r || (!r.dias.length && !r.juntar.length)) { el.hidden = true; el.innerHTML = ''; el.vvAss = ''; return; }
+    const kmTxt = (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    const html = `<div class="vv-rotulo-secao" style="--c:#0E9A45"><i></i>Roteiro da semana</div>`
+      + r.dias.slice(0, 3).map((d) => `<div class="vv-roteiro"><b>${esc(d.frase)}</b>
+        <small>${['Vybe', ...d.ordem.map((p) => p.cliente + (p.noMapa ? '' : ' (sem endereço no mapa)')), 'Vybe'].map(esc).join(' → ')}</small>
+        ${d.km ? `<span>≈ ${kmTxt(d.km)} km${d.economia >= .1 ? ` · ${kmTxt(d.economia)} km a menos que na ordem da agenda` : ''}</span>` : ''}</div>`).join('')
+      + r.juntar.slice(0, 2).map((j) => `<p class="vv-dica">${esc(j.frase)}</p>`).join('');
+    if (el.vvAss !== html) { el.innerHTML = html; el.vvAss = html; }
+    el.hidden = false;
   }
   // A agenda completa é a das Captações (módulo Produção): uma agenda só.
   function abrirAgenda(dia) {
@@ -1589,6 +1627,7 @@
         else if (alvo.tipo === 'vybes') mostrarAgente('terreo', 'orquestrador');
         else if (alvo.tipo === 'cerebro') mostrarNoDoCerebro(alvo.no);
         else if (alvo.tipo === 'zona') abrirAndarVoxel(alvo.andar);
+        else if (alvo.tipo === 'andar') mostrarAndar(alvo.andar);
       });
       mundo.aoPassar((alvo, e) => {
         const c = cartao();
@@ -1604,6 +1643,11 @@
         } else if (alvo.tipo === 'setor') {
           const a = mundo.planta.find((x) => x.id === alvo.andar), s = a?.setores.find((x) => x.id === alvo.setor); if (!s) { c.hidden = true; return; }
           html = `<b>${esc(s.nome)}</b><small>${esc(a.nome)}${s.agente ? ' · agente ' + esc(s.agente) : ''}</small>${s.agente ? seloAgente(s.id) : ''}`;
+          const m = motivoDoAndar(a); if (m.motivo) html += `<span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo)}</span>`;
+        } else if (alvo.tipo === 'andar') {
+          const a = mundo.planta.find((x) => x.id === alvo.andar); if (!a) { c.hidden = true; return; }
+          const m = motivoDoAndar(a);
+          html = `<b>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</b><span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo || 'Sem leitura agora.')}</span>`;
         }
         c.innerHTML = html + '<span class="clique">Clique para abrir</span>';
         c.style.left = Math.min(innerWidth - 296, e.clientX + 16) + 'px'; c.style.top = Math.min(innerHeight - 160, e.clientY + 16) + 'px';
