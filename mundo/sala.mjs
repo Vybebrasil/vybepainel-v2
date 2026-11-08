@@ -208,6 +208,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const cena = new THREE.Scene();
+  let sujo = true; // algo mudou e a cena precisa ser desenhada de novo (ver passo)
   cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
   const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 18, D + 10); sol.target.position.set(W / 2, 0, D / 2);
   sol.castShadow = true; sol.shadow.mapSize.set(4096, 4096); const s = Math.max(W, D); Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0005;
@@ -304,7 +305,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
       const e = estados[m.ag.id] || {}, conectado = Boolean(e.conectado), c = conectado ? (e.cor || '#9AA3A8') : '#9AA3A8';
       const assin = c + ':' + e.estado + ':' + conectado;
       if (assin === m.estado) continue;
-      m.estado = assin; m.trabalhando = conectado && e.estado === 'executando';
+      m.estado = assin; m.trabalhando = conectado && e.estado === 'executando'; sujo = true;
       if (m.luzes) {
         if (m.antena >= 0) m.luzes.setColorAt(m.antena, corTmp.set(c));
         // O telão: a cor do estado quando há leitura; apagado (cinza-azulado) sem leitura da central.
@@ -326,6 +327,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   const liberar = (g) => g?.traverse?.((o) => { o.geometry?.dispose?.(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m?.dispose?.()); });
   // Piso, móveis padrão (sala sem decoração salva) e divisórias da sala. Refeito quando o acabamento muda.
   function montarBase(sl) {
+    sujo = true;
     if (sl.base) { cena.remove(sl.base); liberar(sl.base); }
     const o = new Obra(), pessoal = Boolean(sl.dono);
     // Piso escolhido pelo dono (sala_piso do Escritório, as duas cores do ladrilho); sem escolha, o de sempre.
@@ -346,6 +348,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     return m;
   }
   function montarItens(sl) {
+    sujo = true;
     if (sl.grupo) { cena.remove(sl.grupo); liberar(sl.grupo); }
     sl.grupo = new THREE.Group(); sl.grupo.position.set(sl.ox, 0, sl.oz); sl.vis = [];
     if (sl.decorada || ed?.sl === sl) (sl.itens || []).forEach((it, i) => { const m = malhaDoItem(it, sl.L); if (!m) return; m.userData.item = i; sl.grupo.add(m); sl.vis[i] = m; });
@@ -388,6 +391,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     return { g, el, x: 0, z: 0, alvo: { x: 0, z: 0 }, novo: true };
   }
   function definirPessoas(lista, minhaZona) {
+    const antes = [...pessoas.values()].map((b) => b.alvo.x + ',' + b.alvo.z + b.el.innerHTML).join('|') + pessoas.size;
     const vistos = new Set();
     const porSala = new Map();
     for (const p of lista) { const sl = salas.find((x) => x.id === p.zona); if (!sl) continue; if (!porSala.has(sl.id)) porSala.set(sl.id, []); porSala.get(sl.id).push(p); }
@@ -406,6 +410,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     }
     for (const [id, b] of pessoas) if (!vistos.has(id)) { cena.remove(b.g); b.el.remove(); pessoas.delete(id); }
     for (const e of etiquetas) { const n = porSala.get(e.sl.id)?.length || 0; e.el.querySelector('span').textContent = n ? `${n} aqui` : ''; e.el.classList.toggle('minha', e.sl.id === minhaZona); }
+    if ([...pessoas.values()].map((b) => b.alvo.x + ',' + b.alvo.z + b.el.innerHTML).join('|') + pessoas.size !== antes) sujo = true;
   }
 
   // Controles: arrastar gira a maquete, roda aproxima, clique numa sala entra nela (e na voz dela).
@@ -660,16 +665,31 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   let vivo = true, ultimo = performance.now();
   const v = new THREE.Vector3();
   function rotular(el, x, y, z, r) { v.set(x, y, z).project(camera); el.style.transform = `translate(-50%,-100%) translate(${((v.x * .5 + .5) * r.width).toFixed(1)}px,${((-v.y * .5 + .5) * r.height).toFixed(1)}px)`; }
+  // Só desenha quando algo muda (Paulo, 08/11/2026: "não pode ficar pesando nem esquentando o PC"): câmera
+  // andando, alguém andando, agente trabalhando, a mão do mouse na cena ou uma mudança de dados. Parado, nenhum quadro.
+  // A sombra (4096) também só é refeita nessas horas.
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+  const invalidar = () => { sujo = true; };
+  for (const ev of ['pointermove', 'pointerdown', 'pointerup', 'wheel']) canvas.addEventListener(ev, invalidar, { passive: true });
+  ro.disconnect(); new ResizeObserver(() => { medir(); invalidar(); }).observe(canvas);
   function passo(t) {
     if (!vivo) return; requestAnimationFrame(passo);
     if (document.hidden) return;
     const dt = Math.min(.05, (t - ultimo) / 1000); ultimo = t;
     const f = 1 - Math.pow(.001, dt);
+    const mexe = Math.abs(quer.giro - giro) > 1e-4 || Math.abs(quer.incl - incl) > 1e-4 || Math.abs(quer.dist - dist) > 1e-3 || alvo.distanceToSquared(quer.alvo) > 1e-6;
+    let anima = mexe || sujo || Boolean(ed);
+    for (const b of pessoas.values()) if (Math.hypot(b.alvo.x - b.x, b.alvo.z - b.z) > .02) anima = true;
+    for (const m of mesas) if (m.trabalhando) anima = true;
+    if (!anima) return;
+    if (mexe || sujo) renderer.shadowMap.needsUpdate = true;
+    sujo = false;
     giro += (quer.giro - giro) * f; incl += (quer.incl - incl) * f; dist += (quer.dist - dist) * f; alvo.lerp(quer.alvo, f);
     posicionar();
     const r = canvas.getBoundingClientRect();
     for (const b of pessoas.values()) {
       const dx = b.alvo.x - b.x, dz = b.alvo.z - b.z, anda = Math.hypot(dx, dz) > .02;
+      if (anda) renderer.shadowMap.needsUpdate = true;
       b.x += dx * Math.min(1, dt * 3); b.z += dz * Math.min(1, dt * 3);
       if (anda) b.g.rotation.y = Math.atan2(dx, dz);
       b.g.position.set(b.x, anda ? Math.abs(Math.sin(t / 90)) * .06 : 0, b.z);

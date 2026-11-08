@@ -133,7 +133,7 @@ export function construirPredio(motor, { x, z, y }) {
       // Térreo: toldo listrado como o das lojas do Centro, porta de vidro e "vybe." no vidro.
       const faixas = 9, fw = (LADO - 2.6) / faixas;
       for (let f = 0; f < faixas; f++) o.caixa(-M + 2.6 + fw * (f + .5), Y0 + H - .45, M + .6, fw, .16, 1.2, f % 2 ? '#FFFFFF' : '#FF7A2F');
-      for (let f = 0; f < 7; f++) o.caixa(M + .6, Y0 + H - .45, -M + 1 + f * 1.4, 1.2, .16, 1.4, f % 2 ? '#FFFFFF' : '#FF7A2F');
+      for (let f = 0; f < 7; f++) o.caixa(M + .6, Y0 + H - .49, -M + .6 + f * 1.4, 1.2, .16, 1.4, f % 2 ? '#FFFFFF' : '#FF7A2F'); // abaixo da faixa da frente e sem passar dela
       o.caixa(2.6, Y0, M + .05, 1.7, H - .45, .12, '#FFFFFF').luz(2.6, Y0 + .05, M + .1, 1.4, H - .55, .02, '#CFE8F0');
       o.letreiro('vybe.', { x: -.4, y: Y0 + 1.25, z: M + .1, px: .13, cor: '#FF7A2F', aceso: true });
     }

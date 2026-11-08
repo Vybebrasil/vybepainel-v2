@@ -18,6 +18,37 @@ function noQuadrado(d, h) {
   return [[k, -h, 1, 0], [h, k, 0, 1], [-k, h, -1, 0], [-h, -k, 0, -1]][lado];
 }
 
+// Bichinhos no estilo dos bonecos (Paulo, 08/11/2026: "uns cachorrinho, gatinho, cabrinhas"): cabeça grande, blocos
+// legíveis, de frente para +z. Cada um volta como { g, cabeca } (a cabeça mexe sozinha: o cabrito pasta, o gato olha).
+function bicho(tipo, cor) {
+  const corpo = new Obra(), cab = new Obra(), escuro = '#' + new THREE.Color(cor).offsetHSL(0, 0, -.14).getHexString(), claro = '#' + new THREE.Color(cor).offsetHSL(0, 0, .12).getHexString();
+  if (tipo === 'cao') {
+    corpo.caixa(0, .2, 0, .32, .28, .6, cor);
+    for (const [a, b] of [[-.1, .18], [.1, .18], [-.1, -.18], [.1, -.18]]) corpo.caixa(a, 0, b, .1, .22, .1, cor).caixa(a, 0, b + .02, .11, .05, .13, claro);
+    corpo.caixa(0, .4, -.32, .08, .26, .08, cor).caixa(0, .62, -.34, .1, .1, .1, claro);
+    corpo.caixa(0, .42, .26, .34, .08, .1, '#FF7A2F'); // coleira laranja da Vybe
+    cab.caixa(0, 0, 0, .38, .34, .34, cor).caixa(0, -.02, .22, .2, .14, .14, claro).caixa(0, .08, .3, .08, .06, .04, '#1F1D1A');
+    for (const sx of [-1, 1]) { cab.caixa(sx * .2, .08, -.02, .08, .22, .16, escuro); cab.caixa(sx * .09, .18, .175, .06, .07, .02, '#1F1D1A'); }
+    cab.caixa(0, .02, .3, .08, .03, .02, '#E5737A');
+    return { corpo, cab, pivo: [0, .42, .34] };
+  }
+  if (tipo === 'gato') {
+    corpo.caixa(0, .12, 0, .26, .24, .44, cor);
+    for (const [a, b] of [[-.08, .14], [.08, .14], [-.08, -.14], [.08, -.14]]) corpo.caixa(a, 0, b, .07, .14, .07, cor);
+    corpo.caixa(0, .24, -.26, .07, .36, .07, cor).caixa(0, .58, -.22, .07, .1, .12, escuro);
+    cab.caixa(0, 0, 0, .34, .3, .3, cor).caixa(0, -.05, .16, .16, .1, .02, claro);
+    for (const sx of [-1, 1]) { cab.caixa(sx * .11, .3, 0, .09, .1, .09, cor); cab.caixa(sx * .11, .3, .02, .05, .06, .07, '#F2A7B0'); cab.caixa(sx * .08, .12, .155, .06, .08, .02, '#3DB46D'); }
+    cab.caixa(0, .02, .16, .05, .03, .02, '#E5737A');
+    return { corpo, cab, pivo: [0, .3, .26] };
+  }
+  // Cabrito: corpo de lã, pernas finas, chifres curtos, barbicha e orelhas de lado.
+  corpo.caixa(0, .3, 0, .36, .32, .62, cor).caixa(0, .58, -.3, .08, .1, .08, cor);
+  for (const [a, b] of [[-.11, .2], [.11, .2], [-.11, -.2], [.11, -.2]]) corpo.caixa(a, 0, b, .08, .32, .08, escuro).caixa(a, 0, b, .09, .05, .09, '#3A332D');
+  cab.caixa(0, 0, .1, .28, .3, .32, cor).caixa(0, -.08, .26, .18, .14, .1, claro).caixa(0, -.2, .24, .07, .12, .06, '#F4F1EA');
+  for (const sx of [-1, 1]) { cab.caixa(sx * .08, .28, 0, .06, .16, .06, '#8E8A84').caixa(sx * .08, .4, -.06, .06, .06, .1, '#8E8A84'); cab.caixa(sx * .2, .1, .06, .14, .06, .1, escuro); cab.caixa(sx * .08, .14, .265, .06, .06, .02, '#1F1D1A'); }
+  return { corpo, cab, pivo: [0, .5, .3] };
+}
+
 export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
   const grupo = new THREE.Group(); motor.adicionar(grupo);
   const parado = Boolean(reduzirMovimento);
@@ -95,13 +126,56 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     }
   }
 
-  montarPedestres(); definirLojas();
+  // ---------- Bichinhos ----------
+  const bichos = [];
+  function novoBicho(tipo, cor, pai = grupo, s = 1) {
+    const b = bicho(tipo, cor), g = new THREE.Group(), cab = b.cab.montar({ sombra: false }), piv = new THREE.Group();
+    g.add(b.corpo.montar({ sombra: false })); piv.position.set(...b.pivo); piv.add(cab); g.add(piv); g.scale.setScalar(s); pai.add(g);
+    return { g, cab: piv, tipo };
+  }
+  function montarBichos() {
+    for (const b of bichos) b.g.parent?.remove(b.g);
+    bichos.length = 0;
+    // Cachorros caramelo (e um pretinho) passeando junto de três passantes, um pouco atrás deles.
+    ['#C98A4B', '#D9A066', '#3A2E26'].forEach((c, i) => bichos.push({ ...novoBicho('cao', c), dono: pedestres[i * 5], atras: 1.1 }));
+    // Gatinhos: no banco do jardim, no teto do food truck e na beira do chafariz.
+    const ch = centro.chafariz?.();
+    [[14.2, CHAO + .5, 9.3, '#F2A33A', 0], [-10.5, CHAO + 2.22, 10.4, '#3A3F44', Math.PI / 2], [ch ? ch.x + 1.75 : 12.2, CHAO + .62, ch ? ch.z : 10.5, '#F4F1EA', -Math.PI / 2]]
+      .forEach(([x, y, z, c, giro], i) => { const b = novoBicho('gato', c); b.g.position.set(x, y, z); b.g.rotation.y = giro; bichos.push({ ...b, parado: true, fase: i * 2.1 }); });
+    // Cabritos pastando nas ilhotas (balançam junto com elas) e no bosque do fundo.
+    const ilhas = centro.ilhotas?.() || [];
+    [[0, -1.2, .8, '#F4F1EA'], [0, 1.4, -1, '#B07A45'], [1, .6, .4, '#F4F1EA']].forEach(([k, x, z, c], i) => {
+      if (!ilhas[k]) return;
+      const b = novoBicho('cabra', c, ilhas[k], .9); b.g.position.set(x, 0, z); b.g.rotation.y = i * 2;
+      bichos.push({ ...b, pasta: true, fase: i * 1.3, x0: x, z0: z });
+    });
+    const S = centro.layout().S;
+    [[S - 5, -(S - 2), '#F4F1EA'], [S - 7.5, -(S - 1.6), '#8A5A3B']].forEach(([x, z, c], i) => { const b = novoBicho('cabra', c); b.g.position.set(x, 0, z); bichos.push({ ...b, pasta: true, fase: 3 + i, x0: x, z0: z }); });
+  }
+  function animarBichos(t) {
+    for (const b of bichos) {
+      if (b.dono) {
+        const p = b.dono, [x, z, dx, dz] = noQuadrado(p.d - b.atras * Math.sign(p.v || 1), p.h + .45), s = Math.sign(p.v) || 1;
+        b.g.position.set(x, CHAO + (parado ? 0 : Math.abs(Math.sin(t * 10 + p.fase)) * .05), z); b.g.rotation.y = Math.atan2(dx * s, dz * s);
+        b.cab.rotation.y = parado ? 0 : Math.sin(t * 2 + p.fase) * .25;
+      } else if (b.pasta) {
+        // Pasta: abaixa a cabeça, mastiga e dá uns passinhos em círculo bem pequeno.
+        const k = Math.sin(t * .6 + b.fase);
+        b.cab.rotation.x = parado ? .5 : .25 + Math.max(0, k) * .5;
+        if (!parado) { b.g.position.x = b.x0 + Math.sin(t * .15 + b.fase) * .4; b.g.position.z = b.z0 + Math.cos(t * .15 + b.fase) * .4; b.g.rotation.y = -t * .15 - b.fase; }
+      } else if (b.parado && !parado) {
+        b.cab.rotation.y = Math.sin(t * .5 + b.fase) * .5; b.cab.rotation.z = Math.sin(t * .3 + b.fase) * .08;
+      }
+    }
+  }
+
+  montarPedestres(); definirLojas(); montarBichos();
   let ultimoT = 0;
   motor.animar((t, dt) => {
     if (parado && ultimoT) return false;
     ultimoT = t;
     const vista = true; // a maquete inteira está sempre à vista com o mundo aberto (fechado, o motor nem chama)
-    passo(pedestres, t, dt); passo(online, t, dt);
+    passo(pedestres, t, dt); passo(online, t, dt); animarBichos(t);
     // Chafariz: gotas em arco saindo da taça e voltando para a bacia.
     const c = centro.chafariz?.();
     if (c) for (let i = 0; i < GOTAS_CHAFARIZ; i++) {
@@ -150,7 +224,7 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     noite(k) { const nv = centro.nuvens?.(); if (nv) nv.material.color.set('#FFFFFF').lerp(new THREE.Color('#5A6894'), k); },
     definirOnline,
     lojasMudaram: definirLojas,
-    tamanhoMudou: () => { montarPedestres(); definirLojas(); },
+    tamanhoMudou: () => { montarPedestres(); definirLojas(); montarBichos(); },
   };
 }
 

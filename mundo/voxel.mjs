@@ -97,16 +97,60 @@ export class Obra {
     });
     return { largura, altura };
   }
-  // Árvore em blocos (copa em dois andares, frutinhas opcionais).
-  // Copa em cachos (miolo + seis cachos + topo, em três verdes), como nas árvores da cidade.  
-  arvore(x, y, z, { s = 1, cor = '#5FA34E', fruta = null } = {}) {
-    const c0 = new THREE.Color(cor), tons = [c0, c0.clone().offsetHSL(.02, .05, -.07), c0.clone().offsetHSL(-.02, 0, .06)].map((c) => '#' + c.getHexString());
-    this.caixa(x, y, z, .18 * s, .75 * s, .18 * s, '#6E4B33');
+  // Árvore em blocos. tipo (Paulo, 08/11/2026: "as árvores tudo igual"): 'copa' (cachos em três verdes, a de
+  // sempre), 'ipe' (copa larga florida, amarela ou rosa), 'coqueiro' (tronco curvo em gomos e folhas caídas),
+  // 'pinheiro' (camadas que afinam), 'cipreste' (alto e estreito) e 'arbusto' (moita baixa). 'florida' muda a cor
+  // da flor do ipê. Tudo em blocos da mesma escala, para conviverem lado a lado.
+  arvore(x, y, z, { s = 1, cor = '#5FA34E', fruta = null, tipo = 'copa', florida = '#F2C230' } = {}) {
+    const c0 = new THREE.Color(cor), tom = (h, sat, l) => '#' + c0.clone().offsetHSL(h, sat, l).getHexString();
+    const tons = [tom(0, 0, 0), tom(.02, .05, -.07), tom(-.02, 0, .06)], tronco = '#6E4B33';
+    if (tipo === 'ipe') {
+      const f = new THREE.Color(florida), ft = (l) => '#' + f.clone().offsetHSL(0, 0, l).getHexString();
+      this.caixa(x, y, z, .2 * s, .9 * s, .2 * s, tronco).caixa(x + .18 * s, y + .7 * s, z, .34 * s, .1 * s, .12 * s, tronco);
+      this.caixa(x, y + .85 * s, z, 1.3 * s, .42 * s, 1.2 * s, ft(0));
+      [[.55, .1, .1], [-.5, -.1, 0], [.05, .5, .06], [0, -.52, .12], [.3, .3, .3], [-.32, -.25, .28]].forEach(([a2, b2, c], k) => this.caixa(x + a2 * s, y + (.82 + c) * s, z + b2 * s, .55 * s, .4 * s, .55 * s, ft([0, -.06, .07][k % 3])));
+      this.caixa(x - .1 * s, y + 1.3 * s, z + .05 * s, .6 * s, .22 * s, .6 * s, ft(.08));
+      for (const [a2, b2] of [[.7, .5], [-.6, .6], [.4, -.7]]) this.caixa(x + a2 * s, y, z + b2 * s, .2 * s, .03, .2 * s, ft(-.02));
+      return this;
+    }
+    if (tipo === 'coqueiro') {
+      for (let k = 0; k < 6; k++) this.caixa(x + Math.sin(k * .35) * .22 * s, y + k * .32 * s, z, (.2 - k * .01) * s, .3 * s, (.2 - k * .01) * s, k % 2 ? '#8A6A48' : '#7A5A3C');
+      const tx = x + Math.sin(5 * .35) * .22 * s, ty = y + 1.92 * s;
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [-.7, -.7]]) {
+        this.caixa(tx + dx * .45 * s, ty, z + dz * .45 * s, (Math.abs(dx) > .1 ? .7 : .22) * s, .1 * s, (Math.abs(dz) > .1 ? .7 : .22) * s, tons[0]);
+        this.caixa(tx + dx * .85 * s, ty - .18 * s, z + dz * .85 * s, .32 * s, .1 * s, .32 * s, tons[1]);
+      }
+      this.caixa(tx, ty - .14 * s, z + .12 * s, .14 * s, .14 * s, .14 * s, '#7A5534').caixa(tx + .12 * s, ty - .16 * s, z - .08 * s, .14 * s, .14 * s, .14 * s, '#7A5534');
+      return this;
+    }
+    if (tipo === 'pinheiro') {
+      this.caixa(x, y, z, .2 * s, .5 * s, .2 * s, tronco);
+      [[1.2, .4], [.95, .78], [.7, 1.12], [.42, 1.42]].forEach(([w, h], k) => this.caixa(x, y + h * s, z, w * s, .36 * s, w * s, tons[k % 2 ? 1 : 0]));
+      this.caixa(x, y + 1.78 * s, z, .18 * s, .22 * s, .18 * s, tons[2]);
+      return this;
+    }
+    if (tipo === 'cipreste') {
+      this.caixa(x, y, z, .16 * s, .3 * s, .16 * s, tronco);
+      this.caixa(x, y + .25 * s, z, .55 * s, 1.5 * s, .55 * s, tons[1]).caixa(x, y + .55 * s, z, .68 * s, .8 * s, .68 * s, tons[0]).caixa(x, y + 1.75 * s, z, .3 * s, .3 * s, .3 * s, tons[2]);
+      return this;
+    }
+    if (tipo === 'arbusto') {
+      this.caixa(x, y, z, .8 * s, .45 * s, .7 * s, tons[0]).caixa(x + .3 * s, y, z + .2 * s, .5 * s, .55 * s, .5 * s, tons[1]).caixa(x - .25 * s, y + .3 * s, z - .1 * s, .45 * s, .3 * s, .45 * s, tons[2]);
+      if (fruta) this.caixa(x + .1 * s, y + .5 * s, z + .2 * s, .12, .12, .12, fruta);
+      return this;
+    }
+    this.caixa(x, y, z, .18 * s, .75 * s, .18 * s, tronco);
     this.caixa(x, y + .55 * s, z, .95 * s, .62 * s, .95 * s, tons[0]);
-    [[.4, 0, .1], [-.4, 0, 0], [0, .4, .05], [0, -.4, .14], [.24, .22, .34], [-.24, -.2, .3]].forEach(([a, b, c], k) => this.caixa(x + a * s, y + (.55 + c) * s, z + b * s, .52 * s, .48 * s, .52 * s, tons[k % 3]));
+    [[.4, 0, .1], [-.4, 0, 0], [0, .4, .05], [0, -.4, .14], [.24, .22, .34], [-.24, -.2, .3]].forEach(([a2, b2, c], k) => this.caixa(x + a2 * s, y + (.55 + c) * s, z + b2 * s, .52 * s, .48 * s, .52 * s, tons[k % 3]));
     this.caixa(x, y + 1.12 * s, z, .5 * s, .28 * s, .5 * s, tons[2]);
-    if (fruta) for (const [a, b] of [[.3, .52], [-.52, .1], [.1, -.52]]) this.caixa(x + a * s, y + .85 * s, z + b * s, .1, .1, .1, fruta);
+    if (fruta) for (const [a2, b2] of [[.3, .52], [-.52, .1], [.1, -.52]]) this.caixa(x + a2 * s, y + .85 * s, z + b2 * s, .1, .1, .1, fruta);
     return this;
+  }
+  // Árvore sorteada pela posição (sempre a mesma no mesmo lugar): mistura de espécies, tamanhos e verdes.
+  arvoreVariada(x, y, z, k, { s = 1, tipos = ['copa', 'copa', 'ipe', 'coqueiro', 'pinheiro', 'cipreste', 'arbusto'] } = {}) {
+    const r = (n) => { const v = Math.sin(k * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
+    const tipo = tipos[Math.floor(r(1) * tipos.length)], verde = ['#5FA34E', '#6BAF52', '#4F9A4E', '#78B85A', '#5A9B47'][Math.floor(r(2) * 5)];
+    return this.arvore(x, y, z, { s: s * (.75 + r(3) * .6), cor: verde, tipo, florida: r(4) > .5 ? '#F2C230' : '#E87FB0', fruta: tipo === 'copa' && r(5) > .8 ? '#F2A33A' : null });
   }
   pessoa(x, y, z, { roupa = '#3A6EA5', calca = '#2B2F33', pele = '#C68E6A', cabelo = '#2B1D14' } = {}) {
     this.caixa(x, y, z, .16, .26, .1, calca).caixa(x, y + .26, z, .2, .26, .12, roupa).caixa(x, y + .52, z, .14, .14, .14, pele).caixa(x, y + .64, z, .15, .05, .15, cabelo);

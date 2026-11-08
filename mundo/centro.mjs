@@ -55,55 +55,52 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
   function montarChao() {
     if (chao) { motor.cena.remove(chao); chao.traverse((o) => { o.geometry?.dispose?.(); }); }
     const { S, R } = L, o = new Obra(), g = new T.Group();
-    // A maquete: grama, terra e pedra, como um bloco tirado do chão (as referências do Paulo).
-    o.caixa(0, -4.4, 0, 2 * S - 1, 1.4, 2 * S - 1, '#8E8A84');
-    o.caixa(0, -3, 0, 2 * S, 2, 2 * S, '#8A5A3B');
+    // A maquete é uma ilha flutuante (Paulo, 08/11/2026: "o acabamento reto todo igual flutuando"): o gramado em cima e,
+    // embaixo, colunas de terra e pedra que afundam mais para o meio, como um cone irregular em degraus, com faixas de
+    // terra em tons diferentes, pedra escurecendo com a profundidade e pedras penduradas. Colunas de 3 × 3.
     o.caixa(0, -1, 0, 2 * S, 1, 2 * S, '#74B95A');
+    const fino = new Obra(), CEL = 4, n = Math.ceil(2 * S / CEL), TERRA = ['#8A5A3B', '#7E5135', '#946240'], PEDRA = ['#8E8A84', '#827E78', '#77736E', '#6B6762'];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const x0 = -S + i * CEL, z0 = -S + j * CEL, w = Math.min(CEL, S - x0), d = Math.min(CEL, S - z0), cx = x0 + w / 2, cz = z0 + d / 2;
+      const borda = Math.min(S - Math.abs(cx), S - Math.abs(cz)), centro = Math.max(0, 1 - Math.hypot(cx, cz) / (S * 1.25));
+      const k = ruido(i * 3.1 + 5, j * 2.7 + 1), prof = 1.6 + Math.pow(centro, .75) * 17 + Math.min(borda, 6) * .35 + k * 2.6;
+      const terra = Math.min(prof, 2 + k * 1.2);
+      fino.caixa(cx, -1 - terra, cz, w, terra, d, TERRA[Math.floor(k * 3) % 3]);
+      if (terra > 1.6) fino.caixa(cx, -1.8 - k * .3, cz, w + .02, .22, d + .02, '#6E4730'); // veio escuro na terra
+      const pedra = prof - terra;
+      if (pedra > .2) fino.caixa(cx, -1 - prof, cz, w - .02, pedra, d - .02, PEDRA[Math.min(3, Math.floor(prof / 5))]);
+      // Pedra pendurada embaixo de algumas colunas.
+      if (k > .82) fino.caixa(cx + (k - .9) * 2, -1 - prof - (1 + k * 2), cz, w * .5, 1 + k * 2, d * .5, PEDRA[3]);
+    }
     // Franja de grama caindo pela borda e alguns blocos de pedra soltos embaixo.
     for (let i = -S + .5; i < S; i += 1) for (const [a, b] of [[i, -S + .5], [i, S - .5], [-S + .5, i], [S - .5, i]]) {
       const k = ruido(a * 3 + 7, b * 5 + 11);
       if (k > .55) o.caixa(a, -1 - .35 - k * .3, b, 1.02, .5 + k * .5, 1.02, k > .8 ? '#5E9E47' : '#6AAE51');
     }
-    for (let i = 0; i < 18; i++) { const a = (ruido(i, 3) - .5) * (2 * S - 8), b = (ruido(3, i) - .5) * (2 * S - 8); o.caixa(a, -5.4 - ruido(i, i) * 1.4, b, 3 + ruido(i, 9) * 4, 1.2, 3 + ruido(9, i) * 4, '#7E7A75'); }
     // Calçada do anel das lojas, a praça do prédio e as quatro alamedas em cruz.
     const anelI = R - 3.2;
     for (const [x, z, w, d] of [[0, -(R - 1.6), 2 * R, 3.2], [0, R - 1.6, 2 * R, 3.2], [-(R - 1.6), 0, 3.2, 2 * R - 6.4], [R - 1.6, 0, 3.2, 2 * R - 6.4]]) o.caixa(x, 0, z, w, CHAO, d, '#DCD3C2');
     o.caixa(0, 0, 0, 26, CHAO, 26, '#E8E0D0');
     for (const [x, z, w, d] of [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]]) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
-    // Fundo das lojas: um passeio estreito e árvores grandes em fila, como um muro verde.
-    for (let i = -S + 4; i <= S - 4; i += 7) for (const [a, b] of [[i, -(S - 3.2)], [i, S - 3.2], [-(S - 3.2), i], [S - 3.2, i]]) {
-      const k = ruido(a + 31, b + 17);
-      o.arvore(a + (k - .5) * 1.5, 0, b + (k - .5) * 1.5, { s: 2.1 + k * .9, cor: k > .66 ? '#4F9A4E' : k > .33 ? '#5FA34E' : '#6BAF52', fruta: k > .82 ? '#F2A33A' : null });
+    // Fundo das lojas: um bosque em grupos (não mais uma fila de árvores iguais): espécies, alturas e verdes misturados,
+    // clareiras de vez em quando e arbustos entre as árvores.
+    for (let i = -S + 2.5; i <= S - 2.5; i += 3.1) for (const [lado, a, b] of [[0, i, -(S - 3.4)], [1, i, S - 3.4], [2, -(S - 3.4), i], [3, S - 3.4, i]]) {
+      const k = ruido(a * .7 + lado * 13, b * .7 + 31);
+      if (k < .2) continue; // clareira
+      if (lado === 2 && Math.abs(b - (-S + 7.5)) < 2.6) continue; // o laguinho da cachoeira
+      const fora = (ruido(b + 3, a) - .5) * 2.2, [px, pz] = lado < 2 ? [a + (k - .5) * 1.2, b + fora] : [a + fora, b + (k - .5) * 1.2];
+      if (k < .36) o.arvore(px, 0, pz, { s: 1.4 + k, tipo: 'arbusto', cor: ['#5FA34E', '#6BAF52', '#4F9A4E'][Math.floor(k * 30) % 3], fruta: k > .3 ? '#E5484D' : null });
+      else o.arvoreVariada(px, 0, pz, Math.round(a * 31 + b * 17), { s: 2.3 });
     }
-    // Jardim: os quatro canteiros entre as alamedas, com árvores, flores, bancos e um lago.
-    const meioJ = (13 + anelI) / 2, larg = anelI - 13 - 4;
-    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz], q) => {
-      const cx = sx * (2 + larg / 2 + 0.5), cz = sz * (2 + larg / 2 + 0.5);
-      if (q === 0 && larg > 9) {
-        // Lago com borda de pedra (água levemente afundada, no tom das referências).
-        o.caixa(cx, -.18, cz, larg * .62 + 1.2, .3, larg * .5 + 1.2, '#B9B2A6');
-        o.caixa(cx, -.12, cz, larg * .62, .3, larg * .5, '#4FB6E3');
-        for (let k = 0; k < 4; k++) o.caixa(cx - larg * .2 + k * 1.6, .12, cz + (k % 2 ? .6 : -.5), .9, .08, .9, '#7FCB6A');
-      } else {
-        for (let k = 0; k < 6; k++) {
-          const a = cx + (ruido(q * 7 + k, 5) - .5) * larg * .8, b = cz + (ruido(5, q * 7 + k) - .5) * larg * .8, r = ruido(k, q);
-          o.arvore(a, 0, b, { s: 1.6 + r * 1.1, cor: ['#5FA34E', '#6BAF52', '#4F9A4E'][k % 3], fruta: r > .7 ? '#F2C14E' : null });
-        }
-      }
-      // Canteiro de flores na quina que dá para a praça.
-      const fx = sx * 15.5, fz = sz * 15.5;
-      o.caixa(fx, 0, fz, 4, .3, 4, '#7A5236');
-      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) o.caixa(fx - 1.2 + a * 1.2, .3, fz - 1.2 + b * 1.2, .55, .45, .55, ['#E5484D', '#F2C14E', '#D6409F', '#FFFFFF', '#8E4EC6'][(a * 3 + b + q) % 5]);
-      // Banco virado para o prédio.
-      const bx = sx * 14.2, bz = sz * 9;
-      o.caixa(bx, CHAO, bz, .4, .45, 2.2, '#7A5236').caixa(bx + sx * .25, CHAO + .45, bz, .12, .5, 2.2, '#8E6440');
-    });
+    jardins(o, anelI, fino);
     // Postes na calçada do anel, com a luz acesa.
     for (let i = -L.meio + PASSO; i < L.meio; i += PASSO * 2) for (const [a, b] of [[i, -(R - 3.4)], [i, R - 3.4], [-(R - 3.4), i], [R - 3.4, i]]) {
       o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0');
     }
-    detalhes(o, L);
+    detalhes(o, L, fino);
     g.add(o.montar());
+    // Ilha, sebes, tufos e manchas recebem sombra mas não projetam: ficam fora do cálculo da sombra (desempenho).
+    g.add(fino.montar({ sombra: false }));
     // Ilhotas flutuando em volta da maquete (Paulo, 08/11/2026: "mais vivo, detalhado"); a vida (vida.mjs) as balança.
     ilhotas = [[S + 13, 3, -S * .35, 1], [-S * .45, -2.5, S + 12, .8]].map(([ix, iy, iz, k]) => {
       const q = new Obra(), w = 6 * k;
@@ -121,7 +118,10 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       // Em volta da maquete, nunca por cima dela (não tapam as lojas em nenhuma vista).
       const ang = k / 7 * Math.PI * 2 + ruido(k, 41) * .6, raio = S * (1.35 + ruido(41, k) * .35);
       const cx = Math.cos(ang) * raio, cz = Math.sin(ang) * raio, cy = 4 + ruido(k, k + 3) * 10;
-      for (let p = 0; p < 4; p++) nuvens.push([cx + (p - 1.5) * 3.2, cy + (p % 2) * 1.1, cz + ruido(p, k) * 3, 5 + ruido(k, p) * 4, 2 + (p % 2), 4 + ruido(p, p + k) * 3]);
+      const larg = 9 + ruido(k, 5) * 7;
+      nuvens.push([cx, cy, cz, larg, 1.2, larg * .55]);
+      for (let p = 0; p < 4; p++) { const r = ruido(p + k, k), tam = 2.4 + r * 3.2; nuvens.push([cx + (p - 1.5) * larg * .24, cy + 1 + r * .8, cz + (ruido(k, p) - .5) * 2, tam, tam * .8, tam]); }
+      nuvens.push([cx - larg * .1, cy + 2.6, cz, larg * .3, 1.6, larg * .25]);
     }
     const inst = new T.InstancedMesh(cubo, nuvem, nuvens.length), m4 = new T.Matrix4();
     nuvens.forEach(([x, y, z, w, h, d], i) => { m4.makeScale(w, h, d).setPosition(x, y, z); inst.setMatrixAt(i, m4); });
@@ -129,9 +129,78 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     chao = g; motor.adicionar(g);
   }
 
+  // Os quatro jardins entre as alamedas (Paulo, 08/11/2026: "as áreas verdes tão muito pobres"). Cada um é um L em volta
+  // da praça: sebes contornando os caminhos (com passagens), fileiras de árvores nos braços e, na quina grande, um
+  // lugar diferente em cada jardim: o lago com deque, o parquinho, o coreto e o piquenique. Antes as árvores e o lago
+  // caíam embaixo da praça do prédio e não apareciam.
+  function jardins(o, anelI, fino = o) {
+    const FLORES = ['#E5484D', '#F2C14E', '#D6409F', '#FFFFFF', '#8E4EC6', '#FF7A2F'];
+    const fim = anelI - .6, meio = (13 + anelI) / 2;
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz], q) => {
+      // (u, w): distância do eixo em x e em z, sempre positiva; vira mundo pelo sinal do jardim.
+      const C = (u, y, w, du, h, dw, cor) => o.caixa(sx * u, y, sz * w, du, h, dw, cor);
+      const arvore = (u, w, k) => o.arvoreVariada(sx * u, 0, sz * w, Math.round(u * 13 + w * 7 + q * 101 + k), { s: 1.9 });
+      // Sebes baixas contornando o jardim, com uma passagem a cada 6 blocos.
+      const sebe = (u0, w0, u1, w1) => {
+        const n = Math.round(Math.hypot(u1 - u0, w1 - w0));
+        for (let k = 0; k <= n; k++) {
+          if (k % 6 === 3) continue;
+          const u = u0 + (u1 - u0) * k / Math.max(1, n), w = w0 + (w1 - w0) * k / Math.max(1, n);
+          fino.caixa(sx * u, 0, sz * w, 1, .5 + (k % 3 === 0 ? .08 : 0), 1, k % 2 ? '#4C8F3F' : '#55993F');
+          if (k % 4 === 1) fino.caixa(sx * u, .5, sz * w, .22, .18, .22, FLORES[(k + q) % FLORES.length]);
+        }
+      };
+      sebe(2.6, 13.6, 2.6, fim); sebe(13.6, 2.6, fim, 2.6);       // ao longo das alamedas
+      sebe(2.6, 13.6, 12.4, 13.6); sebe(13.6, 2.6, 13.6, 12.4);   // ao longo da praça
+      sebe(fim, 3.2, fim, fim); sebe(3.2, fim, fim - .6, fim);     // ao longo do anel das lojas
+      // Braços do L: fileira de árvores, faixa de flores e um par de bancos.
+      for (const [k, u] of [4.6, 8.2, 11.6].entries()) { arvore(u, meio + (k % 2 ? 1.6 : -1.4), k); arvore(meio + (k % 2 ? -1.4 : 1.6), u, k + 1); }
+      for (let k = 0; k < 8; k++) { C(3.6 + k * 1.1, 0, meio + 3.2, .5, .18, .5, '#7A5236'); C(3.6 + k * 1.1, .18, meio + 3.2, .32, .26, .32, FLORES[(k + q) % FLORES.length]); }
+      for (let k = 0; k < 8; k++) { C(meio - 3.4, 0, 3.6 + k * 1.1, .5, .18, .5, '#7A5236'); C(meio - 3.4, .18, 3.6 + k * 1.1, .32, .26, .32, FLORES[(k + q + 2) % FLORES.length]); }
+      // Quina grande: um lugar diferente por jardim.
+      const cu = meio + 1.2, cw = meio + 1.2;
+      if (q === 0) {
+        // Lago com borda de pedra, deque de madeira, vitórias-régias, patinhos e taboas.
+        C(cu, -.2, cw, 6.4, .3, 5.2, '#B9B2A6'); C(cu, -.15, cw, 5.6, .3, 4.4, '#4FB6E3');
+        C(cu - 2.6, .1, cw, 2.4, .12, 1.2, '#B98552'); for (const k of [-.9, .9]) C(cu - 2.6 + k, -.3, cw + .5, .14, .45, .14, '#8E6440');
+        for (const [du, dw] of [[.8, -1], [1.8, .6], [-.4, 1.2]]) C(cu + du, .12, cw + dw, .7, .05, .7, '#7FCB6A');
+        for (const [du, dw] of [[.4, .2], [1.2, -.4]]) { C(cu + du, .12, cw + dw, .32, .22, .45, '#FFFFFF'); C(cu + du, .3, cw + dw + .18, .2, .2, .2, '#FFFFFF'); C(cu + du, .36, cw + dw + .3, .1, .06, .1, '#F2A33A'); }
+        for (let k = 0; k < 6; k++) C(cu + 2.9, 0, cw - 2 + k * .7, .12, .7 + (k % 3) * .2, .12, '#6E8B3D');
+      } else if (q === 1) {
+        // Parquinho: piso emborrachado, escorregador, balanço, gangorra e caixa de areia.
+        C(cu, 0, cw, 6.4, .06, 6, '#F2A07A');
+        C(cu - 1.6, 0, cw - 1.4, 1, 1.6, 1, '#0D74CE'); C(cu - 1.6, 1.6, cw - 1.4, 1.2, .12, 1.2, '#F2C14E');
+        for (let k = 0; k < 6; k++) C(cu - 1.6, 1.4 - k * .26, cw - .6 + k * .32, .8, .12, .34, '#E5484D');
+        for (const k of [-1, 1]) C(cu + 1.6 + k * 1.1, 0, cw - 1.6, .14, 1.8, .14, '#4A4F55'); C(cu + 1.6, 1.8, cw - 1.6, 2.4, .14, .14, '#4A4F55');
+        for (const k of [-.5, .5]) { C(cu + 1.6 + k, .7, cw - 1.6, .05, 1.1, .05, '#9AA3A8'); C(cu + 1.6 + k, .6, cw - 1.6, .5, .08, .3, '#18A957'); }
+        C(cu + 1.4, .3, cw + 1.6, 2.8, .12, .3, '#8E4EC6'); C(cu + 1.4, 0, cw + 1.6, .3, .3, .3, '#4A4F55');
+        C(cu - 1.6, 0, cw + 1.6, 2.2, .25, 2.2, '#B98552'); C(cu - 1.6, .1, cw + 1.6, 1.9, .2, 1.9, '#F2DDA4');
+      } else if (q === 2) {
+        // Coreto: base de pedra com degrau, colunas brancas, telhado laranja em degraus e bancos em volta.
+        C(cu, 0, cw, 5, .3, 5, '#E8E0D0'); C(cu, .3, cw, 4.4, .12, 4.4, '#F4F1EA');
+        for (const [du, dw] of [[-1.9, -1.9], [1.9, -1.9], [-1.9, 1.9], [1.9, 1.9], [0, -1.9], [0, 1.9], [-1.9, 0], [1.9, 0]]) C(cu + du, .42, cw + dw, .26, 2.2, .26, '#FFFFFF');
+        for (const [w, y] of [[5, 2.62], [3.8, 2.92], [2.4, 3.2], [1, 3.46]]) C(cu, y, cw, w, .3, w, '#FF7A2F');
+        C(cu, 3.76, cw, .3, .4, .3, '#F2C14E');
+        for (const [du, dw] of [[-3.2, 0], [3.2, 0], [0, 3.2]]) C(cu + du, 0, cw + dw, du ? .5 : 2, .45, du ? 2 : .5, '#B98552');
+      } else {
+        // Piquenique: mesas com bancos, toalhas xadrez, cesta e guarda-sol.
+        for (const [du, dw] of [[-1.6, -1.2], [1.6, 1.2]]) {
+          C(cu + du, .62, cw + dw, 2, .1, 1, '#B98552'); for (const k of [-.7, .7]) C(cu + du + k, 0, cw + dw, .12, .62, .9, '#8E6440');
+          for (const k of [-1, 1]) C(cu + du, .38, cw + dw + k * .85, 2, .08, .32, '#B98552');
+          for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) C(cu + du - .6 + i * .4, .72, cw + dw - .2 + j * .4, .4, .02, .4, (i + j) % 2 ? '#E5484D' : '#FFFFFF');
+          C(cu + du + .5, .74, cw + dw, .32, .22, .24, '#C9773E');
+          C(cu + du, 0, cw + dw, .08, 2.2, .08, '#4A4F55'); C(cu + du, 2.2, cw + dw, 2, .1, 2, q % 2 ? '#38D9C5' : '#F2C14E'); C(cu + du, 2.3, cw + dw, 1.1, .1, 1.1, '#FFFFFF');
+        }
+      }
+      // Árvores grandes nas pontas da quina e um caminho de pedras até ela.
+      for (const [du, dw, k] of [[3.6, -3.4, 0], [-3.4, 3.6, 1], [3.8, 3.8, 2]]) if (cu + du < fim - .8 && cw + dw < fim - .8) arvore(cu + du, cw + dw, k);
+      for (let k = 0; k < 5; k++) C(13.9 + k * 1.05, .0, 13.9 + k * 1.05, .7, .1, .7, '#CFC6B4');
+    });
+  }
+
   // Detalhe do diorama: tufos, flores e pedrinhas na grama, lixeiras e bandeirolas no anel, o chafariz e o food
   // truck na praça, o laguinho com a cachoeira caindo da borda e raízes penduradas embaixo da maquete.
-  function detalhes(o, L) {
+  function detalhes(o, L, fino = o) {
     const { S, R } = L, anelI = R - 3.2, borda = R + LD + .6;
     const grama = (x, z) => {
       const ax = Math.abs(x), az = Math.abs(z);
@@ -139,12 +208,18 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       if (ax < anelI - .6 && az < anelI - .6) return !(ax < 13.6 && az < 13.6) && ax > 2.7 && az > 2.7 && !(ax > 13 && ax < 18 && az > 13 && az < 18);
       return ax > borda || az > borda;
     };
-    for (let x = -S + 1; x < S - 1; x += 1.15) for (let z = -S + 1; z < S - 1; z += 1.15) {
+    // Manchas de grama em outros tons (o gramado não é uma cor só).
+    for (let x = -S + 3; x < S - 3; x += 4.3) for (let z = -S + 3; z < S - 3; z += 4.3) {
+      const k = ruido(x * .37 + 11, z * .41 + 2), px = x + (k - .5) * 2, pz = z + (ruido(z, x + 4) - .5) * 2;
+      if (k < .45 || !grama(px, pz)) continue;
+      fino.caixa(px, 0, pz, 2 + k * 2.4, .03, 1.6 + k * 2, k > .75 ? '#86C46A' : k > .6 ? '#68AD50' : '#7DBE60');
+    }
+    for (let x = -S + 1; x < S - 1; x += 1.55) for (let z = -S + 1; z < S - 1; z += 1.55) {
       const k = ruido(x * 1.7 + 3, z * 2.3 + 9), px = x + (ruido(z, x) - .5) * .8, pz = z + (ruido(x + 5, z) - .5) * .8;
       if (k < .5 || !grama(px, pz)) continue;
-      if (k < .78) o.caixa(px, 0, pz, .36, .14 + k * .1, .36, k < .64 ? '#5E9E47' : '#86C46A');
-      else if (k < .93) { o.caixa(px, 0, pz, .05, .22, .05, '#4F8F3E'); o.caixa(px, .22, pz, .16, .14, .16, ['#E5484D', '#F2C14E', '#FFFFFF', '#D6409F', '#8E4EC6'][Math.floor(k * 97) % 5]); }
-      else o.caixa(px, 0, pz, .42, .18, .32, '#A8A29A');
+      if (k < .78) fino.caixa(px, 0, pz, .36, .14 + k * .1, .36, k < .64 ? '#5E9E47' : '#86C46A');
+      else if (k < .93) { fino.caixa(px, 0, pz, .05, .22, .05, '#4F8F3E'); fino.caixa(px, .22, pz, .16, .14, .16, ['#E5484D', '#F2C14E', '#FFFFFF', '#D6409F', '#8E4EC6'][Math.floor(k * 97) % 5]); }
+      else fino.caixa(px, 0, pz, .42, .18, .32, '#A8A29A');
     }
     // Lixeiras ao lado dos postes e bandeirolas entre eles.
     const cores = ['#FF7A2F', '#F2C14E', '#18A957', '#0D74CE', '#D6409F', '#FFFFFF'];
@@ -172,20 +247,15 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     for (let f = 0; f < 6; f++) o.caixa(tx - .8 + f * .4 + .2, CHAO + 1.72, tz + 1.1, .4, .08, .6, f % 2 ? '#FFFFFF' : '#E5484D');
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o.caixa(tx + a * 1.1, CHAO, tz + b * .7, .4, .4, .2, '#1F1D1A');
     o.letreiro('CAFE', { x: tx - 1.61, y: CHAO + 1.1, z: tz, px: .09, cor: '#FFFFFF' });
-    o.caixa(tx + .3, CHAO, tz + 2.6, .08, .7, .08, '#4A4F55').caixa(tx + .3, CHAO + .7, tz + 2.6, .8, .06, .8, '#FFFFFF');
-    o.caixa(tx + .3, CHAO, tz + 2.6, .06, 1.9, .06, '#4A4F55').caixa(tx + .3, CHAO + 1.9, tz + 2.6, 1.6, .1, 1.6, '#F2C14E').caixa(tx + .3, CHAO + 2, tz + 2.6, .9, .1, .9, '#FFFFFF');
-    for (const s2 of [-1, 1]) o.caixa(tx + .3 + s2 * .7, CHAO, tz + 2.6, .36, .4, .36, '#5CC8B8');
+    o.caixa(tx + 3.1, CHAO, tz - .2, .08, .7, .08, '#4A4F55').caixa(tx + 3.1, CHAO + .7, tz - .2, .8, .06, .8, '#FFFFFF');
+    o.caixa(tx + 3.1, CHAO, tz - .2, .06, 1.9, .06, '#4A4F55').caixa(tx + 3.1, CHAO + 1.9, tz - .2, 1.6, .1, 1.6, '#F2C14E').caixa(tx + 3.1, CHAO + 2, tz - .2, .9, .1, .9, '#FFFFFF');
+    for (const s2 of [-1, 1]) o.caixa(tx + 3.1, CHAO, tz - .2 + s2 * .7, .36, .4, .36, '#5CC8B8');
     // Laguinho no fundo do anel, com a água caindo pela borda da maquete (as gotas animam em vida.mjs).
     const lz = -S + 4 + 3.5, lx = -(S - 1.6);
     o.caixa(lx, -.2, lz, 2.6, .3, 3.4, '#B9B2A6').caixa(lx - .3, -.14, lz, 2.4, .3, 2.6, '#4FB6E3');
-    o.luz(-S - .06, -4.2, lz, .1, 4.06, 2.2, '#8FD6F2').luz(-S - .1, -4.2, lz, .06, 4.06, 1.2, '#C9EEFA');
-    cachoeira = { x: -S - .2, z: lz, topo: -.2, base: -4.4 };
-    // Raízes penduradas embaixo da maquete, perto das bordas.
-    for (let k = 0; k < 26; k++) {
-      const lado = k % 4, a = (ruido(k, 77) - .5) * (2 * S - 4), b = S - 1.5 - ruido(77, k) * 3;
-      const [rx, rz] = [[a, -b], [b, a], [-a, b], [-b, -a]][lado], h = 1 + ruido(k, k) * 2.4;
-      o.caixa(rx, -4.6 - h, rz, .16, h, .16, '#6E4B33');
-    }
+    o.luz(-S - .06, -9, lz, .1, 8.86, 2.2, '#8FD6F2').luz(-S - .1, -9, lz, .06, 8.86, 1.2, '#C9EEFA');
+    o.caixa(-S - .4, -9.4, lz, 1.2, .5, 3.2, '#D9F3FB'); // a água se desfaz em névoa no ar
+    cachoeira = { x: -S - .2, z: lz, topo: -.2, base: -9.2 };
   }
 
   // Uma loja: piso, corpo pastel, platibanda, vitrine, porta, toldo listrado na cor da loja e vasos.

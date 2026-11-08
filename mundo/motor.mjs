@@ -90,14 +90,28 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     const { alvo, dist, giro, incl } = orb;
     camera.position.set(alvo.x + dist * Math.cos(incl) * Math.sin(giro), alvo.y + dist * Math.sin(incl), alvo.z + dist * Math.cos(incl) * Math.cos(giro));
     camera.lookAt(alvo);
-    // A sombra acompanha o que se olha: 4096 px cobrindo só a área visível.
-    const lado = limitar(dist * 0.42, 40, 260);
-    sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix();
-    // De perto (dentro dos andares) o piso fazia listras de sombra: mais folga no viés quando a área é pequena.
-    sol.shadow.bias = lado < 90 ? -0.0012 : -0.0004; sol.shadow.normalBias = lado < 90 ? 0.12 : 0.4;
-    sol.position.set(alvo.x - 110, 160, alvo.z + 70); sol.target.position.copy(alvo);
-    const chave = `${alvo.x.toFixed(1)},${alvo.z.toFixed(1)},${dist.toFixed(0)},${giro.toFixed(2)},${incl.toFixed(2)}`;
-    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; renderer.shadowMap.needsUpdate = true; }
+    // Profundidade (Paulo, 08/11/2026: "a luz meio bugando"): com o corte perto fixo em 1 e a cena vista de até 460,
+    // a profundidade perdia precisão e faces vizinhas brigavam (piscavam). O corte acompanha a distância.
+    const perto = limitar(dist * 0.12, 0.5, 40), longe = dist * 6 + 900;
+    if (Math.abs(camera.near - perto) > perto * 0.05 || Math.abs(camera.far - longe) > longe * 0.05) { camera.near = perto; camera.far = longe; camera.updateProjectionMatrix(); }
+    // A sombra acompanha o que se olha. A área anda em degraus (não muda a cada pixel de zoom) e o centro da sombra
+    // encaixa na grade dos pixels dela: a borda da sombra não "nada" quando a câmera anda. O desvio é medido pelo
+    // tamanho do pixel da sombra (antes era fixo e alto, com sombra vazando e listras em peças finas).
+    const lado = limitar(40 * Math.pow(1.25, Math.round(Math.log(Math.max(1, dist * 0.42) / 40) / Math.log(1.25))), 40, 260);
+    const texel = (2 * lado) / sol.shadow.mapSize.x;
+    if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
+    sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
+    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
+    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, alvo.y, az);
+    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; }
+  }
+  // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
+  let sombraPendente = true, ultimaSombra = 0;
+  function atualizarSombra(t, movendo) {
+    if (!sombraPendente) return;
+    if (movendo && t - ultimaSombra < 150) return;
+    sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
   }
 
   // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
@@ -368,6 +382,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     if (!precisa) return false;
     // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
     if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    atualizarSombra(t, movendo || interagindo);
     renderer.info.reset();
     const t0 = performance.now();
     composer.render();
