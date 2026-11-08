@@ -190,6 +190,96 @@ test('histórico mensal: troca o mês corrente pela conta de agora e compara com
   assert.equal(r.variacao.media.bom, true);
 });
 
+const CONTRATOS_LTV = [
+  { cliente_id: '1', valor_mensal: 2500, inicio: '2026-01-10', renovacao: '2026-04-20', status: 'ativo' },
+  { cliente_id: '4', valor_mensal: 700, inicio: '2026-02-15', renovacao: '2026-03-30', status: 'ativo' },
+];
+
+test('LTV por cliente: meses de casa desde o contrato (ou a entrada), receita estimada e tempo restante', () => {
+  const base = [...BASE, { id: '6', nome: 'Zeta', ativo: true, entrada: null, saida: null, valor: 500 },
+    { id: '7', nome: 'Eta', ativo: true, entrada: '2026-03-06', entrada_fonte: 'historico', saida: null, valor: 300 }];
+  const r = json(C.contratos({ clientes: base, contratos: CONTRATOS_LTV, hoje: '2026-04-05', tipo: 'mensal', mes: '2026-04' }));
+  const l = Object.fromEntries(r.linhas.map((x) => [x.nome, x]));
+  // Alfa: 10/01 → 05/04 = 85 dias = 2,8 meses; renova 20/04 (15 dias = 0,5 mês).
+  assert.equal(l.Alfa.entrada, '2026-01-10');
+  assert.equal(l.Alfa.fonteEntrada, 'contrato');
+  assert.equal(l.Alfa.mesesLtv, 2.8);
+  assert.equal(l.Alfa.receitaLtv, 7000);
+  assert.equal(l.Alfa.diasRestantes, 15);
+  assert.equal(l.Alfa.mesesRestantes, 0.5);
+  // Delta: 49 dias = 1,6 mês; renovação vencida não tem tempo restante.
+  assert.equal(l.Delta.mesesLtv, 1.6);
+  assert.equal(l.Delta.receitaLtv, 1120);
+  assert.equal(l.Delta.diasRestantes, null);
+  // Eta: sem contrato, a entrada do servidor e de onde ela veio.
+  assert.equal(l.Eta.fonteEntrada, 'historico');
+  assert.equal(l.Eta.mesesLtv, 1);
+  // Zeta: sem data nenhuma.
+  assert.equal(l.Zeta.entrada, null);
+  assert.equal(l.Zeta.mesesLtv, null);
+  assert.equal(l.Zeta.receitaLtv, null);
+  assert.equal(r.ltvMedio, Math.round(((2.8 + 1.6 + 1) / 3) * 10) / 10);
+  assert.equal(r.semDataLtv, 1);
+  assert.equal(r.receitaLtv, 7000 + 1120 + 300);
+  assert.equal(r.semReceitaLtv, 1);
+  assert.deepEqual(r.restanteMedio, { dias: 15, meses: 0.5, contratos: 1 });
+  assert.equal(r.novos.length, 0, 'ninguém entrou em abril até o dia 5');
+});
+
+test('clientes novos no período contam quem já saiu e comparam com o anterior', () => {
+  const fev = json(C.contratos({ clientes: BASE, contratos: CONTRATOS_LTV, hoje: '2026-04-05', tipo: 'mensal', mes: '2026-02' }));
+  assert.deepEqual(fev.novos.map((n) => n.nome), ['Delta', 'Épsilon']);
+  assert.equal(fev.novos[1].ativo, false);
+  assert.equal(fev.novosAnterior, 2, 'janeiro: Alfa e Beta');
+  assert.equal(fev.variacao.novos.direcao, 'igual');
+  const ano = json(C.contratos({ clientes: BASE, contratos: CONTRATOS_LTV, hoje: '2026-04-05', tipo: 'anual', mes: '2026-04' }));
+  assert.equal(ano.novos.length, 4, '2026: Alfa, Beta, Delta, Épsilon (Gama entrou em 2025)');
+  assert.equal(ano.novosAnterior, 1);
+});
+
+test('séries mês a mês: ativos, novos, saídas, LTV médio e ticket médio; começo vazio sai', () => {
+  const r = json(C.serieMensal({ clientes: BASE, contratos: CONTRATOS_LTV, hoje: '2026-04-05', meses: 12, minimo: 3 }));
+  assert.deepEqual(r.meses.map((m) => m.mes), ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04']);
+  const m = Object.fromEntries(r.meses.map((x) => [x.mes, x]));
+  assert.deepEqual(r.meses.map((x) => x.ativos), [1, 3, 4, 2, 2]);
+  assert.deepEqual(r.meses.map((x) => x.novos), [1, 2, 2, 0, 0]);
+  assert.deepEqual(r.meses.map((x) => x.saidas), [0, 0, 1, 2, 0]);
+  // Saídas de março = as do churn do mês.
+  assert.equal(m['2026-03'].saidas, json(C.churn({ clientes: BASE, tipo: 'mensal', mes: '2026-03' })).saidas);
+  assert.equal(m['2025-12'].ltvMedio, 1);
+  assert.equal(m['2026-01'].ltvMedio, 1);
+  assert.equal(m['2026-01'].ticketMedio, Math.round((5000 / 3) * 100) / 100);
+  assert.equal(m['2026-02'].ticketMedio, 1425);
+  assert.equal(m['2026-03'].ticketMedio, 1600);
+  assert.equal(m['2026-04'].agora, true);
+  assert.equal(m['2026-04'].ref, '2026-04-05');
+  // `ate` corta a série no mês escolhido; mês futuro não vale.
+  const ate = json(C.serieMensal({ clientes: BASE, contratos: CONTRATOS_LTV, hoje: '2026-04-05', ate: '2026-02', meses: 6, minimo: 6 }));
+  assert.equal(ate.meses.at(-1).mes, '2026-02');
+  assert.equal(ate.meses.length, 6);
+  assert.equal(json(C.serieMensal({ clientes: BASE, hoje: '2026-04-05', ate: '2027-01' })).meses.at(-1).mes, '2026-04');
+});
+
+test('contas por head: quantos clientes, nota média e receita; sem head por último', () => {
+  const clientes = [
+    { id: '1', nome: 'Alfa', score: 80, risco: 'baixo', nivel: 'u6', heads: ['Vinícius'] },
+    { id: '4', nome: 'Delta', score: 40, risco: 'alto', nivel: 'u1', heads: ['Vinícius', 'Ewerton'] },
+    { id: '9', nome: 'Fora da base', score: 60, risco: 'medio', nivel: 'u2', heads: [] },
+  ];
+  const r = json(C.contasPorHead({ clientes, base: BASE, contratos: CONTRATOS_LTV }));
+  assert.deepEqual(r.map((h) => h.head), ['Vinícius', 'Ewerton', 'Sem head']);
+  assert.equal(r[0].contas, 2);
+  assert.equal(r[0].media, 60);
+  assert.equal(r[0].risco, 'medio');
+  assert.equal(r[0].alto, 1);
+  assert.equal(r[0].receita, 3200);
+  assert.deepEqual(r[0].clientes.map((c) => c.nome), ['Delta', 'Alfa'], 'pior nota primeiro');
+  assert.equal(r[1].receita, 700);
+  assert.equal(r[2].semHead, true);
+  assert.equal(r[2].receita, null);
+  assert.equal(r[2].semValor, 1);
+});
+
 test('desempenho: 2.000 peças sem travar a tela (folga para máquina carregada: 2 s)', () => {
   const muitas = Array.from({ length: 2000 }, (_, i) => peca({ cliente: ['Alfa', 'Beta', 'Gama'][i % 3], status: i % 5 ? 'Em andamento' : 'Finalizado',
     veiculacao_iso: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`, status_updated_at: em('2026-10-20') }));

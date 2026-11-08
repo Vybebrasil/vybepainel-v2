@@ -6,7 +6,8 @@
 //    dias e a mediana de dias em "Ag. Aprovação Cliente" nos últimos 60, pelo histórico de status
 //    (vybe_conteudo_eventos). Falhou: a tela calcula só com o que tem.
 //  - a base dos clientes para churn e cohort: entrada (início do contrato; sem ele, criado_no_monday;
-//    sem ele, o primeiro evento do cliente) e saída (registro de churn; sem ele, desativado_em).
+//    sem ele, o primeiro evento do cliente; `entrada_fonte` = 'contrato' | 'cadastro' | 'historico' diz
+//    qual valeu, para o LTV da tela) e saída (registro de churn; sem ele, desativado_em).
 //  - onboarding, etapas configuradas, contratos, churn e o histórico mensal da nota, nas tabelas da
 //    migração 2026-11-07-carteira.sql. Sem a tabela, a parte volta { disponivel: false } (a tela
 //    mostra "aguardando ativação"); nada aqui cria tabela.
@@ -276,8 +277,11 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
   const clientes = base ? base.filter((c) => !c.nao_e_cliente).map((c) => {
     const ct = contratoDe.get(c.id), ch = churnDe.get(c.id);
     const inativo = c.ativo === false || /inativ/i.test(String(c.status || ''));
+    const entrada = ct?.inicio || diaDe(c.criado_no_monday) || diaDe(c.primeiro_evento);
+    // De onde veio a entrada (o LTV da tela mostra): contrato, cadastro ou histórico (primeiro evento).
+    const entradaFonte = !entrada ? null : ct?.inicio ? 'contrato' : diaDe(c.criado_no_monday) ? 'cadastro' : 'historico';
     return { id: c.id, nome: c.nome, ativo: !inativo,
-      entrada: ct?.inicio || diaDe(c.criado_no_monday) || diaDe(c.primeiro_evento),
+      entrada, entrada_fonte: entradaFonte,
       saida: inativo ? (ch?.saiu_em || diaDe(c.desativado_em)) : null,
       valor: ct?.valor_mensal ?? numero(c.valor), motivo_saida: inativo ? c.motivo_saida || '' : '' };
   }) : null;
