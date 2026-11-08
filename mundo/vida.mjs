@@ -120,7 +120,7 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     // Pássaros: corpo e duas asas batendo, voando em círculo alto.
     const S = centro.layout().S;
     for (let b = 0; b < PASSAROS; b++) {
-      const a = t * (.12 + b * .02) + b * 1.6, r = S * (.55 + b * .12), x = Math.cos(a) * r, z = Math.sin(a) * r, y = 22 + b * 3 + Math.sin(t + b) * 1.2;
+      const a = t * (.12 + b * .02) + b * 1.6, r = S * (.55 + b * .12), x = Math.cos(a) * r, z = Math.sin(a) * r, y = 36 + b * 3 + Math.sin(t + b) * 1.2; // acima do V do VYBES: não cruzam o prédio
       const giro = -a, asa = Math.sin(t * 9 + b) * .6, base = new THREE.Matrix4().makeRotationY(giro).setPosition(x, y, z);
       passaros.setMatrixAt(b * 3, m4.copy(base).multiply(new THREE.Matrix4().makeScale(.35, .3, .9)));
       for (const lado of [-1, 1]) {

@@ -378,7 +378,7 @@ export function construirPredio(motor, { x, z, y }) {
     const pulso = estadoSer === 'alerta' ? 1 + Math.sin(t * 7) * .06 : 1 + Math.sin(t * 1.6) * .035;
     casca.scale.setScalar(pulso);
     casca.rotation.y = t * .25; anel.rotation.z = t * .6;
-    ser.position.y = PE * TOPO + 3.2 + Math.sin(t * .9) * .25 + abre * 6 * ABRE;
+    ser.position.y = PE * TOPO + 3.2 + Math.sin(t * .9) * .25 + abre * (TOPO - 1) * ABRE; // sobe junto com o terraço (último andar) na vista aberta
     nucleo.material.color.setHSL(estadoSer === 'alerta' ? .0 : .07, 1, .82 + Math.sin(t * 2) * .06);
     luz.intensity = 5 + Math.sin(t * 1.6) * 1.2;
     rotuloSer.pos.y = y + ser.position.y + 3.4;
