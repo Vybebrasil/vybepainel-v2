@@ -68,7 +68,7 @@
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     // id do cadastro: a logo do Drive sai por /api/painel?area=logo&c=<id> (a mesma da capa do planejamento).
     const logoDe = (c) => { const id = String(c.id ?? c.cliente_id ?? ''); return /^\d{1,18}$/.test(id) ? `/api/painel?area=logo&c=${id}` : ''; };
-    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), total: 0, por: {}, situacao: 'concluida' });
+    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), personagem: c.identidade?.personagem?.figura || '', total: 0, por: {}, situacao: 'concluida' });
     const semCadastro = !cadastro.length; // demonstração / cadastro ainda não carregado
     const vistos = new Set();
     const hoje = hojeIso();
@@ -752,6 +752,17 @@
       <button type="button" class="vv-botao" data-ctl="menos" aria-label="Afastar">${ic.menos}</button>
       <button type="button" class="vv-botao" data-ctl="girar" aria-label="Girar 90 graus">${ic.girar}</button>
       <button type="button" class="vv-botao" data-ctl="tudo" aria-label="Ver a cidade toda">${ic.tudo}</button>
+      <button type="button" class="vv-botao" data-ctl="hora" aria-label="Hora do dia no mundo" aria-expanded="false" aria-controls="vv-hora">${svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')}</button>
+      <div class="vv-hora" id="vv-hora" role="group" aria-label="Hora do mundo" hidden>
+        <b>Hora do mundo</b>
+        <div class="vv-hora-modos">
+          <button type="button" data-hora-modo="auto">Automático</button>
+          <button type="button" data-hora-modo="dia">Dia</button>
+          <button type="button" data-hora-modo="noite">Noite</button>
+        </div>
+        <label class="vv-hora-barra"><span>Escolher a hora</span><input type="range" min="0" max="23.5" step="0.5" value="12" aria-label="Hora do mundo"><output>12h</output></label>
+        <small class="vv-hora-dica">Automático segue a hora real da Bahia.</small>
+      </div>
     </div>
     <aside class="vv-agenda" id="vv-agenda" aria-label="Agenda da Vybe">
       <button type="button" class="vv-agenda-topo" data-agenda-recolher aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b>Agenda</b><span class="vv-agenda-seta">⌃</span></button>
@@ -769,9 +780,14 @@
   function ajustarAreaLivre() {
     if (!mundo) return;
     const celular = innerWidth <= 900;
-    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : centroAberto ? hud.querySelector('.vv-trilho') : hud.querySelector('#vv-hoje');
+    // À esquerda, o que estiver à vista por último: o Hoje (também no Centro) ou o trilho; à direita, o painel do
+    // prédio/andar ou, sem ele, a Agenda.
+    const visivelEl = (el) => el && el.offsetParent !== null && getComputedStyle(el).display !== 'none';
+    const hoje = hud.querySelector('#vv-hoje');
+    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : visivelEl(hoje) ? hoje : hud.querySelector('.vv-trilho');
     const esq = celular ? 0 : (gate?.getBoundingClientRect().right || 0) + 6;
-    const dir = !celular && !placa().hidden ? placa().offsetWidth + 20 : 0;
+    const agenda = hud.querySelector('#vv-agenda');
+    const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
     mundo.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
     body.style.setProperty('--vv-livre-esq', Math.round(esq) + 'px'); body.style.setProperty('--vv-livre-dir', Math.round(dir) + 'px');
   }
@@ -1035,6 +1051,7 @@
     andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome, agentes: agentesDoAndar, cor: a.cor, mesasLivres });
     // A mesa de cada agente no andar abre o dia dele no painel do andar (o mesmo "Ver o dia" do Prédio).
     andarAberto.aoClicarAgente?.((setor) => mostrarAgente(a.id, setor));
+    andarAberto.aoClicarMesaLivre?.(() => { fecharAndarVoxel(false); usarTrilho('agentes', hud.querySelector('[data-trilho="agentes"]')); });
     andarAbertoId = idAndar;
     window.VybeDecorar?.ligarCena?.(andarAberto, m);
     andarAberto.aoClicarSala((zona, fx, fz, jogo) => {
@@ -1055,7 +1072,7 @@
       andarAberto.pessoas(manualAndar || genteDoAndar(), minha);
       // Estado de cada agente do andar: a mesma leitura da central que pinta o prédio por fora.
       const f = fonteAgentes?.ler(), conectado = Boolean(f?.dados && !f.erro);
-      andarAberto.agentes?.(Object.fromEntries(agentesDoAndar.map((s) => { const e = estadoDoAgente(s.id); return [s.id, { estado: e.estado, cor: e.cor, rotulo: e.rotulo, conectado }]; })));
+      andarAberto.agentes?.(Object.fromEntries(agentesDoAndar.map((s) => { const e = estadoDoAgente(s.id); return [s.id, { estado: e.estado, cor: e.cor, rotulo: e.rotulo, tarefa: e.tarefa || '', conectado }]; })));
       const voz = el.querySelector('#andar-voz');
       if (voz) voz.textContent = minha && zonas.some((z) => z.id === minha) ? (typeof escritorioEstadoVozTexto === 'function' ? escritorioEstadoVozTexto() : 'Na sala') : 'Fora das salas · sem voz';
     };
@@ -1744,6 +1761,28 @@
     p.hidden = false; ajustarAreaLivre(); window.VybeClientePlaca?.ligar(p); window.VybeTutorial?.dica?.('cliente');
     mundo?.focarCliente(nome);
   }
+  // ---------- Hora do mundo: automático (hora real da Bahia), dia, noite ou uma hora escolhida ----------
+  // A escolha é de cada pessoa e fica no navegador dela (conveniência; sem servidor).
+  const CHAVE_HORA = 'vybe.mundo.hora';
+  const lerHora = () => { try { const v = localStorage.getItem(CHAVE_HORA); return v === null || v === 'auto' ? 'auto' : Number(v); } catch { return 'auto'; } };
+  const textoHora = (h) => `${Math.floor(h)}h${h % 1 ? '30' : ''}`;
+  function pintarHora() {
+    const el = hud.querySelector('#vv-hora'); if (!el) return;
+    const h = lerHora(), barra = el.querySelector('input'), saida = el.querySelector('output');
+    el.querySelectorAll('[data-hora-modo]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.horaModo === (h === 'auto' ? 'auto' : h === 12 ? 'dia' : h === 22 ? 'noite' : ''))));
+    if (h !== 'auto') { barra.value = String(h); saida.textContent = textoHora(h); } else saida.textContent = 'agora';
+    el.querySelector('.vv-hora-dica').textContent = h === 'auto' ? 'Automático segue a hora real da Bahia.' : 'Só no seu navegador. "Automático" volta à hora real.';
+  }
+  function escolherHora(h) {
+    try { localStorage.setItem(CHAVE_HORA, h === 'auto' ? 'auto' : String(h)); } catch { /* sem armazenamento: vale até recarregar */ }
+    mundo?.definirHora?.(h === 'auto' ? null : h); pintarHora();
+  }
+  function abrirHora(abrir) {
+    const el = hud.querySelector('#vv-hora'), bt = hud.querySelector('[data-ctl="hora"]'); if (!el) return;
+    const sim = abrir ?? el.hidden; el.hidden = !sim; bt?.setAttribute('aria-expanded', String(sim)); if (sim) pintarHora();
+  }
+  hud.addEventListener('input', (e) => { if (e.target.matches?.('#vv-hora input[type="range"]')) escolherHora(Number(e.target.value)); });
+  document.addEventListener('click', (e) => { if (!e.target.closest?.('.vv-controles')) abrirHora(false); });
   function fecharPlaca() { placa().hidden = true; ajustarAreaLivre(); }
 
   hud.addEventListener('click', (e) => {
@@ -1775,7 +1814,9 @@
       else if (b.dataset.vista === 'cerebro') mostrarCerebroPlaca();
       else { mundo.verCidade(); fecharPlaca(); }
     } else if (b.dataset.ctl) {
-      ({ mais: () => mundo.zoom(.7), menos: () => mundo.zoom(1.4), girar: () => mundo.girar90(), tudo: () => { mundo.verCidade(); fecharPlaca(); } })[b.dataset.ctl]();
+      ({ mais: () => mundo.zoom(.7), menos: () => mundo.zoom(1.4), girar: () => mundo.girar90(), tudo: () => { mundo.verCidade(); fecharPlaca(); }, hora: () => abrirHora() })[b.dataset.ctl]();
+    } else if (b.dataset.horaModo) {
+      escolherHora(b.dataset.horaModo === 'auto' ? 'auto' : b.dataset.horaModo === 'dia' ? 12 : 22);
     } else if (b.dataset.andar) mostrarAndar(b.dataset.andar);
     else if (b.hasAttribute('data-voltar')) mostrarAndares();
     else if (b.hasAttribute('data-fechar')) fecharPlaca();
@@ -1844,6 +1885,7 @@
       const reduzir = matchMedia('(prefers-reduced-motion: reduce)').matches || body.dataset.motion === 'reduce';
       const m = await import(MUNDO_JS + (tentativasCarga ? '?tentativa=' + tentativasCarga : ''));
       mundo = await m.iniciarMundo(raiz.querySelector('canvas'), { reduzirMovimento: reduzir, quantos: clientesDoMundo().length });
+      { const h = lerHora(); if (h !== 'auto' && Number.isFinite(h)) mundo.definirHora?.(h); }
       if (!fonteAgentes) criarFonte(mundo);
       void carregarAgentes();
       setTimeout(() => aplicarProspeccao(), 1500);

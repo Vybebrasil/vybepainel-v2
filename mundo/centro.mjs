@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { ruido } from './irece.mjs';
 import { NICHOS, nichoDoCliente, identidadeDoCliente, paletaDaLoja } from './nichos.mjs';
+import { desenharBoneco, figuraDaPessoa, lerFigura } from './avatar.mjs';
 
 export const PASSO = 6;          // distância entre lojas vizinhas
 const LW = 5, LD = 4.6;          // largura e fundo de cada loja
@@ -50,11 +51,12 @@ function paraMundo(v, lx, lz, w, d) {
 export function construirCentro(motor, { quantos = 32 } = {}) {
   const T = motor.THREE || THREE;
   let L = layoutDoCentro(quantos);
+  let postes = [], finoMalha = null;
   let chao = null, lojas = null, rotulos = [], alvos = [], posicoes = [], ilhotas = [], nuvensMalha = null, estadosDasLojas = [], cachoeira = null, chafariz = null;
 
   function montarChao() {
     if (chao) { motor.cena.remove(chao); chao.traverse((o) => { o.geometry?.dispose?.(); }); }
-    const { S, R } = L, o = new Obra(), g = new T.Group();
+    const { S, R } = L, o = new Obra(), g = new T.Group(); postes = [];
     // A maquete é uma ilha flutuante (Paulo, 08/11/2026: "o acabamento reto todo igual flutuando"): o gramado em cima e,
     // embaixo, colunas de terra e pedra que afundam mais para o meio, como um cone irregular em degraus, com faixas de
     // terra em tons diferentes, pedra escurecendo com a profundidade e pedras penduradas. Colunas de 3 × 3.
@@ -95,12 +97,12 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     jardins(o, anelI, fino);
     // Postes na calçada do anel, com a luz acesa.
     for (let i = -L.meio + PASSO; i < L.meio; i += PASSO * 2) for (const [a, b] of [[i, -(R - 3.4)], [i, R - 3.4], [-(R - 3.4), i], [R - 3.4, i]]) {
-      o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0');
+      o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0'); postes.push({ x: a, z: b });
     }
     detalhes(o, L, fino);
     g.add(o.montar());
     // Ilha, sebes, tufos e manchas recebem sombra mas não projetam: ficam fora do cálculo da sombra (desempenho).
-    g.add(fino.montar({ sombra: false }));
+    finoMalha = fino.montar({ sombra: false }); g.add(finoMalha);
     // Ilhotas flutuando em volta da maquete (Paulo, 08/11/2026: "mais vivo, detalhado"); a vida (vida.mjs) as balança.
     ilhotas = [[S + 13, 3, -S * .35, 1], [-S * .45, -2.5, S + 12, .8]].map(([ix, iy, iz, k]) => {
       const q = new Obra(), w = 6 * k;
@@ -161,7 +163,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       const cu = meio + 1.2, cw = meio + 1.2;
       if (q === 0) {
         // Lago com borda de pedra, deque de madeira, vitórias-régias, patinhos e taboas.
-        C(cu, -.2, cw, 6.4, .3, 5.2, '#B9B2A6'); C(cu, -.15, cw, 5.6, .3, 4.4, '#4FB6E3');
+        C(cu, -.2, cw, 6.4, .3, 5.2, '#B9B2A6'); o.agua(sx * cu, -.15, sz * cw, 5.6, .3, 4.4, '#4FB6E3');
         C(cu - 2.6, .1, cw, 2.4, .12, 1.2, '#B98552'); for (const k of [-.9, .9]) C(cu - 2.6 + k, -.3, cw + .5, .14, .45, .14, '#8E6440');
         for (const [du, dw] of [[.8, -1], [1.8, .6], [-.4, 1.2]]) C(cu + du, .12, cw + dw, .7, .05, .7, '#7FCB6A');
         for (const [du, dw] of [[.4, .2], [1.2, -.4]]) { C(cu + du, .12, cw + dw, .32, .22, .45, '#FFFFFF'); C(cu + du, .3, cw + dw + .18, .2, .2, .2, '#FFFFFF'); C(cu + du, .36, cw + dw + .3, .1, .06, .1, '#F2A33A'); }
@@ -236,9 +238,9 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     // Chafariz da praça: bacia de pedra, água, coluna e a taça de cima (o jato anima em vida.mjs).
     const [cx, cz] = [10.5, 10.5];
     o.caixa(cx, CHAO, cz, 3.4, .5, 3.4, '#CFC6B4').caixa(cx, CHAO + .5, cz, 3.6, .1, 3.6, '#E8E0D0');
-    o.luz(cx, CHAO + .3, cz, 2.8, .22, 2.8, '#7FD0EE');
+    o.agua(cx, CHAO + .3, cz, 2.8, .22, 2.8, '#6CC6EA');
     o.caixa(cx, CHAO + .5, cz, .5, 1, .5, '#E8E0D0').caixa(cx, CHAO + 1.5, cz, 1.3, .2, 1.3, '#E8E0D0');
-    o.luz(cx, CHAO + 1.62, cz, 1, .1, 1, '#A8E2F4');
+    o.agua(cx, CHAO + 1.62, cz, 1, .1, 1, '#8ED6F0');
     chafariz = { x: cx, y: CHAO + 1.7, z: cz };
     // Food truck laranja da Vybe com toldo, balcão e mesinha com guarda-sol.
     const [tx, tz] = [-10.5, 10.6];
@@ -252,7 +254,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     for (const s2 of [-1, 1]) o.caixa(tx + 3.1, CHAO, tz - .2 + s2 * .7, .36, .4, .36, '#5CC8B8');
     // Laguinho no fundo do anel, com a água caindo pela borda da maquete (as gotas animam em vida.mjs).
     const lz = -S + 4 + 3.5, lx = -(S - 1.6);
-    o.caixa(lx, -.2, lz, 2.6, .3, 3.4, '#B9B2A6').caixa(lx - .3, -.14, lz, 2.4, .3, 2.6, '#4FB6E3');
+    o.caixa(lx, -.2, lz, 2.6, .3, 3.4, '#B9B2A6').caixa(lx - .3, -.2, lz, 2.4, .05, 2.6, '#4FB6E3'); o.agua(lx - .3, -.14, lz, 2.4, .3, 2.6, '#4FB6E3');
     o.luz(-S - .06, -9, lz, .1, 8.86, 2.2, '#8FD6F2').luz(-S - .1, -9, lz, .06, 8.86, 1.2, '#C9EEFA');
     o.caixa(-S - .4, -9.4, lz, 1.2, .5, 3.2, '#D9F3FB'); // a água se desfaz em névoa no ar
     cachoeira = { x: -S - .2, z: lz, topo: -.2, base: -9.2 };
@@ -304,7 +306,19 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       tx.colorSpace = T.SRGBColorSpace;
       // Mantém a proporção da logo dentro da placa.
       const a = tx.image.width / Math.max(1, tx.image.height), w = Math.min(placa.w, placa.h * a), h = w / a;
-      m.scale.set(w / placa.w, h / placa.h, 1); mat.map = tx; mat.needsUpdate = true; m.visible = true; motor.invalidar();
+      m.scale.set(w / placa.w, h / placa.h, 1); mat.map = tx; mat.needsUpdate = true; m.visible = true;
+      // Logo clara (branca, creme) sumia na placa branca: medida a claridade dos pixels que aparecem, ganha um
+      // fundo grafite atrás dela.
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 24; const x = c.getContext('2d', { willReadFrequently: true });
+        x.drawImage(tx.image, 0, 0, 24, 24); const px = x.getImageData(0, 0, 24, 24).data; let soma = 0, n = 0;
+        for (let i = 0; i < px.length; i += 4) if (px[i + 3] > 128) { soma += (px[i] * .3 + px[i + 1] * .59 + px[i + 2] * .11) / 255; n++; }
+        if (n > 20 && soma / n > .8) {
+          const fundo = new T.Mesh(new T.PlaneGeometry(placa.w + .06, placa.h + .06), new T.MeshBasicMaterial({ color: '#2B2F33', toneMapped: false }));
+          fundo.position.copy(m.position); fundo.rotation.copy(m.rotation); fundo.translateZ(-.005); g.add(fundo);
+        }
+      } catch { /* imagem de outra origem sem permissão de leitura: fica como está */ }
+      motor.invalidar();
     }, undefined, () => { g.remove(m); m.geometry.dispose(); mat.dispose(); });
   }
   function bolinhasHtml(c) {
@@ -321,7 +335,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     for (const r of rotulos) motor.removerRotulo(r);
     for (const a of alvos) motor.naoClicavel(a);
     rotulos = []; alvos = []; estadosDasLojas = [];
-    const vagas = vagasDoCentro(ordem.length), o = new Obra(), g = new T.Group(), invisivel = new T.MeshBasicMaterial({ visible: false });
+    const vagas = vagasDoCentro(ordem.length), o = new Obra(), gente = new Obra(), g = new T.Group(), invisivel = new T.MeshBasicMaterial({ visible: false });
     posicoes = ordem.map((c, k) => {
       const v = vagas[k];
       // Cliente com fachada própria (desenhada a partir da foto do lugar, mundo/sedes.mjs): a loja é a cara dele.
@@ -334,18 +348,22 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       // Placa: fundo branco no bloco e a logo como imagem por cima (só aparece se o cliente tiver logo no Drive).
       C(0, placa.y - placa.h / 2 - .06, placa.z - .08, placa.w + .12, placa.h + .12, .1, '#FFFFFF');
       if (c.logo) logoNaPlaca(g, v, c.logo, placa);
+      // O dono na porta (Paulo, 08/11/2026: lojas com alma): o personagem do cliente, quando o cadastro tem um; senão
+      // um boneco fixo por cliente. De frente para a praça, com a sombra de contato no chão.
+      const fig = c.personagem ? lerFigura(c.personagem) : figuraDaPessoa({ id: 'loja:' + c.nome }), pd = paraMundo(v, -LW / 2 + .9, LD / 2 + .55, 0, 0);
+      desenharBoneco(gente, fig, { x: pd.x, y: CHAO, z: pd.z, s: .8, giro: (4 - v.lado) % 4 }); gente.sombra(pd.x, pd.z, .5, CHAO);
       const alvo = new T.Mesh(new T.BoxGeometry(v.lado % 2 ? LD : LW, 4.4, v.lado % 2 ? LW : LD), invisivel);
       alvo.position.set(v.x, 2.2, v.z); alvo.userData.alvo = { tipo: 'cliente', nome: c.nome }; g.add(alvo); motor.clicavel(alvo); alvos.push(alvo);
       const atrasada = c.situacao === 'atrasada';
       rotulos.push(motor.rotulo({ pos: new T.Vector3(v.x, 5.1, v.z), classe: 'rotulo-loja' + (atrasada ? ' atrasada' : ''), prioridade: 5 + (c.peso || 0), fixo: true,
         html: `<b class="loja-nome">${esc(c.nome)}</b>${bolinhasHtml(c)}`, aoClicar: () => aoClicar?.({ tipo: 'cliente', nome: c.nome }) }));
-      estadosDasLojas.push({ nome: c.nome, x: v.x, z: v.z, frente: v.frente, lado: v.lado, atrasada, prontas: c.por?.pronta || 0, hoje: c.por?.hoje || 0 });
+      estadosDasLojas.push({ nome: c.nome, x: v.x, z: v.z, frente: v.frente, lado: v.lado, atrasada, atrasadas: c.por?.atrasada || 0, prontas: c.por?.pronta || 0, hoje: c.por?.hoje || 0 });
       return { nome: c.nome, x: v.frente.x, z: v.frente.z, lado: v.lado, loja: { x: v.x, z: v.z } };
     });
     // Vagas sem cliente: loja fechada, sem nome (o anel fica sempre completo).
     const todas = vagasDoCentro(L.porLado * 4);
     for (let k = ordem.length; k < todas.length; k++) lojaFechada(o, todas[k], k);
-    g.add(o.montar()); lojas = g; motor.adicionar(g);
+    g.add(o.montar()); g.add(gente.montar({ sombra: false })); lojas = g; motor.adicionar(g);
     return posicoes;
   }
 
@@ -364,6 +382,6 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     alturaEm: () => CHAO, noRecorte: () => true, pontoDoEndereco: () => null, lugares: [],
     tamanho: () => L.S, posicoes: () => posicoes,
     // Para a vida do mundo (vida.mjs): lojas com o estado, ilhotas, nuvens, cachoeira, chafariz e o tamanho.
-    lojasVivas: () => estadosDasLojas, ilhotas: () => ilhotas, nuvens: () => nuvensMalha, cachoeira: () => cachoeira, chafariz: () => chafariz, layout: () => L, LD,
+    lojasVivas: () => estadosDasLojas, postes: () => postes, detalheFino: () => finoMalha, ilhotas: () => ilhotas, nuvens: () => nuvensMalha, cachoeira: () => cachoeira, chafariz: () => chafariz, layout: () => L, LD,
   };
 }

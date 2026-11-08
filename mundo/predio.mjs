@@ -69,7 +69,7 @@ export function construirPredio(motor, { x, z, y }) {
     else if (terreo) recepcao(o, g, andar, andarIdx, pendentes);
     salasDaEquipe(o, g, andar, terreo, terraco);
     for (const b of pecas) o.caixa(b.x, b.y, b.z, b.w, b.h, b.d, b.cor);
-    const malha = o.montar(), luzes = malha.children.find((m) => m.material?.type === 'MeshBasicMaterial') || null;
+    const malha = o.montar(), luzes = malha.children.find((m) => m.material?.type === 'MeshBasicMaterial' && !m.userData.sombraDeContato) || null;
     g.add(malha);
     for (const p of pendentes) Object.assign(p.sala, { luzes, tela: p.tela, antena: p.antena });
     if (!terraco) {
@@ -324,6 +324,27 @@ export function construirPredio(motor, { x, z, y }) {
     }
   }
 
+  // ----- Elevador de vidro na fachada da esquerda, a que a câmera do Prédio vê (Paulo, 08/11/2026: "deixar FODA") -----
+  // Torre de vidro com montantes brancos do térreo ao terraço e a cabine laranja que vai até o andar escolhido no
+  // elevador do painel (focar). Sem andar escolhido, a cabine descansa no térreo.
+  const elev = { x: -LADO / 2 - .85, z: 1.5 }, alturaTorre = TOPO * PE + .4;
+  {
+    const o = new Obra();
+    for (const [dx, dz] of [[-.6, -.6], [.6, -.6], [-.6, .6], [.6, .6]]) o.caixa(elev.x + dx, 0, elev.z + dz, .12, alturaTorre, .12, '#FFFFFF');
+    for (let k = 0; k <= TOPO; k++) o.caixa(elev.x, k * PE + .1, elev.z, 1.32, .1, 1.32, '#FFFFFF');
+    o.caixa(elev.x, alturaTorre, elev.z, 1.5, .3, 1.5, '#FF7A2F');
+    raiz.add(o.montar());
+    const torre = new THREE.Mesh(new THREE.BoxGeometry(1.2, alturaTorre, 1.2), vidro);
+    torre.position.set(elev.x, alturaTorre / 2, elev.z); torre.renderOrder = 2; raiz.add(torre);
+  }
+  const cabine = (() => {
+    const o = new Obra();
+    o.caixa(0, 0, 0, 1.04, .12, 1.04, '#FFFFFF').caixa(0, .12, 0, 1, 1.15, 1, '#FF7A2F').caixa(0, 1.27, 0, 1.04, .12, 1.04, '#FFFFFF');
+    o.luz(0, .3, .51, .7, .8, .02, '#FFE2B0').luz(-.51, .3, 0, .02, .8, .7, '#FFE2B0');
+    const m = o.montar({ sombra: false }); m.position.set(elev.x, .25, elev.z); raiz.add(m); return m;
+  })();
+  let cabineY = .25;
+
   // ----- O ser do VYBES, flutuando sobre o terraço -----
   const ser = new THREE.Group();
   // O V da Vybe em voxel, laranja (Paulo, 07/11/2026: "troca por um V da Vybe", "muda de roxo pra laranja"):
@@ -374,6 +395,9 @@ export function construirPredio(motor, { x, z, y }) {
       if (a.g.userData.teto) a.g.userData.teto.visible = foco === null && abre < .05;
     }
     ser.visible = foco === null;
+    // A cabine vai até o andar em foco (a altura dele já inclui a vista aberta); devagar no começo e no fim.
+    const destino = foco !== null ? (andares.find((a) => a.andar.nivel === foco)?.g.position.y ?? 0) + .1 : .25;
+    if (Math.abs(destino - cabineY) > .005) { cabineY += (destino - cabineY) * (1 - Math.pow(.02, dt)); cabine.position.y = cabineY; abrindo = true; }
     vidro.opacity = foco !== null ? .04 : .22 - .16 * abre;
     const pulso = estadoSer === 'alerta' ? 1 + Math.sin(t * 7) * .06 : 1 + Math.sin(t * 1.6) * .035;
     casca.scale.setScalar(pulso);
