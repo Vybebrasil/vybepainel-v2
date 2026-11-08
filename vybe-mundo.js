@@ -923,6 +923,7 @@
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
       .map((e) => ({ cliente: e.cliente, dia: e.dia, inicio: e.inicio || '', fim: e.fim || '' })));
   }
+  document.addEventListener('vybe-datas-prontas', () => pintarAgenda());
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
     pintarRoteiros();
@@ -930,13 +931,16 @@
     const amanha = (() => { const x = new Date(`${hoje}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
     const proximos = agendaEventos.filter((e) => e.dia > hoje || !e.fim || e.fim >= hm)
       .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00'))).slice(0, 3);
-    if (!proximos.length) { el.innerHTML = '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>'; return; }
+    // Datas comemorativas dos próximos 14 dias, abaixo dos compromissos e com menos destaque (Paulo, 08/11/2026).
+    const datas = window.VybeDatas?.proximas(hoje, 14) || [];
+    const datasHtml = datas.length ? `<div class="vd-agenda"><small class="vd-agenda-rotulo">Datas comemorativas</small>${datas.slice(0, centroAberto ? 3 : 6).map((d) => `<div class="vd-agenda-linha"><span>${d.iso === hoje ? 'Hoje' : d.iso.slice(8, 10) + '/' + d.iso.slice(5, 7)}</span>${window.VybeDatas.chipHtml(d)}</div>`).join('')}</div>` : '';
+    if (!proximos.length) { el.innerHTML = '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>' + datasHtml; return; }
     el.innerHTML = proximos.map((e) => {
       const quando = e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', '');
       const hora = e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : '';
       return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}">
         <small>${esc(quando + hora)} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
-    }).join('');
+    }).join('') + datasHtml;
   }
   // ---------- Roteiro da semana (Paulo, 07/11/2026): juntar captações por dia e bairro ----------
   // Só sugestão (mundo/captacoes.mjs, roteirosDaSemana): a agenda não muda. Ordem pelo vizinho mais próximo.

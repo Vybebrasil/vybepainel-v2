@@ -585,6 +585,22 @@ const SAZONAL_SABORES = [
   ['12-09', 'Dia do Profissional de Culinária', 'n', 0, 0, 'sabor'],
 ];
 
+// Acrescentadas na revisão de 08/11/2026 (Paulo: "melhora pra ver se falta algo"): datas que rendem post e não estavam.
+const SAZONAL_REVISAO = [
+  ['03-22', 'Dia Mundial da Água', 'i', 1, 0],
+  ['04-01', 'Abril Verde — Segurança e Saúde no Trabalho', 'n', 0, 0],
+  ['04-22', 'Dia da Terra', 'i', 0, 0],
+  ['04-23', 'Dia Mundial do Livro', 'i', 0, 0],
+  ['05-22', 'Dia do Abraço', 'n', 0, 0],
+  ['06-05', 'Dia Mundial do Meio Ambiente', 'i', 1, 0],
+  ['06-30', 'Dia do Social Media', 'i', 1, 0, 'profissao'],
+  ['07-13', 'Dia Mundial do Rock', 'i', 1, 0],
+  ['10-01', 'Dia Nacional do Idoso', 'n', 1, 0],
+  ['10-31', 'Dia do Saci', 'n', 0, 0],
+  ['11-13', 'Dia Mundial da Gentileza', 'i', 0, 0],
+  ['11-19', 'Dia da Mulher Empreendedora', 'i', 1, 0],
+];
+
 const SAZONAL_ESCOPOS = {
   n: { nome: 'Nacional',      cor: '#00c875' },
   i: { nome: 'Internacional', cor: '#579bfc' },
@@ -686,6 +702,7 @@ function datasSazonaisDoAno(ano) {
     .concat(daLista(SAZONAL_CIDADES))
     .concat(daLista(SAZONAL_PROFISSOES))
     .concat(daLista(SAZONAL_SABORES))
+    .concat(daLista(SAZONAL_REVISAO))
     .concat(sazonalMoveis(ano).map((d) => ({ ...d, tema: d.tema || '', movel: 1 })));
 
   // A primeira ganha: a lista curada vem antes das importadas, entao o nome que
@@ -824,6 +841,16 @@ function sazonalFiltrar(lista) {
   });
 }
 
+// Logística da data (08/11/2026): até quando cadastrar (Prazo de Ouro, 7 dias antes) e quantas peças já saem nesse dia.
+function sazonalLogisticaHtml(d, hoje) {
+  if (d.iso < hoje) return '';
+  const prazo = sazonalPrazoDe(d.iso), br = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+  const apertado = prazo <= hoje;
+  const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+  const saem = itens.filter((i) => i.veiculacao_iso === d.iso).length;
+  return `<span class="sz-marca" style="color:${apertado ? '#ff5c7c' : '#e2a11b'};border-color:currentColor;background:transparent">${apertado ? 'Cadastrar hoje' : 'Cadastrar até ' + br(prazo)}</span>`
+    + (saem ? `<span class="sz-marca" style="color:#18a957;border-color:#18a95755;background:#18a95718">${saem} peça${saem > 1 ? 's' : ''} no dia</span>` : '');
+}
 function sazonalLinhaHtml(d, hoje) {
   const dia = d.iso.slice(8, 10);
   const semana = ['dom','seg','ter','qua','qui','sex','sáb'][new Date(d.iso + 'T12:00:00').getDay()];
@@ -836,7 +863,7 @@ function sazonalLinhaHtml(d, hoje) {
       onclick="sazonalEscolher('${d.iso}', this.dataset.nome)" data-nome="${nome.replace(/"/g, '&quot;')}">
       <span class="sz-dia"><b>${dia}</b><span>${semana}</span></span>
       <span class="sz-corpo"><span class="sz-nome">${nome}</span>
-        <span class="sz-marcas">${marcas.join('')}</span></span>
+        <span class="sz-marcas">${marcas.join('')}${sazonalLogisticaHtml(d, hoje)}</span></span>
       <span class="sz-acao">Cadastrar →</span>
     </button>`;
 }

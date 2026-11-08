@@ -4346,3 +4346,25 @@ body.mundo.mundo-centro #mundo{background:linear-gradient(180deg,#9FD3F0 0%,#CBE
 .loja-bolinhas{display:flex;gap:3px}
 .loja-bolinhas i{min-width:18px;height:18px;padding:0 4px;border-radius:9px;display:grid;place-items:center;background:var(--c);color:#fff;font:700 10px/1 var(--vv-texto);font-style:normal;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
 body.mundo.mundo-centro .vv-agenda{display:none}
+
+/* ---------- Datas comemorativas na agenda (vybe-datas-comemorativas.js): menos destaque que compromisso ---------- */
+.vd-chips{display:flex;gap:3px;align-items:center;min-width:0;margin:2px 0}
+.vd-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;padding:1px 7px 1px 5px;border-radius:999px;border:1px dashed #D8CFC0;background:transparent;color:#8A7F70;font:600 10.5px/1.5 var(--vv-texto,system-ui);cursor:help;text-align:left}
+.vd-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.vd-chip i{font-style:normal;color:#E2A11B;font-size:10px}
+.vd-chip.feriado{border-color:#F3B4B4;color:#B4474A}.vd-chip.feriado i{color:#E5484D}
+.vd-chip:hover,.vd-chip:focus-visible{background:#FFF7E8;border-style:solid;color:#6B5A3E;outline:none}
+.vd-mais{font:600 10px var(--vv-texto,system-ui);color:#A39C90}
+.ag-dia-cab .vd-chips{justify-content:center}
+.vd-agenda{margin-top:8px;padding-top:8px;border-top:1px dashed #E6E0D6;display:grid;gap:4px}
+.vd-agenda-rotulo{font:700 10px/1 var(--vv-texto,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#A39C90;margin-bottom:2px}
+.vd-agenda-linha{display:flex;align-items:center;gap:6px;min-width:0}
+.vd-agenda-linha > span{flex:none;width:36px;font:600 10.5px var(--vv-texto,system-ui);color:#A39C90}
+.vd-cartao{position:fixed;z-index:2147480001;padding:12px 14px;border-radius:16px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 18px 44px rgba(31,29,26,.22);color:#1F1D1A;font:13px/1.4 var(--vv-texto,system-ui)}
+.vd-cartao-topo small{display:block;color:#8A7F70;font-size:11px}.vd-cartao-topo b{display:block;font-size:14px;margin:2px 0 6px}
+.vd-cartao ul{margin:0;padding:0;list-style:none;display:grid;gap:5px}
+.vd-cartao li{font-size:12px;color:#4A4640}.vd-cartao li b{color:#1F1D1A;margin-right:4px}
+.vd-dica{margin:6px 0 0;font-size:11px;color:#8A7F70}
+.vd-acoes{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.vd-botao{padding:6px 10px;border-radius:10px;border:1px solid #E6E0D6;background:#FAF8F4;font:600 12px var(--vv-texto,system-ui);color:#1F1D1A;cursor:pointer}
+.vd-botao.principal{background:#FF7A2F;border-color:#FF7A2F;color:#fff}

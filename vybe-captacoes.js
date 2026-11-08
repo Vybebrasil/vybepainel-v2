@@ -80,7 +80,7 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   const largado = acoes.soltar ? ` ondragover="agSobre(event)" ondragleave="this.classList.remove('alvo')" ondrop="agSoltar(event,'${acoes.soltar}',${ini})"` : "";
   const vazio = (d) => acoes.vazio ? ` onclick="agVazio(event,'${acoes.vazio}','${d}',${ini})" title="Clique num horário para marcar uma captação"` : "";
   const grade = `<div class="ag-semana${n === 1 ? " um-dia" : ""}" role="grid" aria-label="${n === 1 ? safeText(agDiaSemana(inicio, "long")) : `Semana de ${safeText(agPeriodo(inicio))}`}">
-    <div class="ag-cabeca"><span></span>${dias.map((d) => `<div class="ag-dia-cab${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" role="columnheader"><small>${safeText(agDiaSemana(d))}</small><b>${Number(d.slice(8))}</b></div>`).join("")}</div>
+    <div class="ag-cabeca"><span></span>${dias.map((d) => `<div class="ag-dia-cab${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" role="columnheader"><small>${safeText(agDiaSemana(d))}</small><b>${Number(d.slice(8))}</b>${window.VybeDatas?.chipsDoDia(d, { max: 1 }) || ""}</div>`).join("")}</div>
     ${diaTodo.length ? `<div class="ag-dia-todo"><span>dia todo</span>${dias.map((d) => `<div>${diaTodo.filter((e) => e.dia === d).map((e) => bloco(e)).join("")}</div>`).join("")}</div>` : ""}
     <div class="ag-corpo" data-ag-rolar="${Math.max(0, px(Math.max(ini, 7 * 60)) - AG_TOPO)}">
       <div class="ag-horas" style="height:${px(fim) + AG_TOPO}px">${horas.map((m) => `<span style="top:${px(m)}px">${agHora(m)}</span>`).join("")}</div>
@@ -245,6 +245,8 @@ async function captCarregar() {
   } catch (e) { CAPT.erro = e.message; }
   finally { CAPT.carregando = false; captRender(); }
 }
+// Datas comemorativas (vybe-datas-comemorativas.js) chegam depois: redesenha o calendário aberto quando chegarem.
+document.addEventListener("vybe-datas-prontas", () => { if (document.querySelector(".capt-cal")) captRender(); });
 function captRecarregar() { CAPT.pecas = null; CAPT.faixa = null; captRender(); }
 async function captBuscarFaixa() {
   const { inicio, dias } = captFaixa(), fim = agSomar(inicio, dias - 1);
@@ -643,6 +645,7 @@ function captMesHtml(eventos) {
     const lista = eventos.filter((e) => e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
     return `<div class="capt-mes-dia${dia.slice(0, 7) !== mes ? " fora" : ""}${dia === hoje ? " hoje" : ""}${dia < hoje ? " passou" : ""}" role="gridcell">
       <button type="button" class="capt-mes-num" onclick="captVerDia('${dia}')" aria-label="Ver ${safeText(captDiaLongo(dia))}">${Number(dia.slice(8))}</button>
+      ${window.VybeDatas?.chipsDoDia(dia, { max: 1 }) || ""}
       ${lista.slice(0, 3).map(chip).join("")}${lista.length > 3 ? `<button type="button" class="capt-mes-mais" onclick="captVerDia('${dia}')">+${lista.length - 3} ${lista.length - 3 === 1 ? "outra" : "outras"}</button>` : ""}</div>`; }).join("")}</div>`;
 }
 
