@@ -6,7 +6,7 @@
    uma regra antiga pinta todo <header> de grafite. */
 
 #vv-decorar{position:fixed;z-index:640;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);width:clamp(300px,33vw,380px);
-  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:24px;
+  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:14px;
   box-shadow:0 30px 80px rgba(31,29,26,.25);color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;color-scheme:light;
   animation:vv-decorar-entra .2s cubic-bezier(.22,1,.36,1) both}
 #vv-decorar *,#vv-decorar *::before,#vv-decorar *::after{box-sizing:border-box}
@@ -25,12 +25,12 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-status:empty{display:none}
 #vv-decorar .vv-decorar-status.sujo{color:#8A5A00;font-weight:600}
 #vv-decorar .vv-decorar-status.sujo::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:#E2A11B;vertical-align:1px}
-#vv-decorar .vv-decorar-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
+#vv-decorar .vv-decorar-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
 #vv-decorar .vv-decorar-x:hover{border-color:#FF7A2F;color:#C2490C}
 
 /* abas segmentadas */
-#vv-decorar .vv-decorar-abas{flex:none;display:flex;gap:2px;margin:0 16px 8px 20px;padding:3px;border-radius:12px;background:#EFEAE2;border:1px solid #E6E0D6}
-#vv-decorar .vv-decorar-abas [role="tab"]{flex:1;height:32px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+#vv-decorar .vv-decorar-abas{flex:none;display:flex;gap:2px;margin:0 16px 8px 20px;padding:3px;border-radius:8px;background:#EFEAE2;border:1px solid #E6E0D6}
+#vv-decorar .vv-decorar-abas [role="tab"]{flex:1;height:32px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 #vv-decorar .vv-decorar-abas [role="tab"]:hover{color:#1F1D1A}
 #vv-decorar .vv-decorar-abas [role="tab"][aria-selected="true"],
 #vv-decorar .vv-decorar-abas [role="tab"][aria-selected="true"]:not(#vd-a):not(#vd-b):not(#vd-c){background:#FFFFFF!important;color:#C2490C!important;border-color:transparent!important;box-shadow:0 1px 2px rgba(31,29,26,.08),0 0 0 1px #E6E0D6!important}
@@ -39,10 +39,10 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)!important}
 
 /* aviso e barra da seleção */
-#vv-decorar .vv-decorar-aviso{flex:none;margin:0 16px 8px 20px;padding:7px 11px;border-radius:12px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
+#vv-decorar .vv-decorar-aviso{flex:none;margin:0 16px 8px 20px;padding:7px 11px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-decorar .vv-decorar-aviso:empty{display:none}
 #vv-decorar .vv-decorar-dica{flex:none;margin:0 16px 8px 20px;color:#6B675F;font-size:11.5px}
-#vv-decorar .vv-decorar-barra{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 16px 8px 20px;padding:8px 8px 8px 12px;border-radius:18px;background:color-mix(in srgb,#FF7A2F 9%,#FFFFFF);border:1px solid color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-decorar .vv-decorar-barra{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 16px 8px 20px;padding:8px 8px 8px 12px;border-radius:10px;background:color-mix(in srgb,#FF7A2F 9%,#FFFFFF);border:1px solid color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-barra-txt{flex:1 1 140px;min-width:0;display:flex;flex-direction:column}
 #vv-decorar .vv-decorar-barra-txt small{color:#A84E00;font:700 10px var(--vv-texto,system-ui),sans-serif;letter-spacing:.1em;text-transform:uppercase}
 #vv-decorar .vv-decorar-barra-txt b{color:#1F1D1A;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -52,14 +52,14 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-corpo{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;padding:2px 16px 14px 20px}
 #vv-decorar .vv-decorar-secao{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 8px}
 #vv-decorar .vv-decorar-rotulo{display:flex;align-items:center;gap:6px;margin:0;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
-#vv-decorar .vv-decorar-conta{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;font-variant-numeric:tabular-nums}
+#vv-decorar .vv-decorar-conta{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:8px;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;font-variant-numeric:tabular-nums}
 #vv-decorar .vv-decorar-link{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:#C2490C;font:700 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
 #vv-decorar .vv-decorar-link:hover{text-decoration:underline}
 #vv-decorar .vv-decorar-nota{margin:6px 0 10px;color:#6B675F;font-size:12px}
 
 /* inventário em grade: cartão branco, ícone voxel, nome e quantas unidades estão livres */
 #vv-decorar .vv-decorar-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:0;padding:0;list-style:none}
-#vv-decorar .vv-decorar-peca{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;height:100%;min-height:112px;padding:8px 6px;border:1px solid #E6E0D6;border-radius:18px;background:#FFFFFF;color:#1F1D1A;font:inherit;text-align:center;cursor:pointer;box-shadow:0 1px 2px rgba(31,29,26,.04);transition:border-color .15s,translate .15s,background .15s}
+#vv-decorar .vv-decorar-peca{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;height:100%;min-height:112px;padding:8px 6px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:inherit;text-align:center;cursor:pointer;box-shadow:0 1px 2px rgba(31,29,26,.04);transition:border-color .15s,translate .15s,background .15s}
 #vv-decorar .vv-decorar-peca:hover:not(:disabled){border-color:#FF7A2F;translate:0 -1px}
 #vv-decorar .vv-decorar-peca[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-peca[aria-pressed="true"] b{color:#C2490C}
@@ -67,11 +67,11 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-peca img,#vv-decorar .vv-decorar-peca .vv-decorar-sem-icone{width:56px;height:56px;object-fit:contain}
 #vv-decorar .vv-decorar-peca b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11.5px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
 #vv-decorar .vv-decorar-peca small{color:#6B675F;font-size:11px;font-variant-numeric:tabular-nums}
-#vv-decorar .vv-decorar-sem-icone{display:block;border-radius:12px;background:repeating-linear-gradient(135deg,#F3EFE8 0 6px,#FAF8F4 6px 12px)}
+#vv-decorar .vv-decorar-sem-icone{display:block;border-radius:8px;background:repeating-linear-gradient(135deg,#F3EFE8 0 6px,#FAF8F4 6px 12px)}
 
 /* o que está na sala (selecionar pela lista: teclado e leitor de tela) */
 #vv-decorar .vv-decorar-lista{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
-#vv-decorar .vv-decorar-item{display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:4px 10px 4px 4px;border:1px solid transparent;border-radius:12px;background:transparent;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
+#vv-decorar .vv-decorar-item{display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:4px 10px 4px 4px;border:1px solid transparent;border-radius:8px;background:transparent;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
 #vv-decorar .vv-decorar-item:hover{background:#FAF5EE}
 #vv-decorar .vv-decorar-item[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-item img,#vv-decorar .vv-decorar-item .vv-decorar-sem-icone{flex:none;width:28px;height:28px;border-radius:8px}
@@ -79,36 +79,36 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 
 /* piso e parede: amostras */
 #vv-decorar .vv-decorar-amostras{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:0;padding:0;list-style:none}
-#vv-decorar .vv-decorar-opcao{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:8px 6px;border:1px solid #E6E0D6;border-radius:18px;background:#FFFFFF;color:#1F1D1A;font:600 11.5px var(--vv-texto,system-ui),sans-serif;text-align:center;cursor:pointer;transition:border-color .15s,translate .15s}
+#vv-decorar .vv-decorar-opcao{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:8px 6px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 11.5px var(--vv-texto,system-ui),sans-serif;text-align:center;cursor:pointer;transition:border-color .15s,translate .15s}
 #vv-decorar .vv-decorar-opcao:hover{border-color:#FF7A2F;translate:0 -1px}
 #vv-decorar .vv-decorar-opcao[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF);color:#C2490C}
-#vv-decorar .vv-decorar-amostra{display:block;width:100%;height:44px;border-radius:12px;border:1px solid rgba(31,29,26,.12);background:repeating-conic-gradient(var(--a) 0 25%,var(--b) 0 50%) 0 0/16px 16px}
+#vv-decorar .vv-decorar-amostra{display:block;width:100%;height:44px;border-radius:8px;border:1px solid rgba(31,29,26,.12);background:repeating-conic-gradient(var(--a) 0 25%,var(--b) 0 50%) 0 0/16px 16px}
 #vv-decorar .vv-decorar-amostra.lisa{background:var(--a)}
 
 /* estados: carregando (brilho passando), vazio e erro */
 #vv-decorar .vv-decorar-carregando{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
-#vv-decorar .vv-decorar-carregando i{display:block;height:112px;border-radius:18px;background:linear-gradient(100deg,#F3EFE8 30%,#FBF9F5 50%,#F3EFE8 70%) 0 0/300% 100%;animation:vv-decorar-brilho 1.4s linear infinite}
+#vv-decorar .vv-decorar-carregando i{display:block;height:112px;border-radius:10px;background:linear-gradient(100deg,#F3EFE8 30%,#FBF9F5 50%,#F3EFE8 70%) 0 0/300% 100%;animation:vv-decorar-brilho 1.4s linear infinite}
 @keyframes vv-decorar-brilho{from{background-position:100% 0}to{background-position:0 0}}
-#vv-decorar .vv-decorar-vazio{display:grid;justify-items:start;gap:6px;margin:8px 0;padding:16px;border:1px dashed #E6E0D6;border-radius:18px;background:#FAF8F4}
+#vv-decorar .vv-decorar-vazio{display:grid;justify-items:start;gap:6px;margin:8px 0;padding:16px;border:1px dashed #E6E0D6;border-radius:10px;background:#FAF8F4}
 #vv-decorar .vv-decorar-vazio b{font:700 14px var(--vv-texto,system-ui),sans-serif;color:#1F1D1A}
 #vv-decorar .vv-decorar-vazio p{margin:0;color:#6B675F;font-size:12.5px}
 #vv-decorar .vv-decorar-vazio .vv-decorar-botao{margin-top:6px}
-#vv-decorar .vv-decorar-erro{flex:none;margin:0 16px 8px 20px;padding:8px 12px;border-radius:12px;background:#FFFFFF;border:1px solid #F6BBC4;color:#B42318;font-size:12px}
+#vv-decorar .vv-decorar-erro{flex:none;margin:0 16px 8px 20px;padding:8px 12px;border-radius:8px;background:#FFFFFF;border:1px solid #F6BBC4;color:#B42318;font-size:12px}
 
 /* botões: secundário branco; Salvar é a ação principal (o laranja do Criar) */
-#vv-decorar .vv-decorar-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+#vv-decorar .vv-decorar-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
 #vv-decorar .vv-decorar-botao:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C;background:#FFFCF9}
 #vv-decorar .vv-decorar-botao:disabled{cursor:not-allowed;opacity:.5}
 #vv-decorar .vv-decorar-botao.sair:hover:not(:disabled){border-color:#F6BBC4;color:#B42318;background:#FFFFFF}
 #vv-decorar .vv-decorar-rodape{flex:none;display:flex;align-items:center;gap:8px;padding:12px 16px 16px 20px;border-top:1px solid #F0EBE3;background:#FFFFFF}
 #vv-decorar .vv-decorar-rodape .sair{margin-right:auto}
-#vv-decorar .vv-decorar-salvar{display:inline-flex;align-items:center;justify-content:center;height:34px;min-width:96px;padding:0 18px;border:0;border-radius:12px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
+#vv-decorar .vv-decorar-salvar{display:inline-flex;align-items:center;justify-content:center;height:34px;min-width:96px;padding:0 18px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
 #vv-decorar .vv-decorar-salvar:hover:not(:disabled){background:#E8602E}
 #vv-decorar .vv-decorar-salvar:disabled{cursor:not-allowed;background:#FFC8A6;box-shadow:none}
 
 /* celular e janela estreita: folha de baixo, o andar fica à vista em cima */
 @media (max-width:760px){
-  #vv-decorar{top:auto;left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-m,8px);width:auto;height:min(52vh,460px);border-radius:24px;animation-name:vv-decorar-sobe}
+  #vv-decorar{top:auto;left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-m,8px);width:auto;height:min(52vh,460px);border-radius:14px;animation-name:vv-decorar-sobe}
   #vv-decorar .vv-decorar-topo{padding:12px 12px 8px 16px}
   #vv-decorar :is(.vv-decorar-abas,.vv-decorar-aviso,.vv-decorar-dica,.vv-decorar-barra,.vv-decorar-erro){margin-left:16px;margin-right:12px}
   #vv-decorar .vv-decorar-corpo{padding:2px 12px 10px 16px}

@@ -6,7 +6,7 @@
 
 .vv-missoes-camada{position:fixed;inset:0;z-index:650;display:grid;place-items:center;padding:16px;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color-scheme:light}
 
-#vv-missoes{box-sizing:border-box;display:flex;flex-direction:column;width:min(720px,92vw);max-height:86vh;overflow:hidden;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:24px;box-shadow:0 30px 80px rgba(31,29,26,.25);color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vv-missoes-entra .2s cubic-bezier(.22,1,.36,1) both}
+#vv-missoes{box-sizing:border-box;display:flex;flex-direction:column;width:min(720px,92vw);max-height:86vh;overflow:hidden;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 80px rgba(31,29,26,.25);color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vv-missoes-entra .2s cubic-bezier(.22,1,.36,1) both}
 #vv-missoes *,#vv-missoes *::before,#vv-missoes *::after{box-sizing:border-box}
 @keyframes vv-missoes-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
 
@@ -15,13 +15,13 @@
 #vv-missoes .vv-missoes-kicker{display:block;margin-bottom:2px;color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
 #vv-missoes h2{margin:0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
 #vv-missoes .vv-missoes-topo p{margin:3px 0 0;color:#6B675F;font-size:12px}
-#vv-missoes .vv-missoes-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
+#vv-missoes .vv-missoes-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
 #vv-missoes .vv-missoes-x:hover{border-color:#FF7A2F;color:#C2490C}
 #vv-missoes .vv-missoes-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
 /* abas segmentadas */
-#vv-missoes .vv-missoes-abas{flex:none;display:flex;gap:2px;margin:0 22px 10px;padding:3px;border-radius:12px;background:#EFEAE2;border:1px solid #E6E0D6}
-#vv-missoes .vv-missoes-abas [role="tab"]{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+#vv-missoes .vv-missoes-abas{flex:none;display:flex;gap:2px;margin:0 22px 10px;padding:3px;border-radius:8px;background:#EFEAE2;border:1px solid #E6E0D6}
+#vv-missoes .vv-missoes-abas [role="tab"]{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 #vv-missoes .vv-missoes-abas [role="tab"]:hover{color:#1F1D1A}
 #vv-missoes .vv-missoes-abas [role="tab"][aria-selected="true"]{background:#FFFFFF;color:#C2490C;box-shadow:0 1px 2px rgba(31,29,26,.08),0 0 0 1px #E6E0D6}
 /* Com um módulo aberto (body.mundo-modulo), a regra geral de "selecionado" de vybe-mundo.css
@@ -31,13 +31,13 @@
 #vv-missoes .vv-missoes-abas [role="tab"][aria-selected="true"]:focus-visible:not(#vm-a):not(#vm-b):not(#vm-c){box-shadow:0 0 0 3px rgba(255,122,47,.22),0 0 0 1px #E6E0D6!important}
 
 /* contadores (abas e filtros); o nome leva "badge" para a regra geral não trocar a cor */
-#vv-missoes .vv-missoes-badge{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:#F1F2F3!important;color:#5B6268!important;border:0!important;font:700 11px var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums}
+#vv-missoes .vv-missoes-badge{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:8px;background:#F1F2F3!important;color:#5B6268!important;border:0!important;font:700 11px var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums}
 #vv-missoes .vv-missoes-badge.alerta,#vv-missoes .alerta>.vv-missoes-badge{background:#D93D42!important;color:#FFFFFF!important}
 
 /* foco de teclado igual em tudo */
 #vv-missoes :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
 
-#vv-missoes .vv-missoes-aviso{flex:none;margin:0 22px 8px;padding:8px 12px;border-radius:12px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
+#vv-missoes .vv-missoes-aviso{flex:none;margin:0 22px 8px;padding:8px 12px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-missoes .vv-missoes-aviso:empty{display:none}
 
 /* corpo com rolagem por dentro */
@@ -45,11 +45,11 @@
 
 /* estados */
 #vv-missoes .vv-missoes-carregando{margin:18px 0;color:#6B675F;font-size:12.5px}
-#vv-missoes .vv-missoes-vazio{display:grid;justify-items:start;gap:6px;margin:8px 0;padding:18px;border:1px dashed #E6E0D6;border-radius:18px;background:#FAF8F4}
+#vv-missoes .vv-missoes-vazio{display:grid;justify-items:start;gap:6px;margin:8px 0;padding:18px;border:1px dashed #E6E0D6;border-radius:10px;background:#FAF8F4}
 #vv-missoes .vv-missoes-vazio b{font:700 14px var(--vv-texto,system-ui),sans-serif;color:#1F1D1A}
 #vv-missoes .vv-missoes-vazio p{margin:0;color:#6B675F;font-size:12.5px}
 #vv-missoes .vv-missoes-vazio .vv-missoes-acao{margin-top:6px}
-#vv-missoes .vv-missoes-erro{margin:0 0 10px;padding:8px 12px;border-radius:12px;background:#FFFFFF;border:1px solid #F6BBC4;color:#B42318;font-size:12px}
+#vv-missoes .vv-missoes-erro{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#FFFFFF;border:1px solid #F6BBC4;color:#B42318;font-size:12px}
 #vv-missoes .vv-missoes-erro button{margin-left:6px;padding:0;border:0;background:none;color:#C2490C;font:700 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
 #vv-missoes .vv-missoes-nota{margin:0 0 10px;color:#6B675F;font-size:12px}
 #vv-missoes .vv-missoes-resumo{margin:0 0 12px;color:#6B675F;font-size:12px}
@@ -57,19 +57,19 @@
 #vv-missoes .vv-missoes-total{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;color:#3A3F44;font-size:12.5px;font-weight:600}
 
 /* ação principal: o laranja do Criar (um por área) */
-#vv-missoes .vv-missoes-acao{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border:0;border-radius:12px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
+#vv-missoes .vv-missoes-acao{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
 #vv-missoes .vv-missoes-acao:hover:not(:disabled){background:#E8602E}
 #vv-missoes .vv-missoes-acao:disabled{opacity:.6;cursor:default}
 
 /* filtros: pílulas; a escolhida é o "selecionado" do padrão (laranja 13%) */
 #vv-missoes .vv-missoes-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-#vv-missoes .vv-missoes-filtros button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+#vv-missoes .vv-missoes-filtros button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
 #vv-missoes .vv-missoes-filtros button:hover{border-color:#FF7A2F;color:#C2490C}
 #vv-missoes .vv-missoes-filtros button[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF);color:#C2490C}
 
 /* lista de missões: cartão por linha, barra na cor da urgência */
 #vv-missoes .vv-missoes-lista,#vv-missoes .vv-missoes-clientes,#vv-missoes .vv-missoes-cobrancas{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-#vv-missoes .vv-missoes-linha{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:4px;width:100%;padding:10px 14px;border:1px solid #E6E0D6;border-radius:14px;background:#FFFFFF;color:#1F1D1A;font:inherit;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(31,29,26,.04);transition:border-color .15s,background .15s,translate .15s}
+#vv-missoes .vv-missoes-linha{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:4px;width:100%;padding:10px 14px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:inherit;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(31,29,26,.04);transition:border-color .15s,background .15s,translate .15s}
 #vv-missoes .vv-missoes-linha:hover{background:#FAF5EE;border-color:#D9D1C4;translate:0 -1px}
 #vv-missoes .vv-missoes-linha.atrasada{box-shadow:inset 3px 0 0 #D93D42,0 1px 2px rgba(31,29,26,.04)}
 #vv-missoes .vv-missoes-linha.hoje{box-shadow:inset 3px 0 0 #E2A11B,0 1px 2px rgba(31,29,26,.04)}
@@ -81,15 +81,15 @@
 #vv-missoes .vv-missoes-abrir::after{content:" ›"}
 
 /* peças do Escritório dentro das linhas: prazo pela escala de urgência, XP lilás, moedas âmbar */
-#vv-missoes .ofc-missao-prazo{display:inline-flex;align-items:center;flex:0 1 auto;max-width:100%;min-height:22px;padding:2px 9px;border-radius:999px;border:1px solid transparent;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif;font-style:normal;white-space:normal;line-height:1.2}
+#vv-missoes .ofc-missao-prazo{display:inline-flex;align-items:center;flex:0 1 auto;max-width:100%;min-height:22px;padding:2px 9px;border-radius:8px;border:1px solid transparent;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif;font-style:normal;white-space:normal;line-height:1.2}
 #vv-missoes .ofc-missao-prazo.atrasada{background:#D93D42;border-color:#D93D42;color:#FFFFFF!important}
 #vv-missoes .ofc-missao-prazo.hoje{background:#FFF1CC;border-color:#F3D48B;color:#8A5A00!important}
-#vv-missoes .ofc-missao-xp,#vv-missoes .ofc-missao-moeda{display:inline-flex;align-items:center;gap:.28em;height:22px;padding:0 8px;border-radius:999px;font:700 11px var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+#vv-missoes .ofc-missao-xp,#vv-missoes .ofc-missao-moeda{display:inline-flex;align-items:center;gap:.28em;height:22px;padding:0 8px;border-radius:8px;font:700 11px var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
 #vv-missoes .ofc-missao-xp{background:#ECE9FF;color:#5B4BD6!important}
 #vv-missoes .ofc-missao-moeda{background:#FFF6DE;color:#8A5A00!important}
 #vv-missoes .ofc-missao-linha{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:4px 6px;min-width:0}
 #vv-missoes .ofc-missao-cliente,#vv-missoes .ofc-missao-linha small{flex:none;color:#6B675F;font-size:11.5px}
-#vv-missoes .ofc-missao-status,#vv-missoes .ofc-missao-grupo{display:inline-flex;align-items:center;gap:5px;max-width:100%;height:22px;padding:0 8px;border-radius:999px;background:#F3EFE8;color:#5B574F!important;font:600 11px var(--vv-texto,system-ui),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-missoes .ofc-missao-status,#vv-missoes .ofc-missao-grupo{display:inline-flex;align-items:center;gap:5px;max-width:100%;height:22px;padding:0 8px;border-radius:8px;background:#F3EFE8;color:#5B574F!important;font:600 11px var(--vv-texto,system-ui),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #vv-missoes .ofc-missao-grupo i{width:8px;height:8px;border-radius:2px;background:var(--grupo,#9AA3A8);flex:none}
 
 /* cobranças: um bloco por cliente, a barra na cor do pior pedido */
@@ -99,9 +99,9 @@
 #vv-missoes .ofc-cobranca-cliente.avisa{border-color:#E2A11B}
 #vv-missoes .ofc-cobranca-cliente.lembra{border-color:#1F4FA8}
 #vv-missoes .ofc-cobranca-cliente b{font:700 13px var(--vv-texto,system-ui),sans-serif;color:#1F1D1A}
-#vv-missoes .ofc-cobranca-cliente small{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif}
+#vv-missoes .ofc-cobranca-cliente small{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:8px;background:#F1F2F3;color:#5B6268;font:700 11px var(--vv-texto,system-ui),sans-serif}
 #vv-missoes .ofc-cobranca-item{position:relative;list-style:none}
-#vv-missoes .ofc-cobranca{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:4px;align-items:center;width:100%;padding:10px 14px;border:1px solid #E6E0D6;border-radius:14px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.04);color:#1F1D1A;font:inherit;text-align:left;cursor:pointer;transform:none;transition:border-color .15s,background .15s}
+#vv-missoes .ofc-cobranca{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:4px;align-items:center;width:100%;padding:10px 14px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.04);color:#1F1D1A;font:inherit;text-align:left;cursor:pointer;transform:none;transition:border-color .15s,background .15s}
 #vv-missoes .ofc-cobranca:hover,#vv-missoes .ofc-cobranca:focus-visible{background:#FAF5EE;border-color:#D9D1C4}
 #vv-missoes .ofc-cobranca>.ofc-cobranca-titulo,#vv-missoes .ofc-cobranca>.ofc-cobranca-linha{grid-column:1}
 #vv-missoes .ofc-cobranca .ofc-cobranca-titulo{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;font:700 13px/1.35 var(--vv-texto,system-ui),sans-serif;color:#1F1D1A}
@@ -116,19 +116,19 @@
 #vv-missoes .ofc-cobranca-datas-abrir{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#6B675F;cursor:pointer}
 #vv-missoes .ofc-cobranca-datas-abrir svg{width:15px;height:15px}
 #vv-missoes .ofc-cobranca-datas-abrir:hover,#vv-missoes .ofc-cobranca-datas-abrir[aria-expanded="true"]{border-color:#FF7A2F;color:#C2490C;background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF)}
-#vv-missoes .ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:10px;margin-top:6px;padding:12px;border-radius:14px;border:1px solid #E6E0D6;background:#FAF8F4}
+#vv-missoes .ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:10px;margin-top:6px;padding:12px;border-radius:8px;border:1px solid #E6E0D6;background:#FAF8F4}
 #vv-missoes .ofc-datas-campo{display:grid;gap:4px;min-width:0}
 #vv-missoes .ofc-cobranca-datas small{color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:.12em;text-transform:uppercase}
-#vv-missoes .ofc-datas-valor{height:38px;padding:0 12px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
+#vv-missoes .ofc-datas-valor{height:38px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
 #vv-missoes .ofc-datas-valor[aria-expanded="true"]{border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
 #vv-missoes .ofc-datas-valor.mudou{color:#C2490C}
-#vv-missoes .ofc-p-entrar{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:12px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;filter:none;transform:none}
+#vv-missoes .ofc-p-entrar{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;filter:none;transform:none}
 #vv-missoes .ofc-p-entrar:hover:not(:disabled){background:#E8602E}
 #vv-missoes .ofc-p-entrar:disabled{background:#FFE6D6;box-shadow:none;color:#A84E00!important;cursor:default}
-#vv-missoes .ofc-datas-calendario{grid-column:1 / -1;display:grid;gap:6px;padding:10px;border-radius:12px;border:1px solid #E6E0D6;background:#FFFFFF}
+#vv-missoes .ofc-datas-calendario{grid-column:1 / -1;display:grid;gap:6px;padding:10px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF}
 #vv-missoes .ofc-datas-mes{display:flex;align-items:center;justify-content:space-between}
 #vv-missoes .ofc-datas-mes b{color:#1F1D1A;font:700 14px var(--vv-titulo,"Space Grotesk",system-ui),sans-serif}
-#vv-missoes .ofc-datas-mes button{width:32px;height:32px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:700 16px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
+#vv-missoes .ofc-datas-mes button{width:32px;height:32px;border:1px solid #E6E0D6;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:700 16px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
 #vv-missoes .ofc-datas-mes button:hover{border-color:#FF7A2F;color:#C2490C}
 #vv-missoes .ofc-datas-semana,#vv-missoes .ofc-datas-dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 #vv-missoes .ofc-datas-semana i{color:#6B675F;font:700 10.5px var(--vv-texto,system-ui),sans-serif;font-style:normal;text-align:center}

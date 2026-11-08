@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { ruido } from './irece.mjs';
-import { NICHOS, nichoDoCliente } from './nichos.mjs';
+import { NICHOS, nichoDoCliente, identidadeDoCliente, paletaDaLoja } from './nichos.mjs';
 
 export const PASSO = 6;          // distância entre lojas vizinhas
 const LW = 5, LD = 4.6;          // largura e fundo de cada loja
@@ -177,10 +177,11 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       const v = vagas[k];
       // Cliente com fachada própria (desenhada a partir da foto do lugar, mundo/sedes.mjs): a loja é a cara dele.
       // Fachada conceito pelo nicho do cliente, com a cor da marca e a logo na placa (a foto real substitui depois).
-      const nicho = nichoDoCliente(c.nome, c.segmento), cor = c.corMarca || TOLDOS[(k * 3) % TOLDOS.length];
+      const ident = identidadeDoCliente(c.nome), nicho = nichoDoCliente(c.nome, c.segmento);
+      const P = paletaDaLoja(ident?.paleta || [], TOLDOS[(k * 3) % TOLDOS.length]), cor = P.marca;
       const C = (lx, y, lz, w, h, d, cr, luz = false) => { const q = paraMundo(v, lx, lz, w, d); (luz ? o.luz : o.caixa).call(o, q.x, y, q.z, q.w, h, q.d, cr); };
       C(0, 0, 0, LW + .6, CHAO, LD + .2, '#CFC6B4');
-      const { placa } = (NICHOS[nicho] || NICHOS.loja)(C, cor);
+      const { placa } = (NICHOS[nicho] || NICHOS.loja)(C, cor, P);
       // Placa: fundo branco no bloco e a logo como imagem por cima (só aparece se o cliente tiver logo no Drive).
       C(0, placa.y - placa.h / 2 - .06, placa.z - .08, placa.w + .12, placa.h + .12, .1, '#FFFFFF');
       if (c.logo) logoNaPlaca(g, v, c.logo, placa);

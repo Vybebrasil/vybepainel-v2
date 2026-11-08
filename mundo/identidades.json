@@ -1,0 +1,294 @@
+{
+ "fonte": "whatsapp-ia/identidade-visual.js (cérebro do VYBES), exportado em 08/11/2026",
+ "clientes": [
+  {
+   "nome": "Brussolo Ristorante",
+   "apelidos": [
+    "brussolo",
+    "brussolo ristorante",
+    "restaurante brussolo"
+   ],
+   "segmento": "Gastronomia Italiana Contemporânea",
+   "paleta": [
+    "#5A1818",
+    "#A8543A",
+    "#F2ECE1",
+    "#143B3F",
+    "#C29B53"
+   ]
+  },
+  {
+   "nome": "Gonzalez Gastronomia",
+   "apelidos": [
+    "gonzalez",
+    "gonzalez gastronomia"
+   ],
+   "segmento": "Gastronomia Contemporânea & Experiência",
+   "paleta": [
+    "#181818",
+    "#9E4733",
+    "#EFE9DF",
+    "#B89454",
+    "#2F3E2E"
+   ]
+  },
+  {
+   "nome": "VÖA Sportswear",
+   "apelidos": [
+    "voa",
+    "voa sportswear",
+    "vöa",
+    "vöa sportswear"
+   ],
+   "segmento": "Moda Fitness & Athleisure Feminina",
+   "paleta": [
+    "#FAF9F6",
+    "#141414",
+    "#556B2F",
+    "#1E2F4D",
+    "#C8B6E2",
+    "#E86F5A",
+    "#6E8596"
+   ]
+  },
+  {
+   "nome": "Academia Lions Top",
+   "apelidos": [
+    "lions",
+    "academia lions",
+    "academia lions top",
+    "lionstop"
+   ],
+   "segmento": "Fitness, Musculação & Aulas Coletivas",
+   "paleta": [
+    "#D84814",
+    "#1C1C1F",
+    "#3A3A40",
+    "#FFFFFF"
+   ]
+  },
+  {
+   "nome": "Antonov Center",
+   "apelidos": [
+    "antonov",
+    "antonov academia",
+    "antonov center"
+   ],
+   "segmento": "Academia Premium & Alta Performance",
+   "paleta": [
+    "#0F1115",
+    "#C7CDD6",
+    "#1E64D8",
+    "#FFFFFF"
+   ]
+  },
+  {
+   "nome": "Hebravet",
+   "apelidos": [
+    "hebravet",
+    "clinica hebravet",
+    "hebravet clinica veterinaria"
+   ],
+   "segmento": "Clínica Veterinária & Pet Shop",
+   "paleta": [
+    "#121316",
+    "#B8FF01",
+    "#FFFFFF",
+    "#262930"
+   ]
+  },
+  {
+   "nome": "DiaCenter",
+   "apelidos": [
+    "diacenter",
+    "clinica diacenter"
+   ],
+   "segmento": "Saúde · Nefrologia & Hemodiálise",
+   "paleta": [
+    "#006888",
+    "#98C078",
+    "#F7FAFC",
+    "#003F54"
+   ]
+  },
+  {
+   "nome": "DiaLab",
+   "apelidos": [
+    "dialab",
+    "diacenter laboratorio prime",
+    "laboratorio prime",
+    "labdiacenter"
+   ],
+   "segmento": "Saúde · Laboratório de Análises Clínicas Prime",
+   "paleta": [
+    "#5B3A29",
+    "#F5EFE6",
+    "#C8A253",
+    "#E4D5C3"
+   ]
+  },
+  {
+   "nome": "Hellen Rocha Advocacia",
+   "apelidos": [
+    "hellen rocha",
+    "hellen rocha advocacia",
+    "dra hellen rocha",
+    "hellen"
+   ],
+   "segmento": "Direito Previdenciário (INSS & Rural)",
+   "paleta": [
+    "#9E8E7C",
+    "#1A1A1A",
+    "#F6F3EE",
+    "#C9BBAE"
+   ]
+  },
+  {
+   "nome": "Copirecê",
+   "apelidos": [
+    "copirece",
+    "cooperativa copirece",
+    "puro milho"
+   ],
+   "segmento": "Agroindústria & Cooperativismo Familiar (Puro Milho)",
+   "paleta": [
+    "#F2B705",
+    "#1E6B3A",
+    "#B84A27",
+    "#FFF8E7"
+   ]
+  },
+  {
+   "nome": "Serra Grande Bebidas",
+   "apelidos": [
+    "serra grande",
+    "serra grande bebidas",
+    "grupo serra grande",
+    "sergranbel"
+   ],
+   "segmento": "Distribuição de Bebidas B2B · Revenda Heineken (40 Anos)",
+   "paleta": [
+    "#008248",
+    "#0B3B60",
+    "#D4AF37",
+    "#F4F7F6"
+   ]
+  },
+  {
+   "nome": "ConectaSim",
+   "apelidos": [
+    "conectasim",
+    "conecta sim",
+    "conectasim provedor"
+   ],
+   "segmento": "Provedor de Internet Fibra Óptica Regional",
+   "paleta": [
+    "#650E2E",
+    "#EE8D58",
+    "#D93829",
+    "#FFFFFF"
+   ]
+  },
+  {
+   "nome": "Alpha1",
+   "apelidos": [
+    "alpha1",
+    "alpha 1",
+    "alpha1 consultoria"
+   ],
+   "segmento": "Conectividade Corporativa B2B & Continuidade de Rede",
+   "paleta": [
+    "#25467A",
+    "#0F213C",
+    "#38BDF8",
+    "#F1F5F9"
+   ]
+  },
+  {
+   "nome": "Experimente Papelaria",
+   "apelidos": [
+    "experimente",
+    "experimente papelaria"
+   ],
+   "segmento": "Papelaria Criativa, Volta às Aulas & Programa Escola Viva",
+   "paleta": [
+    "#6D28D9",
+    "#A78BFA",
+    "#FACC15",
+    "#FDFBF7"
+   ]
+  },
+  {
+   "nome": "João Bacelar",
+   "apelidos": [
+    "joao bacelar",
+    "deputado joao bacelar",
+    "campanha 2288"
+   ],
+   "segmento": "Mandato Parlamentar & Prestação de Contas",
+   "paleta": [
+    "#1D4ED8",
+    "#15803D",
+    "#EAB308",
+    "#FFFFFF"
+   ]
+  },
+  {
+   "nome": "DeBull Restaurante",
+   "apelidos": [
+    "debull",
+    "de bull",
+    "debull restaurante"
+   ],
+   "segmento": "Steakhouse & Hambúrguer Premium",
+   "paleta": [
+    "#141413",
+    "#B91C1C",
+    "#D97706",
+    "#F5F0E6"
+   ]
+  },
+  {
+   "nome": "Irecê Modas",
+   "apelidos": [
+    "irece modas",
+    "irecemodas"
+   ],
+   "segmento": "Moda Multimarcas Premium",
+   "paleta": [
+    "#111111",
+    "#F8F6F0",
+    "#D6C7B2"
+   ]
+  },
+  {
+   "nome": "Acquaville Park Show",
+   "apelidos": [
+    "acquaville",
+    "acquavile",
+    "acquaville park show"
+   ],
+   "segmento": "Parque Aquático, Lazer & Eventos",
+   "paleta": [
+    "#0284C7",
+    "#FACC15",
+    "#F97316",
+    "#FFFFFF"
+   ]
+  },
+  {
+   "nome": "Feijão Panela de Ouro",
+   "apelidos": [
+    "feijao panela de ouro",
+    "panela de ouro"
+   ],
+   "segmento": "Alimentos · Feijão Embalado",
+   "paleta": [
+    "#D97706",
+    "#5C3A21",
+    "#B91C1C",
+    "#FEF3C7"
+   ]
+  }
+ ]
+}

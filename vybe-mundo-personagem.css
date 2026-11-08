@@ -12,7 +12,7 @@
 .vv-personagem{position:fixed;z-index:831;top:50%;left:50%;translate:-50% -50%;
   width:min(860px,calc(100vw - 24px));height:min(620px,calc(100vh - 24px));
   display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;
-  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--ds-linha,#E6E0D6);border-radius:24px;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--ds-linha,#E6E0D6);border-radius:14px;
   box-shadow:0 30px 80px rgba(31,29,26,.25);
   font:500 13px/1.45 var(--vv-texto,system-ui,sans-serif);color-scheme:light;
   animation:vv-personagem-entra .2s cubic-bezier(.22,1,.36,1) both}
@@ -29,7 +29,7 @@
 .vv-personagem-kicker{display:block;color:#A84E00;font:700 10.5px/1.2 var(--vv-texto,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase}
 .vv-personagem-titulo h2{margin:3px 0 0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif);letter-spacing:-.01em}
 .vv-personagem-titulo p{margin:2px 0 0;color:#6B675F;font:500 12px/1.4 var(--vv-texto,system-ui,sans-serif)}
-.vv-personagem-x{appearance:none;flex:none;margin:0;width:34px;height:34px;padding:0;border:0;border-radius:12px;background:transparent;color:#6B675F;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+.vv-personagem-x{appearance:none;flex:none;margin:0;width:34px;height:34px;padding:0;border:0;border-radius:8px;background:transparent;color:#6B675F;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
 .vv-personagem-x:hover{background:#F3EFE8;color:#1F1D1A}
 
 /* Corpo: estados (carregando, sem Escritório, erro) ou a grade prévia | opções + rodapé */
@@ -44,7 +44,7 @@
 @media (prefers-reduced-motion:reduce){.vv-personagem-girando{animation-duration:2.4s}}
 
 /* Prévia: palco claro com sombra no chão; o boneco (canvas vivo ou imagem) gira com o arrasto */
-.vv-personagem-palco{grid-row:1;grid-column:1;position:relative;min-height:0;margin-bottom:16px;overflow:hidden;border:1px solid #EFEAE2;border-radius:18px;
+.vv-personagem-palco{grid-row:1;grid-column:1;position:relative;min-height:0;margin-bottom:16px;overflow:hidden;border:1px solid #EFEAE2;border-radius:10px;
   background:radial-gradient(ellipse 70% 45% at 50% 40%,#FFFFFF 0%,rgba(255,255,255,0) 72%),linear-gradient(180deg,#FBF8F3 0%,#F1ECE3 100%)}
 .vv-personagem-palco::before{content:"";position:absolute;left:50%;bottom:4%;width:44%;height:7%;translate:-50% 0;border-radius:50%;
   background:radial-gradient(closest-side,rgba(31,29,26,.18),rgba(31,29,26,0));pointer-events:none}
@@ -52,15 +52,15 @@
 .vv-personagem-tela:active{cursor:grabbing}
 img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 .vv-personagem-tela[hidden]{display:none}
-.vv-personagem-giro{position:absolute;z-index:1;top:10px;right:10px;display:flex;gap:4px;padding:3px;border-radius:999px;background:rgba(255,255,255,.86);border:1px solid #EFEAE2}
-.vv-personagem-giro button{appearance:none;margin:0;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:#1F1D1A;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+.vv-personagem-giro{position:absolute;z-index:1;top:10px;right:10px;display:flex;gap:4px;padding:3px;border-radius:8px;background:rgba(255,255,255,.86);border:1px solid #EFEAE2}
+.vv-personagem-giro button{appearance:none;margin:0;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:#1F1D1A;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
 .vv-personagem-giro button:hover{background:#F3EFE8;color:#C2490C}
 
 /* Opções: abas segmentadas e os grupos de amostras */
 .vv-personagem-lado{grid-row:1;grid-column:2;min-width:0;min-height:0;display:flex;flex-direction:column}
-.vv-personagem-abas{flex:none;display:flex;gap:2px;padding:3px;border-radius:12px;background:#EFEAE2;overflow-x:auto;scrollbar-width:none}
+.vv-personagem-abas{flex:none;display:flex;gap:2px;padding:3px;border-radius:8px;background:#EFEAE2;overflow-x:auto;scrollbar-width:none}
 .vv-personagem-abas::-webkit-scrollbar{display:none}
-.vv-personagem-abas button{appearance:none;flex:1 0 auto;margin:0;border:0;height:30px;padding:0 12px;border-radius:9px;background:transparent;color:#6B675F;
+.vv-personagem-abas button{appearance:none;flex:1 0 auto;margin:0;border:0;height:30px;padding:0 12px;border-radius:6px;background:transparent;color:#6B675F;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s,color .15s}
 .vv-personagem-abas button:hover{color:#1F1D1A}
 .vv-personagem-abas button[aria-selected="true"]{background:#FFFFFF;color:#C2490C;font-weight:700;box-shadow:0 1px 2px rgba(31,29,26,.08),0 2px 8px rgba(31,29,26,.06)}
@@ -70,16 +70,16 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 .vv-personagem-dica{margin:10px 0 0;color:#6B675F;font:500 12px/1.45 var(--vv-texto,system-ui,sans-serif)}
 .vv-personagem-grade{display:flex;flex-wrap:wrap;gap:8px}
 /* Amostra: círculo da cor do boneco; escolhida = anel laranja (borda, para o anel de foco do mundo somar) */
-.vv-personagem-amostra{appearance:none;margin:0;width:42px;height:42px;padding:3px;border:2px solid transparent;border-radius:999px;background:#FFFFFF;
+.vv-personagem-amostra{appearance:none;margin:0;width:42px;height:42px;padding:3px;border:2px solid transparent;border-radius:8px;background:#FFFFFF;
   display:grid;place-items:center;cursor:pointer;transition:border-color .15s,translate .15s}
 .vv-personagem-amostra:hover:not(:disabled){translate:0 -1px;border-color:#E6E0D6}
-.vv-personagem-amostra i{display:block;width:100%;height:100%;border-radius:999px;background:var(--c,#F3EFE8);box-shadow:inset 0 0 0 1px rgba(31,29,26,.14)}
+.vv-personagem-amostra i{display:block;width:100%;height:100%;border-radius:8px;background:var(--c,#F3EFE8);box-shadow:inset 0 0 0 1px rgba(31,29,26,.14)}
 .vv-personagem-amostra[aria-pressed="true"],.vv-personagem-amostra[aria-pressed="true"]:hover{border-color:#FF7A2F}
 .vv-personagem-amostra.nenhum i{background:linear-gradient(135deg,transparent calc(50% - 1.5px),#D9D1C4 calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px)),#FFFFFF}
 /* Desligada (peça que a pessoa ainda não tem): sem cor, para não parecer um tom pastel escolhível */
 .vv-personagem-amostra:disabled{opacity:.4;filter:grayscale(1);cursor:not-allowed}
 .vv-personagem-chips{display:flex;flex-wrap:wrap;gap:8px}
-.vv-personagem-chip{appearance:none;margin:0;height:34px;padding:0 14px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:#1F1D1A;
+.vv-personagem-chip{appearance:none;margin:0;height:34px;padding:0 14px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:#1F1D1A;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
 .vv-personagem-chip:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
 .vv-personagem-chip[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDF);border-color:var(--ds-sel-borda,#FFD3B9);color:var(--ds-sel-texto,#C2490C);font-weight:700}
@@ -93,7 +93,7 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 .vv-personagem-aviso{color:#6B675F}
 .vv-personagem-erro{color:#B42318;font-weight:600}
 .vv-personagem-acoes{flex:none;display:flex;align-items:center;gap:8px}
-.vv-personagem-sec,.vv-personagem-principal{appearance:none;margin:0;height:34px;padding:0 14px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+.vv-personagem-sec,.vv-personagem-principal{appearance:none;margin:0;height:34px;padding:0 14px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 .vv-personagem-sec{border:1px solid var(--ds-linha,#E6E0D6);background:#FFFFFF;color:#1F1D1A}
 .vv-personagem-sec:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
@@ -104,7 +104,7 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 
 /* Celular: prévia em cima, opções embaixo, botões numa linha */
 @media (max-width:720px){
-  .vv-personagem{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:22px}
+  .vv-personagem{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:12px}
   .vv-personagem-topo{padding:14px 12px 10px 16px}
   .vv-personagem-corpo.pronto{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(190px,32dvh,270px) minmax(0,1fr) auto;padding:0 14px}
   .vv-personagem-palco{grid-row:1;grid-column:1;margin-bottom:12px}
