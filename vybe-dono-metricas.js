@@ -104,6 +104,19 @@
 // - Nome: mapa `pessoas` ({id: nome}, lista [{id, name}] ou Map; no painel,
 //   TEAM_USERS). Sem ele, o texto do campo Responsável da peça.
 //
+// Heads (a carteira de cada líder, do pior para o melhor)
+// - Os heads vêm do cadastro do cliente (`heads`: lista ou texto "Nome A, Nome B"), a
+//   mesma leitura de vybe-carteira-saude.js. Cliente com dois heads entra na carteira
+//   de cada um; cliente sem head (ou cadastro sem carregar) entra em "Sem head".
+// - contas = clientes ativos da carteira; saude = quantos crítico/atenção/ok (a saúde
+//   de Clientes) e a pior. abertas, atrasadas e emRisco contam cada peça uma vez por
+//   head, mesmo que ela tenha dois clientes da mesma carteira (abertas como em
+//   Clientes; atrasadas e emRisco como em Hoje).
+// - semana.previstas = peças com a data da peça nesta semana; semana.entregues = as
+//   previstas da semana já entregues; semana.pct = entregues ÷ previstas (0 a 100, null
+//   sem previstas). `lista` traz as peças contadas em atrasadas e emRisco.
+// - Pior primeiro: pior saúde, mais furos, atrasadas e riscos. "Sem head" vai por último.
+//
 // Histórico (12 semanas, da mais antiga à atual)
 // - entregues por semana do dia da entrega; noPrazo = entregue até a data da peça
 //   (veiculação); atrasadasEntregues = depois dela. Sem data, não entra em nenhum dos
@@ -209,6 +222,14 @@
   const nomesDasPecas = (lista, max = 2) => lista.slice(0, max).map((p) => encurtar(p.nome)).join(', ') + (lista.length > max ? '…' : '');
   const nomesDosClientes = (lista, max = 3) => lista.slice(0, max).join(', ') + (lista.length > max ? '…' : '');
   const compararNomes = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
+  // Heads do cadastro: lista ou texto separado por vírgula (a mesma regra de vybe-carteira-saude.js).
+  const SEM_HEAD = 'Sem head';
+  const headsDe = (c) => {
+    const lista = Array.isArray(c?.heads) ? c.heads : String(c?.heads || '').split(',');
+    const nomes = [];
+    for (const n of lista) { const s = String(n || '').trim(); if (s && !nomes.includes(s)) nomes.push(s); }
+    return nomes;
+  };
 
   // ── Entradas ───────────────────────────────────────────────────────────────────
   const ativoNoCadastro = (c) => Boolean(c) && c.ativo !== false && !c.nao_e_cliente
@@ -289,7 +310,7 @@
     const cadastroCarregado = cadastro.length > 0;
     const nomePorChave = new Map();
     const porCliente = new Map();
-    const novoCliente = (nome, cad) => ({ cliente: nome, cad, abertas: 0, atrasadas: 0, furos: 0, emRisco: 0, esquecidas: 0, semana: 0, proximaSemana: 0 });
+    const novoCliente = (nome, cad) => ({ cliente: nome, cad, abertas: 0, atrasadas: 0, furos: 0, emRisco: 0, esquecidas: 0, semana: 0, proximaSemana: 0, pecasAtrasadas: [], pecasEmRisco: [] });
     for (const c of cadastro) {
       if (!ativoNoCadastro(c)) continue;
       const nome = String(c.nome).trim(), k = chaveTexto(nome);
@@ -449,8 +470,8 @@
         if (!st) continue;
         if (p.esquecida) st.esquecidas++;
         else if (!p.entregue) st.abertas++;
-        if (p.atrasada) { st.atrasadas++; if (p.furo) st.furos++; }
-        if (p.emRisco) st.emRisco++;
+        if (p.atrasada) { st.atrasadas++; st.pecasAtrasadas.push(p); if (p.furo) st.furos++; }
+        if (p.emRisco) { st.emRisco++; st.pecasEmRisco.push(p); }
         if (p.conteudo && p.data) {
           if (p.data >= inicioSem && p.data <= fimSem) st.semana++;
           else if (p.data >= inicioProx && p.data <= fimProx) st.proximaSemana++;
@@ -558,6 +579,8 @@
         semana: st.semana, proximaSemana: st.proximaSemana, esquecidas: st.esquecidas,
         temPlanejamento, planejamento: planoDoCliente.get(st.cliente) || null,
         saude: critico ? 'critico' : atencao ? 'atencao' : 'ok', motivos, gravidade,
+        // As peças por trás dos números (o mini painel do número lista exatamente o que foi contado).
+        lista: { atrasadas: st.pecasAtrasadas.sort(porAtraso).map(peca), emRisco: st.pecasEmRisco.sort(porData).map(peca) },
         pendencias: pecas.filter((p) => p.clientes.includes(st.cliente) && (p.atrasada || p.emRisco || p.esquecida))
           .sort(porAtraso).map((p) => ({ ...peca(p), cliente: st.cliente, motivos: [
             p.furo && 'Veiculação vencida', p.prazoVencido && 'Prazo interno vencido',
@@ -599,10 +622,58 @@
         pessoaId: t.pessoaId, pessoa: t.pessoa, abertas: t.abertas, atrasadas: t.atrasadas.length, emRisco: t.emRisco.length,
         paradas: t.paradas.length, semBriefing: t.semBriefing.length, entregues7d: t.entregues7d,
         idadeMedianaDias: umaCasa(mediana(t.idades)), cobrar,
+        lista: { atrasadas: t.atrasadas.map(peca), emRisco: t.emRisco.map(peca), paradas: t.paradas.map(peca) },
         _peso: t.atrasadas.length * 10 + t.emRisco.length * 5 + t.paradas.length * 2 + t.semBriefing.length,
       };
     }).sort((a, b) => (b._peso - a._peso) || (b.abertas - a.abertas) || compararNomes(a.pessoa, b.pessoa));
     for (const t of listaTime) delete t._peso;
+
+    // ── Heads ────────────────────────────────────────────────────────────────────
+    const saudePorCliente = new Map(listaClientes.map((c) => [c.cliente, c.saude]));
+    const porHead = new Map();
+    const headsDoCliente = new Map();
+    for (const st of porCliente.values()) {
+      const hs = headsDe(st.cad);
+      const lista = hs.length ? hs : [SEM_HEAD];
+      headsDoCliente.set(st.cliente, lista);
+      for (const h of lista) {
+        let x = porHead.get(h);
+        if (!x) { x = { head: h, contas: [], abertas: 0, atrasadas: [], emRisco: [], previstas: 0, entregues: 0 }; porHead.set(h, x); }
+        x.contas.push(st.cliente);
+      }
+    }
+    for (const p of pecas) {
+      const hs = new Set();
+      for (const nome of p.clientes) for (const h of headsDoCliente.get(nome) || []) hs.add(h);
+      for (const h of hs) {
+        const x = porHead.get(h);
+        if (!x) continue;
+        if (!p.entregue && !p.esquecida) x.abertas++;
+        if (p.atrasada) x.atrasadas.push(p);
+        if (p.emRisco) x.emRisco.push(p);
+        if (p.data && p.data >= inicioSem && p.data <= fimSem) { x.previstas++; if (p.entregue) x.entregues++; }
+      }
+    }
+    const NOMES_SAUDE = ['critico', 'atencao', 'ok'];
+    const listaHeads = [...porHead.values()].map((x) => {
+      const saude = { critico: 0, atencao: 0, ok: 0, pior: 'ok' };
+      for (const c of x.contas) saude[saudePorCliente.get(c) || 'ok']++;
+      saude.pior = NOMES_SAUDE.find((k) => saude[k] > 0) || 'ok';
+      x.atrasadas.sort(porAtraso); x.emRisco.sort(porData);
+      const furosHead = x.atrasadas.filter((p) => p.furo).length;
+      return {
+        head: x.head, semHead: x.head === SEM_HEAD,
+        contas: x.contas.length,
+        clientes: [...x.contas].sort((a, b) => (ORDEM_SAUDE[saudePorCliente.get(a)] - ORDEM_SAUDE[saudePorCliente.get(b)]) || compararNomes(a, b)),
+        saude,
+        abertas: x.abertas, atrasadas: x.atrasadas.length, furos: furosHead, emRisco: x.emRisco.length,
+        semana: { previstas: x.previstas, entregues: x.entregues, pct: x.previstas ? Math.round((x.entregues / x.previstas) * 100) : null },
+        lista: { atrasadas: x.atrasadas.map(peca), emRisco: x.emRisco.map(peca) },
+        _peso: saude.critico * 1000 + furosHead * 100 + x.atrasadas.length * 20 + x.emRisco.length * 8 + saude.atencao * 5,
+      };
+    }).sort((a, b) => (Number(a.semHead) - Number(b.semHead)) || (ORDEM_SAUDE[a.saude.pior] - ORDEM_SAUDE[b.saude.pior])
+      || (b._peso - a._peso) || compararNomes(a.head, b.head));
+    for (const h of listaHeads) delete h._peso;
 
     // ── Histórico ────────────────────────────────────────────────────────────────
     const semanas = semanasHist.map((s) => {
@@ -701,6 +772,7 @@
       clientes: listaClientes,
       gargalos: listaGargalos,
       time: listaTime,
+      heads: listaHeads,
       historico,
       projecao,
       alertas,
@@ -713,7 +785,7 @@
     REGRAS,
     // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
     util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
-      entregue: (status) => ENTREGUE.has(chaveStatus(status)) }),
+      entregue: (status) => ENTREGUE.has(chaveStatus(status)), headsDe, SEM_HEAD }),
   });
   raiz.VybeDono = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeDono = api;

@@ -19,8 +19,18 @@ const RESPOSTAS = {
   produtividade: (g) => ({ ...comum(g), mes: '2026-11', componentes: [{ id: 'prazo', nome: 'Entregas no prazo' }], fonte: { ajustes: 'Histórico' },
     detalhe: { id: '2', nome: 'Ana', score: 80, frases: ['2 de 3 entregas no prazo'], componentes: { prazo: .66 }, conquistas: [{ id: 'em_dia', titulo: 'Fila em dia', texto: '' }], posicao: g ? 1 : null },
     ...(g ? { ranking: [{ id: '2', nome: 'Ana', score: 80, posicao: 1, entregues: 3, meta: 10, cargoNome: 'Criação', conquistas: [] }], pesos: { prazo: 35 }, metas: { criacao: 40 }, cargos: { criacao: 'Criação' } } : {}) }),
-  rh: (g) => ({ ...comum(g), tipos: [{ id: 'ferias', nome: 'Férias', dias: 5 }], status: { aberto: 'Aberto' }, pedidos: [{ id: '1', pessoa_id: '2', titulo: 'Férias', tipo: 'ferias', status: 'aberto', prazo: '2026-11-12', sla: 'no_prazo', inicio: '2026-12-01', fim: '2026-12-10' }],
+  rh: (g) => ({ ...comum(g), rhPronto: true, migracaoRh: '2026-11-08-rh-pedidos-clima.sql',
+    tipos: [{ id: 'ferias', nome: 'Férias ou folga', dias: 5, formulario: true }, { id: 'reembolso', nome: 'Reembolso', dias: 3, formulario: true }, { id: 'folha', nome: 'Pagamento ou folha', dias: 2, formulario: false }],
+    status: { aberto: 'Aberto', resolvido: 'Resolvido', recusado: 'Recusado' },
+    pedidos: [{ id: '1', pessoa_id: '2', pessoa_nome: 'Ana', titulo: 'Férias', tipo: 'ferias', status: 'aberto', prazo: '2026-11-12', sla: 'no_prazo', inicio: '2026-12-01', fim: '2026-12-10', idadeDias: 1 },
+      { id: '2', pessoa_id: '2', pessoa_nome: 'Ana', titulo: 'Uber da captação', tipo: 'reembolso', status: 'aberto', prazo: '2026-11-03', sla: 'atrasado', atrasoUteis: 2, idadeDias: 6, data_desejada: '2026-11-04' },
+      { id: '3', pessoa_id: '2', pessoa_nome: 'Ana', titulo: 'Declaração', tipo: 'folha', status: 'recusado', prazo: '2026-11-03', sla: 'encerrado', resposta: 'Já enviamos por e-mail.', respondido_dia: '2026-11-03', idadeDias: 8 }],
+    indicadores: { abertos: 2, foraDoPrazo: 1, respondidos: 1, tempoMedioDias: 1.5, noPrazoPct: 100 },
     aniversarios: [{ nome: 'Ana', dia: '03-14' }], ferias: [], meuPerfil: {}, clima: { trimestre: '2026-T4', respondeu: false, dimensoes: [{ id: 'ambiente', nome: 'Ambiente' }], minimo: 3 },
+    pesquisa: { atual: { id: '7', titulo: 'Clima de novembro', abre: '2026-11-08', fecha: '2026-11-15', situacao: 'aberta', respondeu: false },
+      dimensoes: [{ id: 'lideranca', nome: 'Liderança' }, { id: 'carga', nome: 'Carga de trabalho' }], minimo: 3,
+      ...(g ? { equipe: 6, historico: [{ id: '7', titulo: 'Clima de novembro', abre: '2026-11-08', fecha: '2026-11-15', situacao: 'aberta', resultado: { liberado: false, respostas: 2, minimo: 3 }, vs: { delta: null } },
+        { id: '5', titulo: 'Clima de agosto', abre: '2026-08-01', fecha: '2026-08-08', situacao: 'encerrada', resultado: { liberado: true, respostas: 4, enps: 25, promotores: 2, detratores: 1, dimensoes: [{ id: 'carga', nome: 'Carga de trabalho', media: 3.5 }], comentarios: ['Bom time'] }, vs: { delta: null }, vsDimensoes: {} }] } : {}) },
     ...(g ? { pessoas: [{ id: '2', nome: 'Ana' }], perfis: [], visao: { atual: { headcount: 5, admissoes: 1, desligamentos: 0, tempoMedioMeses: 12.5 }, vs: { headcount: { delta: 1 }, admissoes: { delta: 1 }, desligamentos: { delta: 0 }, tempoMedioMeses: { delta: null } }, semEntrada: 2 },
       climaResultado: { trimestre: '2026-T4', liberado: false, respostas: 2, minimo: 3 } } : {}) }),
   projetos: (g) => ({ ...comum(g), semana: '2026-11-02', fim: '2026-11-08', capacidade: 12, pessoas: [{ id: '2', nome: 'Ana' }],
@@ -51,7 +61,7 @@ function montar({ gestao = false } = {}) {
   vm.createContext(ctx);
   vm.runInContext(readFileSync('vybe-mundo-pessoas.js', 'utf8'), ctx);
   const P = ctx.window.VybePessoas;
-  return { P, pedidos, html: () => corpo.filho?.filho?.innerHTML || '' };
+  return { P, pedidos, ctx, html: () => corpo.filho?.filho?.innerHTML || '' };
 }
 
 test('quem não é da gestão: só o próprio mês, sem ranking, sem pesos e sem abas de gestão', async () => {
@@ -82,6 +92,43 @@ test('todas as abas desenham com dados e com o estado vazio', async () => {
   assert.match(t.html(), /Sobrecarregada/); assert.match(t.html(), /vp-gantt-barra atrasada/);
   await t.P.abrir('rh');
   assert.match(t.html(), /Headcount/); assert.match(t.html(), /Responder a pesquisa/); assert.match(t.html(), /O resultado aparece com 3/);
+});
+
+test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, resposta e histórico do clima', async () => {
+  const g = montar({ gestao: true });
+  await g.P.abrir('rh');
+  let h = g.html();
+  assert.match(h, /data-espiar="pessoas:abertos"/); assert.match(h, /data-espiar="pessoas:fora"/); assert.match(h, /data-espiar="pessoas:respondidos"/);
+  assert.match(h, /vp-kpi espiavel u1/, 'fora do prazo pinta o número de vermelho');
+  assert.match(h, /1,5 dias úteis/); assert.match(h, /100% respondidos no prazo/);
+  assert.match(h, /vp-item u1/); assert.match(h, /Fora do prazo há 2 dias úteis/); assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
+  assert.match(h, /data-vp-form="responder"/); assert.match(h, /Prazos de resposta por tipo/);
+  assert.match(h, /Clima de agosto/); assert.match(h, /Encerrar agora/); assert.match(h, /2 respostas de 6 pessoas/);
+  assert.doesNotMatch(h, /name="folha"/, 'tipo antigo fora da tabela de prazos');
+  // Mini painel: a lista por trás do número, e o clique filtra a lista.
+  const prov = g.ctx.window.VybeEspiarProvedores.pessoas;
+  const fora = prov('fora');
+  assert.equal(fora.titulo, 'Fora do prazo'); assert.equal(fora.itens.length, 1); assert.equal(fora.itens[0].nome, 'Uber da captação'); assert.equal(fora.itens[0].cls, 'u1');
+  assert.equal(prov('abertos').itens.length, 2); assert.equal(prov('respondidos').itens.length, 1);
+  assert.equal(prov('clima').itens.length, 2); assert.equal(prov('nada'), null);
+  fora.clicar(fora.itens[0]);
+  h = g.html();
+  assert.match(h, /Mostrando: <b>Fora do prazo<\/b> \(1\)/); assert.doesNotMatch(h, /<b>Férias<\/b>/);
+  // Quem pediu: vê os próprios pedidos e a resposta, não vê a tabela de prazos nem resultado.
+  const a = montar();
+  await a.P.abrir('rh');
+  h = a.html();
+  assert.match(h, /Seus pedidos ao RH/); assert.match(h, /Resposta do RH:<\/b> Já enviamos por e-mail/); assert.match(h, /Cancelar pedido/);
+  assert.doesNotMatch(h, /Prazos de resposta|data-vp-form="responder"|Clima de agosto|Encerrar agora/);
+});
+
+test('Nova solicitação ao RH: o atalho do Hoje abre o RH já no formulário', async () => {
+  const t = montar();
+  await t.P.novoPedido();
+  const h = t.html();
+  assert.match(h, /aria-selected="true" data-vp-aba="rh"/); assert.match(h, /data-vp-form="pedido"/); assert.match(h, /Nova solicitação ao RH/);
+  assert.match(h, /Férias ou folga \(resposta em 5 dias úteis\)/); assert.match(h, /Reembolso/); assert.doesNotMatch(h, /<option value="folha"/, 'tipo antigo não abre');
+  assert.match(h, /Primeiro dia/); assert.match(h, /Data desejada/);
 });
 
 test('carga() devolve a carga por pessoa da semana para o Comercial', async () => {

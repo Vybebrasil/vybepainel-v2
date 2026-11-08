@@ -10,11 +10,13 @@
 //    inadimplência, fornecedores com BV) e editar pacotes: só os donos (Paulo, Vinícius, Ewerton, Deivid) e administração.
 import calc from '../shared/comercial-calculos.js';
 import { ehDono, podeEditarCrm, etapasCrm } from './crm.js';
+import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ultimosLeads } from './comercial-leads.js';
 
 export const ABAS_COMERCIAL = ['funil', 'pacotes', 'orcamentos', 'financas', 'creators', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa'];
 export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa']);
 const ACOES_SO_DONOS = new Set(['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
-  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar']);
+  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar',
+  'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
 const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar']);
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
@@ -58,18 +60,29 @@ async function capacidade(sql) {
   return { capacidades: Object.fromEntries(linhas.map((l) => [l.cargo, l.capacidade_mensal])), pessoas, cargos: calc.CARGOS };
 }
 const capacidadeOuNada = (sql) => capacidade(sql).catch((e) => { if (e.code === '42P01') return null; throw e; });
+// Dia de Irecê de um timestamp (o mês de um lead ou de um ganho é o do calendário daqui, não o do UTC).
+const diaNaBahia = (v) => { if (v == null || v === '') return null; const d = v instanceof Date ? v : new Date(v); return Number.isFinite(d.getTime()) ? hojeNaBahia(d) : null; };
 async function oportunidadesDoFunil(sql) {
   let comValor = true, linhas;
+  // criado_em/encerrado_em, quem cadastrou e a origem (formulário) alimentam metas, corrida comercial e gráficos do mês.
   try {
     linhas = await sql`SELECT o.id::text, o.nome, o.etapa, o.versao::text, o.valor_mensal::float8 AS valor_mensal, o.valor_avulso::float8 AS valor_avulso,
-      o.pacote_id::text, o.proxima_acao, to_char(o.proxima_acao_data,'YYYY-MM-DD') AS proxima_acao_data, p.nome AS responsavel_nome, o.aprovada_por::text
-      FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel ORDER BY o.atualizado_em DESC, o.id DESC LIMIT 2000`;
+      o.pacote_id::text, o.proxima_acao, to_char(o.proxima_acao_data,'YYYY-MM-DD') AS proxima_acao_data, p.nome AS responsavel_nome, o.aprovada_por::text,
+      o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem
+      FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel LEFT JOIN vybe_pessoas c ON c.id=o.criado_por
+      ORDER BY o.atualizado_em DESC, o.id DESC LIMIT 2000`;
   } catch (e) {
     if (e.code !== '42703') throw e; // sem as colunas novas: funil sem valor, ainda útil
     comValor = false;
     linhas = await sql`SELECT o.id::text, o.nome, o.etapa, o.versao::text, o.proxima_acao, to_char(o.proxima_acao_data,'YYYY-MM-DD') AS proxima_acao_data,
-      p.nome AS responsavel_nome, o.aprovada_por::text FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel
+      p.nome AS responsavel_nome, o.aprovada_por::text, o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem
+      FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel LEFT JOIN vybe_pessoas c ON c.id=o.criado_por
       ORDER BY o.atualizado_em DESC, o.id DESC LIMIT 2000`;
+  }
+  for (const o of linhas) {
+    o.criado_dia = diaNaBahia(o.criado_em); o.ganho_dia = o.etapa === 'ganho' ? diaNaBahia(o.encerrado_em) : null;
+    delete o.criado_em; delete o.encerrado_em;
+    if (o.origem !== 'formulario') o.origem = null;
   }
   const perdas = await sql`SELECT DISTINCT ON (oportunidade_id) oportunidade_id::text, de_etapa, detalhes FROM vybe_crm_historico
     WHERE tipo='etapa' AND para_etapa='perdido' ORDER BY oportunidade_id, id DESC`;
@@ -80,14 +93,46 @@ async function oportunidadesDoFunil(sql) {
   }
   return { linhas, comValor };
 }
-async function lerFunil(sql, r) {
+// Entradas na etapa Proposta comercial (histórico do CRM) desde um dia: "propostas enviadas" do mês.
+async function propostasDesde(sql, desde) {
+  const linhas = await sql`SELECT oportunidade_id::text, quando FROM vybe_crm_historico
+    WHERE tipo='etapa' AND para_etapa='proposta_comercial' AND quando >= (${desde}::date - interval '1 day') ORDER BY id`;
+  return linhas.map((l) => ({ oportunidade_id: l.oportunidade_id, dia: diaNaBahia(l.quando) })).filter((l) => l.dia);
+}
+// Metas, KPIs do mês × anterior, corrida comercial e séries dos últimos 6 meses (shared/comercial-calculos.js).
+async function mesComercial(sql, r, linhas, query, hoje) {
+  const p = periodoDaConsulta(query, hoje);
+  // Gráficos: os 6 meses que terminam no mês escolhido (no anual, em dezembro, ou no mês atual se for o ano corrente).
+  const mesFinal = p.tipo === 'anual' ? (p.mes.slice(0, 4) === hoje.slice(0, 4) ? hoje.slice(0, 7) : p.mes.slice(0, 4) + '-12') : p.mes;
+  const inicioSerie = calc.somarMeses(mesFinal + '-01', -5);
+  const propostas = await propostasDesde(sql, [p.anterior.inicio, inicioSerie].sort()[0]);
+  const config = await configComercial(sql, { dono: r.dono });
+  const dados = { oportunidades: linhas, propostas };
+  const kpis = calc.kpisComerciais(dados, p), metas = calc.metasDoPeriodo(config.metas, p);
+  let leads = null;
+  if (r.comercial) { try { leads = await ultimosLeads(sql); } catch (e) { if (!['42P01', '42703'].includes(e.code)) throw e; leads = []; } }
+  const saida = { periodo: p, hoje, kpis, propostas, metas,
+    progresso: calc.progressoMetas(metas, kpis.atual), ranking: calc.rankingFechamentos(linhas, p), series: calc.seriesMensais(dados, mesFinal, 6),
+    config_disponivel: config.disponivel, aviso_config: config.aviso || '', formulario: config.formulario, leads_formulario: leads, valores: r.dono,
+    metas_por_mes: config.metas };
+  return r.dono ? saida : semDinheiro(saida);
+}
+// Quem não é dono vê as quantidades (leads, propostas, negócios) e a posição na corrida, sem os valores em reais.
+function semDinheiro(m) {
+  const tira = (o) => { const { mrr, avulso, total, ...resto } = o || {}; return resto; };
+  return { ...m, metas_por_mes: undefined, kpis: { atual: tira(m.kpis.atual), anterior: tira(m.kpis.anterior), variacao: tira(m.kpis.variacao) },
+    metas: { negocios: m.metas.negocios, leads: m.metas.leads, meses_com_meta: m.metas.meses_com_meta, definida: m.metas.definida },
+    progresso: m.progresso.filter((x) => x.tipo !== 'dinheiro'), series: m.series.map(tira),
+    ranking: { linhas: m.ranking.linhas.map(tira), sem_atribuicao: { quantidade: m.ranking.sem_atribuicao.quantidade } } };
+}
+async function lerFunil(sql, r, query = {}, hoje = hojeNaBahia()) {
   const { linhas, comValor } = await oportunidadesDoFunil(sql);
   const etapas = await etapasCrm(sql), fases = calc.montarFases(etapas);
   let lista = [];
   try { lista = await pacotes(sql, r.dono); } catch (e) { if (e.code !== '42P01') throw e; }
   return { etapas, fases, motivos: calc.MOTIVOS_PERDA, oportunidades: linhas, resumo: calc.resumoFunil(linhas, fases),
     produtos: calc.produtoCampeao(linhas, lista), pacotes: lista.filter((p) => p.ativo).map(({ id, nome, tipo, preco, carga }) => ({ id, nome, tipo, preco, carga })),
-    valor_disponivel: comValor, capacidade: await capacidadeOuNada(sql) };
+    valor_disponivel: comValor, capacidade: await capacidadeOuNada(sql), mes: await mesComercial(sql, r, linhas, query, hoje) };
 }
 async function lerOrcamentos(sql, query) {
   if (query.id) {
@@ -166,7 +211,7 @@ export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia
   if (!ABAS_COMERCIAL.includes(aba)) falhar('Aba desconhecida.');
   const r = await papeis(sql, pessoa);
   if (ABAS_SO_DONOS.has(aba) && !r.dono) falhar('Só os donos e a administração veem o dinheiro da agência.', 403);
-  const dados = aba === 'funil' ? await lerFunil(sql, r)
+  const dados = aba === 'funil' ? await lerFunil(sql, r, query, hoje)
     : aba === 'pacotes' ? { pacotes: await pacotes(sql, r.dono), capacidade: await capacidade(sql), produtos: calc.produtoCampeao((await oportunidadesDoFunil(sql).catch((e) => { if (e.code === '42P01') return { linhas: [] }; throw e; })).linhas, await pacotes(sql, false)) }
     : aba === 'orcamentos' ? await lerOrcamentos(sql, query)
     : aba === 'financas' ? await lerFinancas(sql)
@@ -392,6 +437,9 @@ export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahi
     case 'conta_cancelar': return marcar(sql, sql`UPDATE vybe_comercial_contas SET cancelada=true,atualizado_em=now() WHERE id=${id()} RETURNING id::text`);
     case 'etapas_salvar': return salvarEtapas(sql, pessoa, b);
     case 'capacidade_salvar': return salvarCapacidade(sql, pessoa, b);
+    case 'metas_salvar': return salvarMetas(sql, pessoa, b);
+    case 'formulario_gerar': return gerarFormulario(sql, pessoa);
+    case 'formulario_desligar': return desligarFormulario(sql, pessoa);
     case 'fornecedor_salvar': return salvarFornecedor(sql, pessoa, b);
     case 'fornecedor_arquivar': return marcar(sql, sql`UPDATE vybe_comercial_fornecedores SET ativo=false,atualizado_em=now() WHERE id=${id()} RETURNING id::text`);
   }

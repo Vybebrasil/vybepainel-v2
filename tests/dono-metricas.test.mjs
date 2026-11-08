@@ -230,6 +230,10 @@ test('time: o pior primeiro e frases curtas do que cobrar', () => {
   assert.equal(bia.semBriefing, 2);
   assert.equal(bia.entregues7d, 1);
   assert.deepEqual(bia.cobrar, ['3 peças atrasadas: Card A1, Card A2…', '2 sem briefing']);
+  // O mini painel do número lista exatamente as peças contadas (Paulo, 08/11: clicar no número e ver o que tem por trás).
+  assert.deepEqual(bia.lista.atrasadas.map((p) => p.nome), ['Card A1', 'Card A2', 'Card A3']);
+  for (const t of r.time) assert.equal(t.lista.atrasadas.length, t.atrasadas);
+  for (const c of r.clientes) { assert.equal(c.lista.atrasadas.length, c.atrasadas); assert.equal(c.lista.emRisco.length, c.emRisco); }
   assert.equal(jady.pessoa, 'Jady');
   assert.deepEqual(jady.cobrar, ['1 peça parada há 3+ dias: Parada']);
   assert.equal(jady.idadeMedianaDias, 0); // 0, 4 e 0 dias
@@ -258,6 +262,65 @@ function historicoCom(contas, { atrasadaPorSemanaDesde = 99 } = {}) {
   });
   return demandas;
 }
+
+test('heads: a carteira de cada líder, cliente com dois heads e cliente sem head', () => {
+  const clientes = [
+    { id: 1, nome: 'Alfa', ativo: true, status: 'Ativo', heads: 'Paulo, Ewerton', planejamento_url: 'x' },
+    { id: 2, nome: 'Beta', ativo: true, status: 'Ativo', heads: ['Ewerton'], planejamento_url: 'x' },
+    { id: 3, nome: 'Gama', ativo: true, status: 'Ativo', planejamento_url: 'x' },
+    { id: 4, nome: 'Inativa', ativo: false, status: 'Inativo', heads: 'Paulo' },
+  ];
+  const demandas = [
+    // Alfa (Paulo e Ewerton): um furo, um risco, uma entregue da semana e uma aberta da semana.
+    peca({ nome: 'Furo Alfa', cliente: 'Alfa', status: 'Alteração', veiculacao_iso: '2026-11-03', status_updated_at: em('2026-11-01') }),
+    peca({ nome: 'Risco Alfa', cliente: 'Alfa', status: 'A Fazer', veiculacao_iso: '2026-11-05', status_updated_at: em('2026-11-01') }),
+    peca({ nome: 'Pronta Alfa', cliente: 'Alfa', status: 'Finalizado', veiculacao_iso: '2026-11-06', status_updated_at: em(HOJE) }),
+    peca({ nome: 'Aberta Alfa', cliente: 'Alfa', status: 'Em andamento', veiculacao_iso: '2026-11-07', status_updated_at: em(HOJE) }),
+    // Peça de Alfa e Beta: conta uma vez para Ewerton (mesma carteira).
+    peca({ nome: 'Conjunta', clientes: ['Alfa', 'Beta'], status: 'Em andamento', veiculacao_iso: '2026-11-08', status_updated_at: em(HOJE) }),
+    // Gama sem head.
+    peca({ nome: 'Pronta Gama', cliente: 'Gama', status: 'Agendado', veiculacao_iso: '2026-11-05', status_updated_at: em('2026-11-03') }),
+    peca({ nome: 'Peça inativa', cliente: 'Inativa', status: 'A Fazer', veiculacao_iso: '2026-11-01' }),
+  ];
+  const r = calcular({ demandas, clientes, pessoas: PESSOAS, hoje: HOJE });
+  assert.deepEqual(r.heads.map((h) => h.head), ['Ewerton', 'Paulo', 'Sem head']);
+  const [ewerton, paulo, sem] = r.heads;
+
+  assert.equal(paulo.contas, 1);
+  assert.deepEqual(paulo.clientes, ['Alfa']);
+  assert.deepEqual(paulo.saude, { critico: 1, atencao: 0, ok: 0, pior: 'critico' });
+  assert.equal(paulo.abertas, 4); // Furo, Risco, Aberta e Conjunta
+  assert.equal(paulo.atrasadas, 1);
+  assert.equal(paulo.furos, 1);
+  assert.equal(paulo.emRisco, 1);
+  assert.deepEqual(paulo.semana, { previstas: 5, entregues: 1, pct: 20 });
+  assert.deepEqual(paulo.lista.atrasadas.map((p) => p.nome), ['Furo Alfa']);
+  assert.deepEqual(paulo.lista.emRisco.map((p) => p.nome), ['Risco Alfa']);
+  assert.equal(paulo.lista.atrasadas[0].cliente, 'Alfa');
+
+  // Ewerton tem Alfa e Beta; a peça conjunta conta uma vez só.
+  assert.equal(ewerton.contas, 2);
+  assert.deepEqual(ewerton.clientes, ['Alfa', 'Beta']);
+  assert.equal(ewerton.saude.critico, 1);
+  assert.equal(ewerton.saude.pior, 'critico');
+  assert.equal(ewerton.abertas, 4);
+  assert.deepEqual(ewerton.semana, { previstas: 5, entregues: 1, pct: 20 });
+
+  // Sem head vai por último; cliente inativo fica de fora.
+  assert.equal(sem.semHead, true);
+  assert.deepEqual(sem.clientes, ['Gama']);
+  assert.equal(sem.atrasadas, 0);
+  assert.deepEqual(sem.semana, { previstas: 1, entregues: 1, pct: 100 });
+  assert.ok(!r.heads.some((h) => h.clientes.includes('Inativa')));
+
+  // A regra dos heads é a mesma da Carteira.
+  assert.deepEqual([...D.util.headsDe({ heads: ' Ana , Bia,Ana ' })], ['Ana', 'Bia']);
+
+  // Sem cadastro carregado, tudo vai para "Sem head".
+  const semCadastro = calcular({ demandas, clientes: [], hoje: HOJE });
+  assert.deepEqual(semCadastro.heads.map((h) => h.head), ['Sem head']);
+  assert.equal(semCadastro.heads[0].contas, 4); // valem os clientes das próprias peças
+});
 
 test('histórico: 12 semanas, mediana das completas, no prazo e tendência', () => {
   const contas = [2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4];

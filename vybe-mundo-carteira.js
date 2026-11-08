@@ -8,7 +8,10 @@
 //    etapa e "parada desde".
 //  - Churn: quem saiu, quando, como e por quê; taxa, receita perdida, tempo até sair e o cohort de
 //    retenção.
-//  - Contratos: valor mensal, início, renovação e status; renovações dos próximos 30 dias em destaque.
+//  - Contratos: valor mensal, início, renovação e status; renovações dos próximos 30 dias em destaque;
+//    tempo de casa (LTV), receita estimada do LTV, clientes novos, tempo restante médio e o mês a mês
+//    (ativos, novos, LTV médio, ticket médio). Saídas e entradas por mês na aba Churn; contas por head
+//    na Saúde (Paulo, 08/11/2026, AgencyFlow: Clientes e Finanças).
 // Topo: Mensal/Anual e o mês (valem para Churn e Contratos; a Saúde compara com o mês anterior).
 // Dados: DADOS_ALL/unifiedOperationalItems e CADASTRO_CLIENTES (os mesmos do painel, só clientes ativos
 // com o nome do cadastro) e GET /api/painel?area=carteira (server/carteira.js). Quem grava e confere é
@@ -49,6 +52,50 @@
   const STATUS_CONTRATO = { ativo: ['Ativo', 'u6'], negociando: ['Negociando', 'u4'], aviso_previo: ['Aviso prévio', 'u3a'], encerrado: ['Encerrado', 'u5'] };
   const TIPOS = () => S()?.TIPOS_CHURN || {};
   const MOTIVOS = () => S()?.MOTIVOS_CHURN || {};
+  // Tempo de casa (LTV) e tempo restante em texto curto.
+  const virgula = (x) => String(x).replace('.', ',');
+  const mesesTxt = (m) => (m == null ? 'sem data' : m < 1 ? 'menos de 1 mês' : m === 1 ? '1 mês' : `${virgula(m)} meses`);
+  const FONTE_ENTRADA = { contrato: 'início do contrato', cadastro: 'entrada no cadastro', historico: 'primeiro registro do cliente' };
+  function restanteTxt(dias) {
+    if (dias == null) return '';
+    if (dias === 0) return 'renova hoje';
+    if (dias < 60) return `faltam ${plural(dias, 'dia', 'dias')}`;
+    return `faltam ${mesesTxt(Math.round((dias / (S()?.DIAS_MES || 30.44)) * 10) / 10)}`;
+  }
+  const casaTxt = (l) => (!l || l.mesesLtv == null ? 'Tempo de casa: sem data de entrada'
+    : `Com a Vybe há ${mesesTxt(l.mesesLtv)} (desde ${dataCurta(l.entrada)}, ${FONTE_ENTRADA[l.fonteEntrada] || 'entrada'})`);
+  const contratoTxt = (l) => (!l ? '' : l.vencida ? `renovação vencida em ${dataCurta(l.renovacao)}` : l.diasRestantes != null ? `${restanteTxt(l.diasRestantes)} para a renovação`
+    : l.status === 'encerrado' ? 'contrato encerrado' : 'sem data de renovação');
+  // Valor curto para cima da barra: 2.500 → "2,5 mil".
+  const milTxt = (v) => (v == null ? '' : v >= 1000 ? `${virgula(Math.round(v / 100) / 10)} mil` : String(Math.round(v)));
+
+  // Barras mês a mês em SVG inline, com o número em cima de cada barra (o mesmo jeito de barrasSemana
+  // em vybe-mundo.js). `espiar(p)` devolve a chave do mini painel daquele mês (opcional).
+  function barrasMes(pontos, campo, { titulo, formato = (x) => virgula(x), cor = '#FF7A2F', fraca = '#E1DACE', espiar = null, w = 340, h = 78 } = {}) {
+    const vals = (pontos || []).map((p) => p[campo]);
+    if (!vals.length || vals.every((v) => v == null)) return `<figure class="vc-graf"><figcaption>${esc(titulo)}</figcaption>${nota('Sem dado para este gráfico ainda.')}</figure>`;
+    const max = Math.max(1, ...vals.filter((v) => v != null));
+    const bw = w / pontos.length, T = 13;
+    const desc = pontos.map((p) => `${p.rotulo} ${p[campo] == null ? 'sem dado' : formato(p[campo])}`).join(', ');
+    return `<figure class="vc-graf"><figcaption>${esc(titulo)}</figcaption>
+      <svg class="vc-graf-svg" viewBox="0 0 ${w} ${h + 16 + T}" role="img" aria-label="${esc(`${titulo}: ${desc}`)}"><g transform="translate(0 ${T})">${pontos.map((p, i) => {
+        const v = p[campo], x = i * bw, alt = v == null ? 0 : (v / max) * h, chave = espiar && v ? espiar(p) : '';
+        return `<g${chave ? ` data-espiar="carteira:${esc(chave)}" role="button" tabindex="0" aria-label="${esc(`${titulo}, ${p.rotulo}: ${formato(v)}`)}"` : ''}><title>${esc(`${p.rotulo}: ${v == null ? 'sem dado' : formato(v)}`)}</title>
+          ${v == null ? '' : `<rect x="${(x + bw * 0.18).toFixed(1)}" y="${(h - Math.max(alt, 1.5)).toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${Math.max(alt, 1.5).toFixed(1)}" rx="2" fill="${p.agora ? cor : fraca}"/>`}
+          ${v == null ? '' : `<text x="${(x + bw / 2).toFixed(1)}" y="${Math.max(9, h - Math.max(alt, 1.5) - 3).toFixed(1)}" text-anchor="middle" class="n">${esc(formato(v))}</text>`}
+          <text x="${(x + bw / 2).toFixed(1)}" y="${h + 13}" text-anchor="middle" class="${p.agora ? 'agora' : ''}">${esc(p.rotulo)}</text></g>`;
+      }).join('')}</g></svg></figure>`;
+  }
+  // Série mês a mês até o mês escolhido no topo (12 meses; começo vazio sai, ficam pelo menos 6).
+  function serieDosMeses() {
+    const sv = estado.servidor;
+    if (!sv?.clientes || !S()?.serieMensal) return null;
+    return S().serieMensal({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), ate: estado.mes, meses: 12, minimo: 6 });
+  }
+  const contratosAgora = () => {
+    const sv = estado.servidor;
+    return sv?.clientes ? S().contratos({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), tipo: estado.tipo, mes: estado.mes }) : null;
+  };
 
   function pecas() {
     if (typeof unifiedOperationalItems === 'function') { try { return unifiedOperationalItems() || []; } catch { /* cai para DADOS_ALL */ } }
@@ -120,7 +167,7 @@
   const aguardando = (o = '') => `<div class="vc-ativacao" role="note"><b>Aguardando ativação</b><p>${esc(o || 'Esta parte guarda dados novos no banco.')} Falta o Paulo aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code>.</p>${secundario('Tentar de novo', 'data-vc-recarregar')}</div>`;
   const comparacao = () => (estado.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
   // comparar:false = número que não tem "vs" (contagem do momento): só o número.
-  function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true } = {}) {
+  function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true, espiar = '' } = {}) {
     let linha = comparar ? `<small class="vc-var neutro">sem ${esc(contra.replace('vs ', ''))} para comparar</small>` : '';
     if (v) {
       const seta = v.direcao === 'sobe' ? '↑' : v.direcao === 'desce' ? '↓' : '=';
@@ -128,7 +175,8 @@
       const delta = v.direcao === 'igual' ? 'igual' : `${seta} ${formato(Math.abs(v.delta))}`;
       linha = `<small class="vc-var ${tom}" title="${esc(`${contra}: ${formato(v.anterior)}`)}"><span aria-hidden="true">${esc(delta)}</span><span class="vc-sr">${esc(v.direcao === 'igual' ? 'igual' : v.direcao === 'sobe' ? 'subiu' : 'caiu')} ${esc(v.direcao === 'igual' ? '' : formato(Math.abs(v.delta)))}</span> ${esc(contra)}</small>`;
     }
-    return `<div class="vc-kpi"><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
+    const ab = espiar ? ` data-espiar="carteira:${esc(espiar)}" role="button" tabindex="0"` : '';
+    return `<div class="vc-kpi${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
   }
   function ordemHtml(lista, opcoes) {
     return `<label class="vc-ordem"><span>Ordem</span><select data-vc-ordem="${lista}">${opcoes.map(([v, r]) => `<option value="${v}"${estado.ordem[lista] === v ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select></label>`;
@@ -147,8 +195,9 @@
     return `<div class="vc-serie" role="img" aria-label="${esc(`Média da carteira: ${h.serie.map((m) => `${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)} ${m.media}`).join(', ')}`)}">${h.serie.map((m) =>
       `<div class="vc-barra${m.agora ? ' agora' : ''}"><b>${m.media}</b><i class="${NIVEL_RISCO[S().riscoDaNota(m.media)]}" style="height:${Math.max(6, m.media)}%"></i><small>${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)}</small></div>`).join('')}</div>`;
   }
-  function linhaCliente(c) {
+  function linhaCliente(c, casa = null) {
     const aberto = estado.abertos.has(`c:${c.nome}`);
+    const tempo = c.id && casa ? casa.get(c.id) : null;
     const ruins = c.motivos.filter((m) => m.tom === 'ruim');
     const resumo = ruins.length ? ruins.slice(0, 2).map((m) => m.texto).join(' · ') : (c.motivos[0]?.texto || 'sem sinal de alerta');
     return `<li class="vc-linha ${c.nivel}">
@@ -160,25 +209,91 @@
       ${aberto ? `<div class="vc-detalhe">
         <ul class="vc-motivos">${c.motivos.map((m) => `<li class="${m.tom}"><span>${esc(m.texto)}</span>${m.pontos ? `<b>${m.pontos}</b>` : ''}</li>`).join('')}</ul>
         <p class="vc-nota">Head: ${esc(c.heads.join(', ') || 'sem head')}${c.carteira ? ` · Carteira: ${esc(c.carteira)}` : ''}</p>
+        ${tempo ? `<p class="vc-nota">${esc(casaTxt(tempo))}${tempo.temContrato ? ` · ${esc(contratoTxt(tempo))}` : ' · sem contrato registrado'}</p>` : ''}
         ${secundario('Abrir o cliente', `data-vc-cliente="${esc(c.nome)}"`)}
       </div>` : ''}</li>`;
   }
+  // Mini painel dos números: a última leitura de cada aba fica aqui para o painel listar quem está no número.
+  const espiarCarteira = {};
+  (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {}).carteira = (resto) => {
+    const [tipo, k] = String(resto).split(':');
+    if (tipo === 'risco' && espiarCarteira.saude) {
+      const nome = { alto: 'Risco alto', medio: 'Risco médio', baixo: 'Risco baixo' }[k], cls = { alto: 'u1', medio: 'u2', baixo: 'u6' }[k];
+      const itens = espiarCarteira.saude.clientes.filter((c) => c.risco === k).map((c) => ({ nome: c.nome, sub: (() => { const m = c.motivos || [], ruins = m.filter((x) => x.tom === 'ruim'); return (ruins.length ? ruins : m).slice(0, 2).map((x) => x.texto).join(' · '); })(), dir: c.score != null ? String(c.score) : '', cls }));
+      return { titulo: nome, cls, itens, vazio: 'Nenhum cliente neste risco.', rodape: 'Clique para filtrar a lista', clicar: () => { estado.risco = k; pintar(); } };
+    }
+    if (tipo === 'contratos' && espiarCarteira.contratos) {
+      const r = espiarCarteira.contratos;
+      const linhas = k === 'breve' ? [...r.vencidas, ...r.emBreve] : r.linhas.filter((l) => !l.temContrato);
+      const itens = linhas.map((l) => ({ nome: l.nome, sub: l.renovacao ? (l.vencida ? 'renovação vencida em ' : 'renova em ') + dataCurta(l.renovacao) : 'sem contrato registrado', dir: l.valor != null ? reais(l.valor) + '/mês' : '', cls: l.vencida ? 'u1' : '' }));
+      if (k === 'breve' || k === 'sem') return { titulo: k === 'breve' ? 'Renovações vencidas e em 30 dias' : 'Clientes sem contrato', cls: k === 'breve' ? 'u2' : '', itens, vazio: 'Nenhum.' };
+    }
+    // Tempo restante até a renovação (contratos abertos que ainda não venceram).
+    if (tipo === 'contratos' && k === 'restante' && espiarCarteira.contratos) {
+      const linhas = espiarCarteira.contratos.linhas.filter((l) => l.diasRestantes != null).sort((a, b) => a.diasRestantes - b.diasRestantes);
+      return { titulo: 'Tempo até a renovação', itens: linhas.map((l) => ({ nome: l.nome, sub: `renova em ${dataCurta(l.renovacao)}`, dir: restanteTxt(l.diasRestantes), cls: l.emBreve ? 'u2' : '' })),
+        vazio: 'Nenhum contrato aberto com renovação marcada.', rodape: 'Média = soma dos dias até a renovação ÷ contratos' };
+    }
+    // LTV: meses de casa e receita estimada (valor mensal × meses), de quem é ativo hoje.
+    if (tipo === 'ltv' && espiarCarteira.contratos) {
+      const r = espiarCarteira.contratos;
+      if (k === 'receita') {
+        const linhas = r.linhas.filter((l) => l.receitaLtv != null).sort((a, b) => b.receitaLtv - a.receitaLtv);
+        return { titulo: 'Receita estimada do LTV', itens: linhas.map((l) => ({ nome: l.nome, sub: `${reais(l.valor)}/mês × ${mesesTxt(l.mesesLtv)}`, dir: reais(l.receitaLtv) })),
+          vazio: 'Nenhum cliente com valor e data de entrada.', rodape: r.semReceitaLtv ? `${plural(r.semReceitaLtv, 'cliente fica', 'clientes ficam')} de fora (sem valor ou sem data)` : '' };
+      }
+      const linhas = r.linhas.filter((l) => l.mesesLtv != null).sort((a, b) => b.mesesLtv - a.mesesLtv);
+      return { titulo: 'Tempo de casa (LTV)', itens: linhas.map((l) => ({ nome: l.nome, sub: `desde ${dataCurta(l.entrada)} · ${FONTE_ENTRADA[l.fonteEntrada] || 'entrada'}`, dir: mesesTxt(l.mesesLtv) })),
+        vazio: 'Nenhum cliente com data de entrada.', rodape: r.semDataLtv ? `${plural(r.semDataLtv, 'cliente sem data fica', 'clientes sem data ficam')} fora da média` : '' };
+    }
+    if (tipo === 'novos' && espiarCarteira.contratos) {
+      const r = espiarCarteira.contratos;
+      return { titulo: `Clientes novos em ${r.periodo.rotulo}`, cls: 'u6',
+        itens: r.novos.map((n) => ({ nome: n.nome, sub: `entrou em ${dataCurta(n.entrada)} · ${FONTE_ENTRADA[n.fonteEntrada] || 'entrada'}${n.ativo ? '' : ` · saiu em ${dataCurta(n.saida)}`}`, dir: n.ativo ? '' : 'saiu', cls: n.ativo ? '' : 'u1' })),
+        vazio: 'Ninguém entrou neste período.' };
+    }
+    // Barras do mês a mês: quem entrou ou saiu naquele mês (carteira:mes:novos:AAAA-MM).
+    if (tipo === 'mes' && espiarCarteira.base) {
+      const [, qual, ym] = String(resto).split(':');
+      const ct = new Map((espiarCarteira.listaContratos || []).map((c) => [String(c.cliente_id), c]));
+      const lista = espiarCarteira.base.map((c) => ({ c, e: S().util.entradaDe(c, ct.get(String(c.id)) || null).entrada }))
+        .filter(({ c, e }) => (qual === 'saidas' ? String(c.saida || '').startsWith(ym) : String(e || '').startsWith(ym)))
+        .sort((a, b) => String(qual === 'saidas' ? a.c.saida : a.e).localeCompare(String(qual === 'saidas' ? b.c.saida : b.e)));
+      return { titulo: `${qual === 'saidas' ? 'Saíram' : 'Entraram'} em ${S().util.nomeDoMes(ym)}`, cls: qual === 'saidas' ? 'u1' : 'u6',
+        itens: lista.map(({ c, e }) => ({ nome: c.nome, sub: qual === 'saidas' ? `saiu em ${dataCurta(c.saida)}` : `entrou em ${dataCurta(e)}`, dir: c.valor != null ? `${reais(c.valor)}/mês` : '' })), vazio: 'Ninguém.' };
+    }
+    // Contas por head (carteira:head:<posição na lista>).
+    if (tipo === 'head' && espiarCarteira.heads) {
+      const h = espiarCarteira.heads[Number(k)];
+      if (!h) return null;
+      return { titulo: `Contas de ${h.head}`, cls: h.nivel, itens: h.clientes.map((c) => ({ nome: c.nome, sub: RISCO_TXT[c.risco] || '', dir: String(c.score), cls: c.nivel })),
+        vazio: 'Nenhum cliente.', rodape: 'Clique para filtrar a lista pelo head', clicar: () => { estado.head = h.head; estado.risco = 'todos'; pintar(); } };
+    }
+    return null;
+  };
   function abaSaude() {
     const r = estado.saude;
     if (!S() || !window.VybeDono) return vazio('A conta da saúde não carregou nesta página.', acao('Atualizar a página', 'data-vc-atualizar'));
     if (!r || !r.clientes.length) return vazio(cadastro().length ? 'Nenhum cliente ativo com peças no painel ainda.' : 'O cadastro de clientes ainda não carregou.', acao('Carregar de novo', 'data-vc-recarregar'));
+    espiarCarteira.saude = r;
     const h = S().historicoSaude({ meses: estado.servidor?.historico?.meses || [], atual: r.resumo, hoje: r.dia });
     const heads = [...new Set(r.clientes.flatMap((c) => (c.heads.length ? c.heads : [S().SEM_HEAD])))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     let lista = r.clientes.filter((c) => (estado.risco === 'todos' || c.risco === estado.risco)
       && (estado.head === 'todos' || (c.heads.length ? c.heads : [S().SEM_HEAD]).includes(estado.head)));
     if (estado.ordem.saude === 'melhor') lista = [...lista].reverse();
     else if (estado.ordem.saude === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    // Tempo de casa de cada cliente (para a ficha) e as contas por head com a receita (base do servidor).
+    const ctr = contratosAgora();
+    if (ctr) espiarCarteira.contratos = ctr;
+    const casa = ctr ? new Map(ctr.linhas.map((l) => [l.id, l])) : null;
+    const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: estado.servidor?.contratos?.lista || [] });
+    espiarCarteira.heads = contas;
     const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
     return `<div class="vc-kpis">
         ${kpi('Média da carteira', r.resumo.media ?? '—', h.variacao.media, { contra: 'vs mês anterior', nivel: NIVEL_RISCO[S().riscoDaNota(r.resumo.media ?? 0)] })}
-        ${kpi('Risco alto', r.resumo.alto, h.variacao.alto, { contra: 'vs mês anterior', nivel: r.resumo.alto ? 'u1' : '' })}
-        ${kpi('Risco médio', r.resumo.medio, null, { comparar: false })}
-        ${kpi('Risco baixo', r.resumo.baixo, null, { comparar: false })}
+        ${kpi('Risco alto', r.resumo.alto, h.variacao.alto, { contra: 'vs mês anterior', nivel: r.resumo.alto ? 'u1' : '', espiar: 'risco:alto' })}
+        ${kpi('Risco médio', r.resumo.medio, null, { comparar: false, espiar: 'risco:medio' })}
+        ${kpi('Risco baixo', r.resumo.baixo, null, { comparar: false, espiar: 'risco:baixo' })}
       </div>
       <section class="vc-secao"><h3>Média da carteira mês a mês</h3>${serieHtml(h)}</section>
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Clientes prioritários</h3><span class="vc-conta">${lista.length}</span></div>
@@ -188,13 +303,23 @@
           <label class="vc-ordem"><span>Head</span><select data-vc-head><option value="todos">Todos</option>${heads.map((x) => `<option${estado.head === x ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>
           ${ordemHtml('saude', [['risco', 'Alto risco → baixo'], ['melhor', 'Baixo risco → alto'], ['nome', 'Nome A–Z']])}
         </div>
-        ${lista.length ? `<ol class="vc-lista">${cortar(lista, 'saude').map(linhaCliente).join('')}</ol>${verMais('saude', lista.length)}` : vazio('Nenhum cliente neste filtro.', secundario('Ver todos', 'data-vc-risco="todos" data-vc-limpar'))}
+        ${lista.length ? `<ol class="vc-lista">${cortar(lista, 'saude').map((c) => linhaCliente(c, casa)).join('')}</ol>${verMais('saude', lista.length)}` : vazio('Nenhum cliente neste filtro.', secundario('Ver todos', 'data-vc-risco="todos" data-vc-limpar'))}
         ${nota(fonte)}
       </section>
-      <section class="vc-secao"><h3>Média por head</h3><div class="vc-heads">${r.heads.map((x) => `<div class="vc-head">
-          <div class="vc-head-topo"><b>${esc(x.head)}</b><span class="vc-nota-num ${x.nivel}">${x.media}</span></div>
-          <small>${plural(x.total, 'cliente', 'clientes')}${x.alto ? ` · <span class="vc-ruim">${x.alto} em risco alto</span>` : ''}</small>
-          <p>${x.piores.map((p) => `${esc(p.nome)} <b>${p.score}</b>`).join(' · ')}</p></div>`).join('')}</div></section>`;
+      ${contasHtml(contas)}`;
+  }
+  // Contas por head: quantos clientes cada head tem, a nota média da carteira dele e a receita mensal.
+  function contasHtml(contas) {
+    if (!contas.length) return '';
+    const semValor = contas.reduce((t, h) => t + (h.semHead ? 0 : h.semValor), 0);
+    return `<section class="vc-secao"><div class="vc-secao-topo"><h3>Contas por head</h3><span class="vc-conta">${contas.filter((h) => !h.semHead).length}</span></div>
+      <div class="vc-tabela-rola"><table class="vc-contas"><thead><tr><th scope="col">Head</th><th scope="col">Contas</th><th scope="col">Nota média</th><th scope="col">Risco alto</th><th scope="col">Receita/mês</th></tr></thead>
+      <tbody>${contas.map((h, i) => `<tr${h.semHead ? ' class="sem-head"' : ''}><th scope="row">${esc(h.head)}</th>
+        <td><span class="vc-num-espiar" data-espiar="carteira:head:${i}" role="button" tabindex="0" aria-label="${esc(`${plural(h.contas, 'conta', 'contas')} de ${h.head}`)}">${h.contas}</span></td>
+        <td><span class="vc-nota-num ${h.nivel}">${h.media}</span></td>
+        <td class="${h.alto ? 'vc-ruim' : ''}">${h.alto || '—'}</td>
+        <td>${h.receita == null ? '—' : reais(h.receita)}</td></tr>`).join('')}</tbody></table></div>
+      ${nota(`Cliente com mais de um head conta para cada um. Nota média = média simples das notas de saúde dos clientes do head.${semValor ? ` ${plural(semValor, 'conta sem valor mensal fica', 'contas sem valor mensal ficam')} fora da receita.` : ''}`)}</section>`;
   }
 
   // ---------- Onboarding ----------
@@ -325,10 +450,35 @@
           <ol class="vc-lista">${cortar(lista, 'churn').map(linhaSaida).join('')}</ol>${verMais('churn', lista.length)}`
           : vazio(`Nenhum cliente saiu em ${r.periodo.rotulo}.`, estado.tipo === 'mensal' ? secundario('Ver o ano inteiro', 'data-vc-tipo="anual"') : '')}
       </section>
+      ${saidasPorMesHtml()}
       <section class="vc-secao"><h3>Retenção por mês de entrada</h3>${cohortHtml(c)}</section>`;
+  }
+  function guardarBase() {
+    espiarCarteira.base = estado.servidor?.clientes || [];
+    espiarCarteira.listaContratos = estado.servidor?.contratos?.lista || [];
+  }
+  function saidasPorMesHtml() {
+    const s = serieDosMeses();
+    if (!s) return '';
+    guardarBase();
+    return `<section class="vc-secao"><h3>Saídas por mês</h3><div class="vc-grafs">
+      ${barrasMes(s.meses, 'saidas', { titulo: 'Clientes que saíram', cor: '#D93D42', fraca: '#F2C4C6', formato: String, espiar: (p) => `mes:saidas:${p.mes}` })}
+      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}` })}</div>
+      ${nota('Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro. Toque numa barra para ver quem.')}</section>`;
   }
 
   // ---------- Contratos ----------
+  function mesAMesHtml() {
+    const s = serieDosMeses();
+    if (!s) return '';
+    guardarBase();
+    return `<section class="vc-secao"><h3>Mês a mês</h3><div class="vc-grafs">
+      ${barrasMes(s.meses, 'ativos', { titulo: 'Clientes ativos', formato: String })}
+      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes novos', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}` })}
+      ${barrasMes(s.meses, 'ltvMedio', { titulo: 'LTV médio (meses)' })}
+      ${barrasMes(s.meses, 'ticketMedio', { titulo: 'Ticket médio (R$)', formato: milTxt })}</div>
+      ${nota(`Cada mês na data do último dia (o mês corrente, hoje). Ativos = entraram até ali e não tinham saído${s.semEntrada ? ` (${plural(s.semEntrada, 'cliente sem data de entrada conta', 'clientes sem data de entrada contam')} como antigo)` : ''}. Ticket = receita mensal ativa ÷ clientes ativos com valor. As saídas por mês ficam na aba Churn.`)}</section>`;
+  }
   function formContrato(l) {
     const f = estado.form;
     if (!f || f.tipo !== 'contrato' || f.id !== l.id) return '';
@@ -344,8 +494,9 @@
     const [rot, niv] = STATUS_CONTRATO[l.status] || ['Sem contrato', 'u5'];
     const ren = l.renovacao ? (l.vencida ? etiqueta(`Renovação vencida em ${dataCurta(l.renovacao)}`, 'u1') : l.emBreve ? etiqueta(l.diasRenovacao ? `Renova em ${plural(l.diasRenovacao, 'dia', 'dias')}` : 'Renova hoje', 'u2') : etiqueta(rot, niv)) : etiqueta(rot, niv);
     const apoio = [l.valor != null ? `${reais(l.valor)}/mês${l.valorDoCadastro ? ' (do cadastro)' : ''}` : 'sem valor', l.inicio ? `desde ${dataCurta(l.inicio)}` : '', l.renovacao ? `renova ${dataCurta(l.renovacao)}` : ''].filter(Boolean).join(' · ');
+    const casa = [casaTxt(l), l.receitaLtv != null ? `LTV estimado ${reais(l.receitaLtv)}` : '', l.temContrato ? contratoTxt(l) : ''].filter(Boolean).join(' · ');
     const pode = estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel;
-    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(l.nome)}</b><small>${esc(apoio)}</small>${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
+    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(l.nome)}</b><small>${esc(apoio)}</small><small class="vc-casa">${esc(casa)}</small>${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
       ${pode && !(estado.form?.tipo === 'contrato' && estado.form.id === l.id) ? `<div class="vc-linha-acoes">${secundario(l.temContrato ? 'Editar' : 'Registrar contrato', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}"`)}</div>` : ''}
       ${formContrato(l)}</li>`;
   }
@@ -353,6 +504,7 @@
     const sv = estado.servidor;
     if (!sv?.clientes) return vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar'));
     const r = S().contratos({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
+    espiarCarteira.contratos = r;
     let lista = r.linhas;
     if (estado.ordem.contratos === 'valor') lista = [...lista].sort((a, b) => (b.valor ?? -1) - (a.valor ?? -1));
     else if (estado.ordem.contratos === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -361,10 +513,19 @@
     return `${sv.contratos?.disponivel ? '' : aguardando('Os contratos guardam valor, início e renovação de cada cliente.')}
       <div class="vc-kpis">
         ${kpi('Receita mensal ativa', reais(r.receita), r.variacao.receita, { formato: reais })}
-        ${kpi('Renovações em 30 dias', r.emBreve.length, null, { nivel: r.emBreve.length ? 'u2' : '', comparar: false })}
+        ${kpi('Renovações em 30 dias', r.emBreve.length, null, { nivel: r.emBreve.length ? 'u2' : '', comparar: false, espiar: 'contratos:breve' })}
         ${kpi('Ticket médio', reais(r.ticketMedio), null, { comparar: false })}
-        ${kpi('Sem contrato', r.semContrato, null, { comparar: false })}
+        ${kpi('Sem contrato', r.semContrato, null, { comparar: false, espiar: 'contratos:sem' })}
       </div>
+      <section class="vc-secao"><h3>Tempo de casa (LTV)</h3>
+      <div class="vc-kpis">
+        ${kpi('LTV médio', r.ltvMedio == null ? '—' : mesesTxt(r.ltvMedio), null, { comparar: false, espiar: 'ltv:meses' })}
+        ${kpi('Receita estimada do LTV', r.receitaLtv == null ? '—' : reais(r.receitaLtv), null, { comparar: false, espiar: 'ltv:receita' })}
+        ${kpi(estado.tipo === 'anual' ? 'Clientes novos no ano' : 'Clientes novos no mês', r.novos.length, r.variacao.novos, { formato: String, nivel: r.novos.length ? 'u6' : '', espiar: 'novos:periodo' })}
+        ${kpi('Tempo restante médio', r.restanteMedio ? restanteTxt(r.restanteMedio.dias).replace('faltam ', '') : '—', null, { comparar: false, espiar: 'contratos:restante' })}
+      </div>
+      ${nota(`LTV = meses desde o início do contrato (sem contrato, a data de entrada no cadastro) até hoje, só clientes ativos. Receita estimada = valor mensal × meses de casa.${r.semDataLtv ? ` ${plural(r.semDataLtv, 'cliente sem data fica', 'clientes sem data ficam')} fora da média.` : ''} Tempo restante = dias até a renovação dos contratos abertos que ainda não venceram${r.restanteMedio ? ` (${plural(r.restanteMedio.contratos, 'contrato', 'contratos')})` : ''}.`)}
+      </section>
       ${breve.length ? `<section class="vc-secao vc-breve"><div class="vc-secao-topo"><h3>Renovações em breve</h3><span class="vc-conta">${breve.length}</span></div><ol class="vc-lista">${breve.map(linhaContrato).join('')}</ol></section>` : ''}
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Todos os clientes ativos</h3><span class="vc-conta">${lista.length}</span></div>
         ${lista.length ? `<div class="vc-filtros">${ordemHtml('contratos', [['renovacao', 'Renovação mais próxima'], ['valor', 'Maior valor → menor'], ['nome', 'Nome A–Z']])}</div>
@@ -372,7 +533,8 @@
           : vazio('Nenhum cliente ativo no cadastro.', secundario('Tentar de novo', 'data-vc-recarregar'))}
         ${sv.contratos?.disponivel && !(sv.contratos.lista || []).length && primeiro && sv.pode?.contratos ? vazio('Nenhum contrato registrado ainda.', acao('Registrar o primeiro', `data-vc-form-abrir="contrato" data-vc-cli="${esc(primeiro.id)}"`)) : ''}
         ${nota('Só o registro do contrato: sem assinatura eletrônica. Valor e contrato só quem administra altera.')}
-      </section>`;
+      </section>
+      ${mesAMesHtml()}`;
   }
 
   // ---------- janela ----------
@@ -380,7 +542,8 @@
     <p><b>Saúde</b>: cada cliente ativo começa com 100 e perde pontos por peça atrasada, risco de furo, voltas para alteração, aprovação parada, entregas fora do prazo, calendário vazio, contrato vencendo, pagamento atrasado, NPS baixo, muito tempo sem reunião e clima ruim no grupo. Abaixo de 50 é risco alto; de 50 a 74, médio. Toque num cliente para ver os motivos.</p>
     <p><b>Onboarding</b>: a esteira de cada cliente novo, com checklist e responsável por etapa. "Parada desde" mostra há quanto tempo a etapa atual não anda.</p>
     <p><b>Churn</b>: quem saiu (pela desativação no cadastro), com tipo e motivo. Taxa = saídas ÷ clientes ativos no começo do período. O cohort mostra quantos de cada mês de entrada seguiam ativos depois de 1, 2, 3, 6 e 12 meses.</p>
-    <p><b>Contratos</b>: valor mensal, início, renovação e status. Renovações dos próximos 30 dias ficam em destaque.</p>
+    <p><b>Contratos</b>: valor mensal, início, renovação e status. Renovações dos próximos 30 dias ficam em destaque. LTV = há quantos meses o cliente está com a Vybe (do início do contrato; sem ele, da entrada no cadastro); receita estimada = valor mensal × meses. O mês a mês mostra ativos, novos, LTV médio e ticket médio.</p>
+    <p><b>Contas por head</b> (na Saúde): quantos clientes cada head tem, a nota média deles e a receita mensal.</p>
     <p>Mensal/Anual e o mês no topo valem para Churn e Contratos.</p></div>`;
   function htmlJanela() {
     const corpo = estado.carregando && !estado.servidor && !estado.saude ? '<p class="vc-carregando" role="status">Lendo a carteira…</p>'

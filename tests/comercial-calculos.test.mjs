@@ -165,3 +165,14 @@ test('capacidade × vendas: cabe, aperta e estoura pelas cores de urgência', ()
   r = calc.capacidadeTime({ ...base, acrescimo: { gestao: 1 } }); assert.equal(r.estado, 'estoura'); // sem capacidade configurada
   r = calc.capacidadeTime({ ...base, acrescimo: { producao: 0, criacao: 1 } }); assert.deepEqual([r.estado, r.urgencia], ['cabe', 'u6']);
 });
+
+test('ROI do orçamento: lucro por venda, vendas para pagar a Vybe e retorno', () => {
+  const r = calc.roiCampanha({ investimento: '2.500', ticket: '180', margem: '35', vendas: '60' });
+  assert.equal(r.lucroPorVenda, 63);
+  assert.equal(r.empate, 40); // 2500 / 63 = 39,7 → 40 vendas
+  assert.equal(r.faturamento, 10800); assert.equal(r.lucro, 3780);
+  assert.equal(r.roi, 51.2);
+  assert.equal(calc.roiCampanha({ investimento: 2500, ticket: 180, margem: 35 }).roi, null); // sem estimativa de vendas: só o empate
+  assert.equal(calc.roiCampanha({ investimento: 2500, ticket: 180, margem: 0 }).empate, null);
+  for (const ruim of [{}, { investimento: 0, ticket: 10, margem: 10 }, { investimento: 100, ticket: 10, margem: 120 }, { investimento: 'abc', ticket: 10, margem: 10 }]) assert.equal(calc.roiCampanha(ruim), null);
+});

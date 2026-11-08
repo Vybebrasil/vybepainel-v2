@@ -84,7 +84,7 @@ function barra(e, participantes, falando = new Set()) {
   const el = { hidden: false, innerHTML: '', querySelector: () => null };
   const funcoes = { escritorioCanal: () => 'escritorio', escritorioOuvindo: () => participantes,
     escritorioPessoasFalando: () => falando, escritorioEstadoVozTexto: () => 'Conectando' };
-  const c = vm.createContext({ escritorio: e, mundo: { zonasDoPredio: {} }, barra: el,
+  const c = vm.createContext({ escritorio: e, mundo: { zonasDoPredio: {} }, zonas3d: () => ({}), barra: el,
     body: { classList: { contains: () => false } }, ligado: true, window: {},
     pessoaAberta: null, chamarAberto: false, minhaSalaDaConta: () => '', fn: n => funcoes[n], esc: String, iniciais: n => n[0],
     musicaHtml: () => '', IC: {}, Set,

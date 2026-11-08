@@ -147,6 +147,44 @@
 #vv-comercial .vc-grafico figcaption i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 #vv-comercial .vc-grafico figcaption i.ent{background:#18A957}#vv-comercial .vc-grafico figcaption i.sai{background:#D9D3C9}#vv-comercial .vc-grafico figcaption i.sai.est{background:#EDE8E0;outline:1px dashed #C9C1B4}
 
+/* funil: metas do mês, gráficos dos últimos 6 meses, corrida comercial e formulário de leads (08/11/2026) */
+#vv-comercial .vc-metas{list-style:none;margin:0 0 10px;padding:0;background:#FFF;border:1px solid var(--vc-linha);border-radius:10px}
+#vv-comercial .vc-metas li{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(70px,1fr) 52px;gap:4px 12px;align-items:center;padding:10px 14px;border-top:1px solid #F0EBE3}
+#vv-comercial .vc-metas li:first-child{border-top:0}
+#vv-comercial .vc-metas li div{display:flex;flex-direction:column;min-width:0}
+#vv-comercial .vc-metas li b{font-weight:700}
+#vv-comercial .vc-metas li small{color:var(--vc-apagado);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#vv-comercial .vc-metas li strong{font:800 14px var(--vv-texto,system-ui);font-variant-numeric:tabular-nums;text-align:right}
+#vv-comercial .vc-metas .vc-barra{height:10px}
+#vv-comercial .espiavel{cursor:pointer}
+#vv-comercial :is(.vc-metas li,.vc-corrida li).espiavel:hover{background:#FBF8F4}
+#vv-comercial .vc-secao small.espiavel{text-decoration:underline dotted 1px;text-underline-offset:3px}
+#vv-comercial .vc-graficos{display:grid;grid-template-columns:minmax(0,1fr);gap:0 10px}
+#vv-comercial .vc-grafico rect.lead{fill:var(--vc-acao)}#vv-comercial .vc-grafico rect.mrr{fill:#1F4FA8}#vv-comercial .vc-grafico rect.avu{fill:#8B7DFF}
+#vv-comercial .vc-grafico text.valor{font:700 10px var(--vv-texto,system-ui);fill:var(--vc-tinta)}
+#vv-comercial .vc-grafico figcaption i.lead{background:var(--vc-acao)}#vv-comercial .vc-grafico figcaption i.mrr{background:#1F4FA8}#vv-comercial .vc-grafico figcaption i.avu{background:#8B7DFF}
+#vv-comercial .vc-g-barra{cursor:pointer;outline:0}
+#vv-comercial .vc-g-barra:is(:hover,:focus-visible) rect{opacity:.8;stroke:var(--vc-tinta);stroke-width:1}
+#vv-comercial .vc-corrida{list-style:none;margin:0;padding:0;background:#FFF;border:1px solid var(--vc-linha);border-radius:10px}
+#vv-comercial .vc-corrida li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 14px;border-top:1px solid #F0EBE3}
+#vv-comercial .vc-corrida li:first-child{border-top:0}
+#vv-comercial .vc-corrida li div{display:flex;flex-direction:column;min-width:0}
+#vv-comercial .vc-corrida li b{font-weight:700;overflow-wrap:anywhere}
+#vv-comercial .vc-corrida li small{color:var(--vc-apagado)}
+#vv-comercial .vc-corrida .pos{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#F1F2F3;color:#5B6268;font:800 12.5px var(--vv-texto,system-ui)}
+#vv-comercial .vc-corrida .pos.ouro{background:var(--vc-sel);color:var(--vc-sel-t)}
+#vv-comercial .vc-corrida .v{font:800 14px var(--vv-texto,system-ui);font-variant-numeric:tabular-nums;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+#vv-comercial .vc-corrida .v small{font-weight:600;font-size:11.5px}
+#vv-comercial .vc-form-link{display:flex;gap:8px;margin-bottom:4px}
+#vv-comercial .vc-form-link input{flex:1;min-width:0;height:40px;border-radius:8px;border:1px solid var(--vc-linha);background:#FBFAF7;padding:0 12px;font:500 13px var(--vv-texto,system-ui);color-scheme:light}
+#vv-comercial .vc-cap .vc-linha-acoes a.vc-link{display:inline-flex;align-items:center;text-decoration:none}
+@media (max-width:480px){
+  #vv-comercial .vc-metas li{grid-template-columns:minmax(0,1fr) 52px}
+  #vv-comercial .vc-metas li .vc-barra{grid-column:1/-1;grid-row:2}
+  #vv-comercial .vc-corrida li{grid-template-columns:34px minmax(0,1fr)}
+  #vv-comercial .vc-corrida .v{grid-column:2;align-items:flex-start;text-align:left}
+}
+
 /* folha de formulário: sobe de baixo no celular */
 #vv-comercial .vc-folha-fundo{position:absolute;inset:0;background:rgba(31,29,26,.3);backdrop-filter:blur(2px);z-index:1}
 #vv-comercial .vc-folha{position:absolute;z-index:2;left:0;right:0;bottom:0;max-height:92%;display:flex;flex-direction:column;background:#FFF;border-radius:14px 14px 0 0;box-shadow:0 -20px 60px rgba(31,29,26,.25);animation:vc-sobe .2s ease-out both;padding-bottom:env(safe-area-inset-bottom)}
@@ -180,9 +218,23 @@
   #vv-comercial .vc-topo{padding-top:10px}
   #vv-comercial .vc-kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
   #vv-comercial .vc-lista.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  #vv-comercial .vc-graficos{grid-template-columns:repeat(2,minmax(0,1fr))}
   #vv-comercial .vc-corpo{padding:14px 18px 32px}
   #vv-comercial .vc-folha{left:auto;top:0;bottom:0;width:min(460px,100%);max-height:none;border-radius:14px 0 0 14px;box-shadow:-20px 0 60px rgba(31,29,26,.2);animation:vc-entra .2s ease-out both}
 }
 @media (hover:hover){#vv-comercial .vc-cartao{transition:translate .15s}}
 @media (prefers-reduced-motion:reduce){#vv-comercial.vc,#vv-comercial .vc-folha{animation:none}}
 html.tema-escuro body.mundo :is(.vc-acao,#vv-comercial .vc-pill.u1,#vv-comercial .vc-alerta.u1,#vv-comercial .vc-grafico rect.ent){filter:invert(1) hue-rotate(180deg)}
+/* Calculadora de ROI em Orçamentos. */
+#vv-comercial .vc-roi{margin:0 0 18px;padding:14px 16px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:8px}
+#vv-comercial .vc-roi .vc-secao{margin-top:0}
+#vv-comercial .vc-roi-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:8px 0 12px}
+#vv-comercial .vc-roi-campos label{display:grid;gap:4px}
+#vv-comercial .vc-roi-campos span{font:600 11.5px Inter,system-ui,sans-serif;color:#6B675F}
+#vv-comercial .vc-roi-campos input{font:500 14px Inter,system-ui,sans-serif;padding:8px 10px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;min-width:0}
+#vv-comercial .vc-roi-campos input:focus{outline:2px solid #F76808;outline-offset:0;border-color:#F76808}
+#vv-comercial .vc-roi-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#vv-comercial .vc-roi-res > div{padding:10px 12px;border-radius:6px;background:#FBF9F5;border:1px solid #EFEAE2}
+#vv-comercial .vc-roi-res small{display:block;font:600 11px Inter,system-ui,sans-serif;color:#8A7F70}
+#vv-comercial .vc-roi-res b{display:block;margin-top:2px;font:700 17px "Inter Tight",Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#vv-comercial .vc-roi-res .bom b{color:#12813F}#vv-comercial .vc-roi-res .ruim b{color:#E5484D}
