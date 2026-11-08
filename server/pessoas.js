@@ -92,6 +92,31 @@ async function fatosDoMes(sql, { de, ate, hoje }) {
       WHERE e.tipo = 'status' AND lower(e.para) IN ('alteração','alteracao')
         AND (e.em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date GROUP BY 1`).map((l) => [l.pessoa_id, Number(l.n)]));
   } catch (e) { if (!semTabela(e) && e?.code !== '42703') throw e; }
+  // Entrega de quem cria, produz ou atende (Paulo, 08/11/2026: o ranking dava 0 para quase toda a equipe): a peça SAIR
+  // DAS MÃOS da pessoa no mês — o histórico de status mostra a passagem para aprovação, para agendar ou finalização.
+  // Antes só contava o status final (Agendado/Finalizado), que quem marca é o agendamento: só a Tainara pontuava.
+  // Vale o maior dos dois (status final ou passagem), com a data do cliente mandando no "no prazo".
+  try {
+    const passagens = await sql`SELECT r.pessoa_id::text AS pessoa_id,
+        count(DISTINCT e.conteudo_id)::int AS entregues,
+        count(DISTINCT e.conteudo_id) FILTER (WHERE COALESCE(c.veiculacao, c.prazo) IS NOT NULL)::int AS com_data,
+        count(DISTINCT e.conteudo_id) FILTER (WHERE (e.em AT TIME ZONE 'America/Bahia')::date <= COALESCE(c.veiculacao, c.prazo))::int AS no_prazo
+      FROM vybe_conteudo_eventos e
+      JOIN vybe_conteudo_responsaveis r ON r.conteudo_id = e.conteudo_id
+      JOIN vybe_conteudos c ON c.id = e.conteudo_id
+      WHERE e.tipo = 'status' AND c.removido_em IS NULL
+        AND lower(e.para) IN ('para aprovação','para aprovacao','em aprovação','em aprovacao','aprovação interna','aprovacao interna',
+          'aguardando aprovação','aguardando aprovacao','ag. aprovação cliente','ag. aprovacao cliente','para agendar','agendado',
+          'aprovado','finalizado','feito','concluído','concluido')
+        AND (e.em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date
+      GROUP BY 1`;
+    const porPessoa = new Map(linhas.map((l) => [l.pessoa_id, l]));
+    for (const p of passagens) {
+      const f = porPessoa.get(p.pessoa_id) || { pessoa_id: p.pessoa_id, entregues: 0, com_data: 0, no_prazo: 0, atrasadas: 0 };
+      if (Number(p.entregues) > Number(f.entregues || 0)) porPessoa.set(p.pessoa_id, { ...f, entregues: p.entregues, com_data: p.com_data, no_prazo: p.no_prazo });
+    }
+    return { porPessoa, ajustes };
+  } catch (e) { if (!semTabela(e) && e?.code !== '42703') throw e; }
   return { porPessoa: new Map(linhas.map((l) => [l.pessoa_id, l])), ajustes };
 }
 async function produtividade(sql, quem, query, estado) {
