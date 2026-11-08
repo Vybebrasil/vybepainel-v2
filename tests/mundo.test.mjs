@@ -7,8 +7,8 @@ import vm from 'node:vm';
 import { PLANTA, ESTADOS } from '../mundo/planta.mjs';
 
 test('a planta do prédio segue o documento: recepção, 5 andares e o terraço do Escritório', () => {
-  assert.deepEqual(PLANTA.map((a) => a.id), ['terreo', 'comercial', 'criacao', 'financeiro', 'tecnologia', 'estrategia', 'terraco']);
-  assert.deepEqual(PLANTA.map((a) => a.nivel), [0, 1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(PLANTA.map((a) => a.id), ['terreo', 'comercial', 'criacao', 'financeiro', 'tecnologia', 'estrategia', 'equipe', 'estudio', 'terraco']);
+  assert.deepEqual(PLANTA.map((a) => a.nivel), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
   for (const a of PLANTA) for (const s of a.setores) assert.ok(ESTADOS[s.estado], `${s.id}: estado ${s.estado}`);
 });
 

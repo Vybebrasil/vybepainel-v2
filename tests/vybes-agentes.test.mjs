@@ -62,9 +62,10 @@ test('painel exibe tarefa/histórico, abre apenas ref explícita de peça e avis
 test('figuras e monitores só animam durante execução com leitura disponível',async()=>{
  const T=await import('three'),{construirPredio}=await import('../mundo/predio.mjs');const cena=new T.Scene(),animadores=[];
  const motor={adicionar:o=>cena.add(o),clicavel(){},animar:f=>animadores.push(f),emVista:()=>true,invalidar(){},rotulo:({pos})=>({pos,el:{hidden:false,style:{setProperty(){}},classList:{add(){},remove(){},toggle(){}},querySelector:()=>({textContent:''})}})};
- const p=construirPredio(motor,{x:0,y:0,z:0}),s=p.salas.get('sdr');assert.ok(s.figura);assert.equal(s.estado,'indisponivel');
- const estado=agente('executando',{setor:'sdr'});p.atividadeAgentes([estado],true);animadores.forEach(f=>f(1,.02));const cor=s.monitor.material.color.getHex();animadores.forEach(f=>f(2,.02));assert.notEqual(s.monitor.material.color.getHex(),cor);
- p.atividadeAgentes([estado],false);const apagado=s.monitor.material.color.getHex();animadores.forEach(f=>f(3,.02));assert.equal(s.monitor.material.color.getHex(),apagado);assert.equal(s.figura.children[0].rotation.z,0);
- p.atividadeAgentes([agente('disponivel',{setor:'sdr',ultimos:[{estado:'falhou'}]})],true);assert.equal(s.estado,'falhou');assert.equal(s.monitor.material.color.getHexString(),'d13d36');
+ const p=construirPredio(motor,{x:0,y:0,z:0}),s=p.salas.get('sdr');assert.ok(s.luzes&&s.tela>=0&&s.antena>=0,'mesa do agente com telão e antena');assert.equal(s.estado,'indisponivel');
+ const tela=()=>{const c=new T.Color();s.luzes.getColorAt(s.tela,c);return c.getHexString();};
+ const estado=agente('executando',{setor:'sdr'});p.atividadeAgentes([estado],true);animadores.forEach(f=>f(1,.02));const cor=tela();animadores.forEach(f=>f(2,.02));assert.notEqual(tela(),cor);
+ p.atividadeAgentes([estado],false);const apagado=tela();animadores.forEach(f=>f(3,.02));assert.equal(tela(),apagado);
+ p.atividadeAgentes([agente('disponivel',{setor:'sdr',ultimos:[{estado:'falhou'}]})],true);assert.equal(s.estado,'falhou');assert.equal(tela(),'d13d36');
  cena.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});
 });

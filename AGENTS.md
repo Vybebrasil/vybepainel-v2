@@ -190,6 +190,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   voz por zona, trancas, convites, jogos, VybeCoins) e o desenho antigo pausa com `body.mundo-sobre-escritorio`
   (`mapaForaDeVista`). O andar por dentro é aberto (todos se veem); a voz liga só ao entrar numa sala (zona).
   Não crie zonas novas nem mude as do Worker: as salas do prédio são as mesmas zonas.
+- Andares do Prédio (decisão do Paulo, 08/11/2026: "andares dos HUMANOS onde fica o time todo junto e os outros para os bots"):
+  Térreo = recepção (VYBES) e Convivência; 1º ao 5º só agentes, com `MESAS_POR_ANDAR` mesas (as vagas ficam livres para
+  agentes novos); 6º Time Vybe (as salas de cada um e a reunião), 7º Estúdio e Operação, Terraço por último
+  (`mundo/planta.mjs`). As zonas são as mesmas do Escritório; só o andar delas mudou. Bonecos de pessoas e agentes saem
+  de `desenharBoneco` (`mundo/avatar.mjs`); não crie outro boneco. O andar por dentro fica por baixo dos HUDs.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
 
