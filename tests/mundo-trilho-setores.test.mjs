@@ -52,3 +52,9 @@ test('dock: cada setor (menos a Gestão, que já é a visão geral) abre a Visã
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.indexOf('/vybe-mundo-setor.js') > html.indexOf('/vybe-mundo.js'), 'o painel do setor carrega depois do mundo');
 });
+
+test('o Painel de trabalho (Gestor) é da Produção e toda navegação fecha o que estava aberto', () => {
+  assert.equal(setorDe('gestor'), 'setor:producao');
+  assert.match(js, /function limparTela\(\) \{/);
+  assert.match(js, /if \(id !== 'criar' && id !== 'vybes'\) \{\n      limparTela\(\);/);
+});
