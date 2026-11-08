@@ -93,6 +93,8 @@
     if (parte === 'carteira') {
       if (tipo === 'sempar') return { titulo: 'No Finanças, sem par no Vybe OS', rodape: 'Ligação pelo CNPJ ou pelo nome', vazio: 'Todos ligados.',
         itens: d.ligacao.sem_par.map((c) => ({ nome: c.nome, sub: c.status })) };
+      if (tipo === 'faltafin') return { titulo: 'Ativos no Vybe OS, sem cadastro no Finanças', rodape: 'Cadastre no Vybe Finanças com o mesmo nome ou CNPJ', vazio: 'Todos os ativos estão no Finanças.',
+        itens: (d.ligacao.vybe_sem_par || []).map((c) => ({ nome: c.nome, sub: 'falta no Vybe Finanças' })) };
       if (tipo === 'contratos') return { titulo: 'Contratos no Vybe Finanças', rodape, vazio: 'Nenhum contrato no Finanças.',
         itens: d.contratos.map((c) => ({ nome: c.cliente_nome, sub: [c.titulo, c.status, c.fim ? `até ${dataBr(c.fim)}` : 'sem fim', c.tem_pdf ? 'com PDF' : ''].filter(Boolean).join(' · '),
           dir: c.valor != null ? din(c.valor) + '/mês' : '', cls: c.dias_restantes != null && c.dias_restantes < 0 && c.status_carteira !== 'encerrado' ? 'u1' : '' })) };

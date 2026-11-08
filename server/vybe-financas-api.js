@@ -34,8 +34,9 @@ export const PASSOS = Object.freeze([
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 
 async function clientesDoVybe(sql) {
-  try { return await sql`SELECT id::text, nome, COALESCE(cnpj,'') AS cnpj FROM vybe_clientes WHERE apagado_em IS NULL ORDER BY nome`; }
-  catch (e) { if (e.code !== '42703') throw e; return sql`SELECT id::text, nome, '' AS cnpj FROM vybe_clientes ORDER BY nome`; }
+  // Só os clientes ativos do Vybe OS (mesma regra da Carteira: ativo, não apagado e não marcado como "não é cliente").
+  try { return await sql`SELECT id::text, nome, COALESCE(cnpj,'') AS cnpj FROM vybe_clientes WHERE apagado_em IS NULL AND COALESCE(ativo, true) AND NOT COALESCE(nao_e_cliente, false) ORDER BY nome`; }
+  catch (e) { if (e.code !== '42703') throw e; return sql`SELECT id::text, nome, '' AS cnpj FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`; }
 }
 
 // Os dados das três partes, a partir da base lida do Finanças (função pura sobre as linhas; testada sem rede).
@@ -45,7 +46,7 @@ export function montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) {
   const quem = (finId) => { const par = finId ? ligacao.porFinancas[finId] : null;
     return { cliente_id: par ? par.vybe_id : null, cliente_nome: par ? par.vybe_nome : finId ? nomeFin[finId] || 'Cliente do Finanças' : 'Sem cliente', no_vybe: Boolean(par) }; };
   const resumoLigacao = { ligados: ligacao.ligados.length, por_cnpj: ligacao.ligados.filter((l) => l.por === 'cnpj').length,
-    sem_par: ligacao.sem_par.map(({ nome, status }) => ({ nome, status })) };
+    sem_par: ligacao.sem_par.map(({ nome, status }) => ({ nome, status })), vybe_sem_par: ligacao.vybe_sem_par.map(({ nome }) => ({ nome })) };
 
   if (parte === 'comercial') {
     const folha = calc.folhaDoMes(base.funcionarios, base.historico, mes);

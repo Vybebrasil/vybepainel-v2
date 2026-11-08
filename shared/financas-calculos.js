@@ -47,7 +47,8 @@
   const entre = (iso, de, ate) => Boolean(iso) && iso.slice(0, 7) >= de && iso.slice(0, 7) <= ate;
 
   // ---------- Ligação de clientes (Finanças × Vybe OS) ----------
-  const SUFIXOS = new Set(['ltda', 'me', 'eireli']);
+  // Palavras que não distinguem um cliente: tipo de empresa e "grupo" (Grupo Serra Grande = Serra Grande).
+  const SUFIXOS = new Set(['ltda', 'me', 'eireli', 'epp', 'sa', 'grupo']);
   function normalizarNome(s) {
     const base = String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     return base.split(/\s+/).filter((p) => p && !SUFIXOS.has(p)).join(' ');
@@ -79,7 +80,10 @@
       else semPar.push({ financas_id: f.id, nome: f.name || 'Sem nome', status: f.contract_status || '' });
     }
     semPar.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    return { porFinancas, ligados, sem_par: semPar };
+    // O caminho inverso: cliente ativo do Vybe OS que não tem cadastro no Finanças ("tudo integrado", Paulo 08/11).
+    const usados = new Set(ligados.map((l) => l.vybe_id));
+    const vybeSemPar = vybe.filter((v) => !usados.has(String(v.id))).map((v) => ({ vybe_id: String(v.id), nome: v.nome })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    return { porFinancas, ligados, sem_par: semPar, vybe_sem_par: vybeSemPar };
   }
 
   // ---------- Mês: recebido × previsto ----------
