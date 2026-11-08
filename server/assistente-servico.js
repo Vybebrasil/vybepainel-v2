@@ -16,6 +16,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 }
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
+import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
 import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes.js';
@@ -56,7 +57,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     }
     if (consulta === 'operacional' || consulta === 'autorizar_contexto') {
       const pessoaId=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
-      if(consulta==='autorizar_contexto')return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,politica:'administrador-privado-1',max_ferramentas:3});
+      // `dono`: a mesma regra única (server/donos.js) — o bot não decide mais dono pelo primeiro nome no WhatsApp.
+      if(consulta==='autorizar_contexto'){const dono=ehDonoPessoa({id:pessoaId,monday_user_id:await mondayDaPessoa(criarBanco(),pessoaId)},config);return res.status(200).json({ok:true,ferramentas:FERRAMENTAS_ASSISTENTE,pessoa_id:pessoaId,dono,politica:'administrador-privado-1',max_ferramentas:3});}
       // Falha com motivo para a pessoa (VybeHub fora, cliente sem conta de anúncio): volta como aviso, não como erro mudo.
       try{return res.status(200).json({ok:true,...await executarFerramenta(criarBanco(),ferramenta,argumentos,{pessoaId})});}
       catch(erro){if(erro.publica)return res.status(200).json({ok:true,itens:[],aviso:String(erro.message).slice(0,300)});throw erro;}
