@@ -2,7 +2,14 @@
 //
 // Clicar num cliente na cidade abre a placa (mostrarCliente, vybe-mundo.js). Estes blocos levam
 // para ela o que o Centro de Operação do Escritório mostrava (abrirAgenteOperacaoEscritorio e
-// escritorioListasDoAgente, vybe-escritorio.js) e ainda faltava no Irecity:
+// escritorioListasDoAgente, vybe-escritorio.js) e ainda faltava no Irecity.
+// Visão única (Paulo, 07/11/2026), no alto da placa, primeiro no celular:
+//   · Saúde: a da Carteira (VybeCarteira.dados(), se existir); senão a da Gestão (VybeDono.calcular).
+//   · Contrato e financeiro: só donos e quem administra, e só se VybeCarteira/VybeComercial existirem.
+//   · Peças do mês: VybeRelatorioResumo.resumoDoMes (vybe-relatorio-resumo.js), com status, objetivo e
+//     aprovação (VybeConteudo, se existir) e o botão "Relatório do mês" (VybeRelatorio.abrir).
+//   · Clima do grupo: só se a Carteira trouxer. · Cérebro: o estudo do VYBES e o botão do canvas.
+//   `fontes(nome)` junta essas leituras para o relatório também. Depois, a operação:
 //   · Esperando o cliente: peças cuja próxima ação é do cliente (a mesma regra do radar de risco,
 //     riskActionOwner em vybe-risco.js) e há quantos dias estão paradas (status_updated_at).
 //   · Esta semana: peças com veiculação de segunda a domingo e a meta de 3 posts por semana.
@@ -110,8 +117,147 @@
     try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) && u.hostname.includes('.') ? u.href : ''; } catch { return ''; }
   }
 
+  // ---------- Fontes de outros módulos (só se existirem) ----------
+  // VybeCarteira (saúde, risco, contrato, clima), VybeConteudo (objetivo e aprovação das peças) e
+  // VybeComercial (financeiro) nascem em outras frentes. Aqui só se lê `X.dados()` quando o módulo
+  // existe; o formato é lido com folga (lista, { clientes }, { itens }, objeto por id ou por nome) e,
+  // sem o módulo ou sem o cliente nele, o bloco some ou cai na fonte que o painel já tem.
+  const SOCIOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
+  const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
+  function souSocioAqui() {
+    try { const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null; return Boolean(u && SOCIOS.includes(primeiroNome(u.name || u.nome))); } catch { return false; }
+  }
+  // Contrato e financeiro: só os donos e quem administra (o servidor de cada módulo confere de novo).
+  const veNegocio = () => souAdminAqui() || souSocioAqui();
+  function dadosDe(nomeModulo) {
+    const m = G[nomeModulo];
+    if (!m || typeof m.dados !== 'function') return null;
+    try { return m.dados() ?? null; } catch { return null; }
+  }
+  const ehObjeto = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  function registrosDe(dados) {
+    if (Array.isArray(dados)) return dados;
+    if (dados instanceof Map) return [...dados.values()];
+    if (!ehObjeto(dados)) return [];
+    for (const k of ['clientes', 'itens', 'lista', 'registros']) if (Array.isArray(dados[k])) return dados[k];
+    return Object.entries(dados).filter(([, v]) => ehObjeto(v)).map(([k, v]) => ({ _chave: k, ...v }));
+  }
+  function registroDoCliente(dados, cad, nome) {
+    if (!dados) return null;
+    const id = cad?.id != null ? String(cad.id) : '', chave = chaveCliente(cad?.nome || nome);
+    return registrosDe(dados).find((r) => ehObjeto(r) && (
+      (id && [r.cliente_id, r.clienteId, r._chave].some((v) => v != null && String(v) === id))
+      || [r.cliente, r.nome, r.cliente_nome, r._chave].some((v) => typeof v === 'string' && chaveCliente(v) === chave))) || null;
+  }
+  // Saúde: a da Carteira, se houver; senão a da Gestão (VybeDono.calcular, que já está na main).
+  const SAUDE_NIVEL = { critico: ['Crítico', 'u1'], atencao: ['Atenção', 'u2'], ok: ['Em dia', 'u6'] };
+  function nivelDaSaude(v) {
+    const t = String(typeof v === 'object' && v ? (v.nivel ?? v.estado ?? v.saude ?? '') : v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    if (/crit|alto|grave|risco|vermel/.test(t)) return 'critico';
+    if (/aten|medio|moder|amarel|alert/.test(t)) return 'atencao';
+    if (/\bok\b|bom|boa|saud|baixo|verde|em dia|estavel/.test(t)) return 'ok';
+    return '';
+  }
+  const frases = (v) => lista(v).map((x) => (typeof x === 'string' ? x : x?.texto || x?.motivo || x?.titulo || '')).map((s) => String(s).trim()).filter(Boolean);
+  function saudeDe(nome, cad) {
+    const r = registroDoCliente(dadosDe('VybeCarteira'), cad, nome);
+    const nivelCarteira = r ? nivelDaSaude(r.saude ?? r.risco ?? r.estado) : '';
+    if (r && nivelCarteira) {
+      const pontos = Number(r.pontuacao ?? r.score ?? r.nota ?? (ehObjeto(r.saude) ? r.saude.pontuacao : NaN));
+      return { fonte: 'Carteira', nivel: nivelCarteira, pontos: Number.isFinite(pontos) ? pontos : null,
+        motivos: frases(r.motivos ?? r.alertas ?? r.sinais ?? (ehObjeto(r.saude) ? r.saude.motivos : null)) };
+    }
+    const D = G.VybeDono;
+    if (!D?.calcular) return null;
+    const pecas = todasAsPecas();
+    if (!pecas.length) return null;
+    try {
+      const clientes = lista(typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : null);
+      const c = lista(D.calcular({ demandas: pecas, clientes, hoje: hojeIso() })?.clientes).find((x) => chaveCliente(x.cliente) === chaveCliente(cad?.nome || nome));
+      return c ? { fonte: 'Gestão', nivel: c.saude, pontos: null, motivos: frases(c.motivos) } : null;
+    } catch { return null; }
+  }
+  // Campos de contrato/financeiro: os conhecidos com rótulo; o resto (texto, número, sim/não) com o nome do campo.
+  const CAMPOS = [
+    ['plano', 'Plano'], ['pacote', 'Pacote'], ['servicos', 'Serviços'], ['valor_mensal', 'Mensalidade'], ['mensalidade', 'Mensalidade'], ['valor', 'Valor'],
+    ['inicio', 'Início'], ['fim', 'Fim'], ['vencimento', 'Vencimento'], ['renovacao', 'Renovação'], ['dia_pagamento', 'Dia do pagamento'],
+    ['situacao', 'Situação'], ['status', 'Situação'], ['em_aberto', 'Em aberto'], ['aberto', 'Em aberto'], ['atrasado', 'Atrasado'],
+    ['recebido', 'Recebido'], ['faturado', 'Faturado'], ['ultimo_pagamento', 'Último pagamento'], ['proximo_vencimento', 'Próximo vencimento'], ['margem', 'Margem'],
+  ];
+  const DINHEIRO = /valor|mensal|aberto|atrasad|recebid|faturad|preco|receita|custo/i;
+  const IGNORAR = /^(_chave|id|cliente|cliente_id|clienteId|nome|cliente_nome|saude|risco|estado|motivos|alertas|sinais|clima|clima_grupo|humor|contrato|financeiro|pontuacao|score|nota)$/;
+  function valorLegivel(chave, v) {
+    if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+    if (typeof v === 'number' && Number.isFinite(v)) return DINHEIRO.test(chave) ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v.toLocaleString('pt-BR');
+    const s = String(v ?? '').trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
+    return s.slice(0, 80);
+  }
+  function camposDe(obj, max = 6) {
+    if (!ehObjeto(obj)) return [];
+    const usados = new Set(), saida = [];
+    for (const [k, rotuloCampo] of CAMPOS) {
+      if (saida.length >= max || !Object.hasOwn(obj, k) || usados.has(rotuloCampo)) continue;
+      const v = valorLegivel(k, obj[k]);
+      if (v) { saida.push([rotuloCampo, v]); usados.add(rotuloCampo); }
+    }
+    for (const [k, v] of Object.entries(obj)) {
+      if (saida.length >= max || IGNORAR.test(k) || CAMPOS.some(([c]) => c === k) || !['string', 'number', 'boolean'].includes(typeof v)) continue;
+      const t = valorLegivel(k, v);
+      if (t) saida.push([k.replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase()), t]);
+    }
+    return saida;
+  }
+  function negocioDe(nome, cad) {
+    if (!veNegocio()) return null;
+    const carteira = registroDoCliente(dadosDe('VybeCarteira'), cad, nome);
+    const comercial = registroDoCliente(dadosDe('VybeComercial'), cad, nome);
+    const contrato = camposDe(ehObjeto(carteira?.contrato) ? carteira.contrato : null);
+    const financeiro = camposDe(ehObjeto(comercial?.financeiro) ? comercial.financeiro : comercial);
+    return contrato.length || financeiro.length ? { contrato, financeiro } : null;
+  }
+  // Clima do grupo: só se a Carteira trouxer (texto ou { nivel, resumo, atualizado_em }).
+  function climaDe(nome, cad) {
+    const r = registroDoCliente(dadosDe('VybeCarteira'), cad, nome);
+    const c = r ? (r.clima ?? r.clima_grupo ?? r.humor) : null;
+    if (!c) return null;
+    if (typeof c === 'string') return { resumo: c.trim().slice(0, 240), nivel: nivelDaSaude(c), quando: '' };
+    if (!ehObjeto(c)) return null;
+    const resumo = String(c.resumo ?? c.texto ?? c.rotulo ?? '').trim().slice(0, 240);
+    const nivelC = nivelDaSaude(c.nivel ?? c.estado ?? c.sentimento ?? resumo);
+    return resumo || nivelC ? { resumo, nivel: nivelC, quando: diaDoCarimbo(c.atualizado_em ?? c.data) } : null;
+  }
+  // Objetivo e aprovação da peça: o campo da própria peça, ou VybeConteudo (objetivoDe/aprovacaoDe, ou dados() por peça).
+  let cacheConteudo = { em: 0, mapa: null };
+  function mapaConteudo() {
+    if (Date.now() - cacheConteudo.em < 5000) return cacheConteudo.mapa;
+    const regs = registrosDe(dadosDe('VybeConteudo'));
+    const mapa = regs.length ? new Map() : null;
+    for (const r of regs) {
+      const id = r?.peca_id ?? r?.demanda_id ?? r?.conteudo_id ?? r?.id ?? r?._chave;
+      if (id != null) mapa.set(String(id), r);
+    }
+    cacheConteudo = { em: Date.now(), mapa };
+    return mapa;
+  }
+  function doConteudo(d, fn, campos) {
+    for (const c of campos) if (d?.[c]) return d[c];
+    const C = G.VybeConteudo;
+    if (C && typeof C[fn] === 'function') { try { const v = C[fn](d); if (v) return v; } catch { /* segue para dados() */ } }
+    const r = mapaConteudo()?.get(String(d?.id));
+    for (const c of campos) if (r?.[c]) return r[c];
+    return '';
+  }
+  const objetivoDe = (d) => doConteudo(d, 'objetivoDe', ['objetivo']);
+  const aprovacaoDe = (d) => { const v = doConteudo(d, 'aprovacaoDe', ['aprovacao', 'status_aprovacao']); return String((typeof v === 'object' && v ? v.status ?? v.rotulo : v) || '').trim(); };
+  // Tudo o que a ficha e o relatório leem dos outros módulos, numa chamada (VybeRelatorio usa também).
+  function fontes(nomeCliente) {
+    const nome = normCliente(nomeCliente), cad = cadastroDe(nome);
+    return { nome: cad?.nome || nome, cadastro: cad, saude: saudeDe(nome, cad), negocio: negocioDe(nome, cad), clima: climaDe(nome, cad), objetivoDe, aprovacaoDe, veNegocio: veNegocio() };
+  }
+
   // ---------- Pedaços de HTML ----------
-  const nota = (texto, extra = '') => `<p class="vv-cli-nota${extra ? ' ' + extra : ''}">${esc(texto)}</p>`;
+  const nota =(texto, extra = '') => `<p class="vv-cli-nota${extra ? ' ' + extra : ''}">${esc(texto)}</p>`;
   const rotulo = (texto, lado = '') => `<div class="vv-cli-rotulo"><span>${esc(texto)}</span>${lado}</div>`;
   const tituloDaPeca = (d) => String(d?.nome || d?.titulo || 'Peça sem título').trim();
 
@@ -202,6 +348,84 @@
       ${inativo ? '' : nota('Apagar para sempre só depois de desativar.')}</div>`;
   }
 
+  // ---------- Visão única: saúde, contrato e financeiro, peças do mês, clima e cérebro ----------
+  const MAX_MES = 6;
+  function blocoSaude(s) {
+    if (!s || !SAUDE_NIVEL[s.nivel]) return '';
+    const [rot, u] = SAUDE_NIVEL[s.nivel];
+    const lado = `<em class="vv-cli-tag ${u}">${esc(rot)}${s.pontos != null ? ` · ${esc(s.pontos)}` : ''}</em>`;
+    const motivos = s.motivos.slice(0, 3);
+    return `<section class="vv-cli-secao" data-vv-cli-secao="saude">${rotulo('Saúde do cliente', lado)}
+      ${motivos.length ? `<ul class="vv-cli-motivos">${motivos.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>` : nota('Nada pedindo atenção.')}
+      ${nota(s.fonte === 'Carteira' ? 'Pela Carteira.' : 'Pela produção (as mesmas contas da Gestão).', 'fonte')}</section>`;
+  }
+  const grade = (campos) => `<dl class="vv-cli-grade">${campos.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
+  function blocoNegocio(n) {
+    if (!n) return '';
+    return `<section class="vv-cli-secao" data-vv-cli-secao="negocio">${rotulo('Contrato e financeiro', '<span class="vv-cli-conta">só donos</span>')}
+      ${n.contrato.length ? `<p class="vv-cli-sub">Contrato</p>${grade(n.contrato)}` : ''}
+      ${n.financeiro.length ? `<p class="vv-cli-sub">Financeiro</p>${grade(n.financeiro)}` : ''}</section>`;
+  }
+  const NIVEL_OBJETIVO = { atracao: 'Atração', educacao: 'Educação', conversao: 'Conversão' };
+  function equilibrioHtml(obj) {
+    if (!obj?.disponivel) return '';
+    const partes = obj.itens.filter((o) => o.total);
+    return `<div class="vv-cli-equilibrio" role="img" aria-label="${esc(obj.itens.map((o) => `${o.rotulo} ${o.pct}%`).join(', '))}">
+      <div class="vv-cli-barra">${partes.map((o) => `<i style="flex:${o.total};background:${o.cor}"></i>`).join('')}</div>
+      <p>${obj.itens.map((o) => `<span><i style="background:${o.cor}"></i>${esc(o.rotulo)} <b>${o.pct}%</b></span>`).join('')}${obj.semObjetivo ? `<span class="sem">${obj.semObjetivo} sem objetivo</span>` : ''}</p></div>`;
+  }
+  function blocoMes(nome, hoje, f) {
+    const R = G.VybeRelatorioResumo;
+    const mes = hoje.slice(0, 7);
+    const botao = `<button type="button" class="vv-cli-secundario" data-vv-cli-relatorio="${esc(mes)}">Relatório do mês</button>`;
+    if (!R?.resumoDoMes) return `<section class="vv-cli-secao" data-vv-cli-secao="mes">${rotulo('Peças do mês')}${nota('O resumo do mês não carregou nesta tela.')}</section>`;
+    let r;
+    try { r = R.resumoDoMes({ pecas: todasAsPecas(), cliente: nome, mes, hoje, objetivoDe: f.objetivoDe, ehSolicitacao: ehSolicitacao }); } catch { r = null; }
+    if (!r) return '';
+    const porId = new Map(todasAsPecas().map((d) => [String(d?.id), d]));
+    // Atrasada aqui é a do mundo inteiro (veiculação ou prazo vencidos), a mesma da barra vermelha da linha.
+    const atrasadas = r.pecas.filter((p) => !p.entregue && porId.has(p.id) && atrasada(porId.get(p.id), hoje)).length;
+    const kpis = `<div class="vv-cli-kpis">
+      <div><b>${r.total}</b><small>no mês</small></div>
+      <div><b>${r.entregues}</b><small>entregues</small></div>
+      <div><b${atrasadas ? ' class="u1"' : ''}>${atrasadas}</b><small>atrasadas</small></div>
+      <div><b>${r.noPrazoPct == null ? '–' : r.noPrazoPct + '%'}</b><small>no prazo</small></div></div>`;
+    // Primeiro o que ainda não saiu (atrasadas antes), depois as entregues; dentro, pela data.
+    const ordem = [...r.pecas].sort((a, b) => (a.entregue - b.entregue) || (b.atrasada - a.atrasada) || a.data.localeCompare(b.data));
+    const linhas = ordem.slice(0, MAX_MES).map((p) => {
+      const d = porId.get(p.id) || { id: p.id, status: p.status, veiculacao_iso: p.data };
+      const u = nivel(d, hoje), aprov = aprovacaoDe(d);
+      const apoio = [`${diaMes(p.data)}`, p.formato !== 'Sem formato' ? p.formato : '', aprov ? `aprovação: ${aprov}` : ''].filter(Boolean).join(' · ');
+      const obj = p.objetivo ? `<span class="vv-cli-obj ${p.objetivo}">${esc(NIVEL_OBJETIVO[p.objetivo])}</span>` : '';
+      return `<button type="button" class="vv-cli-linha${u === 'u1' || u === 'u2' ? ' ' + u : ''}" data-vv-cli-peca="${esc(p.id)}" title="${esc(`${p.nome} · ${p.status}`)}">
+        <span class="vv-cli-meio"><b>${esc(p.nome)}</b><small>${obj}${esc(apoio)}</small></span><em class="vv-cli-tag ${u}">${esc(p.status)}</em></button>`;
+    }).join('');
+    return `<section class="vv-cli-secao" data-vv-cli-secao="mes">${rotulo(`Peças de ${r.rotuloMes}`, `<span class="vv-cli-conta">${r.total}</span>`)}
+      ${kpis}${equilibrioHtml(r.objetivos)}
+      ${r.total ? linhas : nota('Nenhum conteúdo com data neste mês.')}
+      ${r.total > MAX_MES ? nota(`e mais ${r.total - MAX_MES} no relatório do mês`) : ''}
+      <div class="vv-cli-botoes">${botao}</div></section>`;
+  }
+  function blocoClima(c) {
+    if (!c) return '';
+    const [rot, u] = SAUDE_NIVEL[c.nivel] || ['Sem leitura', 'u5'];
+    return `<section class="vv-cli-secao" data-vv-cli-secao="clima">${rotulo('Clima do grupo', `<em class="vv-cli-tag ${u}">${esc(c.nivel === 'ok' ? 'Tranquilo' : rot)}</em>`)}
+      ${c.resumo ? `<p class="vv-cli-texto">${esc(c.resumo)}</p>` : ''}${c.quando ? nota(`Lido em ${diaMes(c.quando)}.`, 'fonte') : ''}</section>`;
+  }
+  // O cérebro do cliente: o que o VYBES já sabe (vybe-clientes-cerebro.js) e o botão que abre o Canvas
+  // de Sinapses pelo mesmo caminho da placa (data-cerebro-cliente, tratado em vybe-mundo.js).
+  function blocoCerebro(nome) {
+    if (typeof abrirModalCerebroCliente !== 'function') return '';
+    let base = null;
+    try { base = typeof encontrarBaseCerebro === 'function' ? encontrarBaseCerebro(nome) : null; } catch { base = null; }
+    const paleta = lista(base?.paleta).slice(0, 6).map((c) => `<i title="${esc(c.nome)}" style="background:${/^#[0-9a-f]{3,8}$/i.test(c.hex) ? c.hex : '#E6E0D6'}"></i>`).join('');
+    const tom = String(base?.tom || '').trim();
+    return `<section class="vv-cli-secao" data-vv-cli-secao="cerebro">${rotulo('Cérebro do cliente')}
+      ${base ? `${base.segmento ? `<p class="vv-cli-sub">${esc(base.segmento)}</p>` : ''}${tom ? `<p class="vv-cli-texto">${esc(tom.length > 180 ? tom.slice(0, 177) + '…' : tom)}</p>` : ''}${paleta ? `<div class="vv-cli-paleta" aria-label="Paleta da marca">${paleta}</div>` : ''}`
+        : nota('O VYBES ainda não tem estudo próprio deste cliente: o cérebro mostra o que a operação já registrou.')}
+      <div class="vv-cli-botoes"><button type="button" class="vv-cli-secundario" data-cerebro-cliente="${esc(nome)}">Abrir o cérebro</button></div></section>`;
+  }
+
   // ---------- API ----------
   function html(nomeCliente) {
     const nome = normCliente(nomeCliente);
@@ -210,8 +434,10 @@
     const pecas = todasAsPecas().filter((d) => clientesDe(d).some((c) => chaveCliente(c) === chave));
     // Semana e calendário contam posts: só conteúdos (solicitação não é post).
     const conteudos = pecas.filter((d) => !ehSolicitacao(d));
-    const cad = cadastroDe(nome);
-    return `<div class="vv-cli" data-vv-cli-cliente="${esc(cad?.nome || nome)}" data-vv-cli-id="${esc(cad?.id ?? '')}">
+    const f = fontes(nome), cad = f.cadastro, nomeCad = cad?.nome || nome;
+    // Primeiro no celular: o que decide (saúde, dinheiro, o mês) no alto; a operação do dia a dia embaixo.
+    return `<div class="vv-cli" data-vv-cli-cliente="${esc(nomeCad)}" data-vv-cli-id="${esc(cad?.id ?? '')}">
+      ${blocoSaude(f.saude)}${blocoNegocio(f.negocio)}${blocoMes(nomeCad, hoje, f)}${blocoClima(f.clima)}${blocoCerebro(nomeCad)}
       ${blocoEspera(pecas, hoje)}${blocoSemana(conteudos, hoje)}${blocoCalendario(conteudos, hoje)}${blocoPlanejamentos(cad)}${blocoAcoes(cad)}</div>`;
   }
 
@@ -259,13 +485,14 @@
     raiz.querySelector?.('[data-fechar]')?.click();
   }
   function aoClicar(e, raiz) {
-    const alvo = e.target?.closest?.('[data-vv-cli-peca],[data-vv-cli-dia],[data-vv-cli-plj-abrir],[data-vv-cli-desativar],[data-vv-cli-apagar]');
+    const alvo = e.target?.closest?.('[data-vv-cli-peca],[data-vv-cli-dia],[data-vv-cli-plj-abrir],[data-vv-cli-relatorio],[data-vv-cli-desativar],[data-vv-cli-apagar]');
     if (!alvo || (raiz.contains && !raiz.contains(alvo)) || alvo.disabled) return;
     const bloco = alvo.closest('.vv-cli');
     if (!bloco) return;
     if (alvo.dataset.vvCliPeca) { chamar('openItemWorkspace', String(alvo.dataset.vvCliPeca)); return; }
     if (alvo.dataset.vvCliDia) { alternarDia(bloco, alvo); return; }
     if (alvo.dataset.vvCliPljAbrir) { chamar('abrirPlanejamento', String(alvo.dataset.vvCliPljAbrir)); return; }
+    if (alvo.dataset.vvCliRelatorio) { G.VybeRelatorio?.abrir?.(bloco.dataset.vvCliCliente, alvo.dataset.vvCliRelatorio); return; }
     // O servidor confere de novo; aqui só não abre a janela para quem não administra.
     const id = bloco.dataset.vvCliId, nome = bloco.dataset.vvCliCliente;
     if (!souAdminAqui() || !id || !nome) return;
@@ -282,5 +509,5 @@
     return Promise.all([...raiz.querySelectorAll('[data-vv-cli-plj]')].map(carregarPlanejamentos));
   }
 
-  G.VybeClientePlaca = Object.freeze({ html, ligar, ESPERA_DO_CLIENTE, META_SEMANA });
+  G.VybeClientePlaca = Object.freeze({ html, ligar, fontes, ESPERA_DO_CLIENTE, META_SEMANA });
 })();
