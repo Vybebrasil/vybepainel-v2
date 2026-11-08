@@ -75,6 +75,20 @@ test('produtividade: cada um vê só o seu; ranking, pesos e metas só da gestã
   r = await chamar(sql, ana, { query: { mes: '2999-01' } }); assert.equal(r.codigo, 400);
 });
 
+test('produtividade: a peça que sai das mãos de quem cria conta como entrega dela, mesmo sem status final', async (t) => {
+  const { db, sql } = await banco(t);
+  // Bruno (produção) passou 2 peças para aprovação neste mês; nenhuma está finalizada (quem finaliza é o agendamento).
+  await db.exec(`INSERT INTO vybe_conteudos VALUES (10,1,'em_andamento',NULL,'${dia(4)}',NULL,NULL),(11,1,'em_andamento',NULL,'${dia(6)}',NULL,NULL),(12,1,'em_andamento',NULL,NULL,NULL,NULL);
+    INSERT INTO vybe_conteudo_responsaveis VALUES (10,3,0),(11,3,0),(12,3,0);
+    INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,para) VALUES (10,'status','Para aprovação'),(11,'status','Para agendar'),(11,'status','Agendado'),(12,'status','Em andamento');`);
+  const r = await chamar(sql, paulo, { query: { pessoa: '3' } });
+  assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  const b = r.body.detalhe;
+  assert.equal(b.entregues, 2, 'duas passagens (a mesma peça não conta duas vezes; "Em andamento" não é entrega)');
+  assert.equal(b.comData, 2); assert.equal(b.noPrazo, 2);
+  assert.ok(b.score > 0, 'quem cria deixa de ficar com 0');
+});
+
 test('sem a migração: leituras vazias com provisionado=false; gravação responde 503', async (t) => {
   const { sql } = await banco(t, { migrar: false });
   for (const aba of ['produtividade', 'rh', 'projetos', 'academy']) {
