@@ -4788,3 +4788,8 @@ body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){backg
 .vga-barras i{display:block;width:100%;max-width:18px;border-radius:3px 3px 0 0;background:#8B7DFF}.vga-barras i.f{background:#D93D42;border-radius:0}
 .vga-barras small{font-size:9.5px;color:#8A8378}
 .vga-proximas li{grid-template-columns:96px 1fr auto}.vga-h4-sep{margin-top:14px!important}
+
+/* Peças das telas antigas só existem dentro delas (Paulo, 08/11/2026: "menu do legado aparecendo"): fixas ou grudadas,
+   continuavam à vista depois de sair (barra da Direção de arte, toolbar da agenda, cabeçalhos da lista de clientes, o
+   filtro das demandas e o menu do topo antigo, invisível mas clicável). Fora de uma tela antiga, somem. */
+body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli-bloco-cabeca,.dem-filtro-popover,.header-utilities-menu){display:none!important}

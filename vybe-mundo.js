@@ -124,6 +124,7 @@
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
     { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
+      { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade' },
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
       { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
       { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
@@ -155,7 +156,6 @@
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
-      { id: 'gestor', nome: 'Gestor', dica: 'Prioridades, prazos e capacidade' },
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
     ] },
     { id: 'setor:pessoas', grupo: 'Time', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
@@ -221,7 +221,7 @@
     if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
     if (centroAberto) fecharCentro();
     if (!gestao.hidden) fecharGestao();
-    window.VybeAgentes?.fechar?.(); fecharJanelasDeModulo(); fecharSetor();
+    limparTela();
     marcarTrilho(id);
     window.VybeSetor.abrir(id, { nome: t.nome, dica: t.dica, subs: (t.sub || []).filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
       abrirSub: (sub) => usarTrilho(sub), aoFechar: () => usarTrilho('hoje') });
@@ -250,10 +250,29 @@
     document.addEventListener?.('click', (ev) => { if (hud.querySelector('.vv-setor') && !ev.target.closest?.('.vv-setor,[data-trilho^="setor:"]')) fecharSetor(); }, true);
     document.addEventListener?.('keydown', (ev) => { if (ev.key === 'Escape' && hud.querySelector('.vv-setor')) { fecharSetor(); ev.stopPropagation(); } }, true);
   }
-  function usarTrilho(id, botao) {
+  // Uma tela por vez (Paulo, 08/11/2026: "menu que se sobrepõe", "aparece menu do legado"): toda navegação fecha o
+  // que estava aberto (visão geral, Gestão, Agentes, janelas dos módulos, a lista do setor, a ficha e o menu do topo
+  // antigo) e sai da tela antiga antes de abrir outra coisa. Antes as janelas se empilhavam e a tela antiga que ficava
+  // atrás remarcava o dock.
+  const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
+  function limparTela() {
+    window.VybeSetor?.fechar?.();
+    if (!gestao.hidden) fecharGestao();
+    window.VybeAgentes?.fechar?.();
+    fecharJanelasDeModulo(); fecharSetor();
+    try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
+    document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
+  }
+  function usarTrilho(id, botao, saiuDaAntiga = false) {
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     if (String(id).startsWith('setor:')) { if (dockLargo()) abrirVisaoSetor(id); else abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
-    if (id !== 'criar' && id !== 'vybes') window.VybeSetor?.fechar?.();
+    if (id !== 'criar' && id !== 'vybes') {
+      limparTela();
+      // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
+      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && id !== 'centro' && id !== 'predio' && body.classList.contains('mundo-modulo')) {
+        chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
+      }
+    }
     window.VybeTutorial?.dica?.('trilho:' + id);
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
