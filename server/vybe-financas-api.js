@@ -105,7 +105,7 @@ export async function areaVybeFinancas(req, res, quem, criarBanco, opcoes = {}) 
   try {
     return res.status(200).json({ ok: true, ...await lerVybeFinancas(criarBanco(), quem.pessoa, req.query || {}, opcoes) });
   } catch (e) {
-    if (e instanceof ErroFinancas) return res.status(502).json({ error: e.message, financas_indisponivel: true, codigo: e.codigo });
+    if (e instanceof ErroFinancas) return res.status(502).json({ error: e.message, financas_indisponivel: true, codigo: e.codigo, ...(e.diagnostico ? { diagnostico: e.diagnostico } : {}) });
     if (e.status) return res.status(e.status).json({ error: e.message });
     return res.status(500).json({ error: 'Não foi possível ler o Vybe Finanças agora. Tente novamente.' });
   }

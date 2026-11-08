@@ -33,14 +33,22 @@ const MENSAGENS = {
 };
 const erro = (codigo) => new ErroFinancas(codigo, MENSAGENS[codigo] || MENSAGENS.leitura);
 // Erro do Postgres/rede → código seguro (a mensagem original nunca sai daqui).
+// Diagnóstico seguro: só o código SQLSTATE e uma etiqueta de frases conhecidas (nunca a mensagem, a URL ou a senha).
+export function diagnostico(e) {
+  const c = String(e?.code || ''), m = String(e?.message || '').toLowerCase();
+  const motivo = /tenant or user not found/.test(m) ? 'pooler_nao_achou_usuario' : /password authentication failed/.test(m) ? 'senha_recusada'
+    : /no pg_hba|pg_hba/.test(m) ? 'acesso_bloqueado' : /too many connections|connection limit/.test(m) ? 'limite_conexoes' : /ssl/.test(m) ? 'ssl' : '';
+  return { sqlstate: /^[0-9A-Z_]{3,24}$/.test(c) ? c : '', motivo };
+}
 export function traduzirErro(e) {
   if (e instanceof ErroFinancas) return e;
   const c = String(e?.code || '');
-  if (['28P01', '28000', '3D000'].includes(c)) return erro('login');
+  const comDiag = (x) => Object.assign(x, { diagnostico: diagnostico(e) });
+  if (['28P01', '28000', '3D000'].includes(c) || /tenant or user not found|password authentication failed/i.test(String(e?.message || ''))) return comDiag(erro('login'));
   if (c === '42501') return erro('permissao');
   if (['57014', 'CONNECT_TIMEOUT'].includes(c)) return erro('tempo');
   if (['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'CONNECTION_CLOSED', 'CONNECTION_ENDED', 'CONNECTION_DESTROYED'].includes(c)) return erro('rede');
-  return erro('leitura');
+  return comDiag(erro('leitura'));
 }
 
 export const urlValida = (url) => /^postgres(ql)?:\/\/[^\s]+$/.test(String(url || ''));
