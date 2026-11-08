@@ -2,7 +2,8 @@ import { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS } 
 // Entrada do mundo voxel (empacotada com o three.js pelo build; carregada sob
 // demanda por vybe-mundo.js). Monta Irecê, o Prédio da Vybe e os clientes.
 import { criarMotor } from './motor.mjs';
-import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan } from './captacoes.mjs';
+import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan, roteirosDaSemana, bairroDoEndereco } from './captacoes.mjs';
+import { saudeDosAndares, URGENCIA } from './saude-andares.mjs';
 import { construirIrece, CENTRO_RECORTE } from './irece.mjs';
 import { construirPredio } from './predio.mjs';
 import { criarClientes } from './clientes.mjs';
@@ -267,6 +268,18 @@ export async function iniciarMundo(canvas, { dadosUrl, crmUrl, reduzirMovimento 
   return {
     mostrarEmpresasNoMapa,
     situacaoDosAndares: (m) => predio.situacaoDosAndares?.(m),
+    // Prédio vivo e roteiro das captações (funções puras; aqui só ganham as posições do mapa).
+    saudeDosAndares, urgencia: URGENCIA,
+    roteirosDaSemana(eventos, desde) {
+      const fixos = LOCAIS?.clientes || {};
+      const acharSede = (c) => posicoes.find((p) => norm(p.nome) === norm(c)) || posicoes.find((p) => norm(p.nome).length > 3 && norm(c).includes(norm(p.nome)));
+      const pontoDe = (cliente) => {
+        const sede = acharSede(cliente); if (!sede) return null;
+        const f = fixos[sede.nome] || {}, base = naBase(sede.nome, true);
+        return { x: sede.x, z: sede.z, bairro: f.bairro || bairroDoEndereco(f.endereco) || bairroDoEndereco(ultimoComPonto.find((c) => c.nome === sede.nome)?.endereco) || base?.bairro || '' };
+      };
+      return roteirosDaSemana(eventos, { pontoDe, origem: { x: base.x, z: base.z }, desde });
+    },
     noRecorte: (x, z) => irece.noRecorte(x, z),
     get empresas() { return Empresas.EMPRESAS; }, get fonteEmpresas() { return Empresas.FONTE_EMPRESAS; }, tipoLegivel: Empresas.TIPO_LEGIVEL, agencia: { x: base.x, z: base.z },
     focarPonto(x, z, dist = 80, incl = .7, giro) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist, incl, ...(giro == null ? {} : { giro }) }); },

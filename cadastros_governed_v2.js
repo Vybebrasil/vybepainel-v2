@@ -309,6 +309,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
       .fc-atalho small { display:block; color:#7d8b96; font:500 11.5px var(--mac-ui,system-ui); }
       .fc-bloco-equipe { margin-top:20px; }
       .fc-bloco-equipe .fc-dica { margin:0 0 10px; }
+      .fc-objetivo { margin:0 0 14px; } .fc-objetivo .fc-dica { display:block; margin:0 0 8px; } .fc-objetivo .fc-escolhas { display:flex; flex-wrap:wrap; gap:8px; }
+      .fc-objetivo .fc-escolha { display:inline-flex; align-items:center; gap:8px; } .fc-objetivo-ponto { width:10px; height:10px; border-radius:50%; flex:none; }
 
       .fc-itens { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; max-height:min(58vh,520px); overflow-y:auto; padding:2px; }
       /* A coluna automática crescia até o campo de data e o cartão vazava para a
@@ -423,6 +425,8 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
     // cliente, formato e destino; o que muda e titulo, data e briefing. Entao a
     // lista guarda so o que muda, e o resto continua valendo para o lote todo.
     itens: [{ titulo: '', veic: '', prazo: '', brief: '' }],
+    // Objetivo do lote (Atração, Educação ou Conversão): opcional, vale para todos os cartões.
+    objetivo: '',
     title: '',
     client: '', clients: [],
     format: '',
@@ -841,6 +845,7 @@ function fcGrupoDoQuadro(grupo) {
            captacao: state.board === 'demandas' ? null : (finalCap || null),
            prioridade: state.board === 'demandas' ? (state.prioridade || null) : null,
            material_bruto: state.materialBruto || null,
+           objetivo: state.board === 'demandas' ? null : (state.objetivo || null),
            responsaveis: fcEquipeFinal(dest),
            _devolve: true,
         });
@@ -1046,6 +1051,22 @@ function fcGrupoDoQuadro(grupo) {
     return true;
   }
 
+  // Objetivo da peça (módulo Conteúdo, vybe-mundo-conteudo.js): a bolinha de Atração, Educação ou
+  // Conversão. Opcional; vale para todos os conteúdos do lote e pode ser trocado depois na peça.
+  const FC_OBJETIVOS = [['atracao', 'Atração', '#1F7AE0', 'traz gente nova'], ['educacao', 'Educação', '#0E8F6E', 'explica e gera confiança'],
+    ['conversao', 'Conversão', '#C2490C', 'chama para comprar']];
+  function fcObjetivoHtml() {
+    return `<div class="fc-objetivo"><span class="fc-dica">Objetivo da peça <small>(opcional · vale para todos os conteúdos)</small></span>
+      <div class="fc-escolhas" role="radiogroup" aria-label="Objetivo da peça">${FC_OBJETIVOS.map(([v, r, cor, dica]) => `
+        <button type="button" role="radio" class="fc-escolha ${state.objetivo === v ? 'marcada' : ''}" aria-checked="${state.objetivo === v}"
+          title="${dica}" onclick="fcEscolherObjetivo('${v}')"><i class="fc-objetivo-ponto" style="background:${cor}" aria-hidden="true"></i>${r}</button>`).join('')}</div></div>`;
+  }
+  window.fcEscolherObjetivo = function(valor) {
+    state.objetivo = state.objetivo === valor ? '' : valor;
+    const caixa = document.querySelector('#fc-overlay .fc-objetivo');
+    if (caixa) caixa.outerHTML = fcObjetivoHtml();
+  };
+
   function fcCorpo(p) {
     const esc2 = (t) => esc(String(t == null ? '' : t));
     if (p === 'board') {
@@ -1130,7 +1151,7 @@ function fcGrupoDoQuadro(grupo) {
             onde quem edita vai procurar os arquivos para baixar.</small>
         </div>` : ''}`;
     }
-    return `<div class="fc-auto-group" id="fc-auto-group-container"></div>
+    return `${state.board === 'demandas' ? '' : fcObjetivoHtml()}<div class="fc-auto-group" id="fc-auto-group-container"></div>
       <div class="fc-bloco-equipe">
         <span class="fc-dica">Equipe — as regras já escolhem quem entra. Clique para somar ou tirar qualquer pessoa.</span>
         <div class="fc-persons" id="fc-persons-container"></div>
@@ -1680,7 +1701,7 @@ function fcGrupoDoQuadro(grupo) {
     const existing = document.getElementById('fc-overlay');
     if(existing) existing.remove();
 
-    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', clients: [], format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, materialBruto: '', briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '' };
+    state = { itens: [{ titulo: '', veic: '', prazo: '', brief: '' }], title: '', client: '', clients: [], format: '', veic: '', prazo: '', brief: '', assignees: [], removidos: [], materialReady: false, materialBruto: '', briefReady: false, manualGroup: undefined, manualStatus: undefined, manualCap: undefined, board: 'producao', prioridade: '', objetivo: '' };
     
     const inicio = (inicial && typeof inicial === 'object') ? inicial : {};
     if (inicio.board === 'demandas' || inicio.board === 'producao') state.board = inicio.board;
@@ -1717,6 +1738,7 @@ function fcGrupoDoQuadro(grupo) {
     // sem isso quem escolheu "Dia do Cliente" teria que redigitar "Dia do
     // Cliente" na linha seguinte.
     if (inicio.titulo) state.itens[0].titulo = inicio.titulo;
+    if (['atracao', 'educacao', 'conversao'].includes(inicio.objetivo)) state.objetivo = inicio.objetivo;
     if (inicio.brief)  state.itens[0].brief  = inicio.brief;
     if (inicio.veic || inicio.titulo || inicio.brief) fcEspelharPrimeiro();
 

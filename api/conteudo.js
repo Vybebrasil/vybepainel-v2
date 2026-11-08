@@ -1,6 +1,7 @@
 import { registrarFalhaDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { substituirClientes } from '../server/clientes-conteudo.js';
 import { substituirResponsaveis } from '../server/responsaveis.js';
+import { trocarObjetivo } from '../server/conteudo-objetivo.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -1018,6 +1019,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, acao,
         ...(await trocarTitulo(sql, quem, { item, titulo: corpo.titulo })) });
     }
+    // Objetivo da peça (Atração, Educação ou Conversão): server/conteudo-objetivo.js.
+    if (acao === 'objetivo') {
+      try {
+        return res.status(200).json({ ok: true, acao, ...(await trocarObjetivo(sql, quem, { item, objetivo: corpo.objetivo })) });
+      } catch (erro) { return res.status(erro.status || 500).json({ error: erro.message }); }
+    }
     if (ESCOLHAS[acao]) {
       return res.status(200).json({ ok: true, acao,
         ...(await trocarEscolha(sql, quem, { item, campo: acao, para: corpo.para })) });
@@ -1031,7 +1038,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, acao, ...(await mexerNoSubitem(sql, quem, corpo)) });
     }
     if (acao === 'criar') {
-      return res.status(200).json({ ok: true, acao, ...(await criarConteudo(sql, quem, corpo)) });
+      const criado = await criarConteudo(sql, quem, corpo);
+      // O objetivo escolhido no cadastro vai depois de criar: sem a migração, a peça nasce do mesmo
+      // jeito e a resposta avisa que o objetivo ficou de fora.
+      let aviso_objetivo;
+      if (corpo.objetivo && criado?.conteudo_id) {
+        try { await trocarObjetivo(sql, quem, { item: `vybe:${criado.conteudo_id}`, objetivo: corpo.objetivo }); }
+        catch (erro) { aviso_objetivo = erro.message; }
+      }
+      return res.status(200).json({ ok: true, acao, ...criado, ...(aviso_objetivo ? { aviso_objetivo } : {}) });
     }
     return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
   } catch (erro) {

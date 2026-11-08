@@ -114,6 +114,8 @@ export function construirPredio(motor, { x, z, y }) {
     // Faixa de luz da situação do andar (verde em dia, amarelo pede aprovação, vermelho atraso/falha).
     const faixa = new THREE.Mesh(new THREE.BoxGeometry(LADO + .42, .09, LADO + .42), new THREE.MeshBasicMaterial({ color: '#18A957', toneMapped: false }));
     faixa.position.y = .08; g.add(faixa);
+    // Prédio vivo: a faixa é o andar inteiro no hover (motivo da cor numa frase, vybe-mundo.js).
+    faixa.userData.alvo = { tipo: 'andar', andar: andar.id }; motor.clicavel(faixa);
     andares.push({ andar, g, rotulo: r, faixa });
   }
   // ---------- Salas da equipe (o Escritório dentro do prédio) ----------
@@ -444,9 +446,10 @@ export function construirPredio(motor, { x, z, y }) {
   }
 
   const CORES_SIT = { verde: '#18A957', amarelo: '#E2A11B', vermelho: '#D93D42', cinza: '#9AA3A8' };
+  // Aceita o nome da situação ou a cor da escala de urgência (prédio vivo, saude-andares.mjs).
   function situacaoDosAndares(mapa = {}) {
     let mudou = false;
-    for (const a of andares) { const c = CORES_SIT[mapa[a.andar.id]] || CORES_SIT.cinza; if ('#' + a.faixa.material.color.getHexString().toUpperCase() !== c.toUpperCase()) { a.faixa.material.color.set(c); mudou = true; } }
+    for (const a of andares) { const v = mapa[a.andar.id], c = /^#[0-9a-f]{6}$/i.test(v || '') ? v : CORES_SIT[v] || CORES_SIT.cinza; if ('#' + a.faixa.material.color.getHexString().toUpperCase() !== c.toUpperCase()) { a.faixa.material.color.set(c); mudou = true; } }
     if (mudou) motor.invalidar?.();
   }
   return {

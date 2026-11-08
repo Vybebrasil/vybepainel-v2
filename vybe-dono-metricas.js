@@ -711,7 +711,9 @@
   const api = Object.freeze({
     calcular,
     REGRAS,
-    util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe }),
+    // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
+    util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
+      entregue: (status) => ENTREGUE.has(chaveStatus(status)) }),
   });
   raiz.VybeDono = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeDono = api;

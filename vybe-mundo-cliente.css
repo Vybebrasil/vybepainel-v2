@@ -71,5 +71,41 @@
 .vv-cli-perigo:hover:not(:disabled){background:#FFF5F6;border-color:#E8838F}
 .vv-cli-perigo:disabled{opacity:.5;cursor:not-allowed}
 
+/* Visão única (saúde, contrato e financeiro, peças do mês, clima, cérebro): primeiro no celular, tudo em
+   coluna; os números em grade de 4 que cabe em 300px. */
+.vv-cli-nota.fonte{margin-top:2px;font-size:11px}
+.vv-cli-sub{margin:8px 0 4px;font:700 11px/1.3 var(--vv-texto,system-ui);color:#6B675F}
+.vv-cli-texto{margin:0 0 6px;font:500 12.5px/1.5 var(--vv-texto,system-ui);color:#1F1D1A}
+.vv-cli-motivos{margin:0 0 4px;padding:0;list-style:none}
+.vv-cli-motivos li{position:relative;margin:0 0 4px;padding-left:14px;font:500 12.5px/1.45 var(--vv-texto,system-ui);color:#1F1D1A}
+.vv-cli-motivos li::before{content:"";position:absolute;left:3px;top:.55em;width:5px;height:5px;border-radius:50%;background:#E2A11B}
+.vv-cli-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 6px}
+.vv-cli-grade div{min-width:0;padding:7px 10px;border-radius:12px;border:1px solid #EFEAE2;background:#FFFFFF}
+.vv-cli-grade dt{font:700 9.5px/1.3 var(--vv-texto,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
+.vv-cli-grade dd{margin:2px 0 0;font:700 13px/1.3 var(--vv-texto,system-ui);color:#1F1D1A;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.vv-cli-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}
+.vv-cli-kpis div{min-width:0;padding:7px 4px;border-radius:12px;border:1px solid #EFEAE2;background:#FFFFFF;text-align:center}
+.vv-cli-kpis b{display:block;font:800 18px/1.1 var(--vv-texto,system-ui);color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-cli-kpis b.u1{color:#B42318}
+.vv-cli-kpis small{display:block;margin-top:2px;font:600 10.5px/1.2 var(--vv-texto,system-ui);color:#6B675F}
+.vv-cli-equilibrio{margin:0 0 8px}
+.vv-cli-barra{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:#F3EFE8}
+.vv-cli-barra i{display:block;min-width:4px}
+.vv-cli-equilibrio p{display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0 0;font:500 11.5px/1.3 var(--vv-texto,system-ui);color:#6B675F}
+.vv-cli-equilibrio p span{display:inline-flex;align-items:center;gap:4px}
+.vv-cli-equilibrio p i{width:7px;height:7px;border-radius:50%}
+.vv-cli-equilibrio p b{color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-cli-obj{display:inline-block;margin-right:5px;padding:0 6px;border-radius:999px;font:700 10px/1.6 var(--vv-texto,system-ui);background:#F3EFE8;color:#6B675F;box-shadow:inset 3px 0 0 #6B675F}
+.vv-cli-obj.atracao{box-shadow:inset 3px 0 0 #FF7A2F}
+.vv-cli-obj.educacao{box-shadow:inset 3px 0 0 #1F4FA8}
+.vv-cli-obj.conversao{box-shadow:inset 3px 0 0 #11613A}
+.vv-cli-paleta{display:flex;gap:4px;margin:0 0 6px}
+.vv-cli-paleta i{width:18px;height:18px;border-radius:8px;border:1px solid rgba(31,29,26,.12)}
+.vv-cli-botoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+/* Secundário (docs/padrao-visual.md §6): branco, borda, hover laranja; a ação principal da placa é "Abrir o cliente". */
+.vv-cli-secundario{appearance:none;height:34px;padding:0 13px;border-radius:12px;border:1px solid #E6E0D6;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui);cursor:pointer;transition:border-color .15s,color .15s}
+.vv-cli-secundario:hover{border-color:#FF7A2F;color:#C2490C}
+@media (max-width:380px){.vv-cli-kpis b{font-size:16px}.vv-cli-grade{grid-template-columns:minmax(0,1fr)}}
+
 .vv-cli :is(button,a):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
-@media (prefers-reduced-motion:reduce){.vv-cli-linha,.vv-cli-perigo{transition:none}.vv-cli-linha:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){.vv-cli-linha,.vv-cli-perigo,.vv-cli-secundario{transition:none}.vv-cli-linha:hover{transform:none}}

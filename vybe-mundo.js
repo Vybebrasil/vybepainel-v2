@@ -108,26 +108,96 @@
   // Cada botão chama a MESMA função da estação na tela de módulos. "Módulos" mostra
   // as estações completas (nada some); "Hoje" é o painel do dia guiado pelo VYBES.
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  // Setores com submódulos (Paulo, 07/11/2026, olhando o AgencyFlow: "módulos nesse esquema com os submódulos").
+  // O setor é um ícone do trilho; clicar abre ao lado a lista dos submódulos. Submódulo com `mod` só aparece
+  // quando o módulo dele está carregado (window[mod[0]]), assim um setor nunca mostra botão que não abre nada.
   const TRILHO = [
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
-    { id: 'gestao', nome: 'Gestão', dica: 'Gestão da Vybe: agora, semana, clientes, time e bots, histórico e projeção', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>') },
-    { id: 'tarefas', nome: 'Tarefas', dica: 'Minhas tarefas', ic: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/>') },
+    { id: 'setor:gestao', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
+      { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
+      { id: 'gestor', nome: 'Gestor', dica: 'Prioridades, prazos e capacidade' },
+      { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
+    ] },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
-    { id: 'gestor', nome: 'Gestor', dica: 'Gestor: prioridades, prazos e capacidade', ic: svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>') },
-    { id: 'direcao', nome: 'Direção', dica: 'Direção de arte', ic: svg('<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/>') },
-    { id: 'agenda', nome: 'Agenda', dica: 'Produção e agenda de captações', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>') },
-    { id: 'clientes', nome: 'Clientes', dica: 'Clientes', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>') },
-    { id: 'equipe', nome: 'Equipe', dica: 'Equipe: quem está online, conversa, recados, missões, ranking, conquistas e VybeCoins', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>') },
-    { id: 'jogos', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
+    { id: 'setor:producao', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
+      { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
+      { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
+      { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
+      { id: 'planejamentos', nome: 'Planejamentos', dica: 'Centro de Operação: o planejamento de cada cliente para revisar, editar, aprovar e enviar', mod: ['VybePlanejamentos'] },
+      { id: 'conteudo', nome: 'Equilíbrio e aprovação', dica: 'Atração, educação e conversão de cada cliente; link de aprovação', mod: ['VybeConteudo'] },
+      { id: 'projetos', nome: 'Projetos pontuais', dica: 'Eventos, lançamentos e sites, com a carga da equipe', mod: ['VybePessoas', 'projetos'] },
+    ] },
+    { id: 'setor:clientes', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
+      { id: 'clientes', nome: 'Todos os clientes', dica: 'Clientes, fichas e cérebro de cada um' },
+      { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
+      { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo: boas-vindas, contrato, acessos e kickoff', mod: ['VybeCarteira', 'onboarding'] },
+      { id: 'churn', nome: 'Churn', dica: 'Quem saiu, por quê, receita perdida e retenção', mod: ['VybeCarteira', 'churn'] },
+      { id: 'contratos', nome: 'Contratos', dica: 'Valor, início e renovações em breve', mod: ['VybeCarteira', 'contratos'] },
+    ] },
+    { id: 'setor:comercial', nome: 'Comercial', dica: 'Comercial: funil, pacotes, orçamentos e creators', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
+      { id: 'funil', nome: 'Funil de vendas', dica: 'Leads, propostas, ganhos e motivos de perda', mod: ['VybeComercial', 'funil'] },
+      { id: 'pacotes', nome: 'Pacotes', dica: 'Produtos da Vybe com custo e margem', mod: ['VybeComercial', 'pacotes'] },
+      { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
+      { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
+      { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
+    ] },
+    { id: 'setor:financas', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
+      { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
+      { id: 'recebimentos', nome: 'Recebimentos', dica: 'Recorrentes e pontuais: a receber, recebido e pendente', mod: ['VybeComercial', 'recebimentos'] },
+      { id: 'contas', nome: 'Contas a pagar', dica: 'Fixas, variáveis, folha, impostos, com % do faturamento', mod: ['VybeComercial', 'contas'] },
+      { id: 'inadimplencia', nome: 'Inadimplência', dica: 'Quem está em atraso e há quanto tempo', mod: ['VybeComercial', 'inadimplencia'] },
+      { id: 'vybe-financas', nome: 'Vybe Finanças', dica: 'Abrir o app financeiro da Vybe', url: 'https://vybe-financas.vercel.app/' },
+    ] },
+    { id: 'setor:pessoas', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
+      { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
+      { id: 'rh', nome: 'RH', dica: 'Pedidos, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
+      { id: 'recrutamento', nome: 'Recrutamento', dica: 'Vagas e candidatos', mod: ['VybePessoas', 'recrutamento'] },
+      { id: 'documentos', nome: 'Documentos', dica: 'Contratos e documentos do time', mod: ['VybePessoas', 'documentos'] },
+      { id: 'academy', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'] },
+      { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
+    ] },
     { id: 'predio', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
-    { id: 'perfil', nome: 'Perfil', dica: 'Perfil: nível, VybeCoins, meta da semana, ganhos, conquistas, inventário e números do trabalho', ic: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>') },
+    { id: 'jogos', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
     '-',
     { id: 'vybes', nome: 'VYBES', dica: 'Abrir o VYBES', ic: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>') },
   ];
+  // O separador '-' é string, e String.prototype.sub existe: só objeto com lista de verdade tem submódulos.
+  const SUBMODULOS = TRILHO.flatMap((t) => (t && typeof t === 'object' && Array.isArray(t.sub) ? t.sub : []).map((x) => ({ ...x, setor: t.id })));
+  const setorDe = (id) => SUBMODULOS.find((x) => x.id === id)?.setor || id;
+  const subVisivel = (x) => !x.mod || typeof window[x.mod[0]]?.abrir === 'function';
   function chamar(nome, ...a) { return typeof window[nome] === 'function' ? window[nome](...a) : undefined; }
-  function marcarTrilho(id) { hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === id)); }
-  function usarTrilho(id) {
+  function marcarTrilho(id) { const alvo = setorDe(id); hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === alvo)); }
+  // Lista de submódulos ao lado do setor (ou acima, no celular). Esc ou clique fora fecha.
+  function fecharSetor() { hud.querySelector('.vv-setor')?.remove(); hud.querySelectorAll('[data-trilho][aria-expanded]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
+  function abrirSetor(id, botao) {
+    const aberto = hud.querySelector('.vv-setor');
+    if (aberto?.dataset.setor === id) { fecharSetor(); return; }
+    fecharSetor();
+    const t = TRILHO.find((x) => x.id === id); if (!t) return;
+    const itens = t.sub.filter(subVisivel);
+    const el = document.createElement('div');
+    el.className = 'vv-setor'; el.dataset.setor = id; el.setAttribute?.('role', 'menu'); el.setAttribute?.('aria-label', t.nome);
+    el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small>${x.url ? '<i aria-hidden="true">↗</i>' : ''}</button>`).join('');
+    hud.append(el);
+    const r = botao?.getBoundingClientRect?.(), trilho = hud.querySelector('.vv-trilho')?.getBoundingClientRect?.();
+    if (r && trilho) {
+      if (trilho.height < 90) { el.style.left = Math.max(8, Math.min(innerWidth - 300, r.left)) + 'px'; el.style.bottom = (innerHeight - trilho.top + 8) + 'px'; }
+      else { el.style.left = (trilho.right + 8) + 'px'; el.style.top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, r.top - 6)) + 'px'; }
+    }
+    botao?.setAttribute?.('aria-expanded', 'true');
+    el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); usarTrilho(b.dataset.submodulo); });
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener?.('click', (ev) => { if (hud.querySelector('.vv-setor') && !ev.target.closest?.('.vv-setor,[data-trilho^="setor:"]')) fecharSetor(); }, true);
+    document.addEventListener?.('keydown', (ev) => { if (ev.key === 'Escape' && hud.querySelector('.vv-setor')) { fecharSetor(); ev.stopPropagation(); } }, true);
+  }
+  function usarTrilho(id, botao) {
+    if (String(id).startsWith('setor:')) { abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
     window.VybeTutorial?.dica?.('trilho:' + id);
+    // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
+    const sub = SUBMODULOS.find((x) => x.id === id);
+    if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
+    if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id); window[sub.mod[0]]?.abrir?.(sub.mod[1]); return; }
     if (id === 'gestao') { abrirGestao(); return; }
     if (!gestao.hidden) fecharGestao();
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
@@ -518,6 +588,7 @@
     <aside class="vv-agenda" id="vv-agenda" aria-label="Agenda da Vybe">
       <button type="button" class="vv-agenda-topo" data-agenda-recolher aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b>Agenda</b><span class="vv-agenda-seta">⌃</span></button>
       <div class="vv-agenda-lista" id="vv-agenda-lista"><p class="vv-dica">Carregando a agenda…</p></div>
+      <div class="vv-roteiros" id="vv-roteiros" hidden></div>
       <button type="button" class="vv-botao vv-agenda-abrir" data-abrir-agenda>Abrir a agenda completa →</button>
     </aside>
     <aside class="vv-placa" id="vv-placa" hidden></aside>
@@ -557,6 +628,27 @@
 
   // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------
   const SIT_COR = { verde: '#18A957', amarelo: '#E2A11B', vermelho: '#D93D42', cinza: '#9AA3A8' };
+  // ---------- Prédio vivo (Paulo, 07/11/2026): a saúde do andar acende a faixa dele ----------
+  // Regra pura em mundo/saude-andares.mjs (Criação, Comercial/Atendimento e Financeiro); aqui só os dados
+  // do painel e dos módulos irmãos, se existirem. A cor vira 'u1'…'u6' (escala de urgência) em SIT_COR.
+  let saudeCache = null, saudeEm = 0;
+  const moduloIrmao = (ler) => { try { const d = ler(); return d && typeof d === 'object' && typeof d.then !== 'function' ? d : null; } catch { return null; } };
+  function saudeDoPredio() {
+    if (!mundo?.saudeDosAndares) return null;
+    if (saudeCache && Date.now() - saudeEm < 2000) return saudeCache;
+    const agentes = {}; for (const a of mundo.planta) agentes[a.id] = a.setores.filter((s) => s.agente).map((s) => estadoDoAgente(s.id).estado);
+    saudeCache = mundo.saudeDosAndares({ itens: itensDoPainel(), hoje: hojeIso(), situacao: (i, h) => situacaoDaPeca(i, h), agentes,
+      comercial: moduloIrmao(() => window.VybeComercial?.dados?.()), carteira: moduloIrmao(() => window.VybeCarteira?.dados?.()) });
+    saudeEm = Date.now(); return saudeCache;
+  }
+  function comSaude(a, r) {
+    const s = saudeDoPredio()?.[a.id]; if (!s) return r;
+    SIT_COR['u' + s.nivel] = s.cor;
+    return { ...r, sit: 'u' + s.nivel, motivo: s.motivo };
+  }
+  const MOTIVO_SIT = { vermelho: 'Um agente do andar falhou ou há peça atrasada.', amarelo: 'Tem coisa esperando aprovação.', verde: 'Tudo andando.', cinza: 'Agentes sem execução ou sem leitura da central.' };
+  function motivoDoAndar(a) { const r = numerosDoAndar(a); return { motivo: r.motivo || MOTIVO_SIT[r.sit] || '', cor: SIT_COR[r.sit] || SIT_COR.cinza }; }
+  // ---------- fim do prédio vivo ----------
   function numerosDoAndar(a) {
     const pecas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
     const sits = pecas.map((d) => situacaoDaPeca(d));
@@ -582,11 +674,11 @@
       n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis']];
       if (!agentes.length || agentes.every((e) => ['sem_execucao', 'indisponivel'].includes(e))) sit = 'cinza';
     }
-    return { n, sit };
+    return comSaude(a, { n, sit });
   }
   function pintarSituacaoDosAndares() {
     if (!mundo?.situacaoDosAndares) return;
-    const m = {}; for (const a of mundo.planta) m[a.id] = numerosDoAndar(a).sit;
+    const m = {}; for (const a of mundo.planta) { const s = numerosDoAndar(a).sit; m[a.id] = SIT_COR[s] || s; }
     mundo.situacaoDosAndares(m);
   }
   // Elevador: coluna fina colada ao prédio. Cada andar com número, nome, o número que mais importa e a cor
@@ -597,8 +689,8 @@
     p.innerHTML = `<div class="vv-elevador-lista">
       <div class="vv-elevador-topo"><small class="vv-cb-kicker">Elevador</small><button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button></div>
       <h3>Prédio da Vybe</h3>
-      ${[...mundo.planta].reverse().map((a) => { const { n, sit } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
-        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc(n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
+      ${[...mundo.planta].reverse().map((a) => { const { n, sit, motivo } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
+        return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc((motivo ? motivo + ' · ' : '') + n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
           <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span>
           <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em></span>
           <span class="sit" aria-hidden="true"></span></button>`; }).join('')}
@@ -807,6 +899,7 @@
   }
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
+    pintarRoteiros();
     const hoje = hojeIso(), agora = new Date(), hm = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
     const amanha = (() => { const x = new Date(`${hoje}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
     const proximos = agendaEventos.filter((e) => e.dia > hoje || !e.fim || e.fim >= hm)
@@ -818,6 +911,21 @@
       return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}">
         <small>${esc(quando + hora)} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
     }).join('');
+  }
+  // ---------- Roteiro da semana (Paulo, 07/11/2026): juntar captações por dia e bairro ----------
+  // Só sugestão (mundo/captacoes.mjs, roteirosDaSemana): a agenda não muda. Ordem pelo vizinho mais próximo.
+  function pintarRoteiros() {
+    const el = hud.querySelector('#vv-roteiros'); if (!el) return;
+    const r = agendaEventos && mundo?.roteirosDaSemana ? mundo.roteirosDaSemana(agendaEventos, mundo.diaNaBahia?.() || hojeIso()) : null;
+    if (!r || (!r.dias.length && !r.juntar.length)) { el.hidden = true; el.innerHTML = ''; el.vvAss = ''; return; }
+    const kmTxt = (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    const html = `<div class="vv-rotulo-secao" style="--c:#0E9A45"><i></i>Roteiro da semana</div>`
+      + r.dias.slice(0, 3).map((d) => `<div class="vv-roteiro"><b>${esc(d.frase)}</b>
+        <small>${['Vybe', ...d.ordem.map((p) => p.cliente + (p.noMapa ? '' : ' (sem endereço no mapa)')), 'Vybe'].map(esc).join(' → ')}</small>
+        ${d.km ? `<span>≈ ${kmTxt(d.km)} km${d.economia >= .1 ? ` · ${kmTxt(d.economia)} km a menos que na ordem da agenda` : ''}</span>` : ''}</div>`).join('')
+      + r.juntar.slice(0, 2).map((j) => `<p class="vv-dica">${esc(j.frase)}</p>`).join('');
+    if (el.vvAss !== html) { el.innerHTML = html; el.vvAss = html; }
+    el.hidden = false;
   }
   // A agenda completa é a das Captações (módulo Produção): uma agenda só.
   function abrirAgenda(dia) {
@@ -1519,6 +1627,7 @@
         else if (alvo.tipo === 'vybes') mostrarAgente('terreo', 'orquestrador');
         else if (alvo.tipo === 'cerebro') mostrarNoDoCerebro(alvo.no);
         else if (alvo.tipo === 'zona') abrirAndarVoxel(alvo.andar);
+        else if (alvo.tipo === 'andar') mostrarAndar(alvo.andar);
       });
       mundo.aoPassar((alvo, e) => {
         const c = cartao();
@@ -1534,6 +1643,11 @@
         } else if (alvo.tipo === 'setor') {
           const a = mundo.planta.find((x) => x.id === alvo.andar), s = a?.setores.find((x) => x.id === alvo.setor); if (!s) { c.hidden = true; return; }
           html = `<b>${esc(s.nome)}</b><small>${esc(a.nome)}${s.agente ? ' · agente ' + esc(s.agente) : ''}</small>${s.agente ? seloAgente(s.id) : ''}`;
+          const m = motivoDoAndar(a); if (m.motivo) html += `<span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo)}</span>`;
+        } else if (alvo.tipo === 'andar') {
+          const a = mundo.planta.find((x) => x.id === alvo.andar); if (!a) { c.hidden = true; return; }
+          const m = motivoDoAndar(a);
+          html = `<b>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</b><span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo || 'Sem leitura agora.')}</span>`;
         }
         c.innerHTML = html + '<span class="clique">Clique para abrir</span>';
         c.style.left = Math.min(innerWidth - 296, e.clientX + 16) + 'px'; c.style.top = Math.min(innerHeight - 160, e.clientY + 16) + 'px';

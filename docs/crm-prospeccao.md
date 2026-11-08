@@ -25,3 +25,21 @@ Na primeira abertura com permissão de edição e banco disponível, o CRM lê `
 `tests/crm.test.mjs`: rota sem sessão 401, credencial de serviço e escrita sem permissão 403, leitura, etapas/aprovação, histórico, responsável/data, versão concorrente, importação repetida, rollback quando histórico falha e 503 sem migração.
 
 `tests/mundo-crm.test.mjs`: marcador de importação apenas após sucesso, repetição, preservação do original, falha de banco e conta sem permissão.
+
+## Comercial e finanças da agência (07/11/2026)
+
+Evolução deste CRM, inspirada no AgencyFlow. Janela do Irecity `vybe-mundo-comercial.js` (+ `.css`), aberta por `window.VybeComercial.abrir(aba)` e pela sala de Closing do 1º andar (planta: `modulo { tipo: 'janela', alvo: 'comercial' }`). Abas: `funil`, `pacotes`, `orcamentos`, `financas`, `recebimentos`, `contas`, `inadimplencia`, `caixa`, `fornecedores`, `creators`. Celular primeiro (tela cheia, abas roláveis, formulários numa folha que sobe de baixo).
+
+**Migração manual**: `migrations/2026-11-07-comercial.sql`, depois da de prospecção. Não é executada pela API nem pelo build. Sem ela: a área Comercial responde 503 explicando a migração; o funil mostra fases, conversão e motivos de perda sem valor; Follow-up, valor da negociação e etapas novas respondem 503 no CRM.
+
+**Funil**: o mesmo `vybe_crm_oportunidades`. Fases do time sobre as etapas: Novo (empresa, qualificação, abordagem, aprovada) → Primeiro contato → Apresentação → Proposta → Follow-up (opcional) → Ganho / Perdido. Perdido exige motivo (preço, sem retorno, fechou com outro, sem verba, timing, outro + texto), gravado em `vybe_crm_historico.detalhes.motivo_perda` (o relatório lê dali, sem coluna nova). O meio do funil é configurável pelos donos (`vybe_crm_etapas_config`: acrescentar e reordenar; as do padrão não saem; etapa nova com oportunidade não sai). Sair de "Aprovada" continua exigindo a aprovação humana.
+
+**Contas**: todas em `shared/comercial-calculos.js` (funções puras com as definições no topo; servidor e tela usam as mesmas). Testes: `tests/comercial-calculos.test.mjs` (contas) e `tests/comercial.test.mjs` (rota, papéis, PGlite com as duas migrações).
+
+**Quem vê** (conferido no servidor, `server/comercial.js`): toda sessão pessoal lê funil, pacotes (sem custo/margem), orçamentos e creators; editar funil, orçamentos e creators é de administração, donos e Atendimento (`podeEditarCrm`, que agora inclui os donos). Dinheiro da agência (finanças por cliente, custo e margem, recebimentos, contas a pagar, inadimplência, caixa, fornecedores/BV), editar pacotes, capacidade e etapas do funil: só os donos (Paulo, Vinícius, Ewerton, Deivid, pelo primeiro nome da sessão, `ehDono` em `server/crm.js`) e administração.
+
+**Capacidade × vendas**: capacidade mensal por cargo (funções do Escritório) configurada pelos donos; carga atual = demandas abertas do painel (`DADOS_ALL`) por responsável; acréscimo = carga do pacote. Cabe (até 80%), Aperta (até 100%), Estoura (acima). Aparece no Funil (Proposta/Follow-up e ao registrar Ganho) e no orçamento.
+
+**Caixa**: recorrentes previstos − fixas e folha, mês atual e 3 seguintes; alerta de concentração quando `window.VybeCarteira?.dados?.()` indica risco alto de churn num cliente com mais de 15% do faturamento recorrente (sem a Carteira, sem alerta).
+
+Não integra com o Vybe Finanças (app separado) nem envia mensagem. A tela antiga do CRM em `vybe-mundo.js` (não alterada) segue funcionando; o "Marcar perdido" dela agora recebe o erro pedindo o motivo, que se registra pelo Comercial.

@@ -217,6 +217,22 @@ pra não ficar renderizando a cidade toda o tempo todo".
   `mundoVoxel.desempenho().laco` mostra o estado (pausado, visível, estacionado, parado há quanto tempo).
 - Medido neste PC (1366×768): vista geral ~315 mil triângulos e ~6 ms por quadro; de perto ~1,1 milhão e ~6 ms.
 
+## 5a4. Prédio vivo e roteiro das captações (07/11/2026)
+
+- **Prédio vivo** (`mundo/saude-andares.mjs`, função pura `saudeDosAndares`): a faixa de luz de cada andar (a que já existia,
+  sem triângulo novo) acende na escala de urgência do padrão visual. Criação: âmbar com demanda atrasada, vermelho com mais de 5.
+  Comercial (Atendimento): âmbar/vermelho com peça parada em aprovação há mais de 3/7 dias (`status_updated_at`; sem essa data,
+  neutro e diz por quê). Financeiro e Comercial leem `window.VybeCarteira?.dados?.()` / `window.VybeComercial?.dados?.()` quando
+  existirem (contrato: `{ nivel, motivo }` ou contadores `vencidos`, `inadimplentes`, `atrasados`, `parados`, `semRetorno`); sem eles,
+  neutro. Agente que falhou acende vermelho. Os outros andares seguem a regra antiga dos agentes. O motivo aparece numa frase no
+  hover do andar (faixa e salas) e no título do elevador; clicar na faixa abre o andar.
+- **Roteiro da semana** (`roteirosDaSemana` em `mundo/captacoes.mjs`): na aba Agenda, cada dia com 2 ou mais captações vira
+  "Terça: 3 captações no Centro e na Lagoa — junte num roteiro", com a ordem pelo vizinho mais próximo saindo da Vybe e quanto anda a
+  menos que na ordem da agenda; o mesmo bairro em dias diferentes ganha "dá para juntar num dia só?". Só sugestão: a agenda não muda.
+  Bairro: `bairro` em `locais.json` > fim do endereço > endereço do cadastro > base de CNPJ.
+- Testes: `tests/mundo-predio-vivo.test.mjs`. **Não conferido:** o hover no 3D (a prévia não desenhou o WebGL nesta máquina) e os
+  números com dados reais.
+
 ## 5b. Conferência geral (06/11/2026): onde ficou cada coisa do painel antigo
 
 | Do painel antigo | Agora, com o mundo ligado | Situação |
