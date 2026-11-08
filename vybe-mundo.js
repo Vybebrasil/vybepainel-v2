@@ -2463,7 +2463,7 @@
   }
   function iniciar() {
     let palcoAgendado = false;
-    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; requestAnimationFrame(() => { palcoAgendado = false; marcarPalco(); }); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; setTimeout(() => { palcoAgendado = false; try { marcarPalco(); } catch (e) { console.error('[mundo] palco', e); } }, 40); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
     const moldura = document.createElement('div'); moldura.id = 'mundo-moldura';
     body.append(raiz, moldura, hud);
     const gate = document.getElementById('mode-gate');
