@@ -278,18 +278,25 @@ body.mundo-cartoes .vv-hoje{display:none}
    tela de módulos; no mundo ela continua à mão (o Escritório virou o motor do prédio). */
 html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate{visibility:visible!important}
 html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-play-state:running!important}
-#mundo-andar{position:fixed;inset:0;z-index:606;background:radial-gradient(ellipse at 50% 40%,#2C3136 0%,#17191C 70%);overflow:hidden}
+/* O andar por dentro fica por baixo dos HUDs (Paulo, 08/11/2026: "as HUDs não devem sumir aqui"): mesmo nível do
+   #mundo (601, vem depois no DOM), então trilho, barra de cima e o painel do andar seguem à mão, como no Prédio.
+   A maquete ocupa só a área livre entre o trilho e o painel (--vv-livre-esq/dir, ajustarAreaLivre). */
+#mundo-andar{position:fixed;inset:0;z-index:601;background:linear-gradient(180deg,#EEF6F7 0%,#CFE2E6 55%,#B9D0D5 100%);overflow:hidden}
+#mundo-andar .andar-palco{position:absolute;top:0;bottom:0;left:var(--vv-livre-esq,0px);right:var(--vv-livre-dir,0px);overflow:hidden}
 #mundo-andar canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
 #mundo-andar canvas:active{cursor:grabbing}
-.andar-topo{position:absolute;top:var(--vv-m);left:var(--vv-m);gap:12px;padding:6px 14px 6px 6px;background:rgba(251,250,247,.96)!important;color:var(--vv-tinta)}
+.andar-topo{position:absolute;top:var(--vv-m);left:calc(var(--vv-livre-esq,0px) + var(--vv-m));gap:12px;padding:6px 14px 6px 6px;background:rgba(251,250,247,.96)!important;color:var(--vv-tinta)}
+@media (max-width:900px){.andar-topo{top:calc(var(--vv-m) + 58px)}}
+.andar-voltar[hidden]{display:none!important}.andar-topo:has(.andar-voltar[hidden]){padding-left:14px}
 .andar-topo span:not(.andar-voz){display:flex;flex-direction:column}
 .andar-topo small{font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:var(--vv-apagado)}
 .andar-topo b{font:700 16px var(--vv-titulo);color:var(--vv-tinta)}
 .andar-voz{padding:5px 10px;border-radius:8px;background:var(--vv-papel);font:700 11.5px var(--vv-texto);color:var(--vv-apagado)}
 .andar-voz:not(:empty)::before{content:"●";margin-right:6px;color:var(--sit-pronta)}
-.andar-dica{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.12);color:#E7ECEE;font:500 12px var(--vv-texto);backdrop-filter:blur(8px);white-space:nowrap}
+.andar-dica{position:absolute;left:calc(var(--vv-livre-esq,0px) + var(--vv-m));top:calc(var(--vv-m) + 66px);width:max-content;max-width:min(340px,calc(100% - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 28px));margin:0;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.86);color:var(--vv-tinta);box-shadow:0 6px 18px -8px rgba(30,40,50,.35);font:500 12px/1.4 var(--vv-texto);backdrop-filter:blur(8px);text-align:left}
+@media (max-width:900px){.andar-dica{display:none}}
 .sala-placa,.sala-nome{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform}
-.sala-placa{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.92);box-shadow:0 6px 18px rgba(0,0,0,.3);font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}
+.sala-placa{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.94);box-shadow:0 6px 16px -6px rgba(30,40,50,.35);font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}
 .sala-placa.pessoal{background:#FFF6EC}
 .sala-placa.minha{background:var(--vv-laranja);color:#fff}
 .sala-placa span{font-weight:600;color:var(--vv-apagado)}.sala-placa.minha span{color:#fff}

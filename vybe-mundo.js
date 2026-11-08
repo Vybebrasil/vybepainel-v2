@@ -777,6 +777,16 @@
       <table class="vv-op-tabela"><thead><tr><th>Agente</th><th>Fase</th><th class="n">Hoje</th><th class="n">Sucesso</th><th class="n">Última</th><th class="n">Mód.</th></tr></thead><tbody>${linhas}</tbody></table>
       ${sinal ? '' : `<p class="vv-elevador-aviso off">${esc(avisoDosAgentes())}. A tabela enche quando a central voltar.</p>`}`;
   }
+  // Um botão só para entrar e sair (Paulo, 08/11/2026: "se eu já tô no andar tem sentido o botão entrar?").
+  function botaoDoAndarHtml(id) {
+    return andarAbertoId === id
+      ? `<button type="button" class="vv-botao acao vv-entrar-andar" data-sair-andar data-andar-id="${esc(id)}">← Voltar ao prédio</button>`
+      : `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(id)}" data-andar-id="${esc(id)}">Entrar no andar →</button>`;
+  }
+  function trocarBotaoDoAndar() {
+    const b = placa()?.querySelector('.vv-entrar-andar');
+    if (b) b.outerHTML = botaoDoAndarHtml(b.dataset.andarId);
+  }
   function mostrarAndar(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
     const p = placa(), E = mundo.estadosReais;
@@ -797,7 +807,7 @@
       </article>`).join('')}
       ${salasDaEquipeHtml(a.id)}${a.id === 'terraco' ? equipeLazerHtml() : ''}`;
     if (Object.values(mundo.zonasDoPredio || {}).some((z) => z.andar === a.id))
-      p.querySelector('.vv-sub').insertAdjacentHTML('afterend', `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(a.id)}">Entrar no andar →</button>`);
+      p.querySelector('.vv-sub').insertAdjacentHTML('afterend', botaoDoAndarHtml(a.id));
     p.hidden = false; ajustarAreaLivre();
     mundo.focarAndar(a.nivel);
     hud.querySelector('[data-voltar]')?.addEventListener('click', () => mundo.focarAndar(null), { once: true });
@@ -890,8 +900,8 @@
     if (!zonas.length) return;
     const minhaSala = window.VybeDecorar?.salaDecoravel?.(zonas.map((z) => z.id)) || '';
     const el = document.createElement('section'); el.id = 'mundo-andar';
-    el.innerHTML = `<canvas aria-label="${esc(a.nome)} por dentro"></canvas>
-      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao" data-sair-andar>← Prédio</button>
+    el.innerHTML = `<div class="andar-palco"><canvas aria-label="${esc(a.nome)} por dentro"></canvas></div>
+      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao andar-voltar" data-sair-andar hidden>← Voltar ao prédio</button>
         <span><small>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'}</small><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b></span>
         <span class="andar-voz" id="andar-voz"></span>${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</header>
       <p class="andar-dica">Todo mundo do andar aparece aqui. Clique numa sala para entrar nela: a voz liga só com quem está na mesma sala.</p>`;
@@ -909,10 +919,13 @@
         const L = tamanhoDaZona(zona); if (L && typeof escritorioIrPara === 'function') escritorioIrPara(Math.round(fx * L.w), Math.round(fz * L.d));
       } else irParaSala(zona);
     });
-    el.querySelector('[data-sair-andar]').addEventListener('click', async () => { if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return; fecharAndarVoxel(true); });
+    el.querySelector('[data-sair-andar]').addEventListener('click', () => sairDoAndar());
+    trocarBotaoDoAndar();
     el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
     const pintar = () => {
       if (!andarAberto) return;
+      const voltar = el.querySelector('.andar-voltar'), semPainel = placa().hidden;
+      if (voltar && voltar.hidden !== !semPainel) voltar.hidden = !semPainel;
       const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
       andarAberto.pessoas(manualAndar || genteDoAndar(), minha);
       const voz = el.querySelector('#andar-voz');
@@ -921,12 +934,20 @@
     pintar(); timerAndar = setInterval(pintar, 200);
     sincronizar();
   }
+  // Sair do andar volta ao Prédio com o painel daquele andar aberto (os HUDs seguem onde estavam).
+  async function sairDoAndar() {
+    if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return;
+    const id = andarAbertoId;
+    fecharAndarVoxel(false);
+    if (id && mundo) mostrarAndar(id);
+  }
   function fecharAndarVoxel(voltar) {
     geracaoAndar++; andarAbertoId = '';
     clearInterval(timerAndar); timerAndar = null;
     window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
     document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar');
+    trocarBotaoDoAndar();
     if (voltar && typeof openModeGate === 'function' && !document.getElementById('mode-gate')?.classList.contains('open')) openModeGate();
     sincronizar();
   }
@@ -1597,6 +1618,12 @@
 
   hud.addEventListener('click', (e) => {
     const b = e.target.closest('button, tr[data-agente]'); if (!b) return;
+    // Andar aberto por baixo dos HUDs: outro andar no elevador entra nele; trocar de vista, voltar à lista
+    // de andares, fechar o painel ou ir a outro lugar do trilho sai do andar (decorando, a edição decide).
+    if (andarAberto && !window.VybeDecorar?.aberto?.()) {
+      if (b.dataset.andar && b.dataset.andar !== andarAbertoId) abrirAndarVoxel(b.dataset.andar);
+      else if (b.dataset.vista || b.dataset.ctl === 'tudo' || b.hasAttribute('data-voltar') || ['centro', 'predio', 'agentes', 'jogos'].includes(b.dataset.trilho)) fecharAndarVoxel(false);
+    }
     if (selecionarSemana(b)) return;
     if (b.dataset.atencaoCliente) { mostrarPendencias(b.dataset.atencaoCliente); return; }
     if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
@@ -1651,6 +1678,7 @@
     else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);
     else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mostrarAgente(an, se); }
     else if (b.dataset.entrarAndar) abrirAndarVoxel(b.dataset.entrarAndar);
+    else if (b.hasAttribute('data-sair-andar')) sairDoAndar();
     else if (b.dataset.legado) {
       const e = typeof escritorio !== 'undefined' ? escritorio : null;
       if (b.dataset.legado === 'ficha' && e?.base) chamar('abrirFichaEscritorio', e.base.eu);
@@ -2114,8 +2142,8 @@
       return;
     }
     if (chamarAberto || pessoaAberta) { chamarAberto = false; pessoaAberta = null; pintarChamada(); return; }
+    if (andarAberto) { sairDoAndar(); return; }
     if (!placa().hidden) { fecharPlaca(); return; }
-    if (andarAberto) { fecharAndarVoxel(true); return; }
     if (hud.querySelector('.vv-menu-conta')) { hud.querySelectorAll('.vv-menu-conta').forEach((x) => x.remove()); return; }
     if (!gestao.hidden) { fecharGestao(); return; }
     if (body.classList.contains('mundo-modulo')) { fecharModulo(); return; }
