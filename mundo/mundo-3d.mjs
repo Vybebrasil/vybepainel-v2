@@ -6,7 +6,7 @@ import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan, roteiro
 import { saudeDosAndares, URGENCIA } from './saude-andares.mjs';
 import { construirCentro } from './centro.mjs';
 import { construirPredio } from './predio.mjs';
-import { PLANTA, ESTADOS, ZONAS_DO_PREDIO } from './planta.mjs';
+import { PLANTA, ESTADOS, ZONAS_DO_PREDIO, MESAS_POR_ANDAR } from './planta.mjs';
 import { Obra } from './voxel.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
 
@@ -14,7 +14,7 @@ export { PLANTA, ESTADOS };
 // Leitura dos agentes sem montar a cena (Hoje, Gestão e a página Agentes com o Centro fechado).
 export { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS };
 export { abrirAndar } from './sala.mjs';
-export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar } from './avatar.mjs';
+export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar, desenharBoneco, figuraDaPessoa, figuraDoAgente, avatarDoAgente } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 
 // Centro comercial (Paulo, 08/11/2026): no lugar do mapa de Irecê (relevo, ruas, 5.148 empresas, ~3,9 MB de dados),
@@ -31,7 +31,7 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
 
   const VISTAS = {
     cidade: { alvo: { x: 0, y: 4, z: 0 }, dist: 330, incl: .74, giro: -.75 },
-    predio: { alvo: { x: 0, y: 15, z: 0 }, dist: 175, incl: .42, giro: -.6 },
+    predio: { alvo: { x: 0, y: 17, z: 0 }, dist: 195, incl: .42, giro: -.6 },
   };
   motor.voar(VISTAS.cidade, 1);
 
@@ -231,7 +231,7 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     definirCaptacoes,
     diaNaBahia: () => relogioBahia().dia,
     destruir: motor.destruir,
-    planta: PLANTA, estados: ESTADOS, zonasDoPredio: ZONAS_DO_PREDIO, presenca: predio.presenca,
+    planta: PLANTA, estados: ESTADOS, zonasDoPredio: ZONAS_DO_PREDIO, mesasPorAndar: MESAS_POR_ANDAR, presenca: predio.presenca,
     aoClicar: motor.aoClicar, aoPassar: motor.aoPassar,
     zoom: motor.zoom, girar90: motor.girar90, areaLivre: motor.areaLivre, pausar: motor.pausar,
     verCidade() { predio.abrir(false); motor.voar({ ...VISTAS.cidade, alvo: { ...VISTAS.cidade.alvo, y: 0 } }); },
