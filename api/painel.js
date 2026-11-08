@@ -9,7 +9,7 @@ import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
 import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, pecasLigaveisDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
-import { trocarEscolha } from './conteudo.js';
+import { trocarEscolha, trocarStatus, comentar } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -27,6 +27,9 @@ import { areaVybes } from '../server/vybes.js';
 import { areaCrm } from '../server/crm-api.js';
 import { areaCarteira } from '../server/carteira.js';
 import { areaComercial } from '../server/comercial-api.js';
+import { listarObjetivos } from '../server/conteudo-objetivo.js';
+import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
+import { paginaAprovarPecas } from '../server/conteudo-aprovacao-pagina.js';
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
@@ -1691,6 +1694,26 @@ async function areaRoteiros(req,res,quem) {
   } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
 }
 
+// Módulo Conteúdo (vybe-mundo-conteudo.js): objetivos das peças (leitura; a escrita é api/conteudo.js,
+// acao=objetivo) e os links de aprovação do cliente. Sem a migração, responde pronto:false com aviso.
+async function areaConteudoModulo(req, res, quem) {
+  const pessoa = quem?.tipo === 'sessao' ? quem.pessoa : null;
+  if (!pessoa?.id) return res.status(403).json({ error: 'Entre com a sua conta para usar o módulo Conteúdo.' });
+  const acao = String(req.query?.acao || req.body?.acao || '');
+  const db = sql();
+  try {
+    if (req.method === 'GET' && acao === 'objetivos') return res.status(200).json({ ok: true, ...(await listarObjetivos(db)) });
+    if (req.method === 'GET' && acao === 'aprovacao') return res.status(200).json({ ok: true, ...(await painelDeAprovacao(db, pessoa)) });
+    if (req.method === 'POST' && acao === 'gerar_link') {
+      const l = await gerarLink(db, pessoa, req.body || {});
+      const base = process.env.PAINEL_URL || `https://${req.headers?.host || 'vybepainel-v2.vercel.app'}`;
+      return res.status(200).json({ ok: true, ...l, token: undefined, link: `${base}/aprovar-pecas/${l.token}` });
+    }
+    if (req.method === 'POST' && acao === 'revogar_link') return res.status(200).json({ ok: true, ...(await revogarLink(db, pessoa, req.body || {})) });
+    return res.status(400).json({ error: 'Ação inválida.' });
+  } catch (e) { return res.status(e.status || 500).json({ error: e.message }); }
+}
+
 // Primeira consulta da Vybe AI: somente usuário autenticado por sessão.
 // Este acesso NÃO é uma credencial de serviço para o bot de WhatsApp.
 export async function areaAssistente(req, res, quem, criarBanco = sql) {
@@ -1727,7 +1750,7 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
-const AREAS = { crm: (req,res,quem) => areaCrm(req,res,quem,sql), carteira: (req,res,quem) => areaCarteira(req,res,quem,sql), comercial: (req,res,quem) => areaComercial(req,res,quem,sql), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+const AREAS = { crm: (req,res,quem) => areaCrm(req,res,quem,sql), carteira: (req,res,quem) => areaCarteira(req,res,quem,sql), comercial: (req,res,quem) => areaComercial(req,res,quem,sql), conteudo_modulo: areaConteudoModulo, assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()) };
@@ -1754,6 +1777,10 @@ export default async function handler(req, res) {
   // conector dos agentes (chave própria). docs/planejamentos-plano.md.
   const areaPublica = String(req.query?.area || '');
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
+  // Aprovação de peças pelo cliente (módulo Conteúdo): outro link, outro segredo, só as peças em
+  // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).
+  if (areaPublica === 'aprovar_pecas') return paginaAprovarPecas(req, res, sql(), { baixarDoDrive,
+    fazer: { trocarStatus, comentar } });
   if (areaPublica === 'logo') return logoDoCliente(req, res, sql());
   if (areaPublica === 'portal') {
     try { return await portalDoCliente(req, res, sql()); }
