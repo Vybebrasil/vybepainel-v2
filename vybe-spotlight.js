@@ -203,6 +203,7 @@ function spotlightDialogo() {
         aria-autocomplete="list" autocomplete="off" spellcheck="false"
         placeholder="Buscar conteúdos, demandas, clientes e pessoas">
       <kbd class="spotlight-tecla">esc</kbd>
+      <button type="button" class="spotlight-fechar" aria-label="Fechar busca" title="Fechar (Esc)">×</button>
     </div>
     <div class="spotlight-abas" role="tablist" aria-label="Filtrar resultados">${SPOTLIGHT_ABAS.map(([chave, rotulo]) =>
       `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === 'tudo'}">${rotulo}</button>`).join('')}</div>
@@ -243,7 +244,7 @@ function spotlightDialogo() {
     else d.close();
     if (d.open) input.focus();
   });
-  d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('.spotlight-fechar')) d.close(); });
   SPOTLIGHT_DIALOGO = d;
   return d;
 }

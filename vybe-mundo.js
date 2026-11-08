@@ -399,25 +399,25 @@
       ? `Hoje: <b>${n0(H.atrasadas)} atrasada${H.atrasadas === 1 ? '' : 's'}</b> e <b>${n0(H.emRisco)} com risco de furo</b>.${clientesRuins[0] ? ` O cliente mais apertado é <b>${esc(clientesRuins[0].cliente)}</b>.` : ''}`
       : `Produção em dia. ${sem3.length ? `<b>${sem3.length} cliente${sem3.length > 1 ? 's' : ''}</b> ainda sem 3 posts na semana.` : 'Todos os clientes com 3 posts na semana.'}`;
     el.innerHTML = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
-        <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
+        <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
       <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
       <div class="vv-dono-kpis">
-        <button type="button" class="u1" data-abrir-gestao="hoje"><b>${n0(H.atrasadas)}</b><small>atrasadas</small></button>
-        <button type="button" class="u2" data-abrir-gestao="hoje"><b>${n0(H.emRisco)}</b><small>risco de furo</small></button>
-        <button type="button" data-abrir-gestao="hoje"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
+        <button type="button" class="u1" data-abrir-gestao="hoje" data-espiar="atrasadas"><b>${n0(H.atrasadas)}</b><small>atrasadas</small></button>
+        <button type="button" class="u2" data-abrir-gestao="hoje" data-espiar="emRisco"><b>${n0(H.emRisco)}</b><small>risco de furo</small></button>
+        <button type="button" data-abrir-gestao="hoje" data-espiar="faltam"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
         <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
       </div>
       <div class="vv-blocos"><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
       <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
       </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<span class="vv-pilula">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</span></div>
+      <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button></div>
       ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
       <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
-        <p><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <b class="t-u1">${C.semConteudo.length} sem nenhum</b>` : ''}${(C.semPlanejamento || []).length ? ` · ${C.semPlanejamento.length} sem planejamento` : ''}</p>
-        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<span>+${sem3.length - 6}</span>` : ''}</div>` : ''}</div>
+        <p><button type="button" class="vv-num" data-espiar="sem3"><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b></button> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <button type="button" class="vv-num t-u1" data-espiar="semConteudo"><b>${C.semConteudo.length} sem nenhum</b></button>` : ''}${(C.semPlanejamento || []).length ? ` · <button type="button" class="vv-num" data-espiar="semPlanejamento">${C.semPlanejamento.length} sem planejamento</button>` : ''}</p>
+        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
       ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
       ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
       </section><section class="vv-bloco">
@@ -442,7 +442,9 @@
     gestao.hidden = false; body.classList.add('mundo-gestao'); marcarTrilho('gestao'); pintarGestao(); gestao.scrollTop = 0; window.VybeTutorial?.dica?.('trilho:gestao');
   }
   function fecharGestao() { gestao.hidden = true; body.classList.remove('mundo-gestao', 'mundo-tela-cheia'); marcarTrilho('hoje'); }
-  const kpi = (v, r, cls = '', sub = '') => `<div class="vv-g-kpi ${cls}"><b>${v}</b><small>${r}</small>${sub ? `<em>${sub}</em>` : ''}</div>`;
+  const kpi = (v, r, cls = '', sub = '', espiar = '') => espiar
+    ? `<button type="button" class="vv-g-kpi ${cls}" data-espiar="${espiar}"><b>${v}</b><small>${r}</small>${sub ? `<em>${sub}</em>` : ''}</button>`
+    : `<div class="vv-g-kpi ${cls}"><b>${v}</b><small>${r}</small>${sub ? `<em>${sub}</em>` : ''}</div>`;
   function pintarGestao() {
     if (gestao.hidden) return;
     const N = numerosDoDono();
@@ -458,11 +460,11 @@
     if (gestaoAba === 'agora') {
       corpo = `<div class="vv-g-kpis">
           ${kpi(`${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, 'produção de hoje', H.previstas && H.feitas < H.previstas ? 'u2' : 'u6')}
-          ${kpi(n0(H.atrasadas), 'atrasadas', H.atrasadas ? 'u1' : '')}
-          ${kpi(n0(H.emRisco), 'risco de furo (2 dias)', H.emRisco ? 'u2' : '')}
-          ${kpi(n0(H.faltam), 'ainda não feitas hoje')}
+          ${kpi(n0(H.atrasadas), 'atrasadas', H.atrasadas ? 'u1' : '', '', 'atrasadas')}
+          ${kpi(n0(H.emRisco), 'risco de furo (2 dias)', H.emRisco ? 'u2' : '', '', 'emRisco')}
+          ${kpi(n0(H.faltam), 'ainda não feitas hoje', '', '', 'faltam')}
           ${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues na semana', '', Hi.medianaEntregues ? 'mediana ' + n0(Hi.medianaEntregues) + '/semana' : '')}
-          ${kpi(`${n0((C.sem3 || []).length)}`, 'clientes sem 3 posts', (C.sem3 || []).length ? 'u2' : 'u6')}
+          ${kpi(`${n0((C.sem3 || []).length)}`, 'clientes sem 3 posts', (C.sem3 || []).length ? 'u2' : 'u6', '', 'sem3')}
         </div>
         <div class="vv-g-grade">
           <section class="vv-g-cartao"><h4>Risco de furo <span class="u2">${n0(H.emRisco)}</span></h4>${listaPecas((H.lista || {}).emRisco, 'Nada com risco de furo.')}</section>
@@ -481,13 +483,13 @@
         </div>`;
     } else if (gestaoAba === 'clientes') {
       corpo = `<section class="vv-g-cartao largo"><table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
-        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${esc(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${n0(c.atrasadas)}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${n0(c.emRisco)}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
+        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${esc(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
         </tbody></table></section>`;
     } else if (gestaoAba === 'time') {
       const bots = botsParaCobrar(); let f = null; try { f = fonteAgentes?.ler(); } catch {} const ags = f?.dados?.agentes || [];
       corpo = `<div class="vv-g-grade">
         <section class="vv-g-cartao largo"><h4>Time</h4><table class="vv-g-tabela"><thead><tr><th>Pessoa</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Entregues 7d</th><th class="n">Parado (med.)</th><th>O que cobrar</th></tr></thead><tbody>
-          ${(N.time || []).map((t) => `<tr><td><b>${esc(t.pessoa)}</b></td><td class="n">${n0(t.abertas)}</td><td class="n ${t.atrasadas ? 't-u1' : ''}">${n0(t.atrasadas)}</td><td class="n ${t.emRisco ? 't-u2' : ''}">${n0(t.emRisco)}</td><td class="n">${n0(t.entregues7d)}</td><td class="n">${n0(t.idadeMedianaDias)} d</td><td class="mot">${esc((t.cobrar || []).join(' · ') || '—')}</td></tr>`).join('')}
+          ${(N.time || []).map((t) => `<tr><td><b>${esc(t.pessoa)}</b></td><td class="n">${n0(t.abertas)}</td><td class="n ${t.atrasadas ? 't-u1' : ''}">${t.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|pessoa:${esc(t.pessoa)}">${n0(t.atrasadas)}</button>` : '0'}</td><td class="n ${t.emRisco ? 't-u2' : ''}">${t.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|pessoa:${esc(t.pessoa)}">${n0(t.emRisco)}</button>` : '0'}</td><td class="n">${n0(t.entregues7d)}</td><td class="n">${n0(t.idadeMedianaDias)} d</td><td class="mot">${esc((t.cobrar || []).join(' · ') || '—')}</td></tr>`).join('')}
         </tbody></table></section>
         <section class="vv-g-cartao largo"><h4>Bots (agentes do prédio)</h4>${ags.length ? `<table class="vv-g-tabela"><thead><tr><th>Agente</th><th>Estado</th><th class="n">Em curso</th><th class="n">Últimas</th><th class="n">Falhas</th><th>O que cobrar</th></tr></thead><tbody>
           ${ags.map((a) => { const e = estadoDoAgente(a.setor), u = e.ultimos || [], fl = u.filter((x) => x.estado === 'falhou').length; const b = bots.lista.find((x) => x.setor === a.setor);
@@ -504,10 +506,82 @@
     }
     gestao.innerHTML = topo + `<div class="vv-g-corpo">${corpo}</div>`;
   }
-  function listaPecas(lista = [], vazio = '') {
+  function listaPecas(lista = [], vazio = '', max = 8) {
     if (!lista?.length) return `<p class="vv-vazio">${vazio}</p>`;
-    return lista.slice(0, 8).map((p) => `<button type="button" class="vv-g-linha peca" data-hoje-acao="peca" data-valor="${esc(p.id)}"><b>${esc(p.nome || 'Peça')}</b><small>${esc([p.cliente, p.status, p.responsavel].filter(Boolean).join(' · '))}</small><em>${esc(String(p.veiculacao_iso || p.prazo_iso || '').slice(8, 10) + '/' + String(p.veiculacao_iso || p.prazo_iso || '').slice(5, 7))}</em></button>`).join('') + (lista.length > 8 ? `<p class="vv-dica">+ ${lista.length - 8}</p>` : '');
+    return lista.slice(0, max).map((p) => `<button type="button" class="vv-g-linha peca" data-hoje-acao="peca" data-valor="${esc(p.id)}"><b>${esc(p.nome || 'Peça')}</b><small>${esc([p.cliente, p.status, p.responsavel].filter(Boolean).join(' · '))}</small><em>${esc(String(p.veiculacao_iso || p.prazo_iso || '').slice(8, 10) + '/' + String(p.veiculacao_iso || p.prazo_iso || '').slice(5, 7))}</em></button>`).join('') + (lista.length > 8 ? `<p class="vv-dica">+ ${lista.length - 8}</p>` : '');
   }
+  // ---------- Espiar: o número abre o que está por trás dele (Paulo, 08/11: "ver 69 atrasadas e clicar nele") ----------
+  // Passar o mouse mostra a prévia; clicar fixa o mini painel (X, Esc e clique fora fecham). Cada linha leva à peça ou ao cliente.
+  const espiaoEl = document.createElement('div');
+  espiaoEl.className = 'vv-espiar'; espiaoEl.hidden = true; espiaoEl.setAttribute?.('role', 'dialog');
+  document.body.append?.(espiaoEl);
+  let espiaoFixo = false, espiaoAncora = null, espiaoTimer = null;
+  const ESPIAR = { atrasadas: ['Atrasadas', 'u1', 'Nada atrasado.', 'agora'], emRisco: ['Risco de furo (2 dias)', 'u2', 'Nada com risco de furo.', 'agora'], faltam: ['Ainda não feitas hoje', '', 'Tudo de hoje feito.', 'agora'] };
+  function conteudoEspiar(chave) {
+    const N = numerosDoDono(); if (!N) return null;
+    const H = N.hoje || {}, L = H.lista || {}, C = N.cobertura || {};
+    const [tipo, filtro = ''] = String(chave).split('|'); const [fk, ...fv] = filtro.split(':'), valor = fv.join(':');
+    const nomeCli = (c) => typeof c === 'string' ? c : c?.cliente || '';
+    const linhaCli = (nome, dir = '') => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(nome)}"><b>${esc(nome)}</b>${dir ? `<em>${dir}</em>` : ''}</button>`;
+    if (ESPIAR[tipo]) {
+      const [rot, cls, vazio, aba] = ESPIAR[tipo];
+      // Por pessoa/cliente: as mesmas peças que a métrica contou (antes o filtro por nome dava 20 onde a tabela dizia 17).
+      let lista = L[tipo] || [];
+      if (fk === 'pessoa') lista = (N.time || []).find((t) => t.pessoa === valor)?.lista?.[tipo] || [];
+      if (fk === 'cliente') lista = (N.clientes || []).find((c) => c.cliente === valor)?.lista?.[tipo] || [];
+      return { titulo: rot, sub: valor, n: lista.length, cls, aba, corpo: listaPecas(lista, vazio, 40) + (lista.length > 40 ? `<p class="vv-dica">e mais ${lista.length - 40} na Gestão.</p>` : '') };
+    }
+    if (tipo === 'sem3') return { titulo: 'Clientes sem 3 posts na semana', n: (C.sem3 || []).length, cls: 'u2', aba: 'semana', corpo: (C.sem3 || []).map((x) => linhaCli(x.cliente, `${n0(x.qtd)}/3`)).join('') || '<p class="vv-vazio">Todos com 3 posts.</p>' };
+    if (tipo === 'semConteudo') return { titulo: 'Clientes sem nenhum post na semana', n: (C.semConteudo || []).length, cls: 'u1', aba: 'semana', corpo: (C.semConteudo || []).map((c) => linhaCli(nomeCli(c), '0/3')).join('') || '<p class="vv-vazio">Nenhum.</p>' };
+    if (tipo === 'semPlanejamento') return { titulo: 'Clientes sem planejamento', n: (C.semPlanejamento || []).length, cls: '', aba: 'semana', corpo: (C.semPlanejamento || []).map((c) => linhaCli(nomeCli(c))).join('') || '<p class="vv-vazio">Todos com planejamento.</p>' };
+    if (tipo === 'atencao') {
+      const l = (N.clientes || []).filter((c) => c.saude !== 'ok');
+      return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
+    }
+    return null;
+  }
+  function mostrarEspiar(ancora, fixo) {
+    const c = conteudoEspiar(ancora.dataset.espiar); if (!c) return;
+    clearTimeout(espiaoTimer); espiaoTimer = null; espiaoAncora = ancora; espiaoFixo = fixo;
+    espiaoEl.classList.toggle('fixo', fixo); espiaoEl.setAttribute('aria-label', c.titulo);
+    espiaoEl.innerHTML = `<div class="vv-espiar-topo"><span><b class="t-${c.cls}">${n0(c.n)}</b> ${esc(c.titulo)}${c.sub ? `<small>${esc(c.sub)}</small>` : ''}</span><button type="button" class="vv-espiar-x" data-espiar-fechar aria-label="Fechar" title="Fechar (Esc)">×</button></div>
+      <div class="vv-espiar-lista">${c.corpo}</div>
+      <div class="vv-espiar-pe">${fixo ? '<span></span>' : '<small>Clique no número para fixar</small>'}<button type="button" class="vv-num" data-espiar-gestao="${c.aba}">Ver na Gestão →</button></div>`;
+    espiaoEl.hidden = false;
+    const r = ancora.getBoundingClientRect(), w = Math.min(380, innerWidth - 16);
+    espiaoEl.style.width = w + 'px';
+    espiaoEl.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
+    const h = Math.min(espiaoEl.offsetHeight, innerHeight - 16), embaixo = r.bottom + 8 + h < innerHeight;
+    espiaoEl.style.top = (embaixo ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
+  }
+  function fecharEspiar() { clearTimeout(espiaoTimer); espiaoTimer = null; espiaoEl.hidden = true; espiaoFixo = false; espiaoAncora = null; }
+  const ponteiroFino = () => !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+  document.addEventListener?.('mouseover', (e) => {
+    if (!ponteiroFino() || espiaoFixo) return;
+    const a = e.target.closest?.('[data-espiar]');
+    if (a) { clearTimeout(espiaoTimer); espiaoTimer = a === espiaoAncora ? null : setTimeout(() => mostrarEspiar(a, false), 380); return; }
+    if (e.target.closest?.('.vv-espiar')) { clearTimeout(espiaoTimer); espiaoTimer = null; return; }
+    if (!espiaoEl.hidden) { clearTimeout(espiaoTimer); espiaoTimer = setTimeout(fecharEspiar, 220); }
+    else if (espiaoTimer) { clearTimeout(espiaoTimer); espiaoTimer = null; }
+  });
+  // Captura: o clique no número abre o mini painel em vez de jogar para a Gestão inteira.
+  document.addEventListener?.('click', (e) => {
+    const a = e.target.closest?.('[data-espiar]');
+    if (a) { e.preventDefault(); e.stopPropagation(); if (espiaoFixo && espiaoAncora === a) fecharEspiar(); else mostrarEspiar(a, true); return; }
+    if (espiaoEl.hidden || e.target.closest?.('.vv-espiar')) return;
+    fecharEspiar();
+  }, true);
+  document.addEventListener?.('keydown', (e) => {
+    if (e.key === 'Escape' && !espiaoEl.hidden) { e.preventDefault(); e.stopPropagation(); fecharEspiar(); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('[data-espiar][role="button"]')) { e.preventDefault(); mostrarEspiar(e.target, true); }
+  }, true);
+  espiaoEl.addEventListener?.('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.espiarFechar !== undefined) { fecharEspiar(); return; }
+    if (b.dataset.espiarGestao !== undefined) { const aba = b.dataset.espiarGestao; fecharEspiar(); abrirGestao(aba); return; }
+    if (b.dataset.hojeAcao === 'peca') { fecharEspiar(); chamar('openItemWorkspace', String(b.dataset.valor)); return; }
+    if (b.dataset.espiarCliente) { const c = b.dataset.espiarCliente; fecharEspiar(); if (!gestao.hidden) fecharGestao(); mostrarPendencias(c); }
+  });
   function barrasGargalo(g = []) {
     if (!g.length) return '<p class="vv-vazio">Sem gargalo agora.</p>';
     const max = Math.max(1, ...g.map((x) => x.qtd || 0));
@@ -721,7 +795,7 @@
       n = [[sits.filter((x) => x !== 'concluida').length, 'peças em aberto'], [conta('hoje'), 'saem hoje'], [executando, 'agentes trabalhando']];
     } else if (a.id === 'terraco') {
       const gente = presencaDoEscritorio();
-      n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(mundo.zonasDoPredio || {}).length, 'salas']];
+      n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(zonas3d()).length, 'salas']];
       sit = 'verde';
     } else {
       n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis']];
@@ -796,7 +870,7 @@
         <div class="vv-sala-acoes">${s.agente ? `<button type="button" class="vv-botao" data-agente="${esc(a.id)}|${esc(s.id)}">Ver o dia</button>` : ''}${s.modulo ? `<button type="button" class="vv-botao acao" data-modulo='${esc(JSON.stringify(s.modulo))}'>${esc(NOME_MODULO[s.modulo.alvo] || 'Abrir')} →</button>` : '<span class="vv-dica">Ainda sem sistema próprio: começa quando o setor tiver ferramenta.</span>'}</div>
       </article>`).join('')}
       ${salasDaEquipeHtml(a.id)}${a.id === 'terraco' ? equipeLazerHtml() : ''}`;
-    if (Object.values(mundo.zonasDoPredio || {}).some((z) => z.andar === a.id))
+    if (Object.values(zonas3d()).some((z) => z.andar === a.id))
       p.querySelector('.vv-sub').insertAdjacentHTML('afterend', `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(a.id)}">Entrar no andar →</button>`);
     p.hidden = false; ajustarAreaLivre();
     mundo.focarAndar(a.nivel);
@@ -825,7 +899,7 @@
     ultimaPresenca = assinatura; mundo.presenca(gente);
   }
   function salasDaEquipeHtml(idAndar) {
-    const zonas = Object.entries(mundo.zonasDoPredio || {}).filter(([, z]) => z.andar === idAndar);
+    const zonas = Object.entries(zonas3d()).filter(([, z]) => z.andar === idAndar);
     if (!zonas.length) return '';
     const gente = presencaDoEscritorio();
     return `<div class="vv-rotulo-secao" style="--c:#FF7A2F"><i></i>Salas da equipe</div>` + zonas.map(([id, z]) => {
@@ -840,7 +914,7 @@
   // a pessoa entra na sala. Missões, baú, loja e construção ainda vivem só no Escritório clássico.
   function equipeLazerHtml() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null, base = Boolean(e?.base);
-    const Z = mundo.zonasDoPredio || {}, temZona = (id) => Boolean(Z[id]);
+    const Z = zonas3d(), temZona = (id) => Boolean(Z[id]);
     const item = (attr, titulo, sub, cor, icone) => `<button type="button" class="vv-lazer" ${attr} style="--c:${cor}"><i>${icone}</i><span><b>${titulo}</b><small>${sub}</small></span></button>`;
     return `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Equipe e lazer</div>
       ${base ? '' : '<p class="vv-dica">Entre no Escritório (barra de voz, embaixo) para ver sua ficha e as conquistas.</p>'}
@@ -884,7 +958,7 @@
     fecharAndarVoxel(false);
     const geracao = geracaoAndar;
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
-    const zonas = Object.entries(mundo.zonasDoPredio).filter(([, z]) => z.andar === idAndar)
+    const zonas = Object.entries(zonas3d()).filter(([, z]) => z.andar === idAndar)
       .map(([id, z]) => ({ id, nome: z.nome, dono: z.dono || null, tipo: TIPO_DA_ZONA(id), perfil: perfilDoDono(id), L: tamanhoDaZona(id),
         itens: /^sala-\d+$/.test(id) && typeof escritorioItensDaCamada === 'function' ? (() => { try { return escritorioItensDaCamada(id) || []; } catch { return []; } })() : [], ...(window.VybeDecorar?.acabamentoDaSala?.(id) || {}) }));
     if (!zonas.length) return;
@@ -1176,6 +1250,8 @@
     return fonteAgentes;
   }
   const plantaDoPredio = () => mundo?.planta || modAvatar?.PLANTA || [];
+  // Salas do prédio também sem o 3D montado (Equipe, Perfil, Jogos com o Centro fechado davam erro em mundo.zonasDoPredio).
+  const zonas3d = () => mundo?.zonasDoPredio || modAvatar?.ZONAS_DO_PREDIO || {};
   const horaAgentes = v => v ? new Date(v).toLocaleTimeString('pt-BR', { timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit' }) : '';
   const dataAgentes = v => v ? new Date(v).toLocaleString('pt-BR', { timeZone:'America/Bahia',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' }) : '';
   function estadoDoAgente(id) {
@@ -1389,7 +1465,7 @@
     ['espaco', 'Meu personagem', 'personalizarEscritorio()'],
   ];
   function mostrarEquipe() {
-    const p = placa(), gente = presencaDoEscritorio(), Z = mundo.zonasDoPredio || {};
+    const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
     const saldo = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <h3>Equipe</h3><p class="vv-sub">Quem está onde no prédio, e o que era o saguão do Escritório.</p>
@@ -1444,7 +1520,7 @@
     // escritorioIrParaAmbiente (este desvio): andava em círculo e a pessoa nunca saía do lugar.
     moverParaSala.original = irOriginal;
     window.escritorioIrParaAmbiente = function (id, ...r) {
-      const z = ligado && mundo?.zonasDoPredio?.[id];
+      const z = ligado && zonas3d()?.[id];
       if (!z) return irOriginal.call(this, id, ...r);
       irParaSala(id);
     };
@@ -1706,7 +1782,7 @@
           const cli = naTela.find((x) => x.nome === alvo.nome); if (!cli) { c.hidden = true; return; }
           html = `<b>${esc(cli.nome)}</b><small>${esc(cli.segmento || 'Cliente ativo')} · ${cli.total} em aberto</small>${SITUACOES.filter(([k]) => cli.por[k]).map(([k, r]) => `<span class="vv-selo" style="--e:${COR[k]};margin:0 4px 4px 0"><i></i>${cli.por[k]} ${esc(r.toLowerCase())}</span>`).join('')}`;
         } else if (alvo.tipo === 'zona') {
-          const z = mundo.zonasDoPredio?.[alvo.zona]; if (!z) { c.hidden = true; return; }
+          const z = zonas3d()?.[alvo.zona]; if (!z) { c.hidden = true; return; }
           const aqui = presencaDoEscritorio().filter((p) => p.zona === alvo.zona);
           html = `<b>${esc(z.nome)}</b><small>${aqui.length ? esc(aqui.map((p) => p.nome.split(' ')[0]).join(', ')) + ' aqui agora' : 'Ninguém agora'}</small>`;
         } else if (alvo.tipo === 'setor') {
@@ -1882,7 +1958,7 @@
   async function focarSalaDaChamada(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!mundo && carregando) await carregando;
-    const z = mundo?.zonasDoPredio?.[zona]; if (!z || e?.zona !== zona) return;
+    const z = zonas3d()?.[zona]; if (!z || e?.zona !== zona) return;
     const vez = ++focoSala;
     try {
       if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
@@ -1910,7 +1986,7 @@
     const antes = barra.hidden; barra.hidden = !ver;
     if (!ver) return;
     if (antes) window.VybeTutorial?.dica?.('chamada');
-    const Z = mundo?.zonasDoPredio || {}, eu = String(e.base?.eu || '');
+    const Z = zonas3d(), eu = String(e.base?.eu || '');
     const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     if (!e.conectado) {
@@ -2098,7 +2174,7 @@
   const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
   const visivel = (el) => { if (!el.getClientRects?.().length) return false; const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > .05; };
   const janelaPorCima = () => [...document.querySelectorAll(POR_CIMA)].filter((el) => !el.closest('#mundo-hud, #mundo') && visivel(el)).pop() || null;
-  const FECHAR_JANELA = '[data-fechar], .brief-fechar, [aria-label="Fechar"], [aria-label="Fechar janela"], .modal-close, .fechar, .close, [onclick*="fechar"], [onclick*="close"]';
+  const FECHAR_JANELA = '[data-fechar], .brief-fechar, [aria-label="Fechar"], [aria-label="Fechar janela"], [aria-label^="Fechar "], .modal-close, .fechar, .close, .fc-close, .workflow-close, .workspace-close, .cr-fechar, .p-draw-close, .manager-command-close, .cadastros-preview-close, .production-sheet-close, .x-fechar, [onclick*="fechar"], [onclick*="close"], [onclick*="Close"]';
   let janelaNoEsc = null;
   // Captura: anota a janela aberta ANTES que o Esc dela rode (senão o Esc fecharia a janela e o módulo juntos).
   window.addEventListener?.('keydown', (e) => { if (e.key === 'Escape') janelaNoEsc = janelaPorCima(); }, true);
@@ -2108,6 +2184,10 @@
     if (e.key === 'f' && !campo && !e.metaKey && !e.ctrlKey && !e.altKey && body.classList.contains('mundo-modulo')) { alternarTelaCheia(); return; }
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     if (campo) { campo.blur(); return; }
+    // Conversa/ferramentas e busca abertas pelo ícone da barra: o foco fica fora delas, então o Esc chega aqui.
+    const busca = document.querySelector('dialog.spotlight-dialog[open]');
+    if (busca) { busca.close(); janelaNoEsc = null; return; }
+    if (window.VybeConversa?.aberto?.()) { window.VybeConversa.fechar(); janelaNoEsc = null; return; }
     if (janelaNoEsc) { // a janela de cima fecha com o próprio Esc; se não fechou, aperta o X dela
       const jan = janelaNoEsc; janelaNoEsc = null;
       setTimeout(() => { if (visivel(jan)) (jan.querySelector(FECHAR_JANELA) || (jan.matches('details > *') ? jan.parentElement.querySelector('summary') : null))?.click(); if (jan.tagName === 'DETAILS' || jan.parentElement?.tagName === 'DETAILS') jan.closest('details')?.removeAttribute('open'); }, 0);

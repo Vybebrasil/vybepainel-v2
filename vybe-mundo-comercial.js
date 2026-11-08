@@ -68,12 +68,23 @@
   }
   // Dado incompleto (banco ainda sem as tabelas, resposta parcial): listas viram vazias e blocos viram objetos vazios,
   // e a aba mostra o estado vazio dela em vez de "Não foi possível mostrar esta aba" (08/11/2026).
-  const LISTAS = ['etapas', 'fases', 'motivos', 'oportunidades', 'pacotes', 'produtos', 'clientes', 'orcamentos', 'contas', 'recebiveis', 'faturas', 'criticos', 'categorias', 'fornecedores', 'creators', 'marcados_a_mao'];
-  const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes'];
+  const LISTAS = ['etapas', 'fases', 'motivos', 'oportunidades', 'pacotes', 'clientes', 'orcamentos', 'contas', 'recebiveis', 'faturas', 'criticos', 'categorias', 'fornecedores', 'creators', 'marcados_a_mao', 'status'];
+  const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes', 'produtos', 'periodo'];
   function completar(d) {
     const x = { ...(d || {}) };
     for (const k of LISTAS) if (!Array.isArray(x[k])) x[k] = [];
     for (const k of BLOCOS) if (!x[k] || typeof x[k] !== 'object') x[k] = {};
+    // Partes de dentro que as abas leem direto (antes: resposta parcial quebrava funil, finanças, recebimentos, contas e caixa).
+    const obj = (o, k) => { if (!o[k] || typeof o[k] !== 'object' || Array.isArray(o[k])) o[k] = {}; return o[k]; };
+    const arr = (o, k) => { if (!Array.isArray(o[k])) o[k] = []; return o[k]; };
+    const r = x.resumo = { ...x.resumo };
+    for (const k of ['fases', 'motivos_perda', 'grupos', 'cargos']) arr(r, k);
+    for (const k of ['pagamento', 'atual', 'variacao', 'sete_dias', 'vencidas', 'em_negociacao']) obj(r, k);
+    x.opcoes = { ...x.opcoes }; for (const k of ['nichos', 'cidades']) arr(x.opcoes, k);
+    if (!/^\d{4}-\d{2}-\d{2}/.test(x.hoje || '')) x.hoje = hojeIso();
+    x.periodo = { tipo: 'mensal', mes: x.hoje.slice(0, 7), rotulo: '', ...x.periodo };
+    if (x.previsao && typeof x.previsao === 'object') { x.previsao = { ...x.previsao }; arr(x.previsao, 'meses'); arr(x.previsao, 'alertas'); }
+    else x.previsao = { meses: [], alertas: [] };
     return x;
   }
   async function carregar(aba = st.aba) {

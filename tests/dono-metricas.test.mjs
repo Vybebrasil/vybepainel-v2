@@ -230,6 +230,10 @@ test('time: o pior primeiro e frases curtas do que cobrar', () => {
   assert.equal(bia.semBriefing, 2);
   assert.equal(bia.entregues7d, 1);
   assert.deepEqual(bia.cobrar, ['3 peças atrasadas: Card A1, Card A2…', '2 sem briefing']);
+  // O mini painel do número lista exatamente as peças contadas (Paulo, 08/11: clicar no número e ver o que tem por trás).
+  assert.deepEqual(bia.lista.atrasadas.map((p) => p.nome), ['Card A1', 'Card A2', 'Card A3']);
+  for (const t of r.time) assert.equal(t.lista.atrasadas.length, t.atrasadas);
+  for (const c of r.clientes) { assert.equal(c.lista.atrasadas.length, c.atrasadas); assert.equal(c.lista.emRisco.length, c.emRisco); }
   assert.equal(jady.pessoa, 'Jady');
   assert.deepEqual(jady.cobrar, ['1 peça parada há 3+ dias: Parada']);
   assert.equal(jady.idadeMedianaDias, 0); // 0, 4 e 0 dias
