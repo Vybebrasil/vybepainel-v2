@@ -4470,3 +4470,87 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
   .vga-corpo{grid-template-columns:1fr;grid-template-rows:auto 1fr}.vga-lista{max-height:30vh;border-right:0;border-bottom:1px solid #ECE6DC}
   .vga-form{grid-template-columns:1fr 1fr}.vga-detalhe{padding:14px}
 }
+
+/* ---------- Acabamento 08/11/2026 (2): coluna da direita única, rolagem discreta, nada cortado ----------
+   Paulo: "olha essa barra mesmo passando", "o player cortado", "o 84 solto", "buracos nos quadros".
+   Uma largura só para tudo que mora à direita do palco: barra de ícones, agenda, aviso, voz e música. */
+body.mundo{--vv-col:320px}
+/* Barras de rolagem finas, na cor do papel, em todo o Irecity (antes: barra escura grossa do sistema). */
+body.mundo *{scrollbar-width:thin;scrollbar-color:#D9D1C3 transparent}
+body.mundo ::-webkit-scrollbar{width:8px;height:8px}
+body.mundo ::-webkit-scrollbar-thumb{background:#D9D1C3;border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+body.mundo ::-webkit-scrollbar-thumb:hover{background:#C2B8A6;background-clip:padding-box}
+body.mundo ::-webkit-scrollbar-track{background:transparent}
+/* Barra de ícones do tamanho exato da coluna: os botões dividem a largura, nunca estouram. */
+body.mundo:not(.mundo-centro) .vv-topo{left:auto;width:var(--vv-col)}
+body.mundo:not(.mundo-centro) .vv-topo .vv-espaco{display:none}
+body.mundo:not(.mundo-centro) .vv-barra-topo{width:100%;box-sizing:border-box;justify-content:space-between;padding-left:6px;padding-right:6px}
+body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferramentas{display:flex;flex:1;justify-content:space-between;min-width:0}
+body.mundo:not(.mundo-centro) .vv-barra-topo .vv-botao{min-width:0;width:34px;padding:0;justify-content:center}
+@media (min-width:1200px){
+  body.mundo:not(.mundo-centro) .vv-hoje{right:calc(var(--vv-m) * 2 + var(--vv-col))}
+  body.mundo:not(.mundo-centro) .vv-agenda{width:var(--vv-col);box-sizing:border-box}
+  html body.mundo:not(.mundo-centro) .vv-chamada{width:var(--vv-col)!important}
+  html body.mundo:not(.mundo-centro) .plj-aviso{width:var(--vv-col)!important;max-width:var(--vv-col)!important}
+}
+/* Barra de voz em chamada: sala em cima, gente e música no meio, botões quebram em duas linhas (antes cortava o "TV"). */
+html body.mundo:not(.mundo-centro) .vv-chamada{flex-wrap:wrap!important;row-gap:6px!important;box-sizing:border-box;max-width:none!important}
+html body.mundo:not(.mundo-centro) .vv-chamada .sala{flex:1 1 100%;min-width:0;margin:0}
+html body.mundo:not(.mundo-centro) .vv-chamada .vv-musica{flex:1 1 100%;min-width:0}
+html body.mundo:not(.mundo-centro) .vv-chamada .acoes{flex:1 1 100%;flex-wrap:wrap;gap:4px}
+html body.mundo:not(.mundo-centro) .vv-chamada .acoes .vv-botao.ic{width:34px;height:34px}
+html body.mundo:not(.mundo-centro) .vv-chamada .acoes .vv-botao:not(.ic){height:34px;padding:0 10px}
+/* Player da música: na coluna, acima da voz e do aviso, nunca fora da tela. */
+body.mundo:not(.mundo-centro) #office-musica.vv-musica-janela{right:var(--vv-m)!important;width:var(--vv-col)!important;max-width:calc(100vw - 2 * var(--vv-m))!important;box-sizing:border-box;bottom:calc(var(--vv-m) + var(--vv-pe-base,0px))!important}
+/* Aviso recolhido: só a bolinha com o total, no canto da coluna (antes: pílula larga solta com "84"). */
+html body.mundo:not(.mundo-centro) .plj-aviso.recolhido{width:auto!important;max-width:none!important;left:auto!important}
+/* Grupos do Hoje encaixados como tijolos (sem buracos entre cartões de alturas diferentes). */
+body.mundo:not(.mundo-centro) #vv-hoje .vv-blocos{display:block;columns:4 270px;column-gap:14px}
+body.mundo:not(.mundo-centro) #vv-hoje .vv-blocos > .vv-bloco{break-inside:avoid;display:block;margin:0 0 14px;width:100%;box-sizing:border-box}
+@media (max-width:900px){
+  body.mundo:not(.mundo-centro) .vv-topo{left:var(--vv-m);width:auto}
+  body.mundo:not(.mundo-centro) #vv-hoje .vv-blocos{columns:1}
+}
+@media (max-width:1199px) and (min-width:901px){
+  body.mundo{--vv-col:280px}
+  body.mundo:not(.mundo-centro) .vv-hoje{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
+  html body.mundo:not(.mundo-centro) .vv-chamada{width:var(--vv-col)!important}
+  html body.mundo:not(.mundo-centro) .plj-aviso:not(.recolhido){width:var(--vv-col)!important;max-width:var(--vv-col)!important}
+}
+
+/* Agência: sem cartão dentro de cartão; controles da semana numa linha só; frase do VYBES na largura toda. */
+.vv-bloco .vv-dono-cartao{padding:0;border:0;background:transparent;margin:0}
+.vv-semana-controles{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px}
+.vv-semana-controles nav{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.vv-semana-controles nav span{flex:1;min-width:0;text-align:center;font:500 11.5px var(--vv-texto);color:#6F6A62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-semana-controles nav button{flex:none}
+body.mundo:not(.mundo-centro) .vv-hoje .vv-fala{max-width:none!important;width:100%;box-sizing:border-box}
+
+/* Modo ocioso (html.vb-ocioso pausa as animações): nenhuma janela do Irecity pode congelar invisível na entrada.
+   Com a pessoa parada, a janela simplesmente aparece pronta (sem animação). Antes: Carteira, Pessoas, Missões e
+   Agentes abriam em branco (opacidade 0) quando o painel tinha entrado em repouso. */
+html.vb-ocioso body.mundo :is([class^="vc-"],[class*=" vc-"],.vc,[class^="vp-"],[class*=" vp-"],[class^="vv-"],[class*=" vv-"],[class^="vga-"],.vv-ag,[class^="vd-"],.mundo-rotulo){animation:none!important}
+
+/* Hierarquia única nos módulos (08/11/2026): título de seção = Inter Tight 14/600 na tinta; rótulo de cima = 12/600 cinza.
+   Antes cada módulo tinha o seu laranja 10,5px (Carteira, Comercial, Pessoas, Missões...), parecendo telas diferentes. */
+html body.mundo :is(#vv-carteira h3,#vv-comercial .vc-secao h3,.vv-personagem-grupo h3,.vv-rel-secao h3,.vv-cli-rotulo){font:600 14px/1.3 var(--vv-titulo)!important;color:#2B2925!important;letter-spacing:-.005em!important}
+html body.mundo :is(#vv-carteira .vc-kicker,#vv-decorar .vv-decorar-kicker,#vv-missoes .vv-missoes-kicker,.vv-personagem-kicker,#vv-pessoas .vp-kicker,.vv-plj-kicker,.vv-rel-titulo small,#vv-decorar .vv-decorar-rotulo,#vv-conteudo .vc-previa-obj>span){font:600 12px/1.3 var(--vv-texto)!important;color:#6F6A62!important}
+
+/* Avisos de mensagem do WhatsApp: no pé do palco, à esquerda (antes cobriam os botões do topo dos módulos). */
+body.mundo #vv-wa-avisos{top:auto!important;bottom:var(--vv-m,14px)!important;right:auto!important;left:calc(var(--vv-palco-esq,104px) + 16px)!important;width:min(340px,calc(100vw - var(--vv-palco-esq,104px) - 32px))!important;flex-direction:column-reverse}
+@media (max-width:900px){body.mundo #vv-wa-avisos{left:var(--vv-m)!important;bottom:calc(64px + 3 * var(--vv-m))!important;width:calc(100vw - 2 * var(--vv-m))!important}}
+
+/* Entrada sem o mapa (08/11/2026): fundo liso de papel com a luz da marca; nada do 3D aparece atrás do login. */
+html body.auth-pending.mundo-lobby > #mundo{background:radial-gradient(1200px 700px at 15% 85%,rgba(255,122,47,.16),transparent 60%),radial-gradient(900px 600px at 90% 10%,rgba(13,116,206,.10),transparent 60%),#F2EEE7!important}
+html body.auth-pending.mundo-lobby > #mundo > *{display:none!important}
+
+html body #login-gate.irecity .login-chegada,html body #login-gate.irecity .login-chegada *{text-shadow:none!important;-webkit-text-stroke:0!important}
+html body #login-gate.irecity .login-cidade{font:600 44px/1.05 var(--vv-titulo)!important;letter-spacing:-.03em!important;color:#1F1D1A!important}
+html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!important;color:#6F6A62!important;background:none!important;border:0!important;padding:0!important}
+
+/* Telas do painel antigo (Gestor, Demandas, Clientes, Agenda, Direção de arte) dentro do Irecity: uma barra de ícones só.
+   O cabeçalho antigo repetia voltar, logo, conta, avisos, notas, busca e "Trocar de modo" (o menu da esquerda já faz). */
+html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
+html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}
+html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
+html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)!important}

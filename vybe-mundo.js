@@ -474,7 +474,7 @@
     } else if (gestaoAba === 'semana') {
       corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
         <div class="vv-g-grade">
-          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: 640, h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
+          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 80)), h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
           <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
           <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
           <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
@@ -2324,8 +2324,8 @@
     const chegada = gate.querySelector('.login-chegada'); if (!chegada) return;
     const h = new Date().getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
     chegada.innerHTML = `<span class="abr-kicker">Vybe OS · ${saud}</span>
-      <h1 class="login-cidade">Irecê, <b>ao vivo</b></h1>
-      <p>A Vybe inteira numa cidade: os clientes no endereço de cada um, as captações na rua e o VYBES orquestrando do prédio.</p>
+      <h1 class="login-cidade">Vybe <b>OS</b></h1>
+      <p>Seu dia, a agência, os clientes e os agentes do VYBES num lugar só.</p>
       <div class="irecity-modos">
         <button type="button" class="abr-primario" data-modo="irecity"><b>Entrar</b><small>Seu dia, a agência e o VYBES</small></button>
       </div>
@@ -2452,8 +2452,14 @@
     if (aberto && centroAberto) fecharCentro();
     // Altura real do aviso dos planejamentos e da barra de voz: a agenda termina acima deles (nada cobre nada).
     const aviso = document.getElementById('plj-aviso'), voz = hud.querySelector('.vv-chamada');
-    const hAviso = aviso && !aviso.hidden && aviso.getClientRects().length ? aviso.offsetHeight + 8 : 0, hVoz = voz && voz.getClientRects().length ? voz.offsetHeight + 8 : 0;
-    body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz) + 'px'); body.style.setProperty('--vv-pe-voz', hVoz + 'px');
+    const musica = document.getElementById('office-musica');
+    const alto = (e) => (e && !e.hidden && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden' ? e.offsetHeight + 8 : 0);
+    const hAviso = alto(aviso), hVoz = alto(voz), hMus = alto(musica);
+    // A coluna da direita empilha de baixo para cima: voz, aviso, música; a agenda termina acima de tudo.
+    const pe = `${hAviso + hVoz}px`;
+    if (body.style.getPropertyValue('--vv-pe-voz') !== hVoz + 'px') body.style.setProperty('--vv-pe-voz', hVoz + 'px');
+    if (body.style.getPropertyValue('--vv-pe-base') !== pe) body.style.setProperty('--vv-pe-base', pe);
+    if (body.style.getPropertyValue('--vv-pe-agenda') !== (hAviso + hVoz + hMus) + 'px') body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz + hMus) + 'px');
   }
   function iniciar() {
     let palcoAgendado = false;

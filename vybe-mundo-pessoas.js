@@ -127,7 +127,7 @@
     let html = `<div class="vp-linha-topo"><label class="vp-campo-inline"><span>Mês</span><input type="month" data-vp-mes value="${esc(mes)}" max="${esc(hoje().slice(0, 7))}"></label>
       ${!propria ? sec('Voltar para o meu', 'data-vp-pessoa=""') : ''}</div>`;
     html += cartaoPessoa(d.detalhe, d.componentes || [], propria);
-    html += `<p class="vp-nota">${esc(d.fonte?.ajustes || '')}. Nada para preencher: tudo vem das demandas do painel.</p>`;
+    html += `<p class="vp-nota">${d.fonte?.ajustes ? esc(d.fonte.ajustes) + '. ' : ''}Nada para preencher: tudo vem das demandas do painel.</p>`;
     if (!d.gestao) return html;
     const r = d.ranking || [];
     html += `<h3 class="vp-titulo">Ranking do mês <small>só os donos veem</small></h3>`;
