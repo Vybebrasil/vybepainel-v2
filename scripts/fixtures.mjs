@@ -231,6 +231,8 @@ export async function demoApi(req,res,url,body) {
       pessoas:[{id:'9',nome:'Ex-colaborador demonstração',papel:'Design',foto_url:null,saiu_em:new Date(Date.now()-90*864e5).toISOString(),motivo:'Saiu da agência'}]});
     // Cartão VYBES: a central de verdade só existe no PC do Paulo; aqui ela aparece no ar para ver o cartão.
     if(area==='vybes'&&req.method==='GET'&&url.searchParams.get('etapa')==='whatsapp')return reply(...demoWhatsapp(url));
+    // Perfil do agente, mapa do cérebro, pendências do WhatsApp e estudo: forma igual à da central, conteúdo fictício.
+    if(area==='vybes'&&req.method==='GET'&&['perfil','mapa','pendencias','estudo'].includes(url.searchParams.get('etapa')))return reply(200,demoAgentesVybes(url));
     if(area==='vybes'&&req.method==='GET')return reply(200,{ok:true,noAr:true,agir:true});
     if(area==='pessoas'&&req.method==='GET')return reply(200,{ok:true,pessoas:[{id:'1',nome:'Operador de teste',email:'operador@vybe.invalid',admin:true,pode_entrar:true,ativo:true,tem_senha:true,ultimo_acesso:new Date().toISOString()},
       {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});
@@ -373,4 +375,52 @@ function trabalhoDemonstracao(id,consulta={}) {
  }
  const total=linhas.filter(l=>l.regra==='peca_criacao'&&l.dia>=periodo.inicio&&l.dia<=periodo.fim).reduce((n,l)=>n+l.n,0);
  return {disponivel:true,hoje,desde,periodo,qualidade:{disponivel:true,entregas:total,com_status:Math.floor(total*.8),com_prazo:Math.floor(total*.7),no_prazo:Math.floor(total*.6),com_retorno:Math.floor(total*.1)},regras:{meta_semana:'Meta da semana batida',criacao_alteracao:'Retorno para alteração'},funcao:'criacao',atividades:ATIVIDADES_DO_RANKING.map(([regra,nome])=>({regra,nome})),linhas,recordes,ganhos};
+}
+
+// Demonstração da central para o perfil dos agentes, o mapa do cérebro (aba Sinapses), as pendências do WhatsApp e o
+// estudo do cliente. Mesma forma das rotas da central (whatsapp-ia/central.js); nomes e textos são fictícios.
+function demoAgentesVybes(url) {
+  const etapa = url.searchParams.get('etapa'), agora = Date.now(), iso = (h) => new Date(agora - h * 3600e3).toISOString();
+  if (etapa === 'pendencias') return { ok: true, fonte: 'central-vybes', lidoEm: agora, geradoEm: iso(0), eu: { nome: 'Operador de teste', pessoa: '1', socio: true },
+    atendimento: { setor: 'concierge', agente: 'Mateus',
+      clientesEsperando: [{ cliente: 'Cliente demonstração', autor: 'Contato do cliente', texto: 'Consegue mandar a arte da promoção ainda hoje?', para: null, minutos: 95 },
+        { cliente: 'Padaria demonstração', autor: 'Dona da padaria', texto: 'Qual horário fica bom para a gravação?', para: 'Operador', minutos: 35 }],
+      timeSemResolver: [{ tipo: 'mencao_sem_resposta', grupo: 'Produção', conversa: 'a1b2c3d4e5f6a7b8c9d0', fato: 'Operador chamou Pessoa de teste no Produção há 5 h e não houve resposta.', prova: '“revisa a legenda do carrossel de sexta”', sugestao: 'Lembrar Pessoa no privado', gravidade: 'media', em: iso(5), pessoa: '2' }] },
+    paraVoce: [{ tipo: 'mencao_sem_resposta', grupo: 'Correção', conversa: 'b1c2d3e4f5a6b7c8d9e0', fato: 'Pessoa de teste chamou você no Correção há 2 h e não houve resposta.', prova: '“consegue ajustar a cor do card?”', sugestao: 'Responder no grupo', gravidade: 'media', em: iso(2), pessoa: '1' }] };
+  if (etapa === 'estudo') return { ok: true, fonte: 'central-vybes', cliente: url.searchParams.get('cliente') || '', anteriores: 1, ultimo: { em: iso(20),
+    setor: 'Comércio local com movimento forte no fim do mês.', posicionamento: 'Marca de bairro, próxima e familiar.',
+    concorrentes: [], ameacas: [{ texto: 'Feira concorre pelo público do sábado', prova: '[NOTICIA_SETOR] Feira de demonstração' }],
+    oportunidades: [{ texto: 'Bastidores da produção', prova: '[FICHA] o público gosta de ver o preparo' }],
+    ideias: [{ formato: 'Reels', titulo: 'Bastidor da manhã', porque: 'A ficha pede bastidor.' }], confirmar: ['Concorrente a confirmar: nome citado sem fonte'],
+    fontes: { ficha: true, instagram: true, noticiasCliente: 0, noticiasSetor: 2, licoes: 1 } } };
+  const rotinas = [
+    { id: 'esteira_entrada', setor: 'concierge', quando: '08:00, 11:00, 14:00 e 17:00', texto: 'Pedido do cliente que não virou card, card sem briefing', evita: 'demanda pedida que não vira cadastro', nova: true, fixa: false, motor: 'logica', le: ['whatsapp_clientes', 'vybe_os'], leNomes: ['Grupos de clientes (só leitura)', 'Vybe OS (demandas, status, prazos)'], gera: ['perfil'], geraNomes: ['Perfil do agente (achado em sombra, nada enviado)'], codigo: 'core/detectores-esteira.js pedidoSemCard', ligada: true, ultimaRodada: { em: iso(1) } },
+    { id: 'clientes_sem_resposta', setor: 'concierge', quando: 'contínuo (8h–19h)', texto: 'Cliente esperando resposta no grupo', evita: 'cliente sem resposta no grupo', nova: false, fixa: false, motor: 'logica', le: ['whatsapp_clientes'], leNomes: ['Grupos de clientes (só leitura)'], gera: ['whatsapp_time'], geraNomes: ['WhatsApp da equipe'], codigo: 'rotinas.js avisarClientesSemResposta', ligada: false, desligadaPor: 'Operador de teste' },
+  ];
+  if (etapa === 'perfil') return { ok: true, fonte: 'central-vybes', lidoEm: agora, geradoEm: iso(0), perfil: { setor: url.searchParams.get('setor') || 'concierge', agente: 'Mateus', nome: 'Concierge / CS', estado: 'sombra', nivel: 'sombra: só propõe',
+    numeros: { abertos: 2, altas: 1, novosHoje: 1, resolvidos7d: 6, errados7d: 1, acerto: 86, horasAteResolver: 3.5, porDia: {} },
+    rotinas, atribuicoes: [],
+    achados: { abertos: [{ chave: 'pedido:demo:1', tipo: 'pedido_sem_card', cliente: 'Cliente demonstração', fato: 'Cliente demonstração pediu no grupo há 6 h e não achei card com esse assunto.', prova: 'Contato: “precisamos divulgar a promoção de sábado”', sugestao: 'Organizar o briefing e propor o card', gravidade: 'alta', estado: 'aberto', primeiraVez: iso(6), ultimaVez: iso(1), vezes: 2 },
+      { chave: 'briefing:demo:2', tipo: 'card_sem_briefing', cliente: 'Padaria demonstração', fato: 'Peça cadastrada sem briefing.', prova: 'campo de briefing vazio', sugestao: 'Pedir o briefing a quem cadastrou', gravidade: 'media', estado: 'aberto', primeiraVez: iso(26), ultimaVez: iso(1), vezes: 4, ficha: '🎨 Ficha da peça · Card - Pão de sábado\nFalta antes de começar: briefing; legenda.' }],
+      resolvidos: [{ chave: 'r1', tipo: 'card_com_erro', cliente: 'Cliente demonstração', fato: 'Card sem responsável.', prova: 'status A Fazer', estado: 'resolvido', primeiraVez: iso(30), fechadoEm: iso(28), comoFechou: 'sumiu na conferência seguinte' }] },
+    licoes: [{ id: 'lic-demo', texto: 'Padaria demonstração: card sem briefing se repetiu 3 vezes em 14 dias.', estado: 'em_revisao', prova: 'campo de briefing vazio' }],
+    historico: { [iso(48).slice(0, 10)]: { concluidas: 6, falhas: 0, aguardando: 1 }, [iso(24).slice(0, 10)]: { concluidas: 9, falhas: 1, aguardando: 0 }, [iso(0).slice(0, 10)]: { concluidas: 4, falhas: 0, aguardando: 2 } },
+    projecao: { proximas: [{ em: iso(-2), tipo: 'rotina', id: 'esteira_entrada', texto: rotinas[0].texto }], tendencia: 'menos problemas aparecendo', carga: '2 em aberto, 1 urgente', subirNivel: null },
+    agora: null, ultimos: [] } };
+  const n = (id, tipo, nome, extra = {}) => ({ id, tipo, nome, origem: extra.origem || '', ...extra });
+  const nos = [n('motor:qwen', 'motor', 'Qwen 3.5 35B (local, Ollama)', { fila: { ocupado: false, esperando: 0, feitos: 12, falhas: 1, descartados: 0 } }), n('motor:logica', 'motor', 'Lógica fixa (regras no código)'), n('motor:vybe_os', 'motor', 'Servidor do Vybe OS'),
+    n('fonte:vybe_os', 'fonte', 'Vybe OS (demandas, status, prazos)', { origem: 'Vybe OS · consultas' }), n('fonte:whatsapp_clientes', 'fonte', 'Grupos de clientes (só leitura)', { origem: 'core/caixa-whatsapp.js' }),
+    n('fonte:fichas_md', 'memoria', 'Fichas .md dos clientes', { origem: '.vybe-ai-local/clientes/*.md' }), n('fonte:licoes', 'memoria', 'Lições do revisor de erros', { origem: 'achados.json' }),
+    n('saida:perfil', 'saida', 'Perfil do agente (achado em sombra, nada enviado)'), n('saida:whatsapp_time', 'saida', 'WhatsApp da equipe'),
+    n('agente:concierge', 'agente', 'Mateus · Concierge / CS', { estado: 'sombra', numeros: { abertos: 2, acerto: 86 } }), n('agente:bi', 'agente', 'Alex · Business Intelligence', { estado: 'sombra', numeros: { abertos: 0, acerto: null } }),
+    n('rotina:esteira_entrada', 'rotina', rotinas[0].texto, { origem: rotinas[0].codigo, setor: 'concierge', quando: rotinas[0].quando, motor: 'logica', ligada: true, ultimaRodada: { em: iso(1) } }),
+    n('rotina:estudo_cliente', 'rotina', 'Estudo ativo de 2 clientes por noite', { origem: 'core/estudo-cliente.js estudar (Qwen) + validar (regra)', setor: 'bi', quando: 'domingo a quinta 22:00', motor: 'qwen', ligada: true }),
+    n('rotina:manha', 'rotina', 'Rotina da manhã', { origem: 'rotinas.js executar → consultarRotina', setor: 'bi', quando: '07:30', motor: 'vybe_os', ligada: true }),
+    n('modulo:sdr', 'modulo', 'Qualificação de empresas', { origem: 'core/agente-sdr.js', setor: 'bi', motor: 'qwen', ligado: false })];
+  const l = (de, para, tipo) => ({ de, para, tipo, texto: '' });
+  const ligacoes = [l('agente:concierge', 'rotina:esteira_entrada', 'dono'), l('fonte:whatsapp_clientes', 'rotina:esteira_entrada', 'le'), l('fonte:vybe_os', 'rotina:esteira_entrada', 'le'), l('rotina:esteira_entrada', 'motor:logica', 'pensa'), l('rotina:esteira_entrada', 'saida:perfil', 'escreve'),
+    l('agente:bi', 'rotina:estudo_cliente', 'dono'), l('fonte:fichas_md', 'rotina:estudo_cliente', 'le'), l('fonte:licoes', 'rotina:estudo_cliente', 'le'), l('rotina:estudo_cliente', 'motor:qwen', 'pensa'),
+    l('agente:bi', 'rotina:manha', 'dono'), l('fonte:vybe_os', 'rotina:manha', 'le'), l('rotina:manha', 'motor:vybe_os', 'pensa'), l('rotina:manha', 'saida:whatsapp_time', 'escreve'),
+    l('agente:bi', 'modulo:sdr', 'dono'), l('modulo:sdr', 'motor:qwen', 'pensa')];
+  return { ok: true, fonte: 'central-vybes', lidoEm: agora, geradoEm: iso(0), contagem: { qwen: 1, logica: 1, misto: 0, vybe_os: 1, naoMapeadas: 0, modulosParados: 1 }, geradoDe: ['core/mapa-cerebro.js'], nos, ligacoes };
 }

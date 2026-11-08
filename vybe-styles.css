@@ -26478,3 +26478,36 @@ body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.v
 .cb-cartao-paleta i,.cb-amostra { display:inline-block; width:14px; height:14px; border-radius:4px; }
 @media(max-width:1100px) { .cb-topo { flex-wrap:wrap; gap:14px; } .cb-identidade { flex-basis:180px; } .cb-identidade small { display:none; } .cb-contexto { align-items:flex-start; flex-direction:column; gap:9px; } .vybes-cerebro-shell.cb.cb-com-detalhe { grid-template-columns:minmax(0,1fr) 320px; } }
 @media(max-width:760px) { .vybes-cerebro-shell.cb,.vybes-cerebro-shell.cb.cb-com-detalhe { grid-template-columns:minmax(0,1fr); min-height:720px; } .vybes-cerebro-shell.cb.cb-ampliado { inset:0; border:0; border-radius:0; min-height:0; } .cb-topo { padding:16px; gap:13px; } .cb-identidade { flex:1; } .cb-cliente-seletor { order:3; flex-basis:100%; max-width:none; } .cb .vb-alternar { order:4; } .cb-ampliar { order:2; } .cb-ferramentas { padding:0 16px 14px; flex-wrap:wrap; gap:10px; } .cb-pesquisa { flex-basis:100%; } .cb-origem-filtro { flex:1; } .cb-ferramentas > button { flex-shrink:0; } .cb-contexto { padding:18px 16px 12px; } .cb-contexto h2 { font-size:20px; } .cb-mapa-trilho { padding:0 16px 10px; } .cb-palco { min-height:360px; } .cb-mapa-rodape { left:16px; right:16px; bottom:12px; font-size:9px; } .cb-mapa-rodape span:last-child { display:none; } .cb-com-detalhe > .cb-inspetor.cb-aberto { position:absolute; top:auto !important; left:0 !important; right:0 !important; bottom:0 !important; height:min(62%,600px); border:1px solid var(--vb-linha); border-bottom:0; border-radius:12px 12px 0 0; box-shadow:0 -20px 60px #0008; z-index:12; padding:18px 20px max(20px,env(safe-area-inset-bottom)); } .cb-fechar { margin-bottom:15px; } .cb-ficha { padding:0 16px 20px; } .cb-atividade-cliente > header { align-items:flex-start; } .cb-linha { flex-direction:column; align-items:stretch; } }
+
+/* ---------- Cérebro do VYBES · aba Sinapses (vybe-clientes-cerebro.js, 08/11/2026) ----------
+   Cada cadeia: fontes → motor (Qwen, lógica fixa, Vybe OS) → saídas, com o arquivo de origem. Padrão Irecity claro. */
+.cb-sinapses { display:flex; flex-direction:column; gap:12px; overflow:auto; padding:4px 22px 22px; }
+.cb-sin-bloco { background:#FFF; border:1px solid #ECE6DC; border-radius:12px; padding:14px 16px; }
+.cb-sin-bloco h3 { margin:0 0 10px; font:600 15px var(--vv-titulo, inherit); color:#1F1D1A; }
+.cb-sin-bloco h3 small { font:500 11.5px var(--vv-texto, inherit); color:#6B675F; margin-left:6px; }
+.cb-sin-bloco h4 { margin:0 0 6px; font:700 12px var(--vv-texto, inherit); color:#4A4640; }
+.cb-sin-nota { margin:6px 0 0; font-size:12.5px; color:#6B675F; }
+.cb-sin-resumo { display:flex; flex-wrap:wrap; gap:8px; }
+.cb-sin-resumo button { appearance:none; display:grid; min-width:96px; padding:8px 12px; text-align:left; border-radius:10px; border:1px solid #E6E0D6; border-top:3px solid var(--c); background:#FFF; cursor:pointer; font-family:inherit; }
+.cb-sin-resumo button[aria-pressed="true"] { background:#FFF4EC; border-color:#FF7A2F; }
+.cb-sin-resumo b { font:700 18px var(--vv-titulo, inherit); color:#1F1D1A; } .cb-sin-resumo span { font-size:11.5px; color:#6B675F; }
+.cb-sin-lista, .cb-sin-fontes { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.cb-sin-lista li { padding:9px 11px; border:1px solid #EFEAE2; border-radius:8px; }
+.cb-sin-lista li.off { opacity:.55; }
+.cb-sin-lista p { margin:6px 0 2px; font-size:12.5px; color:#2B2925; }
+.cb-sin-cadeia { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.cb-sin-cadeia > b { color:#B8B0A4; font-weight:400; }
+.cb-sin-de, .cb-sin-para { display:flex; flex-wrap:wrap; gap:4px; }
+.cb-sin-chip { padding:2px 8px; border-radius:999px; background:#F4F0EA; border:1px solid #E6E0D6; font-size:11.5px; color:#4A4640; }
+.cb-sin-chip.t-memoria { background:#F1EEFF; border-color:#DCD5FF; }
+.cb-sin-chip.t-saida { background:#EEF7F1; border-color:#CFE8D8; }
+.cb-motor { font-style:normal; padding:2px 9px; border-radius:999px; font:700 11.5px var(--vv-texto, inherit); color:#FFF; background:var(--c); }
+.cb-sin-parado { font-style:normal; color:#C2490C; font-weight:600; }
+.cb-sinapses code { display:block; font:10.5px/1.4 ui-monospace, Consolas, monospace; color:#8A8378; overflow-wrap:anywhere; }
+.cb-sin-fontes li { display:grid; gap:2px; padding:8px 10px; border:1px solid #EFEAE2; border-radius:8px; }
+.cb-sin-fontes li span { font-size:11.5px; color:#6B675F; }
+.cb-sin-grade { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:8px; }
+.cb-sin-grade ul, .cb-sin-confirmar ul { margin:0; padding-left:16px; display:grid; gap:6px; font-size:12.5px; }
+.cb-sin-grade li span { display:block; color:#4A4640; } .cb-sin-grade li small { display:block; color:#8A8378; font-size:11px; }
+.cb-sin-confirmar { margin-top:10px; } .cb-sin-confirmar summary { cursor:pointer; font:600 12px var(--vv-texto, inherit); color:#C2490C; }
+@media (max-width:600px) { .cb-sinapses { padding:4px 12px 16px; } }

@@ -292,6 +292,8 @@
     return Boolean(u && DONOS.includes(primeiroNome(u.name || u.nome)));
   }
   let visaoHoje = (() => { try { return localStorage.getItem('vybe.mundo.visaoHoje') || 'agencia'; } catch { return 'agencia'; } })();
+  // Pendências do WhatsApp (vybe-mundo-pendencias.js) chegaram: repinta o Hoje (atendimento na Agência, "esperando você").
+  document.addEventListener('vybe:pendencias', () => pintarHoje());
   function trocarVisaoHoje(v) { visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {} pintarHoje(); }
   let cacheDono = { chave: '', valor: null };
   const semanaAgencia = { campo: 'veiculacao', referencia: '' };
@@ -413,6 +415,7 @@
         <button type="button" data-abrir-gestao="hoje" data-espiar="faltam"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
         <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
       </div>
+      ${window.VybePendencias?.atendimentoHtml?.() || ''}
       <div class="vv-blocos"><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
       <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
@@ -690,6 +693,7 @@
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
+      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
       <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
@@ -743,7 +747,6 @@
       <div class="vv-vistas" role="group" aria-label="Vista do mundo">
         <button type="button" class="vv-botao" data-vista="cidade" aria-pressed="true">${ic.cidade}<span class="vv-rotulo-longo">Cidade</span></button>
         <button type="button" class="vv-botao" data-vista="predio" aria-pressed="false">${ic.predio}<span class="vv-rotulo-longo">Prédio da Vybe</span></button>
-        <button type="button" class="vv-botao" data-vista="cerebro" aria-pressed="false">${svg('<path d="M9 4a3 3 0 0 0-3 3v.5A3 3 0 0 0 4 10.5 3 3 0 0 0 5 13a3 3 0 0 0 2 5 3 3 0 0 0 5 1V4.5A2.5 2.5 0 0 0 9 4zM15 4a3 3 0 0 1 3 3v.5a3 3 0 0 1 2 3 3 3 0 0 1-1 2.5 3 3 0 0 1-2 5 3 3 0 0 1-5 1"/>')}<span class="vv-rotulo-longo">Cérebro</span></button>
       </div>
       </div>
     </div>
@@ -1378,13 +1381,6 @@
       ${a.tarefa && a.desde ? `<small>Desde ${esc(dataAgentes(a.desde))}</small>` : ''}
       <div class="vv-rotulo-secao"><i></i>O que fez · últimos registros</div>${a.ultimos?.map(item).join('') || '<p class="vv-dica">Sem registros recebidos para este setor.</p>'}`;
   }
-  function agentesCerebroHtml(ags) {
-    const nome = new Map(); for (const a of mundo.planta) for (const s of a.setores) nome.set(s.id, {s,a});
-    return `<p class="vv-dica vv-agentes-conexao">${esc(avisoDosAgentes())}</p>` + ags.map(g => {
-      const x = nome.get(g.setor); if (!x) return ''; const E = estadoDoAgente(g.setor);
-      return `<button type="button" class="vv-cb-camada" data-agente="${esc(x.a.id)}|${esc(x.s.id)}" style="--c:${E.cor}"><i></i><span><b>${esc(x.s.agente)}</b><small>${esc(x.s.nome)} · ${esc(x.a.nome)}</small></span><em>${esc(E.rotulo)}</em></button>`;
-    }).join('');
-  }
   function pintarAtividadeAgentes() {
     if (!mundo && !modAvatar) return;
     const f = fonteAgentes?.ler(); mundo?.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
@@ -1395,12 +1391,6 @@
     hud.querySelectorAll('[data-estado-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.estadoAgente); el.style.setProperty('--e',a.cor); el.innerHTML = '<i></i>' + esc(a.rotulo); });
     hud.querySelectorAll('[data-avatar-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.avatarAgente); el.classList.toggle('planejado',['sem_execucao','indisponivel'].includes(a.estado)); });
     hud.querySelectorAll('[data-indicador-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.indicadorAgente); el.style.setProperty('--e',a.cor); el.title = a.rotulo; });
-    if (cerebroCache && mundo) {
-      cerebroCache.ags = agentesDoCerebro(); cerebroCache.camadas = camadasDoCerebro(cerebroCache.cli,cerebroCache.ags);
-      const assinatura = JSON.stringify([cerebroCache.ags.map(a => [a.setor,a.estado,a.conectado]),cerebroCache.camadas.agentes]);
-      if (pintarAtividadeAgentes.assinatura !== assinatura) { pintarAtividadeAgentes.assinatura = assinatura; mundo.atualizarAgentesCerebro(cerebroCache.ags,cerebroCache.camadas); }
-      const quadro = placa()?.querySelector('#vv-cerebro-agentes'); if (quadro) quadro.innerHTML = agentesCerebroHtml(cerebroCache.ags);
-    }
   }
   async function carregarAgentes(forcar=false) {
     if (!mundo && !modAvatar) return;
@@ -1414,7 +1404,7 @@
   if (typeof window !== 'undefined') window.vybesAbrirAgente = (idAndar, idSetor) => {
     if (!ligado || !mundo) return;
     if (body.classList.contains('mundo-modulo')) { body.classList.remove('mundo-tela-cheia'); chamar('voltarAoMenu'); }
-    setTimeout(() => { mundo.cerebro?.(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); body.classList.add('mundo-predio'); mostrarAgente(idAndar, idSetor); }, 350);
+    setTimeout(() => { hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); body.classList.add('mundo-predio'); mostrarAgente(idAndar, idSetor); }, 350);
   };
   async function mostrarAgente(idAndar, idSetor) {
     // Com o Centro fechado, o agente abre na página Agentes (tela cheia), não na placa do prédio.
@@ -1431,7 +1421,7 @@
       <div class="vv-rotulo-secao"><i></i>Operação do painel</div>
       <div class="vv-agente-agora" id="vv-agente-agora"><span class="vv-ser" aria-hidden="true"><i></i></span><span>Olhando o que ele está fazendo…</span></div>
       <div id="vv-agente-dados"></div>
-      ${mundo ? cerebroDoAgenteHtml(a, s) : ''}
+      <button type="button" class="vv-botao" style="margin-top:8px" data-perfil-agente="${esc(s.id)}">Ver perfil completo: rotinas, achados, de onde vem cada coisa →</button>
       <div class="vv-rotulo-secao" style="--c:#6B675F"><i></i>Ferramentas</div>
       <ul class="vv-skills">${s.skills.map((k) => `<li>${esc(k)}</li>`).join('')}</ul>
       <form class="vv-pergunta" data-pergunta data-setor="${esc(s.nome)}"><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pedir algo a ${esc(s.agente || 'VYBES')}…" aria-label="Pedir algo a este agente"><button type="submit" aria-label="Pedir">→</button></form>
@@ -1458,100 +1448,6 @@
     } catch (e) { agoraEl.textContent = e.message; }
   }
 
-  // Placa do Cérebro: cada cliente como um nó ligado ao VYBES, do mais urgente ao mais tranquilo.
-  // ---------- Cérebro arquitetado ----------
-  // Camadas reais da memória do VYBES. Os números vêm do painel (cadastro, demandas, cérebro dos clientes);
-  // o que mora na central (conversas, fichas da noite) é dito como tal, sem número inventado.
-  const MODELO = 'Qwen 3.5 (35B), local no computador da Vybe (Ollama)';
-  const CAMADAS_INFO = {
-    nucleo: { nome: 'VYBES', cor: '#8E7CFF', mora: 'core/identidade.js e core/frases.js (bot e central usam a mesma fonte)',
-      texto: 'Um só VYBES, com a mesma personalidade no WhatsApp, na central e aqui. Ele recebe o pedido, consulta as camadas de memória e passa a tarefa ao agente do andar certo. Agente propõe; quem tem permissão aprova.' },
-    identidade: { nome: 'Identidade', cor: '#FF7A2F', mora: 'core/identidade.js · conhecimento/manual-vybe.md · diretrizes dos clientes',
-      texto: 'Quem o VYBES é, como fala e o que pode responder. É lida em toda resposta, por todos os agentes: é o que impede cada andar de virar uma pessoa diferente.' },
-    clientes: { nome: 'Memória dos clientes', cor: '#8E7CFF', mora: 'Fichas na central (.vybe-ai-local/clientes), estudo da noite, cadastro e referências do painel',
-      texto: 'Tudo o que o VYBES sabe de cada cliente, em nove partes: identidade e paleta, regras da DA, Instagram, ideias e datas, atrasos, produção, solicitações, arquivos e aprendizados. Cada item diz de onde veio.' },
-    conversas: { nome: 'Conversas', cor: '#18A957', mora: 'Grupos internos do WhatsApp, guardados pela central (mensagens.sqlite)',
-      texto: 'O que a equipe combinou nos grupos internos. A central lê, resume e transforma em pendência ou aprendizado do cliente. Grupo de cliente não é tocado sem autorização.' },
-    trabalho: { nome: 'Trabalho do painel', cor: '#3B9EFF', mora: 'Vybe OS: demandas, captações, planejamentos, automações',
-      texto: 'O estado de agora: o que está aberto, atrasado, para aprovar e quem está com cada peça. É a memória de curto prazo que todo agente consulta antes de agir.' },
-    agentes: { nome: 'Agentes dos andares', cor: '#D6409F', mora: 'core/agentes.js (setores, permissões, propostas em .vybe-ai-local/agentes)',
-      texto: 'Cada setor do prédio tem um agente com nome e função. Todos são o VYBES; muda só o que cada um lê e o que pode fazer. O que eles propõem fica registrado, então ninguém esquece.' },
-  };
-  function cerebroDosClientes() {
-    return naTela.map((c) => {
-      let origens = {}, itens = 0;
-      try { const cb = typeof cerebroDoCliente === 'function' ? cerebroDoCliente(c.nome) : null; if (cb) { origens = cb.origens || {}; itens = Object.values(cb.categorias || {}).reduce((n, l) => n + l.length, 0); } } catch { /* sem cérebro do cliente */ }
-      return { ...c, origens, itens };
-    });
-  }
-  function agentesDoCerebro() {
-    const conectado = Boolean(fonteAgentes?.ler().dados && !fonteAgentes.ler().erro);
-    return (mundo.agentesDoPredio?.() || []).map(ag => ({...ag,estado:estadoDoAgente(ag.setor).estado,conectado}));
-  }
-  function camadasDoCerebro(cli, ags) {
-    const abertas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL.filter((d) => situacaoDaPeca(d) !== 'concluida').length : 0;
-    const itens = cli.reduce((n, c) => n + c.itens, 0);
-    const conta = (k) => ags.filter((a) => a.estado === k).length;
-    return { identidade: 'uma só, em todos os canais', clientes: `${cli.length} clientes · ${itens.toLocaleString('pt-BR')} itens`, conversas: 'grupos internos, pela central',
-      trabalho: `${abertas.toLocaleString('pt-BR')} peças em aberto`, agentes: `${conta('executando')} executando · ${conta('aguardando_aprovacao')} aguardando aprovação · ${conta('disponivel')} disponíveis · ${conta('falhou')} falharam · ${conta('sem_execucao')} sem execução · ${conta('indisponivel')} sem leitura${fonteAgentes?.ler().erro ? ' · última leitura, central fora do ar' : ''}` };
-  }
-  let cerebroCache = null;
-  function ligarCerebro() {
-    const cli = cerebroDosClientes(), ags = agentesDoCerebro(), camadas = camadasDoCerebro(cli, ags);
-    cerebroCache = { cli, ags, camadas };
-    mundo.cerebro(true, cli, { camadas, agentes: ags, aoNo: (id) => mostrarNoDoCerebro(id) });
-    mostrarNoDoCerebro('nucleo');
-  }
-  const ORIGEM_NOME = { central: 'Central do VYBES', operacao: 'Painel', referencia: 'Referência', navegador: 'Nota' };
-  const ORIGEM_COR = { central: '#8E7CFF', operacao: '#FF7A2F', referencia: '#3B9EFF', navegador: '#9AA3A8' };
-  function barraOrigens(o) {
-    const tot = Object.values(o || {}).reduce((n, v) => n + v, 0); if (!tot) return '';
-    return `<span class="vv-origens" title="${esc(Object.entries(o).filter(([, v]) => v).map(([k, v]) => `${ORIGEM_NOME[k] || k}: ${v}`).join(' · '))}">${Object.entries(o).filter(([, v]) => v).map(([k, v]) => `<i style="flex:${v};background:${ORIGEM_COR[k] || '#9AA3A8'}"></i>`).join('')}</span>`;
-  }
-  function mostrarNoDoCerebro(id) {
-    if (!cerebroCache) return;
-    const info = CAMADAS_INFO[id] || CAMADAS_INFO.nucleo, p = placa(), { cli, ags, camadas } = cerebroCache;
-    const nav = Object.entries(CAMADAS_INFO).map(([k, v]) => `<button type="button" class="vv-cb-aba${k === id ? ' on' : ''}" data-cerebro-no="${k}" style="--c:${v.cor}"><i></i>${esc(k === 'nucleo' ? 'VYBES' : v.nome)}</button>`).join('');
-    let corpo = '';
-    if (id === 'nucleo') {
-      corpo = `<div class="vv-cb-fato"><small>Pensa com</small><b>${esc(MODELO)}</b></div>
-        <div class="vv-cb-fato"><small>Como decide</small><b>Agente propõe → quem tem permissão aprova → o executor do painel faz</b></div>
-        <div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Camadas de memória</div>
-        ${Object.entries(CAMADAS_INFO).filter(([k]) => k !== 'nucleo').map(([k, v]) => `<button type="button" class="vv-cb-camada" data-cerebro-no="${k}" style="--c:${v.cor}"><i></i><span><b>${esc(v.nome)}</b><small>${esc(camadas[k] || '')}</small></span><em>→</em></button>`).join('')}`;
-    } else if (id === 'clientes') {
-      const lista = [...cli].sort((a, b) => b.itens - a.itens || b.total - a.total);
-      corpo = `<div class="vv-cb-legenda">${Object.entries(ORIGEM_NOME).map(([k, v]) => `<span><i style="background:${ORIGEM_COR[k]}"></i>${esc(v)}</span>`).join('')}</div>
-        ${lista.map((c) => `<div class="vv-cb-cliente"><button type="button" class="vv-cb-cliente-nome" data-abrir-no="${esc(c.nome)}"><b>${esc(c.nome)}</b><small>${c.itens ? c.itens + ' coisas que o VYBES sabe' : 'ainda sem estudo próprio'} · ${c.total} em aberto</small>${barraOrigens(c.origens)}</button>
-          ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="vv-botao" data-cerebro-cliente="${esc(c.nome)}">Sinapses</button>` : ''}</div>`).join('')}`;
-    } else if (id === 'agentes') {
-      corpo = `<div id="vv-cerebro-agentes">${agentesCerebroHtml(ags)}</div>`;
-    } else if (id === 'trabalho') {
-      const sits = ['atrasada', 'aprovar', 'hoje', 'fazer'];
-      const todas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL.map((d) => situacaoDaPeca(d)) : [];
-      corpo = `<div class="vv-contagens">${sits.map((k) => `<div style="--f:var(--sit-${k}-f);--t:var(--sit-${k}-t)"><b>${todas.filter((x) => x === k).length}</b><small>${esc((SITUACOES.find(([q]) => q === k) || [, k])[1])}</small></div>`).join('')}</div>`;
-    }
-    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <small class="vv-cb-kicker">Cérebro do VYBES</small><h3>${esc(info.nome)}</h3>
-      <div class="vv-cb-nav">${nav}</div>
-      <p class="vv-sub">${esc(info.texto)}</p>
-      <div class="vv-cb-fato"><small>Onde mora</small><b>${esc(info.mora)}</b></div>
-      ${corpo}`;
-    p.hidden = false; ajustarAreaLivre();
-  }
-  function mostrarCerebroPlaca() { mostrarNoDoCerebro('nucleo'); }
-  // Cérebro de cada agente: com o que pensa, o que lembra e como decide.
-  const MEMORIA_DO_ANDAR = {
-    terreo: 'Todas as camadas: é o orquestrador.', comercial: 'Clientes ativos, empresas de Irecê (CRM), propostas comerciais e conversas de atendimento.',
-    criacao: 'Identidade, paleta e regras da DA de cada cliente; banco de ideias; produção e alterações.', financeiro: 'Contratos, cobranças e o que o cliente consome.',
-    tecnologia: 'Automações, integrações e o histórico do que rodou.', estrategia: 'Performance, mídia paga e aprendizados de cada conta.', terraco: 'A equipe: salas, presença e conversa.',
-  };
-  function cerebroDoAgenteHtml(a, s) {
-    const decide = { ativo: 'Age dentro do que foi liberado e registra o que fez.', sombra: 'Aprende e propõe; uma pessoa aprova antes de qualquer ação.', planejado: 'Ainda não ligado: a sala está pronta.' }[s.estado] || '';
-    return `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Cérebro do agente</div>
-      <div class="vv-cb-fato"><small>Pensa com</small><b>${esc(MODELO)}, como o VYBES</b></div>
-      <div class="vv-cb-fato"><small>Lembra</small><b>${esc(MEMORIA_DO_ANDAR[a.id] || 'O que o setor dele usa.')}</b></div>
-      <div class="vv-cb-fato"><small>Decide</small><b>${esc(decide)}</b></div>`;
-  }
   // ---------- Equipe: o que era o saguão do Escritório, agora no mundo ----------
   // As funções são as do Escritório (mesmas janelas, mesmas regras); só a porta mudou.
   const EQUIPE_ACOES = [
@@ -1815,11 +1711,8 @@
     if (b.dataset.vista) {
       window.VybeTutorial?.dica?.('vista:' + b.dataset.vista);
       hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-      body.classList.toggle('mundo-cerebro', b.dataset.vista === 'cerebro');
       body.classList.toggle('mundo-predio', b.dataset.vista === 'predio');
-      if (b.dataset.vista === 'cerebro') ligarCerebro(); else mundo.cerebro(false);
       if (b.dataset.vista === 'predio') { mundo.verPredio(); mostrarAndares(); }
-      else if (b.dataset.vista === 'cerebro') mostrarCerebroPlaca();
       else { mundo.verCidade(); fecharPlaca(); }
     } else if (b.dataset.ctl) {
       ({ mais: () => mundo.zoom(.7), menos: () => mundo.zoom(1.4), girar: () => mundo.girar90(), tudo: () => { mundo.verCidade(); fecharPlaca(); }, hora: () => abrirHora() })[b.dataset.ctl]();
@@ -1831,9 +1724,9 @@
     else if (b.dataset.modulo) abrirModulo(JSON.parse(b.dataset.modulo));
     else if (b.dataset.abrirNo) mostrarCliente(b.dataset.abrirNo);
     else if (b.dataset.equipe) usarEquipe(b.dataset.equipe);
-    else if (b.dataset.cerebroNo) mostrarNoDoCerebro(b.dataset.cerebroNo);
     else if (b.dataset.cerebroCliente) { const nome = b.dataset.cerebroCliente; chamar('chooseClientMode'); setTimeout(() => { window.VybeTutorial?.dica?.('cerebro-cliente'); try { abrirModalCerebroCliente(nome); } catch (e) { console.error('[mundo] cérebro do cliente', e); } }, 450); }
-    else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mundo?.cerebro(false); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); mostrarAgente(an, se); }
+    else if (b.dataset.perfilAgente) window.VybeAgentes?.abrir?.(b.dataset.perfilAgente);
+    else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vista === 'predio'))); mostrarAgente(an, se); }
     else if (b.dataset.perfil) abrirPerfil(b.dataset.perfil);
     else if (b.dataset.crmMais !== undefined) { crmPagina++; crmRepintar(); }
     else if (b.dataset.crmAce !== undefined) { crmAce = !crmAce; crmPagina = 1; crmRepintar(); }
@@ -1902,7 +1795,6 @@
         if (alvo.tipo === 'setor') { hud.querySelector('[data-vista="predio"]')?.setAttribute('aria-pressed', 'true'); hud.querySelector('[data-vista="cidade"]')?.setAttribute('aria-pressed', 'false'); mostrarAgente(alvo.andar, alvo.setor); }
         else if (alvo.tipo === 'cliente') mostrarCliente(alvo.nome);
         else if (alvo.tipo === 'vybes') mostrarAgente('terreo', 'orquestrador');
-        else if (alvo.tipo === 'cerebro') mostrarNoDoCerebro(alvo.no);
         else if (alvo.tipo === 'zona') abrirAndarVoxel(alvo.andar);
         else if (alvo.tipo === 'andar') mostrarAndar(alvo.andar);
       });

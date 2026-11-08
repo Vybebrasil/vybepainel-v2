@@ -107,7 +107,7 @@ alta não fazem hierarquia.
 ## 7. Estrutura da tela
 
 - **Dock da esquerda (trilho)**: fica. É a navegação entre módulos; o botão **Criar** é a referência da ação principal e o **item atual** é a referência de selecionado.
-- **Barra do topo, uma só**: ferramentas (buscar, avisos, notas, camadas, aparência, conta) | divisor | vistas (Cidade, Prédio, Cérebro).
+- **Barra do topo, uma só**: ferramentas (buscar, avisos, notas, camadas, aparência, conta) | divisor | vistas (Cidade, Prédio). O cérebro é um só: o Cérebro do VYBES (vybe-clientes-cerebro.js), com a aba Sinapses.
 - **Seu dia** à esquerda; **Agenda** à direita; **controles do mapa** embaixo à direita; **barra de voz** embaixo, depois do Seu dia.
 - **Placas** (Elevador, andar, agente) à direita e estreitas; o mapa nunca fica coberto por mais de um terço.
 - **Módulo aberto**: moldura de vidro com rolagem por dentro; no canto, **tela cheia** (F) e **fechar** (×).

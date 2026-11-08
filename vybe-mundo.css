@@ -854,17 +854,11 @@ body.mundo .ofc-ficha .ofc-trabalho-grafico :is(svg text){fill:#6B675F!important
 .vv-demanda .vv-olho svg{width:15px;height:15px}
 .vv-demanda .vv-olho.carregando{opacity:.5}
 
-/* ===== Cérebro arquitetado ===== */
-.rotulo-cerebro{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.94);border:1px solid var(--vv-linha);box-shadow:var(--vv-sombra-curta);font-family:var(--vv-texto);cursor:pointer}
-.rotulo-cerebro i{width:8px;height:8px;border-radius:3px;background:var(--c)}
-.rotulo-cerebro b{font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}.rotulo-cerebro small{font:500 10.5px var(--vv-texto);color:var(--vv-apagado)}
-.rotulo-cerebro.nucleo{flex-direction:column;gap:0;padding:7px 14px;background:linear-gradient(135deg,#fff,#F3F0FF)}
-.rotulo-cerebro.nucleo b{font-size:14px;letter-spacing:0}
+/* ===== Rótulos dos agentes no prédio ===== */
 .rotulo-agente{display:flex;flex-direction:column;align-items:center;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.95);border:1px solid #E7DEFF;box-shadow:var(--vv-sombra-curta);cursor:pointer;font-family:var(--vv-texto)}
 .rotulo-agente b{font:700 11px var(--vv-texto);color:#5B4BD6}.rotulo-agente small{font:500 9.5px var(--vv-texto);color:var(--vv-apagado);white-space:nowrap}
 .rotulo-agente.planejado b{color:var(--vv-apagado)}
 .vv-cb-kicker{display:block;font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:var(--vv-lilas,#8E7CFF)}
-.vv-cb-nav{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 10px}
 .vv-cb-aba{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--vv-linha);background:#fff;font:600 11.5px var(--vv-texto);color:var(--vv-apagado);cursor:pointer}
 .vv-cb-aba i{width:7px;height:7px;border-radius:2px;background:var(--c)}
 .vv-cb-aba.on{background:#1F1D1A;color:#fff;border-color:#1F1D1A}
@@ -878,15 +872,6 @@ body.mundo .ofc-ficha .ofc-trabalho-grafico :is(svg text){fill:#6B675F!important
 .vv-cb-camada em{font:600 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}
 .vv-cb-legenda{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 8px;font:500 11px var(--vv-texto);color:var(--vv-apagado)}
 .vv-cb-legenda i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-.vv-cb-cliente{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:9px 10px 9px 12px;border-radius:8px;border:1px solid #EFEAE2;background:#fff}
-.vv-cb-cliente-nome{flex:1;min-width:0;appearance:none;border:0;background:none;padding:0;text-align:left;cursor:pointer;font-family:var(--vv-texto)}
-.vv-cb-cliente-nome b{display:block;font:700 13px var(--vv-texto);color:var(--vv-tinta)}.vv-cb-cliente-nome small{display:block;font:500 11px var(--vv-texto);color:var(--vv-apagado)}
-.vv-origens{display:flex;height:5px;margin-top:6px;border-radius:3px;overflow:hidden;gap:1px;background:#F2EEE7}
-.vv-origens i{display:block;height:100%}
-.vv-cb-cliente .vv-botao{height:30px;font-size:11.5px;flex:none}
-body.mundo-cerebro .mundo-rotulo:is(.rotulo-marco,.rotulo-empresa,.rotulo-lugar,.rotulo-rua,.rotulo-van){display:none!important}
-body.mundo-cerebro .mundo-rotulo.rotulo-cliente{opacity:.85;transform-origin:center}
-body.mundo-cerebro #vv-hoje{display:none!important}
 .mundo-rotulo[hidden]{display:none!important}
 
 .rotulo-rua{padding:2px 8px;border-radius:6px;background:rgba(31,29,26,.72);color:#fff;font:600 10px var(--vv-texto);letter-spacing:.02em;white-space:nowrap}
@@ -961,7 +946,6 @@ html body.mundo .day-activity-pessoas{position:relative;z-index:1}
 html body.mundo .dia-marcar input[type=checkbox]{accent-color:var(--vv-laranja);width:15px;height:15px}
 /* Aviso do VYBES: sempre embaixo, no centro (em cima ele cobria a ilha de ferramentas) */
 body.mundo .plj-aviso{top:auto!important;bottom:var(--vv-m)!important}
-body.mundo.mundo-cerebro .plj-aviso{display:none!important}
 @media (min-width:901px){body.mundo:not(.mundo-modulo) .plj-aviso{left:calc(var(--vv-livre-esq,0px) + 8px)!important;right:calc(var(--vv-livre-dir,0px) + 8px)!important;margin:0 auto!important;max-width:min(520px,calc(100vw - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 24px))!important}}
 @media (max-width:1180px) and (min-width:901px){.vv-hoje{width:336px}.vv-topo .vv-rotulo-longo{display:none}}
 @media (max-width:900px){body.mundo .plj-aviso{bottom:calc(64px + 2*var(--vv-m))!important;left:var(--vv-m)!important;right:var(--vv-m)!important;max-width:none!important;margin:0!important}}
@@ -4709,3 +4693,42 @@ html body.mundo #vv-wa-avisos{z-index:760!important}
 .vv-g-progresso b{font:600 12.5px var(--vv-titulo)}
 .vv-g-progresso small{color:#6B675F;font-size:11px}
 .vv-g-aviso-heads{margin:0 0 12px;padding:9px 12px;border-radius:8px;background:#F1F2F3;color:#5B6268}
+
+/* ---------- Pendências do WhatsApp na Gestão e no Minhas tarefas (vybe-mundo-pendencias.js, 08/11/2026) ----------
+   Reaproveita .vv-bloco, .vv-rotulo-secao e .vv-dono-linha; aqui só a grade de duas colunas e os rótulos. */
+.vv-pend{margin:10px 0 2px}
+.vv-pend-colunas{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.vv-pend-sub{display:block;margin:2px 0 6px;font:700 10.5px var(--vv-texto);letter-spacing:.04em;text-transform:uppercase;color:var(--vv-apagado)}
+.vv-pend-tempo{font:600 10.5px var(--vv-texto);font-style:normal;color:var(--vv-apagado);margin-left:4px}
+.vv-pend .vv-dono-linha small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vv-pend-agente{appearance:none;margin-left:auto;border:0;background:none;padding:0 2px;font:600 11px var(--vv-texto);color:var(--ds-sel-texto);cursor:pointer}
+.vv-pend-agente:hover{text-decoration:underline}
+
+/* ---------- Perfil do agente (vybe-mundo-agentes.js, 08/11/2026): números, achados, rotinas com motor, histórico ---------- */
+.vga-numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:4px 0 6px}
+.vga-numeros span{display:grid;padding:9px 12px;background:#FFF;border:1px solid #ECE6DC;border-radius:var(--vv-r-cartao)}
+.vga-numeros b{font:700 20px var(--vv-titulo);color:var(--vv-tinta);font-variant-numeric:tabular-nums}.vga-numeros small{font-size:11.5px;color:var(--vv-apagado)}.vga-numeros em{font-style:normal;color:#D93D42;font-weight:700}
+.vga-projecao{margin:0 0 4px;font-size:12.5px;color:#4A4640}.vga-projecao em{font-style:normal;color:var(--ds-sel-texto)}
+.vga-pilula{margin-left:6px;padding:1px 7px;border-radius:999px;background:#F1ECE4;font:700 11px var(--vv-texto);color:#4A4640}
+.vga-achados,.vga-rotinas{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vga-achados li,.vga-rotinas li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 10px;align-items:flex-start;padding:8px 10px;border:1px solid #ECE6DC;border-radius:8px;border-left:3px solid #E6E0D6}
+.vga-achados li.g-alta{border-left-color:#D93D42}.vga-achados li.g-media{border-left-color:#E2A11B}
+.vga-achados li > span:first-child,.vga-rotinas li > span{display:grid;gap:2px;min-width:0;flex:1 1 260px}
+.vga-achados b,.vga-rotinas b{font-weight:600;font-size:13px}.vga-achados small,.vga-rotinas small{font-size:11.5px;color:#6F6A62}
+.vga-achados details{margin-top:4px}.vga-achados summary{cursor:pointer;font:600 11.5px var(--vv-texto);color:var(--ds-sel-texto)}
+.vga-achados pre{margin:6px 0 0;padding:8px;background:#FAF7F2;border-radius:6px;white-space:pre-wrap;font:12px/1.45 var(--vv-texto);color:#2B2925}
+.vga-hist{margin-top:8px}.vga-hist > summary{cursor:pointer;font:600 12px var(--vv-texto);color:#4A4640}
+.vga-rotinas li{display:grid;grid-template-columns:1fr auto;align-items:center}.vga-rotinas time{grid-column:1/-1}
+.vga-rotinas time{font:600 11.5px var(--vv-texto);color:#4A4640;font-variant-numeric:tabular-nums}
+.vga-rotinas li.off{opacity:.55}.vga-rotinas b i{font-style:normal;font-size:10.5px;padding:1px 6px;border-radius:999px;background:var(--ds-sel-fundo);color:var(--ds-sel-texto);margin-left:4px}
+.vga-motor{font-style:normal;font-weight:700;color:var(--c)}.vga-codigo{font-family:ui-monospace,Consolas,monospace;font-size:10.5px!important;color:#8A8378!important;overflow-wrap:anywhere}
+.vga-fixa{font-style:normal;font-size:11px;color:#8A8378}
+.vga-chave{appearance:none;flex:none;width:34px;height:20px;padding:2px;border-radius:999px;border:0;background:#D8D2C8;cursor:pointer;transition:background .15s}
+.vga-chave i{display:block;width:16px;height:16px;border-radius:50%;background:#FFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.vga-chave.on{background:#18A957}.vga-chave.on i{transform:translateX(14px)}
+.vga-chave:focus-visible{outline:2px solid var(--ds-acao);outline-offset:2px}
+.vga-barras{display:flex;align-items:flex-end;gap:4px;height:70px;margin-top:4px}
+.vga-barras span{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:1px}
+.vga-barras i{display:block;width:100%;max-width:18px;border-radius:3px 3px 0 0;background:#8B7DFF}.vga-barras i.f{background:#D93D42;border-radius:0}
+.vga-barras small{font-size:9.5px;color:#8A8378}
+.vga-proximas li{grid-template-columns:96px 1fr auto}.vga-h4-sep{margin-top:14px!important}
