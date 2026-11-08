@@ -90,11 +90,14 @@
   function serieDosMeses() {
     const sv = estado.servidor;
     if (!sv?.clientes || !S()?.serieMensal) return null;
-    return S().serieMensal({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), ate: estado.mes, meses: 12, minimo: 6 });
+    return S().serieMensal({ clientes: sv.clientes, contratos: listaContratos(), hoje: hoje(), ate: estado.mes, meses: 12, minimo: 6 });
   }
+  // Contratos: os do Vybe OS com os do Vybe Finanças por cima, quando ligado (vybe-mundo-financas.js).
+  const finCarteira = () => { const d = window.VybeFinancas?.estado?.('carteira')?.dados; return d?.conectado ? d : null; };
+  const listaContratos = () => { const l = estado.servidor?.contratos?.lista || []; return window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(l) : l; };
   const contratosAgora = () => {
     const sv = estado.servidor;
-    return sv?.clientes ? S().contratos({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), tipo: estado.tipo, mes: estado.mes }) : null;
+    return sv?.clientes ? S().contratos({ clientes: sv.clientes, contratos: listaContratos(), hoje: hoje(), tipo: estado.tipo, mes: estado.mes }) : null;
   };
 
   function pecas() {
@@ -139,6 +142,8 @@
     if (!cadastro().length && typeof ensureClientMasterSources === 'function') { try { await ensureClientMasterSources(); } catch { /* o cadastro avisa */ } }
     try { estado.servidor = await pedir(); }
     catch (e) { estado.erro = e.message; }
+    // Contratos do Vybe Finanças (só leitura): chegam depois e repintam; sem o Finanças, nada muda.
+    window.VybeFinancas?.carregar?.('carteira').then(() => { if (estado.raiz && finCarteira()) { estado.saude = calcularSaude(); pintar(); } });
     estado.saude = calcularSaude();
     estado.carregando = false;
     pintar();
@@ -175,7 +180,7 @@
       const delta = v.direcao === 'igual' ? 'igual' : `${seta} ${formato(Math.abs(v.delta))}`;
       linha = `<small class="vc-var ${tom}" title="${esc(`${contra}: ${formato(v.anterior)}`)}"><span aria-hidden="true">${esc(delta)}</span><span class="vc-sr">${esc(v.direcao === 'igual' ? 'igual' : v.direcao === 'sobe' ? 'subiu' : 'caiu')} ${esc(v.direcao === 'igual' ? '' : formato(Math.abs(v.delta)))}</span> ${esc(contra)}</small>`;
     }
-    const ab = espiar ? ` data-espiar="carteira:${esc(espiar)}" role="button" tabindex="0"` : '';
+    const ab = espiar ? ` data-espiar="${espiar.startsWith('financas:') ? '' : 'carteira:'}${esc(espiar)}" role="button" tabindex="0"` : '';
     return `<div class="vc-kpi${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
   }
   function ordemHtml(lista, opcoes) {
@@ -286,7 +291,7 @@
     const ctr = contratosAgora();
     if (ctr) espiarCarteira.contratos = ctr;
     const casa = ctr ? new Map(ctr.linhas.map((l) => [l.id, l])) : null;
-    const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: estado.servidor?.contratos?.lista || [] });
+    const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: listaContratos() });
     espiarCarteira.heads = contas;
     const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
     return `<div class="vc-kpis">
@@ -429,7 +434,7 @@
   function abaChurn() {
     const sv = estado.servidor;
     if (!sv?.clientes) return vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar'));
-    const r = S().churn({ clientes: sv.clientes, registros: sv.churn?.registros || [], contratos: sv.contratos?.lista || [], tipo: estado.tipo, mes: estado.mes });
+    const r = S().churn({ clientes: sv.clientes, registros: sv.churn?.registros || [], contratos: listaContratos(), tipo: estado.tipo, mes: estado.mes });
     const c = S().cohort({ clientes: sv.clientes, hoje: hoje() });
     let lista = r.lista;
     if (estado.ordem.churn === 'receita') lista = [...lista].sort((a, b) => (b.receita ?? -1) - (a.receita ?? -1));
@@ -455,7 +460,7 @@
   }
   function guardarBase() {
     espiarCarteira.base = estado.servidor?.clientes || [];
-    espiarCarteira.listaContratos = estado.servidor?.contratos?.lista || [];
+    espiarCarteira.listaContratos = listaContratos();
   }
   function saidasPorMesHtml() {
     const s = serieDosMeses();
@@ -495,22 +500,36 @@
     const ren = l.renovacao ? (l.vencida ? etiqueta(`Renovação vencida em ${dataCurta(l.renovacao)}`, 'u1') : l.emBreve ? etiqueta(l.diasRenovacao ? `Renova em ${plural(l.diasRenovacao, 'dia', 'dias')}` : 'Renova hoje', 'u2') : etiqueta(rot, niv)) : etiqueta(rot, niv);
     const apoio = [l.valor != null ? `${reais(l.valor)}/mês${l.valorDoCadastro ? ' (do cadastro)' : ''}` : 'sem valor', l.inicio ? `desde ${dataCurta(l.inicio)}` : '', l.renovacao ? `renova ${dataCurta(l.renovacao)}` : ''].filter(Boolean).join(' · ');
     const casa = [casaTxt(l), l.receitaLtv != null ? `LTV estimado ${reais(l.receitaLtv)}` : '', l.temContrato ? contratoTxt(l) : ''].filter(Boolean).join(' · ');
-    const pode = estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel;
-    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(l.nome)}</b><small>${esc(apoio)}</small><small class="vc-casa">${esc(casa)}</small>${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
+    // Contrato do Vybe Finanças: os dados vêm de lá (só leitura); editar é no Finanças.
+    const fc = window.VybeFinancas?.contratoDoCliente?.(l.id) || null;
+    const daFin = fc ? `<small class="vc-casa">${esc(['Vybe Finanças: ' + fc.titulo, fc.assinado_em ? 'assinado em ' + dataCurta(fc.assinado_em) : 'sem data de assinatura', fc.dia_vencimento ? 'vence dia ' + fc.dia_vencimento : '', fc.status, fc.tem_pdf ? 'com PDF' : 'sem PDF'].filter(Boolean).join(' · '))}</small>` : '';
+    const pode = !fc && estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel;
+    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(l.nome)}</b><small>${esc(apoio)}</small><small class="vc-casa">${esc(casa)}</small>${daFin}${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
       ${pode && !(estado.form?.tipo === 'contrato' && estado.form.id === l.id) ? `<div class="vc-linha-acoes">${secundario(l.temContrato ? 'Editar' : 'Registrar contrato', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}"`)}</div>` : ''}
       ${formContrato(l)}</li>`;
+  }
+  // Topo da aba quando o Vybe Finanças está ligado: de onde vêm os contratos e quem ficou sem par.
+  function finContratosHtml(f) {
+    if (!f) return '';
+    const ligados = (f.contratos || []).filter((c) => c.cliente_id).length, sem = f.ligacao?.sem_par?.length || 0;
+    return `<section class="vc-secao"><div class="vc-secao-topo"><h3>Contratos do Vybe Finanças</h3>${etiqueta('fonte: Vybe Finanças', 'u4')}</div>
+      <div class="vc-kpis">${kpi('No Finanças', (f.contratos || []).length, null, { comparar: false, espiar: 'financas:carteira:contratos' })}${kpi('Ligados a clientes do Vybe OS', ligados, null, { comparar: false })}
+        ${kpi('No Finanças, sem par no Vybe OS', sem, null, { comparar: false, nivel: sem ? 'u2' : '', espiar: 'financas:carteira:sempar' })}</div>
+      ${nota('Ligação pelo CNPJ quando os dois cadastros têm; senão pelo nome (sem acento, sem ltda/me/eireli). Quem ficou sem par: confira o nome ou o CNPJ no cadastro do cliente.')}</section>`;
   }
   function abaContratos() {
     const sv = estado.servidor;
     if (!sv?.clientes) return vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar'));
-    const r = S().contratos({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
+    const r = S().contratos({ clientes: sv.clientes, contratos: listaContratos(), hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
     espiarCarteira.contratos = r;
     let lista = r.linhas;
     if (estado.ordem.contratos === 'valor') lista = [...lista].sort((a, b) => (b.valor ?? -1) - (a.valor ?? -1));
     else if (estado.ordem.contratos === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     const breve = [...r.vencidas, ...r.emBreve];
     const primeiro = r.linhas.find((l) => !l.temContrato);
-    return `${sv.contratos?.disponivel ? '' : aguardando('Os contratos guardam valor, início e renovação de cada cliente.')}
+    const f = finCarteira();
+    return `${sv.contratos?.disponivel || f ? '' : aguardando('Os contratos guardam valor, início e renovação de cada cliente.')}
+      ${finContratosHtml(f)}
       <div class="vc-kpis">
         ${kpi('Receita mensal ativa', reais(r.receita), r.variacao.receita, { formato: reais })}
         ${kpi('Renovações em 30 dias', r.emBreve.length, null, { nivel: r.emBreve.length ? 'u2' : '', comparar: false, espiar: 'contratos:breve' })}
@@ -531,8 +550,8 @@
         ${lista.length ? `<div class="vc-filtros">${ordemHtml('contratos', [['renovacao', 'Renovação mais próxima'], ['valor', 'Maior valor → menor'], ['nome', 'Nome A–Z']])}</div>
           <ol class="vc-lista">${cortar(lista, 'contratos').map(linhaContrato).join('')}</ol>${verMais('contratos', lista.length)}`
           : vazio('Nenhum cliente ativo no cadastro.', secundario('Tentar de novo', 'data-vc-recarregar'))}
-        ${sv.contratos?.disponivel && !(sv.contratos.lista || []).length && primeiro && sv.pode?.contratos ? vazio('Nenhum contrato registrado ainda.', acao('Registrar o primeiro', `data-vc-form-abrir="contrato" data-vc-cli="${esc(primeiro.id)}"`)) : ''}
-        ${nota('Só o registro do contrato: sem assinatura eletrônica. Valor e contrato só quem administra altera.')}
+        ${!f && sv.contratos?.disponivel && !(sv.contratos.lista || []).length && primeiro && sv.pode?.contratos ? vazio('Nenhum contrato registrado ainda.', acao('Registrar o primeiro', `data-vc-form-abrir="contrato" data-vc-cli="${esc(primeiro.id)}"`)) : ''}
+        ${nota(f ? 'Os contratos que estão no Vybe Finanças vêm de lá (início, fim, assinatura, vencimento e PDF) e se alteram no Finanças. Os outros clientes seguem com o registro do Vybe OS, que só quem administra altera.' : 'Só o registro do contrato: sem assinatura eletrônica. Valor e contrato só quem administra altera.')}
       </section>
       ${mesAMesHtml()}`;
   }
