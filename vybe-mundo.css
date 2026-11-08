@@ -4663,3 +4663,5 @@ button.vv-pilula{border:0;font:inherit;cursor:pointer}
 .vc-kpi.espiavel:hover{border-color:#D9B79A!important;box-shadow:0 1px 2px rgba(31,29,26,.06),0 10px 26px rgba(194,73,12,.10)!important}
 .vc-kpi.espiavel b{text-decoration:underline dotted 1px;text-underline-offset:4px}
 .vc-kpi.espiavel:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+/* Avisos do WhatsApp por cima dos módulos (antes: z 645 atrás das camadas de 650, a mensagem chegava e ninguém via). Somem sozinhos em 7–12 s. */
+html body.mundo #vv-wa-avisos{z-index:760!important}
