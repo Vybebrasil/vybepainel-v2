@@ -123,7 +123,7 @@ export function construirPredio(motor, { x, z, y }) {
     // Luz quente no teto das salas, vista de fora pelo vidro (some quando se entra no andar).
     const teto = new Obra();
     for (const a of [-3.2, 0, 3.2]) for (const b of [-3, 0, 3]) teto.luz(a + .6, Y0 + H - .05, b, 1.6, .05, .2, '#FFE2B0');
-    const tetoM = teto.montar({ sombra: false }); g.add(tetoM); g.userData.teto = tetoM;
+    const tetoM = teto.montar({ sombra: false }); tetoM.traverse((m) => m.material?.color?.set('#B9B0A2')); g.add(tetoM); g.userData.teto = tetoM;
     if (!terreo) {
       // Jardineira branca com plantas em cachos na borda da frente.
       o.caixa(1.3, Y0 - .02, M + .45, LADO - 3.4, .32, .4, '#FFFFFF');
@@ -416,6 +416,12 @@ export function construirPredio(motor, { x, z, y }) {
       }
       const r = agentesRot.find(a => a.setor === id)?.r;
       if (r) { r.el.classList.remove(...Object.keys(ESTADOS_REAIS)); r.el.classList.add(atual.estado); r.el.style.setProperty('--ag-cor', cor); r.el.querySelector('small').textContent = atual.rotulo + (conectado ? '' : ' · última leitura'); }
+    }
+    // Andar com agente executando acende as luzes do teto (vistas de fora pelo vidro); os outros ficam na meia-luz.
+    for (const a of andares) {
+      const teto = a.g.userData.teto; if (!teto) continue;
+      const exec = a.andar.setores.some((q) => { const sl = salas.get(q.id); return sl?.conectado && sl.estado === 'executando'; });
+      teto.traverse((m) => { if (m.material?.color) { const c = exec ? '#FFFFFF' : '#B9B0A2'; if ('#' + m.material.color.getHexString().toUpperCase() !== c.toUpperCase()) { m.material.color.set(c); mudou = true; } } });
     }
     if (mudou) motor.invalidar();
   }

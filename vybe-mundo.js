@@ -2479,6 +2479,7 @@
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
     conferirClientes: () => mundo?.conferirClientes?.(),
     desempenho: () => mundo?.desempenho?.(),
+    ambiente: (k) => mundo?.ambiente?.(k),
     orcamento: () => mundo?.orcamento?.(),
     agente: (andar, setor) => mostrarAgente(andar, setor),
     desenharPresenca: (lista) => { ultimaPresenca = "manual"; manualAndar = lista; mundo?.presenca(lista); },

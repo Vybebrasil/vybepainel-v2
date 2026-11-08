@@ -50,7 +50,7 @@ function paraMundo(v, lx, lz, w, d) {
 export function construirCentro(motor, { quantos = 32 } = {}) {
   const T = motor.THREE || THREE;
   let L = layoutDoCentro(quantos);
-  let chao = null, lojas = null, rotulos = [], alvos = [], posicoes = [];
+  let chao = null, lojas = null, rotulos = [], alvos = [], posicoes = [], ilhotas = [], nuvensMalha = null, estadosDasLojas = [], cachoeira = null, chafariz = null;
 
   function montarChao() {
     if (chao) { motor.cena.remove(chao); chao.traverse((o) => { o.geometry?.dispose?.(); }); }
@@ -102,7 +102,18 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     for (let i = -L.meio + PASSO; i < L.meio; i += PASSO * 2) for (const [a, b] of [[i, -(R - 3.4)], [i, R - 3.4], [-(R - 3.4), i], [R - 3.4, i]]) {
       o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0');
     }
+    detalhes(o, L);
     g.add(o.montar());
+    // Ilhotas flutuando em volta da maquete (Paulo, 08/11/2026: "mais vivo, detalhado"); a vida (vida.mjs) as balança.
+    ilhotas = [[S + 13, 3, -S * .35, 1], [-S * .45, -2.5, S + 12, .8]].map(([ix, iy, iz, k]) => {
+      const q = new Obra(), w = 6 * k;
+      q.caixa(0, -.6, 0, w, .6, w, '#74B95A').caixa(0, -1.8, 0, w - .4, 1.2, w - .4, '#8A5A3B').caixa(0, -3, 0, w - 2, 1.2, w - 2, '#8E8A84').caixa(0, -3.8, 0, w - 3.6, .8, w - 3.6, '#7E7A75');
+      q.arvore(-w * .18, 0, -w * .1, { s: 1.5 * k, cor: '#5FA34E', fruta: '#F2A33A' });
+      q.caixa(w * .2, 0, w * .18, 1.2 * k, .3, .5 * k, '#C99A6B').caixa(w * .2, .3, w * .18 - .2 * k, 1.2 * k, .35, .1, '#C99A6B');
+      for (const [a, b, c] of [[.3, -.3, '#E5484D'], [-.3, .3, '#F2C14E'], [.1, .35, '#FFFFFF']]) q.caixa(a * w, 0, b * w, .25, .25, .25, c);
+      const m = q.montar(); m.position.set(ix, iy, iz); m.userData.y0 = iy; g.add(m);
+      return m;
+    });
     // Nuvens de blocos paradas no céu (não animam: o centro só redesenha quando algo muda).
     const nuvem = new T.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: .92 });
     const cubo = new T.BoxGeometry(1, 1, 1), nuvens = [];
@@ -114,8 +125,67 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     }
     const inst = new T.InstancedMesh(cubo, nuvem, nuvens.length), m4 = new T.Matrix4();
     nuvens.forEach(([x, y, z, w, h, d], i) => { m4.makeScale(w, h, d).setPosition(x, y, z); inst.setMatrixAt(i, m4); });
-    inst.computeBoundingSphere(); g.add(inst);
+    inst.computeBoundingSphere(); g.add(inst); nuvensMalha = inst;
     chao = g; motor.adicionar(g);
+  }
+
+  // Detalhe do diorama: tufos, flores e pedrinhas na grama, lixeiras e bandeirolas no anel, o chafariz e o food
+  // truck na praça, o laguinho com a cachoeira caindo da borda e raízes penduradas embaixo da maquete.
+  function detalhes(o, L) {
+    const { S, R } = L, anelI = R - 3.2, borda = R + LD + .6;
+    const grama = (x, z) => {
+      const ax = Math.abs(x), az = Math.abs(z);
+      if (ax > S - 1 || az > S - 1) return false;
+      if (ax < anelI - .6 && az < anelI - .6) return !(ax < 13.6 && az < 13.6) && ax > 2.7 && az > 2.7 && !(ax > 13 && ax < 18 && az > 13 && az < 18);
+      return ax > borda || az > borda;
+    };
+    for (let x = -S + 1; x < S - 1; x += 1.15) for (let z = -S + 1; z < S - 1; z += 1.15) {
+      const k = ruido(x * 1.7 + 3, z * 2.3 + 9), px = x + (ruido(z, x) - .5) * .8, pz = z + (ruido(x + 5, z) - .5) * .8;
+      if (k < .5 || !grama(px, pz)) continue;
+      if (k < .78) o.caixa(px, 0, pz, .36, .14 + k * .1, .36, k < .64 ? '#5E9E47' : '#86C46A');
+      else if (k < .93) { o.caixa(px, 0, pz, .05, .22, .05, '#4F8F3E'); o.caixa(px, .22, pz, .16, .14, .16, ['#E5484D', '#F2C14E', '#FFFFFF', '#D6409F', '#8E4EC6'][Math.floor(k * 97) % 5]); }
+      else o.caixa(px, 0, pz, .42, .18, .32, '#A8A29A');
+    }
+    // Lixeiras ao lado dos postes e bandeirolas entre eles.
+    const cores = ['#FF7A2F', '#F2C14E', '#18A957', '#0D74CE', '#D6409F', '#FFFFFF'];
+    for (let i = -L.meio + PASSO; i < L.meio; i += PASSO * 2) for (const [a, b, eixoX] of [[i, -(R - 3.4), 1], [i, R - 3.4, 1], [-(R - 3.4), i, 0], [R - 3.4, i, 0]]) {
+      const [lx, lz] = eixoX ? [a + .5, b] : [a, b + .5];
+      o.caixa(lx, CHAO, lz, .32, .5, .32, '#3E8F4E').caixa(lx, CHAO + .5, lz, .38, .06, .38, '#2E6B3A');
+      if (i + PASSO * 2 < L.meio) for (let f = 1; f < 15; f++) {
+        const d = f / 15 * PASSO * 2, cai = Math.sin(f / 15 * Math.PI) * .45;
+        const [fx, fz] = eixoX ? [a + d, b] : [a, b + d];
+        o.caixa(fx, CHAO + 2.75 - cai, fz, .05, .03, .05, '#4A4F55');
+        if (f % 2) o.caixa(fx, CHAO + 2.42 - cai, fz, eixoX ? .32 : .04, .32, eixoX ? .04 : .32, cores[(f + Math.round(i)) % cores.length]);
+      }
+    }
+    // Chafariz da praça: bacia de pedra, água, coluna e a taça de cima (o jato anima em vida.mjs).
+    const [cx, cz] = [10.5, 10.5];
+    o.caixa(cx, CHAO, cz, 3.4, .5, 3.4, '#CFC6B4').caixa(cx, CHAO + .5, cz, 3.6, .1, 3.6, '#E8E0D0');
+    o.luz(cx, CHAO + .3, cz, 2.8, .22, 2.8, '#7FD0EE');
+    o.caixa(cx, CHAO + .5, cz, .5, 1, .5, '#E8E0D0').caixa(cx, CHAO + 1.5, cz, 1.3, .2, 1.3, '#E8E0D0');
+    o.luz(cx, CHAO + 1.62, cz, 1, .1, 1, '#A8E2F4');
+    chafariz = { x: cx, y: CHAO + 1.7, z: cz };
+    // Food truck laranja da Vybe com toldo, balcão e mesinha com guarda-sol.
+    const [tx, tz] = [-10.5, 10.6];
+    o.caixa(tx, CHAO + .35, tz, 3.2, 1.6, 1.6, '#FF7A2F').caixa(tx, CHAO + 1.95, tz, 3.1, .25, 1.5, '#FFFFFF');
+    o.luz(tx + .2, CHAO + .95, tz + .81, 1.8, .7, .02, '#FFE2B0').caixa(tx + .2, CHAO + .9, tz + .95, 2, .08, .3, '#FFFFFF');
+    for (let f = 0; f < 6; f++) o.caixa(tx - .8 + f * .4 + .2, CHAO + 1.72, tz + 1.1, .4, .08, .6, f % 2 ? '#FFFFFF' : '#E5484D');
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o.caixa(tx + a * 1.1, CHAO, tz + b * .7, .4, .4, .2, '#1F1D1A');
+    o.letreiro('CAFE', { x: tx - 1.61, y: CHAO + 1.1, z: tz, px: .09, cor: '#FFFFFF' });
+    o.caixa(tx + .3, CHAO, tz + 2.6, .08, .7, .08, '#4A4F55').caixa(tx + .3, CHAO + .7, tz + 2.6, .8, .06, .8, '#FFFFFF');
+    o.caixa(tx + .3, CHAO, tz + 2.6, .06, 1.9, .06, '#4A4F55').caixa(tx + .3, CHAO + 1.9, tz + 2.6, 1.6, .1, 1.6, '#F2C14E').caixa(tx + .3, CHAO + 2, tz + 2.6, .9, .1, .9, '#FFFFFF');
+    for (const s2 of [-1, 1]) o.caixa(tx + .3 + s2 * .7, CHAO, tz + 2.6, .36, .4, .36, '#5CC8B8');
+    // Laguinho no fundo do anel, com a água caindo pela borda da maquete (as gotas animam em vida.mjs).
+    const lz = -S + 4 + 3.5, lx = -(S - 1.6);
+    o.caixa(lx, -.2, lz, 2.6, .3, 3.4, '#B9B2A6').caixa(lx - .3, -.14, lz, 2.4, .3, 2.6, '#4FB6E3');
+    o.luz(-S - .06, -4.2, lz, .1, 4.06, 2.2, '#8FD6F2').luz(-S - .1, -4.2, lz, .06, 4.06, 1.2, '#C9EEFA');
+    cachoeira = { x: -S - .2, z: lz, topo: -.2, base: -4.4 };
+    // Raízes penduradas embaixo da maquete, perto das bordas.
+    for (let k = 0; k < 26; k++) {
+      const lado = k % 4, a = (ruido(k, 77) - .5) * (2 * S - 4), b = S - 1.5 - ruido(77, k) * 3;
+      const [rx, rz] = [[a, -b], [b, a], [-a, b], [-b, -a]][lado], h = 1 + ruido(k, k) * 2.4;
+      o.caixa(rx, -4.6 - h, rz, .16, h, .16, '#6E4B33');
+    }
   }
 
   // Uma loja: piso, corpo pastel, platibanda, vitrine, porta, toldo listrado na cor da loja e vasos.
@@ -136,13 +206,22 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     for (const s of [-1, 1]) { C(s * (LW / 2 + .05), CHAO, LD / 2 + .05, .5, .45, .5, '#B5462F'); C(s * (LW / 2 + .05), CHAO + .45, LD / 2 + .05, .6, .6, .6, '#5FA34E'); }
   }
 
+  // Vaga sem cliente (Paulo, 08/11/2026: "o mundo tá muito pobre"): tapume listrado laranja e branco da Vybe com a
+  // placa "VAGA", um cone e um vaso; o anel fica completo e convida o Comercial a ocupar.
   function lojaFechada(o, v, k) {
     const C = (lx, y, lz, w, h, d, cor) => { const p = paraMundo(v, lx, lz, w, d); o.caixa(p.x, y, p.z, p.w, h, p.d, cor); };
     C(0, 0, 0, LW + .6, CHAO, LD + .2, '#CFC6B4');
-    C(0, CHAO, -.35, LW, 2.8, LD - .7, k % 2 ? '#EDE6DA' : '#E6DFD2');
-    C(0, 2.9, -.35, LW + .2, .25, LD - .5, '#FFFFFF');
-    C(0, .3, LD / 2 - .68, LW - 1, 2.1, .08, '#B9B2A6');
-    for (let f = 0; f < 6; f++) C(0, .45 + f * .33, LD / 2 - .62, LW - 1.1, .05, .06, '#A39C90');
+    C(0, CHAO, -.6, LW - .4, 2.4, LD - 1.4, PASTEIS[(k + 3) % PASTEIS.length]);
+    C(0, CHAO + 2.4, -.6, LW - .2, .2, LD - 1.2, '#FFFFFF');
+    const faixas = 8, fw = (LW + .2) / faixas;
+    for (let f = 0; f < faixas; f++) C(-(LW + .2) / 2 + fw * (f + .5), CHAO, LD / 2 - .3, fw, 1.6, .1, f % 2 ? '#FFFFFF' : '#FF7A2F');
+    C(0, CHAO + 1.6, LD / 2 - .3, LW + .3, .1, .14, '#E8601E');
+    C(0, CHAO + .55, LD / 2 - .2, 1.7, .7, .06, '#FFFFFF');
+    // O letreiro nasce de frente para +z numa obra à parte e cada bloco gira com o lado da vaga.
+    const placa = new Obra(); placa.letreiro('VAGA', { x: 0, y: CHAO + .9, z: 0, px: .1, cor: '#FF7A2F' });
+    for (const b of placa.solidos) C(b.x, b.y, LD / 2 - .15 + b.z, b.w, b.h, b.d, b.cor);
+    C(LW / 2 - .5, CHAO, LD / 2 + .1, .34, .1, .34, '#FFFFFF'); C(LW / 2 - .5, CHAO + .1, LD / 2 + .1, .24, .36, .24, '#FF7A2F'); C(LW / 2 - .5, CHAO + .3, LD / 2 + .1, .26, .06, .26, '#FFFFFF');
+    C(-LW / 2 + .4, CHAO, LD / 2 + .1, .4, .36, .4, '#C9773E'); C(-LW / 2 + .4, CHAO + .36, LD / 2 + .1, .5, .44, .5, '#5FA34E');
   }
   const carregador = new T.TextureLoader();
   function logoNaPlaca(g, v, url, placa) {
@@ -171,7 +250,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     if (lojas) { motor.cena.remove(lojas); lojas.traverse((o) => o.geometry?.dispose?.()); }
     for (const r of rotulos) motor.removerRotulo(r);
     for (const a of alvos) motor.naoClicavel(a);
-    rotulos = []; alvos = [];
+    rotulos = []; alvos = []; estadosDasLojas = [];
     const vagas = vagasDoCentro(ordem.length), o = new Obra(), g = new T.Group(), invisivel = new T.MeshBasicMaterial({ visible: false });
     posicoes = ordem.map((c, k) => {
       const v = vagas[k];
@@ -190,6 +269,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       const atrasada = c.situacao === 'atrasada';
       rotulos.push(motor.rotulo({ pos: new T.Vector3(v.x, 5.1, v.z), classe: 'rotulo-loja' + (atrasada ? ' atrasada' : ''), prioridade: 5 + (c.peso || 0), fixo: true,
         html: `<b class="loja-nome">${esc(c.nome)}</b>${bolinhasHtml(c)}`, aoClicar: () => aoClicar?.({ tipo: 'cliente', nome: c.nome }) }));
+      estadosDasLojas.push({ nome: c.nome, x: v.x, z: v.z, frente: v.frente, lado: v.lado, atrasada, prontas: c.por?.pronta || 0, hoje: c.por?.hoje || 0 });
       return { nome: c.nome, x: v.frente.x, z: v.frente.z, lado: v.lado, loja: { x: v.x, z: v.z } };
     });
     // Vagas sem cliente: loja fechada, sem nome (o anel fica sempre completo).
@@ -213,5 +293,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     definir, caminho,
     alturaEm: () => CHAO, noRecorte: () => true, pontoDoEndereco: () => null, lugares: [],
     tamanho: () => L.S, posicoes: () => posicoes,
+    // Para a vida do mundo (vida.mjs): lojas com o estado, ilhotas, nuvens, cachoeira, chafariz e o tamanho.
+    lojasVivas: () => estadosDasLojas, ilhotas: () => ilhotas, nuvens: () => nuvensMalha, cachoeira: () => cachoeira, chafariz: () => chafariz, layout: () => L, LD,
   };
 }

@@ -67,7 +67,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const cena = new THREE.Scene();
   cena.fog = new THREE.Fog(0xcfe2e6, 900, 2200);
 
-  cena.add(new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9));
+  const hemi = new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9);
+  cena.add(hemi);
   const sol = new THREE.DirectionalLight(0xfff1d8, 2.1);
   sol.position.set(-110, 160, 70);
   sol.castShadow = true;
@@ -388,6 +389,19 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     naoClicavel: (o) => { const i = clicaveis.indexOf(o); if (i >= 0) clicaveis.splice(i, 1); },
     // true = a animação alterou algo visível; false/undefined = manutenção sem novo desenho.
     animar: (fn) => { animadores.push(fn); invalidar(); },
+    reduzirMovimento: Boolean(reduzirMovimento),
+    // Dia e noite (0 = dia, 1 = noite): o céu escurece, o sol vira luar e o que brilha (janelas, postes, letreiros)
+    // passa a se destacar sozinho, porque não depende da luz.
+    ambiente(noite = 0) {
+      const k = limitar(Number(noite) || 0, 0, 1);
+      hemi.intensity = .9 - .38 * k; hemi.color.set(0xeaf6ff).lerp(new THREE.Color(0x7083c4), k); hemi.groundColor.set(0x7e6a4e).lerp(new THREE.Color(0x2a2a3a), k);
+      sol.intensity = 2.1 - 1.3 * k; sol.color.set(0xfff1d8).lerp(new THREE.Color(0xa9bbff), k);
+      preenche.intensity = .35 - .2 * k;
+      renderer.toneMappingExposure = 1.05 - .2 * k;
+      cena.background = k > 0 ? new THREE.Color(0xcfe2e6).lerp(new THREE.Color(0x26345e), k) : null;
+      cena.fog.color.set(0xcfe2e6).lerp(new THREE.Color(0x26345e), k);
+      renderer.shadowMap.needsUpdate = true; invalidar();
+    },
     rotulo, removerRotulo,
     aoClicar: (f) => ouvintes.clique.push(f),
     emitirClique: (alvo) => { for (const f of ouvintes.clique) f(alvo, null); },

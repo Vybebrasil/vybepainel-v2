@@ -6,6 +6,7 @@ import { relogioBahia, horarioDaCaptacao, priorizarCaptacoes, faseDaVan, roteiro
 import { saudeDosAndares, URGENCIA } from './saude-andares.mjs';
 import { construirCentro } from './centro.mjs';
 import { construirPredio } from './predio.mjs';
+import { criarVida, noiteDaHora } from './vida.mjs';
 import { PLANTA, ESTADOS, ZONAS_DO_PREDIO, MESAS_POR_ANDAR } from './planta.mjs';
 import { Obra } from './voxel.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
@@ -26,7 +27,17 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
   const irece = construirCentro(motor, { quantos });
   const base = { x: 0, z: 0 };
   const predio = construirPredio(motor, { x: 0, z: 0, y: irece.alturaEm() + .02 });
-  const clientes = { definir: (lista, opcoes) => irece.definir(lista, opcoes) };
+  // A vida do Centro (gente, água, pássaros, lojas reagindo) e o dia e a noite pela hora da Bahia.
+  const vida = criarVida(motor, irece, { reduzirMovimento });
+  const clientes = { definir: (lista, opcoes) => { const r = irece.definir(lista, opcoes); vida.tamanhoMudou(); return r; } };
+  let noite = -1, conferiuHora = -1e9;
+  motor.animar((t) => {
+    if (t - conferiuHora < 30) return false;
+    conferiuHora = t;
+    const k = Math.round(noiteDaHora(relogioBahia().minutos) * 20) / 20;
+    if (k === noite) return false;
+    noite = k; motor.ambiente(k); vida.noite(k); return true;
+  });
   let posicoes = [];
 
   const VISTAS = {
@@ -231,7 +242,12 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     definirCaptacoes,
     diaNaBahia: () => relogioBahia().dia,
     destruir: motor.destruir,
-    planta: PLANTA, estados: ESTADOS, zonasDoPredio: ZONAS_DO_PREDIO, mesasPorAndar: MESAS_POR_ANDAR, presenca: predio.presenca,
+    planta: PLANTA, estados: ESTADOS, zonasDoPredio: ZONAS_DO_PREDIO, mesasPorAndar: MESAS_POR_ANDAR, presenca: (lista = []) => {
+      predio.presenca(lista);
+      // Quem está online mas fora das salas do prédio passeia na praça com o próprio boneco.
+      const zonas = new Set(predio.zonas());
+      vida.definirOnline(lista.filter((p) => !zonas.has(p.zona)));
+    },
     aoClicar: motor.aoClicar, aoPassar: motor.aoPassar,
     zoom: motor.zoom, girar90: motor.girar90, areaLivre: motor.areaLivre, pausar: motor.pausar,
     verCidade() { predio.abrir(false); motor.voar({ ...VISTAS.cidade, alvo: { ...VISTAS.cidade.alvo, y: 0 } }); },
@@ -247,6 +263,8 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     },
     // Conferência: onde cada cliente deveria estar (ponto real) e onde a sede ficou.
     desempenho: () => motor.desempenho(),
+    // Conferência do dia e da noite (0 dia, 1 noite); o relógio da Bahia volta a mandar em até 30 s.
+    ambiente: (k) => { motor.ambiente(k); vida.noite(k); noite = -1; conferiuHora = performance.now() / 1000; },
     orcamento: () => { const lista = []; motor.cena.traverse((o) => { if (!o.isMesh || !o.visible) return; let vis = true, p = o.parent; while (p) { if (!p.visible) { vis = false; break; } p = p.parent; } if (!vis) return; const g = o.geometry; const tri = ((g.index ? g.index.count : g.attributes.position.count) / 3) * (o.isInstancedMesh ? o.count : 1); lista.push({ tipo: o.isInstancedMesh ? 'inst' : 'mesh', tri: Math.round(tri), mat: o.material?.type, n: o.isInstancedMesh ? o.count : 1, sombra: o.castShadow }); }); lista.sort((a, b) => b.tri - a.tri); return { total: lista.reduce((n, x) => n + x.tri, 0), top: lista.slice(0, 12) }; },
     conferirClientes: () => ultimoComPonto.map((c) => { const p = posicoes.find((x) => x.nome === c.nome); return { nome: c.nome, ponto: c.ponto, sede: p ? { x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10 } : null, dist: c.ponto && p ? Math.round(Math.hypot(c.ponto.x - p.x, c.ponto.z - p.z) * 10) : null }; }),
     // O cliente na base de CNPJ (nome fantasia ou razão social): é o endereço oficial dele.
