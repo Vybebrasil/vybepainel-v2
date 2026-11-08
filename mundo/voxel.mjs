@@ -69,10 +69,64 @@ let matCaixa = null;
 // Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
 export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
 
+// Sombra de contato (Paulo, 08/11/2026: "tem que ficar FODA de bonito"): uma mancha macia no chão embaixo de cada
+// árvore, bicho e boneco, que "assenta" a peça no chão. Uma textura só, um material só, sem entrar no cálculo da sombra.
+let matSombra = null;
+// Textura redonda que some para as bordas (alfa em três paradas: centro, meio e borda), gerada em memória: funciona
+// também fora do navegador (testes) e não precisa de canvas.
+export function texturaRadial([r, g, b], [a0, a1, a2], lado = 32) {
+  const px = new Uint8Array(lado * lado * 4), m = (lado - 1) / 2;
+  for (let y = 0; y < lado; y++) for (let x = 0; x < lado; x++) {
+    const d = Math.min(1, Math.hypot(x - m, y - m) / m), a = d < .55 ? a0 + (a1 - a0) * (d / .55) : a1 + (a2 - a1) * ((d - .55) / .45), i = (y * lado + x) * 4;
+    px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = Math.round(Math.max(0, a) * 255);
+  }
+  const tx = new THREE.DataTexture(px, lado, lado); tx.colorSpace = THREE.SRGBColorSpace; tx.magFilter = tx.minFilter = THREE.LinearFilter; tx.needsUpdate = true;
+  return tx;
+}
+export function materialSombra() {
+  if (matSombra) return matSombra;
+  const tx = texturaRadial([20, 24, 18], [.55, .28, 0]);
+  matSombra = new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  return matSombra;
+}
+// Água viva: a cor ondula pela posição e pelo tempo (só no shader), com reflexo claro nas cristas. O tempo é um uniform
+// só, avançado pela vida do mundo (vida.mjs) quando está animando; parado, a água fica parada.
+let matAgua = null;
+export function materialAgua() {
+  if (matAgua) return matAgua;
+  const tempo = { value: 0 };
+  matAgua = new THREE.MeshStandardMaterial({ roughness: .25, metalness: .05 });
+  matAgua.onBeforeCompile = (sh) => {
+    sh.uniforms.uTempo = tempo;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vAgPos;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+#ifdef USE_INSTANCING
+  vAgPos = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+#else
+  vAgPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+#endif`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vAgPos; uniform float uTempo;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{
+  float o1 = sin(vAgPos.x * 1.7 + uTempo * 1.3) * sin(vAgPos.z * 1.3 - uTempo * 1.1);
+  float o2 = sin((vAgPos.x + vAgPos.z) * 2.9 - uTempo * 2.0);
+  float onda = o1 * .5 + o2 * .25;
+  diffuseColor.rgb *= 1.0 + onda * .1;
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), smoothstep(.55, .75, onda) * .35);
+}`);
+  };
+  matAgua.customProgramCacheKey = () => 'agua-v1';
+  matAgua.userData.tempo = tempo;
+  return matAgua;
+}
+
 export class Obra {
-  constructor() { this.solidos = []; this.luzes = []; }
+  constructor() { this.solidos = []; this.luzes = []; this.aguas = []; this.sombras = []; }
   caixa(x, y, z, w, h, d, cor) { this.solidos.push({ x, y, z, w, h, d, cor }); return this; }
   luz(x, y, z, w, h, d, cor) { this.luzes.push({ x, y, z, w, h, d, cor }); return this; }
+  agua(x, y, z, w, h, d, cor = '#4FB6E3') { this.aguas.push({ x, y, z, w, h, d, cor }); return this; }
+  // Mancha de sombra de contato no chão (y é a altura do chão naquele ponto), com raio r.
+  sombra(x, z, r, y = 0) { this.sombras.push({ x, y, z, r }); return this; }
   // Grade de janelas numa face (eixo 'x' = face que olha para +z/-z; 'z' = face que olha para +x/-x).
   janelas({ x0, x1, y0, y1, z, eixo = 'x', passo = .5, w = .3, h = .34, cor = '#5D7884', acesa = 0, corLuz = '#FFE2A8', semente = 1 }) {
     let k = semente;
@@ -102,6 +156,7 @@ export class Obra {
   // 'pinheiro' (camadas que afinam), 'cipreste' (alto e estreito) e 'arbusto' (moita baixa). 'florida' muda a cor
   // da flor do ipê. Tudo em blocos da mesma escala, para conviverem lado a lado.
   arvore(x, y, z, { s = 1, cor = '#5FA34E', fruta = null, tipo = 'copa', florida = '#F2C230' } = {}) {
+    this.sombra(x, z, ({ ipe: .95, coqueiro: .9, pinheiro: .7, cipreste: .42, arbusto: .55 }[tipo] || .75) * s, y);
     const c0 = new THREE.Color(cor), tom = (h, sat, l) => '#' + c0.clone().offsetHSL(h, sat, l).getHexString();
     const tons = [tom(0, 0, 0), tom(.02, .05, -.07), tom(-.02, 0, .06)], tronco = '#6E4B33';
     if (tipo === 'ipe') {
@@ -175,6 +230,13 @@ export class Obra {
     };
     unir(this.solidos, materialVoxel(), sombra);
     unir(this.luzes, new THREE.MeshBasicMaterial({ toneMapped: false }), false);
+    unir(this.aguas, materialAgua(), false);
+    if (this.sombras.length) {
+      const pl = new THREE.PlaneGeometry(1, 1); pl.rotateX(-Math.PI / 2);
+      const mesh = new THREE.InstancedMesh(pl, materialSombra(), this.sombras.length), m = new THREE.Matrix4();
+      this.sombras.forEach((b, k) => { m.makeScale(b.r * 2.2, 1, b.r * 2.2); m.setPosition(b.x, b.y + .015, b.z); mesh.setMatrixAt(k, m); });
+      mesh.renderOrder = 1; mesh.castShadow = false; mesh.receiveShadow = false; mesh.userData.sombraDeContato = true; raiz.add(mesh);
+    }
     return raiz;
   }
 }
