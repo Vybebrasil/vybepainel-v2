@@ -149,6 +149,7 @@
       { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
       { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
+      { id: 'ferramentas', nome: 'Ferramentas', dica: 'QR Code e link do WhatsApp com mensagem pronta', mod: ['VybeFerramentas', 'qr'] },
     ] },
     { id: 'setor:financas', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
