@@ -798,7 +798,7 @@
     const p = placa(), E = mundo.estadosReais;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <button type="button" class="vv-botao" data-voltar style="margin:-6px 0 6px -8px;height:28px">← Andares</button>
-      <h3>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</h3><p class="vv-sub">${esc(a.resumo)}</p>
+      <h3>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome.replace(/^Terraço · /, ''))}</h3><p class="vv-sub">${esc(a.resumo)}</p>
       ${(() => { const { n, sit } = numerosDoAndar(a); return `<div class="vv-andar-kpis" style="--s:${SIT_COR[sit]}">${n.map(([v, r]) => `<div><b>${Number(v).toLocaleString('pt-BR')}</b><small>${esc(r)}</small></div>`).join('')}</div>`; })()}
       ${(() => { const espera = a.setores.filter((s) => s.agente && estadoDoAgente(s.id).estado === 'aguardando_aprovacao');
         return espera.length ? `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Precisa de você<span class="vv-pilula">${espera.length}</span></div>${espera.map((s) => { const e = estadoDoAgente(s.id); return `<button type="button" class="vv-cb-camada" data-agente="${esc(a.id)}|${esc(s.id)}" style="--c:#8E4EC6"><i></i><span><b>${esc(s.agente)}</b><small>${esc(e.tarefa || 'Aguardando aprovação')}${e.desde ? ' · desde ' + esc(horaAgentes(e.desde)) : ''}</small></span><em>Ver →</em></button>`; }).join('')}` : ''; })()}

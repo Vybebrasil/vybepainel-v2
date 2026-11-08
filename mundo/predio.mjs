@@ -92,7 +92,7 @@ export function construirPredio(motor, { x, z, y }) {
   function laje(o, andar, terraco) {
     o.caixa(0, -.12, 0, LADO + .5, .2, LADO + .5, '#F4EFE6');
     o.caixa(0, .06, 0, LADO + .56, .12, LADO + .56, claro(andar.cor, .12));
-    o.caixa(0, .18, 0, LADO + .5, .07, LADO + .5, '#FFFFFF');
+    o.caixa(0, .18, 0, LADO + .5, .045, LADO + .5, '#FFFFFF'); // topo em .225: abaixo do piso (.23), sem brigar com ele
     o.caixa(0, Y0 - .02, 0, LADO - .2, .02, LADO - .2, terraco ? '#C99A6B' : '#F6F1E8');
   }
   function guardaCorpo(o) {
@@ -281,7 +281,7 @@ export function construirPredio(motor, { x, z, y }) {
       // O Escritório no terraço (Paulo, 07/11/2026: "muito mal feito"): deque de tábuas, sinuca de verdade (pés, caçapas,
       // tacos), ombrelones listrados em degraus com mesinha e cadeiras, sofás com almofadas, floreiras com flores,
       // bar com bancos e um cordão de luzinhas no guarda-corpo.
-      for (let k = 0; k < 26; k++) pecas.push({ x: 0, y: .222, z: -LADO / 2 + .4 + k * .44, w: LADO - .3, h: .012, d: .03, cor: '#A87B52' }); // juntas do deque
+      for (let k = 0; k < 26; k++) pecas.push({ x: 0, y: Y0, z: -LADO / 2 + .4 + k * .44, w: LADO - .3, h: .012, d: .03, cor: '#A87B52' }); // juntas do deque
       // sinuca
       const sx0 = -1.5;
       pecas.push({ x: sx0, y: .72, z: 0, w: 3.2, h: .14, d: 1.8, cor: '#5A3A22' }, { x: sx0, y: .8, z: 0, w: 2.9, h: .07, d: 1.5, cor: '#1F8A4C' });

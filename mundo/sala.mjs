@@ -241,7 +241,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   // Corredor e cantos sem sala: passadeira, plantas, bancos, bebedouro e luminárias; o canto que sobra vira um lounge.
   for (let r = 0; r < linhas - 1; r++) {
     const zc = AG + (r + 1) * LADO_SALA + r * CORREDOR + CORREDOR / 2;
-    casca.caixa(W / 2, -.1, zc, W - 1.2, .03, 1, tom(.55)).caixa(W / 2, -.095, zc, W - 1.6, .03, .7, tom(.75));
+    casca.caixa(W / 2, -.04, zc, W - 1.2, .02, 1, tom(.55)).caixa(W / 2, -.04, zc, W - 1.6, .026, .7, tom(.75));
     for (let x = 1.6; x < W - 1; x += 3.4) { planta(casca, x, zc - .7, .8); casca.caixa(x + 1.1, 0, zc + .62, 1.1, .38, .34, '#C99A6B').caixa(x + 1.1, .38, zc + .76, 1.1, .32, .06, '#C99A6B'); luminaria(casca, x + 2.3, zc - .7); }
     casca.caixa(W - .6, 0, zc, .4, .9, .4, '#E9EEF0').caixa(W - .6, .9, zc, .3, .35, .3, '#BDE3F2');
   }
@@ -255,11 +255,11 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   // Bancada dos agentes: tapete na cor do setor, divisória baixa com plantas na frente e o vão de passagem no meio.
   if (AG && soAgentes) {
     // Corredor da frente do andar de agentes: passadeira, plantas e um sofá de espera.
-    casca.caixa(W / 2, -.1, D - .75, W - 1.2, .03, .9, tom(.55)).caixa(W / 2, -.095, D - .75, W - 1.6, .03, .6, tom(.75));
+    casca.caixa(W / 2, -.04, D - .75, W - 1.2, .02, .9, tom(.55)).caixa(W / 2, -.04, D - .75, W - 1.6, .026, .6, tom(.75));
     for (const x of [1, W - 1]) planta(casca, x, D - .7, 1.1);
     sofa(casca, W / 2, D - .7, '#F2C14E');
   } else if (AG) {
-    casca.caixa(W / 2, -.1, AG / 2, W - .4, .03, AG - .5, tom(.7));
+    casca.caixa(W / 2, -.04, AG / 2, W - .4, .02, AG - .5, tom(.7));
     for (let x = .4; x < W - .3; x += 1) if (Math.abs(x + .5 - W / 2) > 1.2) casca.caixa(x + .5, 0, AG - .2, .96, .42, .4, '#FFFFFF').caixa(x + .5, .42, AG - .2, .8, .26, .3, x % 2 ? '#5FA34E' : '#6BAF52');
   }
   cena.add(casca.montar());
