@@ -109,93 +109,6 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     return mudou;
   });
 
-  // ---------- Cérebro: o VYBES ligado a cada cliente (cor = situação; pulsos = peças em aberto) ----------
-  const T = motor.THREE;
-  let cerebro = null;
-  // ---------- Cérebro arquitetado: o VYBES no centro, as camadas de memória em volta e as sinapses ----------
-  // Núcleo (VYBES, um só, Qwen local) -> 5 camadas de memória -> agentes nas mesas do prédio e clientes na cidade.
-  // Cada cliente recebe um fio por origem do que o VYBES sabe dele (central, painel, referência, nota), com a
-  // espessura da quantidade; os pulsos correm na cor da situação. Nada é inventado: os números vêm do painel.
-  const ORIGENS = { central: '#8E7CFF', operacao: '#FF7A2F', referencia: '#3B9EFF', navegador: '#9AA3A8' };
-  const CAMADAS = [
-    { id: 'identidade', nome: 'Identidade', cor: '#FF7A2F' }, { id: 'clientes', nome: 'Memória dos clientes', cor: '#8E7CFF' },
-    { id: 'conversas', nome: 'Conversas', cor: '#18A957' }, { id: 'trabalho', nome: 'Trabalho do painel', cor: '#3B9EFF' },
-    { id: 'agentes', nome: 'Agentes dos andares', cor: '#D6409F' },
-  ];
-  function curvaEntre(a, b, alto = .3) { const m = a.clone().lerp(b, .5); m.y += a.distanceTo(b) * alto + 3; return new T.QuadraticBezierCurve3(a, m, b); }
-  function mostrarCerebro(ligar, lista = [], { camadas = {}, agentes = [], aoNo = null } = {}) {
-    motor.invalidar();
-    if (cerebro) { motor.cena.remove(cerebro.g); cerebro.g.traverse((o) => { if (o.userData?.alvo) motor.naoClicavel(o); o.geometry?.dispose?.(); o.material?.dispose?.(); }); cerebro.rotulos.forEach((r) => motor.removerRotulo(r)); cerebro = null; }
-    if (!ligar) return;
-    const g = new T.Group(), pulsos = [], rotulos = [];
-    const C = new T.Vector3(base.x, 46, base.z);
-    const mat = (cor, op = 1) => new T.MeshBasicMaterial({ color: cor, toneMapped: false, transparent: op < 1, opacity: op, depthWrite: op >= 1 });
-    // Núcleo: dois hemisférios de voxels (o cérebro do VYBES), com sulcos.
-    const nucleo = new T.Group(), cubo = new T.BoxGeometry(.9, .9, .9);
-    const mN = new T.MeshStandardMaterial({ color: '#B9B0FF', emissive: '#6A5CFF', emissiveIntensity: .55, roughness: .4 });
-    const mL = new T.MeshStandardMaterial({ color: '#FFD3B0', emissive: '#FF7A2F', emissiveIntensity: .45, roughness: .4 });
-    const pts = [];
-    for (let xx = -5; xx <= 5; xx++) for (let yy = -3; yy <= 4; yy++) for (let zz = -4; zz <= 4; zz++) {
-      const e = (xx / 5.2) ** 2 + (yy / 3.6) ** 2 + (zz / 4.4) ** 2; if (e > 1 || e < .62) continue;
-      if (xx === 0 && yy > -2) continue; // fissura entre os hemisférios
-      if (Math.sin(xx * 1.7 + zz * 1.3 + yy * 2.1) > .72) continue; // sulcos
-      pts.push([xx, yy, zz]);
-    }
-    const inst = new T.InstancedMesh(cubo, mN, pts.length), inst2 = new T.InstancedMesh(cubo, mL, pts.length);
-    const dm = new T.Object3D(); let a1 = 0, a2 = 0;
-    for (const [xx, yy, zz] of pts) { dm.position.set(xx, yy, zz); dm.updateMatrix(); if (((xx * 7 + yy * 3 + zz * 5) % 9 + 9) % 9 === 0) inst2.setMatrixAt(a2++, dm.matrix); else inst.setMatrixAt(a1++, dm.matrix); }
-    inst.count = a1; inst2.count = a2; nucleo.add(inst, inst2); nucleo.position.copy(C); nucleo.scale.setScalar(1.35); g.add(nucleo);
-    const alvoN = new T.Mesh(new T.SphereGeometry(5, 8, 8), new T.MeshBasicMaterial({ visible: false })); alvoN.position.copy(C); alvoN.userData.alvo = { tipo: 'cerebro', no: 'nucleo' }; g.add(alvoN); motor.clicavel(alvoN);
-    rotulos.push(motor.rotulo({ pos: C.clone().add(new T.Vector3(0, 8.5, 0)), classe: 'rotulo-cerebro nucleo', html: '<b>VYBES</b><small>orquestra tudo · Qwen local</small>', distMax: 900, prioridade: 6, aoClicar: () => aoNo?.('nucleo') }));
-    // Camadas de memória em anel.
-    const posCam = {};
-    CAMADAS.forEach((cm, k) => {
-      const ang = k / CAMADAS.length * Math.PI * 2 - Math.PI / 2, P = C.clone().add(new T.Vector3(Math.cos(ang) * 21, -2 + (k % 2) * 3, Math.sin(ang) * 21));
-      posCam[cm.id] = P;
-      const no = new T.Mesh(new T.BoxGeometry(2.4, 2.4, 2.4), mat(cm.cor)); no.position.copy(P); no.userData.alvo = { tipo: 'cerebro', no: cm.id }; g.add(no); motor.clicavel(no);
-      const casca = new T.Mesh(new T.BoxGeometry(3.4, 3.4, 3.4), mat(cm.cor, .18)); casca.position.copy(P); g.add(casca);
-      const cv = curvaEntre(C, P, .12);
-      g.add(new T.Mesh(new T.TubeGeometry(cv, 24, .16, 5, false), mat(cm.cor, .55)));
-      for (let q = 0; q < 2; q++) { const m = new T.Mesh(new T.BoxGeometry(.5, .5, .5), mat('#FFFFFF')); g.add(m); pulsos.push({ m, curva: cv, fase: q / 2, vel: .35 }); }
-      const v = camadas[cm.id];
-      rotulos.push(motor.rotulo({ pos: P.clone().add(new T.Vector3(0, 2.8, 0)), classe: 'rotulo-cerebro', html: `<i style="--c:${cm.cor}"></i><b>${cm.nome}</b>${v ? `<small>${String(v).replace(/[<>&]/g, '')}</small>` : ''}`, distMax: 700, prioridade: 5, aoClicar: () => aoNo?.(cm.id) }));
-    });
-    // Sinapses dos agentes: da camada Agentes até a mesa de cada um no prédio.
-    for (const ag of agentes) {
-      const pos = predio.posDoSetor?.(ag.setor); if (!pos) continue;
-      const fim = new T.Vector3(pos.x, pos.y, pos.z), cv = curvaEntre(posCam.agentes, fim, .08);
-      const ativo = ag.estado === 'executando' && ag.conectado;
-      g.add(new T.Mesh(new T.TubeGeometry(cv, 32, ativo ? .09 : .05, 4, false), mat('#D6409F', ativo ? .5 : .18)));
-      if (ativo) { const m = new T.Mesh(new T.BoxGeometry(.35, .35, .35), mat('#FFE3F3')); g.add(m); pulsos.push({ m, curva: cv, fase: Math.random(), vel: .45 }); }
-    }
-    // Sinapses dos clientes: um fio por origem do conhecimento.
-    for (const cli of lista) {
-      const p = posicoes.find((x) => x.nome === cli.nome); if (!p) continue;
-      const fim = new T.Vector3(p.x, irece.alturaEm(p.x, p.z) + 6, p.z);
-      const org = Object.entries(cli.origens || {}).filter(([, v]) => v > 0);
-      if (!org.length) org.push(['operacao', Math.max(1, cli.total || 1)]);
-      org.forEach(([k, v], idx) => {
-        const desvio = (idx - (org.length - 1) / 2) * .9;
-        const ini = posCam.clientes.clone().add(new T.Vector3(desvio, 0, 0)), fimK = fim.clone().add(new T.Vector3(desvio * .5, 0, 0));
-        const cv = curvaEntre(ini, fimK, .22);
-        g.add(new T.Mesh(new T.TubeGeometry(cv, 40, .06 + Math.min(.26, v * .02), 5, false), mat(ORIGENS[k] || '#9AA3A8', .55)));
-      });
-      const cvP = curvaEntre(posCam.clientes, fim, .22);
-      const np = Math.max(1, Math.min(5, Math.round((cli.total || 0) / 5)));
-      for (let q = 0; q < np; q++) { const m = new T.Mesh(new T.BoxGeometry(.5, .5, .5), mat(cli.cor || '#FFFFFF')); g.add(m); pulsos.push({ m, curva: cvP, fase: q / np, vel: cli.situacao === 'atrasada' ? .5 : .22 }); }
-      const no = new T.Mesh(new T.BoxGeometry(1.3, 1.3, 1.3), mat(cli.cor || '#8E7CFF')); no.position.copy(fim); no.userData.alvo = { tipo: 'cliente', nome: cli.nome }; g.add(no); motor.clicavel(no);
-    }
-    motor.adicionar(g);
-    cerebro = { g, pulsos, nucleo, rotulos, lista, opcoes:{camadas,agentes,aoNo} };
-  }
-  motor.animar((t) => {
-    if (!cerebro) return;
-    for (const p of cerebro.pulsos) p.m.position.copy(p.curva.getPoint((t * p.vel + p.fase) % 1));
-    cerebro.nucleo.rotation.y = t * .18;
-    cerebro.nucleo.scale.setScalar(1.35 + Math.sin(t * 1.8) * .04);
-    return motor.emVista(cerebro.g);
-  });
-
   const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   function naBase() { return null; } // a base de CNPJ não é mais baixada no Centro
   let ultimoComPonto = [];
@@ -237,10 +150,7 @@ export async function iniciarMundo(canvas, { reduzirMovimento = false, quantos =
     noRecorte: (x, z) => irece.noRecorte(x, z),
     empresas: [], fonteEmpresas: '', tipoLegivel: () => '', agencia: { x: base.x, z: base.z },
     focarPonto(x, z, dist = 80, incl = .7, giro) { predio.abrir(false); motor.voar({ alvo: { x, y: irece.alturaEm(x, z), z }, dist, incl, ...(giro == null ? {} : { giro }) }); },
-    cerebro(ligar, lista, opcoes) { if (ligar) { predio.abrir(false); predio.focar(null); } mostrarCerebro(ligar, lista, opcoes); if (ligar) motor.voar({ alvo: { x: base.x, y: 40, z: base.z }, dist: 120, incl: .32, giro: -.75 }); },
     criarFonteAgentes, apresentarAgente, referenciaDaPeca, estadosReais: ESTADOS_REAIS, atividadeAgentes: predio.atividadeAgentes,
-    atualizarAgentesCerebro(agentes,camadas) { if(cerebro) mostrarCerebro(true,cerebro.lista,{...cerebro.opcoes,agentes,camadas}); },
-    agentesDoPredio: () => predio.agentes?.() || [],
     definirCaptacoes,
     diaNaBahia: () => relogioBahia().dia,
     destruir: motor.destruir,

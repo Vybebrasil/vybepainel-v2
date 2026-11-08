@@ -10,6 +10,7 @@ import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
+import { ETAPAS_LEITURA, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 const CRACHA_VALE_MS = 2 * 60e3;
@@ -220,11 +221,20 @@ export async function areaVybes(req, res, quem, sql) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await (req.query.etapa==='agentes'?lerAgentesDaCentral:lerCerebroDaCentral)(url));
     }
+    // Perfil do agente, mapa do cérebro, pendências do WhatsApp e estudo do cliente (server/vybes-agentes.js).
+    if (req.method === 'GET' && ETAPAS_LEITURA.includes(req.query?.etapa)) {
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await lerEtapa(req.query.etapa, url, req.query));
+    }
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'atribuir') {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await atribuirNaCentral(url, req.body));
+    }
+    if (req.method === 'POST' && ['rotina', 'achado'].includes(req.body?.etapa)) {
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await mudarNaCentral(url, req.body));
     }
     if (req.method === 'POST' && req.body?.etapa === 'perguntar') return res.status(200).json({ ok: true, ...(await perguntarVybes(sql, quem, req.body?.texto)) });
     return res.status(405).json({ error: 'Use o cartão VYBES para abrir a central.' });

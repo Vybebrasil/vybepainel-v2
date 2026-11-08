@@ -19,7 +19,7 @@
     funil: 'O funil é o mesmo CRM do 1º andar. Novo junta as etapas do SDR (empresa, qualificação, abordagem e aprovação humana). Avance uma etapa por vez; Follow-up é opcional. Para marcar Perdido, o motivo é obrigatório e vira o relatório de motivos. Conversão = quantos chegaram à fase seguinte ÷ quantos chegaram a esta. Em negociação soma o valor mensal (recorrente) e o avulso das oportunidades abertas. O selo Cabe/Aperta/Estoura diz se o time aguenta o pacote vendido. Os donos podem acrescentar e reordenar etapas do meio do funil. No topo, o mês (ou o ano): metas de MRR, avulso, negócios fechados e leads (só os donos editam; no anual, soma dos meses), leads novos (oportunidades que entraram no funil), propostas enviadas (entradas na etapa Proposta comercial) e negócios fechados (foram para Ganho), comparados com o período anterior; a corrida comercial (quem fechou mais: o responsável da oportunidade, ou quem cadastrou quando não há responsável) e os gráficos dos últimos 6 meses. Os valores em reais aparecem só para os donos. O formulário de leads é um link público para a bio e o site: quem preenche entra em Novo com a etiqueta Formulário.',
     pacotes: 'A esteira de produtos da Vybe. Cada pacote tem tipo (recorrente ou avulso), preço, entregas e a carga por cargo (demandas por mês) usada no Capacidade × vendas. Os donos veem o custo estimado (horas × custo/hora + captações × custo) e a margem; abaixo de 20% é zona crítica. Produto campeão e ticket médio saem dos negócios ganhos.',
     orcamentos: 'Monte a proposta a partir dos pacotes: itens, quantidade, desconto e validade. O preço fica guardado como estava no dia (mudar o pacote depois não muda a proposta). Antes de fechar, confira se o time aguenta. "Imprimir" abre uma página limpa para salvar em PDF.',
-    financas: 'Só donos e administração. Valor mensal do contrato, pacote (de onde sai o custo estimado) e margem. Abaixo de 20% de margem é zona crítica. O status de pagamento é informado à mão.',
+    financas: 'Só donos e administração. Com o Vybe Finanças ligado (só leitura), o topo mostra o mês de lá: recebido × previsto, despesas, folha, custos fixos (assinaturas), resultado, os gráficos de faturamento × custos e ticket médio, e a margem real de cada cliente (recebido − despesas ligadas a ele). Embaixo, o valor mensal do contrato, o pacote (de onde sai o custo estimado) e a margem estimada; abaixo de 20% é zona crítica. O status de pagamento é informado à mão.',
     recebimentos: 'Só donos e administração. Uma linha por fatura. Recorrente: escolha o cliente e o ciclo; depois de lançar, "Próximo ciclo" cria a fatura seguinte. Pontual: descrição e categoria. Atrasado = venceu há até 30 dias; inadimplente = mais de 30. Os cartões comparam com o mês (ou ano) anterior.',
     contas: 'Só donos e administração. Fixas, variáveis, folha, impostos e investimentos, cada grupo com o total e o % do faturamento (o "a receber" do período). Fixo = fixas + folha; variável = o resto. "A pagar em 7 dias" olha de hoje até daqui a 7 dias.',
     inadimplencia: 'Só donos e administração. Faturas vencidas e não recebidas, por cliente, com o atraso mais antigo. Vermelho: mais de 30 dias; âmbar: 8 a 30; rosa: até 7. Também lista quem foi marcado à mão como atrasado ou inadimplente em Finanças por cliente.',
@@ -119,6 +119,7 @@
     try {
       const d = await pedir('comercial', null, queryDaAba(aba));
       st.dados[aba] = completar(d); if (d.pode) podeDinheiro = Boolean(d.pode.ver_dinheiro);
+      if (ABAS_FIN.has(aba)) carregarFin();
     } catch (e) {
       st.erro[aba] = e.message;
       if (e.status === 403 && ABAS.find((a) => a[0] === aba)?.[2]) podeDinheiro = false;
@@ -133,6 +134,62 @@
   }
   const comercial = (corpo) => pedir('comercial', corpo);
   const crm = (corpo) => pedir('crm', corpo);
+
+  // ---------- Vybe Finanças (só leitura; vybe-mundo-financas.js → area=vybe_financas) ----------
+  // Conectado, o Finanças é a fonte do dinheiro destas abas (a tela diz "fonte: Vybe Finanças") e os números lançados à
+  // mão no Vybe OS saem dos cartões do topo (as listas e os botões ficam). Desconectado ou fora do ar, tudo como antes.
+  const ABAS_FIN = new Set(['financas', 'contas', 'inadimplencia', 'caixa']);
+  const mesFin = () => st.periodo.mes || hojeIso().slice(0, 7);
+  const finEstado = () => window.VybeFinancas?.estado?.('comercial', mesFin()) || null;
+  const fin = () => { const d = finEstado()?.dados; return d?.conectado ? d : null; };
+  function carregarFin(forcar = false) {
+    if (!window.VybeFinancas || !veDinheiro()) return;
+    window.VybeFinancas.carregar('comercial', mesFin(), { forcar }).then(() => { if (st.aberto && ABAS_FIN.has(st.aba)) pintar(); });
+  }
+  const fonteFin = () => pill('fonte: Vybe Finanças', 'u4');
+  function avisoFin(completo) {
+    const e = finEstado(); if (!e) return '';
+    if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo o Vybe Finanças…</p>';
+    if (e.erro) return `<p class="vc-aviso">Vybe Finanças: ${esc(e.erro)} Abaixo, o que está lançado no Vybe OS.</p>`;
+    const d = e.dados; if (!d || d.conectado) return '';
+    if (!completo) return `<p class="vc-dica">${esc(d.motivo)}: o passo a passo está na aba Finanças por cliente.</p>`;
+    return `<div class="vc-aviso" role="note"><b>${esc(d.motivo)}</b><p>Ligado, o dinheiro destas abas passa a vir do Vybe Finanças (só leitura): recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
+      ${d.aviso ? `<p>${esc(d.aviso)}</p>` : ''}<ol>${(d.passos || []).map((p) => `<li>${esc(p)}</li>`).join('')}</ol><p>Detalhes em docs/vybe-financas.md.</p></div>`;
+  }
+  const varFin = (atual, anterior) => (anterior ? Math.round(((atual - anterior) / Math.abs(anterior)) * 1000) / 10 : null);
+  function finTopo(f) {
+    const r = f.resumo, fo = f.folha, cf = f.custos_fixos, dsp = f.despesas;
+    const negativas = f.margens.filter((m) => m.periodo.margem < 0).length;
+    return `<div class="vc-secao"><h3>${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
+      <div class="vc-periodo"><input type="month" class="vc-campo-mes" data-vc-mes value="${esc(f.mes)}" aria-label="Mês"></div>
+      <div class="vc-kpis">${kpi('Recebido', din(r.recebido) + (r.recebido_percentual != null ? `<small> · ${pc(r.recebido_percentual)} do previsto</small>` : ''), { espiar: 'financas:comercial:serie:' + f.mes })}
+        ${kpi('Previsto', din(r.previsto) + (r.mensalidades_sem_lancamento ? `<small> · ${din(r.mensalidades_sem_lancamento)} sem lançamento</small>` : ''))}
+        ${kpi('Despesas do mês', din(dsp.total), { espiar: 'financas:comercial:despesas', u: dsp.total > r.recebido && dsp.total ? 'u2' : '' })}
+        ${kpi('Folha do mês', din(fo.total) + `<small> · ${num(fo.quantidade)} pessoa${fo.quantidade === 1 ? '' : 's'}</small>`, { variacao: varFin(fo.total, fo.total_anterior), rotuloVar: 'vs mês anterior', inverso: true })}
+        ${kpi('Custos fixos (assinaturas)', din(cf.total) + `<small>/mês · ${num(cf.quantidade)}</small>`, { espiar: 'financas:comercial:fixos' })}
+        ${kpi('Resultado (recebido − pago)', din(r.resultado), { u: r.resultado < 0 ? 'u1' : '' })}
+        ${kpi('Em atraso', din(f.inadimplencia.total), { espiar: 'financas:comercial:inad', u: f.inadimplencia.total ? 'u1' : '' })}
+        ${kpi('Margem negativa (3 meses)', num(negativas), { espiar: 'financas:comercial:margem:negativa', u: negativas ? 'u1' : '' })}</div>`;
+  }
+  function finGraficos(f) {
+    if (!f.series.length) return '';
+    const esp = (mes) => 'financas:comercial:serie:' + mes;
+    return `<div class="vc-secao"><h3>Mês a mês</h3>${fonteFin()}</div><div class="vc-graficos">
+      ${grafico({ meses: f.series, aria: 'Faturamento recebido e custos pagos por mês', espiar: esp,
+        series: [{ chave: 'faturamento', cls: 'ent', rotulo: 'Faturamento (recebido)', fmt: din, curto }, { chave: 'custos', cls: 'sai', rotulo: 'Custos (pagos)', fmt: din, curto }] })}
+      ${grafico({ meses: f.series, aria: 'Ticket médio por mês', espiar: esp, series: [{ chave: 'ticket_medio', cls: 'mrr', rotulo: 'Ticket médio (recebido ÷ clientes que pagaram)', fmt: din, curto }] })}</div>`;
+  }
+  function finMargens(f) {
+    const lista = f.margens.slice(0, 12);
+    const sem = f.ligacao.sem_par.length;
+    return `<div class="vc-secao"><h3>Margem real por cliente</h3>${fonteFin()}</div>
+      <p class="vc-dica">Recebido do cliente − despesas ligadas a ele no Finanças, no mês e nos 3 meses até ele.${sem ? ` <span class="vc-link espiavel" data-espiar="financas:comercial:sempar" role="button" tabindex="0">${num(sem)} no Finanças sem par no Vybe OS</span>` : ''}</p>
+      <div class="vc-lista">${lista.map((m) => `<article class="vc-cartao${m.periodo.margem < 0 ? ' critico' : ''}"><div class="vc-cartao-topo"><b>${esc(m.cliente_nome)}</b>${m.no_vybe ? '' : pill('Sem par no Vybe OS', 'u5')}${m.periodo.margem < 0 ? pill('Margem negativa', 'u1') : ''}</div>
+        <p class="vc-grande">${din(m.periodo.margem)}<small> em 3 meses${m.periodo.margem_percentual != null ? ' · ' + pc(m.periodo.margem_percentual) : ''}</small></p>
+        <small>No mês: recebido ${din(m.mes.receita)} − despesas ${din(m.mes.despesas)} = ${din(m.mes.margem)}</small></article>`).join('') || vazio('Nenhuma receita ou despesa ligada a cliente no Finanças nesses 3 meses.')}</div>
+      ${f.margens.length > lista.length ? `<span class="vc-link espiavel" data-espiar="financas:comercial:margem" role="button" tabindex="0">Ver os ${num(f.margens.length)} clientes</span>` : ''}`;
+  }
+  const margemFinDe = (f, clienteId) => f?.margens.find((m) => m.cliente_id && String(m.cliente_id) === String(clienteId)) || null;
 
   // ---------- Capacidade × vendas (carga atual = demandas abertas do painel) ----------
   function demandasAbertas() {
@@ -161,7 +218,7 @@
       if (variacao == null) v = `<small class="vc-var">sem base ${esc(rotuloVar)}</small>`;
       else { const bom = inverso ? variacao <= 0 : variacao >= 0; v = `<small class="vc-var ${variacao === 0 ? '' : bom ? 'bom' : 'ruim'}">${variacao > 0 ? '▲' : variacao < 0 ? '▼' : '='} ${pc(Math.abs(variacao))} ${esc(rotuloVar)}</small>`; }
     }
-    const ab = espiar ? ` data-espiar="comercial:${esc(espiar)}" role="button" tabindex="0"` : '';
+    const ab = espiar ? ` data-espiar="${espiar.startsWith('financas:') ? '' : 'comercial:'}${esc(espiar)}" role="button" tabindex="0"` : '';
     return `<div class="vc-kpi${u ? ' ' + u : ''}${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b>${valor}</b>${v}</div>`;
   }
   function seletorPeriodo() {
@@ -224,7 +281,7 @@
       const x0 = i * passo + passo / 2 - (n * bw + (n - 1) * 4) / 2;
       return series.map((s, j) => {
         const v = Number(m[s.chave]) || 0, h = v > 0 ? Math.max(2, (v / max) * alto) : 0, x = x0 + j * (bw + 4);
-        const esp = espiar ? ` data-espiar="comercial:${esc(espiar(m.mes, s.chave))}" tabindex="0" role="button" aria-label="${esc(s.rotulo + ' em ' + nomeMes(m.mes) + ': ' + s.fmt(v))}"` : '';
+        const esp = espiar ? ` data-espiar="${String(espiar(m.mes, s.chave)).startsWith('financas:') ? '' : 'comercial:'}${esc(espiar(m.mes, s.chave))}" tabindex="0" role="button" aria-label="${esc(s.rotulo + ' em ' + nomeMes(m.mes) + ': ' + s.fmt(v))}"` : '';
         return `<g class="vc-g-barra"${esp}><title>${esc(s.rotulo)} · ${esc(nomeMes(m.mes))}: ${esc(s.fmt(v))}</title><rect x="${x}" y="${base - h}" width="${bw}" height="${h}" rx="4" class="${s.cls}"/>
           <text x="${x + bw / 2}" y="${base - h - 5}" text-anchor="middle" class="valor">${esc(s.curto ? s.curto(v) : s.fmt(v))}</text></g>`;
       }).join('') + `<text x="${i * passo + passo / 2}" y="${base + 18}" text-anchor="middle">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</text>`;
@@ -377,15 +434,20 @@
         || vazio('Nenhum orçamento ainda. Monte o primeiro a partir dos pacotes.', p.editar_comercial && d.pacotes.length ? 'Novo orçamento' : '', 'orcamento')}</div>`;
   }
   function abaFinancas(d) {
-    const r = d.resumo;
-    return `<div class="vc-kpis">${kpi('Receita mensal', din(r.receita))}${kpi('Custo estimado', din(r.custo))}${kpi('Margem', pc(r.margem_percentual), { u: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'u1' : '' })}
-        ${kpi('Zona crítica', num(r.criticas), { u: r.criticas ? 'u1' : '', espiar: 'financas:critica' })}${kpi('Atrasados', num(r.pagamento.atrasado), { u: r.pagamento.atrasado ? 'u2' : '', espiar: 'financas:atrasado' })}${kpi('Inadimplentes', num(r.pagamento.inadimplente), { espiar: 'financas:inadimplente', u: r.pagamento.inadimplente ? 'u1' : '' })}</div>
+    const r = d.resumo, f = fin();
+    // Com o Finanças: o dinheiro de verdade em cima; os cartões dos clientes ficam (pacote, custo estimado e status à mão).
+    const contadores = `${kpi('Zona crítica', num(r.criticas), { u: r.criticas ? 'u1' : '', espiar: 'financas:critica' })}${kpi('Atrasados', num(r.pagamento.atrasado), { u: r.pagamento.atrasado ? 'u2' : '', espiar: 'financas:atrasado' })}${kpi('Inadimplentes', num(r.pagamento.inadimplente), { espiar: 'financas:inadimplente', u: r.pagamento.inadimplente ? 'u1' : '' })}`;
+    const topo = f ? `${finTopo(f)}${finGraficos(f)}${finMargens(f)}<div class="vc-secao"><h3>Pacote e margem estimada por cliente (Vybe OS)</h3></div><div class="vc-kpis">${contadores}</div>`
+      : `${avisoFin(true)}<div class="vc-kpis">${kpi('Receita mensal', din(r.receita))}${kpi('Custo estimado', din(r.custo))}${kpi('Margem', pc(r.margem_percentual), { u: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'u1' : '' })}
+        ${contadores}</div>`;
+    const real = (c) => { const m = margemFinDe(f, c.cliente_id); return m ? `<small>Margem real (Vybe Finanças): ${din(m.mes.margem)} no mês · ${din(m.periodo.margem)} em 3 meses</small>` : ''; };
+    return `${topo}
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
       <div class="vc-lista">${d.clientes.filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
         <div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(...STATUS_PAG[c.status_pagamento])}</div>
         ${c.valor_mensal ? `<p class="vc-grande">${din(c.valor_mensal)}<small>/mês</small></p>` : '<small>Sem contrato informado.</small>'}
         <div class="vc-margem"><span>${c.pacote_nome ? esc(c.pacote_nome) + ' · custo ' + din(c.custo) : 'Sem pacote (custo não estimado)'}</span>${c.margem_percentual != null ? `<span>Margem ${pc(c.margem_percentual)}</span>` : ''}${c.zona_critica ? pill('Zona crítica', 'u1') : ''}</div>
-        ${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}
+        ${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}${real(c)}
         <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="financas" data-id="${esc(c.cliente_id)}">Editar</button></div></article>`).join('') || vazio('Nenhum cliente ativo no cadastro.')}</div>`;
   }
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -404,13 +466,27 @@
         || vazio('Nenhum recebimento neste período. Lance os contratos recorrentes e os pontuais.', 'Novo recebimento', 'recebivel')}</div>`;
   }
   function abaContas(d) {
-    const r = d.resumo, rv = rotuloAnterior();
-    return `${seletorPeriodo()}<div class="vc-kpis">${kpi('Total de contas', din(r.total), { variacao: r.variacao_total, rotuloVar: rv, inverso: true })}${kpi('A pagar em 7 dias', din(r.sete_dias.total) + `<small> · ${num(r.sete_dias.quantidade)}</small>`, { u: r.sete_dias.quantidade ? 'u2' : '' })}
+    const r = d.resumo, rv = rotuloAnterior(), f = fin();
+    const doVybe = `<div class="vc-kpis">${kpi('Total de contas', din(r.total), { variacao: r.variacao_total, rotuloVar: rv, inverso: true })}${kpi('A pagar em 7 dias', din(r.sete_dias.total) + `<small> · ${num(r.sete_dias.quantidade)}</small>`, { u: r.sete_dias.quantidade ? 'u2' : '' })}
         ${kpi('Vencidas sem pagar', din(r.vencidas.total), { u: r.vencidas.quantidade ? 'u1' : '' })}${kpi('Resultado (faturamento − contas)', din(r.resultado), { variacao: C().variacao(r.resultado, r.resultado_anterior), rotuloVar: rv, u: r.resultado < 0 ? 'u1' : '' })}</div>
       <div class="vc-fixo"><div><span>Fixo ${din(r.fixo)} · ${pc(r.fixo_percentual)}</span><span>Variável ${din(r.variavel)} · ${pc(r.variavel_percentual)}</span></div><span class="vc-barra dupla"><i style="width:${r.fixo_percentual || 0}%"></i></span></div>
       <ul class="vc-grupos">${r.grupos.map((g) => `<li><b>${esc(g.nome)}</b><span>${din(g.total)}</span><small>${pc(g.percentual_faturamento)} do faturamento${g.variacao != null ? ` · ${g.variacao > 0 ? '▲' : g.variacao < 0 ? '▼' : '='} ${pc(Math.abs(g.variacao))} ${rv}` : ''}</small></li>`).join('')}</ul>
-      <p class="vc-dica">Faturamento do período (a receber): ${din(d.faturamento)}.</p>
-      <div class="vc-secao"><h3>Contas</h3>${botaoNovo('Nova conta', 'conta')}</div>
+      <p class="vc-dica">Faturamento do período (a receber): ${din(d.faturamento)}.</p>`;
+    let doFin = '';
+    if (f) {
+      const dsp = f.despesas, max = Math.max(1, ...dsp.categorias.map((c) => c.total)), cf = f.custos_fixos;
+      doFin = `<div class="vc-secao"><h3>Despesas de ${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
+        <div class="vc-kpis">${kpi('Despesas do mês', din(dsp.total), { espiar: 'financas:comercial:despesas' })}${kpi('Pagas', din(f.resumo.despesas_pagas))}
+          ${kpi('Pendentes', din(f.resumo.despesas_pendentes), { u: f.resumo.despesas_pendentes ? 'u2' : '' })}${kpi('Folha do mês', din(f.folha.total))}
+          ${kpi('Custos fixos (assinaturas)', din(cf.total) + '<small>/mês</small>', { espiar: 'financas:comercial:fixos' })}</div>
+        ${dsp.categorias.length ? `<ul class="vc-barras espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">${dsp.categorias.map((c) => `<li><span>${esc(c.categoria)}</span><span class="vc-barra"><i class="u2" style="width:${(c.total / max) * 100}%"></i></span><small>${din(c.total)} · ${pc(c.percentual)}</small></li>`).join('')}</ul>`
+          : vazio('Nenhuma despesa lançada no Finanças neste mês.')}
+        ${cf.itens.length ? `<div class="vc-secao"><h3>Custos fixos</h3><small>${num(cf.quantidade)} assinatura${cf.quantidade === 1 ? '' : 's'} ativa${cf.quantidade === 1 ? '' : 's'}</small></div>
+          <ul class="vc-grupos">${cf.itens.slice(0, 8).map((s) => `<li><b>${esc(s.nome)}</b><span>${din(s.custo)}</span><small>${s.dia_renovacao ? 'renova dia ' + num(s.dia_renovacao) : 'sem dia de renovação'}</small></li>`).join('')}</ul>` : ''}
+        <p class="vc-dica">Os números acima vêm do Vybe Finanças. Abaixo, as contas lançadas à mão no Vybe OS (continuam editáveis).</p>`;
+    }
+    return `${seletorPeriodo()}${f ? doFin : avisoFin(false) + doVybe}
+      <div class="vc-secao"><h3>${f ? 'Contas lançadas no Vybe OS' : 'Contas'}</h3>${botaoNovo('Nova conta', 'conta')}</div>
       <div class="vc-lista">${d.contas.map((c) => { const venc = !c.pago_em && !c.cancelada && c.vencimento < d.hoje; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(c.descricao)}</b>${c.cancelada ? pill('Cancelada', 'u5') : c.pago_em ? pill('Paga', 'u6') : venc ? pill('Vencida', 'u1') : pill('A pagar', 'u4')}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${esc(r.grupos.find((g) => g.id === c.grupo)?.nome || c.grupo)}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · vence ${data(c.vencimento)}${c.pago_em ? ' · paga em ' + data(c.pago_em) : ''}</small>
@@ -418,12 +494,24 @@
         || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos.', 'Nova conta', 'conta')}</div>`;
   }
   function abaInadimplencia(d) {
-    return `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
+    const f = fin();
+    const doVybe = `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
       <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')
-        || vazio('Ninguém em atraso. As faturas vencidas e não recebidas aparecem aqui.', 'Ver recebimentos', 'ir-recebimentos')}</div>
-      ${d.faturas.length ? `<div class="vc-secao"><h3>Faturas atrasadas</h3></div><div class="vc-lista">${d.faturas.map((f) => `<article class="vc-cartao barra-${f.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(f.cliente_nome || f.descricao)}</b>${pill(num(f.atraso) + ' dias', f.severidade.nivel)}</div><small>${din(f.aberto)} em aberto · venceu ${data(f.vencimento)}</small>
+        || vazio('Ninguém em atraso. As faturas vencidas e não recebidas aparecem aqui.', 'Ver recebimentos', 'ir-recebimentos')}</div>`;
+    let doFin = '';
+    if (f) {
+      const i = f.inadimplencia;
+      doFin = `<div class="vc-secao"><h3>Receitas vencidas e não pagas</h3>${fonteFin()}</div>
+        <div class="vc-kpis">${kpi('Em atraso', din(i.total), { u: i.total ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Clientes', num(i.clientes.length), { espiar: 'financas:comercial:inad' })}
+          ${kpi('Críticos (+30 dias)', num(i.criticos), { u: i.criticos ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Lançamentos', num(i.faturas))}</div>
+        <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
+          <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
+          || vazio('Ninguém em atraso no Vybe Finanças.')}</div>`;
+    }
+    return `${f ? doFin : avisoFin(false) + doVybe}
+      ${d.faturas.length ? `<div class="vc-secao"><h3>${f ? 'Faturas atrasadas lançadas no Vybe OS' : 'Faturas atrasadas'}</h3></div><div class="vc-lista">${d.faturas.map((f) => `<article class="vc-cartao barra-${f.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(f.cliente_nome || f.descricao)}</b>${pill(num(f.atraso) + ' dias', f.severidade.nivel)}</div><small>${din(f.aberto)} em aberto · venceu ${data(f.vencimento)}</small>
         <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="receber" data-id="${esc(f.id)}">Receber</button></div></article>`).join('')}</div>` : ''}
       ${d.marcados_a_mao.length ? `<div class="vc-secao"><h3>Marcados à mão em Finanças por cliente</h3></div><ul class="vc-grupos">${d.marcados_a_mao.map((m) => `<li><b>${esc(m.cliente_nome)}</b>${pill(...STATUS_PAG[m.status_pagamento])}</li>`).join('')}</ul>` : ''}`;
   }
@@ -445,7 +533,8 @@
       <div class="vc-lista">${prev.meses.map((m) => `<article class="vc-cartao${m.saldo < 0 ? ' barra-u1' : ''}"><div class="vc-cartao-topo"><b>${esc(nomeMes(m.mes))}</b>${m.saldo < 0 ? pill('Saldo negativo', 'u1') : pill('Saldo positivo', 'u6')}</div>
         <p class="vc-grande">${din(m.saldo)}</p><small>Entradas ${din(m.entradas)} · Saídas ${din(m.saidas)}${m.saidas_estimadas ? ' (estimadas pelo mês atual)' : ''}</small></article>`).join('')}</div>
       ${!d.recebiveis.length && !d.contas.length ? vazio('Sem recebimentos recorrentes nem contas fixas lançados: a previsão sai deles.', 'Lançar recebimento', 'ir-recebimentos') : ''}
-      <p class="vc-dica">${churn ? 'Risco de churn lido da Carteira.' : 'Risco de churn: a Carteira não está carregada neste painel; sem alerta de concentração.'}</p>`;
+      <p class="vc-dica">${churn ? 'Risco de churn lido da Carteira.' : 'Risco de churn: a Carteira não está carregada neste painel; sem alerta de concentração.'}</p>
+      ${fin() ? `<p class="vc-dica">A previsão usa os recebimentos recorrentes e as contas fixas lançados no Vybe OS. O realizado mês a mês (faturamento × custos, fonte: Vybe Finanças) está em Finanças por cliente.</p>` : avisoFin(false)}`;
   }
   function abaFornecedores(d) {
     const cat = st.filtro.categoria || '', lista = C().filtrarFornecedores(d.fornecedores.filter((f) => f.ativo), { categoria: cat, busca: st.filtro.forn || '' });

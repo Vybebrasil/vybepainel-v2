@@ -93,8 +93,6 @@
         texto: 'Essa é a minha central: aqui você fala comigo por voz ou por escrito. Eu faço o que você pedir, dentro do que você tem permissão para fazer.' },
       'vista:predio': { grupo: 'Mapa e prédio', titulo: 'O Elevador', alvo: ['#vv-placa .vv-elevador-lista', '#vv-placa'], lado: 'esquerda',
         texto: 'Esse é o Elevador: cada andar aparece com a cor da situação dele. Clique para entrar no andar e passe o mouse num agente para ver o que ele está fazendo.' },
-      'vista:cerebro': { grupo: 'Mapa e prédio', titulo: 'O Cérebro', alvo: '#vv-placa', lado: 'esquerda',
-        texto: 'Esse é o meu Cérebro: no meio estou eu, e em volta ficam as camadas de memória que eu consulto antes de agir. Clique numa camada para ver de onde vem cada coisa.' },
       'ferr:camadas': { grupo: 'Topo', titulo: 'Camadas do mapa', alvo: '#vv-placa', lado: 'esquerda',
         texto: 'Aqui você escolhe o que aparece no mapa. Na Prospecção entram as empresas que ainda não são clientes, filtradas pelo CRM: sem contato, em contato, disseram sim ou disseram não.' },
       'ferr:conversa': { grupo: 'Topo', titulo: 'Conversa da equipe', alvo: ['section.vv-conversa', '[data-ferr="conversa"]'], lado: 'esquerda',
