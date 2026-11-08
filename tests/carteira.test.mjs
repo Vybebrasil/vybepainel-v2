@@ -78,6 +78,8 @@ test('sem a migração: lê sinais e a base, partes "aguardando ativação" e es
   const base = Object.fromEntries(r.body.clientes.map((c) => [c.nome, c]));
   assert.equal(base.Fornecedor, undefined);
   assert.equal(base.Alfa.entrada, '2025-01-10');
+  assert.equal(base.Alfa.entrada_fonte, 'cadastro');
+  assert.equal(base.Beta.entrada_fonte, 'historico', 'sem criado_no_monday: o primeiro evento');
   assert.equal(base.Beta.entrada, '2026-02-05');
   assert.equal(base.Gama.saida, '2026-06-15');
   assert.equal(base.Gama.motivo_saida, 'achou caro');
@@ -176,6 +178,7 @@ test('contratos e churn: só quem administra, com validação; base usa contrato
   assert.equal(r.body.contratos.lista[0].valor_mensal, 2500);
   const base = Object.fromEntries(r.body.clientes.map((c) => [c.nome, c]));
   assert.equal(base.Alfa.entrada, '2025-01-01', 'início do contrato manda');
+  assert.equal(base.Alfa.entrada_fonte, 'contrato');
   assert.equal(base.Alfa.valor, 2500);
   const id = r.body.churn.registros[0].id;
   assert.equal((await chamar(sql, admin, { acao: 'churn_apagar', id })).codigo, 200);

@@ -65,4 +65,16 @@ test('migrações do Irecity: o servidor cria as tabelas no primeiro uso e é id
   assert.equal(rPessoas.body.provisionado, true);
   assert.equal(rPessoas.body.trilhas.length, 1);
   assert.equal(rPessoas.body.trilhas[0].aulas.length, 6);
+
+  // 5. RH de 08/11 (2026-11-08-rh-pedidos-clima.sql): prazos, data desejada, reembolso e pesquisa com período.
+  const rRh = resposta();
+  await areaSetorPessoas({ method: 'GET', query: { aba: 'rh' } }, rRh, paulo, sql);
+  assert.equal(rRh.codigo, 200);
+  assert.equal(rRh.body.rhPronto, true);
+  const tabelas = (await db.query(`SELECT to_regclass('public.vybe_rh_prazos') AS a, to_regclass('public.vybe_clima_pesquisas') AS b,
+    to_regclass('public.vybe_clima_pesquisa_respostas') AS c, to_regclass('public.vybe_clima_pesquisa_participacao') AS d`)).rows[0];
+  assert.ok(tabelas.a && tabelas.b && tabelas.c && tabelas.d, JSON.stringify(tabelas));
+  const rPed = resposta();
+  await areaSetorPessoas({ method: 'POST', body: { acao: 'pedido_criar', tipo: 'reembolso', titulo: 'Uber', data_desejada: '2026-12-01' } }, rPed, paulo, sql);
+  assert.equal(rPed.codigo, 200, JSON.stringify(rPed.body));
 });

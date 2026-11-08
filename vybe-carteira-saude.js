@@ -55,6 +55,11 @@
 // Heads: a carteira de cada head é a lista de heads do cadastro (vybe_cliente_pessoas, campo
 // `heads`, "Nome A, Nome B"). Cliente com vários heads entra na média de cada um; sem head vai
 // para "Sem head". Média simples das notas, arredondada.
+//
+// Paulo, 08/11/2026 (AgencyFlow, Clientes e Finanças): tempo de casa (LTV) e tempo restante de
+// contrato por cliente (tempoDeCasa, nas linhas de contratos()), LTV médio, receita estimada do LTV,
+// clientes novos e tempo restante médio (totais de contratos()), séries mês a mês (serieMensal) e
+// contas por head com receita (contasPorHead). As regras estão em cima de cada função.
 
 (function (raiz) {
   'use strict';
@@ -454,6 +459,10 @@
   // (contrato encerrado não entra em nenhuma das duas). Receita mensal ativa = soma do valor mensal
   // (do contrato; sem ele, o do cadastro) de quem estava ativo no último dia do período (ou hoje, se
   // o período não acabou), sem contrato encerrado nem contrato que ainda não começou.
+  // Tempo de casa (LTV) e tempo restante de cada linha: ver tempoDeCasa, logo abaixo.
+  // Totais novos: ltvMedio (meses, média de quem tem data), receitaLtv (soma de valor mensal × meses
+  // de casa), restanteMedio (dias e meses até a renovação, só contratos abertos que ainda não venceram)
+  // e novos (clientes com entrada dentro do período, inclusive quem já saiu; o anterior para comparar).
   function contratos({ clientes = [], contratos: lista = [], hoje, tipo = 'mensal', mes } = {}) {
     const dia = diaDeHoje(hoje);
     const p = periodo(tipo, mes || dia.slice(0, 7));
@@ -463,10 +472,21 @@
       const ct = contratoDe.get(String(c.id)) || null;
       const dias = ct?.renovacao ? diasEntre(dia, ct.renovacao) : null;
       const aberto = ct?.status !== 'encerrado';
-      return { id: String(c.id), nome: c.nome, temContrato: Boolean(ct), valor: valorDe(c, ct), valorDoCadastro: ct?.valor_mensal == null && c.valor != null,
+      const valor = valorDe(c, ct);
+      return { id: String(c.id), nome: c.nome, temContrato: Boolean(ct), valor, valorDoCadastro: ct?.valor_mensal == null && c.valor != null,
         inicio: ct?.inicio || null, renovacao: ct?.renovacao || null, status: ct?.status || null, observacao: ct?.observacao || '',
-        diasRenovacao: dias, emBreve: aberto && dias != null && dias >= 0 && dias <= 30, vencida: aberto && dias != null && dias < 0 };
+        diasRenovacao: dias, emBreve: aberto && dias != null && dias >= 0 && dias <= 30, vencida: aberto && dias != null && dias < 0,
+        ...tempoDeCasa(c, ct, dia, valor) };
     }).sort((a, b) => (a.diasRenovacao ?? 1e9) - (b.diasRenovacao ?? 1e9) || compararNomes(a.nome, b.nome));
+    const comLtv = linhas.filter((l) => l.mesesLtv != null);
+    const comReceitaLtv = linhas.filter((l) => l.receitaLtv != null);
+    const comRestante = linhas.filter((l) => l.diasRestantes != null);
+    const diasRestantesMedio = comRestante.length ? Math.round(comRestante.reduce((t, l) => t + l.diasRestantes, 0) / comRestante.length) : null;
+    const novosEm = (q) => base.map((c) => ({ c, ...entradaDe(c, contratoDe.get(String(c.id)) || null) }))
+      .filter((x) => x.entrada && x.entrada >= q.inicio && x.entrada <= q.fim && x.entrada <= dia)
+      .map((x) => ({ id: String(x.c.id), nome: x.c.nome, entrada: x.entrada, fonteEntrada: x.fonte, ativo: Boolean(x.c.ativo), saida: x.c.saida || null }))
+      .sort((a, b) => b.entrada.localeCompare(a.entrada) || compararNomes(a.nome, b.nome));
+    const novos = novosEm(p), novosAnterior = novosEm(p.anterior);
     const receitaEm = (iso) => {
       let total = 0;
       for (const c of base) {
@@ -484,7 +504,115 @@
       emBreve: linhas.filter((l) => l.emBreve), vencidas: linhas.filter((l) => l.vencida),
       semContrato: linhas.filter((l) => !l.temContrato).length,
       receita, receitaAnterior, ticketMedio: comValor.length ? Math.round((comValor.reduce((t, l) => t + l.valor, 0) / comValor.length) * 100) / 100 : null,
-      variacao: { receita: variacao(receita, receitaAnterior, 'maior') } };
+      ltvMedio: media1(comLtv.map((l) => l.mesesLtv)), semDataLtv: linhas.length - comLtv.length,
+      receitaLtv: comReceitaLtv.length ? reais2(comReceitaLtv.reduce((t, l) => t + l.receitaLtv, 0)) : null, semReceitaLtv: linhas.length - comReceitaLtv.length,
+      restanteMedio: diasRestantesMedio == null ? null : { dias: diasRestantesMedio, meses: Math.round((diasRestantesMedio / DIAS_MES) * 10) / 10, contratos: comRestante.length },
+      novos, novosAnterior: novosAnterior.length,
+      variacao: { receita: variacao(receita, receitaAnterior, 'maior'), novos: variacao(novos.length, novosAnterior.length, 'maior') } };
+  }
+
+  // ── Tempo de casa (LTV), tempo restante e séries mensais ───────────────────────
+  // Entrada = início do contrato; sem ele, a `entrada` que o servidor manda (criado_no_monday do
+  // cadastro; sem ele, o primeiro evento do cliente — `entrada_fonte` diz qual). Sem nenhuma, "sem
+  // data": fica fora das médias e das somas de LTV. Meses = dias ÷ 30,44 com uma casa (a mesma conta
+  // do "tempo até sair" do churn). Contrato que começa no futuro conta 0 mês.
+  const DIAS_MES = 30.44;
+  const mesesEntre = (de, ate) => Math.max(0, Math.round((diasEntre(de, ate) / DIAS_MES) * 10) / 10);
+  const media1 = (l) => (l.length ? Math.round((l.reduce((t, v) => t + v, 0) / l.length) * 10) / 10 : null);
+  const reais2 = (v) => Math.round(v * 100) / 100;
+  const FONTES_ENTRADA = Object.freeze({ contrato: 'início do contrato', cadastro: 'entrada no cadastro', historico: 'primeiro registro do cliente' });
+  function entradaDe(c, ct) {
+    if (ct?.inicio && ISO.test(String(ct.inicio).slice(0, 10))) return { entrada: String(ct.inicio).slice(0, 10), fonte: 'contrato' };
+    const e = String(c?.entrada || '').slice(0, 10);
+    if (!ISO.test(e)) return { entrada: null, fonte: null };
+    return { entrada: e, fonte: FONTES_ENTRADA[c.entrada_fonte] ? c.entrada_fonte : 'cadastro' };
+  }
+  // Para uma linha: entrada, de onde ela veio, meses de casa até `dia` (ou até a saída), receita
+  // estimada do LTV (valor mensal × meses; sem valor ou sem data, null) e o tempo até a renovação
+  // (só contrato aberto com renovação de hoje em diante; vencida ou sem data = null).
+  function tempoDeCasa(c, ct, dia, valor = valorDe(c, ct)) {
+    const { entrada, fonte } = entradaDe(c, ct);
+    const ate = c?.saida && c.saida < dia ? c.saida : dia;
+    const mesesLtv = entrada ? mesesEntre(entrada, ate) : null;
+    const dias = ct?.renovacao && ct.status !== 'encerrado' ? diasEntre(dia, ct.renovacao) : null;
+    const diasRestantes = dias != null && dias >= 0 ? dias : null;
+    return { entrada, fonteEntrada: fonte, mesesLtv,
+      receitaLtv: mesesLtv != null && valor != null ? reais2(valor * mesesLtv) : null,
+      diasRestantes, mesesRestantes: diasRestantes == null ? null : Math.round((diasRestantes / DIAS_MES) * 10) / 10 };
+  }
+
+  // Séries mês a mês (os `meses` mais recentes até `ate`, AAAA-MM; padrão: o mês de hoje). Para cada mês,
+  // na data de referência (último dia do mês; no mês corrente, hoje):
+  //  - ativos: entrou até a data (sem entrada conhecida conta como antigo) e não tinha saído — a mesma
+  //    regra do churn;
+  //  - novos: entrada dentro do mês; saídas: saída dentro do mês (a mesma do churn);
+  //  - ltvMedio: média dos meses de casa dos ativos com data de entrada;
+  //  - ticketMedio: receita mensal ativa ÷ clientes ativos com valor (as regras da receita de contratos():
+  //    sem contrato encerrado nem contrato que ainda não começou).
+  // Meses do começo sem nada (sem ativo, novo ou saída) saem, deixando pelo menos `minimo`.
+  function serieMensal({ clientes = [], contratos: lista = [], hoje, ate, meses = 12, minimo = 6 } = {}) {
+    const dia = diaDeHoje(hoje);
+    const mesHoje = dia.slice(0, 7);
+    const fimYm = /^\d{4}-\d{2}$/.test(String(ate || '')) && ate <= mesHoje ? ate : mesHoje;
+    const contratoDe = new Map((lista || []).map((c) => [String(c.cliente_id), c]));
+    const fichas = (clientes || []).filter((c) => c && c.id != null).map((c) => {
+      const ct = contratoDe.get(String(c.id)) || null;
+      return { c, ct, ...entradaDe(c, ct), saida: c.saida || null, valor: valorDe(c, ct) };
+    });
+    const pontos = [];
+    for (let i = Math.max(1, meses) - 1; i >= 0; i--) {
+      const ym = somarMeses(`${fimYm}-01`, -i).slice(0, 7);
+      const ini = `${ym}-01`, fim = `${ym}-${dois(ultimoDia(Number(ym.slice(0, 4)), Number(ym.slice(5, 7))))}`;
+      const ref = fim < dia ? fim : dia;
+      const ativos = fichas.filter((f) => ativoEm(f, ref));
+      const comData = ativos.filter((f) => f.entrada);
+      let receita = 0, comValor = 0;
+      for (const f of ativos) {
+        if (f.ct?.status === 'encerrado' || (f.ct?.inicio && f.ct.inicio > ref) || f.valor == null) continue;
+        receita += f.valor; comValor++;
+      }
+      pontos.push({ mes: ym, rotulo: `${ym.slice(5, 7)}/${ym.slice(2, 4)}`, ref, agora: ym === mesHoje,
+        ativos: ativos.length,
+        novos: fichas.filter((f) => f.entrada && f.entrada >= ini && f.entrada <= ref).length,
+        saidas: fichas.filter((f) => f.saida && f.saida >= ini && f.saida <= ref).length,
+        ltvMedio: media1(comData.map((f) => mesesEntre(f.entrada, ref))),
+        receita: reais2(receita), comValor,
+        ticketMedio: comValor ? reais2(receita / comValor) : null });
+    }
+    while (pontos.length > minimo && !pontos[0].ativos && !pontos[0].novos && !pontos[0].saidas) pontos.shift();
+    return { meses: pontos, semEntrada: fichas.filter((f) => !f.entrada).length };
+  }
+
+  // Contas por head: quantos clientes cada head (líder) tem, a nota média de saúde da carteira dele
+  // e a receita mensal somada. `clientes` = calcular().clientes (nota e heads do cadastro); `base` e
+  // `contratos` = os do servidor (valor mensal pelo id; contrato encerrado não soma). Cliente com
+  // vários heads conta para cada um; sem head vai para "Sem head", por último. Ordem: mais contas primeiro.
+  function contasPorHead({ clientes = [], base = [], contratos: lista = [] } = {}) {
+    const contratoDe = new Map((lista || []).map((c) => [String(c.cliente_id), c]));
+    const porId = new Map((base || []).filter((c) => c && c.id != null).map((c) => [String(c.id), c]));
+    const grupos = new Map();
+    for (const c of clientes || []) {
+      if (!c) continue;
+      for (const h of (c.heads && c.heads.length ? c.heads : [SEM_HEAD])) {
+        if (!grupos.has(h)) grupos.set(h, []);
+        grupos.get(h).push(c);
+      }
+    }
+    return [...grupos].map(([head, deles]) => {
+      const media = Math.round(deles.reduce((t, c) => t + c.score, 0) / deles.length);
+      const risco = riscoDaNota(media);
+      let receita = 0, comValor = 0;
+      for (const c of deles) {
+        const b = c.id ? porId.get(String(c.id)) : null, ct = b ? contratoDe.get(String(b.id)) || null : null;
+        const v = b && ct?.status !== 'encerrado' ? valorDe(b, ct) : null;
+        if (v != null) { receita += v; comValor++; }
+      }
+      return { head, semHead: head === SEM_HEAD, contas: deles.length, media, risco, nivel: RISCOS[risco].nivel,
+        alto: deles.filter((c) => c.risco === 'alto').length,
+        receita: comValor ? reais2(receita) : null, semValor: deles.length - comValor,
+        clientes: [...deles].sort((a, b) => (a.score - b.score) || compararNomes(a.nome, b.nome))
+          .map((c) => ({ id: c.id || '', nome: c.nome, score: c.score, risco: c.risco, nivel: c.nivel })) };
+    }).sort((a, b) => (Number(a.semHead) - Number(b.semHead)) || (b.contas - a.contas) || compararNomes(a.head, b.head));
   }
 
   // Histórico mensal da nota: as médias guardadas no servidor (vybe_carteira_saude_mensal) com o mês
@@ -500,8 +628,9 @@
       variacao: { media: variacao(atual?.media ?? null, anterior?.media ?? null, 'maior'), alto: variacao(atual?.alto ?? null, anterior?.alto ?? null, 'menor') } };
   }
 
-  const api = Object.freeze({ calcular, churn, cohort, contratos, historicoSaude, periodo, variacao, REGRAS, RISCOS, SEM_HEAD, riscoDaNota,
-    MOTIVOS_CHURN, TIPOS_CHURN, COLUNAS_COHORT, util: Object.freeze({ headsDe, chaveNome, somarMeses, nomeDoMes }) });
+  const api = Object.freeze({ calcular, churn, cohort, contratos, historicoSaude, serieMensal, contasPorHead, tempoDeCasa, periodo, variacao,
+    REGRAS, RISCOS, SEM_HEAD, riscoDaNota, MOTIVOS_CHURN, TIPOS_CHURN, COLUNAS_COHORT, FONTES_ENTRADA, DIAS_MES,
+    util: Object.freeze({ headsDe, chaveNome, somarMeses, nomeDoMes, entradaDe }) });
   raiz.VybeCarteiraSaude = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeCarteiraSaude = api;
   if (typeof module === 'object' && module && module.exports) module.exports = api;

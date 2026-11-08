@@ -149,6 +149,7 @@
       { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
       { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
+      { id: 'ferramentas', nome: 'Ferramentas', dica: 'QR Code e link do WhatsApp com mensagem pronta', mod: ['VybeFerramentas', 'qr'] },
     ] },
     { id: 'setor:financas', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
@@ -433,7 +434,7 @@
       ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
       </section></div>
       <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
-      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button></div>`;
+      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button></div>`;
   }
 
   // ---------- Módulo Gestão: passado, agora e futuro da agência ----------
@@ -442,7 +443,7 @@
   document.body.append?.(gestao);
   let gestaoAba = 'agora';
   function abrirGestao(aba) {
-    if (aba && ['agora', 'semana', 'clientes', 'time', 'historico'].includes(aba)) gestaoAba = aba;
+    if (aba && ['agora', 'semana', 'clientes', 'carteiras', 'time', 'historico'].includes(aba)) gestaoAba = aba;
     if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
     gestao.hidden = false; body.classList.add('mundo-gestao'); marcarTrilho('gestao'); pintarGestao(); gestao.scrollTop = 0; window.VybeTutorial?.dica?.('trilho:gestao');
   }
@@ -453,8 +454,8 @@
   function pintarGestao() {
     if (gestao.hidden) return;
     const N = numerosDoDono();
-    const abas = [['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
-    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
+    const abas = [['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
+    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
         <p>${N ? 'Atualizado às ' + new Date(N.geradoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + n0((N.cobertura || {}).clientesAtivos) + ' clientes ativos' : 'Juntando os números…'}</p></span>
       <span class="vv-g-acoes"><button type="button" class="vv-botao" data-gestao-cheia title="Tela cheia">⛶</button><button type="button" class="vv-botao" data-gestao-fechar aria-label="Fechar">✕</button></span></div>
       <nav class="vv-seg vv-g-abas" role="tablist">${abas.map(([id, n]) => `<button type="button" role="tab" aria-selected="${id === gestaoAba}" data-gestao-aba="${id}">${n}</button>`).join('')}</nav>`;
@@ -490,6 +491,17 @@
       corpo = `<section class="vv-g-cartao largo"><table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
         ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${esc(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
         </tbody></table></section>`;
+    } else if (gestaoAba === 'carteiras') {
+      // A carteira de cada head (o "progresso das entregas por squad" do AgencyFlow). Os números vêm de N.heads.
+      const heads = N.heads || [];
+      const aviso = !heads.length || heads.every((h) => h.semHead)
+        ? '<p class="vv-dica vv-g-aviso-heads">Nenhum cliente ativo tem head ainda, por isso todos aparecem em "Sem head". Os heads vêm do cadastro do cliente: preencha os heads na ficha de cada cliente.</p>' : '';
+      const ROT_SAUDE = { critico: ['crítico', 'críticos'], atencao: ['em atenção', 'em atenção'], ok: ['em dia', 'em dia'] };
+      const pilulas = (sd = {}) => ['critico', 'atencao', 'ok'].filter((k) => sd[k]).map((k) => `<span class="pill ${SAUDE[k][1]}">${n0(sd[k])} ${ROT_SAUDE[k][sd[k] === 1 ? 0 : 1]}</span>`).join('') || '<span class="nao">—</span>';
+      const semana = (w = {}) => `<span class="vv-g-progresso" title="${w.pct == null ? 'Nada previsto nesta semana' : n0(w.pct) + '% das previstas da semana entregues'}"><span class="barra"><i style="width:${Math.max(0, Math.min(100, Number(w.pct) || 0))}%"></i></span><b>${n0(w.entregues)}</b><small>/${n0(w.previstas)}</small></span>`;
+      corpo = `<section class="vv-g-cartao largo"><h4>Carteiras por head</h4>${aviso}<table class="vv-g-tabela vv-g-carteiras"><thead><tr><th>Head</th><th class="n">Contas</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th>Semana</th></tr></thead><tbody>
+        ${heads.map((h) => `<tr class="${h.semHead ? 'sem-head' : ''}"><td><button type="button" class="vv-num" data-espiar="carteira|head:${esc(h.head)}"><b>${esc(h.head)}</b></button></td><td class="n">${n0(h.contas)}</td><td class="saude">${pilulas(h.saude)}</td><td class="n">${n0(h.abertas)}</td><td class="n ${h.atrasadas ? 't-u1' : ''}">${h.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|head:${esc(h.head)}">${n0(h.atrasadas)}</button>` : '0'}</td><td class="n ${h.emRisco ? 't-u2' : ''}">${h.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|head:${esc(h.head)}">${n0(h.emRisco)}</button>` : '0'}</td><td>${semana(h.semana)}</td></tr>`).join('')}
+        </tbody></table><p class="vv-dica">Cliente com dois heads entra nas duas carteiras. Semana = peças com data nesta semana já entregues, de todas as previstas.</p></section>`;
     } else if (gestaoAba === 'time') {
       const bots = botsParaCobrar(); let f = null; try { f = fonteAgentes?.ler(); } catch {} const ags = f?.dados?.agentes || [];
       corpo = `<div class="vv-g-grade">
@@ -546,11 +558,20 @@
       let lista = L[tipo] || [];
       if (fk === 'pessoa') lista = (N.time || []).find((t) => t.pessoa === valor)?.lista?.[tipo] || [];
       if (fk === 'cliente') lista = (N.clientes || []).find((c) => c.cliente === valor)?.lista?.[tipo] || [];
-      return { titulo: rot, sub: valor, n: lista.length, cls, aba, corpo: listaPecas(lista, vazio, 40) + (lista.length > 40 ? `<p class="vv-dica">e mais ${lista.length - 40} na Gestão.</p>` : '') };
+      if (fk === 'head') lista = (N.heads || []).find((h) => h.head === valor)?.lista?.[tipo] || [];
+      return { titulo: rot, sub: valor, n: lista.length, cls, aba: fk === 'head' ? 'carteiras' : aba, corpo: listaPecas(lista, vazio, 40) + (lista.length > 40 ? `<p class="vv-dica">e mais ${lista.length - 40} na Gestão.</p>` : '') };
     }
     if (tipo === 'sem3') return { titulo: 'Clientes sem 3 posts na semana', n: (C.sem3 || []).length, cls: 'u2', aba: 'semana', corpo: (C.sem3 || []).map((x) => linhaCli(x.cliente, `${n0(x.qtd)}/3`)).join('') || '<p class="vv-vazio">Todos com 3 posts.</p>' };
     if (tipo === 'semConteudo') return { titulo: 'Clientes sem nenhum post na semana', n: (C.semConteudo || []).length, cls: 'u1', aba: 'semana', corpo: (C.semConteudo || []).map((c) => linhaCli(nomeCli(c), '0/3')).join('') || '<p class="vv-vazio">Nenhum.</p>' };
     if (tipo === 'semPlanejamento') return { titulo: 'Clientes sem planejamento', n: (C.semPlanejamento || []).length, cls: '', aba: 'semana', corpo: (C.semPlanejamento || []).map((c) => linhaCli(nomeCli(c))).join('') || '<p class="vv-vazio">Todos com planejamento.</p>' };
+    if (tipo === 'carteira') {
+      // Os clientes da carteira de um head, do pior para o melhor (a mesma saúde da aba Clientes).
+      const h = (N.heads || []).find((x) => x.head === valor);
+      const porNome = new Map((N.clientes || []).map((c) => [c.cliente, c]));
+      const l = (h?.clientes || []).map((nome) => porNome.get(nome) || { cliente: nome });
+      return { titulo: 'Clientes na carteira', sub: valor, n: l.length, cls: h?.saude?.critico ? 'u1' : h?.saude?.atencao ? 'u2' : '', aba: 'carteiras',
+        corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Nenhum cliente ativo nesta carteira.</p>' };
+    }
     if (tipo === 'atencao') {
       const l = (N.clientes || []).filter((c) => c.saude !== 'ok');
       return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
@@ -633,7 +654,7 @@
       const carregou = typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length;
       el.innerHTML = `<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>
         <button type="button" class="vv-fala" data-trilho="tarefas"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${carregou ? 'Não achei sua fila pelo seu usuário. Escolha de quem acompanhar as tarefas.' : 'Carregando sua fila…'}</span><b aria-hidden="true">→</b></button>
-        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
+        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
       return;
     }
     const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
@@ -676,7 +697,7 @@
       <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
       <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
-      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
       </section></div>`;
   }
   function acaoDoHoje(acao, valor) {
@@ -686,6 +707,7 @@
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
     if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
     if (acao === 'agenda') { abrirAgenda(); return; }
+    if (acao === 'pedido_rh') { window.VybePessoas?.novoPedido?.(); return; } // Nova solicitação ao RH (vybe-mundo-pessoas.js)
     if (acao === 'missoes') { window.VybeMissoes?.abrir?.('missoes', verComo || undefined); window.VybeTutorial?.dica?.('missoes'); return; }
     if (acao === 'radar') chamar('chooseManagerMode');
   }

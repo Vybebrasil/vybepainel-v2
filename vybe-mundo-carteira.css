@@ -151,6 +151,32 @@
 #vv-carteira .vc-head small{color:#6B675F;font-size:12px}
 #vv-carteira .vc-head p{margin:6px 0 0;font-size:12px;color:#3A3F44}
 
+/* contas por head (tabela pequena) */
+#vv-carteira .vc-contas{width:100%;min-width:420px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+#vv-carteira .vc-contas th{padding:8px;border-bottom:1px solid #F0EBE3;color:#6B675F;font:700 11px var(--vv-texto,system-ui),sans-serif;text-align:right;white-space:nowrap}
+#vv-carteira .vc-contas th:first-child,#vv-carteira .vc-contas tbody th{text-align:left}
+#vv-carteira .vc-contas tbody th{color:#1F1D1A;font-size:13px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .vc-contas td{padding:6px 8px;border-bottom:1px solid #F0EBE3;text-align:right;font-size:12.5px;font-weight:700}
+#vv-carteira .vc-contas tr:last-child>*{border-bottom:0}
+#vv-carteira .vc-contas tr.sem-head th{color:#6B675F}
+#vv-carteira .vc-contas .vc-nota-num{display:inline-grid;width:34px;height:28px;font-size:13px}
+#vv-carteira .vc-num-espiar{display:inline-block;min-width:32px;padding:4px 8px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF;text-align:center}
+#vv-carteira .vc-num-espiar:hover,#vv-carteira .vc-num-espiar:focus-visible{border-color:#FF7A2F;color:#C2490C;outline:none}
+
+/* mês a mês (SVG com o número em cima da barra) */
+#vv-carteira .vc-grafs{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+#vv-carteira .vc-graf{margin:0;padding:10px 10px 6px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;min-width:0}
+#vv-carteira .vc-graf figcaption{margin-bottom:4px;color:#3A3F44;font:700 12px var(--vv-texto,system-ui),sans-serif}
+#vv-carteira .vc-graf .vc-nota{margin:4px 0}
+#vv-carteira .vc-graf-svg{display:block;width:100%;height:auto}
+#vv-carteira .vc-graf-svg text{font:600 9px var(--vv-texto,system-ui),sans-serif;fill:#6B675F}
+#vv-carteira .vc-graf-svg text.n{font-weight:800;fill:#1F1D1A;font-variant-numeric:tabular-nums}
+#vv-carteira .vc-graf-svg text.agora{fill:#C2490C;font-weight:800}
+#vv-carteira .vc-graf-svg g[data-espiar]{cursor:pointer}
+#vv-carteira .vc-graf-svg g[data-espiar]:hover rect,#vv-carteira .vc-graf-svg g[data-espiar]:focus-visible rect{stroke:#C2490C;stroke-width:1.2}
+#vv-carteira .vc-graf-svg g[data-espiar]:focus{outline:none}
+#vv-carteira .vc-meio small.vc-casa{color:#3A3F44}
+
 /* onboarding */
 #vv-carteira .vc-iniciar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;padding:12px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF}
 #vv-carteira .vc-iniciar .vc-campo{flex:1 1 200px}
@@ -218,6 +244,7 @@
   #vv-carteira .vc-form{grid-template-columns:repeat(4,minmax(0,1fr))}
   #vv-carteira .vc-form .vc-campo.largo{grid-column:1/-1}
   #vv-carteira .vc-meio small{-webkit-line-clamp:1}
+  #vv-carteira .vc-grafs{grid-template-columns:repeat(2,minmax(0,1fr))}
   #vv-carteira .vc-esteira span{font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){#vv-carteira{animation:none}#vv-carteira *{transition:none!important}}

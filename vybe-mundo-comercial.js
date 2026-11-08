@@ -16,7 +16,7 @@
     ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores', 1], ['creators', 'Creators'],
   ];
   const AJUDA = {
-    funil: 'O funil é o mesmo CRM do 1º andar. Novo junta as etapas do SDR (empresa, qualificação, abordagem e aprovação humana). Avance uma etapa por vez; Follow-up é opcional. Para marcar Perdido, o motivo é obrigatório e vira o relatório de motivos. Conversão = quantos chegaram à fase seguinte ÷ quantos chegaram a esta. Em negociação soma o valor mensal (recorrente) e o avulso das oportunidades abertas. O selo Cabe/Aperta/Estoura diz se o time aguenta o pacote vendido. Os donos podem acrescentar e reordenar etapas do meio do funil.',
+    funil: 'O funil é o mesmo CRM do 1º andar. Novo junta as etapas do SDR (empresa, qualificação, abordagem e aprovação humana). Avance uma etapa por vez; Follow-up é opcional. Para marcar Perdido, o motivo é obrigatório e vira o relatório de motivos. Conversão = quantos chegaram à fase seguinte ÷ quantos chegaram a esta. Em negociação soma o valor mensal (recorrente) e o avulso das oportunidades abertas. O selo Cabe/Aperta/Estoura diz se o time aguenta o pacote vendido. Os donos podem acrescentar e reordenar etapas do meio do funil. No topo, o mês (ou o ano): metas de MRR, avulso, negócios fechados e leads (só os donos editam; no anual, soma dos meses), leads novos (oportunidades que entraram no funil), propostas enviadas (entradas na etapa Proposta comercial) e negócios fechados (foram para Ganho), comparados com o período anterior; a corrida comercial (quem fechou mais: o responsável da oportunidade, ou quem cadastrou quando não há responsável) e os gráficos dos últimos 6 meses. Os valores em reais aparecem só para os donos. O formulário de leads é um link público para a bio e o site: quem preenche entra em Novo com a etiqueta Formulário.',
     pacotes: 'A esteira de produtos da Vybe. Cada pacote tem tipo (recorrente ou avulso), preço, entregas e a carga por cargo (demandas por mês) usada no Capacidade × vendas. Os donos veem o custo estimado (horas × custo/hora + captações × custo) e a margem; abaixo de 20% é zona crítica. Produto campeão e ticket médio saem dos negócios ganhos.',
     orcamentos: 'Monte a proposta a partir dos pacotes: itens, quantidade, desconto e validade. O preço fica guardado como estava no dia (mudar o pacote depois não muda a proposta). Antes de fechar, confira se o time aguenta. "Imprimir" abre uma página limpa para salvar em PDF.',
     financas: 'Só donos e administração. Valor mensal do contrato, pacote (de onde sai o custo estimado) e margem. Abaixo de 20% de margem é zona crítica. O status de pagamento é informado à mão.',
@@ -63,7 +63,7 @@
     return d;
   }
   function queryDaAba(aba) {
-    const p = ['recebimentos', 'contas'].includes(aba) ? `&mes=${encodeURIComponent(st.periodo.mes || hojeIso().slice(0, 7))}&periodo=${st.periodo.tipo}` : '';
+    const p = ['recebimentos', 'contas', 'funil'].includes(aba) ? `&mes=${encodeURIComponent(st.periodo.mes || hojeIso().slice(0, 7))}&periodo=${st.periodo.tipo}` : '';
     return `&aba=${aba}${p}`;
   }
   // Dado incompleto (banco ainda sem as tabelas, resposta parcial): listas viram vazias e blocos viram objetos vazios,
@@ -72,7 +72,8 @@
   const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes', 'produtos', 'periodo'];
   // Mini painel dos números (Paulo, 08/11: clicar no número e ver quem está nele).
   (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {}).comercial = (resto) => {
-    const [aba, filtro] = String(resto).split(':'), d = st.dados[aba]; if (!d) return null;
+    const [aba, filtro, extra] = String(resto).split(':'), d = st.dados[aba]; if (!d) return null;
+    if (aba === 'funil') return espiarFunil(d, filtro, extra);
     const ir = (it) => { st.filtro.financas = it.nome; pintar(); };
     if (aba === 'financas') {
       const def = { critica: ['Clientes em zona crítica de margem', (c) => c.zona_critica, 'u1'], atrasado: ['Pagamento atrasado', (c) => c.status_pagamento === 'atrasado', 'u2'], inadimplente: ['Inadimplentes', (c) => c.status_pagamento === 'inadimplente', 'u1'] }[filtro];
@@ -100,6 +101,15 @@
     x.opcoes = { ...x.opcoes }; for (const k of ['nichos', 'cidades']) arr(x.opcoes, k);
     if (!/^\d{4}-\d{2}-\d{2}/.test(x.hoje || '')) x.hoje = hojeIso();
     x.periodo = { tipo: 'mensal', mes: x.hoje.slice(0, 7), rotulo: '', ...x.periodo };
+    // Funil: metas, KPIs do mês, corrida e séries (server/comercial.js mesComercial). Sem ele, a aba pinta só o funil.
+    if (x.mes && typeof x.mes === 'object' && !Array.isArray(x.mes)) {
+      const m = x.mes = { ...x.mes };
+      const k = obj(m, 'kpis'); for (const c of ['atual', 'anterior', 'variacao']) obj(k, c);
+      for (const c of ['progresso', 'series', 'propostas']) arr(m, c);
+      arr(obj(m, 'ranking'), 'linhas'); obj(m.ranking, 'sem_atribuicao'); obj(m, 'metas'); obj(m, 'formulario'); obj(m, 'metas_por_mes');
+      if (!Array.isArray(m.leads_formulario)) m.leads_formulario = null;
+      if (!m.periodo || !/^\d{4}-\d{2}-\d{2}$/.test(m.periodo.inicio || '') || !m.periodo.anterior) { try { m.periodo = C().periodo(x.hoje.slice(0, 7)); } catch { m.periodo = null; } }
+    } else x.mes = null;
     if (x.previsao && typeof x.previsao === 'object') { x.previsao = { ...x.previsao }; arr(x.previsao, 'meses'); arr(x.previsao, 'alertas'); }
     else x.previsao = { meses: [], alertas: [] };
     return x;
@@ -180,14 +190,14 @@
         ${pulo ? `<button type="button" class="vc-sec" data-vc="mover" data-id="${esc(o.id)}" data-de="${esc(o.etapa)}" data-para="${esc(pulo.id)}">→ ${esc(pulo.nome)}</button>` : ''}
         ${d.valor_disponivel ? `<button type="button" class="vc-sec" data-vc="valor" data-id="${esc(o.id)}">Valor</button>` : ''}
         <button type="button" class="vc-perigo" data-vc="perder" data-id="${esc(o.id)}" data-de="${esc(o.etapa)}">Perdido</button></div>` : '';
-      return `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.nome)}</b>${capSelo}</div>
+      return `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.nome)}</b>${o.origem === 'formulario' ? pill('Formulário', 'u4') : ''}${capSelo}</div>
         <small>${esc(etapaNome(o.etapa))} · ${esc(o.responsavel_nome || 'Sem responsável')}${o.proxima_acao ? ' · ' + esc(o.proxima_acao) : ''}</small>
         ${d.valor_disponivel && (o.valor_mensal || o.valor_avulso) ? `<small>${o.valor_mensal ? din(o.valor_mensal) + '/mês' : ''}${o.valor_mensal && o.valor_avulso ? ' + ' : ''}${o.valor_avulso ? din(o.valor_avulso) + ' avulso' : ''}${pk ? ' · ' + esc(pk.nome) : ''}</small>` : ''}
         ${o.etapa === 'perdido' ? `<small>Motivo: ${esc(d.motivos.find((m) => m.id === o.motivo_perda)?.nome || 'não registrado')}${o.motivo_texto ? ' — ' + esc(o.motivo_texto) : ''}</small>` : ''}
         ${botoes}</article>`;
     };
     const maxMotivo = Math.max(1, ...r.motivos_perda.map((m) => m.quantidade));
-    return `<div class="vc-kpis">
+    return `${blocoMes(d)}<div class="vc-secao"><h3>Funil agora</h3></div><div class="vc-kpis">
         ${kpi('Em negociação (mensal)', din(r.em_negociacao.mensal))}${kpi('Em negociação (avulso)', din(r.em_negociacao.avulso))}
         ${kpi('Abertas', num(r.em_negociacao.quantidade))}${kpi('Taxa de ganho', pc(r.taxa_ganho))}</div>
       ${d.valor_disponivel ? '' : '<p class="vc-aviso">Valor da negociação, Follow-up e etapas novas dependem da migração 2026-11-07-comercial.sql (o Paulo aplica).</p>'}
@@ -197,6 +207,126 @@
       <div class="vc-lista">${ops.length ? ops.map(card).join('') : vazio(sel === 'novo' ? 'Nenhuma empresa nova no funil. O SDR propõe pelo CRM do 1º andar.' : 'Nenhuma oportunidade nesta fase agora.')}</div>
       <div class="vc-secao"><h3>Motivos de perda</h3><small>${num(r.fases.find((f) => f.id === 'perdido')?.atual)} perdidas</small></div>
       ${r.motivos_perda.some((m) => m.quantidade) ? `<ul class="vc-barras">${r.motivos_perda.filter((m) => m.quantidade).map((m) => `<li><span>${esc(m.nome)}</span><span class="vc-barra"><i class="u2" style="width:${(m.quantidade / maxMotivo) * 100}%"></i></span><small>${num(m.quantidade)} · ${pc(m.percentual)}</small></li>`).join('')}</ul>` : vazio('Nenhuma perda registrada. Quando marcar Perdido, o motivo aparece aqui.')}`;
+  }
+  // ---------- Funil: o mês (metas, KPIs × mês anterior, gráficos, corrida comercial, formulário de leads) ----------
+  const curto = (v) => { const n = Number(v) || 0, f = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    return n >= 1e6 ? f(n / 1e6) + ' mi' : n >= 1e3 ? f(n / 1e3) + ' mil' : f(Math.round(n)); };
+  const diaBahia = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d) : ''; };
+  const tituloPeriodo =(p) => (p?.tipo === 'anual' ? 'em ' + p.rotulo : nomeMes(p?.mes));
+  // Barras verticais em SVG inline (como o Caixa), com o número em cima de cada barra; cada barra abre o espiar do mês.
+  function grafico({ meses, series, aria, espiar }) {
+    // A partir de 760px os dois gráficos ficam lado a lado: cada um desenhado na metade da janela (texto no tamanho certo).
+    const larg = document.getElementById('vv-comercial')?.clientWidth || 400;
+    const W = Math.max(300, Math.min(560, larg >= 760 ? larg / 2 - 50 : larg - 60)), H = 178, base = 148, alto = 112;
+    const max = Math.max(1, ...meses.flatMap((m) => series.map((s) => Number(m[s.chave]) || 0)));
+    const passo = W / Math.max(1, meses.length), n = series.length, bw = Math.min(40, Math.max(14, (passo - 10) / n - 4));
+    const barras = meses.map((m, i) => {
+      const x0 = i * passo + passo / 2 - (n * bw + (n - 1) * 4) / 2;
+      return series.map((s, j) => {
+        const v = Number(m[s.chave]) || 0, h = v > 0 ? Math.max(2, (v / max) * alto) : 0, x = x0 + j * (bw + 4);
+        const esp = espiar ? ` data-espiar="comercial:${esc(espiar(m.mes, s.chave))}" tabindex="0" role="button" aria-label="${esc(s.rotulo + ' em ' + nomeMes(m.mes) + ': ' + s.fmt(v))}"` : '';
+        return `<g class="vc-g-barra"${esp}><title>${esc(s.rotulo)} · ${esc(nomeMes(m.mes))}: ${esc(s.fmt(v))}</title><rect x="${x}" y="${base - h}" width="${bw}" height="${h}" rx="4" class="${s.cls}"/>
+          <text x="${x + bw / 2}" y="${base - h - 5}" text-anchor="middle" class="valor">${esc(s.curto ? s.curto(v) : s.fmt(v))}</text></g>`;
+      }).join('') + `<text x="${i * passo + passo / 2}" y="${base + 18}" text-anchor="middle">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</text>`;
+    }).join('');
+    return `<figure class="vc-grafico"><svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(aria)}">${barras}<line x1="0" x2="${W}" y1="${base}" y2="${base}" class="eixo"/></svg>
+      <figcaption>${series.map((s) => `<span><i class="${s.cls}"></i>${esc(s.rotulo)}</span>`).join('')}</figcaption></figure>`;
+  }
+  function blocoMes(d) {
+    const m = d.mes; if (!m || !m.periodo) return '';
+    const p = d.pode || {}, val = Boolean(m.valores), k = m.kpis, rv = m.periodo.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
+    const fmt = (x, v) => (x.tipo === 'dinheiro' ? din(v) : num(v));
+    const comMeta = m.progresso.filter((x) => x.meta > 0);
+    const metas = comMeta.length ? `<ul class="vc-metas">${m.progresso.map((x) => `<li${x.meta > 0 ? ` class="espiavel" data-espiar="comercial:funil:${x.id === 'leads' ? 'leads' : 'fechados'}" role="button" tabindex="0"` : ''}>
+        <div><b>${esc(x.nome)}</b><small>${fmt(x, x.realizado)}${x.meta > 0 ? ' de ' + fmt(x, x.meta) + (x.batida ? ' · meta batida' : ' · faltam ' + fmt(x, x.falta)) : ' · sem meta'}</small></div>
+        <span class="vc-barra"><i class="${x.batida ? 'u6' : ''}" style="width:${x.barra}%"></i></span><strong>${x.percentual == null ? '—' : pc(x.percentual)}</strong></li>`).join('')}</ul>`
+      : `<p class="vc-dica">${p.editar_pacotes ? 'Nenhuma meta para este período. Em "Editar metas" você define MRR, avulso, negócios fechados e leads do mês.' : 'Os donos ainda não definiram as metas deste período.'}</p>`;
+    const kp = `<div class="vc-kpis">${kpi('Leads novos', num(k.atual.leads), { variacao: k.variacao.leads, rotuloVar: rv, espiar: 'funil:leads' })}
+      ${kpi('Propostas enviadas', num(k.atual.propostas), { variacao: k.variacao.propostas, rotuloVar: rv, espiar: 'funil:propostas' })}
+      ${kpi('Negócios fechados', num(k.atual.negocios), { variacao: k.variacao.negocios, rotuloVar: rv, espiar: 'funil:fechados' })}
+      ${val ? kpi('Fechado (MRR)', din(k.atual.mrr) + '<small>/mês</small>', { variacao: k.variacao.mrr, rotuloVar: rv, espiar: 'funil:fechados' }) + kpi('Fechado (avulso)', din(k.atual.avulso), { variacao: k.variacao.avulso, rotuloVar: rv, espiar: 'funil:fechados' }) : ''}</div>`;
+    const graficos = m.series.length ? grafico({ meses: m.series, aria: 'Leads novos por mês, últimos 6 meses', espiar: (mes) => 'funil:leads:' + mes,
+        series: [{ chave: 'leads', cls: 'lead', rotulo: 'Leads novos', fmt: num }] })
+      + (val ? grafico({ meses: m.series, aria: 'Valor fechado por mês (MRR e avulso), últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes,
+        series: [{ chave: 'mrr', cls: 'mrr', rotulo: 'MRR fechado (R$/mês)', fmt: din, curto }, { chave: 'avulso', cls: 'avu', rotulo: 'Avulso fechado (R$)', fmt: din, curto }] })
+        : grafico({ meses: m.series, aria: 'Negócios fechados por mês, últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes, series: [{ chave: 'negocios', cls: 'mrr', rotulo: 'Negócios fechados', fmt: num }] })) : '';
+    return `${seletorPeriodo()}${m.config_disponivel === false ? `<p class="vc-aviso">${esc(m.aviso_config || 'Metas e formulário de leads aguardando a migração.')}</p>` : ''}
+      <div class="vc-secao"><h3>Metas ${esc(m.periodo.tipo === 'anual' ? 'de ' + m.periodo.rotulo + ' (soma dos meses)' : 'de ' + nomeMes(m.periodo.mes))}</h3>${p.editar_pacotes && m.config_disponivel !== false ? '<button type="button" class="vc-link" data-vc="metas">Editar metas</button>' : ''}</div>
+      ${metas}${val ? '' : '<p class="vc-dica">Os valores em reais (MRR e avulso) aparecem só para os donos.</p>'}${kp}
+      <div class="vc-secao"><h3>Últimos 6 meses</h3></div><div class="vc-graficos">${graficos}</div>
+      ${corridaHtml(m, val)}${formularioHtml(d)}`;
+  }
+  function corridaHtml(m, val) {
+    const r = m.ranking, sem = r.sem_atribuicao || {};
+    const linhas = r.linhas.map((x) => `<li class="espiavel" data-espiar="comercial:funil:corrida:${esc(x.posicao)}" role="button" tabindex="0"><span class="pos${x.posicao === 1 ? ' ouro' : ''}">${esc(x.posicao)}º</span>
+      <div><b>${esc(x.nome)}</b><small>${num(x.quantidade)} negócio${x.quantidade > 1 ? 's' : ''}${x.pelo_cadastro ? ` · ${num(x.pelo_cadastro)} sem responsável (conta quem cadastrou)` : ''}</small></div>
+      ${val ? `<span class="v">${din(x.mrr)}<small>/mês</small>${x.avulso ? `<small> + ${din(x.avulso)} avulso</small>` : ''}</span>` : ''}</li>`).join('');
+    return `<div class="vc-secao"><h3>Corrida comercial · ${esc(tituloPeriodo(m.periodo))}</h3><small>${num(r.linhas.reduce((s, x) => s + x.quantidade, 0) + (sem.quantidade || 0))} fechados</small></div>
+      ${linhas ? `<ol class="vc-corrida">${linhas}</ol>` : vazio('Ninguém fechou negócio neste período ainda.')}
+      <p class="vc-dica">Conta para o responsável da oportunidade ganha; sem responsável, para quem cadastrou.${sem.quantidade ? ` <b>${num(sem.quantidade)} negócio${sem.quantidade > 1 ? 's' : ''} sem como atribuir</b> (lead do formulário sem responsável): defina o responsável no CRM do 1º andar para entrar na corrida.` : ''}</p>`;
+  }
+  function formularioHtml(d) {
+    const m = d.mes, p = d.pode || {}, f = m.formulario || {};
+    if (!p.editar_comercial) return '';
+    const link = f.ativo && f.token ? `${typeof location !== 'undefined' ? location.origin : ''}/lead/${f.token}` : '';
+    const doPeriodo = C().leadsDoPeriodo(d.oportunidades.filter((o) => o.origem === 'formulario'), m.periodo).length;
+    let topo;
+    if (m.config_disponivel === false) topo = '<p class="vc-dica">O formulário depende da mesma migração das metas.</p>';
+    else if (p.editar_pacotes) topo = link
+      ? `<div class="vc-form-link"><input type="text" readonly value="${esc(link)}" aria-label="Link público do formulário" data-vc-link-form><button type="button" class="vc-sec" data-vc="form-copiar">Copiar link</button></div>
+        <div class="vc-linha-acoes"><a class="vc-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Abrir o formulário</a><button type="button" class="vc-link" data-vc="form-gerar">Trocar link</button><button type="button" class="vc-perigo" data-vc="form-desligar">Desligar</button></div>
+        <p class="vc-dica">Ponha na bio do Instagram e no site. Quem preenche entra no funil em Novo, com a etiqueta Formulário. Trocar o link invalida o antigo.</p>`
+      : `<p class="vc-dica">${f.gerado_em ? 'O formulário está desligado.' : 'Gere um link público para a bio e o site: quem preenche vira oportunidade em Novo.'}</p><div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="form-gerar">${f.gerado_em ? 'Ligar com link novo' : 'Gerar link'}</button></div>`;
+    else topo = `<p class="vc-dica">Formulário ${f.ativo ? 'ligado' : 'desligado'}. Só os donos geram e trocam o link.</p>`;
+    const leads = (m.leads_formulario || []).map((l) => { const c = l.contato || {}; return `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(c.nome || l.nome)}</b>${pill(d.etapas.find((e) => e.id === l.etapa)?.nome || l.etapa, l.etapa === 'ganho' ? 'u6' : l.etapa === 'perdido' ? 'u5' : 'u4')}</div>
+      <small>${[c.empresa, c.cidade, c.interesse].filter(Boolean).map(esc).join(' · ') || 'Sem empresa informada'}</small>
+      <small>WhatsApp ${esc(C().formatarWhatsapp(c.whatsapp))} · chegou em ${data(diaBahia(l.criado_em))}</small>${c.mensagem ? `<small>“${esc(c.mensagem)}”</small>` : ''}</article>`; }).join('');
+    return `<div class="vc-secao"><h3>Formulário de leads</h3><small class="espiavel" data-espiar="comercial:funil:formulario" role="button" tabindex="0">${num(doPeriodo)} ${esc(tituloPeriodo(m.periodo))}</small></div>
+      <div class="vc-cap">${topo}</div>
+      ${m.leads_formulario ? `<div class="vc-secao"><h3>Últimos que chegaram</h3></div><div class="vc-lista">${leads || vazio('Nenhum lead pelo formulário ainda.')}</div>` : ''}`;
+  }
+  // Mini painel dos números do mês: as oportunidades por trás de cada um.
+  function espiarFunil(d, filtro, extra) {
+    const m = d.mes; if (!m?.periodo) return null;
+    const per = /^\d{4}-\d{2}$/.test(extra || '') ? C().periodo(extra) : m.periodo, quando = per === m.periodo ? tituloPeriodo(m.periodo) : nomeMes(extra);
+    const etapaNome = (id) => d.etapas.find((e) => e.id === id)?.nome || id, faseDe = (etapa) => d.fases.find((f) => f.etapas.includes(etapa))?.id;
+    const valor = (o) => (m.valores ? [o.valor_mensal ? din(o.valor_mensal) + '/mês' : '', o.valor_avulso ? din(o.valor_avulso) + ' avulso' : ''].filter(Boolean).join(' + ') : '');
+    const item = (o) => ({ nome: o.nome, sub: [etapaNome(o.etapa), o.responsavel_nome || 'sem responsável', o.origem === 'formulario' ? 'formulário' : ''].filter(Boolean).join(' · '), dir: valor(o), etapa: o.etapa });
+    const ir = (it) => { st.fase = faseDe(it.etapa) || st.fase; pintar(); };
+    const ops = d.oportunidades, base = { cls: '', rodape: 'Clique para ver a fase no funil', clicar: ir };
+    if (filtro === 'leads') return { ...base, titulo: 'Leads novos · ' + quando, itens: C().leadsDoPeriodo(ops, per).map(item), vazio: 'Nenhum lead novo neste período.' };
+    if (filtro === 'formulario') return { ...base, titulo: 'Leads do formulário · ' + quando, itens: C().leadsDoPeriodo(ops.filter((o) => o.origem === 'formulario'), per).map(item), vazio: 'Nenhum lead pelo formulário neste período.' };
+    if (filtro === 'fechados') return { ...base, titulo: 'Negócios fechados · ' + quando, cls: 'u6', itens: C().fechadosDoPeriodo(ops, per).map(item), vazio: 'Nenhum negócio fechado neste período.' };
+    if (filtro === 'propostas') {
+      const ids = new Set(C().propostasDoPeriodo(m.propostas, per));
+      return { ...base, titulo: 'Propostas enviadas · ' + quando, itens: ops.filter((o) => ids.has(String(o.id))).map(item), vazio: 'Nenhuma proposta enviada neste período.' };
+    }
+    if (filtro === 'corrida') {
+      const linha = m.ranking.linhas.find((x) => String(x.posicao) === String(extra)); if (!linha) return null;
+      const itens = C().fechadosDoPeriodo(ops, per).filter((o) => norm(C().quemFechou(o)?.nome) === norm(linha.nome)).map(item);
+      return { ...base, titulo: linha.nome + ' · ' + quando, cls: 'u6', itens, vazio: 'Nenhum negócio.' };
+    }
+    return null;
+  }
+  function formMetas() {
+    const m = st.dados.funil.mes, mes = st.periodo.mes || hojeIso().slice(0, 7), x = (m.metas_por_mes || {})[mes] || {};
+    abrirFolha({ titulo: 'Metas de ' + nomeMes(mes), botao: 'Salvar metas',
+      antes: '<p class="vc-dica">Só os donos editam. Deixe em branco (ou 0) a meta que não quiser acompanhar. A visão anual soma os meses.</p>',
+      campos: [
+        { nome: 'mrr', rotulo: 'MRR novo (R$/mês)', tipo: 'number', passo: '0.01', valor: x.mrr || '', meio: true, dica: 'Recorrente dos negócios fechados no mês.' },
+        { nome: 'avulso', rotulo: 'Avulso (R$)', tipo: 'number', passo: '0.01', valor: x.avulso || '', meio: true },
+        { nome: 'negocios', rotulo: 'Negócios fechados', tipo: 'number', passo: '1', valor: x.negocios || '', meio: true },
+        { nome: 'leads', rotulo: 'Leads novos', tipo: 'number', passo: '1', valor: x.leads || '', meio: true },
+        { nome: 'aplicar', rotulo: 'Valer para', tipo: 'select', opcoes: [['mes', 'Só ' + nomeMes(mes)], ['resto_do_ano', 'De ' + nomeMes(mes) + ' até dezembro']], valor: 'mes' },
+      ],
+      enviar: (v) => comercial({ acao: 'metas_salvar', mes, aplicar: v.aplicar, metas: { mrr: v.mrr, avulso: v.avulso, negocios: v.negocios, leads: v.leads } }) });
+  }
+  async function copiarLinkFormulario() {
+    const inp = raiz()?.querySelector('[data-vc-link-form]'), texto = inp?.value || '';
+    if (!texto) return;
+    try { await navigator.clipboard.writeText(texto); st.msg = 'Link copiado.'; }
+    catch { try { inp.select(); document.execCommand?.('copy'); st.msg = 'Link copiado.'; } catch { st.msg = '⚠️ Não deu para copiar: selecione o link e copie.'; } }
+    pintar();
   }
   function abaPacotes(d) {
     const p = d.pode || {};
@@ -212,9 +342,32 @@
       <div class="vc-lista grade">${lista || vazio('Nenhum pacote cadastrado. Cadastre a esteira de produtos da Vybe para montar orçamentos.', p.editar_pacotes ? 'Cadastrar pacote' : '', 'pacote')}</div>
       ${p.editar_pacotes ? `<div class="vc-secao"><h3>Capacidade do time</h3><button type="button" class="vc-link" data-vc="capacidade">Configurar</button></div>${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}` : ''}`;
   }
+  // Calculadora de ROI: quantas vendas a mais o cliente precisa para pagar a Vybe, e o retorno esperado.
+  st.roi = st.roi || { orc: '', investimento: '', ticket: '', margem: '', vendas: '' };
+  function roiDaProposta(o) {
+    const r = st.roi; if (String(r.orc) !== String(o.id)) return '';
+    const c = C().roiCampanha({ investimento: r.investimento, ticket: r.ticket, margem: r.margem, vendas: r.vendas }); if (!c) return '';
+    return `<h3>Retorno estimado</h3><div class="tot" style="margin-left:0;width:min(100%,420px)"><div><span>Lucro por venda (ticket ${din(Number(String(r.ticket).replace(/\./g, '').replace(',', '.')))} × margem ${esc(r.margem)}%)</span><span>${din(c.lucroPorVenda)}</span></div>`
+      + `<div><span>Vendas a mais por mês para pagar o investimento</span><span>${c.empate == null ? '—' : num(c.empate)}</span></div>`
+      + (c.roi == null ? '' : `<div><span>Com ${esc(r.vendas)} vendas a mais por mês: lucro a mais</span><span>${din(c.lucro)}</span></div><div class="g"><span>ROI estimado</span><span>${c.roi > 0 ? '+' : ''}${pc(c.roi)}</span></div>`)
+      + '</div><p class="m">Estimativa com os números informados pelo cliente; não é garantia de resultado.</p>';
+  }
+  function roiHtml(d) {
+    const r = st.roi, orcs = d.orcamentos.filter((o) => o.totais?.total_recorrente);
+    const calc = C().roiCampanha({ investimento: r.investimento, ticket: r.ticket, margem: r.margem, vendas: r.vendas });
+    const campo = (k, rot, ph, extra = '') => `<label><span>${rot}</span><input name="roi_${k}" data-vc-roi="${k}" inputmode="decimal" value="${esc(r[k] || '')}" placeholder="${ph}"${extra}></label>`;
+    const res = !calc ? '<p class="vc-dica">Preencha o investimento, o ticket e a margem do cliente para ver em quantas vendas a Vybe se paga.</p>'
+      : `<div class="vc-roi-res"><div><small>Lucro dele por venda</small><b>${din(calc.lucroPorVenda)}</b></div>`
+        + `<div><small>Vendas a mais para pagar a Vybe</small><b>${calc.empate == null ? '—' : num(calc.empate) + ' por mês'}</b></div>`
+        + (calc.roi == null ? '' : `<div><small>Faturamento a mais</small><b>${din(calc.faturamento)}</b></div><div><small>Lucro a mais</small><b>${din(calc.lucro)}</b></div><div class="${calc.roi >= 0 ? 'bom' : 'ruim'}"><small>ROI</small><b>${calc.roi > 0 ? '+' : ''}${pc(calc.roi)}</b></div>`)
+        + '</div>';
+    return `<section class="vc-roi"><div class="vc-secao"><h3>Calculadora de ROI</h3>${orcs.length ? `<select class="vc-mini" data-vc-roi-orc aria-label="Usar o valor de um orçamento"><option value="">Usar o valor de um orçamento…</option>${orcs.map((o) => `<option value="${esc(o.id)}"${String(o.id) === String(r.orc) ? ' selected' : ''}>${esc(o.cliente_nome)} · ${din(o.totais.total_recorrente)}/mês</option>`).join('')}</select>` : ''}</div>
+      <div class="vc-roi-campos">${campo('investimento', 'Investimento mensal (R$)', '2.500')}${campo('ticket', 'Ticket de uma venda do cliente (R$)', '180')}${campo('margem', 'Margem do cliente por venda (%)', '35')}${campo('vendas', 'Vendas a mais por mês (estimativa)', '60')}</div>
+      ${res}${calc && r.orc ? '<p class="vc-dica">Este cálculo sai na proposta impressa do orçamento escolhido.</p>' : ''}</section>`;
+  }
   function abaOrcamentos(d) {
     const p = d.pode || {};
-    return `<div class="vc-secao"><h3>Orçamentos</h3>${p.editar_comercial && d.pacotes.length ? botaoNovo('Novo orçamento', 'orcamento') : ''}</div>
+    return `${roiHtml(d)}<div class="vc-secao"><h3>Orçamentos</h3>${p.editar_comercial && d.pacotes.length ? botaoNovo('Novo orçamento', 'orcamento') : ''}</div>
       ${!d.pacotes.length ? '<p class="vc-dica">Sem pacotes ativos: os donos cadastram na aba Pacotes.</p>' : ''}
       <div class="vc-lista">${d.orcamentos.map((o) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.cliente_nome)}</b>${pill(...(STATUS_ORC[o.status] || [o.status]))}</div>
         <p class="vc-grande">${o.totais.total_recorrente ? din(o.totais.total_recorrente) + '<small>/mês</small>' : ''}${o.totais.total_recorrente && o.totais.total_avulso ? ' + ' : ''}${o.totais.total_avulso ? din(o.totais.total_avulso) + '<small> avulso</small>' : ''}</p>
@@ -497,7 +650,7 @@
         <div class="tot">${t.subtotal_recorrente ? `<div><span>Recorrente</span><span>${din(t.subtotal_recorrente)}/mês</span></div>` : ''}${t.subtotal_avulso ? `<div><span>Avulso</span><span>${din(t.subtotal_avulso)}</span></div>` : ''}
         ${t.desconto ? `<div><span>Desconto (${pc(o.desconto_percentual)})</span><span>− ${din(t.desconto)}</span></div>` : ''}
         ${t.total_recorrente ? `<div class="g"><span>Total mensal</span><span>${din(t.total_recorrente)}</span></div>` : ''}${t.total_avulso ? `<div class="g"><span>Total avulso</span><span>${din(t.total_avulso)}</span></div>` : ''}</div>
-        ${o.observacoes ? `<h3>Observações</h3><p class="obs">${esc(o.observacoes)}</p>` : ''}<p class="sem"><button onclick="print()">Imprimir ou salvar em PDF</button></p></body></html>`);
+        ${o.observacoes ? `<h3>Observações</h3><p class="obs">${esc(o.observacoes)}</p>` : ''}${roiDaProposta(o)}<p class="sem"><button onclick="print()">Imprimir ou salvar em PDF</button></p></body></html>`);
       w.document.close(); setTimeout(() => { try { w.print(); } catch {} }, 300);
     }).catch((e) => { w.document.body.textContent = e.message; });
   }
@@ -562,6 +715,11 @@
       'arquivar-forn': () => confirm('Arquivar este fornecedor?') && executar(() => comercial({ acao: 'fornecedor_arquivar', id }), 'Fornecedor arquivado.'),
       'arquivar-creator': () => confirm('Arquivar este creator?') && executar(() => comercial({ acao: 'creator_arquivar', id }), 'Creator arquivado.'),
       'ir-recebimentos': () => abrir('recebimentos'),
+      metas: formMetas,
+      'form-copiar': copiarLinkFormulario,
+      'form-gerar': () => (!st.dados.funil?.mes?.formulario?.ativo || confirm('Trocar o link? O link antigo para de funcionar na hora (troque também na bio e no site).'))
+        && executar(() => comercial({ acao: 'formulario_gerar' }), 'Link do formulário pronto. Copie e ponha na bio e no site.'),
+      'form-desligar': () => confirm('Desligar o formulário? O link para de aceitar contatos até você gerar um novo.') && executar(() => comercial({ acao: 'formulario_desligar' }), 'Formulário desligado.'),
       etapas: () => { st.etapasEdit = st.dados.funil.etapas.filter((x) => !C().ETAPAS_INICIO.includes(x.id) && !['ganho', 'perdido'].includes(x.id)).map((x) => ({ ...x })); st.folha = { tipo: 'etapas' }; st.msg = ''; pintar(); },
       'salvar-etapas': () => executar(() => comercial({ acao: 'etapas_salvar', etapas: st.etapasEdit.map((x) => ({ id: x.novo ? undefined : x.id, nome: x.nome })) }), 'Etapas do funil salvas.'),
     };
@@ -578,12 +736,14 @@
   function aoDigitar(e) {
     const t = e.target;
     if (t.dataset?.vcBusca) { st.filtro[t.dataset.vcBusca] = t.value.slice(0, 60); pintar(); return; }
+    if (t.dataset?.vcRoi) { st.roi[t.dataset.vcRoi] = t.value.slice(0, 14); pintar(); return; }
     if (t.closest?.('[data-vc-form]')) atualizarAoVivo(t.closest('[data-vc-form]'));
   }
   function aoMudar(e) {
     const t = e.target;
     if (t.dataset?.vcMes !== undefined && /^\d{4}-\d{2}$/.test(t.value)) { st.periodo.mes = t.value; carregar(); return; }
     if (t.dataset?.vcFiltro) { st.filtro[t.dataset.vcFiltro] = t.value; pintar(); return; }
+    if (t.dataset?.vcRoiOrc !== undefined) { const o = (st.dados.orcamentos?.orcamentos || []).find((x) => String(x.id) === t.value); st.roi.orc = t.value; if (o) st.roi.investimento = String(o.totais.total_recorrente).replace('.', ','); pintar(); return; }
     if (t.dataset?.vcStatusOrc) { executar(() => comercial({ acao: 'orcamento_status', id: t.dataset.vcStatusOrc, status: t.value }), 'Status do orçamento salvo.'); return; }
     if (t.closest?.('[data-vc-form]')) atualizarAoVivo(t.closest('[data-vc-form]'));
   }

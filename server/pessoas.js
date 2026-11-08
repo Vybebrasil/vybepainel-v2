@@ -13,6 +13,10 @@
 //    (só dia e mês) e férias aprovadas aparecem para todos. Clima: qualquer um responde uma
 //    vez por trimestre; o resultado só sai agregado, só para a gestão e só com 3 ou mais
 //    respostas. A resposta não guarda pessoa nem hora (migração 2026-11-07-pessoas.sql).
+//    08/11/2026: prazo de resposta por tipo configurável pelos donos, data desejada, tempo médio
+//    de resposta, e a pesquisa de clima com período que os donos abrem e encerram (eNPS +
+//    liderança, comunicação, reconhecimento, carga de trabalho e ambiente), uma resposta por
+//    pessoa, mesmo anonimato e mesmo mínimo de 3 (migração 2026-11-08-rh-pedidos-clima.sql).
 //  - Projetos: todos veem; a gestão cria e edita; o responsável marca a própria etapa.
 //  - Academy: todos veem as trilhas e marcam as próprias aulas; a gestão edita e atribui.
 //  - Recrutamento e Documentos: só a gestão (dados pessoais de candidatos e contratos).
@@ -143,14 +147,52 @@ async function produtividade(sql, quem, query, estado) {
 }
 
 // ---------- RH ----------
+// Migração 2026-11-08-rh-pedidos-clima.sql: prazos configuráveis, data desejada, hora da resposta e a
+// pesquisa de clima com período. Sem ela, o RH antigo segue e a tela avisa "aguardando a migração".
+const MIGRACAO_RH = '2026-11-08-rh-pedidos-clima.sql';
+const AGUARDANDO_RH = `Esta parte do RH está aguardando a migração ${MIGRACAO_RH}. Peça ao Paulo para aplicar.`;
+const DIMS_PESQUISA = calc.DIMENSOES_PESQUISA.map(([k]) => k);
+async function prazosRh(sql, estadoRh) {
+  const linhas = await ler(estadoRh, sql`SELECT tipo, dias_uteis FROM vybe_rh_prazos`);
+  return calc.normalizarPrazos(Object.fromEntries(linhas.map((l) => [l.tipo, Number(l.dias_uteis)])));
+}
+async function pesquisasDeClima(sql, estadoRh, { gestao, eu, hoje }) {
+  const pesquisas = await ler(estadoRh, sql`SELECT id::text AS id, titulo, abre::text AS abre, fecha::text AS fecha, encerrada_em
+    FROM vybe_clima_pesquisas ORDER BY abre DESC, id DESC LIMIT 24`);
+  const lista = pesquisas.map((p) => ({ ...p, situacao: calc.situacaoPesquisa(p, hoje) }));
+  const atual = lista.find((p) => p.situacao === 'aberta') || lista.find((p) => p.situacao === 'agendada') || null;
+  const [participou] = atual ? await ler(estadoRh, sql`SELECT 1 AS sim FROM vybe_clima_pesquisa_participacao WHERE pesquisa_id = ${atual.id} AND pessoa_id = ${eu}`) : [];
+  const saida = { atual: atual && { id: atual.id, titulo: atual.titulo, abre: atual.abre, fecha: atual.fecha, situacao: atual.situacao, respondeu: Boolean(participou) },
+    dimensoes: calc.DIMENSOES_PESQUISA.map(([id, nome]) => ({ id, nome })), minimo: calc.MINIMO_CLIMA };
+  if (!gestao) return saida;
+  // Só a gestão vê resultado, só agregado e só com o mínimo de respostas. Comentários embaralhados.
+  const ids = lista.map((p) => p.id);
+  const respostas = ids.length ? await ler(estadoRh, sql`SELECT pesquisa_id::text AS pesquisa_id, enps, lideranca, comunicacao, reconhecimento, carga, ambiente, comentario
+    FROM vybe_clima_pesquisa_respostas WHERE pesquisa_id::text = ANY(${ids}::text[])`) : [];
+  const [{ n: equipe } = { n: 0 }] = await sql`SELECT count(*)::int AS n FROM vybe_pessoas WHERE ativo AND pode_entrar`;
+  const historico = calc.historicoClima(lista.map((p) => {
+    const minhas = respostas.filter((r) => r.pesquisa_id === p.id);
+    const resultado = calc.agregarClima(minhas, calc.MINIMO_CLIMA, calc.DIMENSOES_PESQUISA);
+    if (resultado.liberado) resultado.comentarios = minhas.map((r) => r.comentario).filter(Boolean).sort(() => Math.random() - .5);
+    return { id: p.id, titulo: p.titulo, abre: p.abre, fecha: p.fecha, situacao: p.situacao, resultado };
+  }));
+  return { ...saida, equipe: Number(equipe) || 0, historico };
+}
 async function rh(sql, quem, query, estado) {
   const hoje = hojeBahia(), gestao = ehGestao(quem), eu = String(quem.id);
   const trimestre = gestao && /^\d{4}-T[1-4]$/.test(String(query.trimestre || '')) ? String(query.trimestre) : calc.trimestreDe(hoje);
-  const pedidos = await ler(estado, gestao
-    ? sql`SELECT r.*, r.id::text AS id, r.pessoa_id::text AS pessoa_id, p.nome AS pessoa_nome, r.inicio::text AS inicio, r.fim::text AS fim, r.prazo::text AS prazo
-        FROM vybe_rh_pedidos r JOIN vybe_pessoas p ON p.id = r.pessoa_id ORDER BY (r.status IN ('aberto','andamento')) DESC, r.prazo, r.id DESC LIMIT 300`
-    : sql`SELECT r.*, r.id::text AS id, r.pessoa_id::text AS pessoa_id, p.nome AS pessoa_nome, r.inicio::text AS inicio, r.fim::text AS fim, r.prazo::text AS prazo
-        FROM vybe_rh_pedidos r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.pessoa_id = ${eu} ORDER BY r.id DESC LIMIT 100`);
+  const estadoRh = { provisionado: true };
+  const prazos = await prazosRh(sql, estadoRh);
+  // As colunas da migração de 08/11 (data desejada, hora da resposta) saem por to_jsonb: a mesma
+  // consulta vale antes e depois dela. O tempo de resposta usa a hora da resposta (ou, nos pedidos
+  // antigos, a última atualização, que é quando o status mudou).
+  const pedidos = await ler(estado, sql`SELECT r.*, r.id::text AS id, r.pessoa_id::text AS pessoa_id, p.nome AS pessoa_nome, r.inicio::text AS inicio, r.fim::text AS fim, r.prazo::text AS prazo,
+      (r.criado_em AT TIME ZONE 'America/Bahia')::date::text AS criado_dia, to_jsonb(r)->>'data_desejada' AS data_desejada,
+      CASE WHEN r.status IN ('resolvido','recusado') THEN (COALESCE((to_jsonb(r)->>'respondido_em')::timestamptz, r.atualizado_em) AT TIME ZONE 'America/Bahia')::date::text END AS respondido_dia
+    FROM vybe_rh_pedidos r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+    WHERE (${gestao} OR r.pessoa_id = ${eu})
+    ORDER BY (r.status IN ('aberto','andamento')) DESC, CASE WHEN r.status IN ('aberto','andamento') THEN r.prazo END, r.id DESC LIMIT ${gestao ? 300 : 100}`);
+  const pesquisa = await pesquisasDeClima(sql, estadoRh, { gestao, eu, hoje });
   const perfis = await ler(estado, sql`SELECT f.pessoa_id::text AS pessoa_id, p.nome, p.ativo, f.nascimento::text AS nascimento, f.entrada::text AS entrada, f.saida::text AS saida
     FROM vybe_rh_perfil f JOIN vybe_pessoas p ON p.id = f.pessoa_id`);
   const ferias = await ler(estado, sql`SELECT r.pessoa_id::text AS pessoa_id, p.nome, r.inicio::text AS inicio, r.fim::text AS fim
@@ -160,8 +202,16 @@ async function rh(sql, quem, query, estado) {
   const meu = perfis.find((p) => p.pessoa_id === eu);
   const saida = {
     hoje, gestao,
-    tipos: Object.entries(calc.TIPOS_RH).map(([id, [nome, dias]]) => ({ id, nome, dias })), status: calc.STATUS_RH,
-    pedidos: pedidos.map((r) => ({ ...r, sla: calc.situacaoSla(r, hoje) })),
+    // `formulario`: os tipos que se abrem hoje (os outros só aparecem em pedidos antigos).
+    tipos: Object.entries(calc.TIPOS_RH).map(([id, [nome]]) => ({ id, nome, dias: prazos[id], formulario: calc.TIPOS_PEDIDO.includes(id) })), status: calc.STATUS_RH,
+    pedidos: pedidos.map((r) => ({ ...r, sla: calc.situacaoSla(r, hoje),
+      atrasoUteis: calc.situacaoSla(r, hoje) === 'atrasado' ? calc.diasUteisEntre(r.prazo, hoje) : 0,
+      idadeDias: r.criado_dia ? Math.max(0, calc.util.diasEntre(r.criado_dia, hoje)) : null })),
+    // Números da fila: de todos para a gestão; dos próprios pedidos para quem pediu.
+    indicadores: calc.indicadoresPedidos(pedidos, hoje),
+    // false = a migração de 08/11 ainda não foi aplicada (prazos fixos, sem reembolso, sem pesquisa com período).
+    rhPronto: estadoRh.provisionado, migracaoRh: MIGRACAO_RH,
+    pesquisa,
     aniversarios: perfis.filter((p) => p.ativo && p.nascimento).map((p) => ({ pessoa_id: p.pessoa_id, nome: p.nome, dia: p.nascimento.slice(5) }))
       .sort((a, b) => a.dia.localeCompare(b.dia)),
     ferias,
@@ -182,7 +232,7 @@ async function rh(sql, quem, query, estado) {
   const resultado = calc.agregarClima(respostas);
   // Comentários só junto do resultado liberado, embaralhados e sem nada que ligue à pessoa.
   if (resultado.liberado) resultado.comentarios = respostas.map((r) => r.comentario).filter(Boolean).sort(() => Math.random() - .5);
-  return { ...saida, perfis: perfis.map(({ ativo, ...p }) => p), pessoas: (await pessoasAtivas(sql, estado)).map(({ id, nome }) => ({ id, nome })),
+  return { ...saida, prazos, perfis: perfis.map(({ ativo, ...p }) => p), pessoas: (await pessoasAtivas(sql, estado)).map(({ id, nome }) => ({ id, nome })),
     visao: { periodo, ...calc.indicadoresRh(quadro, periodo), semEntrada: quadro.filter((p) => !p.entrada).length },
     climaResultado: { trimestre, ...resultado } };
 }
@@ -286,25 +336,105 @@ async function escrever(sql, quem, b) {
       await sql.comTransacao((tx) => gravarConfig(tx, quem, 'etapas_recrutamento', v)); return { etapas: v };
     }
     case 'pedido_criar': {
-      const tipo = umDe(b.tipo, Object.keys(calc.TIPOS_RH), 'Tipo'), titulo = texto(b.titulo, 200, 'Assunto', true), descricao = texto(b.descricao, 2000, 'Descrição');
-      const inicio = data(b.inicio, 'Início', tipo === 'ferias'), fim = data(b.fim, 'Fim', tipo === 'ferias');
-      if (inicio && fim && fim < inicio) falhar('O fim vem depois do início.');
-      const [r] = await sql`INSERT INTO vybe_rh_pedidos (pessoa_id, tipo, titulo, descricao, inicio, fim, prazo)
-        VALUES (${eu}, ${tipo}, ${titulo}, ${descricao}, ${inicio}::date, ${fim}::date, ${calc.prazoSla(tipo, hoje)}::date) RETURNING id::text AS id, prazo::text AS prazo`;
-      return r;
+      // Tipos do formulário (férias/folga, documento, reembolso, equipamento, outro); "folha" e
+      // "beneficio" ficam só nos pedidos antigos.
+      const tipo = umDe(b.tipo, calc.TIPOS_PEDIDO, 'Tipo'), titulo = texto(b.titulo, 200, 'Assunto', true), descricao = texto(b.descricao, 2000, 'Descrição');
+      const inicio = data(b.inicio, 'Primeiro dia', tipo === 'ferias'), fim = data(b.fim, 'Último dia', tipo === 'ferias');
+      if (inicio && fim && fim < inicio) falhar('O último dia vem depois do primeiro.');
+      const desejada = tipo === 'ferias' ? null : data(b.data_desejada, 'Data desejada');
+      const estadoRh = { provisionado: true }, prazo = calc.prazoSla(tipo, hoje, await prazosRh(sql, estadoRh));
+      try {
+        const [r] = await sql`INSERT INTO vybe_rh_pedidos (pessoa_id, tipo, titulo, descricao, inicio, fim, prazo, data_desejada)
+          VALUES (${eu}, ${tipo}, ${titulo}, ${descricao}, ${inicio}::date, ${fim}::date, ${prazo}::date, ${desejada}::date) RETURNING id::text AS id, prazo::text AS prazo`;
+        return r;
+      } catch (e) {
+        // Antes da migração de 08/11: sem a coluna da data desejada (vai na descrição) e sem o tipo reembolso.
+        if (e?.code === '23514' && tipo === 'reembolso') falhar('Reembolso ' + AGUARDANDO_RH.charAt(0).toLowerCase() + AGUARDANDO_RH.slice(1), 503);
+        if (e?.code !== '42703') throw e;
+        if (tipo === 'reembolso') falhar(AGUARDANDO_RH, 503);
+        const desc = desejada ? `${descricao}${descricao ? '\n' : ''}Data desejada: ${desejada.slice(8, 10)}/${desejada.slice(5, 7)}/${desejada.slice(0, 4)}`.slice(0, 2000) : descricao;
+        const [r] = await sql`INSERT INTO vybe_rh_pedidos (pessoa_id, tipo, titulo, descricao, inicio, fim, prazo)
+          VALUES (${eu}, ${tipo}, ${titulo}, ${desc}, ${inicio}::date, ${fim}::date, ${prazo}::date) RETURNING id::text AS id, prazo::text AS prazo`;
+        return r;
+      }
     }
     case 'pedido_status': {
       const id = idValido(b.id), status = umDe(b.status, Object.keys(calc.STATUS_RH), 'Status'), resposta = texto(b.resposta, 2000, 'Resposta');
+      // Recusar pede o motivo: quem pediu precisa saber por quê.
+      if (status === 'recusado' && !resposta) falhar('Escreva o motivo da recusa para quem pediu.');
+      const respondeu = ['resolvido', 'recusado'].includes(status);
+      // Hora da resposta (tempo médio): a coluna só existe depois da migração de 08/11.
+      const comHora = respondeu && (await sql`SELECT 1 AS sim FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'vybe_rh_pedidos' AND column_name = 'respondido_em'`).length > 0;
       return sql.comTransacao(async (tx) => {
         const [p] = await tx`SELECT pessoa_id::text AS pessoa_id, status FROM vybe_rh_pedidos WHERE id = ${id} FOR UPDATE`;
         if (!p) falhar('Pedido não encontrado.', 404);
         const proprio = p.pessoa_id === eu;
         // Quem pediu só cancela o próprio pedido ainda aberto; o resto é da gestão.
         if (!gestao && !(proprio && status === 'cancelado' && p.status === 'aberto')) falhar('Só a gestão responde pedidos ao RH.', 403);
+        if (calc.ENCERRADOS_RH.includes(p.status) && status !== p.status) falhar('Este pedido já foi encerrado.', 409);
         await tx`UPDATE vybe_rh_pedidos SET status = ${status}, resposta = CASE WHEN ${resposta} = '' THEN resposta ELSE ${resposta} END,
           respondido_por = ${gestao ? eu : null}, atualizado_em = now() WHERE id = ${id}`;
+        if (comHora) await tx`UPDATE vybe_rh_pedidos SET respondido_em = COALESCE(respondido_em, now()) WHERE id = ${id}`;
         return { id, status };
       });
+    }
+    case 'prazos_rh': {
+      soGestao(); const erro = calc.validarPrazos(b.prazos); if (erro) falhar(erro);
+      const v = Object.fromEntries(calc.TIPOS_PEDIDO.map((k) => [k, b.prazos[k]]));
+      try {
+        await sql.comTransacao(async (tx) => {
+          for (const [tipo, dias] of Object.entries(v)) await tx`INSERT INTO vybe_rh_prazos (tipo, dias_uteis, atualizado_por, atualizado_em) VALUES (${tipo}, ${dias}, ${eu}, now())
+            ON CONFLICT (tipo) DO UPDATE SET dias_uteis = EXCLUDED.dias_uteis, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
+        });
+      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+      // Vale para os pedidos novos; quem já pediu mantém o prazo que recebeu.
+      return { prazos: v };
+    }
+    case 'pesquisa_abrir': {
+      soGestao();
+      const p = { titulo: typeof b.titulo === 'string' ? b.titulo.trim() : b.titulo, abre: b.abre || hoje, fecha: b.fecha };
+      const erro = calc.validarPesquisa(p, hoje); if (erro) falhar(erro);
+      try {
+        return await sql.comTransacao(async (tx) => {
+          // Uma pesquisa por vez: se há outra aberta ou agendada, os donos encerram antes.
+          const [outra] = await tx`SELECT id FROM vybe_clima_pesquisas WHERE encerrada_em IS NULL AND fecha >= ${hoje}::date LIMIT 1`;
+          if (outra) falhar('Já existe uma pesquisa aberta ou agendada. Encerre a atual antes de abrir outra.', 409);
+          const [r] = await tx`INSERT INTO vybe_clima_pesquisas (titulo, abre, fecha, criada_por) VALUES (${p.titulo}, ${p.abre}::date, ${p.fecha}::date, ${eu}) RETURNING id::text AS id`;
+          return r;
+        });
+      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+    }
+    case 'pesquisa_encerrar': {
+      soGestao(); const id = idValido(b.id, 'Pesquisa');
+      try {
+        const [ok] = await sql`UPDATE vybe_clima_pesquisas SET encerrada_em = COALESCE(encerrada_em, now()) WHERE id = ${id} RETURNING id::text AS id`;
+        if (!ok) falhar('Pesquisa não encontrada.', 404);
+        return ok;
+      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+    }
+    case 'pesquisa_responder': {
+      // Anônima: a resposta vai sem pessoa e sem hora; a participação (para não votar duas vezes)
+      // vai sem a resposta e sem hora, em tabela separada.
+      const id = idValido(b.pesquisa_id, 'Pesquisa');
+      const r = { enps: b.enps, comentario: b.comentario ?? '', ...Object.fromEntries(DIMS_PESQUISA.map((k) => [k, b[k]])) };
+      const erro = calc.validarResposta(r, calc.DIMENSOES_PESQUISA); if (erro) falhar(erro);
+      const comentario = r.comentario.trim();
+      try {
+        await sql.comTransacao(async (tx) => {
+          const [p] = await tx`SELECT abre::text AS abre, fecha::text AS fecha, encerrada_em FROM vybe_clima_pesquisas WHERE id = ${id}`;
+          if (!p) falhar('Pesquisa não encontrada.', 404);
+          if (calc.situacaoPesquisa(p, hoje) !== 'aberta') falhar('Esta pesquisa não está aberta para respostas.', 409);
+          await tx`INSERT INTO vybe_clima_pesquisa_participacao (pesquisa_id, pessoa_id) VALUES (${id}, ${eu})`;
+          await tx`INSERT INTO vybe_clima_pesquisa_respostas (pesquisa_id, enps, lideranca, comunicacao, reconhecimento, carga, ambiente, comentario)
+            VALUES (${id}, ${r.enps}, ${r.lideranca}, ${r.comunicacao}, ${r.reconhecimento}, ${r.carga}, ${r.ambiente}, ${comentario})`;
+        });
+      } catch (e) {
+        if (e?.code === '23505') falhar('Você já respondeu esta pesquisa. Obrigado!', 409);
+        if (semTabela(e)) falhar(AGUARDANDO_RH, 503);
+        throw e;
+      }
+      return { pesquisa_id: id };
     }
     case 'perfil': {
       const alvo = b.pessoa_id ? idValido(b.pessoa_id, 'Pessoa') : eu;
