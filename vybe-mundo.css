@@ -4346,7 +4346,6 @@ body.mundo.mundo-visivel:not(.mundo-centro) #mundo > *{display:none!important}
 body.mundo.mundo-visivel:not(.mundo-centro) #mode-gate{background:var(--vv-palco-fundo)!important}
 body.mundo:not(.mundo-centro) .vv-controles,body.mundo:not(.mundo-centro) .vv-vistas,body.mundo:not(.mundo-centro) .vv-divisor,
 body.mundo:not(.mundo-centro) [data-ferr="camadas"]{display:none!important}
-body.mundo.mundo-centro .vv-hoje{display:none}
 /* Hoje em tela cheia, com a agenda como coluna à direita */
 body.mundo:not(.mundo-centro) .vv-hoje{left:var(--vv-palco-esq);top:var(--vv-m);right:calc(var(--vv-m) * 2 + 300px);bottom:var(--vv-m);width:auto;padding:24px 28px 34px;background:rgba(255,255,255,.62);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 body.mundo:not(.mundo-centro) .vv-agenda{top:var(--vv-palco-topo);bottom:var(--vv-m);max-height:none;overflow:auto;background:rgba(255,255,255,.62);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
@@ -4385,7 +4384,11 @@ body.mundo.mundo-centro #mundo{background:linear-gradient(180deg,#9FD3F0 0%,#CBE
 .mundo-rotulo.rotulo-loja.atrasada{border-color:#E5484D;box-shadow:0 0 0 2px rgba(229,72,77,.25),0 6px 16px rgba(31,29,26,.16)}
 .loja-bolinhas{display:flex;gap:3px}
 .loja-bolinhas i{min-width:18px;height:18px;padding:0 4px;border-radius:6px;display:grid;place-items:center;background:var(--c);color:#fff;font:700 10px/1 var(--vv-texto);font-style:normal;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
-body.mundo.mundo-centro .vv-agenda{display:none}
+/* No Centro o Hoje (esquerda) e a Agenda (direita) continuam à vista (Paulo, 08/11/2026); a Agenda sai da frente só
+   quando o painel do prédio/andar abre no mesmo canto. */
+body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-agenda{display:none}
+/* A Agenda termina acima dos controles do mapa (zoom, girar, tudo, hora): nada cobre os botões; o resto rola. */
+body.mundo.mundo-centro .vv-agenda{max-height:calc(100% - var(--vv-m) - 60px - 340px);overflow:auto;scrollbar-width:thin}
 
 /* ---------- Datas comemorativas na agenda (vybe-datas-comemorativas.js): menos destaque que compromisso ---------- */
 .vd-chips{display:flex;gap:3px;align-items:center;min-width:0;margin:2px 0}

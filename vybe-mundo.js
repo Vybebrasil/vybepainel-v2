@@ -665,9 +665,14 @@
   function ajustarAreaLivre() {
     if (!mundo) return;
     const celular = innerWidth <= 900;
-    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : centroAberto ? hud.querySelector('.vv-trilho') : hud.querySelector('#vv-hoje');
+    // À esquerda, o que estiver à vista por último: o Hoje (também no Centro) ou o trilho; à direita, o painel do
+    // prédio/andar ou, sem ele, a Agenda.
+    const visivelEl = (el) => el && el.offsetParent !== null && getComputedStyle(el).display !== 'none';
+    const hoje = hud.querySelector('#vv-hoje');
+    const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : visivelEl(hoje) ? hoje : hud.querySelector('.vv-trilho');
     const esq = celular ? 0 : (gate?.getBoundingClientRect().right || 0) + 6;
-    const dir = !celular && !placa().hidden ? placa().offsetWidth + 20 : 0;
+    const agenda = hud.querySelector('#vv-agenda');
+    const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
     mundo.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
     body.style.setProperty('--vv-livre-esq', Math.round(esq) + 'px'); body.style.setProperty('--vv-livre-dir', Math.round(dir) + 'px');
   }
