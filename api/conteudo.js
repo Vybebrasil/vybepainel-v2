@@ -2,6 +2,7 @@ import { registrarFalhaDeEncaminhamento } from '../server/falhas-automacoes.js';
 import { substituirClientes } from '../server/clientes-conteudo.js';
 import { substituirResponsaveis } from '../server/responsaveis.js';
 import { trocarObjetivo } from '../server/conteudo-objetivo.js';
+import { garantirMigracoesIrecity } from '../server/migracoes-irecity.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -1022,6 +1023,7 @@ export default async function handler(req, res) {
     // Objetivo da peça (Atração, Educação ou Conversão): server/conteudo-objetivo.js.
     if (acao === 'objetivo') {
       try {
+        await garantirMigracoesIrecity(sql);
         return res.status(200).json({ ok: true, acao, ...(await trocarObjetivo(sql, quem, { item, objetivo: corpo.objetivo })) });
       } catch (erro) { return res.status(erro.status || 500).json({ error: erro.message }); }
     }
@@ -1043,7 +1045,7 @@ export default async function handler(req, res) {
       // jeito e a resposta avisa que o objetivo ficou de fora.
       let aviso_objetivo;
       if (corpo.objetivo && criado?.conteudo_id) {
-        try { await trocarObjetivo(sql, quem, { item: `vybe:${criado.conteudo_id}`, objetivo: corpo.objetivo }); }
+        try { await garantirMigracoesIrecity(sql); await trocarObjetivo(sql, quem, { item: `vybe:${criado.conteudo_id}`, objetivo: corpo.objetivo }); }
         catch (erro) { aviso_objetivo = erro.message; }
       }
       return res.status(200).json({ ok: true, acao, ...criado, ...(aviso_objetivo ? { aviso_objetivo } : {}) });
