@@ -68,7 +68,7 @@
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     // id do cadastro: a logo do Drive sai por /api/painel?area=logo&c=<id> (a mesma da capa do planejamento).
     const logoDe = (c) => { const id = String(c.id ?? c.cliente_id ?? ''); return /^\d{1,18}$/.test(id) ? `/api/painel?area=logo&c=${id}` : ''; };
-    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), personagem: c.identidade?.personagem?.figura || '', total: 0, por: {}, situacao: 'concluida' });
+    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), personagem: c.personagem || c.identidade?.personagem?.figura || '', total: 0, por: {}, situacao: 'concluida' });
     const semCadastro = !cadastro.length; // demonstração / cadastro ainda não carregado
     const vistos = new Set();
     const hoje = hojeIso();
@@ -1042,8 +1042,9 @@
     el.innerHTML = `<div class="andar-palco"><canvas aria-label="${esc(a.nome)} por dentro"></canvas></div>
       <header class="vv-ilha andar-topo"><button type="button" class="vv-botao andar-voltar" data-sair-andar hidden>← Voltar ao prédio</button>
         <span><small>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'}</small><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b></span>
-        <span class="andar-voz" id="andar-voz"></span>${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</header>
-      <p class="andar-dica">Todo mundo do andar aparece aqui. Clique numa sala para entrar nela: a voz liga só com quem está na mesma sala.</p>`;
+        <span class="andar-voz" id="andar-voz"></span>
+        ${zonas.some((z) => z.dono) || minhaSala ? `<span class="andar-acoes">${zonas.some((z) => z.dono) ? '<button type="button" class="vv-botao" data-arrumar aria-pressed="false" title="Esconde a decoração das salas e mostra só a planta">Vista arrumada</button>' : ''}${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</span>` : ''}
+        <small class="andar-dica">${zonas.length ? 'Todo mundo do andar aparece aqui. Clique numa sala para entrar: a voz liga só com quem está nela.' : 'Os agentes do setor nas mesas. Clique numa mesa para ver o dia do agente.'}</small></header>`;
     body.append(el); body.classList.add('mundo-andar');
     window.VybeTutorial?.dica?.('andar');
     const m = await import(MUNDO_JS);
@@ -1063,7 +1064,14 @@
     });
     el.querySelector('[data-sair-andar]').addEventListener('click', () => sairDoAndar());
     trocarBotaoDoAndar();
-    el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
+    el.querySelector('[data-arrumar]')?.addEventListener('click', (ev) => {
+      const b = ev.currentTarget, sim = b.getAttribute('aria-pressed') !== 'true';
+      if (!andarAberto?.arrumada) return; // o andar ainda está montando
+      andarAberto.arrumada(sim); b.setAttribute('aria-pressed', String(sim)); b.textContent = sim ? 'Ver a decoração' : 'Vista arrumada';
+    });
+    el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => {
+      // Decorar mostra a decoração de novo (a sala em edição precisa dos móveis à vista).
+      const arr = el.querySelector('[data-arrumar][aria-pressed="true"]'); if (arr) arr.click(); window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
     const pintar = () => {
       if (!andarAberto) return;
       const voltar = el.querySelector('.andar-voltar'), semPainel = placa().hidden || !placa().querySelector('[data-sair-andar]');

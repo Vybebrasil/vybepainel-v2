@@ -218,15 +218,26 @@ export class Obra {
     return this;
   }
   // Monta as duas malhas. 'raiz' recebe posição/rotação da sede inteira.
-  montar({ sombra = true } = {}) {
+  // pedacos: divide os blocos numa grade de pedacos × pedacos pelo centro de cada um (só para obras grandes, como o
+  // chão do Centro). Cada pedaço tem o próprio limite e a placa de vídeo pula os que estão fora da tela (de perto,
+  // desenha só o pedaço à vista, inclusive na sombra).
+  montar({ sombra = true, pedacos = 1 } = {}) {
     const raiz = new THREE.Group();
-    const unir = (lista, material, s) => {
-      if (!lista.length) return;
+    const umaMalha = (lista, material, s) => {
       const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material, lista.length);
       const m = new THREE.Matrix4(), c = new THREE.Color();
       lista.forEach((b, k) => { m.makeScale(b.w, b.h, b.d); m.setPosition(b.x, b.y + b.h / 2, b.z); mesh.setMatrixAt(k, m); mesh.setColorAt(k, c.set(b.cor)); });
-      mesh.castShadow = s; mesh.receiveShadow = true;
+      mesh.castShadow = s; mesh.receiveShadow = true; mesh.computeBoundingSphere();
       raiz.add(mesh);
+    };
+    const unir = (lista, material, s) => {
+      if (!lista.length) return;
+      if (pedacos < 2 || lista.length < 400) { umaMalha(lista, material, s); return; }
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const b of lista) { x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x); z0 = Math.min(z0, b.z); z1 = Math.max(z1, b.z); }
+      const grupos = new Map(), passo = (v, a, b2) => Math.min(pedacos - 1, Math.floor((v - a) / Math.max(1e-6, b2 - a) * pedacos));
+      for (const b of lista) { const k = passo(b.x, x0, x1) * pedacos + passo(b.z, z0, z1); if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(b); }
+      for (const g of grupos.values()) umaMalha(g, material, s);
     };
     unir(this.solidos, materialVoxel(), sombra);
     unir(this.luzes, new THREE.MeshBasicMaterial({ toneMapped: false }), false);

@@ -209,6 +209,9 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const cena = new THREE.Scene();
   let sujo = true; // algo mudou e a cena precisa ser desenhada de novo (ver passo)
+  // Vista arrumada (Paulo, 08/11/2026: o andar do time "embolado"): esconde a decoração e os móveis das salas e
+  // deixa só a planta (pisos, paredes, placas e as pessoas). Não muda nada salvo; a sala em edição sempre aparece.
+  let arrumado = false;
   cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
   const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 18, D + 10); sol.target.position.set(W / 2, 0, D / 2);
   sol.castShadow = true; sol.shadow.mapSize.set(4096, 4096); const s = Math.max(W, D); Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0005;
@@ -334,7 +337,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     // Piso escolhido pelo dono (sala_piso do Escritório, as duas cores do ladrilho); sem escolha, o de sempre.
     const [a, b] = Array.isArray(sl.piso) && sl.piso.length === 2 && sl.piso.every(ehCor) ? sl.piso : pessoal ? PISO_PESSOAL : PISO_COMUM;
     for (let x = 0; x < LADO_SALA; x++) for (let z = 0; z < LADO_SALA; z++) o.caixa(x + .5, -.09, z + .5, .98, .08, .98, (x + z) % 2 ? a : b);
-    if (!sl.decorada && ed?.sl !== sl) mobiliar(o, sl.tipo, LADO_SALA, LADO_SALA, sl.perfil);
+    if (!sl.decorada && ed?.sl !== sl && !arrumado) mobiliar(o, sl.tipo, LADO_SALA, LADO_SALA, sl.perfil);
     // Divisórias: frente e lado direito de vidro baixo (todo mundo se vê), com vão de porta. A mureta leva a
     // cor das paredes que o dono escolheu (sala_parede).
     // Meia parede mais alta entre as salas (o andar do time ficava embolado), com o tampo na cor da parede do dono.
@@ -356,6 +359,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     if (sl.grupo) { cena.remove(sl.grupo); liberar(sl.grupo); }
     sl.grupo = new THREE.Group(); sl.grupo.position.set(sl.ox, 0, sl.oz); sl.vis = [];
     if (sl.decorada || ed?.sl === sl) (sl.itens || []).forEach((it, i) => { const m = malhaDoItem(it, sl.L); if (!m) return; m.userData.item = i; sl.grupo.add(m); sl.vis[i] = m; });
+    sl.grupo.visible = !arrumado || ed?.sl === sl;
     cena.add(sl.grupo);
   }
   for (const sl of salas) {
@@ -744,6 +748,11 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
       montarItens(sl);
     },
     // Piso (as duas cores do ladrilho) e cor das paredes da sala; null volta ao de sempre.
+    arrumada(sim) {
+      const novo = Boolean(sim); if (novo === arrumado) return arrumado;
+      arrumado = novo; for (const sl of salas) { montarBase(sl); if (sl.grupo) sl.grupo.visible = !arrumado || ed?.sl === sl; }
+      sujo = true; return arrumado;
+    },
     definirAcabamento(sala, { piso = null, parede = null } = {}) {
       const sl = salas.find((x) => x.id === sala);
       if (!sl) return;
