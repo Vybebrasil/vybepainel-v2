@@ -352,6 +352,8 @@
   // semana, clientes com problema, gargalos, o que cobrar de cada um e dos bots), não a fila pessoal.
   // "Minhas tarefas" continua a um toque. Os números vêm de VybeDono.calcular (vybe-dono-metricas.js).
   // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome.
+  // Primeiro nome só para casar a agenda e os filtros por pessoa (NUNCA para decidir dono).
+  const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
   function souDono() {
     try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; }
   }
