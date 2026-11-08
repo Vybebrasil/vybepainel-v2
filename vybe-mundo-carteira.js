@@ -511,10 +511,10 @@
   // Topo da aba quando o Vybe Finanças está ligado: de onde vêm os contratos e quem ficou sem par.
   function finContratosHtml(f) {
     if (!f) return '';
-    const ligados = (f.contratos || []).filter((c) => c.cliente_id).length, sem = f.ligacao?.sem_par?.length || 0;
+    const ligados = (f.contratos || []).filter((c) => c.cliente_id).length, sem = f.ligacao?.sem_par?.length || 0, falta = f.ligacao?.vybe_sem_par?.length || 0;
     return `<section class="vc-secao"><div class="vc-secao-topo"><h3>Contratos do Vybe Finanças</h3>${etiqueta('fonte: Vybe Finanças', 'u4')}</div>
       <div class="vc-kpis">${kpi('No Finanças', (f.contratos || []).length, null, { comparar: false, espiar: 'financas:carteira:contratos' })}${kpi('Ligados a clientes do Vybe OS', ligados, null, { comparar: false })}
-        ${kpi('No Finanças, sem par no Vybe OS', sem, null, { comparar: false, nivel: sem ? 'u2' : '', espiar: 'financas:carteira:sempar' })}</div>
+        ${kpi('No Finanças, sem par no Vybe OS', sem, null, { comparar: false, nivel: sem ? 'u2' : '', espiar: 'financas:carteira:sempar' })}${kpi('Ativos no Vybe OS, faltando no Finanças', falta, null, { comparar: false, nivel: falta ? 'u2' : '', espiar: 'financas:carteira:faltafin' })}</div>
       ${nota('Ligação pelo CNPJ quando os dois cadastros têm; senão pelo nome (sem acento, sem ltda/me/eireli). Quem ficou sem par: confira o nome ou o CNPJ no cadastro do cliente.')}</section>`;
   }
   function abaContratos() {

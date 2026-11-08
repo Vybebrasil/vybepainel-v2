@@ -124,6 +124,7 @@
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
     { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
+      { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade' },
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
       { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
       { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
@@ -155,7 +156,6 @@
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
-      { id: 'gestor', nome: 'Gestor', dica: 'Prioridades, prazos e capacidade' },
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
     ] },
     { id: 'setor:pessoas', grupo: 'Time', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
@@ -221,7 +221,7 @@
     if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
     if (centroAberto) fecharCentro();
     if (!gestao.hidden) fecharGestao();
-    window.VybeAgentes?.fechar?.(); fecharJanelasDeModulo(); fecharSetor();
+    limparTela();
     marcarTrilho(id);
     window.VybeSetor.abrir(id, { nome: t.nome, dica: t.dica, subs: (t.sub || []).filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
       abrirSub: (sub) => usarTrilho(sub), aoFechar: () => usarTrilho('hoje') });
@@ -250,10 +250,30 @@
     document.addEventListener?.('click', (ev) => { if (hud.querySelector('.vv-setor') && !ev.target.closest?.('.vv-setor,[data-trilho^="setor:"]')) fecharSetor(); }, true);
     document.addEventListener?.('keydown', (ev) => { if (ev.key === 'Escape' && hud.querySelector('.vv-setor')) { fecharSetor(); ev.stopPropagation(); } }, true);
   }
-  function usarTrilho(id, botao) {
+  // Uma tela por vez (Paulo, 08/11/2026: "menu que se sobrepõe", "aparece menu do legado"): toda navegação fecha o
+  // que estava aberto (visão geral, Gestão, Agentes, janelas dos módulos, a lista do setor, a ficha e o menu do topo
+  // antigo) e sai da tela antiga antes de abrir outra coisa. Antes as janelas se empilhavam e a tela antiga que ficava
+  // atrás remarcava o dock.
+  const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
+  function limparTela() {
+    fecharDaDireita();
+    window.VybeSetor?.fechar?.();
+    if (!gestao.hidden) fecharGestao();
+    window.VybeAgentes?.fechar?.();
+    fecharJanelasDeModulo(); fecharSetor();
+    try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
+    document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
+  }
+  function usarTrilho(id, botao, saiuDaAntiga = false) {
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     if (String(id).startsWith('setor:')) { if (dockLargo()) abrirVisaoSetor(id); else abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
-    if (id !== 'criar' && id !== 'vybes') window.VybeSetor?.fechar?.();
+    if (id !== 'criar' && id !== 'vybes') {
+      limparTela();
+      // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
+      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && id !== 'centro' && id !== 'predio' && body.classList.contains('mundo-modulo')) {
+        chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
+      }
+    }
     window.VybeTutorial?.dica?.('trilho:' + id);
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
@@ -453,6 +473,7 @@
     el.innerHTML = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
       <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
+      ${compromissosHtml()}
       <div class="vv-dono-kpis">
         <button type="button" class="u1" data-abrir-gestao="hoje" data-espiar="atrasadas"><b>${n0(H.atrasadas)}</b><small>atrasadas</small></button>
         <button type="button" class="u2" data-abrir-gestao="hoje" data-espiar="emRisco"><b>${n0(H.emRisco)}</b><small>risco de furo</small></button>
@@ -688,6 +709,33 @@
   if (typeof setInterval === 'function') setInterval(() => { if (!gestao.hidden) pintarGestao(); }, 60000);
 
   let diaEscolhido = '';
+  function meusCompromissos() {
+    let eventos; try { eventos = agendaEventos; } catch { return []; } // a agenda ainda não foi lida
+    if (!Array.isArray(eventos)) return [];
+    const lista = typeof TEAM_USERS !== 'undefined' && Array.isArray(TEAM_USERS) ? TEAM_USERS : [];
+    const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
+    const quem = primeiroNome(verComo ? lista.find((x) => String(x.id) === verComo)?.name : (u?.name || u?.nome)).replace(/[^a-z]/g, '');
+    if (!quem) return [];
+    const time = lista.map((x) => primeiroNome(x.name || x.nome));
+    const unico = time.filter((n) => n === quem).length <= 1;
+    const semAcento = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const citado = (e) => unico && new RegExp('\\b' + quem + '\\b').test(semAcento(e.titulo));
+    const mizinho = quem === 'ademir' || quem === 'mizinho';
+    const hm = new Date().toTimeString().slice(0, 5), hoje = hojeIso();
+    return eventos.filter((e) => (e.dia > hoje || !e.fim || e.fim >= hm)
+      && (citado(e) || (mizinho && (e.tipo === 'captacao' || /\bmizinho\b/.test(semAcento(e.titulo)))) || (quem === 'paulo' && e.tipo !== 'captacao')))
+      .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00')));
+  }
+  function compromissosHtml() {
+    if (!verComo && agendaFixa()) return ''; // o Mizinho já tem a Agenda fixa ao lado
+    const lista = meusCompromissos(); if (!lista.length) return '';
+    const hoje = hojeIso(), amanha = somar(hoje, 1);
+    return `<section class="vv-compromissos" aria-label="Seus compromissos"><div class="vv-rotulo-secao" style="--c:#1A8FA0"><i></i>Seus compromissos<span class="vv-pilula">${lista.length}</span></div>
+      ${lista.slice(0, 3).map((e) => {
+        const quando = e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', '');
+        return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}"><small>${esc(quando + (e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : ''))} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
+      }).join('')}${lista.length > 3 ? `<button type="button" class="vv-mais" data-hoje-acao="agenda">+ ${lista.length - 3} na agenda</button>` : ''}</section>`;
+  }
   function pintarHoje() {
     const el = hud.querySelector('#vv-hoje'); if (!el || body.classList.contains('mundo-cartoes')) return;
     const fila = minhaFila(), hoje = hojeIso(), agora = new Date();
@@ -736,6 +784,7 @@
     el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
+      ${compromissosHtml()}
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
       ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
       <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
@@ -787,6 +836,10 @@
       <div class="vv-espaco"></div>
       <div class="vv-ilha vv-barra-topo">
       <div class="vv-ferramentas" role="group" aria-label="Ferramentas">
+        <button type="button" class="vv-botao vv-ferr-mic" data-ferr="mic" hidden aria-pressed="false" title="Microfone" aria-label="Microfone">${svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}</button>
+        <button type="button" class="vv-botao vv-ferr-voz" data-ferr="voz" aria-expanded="false" title="Sala de voz: quem está com você, microfone, música e TV" aria-label="Sala de voz">${svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>')}<i class="vv-voz-ponto" aria-hidden="true"></i></button>
+        <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}</button>
+        <span class="vv-divisor" aria-hidden="true"></span>
         <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="conversa" title="Conversa da equipe e recados" aria-label="Conversa da equipe">${svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
@@ -844,7 +897,7 @@
     const gate = body.classList.contains('mundo-cartoes') ? document.querySelector('#mode-gate .identity-shell') : visivelEl(hoje) ? hoje : hud.querySelector('.vv-trilho');
     const esq = celular ? 0 : (gate?.getBoundingClientRect().right || 0) + 6;
     const agenda = hud.querySelector('#vv-agenda');
-    const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
+    const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : body.classList.contains('agenda-fixa') && visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
     mundo.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
     body.style.setProperty('--vv-livre-esq', Math.round(esq) + 'px'); body.style.setProperty('--vv-livre-dir', Math.round(dir) + 'px');
   }
@@ -1168,6 +1221,8 @@
   const TIPO_NOME = { captacao: 'Captação', reuniao: 'Reunião', outro: 'Compromisso' };
   let agendaEm = 0, agendaEventos = null;
   async function carregarAgenda(forcar = false) {
+    const fixa = agendaFixa();
+    if (body.classList.contains('agenda-fixa') !== fixa) { body.classList.toggle('agenda-fixa', fixa); ajustarAreaLivre(); }
     if (!forcar && agendaEventos && Date.now() - agendaEm < 5 * 60e3) return pintarAgenda();
     const hoje = mundo?.diaNaBahia?.() || hojeIso();
     try {
@@ -1176,7 +1231,7 @@
       if (!r.ok) throw new Error(d?.error || 'Agenda indisponível.');
       agendaEventos = (d.agenda || []).filter((e) => e.dia >= hoje); agendaEm = Date.now();
     } catch (e) { agendaEventos = null; hud.querySelector('#vv-agenda-lista').innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; return; }
-    pintarAgenda();
+    pintarAgenda(); pintarHoje();
     const hoje2 = mundo?.diaNaBahia?.() || hojeIso();
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
       .map((e) => ({ cliente: e.cliente, dia: e.dia, inicio: e.inicio || '', fim: e.fim || '' })));
@@ -1680,7 +1735,32 @@
     });
     setTimeout(() => document.addEventListener('click', function fora(e) { if (!e.target.closest('.vv-menu-tema, [data-ferr="aparencia"]')) { m.remove(); document.removeEventListener('click', fora); } }), 0);
   }
+  // Coluna da direita na barra de cima (Paulo, 08/11/2026: "essas coisas da direita não precisam ficar fixas, o foco é
+  // no que tá aberto"). A Agenda e a barra da sala de voz são as MESMAS de antes; só deixam de ficar fixas e abrem
+  // pelo botão, como janelinha. A Agenda fica fixa só para o Mizinho, que grava e fotografa tudo ("a agenda só é
+  // prioridade de tela pra ele"); os outros veem os próprios compromissos no Hoje.
+  function agendaFixa() {
+    const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
+    const quem = primeiroNome(u?.name || u?.nome || (typeof pessoaLogada === 'function' ? pessoaLogada()?.nome : ''));
+    return quem === 'ademir' || quem === 'mizinho';
+  }
+  function abrirDaDireita(qual) {
+    const aberto = qual && !body.classList.contains('ver-' + qual) ? qual : '';
+    body.classList.toggle('ver-agenda', aberto === 'agenda'); body.classList.toggle('ver-voz', aberto === 'voz');
+    hud.querySelector('[data-ferr="agenda"]')?.setAttribute('aria-expanded', String(aberto === 'agenda'));
+    hud.querySelector('[data-ferr="voz"]')?.setAttribute('aria-expanded', String(aberto === 'voz'));
+    if (aberto === 'agenda') { const ag = hud.querySelector('#vv-agenda'); ag?.classList.remove('recolhida'); carregarAgenda(); }
+    if (aberto === 'voz') { pintarChamada(); medirBarra(); }
+  }
+  const fecharDaDireita = () => { if (body.classList.contains('ver-agenda') || body.classList.contains('ver-voz')) abrirDaDireita(''); };
+  document.addEventListener?.('pointerdown', (ev) => {
+    if (!body.classList.contains('ver-agenda') && !body.classList.contains('ver-voz')) return;
+    if (ev.target?.closest?.('#vv-agenda, .vv-chamada, .vv-ferramentas, #office-musica, dialog, .vv-chamar')) return;
+    fecharDaDireita();
+  }, true);
   function usarFerramenta(id) {
+    if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
+    if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
     if (id !== 'ajuda') window.VybeTutorial?.dica?.('ferr:' + id);
     if (id === 'busca') document.querySelector('[data-open-spotlight]')?.click();
     else if (id === 'aparencia') alternarMenuTema();
@@ -2061,6 +2141,14 @@
     const el = document.getElementById('office-ajustes-audio');
     if (el && el.parentElement !== document.body) { el.classList.add('vv-flutuante'); document.body.append(el); }
   }
+  // O botão da sala de voz na barra de cima mostra o estado (ponto verde na chamada) e o microfone fica à vista
+  // enquanto houver chamada: silenciar é um clique, mesmo com a barra da sala fechada.
+  function marcarVozNoTopo(naChamada = false, mic = false, sala = '') {
+    const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
+    v.classList.toggle('on', naChamada); v.title = naChamada ? `Sala de voz: ${sala} (na chamada)` : 'Sala de voz: quem está com você, microfone, música e TV';
+    m.hidden = !naChamada; m.classList.toggle('on', mic); m.setAttribute('aria-pressed', String(mic));
+    m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: clique para falar'; m.setAttribute('aria-label', m.title);
+  }
   function pintarChamada() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     // A voz continua dentro dos módulos (como no Discord): lá a barra fica compacta.
@@ -2072,6 +2160,7 @@
     const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     if (!e.conectado) {
+      marcarVozNoTopo();
       const outraAba = Boolean(e.emOutraAba || fn('escritorioOutraAbaConectada')?.());
       if (!outraAba && !e.conectando && e.base && !e.base.demo && !pintarChamada.tentou && fn('conectarEscritorio')) {
         pintarChamada.tentou = true;
@@ -2103,6 +2192,7 @@
     const naVoz = juntos.filter((o) => participantes.has(String(o.id))).length;
     const foraDaVoz = juntos.length - naVoz;
     const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
+    marcarVozNoTopo(naChamada, mic, nomeZona(e.zona));
     const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
       <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       ${musicaHtml(e, temSom)}
@@ -2276,6 +2366,7 @@
       return;
     }
     if (chamarAberto || pessoaAberta) { chamarAberto = false; pessoaAberta = null; pintarChamada(); return; }
+    if (body.classList.contains('ver-agenda') || body.classList.contains('ver-voz')) { fecharDaDireita(); return; }
     if (andarAberto) { sairDoAndar(); return; }
     if (!placa().hidden) { fecharPlaca(); return; }
     if (hud.querySelector('.vv-menu-conta')) { hud.querySelectorAll('.vv-menu-conta').forEach((x) => x.remove()); return; }

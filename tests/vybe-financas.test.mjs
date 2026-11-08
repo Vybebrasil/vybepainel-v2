@@ -438,3 +438,11 @@ test('ligação por nome parecido: sem espaços ou um contendo o outro, só com 
   assert.equal(l.porFinancas.a.por, 'nome_parecido');
   assert.deepEqual(l.sem_par.map((x) => x.nome), ['Grupo Serra Grande', 'Ótica']); // "Ótica" tem dois candidatos: não liga
 });
+
+test('ligação: "Grupo" não conta no nome e o caminho inverso lista ativos do Vybe OS sem cadastro no Finanças', () => {
+  const vybe = [{ id: '1', nome: 'Serra Grande Bebidas' }, { id: '2', nome: 'Antonov' }, { id: '3', nome: 'Padaria Nova' }];
+  const l = calc.ligarClientes([{ id: 'a', name: 'Grupo Serra Grande' }, { id: 'b', name: 'Antonov Center' }], vybe);
+  assert.equal(l.porFinancas.a?.vybe_id, '1');
+  assert.deepEqual(l.sem_par, []);
+  assert.deepEqual(l.vybe_sem_par.map((x) => x.nome), ['Padaria Nova']);
+});
