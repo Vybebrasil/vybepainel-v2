@@ -121,13 +121,28 @@ export async function areaPlanejamentos(req, res, quem, sql) {
 
 // ── Logo do cliente (do Drive) ──────────────────────────────────────────────
 // A capa do documento aponta para cá; o arquivo do Drive não precisa ficar público.
+// Sem logo marcado (Paulo, 08/11/2026: "coloca a logo nas fachadas dos clientes, tem no drive"): procura no Drive do
+// mesmo jeito do envio do planejamento (logosNoDrive, nota mínima 3) e guarda a escolha só se ainda não houver
+// nenhuma; quem marcou outro logo no planejamento continua com o dele. Sem logo: 404 com cache (não repete a busca).
 export async function logoDoCliente(req, res, sql) {
  const id = String(req.query?.c || '');
  if (!/^\d{1,18}$/.test(id)) return res.status(404).end();
- const [c] = await sql`SELECT identidade->>'logo_drive' AS arquivo FROM vybe_clientes WHERE id=${id}`;
- if (!c?.arquivo) return res.status(404).end();
+ const [c] = await sql`SELECT nome, identidade->>'logo_drive' AS arquivo, identidade->>'logo' AS url FROM vybe_clientes WHERE id=${id}`;
+ if (!c) return res.status(404).end();
+ if (!c.arquivo && /^https:\/\/\S{4,500}$/.test(c.url || '')) { res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('Location', c.url); return res.status(302).end(); }
+ let arquivo = c.arquivo;
+ if (!arquivo) {
+  try {
+   const [melhor] = await logosNoDrive(c.nome);
+   if (melhor && melhor.nota >= 3) {
+    arquivo = melhor.id;
+    await sql`UPDATE vybe_clientes SET identidade=COALESCE(identidade,'{}'::jsonb) || jsonb_build_object('logo_drive', ${arquivo}::text) WHERE id=${id} AND COALESCE(identidade->>'logo_drive','')='' AND COALESCE(identidade->>'logo','')=''`;
+   }
+  } catch { /* Drive fora do ar: segue sem logo */ }
+ }
+ if (!arquivo) { res.setHeader('Cache-Control', 'public, max-age=3600'); return res.status(404).end(); }
  try {
-  const r = await baixarDoDrive(c.arquivo);
+  const r = await baixarDoDrive(arquivo);
   res.setHeader('Content-Type', r.headers.get('content-type') || 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   return res.status(200).send(Buffer.from(await r.arrayBuffer()));

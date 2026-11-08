@@ -67,7 +67,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const cena = new THREE.Scene();
   cena.fog = new THREE.Fog(0xcfe2e6, 900, 2200);
 
-  cena.add(new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9));
+  const hemi = new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9);
+  cena.add(hemi);
   const sol = new THREE.DirectionalLight(0xfff1d8, 2.1);
   sol.position.set(-110, 160, 70);
   sol.castShadow = true;
@@ -89,14 +90,28 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     const { alvo, dist, giro, incl } = orb;
     camera.position.set(alvo.x + dist * Math.cos(incl) * Math.sin(giro), alvo.y + dist * Math.sin(incl), alvo.z + dist * Math.cos(incl) * Math.cos(giro));
     camera.lookAt(alvo);
-    // A sombra acompanha o que se olha: 4096 px cobrindo só a área visível.
-    const lado = limitar(dist * 0.42, 40, 260);
-    sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix();
-    // De perto (dentro dos andares) o piso fazia listras de sombra: mais folga no viés quando a área é pequena.
-    sol.shadow.bias = lado < 90 ? -0.0012 : -0.0004; sol.shadow.normalBias = lado < 90 ? 0.12 : 0.4;
-    sol.position.set(alvo.x - 110, 160, alvo.z + 70); sol.target.position.copy(alvo);
-    const chave = `${alvo.x.toFixed(1)},${alvo.z.toFixed(1)},${dist.toFixed(0)},${giro.toFixed(2)},${incl.toFixed(2)}`;
-    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; renderer.shadowMap.needsUpdate = true; }
+    // Profundidade (Paulo, 08/11/2026: "a luz meio bugando"): com o corte perto fixo em 1 e a cena vista de até 460,
+    // a profundidade perdia precisão e faces vizinhas brigavam (piscavam). O corte acompanha a distância.
+    const perto = limitar(dist * 0.12, 0.5, 40), longe = dist * 6 + 900;
+    if (Math.abs(camera.near - perto) > perto * 0.05 || Math.abs(camera.far - longe) > longe * 0.05) { camera.near = perto; camera.far = longe; camera.updateProjectionMatrix(); }
+    // A sombra acompanha o que se olha. A área anda em degraus (não muda a cada pixel de zoom) e o centro da sombra
+    // encaixa na grade dos pixels dela: a borda da sombra não "nada" quando a câmera anda. O desvio é medido pelo
+    // tamanho do pixel da sombra (antes era fixo e alto, com sombra vazando e listras em peças finas).
+    const lado = limitar(40 * Math.pow(1.25, Math.round(Math.log(Math.max(1, dist * 0.42) / 40) / Math.log(1.25))), 40, 260);
+    const texel = (2 * lado) / sol.shadow.mapSize.x;
+    if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
+    sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
+    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
+    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, alvo.y, az);
+    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; }
+  }
+  // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
+  let sombraPendente = true, ultimaSombra = 0;
+  function atualizarSombra(t, movendo) {
+    if (!sombraPendente) return;
+    if (movendo && t - ultimaSombra < 150) return;
+    sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
   }
 
   // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
@@ -367,6 +382,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     if (!precisa) return false;
     // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
     if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    atualizarSombra(t, movendo || interagindo);
     renderer.info.reset();
     const t0 = performance.now();
     composer.render();
@@ -388,6 +404,19 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     naoClicavel: (o) => { const i = clicaveis.indexOf(o); if (i >= 0) clicaveis.splice(i, 1); },
     // true = a animação alterou algo visível; false/undefined = manutenção sem novo desenho.
     animar: (fn) => { animadores.push(fn); invalidar(); },
+    reduzirMovimento: Boolean(reduzirMovimento),
+    // Dia e noite (0 = dia, 1 = noite): o céu escurece, o sol vira luar e o que brilha (janelas, postes, letreiros)
+    // passa a se destacar sozinho, porque não depende da luz.
+    ambiente(noite = 0) {
+      const k = limitar(Number(noite) || 0, 0, 1);
+      hemi.intensity = .9 - .38 * k; hemi.color.set(0xeaf6ff).lerp(new THREE.Color(0x7083c4), k); hemi.groundColor.set(0x7e6a4e).lerp(new THREE.Color(0x2a2a3a), k);
+      sol.intensity = 2.1 - 1.3 * k; sol.color.set(0xfff1d8).lerp(new THREE.Color(0xa9bbff), k);
+      preenche.intensity = .35 - .2 * k;
+      renderer.toneMappingExposure = 1.05 - .2 * k;
+      cena.background = k > 0 ? new THREE.Color(0xcfe2e6).lerp(new THREE.Color(0x26345e), k) : null;
+      cena.fog.color.set(0xcfe2e6).lerp(new THREE.Color(0x26345e), k);
+      renderer.shadowMap.needsUpdate = true; invalidar();
+    },
     rotulo, removerRotulo,
     aoClicar: (f) => ouvintes.clique.push(f),
     emitirClique: (alvo) => { for (const f of ouvintes.clique) f(alvo, null); },

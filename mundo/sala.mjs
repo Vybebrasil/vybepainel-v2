@@ -5,42 +5,14 @@ import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { ruido } from './irece.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
-import { tipoDoMovel } from './avatar.mjs';
+import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraDoAgente } from './avatar.mjs';
 
 // Cada sala do andar é um quadrado de LADO_SALA unidades; o quarto do Escritório (L.w × L.d ladrilhos)
 // cabe nele inteiro, então um ladrilho mede LADO_SALA / L.w.
-const LADO_SALA = 7, CORREDOR = 2;
+const LADO_SALA = 7, CORREDOR = 2, BANCADA = 3.6, VAO = 1; // BANCADA: mesa de cada agente; VAO: passagem entre salas vizinhas
 const ROUPA = { laranja: '#FF9548', azul: '#78AAFF', verde: '#72CCAC', roxo: '#AC9BFF', rosa: '#EF9FBC', grafite: '#64738A' };
 const MESA = { grafite: '#4A5056', azul: '#3E6FB0', verde: '#3E8F6B', roxo: '#6B55B8', laranja: '#D9773E' };
-const PELE = { clara: '#F1C9A5', media: '#C68E6A', morena: '#9A6646', escura: '#6B4430' };
 
-function paredes(o, W, D, H, { parede, rodape, tijolo }) {
-  for (let x = 0; x < W; x += .5) for (let y = 0; y < H; y += .5) {
-    const k = ruido(x * 7, y * 11);
-    o.caixa(x + .25, y, -.15, .5, .5, .3, k < .12 ? tijolo : parede);
-  }
-  for (let z = 0; z < D; z += .5) for (let y = 0; y < H; y += .5) {
-    const k = ruido(z * 5 + 3, y * 13);
-    o.caixa(-.15, y, z + .25, .3, .5, .5, k < .12 ? tijolo : parede);
-  }
-  o.caixa(W / 2, 0, .02, W, .18, .06, rodape).caixa(.02, 0, D / 2, .06, .18, D, rodape);
-  o.caixa(W / 2, H, -.15, W + .3, .12, .34, rodape).caixa(-.15, H, D / 2, .34, .12, D + .3, rodape);
-}
-function piso(o, W, D, a, b) {
-  for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) o.caixa(x + .5, -.12, z + .5, .98, .12, .98, (x + z) % 2 ? a : b);
-  o.caixa(W / 2, -.5, D / 2, W + .3, .38, D + .3, '#1E2124');
-}
-function janela(o, x, W) {
-  o.caixa(x, .9, .02, 1.8, 1.3, .08, '#2B3A40').luz(x, .98, .06, 1.6, 1.14, .02, '#9FD6E3');
-  o.caixa(x, 1.5, .1, 1.6, .06, .04, '#E8EEF0').caixa(x, .98, .1, .06, 1.14, .04, '#E8EEF0');
-  o.caixa(x - 1.05, .7, .18, .3, 1.75, .14, '#2E7D4F').caixa(x + 1.05, .7, .18, .3, 1.75, .14, '#2E7D4F').caixa(x, 2.42, .16, 2.5, .12, .16, '#E8EEF0');
-}
-function porta(o, z) {
-  o.caixa(.03, 0, z, .08, 2.1, 1.1, '#A0603A');
-  for (const [a, b] of [[.5, .35], [1.3, .35], [.5, -.25], [1.3, -.25]]) o.caixa(.08, a, z + b * .9, .03, .6, .38, '#8E5232');
-  o.caixa(.1, 1, z - .38, .06, .06, .14, '#D9D4C8').caixa(.03, 2.1, z, .1, .1, 1.24, '#7A4528');
-}
-function quadro(o, x, y, cor, fundo = '#1F1D1A') { o.caixa(x, y, .04, .9, .7, .05, fundo).luz(x, y + .12, .07, .72, .5, .02, cor); }
 function estante(o, x, z, girar = false) {
   const [w, d] = girar ? [.4, 1.2] : [1.2, .4];
   o.caixa(x, 0, z, w, 2, d, '#F4F1EA');
@@ -208,7 +180,7 @@ export function guardarItem(itens, i) {
 export function porItem(itens, classe, x, y, dir, { parede = false } = {}) {
   return [...copia(itens), [String(classe), x, y, dir, 0, parede ? 1 : 0]];
 }
-const PISO_PESSOAL = ['#B98A5C', '#C99A6B'], PISO_COMUM = ['#2E6F7A', '#357D88'], MURETA = '#1C1C1F';
+const PISO_PESSOAL = ['#D9B48A', '#E2C19A'], PISO_COMUM = ['#DCE9EC', '#E6F0F2'], MURETA = '#F4F1EA';
 const COR_OK = '#FF7A2F', COR_SOBRE = '#E2A11B', COR_FORA = '#D93D42';
 const ehCor = (c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 
@@ -216,55 +188,146 @@ const ehCor = (c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 // quando entra na sala da pessoa"). Escritório aberto: cada zona do Escritório é uma
 // sala de vidro baixo no andar; todo mundo do andar aparece; entrar numa sala liga a
 // voz daquela zona (o motor do Escritório cuida da voz, das trancas e da presença).
-export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
-  const porLinha = Math.min(3, Math.max(1, zonas.length <= 4 ? 2 : 3));
+// Maquete clara (Paulo, 08/11/2026: o andar no estilo voxel do Centro comercial, "fofo" e bem feito): laje creme com
+// a quina escurecida, paredes de fora creme com janelões e a faixa laranja da Vybe, corredor claro e, no fundo, a
+// bancada dos agentes do setor (Paulo: "eles não deviam tá aqui na sala também trabalhando? Augusto, Danilo, Lucas").
+// Andar só de agentes (sem zonas do time): fileiras de 3 mesas, as que sobram livres para os próximos agentes.
+export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor = '#FF7A2F', mesasLivres = 0 } = {}) {
+  const soAgentes = !zonas.length;
+  const porLinha = soAgentes ? 3 : Math.min(3, Math.max(1, zonas.length <= 4 ? 2 : 3));
   const linhas = Math.ceil(zonas.length / porLinha);
-  const W = porLinha * LADO_SALA, D = linhas * LADO_SALA + (linhas - 1) * CORREDOR, H = 3;
-  const salas = zonas.map((z, i) => ({ ...z, ox: (i % porLinha) * LADO_SALA, oz: Math.floor(i / porLinha) * (LADO_SALA + CORREDOR) }));
+  const lugares = [...agentes, ...Array.from({ length: Math.max(0, mesasLivres) }, () => null)];
+  const porFila = soAgentes ? 3 : Math.max(1, lugares.length), filas = lugares.length ? Math.ceil(lugares.length / porFila) : 0;
+  const AG = filas * BANCADA + (soAgentes && filas ? 1.4 : 0);
+  const PASSO = LADO_SALA + (soAgentes ? 0 : VAO);
+  const W = soAgentes ? porLinha * LADO_SALA : porLinha * PASSO - VAO, D = Math.max(AG, AG + linhas * LADO_SALA + Math.max(0, linhas - 1) * CORREDOR), H = 3;
+  const salas = zonas.map((z, i) => ({ ...z, ox: (i % porLinha) * PASSO, oz: AG + Math.floor(i / porLinha) * (LADO_SALA + CORREDOR) }));
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const cena = new THREE.Scene();
-  cena.add(new THREE.HemisphereLight('#F3F7FF', '#4A3B2C', 1.1));
-  const sol = new THREE.DirectionalLight('#FFF1D8', 1.8); sol.position.set(W + 8, 18, D + 10); sol.target.position.set(W / 2, 0, D / 2);
+  let sujo = true; // algo mudou e a cena precisa ser desenhada de novo (ver passo)
+  cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
+  const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 18, D + 10); sol.target.position.set(W / 2, 0, D / 2);
   sol.castShadow = true; sol.shadow.mapSize.set(4096, 4096); const s = Math.max(W, D); Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0005;
-  cena.add(sol, sol.target);
+  const preenche = new THREE.DirectionalLight('#CFE4FF', .45); preenche.position.set(-10, 12, D + 6);
+  cena.add(sol, sol.target, preenche);
 
-  // Casca do andar: piso do corredor, as duas paredes de fora (maquete) e a fachada ripada.
-  const casca = new Obra();
-  for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) casca.caixa(x + .5, -.14, z + .5, .98, .1, .98, (x + z) % 2 ? '#D9D2C2' : '#E3DCCD');
-  casca.caixa(W / 2, -.55, D / 2, W + .4, .4, D + .4, '#1C1C1F');
-  paredes(casca, W, D, H, { parede: '#2A2A2E', rodape: '#1C1C1F', tijolo: '#202024' });
-  for (let x = 1.5; x < W; x += 3.5) casca.luz(x, .2, .03, .06, H - .4, .02, '#FF9A4A');
-  for (let z = 1.5; z < D; z += 3.5) casca.luz(.03, .2, z, .02, H - .4, .06, '#FF9A4A');
-  casca.caixa(W - .02, 0, D / 2, .04, .1, D, '#FF7A2F').caixa(W / 2, 0, D - .02, W, .1, .04, '#FF7A2F');
-  // Corredor e cantos sem sala (Paulo, 07/11/2026: "as salas… muito mal feito"): passadeira, plantas, bancos, bebedouro
-  // e luminárias nos corredores; o canto que sobra vira um lounge com sofás, tapete, mesa de centro e estante.
+  const casca = new Obra(), corSetor = new THREE.Color(cor);
+  const tom = (t) => '#' + corSetor.clone().lerp(new THREE.Color('#FFFFFF'), t).getHexString();
+  // Laje: piso claro em blocos de 1, borda branca grossa, faixa do setor e a base de concreto embaixo.
+  for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) casca.caixa(x + .5, -.16, z + .5, 1, .12, 1, (x + z) % 2 ? '#EFE8DA' : '#F5EFE3');
+  casca.caixa(W / 2, -.5, D / 2, W + .6, .34, D + .6, '#FBF8F2');
+  casca.caixa(W / 2, -.62, D / 2, W + .64, .1, D + .64, tom(.15));
+  casca.caixa(W / 2, -1.3, D / 2, W + .2, .68, D + .2, '#C9C1B2');
+  // Paredes de fora (fundo e esquerda): blocos creme de 1, janelões com caixilho branco e céu, rodapé e a faixa laranja.
+  const janelaEm = (k, n) => k % 3 === 1 && k < n - 1;
+  for (let x = 0; x < W; x++) {
+    if (janelaEm(x, W)) {
+      casca.caixa(x + .5, 0, -.2, 1, .7, .4, '#F3EAD8').caixa(x + .5, 2.3, -.2, 1, .7, .4, '#F3EAD8');
+      casca.luz(x + .5, .7, -.24, .84, 1.6, .06, '#CFEAF4').caixa(x + .5, .7, -.12, 1, .1, .2, '#FFFFFF').caixa(x + .5, 1.45, -.14, .08, .85, .1, '#FFFFFF');
+    } else casca.caixa(x + .5, 0, -.2, 1, H, .4, x % 2 ? '#F3EAD8' : '#EFE4CF');
+  }
+  for (let z = 0; z < D; z++) {
+    if (janelaEm(z, D)) {
+      casca.caixa(-.2, 0, z + .5, .4, .7, 1, '#F3EAD8').caixa(-.2, 2.3, z + .5, .4, .7, 1, '#F3EAD8');
+      casca.luz(-.24, .7, z + .5, .06, 1.6, .84, '#CFEAF4').caixa(-.12, .7, z + .5, .2, .1, 1, '#FFFFFF').caixa(-.14, 1.45, z + .5, .1, .85, .08, '#FFFFFF');
+    } else casca.caixa(-.2, 0, z + .5, .4, H, 1, z % 2 ? '#F3EAD8' : '#EFE4CF');
+  }
+  casca.caixa(W / 2, H, -.2, W + .4, .22, .5, '#FF7A2F').caixa(-.2, H, D / 2, .5, .22, D + .4, '#FF7A2F');
+  casca.caixa(W / 2, 0, .02, W, .14, .06, '#D9CDB6').caixa(.02, 0, D / 2, .06, .14, D, '#D9CDB6');
+  casca.caixa(-.2, 0, -.2, .5, H + .22, .5, '#FFFFFF');
+  // Corredor e cantos sem sala: passadeira, plantas, bancos, bebedouro e luminárias; o canto que sobra vira um lounge.
   for (let r = 0; r < linhas - 1; r++) {
-    const zc = (r + 1) * LADO_SALA + r * CORREDOR + CORREDOR / 2;
-    casca.caixa(W / 2, -.09, zc, W - 1.2, .02, .9, '#C8553D').caixa(W / 2, -.085, zc, W - 1.5, .02, .7, '#D9774E');
-    for (let x = 1.6; x < W - 1; x += 3.4) { planta(casca, x, zc - .7, .8); casca.caixa(x + 1.1, 0, zc + .62, 1.1, .38, .34, '#B98552').caixa(x + 1.1, .38, zc + .76, 1.1, .32, .06, '#B98552'); luminaria(casca, x + 2.3, zc - .7); }
+    const zc = AG + (r + 1) * LADO_SALA + r * CORREDOR + CORREDOR / 2;
+    casca.caixa(W / 2, -.04, zc, W - 1.2, .02, 1, tom(.55)).caixa(W / 2, -.04, zc, W - 1.6, .026, .7, tom(.75));
+    for (let x = 1.6; x < W - 1; x += 3.4) { planta(casca, x, zc - .7, .8); casca.caixa(x + 1.1, 0, zc + .62, 1.1, .38, .34, '#C99A6B').caixa(x + 1.1, .38, zc + .76, 1.1, .32, .06, '#C99A6B'); luminaria(casca, x + 2.3, zc - .7); }
     casca.caixa(W - .6, 0, zc, .4, .9, .4, '#E9EEF0').caixa(W - .6, .9, zc, .3, .35, .3, '#BDE3F2');
   }
   for (let i = salas.length; i < porLinha * linhas; i++) {
-    const ox = (i % porLinha) * LADO_SALA, oz = Math.floor(i / porLinha) * (LADO_SALA + CORREDOR), cx2 = ox + LADO_SALA / 2, cz2 = oz + LADO_SALA / 2;
-    tapete(casca, cx2, cz2, 3.6, 2.8, '#FF7A2F');
-    sofa(casca, cx2, cz2 + 1.9, '#E8A848'); sofa(casca, cx2 - 2.1, cz2, '#38A3A5', true);
+    const ox = (i % porLinha) * PASSO, oz = AG + Math.floor(i / porLinha) * (LADO_SALA + CORREDOR), cx2 = ox + LADO_SALA / 2, cz2 = oz + LADO_SALA / 2;
+    tapete(casca, cx2, cz2, 3.6, 2.8, '#FF9A5C');
+    sofa(casca, cx2, cz2 + 1.9, '#F2C14E'); sofa(casca, cx2 - 2.1, cz2, '#5CC8B8', true);
     casca.caixa(cx2, 0, cz2, 1.3, .38, .75, '#C99A6B').caixa(cx2 + .2, .38, cz2, .14, .14, .14, '#FF7A2F').caixa(cx2 - .3, .38, cz2 + .1, .3, .03, .22, '#F4F1EA');
     estante(casca, ox + LADO_SALA - .5, cz2 - 1.2, true); planta(casca, ox + .7, oz + .7, 1.2); planta(casca, ox + LADO_SALA - .7, oz + LADO_SALA - .7, 1.1); luminaria(casca, ox + .8, oz + LADO_SALA - .8);
   }
+  // Bancada dos agentes: tapete na cor do setor, divisória baixa com plantas na frente e o vão de passagem no meio.
+  if (AG && soAgentes) {
+    // Corredor da frente do andar de agentes: passadeira, plantas e um sofá de espera.
+    casca.caixa(W / 2, -.04, D - .75, W - 1.2, .02, .9, tom(.55)).caixa(W / 2, -.04, D - .75, W - 1.6, .026, .6, tom(.75));
+    for (const x of [1, W - 1]) planta(casca, x, D - .7, 1.1);
+    sofa(casca, W / 2, D - .7, '#F2C14E');
+  } else if (AG) {
+    casca.caixa(W / 2, -.04, AG / 2, W - .4, .02, AG - .5, tom(.7));
+    for (let x = .4; x < W - .3; x += 1) if (Math.abs(x + .5 - W / 2) > 1.2) casca.caixa(x + .5, 0, AG - .2, .96, .42, .4, '#FFFFFF').caixa(x + .5, .42, AG - .2, .8, .26, .3, x % 2 ? '#5FA34E' : '#6BAF52');
+  }
   cena.add(casca.montar());
 
+  // Cada agente do setor na mesa dele, de frente para a sala: mesa, cadeira, telão na parede com o estado
+  // (a mesma cor do monitor do prédio) e o boneco de agente. Sem leitura da central, tudo neutro e parado.
+  const mesas = [], alvosAgente = [];
+  lugares.forEach((ag, i) => {
+    const x = W * (i % porFila + .5) / porFila, zf = Math.floor(i / porFila) * BANCADA, o = new Obra(), largura = Math.min(3.4, W / porFila - .6);
+    const sw = Math.min(2.2, largura - .4);
+    o.caixa(x, 0, zf + 1.75, largura - .2, .02, 3, tom(ag ? .55 : .8));
+    // Divisória baixa atrás da mesa com o telão do estado (como o prédio por fora).
+    o.caixa(x, 0, zf + .35, largura - .1, 1.15, .2, '#FFFFFF').caixa(x, 1.15, zf + .35, largura, .1, .26, tom(.3));
+    o.caixa(x, .9, zf + .47, sw + .16, 1.0, .06, '#2B2F33');
+    const tela = o.luzes.length; o.luz(x, .98, zf + .51, sw, .84, .02, ag ? '#3E4A52' : '#33383D');
+    if (ag) for (let k = 0; k < 5; k++) o.luz(x - .7 + k * .35, 1.08, zf + .53, .2, .16 + ((k * 37 + i * 11) % 5) * .1, .01, tom(.35));
+    o.caixa(x, .72, zf + 2.25, largura - .6, .1, .8, '#E2C19A');
+    for (const sx of [-1, 1]) o.caixa(x + sx * ((largura - .6) / 2 - .06), 0, zf + 2.25, .12, .72, .72, '#FFFFFF');
+    o.caixa(x + (largura - .6) / 2 - .45, .4, zf + 2.25, .5, .3, .7, '#F4F1EA');
+    o.caixa(x - .35, .82, zf + 2.45, .7, .45, .06, '#2B2F33').caixa(x - .35, .82, zf + 2.4, .08, .14, .08, '#3A3F44');
+    o.caixa(x + .35, .82, zf + 2.45, .5, .03, .2, '#F4F1EA');
+    const cad = ag ? '#2B2F33' : '#B9C0C4';
+    o.caixa(x, 0, zf + 1.25, .56, .45, .56, '#3A3F44').caixa(x, .45, zf + 1.25, .6, .1, .6, cad).caixa(x, .55, zf + .96, .6, .62, .1, cad);
+    planta(o, x + largura / 2 - .35, zf + .95, .8);
+    let antena = -1;
+    if (ag) { o.caixa(x + .75, .82, zf + 2.35, .14, .16, .14, cor); antena = desenharBoneco(o, figuraDoAgente(ag.agente, cor), { x, y: .14, z: zf + 1.28, s: .78 }); }
+    const g = o.montar(), luzes = g.children.find((m) => m.material?.type === 'MeshBasicMaterial');
+    cena.add(g);
+    const el = document.createElement('div'); el.className = 'sala-agente' + (ag ? '' : ' livre');
+    el.innerHTML = ag ? `<i></i><b>${String(ag.agente).replace(/[<>&]/g, '')}</b><span>${String(ag.nome || '').replace(/[<>&]/g, '')}</span>` : '<b>Mesa livre</b>';
+    canvas.parentElement.appendChild(el);
+    if (ag) {
+      const alvo = new THREE.Mesh(new THREE.BoxGeometry(largura, 2, 3), new THREE.MeshBasicMaterial({ visible: false }));
+      alvo.position.set(x, 1, zf + 1.75); alvo.userData.agente = ag.id; cena.add(alvo); alvosAgente.push(alvo);
+    }
+    mesas.push({ ag, g, luzes, tela, antena, el, x, z: zf + 1.3, estado: '', fase: i * 1.7 });
+  });
+  const corTmp = new THREE.Color();
+  function definirAgentes(estados = {}) {
+    for (const m of mesas) {
+      if (!m.ag) continue;
+      const e = estados[m.ag.id] || {}, conectado = Boolean(e.conectado), c = conectado ? (e.cor || '#9AA3A8') : '#9AA3A8';
+      const assin = c + ':' + e.estado + ':' + conectado;
+      if (assin === m.estado) continue;
+      m.estado = assin; m.trabalhando = conectado && e.estado === 'executando'; sujo = true;
+      if (m.luzes) {
+        if (m.antena >= 0) m.luzes.setColorAt(m.antena, corTmp.set(c));
+        // O telão: a cor do estado quando há leitura; apagado (cinza-azulado) sem leitura da central.
+        m.luzes.setColorAt(m.tela, corTmp.set(conectado ? c : '#3E4A52').lerp(new THREE.Color('#FFFFFF'), conectado ? .25 : 0));
+        m.luzes.instanceColor.needsUpdate = true;
+      }
+      m.el.style.setProperty('--ag-cor', c); m.el.title = e.rotulo || '';
+      if (!m.trabalhando) m.g.position.y = 0;
+    }
+  }
+  definirAgentes();
+  function focarAgentes() { if (!AG || soAgentes) return; quer.alvo.set(W / 2, .8, AG / 2 + .4); quer.dist = Math.max(10, W * 1.15); }
   // Cada sala: piso próprio, divisória de vidro baixo com vão de porta, placa e móveis.
   const vidro = new THREE.MeshStandardMaterial({ color: '#BFE3EA', transparent: true, opacity: .35, roughness: .1, depthWrite: false });
-  const etiquetas = [], alvosJogo = [];
+  const etiquetas = [];
+  const alvosJogo = [];
   // Modo decorar (null fora dele): a sala em edição, a lista em edição e o que está na mão.
   let ed = null;
   const liberar = (g) => g?.traverse?.((o) => { o.geometry?.dispose?.(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m?.dispose?.()); });
   // Piso, móveis padrão (sala sem decoração salva) e divisórias da sala. Refeito quando o acabamento muda.
   function montarBase(sl) {
+    sujo = true;
     if (sl.base) { cena.remove(sl.base); liberar(sl.base); }
     const o = new Obra(), pessoal = Boolean(sl.dono);
     // Piso escolhido pelo dono (sala_piso do Escritório, as duas cores do ladrilho); sem escolha, o de sempre.
@@ -285,6 +348,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
     return m;
   }
   function montarItens(sl) {
+    sujo = true;
     if (sl.grupo) { cena.remove(sl.grupo); liberar(sl.grupo); }
     sl.grupo = new THREE.Group(); sl.grupo.position.set(sl.ox, 0, sl.oz); sl.vis = [];
     if (sl.decorada || ed?.sl === sl) (sl.itens || []).forEach((it, i) => { const m = malhaDoItem(it, sl.L); if (!m) return; m.userData.item = i; sl.grupo.add(m); sl.vis[i] = m; });
@@ -310,7 +374,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
 
   const camera = new THREE.PerspectiveCamera(30, 1, .1, 400);
   const alvo = new THREE.Vector3(W / 2, .5, D / 2);
-  let giro = .78, incl = .82, dist = Math.max(W, D) * 2.1; const quer = { giro, incl, dist, alvo: alvo.clone() };
+  let giro = .78, incl = .82, dist = Math.max(W, D) * 1.75; const quer = { giro, incl, dist, alvo: alvo.clone() };
   function posicionar() { camera.position.set(alvo.x + dist * Math.cos(incl) * Math.sin(giro), alvo.y + dist * Math.sin(incl), alvo.z + dist * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo); }
   function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); }
   const ro = new ResizeObserver(medir); ro.observe(canvas); medir();
@@ -318,12 +382,8 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
   // Pessoas do andar inteiro, cada uma na sua sala (posição local da presença, na escala da sala).
   const pessoas = new Map();
   function boneco(p) {
-    const g = new THREE.Group(), ob = new Obra(), roupa = ROUPA[p.roupa] || p.roupa || '#FF7A2F';
-    ob.caixa(-.11, 0, 0, .16, .5, .2, '#2B2F33').caixa(.11, 0, 0, .16, .5, .2, '#2B2F33');
-    ob.caixa(0, .5, 0, .46, .55, .28, roupa).caixa(-.3, .55, 0, .12, .45, .14, roupa).caixa(.3, .55, 0, .12, .45, .14, roupa);
-    ob.caixa(0, 1.05, 0, .34, .34, .34, PELE[p.pele] || '#C68E6A').caixa(0, 1.33, -.02, .38, .12, .4, p.cabelo === 'longo' ? '#4A2E1A' : '#2B1D14');
-    if (p.cabelo === 'longo') ob.caixa(0, .95, -.16, .38, .4, .08, '#4A2E1A');
-    ob.caixa(-.08, 1.18, .17, .05, .05, .02, '#1F1D1A').caixa(.08, 1.18, .17, .05, .05, .02, '#1F1D1A');
+    const g = new THREE.Group(), ob = new Obra();
+    desenharBoneco(ob, figuraDaPessoa(p), { s: .8 });
     if (p.eu) ob.luz(0, .01, 0, .9, .02, .9, '#FF7A2F');
     g.add(ob.montar()); cena.add(g);
     const el = document.createElement('div'); el.className = 'sala-nome' + (p.eu ? ' eu' : '');
@@ -331,6 +391,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
     return { g, el, x: 0, z: 0, alvo: { x: 0, z: 0 }, novo: true };
   }
   function definirPessoas(lista, minhaZona) {
+    const antes = [...pessoas.values()].map((b) => b.alvo.x + ',' + b.alvo.z + b.el.innerHTML).join('|') + pessoas.size;
     const vistos = new Set();
     const porSala = new Map();
     for (const p of lista) { const sl = salas.find((x) => x.id === p.zona); if (!sl) continue; if (!porSala.has(sl.id)) porSala.set(sl.id, []); porSala.get(sl.id).push(p); }
@@ -349,11 +410,12 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
     }
     for (const [id, b] of pessoas) if (!vistos.has(id)) { cena.remove(b.g); b.el.remove(); pessoas.delete(id); }
     for (const e of etiquetas) { const n = porSala.get(e.sl.id)?.length || 0; e.el.querySelector('span').textContent = n ? `${n} aqui` : ''; e.el.classList.toggle('minha', e.sl.id === minhaZona); }
+    if ([...pessoas.values()].map((b) => b.alvo.x + ',' + b.alvo.z + b.el.innerHTML).join('|') + pessoas.size !== antes) sujo = true;
   }
 
   // Controles: arrastar gira a maquete, roda aproxima, clique numa sala entra nela (e na voz dela).
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  let arrasto = null, aoSala = null;
+  let arrasto = null, aoSala = null, aoAgente = null;
   canvas.addEventListener('pointerdown', (e) => {
     if (ed && comecarArrasto(e)) return; // decorando: a peça clicada é pega; o resto gira a maquete
     arrasto = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; canvas.setPointerCapture(e.pointerId);
@@ -374,6 +436,8 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
     if (!parado || !aoSala) return;
     const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera); const p = new THREE.Vector3();
+    const ag = ray.intersectObjects(alvosAgente, false)[0]?.object?.userData?.agente;
+    if (ag) { focarAgentes(); aoAgente?.(ag); return; }
     const jogo = ray.intersectObjects(alvosJogo, false)[0]?.object?.userData;
     if (jogo) { aoSala(jogo.zona, .5, .5, jogo.jogo); return; }
     if (!ray.ray.intersectPlane(chao, p)) return;
@@ -383,7 +447,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
   canvas.addEventListener('pointermove', (e) => {
     if (arrasto || ed) return;
     const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-    ray.setFromCamera(ndc, camera); canvas.style.cursor = ray.intersectObjects(alvosJogo, false).length ? 'pointer' : '';
+    ray.setFromCamera(ndc, camera); canvas.style.cursor = ray.intersectObjects([...alvosJogo, ...alvosAgente], false).length ? 'pointer' : '';
   });
   canvas.addEventListener('wheel', (e) => { e.preventDefault(); quer.dist = Math.max(Math.max(W, D) * .9, Math.min(Math.max(W, D) * 3, quer.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
 
@@ -601,22 +665,41 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
   let vivo = true, ultimo = performance.now();
   const v = new THREE.Vector3();
   function rotular(el, x, y, z, r) { v.set(x, y, z).project(camera); el.style.transform = `translate(-50%,-100%) translate(${((v.x * .5 + .5) * r.width).toFixed(1)}px,${((-v.y * .5 + .5) * r.height).toFixed(1)}px)`; }
+  // Só desenha quando algo muda (Paulo, 08/11/2026: "não pode ficar pesando nem esquentando o PC"): câmera
+  // andando, alguém andando, agente trabalhando, a mão do mouse na cena ou uma mudança de dados. Parado, nenhum quadro.
+  // A sombra (4096) também só é refeita nessas horas.
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+  const invalidar = () => { sujo = true; };
+  for (const ev of ['pointermove', 'pointerdown', 'pointerup', 'wheel']) canvas.addEventListener(ev, invalidar, { passive: true });
+  ro.disconnect(); new ResizeObserver(() => { medir(); invalidar(); }).observe(canvas);
   function passo(t) {
     if (!vivo) return; requestAnimationFrame(passo);
     if (document.hidden) return;
     const dt = Math.min(.05, (t - ultimo) / 1000); ultimo = t;
     const f = 1 - Math.pow(.001, dt);
+    const mexe = Math.abs(quer.giro - giro) > 1e-4 || Math.abs(quer.incl - incl) > 1e-4 || Math.abs(quer.dist - dist) > 1e-3 || alvo.distanceToSquared(quer.alvo) > 1e-6;
+    let anima = mexe || sujo || Boolean(ed);
+    for (const b of pessoas.values()) if (Math.hypot(b.alvo.x - b.x, b.alvo.z - b.z) > .02) anima = true;
+    for (const m of mesas) if (m.trabalhando) anima = true;
+    if (!anima) return;
+    if (mexe || sujo) renderer.shadowMap.needsUpdate = true;
+    sujo = false;
     giro += (quer.giro - giro) * f; incl += (quer.incl - incl) * f; dist += (quer.dist - dist) * f; alvo.lerp(quer.alvo, f);
     posicionar();
     const r = canvas.getBoundingClientRect();
     for (const b of pessoas.values()) {
       const dx = b.alvo.x - b.x, dz = b.alvo.z - b.z, anda = Math.hypot(dx, dz) > .02;
+      if (anda) renderer.shadowMap.needsUpdate = true;
       b.x += dx * Math.min(1, dt * 3); b.z += dz * Math.min(1, dt * 3);
       if (anda) b.g.rotation.y = Math.atan2(dx, dz);
       b.g.position.set(b.x, anda ? Math.abs(Math.sin(t / 90)) * .06 : 0, b.z);
       rotular(b.el, b.x, 1.8, b.z, r);
     }
     for (const e of etiquetas) rotular(e.el, e.sl.ox + LADO_SALA / 2, H + .3, e.sl.oz + .4, r);
+    for (const m of mesas) {
+      if (m.trabalhando) m.g.position.y = Math.abs(Math.sin(t / 260 + m.fase)) * .03;
+      rotular(m.el, m.x, m.ag ? 2.05 : 1.5, m.z, r);
+    }
     renderer.render(cena, camera);
   }
   requestAnimationFrame(passo);
@@ -624,9 +707,13 @@ export function abrirAndar(canvas, { zonas = [], titulo = '' } = {}) {
     W, D, titulo,
     pessoas: definirPessoas,
     aoClicarSala: (f) => { aoSala = f; },
+    // Agentes do setor: estados { setorId: { estado, cor, rotulo, conectado } } (a mesma leitura do prédio).
+    agentes: definirAgentes,
+    focarAgentes: () => focarAgentes(),
+    aoClicarAgente: (f) => { aoAgente = f; },
     focarSala(id) { const sl = salas.find((x) => x.id === id); if (sl) { quer.alvo.set(sl.ox + LADO_SALA / 2, .5, sl.oz + LADO_SALA / 2); quer.dist = LADO_SALA * 2.6; } },
-    verAndar() { quer.alvo.set(W / 2, .5, D / 2); quer.dist = Math.max(W, D) * 2.1; },
-    destruir() { vivo = false; window.removeEventListener('keydown', tecla, true); ro.disconnect(); for (const b of pessoas.values()) b.el.remove(); for (const e of etiquetas) e.el.remove(); renderer.dispose(); },
+    verAndar() { quer.alvo.set(W / 2, .5, D / 2); quer.dist = Math.max(W, D) * 1.75; },
+    destruir() { vivo = false; window.removeEventListener('keydown', tecla, true); ro.disconnect(); for (const b of pessoas.values()) b.el.remove(); for (const e of etiquetas) e.el.remove(); for (const m of mesas) m.el.remove(); renderer.dispose(); },
     // Modo decorar (vybe-mundo-decorar.js). iniciarEdicao({ sala, itens, aoMudar(itens, info), aoSelecionar(i, item),
     // aoSegurar(classe), aoAviso(texto), aoSair(), tipoDeParede(classe) → 'parede' | 'imagem' | '',
     // lugarParede(x, y, fx, fy) → { lx, ly, dir } | null }) → true se a sala existe neste andar e tem tamanho.

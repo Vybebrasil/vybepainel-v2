@@ -474,7 +474,7 @@
     } else if (gestaoAba === 'semana') {
       corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
         <div class="vv-g-grade">
-          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: 640, h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
+          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 80)), h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
           <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
           <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
           <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
@@ -719,6 +719,12 @@
       sit = falhou ? 'vermelho' : crm.some((o) => o.etapa === 'abordagem_proposta') || aguardando ? 'amarelo' : 'verde';
     } else if (a.id === 'terreo') {
       n = [[sits.filter((x) => x !== 'concluida').length, 'peças em aberto'], [conta('hoje'), 'saem hoje'], [executando, 'agentes trabalhando']];
+    } else if (a.tipo === 'equipe' && a.id !== 'terraco') {
+      // Andar do time: quem está nele agora e quantas salas têm gente (não há agente aqui).
+      const zonas = Object.entries(mundo.zonasDoPredio || {}).filter(([, z]) => z.andar === a.id).map(([id]) => id);
+      const aqui = presencaDoEscritorio().filter((g) => zonas.includes(g.zona));
+      n = [[aqui.length, 'no andar agora'], [new Set(aqui.map((g) => g.zona)).size, 'salas com gente'], [zonas.length, 'salas']];
+      sit = 'verde';
     } else if (a.id === 'terraco') {
       const gente = presencaDoEscritorio();
       n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(mundo.zonasDoPredio || {}).length, 'salas']];
@@ -744,7 +750,7 @@
       <h3>Prédio da Vybe</h3>
       ${[...mundo.planta].reverse().map((a) => { const { n, sit, motivo } = numerosDoAndar(a); const [v, r] = n[0] || [0, ''];
         return `<button type="button" class="vv-elevador" data-andar="${a.id}" style="--c:${a.cor};--s:${SIT_COR[sit]}" title="${esc((motivo ? motivo + ' · ' : '') + n.map(([x, y]) => Number(x).toLocaleString('pt-BR') + ' ' + y).join(' · '))}">
-          <span class="num">${a.nivel === 0 ? 'T' : a.nivel === 6 ? '☀' : a.nivel}</span>
+          <span class="num">${a.nivel === 0 ? 'T' : a.id === 'terraco' ? '☀' : a.nivel}</span>
           <span class="meio"><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><em><strong>${Number(v).toLocaleString('pt-BR')}</strong> ${esc(r)}</em></span>
           <span class="sit" aria-hidden="true"></span></button>`; }).join('')}
       <p class="vv-elevador-aviso${semCentral ? ' off' : ''}">${semCentral ? 'Agentes sem sinal: a central do VYBES está desligada. Os números de produção continuam valendo.' : esc(avisoDosAgentes())}</p>
@@ -777,17 +783,27 @@
       <table class="vv-op-tabela"><thead><tr><th>Agente</th><th>Fase</th><th class="n">Hoje</th><th class="n">Sucesso</th><th class="n">Última</th><th class="n">Mód.</th></tr></thead><tbody>${linhas}</tbody></table>
       ${sinal ? '' : `<p class="vv-elevador-aviso off">${esc(avisoDosAgentes())}. A tabela enche quando a central voltar.</p>`}`;
   }
+  // Um botão só para entrar e sair (Paulo, 08/11/2026: "se eu já tô no andar tem sentido o botão entrar?").
+  function botaoDoAndarHtml(id) {
+    return andarAbertoId === id
+      ? `<button type="button" class="vv-botao acao vv-entrar-andar" data-sair-andar data-andar-id="${esc(id)}">← Voltar ao prédio</button>`
+      : `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(id)}" data-andar-id="${esc(id)}">Entrar no andar →</button>`;
+  }
+  function trocarBotaoDoAndar() {
+    const b = placa()?.querySelector('.vv-entrar-andar');
+    if (b) b.outerHTML = botaoDoAndarHtml(b.dataset.andarId);
+  }
   function mostrarAndar(idAndar, idSetor) {
     const a = mundo.planta.find((x) => x.id === idAndar); if (!a) return;
     const p = placa(), E = mundo.estadosReais;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <button type="button" class="vv-botao" data-voltar style="margin:-6px 0 6px -8px;height:28px">← Andares</button>
-      <h3>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</h3><p class="vv-sub">${esc(a.resumo)}</p>
+      <h3>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome.replace(/^Terraço · /, ''))}</h3><p class="vv-sub">${esc(a.resumo)}</p>
       ${(() => { const { n, sit } = numerosDoAndar(a); return `<div class="vv-andar-kpis" style="--s:${SIT_COR[sit]}">${n.map(([v, r]) => `<div><b>${Number(v).toLocaleString('pt-BR')}</b><small>${esc(r)}</small></div>`).join('')}</div>`; })()}
       ${(() => { const espera = a.setores.filter((s) => s.agente && estadoDoAgente(s.id).estado === 'aguardando_aprovacao');
         return espera.length ? `<div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>Precisa de você<span class="vv-pilula">${espera.length}</span></div>${espera.map((s) => { const e = estadoDoAgente(s.id); return `<button type="button" class="vv-cb-camada" data-agente="${esc(a.id)}|${esc(s.id)}" style="--c:#8E4EC6"><i></i><span><b>${esc(s.agente)}</b><small>${esc(e.tarefa || 'Aguardando aprovação')}${e.desde ? ' · desde ' + esc(horaAgentes(e.desde)) : ''}</small></span><em>Ver →</em></button>`; }).join('')}` : ''; })()}
       ${opAndarHtml(a)}
-      <div class="vv-rotulo-secao" style="--c:${a.cor}"><i></i>Agentes do andar</div>
+      <div class="vv-rotulo-secao" style="--c:${a.cor}"><i></i>${a.tipo === 'equipe' ? 'O andar' : 'Agentes do andar'}</div>
       ${a.setores.map((s) => `<article class="vv-sala" ${s.id === idSetor ? 'style="outline:2px solid ' + a.cor + '"' : ''}>
         <div class="vv-sala-topo"><span class="vv-agente ${['sem_execucao','indisponivel'].includes(estadoDoAgente(s.id).estado) ? 'planejado' : ''}" data-avatar-agente="${esc(s.id)}">${s.agente ? esc(s.agente.slice(0, 2).toUpperCase()) : '★'}</span>
         <span><b>${esc(s.nome)}${s.agente ? ' · ' + esc(s.agente) : ''}</b><p class="papel">${esc(s.papel)}</p></span></div>
@@ -796,8 +812,8 @@
         <div class="vv-sala-acoes">${s.agente ? `<button type="button" class="vv-botao" data-agente="${esc(a.id)}|${esc(s.id)}">Ver o dia</button>` : ''}${s.modulo ? `<button type="button" class="vv-botao acao" data-modulo='${esc(JSON.stringify(s.modulo))}'>${esc(NOME_MODULO[s.modulo.alvo] || 'Abrir')} →</button>` : '<span class="vv-dica">Ainda sem sistema próprio: começa quando o setor tiver ferramenta.</span>'}</div>
       </article>`).join('')}
       ${salasDaEquipeHtml(a.id)}${a.id === 'terraco' ? equipeLazerHtml() : ''}`;
-    if (Object.values(mundo.zonasDoPredio || {}).some((z) => z.andar === a.id))
-      p.querySelector('.vv-sub').insertAdjacentHTML('afterend', `<button type="button" class="vv-botao acao vv-entrar-andar" data-entrar-andar="${esc(a.id)}">Entrar no andar →</button>`);
+    if (Object.values(mundo.zonasDoPredio || {}).some((z) => z.andar === a.id) || a.setores.some((s) => s.agente))
+      p.querySelector('.vv-sub').insertAdjacentHTML('afterend', botaoDoAndarHtml(a.id));
     p.hidden = false; ajustarAreaLivre();
     mundo.focarAndar(a.nivel);
     hud.querySelector('[data-voltar]')?.addEventListener('click', () => mundo.focarAndar(null), { once: true });
@@ -808,10 +824,10 @@
   function presencaDoEscritorio() {
     if (typeof escritorio === 'undefined' || !escritorio) return [];
     const lista = escritorio.conectado ? (escritorio.onlineTodos || escritorio.online || []) : (escritorio.lobbyOnline || []);
-    const gente = lista.map((p) => ({ id: String(p.id), nome: p.nome || '', zona: p.zona || '', roupa: p.perfil?.roupa || p.roupa || '' }));
+    const gente = lista.map((p) => ({ id: String(p.id), nome: p.nome || '', zona: p.zona || '', roupa: p.perfil?.roupa || p.roupa || '', figura: p.perfil?.figura || p.figura || '' }));
     const eu = escritorio.base?.eu;
     if (escritorio.conectado && escritorio.zona && eu && !gente.some((p) => p.id === String(eu)))
-      gente.push({ id: String(eu), nome: 'Você', zona: escritorio.zona, roupa: escritorio.perfil?.roupa || '' });
+      gente.push({ id: String(eu), nome: 'Você', zona: escritorio.zona, roupa: escritorio.perfil?.roupa || '', figura: escritorio.perfil?.figura || '' });
     return gente;
   }
   function observarPresenca() {
@@ -872,11 +888,11 @@
     const lista = escritorio.conectado ? (escritorio.onlineTodos || escritorio.online || []) : (escritorio.lobbyOnline || []);
     const pos = (p) => (typeof escritorioPosicao === 'function' ? escritorioPosicao(p) : { x: NaN, y: NaN });
     const gente = lista.map((p) => { const q = pos(p); return { id: String(p.id), nome: p.nome || '', zona: p.zona || '', x: q.x, y: q.y, L: tamanhoDaZona(p.zona),
-      roupa: p.perfil?.roupa || p.roupa, pele: p.perfil?.pele, cabelo: p.perfil?.cabelo }; });
+      roupa: p.perfil?.roupa || p.roupa, pele: p.perfil?.pele, cabelo: p.perfil?.cabelo, figura: p.perfil?.figura || p.figura || '' }; });
     const eu = escritorio.base?.eu;
     if (escritorio.conectado && escritorio.zona && eu && !gente.some((p) => p.id === String(eu)) && typeof movimento !== 'undefined')
       gente.push({ id: String(eu), nome: 'Você', eu: true, zona: escritorio.zona, x: movimento.x, y: movimento.y, L: tamanhoDaZona(escritorio.zona),
-        roupa: escritorio.perfil?.roupa, pele: escritorio.perfil?.pele, cabelo: escritorio.perfil?.cabelo });
+        roupa: escritorio.perfil?.roupa, pele: escritorio.perfil?.pele, cabelo: escritorio.perfil?.cabelo, figura: escritorio.perfil?.figura || '' });
     return gente;
   }
   async function abrirAndarVoxel(idAndar) {
@@ -887,19 +903,23 @@
     const zonas = Object.entries(mundo.zonasDoPredio).filter(([, z]) => z.andar === idAndar)
       .map(([id, z]) => ({ id, nome: z.nome, dono: z.dono || null, tipo: TIPO_DA_ZONA(id), perfil: perfilDoDono(id), L: tamanhoDaZona(id),
         itens: /^sala-\d+$/.test(id) && typeof escritorioItensDaCamada === 'function' ? (() => { try { return escritorioItensDaCamada(id) || []; } catch { return []; } })() : [], ...(window.VybeDecorar?.acabamentoDaSala?.(id) || {}) }));
-    if (!zonas.length) return;
+    const agentesDoAndar = a.setores.filter((s) => s.agente).map((s) => ({ id: s.id, agente: s.agente, nome: s.nome }));
+    if (!zonas.length && !agentesDoAndar.length) return;
+    const mesasLivres = a.tipo === 'agentes' ? Math.max(0, (mundo.mesasPorAndar || 6) - agentesDoAndar.length) : 0;
     const minhaSala = window.VybeDecorar?.salaDecoravel?.(zonas.map((z) => z.id)) || '';
     const el = document.createElement('section'); el.id = 'mundo-andar';
-    el.innerHTML = `<canvas aria-label="${esc(a.nome)} por dentro"></canvas>
-      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao" data-sair-andar>← Prédio</button>
-        <span><small>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'}</small><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b></span>
+    el.innerHTML = `<div class="andar-palco"><canvas aria-label="${esc(a.nome)} por dentro"></canvas></div>
+      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao andar-voltar" data-sair-andar hidden>← Voltar ao prédio</button>
+        <span><small>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'}</small><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b></span>
         <span class="andar-voz" id="andar-voz"></span>${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</header>
       <p class="andar-dica">Todo mundo do andar aparece aqui. Clique numa sala para entrar nela: a voz liga só com quem está na mesma sala.</p>`;
     body.append(el); body.classList.add('mundo-andar');
     window.VybeTutorial?.dica?.('andar');
     const m = await import(MUNDO_JS);
     if (geracao !== geracaoAndar || el.isConnected === false) return;
-    andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome });
+    andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome, agentes: agentesDoAndar, cor: a.cor, mesasLivres });
+    // A mesa de cada agente no andar abre o dia dele no painel do andar (o mesmo "Ver o dia" do Prédio).
+    andarAberto.aoClicarAgente?.((setor) => mostrarAgente(a.id, setor));
     andarAbertoId = idAndar;
     window.VybeDecorar?.ligarCena?.(andarAberto, m);
     andarAberto.aoClicarSala((zona, fx, fz, jogo) => {
@@ -909,17 +929,30 @@
         const L = tamanhoDaZona(zona); if (L && typeof escritorioIrPara === 'function') escritorioIrPara(Math.round(fx * L.w), Math.round(fz * L.d));
       } else irParaSala(zona);
     });
-    el.querySelector('[data-sair-andar]').addEventListener('click', async () => { if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return; fecharAndarVoxel(true); });
+    el.querySelector('[data-sair-andar]').addEventListener('click', () => sairDoAndar());
+    trocarBotaoDoAndar();
     el.querySelector('[data-decorar]')?.addEventListener('click', (ev) => { window.VybeDecorar?.abrir?.(ev.currentTarget.dataset.decorar); window.VybeTutorial?.dica?.('decorar'); });
     const pintar = () => {
       if (!andarAberto) return;
+      const voltar = el.querySelector('.andar-voltar'), semPainel = placa().hidden || !placa().querySelector('[data-sair-andar]');
+      if (voltar && voltar.hidden !== !semPainel) voltar.hidden = !semPainel;
       const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
       andarAberto.pessoas(manualAndar || genteDoAndar(), minha);
+      // Estado de cada agente do andar: a mesma leitura da central que pinta o prédio por fora.
+      const f = fonteAgentes?.ler(), conectado = Boolean(f?.dados && !f.erro);
+      andarAberto.agentes?.(Object.fromEntries(agentesDoAndar.map((s) => { const e = estadoDoAgente(s.id); return [s.id, { estado: e.estado, cor: e.cor, rotulo: e.rotulo, conectado }]; })));
       const voz = el.querySelector('#andar-voz');
       if (voz) voz.textContent = minha && zonas.some((z) => z.id === minha) ? (typeof escritorioEstadoVozTexto === 'function' ? escritorioEstadoVozTexto() : 'Na sala') : 'Fora das salas · sem voz';
     };
     pintar(); timerAndar = setInterval(pintar, 200);
     sincronizar();
+  }
+  // Sair do andar volta ao Prédio com o painel daquele andar aberto (os HUDs seguem onde estavam).
+  async function sairDoAndar() {
+    if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return;
+    const id = andarAbertoId;
+    fecharAndarVoxel(false);
+    if (id && mundo) mostrarAndar(id);
   }
   function fecharAndarVoxel(voltar) {
     geracaoAndar++; andarAbertoId = '';
@@ -927,6 +960,7 @@
     window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
     document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar');
+    trocarBotaoDoAndar();
     if (voltar && typeof openModeGate === 'function' && !document.getElementById('mode-gate')?.classList.contains('open')) openModeGate();
     sincronizar();
   }
@@ -1597,6 +1631,12 @@
 
   hud.addEventListener('click', (e) => {
     const b = e.target.closest('button, tr[data-agente]'); if (!b) return;
+    // Andar aberto por baixo dos HUDs: outro andar no elevador entra nele; trocar de vista, voltar à lista
+    // de andares, fechar o painel ou ir a outro lugar do trilho sai do andar (decorando, a edição decide).
+    if (andarAberto && !window.VybeDecorar?.aberto?.()) {
+      if (b.dataset.andar && b.dataset.andar !== andarAbertoId) abrirAndarVoxel(b.dataset.andar);
+      else if (b.dataset.vista || b.dataset.ctl === 'tudo' || b.hasAttribute('data-voltar') || ['centro', 'predio', 'agentes', 'jogos'].includes(b.dataset.trilho)) fecharAndarVoxel(false);
+    }
     if (selecionarSemana(b)) return;
     if (b.dataset.atencaoCliente) { mostrarPendencias(b.dataset.atencaoCliente); return; }
     if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
@@ -1651,6 +1691,7 @@
     else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);
     else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mostrarAgente(an, se); }
     else if (b.dataset.entrarAndar) abrirAndarVoxel(b.dataset.entrarAndar);
+    else if (b.hasAttribute('data-sair-andar')) sairDoAndar();
     else if (b.dataset.legado) {
       const e = typeof escritorio !== 'undefined' ? escritorio : null;
       if (b.dataset.legado === 'ficha' && e?.base) chamar('abrirFichaEscritorio', e.base.eu);
@@ -1716,7 +1757,7 @@
         } else if (alvo.tipo === 'andar') {
           const a = mundo.planta.find((x) => x.id === alvo.andar); if (!a) { c.hidden = true; return; }
           const m = motivoDoAndar(a);
-          html = `<b>${a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</b><span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo || 'Sem leitura agora.')}</span>`;
+          html = `<b>${a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar'} · ${esc(a.nome)}</b><span class="vv-selo vv-motivo-andar" style="--e:${m.cor}"><i></i>${esc(m.motivo || 'Sem leitura agora.')}</span>`;
         }
         c.innerHTML = html + '<span class="clique">Clique para abrir</span>';
         c.style.left = Math.min(innerWidth - 296, e.clientX + 16) + 'px'; c.style.top = Math.min(innerHeight - 160, e.clientY + 16) + 'px';
@@ -1985,7 +2026,7 @@
   function salasDeVozHtml({ e, Z, outros, falando, nomeZona }) {
     const planta = mundo?.planta || [], porAndar = new Map();
     for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
-    const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.nivel === 6 ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : 'Outras salas'; };
+    const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : 'Outras salas'; };
     const ordem = [...porAndar.keys()].sort((x, y) => (planta.find((a) => a.id === y)?.nivel ?? -1) - (planta.find((a) => a.id === x)?.nivel ?? -1));
     const eu = { id: String(e.base?.eu || ''), nome: 'Você' };
     const trancas = e.trancas instanceof Map ? e.trancas : new Map();
@@ -2114,8 +2155,8 @@
       return;
     }
     if (chamarAberto || pessoaAberta) { chamarAberto = false; pessoaAberta = null; pintarChamada(); return; }
+    if (andarAberto) { sairDoAndar(); return; }
     if (!placa().hidden) { fecharPlaca(); return; }
-    if (andarAberto) { fecharAndarVoxel(true); return; }
     if (hud.querySelector('.vv-menu-conta')) { hud.querySelectorAll('.vv-menu-conta').forEach((x) => x.remove()); return; }
     if (!gestao.hidden) { fecharGestao(); return; }
     if (body.classList.contains('mundo-modulo')) { fecharModulo(); return; }
@@ -2324,8 +2365,8 @@
     const chegada = gate.querySelector('.login-chegada'); if (!chegada) return;
     const h = new Date().getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
     chegada.innerHTML = `<span class="abr-kicker">Vybe OS · ${saud}</span>
-      <h1 class="login-cidade">Irecê, <b>ao vivo</b></h1>
-      <p>A Vybe inteira numa cidade: os clientes no endereço de cada um, as captações na rua e o VYBES orquestrando do prédio.</p>
+      <h1 class="login-cidade">Vybe <b>OS</b></h1>
+      <p>Seu dia, a agência, os clientes e os agentes do VYBES num lugar só.</p>
       <div class="irecity-modos">
         <button type="button" class="abr-primario" data-modo="irecity"><b>Entrar</b><small>Seu dia, a agência e o VYBES</small></button>
       </div>
@@ -2407,7 +2448,10 @@
     centroAberto = true; fecharPlaca();
     marcarTrilho(vista === 'predio' ? 'predio' : 'centro');
     sincronizar();
-    carregar()?.then?.(() => { if (!mundo || !centroAberto) return; mundo.pausar(false); hud.querySelector(`[data-vista="${vista}"]`)?.click(); ajustarAreaLivre(); });
+    // A vista vai depois de o 3D terminar de montar (clientes, presença, câmera inicial); antes, a câmera inicial
+    // da maquete passava por cima e o "Prédio" do menu abria o elevador com a câmera longe.
+    const aplicar = () => { if (!mundo || !centroAberto) return; mundo.pausar(false); hud.querySelector(`[data-vista="${vista}"]`)?.click(); ajustarAreaLivre(); };
+    Promise.resolve(carregar()).then(() => setTimeout(aplicar, 250));
   }
   function fecharCentro() {
     if (!centroAberto) return;
@@ -2435,10 +2479,12 @@
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
     conferirClientes: () => mundo?.conferirClientes?.(),
     desempenho: () => mundo?.desempenho?.(),
+    ambiente: (k) => mundo?.ambiente?.(k),
     orcamento: () => mundo?.orcamento?.(),
     agente: (andar, setor) => mostrarAgente(andar, setor),
     desenharPresenca: (lista) => { ultimaPresenca = "manual"; manualAndar = lista; mundo?.presenca(lista); },
     abrirAndar: (id) => abrirAndarVoxel(id),
+    andarAberto: () => andarAberto,
     jogar: (id) => abrirJogo(id),
     // Conferência visual: desenha uma lista de clientes sem mexer nos dados do painel.
     desenharClientes: (lista) => { naTela = lista; ultimaAssinatura = 'manual'; return mundo?.definirClientes(lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) }); } };
@@ -2452,12 +2498,18 @@
     if (aberto && centroAberto) fecharCentro();
     // Altura real do aviso dos planejamentos e da barra de voz: a agenda termina acima deles (nada cobre nada).
     const aviso = document.getElementById('plj-aviso'), voz = hud.querySelector('.vv-chamada');
-    const hAviso = aviso && !aviso.hidden && aviso.getClientRects().length ? aviso.offsetHeight + 8 : 0, hVoz = voz && voz.getClientRects().length ? voz.offsetHeight + 8 : 0;
-    body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz) + 'px'); body.style.setProperty('--vv-pe-voz', hVoz + 'px');
+    const musica = document.getElementById('office-musica');
+    const alto = (e) => (e && !e.hidden && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden' ? e.offsetHeight + 8 : 0);
+    const hAviso = alto(aviso), hVoz = alto(voz), hMus = alto(musica);
+    // A coluna da direita empilha de baixo para cima: voz, aviso, música; a agenda termina acima de tudo.
+    const pe = `${hAviso + hVoz}px`;
+    if (body.style.getPropertyValue('--vv-pe-voz') !== hVoz + 'px') body.style.setProperty('--vv-pe-voz', hVoz + 'px');
+    if (body.style.getPropertyValue('--vv-pe-base') !== pe) body.style.setProperty('--vv-pe-base', pe);
+    if (body.style.getPropertyValue('--vv-pe-agenda') !== (hAviso + hVoz + hMus) + 'px') body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz + hMus) + 'px');
   }
   function iniciar() {
     let palcoAgendado = false;
-    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; requestAnimationFrame(() => { palcoAgendado = false; marcarPalco(); }); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; setTimeout(() => { palcoAgendado = false; try { marcarPalco(); } catch (e) { console.error('[mundo] palco', e); } }, 40); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
     const moldura = document.createElement('div'); moldura.id = 'mundo-moldura';
     body.append(raiz, moldura, hud);
     const gate = document.getElementById('mode-gate');

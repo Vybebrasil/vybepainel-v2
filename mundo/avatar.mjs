@@ -14,20 +14,166 @@ const CALCA = ['#2B2F33', '#3E4A5C', '#1F2A44', '#5A4636', '#6B7A72', '#1F1D1A',
 const pega = (lista, n) => lista[Math.abs(Number(n) || 0) % lista.length];
 const h = (s) => { let x = 0; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) | 0; return Math.abs(x); };
 
+const TENIS = ['#FF7A2F', '#0D74CE', '#E5484D', '#18A957', '#F7C948', '#8E4EC6', '#38D9C5', '#F4F1EA', '#D6409F'];
+const ESTAMPAS = ['faixa', 'bolso', 'logo', 'listras', 'gola'];
+// Estilo do cabelo pela peça da figura ("longo" segue a regra de sempre, a do criador de personagem).
+const ESTILOS_CURTOS = ['curto', 'topete', 'cacheado', 'curto', 'franja'];
+
 export function lerFigura(figura = '') {
   const partes = {};
   for (const p of String(figura).split('.')) { const [t, id, c1, c2] = p.split('-'); if (t) partes[t] = { id: Number(id) || 0, c: Number(c1) || 0, c2: Number(c2) || 0 }; }
-  const cabelo = partes.hr, cabeca = partes.hd, camisa = partes.ch, calca = partes.lg, chapeu = partes.ha, casaco = partes.cc, oculos = partes.ea;
+  const cabelo = partes.hr, cabeca = partes.hd, camisa = partes.ch, calca = partes.lg, chapeu = partes.ha, casaco = partes.cc, oculos = partes.ea, sapato = partes.sh;
+  const longo = cabelo ? cabelo.id % 3 === 0 || [500, 515, 545, 836, 890].includes(cabelo.id) : false;
+  const roupa = pega(ROUPA, camisa ? camisa.c + camisa.id : h(figura) + 3);
   return {
     pele: pega(PELE, cabeca ? cabeca.c : h(figura)),
     cabelo: cabelo ? pega(CABELO, cabelo.c + cabelo.id) : null,
-    longo: cabelo ? cabelo.id % 3 === 0 || [500, 515, 545, 836, 890].includes(cabelo.id) : false,
-    roupa: pega(ROUPA, camisa ? camisa.c + camisa.id : h(figura) + 3),
+    longo,
+    estilo: !cabelo ? null : longo ? (cabelo.id % 2 ? 'coque' : 'longo') : pega(ESTILOS_CURTOS, Math.floor(cabelo.id / 3)),
+    roupa,
     casaco: casaco ? pega(ROUPA, casaco.c + 5) : null,
     calca: pega(CALCA, calca ? calca.c + calca.id : h(figura) + 7),
     chapeu: chapeu ? pega(ROUPA, chapeu.c + 2) : null,
     oculos: Boolean(oculos),
+    // Tênis e estampa: do sapato e da camisa da figura (sem sapato, fixos pelo rosto e cabelo: trocar a roupa não troca o tênis).
+    tenis: pega(TENIS, sapato ? sapato.c + sapato.id : h(String(figura).split('.').filter((p) => /^(hd|hr)-/.test(p)).join('.')) + 11),
+    estampa: pega(ESTAMPAS, camisa ? camisa.id + camisa.c2 : h(figura) + 5),
   };
+}
+
+// Presença do Escritório sem figura (só as escolhas antigas do perfil: roupa, pele e cabelo por nome):
+// o mesmo boneco, com o resto fixo pelo id da pessoa.
+const ROUPA_NOME = { laranja: '#FF9548', azul: '#78AAFF', verde: '#72CCAC', roxo: '#AC9BFF', rosa: '#EF9FBC', grafite: '#64738A' };
+const PELE_NOME = { clara: '#F1C9A5', media: '#C68E6A', morena: '#9A6646', escura: '#6B4430' };
+export function figuraDaPessoa(p = {}) {
+  if (p.figura) return lerFigura(p.figura);
+  const k = h(p.id || p.nome || '');
+  return {
+    pele: PELE_NOME[p.pele] || pega(PELE, k), cabelo: pega(CABELO.slice(0, 5), k >> 2), longo: p.cabelo === 'longo',
+    estilo: p.cabelo === 'longo' ? 'longo' : pega(ESTILOS_CURTOS, k >> 3), roupa: ROUPA_NOME[p.roupa] || (/^#[0-9a-f]{6}$/i.test(p.roupa || '') ? p.roupa : pega(ROUPA, k)),
+    casaco: null, calca: pega(CALCA, k >> 1), chapeu: null, oculos: k % 5 === 0, tenis: pega(TENIS, k >> 4), estampa: pega(ESTAMPAS, k >> 5),
+  };
+}
+// Agente (o VYBES num setor): boneco próprio pelo nome, roupa de agente e a cor do setor no visor, no fone e no crachá.
+export function figuraDoAgente(nome = '', cor = '#FF7A2F') {
+  const k = Math.imul(h(nome) ^ 0x5bd1e995, 2654435761) >>> 0; // mistura bem: nomes parecidos dão bonecos diferentes
+  return { pele: pega(PELE, k % 101), cabelo: pega(CABELO.slice(0, 8), (k >>> 7) % 97), longo: false, estilo: pega(['curto', 'topete', 'cacheado', 'franja', 'coque'], (k >>> 13) % 89),
+    roupa: '#F4F1EA', casaco: misturar(cor, '#1F1D1A', .3), calca: '#2B2F33', chapeu: null, oculos: false, tenis: '#F4F1EA', estampa: 'logo', agente: cor };
+}
+
+const misturar = (a, b, t) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), t).getHexString();
+// O boneco voxel da Vybe (Paulo, 08/11/2026: bonecos de cabeça grande, cabelo em blocos com volume, óculos e boné,
+// camiseta com estampa, tênis coloridos; agentes com visor e fone na cor do setor). Altura ~1,7 com a cabeça de
+// 0,74 (cabeça e corpo quase 1:1). Desenha numa Obra que já existe (várias pessoas = uma malha só): (x, y, z) é o
+// pé, s a escala e giro o número de quartos de volta (0 = de frente para +z). Devolve o índice, nas luzes da Obra,
+// da antena do agente (a cor dela é o estado; -1 sem antena).
+export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0 } = {}) {
+  const g = ((Math.round(giro) % 4) + 4) % 4;
+  const P = (lx, lz) => [[lx, lz], [lz, -lx], [-lx, -lz], [-lz, lx]][g];
+  const C = (lx, ly, lz, w, hh, d, cor, luz = false) => {
+    const [a, b] = P(lx, lz), [ww, dd] = g % 2 ? [d, w] : [w, d];
+    (luz ? o.luz : o.caixa).call(o, x + a * s, y + ly * s, z + b * s, ww * s, hh * s, dd * s, cor);
+  };
+  const escuro = (c, t = .35) => misturar(c, '#1F1D1A', t), claro = (c, t = .4) => misturar(c, '#FFFFFF', t);
+  // Tênis: sola branca, cabedal colorido, bico claro e cadarço.
+  for (const sx of [-.13, .13]) {
+    C(sx, 0, .03, .25, .07, .36, '#F4F1EA');
+    C(sx, .07, .02, .23, .11, .32, f.tenis);
+    C(sx, .07, .17, .23, .06, .04, claro(f.tenis, .55));
+    C(sx, .18, 0, .21, .03, .2, '#FFFFFF');
+  }
+  // Pernas e cinto.
+  for (const sx of [-.13, .13]) C(sx, .2, 0, .22, .27, .24, f.calca);
+  C(0, .44, 0, .56, .06, .3, escuro(f.calca, .25));
+  // Tronco com a estampa na frente.
+  const tronco = f.roupa, est = new THREE.Color(tronco).getHSL({}).l > .62 ? escuro(tronco, .55) : '#FFFFFF';
+  C(0, .5, 0, .56, .42, .3, tronco);
+  if (f.agente) { C(0, .64, .155, .2, .16, .02, '#FFFFFF'); C(0, .68, .165, .12, .08, .02, f.agente, true); }
+  else if (f.estampa === 'faixa') C(0, .66, .155, .56, .08, .02, est);
+  else if (f.estampa === 'bolso') { C(.14, .7, .155, .12, .12, .02, escuro(tronco, .2)); C(.14, .8, .16, .12, .02, .02, est); }
+  else if (f.estampa === 'logo') { C(0, .6, .155, .2, .2, .02, est); C(0, .65, .165, .1, .1, .02, tronco); }
+  else if (f.estampa === 'listras') for (const yy of [.56, .66, .76]) C(0, yy, .155, .56, .04, .02, est);
+  else C(0, .86, .155, .24, .06, .02, est);
+  // Casaco aberto (o meio da camiseta aparece) e braços.
+  const manga = f.casaco || tronco;
+  if (f.casaco) for (const sx of [-1, 1]) C(sx * .2, .5, .005, .17, .42, .31, f.casaco);
+  for (const sx of [-1, 1]) {
+    C(sx * .37, .72, 0, .17, .2, .2, manga);
+    C(sx * .37, .52, 0, .14, .2, .16, f.casaco || f.pele);
+    C(sx * .37, .44, 0, .15, .1, .17, f.pele);
+  }
+  // Cabeça grande.
+  const yc = .92, H = .74, W = .78, D = .72, fr = D / 2, topo = yc + H;
+  C(0, yc - .02, 0, .22, .04, .22, f.pele);
+  C(0, yc, 0, W, H, D, f.pele);
+  for (const sx of [-1, 1]) C(sx * (W / 2 + .02), yc + .26, 0, .05, .14, .14, escuro(f.pele, .08));
+  // Rosto: olhos com brilho, sobrancelhas, bochechas e boca; agente tem visor no lugar dos olhos.
+  const yo = yc + .3;
+  if (f.agente) {
+    C(0, yo - .05, fr + .01, W + .04, .2, .04, escuro(f.agente, .5));
+    C(0, yo - .03, fr + .03, W - .06, .16, .02, f.agente, true);
+    for (const sx of [-.17, .17]) C(sx, yo + .01, fr + .045, .12, .06, .01, '#FFFFFF', true);
+  } else {
+    for (const sx of [-.17, .17]) { C(sx, yo, fr + .005, .1, .15, .02, '#1F1D1A'); C(sx + .025, yo + .09, fr + .015, .04, .04, .01, '#FFFFFF'); }
+    if (f.cabelo) for (const sx of [-.17, .17]) C(sx, yo + .2, fr + .005, .15, .035, .02, escuro(f.cabelo, .1));
+  }
+  for (const sx of [-.28, .28]) C(sx, yc + .19, fr + .005, .1, .05, .02, misturar(f.pele, '#F0707A', .45));
+  C(0, yc + .14, fr + .005, .14, .04, .02, misturar(f.pele, '#7A2E2A', .65));
+  if (f.oculos && !f.agente) {
+    for (const sx of [-.17, .17]) {
+      C(sx, yo - .05, fr + .02, .22, .03, .02, '#1F1D1A'); C(sx, yo + .17, fr + .02, .22, .03, .02, '#1F1D1A');
+      C(sx - .1, yo - .05, fr + .02, .03, .25, .02, '#1F1D1A'); C(sx + .1, yo - .05, fr + .02, .03, .25, .02, '#1F1D1A');
+    }
+    C(0, yo + .08, fr + .02, .1, .03, .02, '#1F1D1A');
+    for (const sx of [-1, 1]) C(sx * (W / 2 + .01), yo + .1, .1, .02, .03, .5, '#1F1D1A');
+  }
+  // Cabelo em blocos, com volume (mais largo que a cabeça) e mechas na franja.
+  const ct = f.cabelo, bone = Boolean(f.chapeu);
+  if (ct) {
+    const cs = escuro(ct, .18), cl = claro(ct, .14);
+    if (!bone) C(0, topo - .02, -.02, W + .08, .16, D + .06, ct);
+    C(0, yc + .12, -fr - .03, W + .08, H - .1, .1, cs);
+    for (const sx of [-1, 1]) C(sx * (W / 2 + .03), yc + .34, -.08, .06, .4, D - .14, ct);
+    if (!bone) {
+      if (f.estilo === 'franja') C(0, topo - .2, fr + .02, W + .04, .2, .08, ct);
+      else { C(-.2, topo - .16, fr + .02, .38, .16, .08, ct); C(.18, topo - .1, fr + .02, .42, .1, .08, ct); C(.28, topo - .18, fr + .02, .16, .1, .07, cs); }
+      if (f.estilo === 'topete') { C(.05, topo + .12, .1, .5, .16, .42, ct); C(.05, topo + .2, .2, .36, .08, .26, cl); }
+      if (f.estilo === 'cacheado') {
+        for (const [a, b, c] of [[-.3, .14, .2], [0, .18, -.05], [.3, .14, .15], [-.2, .12, -.3], [.22, .12, -.28], [0, .14, .25]]) C(a, topo + .04, c, .3, b, .3, a > 0 ? cl : ct);
+        for (const sx of [-1, 1]) C(sx * (W / 2 + .08), yc + .3, 0, .14, .38, .5, ct);
+      }
+      if (f.estilo === 'coque') { C(0, topo + .1, -.22, .3, .26, .3, ct); C(0, topo + .1, -.08, .32, .05, .05, f.agente || '#E5484D'); }
+      if (f.estilo === 'curto') C(-.1, topo + .14, 0, .3, .06, .3, cl);
+    }
+    if (f.estilo === 'longo') {
+      C(0, .56, -fr - .04, W + .1, .5, .12, cs);
+      for (const sx of [-1, 1]) C(sx * (W / 2 + .04), .66, -.04, .08, .5, D - .2, ct);
+    }
+  }
+  // Boné com aba.
+  if (bone) {
+    C(0, topo - .06, -.02, W + .08, .2, D + .06, f.chapeu);
+    C(0, topo - .06, fr + .16, W + .02, .05, .32, escuro(f.chapeu, .15));
+    C(0, topo + .14, -.02, .1, .04, .1, claro(f.chapeu, .5));
+  }
+  let antena = -1;
+  if (f.agente) {
+    // Fone: arco por cima, conchas nas orelhas com o anel do setor e o microfone até a boca.
+    const arco = topo + (ct && !bone ? .14 : 0);
+    C(0, arco, 0, W + .2, .06, .12, '#2B2F33');
+    for (const sx of [-1, 1]) {
+      C(sx * (W / 2 + .07), yc + .4, 0, .06, arco - yc - .4, .12, '#2B2F33');
+      C(sx * (W / 2 + .08), yc + .18, 0, .1, .26, .26, '#2B2F33');
+      C(sx * (W / 2 + .14), yc + .22, 0, .02, .18, .18, f.agente, true);
+    }
+    C(-(W / 2 + .1), yc + .12, .2, .04, .04, .3, '#2B2F33');
+    C(-.26, yc + .1, fr + .04, .1, .06, .06, f.agente, true);
+    // Antena do estado: cinza sem leitura da central; a cor do estado quando há leitura.
+    C(.26, arco + .06, -.12, .03, .26, .03, '#5A6268');
+    antena = o.luzes.length;
+    C(.26, arco + .32, -.12, .11, .11, .11, '#9AA3A8', true);
+  }
+  return antena;
 }
 
 let renderer = null, cena = null, camera = null;
@@ -44,21 +190,21 @@ function preparar() {
   camera = new THREE.PerspectiveCamera(26, 128 / 160, .1, 50);
 }
 
-function boneco(f) {
-  const o = new Obra();
-  o.caixa(-.13, 0, 0, .2, .62, .24, f.calca).caixa(.13, 0, 0, .2, .62, .24, f.calca);
-  o.caixa(-.13, 0, .03, .22, .1, .3, '#1F1D1A').caixa(.13, 0, .03, .22, .1, .3, '#1F1D1A');
-  o.caixa(0, .62, 0, .56, .64, .32, f.roupa);
-  if (f.casaco) { o.caixa(-.2, .62, .02, .18, .64, .34, f.casaco).caixa(.2, .62, .02, .18, .64, .34, f.casaco); }
-  o.caixa(-.36, .7, 0, .14, .52, .16, f.casaco || f.roupa).caixa(.36, .7, 0, .14, .52, .16, f.casaco || f.roupa);
-  o.caixa(-.36, .6, 0, .13, .12, .14, f.pele).caixa(.36, .6, 0, .13, .12, .14, f.pele);
-  o.caixa(0, 1.26, 0, .44, .44, .42, f.pele);
-  o.caixa(-.1, 1.44, .215, .07, .07, .02, '#1F1D1A').caixa(.1, 1.44, .215, .07, .07, .02, '#1F1D1A');
-  o.caixa(0, 1.34, .215, .14, .03, .02, '#8A3B2E');
-  if (f.oculos) o.caixa(0, 1.42, .225, .36, .1, .02, '#1F1D1A');
-  if (f.cabelo) { o.caixa(0, 1.62, -.02, .48, .14, .48, f.cabelo).caixa(0, 1.3, -.2, .48, .34, .1, f.cabelo); if (f.longo) o.caixa(0, .98, -.2, .48, .42, .1, f.cabelo).caixa(-.23, 1.1, 0, .06, .5, .36, f.cabelo).caixa(.23, 1.1, 0, .06, .5, .36, f.cabelo); }
-  if (f.chapeu) o.caixa(0, 1.7, 0, .52, .16, .5, f.chapeu).caixa(0, 1.7, .26, .52, .05, .16, f.chapeu);
-  return o.montar();
+function boneco(f) { const o = new Obra(); desenharBoneco(o, f); return o.montar(); }
+
+// Retrato (data URL) do agente de um setor: o mesmo boneco de agente do prédio (visor e fone na cor do setor).
+export function avatarDoAgente(nome, cor = '#FF7A2F', { cabeca = false } = {}) {
+  const chave = 'agente|' + nome + '|' + cor + '|' + cabeca;
+  if (cache.has(chave)) return cache.get(chave);
+  preparar();
+  const g = boneco(figuraDoAgente(nome, cor)); g.rotation.y = .3; cena.add(g);
+  if (cabeca) { camera.position.set(0, 1.36, 2.7); camera.lookAt(0, 1.3, 0); }
+  else { camera.position.set(0, 1.1, 5); camera.lookAt(0, .93, 0); }
+  renderer.render(cena, camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  cena.remove(g); g.traverse((x) => x.geometry?.dispose?.());
+  cache.set(chave, url);
+  return url;
 }
 
 // Imagem (data URL) do avatar. so a cabeça quando "cabeca" (miniaturas).
@@ -69,8 +215,8 @@ export function avatarVoxel(figura, { cabeca = false, direcao = 2 } = {}) {
   const g = boneco(lerFigura(figura));
   g.rotation.y = [-.6, -.3, .3, .6, 2.6, 3, -2.6, -3][Number(direcao) % 8] ?? .3;
   cena.add(g);
-  if (cabeca) { camera.position.set(0, 1.35, 2.2); camera.lookAt(0, 1.3, 0); }
-  else { camera.position.set(0, 1.05, 4.6); camera.lookAt(0, .9, 0); }
+  if (cabeca) { camera.position.set(0, 1.36, 2.7); camera.lookAt(0, 1.3, 0); }
+  else { camera.position.set(0, 1.1, 5); camera.lookAt(0, .93, 0); }
   renderer.render(cena, camera);
   const url = renderer.domElement.toDataURL('image/png');
   cena.remove(g); g.traverse((x) => x.geometry?.dispose?.());
@@ -91,7 +237,7 @@ export function desenharPreviaAvatar(canvas, figura = '', { angulo = .3 } = {}) 
   const sol = new THREE.DirectionalLight('#FFF1D8', 1.6); sol.position.set(3, 5, 4); c.add(sol);
   const contorno = new THREE.DirectionalLight('#FFB27A', 1.2); contorno.position.set(-3, 2, -3); c.add(contorno);
   const cam = new THREE.PerspectiveCamera(26, 128 / 160, .1, 50);
-  cam.position.set(0, 1.05, 4.6); cam.lookAt(0, .9, 0);
+  cam.position.set(0, 1.1, 5); cam.lookAt(0, .93, 0);
   let g = null, atual = null, giro = Number(angulo) || 0, quadro = 0, vivo = true;
   const pedir = () => { if (vivo && !quadro) quadro = requestAnimationFrame(desenhar); };
   // A Obra cria geometria e material para cada boneco: os dois saem juntos.
