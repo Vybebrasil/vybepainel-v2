@@ -300,15 +300,22 @@ html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-pla
 #mundo-andar .andar-palco{position:absolute;top:0;bottom:0;left:var(--vv-livre-esq,0px);right:var(--vv-livre-dir,0px);overflow:hidden}
 #mundo-andar canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
 #mundo-andar canvas:active{cursor:grabbing}
-.andar-topo{position:absolute;top:var(--vv-m);left:calc(var(--vv-livre-esq,0px) + var(--vv-m));gap:12px;padding:6px 14px 6px 6px;background:rgba(251,250,247,.96)!important;color:var(--vv-tinta)}
+.andar-topo{position:absolute;top:var(--vv-m);left:calc(var(--vv-livre-esq,0px) + var(--vv-m));flex-wrap:wrap;align-items:center;max-width:min(400px,calc(100% - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 2 * var(--vv-m)));gap:8px 12px;padding:8px 14px 10px 10px;background:rgba(251,250,247,.96)!important;color:var(--vv-tinta)}
 @media (max-width:900px){.andar-topo{top:calc(var(--vv-m) + 58px)}#mundo-andar .andar-palco{bottom:42vh}}
-.andar-voltar[hidden]{display:none!important}.andar-topo:has(.andar-voltar[hidden]){padding-left:14px}
+.andar-voltar[hidden]{display:none!important}
+.andar-topo [data-arrumar][aria-pressed="true"]{border-color:var(--vv-laranja);color:var(--vv-laranja-escuro,#C2410C)}
+body.vv-decorando #mundo-andar [data-arrumar]{display:none!important}.andar-topo:has(.andar-voltar[hidden]){padding-left:14px}
 .andar-topo span:not(.andar-voz){display:flex;flex-direction:column}
 .andar-topo small{font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:var(--vv-apagado)}
 .andar-topo b{font:700 16px var(--vv-titulo);color:var(--vv-tinta)}
 .andar-voz{padding:5px 10px;border-radius:8px;background:var(--vv-papel);font:700 11.5px var(--vv-texto);color:var(--vv-apagado)}
 .andar-voz:not(:empty)::before{content:"●";margin-right:6px;color:var(--sit-pronta)}
-.andar-dica{position:absolute;left:calc(var(--vv-livre-esq,0px) + var(--vv-m));top:calc(var(--vv-m) + 88px);width:max-content;max-width:min(340px,calc(100% - var(--vv-livre-esq,0px) - var(--vv-livre-dir,0px) - 28px));margin:0;padding:8px 14px;border-radius:8px;background:rgba(255,255,255,.86);color:var(--vv-tinta);box-shadow:0 6px 18px -8px rgba(30,40,50,.35);font:500 12px/1.4 var(--vv-texto);backdrop-filter:blur(8px);text-align:left}
+.andar-topo{justify-content:flex-start}
+.andar-topo > span:first-of-type{align-items:flex-start;text-align:left}
+/* Dentro do andar os controles do mapa mexeriam no Centro escondido atrás: saem de cena. */
+body.mundo-andar .vv-controles{display:none!important}
+.andar-topo span.andar-acoes{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;flex-basis:100%}
+.andar-topo .andar-dica{flex-basis:100%;margin:0;padding-top:6px;border-top:1px solid rgba(31,29,26,.08);font:500 11.5px/1.4 var(--vv-texto);color:var(--vv-apagado);letter-spacing:0;text-transform:none}
 @media (max-width:900px){.andar-dica{display:none}}
 .sala-placa,.sala-nome{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform}
 .sala-placa{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.94);box-shadow:0 6px 16px -6px rgba(30,40,50,.35);font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}
@@ -4219,7 +4226,7 @@ body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}
    o céu escurece e os rótulos e o cabeçalho invertem como os painéis. */
 html.tema-escuro body.mundo #mundo-andar{background:linear-gradient(180deg,#1E2638 0%,#151A26 60%,#10141D 100%)}
 html.tema-escuro body.mundo #mundo-andar canvas{filter:brightness(.62) saturate(.85) contrast(1.06)}
-html.tema-escuro body.mundo #mundo-andar :is(.andar-topo,.andar-dica,.sala-placa,.sala-nome,.sala-agente){filter:invert(.92) hue-rotate(180deg)}
+html.tema-escuro body.mundo #mundo-andar :is(.andar-topo,.sala-placa,.sala-nome,.sala-agente){filter:invert(.92) hue-rotate(180deg)}
 
 /* Abertura: no Irecity não existe a tela da Vybelândia (arte do Escritório antigo, 1 MB). O mundo é a abertura. */
 html body.mundo.abrindo-escritorio{background:#F6F3EE!important;background-image:none!important}

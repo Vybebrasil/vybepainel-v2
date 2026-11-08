@@ -195,6 +195,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   agentes novos); 6º Time Vybe (as salas de cada um e a reunião), 7º Estúdio e Operação, Terraço por último
   (`mundo/planta.mjs`). As zonas são as mesmas do Escritório; só o andar delas mudou. Bonecos de pessoas e agentes saem
   de `desenharBoneco` (`mundo/avatar.mjs`); não crie outro boneco. O andar por dentro fica por baixo dos HUDs.
+- Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
+  lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
+  Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa
+  no botão de hora dos controles (`definirHora`, guardada só no navegador). O motor baixa a qualidade sozinho se os
+  quadros ficam lentos e só desenha quando algo muda; o andar por dentro também. Não crie outro laço de animação.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
 

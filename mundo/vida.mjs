@@ -4,7 +4,7 @@
 // atrasada, confete com peça pronta). Tudo anima só à vista; "Reduzir movimento" deixa tudo parado no lugar.
 // O motor já reduz os quadros com a página parada e para de desenhar depois de 1 minuto sem ninguém mexer.
 import * as THREE from 'three';
-import { Obra, materialSombra, materialAgua, texturaRadial } from './voxel.mjs';
+import { Obra, materialSombra, materialAgua, materialVoxel, texturaRadial } from './voxel.mjs';
 import { ruido } from './irece.mjs';
 import { desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 
@@ -57,10 +57,37 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
 
   // Boneco que anda: duas poses de passada (perna e braço alternados) trocadas no ritmo do passo. Só uma aparece por
   // vez, então custa o mesmo que um boneco parado. Com "Reduzir movimento", uma pose só, parada.
+  // Multidão num desenho só (antes um por pessoa, ~25 por quadro): cada boneco guarda os blocos das duas poses e, a
+  // cada quadro, os blocos da pose atual vão para uma InstancedMesh única, já na posição e no giro dele. g é só o
+  // "lugar" do boneco (um Object3D sem malha), que a sombra de contato e o cachorro seguem.
+  const multidao = { lista: [], malha: null, sujo: true };
   function boneco(f, s = .8) {
-    const g = new THREE.Group(), poses = (parado ? [0] : [1, -1]).map((passo) => { const o = new Obra(); desenharBoneco(o, f, { s, passo }); const m = o.montar({ sombra: false }); g.add(m); return m; });
-    if (poses[1]) poses[1].visible = false;
-    g.userData.poses = poses; grupo.add(g); return g;
+    const g = new THREE.Object3D(), poses = (parado ? [0] : [1, -1]).map((passo) => { const o = new Obra(); desenharBoneco(o, f, { s, passo }); return o.solidos; });
+    g.userData.poses = poses; g.userData.pose = 0; grupo.add(g);
+    multidao.lista.push(g); multidao.sujo = true;
+    return g;
+  }
+  const mLocal = new THREE.Matrix4(), mCorpo = new THREE.Matrix4();
+  function desenharMultidao() {
+    if (multidao.sujo) {
+      if (multidao.malha) { grupo.remove(multidao.malha); multidao.malha.dispose(); }
+      const total = multidao.lista.reduce((n, g) => n + g.userData.poses[0].length, 0);
+      multidao.malha = null; multidao.sujo = false;
+      if (!total) return;
+      const malha = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), materialVoxel(), total);
+      let k = 0;
+      for (const g of multidao.lista) { g.userData.base = k; for (const b of g.userData.poses[0]) malha.setColorAt(k++, cor.set(b.cor)); }
+      malha.castShadow = false; malha.receiveShadow = true; malha.frustumCulled = false;
+      multidao.malha = malha; grupo.add(malha);
+    }
+    const malha = multidao.malha; if (!malha) return;
+    for (const g of multidao.lista) {
+      g.updateMatrix(); mCorpo.copy(g.matrix);
+      const blocos = g.userData.poses[g.userData.pose] || g.userData.poses[0];
+      let k = g.userData.base;
+      for (const b of blocos) { mLocal.makeScale(b.w, b.h, b.d).setPosition(b.x, b.y + b.h / 2, b.z); malha.setMatrixAt(k++, m4.multiplyMatrices(mCorpo, mLocal)); }
+    }
+    malha.instanceMatrix.needsUpdate = true;
   }
   // Sombras de contato de tudo que anda (pessoas e bichos), numa malha só atualizada a cada quadro.
   const planoSombra = new THREE.PlaneGeometry(1, 1); planoSombra.rotateX(-Math.PI / 2);
@@ -88,7 +115,7 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     lista.forEach((q, i) => { m4.makeScale(5.5, 1, 5.5).setPosition(q.x, CHAO + .03, q.z); pocas.setMatrixAt(i, m4); });
     pocas.count = lista.length; pocas.visible = luzChao.opacity > 0; pocas.renderOrder = 2; grupo.add(pocas);
   }
-  function soltar(g) { grupo.remove(g); g.traverse((q) => q.geometry?.dispose?.()); }
+  function soltar(g) { grupo.remove(g); const i = multidao.lista.indexOf(g); if (i >= 0) { multidao.lista.splice(i, 1); multidao.sujo = true; } }
 
   // ---------- Gente andando na calçada do anel ----------
   let pedestres = [];
@@ -155,7 +182,7 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
       if (!parado) p.d += p.v * dt;
       const [x, z, dx, dz] = noQuadrado(p.d, p.h), s = Math.sign(p.v) || 1;
       p.g.position.set(x, y + (parado ? 0 : Math.abs(Math.sin(t * 7 + p.fase)) * .04), z);
-      const poses = p.g.userData.poses; if (poses?.[1]) { const a = Math.sin(t * 7 + p.fase) > 0; poses[0].visible = a; poses[1].visible = !a; }
+      if (p.g.userData.poses?.[1]) p.g.userData.pose = Math.sin(t * 7 + p.fase) > 0 ? 0 : 1;
       p.g.rotation.y = Math.atan2(dx * s, dz * s);
       if (p.r) p.r.pos.set(x, y + 1.9, z);
     }
@@ -207,14 +234,15 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
   montarPedestres(); definirLojas(); montarBichos(); montarPocas();
   let ultimoT = 0;
   motor.animar((t, dt) => {
-    if (parado && ultimoT) return false;
+    // Movimento reduzido: tudo parado, mas quem chega (time online) ainda é posto no lugar uma vez.
+    if (parado && ultimoT) { if (!multidao.sujo) return false; passo(pedestres, t, 0); passo(online, t, 0); desenharMultidao(); atualizarSombras(); return true; }
     ultimoT = t;
     const vista = true; // a maquete inteira está sempre à vista com o mundo aberto (fechado, o motor nem chama)
     materialAgua().userData.tempo.value = t;
     // De longe os tufos, flores e pedrinhas viram menos de um pixel: somem (menos triângulos sem diferença visível).
     const fino = centro.detalheFino?.(), dist = motor.estado?.().dist ?? 0;
     if (fino) fino.visible = dist < 270;
-    passo(pedestres, t, dt); passo(online, t, dt); animarBichos(t); atualizarSombras();
+    passo(pedestres, t, dt); passo(online, t, dt); animarBichos(t); desenharMultidao(); atualizarSombras();
     // Chafariz: gotas em arco saindo da taça e voltando para a bacia.
     const c = centro.chafariz?.();
     if (c) for (let i = 0; i < GOTAS_CHAFARIZ; i++) {

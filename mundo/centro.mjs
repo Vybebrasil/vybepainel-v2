@@ -100,9 +100,9 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0'); postes.push({ x: a, z: b });
     }
     detalhes(o, L, fino);
-    g.add(o.montar());
+    g.add(o.montar({ pedacos: 3 }));
     // Ilha, sebes, tufos e manchas recebem sombra mas não projetam: ficam fora do cálculo da sombra (desempenho).
-    finoMalha = fino.montar({ sombra: false }); g.add(finoMalha);
+    finoMalha = fino.montar({ sombra: false, pedacos: 3 }); g.add(finoMalha);
     // Ilhotas flutuando em volta da maquete (Paulo, 08/11/2026: "mais vivo, detalhado"); a vida (vida.mjs) as balança.
     ilhotas = [[S + 13, 3, -S * .35, 1], [-S * .45, -2.5, S + 12, .8]].map(([ix, iy, iz, k]) => {
       const q = new Obra(), w = 6 * k;

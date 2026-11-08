@@ -5,8 +5,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const js = readFileSync(new URL('../vybe-mundo.js', import.meta.url), 'utf8');
-const css = readFileSync(new URL('../vybe-mundo.css', import.meta.url), 'utf8');
+// No Windows o checkout vem com CRLF: normaliza para as buscas por '\n' valerem nos dois sistemas.
+const js = readFileSync(new URL('../vybe-mundo.js', import.meta.url), 'utf8').split('\r\n').join('\n');
+const css = readFileSync(new URL('../vybe-mundo.css', import.meta.url), 'utf8').split('\r\n').join('\n');
 
 // Tira a função de dentro do vybe-mundo.js (do "function nome(" até o "}" no mesmo recuo).
 function funcao(nome) {

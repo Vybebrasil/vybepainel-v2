@@ -801,6 +801,7 @@ async function areaClientes(req, res, quem) {
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
              c.nao_e_cliente, c.nps, c.nps_em,
+             c.identidade->'personagem'->>'figura' AS personagem,
              (SELECT COUNT(*)::int FROM vybe_cliente_reunioes r WHERE r.cliente_id = c.id) AS atas,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
              (SELECT STRING_AGG(p.nome, ', ' ORDER BY cp.ordem, p.nome)
