@@ -287,15 +287,14 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     planta(o, x + largura / 2 - .35, zf + .95, .8);
     let antena = -1;
     if (ag) { o.caixa(x + .75, .82, zf + 2.35, .14, .16, .14, cor); antena = desenharBoneco(o, figuraDoAgente(ag.agente, cor), { x, y: .14, z: zf + 1.28, s: .78 }); }
-    const g = o.montar(), luzes = g.children.find((m) => m.material?.type === 'MeshBasicMaterial');
+    const g = o.montar(), luzes = g.children.find((m) => m.material?.type === 'MeshBasicMaterial' && !m.userData.sombraDeContato);
     cena.add(g);
     const el = document.createElement('div'); el.className = 'sala-agente' + (ag ? '' : ' livre');
-    el.innerHTML = ag ? `<i></i><b>${String(ag.agente).replace(/[<>&]/g, '')}</b><span>${String(ag.nome || '').replace(/[<>&]/g, '')}</span>` : '<b>Mesa livre</b>';
+    el.innerHTML = ag ? `<i></i><b>${String(ag.agente).replace(/[<>&]/g, '')}</b><span>${String(ag.nome || '').replace(/[<>&]/g, '')}</span><em hidden></em>` : '<b>Mesa livre</b><span>contratar agente</span>';
     canvas.parentElement.appendChild(el);
-    if (ag) {
-      const alvo = new THREE.Mesh(new THREE.BoxGeometry(largura, 2, 3), new THREE.MeshBasicMaterial({ visible: false }));
-      alvo.position.set(x, 1, zf + 1.75); alvo.userData.agente = ag.id; cena.add(alvo); alvosAgente.push(alvo);
-    }
+    // Mesa do agente abre o dia dele; mesa livre leva à página de Agentes (quem é quem e o que falta para contratar).
+    const alvo = new THREE.Mesh(new THREE.BoxGeometry(largura, 2, 3), new THREE.MeshBasicMaterial({ visible: false }));
+    alvo.position.set(x, 1, zf + 1.75); alvo.userData.agente = ag ? ag.id : '__livre'; cena.add(alvo); alvosAgente.push(alvo);
     mesas.push({ ag, g, luzes, tela, antena, el, x, z: zf + 1.3, estado: '', fase: i * 1.7 });
   });
   const corTmp = new THREE.Color();
@@ -303,7 +302,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     for (const m of mesas) {
       if (!m.ag) continue;
       const e = estados[m.ag.id] || {}, conectado = Boolean(e.conectado), c = conectado ? (e.cor || '#9AA3A8') : '#9AA3A8';
-      const assin = c + ':' + e.estado + ':' + conectado;
+      const assin = c + ':' + e.estado + ':' + conectado + ':' + (e.tarefa || '');
       if (assin === m.estado) continue;
       m.estado = assin; m.trabalhando = conectado && e.estado === 'executando'; sujo = true;
       if (m.luzes) {
@@ -313,6 +312,8 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
         m.luzes.instanceColor.needsUpdate = true;
       }
       m.el.style.setProperty('--ag-cor', c); m.el.title = e.rotulo || '';
+      const balao = m.el.querySelector('em');
+      if (balao) { const tarefa = m.trabalhando ? String(e.tarefa || '').slice(0, 80) : ''; balao.textContent = tarefa; balao.hidden = !tarefa; }
       if (!m.trabalhando) m.g.position.y = 0;
     }
   }
@@ -336,7 +337,10 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     if (!sl.decorada && ed?.sl !== sl) mobiliar(o, sl.tipo, LADO_SALA, LADO_SALA, sl.perfil);
     // Divisórias: frente e lado direito de vidro baixo (todo mundo se vê), com vão de porta. A mureta leva a
     // cor das paredes que o dono escolheu (sala_parede).
-    for (const [x, z, w, d] of [[LADO_SALA - .05, LADO_SALA / 2 - 1.5, .1, LADO_SALA - 3], [LADO_SALA / 2 - 1.5, LADO_SALA - .05, LADO_SALA - 3, .1]]) o.caixa(x, 0, z, w, .25, d, ehCor(sl.parede) ? sl.parede : MURETA);
+    // Meia parede mais alta entre as salas (o andar do time ficava embolado), com o tampo na cor da parede do dono.
+    for (const [x, z, w, d] of [[LADO_SALA - .05, LADO_SALA / 2 - 1.5, .14, LADO_SALA - 3], [LADO_SALA / 2 - 1.5, LADO_SALA - .05, LADO_SALA - 3, .14]]) {
+      o.caixa(x, 0, z, w, .6, d, MURETA).caixa(x, .6, z, w + .04, .08, d + .04, ehCor(sl.parede) ? sl.parede : '#E2C19A');
+    }
     sl.base = o.montar(); sl.base.position.set(sl.ox, 0, sl.oz); cena.add(sl.base);
   }
   // Sala decorada pela pessoa: os móveis salvos (classe, x, y, direção), cada um como a peça voxel dele.
@@ -375,7 +379,8 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
   const camera = new THREE.PerspectiveCamera(30, 1, .1, 400);
   const alvo = new THREE.Vector3(W / 2, .5, D / 2);
   let giro = .78, incl = .82, dist = Math.max(W, D) * 1.75; const quer = { giro, incl, dist, alvo: alvo.clone() };
-  function posicionar() { camera.position.set(alvo.x + dist * Math.cos(incl) * Math.sin(giro), alvo.y + dist * Math.sin(incl), alvo.z + dist * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo); }
+  // Tela estreita (celular, em pé): afasta a câmera na proporção, para a maquete caber na largura.
+  function posicionar() { const d = dist * Math.max(1, 1.45 / Math.max(.2, camera.aspect)); camera.position.set(alvo.x + d * Math.cos(incl) * Math.sin(giro), alvo.y + d * Math.sin(incl), alvo.z + d * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo); }
   function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); }
   const ro = new ResizeObserver(medir); ro.observe(canvas); medir();
 
@@ -415,7 +420,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
 
   // Controles: arrastar gira a maquete, roda aproxima, clique numa sala entra nela (e na voz dela).
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  let arrasto = null, aoSala = null, aoAgente = null;
+  let arrasto = null, aoSala = null, aoAgente = null, aoMesaLivre = null;
   canvas.addEventListener('pointerdown', (e) => {
     if (ed && comecarArrasto(e)) return; // decorando: a peça clicada é pega; o resto gira a maquete
     arrasto = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; canvas.setPointerCapture(e.pointerId);
@@ -437,6 +442,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera); const p = new THREE.Vector3();
     const ag = ray.intersectObjects(alvosAgente, false)[0]?.object?.userData?.agente;
+    if (ag === '__livre') { aoMesaLivre?.(); return; }
     if (ag) { focarAgentes(); aoAgente?.(ag); return; }
     const jogo = ray.intersectObjects(alvosJogo, false)[0]?.object?.userData;
     if (jogo) { aoSala(jogo.zona, .5, .5, jogo.jogo); return; }
@@ -711,6 +717,7 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
     agentes: definirAgentes,
     focarAgentes: () => focarAgentes(),
     aoClicarAgente: (f) => { aoAgente = f; },
+    aoClicarMesaLivre: (f) => { aoMesaLivre = f; },
     focarSala(id) { const sl = salas.find((x) => x.id === id); if (sl) { quer.alvo.set(sl.ox + LADO_SALA / 2, .5, sl.oz + LADO_SALA / 2); quer.dist = LADO_SALA * 2.6; } },
     verAndar() { quer.alvo.set(W / 2, .5, D / 2); quer.dist = Math.max(W, D) * 1.75; },
     destruir() { vivo = false; window.removeEventListener('keydown', tecla, true); ro.disconnect(); for (const b of pessoas.values()) b.el.remove(); for (const e of etiquetas) e.el.remove(); for (const m of mesas) m.el.remove(); renderer.dispose(); },

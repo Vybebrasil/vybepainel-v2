@@ -67,7 +67,10 @@ const misturar = (a, b, t) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), 
 // 0,74 (cabeça e corpo quase 1:1). Desenha numa Obra que já existe (várias pessoas = uma malha só): (x, y, z) é o
 // pé, s a escala e giro o número de quartos de volta (0 = de frente para +z). Devolve o índice, nas luzes da Obra,
 // da antena do agente (a cor dela é o estado; -1 sem antena).
-export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0 } = {}) {
+// passo (-1..1): pose de passada, com a perna de um lado à frente e o braço do outro (as duas poses alternadas
+// fazem o boneco andar de verdade, sem malha a mais por quadro).
+export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, passo = 0 } = {}) {
+  const pz = (lado) => passo * Math.sign(lado) * .09;
   const g = ((Math.round(giro) % 4) + 4) % 4;
   const P = (lx, lz) => [[lx, lz], [lz, -lx], [-lx, -lz], [-lz, lx]][g];
   const C = (lx, ly, lz, w, hh, d, cor, luz = false) => {
@@ -77,13 +80,14 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0 } = 
   const escuro = (c, t = .35) => misturar(c, '#1F1D1A', t), claro = (c, t = .4) => misturar(c, '#FFFFFF', t);
   // Tênis: sola branca, cabedal colorido, bico claro e cadarço.
   for (const sx of [-.13, .13]) {
-    C(sx, 0, .03, .25, .07, .36, '#F4F1EA');
-    C(sx, .07, .02, .23, .11, .32, f.tenis);
-    C(sx, .07, .17, .23, .06, .04, claro(f.tenis, .55));
-    C(sx, .18, 0, .21, .03, .2, '#FFFFFF');
+    const q = pz(sx);
+    C(sx, 0, .03 + q, .25, .07, .36, '#F4F1EA');
+    C(sx, .07, .02 + q, .23, .11, .32, f.tenis);
+    C(sx, .07, .17 + q, .23, .06, .04, claro(f.tenis, .55));
+    C(sx, .18, q, .21, .03, .2, '#FFFFFF');
   }
   // Pernas e cinto.
-  for (const sx of [-.13, .13]) C(sx, .2, 0, .22, .27, .24, f.calca);
+  for (const sx of [-.13, .13]) C(sx, .2, pz(sx) * .6, .22, .27, .24, f.calca);
   C(0, .44, 0, .56, .06, .3, escuro(f.calca, .25));
   // Tronco com a estampa na frente.
   const tronco = f.roupa, est = new THREE.Color(tronco).getHSL({}).l > .62 ? escuro(tronco, .55) : '#FFFFFF';
@@ -98,9 +102,10 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0 } = 
   const manga = f.casaco || tronco;
   if (f.casaco) for (const sx of [-1, 1]) C(sx * .2, .5, .005, .17, .42, .31, f.casaco);
   for (const sx of [-1, 1]) {
-    C(sx * .37, .72, 0, .17, .2, .2, manga);
-    C(sx * .37, .52, 0, .14, .2, .16, f.casaco || f.pele);
-    C(sx * .37, .44, 0, .15, .1, .17, f.pele);
+    const qb = -pz(sx);
+    C(sx * .37, .72, qb * .4, .17, .2, .2, manga);
+    C(sx * .37, .52, qb, .14, .2, .16, f.casaco || f.pele);
+    C(sx * .37, .44, qb * 1.2, .15, .1, .17, f.pele);
   }
   // Cabeça grande.
   const yc = .92, H = .74, W = .78, D = .72, fr = D / 2, topo = yc + H;

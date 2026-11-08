@@ -4,7 +4,7 @@
 // atrasada, confete com peça pronta). Tudo anima só à vista; "Reduzir movimento" deixa tudo parado no lugar.
 // O motor já reduz os quadros com a página parada e para de desenhar depois de 1 minuto sem ninguém mexer.
 import * as THREE from 'three';
-import { Obra } from './voxel.mjs';
+import { Obra, materialSombra, materialAgua, texturaRadial } from './voxel.mjs';
 import { ruido } from './irece.mjs';
 import { desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 
@@ -55,7 +55,39 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
   const matLuz = new THREE.MeshBasicMaterial({ toneMapped: false });
   const cubo = new THREE.BoxGeometry(1, 1, 1), m4 = new THREE.Matrix4(), cor = new THREE.Color();
 
-  function boneco(f, s = .8) { const o = new Obra(); desenharBoneco(o, f, { s }); const g = o.montar({ sombra: false }); grupo.add(g); return g; }
+  // Boneco que anda: duas poses de passada (perna e braço alternados) trocadas no ritmo do passo. Só uma aparece por
+  // vez, então custa o mesmo que um boneco parado. Com "Reduzir movimento", uma pose só, parada.
+  function boneco(f, s = .8) {
+    const g = new THREE.Group(), poses = (parado ? [0] : [1, -1]).map((passo) => { const o = new Obra(); desenharBoneco(o, f, { s, passo }); const m = o.montar({ sombra: false }); g.add(m); return m; });
+    if (poses[1]) poses[1].visible = false;
+    g.userData.poses = poses; grupo.add(g); return g;
+  }
+  // Sombras de contato de tudo que anda (pessoas e bichos), numa malha só atualizada a cada quadro.
+  const planoSombra = new THREE.PlaneGeometry(1, 1); planoSombra.rotateX(-Math.PI / 2);
+  const sombrasVivas = new THREE.InstancedMesh(planoSombra, materialSombra(), 64);
+  sombrasVivas.count = 0; sombrasVivas.renderOrder = 1; sombrasVivas.frustumCulled = false; grupo.add(sombrasVivas);
+  function atualizarSombras() {
+    let n = 0;
+    const por = (g, r) => { if (n >= 64 || !g.visible) return; g.getWorldPosition(vSombra); m4.makeScale(r, 1, r).setPosition(vSombra.x, (g.userData.chao ?? CHAO) + .02, vSombra.z); sombrasVivas.setMatrixAt(n++, m4); };
+    for (const p of pedestres) por(p.g, .95);
+    for (const p of online) por(p.g, 1);
+    for (const b of bichos) if (b.dono || b.parado) { b.g.userData.chao = b.parado ? b.g.position.y : CHAO; por(b.g, .7); }
+    sombrasVivas.count = n; sombrasVivas.instanceMatrix.needsUpdate = true;
+  }
+  const vSombra = new THREE.Vector3();
+  // Luz dos postes no chão, que acende à noite (círculos quentes somando luz, sem luz de verdade na cena).
+  const luzChao = (() => {
+    const tx = texturaRadial([255, 200, 130], [.9, .35, 0]);
+    return new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  })();
+  let pocas = null;
+  function montarPocas() {
+    if (pocas) { grupo.remove(pocas); pocas.dispose?.(); }
+    const lista = centro.postes?.() || [];
+    pocas = new THREE.InstancedMesh(planoSombra, luzChao, Math.max(1, lista.length));
+    lista.forEach((q, i) => { m4.makeScale(5.5, 1, 5.5).setPosition(q.x, CHAO + .03, q.z); pocas.setMatrixAt(i, m4); });
+    pocas.count = lista.length; pocas.visible = luzChao.opacity > 0; pocas.renderOrder = 2; grupo.add(pocas);
+  }
   function soltar(g) { grupo.remove(g); g.traverse((q) => q.geometry?.dispose?.()); }
 
   // ---------- Gente andando na calçada do anel ----------
@@ -96,7 +128,9 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
   function definirLojas() {
     lojas = centro.lojasVivas?.() || [];
     for (const m of [confete, alerta]) if (m) { grupo.remove(m); m.geometry !== cubo && m.geometry.dispose(); }
-    const festa = lojas.filter((l) => l.prontas > 0 && !l.atrasada).slice(0, 8), atraso = lojas.filter((l) => l.atrasada);
+    // No máximo 6 lojas pulsando (as mais atrasadas) e 5 com confete: com todos os clientes, o anel não vira pisca-pisca.
+    const festa = lojas.filter((l) => l.prontas > 0 && !l.atrasada).sort((a, b) => b.prontas - a.prontas).slice(0, 5);
+    const atraso = lojas.filter((l) => l.atrasada).sort((a, b) => (b.atrasadas || 0) - (a.atrasadas || 0)).slice(0, 6);
     confete = festa.length ? new THREE.InstancedMesh(cubo, matLuz, festa.length * 18) : null;
     if (confete) {
       const cores = ['#FF7A2F', '#F2C14E', '#18A957', '#0D74CE', '#D6409F', '#FFFFFF'];
@@ -120,7 +154,8 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     for (const p of lista) {
       if (!parado) p.d += p.v * dt;
       const [x, z, dx, dz] = noQuadrado(p.d, p.h), s = Math.sign(p.v) || 1;
-      p.g.position.set(x, y + (parado ? 0 : Math.abs(Math.sin(t * 7 + p.fase)) * .06), z);
+      p.g.position.set(x, y + (parado ? 0 : Math.abs(Math.sin(t * 7 + p.fase)) * .04), z);
+      const poses = p.g.userData.poses; if (poses?.[1]) { const a = Math.sin(t * 7 + p.fase) > 0; poses[0].visible = a; poses[1].visible = !a; }
       p.g.rotation.y = Math.atan2(dx * s, dz * s);
       if (p.r) p.r.pos.set(x, y + 1.9, z);
     }
@@ -169,13 +204,17 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
     }
   }
 
-  montarPedestres(); definirLojas(); montarBichos();
+  montarPedestres(); definirLojas(); montarBichos(); montarPocas();
   let ultimoT = 0;
   motor.animar((t, dt) => {
     if (parado && ultimoT) return false;
     ultimoT = t;
     const vista = true; // a maquete inteira está sempre à vista com o mundo aberto (fechado, o motor nem chama)
-    passo(pedestres, t, dt); passo(online, t, dt); animarBichos(t);
+    materialAgua().userData.tempo.value = t;
+    // De longe os tufos, flores e pedrinhas viram menos de um pixel: somem (menos triângulos sem diferença visível).
+    const fino = centro.detalheFino?.(), dist = motor.estado?.().dist ?? 0;
+    if (fino) fino.visible = dist < 270;
+    passo(pedestres, t, dt); passo(online, t, dt); animarBichos(t); atualizarSombras();
     // Chafariz: gotas em arco saindo da taça e voltando para a bacia.
     const c = centro.chafariz?.();
     if (c) for (let i = 0; i < GOTAS_CHAFARIZ; i++) {
@@ -221,10 +260,13 @@ export function criarVida(motor, centro, { reduzirMovimento = false } = {}) {
 
   return {
     // À noite as nuvens (que não dependem da luz) escurecem junto com o céu.
-    noite(k) { const nv = centro.nuvens?.(); if (nv) nv.material.color.set('#FFFFFF').lerp(new THREE.Color('#5A6894'), k); },
+    noite(k) {
+      const nv = centro.nuvens?.(); if (nv) nv.material.color.set('#FFFFFF').lerp(new THREE.Color('#5A6894'), k);
+      luzChao.opacity = Math.max(0, (k - .3) / .7) * .85; if (pocas) pocas.visible = luzChao.opacity > 0;
+    },
     definirOnline,
     lojasMudaram: definirLojas,
-    tamanhoMudou: () => { montarPedestres(); definirLojas(); montarBichos(); },
+    tamanhoMudou: () => { montarPedestres(); definirLojas(); montarBichos(); montarPocas(); },
   };
 }
 

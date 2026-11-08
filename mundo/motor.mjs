@@ -356,7 +356,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // 20 s para 4, e depois de 1 min o mapa para de ser desenhado até alguém mexer (ou um dado novo chegar: invalidar).
     const parado = performance.now() - ultimaAcao;
     if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
-    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 66 : 33)) return true;
+    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 80 : 50)) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -387,9 +387,26 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     const t0 = performance.now();
     composer.render();
     medida.ms = medida.ms * .9 + (performance.now() - t0) * .1; medida.quadros++;
+    conferirQualidade(t, interagindo || movendo);
     posicionarRotulos();
     sujo = false;
     return Boolean(movendo || interagindo || mudouLivre || animando);
+  }
+  // Qualidade automática (Paulo, 08/11/2026: "não pode pesar nem esquentar o PC"): mexendo na cena, se os quadros
+  // ficam lentos (menos de ~35 por segundo ou mais de 6 ms de trabalho por quadro) por uns 3 s seguidos, a cena
+  // baixa um degrau: primeiro a nitidez (1×) e o desfoque de maquete, depois a sombra para 2048. Não volta sozinha
+  // na mesma sessão (evita ficar trocando).
+  let qualidade = 2, lentos = 0, ultimoQ = 0;
+  function conferirQualidade(t, mexendo) {
+    if (!mexendo || qualidade === 0) { ultimoQ = t; return; }
+    const intervalo = t - ultimoQ; ultimoQ = t;
+    if (intervalo > 200) return; // voltou de uma pausa: não conta
+    lentos = intervalo > 28 || medida.ms > 6 ? lentos + 1 : Math.max(0, lentos - 2);
+    if (lentos < 90) return;
+    lentos = 0; qualidade--;
+    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; medir(); }
+    else { sol.shadow.mapSize.set(2048, 2048); sol.shadow.map?.dispose(); sol.shadow.map = null; renderer.shadowMap.needsUpdate = true; }
+    invalidar();
   }
   const ro = new ResizeObserver(medir); ro.observe(canvas);
   const medida = { ms: 0, quadros: 0 };
@@ -397,6 +414,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   medir(); posicionarCamera(); ciclo.acordar();
   return {
     THREE, cena, camera, renderer, LIM,
+    qualidade: () => qualidade,
     desempenho: () => ({ chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles, msPorQuadro: Math.round(medida.ms * 10) / 10, quadros: medida.quadros, pixelRatio: renderer.getPixelRatio(), laco: { pausado, visivel, estacionado, paradoMs: Math.round(performance.now() - ultimaAcao), sujo } }),
     adicionar: (o) => { cena.add(o); invalidar(); },
     invalidar, emVista,

@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 
 // Motor do Escritório mais leve em todas as salas (Paulo, 27/10/2026: "melhoria
 // de desempenho precisa ser no motor todo").
-const mapa = readFileSync('vybe-escritorio-mapa.js', 'utf8');
-const css = readFileSync('vybe-styles.css', 'utf8');
+const ler = (f) => readFileSync(f, 'utf8').split('\r\n').join('\n'); // no Windows o checkout vem com CRLF
+const mapa = ler('vybe-escritorio-mapa.js');
+const css = ler('vybe-styles.css');
 
 test('móvel fora do enquadramento não troca de quadro e o fogo fora da tela não tremula', () => {
   assert.match(mapa, /if \(quadro % 12 === 0\) conferirNaTela\(\);/);
@@ -32,7 +33,7 @@ test('a luz do quarto vem pintada no chão, na janela, nas imagens e nos bonecos
   assert.match(mapa, /const t = luzRgb && mapaBonecoTingido\(url, luzRgb, aplicar\);/);
   assert.match(mapa, /p\.img\.classList\.toggle\("sem-tinta", Boolean\(t\?\.falhou\)\);/);
   assert.match(mapa, /baixar\("default"\)\.catch\(\(\) => baixar\("no-store"\)\)/, 'cópia do cache com CORS de outra origem: pede de novo sem cache');
-  const animadas = readFileSync('vybe-escritorio-animadas.js', 'utf8');
+  const animadas = ler('vybe-escritorio-animadas.js');
   assert.match(animadas, /const folha = animadasTingida\(dado\.folha, hex, luz\);/);
 });
 // "O que é fixo faz uma imagem só" (Paulo, 04/11/2026).

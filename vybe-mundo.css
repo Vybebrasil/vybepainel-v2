@@ -286,7 +286,7 @@ html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-pla
 #mundo-andar canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
 #mundo-andar canvas:active{cursor:grabbing}
 .andar-topo{position:absolute;top:var(--vv-m);left:calc(var(--vv-livre-esq,0px) + var(--vv-m));gap:12px;padding:6px 14px 6px 6px;background:rgba(251,250,247,.96)!important;color:var(--vv-tinta)}
-@media (max-width:900px){.andar-topo{top:calc(var(--vv-m) + 58px)}}
+@media (max-width:900px){.andar-topo{top:calc(var(--vv-m) + 58px)}#mundo-andar .andar-palco{bottom:42vh}}
 .andar-voltar[hidden]{display:none!important}.andar-topo:has(.andar-voltar[hidden]){padding-left:14px}
 .andar-topo span:not(.andar-voz){display:flex;flex-direction:column}
 .andar-topo small{font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:var(--vv-apagado)}
@@ -309,6 +309,8 @@ html body.mundo.mundo-visivel.no-escritorio #mode-gate#mode-gate *{animation-pla
 .sala-agente span{font-weight:600;color:var(--vv-apagado)}
 /* O time online passeando na praça do Centro (mundo/vida.mjs): só o primeiro nome, discreto. */
 .rotulo-passeio{padding:1px 7px;border-radius:7px;background:rgba(255,255,255,.9);box-shadow:0 4px 10px -4px rgba(30,40,50,.35);font:700 10.5px var(--vv-texto);color:var(--vv-tinta);pointer-events:none}
+.sala-agente em{flex-basis:100%;max-width:220px;overflow:hidden;text-overflow:ellipsis;font:600 10.5px var(--vv-texto);font-style:normal;color:var(--vv-tinta);border-top:1px solid rgba(0,0,0,.08);padding-top:3px}
+.sala-agente:has(em:not([hidden])){flex-wrap:wrap;white-space:normal;max-width:240px}
 .sala-agente.livre{background:rgba(255,255,255,.62);color:var(--vv-apagado);font-weight:600;box-shadow:none;border:1px dashed rgba(90,98,104,.35)}
 .sala-nome i{font-style:normal;margin-right:3px}
 .vv-entrar-andar{margin:-4px 0 12px}
@@ -4114,7 +4116,7 @@ html body.mundo #login-gate .login-outro:not(#ds-a):not(#ds-b){color:#C2490C!imp
    muda de lugar. O mapa 3D não é invertido: ganha luz de fim de tarde.
    ====================================================================================== */
 html.tema-escuro body.mundo{--vv-vidro:rgba(250,248,244,.95);--vv-vidro-forte:rgba(251,250,247,.98);--vv-vidro-leve:rgba(250,248,244,.9)}
-html.tema-escuro body.mundo > :not(#mundo):not(#mundo-hud):not(#mundo-moldura):not(script):not(style):not(link):not(.workflow-backdrop):not(#workflow-backdrop):not(.cartao-rapido-fundo):not(.status-editor-backdrop):not(.workspace-backdrop),
+html.tema-escuro body.mundo > :not(#mundo):not(#mundo-andar):not(#mundo-hud):not(#mundo-moldura):not(script):not(style):not(link):not(.workflow-backdrop):not(#workflow-backdrop):not(.cartao-rapido-fundo):not(.status-editor-backdrop):not(.workspace-backdrop),
 html.tema-escuro body.mundo #mundo-hud > *,
 html.tema-escuro body.mundo #mundo .mundo-rotulos{filter:invert(.92) hue-rotate(180deg)}
 /* desinverte o que tem cor própria */
@@ -4198,7 +4200,11 @@ body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}
 .vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > em{grid-row:auto!important;grid-column:3!important;align-self:center}
 
 /* modo escuro: o 3D do andar (e o do personagem) não inverte; ganha a mesma luz de fim de tarde do mapa */
-html.tema-escuro body.mundo #mundo-andar canvas{filter:invert(1) hue-rotate(180deg) brightness(.75) saturate(.9)}
+/* Andar por dentro no tema escuro: como o Centro, a cena só escurece (a dupla inversão deixava a maquete clara lavada);
+   o céu escurece e os rótulos e o cabeçalho invertem como os painéis. */
+html.tema-escuro body.mundo #mundo-andar{background:linear-gradient(180deg,#1E2638 0%,#151A26 60%,#10141D 100%)}
+html.tema-escuro body.mundo #mundo-andar canvas{filter:brightness(.62) saturate(.85) contrast(1.06)}
+html.tema-escuro body.mundo #mundo-andar :is(.andar-topo,.andar-dica,.sala-placa,.sala-nome,.sala-agente){filter:invert(.92) hue-rotate(180deg)}
 
 /* Abertura: no Irecity não existe a tela da Vybelândia (arte do Escritório antigo, 1 MB). O mundo é a abertura. */
 html body.mundo.abrindo-escritorio{background:#F6F3EE!important;background-image:none!important}

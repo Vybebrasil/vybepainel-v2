@@ -68,7 +68,7 @@
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     // id do cadastro: a logo do Drive sai por /api/painel?area=logo&c=<id> (a mesma da capa do planejamento).
     const logoDe = (c) => { const id = String(c.id ?? c.cliente_id ?? ''); return /^\d{1,18}$/.test(id) ? `/api/painel?area=logo&c=${id}` : ''; };
-    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), total: 0, por: {}, situacao: 'concluida' });
+    for (const c of cadastro) mapa.set(chave(c.nome), { nome: norm(c.nome) || c.nome, segmento: c.segmento || '', endereco: c.endereco || '', logo: logoDe(c), personagem: c.identidade?.personagem?.figura || '', total: 0, por: {}, situacao: 'concluida' });
     const semCadastro = !cadastro.length; // demonstração / cadastro ainda não carregado
     const vistos = new Set();
     const hoje = hojeIso();
@@ -920,6 +920,7 @@
     andarAberto = m.abrirAndar(el.querySelector('canvas'), { zonas, titulo: a.nome, agentes: agentesDoAndar, cor: a.cor, mesasLivres });
     // A mesa de cada agente no andar abre o dia dele no painel do andar (o mesmo "Ver o dia" do Prédio).
     andarAberto.aoClicarAgente?.((setor) => mostrarAgente(a.id, setor));
+    andarAberto.aoClicarMesaLivre?.(() => { fecharAndarVoxel(false); usarTrilho('agentes', hud.querySelector('[data-trilho="agentes"]')); });
     andarAbertoId = idAndar;
     window.VybeDecorar?.ligarCena?.(andarAberto, m);
     andarAberto.aoClicarSala((zona, fx, fz, jogo) => {
@@ -940,7 +941,7 @@
       andarAberto.pessoas(manualAndar || genteDoAndar(), minha);
       // Estado de cada agente do andar: a mesma leitura da central que pinta o prédio por fora.
       const f = fonteAgentes?.ler(), conectado = Boolean(f?.dados && !f.erro);
-      andarAberto.agentes?.(Object.fromEntries(agentesDoAndar.map((s) => { const e = estadoDoAgente(s.id); return [s.id, { estado: e.estado, cor: e.cor, rotulo: e.rotulo, conectado }]; })));
+      andarAberto.agentes?.(Object.fromEntries(agentesDoAndar.map((s) => { const e = estadoDoAgente(s.id); return [s.id, { estado: e.estado, cor: e.cor, rotulo: e.rotulo, tarefa: e.tarefa || '', conectado }]; })));
       const voz = el.querySelector('#andar-voz');
       if (voz) voz.textContent = minha && zonas.some((z) => z.id === minha) ? (typeof escritorioEstadoVozTexto === 'function' ? escritorioEstadoVozTexto() : 'Na sala') : 'Fora das salas · sem voz';
     };
