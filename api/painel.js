@@ -31,6 +31,7 @@ import { listarObjetivos } from '../server/conteudo-objetivo.js';
 import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
 import { paginaAprovarPecas } from '../server/conteudo-aprovacao-pagina.js';
 import { areaSetorPessoas } from '../server/pessoas.js';
+import { garantirMigracoesIrecity } from '../server/migracoes-irecity.js';
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
@@ -1751,7 +1752,7 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
-const AREAS = { crm: (req,res,quem) => areaCrm(req,res,quem,sql), carteira: (req,res,quem) => areaCarteira(req,res,quem,sql), comercial: (req,res,quem) => areaComercial(req,res,quem,sql), conteudo_modulo: areaConteudoModulo, setor_pessoas: (req,res,quem) => areaSetorPessoas(req,res,quem,sql()), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+const AREAS = { crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()) };
@@ -1780,8 +1781,8 @@ export default async function handler(req, res) {
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
   // Aprovação de peças pelo cliente (módulo Conteúdo): outro link, outro segredo, só as peças em
   // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).
-  if (areaPublica === 'aprovar_pecas') return paginaAprovarPecas(req, res, sql(), { baixarDoDrive,
-    fazer: { trocarStatus, comentar } });
+  if (areaPublica === 'aprovar_pecas') { const db = sql(); await garantirMigracoesIrecity(db); return paginaAprovarPecas(req, res, db, { baixarDoDrive,
+    fazer: { trocarStatus, comentar } }); }
   if (areaPublica === 'logo') return logoDoCliente(req, res, sql());
   if (areaPublica === 'portal') {
     try { return await portalDoCliente(req, res, sql()); }
