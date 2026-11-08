@@ -4635,3 +4635,7 @@ button.vv-pilula{border:0;font:inherit;cursor:pointer}
 @media (max-width:900px){
   html body.mundo:not(.mundo-centro) .vv-hoje{top:64px!important;bottom:236px!important;max-height:none!important;height:auto!important}
 }
+/* Quantidade em cima das barras da Semana da agência. */
+.vv-graf text.vv-graf-n{font:700 9px var(--vv-texto);font-variant-numeric:tabular-nums}
+.vv-graf text.vv-graf-n.pv{fill:#8A7F70}
+.vv-graf text.vv-graf-n.en{fill:#12813F}

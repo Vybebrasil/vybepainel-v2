@@ -349,12 +349,17 @@
     const max = Math.max(1, ...porDia.map((d) => Math.max(d.previstas || 0, d.entregues || 0)));
     const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'], hoje = hojeIso();
     const bw = w / Math.max(1, porDia.length);
-    return `<svg class="vv-graf" viewBox="0 0 ${w} ${h + 16}" role="img" aria-label="Previstas e entregues por dia da semana">
+    // Quantidade em cima de cada barra (Paulo, 08/11: "o número de quantos, pra eu ter ideia de quantidade").
+    const T = 13, num = (v, cx, y, cls) => v ? `<text x="${cx}" y="${Math.max(9, y - 3)}" text-anchor="middle" class="vv-graf-n ${cls}">${v}</text>` : '';
+    return `<svg class="vv-graf" viewBox="0 0 ${w} ${h + 16 + T}" role="img" aria-label="Previstas e entregues por dia da semana">
+      <g transform="translate(0 ${T})">
       ${porDia.map((d, i) => { const x = i * bw, hp = (d.previstas || 0) / max * h, he = (d.entregues || 0) / max * h, eHoje = d.dia === hoje;
         return `<g><title>${esc(d.dia)}: ${d.previstas || 0} previstas, ${d.entregues || 0} entregues</title>
-          <rect x="${x + bw * .14}" y="${h - hp}" width="${bw * .34}" height="${Math.max(hp, 1.5)}" rx="3" fill="#E1DACE"/>
-          <rect x="${x + bw * .52}" y="${h - he}" width="${bw * .34}" height="${Math.max(he, 1.5)}" rx="3" fill="#18A957"/>
+          <rect x="${x + bw * .14}" y="${h - hp}" width="${bw * .34}" height="${Math.max(hp, 1.5)}" rx="2" fill="#E1DACE"/>
+          <rect x="${x + bw * .52}" y="${h - he}" width="${bw * .34}" height="${Math.max(he, 1.5)}" rx="2" fill="#18A957"/>
+          ${num(d.previstas || 0, x + bw * .31, h - hp, 'pv')}${num(d.entregues || 0, x + bw * .69, h - he, 'en')}
           <text x="${x + bw / 2}" y="${h + 13}" text-anchor="middle" class="${eHoje ? 'hoje' : ''}">${DIAS[i] || ''}</text></g>`; }).join('')}
+      </g>
     </svg>`;
   }
   // Linha de 12 semanas (entregues) com a mediana tracejada e, se houver, a projeção pontilhada.
