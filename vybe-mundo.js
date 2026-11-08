@@ -122,13 +122,8 @@
   // quando o módulo dele está carregado (window[mod[0]]), assim um setor nunca mostra botão que não abre nada.
   const TRILHO = [
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
-    { id: 'setor:gestao', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
-      { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
-      { id: 'gestor', nome: 'Gestor', dica: 'Prioridades, prazos e capacidade' },
-      { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
-    ] },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
-    { id: 'setor:producao', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
+    { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
       { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
       { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
@@ -136,14 +131,14 @@
       { id: 'conteudo', nome: 'Equilíbrio e aprovação', dica: 'Atração, educação e conversão de cada cliente; link de aprovação', mod: ['VybeConteudo'] },
       { id: 'projetos', nome: 'Projetos pontuais', dica: 'Eventos, lançamentos e sites, com a carga da equipe', mod: ['VybePessoas', 'projetos'] },
     ] },
-    { id: 'setor:clientes', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
+    { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
       { id: 'clientes', nome: 'Todos os clientes', dica: 'Clientes, fichas e cérebro de cada um' },
       { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
       { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo: boas-vindas, contrato, acessos e kickoff', mod: ['VybeCarteira', 'onboarding'] },
       { id: 'churn', nome: 'Churn', dica: 'Quem saiu, por quê, receita perdida e retenção', mod: ['VybeCarteira', 'churn'] },
       { id: 'contratos', nome: 'Contratos', dica: 'Valor, início e renovações em breve', mod: ['VybeCarteira', 'contratos'] },
     ] },
-    { id: 'setor:comercial', nome: 'Comercial', dica: 'Comercial: funil, pacotes, orçamentos e creators', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
+    { id: 'setor:comercial', grupo: 'Negócio', nome: 'Comercial', dica: 'Comercial: funil, pacotes, orçamentos e creators', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
       { id: 'funil', nome: 'Funil de vendas', dica: 'Leads, propostas, ganhos e motivos de perda', mod: ['VybeComercial', 'funil'] },
       { id: 'pacotes', nome: 'Pacotes', dica: 'Produtos da Vybe com custo e margem', mod: ['VybeComercial', 'pacotes'] },
       { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
@@ -151,14 +146,19 @@
       { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
       { id: 'ferramentas', nome: 'Ferramentas', dica: 'QR Code e link do WhatsApp com mensagem pronta', mod: ['VybeFerramentas', 'qr'] },
     ] },
-    { id: 'setor:financas', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
+    { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
       { id: 'recebimentos', nome: 'Recebimentos', dica: 'Recorrentes e pontuais: a receber, recebido e pendente', mod: ['VybeComercial', 'recebimentos'] },
       { id: 'contas', nome: 'Contas a pagar', dica: 'Fixas, variáveis, folha, impostos, com % do faturamento', mod: ['VybeComercial', 'contas'] },
       { id: 'inadimplencia', nome: 'Inadimplência', dica: 'Quem está em atraso e há quanto tempo', mod: ['VybeComercial', 'inadimplencia'] },
       { id: 'vybe-financas', nome: 'Vybe Finanças', dica: 'Abrir o app financeiro da Vybe', url: 'https://vybe-financas.vercel.app/' },
     ] },
-    { id: 'setor:pessoas', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
+    { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
+      { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
+      { id: 'gestor', nome: 'Gestor', dica: 'Prioridades, prazos e capacidade' },
+      { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
+    ] },
+    { id: 'setor:pessoas', grupo: 'Time', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
       { id: 'rh', nome: 'RH', dica: 'Pedidos, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
       { id: 'recrutamento', nome: 'Recrutamento', dica: 'Vagas e candidatos', mod: ['VybePessoas', 'recrutamento'] },
@@ -166,13 +166,13 @@
       { id: 'academy', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'] },
       { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
     ] },
+    // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
+    { id: 'agentes', grupo: 'Time', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
     // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
     // carrega quando ele (ou o Prédio) é aberto; Hoje, Gestão e os módulos ocupam a tela sem nada atrás.
-    { id: 'centro', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
-    // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
-    { id: 'agentes', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
-    { id: 'predio', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
-    { id: 'jogos', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
+    { id: 'centro', grupo: 'Vybe', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
+    { id: 'predio', grupo: 'Vybe', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
+    { id: 'jogos', grupo: 'Vybe', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
     '-',
     { id: 'vybes', nome: 'VYBES', dica: 'Abrir o VYBES', ic: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>') },
   ];
@@ -181,7 +181,51 @@
   const setorDe = (id) => SUBMODULOS.find((x) => x.id === id)?.setor || id;
   const subVisivel = (x) => !x.mod || typeof window[x.mod[0]]?.abrir === 'function';
   function chamar(nome, ...a) { return typeof window[nome] === 'function' ? window[nome](...a) : undefined; }
-  function marcarTrilho(id) { const alvo = setorDe(id); hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === alvo)); }
+  // Dock largo (Paulo, 08/11/2026: "copiar o jeito do AgencyFlow"): nomes, categorias e o setor que abre para baixo com
+  // a Visão geral e as abas dele, e fica aberto. Recolhido (ou no celular), volta a ser o trilho de ícones com a lista ao
+  // lado. A escolha de recolher fica no navegador de cada pessoa.
+  const CHAVE_DOCK = 'vybe.dock';
+  const dockLargo = () => body.classList.contains('trilho-largo');
+  function aplicarDock() {
+    let recolhido = false; try { recolhido = localStorage.getItem(CHAVE_DOCK) === 'icones'; } catch { /* sem armazenamento: largo */ }
+    const largura = typeof innerWidth === 'number' ? innerWidth : 1280; // fora do navegador (testes) conta como computador
+    const largo = !recolhido && largura > 900;
+    if (largo !== dockLargo()) { body.classList.toggle('trilho-largo', largo); fecharSetor(); ajustarAreaLivre(); }
+    const bt = hud.querySelector('[data-trilho-recolher]');
+    if (bt) { bt.setAttribute('aria-label', largo ? 'Recolher o menu' : 'Abrir o menu com os nomes'); bt.title = bt.getAttribute('aria-label'); bt.setAttribute('aria-expanded', String(largo)); }
+  }
+  function alternarDock() { try { localStorage.setItem(CHAVE_DOCK, dockLargo() ? 'icones' : 'largo'); } catch { /* vale até recarregar */ } aplicarDock(); }
+  // Abre (para baixo) só o setor pedido; as abas que dependem de um módulo aparecem quando o módulo existe.
+  function expandirSetor(setor) {
+    hud.querySelectorAll('.vv-trilho-sub').forEach((el) => {
+      const meu = el.dataset.subDe === setor; el.hidden = !meu;
+      if (meu) el.querySelectorAll('[data-submodulo]').forEach((b) => { const x = SUBMODULOS.find((q) => q.id === b.dataset.submodulo); b.hidden = Boolean(x && !subVisivel(x)); });
+    });
+    hud.querySelectorAll('.vv-trilho [data-trilho^="setor:"]').forEach((b) => b.setAttribute('aria-expanded', String(dockLargo() && b.dataset.trilho === setor)));
+  }
+  function marcarTrilho(id) {
+    const alvo = setorDe(id);
+    hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === alvo));
+    hud.querySelectorAll('.vv-trilho [data-submodulo]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.submodulo === id));
+    hud.querySelectorAll('.vv-trilho [data-visao-setor]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.visaoSetor === id));
+    // Fica aberto o setor em que a pessoa está (fora de um setor, como no Hoje, tudo recolhe).
+    if (dockLargo()) expandirSetor(String(alvo).startsWith('setor:') ? alvo : '');
+  }
+  // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
+  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas'];
+  function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
+  function abrirVisaoSetor(id) {
+    if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
+    const t = TRILHO.find((x) => x && x.id === id);
+    if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
+    if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
+    if (centroAberto) fecharCentro();
+    if (!gestao.hidden) fecharGestao();
+    window.VybeAgentes?.fechar?.(); fecharJanelasDeModulo(); fecharSetor();
+    marcarTrilho(id);
+    window.VybeSetor.abrir(id, { nome: t.nome, dica: t.dica, subs: (t.sub || []).filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
+      abrirSub: (sub) => usarTrilho(sub), aoFechar: () => usarTrilho('hoje') });
+  }
   // Lista de submódulos ao lado do setor (ou acima, no celular). Esc ou clique fora fecha.
   function fecharSetor() { hud.querySelector('.vv-setor')?.remove(); hud.querySelectorAll('[data-trilho][aria-expanded]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
   function abrirSetor(id, botao) {
@@ -189,7 +233,7 @@
     if (aberto?.dataset.setor === id) { fecharSetor(); return; }
     fecharSetor();
     const t = TRILHO.find((x) => x.id === id); if (!t) return;
-    const itens = t.sub.filter(subVisivel);
+    const itens = (id === 'setor:gestao' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
     const el = document.createElement('div');
     el.className = 'vv-setor'; el.dataset.setor = id; el.setAttribute?.('role', 'menu'); el.setAttribute?.('aria-label', t.nome);
     el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small>${x.url ? '<i aria-hidden="true">↗</i>' : ''}</button>`).join('');
@@ -200,14 +244,16 @@
       else { el.style.left = (trilho.right + 8) + 'px'; el.style.top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, r.top - 6)) + 'px'; }
     }
     botao?.setAttribute?.('aria-expanded', 'true');
-    el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); usarTrilho(b.dataset.submodulo); });
+    el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); if (b.dataset.submodulo === '__visao') abrirVisaoSetor(id); else usarTrilho(b.dataset.submodulo); });
   }
   if (typeof document !== 'undefined') {
     document.addEventListener?.('click', (ev) => { if (hud.querySelector('.vv-setor') && !ev.target.closest?.('.vv-setor,[data-trilho^="setor:"]')) fecharSetor(); }, true);
     document.addEventListener?.('keydown', (ev) => { if (ev.key === 'Escape' && hud.querySelector('.vv-setor')) { fecharSetor(); ev.stopPropagation(); } }, true);
   }
   function usarTrilho(id, botao) {
-    if (String(id).startsWith('setor:')) { abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
+    // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
+    if (String(id).startsWith('setor:')) { if (dockLargo()) abrirVisaoSetor(id); else abrirSetor(id, botao || hud.querySelector(`[data-trilho="${id}"]`)); return; }
+    if (id !== 'criar' && id !== 'vybes') window.VybeSetor?.fechar?.();
     window.VybeTutorial?.dica?.('trilho:' + id);
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
@@ -727,7 +773,17 @@
   });
 
   hud.innerHTML = `
-    <nav class="vv-ilha vv-trilho" aria-label="Módulos do Vybe OS">${TRILHO.map((t) => t === '-' ? '<span class="vv-trilho-espaco"></span>' : `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}>${t.ic}<span>${t.nome}</span></button>`).join('')}</nav>
+    <nav class="vv-ilha vv-trilho" aria-label="Módulos do Vybe OS"><button type="button" class="vv-trilho-recolher" data-trilho-recolher aria-label="Recolher o menu" title="Recolher o menu">${svg('<path d="M15 6l-6 6 6 6"/>')}</button>${(() => {
+      let grupo = '';
+      return TRILHO.map((t) => {
+        if (t === '-') return '<span class="vv-trilho-espaco"></span>';
+        const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
+        const setor = Array.isArray(t.sub);
+        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" hidden>${t.id === 'setor:gestao' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
+        return cab + botao + subs;
+      }).join('');
+    })()}</nav>
     <section class="vv-hoje" id="vv-hoje" aria-label="Seu dia"></section>
     <div class="vv-topo">
       <div class="vv-espaco"></div>
@@ -1695,8 +1751,12 @@
     // de andares, fechar o painel ou ir a outro lugar do trilho sai do andar (decorando, a edição decide).
     if (andarAberto && !window.VybeDecorar?.aberto?.()) {
       if (b.dataset.andar && b.dataset.andar !== andarAbertoId) abrirAndarVoxel(b.dataset.andar);
-      else if (b.dataset.vista || b.dataset.ctl === 'tudo' || b.hasAttribute('data-voltar') || ['centro', 'predio', 'agentes', 'jogos'].includes(b.dataset.trilho)) fecharAndarVoxel(false);
+      else if (b.dataset.vista || b.dataset.ctl === 'tudo' || b.hasAttribute('data-voltar') || ['centro', 'predio', 'agentes', 'jogos'].includes(b.dataset.trilho)
+        || b.dataset.visaoSetor || (b.dataset.submodulo && b.closest('.vv-trilho'))) fecharAndarVoxel(false);
     }
+    if (b.hasAttribute('data-trilho-recolher')) { alternarDock(); return; }
+    if (b.dataset.visaoSetor) { abrirVisaoSetor(b.dataset.visaoSetor); return; }
+    if (b.dataset.submodulo && b.closest('.vv-trilho')) { usarTrilho(b.dataset.submodulo); marcarTrilho(b.dataset.submodulo); return; }
     if (selecionarSemana(b)) return;
     if (b.dataset.atencaoCliente) { mostrarPendencias(b.dataset.atencaoCliente); return; }
     if (b.dataset.gargalo) { mostrarPendencias('', b.dataset.gargalo); return; }
@@ -2581,6 +2641,8 @@
     if (barra) new MutationObserver(sincronizar).observe(barra, { subtree: true, attributes: true, attributeFilter: ['class'] });
     new MutationObserver(() => { sincronizar(); abrirNoMundo(); }).observe(body, { attributes: true, attributeFilter: ['class'] });
     addEventListener('resize', ajustarAreaLivre);
+    // Dock largo ou de ícones (escolha da pessoa; no celular sempre a barra de baixo).
+    aplicarDock(); addEventListener('resize', aplicarDock);
     // Preferência na janela de Aparência (vybe-appearance.js), ao lado do vidro e do movimento.
     const form = document.querySelector('.appearance-dialog form');
     if (form && !form.querySelector('#appearance-mundo')) {
