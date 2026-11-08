@@ -4554,3 +4554,9 @@ html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){di
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
 html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)!important}
+
+/* Comercial em tela cheia (08/11/2026): gráfico do caixa com altura limitada, fases ocupando a largura, estado vazio
+   na largura toda (antes um cartão pequeno à esquerda com um vazio do lado). */
+#vv-comercial .vc-grafico svg{width:100%;max-height:240px}
+@media (min-width:760px){#vv-comercial .vc-fases{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));overflow:visible}}
+html body.mundo :is(#vv-comercial,#vv-conteudo,#vv-carteira,#vv-pessoas) :is(.vc-vazio,.vp-vazio){grid-column:1/-1}

@@ -66,11 +66,21 @@
     const p = ['recebimentos', 'contas'].includes(aba) ? `&mes=${encodeURIComponent(st.periodo.mes || hojeIso().slice(0, 7))}&periodo=${st.periodo.tipo}` : '';
     return `&aba=${aba}${p}`;
   }
+  // Dado incompleto (banco ainda sem as tabelas, resposta parcial): listas viram vazias e blocos viram objetos vazios,
+  // e a aba mostra o estado vazio dela em vez de "Não foi possível mostrar esta aba" (08/11/2026).
+  const LISTAS = ['etapas', 'fases', 'motivos', 'oportunidades', 'pacotes', 'produtos', 'clientes', 'orcamentos', 'contas', 'recebiveis', 'faturas', 'criticos', 'categorias', 'fornecedores', 'creators', 'marcados_a_mao'];
+  const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes'];
+  function completar(d) {
+    const x = { ...(d || {}) };
+    for (const k of LISTAS) if (!Array.isArray(x[k])) x[k] = [];
+    for (const k of BLOCOS) if (!x[k] || typeof x[k] !== 'object') x[k] = {};
+    return x;
+  }
   async function carregar(aba = st.aba) {
     st.carregando[aba] = true; st.erro[aba] = ''; pintar();
     try {
       const d = await pedir('comercial', null, queryDaAba(aba));
-      st.dados[aba] = d; if (d.pode) podeDinheiro = Boolean(d.pode.ver_dinheiro);
+      st.dados[aba] = completar(d); if (d.pode) podeDinheiro = Boolean(d.pode.ver_dinheiro);
     } catch (e) {
       st.erro[aba] = e.message;
       if (e.status === 403 && ABAS.find((a) => a[0] === aba)?.[2]) podeDinheiro = false;
@@ -242,7 +252,8 @@
     const churn = churnDaCarteira();
     const prev = churn ? C().previsaoCaixa({ recebiveis: d.recebiveis, contas: d.contas, hoje: d.hoje, churn }) : d.previsao;
     const max = Math.max(1, ...prev.meses.flatMap((m) => [m.entradas, m.saidas]));
-    const W = 320, H = 170, bw = 26, passo = W / prev.meses.length;
+    // Desenhado na largura da janela (antes: 320 de base esticado até a tela toda, com os meses gigantes).
+    const W = Math.max(320, Math.min(980, (document.getElementById('vv-comercial')?.clientWidth || 400) - 70)), H = 170, bw = Math.min(40, Math.max(22, W / prev.meses.length / 3)), passo = W / prev.meses.length;
     const barras = prev.meses.map((m, i) => { const x = i * passo + passo / 2, he = (m.entradas / max) * 120, hs = (m.saidas / max) * 120;
       return `<rect x="${x - bw - 2}" y="${140 - he}" width="${bw}" height="${he}" rx="4" class="ent"/><rect x="${x + 2}" y="${140 - hs}" width="${bw}" height="${hs}" rx="4" class="sai${m.saidas_estimadas ? ' est' : ''}"/>
         <text x="${x}" y="158" text-anchor="middle">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</text>`; }).join('');
