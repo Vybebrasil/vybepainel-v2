@@ -52,15 +52,15 @@ body.vybe-desktop {
 .vybe-desktop .header-title h1 { font-size: 17px !important; letter-spacing: -.035em; }
 .vybe-desktop .header-title p { color: #542b14 !important; font-size: 12px !important; }
 .vybe-desktop .header-left { background: transparent !important; border: 0 !important; box-shadow: none !important; }
-.vybe-desktop .logo { width: 52px; height: 46px; border-radius: 13px; background: linear-gradient(145deg,#ffab61,#e86a25) !important; animation: none !important; box-shadow: inset 0 1px 0 #ffffff60,0 4px 14px #ff7b2420 !important; }
+.vybe-desktop .logo { width: 52px; height: 46px; border-radius: 8px; background: linear-gradient(145deg,#ffab61,#e86a25) !important; animation: none !important; box-shadow: inset 0 1px 0 #ffffff60,0 4px 14px #ff7b2420 !important; }
 .vybe-desktop .logo img { width: 43px; height: 29px; object-fit: contain; }
 .vybe-desktop .board-switch-bar {
   max-width: 100%; min-width: 0; padding: 4px !important; gap: 3px !important;
-  border-radius: 14px !important; border: 1px solid #ffffff16 !important;
+  border-radius: 8px !important; border: 1px solid #ffffff16 !important;
   background: #692d1012 !important; overflow-x: auto;
 }
 .vybe-desktop .board-switch-btn {
-  min-height: 36px; border-radius: 10px !important; padding: 8px 12px !important;
+  min-height: 36px; border-radius: 6px !important; padding: 8px 12px !important;
   font-size: 12px !important; font-weight: 500 !important; color: #3d210f !important;
   background: transparent !important; border: 0 !important; white-space: nowrap;
   transition: background .2s, color .2s, box-shadow .2s !important;
@@ -71,7 +71,7 @@ body.vybe-desktop {
   box-shadow: inset 0 1px 0 #ffffff30,0 2px 7px #0003 !important;
 }
 .vybe-desktop :is(.mes-nav,.badge,.quem-sou-btn,.mode-switch-btn,.notif-sino,.btn-refresh,.appearance-button) {
-  border-radius: 11px !important; border: 1px solid #ffffff20 !important;
+  border-radius: 6px !important; border: 1px solid #ffffff20 !important;
   background: #ffffff08 !important; color: #daddE6 !important; box-shadow: var(--glass-highlight) !important;
 }
 .vybe-desktop :is(.mode-switch-btn,.btn-refresh,.appearance-button) { min-height: 34px; padding: 7px 11px; font-size: 12px !important; font-weight: 500 !important; }
@@ -114,7 +114,7 @@ body.vybe-desktop {
 .vybe-desktop .client-header { padding: var(--day-header-padding,15px 16px) !important; gap: 12px; flex-wrap: wrap; }
 .vybe-desktop .client-name { letter-spacing: -.015em; font-weight: 600 !important; }
 .vybe-desktop .day-header-actions { flex-wrap: wrap; gap: 8px; }
-.vybe-desktop .day-summary-btn { border-radius: 9px !important; min-height: 30px; padding: 5px 9px !important; font-weight: 500 !important; }
+.vybe-desktop .day-summary-btn { border-radius: 6px !important; min-height: 30px; padding: 5px 9px !important; font-weight: 500 !important; }
 .vybe-desktop .day-add-btn { background: #ff984f15 !important; border-color: #ffb57945 !important; color: #ffc798 !important; }
 .vybe-desktop .dia-vazio { background: #ffffff03 !important; border-style: dashed !important; box-shadow: none !important; }
 .vybe-desktop .dia-vazio-recado { color: #a1a6b2 !important; }
@@ -122,16 +122,16 @@ body.vybe-desktop {
 .vybe-desktop :is(.item-row,.dia-item):hover { background-color: #ffffff07 !important; }
 .vybe-desktop :is(#compact-summary,.ops-toolbar,.ops-hub) {
   background: linear-gradient(115deg,#ffffff08,transparent),#1b1d25 !important;
-  border: 1px solid var(--glass-edge) !important; border-radius: 20px !important;
+  border: 1px solid var(--glass-edge) !important; border-radius: 12px !important;
   box-shadow: var(--glass-highlight) !important;
 }
 .vybe-desktop .tabs { gap: 5px !important; padding: 6px !important; }
-.vybe-desktop .tab-btn { border-radius: 10px !important; border-bottom: 0 !important; padding: 10px 14px !important; }
+.vybe-desktop .tab-btn { border-radius: 6px !important; border-bottom: 0 !important; padding: 10px 14px !important; }
 .vybe-desktop .tab-btn.active { background: #ff984f1c !important; color: #ffc08d !important; box-shadow: inset 0 0 0 1px #ffb57925; }
 .vybe-desktop :is(.global-search,.fc-campo,.fc-busca,.cadastros-form input,.cadastros-form textarea,
   .workspace-form-row input,.workspace-form-row select,.workspace-form-row textarea) {
   background: #0e10188c !important; color: #f5f5f7 !important;
-  border: 1px solid #ffffff26 !important; border-radius: 10px !important;
+  border: 1px solid #ffffff26 !important; border-radius: 6px !important;
   box-shadow: inset 0 1px 3px #0002 !important;
 }
 .vybe-desktop input::placeholder,.vybe-desktop textarea::placeholder { color: #949aa9; opacity: 1; }
@@ -152,9 +152,9 @@ body.vybe-desktop {
 .vybe-desktop :is(.workspace-close,.workflow-close,.fc-close,.p-draw-close) {
   border-radius: 50% !important; min-width: 30px; min-height: 30px; background: #ffffff10 !important; color: #dce0e8 !important;
 }
-.vybe-desktop :is(.workspace-section,.auto-passo,.fc-item) { border-radius: 13px !important; border-color: #ffffff17 !important; }
-.vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 10px !important; }
-.vybe-desktop #toast { background: var(--glass) !important; border-radius: 14px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
+.vybe-desktop :is(.workspace-section,.auto-passo,.fc-item) { border-radius: 8px !important; border-color: #ffffff17 !important; }
+.vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 6px !important; }
+.vybe-desktop #toast { background: var(--glass) !important; border-radius: 8px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
 
 /* A entrada preserva a cor individual e a iluminação reativa. */
 .vybe-desktop #mode-gate .identity-shell {
@@ -165,7 +165,7 @@ body.vybe-desktop {
 }
 .vybe-desktop #mode-gate .identity-topline { background: #ffffff06 !important; }
 .vybe-desktop #mode-gate .identity-station[data-station] {
-  border-radius: 22px !important;
+  border-radius: 12px !important;
   background: linear-gradient(145deg,color-mix(in srgb,var(--station-color) 17%,#292b35),#20222cec) !important;
   border-color: color-mix(in srgb,var(--station-color) 32%,#ffffff18) !important;
   box-shadow: inset 0 1px 0 #ffffff16,0 8px 24px #0002 !important;
@@ -176,10 +176,10 @@ body.vybe-desktop {
   box-shadow: inset 0 1px 0 #ffffff30,0 16px 38px #0004,0 0 35px color-mix(in srgb,var(--station-color) 18%,transparent) !important;
 }
 .vybe-desktop #mode-gate .identity-station .station-icon {
-  width: 44px !important; height: 44px !important; border-radius: 13px !important;
+  width: 44px !important; height: 44px !important; border-radius: 8px !important;
   box-shadow: inset 0 1px 0 #ffffff25,0 4px 12px #0002 !important;
 }
-.vybe-desktop #mode-gate .focus-picker { background: #ffffff03 !important; border-radius: 22px !important; }
+.vybe-desktop #mode-gate .focus-picker { background: #ffffff03 !important; border-radius: 12px !important; }
 .vybe-desktop #mode-gate .focus-user-card { border-radius: 17px !important; box-shadow: inset 0 1px 0 #ffffff15 !important; }
 .identity-appearance-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 
@@ -205,7 +205,7 @@ body.vybe-desktop {
 .vybe-desktop .focus-metrics {
   display: grid; grid-template-columns: repeat(4,minmax(0,1fr));
   width: 352px; max-width: 100%; border: 1px solid var(--glass-edge);
-  background: #ffffff05; border-radius: 12px; box-shadow: none;
+  background: #ffffff05; border-radius: 8px; box-shadow: none;
 }
 .vybe-desktop .focus-metrics .focus-metric {
   min-width: 0 !important; padding: 12px 14px !important;
@@ -219,7 +219,7 @@ body.vybe-desktop {
 .vybe-desktop .focus-metrics .focus-metric.calado strong { color: #a4aab6 !important; }
 .vybe-desktop .focus-lente {
   padding: 4px; gap: 4px; max-width: 100%; flex-wrap: wrap;
-  background: #ffffff06; border: 1px solid var(--glass-edge); border-radius: 12px;
+  background: #ffffff06; border: 1px solid var(--glass-edge); border-radius: 8px;
 }
 .vybe-desktop .focus-lente-opcao {
   min-height: 34px; padding: 7px 12px; border-radius: 8px;
@@ -231,7 +231,7 @@ body.vybe-desktop {
 .vybe-desktop .focus-lente-opcao.ativa span { background: #ffffff18; color: #fff; }
 .vybe-desktop .focus-lente-opcao.vazia:not(.ativa) { opacity: 1; color: #a4aab6; }
 .vybe-desktop .focus-dashboard > .focus-next-action {
-  padding: 24px !important; border-radius: 16px !important;
+  padding: 24px !important; border-radius: 10px !important;
   border: 1px solid #ffffff24 !important; background: var(--surface) !important;
   box-shadow: inset 0 1px 0 #ffffff12,0 8px 24px #0002 !important;
 }
@@ -242,7 +242,7 @@ body.vybe-desktop {
 .vybe-desktop .focus-next-quando { background: #ffffff06 !important; border-color: #ffffff18 !important; }
 .vybe-desktop .focus-next-quando.vencida { background: #ff637a0c !important; border-color: #ff637a40 !important; }
 .vybe-desktop .focus-next-btn {
-  min-height: 36px; border-radius: 9px !important; font: 500 13px/1.3 var(--mac-ui) !important;
+  min-height: 36px; border-radius: 6px !important; font: 500 13px/1.3 var(--mac-ui) !important;
   letter-spacing: 0 !important; text-transform: none !important;
   background: #ffffff09 !important; box-shadow: inset 0 1px 0 #ffffff14 !important; color: #e6e8ee !important;
 }
@@ -251,7 +251,7 @@ body.vybe-desktop {
 }
 .vybe-desktop .focus-next-btn:hover { filter: brightness(1.1); }
 .vybe-desktop .focus-command-btn {
-  min-height: 34px; padding: 7px 12px !important; border-radius: 9px !important;
+  min-height: 34px; padding: 7px 12px !important; border-radius: 6px !important;
   font: 500 13px/1.3 var(--mac-ui) !important; letter-spacing: 0 !important;
   background: #ffffff08 !important; border: 1px solid #ffffff20 !important; color: #dce0e8 !important;
 }
@@ -290,7 +290,7 @@ body.vybe-desktop {
 .appearance-field small { color: var(--text-muted); font-size: 12px; }
 .appearance-check { display: flex; align-items: center; gap: 10px; }
 .appearance-check input { width: 18px; height: 18px; }
-.appearance-done { min-height: 38px; border: 1px solid #ffc18a66; border-radius: 11px; background: #a74d20; color: white; font: 600 13px var(--mac-ui); cursor: pointer; }
+.appearance-done { min-height: 38px; border: 1px solid #ffc18a66; border-radius: 6px; background: #a74d20; color: white; font: 600 13px var(--mac-ui); cursor: pointer; }
 .vybe-desktop .appearance-dialog > form > header { background: transparent !important; border: 0 !important; box-shadow: none !important; }
 .vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.conta-tela,.login-caixa) {
   background: linear-gradient(125deg,#ffffff07,transparent),var(--surface) !important;
@@ -298,15 +298,15 @@ body.vybe-desktop {
   box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
 }
 .vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head) { padding: 22px !important; }
-.vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 20px 0 0 20px; }
-.vybe-desktop .conta-aba { border-radius: 10px !important; }
+.vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
+.vybe-desktop .conta-aba { border-radius: 6px !important; }
 .vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
 .vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
 /* A barra de ações é grudada no rodapé (position: sticky). Com fundo quase
    transparente o conteúdo rolava por trás e aparecia através dela, com os textos
    sobrepostos — o problema que vybe-styles.css já tinha resolvido com fundo
    sólido. O fundo volta a ser sólido. */
-.vybe-desktop .workspace-actions { background: var(--surface) !important; border-radius: 13px; }
+.vybe-desktop .workspace-actions { background: var(--surface) !important; border-radius: 8px; }
 .vybe-desktop #login-gate { background: #07070a !important; }
 .vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
 .vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.spotlight-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
@@ -338,14 +338,14 @@ body.vybe-desktop {
 @media (max-width: 760px) {
   .vybe-desktop .ops-segmentos { display: flex !important; flex-wrap: wrap !important; width: 100%; min-width: 0 !important; max-width: 100%; }
   .vybe-desktop .ops-segmentos > button { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; max-width: 100%; }
-  .vybe-desktop > header { padding: 14px !important; border-radius: 0 0 12px 12px; }
+  .vybe-desktop > header { padding: 14px !important; border-radius: 0 0 8px 8px; }
   .vybe-desktop .header-row1 { min-width: 0; }
   .vybe-desktop .board-switch-bar { width: 100%; flex-basis: 100%; }
   .vybe-desktop .header-title h1 { font-size: 15px !important; }
   .vybe-desktop .container { padding: 16px 12px 70px !important; }
   .vybe-desktop .workspace-drawer { top: 6px; bottom: 6px; right: 6px; width: calc(100vw - 12px); padding: 18px; }
   .vybe-desktop .client-header { padding: 12px !important; }
-  .vybe-desktop #mode-gate .identity-shell { border-radius: 22px !important; }
+  .vybe-desktop #mode-gate .identity-shell { border-radius: 12px !important; }
   .identity-appearance-actions { max-width: 200px; }
 }
 
@@ -358,11 +358,11 @@ body.vybe-desktop {
 .cliente-carteira[data-carteira="ewerton"], .manager-calendar-client[data-carteira="ewerton"], [data-filtro-carteira][data-carteira="ewerton"] { --carteira-fundo:#579bfc26; --carteira-texto:#a3caff; --carteira-hover:#579bfc38; }
 .cliente-carteira:focus-visible { outline:2px solid var(--carteira-texto); outline-offset:3px; }
 .clientes-vinculo-btn i { font-style:normal; color:var(--text-muted); }
-.clientes-vinculo-dialog { margin:auto; width:min(460px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:24px; border:1px solid #ffffff30; border-radius:20px; background:#23242d; color:#f5f5f7; box-shadow:0 24px 80px #0008; }
+.clientes-vinculo-dialog { margin:auto; width:min(460px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:24px; border:1px solid #ffffff30; border-radius:12px; background:#23242d; color:#f5f5f7; box-shadow:0 24px 80px #0008; }
 .clientes-vinculo-dialog::backdrop { background:#090a1080; backdrop-filter:blur(5px); }
 .clientes-vinculo-dialog h2 { margin:0; font:600 22px/1.3 var(--mac-ui); }
 .clientes-vinculo-dialog p { margin:10px 0 18px; font:400 13px/1.5 var(--mac-ui); color:#b9bec9; }
-.clientes-vinculo-dialog > input { box-sizing:border-box; width:100%; padding:11px; background:#0003; color:white; border:1px solid #ffffff25; border-radius:9px; }
+.clientes-vinculo-dialog > input { box-sizing:border-box; width:100%; padding:11px; background:#0003; color:white; border:1px solid #ffffff25; border-radius:6px; }
 .clientes-vinculo-lista { margin:12px 0; max-height:45dvh; overflow:auto; }
 .clientes-vinculo-lista label { display:flex; align-items:center; gap:12px; padding:11px 8px; border-radius:8px; cursor:pointer; }
 .clientes-vinculo-lista label[hidden] { display:none; }
@@ -371,7 +371,7 @@ body.vybe-desktop {
 .clientes-vinculo-dialog .clientes-vinculo-erro { color:#ffb3bf; }
 .clientes-vinculo-erro:empty { display:none; }
 .clientes-vinculo-dialog footer { display:flex; justify-content:flex-end; gap:8px; padding:8px 0 0; background:none; border:0; }
-.clientes-vinculo-dialog footer button { padding:9px 14px; border-radius:9px; border:1px solid #ffffff25; background:#ffffff08; color:white; cursor:pointer; }
+.clientes-vinculo-dialog footer button { padding:9px 14px; border-radius:6px; border:1px solid #ffffff25; background:#ffffff08; color:white; cursor:pointer; }
 .clientes-vinculo-dialog [data-salvar] { background:#ff984f; color:#281508; }
 .clientes-vinculo-dialog button:disabled { opacity:.5; cursor:not-allowed; }
 
@@ -379,8 +379,8 @@ body.vybe-desktop {
 .quadro-toolbar { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:18px 0; }
 .grupos-head + .quadro-toolbar { padding:16px 20px; border-bottom:1px solid #ffffff12; }
 .quadro-busca { display:grid; gap:7px; flex:1; max-width:480px; color:var(--text-muted); font:500 12px var(--mac-ui); }
-.quadro-busca input { width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #ffffff26; border-radius:10px; background:#11131b99; color:var(--text); font:400 14px var(--mac-ui); }
-.quadro-novo,.grupo-adicionar { min-height:36px; padding:8px 13px; border:1px solid #ffffff25; border-radius:9px; color:#ffd0ab; background:#ff984f12; font:500 13px var(--mac-ui); cursor:pointer; white-space:nowrap; }
+.quadro-busca input { width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #ffffff26; border-radius:6px; background:#11131b99; color:var(--text); font:400 14px var(--mac-ui); }
+.quadro-novo,.grupo-adicionar { min-height:36px; padding:8px 13px; border:1px solid #ffffff25; border-radius:6px; color:#ffd0ab; background:#ff984f12; font:500 13px var(--mac-ui); cursor:pointer; white-space:nowrap; }
 /* No grupo, criar continua à mão (regra do produto), mas discreto: o botão
    acende ao passar o mouse no grupo; no grupo vazio e no toque fica aceso. */
 .grupo-cabecalho .grupo-adicionar { min-height:30px; padding:5px 11px; border-color:transparent; background:transparent; color:#b9bdc8; transition:background .15s,color .15s,border-color .15s; }
@@ -390,7 +390,7 @@ body.vybe-desktop {
 .grupo-cabecalho { display:flex; align-items:center; gap:12px; padding-right:16px; background:linear-gradient(90deg,color-mix(in srgb,var(--cor-grupo) 10%,transparent),transparent 70%); border-bottom:1px solid #ffffff10; }
 .grupo-bloco .grupo-cabecalho .grupo-cabeca { flex:1; min-width:0; width:auto; background:transparent; border-bottom:0; }
 /* Menu do grupo (vybe-grupos.js): só aparece para quem administra. */
-.grupo-menu-btn { display:grid; place-items:center; width:34px; height:34px; flex:0 0 auto; border:1px solid transparent; border-radius:var(--radius-control,10px); background:transparent; color:var(--text-muted); cursor:pointer; }
+.grupo-menu-btn { display:grid; place-items:center; width:34px; height:34px; flex:0 0 auto; border:1px solid transparent; border-radius:var(--radius-control,6px); background:transparent; color:var(--text-muted); cursor:pointer; }
 .grupo-menu-btn:hover { background:#ffffff10; border-color:#ffffff20; color:var(--text); }
 .grupo-menu-btn:focus-visible, .grupo-menu-cor:focus-visible, .grupo-menu .status-editor-option:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:2px; }
 .grupo-menu { min-width:220px; max-width:calc(100vw - 24px); max-height:calc(100dvh - 24px); overflow-y:auto; }
@@ -421,13 +421,13 @@ body.vybe-desktop {
 /* Onde o grupo vai cair: uma linha na cor da marca, acima ou abaixo do alvo. */
 .grupo-bloco.soltar-antes { box-shadow:inset 0 3px 0 var(--accent,#ff6b00); }
 .grupo-bloco.soltar-depois { box-shadow:inset 0 -3px 0 var(--accent,#ff6b00); }
-.grupo-novo-fim { display:block; width:calc(100% - 32px); margin:12px 16px 16px; padding:10px 14px; border:1px dashed #ffffff2e; border-radius:var(--radius-control,10px); background:transparent; color:var(--text-muted); font:500 13px var(--mac-ui); text-align:left; cursor:pointer; }
+.grupo-novo-fim { display:block; width:calc(100% - 32px); margin:12px 16px 16px; padding:10px 14px; border:1px dashed #ffffff2e; border-radius:var(--radius-control,6px); background:transparent; color:var(--text-muted); font:500 13px var(--mac-ui); text-align:left; cursor:pointer; }
 .grupo-novo-fim:hover { border-color:#ff984f80; color:#ffd0ab; background:#ff984f0d; }
 .grupo-novo-fim:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:2px; }
 @media (prefers-reduced-motion: reduce) { .grupo-cor-btn::before { transition:none; } }
 /* No celular arrastar é impreciso: a ordem fica no menu ⋯ (mover para cima/baixo). */
 @media (max-width:700px) { .grupo-alca { display:none; } }
-.vybe-desktop .dem-controles { padding:8px 18px; border-radius:16px; background:#20222acc !important; border-color:#ffffff20 !important; }
+.vybe-desktop .dem-controles { padding:8px 18px; border-radius:10px; background:#20222acc !important; border-color:#ffffff20 !important; }
 .vybe-desktop .dem-linha { padding:10px 0; gap:10px; border-color:#ffffff0d !important; }
 .vybe-desktop .dem-controles .pill { background:#ffffff05 !important; border-color:#ffffff20 !important; border-radius:8px; font-size:12px; padding:6px 9px; }
 .vybe-desktop .dem-controles .tipo-chip { border-radius:8px; background:#ffffff08 !important; color:#dce0e8 !important; border:1px solid #ffffff20; font-size:12px; }
@@ -455,20 +455,20 @@ body.vybe-desktop {
 .vybe-desktop .spotlight-dialog #spotlight-input:focus-visible { outline: none !important; }
 .spotlight-dialog #spotlight-input::placeholder { color: #9aa0ae; }
 .spotlight-dialog #spotlight-input::-webkit-search-cancel-button { display: none; }
-.spotlight-escopo { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; max-width: 42%; padding: 5px 6px 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--workspace-accent) 24%, transparent); color: var(--text); font-size: 14px; white-space: nowrap; }
+.spotlight-escopo { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; max-width: 42%; padding: 5px 6px 5px 11px; border-radius: 8px; background: color-mix(in srgb, var(--workspace-accent) 24%, transparent); color: var(--text); font-size: 14px; white-space: nowrap; }
 .spotlight-escopo[hidden] { display: none; }
 .spotlight-escopo b { overflow: hidden; text-overflow: ellipsis; }
 .spotlight-escopo button { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #ffffff1f; color: var(--text); font-size: 15px; cursor: pointer; }
 .spotlight-tecla, .spotlight-dialog kbd { padding: 1px 6px; border: 1px solid #ffffff2e; border-radius: 6px; background: #ffffff10; color: var(--text-muted); font: 500 11px var(--mac-ui); }
 .spotlight-abas { display: flex; gap: 8px; padding: 12px 18px 6px; overflow-x: auto; scrollbar-width: none; }
-.spotlight-abas button { flex: 0 0 auto; min-height: 32px; padding: 6px 14px; border: 1px solid transparent; border-radius: 999px; background: #ffffff12; color: var(--text); font: 500 13px var(--mac-ui); cursor: pointer; }
+.spotlight-abas button { flex: 0 0 auto; min-height: 32px; padding: 6px 14px; border: 1px solid transparent; border-radius: 8px; background: #ffffff12; color: var(--text); font: 500 13px var(--mac-ui); cursor: pointer; }
 .spotlight-abas button:hover { background: #ffffff1f; }
 .spotlight-abas button[aria-selected=true] { background: color-mix(in srgb, var(--workspace-accent) 30%, transparent); border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }
 .spotlight-lista { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 10px; overscroll-behavior: contain; }
 .spotlight-grupo { padding: 14px 12px 6px; color: var(--text-muted); font: 600 12px var(--mac-ui); letter-spacing: .02em; }
-.spotlight-linha { display: grid; grid-template-columns: 40px minmax(0,1fr) auto auto; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-radius: 14px; cursor: pointer; }
+.spotlight-linha { display: grid; grid-template-columns: 40px minmax(0,1fr) auto auto; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
 .spotlight-linha[aria-selected=true] { background: color-mix(in srgb, var(--workspace-accent) 24%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-accent) 40%, transparent); }
-.spotlight-icone { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(160deg, #ffb070, #e2692a); color: #fff; box-shadow: inset 0 1px 0 #ffffff55; }
+.spotlight-icone { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(160deg, #ffb070, #e2692a); color: #fff; box-shadow: inset 0 1px 0 #ffffff55; }
 .spotlight-icone.is-demanda { background: linear-gradient(160deg, #7fe0f0, #2f9fb8); }
 .spotlight-icone.is-cliente { background: linear-gradient(160deg, #8cc8ff, #3e8ee0); }
 .spotlight-icone svg { width: 22px; height: 22px; }
@@ -569,14 +569,14 @@ body.vybe-desktop {
   .workspace-kicker .workspace-close { position:absolute; top:0; right:0; }
 }
 
-.vybe-desktop .workspace-barra .vybe-link { margin: 0; min-height: 32px; padding: 0 12px; border-radius: 10px; font: 500 13px var(--mac-ui); }
+.vybe-desktop .workspace-barra .vybe-link { margin: 0; min-height: 32px; padding: 0 12px; border-radius: 6px; font: 500 13px var(--mac-ui); }
 .vybe-desktop .vybe-link .icone-linha { width: 15px; height: 15px; }
 .workspace-mais { position: relative; }
-.workspace-mais > summary { list-style: none; display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid #ffffff24; border-radius: 10px; background: #ffffff0a; color: var(--text); cursor: pointer; }
+.workspace-mais > summary { list-style: none; display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid #ffffff24; border-radius: 6px; background: #ffffff0a; color: var(--text); cursor: pointer; }
 .workspace-mais > summary::-webkit-details-marker { display: none; }
 .workspace-mais > summary:hover, .workspace-mais[open] > summary { background: #ffffff18; }
 .workspace-mais > summary .icone-linha { width: 16px; height: 16px; }
-.workspace-mais-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: grid; min-width: 220px; padding: 6px; border: 1px solid var(--glass-edge); border-radius: 12px; background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window); backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4); }
+.workspace-mais-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: grid; min-width: 220px; padding: 6px; border: 1px solid var(--glass-edge); border-radius: 8px; background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window); backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4); }
 .workspace-mais-menu :is(button, a) { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: none; color: var(--text); font: 500 13px var(--mac-ui); text-align: left; text-decoration: none; cursor: pointer; }
 .workspace-mais-menu :is(button, a):is(:hover, :focus-visible) { background: color-mix(in srgb, var(--workspace-accent) 26%, transparent); }
 .workspace-mais-menu .perigo { color: #ff8a9a; }
@@ -613,13 +613,13 @@ body.vybe-desktop {
 .vybe-desktop .workspace-entrega .entrega-caminhos { display: block; margin-top: 12px; }
 .vybe-desktop .workspace-entrega .entrega-caminho { margin-top: 12px; padding: 0; border: 0; background: none; }
 .vybe-desktop .workspace-entrega .entrega-caminho[hidden] { display: none !important; }
-.entrega-escolha { display: inline-flex; padding: 2px; border-radius: 9px; background: #ffffff0f; box-shadow: inset 0 0 0 1px #ffffff14; }
+.entrega-escolha { display: inline-flex; padding: 2px; border-radius: 6px; background: #ffffff0f; box-shadow: inset 0 0 0 1px #ffffff14; }
 .entrega-escolha button { min-height: 28px; min-width: 88px; padding: 4px 16px; border: 0; border-radius: 7px; background: none; color: var(--text-muted); font: 500 13px var(--mac-ui); cursor: pointer; }
 .entrega-escolha button[aria-selected=true] { background: #ffffff26; color: var(--text); box-shadow: 0 1px 2px #0005, inset 0 1px 0 #ffffff1c; }
 .entrega-link { display: flex; gap: 8px; align-items: stretch; }
 .entrega-link .workspace-input { flex: 1; min-width: 0; }
 .vybe-desktop .workspace-entrega .workspace-delivery-dock { margin: 0 !important; }
-.entrega-estado { display: grid; gap: 2px; padding: 10px 12px 10px 28px; position: relative; border-radius: 10px; background: #ffffff08; }
+.entrega-estado { display: grid; gap: 2px; padding: 10px 12px 10px 28px; position: relative; border-radius: 6px; background: #ffffff08; }
 .entrega-estado::before { content: ''; position: absolute; left: 12px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: #ffbd2e; }
 .entrega-estado b { font: 600 13px var(--mac-ui); color: var(--text); }
 .entrega-estado small { font: 400 12.5px/1.4 var(--mac-ui); color: var(--text-muted); }
@@ -627,11 +627,11 @@ body.vybe-desktop {
 
 /* Histórico: o tipo do registro vira legenda em texto normal, e a data sai no
    formato do painel ("18/08 às 06:14"). */
-.vybe-desktop .workspace-timeline-type { display: inline-block; margin-right: 8px; padding: 1px 8px; border: 0 !important; border-radius: 999px; background: #ffffff12 !important; color: var(--text) !important; font: 600 11.5px var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; }
+.vybe-desktop .workspace-timeline-type { display: inline-block; margin-right: 8px; padding: 1px 8px; border: 0 !important; border-radius: 8px; background: #ffffff12 !important; color: var(--text) !important; font: 600 11.5px var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; }
 .vybe-desktop .workspace-update-meta { color: var(--text-muted) !important; font: 500 12.5px var(--mac-ui) !important; letter-spacing: 0 !important; }
 
 /* Tempo em cada etapa: na ordem do tempo; a etapa atual diz desde quando. */
-.etapa-tempo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 10px; background: #ffffff08; }
+.etapa-tempo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 6px; background: #ffffff08; }
 .etapa-tempo + .etapa-tempo { margin-top: 6px; }
 .etapa-tempo.atual { background: color-mix(in srgb, var(--workspace-accent) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-accent) 32%, transparent); }
 .etapa-tempo-nome { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
@@ -642,9 +642,9 @@ body.vybe-desktop {
    mora o Arquivar) e fechar. O texto "Copiar link" continua no botão para leitor
    de tela; só sai da vista. */
 .cr-topo-acoes { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
-.vybe-desktop .cartao-rapido .cr-topo-acoes .vybe-link { display: grid; place-items: center; width: 32px; height: 30px; margin: 0; padding: 0; border-radius: 9px; }
+.vybe-desktop .cartao-rapido .cr-topo-acoes .vybe-link { display: grid; place-items: center; width: 32px; height: 30px; margin: 0; padding: 0; border-radius: 6px; }
 .vybe-desktop .cartao-rapido .cr-topo-acoes .vybe-link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.vybe-desktop .cartao-rapido .workspace-mais > summary { width: 32px; height: 30px; border-radius: 9px; }
+.vybe-desktop .cartao-rapido .workspace-mais > summary { width: 32px; height: 30px; border-radius: 6px; }
 .vybe-desktop .cartao-rapido .cr-data { border: 1px solid #ffffff1f; border-radius: 8px; background: #ffffff0a; color: var(--text); padding: 3px 10px; font: 500 13px var(--mac-ui); font-variant-numeric: tabular-nums; cursor: pointer; }
 .vybe-desktop .cartao-rapido .cr-data:hover { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); }
 
@@ -659,9 +659,9 @@ body.vybe-desktop {
 .vybe-desktop .cartao-rapido .cr-linha { min-height: 34px; min-width: 0; }
 .vybe-desktop .cartao-rapido .cr-campos :is(.pill, .cr-grupo-pill, .clientes-vinculo-btn, .cr-data, .cr-dono) {
   display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 24px; padding: 0 10px;
-  border-radius: 999px; font: 600 11.5px var(--mac-ui); white-space: nowrap;
+  border-radius: 8px; font: 600 11.5px var(--mac-ui); white-space: nowrap;
 }
-.vybe-desktop .cartao-rapido .cr-campos .cr-data { border-radius: 999px; font-variant-numeric: tabular-nums; }
+.vybe-desktop .cartao-rapido .cr-campos .cr-data { border-radius: 8px; font-variant-numeric: tabular-nums; }
 /* Clientes: mantém as cores de cada carteira dentro do seletor compacto. */
 .vybe-desktop .cartao-rapido .clientes-vinculo-btn { max-width: 100%; border: 1px solid #ffffff24; background: #ffffff0a; color: var(--text); flex-wrap: nowrap; overflow: hidden; }
 /* Nomes longos encolhem com reticências em vez de empurrar a etiqueta para fora
@@ -678,7 +678,7 @@ body.vybe-desktop {
 /* Campo vazio ("—") parecia texto parado; é editável como os outros. */
 .vybe-desktop .cartao-rapido .grupo-pill-btn .grupo-vazio {
   display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 24px; min-width: 48px; padding: 0 10px;
-  border: 1px dashed #ffffff33; border-radius: 999px; color: var(--text-muted); font: 600 11.5px var(--mac-ui);
+  border: 1px dashed #ffffff33; border-radius: 8px; color: var(--text-muted); font: 600 11.5px var(--mac-ui);
 }
 .vybe-desktop .cartao-rapido .grupo-pill-btn:hover .grupo-vazio { border-color: color-mix(in srgb, var(--workspace-accent) 60%, transparent); color: var(--text); }
 
@@ -719,7 +719,7 @@ body.vybe-desktop {
 .log-voltar:hover, .log-voltar:focus-visible { background: rgba(255,255,255,.07); color: #fff; }
 .log-filtros { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px;
   border-bottom: 1px solid var(--vybe-line, rgba(255,255,255,.08)); }
-.log-filtros button { height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255,255,255,.05);
+.log-filtros button { height: 28px; padding: 0 12px; border: 0; border-radius: 8px; background: rgba(255,255,255,.05);
   color: #9a9aa0; font: 500 12px var(--mac-ui); cursor: pointer; }
 .log-filtros button:hover { color: #f2f2f5; }
 .log-filtros button.ativo { background: rgba(255,122,26,.2); color: #ffd3ad; }
@@ -754,10 +754,10 @@ body.vybe-desktop {
 .manager-command-drawer-context { margin-top: 2px !important; color: #8b8b90 !important; font: 500 12px var(--mac-ui) !important; }
 .manager-command-tabs { gap: 4px; padding: 10px 16px; }
 .manager-command-tab { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px;
-  border: 0 !important; border-radius: 999px; background: rgba(255,255,255,.05) !important;
+  border: 0 !important; border-radius: 8px; background: rgba(255,255,255,.05) !important;
   color: #9a9aa0 !important; font: 500 12.5px var(--mac-ui) !important; letter-spacing: 0 !important; }
 .manager-command-tab:hover { color: #f2f2f5 !important; }
-.manager-command-tab b { min-width: 20px; padding: 0 5px; border-radius: 999px; background: rgba(255,255,255,.08);
+.manager-command-tab b { min-width: 20px; padding: 0 5px; border-radius: 8px; background: rgba(255,255,255,.08);
   color: inherit; font: 600 11.5px var(--mac-ui); font-variant-numeric: tabular-nums; }
 .manager-command-tab.active { background: rgba(255,122,26,.2) !important; color: #ffd3ad !important; box-shadow: none !important; }
 .manager-command-tab.active b { background: rgba(255,122,26,.3); color: #fff; }
@@ -769,7 +769,7 @@ body.vybe-desktop {
 .leitura-proativa-topo strong { color: #8b8b90 !important; font: 600 12px var(--mac-ui) !important; letter-spacing: 0; }
 .leitura-proativa-topo span { color: #6f6f75; font-size: 11.5px; }
 .manager-command-content .leitura-proativa-alerta { display: inline-flex; align-items: baseline; gap: 6px;
-  min-height: 28px; padding: 4px 11px; border-radius: 999px; border: 0;
+  min-height: 28px; padding: 4px 11px; border-radius: 8px; border: 0;
   background: rgba(255,255,255,.05); }
 .manager-command-content .leitura-proativa-alerta b { display: inline; font: 600 12.5px var(--mac-ui);
   font-variant-numeric: tabular-nums; color: var(--cor-alerta, #ffbd61); }
@@ -801,7 +801,7 @@ body.vybe-desktop {
 }
 /* O cartão da decisão prioritária: mesma família dos outros cartões, sem
    caixa alta no botão. */
-.command-decision { border-radius: 12px; border: 1px solid rgba(255,107,129,.28); border-left: 3px solid #ff637a; }
+.command-decision { border-radius: 8px; border: 1px solid rgba(255,107,129,.28); border-left: 3px solid #ff637a; }
 .command-decision-label { font: 600 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
 .command-decision-main { font: 600 13.5px var(--mac-ui) !important; letter-spacing: -.01em; white-space: normal !important; }
 .command-decision-meta { color: #9a9aa0 !important; font: 400 12px/1.45 var(--mac-ui) !important; }
@@ -998,12 +998,12 @@ body.vybe-desktop {
 .notas-sobre { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--text-muted);
   font: 500 12px var(--mac-ui); }
 .notas-sobre b { color: var(--text); font-weight: 600; }
-.notas-sobre button { height: 26px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px;
+.notas-sobre button { height: 26px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px;
   background: #ffffff0a; color: var(--text-muted); font: 500 12px var(--mac-ui); cursor: pointer; }
 .notas-sobre button:hover { background: #ffffff1f; color: var(--text); }
 /* Barra de ferramentas: escreve a marca no lugar do cursor. */
 .notas-ferramentas { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.notas-ferramentas > button { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px;
+.notas-ferramentas > button { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px;
   background: #ffffff0a; color: var(--text-muted); font: 500 12px var(--mac-ui); cursor: pointer; }
 .notas-ferramentas > button:hover { background: #ffffff1f; color: var(--text); }
 .notas-ferramentas-fim { display: flex; gap: 6px; margin-left: auto; }
@@ -1048,7 +1048,7 @@ body.vybe-desktop {
   background: #ffffff0a; color: var(--text-muted); cursor: pointer; }
 .nota-busca-campo button:hover { background: #ffffff1f; color: var(--text); }
 .nota-busca-lista { display: grid; gap: 4px; max-height: 190px; overflow-y: auto; }
-.nota-busca-item { display: grid; gap: 2px; padding: 8px 10px; border: 0; border-radius: 10px;
+.nota-busca-item { display: grid; gap: 2px; padding: 8px 10px; border: 0; border-radius: 6px;
   background: transparent; text-align: left; cursor: pointer; }
 .nota-busca-item:hover { background: #ffffff12; }
 .nota-busca-item b { color: var(--text); font: 600 13px var(--mac-ui); letter-spacing: -.01em; }
@@ -1104,7 +1104,7 @@ body.vybe-desktop {
 .mesa-agendas { display:flex; align-items:center; gap:6px; min-width:0; flex:1; overflow-x:auto; scrollbar-width:none; padding:2px; }
 .mesa-agendas::-webkit-scrollbar { display:none; }
 .mesa-agendas button { display:inline-flex; align-items:center; gap:6px; flex:0 0 auto; height:32px; padding:0 10px 0 5px;
-  border:1px solid var(--border); border-radius:999px; background:#ffffff08; color:var(--text-muted); font:500 12.5px var(--mac-ui); cursor:pointer; }
+  border:1px solid var(--border); border-radius:8px; background:#ffffff08; color:var(--text-muted); font:500 12.5px var(--mac-ui); cursor:pointer; }
 .mesa-agendas button:hover { background:#ffffff14; color:var(--text); }
 .mesa-agendas button.ativo { border-color:#ff984f73; background:#ff984f1f; color:var(--text); }
 .mesa-agendas button b { font-weight:500; }
@@ -1116,7 +1116,7 @@ body.vybe-desktop {
 .mesa-barra { display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--border); }
 .mesa-segmento { display:flex; align-items:center; gap:8px; }
 .mesa-segmento > span { color:var(--text-muted); font:500 12px var(--mac-ui); }
-.mesa-segmento > div { display:inline-flex; gap:2px; padding:2px; border-radius:9px; background:#ffffff0d; }
+.mesa-segmento > div { display:inline-flex; gap:2px; padding:2px; border-radius:6px; background:#ffffff0d; }
 .mesa-segmento button { height:26px; padding:0 10px; border:0; border-radius:7px; background:transparent; color:var(--text-muted);
   font:500 12.5px var(--mac-ui); white-space:nowrap; cursor:pointer; }
 .mesa-segmento button:hover { color:var(--text); }
@@ -1125,7 +1125,7 @@ body.vybe-desktop {
 .mesa-arrumar { display:inline-flex; align-items:center; gap:8px; height:34px; margin-left:auto; padding:0 14px;
   border:1px solid #ffbc88; border-radius:var(--radius-control); background:#ff984f; color:#281508; font:600 13px var(--mac-ui); cursor:pointer; }
 .mesa-arrumar:hover { background:#ffab6e; }
-.mesa-arrumar small { min-width:20px; padding:1px 6px; border-radius:999px; background:#28150824; font:600 11.5px var(--mac-ui); font-variant-numeric:tabular-nums; }
+.mesa-arrumar small { min-width:20px; padding:1px 6px; border-radius:8px; background:#28150824; font:600 11.5px var(--mac-ui); font-variant-numeric:tabular-nums; }
 .mesa-arrumar:disabled { border-color:var(--border); background:#ffffff0d; color:var(--text-muted); cursor:default; }
 .mesa-resumo { padding:12px 18px; border-bottom:1px solid var(--border); }
 .mesa-lista { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding-bottom:88px; }
@@ -1197,7 +1197,7 @@ body.vybe-desktop {
 .mesa-legenda i.tracejado { height:0; border-top:1.5px dashed #9aa0ad; background:none; }
 .mesa-etiquetas { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-left:auto; }
 .mesa-etiqueta { display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 10px; border:1px solid var(--border);
-  border-radius:999px; background:#ffffff08; color:var(--text-muted); font:500 12px var(--mac-ui); cursor:pointer; }
+  border-radius:8px; background:#ffffff08; color:var(--text-muted); font:500 12px var(--mac-ui); cursor:pointer; }
 .mesa-etiqueta b { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
 .mesa-etiqueta:hover { background:#ffffff14; color:var(--text); }
 .mesa-etiqueta.alerta { border-color:#ff7a8859; } .mesa-etiqueta.alerta b { color:#ff7a88; }
@@ -1254,20 +1254,20 @@ body.vybe-desktop {
 /* Cartões de pessoa: a cor da pessoa vira uma marca fina e arredondada. */
 #da-controller-dashboard .da-capacity-card { padding:14px 14px 14px 20px !important; border:1px solid var(--border) !important;
   border-radius:var(--da-raio) !important; background:#ffffff08 !important; box-shadow:none !important; }
-#da-controller-dashboard .da-capacity-card::before { left:9px; top:14px; bottom:14px; width:3px; border-radius:999px; }
+#da-controller-dashboard .da-capacity-card::before { left:9px; top:14px; bottom:14px; width:3px; border-radius:8px; }
 #da-controller-dashboard .da-capacity-card:hover, #da-controller-dashboard .da-capacity-card.active {
   border-color:color-mix(in srgb, var(--da-person-color) 55%, transparent) !important;
   background:color-mix(in srgb, var(--da-person-color) 12%, #ffffff08) !important; }
 #da-controller-dashboard .da-capacity-name { font:600 13.5px var(--mac-ui); }
 #da-controller-dashboard .da-capacity-role { color:var(--text-muted); font:500 11.5px var(--mac-ui); letter-spacing:0; }
-#da-controller-dashboard .da-capacity-load { border-radius:999px; overflow:hidden; }
+#da-controller-dashboard .da-capacity-load { border-radius:8px; overflow:hidden; }
 
 /* Mesa de comando: quatro cartões soltos, sem grade de linhas. */
 #da-controller-dashboard .da-command-daily-grid { display:grid !important; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; padding:0; border:0 !important; }
 #da-controller-dashboard .da-command-daily-card { min-height:0 !important; padding:16px !important;
   border:1px solid var(--border) !important; border-right:1px solid var(--border) !important; border-bottom:1px solid var(--border) !important;
   border-radius:var(--da-raio) !important; background:#ffffff08 !important; box-shadow:none !important; }
-#da-controller-dashboard .da-command-daily-card::before { left:16px !important; right:auto !important; top:16px !important; width:22px; height:3px !important; border-radius:999px; }
+#da-controller-dashboard .da-command-daily-card::before { left:16px !important; right:auto !important; top:16px !important; width:22px; height:3px !important; border-radius:8px; }
 #da-controller-dashboard .da-command-daily-card:hover:not(.vazia) { transform:none !important;
   border-color:color-mix(in srgb, var(--command-color,#ff984f) 55%, transparent) !important;
   background:color-mix(in srgb, var(--command-color,#ff984f) 12%, #ffffff08) !important; }
@@ -1282,7 +1282,7 @@ body.vybe-desktop {
 
 /* Régua da semana: cada dia é um cartão. */
 #da-controller-dashboard .da-week-rail { gap:8px; border:0 !important; }
-#da-controller-dashboard .da-week-rail-day { border:1px solid var(--border) !important; border-radius:12px !important;
+#da-controller-dashboard .da-week-rail-day { border:1px solid var(--border) !important; border-radius:8px !important;
   background:#ffffff08 !important; box-shadow:none !important; color:var(--text) !important; }
 #da-controller-dashboard .da-week-rail-day:hover { background:#ffffff12 !important; }
 #da-controller-dashboard .da-week-rail-day.active { border-color:#ff984f99 !important; background:#ff984f1f !important; box-shadow:none !important; }
@@ -1311,7 +1311,7 @@ body.vybe-desktop {
 .da-command-modal .da-command-modal-list { flex:1; min-height:0; max-height:none !important; margin:0 !important;
   padding:10px 12px 16px; overflow-y:auto; overscroll-behavior:contain; }
 .da-command-modal .da-command-modal-row { padding:10px 12px !important; border-color:transparent !important;
-  border-radius:12px !important; background:transparent !important; }
+  border-radius:8px !important; background:transparent !important; }
 .da-command-modal .da-command-modal-row:hover { border-color:transparent !important; background:#ffffff0f !important; }
 .da-command-modal .da-command-modal-copy b { font:500 13.5px/1.35 var(--mac-ui) !important; }
 .da-command-modal .da-command-modal-copy small { color:var(--text-muted) !important; font:400 12.5px/1.35 var(--mac-ui) !important; }
@@ -1354,7 +1354,7 @@ body.vybe-desktop {
 .acao-topo small { display:block; margin-top:2px; color:var(--text-muted); font:400 12.5px var(--mac-ui); }
 .acao-chips { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-left:auto; }
 .acao-chip { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 11px; border:1px solid var(--border);
-  border-radius:999px; background:#ffffff08; color:var(--text-muted); font:500 12px var(--mac-ui); cursor:pointer; }
+  border-radius:8px; background:#ffffff08; color:var(--text-muted); font:500 12px var(--mac-ui); cursor:pointer; }
 .acao-chip b { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
 .acao-chip i { width:7px; height:7px; border-radius:50%; background:var(--motivo,#9aa0ad); }
 .acao-chip:hover { background:#ffffff14; color:var(--text); }
@@ -1372,7 +1372,7 @@ body.vybe-desktop {
 .acao-marca { width:8px; height:8px; border-radius:50%; background:var(--motivo,#9aa0ad); justify-self:center; }
 .acao-linha.com-rotulo { grid-template-columns:26px 124px minmax(0,1fr) auto 104px 90px; }
 .acao-linha { display:grid; grid-template-columns:26px 18px minmax(0,1fr) auto 104px 90px; align-items:center; gap:12px;
-  padding:8px 10px; border-radius:12px; cursor:pointer; }
+  padding:8px 10px; border-radius:8px; cursor:pointer; }
 .acao-linha:hover { background:#ffffff08; }
 .acao-linha.marcada { background:#ff984f14; box-shadow:inset 3px 0 0 #ff984f; }
 .acao-marcar { display:grid; place-items:center; }
@@ -1406,7 +1406,7 @@ body.vybe-desktop {
 /* Subdemandas: a mesma lista na gaveta e no cartão rápido. Prazo e responsáveis
    por subdemanda — sem eles ela não dizia quem faz nem até quando. */
 .subitem { display:grid; grid-template-columns:14px minmax(0,1fr) auto auto 26px; align-items:center; gap:10px;
-  padding:7px 8px; border-radius:10px; }
+  padding:7px 8px; border-radius:6px; }
 .subitem:hover { background:#ffffff08; }
 .subitem-donos { display:inline-flex; align-items:center; padding:0; border:0; background:transparent; cursor:pointer; }
 .subitem-donos .owner-avatar-add { display:grid; place-items:center; width:22px; height:22px; border:1px dashed var(--border);
@@ -1419,7 +1419,7 @@ body.vybe-desktop {
 #subitem-donos-menu :is(img, .owner-avatar, .owner-avatar-fallback) { width:20px; height:20px; border-radius:50%; object-fit:cover; }
 /* A marca de andamento na linha da demanda: 2/5 feitas. */
 .grupo-subs { display:inline-flex; align-items:center; margin-left:8px; padding:1px 7px; border:1px solid var(--border);
-  border-radius:999px; color:var(--text-muted); font:500 11px var(--mac-ui); font-variant-numeric:tabular-nums; }
+  border-radius:8px; color:var(--text-muted); font:500 11px var(--mac-ui); font-variant-numeric:tabular-nums; }
 /* No cartão rápido a lista entra com a mesma cara da gaveta, sem a moldura. O
    cartão alarga um pouco e a linha vira duas alturas: o nome da subdemanda não
    cabia ao lado das bolinhas e do prazo. */
@@ -1439,21 +1439,21 @@ body.vybe-desktop {
 
 /* Demandas: seletores progressivos e tabela com geometria comum entre grupos.
    Escopo local: os estilos compartilhados de Produção permanecem na cascata original. */
-#painel-demandas .quadro-toolbar { position:sticky; top:0; z-index:30; align-items:center; padding:14px; border:1px solid #ffffff16; border-radius:18px; background:#20232ded; backdrop-filter:blur(20px); margin-bottom:16px; }
+#painel-demandas .quadro-toolbar { position:sticky; top:0; z-index:30; align-items:center; padding:14px; border:1px solid #ffffff16; border-radius:10px; background:#20232ded; backdrop-filter:blur(20px); margin-bottom:16px; }
 #painel-demandas .quadro-busca { max-width:none; order:-1; }
 #painel-demandas .kpi-grid { gap:12px; margin-bottom:16px; }
-#painel-demandas .kpi-card { padding:16px 20px; min-height:0; border-radius:16px; box-shadow:none; }
+#painel-demandas .kpi-card { padding:16px 20px; min-height:0; border-radius:10px; box-shadow:none; }
 #painel-demandas .kpi-card:last-child { opacity:.85; }
 #painel-demandas .dem-controles { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; position:relative; z-index:25; }
 #painel-demandas .dem-filtro, #painel-demandas .dem-colunas { position:relative; }
-#painel-demandas summary { cursor:pointer; list-style:none; padding:9px 14px; border-radius:10px; background:#ffffff08; border:1px solid #ffffff16; font:500 13px var(--mac-ui); color:#e0e3eb; }
+#painel-demandas summary { cursor:pointer; list-style:none; padding:9px 14px; border-radius:6px; background:#ffffff08; border:1px solid #ffffff16; font:500 13px var(--mac-ui); color:#e0e3eb; }
 #painel-demandas summary::after { content:'⌄'; margin-left:18px; color:#a5adbc; }
 #painel-demandas details[open]>summary { background:#ff984f18; border-color:#ff984f70; }
 #painel-demandas .dem-colunas { order:5; }
 #painel-demandas .dem-colunas .dem-filtro-popover { left:auto; right:0; }
 #painel-demandas .kpi-card:last-child::before { background:#8993a3; }
-#painel-demandas .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:300px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:16px; box-shadow:0 16px 48px #0008; z-index:40; }
-#painel-demandas .dem-filtro-popover>input { width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:12px; border:1px solid #ffffff26; border-radius:9px; background:#161820; color:var(--text); }
+#painel-demandas .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:300px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:10px; box-shadow:0 16px 48px #0008; z-index:40; }
+#painel-demandas .dem-filtro-popover>input { width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:12px; border:1px solid #ffffff26; border-radius:6px; background:#161820; color:var(--text); }
 #painel-demandas .dem-filtro-popover :is(.legend,.dem-clientes,.person-filter-bar) { display:flex; flex-wrap:wrap; gap:8px; max-height:280px; overflow:auto; margin:0; }
 #painel-demandas .dem-filtro-popover [hidden] { display:none; }
 #painel-demandas .dem-colunas label { display:flex; align-items:center; gap:8px; padding:8px; font-size:13px; }
@@ -1504,7 +1504,7 @@ body.vybe-desktop {
 #agenda-filtros.focus-hidden { display:none !important; }
 #agenda-filtros .agenda-filtros-rotulo { color:#8f98a9; font:600 11.5px var(--mac-ui); margin-right:2px; }
 #agenda-filtros .dem-filtro { position:relative; }
-#agenda-filtros summary { cursor:pointer; list-style:none; display:inline-flex; align-items:center; min-height:30px; box-sizing:border-box; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.09); font:600 12px var(--mac-ui); color:#e0e3eb; }
+#agenda-filtros summary { cursor:pointer; list-style:none; display:inline-flex; align-items:center; min-height:30px; box-sizing:border-box; padding:0 12px; border-radius:8px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.09); font:600 12px var(--mac-ui); color:#e0e3eb; }
 #agenda-filtros summary::-webkit-details-marker { display:none; }
 #agenda-filtros summary::after { content:'⌄'; margin-left:10px; color:#a5adbc; }
 #agenda-filtros summary:hover { background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.2); }
@@ -1513,7 +1513,7 @@ body.vybe-desktop {
 #agenda-filtros .agenda-filtro-escolha { margin-left:6px; color:#ffbb87; font-weight:600; }
 #agenda-filtros .agenda-filtro-escolha:empty { display:none; }
 #agenda-filtros .agenda-filtro-escolha::before { content:'· '; color:#8f98a9; }
-#agenda-filtros .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:320px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:16px; box-shadow:0 16px 48px #0008; z-index:40; }
+#agenda-filtros .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:320px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:10px; box-shadow:0 16px 48px #0008; z-index:40; }
 #agenda-filtros .dem-filtro-popover :is(.legend,.person-filter-bar) { display:flex; flex-wrap:wrap; gap:8px; max-height:280px; overflow:auto; margin:0; }
 #agenda-filtros .dem-filtro-popover .person-wrap { border:0; padding:4px; border-radius:50%; background:transparent; }
 #agenda-filtros .dem-filtro-popover .person-wrap::after { display:none; }
@@ -1521,7 +1521,7 @@ body.vybe-desktop {
 /* Com o mês aberto, Veiculação/Prazo mora no cabeçalho do mês, e dia e ordem
    só existem na agenda da semana: os três saem do caminho. */
 #agenda-filtros.com-mes .agenda-filtros-semana { display:none !important; }
-#agenda-filtros #day-select { min-height:30px; padding:0 12px; border-radius:999px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.035); color:#e0e3eb; font:600 12px var(--mac-ui); cursor:pointer; }
+#agenda-filtros #day-select { min-height:30px; padding:0 12px; border-radius:8px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.035); color:#e0e3eb; font:600 12px var(--mac-ui); cursor:pointer; }
 #agenda-filtros .sort-btn.pending-active, #agenda-filtros .sort-btn[aria-pressed="true"] { border-color:rgba(255,179,92,.5); background:rgba(255,143,79,.16); color:#fff; }
 #agenda-filtros :is(summary,button,select):focus-visible { outline:2px solid #ffc08a; outline-offset:3px; }
 @media(max-width:600px) {
@@ -1539,7 +1539,7 @@ body.vybe-desktop {
 .manager-calendar-carteira-sep { flex:none; width:1px; height:18px; margin:0 4px; background:rgba(255,255,255,.14); }
 
 #dem-visoes { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
-#dem-visoes button { display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--border); border-radius:12px; color:var(--text); background:#ffffff06; font:500 13px var(--mac-ui); cursor:pointer; }
+#dem-visoes button { display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--border); border-radius:8px; color:var(--text); background:#ffffff06; font:500 13px var(--mac-ui); cursor:pointer; }
 #dem-visoes button[aria-pressed="true"] { background:#ff984f20; border-color:#ff984f88; }
 #dem-visoes span { font-size:11px; opacity:.75; font-variant-numeric:tabular-nums; }
 .cartao-rapido .cr-recursos { padding:12px 16px; border-top:1px solid var(--border); font-size:13px; }
@@ -1571,8 +1571,8 @@ body.vybe-desktop {
 .vybe-desktop > .app-header .board-switch-btn:hover {color:#351c0f!important;background:#fff4df60!important}
 .vybe-desktop > .app-header .header-row2 :is(.quem-sou-btn,.notif-sino,.appearance-button) {color:#351c0f!important;border-color:#52270c25!important;background:#fff3dc35!important;box-shadow:none!important}
 .header-utilities {position:relative}
-.header-utilities > summary {cursor:pointer;list-style:none;padding:8px 12px;border-radius:9px;background:#53260d14;color:#351c0f;font-weight:600}
-.header-utilities-menu {position:absolute;right:0;top:calc(100% + 8px);z-index:150;min-width:215px;padding:10px;display:grid;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 32px #0005}
+.header-utilities > summary {cursor:pointer;list-style:none;padding:8px 12px;border-radius:6px;background:#53260d14;color:#351c0f;font-weight:600}
+.header-utilities-menu {position:absolute;right:0;top:calc(100% + 8px);z-index:150;min-width:215px;padding:10px;display:grid;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 32px #0005}
 .vybe-desktop > .app-header .header-utilities-menu .appearance-button {color:var(--text)!important;background:var(--surface2)!important}
 .workspace-heading {display:flex;justify-content:space-between;align-items:center;gap:16px;margin:20px 0 14px}
 .workspace-eyebrow,.toolbar-label {font:600 10px var(--mac-ui);color:var(--text-muted);letter-spacing:.06em}
@@ -1580,11 +1580,11 @@ body.vybe-desktop {
 .workspace-heading .filtro-carteira {margin:0}
 .ops-command-bar .global-search-wrap {flex:1 1 100%;max-width:none}
 .ops-command-bar .ops-attention {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ops-command-bar .ops-attention button {border-radius:20px;background:transparent}
+.ops-command-bar .ops-attention button {border-radius:12px;background:transparent}
 .ops-command-bar .ops-acoes {flex-wrap:wrap}
 /* Padrão Vybe: as ferramentas da Produção são botões, então têm cara de chip
    (antes, sem borda, pareciam texto solto). */
-.ops-command-bar .ops-acoes button {display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--vb-linha);border-radius:999px;background:#ffffff08;box-shadow:none;color:#d5d9e2;font:650 12.5px/1 var(--mac-ui)}
+.ops-command-bar .ops-acoes button {display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid var(--vb-linha);border-radius:8px;background:#ffffff08;box-shadow:none;color:#d5d9e2;font:650 12.5px/1 var(--mac-ui)}
 .ops-command-bar .ops-acoes button:hover:not(:disabled) {border-color:#ffffff2e;background:#ffffff10}
 .ops-command-bar .ops-acoes button:is(.active,[aria-pressed="true"]) {border-color:#ff8a3599;background:#ff8a351f;color:#ffd0a8}
 .ops-command-bar .ops-botoes {gap:16px}
@@ -1592,7 +1592,7 @@ body.vybe-desktop {
 .team-load-disclosure > summary {cursor:pointer;color:var(--text-muted);font-size:11px}
 .team-load-disclosure .team-load-strip {margin-top:10px}
 .team-load-disclosure .team-load-label {display:none}
-.agenda-navigation {margin:24px 0 0;padding:16px 18px 0;background:var(--surface);border:1px solid var(--border);border-bottom:0;border-radius:18px 18px 0 0}
+.agenda-navigation {margin:24px 0 0;padding:16px 18px 0;background:var(--surface);border:1px solid var(--border);border-bottom:0;border-radius:10px 10px 0 0}
 .agenda-navigation-heading,.agenda-navigation-weeks {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .agenda-navigation-heading {padding-bottom:12px;border-bottom:1px solid var(--border)}
 .agenda-navigation-heading h2 {margin-right:auto}
@@ -1606,7 +1606,7 @@ body.vybe-desktop {
 /* A navegação abre o cartão (cantos só em cima) e a semana mostrada o fecha:
    antes o painel da semana não tinha fundo, e o título "Clientes — Semana" e
    as colunas ficavam soltos, saindo do quadro (Paulo, 19/10/2026). */
-.agenda-navigation ~ .week-panel.active {background:var(--surface);border:1px solid var(--border);border-top:0;border-radius:0 0 18px 18px;padding:12px 18px 16px;margin-bottom:24px}
+.agenda-navigation ~ .week-panel.active {background:var(--surface);border:1px solid var(--border);border-top:0;border-radius:0 0 10px 10px;padding:12px 18px 16px;margin-bottom:24px}
 .agenda-navigation ~ .week-panel.active > .section-title {margin-top:2px}
 .app-header :is(button,summary):focus-visible,.team-load-disclosure summary:focus-visible {outline:2px solid currentColor;outline-offset:3px}
 @media(max-width:760px) {
@@ -1652,7 +1652,7 @@ body.vybe-desktop {
 .vb-cabecalho-texto p { margin: 0; color: var(--text-muted); font: 500 13.5px/1.45 var(--mac-ui); max-width: 70ch; }
 .vb-cabecalho-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* Botões. */
-.vb-botao { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 15px; border-radius: 11px; border: 1px solid #ffffff22; background: #ffffff0d; color: var(--text); font: 650 13px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s, transform .15s var(--curva); }
+.vb-botao { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 15px; border-radius: 6px; border: 1px solid #ffffff22; background: #ffffff0d; color: var(--text); font: 650 13px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s, transform .15s var(--curva); }
 .vb-botao:hover:not(:disabled) { background: #ffffff18; border-color: #ffffff36; }
 .vb-botao:active:not(:disabled) { transform: translateY(1px); }
 .vb-botao.principal { border-color: transparent; background: linear-gradient(180deg, var(--vb-laranja-2), var(--vb-laranja)); color: #1d0d02; font-weight: 800; box-shadow: inset 0 1px 0 #ffffff70, 0 6px 16px #ff6b1a33; }
@@ -1660,13 +1660,13 @@ body.vybe-desktop {
 .vb-botao.perigo { border-color: #ff6b5a55; background: #ff6b5a14; color: #ffb3a8; }
 .vb-botao svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* Alternador (Veiculação/Prazo, períodos): o escolhido fica branco. */
-.vb-alternar { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: #0000004d; border: 1px solid var(--vb-linha); }
-.vb-alternar button { padding: 7px 13px; border: 0; border-radius: 9px; background: transparent; color: #cfd3dc; font: 650 12.5px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; transition: background .15s, color .15s; }
+.vb-alternar { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: #0000004d; border: 1px solid var(--vb-linha); }
+.vb-alternar button { padding: 7px 13px; border: 0; border-radius: 6px; background: transparent; color: #cfd3dc; font: 650 12.5px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; transition: background .15s, color .15s; }
 .vb-alternar button:hover { color: #fff; background: #ffffff0d; }
 .vb-alternar button:is([aria-pressed="true"], .active, .ativo) { background: #fff; color: #14151b; }
 /* Chip de filtro, com contador opcional. */
-.vb-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--vb-linha); background: #ffffff08; color: #d5d9e2; font: 650 12.5px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; }
-.vb-chip b { min-width: 18px; padding: 2px 6px; border-radius: 99px; background: #ffffff14; font: 800 11px/1 var(--mac-ui); text-align: center; font-variant-numeric: tabular-nums; }
+.vb-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--vb-linha); background: #ffffff08; color: #d5d9e2; font: 650 12.5px/1 var(--mac-ui); white-space: nowrap; cursor: pointer; }
+.vb-chip b { min-width: 18px; padding: 2px 6px; border-radius: 8px; background: #ffffff14; font: 800 11px/1 var(--mac-ui); text-align: center; font-variant-numeric: tabular-nums; }
 .vb-chip:hover { border-color: #ffffff2e; }
 .vb-chip[aria-pressed="true"] { border-color: #ff8a3599; background: #ff8a351f; color: #ffd0a8; }
 /* Ação de texto (Editar, Tentar de novo, Cancelar captação): sem caixa, laranja; perigo em vermelho. */
@@ -1676,7 +1676,7 @@ body.vybe-desktop {
 .vb-link.perigo { color: #ff9ca5; }
 /* Resumo: uma linha com o que importa; o item com problema vira peça colorida. */
 .vb-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
-.vb-resumo-item { --c: var(--text-muted); display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--vb-linha); background: #ffffff06; color: var(--text-muted); font: 600 12.5px/1.2 var(--mac-ui); }
+.vb-resumo-item { --c: var(--text-muted); display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--vb-linha); background: #ffffff06; color: var(--text-muted); font: 600 12.5px/1.2 var(--mac-ui); }
 .vb-resumo-item b { color: var(--text); font: 800 15px/1 var(--mac-ui); font-variant-numeric: tabular-nums; }
 .vb-resumo-item.alerta { --c: var(--vb-vermelho); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); color: color-mix(in srgb, var(--c) 60%, #fff); }
 .vb-resumo-item.atencao { --c: var(--vb-amarelo); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); color: color-mix(in srgb, var(--c) 55%, #fff); }
@@ -1692,7 +1692,7 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vb-estado b { color: var(--text); font: 750 15px/1.3 var(--mac-ui); }
 .vb-estado p { margin: 0; max-width: 46ch; color: var(--text-muted); font: 500 13px/1.5 var(--mac-ui); }
 .vb-estado .vb-botao { margin-top: 6px; }
-.vb-brilho { position: relative; overflow: hidden; background: #ffffff0a; border-radius: 12px; }
+.vb-brilho { position: relative; overflow: hidden; background: #ffffff0a; border-radius: 8px; }
 .vb-brilho::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, #ffffff12 50%, transparent 70%); translate: -100% 0; animation: vb-brilho 1.4s var(--curva) infinite; }
 @keyframes vb-brilho { to { translate: 100% 0; } }
 .vb-carregando { display: grid; gap: 10px; padding: 8px 0; }
@@ -1709,8 +1709,8 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
    (Diário, Demandas, Performance, IA e a agenda da Produção) com o desenho de .vb-alternar; o
    escolhido fica branco. Só aparência: as classes e os cliques são os mesmos.
    O !important é porque as regras antigas desses botões usam !important. */
-.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: #0000004d !important; border: 1px solid var(--vb-linha) !important; box-shadow: none !important; }
-.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button { padding: 7px 13px !important; border: 0 !important; border-radius: 9px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 8px; background: #0000004d !important; border: 1px solid var(--vb-linha) !important; box-shadow: none !important; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button { padding: 7px 13px !important; border: 0 !important; border-radius: 6px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button:hover { color: #fff !important; background: #ffffff0d !important; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button.active { background: #fff !important; color: #14151b !important; }
 /* Nova demanda: a pergunta desliza ao avançar ou voltar de passo; a resposta
@@ -1754,27 +1754,27 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
    todo painel e HUD do Escritório antes de desenhar outro estilo. */
 :root { --vb-n1: #e0915a; --vb-n2: #cfd5df; --vb-n3: #ffc94a; --vb-n4: #8fe3ff; --vb-jogo-fundo: #1d2029; --vb-jogo-degrau: #0e1016; }
 /* Cartão de jogo: escuro e neutro, borda fina, degrau embaixo. */
-.vb-jogo-cartao { border-radius: 16px; background: var(--vb-jogo-fundo); border: 1px solid #ffffff10; box-shadow: 0 4px 0 var(--vb-jogo-degrau); }
+.vb-jogo-cartao { border-radius: 10px; background: var(--vb-jogo-fundo); border: 1px solid #ffffff10; box-shadow: 0 4px 0 var(--vb-jogo-degrau); }
 .vb-jogo-cartao.clicavel { cursor: pointer; transition: transform .2s var(--curva), border-color .2s, box-shadow .2s; }
 .vb-jogo-cartao.clicavel:hover { border-color: #ffffff26; transform: translateY(-1px); }
 .vb-jogo-cartao.clicavel:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--vb-jogo-degrau); }
 /* Poço: a área afundada dentro do cartão (listas, números, trilhas). */
-.vb-jogo-poco { border-radius: 14px; background: #00000030; border: 1px solid #ffffff0d; }
+.vb-jogo-poco { border-radius: 8px; background: #00000030; border: 1px solid #ffffff0d; }
 /* Rótulo de seção: caixa alta pequena e espaçada. */
 .vb-jogo-rotulo { color: #a3a9b7; font: 800 10.5px var(--mac-ui); letter-spacing: .08em; text-transform: uppercase; }
 /* Número de jogo: grosso, com sombra embaixo. */
 .vb-jogo-numero { color: #fff; font: 850 22px/1 var(--mac-ui); font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 #0008; }
 /* Botão principal de jogo: laranja com degrau, afunda no clique. */
-.vb-jogo-botao { padding: 9px 16px; border: 0; border-radius: 11px; background: #ff8a35; color: #1b0f05; font: 800 13px var(--mac-ui); cursor: pointer; box-shadow: 0 3px 0 #b45a17; transition: transform .15s var(--curva), box-shadow .15s; }
+.vb-jogo-botao { padding: 9px 16px; border: 0; border-radius: 6px; background: #ff8a35; color: #1b0f05; font: 800 13px var(--mac-ui); cursor: pointer; box-shadow: 0 3px 0 #b45a17; transition: transform .15s var(--curva), box-shadow .15s; }
 .vb-jogo-botao:active { transform: translateY(3px); box-shadow: 0 0 0 #b45a17; }
 .vb-jogo-botao:focus-visible { outline: 2px solid #ffd0a8; outline-offset: 2px; }
 /* Placa dourada (campeão, destaque raro). */
-.vb-jogo-placa { display: grid; justify-items: center; padding: 5px 14px 6px; border-radius: 11px; background: linear-gradient(180deg, #3b2a12f2, #1c140af2); border: 1px solid #ffd16699; box-shadow: inset 0 1px 0 #fff3c255, 0 3px 0 #000a, 0 0 18px #ffc94a55; }
+.vb-jogo-placa { display: grid; justify-items: center; padding: 5px 14px 6px; border-radius: 6px; background: linear-gradient(180deg, #3b2a12f2, #1c140af2); border: 1px solid #ffd16699; box-shadow: inset 0 1px 0 #fff3c255, 0 3px 0 #000a, 0 0 18px #ffc94a55; }
 /* Cor do nível (Bronze, Prata, Ouro, Diamante): só no ícone, na borda ou no texto pequeno. */
 .vb-n1 { --vb-nivel: var(--vb-n1); } .vb-n2 { --vb-nivel: var(--vb-n2); } .vb-n3 { --vb-nivel: var(--vb-n3); } .vb-n4 { --vb-nivel: var(--vb-n4); }
 /* Dica ao passar o mouse ou focar: data-dica="…" em qualquer linha. */
 .vb-jogo-dica { position: relative; }
-.vb-jogo-dica[data-dica]::after { content: attr(data-dica); position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 5; padding: 8px 10px; border-radius: 10px; background: #05060af2; border: 1px solid #ffffff1f; box-shadow: 0 8px 20px #000a; color: #fff; font: 600 12px/1.4 var(--mac-ui); opacity: 0; translate: 0 4px; pointer-events: none; transition: opacity .15s, translate .15s var(--curva); }
+.vb-jogo-dica[data-dica]::after { content: attr(data-dica); position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 5; padding: 8px 10px; border-radius: 6px; background: #05060af2; border: 1px solid #ffffff1f; box-shadow: 0 8px 20px #000a; color: #fff; font: 600 12px/1.4 var(--mac-ui); opacity: 0; translate: 0 4px; pointer-events: none; transition: opacity .15s, translate .15s var(--curva); }
 .vb-jogo-dica[data-dica]:is(:hover, :focus-visible)::after { opacity: 1; translate: 0 0; }
 
 /* Vitrine do personagem (decisão do Paulo, 21/10/2026): o mesmo cartão em
@@ -1810,3 +1810,8 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
   .vybe-desktop > .app-header .board-switch-btn:not(.active) {padding-left:10px!important;padding-right:10px!important}
   .vybe-desktop > .app-header .spotlight-button {min-width:0}
 }
+
+/* Telas antigas dentro do Irecity (08/11/2026): mesma fonte do resto (Inter), sem caixa alta espaçada. */
+body.mundo{--mac-ui:"Inter",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body.mundo.mundo-modulo :is(h1,h2,h3,h4,.workflow-title,.command-title){font-family:"Inter Tight","Inter",var(--mac-ui)!important;letter-spacing:-.01em}
+body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]){text-transform:none!important}
