@@ -522,7 +522,19 @@
   document.body.append?.(espiaoEl);
   let espiaoFixo = false, espiaoAncora = null, espiaoTimer = null;
   const ESPIAR = { atrasadas: ['Atrasadas', 'u1', 'Nada atrasado.', 'agora'], emRisco: ['Risco de furo (2 dias)', 'u2', 'Nada com risco de furo.', 'agora'], faltam: ['Ainda não feitas hoje', '', 'Tudo de hoje feito.', 'agora'] };
+  // Outros módulos (Comercial, Carteira…) publicam as listas por trás dos números deles:
+  // window.VybeEspiarProvedores[prefixo] = (resto) => ({ titulo, n, cls, itens: [{ nome, sub, dir, cls }], clicar(item), rodape })
+  const PROVEDORES = (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {});
+  let espiaoAtual = null;
   function conteudoEspiar(chave) {
+    const pref = String(chave).split(':')[0];
+    if (PROVEDORES[pref]) {
+      let c = null; try { c = PROVEDORES[pref](String(chave).slice(pref.length + 1)); } catch (e) { console.error('[espiar]', e); }
+      if (!c) return null;
+      if (Array.isArray(c.itens)) c.corpo = c.itens.length ? c.itens.map((it, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${esc(it.nome)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.dir ? `<em class="${it.cls ? 't-' + it.cls : ''}">${esc(it.dir)}</em>` : ''}</button>`).join('') : `<p class="vv-vazio">${esc(c.vazio || 'Nada aqui.')}</p>`;
+      if (c.n == null) c.n = (c.itens || []).length;
+      return c;
+    }
     const N = numerosDoDono(); if (!N) return null;
     const H = N.hoje || {}, L = H.lista || {}, C = N.cobertura || {};
     const [tipo, filtro = ''] = String(chave).split('|'); const [fk, ...fv] = filtro.split(':'), valor = fv.join(':');
@@ -547,11 +559,12 @@
   }
   function mostrarEspiar(ancora, fixo) {
     const c = conteudoEspiar(ancora.dataset.espiar); if (!c) return;
+    espiaoAtual = c;
     clearTimeout(espiaoTimer); espiaoTimer = null; espiaoAncora = ancora; espiaoFixo = fixo;
     espiaoEl.classList.toggle('fixo', fixo); espiaoEl.setAttribute('aria-label', c.titulo);
     espiaoEl.innerHTML = `<div class="vv-espiar-topo"><span><b class="t-${c.cls}">${n0(c.n)}</b> ${esc(c.titulo)}${c.sub ? `<small>${esc(c.sub)}</small>` : ''}</span><button type="button" class="vv-espiar-x" data-espiar-fechar aria-label="Fechar" title="Fechar (Esc)">×</button></div>
       <div class="vv-espiar-lista">${c.corpo}</div>
-      <div class="vv-espiar-pe">${fixo ? '<span></span>' : '<small>Clique no número para fixar</small>'}<button type="button" class="vv-num" data-espiar-gestao="${c.aba}">Ver na Gestão →</button></div>`;
+      <div class="vv-espiar-pe">${fixo ? `<small>${esc(c.rodape || '')}</small>` : '<small>Clique no número para fixar</small>'}${c.aba ? `<button type="button" class="vv-num" data-espiar-gestao="${c.aba}">Ver na Gestão →</button>` : ''}</div>`;
     espiaoEl.hidden = false;
     const r = ancora.getBoundingClientRect(), w = Math.min(380, innerWidth - 16);
     espiaoEl.style.width = w + 'px';
@@ -583,6 +596,7 @@
   espiaoEl.addEventListener?.('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.espiarFechar !== undefined) { fecharEspiar(); return; }
+    if (b.dataset.espiarItem !== undefined) { const c = espiaoAtual, it = c?.itens?.[Number(b.dataset.espiarItem)]; fecharEspiar(); if (it) c.clicar?.(it); return; }
     if (b.dataset.espiarGestao !== undefined) { const aba = b.dataset.espiarGestao; fecharEspiar(); abrirGestao(aba); return; }
     if (b.dataset.hojeAcao === 'peca') { fecharEspiar(); chamar('openItemWorkspace', String(b.dataset.valor)); return; }
     if (b.dataset.espiarCliente) { const c = b.dataset.espiarCliente; fecharEspiar(); if (!gestao.hidden) fecharGestao(); mostrarPendencias(c); }

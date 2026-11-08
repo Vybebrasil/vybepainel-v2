@@ -120,7 +120,7 @@
   const aguardando = (o = '') => `<div class="vc-ativacao" role="note"><b>Aguardando ativação</b><p>${esc(o || 'Esta parte guarda dados novos no banco.')} Falta o Paulo aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code>.</p>${secundario('Tentar de novo', 'data-vc-recarregar')}</div>`;
   const comparacao = () => (estado.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
   // comparar:false = número que não tem "vs" (contagem do momento): só o número.
-  function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true } = {}) {
+  function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true, espiar = '' } = {}) {
     let linha = comparar ? `<small class="vc-var neutro">sem ${esc(contra.replace('vs ', ''))} para comparar</small>` : '';
     if (v) {
       const seta = v.direcao === 'sobe' ? '↑' : v.direcao === 'desce' ? '↓' : '=';
@@ -128,7 +128,8 @@
       const delta = v.direcao === 'igual' ? 'igual' : `${seta} ${formato(Math.abs(v.delta))}`;
       linha = `<small class="vc-var ${tom}" title="${esc(`${contra}: ${formato(v.anterior)}`)}"><span aria-hidden="true">${esc(delta)}</span><span class="vc-sr">${esc(v.direcao === 'igual' ? 'igual' : v.direcao === 'sobe' ? 'subiu' : 'caiu')} ${esc(v.direcao === 'igual' ? '' : formato(Math.abs(v.delta)))}</span> ${esc(contra)}</small>`;
     }
-    return `<div class="vc-kpi"><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
+    const ab = espiar ? ` data-espiar="carteira:${esc(espiar)}" role="button" tabindex="0"` : '';
+    return `<div class="vc-kpi${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
   }
   function ordemHtml(lista, opcoes) {
     return `<label class="vc-ordem"><span>Ordem</span><select data-vc-ordem="${lista}">${opcoes.map(([v, r]) => `<option value="${v}"${estado.ordem[lista] === v ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select></label>`;
@@ -163,10 +164,28 @@
         ${secundario('Abrir o cliente', `data-vc-cliente="${esc(c.nome)}"`)}
       </div>` : ''}</li>`;
   }
+  // Mini painel dos números: a última leitura de cada aba fica aqui para o painel listar quem está no número.
+  const espiarCarteira = {};
+  (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {}).carteira = (resto) => {
+    const [tipo, k] = String(resto).split(':');
+    if (tipo === 'risco' && espiarCarteira.saude) {
+      const nome = { alto: 'Risco alto', medio: 'Risco médio', baixo: 'Risco baixo' }[k], cls = { alto: 'u1', medio: 'u2', baixo: 'u6' }[k];
+      const itens = espiarCarteira.saude.clientes.filter((c) => c.risco === k).map((c) => ({ nome: c.nome, sub: (() => { const m = c.motivos || [], ruins = m.filter((x) => x.tom === 'ruim'); return (ruins.length ? ruins : m).slice(0, 2).map((x) => x.texto).join(' · '); })(), dir: c.score != null ? String(c.score) : '', cls }));
+      return { titulo: nome, cls, itens, vazio: 'Nenhum cliente neste risco.', rodape: 'Clique para filtrar a lista', clicar: () => { estado.risco = k; pintar(); } };
+    }
+    if (tipo === 'contratos' && espiarCarteira.contratos) {
+      const r = espiarCarteira.contratos;
+      const linhas = k === 'breve' ? [...r.vencidas, ...r.emBreve] : r.linhas.filter((l) => !l.temContrato);
+      const itens = linhas.map((l) => ({ nome: l.nome, sub: l.renovacao ? (l.vencida ? 'renovação vencida em ' : 'renova em ') + dataCurta(l.renovacao) : 'sem contrato registrado', dir: l.valor != null ? reais(l.valor) + '/mês' : '', cls: l.vencida ? 'u1' : '' }));
+      return { titulo: k === 'breve' ? 'Renovações vencidas e em 30 dias' : 'Clientes sem contrato', cls: k === 'breve' ? 'u2' : '', itens, vazio: 'Nenhum.' };
+    }
+    return null;
+  };
   function abaSaude() {
     const r = estado.saude;
     if (!S() || !window.VybeDono) return vazio('A conta da saúde não carregou nesta página.', acao('Atualizar a página', 'data-vc-atualizar'));
     if (!r || !r.clientes.length) return vazio(cadastro().length ? 'Nenhum cliente ativo com peças no painel ainda.' : 'O cadastro de clientes ainda não carregou.', acao('Carregar de novo', 'data-vc-recarregar'));
+    espiarCarteira.saude = r;
     const h = S().historicoSaude({ meses: estado.servidor?.historico?.meses || [], atual: r.resumo, hoje: r.dia });
     const heads = [...new Set(r.clientes.flatMap((c) => (c.heads.length ? c.heads : [S().SEM_HEAD])))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     let lista = r.clientes.filter((c) => (estado.risco === 'todos' || c.risco === estado.risco)
@@ -176,9 +195,9 @@
     const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
     return `<div class="vc-kpis">
         ${kpi('Média da carteira', r.resumo.media ?? '—', h.variacao.media, { contra: 'vs mês anterior', nivel: NIVEL_RISCO[S().riscoDaNota(r.resumo.media ?? 0)] })}
-        ${kpi('Risco alto', r.resumo.alto, h.variacao.alto, { contra: 'vs mês anterior', nivel: r.resumo.alto ? 'u1' : '' })}
-        ${kpi('Risco médio', r.resumo.medio, null, { comparar: false })}
-        ${kpi('Risco baixo', r.resumo.baixo, null, { comparar: false })}
+        ${kpi('Risco alto', r.resumo.alto, h.variacao.alto, { contra: 'vs mês anterior', nivel: r.resumo.alto ? 'u1' : '', espiar: 'risco:alto' })}
+        ${kpi('Risco médio', r.resumo.medio, null, { comparar: false, espiar: 'risco:medio' })}
+        ${kpi('Risco baixo', r.resumo.baixo, null, { comparar: false, espiar: 'risco:baixo' })}
       </div>
       <section class="vc-secao"><h3>Média da carteira mês a mês</h3>${serieHtml(h)}</section>
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Clientes prioritários</h3><span class="vc-conta">${lista.length}</span></div>
@@ -353,6 +372,7 @@
     const sv = estado.servidor;
     if (!sv?.clientes) return vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar'));
     const r = S().contratos({ clientes: sv.clientes, contratos: sv.contratos?.lista || [], hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
+    espiarCarteira.contratos = r;
     let lista = r.linhas;
     if (estado.ordem.contratos === 'valor') lista = [...lista].sort((a, b) => (b.valor ?? -1) - (a.valor ?? -1));
     else if (estado.ordem.contratos === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -361,9 +381,9 @@
     return `${sv.contratos?.disponivel ? '' : aguardando('Os contratos guardam valor, início e renovação de cada cliente.')}
       <div class="vc-kpis">
         ${kpi('Receita mensal ativa', reais(r.receita), r.variacao.receita, { formato: reais })}
-        ${kpi('Renovações em 30 dias', r.emBreve.length, null, { nivel: r.emBreve.length ? 'u2' : '', comparar: false })}
+        ${kpi('Renovações em 30 dias', r.emBreve.length, null, { nivel: r.emBreve.length ? 'u2' : '', comparar: false, espiar: 'contratos:breve' })}
         ${kpi('Ticket médio', reais(r.ticketMedio), null, { comparar: false })}
-        ${kpi('Sem contrato', r.semContrato, null, { comparar: false })}
+        ${kpi('Sem contrato', r.semContrato, null, { comparar: false, espiar: 'contratos:sem' })}
       </div>
       ${breve.length ? `<section class="vc-secao vc-breve"><div class="vc-secao-topo"><h3>Renovações em breve</h3><span class="vc-conta">${breve.length}</span></div><ol class="vc-lista">${breve.map(linhaContrato).join('')}</ol></section>` : ''}
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Todos os clientes ativos</h3><span class="vc-conta">${lista.length}</span></div>
