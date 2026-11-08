@@ -4857,3 +4857,21 @@ body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli
 @media (prefers-reduced-motion:reduce){.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i{animation:none}}
 /* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada congelaria no primeiro quadro, invisível. */
 html.vb-ocioso :is(.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i,.vv-setor-visao){animation:none!important}
+
+/* ---------- Coluna da direita na barra de cima (Paulo, 08/11/2026: "o foco é no que tá aberto") ----------
+   A Agenda (fixa só para o Mizinho, body.agenda-fixa) e a barra da sala de voz abrem pelos botões da barra de cima,
+   como janelinha embaixo dela. São os mesmos elementos de antes. */
+html body.mundo:not(.agenda-fixa) #mundo-hud .vv-agenda{display:none!important}
+html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{display:block!important;top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:var(--vv-m)!important;width:340px;max-height:min(72vh,600px)!important;overflow:auto;z-index:720;background:#fff!important;border:1px solid #E6E0D6;box-shadow:0 22px 50px rgba(31,29,26,.22)!important;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.mundo-modulo):not(.ver-voz) #mundo-hud .vv-chamada{display:none!important}
+html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;left:auto!important;right:var(--vv-m)!important;width:380px!important;max-width:calc(100vw - 2 * var(--vv-m))!important;z-index:720;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:calc(var(--vv-m) + 392px)!important}
+.vv-ferr-voz{position:relative}
+.vv-voz-ponto{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#B8B0A4;box-shadow:0 0 0 2px #fff}
+.vv-ferr-voz.on .vv-voz-ponto{background:#18A957}
+.vv-ferr-mic.on{background:#18A957!important;color:#fff!important}
+.vv-ferr-mic:not(.on){color:#B4322B!important}
+.vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff)!important;color:var(--vv-laranja-escuro,#C2410C)!important}
+.vv-compromissos{display:grid;gap:6px;margin:8px 0}
+@media (max-width:900px){html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada,html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important}}
+@media (prefers-reduced-motion:reduce){html body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada){animation:none!important}}
