@@ -85,6 +85,72 @@ test('clima: nada sai abaixo de 3 respostas; eNPS e médias quando libera', () =
   assert.match(C.validarResposta({ ...r(5), ambiente: 0 }), /Ambiente/);
 });
 
+test('RH 08/11: prazos configuráveis em dias úteis, dias úteis entre datas e números da fila', () => {
+  // Padrões e o que os donos mudam (valor inválido volta ao padrão).
+  assert.equal(C.normalizarPrazos({}).documento, 2);
+  assert.equal(C.normalizarPrazos({ documento: 4, reembolso: 0, outro: 1.5 }).documento, 4);
+  assert.equal(C.normalizarPrazos({ reembolso: 0 }).reembolso, 3, 'zero não vale');
+  assert.equal(C.normalizarPrazos({ outro: 1.5 }).outro, 3, 'fração não vale');
+  assert.equal(C.validarPrazos({ ferias: 5, documento: 2, reembolso: 3, equipamento: 3, outro: 3 }), '');
+  assert.match(C.validarPrazos({ ferias: 5, documento: 31, reembolso: 3, equipamento: 3, outro: 3 }), /Documento.*1 a 30/);
+  assert.match(C.validarPrazos({ ferias: 5, documento: 2, equipamento: 3, outro: 3 }), /Reembolso/);
+  assert.deepEqual([...C.TIPOS_PEDIDO], ['ferias', 'documento', 'reembolso', 'equipamento', 'outro']);
+  // Prazo com o configurado: sexta + 4 úteis = quinta; sábado + 1 útil = segunda.
+  assert.equal(C.prazoSla('documento', '2026-11-06', { documento: 4 }), '2026-11-12');
+  assert.equal(C.prazoSla('reembolso', '2026-11-07', { reembolso: 1 }), '2026-11-09');
+  assert.equal(C.prazoSla('reembolso', '2026-11-06'), '2026-11-11', 'sem configuração, o padrão (3)');
+  // Dias úteis depois de "de" até "ate".
+  assert.equal(C.diasUteisEntre('2026-11-06', '2026-11-09'), 1, 'sexta → segunda');
+  assert.equal(C.diasUteisEntre('2026-11-09', '2026-11-09'), 0);
+  assert.equal(C.diasUteisEntre('2026-11-09', '2026-11-16'), 5);
+  assert.equal(C.diasUteisEntre('2026-11-10', '2026-11-09'), 0, 'ao contrário não conta');
+  const pedidos = [
+    { status: 'aberto', prazo: '2026-11-05', criado_dia: '2026-11-03' },
+    { status: 'andamento', prazo: '2026-11-12', criado_dia: '2026-11-09' },
+    { status: 'resolvido', prazo: '2026-11-10', criado_dia: '2026-11-06', respondido_dia: '2026-11-09' },
+    { status: 'recusado', prazo: '2026-11-04', criado_dia: '2026-11-02', respondido_dia: '2026-11-06' },
+    { status: 'cancelado', prazo: '2026-11-01', criado_dia: '2026-10-28', respondido_dia: '2026-10-29' },
+  ];
+  assert.deepEqual(C.indicadoresPedidos(pedidos, '2026-11-09'), { abertos: 2, foraDoPrazo: 1, respondidos: 2, tempoMedioDias: 2.5, noPrazoPct: 50 });
+  assert.deepEqual(C.indicadoresPedidos([], '2026-11-09'), { abertos: 0, foraDoPrazo: 0, respondidos: 0, tempoMedioDias: null, noPrazoPct: null });
+});
+
+test('clima 08/11: eNPS, mínimo de respostas, dimensões novas, período e histórico com variação', () => {
+  assert.deepEqual(C.calcularEnps([10, 9, 8, 7, 6, 0]), { n: 6, promotores: 2, neutros: 2, detratores: 2, enps: 0 });
+  assert.equal(C.calcularEnps([10, 10, 10]).enps, 100);
+  assert.equal(C.calcularEnps([0, 6]).enps, -100);
+  assert.equal(C.calcularEnps([]).enps, null);
+  assert.equal(C.resultadoLiberado(2), false); assert.equal(C.resultadoLiberado(3), true); assert.equal(C.resultadoLiberado(4, 5), false);
+  const r = (enps, n = 4) => ({ enps, lideranca: n, comunicacao: 3, reconhecimento: 2, carga: 5, ambiente: 4 });
+  assert.equal(C.validarResposta(r(8), C.DIMENSOES_PESQUISA), '');
+  assert.match(C.validarResposta({ ...r(8), carga: 6 }, C.DIMENSOES_PESQUISA), /Carga de trabalho/);
+  assert.match(C.validarResposta({ enps: 8 }, C.DIMENSOES_PESQUISA), /Liderança/);
+  const dois = C.agregarClima([r(10), r(0)], C.MINIMO_CLIMA, C.DIMENSOES_PESQUISA);
+  assert.deepEqual(dois, { respostas: 2, minimo: 3, liberado: false }, 'abaixo de 3: só a contagem, nenhum número');
+  const tres = C.agregarClima([r(10, 5), r(9, 4), r(3, 3)], C.MINIMO_CLIMA, C.DIMENSOES_PESQUISA);
+  assert.equal(tres.enps, 33); assert.deepEqual(tres.dimensoes.map((d) => [d.id, d.media]), [['lideranca', 4], ['comunicacao', 3], ['reconhecimento', 2], ['carga', 5], ['ambiente', 4]]);
+  // Período.
+  assert.equal(C.situacaoPesquisa({ abre: '2026-11-08', fecha: '2026-11-15' }, '2026-11-08'), 'aberta');
+  assert.equal(C.situacaoPesquisa({ abre: '2026-11-10', fecha: '2026-11-15' }, '2026-11-08'), 'agendada');
+  assert.equal(C.situacaoPesquisa({ abre: '2026-11-01', fecha: '2026-11-07' }, '2026-11-08'), 'encerrada');
+  assert.equal(C.situacaoPesquisa({ abre: '2026-11-01', fecha: '2026-11-30', encerrada_em: '2026-11-05T10:00:00Z' }, '2026-11-08'), 'encerrada');
+  assert.equal(C.validarPesquisa({ titulo: 'Clima', abre: '2026-11-08', fecha: '2026-11-15' }, '2026-11-08'), '');
+  assert.match(C.validarPesquisa({ titulo: ' ', abre: '2026-11-08', fecha: '2026-11-15' }, '2026-11-08'), /nome/);
+  assert.match(C.validarPesquisa({ titulo: 'x', abre: '2026-11-08', fecha: '2026-11-07' }, '2026-11-08'), /depois/);
+  assert.match(C.validarPesquisa({ titulo: 'x', abre: '2026-11-01', fecha: '2026-11-07' }, '2026-11-08'), /passado/);
+  assert.match(C.validarPesquisa({ titulo: 'x', abre: '2026-11-08', fecha: '2027-02-01' }, '2026-11-08'), /60 dias/);
+  // Histórico: do mais novo ao mais antigo; a variação pula a pesquisa que não liberou.
+  const h = C.historicoClima([
+    { id: '1', abre: '2026-08-01', resultado: { liberado: true, enps: 10, dimensoes: [{ id: 'carga', media: 3 }] } },
+    { id: '3', abre: '2026-11-01', resultado: { liberado: true, enps: 40, dimensoes: [{ id: 'carga', media: 3.5 }] } },
+    { id: '2', abre: '2026-09-01', resultado: { liberado: false, respostas: 2 } },
+  ]);
+  assert.deepEqual(h.map((p) => p.id), ['3', '2', '1']);
+  assert.equal(h[0].vs.delta, 30, '40 contra 10 (a de setembro não liberou)');
+  assert.equal(h[0].vsDimensoes.carga, 0.5);
+  assert.equal(h[1].vs.delta, null); assert.equal(h[2].vs.delta, null, 'a primeira não tem com o que comparar');
+});
+
 test('visão geral de RH: headcount, admissões, desligamentos e tempo de casa com o anterior', () => {
   const p = C.periodoDe('mensal', '2026-11');
   assert.deepEqual([p.de, p.ate, p.antes.de, p.antes.ate], ['2026-11-01', '2026-11-30', '2026-10-01', '2026-10-31']);

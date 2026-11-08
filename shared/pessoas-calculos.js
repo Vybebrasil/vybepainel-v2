@@ -190,45 +190,142 @@
   }
 
   // ── RH: prazo (SLA) dos pedidos ────────────────────────────────────────────────
+  // Tipo → [rótulo, dias úteis de resposta (padrão; os donos ajustam)]. "folha" e "beneficio"
+  // ficam só para ler pedidos antigos: o formulário oferece TIPOS_PEDIDO (Paulo, 08/11/2026).
   const TIPOS_RH = Object.freeze({
-    documento: ['Documento ou declaração', 2], ferias: ['Férias', 5], folha: ['Pagamento ou folha', 2],
-    beneficio: ['Benefício', 3], equipamento: ['Equipamento', 3], outro: ['Outro assunto', 3],
+    ferias: ['Férias ou folga', 5], documento: ['Documento ou declaração', 2], reembolso: ['Reembolso', 3],
+    equipamento: ['Equipamento', 3], outro: ['Outro assunto', 3], folha: ['Pagamento ou folha', 2], beneficio: ['Benefício', 3],
   });
+  const TIPOS_PEDIDO = Object.freeze(['ferias', 'documento', 'reembolso', 'equipamento', 'outro']);
   const STATUS_RH = Object.freeze({ aberto: 'Aberto', andamento: 'Em andamento', resolvido: 'Resolvido', recusado: 'Recusado', cancelado: 'Cancelado' });
-  const prazoSla = (tipo, criadoDia) => somarDiasUteis(criadoDia, (TIPOS_RH[tipo] || TIPOS_RH.outro)[1]);
+  const ENCERRADOS_RH = Object.freeze(['resolvido', 'recusado', 'cancelado']);
+  const PRAZO_MAXIMO_DIAS = 30;
+  // Prazos configurados ({ tipo: dias }) por cima dos padrões; valor inválido volta ao padrão.
+  function normalizarPrazos(cfg) {
+    const saida = {};
+    for (const [k, [, padrao]] of Object.entries(TIPOS_RH)) {
+      const v = cfg && cfg[k] != null ? Number(cfg[k]) : padrao;
+      saida[k] = Number.isInteger(v) && v >= 1 && v <= PRAZO_MAXIMO_DIAS ? v : padrao;
+    }
+    return saida;
+  }
+  // Para quem edita: todos os tipos do formulário, inteiros de 1 a 30 dias úteis.
+  function validarPrazos(p) {
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return 'Prazos inválidos.';
+    for (const k of TIPOS_PEDIDO) {
+      const v = p[k];
+      if (!Number.isInteger(v) || v < 1 || v > PRAZO_MAXIMO_DIAS) return `${TIPOS_RH[k][0]}: use de 1 a ${PRAZO_MAXIMO_DIAS} dias úteis.`;
+    }
+    return '';
+  }
+  const diasDoTipo = (tipo, prazos) => {
+    const v = prazos ? Number(prazos[tipo]) : NaN;
+    return Number.isInteger(v) && v >= 1 && v <= PRAZO_MAXIMO_DIAS ? v : (TIPOS_RH[tipo] || TIPOS_RH.outro)[1];
+  };
+  const prazoSla = (tipo, criadoDia, prazos) => somarDiasUteis(criadoDia, diasDoTipo(tipo, prazos));
   function situacaoSla(pedido, hoje) {
-    if (['resolvido', 'recusado', 'cancelado'].includes(pedido.status)) return 'encerrado';
+    if (ENCERRADOS_RH.includes(pedido.status)) return 'encerrado';
     if (!dataValida(pedido.prazo) || !dataValida(hoje)) return 'sem_prazo';
     if (pedido.prazo < hoje) return 'atrasado';
     if (pedido.prazo === hoje) return 'vence_hoje';
     return 'no_prazo';
   }
+  // Dias úteis depois de `de` até `ate` (inclusive): pedido de sexta respondido na segunda = 1.
+  function diasUteisEntre(de, ate) {
+    if (!dataValida(de) || !dataValida(ate) || ate <= de) return 0;
+    let n = 0;
+    for (let d = somarDias(de, 1); d <= ate; d = somarDias(d, 1)) if (util(d)) n++;
+    return n;
+  }
+  // Números da fila. pedidos: [{ status, prazo, criado_dia, respondido_dia }]
+  //  - abertos = aberto + em andamento; foraDoPrazo = desses, os com prazo vencido;
+  //  - tempo médio = dias úteis do pedido até a resposta (resolvido ou recusado; cancelado não conta).
+  function indicadoresPedidos(pedidos, hoje) {
+    const lista = pedidos || [];
+    const abertos = lista.filter((p) => !ENCERRADOS_RH.includes(p.status));
+    const fora = abertos.filter((p) => situacaoSla(p, hoje) === 'atrasado');
+    const resp = lista.filter((p) => ['resolvido', 'recusado'].includes(p.status) && dataValida(p.criado_dia) && dataValida(p.respondido_dia));
+    const dias = resp.map((p) => diasUteisEntre(p.criado_dia, p.respondido_dia));
+    const noPrazo = resp.filter((p) => !dataValida(p.prazo) || p.respondido_dia <= p.prazo).length;
+    return {
+      abertos: abertos.length, foraDoPrazo: fora.length, respondidos: resp.length,
+      tempoMedioDias: dias.length ? Math.round(dias.reduce((t, d) => t + d, 0) / dias.length * 10) / 10 : null,
+      noPrazoPct: resp.length ? Math.round(noPrazo / resp.length * 100) : null,
+    };
+  }
 
   // ── clima / eNPS ───────────────────────────────────────────────────────────────
+  // DIMENSOES = a pesquisa trimestral antiga (tabela vybe_clima_respostas, 07/11).
+  // DIMENSOES_PESQUISA = a pesquisa que os donos abrem com período (08/11/2026).
   const DIMENSOES = Object.freeze([
     ['lideranca', 'Liderança'], ['ambiente', 'Ambiente'], ['crescimento', 'Crescimento'], ['processos', 'Processos'], ['beneficios', 'Benefícios'],
   ]);
+  const DIMENSOES_PESQUISA = Object.freeze([
+    ['lideranca', 'Liderança'], ['comunicacao', 'Comunicação'], ['reconhecimento', 'Reconhecimento'], ['carga', 'Carga de trabalho'], ['ambiente', 'Ambiente'],
+  ]);
   const MINIMO_CLIMA = 3;
   const trimestreDe = (iso) => `${iso.slice(0, 4)}-T${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1}`;
-  function validarResposta(r) {
+  function validarResposta(r, dimensoes = DIMENSOES) {
     if (!r || typeof r !== 'object') return 'Resposta inválida.';
     if (!Number.isInteger(r.enps) || r.enps < 0 || r.enps > 10) return 'Escolha uma nota de 0 a 10 para a recomendação.';
-    for (const [k, nome] of DIMENSOES) if (!Number.isInteger(r[k]) || r[k] < 1 || r[k] > 5) return `${nome}: escolha de 1 a 5.`;
+    for (const [k, nome] of dimensoes) if (!Number.isInteger(r[k]) || r[k] < 1 || r[k] > 5) return `${nome}: escolha de 1 a 5.`;
     if (r.comentario != null && (typeof r.comentario !== 'string' || r.comentario.length > 1000)) return 'Comentário: até 1.000 caracteres.';
     return '';
   }
-  // Anonimato: abaixo do mínimo não sai número nenhum, só a contagem.
-  function agregarClima(respostas, minimo = MINIMO_CLIMA) {
+  // eNPS = % de promotores (9 e 10) − % de detratores (0 a 6), de −100 a 100.
+  function calcularEnps(notas) {
+    const lista = (notas || []).map(Number).filter((n) => Number.isFinite(n));
+    const n = lista.length, promotores = lista.filter((x) => x >= 9).length, detratores = lista.filter((x) => x <= 6).length;
+    return { n, promotores, neutros: n - promotores - detratores, detratores, enps: n ? Math.round((promotores - detratores) / n * 100) : null };
+  }
+  // Anonimato: abaixo do mínimo de respostas não sai número nenhum, só a contagem.
+  const resultadoLiberado = (n, minimo = MINIMO_CLIMA) => Number(n) >= Math.max(1, Number(minimo) || MINIMO_CLIMA);
+  function mediaDe(lista, k) {
+    const v = (lista || []).map((r) => Number(r[k])).filter((x) => Number.isFinite(x));
+    return v.length ? Math.round(v.reduce((t, x) => t + x, 0) / v.length * 10) / 10 : null;
+  }
+  function agregarClima(respostas, minimo = MINIMO_CLIMA, dimensoes = DIMENSOES) {
     const lista = respostas || [], n = lista.length;
-    if (n < minimo) return { respostas: n, minimo, liberado: false };
-    const media = (k) => Math.round(lista.reduce((t, r) => t + Number(r[k]), 0) / n * 10) / 10;
-    const promotores = lista.filter((r) => Number(r.enps) >= 9).length, detratores = lista.filter((r) => Number(r.enps) <= 6).length;
+    if (!resultadoLiberado(n, minimo)) return { respostas: n, minimo, liberado: false };
+    const e = calcularEnps(lista.map((r) => r.enps));
     return {
       respostas: n, minimo, liberado: true,
-      enps: Math.round((promotores - detratores) / n * 100),
-      promotores, neutros: n - promotores - detratores, detratores,
-      dimensoes: DIMENSOES.map(([id, nome]) => ({ id, nome, media: media(id) })),
+      enps: e.enps, promotores: e.promotores, neutros: e.neutros, detratores: e.detratores,
+      dimensoes: dimensoes.map(([id, nome]) => ({ id, nome, media: mediaDe(lista, id) })),
     };
+  }
+  // Pesquisa com período: agendada (abre depois de hoje), aberta, encerrada (passou do fim ou os donos encerraram).
+  function situacaoPesquisa(p, hoje) {
+    if (!p) return 'encerrada';
+    if (p.encerrada_em || (dataValida(p.fecha) && p.fecha < hoje)) return 'encerrada';
+    if (dataValida(p.abre) && p.abre > hoje) return 'agendada';
+    return 'aberta';
+  }
+  function validarPesquisa(p, hoje) {
+    if (!p || typeof p !== 'object') return 'Pesquisa inválida.';
+    if (typeof p.titulo !== 'string' || !p.titulo.trim() || p.titulo.trim().length > 120) return 'Dê um nome de até 120 caracteres à pesquisa.';
+    if (!dataValida(p.abre) || !dataValida(p.fecha)) return 'Informe as datas de abertura e de fim.';
+    if (p.fecha < p.abre) return 'O fim vem depois da abertura.';
+    if (dataValida(hoje) && p.fecha < hoje) return 'O fim da pesquisa não pode estar no passado.';
+    if (diasEntre(p.abre, p.fecha) > 60) return 'A pesquisa fica aberta no máximo 60 dias.';
+    return '';
+  }
+  // Histórico: [{ id, titulo, abre, fecha, resultado }] (resultado = agregarClima), do mais novo ao mais
+  // antigo, com a variação do eNPS (e de cada dimensão) contra a pesquisa liberada anterior.
+  function historicoClima(pesquisas) {
+    const lista = [...(pesquisas || [])].sort((a, b) => String(a.abre).localeCompare(String(b.abre)) || Number(a.id) - Number(b.id));
+    let anterior = null;
+    const saida = lista.map((p) => {
+      const r = p.resultado || { liberado: false };
+      const vs = r.liberado && anterior ? versus(r.enps, anterior.enps) : { delta: null, pct: null };
+      const vsDimensoes = r.liberado && anterior ? Object.fromEntries((r.dimensoes || []).map((d) => {
+        const a = (anterior.dimensoes || []).find((x) => x.id === d.id);
+        return [d.id, a ? versus(d.media, a.media).delta : null];
+      })) : {};
+      if (r.liberado) anterior = r;
+      return { ...p, vs, vsDimensoes };
+    });
+    return saida.reverse();
   }
 
   // ── Academy ────────────────────────────────────────────────────────────────────
@@ -316,10 +413,11 @@
   }
 
   const api = Object.freeze({
-    PESOS_PADRAO, COMPONENTES, METAS_PADRAO, CARGOS, CAPACIDADE_PADRAO, CONQUISTAS, TIPOS_RH, STATUS_RH, DIMENSOES, MINIMO_CLIMA, TRILHA_PADRAO,
-    ETAPAS_RECRUTAMENTO_PADRAO, TIPOS_DOCUMENTO, AVISO_RENOVACAO_DIAS,
+    PESOS_PADRAO, COMPONENTES, METAS_PADRAO, CARGOS, CAPACIDADE_PADRAO, CONQUISTAS, TIPOS_RH, TIPOS_PEDIDO, STATUS_RH, ENCERRADOS_RH, PRAZO_MAXIMO_DIAS,
+    DIMENSOES, DIMENSOES_PESQUISA, MINIMO_CLIMA, TRILHA_PADRAO, ETAPAS_RECRUTAMENTO_PADRAO, TIPOS_DOCUMENTO, AVISO_RENOVACAO_DIAS,
     normalizarPesos, validarPesos, validarMetas, metaProporcional, componentes, pontuar, explicar, conquistasDe, ranking,
-    cargaDaSemana, linhaDoTempo, prazoSla, situacaoSla, trimestreDe, validarResposta, agregarClima, progressoDaTrilha,
+    cargaDaSemana, linhaDoTempo, normalizarPrazos, validarPrazos, prazoSla, situacaoSla, diasUteisEntre, indicadoresPedidos,
+    trimestreDe, validarResposta, calcularEnps, resultadoLiberado, agregarClima, situacaoPesquisa, validarPesquisa, historicoClima, progressoDaTrilha,
     periodoDe, versus, indicadoresRh, validarEtapas, tempoMedioContratacao, situacaoDocumento,
     util: Object.freeze({ somarDias, diasEntre, inicioDaSemana, dataValida, mesValido, limitesDoMes, somarDiasUteis }),
   });

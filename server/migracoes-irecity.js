@@ -400,7 +400,61 @@ const COMANDOS = [
   `CREATE INDEX IF NOT EXISTS vybe_rh_documentos_renovacao ON vybe_rh_documentos (status, renovacao)`,
 ];
 
-let promessa = null;
+// 6. 2026-11-08-rh-pedidos-clima.sql (pedidos ao RH com prazo configurável e pesquisa de clima com período).
+// Roda à parte: se falhar, só o RH novo fica "aguardando a migração" — CRM, Carteira e o resto seguem.
+// A ordem importa: a última instrução cria vybe_rh_prazos, e é ela que diz que tudo já rodou.
+const COMANDOS_RH = [
+  `ALTER TABLE vybe_rh_pedidos ADD COLUMN IF NOT EXISTS data_desejada date`,
+  `ALTER TABLE vybe_rh_pedidos ADD COLUMN IF NOT EXISTS respondido_em timestamptz`,
+  `ALTER TABLE vybe_rh_pedidos DROP CONSTRAINT IF EXISTS vybe_rh_pedidos_tipo_check`,
+  `ALTER TABLE vybe_rh_pedidos ADD CONSTRAINT vybe_rh_pedidos_tipo_check
+    CHECK (tipo IN ('documento','ferias','folha','beneficio','equipamento','reembolso','outro'))`,
+  `CREATE TABLE IF NOT EXISTS vybe_clima_pesquisas (
+    id bigserial PRIMARY KEY,
+    titulo text NOT NULL CHECK (length(trim(titulo)) BETWEEN 1 AND 120),
+    abre date NOT NULL,
+    fecha date NOT NULL CHECK (fecha >= abre),
+    criada_por bigint REFERENCES vybe_pessoas(id),
+    criada_em timestamptz NOT NULL DEFAULT now(),
+    encerrada_em timestamptz
+  )`,
+  `CREATE INDEX IF NOT EXISTS vybe_clima_pesquisas_abre ON vybe_clima_pesquisas (abre DESC, id DESC)`,
+  `CREATE TABLE IF NOT EXISTS vybe_clima_pesquisa_respostas (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    pesquisa_id bigint NOT NULL REFERENCES vybe_clima_pesquisas(id) ON DELETE CASCADE,
+    enps smallint NOT NULL CHECK (enps BETWEEN 0 AND 10),
+    lideranca smallint NOT NULL CHECK (lideranca BETWEEN 1 AND 5),
+    comunicacao smallint NOT NULL CHECK (comunicacao BETWEEN 1 AND 5),
+    reconhecimento smallint NOT NULL CHECK (reconhecimento BETWEEN 1 AND 5),
+    carga smallint NOT NULL CHECK (carga BETWEEN 1 AND 5),
+    ambiente smallint NOT NULL CHECK (ambiente BETWEEN 1 AND 5),
+    comentario text NOT NULL DEFAULT '' CHECK (length(comentario) <= 1000)
+  )`,
+  `CREATE INDEX IF NOT EXISTS vybe_clima_pesquisa_respostas_pesquisa ON vybe_clima_pesquisa_respostas (pesquisa_id)`,
+  `CREATE TABLE IF NOT EXISTS vybe_clima_pesquisa_participacao (
+    pesquisa_id bigint NOT NULL REFERENCES vybe_clima_pesquisas(id) ON DELETE CASCADE,
+    pessoa_id bigint NOT NULL REFERENCES vybe_pessoas(id),
+    PRIMARY KEY (pesquisa_id, pessoa_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS vybe_rh_prazos (
+    tipo text PRIMARY KEY CHECK (tipo IN ('documento','ferias','folha','beneficio','equipamento','reembolso','outro')),
+    dias_uteis smallint NOT NULL CHECK (dias_uteis BETWEEN 1 AND 30),
+    atualizado_por bigint REFERENCES vybe_pessoas(id),
+    atualizado_em timestamptz NOT NULL DEFAULT now()
+  )`,
+];
+
+let promessa = null, promessaRh = null, falhaRh = 0;
+async function garantirRh(sql) {
+  // Falhou (sem permissão, banco fora): tenta de novo só depois de 10 minutos, sem travar a tela.
+  if (promessaRh && falhaRh && Date.now() - falhaRh > 10 * 60e3) { promessaRh = null; falhaRh = 0; }
+  if (!promessaRh) promessaRh = (async () => {
+    const [r] = await sql`SELECT (to_regclass('public.vybe_rh_prazos') IS NOT NULL) AS ok`;
+    if (r?.ok) return;
+    for (const cmd of COMANDOS_RH) await sql.query(cmd);
+  })().catch((e) => { falhaRh = Date.now(); console.error('[migracoes-irecity] RH 08/11 aguardando:', e?.message || e); });
+  return promessaRh;
+}
 export function garantirMigracoesIrecity(sql) {
   if (!promessa) promessa = (async () => {
     const [r] = await sql`SELECT (
@@ -409,10 +463,9 @@ export function garantirMigracoesIrecity(sql) {
       to_regclass('public.vybe_aprovacao_respostas') IS NOT NULL AND
       to_regclass('public.vybe_rh_documentos') IS NOT NULL
     ) AS ok`;
-    if (r?.ok) return;
-    for (const cmd of COMANDOS) await sql.query(cmd);
+    if (!r?.ok) for (const cmd of COMANDOS) await sql.query(cmd);
   })().catch((e) => { promessa = null; throw e; });
-  return promessa;
+  return promessa.then(() => garantirRh(sql));
 }
 
-export function esquecerMigracoesIrecity() { promessa = null; }
+export function esquecerMigracoesIrecity() { promessa = null; promessaRh = null; falhaRh = 0; }

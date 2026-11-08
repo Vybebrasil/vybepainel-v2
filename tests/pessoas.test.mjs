@@ -15,7 +15,7 @@ const carla = { tipo: 'sessao', pessoa: { id: 4, nome: 'Carla Atendimento', admi
 const admin = { tipo: 'sessao', pessoa: { id: 5, nome: 'Operador', admin: true } };
 const hoje = hojeBahia(), dia = (n) => calc.util.somarDias(hoje, n);
 
-async function banco(t, { migrar = true } = {}) {
+async function banco(t, { migrar = true, rh = true } = {}) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean, pode_entrar boolean, admin boolean DEFAULT false);
     CREATE TABLE vybe_escritorio_funcoes (pessoa_id bigint PRIMARY KEY, funcao text);
@@ -27,6 +27,7 @@ async function banco(t, { migrar = true } = {}) {
     INSERT INTO vybe_escritorio_funcoes VALUES (2,'criacao'),(3,'producao');
     INSERT INTO vybe_status VALUES (1,'finalizado','Finalizado',true),(1,'em_andamento','Em andamento',false),(1,'segurar_post','Segurar Post',false);`);
   if (migrar) { const m = readFileSync('migrations/2026-11-07-pessoas.sql', 'utf8'); await db.exec(m); await db.exec(m); }
+  if (migrar && rh) { const m = readFileSync('migrations/2026-11-08-rh-pedidos-clima.sql', 'utf8'); await db.exec(m); await db.exec(m); }
   return { db, sql };
 }
 async function chamar(sql, quem, { body = null, query = {} } = {}) {
@@ -136,6 +137,100 @@ test('clima: uma resposta por trimestre, anônima, e resultado só com 3 respost
   r = await chamar(sql, paulo, { query: { aba: 'rh' } });
   assert.equal(r.body.climaResultado.liberado, true); assert.equal(r.body.climaResultado.respostas, 3); assert.equal(r.body.climaResultado.enps, 0);
   assert.equal(r.body.climaResultado.comentarios.length, 2);
+});
+
+test('RH 08/11: tipos novos, data desejada, prazos dos donos, resposta obrigatória na recusa e números da fila', async (t) => {
+  const { db, sql } = await banco(t);
+  let r = await chamar(sql, ana, { body: { acao: 'prazos_rh', prazos: { ferias: 5, documento: 4, reembolso: 1, equipamento: 3, outro: 3 } } });
+  assert.equal(r.codigo, 403, 'só os donos mudam os prazos');
+  r = await chamar(sql, paulo, { body: { acao: 'prazos_rh', prazos: { ferias: 5, documento: 4, reembolso: 0, equipamento: 3, outro: 3 } } }); assert.equal(r.codigo, 400);
+  r = await chamar(sql, paulo, { body: { acao: 'prazos_rh', prazos: { ferias: 5, documento: 4, reembolso: 1, equipamento: 3, outro: 3 } } }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'reembolso', titulo: 'Uber da captação', descricao: 'Ida e volta', data_desejada: dia(5) } });
+  assert.equal(r.codigo, 200, JSON.stringify(r.body)); assert.equal(r.body.prazo, calc.prazoSla('reembolso', hoje, { reembolso: 1 }), 'usa o prazo dos donos');
+  const reembolso = r.body.id;
+  r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'folha', titulo: 'Antigo' } }); assert.equal(r.codigo, 400, 'tipo antigo não abre mais');
+  r = await chamar(sql, bruno, { body: { acao: 'pedido_criar', tipo: 'ferias', titulo: 'Folga', inicio: dia(3), fim: dia(3) } }); assert.equal(r.codigo, 200, 'folga de um dia');
+  r = await chamar(sql, ana, { query: { aba: 'rh' } });
+  assert.equal(r.body.rhPronto, true);
+  const meu = r.body.pedidos.find((p) => p.id === reembolso);
+  assert.equal(meu.data_desejada, dia(5)); assert.equal(meu.criado_dia, hoje); assert.equal(meu.idadeDias, 0);
+  assert.equal(r.body.tipos.find((x) => x.id === 'documento').dias, 4); assert.equal(r.body.tipos.find((x) => x.id === 'folha').formulario, false);
+  assert.equal(r.body.indicadores.abertos, 1, 'a Ana vê só os números dela'); assert.equal(r.body.prazos, undefined, 'a tabela de prazos é da gestão');
+  // Um pedido antigo, fora do prazo, para a fila da gestão ficar vermelha.
+  await db.exec(`INSERT INTO vybe_rh_pedidos (pessoa_id, tipo, titulo, prazo, criado_em) VALUES (4, 'documento', 'Declaração atrasada', '${dia(-3)}', now() - interval '6 days')`);
+  r = await chamar(sql, paulo, { body: { acao: 'pedido_status', id: reembolso, status: 'recusado' } }); assert.equal(r.codigo, 400, 'recusar pede o motivo');
+  r = await chamar(sql, paulo, { body: { acao: 'pedido_status', id: reembolso, status: 'recusado', resposta: 'Fora da política.' } }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  r = await chamar(sql, paulo, { body: { acao: 'pedido_status', id: reembolso, status: 'resolvido' } }); assert.equal(r.codigo, 409, 'encerrado não volta');
+  const [h] = (await db.query(`SELECT respondido_em, respondido_por::text AS por FROM vybe_rh_pedidos WHERE id = ${reembolso}`)).rows;
+  assert.ok(h.respondido_em, 'guarda a hora da resposta'); assert.equal(h.por, '1');
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } });
+  const i = r.body.indicadores;
+  assert.equal(i.abertos, 2); assert.equal(i.foraDoPrazo, 1); assert.equal(i.respondidos, 1); assert.equal(i.tempoMedioDias, 0); assert.equal(i.noPrazoPct, 100);
+  const atrasado = r.body.pedidos.find((p) => p.titulo === 'Declaração atrasada');
+  assert.equal(atrasado.sla, 'atrasado'); assert.equal(atrasado.atrasoUteis, calc.diasUteisEntre(dia(-3), hoje)); assert.equal(atrasado.pessoa_nome, 'Carla Atendimento');
+  assert.equal(r.body.prazos.reembolso, 1);
+  r = await chamar(sql, ana, { query: { aba: 'rh' } });
+  assert.equal(r.body.pedidos.find((p) => p.id === reembolso).resposta, 'Fora da política.', 'quem pediu vê a resposta');
+});
+
+test('RH 08/11 sem a migração nova: pedido continua (data desejada vai na descrição); reembolso, prazos e pesquisa aguardam', async (t) => {
+  const { sql } = await banco(t, { rh: false });
+  let r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'documento', titulo: 'Declaração', data_desejada: '2026-12-01' } });
+  assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  r = await chamar(sql, ana, { query: { aba: 'rh' } });
+  assert.equal(r.body.rhPronto, false); assert.equal(r.body.provisionado, true, 'o RH antigo segue ligado');
+  assert.match(r.body.pedidos[0].descricao, /Data desejada: 01\/12\/2026/);
+  assert.equal(r.body.pesquisa.atual, null);
+  r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'reembolso', titulo: 'Uber' } }); assert.equal(r.codigo, 503); assert.match(r.body.error, /2026-11-08-rh-pedidos-clima/);
+  r = await chamar(sql, paulo, { body: { acao: 'prazos_rh', prazos: { ferias: 5, documento: 4, reembolso: 1, equipamento: 3, outro: 3 } } }); assert.equal(r.codigo, 503);
+  r = await chamar(sql, paulo, { body: { acao: 'pesquisa_abrir', titulo: 'Clima', fecha: dia(7) } }); assert.equal(r.codigo, 503);
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } }); assert.equal(r.codigo, 200); assert.equal(r.body.pesquisa.historico.length, 0);
+  const [id] = r.body.pedidos.map((p) => p.id);
+  r = await chamar(sql, paulo, { body: { acao: 'pedido_status', id, status: 'resolvido', resposta: 'Pronto.' } }); assert.equal(r.codigo, 200, 'responde sem a coluna da hora');
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } }); assert.equal(r.body.indicadores.respondidos, 1, 'tempo médio usa a última atualização');
+});
+
+test('pesquisa de clima 08/11: donos abrem com período, cada um responde uma vez, anônima, resultado só com 3 e histórico', async (t) => {
+  const { db, sql } = await banco(t);
+  const voto = (pesquisa_id, enps, extra = {}) => ({ acao: 'pesquisa_responder', pesquisa_id, enps, lideranca: 4, comunicacao: 3, reconhecimento: 2, carga: 5, ambiente: 4, comentario: '', ...extra });
+  let r = await chamar(sql, ana, { body: { acao: 'pesquisa_abrir', titulo: 'Clima', fecha: dia(7) } }); assert.equal(r.codigo, 403, 'só os donos abrem');
+  r = await chamar(sql, paulo, { body: { acao: 'pesquisa_abrir', titulo: 'Clima de novembro', fecha: dia(7) } }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  const p1 = r.body.id;
+  r = await chamar(sql, admin, { body: { acao: 'pesquisa_abrir', titulo: 'Outra', fecha: dia(9) } }); assert.equal(r.codigo, 409, 'uma por vez');
+  r = await chamar(sql, ana, { query: { aba: 'rh' } });
+  assert.equal(r.body.pesquisa.atual.id, p1); assert.equal(r.body.pesquisa.atual.respondeu, false); assert.equal(r.body.pesquisa.historico, undefined, 'resultado é da gestão');
+  assert.deepEqual(r.body.pesquisa.dimensoes.map((d) => d.id), ['lideranca', 'comunicacao', 'reconhecimento', 'carga', 'ambiente']);
+  r = await chamar(sql, ana, { body: voto(p1, 9, { comentario: 'Gosto do time' }) }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  r = await chamar(sql, ana, { body: voto(p1, 9) }); assert.equal(r.codigo, 409, 'uma vez por pessoa');
+  r = await chamar(sql, bruno, { body: voto(p1, 11) }); assert.equal(r.codigo, 400);
+  r = await chamar(sql, bruno, { body: { ...voto(p1, 8), carga: undefined } }); assert.equal(r.codigo, 400, 'todas as dimensões');
+  // A resposta não guarda pessoa nem hora; a participação não guarda a nota nem hora.
+  const colunas = async (tabela) => (await db.query(`SELECT column_name FROM information_schema.columns WHERE table_name='${tabela}'`)).rows.map((c) => c.column_name);
+  const resp = await colunas('vybe_clima_pesquisa_respostas'), part = await colunas('vybe_clima_pesquisa_participacao');
+  assert.ok(!resp.some((c) => /pessoa|em$|criad|hora|data/.test(c)), 'resposta sem pessoa nem hora: ' + resp);
+  assert.deepEqual(part.sort(), ['pesquisa_id', 'pessoa_id'], 'participação só com quem e qual pesquisa');
+  r = await chamar(sql, ana, { query: { aba: 'rh' } }); assert.equal(r.body.pesquisa.atual.respondeu, true);
+  await chamar(sql, bruno, { body: voto(p1, 3) });
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } });
+  let res = r.body.pesquisa.historico[0].resultado;
+  assert.deepEqual(res, { respostas: 2, minimo: 3, liberado: false }, 'com 2 respostas nada de número');
+  assert.equal(r.body.pesquisa.equipe, 5);
+  await chamar(sql, carla, { body: voto(p1, 10, { comentario: 'Mais reconhecimento' }) });
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } });
+  res = r.body.pesquisa.historico[0].resultado;
+  assert.equal(res.liberado, true); assert.equal(res.respostas, 3); assert.equal(res.enps, 33);
+  assert.equal(res.dimensoes.find((d) => d.id === 'carga').media, 5); assert.equal(res.comentarios.length, 2);
+  // Encerrar, abrir a próxima e comparar.
+  r = await chamar(sql, ana, { body: { acao: 'pesquisa_encerrar', id: p1 } }); assert.equal(r.codigo, 403);
+  r = await chamar(sql, paulo, { body: { acao: 'pesquisa_encerrar', id: p1 } }); assert.equal(r.codigo, 200);
+  r = await chamar(sql, admin, { body: voto(p1, 9) }); assert.equal(r.codigo, 409, 'encerrada não recebe resposta');
+  await db.exec(`UPDATE vybe_clima_pesquisas SET abre = '${dia(-40)}', fecha = '${dia(-33)}' WHERE id = ${p1}`);
+  r = await chamar(sql, paulo, { body: { acao: 'pesquisa_abrir', titulo: 'Clima de dezembro', fecha: dia(5) } }); assert.equal(r.codigo, 200); const p2 = r.body.id;
+  for (const [q, n] of [[ana, 10], [bruno, 9], [carla, 9], [admin, 6]]) { const x = await chamar(sql, q, { body: voto(p2, n, { carga: 3 }) }); assert.equal(x.codigo, 200); }
+  r = await chamar(sql, paulo, { query: { aba: 'rh' } });
+  const [nova, velha] = r.body.pesquisa.historico;
+  assert.equal(nova.id, p2); assert.equal(velha.id, p1);
+  assert.equal(nova.resultado.enps, 50); assert.equal(nova.vs.delta, 17, '50 contra 33'); assert.equal(nova.vsDimensoes.carga, -2);
 });
 
 test('projetos: só a gestão cria; responsável marca a etapa; carga soma peças e etapas', async (t) => {

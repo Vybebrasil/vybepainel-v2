@@ -433,7 +433,7 @@
       ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
       </section></div>
       <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
-      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button></div>`;
+      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button></div>`;
   }
 
   // ---------- Módulo Gestão: passado, agora e futuro da agência ----------
@@ -653,7 +653,7 @@
       const carregou = typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length;
       el.innerHTML = `<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>
         <button type="button" class="vv-fala" data-trilho="tarefas"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${carregou ? 'Não achei sua fila pelo seu usuário. Escolha de quem acompanhar as tarefas.' : 'Carregando sua fila…'}</span><b aria-hidden="true">→</b></button>
-        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
+        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
       return;
     }
     const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
@@ -696,7 +696,7 @@
       <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
       <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
-      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
       </section></div>`;
   }
   function acaoDoHoje(acao, valor) {
@@ -706,6 +706,7 @@
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
     if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
     if (acao === 'agenda') { abrirAgenda(); return; }
+    if (acao === 'pedido_rh') { window.VybePessoas?.novoPedido?.(); return; } // Nova solicitação ao RH (vybe-mundo-pessoas.js)
     if (acao === 'missoes') { window.VybeMissoes?.abrir?.('missoes', verComo || undefined); window.VybeTutorial?.dica?.('missoes'); return; }
     if (acao === 'radar') chamar('chooseManagerMode');
   }

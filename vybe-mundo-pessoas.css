@@ -197,3 +197,15 @@
 #vv-pessoas .vp-card-nome{padding:0;border:0;background:none;color:#1F1D1A;font:700 13px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
 #vv-pessoas .vp-card-nome:hover{color:#C2490C}
 #vv-pessoas .vp-mover select{min-height:34px;font-size:12.5px}
+/* RH 08/11/2026: números clicáveis da fila (mini painel), pedido fora do prazo, resposta e histórico do clima */
+#vv-pessoas .vp-kpis-3{grid-template-columns:repeat(1,minmax(0,1fr))}
+@media (min-width:520px){#vv-pessoas .vp-kpis-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#vv-pessoas .vp-kpi.espiavel{cursor:pointer;transition:border-color .15s}
+#vv-pessoas .vp-kpi.espiavel:hover{border-color:#FF7A2F}
+#vv-pessoas .vp-kpi.espiavel:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-pessoas .vp-kpi.u1{border-color:#F2B8B5;box-shadow:inset 3px 0 0 #D93D42}
+#vv-pessoas .vp-kpi.u1 b{color:#B42318}
+#vv-pessoas .vp-desc{color:#4A4740;white-space:pre-line;overflow-wrap:anywhere}
+#vv-pessoas .vp-responder{flex-basis:100%}
+#vv-pessoas .vp-responder>summary{color:#C2490C;font-size:12.5px}
+#vv-pessoas .vp-linha.ativo{border-color:#FF7A2F;box-shadow:inset 3px 0 0 #FF7A2F}
