@@ -100,7 +100,7 @@
   }
   function cartaoHtml(d) {
     const s = sugestoes(d), prazo = typeof G.sazonalPrazoDe === 'function' ? G.sazonalPrazoDe(d.iso) : '';
-    return `<div class="vd-cartao-topo"><small>${br(d.iso)}${d.feriado ? ' · feriado' : ''}${prazo ? ' · cadastrar até ' + br(prazo) : ''}</small><b>${esc(d.nome)}</b></div>
+    return `<button type="button" class="vd-x" data-vd-fechar aria-label="Fechar" title="Fechar (Esc)">×</button><div class="vd-cartao-topo"><small>${br(d.iso)}${d.feriado ? ' · feriado' : ''}${prazo ? ' · cadastrar até ' + br(prazo) : ''}</small><b>${esc(d.nome)}</b></div>
       ${s.length ? `<ul>${s.slice(0, 6).map((x) => `<li><b>${esc(x.cliente)}</b> ${esc(x.ideia)}</li>`).join('')}</ul>${s.length > 6 ? `<p class="vd-dica">e mais ${s.length - 6} clientes</p>` : ''}`
         : '<p class="vd-dica">Nenhum cliente do ramo desta data. Vale só se combinar com a marca.</p>'}
       <p class="vd-dica">Rascunho pela regra do ramo de cada cliente. O Redator escreve a sugestão de verdade.</p>
@@ -117,6 +117,7 @@
       cartao = document.createElement('div'); cartao.className = 'vd-cartao'; cartao.setAttribute('role', 'dialog');
       cartao.addEventListener('mouseenter', () => clearTimeout(saida)); cartao.addEventListener('mouseleave', esconderDepois);
       cartao.addEventListener('click', (e) => {
+        if (e.target.closest('[data-vd-fechar]')) { esconder(); return; }
         if (!aberto) return;
         if (e.target.closest('[data-vd-redator]')) {
           const s = sugestoes(aberto).filter((x) => x.cliente !== 'Todos os clientes').map((x) => x.cliente).slice(0, 12);
@@ -147,7 +148,7 @@
     if (c) { e.stopPropagation(); e.preventDefault(); mostrar(c); return; }
     if (cartao && !cartao.hidden && !e.target.closest?.('.vd-cartao')) esconder();
   }, true);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cartao && !cartao.hidden) esconder(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cartao && !cartao.hidden) { e.preventDefault(); esconder(); } });
 
   G.VybeDatas = { carregar, pronto: () => pronto, doDia, proximas, chipHtml, chipsDoDia, sugestoes, ramo, relevante };
 })();

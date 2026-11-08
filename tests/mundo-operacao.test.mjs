@@ -70,14 +70,14 @@ test('Minha sala depende do vínculo da conta, sem inferir propriedade pelo nome
 test('câmera abre o andar e foca apenas a sala efetivamente alcançada', async () => {
   const e={zona:'sala-a'}, abriu=[],focou=[];
   const c=vm.createContext({escritorio:e,mundo:{zonasDoPredio:{'sala-a':{andar:'criacao'},'sala-b':{andar:'gestao'}}},focoSala:0,body:{classList:{contains:()=>false}},abrirAndarVoxel:async a=>abriu.push(a),andarAberto:{focarSala:z=>focou.push(z)},fn:()=>()=>{},console});
-  vm.runInContext(fonte('focarSalaDaChamada'),c);
+  c.zonas3d=()=>c.mundo.zonasDoPredio; vm.runInContext(fonte('focarSalaDaChamada'),c);
   await c.focarSalaDaChamada('sala-b'); assert.deepEqual(abriu,[]);
   await c.focarSalaDaChamada('sala-a'); assert.deepEqual(abriu,['criacao']); assert.deepEqual(focou,['sala-a']);
 });
 test('entrada tardia de andar não refaz o foco depois de trocar de sala', async () => {
   const e={zona:'a'}, pendentes=[], focou=[];
   const c=vm.createContext({escritorio:e,mundo:{zonasDoPredio:{a:{andar:'um'},b:{andar:'dois'}}},focoSala:0,body:{classList:{contains:()=>false}},abrirAndarVoxel:a=>new Promise(r=>pendentes.push(r)),andarAberto:{focarSala:z=>focou.push(z)},fn:()=>()=>{},console});
-  vm.runInContext(fonte('focarSalaDaChamada'),c);
+  c.zonas3d=()=>c.mundo.zonasDoPredio; vm.runInContext(fonte('focarSalaDaChamada'),c);
   const a=c.focarSalaDaChamada('a'); e.zona='b'; const b=c.focarSalaDaChamada('b'); pendentes[1](); await b; pendentes[0](); await a;
   assert.deepEqual(focou,['b']);
 });

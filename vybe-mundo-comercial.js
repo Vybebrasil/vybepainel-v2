@@ -68,12 +68,40 @@
   }
   // Dado incompleto (banco ainda sem as tabelas, resposta parcial): listas viram vazias e blocos viram objetos vazios,
   // e a aba mostra o estado vazio dela em vez de "Não foi possível mostrar esta aba" (08/11/2026).
-  const LISTAS = ['etapas', 'fases', 'motivos', 'oportunidades', 'pacotes', 'produtos', 'clientes', 'orcamentos', 'contas', 'recebiveis', 'faturas', 'criticos', 'categorias', 'fornecedores', 'creators', 'marcados_a_mao'];
-  const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes'];
+  const LISTAS = ['etapas', 'fases', 'motivos', 'oportunidades', 'pacotes', 'clientes', 'orcamentos', 'contas', 'recebiveis', 'faturas', 'categorias', 'fornecedores', 'creators', 'marcados_a_mao', 'status'];
+  const BLOCOS = ['capacidade', 'resumo', 'pode', 'faturamento', 'opcoes', 'produtos', 'periodo'];
+  // Mini painel dos números (Paulo, 08/11: clicar no número e ver quem está nele).
+  (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {}).comercial = (resto) => {
+    const [aba, filtro] = String(resto).split(':'), d = st.dados[aba]; if (!d) return null;
+    const ir = (it) => { st.filtro.financas = it.nome; pintar(); };
+    if (aba === 'financas') {
+      const def = { critica: ['Clientes em zona crítica de margem', (c) => c.zona_critica, 'u1'], atrasado: ['Pagamento atrasado', (c) => c.status_pagamento === 'atrasado', 'u2'], inadimplente: ['Inadimplentes', (c) => c.status_pagamento === 'inadimplente', 'u1'] }[filtro];
+      if (!def) return null;
+      const itens = d.clientes.filter(def[1]).map((c) => ({ nome: c.cliente_nome, sub: [c.pacote_nome, c.margem_percentual != null ? 'margem ' + pc(c.margem_percentual) : ''].filter(Boolean).join(' · '), dir: c.valor_mensal ? din(c.valor_mensal) + '/mês' : '' }));
+      return { titulo: def[0], cls: def[2], itens, vazio: 'Nenhum cliente.', rodape: 'Clique para filtrar a lista', clicar: ir };
+    }
+    if (aba === 'inadimplencia' && filtro === 'criticos') {
+      const itens = d.clientes.filter((c) => c.severidade?.nivel === 'u1').map((c) => ({ nome: c.cliente_nome, sub: `${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · ${num(c.atraso_mais_antigo)} dias de atraso`, dir: din(c.valor), cls: 'u1' }));
+      return { titulo: 'Críticos (mais de 30 dias)', cls: 'u1', itens, vazio: 'Ninguém com mais de 30 dias.' };
+    }
+    return null;
+  };
   function completar(d) {
     const x = { ...(d || {}) };
     for (const k of LISTAS) if (!Array.isArray(x[k])) x[k] = [];
     for (const k of BLOCOS) if (!x[k] || typeof x[k] !== 'object') x[k] = {};
+    if (typeof x.criticos !== 'number') x.criticos = Number(x.criticos) || 0; // número, não lista
+    // Partes de dentro que as abas leem direto (antes: resposta parcial quebrava funil, finanças, recebimentos, contas e caixa).
+    const obj = (o, k) => { if (!o[k] || typeof o[k] !== 'object' || Array.isArray(o[k])) o[k] = {}; return o[k]; };
+    const arr = (o, k) => { if (!Array.isArray(o[k])) o[k] = []; return o[k]; };
+    const r = x.resumo = { ...x.resumo };
+    for (const k of ['fases', 'motivos_perda', 'grupos', 'cargos']) arr(r, k);
+    for (const k of ['pagamento', 'atual', 'variacao', 'sete_dias', 'vencidas', 'em_negociacao']) obj(r, k);
+    x.opcoes = { ...x.opcoes }; for (const k of ['nichos', 'cidades']) arr(x.opcoes, k);
+    if (!/^\d{4}-\d{2}-\d{2}/.test(x.hoje || '')) x.hoje = hojeIso();
+    x.periodo = { tipo: 'mensal', mes: x.hoje.slice(0, 7), rotulo: '', ...x.periodo };
+    if (x.previsao && typeof x.previsao === 'object') { x.previsao = { ...x.previsao }; arr(x.previsao, 'meses'); arr(x.previsao, 'alertas'); }
+    else x.previsao = { meses: [], alertas: [] };
     return x;
   }
   async function carregar(aba = st.aba) {
@@ -117,13 +145,14 @@
 
   // ---------- Pedaços ----------
   const vazio = (frase, botao = '', acao = '') => `<div class="vc-vazio"><p>${esc(frase)}</p>${botao ? `<button type="button" class="vc-acao" data-vc="${acao}">${esc(botao)}</button>` : ''}</div>`;
-  function kpi(rotulo, valor, { variacao = null, rotuloVar = '', u = '', inverso = false } = {}) {
+  function kpi(rotulo, valor, { variacao = null, rotuloVar = '', u = '', inverso = false, espiar = '' } = {}) {
     let v = '';
     if (rotuloVar) {
       if (variacao == null) v = `<small class="vc-var">sem base ${esc(rotuloVar)}</small>`;
       else { const bom = inverso ? variacao <= 0 : variacao >= 0; v = `<small class="vc-var ${variacao === 0 ? '' : bom ? 'bom' : 'ruim'}">${variacao > 0 ? '▲' : variacao < 0 ? '▼' : '='} ${pc(Math.abs(variacao))} ${esc(rotuloVar)}</small>`; }
     }
-    return `<div class="vc-kpi${u ? ' ' + u : ''}"><span>${esc(rotulo)}</span><b>${valor}</b>${v}</div>`;
+    const ab = espiar ? ` data-espiar="comercial:${esc(espiar)}" role="button" tabindex="0"` : '';
+    return `<div class="vc-kpi${u ? ' ' + u : ''}${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b>${valor}</b>${v}</div>`;
   }
   function seletorPeriodo() {
     const m = st.periodo.mes || hojeIso().slice(0, 7);
@@ -197,7 +226,7 @@
   function abaFinancas(d) {
     const r = d.resumo;
     return `<div class="vc-kpis">${kpi('Receita mensal', din(r.receita))}${kpi('Custo estimado', din(r.custo))}${kpi('Margem', pc(r.margem_percentual), { u: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'u1' : '' })}
-        ${kpi('Zona crítica', num(r.criticas), { u: r.criticas ? 'u1' : '' })}${kpi('Atrasados', num(r.pagamento.atrasado), { u: r.pagamento.atrasado ? 'u2' : '' })}${kpi('Inadimplentes', num(r.pagamento.inadimplente), { u: r.pagamento.inadimplente ? 'u1' : '' })}</div>
+        ${kpi('Zona crítica', num(r.criticas), { u: r.criticas ? 'u1' : '', espiar: 'financas:critica' })}${kpi('Atrasados', num(r.pagamento.atrasado), { u: r.pagamento.atrasado ? 'u2' : '', espiar: 'financas:atrasado' })}${kpi('Inadimplentes', num(r.pagamento.inadimplente), { espiar: 'financas:inadimplente', u: r.pagamento.inadimplente ? 'u1' : '' })}</div>
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
       <div class="vc-lista">${d.clientes.filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
         <div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(...STATUS_PAG[c.status_pagamento])}</div>
@@ -236,7 +265,7 @@
         || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos.', 'Nova conta', 'conta')}</div>`;
   }
   function abaInadimplencia(d) {
-    return `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '' })}${kpi('Faturas', num(d.faturas.length))}</div>
+    return `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
       <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')

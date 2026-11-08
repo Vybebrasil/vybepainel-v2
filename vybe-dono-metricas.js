@@ -289,7 +289,7 @@
     const cadastroCarregado = cadastro.length > 0;
     const nomePorChave = new Map();
     const porCliente = new Map();
-    const novoCliente = (nome, cad) => ({ cliente: nome, cad, abertas: 0, atrasadas: 0, furos: 0, emRisco: 0, esquecidas: 0, semana: 0, proximaSemana: 0 });
+    const novoCliente = (nome, cad) => ({ cliente: nome, cad, abertas: 0, atrasadas: 0, furos: 0, emRisco: 0, esquecidas: 0, semana: 0, proximaSemana: 0, pecasAtrasadas: [], pecasEmRisco: [] });
     for (const c of cadastro) {
       if (!ativoNoCadastro(c)) continue;
       const nome = String(c.nome).trim(), k = chaveTexto(nome);
@@ -449,8 +449,8 @@
         if (!st) continue;
         if (p.esquecida) st.esquecidas++;
         else if (!p.entregue) st.abertas++;
-        if (p.atrasada) { st.atrasadas++; if (p.furo) st.furos++; }
-        if (p.emRisco) st.emRisco++;
+        if (p.atrasada) { st.atrasadas++; st.pecasAtrasadas.push(p); if (p.furo) st.furos++; }
+        if (p.emRisco) { st.emRisco++; st.pecasEmRisco.push(p); }
         if (p.conteudo && p.data) {
           if (p.data >= inicioSem && p.data <= fimSem) st.semana++;
           else if (p.data >= inicioProx && p.data <= fimProx) st.proximaSemana++;
@@ -558,6 +558,8 @@
         semana: st.semana, proximaSemana: st.proximaSemana, esquecidas: st.esquecidas,
         temPlanejamento, planejamento: planoDoCliente.get(st.cliente) || null,
         saude: critico ? 'critico' : atencao ? 'atencao' : 'ok', motivos, gravidade,
+        // As peças por trás dos números (o mini painel do número lista exatamente o que foi contado).
+        lista: { atrasadas: st.pecasAtrasadas.sort(porAtraso).map(peca), emRisco: st.pecasEmRisco.sort(porData).map(peca) },
         pendencias: pecas.filter((p) => p.clientes.includes(st.cliente) && (p.atrasada || p.emRisco || p.esquecida))
           .sort(porAtraso).map((p) => ({ ...peca(p), cliente: st.cliente, motivos: [
             p.furo && 'Veiculação vencida', p.prazoVencido && 'Prazo interno vencido',
@@ -599,6 +601,7 @@
         pessoaId: t.pessoaId, pessoa: t.pessoa, abertas: t.abertas, atrasadas: t.atrasadas.length, emRisco: t.emRisco.length,
         paradas: t.paradas.length, semBriefing: t.semBriefing.length, entregues7d: t.entregues7d,
         idadeMedianaDias: umaCasa(mediana(t.idades)), cobrar,
+        lista: { atrasadas: t.atrasadas.map(peca), emRisco: t.emRisco.map(peca), paradas: t.paradas.map(peca) },
         _peso: t.atrasadas.length * 10 + t.emRisco.length * 5 + t.paradas.length * 2 + t.semBriefing.length,
       };
     }).sort((a, b) => (b._peso - a._peso) || (b.abertas - a.abertas) || compararNomes(a.pessoa, b.pessoa));
