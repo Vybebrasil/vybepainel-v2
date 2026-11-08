@@ -729,6 +729,7 @@
       .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00')));
   }
   function compromissosHtml() {
+    if (!verComo && agendaFixa()) return ''; // o Mizinho já tem a Agenda fixa ao lado
     const lista = meusCompromissos(); if (!lista.length) return '';
     const hoje = hojeIso(), amanha = somar(hoje, 1);
     return `<section class="vv-compromissos" aria-label="Seus compromissos"><div class="vv-rotulo-secao" style="--c:#1A8FA0"><i></i>Seus compromissos<span class="vv-pilula">${lista.length}</span></div>

@@ -4869,9 +4869,18 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
 .vv-ferr-voz{position:relative}
 .vv-voz-ponto{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#B8B0A4;box-shadow:0 0 0 2px #fff}
 .vv-ferr-voz.on .vv-voz-ponto{background:#18A957}
+.vv-ferramentas .vv-ferr-mic[hidden]{display:none!important}
 .vv-ferr-mic.on{background:#18A957!important;color:#fff!important}
 .vv-ferr-mic:not(.on){color:#B4322B!important}
 .vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff)!important;color:var(--vv-laranja-escuro,#C2410C)!important}
 .vv-compromissos{display:grid;gap:6px;margin:8px 0}
 @media (max-width:900px){html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada,html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important}}
 @media (prefers-reduced-motion:reduce){html body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada){animation:none!important}}
+
+/* A tela aberta domina a cena (Paulo, 08/11/2026: "o que tá aberto domina a cena toda; o HUD do lado abre por cima e
+   fecha no botão ou no Esc"): o Hoje vai até a borda direita e a barra de ícones pousa no canto de cima dele. A coluna
+   da direita só fica reservada para quem tem a Agenda fixa (o Mizinho). */
+@media (min-width:901px){
+  html body.mundo:not(.mundo-centro):not(.agenda-fixa) .vv-hoje{right:var(--vv-m)!important}
+  html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:calc(var(--vv-col) - 14px)}
+}

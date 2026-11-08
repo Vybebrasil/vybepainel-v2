@@ -87,7 +87,7 @@ function barra(e, participantes, falando = new Set()) {
   const c = vm.createContext({ escritorio: e, mundo: { zonasDoPredio: {} }, zonas3d: () => ({}), barra: el,
     body: { classList: { contains: () => false } }, ligado: true, window: {},
     pessoaAberta: null, chamarAberto: false, minhaSalaDaConta: () => '', fn: n => funcoes[n], esc: String, iniciais: n => n[0],
-    musicaHtml: () => '', IC: {}, Set,
+    musicaHtml: () => '', IC: {}, Set, marcarVozNoTopo: () => {},
   });
   vm.runInContext(fonte(world, 'pintarChamada', '  '), c); c.pintarChamada(); return el.innerHTML;
 }
