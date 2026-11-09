@@ -11,6 +11,9 @@ const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').t
 const somarDias = (iso, n) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
 const curto = (iso) => (iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
 const primeiro = (n) => String(n || '').trim().split(/\s+/)[0] || '';
+// Atenção: aqui "entregue" é "já saiu ou está agendado" (plantão e fim de semana), não "a equipe terminou".
+// "Para agendar" e "Aprovado" ainda precisam de alguém, por isso NÃO entram. A situação geral da peça é
+// VybeDono.util.situacaoDaPeca (vybe-dono-metricas.js).
 const ENTREGUE = ['finalizado', 'agendado', 'publicado', 'postado'];
 const diasParado = (i, dia) => { const d = String(i.status_updated_at || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(d) ? Math.round((Date.parse(dia) - Date.parse(d)) / 864e5) : 0; };
 
