@@ -48,12 +48,23 @@ test('sem a impressão em Impressões, o Nestor cria com fornecedor, cliente, et
 test('na impressão que já existe: põe o fornecedor, anda a etapa e nunca volta nem cancela', async (t) => {
   const { sql } = await banco(t);
   const [a] = await sql`INSERT INTO vybe_impressoes (titulo, cliente_id, etapa) VALUES ('Tag do panetone', 27, 'orcamento') RETURNING id::text AS id`;
-  let r = await registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', fornecedor: 'Emballar', etapa: 'pronto', valor: 380, frase: 'as tags estão prontas' });
+  // Sem o cliente na conversa, a impressão de um cliente não muda (a sacola branca foi parar na VOA, 09/11).
+  await assert.rejects(registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', fornecedor: 'Emballar', etapa: 'pronto', frase: 'prontas' }), /não confere/);
+  await assert.rejects(registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', cliente: 'Gonzalez', fornecedor: 'Emballar', etapa: 'pronto', frase: 'prontas' }), /não confere/);
+  let r = await registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', cliente: 'VOA', fornecedor: 'Emballar', etapa: 'pronto', valor: 380, frase: 'as tags estão prontas' });
   assert.deepEqual(r.mudou, ['fornecedor', 'valor', 'etapa']);
   let [i] = await linha(sql, a.id); assert.equal(i.etapa, 'pronto');
-  r = await registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', fornecedor: 'Emballar', etapa: 'orcamento', frase: 'quanto fica?' });
+  r = await registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'Tag do panetone', cliente: 'VOA', fornecedor: 'Emballar', etapa: 'orcamento', frase: 'quanto fica?' });
   assert.deepEqual(r.mudou, [], 'etapa não volta');
   await assert.rejects(registrarPeloAgente(sql, 1, { impressao_id: a.id, titulo: 'x', fornecedor: 'Emballar', etapa: 'cancelado', frase: 'desisti' }), /Etapa inválida/);
   await assert.rejects(registrarPeloAgente(sql, 1, { titulo: 'x', fornecedor: 'Gráfica Desconhecida', etapa: 'orcamento', frase: 'oi' }), /não está cadastrado/);
   await assert.rejects(registrarPeloAgente(sql, 1, { titulo: 'x', fornecedor: 'Emballar', etapa: 'orcamento', frase: '' }), /Informe frase/);
+});
+
+test('impressão criada sem cliente ganha o cliente quando o Nestor descobre de quem é', async (t) => {
+  const { sql } = await banco(t);
+  const r = await registrarPeloAgente(sql, 1, { titulo: 'Sacola pequena 30 x 40 cm', fornecedor: 'Emballar', etapa: 'em_impressao', frase: '50% sacolas P' });
+  const de_novo = await registrarPeloAgente(sql, 1, { titulo: 'Sacola pequena 30 x 40 cm', cliente: 'VOA', fornecedor: 'Emballar', etapa: 'em_impressao', frase: '50% sacolas P' });
+  assert.deepEqual([de_novo.id, de_novo.mudou], [r.id, ['cliente']]);
+  const [i] = await linha(sql, r.id); assert.equal(i.c, '27');
 });
