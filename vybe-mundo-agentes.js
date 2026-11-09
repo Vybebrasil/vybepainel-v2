@@ -102,7 +102,7 @@
     const rotina = [...fixas.map((r) => ({ h: r.horario, t: r.texto, tipo: 'fixa' })), ...recorrentes.map((a) => ({ h: a.horario, t: `${a.texto}${a.cliente ? ' · ' + a.cliente : ''}`, tipo: (FREQ[a.frequencia] || '').toLowerCase() }))]
       .sort((a, b) => (a.h === 'madrugada' ? '00:00' : String(a.h)).localeCompare(b.h === 'madrugada' ? '00:00' : String(b.h)));
     const dono = souDono();
-    const clientes = (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []).filter((c) => c.ativo !== false && !/inativ/i.test(String(c.status || ''))).map((c) => c.nome).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const clientes = (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []).filter((c) => clienteAtivo(c)).map((c) => c.nome).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const semCentral = f.erro || !f.dados;
     void lerPerfil(s.id);
     const pf = st.perfis[s.id] || {}, P = pf.dados?.perfil || null;

@@ -50,10 +50,15 @@
   // A data do cliente (veiculação/conclusão) manda; o prazo interno também conta como atraso da equipe.
   function situacaoDaPeca(item, hoje = hojeIso()) {
     const st = String(item?.status || '');
-    const fechada = typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st);
+    // Auditoria 09/11 (A4): o fechamento vem do banco (status_final) quando chega; o atraso, da função oficial
+    // (VybeDono.util.situacaoDaPeca: veiculação primeiro, pausada e esquecida fora). As categorias do Hoje (aprovar, ajuste,
+    // pronta…) continuam aqui: "Agendado" e "Para agendar" são prontas, não concluídas (contagens separadas).
+    const fechada = typeof item?.status_final === 'boolean' ? item.status_final : typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st);
     if (fechada) return 'concluida';
     const veic = String(item?.veiculacao_iso || ''), prazo = String(item?.prazo_iso || '');
-    if ((veic && veic < hoje) || item?.prazo_atrasado || (prazo && prazo < hoje)) return 'atrasada';
+    const oficial = window.VybeDono?.util?.situacaoDaPeca;
+    if (typeof oficial === 'function') { if (oficial(item, { hoje }).atrasada) return 'atrasada'; }
+    else if ((veic && veic < hoje) || item?.prazo_atrasado || (prazo && prazo < hoje)) return 'atrasada';
     if (/aprova/i.test(st)) return 'aprovar';
     if (/altera|ajuste|corre/i.test(st)) return 'ajuste';
     if (veic === hoje || prazo === hoje) return 'hoje';
@@ -66,7 +71,7 @@
   // ---------- Clientes do mundo: só os ativos do cadastro, com as peças em aberto ----------
   const norm = (n) => (typeof normalizarCliente === 'function' ? normalizarCliente(String(n || '')) : String(n || '').trim());
   function clientesDoMundo() {
-    const cadastro = (typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : []).filter((c) => c.ativo !== false && !/inativ/i.test(String(c.status || '')));
+    const cadastro = (typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : []).filter((c) => clienteAtivo(c));
     const itens = [...(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []), ...(typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])];
     const mapa = new Map();
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -167,14 +172,15 @@
       { id: 'automacoes', nome: 'Automações', dica: 'Regras que movem as demandas sozinhas', board: 'automacoes' },
       { id: 'conta', nome: 'Conta e equipe', dica: 'Sua conta, acessos e a equipe', board: 'conta' },
     ] },
-    { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: equipe, produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
-      { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
+    { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
       { id: 'rh', nome: 'Pedidos e calendário', dica: 'Pedidos ao RH, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
       { id: 'recrutamento', nome: 'Recrutamento', dica: 'Vagas e candidatos', mod: ['VybePessoas', 'recrutamento'] },
       { id: 'documentos', nome: 'Documentos', dica: 'Contratos e documentos do time', mod: ['VybePessoas', 'documentos'] },
-      { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
     ] },
+    // Auditoria 09/11: Equipe online (presença, recados, missões) e Meu perfil (nível, VybeCoins) são do jogo, não do RH:
+    // a Equipe vira item próprio do Time e o perfil vai para o menu da conta.
+    { id: 'equipe', grupo: 'Time', nome: 'Equipe online', dica: 'Quem está online, conversa, recados, missões e ranking', ic: svg('<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="18" cy="8" r="2"/><path d="M18 13v0"/>') },
     { id: 'academy', grupo: 'Time', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'], ic: svg('<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/>') },
     // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
     { id: 'agentes', grupo: 'Time', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
@@ -228,6 +234,22 @@
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
   const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas'];
+  // Dock aceso só no que está na tela (auditoria 09/11, D10): ao fechar a janela de um módulo (X, Esc ou o próprio
+  // módulo), o item dela apaga e volta a acender o que ficou à vista. As janelas somem do body ou ganham hidden.
+  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes']);
+  const SEL_JANELAS = [...IDS_DE_JANELA].map((i) => '#' + i).join(',');
+  let remarcando = 0;
+  function remarcarAoFechar() {
+    remarcando = 0;
+    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto) return;
+    if (JANELAS_DE_MODULO.some((n) => { try { return window[n]?.aberto?.(); } catch { return false; } })) return;
+    if (document.getElementById('vv-agentes')?.isConnected && !document.getElementById('vv-agentes').hidden) return;
+    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : 'hoje');
+  }
+  if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
+    const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
+    if (fechou && !remarcando) remarcando = requestAnimationFrame(remarcarAoFechar);
+  }).observe(document.body, { childList: true, attributes: true, attributeFilter: ['hidden'], subtree: true });
   function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
@@ -351,15 +373,10 @@
   // status (status_color do quadro, a regra de sempre), cliente na cor da carteira do head
   // (tagClienteHtml), data em vermelho só se atrasou e o olhinho da prévia quando já há material.
   const semGrito = (t) => { const s = String(t || '').trim(); const letras = s.replace(/[^A-Za-zÀ-ÿ]/g, ''); return letras && letras === letras.toUpperCase() && letras.length > 4 ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
-  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"): a cor do quadro (status_color) e, sem ela,
-  // as cores exatas do Monday que o painel já usa (vybe-relatorios.js, STATUS_CORES). A escala de situação é o último recurso.
-  const STATUS_CORES = { 'em andamento': '#fdab3d', 'falta d.a': '#4eccc6', 'alteracao': '#df2f4a', 'finalizado': '#9cd326', 'aguardo': '#9d50dd',
-    'a fazer': '#c4c4c4', 'para agendar': '#037f4c', 'para aprovacao': '#579bfc', 'em aprovacao': '#579bfc', 'aguardando aprovacao': '#579bfc', 'cap. agendada': '#ff007f',
-    'ag. aprovacao cliente': '#faa1f1', 'ag. info cliente': '#bca58a', 'falta info': '#ff6d3b', 'agendando cap': '#ff5ac4', 'agendando cap.': '#ff5ac4',
-    'segurar post': '#7f5347', 'agendado': '#a1e3f6', 'pode fazer': '#ffcb00', 'ag. interno': '#bca58a', 'revisao': '#fdab3d', 'aprovado': '#9cd326',
-    'falta briefing': '#ff6d3b', 'nova demanda': '#579bfc', 'em execucao': '#ff6b00', 'feito': '#00c875', 'aguardando info.': '#9d50dd' };
-  const chaveStatus = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || STATUS_CORES[chaveStatus(d?.status)] || COR_SIT(sit || 'fazer');
+  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"; auditoria 09/11, A5): a cor do quadro
+  // (status_color, vybe_status.cor) e, sem ela, a do catálogo do painel pelo nome (corDeStatus). A escala de situação é o último recurso.
+  const corDoCatalogo = (s) => (typeof corDeStatus === 'function' ? corDeStatus(s)?.cor : '') || '';
+  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || corDoCatalogo(d?.status) || COR_SIT(sit || 'fazer');
   function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
@@ -425,7 +442,7 @@
   }
   function corDaPendencia(p) {
     const d = (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []).find((d) => String(d.id) === String(p?.id));
-    return d ? corStatus(d, situacaoDaPeca(d)) : STATUS_CORES[chaveStatus(p?.status)] || '#9AA3A8';
+    return d ? corStatus(d, situacaoDaPeca(d)) : corDoCatalogo(p?.status) || '#9AA3A8';
   }
   function mostrarPendencias(cliente = '', status = '') {
     const N = numerosDoDono(); if (!N) return;
@@ -486,6 +503,41 @@
       .map(({ a, e }) => ({ nome: a.agente || a.setor, andar: a.andar, setor: a.setor, estado: e.estado, texto: e.estado === 'falhou' ? 'falhou na última execução' + (e.ultimos?.[0]?.erro ? ': ' + e.ultimos[0].erro : '') : 'esperando sua aprovação' + (e.tarefa ? ': ' + e.tarefa : '') }));
     return { sinal: !f.erro, lista };
   }
+  // Detalhe de um dia da semana (Paulo, 08/11/2026: "clicar e abrir o hover com os detalhes… as demandas do dia separadas
+  // por status e responsável"): mesmo mini painel dos números (espiar). Clicar numa peça abre a peça.
+  PROVEDORES_DIA: {
+    const prov = (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {});
+    // Peças em blocos por status (a cor do quadro), com cliente e responsável; clicar abre a peça.
+    const pecasEmBlocos = (itens) => {
+      const grupos = new Map();
+      for (const d of itens) { const st = String(d.status || 'Sem status').trim() || 'Sem status'; if (!grupos.has(st)) grupos.set(st, []); grupos.get(st).push(d); }
+      const ordem = [...grupos.entries()].sort((a, b) => b[1].length - a[1].length), lista = ordem.flatMap(([, l]) => l);
+      let i = 0;
+      const corpo = ordem.map(([, l]) => `<section class="vv-espiar-bloco" style="--st:${esc(corStatus(l[0], situacaoDaPeca(l[0])))}"><div class="vv-espiar-grupo"><span>${statusCor(l[0])}</span><em>${l.length}</em></div>${l.map((d) => {
+        const quem = String(d.responsavel || '').trim() || 'sem responsável', cli = typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente;
+        return `<button type="button" class="vv-g-linha" data-espiar-item="${i++}"><b>${esc(d.nome || d.titulo || 'Peça')}</b><small>${cli ? cliCor(cli) + ' · ' : ''}${esc(quem)}</small></button>`;
+      }).join('')}</section>`).join('') || '<p class="vv-vazio">Nada aqui.</p>';
+      return { corpo, itens: lista.map((d) => ({ nome: d.nome, id: d.id })), clicar: (it) => chamar('openItemWorkspace', String(it.id)) };
+    };
+    // Alerta da operação (Paulo, 08/11/2026: "fui no automático clicar pra saber o que era em cada um"): a lista por trás.
+    prov.alerta = (resto) => {
+      const a = (numerosDoDono()?.alertas || [])[Number(resto)]; if (!a?.ref) return null;
+      const todos = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+      const titulo = String(a.texto).split(':')[0].replace(/^\d+\s*/, '');
+      if (a.ref.tipo === 'pecas') { const ids = new Set(a.ref.ids.map(String)); const lista = todos.filter((d) => ids.has(String(d.id))); return { titulo, n: lista.length, cls: a.nivel === 1 ? 'u1' : 'u2', ...pecasEmBlocos(lista) }; }
+      if (a.ref.tipo === 'status') { const lista = todos.filter((d) => String(d.status || '').trim() === a.ref.status && situacaoDaPeca(d) !== 'concluida'); return { titulo, n: lista.length, cls: 'u2', ...pecasEmBlocos(lista) }; }
+      if (a.ref.tipo === 'clientes') return { titulo, n: a.ref.nomes.length, cls: 'u2', itens: a.ref.nomes.map((nome) => ({ nome, cliente: nome })),
+        corpo: a.ref.nomes.map((nome, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${cliCor(nome)}</b></button>`).join(''), clicar: (it) => mostrarPendencias(it.cliente) };
+      return null;
+    };
+    prov.semdia = (resto) => {
+      const [dia, campo = 'veiculacao_iso'] = String(resto).split('|');
+      const itens = (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []).filter((d) => String(d[campo] || '').slice(0, 10) === dia);
+      const blocos = pecasEmBlocos(itens);
+      const nomeDia = new Date(dia + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+      return { titulo: 'peças em ' + nomeDia, n: itens.length, ...blocos, rodape: campo === 'prazo_iso' ? 'pelo prazo' : 'pela veiculação' };
+    };
+  }
   function semanaPorStatusHtml(G) {
     const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
     const campo = G?.campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso', dias = (G?.porDia || []).map((x) => x.dia);
@@ -509,7 +561,7 @@
     const max = Math.max(1, ...colunas.map((c) => c.lista.length));
     const col = (c) => {
       const passou = c.dia < hojeDia, hojeC = c.dia === hojeDia;
-      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-hoje-acao="dia" data-valor="${c.dia}" title="${esc(c.grupos.map((g) => g.n + ' ' + g.st).join(' · ') || 'Nada neste dia')}">
+      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-espiar="semdia:${c.dia}|${campo}" aria-label="${esc(c.lista.length + ' peças em ' + c.dia.slice(8, 10) + '/' + c.dia.slice(5, 7))}">
         <span class="vv-sem-topo">${c.lista.length ? `<b>${c.lista.length}</b>${c.prontas ? `<em title="já saíram">${c.prontas} prontas</em>` : ''}` : '<b>–</b>'}</span>
         <span class="vv-sem-barras"><i class="total" style="--h:${Math.round((c.lista.length / max) * 100)}%" title="${c.lista.length} previstas"></i>${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};--h:${Math.max(4, Math.round((g.n / max) * 100))}%" title="${g.n} ${esc(g.st)}"></i>`).join('')}</span>
         <span class="vv-sem-dia">${NOMES[new Date(c.dia + 'T12:00:00Z').getUTCDay()]} <small>${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}</small></span></button>`;
@@ -545,7 +597,7 @@
         ${V.kpi({ icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' })}
       </div>` : '';
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
-    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
+    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
     const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
     const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
     const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
@@ -625,7 +677,7 @@
           ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
           ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
         </div>
-        ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
+        ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a, i) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${i}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
           + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${n0(g.qtd)} peças, paradas há ${n0(g.idadeMedianaDias)} dias (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
         ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
           + bloco('Atrasos por cliente', 'atrasadas e risco de furo por cliente', deitadas(CL.filter((c) => c.atrasadas || c.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.atrasadas + c.emRisco, cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(c.atrasadas)} <small>+${n0(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'coracao' }))}
@@ -737,7 +789,7 @@
     if (PROVEDORES[pref]) {
       let c = null; try { c = PROVEDORES[pref](String(chave).slice(pref.length + 1)); } catch (e) { console.error('[espiar]', e); }
       if (!c) return null;
-      if (Array.isArray(c.itens)) c.corpo = c.itens.length ? c.itens.map((it, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${esc(it.nome)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.dir ? `<em class="${it.cls ? 't-' + it.cls : ''}">${esc(it.dir)}</em>` : ''}</button>`).join('') : `<p class="vv-vazio">${esc(c.vazio || 'Nada aqui.')}</p>`;
+      if (Array.isArray(c.itens) && !c.corpo) c.corpo = c.itens.length ? c.itens.map((it, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${esc(it.nome)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.dir ? `<em class="${it.cls ? 't-' + it.cls : ''}">${esc(it.dir)}</em>` : ''}</button>`).join('') : `<p class="vv-vazio">${esc(c.vazio || 'Nada aqui.')}</p>`;
       if (c.n == null) c.n = (c.itens || []).length;
       return c;
     }
@@ -974,10 +1026,10 @@
       let grupo = '';
       return TRILHO.map((t) => {
         if (t === '-') return '<span class="vv-trilho-espaco"></span>';
-        const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
+        const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo" data-grupo="${t.grupo}">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
         const setor = Array.isArray(t.sub);
-        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
-        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
+        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
         return cab + botao + subs;
       }).join('');
     })()}</nav>
@@ -986,19 +1038,25 @@
       <div class="vv-espaco"></div>
       <div class="vv-ilha vv-barra-topo">
       <div class="vv-ferramentas" role="group" aria-label="Ferramentas">
-        <button type="button" class="vv-botao vv-ferr-mic" data-ferr="mic" hidden aria-pressed="false" title="Microfone" aria-label="Microfone">${svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}</button>
-        <button type="button" class="vv-botao vv-ferr-voz" data-ferr="voz" aria-expanded="false" title="Sala de voz: quem está com você, microfone, música e TV" aria-label="Sala de voz">${svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>')}<i class="vv-voz-ponto" aria-hidden="true"></i></button>
-        <button type="button" class="vv-botao vv-ferr-musica" data-ferr="musica" hidden aria-expanded="false" title="Música da sala" aria-label="Música da sala">${svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>')}</button>
-        <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}</button>
-        <span class="vv-divisor" aria-hidden="true"></span>
-        <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
+        <!-- Cabeçalho (Paulo, 08/11/2026: "o dock de cima tá poluído, pregado por cima do sistema"): busca, a chamada num bloco,
+             os atalhos do dia, o resto no "Mais" e a conta. Os botões são os mesmos de antes (data-ferr). -->
+        <button type="button" class="vv-botao vv-busca-larga" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}<span class="vv-busca-texto">Buscar em tudo</span><kbd>⌘K</kbd></button>
+        <span class="vv-grupo-chamada" role="group" aria-label="Chamada">
+          <button type="button" class="vv-botao vv-ferr-mic" data-ferr="mic" hidden aria-pressed="false" title="Microfone" aria-label="Microfone">${svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}</button>
+          <button type="button" class="vv-botao vv-ferr-voz" data-ferr="voz" aria-expanded="false" title="Sala de voz: quem está com você, microfone, música e TV" aria-label="Sala de voz">${svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>')}<i class="vv-voz-ponto" aria-hidden="true"></i><span class="vv-voz-nome">Salas</span></button>
+          <button type="button" class="vv-botao vv-ferr-musica" data-ferr="musica" hidden aria-expanded="false" title="Música da sala" aria-label="Música da sala">${svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>')}</button>
+        </span>
+        <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}<span class="vv-ferr-nome">Agenda</span></button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="conversa" title="Conversa da equipe e recados" aria-label="Conversa da equipe">${svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
-        <button type="button" class="vv-botao" data-ferr="whatsapp" title="WhatsApp da Vybe (só leitura)" aria-label="WhatsApp da Vybe" aria-pressed="false">${svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>')}<span class="vv-badge" id="vv-badge-whatsapp" hidden></span></button>
-        <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}</button>
-        <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}</button>
-        <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}</button>
-        <button type="button" class="vv-botao" data-ferr="ajuda" title="Ajuda do VYBES: refazer o passeio e rever as dicas" aria-label="Ajuda do VYBES">${svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 16.8h.01"/>')}</button>
+        <button type="button" class="vv-botao" data-ferr="whatsapp" title="WhatsApp da Vybe (só leitura)" aria-label="WhatsApp da Vybe" aria-pressed="false">${svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>')}<span class="vv-badge" id="vv-badge-whatsapp" hidden></span><span class="vv-ferr-nome">WhatsApp</span></button>
+        <details class="vv-mais-menu"><summary class="vv-botao" aria-label="Mais ferramentas" title="Mais: notas, camadas, aparência e ajuda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></summary>
+        <div class="vv-mais-lista" role="menu">
+          <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}<span class="vv-mais-nome">Notas</span></button>
+          <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}<span class="vv-mais-nome">Camadas do mapa</span></button>
+          <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}<span class="vv-mais-nome">Aparência</span></button>
+          <button type="button" class="vv-botao" data-ferr="ajuda" title="Ajuda do VYBES: refazer o passeio e rever as dicas" aria-label="Ajuda do VYBES">${svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 16.8h.01"/>')}<span class="vv-mais-nome">Ajuda</span></button>
+        </div></details>
         <button type="button" class="vv-botao" data-ferr="conta" title="Sua conta e equipe" aria-label="Conta">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>')}</button>
       </div>
       <span class="vv-divisor" aria-hidden="true"></span>
@@ -1423,6 +1481,8 @@
   }
   // A agenda completa é a das Captações (módulo Produção): uma agenda só.
   function abrirAgenda(dia) {
+    // O menu da Agenda fecha ao abrir a agenda completa (auditoria 09/11, D13: ficava aberto por cima da tela que abriu).
+    fecharDaDireita();
     abrirModulo({ tipo: 'modo', alvo: 'producao' });
     if (dia) setTimeout(() => { if (typeof captVerDia === 'function') captVerDia(dia); }, 250);
   }
@@ -1846,23 +1906,22 @@
   function alternarMenuConta() {
     let m = hud.querySelector('.vv-menu-conta');
     if (m) { m.remove(); return; }
-    const admin = typeof souAdmin === 'function' && souAdmin(), dono = souDono();
+    const dono = souDono();
     m = document.createElement('div'); m.className = 'vv-menu-conta'; m.setAttribute?.('role', 'menu');
     const item = (acao, texto, sub, cls = '') => `<button type="button" role="menuitem" class="${cls}" data-conta-acao="${acao}"><b>${texto}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
-    m.innerHTML = item('conta', 'Minha conta', 'perfil, senha e equipe')
+    // Diário e IA ficam só na Gestão (uma porta por tela, auditoria 09/11).
+    m.innerHTML = item('conta', 'Minha conta', 'senha, acessos e equipe')
+      + item('perfil', 'Meu perfil', 'nível, VybeCoins e conquistas')
       + item('atualizar', 'Atualizar dados', 'busca de novo a produção e os clientes')
-      + (admin || dono ? item('diario', 'Diário de produção', 'fotos do estado de cada dia') + item('ia', 'IA & Custos', 'uso e custo dos modelos') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
       + '<hr>' + item('sair', 'Sair', '', 'perigo');
     hud.querySelector('.vv-barra-topo')?.after?.(m);
     m.addEventListener?.('click', (e) => {
       const b = e.target.closest('[data-conta-acao]'); if (!b) return;
       const a = b.dataset.contaAcao; m.remove();
-      const quadro = (id) => { chamar('chooseManagerMode'); setTimeout(() => { const btn = document.getElementById('btn-board-' + id); if (btn) chamar('switchBoard', id, btn); }, 250); };
       if (a === 'conta') chamar('irParaMinhaConta');
+      else if (a === 'perfil') abrirPerfil();
       else if (a === 'atualizar') { chamar('refreshData'); }
-      else if (a === 'diario') quadro('diario');
-      else if (a === 'ia') quadro('ai-usage');
       else if (a === 'recado') chamar('abrirMandarAvisoEscritorio');
       else if (a === 'sair') chamar('sairDaSessao');
     });
@@ -1909,7 +1968,33 @@
     if (ev.target?.closest?.('#vv-agenda, .vv-chamada, .vv-ferramentas, #office-musica, dialog, .vv-chamar')) return;
     fecharDaDireita();
   }, true);
+  // Os avisos num lugar só: notificações do painel e o que os planejamentos e os clientes pedem (antes, uma bolinha
+  // solta no canto com o número). Com só um dos dois, abre direto; com os dois, uma escolha.
+  function avisosPlanejamento() {
+    let n = 0; try { n = (typeof PLJ_PENDENTES !== 'undefined' ? PLJ_PENDENTES.length : 0) + (typeof PLJ_ALERTAS !== 'undefined' ? PLJ_ALERTAS.reduce((t, a) => t + (a.total || 0), 0) : 0); } catch { n = 0; }
+    return n;
+  }
+  const notificacoesDoPainel = () => Number(document.getElementById('notif-contador')?.textContent || 0) || 0;
+  function abrirNotificacoes() { chamar('chooseManagerMode'); setTimeout(() => chamar('alternarNotificacoes'), 350); }
+  function abrirAvisos() {
+    const pl = avisosPlanejamento(), nt = notificacoesDoPainel();
+    hud.querySelector('.vv-avisos-menu')?.remove();
+    if (pl && !nt) { chamar('abrirPendentesPlanejamento'); return; }
+    if (!pl) { abrirNotificacoes(); return; }
+    const b = hud.querySelector('[data-ferr="avisos"]'), r = b.getBoundingClientRect();
+    const m = document.createElement('div'); m.className = 'vv-avisos-menu'; m.setAttribute('role', 'menu');
+    m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.round(innerWidth - r.right) + 'px';
+    m.innerHTML = `<button type="button" role="menuitem" data-avisos="plj"><b>Planejamentos e clientes</b><small>o que espera você e os avisos nas peças</small><em>${pl}</em></button>
+      <button type="button" role="menuitem" data-avisos="notif"><b>Notificações do painel</b><small>menções, mudanças e lembretes</small><em>${nt}</em></button>`;
+    m.addEventListener('click', (e) => { const x = e.target.closest('[data-avisos]'); if (!x) return; m.remove(); if (x.dataset.avisos === 'plj') chamar('abrirPendentesPlanejamento'); else abrirNotificacoes(); });
+    hud.append(m);
+    setTimeout(() => document.addEventListener('pointerdown', function fora(e) { if (!e.target.closest('.vv-avisos-menu, [data-ferr="avisos"]')) { m.remove(); document.removeEventListener('pointerdown', fora, true); } }, true), 0);
+  }
+  // O "Mais" fecha com clique fora e com Esc.
+  document.addEventListener?.('pointerdown', (e) => { const m = hud.querySelector('.vv-mais-menu[open]'); if (m && !m.contains(e.target)) m.removeAttribute('open'); }, true);
+  document.addEventListener?.('keydown', (e) => { const m = e.key === 'Escape' && hud.querySelector('.vv-mais-menu[open]'); if (m) { m.removeAttribute('open'); e.stopPropagation(); } }, true);
   function usarFerramenta(id) {
+    hud.querySelector('.vv-mais-menu[open]')?.removeAttribute('open'); // escolher algo do "Mais" fecha o menu
     if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
     if (id === 'musica') { abrirMusica(!body.classList.contains('musica-aberta')); return; }
     if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
@@ -1921,10 +2006,10 @@
     else if (id === 'ajuda') window.VybeTutorial?.ajuda?.();
     else if (id === 'conversa') { if (window.VybeConversa?.aberto?.()) window.VybeConversa.fechar(); else window.VybeConversa?.abrir?.('conversa'); }
     else if (id === 'conta') { hud.querySelector('.vv-menu-tema')?.remove(); alternarMenuConta(); }
-    else if (id === 'avisos') { chamar('chooseManagerMode'); setTimeout(() => chamar('alternarNotificacoes'), 350); }
+    else if (id === 'avisos') abrirAvisos();
   }
   setInterval(() => {
-    const n = Number(document.getElementById('notif-contador')?.textContent || 0), el = hud.querySelector('#vv-badge-avisos');
+    const n = notificacoesDoPainel() + avisosPlanejamento(), el = hud.querySelector('#vv-badge-avisos');
     if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
   }, 3000);
 
@@ -2305,7 +2390,8 @@
     const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
     v.classList.toggle('on', naChamada); v.title = naChamada ? `Sala de voz: ${sala} (na chamada)` : 'Sala de voz: quem está com você, microfone, música e TV';
     let rot = v.querySelector('.vv-voz-nome'); if (!rot) { rot = document.createElement('span'); rot.className = 'vv-voz-nome'; v.append(rot); }
-    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : ''; rot.hidden = !naChamada;
+    // Sempre com nome (Paulo, 08/11/2026: "maiorzinho, com o nome Salas"): fora da chamada "Salas"; na chamada, a sala.
+    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : 'Salas'; rot.hidden = false;
     m.hidden = !naChamada; m.classList.toggle('on', mic); m.setAttribute('aria-pressed', String(mic));
     m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: clique para falar'; m.setAttribute('aria-label', m.title);
   }

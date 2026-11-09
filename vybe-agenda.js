@@ -181,7 +181,7 @@ function leituraProativaHtml(items=DADOS) {
     {key:'owner',count:unassigned.length,label:'sem responsável',detail:unassigned[0] ? `${unassigned[0].cliente} · ${unassigned[0].nome}` : 'Todas as atividades têm atribuição',color:'#c084fc',item:unassigned[0]}
   ];
   const active = alerts.filter(a => a.count > 0);
-  const cards = active.length ? active.map(a => `<button type="button" class="leitura-proativa-alerta ${managerCommandInsight===a.key?'active':''}" style="--cor-alerta:${a.color}" onclick="openManagerCommandInsight('${a.key}')" title="Ver as demandas deste sinal na Central de Decisão"><b>${a.count}</b><span>${safeText(a.label)}</span><small>${safeText(a.detail)}</small></button>`).join('') : '<div class="leitura-proativa-empty">✓ Jarvis não identificou bloqueios que precisem de decisão agora.</div>';
+  const cards = active.length ? active.map(a => `<button type="button" class="leitura-proativa-alerta ${managerCommandInsight===a.key?'active':''}" style="--cor-alerta:${a.color}" onclick="openManagerCommandInsight('${a.key}')" title="Ver as demandas deste sinal na Central de Decisão"><b>${a.count}</b><span>${safeText(a.label)}</span><small>${safeText(a.detail)}</small></button>`).join('') : '<div class="leitura-proativa-empty">Nenhum bloqueio precisa de decisão agora.</div>';
   return `<section class="leitura-proativa"><div class="leitura-proativa-topo"><strong>Leitura proativa</strong><span>Atualiza a cada leitura do painel</span></div>${cards}</section>`;
 }
 let managerCommandDrawerOpen=false;
@@ -2399,7 +2399,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // marcar uma peca no fim de mil linhas mostrava as acoes fora da tela, e a
   // pessoa marcava sem ver que havia o que fazer com aquilo.
   wrap.innerHTML = `<div class="grupos-head">
-      <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Solicitações' : 'Conteúdos'} por grupo</div></div>
+      <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Demandas' : 'Conteúdos'} por grupo</div></div>
       <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
     </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos ? blocos + (typeof botaoNovoGrupoNoFim === 'function' ? botaoNovoGrupoNoFim(quadro) : '') : `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }

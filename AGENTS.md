@@ -206,7 +206,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   na organização do AgencyFlow (Paulo, 08/11/2026: "aproveitar mais a organização do AgencyFlow mantendo os nossos módulos"):
   Produção = o Projetos deles (entregas, tarefas, demandas, projetos pontuais, agenda, aprovação, planejamentos, arte,
   fornecedores, creators); Clientes; Comercial (CRM e funil, Conversas, produtos, orçamentos); Finanças; Gestão; Recursos
-  Humanos (equipe, produtividade, pedidos e calendário, recrutamento, documentos); Academy e Toolkit próprios. Aberta pelo
+  Humanos (produtividade com a carga da semana, pedidos e calendário, recrutamento, documentos); Academy, Equipe online
+  e Toolkit próprios; Meu perfil (jogo) no menu da conta. Aberta pelo
   dock, a janela de um módulo mostra só as abas daquele item (`abrir(aba, { abas, rotulo })`).; no computador o dock é largo, com nomes, e o setor clicado abre
   para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
   das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
