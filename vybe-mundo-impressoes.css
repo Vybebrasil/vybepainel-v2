@@ -1,0 +1,101 @@
+/* Impressões da Produção (vybe-mundo-impressoes.js). Padrão claro do Irecity, sem !important (regra de 09/11/2026). */
+#vv-impressoes{display:flex;flex-direction:column;width:min(1240px,100%);max-height:100%;background:#FBF9F5;color:#1F1D1A;font-family:Inter,system-ui,sans-serif;border-radius:10px;overflow:hidden;box-shadow:0 18px 50px rgba(31,29,26,.25)}
+#vv-impressoes .vi-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 14px 12px 18px;background:#FFFFFF;border-bottom:1px solid #E6E0D6}
+#vv-impressoes .vi-topo small{display:block;font:600 11px Inter,system-ui,sans-serif;color:#8A7F70}
+#vv-impressoes .vi-topo h2{margin:2px 0 2px;font:700 20px/1.2 "Inter Tight",Inter,system-ui,sans-serif;letter-spacing:-.01em}
+#vv-impressoes .vi-topo p{margin:0;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-topo-acoes{display:flex;gap:8px;align-items:center;flex:none}
+#vv-impressoes .vi-x{width:34px;height:34px;display:grid;place-items:center;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#3D3A35;cursor:pointer;font-size:14px}
+#vv-impressoes .vi-x:hover{background:#F3EEE6}
+#vv-impressoes .vi-aviso{margin:0;padding:0 18px;font:600 12px Inter,system-ui,sans-serif;color:#12813F}
+#vv-impressoes .vi-aviso:not(:empty){padding:8px 18px 0}
+#vv-impressoes .vi-aviso.erro{color:#C2262E}
+#vv-impressoes .vi-corpo{flex:1 1 auto;min-height:0;overflow:auto;padding:14px 18px 22px;display:grid;gap:14px;align-content:start}
+#vv-impressoes .vi-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
+#vv-impressoes .vi-botao:hover{background:#F3EEE6}
+#vv-impressoes .vi-botao.principal{background:#F76808;border-color:#F76808;color:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.16)}
+#vv-impressoes .vi-botao.principal:hover{background:#E05A00}
+#vv-impressoes .vi-botao.perigo{color:#B4232F;border-color:#F0C4C7}
+#vv-impressoes .vi-botao:disabled{opacity:.45;cursor:not-allowed}
+#vv-impressoes :is(button,a,input,select,textarea):focus-visible{outline:2px solid #F76808;outline-offset:2px}
+#vv-impressoes .vi-link{appearance:none;border:0;background:none;padding:0;color:#C2490C;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+#vv-impressoes .vi-mudo{color:#8A847A;font:500 12px Inter,system-ui,sans-serif;font-style:normal;margin:0}
+#vv-impressoes .vi-nota{margin:0;font:500 12px/1.45 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .t-ruim{color:#B4232F}
+#vv-impressoes .vi-tag{display:inline-block;padding:1px 7px;border-radius:6px;font:600 11px Inter,system-ui,sans-serif;font-style:normal}
+#vv-impressoes .vi-tag.ruim{background:#FDECEC;color:#B4232F}
+/* Sem fornecedor cadastrado: o caminho para cadastrar fica à vista. */
+#vv-impressoes .vi-alerta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:8px;background:#FFF4E8;border:1px solid #F3D3B5;font:500 13px/1.45 Inter,system-ui,sans-serif}
+#vv-impressoes .vi-filtros{display:flex;gap:6px;flex-wrap:wrap}
+#vv-impressoes .vi-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#3D3A35;font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer}
+#vv-impressoes .vi-chip em{font-style:normal;color:#6B665E}
+#vv-impressoes .vi-chip.ruim em{color:#B4232F}
+#vv-impressoes .vi-chip.atencao em{color:#9E5C00}
+#vv-impressoes .vi-chip[aria-pressed="true"]{border-color:#F76808;background:#FFF4E8;color:#9E3D00}
+/* Quadro por etapa e a ficha ao lado */
+#vv-impressoes .vi-meio{display:grid;gap:14px;align-items:start}
+#vv-impressoes .vi-meio.com-ficha{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+#vv-impressoes .vi-quadro{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-color:#B3A893 transparent}
+#vv-impressoes .vi-coluna{display:grid;gap:8px;align-content:start;padding:10px;border-radius:8px;background:#F3EFE8;min-height:120px}
+#vv-impressoes .vi-coluna-topo{display:flex;justify-content:space-between;align-items:center;font:700 12px Inter,system-ui,sans-serif;color:#3D3A35}
+#vv-impressoes .vi-coluna-topo em{font-style:normal;color:#6B665E}
+#vv-impressoes .vi-cartao{appearance:none;display:grid;gap:4px;text-align:left;padding:10px;border:1px solid #E6E0D6;border-left:3px solid #D9D1C3;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:500 12px/1.4 Inter,system-ui,sans-serif;cursor:pointer}
+#vv-impressoes .vi-cartao:hover{border-color:#F3D3B5}
+#vv-impressoes .vi-cartao.sel{border-color:#F76808;box-shadow:0 0 0 2px #FDE6CF}
+#vv-impressoes .vi-cartao.atrasada{border-left-color:#D2453B}
+#vv-impressoes .vi-cartao b{font:600 13px/1.3 Inter,system-ui,sans-serif}
+#vv-impressoes .vi-linha{display:flex;align-items:center;gap:6px;min-width:0;color:#3D3A35}
+#vv-impressoes .vi-pe{display:flex;justify-content:space-between;gap:6px;color:#6B665E}
+#vv-impressoes .vi-pe time.atrasada{color:#B4232F;font-weight:700}
+#vv-impressoes .vi-ficha{display:grid;gap:10px;padding:14px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;position:sticky;top:0}
+#vv-impressoes .vi-ficha-topo{display:flex;justify-content:space-between;gap:8px}
+#vv-impressoes .vi-ficha-topo small{font:600 11px Inter,system-ui,sans-serif;color:#8A7F70}
+#vv-impressoes .vi-ficha-topo h3{margin:2px 0 0;font:700 16px/1.25 Inter,system-ui,sans-serif}
+#vv-impressoes .vi-dados{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;margin:0;font:500 12.5px/1.4 Inter,system-ui,sans-serif}
+#vv-impressoes .vi-dados dt{color:#6B665E}
+#vv-impressoes .vi-dados dd{margin:0;min-width:0;overflow-wrap:anywhere}
+#vv-impressoes .vi-dados a{color:#C2490C}
+#vv-impressoes .vi-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#vv-impressoes .vi-mover{display:inline-flex;align-items:center;gap:6px;font:600 12px Inter,system-ui,sans-serif;color:#3D3A35}
+#vv-impressoes h4{margin:4px 0 0;font:700 12px Inter,system-ui,sans-serif;color:#3D3A35;text-transform:uppercase;letter-spacing:.04em}
+#vv-impressoes .vi-hist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+#vv-impressoes .vi-hist li{padding-left:10px;border-left:2px solid #E6E0D6;font:500 12px/1.4 Inter,system-ui,sans-serif}
+#vv-impressoes .vi-hist small{display:block;color:#6B665E}
+#vv-impressoes .vi-hist p{margin:2px 0 0;color:#3D3A35}
+/* Formulário */
+#vv-impressoes .vi-form,#vv-impressoes .vi-cancelar{display:grid;gap:12px;padding:16px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
+#vv-impressoes .vi-form h3{margin:0;font:700 16px Inter,system-ui,sans-serif}
+#vv-impressoes .vi-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+#vv-impressoes .vi-grade .largo{grid-column:1/-1}
+#vv-impressoes label{display:grid;gap:5px;font:600 12px Inter,system-ui,sans-serif;color:#3D3A35}
+#vv-impressoes label :is(input:not([type=checkbox]),select,textarea){font:500 13.5px Inter,system-ui,sans-serif;color:#1F1D1A;background:#FFFFFF;border:1px solid #D9D1C3;border-radius:6px;padding:8px 10px;width:100%;box-sizing:border-box}
+#vv-impressoes label textarea{resize:vertical}
+#vv-impressoes .vi-check{display:flex;align-items:flex-start;gap:8px;font-weight:500}
+#vv-impressoes .vi-check input{accent-color:#F76808;width:16px;height:16px;margin-top:1px}
+#vv-impressoes .vi-sem-forn{font:500 12.5px Inter,system-ui,sans-serif;color:#6B665E;padding:8px 0}
+/* Por fornecedor */
+#vv-impressoes .vi-bloco{display:grid;gap:8px}
+#vv-impressoes .vi-forn{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+#vv-impressoes .vi-forn button{appearance:none;width:100%;display:grid;gap:2px;text-align:left;padding:10px 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;font:600 13px Inter,system-ui,sans-serif}
+#vv-impressoes .vi-forn button[aria-pressed="true"]{border-color:#F76808;background:#FFF4E8}
+#vv-impressoes .vi-forn small{font:500 12px Inter,system-ui,sans-serif;color:#6B665E}
+@media (max-width:900px){
+  #vv-impressoes .vi-meio.com-ficha{grid-template-columns:1fr}
+  #vv-impressoes .vi-ficha{position:static}
+  #vv-impressoes .vi-topo p{display:none}
+}
+/* Sugestão de gráfica, cotações e ranking (servidor #549) */
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes){list-style:none;margin:0;padding:0;display:grid;gap:6px}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FAF7F2}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) li span{display:grid;gap:2px;min-width:0;font:600 12.5px Inter,system-ui,sans-serif}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) small{font:500 11.5px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-cotacoes li.escolhida{border-color:#A7D9B9;background:#EEF8F1}
+#vv-impressoes .vi-tag.ok{background:#E3F4E9;color:#1D6B3D}
+#vv-impressoes .vi-cotar{display:grid;gap:10px;padding:12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
+#vv-impressoes .vi-ranking{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;counter-reset:rank}
+#vv-impressoes .vi-ranking li{counter-increment:rank}
+#vv-impressoes .vi-ranking button{appearance:none;width:100%;display:grid;gap:3px;text-align:left;padding:10px 12px 10px 38px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;font:600 13px Inter,system-ui,sans-serif;position:relative}
+#vv-impressoes .vi-ranking button::before{content:counter(rank) "º";position:absolute;left:12px;top:10px;font:700 13px Inter,system-ui,sans-serif;color:#C2490C}
+#vv-impressoes .vi-ranking button[aria-pressed="true"]{border-color:#F76808;background:#FFF4E8}
+#vv-impressoes .vi-ranking small{font:500 12px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-ranking .vi-motivo{color:#3D3A35}

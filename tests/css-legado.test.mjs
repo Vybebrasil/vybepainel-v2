@@ -33,3 +33,8 @@ test('sem remendo de repouso: vybe-energia.js pausa só os laços infinitos', ()
   for (const f of readdirSync('.').filter((n) => /^vybe-mundo.*\.css$/.test(n)))
     assert.doesNotMatch(ler(f), /html\.vb-ocioso[^{]*\{[^}]*animation:none/, f);
 });
+
+test('nenhuma sobra de conflito de merge no CSS e JS da raiz (um "=======" solto derrubava a regra seguinte)', () => {
+  const arquivos = readdirSync('.').filter((f) => /\.(css|js)$/.test(f));
+  for (const f of arquivos) assert.doesNotMatch(ler(f), /^(<<<<<<< |=======$|>>>>>>> )/m, f);
+});

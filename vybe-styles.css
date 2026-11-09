@@ -27766,7 +27766,6 @@ button.snc-liga-quem:hover .snc-liga-foto{transform:scale(1.06)}
 .snc-estante-aba :is(.snc-cf-medalhas li,.snc-cf-mural li):is(:hover,:focus){z-index:2}
 @media (max-width:900px){.snc-estante-aba.snc-cf{grid-template-columns:1fr}}
 @media (max-height:820px){.snc-liga-bloco{height:78px}.snc-liga-degrau.p1 .snc-liga-bloco{height:118px}.snc-liga-degrau.p3 .snc-liga-bloco{height:58px}.snc-liga-degrau.p1 .snc-liga-foto{width:92px;height:92px}.snc-liga-foto{width:72px;height:72px}}
-=======
 
 /* Fundos das telas legadas (auditoria 09/11, E2): as camadas capt-, ag-, rot-, p-cal-, prod-v2-, plj-, auto-, notas-,
    conta- e o topo do tutorial usam var(--lg-*, cor antiga). Sem o mundo, vale a cor antiga; no mundo claro, estes tokens.

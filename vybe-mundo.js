@@ -142,6 +142,8 @@
       { id: 'planejamentos', nome: 'Planejamentos', dica: 'Centro de Operação: o planejamento de cada cliente para revisar, editar, aprovar e enviar', mod: ['VybePlanejamentos'] },
       { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
       { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
+      // Impressões (Paulo, 09/11/2026): perto de Fornecedores e ligada a eles (a gráfica de cada impressão).
+      { id: 'impressoes', nome: 'Impressões', dica: 'Da arte à entrega na gráfica: etapa, fornecedor e prazo', mod: ['VybeImpressoes'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
     ] },
     { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
@@ -235,10 +237,10 @@
     if (dockLargo()) expandirSetor(String(alvo).startsWith('setor:') ? alvo : '');
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
-  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas'];
+  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes'];
   // Dock aceso só no que está na tela (auditoria 09/11, D10): ao fechar a janela de um módulo (X, Esc ou o próprio
   // módulo), o item dela apaga e volta a acender o que ficou à vista. As janelas somem do body ou ganham hidden.
-  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes']);
+  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes', 'vv-impressoes']);
   const SEL_JANELAS = [...IDS_DE_JANELA].map((i) => '#' + i).join(',');
   let remarcando = 0;
   function remarcarAoFechar() {
