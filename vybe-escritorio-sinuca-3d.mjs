@@ -110,7 +110,56 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx;
   })();
   const parede = new Mesh(new PlaneGeometry(520, 292), new MeshStandardMaterial({ map: texParede, color: 0xffffff, roughness: 0.95 }));
-  parede.position.set(cx, 90, cz - 170); cena.add(parede);
+  // A parede de azulejo perto da mesa (aparece atrás quando a mira aponta para o fundo) e uma parede do lado.
+  parede.position.set(cx, 122, az0 - 75); cena.add(parede);
+  const lateral = new Mesh(new PlaneGeometry(520, 292), parede.material);
+  lateral.rotation.y = Math.PI / 2; lateral.position.set(ax0 - 95, 122, cz); cena.add(lateral);
+  // O BOTECO EM VOLTA (Paulo, 09/11/2026: "por que não traz o ar de boteco pra dentro do próprio jogo,
+  // no cenário ao redor da mesa?"): cadeira de plástico vermelha, mesa amarela de cerveja com garrafas
+  // e engradados empilhados. Tudo no chão, fora da mesa e abaixo das câmeras.
+  const pisoY = -24;
+  const plastico = (cor) => new MeshStandardMaterial({ color: cor, roughness: 0.45, metalness: 0 });
+  const vermelho = plastico(0xd8261c), amarelo = plastico(0xf2bd14);
+  const peca = (geo, mat, x, y, z, rx = 0, ry = 0) => { const m = new Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); m.castShadow = true; m.receiveShadow = true; return m; };
+  const cadeira = (x, z, giro) => {
+    const g = new Group(), pe = new CylinderGeometry(0.7, 0.9, 17, 8);
+    for (const [px, pz] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) g.add(peca(pe, vermelho, px, pisoY + 8.5, pz));
+    g.add(peca(new BoxGeometry(17, 1.4, 17), vermelho, 0, pisoY + 17.5, 0));
+    g.add(peca(new BoxGeometry(17, 15, 1.2), vermelho, 0, pisoY + 25, -8.2, -0.12));
+    g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
+  };
+  const mesaBar = (x, z) => {
+    const g = new Group(), pe = new CylinderGeometry(0.8, 1, 26, 8);
+    for (const [px, pz] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) g.add(peca(pe, amarelo, px, pisoY + 13, pz));
+    g.add(peca(new BoxGeometry(28, 1.6, 28), amarelo, 0, pisoY + 26.8, 0));
+    const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = plastico(0xf5f0e0), tampa = new MeshStandardMaterial({ color: 0xc9c9c9, metalness: 0.8, roughness: 0.3 });
+    for (const [bx, bz] of [[-5, -3], [3, 4], [6, -6]]) {
+      g.add(peca(new CylinderGeometry(1.8, 1.8, 9, 14), vidro, bx, pisoY + 32, bz));
+      g.add(peca(new CylinderGeometry(1.85, 1.85, 3, 14), rotulo, bx, pisoY + 31.5, bz));
+      g.add(peca(new CylinderGeometry(0.7, 1.6, 4, 12), vidro, bx, pisoY + 38.5, bz));
+      g.add(peca(new CylinderGeometry(0.8, 0.8, 0.6, 10), tampa, bx, pisoY + 40.8, bz));
+    }
+    g.add(peca(new CylinderGeometry(2.2, 1.8, 6, 14), new MeshPhysicalMaterial({ color: 0xf6c34a, roughness: 0.1, transmission: 0.3, thickness: 1 }), -2, pisoY + 30.6, 6));
+    g.position.set(x, 0, z); cena.add(g);
+  };
+  const engradado = (x, z, cores, giro = 0) => {
+    const g = new Group();
+    cores.forEach((cor, i) => {
+      const caixa = peca(new BoxGeometry(20, 11, 14), plastico(cor), 0, pisoY + 5.5 + i * 11.2, 0);
+      g.add(caixa);
+      // garrafas aparecendo no engradado de cima
+      if (i === cores.length - 1) for (let gx = -7.5; gx <= 7.5; gx += 5) for (let gz = -4; gz <= 4; gz += 4) g.add(peca(new CylinderGeometry(1.4, 1.4, 4, 10), new MeshStandardMaterial({ color: 0x4a2a08, roughness: 0.2 }), gx, pisoY + 13 + i * 11.2, gz));
+    });
+    g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
+  };
+  cadeira(ax0 - 26, cz + 16, Math.PI / 2 + 0.3);
+  cadeira(ax1 + 28, cz - 22, -Math.PI / 2 - 0.2);
+  cadeira(cx + 30, az1 + 30, Math.PI + 0.25);
+  mesaBar(ax1 + 44, az1 + 22);
+  cadeira(ax1 + 44, az1 + 46, Math.PI);
+  engradado(ax0 - 34, az0 - 30, [0xc8261d, 0x1f7a46, 0xc8261d], 0.2);
+  engradado(ax0 - 12, az0 - 38, [0xf2bd14, 0xf2bd14], -0.15);
+  engradado(ax1 + 36, az0 - 34, [0x1f7a46, 0xc8261d, 0x1f7a46, 0xf2bd14], 0.1);
   // Pés torneados e a saia da mesa.
   const H = 1.9, costas = 2.15;                                     // altura da tabela e fundo das borrachas (unidades)
   for (const [px, pz] of [[ax0 + 7, az0 + 7], [ax1 - 7, az0 + 7], [ax0 + 7, az1 - 7], [ax1 - 7, az1 - 7], [cx, az0 + 7], [cx, az1 - 7]]) {

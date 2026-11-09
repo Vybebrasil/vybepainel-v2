@@ -381,3 +381,86 @@ body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-estante{gr
 #workflow-modal .snc-pre .snc-pre-fichas button[aria-pressed=true]{transform:scale(1.15) rotate(12deg);box-shadow:0 0 0 3px var(--bt-preto)!important}
 #workflow-modal .snc-pre .snc-pre-erro{color:var(--bt-tinta)!important}
 @media (orientation:landscape) and (max-height:520px){.bt-tela-topo{padding-top:6px}.bt-sel-palco{gap:10px}.bt-sel-lado .bt-foto34{width:66px!important;border-width:4px}.bt-sel-lado small{font-size:12px}.bt-sel-lado h2{font-size:22px!important;margin:2px 0 0}.bt-lousa-titulo{display:none}.bt-regra{padding:1px 2px}.bt-regra b{font-size:14px!important}.bt-regra small{font-size:10px}.bt-sel-centro{gap:6px}.bt-tampinha{width:32px;height:32px;font-size:11px}.bt-tampinhas input,.bt-tampinhas small,.bt-sel-itens,.bt-sel-vale span{display:none}.bt-sel-vale{padding:2px 10px 8px}.bt-sel-vale b{font-size:16px}.bt-tela-pe{position:absolute;right:14px;bottom:10px;margin:0}#workflow-modal .bt-tela .bt-btn{font-size:15px!important;padding:9px 14px}.bt-convite-vale span{display:none}.bt-convite-vale{padding:2px 10px 8px}.bt-lousa li span{display:none}.bt-lousa li b{font-size:15px}.bt-lousa{padding:6px 12px}.bt-convite-lado{gap:6px}.bt-convite-palco .bt-lambe{padding:8px 10px;gap:4px}.bt-convite-palco .bt-lambe-chamada{font-size:15px}.bt-convite-palco .bt-lambe-meio{grid-template-columns:52px 1fr}.bt-convite-palco .bt-estrela,.bt-convite-prazo{display:none}}
+/* ---------- HUD da partida no padrão boteco (pente fino, 09/11/2026) ---------- */
+@media (min-width:600px) and (orientation:landscape){
+ /* Placas dos jogadores: papel com fita; a vez é a fita vermelha */
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador{background:var(--bt-papel)!important;color:var(--bt-texto)!important;clip-path:none!important;border-radius:3px!important;box-shadow:0 4px 10px #0004!important;border:0!important;transform:rotate(-1deg)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador.direita{transform:rotate(1deg)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador.vez{box-shadow:inset 6px 0 0 var(--bt-tinta),0 4px 10px #0004!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador.direita.vez{box-shadow:inset -6px 0 0 var(--bt-tinta),0 4px 10px #0004!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador::before,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador::after{display:none!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador>div>b{font:400 16px/1 var(--bt-cartaz)!important;color:var(--bt-preto)!important;text-shadow:none!important;letter-spacing:.5px;text-transform:uppercase}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-jogador>:is(img,.snc-sem){border-radius:3px!important;border:2px solid #fff;box-shadow:0 1px 3px #0003;background:#d9d3c2!important;color:#8a8270!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-jogador-titulo{--r:var(--bt-r-comum);clip-path:none!important;background:none!important;border:2px solid var(--r)!important;border-radius:3px;color:var(--r)!important;font:400 10px/1.2 var(--bt-cartaz)!important;letter-spacing:1px;padding:1px 5px!important;transform:rotate(-3deg);text-shadow:none!important;box-shadow:none!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-jogador-titulo.raro{--r:var(--bt-r-raro)}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-jogador-titulo.epico{--r:var(--bt-r-epico)}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-jogador-titulo.lendario{--r:var(--bt-r-lendario)}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-jogador-feitos small,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar .snc-grupo small{color:var(--bt-texto2)!important}
+ /* O placar entre os dois: lousinha a giz */
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>:is(.snc-confronto,.snc-x){clip-path:none!important;border-radius:3px!important;background:#1f2b22!important;box-shadow:inset 0 0 0 4px var(--bt-madeira-escura),0 4px 10px #0004!important;padding:4px 14px!important;color:#fff!important;font-family:var(--bt-giz-f)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-confronto b{font:700 20px/1 var(--bt-giz-f)!important;color:#fff!important;background:none!important;text-shadow:0 0 1px #fff}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-confronto b i{color:#ffffff99!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud>.snc-placar>.snc-confronto small{display:none}
+ /* Força e mira fina */
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca{box-shadow:0 0 0 3px var(--bt-papel),0 0 0 4px #0003,0 6px 12px #0005!important;background:#1d1b17cc!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca-exata{padding:2px 6px!important;background:var(--bt-papel)!important;border-radius:3px;box-shadow:0 3px 6px #0004}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca-exata input{font:400 18px var(--bt-cartaz)!important;color:var(--bt-preto)!important;text-shadow:none!important;background:none!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca-exata span{color:var(--bt-texto2)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca>span{background:var(--bt-tinta)!important;font:400 13px var(--bt-cartaz)!important;letter-spacing:.5px}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-forca-marcas i::after{color:#fffd!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-bloco-mira button,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-roda{background:var(--bt-papel)!important;color:var(--bt-preto)!important;clip-path:none!important;border-radius:4px!important;box-shadow:0 3px 6px #0004!important;border:0!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-roda i{background:var(--bt-tinta)!important}
+ /* Efeito e TACAR */
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-efeito-nome{background:var(--bt-papel)!important;color:var(--bt-preto)!important;font:400 11px var(--bt-cartaz)!important;letter-spacing:1px;box-shadow:0 3px 6px #0004;text-shadow:none!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-efeito-bola{box-shadow:0 0 0 3px var(--bt-papel),0 6px 12px #0006!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-tacar{clip-path:none!important;border-radius:12px!important;background:var(--bt-plastico)!important;color:#fff!important;font:400 30px/1 var(--bt-cartaz)!important;letter-spacing:2px;font-style:normal!important;text-shadow:none!important;box-shadow:inset 0 -6px 0 var(--bt-plastico-escuro),inset 0 2px 0 #ffffff55,0 8px 0 #0004!important;border:0!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-tacar:active{transform:translateY(3px)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-tacar[aria-disabled=true]{filter:grayscale(.7) brightness(.8)}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-mudar,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-rever{clip-path:none!important;border-radius:6px!important;background:var(--bt-papel)!important;color:var(--bt-preto)!important;font:400 14px var(--bt-cartaz)!important;letter-spacing:1px;padding:8px 14px!important;box-shadow:0 4px 8px #0004!important;border:0!important}
+ /* Menu ⋯: um papel com os botões */
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-mais{background:var(--bt-papel)!important;box-shadow:0 4px 10px #0004!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-mais i{background:var(--bt-preto)!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena.menu-aberto .snc-mais{background:var(--bt-tinta)!important}#workflow-modal.ofc-snc-jogo .snc-arena.menu-aberto .snc-mais i{background:#fff!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-menu-fundo{background:var(--bt-papel)!important;box-shadow:0 14px 30px #0006!important;border-radius:4px!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button{background:var(--bt-c-amarela)!important;color:var(--bt-preto)!important;font:400 10px var(--bt-pincel)!important;letter-spacing:0!important;box-shadow:0 2px 4px #0003!important;opacity:1!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button:nth-child(2){background:var(--bt-c-laranja)!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button:nth-child(3){background:var(--bt-c-verde)!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button:nth-child(4){background:var(--bt-c-azul)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button[aria-selected=true]{box-shadow:inset 0 0 0 2px var(--bt-preto)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-bloco-modo button{clip-path:none!important;border-radius:6px!important;background:#0000000f!important;color:var(--bt-texto)!important;font:400 14px var(--bt-cartaz)!important;letter-spacing:1px;box-shadow:inset 0 0 0 2px #0003!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-bloco-modo button[aria-pressed=true]{background:var(--bt-plastico)!important;color:#fff!important;box-shadow:inset 0 -3px 0 var(--bt-plastico-escuro)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-bloco-camera>small,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-camera-dica{color:var(--bt-texto2)!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-camera-botoes button{clip-path:none!important;border-radius:5px!important;background:#fff!important;color:var(--bt-preto)!important;box-shadow:0 0 0 1px #0003,0 2px 0 #0002!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-rever{box-shadow:inset 0 0 0 2px var(--bt-preto)!important}
+ /* Efeito aberto: papel */
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.efeito-aberto .snc-bloco-efeito{background:var(--bt-papel)!important;box-shadow:0 14px 30px #0006!important;border-radius:4px}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.efeito-aberto .snc-bloco-taco small b{background:var(--bt-preto)!important}
+ /* Faixa da vez, aposta rápida e feed */
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-faixa-vez{clip-path:none!important;border-radius:2px;background:var(--bt-tinta)!important;font:400 15px var(--bt-cartaz)!important;letter-spacing:1px;font-style:normal!important;transform:translateX(-50%) rotate(-1.5deg)!important;box-shadow:0 4px 8px #0004}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-faixa-vez.giz{background:var(--bt-giz)!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-aposta-rapida{border-radius:10px!important;background:var(--bt-cerveja)!important;color:var(--bt-preto)!important;font:400 17px var(--bt-cartaz)!important;letter-spacing:.5px;font-style:normal!important;box-shadow:inset 0 -5px 0 #b38600,0 6px 0 #0003!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-feed li{background:var(--bt-papel)!important;color:var(--bt-texto)!important;border-radius:2px!important;box-shadow:0 3px 8px #0004!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-feed li.oferta{box-shadow:inset 4px 0 0 var(--bt-cerveja),0 3px 8px #0004!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-feed li b{color:var(--bt-preto)!important}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-feed li button{background:var(--bt-pano)!important;color:#fff!important;font:400 12px var(--bt-cartaz)!important;letter-spacing:1px}
+ #workflow-modal.ofc-snc-jogo .snc-arena .snc-assistindo{clip-path:none!important;border-radius:6px!important;background:var(--bt-preto)!important;font-family:var(--bt-cartaz)!important;font-style:normal!important}
+}
+/* Avisos da jogada (anúncio e letreiro) com letra de cartaz */
+.snc-letreiro b,.snc-anuncio b{font-family:var(--bt-cartaz)!important;font-style:normal!important;letter-spacing:1.5px}
+@media (min-width:600px) and (orientation:landscape){#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-abas button{height:50px;overflow:hidden;justify-content:center}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-bloco-modo{top:170px!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-bloco-camera{top:212px!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-rever{top:268px!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud.menu-aberto .snc-menu-fundo{height:214px}}
+/* ---------- Topo do jogo e altura exata (pente fino: "ta passando um pente fino mesmo?") ---------- */
+/* Nada rola na partida: o topo tem altura fixa, o palco não tem margem e a mesa desconta só o topo. */
+@media (min-width:600px) and (orientation:landscape){
+ #workflow-modal.ofc-snc-jogo{overflow:hidden!important}
+ #workflow-modal.ofc-snc-jogo .jogo-palco,#workflow-modal.ofc-snc-jogo #palco{padding:0!important;margin:0!important;gap:0!important}
+ #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud{--snc-topo:56px;margin:0!important}
+ #workflow-modal.ofc-snc-jogo .jogo-topo.tema-sinuca{height:56px!important;min-height:0!important;padding:0 14px!important;box-sizing:border-box}
+}
+/* O topo vira uma tira da parede do boteco: letreiro pintado e o menu em papel */
+#workflow-modal.ofc-snc-jogo .jogo-topo.tema-sinuca{background:linear-gradient(180deg,var(--bt-parede),#e3dcc8)!important;border-bottom:6px solid var(--bt-faixa)!important;box-shadow:0 4px 10px #0003!important;color:var(--bt-texto)!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-emblema{width:36px!important;height:36px!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca small{font:400 11px var(--bt-pincel)!important;color:var(--bt-tinta)!important;letter-spacing:0!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca b{font:400 22px/1 var(--bt-letreiro)!important;color:var(--bt-tinta)!important;text-shadow:2px 2px 0 var(--bt-preto)!important;letter-spacing:.5px}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca b em{font:400 12px var(--bt-cartaz)!important;color:var(--bt-preto)!important;text-shadow:none!important;background:var(--bt-cerveja);padding:1px 5px;margin-left:6px;font-style:normal!important;letter-spacing:1.5px}
+#workflow-modal.ofc-snc-jogo .jogo-topo .jogo-selo{background:var(--bt-papel)!important;color:var(--bt-texto)!important;border:0!important;border-radius:3px!important;box-shadow:0 2px 4px #0002;font:600 11px var(--bt-ui)!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu>summary{background:var(--bt-papel)!important;color:var(--bt-preto)!important;border:0!important;border-radius:6px!important;box-shadow:0 3px 0 #0002,inset 0 0 0 2px var(--bt-preto)!important;font:400 15px var(--bt-cartaz)!important;letter-spacing:1px}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista{background:var(--bt-papel)!important;color:var(--bt-texto)!important;border:0!important;border-radius:4px!important;box-shadow:0 14px 30px #0005!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista b{font:400 13px var(--bt-cartaz)!important;color:var(--bt-tinta)!important;letter-spacing:1px}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista button{background:none!important;color:var(--bt-texto)!important;border:0!important;border-bottom:1px dashed #0002!important;border-radius:0!important;font:600 13px var(--bt-ui)!important;text-align:left}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista button:hover{background:#0000000a!important}
