@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { areaSetorPessoas, ehGestao, hojeBahia } from '../server/pessoas.js';
+import { areaSetorPessoas, ehGestao, hojeBahia, usarCriacaoDePeca } from '../server/pessoas.js';
 import calc from '../shared/pessoas-calculos.js';
 import handler from '../api/painel.js';
 
@@ -267,6 +267,36 @@ test('projetos: cliente pelo cadastro ativo (auditoria 09/11); inativo e "não �
   r = await chamar(sql, paulo, { query: { aba: 'projetos' } });
   assert.deepEqual(r.body.projetos.map((p) => [p.cliente_id, p.cliente]), [['50', 'Grupo Serra Grande']]);
   assert.deepEqual(r.body.clientes.map((c) => c.nome), ['Grupo Serra Grande']);
+});
+
+test('projeto com cliente: cada etapa aberta vira demanda na esteira, uma vez só, e fica feita quando a demanda termina', async (t) => {
+  const { db, sql } = await banco(t);
+  await db.exec(`INSERT INTO vybe_clientes (id, nome) VALUES (50,'Grupo Serra Grande');
+    INSERT INTO vybe_status VALUES (8385559107,'nova_demanda','Nova demanda',false),(8385559107,'feito','Feito',true)`);
+  const pedidos = []; let prox = 900;
+  usarCriacaoDePeca(async (tx, quem, d) => { pedidos.push({ quem: quem.pessoa.id, ...d }); const id = prox++;
+    await tx`INSERT INTO vybe_conteudos (id, board_id, status_chave, prazo) VALUES (${id}, ${d.board}, ${d.status}, ${d.prazo}::date)`; return { conteudo_id: id }; });
+  t.after(() => usarCriacaoDePeca(null));
+  const semana = calc.util.inicioDaSemana(hoje), fimA = calc.util.somarDias(semana, 3);
+  const projeto = { acao: 'projeto_salvar', nome: 'Campanha 40 anos', tipo: 'campanha', cliente_id: '50', inicio: semana, fim: calc.util.somarDias(semana, 14),
+    etapas: [{ nome: 'Roteiro', responsavel: '2', inicio: semana, fim: fimA }, { nome: 'Já feita', inicio: semana, fim: fimA, feita: true }] };
+  let r = await chamar(sql, paulo, { body: projeto }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  assert.equal(r.body.demandas.length, 1, 'etapa já feita não vira demanda');
+  assert.deepEqual(pedidos.map((d) => [d.board, d.status, d.titulo, d.cliente, d.prazo]), [[8385559107, 'nova_demanda', 'Campanha 40 anos · Roteiro', 'Grupo Serra Grande', fimA]]);
+  const [resp] = await sql`SELECT pessoa_id::text AS p FROM vybe_conteudo_responsaveis WHERE conteudo_id = 900`; assert.equal(resp.p, '2');
+  r = await chamar(sql, paulo, { query: { aba: 'projetos' } });
+  const roteiro = r.body.projetos[0].etapas[0];
+  assert.deepEqual([roteiro.demanda_id, roteiro.demanda_status, roteiro.feita], ['900', 'Nova demanda', false]);
+  // Editar o projeto não duplica a demanda; etapa nova ganha a sua.
+  const etapas = r.body.projetos[0].etapas.map(({ id, nome, responsavel, inicio, fim, feita }) => ({ id, nome, responsavel, inicio, fim, feita }));
+  r = await chamar(sql, paulo, { body: { ...projeto, id: r.body.projetos[0].id, etapas: [...etapas, { nome: 'Gravação', inicio: fimA, fim: fimA }] } });
+  assert.equal(r.codigo, 200, JSON.stringify(r.body)); assert.equal(r.body.demandas.length, 1); assert.equal(pedidos.length, 2);
+  // A demanda terminou na esteira: a etapa aparece feita.
+  await db.exec(`UPDATE vybe_conteudos SET status_chave = 'feito' WHERE id = 900`);
+  r = await chamar(sql, ana, { query: { aba: 'projetos' } });
+  assert.deepEqual(r.body.projetos[0].etapas.map((e) => [e.nome, e.feita, e.demanda_id]), [['Roteiro', true, '900'], ['Já feita', true, null], ['Gravação', false, '901']]);
+  // Projeto interno não gera demanda.
+  r = await chamar(sql, paulo, { body: { ...projeto, cliente_id: null, nome: 'Interno' } }); assert.equal(r.codigo, 200); assert.deepEqual(r.body.demandas, []); assert.equal(pedidos.length, 2);
 });
 
 test('academy: trilha semeada, gestão atribui, cada um marca as próprias aulas', async (t) => {

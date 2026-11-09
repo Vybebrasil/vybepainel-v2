@@ -17,7 +17,8 @@
 //    de resposta, e a pesquisa de clima com período que os donos abrem e encerram (eNPS +
 //    liderança, comunicação, reconhecimento, carga de trabalho e ambiente), uma resposta por
 //    pessoa, mesmo anonimato e mesmo mínimo de 3 (migração 2026-11-08-rh-pedidos-clima.sql).
-//  - Projetos: todos veem; a gestão cria e edita; o responsável marca a própria etapa.
+//  - Projetos: todos veem; a gestão cria e edita; o responsável marca a própria etapa. Projeto com cliente: cada
+//    etapa aberta vira demanda na esteira (Solicitações de Demandas) e fica feita quando a demanda termina (09/11).
 //  - Academy: todos veem as trilhas e marcam as próprias aulas; a gestão edita e atribui.
 //  - Recrutamento e Documentos: só a gestão (dados pessoais de candidatos e contratos).
 // Sem a migração aplicada, as leituras voltam vazias com provisionado=false (e a
@@ -238,6 +239,30 @@ async function rh(sql, quem, query, estado) {
 }
 
 // ---------- projetos e carga ----------
+// Tudo que um projeto com cliente gera de trabalho entra na esteira do Vybe OS (Paulo, 09/11): cada etapa ainda aberta
+// e sem demanda vira uma demanda em "Solicitações de Demandas", pelo MESMO cadastro do painel, do planejamento e da
+// captação (api/conteudo.js), com o cliente do projeto, o responsável da etapa e o fim da etapa como prazo. Daí em
+// diante a demanda anda na esteira e o projeto lê a situação dela. Projeto interno (sem cliente) não gera demanda.
+let criarPeca = null;
+export function usarCriacaoDePeca(f) { criarPeca = f; } // só para os testes
+const BOARD_SOLICITACOES = 8385559107;
+async function etapasNaEsteira(tx, quem, projeto) {
+  const abertas = await tx`SELECT id::text AS id, nome, responsavel::text AS responsavel, inicio::text AS inicio, fim::text AS fim
+    FROM vybe_projeto_etapas WHERE projeto_id = ${projeto.id} AND conteudo_id IS NULL AND NOT feita ORDER BY ordem, id`;
+  if (!abertas.length) return [];
+  const criar = criarPeca || (await import('../api/conteudo.js')).criarConteudoNaTransacao;
+  const criadas = [];
+  for (const e of abertas) {
+    const briefing = [`Projeto: ${projeto.nome} (${projeto.inicio} a ${projeto.fim})`, `Etapa: ${e.nome} (${e.inicio} a ${e.fim})`, projeto.descricao].filter(Boolean).join('\n');
+    const r = await criar(tx, quem, { board: BOARD_SOLICITACOES, status: 'nova_demanda', titulo: `${projeto.nome} · ${e.nome}`.slice(0, 240),
+      cliente: projeto.cliente, prazo: e.fim, briefing, responsaveis: [] });
+    // O responsável vai pelo id da pessoa: o cadastro só liga pelo usuário do Monday, que nem todo mundo tem.
+    if (e.responsavel) await tx`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem) VALUES (${r.conteudo_id}, ${e.responsavel}, 0) ON CONFLICT DO NOTHING`;
+    await tx`UPDATE vybe_projeto_etapas SET conteudo_id = ${r.conteudo_id} WHERE id = ${e.id}`;
+    criadas.push({ etapa_id: e.id, demanda_id: String(r.conteudo_id) });
+  }
+  return criadas;
+}
 async function projetos(sql, quem, query, estado) {
   const hoje = hojeBahia(), gestao = ehGestao(quem);
   const semana = calc.util.dataValida(String(query.semana || '')) ? calc.util.inicioDaSemana(String(query.semana)) : calc.util.inicioDaSemana(hoje);
@@ -245,9 +270,14 @@ async function projetos(sql, quem, query, estado) {
   const [cfg, pessoas] = await Promise.all([config(sql, estado), pessoasAtivas(sql, estado)]);
   const lista = await ler(estado, sql`SELECT id::text AS id, nome, tipo, cliente, cliente_id::text AS cliente_id, descricao, inicio::text AS inicio, fim::text AS fim, status
     FROM vybe_projetos WHERE status <> 'cancelado' OR fim >= ${calc.util.somarDias(hoje, -30)}::date ORDER BY inicio, id`);
+  // A etapa ligada a uma demanda mostra a situação dela na esteira e conta como feita quando a demanda chega ao fim.
   const etapas = await ler(estado, sql`SELECT e.id::text AS id, e.projeto_id::text AS projeto_id, e.nome, e.responsavel::text AS responsavel, p.nome AS responsavel_nome,
-      e.inicio::text AS inicio, e.fim::text AS fim, e.esforco, e.feita, e.ordem
-    FROM vybe_projeto_etapas e LEFT JOIN vybe_pessoas p ON p.id = e.responsavel ORDER BY e.projeto_id, e.ordem, e.id`);
+      e.inicio::text AS inicio, e.fim::text AS fim, e.esforco, (e.feita OR COALESCE(s.final, false)) AS feita, e.ordem,
+      c.id::text AS demanda_id, s.rotulo AS demanda_status, c.prazo::text AS demanda_prazo, COALESCE(s.final, false) AS demanda_final
+    FROM vybe_projeto_etapas e LEFT JOIN vybe_pessoas p ON p.id = e.responsavel
+      LEFT JOIN vybe_conteudos c ON c.id = e.conteudo_id AND c.removido_em IS NULL
+      LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    ORDER BY e.projeto_id, e.ordem, e.id`);
   const porProjeto = new Map();
   for (const e of etapas) (porProjeto.get(e.projeto_id) || porProjeto.set(e.projeto_id, []).get(e.projeto_id)).push(e);
   const comEtapas = lista.map((p) => ({ ...p, etapas: porProjeto.get(p.id) || [] }));
@@ -514,7 +544,9 @@ async function escrever(sql, quem, b) {
           } else await tx`INSERT INTO vybe_projeto_etapas (projeto_id, nome, responsavel, inicio, fim, esforco, feita, ordem)
             VALUES (${pid}, ${e.nome}, ${e.responsavel}, ${e.inicio}::date, ${e.fim}::date, ${e.esforco}, ${e.feita}, ${e.ordem})`;
         }
-        return { id: String(pid) };
+        const demandas = clienteId && !['concluido', 'cancelado'].includes(status)
+          ? await etapasNaEsteira(tx, { tipo: 'sessao', pessoa: quem }, { id: pid, nome, cliente, descricao, inicio, fim }) : [];
+        return { id: String(pid), demandas };
       });
     }
     case 'etapa_feita': {

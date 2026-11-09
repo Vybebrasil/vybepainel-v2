@@ -449,13 +449,15 @@ const COMANDOS_RH = [
 const COMANDOS_PROJETOS = [
   `ALTER TABLE vybe_projetos ADD COLUMN IF NOT EXISTS cliente_id bigint REFERENCES vybe_clientes(id) ON DELETE SET NULL`,
   `CREATE INDEX IF NOT EXISTS vybe_projetos_cliente ON vybe_projetos (cliente_id)`,
+  // Etapa de projeto com cliente vira demanda na esteira (Paulo, 09/11): o vínculo etapa → peça.
+  `ALTER TABLE vybe_projeto_etapas ADD COLUMN IF NOT EXISTS conteudo_id bigint REFERENCES vybe_conteudos(id) ON DELETE SET NULL`,
 ];
 
 let promessa = null, promessaRh = null, falhaRh = 0, promessaProjetos = null, falhaProjetos = 0;
 async function garantirProjetos(sql) {
   if (promessaProjetos && falhaProjetos && Date.now() - falhaProjetos > 10 * 60e3) { promessaProjetos = null; falhaProjetos = 0; }
   if (!promessaProjetos) promessaProjetos = (async () => {
-    const [r] = await sql`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vybe_projetos' AND column_name = 'cliente_id') AS ok`;
+    const [r] = await sql`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vybe_projeto_etapas' AND column_name = 'conteudo_id') AS ok`; // o último comando do bloco
     if (r?.ok) return;
     for (const cmd of COMANDOS_PROJETOS) await sql.query(cmd);
   })().catch((e) => { falhaProjetos = Date.now(); console.error('[migracoes-irecity] Projetos 09/11 aguardando:', e?.message || e); });
