@@ -1,6 +1,6 @@
 import {timingSafeEqual} from 'node:crypto';
 import {identificadorProtegido,validarJid} from './assistente-identidade.js';
-const negar=()=>Object.assign(new Error('Não autorizado.'),{status:403});
+const negar=(motivo='nao_admin')=>Object.assign(new Error('Não autorizado.'),{status:403,motivo});
 export function exigirAdministradorPrivado(jid,c,config=process.env){
  const hash=config.VYBE_AI_ADMIN_JID_HASH,pessoa=config.VYBE_AI_ADMIN_PESSOA_ID;
  if(typeof hash!=='string'||! /^[a-f0-9]{64}$/.test(hash)||typeof pessoa!=='string'||! /^[1-9][0-9]*$/.test(pessoa)||!Number.isSafeInteger(Number(pessoa))||!validarJid(jid)||c?.tipo!=='privado'||c.grupo_id!==undefined||!Array.isArray(c.participantes)||c.participantes.length!==1||c.participantes[0]!==jid||typeof config.VYBE_AI_LINK_SECRET!=='string'||config.VYBE_AI_LINK_SECRET.length<32)throw negar();

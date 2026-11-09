@@ -101,11 +101,11 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
     if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
-      if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
+      if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
       const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
-      if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.' });
+      if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.', motivo: 'nao_admin' });
       // VYBES: o estado que a central do PC do Paulo mostra, publicado para o módulo VYBES do painel (server/vybes.js).
       if (consulta === 'vybes_publicar') return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(banco, req.body?.estado)) });
       // Ação pedida na central do VYBES por quem entrou pelo Vybe OS: com a permissão DELA (não a do Paulo).
@@ -145,8 +145,10 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     }
     return res.status(400).json({ error: 'Consulta desconhecida.' });
   } catch (erro) {
-    if (erro.codigo === 'WHATSAPP_NAO_VINCULADO') return res.status(403).json({error:'Conta WhatsApp não vinculada.'});
-    if (erro.status === 403) return res.status(403).json({error:'Conversa ou participantes não autorizados.'});
+    // motivo (e o atraso, quando o contexto chegou velho): para o bot dizer no log qual regra recusou.
+    const porque = { motivo: /^[a-z_]{3,30}$/.test(erro.motivo || '') ? erro.motivo : 'negado', ...(Number.isFinite(erro.atraso_s) ? { atraso_s: erro.atraso_s } : {}) };
+    if (erro.codigo === 'WHATSAPP_NAO_VINCULADO') return res.status(403).json({error:'Conta WhatsApp não vinculada.', ...porque});
+    if (erro.status === 403) return res.status(403).json({error:'Conversa ou participantes não autorizados.', ...porque});
     if (erro.status === 413) return res.status(413).json({error:'Recorte excede o limite; reduza a quantidade ou consulte outra seção.'});
     if (erro instanceof TypeError) return res.status(400).json({ error: 'Parâmetros inválidos.' });
     return res.status(503).json({ error: 'Não foi possível concluir a consulta.' });
