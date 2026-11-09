@@ -32,6 +32,7 @@ import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
+import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
 import { cadastroFinancasPadrao } from '../server/vybe-financas-cadastro.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
@@ -1847,7 +1848,14 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
-const AREAS = { crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Aprovações paradas da pessoa da sessão (server/aprovacoes.js): bloco do Seu dia.
+async function areaAprovacoes(req, res, quem) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const pessoa = quem.tipo === 'servico' ? { id: 0, dono: true } : (quem.pessoa || {});
+  return res.status(200).json(await aprovacoesDaPessoa(sql(), pessoa));
+}
+
+const AREAS = { aprovacoes: areaAprovacoes, crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()) };

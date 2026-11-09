@@ -283,6 +283,15 @@ export async function demoApi(req,res,url,body) {
     if(area==='pessoas'&&req.method==='GET')return reply(200,{ok:true,pessoas:[{id:'1',nome:'Operador de teste',email:'operador@vybe.invalid',admin:true,pode_entrar:true,ativo:true,tem_senha:true,ultimo_acesso:new Date().toISOString()},
       {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});
     if(area==='clientes')return clientesDemo(req,res,url,body,reply);
+    // Aprovações fictícias (server/aprovacoes.js): o operador de teste é sócio e head da Academia Lions.
+    if(area==='aprovacoes'){const h=(n)=>new Date(Date.now()-n*36e5).toISOString();const V={id:'10',nome:'Vinícius'},E={id:'11',nome:'Ewerton'};
+      return reply(200,{ok:true,eu:{id:'1',dono:true,diretor_arte:true,clientes:['1']},
+        planejamentos:[{tipo:'planejamento',id:'1',cliente_id:'1',cliente:'Academia Lions',mes:'2026-12',titulo:'Dezembro',estado:'revisar',etapa:'interna',pecas:14,horas:30,desde:h(30),heads:[V],meu:true},
+          {tipo:'planejamento',id:'2',cliente_id:'14',cliente:'VOA',mes:'2026-12',titulo:'Dezembro',estado:'enviado',etapa:'cliente',pecas:9,horas:60,desde:h(60),heads:[E],meu:false},
+          {tipo:'planejamento',id:'3',cliente_id:'5',cliente:'Brussolo Ristorante',mes:'2026-12',titulo:'Dezembro',estado:'aprovado',etapa:'cadastrar',pecas:12,horas:6,desde:h(6),heads:[V],meu:false}],
+        pecas:[{tipo:'peca',id:'101',ref:'vybe:101',quadro:'producao',titulo:'Card - Promo de novembro',formato:'Card',status:'Para aprovação',etapa:'interna',cliente:'Gonzalez',horas:5,heads:[E],meu:false},
+          {tipo:'peca',id:'102',ref:'vybe:102',quadro:'producao',titulo:'Reels - Treino de pernas',formato:'Reels',status:'Para aprovação',etapa:'interna',cliente:'Academia Lions',horas:28,heads:[V],meu:true},
+          {tipo:'peca',id:'103',ref:'vybe:103',quadro:'producao',titulo:'Fotografia - Prato do dia',formato:'Fotografia',status:'Ag. Aprovação Cliente',etapa:'cliente',cliente:'Brussolo Ristorante',horas:20,heads:[V],meu:false}]});}
     // Log de atividade fictício: um exemplo de cada tipo de evento, em dias diferentes.
     if(area==='peca' && url.searchParams.get('log')==='1'){
       const h=(dias,hora)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-dias);d.setUTCHours(hora+3,15,0,0);return d.toISOString();};
