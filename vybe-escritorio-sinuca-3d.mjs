@@ -128,7 +128,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     g.fillStyle = '#5a4636'; g.fillRect(0, h - 3 * PX, w, 3 * PX);
     if (extra) extra(g, w, h, topoAz);
   });
-  const cartaz = (g, x, y, w, h, cor, linhas, rot) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(-w / 2 + 4, -h / 2 + 5, w, h); g.fillStyle = cor; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#1d1b17'; g.textAlign = 'center'; linhas.forEach(([t, px], i) => { g.font = `700 ${px}px "Comic Sans MS", cursive`; g.fillText(t, 0, -h / 2 + 10 + px + i * (px + 6)); }); g.fillStyle = 'rgba(233,220,174,.9)'; g.fillRect(-18, -h / 2 - 8, 36, 14); g.restore(); };
+  const cartaz = (g, x, y, w, h, cor, linhas, rot) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(-w / 2 + 4, -h / 2 + 5, w, h); g.fillStyle = cor; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#1d1b17'; g.textAlign = 'center'; linhas.forEach(([t, px], i) => { g.font = `700 ${px}px "Kalam", "Comic Sans MS", cursive`; g.fillText(t, 0, -h / 2 + 10 + px + i * (px + 6)); }); g.fillStyle = 'rgba(233,220,174,.9)'; g.fillRect(-18, -h / 2 - 8, 36, 14); g.restore(); };
   const parede = (tex, x, z, ry, larg) => { const m = new Mesh(new PlaneGeometry(larg, altoP), new MeshStandardMaterial({ map: tex, roughness: 0.95 })); m.position.set(x, pisoY + altoP / 2, z); m.rotation.y = ry; m.receiveShadow = true; cena.add(m); return m; };
   // Fundo: letreiro no alto.
   parede(paredeTex(largX, (g, w) => {
@@ -154,23 +154,36 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     const g = lousaCanvas.getContext('2d'), w = 768, h = 480;
     g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`; g.fillRect(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 20 + Math.random() * 40); }
-    g.fillStyle = '#ffe98a'; g.font = 'bold 60px "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('RANKING DO SALÃO', w / 2, 74);
+    g.fillStyle = '#ffe98a'; g.font = 'bold 60px "Kalam", "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('RANKING DO SALÃO', w / 2, 74);
     g.strokeStyle = '#ffe98a'; g.lineWidth = 3; g.beginPath(); g.moveTo(120, 92); g.lineTo(w - 120, 92); g.stroke();
-    g.fillStyle = '#f4f4ee'; g.font = 'bold 60px "Comic Sans MS", "Segoe Print", cursive';
-    (linhas.length ? linhas : [['—', 'ninguém ganhou ainda']]).slice(0, 4).forEach(([nome, v], i) => {
-      const y = 170 + i * 78; g.textAlign = 'left'; g.fillText(`${i + 1}º ${nome}`, 60, y); g.textAlign = 'right'; g.fillText(String(v), w - 60, y);
+    const giz = (px) => `700 ${px}px "Kalam", "Kalam", "Comic Sans MS", "Segoe Print", cursive`;
+    if (!linhas.length) {
+      // Mesa zerada: o recado a giz no meio da lousa, sem número de posição.
+      g.textAlign = 'center'; g.fillStyle = '#f4f4ee'; g.font = giz(54); g.fillText('Mesa zerada!', w / 2, 200);
+      g.fillStyle = '#cfe6ff'; g.font = giz(40); g.fillText('Quem ganhar a primeira', w / 2, 290); g.fillText('escreve o nome aqui', w / 2, 344);
+      g.strokeStyle = '#f4f4ee'; g.lineWidth = 4; g.setLineDash([18, 14]); g.beginPath(); g.moveTo(200, 400); g.lineTo(w - 200, 400); g.stroke(); g.setLineDash([]);
+    } else linhas.slice(0, 4).forEach(([nome, v], i) => {
+      // O placar à direita tem lugar garantido; o nome encolhe até caber antes dele.
+      const y = 170 + i * 78, valor = String(v); g.fillStyle = i === 0 ? '#ffe98a' : '#f4f4ee';
+      g.font = giz(56); g.textAlign = 'right'; g.fillText(valor, w - 60, y);
+      const livre = w - 60 - g.measureText(valor).width - 40 - 60; let px = 56; g.font = giz(px);
+      while (px > 30 && g.measureText(`${i + 1}º ${nome}`).width > livre) g.font = giz(px -= 2);
+      let txt = `${i + 1}º ${nome}`; while (g.measureText(txt).width > livre && txt.length > 4) txt = `${txt.slice(0, -2)}…`;
+      g.textAlign = 'left'; g.fillText(txt, 60, y);
     });
     texLousa.needsUpdate = true;
   };
   pintarLousa([]);
+  // A letra de giz (Kalam) chega depois: repinta quando carregar.
+  document.fonts?.load?.('700 40px Kalam').then(() => { pintarLousa(lousaChave ? JSON.parse(lousaChave) : []); try { pedir(); } catch {} }).catch(() => {});
   peca(new BoxGeometry(70, 46, 2.4), mat(0x5e3a18), cx, pisoY + 40, fundoZ + 1.3);
   // A lousa da parede é o cardápio (o ranking fica só no cavalete, para não repetir).
   const texCardapio = tela(768, 480, (g, w, h) => {
     g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`; g.fillRect(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 20 + Math.random() * 40); }
-    g.fillStyle = '#ffe98a'; g.font = 'bold 62px "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('CARDÁPIO', w / 2, 74);
+    g.fillStyle = '#ffe98a'; g.font = 'bold 62px "Kalam", "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('CARDÁPIO', w / 2, 74);
     g.strokeStyle = '#ffe98a'; g.lineWidth = 3; g.beginPath(); g.moveTo(200, 92); g.lineTo(w - 200, 92); g.stroke();
-    g.fillStyle = '#f4f4ee'; g.font = 'bold 44px "Comic Sans MS", "Segoe Print", cursive';
+    g.fillStyle = '#f4f4ee'; g.font = 'bold 44px "Kalam", "Comic Sans MS", "Segoe Print", cursive';
     [['Cerveja 600', '12'], ['Pinga da casa', '4'], ['Pastel', '6'], ['Torresmo', '15'], ['Ficha da mesa', '2']].forEach(([n, v], i) => { const y = 152 + i * 64; g.textAlign = 'left'; g.fillText(n, 60, y); g.textAlign = 'right'; g.fillText(`R$ ${v}`, w - 60, y); });
   });
   peca(new PlaneGeometry(64, 40), new MeshStandardMaterial({ map: texCardapio, roughness: 0.9 }), cx, pisoY + 40, fundoZ + 2.6);

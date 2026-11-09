@@ -48,6 +48,7 @@
     { "source": "/instalar", "destination": "/instalar.html" },
     { "source": "/agenda", "destination": "/agenda.html" },
     { "source": "/instalar-agenda", "destination": "/instalar-agenda.html" },
+    { "source": "/mcp/:chave", "destination": "/api/painel?area=mcp&chave=:chave" },
     { "source": "/aprovar/:t", "destination": "/api/painel?area=aprovar&t=:t" },
     { "source": "/aprovar-pecas/:t/arquivo/:a", "destination": "/api/painel?area=aprovar_pecas&t=:t&arquivo=:a" },
     { "source": "/aprovar-pecas/:t", "destination": "/api/painel?area=aprovar_pecas&t=:t" },

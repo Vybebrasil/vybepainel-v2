@@ -31,6 +31,7 @@ import { areaComercial } from '../server/comercial-api.js';
 import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
+import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
 import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
@@ -41,7 +42,7 @@ import { garantirMigracoesIrecity } from '../server/migracoes-irecity.js';
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
-import { pastaDoConteudo, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive } from '../vybe_drive.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
@@ -819,6 +820,19 @@ async function ecossistemaDoCliente(db, idBruto) {
     sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '' }) };
 }
 
+// Cópia .md do registro do chat: na pasta do cliente ligada no cadastro (Acessos) ou, sem ela, na pasta com o
+// nome do cliente na raiz do Drive; sempre na subpasta "Registros do Claude".
+function registroNoDrive(db) {
+  return async ({ cliente, nome, markdown }) => {
+    const [a] = await db`SELECT pasta_drive FROM vybe_acessos WHERE cliente_id=${cliente.id} AND pasta_drive IS NOT NULL ORDER BY atualizado_em DESC NULLS LAST LIMIT 1`;
+    const ligada = String(a?.pasta_drive || '').match(/folders\/([\w-]{10,})/)?.[1];
+    const base = ligada || await pastaSimples([cliente.nome]);
+    const pastaId = await subpasta('Registros do Claude', base);
+    const r = await enviarParaDrive({ conteudo: Buffer.from(markdown, 'utf8'), nome, mime: 'text/markdown', pastaId });
+    return r?.id || r?.fileId || String(r || '');
+  };
+}
+
 async function areaClientes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
@@ -826,6 +840,14 @@ async function areaClientes(req, res, quem) {
   await garantirCicloDeVida(db);
   await garantirSchemaDoCadastro(db);
 
+  if (req.method === 'GET' && req.query?.registros) {
+    const idCli = Number(req.query.registros);
+    if (!Number.isSafeInteger(idCli) || idCli <= 0) return res.status(400).json({ error: 'Informe o cliente.' });
+    await garantirTabelaDeRegistros(db);
+    const registros = await db`SELECT id, tipo, titulo, status, resumo, decisoes, proximos, conteudo, origem, drive_id, drive_erro, criado_em
+      FROM vybe_cliente_registros WHERE cliente_id=${idCli} ORDER BY criado_em DESC LIMIT 100`;
+    return res.status(200).json({ ok: true, registros });
+  }
   if (req.method === 'GET' && req.query?.ecossistema) {
     try { return res.status(200).json(await ecossistemaDoCliente(db, req.query.ecossistema)); }
     catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
@@ -1830,6 +1852,8 @@ export default async function handler(req, res) {
   // Sem sessão do painel: a página do cliente (o segredo é o link) e o
   // conector dos agentes (chave própria). docs/planejamentos-plano.md.
   const areaPublica = String(req.query?.area || '');
+  // Conector MCP dos chats do Claude.ai (server/mcp-ecossistema.js): a chave na URL é a de cada conta.
+  if (areaPublica === 'mcp') { const db = sql(); await garantirSchemaDoCadastro(db); return areaMcp(req, res, db, { salvarNoDrive: registroNoDrive(db) }); }
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
   // Aprovação de peças pelo cliente (módulo Conteúdo): outro link, outro segredo, só as peças em
   // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).

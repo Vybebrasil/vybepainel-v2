@@ -724,3 +724,72 @@ body.snc-em-pre .ofc-musica.na-tv .ofc-musica-ctl button{background:#ffffff26!im
 #workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista>button:hover{color:var(--bt-tinta)!important}
 #workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista>button:last-child{margin-top:4px;color:var(--bt-tinta)!important}
 #workflow-modal .snc-pre .snc-pre-retrato>i{font:700 46px/1 var(--bt-giz-f)!important;color:var(--bt-caneta-cor)!important}
+/* Salão zerado: pódio VAGO logo abaixo do título e o recado a giz embaixo dele (não no pé da parede). */
+.bt-painel[data-aba=ranking]:has(>.bt-podio){grid-template-rows:auto auto auto 1fr}
+.bt-painel[data-aba=ranking]>.bt-podio{margin-top:clamp(14px,4vh,40px)}
+.bt-painel[data-aba=ranking]>.snc-giz-vazio{justify-self:center;max-width:560px;margin-top:18px}
+/* Recado a giz sempre em giz claro (no torneio herdava o cinza do texto e sumia no verde). */
+#workflow-modal .snc-giz-vazio{color:#f4f1e6!important;font-style:normal!important;font-size:17px!important;line-height:1.45!important;text-shadow:0 0 1px #fff6}
+/* Enfeites na escolha de regra e no convite (cada tela tem seu canto livre). */
+.bt-sel .bt-parede .bt-fiado{left:4%;top:auto;bottom:calc(24% - 150px);transform:rotate(-4deg) scale(.82)}
+.bt-sel .bt-parede .bt-folhinha,.bt-sel .bt-parede .bt-flamula{display:none}
+.bt-sel .bt-parede .bt-tomada{right:auto;left:calc(4% + 170px);bottom:calc(24% - 110px)}
+.bt-convite .bt-parede .bt-fiado{left:5%;top:96px;transform:rotate(-4deg) scale(.9)}
+.bt-convite .bt-parede .bt-folhinha{right:6%;top:96px;bottom:auto}
+.bt-convite .bt-parede .bt-flamula{display:block;right:calc(6% + 120px);top:120px}
+.bt-convite .bt-parede .bt-tomada{right:auto;left:4%;bottom:calc(24% - 120px)}
+@media (max-height:700px),(max-width:1000px){:is(.bt-sel,.bt-convite) .bt-parede .bt-deco{display:none}}
+/* Ficha: o taco cabe na parede e a plaquinha de latão fica embaixo dele (antes o nome caía em cima do taco). */
+body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-parede ul{--h:clamp(110px,22vh,180px);height:var(--h);padding-bottom:6px}
+body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-parede li canvas{width:calc(var(--h) - 52px);top:calc(50% - 12px);transform:translate(-50%,-50%) rotate(-90deg)}
+body .snc-perfil .snc-cf-parede li b{padding:1px 5px;border-radius:2px;background:linear-gradient(#e2c15a,#b88d22);color:var(--bt-preto)!important;text-shadow:none!important;font-size:10px!important;line-height:1.1;text-align:center;box-shadow:0 1px 2px #0008}
+body .snc-perfil .snc-cf-parede li.falta b{background:#ffffff26;color:#ffffffa6!important;box-shadow:none}
+body .snc-perfil .snc-cf-parede li.usando::after{top:2px;background:var(--bt-tinta)!important;font:400 10px var(--bt-cartaz)!important;letter-spacing:.5px;transform:rotate(-4deg)}
+/* Mural da zoeira ocupa a coluna inteira (era um cortiço curtinho e um vazio embaixo). */
+body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-mural{display:flex;flex-direction:column;min-height:0}
+body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-mural ul{flex:1;align-content:start}
+/* ================= Gavetas a giz: fora as caixas de painel (vidro, borda colorida, pílula) ================= */
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud :is(.snc-ultima,.snc-encacapadas,.snc-regras article,.lousa-bloco){background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0 0 14px!important;margin:0 0 14px!important;border-bottom:2px dashed #f4f1e640!important}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud :is(.snc-ultima,.snc-encacapadas,.snc-regras article,.lousa-bloco):last-child{border-bottom:0!important;margin-bottom:0!important}
+#workflow-modal.ofc-snc-jogo .snc-hud :is(.snc-ultima,.snc-regras article)::before{display:none!important}
+/* "Nenhuma ainda" e afins: escrito a giz, não pílula */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-encacapadas :is(.vazio,em,small,span):not(:has(*)){background:none!important;border:0!important;box-shadow:none!important;padding:0!important;color:#f4f1e6b3!important;font:700 15px var(--bt-giz-f)!important}
+
+/* Placar do bar: a lousa já é a gaveta; vira uma coluna só, sem moldura dentro de moldura */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-lousa{display:flex!important;flex-direction:column;gap:0;padding:4px 2px!important;border:0!important;background:none!important;box-shadow:none!important;color:#f4f1e6!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-lousa h4{margin:0 0 8px!important;font:700 15px var(--bt-giz-f)!important;letter-spacing:1px;text-transform:uppercase;color:#ffe98a!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-giz{display:grid!important;grid-template-columns:minmax(70px,auto) minmax(0,1fr) 36px;align-items:center;gap:10px;margin:0 0 6px;font-size:18px}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-giz b{font-size:19px}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-giz strong{font-size:26px;text-align:right;color:#fff}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-giz span em{font-size:15px!important;opacity:.7}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-seq{margin:6px 0 0!important;font-size:16px!important;color:#ffb2a2!important}
+#workflow-modal.ofc-snc-jogo .snc-hud :is(.lousa-hist,.lousa-rank){gap:4px!important;font-size:17px!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-hist li{grid-template-columns:18px auto minmax(0,1fr) auto!important;gap:8px!important;padding:0!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-hist li small{font-size:14px!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-rank li{grid-template-columns:34px minmax(0,1fr) auto!important;gap:8px!important;padding:1px 6px!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-rank li.da-mesa b{text-decoration:underline 2px #ffe98a99;text-underline-offset:4px}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-rank li i{font-size:18px}
+#workflow-modal.ofc-snc-jogo .snc-hud .lousa-rank li span{font-size:15px!important;opacity:.9}
+#workflow-modal.ofc-snc-jogo .snc-hud :is(.lousa-pe,.lousa-vazio){font-size:15px!important;opacity:.8!important;line-height:1.4}
+/* A gaveta encolhe até o que tem dentro (não fica uma lousa enorme e vazia) */
+#workflow-modal.ofc-snc-jogo .snc-arena.snc-hud .snc-caderno.aberto .snc-painel{height:auto!important;max-height:100%}
+/* A gaveta cresce até o que tem dentro (não fica uma lousa alta e vazia). */
+@media (min-height:521px){#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-painel:not([hidden]){bottom:auto!important;max-height:calc(100% - 132px)!important}}
+/* Última tacada escrita a giz (era um cartão com barra laranja) e o tubo vazio sem pílula. */
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-ultima p{padding:0!important;background:none!important;box-shadow:none!important;font:700 19px/1.35 var(--bt-giz-f)!important;color:#fff!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo:has(>span:only-child),#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo:has(>span:only-child)::before,#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo:has(>span:only-child)::after{background:none!important;box-shadow:none!important;border:0!important;padding:0!important;min-height:0!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo>span:only-child{font:700 16px var(--bt-giz-f)!important;color:#f4f1e6b3!important;background:none!important;box-shadow:none!important;padding:0!important}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-encacapadas>small{color:#ffe98a!important}
+/* Fim de partida: sem a barra de vidro do painel nos botões e sem sombra borrada no papel. */
+#workflow-modal .bt-fim .workflow-actions{background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;border:0!important}
+#workflow-modal .bt-fim .workflow-actions .workflow-primary{background:var(--bt-papel)!important;color:var(--bt-preto)!important;box-shadow:inset 0 0 0 3px var(--bt-preto),0 4px 0 #0003!important;text-transform:uppercase}
+#workflow-modal .bt-fim :is(.bt-fim-palavra,.bt-fim-palavra *){text-shadow:4px 4px 0 var(--bt-preto)!important}
+#workflow-modal .bt-fim.perdeu :is(.bt-fim-palavra,.bt-fim-palavra *){text-shadow:4px 4px 0 #2a262066!important}
+#workflow-modal .bt-fim :is(.bt-etiqueta,.bt-etiqueta *,.bt-fim-premio,.bt-fim-premio *){text-shadow:none!important}
+#workflow-modal .bt-fim .workflow-actions button{text-transform:uppercase!important}
+/* Celular deitado: enfeites de parede somem e o recado do ranking zerado vai ao lado do pódio. */
+@media (max-height:520px){.bt-parede .bt-deco{display:none}.bt-painel[data-aba=ranking]:has(>.bt-podio)>.bt-podio{grid-column:1!important;grid-row:2;margin-top:8px}.bt-painel[data-aba=ranking]>.snc-giz-vazio{grid-column:2!important;grid-row:2;align-self:center;margin:0;max-width:none;font-size:14px!important;padding:10px 12px}}
+/* Cartaz baixinho (celular deitado/em pé): a fita vai para o canto e não cobre o nome. */
+@media (max-height:520px),(max-width:760px){.bt-cartaz::before{left:auto;right:-10px;top:-6px;width:30px;height:12px;transform:rotate(35deg)}}
+/* Celular em pé: o pódio se mede pela largura (a altura da tela inflava as fotos e as caixas). */
+@media (max-width:760px) and (orientation:portrait){.bt-podio{gap:8px}.bt-podio-lugar{width:30%!important}.bt-podio-lugar .bt-foto34{width:56px!important;border-width:4px!important}.bt-podio-lugar.p1 .bt-foto34{width:66px!important}.bt-podio-caixa{height:28px!important}.bt-podio-caixa b{font-size:18px!important}.bt-painel[data-aba=ranking]>.snc-giz-vazio{max-width:none;font-size:15px!important}}

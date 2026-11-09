@@ -118,6 +118,9 @@ async function pasta(nome, paiId) {
   return id;
 }
 
+// Uma pasta dentro de outra já conhecida (ex.: a pasta do cliente ligada no cadastro), criando se faltar.
+export async function subpasta(nome, paiId) { return pasta(String(nome), paiId); }
+
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
                'julho','agosto','setembro','outubro','novembro','dezembro'];
 
