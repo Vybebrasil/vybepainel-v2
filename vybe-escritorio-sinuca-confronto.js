@@ -392,22 +392,3 @@ function sinucaSeuBarHtml() {
 // Nada de grade de cartões: os jogadores são retratos em hexágono (a luz verde
 // é quem está no escritório) e, ao lado, a carta de jogador de quem está em
 // foco, grande, com DESAFIAR e VER FICHA. Passar o mouse ou tocar troca o foco.
-function sinucaEscolhaRivalHtml(pessoas) {
-  const x = escritorioXadrez(), fichas = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao?.fichas || {} : {};
-  if (!pessoas.length) return '<div class="snc-rivais vazio"><p>Ninguém mais na equipe por enquanto. Treine na Jornada dos bares.</p></div>';
-  const foco = pessoas.find((p) => String(p.id) === String(x.sinucaFoco)) || pessoas.find((p) => p.online) || pessoas[0];
-  const id = String(foco.id), f = fichas[id], u = escritorioCabecaUrl?.(foco.id);
-  const grade = pessoas.map((p) => { const pid = String(p.id), fi = fichas[pid], ur = escritorioCabecaUrl?.(p.id);
-    return `<button type="button" class="snc-rival${pid === id ? " foco" : ""}${p.online ? " online" : ""} ${safeText(fi?.titulo?.raridade || "comum")}" onmouseenter="sinucaRivalFoco('${safeText(pid)}')" onfocus="sinucaRivalFoco('${safeText(pid)}')" onclick="sinucaRivalFoco('${safeText(pid)}',true)"><span class="snc-rival-foto">${ur ? `<img src="${safeText(ur)}" alt="">` : `<i>${safeText(String(p.nome || "?")[0])}</i>`}</span><b>${safeText(xadrezPrimeiroNome(p))}</b>${fi?.nota != null ? `<em>${fi.nota}</em>` : ""}</button>`; }).join("");
-  const carta = typeof sinucaCartaJogadorHtml === "function" ? sinucaCartaJogadorHtml(foco.nome || xadrezPrimeiroNome(foco), f, u) : "";
-  return `<div class="snc-rivais"><div class="snc-rivais-grade" role="listbox" aria-label="Escolha quem chamar">${grade}</div>
-<div class="snc-rivais-foco">${carta}<p class="snc-rivais-status">${foco.online ? '<i class="on"></i>No escritório agora' : '<i></i>Recebe o convite no sino'}</p>
-<div class="snc-rivais-acoes"><button type="button" class="snc-btn snc-rivais-desafiar" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(id)}')">DESAFIAR ${safeText(xadrezPrimeiroNome(foco).toUpperCase())} ▸</button><button type="button" class="snc-btn secundario" onclick="sinucaFichaDoSalao('${safeText(id)}')">VER FICHA</button></div></div></div>`;
-}
-function sinucaRivalFoco(id, clique) {
-  const x = escritorioXadrez();
-  if (String(x.sinucaFoco) === String(id) && !clique) return;
-  x.sinucaFoco = String(id);
-  const alvo = document.querySelector(".snc-hub .snc-rivais");
-  if (alvo) { alvo.outerHTML = sinucaEscolhaRivalHtml(mesaPessoasParaChamar()); sinucaTacosVitrine?.(document.querySelector(".snc-hub") || document); document.querySelector(`.snc-rival[onclick*="'${id}'"]`)?.focus({ preventScroll: true }); }
-}

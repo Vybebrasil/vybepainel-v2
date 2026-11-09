@@ -56,26 +56,7 @@ function sinucaHeroiHtml(saldo){
  // A sua carta de jogador (a mesma da ficha), pequena, no alto do menu.
  return `<button type="button" class="snc-heroi-carta" onclick="sinucaFichaDoSalao('${safeText(eu)}')" title="Abrir a minha ficha do bar">${typeof sinucaCartaJogadorHtml==='function'?sinucaCartaJogadorHtml(nome,f,escritorioCabecaUrl?.(eu)):''}</button>`;
 }
-function desenharLobbySinuca(d,cfg){
- const x=escritorioXadrez(),aba=x.sinucaSecao||'sala',online=mesaPessoasParaChamar(),saldo=escritorio.base?.economia?.saldo;
- mesaLerExtras(cfg);
- // Cada carta diz quem é a pessoa no bar (Paulo, 08/11/2026: melhorar a UX de todos os menus): título, campanha e o taco.
- const fichasSalao=x.extras?.bots?.salao?.fichas||{};
- const equipe=online.slice(0,12).map(p=>{const f=fichasSalao[String(p.id)];return `<button type="button" class="snc-carta-pessoa ${p.online?'online':''}" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(String(p.id))}')"><span class="snc-carta-cabeca">${sinucaPessoaHtml(p)}</span><b>${xadrezPrimeiroNome(p)}</b><small>${p.online?'No escritório':'Convidar'}</small>${f?`<span class="snc-carta-ficha"><i class="${safeText(f.titulo?.raridade||'comum')}">${safeText(f.titulo?.nome||'Estreante')}</i><span>${f.vitorias}V · ${f.derrotas}D${f.posicao?` · ${f.posicao}º`:''}</span><canvas data-snc-taco="${safeText(f.taco||'casa')}" aria-hidden="true"></canvas></span>`:''}<em>DESAFIAR</em></button>`;}).join('');
- const aoVivo=d.mesa?`<button type="button" class="snc-ao-vivo" onclick="mesaAssistir()"><i></i>AO VIVO · ${xadrezPrimeiroNome(d.mesa.desafiante)} × ${xadrezPrimeiroNome(d.mesa.desafiado)}<b>ASSISTIR</b></button>`:'';
- const tSnc=x.extras?.jogo==='sinuca'?x.extras.temporada:null,temporada=tSnc&&typeof sinucaTemporadaHtml==='function'?sinucaTemporadaHtml(tSnc):mesaTemporadaHtml(cfg);
- const painel=aba==='sala'?`<div class="snc-painel-topo"><div><small>ESCOLHA O ADVERSÁRIO</small><h2>Quem vai pra mesa?</h2></div></div>${typeof sinucaEscolhaRivalHtml==='function'?sinucaEscolhaRivalHtml(online):equipe}`
-  :aba==='desafios'?sinucaBotsHtml(cfg)
-  :aba==='ranking'?sinucaSalaoHtml()
-  :aba==='conquistas'?sinucaConquistasHtml()
-  :`<div class="snc-painel-topo"><div><small>A GLÓRIA DO BOTECO</small><h2>Seu nome no topo.</h2></div></div>${temporada||'<div class="snc-vazio"><p>Temporada indisponível no momento.</p><button class="snc-btn secundario" onclick="escritorioXadrez().extras=null;mesaLerExtras(mesaCfg())">Atualizar temporada</button></div>'}`;
- xadrezModal(`<div class="snc-sala snc-jogo-menu snc-hub"><div class="snc-cena" aria-hidden="true"></div>
-<header class="snc-menu-topo tema-sinuca"><div class="snc-marca">${sinucaMarcaHtml()}</div>${saldo!==undefined?`<span class="snc-topo-moedas" title="Suas VybeCoins"><i>🪙</i><b>${Number(saldo).toLocaleString('pt-BR')}</b></span>`:''}<button type="button" class="snc-icone" aria-label="Fechar sinuca" onclick="xadrezFechar()">×</button></header>
-<nav class="snc-menu-principal" aria-label="Menu da sinuca">${sinucaHeroiHtml(saldo)}${SINUCA_MENU.map(([id,nome,sub,ic])=>`<button type="button" class="snc-opcao" aria-pressed="${aba===id}" onclick="sinucaLobbySecao('${id}')">${sinucaIcone(ic)}<span><b>${nome}</b><small>${sub}</small></span></button>`).join('')}<small class="snc-menu-regra">PAR OU ÍMPAR · REGRA DE BAR</small></nav>
-<main class="snc-menu-painel" data-aba="${aba}">${sinucaConvitesHtml(d)}${aoVivo}${painel}<p class="ofc-erro" id="xdz-erro" role="alert"></p></main></div>`,'ofc-xdz-sala');
- mesaLobbyRelogio();
- sinucaTacosVitrine(document.querySelector('.snc-sala')||document);
-}
+// O salão é desenhado em vybe-escritorio-sinuca-boteco.js (boteco de esquina, 09/11/2026).
 // PREPARAR DESAFIO como seleção de personagem (Paulo, 08/11/2026: "você tá
 // mantendo tudo igual só trocando a cor... é pra mudar tudo"). Antes era um
 // formulário com três passos e rolagem; agora é uma tela só, sem rolar: você à

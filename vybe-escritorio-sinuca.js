@@ -17,7 +17,7 @@ const SINUCA_CFG = registrarMesaEscritorio({
   // "Tá dando vitória antes de mostrar a bola caindo" (Paulo, 04/11/2026): o
   // placar do fim espera a animação da última tacada terminar.
   segurarFim: (s) => Boolean(s.anim),
-  salaUI: desenharLobbySinuca, novoUI: desenharNovoSinuca, conviteUI: desenharConviteSinuca,
+  salaUI: (...a) => desenharLobbySinuca(...a), novoUI: desenharNovoSinuca, conviteUI: desenharConviteSinuca,
   nota: "Par ou ímpar, regra de bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e mate o ás (a 1, colado na cabeceira) para ganhar. Suicida, cegar ou matar bola do outro (mesmo junto com a sua) é falta: sai mais uma bola do outro; bater direto na bola do outro é multa de 2 bolas. Na falta nada volta para a mesa e a vez passa; na suicida o outro põe a branca no D.", desenhar: (j, s) => desenharSinuca(j, s),
   // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
   // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
