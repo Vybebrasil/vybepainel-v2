@@ -511,7 +511,7 @@
       const passou = c.dia < hojeDia, hojeC = c.dia === hojeDia;
       return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-hoje-acao="dia" data-valor="${c.dia}" title="${esc(c.grupos.map((g) => g.n + ' ' + g.st).join(' · ') || 'Nada neste dia')}">
         <span class="vv-sem-topo">${c.lista.length ? `<b>${c.lista.length}</b>${c.prontas ? `<em title="já saíram">${c.prontas} prontas</em>` : ''}` : '<b>–</b>'}</span>
-        <span class="vv-sem-pilha" style="--h:${Math.round((c.lista.length / max) * 100)}%">${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};flex:${g.n}"></i>`).join('')}</span>
+        <span class="vv-sem-barras"><i class="total" style="--h:${Math.round((c.lista.length / max) * 100)}%" title="${c.lista.length} previstas"></i>${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};--h:${Math.max(4, Math.round((g.n / max) * 100))}%" title="${g.n} ${esc(g.st)}"></i>`).join('')}</span>
         <span class="vv-sem-dia">${NOMES[new Date(c.dia + 'T12:00:00Z').getUTCDay()]} <small>${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}</small></span></button>`;
     };
     const legenda = [...statusSet.values()].sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');

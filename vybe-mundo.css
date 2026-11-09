@@ -5180,3 +5180,9 @@ body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
 .vv-sem-legenda i{width:10px;height:10px;border-radius:3px;background:var(--c)}
 .vv-sem-legenda b{color:#1F1D1A}
 @media (prefers-reduced-motion:no-preference){.vv-sem-pilha{transition:height .3s var(--curva,ease)}}
+/* Semana: a barra da previsão (total, cinza) e ao lado uma barrinha por status, na cor do status (Paulo, 08/11/2026). */
+.vv-sem-barras{align-self:end;height:180px;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.vv-sem-barras i{display:block;width:8px;height:var(--h,0%);min-height:3px;border-radius:3px 3px 1px 1px;background:var(--c)}
+.vv-sem-barras i.total{width:16px;background:#D9CDB8;margin-right:3px}
+.vv-sem-col.hoje .vv-sem-barras i.total{background:#F5C9A6}
+@media (prefers-reduced-motion:no-preference){.vv-sem-barras i{transition:height .3s var(--curva,ease)}}
