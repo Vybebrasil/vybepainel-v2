@@ -9,6 +9,10 @@
 // O 3D (three.js) é carregado sob demanda: o módulo do mundo, o relevo e a base de empresas
 // ganham hash no nome no build (scripts/build.mjs troca os três endereços abaixo).
 (() => {
+  // Status na cor do quadro (statusCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function statusCor(d) { const g = globalThis.statusCor; return typeof g === 'function' && g !== statusCor ? g(d) : String(d?.status || 'Sem status').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const CHAVE = 'vybe.mundo.v1';
   const MUNDO_JS = "/assets/mundo/mundo-3d.js";
   const MUNDO_DADOS = "/assets/mundo/irece.json";
@@ -421,7 +425,7 @@
     const p = placa();
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button><h3>${esc(titulo)}</h3><p class="vv-sub">${c ? 'O que pede atenção' : 'Demandas neste gargalo'}</p>
       <ul class="vv-pendencia-motivos">${motivos.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
-      <div class="vv-pendencias-lista">${lista.length ? lista.map((d) => `<button type="button" class="vv-pendencia" style="--st:${esc(corDaPendencia(d))}" data-hoje-acao="peca" data-valor="${esc(d.id)}"><b>${esc(d.nome)}</b><span class="vv-pendencia-status">${esc(d.status || 'Sem status')}</span><small>${esc(d.cliente)}</small><dl><div><dt>Responsável</dt><dd>${esc(d.responsavel || 'Sem responsável')}</dd></div><div><dt>Prazo</dt><dd>${esc(dataCompleta(d.prazo_iso))}</dd></div><div><dt>Veiculação</dt><dd>${esc(dataCompleta(d.veiculacao_iso))}</dd></div></dl>${d.motivos?.length ? `<small>${esc(d.motivos.join(' · '))}</small>` : ''}<span class="vv-pendencia-abrir">Abrir demanda →</span></button>`).join('') : '<p class="vv-vazio">Os alertas acima não têm uma demanda específica vinculada. Confira a cobertura de conteúdo e o planejamento do cliente.</p>'}</div>
+      <div class="vv-pendencias-lista">${lista.length ? lista.map((d) => `<button type="button" class="vv-pendencia" style="--st:${esc(corDaPendencia(d))}" data-hoje-acao="peca" data-valor="${esc(d.id)}"><b>${esc(d.nome)}</b><span class="vv-pendencia-status">${statusCor(d)}</span><small>${cliCor(d.cliente)}</small><dl><div><dt>Responsável</dt><dd>${esc(d.responsavel || 'Sem responsável')}</dd></div><div><dt>Prazo</dt><dd>${esc(dataCompleta(d.prazo_iso))}</dd></div><div><dt>Veiculação</dt><dd>${esc(dataCompleta(d.veiculacao_iso))}</dd></div></dl>${d.motivos?.length ? `<small>${esc(d.motivos.join(' · '))}</small>` : ''}<span class="vv-pendencia-abrir">Abrir demanda →</span></button>`).join('') : '<p class="vv-vazio">Os alertas acima não têm uma demanda específica vinculada. Confira a cobertura de conteúdo e o planejamento do cliente.</p>'}</div>
       ${c ? `<button type="button" class="vv-botao" data-abrir-cliente="${esc(c.cliente)}">Abrir o cliente →</button>` : ''}`;
     p.hidden = false; ajustarAreaLivre();
   }
@@ -462,7 +466,7 @@
       ${semanas.map((s, i) => i % 2 === 0 || i === pts.length - 1 ? `<text x="${px(i)}" y="${h - 2}" text-anchor="middle" class="eixo">${esc(String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7))}</text>` : '').join('')}
     </svg>`;
   }
-  const pecaCurta = (p) => `${esc(p.nome || 'Peça')}${p.cliente ? ' · ' + esc(p.cliente) : ''}`;
+  const pecaCurta = (p) => `${esc(p.nome || 'Peça')}${p.cliente ? ' · ' + cliCor(p.cliente) : ''}`;
   function botsParaCobrar() {
     let f = null; try { f = fonteAgentes?.ler(); } catch { f = null; } if (!f?.dados?.agentes) return { sinal: false, lista: [] };
     const lista = f.dados.agentes.map((a) => ({ a, e: estadoDoAgente(a.setor) })).filter(({ e }) => ['falhou', 'aguardando_aprovacao'].includes(e.estado))
@@ -500,12 +504,12 @@
       <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button></div>
-      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
+      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
       <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
         <p><button type="button" class="vv-num" data-espiar="sem3"><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b></button> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <button type="button" class="vv-num t-u1" data-espiar="semConteudo"><b>${C.semConteudo.length} sem nenhum</b></button>` : ''}${(C.semPlanejamento || []).length ? ` · <button type="button" class="vv-num" data-espiar="semPlanejamento">${C.semPlanejamento.length} sem planejamento</button>` : ''}</p>
-        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
+        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${cliCor(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
       ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
       ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
       </section><section class="vv-bloco">
@@ -565,13 +569,13 @@
       corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
         <div class="vv-g-grade">
           <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 80)), h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
-          <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
-          <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
+          <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
+          <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
           <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
         </div>`;
     } else if (gestaoAba === 'clientes') {
       corpo = `<section class="vv-g-cartao largo"><table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
-        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${esc(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
+        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${cliCor(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
         </tbody></table></section>`;
     } else if (gestaoAba === 'carteiras') {
       // A carteira de cada head (o "progresso das entregas por squad" do AgencyFlow). Os números vêm de N.heads.
@@ -652,11 +656,11 @@
       const porNome = new Map((N.clientes || []).map((c) => [c.cliente, c]));
       const l = (h?.clientes || []).map((nome) => porNome.get(nome) || { cliente: nome });
       return { titulo: 'Clientes na carteira', sub: valor, n: l.length, cls: h?.saude?.critico ? 'u1' : h?.saude?.atencao ? 'u2' : '', aba: 'carteiras',
-        corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Nenhum cliente ativo nesta carteira.</p>' };
+        corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Nenhum cliente ativo nesta carteira.</p>' };
     }
     if (tipo === 'atencao') {
       const l = (N.clientes || []).filter((c) => c.saude !== 'ok');
-      return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
+      return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
     }
     return null;
   }

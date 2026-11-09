@@ -4921,3 +4921,7 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top
 /* Valor do cartão acompanha a largura do cartão (antes cortava "R$ 28,5 mil" em cartão estreito). */
 .vs-kpi{container-type:inline-size}
 .vs-kpi-valor{font-size:clamp(16px,15cqi,26px)}
+/* Status e cliente sempre com cor (cliCor/statusCor): a pílula do status entra sem o fundo de urgência da etiqueta, e
+   nas listas dos painéis o nome do cliente/status alinha à esquerda sem esticar. */
+.vv-cli-tag.vv-cli-status{background:none!important;padding:0!important;border:0!important;box-shadow:none!important}
+.vs-d-nome :is(.pill,.cliente-carteira){justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis}

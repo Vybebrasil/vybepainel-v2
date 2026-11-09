@@ -24,6 +24,8 @@
 // Uso em mostrarCliente: no fim do HTML da placa, `${window.VybeClientePlaca?.html(c.nome) || ''}`;
 // depois de pôr na tela, `window.VybeClientePlaca?.ligar(p)`. Visual em vybe-mundo-cliente.css.
 (() => {
+  // Status na cor do quadro (statusCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function statusCor(d) { const g = globalThis.statusCor; return typeof g === 'function' && g !== statusCor ? g(d) : String(d?.status || 'Sem status').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const G = typeof window !== 'undefined' ? window : globalThis;
 
   // Meta da agência: 3 posts por cliente por semana (a mesma da Visão do dono).
@@ -275,7 +277,7 @@
     return `<button type="button" class="vv-cli-linha${u === 'u1' || u === 'u2' ? ' ' + u : ''}" data-vv-cli-peca="${esc(d.id)}" title="${esc(`${tituloDaPeca(d)} · ${d.status || ''}`)}">
       <span class="vv-cli-quando${veic === hoje ? ' hoje' : ''}"><small>${veic === hoje ? 'Hoje' : diaDaSemana(veic)}</small><b>${esc(veic.slice(8, 10))}</b></span>
       <span class="vv-cli-meio"><b>${esc(tituloDaPeca(d))}</b><small>${esc(apoio)}</small></span>
-      <em class="vv-cli-tag ${u}">${esc(d.status || 'Sem status')}</em></button>`;
+      <em class="vv-cli-tag vv-cli-status">${statusCor(d)}</em></button>`;
   }
 
   function blocoEspera(pecas, hoje) {
@@ -397,7 +399,7 @@
       const apoio = [`${diaMes(p.data)}`, p.formato !== 'Sem formato' ? p.formato : '', aprov ? `aprovação: ${aprov}` : ''].filter(Boolean).join(' · ');
       const obj = p.objetivo ? `<span class="vv-cli-obj ${p.objetivo}">${esc(NIVEL_OBJETIVO[p.objetivo])}</span>` : '';
       return `<button type="button" class="vv-cli-linha${u === 'u1' || u === 'u2' ? ' ' + u : ''}" data-vv-cli-peca="${esc(p.id)}" title="${esc(`${p.nome} · ${p.status}`)}">
-        <span class="vv-cli-meio"><b>${esc(p.nome)}</b><small>${obj}${esc(apoio)}</small></span><em class="vv-cli-tag ${u}">${esc(p.status)}</em></button>`;
+        <span class="vv-cli-meio"><b>${esc(p.nome)}</b><small>${obj}${esc(apoio)}</small></span><em class="vv-cli-tag vv-cli-status">${statusCor({ ...d, status: p.status || d?.status })}</em></button>`;
     }).join('');
     return `<section class="vv-cli-secao" data-vv-cli-secao="mes">${rotulo(`Peças de ${r.rotuloMes}`, `<span class="vv-cli-conta">${r.total}</span>`)}
       ${kpis}${equilibrioHtml(r.objetivos)}

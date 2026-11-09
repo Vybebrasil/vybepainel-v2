@@ -8,6 +8,8 @@
 // Cada pessoa só recebe os grupos de que participa (a central filtra pelo crachá). Clicar abre a conversa no WhatsApp da
 // Vybe (vybe-mundo-whatsapp.js). Nada é enviado daqui.
 (() => {
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const G = window;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const st = { dados: null, erro: '', lidoEm: 0, lendo: null };
@@ -26,7 +28,7 @@
   const tempo = (min) => min == null ? '' : min < 60 ? `${min} min` : min < 1440 ? `${Math.round(min / 60)} h` : `${Math.round(min / 1440)} d`;
   const desde = (iso) => { const t = Date.parse(iso || ''); return Number.isFinite(t) ? tempo(Math.round((Date.now() - t) / 60e3)) : ''; };
   const linhaCliente = (x) => `<button type="button" class="vv-dono-linha" data-pend-cliente="${esc(x.cliente)}" title="${esc(x.autor)}: ${esc(x.texto)}">
-      <span class="saude ${x.minutos >= 60 ? 'u1' : 'u2'}"></span><span class="meio"><b>${esc(x.cliente)} <i class="vv-pend-tempo">${esc(tempo(x.minutos))}</i></b><small>${esc(x.autor)}: “${esc(x.texto)}”${x.para ? ` · para ${esc(x.para)}` : ''}</small></span></button>`;
+      <span class="saude ${x.minutos >= 60 ? 'u1' : 'u2'}"></span><span class="meio"><b>${cliCor(x.cliente)} <i class="vv-pend-tempo">${esc(tempo(x.minutos))}</i></b><small>${esc(x.autor)}: “${esc(x.texto)}”${x.para ? ` · para ${esc(x.para)}` : ''}</small></span></button>`;
   const linhaTime = (x) => `<button type="button" class="vv-dono-linha" ${x.conversa ? `data-pend-conversa="${esc(x.conversa)}"` : ''} title="${esc(x.prova)}">
       <span class="saude ${x.gravidade === 'alta' ? 'u1' : 'u2'}"></span><span class="meio"><b>${esc(x.fato)}</b><small>${esc(x.prova)}${x.sugestao ? ' · ' + esc(x.sugestao) : ''}</small></span></button>`;
   const sinal = () => !st.dados ? `<p class="vv-dica">${esc(st.erro || 'Consultando o WhatsApp pela central do VYBES…')}</p>` : '';

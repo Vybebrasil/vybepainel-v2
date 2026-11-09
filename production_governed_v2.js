@@ -335,7 +335,7 @@
                </div>
                <div class="p-card-body">
                  <b>${esc(item.nome)}</b>
-                 <span class="p-client">${esc(item.cliente)} · ${esc(owner)}</span>
+                 <span class="p-client">${cliCor(item.cliente)} · ${esc(owner)}</span>
                  <span class="p-context">${esc(readiness.copy)}</span>
                </div>
                <div class="p-card-right">
@@ -370,7 +370,7 @@
                return `
                  <div class="p-cal-card ${isCapture?'is-capture':''}" style="--st-color:${readiness.color}" draggable="true" ondragstart="pCalDrag(event, '${item.id}')" onclick="openProductionSheet('${item.id}')">
                     <b>${esc(item.nome)}</b>
-                    <span>${esc(item.cliente)}</span>
+                    <span>${cliCor(item.cliente)}</span>
                     <span class="p-tag-status" style="color:${readiness.color}; background:${readiness.color}15; border-color:${readiness.color}30;">${esc(readiness.label)}</span>
                  </div>
                `;
@@ -457,7 +457,7 @@
                    <b>${esc(item.nome)}</b>
                 </div>
                 <div class="p-draw-meta">
-                   <span>${esc(item.cliente)}</span>
+                   <span>${cliCor(item.cliente)}</span>
                    <span>${esc(productionCommandOwner(item))}</span>
                 </div>
              </header>

@@ -31,6 +31,16 @@ function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
   return `<span class="cliente-carteira" data-carteira="${carteira}" title="${safeText(descricao)}" aria-label="${safeText(nome)} — ${safeText(descricao)}"${dentroDeBotao ? '' : ' tabindex="0"'}>${safeText(nome)}</span>`;
 }
 
+// O nome do cliente em qualquer lista, cartão ou linha: sempre com a cor da carteira (Paulo, 08/11/2026: "aparece o nome do
+// cliente sem a cor dele pra eu saber o head"). Sem foco próprio, porque quase sempre está dentro de um botão.
+// O status de uma peça em qualquer lista: a pílula do painel, na cor do quadro (Paulo, 08/11/2026: "tem lugar que aparece o
+// status sem a cor do status"). pillHtml (vybe-gestor.js) usa status_color e, sem ela, a cor do catálogo pelo nome.
+function statusCor(d) {
+  const s = String(d?.status || "Sem status");
+  return typeof pillHtml === "function" ? pillHtml(safeText(s), d?.status_color || "", d?.status_border || "") : safeText(s);
+}
+function cliCor(nome) { return nome ? tagClienteHtml(String(nome), { dentroDeBotao: true }) : ""; }
+
 function atualizarCoresDasCarteiras() {
   document.querySelectorAll('.cliente-carteira, .manager-calendar-client[data-carteira]').forEach(el => {
     const nome = el.dataset.cliente || el.querySelector('b')?.textContent || el.textContent;

@@ -54,7 +54,7 @@ test('HUD usa lista inteira do gargalo, cor do painel e mostra campos distintos 
   const lista = Array.from({length:65},(_,i)=>({id:String(i),nome:i===0?'<img src=x>':'Peça '+i,status:'Pode Fazer',cliente:'Copirecê',responsavel:'Bia',prazo_iso:'2026-11-05',veiculacao_iso:'2026-11-12'}));
   const dados=lista.map(d=>({...d,status_color:'#00AABB'})), el={hidden:true,innerHTML:''};
   const N={clientes:[],gargalos:[{status:'Pode Fazer',qtd:65,idadeMedianaDias:1,lista}]};
-  const c=vm.createContext({DADOS_ALL:dados,managerCalendarStatusColor:(d,f)=>d?.status_color||f,numerosDoDono:()=>N,gestao:{hidden:true},placa:()=>el,ic:{fechar:'×'},esc,ajustarAreaLivre(){}});
+  const c=vm.createContext({DADOS_ALL:dados,managerCalendarStatusColor:(d,f)=>d?.status_color||f,numerosDoDono:()=>N,gestao:{hidden:true},placa:()=>el,ic:{fechar:'×'},esc,cliCor:esc,statusCor:(d)=>esc(d?.status||'Sem status'),ajustarAreaLivre(){}});
   c.corStatus=(d)=>d?.status_color||'#9AA3A8'; c.situacaoDaPeca=()=>'fazer'; c.STATUS_CORES={}; c.chaveStatus=(s)=>String(s||'').toLowerCase();
   vm.runInContext('const dataCompleta = iso => iso ? iso.slice(8)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4) : "Não definido";'+fonte('corDaPendencia')+fonte('mostrarPendencias'),c);
   c.mostrarPendencias('','Pode Fazer');

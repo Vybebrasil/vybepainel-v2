@@ -81,8 +81,9 @@ test('Esta semana: veiculação de segunda a domingo, com dia e status, e "x de 
   assert.match(s, /<span class="vv-cli-meta falta"[^>]*>2 de 3<\/span>/);
   assert.match(s, /<small>Qui<\/small><b>12<\/b>/);
   assert.match(s, /<small>Sáb<\/small><b>14<\/b>/);
-  assert.match(s, /Story promoção[\s\S]*?vv-cli-tag u6">Em andamento/);
-  assert.match(s, /Reels do pão[\s\S]*?vv-cli-tag u3b">Ag\. Info Cliente/);
+  // O status vai na cor do quadro (statusCor; Paulo, 08/11/2026); a urgência continua na cor da linha.
+  assert.match(s, /Story promoção[\s\S]*?vv-cli-tag vv-cli-status">Em andamento/);
+  assert.match(s, /Reels do pão[\s\S]*?vv-cli-tag vv-cli-status">Ag\. Info Cliente/);
   // terceira peça na semana (inclusive já finalizada: post publicado conta) → verde
   const { api: api3 } = ambiente({ pecas: [...PECAS, { id: 10, nome: 'Post domingo', cliente: 'Padaria Sol', status: 'Finalizado', veiculacao_iso: '2026-11-15' }] });
   assert.match(secao(api3.html('Padaria Sol'), 'semana'), /<span class="vv-cli-meta ok"[^>]*>3 de 3<\/span>/);

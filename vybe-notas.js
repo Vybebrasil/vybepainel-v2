@@ -732,7 +732,7 @@ function notasResultadosHtml() {
   return achados.map((d) => `<button type="button" class="nota-busca-item"
       onclick="ligarNotaAPeca('${safeText(String(d.id))}')">
       <b>${safeText(d.nome || 'Sem título')}</b>
-      <small>${safeText(d.cliente || 'Sem cliente')}${d.status ? ` · ${safeText(d.status)}` : ''}</small>
+      <small>${safeText(d.cliente || 'Sem cliente')}${d.status ? ` ${typeof statusCor === 'function' ? statusCor(d) : safeText(d.status)}` : ''}</small>
     </button>`).join('');
 }
 
