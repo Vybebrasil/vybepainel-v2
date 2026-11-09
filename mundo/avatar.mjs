@@ -69,7 +69,9 @@ const misturar = (a, b, t) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), 
 // da antena do agente (a cor dela é o estado; -1 sem antena).
 // passo (-1..1): pose de passada, com a perna de um lado à frente e o braço do outro (as duas poses alternadas
 // fazem o boneco andar de verdade, sem malha a mais por quadro).
-export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, passo = 0 } = {}) {
+// sentado: as coxas vão para a frente na altura do quadril (y 0,44) e as canelas descem até o chão; quem desenha
+// põe o quadril no assento (Minha sala, mundo/quarto.mjs). O resto do boneco não muda.
+export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, passo = 0, sentado = false } = {}) {
   const pz = (lado) => passo * Math.sign(lado) * .09;
   const g = ((Math.round(giro) % 4) + 4) % 4;
   const P = (lx, lz) => [[lx, lz], [lz, -lx], [-lx, -lz], [-lz, lx]][g];
@@ -78,16 +80,19 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     (luz ? o.luz : o.caixa).call(o, x + a * s, y + ly * s, z + b * s, ww * s, hh * s, dd * s, cor);
   };
   const escuro = (c, t = .35) => misturar(c, '#1F1D1A', t), claro = (c, t = .4) => misturar(c, '#FFFFFF', t);
-  // Tênis: sola branca, cabedal colorido, bico claro e cadarço.
+  // Tênis: sola branca, cabedal colorido, bico claro e cadarço. Sentado, os pés ficam meia perna à frente.
+  if (sentado) passo = 0;
+  const pe = sentado ? .38 : 0;
   for (const sx of [-.13, .13]) {
-    const q = pz(sx);
+    const q = pz(sx) + pe;
     C(sx, 0, .03 + q, .25, .07, .36, '#F4F1EA');
     C(sx, .07, .02 + q, .23, .11, .32, f.tenis);
     C(sx, .07, .17 + q, .23, .06, .04, claro(f.tenis, .55));
     C(sx, .18, q, .21, .03, .2, '#FFFFFF');
   }
   // Pernas e cinto.
-  for (const sx of [-.13, .13]) C(sx, .2, pz(sx) * .6, .22, .27, .24, f.calca);
+  if (sentado) for (const sx of [-.13, .13]) { C(sx, .3, .19, .22, .16, .42, f.calca); C(sx, .2, .38, .21, .14, .22, f.calca); }
+  else for (const sx of [-.13, .13]) C(sx, .2, pz(sx) * .6, .22, .27, .24, f.calca);
   C(0, .44, 0, .56, .06, .3, escuro(f.calca, .25));
   // Tronco com a estampa na frente.
   const tronco = f.roupa, est = new THREE.Color(tronco).getHSL({}).l > .62 ? escuro(tronco, .55) : '#FFFFFF';

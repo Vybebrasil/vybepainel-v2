@@ -7,6 +7,7 @@ import { timingSafeEqual } from 'node:crypto';
 import * as P from './planejamentos.js';
 import { documentoHtml, nomeDoMes, pecasComRevisao } from './planejamento-documento.js';
 import { enviarEmail, emailConfigurado } from './email.js';
+import { FERRAMENTAS as FERRAMENTAS_ECOSSISTEMA, executarFerramenta as executarNoEcossistema } from './mcp-ecossistema.js';
 import { pastaDePlanejamento, salvarDocumentoEPdf, logosNoDrive, baixarDoDrive } from '../vybe_drive.js';
 
 const corpoDe = (req) => (req.body && typeof req.body === 'object' ? req.body : (() => { try { return JSON.parse(req.body || '{}'); } catch { return {}; } })());
@@ -238,13 +239,21 @@ const FERRAMENTAS = [
  { name: 'ver_planejamento', description: 'Situação e comentários (do head e do cliente) do planejamento de um mês, para refazer ajustes.',
   inputSchema: { type: 'object', required: ['cliente', 'mes'], properties: { cliente: { type: 'string' }, mes: { type: 'string', description: 'AAAA-MM' } } } },
 ];
+// Cadastro e registros do cliente (server/mcp-ecossistema.js, 09/11/2026): o mesmo conector que os chats já
+// têm ligado ganha consultar_cliente e registrar, para não precisar de um segundo conector nas contas.
+const DO_ECOSSISTEMA = ['consultar_cliente', 'registrar'];
+FERRAMENTAS.push(...FERRAMENTAS_ECOSSISTEMA.filter((f) => DO_ECOSSISTEMA.includes(f.name)));
 const chaveConfere = (enviada) => {
  const certa = String(process.env.AGENTES_CHAVE || '');
  if (certa.length < 24) return false;
  const a = Buffer.from(String(enviada || '')), b = Buffer.from(certa);
  return a.length === b.length && timingSafeEqual(a, b);
 };
+let opcoesDoConector = {};
 async function chamar(sql, nome, args = {}) {
+ if (DO_ECOSSISTEMA.includes(nome)) {
+  return executarNoEcossistema(sql, nome, args, { conta: 'conector dos agentes', salvarNoDrive: opcoesDoConector.salvarNoDrive });
+ }
  if (nome === 'listar_clientes') return (await sql`SELECT nome FROM vybe_clientes WHERE ativo IS NOT FALSE ORDER BY nome`).map((c) => c.nome).join('\n');
  if (nome === 'formato_do_planejamento') return FORMATO;
  if (nome === 'publicar_planejamento') {
@@ -264,7 +273,8 @@ async function chamar(sql, nome, args = {}) {
  }
  throw Object.assign(new Error('Ferramenta desconhecida: ' + nome), { codigo: -32601 });
 }
-export async function conectorAgentes(req, res, sql) {
+export async function conectorAgentes(req, res, sql, opcoes = {}) {
+ opcoesDoConector = opcoes;
  if (!chaveConfere(req.query?.chave)) return res.status(401).json({ error: 'Chave do conector inválida.' });
  if (req.method === 'GET') return res.status(405).json({ error: 'Use POST (MCP).' });
  const m = corpoDe(req);
@@ -273,12 +283,12 @@ export async function conectorAgentes(req, res, sql) {
  if (!m || m.jsonrpc !== '2.0' || typeof m.method !== 'string') return erroRpc(-32600, 'Pedido inválido.');
  if (m.id === undefined) return res.status(202).end(); // notificação (ex.: initialized)
  if (m.method === 'initialize') return responder({ protocolVersion: m.params?.protocolVersion || '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'painel-vybe', version: '1.0.0' },
-  instructions: 'Painel da Vybe: publique o planejamento mensal do cliente com publicar_planejamento depois de ler formato_do_planejamento.' });
+  instructions: 'Painel da Vybe. Planejamento mensal: leia formato_do_planejamento e publique com publicar_planejamento. Ficha do cliente: consultar_cliente no começo do trabalho; registrar ao fechar uma entrega definitiva (conteúdo aprovado, roteiro, decisão do cliente, regra de marca, aprendizado). O nome do cliente é o do painel (listar_clientes).' });
  if (m.method === 'ping') return responder({});
  if (m.method === 'tools/list') return responder({ tools: FERRAMENTAS });
  if (m.method === 'tools/call') {
   try { return responder({ content: [{ type: 'text', text: await chamar(sql, m.params?.name, m.params?.arguments || {}) }] }); }
-  catch (e) { if (e.codigo) return erroRpc(e.codigo, e.message); return responder({ content: [{ type: 'text', text: 'Não deu: ' + e.message }], isError: true }); }
+  catch (e) { if (e.codigo) return erroRpc(e.codigo, e.message); if (e.deUso) return responder({ content: [{ type: 'text', text: e.message }], isError: true }); console.error('[conector-agentes]', m.params?.name, e); return responder({ content: [{ type: 'text', text: 'Não deu: ' + e.message }], isError: true }); }
  }
  return erroRpc(-32601, 'Método não suportado: ' + m.method);
 }
