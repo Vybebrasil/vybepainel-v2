@@ -449,7 +449,18 @@
       // Só mexe quando muda: regravar a classe dispara os observadores do HUD, que repintam o Hoje (laço sem fim).
       if (b.classList.contains('trancado') === tranca) return;
       b.classList.toggle('trancado', tranca);
-      if (tranca) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+      // A dica do mouse e o nome lido também não revelam a área trancada.
+      if (tranca) {
+        if (b.dataset.tituloAberto === undefined) { b.dataset.tituloAberto = b.getAttribute('title') || ''; b.dataset.rotuloAberto = b.getAttribute('aria-label') || ''; }
+        b.setAttribute('aria-disabled', 'true'); b.setAttribute('title', 'Só os donos veem'); b.setAttribute('aria-label', 'Área dos donos, trancada');
+      } else {
+        b.removeAttribute('aria-disabled');
+        if (b.dataset.tituloAberto !== undefined) {
+          if (b.dataset.tituloAberto) b.setAttribute('title', b.dataset.tituloAberto); else b.removeAttribute('title');
+          if (b.dataset.rotuloAberto) b.setAttribute('aria-label', b.dataset.rotuloAberto); else b.removeAttribute('aria-label');
+          delete b.dataset.tituloAberto; delete b.dataset.rotuloAberto;
+        }
+      }
     });
   }
   function avisarTrancado(b) {

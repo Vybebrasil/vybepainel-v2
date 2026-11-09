@@ -418,7 +418,11 @@
       <h3 class="vp-titulo">${p.id ? 'Editar projeto' : 'Novo projeto'}</h3>
       <div class="vp-grade"><label><span>Nome</span><input name="nome" maxlength="200" required value="${esc(p.nome || '')}"></label>
       <label><span>Tipo</span><select name="tipo">${opcoes(TIPOS_PROJETO, p.tipo || 'evento')}</select></label>
-      <label><span>Cliente</span><input name="cliente" maxlength="200" value="${esc(p.cliente || '')}"></label>
+      ${(d?.clientes || []).length
+        // Cliente pela lista oficial (auditoria 09/11, A2: o servidor grava cliente_id e o nome do cadastro). Projeto antigo
+        // com o cliente em texto continua com ele até alguém escolher da lista.
+        ? `<label><span>Cliente</span><select name="cliente_id"><option value="">${esc(p.cliente && !p.cliente_id ? p.cliente + ' (texto antigo)' : 'Projeto interno (sem cliente)')}</option>${d.clientes.map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(p.cliente_id || '') ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select><input type="hidden" name="cliente" value="${esc(p.cliente_id ? '' : p.cliente || '')}"></label>`
+        : `<label><span>Cliente</span><input name="cliente" maxlength="200" value="${esc(p.cliente || '')}"></label>`}
       <label><span>Status</span><select name="status">${opcoes(STATUS_PROJETO, p.status || 'planejado')}</select></label>
       <label><span>Início</span><input type="date" name="inicio" required value="${esc(p.inicio || '')}"></label>
       <label><span>Fim</span><input type="date" name="fim" required value="${esc(p.fim || '')}"></label></div>
@@ -611,7 +615,7 @@
     if (nome === 'perfil') return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: f.nascimento || null, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
     if (nome === 'projeto') {
       const etapas = linhas(form, '.vp-etapa-form').map((e) => ({ id: e.e_id || null, nome: e.e_nome, responsavel: e.e_responsavel || null, inicio: e.e_inicio, fim: e.e_fim, esforco: num(e.e_esforco) || 1, feita: e.e_feita === '1' }));
-      return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente: f.cliente, status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
+      return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente_id: f.cliente_id || null, cliente: f.cliente_id ? '' : f.cliente || '', status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
     }
     if (nome === 'trilha') {
       const aulas = linhas(form, '.vp-aula-form').map((a) => ({ id: a.a_id || null, titulo: a.a_titulo, tipo: a.a_tipo, link: a.a_link, minutos: num(a.a_minutos) || 10 }));
