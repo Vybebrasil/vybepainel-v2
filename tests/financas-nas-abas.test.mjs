@@ -62,3 +62,10 @@ test('salário sem funcionário ligado conta como folha; mensalidade sem cliente
   ], {}, {}, vybe);
   assert.deepEqual(r.map((x) => [x.cliente_id, x.cliente_nome]), [['30', 'Ace - Associação Comercial'], [null, 'Irecê Modas']]);
 });
+
+test('mensalidade de cliente apagado no Finanças também liga pelo nome da descrição', () => {
+  const vybe = [{ id: '30', nome: 'Ace - Associação Comercial' }];
+  const r = calc.recebiveisDoFinancas([{ id: 22, type: 'INCOME', amount: 1000, status: 'PENDING', date: '2026-10-01', client_id: 'apagado', description: 'Mensalidade - ACE - Associação comercial e empresarial de irecê' },
+    { id: 23, type: 'INCOME', amount: 500, status: 'PENDING', date: '2026-10-01', client_id: 'apagado2', description: 'Mensalidade - João Bacelar' }], {}, {}, vybe);
+  assert.deepEqual(r.map((x) => [x.cliente_id, x.cliente_nome]), [['30', 'Ace - Associação Comercial'], [null, 'João Bacelar']]);
+});

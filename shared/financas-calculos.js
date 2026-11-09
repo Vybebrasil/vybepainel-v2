@@ -244,12 +244,14 @@
     for (const t of transacoes) {
       if (!ehReceita(t) || centavos(t.amount) <= 0 || !dia(t.date)) continue;
       let par = t.client_id ? porFinancas[String(t.client_id)] : null;
-      const daDescricao = !t.client_id ? nomeDaDescricao(t.description) : '';
+      // Também quando o cliente do lançamento foi apagado no Finanças (id que não está mais na lista de clientes).
+      const semCadastro = !t.client_id || !nomeFin[String(t.client_id)];
+      const daDescricao = !par && semCadastro ? nomeDaDescricao(t.description) : '';
       if (!par && daDescricao && vybe.length) {
         if (!porDescricao.has(daDescricao)) porDescricao.set(daDescricao, ligarClientes([{ id: 'd', name: daDescricao }], vybe).porFinancas.d || null);
         par = porDescricao.get(daDescricao);
       }
-      const nome = par ? par.vybe_nome : t.client_id ? nomeFin[String(t.client_id)] || '' : daDescricao;
+      const nome = par ? par.vybe_nome : (t.client_id && nomeFin[String(t.client_id)]) || daDescricao;
       out.push({ id: 'fin:' + String(t.id), fonte: 'financas', tipo: /mensalidade/i.test(String(t.description || '')) ? 'recorrente' : 'avulso',
         cliente_id: par ? String(par.vybe_id) : null, cliente_nome: nome || String(t.description || 'Sem cliente').slice(0, 80),
         descricao: String(t.description || '').slice(0, 160), categoria: String(t.category || ''), ciclo: 'mensal',
