@@ -4058,6 +4058,20 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-link:focus-visible{outline:2px solid #F76808;outline-offset:2px}
 .vv-trilho-n{position:absolute;top:3px;right:9px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#D13D36;color:#FFF;font:700 10px/16px var(--vv-texto);text-align:center;font-style:normal}
 body.trilho-largo .vv-trilho-btn .vv-trilho-n{position:static;margin-left:auto;min-width:18px;height:18px;line-height:18px;font-size:10.5px}
+/* Estado do agente (09/11/2026): seletor só para dono e o pedido de aprovação na fila. */
+.vga-modos h4{margin-bottom:10px}
+.vga-modos-opcoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:8px}
+.vga-modos-opcoes label{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFF;cursor:pointer}
+.vga-modos-opcoes label.sel{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 14%,transparent)}
+.vga-modos-opcoes input{margin:3px 0 0;accent-color:var(--c)}
+.vga-modos-opcoes span{display:grid;gap:2px;min-width:0}.vga-modos-opcoes b{font:600 13px var(--vv-titulo);color:var(--c)}.vga-modos-opcoes small{font-size:11.5px;line-height:1.35;color:#6F6A62}
+.vga-modos-fim{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:10px}
+.vga-modos-fim label{display:grid;gap:4px;font-size:12px;color:#6F6A62}
+.vga-modos-fim input{font:13px var(--vv-texto);padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFF;color:#1F1D1A;min-width:0}
+.vga-modos .vga-nota{margin-top:8px}
+.vga-previa{margin:2px 0}.vga-previa summary{font-size:12px;color:#6F6A62;cursor:pointer}
+.vga-previa pre{margin:6px 0 2px;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 var(--vv-texto);color:#3A3732;background:#FBF8F3;border:1px solid #ECE6DC;border-radius:8px}
+.vga-acoes button.vga-sim{background:#FF7A2F;border-color:#FF7A2F;color:#FFF}
 @media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
 @media (max-width:900px){
   .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}

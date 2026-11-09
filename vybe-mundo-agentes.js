@@ -6,15 +6,38 @@
 // Rotina: o que roda de verdade com horário (rotinas.js / noite.js, vindo da central) + as atribuições recorrentes.
 // Atribuições: guardadas na central (core/atribuicoes-agentes.js). Só os donos dão, pausam e removem. Quando vencem, viram
 // proposta do agente e esperam a aprovação de um dono (modo sombra): nada sai no WhatsApp nem grava no Vybe OS por aqui.
+// Estado de cada agente (Paulo, 09/11/2026): ativo · sombra · pausado (com data de volta opcional) · desligado. Vem da
+// central (core/estado-agentes.js, fonte única); só os donos mudam, aqui mesmo. Os pedidos de aprovação dos agentes em
+// sombra entram em "Depende de você" › Para decidir, com Aprovar / Recusar e a prévia do que será feito.
 (() => {
   const G = window;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome. A central confere de novo.
   const souDono = () => { try { return typeof G.souDonoDaSessao === 'function' && G.souDonoDaSessao(); } catch { return false; } };
   const ESTADO_SETOR = { ativo: ['Ativo', 'Já trabalha hoje.', '#18A957'], sombra: ['Sombra', 'Só propõe; um dono aprova.', '#0D74CE'], planejado: ['Planejado', 'Falta ligar as ferramentas: hoje não roda.', '#7A8B82'] };
+  // O estado que vale agora (o mesmo texto de core/estado-agentes.js EXPLICA). Sem leitura da central: a planta, como antes.
+  const MODO = { ativo: ['Ativo', 'Age sozinho e conta no grupo dos sócios o que fez.', '#18A957'], sombra: ['Sombra', 'Trabalha, mas cada ação espera o OK de um dono.', '#0D74CE'],
+    pausado: ['Pausado', 'Parado por um tempo; volta sozinho na data marcada.', '#C2490C'], desligado: ['Desligado', 'Não roda nada até um dono ligar.', '#7A8B82'] };
+  function modoDo(s) {
+    const a = (fonte().dados?.agentes || []).find((x) => x.setor === s.id);
+    if (a?.modo && MODO[a.modo]) return { id: a.modo, ate: a.modoAte || null, pedidos: a.pedidos || 0, real: true };
+    return { id: s.estado, ate: null, pedidos: 0, real: false };
+  }
+  const rotuloDoModo = (m) => MODO[m.id] || ESTADO_SETOR[m.id] || ESTADO_SETOR.planejado;
   const ANDAR = (n, id) => (n === 0 ? 'Térreo' : id === 'terraco' ? 'Terraço' : n + 'º andar');
   const FREQ = { uma_vez: 'Uma vez', diaria: 'Todo dia', semanal: 'Toda semana', mensal: 'Todo mês' };
-  const st = { aberto: false, vista: 'fila', setor: 'orquestrador', msg: '', enviando: false, perfis: {} };
+  const st = { aberto: false, vista: 'fila', setor: 'orquestrador', msg: '', enviando: false, perfis: {}, estados: { dados: null, erro: '', em: 0, lendo: null } };
+  // Estados e pedidos de aprovação: só para dono (o servidor confere a sessão e a central de novo). 30 s de folga.
+  function lerEstados(forcar = false) {
+    const e = st.estados;
+    if (!souDono()) return Promise.resolve();
+    if (e.lendo || (!forcar && Date.now() - e.em < 30e3)) return e.lendo || Promise.resolve();
+    e.em = Date.now();
+    e.lendo = fetch('/api/painel?area=vybes&etapa=estados', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok || !Array.isArray(d.pedidos)) throw new Error(d.error || 'Sem os pedidos da central agora.'); e.dados = d; e.erro = ''; })
+      .catch((x) => { e.erro = x.message; }).finally(() => { e.lendo = null; if (st.aberto) pintar(); });
+    return e.lendo;
+  }
   let raiz = null;
   // Perfil completo (Paulo, 08/11/2026: "ver o que cada um tá fazendo certo, desligar uma coisa da rotina, analisar tudo que
   // ele fez, tá fazendo, histórico, projeção"). Vem pronto da central (core/perfil-agente.js); aqui só desenha.
@@ -87,9 +110,16 @@
   // quem pediu (só essa pessoa confirma, em 5 min, no WhatsApp: server/assistente-acoes.js) e proposta de agente em
   // sombra. Tudo sai do perfil (etapa=perfil) e da atividade (etapa=agentes) que a tela do agente já lê; decidir usa as
   // mesmas rotas (etapa=achado). O número do dock é o tamanho de "Para decidir".
+  // Pedido de aprovação de agente em sombra (core/porta-agentes.js na central): entra em "Para decidir" logo depois das
+  // falhas; vencido não aparece. A atividade "aguardando aprovação" do mesmo pedido (porta_aprovacao) não repete em Esperando.
   const GRAVIDADE = { alta: 0, media: 1, baixa: 2 };
-  function filaDoDono({ agentes = [], perfis = {}, atividades = {}, agora = Date.now() } = {}) {
+  function filaDoDono({ agentes = [], perfis = {}, atividades = {}, pedidos = [], agora = Date.now() } = {}) {
     const decidir = [], acompanhar = [], esperando = [];
+    for (const x of Array.isArray(pedidos) ? pedidos : []) {
+      if (!x || x.status !== 'pendente' || !(Date.parse(x.expiraEm) > agora)) continue;
+      const s = agentes.find((a) => a.id === x.setor);
+      decidir.push({ setor: x.setor, agente: s?.agente || x.agente || x.setor, nome: s?.nome || '', tipo: 'aprovacao', em: x.criadoEm || '', p: x });
+    }
     for (const s of agentes) {
       const P = perfis[s.id], A = atividades[s.id], quem = { setor: s.id, agente: s.agente, nome: s.nome };
       if (P) {
@@ -103,7 +133,7 @@
       const ult = A?.ultimos || [];
       if (ult[0]?.estado === 'falhou') decidir.push({ ...quem, tipo: 'falha', em: ult[0].em, e: ult[0] });
       ult.forEach((e, i) => {
-        if (e.estado !== 'aguardando_aprovacao') return;
+        if (e.estado !== 'aguardando_aprovacao' || e.ferramenta === 'porta_aprovacao') return;
         // A lista vem da mais nova para a mais antiga: se algo depois dela fechou a mesma referência, já foi decidida.
         if (ult.slice(0, i).some((x) => x.ref === e.ref && x.estado !== 'aguardando_aprovacao')) return;
         const idade = agora - Date.parse(e.em);
@@ -112,7 +142,7 @@
         esperando.push({ ...quem, tipo: acao ? 'acao' : 'proposta', em: e.em, e });
       });
     }
-    const ordem = { falha: 0, achado: 1, licao: 2, nivel: 3 };
+    const ordem = { falha: 0, aprovacao: 1, achado: 2, licao: 3, nivel: 4 };
     decidir.sort((x, y) => ordem[x.tipo] - ordem[y.tipo] || String(x.em || '').localeCompare(String(y.em || '')));
     acompanhar.sort((x, y) => y.n - x.n);
     return { decidir, acompanhar, esperando, total: decidir.length };
@@ -124,10 +154,10 @@
   function filaAgora() {
     const ag = setores(), f = fonte(), atividades = Object.fromEntries((f.dados?.agentes || []).map((a) => [a.setor, a]));
     const perfis = Object.fromEntries(ag.map((s) => [s.id, st.perfis[s.id]?.dados?.perfil]).filter(([, p]) => p));
-    return { ...filaDoDono({ agentes: ag, perfis, atividades }), lidos: Object.keys(perfis).length, de: ag.length };
+    return { ...filaDoDono({ agentes: ag, perfis, atividades, pedidos: st.estados.dados?.pedidos || [] }), lidos: Object.keys(perfis).length, de: ag.length };
   }
   const ICONE_FILA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 4.6-3.4 8.4-8 9-4.6-.6-8-4.4-8-9V7z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
-  const TIPO = { falha: ['Parou com falha', '#D13D36'], achado: ['Urgente', '#C2490C'], licao: ['Lição para confirmar', '#8E4EC6'], nivel: ['Pode ganhar autonomia', '#18A957'],
+  const TIPO = { falha: ['Parou com falha', '#D13D36'], aprovacao: ['Pede o seu OK', '#8E4EC6'], achado: ['Urgente', '#C2490C'], licao: ['Lição para confirmar', '#8E4EC6'], nivel: ['Pode ganhar autonomia', '#18A957'],
     acao: ['Esperando o SIM de quem pediu', '#0D74CE'], proposta: ['Proposta esperando um dono', '#0D74CE'] };
   function itemFilaHtml(it, dono) {
     const [rot, cor] = TIPO[it.tipo], ini = String(it.agente).slice(0, 2).toUpperCase(), cli = (c) => (c ? (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c)) + ' · ' : '');
@@ -139,6 +169,12 @@
     } else if (it.tipo === 'licao') {
       titulo = it.l.texto; detalhe = `O agente viu isso se repetir e quer guardar como regra${it.l.prova ? ' · ' + esc(it.l.prova) : ''}`;
       if (dono) acoes = `<button type="button" ${de} data-vga-licao="incorporar" data-vga-id="${esc(it.l.id)}">Vale sempre</button><button type="button" ${de} data-vga-licao="contestar" data-vga-id="${esc(it.l.id)}">Não vale</button>${abrir}`;
+    } else if (it.tipo === 'aprovacao') {
+      const x = it.p, vence = Date.parse(x.expiraEm) - Date.now();
+      titulo = x.resumo; detalhe = `${x.destino ? 'Para ' + esc(x.destino) + ' · ' : ''}${esc(it.agente)} está em sombra e só faz depois do OK de um dono · pedido ${esc(quando(x.criadoEm))}${vence > 0 ? ` · vence em ${Math.max(1, Math.round(vence / 3600e3))} h` : ''} · código ${esc(x.id)}`
+        + (x.previa ? `</small><details class="vga-previa"><summary>O que será feito</summary><pre>${esc(x.previa)}</pre></details><small>` : '');
+      acoes = dono ? `<button type="button" class="vga-sim" ${de} data-vga-aprovacao="aprovar" data-vga-id="${esc(x.id)}">Aprovar</button><button type="button" ${de} data-vga-aprovacao="recusar" data-vga-id="${esc(x.id)}" title="Não faz e vira aprendizado do agente">Recusar</button>${abrir}`
+        : `<span class="vga-nota">Só um dono aprova.</span>${abrir}`;
     } else if (it.tipo === 'falha') {
       titulo = it.e.tarefa; detalhe = `${esc(it.e.erro || 'Sem detalhe do erro.')} · ${esc(quando(it.e.em))}`;
     } else if (it.tipo === 'nivel') {
@@ -155,10 +191,11 @@
     const cab = `<div class="vga-cab"><span class="vga-av grande vga-av-fila">${ICONE_FILA}</span><span><small>Todos os agentes</small><h3>Depende de você</h3>
       <span class="vga-expl">O que os agentes deixaram para um dono decidir. Decida aqui mesmo ou abra o agente.</span></span></div>`;
     if (!F.de) return cab + '<p class="vga-vazio">Carregando a planta do prédio…</p>';
-    const aviso = lendo ? `<p class="vga-nota vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>`
-      : F.lidos < F.de ? `<p class="vga-nota">A central não respondeu por ${F.de - F.lidos} agente${F.de - F.lidos > 1 ? 's' : ''}: a fila pode estar incompleta. <button type="button" class="vga-link" data-vga-recarregar>Tentar de novo</button></p>` : '';
+    const avisoPedidos = dono && st.estados.erro ? `<p class="vga-nota">Os pedidos de aprovação não vieram da central agora (${esc(st.estados.erro)}).</p>` : '';
+    const aviso = avisoPedidos + (lendo ? `<p class="vga-nota vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>`
+      : F.lidos < F.de ? `<p class="vga-nota">A central não respondeu por ${F.de - F.lidos} agente${F.de - F.lidos > 1 ? 's' : ''}: a fila pode estar incompleta. <button type="button" class="vga-link" data-vga-recarregar>Tentar de novo</button></p>` : '');
     const decidir = F.decidir.length ? `<ul class="vga-fila">${F.decidir.map((it) => itemFilaHtml(it, dono)).join('')}</ul>`
-      : `<p class="vga-vazio">${lendo ? 'Procurando…' : 'Nada esperando você agora. Quando um agente achar algo urgente, falhar ou quiser guardar uma lição, aparece aqui.'}</p>`;
+      : `<p class="vga-vazio">${lendo ? 'Procurando…' : 'Nada esperando você agora. Quando um agente pedir o seu OK, achar algo urgente, falhar ou quiser guardar uma lição, aparece aqui.'}</p>`;
     const acomp = F.acompanhar.length ? `<section class="vga-bloco"><h4>Achados para acompanhar<span class="vga-pilula">${F.acompanhar.reduce((t, x) => t + x.n, 0)}</span></h4>
       <p class="vga-vazio">Não são urgentes: o agente segue vigiando e avisa se piorar.</p><ul class="vga-fila vga-fila-curta">${F.acompanhar.map((x) => `<li><span class="vga-fila-meio"><small><b>${esc(x.agente)}</b> · ${esc(x.nome)}</small><b>${x.n} achado${x.n > 1 ? 's' : ''} em aberto</b><small>O mais antigo: ${esc(x.mais.fato)}</small></span><span class="vga-acoes"><button type="button" data-vga-setor="${esc(x.setor)}">Ver os ${x.n}</button></span></li>`).join('')}</ul></section>` : '';
     const esp = F.esperando.length ? `<section class="vga-bloco"><h4>Esperando confirmação<span class="vga-pilula">${F.esperando.length}</span></h4><ul class="vga-fila">${F.esperando.map((it) => itemFilaHtml(it, dono)).join('')}</ul></section>` : '';
@@ -180,7 +217,7 @@
     if (!forcar && Date.now() - ultimaContagem < 10 * 60e3) return;
     if (!setores().length) return; // o mundo ainda não carregou a planta
     ultimaContagem = Date.now();
-    Promise.all([lerTodos(), mv().fonteAgentes?.()?.atualizar?.()]).then(() => { pintarContagem(); if (st.aberto && st.vista === 'fila') pintar(); });
+    Promise.all([lerTodos(), lerEstados(), mv().fonteAgentes?.()?.atualizar?.()]).then(() => { pintarContagem(); if (st.aberto && st.vista === 'fila') pintar(); });
   }
   setInterval(() => contar(), 60e3);
   document.addEventListener('visibilitychange', () => contar());
@@ -190,12 +227,12 @@
     return `<button type="button" class="vga-linha vga-linha-fila${st.vista === 'fila' ? ' sel' : ''}" data-vga-fila>
         <span class="vga-av vga-av-fila">${ICONE_FILA}</span><span class="vga-meio"><b>Depende de você</b><small>O que espera um dono, de todos os agentes</small></span>
         ${n ? `<em class="vga-n">${n}</em>` : ''}</button>` + planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel, a.id))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
-      const E = mv().estadoDoAgente?.(s.id) || {}, [rot, , cor] = ESTADO_SETOR[s.estado] || ESTADO_SETOR.planejado;
+      const E = mv().estadoDoAgente?.(s.id) || {}, m = modoDo(s), [rot, , cor] = rotuloDoModo(m);
       const ini = String(s.agente).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
       return `<button type="button" class="vga-linha${st.vista !== 'fila' && s.id === st.setor ? ' sel' : ''}" data-vga-setor="${esc(s.id)}">
         <span class="vga-av" style="--e:${esc(E.cor || cor)}">${esc(ini)}</span>
         <span class="vga-meio"><b>${esc(s.agente)}</b><small>${esc(s.funcao || s.nome)} · ${esc(s.nome)}</small></span>
-        <em style="--c:${cor}">${esc(rot)}</em></button>`;
+        <em style="--c:${cor}"${m.ate ? ` title="Volta ${esc(quando(m.ate))}"` : ''}>${esc(rot)}</em></button>`;
     }).join('')}</div>`).join('');
   }
 
@@ -203,7 +240,8 @@
     if (st.vista === 'fila') return filaHtml();
     const s = setores().find((x) => x.id === st.setor) || setores()[0]; if (!s) return '<p class="vga-vazio">Carregando a planta do prédio…</p>';
     st.setor = s.id;
-    const f = fonte(), dados = f.dados || {}, [rot, expl, cor] = ESTADO_SETOR[s.estado] || ESTADO_SETOR.planejado;
+    const f = fonte(), dados = f.dados || {}, modo = modoDo(s), [rot, expl0, cor] = rotuloDoModo(modo);
+    const expl = expl0 + (modo.id === 'pausado' && modo.ate ? ` Volta ${quando(modo.ate)}.` : '') + (modo.pedidos ? ` ${modo.pedidos} pedido${modo.pedidos > 1 ? 's' : ''} esperando um dono.` : '');
     const atribs = Array.isArray(dados.atribuicoes) ? dados.atribuicoes.filter((a) => a.setor === s.id) : null;
     const fixas = (dados.rotinas?.[s.id] || []);
     const recorrentes = (atribs || []).filter((a) => a.estado === 'ativa' && a.frequencia !== 'uma_vez');
@@ -218,6 +256,7 @@
         <span><small>${esc(ANDAR(s.andar.nivel))} · ${esc(s.andar.nome)} · ${esc(s.nome)}</small><h3>${esc(s.agente)} <i>${esc(s.funcao || '')}</i></h3>
         <span class="vga-estado" style="--c:${cor}">${esc(rot)}</span><span class="vga-expl">${esc(expl)}</span></span></div>
       <p class="vga-papel">${esc(s.papel || '')}</p>
+      ${souDono() && modo.real ? estadoFormHtml(s, modo) : ''}
       ${(s.skills || []).length ? `<div class="vga-skills">${s.skills.map((k) => `<span>${esc(k)}</span>`).join('')}</div>` : ''}
       ${P ? numerosHtml(P) : `<p class="vga-nota">${esc(pf.erro || 'Lendo o perfil na central do VYBES…')}</p>`}
       <div class="vga-colunas">
@@ -252,6 +291,8 @@
     if (!raiz) {
       raiz = document.createElement('section'); raiz.id = 'vv-agentes'; raiz.className = 'vv-ag'; raiz.setAttribute('aria-label', 'Agentes da Vybe');
       raiz.addEventListener('click', aoClicar); raiz.addEventListener('submit', aoEnviar);
+      // Opção escolhida do estado marcada por classe (sem :has, que pesa no Vybe OS).
+      raiz.addEventListener('change', (e) => { const g = e.target.closest?.('.vga-modos-opcoes'); if (g) g.querySelectorAll('label').forEach((l) => l.classList.toggle('sel', l.contains(e.target) && e.target.checked)); });
       document.body.append(raiz);
     }
     const f = fonte();
@@ -278,7 +319,8 @@
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'Não foi possível salvar agora.');
       st.msg = ok || (corpo.acao === 'criar' ? 'Atribuição registrada.' : 'Atribuição atualizada.');
-      await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), lerPerfil(setor, true)]);
+      if (d.falhou) st.msg = `Aprovado, mas a ação falhou ao executar (${d.erro || 'erro'}). A decisão ficou registrada.`;
+      await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), lerPerfil(setor, true), ['estado', 'aprovacao'].includes(etapa) ? lerEstados(true) : null]);
       pintarContagem();
     } catch (e) { st.msg = e.message; }
     finally { st.enviando = false; pintar(); }
@@ -287,7 +329,7 @@
     const b = e.target.closest('button'); if (!b) return;
     if (b.hasAttribute('data-vga-fechar')) { fechar(); return; }
     if (b.dataset.vgaSetor) { st.setor = b.dataset.vgaSetor; st.vista = 'agente'; st.msg = ''; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
-    if (b.hasAttribute('data-vga-fila')) { st.vista = 'fila'; st.msg = ''; pintar(); lerTodos().then(() => { pintarContagem(); pintar(); }); return; }
+    if (b.hasAttribute('data-vga-fila')) { st.vista = 'fila'; st.msg = ''; pintar(); Promise.all([lerTodos(), lerEstados()]).then(() => { pintarContagem(); pintar(); }); return; }
     if (b.hasAttribute('data-vga-recarregar')) { setores().forEach((x) => { if (st.perfis[x.id]) st.perfis[x.id].em = 0; }); lerTodos().then(() => { pintarContagem(); pintar(); }); pintar(); return; }
     if (b.dataset.vgaRotina) { chamar({ id: b.dataset.vgaRotina, acao: b.dataset.vgaLigar }, 'rotina', b.dataset.vgaLigar === 'ligar' ? 'Rotina ligada.' : 'Rotina desligada: o agendador pula até ligar de novo.'); return; }
     // Pedido de orçamento que o Nestor (Compras) deixa pronto: copia o texto para colar no WhatsApp ou e-mail da gráfica.
@@ -297,11 +339,26 @@
       (navigator.clipboard?.writeText(texto) || Promise.reject()).then(ok, () => { st.msg = 'Não deu para copiar sozinho: selecione o texto e copie.'; pintar(); });
       return;
     }
+    // Pedido de agente em sombra: aprovar executa a ação guardada; recusar não faz e vira aprendizado (motivo opcional).
+    if (b.dataset.vgaAprovacao) {
+      const recusar = b.dataset.vgaAprovacao === 'recusar';
+      const motivo = recusar && typeof G.prompt === 'function' ? G.prompt('Por que não? (opcional, vira aprendizado do agente)', '') : '';
+      if (motivo === null) return; // cancelou
+      chamar({ id: b.dataset.vgaId, decisao: b.dataset.vgaAprovacao, motivo: motivo || '' }, 'aprovacao', recusar ? 'Recusado: não faço, e o agente anotou como aprendizado.' : 'Aprovado: a central executou.', b.dataset.vgaDe || st.setor);
+      return;
+    }
     if (b.dataset.vgaAchado) { chamar({ chave: b.dataset.vgaChave, acao: b.dataset.vgaAchado }, 'achado', b.dataset.vgaAchado === 'errado' ? 'Anotado: conta no acerto do agente.' : 'Achado fechado.', b.dataset.vgaDe || st.setor); return; }
     if (b.dataset.vgaLicao) { chamar({ licao: b.dataset.vgaId, acao: b.dataset.vgaLicao }, 'achado', 'Lição atualizada.', b.dataset.vgaDe || st.setor); return; }
     if (b.dataset.vgaAcao) { if (b.dataset.vgaAcao === 'remover' && !confirm('Remover esta atribuição?')) return; chamar({ acao: b.dataset.vgaAcao, id: b.dataset.vgaId }); }
   }
   function aoEnviar(e) {
+    const fe = e.target.closest('[data-vga-estado-form]');
+    if (fe) {
+      e.preventDefault();
+      const v = Object.fromEntries(new FormData(fe)), ate = v.estado === 'pausado' && v.ate ? new Date(v.ate).toISOString() : '';
+      chamar({ setor: st.setor, estado: v.estado, ...(ate ? { ate } : {}) }, 'estado', `Estado salvo: ${(MODO[v.estado] || [v.estado])[0]}.`);
+      return;
+    }
     const f = e.target.closest('[data-vga-form]'); if (!f) return; e.preventDefault();
     const v = Object.fromEntries(new FormData(f));
     chamar({ acao: 'criar', setor: st.setor, texto: v.texto, cliente: v.cliente, frequencia: v.frequencia, horario: v.horario });
@@ -311,9 +368,19 @@
     st.aberto = true; st.msg = '';
     pintar();
     if (st.vista === 'fila') lerTodos().then(() => { pintarContagem(); pintar(); });
+    lerEstados(true);
     Promise.resolve(mv().garantirModulo?.()).then(() => { mv().fonteAgentes?.()?.atualizar?.(true)?.then?.(pintar); pintar(); });
   }
   function fechar() { st.aberto = false; pintar(); }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && st.aberto && !e.target.closest?.('input,textarea,select')) fechar(); });
+  // Seletor do estado do agente (só dono): uma frase curta em cada opção; a data de volta só vale para Pausado.
+  function estadoFormHtml(s, modo) {
+    const local = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const z = new Date(d.getTime() - d.getTimezoneOffset() * 60e3); return z.toISOString().slice(0, 16); };
+    return `<form class="vga-bloco vga-modos" data-vga-estado-form><h4>Estado de ${esc(s.agente)}</h4>
+      <div class="vga-modos-opcoes" role="radiogroup" aria-label="Estado de ${esc(s.agente)}">${Object.entries(MODO).map(([id, [nm, ex, c]]) => `<label style="--c:${c}"${modo.id === id ? ' class="sel"' : ''}><input type="radio" name="estado" value="${id}"${modo.id === id ? ' checked' : ''}><span><b>${esc(nm)}</b><small>${esc(ex)}</small></span></label>`).join('')}</div>
+      <div class="vga-modos-fim"><label><span>Se pausar, volta sozinho em (opcional)</span><input type="datetime-local" name="ate" value="${modo.id === 'pausado' && modo.ate ? esc(local(modo.ate)) : ''}"></label>
+      <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Salvar estado</button></div>
+      <p class="vga-nota">Ativo faz sozinho e conta no grupo dos sócios. Sombra pede o OK de um dono no grupo dos sócios ou aqui em Depende de você. Pausado e desligado não rodam as rotinas.</p></form>`;
+  }
   G.VybeAgentes = { abrir, fechar, filaDoDono, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
 })();

@@ -1470,7 +1470,9 @@
   }
   // Operação do andar em números: por agente, o estado agora, execuções de hoje, taxa de sucesso, última execução,
   // maturidade (ativo / em sombra / planejado) e se já tem módulo. Só o que a central informa; sem número inventado.
-  const MATURIDADE = { ativo: ['Ativo', '#18A957'], sombra: ['Em sombra', '#E2A11B'], planejado: ['Planejado', '#9AA3A8'] };
+  // Desde 09/11/2026 a central manda o estado real (ativo · sombra · pausado · desligado, core/estado-agentes.js): vale ele;
+  // sem leitura, a maturidade da planta, como antes.
+  const MATURIDADE = { ativo: ['Ativo', '#18A957'], sombra: ['Em sombra', '#E2A11B'], planejado: ['Planejado', '#9AA3A8'], pausado: ['Pausado', '#C2490C'], desligado: ['Desligado', '#9AA3A8'] };
   function opAndarHtml(a) {
     const ags = a.setores.filter((s) => s.agente); if (!ags.length) return '';
     const hoje = new Date().toDateString(), f = fonteAgentes?.ler(), sinal = Boolean(f?.dados && !f.erro);
@@ -1479,7 +1481,7 @@
       const e = estadoDoAgente(s.id), ult = (e.ultimos || []), dHoje = ult.filter((u) => new Date(u.em).toDateString() === hoje);
       const c = ult.filter((u) => u.estado === 'concluida').length, fl = ult.filter((u) => u.estado === 'falhou').length;
       exec += dHoje.length; ok += c; falha += fl; curso += e.emCurso || 0;
-      const taxa = c + fl ? Math.round(c / (c + fl) * 100) + '%' : '—', m = MATURIDADE[s.estado] || MATURIDADE.planejado;
+      const taxa = c + fl ? Math.round(c / (c + fl) * 100) + '%' : '—', m = MATURIDADE[e.modo] || MATURIDADE[s.estado] || MATURIDADE.planejado;
       return `<tr data-agente="${esc(a.id)}|${esc(s.id)}" title="Abrir o dia de ${esc(s.agente)}">
         <td><i class="pt" style="--e:${e.cor}"></i><b>${esc(s.agente)}</b><small>${esc(s.nome)}</small></td>
         <td><span class="mat" style="--m:${m[1]}">${m[0]}</span></td>

@@ -7,6 +7,14 @@ export const ESTADOS_REAIS = {
  sem_execucao:{rotulo:'Sem execução registrada',cor:'#7A8B82'}, indisponivel:{rotulo:'Sem leitura da central',cor:'#7A8B82'},
 };
 const ESTADOS_EVENTO = new Set(['executando','aguardando_aprovacao','concluida','falhou']);
+// Estado de operação de cada agente (Paulo, 09/11/2026; fonte única no VYBES: core/estado-agentes.js). Estado que o painel
+// não conhece é ignorado (o campo some), nunca derruba a leitura.
+export const MODOS = {
+ ativo:{rotulo:'Ativo',cor:'#18A957',explica:'Age sozinho e conta no grupo dos sócios o que fez.'},
+ sombra:{rotulo:'Sombra',cor:'#0D74CE',explica:'Trabalha, mas cada ação espera o OK de um dono.'},
+ pausado:{rotulo:'Pausado',cor:'#C2490C',explica:'Parado por um tempo; volta sozinho na data marcada.'},
+ desligado:{rotulo:'Desligado',cor:'#7A8B82',explica:'Não roda nada até um dono ligar.'},
+};
 const data = v => typeof v === 'string' && v.length <= 40 && Number.isFinite(Date.parse(v));
 const texto = (v,n) => typeof v === 'string' && v.length <= n;
 export function validarAgentes(d) {
@@ -20,14 +28,16 @@ export function validarAgentes(d) {
    || !(a.tarefa==null || texto(a.tarefa,200)) || !(a.desde==null || data(a.desde)) || !texto(a.situacao||'',200)
    || !Number.isInteger(a.emCurso) || a.emCurso<0 || a.emCurso>1000 || !Array.isArray(a.ultimos) || a.ultimos.length>20) throw new Error('Resposta inválida da central.');
   vistos.add(a.setor);
+  const modo=Object.hasOwn(MODOS,a.modo)?{modo:a.modo,...(a.modoAte!=null&&data(a.modoAte)?{modoAte:a.modoAte}:{}),pedidos:Number.isInteger(a.pedidos)&&a.pedidos>=0&&a.pedidos<=1000?a.pedidos:0}:{};
   const ultimos=a.ultimos.map(e=>{
    if(!e || !ESTADOS_EVENTO.has(e.estado) || !data(e.em) || !texto(e.tarefa,200) || !texto(e.ferramenta,80)
     || !texto(e.ref||'',100) || !texto(e.resultado||'',300) || !texto(e.erro||'',300)) throw new Error('Resposta inválida da central.');
    return {estado:e.estado,em:e.em,tarefa:e.tarefa,ferramenta:e.ferramenta,ref:e.ref||'',resultado:e.resultado||'',erro:e.erro||''};
   });
-  return {...SETORES.get(a.setor),estado:a.estado,tarefa:a.tarefa||null,desde:a.desde||null,situacao:a.situacao||'',emCurso:a.emCurso,ultimos};
+  return {...SETORES.get(a.setor),estado:a.estado,tarefa:a.tarefa||null,desde:a.desde||null,situacao:a.situacao||'',emCurso:a.emCurso,ultimos,...modo};
  });
- return {ok:true,geradoEm:d.geradoEm,agentes};
+ const pedidosPendentes=Number.isInteger(d.pedidosPendentes)&&d.pedidosPendentes>=0&&d.pedidosPendentes<=10000?d.pedidosPendentes:null;
+ return {ok:true,geradoEm:d.geradoEm,agentes,...(pedidosPendentes==null?{}:{pedidosPendentes})};
 }
 export function apresentarAgente(a) {
  if(!a) return {...ESTADOS_REAIS.indisponivel,estado:'indisponivel',tarefa:null,desde:null,ultimos:[]};
