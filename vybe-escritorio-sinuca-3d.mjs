@@ -111,7 +111,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const PX = 5; // pixels de textura por unidade
   const tela = (w, h, pinta) => { const c = document.createElement('canvas'); c.width = w; c.height = h; pinta(c.getContext('2d'), w, h); const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx; };
   const mat = (cor, o = {}) => new MeshStandardMaterial({ color: cor, roughness: 0.6, ...o });
-  const peca = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const p = new Mesh(geo, m); p.position.set(x, y, z); p.rotation.set(rx, ry, rz); p.castShadow = true; p.receiveShadow = true; cena.add(p); return p; };
+  const peca = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const p = new Mesh(geo, m); p.position.set(x, y, z); p.rotation.set(rx, ry, rz); p.matrixAutoUpdate = false; p.updateMatrix(); cena.add(p); return p; };
   // Parede: caiada com manchas, a meia-parede de azulejo verde-água (1,5 m) com a faixa e o rodapé.
   const paredeTex = (larg, extra) => tela(Math.round(larg * PX), altoP * PX, (g, w, h) => {
     g.fillStyle = '#ebe3cf'; g.fillRect(0, 0, w, h);
@@ -194,8 +194,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   folha(true, 1); folha(false, -1);
   const dobradica = new Mesh(new CylinderGeometry(0.7, 0.7, FW - 4, 10), mat(0x8a8f96, { metalness: 0.8, roughness: 0.35 })); dobradica.rotation.z = Math.PI / 2; dobradica.position.set(0, FH * Math.cos(AB), 0); cavalete.add(dobradica);
   for (const s of [-1, 1]) { const corrente = new Mesh(new BoxGeometry(0.4, 0.4, FH * Math.sin(AB) * 1.6), mat(0x8a8f96, { metalness: 0.8 })); corrente.position.set(s * (FW / 2 - 4), FH * 0.4, 0); cavalete.add(corrente); }
-  cavalete.traverse((m) => { m.castShadow = true; m.receiveShadow = true; });
-  cavalete.scale.setScalar(0.78); cavalete.position.set(cx - 6, pisoY, az0 - 52); cena.add(cavalete);
+    cavalete.scale.setScalar(0.78); cavalete.position.set(cx - 6, pisoY, az0 - 52); cena.add(cavalete);
   // Taqueira à esquerda da lousa: tábua com os tacos em pé.
   const madeiraClara = mat(0x9a6a3a), tacoMat = [mat(0xc89a5a), mat(0x7a4a22), mat(0x2b2b2b), mat(0xb5793c), mat(0x5a3418)];
   const tqX = cx - 78;
@@ -233,7 +232,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   peca(new BoxGeometry(16, 40, balL), formica, balX, pisoY + 20, balZ);
   peca(new BoxGeometry(19, 1.6, balL + 2), inox, balX, pisoY + 40.8, balZ);
   peca(new BoxGeometry(1, 3, balL), mat(0xf2bd14), balX + 8.1, pisoY + 30, balZ);
-  peca(new BoxGeometry(14, 10, 20), new MeshPhysicalMaterial({ color: 0xffffff, transmission: 0.85, roughness: 0.05, thickness: 0.5 }), balX, pisoY + 46.6, balZ - 18);
+  peca(new BoxGeometry(14, 10, 20), new MeshStandardMaterial({ color: 0xffffff, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 }), balX, pisoY + 46.6, balZ - 18);
   for (let i = 0; i < 6; i++) peca(new SphereGeometry(1.6, 10, 8), mat(i % 2 ? 0xd88a2a : 0xe8b04a), balX - 3 + (i % 3) * 3, pisoY + 43.6, balZ - 24 + Math.floor(i / 3) * 6);
   for (const dz of [-30, -6, 18]) { peca(new CylinderGeometry(0.9, 1.2, 30, 8), inox, balX + 15, pisoY + 15, balZ + dz); peca(new CylinderGeometry(5, 5, 2.4, 18), mat(0xd8261c, { roughness: 0.45 }), balX + 15, pisoY + 31, balZ + dz); }
   // Caixa registradora e porta-guardanapo no balcão.
@@ -246,7 +245,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const garrafa = [0x6b3a0a, 0x2f5d1e, 0xd8c79a, 0x8a1c14, 0x3a2a6a, 0xe0a030];
   for (const y of [70, 88]) {
     peca(new BoxGeometry(8, 1.4, balL - 20), madeiraClara, esqX + 4, pisoY + y, balZ);
-    for (let i = 0; i < 9; i++) { const z = balZ - (balL - 30) / 2 + i * ((balL - 30) / 8), c = garrafa[(i + y) % garrafa.length]; peca(new CylinderGeometry(1.5, 1.5, 9, 10), new MeshPhysicalMaterial({ color: c, roughness: 0.15, transmission: 0.25, thickness: 1 }), esqX + 4, pisoY + y + 5.2, z); peca(new CylinderGeometry(0.5, 1.4, 3, 8), mat(c), esqX + 4, pisoY + y + 11, z); }
+    for (let i = 0; i < 9; i++) { const z = balZ - (balL - 30) / 2 + i * ((balL - 30) / 8), c = garrafa[(i + y) % garrafa.length]; peca(new CylinderGeometry(1.5, 1.5, 9, 10), new MeshStandardMaterial({ color: c, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 }), esqX + 4, pisoY + y + 5.2, z); peca(new CylinderGeometry(0.5, 1.4, 3, 8), mat(c), esqX + 4, pisoY + y + 11, z); }
   }
   peca(new BoxGeometry(22, 26, 36), mat(0xf4f4f0, { roughness: 0.35 }), balX - 2, pisoY + 13, balZ1 + 26);
   peca(new BoxGeometry(22.2, 6, 36.2), mat(0xc8261d, { roughness: 0.35 }), balX - 2, pisoY + 20, balZ1 + 26);
@@ -286,15 +285,15 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     for (const [px, pz] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) { const m = new Mesh(pe, vermelho); m.position.set(px, pisoY + 8.5, pz); g.add(m); }
     const s = new Mesh(new BoxGeometry(17, 1.4, 17), vermelho); s.position.set(0, pisoY + 17.5, 0); g.add(s);
     const b = new Mesh(new BoxGeometry(17, 15, 1.2), vermelho); b.position.set(0, pisoY + 25, -8.2); b.rotation.x = -0.12; g.add(b);
-    g.traverse((m) => { m.castShadow = m.receiveShadow = true; }); g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
+    g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
   };
-  const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = mat(0xf5f0e0), tampa = mat(0xc9c9c9, { metalness: 0.8, roughness: 0.3 });
+  const vidro = new MeshStandardMaterial({ color: 0x5a3208, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 }), rotulo = mat(0xf5f0e0), tampa = mat(0xc9c9c9, { metalness: 0.8, roughness: 0.3 });
   const garrafaCerveja = (x, y, z) => { peca(new CylinderGeometry(1.7, 1.7, 9, 12), vidro, x, y + 4.5, z); peca(new CylinderGeometry(1.75, 1.75, 3, 12), rotulo, x, y + 4, z); peca(new CylinderGeometry(0.6, 1.5, 4, 10), vidro, x, y + 11, z); peca(new CylinderGeometry(0.7, 0.7, 0.6, 10), tampa, x, y + 13.2, z); };
   const mesaBar = (x, z, garrafas) => {
     for (const [px, pz] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) peca(new CylinderGeometry(0.8, 1, 26, 8), amarelo, x + px, pisoY + 13, z + pz);
     peca(new BoxGeometry(28, 1.6, 28), amarelo, x, pisoY + 26.8, z);
     garrafas.forEach(([bx, bz]) => garrafaCerveja(x + bx, pisoY + 27.6, z + bz));
-    peca(new CylinderGeometry(2.2, 1.8, 6, 12), new MeshPhysicalMaterial({ color: 0xf6c34a, roughness: 0.1, transmission: 0.3, thickness: 1 }), x - 2, pisoY + 30.6, z + 6);
+    peca(new CylinderGeometry(2.2, 1.8, 6, 12), new MeshStandardMaterial({ color: 0xf6c34a, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 }), x - 2, pisoY + 30.6, z + 6);
   };
   const m1 = [ax1 + 48, az0 - 22], m2 = [ax1 + 52, az1 + 34];
   mesaBar(m1[0], m1[1], [[-5, -3], [4, 5]]); cadeira(m1[0] - 20, m1[1], Math.PI / 2); cadeira(m1[0], m1[1] - 20, 0);
