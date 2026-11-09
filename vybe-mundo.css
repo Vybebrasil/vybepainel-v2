@@ -4764,6 +4764,8 @@ html body.mundo .vv-ferr-mic .vv-mic-rotulo{font:650 12.5px var(--vv-texto)}
 .vv-ferr-nome{display:none}
 html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"]){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
 html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
+/* Celular: só os ícones no topo (Agenda e WhatsApp com o nome não cabem junto dos outros sem se espremer); o nome segue no title. */
+@media (max-width:560px){html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:none}}
 /* Dock: cada categoria com a sua cor (Paulo: "um roxinho, ciano… no lugar de tudo laranja"). O traço do rótulo, o
    ícone e a marca do item aberto seguem a cor da categoria; o botão Criar continua laranja (é a ação principal). */
 .vv-trilho{--cat:var(--vv-laranja,#F26B1D)}
@@ -5160,7 +5162,6 @@ body.com-dock-salas{--vv-dock-alto:74px}
 @media (min-width:901px){body.mundo.mundo-quarto .vv-dock-salas-faixa{left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}}
 @media (min-width:1360px){body.mundo.mundo-quarto .vv-dock-salas-faixa{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}}
 @media (max-width:900px){.vv-dock-salas-faixa{left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:calc(64px + 3 * var(--vv-m,12px))}}
-body.mundo.com-dock-salas #vv-hoje{padding-bottom:calc(var(--vv-dock-alto) + 16px)}
 body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-alto)}
 body.mundo.mundo-modulo.com-dock-salas #mundo-moldura{bottom:calc(var(--vv-m) + var(--vv-dock-alto))}
 body.mundo.mundo-modulo.com-dock-salas::after{content:"";display:block;height:var(--vv-dock-alto)}
@@ -5195,3 +5196,22 @@ html body.mundo.com-dock-salas.musica-aberta:not(.vv-x) #office-musica.vv-musica
 .vq-dock .vq-surdo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
 .vq-dock .vq-surdo .vq-rotulo{color:#B42318}
 .vq-dock .vq-ligado .vq-icone{background:linear-gradient(180deg,#2BC26C,#18A957);border-color:#11613A;color:#FFFFFF}
+
+/* ===== Responsividade geral (Paulo, 09/11/2026: "muita coisa bugada ainda, faz um teste geral pra PC e celular") ===== */
+/* Os números do Hoje (Agência e Criação) se ajustam à largura do próprio painel, não da tela: na Minha sala o Hoje é uma
+   coluna de 360 px e os seis cartões espremiam até quebrar letra por letra. */
+#vv-hoje{container-type:inline-size;container-name:hoje}
+/* as colunas vêm de --vs-cols (html body .vs-kpis…); aqui só a variável, pela largura do Hoje */
+@container hoje (max-width:760px){html body #vv-hoje .vs-kpis.vs-kpis{--vs-cols:3}}
+@container hoje (max-width:520px){html body #vv-hoje .vs-kpis.vs-kpis{--vs-cols:2}#vv-hoje .vc-time{grid-template-columns:1fr}}
+/* Celular: o dock das salas tem mais itens que a largura; ele rola de lado por dentro, sem cortar nada nem empurrar a tela. */
+@media (max-width:900px){
+  .vv-dock-salas-faixa > .vq-dock{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;padding-top:8px;scroll-snap-type:x proximity}
+  .vv-dock-salas-faixa > .vq-dock .vq-item{scroll-snap-align:start}
+}
+/* O Hoje termina acima do dock (antes passava por baixo dele ao rolar): o espaço de rolagem acaba onde o dock começa. */
+html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
+html body.mundo.com-dock-salas #vv-hoje{padding-bottom:18px}
+/* As janelas dos módulos do mundo (Gestão e visões de setor, camadas do Comercial, Finanças, Impressões, Pessoas, Missões,
+   Agentes, Ferramentas, Carteira, Relatório, Planejamentos e WhatsApp) também terminam acima do dock, sem nada por baixo. */
+html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
