@@ -4958,3 +4958,21 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{pos
 html body.mundo.mundo-modulo #grupos-board.grupos-board{background:#fff!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;color:#1F1D1A!important}
 html body.mundo.mundo-modulo #grupos-board .grupos-head{background:transparent!important;color:#1F1D1A!important;border-bottom:1px solid #EFEAE2!important}
 html body.mundo.mundo-modulo #grupos-board .grupos-head :is(h2,h3,b,strong,span,small){color:inherit}
+
+/* Toolkit › Calculadora de ROI: o resultado em linhas, o ROI em destaque. */
+.vf-roi{display:grid;gap:8px;padding:14px;border-radius:12px;background:#FAF7F2;border:1px solid #EFEAE2}
+.vf-roi > div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:500 13px var(--vv-texto,inherit);color:#4A463F}
+.vf-roi > div b{font:700 15px var(--vv-texto,inherit);color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vf-roi > div.g{margin-top:4px;padding-top:10px;border-top:1px solid #E6E0D6}
+.vf-roi > div.g b{font-size:22px}.vf-roi > div.g.ok b{color:#1D7A3E}.vf-roi > div.g.ruim b{color:#B4322B}
+/* Abas da Gestão no padrão dos painéis (vs-*): número clicável abre a lista por trás, tabelas rolam por dentro. */
+.vs-kpi.vs-kpi-espiar{appearance:none;font:inherit;text-align:left;color:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s}
+.vs-kpi.vs-kpi-espiar:hover{border-color:var(--vv-laranja);box-shadow:0 8px 22px rgba(31,29,26,.08)}
+.vs-kpi.vs-kpi-espiar:active{transform:translateY(1px)}
+.vs-kpi.vs-kpi-espiar:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+.vs-tabela{overflow-x:auto;margin:0 -4px}
+.vs-tabela .vv-g-tabela{width:100%;min-width:640px}
+.vs-chips{display:flex;flex-wrap:wrap;gap:6px}
+.vs-chip{appearance:none;border:1px solid #ECE6DC;background:#fff;border-radius:999px;padding:4px 8px;cursor:pointer}
+.vs-chip:hover{border-color:var(--vv-laranja)}
+.vs-gestao-aba .vv-legenda{margin-top:6px}

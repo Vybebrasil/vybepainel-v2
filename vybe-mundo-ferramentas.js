@@ -1,12 +1,14 @@
-// Ferramentas do Comercial (Paulo, 08/11/2026: "pode fazer as que achou correto" — do Toolkit do AgencyFlow).
+// Toolkit da Vybe (Paulo, 08/11/2026: "o que era de toolkit deixa na aba de toolkit até pra gente adicionar mais depois").
+// Uma área própria no dock, com uma aba por ferramenta. Ferramenta nova = uma entrada em ABAS e a função da aba.
 // QR Code (para peça impressa, cardápio, evento) e link do WhatsApp com mensagem pronta (bio, campanha).
 // Tudo no navegador: o QR sai do vybe-qr.js, nada é enviado para serviço de fora.
-// API: window.VybeFerramentas = { abrir(aba = 'qr' | 'whatsapp'), fechar(), aberto() }
+// API: window.VybeFerramentas = { abrir(aba = 'qr' | 'whatsapp' | 'roi'), fechar(), aberto() }
+// Calculadora de ROI: a mesma conta da proposta em Orçamentos (VybeComercialCalculos.roiCampanha), aqui sem proposta.
 (() => {
   'use strict';
-  const ABAS = [['qr', 'QR Code'], ['whatsapp', 'Link do WhatsApp']];
+  const ABAS = [['qr', 'QR Code'], ['whatsapp', 'Link do WhatsApp'], ['roi', 'Calculadora de ROI']];
   const NIVEIS = [['M', 'Padrão'], ['Q', 'Reforçado'], ['H', 'Máximo (com logo por cima)']];
-  const st = { raiz: null, janela: null, antes: null, aba: 'qr', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, aviso: '' };
+  const st = { raiz: null, janela: null, antes: null, aba: 'qr', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, aviso: '' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
@@ -64,12 +66,35 @@
       </div>
     </div>`;
   }
+  const din = (v) => (v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }));
+  function abaRoi() {
+    const r = st.roi, calc = window.VybeComercialCalculos?.roiCampanha, c = calc ? calc(r) : null;
+    const campo = (k, rot, ph, dica = '') => `<label><span>${rot}</span><input type="text" inputmode="decimal" data-vf-campo="roi.${k}" value="${esc(r[k])}" placeholder="${ph}">${dica ? `<small>${dica}</small>` : ''}</label>`;
+    return `<div class="vf-grade">
+      <form class="vf-campos" data-vf-form="roi" onsubmit="return false">
+        ${campo('investimento', 'Investimento por mês (R$)', '2.500', 'quanto o cliente paga à Vybe por mês')}
+        ${campo('ticket', 'Ticket médio do cliente (R$)', '180', 'o valor de uma venda dele')}
+        ${campo('margem', 'Margem por venda (%)', '35', 'o lucro dele em cada venda')}
+        ${campo('vendas', 'Vendas a mais por mês (opcional)', '40', 'o que a campanha deve trazer')}
+        <p class="vf-dica">Serve para a conversa de venda: quantas vendas a mais pagam a Vybe e o retorno esperado. A mesma conta está na proposta, em Comercial › Orçamentos.</p>
+      </form>
+      <div class="vf-previa">
+        ${c ? `<div class="vf-roi">
+          <div><span>Lucro por venda</span><b>${din(c.lucroPorVenda)}</b></div>
+          <div><span>Vendas para pagar a Vybe</span><b>${c.empate == null ? '—' : c.empate.toLocaleString('pt-BR')}</b></div>
+          ${c.roi == null ? '' : `<div><span>Faturamento a mais</span><b>${din(c.faturamento)}</b></div><div><span>Lucro a mais</span><b>${din(c.lucro)}</b></div>
+          <div class="g ${c.roi >= 0 ? 'ok' : 'ruim'}"><span>ROI estimado</span><b>${c.roi > 0 ? '+' : ''}${c.roi.toLocaleString('pt-BR')}%</b></div>`}
+        </div>` : `<div class="vf-link vazio"><p>${calc ? 'Preencha investimento, ticket e margem para ver a conta.' : 'A calculadora ainda está carregando.'}</p></div>`}
+      </div>
+    </div>`;
+  }
+  function corpoDaAba() { return st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
-    return `<div class="vf-topo"><div><small>Comercial</small><h2 id="vf-titulo">Ferramentas</h2></div>
+    return `<div class="vf-topo"><div><small>Vybe</small><h2 id="vf-titulo">Toolkit</h2></div>
         <button type="button" class="vf-x" data-vf="fechar" aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-      <div class="vf-abas" role="tablist" aria-label="Ferramentas">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</div>
+      <div class="vf-abas" role="tablist" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</div>
       <p class="vf-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
-      <div class="vf-corpo">${st.aba === 'whatsapp' ? abaWhatsapp() : abaQR()}</div>`;
+      <div class="vf-corpo">${corpoDaAba()}</div>`;
   }
   function pintar(manterFoco = true) {
     if (!st.janela) return;
@@ -80,7 +105,7 @@
   // Só a prévia muda enquanto digita (não refaz o formulário, para o cursor não pular).
   function pintarPrevia() {
     const p = st.janela?.querySelector('.vf-previa'); if (!p) return;
-    const tmp = document.createElement('div'); tmp.innerHTML = st.aba === 'whatsapp' ? abaWhatsapp() : abaQR();
+    const tmp = document.createElement('div'); tmp.innerHTML = corpoDaAba();
     p.replaceWith(tmp.querySelector('.vf-previa'));
     const erro = st.janela.querySelector('.vf-erro'), novoErro = tmp.querySelector('.vf-erro');
     if (erro && !novoErro) erro.remove(); else if (!erro && novoErro) st.janela.querySelector('[data-vf-campo="wa.numero"]')?.closest('label')?.after(novoErro);
@@ -119,7 +144,7 @@
   }
   function aoDigitar(e) {
     const c = e.target.closest('[data-vf-campo]'); if (!c) return;
-    const [g, k] = c.dataset.vfCampo.split('.'); (g === 'qr' ? st.qr : st.wa)[k] = c.value;
+    const [g, k] = c.dataset.vfCampo.split('.'); ({ qr: st.qr, wa: st.wa, roi: st.roi })[g][k] = c.value;
     pintarPrevia();
   }
   function aoTeclar(e) {

@@ -150,7 +150,6 @@
       { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
       { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
-      { id: 'ferramentas', nome: 'Ferramentas', dica: 'QR Code e link do WhatsApp com mensagem pronta', mod: ['VybeFerramentas', 'qr'] },
     ] },
     { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
@@ -180,6 +179,11 @@
     { id: 'agentes', grupo: 'Time', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
     // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
     // carrega quando ele (ou o Prédio) é aberto; Hoje, Gestão e os módulos ocupam a tela sem nada atrás.
+    { id: 'setor:toolkit', grupo: 'Vybe', nome: 'Toolkit', dica: 'Ferramentas rápidas da Vybe: QR Code, link do WhatsApp e calculadora de ROI', ic: svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'), sub: [
+      { id: 'qr', nome: 'QR Code', dica: 'QR para peça impressa, cardápio e evento', mod: ['VybeFerramentas', 'qr'] },
+      { id: 'whatsapp-link', nome: 'Link do WhatsApp', dica: 'Link com mensagem pronta para bio e anúncio', mod: ['VybeFerramentas', 'whatsapp'] },
+      { id: 'roi', nome: 'Calculadora de ROI', dica: 'Quantas vendas pagam a Vybe e o retorno esperado', mod: ['VybeFerramentas', 'roi'] },
+    ] },
     { id: 'centro', grupo: 'Vybe', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
     { id: 'predio', grupo: 'Vybe', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
     { id: 'jogos', grupo: 'Vybe', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
@@ -243,7 +247,7 @@
     if (aberto?.dataset.setor === id) { fecharSetor(); return; }
     fecharSetor();
     const t = TRILHO.find((x) => x.id === id); if (!t) return;
-    const itens = (id === 'setor:gestao' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
+    const itens = (id === 'setor:gestao' || id === 'setor:toolkit' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
     const el = document.createElement('div');
     el.className = 'vv-setor'; el.dataset.setor = id; el.setAttribute?.('role', 'menu'); el.setAttribute?.('aria-label', t.nome);
     el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small>${x.url ? '<i aria-hidden="true">↗</i>' : ''}</button>`).join('');
@@ -557,65 +561,115 @@
         abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor) });
       return;
     }
+    // Abas da Gestão no padrão dos painéis de gestão (Paulo, 08/11/2026: "você mexeu só na Visão geral… abre tudo"): números
+    // com ícone e estado, gráficos e listas com barra, das mesmas contas de numerosDoDono. As peças (kpi, bloco, barras,
+    // deitadas) são as de vybe-mundo-setor.js; o número clicável continua abrindo a lista por trás dele (data-espiar).
+    const V = window.VybeSetor?.pecas;
+    if (!V) { gestao.innerHTML = topo + '<p class="vv-vazio">Carregando os painéis…</p>'; return; }
+    const { kpi: k, bloco, barras, deitadas, linha, progresso } = V;
+    const tabela = (h) => `<div class="vs-tabela">${h}</div>`;
+    const SAUDE_CLS = { critico: 'ruim', atencao: 'atencao', ok: 'ok' };
     if (gestaoAba === 'agora') {
-      corpo = `<div class="vv-g-kpis">
-          ${kpi(`${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, 'produção de hoje', H.previstas && H.feitas < H.previstas ? 'u2' : 'u6')}
-          ${kpi(n0(H.atrasadas), 'atrasadas', H.atrasadas ? 'u1' : '', '', 'atrasadas')}
-          ${kpi(n0(H.emRisco), 'risco de furo (2 dias)', H.emRisco ? 'u2' : '', '', 'emRisco')}
-          ${kpi(n0(H.faltam), 'ainda não feitas hoje', '', '', 'faltam')}
-          ${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues na semana', '', Hi.medianaEntregues ? 'mediana ' + n0(Hi.medianaEntregues) + '/semana' : '')}
-          ${kpi(`${n0((C.sem3 || []).length)}`, 'clientes sem 3 posts', (C.sem3 || []).length ? 'u2' : 'u6', '', 'sem3')}
+      const L = H.lista || {}, T = N.time || [], CL = N.clientes || [];
+      corpo = `<div class="vs-kpis">
+          ${k({ icone: 'aperto', titulo: 'Produção de hoje', valor: `${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, sub: H.previstas ? `${n0(Math.round((H.feitas / H.previstas) * 100))}% das previstas para hoje` : 'nada previsto para hoje', cls: H.previstas && H.feitas < H.previstas ? 'atencao' : '' })}
+          ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
+          ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
+          ${k({ icone: 'calendario', titulo: 'Ainda não feitas hoje', valor: n0(H.faltam), sub: `${n0(H.paraAgendar?.hoje)} para agendar hoje`, espiar: 'faltam' })}
+          ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
+          ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
         </div>
-        <div class="vv-g-grade">
-          <section class="vv-g-cartao"><h4>Risco de furo <span class="u2">${n0(H.emRisco)}</span></h4>${listaPecas((H.lista || {}).emRisco, 'Nada com risco de furo.')}</section>
-          <section class="vv-g-cartao"><h4>Atrasadas <span class="u1">${n0(H.atrasadas)}</span></h4>${listaPecas((H.lista || {}).atrasadas, 'Nada atrasado.')}</section>
-          <section class="vv-g-cartao"><h4>Ainda não feitas hoje <span>${n0(H.faltam)}</span></h4>${listaPecas((H.lista || {}).faltam, 'Tudo de hoje feito.')}</section>
-          <section class="vv-g-cartao"><h4>Gargalos</h4>${barrasGargalo(N.gargalos || [])}</section>
-          <section class="vv-g-cartao largo"><h4>Alertas</h4>${(N.alertas || []).slice(0, 10).map((a) => `<div class="vv-g-alerta n${a.nivel}"><i></i>${esc(a.texto)}</div>`).join('') || '<p class="vv-vazio">Sem alertas.</p>'}</section>
-        </div>`;
+        ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
+          + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${n0(g.qtd)} peças, paradas há ${n0(g.idadeMedianaDias)} dias (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
+        ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
+          + bloco('Atrasos por cliente', 'atrasadas e risco de furo por cliente', deitadas(CL.filter((c) => c.atrasadas || c.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.atrasadas + c.emRisco, cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(c.atrasadas)} <small>+${n0(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'coracao' }))}
+        ${linha(bloco('Atrasadas', `${n0(H.atrasadas)} peças`, listaPecas(L.atrasadas, 'Nada atrasado.'), { icone: 'alerta' })
+          + bloco('Risco de furo', `${n0(H.emRisco)} peças nos próximos 2 dias`, listaPecas(L.emRisco, 'Nada com risco de furo.'), { icone: 'relogio' }))}
+        ${bloco('Ainda não feitas hoje', `${n0(H.faltam)} peças que vão ao ar hoje`, listaPecas(L.faltam, 'Tudo de hoje feito.'), { icone: 'calendario' })}`;
     } else if (gestaoAba === 'semana') {
-      corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
-        <div class="vv-g-grade">
-          <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 80)), h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
-          <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
-          <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
-          <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
-        </div>`;
+      const CL = N.clientes || [], meta = C.meta || 3;
+      const pctSem = S.previstas ? Math.round(((S.previstasEntregues ?? S.entregues) / S.previstas) * 100) : null;
+      corpo = `<div class="vs-kpis">
+          ${k({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${n0(S.previstasEntregues ?? S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: pctSem != null ? `${pctSem}% · ${n0(S.entregues)} entregas registradas` : 'nada previsto' })}
+          ${k({ icone: 'doc', titulo: `Clientes com ${meta}+ posts`, valor: `${n0(C.clientesAtivos - (C.sem3 || []).length)}<i>/${n0(C.clientesAtivos)}</i>`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
+          ${k({ icone: 'alerta', titulo: 'Sem nenhum conteúdo', valor: n0((C.semConteudo || []).length), sub: 'clientes nesta semana', cls: (C.semConteudo || []).length ? 'ruim' : '', espiar: 'semConteudo' })}
+          ${k({ icone: 'calendario', titulo: 'Próxima semana abaixo', valor: n0((C.proximaSemanaSem3 || []).length), sub: `clientes com menos de ${meta} posts`, cls: (C.proximaSemanaSem3 || []).length ? 'atencao' : '' })}
+          ${k({ icone: 'meta', titulo: 'Sem planejamento', valor: n0((C.semPlanejamento || []).length), sub: 'do mês atual ou seguinte', cls: (C.semPlanejamento || []).length ? 'atencao' : '', espiar: 'semPlanejamento' })}
+        </div>
+        ${bloco('Dia a dia da semana', `previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} e entregues no dia`, `${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 110)), h: 160 })}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues no dia</p>`, { icone: 'alta' })}
+        ${linha(bloco('Posts por cliente nesta semana', `a marca é a meta de ${meta}; os mais longe da meta primeiro`, deitadas([...CL].sort((a, b) => a.semana - b.semana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.semana, meta, cls: c.semana >= meta ? 'ok' : c.semana ? 'atencao' : 'ruim', rotulo: `${n0(c.semana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'doc' })
+          + bloco('Próxima semana', `posts já previstos por cliente (meta ${meta})`, deitadas([...CL].sort((a, b) => a.proximaSemana - b.proximaSemana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.proximaSemana, meta, cls: c.proximaSemana >= meta ? 'ok' : c.proximaSemana ? 'atencao' : 'ruim', rotulo: `${n0(c.proximaSemana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'calendario' }))}
+        ${bloco('Sem planejamento', esc((N.fonte || {}).planejamento || ''), (C.semPlanejamento || []).length ? `<div class="vs-chips">${(C.semPlanejamento || []).map((c) => `<button type="button" class="vs-chip" data-espiar-cliente="${esc(typeof c === 'string' ? c : c.cliente)}">${cliCor(typeof c === 'string' ? c : c.cliente)}</button>`).join('')}</div>` : '<p class="vs-aviso">Todos com planejamento.</p>', { icone: 'meta' })}`;
     } else if (gestaoAba === 'clientes') {
-      corpo = `<section class="vv-g-cartao largo"><table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
-        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${cliCor(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
-        </tbody></table></section>`;
+      const CL = N.clientes || [], conta = (s) => CL.filter((c) => c.saude === s).length;
+      corpo = `<div class="vs-kpis">
+          ${k({ icone: 'pessoas', titulo: 'Clientes ativos', valor: n0(CL.length), sub: `${n0(CL.filter((c) => c.temPlanejamento).length)} com planejamento` })}
+          ${k({ icone: 'alerta', titulo: 'Críticos', valor: n0(conta('critico')), sub: 'furo, 3+ atrasadas ou sem conteúdo', cls: conta('critico') ? 'ruim' : '', espiar: 'atencao' })}
+          ${k({ icone: 'relogio', titulo: 'Em atenção', valor: n0(conta('atencao')), sub: 'atraso, risco ou abaixo da meta', cls: conta('atencao') ? 'atencao' : '' })}
+          ${k({ icone: 'coracao', titulo: 'Em dia', valor: n0(conta('ok')), sub: CL.length ? `${n0(Math.round((conta('ok') / CL.length) * 100))}% da carteira` : '' })}
+          ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(CL.reduce((a, c) => a + (c.abertas || 0), 0)), sub: `${n0(CL.reduce((a, c) => a + (c.atrasadas || 0), 0))} atrasadas` })}
+        </div>
+        ${linha(bloco('Saúde da carteira', 'quantos clientes em cada faixa', deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]), { icone: 'coracao' })
+          + bloco('Peças abertas por cliente', 'os que mais têm peça em aberto', deitadas([...CL].sort((a, b) => b.abertas - a.abertas).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.abertas, cls: SAUDE_CLS[c.saude] || '', rotulo: `${n0(c.abertas)}${c.atrasadas ? ` <small class="t-ruim">${n0(c.atrasadas)} atras.</small>` : ''}` }))), { icone: 'doc' }))}
+        ${bloco('Todos os clientes', 'clique na linha para abrir o cérebro do cliente; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
+        ${CL.map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${cliCor(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">Sim</span>' : '<span class="nao">Não</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
+        </tbody></table>`), { icone: 'pessoas' })}`;
     } else if (gestaoAba === 'carteiras') {
       // A carteira de cada head (o "progresso das entregas por squad" do AgencyFlow). Os números vêm de N.heads.
       const heads = N.heads || [];
       const aviso = !heads.length || heads.every((h) => h.semHead)
         ? '<p class="vv-dica vv-g-aviso-heads">Nenhum cliente ativo tem head ainda, por isso todos aparecem em "Sem head". Os heads vêm do cadastro do cliente: preencha os heads na ficha de cada cliente.</p>' : '';
       const ROT_SAUDE = { critico: ['crítico', 'críticos'], atencao: ['em atenção', 'em atenção'], ok: ['em dia', 'em dia'] };
-      const pilulas = (sd = {}) => ['critico', 'atencao', 'ok'].filter((k) => sd[k]).map((k) => `<span class="pill ${SAUDE[k][1]}">${n0(sd[k])} ${ROT_SAUDE[k][sd[k] === 1 ? 0 : 1]}</span>`).join('') || '<span class="nao">—</span>';
-      const semana = (w = {}) => `<span class="vv-g-progresso" title="${w.pct == null ? 'Nada previsto nesta semana' : n0(w.pct) + '% das previstas da semana entregues'}"><span class="barra"><i style="width:${Math.max(0, Math.min(100, Number(w.pct) || 0))}%"></i></span><b>${n0(w.entregues)}</b><small>/${n0(w.previstas)}</small></span>`;
-      corpo = `<section class="vv-g-cartao largo"><h4>Carteiras por head</h4>${aviso}<table class="vv-g-tabela vv-g-carteiras"><thead><tr><th>Head</th><th class="n">Contas</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th>Semana</th></tr></thead><tbody>
-        ${heads.map((h) => `<tr class="${h.semHead ? 'sem-head' : ''}"><td><button type="button" class="vv-num" data-espiar="carteira|head:${esc(h.head)}"><b>${esc(h.head)}</b></button></td><td class="n">${n0(h.contas)}</td><td class="saude">${pilulas(h.saude)}</td><td class="n">${n0(h.abertas)}</td><td class="n ${h.atrasadas ? 't-u1' : ''}">${h.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|head:${esc(h.head)}">${n0(h.atrasadas)}</button>` : '0'}</td><td class="n ${h.emRisco ? 't-u2' : ''}">${h.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|head:${esc(h.head)}">${n0(h.emRisco)}</button>` : '0'}</td><td>${semana(h.semana)}</td></tr>`).join('')}
-        </tbody></table><p class="vv-dica">Cliente com dois heads entra nas duas carteiras. Semana = peças com data nesta semana já entregues, de todas as previstas.</p></section>`;
+      const pilulas = (sd = {}) => ['critico', 'atencao', 'ok'].filter((x) => sd[x]).map((x) => `<span class="pill ${SAUDE[x][1]}">${n0(sd[x])} ${ROT_SAUDE[x][sd[x] === 1 ? 0 : 1]}</span>`).join('') || '<span class="nao">—</span>';
+      const comHead = heads.filter((h) => !h.semHead);
+      corpo = `${aviso}<div class="vs-kpis">
+          ${k({ icone: 'pessoas', titulo: 'Heads', valor: n0(comHead.length), sub: `${n0(heads.reduce((a, h) => a + (h.contas || 0), 0))} contas nas carteiras` })}
+          ${k({ icone: 'alerta', titulo: 'Atrasadas nas carteiras', valor: n0(heads.reduce((a, h) => a + (h.atrasadas || 0), 0)), cls: heads.some((h) => h.atrasadas) ? 'ruim' : '' })}
+          ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(heads.reduce((a, h) => a + (h.emRisco || 0), 0)), cls: heads.some((h) => h.emRisco) ? 'atencao' : '' })}
+          ${k({ icone: 'coracao', titulo: 'Clientes críticos', valor: n0(heads.reduce((a, h) => a + (h.saude?.critico || 0), 0)), cls: heads.some((h) => h.saude?.critico) ? 'ruim' : '' })}
+        </div>
+        ${linha(bloco('Entregas da semana por head', 'previstas da semana já entregues', heads.length ? progresso(heads.map((h) => ({ nome: h.head, texto: `${n0(h.semana?.entregues)} de ${n0(h.semana?.previstas)} · ${n0(h.contas)} contas`, barra: Math.max(0, Math.min(100, Number(h.semana?.pct) || 0)), percentual: h.semana?.pct, batida: h.semana?.pct === 100 }))) : '<p class="vs-aviso">Sem carteiras.</p>', { icone: 'meta' })
+          + bloco('Peças por head', 'abertas, atrasadas e risco de furo', barras(heads.map((h) => ({ rotulo: h.semHead ? 'Sem head' : String(h.head).split(' ')[0], abertas: h.abertas, atrasadas: h.atrasadas, risco: h.emRisco })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }, { chave: 'risco', rotulo: 'Risco', cls: 'c1' }]), { icone: 'alta' }))}
+        ${bloco('Carteiras por head', 'cliente com dois heads entra nas duas carteiras', tabela(`<table class="vv-g-tabela vv-g-carteiras"><thead><tr><th>Head</th><th class="n">Contas</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th></tr></thead><tbody>
+        ${heads.map((h) => `<tr class="${h.semHead ? 'sem-head' : ''}"><td><button type="button" class="vv-num" data-espiar="carteira|head:${esc(h.head)}"><b>${esc(h.head)}</b></button></td><td class="n">${n0(h.contas)}</td><td class="saude">${pilulas(h.saude)}</td><td class="n">${n0(h.abertas)}</td><td class="n ${h.atrasadas ? 't-u1' : ''}">${h.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|head:${esc(h.head)}">${n0(h.atrasadas)}</button>` : '0'}</td><td class="n ${h.emRisco ? 't-u2' : ''}">${h.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|head:${esc(h.head)}">${n0(h.emRisco)}</button>` : '0'}</td><td class="n">${n0(h.semana?.entregues)}/${n0(h.semana?.previstas)}</td></tr>`).join('')}
+        </tbody></table>`), { icone: 'pessoas' })}`;
     } else if (gestaoAba === 'time') {
       const bots = botsParaCobrar(); let f = null; try { f = fonteAgentes?.ler(); } catch {} const ags = f?.dados?.agentes || [];
-      corpo = `<div class="vv-g-grade">
-        <section class="vv-g-cartao largo"><h4>Time</h4><table class="vv-g-tabela"><thead><tr><th>Pessoa</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Entregues 7d</th><th class="n">Parado (med.)</th><th>O que cobrar</th></tr></thead><tbody>
-          ${(N.time || []).map((t) => `<tr><td><b>${esc(t.pessoa)}</b></td><td class="n">${n0(t.abertas)}</td><td class="n ${t.atrasadas ? 't-u1' : ''}">${t.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|pessoa:${esc(t.pessoa)}">${n0(t.atrasadas)}</button>` : '0'}</td><td class="n ${t.emRisco ? 't-u2' : ''}">${t.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|pessoa:${esc(t.pessoa)}">${n0(t.emRisco)}</button>` : '0'}</td><td class="n">${n0(t.entregues7d)}</td><td class="n">${n0(t.idadeMedianaDias)} d</td><td class="mot">${esc((t.cobrar || []).join(' · ') || '—')}</td></tr>`).join('')}
-        </tbody></table></section>
-        <section class="vv-g-cartao largo"><h4>Bots (agentes do prédio)</h4>${ags.length ? `<table class="vv-g-tabela"><thead><tr><th>Agente</th><th>Estado</th><th class="n">Em curso</th><th class="n">Últimas</th><th class="n">Falhas</th><th>O que cobrar</th></tr></thead><tbody>
+      const T = N.time || [];
+      const falhas = ags.reduce((a, ag) => a + ((estadoDoAgente(ag.setor).ultimos || []).filter((x) => x.estado === 'falhou').length), 0);
+      corpo = `<div class="vs-kpis">
+          ${k({ icone: 'pessoas', titulo: 'Pessoas com peças', valor: n0(T.length) })}
+          ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(T.reduce((a, t) => a + (t.abertas || 0), 0)), sub: 'cada peça conta para cada responsável' })}
+          ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(T.reduce((a, t) => a + (t.atrasadas || 0), 0)), cls: T.some((t) => t.atrasadas) ? 'ruim' : '' })}
+          ${k({ icone: 'aperto', titulo: 'Entregues em 7 dias', valor: n0(T.reduce((a, t) => a + (t.entregues7d || 0), 0)) })}
+          ${k({ icone: 'relogio', titulo: 'Paradas há 3+ dias', valor: n0(T.reduce((a, t) => a + (t.paradas || 0), 0)), cls: T.some((t) => t.paradas) ? 'atencao' : '' })}
+          ${k({ icone: 'alta', titulo: 'Bots', valor: n0(ags.length), sub: falhas ? `${n0(falhas)} falhas recentes` : 'sem falhas recentes', cls: falhas ? 'atencao' : '' })}
+        </div>
+        ${linha(bloco('Carga por pessoa', 'abertas e atrasadas de cada um', barras([...T].sort((a, b) => b.abertas - a.abertas).slice(0, 10).map((t) => ({ rotulo: String(t.pessoa).split(' ')[0], abertas: t.abertas, atrasadas: t.atrasadas })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'pessoas' })
+          + bloco('Entregues em 7 dias', 'por pessoa', deitadas([...T].sort((a, b) => b.entregues7d - a.entregues7d).slice(0, 10).map((t) => ({ nome: t.pessoa, valor: t.entregues7d, cls: 'ok', sub: `${n0(t.abertas)} abertas` })), { vazio: 'Sem entregas nos últimos 7 dias.' }), { icone: 'aperto' }))}
+        ${bloco('Time', 'o que cobrar de cada pessoa; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Pessoa</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Entregues 7d</th><th class="n">Parado (med.)</th><th>O que cobrar</th></tr></thead><tbody>
+          ${T.map((t) => `<tr><td><b>${esc(t.pessoa)}</b></td><td class="n">${n0(t.abertas)}</td><td class="n ${t.atrasadas ? 't-u1' : ''}">${t.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|pessoa:${esc(t.pessoa)}">${n0(t.atrasadas)}</button>` : '0'}</td><td class="n ${t.emRisco ? 't-u2' : ''}">${t.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|pessoa:${esc(t.pessoa)}">${n0(t.emRisco)}</button>` : '0'}</td><td class="n">${n0(t.entregues7d)}</td><td class="n">${n0(t.idadeMedianaDias)} d</td><td class="mot">${esc((t.cobrar || []).join(' · ') || '—')}</td></tr>`).join('')}
+        </tbody></table>`), { icone: 'pessoas' })}
+        ${bloco('Bots (agentes do prédio)', 'estado, tarefas em curso e falhas', ags.length ? tabela(`<table class="vv-g-tabela"><thead><tr><th>Agente</th><th>Estado</th><th class="n">Em curso</th><th class="n">Últimas</th><th class="n">Falhas</th><th>O que cobrar</th></tr></thead><tbody>
           ${ags.map((a) => { const e = estadoDoAgente(a.setor), u = e.ultimos || [], fl = u.filter((x) => x.estado === 'falhou').length; const b = bots.lista.find((x) => x.setor === a.setor);
             return `<tr data-agente="${esc(a.andar)}|${esc(a.setor)}"><td><b>${esc(a.agente || a.setor)}</b><small>${esc(a.nome || '')}</small></td><td><span class="pill" style="--e:${e.cor}">${esc(e.rotulo)}</span></td><td class="n">${n0(a.emCurso)}</td><td class="n">${n0(u.length)}</td><td class="n ${fl ? 't-u1' : ''}">${n0(fl)}</td><td class="mot">${esc(b?.texto || '—')}</td></tr>`; }).join('')}
-          </tbody></table>` : `<p class="vv-vazio">${esc(avisoDosAgentes())}.</p>`}</section></div>`;
+          </tbody></table>`) : `<p class="vs-aviso">${esc(avisoDosAgentes())}.</p>`, { icone: 'alta' })}`;
     } else {
       const proj = P.proximaSemana || {};
-      corpo = `<div class="vv-g-kpis">${kpi(n0(ultima.entregues), 'entregues nesta semana', '', 'mediana ' + n0(Hi.medianaEntregues))}${kpi((Hi.mediaNoPrazoPct != null ? Math.round(Hi.mediaNoPrazoPct) : '—') + '<i>%</i>', 'no prazo (12 semanas)', Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'u2' : 'u6')}${kpi({ subindo: '↗ subindo', estavel: '→ estável', caindo: '↘ caindo' }[Hi.tendencia] || '—', 'tendência', Hi.tendencia === 'caindo' ? 'u1' : Hi.tendencia === 'subindo' ? 'u6' : '')}${kpi(`${n0(proj.previstas)}<i>/${n0(proj.capacidadeMediana)}</i>`, 'próxima semana: previstas / capacidade', proj.risco === 'alto' ? 'u1' : proj.risco === 'medio' ? 'u2' : 'u6', proj.folga != null ? (proj.folga >= 0 ? 'folga de ' + n0(proj.folga) : 'faltam ' + n0(-proj.folga)) : '')}</div>
-        <div class="vv-g-grade">
-          <section class="vv-g-cartao largo"><h4>Entregas por semana · últimas ${n0((Hi.semanas || []).length)} e as próximas 4 previstas</h4>${linhaHistorico(Hi.semanas || [], { mediana: Hi.medianaEntregues, projecao: P.proximas4 || [] })}<p class="vv-legenda"><i class="en2"></i>entregues <i class="md"></i>mediana <i class="pj"></i>previstas (futuro)</p></section>
-          <section class="vv-g-cartao largo"><h4>Semana a semana</h4><table class="vv-g-tabela"><thead><tr><th>Semana</th><th class="n">Previstas</th><th class="n">Entregues</th><th class="n">No prazo</th><th class="n">Entregues atrasadas</th></tr></thead><tbody>
+      const sems = (Hi.semanas || []).map((s) => ({ ...s, rotulo: String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7) }));
+      corpo = `<div class="vs-kpis">
+          ${k({ icone: 'aperto', titulo: 'Entregues nesta semana', valor: n0(ultima.entregues), sub: `mediana de ${n0(Hi.medianaEntregues)} por semana` })}
+          ${k({ icone: 'relogio', titulo: 'No prazo', valor: Hi.mediaNoPrazoPct != null ? `${Math.round(Hi.mediaNoPrazoPct)}%` : '—', sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })}
+          ${k({ icone: 'alta', titulo: 'Tendência', valor: { subindo: 'Subindo', estavel: 'Estável', caindo: 'Caindo' }[Hi.tendencia] || '—', sub: '4 últimas semanas contra as 4 anteriores', cls: Hi.tendencia === 'caindo' ? 'ruim' : '' })}
+          ${k({ icone: 'calendario', titulo: 'Próxima semana', valor: `${n0(proj.previstas)}<i>/${n0(proj.capacidadeMediana)}</i>`, sub: proj.folga != null ? (proj.folga >= 0 ? `previstas / capacidade · folga ${n0(proj.folga)}` : `previstas / capacidade · faltam ${n0(-proj.folga)}`) : 'previstas / capacidade', cls: proj.risco === 'alto' ? 'ruim' : proj.risco === 'medio' ? 'atencao' : '' })}
+        </div>
+        ${bloco(`Entregas por semana · últimas ${n0((Hi.semanas || []).length)} e as próximas 4 previstas`, 'entregues, mediana e o que já está previsto', `${linhaHistorico(Hi.semanas || [], { mediana: Hi.medianaEntregues, projecao: P.proximas4 || [] })}<p class="vv-legenda"><i class="en2"></i>entregues <i class="md"></i>mediana <i class="pj"></i>previstas (futuro)</p>`, { icone: 'alta' })}
+        ${linha(bloco('No prazo × atrasadas', 'entregas de cada semana', barras(sems, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadasEntregues', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'relogio' })
+          + bloco('Semana a semana', 'previstas, entregues, no prazo e atrasadas', tabela(`<table class="vv-g-tabela"><thead><tr><th>Semana</th><th class="n">Previstas</th><th class="n">Entregues</th><th class="n">No prazo</th><th class="n">Atrasadas</th></tr></thead><tbody>
             ${(Hi.semanas || []).slice().reverse().map((s) => `<tr><td>${esc(String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7))}</td><td class="n">${n0(s.previstas)}</td><td class="n">${n0(s.entregues)}</td><td class="n">${n0(s.noPrazo)}</td><td class="n ${s.atrasadasEntregues ? 't-u2' : ''}">${n0(s.atrasadasEntregues)}</td></tr>`).join('')}
-          </tbody></table></section></div>`;
+          </tbody></table>`), { icone: 'doc' }))}`;
     }
-    gestao.innerHTML = topo + `<div class="vv-g-corpo">${corpo}</div>`;
+    gestao.innerHTML = topo + `<div class="vv-g-corpo vs-corpo vs-gestao-aba">${corpo}</div>`;
   }
   function listaPecas(lista = [], vazio = '', max = 8) {
     if (!lista?.length) return `<p class="vv-vazio">${vazio}</p>`;
@@ -853,7 +907,7 @@
         const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
         const setor = Array.isArray(t.sub);
         const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
-        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" hidden>${t.id === 'setor:gestao' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
         return cab + botao + subs;
       }).join('');
     })()}</nav>
