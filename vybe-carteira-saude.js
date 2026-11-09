@@ -390,7 +390,7 @@
     const base = (clientes || []).filter((c) => c && c.id != null);
     const saidaDe = (c) => {
       const r = registroDe.get(String(c.id));
-      return { id: String(c.id), nome: c.nome, entrada: c.entrada || null, saida: c.saida,
+      return { id: String(c.id), nome: c.nome, entrada: c.entrada || null, saida: c.saida, saidaFonte: c.saida_fonte || null,
         tipo: r?.tipo || null, motivo: r?.motivo || null, detalhe: r?.detalhe || '', registroId: r?.id ? String(r.id) : null,
         motivoLivre: c.motivo_saida || '', classificado: Boolean(r),
         receita: r?.receita_mensal != null ? Number(r.receita_mensal) : valorDe(c, contratoDe.get(String(c.id))),

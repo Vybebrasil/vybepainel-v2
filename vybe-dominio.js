@@ -415,6 +415,8 @@ function aplicarFotosDoBanco(pessoas) {
     const p = porId.get(String(u.id));
     if (!p) return;
     if (p.foto_url) u.fotoReal = p.foto_url;
+    // Quem é dono vem do servidor (ehDonoPessoa, PR #544): o "ver como" do mundo usa para mostrar a tela de outro dono.
+    if (typeof p.dono === 'boolean') u.dono = p.dono;
     const cabeca = p.personagem && typeof mapaCabecaUrl === 'function' ? mapaCabecaUrl(p.personagem) : null;
     u.photo = cabeca || u.fotoReal || u.photo;
   });

@@ -89,11 +89,19 @@
   async function gravar(corpo, sucesso) {
     estado.aviso = 'Salvando…'; avisar();
     try {
-      await pedir('POST', {}, corpo);
-      estado.aviso = sucesso; estado.form = ''; estado.editar = null;
+      const r = await pedir('POST', {}, corpo);
+      // Projeto com cliente: as etapas abertas viram demandas na esteira (servidor, PR #542); o aviso diz quantas.
+      const n = Array.isArray(r?.demandas) ? r.demandas.length : 0;
+      estado.aviso = n ? `${sucesso} ${n === 1 ? '1 etapa foi' : n + ' etapas foram'} para a esteira como demanda.` : sucesso;
+      estado.form = ''; estado.editar = null;
       await carregar();
     } catch (e) { estado.aviso = e.message; avisar(); }
   }
+
+  // Etapa que virou demanda na esteira (projeto com cliente): o status na cor do quadro e o clique abre a peça.
+  const demandaDaEtapa = (e) => (e?.demanda_id
+    ? `<button type="button" class="vp-etapa-demanda" data-vp-demanda="${esc(e.demanda_id)}" title="Abrir a demanda desta etapa">${typeof statusCor === 'function' ? statusCor({ status: e.demanda_status || 'Na esteira' }) : esc(e.demanda_status || 'Na esteira')}</button>`
+    : '');
 
   // ---------- pedaços comuns ----------
   const vazio = (titulo, texto, botao = '') => `<div class="vp-vazio"><b>${esc(titulo)}</b>${texto ? `<p>${esc(texto)}</p>` : ''}${botao}</div>`;
@@ -399,7 +407,7 @@
         ${p.pos ? `<div class="vp-gantt-trilho"><span class="vp-gantt-barra proj" style="left:${p.pos.esq}%;width:${p.pos.larg}%"></span></div>` : ''}
         ${p.etapas.map((e) => {
           const pode = d.gestao || e.responsavel === d.eu?.id;
-          return `<div class="vp-gantt-etapa"><label class="vp-gantt-rotulo"><input type="checkbox" data-vp-etapa="${esc(e.id)}"${e.feita ? ' checked' : ''}${pode ? '' : ' disabled'}><span>${esc(e.nome)}<small>${esc(e.responsavel_nome || 'sem responsável')} · ${br(e.inicio)}–${br(e.fim)}</small></span></label>
+          return `<div class="vp-gantt-etapa"><label class="vp-gantt-rotulo"><input type="checkbox" data-vp-etapa="${esc(e.id)}"${e.feita ? ' checked' : ''}${pode ? '' : ' disabled'}><span>${esc(e.nome)}<small>${esc(e.responsavel_nome || 'sem responsável')} · ${br(e.inicio)}–${br(e.fim)}</small>${demandaDaEtapa(e)}</span></label>
             <div class="vp-gantt-trilho">${e.pos ? `<span class="vp-gantt-barra${e.feita ? ' feita' : e.atrasada ? ' atrasada' : ''}" style="left:${e.pos.esq}%;width:${e.pos.larg}%"></span>` : ''}</div></div>`;
         }).join('')}</div>`).join('')}</div></div>`;
   }
@@ -418,7 +426,11 @@
       <h3 class="vp-titulo">${p.id ? 'Editar projeto' : 'Novo projeto'}</h3>
       <div class="vp-grade"><label><span>Nome</span><input name="nome" maxlength="200" required value="${esc(p.nome || '')}"></label>
       <label><span>Tipo</span><select name="tipo">${opcoes(TIPOS_PROJETO, p.tipo || 'evento')}</select></label>
-      <label><span>Cliente</span><input name="cliente" maxlength="200" value="${esc(p.cliente || '')}"></label>
+      ${(d?.clientes || []).length
+        // Cliente pela lista oficial (auditoria 09/11, A2: o servidor grava cliente_id e o nome do cadastro). Projeto antigo
+        // com o cliente em texto continua com ele até alguém escolher da lista.
+        ? `<label><span>Cliente</span><select name="cliente_id"><option value="">${esc(p.cliente && !p.cliente_id ? p.cliente + ' (texto antigo)' : 'Projeto interno (sem cliente)')}</option>${d.clientes.map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(p.cliente_id || '') ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select><input type="hidden" name="cliente" value="${esc(p.cliente_id ? '' : p.cliente || '')}"></label>`
+        : `<label><span>Cliente</span><input name="cliente" maxlength="200" value="${esc(p.cliente || '')}"></label>`}
       <label><span>Status</span><select name="status">${opcoes(STATUS_PROJETO, p.status || 'planejado')}</select></label>
       <label><span>Início</span><input type="date" name="inicio" required value="${esc(p.inicio || '')}"></label>
       <label><span>Fim</span><input type="date" name="fim" required value="${esc(p.fim || '')}"></label></div>
@@ -611,7 +623,7 @@
     if (nome === 'perfil') return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: f.nascimento || null, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
     if (nome === 'projeto') {
       const etapas = linhas(form, '.vp-etapa-form').map((e) => ({ id: e.e_id || null, nome: e.e_nome, responsavel: e.e_responsavel || null, inicio: e.e_inicio, fim: e.e_fim, esforco: num(e.e_esforco) || 1, feita: e.e_feita === '1' }));
-      return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente: f.cliente, status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
+      return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente_id: f.cliente_id || null, cliente: f.cliente_id ? '' : f.cliente || '', status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
     }
     if (nome === 'trilha') {
       const aulas = linhas(form, '.vp-aula-form').map((a) => ({ id: a.a_id || null, titulo: a.a_titulo, tipo: a.a_tipo, link: a.a_link, minutos: num(a.a_minutos) || 10 }));
@@ -654,6 +666,12 @@
     else if ((b = perto('[data-vp-carga-semana]'))) { const n = Number(b.dataset.vpCargaSemana), base = d.cargaSemana?.semana || hoje(); estado.semanaCarga = n ? somarDias(base, n) : ''; d.cargaSemana = null; pintar(); carregarCarga(); }
     else if ((b = perto('[data-vp-semana]'))) { const n = Number(b.dataset.vpSemana); estado.semana = n ? somarDias(d.semana || hoje(), n) : ''; carregar(); }
     else if ((b = perto('[data-vp-pedido]'))) gravar({ acao: 'pedido_status', id: b.dataset.vpPedido, status: b.dataset.status }, 'Pedido atualizado.');
+    else if ((b = perto('[data-vp-demanda]'))) {
+      // A demanda vive no quadro de Solicitações com o id "vybe:<id>" (contrato do servidor, PR #542).
+      const bruto = String(b.dataset.vpDemanda), lista = typeof DADOS_DEMANDAS !== 'undefined' && Array.isArray(DADOS_DEMANDAS) ? DADOS_DEMANDAS : [];
+      const id = lista.some((x) => String(x.id) === bruto) ? bruto : bruto.startsWith('vybe:') ? bruto : 'vybe:' + bruto;
+      if (typeof window.openItemWorkspace === 'function') window.openItemWorkspace(id);
+    }
     else if ((b = perto('[data-vp-filtro-pedidos]'))) { estado.filtroPedidos = b.dataset.vpFiltroPedidos; pintar(); }
     else if ((b = perto('[data-vp-ver-pesquisa]'))) { estado.pesquisaVer = b.dataset.vpVerPesquisa; pintar(); }
     else if ((b = perto('[data-vp-encerrar-pesquisa]'))) {
