@@ -64,14 +64,16 @@
 
   // ---------- Peças do painel ----------
   // Número com ícone, título, valor grande e a variação contra o período anterior (verde quando melhora).
-  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '' }) {
+  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '', espiar = '' }) {
     let chip = '';
     if (variacao != null && variacao !== 'sem' && Number.isFinite(Number(variacao))) {
       const v = Number(variacao), bom = inverte ? v < 0 : v > 0, ruim = inverte ? v > 0 : v < 0;
       chip = `<span class="vs-var ${bom ? 'sobe' : ruim ? 'desce' : ''}">${v > 0 ? '▲' : v < 0 ? '▼' : '•'} ${Math.abs(Math.round(v))}%</span><small>${esc(contra)}</small>`;
     } else if (variacao === 'sem') chip = `<span class="vs-var">—</span><small>${esc(contra)}</small>`;
-    return `<div class="vs-kpi ${cls}"${dica ? ` title="${esc(dica)}"` : ''}><span class="vs-kpi-topo"><i>${ic(icone)}</i><span>${esc(titulo)}</span></span>
-      <b class="vs-kpi-valor">${valor}</b>${sub ? `<span class="vs-kpi-sub">${sub}</span>` : ''}${chip ? `<span class="vs-kpi-var">${chip}</span>` : ''}</div>`;
+    // Com espiar, o cartão é um botão que abre a lista por trás do número (o mini painel da Gestão).
+    const tag = espiar ? `button type="button" data-espiar="${esc(espiar)}"` : 'div', fim = espiar ? 'button' : 'div';
+    return `<${tag} class="vs-kpi ${cls}${espiar ? ' vs-kpi-espiar' : ''}"${dica ? ` title="${esc(dica)}"` : ''}><span class="vs-kpi-topo"><i>${ic(icone)}</i><span>${esc(titulo)}</span></span>
+      <b class="vs-kpi-valor">${valor}</b>${sub ? `<span class="vs-kpi-sub">${sub}</span>` : ''}${chip ? `<span class="vs-kpi-var">${chip}</span>` : ''}</${fim}>`;
   }
   const bloco = (titulo, sub, corpo, { icone = 'alta', cls = '', acao = '' } = {}) => `<section class="vs-bloco ${cls}"><div class="vs-bloco-cabeca"><i>${ic(icone)}</i><span><b>${esc(titulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${acao}</div>${corpo}</section>`;
   const abrirAba = (id, rotulo = 'Abrir') => (ctx?.subs || []).some((s) => s.id === id) ? `<button type="button" class="vs-abrir" data-setor-sub="${esc(id)}">${esc(rotulo)} →</button>` : '';
@@ -391,5 +393,7 @@
     if (g !== geracaoEm || !destino.isConnected) return;
     const c = destino.querySelector('.vs-corpo'); if (c) c.innerHTML = corpo;
   }
-  window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar(), pintarEm });
+  // As peças do painel, para as abas da Gestão usarem o mesmo desenho (sem uma segunda versão delas).
+  const pecas = Object.freeze({ kpi, bloco, barras, deitadas, linha, progresso });
+  window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar(), pintarEm, pecas });
 })();
