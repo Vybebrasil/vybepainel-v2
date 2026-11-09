@@ -30,7 +30,8 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   let razao = Math.min(1.5, window.devicePixelRatio || 1);
   renderer.setPixelRatio(razao);
   const cena = new Scene();
-  cena.background = new Color(0x15100c); cena.fog = new Fog(0x15100c, 170, 380);
+  // Boteco de esquina (Paulo, 09/11/2026): luz fluorescente e parede caiada, não penumbra de cassino.
+  cena.background = new Color(0xd9d1bc); cena.fog = new Fog(0xd9d1bc, 230, 520);
   // Reflexo de ambiente (uma sala neutra pré-calculada uma vez): dá o brilho de
   // resina nas bolas e no verniz da madeira, sem custo por quadro.
   const pmrem = new PMREMGenerator(renderer);
@@ -41,8 +42,8 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   // --- Luz de bar: o lustre forte sobre a mesa, o resto escuro ---------------
   // Luz de bar: um lustre forte com cone suave (o pano cai de luz nas bordas) e
   // pouco preenchimento, para ter contraste. Uma luz com sombra só: leve.
-  cena.add(new AmbientLight(0xfff4e6, 0.12));
-  cena.add(new HemisphereLight(0xfff1d6, 0x120c08, 0.22));
+  cena.add(new AmbientLight(0xf4f8ff, 0.3));
+  cena.add(new HemisphereLight(0xf2f6ff, 0x6b6458, 0.42));
   const lustre = new SpotLight(0xffe6bf, 6200, 0, MathUtils.degToRad(56), 0.9, 1.7);
   lustre.position.set(cx, 70, cz); lustre.target.position.set(cx, 0, cz);
   lustre.castShadow = true; lustre.shadow.mapSize.set(2048, 2048); lustre.shadow.bias = -0.00015; lustre.shadow.normalBias = 0.02; lustre.shadow.radius = 2.5;
@@ -77,15 +78,38 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     g.putImageData(img, 0, 0); const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.wrapS = t.wrapT = RepeatWrapping; t.repeat.set(6, 6); return t;
   })();
   // Verniz acetinado: com brilho forte o reflexo rasante estourava a tabela de branco.
-  const madeira = new MeshPhysicalMaterial({ map: texNogueira, color: 0xa86a48, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.45, envMapIntensity: 0.12 });
+  const madeira = new MeshPhysicalMaterial({ map: texNogueira, color: 0xd8a070, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.45, envMapIntensity: 0.12 });
   const feltro = new MeshStandardMaterial({ map: texFeltro, color: 0xffffff, roughness: 0.9, side: 2, envMapIntensity: 0.15 });
   // --- O salão em volta: piso de tábua na penumbra e a parede do bar ao fundo ---
-  const texChao = carregador.load('/assets/jogos/boteco-madeira.webp', () => { texChao.needsUpdate = true; pedir(); });
-  texChao.colorSpace = SRGBColorSpace; texChao.wrapS = texChao.wrapT = RepeatWrapping; texChao.repeat.set(12, 12);
-  const piso = new Mesh(new PlaneGeometry(700, 700), new MeshStandardMaterial({ map: texChao, color: 0x8a6448, roughness: 0.75 }));
+  // Chão de cimento queimado (pintado aqui: pontinhos e manchas).
+  const texChao = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+    g.fillStyle = '#8f8b82'; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 2600; i++) { const k = Math.random(); g.fillStyle = `rgba(${k < 0.5 ? '60,58,52' : '190,186,176'},${0.08 + Math.random() * 0.18})`; g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2, 1 + Math.random() * 2); }
+    for (let i = 0; i < 6; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 40 + Math.random() * 50); r.addColorStop(0, 'rgba(70,64,54,.18)'); r.addColorStop(1, 'rgba(70,64,54,0)'); g.save(); g.translate(Math.random() * 256, Math.random() * 256); g.fillStyle = r; g.fillRect(-100, -100, 200, 200); g.restore(); }
+    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.wrapS = tx.wrapT = RepeatWrapping; tx.repeat.set(10, 10); return tx;
+  })();
+  const piso = new Mesh(new PlaneGeometry(700, 700), new MeshStandardMaterial({ map: texChao, color: 0xffffff, roughness: 0.85 }));
   piso.rotation.x = -Math.PI / 2; piso.position.set(cx, -24, cz); piso.receiveShadow = true; cena.add(piso);
-  const texParede = carregador.load('/assets/jogos/boteco-ambiente.webp', () => pedir()); texParede.colorSpace = SRGBColorSpace;
-  const parede = new Mesh(new PlaneGeometry(520, 292), new MeshStandardMaterial({ map: texParede, color: 0x6a6a6a, roughness: 0.95 }));
+  // A parede do boteco: caiada em cima, faixa pintada e azulejo embaixo, com o letreiro do clube.
+  const texParede = (() => {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 576; const g = c.getContext('2d');
+    g.fillStyle = '#ece6d6'; g.fillRect(0, 0, 1024, 576);
+    for (let i = 0; i < 9; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 60 + Math.random() * 120); r.addColorStop(0, 'rgba(176,160,124,.22)'); r.addColorStop(1, 'rgba(176,160,124,0)'); g.save(); g.translate(Math.random() * 1024, Math.random() * 330); g.fillStyle = r; g.fillRect(-200, -200, 400, 400); g.restore(); }
+    const y = 356; g.fillStyle = '#2a8f86'; g.fillRect(0, y, 1024, 16);
+    g.fillStyle = '#f6f6f1'; g.fillRect(0, y + 16, 1024, 576 - y - 16);
+    g.strokeStyle = '#cfccc2'; g.lineWidth = 2;
+    for (let x = 0; x <= 1024; x += 38) { g.beginPath(); g.moveTo(x, y + 16); g.lineTo(x, 576); g.stroke(); }
+    for (let yy = y + 16; yy <= 576; yy += 38) { g.beginPath(); g.moveTo(0, yy); g.lineTo(1024, yy); g.stroke(); }
+    g.save(); g.translate(512, 150); g.rotate(-0.025); g.textAlign = 'center';
+    g.font = '900 34px Georgia, serif'; g.fillStyle = '#1d1b17'; g.fillText('CLUBE DE', 3, -40 + 3); g.fillStyle = '#c8261d'; g.fillText('CLUBE DE', 0, -40);
+    g.font = '900 96px Georgia, serif'; g.fillStyle = '#1d1b17'; g.fillText('BILHAR', 5, 50 + 5); g.fillStyle = '#c8261d'; g.fillText('BILHAR', 0, 50);
+    g.restore();
+    const cartaz = (x, yy, w, h, cor, txt, rot) => { g.save(); g.translate(x, yy); g.rotate(rot); g.fillStyle = cor; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#1d1b17'; g.font = '700 20px "Comic Sans MS", cursive'; g.textAlign = 'center'; g.fillText(txt, 0, 7); g.restore(); };
+    cartaz(150, 210, 150, 60, '#fbee4b', 'FIADO SÓ AMANHÃ', -0.06); cartaz(880, 200, 140, 56, '#ff86bd', 'NÃO SENTE NA MESA', 0.05); cartaz(860, 280, 120, 50, '#b8f14c', 'GIZ É DE GRAÇA', -0.04);
+    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx;
+  })();
+  const parede = new Mesh(new PlaneGeometry(520, 292), new MeshStandardMaterial({ map: texParede, color: 0xffffff, roughness: 0.95 }));
   parede.position.set(cx, 90, cz - 170); cena.add(parede);
   // Pés torneados e a saia da mesa.
   const H = 1.9, costas = 2.15;                                     // altura da tabela e fundo das borrachas (unidades)

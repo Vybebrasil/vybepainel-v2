@@ -125,3 +125,15 @@ ${estado === "fechado" ? '<p class="bt-bar-trancado">Vença o dono do bar anteri
   };
   return `${titulo}<p class="bt-sub bt-caneta">${resta ? `Até ${Number(resta).toLocaleString("pt-BR")} moedas em prêmios hoje.` : "Prêmio de hoje já saiu. Ainda vale o treino."}</p><div class="bt-jornada">${bares.map(card).join('<i class="bt-seta" aria-hidden="true">➜</i>')}</div>`;
 }
+
+// Ficha aberta: a carteirinha de sócio grande, com os seis atributos num
+// boletim escrito à caneta (a nota de cada um e o que ela mede).
+function btFichaCarteirinhaHtml(nome, f, retrato, extra = "") {
+  const at = f.atributos || null;
+  const boletim = at && typeof SINUCA_ATRIBUTOS !== "undefined" ? `<table class="bt-boletim"><caption>BOLETIM DO TACO</caption>${SINUCA_ATRIBUTOS.map(([k, sig, dica]) => `<tr title="${safeText(dica)}"><th>${safeText(dica.split(":")[0])}</th><td class="bt-caneta${at[k] >= 80 ? " alto" : at[k] < 45 ? " baixo" : ""}">${at[k]}</td></tr>`).join("")}</table>` : "";
+  return `<section class="bt-ficha-carteirinha"><div class="bt-carteirinha grande"><span class="bt-carteirinha-faixa">CLUBE DE BILHAR VYBE · CARTEIRINHA DE SÓCIO</span>
+<span class="bt-carteirinha-corpo"><span class="bt-foto34">${retrato ? `<img src="${safeText(retrato)}" alt="">` : `<i>${safeText(String(nome || "?")[0])}</i>`}</span>
+<span class="bt-carteirinha-dados"><b class="bt-caneta">${btPrimeiro(nome)}</b>${btCarimbo(f.titulo, " grande")}${f.titulo?.texto ? `<small class="bt-ficha-titulo-texto">${safeText(f.titulo.texto)}</small>` : ""}
+<span class="bt-carteirinha-linha"><small>CAMPANHA</small><b>${f.vitorias || 0}V · ${f.derrotas || 0}D</b></span><span class="bt-carteirinha-linha"><small>NO SALÃO</small><b>${f.posicao ? `${f.posicao}º` : "—"}</b></span><span class="bt-carteirinha-linha"><small>MAIOR SÉRIE</small><b>${f.maior_sequencia || 0}</b></span>${f.apelido ? `<span class="bt-ficha-apelido" title="${safeText(f.apelido.texto || "")}">vulgo <b>${safeText(f.apelido.nome)}</b> ${f.apelido.icone || ""}</span>` : ""}</span>
+${f.nota != null ? `<span class="bt-estrela"><b>${f.nota}</b><small>NOTA</small></span>` : ""}</span></div>${boletim}${extra}</section>`;
+}
