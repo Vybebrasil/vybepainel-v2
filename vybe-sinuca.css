@@ -645,3 +645,18 @@ body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel{background:var(--bt
 body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel h3{font:400 22px var(--bt-cartaz)!important;letter-spacing:1px}
 body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel .workflow-primary{background:var(--bt-plastico)!important;border-radius:8px!important;font:400 16px var(--bt-cartaz)!important;letter-spacing:1px}
 body .ofc-musica.na-tv{top:118px}@media (orientation:landscape) and (max-height:520px){body .ofc-musica.na-tv{top:86px}}
+/* O MENU do topo abre por cima da mesa (a lista ficava atrás da placa do rival e do feed da torcida). */
+#workflow-modal.ofc-snc-jogo .jogo-topo.tema-sinuca{position:relative;z-index:40!important}
+#workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista{z-index:41!important}
+#workflow-modal.ofc-snc-jogo:has(.jogo-topo .snc-menu[open]) .snc-arena :is(.snc-feed,.snc-mais,.snc-tv-botao,.snc-menu-fundo){visibility:hidden}
+/* Na pré-partida a TV vira o radinho numa linha, no meio da barra do topo (a música continua). */
+body.snc-em-pre .ofc-musica.na-tv{left:50%!important;top:8px!important;bottom:auto!important;width:auto!important;max-width:min(330px,40vw);padding:4px 6px 4px 12px!important;border-radius:10px!important;background:linear-gradient(180deg,#b5362a,#8a2219)!important;transform:translateX(-50%)!important}
+body.snc-em-pre .ofc-musica.na-tv::before{display:none}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-player{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none}
+body.snc-em-pre .ofc-musica.na-tv :is(.ofc-musica-vol,.ofc-musica-info>small,.ofc-musica-info>.ofc-secundario){display:none!important}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-info{margin-top:0}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-info{display:flex!important;align-items:center;gap:8px;min-width:0}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-info>b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-ctl{flex:none}
+body.snc-em-pre .ofc-musica.na-tv .ofc-musica-ctl button{background:#ffffff26!important;height:24px;min-width:26px;padding:0 6px}
+@media (max-width:760px) and (orientation:portrait){body.snc-em-pre .ofc-musica.na-tv{left:auto!important;right:8px!important;top:auto!important;bottom:8px!important;max-width:160px;transform:none!important}}

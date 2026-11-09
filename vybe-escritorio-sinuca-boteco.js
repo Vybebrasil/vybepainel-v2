@@ -165,6 +165,8 @@ function btTvReiniciarPlayer() {
   if (caixa) caixa.innerHTML = '<div id="office-yt"></div>';
 }
 function sinucaTvLigar() {
+  // Na pré-partida a TV encolhe para o radinho no canto (não cobre o cartão do lutador).
+  if (typeof document !== "undefined") document.body.classList.toggle("snc-em-pre", Boolean(document.querySelector("#workflow-modal.ofc-snc-jogo .snc-pre")));
   if (typeof escritorioElementoMusica !== "function" || typeof escritorio === "undefined" || !document.querySelector("#workflow-modal.ofc-snc-jogo")) return;
   const el = escritorioElementoMusica();
   if (el.classList.contains("na-tv") && el.parentNode === document.body) return;
@@ -175,6 +177,7 @@ function sinucaTvLigar() {
   if (typeof sincronizarMusicaEscritorio === "function") sincronizarMusicaEscritorio();
 }
 function sinucaTvDesligar() {
+  document.body.classList.remove("snc-em-pre");
   const el = typeof escritorio !== "undefined" ? escritorio.musicaEl : null;
   if (!el?.classList.contains("na-tv")) return;
   btTvReiniciarPlayer();
