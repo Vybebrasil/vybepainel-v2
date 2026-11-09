@@ -69,6 +69,9 @@ async function gravarConfig(tx, quem, chave, valor) {
     ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor, atualizado_por=EXCLUDED.atualizado_por, atualizado_em=now()`;
 }
 
+// Pessoa da equipe = ativa E com acesso (ativo AND pode_entrar). Regra única para Equipe, RH, Projetos, Carteira,
+// heads dos clientes e carga do Comercial (auditoria 09/11: o RH contava 14 com contas duplicadas e sem acesso,
+// a Equipe 9). tests/regra-pessoa-equipe.test.mjs vigia as consultas.
 async function pessoasAtivas(sql, estado) {
   const pessoas = await sql`SELECT id::text AS id, nome FROM vybe_pessoas WHERE ativo AND pode_entrar ORDER BY nome`;
   const funcoes = await ler({ ...estado }, sql`SELECT pessoa_id::text AS pessoa_id, funcao FROM vybe_escritorio_funcoes`);
@@ -224,7 +227,7 @@ async function rh(sql, quem, query, estado) {
   const tipo = query.periodo === 'anual' ? 'anual' : 'mensal', ref = calc.util.mesValido(String(query.ref || '')) ? String(query.ref) : hoje.slice(0, 7);
   const periodo = calc.periodoDe(tipo, ref);
   const perfilDe = new Map(perfis.map((p) => [p.pessoa_id, p]));
-  const quadro = (await sql`SELECT id::text AS id, ativo FROM vybe_pessoas`).flatMap((p) => {
+  const quadro = (await sql`SELECT id::text AS id, (ativo AND pode_entrar) AS ativo FROM vybe_pessoas`).flatMap((p) => {
     const f = perfilDe.get(p.id);
     if (!p.ativo && !f?.saida) return []; // saiu sem data registrada: fora das contas
     return [{ id: p.id, entrada: f?.entrada || null, saida: f?.saida || null }];
@@ -342,7 +345,7 @@ async function documentos(sql, quem, query, estado) {
 
 // ---------- escrita ----------
 async function pessoaAtiva(tx, id) {
-  if (!(await tx`SELECT id FROM vybe_pessoas WHERE id = ${id} AND ativo`).length) falhar('Pessoa indisponível.');
+  if (!(await tx`SELECT id FROM vybe_pessoas WHERE id = ${id} AND ativo AND pode_entrar`).length) falhar('Pessoa indisponível.');
 }
 async function escrever(sql, quem, b) {
   const acao = String(b.acao || ''), gestao = ehGestao(quem), eu = String(quem.id), hoje = hojeBahia();

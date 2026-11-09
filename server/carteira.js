@@ -134,12 +134,36 @@ export async function sinaisDaCarteira(sql, dia) {
   return { porCliente, desde: desde60 };
 }
 
+function saidaDe(inativo, ch, c, p = {}) {
+  if (!inativo) return { saida: null, saida_fonte: null };
+  const fontes = [['registro', ch?.saiu_em], ['desativacao', diaDe(c.desativado_em)], ['historico', p.inativo_em], ['ultima_peca', p.ultima_peca]];
+  const [fonte, saida] = fontes.find(([, d]) => d) || [null, null];
+  return { saida, saida_fonte: fonte };
+}
 async function baseDosClientes(sql) {
   return sql`SELECT c.id::text, c.nome, c.ativo, c.status, COALESCE(c.nao_e_cliente, false) AS nao_e_cliente,
       c.valor, c.criado_no_monday, c.desativado_em,
       (SELECT MIN(e.em) FROM vybe_cliente_eventos e WHERE e.cliente_id = c.id) AS primeiro_evento,
       (SELECT e.motivo FROM vybe_cliente_eventos e WHERE e.cliente_id = c.id AND e.para = 'Inativo' ORDER BY e.em DESC LIMIT 1) AS motivo_saida
     FROM vybe_clientes c WHERE c.apagado_em IS NULL ORDER BY c.nome`;
+}
+
+// Quando saiu quem está inativo sem registro de saída (auditoria 09/11: Churn mostrava 0 saídas em 12 meses com 34
+// inativos, porque quase todos foram desativados antes de existir desativado_em e nunca tiveram saída registrada).
+// inativo_em: a última vez que o histórico do cliente marcou "Inativo"; ultima_peca: a última peça dele que já passou.
+// Cada parte falha sozinha (tabela ausente): a carteira segue com o que houver.
+async function pistasDeSaida(sql, dia) {
+  const pistas = {};
+  const juntar = (linhas, campo) => { for (const l of linhas) (pistas[l.id] ||= {})[campo] = diaDe(l.em); };
+  await Promise.all([
+    sql`SELECT cliente_id::text AS id, MAX(em) AS em FROM vybe_cliente_eventos WHERE para = 'Inativo' GROUP BY cliente_id`
+      .then((l) => juntar(l, 'inativo_em'), () => {}),
+    sql`SELECT v.cliente_id::text AS id, MAX(COALESCE(c.veiculacao, c.prazo)) AS em
+        FROM vybe_conteudo_clientes v JOIN vybe_conteudos c ON c.id = v.conteudo_id
+        WHERE c.removido_em IS NULL AND COALESCE(c.veiculacao, c.prazo) <= ${dia}::date GROUP BY v.cliente_id`
+      .then((l) => juntar(l, 'ultima_peca'), () => {}),
+  ]);
+  return pistas;
 }
 
 // Clima do grupo (vybe_carteira_clima, alimentada pelo bot). Formato no topo de vybe-carteira-saude.js.
@@ -254,12 +278,13 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
   const eu = quem?.pessoa?.id != null ? String(quem.pessoa.id) : '';
   const admin = quem?.tipo === 'servico' || gestao(quem?.pessoa);
   const [pessoas, meus, atendimento, sinais, base] = await Promise.all([
-    sql`SELECT id::text, nome FROM vybe_pessoas WHERE ativo ORDER BY nome`.then((r) => r, () => []),
+    sql`SELECT id::text, nome FROM vybe_pessoas WHERE ativo AND pode_entrar ORDER BY nome`.then((r) => r, () => []),
     eu ? sql`SELECT cliente_id::text AS id FROM vybe_cliente_pessoas WHERE pessoa_id = ${eu}`.then((r) => r.map((x) => x.id), () => []) : [],
     eu ? sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id = ${eu}`.then((r) => r[0]?.funcao === 'atendimento', () => false) : false,
     sinaisDaCarteira(sql, dia).catch(() => null),
     baseDosClientes(sql).catch(() => null),
   ]);
+  const pistas = base ? await pistasDeSaida(sql, dia) : {};
   const [config, onboardingLido, contratos, churn, historico, clima] = await Promise.all([
     parte(() => etapasConfiguradas(sql)),
     parte(async () => ({ clientes: await lerOnboardings(sql) })),
@@ -288,7 +313,8 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
     const entradaFonte = !entrada ? null : ct?.inicio ? 'contrato' : diaDe(c.criado_no_monday) ? 'cadastro' : 'historico';
     return { id: c.id, nome: c.nome, ativo: !inativo,
       entrada, entrada_fonte: entradaFonte,
-      saida: inativo ? (ch?.saiu_em || diaDe(c.desativado_em)) : null,
+      // Saída: o registro de churn; senão a desativação; senão o histórico; senão a última peça (estimada).
+      ...saidaDe(inativo, ch, c, pistas[c.id]),
       valor: ct?.valor_mensal ?? numero(c.valor), motivo_saida: inativo ? c.motivo_saida || '' : '' };
   }) : null;
   return {
@@ -428,7 +454,7 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
       if (b.pessoa_id == null || b.pessoa_id === '') dela.responsavel_id = null;
       else {
         const pid = idValido(b.pessoa_id, 'Pessoa');
-        const [p] = await tx`SELECT id FROM vybe_pessoas WHERE id=${pid} AND ativo`;
+        const [p] = await tx`SELECT id FROM vybe_pessoas WHERE id=${pid} AND ativo AND pode_entrar`;
         if (!p) falhar('Pessoa indisponível.');
         dela.responsavel_id = pid;
       }
