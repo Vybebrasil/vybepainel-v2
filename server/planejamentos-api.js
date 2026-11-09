@@ -60,6 +60,8 @@ export async function areaPlanejamentos(req, res, quem, sql) {
   }
   if (acao === 'estado') return res.status(200).json({ ok: true, planejamento: await P.mudarEstadoInterno(sql, pessoa, b) });
   if (acao === 'cadastrar') return res.status(200).json({ ok: true, ...(await P.cadastrarPecas(sql, quem, b)) });
+  // Demandas já cadastradas que nasceram sem telas, objetivo e linha (até 09/11/2026): completa sem pisar em edição do time.
+  if (acao === 'completar_briefings') return res.status(200).json({ ok: true, ...(await P.completarBriefings(sql, quem, b)) });
   if (acao === 'aprovar_head') return res.status(200).json({ ok: true, planejamento: await P.aprovarPeloHead(sql, pessoa, b) });
   if (acao === 'revisar_peca') return res.status(200).json({ ok: true, resumo: await P.revisarPecaHead(sql, pessoa, b) });
   if (acao === 'comentar') return res.status(200).json(await P.comentarPlanejamento(sql, pessoa, b));
