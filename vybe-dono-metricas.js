@@ -232,8 +232,8 @@
   };
 
   // ── Entradas ───────────────────────────────────────────────────────────────────
-  const ativoNoCadastro = (c) => Boolean(c) && c.ativo !== false && !c.nao_e_cliente
-    && !/inativ|apagad/i.test(String(c.status || ''));
+  // Regra única de cliente ativo (auditoria 09/11, A1): o campo do servidor; sem ele, os dois campos do cadastro.
+  const ativoNoCadastro = (c) => Boolean(c) && (typeof c.ativo_de_verdade === 'boolean' ? c.ativo_de_verdade : c.ativo !== false && !c.nao_e_cliente && !/inativ|apagad/i.test(String(c.status || '')));
   // {id: nome}, [{id, name|nome}] ou Map.
   const mapaDePessoas = (entrada) => {
     const m = new Map();

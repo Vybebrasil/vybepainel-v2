@@ -430,8 +430,7 @@ function renderClientesBoard() {
   // dava 15 de 15 no primeiro dia — um numero que diz que tudo esta errado nao
   // e sinal, e ruido, e ninguem olha duas vezes. Sao problemas diferentes: um e
   // de relacionamento, o outro e de preenchimento, e so o primeiro e urgente.
-  const ativoDeVerdade = (c) => !c.nao_e_cliente
-    && String(c.status || '').trim() && !/inativ/i.test(c.status);
+  const ativoDeVerdade = (c) => clienteAtivo(c) && String(c.status || '').trim();
   const semContato = CADASTRO_CLIENTES.filter((c) => {
     if (!ativoDeVerdade(c)) return false;
     const d = diasSemContato(c);

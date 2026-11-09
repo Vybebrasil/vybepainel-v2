@@ -59,7 +59,7 @@
   }
   function clientes() {
     const cad = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
-    return cad.filter((c) => c.ativo !== false && !/inativ/i.test(String(c.status || ''))).map((c) => ({ nome: c.nome, ramo: ramo(c.segmento || c.ramo || '') }));
+    return cad.filter((c) => (typeof clienteAtivo === 'function' ? clienteAtivo(c) : c.ativo !== false)).map((c) => ({ nome: c.nome, ramo: ramo(c.segmento || c.ramo || '') }));
   }
   // Sugestões da data: um rascunho por cliente que combina; feriado avisa o horário de funcionamento.
   function sugestoes(d) {

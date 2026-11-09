@@ -66,7 +66,7 @@
   // ---------- Clientes do mundo: só os ativos do cadastro, com as peças em aberto ----------
   const norm = (n) => (typeof normalizarCliente === 'function' ? normalizarCliente(String(n || '')) : String(n || '').trim());
   function clientesDoMundo() {
-    const cadastro = (typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : []).filter((c) => c.ativo !== false && !/inativ/i.test(String(c.status || '')));
+    const cadastro = (typeof CADASTRO_CLIENTES !== 'undefined' ? CADASTRO_CLIENTES : []).filter((c) => clienteAtivo(c));
     const itens = [...(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []), ...(typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : [])];
     const mapa = new Map();
     const chave = (n) => norm(n).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

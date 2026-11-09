@@ -3,6 +3,14 @@ function clientesDoItem(item) {
   const nomes = Array.isArray(item?.clientes) ? item.clientes : [item?.cliente];
   return [...new Set(nomes.filter(Boolean).map(n => normalizarCliente(String(n))))];
 }
+// Cliente ativo, regra única (auditoria 09/11, A1): o servidor manda `ativo_de_verdade` (ativo e não marcado "não é
+// cliente"). Sem o campo (cache antigo), a mesma conta pelos dois campos. Cadastro de demanda e agenda não usam esta
+// regra: a Vybe e os freelas não são clientes, mas têm peças.
+function clienteAtivo(c) {
+  if (!c) return false;
+  if (typeof c.ativo_de_verdade === 'boolean') return c.ativo_de_verdade;
+  return c.ativo !== false && !c.nao_e_cliente && !/inativ/i.test(String(c.status || ''));
+}
 function itemTemCliente(item, nome) { return clientesDoItem(item).includes(normalizarCliente(nome)); }
 
 function carteiraDoCliente(nome) {
