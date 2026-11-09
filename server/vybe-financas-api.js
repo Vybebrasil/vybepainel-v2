@@ -88,7 +88,7 @@ export async function lancamentosDoFinancas(sql, { conector = conectorPadrao(), 
   const ligacao = calc.ligarClientes(base.clientes, vybe), nomeFin = Object.fromEntries(base.clientes.map((c) => [c.id, c.name]));
   const porVybe = {};
   for (const c of base.clientes) { const par = ligacao.porFinancas[c.id]; if (par) porVybe[par.vybe_id] = { valor_mensal: Number(c.monthly_fee) || 0, status: c.contract_status || '' }; }
-  return { recebiveis: calc.recebiveisDoFinancas(base.transacoes, ligacao.porFinancas, nomeFin), contas: calc.contasDoFinancas(base.transacoes), porVybe };
+  return { recebiveis: calc.recebiveisDoFinancas(base.transacoes, ligacao.porFinancas, nomeFin, vybe), contas: calc.contasDoFinancas(base.transacoes), porVybe };
 }
 
 export async function lerVybeFinancas(sql, pessoa, query = {}, { conector = conectorPadrao(), hoje = hojeNaBahia() } = {}) {

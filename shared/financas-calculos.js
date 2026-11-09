@@ -96,7 +96,7 @@
         if (noMes(dia(t.date), mes)) { previstoLancado += centavos(t.amount); if (t.client_id) comReceita.add(String(t.client_id)); if (pendente(t)) pendenteMes += centavos(t.amount); }
       } else if (ehDespesa(t) && noMes(dataFiltro(t), mes)) {
         if (pago(t)) despesasPagas += centavos(t.amount); else despesasPendentes += centavos(t.amount);
-        if (t.employee_id) folhaLancada += centavos(t.amount); // salário lançado como despesa: é a folha, não "outra despesa"
+        if (ehFolha(t)) folhaLancada += centavos(t.amount); // salário lançado como despesa: é a folha, não "outra despesa"
       }
     }
     // Mensalidade de cliente ativo ainda não lançada no mês (o Finanças também casa pela descrição "Mensalidade - Nome").
@@ -236,12 +236,20 @@
   // A tela do Comercial já sabe mostrar "recebíveis" e "contas"; o servidor entrega os do Finanças nesse formato, e os
   // números deixam de se contradizer (Recebimentos R$ 0 × R$ 28,5 mil a receber; Inadimplentes 0 × R$ 41,3 mil em atraso).
   // porFinancas: { finClienteId: { vybe_id, vybe_nome } } (de ligarClientes); nomeFin: { finClienteId: nome no Finanças }.
-  function recebiveisDoFinancas(transacoes = [], porFinancas = {}, nomeFin = {}) {
-    const out = [];
+  // Sem cliente no lançamento, o nome sai da descrição "Mensalidade - Nome" e é ligado ao cliente ativo do Vybe OS pela
+  // mesma regra de ligarClientes (um candidato só); sem par (ex.: cliente que saiu), fica o nome limpo.
+  const nomeDaDescricao = (d) => String(d || '').replace(/^\s*(mensalidade|parcela|fatura|pagamento)\s*[-–:]\s*/i, '').trim();
+  function recebiveisDoFinancas(transacoes = [], porFinancas = {}, nomeFin = {}, vybe = []) {
+    const out = [], porDescricao = new Map();
     for (const t of transacoes) {
       if (!ehReceita(t) || centavos(t.amount) <= 0 || !dia(t.date)) continue;
-      const par = t.client_id ? porFinancas[String(t.client_id)] : null;
-      const nome = par ? par.vybe_nome : t.client_id ? nomeFin[String(t.client_id)] || '' : '';
+      let par = t.client_id ? porFinancas[String(t.client_id)] : null;
+      const daDescricao = !t.client_id ? nomeDaDescricao(t.description) : '';
+      if (!par && daDescricao && vybe.length) {
+        if (!porDescricao.has(daDescricao)) porDescricao.set(daDescricao, ligarClientes([{ id: 'd', name: daDescricao }], vybe).porFinancas.d || null);
+        par = porDescricao.get(daDescricao);
+      }
+      const nome = par ? par.vybe_nome : t.client_id ? nomeFin[String(t.client_id)] || '' : daDescricao;
       out.push({ id: 'fin:' + String(t.id), fonte: 'financas', tipo: /mensalidade/i.test(String(t.description || '')) ? 'recorrente' : 'avulso',
         cliente_id: par ? String(par.vybe_id) : null, cliente_nome: nome || String(t.description || 'Sem cliente').slice(0, 80),
         descricao: String(t.description || '').slice(0, 160), categoria: String(t.category || ''), ciclo: 'mensal',
@@ -251,13 +259,16 @@
     return out;
   }
   function grupoDaDespesa(t) {
-    if (t.employee_id) return 'folha';
+    if (ehFolha(t)) return 'folha';
     const c = semAcentoFin(t.category);
     if (/imposto|tribut|das|inss|fgts|iss|irpj|csll/.test(c)) return 'imposto';
     if (/aluguel|internet|energia|agua|telefone|software|assinatura|contabil|fixa/.test(c)) return 'fixa';
     if (/investimento|equipamento/.test(c)) return 'investimento';
     return 'variavel';
   }
+  // Folha: lançamento ligado a funcionário OU com categoria/descrição de salário (em produção os salários vêm só com a
+  // categoria "Salário/Prolabore", sem funcionário ligado, e caíam em "Variáveis").
+  const ehFolha = (t) => Boolean(t?.employee_id) || /salario|pro ?-?labore|folha de pagamento|ferias|13o|decimo terceiro/.test(semAcentoFin(`${t?.category || ''} ${t?.description || ''}`));
   const semAcentoFin = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   function contasDoFinancas(transacoes = []) {
     const out = [];
