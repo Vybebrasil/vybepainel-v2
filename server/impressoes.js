@@ -150,6 +150,34 @@ export function rankingFornecedores(fornecedores = [], historico = [], { cidade 
     || ((a.prazo_medio_dias ?? 999) - (b.prazo_medio_dias ?? 999)) || (b.entregues - a.entregues) || a.nome.localeCompare(b.nome));
 }
 
+// Texto do pedido de orçamento que o agente de Compras prepara para alguém da equipe mandar ao fornecedor (o agente não
+// manda nada: falar com fornecedor é falar em nome da Vybe, sempre com aprovação de gente).
+export function pedidoDeCotacao(i, fornecedor = null) {
+  const linhas = [`Olá${fornecedor?.nome ? ', ' + fornecedor.nome : ''}! Aqui é da Vybe. Pode passar um orçamento para:`, '', `• ${i.titulo}`];
+  if (i.material) linhas.push(`• Material: ${i.material}`);
+  if (i.quantidade) linhas.push(`• Quantidade: ${i.quantidade}`);
+  if (i.especificacao) linhas.push(`• Especificação: ${i.especificacao}`);
+  if (i.previsao) linhas.push(`• Precisamos até ${i.previsao.slice(8, 10)}/${i.previsao.slice(5, 7)}`);
+  linhas.push('', 'Com o valor e o prazo de entrega, por favor. Obrigado!');
+  return linhas.join('\n');
+}
+
+// Leitura para o agente (consulta 'impressoes' do assistente, só no privado da administração): o que está aberto, a
+// quem pedir e o texto do pedido, a base de fornecedores com o que falta e o histórico de cada um.
+export async function impressoesParaAgente(sql) {
+  const r = await ler(sql, { id: 0, admin: true });
+  const abertas = r.impressoes.filter((i) => !FECHADAS.has(i.etapa));
+  return {
+    hoje: r.hoje, resumo: r.resumo, ranking: r.ranking, porFornecedor: r.porFornecedor,
+    abertas: abertas.map((i) => ({ id: i.id, titulo: i.titulo, cliente: i.cliente_nome || '', etapa: i.etapa, fornecedor: i.fornecedor_nome || '',
+      previsao: i.previsao, atrasada: i.atrasada, pedido_em: i.pedido_em, cotacoes: (i.cotacoes || []).length,
+      sugestao: (i.sugestao || []).map((s) => ({ nome: s.nome, telefone: s.telefone, motivo: s.motivo })),
+      pedido: !i.fornecedor_id && ['orcamento', 'aprovado'].includes(i.etapa) ? pedidoDeCotacao(i, i.sugestao?.[0]) : '' })),
+    fornecedores: r.fornecedores.map((f) => ({ id: f.id, nome: f.nome, categoria: f.categoria, cidade: f.cidade, uf: f.uf, telefone: f.telefone,
+      falta: [!f.cidade && 'cidade', !f.telefone && 'telefone'].filter(Boolean) })),
+  };
+}
+
 export function resumir(impressoes) {
   const porEtapa = Object.fromEntries(ETAPAS.map(([k]) => [k, 0]));
   for (const i of impressoes) porEtapa[i.etapa] = (porEtapa[i.etapa] || 0) + 1;

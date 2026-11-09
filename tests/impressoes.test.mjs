@@ -117,3 +117,17 @@ test('prazo médio do fornecedor: do pedido à entrega', () => {
     { fornecedor_id: '1', fornecedor_nome: 'G', etapa: 'entregue', pedido_em: '2026-11-01', entregue_em: '2026-11-07' }, { fornecedor_id: '1', etapa: 'pronto', atrasada: false }]);
   assert.deepEqual(r, [{ fornecedor_id: '1', nome: 'G', abertas: 1, atrasadas: 0, entregues: 2, prazo_medio_dias: 5 }]);
 });
+
+test('agente de Compras: lê abertas com a quem pedir, o texto do pedido e o que falta na base de fornecedores', async (t) => {
+  const { impressoesParaAgente, pedidoDeCotacao } = await import('../server/impressoes.js');
+  const { db, sql } = await banco(t);
+  await db.exec(`UPDATE vybe_impressoes SET etapa = 'orcamento', material = 'Adesivo vinil', quantidade = 500, previsao = '2026-11-20' WHERE conteudo_id = 500`);
+  const r = await impressoesParaAgente(sql);
+  const adesivo = r.abertas.find((i) => i.titulo === 'Arte para adesivo');
+  assert.equal(adesivo.sugestao[0].nome, 'Emballar');
+  assert.match(adesivo.pedido, /^Olá, Emballar! Aqui é da Vybe\./);
+  assert.match(adesivo.pedido, /Quantidade: 500/); assert.match(adesivo.pedido, /Precisamos até 20\/11/);
+  assert.equal(r.abertas.find((i) => i.titulo === 'Arte para sacola').pedido, '', 'já na gráfica: sem pedido de cotação');
+  assert.deepEqual(r.fornecedores.find((f) => f.nome === 'Gráfica Irecê').falta, ['cidade', 'telefone']);
+  assert.equal(pedidoDeCotacao({ titulo: 'X' }), 'Olá! Aqui é da Vybe. Pode passar um orçamento para:\n\n• X\n\nCom o valor e o prazo de entrega, por favor. Obrigado!');
+});
