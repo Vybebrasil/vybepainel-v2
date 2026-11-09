@@ -353,9 +353,14 @@ export async function planejamentoPecasParaAgente(sql) {
  return { pecas: pecas.slice(0, 60), total_ligadas: ligadas.length };
 }
 // destinos: por formato do planejamento, o que a regra do cadastro decidiu
-// (cadastrosDestiny no navegador: board, grupo, status, captação e equipe). A
-// pessoa da equipe é a que mais fez peças deste cliente nos últimos 120 dias
-// (o painel registra quem fez cada uma); sem histórico, fica a equipe toda.
+// (cadastrosDestiny no navegador: board, grupo, status, captação e equipe).
+// Quem recebe cada peça (Paulo, 09/11/2026: "colocar no prazo certinho de acordo com a carga de quem vai fazer e
+// distribuir pra pessoa certa"): da equipe do formato, quem tem MENOS peças abertas até a veiculação, contando as
+// que este mesmo cadastro já distribuiu; no empate, quem mais fez peças deste cliente nos últimos 120 dias. Antes ia
+// tudo para quem mais fez peças do cliente (o planejamento de novembro pôs o lote inteiro com a mesma pessoa).
+// O prazo é o Prazo de Ouro, mas não num dia em que essa pessoa já passou da régua (6 peças, ou 4 vídeos): vai para
+// o dia útil mais perto que tenha vaga, até 2 dias antes da veiculação.
+export const REGUA_CADASTRO = Object.freeze({ pecas: 6, videos: 4 });
 export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
  await exigir(sql);
  const pessoa = quem?.pessoa;
@@ -369,32 +374,68 @@ export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
   const conteudo = normalizarConteudo(p.conteudo);
   const [{ hoje }] = await tx`SELECT (now() AT TIME ZONE 'America/Bahia')::date::text AS hoje`;
   const mesTexto = mesPorExtenso(p);
-  const historico = new Map();
-  const quemFaz = async (equipe) => {
-   const ids = (Array.isArray(equipe) ? equipe : []).map(String).filter((x) => /^\d{1,18}$/.test(x)).slice(0, 12);
-   if (ids.length <= 1) return ids;
+  const historico = new Map(), carga = new Map(); // carga: uid → Map(dia → {n, v}), já com o que este cadastro distribuiu
+  const ehVideo = (f) => /reels|v[ií]deo/i.test(String(f || ''));
+  const cargaDe = async (ids) => {
+   const faltam = ids.filter((u) => !carga.has(u));
+   if (!faltam.length) return;
+   for (const u of faltam) carga.set(u, new Map());
+   const linhas = await tx`SELECT pe.monday_user_id AS uid, c.prazo::text AS dia, count(*)::int AS n,
+     count(*) FILTER (WHERE c.formato ~* '(reels|v[ií]deo)')::int AS v
+    FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas pe ON pe.id=r.pessoa_id JOIN vybe_conteudos c ON c.id=r.conteudo_id
+    LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+    WHERE pe.monday_user_id = ANY(${faltam}::text[]) AND c.removido_em IS NULL AND c.board_id=${BOARD_PRODUCAO}
+     AND NOT COALESCE(s.final, false) AND c.prazo >= ${hoje}::date AND c.prazo <= ${hoje}::date + 90
+    GROUP BY 1, 2`;
+   for (const l of linhas) carga.get(String(l.uid)).set(l.dia, { n: l.n, v: l.v });
+  };
+  const doCliente = async (ids) => {
    const chave = ids.join(',');
    if (!historico.has(chave)) {
     const linhas = await tx`SELECT pe.monday_user_id AS uid, count(DISTINCT r.conteudo_id)::int AS n FROM vybe_conteudo_responsaveis r
      JOIN vybe_pessoas pe ON pe.id=r.pessoa_id JOIN vybe_conteudo_clientes cc ON cc.conteudo_id=r.conteudo_id JOIN vybe_conteudos c ON c.id=r.conteudo_id
      WHERE cc.cliente_id=${p.cliente_id} AND pe.monday_user_id = ANY(${ids}::text[]) AND c.removido_em IS NULL
       AND COALESCE(c.veiculacao, c.prazo) >= (now() AT TIME ZONE 'America/Bahia')::date - 120
-     GROUP BY 1 ORDER BY 2 DESC, 1`;
-    historico.set(chave, linhas[0] && (!linhas[1] || linhas[0].n > linhas[1].n) ? [String(linhas[0].uid)] : ids);
+     GROUP BY 1`;
+    historico.set(chave, new Map(linhas.map((l) => [String(l.uid), l.n])));
    }
    return historico.get(chave);
   };
+  const noDia = (u, d) => carga.get(u)?.get(d) || { n: 0, v: 0 };
+  const cheio = (u, d, video) => { const x = noDia(u, d); return x.n >= REGUA_CADASTRO.pecas || (video && x.v >= REGUA_CADASTRO.videos); };
+  // Equipe de um: vai para ela. Equipe de vários: um só, pela carga até a veiculação e depois pelo histórico do cliente.
+  const quemFaz = async (equipe, veiculacao) => {
+   const ids = (Array.isArray(equipe) ? equipe : []).map(String).filter((x) => /^\d{1,18}$/.test(x)).slice(0, 12);
+   await cargaDe(ids);
+   if (ids.length <= 1) return ids;
+   const hist = await doCliente(ids), ate = veiculacao || somarDias(hoje, 14);
+   const ate1 = (u) => [...(carga.get(u) || new Map())].reduce((t, [d, x]) => t + (d >= hoje && d <= ate ? x.n : 0), 0);
+   return [[...ids].sort((a, b) => ate1(a) - ate1(b) || (hist.get(b) || 0) - (hist.get(a) || 0) || a.localeCompare(b))[0]];
+  };
+  // Prazo de Ouro (ou o do head); se a pessoa já está cheia nesse dia, o dia útil mais perto com vaga, até 2 dias antes.
+  const prazoPara = (base, veiculacao, u, video, fixo) => {
+   if (!u || fixo || !cheio(u, base, video)) return base;
+   const limite = diaUtil(somarDias(veiculacao, -2)), dias = [];
+   for (let d = hoje; d <= limite; d = somarDias(d, 1)) if (![0, 6].includes(new Date(`${d}T12:00:00Z`).getUTCDay())) dias.push(d);
+   const perto = (d) => Math.abs(Date.parse(d) - Date.parse(base));
+   const livres = dias.filter((d) => !cheio(u, d, video)).sort((a, b) => perto(a) - perto(b) || a.localeCompare(b));
+   return livres[0] || base;
+  };
+  const anotar = (u, d, video) => { if (!carga.has(u)) carga.set(u, new Map()); const x = { ...noDia(u, d) }; x.n++; if (video) x.v++; carga.get(u).set(d, x); };
   const criadas = [];
   for (const peca of conteudo.pecas) {
    if (peca.conteudo_id) continue;
    if (!peca.data) throw erro(`A peça "${peca.tema || peca.formato}" está sem dia. Reabra o planejamento e preencha.`, 400);
    const formato = FORMATO_DO_PAINEL[peca.formato] || 'Card';
-   const d = destinos?.[peca.formato] || {}, avulso = peca.formato === 'Outro';
+   const d = destinos?.[peca.formato] || {}, avulso = peca.formato === 'Outro', video = ehVideo(formato);
+   const responsaveis = avulso ? [] : await quemFaz(d.responsaveis, peca.data);
+   const prazo = prazoPara(peca.prazo || prazoDaPeca(peca.data, hoje), peca.data, responsaveis.length === 1 ? responsaveis[0] : null, video, Boolean(peca.prazo));
+   for (const u of responsaveis) anotar(u, prazo, video);
    const r = await criarConteudoNaTransacao(tx, quem, {
     board: avulso ? BOARD_DEMANDAS : BOARD_PRODUCAO, titulo: `${formato} - ${peca.tema || 'Sem tema'}`.slice(0, 240), cliente: p.cliente, formato,
-    prazo: peca.prazo || prazoDaPeca(peca.data, hoje), veiculacao: peca.data, status: avulso ? 'nova_demanda' : d.status || 'a_fazer', grupo_id: avulso ? null : d.grupo_id || null,
+    prazo, veiculacao: peca.data, status: avulso ? 'nova_demanda' : d.status || 'a_fazer', grupo_id: avulso ? null : d.grupo_id || null,
     briefing: briefingDaPeca(peca, mesTexto), tipo_conteudo: avulso ? null : 3,
-    captacao: avulso ? null : d.captacao || null, responsaveis: avulso ? [] : await quemFaz(d.responsaveis),
+    captacao: avulso ? null : d.captacao || null, responsaveis,
    });
    peca.conteudo_id = String(r.conteudo_id);
    criadas.push(r);
