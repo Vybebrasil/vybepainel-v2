@@ -24,8 +24,8 @@
 .workflow-close{width:30px!important;height:30px!important;border-radius:6px!important;border:1px solid var(--pv-borda)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important}
 .workflow-item,.context-item{border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;padding:10px 14px!important}
 .workflow-field>span{color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none!important}
-.workflow-field input,.workflow-field select,.workflow-field textarea,.status-context-dialog :is(input,select,textarea){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
-.workflow-field input:focus,.workflow-field select:focus,.workflow-field textarea:focus,.status-context-dialog :is(input,textarea,select):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
+:where(body:not(.mundo)) .workflow-field input,:where(body:not(.mundo)) .workflow-field select,:where(body:not(.mundo)) .workflow-field textarea,:where(body:not(.mundo)) .status-context-dialog :is(input,select,textarea){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
+:where(body:not(.mundo)) .workflow-field input:focus,:where(body:not(.mundo)) .workflow-field select:focus,:where(body:not(.mundo)) .workflow-field textarea:focus,:where(body:not(.mundo)) .status-context-dialog :is(input,textarea,select):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
 .workflow-check{border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 .workflow-check:has(input:checked){border-color:rgba(98,211,148,.45)!important;background:linear-gradient(180deg,rgba(98,211,148,.12),rgba(98,211,148,.04))!important}
 .workflow-check input{accent-color:#62d394!important}
@@ -48,7 +48,7 @@
 .workspace-heading .ops-acoes button,.ops-clear-btn{height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
 .workspace-heading .ops-acoes button.active,.workspace-heading .ops-acoes button[aria-expanded="true"]{background:var(--pv-laranja)!important;color:#1b0d06!important;border-color:transparent!important}
 .workspace-heading .filtro-carteira{display:flex!important;align-items:center;gap:8px;color:#a8a39c;font:600 11.5px var(--mac-ui)}
-.workspace-heading .filtro-carteira select{height:34px;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(8,9,13,.6)!important;color:#fff}
+:where(body:not(.mundo)) .workspace-heading .filtro-carteira select{height:34px;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(8,9,13,.6)!important;color:#fff}
 .resumo{display:grid!important;grid-template-columns:1.15fr 1fr 1fr 1.6fr;gap:10px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 .pv-kpi{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;min-width:0;padding:12px 16px;border-radius:10px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho)}
 .pv-kpi::after{content:"";position:absolute;right:-26px;top:-26px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--k,#7aa7ff) 20%,transparent),transparent 70%);pointer-events:none}
@@ -177,7 +177,7 @@
 #workspace-drawer .workspace-section-head :is(h3,h4,b,strong){font-family:var(--pv-titulo)!important;font-weight:700!important}
 #workspace-drawer :is(.workspace-action,.workspace-close,.workspace-mais>button,.workspace-barra-acoes button){border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important}
 #workspace-drawer .workspace-dropzone{border-radius:10px!important;border:1.5px dashed rgba(255,154,92,.5)!important;background:radial-gradient(ellipse at 50% 0,rgba(255,154,92,.1),transparent 70%)!important}
-#workspace-drawer :is(.workspace-textarea,.workspace-input,textarea,input[type="text"],input[type="url"]){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
+:where(body:not(.mundo)) #workspace-drawer :is(.workspace-textarea,.workspace-input,textarea,input[type="text"],input[type="url"]){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
 
 /* ---- Barra do topo: marca branca completa num quadro escuro ---- */
 .app-header .logo{background:rgba(27,13,6,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)!important;padding:0 8px!important;width:auto!important}
@@ -208,8 +208,8 @@
 .cli-pergunta-caixa{border-radius:14px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important;padding:22px!important}
 .cli-pergunta-caixa h3{font:700 21px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em!important;color:#fff!important}
 .cli-pergunta-caixa p{color:#a8a39c!important;font-size:13px!important;line-height:1.5!important}
-.cli-pergunta-caixa :is(input,textarea){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important;color:#fff!important;font:600 15px var(--mac-ui)!important}
-.cli-pergunta-caixa :is(input,textarea):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
+:where(body:not(.mundo)) .cli-pergunta-caixa :is(input,textarea){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important;color:#fff!important;font:600 15px var(--mac-ui)!important}
+:where(body:not(.mundo)) .cli-pergunta-caixa :is(input,textarea):focus{border-color:rgba(255,138,53,.7)!important;outline:0!important;box-shadow:0 0 0 3px rgba(255,138,53,.15)!important}
 .cli-pergunta-acoes{border-top:1px solid var(--pv-linha)!important;padding-top:14px!important;margin-top:16px!important}
 .cli-pergunta-caixa .workflow-primary.perigo{background:linear-gradient(180deg,#ff7d7d,#e14848)!important;color:#2a0606!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e14848!important}
 .cli-pergunta-caixa:has(.perigo) h3::before{content:"!";display:grid;place-items:center;width:42px;height:42px;margin-bottom:12px;border-radius:8px;font:800 19px var(--pv-titulo);color:#ff6b6b;background:rgba(255,107,107,.14);box-shadow:inset 0 0 0 1px rgba(255,107,107,.45),0 10px 24px -10px #ff6b6b}
@@ -217,7 +217,7 @@
 /* ---- Formulários: captação (levar peças, fechar gravação) e Novo na agenda ---- */
 .capt-form{display:grid;gap:12px}
 .capt-form > label,.capt-form fieldset legend{font:600 12.5px var(--mac-ui)!important;color:#ece8e3!important}
-.capt-form :is(input[type="url"],input[type="text"],input[type="date"],input[type="time"],input:not([type]),select,textarea),.capt-novo :is(input,select){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important;color:#fff!important}
+:where(body:not(.mundo)) .capt-form :is(input[type="url"],input[type="text"],input[type="date"],input[type="time"],input:not([type]),select,textarea),:where(body:not(.mundo)) .capt-novo :is(input,select){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important;color:#fff!important}
 .capt-form fieldset{border:0!important;padding:0!important;margin:0!important;display:grid;gap:8px}
 .capt-escolha{display:flex!important;align-items:center;gap:11px;padding:10px 12px!important;border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 .capt-escolha:has(input:checked){border-color:rgba(98,211,148,.45)!important;background:linear-gradient(180deg,rgba(98,211,148,.12),rgba(98,211,148,.04))!important}

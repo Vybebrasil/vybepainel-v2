@@ -27175,7 +27175,7 @@ body .snc-perfil .snc-perfil-topo{background:linear-gradient(170deg,#ff8a3d73,#f
 body .snc-perfil .snc-perfil-titulos{flex-direction:column;align-items:center;gap:6px}
 .snc-perfil-titulo-texto{font-size:12px;color:#ffffffbb;max-width:210px}
 body .snc-perfil-titulos em small{display:block;font-size:11px;color:#ffffff99}
-@media (min-width:761px){.snc-perfil .snc-perfil-caixa{grid-template-areas:"carta taco" "carta numeros" "carta tacos" "carta trofeus" "carta zoeira" "carta extra"!important}.snc-perfil .snc-perfil-caixa>section:nth-of-type(3){grid-area:zoeira}}
+@media (min-width:761px){.snc-perfil .snc-perfil-caixa:not(.snc-cf){grid-template-areas:"carta taco" "carta numeros" "carta tacos" "carta trofeus" "carta zoeira" "carta extra"}.snc-perfil .snc-perfil-caixa>section:nth-of-type(3){grid-area:zoeira}}
 body .snc-perfil .snc-perfil-topo .snc-perfil-titulos em small,body .snc-perfil .snc-perfil-topo .snc-perfil-titulo-texto{font:400 11px/1.35 var(--bv-ui)!important;letter-spacing:0!important;text-transform:none!important;color:#ffffffa6!important}
 body .snc-perfil .snc-perfil-topo .snc-perfil-titulos em{font:800 12px var(--bv-ui);letter-spacing:0;text-transform:none;color:var(--snc-zoeira)}
 /* Quem assiste: sem os controles de quem joga; a placa ao vivo leva para a torcida. */
@@ -27199,7 +27199,8 @@ body .snc-perfil .snc-perfil-topo .snc-perfil-titulos em{font:800 12px var(--bv-
    título (prata, azul, roxo, ouro) com brilho passando; a estante é madeira
    com os tacos em pé e as medalhas; as zoeiras são bilhetes no mural de cortiça.
    ========================================================================== */
-body .snc-perfil .snc-perfil-caixa.snc-cf{display:grid!important;grid-template-columns:minmax(280px,340px) minmax(0,1fr)!important;grid-template-areas:none!important;gap:22px!important;width:min(1120px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);padding:22px!important;overflow:hidden!important;background:radial-gradient(ellipse at 20% 0,#ff8a3d26,transparent 60%),#07080c!important;box-shadow:inset 0 3px 0 var(--bv-laranja),0 40px 120px #000!important}
+/* Perfil novo (snc-cf): a grade antiga fica só no perfil antigo (:not(.snc-cf)), então aqui não precisa de !important. */
+body .snc-perfil .snc-perfil-caixa.snc-cf{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);grid-template-areas:none;gap:22px;width:min(1120px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:22px;overflow:hidden;background:radial-gradient(ellipse at 20% 0,#ff8a3d26,transparent 60%),#07080c;box-shadow:inset 0 3px 0 var(--bv-laranja),0 40px 120px #000}
 .snc-cf>.snc-perfil-fechar{position:absolute;top:12px;right:12px;z-index:5}
 /* A carta */
 .snc-cf-carta{--m1:#f2f5f8;--m2:#aab3bd;--m3:#5d6670;--tx:#15181c;position:relative;align-self:start;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 20px 18px;color:var(--tx);clip-path:polygon(12% 0,88% 0,100% 7%,100% 91%,50% 100%,0 91%,0 7%);background:radial-gradient(ellipse at 50% 20%,#ffffff99,transparent 55%),linear-gradient(160deg,var(--m1),var(--m2) 45%,var(--m3));box-shadow:inset 0 0 0 4px #ffffff55;overflow:hidden;animation:sncCartaEntra .6s cubic-bezier(.2,1.3,.4,1) both;filter:drop-shadow(0 20px 40px #000)}
@@ -27258,7 +27259,7 @@ body .snc-perfil .snc-perfil-caixa.snc-cf{display:grid!important;grid-template-c
 .snc-cf-mural li.limpo{background:#e8f8e0}
 @keyframes sncCartaEntra{from{opacity:0;transform:rotateY(70deg) scale(.8)}to{opacity:1;transform:none}}
 @keyframes sncCartaBrilho{0%{transform:translateX(-60%)}55%,100%{transform:translateX(60%)}}
-@media(max-width:760px){body .snc-perfil .snc-perfil-caixa.snc-cf{grid-template-columns:1fr!important;overflow:auto!important}.snc-cf-carta{justify-self:center;width:min(320px,100%)}.snc-cf-estante{overflow:visible}.snc-cf-parede ul{height:200px}}
+@media(max-width:760px){body .snc-perfil .snc-perfil-caixa.snc-cf{grid-template-columns:1fr;overflow:auto}.snc-cf-carta{justify-self:center;width:min(320px,100%)}.snc-cf-estante{overflow:visible}.snc-cf-parede ul{height:200px}}
 @media(prefers-reduced-motion:reduce){.snc-cf-carta,.snc-cf-brilho{animation:none}}
 @media(min-width:761px){.snc-cf-carta{padding:30px 22px 26px;gap:12px}.snc-cf-foto{width:200px;height:200px;margin-left:40px}.snc-cf-nome{font-size:46px!important}.snc-cf-titulo b{font-size:18px}.snc-cf-titulo span{font-size:12px}.snc-cf-atributos{gap:10px 18px}.snc-cf-atributos b{font-size:30px}.snc-cf-topo b{font-size:56px}.snc-cf-rodape{font-size:10px}.snc-cf-rodape b{font-size:18px}}
 /* Seleção: as regras como fichas de jogo (um clique troca). */

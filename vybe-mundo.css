@@ -373,7 +373,7 @@ body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
-body.mundo.mundo-modulo .app-header{background:transparent!important;border-bottom:1px solid rgba(255,255,255,.08)!important;box-shadow:none!important;backdrop-filter:none!important;margin-top:var(--vv-m)}
+body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:var(--vv-m)}
 body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
 @media (max-width:900px){
   body.mundo.mundo-modulo{padding-left:0!important;padding-right:0!important;padding-bottom:calc(64px + 3 * var(--vv-m))!important}
@@ -391,7 +391,7 @@ body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-e
   --vybe-text:#1F1D1A;--vybe-muted:#6B675F;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
   --pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;color:#1F1D1A}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){
-  background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+  background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:8px;box-shadow:none}
 body.mundo.mundo-modulo .board-switch-bar{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-linha)!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo.mundo-modulo .board-switch-btn:not(.active){color:#6B675F!important}
 body.mundo.mundo-modulo :is(.global-search,.header-utilities-menu,.dem-filtro-popover,.dem-controles,.date-mode-bar){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
@@ -1909,7 +1909,6 @@ html body.mundo.mundo-modulo .focus-priority-control-note b{color:#5E5A53!import
 html body.mundo.mundo-modulo .workflow-title{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-copy{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-field>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .workflow-field input,html body.mundo.mundo-modulo .workflow-field select,html body.mundo.mundo-modulo .workflow-field textarea{color:#5E5A53!important}
 html body.mundo.mundo-modulo .status-context-responsible-hint{color:#5E5A53!important}
 html body.mundo.mundo-modulo .status-context-responsible-hint b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-hint b{color:#5E5A53!important}
@@ -1971,7 +1970,6 @@ html body.mundo.mundo-modulo .brief-vazio .brief-abrir-copy small{color:#5E5A53!
 html body.mundo.mundo-modulo .brief-vazio .brief-adicionar{color:#A84E00!important}
 html body.mundo.mundo-modulo .cli-pergunta-caixa h3{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-caixa p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cli-pergunta-caixa input,html body.mundo.mundo-modulo .cli-pergunta-caixa textarea{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-previa figcaption{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-previa.sem-previa figcaption{color:#5E5A53!important}
 html body.mundo.mundo-modulo .conferencia-arte figcaption{color:#5E5A53!important}
@@ -2690,7 +2688,6 @@ html body.mundo.mundo-modulo .capt-form legend{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-escolha b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-escolha small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-form label{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-form input:not([type=checkbox]),html body.mundo.mundo-modulo .capt-form textarea,html body.mundo.mundo-modulo .capt-form select{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-erro{color:#DB0000!important}
 html body.mundo.mundo-modulo .capt-coluna-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-pend-texto b{color:#5E5A53!important}
@@ -4569,7 +4566,7 @@ html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!importan
 html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
-html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)!important}
+html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)}
 
 /* Comercial em tela cheia (08/11/2026): gráfico do caixa com altura limitada, fases ocupando a largura, estado vazio
    na largura toda (antes um cartão pequeno à esquerda com um vazio do lado). */
@@ -4578,7 +4575,7 @@ html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)
 html body.mundo :is(#vv-comercial,#vv-conteudo,#vv-carteira,#vv-pessoas) :is(.vc-vazio,.vp-vazio){grid-column:1/-1}
 
 /* Cabeçalho das telas antigas sem a moldura laranja aberta (borda só em cima e dos lados parecia caixa quebrada). */
-html body.mundo.mundo-modulo .app-header{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-height:0!important;padding-top:4px!important;padding-bottom:4px!important}
+html body.mundo.mundo-modulo .app-header{border:0;border-radius:0;box-shadow:none;background:transparent;min-height:0;padding-top:4px;padding-bottom:4px;padding-left:26px}
 html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 
 /* Varredura 08/11/2026 (2): placas em tela cheia por cima do HUD; Conversa na coluna da direita; botões do canto
