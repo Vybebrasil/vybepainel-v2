@@ -63,9 +63,11 @@
     for (const a of abertos) { if (ir.length >= 3) break; if (a.sugestao) ir.push({ texto: a.sugestao, motivo: a.fato }); }
     const peso = urgentes * 100 + falhas.length * 50 + aguardando.length * 20 + abertos.length;
     const vivo = agoraDe(atividade);
+    const ins = perfil?.insight, txt = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+    const insight = ins && txt(ins.insight, 600) ? { em: txt(ins.em, 40), referencia: txt(ins.referencia, 300), insight: txt(ins.insight, 600), aplicacao: txt(ins.aplicacao, 400) } : null;
     const ocupado = vivo && ['executando', 'aguardando_aprovacao'].includes(vivo.estado);
-    return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso, agora: vivo,
-      semLeitura: !atividade && !perfil, quieto: !ocupado && !feitos.length && !fechados.length && !abertos.length };
+    return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso, agora: vivo, insight,
+      semLeitura: !atividade && !perfil, quieto: !ocupado && !insight && !feitos.length && !fechados.length && !abertos.length };
   }
 
   // Ordem do boletim: quem pede ação primeiro; quem não tem nada a dizer fica para o fim (e só é contado no resumo).
@@ -101,6 +103,7 @@
   }
 
   const ICONE = {
+    insight: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>',
     agora: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
     feito: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     errado: '<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg>',
@@ -130,6 +133,9 @@
       ${secao('errado', 'O que está errado', falhas.length || errado.length ? `<ul>${falhas.join('')}${errado.join('')}</ul>${b.abertos.length > 4 ? `<p class="vbl-mais">e mais ${b.abertos.length - 4} em aberto</p>` : ''}` : '<p class="vbl-vazio">Nada em aberto no setor.</p>')}
       ${secao('ir', 'Pra onde ir', `${b.ir.length ? `<ol>${b.ir.map((x) => `<li><b>${esc(x.texto)}</b><small>${esc(x.motivo)}</small></li>`).join('')}</ol>` : '<p class="vbl-vazio">Seguir a rotina: nada pede decisão hoje.</p>'}
         <button type="button" class="vbl-botao principal" data-vbl-agente="${esc(b.id)}">Abrir ${esc(b.agente)}</button>`)}
+      ${b.insight ? secao('insight', 'Insight da semana', `<p class="vbl-insight-texto">${esc(b.insight.insight)}</p>
+        ${b.insight.aplicacao ? `<p class="vbl-insight-aplicar"><b>Como aplicar</b>${esc(b.insight.aplicacao)}</p>` : ''}
+        <small class="vbl-insight-fonte">${b.insight.referencia ? 'Referência: ' + esc(b.insight.referencia) : ''}${b.insight.em ? (b.insight.referencia ? ' · ' : '') + 'estudado ' + esc(quando(b.insight.em) || b.insight.em) : ''}</small>`) : ''}
     </article>`;
   }
 
