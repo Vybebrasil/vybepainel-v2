@@ -87,7 +87,7 @@ function barra(e, participantes, falando = new Set()) {
   const c = vm.createContext({ escritorio: e, mundo: { zonasDoPredio: {} }, zonas3d: () => ({}), barra: el,
     body: { classList: { contains: () => false } }, ligado: true, window: {},
     pessoaAberta: null, chamarAberto: false, minhaSalaDaConta: () => '', fn: n => funcoes[n], esc: String, iniciais: n => n[0],
-    musicaHtml: () => '', IC: {}, Set, marcarVozNoTopo: () => {}, pintarDock() {}, microfonesNaChamada: () => new Map(), primeiro: (n) => String(n || '?').split(' ')[0],
+    musicaHtml: () => '', salasDeVozHtml: ({ estadoVoz }) => '<lista>' + estadoVoz + '</lista>', IC: {}, Set, marcarVozNoTopo: () => {}, pintarDock() {}, microfonesNaChamada: () => new Map(), primeiro: (n) => String(n || '?').split(' ')[0],
   });
   vm.runInContext(fonte(world, 'pintarChamada', '  '), c); c.pintarChamada(); return el.innerHTML;
 }
@@ -97,10 +97,8 @@ test('barra conta participantes da chamada separadamente de pessoas apenas prese
   const html = barra(e, [{ customParticipantId: '2:sessao' }]);
   assert.match(html, /Na chamada com Ana · Bia está na sala, fora da chamada/);
   assert.doesNotMatch(html, /ouve você|falando/);
-  assert.match(html, /data-chamada="tela"/); assert.match(html, /Mostrar minha tela/);
   e.canalChamada = 'sala-antiga'; const transicao = barra(e, [{ customParticipantId: '2:sessao' }]);
-  assert.doesNotMatch(transicao, /class="sala on"/);
-  assert.match(transicao, /data-chamada="tela"[^>]*disabled/);
+  assert.doesNotMatch(transicao, /Na chamada com/, 'no canal anterior não diz que está na chamada');
 });
 test('estado da voz não anuncia conversa da sala enquanto está no canal anterior', () => {
   const { c, e } = chamada(); assert.equal(c.escritorioEstadoVozTexto(), 'Na conversa da sala');
