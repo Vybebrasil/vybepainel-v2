@@ -63,7 +63,7 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
   // fica com a face limpa e a luz desenha as facetas, sem escurecer inteiro.
   float vxLado = min(min(vVxEsc.x, vVxEsc.y), vVxEsc.z), vxPx = vxLado / max(fwidth(vxE), 1e-5);
   float vxQ = smoothstep(0.0, min(0.03, vxLado * 0.16) + fwidth(vxE), vxE);
-  diffuseColor.rgb *= mix(mix(0.74, 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
+  diffuseColor.rgb *= mix(mix(mix(0.9, 0.74, smoothstep(0.15, 0.5, vxLado)), 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
   float vxB = (vVxLoc.y + 0.5) * vVxEsc.y;
   diffuseColor.rgb *= mix(1.0, mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0)), smoothstep(0.15, 0.4, vVxEsc.y));` : ''}
 }`);
