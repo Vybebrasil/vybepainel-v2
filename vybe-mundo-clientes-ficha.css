@@ -1,0 +1,65 @@
+/* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
+
+/* ── janela do cadastro ── */
+#workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
+.cad-janela .workflow-copy{color:var(--vv-apagado)}
+.cad-obrig{color:#C2490C;font-style:normal;font-weight:800}
+.cad-passos{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
+.cad-passos button{appearance:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:600 12.5px var(--vv-texto);cursor:pointer;position:relative}
+.cad-passos button b{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:#F1F2F3;color:#5B6268;font-size:11px}
+.cad-passos button:hover{border-color:var(--vv-laranja);color:#C2490C}
+.cad-passos button.ativo{background:rgba(255,122,47,.13);border-color:transparent;color:#C2490C}
+.cad-passos button.ativo b{background:#C2490C;color:#fff}
+.cad-passos button.falta::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#C2490C}
+.cad-corpo{margin-top:8px}
+.cad-etapa{border:0;margin:0;padding:0;min-width:0}
+.cad-etapa legend{font:700 15px var(--vv-titulo);margin-bottom:10px;color:var(--vv-tinta)}
+.cad-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.cad-campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.cad-campo.largo{grid-column:1/-1}
+.cad-campo>span{font:600 12px var(--vv-texto);color:var(--vv-tinta)}
+.cad-campo small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
+.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
+.cad-campo textarea{resize:vertical;min-height:88px;line-height:1.45}
+.cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
+.cad-campo input:disabled{background:#F6F3EE;color:var(--vv-apagado)}
+.cad-acoes{flex-wrap:wrap;gap:8px}
+.cad-acoes [hidden]{display:none}
+@media (max-width:640px){.cad-grade{grid-template-columns:1fr}.cad-passos button{height:32px;font-size:12px}}
+
+/* ── ecossistema ── */
+.eco-resumo{margin:6px 0 10px;color:var(--vv-apagado);font:500 13px var(--vv-texto)}
+.eco-resumo b{color:var(--vv-tinta)}
+.eco-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.eco-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--vv-linha);border-radius:14px;background:var(--vv-branco);box-shadow:inset 3px 0 0 var(--eco-barra,#5B6268)}
+.eco-item b{font:700 13.5px var(--vv-texto);color:var(--vv-tinta)}
+.eco-item p{margin:2px 0 0;font:500 12.5px/1.4 var(--vv-texto);color:var(--vv-apagado)}
+.eco-estado{font:700 11px var(--vv-texto);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.eco-ok{--eco-barra:#11613A}.eco-ok .eco-estado{background:#E7F6EE;color:#11613A}
+.eco-falta{--eco-barra:#A3366F}.eco-falta .eco-estado{background:#FCE7F1;color:#A3366F}
+.eco-conferir{--eco-barra:#5B6268}.eco-conferir .eco-estado{background:#F1F2F3;color:#5B6268}
+.eco-item .vb-botao{white-space:nowrap;text-decoration:none}
+@media (max-width:640px){.eco-item{grid-template-columns:1fr}.eco-item .vb-botao{justify-self:start}}
+
+/* ── abas da ficha ── */
+.ficha-abas{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}
+.ficha-abas button{appearance:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:600 12.5px var(--vv-texto);cursor:pointer}
+.ficha-abas button:hover{border-color:var(--vv-laranja);color:#C2490C}
+.ficha-abas button.ativo{background:rgba(255,122,47,.13);border-color:transparent;color:#C2490C}
+.ficha-abas button:focus-visible,.cad-passos button:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+
+/* ── cadastro em leitura ── */
+.cad-ficha{grid-column:1/-1}
+.cad-progresso{height:6px;border-radius:999px;background:#F0EBE3;overflow:hidden;margin:8px 0 4px}
+.cad-progresso i{display:block;height:100%;background:#11613A;border-radius:inherit}
+.cad-leitura{border-top:1px solid #F0EBE3;padding-top:10px;margin-top:12px}
+.cad-leitura h4{margin:0;font:700 14px var(--vv-titulo);color:var(--vv-tinta)}
+.cad-leitura dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 16px;margin:10px 0 0}
+.cad-leitura dl>div{min-width:0}
+.cad-leitura dl>div.largo{grid-column:1/-1}
+.cad-leitura dt{font:600 11px var(--vv-texto);color:var(--vv-apagado);margin-bottom:2px}
+.cad-leitura dd{margin:0;font:500 13.5px/1.45 var(--vv-texto);color:var(--vv-tinta);overflow-wrap:anywhere}
+.cad-leitura .falta dt::after{content:" · falta";color:#A3366F;font-weight:700}
+
+/* Fora da Visão geral, cada aba ocupa a largura toda da ficha. */
+.client-master-detail:not([data-aba="geral"])>*{grid-column:1/-1}

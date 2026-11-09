@@ -244,6 +244,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   uma aba da Gestão (`vybe-mundo-performance.js`, `VybePerformance`), com a situação da peça pela função oficial
   (`VybeDono.util.situacaoDaPeca`); a Produtividade do RH é a do time, pessoa a pessoa. O quadro antigo de Performance
   (`renderPerformance`) não é mais aberto pelo dock.
+- Dock fixo das salas (decisão do Paulo, 09/11/2026: "o dock das salas, chat, música, os controles e a entrada de chamada,
+  fixo"): embaixo, em toda tela do mundo (`dockSalasHtml`/`pintarDock` em `vybe-mundo.js`): Voltar (dentro de uma sala),
+  microfone com Mudo/Ligado escrito ou Entrar, Minha sala e Sala atual (ver a sala), as salas com gente (trocar só a voz,
+  com quem está mudo marcado), Salas (a barra das salas abre em cima do dock), Chat, Música e Sair. O topo ficou com
+  Agenda, WhatsApp e os outros ícones à vista, sem o "Mais". Não crie outro dock de voz nem volte a voz para o topo.
 - Hoje guiado (decisão do Paulo, 09/11/2026: "ter alguém ali me falando: faz isso primeiro, depois aquilo"): o guia
   (`guiaHtml`, Agora/Depois/Em seguida) é do agente do setor de quem olha (`guiaDe`: Criação → Danilo, Edição → Lucas,
   agendamento → Mateus, donos e o resto → VYBES); a ordem é uma só (`passosDoGuia`, a data do cliente manda) e a

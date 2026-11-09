@@ -76,6 +76,7 @@ async function ensureClientMasterSources(force=false) {
     if(!resposta.ok) throw new Error(corpo?.error || `Cadastro mestre indisponível (${resposta.status})`);
     CADASTRO_CLIENTES=corpo.clientes || [];
     PESSOAS_DO_CADASTRO=corpo.pessoas || [];
+    if (corpo.cadastro_def) CADASTRO_DEF=corpo.cadastro_def;
     CLIENT_MASTER_HEADS=CADASTRO_CLIENTES.map(row=>({
       id:String(row.id),name:String(row.nome||'').trim(),url:'',updated_at:'',
       people:row.heads||'',status:row.status||(row.ativo?'Ativo':'Inativo'),
