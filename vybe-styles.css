@@ -19444,7 +19444,7 @@ body.ag-arrastando .ag-col {background-image:repeating-linear-gradient(180deg,tr
 
 .ag-ev.sel {background:color-mix(in srgb,var(--ag-cor) 42%,#15171e);box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px #ff8a35,0 8px 20px #0008;z-index:5}
 
-.ag-ev b {flex:none;font:700 11.5px/15px var(--mac-ui);overflow:hidden;display:-webkit-box;-webkit-line-clamp:var(--linhas,2);-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.ag-ev b {flex:none;font:700 11.5px/15px var(--mac-ui);overflow:hidden;display:-webkit-box;-webkit-line-clamp:var(--linhas,2);-webkit-box-orient:vertical;overflow-wrap:normal;word-break:normal}
 
 .ag-ev small {flex:none;color:#ffffffb8;font:550 10.5px/13px var(--mac-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 

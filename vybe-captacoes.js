@@ -64,7 +64,8 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
     let fimGrupo = -1;
     // Quem começa junto divide a coluna; quem começa depois fica por cima, um
     // pouco recuado (como no calendário), para o título continuar legível.
-    const fechar = () => { const n = Math.max(1, ...grupo.map((g) => g.faixa + 1)), juntos = Math.max(...grupo.map((g) => g.a)) - Math.min(...grupo.map((g) => g.a)) <= 20;
+    // Na semana a coluna é estreita: quem se cruza sempre divide a coluna (o recuado cobria o de baixo; Paulo, 08/11/2026).
+    const fechar = () => { const n = Math.max(1, ...grupo.map((g) => g.faixa + 1)), juntos = dias.length > 1 || Math.max(...grupo.map((g) => g.a)) - Math.min(...grupo.map((g) => g.a)) <= 20;
       grupo.forEach((g) => { g.n = n; g.lado = juntos; }); grupo.length = 0; faixas.length = 0; };
     const fora = ordem.map((e) => {
       const a = agMin(e.inicio), b = Math.max(a + 20, agMin(e.fim) ?? a + 60);
