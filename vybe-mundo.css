@@ -4383,7 +4383,7 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
 .vv-ferr-voz.on .vv-voz-ponto{background:#18A957}
 .vv-ferramentas .vv-ferr-mic[hidden]{display:none!important}
 .vv-ferr-mic.on{background:#18A957!important;color:#fff!important}
-.vv-ferr-mic:not(.on){color:#B4322B!important}
+.vv-ferr-mic.mudo{background:#D2453B!important;color:#fff!important}
 .vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff)!important;color:var(--vv-laranja-escuro,#C2410C)!important}
 .vv-compromissos{display:grid;gap:6px;margin:8px 0}
 @media (max-width:900px){html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada,html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important}}
@@ -4736,6 +4736,14 @@ html body.mundo .vv-barra-topo .vv-ferr-voz{width:auto!important;min-width:0;pad
 html body.mundo .vv-ferr-voz .vv-voz-nome{display:inline!important;font:650 12.5px var(--vv-texto);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body.mundo .vv-ferr-voz .vv-voz-ponto{position:static;order:-1;width:8px;height:8px;box-shadow:none}
 html body.mundo .vv-ferr-voz.on{background:#E3F4E8!important;color:#1D7A3E!important}
+/* Voz clara (Paulo, 09/11/2026: "tão reclamando de dificuldade de achar onde entra na chamada"): fora da chamada o botão
+   da sala é o laranja de ação, com "Entrar na chamada" escrito; conectando fica cinza; o microfone diz Mudo ou Ligado. */
+html body.mundo .vv-ferr-voz.entrar{background:#C2490C!important;color:#fff!important;border-color:#C2490C!important;box-shadow:0 2px 8px -3px rgba(194,73,12,.55)}
+html body.mundo .vv-ferr-voz.entrar:hover{background:#A63D08!important}
+html body.mundo .vv-ferr-voz.entrar .vv-voz-ponto{background:#fff}
+html body.mundo .vv-ferr-voz.espera{color:#6B675F!important}
+html body.mundo .vv-barra-topo .vv-ferr-mic{width:auto!important;min-width:0;gap:6px;padding:0 11px 0 9px!important;border-radius:9px}
+html body.mundo .vv-ferr-mic .vv-mic-rotulo{font:650 12.5px var(--vv-texto)}
 /* WhatsApp e Agenda com nome, como as Salas (Paulo, 08/11/2026). */
 .vv-ferr-nome{display:none}
 html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"]){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
@@ -4940,7 +4948,7 @@ html body.mundo .vv-chamada > :not(.vz-salas){flex-shrink:0}
 .vv-chamada .vz-chip:hover{border-color:#F26B1D}
 .vv-chamada .vz-mais{align-self:center;font:600 11.5px var(--vv-texto);color:#6B675F}
 /* controles: ícone e nome, numa linha de largura igual */
-.vv-chamada .vz-controles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.vv-chamada .vz-controles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 .vv-chamada .vz-b{display:grid;justify-items:center;align-content:center;gap:3px;min-width:0;height:54px;padding:0 2px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#3A3F44;cursor:pointer;font:600 10.5px var(--vv-texto)}
 .vv-chamada .vz-b span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-chamada .vz-b:hover:not(:disabled){border-color:#F26B1D;background:#FFF8F2;color:#1F1D1A}
@@ -5015,3 +5023,23 @@ html body.mundo .vv-g-linha small.vv-g-meta .pill{font-size:10.5px;padding:1px 7
 html body.mundo .vv-g-linha em.vv-g-datas{display:grid;justify-items:end;gap:2px;white-space:nowrap}
 .peca-data{font:600 11.5px var(--vv-texto);color:#3A3F44;font-variant-numeric:tabular-nums}
 .peca-data i{margin-right:4px;font:500 10.5px var(--vv-texto);font-style:normal;color:#8A847A}
+/* O microfone é o controle principal da chamada (Paulo, 09/11/2026: "mais claro quando o microfone tá mudo"): grande, com o
+   estado escrito e a ação do toque. Fora da chamada, no lugar dele, o laranja "Entrar na chamada". */
+.vv-chamada :is(.vz-mic,.vz-entrar){display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 14px;border-radius:10px;text-align:left;cursor:pointer;font-family:var(--vv-texto)}
+.vv-chamada :is(.vz-mic,.vz-entrar) svg{width:22px;height:22px}
+.vv-chamada :is(.vz-mic,.vz-entrar) > span{flex:1;min-width:0;display:grid;gap:2px}
+.vv-chamada :is(.vz-mic,.vz-entrar) b{font:700 14px var(--vv-texto)}
+.vv-chamada :is(.vz-mic,.vz-entrar) small{font:500 11.5px/1.35 var(--vv-texto)}
+.vv-chamada .vz-mic > em{flex:none;padding:5px 12px;border-radius:999px;font:700 12px var(--vv-texto);font-style:normal}
+.vv-chamada .vz-mic.mudo{border:1px solid #D2453B;background:#D2453B;color:#FFFFFF}
+.vv-chamada .vz-mic.mudo small{color:rgba(255,255,255,.88)}
+.vv-chamada .vz-mic.mudo > em{background:#FFFFFF;color:#B42318}
+.vv-chamada .vz-mic.mudo:hover{background:#B8372E}
+.vv-chamada .vz-mic.on{border:1px solid #9FD9B5;background:#EAF7EF;color:#11613A}
+.vv-chamada .vz-mic.on small{color:#2F6B45}
+.vv-chamada .vz-mic.on > em{background:#FFFFFF;color:#3A3F44;border:1px solid #CFE9D8}
+.vv-chamada .vz-mic.on:hover > em{border-color:#D2453B;color:#B42318}
+.vv-chamada .vz-entrar{border:1px solid #C2490C;background:#C2490C;color:#FFFFFF;box-shadow:0 4px 14px -6px rgba(194,73,12,.6)}
+.vv-chamada .vz-entrar small{color:rgba(255,255,255,.9)}
+.vv-chamada .vz-entrar:hover{background:#A63D08}
+.vv-chamada :is(.vz-mic,.vz-entrar):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}

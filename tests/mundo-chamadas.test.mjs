@@ -95,7 +95,7 @@ test('barra conta participantes da chamada separadamente de pessoas apenas prese
   const { e, self } = chamada(); self.audioEnabled = true;
   e.online = [{ id: '2', nome: 'Ana', zona: e.zona }, { id: '3', nome: 'Bia', zona: e.zona }];
   const html = barra(e, [{ customParticipantId: '2:sessao' }]);
-  assert.match(html, /1 pessoa na chamada · 1 na sala, fora da chamada/);
+  assert.match(html, /Na chamada com Ana · Bia está na sala, fora da chamada/);
   assert.doesNotMatch(html, /ouve você|falando/);
   assert.match(html, /data-chamada="tela"/); assert.match(html, /Mostrar minha tela/);
   e.canalChamada = 'sala-antiga'; const transicao = barra(e, [{ customParticipantId: '2:sessao' }]);

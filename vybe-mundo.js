@@ -2093,6 +2093,7 @@
   document.addEventListener?.('keydown', (e) => { const m = e.key === 'Escape' && hud.querySelector('.vv-mais-menu[open]'); if (m) { m.removeAttribute('open'); e.stopPropagation(); } }, true);
   function usarFerramenta(id) {
     hud.querySelector('.vv-mais-menu[open]')?.removeAttribute('open'); // escolher algo do "Mais" fecha o menu
+    if (id === 'voz' && hud.querySelector('[data-ferr="voz"]')?.classList.contains('entrar') && !body.classList.contains('ver-voz')) entrarPeloTopo();
     if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
     if (id === 'musica') { abrirMusica(!body.classList.contains('musica-aberta')); return; }
     if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
@@ -2495,16 +2496,31 @@
     const el = document.getElementById('office-ajustes-audio');
     if (el && el.parentElement !== document.body) { el.classList.add('vv-flutuante'); document.body.append(el); }
   }
-  // O botão da sala de voz na barra de cima mostra o estado (ponto verde na chamada) e o microfone fica à vista
-  // enquanto houver chamada: silenciar é um clique, mesmo com a barra da sala fechada.
-  function marcarVozNoTopo(naChamada = false, mic = false, sala = '') {
+  // O botão da sala de voz na barra de cima diz o estado com palavras (Paulo, 09/11/2026: "precisa ser mais claro quando o
+  // microfone tá mudo, quando não tá conectado... tão reclamando de dificuldade de achar onde entra na chamada"):
+  //   chamada → verde com o nome da sala; fora da chamada → laranja "Entrar na chamada" (o clique já entra);
+  //   conectando → cinza "Conectando…". O microfone fica à vista na chamada, com "Mudo" (vermelho) ou "Ligado" (verde).
+  const TOPO_VOZ = { chamada: '', pausada: 'Entrar na chamada', fora: 'Entrar na chamada', conectando: 'Conectando…', outra: 'Voz em outra aba', semvoz: 'Salas' };
+  function marcarVozNoTopo(estado = 'semvoz', mic = false, sala = '') {
     const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
-    v.classList.toggle('on', naChamada); v.title = naChamada ? `Sala de voz: ${sala} (na chamada)` : 'Sala de voz: quem está com você, microfone, música e TV';
+    const naChamada = estado === 'chamada';
+    v.classList.toggle('on', naChamada); v.classList.toggle('entrar', estado === 'pausada' || estado === 'fora'); v.classList.toggle('espera', estado === 'conectando');
+    v.dataset.estadoVoz = estado;
+    v.title = naChamada ? `Na chamada: ${sala}. Abrir a sala de voz` : estado === 'pausada' || estado === 'fora' ? 'Entrar na chamada da sala e ver quem está em cada sala' : 'Sala de voz: quem está em cada sala, microfone, música e TV';
+    v.setAttribute('aria-label', v.title);
     let rot = v.querySelector('.vv-voz-nome'); if (!rot) { rot = document.createElement('span'); rot.className = 'vv-voz-nome'; v.append(rot); }
-    // Sempre com nome (Paulo, 08/11/2026: "maiorzinho, com o nome Salas"): fora da chamada "Salas"; na chamada, a sala.
-    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : 'Salas'; rot.hidden = false;
-    m.hidden = !naChamada; m.classList.toggle('on', mic); m.setAttribute('aria-pressed', String(mic));
-    m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: clique para falar'; m.setAttribute('aria-label', m.title);
+    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : TOPO_VOZ[estado] || 'Salas'; rot.hidden = false;
+    m.hidden = !naChamada; m.classList.toggle('on', mic); m.classList.toggle('mudo', naChamada && !mic); m.setAttribute('aria-pressed', String(mic));
+    let mr = m.querySelector('.vv-mic-rotulo'); if (!mr) { mr = document.createElement('span'); mr.className = 'vv-mic-rotulo'; m.append(mr); }
+    mr.textContent = mic ? 'Ligado' : 'Mudo';
+    m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar'; m.setAttribute('aria-label', m.title);
+  }
+  // Clique no botão laranja do topo: já entra (na chamada da sala ou nas salas de voz) e abre a sala.
+  function entrarPeloTopo() {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return;
+    if (e.conectado && e.vozPausada && fn('escritorioCanal')?.(e.zona)) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); void focarSalaDaChamada(e.zona); }
+    else if (!e.conectado && !e.conectando) { pintarChamada.tentou = true; (e.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); }
+    setTimeout(pintarChamada, 600);
   }
   function pintarChamada() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
@@ -2517,8 +2533,8 @@
     const nomeZona = (z) => Z[z]?.nome || (z ? (fn('escritorioAmbienteDoQuarto')?.(z)?.nome || 'Sala') : 'Recepção');
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     if (!e.conectado) {
-      marcarVozNoTopo();
       const outraAba = Boolean(e.emOutraAba || fn('escritorioOutraAbaConectada')?.());
+      marcarVozNoTopo(outraAba ? 'outra' : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3) ? 'conectando' : 'fora');
       if (!outraAba && !e.conectando && e.base && !e.base.demo && !pintarChamada.tentou && fn('conectarEscritorio')) {
         pintarChamada.tentou = true;
         if (e.microfoneQuer === undefined) e.microfoneQuer = false; // entra calado; liga o microfone quando quiser falar
@@ -2535,8 +2551,18 @@
       if (pintarChamada.tentou && !e.conectando && !outraAba && (pintarChamada.vezes = (pintarChamada.vezes || 0) + (pintarChamada.agendado ? 0 : 1)) < 3 && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
       return;
     }
+    // Quem entra no painel já entra na própria sala, online e na chamada dela, com o microfone mudo (Paulo, 09/11/2026:
+    // "obrigar a quem entrar já entrar online na sua sala... ver quem tá ON, poder ir fácil e ver as outras salas").
+    // Uma vez por carga da página, sem abrir o andar em 3D; depois, sair da chamada ou trocar de sala continua livre.
+    if (!pintarChamada.naMinha) {
+      const s = minhaSalaDaConta();
+      if (s) {
+        pintarChamada.naMinha = true;
+        if (e.zona !== s) { moverParaSala(s); setTimeout(() => { if (e.zona === s && !e.vozPausada) fn('escritorioConversaAutomatica')?.(); pintarChamada(); }, 700); }
+      }
+    }
     const canal = fn('escritorioCanal')?.(e.zona);
-    const naChamada = Boolean(!e.vozPausada && e.conectado && canal && e.chamada && e.canalChamada === canal);
+    const naChamada =Boolean(!e.vozPausada && e.conectado && canal && e.chamada && e.canalChamada === canal);
     const juntos = outros.filter((o) => o.zona && o.zona === e.zona);
     const mic = Boolean(e.chamada?.self?.audioEnabled), cam = Boolean(e.chamada?.self?.videoEnabled);
     const falando = fn('escritorioPessoasFalando')?.() || new Set();
@@ -2549,21 +2575,23 @@
     const participantes = new Set((naChamada ? fn('escritorioOuvindo')?.(e.chamada) || [] : []).map((p) => String(p.customParticipantId || '').split(':')[0]));
     const naVoz = juntos.filter((o) => participantes.has(String(o.id))).length;
     const foraDaVoz = juntos.length - naVoz;
-    const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
-    marcarVozNoTopo(naChamada, mic, nomeZona(e.zona));
+    // Quem ouve você, pelo nome (antes: "Na conversa da sala · 1 pessoa na chamada").
+    const nomes = (l) => { const n = l.map((o) => primeiro(o.nome)); return n.length <= 1 ? n.join('') : n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1]; };
+    const naVozL = juntos.filter((o) => participantes.has(String(o.id))), foraL = juntos.filter((o) => !participantes.has(String(o.id)));
+    const ouvem = (naVoz ? `Na chamada com ${nomes(naVozL)}` : 'Só você na chamada') + (foraDaVoz ? ` · ${nomes(foraL)} ${foraDaVoz === 1 ? 'está' : 'estão'} na sala, fora da chamada` : '');
+    marcarVozNoTopo(naChamada ? 'chamada' : e.vozPausada && canal ? 'pausada' : 'semvoz', mic, nomeZona(e.zona));
     // Botão da barra: ícone em cima e o nome embaixo (a pessoa lê o que cada um faz, sem depender do passar do mouse).
     const botao = (id, icone, rotulo, titulo, extra = '') => `<button type="button" class="vz-b" data-chamada="${id}" ${extra} title="${esc(titulo)}" aria-label="${esc(titulo)}">${icone}<span>${rotulo}</span></button>`;
-    const mudoComGente = naChamada && !mic && juntos.length > 0;
     // Paulo, 09/11/2026: "muito ruim o HUD que abre das salas". Uma janela só, de cima para baixo: onde você está
     // (e sair), quem está com você, os controles com nome, a música da sala e as outras salas. Nada cobre, nada rola.
     const html = `<div class="sala${naChamada ? ' on' : ''}"><span class="vz-ponto" aria-hidden="true"></span>
-        <span class="vz-onde"><small>Você está em</small><b>${esc(nomeZona(e.zona))}</b><small class="vz-estado">${mudoComGente ? '<b class="vz-mudo">Você está mudo</b> · toque em Mudo para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
-        ${e.vozPausada && canal ? '<button type="button" class="vz-botao principal" data-chamada="entrar-voz">Entrar na chamada</button>' : ''}
+        <span class="vz-onde"><small>Você está em</small><b>${esc(nomeZona(e.zona))}</b><small class="vz-estado">${naChamada ? esc(ouvem) : e.vozPausada && canal ? 'Você está na sala, mas fora da chamada' : esc(estado)}</small></span>
         ${!e.vozPausada && (e.chamada || e.entrandoChamada) ? `<button type="button" class="vz-sair" data-chamada="sair" title="Sair da chamada">${IC.sair}<span>Sair</span></button>` : ''}
       </div>
+      ${naChamada ? `<button type="button" class="vz-mic ${mic ? 'on' : 'mudo'}" data-chamada="mic" aria-pressed="${mic}">${mic ? IC.mic : IC.micOff}<span><b>${mic ? 'Microfone ligado' : 'Você está mudo'}</b><small>${mic ? 'Quem está na chamada te ouve. Toque para silenciar.' : 'Ninguém te ouve. Toque para falar.'}</small></span><em>${mic ? 'Silenciar' : 'Falar'}</em></button>`
+        : e.vozPausada && canal ? `<button type="button" class="vz-entrar" data-chamada="entrar-voz">${IC.mic}<span><b>Entrar na chamada</b><small>Fale com quem está em ${esc(nomeZona(e.zona))}. Você entra mudo.</small></span></button>` : ''}
       ${juntos.length ? `<div class="vz-junto" aria-label="Na sala com você">${juntos.slice(0, 8).map((o) => `<button type="button" class="vz-chip${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' (falando)' : ''}"><i>${esc(iniciais(o.nome))}</i>${esc(primeiro(o.nome))}</button>`).join('')}${juntos.length > 8 ? `<span class="vz-mais">+${juntos.length - 8}</span>` : ''}</div>` : ''}
       <div class="vz-controles" role="toolbar" aria-label="Controles da chamada">
-        ${botao('mic', mic ? IC.mic : IC.micOff, mic ? 'Ligado' : 'Mudo', naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar', `aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} data-estado="${mic ? 'on' : mudoComGente ? 'alerta' : 'off'}"`)}
         ${botao('camera', IC.camera, 'Câmera', cam ? 'Desligar a câmera' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera', `aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'} data-estado="${cam ? 'on' : 'off'}"`)}
         ${botao('tela', IC.tela, 'Tela', tela ? 'Parar de mostrar a tela' : 'Mostrar minha tela', `aria-pressed="${tela}" ${naChamada || tela ? '' : 'disabled'} data-estado="${tela ? 'on' : 'off'}"`)}
         ${botao('musica', IC.musica, 'Música', temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)', temSom ? '' : 'disabled')}
