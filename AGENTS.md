@@ -277,6 +277,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   pediu e proposta em sombra, só como espera (o painel não confirma ação de outra pessoa). Lê o perfil e a atividade que a
   tela do agente já lê e decide pelas mesmas rotas; o número no item Agentes do dock é o "Para decidir", só para quem vê o
   boletim. Não crie outra fila de pendências dos agentes.
+- Boletim que resolve (decisão do Paulo, 09/11/2026: "não ficar só me mostrando que tem algo errado"): achado com peça
+  (`vybe:ID`) abre a peça (`VybePeca`, `vybe-mundo-peca.js`), no boletim e na página Agentes: duas semanas de
+  calendário com prazo, veiculação e as outras peças do cliente, o que o agente viu, e responsável e datas para mudar ali
+  mesmo pelas funções do painel (`gravarResponsaveisDaPeca`, `moverDataDoItem`), com "Aplicar a sugestão" (a proposta da
+  central ou o texto "Passar para X ... com prazo"). A demanda completa é a gaveta de sempre. Cada agente no boletim tem
+  os números de 14 dias e os achados agrupados como no "Depende de você" (`VybeAgentes.agrupar`). Não crie outro editor
+  de peça nem outra conta de grupo.
 
 ## Escritório integrado
 
