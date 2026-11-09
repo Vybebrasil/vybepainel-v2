@@ -193,40 +193,39 @@ function sinucaApostaAcao(acao, aposta, botao) { sinucaApostaPedido({ acao, apos
 // catálogo inteiro (com as zoeiras à parte), filtrável.
 const SINUCA_ORDEM_RAR = ["lendario", "epico", "raro", "comum", "zoeira"];
 function sinucaConquistasHtml() {
+  // A aba Conquistas é a estante do bar (Paulo, 08/11/2026: "todas as outras
+  // abas também"): medalhas na madeira, zoeiras no mural; tocar diz o que é.
   const x = escritorioXadrez(), salao = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao : null, eu = String(escritorio.base?.eu || "");
   const f = salao?.fichas?.[eu];
-  const topo = '<div class="snc-painel-topo"><div><small>FEITOS, TÍTULOS E ZOEIRAS</small><h2>Suas conquistas</h2></div></div>';
+  const topo = '<div class="snc-painel-topo"><div><small>FEITOS, TÍTULOS E ZOEIRAS</small><h2>Sua estante</h2></div></div>';
   if (!f) return `${topo}<p class="snc-vazio">Carregando a sua ficha…</p>`;
-  const lista = [...f.trofeus].sort((a, b) => (b.tem - a.tem) || (SINUCA_ORDEM_RAR.indexOf(a.raridade) - SINUCA_ORDEM_RAR.indexOf(b.raridade)));
-  const conta = Object.fromEntries(SINUCA_ORDEM_RAR.map((r) => [r, { tem: f.trofeus.filter((t) => t.raridade === r && t.tem).length, total: f.trofeus.filter((t) => t.raridade === r).length }]));
-  const filtro = x.sinucaFiltroConquistas || "todas";
-  const cartas = lista.map((t) => `<li class="snc-feito ${safeText(t.raridade)} ${t.tem ? "tem" : "falta"}" data-tipo="${t.zoeira ? "zoeira" : t.tem ? "tem" : "falta"}"><i>${t.tem ? t.icone : "🔒"}</i><div><b>${safeText(t.nome)}${t.vezes > 1 ? ` <em>×${t.vezes}</em>` : ""}</b><span>${safeText(t.texto)}</span></div><small>${SINUCA_RARIDADE[t.raridade] || ""}</small></li>`).join("");
-  const filtroBtn = (id, nome) => `<button type="button" aria-pressed="${filtro === id}" onclick="escritorioXadrez().sinucaFiltroConquistas='${id}';document.querySelector('.snc-feitos')?.setAttribute('data-filtro','${id}');for(const b of this.parentNode.children)b.setAttribute('aria-pressed',String(b===this))">${nome}</button>`;
-  return `${topo}<section class="snc-feitos-topo">
-<div class="snc-feitos-titulo ${safeText(f.titulo?.raridade || "comum")}"><small>SEU TÍTULO</small><b>${safeText(f.titulo?.nome || "Estreante")}</b><span>${safeText(f.titulo?.texto || "Ganhe a primeira partida para ter um título.")}</span>${f.apelido ? `<em>${f.apelido.icone} Apelido no bar: <strong>${safeText(f.apelido.nome)}</strong> — ${safeText(f.apelido.texto || "")}</em>` : ""}</div>
-<ul class="snc-feitos-contas">${SINUCA_ORDEM_RAR.map((r) => `<li class="${r}"><b>${conta[r].tem}<small>/${conta[r].total}</small></b><span>${SINUCA_RARIDADE[r]}</span><i style="--p:${conta[r].total ? conta[r].tem / conta[r].total : 0}"></i></li>`).join("")}</ul>
-</section>
-<nav class="snc-feitos-filtro" aria-label="Filtrar conquistas">${filtroBtn("todas", "Todas")}${filtroBtn("tem", "Já tenho")}${filtroBtn("falta", "Faltam")}${filtroBtn("zoeira", "Zoeira")}</nav>
-<ul class="snc-feitos" data-filtro="${filtro}">${cartas}</ul>`;
+  const RAR = { lendario: 4, epico: 3, raro: 2, comum: 1 }, boas = f.trofeus.filter((t) => !t.zoeira), zoeiras = f.trofeus.filter((t) => t.zoeira);
+  const leg = (t) => `tabindex="0" onclick="sinucaFichaLegenda(this,'${safeText(String(t.nome).replace(/'/g, "’"))}','${safeText(String(t.texto).replace(/'/g, "’"))}')" onmouseenter="this.onclick()" onfocus="this.onclick()"`;
+  const medalhas = [...boas].sort((a, b) => (b.tem - a.tem) || ((RAR[b.raridade] || 1) - (RAR[a.raridade] || 1))).map((t) => `<li class="${t.tem ? "tem" : "falta"} ${safeText(t.raridade)}" ${leg(t)}><i>${t.tem ? t.icone : "?"}</i>${t.vezes > 1 ? `<em>×${t.vezes}</em>` : ""}<b>${safeText(t.nome)}</b></li>`).join("");
+  const mural = zoeiras.map((t, i) => `<li class="${t.tem ? "" : "vazio"}" style="--g:${(i % 3 - 1) * 3}deg" ${leg(t)}><i>${t.tem ? t.icone : "📌"}</i><b>${t.tem ? safeText(t.nome) : "???"}</b><small>${safeText(t.texto)}</small></li>`).join("");
+  return `${topo}<div class="snc-cf snc-estante-aba"><p class="snc-cf-legenda" aria-live="polite"><b>Toque ou passe o mouse</b> numa medalha para ver o que ela é.</p>
+<section class="snc-cf-medalhas"><h3>ESTANTE DE CONQUISTAS <small>${boas.filter((t) => t.tem).length}/${boas.length}</small></h3><ul>${medalhas}</ul></section>
+<section class="snc-cf-mural"><h3>MURAL DA ZOEIRA <small>${zoeiras.filter((t) => t.tem).length}/${zoeiras.length}</small></h3><ul>${mural}</ul></section></div>`;
 }
 
 // --- Temporada da sinuca como liga (pente fino, 08/11/2026) ---------------------
 // A lista genérica dos jogos (emoji e texto corrido) vira tela de liga: o tempo
 // que falta em destaque, os três prêmios num pódio e a tabela como placas.
 function sinucaTemporadaHtml(t) {
+  // Liga do boteco: o pódio com os líderes de agora (retrato em cima do degrau
+  // e o prêmio na frente dele) e o resto da tabela no quadro de giz.
   const data = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
   const fim = new Date(new Date(`${t.fim}T00:00:00-03:00`).getTime() - 86400000).toISOString().slice(0, 10);
   const ms = Math.max(0, new Date(t.termina_em).getTime() - Date.now()), dias = Math.floor(ms / 86400000), horas = Math.floor((ms % 86400000) / 3600000);
-  const premio = (p) => p ? `<div class="snc-liga-premio p${p.posicao}"><em>${p.posicao}º</em><b>${p.moedas} 🪙</b><small>+${p.xp} XP${p.trofeu ? " · troféu" : ""}</small></div>` : "";
-  const pr = Object.fromEntries((t.premios || []).map((p) => [p.posicao, p]));
-  const linhas = (t.ranking || []).map((p) => `<li class="${p.eu ? "eu" : ""} p${p.posicao}"><em>${p.posicao}º</em><b>${safeText(String(p.nome).split(" ")[0])}${p.eu ? " <small>você</small>" : ""}</b><span>${p.vitorias}<i>V</i></span></li>`).join("");
+  const pr = Object.fromEntries((t.premios || []).map((p) => [p.posicao, p])), rk = t.ranking || [];
+  const degrau = (pos) => { const p = rk.find((r) => r.posicao === pos), z = pr[pos], u = p && escritorioCabecaUrl?.(p.id);
+    return `<div class="snc-liga-degrau p${pos}${p?.eu ? " eu" : ""}"><div class="snc-liga-quem">${p ? `<span class="snc-liga-foto">${u ? `<img src="${safeText(u)}" alt="">` : `<i>${safeText(String(p.nome)[0])}</i>`}</span><b>${safeText(String(p.nome).split(" ")[0])}</b><small>${p.vitorias} vitória${p.vitorias === 1 ? "" : "s"}</small>` : '<span class="snc-liga-foto vago"><i>?</i></span><b>Vago</b>'}</div>
+<div class="snc-liga-bloco"><em>${pos}º</em>${z ? `<span>${z.moedas} 🪙</span><small>+${z.xp} XP${z.trofeu ? " · 🏆" : ""}</small>` : ""}</div></div>`; };
+  const giz = rk.filter((p) => p.posicao > 3).map((p) => `<li class="${p.eu ? "eu" : ""}"><em>${p.posicao}º</em><b>${safeText(String(p.nome).split(" ")[0])}</b><span>${"|".repeat(Math.min(p.vitorias, 12))}${p.vitorias > 12 ? ` ${p.vitorias}` : ""}</span></li>`).join("");
   const campeoes = t.anterior?.campeoes?.length ? `<p class="snc-liga-anterior"><small>CAMPEÕES DA ANTERIOR</small>${t.anterior.campeoes.map((c) => `<span class="p${c.posicao}">${c.posicao}º ${safeText(String(c.nome).split(" ")[0])}</span>`).join("")}</p>` : "";
-  return `<section class="snc-liga">
-<div class="snc-liga-topo"><div><small>TEMPORADA ${data(t.inicio)} – ${data(fim)}</small><p>Contam só vitórias contra colegas (até 3 contra a mesma pessoa por dia).</p></div>
-<div class="snc-liga-relogio"><small>TERMINA EM</small><b>${dias}<i>d</i> ${String(horas).padStart(2, "0")}<i>h</i></b></div></div>
-<div class="snc-liga-podio">${premio(pr[2])}${premio(pr[1])}${premio(pr[3])}</div>
-${linhas ? `<ol class="snc-liga-tabela">${linhas}</ol>` : '<p class="snc-liga-vazia">Ninguém venceu nesta temporada ainda. A primeira vitória contra um colega já põe você no topo.</p>'}
-${campeoes}</section>`;
+  return `<section class="snc-liga"><div class="snc-liga-topo"><div><small>TEMPORADA ${data(t.inicio)} – ${data(fim)}</small><p>Contam só vitórias contra colegas (até 3 contra a mesma pessoa por dia).</p></div><div class="snc-liga-relogio"><small>TERMINA EM</small><b>${dias}<i>d</i> ${String(horas).padStart(2, "0")}<i>h</i></b></div></div>
+<div class="snc-liga-podio2">${degrau(2)}${degrau(1)}${degrau(3)}</div>
+${giz ? `<ol class="snc-giz">${giz}</ol>` : rk.length ? "" : '<p class="snc-giz-vazio">Ninguém venceu nesta temporada ainda. A primeira vitória contra um colega já põe você no pódio.</p>'}${campeoes}</section>`;
 }
 
 // --- Seu bar (o salão, embaixo da equipe) -------------------------------------
@@ -240,4 +239,29 @@ function sinucaSeuBarHtml() {
   const proximas = f.trofeus.filter((t) => !t.tem && !t.zoeira).sort((a, b) => ordem[a.raridade] - ordem[b.raridade]).slice(0, 3);
   const tem = f.trofeus.filter((t) => t.tem && !t.zoeira).length, total = f.trofeus.filter((t) => !t.zoeira).length;
   return `<section class="snc-seubar so-proximas"><div class="snc-seubar-proximas"><small>PRÓXIMAS CONQUISTAS</small>${proximas.map((t) => `<button type="button" class="snc-feito falta ${safeText(t.raridade)}" onclick="sinucaLobbySecao('conquistas')"><i>🔒</i><div><b>${safeText(t.nome)}</b><span>${safeText(t.texto)}</span></div><small>${SINUCA_RARIDADE[t.raridade]}</small></button>`).join("") || '<p>Você tem todas. Respeito.</p>'}</div></section>`;
+}
+
+// --- Desafiar a equipe = seleção de lutador (Paulo, 08/11/2026: "por que
+// continuou igual?") ----------------------------------------------------------
+// Nada de grade de cartões: os jogadores são retratos em hexágono (a luz verde
+// é quem está no escritório) e, ao lado, a carta de jogador de quem está em
+// foco, grande, com DESAFIAR e VER FICHA. Passar o mouse ou tocar troca o foco.
+function sinucaEscolhaRivalHtml(pessoas) {
+  const x = escritorioXadrez(), fichas = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao?.fichas || {} : {};
+  if (!pessoas.length) return '<div class="snc-rivais vazio"><p>Ninguém mais na equipe por enquanto. Treine na Jornada dos bares.</p></div>';
+  const foco = pessoas.find((p) => String(p.id) === String(x.sinucaFoco)) || pessoas.find((p) => p.online) || pessoas[0];
+  const id = String(foco.id), f = fichas[id], u = escritorioCabecaUrl?.(foco.id);
+  const grade = pessoas.map((p) => { const pid = String(p.id), fi = fichas[pid], ur = escritorioCabecaUrl?.(p.id);
+    return `<button type="button" class="snc-rival${pid === id ? " foco" : ""}${p.online ? " online" : ""} ${safeText(fi?.titulo?.raridade || "comum")}" onmouseenter="sinucaRivalFoco('${safeText(pid)}')" onfocus="sinucaRivalFoco('${safeText(pid)}')" onclick="sinucaRivalFoco('${safeText(pid)}',true)"><span class="snc-rival-foto">${ur ? `<img src="${safeText(ur)}" alt="">` : `<i>${safeText(String(p.nome || "?")[0])}</i>`}</span><b>${safeText(xadrezPrimeiroNome(p))}</b>${fi?.nota != null ? `<em>${fi.nota}</em>` : ""}</button>`; }).join("");
+  const carta = typeof sinucaCartaJogadorHtml === "function" ? sinucaCartaJogadorHtml(foco.nome || xadrezPrimeiroNome(foco), f, u) : "";
+  return `<div class="snc-rivais"><div class="snc-rivais-grade" role="listbox" aria-label="Escolha quem chamar">${grade}</div>
+<div class="snc-rivais-foco">${carta}<p class="snc-rivais-status">${foco.online ? '<i class="on"></i>No escritório agora' : '<i></i>Recebe o convite no sino'}</p>
+<div class="snc-rivais-acoes"><button type="button" class="snc-btn snc-rivais-desafiar" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(id)}')">DESAFIAR ${safeText(xadrezPrimeiroNome(foco).toUpperCase())} ▸</button><button type="button" class="snc-btn secundario" onclick="sinucaFichaDoSalao('${safeText(id)}')">VER FICHA</button></div></div></div>`;
+}
+function sinucaRivalFoco(id, clique) {
+  const x = escritorioXadrez();
+  if (String(x.sinucaFoco) === String(id) && !clique) return;
+  x.sinucaFoco = String(id);
+  const alvo = document.querySelector(".snc-hub .snc-rivais");
+  if (alvo) { alvo.outerHTML = sinucaEscolhaRivalHtml(mesaPessoasParaChamar()); sinucaTacosVitrine?.(document.querySelector(".snc-hub") || document); document.querySelector(`.snc-rival[onclick*="'${id}'"]`)?.focus({ preventScroll: true }); }
 }

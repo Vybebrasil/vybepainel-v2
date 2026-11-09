@@ -27271,3 +27271,162 @@ body .snc-perfil .snc-perfil-caixa.snc-cf{display:grid!important;grid-template-c
 .snc-sel-valor>.snc-sel-opcao{display:none}
 .snc-sel-valor{width:100%}.snc-sel-valor .snc-sel-ficha.vale{width:100%;box-sizing:border-box}
 @media(max-width:760px){.snc-cf-parede ul{gap:2px;padding-left:6px;padding-right:6px}.snc-cf-parede li{width:52px}.snc-cf-parede li b{font-size:9px}}
+/* ==========================================================================
+   SALÃO INTEIRO COMO JOGO (Paulo, 08/11/2026: "não só a aba desafiar equipe,
+   mas o lobby e todas as outras abas também").
+   ========================================================================== */
+/* Barra de cima: moedas como no jogo. */
+#workflow-modal .snc-hub .snc-topo-moedas{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 16px 6px 8px;clip-path:var(--bv-corte-g);background:linear-gradient(180deg,#3a2a0a,#140e03);box-shadow:inset 0 0 0 2px #ffc24a66}
+#workflow-modal .snc-hub .snc-topo-moedas i{font-style:normal;font-size:20px}
+#workflow-modal .snc-hub .snc-topo-moedas b{font:900 italic 20px var(--bv-ui);color:var(--bv-ouro)}
+/* Coluna do menu: a sua carta pequena e o menu em texto grande, sem caixas. */
+.snc-heroi-carta{display:block;width:100%;margin:0 0 10px;padding:0;border:0;background:none;cursor:pointer;transition:transform .15s}
+.snc-heroi-carta:hover{transform:scale(1.02)}
+.snc-heroi-carta .snc-cf-carta{width:100%;padding:16px 14px 14px!important;gap:6px!important;box-sizing:border-box}
+.snc-heroi-carta .snc-cf-foto{width:96px!important;height:96px!important;margin:0 0 0 58px!important}
+.snc-heroi-carta .snc-cf-nome{font-size:28px!important}
+.snc-heroi-carta .snc-cf-topo{left:16px;top:18px}.snc-heroi-carta .snc-cf-topo b{font-size:38px!important}.snc-heroi-carta .snc-cf-topo em{font-size:18px}
+.snc-heroi-carta .snc-cf-titulo span{display:none}
+.snc-heroi-carta .snc-cf-atributos{display:none}
+.snc-heroi-carta .snc-cf-rodape{margin-top:2px}
+#workflow-modal .snc-hub .snc-opcao{display:flex!important;align-items:center;gap:12px;padding:8px 6px!important;background:none!important;clip-path:none!important;box-shadow:none!important;transform:none!important;color:#ffffffb3}
+#workflow-modal .snc-hub .snc-opcao svg{width:22px;height:22px;color:#ffffff80}
+#workflow-modal .snc-hub .snc-opcao b{font:900 italic 24px/1 var(--bv-ui)!important;letter-spacing:0;text-shadow:0 3px 0 #0008}
+#workflow-modal .snc-hub .snc-opcao small{display:none!important}
+#workflow-modal .snc-hub .snc-opcao:hover{color:#fff}
+#workflow-modal .snc-hub .snc-opcao:hover b{transform:translateX(6px)}
+#workflow-modal .snc-hub .snc-opcao b{transition:transform .15s}
+#workflow-modal .snc-hub .snc-opcao[aria-pressed="true"]{color:#fff}
+#workflow-modal .snc-hub .snc-opcao[aria-pressed="true"] svg{color:var(--bv-laranja)}
+#workflow-modal .snc-hub .snc-opcao[aria-pressed="true"] b{color:#fff;transform:translateX(10px);text-shadow:4px 3px 0 var(--bv-laranja3),0 0 26px #ff8a3d99}
+#workflow-modal .snc-hub .snc-opcao[aria-pressed="true"]::before{content:"";width:0;height:0;border:8px solid transparent;border-left:12px solid var(--bv-laranja);margin-left:-6px}
+/* Desafiar a equipe: seleção de lutador */
+.snc-rivais{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:24px;align-items:start}
+.snc-rivais-grade{display:flex;flex-wrap:wrap;gap:6px 4px;align-content:flex-start}
+.snc-rival{--c:#c9d0db;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:118px;padding:0;border:0;background:none;color:#fff;cursor:pointer}
+.snc-rival:nth-child(even){margin-top:46px}
+.snc-rival.raro{--c:var(--snc-raro)}.snc-rival.epico{--c:var(--snc-epico)}.snc-rival.lendario{--c:var(--bv-ouro)}
+.snc-rival-foto{display:grid;place-items:center;width:104px;height:104px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:radial-gradient(circle at 35% 30%,#ffffff40,transparent 60%),color-mix(in srgb,var(--c) 40%,#151821);transition:transform .15s,filter .15s;filter:saturate(.6) brightness(.8)}
+.snc-rival-foto img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.snc-rival-foto i{font:900 italic 46px/1 var(--bv-ui);font-style:italic}
+.snc-rival b{font:900 italic 15px var(--bv-ui);text-transform:uppercase;text-shadow:0 2px 0 #000}
+.snc-rival em{position:absolute;top:2px;right:6px;padding:1px 6px;clip-path:var(--bv-corte);background:var(--c);color:#0b0d10;font:900 italic 12px var(--bv-ui);font-style:italic}
+.snc-rival.epico em{color:#fff}
+.snc-rival.online .snc-rival-foto::after{content:""}
+.snc-rival.online b::before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:50%;background:#5fdc8a;box-shadow:0 0 8px #5fdc8a;vertical-align:middle}
+.snc-rival:hover .snc-rival-foto,.snc-rival.foco .snc-rival-foto{filter:none;transform:scale(1.08)}
+.snc-rival.foco .snc-rival-foto{background:radial-gradient(circle at 35% 30%,#ffffff55,transparent 60%),var(--bv-giz);box-shadow:none}
+.snc-rival.foco b{color:var(--bv-giz2)}
+.snc-rivais-foco{display:flex;flex-direction:column;gap:10px;position:sticky;top:0}
+.snc-rivais-foco .snc-cf-carta{width:100%;box-sizing:border-box}
+.snc-rivais-foco .snc-cf-foto{width:130px!important;height:130px!important;margin-left:50px!important}
+.snc-rivais-status{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font:800 12px var(--bv-ui);color:#ffffffcc}
+.snc-rivais-status i{width:9px;height:9px;border-radius:50%;background:#ffffff40}.snc-rivais-status i.on{background:#5fdc8a;box-shadow:0 0 8px #5fdc8a}
+.snc-rivais-acoes{display:flex;flex-direction:column;gap:6px}
+.snc-rivais-acoes .snc-btn{border-radius:0!important;clip-path:var(--bv-corte-g);padding:13px 16px!important;font:900 italic 17px var(--bv-ui)!important}
+/* Conquistas: a estante na aba */
+.snc-estante-aba{display:flex;flex-direction:column;gap:16px}
+.snc-cf-mural li.vazio{background:#f4f1e6;opacity:.55}
+/* Temporada: pódio com os líderes */
+.snc-liga-podio2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:6px;margin-top:10px}
+.snc-liga-degrau{display:flex;flex-direction:column;align-items:center}
+.snc-liga-quem{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:8px}
+.snc-liga-foto{display:grid;place-items:center;width:86px;height:86px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:radial-gradient(circle at 35% 30%,#ffffff40,transparent 60%),#3a3f4c;overflow:hidden}
+.snc-liga-degrau.p1 .snc-liga-foto{width:110px;height:110px;background:radial-gradient(circle at 35% 30%,#ffffff70,transparent 60%),var(--bv-ouro)}
+.snc-liga-degrau.p3 .snc-liga-foto{background:radial-gradient(circle at 35% 30%,#ffffff55,transparent 60%),#c07a3e}
+.snc-liga-foto img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.snc-liga-foto i{font:900 italic 40px/1 var(--bv-ui);font-style:italic;color:#fff}
+.snc-liga-foto.vago{opacity:.4}
+.snc-liga-quem b{font:900 italic 18px var(--bv-ui);text-transform:uppercase;color:#fff}
+.snc-liga-quem small{font-size:11px;color:#ffffffaa}
+.snc-liga-degrau.eu .snc-liga-quem b{color:var(--bv-laranja2)}
+.snc-liga-bloco{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:100px;background:linear-gradient(180deg,#3d4351,#1a1d25);box-shadow:inset 0 3px 0 #ffffff33}
+.snc-liga-degrau.p1 .snc-liga-bloco{height:150px;background:linear-gradient(180deg,#e8b23c,#7a4e08);box-shadow:inset 0 3px 0 #fff4,0 0 40px #ffc24a44}
+.snc-liga-degrau.p3 .snc-liga-bloco{height:76px;background:linear-gradient(180deg,#b97035,#4a2610)}
+.snc-liga-bloco em{font:900 italic 38px/1 var(--bv-ui);font-style:italic;color:#fff;text-shadow:0 3px 0 #0006}
+.snc-liga-bloco span{font:900 italic 16px var(--bv-ui);color:#fff}
+.snc-liga-bloco small{font-size:10px;color:#ffffffcc}
+/* Quadro de giz (o resto do ranking e da temporada) */
+.snc-giz{list-style:none;margin:6px 0 0!important;padding:16px 22px!important;display:flex!important;flex-direction:column;gap:6px;background:radial-gradient(ellipse at 30% 20%,#ffffff12,transparent 60%),#1e2b22!important;box-shadow:inset 0 0 0 8px #5a3a1f,inset 0 0 0 10px #3a2412,0 10px 24px #000a!important;border:0!important;border-radius:0!important}
+.snc-giz li{display:grid!important;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:0!important;background:none!important;box-shadow:none!important;clip-path:none!important;border:0!important;color:#eef2ea;font:700 italic 18px "Comic Sans MS","Segoe Print",var(--bv-ui);text-shadow:0 0 1px #fff,0 0 6px #ffffff55}
+.snc-giz li>button{display:contents!important}
+.snc-giz li em,.snc-giz li b,.snc-giz li span,.snc-giz li small{font:inherit!important;color:inherit!important;letter-spacing:1px}
+.snc-giz li span{letter-spacing:3px}
+.snc-giz li.eu{color:#ffd9a8}
+.snc-giz li canvas,.snc-giz li img,.snc-giz li .snc-inicial{display:none!important}
+.snc-giz-vazio{margin:0;padding:16px;background:#1e2b22;box-shadow:inset 0 0 0 8px #5a3a1f;color:#eef2ea;font:700 italic 15px "Comic Sans MS","Segoe Print",var(--bv-ui)}
+@media(max-width:760px){.snc-rivais{grid-template-columns:1fr}.snc-rival{width:88px}.snc-rival-foto{width:78px;height:78px}.snc-rival:nth-child(even){margin-top:0}.snc-heroi-carta{display:none}#workflow-modal .snc-hub .snc-opcao b{font-size:9px!important}}
+.snc-rivais-foco .snc-cf-foto{width:104px!important;height:104px!important;margin-left:56px!important}
+.snc-rivais-foco .snc-cf-titulo span{display:none}
+.snc-rivais-acoes{flex-direction:row!important}.snc-rivais-acoes .snc-rivais-desafiar{flex:2}.snc-rivais-acoes .snc-btn.secundario{flex:1}
+button.snc-liga-quem{border:0;background:none;color:inherit;cursor:pointer;padding:0}
+button.snc-liga-quem:hover .snc-liga-foto{transform:scale(1.06)}
+.snc-liga-quem em{padding:1px 8px;clip-path:var(--bv-corte);background:#c9d0db;color:#0b0d10;font:900 italic 10px var(--bv-ui);font-style:italic;text-transform:uppercase}
+.snc-liga-quem em.raro{background:var(--snc-raro)}.snc-liga-quem em.epico{background:var(--snc-epico);color:#fff}.snc-liga-quem em.lendario{background:linear-gradient(90deg,#ffd46b,#ff9d1c)}
+.snc-liga-bloco canvas{width:80%;height:14px;margin-top:4px}
+.snc-liga-podio2.ranking .snc-liga-bloco span{font:900 italic 13px var(--bv-ui)}
+/* ==========================================================================
+   CARTA DE JOGADOR, REFINADA (Paulo, 08/11/2026: "tá feio e mal feito").
+   Metal da raridade com textura fina e moldura dupla; coluna da nota; retrato
+   grande (monograma gravado quando não há foto); faixa do nome; atributos em
+   duas colunas com divisória; rodapé com a campanha.
+   ========================================================================== */
+.snc-cf-carta.snc-carta{--m1:#f4f6f9;--m2:#b4bcc6;--m3:#5f6873;--tx:#14171b;--linha:#00000040;position:relative;display:block!important;padding:9px!important;gap:0!important;color:var(--tx);clip-path:polygon(14% 0,86% 0,100% 6%,100% 90%,50% 100%,0 90%,0 6%);background:repeating-linear-gradient(135deg,#ffffff14 0 1px,transparent 1px 5px),radial-gradient(ellipse at 30% 0,#ffffffb3,transparent 55%),linear-gradient(165deg,var(--m1),var(--m2) 48%,var(--m3))!important;box-shadow:none!important;filter:drop-shadow(0 24px 40px #000d);overflow:hidden;animation:sncCartaEntra .6s cubic-bezier(.2,1.3,.4,1) both}
+.snc-carta.raro{--m1:#c6e7ff;--m2:#3d93e6;--m3:#0f3a74;--tx:#fff;--linha:#ffffff40}
+.snc-carta.epico{--m1:#efd8ff;--m2:#9b4fe3;--m3:#33106a;--tx:#fff;--linha:#ffffff40}
+.snc-carta.lendario{--m1:#fff6cf;--m2:#f0b232;--m3:#6e4205;--tx:#241600;--linha:#3a250060}
+.snc-carta-brilho{position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 44%,#ffffffb0 50%,transparent 56%);animation:sncCartaBrilho 3.4s .8s ease-in-out infinite;pointer-events:none;z-index:3}
+.snc-carta-moldura{position:relative;z-index:1;display:flex;flex-direction:column;align-items:stretch;padding:14px 16px 26px;clip-path:polygon(13% 0,87% 0,100% 6%,100% 90%,50% 100%,0 90%,0 6%);box-shadow:inset 0 0 0 2px var(--linha);background:linear-gradient(180deg,#ffffff1f,transparent 40%)}
+.snc-carta-topo{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:end;height:168px}
+.snc-carta-nota{align-self:start;display:flex;flex-direction:column;align-items:center;line-height:1;padding-top:6px}
+.snc-carta-nota b{font:900 italic 50px/.9 var(--bv-ui)}
+.snc-carta-nota small{font:800 8px var(--bv-ui);letter-spacing:1.6px;opacity:.75;margin-top:2px}
+.snc-carta-nota span{margin-top:10px;font:900 italic 22px/1 var(--bv-ui)}
+.snc-carta-raridade{margin-top:12px;padding:2px 6px;border:1px solid var(--linha);font:900 8px var(--bv-ui);font-style:normal;letter-spacing:1.4px}
+.snc-carta-retrato{position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.snc-carta-retrato img{height:100%;max-width:100%;object-fit:contain;object-position:bottom;image-rendering:pixelated;filter:drop-shadow(0 8px 10px #0006)}
+.snc-carta-retrato i{font:900 italic 190px/.8 var(--bv-ui);font-style:italic;color:transparent;-webkit-text-stroke:2px var(--linha);background:linear-gradient(180deg,#ffffff66,#ffffff00);-webkit-background-clip:text;background-clip:text;transform:translate(6px,14px)}
+.snc-carta-faixa{margin:4px -16px 0;padding:5px 10px 6px;text-align:center;background:linear-gradient(90deg,transparent,#000000a6 14%,#000000a6 86%,transparent)}
+.snc-carta-faixa h2{margin:0!important;font:900 italic 32px/1 var(--bv-ui)!important;letter-spacing:1px;text-transform:uppercase;color:#fff!important;text-shadow:0 2px 0 #0008;border:0!important;padding:0!important;width:auto!important}
+.snc-carta-titulo{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:7px;text-align:center}
+.snc-carta-titulo b{font:900 italic 14px var(--bv-ui);text-transform:uppercase;letter-spacing:.6px}
+.snc-carta-titulo span{font:600 10.5px/1.25 var(--bv-ui);opacity:.82;max-width:230px}
+.snc-carta-atributos{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 14px;margin:9px 6px 0;padding-top:8px;border-top:1px solid var(--linha)}
+.snc-carta-atributos>i{background:var(--linha)}
+.snc-carta-atributos ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.snc-carta-atributos li{display:flex;align-items:baseline;gap:7px}
+.snc-carta-atributos b{min-width:30px;text-align:right;font:900 italic 21px/1 var(--bv-ui)}
+.snc-carta-atributos small{font:800 11px var(--bv-ui);letter-spacing:1px;opacity:.85}
+.snc-carta-rodape{display:flex;justify-content:center;gap:12px;margin-top:9px;font:800 8.5px var(--bv-ui);letter-spacing:1px;opacity:.85}
+.snc-carta-rodape b{font:900 italic 14px var(--bv-ui);margin-right:2px}
+.snc-carta.lendario{filter:drop-shadow(0 24px 40px #000d) drop-shadow(0 0 18px #ffc24a55)}
+/* Tamanhos: no menu do salão (pequena, sem os atributos) e no foco do rival. */
+.snc-heroi-carta .snc-carta .snc-carta-topo{height:110px;grid-template-columns:52px minmax(0,1fr)}
+.snc-heroi-carta .snc-carta .snc-carta-nota b{font-size:38px}.snc-heroi-carta .snc-carta .snc-carta-nota span{font-size:17px;margin-top:6px}.snc-heroi-carta .snc-carta-raridade{display:none}
+.snc-heroi-carta .snc-carta .snc-carta-retrato i{font-size:120px}
+.snc-heroi-carta .snc-carta .snc-carta-faixa h2{font-size:24px!important}
+.snc-heroi-carta .snc-carta .snc-carta-titulo span,.snc-heroi-carta .snc-carta .snc-carta-atributos{display:none}
+.snc-heroi-carta .snc-carta .snc-carta-moldura{padding-bottom:20px}
+.snc-rivais-foco .snc-carta .snc-carta-topo{height:140px}
+.snc-rivais-foco .snc-carta .snc-carta-retrato i{font-size:150px}
+.snc-perfil .snc-cf .snc-carta .snc-carta-topo{height:200px}
+.snc-perfil .snc-cf .snc-carta .snc-carta-retrato i{font-size:220px}
+.snc-perfil .snc-cf .snc-carta .snc-carta-faixa h2{font-size:38px!important}
+/* Jornada por dentro (Paulo: "não adianta mudar o externo dos menus e não mudar os internos"):
+   recompensa em moeda e estrela, carimbo de DERRUBADO, cadeado com corrente no bar fechado. */
+#workflow-modal .snc-hub .snc-recompensa{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+#workflow-modal .snc-hub .snc-recompensa>span{padding:3px 10px;clip-path:var(--bv-corte);font:900 italic 14px var(--bv-ui)}
+#workflow-modal .snc-hub .snc-recompensa .moeda{background:linear-gradient(180deg,#3a2a0a,#140e03);color:var(--bv-ouro);box-shadow:inset 0 0 0 1px #ffc24a77}
+#workflow-modal .snc-hub .snc-recompensa .xp{background:#0f2a3d;color:var(--bv-giz2);box-shadow:inset 0 0 0 1px #3fb8ff66}
+#workflow-modal .snc-hub .snc-recompensa .vitorias{background:#123321;color:#8ff0a8;box-shadow:inset 0 0 0 1px #5fdc8a66}
+#workflow-modal .snc-hub .snc-recompensa .treino{background:#ffffff14;color:#ffffffaa}
+#workflow-modal .snc-hub .snc-bar .snc-btn{border-radius:0!important;clip-path:var(--bv-corte-g);font:900 italic 18px var(--bv-ui)!important;letter-spacing:1px}
+#workflow-modal .snc-hub .snc-bar-dados p{font-size:12px}
+.snc-bar-carimbo{position:absolute;z-index:4;top:30%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);padding:6px 16px;border:4px solid #5fdc8a;border-radius:6px;color:#5fdc8a;font:900 italic 28px/1 var(--bv-ui);font-style:italic;letter-spacing:2px;text-shadow:0 0 12px #000;box-shadow:inset 0 0 0 2px #5fdc8a55,0 0 20px #0008;background:#00000055;mix-blend-mode:normal;pointer-events:none;animation:sncCarimbo .4s .5s cubic-bezier(.2,1.8,.4,1) both}
+#workflow-modal .snc-hub .snc-bar-selo{display:none}
+@keyframes sncCarimbo{from{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(2.2)}to{opacity:1;transform:translate(-50%,-50%) rotate(-14deg)}}
+#workflow-modal .snc-hub .snc-bar.fechado::before{content:"";position:absolute;inset:0;z-index:3;background:repeating-linear-gradient(45deg,transparent 0 22px,#00000055 22px 26px);pointer-events:none}
+#workflow-modal .snc-hub .snc-bar-tranca{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;font:900 italic 13px var(--bv-ui);text-transform:uppercase;color:#fff;text-align:center}
+#workflow-modal .snc-hub .snc-bar-tranca i{font-style:normal;font-size:36px;filter:drop-shadow(0 4px 6px #000)}
+.snc-giz li>button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.snc-bar-carimbo{top:15%!important;left:auto!important;right:-6px;font-size:20px!important;transform:rotate(12deg)!important;animation:none!important}
