@@ -7,22 +7,19 @@ const ler = (f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 const js = ler('vybe-mundo.js'), css = ler('vybe-mundo.css');
 const trecho = js.slice(js.indexOf('  function pintarChamada()'), js.indexOf("  barra.addEventListener?.('click'"));
 
-test('barra das salas: controles com nome, ícones desenhados e nenhuma peça antiga', () => {
-  for (const [id, nome] of [['camera', "'Câmera'"], ['tela', "'Tela'"], ['musica', "'Música'"], ['tv', "'TV'"], ['ajustes', "'Áudio'"]]) {
-    assert.match(trecho, new RegExp(`botao\\('${id}', [^\\n]*${nome.replace(/[()]/g, '\\$&')}`), id);
-  }
+test('barra das salas: só as salas; os controles da chamada no dock (Ouvir, Câmera, Tela, Áudio, TV); nenhuma peça antiga', () => {
+  for (const acao of ['ouvir', 'camera', 'tela', 'audio', 'tv']) assert.ok(js.includes(`acao: '${acao}'`), acao + ' no dock');
+  for (const peca of ["botao('camera'", "botao('tela'", "botao('ajustes'", 'vz-controles', 'vz-chip']) assert.ok(!trecho.includes(peca), peca + ' saiu do painel');
   assert.doesNotMatch(trecho, /[⏮⏭⏸▶🔇🔈♪]/u, 'música sem emoji');
   assert.doesNotMatch(trecho, /class="vv-botao|vv-chamar|vv-voz-sala|vv-voz-pessoa|class="vv-musica/, 'nada da barra antiga');
-  assert.match(trecho, /class="vz-sair" data-chamada="sair"/);
-  assert.ok(trecho.includes(`class="vz-mic \${mic ? 'on' : 'mudo'}" data-chamada="mic"`), 'microfone grande na chamada');
-  assert.ok(trecho.includes("'Você está mudo'") && trecho.includes("'Ninguém te ouve. Toque para falar.'"), 'mudo escrito');
+  // o que está no dock fixo não se repete no painel (Paulo, 09/11/2026: "pensa se faz sentido os botões")
+  for (const peca of ['class="vz-sair"', 'class="vz-mic ', 'class="vz-entrar"', "botao('musica'", '${musicaHtml(e, temSom)}']) assert.ok(!trecho.includes(peca), `${peca}: microfone, Entrar, Sair e Música ficam só no dock`);
   assert.match(js, /pausada: 'Entrar na chamada', fora: 'Entrar na chamada'/, 'topo laranja diz onde entra');
   assert.match(js, /mr\.textContent = mic \? 'Ligado' : 'Mudo';/, 'microfone do topo com nome');
-  assert.match(trecho, /class="vz-entrar" data-chamada="entrar-voz"/, 'Entrar na chamada grande fora dela');
 });
 
-test('quem está online: salas com gente primeiro; vazias e "Chamar alguém" recolhidos e lembrados entre redesenhos', () => {
-  assert.match(trecho, /<details class="vz-recolhe" data-k="vazias">/);
+test('quem está online: salas com gente primeiro, depois todas as vazias; Chamar alguém recolhido e lembrado entre redesenhos', () => {
+  assert.ok(trecho.includes('<div class="vz-rotulo">Vazias agora · '), 'as vazias aparecem abertas (Paulo: mostra as salas, toda)');
   assert.match(trecho, /<details class="vz-recolhe" data-k="chamar"><summary>Chamar alguém/);
   assert.match(trecho, /details\[open\]\[data-k\]/);
   assert.match(trecho, /setAttribute\('open', ''\)/);

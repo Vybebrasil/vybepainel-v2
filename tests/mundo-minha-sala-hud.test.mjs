@@ -24,7 +24,7 @@ test('dock fixo: microfone com o estado escrito, Minha sala e Sala atual (ver a 
   const h = dock({ zona: 'sala-2', online: [{ id: '1', nome: 'Paulo M', zona: 'sala-2' }, { id: '3', nome: 'Bia Souza', zona: 'sala-2' }, { id: '2', nome: 'Vinícius L', zona: 'recepcao' }],
     outros: [{ customParticipantId: '3:x', audioEnabled: false }] });
   const ordem = [...h.matchAll(/data-dock="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.equal(ordem.join(','), 'mic,ver-minha,ver-atual,salas,chat,musica,sair');
+  assert.equal(ordem.join(','), 'mic,ouvir,camera,tela,audio,ver-minha,ver-atual,salas,chat,musica,tv,sair');
   assert.ok(h.includes('<span class="vq-rotulo">Mudo</span>'), 'mudo escrito');
   assert.ok(h.includes('<span class="vq-rotulo">Sala atual</span>'));
   assert.equal([...h.matchAll(/data-vq-sala="([^"]+)"/g)].map((m) => m[1]).join(','), 'sala-2,recepcao', 'salas com gente, da que tem mais');
@@ -64,4 +64,10 @@ test('CSS: Hoje e Agenda dos lados na sala, dock fixo pequeno, nada por cima do 
   assert.ok(css.includes('.vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:38px;height:38px;'), 'dock menor');
   assert.ok(js.includes('hDock = faixaDock.hidden ? 0 : alto(faixaDock.firstElementChild)'), 'a Agenda termina acima do dock');
   assert.ok(css.includes('@media (prefers-reduced-motion:reduce){.vq-dock .vq-item{transition:none}'));
+});
+
+test('Música do dock: abre o player da sala (também dentro da sala e dos módulos), ou a janela de pôr um link com a fila vazia', () => {
+  assert.ok(js.includes("if (body.classList.contains('musica-aberta')) abrirMusica(false); else if (pl && !pl.hidden) abrirMusica(true); else fn('abrirMusicaEscritorio')?.();"));
+  assert.ok(css.includes('html body.mundo.musica-aberta #office-musica.vv-musica-janela{visibility:visible!important;pointer-events:auto!important}'), 'antes ficava escondido na sala e nos módulos');
+  assert.ok(css.includes('#office-musica.vv-musica-janela:not(.movida){top:auto!important;bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important'), 'em cima do dock');
 });
