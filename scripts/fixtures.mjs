@@ -39,6 +39,11 @@ const CLIENTES_DEMO=['Academia Lions','Alpha1','Antonov','Brussolo Ristorante','
       :i%3===0?{cidade:'Irecê',uf:'BA',instagram:'@cliente'+i}:{}}));
 const ACESSOS_DEMO=[{id:'a1',nome:'Dados & Acessos - Academia Lions',cliente_id:1,cliente:'Academia Lions',grupo:'',drive:'https://drive.google.com/drive/folders/demo-lions',link:'',manus:false,documento:true,atualizado_em:new Date().toISOString()}];
 function clientesDemo(req,res,url,body,reply){
+  const regs=url.searchParams.get('registros');
+  if(regs)return reply(200,{ok:true,registros:regs==='1'?[{id:1,tipo:'regra_de_marca',titulo:'Sem fundo preto nas peças',status:'aprovado',resumo:'A cliente pediu fundos claros em todas as artes de novembro.',
+    decisoes:'Nunca usar fundo preto. Laranja só em destaque.',proximos:'Danilo ajusta os modelos até sexta.',conteudo:null,origem:'Claude.ai · gestao',drive_id:'demo',drive_erro:null,criado_em:new Date().toISOString()},
+    {id:2,tipo:'conteudo',titulo:'Legenda do post de promoção',status:'enviado_ao_cliente',resumo:'Legenda aprovada pelo chat e enviada para aprovação.',decisoes:null,proximos:null,
+    conteudo:'Bora treinar? 💪 Matrícula com 20% em novembro.',origem:'Claude.ai · segunda',drive_id:null,drive_erro:'Drive 503',criado_em:new Date(Date.now()-864e5).toISOString()}]:[]});
   const eco=url.searchParams.get('ecossistema');
   if(eco){const c=CLIENTES_DEMO.find(x=>String(x.id)===eco);if(!c)return reply(404,{error:'Cliente não encontrado.'});
     const a=ACESSOS_DEMO.find(x=>x.cliente_id===c.id)||null;
