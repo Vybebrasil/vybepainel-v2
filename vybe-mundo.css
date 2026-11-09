@@ -5117,3 +5117,26 @@ html body .cg .cg-grupo input[type=checkbox]:not(:checked):not(#vv-a):not(#vv-b)
 .cg-grupo:has(input:not(:checked)) span{opacity:.5;text-decoration:line-through}
 .cg-faixa span{color:rgba(237,232,224,.75)!important}
 html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){accent-color:var(--vv-laranja,#F26B1D);background:transparent!important;border:0!important;height:18px;padding:0!important}
+/* ---------- Hoje: layout de prioridade (Paulo, 08/11/2026) ----------
+   Topo: saudação e faixa de dias. Centro: Atrasadas | Para hoje | Próximos dias. Direita: VYBES, avisos, compromissos,
+   pergunta e atalhos. No Centro (mundo à vista) e no celular, tudo numa coluna. */
+#vv-hoje .vv-hoje-dias{display:flex;align-items:stretch;gap:8px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+#vv-hoje .vv-hoje-dias::-webkit-scrollbar{display:none}
+#vv-hoje .vv-hoje-dias .vv-dia{flex:0 0 auto;min-width:64px;display:grid;justify-items:center;gap:2px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:border-color .15s,transform .08s}
+#vv-hoje .vv-hoje-dias .vv-dia:hover{border-color:var(--vv-laranja,#F26B1D)}
+#vv-hoje .vv-hoje-dias .vv-dia.ativo{background:var(--vv-laranja,#F26B1D);border-color:var(--vv-laranja,#F26B1D);color:#fff}
+#vv-hoje .vv-hoje-dias .vv-dia.ativo :is(small,b,span){color:#fff!important}
+#vv-hoje .vv-hoje-dias .vv-dia small{font:600 11px var(--vv-texto);color:#8A847A}
+#vv-hoje .vv-hoje-dias .vv-dia b{font:750 18px/1 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+#vv-hoje .vv-hoje-dias .vv-dia span{font:650 11px var(--vv-texto);color:#6B665E}
+#vv-hoje .vv-hoje-dias .vv-ver-todas{margin:0 0 0 auto;flex:0 0 auto;width:auto;align-self:center;white-space:nowrap}
+#vv-hoje .vv-hoje-grade{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+#vv-hoje .vv-hoje-principal{min-width:0}
+#vv-hoje .vv-hoje-lado{display:grid;gap:12px;position:sticky;top:0}
+#vv-hoje .vv-hoje-lado .vv-fala{margin:0}
+#vv-hoje .vv-blocos.vv-blocos-prio{display:grid!important;columns:auto!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#vv-hoje .vv-blocos.vv-blocos-prio > .vv-bloco{margin:0!important}
+@media (max-width:1250px){#vv-hoje .vv-hoje-grade{grid-template-columns:minmax(0,1fr)}#vv-hoje .vv-hoje-lado{position:static}}
+@media (max-width:900px){#vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}}
+body.mundo.mundo-centro #vv-hoje .vv-hoje-grade{grid-template-columns:1fr}
+body.mundo.mundo-centro #vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}

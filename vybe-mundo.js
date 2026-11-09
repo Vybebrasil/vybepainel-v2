@@ -879,24 +879,33 @@
         ${lista.length ? lista.slice(0, MAX).map(item).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="todas">+ ${lista.length - MAX} em ${rot.toLowerCase()}</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
       return bloco('Atrasadas', 'var(--sit-atrasada, #D2453B)', atrasadasP, 'Nada atrasado.', 'atrasadas')
         + bloco('Para hoje', 'var(--vv-laranja, #F26B1D)', deHojeP, 'Nada vence hoje.', 'hoje')
-        + bloco('Depois de hoje', 'var(--sit-fazer, #8A847A)', depoisP, 'Nada depois de hoje.', 'depois')
-        + `<button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="todas">Ver todas por status (${abertas.length})</button>`;
+        + bloco('Próximos dias', 'var(--sit-fazer, #8A847A)', depoisP, 'Nada nos próximos dias.', 'depois');
     }
-    const html = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
-        <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
-      <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
-      ${compromissosHtml()}
-      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
-      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
-      <div class="vv-blocos">${!diaEscolhido && !hojeVerTodas ? blocosDePrioridade() : `${hojeVerTodas && !diaEscolhido ? '<button type="button" class="vv-mais vv-ver-prioridades" data-hoje-acao="prioridades">Voltar às prioridades do dia</button>' : ''}${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
+    // Layout do Hoje (Paulo, 08/11/2026: "datas em linha mais no topo, avisos e agendas num box à direita, prioridade
+    // a ATRASADOS, HOJE e PRÓXIMOS DIAS"): saudação e faixa de dias no topo; no meio as três colunas de prioridade (ou
+    // os grupos por status, com "Ver todas" ou um dia escolhido); à direita a fala do VYBES, avisos, compromissos,
+    // a pergunta e os atalhos.
+    const diaCurto = (iso, i) => (i === 0 ? 'Amanhã' : DIAS[new Date(iso + 'T12:00:00Z').getUTCDay()]);
+    const faixa = `<nav class="vv-hoje-dias" aria-label="Escolher o dia">
+      <button type="button" class="vv-dia hoje${!diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="" aria-pressed="${!diaEscolhido}"><small>Hoje</small><b>${Number(hoje.slice(8))}</b><span>${deHoje.length + atrasadas.length || '–'}</span></button>
+      ${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}" aria-pressed="${p.dia === diaEscolhido}"><small>${diaCurto(p.dia, i)}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}
+      <button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}">${hojeVerTodas ? 'Ver prioridades' : `Ver todas por status (${abertas.length})`}</button></nav>`;
+    const blocosHtml = !diaEscolhido && !hojeVerTodas ? `<div class="vv-blocos vv-blocos-prio">${blocosDePrioridade()}</div>`
+      : `<div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
-      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}`}<section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
-      <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
+      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}</div>`;
+    const lado = `<aside class="vv-hoje-lado" aria-label="Avisos, compromissos e atalhos">
+      <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
+      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
+      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
+      ${compromissosHtml()}
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
-      </section></div>`;
+    </aside>`;
+    const html = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+        <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
+      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function acaoDoHoje(acao, valor) {
