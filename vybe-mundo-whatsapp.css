@@ -124,9 +124,6 @@
   .vv-wa{top:calc(var(--vv-m,14px) + 56px);left:8px;right:8px;width:auto;height:calc(100dvh - var(--vv-m,14px) - 64px);border-radius:12px}
 }
 @media (prefers-reduced-motion:reduce){.vv-wa,.vv-wa-toast,.vv-wa-msg.piscar{animation:none}}
-/* Pessoa parada (html.vb-ocioso pausa toda animação para poupar o computador): a entrada parada no primeiro quadro deixava o
-   aviso invisível (opacidade 0) justo quando a mensagem chega. Aqui, sem animação: aparece direto. */
-html.vb-ocioso :is(.vv-wa,.vv-wa-toast,.vv-wa-msg.piscar){animation:none!important}
 
 /* modo escuro do Irecity: a janela vem invertida inteira; o laranja volta a ser laranja */
 html.tema-escuro body.mundo :is(.vv-wa-acao,.vv-wa-n,#vv-badge-whatsapp){filter:invert(1) hue-rotate(180deg)}
