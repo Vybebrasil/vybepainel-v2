@@ -2835,6 +2835,11 @@
   function irParaSala(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!zona) return;
+    // Vendo um quarto, trocar de sala leva a vista junto (Paulo, 09/11/2026: "cliquei pra ir pra sala do Vinícius, não era
+    // pra visualmente eu ir pra lá também?"). Abrir o quarto já entra na voz dele. Fora de um quarto continua só a voz;
+    // sala sem quarto em voxel (Reunião) ou o editor de decoração aberto também mantêm a vista.
+    const vendo = String(andarAbertoId || '').startsWith('quarto:') ? andarAbertoId.slice(7) : '';
+    if (vendo && vendo !== zona && quartoDaSala(zona) && !window.VybeDecorar?.aberto?.()) { abrirMinhaSala(zona); return; }
     moverParaSala(zona);
     if (e?.zona === zona) e.vozPausada = false;
     const geracaoVoz = e?.geracaoVoz || 0;
