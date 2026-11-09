@@ -68,6 +68,9 @@ const padrao = await transform(await readFile('vybe-padrao.css','utf8'), { loade
 const vybelandia = await asset(await readFile('assets/vybelandia.webp'), 'webp', 'vybelandia');
 // O mesmo para o ser do VYBES (cartão do VYBES na tela de módulos).
 const vybesSer = await asset(await readFile('assets/vybes-ser.webp'), 'webp', 'vybes-ser');
+// Sinuca com cara de boteco (vybe-sinuca.css): folha própria, depois do vybe-styles.css.
+const sinucaCss = await transform(comArtes(await readFile('vybe-sinuca.css','utf8')), { loader: 'css', minify: true });
+const sinucaCssPath = await asset(sinucaCss.code, 'css', 'sinuca');
 const mundoCss = await transform(await readFile('vybe-mundo.css','utf8'), { loader: 'css', minify: true });
 const mundoCssPath = await asset(mundoCss.code, 'css', 'mundo');
 // Folhas próprias das janelas do Irecity (vybe-mundo-*.css, ex.: vybe-mundo-conversa.css) ligadas no
@@ -84,7 +87,7 @@ const caminhos = new Map(await Promise.all(modulos.map(async (m) =>
 html = html.replace(SCRIPT, (_, sobDemanda, fonte) => sobDemanda
   ? `<script${sobDemanda} src="${caminhos.get(fonte)}"></script>`
   : `<script defer src="${caminhos.get(fonte)}"></script>`);
-html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath).replace('/vybe-mundo.css', mundoCssPath);
+html = html.replace('/vybe-styles.css', estilo).replace('/vybe-appearance.css', appearancePath).replace('/vybe-padrao.css', padraoPath).replace('/vybe-mundo.css', mundoCssPath).replace('/vybe-sinuca.css', sinucaCssPath);
 for (const [de, para] of folhasMundo) html = html.replace(de, para);
 const logo = await asset(await readFile('assets/vybe-branca.png'), 'png', 'vybe-branca');
 html = html.replaceAll('/assets/vybe-branca.png', logo);
