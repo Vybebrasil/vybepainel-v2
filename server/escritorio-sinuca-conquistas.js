@@ -99,7 +99,8 @@ export function fichaSinuca(id, partidas, posicao = null, { desde = null } = {})
  let vit = 0, der = 0, seq = 0, maior = 0, valendo = 0;     // depois de zerar
  const d = { vit: 0, der: 0, jogos: 0, maiorSeq: 0, maiorDerrotas: 0, valendo: 0, valendoPerdeu: 0, bots: { facil: 0, medio: 0, lendario: 0 }, botsZerado: { facil: 0, medio: 0, lendario: 0 }, posicao: null,
   carrasco: false, fregues: false, azarao: 0, zebrado: 0, gigante: 0, madrugada: 0, saida2: 0, saida3: 0, uma2: 0, uma3: 0, seq5: 0, seq7: 0, mesaLimpa: 0, virada: 0, deuPneu: 0, semFalta: 0, relampago: 0,
-  levouPneu: 0, praia: 0, asCedo: 0, saidaSuic: 0, suic3: 0, cego3: 0, caridoso: 0, desistiu: 0, dormiu: 0 };
+  levouPneu: 0, praia: 0, asCedo: 0, saidaSuic: 0, suic3: 0, cego3: 0, caridoso: 0, desistiu: 0, dormiu: 0,
+  tTot: 0, bTot: 0, fTot: 0, seqMax: 0, saidaMax: 0, nStats: 0 };
  let seqT = 0, derT = 0;
  const contra = new Map();     // sequência contra cada adversário: + ganhando, - perdendo
  for (const l of lista) {
@@ -114,6 +115,8 @@ export function fichaSinuca(id, partidas, posicao = null, { desde = null } = {})
   const st = l.stats?.[meu], so = l.stats?.[outroLado];
   // Números da mesa (valem contra bot também).
   if (st) {
+   d.tTot += st.t || 0; d.bTot += st.b || 0; d.fTot += st.faltas || 0; d.nStats++;
+   d.seqMax = Math.max(d.seqMax, st.maxSeq || 0); d.saidaMax = Math.max(d.saidaMax, st.saida || 0);
    if (st.saida >= 2 && st.saida < 3) d.saida2++; if (st.saida >= 3) d.saida3++;
    if (st.uma >= 2) d.uma2++; if (st.uma >= 3) d.uma3++;
    if (st.maxSeq >= 5) d.seq5++; if (st.maxSeq >= 7) d.seq7++;
@@ -174,6 +177,20 @@ export function fichaSinuca(id, partidas, posicao = null, { desde = null } = {})
  const zoeiras = trofeus.filter((t) => t.tem && t.zoeira).sort((x, y) => (PESO_ZOEIRA[y.chave] || 0) - (PESO_ZOEIRA[x.chave] || 0));
  const titulo = boas.length ? { chave: boas[0].chave, nome: TITULOS[boas[0].chave] || boas[0].nome, raridade: boas[0].raridade, texto: boas[0].texto, icone: boas[0].icone } : null;
  const apelido = zoeiras.length ? { chave: zoeiras[0].chave, nome: zoeiras[0].nome, icone: zoeiras[0].icone, texto: zoeiras[0].texto } : null;
- return { id, vitorias: vit, derrotas: der, jogos: vit + der, posicao: pos, sequencia: seq, maior_sequencia: maior, valendo, bots: d.bots, tacos, taco: tacos[tacos.length - 1], trofeus,
+ // ATRIBUTOS DA CARTA (Paulo, 08/11/2026: "quero tudo parecendo JOGO"): a ficha
+ // vira carta de jogador com nota geral e seis atributos de 30 a 99, tirados das
+ // partidas que têm os números da mesa (sem números, um meio-termo).
+ const lim = (v) => Math.max(30, Math.min(99, Math.round(v)));
+ const jogosTodos = d.vit + d.der;
+ const atributos = {
+  pre: d.tTot ? lim(30 + (d.bTot / d.tTot) * 120) : 50,
+  seq: d.nStats ? lim(35 + d.seqMax * 9) : 50,
+  sai: d.nStats ? lim(40 + d.saidaMax * 18) : 50,
+  lim: d.tTot ? lim(99 - (d.fTot / d.tTot) * 150) : 60,
+  vit: jogosTodos ? lim(30 + (100 * d.vit / jogosTodos) * 0.69) : 50,
+  exp: lim(30 + jogosTodos * 2.3),
+ };
+ const nota = Math.round(Object.values(atributos).reduce((a, b) => a + b, 0) / 6);
+ return { id, nota, atributos, vitorias: vit, derrotas: der, jogos: vit + der, posicao: pos, sequencia: seq, maior_sequencia: maior, valendo, bots: d.bots, tacos, taco: tacos[tacos.length - 1], trofeus,
   destaques: boas.slice(0, 3).map((t) => t.chave), titulo, apelido, historico: { vitorias: d.vit, derrotas: d.der }, zerada_em: desde };
 }

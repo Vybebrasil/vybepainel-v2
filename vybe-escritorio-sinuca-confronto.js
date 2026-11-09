@@ -209,3 +209,35 @@ function sinucaConquistasHtml() {
 <nav class="snc-feitos-filtro" aria-label="Filtrar conquistas">${filtroBtn("todas", "Todas")}${filtroBtn("tem", "Já tenho")}${filtroBtn("falta", "Faltam")}${filtroBtn("zoeira", "Zoeira")}</nav>
 <ul class="snc-feitos" data-filtro="${filtro}">${cartas}</ul>`;
 }
+
+// --- Temporada da sinuca como liga (pente fino, 08/11/2026) ---------------------
+// A lista genérica dos jogos (emoji e texto corrido) vira tela de liga: o tempo
+// que falta em destaque, os três prêmios num pódio e a tabela como placas.
+function sinucaTemporadaHtml(t) {
+  const data = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const fim = new Date(new Date(`${t.fim}T00:00:00-03:00`).getTime() - 86400000).toISOString().slice(0, 10);
+  const ms = Math.max(0, new Date(t.termina_em).getTime() - Date.now()), dias = Math.floor(ms / 86400000), horas = Math.floor((ms % 86400000) / 3600000);
+  const premio = (p) => p ? `<div class="snc-liga-premio p${p.posicao}"><em>${p.posicao}º</em><b>${p.moedas} 🪙</b><small>+${p.xp} XP${p.trofeu ? " · troféu" : ""}</small></div>` : "";
+  const pr = Object.fromEntries((t.premios || []).map((p) => [p.posicao, p]));
+  const linhas = (t.ranking || []).map((p) => `<li class="${p.eu ? "eu" : ""} p${p.posicao}"><em>${p.posicao}º</em><b>${safeText(String(p.nome).split(" ")[0])}${p.eu ? " <small>você</small>" : ""}</b><span>${p.vitorias}<i>V</i></span></li>`).join("");
+  const campeoes = t.anterior?.campeoes?.length ? `<p class="snc-liga-anterior"><small>CAMPEÕES DA ANTERIOR</small>${t.anterior.campeoes.map((c) => `<span class="p${c.posicao}">${c.posicao}º ${safeText(String(c.nome).split(" ")[0])}</span>`).join("")}</p>` : "";
+  return `<section class="snc-liga">
+<div class="snc-liga-topo"><div><small>TEMPORADA ${data(t.inicio)} – ${data(fim)}</small><p>Contam só vitórias contra colegas (até 3 contra a mesma pessoa por dia).</p></div>
+<div class="snc-liga-relogio"><small>TERMINA EM</small><b>${dias}<i>d</i> ${String(horas).padStart(2, "0")}<i>h</i></b></div></div>
+<div class="snc-liga-podio">${premio(pr[2])}${premio(pr[1])}${premio(pr[3])}</div>
+${linhas ? `<ol class="snc-liga-tabela">${linhas}</ol>` : '<p class="snc-liga-vazia">Ninguém venceu nesta temporada ainda. A primeira vitória contra um colega já põe você no topo.</p>'}
+${campeoes}</section>`;
+}
+
+// --- Seu bar (o salão, embaixo da equipe) -------------------------------------
+// O espaço vazio do salão vira o seu resumo: título, apelido e as próximas
+// conquistas que dá para buscar (as mais fáceis que ainda faltam).
+function sinucaSeuBarHtml() {
+  const x = escritorioXadrez(), salao = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao : null, eu = String(escritorio.base?.eu || "");
+  const f = salao?.fichas?.[eu];
+  if (!f) return "";
+  const ordem = { comum: 0, raro: 1, epico: 2, lendario: 3 };
+  const proximas = f.trofeus.filter((t) => !t.tem && !t.zoeira).sort((a, b) => ordem[a.raridade] - ordem[b.raridade]).slice(0, 3);
+  const tem = f.trofeus.filter((t) => t.tem && !t.zoeira).length, total = f.trofeus.filter((t) => !t.zoeira).length;
+  return `<section class="snc-seubar so-proximas"><div class="snc-seubar-proximas"><small>PRÓXIMAS CONQUISTAS</small>${proximas.map((t) => `<button type="button" class="snc-feito falta ${safeText(t.raridade)}" onclick="sinucaLobbySecao('conquistas')"><i>🔒</i><div><b>${safeText(t.nome)}</b><span>${safeText(t.texto)}</span></div><small>${SINUCA_RARIDADE[t.raridade]}</small></button>`).join("") || '<p>Você tem todas. Respeito.</p>'}</div></section>`;
+}

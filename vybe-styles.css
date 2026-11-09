@@ -27062,3 +27062,212 @@ body .snc-perfil-fechar{border-radius:0;clip-path:var(--bv-corte);background:var
 @keyframes sncFim{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 @keyframes sncFimPalavra{from{opacity:0;transform:scale(2.4) skewX(-10deg)}to{opacity:1;transform:none}}
 @media(max-width:760px){.snc-sel-campanha{flex-wrap:wrap;gap:4px 8px}.snc-sel-campanha small{display:none}.snc-sel-campanha b{font-size:15px}.snc-sel-lado.rival .snc-sel-campanha{justify-content:flex-end}.snc-sel-foto{opacity:.55}}
+/* Pente fino 08/11/2026: salão (cartas iguais, Seu bar), temporada como liga, menu da mesa. */
+#workflow-modal .snc-jogo-menu .snc-cartas-pessoas{align-items:stretch}
+#workflow-modal .snc-jogo-menu .snc-carta-pessoa{display:grid!important;grid-template-rows:auto auto auto 1fr auto;min-height:220px}
+.snc-seubar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;margin-top:16px}
+.snc-seubar-titulo{display:flex;flex-direction:column;gap:4px;padding:14px 18px;clip-path:var(--bv-corte-g);background:linear-gradient(110deg,#ffffff12,transparent 60%),#0a0c12e6;box-shadow:inset 4px 0 0 #c9d0db}
+.snc-seubar-titulo.raro{box-shadow:inset 4px 0 0 var(--snc-raro)}.snc-seubar-titulo.epico{box-shadow:inset 4px 0 0 var(--snc-epico)}.snc-seubar-titulo.lendario{box-shadow:inset 4px 0 0 var(--bv-ouro),0 0 26px #ffc24a2e}
+.snc-seubar-titulo>small,.snc-seubar-proximas>small{font:800 10px var(--bv-ui);letter-spacing:2.4px;color:var(--bv-dim)}
+.snc-seubar-titulo>b{font:900 italic 26px/1 var(--bv-ui);text-transform:uppercase;color:#fff}
+.snc-seubar-titulo.lendario>b{color:#ffd36b}.snc-seubar-titulo.epico>b{color:var(--snc-epico)}.snc-seubar-titulo.raro>b{color:var(--snc-raro)}
+.snc-seubar-titulo>span{font-size:12px;color:#ffffffbb}
+.snc-seubar-titulo>em{font-style:normal;font-size:12px;color:var(--snc-zoeira)}
+.snc-seubar-titulo>p{margin:auto 0 0;font-size:12px;color:var(--bv-dim)}.snc-seubar-titulo>p b{font:900 italic 20px var(--bv-ui);color:#fff}
+.snc-seubar-proximas{display:flex;flex-direction:column;gap:6px}
+.snc-seubar-proximas .snc-feito{border:0;text-align:left;cursor:pointer;color:inherit;opacity:.8}
+.snc-seubar-proximas .snc-feito:hover{opacity:1;filter:none}
+/* Temporada como liga */
+.snc-liga{display:flex;flex-direction:column;gap:14px}
+.snc-liga-topo{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.snc-liga-topo small{font:800 10px var(--bv-ui);letter-spacing:2.4px;color:var(--bv-laranja2)}
+.snc-liga-topo h3{margin:2px 0;font:900 italic clamp(26px,3vw,40px)/1 var(--bv-ui);color:#fff}
+.snc-liga-topo p{margin:0;font-size:12px;color:var(--bv-dim)}
+.snc-liga-relogio{padding:10px 18px;clip-path:var(--bv-corte-g);background:#0a0c12;box-shadow:inset 0 0 0 1px #ffc24a55;text-align:center}
+.snc-liga-relogio b{display:block;font:900 italic 30px/1 var(--bv-ui);color:var(--bv-ouro)}.snc-liga-relogio b i{font-style:normal;font-size:14px;margin-left:1px;color:#fff}
+.snc-liga-podio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:10px}
+.snc-liga-premio{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 8px;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 100%,0 100%);background:linear-gradient(180deg,#ffffff14,#0a0c12);box-shadow:inset 0 3px 0 #c9d0db}
+.snc-liga-premio.p1{min-height:150px;justify-content:center;box-shadow:inset 0 3px 0 var(--bv-ouro),0 0 30px #ffc24a33;background:linear-gradient(180deg,#ffc24a33,#0a0c12)}
+.snc-liga-premio.p2{min-height:122px;justify-content:center}.snc-liga-premio.p3{min-height:104px;justify-content:center;box-shadow:inset 0 3px 0 #d0874c}
+.snc-liga-premio em{font:900 italic 28px var(--bv-ui);font-style:italic;color:#fff}
+.snc-liga-premio b{font:900 italic 18px var(--bv-ui);color:var(--bv-ouro)}
+.snc-liga-premio small{font-size:11px;color:#ffffffaa}
+.snc-liga-tabela{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.snc-liga-tabela li{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:8px 14px;clip-path:var(--bv-corte);background:#0a0c12d9;box-shadow:inset 0 0 0 1px var(--bv-linha)}
+.snc-liga-tabela li em{font:900 italic 18px var(--bv-ui);color:var(--bv-dim)}
+.snc-liga-tabela li.p1 em{color:var(--bv-ouro)}.snc-liga-tabela li.p2 em{color:#d8dde6}.snc-liga-tabela li.p3 em{color:#d0874c}
+.snc-liga-tabela li b{font:900 italic 16px var(--bv-ui);text-transform:uppercase}.snc-liga-tabela li b small{font-size:10px;color:var(--bv-laranja2);margin-left:4px}
+.snc-liga-tabela li span{font:900 italic 18px var(--bv-ui)}.snc-liga-tabela li span i{font-style:normal;font-size:11px;opacity:.6}
+.snc-liga-tabela li.eu{box-shadow:inset 3px 0 0 var(--bv-laranja),inset 0 0 0 1px #ff8a3d55}
+.snc-liga-vazia{margin:0;padding:14px;background:#ffffff08;font-size:13px;color:#ffffffcc}
+.snc-liga-anterior{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0}.snc-liga-anterior small{width:100%;font:800 10px var(--bv-ui);letter-spacing:2px;color:var(--bv-dim)}
+.snc-liga-anterior span{padding:3px 10px;clip-path:var(--bv-corte);background:#0a0c12;font:800 12px var(--bv-ui)}
+/* Menu da mesa (☰): placas, não lista de site. */
+#workflow-modal.ofc-snc-jogo .snc-menu-lista{border:0!important;border-radius:0!important;clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%);background:#0a0c12f5!important;box-shadow:inset 0 3px 0 var(--bv-laranja),0 20px 50px #000c!important;padding:12px!important;gap:4px!important}
+#workflow-modal.ofc-snc-jogo .snc-menu-lista b{font:800 10px var(--bv-ui)!important;letter-spacing:2.4px;color:var(--bv-dim)!important}
+#workflow-modal.ofc-snc-jogo .snc-menu-lista button{border:0!important;border-radius:0!important;clip-path:var(--bv-corte);background:#ffffff0a!important;padding:10px 14px!important;text-align:left;font:900 italic 14px var(--bv-ui)!important;text-transform:uppercase;color:#fff!important}
+#workflow-modal.ofc-snc-jogo .snc-menu-lista button:hover{background:var(--bv-laranja)!important}
+@media(max-width:760px){.snc-seubar{grid-template-columns:1fr}.snc-liga-topo{flex-direction:column;align-items:flex-start}}
+#workflow-modal .snc-jogo-menu .snc-cartas-pessoas{align-items:stretch!important}
+#workflow-modal .snc-jogo-menu .snc-carta-pessoa{height:auto!important;align-self:stretch!important}
+.snc-liga-topo{align-items:flex-end!important;justify-content:space-between!important;text-align:left}
+#workflow-modal .snc-jogo-menu .snc-carta-pessoa>em{grid-row:5;align-self:end}
+/* ==========================================================================
+   SALÃO NO PADRÃO NOVO (Paulo, 08/11/2026: "o salão continuou tudo igual? ...
+   mantém o padrão novo"). Mesma linguagem da seleção de desafio: cena cheia,
+   o seu personagem grande à esquerda com o menu em placas embaixo, e o
+   conteúdo de cada aba direto na cena (sem a caixa de painel com borda).
+   ========================================================================== */
+#workflow-modal .snc-jogo-menu.snc-hub{grid-template-columns:minmax(300px,380px) minmax(0,1fr)!important}
+#workflow-modal .snc-hub .snc-cena{background:linear-gradient(90deg,#06070bf5 0%,#06070bd9 28%,#06070b66 60%,#06070bb3 100%),linear-gradient(0deg,#06070bdd,transparent 45%),url(/assets/jogos/sinuca-lobby.webp) 70% 60%/cover!important}
+#workflow-modal .snc-hub .snc-menu-principal{gap:6px;padding:18px 0 16px 22px;overflow:auto;scrollbar-width:none}
+/* O personagem */
+.snc-heroi{--c:#c9d0db;position:relative;display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 14px;align-items:center;width:100%;margin:0 0 12px;padding:14px 18px 12px 12px;border:0;text-align:left;color:#fff;cursor:pointer;clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%);background:linear-gradient(120deg,#ff8a3d59,#ff8a3d14 60%,transparent),#0a0c12d9;box-shadow:inset 3px 0 0 var(--bv-laranja);transition:filter .15s}
+.snc-heroi:hover{filter:brightness(1.12)}
+.snc-heroi.raro{--c:var(--snc-raro)}.snc-heroi.epico{--c:var(--snc-epico)}.snc-heroi.lendario{--c:var(--bv-ouro)}
+.snc-heroi-foto{grid-row:span 2;display:grid;place-items:center;width:96px;height:96px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:radial-gradient(circle at 35% 30%,#ffffff40,transparent 60%),var(--bv-laranja);overflow:hidden}
+.snc-heroi-foto img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.snc-heroi-foto i{font:900 italic 48px/1 var(--bv-ui);font-style:italic;color:#fff;text-shadow:0 4px 0 #0005}
+.snc-heroi-dados{display:flex;flex-direction:column;gap:3px;min-width:0}
+.snc-heroi-dados>small{font:800 10px var(--bv-ui);letter-spacing:3px;color:#ffffffaa}
+.snc-heroi-nome{font:900 italic 34px/.9 var(--bv-ui);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snc-heroi-titulo{align-self:flex-start;padding:2px 10px;clip-path:var(--bv-corte);background:var(--c);color:#0b0d10;font:900 italic 11px var(--bv-ui);font-style:italic;text-transform:uppercase}
+.snc-heroi.epico .snc-heroi-titulo{color:#fff}.snc-heroi.lendario .snc-heroi-titulo{background:linear-gradient(90deg,#ffd46b,#ff9d1c);box-shadow:0 0 16px #ffb43a88}
+.snc-heroi-texto{font-size:11px;color:#ffffffaa;line-height:1.3}
+.snc-heroi-numeros{grid-column:1/-1;display:flex;gap:14px;margin-top:6px}
+.snc-heroi-numeros>span{display:flex;flex-direction:column}
+.snc-heroi-numeros b{font:900 italic 20px/1 var(--bv-ui)}.snc-heroi-numeros b i{font-style:normal;font-size:11px;opacity:.7}
+.snc-heroi-numeros small{font:800 9px var(--bv-ui);letter-spacing:1.4px;text-transform:uppercase;color:#ffffff88}
+.snc-heroi-numeros .moedas{margin-left:auto;text-align:right}.snc-heroi-numeros .moedas b{color:var(--bv-ouro)}
+.snc-heroi-taco{grid-column:1/-1;width:100%;height:18px}
+/* O menu: placas grandes */
+#workflow-modal .snc-hub .snc-opcao{padding:12px 34px 12px 18px}
+#workflow-modal .snc-hub .snc-opcao b{font-size:19px}
+/* O conteúdo direto na cena */
+#workflow-modal .snc-hub .snc-menu-painel{margin:0!important;padding:22px clamp(18px,3vw,44px) 22px clamp(18px,2.4vw,32px)!important;background:none!important;box-shadow:none!important;border:0!important;clip-path:none!important}
+#workflow-modal .snc-hub .snc-painel-topo{margin-bottom:16px}
+#workflow-modal .snc-hub .snc-painel-topo small{font:800 11px var(--bv-ui);letter-spacing:3px;color:var(--bv-laranja2)}
+#workflow-modal .snc-hub .snc-painel-topo h2{font:900 italic clamp(30px,3.6vw,52px)/.95 var(--bv-ui)!important;text-transform:uppercase;color:#fff;text-shadow:0 4px 0 #0007,0 0 40px #0009}
+/* Jornada: três pôsteres altos ligados pelo caminho */
+#workflow-modal .snc-hub .snc-jornada{position:relative;gap:18px}
+#workflow-modal .snc-hub .snc-jornada::before{content:"";position:absolute;left:8%;right:8%;top:50%;height:4px;background:repeating-linear-gradient(90deg,var(--bv-laranja) 0 14px,transparent 14px 24px);opacity:.6;z-index:0}
+#workflow-modal .snc-hub .snc-bar{min-height:min(62vh,520px);z-index:1;transition:transform .15s,filter .15s}
+#workflow-modal .snc-hub .snc-bar:hover{transform:translateY(-6px)}
+#workflow-modal .snc-hub .snc-bar.fechado{filter:grayscale(1) brightness(.55)}
+#workflow-modal .snc-hub .snc-bar.vencido{box-shadow:inset 0 0 0 2px #5fdc8a88}
+#workflow-modal .snc-hub .snc-bar-dados h3{font-size:clamp(26px,2.6vw,38px)!important}
+/* Seu bar e as cartas da equipe na cena */
+#workflow-modal .snc-hub .snc-carta-pessoa{background:linear-gradient(180deg,#ffffff12,#0a0c12e6)!important}
+@media(max-width:760px){#workflow-modal .snc-jogo-menu.snc-hub{grid-template-columns:1fr!important}.snc-heroi{grid-template-columns:64px minmax(0,1fr)}.snc-heroi-foto{width:64px;height:64px}.snc-heroi-nome{font-size:26px}#workflow-modal .snc-hub .snc-bar{min-height:300px}#workflow-modal .snc-hub .snc-jornada::before{display:none}}
+.snc-seubar.so-proximas{grid-template-columns:1fr}
+.snc-seubar.so-proximas .snc-seubar-proximas{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px}
+.snc-seubar.so-proximas .snc-seubar-proximas>small{grid-column:1/-1}
+#workflow-modal .snc-hub .snc-jornada{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important}
+#workflow-modal .snc-hub .snc-bar{min-height:min(52vh,460px)!important}
+/* Ficha: a carta do jogador no padrão novo (laranja, título explicado, zoeira à parte). */
+body .snc-perfil .snc-perfil-topo{background:linear-gradient(170deg,#ff8a3d73,#ff8a3d1a 55%,transparent),#0a0c12!important;box-shadow:inset 3px 0 0 var(--bv-laranja)!important;border:0!important}
+body .snc-perfil .snc-perfil-titulos{flex-direction:column;align-items:center;gap:6px}
+.snc-perfil-titulo-texto{font-size:12px;color:#ffffffbb;max-width:210px}
+body .snc-perfil-titulos em small{display:block;font-size:11px;color:#ffffff99}
+@media (min-width:761px){.snc-perfil .snc-perfil-caixa{grid-template-areas:"carta taco" "carta numeros" "carta tacos" "carta trofeus" "carta zoeira" "carta extra"!important}.snc-perfil .snc-perfil-caixa>section:nth-of-type(3){grid-area:zoeira}}
+body .snc-perfil .snc-perfil-topo .snc-perfil-titulos em small,body .snc-perfil .snc-perfil-topo .snc-perfil-titulo-texto{font:400 11px/1.35 var(--bv-ui)!important;letter-spacing:0!important;text-transform:none!important;color:#ffffffa6!important}
+body .snc-perfil .snc-perfil-topo .snc-perfil-titulos em{font:800 12px var(--bv-ui);letter-spacing:0;text-transform:none;color:var(--snc-zoeira)}
+/* Quem assiste: sem os controles de quem joga; a placa ao vivo leva para a torcida. */
+#workflow-modal.ofc-snc-jogo .snc-hud.assistindo :is(.snc-medidor,.snc-bloco-taco,.snc-bloco-efeito,.snc-bloco-mira,.snc-bloco-modo,.snc-tacar,.snc-mudar){display:none!important}
+#workflow-modal.ofc-snc-jogo .snc-assistindo{position:absolute;z-index:4;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 20px;border:0;clip-path:var(--bv-corte-g);background:#0a0c12e6;box-shadow:inset 0 0 0 1px #ffffff26;color:#fff;font:900 italic 14px var(--bv-ui);letter-spacing:1px;cursor:pointer}
+#workflow-modal.ofc-snc-jogo .snc-assistindo i{width:10px;height:10px;border-radius:50%;background:var(--bv-falta);box-shadow:0 0 10px var(--bv-falta);animation:sncAoVivo 1.2s ease-in-out infinite}
+#workflow-modal.ofc-snc-jogo .snc-assistindo b{color:var(--bv-ouro)}
+#workflow-modal.ofc-snc-jogo .snc-assistindo b:empty{display:none}
+@keyframes sncAoVivo{50%{opacity:.3}}
+@media(max-width:760px){
+#workflow-modal .snc-hub .snc-menu-principal{flex-wrap:wrap;overflow:visible;padding:10px 12px}
+#workflow-modal .snc-hub .snc-heroi{flex:0 0 100%;margin:0 0 6px}
+#workflow-modal .snc-hub .snc-opcao{flex:1 1 0;min-width:0;padding:10px 4px}
+#workflow-modal .snc-hub .snc-opcao b{font-size:9px;letter-spacing:0;white-space:normal;word-break:normal;overflow-wrap:normal}
+#workflow-modal .snc-hub .snc-painel-topo h2{font-size:26px!important}
+}
+/* ==========================================================================
+   FICHA = CARTA DE JOGADOR + ESTANTE DO BAR (Paulo, 08/11/2026: "quero tudo
+   parecendo JOGO... não quero as coisas parecendo site, dashboard").
+   Materiais de jogo no lugar de caixas: a carta tem o metal da raridade do
+   título (prata, azul, roxo, ouro) com brilho passando; a estante é madeira
+   com os tacos em pé e as medalhas; as zoeiras são bilhetes no mural de cortiça.
+   ========================================================================== */
+body .snc-perfil .snc-perfil-caixa.snc-cf{display:grid!important;grid-template-columns:minmax(280px,340px) minmax(0,1fr)!important;grid-template-areas:none!important;gap:22px!important;width:min(1120px,calc(100vw - 32px))!important;max-height:calc(100dvh - 32px);padding:22px!important;overflow:hidden!important;background:radial-gradient(ellipse at 20% 0,#ff8a3d26,transparent 60%),#07080c!important;box-shadow:inset 0 3px 0 var(--bv-laranja),0 40px 120px #000!important}
+.snc-cf>.snc-perfil-fechar{position:absolute;top:12px;right:12px;z-index:5}
+/* A carta */
+.snc-cf-carta{--m1:#f2f5f8;--m2:#aab3bd;--m3:#5d6670;--tx:#15181c;position:relative;align-self:start;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 20px 18px;color:var(--tx);clip-path:polygon(12% 0,88% 0,100% 7%,100% 91%,50% 100%,0 91%,0 7%);background:radial-gradient(ellipse at 50% 20%,#ffffff99,transparent 55%),linear-gradient(160deg,var(--m1),var(--m2) 45%,var(--m3));box-shadow:inset 0 0 0 4px #ffffff55;overflow:hidden;animation:sncCartaEntra .6s cubic-bezier(.2,1.3,.4,1) both;filter:drop-shadow(0 20px 40px #000)}
+.snc-cf-carta.raro{--m1:#bfe4ff;--m2:#3f95e8;--m3:#123d78;--tx:#fff}
+.snc-cf-carta.epico{--m1:#ecd2ff;--m2:#9a52e0;--m3:#3d1270;--tx:#fff}
+.snc-cf-carta.lendario{--m1:#fff3c2;--m2:#f2b437;--m3:#7a4a08;--tx:#231500}
+.snc-cf-brilho{position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 42%,#ffffffaa 50%,transparent 58%);animation:sncCartaBrilho 3.2s 0.6s ease-in-out infinite;pointer-events:none}
+.snc-cf-topo{position:absolute;left:22px;top:26px;display:flex;flex-direction:column;align-items:center;line-height:1}
+.snc-cf-topo b{font:900 italic 46px/0.9 var(--bv-ui)}
+.snc-cf-topo em{margin-top:8px;font:900 italic 24px/1 var(--bv-ui);font-style:italic}
+.snc-cf-topo small{font:800 9px var(--bv-ui);letter-spacing:1.6px;opacity:.75}
+.snc-cf-foto{display:grid;place-items:center;width:150px;height:150px;margin:6px 0 0 54px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:#00000026}
+.snc-cf-foto img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.snc-cf-foto i{font:900 italic 90px/1 var(--bv-ui);font-style:italic;color:inherit;opacity:.85}
+.snc-cf-nome{margin:0;font:900 italic 38px/1 var(--bv-ui)!important;letter-spacing:.5px;text-transform:uppercase;color:inherit!important;border-bottom:2px solid currentColor;padding-bottom:4px;width:86%;text-align:center}
+.snc-cf-titulo{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.snc-cf-titulo b{font:900 italic 15px var(--bv-ui);text-transform:uppercase;letter-spacing:.5px}
+.snc-cf-titulo span{font-size:11px;opacity:.85;max-width:240px}
+.snc-cf-atributos{list-style:none;margin:4px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 18px;width:86%}
+.snc-cf-atributos li{display:flex;align-items:baseline;justify-content:center;gap:5px}
+.snc-cf-atributos b{font:900 italic 24px/1 var(--bv-ui)}
+.snc-cf-atributos small{font:800 11px var(--bv-ui);letter-spacing:1px;opacity:.8}
+.snc-cf-rodape{display:flex;gap:12px;margin-top:6px;font:800 9px var(--bv-ui);letter-spacing:1px;opacity:.85}
+.snc-cf-rodape b{font:900 italic 15px var(--bv-ui);margin-right:2px}
+/* A estante */
+.snc-cf-estante{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto;padding-right:8px;scrollbar-width:thin}
+.snc-cf-legenda{position:sticky;top:0;z-index:2;margin:0;padding:10px 14px;clip-path:var(--bv-corte-g);background:#0a0c12f2;box-shadow:inset 3px 0 0 var(--bv-laranja);font-size:13px;color:#ffffffcc;min-height:20px}
+.snc-cf-legenda b{font:900 italic 14px var(--bv-ui);color:#fff;text-transform:uppercase;margin-right:6px}
+.snc-cf-estante h3{margin:0 0 8px;font:900 italic 16px var(--bv-ui)!important;letter-spacing:1px;color:#fff!important;text-transform:uppercase}
+.snc-cf-estante h3::before{display:none!important}
+.snc-cf-estante h3 small{margin-left:8px;color:var(--bv-ouro);font:900 italic 14px var(--bv-ui)}
+.snc-cf-parede ul,.snc-cf-medalhas ul{list-style:none;margin:0;padding:14px 16px 18px;background:linear-gradient(#0009,#000c),url(/assets/jogos/boteco-madeira.webp) center/cover;box-shadow:inset 0 0 0 2px #3a2414,inset 0 -10px 0 #2a170b,0 10px 24px #000a}
+.snc-cf-parede ul{display:flex;justify-content:space-around;align-items:flex-end;gap:8px;height:250px;padding-bottom:10px}
+.snc-cf-parede li{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;width:60px;height:100%;cursor:default;outline:none}
+.snc-cf-parede li canvas{position:absolute;left:50%;top:50%;width:200px;height:20px;transform:translate(-50%,-62%) rotate(-90deg);filter:drop-shadow(4px 0 4px #000c)}
+.snc-cf-parede li b{position:relative;z-index:1;font:900 italic 11px var(--bv-ui);text-transform:uppercase;color:#fff;text-shadow:0 2px 3px #000}
+.snc-cf-parede li.falta canvas{filter:brightness(0) opacity(.45)}
+.snc-cf-parede li.falta b{color:#ffffff66}
+.snc-cf-parede li.usando::after{content:"NA MÃO";position:absolute;top:-4px;padding:1px 6px;background:var(--bv-laranja);color:#fff;font:900 9px var(--bv-ui)}
+.snc-cf-medalhas ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:14px 8px}
+.snc-cf-medalhas li{--c:#c9d0db;position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;outline:none;cursor:default;transition:transform .12s}
+.snc-cf-medalhas li:hover,.snc-cf-medalhas li:focus{transform:translateY(-4px) scale(1.06)}
+.snc-cf-medalhas li.raro{--c:var(--snc-raro)}.snc-cf-medalhas li.epico{--c:var(--snc-epico)}.snc-cf-medalhas li.lendario{--c:var(--bv-ouro)}
+.snc-cf-medalhas li>i{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;font-style:normal;font-size:26px;background:radial-gradient(circle at 35% 30%,#ffffffcc,transparent 40%),radial-gradient(circle,color-mix(in srgb,var(--c) 70%,#fff) 0 55%,var(--c) 56% 66%,color-mix(in srgb,var(--c) 40%,#000) 67%);box-shadow:0 6px 12px #000c,inset 0 -4px 6px #0006}
+.snc-cf-medalhas li.lendario>i{box-shadow:0 6px 12px #000c,0 0 22px #ffc24a99,inset 0 -4px 6px #0006}
+.snc-cf-medalhas li.falta>i{background:radial-gradient(circle,#2a2d33 0 66%,#16181c 67%);color:#ffffff40;font:900 italic 24px var(--bv-ui);box-shadow:inset 0 3px 8px #000}
+.snc-cf-medalhas li b{font:800 10px/1.15 var(--bv-ui);color:#fff;text-shadow:0 1px 2px #000}
+.snc-cf-medalhas li.falta b{color:#ffffff59}
+.snc-cf-medalhas li>em{position:absolute;top:-4px;right:8px;padding:0 5px;background:var(--bv-laranja);color:#fff;font:900 10px var(--bv-ui);font-style:normal}
+.snc-cf-mural ul{list-style:none;margin:0;padding:16px;display:flex;flex-wrap:wrap;gap:14px;background:radial-gradient(#0000001a 1px,transparent 1.5px) 0 0/7px 7px,linear-gradient(#b8854f,#9c6b3a);box-shadow:inset 0 0 0 6px #5a3618,0 10px 24px #000a}
+.snc-cf-mural li{position:relative;width:150px;padding:14px 10px 10px;background:#fff6b0;color:#2a2410;transform:rotate(var(--g,0deg));box-shadow:0 6px 10px #0007;outline:none}
+.snc-cf-mural li::before{content:"";position:absolute;top:-8px;left:50%;width:46px;height:16px;transform:translateX(-50%) rotate(-3deg);background:#ffffff99;box-shadow:0 1px 2px #0003}
+.snc-cf-mural li i{font-style:normal;font-size:20px}
+.snc-cf-mural li b{display:block;font:900 italic 14px var(--bv-ui);text-transform:uppercase}
+.snc-cf-mural li small{display:block;font-size:11px;line-height:1.3}
+.snc-cf-mural li.limpo{background:#e8f8e0}
+@keyframes sncCartaEntra{from{opacity:0;transform:rotateY(70deg) scale(.8)}to{opacity:1;transform:none}}
+@keyframes sncCartaBrilho{0%{transform:translateX(-60%)}55%,100%{transform:translateX(60%)}}
+@media(max-width:760px){body .snc-perfil .snc-perfil-caixa.snc-cf{grid-template-columns:1fr!important;overflow:auto!important}.snc-cf-carta{justify-self:center;width:min(320px,100%)}.snc-cf-estante{overflow:visible}.snc-cf-parede ul{height:200px}}
+@media(prefers-reduced-motion:reduce){.snc-cf-carta,.snc-cf-brilho{animation:none}}
+@media(min-width:761px){.snc-cf-carta{padding:30px 22px 26px;gap:12px}.snc-cf-foto{width:200px;height:200px;margin-left:40px}.snc-cf-nome{font-size:46px!important}.snc-cf-titulo b{font-size:18px}.snc-cf-titulo span{font-size:12px}.snc-cf-atributos{gap:10px 18px}.snc-cf-atributos b{font-size:30px}.snc-cf-topo b{font-size:56px}.snc-cf-rodape{font-size:10px}.snc-cf-rodape b{font-size:18px}}
+/* Seleção: as regras como fichas de jogo (um clique troca). */
+.snc-sel-regras{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+.snc-sel-ficha{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px 10px;border:0;cursor:pointer;color:#fff;text-align:center;clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);background:radial-gradient(ellipse at 50% 0,#ffffff26,transparent 60%),linear-gradient(180deg,#232836,#0d1017);box-shadow:inset 0 0 0 2px #ffffff1f;transition:transform .12s,filter .12s}
+.snc-sel-ficha:hover{transform:scale(1.05);filter:brightness(1.2)}
+.snc-sel-ficha:active{transform:scale(.97)}
+.snc-sel-ficha i{font-style:normal;font-size:22px;line-height:1}
+.snc-sel-ficha small{font:800 8px var(--bv-ui);letter-spacing:1.6px;color:var(--bv-dim)}
+.snc-sel-ficha b{font:900 italic 15px/1.05 var(--bv-ui);text-transform:uppercase}
+.snc-sel-ficha span{display:none}
+.snc-sel-ficha:hover span{display:block;font-size:9px;color:#ffffffb3;line-height:1.2}
+.snc-sel-ficha em{position:absolute;top:6px;right:16%;font-style:normal;font-size:11px;color:var(--bv-laranja);opacity:.7}
+.snc-sel-ficha.vale{grid-column:1/-1;clip-path:var(--bv-corte-g);background:radial-gradient(ellipse at 50% 0,#ffc24a40,transparent 60%),linear-gradient(180deg,#2a2210,#0d1017);box-shadow:inset 0 0 0 2px #ffc24a55}
+.snc-sel-ficha.vale b{font-size:22px;color:var(--bv-ouro)}
+.snc-sel-valor>.snc-sel-opcao{display:none}
+.snc-sel-valor{width:100%}.snc-sel-valor .snc-sel-ficha.vale{width:100%;box-sizing:border-box}
+@media(max-width:760px){.snc-cf-parede ul{gap:2px;padding-left:6px;padding-right:6px}.snc-cf-parede li{width:52px}.snc-cf-parede li b{font-size:9px}}
