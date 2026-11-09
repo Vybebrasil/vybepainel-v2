@@ -183,12 +183,25 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   }
   function definirPessoas(lista = [], minhaZona = '') {
     const vistos = new Set(), aqui = (lista || []).filter((p) => p && p.zona === quarto.id);
+    // Duas pessoas no mesmo ladrilho (quem está fora da chamada chega com a posição padrão) ficam lado a lado:
+    // a segunda vai para o ladrilho livre mais perto, sem sumir dentro da outra.
+    const ocupado = new Set();
+    const livreMaisPerto = (x, y) => {
+      for (let r = 0; r < Math.max(W, D); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = Math.round(x) + dx, ny = Math.round(y) + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= D || P.nivel(nx, ny) < 0 || ocupado.has(nx + ',' + ny)) continue;
+        return r ? { x: nx, y: ny } : { x, y }; // livre onde já está: fica na posição exata (andando, sem pulo)
+      }
+      return { x, y };
+    };
     aqui.forEach((p, i) => {
       vistos.add(String(p.id));
       let b = pessoas.get(String(p.id)); if (!b) { b = boneco(p); pessoas.set(String(p.id), b); }
       const temPos = Number.isFinite(p.x) && Number.isFinite(p.y);
       const tx = temPos ? Math.max(0, Math.min(W - 1, p.x)) : Math.min(W - 1, 1 + (i % 3)), ty = temPos ? Math.max(0, Math.min(D - 1, p.y)) : Math.min(D - 1, D - 2 - Math.floor(i / 3));
-      const alvoNovo = { x: tx + .5, z: ty + .5, y: Math.max(0, P.nivel(tx, ty)) * NIVEL };
+      const lugar = livreMaisPerto(tx, ty); ocupado.add(Math.round(lugar.x) + ',' + Math.round(lugar.y));
+      const alvoNovo = { x: lugar.x + .5, z: lugar.y + .5, y: Math.max(0, P.nivel(lugar.x, lugar.y)) * NIVEL };
       if (alvoNovo.x !== b.alvo.x || alvoNovo.z !== b.alvo.z) { b.alvo = alvoNovo; sujar(true); }
       if (b.novo) { b.x = b.alvo.x; b.z = b.alvo.z; b.y = b.alvo.y; b.novo = false; }
       const comVoz = minhaZona === quarto.id && !p.eu;
