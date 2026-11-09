@@ -86,117 +86,154 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const texChao = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), q = 64;
     for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
-      g.fillStyle = (x + y) % 2 ? '#8f5446' : '#d9cfb8'; g.fillRect(x * q, y * q, q, q);
-      g.fillStyle = (x + y) % 2 ? '#d9cfb8' : '#8f5446'; g.beginPath(); g.moveTo(x * q + q / 2, y * q + 12); g.lineTo(x * q + q - 12, y * q + q / 2); g.lineTo(x * q + q / 2, y * q + q - 12); g.lineTo(x * q + 12, y * q + q / 2); g.closePath(); g.fill();
+      g.fillStyle = (x + y) % 2 ? '#9a6556' : '#d6ccb6'; g.fillRect(x * q, y * q, q, q);
+      g.fillStyle = (x + y) % 2 ? '#d6ccb6' : '#9a6556'; g.beginPath(); g.moveTo(x * q + q / 2, y * q + 12); g.lineTo(x * q + q - 12, y * q + q / 2); g.lineTo(x * q + q / 2, y * q + q - 12); g.lineTo(x * q + 12, y * q + q / 2); g.closePath(); g.fill();
     }
     g.strokeStyle = 'rgba(60,40,30,.35)'; g.lineWidth = 2; for (let i = 0; i <= 256; i += q) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
     for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(40,30,20,${Math.random() * 0.08})`; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
-    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.wrapS = tx.wrapT = RepeatWrapping; tx.repeat.set(46, 46); tx.anisotropy = 8; return tx;
+    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.wrapS = tx.wrapT = RepeatWrapping; tx.repeat.set(30, 30); tx.anisotropy = 16; return tx;
   })();
   const piso = new Mesh(new PlaneGeometry(700, 700), new MeshStandardMaterial({ map: texChao, color: 0xffffff, roughness: 0.85 }));
   piso.rotation.x = -Math.PI / 2; piso.position.set(cx, -24, cz); piso.receiveShadow = true; cena.add(piso);
-  // A parede do boteco: caiada em cima, faixa pintada e azulejo embaixo, com o letreiro do clube.
-  const texParede = (() => {
-    const c = document.createElement('canvas'); c.width = 1024; c.height = 576; const g = c.getContext('2d');
-    g.fillStyle = '#ece6d6'; g.fillRect(0, 0, 1024, 576);
-    for (let i = 0; i < 9; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 60 + Math.random() * 120); r.addColorStop(0, 'rgba(176,160,124,.22)'); r.addColorStop(1, 'rgba(176,160,124,0)'); g.save(); g.translate(Math.random() * 1024, Math.random() * 330); g.fillStyle = r; g.fillRect(-200, -200, 400, 400); g.restore(); }
-    const y = 356; g.fillStyle = '#2a8f86'; g.fillRect(0, y, 1024, 16);
-    g.fillStyle = '#f6f6f1'; g.fillRect(0, y + 16, 1024, 576 - y - 16);
-    g.strokeStyle = '#cfccc2'; g.lineWidth = 2;
-    for (let x = 0; x <= 1024; x += 38) { g.beginPath(); g.moveTo(x, y + 16); g.lineTo(x, 576); g.stroke(); }
-    for (let yy = y + 16; yy <= 576; yy += 38) { g.beginPath(); g.moveTo(0, yy); g.lineTo(1024, yy); g.stroke(); }
-    g.save(); g.translate(512, 150); g.rotate(-0.025); g.textAlign = 'center';
-    g.font = '900 34px Georgia, serif'; g.fillStyle = '#1d1b17'; g.fillText('CLUBE DE', 3, -40 + 3); g.fillStyle = '#c8261d'; g.fillText('CLUBE DE', 0, -40);
-    g.font = '900 96px Georgia, serif'; g.fillStyle = '#1d1b17'; g.fillText('BILHAR', 5, 50 + 5); g.fillStyle = '#c8261d'; g.fillText('BILHAR', 0, 50);
-    g.restore();
-    const cartaz = (x, yy, w, h, cor, txt, rot) => { g.save(); g.translate(x, yy); g.rotate(rot); g.fillStyle = cor; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#1d1b17'; g.font = '700 20px "Comic Sans MS", cursive'; g.textAlign = 'center'; g.fillText(txt, 0, 7); g.restore(); };
-    cartaz(150, 210, 150, 60, '#fbee4b', 'FIADO SÓ AMANHÃ', -0.06); cartaz(880, 200, 140, 56, '#ff86bd', 'NÃO SENTE NA MESA', 0.05); cartaz(860, 280, 120, 50, '#b8f14c', 'GIZ É DE GRAÇA', -0.04);
-    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx;
-  })();
-  const parede = new Mesh(new PlaneGeometry(520, 292), new MeshStandardMaterial({ map: texParede, color: 0xffffff, roughness: 0.95 }));
-  // O SALÃO DO BOTECO (Paulo, 09/11/2026: "o cenário de boteco também tá pobre, vazio e aleatório...
-  // pesquisa referências antes"). Composição pelas referências (as fotos do Paulo e botecos de Rio, SP
-  // e BH: azulejo, balcão de alumínio e fórmica, prateleira de cachaça, estufa, ladrilho, porta de aço,
-  // mesa de plástico, engradado, troféu, TV no futebol): três paredes com função.
-  //  - Fundo: a parede do clube (letreiro, taqueira, lousa do placar, troféus, flâmula, TV no canto).
-  //  - Esquerda: o balcão com tampo de inox, estufa, banquetas, prateleira de cachaça e freezer.
-  //  - Direita: a porta de aço meio aberta para a rua, as mesas amarelas com as cadeiras e os engradados.
-  // Tudo no chão e nas paredes, longe da mesa e abaixo das câmeras (nada pendurado sobre o pano).
-  const pisoY = -24, fundoZ = az0 - 46, esqX = ax0 - 58, dirX = ax1 + 66;
-  const tela = (w, h, pinta) => { const c = document.createElement('canvas'); c.width = w; c.height = h; pinta(c.getContext('2d'), w, h); const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 4; return tx; };
+  // O SALÃO DO BOTECO (Paulo, 09/11/2026: "o cenário de boteco tá pobre, vazio e aleatório... pesquisa
+  // referências" e depois "não dá pra ler a placa de giz com o rank... tem parede branca... tem parede toda
+  // preta... trabalha como diretor de arte"). Composição pelas referências (as fotos do Paulo e botecos de
+  // Rio, SP e BH): um salão fechado de quatro paredes, meia-parede de azulejo verde-água com a faixa, caiado
+  // em cima, chão de ladrilho, e cada parede com função. A câmera de jogo vê só a faixa baixa da parede atrás
+  // da mesa, então o que importa (a lousa do ranking, a taqueira, o balcão, a porta) fica nessa altura.
+  //  - Fundo: letreiro no alto, a lousa do RANKING DO SALÃO no meio (com o ranking de verdade), a taqueira
+  //    à esquerda, a prateleira de troféus e a flâmula à direita, a TV no canto.
+  //  - Esquerda: balcão de fórmica com tampo de inox, estufa, banquetas, prateleira de cachaça e freezer.
+  //  - Direita: a porta de aço meio aberta para a rua de noite, as mesas amarelas e os engradados.
+  //  - Frente: relógio, calendário e os cartazes de cartolina.
+  const pisoY = -24, fundoZ = az0 - 92, frenteZ = az1 + 84, esqX = ax0 - 96, dirX = ax1 + 96, altoP = 170;
+  const largX = dirX - esqX, largZ = frenteZ - fundoZ, meioX = (esqX + dirX) / 2, meioZ = (fundoZ + frenteZ) / 2;
+  const PX = 5; // pixels de textura por unidade
+  const tela = (w, h, pinta) => { const c = document.createElement('canvas'); c.width = w; c.height = h; pinta(c.getContext('2d'), w, h); const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx; };
   const mat = (cor, o = {}) => new MeshStandardMaterial({ color: cor, roughness: 0.6, ...o });
   const peca = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const p = new Mesh(geo, m); p.position.set(x, y, z); p.rotation.set(rx, ry, rz); p.castShadow = true; p.receiveShadow = true; cena.add(p); return p; };
-  // Paredes: a do fundo com o letreiro (texParede) e as laterais só caiadas com azulejo.
-  parede.position.set(cx, 122, fundoZ); cena.add(parede);
-  const texLado = tela(1024, 576, (g, w, h) => {
-    g.fillStyle = '#ebe4d2'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 8; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 80 + Math.random() * 120); r.addColorStop(0, 'rgba(176,160,124,.22)'); r.addColorStop(1, 'rgba(176,160,124,0)'); g.save(); g.translate(Math.random() * w, Math.random() * 330); g.fillStyle = r; g.fillRect(-200, -200, 400, 400); g.restore(); }
-    g.fillStyle = '#2a8f86'; g.fillRect(0, 356, w, 16); g.fillStyle = '#f6f6f1'; g.fillRect(0, 372, w, h - 372);
-    g.strokeStyle = '#cfccc2'; g.lineWidth = 2;
-    for (let x = 0; x <= w; x += 38) { g.beginPath(); g.moveTo(x, 372); g.lineTo(x, h); g.stroke(); }
-    for (let y = 372; y <= h; y += 38) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  // Parede: caiada com manchas, a meia-parede de azulejo verde-água (1,5 m) com a faixa e o rodapé.
+  const paredeTex = (larg, extra) => tela(Math.round(larg * PX), altoP * PX, (g, w, h) => {
+    g.fillStyle = '#ebe3cf'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < w / 90; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 40 + Math.random() * 110); r.addColorStop(0, 'rgba(160,140,100,.20)'); r.addColorStop(1, 'rgba(160,140,100,0)'); g.save(); g.translate(Math.random() * w, Math.random() * h * 0.6); g.fillStyle = r; g.fillRect(-160, -160, 320, 320); g.restore(); }
+    const topoAz = h - 62 * PX, lado = 6 * PX;
+    g.fillStyle = '#9fcdbb'; g.fillRect(0, topoAz, w, h - topoAz);
+    for (let y = topoAz; y < h; y += lado) for (let x = 0; x < w; x += lado) { g.fillStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.12})`; g.fillRect(x + 2, y + 2, lado - 4, lado - 4); }
+    g.strokeStyle = '#7fae9c'; g.lineWidth = 2;
+    for (let x = 0; x <= w; x += lado) { g.beginPath(); g.moveTo(x, topoAz); g.lineTo(x, h); g.stroke(); }
+    for (let y = topoAz; y <= h; y += lado) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    // Barra de azulejo português (azul e branco) no alto da meia-parede.
+    for (let x = 0; x < w; x += lado) { const y = topoAz; g.fillStyle = '#f2f4f8'; g.fillRect(x, y, lado, lado); g.fillStyle = '#1f4fa0'; g.beginPath(); g.moveTo(x + lado / 2, y + 3); g.lineTo(x + lado - 3, y + lado / 2); g.lineTo(x + lado / 2, y + lado - 3); g.lineTo(x + 3, y + lado / 2); g.closePath(); g.fill(); g.fillStyle = '#f2f4f8'; g.beginPath(); g.arc(x + lado / 2, y + lado / 2, lado / 6, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#7fae9c'; g.strokeRect(x, y, lado, lado); }
+    g.fillStyle = '#1f6f63'; g.fillRect(0, topoAz - 3 * PX, w, 3 * PX); g.fillStyle = '#163f39'; g.fillRect(0, topoAz - 3 * PX, w, 4);
+    g.fillStyle = '#5a4636'; g.fillRect(0, h - 3 * PX, w, 3 * PX);
+    if (extra) extra(g, w, h, topoAz);
   });
-  const matLado = new MeshStandardMaterial({ map: texLado, roughness: 0.95 });
-  peca(new PlaneGeometry(520, 292), matLado, esqX, 122, cz, 0, Math.PI / 2);
-  peca(new PlaneGeometry(520, 292), matLado, dirX, 122, cz, 0, -Math.PI / 2);
-  // --- Fundo: a parede do clube ---
-  // Taqueira de madeira com os tacos em pé.
+  const cartaz = (g, x, y, w, h, cor, linhas, rot) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(-w / 2 + 4, -h / 2 + 5, w, h); g.fillStyle = cor; g.fillRect(-w / 2, -h / 2, w, h); g.fillStyle = '#1d1b17'; g.textAlign = 'center'; linhas.forEach(([t, px], i) => { g.font = `700 ${px}px "Comic Sans MS", cursive`; g.fillText(t, 0, -h / 2 + 10 + px + i * (px + 6)); }); g.fillStyle = 'rgba(233,220,174,.9)'; g.fillRect(-18, -h / 2 - 8, 36, 14); g.restore(); };
+  const parede = (tex, x, z, ry, larg) => { const m = new Mesh(new PlaneGeometry(larg, altoP), new MeshStandardMaterial({ map: tex, roughness: 0.95 })); m.position.set(x, pisoY + altoP / 2, z); m.rotation.y = ry; m.receiveShadow = true; cena.add(m); return m; };
+  // Fundo: letreiro no alto.
+  parede(paredeTex(largX, (g, w) => {
+    g.save(); g.translate(w / 2, 26 * PX); g.rotate(-0.02); g.textAlign = 'center';
+    g.font = `900 ${10 * PX}px Georgia, serif`; g.fillStyle = '#1d1b17'; g.fillText('CLUBE DE BILHAR', 6, 6); g.fillStyle = '#c8261d'; g.fillText('CLUBE DE BILHAR', 0, 0);
+    g.font = `700 ${4 * PX}px Georgia, serif`; g.fillStyle = '#1d1b17'; g.fillText('VYBE · DESDE 2026', 0, 7 * PX); g.restore();
+  }), meioX, fundoZ, 0, largX);
+  // Esquerda (atrás do balcão): cartaz de preço.
+  parede(paredeTex(largZ, (g, w) => { cartaz(g, w * 0.78, 40 * PX, 34 * PX, 22 * PX, '#fbee4b', [['PASTEL R$ 6', 3.2 * PX], ['COXINHA R$ 5', 3.2 * PX]], -0.04); }), esqX, meioZ, Math.PI / 2, largZ);
+  // Direita: a parede com a porta (a porta é um recorte por cima).
+  parede(paredeTex(largZ, (g, w) => { cartaz(g, w * 0.2, 44 * PX, 30 * PX, 18 * PX, '#ff86bd', [['NÃO SENTE', 3 * PX], ['NA MESA', 3 * PX]], 0.05); }), dirX, meioZ, -Math.PI / 2, largZ);
+  // Frente: relógio, calendário e cartazes.
+  parede(paredeTex(largX, (g, w) => {
+    cartaz(g, w * 0.3, 52 * PX, 36 * PX, 20 * PX, '#b8f14c', [['GIZ É DE GRAÇA', 3.4 * PX], ['O TACO NÃO', 2.6 * PX]], -0.05);
+    cartaz(g, w * 0.72, 50 * PX, 34 * PX, 20 * PX, '#fbee4b', [['FIADO SÓ', 3.4 * PX], ['AMANHÃ', 3.4 * PX]], 0.04);
+    g.save(); g.translate(w * 0.5, 34 * PX); g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 9 * PX, 0, Math.PI * 2); g.fill(); g.lineWidth = PX; g.strokeStyle = '#c8261d'; g.stroke(); g.strokeStyle = '#1d1b17'; g.lineWidth = 0.8 * PX; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -6 * PX); g.moveTo(0, 0); g.lineTo(4 * PX, 2 * PX); g.stroke(); g.restore();
+  }), meioX, frenteZ, Math.PI, largX);
+  // --- Fundo: a lousa do RANKING DO SALÃO na altura que a câmera vê ---
+  const lousaCanvas = document.createElement('canvas'); lousaCanvas.width = 768; lousaCanvas.height = 480;
+  const texLousa = new CanvasTexture(lousaCanvas); texLousa.colorSpace = SRGBColorSpace; texLousa.anisotropy = 8;
+  let lousaChave = '';
+  const pintarLousa = (linhas) => {
+    const g = lousaCanvas.getContext('2d'), w = 768, h = 480;
+    g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`; g.fillRect(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 20 + Math.random() * 40); }
+    g.fillStyle = '#ffe98a'; g.font = 'bold 60px "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('RANKING DO SALÃO', w / 2, 74);
+    g.strokeStyle = '#ffe98a'; g.lineWidth = 3; g.beginPath(); g.moveTo(120, 92); g.lineTo(w - 120, 92); g.stroke();
+    g.fillStyle = '#f4f4ee'; g.font = 'bold 60px "Comic Sans MS", "Segoe Print", cursive';
+    (linhas.length ? linhas : [['—', 'ninguém ganhou ainda']]).slice(0, 4).forEach(([nome, v], i) => {
+      const y = 170 + i * 78; g.textAlign = 'left'; g.fillText(`${i + 1}º ${nome}`, 60, y); g.textAlign = 'right'; g.fillText(String(v), w - 60, y);
+    });
+    texLousa.needsUpdate = true;
+  };
+  pintarLousa([]);
+  peca(new BoxGeometry(70, 46, 2.4), mat(0x5e3a18), cx, pisoY + 40, fundoZ + 1.3);
+  const lousa = peca(new PlaneGeometry(64, 40), new MeshStandardMaterial({ map: texLousa, roughness: 0.9 }), cx, pisoY + 40, fundoZ + 2.6);
+  peca(new BoxGeometry(66, 1.6, 4), mat(0x5e3a18), cx, pisoY + 16.6, fundoZ + 3.2);
+  for (let i = 0; i < 4; i++) peca(new BoxGeometry(2.4, 1, 1), mat(0xf2f2ea), cx - 20 + i * 5, pisoY + 17.8, fundoZ + 3.6);
+  // A lousa de cavalete no chão, entre a mesa e a parede do fundo (a câmera de jogo olha para baixo e só
+  // pega a base das paredes): o RANKING DO SALÃO de verdade, legível quando a mira aponta para o fundo.
+  const cavalete = new Group(), madeiraCav = mat(0x6e4420);
+  const frente = new Mesh(new PlaneGeometry(46, 32), new MeshStandardMaterial({ map: texLousa, roughness: 0.9 })); frente.position.set(0, 0, 0.7); cavalete.add(frente);
+  for (const [w, h, x, y] of [[50, 2.4, 0, 17], [50, 2.4, 0, -17], [2.4, 36, -24, 0], [2.4, 36, 24, 0]]) { const b = new Mesh(new BoxGeometry(w, h, 2), madeiraCav); b.position.set(x, y, 0); cavalete.add(b); }
+  const fundoCav = new Mesh(new BoxGeometry(46, 34, 1.2), madeiraCav); fundoCav.position.set(0, 0, -1.4); cavalete.add(fundoCav);
+  cavalete.traverse((m) => { m.castShadow = true; }); cavalete.scale.setScalar(0.78); cavalete.position.set(cx - 6, pisoY + 13.5, az0 - 52); cavalete.rotation.x = -0.18; cena.add(cavalete);
+  for (const s of [-1, 1]) peca(new BoxGeometry(1.6, 28, 1.6), madeiraCav, cx - 6 + s * 17, pisoY + 13.5, az0 - 58, 0.42);
+  // Taqueira à esquerda da lousa: tábua com os tacos em pé.
   const madeiraClara = mat(0x9a6a3a), tacoMat = [mat(0xc89a5a), mat(0x7a4a22), mat(0x2b2b2b), mat(0xb5793c), mat(0x5a3418)];
-  peca(new BoxGeometry(46, 6, 5), madeiraClara, cx - 64, pisoY + 8, fundoZ + 3);
-  peca(new BoxGeometry(46, 4, 3), madeiraClara, cx - 64, pisoY + 62, fundoZ + 2);
-  for (let i = 0; i < 6; i++) { const x = cx - 84 + i * 8; peca(new CylinderGeometry(0.45, 0.85, 64, 8), tacoMat[i % tacoMat.length], x, pisoY + 38, fundoZ + 3.5, 0.05, 0, (i % 2 ? 1 : -1) * 0.02); peca(new CylinderGeometry(0.5, 0.5, 1.2, 8), mat(0x1f6fd6), x, pisoY + 70.6, fundoZ + 3.6); }
-  // Lousa do placar a giz, com a prateleira de troféus em cima.
-  const texLousa = tela(512, 340, (g, w, h) => {
-    g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#f2f2ea'; g.font = 'bold 44px "Comic Sans MS", cursive'; g.textAlign = 'center'; g.fillText('PLACAR DO MÊS', w / 2, 64);
-    g.font = 'bold 34px "Comic Sans MS", cursive'; g.textAlign = 'left';
-    [['PAULO', 'IIII IIII'], ['VINICIUS', 'IIII III'], ['EWERTON', 'IIII'], ['DEIVID', 'III']].forEach(([n, v], i) => { g.fillText(n, 40, 130 + i * 52); g.fillText(v, 290, 130 + i * 52); });
-    g.font = 'bold 26px "Comic Sans MS", cursive'; g.fillStyle = '#ffe98a'; g.fillText('FIADO SÓ AMANHÃ', 40, 320);
-  });
-  peca(new BoxGeometry(48, 34, 2), mat(0x5e3a18), cx + 62, pisoY + 62, fundoZ + 1.2);
-  peca(new PlaneGeometry(44, 30), new MeshStandardMaterial({ map: texLousa, roughness: 0.95 }), cx + 62, pisoY + 62, fundoZ + 2.3);
-  peca(new BoxGeometry(52, 1.6, 8), madeiraClara, cx + 62, pisoY + 84, fundoZ + 4);
+  const tqX = cx - 78;
+  peca(new BoxGeometry(44, 5, 5), madeiraClara, tqX, pisoY + 10, fundoZ + 3);
+  peca(new BoxGeometry(44, 4, 3), madeiraClara, tqX, pisoY + 60, fundoZ + 2);
+  for (let i = 0; i < 6; i++) { const x = tqX - 18 + i * 7.2; peca(new CylinderGeometry(0.45, 0.85, 62, 8), tacoMat[i % tacoMat.length], x, pisoY + 40, fundoZ + 3.5, 0.04, 0, (i % 2 ? 1 : -1) * 0.02); peca(new CylinderGeometry(0.5, 0.5, 1.2, 8), mat(0x1f6fd6), x, pisoY + 71.6, fundoZ + 3.6); }
+  // Troféus e flâmula à direita da lousa.
   const ouro = mat(0xd8a62a, { metalness: 0.85, roughness: 0.3 }), prata = mat(0xc9ccd2, { metalness: 0.85, roughness: 0.3 });
-  [[-18, ouro, 1.3], [-6, prata, 1], [6, ouro, 1.6], [18, prata, 0.9]].forEach(([dx, m, k]) => {
-    peca(new BoxGeometry(4 * k, 2 * k, 4 * k), mat(0x2b2118), cx + 62 + dx, pisoY + 85.8 + k, fundoZ + 4);
-    peca(new CylinderGeometry(0.6 * k, 0.6 * k, 4 * k, 8), m, cx + 62 + dx, pisoY + 86.8 + 4 * k, fundoZ + 4);
-    peca(new CylinderGeometry(3 * k, 1.2 * k, 5 * k, 14), m, cx + 62 + dx, pisoY + 89 + 7 * k, fundoZ + 4);
+  const trX = cx + 78;
+  peca(new BoxGeometry(50, 1.6, 8), madeiraClara, trX, pisoY + 40, fundoZ + 4);
+  [[-18, ouro, 1.3], [-6, prata, 1], [6, ouro, 1.7], [18, prata, 0.9]].forEach(([dx, m, k]) => {
+    peca(new BoxGeometry(4 * k, 2 * k, 4 * k), mat(0x2b2118), trX + dx, pisoY + 41.8 + k, fundoZ + 4);
+    peca(new CylinderGeometry(0.6 * k, 0.6 * k, 4 * k, 8), m, trX + dx, pisoY + 42.8 + 4 * k, fundoZ + 4);
+    peca(new CylinderGeometry(3 * k, 1.2 * k, 5 * k, 14), m, trX + dx, pisoY + 45 + 7 * k, fundoZ + 4);
   });
-  // Flâmula do time e a TV no canto passando futebol.
-  const flamula = new BufferGeometry(); flamula.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, -14, 0, 28, -7, 0], 3)); flamula.computeVertexNormals();
-  peca(flamula, new MeshStandardMaterial({ color: 0xc8261d, side: 2, roughness: 0.8 }), cx - 10, pisoY + 96, fundoZ + 1.5);
-  const texTV = tela(256, 150, (g, w, h) => { g.fillStyle = '#2f8a3e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e8f5e8'; g.lineWidth = 3; g.strokeRect(12, 12, w - 24, h - 24); g.beginPath(); g.moveTo(w / 2, 12); g.lineTo(w / 2, h - 12); g.stroke(); g.beginPath(); g.arc(w / 2, h / 2, 22, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#111'; g.fillRect(8, 8, 70, 20); g.fillStyle = '#fff'; g.font = 'bold 14px sans-serif'; g.fillText('FLA 1 x 0 VAS', 12, 23); });
+  const flamula = new BufferGeometry(); flamula.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, -16, 0, 32, -8, 0], 3)); flamula.computeVertexNormals();
+  peca(flamula, new MeshStandardMaterial({ color: 0xc8261d, side: 2, roughness: 0.8 }), trX - 16, pisoY + 82, fundoZ + 1.5);
+  // TV no canto do fundo com a direita, passando futebol.
+  const texTV = tela(256, 150, (g, w, h) => { g.fillStyle = '#2f8a3e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e8f5e8'; g.lineWidth = 3; g.strokeRect(12, 12, w - 24, h - 24); g.beginPath(); g.moveTo(w / 2, 12); g.lineTo(w / 2, h - 12); g.stroke(); g.beginPath(); g.arc(w / 2, h / 2, 22, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#111'; g.fillRect(8, 8, 96, 20); g.fillStyle = '#fff'; g.font = 'bold 14px sans-serif'; g.fillText('FLA 1 x 0 VAS', 12, 23); });
   const tv = new Group();
   tv.add(new Mesh(new BoxGeometry(36, 22, 3), mat(0x151515, { roughness: 0.4 })));
   const telaTV = new Mesh(new PlaneGeometry(33, 19), new MeshBasicMaterial({ map: texTV })); telaTV.position.z = 1.6; tv.add(telaTV);
-  tv.position.set(dirX - 10, pisoY + 104, fundoZ + 14); tv.rotation.y = -0.6; cena.add(tv);
-  peca(new BoxGeometry(3, 3, 14), mat(0x333333), dirX - 6, pisoY + 104, fundoZ + 6);
+  tv.position.set(dirX - 16, pisoY + 104, fundoZ + 16); tv.rotation.y = -0.6; cena.add(tv);
+  peca(new BoxGeometry(3, 3, 14), mat(0x333333), dirX - 10, pisoY + 104, fundoZ + 6);
   // --- Esquerda: o balcão ---
   const formica = mat(0x9c3b1e, { roughness: 0.4 }), inox = mat(0xd5d8dc, { metalness: 0.9, roughness: 0.28 });
   const balX = esqX + 16, balZ0 = az0 - 20, balZ1 = az1 + 10, balL = balZ1 - balZ0, balZ = (balZ0 + balZ1) / 2;
   peca(new BoxGeometry(16, 40, balL), formica, balX, pisoY + 20, balZ);
   peca(new BoxGeometry(19, 1.6, balL + 2), inox, balX, pisoY + 40.8, balZ);
   peca(new BoxGeometry(1, 3, balL), mat(0xf2bd14), balX + 8.1, pisoY + 30, balZ);
-  // Estufa de salgado com os pastéis e coxinhas.
   peca(new BoxGeometry(14, 10, 20), new MeshPhysicalMaterial({ color: 0xffffff, transmission: 0.85, roughness: 0.05, thickness: 0.5 }), balX, pisoY + 46.6, balZ - 18);
   for (let i = 0; i < 6; i++) peca(new SphereGeometry(1.6, 10, 8), mat(i % 2 ? 0xd88a2a : 0xe8b04a), balX - 3 + (i % 3) * 3, pisoY + 43.6, balZ - 24 + Math.floor(i / 3) * 6);
-  // Banquetas vermelhas na frente do balcão.
   for (const dz of [-30, -6, 18]) { peca(new CylinderGeometry(0.9, 1.2, 30, 8), inox, balX + 15, pisoY + 15, balZ + dz); peca(new CylinderGeometry(5, 5, 2.4, 18), mat(0xd8261c, { roughness: 0.45 }), balX + 15, pisoY + 31, balZ + dz); }
-  // Prateleira de cachaça na parede atrás do balcão.
   const garrafa = [0x6b3a0a, 0x2f5d1e, 0xd8c79a, 0x8a1c14, 0x3a2a6a, 0xe0a030];
   for (const y of [70, 88]) {
     peca(new BoxGeometry(8, 1.4, balL - 20), madeiraClara, esqX + 4, pisoY + y, balZ);
     for (let i = 0; i < 9; i++) { const z = balZ - (balL - 30) / 2 + i * ((balL - 30) / 8), c = garrafa[(i + y) % garrafa.length]; peca(new CylinderGeometry(1.5, 1.5, 9, 10), new MeshPhysicalMaterial({ color: c, roughness: 0.15, transmission: 0.25, thickness: 1 }), esqX + 4, pisoY + y + 5.2, z); peca(new CylinderGeometry(0.5, 1.4, 3, 8), mat(c), esqX + 4, pisoY + y + 11, z); }
   }
-  // Freezer horizontal branco com a faixa vermelha, no fim do balcão.
-  peca(new BoxGeometry(22, 26, 36), mat(0xf4f4f0, { roughness: 0.35 }), balX - 2, pisoY + 13, balZ1 + 28);
-  peca(new BoxGeometry(22.2, 6, 36.2), mat(0xc8261d, { roughness: 0.35 }), balX - 2, pisoY + 20, balZ1 + 28);
-  // --- Direita: a porta de aço e as mesas ---
-  const portaZ = cz - 10;
-  peca(new BoxGeometry(2, 70, 60), new MeshBasicMaterial({ color: 0x0d1018 }), dirX - 1, pisoY + 35, portaZ);
-  const texAco = tela(64, 256, (g, w, h) => { for (let y = 0; y < h; y += 8) { g.fillStyle = y % 16 ? '#9aa0a8' : '#7d838b'; g.fillRect(0, y, w, 8); } });
+  peca(new BoxGeometry(22, 26, 36), mat(0xf4f4f0, { roughness: 0.35 }), balX - 2, pisoY + 13, balZ1 + 26);
+  peca(new BoxGeometry(22.2, 6, 36.2), mat(0xc8261d, { roughness: 0.35 }), balX - 2, pisoY + 20, balZ1 + 26);
+  // --- Direita: a porta de aço meio aberta para a rua de noite ---
+  const portaZ = cz - 6, portaL = 64, portaA = 84;
+  const texRua = tela(512, 672, (g, w, h) => {
+    const ceu = g.createLinearGradient(0, 0, 0, h * 0.6); ceu.addColorStop(0, '#0b1230'); ceu.addColorStop(1, '#1f2c55'); g.fillStyle = ceu; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#2b2f3a'; g.fillRect(40, 150, w - 80, h * 0.55);
+    for (const [x, y] of [[90, 200], [220, 200], [350, 200], [90, 300], [350, 300]]) { g.fillStyle = Math.random() < 0.7 ? '#f5c86a' : '#3a3f4c'; g.fillRect(x, y, 70, 60); }
+    const luz = g.createRadialGradient(w * 0.82, 120, 4, w * 0.82, 120, 170); luz.addColorStop(0, 'rgba(255,190,90,.95)'); luz.addColorStop(1, 'rgba(255,190,90,0)'); g.fillStyle = luz; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#16181d'; g.fillRect(w * 0.82 - 4, 120, 8, h * 0.6);
+    g.fillStyle = '#5b5f66'; g.fillRect(0, h * 0.74, w, h * 0.26);
+    g.strokeStyle = '#1d1f24'; g.lineWidth = 6; for (let y = h * 0.78; y < h; y += 28) { g.beginPath(); for (let x = 0; x <= w; x += 16) g.lineTo(x, y + Math.sin(x / 30) * 8); g.stroke(); }
+    g.fillStyle = '#8f949b'; g.fillRect(0, h * 0.72, w, 16);
+  });
+  peca(new PlaneGeometry(portaL, portaA), new MeshBasicMaterial({ map: texRua }), dirX - 0.6, pisoY + portaA / 2, portaZ, 0, -Math.PI / 2);
+  const texAco = tela(64, 256, (g, w, h) => { for (let y = 0; y < h; y += 8) { g.fillStyle = y % 16 ? '#a3a9b1' : '#858b93'; g.fillRect(0, y, w, 8); } });
   texAco.wrapS = texAco.wrapT = RepeatWrapping; texAco.repeat.set(1, 3);
-  peca(new BoxGeometry(2, 30, 62), new MeshStandardMaterial({ map: texAco, metalness: 0.6, roughness: 0.45 }), dirX - 2, pisoY + 70 + 15 - 4, portaZ);
+  peca(new BoxGeometry(1.6, 34, portaL + 2), new MeshStandardMaterial({ map: texAco, metalness: 0.6, roughness: 0.45 }), dirX - 1.4, pisoY + portaA - 17, portaZ);
+  peca(new BoxGeometry(2, 4, portaL + 6), mat(0x4a4f57, { metalness: 0.5 }), dirX - 1.6, pisoY + portaA + 1, portaZ);
+  for (const s of [-1, 1]) peca(new BoxGeometry(2.2, portaA + 2, 3), mat(0x4a4f57, { metalness: 0.5 }), dirX - 1.6, pisoY + portaA / 2, portaZ + s * (portaL / 2 + 1.5));
+  // As mesas amarelas e as cadeiras de plástico.
   const amarelo = mat(0xf2bd14, { roughness: 0.45 }), vermelho = mat(0xd8261c, { roughness: 0.45 });
   const cadeira = (x, z, giro) => {
     const g = new Group(), pe = new CylinderGeometry(0.7, 0.9, 17, 8);
@@ -205,25 +242,36 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     const b = new Mesh(new BoxGeometry(17, 15, 1.2), vermelho); b.position.set(0, pisoY + 25, -8.2); b.rotation.x = -0.12; g.add(b);
     g.traverse((m) => { m.castShadow = m.receiveShadow = true; }); g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
   };
-  const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = mat(0xf5f0e0);
+  const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = mat(0xf5f0e0), tampa = mat(0xc9c9c9, { metalness: 0.8, roughness: 0.3 });
+  const garrafaCerveja = (x, y, z) => { peca(new CylinderGeometry(1.7, 1.7, 9, 12), vidro, x, y + 4.5, z); peca(new CylinderGeometry(1.75, 1.75, 3, 12), rotulo, x, y + 4, z); peca(new CylinderGeometry(0.6, 1.5, 4, 10), vidro, x, y + 11, z); peca(new CylinderGeometry(0.7, 0.7, 0.6, 10), tampa, x, y + 13.2, z); };
   const mesaBar = (x, z, garrafas) => {
     for (const [px, pz] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) peca(new CylinderGeometry(0.8, 1, 26, 8), amarelo, x + px, pisoY + 13, z + pz);
     peca(new BoxGeometry(28, 1.6, 28), amarelo, x, pisoY + 26.8, z);
-    garrafas.forEach(([bx, bz]) => { peca(new CylinderGeometry(1.8, 1.8, 9, 12), vidro, x + bx, pisoY + 32, z + bz); peca(new CylinderGeometry(1.85, 1.85, 3, 12), rotulo, x + bx, pisoY + 31.5, z + bz); peca(new CylinderGeometry(0.7, 1.6, 4, 10), vidro, x + bx, pisoY + 38.5, z + bz); });
+    garrafas.forEach(([bx, bz]) => garrafaCerveja(x + bx, pisoY + 27.6, z + bz));
     peca(new CylinderGeometry(2.2, 1.8, 6, 12), new MeshPhysicalMaterial({ color: 0xf6c34a, roughness: 0.1, transmission: 0.3, thickness: 1 }), x - 2, pisoY + 30.6, z + 6);
   };
-  const m1 = [ax1 + 36, az0 - 14], m2 = [ax1 + 38, az1 + 24];
-  mesaBar(m1[0], m1[1], [[-5, -3], [4, 5]]); cadeira(m1[0] - 20, m1[1], Math.PI / 2); cadeira(m1[0] + 20, m1[1], -Math.PI / 2); cadeira(m1[0], m1[1] - 20, 0);
-  mesaBar(m2[0], m2[1], [[3, -4], [-5, 2], [6, 6]]); cadeira(m2[0] - 20, m2[1] + 3, Math.PI / 2 + 0.2); cadeira(m2[0], m2[1] + 21, Math.PI);
-  // Engradados empilhados nos cantos (como no depósito do boteco).
+  const m1 = [ax1 + 48, az0 - 22], m2 = [ax1 + 52, az1 + 34];
+  mesaBar(m1[0], m1[1], [[-5, -3], [4, 5]]); cadeira(m1[0] - 20, m1[1], Math.PI / 2); cadeira(m1[0], m1[1] - 20, 0);
+  mesaBar(m2[0], m2[1], [[3, -4], [-5, 2], [6, 6]]); cadeira(m2[0] - 20, m2[1] + 3, Math.PI / 2 + 0.2); cadeira(m2[0], m2[1] + 20, Math.PI);
+  // Engradados de verdade: vazados nas laterais, com as garrafas aparecendo no de cima.
+  const texEngradado = {};
+  const matEngradado = (cor) => (texEngradado[cor] ||= new MeshStandardMaterial({ roughness: 0.5, map: tela(128, 72, (g, w, h) => {
+    g.fillStyle = `#${cor.toString(16).padStart(6, '0')}`; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,.55)'; for (let x = 8; x < w - 8; x += 15) g.fillRect(x, 18, 9, 32);
+    g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(w / 2 - 18, 6, 36, 8);
+    g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(0, 0, w, 3); g.fillRect(0, h - 4, w, 4);
+  }) }));
   const engradado = (x, z, cores, giro = 0) => cores.forEach((cor, i) => {
-    const caixa = peca(new BoxGeometry(20, 11, 14), mat(cor, { roughness: 0.5 }), x, pisoY + 5.5 + i * 11.2, z, 0, giro);
-    if (i === cores.length - 1) for (let gx = -7.5; gx <= 7.5; gx += 5) for (let gz = -4; gz <= 4; gz += 4) { const p = new Mesh(new CylinderGeometry(1.4, 1.4, 4, 8), vidro); p.position.set(gx, 7.5, gz); caixa.add(p); }
+    peca(new BoxGeometry(20, 11, 14), matEngradado(cor), x, pisoY + 5.5 + i * 11.2, z, 0, giro);
+    if (i === cores.length - 1) for (let gx = -7.5; gx <= 7.5; gx += 5) for (let gz = -4; gz <= 4; gz += 4) {
+      const ox = x + gx * Math.cos(giro) + gz * Math.sin(giro), oz = z - gx * Math.sin(giro) + gz * Math.cos(giro), topo = pisoY + 11 + i * 11.2;
+      peca(new CylinderGeometry(0.6, 1.3, 4, 8), vidro, ox, topo + 2, oz); peca(new CylinderGeometry(0.65, 0.65, 0.5, 8), tampa, ox, topo + 4.2, oz);
+    }
   });
   engradado(dirX - 14, fundoZ + 14, [0xc8261d, 0x1f7a46, 0xc8261d, 0xf2bd14], 0.1);
   engradado(dirX - 14, fundoZ + 32, [0x1f7a46, 0xc8261d], -0.05);
   engradado(dirX - 36, fundoZ + 12, [0xf2bd14, 0xf2bd14, 0x1f7a46], 0.2);
-  engradado(esqX + 14, balZ1 + 56, [0xc8261d, 0xc8261d], 0.15);
+  engradado(esqX + 14, balZ1 + 54, [0xc8261d, 0xc8261d], 0.15);
   // Pés torneados e a saia da mesa.
   const H = 1.9, costas = 2.15;                                     // altura da tabela e fundo das borrachas (unidades)
   for (const [px, pz] of [[ax0 + 7, az0 + 7], [ax1 - 7, az0 + 7], [ax0 + 7, az1 - 7], [ax1 - 7, az1 - 7], [cx, az0 + 7], [cx, az1 - 7]]) {
@@ -484,6 +532,8 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   }
   return {
     desenhar, pedir, mesaNoPonteiro,
+    // A lousa do RANKING DO SALÃO na parede do fundo: [[nome, vitórias], ...] (só repinta quando muda).
+    lousa(linhas) { const k = JSON.stringify(linhas || []); if (k === lousaChave) return; lousaChave = k; pintarLousa(linhas || []); pedir(); },
     // Zoom e altura da câmera escolhidos pelo jogador (roda do mouse e controles).
     ajustarVista(dz = 0, da = 0) { vista.zoom = MathUtils.clamp(vista.zoom * (1 + dz), 0.55, 1.8); vista.altura = MathUtils.clamp(vista.altura + da, -1, 1); pedir(); return { ...vista }; },
     get vista() { return { ...vista }; }, get custo() { return { ms: ultimoCusto, razao, chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles }; },

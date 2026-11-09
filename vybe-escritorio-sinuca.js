@@ -365,6 +365,9 @@ function desenharSinuca(j, s) {
   if (j.fichas) s.fichas = { id: j.id, lista: j.fichas };
   if (j.ranking) s.quadro = { id: j.id, placar: j.placar, historico: j.historico, sequencia: j.sequencia, ranking: j.ranking };
   const q = j.ranking ? j : s.quadro?.id === j.id ? s.quadro : null;
+  // A lousa do RANKING DO SALÃO na parede do bar 3D (Paulo, 09/11/2026: "a placa de giz com o rank seria massa").
+  const rkLousa = q?.ranking?.lista || (typeof escritorioXadrez === "function" ? escritorioXadrez().extras?.bots?.salao?.ranking?.lista : null);
+  if (rkLousa && sinuca3dAtivo()) SINUCA_3D.api.lousa?.(rkLousa.slice(0, 5).map((r) => [String(r.nome || "").split(" ")[0].toUpperCase(), r.vitorias]));
   // Pinta logo que o canvas entra na tela (rAF não roda com a aba escondida).
   setTimeout(() => sinucaPintar());
   return {
