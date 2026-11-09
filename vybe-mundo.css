@@ -5228,7 +5228,9 @@ html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-
   #vv-hoje .vv-sem-dia small{font-size:9px}
 }
 /* Avisos do WhatsApp (coluna no alto, à direita) param acima do dock; os vídeos da chamada abrem acima dele. */
-body.mundo.com-dock-salas #vv-wa-avisos{max-height:calc(100vh - 64px - 3 * var(--vv-m,14px) - var(--vv-dock-alto,74px));overflow:hidden}
+/* Avisos do WhatsApp acima do dock fixo, nunca por baixo dele (o !important vence o bottom antigo da linha 4104, que também é !important) */
+html body.mundo.com-dock-salas #vv-wa-avisos{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important;max-height:calc(100vh - 64px - 3 * var(--vv-m,14px) - var(--vv-dock-alto,74px));overflow:hidden}
 html body.mundo.com-dock-salas .vv-palco{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)}
 /* Botão do topo com nome (Agenda, WhatsApp): a contagem fica no canto do ícone, não em cima do nome. */
-html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{right:auto;left:20px;top:0}
+/* Botão com nome (Agenda, WhatsApp): o selo vai depois do nome, em linha, sem cobrir o texto */
+html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{position:static;order:3;margin-left:2px;transform:none}
