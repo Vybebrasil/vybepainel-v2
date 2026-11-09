@@ -209,6 +209,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (grupo Vybe) abre o quarto do Escritório da pessoa em voxel, em tela cheia (`mundo/quarto.mjs`, `abrirMinhaSala`):
   a planta com as alturas, piso, parede e a camada salva da sala, só leitura, e quem está na sala. Abrir entra na zona
   da própria sala e na chamada dela. Decorar continua no editor do Escritório.
+  Móveis fiéis (Paulo, 09/11/2026: "olhar móvel a móvel, detalhe a detalhe, e copiar exatamente igual"): cada móvel
+  é esculpido em voxels a partir da própria arte do Habbo (`mundo/moveis-habbo.mjs`): as direções desenhadas (e os
+  espelhos, que o Habbo usa para peças simétricas) são fotos de lados diferentes; fica o bloco que aparece em todas e a
+  cor é a do pixel. Não desenhe móvel à mão nem use o ícone genérico do catálogo (só se a arte não carregar). A câmera
+  abre no ângulo do Habbo (30°) e 1 nível = 0,816 ladrilho.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa

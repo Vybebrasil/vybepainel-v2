@@ -1596,14 +1596,16 @@
     el.querySelector('.quarto-nome').textContent = quarto.nome;
     // Abrir a sala é entrar nela: a pessoa vai para a zona da própria sala e para a chamada dela (mudo, como sempre).
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
-    if (e && e.zona !== zona) irParaSala(zona);
+    // Só com o Escritório conectado: sem conexão, irParaSala cai em irParaSalaEscritorio, que troca de quadro (e
+    // quebrava sem perfil). Ao conectar, pintarChamada leva a pessoa à própria sala.
+    if (e?.conectado && e.mapa && e.zona !== zona) irParaSala(zona);
     let m; try { m = await import(MUNDO_JS); } catch (err) { console.error('[mundo] minha sala', err); mostrarEstado('erro', 'Não deu para carregar o 3D. Confira a conexão.'); return; }
     if (geracao !== geracaoAndar || !el.isConnected) return;
     andarAberto = m.abrirQuarto(el.querySelector('canvas'), { quarto });
     mostrarEstado('', '');
     andarAberto.aoClicarPiso((x, y) => {
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
-      if (naSala && typeof escritorioIrPara === 'function') escritorioIrPara(x, y); else irParaSala(zona);
+      if (naSala && typeof escritorioIrPara === 'function') escritorioIrPara(x, y); else if (typeof escritorio !== 'undefined' && escritorio?.conectado) irParaSala(zona);
     });
     medidasDoHabbo(quarto.itens).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
     let assinItens = JSON.stringify(quarto.itens);
