@@ -826,7 +826,7 @@ async function areaClientes(req, res, quem) {
     // Quem pode ser head. Vai junto para o seletor nao precisar de outra volta ao
     // servidor — e porque a tela de clientes nao lista a equipe sozinha.
     const pessoas = await db`SELECT id, nome, monday_user_id FROM vybe_pessoas
-      WHERE ativo ORDER BY nome`;
+      WHERE ativo AND pode_entrar ORDER BY nome`; // a equipe: regra única (server/pessoas.js)
     return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas });
   }
   // LER a ata e de todo mundo; escrever e apagar sao de quem administra.

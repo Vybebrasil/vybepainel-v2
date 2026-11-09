@@ -56,8 +56,8 @@ async function pacotes(sql, dono) {
 async function capacidade(sql) {
   const linhas = await sql`SELECT cargo, capacidade_mensal FROM vybe_comercial_capacidade`;
   let pessoas;
-  try { pessoas = await sql`SELECT p.id::text, p.monday_user_id::text, f.funcao AS cargo FROM vybe_pessoas p JOIN vybe_escritorio_funcoes f ON f.pessoa_id=p.id WHERE p.ativo IS NOT FALSE`; }
-  catch (e) { if (e.code !== '42703') throw e; pessoas = await sql`SELECT p.id::text, f.funcao AS cargo FROM vybe_pessoas p JOIN vybe_escritorio_funcoes f ON f.pessoa_id=p.id WHERE p.ativo IS NOT FALSE`; }
+  try { pessoas = await sql`SELECT p.id::text, p.monday_user_id::text, f.funcao AS cargo FROM vybe_pessoas p JOIN vybe_escritorio_funcoes f ON f.pessoa_id=p.id WHERE p.ativo AND p.pode_entrar`; }
+  catch (e) { if (e.code !== '42703') throw e; pessoas = await sql`SELECT p.id::text, f.funcao AS cargo FROM vybe_pessoas p JOIN vybe_escritorio_funcoes f ON f.pessoa_id=p.id WHERE p.ativo AND p.pode_entrar`; }
   return { capacidades: Object.fromEntries(linhas.map((l) => [l.cargo, l.capacidade_mensal])), pessoas, cargos: calc.CARGOS };
 }
 const capacidadeOuNada = (sql) => capacidade(sql).catch((e) => { if (e.code === '42P01') return null; throw e; });

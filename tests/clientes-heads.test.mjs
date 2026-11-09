@@ -8,7 +8,7 @@ test('heads e carteira persistem juntos, com identidade, ordem e rollback', asyn
   const { db, sql } = conexao();
   try {
     await db.exec(`CREATE TABLE vybe_clientes(id int primary key,responsavel text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
-      CREATE TABLE vybe_pessoas(id int primary key,monday_user_id text,ativo boolean);
+      CREATE TABLE vybe_pessoas(id int primary key,monday_user_id text,ativo boolean,pode_entrar boolean DEFAULT true);
       CREATE TABLE vybe_cliente_pessoas(cliente_id int references vybe_clientes(id),pessoa_id int references vybe_pessoas(id),ordem int);
       INSERT INTO vybe_clientes VALUES(1,'Vinícius');
       INSERT INTO vybe_pessoas VALUES(1,'68036687',true),(2,'68035653',true),(3,'outro-ewerton',true),(4,'inativo',false);`);
