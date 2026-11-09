@@ -2,6 +2,7 @@ import {exigirAdministradorPrivado} from './assistente-exclusivo.js';
 import { validarConversa, autorizarConversa } from './assistente-politica.js';
 import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
 import { assistenteAtivo, escopoEquipe } from './assistente-ativacao.js';
+import { redistribuicoes } from './redistribuicoes.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 // Credencial EXCLUSIVA do bot. Nunca reutilizar MIRROR_ADMIN_KEY ou SESSAO_SECRET.
@@ -100,7 +101,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -121,6 +122,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'resultado_posts') return res.status(200).json({ ok: true, ...(await resultadoDosPosts(banco, req.body?.dia)) });
       if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco) });
       // Augusto (Copy): demanda parada em "Falta Info", quem marcou e o que já foi comentado depois. Só leitura.
+      // Heitor (Coordenação de Produção): trocas de responsável na Produção, com quem trocou (server/redistribuicoes.js). Só leitura.
+      if (consulta === 'redistribuicoes') return res.status(200).json({ ok: true, ...(await redistribuicoes(banco, { dias: req.body?.dias })) });
       if (consulta === 'falta_info') return res.status(200).json({ ok: true, ...(await pecasEmFaltaInfo(banco)) });
       if (consulta === 'sem_briefing') return res.status(200).json({ ok: true, pecas: await pecasSemBriefing(banco, req.body?.dia) });
       if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });
