@@ -5018,3 +5018,14 @@ body.trilho-largo .vv-trilho-grupo:first-of-type{margin-top:6px}
 .vv-trilho-seta{position:relative}
 .vv-trilho-seta::after{content:"";position:absolute;inset:-12px}
 body.trilho-largo .vv-trilho-btn[aria-expanded="true"]{background:rgba(255,255,255,.7)}
+/* Painel de trabalho (Paulo, 08/11/2026: "o dia atual tem que ter mais destaque, se não parece tudo igual"): o dia de hoje
+   com borda laranja, fundo levemente laranja, cabeçalho com o selo "Hoje" e sombra; os outros dias seguem neutros. */
+html body.mundo.mundo-modulo .week-panel .client-card.day-scroll-card.day-is-today{border:2px solid var(--vv-laranja,#F26B1D)!important;background:linear-gradient(180deg,#FFF1E6 0,#FFF9F4 120px,#FFFFFF 100%)!important;box-shadow:0 14px 34px rgba(242,107,29,.18)!important;border-radius:14px!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today > .client-header{background:transparent!important;border-bottom:1px solid rgba(242,107,29,.25)!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today .client-name{color:#C2410C!important;text-shadow:none!important;font-weight:800!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--vv-laranja,#F26B1D);color:#fff!important;font:700 10.5px/1.4 var(--vv-texto);letter-spacing:.02em;vertical-align:middle}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card:not(.day-is-today){opacity:.94}
+/* Anel "Semana fechada" no tema claro (o miolo escuro era do painel antigo). */
+html body.mundo.mundo-modulo .pv-anel{background:conic-gradient(#2E9D5B calc(var(--p)*1%),#E9E3D9 0)!important}
+html body.mundo.mundo-modulo .pv-anel::before{background:#fff!important}
+html body.mundo.mundo-modulo .pv-anel i{color:#1F1D1A!important;font-weight:750}
