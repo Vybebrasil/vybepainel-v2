@@ -50,3 +50,22 @@ test('só os donos: botão no Hoje e abertura sozinha uma vez por dia, sem abrir
   assert.ok(idx.indexOf('/vybe-mundo-agentes.js') < idx.indexOf('/vybe-mundo-boletim.js'), 'depois de Agentes');
   assert.match(idx, /vybe-mundo-boletim\.css/);
 });
+
+test('o que está fazendo agora: o estado ao vivo da central; quem está executando nunca fica entre os quietos', () => {
+  const B = carregar();
+  const b = B.boletimDoAgente(ag('arte', 'Danilo'), { agora: AGORA, atividade: { estado: 'executando', tarefa: 'Revisando a arte da Hebravet', desde: h(0.5), emCurso: 2, ultimos: [] } });
+  assert.equal(b.agora.rotulo, 'Fazendo agora');
+  assert.equal(b.agora.tarefa, 'Revisando a arte da Hebravet');
+  assert.equal(b.quieto, false, 'trabalhando aparece no boletim');
+  assert.equal(B.boletimDoAgente(ag('x', 'X'), { agora: AGORA }).agora, null, 'sem leitura: não inventa estado');
+  const M = B.montar([ag('arte', 'Danilo'), ag('x', 'X')], { agora: AGORA, atividades: { arte: { estado: 'disponivel', ultimos: [] } } });
+  assert.equal(M.todos.length, 2, 'a página Agência lista o agora de todos, inclusive os quietos');
+});
+
+test('botão Boletim no topo (de qualquer lugar), só para quem vê o boletim', () => {
+  const js = readFileSync('vybe-mundo.js', 'utf8');
+  assert.match(js, /class="vv-botao vv-ferr-boletim" data-boletim hidden/);
+  assert.ok(js.indexOf('vv-ferr-boletim') > js.indexOf('data-ferr="whatsapp"') && js.indexOf('vv-ferr-boletim') < js.indexOf('data-ferr="avisos"'), 'depois do WhatsApp');
+  assert.match(js, /btBoletim\.hidden = !window\.VybeBoletim\?\.podeVer\?\.\(\)/);
+  assert.equal(carregar({ dono: false }).podeVer(), false);
+});
