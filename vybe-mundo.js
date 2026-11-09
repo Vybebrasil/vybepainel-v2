@@ -395,13 +395,15 @@
     const cli = (typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente) || '';
     const tagCli = cli ? (typeof tagClienteHtml === 'function' ? tagClienteHtml(cli, { dentroDeBotao: true }) : `<span class="cliente-carteira">${esc(cli)}</span>`) : '';
     const quando = ref === hoje ? 'Hoje' : ref ? ref.slice(8) + '/' + ref.slice(5, 7) : '';
+    // A data diz o que é (Paulo, 09/11/2026: "essa data é veiculação ou prazo?"): prazo é a entrega da equipe, No ar é a veiculação.
+    const qual = !ref ? '' : ref === String(d.prazo_iso || '').slice(0, 10) ? 'Prazo' : ref === String(d.veiculacao_iso || '').slice(0, 10) ? 'No ar' : '';
     const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d, 'linha-previa vv-olho') : '';
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${tagCli}${d.status ? `<span class="vv-demanda-status"><i></i>${esc(d.status)}</span>` : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${tagCli}${d.status ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
-      <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${esc(quando)}</time>` : ''}</span>
+      <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${qual ? `<i>${qual}</i> ` : ''}${esc(quando)}</time>` : ''}</span>
     </div>`;
   }
   // ---------- Visão do dono (Paulo, Vinícius, Ewerton e Deivid) ----------
@@ -850,9 +852,12 @@
     }
     gestao.innerHTML = topo + `<div class="vv-g-corpo vs-corpo vs-gestao-aba">${corpo}</div>`;
   }
+  // Cliente na cor da carteira, status na cor do quadro e as datas com nome (vybe-core.js: pecaMetaHtml, pecaDatasHtml).
+  const metaPeca = (p) => (typeof pecaMetaHtml === 'function' ? pecaMetaHtml(p) : esc([p.cliente, p.status, p.responsavel].filter(Boolean).join(' · ')));
+  const datasPeca = (p) => (typeof pecaDatasHtml === 'function' ? pecaDatasHtml(p) : '');
   function listaPecas(lista = [], vazio = '', max = 8) {
     if (!lista?.length) return `<p class="vv-vazio">${vazio}</p>`;
-    return lista.slice(0, max).map((p) => `<button type="button" class="vv-g-linha peca" data-hoje-acao="peca" data-valor="${esc(p.id)}"><b>${esc(p.nome || 'Peça')}</b><small>${esc([p.cliente, p.status, p.responsavel].filter(Boolean).join(' · '))}</small><em>${esc(String(p.veiculacao_iso || p.prazo_iso || '').slice(8, 10) + '/' + String(p.veiculacao_iso || p.prazo_iso || '').slice(5, 7))}</em></button>`).join('') + (lista.length > 8 ? `<p class="vv-dica">+ ${lista.length - 8}</p>` : '');
+    return lista.slice(0, max).map((p) => `<button type="button" class="vv-g-linha peca" data-hoje-acao="peca" data-valor="${esc(p.id)}"><b>${esc(p.nome || 'Peça')}</b><small class="vv-g-meta">${metaPeca(p)}</small><em class="vv-g-datas">${datasPeca(p)}</em></button>`).join('') + (lista.length > 8 ? `<p class="vv-dica">+ ${lista.length - 8}</p>` : '');
   }
   // ---------- Espiar: o número abre o que está por trás dele (Paulo, 08/11: "ver 69 atrasadas e clicar nele") ----------
   // Passar o mouse mostra a prévia; clicar fixa o mini painel (X, Esc e clique fora fecham). Cada linha leva à peça ou ao cliente.
@@ -870,7 +875,7 @@
     if (PROVEDORES[pref]) {
       let c = null; try { c = PROVEDORES[pref](String(chave).slice(pref.length + 1)); } catch (e) { console.error('[espiar]', e); }
       if (!c) return null;
-      if (Array.isArray(c.itens) && !c.corpo) c.corpo = c.itens.length ? c.itens.map((it, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${esc(it.nome)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.dir ? `<em class="${it.cls ? 't-' + it.cls : ''}">${esc(it.dir)}</em>` : ''}</button>`).join('') : `<p class="vv-vazio">${esc(c.vazio || 'Nada aqui.')}</p>`;
+      if (Array.isArray(c.itens) && !c.corpo) c.corpo = c.itens.length ? c.itens.map((it, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${esc(it.nome)}</b>${it.subHtml ? `<small class="vv-g-meta">${it.subHtml}</small>` : it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.dirHtml ? `<em class="vv-g-datas">${it.dirHtml}</em>` : it.dir ? `<em class="${it.cls ? 't-' + it.cls : ''}">${esc(it.dir)}</em>` : ''}</button>`).join('') : `<p class="vv-vazio">${esc(c.vazio || 'Nada aqui.')}</p>`;
       if (c.n == null) c.n = (c.itens || []).length;
       return c;
     }

@@ -838,6 +838,7 @@ body.mundo .ofc-ficha .ofc-trabalho-grafico :is(svg text){fill:#6B675F!important
 .vv-demanda-lado{display:flex;align-items:center;gap:6px;flex:none}
 .vv-demanda time{font:600 11.5px var(--vv-texto);color:#6B675F;font-variant-numeric:tabular-nums}
 .vv-demanda time.atrasada{color:#C0263E;font-weight:700}
+.vv-demanda time i{margin-right:3px;font:500 10.5px var(--vv-texto);font-style:normal;color:#8A847A}
 .vv-demanda .vv-olho{width:28px;height:28px;display:grid;place-items:center;border-radius:6px;border:1px solid #ECE6DC;background:#FAF8F4;color:#6B675F;cursor:pointer;padding:0}
 .vv-demanda .vv-olho:hover{background:#FFF1E2;border-color:#FFD7AE;color:#B4510E}
 .vv-demanda .vv-olho svg{width:15px;height:15px}
@@ -5005,3 +5006,12 @@ html body.mundo .vv-chamada > :not(.vz-salas){flex-shrink:0}
 .vv-chamada .vz-dica{margin:6px 8px;font:500 11.5px var(--vv-texto);color:#6B675F}
 .vv-chamada :is(.vz-b,.vz-botao,.vz-sair,.vz-chip,.vz-sala,.vz-musica-bts button,.vz-recolhe summary):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.vv-chamada .vz-recolhe summary::before{transition:none}}
+
+/* Listas curtas de peças (espiar, Gestão, Performance): cliente na cor da carteira, status na cor do quadro e as duas datas
+   com nome, Prazo e No ar (Paulo, 09/11/2026: "a cor do head no cliente? a cor do status? essa data é veiculação ou prazo?"). */
+html body.mundo .vv-g-linha small.vv-g-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;white-space:normal;overflow:visible;min-width:0}
+html body.mundo .vv-g-linha small.vv-g-meta .pill{font-size:10.5px;padding:1px 7px}
+.vv-g-meta .peca-quem{font:500 11px var(--vv-texto);color:#6B675F}
+html body.mundo .vv-g-linha em.vv-g-datas{display:grid;justify-items:end;gap:2px;white-space:nowrap}
+.peca-data{font:600 11.5px var(--vv-texto);color:#3A3F44;font-variant-numeric:tabular-nums}
+.peca-data i{margin-right:4px;font:500 10.5px var(--vv-texto);font-style:normal;color:#8A847A}
