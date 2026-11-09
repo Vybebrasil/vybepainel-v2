@@ -5018,3 +5018,171 @@ body.trilho-largo .vv-trilho-grupo:first-of-type{margin-top:6px}
 .vv-trilho-seta{position:relative}
 .vv-trilho-seta::after{content:"";position:absolute;inset:-12px}
 body.trilho-largo .vv-trilho-btn[aria-expanded="true"]{background:rgba(255,255,255,.7)}
+/* Painel de trabalho (Paulo, 08/11/2026: "o dia atual tem que ter mais destaque, se não parece tudo igual"): o dia de hoje
+   com borda laranja, fundo levemente laranja, cabeçalho com o selo "Hoje" e sombra; os outros dias seguem neutros. */
+html body.mundo.mundo-modulo .week-panel .client-card.day-scroll-card.day-is-today{border:2px solid var(--vv-laranja,#F26B1D)!important;background:linear-gradient(180deg,#FFF1E6 0,#FFF9F4 120px,#FFFFFF 100%)!important;box-shadow:0 14px 34px rgba(242,107,29,.18)!important;border-radius:14px!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today > .client-header{background:transparent!important;border-bottom:1px solid rgba(242,107,29,.25)!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today .client-name{color:#C2410C!important;text-shadow:none!important;font-weight:800!important}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--vv-laranja,#F26B1D);color:#fff!important;font:700 10.5px/1.4 var(--vv-texto);letter-spacing:.02em;vertical-align:middle}
+html body.mundo.mundo-modulo .week-panel .day-scroll-card:not(.day-is-today){opacity:.94}
+/* Anel "Semana fechada" no tema claro (o miolo escuro era do painel antigo). */
+html body.mundo.mundo-modulo .pv-anel{background:conic-gradient(#2E9D5B calc(var(--p)*1%),#E9E3D9 0)!important}
+html body.mundo.mundo-modulo .pv-anel::before{background:#fff!important}
+html body.mundo.mundo-modulo .pv-anel i{color:#1F1D1A!important;font-weight:750}
+
+/* ---------- Cérebro do VYBES: o grafo vivo (vybe-cerebro-grafo.js; Paulo, 08/11/2026: "nessa linha" do Obsidian) ----------
+   Fundo escuro para os nós brilharem (o único bloco escuro do painel claro, de propósito: é um mapa), controles num painel
+   à direita, busca em cima, o cartão do nó escolhido embaixo à esquerda. */
+.cb-grafo{position:relative;height:min(78vh,820px);min-height:460px;border-radius:14px;overflow:hidden}
+.cg{position:absolute;inset:0;background:#16171C;color:#EDE8E0;font-family:var(--vv-texto,Inter,system-ui,sans-serif)}
+.cg-tela{position:absolute;inset:0;display:block;cursor:grab;outline:none}
+.cg-tela:active{cursor:grabbing}
+.cg-tela:focus-visible{box-shadow:inset 0 0 0 2px var(--vv-laranja,#F26B1D)}
+.cg-busca{position:absolute;left:14px;top:14px;display:flex;align-items:center;gap:10px;z-index:2}
+.cg-busca input{width:min(340px,52vw);height:36px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(28,29,35,.92);color:#EDE8E0;font:500 13px inherit}
+.cg-busca input::placeholder{color:rgba(237,232,224,.45)}
+.cg-busca input:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:1px}
+.cg-conta{font:500 11.5px inherit;color:rgba(237,232,224,.5)}
+.cg-painel{position:absolute;right:12px;top:12px;width:230px;max-height:calc(100% - 24px);overflow:auto;z-index:2;padding:8px;border-radius:12px;background:rgba(28,29,35,.94);border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 40px rgba(0,0,0,.35);scrollbar-width:thin}
+.cg-painel[data-fechado]{width:auto;padding:4px}
+.cg-painel[data-fechado] .cg-painel-corpo{display:none}
+.cg-painel-alternar{appearance:none;width:100%;border:0;background:transparent;color:rgba(237,232,224,.7);font:600 11.5px inherit;padding:6px 8px;text-align:right;cursor:pointer;border-radius:7px}
+.cg-painel-alternar:hover{background:rgba(255,255,255,.06);color:#fff}
+.cg-painel details{border-top:1px solid rgba(255,255,255,.07);padding:6px 4px}
+.cg-painel summary{cursor:pointer;list-style:none;font:700 12px inherit;color:#EDE8E0;padding:4px 2px}
+.cg-painel summary::-webkit-details-marker{display:none}
+.cg-painel summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
+.cg-painel details[open] summary::before{transform:rotate(90deg)}
+.cg-grupo{display:flex;align-items:center;gap:8px;padding:5px 2px;font:500 12px inherit;color:rgba(237,232,224,.85);cursor:pointer}
+.cg-grupo input{accent-color:var(--vv-laranja,#F26B1D)}
+.cg-grupo i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.cg-grupo span{flex:1}
+.cg-grupo small{color:rgba(237,232,224,.45);font-variant-numeric:tabular-nums}
+.cg-faixa{display:grid;gap:4px;padding:6px 2px;font:500 11.5px inherit;color:rgba(237,232,224,.75)}
+.cg-faixa input{accent-color:var(--vv-laranja,#F26B1D);width:100%}
+.cg-botao{appearance:none;margin-top:6px;width:100%;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#EDE8E0;font:600 12px inherit;cursor:pointer}
+.cg-botao:hover{background:rgba(255,255,255,.12)}
+.cg-botao.principal{background:var(--vv-laranja,#F26B1D);border-color:var(--vv-laranja,#F26B1D);color:#fff}
+.cg-zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;z-index:2}
+.cg-zoom button{appearance:none;min-width:34px;height:34px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(28,29,35,.92);color:#EDE8E0;font:600 13px inherit;cursor:pointer}
+.cg-zoom button:hover{background:rgba(45,46,54,.95)}
+.cg-cartao{position:absolute;left:14px;bottom:14px;width:min(320px,calc(100% - 28px));z-index:3;padding:12px 14px;border-radius:12px;background:rgba(28,29,35,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.cg-cartao[hidden]{display:none}
+.cg-cartao-topo{display:flex;align-items:center;gap:10px}
+.cg-cartao-topo i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.cg-cartao-topo span{flex:1;min-width:0;display:grid}
+.cg-cartao-topo small{font:600 10.5px inherit;color:rgba(237,232,224,.55);text-transform:uppercase;letter-spacing:.05em}
+.cg-cartao-topo b{font:700 14px inherit;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cg-x{appearance:none;border:0;background:transparent;color:rgba(237,232,224,.6);font-size:18px;cursor:pointer;width:28px;height:28px;border-radius:7px}
+.cg-x:hover{background:rgba(255,255,255,.08);color:#fff}
+.cg-cartao p{margin:8px 0 0;font:500 12px/1.45 inherit;color:rgba(237,232,224,.75)}
+.cg-cartao .cg-ligado{color:rgba(237,232,224,.55)}
+.cg-vazio{position:absolute;inset:auto 0 45%;text-align:center;font:500 13px inherit;color:rgba(237,232,224,.6)}
+@media (max-width:900px){.cg-painel{width:200px}.cb-grafo{height:70vh}}
+/* No tema escuro do painel o grafo já é escuro: não inverte. */
+html.tema-escuro body.mundo .cg{filter:invert(1) hue-rotate(180deg)}
+.cg-grupo input[type=checkbox]{appearance:auto!important;width:14px;height:14px;margin:0;flex:none}
+.cg-painel{max-height:calc(100% - 72px)}
+/* O campo de busca do grafo é escuro: a regra geral de campos dos módulos pesa três ids (:not(#ds-a…c)), por isso os quatro. */
+html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#1C1D23!important;color:#EDE8E0!important;border:1px solid rgba(255,255,255,.16)!important;-webkit-text-fill-color:#EDE8E0}
+/* Hoje: blocos de prioridade (Atrasadas, Para hoje, Próximos dias) e os botões de alternar com "todas por status". */
+.vv-bloco-prio.atrasadas{border-top:3px solid var(--sit-atrasada,#D2453B)}
+.vv-bloco-prio.hoje{border-top:3px solid var(--vv-laranja,#F26B1D)}
+.vv-bloco-prio.depois{border-top:3px solid #CFC7BB}
+.vv-ver-todas,.vv-ver-prioridades{display:block;width:100%;margin:0 0 14px;break-inside:avoid}
+/* Grafo do Cérebro em tela cheia (Paulo, 08/11/2026: "não era pro mapa abrir em tela cheia?"): ocupa a área ao lado do
+   dock, por cima do módulo, com título, "Sair do mapa" e Esc. Controles no padrão: painel de vidro escuro, seções com
+   rótulo pequeno, grupos como bolinhas na cor do grupo (sem caixa de marcar). */
+html body .cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
+@media (max-width:900px){html body .cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
+html.vb-ocioso body .cg.cg-cheia{animation:none}
+.cg-titulo{position:absolute;left:16px;top:14px;z-index:2;display:grid;gap:2px;pointer-events:none}
+.cg-titulo b{font:750 16px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:#fff;letter-spacing:-.01em}
+.cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
+.cg.cg-cheia .cg-busca{top:62px}
+.cg-sair{position:absolute;z-index:3;top:12px;right:256px;height:34px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(28,29,35,.92);color:#EDE8E0;font:650 12.5px var(--vv-texto,inherit);cursor:pointer}
+.cg-sair:hover{background:rgba(255,255,255,.12);color:#fff}
+.cg-sair:focus-visible,.cg-painel button:focus-visible,.cg-zoom button:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
+.cg-painel[data-fechado] ~ .cg-sair,.cg:has(.cg-painel[data-fechado]) .cg-sair{right:132px}
+.cg-painel{background:rgba(24,25,31,.94)!important;backdrop-filter:blur(10px)}
+.cg-painel-alternar{display:flex!important;justify-content:space-between;align-items:center;text-align:left!important}
+.cg-painel-alternar b{font:750 12.5px var(--vv-texto,inherit);color:#fff}
+.cg-painel-alternar span{font:600 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
+.cg-painel summary{font:700 10.5px var(--vv-texto,inherit)!important;letter-spacing:.07em;text-transform:uppercase;color:rgba(237,232,224,.6)!important}
+.cg-grupo{color:rgba(237,232,224,.92)!important;border-radius:7px;padding:5px 6px!important}
+.cg-grupo:hover{background:rgba(255,255,255,.05)}
+.cg-grupo i{display:none}
+html body .cg .cg-grupo input[type=checkbox]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){appearance:none!important;-webkit-appearance:none!important;width:12px!important;height:12px!important;min-width:12px;margin:0!important;padding:0!important;border-radius:50%!important;border:2px solid var(--c,#EDE8E0)!important;background:var(--c,#EDE8E0)!important;box-shadow:none!important;cursor:pointer}
+html body .cg .cg-grupo input[type=checkbox]:not(:checked):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:transparent!important;opacity:.55}
+.cg-grupo:has(input:not(:checked)) span{opacity:.5;text-decoration:line-through}
+.cg-faixa span{color:rgba(237,232,224,.75)!important}
+html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){accent-color:var(--vv-laranja,#F26B1D);background:transparent!important;border:0!important;height:18px;padding:0!important}
+/* ---------- Hoje: layout de prioridade (Paulo, 08/11/2026) ----------
+   Topo: saudação e faixa de dias. Centro: Atrasadas | Para hoje | Próximos dias. Direita: VYBES, avisos, compromissos,
+   pergunta e atalhos. No Centro (mundo à vista) e no celular, tudo numa coluna. */
+#vv-hoje .vv-hoje-dias{display:flex;align-items:stretch;gap:8px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+#vv-hoje .vv-hoje-dias::-webkit-scrollbar{display:none}
+#vv-hoje .vv-hoje-dias .vv-dia{flex:0 0 auto;min-width:64px;display:grid;justify-items:center;gap:2px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:border-color .15s,transform .08s}
+#vv-hoje .vv-hoje-dias .vv-dia:hover{border-color:var(--vv-laranja,#F26B1D)}
+#vv-hoje .vv-hoje-dias .vv-dia.ativo{background:var(--vv-laranja,#F26B1D);border-color:var(--vv-laranja,#F26B1D);color:#fff}
+#vv-hoje .vv-hoje-dias .vv-dia.ativo :is(small,b,span){color:#fff!important}
+#vv-hoje .vv-hoje-dias .vv-dia small{font:600 11px var(--vv-texto);color:#8A847A}
+#vv-hoje .vv-hoje-dias .vv-dia b{font:750 18px/1 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+#vv-hoje .vv-hoje-dias .vv-dia span{font:650 11px var(--vv-texto);color:#6B665E}
+#vv-hoje .vv-hoje-dias .vv-ver-todas{margin:0 0 0 auto;flex:0 0 auto;width:auto;align-self:center;white-space:nowrap}
+#vv-hoje .vv-hoje-grade{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+#vv-hoje .vv-hoje-principal{min-width:0}
+#vv-hoje .vv-hoje-lado{display:grid;gap:12px;position:sticky;top:0}
+#vv-hoje .vv-hoje-lado .vv-fala{margin:0}
+#vv-hoje .vv-blocos.vv-blocos-prio{display:grid!important;columns:auto!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#vv-hoje .vv-blocos.vv-blocos-prio > .vv-bloco{margin:0!important}
+@media (max-width:1250px){#vv-hoje .vv-hoje-grade{grid-template-columns:minmax(0,1fr)}#vv-hoje .vv-hoje-lado{position:static}}
+@media (max-width:900px){#vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}}
+body.mundo.mundo-centro #vv-hoje .vv-hoje-grade{grid-template-columns:1fr}
+body.mundo.mundo-centro #vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}
+
+/* Clientes › Fichas em cartões (grade), nome na cor da carteira e números com rótulo. */
+html body.mundo.mundo-modulo #grid-clientes-lista:not(.em-tabela):not(.em-sinapses){display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card{margin:0!important;border-radius:14px!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card:hover{border-color:var(--vv-laranja,#F26B1D)!important;box-shadow:0 10px 24px rgba(31,29,26,.08)!important}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card .client-name{font:700 15px var(--vv-texto)}
+.cli-ficha-nums{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+.cli-ficha-nums span{display:inline-flex;align-items:baseline;gap:4px;padding:4px 9px;border-radius:999px;background:#F5F1EA;font:500 11.5px var(--vv-texto);color:#6B665E}
+.cli-ficha-nums span b{font:750 12.5px var(--vv-texto);color:#1F1D1A}
+.cli-ficha-nums span.ruim{background:#FBE6E4;color:#B4322B}.cli-ficha-nums span.ruim b{color:#B4322B}
+
+/* Hoje › Agência (dono): radar de números, ação e semana no centro, três colunas embaixo, lateral como no Hoje. */
+#vv-hoje .vv-dono-radar{margin:4px 0 16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+#vv-hoje .vv-dono-principal{display:grid;gap:14px}
+#vv-hoje .vv-dono-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+#vv-hoje .vv-dono-bloco .vv-dono-linha{width:100%}
+#vv-hoje .vv-dono-bloco .vs-bloco-cabeca .vv-pilula{border:0;cursor:pointer}
+@media (max-width:1250px){#vv-hoje .vv-dono-tres{grid-template-columns:1fr}}
+body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
+
+/* Semana da agência por status: colunas empilhadas na cor do status, hoje em destaque, dias que passaram mais claros. */
+.vv-sem{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;align-items:end;margin-top:10px}
+.vv-sem-col{appearance:none;border:1px solid transparent;background:transparent;display:grid;grid-template-rows:auto 180px auto;gap:6px;padding:6px;border-radius:12px;cursor:pointer;font:inherit;color:inherit;text-align:center}
+.vv-sem-col:hover{border-color:#ECE6DC;background:#FAF7F2}
+.vv-sem-col.hoje{background:#FFF4EA;border-color:var(--vv-laranja,#F26B1D)}
+.vv-sem-col.passou{opacity:.6}
+.vv-sem-topo{display:grid;gap:1px;min-height:32px;align-content:end}
+.vv-sem-topo b{font:750 16px/1 var(--vv-titulo,var(--vv-texto));color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-sem-topo em{font:650 10.5px var(--vv-texto);font-style:normal;color:#1D7A3E}
+.vv-sem-pilha{align-self:end;justify-self:center;width:min(46px,80%);height:var(--h,0%);min-height:4px;display:flex;flex-direction:column-reverse;border-radius:8px;overflow:hidden;background:#F1EDE6}
+.vv-sem-pilha i{display:block;background:var(--c);min-height:3px;border-top:1px solid rgba(255,255,255,.6)}
+.vv-sem-dia{font:700 12.5px var(--vv-texto);color:#1F1D1A}
+.vv-sem-dia small{display:block;font:500 10.5px var(--vv-texto);color:#8A847A}
+.vv-sem-col.hoje .vv-sem-dia{color:#C2410C}
+.vv-sem-legenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font:500 11.5px var(--vv-texto);color:#6B665E}
+.vv-sem-legenda span{display:inline-flex;align-items:center;gap:6px}
+.vv-sem-legenda i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.vv-sem-legenda b{color:#1F1D1A}
+@media (prefers-reduced-motion:no-preference){.vv-sem-pilha{transition:height .3s var(--curva,ease)}}
+/* Semana: a barra da previsão (total, cinza) e ao lado uma barrinha por status, na cor do status (Paulo, 08/11/2026). */
+.vv-sem-barras{align-self:end;height:180px;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.vv-sem-barras i{display:block;width:8px;height:var(--h,0%);min-height:3px;border-radius:3px 3px 1px 1px;background:var(--c)}
+.vv-sem-barras i.total{width:16px;background:#D9CDB8;margin-right:3px}
+.vv-sem-col.hoje .vv-sem-barras i.total{background:#F5C9A6}
+@media (prefers-reduced-motion:no-preference){.vv-sem-barras i{transition:height .3s var(--curva,ease)}}

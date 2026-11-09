@@ -1712,7 +1712,7 @@ function renderClientesLista(clientes) {
     grid.classList.remove('em-tabela');
     grid.classList.add('em-sinapses');
     grid.innerHTML = renderCerebroVybesHtml();
-    if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
+    if (typeof montarMapaCerebro === 'function') montarMapaCerebro(); else if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
     return;
   }
   grid.classList.remove('em-sinapses');
@@ -1732,14 +1732,13 @@ function renderClientesLista(clientes) {
     const nDem  = demandasAtivas.length;
     const atrasadas = demandasAtivas.filter(d => d.prazo_atrasado).length;
     const alertCls = atrasadas > 0 ? 'alert-low' : nProd > 0 ? 'alert-ok' : 'alert-empty';
-    return `<div class="client-card ${alertCls}" style="cursor:pointer;" onclick="abrirClienteDetalhe('${cli.replace(/'/g,"\\'")}')">  
+    // Ficha em cartão (Paulo, 08/11/2026: "tem painel que ainda tá uma merda"): o nome na cor da carteira e os números
+    // com o que são (antes: nome cru e dois números soltos).
+    return `<div class="client-card cli-ficha-card ${alertCls}" role="button" tabindex="0" onclick="abrirClienteDetalhe('${cli.replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter')this.click()">
       <div class="client-header">
-        <div class="client-name">${cli}</div>
-        <div class="client-meta">
-          <span class="posts-count ok" title="Conteúdos de produção">${nProd}</span>
-          <span class="posts-count ${atrasadas>0?'empty':'ok'}" title="Demandas">${nDem}</span>
-        </div>
+        <div class="client-name">${typeof cliCor === 'function' ? cliCor(cli) : safeText(cli)}</div>
       </div>
+      <div class="cli-ficha-nums"><span><b>${nProd}</b> conteúdos abertos</span><span class="${atrasadas ? 'ruim' : ''}"><b>${atrasadas}</b> atrasada${atrasadas === 1 ? '' : 's'}</span><span><b>${nDem}</b> solicitaç${nDem === 1 ? 'ão' : 'ões'}</span></div>
       ${fichaClienteHtml(cli)}
     </div>`;
   }).join('');

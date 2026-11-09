@@ -336,6 +336,7 @@
   // é o mesmo da barra e do Modo Foco.
   // "Ver como" (Paulo, 06/11/2026): quem administra vê o painel Hoje de qualquer pessoa da equipe.
   let verComo = '';
+  let hojeVerTodas = (() => { try { return localStorage.getItem('vybe.hoje.todas') === '1'; } catch { return false; } })();
   function minhaFila() {
     const time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const user = (verComo && time.find((u) => String(u.id) === verComo)) || (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null);
@@ -485,6 +486,37 @@
       .map(({ a, e }) => ({ nome: a.agente || a.setor, andar: a.andar, setor: a.setor, estado: e.estado, texto: e.estado === 'falhou' ? 'falhou na última execução' + (e.ultimos?.[0]?.erro ? ': ' + e.ultimos[0].erro : '') : 'esperando sua aprovação' + (e.tarefa ? ': ' + e.tarefa : '') }));
     return { sinal: !f.erro, lista };
   }
+  function semanaPorStatusHtml(G) {
+    const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+    const campo = G?.campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso', dias = (G?.porDia || []).map((x) => x.dia);
+    if (!dias.length) return '<p class="vv-vazio">Sem a semana agora.</p>';
+    const hojeDia = hojeIso(), NOMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const porDia = new Map(dias.map((d) => [d, []]));
+    for (const d of itens) { const dia = String(d[campo] || '').slice(0, 10); if (porDia.has(dia)) porDia.get(dia).push(d); }
+    const statusSet = new Map();
+    const colunas = dias.map((dia) => {
+      const lista = porDia.get(dia), grupos = new Map();
+      for (const d of lista) {
+        const st = String(d.status || 'Sem status').trim() || 'Sem status';
+        if (!grupos.has(st)) grupos.set(st, { st, n: 0, cor: corStatus(d, situacaoDaPeca(d)) });
+        grupos.get(st).n++;
+        if (!statusSet.has(st)) statusSet.set(st, { st, cor: grupos.get(st).cor, n: 0 });
+        statusSet.get(st).n++;
+      }
+      const prontas = lista.filter((d) => situacaoDaPeca(d) === 'concluida').length;
+      return { dia, lista, grupos: [...grupos.values()].sort((a, b) => b.n - a.n), prontas };
+    });
+    const max = Math.max(1, ...colunas.map((c) => c.lista.length));
+    const col = (c) => {
+      const passou = c.dia < hojeDia, hojeC = c.dia === hojeDia;
+      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-hoje-acao="dia" data-valor="${c.dia}" title="${esc(c.grupos.map((g) => g.n + ' ' + g.st).join(' · ') || 'Nada neste dia')}">
+        <span class="vv-sem-topo">${c.lista.length ? `<b>${c.lista.length}</b>${c.prontas ? `<em title="já saíram">${c.prontas} prontas</em>` : ''}` : '<b>–</b>'}</span>
+        <span class="vv-sem-barras"><i class="total" style="--h:${Math.round((c.lista.length / max) * 100)}%" title="${c.lista.length} previstas"></i>${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};--h:${Math.max(4, Math.round((g.n / max) * 100))}%" title="${g.n} ${esc(g.st)}"></i>`).join('')}</span>
+        <span class="vv-sem-dia">${NOMES[new Date(c.dia + 'T12:00:00Z').getUTCDay()]} <small>${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}</small></span></button>`;
+    };
+    const legenda = [...statusSet.values()].sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
+    return `<div class="vv-sem">${colunas.map(col).join('')}</div><div class="vv-sem-legenda">${legenda || '<span>Nada nesta semana.</span>'}</div>`;
+  }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();
     const seg = `<div class="vv-seg" role="tablist" aria-label="O que ver"><button type="button" role="tab" aria-selected="true" data-visao-hoje="agencia">Agência</button><button type="button" role="tab" aria-selected="false" data-visao-hoje="tarefas">Minhas tarefas</button></div>`;
@@ -500,39 +532,46 @@
     const frase = (H.atrasadas || 0) || (H.emRisco || 0)
       ? `Hoje: <b>${n0(H.atrasadas)} atrasada${H.atrasadas === 1 ? '' : 's'}</b> e <b>${n0(H.emRisco)} com risco de furo</b>.${clientesRuins[0] ? ` O cliente mais apertado é <b>${esc(clientesRuins[0].cliente)}</b>.` : ''}`
       : `Produção em dia. ${sem3.length ? `<b>${sem3.length} cliente${sem3.length > 1 ? 's' : ''}</b> ainda sem 3 posts na semana.` : 'Todos os clientes com 3 posts na semana.'}`;
-    el.innerHTML = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+    // Agência do dono (Paulo, 08/11/2026: "merece uma puta reformulação… pro dono acompanhar as coisas importantes de
+    // cara"): o mesmo esqueleto do Hoje. Radar no topo (cada número abre a lista por trás), no centro o que pede ação, a
+    // semana em gráfico e clientes, gargalos e cobranças lado a lado; à direita VYBES, atendimento, compromissos e atalhos.
+    const V = window.VybeSetor?.pecas;
+    const radar = V ? `<div class="vs-kpis vv-dono-radar">
+        ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
+        ${V.kpi({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
+        ${V.kpi({ icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' })}
+        ${V.kpi({ icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' })}
+        ${V.kpi({ icone: 'coracao', titulo: 'Clientes em atenção', valor: n0((N.clientes || []).filter((c) => c.saude !== 'ok').length), sub: `de ${n0(ativos)} ativos`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' })}
+        ${V.kpi({ icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' })}
+      </div>` : '';
+    const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
+    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
+    const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
+    const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
+    const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
+    const cobrarHtml = time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')
+      + bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')
+      + (!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : '') + (!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : '');
+    const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
-      <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
-      ${compromissosHtml()}
-      <div class="vv-dono-kpis">
-        <button type="button" class="u1" data-abrir-gestao="hoje" data-espiar="atrasadas"><b>${n0(H.atrasadas)}</b><small>atrasadas</small></button>
-        <button type="button" class="u2" data-abrir-gestao="hoje" data-espiar="emRisco"><b>${n0(H.emRisco)}</b><small>risco de furo</small></button>
-        <button type="button" data-abrir-gestao="hoje" data-espiar="faltam"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
-        <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
+      ${radar}
+      <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
+        ${bloco('O que pede ação agora', 'do mais grave ao menos grave', acao, '<button type="button" class="vs-abrir" data-abrir-gestao="hoje">Gestão →</button>')}
+        ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
+        <div class="vv-dono-tres">
+          ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
+          ${bloco('Onde trava', '', gargalosHtml)}
+          ${bloco('O que cobrar hoje', 'time e bots', cobrarHtml)}
+        </div>
       </div>
-      ${window.VybePendencias?.atendimentoHtml?.() || ''}
-      <div class="vv-blocos"><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
-      <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button></div>
-      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
-      <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
-        <p><button type="button" class="vv-num" data-espiar="sem3"><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b></button> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <button type="button" class="vv-num t-u1" data-espiar="semConteudo"><b>${C.semConteudo.length} sem nenhum</b></button>` : ''}${(C.semPlanejamento || []).length ? ` · <button type="button" class="vv-num" data-espiar="semPlanejamento">${C.semPlanejamento.length} sem planejamento</button>` : ''}</p>
-        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${cliCor(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
-      ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
-      ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>O que cobrar hoje</div>
-      ${time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')}
-      ${bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
-      ${!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : ''}
-      ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
-      </section></div>
-      <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
-      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button></div>`;
+      <aside class="vv-hoje-lado" aria-label="VYBES, atendimento, compromissos e atalhos">
+        <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
+        ${window.VybePendencias?.atendimentoHtml?.() || ''}
+        ${compromissosHtml()}
+        <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
+        <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      </aside></div>`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
 
   // ---------- Módulo Gestão: passado, agora e futuro da agência ----------
@@ -868,25 +907,49 @@
     const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const seletor = admin && time.length ? `<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
-    el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
-        <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
-      <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
-      ${compromissosHtml()}
-      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
-      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
-      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
+    // Prioridades do dia: o que atrasou, o que é de hoje e o que vem depois (pela veiculação, a data do cliente).
+    function blocosDePrioridade() {
+      const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
+      const deHojeP = naFila.filter((x) => !atrasadasP.includes(x) && (veic(x) || x.ref) === hoje);
+      const depoisP = naFila.filter((x) => !atrasadasP.includes(x) && !deHojeP.includes(x));
+      const MAX = POR_GRUPO + 3;
+      const bloco = (rot, cor, lista, vazio, cls) => `<section class="vv-bloco vv-bloco-prio ${cls}" style="--st:${cor}"><div class="vv-rotulo-secao" style="--c:${cor}"><i></i>${rot}<span class="vv-pilula">${lista.length}</span></div>
+        ${lista.length ? lista.slice(0, MAX).map(item).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="todas">+ ${lista.length - MAX} em ${rot.toLowerCase()}</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
+      return bloco('Atrasadas', 'var(--sit-atrasada, #D2453B)', atrasadasP, 'Nada atrasado.', 'atrasadas')
+        + bloco('Para hoje', 'var(--vv-laranja, #F26B1D)', deHojeP, 'Nada vence hoje.', 'hoje')
+        + bloco('Próximos dias', 'var(--sit-fazer, #8A847A)', depoisP, 'Nada nos próximos dias.', 'depois');
+    }
+    // Layout do Hoje (Paulo, 08/11/2026: "datas em linha mais no topo, avisos e agendas num box à direita, prioridade
+    // a ATRASADOS, HOJE e PRÓXIMOS DIAS"): saudação e faixa de dias no topo; no meio as três colunas de prioridade (ou
+    // os grupos por status, com "Ver todas" ou um dia escolhido); à direita a fala do VYBES, avisos, compromissos,
+    // a pergunta e os atalhos.
+    const diaCurto = (iso, i) => (i === 0 ? 'Amanhã' : DIAS[new Date(iso + 'T12:00:00Z').getUTCDay()]);
+    const faixa = `<nav class="vv-hoje-dias" aria-label="Escolher o dia">
+      <button type="button" class="vv-dia hoje${!diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="" aria-pressed="${!diaEscolhido}"><small>Hoje</small><b>${Number(hoje.slice(8))}</b><span>${deHoje.length + atrasadas.length || '–'}</span></button>
+      ${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}" aria-pressed="${p.dia === diaEscolhido}"><small>${diaCurto(p.dia, i)}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}
+      <button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}">${hojeVerTodas ? 'Ver prioridades' : `Ver todas por status (${abertas.length})`}</button></nav>`;
+    const blocosHtml = !diaEscolhido && !hojeVerTodas ? `<div class="vv-blocos vv-blocos-prio">${blocosDePrioridade()}</div>`
+      : `<div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
-      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}<section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
-      <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
+      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}</div>`;
+    const lado = `<aside class="vv-hoje-lado" aria-label="Avisos, compromissos e atalhos">
+      <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
+      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
+      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
+      ${compromissosHtml()}
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
-      </section></div>`;
+    </aside>`;
+    const html = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+        <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
+      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${blocosHtml}</div>${lado}</div>`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     if (acao === 'dia') { diaEscolhido = diaEscolhido === valor ? '' : valor; pintarHoje(); return; }
+    if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
     if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
