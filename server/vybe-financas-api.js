@@ -79,6 +79,18 @@ export function montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) {
   return falhar('Parte desconhecida.');
 }
 
+// Lançamentos do Finanças no formato das abas do Comercial (Recebimentos, Contas, Inadimplência, Caixa, Por cliente).
+// null quando o Finanças não está ligado ou falhou: as abas seguem com as tabelas do próprio Vybe OS.
+export async function lancamentosDoFinancas(sql, { conector = conectorPadrao(), hoje = hojeNaBahia() } = {}) {
+  if (!conector.configurado()) return null;
+  const desde = (Number(hoje.slice(0, 4)) - 1) + '-01-01';
+  const [base, vybe] = await Promise.all([conector.lerBase({ desde }), clientesDoVybe(sql)]);
+  const ligacao = calc.ligarClientes(base.clientes, vybe), nomeFin = Object.fromEntries(base.clientes.map((c) => [c.id, c.name]));
+  const porVybe = {};
+  for (const c of base.clientes) { const par = ligacao.porFinancas[c.id]; if (par) porVybe[par.vybe_id] = { valor_mensal: Number(c.monthly_fee) || 0, status: c.contract_status || '' }; }
+  return { recebiveis: calc.recebiveisDoFinancas(base.transacoes, ligacao.porFinancas, nomeFin), contas: calc.contasDoFinancas(base.transacoes), porVybe };
+}
+
 export async function lerVybeFinancas(sql, pessoa, query = {}, { conector = conectorPadrao(), hoje = hojeNaBahia() } = {}) {
   const parte = String(query.parte || 'comercial');
   if (!PARTES.includes(parte)) falhar('Parte desconhecida.');
