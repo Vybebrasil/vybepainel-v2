@@ -1,4 +1,5 @@
 import {exigirAdministradorPrivado} from './assistente-exclusivo.js';
+import { aprovacoesDaPessoa } from './aprovacoes.js';
 import { validarConversa, autorizarConversa } from './assistente-politica.js';
 import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
 import { assistenteAtivo, escopoEquipe } from './assistente-ativacao.js';
@@ -101,7 +102,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -136,6 +137,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       }
       // Augusto (Copy): demanda aberta que veio de planejamento e está sem parte da peça, ou em "Falta Info". Só leitura.
       if (consulta === 'planejamento_pecas') return res.status(200).json({ ok: true, ...(await planejamentoPecasParaAgente(banco)) });
+      // Aprovações paradas (server/aprovacoes.js): a lista inteira, para o Augusto cobrar cada head e o grupo dos sócios.
+      if (consulta === 'aprovacoes') return res.status(200).json(await aprovacoesDaPessoa(banco, { id: pessoaId, dono: true }));
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });
