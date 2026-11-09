@@ -5,6 +5,7 @@ import { textoDoHistorico } from './texto-historico.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { linkDaAtividade } from './assistente-rotinas.js';
 import { regrasDoCliente, ideiasDoCliente } from './assistente-regras.js';
+import { fichaParaCopy, ajustesDeCopy, aceitacaoDasLegendas, legendasDosChats } from './copy-cliente.js';
 
 const curto = (iso) => (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -88,5 +89,12 @@ export async function legendasAprovadas(sql, { cliente_id: clienteId, formato = 
       itens.push({ mes: p.mes.slice(0, 7), formato: peca.formato, tema: peca.tema || '', legenda: peca.legenda.slice(0, 1200) });
     }
   }
-  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)), regras: await regrasDoCliente(sql, clienteId), ideias: await ideiasDoCliente(sql, clienteId) };
+  // Augusto (Copy, 09/11/2026): junto com o tom, o que o cliente decidiu (ficha, regras, chats do Claude) e o que o head e
+  // o cliente já pediram para ajustar nas peças, para não repetir; e quanto passa sem ajuste (server/copy-cliente.js).
+  const chats = (await registrosDosChats(sql, clienteId)).slice(0, 6)
+    .map((g) => ({ em: String(g.criado_em || '').slice(0, 10), titulo: String(g.titulo || '').slice(0, 120), texto: String(g.decisoes || g.resumo || '').replace(/\s+/g, ' ').slice(0, 240) }));
+  // Sem filtro de formato, as legendas aprovadas nos chats do Claude completam os exemplos (o planejamento vem primeiro).
+  if (!f) itens.push(...await legendasDosChats(sql, clienteId));
+  return { cliente: cliente.nome, itens: itens.slice(0, Math.min(Math.max(1, limite), 12)), regras: await regrasDoCliente(sql, clienteId), ideias: await ideiasDoCliente(sql, clienteId),
+    ficha: await fichaParaCopy(sql, clienteId), chats, ajustes: await ajustesDeCopy(sql, clienteId), aceitacao: await aceitacaoDasLegendas(sql, clienteId) };
 }

@@ -585,3 +585,53 @@ test('arraste: falha preserva data e mostra erro; gravação pendente bloqueia o
  t.eventos.pointerdown(t.evento());t.eventos.pointermove(t.evento(30));await t.eventos.pointerup(t.evento(30));
  assert.equal(t.chamadas.length,1);t.liberar();await salva;
 });
+
+// Augusto (Copy, 09/11/2026): o que o head e o cliente pedem para ajustar fica para o agente aprender, mesmo depois que a
+// peça é editada, e a aceitação conta quantas legendas passaram sem pedido de ajuste.
+test('Augusto: ajustes do head e do cliente ficam guardados e a aceitação conta as legendas sem ajuste',async t=>{
+ const {db,sql}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ await db.exec(`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS cadastro jsonb NOT NULL DEFAULT '{}'::jsonb;
+  UPDATE vybe_clientes SET segmento='Bebidas', cadastro='{"cidade":"Irecê","instagram":"@serragrande","observacoes":"Prefere texto curto e sem gíria.","valor":"9999"}'::jsonb WHERE id=10;`);
+ const C=await import('../server/copy-cliente.js');
+ const mes=new Date().toISOString().slice(0,7),d1=mes+'-05',d2=mes+'-12',d3=mes+'-19';
+ const leg='Água mineral Serra Grande: leve, gelada e do jeito que o sertão pede no calor de todo dia.';
+ const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes,conteudo:{pecas:[
+  {data:d1,formato:'Card',tema:'Calor',legenda:leg},{data:d2,formato:'Reels',tema:'Fábrica',legenda:leg+' Bastidores.'},{data:d3,formato:'Card',tema:'Família',legenda:leg+' Em família.'}]}});
+ let d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ await P.revisarPecaHead(sql,{id:3},{id:p.id,assinatura:d.conteudo.pecas[1].assinatura,estado:'ajustar',nota:'Tirar o emoji e encurtar o gancho'});
+ // O head edita a peça: a revisão some, mas o pedido continua no histórico.
+ const editado={...d.conteudo,pecas:d.conteudo.pecas.map((x,i)=>i===1?{...x,legenda:leg+' Por dentro da fábrica.'}:x)};
+ await P.editarPlanejamento(sql,{id:3},{id:p.id,versao:d.versao,conteudo:editado});
+ d=await P.detalhePlanejamento(sql,{id:3},p.id);
+ assert.equal(d.revisao.head_ajustar,0,'a peça editada perde o "ajustar"');
+ const env=await P.enviarAoCliente(sql,{id:3},{id:p.id});
+ await P.responderDoPortal(sql,{cliente:'Serra Grande',id:p.id,versao:env.versao,acao:'ajustes',nome:'Ana',ajustesPecas:{0:'Falar da garrafa de 20 litros'}});
+ const ajustes=await C.ajustesDeCopy(sql,10);
+ assert.deepEqual(ajustes.map(a=>[a.quem,a.nota]).sort(),[['cliente','Falar da garrafa de 20 litros'],['head','Tirar o emoji e encurtar o gancho']]);
+ assert.equal(ajustes.find(a=>a.quem==='head').nome,'Vinícius');
+ assert.match(ajustes.find(a=>a.quem==='cliente').peca,/^Card, 05\//);
+ const ac=await C.aceitacaoDasLegendas(sql,10);
+ assert.deepEqual({pecas:ac.pecas,com_ajuste:ac.com_ajuste,sem_ajuste:ac.sem_ajuste,percentual:ac.percentual,de_primeira:ac.de_primeira},{pecas:3,com_ajuste:2,sem_ajuste:1,percentual:33,de_primeira:0});
+ const ficha=await C.fichaParaCopy(sql,10);
+ assert.match(ficha,/Segmento: Bebidas/);assert.match(ficha,/Prefere texto curto/);assert.doesNotMatch(ficha,/9999/,'dinheiro não entra');
+ // Tudo chega ao bot pela ferramenta legendas_aprovadas (as mesmas regras de antes, mais o que o Augusto precisa).
+ const {legendasAprovadas}=await import('../server/assistente-memoria.js');
+ await db.exec(`CREATE TABLE vybe_cliente_registros(id bigserial,cliente_id bigint,tipo text,titulo text,status text,resumo text,decisoes text,conteudo text,criado_em timestamptz DEFAULT now());
+  INSERT INTO vybe_cliente_registros(cliente_id,tipo,titulo,status,resumo,decisoes,conteudo) VALUES
+  (10,'conteudo','Reels do verão','aprovado','Legenda final','','Verão no sertão pede água gelada na mesa: Serra Grande, a garrafa que acompanha o dia inteiro.'),
+  (10,'conteudo','Rascunho','rascunho','x','','Texto que ainda não foi aprovado e não pode servir de exemplo para ninguém.'),
+  (10,'regra_de_marca','Tom','aprovado','Sem gíria','Nunca usar gíria de internet',NULL);`);
+ const r=await legendasAprovadas(sql,{cliente_id:10});
+ assert.equal(r.ajustes.length,2);assert.equal(r.aceitacao.pecas,3);assert.match(r.ficha,/Irecê/);
+ assert.deepEqual(r.chats.map(c=>c.texto),['Nunca usar gíria de internet']);
+ assert.deepEqual(r.itens.filter(i=>i.fonte==='chats').map(i=>i.tema),['Reels do verão'],'só o conteúdo aprovado do chat vira exemplo');
+});
+
+test('Augusto: a resposta das legendas cabe no recorte de 14.000 bytes',async()=>{
+ const {caberNoRecorte}=await import('../server/copy-cliente.js');
+ const grande={itens:Array.from({length:12},(_,i)=>({mes:'2026-10',formato:'Reels',tema:'T'+i,legenda:'x'.repeat(1200)})),regras:['Sem fundo escuro'],
+  ajustes:Array.from({length:8},()=>({quem:'cliente',nota:'y'.repeat(300),legenda:'z'.repeat(220),peca:'Card, 05/11'})),chats:Array.from({length:6},()=>({titulo:'t',texto:'w'.repeat(240)})),ideias:[]};
+ const r=caberNoRecorte(grande);
+ assert.ok(Buffer.byteLength(JSON.stringify(r))<=13000);assert.deepEqual(r.regras,['Sem fundo escuro']);assert.ok(r.itens.length>=2);
+});
