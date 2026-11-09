@@ -20,7 +20,7 @@ function chamada() {
     self[`disable${meio}`] = async () => { eventos.push(`desligar${meio}`); self[flag] = false; };
   }
   const e = { conectado: true, zona: 'sala-a', canalChamada: 'escritorio', microfoneQuer: false, erroMic: null, base: {}, online: [], trancas: new Map(), chamada: { self } };
-  const c = vm.createContext({ escritorio: e, Set, Map, window: {},
+  const c = vm.createContext({ escritorio: e, Set, Map, window: {}, andarAbertoId: '', quartoDaSala: () => null, abrirMinhaSala() {},
     setTimeout: f => { timers.push(f); return timers.length; },
     pintarChamada() {}, focarSalaDaChamada() {}, moverParaSala: zona => { e.zona = zona; },
     escritorioTocarVozes() {}, renderMidiaEscritorio() {}, atualizarControlesEscritorio() {},

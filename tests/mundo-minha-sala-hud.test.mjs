@@ -71,3 +71,11 @@ test('Música do dock: abre o player da sala (também dentro da sala e dos módu
   assert.ok(css.includes('html body.mundo.musica-aberta #office-musica.vv-musica-janela{visibility:visible!important;pointer-events:auto!important}'), 'antes ficava escondido na sala e nos módulos');
   assert.ok(css.includes('#office-musica.vv-musica-janela:not(.movida){top:auto!important;bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important'), 'em cima do dock');
 });
+
+test('vendo um quarto, trocar de sala leva a vista junto (Paulo, 09/11/2026: "não era pra visualmente eu ir pra lá também?")', () => {
+  const src = readFileSync('vybe-mundo.js', 'utf8').replace(/\r\n/g, '\n');
+  const ir = src.slice(src.indexOf('  function irParaSala(zona) {'), src.indexOf('  window.vybesIrParaSala = irParaSala;'));
+  assert.match(ir, /const vendo = String\(andarAbertoId \|\| ''\)\.startsWith\('quarto:'\) \? andarAbertoId\.slice\(7\) : '';/);
+  assert.match(ir, /if \(vendo && vendo !== zona && quartoDaSala\(zona\) && !window\.VybeDecorar\?\.aberto\?\.\(\)\) \{ abrirMinhaSala\(zona\); return; \}/);
+  assert.ok(ir.indexOf('abrirMinhaSala(zona)') < ir.indexOf('moverParaSala(zona)'), 'decide a vista antes de mover só a voz');
+});
