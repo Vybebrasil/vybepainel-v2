@@ -66,3 +66,36 @@ test('sem briefing: card novo e aberto, sem briefing nem comentário de briefing
   const r = await pecasSemBriefing(sql, '2026-10-27');
   assert.deepEqual(r, [{ ref: '555', titulo: 'Reels - Sem briefing', formato: 'Reels', cliente: 'Gonzalez', veiculacao: '2026-10-30', pessoa: { monday_id: '80146924', nome: 'Tainara Lima' } }]);
 });
+
+// Paulo, 09/11/2026: quem pôs em "Falta Info" é perguntado pelo Augusto. A consulta diz quem marcou e o que já foi dito.
+test('falta info: demanda aberta parada, quem marcou, quem cadastrou, responsáveis e comentário depois da marcação', async () => {
+  const { pecasEmFaltaInfo } = await import('../server/assistente-saude.js');
+  const { db, sql } = conexao();
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+    CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text);
+    CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text,status_em timestamptz);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
+    CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
+    CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int);
+    CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint,tipo text,em timestamptz,autor_id bigint,de text,para text);
+    CREATE TABLE vybe_conteudo_updates(conteudo_id bigint,corpo text,autor text,autor_id bigint,criado_em timestamptz);
+    INSERT INTO vybe_clientes VALUES (10,'Copirecê');
+    INSERT INTO vybe_pessoas VALUES (1,'Vinícius Damascena','111'),(2,'Jady Amynne','100482777'),(3,'Beatriz','333');
+    INSERT INTO vybe_status VALUES (${PROD},'falta_info','Falta Info',false),(${PROD},'pode_fazer','Pode Fazer',false);
+    INSERT INTO vybe_conteudos VALUES (1,${PROD},'Card - Milho','Card','2026-11-06','2026-11-08',NULL,'falta_info',NULL,'Tema: milho','2026-11-09 02:49'),
+      (2,${PROD},'Card - Andando','Card',NULL,NULL,NULL,'pode_fazer',NULL,NULL,NULL),
+      (3,${PROD},'Card - Apagado','Card',NULL,NULL,'2026-11-09','falta_info',NULL,NULL,NULL);
+    INSERT INTO vybe_conteudo_clientes VALUES (1,10);
+    INSERT INTO vybe_conteudo_responsaveis VALUES (1,3,0);
+    INSERT INTO vybe_conteudo_eventos VALUES (1,'criacao','2026-11-06 10:00',1,NULL,NULL),(1,'status','2026-11-09 02:49',2,'Pode Fazer','Falta Info');
+    INSERT INTO vybe_conteudo_updates VALUES (1,'antes da marcação','Jady',2,'2026-11-08 10:00'),(1,'Faltam as telas do card','Jady',2,'2026-11-09 02:50');`);
+  const { pecas } = await pecasEmFaltaInfo(sql);
+  assert.equal(pecas.length, 1, 'só a aberta e não apagada');
+  const p = pecas[0];
+  assert.deepEqual([p.ref, p.cliente, p.prazo, p.veiculacao], ['vybe:1', 'Copirecê', '2026-11-06', '2026-11-08']);
+  assert.deepEqual(p.marcou, { monday_id: '100482777', nome: 'Jady Amynne' });
+  assert.deepEqual(p.cadastrou, { monday_id: '111', nome: 'Vinícius Damascena' });
+  assert.deepEqual(p.responsaveis, [{ monday_id: '333', nome: 'Beatriz' }]);
+  assert.deepEqual(p.comentarios_depois.map((c) => c.texto), ['Faltam as telas do card'], 'só o que foi dito depois de marcar');
+  assert.ok(p.marcado_em.startsWith('2026-11-09'));
+});

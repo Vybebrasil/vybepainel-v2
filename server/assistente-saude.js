@@ -87,3 +87,41 @@ export async function pecasSemBriefing(sql, dia) {
       veiculacao: l.veiculacao ? String(l.veiculacao).slice(0, 10) : null, pessoa: quem?.monday_id ? { monday_id: String(quem.monday_id), nome: quem.nome || '' } : null };
   }).filter((x) => x.pessoa);
 }
+
+// Falta Info (Paulo, 09/11/2026): "quando alguém colocar pra FALTA INFO, o Augusto podia mandar mensagem no grupo de
+// criação marcando a pessoa e no privado dela perguntando o que está faltando". Toda demanda aberta parada em
+// "Falta Info", com QUEM marcou e quando (último evento de status), quem cadastrou, os responsáveis, o briefing e os
+// comentários feitos depois da marcação (se o motivo já foi escrito, o agente não pergunta de novo). Só leitura.
+export async function pecasEmFaltaInfo(sql) {
+  const json = (v) => (typeof v === 'string' ? JSON.parse(v) : v);
+  const linhas = await sql`SELECT c.id::text AS id, c.monday_item_id, c.titulo, c.formato, c.board_id::text AS board,
+      c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, LEFT(COALESCE(c.briefing, ''), 1500) AS briefing,
+      (SELECT string_agg(cl.nome, ' / ') FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id) AS cliente,
+      (SELECT json_build_object('monday_id', p.monday_user_id, 'nome', p.nome, 'em', e.em) FROM vybe_conteudo_eventos e LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
+        WHERE e.conteudo_id = c.id AND e.tipo = 'status' AND lower(e.para) IN ('falta info', 'falta_info') ORDER BY e.em DESC LIMIT 1) AS marcou,
+      (SELECT json_build_object('monday_id', p.monday_user_id, 'nome', p.nome) FROM vybe_conteudo_eventos e JOIN vybe_pessoas p ON p.id = e.autor_id
+        WHERE e.conteudo_id = c.id AND e.tipo = 'criacao' ORDER BY e.em LIMIT 1) AS cadastrou,
+      (SELECT json_agg(json_build_object('monday_id', p.monday_user_id, 'nome', p.nome) ORDER BY r.ordem) FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id
+        WHERE r.conteudo_id = c.id) AS responsaveis,
+      c.status_em AS status_em
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+    WHERE c.removido_em IS NULL AND c.status_chave = 'falta_info' AND NOT COALESCE(s.final, false)
+    ORDER BY c.status_em DESC NULLS LAST LIMIT 40`;
+  const pessoa = (x) => (x?.monday_id ? { monday_id: String(x.monday_id), nome: x.nome || '' } : x?.nome ? { monday_id: null, nome: x.nome } : null);
+  const out = [];
+  for (const l of linhas) {
+    const marcou = json(l.marcou);
+    const desde = marcou?.em || l.status_em || null;
+    const comentarios = desde ? await sql`SELECT LEFT(u.corpo, 400) AS texto, COALESCE(p.nome, u.autor) AS autor, u.criado_em AS em
+      FROM vybe_conteudo_updates u LEFT JOIN vybe_pessoas p ON p.id = u.autor_id
+      WHERE u.conteudo_id = ${l.id}::bigint AND u.criado_em >= ${desde} ORDER BY u.criado_em LIMIT 5` : [];
+    out.push({
+      conteudo_id: l.id, ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, titulo: l.titulo || 'Sem título', formato: l.formato || '',
+      cliente: l.cliente || '', prazo: l.prazo ? l.prazo.slice(0, 10) : null, veiculacao: l.veiculacao ? l.veiculacao.slice(0, 10) : null,
+      marcado_em: desde ? new Date(desde).toISOString() : null, marcou: pessoa(marcou), cadastrou: pessoa(json(l.cadastrou)),
+      responsaveis: (json(l.responsaveis) || []).map(pessoa).filter(Boolean), briefing: l.briefing || '',
+      comentarios_depois: comentarios.map((c) => ({ autor: c.autor || '', em: new Date(c.em).toISOString(), texto: c.texto || '' })),
+    });
+  }
+  return { pecas: out };
+}
