@@ -25,6 +25,8 @@ function escritorioFonteMusica(texto) {
 }
 // A música toca na sala inteira que tem aparelho de som (o Lounge sempre).
 function escritorioSalaTemSom() {
+  // Com a sinuca aberta, a TV do boteco é o aparelho de som (vybe-escritorio-sinuca-boteco.js).
+  if (typeof document !== "undefined" && document.querySelector("#workflow-modal.ofc-snc-jogo")) return true;
   return escritorio.quarto === "lounge" || Boolean(escritorio.mapa?.moveisDaClasse?.(ESCRITORIO_SOM).length);
 }
 function escritorioNaPista() {
@@ -99,7 +101,7 @@ function chaveMusica(m) {
 async function sincronizarMusicaEscritorio() {
   const m = escritorio.musica, el = escritorioElementoMusica();
   const aqui = escritorioNaPista();
-  el.hidden = !(aqui && m?.fila?.length);
+  el.hidden = !(aqui && (m?.fila?.length || el.classList.contains("na-tv")));
   desenharInfoMusicaEscritorio();
   const atual = m?.fila?.[m.indice];
   if (!aqui || !atual) { escritorio.player?.pauseVideo?.(); escritorio.musicaTocando = ""; return; }

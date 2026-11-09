@@ -54,6 +54,7 @@ function xadrezFechar() {
   clearInterval(x.timer); clearInterval(x.relogio);
   x.timer = null; x.relogio = null; x.jogo = null; x.sel = null; x.promo = null; x.nova = null;
   closeWorkflowModal();
+  if (typeof sinucaTvDesligar === "function") sinucaTvDesligar();
 }
 
 // Clicou no tabuleiro (ou apertou E perto dele).

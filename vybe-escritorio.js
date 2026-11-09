@@ -2378,7 +2378,8 @@ function montarMapaEscritorio() {
   if (lugarMusica) {
     const musica = escritorioElementoMusica();
     // Sempre na coluna; solto, flutua por cima do mapa (escritorioPrepararCaixas).
-    lugarMusica.replaceWith(musica);
+    if (musica.classList.contains("na-tv")) { document.getElementById("office-musica-volta")?.remove(); lugarMusica.id = "office-musica-volta"; lugarMusica.hidden = true; }
+    else lugarMusica.replaceWith(musica);
   }
   escritorioPrepararCaixas();
   if (!escritorio.mapa) {

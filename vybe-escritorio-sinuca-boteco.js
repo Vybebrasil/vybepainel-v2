@@ -152,3 +152,42 @@ ${p?.premio ? `<span class="bt-etiqueta bt-podio-premio"><b>${safeText(p.premio)
   };
   return `<div class="bt-podio">${lugar(2)}${lugar(1)}${lugar(3)}</div>`;
 }
+
+// A TV DO BOTECO (Paulo, 09/11/2026: "devia ter o player de música na sinuca... a telinha com os controles e o
+// clipe, meio que ligar a TV do boteco, e poder minimizar pra ficar só ouvindo"). É o player de música do
+// Escritório (a fila da sala, ouvida junto por quem está nela), que com a sinuca aberta vira a TV pendurada no
+// canto da mesa; minimizada, vira um radinho. O Escritório fica escondido enquanto o jogo está aberto, então o
+// player vem para a tela do jogo (recriado no mesmo ponto da música) e volta quando a sinuca fecha.
+function btTvReiniciarPlayer() {
+  try { escritorio.player?.destroy?.(); } catch { /* player já saiu */ }
+  escritorio.player = null; escritorio.musicaTocando = "";
+  const caixa = escritorio.musicaEl?.querySelector(".ofc-musica-player");
+  if (caixa) caixa.innerHTML = '<div id="office-yt"></div>';
+}
+function sinucaTvLigar() {
+  if (typeof escritorioElementoMusica !== "function" || typeof escritorio === "undefined" || !document.querySelector("#workflow-modal.ofc-snc-jogo")) return;
+  const el = escritorioElementoMusica();
+  if (el.classList.contains("na-tv") && el.parentNode === document.body) return;
+  if (el.parentNode && el.parentNode !== document.body && !document.getElementById("office-musica-volta")) { const volta = document.createElement("div"); volta.id = "office-musica-volta"; volta.hidden = true; el.replaceWith(volta); }
+  btTvReiniciarPlayer();
+  el.classList.add("na-tv"); document.body.append(el);
+  if (!escritorio.musica && escritorio.conectado && typeof escritorioEmitir === "function") escritorioEmitir("music:get", {});
+  if (typeof sincronizarMusicaEscritorio === "function") sincronizarMusicaEscritorio();
+}
+function sinucaTvDesligar() {
+  const el = typeof escritorio !== "undefined" ? escritorio.musicaEl : null;
+  if (!el?.classList.contains("na-tv")) return;
+  btTvReiniciarPlayer();
+  el.classList.remove("na-tv");
+  const volta = document.getElementById("office-musica-volta");
+  if (volta) volta.replaceWith(el); else el.remove();
+  if (typeof sincronizarMusicaEscritorio === "function") sincronizarMusicaEscritorio();
+}
+// O botão 📺 do HUD: liga a TV (se a fila estiver vazia, abre o campo do link) ou alterna TV e radinho.
+function sinucaTvAlternar() {
+  sinucaTvLigar();
+  const el = typeof escritorio !== "undefined" ? escritorio.musicaEl : null;
+  if (!el) return;
+  if (!escritorio.musica?.fila?.length && typeof abrirMusicaEscritorio === "function") return abrirMusicaEscritorio();
+  if (typeof minimizarMusicaEscritorio === "function") minimizarMusicaEscritorio();
+}

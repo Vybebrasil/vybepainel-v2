@@ -608,3 +608,40 @@ body .snc-anuncio :is(b,strong,h2,h3){font-family:var(--bt-cartaz)!important;fon
 /* Selinhos de conquista na placa do jogador: tampinhas, como na estante */
 #workflow-modal .snc-jogador-feitos span{--r:#8b9098;font-family:var(--bt-ui)!important;border-radius:0!important;clip-path:polygon(50% 0,58% 4%,67% 2%,73% 8%,82% 8%,85% 16%,93% 19%,93% 28%,99% 34%,96% 42%,100% 50%,96% 58%,99% 66%,93% 72%,93% 81%,85% 84%,82% 92%,73% 92%,67% 98%,58% 96%,50% 100%,42% 96%,33% 98%,27% 92%,18% 92%,15% 84%,7% 81%,7% 72%,1% 66%,4% 58%,0 50%,4% 42%,1% 34%,7% 28%,7% 19%,15% 16%,18% 8%,27% 8%,33% 2%,42% 4%)!important;background:radial-gradient(circle,#fff 0 46%,var(--r) 47% 58%,#fff 59% 63%,var(--r) 64%)!important;box-shadow:none!important}
 #workflow-modal .snc-jogador-feitos span.raro{--r:var(--bt-r-raro)}#workflow-modal .snc-jogador-feitos span.epico{--r:var(--bt-r-epico)}#workflow-modal .snc-jogador-feitos span.lendario{--r:var(--bt-r-lendario)}
+/* ---------- A TV do boteco (o player de música com a sinuca aberta) ---------- */
+body .ofc-musica.na-tv{position:fixed!important;left:76px;top:66px;right:auto!important;bottom:auto!important;z-index:900;width:236px;display:flex!important;flex-direction:column;gap:0;padding:10px 10px 8px!important;border:0!important;border-radius:16px 16px 12px 12px!important;background:linear-gradient(180deg,#3a3734,#24221f)!important;box-shadow:inset 0 2px 0 #ffffff1f,0 0 0 2px #151311,0 12px 26px #0008!important;color:#fff;font-family:var(--bt-ui);transform:rotate(-1.5deg)}
+body .ofc-musica.na-tv[hidden]{display:none!important}
+/* antena e o suporte de parede */
+body .ofc-musica.na-tv::before{content:"";position:absolute;left:50%;top:-22px;width:60px;height:24px;transform:translateX(-50%);background:linear-gradient(60deg,transparent 47%,#9aa0a8 48% 52%,transparent 53%) left/50% 100% no-repeat,linear-gradient(-60deg,transparent 47%,#9aa0a8 48% 52%,transparent 53%) right/50% 100% no-repeat}
+body .ofc-musica.na-tv .ofc-musica-topo{display:none!important}
+body .ofc-musica.na-tv .ofc-musica-player{position:relative;border-radius:12px/16px!important;overflow:hidden;background:#05070a!important;box-shadow:inset 0 0 0 3px #0b0a09,inset 0 0 22px #000}
+body .ofc-musica.na-tv .ofc-musica-player::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(ellipse at 30% 20%,#ffffff26,transparent 45%),repeating-linear-gradient(0deg,#0000 0 2px,#0000001f 2px 3px)}
+/* a faixa de controles embaixo da tela */
+body .ofc-musica.na-tv .ofc-musica-info{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 8px;margin-top:8px;font-size:11px}
+body .ofc-musica.na-tv .ofc-musica-info>b{font:400 13px var(--bt-cartaz);letter-spacing:1px;color:var(--bt-cerveja)}
+body .ofc-musica.na-tv .ofc-musica-info>small{grid-column:1/-1;color:#d8d2c4;font-size:10px}
+body .ofc-musica.na-tv .ofc-musica-ctl{grid-column:1/-1;display:flex;gap:4px;justify-content:center}
+body .ofc-musica.na-tv .ofc-musica-ctl button,body .ofc-musica.na-tv .ofc-musica-vol button,body .ofc-musica.na-tv .ofc-musica-info>button{display:grid;place-items:center;min-width:30px;height:26px;padding:0 8px;border:0!important;border-radius:5px!important;background:#4a4641!important;color:#fff!important;box-shadow:inset 0 -2px 0 #0006;font:600 11px var(--bt-ui)!important;cursor:pointer}
+body .ofc-musica.na-tv .ofc-musica-ctl button svg{width:14px;height:14px}
+body .ofc-musica.na-tv .ofc-musica-ctl button:disabled{opacity:.4}
+body .ofc-musica.na-tv .ofc-musica-vol{grid-column:1/-1;display:flex;align-items:center;gap:6px}
+body .ofc-musica.na-tv .ofc-musica-vol input{flex:1;accent-color:var(--bt-cerveja)}
+body .ofc-musica.na-tv .ofc-musica-info>.ofc-secundario{grid-column:1/-1;background:var(--bt-cerveja)!important;color:var(--bt-preto)!important;font:400 13px var(--bt-cartaz)!important;letter-spacing:1px;height:28px}
+body .ofc-musica.na-tv .ofc-musica-info>.ofc-primario{grid-column:1/-1;background:var(--bt-plastico)!important;font:400 13px var(--bt-cartaz)!important}
+/* minimizada: o radinho (só a faixa, sem a tela) */
+body .ofc-musica.na-tv.mini{width:220px;padding:8px 10px!important;border-radius:10px!important;background:linear-gradient(180deg,#b5362a,#8a2219)!important;transform:rotate(0)}
+body .ofc-musica.na-tv.mini::before{left:auto;right:8px;top:-18px;width:4px;height:22px;transform:rotate(-20deg);background:#9aa0a8}
+body .ofc-musica.na-tv.mini .ofc-musica-player{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none}
+body .ofc-musica.na-tv.mini .ofc-musica-info{margin-top:0}
+body .ofc-musica.na-tv.mini .ofc-musica-vol,body .ofc-musica.na-tv.mini .ofc-musica-info>small{display:none}
+body .ofc-musica.na-tv.mini .ofc-musica-ctl button{background:#ffffff26!important}
+/* o botão 📺 no HUD, ao lado do ⋯ */
+#workflow-modal.ofc-snc-jogo .snc-arena .snc-tv-botao{position:absolute;right:52px;top:56px;z-index:7;display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:50%;background:var(--bt-papel);box-shadow:0 4px 10px #0004;font-size:17px;cursor:pointer}
+@media not all and (min-width:600px) and (orientation:landscape){#workflow-modal .snc-arena .snc-tv-botao{display:none}}
+@media (orientation:landscape) and (max-height:520px){body .ofc-musica.na-tv{left:68px;top:52px;width:180px}#workflow-modal.ofc-snc-jogo .snc-arena .snc-tv-botao{top:44px}}
+@media (max-width:760px) and (orientation:portrait){body .ofc-musica.na-tv{left:auto;right:8px;top:8px;width:170px}}
+/* o painel da fila (colar o link) no padrão do boteco, com a sinuca aberta */
+body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel{background:var(--bt-papel)!important;color:var(--bt-texto)!important;border-radius:4px!important;font-family:var(--bt-ui)}
+body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel h3{font:400 22px var(--bt-cartaz)!important;letter-spacing:1px}
+body:has(#workflow-modal.ofc-snc-jogo) #office-musica-painel .workflow-primary{background:var(--bt-plastico)!important;border-radius:8px!important;font:400 16px var(--bt-cartaz)!important;letter-spacing:1px}
+body .ofc-musica.na-tv{top:118px}@media (orientation:landscape) and (max-height:520px){body .ofc-musica.na-tv{top:86px}}
