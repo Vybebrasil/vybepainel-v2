@@ -99,7 +99,7 @@
       ...b.fechados.slice(0, 3).map((a) => `<li><b>${esc(a.fato)}</b><small>achado fechado ${esc(quando(a.fechadoEm))}${a.comoFechou ? ' · ' + esc(a.comoFechou) : ''}</small></li>`),
     ];
     const mais = b.concluidas.length + b.fechados.length - fez.length;
-    const errado = b.abertos.slice(0, 4).map((a) => `<li class="g-${esc(a.gravidade || 'baixa')}"><b>${esc(a.fato)}</b><small>${a.gravidade === 'alta' ? '<em>urgente</em> · ' : ''}${a.cliente ? esc(a.cliente) + ' · ' : ''}${esc(a.prova || '')}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}</small></li>`);
+    const errado = b.abertos.slice(0, 4).map((a) => `<li class="g-${esc(a.gravidade || 'baixa')}"><b>${esc(a.fato)}</b><small>${a.gravidade === 'alta' ? '<em>urgente</em> · ' : ''}${a.cliente ? (typeof G.cliCor === 'function' ? G.cliCor(a.cliente) : esc(a.cliente)) + ' · ' : ''}${esc(a.prova || '')}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}</small></li>`);
     const falhas = b.falhas.slice(0, 2).map((e) => `<li class="g-alta"><b>Falhou: ${esc(e.tarefa)}</b><small>${esc(quando(e.em))}${e.erro ? ' · ' + esc(e.erro) : ''}</small></li>`);
     return `<article class="vbl-cartao" aria-label="Boletim de ${esc(b.agente)}">
       <div class="vbl-cab"><span class="vbl-av" aria-hidden="true">${esc(b.agente.slice(0, 1))}</span>
