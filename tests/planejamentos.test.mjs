@@ -188,7 +188,7 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  INSERT INTO vybe_conteudo_clientes VALUES(900,10),(901,10);
  INSERT INTO vybe_conteudo_responsaveis VALUES(900,52,0),(901,52,0),(901,51,1);
  SELECT setval('vybe_conteudos_id_seq', 1000);`);
- const pecas=[{data:'2026-11-20',prazo:'2026-11-10',formato:'Card',tema:'Consciência',legenda:'Texto do card'},{data:'2026-11-25',formato:'Reels',tema:'Bastidores',legenda:'Roteiro'},{data:'2026-11-26',formato:'Outro',tema:'Panfleto'}];
+ const pecas=[{data:'2026-11-20',prazo:'2026-11-10',formato:'Card',tema:'Consciência',legenda:'Texto do card',linha:'Datas',objetivo:'Lembrar a data',telas:['Título do card','Assinatura']},{data:'2026-11-25',formato:'Reels',tema:'Bastidores',legenda:'Roteiro',objetivo:'Mostrar o time'},{data:'2026-11-26',formato:'Outro',tema:'Panfleto'}];
  const p=await P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo:{pecas}});
  const destinos={Card:{grupo_id:'novo_grupo__1',status:'pode_fazer',responsaveis:['51','52','53']},Reels:{grupo_id:'novo_grupo57911__1',status:'a_fazer',captacao:'Agendar Captação',responsaveis:[]}};
  const vini={tipo:'sessao',pessoa:{id:3}};
@@ -218,6 +218,26 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  assert.ok(salvo.conteudo.pecas.every(x=>/^\d+$/.test(x.conteudo_id)),'cada peça guarda a demanda criada');
  await assert.rejects(P.cadastrarPecas(sql,vini,{id:p.id,versao:salvo.versao,destinos}),/já foram cadastradas/);
  assert.equal((await sql`SELECT count(*)::int n FROM vybe_conteudos WHERE id>1000`)[0].n,3,'clicar de novo não duplica');
+ // Paulo, 09/11/2026: "só cadastrou metade do conteúdo". A peça inteira chega à demanda.
+ for(const s of ['Linha: Datas','Objetivo: Lembrar a data','Texto da arte:\n1. Título do card\n2. Assinatura'])assert.ok(linhas[0].briefing.includes(s),s);
+ assert.match(linhas[1].briefing,/Objetivo: Mostrar o time/);
+ // Demandas cadastradas antes da correção: a 1ª ainda como o cadastro antigo deixou, a 2ª o time reescreveu.
+ const mes=new Date('2026-11-01T12:00:00Z').toLocaleDateString('pt-BR',{month:'long',year:'numeric',timeZone:'UTC'});
+ const ps=salvo.conteudo.pecas;
+ await db.exec('ALTER TABLE vybe_conteudos ADD COLUMN IF NOT EXISTS atualizado_em timestamptz'); // existe em produção
+ await sql`UPDATE vybe_conteudos SET briefing=${P.briefingAntigoDaPeca(ps[0],mes)} WHERE id=${ps[0].conteudo_id}`;
+ await sql`UPDATE vybe_conteudos SET briefing='O time reescreveu' WHERE id=${ps[1].conteudo_id}`;
+ await assert.rejects(P.completarBriefings(sql,{tipo:'sessao',pessoa:{id:24}},{id:p.id}),/Só o head/);
+ const c=await P.completarBriefings(sql,vini,{id:p.id});
+ assert.deepEqual(c.completadas.map(x=>x.conteudo_id),[ps[0].conteudo_id]);
+ assert.deepEqual(c.editadas.map(x=>x.conteudo_id),[ps[1].conteudo_id],'editada pelo time não é sobrescrita');
+ assert.equal(c.ja_completas,1,'o avulso já estava igual');
+ const [d]=await sql`SELECT briefing FROM vybe_conteudos WHERE id=${ps[0].conteudo_id}`;
+ assert.equal(d.briefing,P.briefingDaPeca(ps[0],mes));
+ const [{n:ev}]=await sql`SELECT count(*)::int n FROM vybe_conteudo_eventos WHERE conteudo_id=${ps[0].conteudo_id} AND tipo='briefing'`;
+ assert.equal(ev,1,'fica no histórico da demanda');
+ const outra=await P.completarBriefings(sql,vini,{id:p.id});
+ assert.deepEqual([outra.completadas.length,outra.ja_completas,outra.editadas.length],[0,2,1],'rodar de novo não muda nada');
 });
 
 // Paulo, 20/10/2026: o cliente pede ajuste peça a peça; o texto das telas não é cortado.

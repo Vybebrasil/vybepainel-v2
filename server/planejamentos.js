@@ -295,10 +295,23 @@ export function prazoDaPeca(veiculacao, hoje) {
 }
 // O que é conteúdo vai para Produção; "Outro" é pedido avulso e entra em Solicitações.
 const FORMATO_DO_PAINEL = { Card: 'Card', Carrossel: 'Carrossel', Reels: 'Reels', Fotografia: 'Fotografia', 'Vídeo': 'Vídeo', Stories: 'Story', Outro: 'Avulso' };
+// A peça inteira vai para a demanda (Paulo, 09/11/2026: "só cadastrou metade do conteúdo"). Antes iam só tema,
+// legenda, referência e observação: as telas do carrossel (e o texto da arte do card), o objetivo, a linha e o
+// ajuste pedido pelo cliente ficavam só no planejamento, e quem produz não via.
 export function briefingDaPeca(p, mesTexto) {
+ const telas = (Array.isArray(p.telas) ? p.telas : []).map((t, i) => `${i + 1}. ${t}`).join('\n');
+ return [p.tema && `Tema: ${p.tema}`, p.linha && `Linha: ${p.linha}`, p.objetivo && `Objetivo: ${p.objetivo}`,
+  telas && `${p.formato === 'Carrossel' ? 'Telas' : 'Texto da arte'}:\n${telas}`,
+  p.legenda && `Legenda / roteiro:\n${p.legenda}`, p.referencia && `Referência: ${p.referencia}`,
+  p.observacao && `Observação: ${p.observacao}`, p.ajuste_cliente && `Ajuste pedido pelo cliente: ${p.ajuste_cliente}`,
+  `Do planejamento de ${mesTexto}, aprovado pelo cliente.`].filter(Boolean).join('\n\n');
+}
+// O briefing como saía até 09/11/2026: só serve para reconhecer a demanda que ninguém editou depois (completarBriefings).
+export function briefingAntigoDaPeca(p, mesTexto) {
  return [p.tema && `Tema: ${p.tema}`, p.legenda && `Legenda / roteiro:\n${p.legenda}`, p.referencia && `Referência: ${p.referencia}`,
   p.observacao && `Observação: ${p.observacao}`, `Do planejamento de ${mesTexto}, aprovado pelo cliente.`].filter(Boolean).join('\n\n');
 }
+const mesPorExtenso = (p) => new Date(`${publico(p).mes}T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 // destinos: por formato do planejamento, o que a regra do cadastro decidiu
 // (cadastrosDestiny no navegador: board, grupo, status, captação e equipe). A
 // pessoa da equipe é a que mais fez peças deste cliente nos últimos 120 dias
@@ -315,7 +328,7 @@ export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
   if (Number(versao) !== Number(p.versao)) throw erro('O planejamento mudou enquanto você olhava. Recarregue.', 409);
   const conteudo = normalizarConteudo(p.conteudo);
   const [{ hoje }] = await tx`SELECT (now() AT TIME ZONE 'America/Bahia')::date::text AS hoje`;
-  const mesTexto = new Date(`${publico(p).mes}T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const mesTexto = mesPorExtenso(p);
   const historico = new Map();
   const quemFaz = async (equipe) => {
    const ids = (Array.isArray(equipe) ? equipe : []).map(String).filter((x) => /^\d{1,18}$/.test(x)).slice(0, 12);
@@ -350,6 +363,37 @@ export async function cadastrarPecas(sql, quem, { id, versao, destinos }) {
   const [n] = await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,estado='cadastrado',atualizado_em=now() WHERE id=${id} RETURNING *`;
   await registrar(tx, id, 'cadastrado', { autor: pessoa.id, versao: n.versao, texto: `${criadas.length} ${criadas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'} pelo botão.` });
   return { planejamento: { ...publico(n), cliente: p.cliente }, criadas: criadas.map((c) => ({ conteudo_id: String(c.conteudo_id), titulo: c.titulo })) };
+ });
+}
+// Completa as demandas de um planejamento já cadastrado com o que ficou de fora (telas, objetivo, linha, ajuste).
+// Só troca o briefing que está EXATAMENTE como o cadastro antigo deixou: se alguém do time já mexeu, não sobrescreve
+// e devolve o título para conferir à mão. Rodar de novo não muda nada (o que já está completo fica).
+export async function completarBriefings(sql, quem, { id }) {
+ await exigir(sql);
+ const pessoa = quem?.pessoa;
+ return sql.comTransacao(async (tx) => {
+  const [p] = await tx`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.id=${id} FOR UPDATE OF p`;
+  if (!p) throw erro('Planejamento não encontrado.', 404);
+  await exigirEditor(tx, pessoa, p.cliente_id);
+  if (p.estado !== 'cadastrado') throw erro('Só planejamento já cadastrado tem demandas para completar.', 409);
+  const mesTexto = mesPorExtenso(p), pecas = normalizarConteudo(p.conteudo).pecas.filter((x) => x.conteudo_id);
+  const ids = pecas.map((x) => x.conteudo_id);
+  const linhas = ids.length ? await tx`SELECT id::text AS id,titulo,briefing FROM vybe_conteudos WHERE id = ANY(${ids}::bigint[]) AND removido_em IS NULL` : [];
+  const porId = new Map(linhas.map((l) => [l.id, l]));
+  const out = { completadas: [], ja_completas: 0, editadas: [], sem_demanda: 0 };
+  for (const peca of pecas) {
+   const c = porId.get(peca.conteudo_id);
+   if (!c) { out.sem_demanda++; continue; }
+   const atual = String(c.briefing || '').replace(/\r\n/g, '\n').trim(), novo = briefingDaPeca(peca, mesTexto);
+   if (atual === novo) { out.ja_completas++; continue; }
+   if (atual !== briefingAntigoDaPeca(peca, mesTexto)) { out.editadas.push({ conteudo_id: c.id, titulo: c.titulo }); continue; }
+   await tx`UPDATE vybe_conteudos SET briefing=${novo},atualizado_em=NOW() WHERE id=${c.id}`;
+   await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id,tipo,de,para,autor_id) VALUES (${c.id},'briefing','tinha','tem',${pessoa?.id || null})`;
+   out.completadas.push({ conteudo_id: c.id, titulo: c.titulo });
+  }
+  if (out.completadas.length)
+   await registrar(tx, id, 'comentario', { autor: pessoa.id, versao: p.versao, texto: `${out.completadas.length} ${out.completadas.length === 1 ? 'demanda completada' : 'demandas completadas'} com telas, objetivo e linha da peça.` });
+  return out;
  });
 }
 export async function comentarPlanejamento(sql, pessoa, { id, texto: t }) {
