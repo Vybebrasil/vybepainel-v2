@@ -44,3 +44,17 @@ test('CSS: Hoje à esquerda, Agenda à direita, o quarto no meio e o dock com o 
   assert.ok(css.includes('.vq-dock .vq-voltar .vq-icone{background:linear-gradient(180deg,#3A3631,#1F1D1A)'));
   assert.ok(css.includes('@media (prefers-reduced-motion:reduce){.vq-dock .vq-item{transition:none}'));
 });
+
+test('responsivo: o dock mede o palco e mostra só as salas que cabem; o resto vai para "+N salas"', () => {
+  const h = dock({ online: [{ id: '2', nome: 'A B', zona: 'recepcao' }, { id: '3', nome: 'C D', zona: 'producao' }, { id: '4', nome: 'E F', zona: 'cafe' }] });
+  assert.ok(h.includes('<span class="vq-rotulo">Salas</span>'), 'tudo cabe');
+  const ini = js.indexOf('  function dockSalasHtml('), fim = js.indexOf('  async function abrirMinhaSala(');
+  const ctx = { escritorio: { conectado: true, zona: 'sala-1', base: { eu: '1' }, online: [{ id: '2', nome: 'A B', zona: 'recepcao' }, { id: '3', nome: 'C D', zona: 'producao' }, { id: '4', nome: 'E F', zona: 'cafe' }] },
+    zonas3d: () => ({}), minhaSalaDaConta: () => 'sala-1', fn: () => null, esc: String, svg: (d) => d, Set, Map, String, Math };
+  vm.createContext(ctx); vm.runInContext(js.slice(ini, fim), ctx);
+  const apertado = ctx.dockSalasHtml('sala-1', 2);
+  assert.equal([...apertado.matchAll(/data-vq-sala=/g)].length, 2);
+  assert.ok(apertado.includes('<span class="vq-rotulo">+2 salas</span>'));
+  assert.ok(js.includes('cabem = palco ? Math.floor((palco.clientWidth'), 'mede o palco');
+  assert.ok(css.includes('@media (min-width:1360px){\n  html body.mundo.mundo-quarto #vv-agenda.vv-agenda'), 'Agenda ao lado só com espaço');
+});

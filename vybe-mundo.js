@@ -1557,7 +1557,8 @@
   // Dock central de baixo da Minha sala (Paulo, 09/11/2026: "um dock fácil pra ver quem tá online nas outras salas e mudar
   // de sala fácil"): a minha sala primeiro, a que está aberta, e as salas com gente agora, com as iniciais de quem está
   // nelas (acende quem fala). "Todas as salas" abre a barra de salas de voz completa.
-  function dockSalasHtml(zonaAberta) {
+  // cabem: quantas salas cabem na largura do palco agora; as outras vão para o ícone Salas ("+N salas"), sem cortar nada.
+  function dockSalasHtml(zonaAberta, cabem = Infinity) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return '';
     const Z = zonas3d(), eu = String(e.base?.eu || ''), minha = minhaSalaDaConta();
     const nome = (z) => { let n = Z[z]?.nome; if (!n) { try { n = fn('escritorioAmbienteDoQuarto')?.(z)?.nome; } catch { n = ''; } } return n || 'Sala'; };
@@ -1569,14 +1570,15 @@
     const porta = svg('<path d="M6 21V4h12v17"/><path d="M4 21h16"/><circle cx="14.5" cy="12.5" r=".8"/>');
     const item = (z) => {
       const gente = por.get(z) || [], voce = e.conectado && e.zona === z, aberta = z === zonaAberta;
-      const rot = z === minha ? 'Minha sala' : nome(z).replace(/^Sala d[aoe]s? /i, '');
+      const curto = nome(z).replace(/^Sala d[aoe]s? /i, ''), rot = z === minha ? 'Minha sala' : curto.charAt(0).toUpperCase() + curto.slice(1);
       const rostos = gente.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}${String(o.id) === eu ? ' eu' : ''}">${esc(String(o.id) === eu ? 'Eu' : ini(o.nome))}</i>`).join('');
       return `<button type="button" class="vq-item${aberta ? ' aberta' : ''}${voce ? ' voz' : ''}${z === minha ? ' minha' : ''}" data-vq-sala="${esc(z)}" ${aberta ? 'aria-current="true"' : ''} title="${esc(nome(z))}${gente.length ? ' · ' + esc(gente.map((o) => o.nome).join(', ')) : ' · vazia'}${voce ? ' · você está na voz desta sala' : ''}">
         <span class="vq-icone">${z === minha ? casa : gente.length ? `<span class="vq-rostos n${Math.min(3, gente.length)}">${rostos}</span>` : porta}${gente.length ? `<b class="vq-conta">${gente.length}</b>` : ''}</span>
         <span class="vq-rotulo">${esc(rot)}</span><i class="vq-ponto" aria-hidden="true"></i></button>`;
     };
     const online = (e.online || []).length;
-    return zonas.map(item).join('') + `<span class="vq-sep" aria-hidden="true"></span><button type="button" class="vq-item vq-todas" data-vq-todas title="Todas as salas de voz: quem está em cada uma"><span class="vq-icone">${svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')}<b class="vq-conta on">${online}</b></span><span class="vq-rotulo">Salas</span></button>`;
+    const vistas = zonas.slice(0, Math.max(1, cabem)), fora = zonas.length - vistas.length;
+    return vistas.map(item).join('') + `<span class="vq-sep" aria-hidden="true"></span><button type="button" class="vq-item vq-todas" data-vq-todas title="Todas as salas de voz: quem está em cada uma"><span class="vq-icone">${svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')}<b class="vq-conta on">${online}</b></span><span class="vq-rotulo">${fora ? '+' + fora + (fora === 1 ? ' sala' : ' salas') : 'Salas'}</span></button>`;
   }
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
     if (andarAberto && zona && andarAbertoId === 'quarto:' + zona) return; // já está nela
@@ -1646,7 +1648,10 @@
       // A decoração mudou no Escritório (salvou pelo editor): o quarto acompanha.
       let itens = null; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* segue com o que tem */ }
       const a = itens && JSON.stringify(itens); if (itens && a !== assinItens) { assinItens = a; quarto.itens = itens; andarAberto.itens(itens); }
-      const dock = el.querySelector('.vq-itens'), html = dockSalasHtml(zona);
+      // Responsivo (Paulo, 09/11/2026: "tá fazendo responsivo?"): o dock nunca corta; mede o palco e mostra as salas que cabem.
+      const palco = el.querySelector('.andar-palco'), vo = el.querySelector('.vq-voltar');
+      const passo = (vo?.offsetWidth || 68) + 4, cabem = palco ? Math.floor((palco.clientWidth - 2 * 14 - 20 - 2 * passo - 2 * 13) / passo) : Infinity;
+      const dock = el.querySelector('.vq-itens'), html = dockSalasHtml(zona, cabem);
       if (dock && dock.dataset.html !== html) { dock.innerHTML = html; dock.dataset.html = html; }
     };
     pintar(); timerAndar = setInterval(pintar, 400);
