@@ -238,8 +238,13 @@ function sinucaJogadorHtml(j, lado, q) {
   const bolas = nums.length ? nums.map((n) => { const v = sinucaVisual(j.mesa.modo, n); return `<i class="${j.mesa.bolas[n] ? "" : "caiu"}${v.listra ? " listra" : ""}${n === sinucaFinal(j) ? " final" : ""}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join("")
     : j.mesa.modo === "bolavez" ? `<b class="snc-pontos">${j.mesa.pontos?.[lado] || 0} <small>pts</small></b>${vez && j.mesa.daVez ? `<small>da vez</small>${(() => { const v = sinucaVisual("bolavez", j.mesa.daVez); return `<i class="final" style="--c:${v.cor}" title="Bola da vez">${j.mesa.daVez}</i>`; })()}` : ""}`
     : `<small>${j.mesa.modo === "parimpar" ? "Par ou ímpar a definir" : "Grupo a definir"}</small>`;
-  const ficha = sinucaFichas(j)?.[String(p?.id)], trofeus = ficha ? ficha.trofeus.filter((t) => t.tem) : [];
-  const taco = `<span class="snc-jogador-taco"><canvas data-snc-taco="${sinucaTacoModelo(j, lado)}" aria-hidden="true"></canvas>${trofeus.length ? `<i title="Troféus do bar">${trofeus.slice(0, 3).map((t) => t.icone).join("")}${trofeus.length > 3 ? `+${trofeus.length - 3}` : ""}</i>` : ""}</span>`;
+  // Na mesa, a barra de cada um mostra o título (na cor da raridade) e as três
+  // conquistas mais raras (Paulo, 08/11/2026: "a tag e conquista não devia
+  // aparecer no cartão do jogador durante a partida também?").
+  const ficha = sinucaFichas(j)?.[String(p?.id)], trofeus = ficha ? ficha.trofeus.filter((t) => t.tem && !t.zoeira) : [];
+  const destaques = ficha ? (ficha.destaques || []).map((k) => trofeus.find((t) => t.chave === k)).filter(Boolean) : [];
+  const titulo = ficha?.titulo ? `<em class="snc-jogador-titulo ${safeText(ficha.titulo.raridade)}" title="${safeText(ficha.titulo.texto || "")}">${safeText(ficha.titulo.nome)}</em>` : "";
+  const taco = `<span class="snc-jogador-taco"><canvas data-snc-taco="${sinucaTacoModelo(j, lado)}" aria-hidden="true"></canvas>${titulo}${destaques.length ? `<i class="snc-jogador-feitos">${destaques.map((t) => `<span class="${safeText(t.raridade)}" title="${safeText(t.nome)}: ${safeText(t.texto)}">${t.icone}</span>`).join("")}${trofeus.length > destaques.length ? `<small>+${trofeus.length - destaques.length}</small>` : ""}</i>` : ""}</span>`;
   return `<div class="snc-jogador${vez ? " vez" : ""}${lado === "desafiado" || lado === "jogador4" ? " direita" : ""}" role="button" tabindex="0" title="Ver a ficha do bar" onclick="sinucaFichaDaMesa('${lado}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sinucaFichaDaMesa('${lado}')}">${u ? `<img class="${j.bot && String(p?.id)==='bot'?'snc-bot-retrato':''}" src="${safeText(u)}" alt="" width="40" height="40">` : `<i class="snc-sem" aria-hidden="true">${safeText(String(p?.nome||"?")[0])}</i>`}
 ${vez ? mesaPrazoVezHtml(j) : ""}<div><b>${xadrezPrimeiroNome(p)}${eu ? " (você)" : j.eu && j.mesa?.times && j.mesa.times[j.eu] === j.mesa.times[lado] ? " (parceiro)" : ""}${fichaRk}</b>${taco}<span class="snc-grupo" aria-label="${g ? `${SINUCA_NOME_GRUPO[g]}, faltam ${j.mesa.restam[g]}` : "Mesa aberta"}">${g ? `<small>${SINUCA_NOME_GRUPO[g]}</small>` : ""}${bolas}</span></div></div>`;
 }

@@ -16,12 +16,28 @@ const SINUCA_RARIDADE = { lendario: "Lendário", epico: "Épico", raro: "Raro", 
 // Aparece uma vez por partida, quando ela começa (nenhuma tacada ainda), para os
 // dois e para quem abrir a mesa assistindo. Some sozinho ou com um clique.
 function sinucaConfrontoTalvez(j) {
+  if (typeof document !== "undefined" && j?.estado === "jogando" && !j.bot && !sinucaFichas(j) && (j.mesa?.n || 0) > 0) sinucaFichasBuscar(j);
   if (typeof document === "undefined" || !j || j.estado !== "jogando" || (j.mesa?.n || 0) > 0 || j.mesa?.rodizio) return;
   const chave = `snc-confronto:${j.id}`;
   try { if (sessionStorage.getItem(chave)) return; } catch { /* sem armazenamento: mostra */ }
-  if (!j.bot && !sinucaFichas(j)) return;
+  // Quem chamou recebe a partida pela leitura automática, que não traz as
+  // fichas (só a abertura traz): busca e mostra depois (Paulo, 08/11/2026:
+  // "não entrou a animação quando comecei a partida com o Vinícius").
+  if (!j.bot && !sinucaFichas(j)) { sinucaFichasBuscar(j); return; }
   try { sessionStorage.setItem(chave, "1"); } catch { /* segue */ }
   sinucaConfrontoMostrar(j);
+}
+// Busca as fichas da partida uma vez (a leitura sem "visto" traz) e redesenha:
+// a barra dos jogadores ganha título e conquistas, e a tela VS entra.
+function sinucaFichasBuscar(j) {
+  const s = sinucaEstado();
+  if (!j || j.bot || sinucaFichas(j) || s.fichasBusca === j.id || typeof escritorioApi !== "function") return;
+  s.fichasBusca = j.id;
+  escritorioApi("mesa", null, { id: j.id }).then((r) => {
+    if (!r?.jogo?.fichas || sinucaEstado().jogo?.id !== j.id) return;
+    s.fichas = { id: j.id, lista: r.jogo.fichas };
+    desenharJogoMesa("snc");
+  }).catch(() => { s.fichasBusca = null; });
 }
 function sinucaConfrontoLado(j, lado) {
   const p = j[lado] || {}, bot = j.bot && String(p.id) === "bot";
