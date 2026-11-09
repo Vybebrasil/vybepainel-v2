@@ -127,3 +127,38 @@ export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho 
     destruir() { composer.dispose?.(); gtao?.dispose?.(); bloom?.dispose?.(); },
   };
 }
+
+// Paleta Vybe (Paulo, 09/11/2026: "pode reinterpretar"): o quarto de cada um é uma releitura no estilo das
+// referências. Toda cor (piso, parede, móvel) cai no tom mais próximo desta paleta, que combina entre si: madeiras
+// quentes, pastéis de parede, acentos vivos e neutros quentes. O móvel continua reconhecível; o quarto fica harmonioso.
+export const PALETA = Object.freeze({
+  parede: ['#8FD3C7', '#A9BE8E', '#F0D8A8', '#F4B9A0', '#BBA9E0', '#A2C8E8', '#EDE3D2', '#E9C46A'],
+  madeira: ['#E0A36A', '#C9774A', '#B0623C', '#8A5A3C', '#5E4030'],
+  acento: ['#FF7A2F', '#F2C230', '#E5484D', '#2FA7A0', '#3D7DD8', '#8E6CC9', '#4FA35A', '#F06EA0', '#7FC8E8'],
+  neutro: ['#F7F2E8', '#E2D9C8', '#B8AE9F', '#857B70', '#4A403A', '#2E2824'],
+});
+const TODAS = [...PALETA.madeira, ...PALETA.acento, ...PALETA.neutro, ...PALETA.parede];
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(String(h).slice(i, i + 2), 16) || 0);
+// Distância "de olho": verde pesa mais, vermelho e azul menos (aproximação rápida da percepção).
+const dist = (a, b) => { const r = (a[0] + b[0]) / 2, d = a.map((v, i) => v - b[i]); return (2 + r / 256) * d[0] ** 2 + 4 * d[1] ** 2 + (2 + (255 - r) / 256) * d[2] ** 2; };
+const perto = (lista, cor) => { const c = rgb(cor); let m = lista[0], dm = Infinity; for (const p of lista) { const dd = dist(c, rgb(p)); if (dd < dm) { dm = dd; m = p; } } return m; };
+const memo = new Map();
+// Cor de móvel: o tom mais próximo de toda a paleta.
+export function harmonizar(cor) {
+  if (!/^#[0-9a-f]{6}$/i.test(String(cor))) return cor;
+  const k = String(cor).toLowerCase(); if (!memo.has(k)) memo.set(k, perto(TODAS, k)); return memo.get(k);
+}
+// Parede: sempre um pastel claro da paleta (parede escura do Habbo vira o pastel do mesmo matiz; cinza vira creme).
+export function corDeParede(cor) {
+  const c = new THREE.Color(/^#[0-9a-f]{6}$/i.test(String(cor)) ? cor : '#EDE3D2'), hsl = c.getHSL({});
+  if (hsl.s < .14) return hsl.l < .35 ? '#A9BE8E' : '#EDE3D2';
+  const alvo = '#' + new THREE.Color().setHSL(hsl.h, .5, .72).getHexString();
+  return perto(PALETA.parede, alvo);
+}
+// Piso: madeira quente (as referências), ou um neutro claro para pisos claros (mármore, cerâmica).
+export function corDePiso(cor) {
+  const c = new THREE.Color(/^#[0-9a-f]{6}$/i.test(String(cor)) ? cor : '#C9774A'), hsl = c.getHSL({});
+  if (hsl.l > .72) return perto(PALETA.neutro.slice(0, 2), '#' + c.getHexString());
+  if (hsl.l < .22) return PALETA.madeira[3];
+  return perto(PALETA.madeira, '#' + c.getHexString());
+}

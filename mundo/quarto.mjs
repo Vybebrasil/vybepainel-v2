@@ -9,7 +9,7 @@
 // escondida, nem o pedido de quadro fica pendente.
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
-import { ESTILO, prepararRenderer, luzDoEstilo, baseDeMaquete, acabamentoDeMaquete } from './estilo.mjs';
+import { ESTILO, PALETA, prepararRenderer, luzDoEstilo, baseDeMaquete, acabamentoDeMaquete, harmonizar, corDeParede, corDePiso } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
@@ -48,8 +48,11 @@ export function paredesDaPlanta(p) {
 export function abrirQuarto(canvas, { quarto = {} } = {}) {
   const P = plantaDoQuarto(quarto), { W, D } = P;
   const nivelMax = Math.max(0, ...P.grade.flat());
-  const piso = Array.isArray(quarto.piso) && quarto.piso.length === 2 && quarto.piso.every(ehCor) ? quarto.piso : PISO_PADRAO;
-  const corParede = ehCor(quarto.parede) ? quarto.parede : '#EFE4CF';
+  // Releitura no estilo Vybe (Paulo, 09/11/2026: "pode reinterpretar"): piso e parede caem na paleta (estilo.mjs).
+  const pisoOriginal = Array.isArray(quarto.piso) && quarto.piso.length === 2 && quarto.piso.every(ehCor) ? quarto.piso : PISO_PADRAO;
+  const pisoDaPaleta = (par) => { const a = corDePiso(par[0]); return [a, misturar(a, '#FFFFFF', .08)]; };
+  const piso = pisoDaPaleta(pisoOriginal);
+  const corParede = corDeParede(ehCor(quarto.parede) ? quarto.parede : '#EFE4CF');
   const pisoEm = typeof quarto.pisoEm === 'function' ? quarto.pisoEm : () => null;
   // Peça de parede: a ficha oficial do Habbo decide (marca 16, como mapaEhDeParede no Escritório); o catálogo da loja
   // não tem todas (a janela ficava solta na frente da parede).
@@ -85,7 +88,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   function aplicarLuz() {
     // Quarto é interior, como no Habbo: nunca escurece. À noite a luz só esquenta um pouco (lâmpada em vez de sol) e
     // as luminárias acendem; a cor escolhida pelo dono tinge de leve.
-    noite = noiteDaHora(horaAgora() * 60);
+    noite = noiteDaHora(horaAgora() * 60) * .35; // releitura: o quarto é sempre claro, a noite só esquenta um pouco
     luz.hora(noite, corDaLuz);
     acenderLuzes(); sujar(true);
   }
@@ -94,13 +97,13 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   // ---------- casca: piso em ladrilhos com os níveis da planta, base e paredes ----------
   let pisoAtual = piso, pisoPintado = pisoEm, corParedeAtual = corParede, gCasca = null;
   // Madeira: tom quente (vermelho > verde > azul) e com cor; mármore, cimento e pisos coloridos ficam em ladrilhos.
-  const madeira = (c) => { const k = new THREE.Color(c), hsl = k.getHSL({}); return k.r > k.g && k.g > k.b && hsl.s > .2 && hsl.h < .12; };
+  const madeira = (c) => PALETA.madeira.includes(String(c).toUpperCase()) || PALETA.madeira.includes(String(c));
   function montarPiso() {
   if (gCasca) { cena.remove(gCasca); liberar(gCasca); }
   const casca = new Obra();
   for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
     const n = P.grade[y][x]; if (n < 0) continue;
-    const topo = n * NIVEL, [a, b] = pisoPintado(x, y) || pisoAtual;
+    const pintado = pisoPintado(x, y), topo = n * NIVEL, [a, b] = pintado ? pisoDaPaleta(pintado) : pisoAtual;
     // Como no Habbo: o topo do ladrilho na cor do piso e a lateral de um patamar no mesmo piso, mais escuro (sem faixa
     // de realce). Embaixo do chão, a base de maquete do padrão (terra em camadas, estilo.mjs).
     if (topo > 0) casca.caixa(x + .5, -.12, y + .5, 1, topo, 1, misturar(a, '#1F1D1A', .32));
@@ -126,25 +129,54 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   const ESTILO_REVESTIMENTO = { c: 'urban_wall', d: 'gardenshed_wall', e: 'sb_wall', f: 'exe_c15_wall', g: 'hygge_c25_wallpaper1', h: 'bathroom_wall4' };
   const revestimentos = new Map(); // classe → cor (quando a arte chega)
   let gParedes = null;
+  // Parede vestida (referências de 09/11/2026): uma janela com peitoril, cortina e luz entrando no trecho livre mais
+  // perto do meio da parede do fundo (onde a pessoa não pendurou nada) e uma tomada perto do chão na esquerda.
+  function vestirParedes(o, H) {
+    const fundo = paredesDaPlanta(P).filter((t) => t.eixo === 'x'), ocupadas = new Set();
+    for (const it of Array.isArray(quarto.itens) ? quarto.itens : []) {
+      const [classe, ix, , dir] = Array.isArray(it) ? it : []; if (!classe || !ehDeParede(classe) || Number(dir) === 2) continue;
+      const c = Math.floor(Number(ix)); for (let k = -1; k <= 2; k++) ocupadas.add(c + k);
+    }
+    const livres = fundo.filter((t, i) => fundo[i + 1] && fundo[i + 1].y === t.y && !ocupadas.has(t.x) && !ocupadas.has(t.x + 1) && P.grade[t.y][t.x] === P.grade[t.y][t.x + 1]);
+    const meio = W / 2, j = livres.sort((a, b) => Math.abs(a.x + 1 - meio) - Math.abs(b.x + 1 - meio))[0];
+    if (j) {
+      const x = j.x + 1, z = j.y + .02, chao = P.grade[j.y][j.x] * NIVEL, y0 = chao + 1.05, alto = Math.min(1.35, H - chao - 1.35), lar = 1.5;
+      if (alto > .6) {
+        o.caixa(x, y0 - .06, z + .02, lar + .16, alto + .12, .08, '#F7F2E8'); // moldura
+        o.luz(x, y0, z + .05, lar, alto, .02, '#FFF6DC'); // céu claro entrando
+        o.caixa(x, y0, z + .07, .06, alto, .04, '#F7F2E8'); o.caixa(x, y0 + alto / 2 - .03, z + .07, lar, .06, .04, '#F7F2E8'); // caixilho em cruz
+        o.caixa(x, y0 - .1, z + .1, lar + .3, .08, .2, '#F7F2E8'); // peitoril
+        o.caixa(x - .35, y0 - .02, z + .14, .16, .14, .14, '#D9774B'); o.caixa(x - .35, y0 + .12, z + .14, .12, .14, .12, '#4FA35A'); // vasinho no peitoril
+        const cortina = PALETA.acento[1];
+        o.caixa(x, y0 + alto + .14, z + .14, lar + .7, .05, .05, '#8A5A3C'); // varão
+        for (const lado of [-1, 1]) for (let k = 0; k < 4; k++) o.caixa(x + lado * (lar / 2 + .05 + k * .08), y0 - .25, z + .12 + (k % 2) * .03, .08, alto + .4, .05, k % 2 ? misturar(cortina, '#FFFFFF', .25) : cortina);
+        luzes.push({ x, y: y0 + alto / 2, z: z + .6, janela: true });
+      }
+    }
+    const esquerda = paredesDaPlanta(P).filter((t) => t.eixo === 'y'), t = esquerda[Math.min(esquerda.length - 1, 2)];
+    if (t) { const chao = P.grade[t.y][t.x] * NIVEL; o.caixa(t.x + .03, chao + .32, t.y + .5, .04, .16, .12, '#F7F2E8'); o.caixa(t.x + .05, chao + .36, t.y + .5, .02, .06, .05, '#857B70'); }
+  }
   function montarParedes() {
     if (gParedes) { cena.remove(gParedes); liberar(gParedes); gParedes = null; }
     if (quarto.semParedes === true || amb?.semParedes === true) return;
     const o = new Obra(), H = ALTURA_PAREDE + nivelMax * NIVEL;
     for (const { x, y, eixo } of paredesDaPlanta(P)) {
       const est = trechoDe(x, y, eixo), classe = est?.textura || ESTILO_REVESTIMENTO[est?.estilo] || null;
-      const corBase = ehCor(est?.cor) ? est.cor : corParedeAtual, cor = classe && revestimentos.get(classe) ? revestimentos.get(classe) : corBase;
+      const corBase = ehCor(est?.cor) ? corDeParede(est.cor) : corParedeAtual, cor = classe && revestimentos.get(classe) ? corDeParede(revestimentos.get(classe)) : corBase;
       const base = P.grade[y][x] * NIVEL, alto = Number(est?.alt) > 0 ? Math.max(.5, (Number(est.alt) / 118) * ALTURA_PAREDE) : H - base;
-      const topoParede = misturar(cor, '#FFFFFF', .55), rodape = misturar(cor, '#1F1D1A', .18);
+      // Borda grossa no alto num tom da própria parede e rodapé claro (as referências).
+      const topoParede = misturar(cor, '#FFFFFF', .3), rodape = '#F7F2E8';
       if (eixo === 'x') {
         o.caixa(x + .5, base - .62, y - ESPESSURA / 2, 1, alto + .62, ESPESSURA, (x % 2) ? cor : misturar(cor, '#1F1D1A', .04));
-        o.caixa(x + .5, base + alto, y - ESPESSURA / 2, 1, .1, ESPESSURA + .04, topoParede);
-        o.caixa(x + .5, base, y + .01, 1, .14, .04, rodape);
+        o.caixa(x + .5, base + alto, y - ESPESSURA / 2, 1, .12, ESPESSURA + .06, topoParede);
+        o.caixa(x + .5, base, y + .02, 1, .16, .06, rodape);
       } else {
         o.caixa(x - ESPESSURA / 2, base - .62, y + .5, ESPESSURA, alto + .62, 1, (y % 2) ? misturar(cor, '#1F1D1A', .08) : misturar(cor, '#1F1D1A', .12));
-        o.caixa(x - ESPESSURA / 2, base + alto, y + .5, ESPESSURA + .04, .1, 1, topoParede);
-        o.caixa(x + .01, base, y + .5, .04, .14, 1, rodape);
+        o.caixa(x - ESPESSURA / 2, base + alto, y + .5, ESPESSURA + .06, .12, 1, topoParede);
+        o.caixa(x + .02, base, y + .5, .06, .16, 1, rodape);
       }
     }
+    vestirParedes(o, H);
     const y0 = P.grade.findIndex((l) => l.some((n) => n >= 0)), x0 = y0 >= 0 ? P.grade[y0].findIndex((n) => n >= 0) : -1;
     if (x0 >= 0) o.caixa(x0 - ESPESSURA / 2, P.grade[y0][x0] * NIVEL - .62, y0 - ESPESSURA / 2, ESPESSURA, H - P.grade[y0][x0] * NIVEL + .72, ESPESSURA, misturar(corParedeAtual, '#FFFFFF', .55));
     gParedes = o.montar(); cena.add(gParedes); sujar(true);
@@ -198,7 +230,8 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     const tipo = tipoModelado(classe, fichaDe(classe), (await carregarCatalogo()).get(classe));
     if (tipo || temModelo(classe)) {
       const info = await paletaDoHabbo(classe, d, estado);
-      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta), classe });
+      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe });
+      if (o) for (const b of o.solidos) b.cor = harmonizar(b.cor);
       if (o) {
         const m = o.montar(), p = pegada(classe, d);
         m.position.set(x + p.w / 2, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y + p.h / 2); m.rotation.y = giroDaDirecao(d);
@@ -207,7 +240,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
       }
     }
     const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
-    const m = obraDeBlocos(e.blocos, e.lado, e.finos || [], e.ladoFino || 0);
+    const m = obraDeBlocos(e.blocos.map((b) => ({ ...b, cor: harmonizar(b.cor) })), e.lado, e.finos || [], e.ladoFino || 0);
     m.position.set(x, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y);
     if (e.brilha) luzes.push({ x: x + e.W / 2, y: m.position.y + (e.altura || 1) * .85, z: y + e.D / 2 });
     return m;
@@ -235,7 +268,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     // Os móveis esperam a ficha do Habbo (é ela que diz o que é de parede, assento ou cama).
     if (!fisica) { quarto.itens = itens; fisicaPronta.then(() => { if (vivo) montarItens(quarto.itens, { junto }); }); return; }
     const geracao = ++geracaoItens;
-    luzes = []; lerFisica(itens); quarto.itens = itens;
+    luzes = luzes.filter((l) => l.janela); lerFisica(itens); quarto.itens = itens; // a luz da janela fica
     const grupo = new THREE.Group(), vis = [], antigo = gItens;
     // Na edição, a sala nova só entra pronta (sem piscar); na abertura, cada peça entra quando chega.
     if (!junto || !antigo) { if (antigo) { cena.remove(antigo); liberar(antigo); } gItens = grupo; gVis = vis; cena.add(grupo); sujar(true); }
@@ -580,9 +613,9 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   // ladrilho a ladrilho, como no editor; null volta ao do quarto.
   function definirAcabamento(sala, { piso: novoPiso = null, parede: novaParede = null } = {}) {
     if (sala !== quarto.id) return;
-    pisoAtual = Array.isArray(novoPiso) && novoPiso.length === 2 && novoPiso.every(ehCor) ? [...novoPiso] : piso;
+    pisoAtual = Array.isArray(novoPiso) && novoPiso.length === 2 && novoPiso.every(ehCor) ? pisoDaPaleta(novoPiso) : piso;
     pisoPintado = novoPiso ? () => null : pisoEm;
-    corParedeAtual = ehCor(novaParede) ? novaParede : corParede;
+    corParedeAtual = ehCor(novaParede) ? corDeParede(novaParede) : corParede;
     montarPiso(); montarParedes();
   }
 
@@ -722,6 +755,21 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   montarPiso();
   montarParedes();
   montarItens(quarto.itens);
+  // Câmera na parte mobiliada (as referências enchem a tela com o quarto): na abertura, o centro e o tamanho dos
+  // móveis de chão, com folga e no mínimo 5 × 5 ladrilhos; o duplo clique continua mostrando o quarto inteiro.
+  {
+    const chao = (Array.isArray(quarto.itens) ? quarto.itens : []).filter((it) => Array.isArray(it) && it[0] && !ehDeParedeCatalogo(it[0]));
+    if (chao.length) {
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const it of chao) { const x = Number(it[1]), z = Number(it[2]); if (!Number.isFinite(x) || !Number.isFinite(z)) continue; x0 = Math.min(x0, x); x1 = Math.max(x1, x + 1); z0 = Math.min(z0, z); z1 = Math.max(z1, z + 1); }
+      if (Number.isFinite(x0)) {
+        // Do canto das paredes (0, 0) até o último móvel, com 1 ladrilho de folga: as paredes sempre entram.
+        const bw = Math.min(W, Math.max(5, x1 + 1)), bd = Math.min(D, Math.max(5, z1 + 1)), cx = bw / 2, cz = bd / 2;
+        const enquadre = Math.max(perto, Math.max(bw + bd, 7) * .27 + .4);
+        if (enquadre < longe * .92) { quer.alvo.set(cx, .6 + nivelMax * NIVEL / 2, cz); quer.dist = enquadre; alvo.copy(quer.alvo); dist = enquadre; posicionar(); }
+      }
+    }
+  }
   aplicarLuz();
   const relogio = setInterval(aplicarLuz, 60000);
   medir();

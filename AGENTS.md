@@ -243,6 +243,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   ladrilho, cores e tamanho da arte do Habbo); o resto é esculpido só no mesmo grão, sem a casca de 2 px. Isto
   substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
+  Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
+  estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
+  parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é
+  sempre claro; a câmera abre na parte mobiliada. Móveis, posições e o que a pessoa salvou não mudam.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa
