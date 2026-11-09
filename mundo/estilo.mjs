@@ -16,13 +16,13 @@ export const ESTILO = Object.freeze({
   exposicao: 1.05,
   dia: { ceu: '#EAF6FF', chao: '#7E6A4E', hemi: .9, sol: '#FFEBCB', forca: 2.15, preenche: '#CFE4FF', fPreenche: .35, contorno: '#FFB27A', fContorno: .55 },
   noite: { ceu: '#7083C4', chao: '#2A2A3A', hemi: .52, sol: '#A9BBFF', forca: .8, fPreenche: .15, fContorno: .25, exposicao: .85 },
-  interior: { ceu: '#FFF4E6', chao: '#7A5E48', hemi: .85, sol: '#FFE2B8', forca: 2.5, preenche: '#CFE0FF', fPreenche: .3, contorno: '#FFB878', fContorno: .7, lampada: '#FFE3C2', solNoite: '#FFD39A' },
+  interior: { ceu: '#E9E2FF', chao: '#6A4A3A', hemi: .8, sol: '#FFD8A0', forca: 3.1, preenche: '#B8B4FF', fPreenche: .22, contorno: '#FFB070', fContorno: .55, lampada: '#FFE3C2', solNoite: '#FFD39A' },
   // Base de maquete (terra em camadas embaixo do piso), de cima para baixo.
   base: ['#8A6A4C', '#6E523A', '#54402E'],
   luzMovel: '#FFC77A',
   // Acabamento de maquete: oclusão nos cantos (raio em unidades do mundo) e brilho só no que acende.
   ao: { forca: 1.1, raio: .3 },
-  brilho: { forca: .35, limiar: .92 },
+  brilho: { forca: .55, limiar: .85 },
   // Superfície: lisa como nas referências (sem grade nem quina de cada bloco); o volume vem da luz e da oclusão.
   superficie: { amp: .03, grade: 0, borda: false, tomBloco: .025 },
 });

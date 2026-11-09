@@ -14,7 +14,7 @@ import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
 import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, figuraDoHabbo, corDoRevestimento, paletaDoHabbo } from './moveis-habbo.mjs';
-import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo } from './moveis-voxel.mjs';
+import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, temModelo } from './moveis-voxel.mjs';
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
 
@@ -76,9 +76,10 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   let noite = 0, gLuzes = null, luzes = [];
   function acenderLuzes() {
     if (gLuzes) { cena.remove(gLuzes); gLuzes = null; }
-    if (noite < .3 || !luzes.length) return;
+    if (!luzes.length) return;
+    // Luminária e tela iluminam o canto delas sempre (referências: a luz da luminária pinta a mesa), mais à noite.
     gLuzes = new THREE.Group();
-    for (const l of luzes.slice(0, 6)) { const p = new THREE.PointLight(ESTILO.luzMovel, 1.6 * noite, 4.5, 1.6); p.position.set(l.x, l.y, l.z); gLuzes.add(p); }
+    for (const l of luzes.slice(0, 6)) { const p = new THREE.PointLight(ESTILO.luzMovel, 1.4 + 1.6 * noite, 5, 1.4); p.position.set(l.x, l.y, l.z); gLuzes.add(p); }
     cena.add(gLuzes); sujar(true);
   }
   function aplicarLuz() {
@@ -195,7 +196,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     // Motor de móveis modelados (moveis-voxel.mjs): móvel de tipo conhecido é montado em voxel limpo, no estilo das
     // referências, com o tamanho e as cores da arte do Habbo; o resto continua esculpido.
     const tipo = tipoModelado(classe, fichaDe(classe), (await carregarCatalogo()).get(classe));
-    if (tipo) {
+    if (tipo || temModelo(classe)) {
       const info = await paletaDoHabbo(classe, d, estado);
       const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta), classe });
       if (o) {

@@ -71,3 +71,13 @@ test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro d
     }
   }
 });
+
+test('biblioteca: os móveis dos quartos modelados um a um entram antes da receita do tipo', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const c of ['exe_chair2', 'hygge_c25_tv', 'exe_table', 'xmas11_luxsofa2', 'hc3_stereo', 'skorea_c22_drinksmachine', 'mm_lamp', 'xmas_c22_festivetree2']) {
+    assert.ok(m.temModelo(c), c);
+    const o = m.montarMovel(null, { w: 2, d: 1, classe: c });
+    assert.ok(o && o.solidos.length > 6, c + ' tem detalhe');
+  }
+  assert.equal(m.temModelo('winter15_iceskater'), false, 'estátua continua esculpida');
+});

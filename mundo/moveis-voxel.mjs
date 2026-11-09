@@ -6,6 +6,7 @@
 // móvel. O que o motor não reconhece continua esculpido (moveis-habbo.mjs).
 // Tudo na grade de 1/16 de ladrilho (o grão do padrão): medidas e posições caem nela.
 import { Obra } from './voxel.mjs';
+import { biblioteca } from './moveis-biblioteca.mjs';
 
 const G = 1 / 16;
 const q = (v) => Math.round(v / G) * G;
@@ -245,8 +246,9 @@ const RECEITAS = {
     const madeira = lum(cor.segunda) < .6 ? cor.segunda : MADEIRA_ESC, feltro = sat(cor.principal) > .15 ? cor.principal : '#2E8B57', tw = w - G * 2, td = d - G * 2, h = .72;
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { C(o, a * (tw / 2 - G * 3), 0, b * (td / 2 - G * 3), G * 3, h - G * 4, G * 3, madeira); C(o, a * (tw / 2 - G * 3), 0, b * (td / 2 - G * 3), G * 4, G, G * 4, tom(madeira, -.2)); }
     C(o, 0, h - G * 5, 0, tw - G * 2, G * 3, td - G * 2, madeira);
-    C(o, 0, h - G * 2, 0, tw, G * 2, td, tom(madeira, .1)); // borda
-    C(o, 0, h - G * 2, 0, tw - G * 4, G * 2.2, td - G * 4, feltro);
+    C(o, 0, h - G * 2, 0, tw - G * 4, G * 2, td - G * 4, feltro); // feltro
+    // Trilhos da borda em volta do feltro, um pouco mais altos que ele.
+    for (const s of [-1, 1]) { C(o, 0, h - G * 2, s * (td / 2 - G), tw, G * 3, G * 2, tom(madeira, .1)); C(o, s * (tw / 2 - G), h - G * 2, 0, G * 2, G * 3, td - G * 4, tom(madeira, .1)); }
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1]]) C(o, a * (tw / 2 - G * 2), h - G * 2, b * (td / 2 - G * 2), G * 2, G * 2.4, G * 2, '#1F1D1A'); // caçapas
     for (let k = 0; k < 6; k++) C(o, tw / 5 + (k % 3) * G * 1.2, h, (Math.floor(k / 3) - .5) * G * 1.2, G, G, G, LIVROS[k]); // bolas
     C(o, -tw / 4, h, 0, G, G, G, '#FFFFFF');
@@ -302,10 +304,15 @@ const RECEITAS = {
   },
 };
 
+// Móveis modelados um a um (moveis-biblioteca.mjs), com as ferramentas deste motor.
+let BIBLIOTECA = null;
+const modelos = () => (BIBLIOTECA ||= biblioteca({ C, L, G, tom, gaveta, LIVROS, RECEITAS, METAL }));
+export const temModelo = (classe) => Object.prototype.hasOwnProperty.call(modelos(), String(classe));
+
 // Monta o móvel: devolve a Obra (centro da pegada em 0, base 0, frente +z) ou null (tipo sem receita).
 // w e d: pegada em ladrilhos na direção 4 (a de frente). cores: { principal, segunda, acento }.
 export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '' } = {}) {
-  const f = RECEITAS[tipo]; if (!f) return null;
+  const f = modelos()[classe] || RECEITAS[tipo]; if (!f) return null;
   const o = new Obra();
   f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase() });
   o.sombra(0, 0, Math.max(w, d) * .55, .005);
