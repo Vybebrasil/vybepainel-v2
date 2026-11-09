@@ -5371,3 +5371,8 @@ html body.mundo :is(.client-card,.client-module-hero,.da-capacity-card,.da-week-
    (0 8px 20px -8px). O degrau de jogo continua só no Escritório (vb-jogo-botao). */
 html body.mundo :is(.vc-acao,.vp-acao,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.vb-botao.principal,.focus-next-btn,.vv-conversa-enviar,.vv-conversa-acao,.vv-rel-acao):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){box-shadow:0 1px 2px rgba(31,29,26,.16)}
 html body.mundo :is(.vc-acao,.vp-acao,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.vb-botao.principal,.focus-next-btn,.vv-conversa-enviar,.vv-conversa-acao,.vv-rel-acao):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d):hover{box-shadow:0 2px 6px rgba(31,29,26,.18)}
+/* Pedido de orçamento pronto do Nestor (Compras): o texto e o botão de copiar. */
+.vga-rascunho pre{white-space:pre-wrap;max-height:220px;overflow:auto}
+.vga-rascunho .vga-copiar{margin-top:6px;min-height:30px;padding:0 12px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,Inter,system-ui,sans-serif);cursor:pointer}
+.vga-rascunho .vga-copiar:hover{background:#F3EEE6}
+.vga-rascunho .vga-copiar:focus-visible{outline:2px solid #F76808;outline-offset:2px}

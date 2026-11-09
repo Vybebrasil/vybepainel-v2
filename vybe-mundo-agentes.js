@@ -45,7 +45,7 @@
   function achadosHtml(P, dono) {
     const ab = P.achados?.abertos || [], fe = P.achados?.resolvidos || [];
     const linha = (a, aberto) => `<li class="g-${esc(a.gravidade)}"><span><b>${esc(a.fato)}</b><small>${a.cliente ? esc(a.cliente) + ' · ' : ''}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''}${aberto ? ` · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}` : ` · ${esc(a.comoFechou || a.estado)} ${esc(quando(a.fechadoEm))}`}</small>
-        ${a.ficha ? `<details><summary>Ficha para quem faz</summary><pre>${esc(a.ficha)}</pre></details>` : ''}${a.versaoSugerida ? `<details><summary>Versão sugerida pelo Qwen</summary><pre>${esc(a.versaoSugerida)}</pre></details>` : ''}</span>
+        ${a.ficha ? `<details><summary>Ficha para quem faz</summary><pre>${esc(a.ficha)}</pre></details>` : ''}${a.versaoSugerida ? `<details><summary>Versão sugerida pelo Qwen</summary><pre>${esc(a.versaoSugerida)}</pre></details>` : ''}${a.rascunho ? `<details class="vga-rascunho"${aberto ? ' open' : ''}><summary>Pedido de orçamento pronto</summary><pre>${esc(a.rascunho)}</pre><button type="button" class="vga-copiar" data-vga-copiar>Copiar pedido</button></details>` : ''}</span>
         ${aberto && dono ? `<span class="vga-acoes"><button type="button" data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button></span>` : ''}</li>`;
     return `<section class="vga-bloco"><h4>O que ele achou<span class="vga-pilula">${ab.length}</span></h4>
       ${ab.length ? `<ul class="vga-achados">${ab.map((a) => linha(a, true)).join('')}</ul>` : '<p class="vga-vazio">Nada em aberto. Os achados aparecem quando as rotinas dele rodam.</p>'}
@@ -179,6 +179,13 @@
     if (b.hasAttribute('data-vga-fechar')) { fechar(); return; }
     if (b.dataset.vgaSetor) { st.setor = b.dataset.vgaSetor; st.msg = ''; pintar(); return; }
     if (b.dataset.vgaRotina) { chamar({ id: b.dataset.vgaRotina, acao: b.dataset.vgaLigar }, 'rotina', b.dataset.vgaLigar === 'ligar' ? 'Rotina ligada.' : 'Rotina desligada: o agendador pula até ligar de novo.'); return; }
+    // Pedido de orçamento que o Nestor (Compras) deixa pronto: copia o texto para colar no WhatsApp ou e-mail da gráfica.
+    if (b.hasAttribute('data-vga-copiar')) {
+      const texto = b.closest('details')?.querySelector('pre')?.textContent || '';
+      const ok = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar pedido'; }, 1800); };
+      (navigator.clipboard?.writeText(texto) || Promise.reject()).then(ok, () => { st.msg = 'Não deu para copiar sozinho: selecione o texto e copie.'; pintar(); });
+      return;
+    }
     if (b.dataset.vgaAchado) { chamar({ chave: b.dataset.vgaChave, acao: b.dataset.vgaAchado }, 'achado', b.dataset.vgaAchado === 'errado' ? 'Anotado: conta no acerto do agente.' : 'Achado fechado.'); return; }
     if (b.dataset.vgaLicao) { chamar({ licao: b.dataset.vgaId, acao: b.dataset.vgaLicao }, 'achado', 'Lição atualizada.'); return; }
     if (b.dataset.vgaAcao) { if (b.dataset.vgaAcao === 'remover' && !confirm('Remover esta atribuição?')) return; chamar({ acao: b.dataset.vgaAcao, id: b.dataset.vgaId }); }

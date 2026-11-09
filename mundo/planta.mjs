@@ -54,6 +54,9 @@ export const PLANTA = [
         skills: ['OCR de faturas', 'Cruzar com orçamento aprovado'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
       { id: 'controladoria', nome: 'Controladoria e Fiscal', agente: 'Moreira', funcao: 'Controller', papel: 'Ponte com a contabilidade e documentos fiscais.',
         skills: ['Emitir NFS-e', 'DRE por projeto', 'Pacote contábil do mês'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
+      // Compras (Paulo, 09/11/2026; bot core/agentes.js): cotação com as gráficas, impressões paradas e a base de fornecedores.
+      { id: 'compras', nome: 'Compras e Fornecedores', agente: 'Nestor', funcao: 'Comprador', papel: 'Cota com as gráficas, cobra impressão parada e cuida da base de fornecedores.',
+        skills: ['Pedido de orçamento pronto', 'Impressões atrasadas e paradas', 'Base de fornecedores (completa, sem duplicada)'], estado: 'sombra', modulo: { tipo: 'janela', alvo: 'impressoes' } },
     ],
   },
   {

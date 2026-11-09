@@ -67,3 +67,11 @@ test('servidor #549: histórico inteiro, gráficas sugeridas com motivo, cotaç�
   assert.match(fonte, /acao: 'cotacao_escolher', id:/);
   assert.match(fonte, /if \(!st\.dados\?\.gestao \|\| !Array\.isArray\(i\.cotacoes\)/, 'cotações só para a gestão');
 });
+
+test('Nestor (Compras) tem sala no andar Financeiro e abre Impressões; o rascunho do achado tem "Copiar pedido"', async () => {
+  const { ANDARES } = await import('../mundo/planta.mjs').catch(() => ({}));
+  const fonte = readFileSync('mundo/planta.mjs', 'utf8');
+  assert.match(fonte, /id: 'compras', nome: 'Compras e Fornecedores', agente: 'Nestor'[^\n]*\n[^\n]*modulo: \{ tipo: 'janela', alvo: 'impressoes' \}/);
+  if (ANDARES) assert.ok(ANDARES.find((a) => a.id === 'financeiro').setores.some((s) => s.id === 'compras'));
+  assert.match(readFileSync('vybe-mundo-agentes.js', 'utf8'), /a\.rascunho \?[^\n]*data-vga-copiar>Copiar pedido</);
+});

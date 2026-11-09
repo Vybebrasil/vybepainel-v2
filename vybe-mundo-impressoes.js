@@ -265,5 +265,12 @@
     raiz.remove(); if (antes?.isConnected) antes.focus?.();
   }
   window.addEventListener('keydown', aoTeclar, true);
+  // Sala de Compras (andar Financeiro, Nestor): modulo { tipo: 'janela', alvo: 'impressoes' } na planta (mundo/planta.mjs).
+  document.addEventListener?.('click', (e) => {
+    const b = e.target.closest?.('[data-modulo]'); if (!b) return;
+    let m; try { m = JSON.parse(b.dataset.modulo); } catch { return; }
+    if (m?.tipo !== 'janela' || m.alvo !== 'impressoes') return;
+    e.preventDefault(); e.stopPropagation(); abrir();
+  }, true);
   window.VybeImpressoes = Object.freeze({ abrir, fechar, aberto: () => Boolean(st.raiz) });
 })();
