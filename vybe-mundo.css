@@ -4281,7 +4281,6 @@ body.mundo .ofc-musica-lista button,body.mundo .ofc-musica-rodape .ofc-secundari
 body.mundo .ofc-musica-lista button.perigo{color:#D93D42!important}
 body.mundo .ofc-musica-painel .ofc-erro{color:#D93D42}
 /* com o player aberto, o aviso de planejamento centraliza no espaço que sobra à esquerda dele */
-@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#office-musica.vv-musica-janela:not([hidden])) .plj-aviso{right:calc(var(--vv-m) + 70px + 300px + 12px)!important}}
 /* Seleção semanal e detalhes operacionais usam as placas existentes do Irecity. */
 .vv-semana-controles{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .vv-semana-controles .vv-seg{margin:0;align-self:flex-start}
@@ -4895,3 +4894,25 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
 /* A barrinha de quadros do topo antigo (Produção, Escritório, Demandas, Diário…) duplicava o dock: os quadros entraram
    no dock (Produção › Demandas; Gestão › Diário, Performance, IA e custos, Automações, Conta e equipe). */
 body.mundo.mundo-modulo .app-header .board-switch-bar{display:none!important}
+
+/* Player da música (Paulo, 08/11/2026: "não dá pra arrastar, minimizar nem fechar pra ele voltar pro ícone"): fechado
+   por padrão, abre pelo ícone da barra (ou o da sala), embaixo da barra à direita; arrasta pelo topo e guarda o lugar.
+   Fechado fica invisível mas no lugar (o YouTube continua tocando). */
+html body.mundo:not(.musica-aberta) #office-musica.vv-musica-janela{visibility:hidden!important;pointer-events:none!important}
+html body.mundo:not(.vv-x) #office-musica.vv-musica-janela{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:var(--vv-m)!important;left:auto!important;width:300px!important;z-index:730;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.vv-x) #office-musica.vv-musica-janela.movida{left:var(--mx)!important;top:var(--my)!important;right:auto!important}
+.vv-musica-janela .ofc-musica-topo{cursor:grab;user-select:none;touch-action:none}
+.vv-musica-janela.arrastando{cursor:grabbing;animation:none!important}
+.vv-musica-janela .ofc-musica-topo > span{display:flex;gap:4px}
+.vv-musica-janela .ofc-musica-topo button{font:600 16px/1 var(--vv-texto)!important;color:#6B665E!important;background:#fff!important}
+.vv-musica-janela .ofc-musica-topo button:hover{color:#1F1D1A!important}
+.vv-ferr-musica[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){html body.mundo #office-musica.vv-musica-janela{animation:none!important}}
+/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada das janelinhas da barra congelaria transparente. */
+html.vb-ocioso body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada),html.vb-ocioso body.mundo #office-musica{animation:none!important}
+/* Com a sala aberta embaixo da barra, a lista de salas de voz abre para baixo (antes subia por cima da barra). */
+html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top:calc(100% + 8px);bottom:auto;left:auto;right:0;max-height:min(420px,calc(100vh - 220px))}
+/* No Centro e no Prédio o Hoje tem a altura do que mostra (antes era uma placa de vidro da altura da tela, quase vazia,
+   cobrindo o mundo). */
+@media (min-width:901px){html body.mundo.mundo-centro .vv-hoje{bottom:auto!important;max-height:calc(100% - 2 * var(--vv-m))}}
+@media (max-width:900px){html body.mundo:not(.vv-x) #office-musica.vv-musica-janela{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important}}

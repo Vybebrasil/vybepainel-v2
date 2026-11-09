@@ -852,6 +852,7 @@
       <div class="vv-ferramentas" role="group" aria-label="Ferramentas">
         <button type="button" class="vv-botao vv-ferr-mic" data-ferr="mic" hidden aria-pressed="false" title="Microfone" aria-label="Microfone">${svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}</button>
         <button type="button" class="vv-botao vv-ferr-voz" data-ferr="voz" aria-expanded="false" title="Sala de voz: quem está com você, microfone, música e TV" aria-label="Sala de voz">${svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>')}<i class="vv-voz-ponto" aria-hidden="true"></i></button>
+        <button type="button" class="vv-botao vv-ferr-musica" data-ferr="musica" hidden aria-expanded="false" title="Música da sala" aria-label="Música da sala">${svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>')}</button>
         <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}</button>
         <span class="vv-divisor" aria-hidden="true"></span>
         <button type="button" class="vv-botao" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}</button>
@@ -1774,6 +1775,7 @@
   }, true);
   function usarFerramenta(id) {
     if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
+    if (id === 'musica') { abrirMusica(!body.classList.contains('musica-aberta')); return; }
     if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
     if (id !== 'ajuda') window.VybeTutorial?.dica?.('ferr:' + id);
     if (id === 'busca') document.querySelector('[data-open-spotlight]')?.click();
@@ -2279,7 +2281,7 @@
     const c = b.dataset.chamada;
     if (c === 'mic') fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada);
     else if (c === 'ajustes') abrirAjustesAudio();
-    else if (c === 'musica') fn('abrirMusicaEscritorio')?.();
+    else if (c === 'musica') abrirMusica(!body.classList.contains('musica-aberta'));
     else if (c === 'tela') fn('alternarMidiaEscritorio')?.('screen')?.finally?.(() => { pintarChamada(); trazerProPalco(); });
     else if (c === 'camera') fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada);
     else if (c === 'tv') fn('abrirTvEscritorio')?.(typeof escritorio !== 'undefined' ? escritorio.tvAtual || null : null);
@@ -2381,6 +2383,7 @@
     }
     if (chamarAberto || pessoaAberta) { chamarAberto = false; pessoaAberta = null; pintarChamada(); return; }
     if (body.classList.contains('ver-agenda') || body.classList.contains('ver-voz')) { fecharDaDireita(); return; }
+    if (body.classList.contains('musica-aberta')) { abrirMusica(false); return; }
     if (andarAberto) { sairDoAndar(); return; }
     if (!placa().hidden) { fecharPlaca(); return; }
     if (hud.querySelector('.vv-menu-conta')) { hud.querySelectorAll('.vv-menu-conta').forEach((x) => x.remove()); return; }
@@ -2561,6 +2564,55 @@
   // Escritório o recolocava na coluna da tela dele a cada redesenho; no Irecity ele recebe só um marcador vazio
   // e o player não sai do lugar (mover o player recarregaria o vídeo e cortaria a música).
   let redesenhandoEscritorio = false;
+  const CHAVE_MUSICA_POS = 'vybe.mundo.musica.pos';
+  function abrirMusica(sim) {
+    body.classList.toggle('musica-aberta', Boolean(sim));
+    hud.querySelector('[data-ferr="musica"]')?.setAttribute('aria-expanded', String(Boolean(sim)));
+    if (sim) {
+      fecharDaDireita(); prepararJanelaMusica();
+      // Posição arrastada vale no computador e sempre volta para dentro da tela; no celular o player ocupa a largura.
+      const el = document.getElementById('office-musica');
+      if (el?.classList.contains('movida')) { if (innerWidth <= 900) el.classList.remove('movida'); else moverMusica(el, parseFloat(el.style.getPropertyValue('--mx')) || 0, parseFloat(el.style.getPropertyValue('--my')) || 0); }
+    }
+  }
+  function prepararJanelaMusica() {
+    const el = document.getElementById('office-musica'); if (!el || el.dataset.vvPronto) return;
+    el.dataset.vvPronto = '1';
+    el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Música da sala');
+    const topo = el.querySelector('.ofc-musica-topo'), acoes = topo?.querySelector('span');
+    if (acoes && !acoes.querySelector('[data-musica-fechar]')) {
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'ofc-x'; x.dataset.musicaFechar = '';
+      x.setAttribute('aria-label', 'Fechar o player (a música continua)'); x.title = 'Fechar (a música continua)'; x.textContent = '×';
+      x.addEventListener('click', (ev) => { ev.stopPropagation(); abrirMusica(false); });
+      acoes.append(x);
+    }
+    const mini = acoes?.querySelector('[onclick*="minimizarMusicaEscritorio"]');
+    if (mini) { mini.textContent = '–'; mini.title = 'Esconder o clipe'; mini.setAttribute('aria-label', 'Esconder o clipe'); }
+    try { const pos = JSON.parse(localStorage.getItem(CHAVE_MUSICA_POS) || 'null'); if (pos) moverMusica(el, pos.x, pos.y); } catch { /* sem posição guardada */ }
+    topo?.addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0 || ev.target.closest('button')) return;
+      const r = el.getBoundingClientRect(), dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+      topo.setPointerCapture?.(ev.pointerId); el.classList.add('arrastando');
+      const mover = (e) => moverMusica(el, e.clientX - dx, e.clientY - dy);
+      const soltar = () => {
+        topo.removeEventListener('pointermove', mover); el.classList.remove('arrastando');
+        try { localStorage.setItem(CHAVE_MUSICA_POS, JSON.stringify({ x: parseFloat(el.style.getPropertyValue('--mx')), y: parseFloat(el.style.getPropertyValue('--my')) })); } catch { /* sem guardar */ }
+      };
+      topo.addEventListener('pointermove', mover); topo.addEventListener('pointerup', soltar, { once: true }); topo.addEventListener('pointercancel', soltar, { once: true });
+    });
+  }
+  function moverMusica(el, x, y) {
+    const w = el.offsetWidth || 300, h = el.offsetHeight || 200;
+    const cx = Math.max(8, Math.min(innerWidth - w - 8, x)), cy = Math.max(8, Math.min(innerHeight - h - 8, y));
+    el.style.setProperty('--mx', cx + 'px'); el.style.setProperty('--my', cy + 'px'); el.classList.add('movida');
+  }
+  // O ícone da barra só aparece quando a sala tem música (o Escritório mostra/esconde o player pelo hidden).
+  if (typeof setInterval === 'function') setInterval(() => {
+    const el = document.getElementById('office-musica'), b = hud.querySelector('[data-ferr="musica"]'); if (!b) return;
+    const tem = Boolean(el && !el.hidden); b.hidden = !tem;
+    if (!tem && body.classList.contains('musica-aberta')) abrirMusica(false);
+    if (tem) prepararJanelaMusica();
+  }, 1500);
   if (typeof window !== 'undefined' && typeof window.escritorioElementoMusica === 'function' && typeof window.renderEscritorio === 'function') {
     const elementoOriginal = window.escritorioElementoMusica, renderOriginal = window.renderEscritorio;
     window.escritorioElementoMusica = function (...a) {
