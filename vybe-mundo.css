@@ -4884,3 +4884,14 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) .vv-hoje{right:var(--vv-m)!important}
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:calc(var(--vv-col) - 14px)}
 }
+
+/* Telas antigas abaixo da barra de ícones (Paulo, 08/11/2026: "menu que se sobrepõe"): o conteúdo do módulo começava
+   a 58 px e a barra do mundo termina a 62 px, cobrindo os números do topo (ex.: Direção de arte). */
+@media (min-width:901px){html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:56px!important}}
+/* Mesa de comando sem nada para decidir: uma linha discreta, sem cartões de zero (padrão Vybe). */
+.da-command-daily-vazio{margin:6px 0 0;padding:12px 14px;border-radius:10px;background:rgba(46,157,91,.08);color:#1D7A3E;font:600 13px var(--vv-texto,inherit)}
+.da-command-daily-card.vazia .da-command-daily-count{font-size:20px;opacity:.55}
+
+/* A barrinha de quadros do topo antigo (Produção, Escritório, Demandas, Diário…) duplicava o dock: os quadros entraram
+   no dock (Produção › Demandas; Gestão › Diário, Performance, IA e custos, Automações, Conta e equipe). */
+body.mundo.mundo-modulo .app-header .board-switch-bar{display:none!important}

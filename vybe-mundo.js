@@ -124,8 +124,9 @@
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
     { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
-      { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade' },
+      { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade', board: 'producao' },
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
+      { id: 'demandas', nome: 'Demandas', dica: 'Todas as demandas, por grupo e status', board: 'demandas' },
       { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
       { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
       { id: 'planejamentos', nome: 'Planejamentos', dica: 'Centro de Operação: o planejamento de cada cliente para revisar, editar, aprovar e enviar', mod: ['VybePlanejamentos'] },
@@ -157,6 +158,11 @@
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
+      { id: 'diario', nome: 'Diário', dica: 'O diário da operação', board: 'diario' },
+      { id: 'performance', nome: 'Performance', dica: 'Desempenho de cada pessoa (quem administra)', board: 'performance' },
+      { id: 'ai-usage', nome: 'IA e custos', dica: 'Uso e custo da IA (quem administra)', board: 'ai-usage' },
+      { id: 'automacoes', nome: 'Automações', dica: 'Regras que movem as demandas sozinhas', board: 'automacoes' },
+      { id: 'conta', nome: 'Conta e equipe', dica: 'Sua conta, acessos e a equipe', board: 'conta' },
     ] },
     { id: 'setor:pessoas', grupo: 'Time', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
@@ -270,7 +276,7 @@
     if (id !== 'criar' && id !== 'vybes') {
       limparTela();
       // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
-      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && id !== 'centro' && id !== 'predio' && body.classList.contains('mundo-modulo')) {
+      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && !SUBMODULOS.find((x) => x.id === id)?.board && id !== 'centro' && id !== 'predio' && body.classList.contains('mundo-modulo')) {
         chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
       }
     }
@@ -287,6 +293,12 @@
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
     const sub = SUBMODULOS.find((x) => x.id === id);
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
+    if (sub?.board) {
+      if (!gestao.hidden) fecharGestao();
+      const quadro = () => chamar('switchBoard', sub.board, document.getElementById('btn-board-' + sub.board));
+      if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) { chamar('chooseManagerMode'); setTimeout(quadro, 300); } else quadro();
+      marcarTrilho(id); return;
+    }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id); window[sub.mod[0]]?.abrir?.(sub.mod[1]); return; }
     if (id === 'gestao') { abrirGestao(); return; }
     if (!gestao.hidden) fecharGestao();
@@ -2654,7 +2666,7 @@
   let redirecionando = false;
   function marcarTrilhoDoModulo() {
     const modo = typeof panelMode !== 'undefined' ? panelMode : '', quadro = typeof activeBoard !== 'undefined' ? activeBoard : '';
-    const id = modo === 'foco' ? 'tarefas' : modo === 'controler' ? 'direcao' : modo === 'producao' ? 'agenda' : (modo === 'clientes' || quadro === 'clientes') ? 'clientes' : ['diario', 'performance', 'ai-usage', 'automacoes', 'conta', 'demandas'].includes(quadro) ? '' : 'gestor';
+    const id = modo === 'foco' ? 'tarefas' : modo === 'controler' ? 'direcao' : modo === 'producao' ? 'agenda' : (modo === 'clientes' || quadro === 'clientes') ? 'clientes' : ['diario', 'performance', 'ai-usage', 'automacoes', 'conta', 'demandas'].includes(quadro) ? quadro : 'gestor';
     marcarTrilho(id);
   }
   // ---------- Centro: abrir e fechar o 3D ----------
