@@ -146,7 +146,9 @@ async function lerOrcamentos(sql, query) {
   const lista = await sql`SELECT o.id::text, o.cliente_nome, o.itens, o.desconto_percentual::float8 AS desconto_percentual,
     to_char(o.validade,'YYYY-MM-DD') AS validade, o.status, o.criado_em, p.nome AS criado_por_nome
     FROM vybe_comercial_orcamentos o LEFT JOIN vybe_pessoas p ON p.id=o.criado_por ORDER BY o.criado_em DESC, o.id DESC LIMIT 200`;
-  return { orcamentos: lista.map((o) => ({ ...o, totais: calc.totalOrcamento(o) })), pacotes: (await pacotes(sql, false)).filter((p) => p.ativo), capacidade: await capacidade(sql) };
+  // Oportunidades abertas do funil, para o orçamento nascer ligado a uma delas (auditoria 09/11, A2).
+  const abertas = await Promise.resolve(sql`SELECT id::text, nome, etapa FROM vybe_crm_oportunidades WHERE etapa NOT IN ('ganho','perdido') ORDER BY nome LIMIT 500`).catch(() => []);
+  return { orcamentos: lista.map((o) => ({ ...o, totais: calc.totalOrcamento(o) })), oportunidades: abertas, pacotes: (await pacotes(sql, false)).filter((p) => p.ativo), capacidade: await capacidade(sql) };
 }
 async function lerFinancas(sql, hoje = hojeNaBahia()) {
   const linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome, f.valor_mensal::float8 AS valor_mensal, f.pacote_id::text,
@@ -274,9 +276,13 @@ async function salvarPacote(sql, quem, b) {
   return { id: p.id };
 }
 async function criarOrcamento(sql, quem, b) {
-  const cliente = texto(b.cliente_nome, 200, 'Cliente', true), validade = data(b.validade, 'Validade');
+  const validade = data(b.validade, 'Validade');
   const desconto = numero(b.desconto_percentual, { campo: 'Desconto', max: 100 }), observacoes = texto(b.observacoes, 4000, 'Observações');
   const oportunidade = idOpcional(b.oportunidade_id, 'Oportunidade');
+  // Com a oportunidade escolhida, o cliente pode vir dela (o nome da empresa no funil).
+  let cliente = texto(b.cliente_nome, 200, 'Cliente');
+  if (!cliente && oportunidade) cliente = String((await sql`SELECT nome FROM vybe_crm_oportunidades WHERE id=${oportunidade}`)[0]?.nome || '').slice(0, 200);
+  if (!cliente) falhar('Informe o cliente ou escolha a oportunidade do funil.');
   if (!Array.isArray(b.itens) || !b.itens.length || b.itens.length > 30) falhar('Escolha de 1 a 30 pacotes.');
   const ids = b.itens.map((i) => idValido(i?.pacote_id, 'Pacote'));
   const achados = await sql`SELECT id::text, nome, tipo, preco::float8 AS preco, entregas, carga FROM vybe_comercial_pacotes WHERE id = ANY(${ids}::bigint[]) AND ativo`;

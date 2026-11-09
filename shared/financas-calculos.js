@@ -201,7 +201,8 @@
     const mapa = new Map(); let total = 0, faturas = 0;
     for (const t of transacoes) {
       const venc = dia(t.date);
-      if (!ehReceita(t) || !pendente(t) || !venc || venc >= hoje) continue;
+      // Lançamento de valor zero não é dívida (a Visão geral contava 10 clientes em atraso, a Inadimplência 9).
+      if (!ehReceita(t) || !pendente(t) || !venc || venc >= hoje || centavos(t.amount) <= 0) continue;
       const k = t.client_id ? String(t.client_id) : '';
       const c = mapa.get(k) || { cliente_id: k || null, valor: 0, faturas: 0, vencimento_mais_antigo: venc, descricao: '' };
       c.valor += centavos(t.amount); c.faturas++; if (venc < c.vencimento_mais_antigo) c.vencimento_mais_antigo = venc;
