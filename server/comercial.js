@@ -217,8 +217,15 @@ async function lerCaixa(sql, hoje) {
   return { hoje, previsao: calc.previsaoCaixa({ recebiveis: recorrentes, contas: fixas, hoje }), recebiveis: recorrentes, contas: fixas };
 }
 async function lerFornecedores(sql) {
-  const lista = await sql`SELECT id::text, nome, categoria, bv_percentual::float8 AS bv_percentual, contato, observacoes, ativo
-    FROM vybe_comercial_fornecedores ORDER BY ativo DESC, nome`;
+  let lista;
+  try {
+    lista = await sql`SELECT id::text, nome, categoria, bv_percentual::float8 AS bv_percentual, contato, observacoes, ativo, cidade, uf, telefone
+      FROM vybe_comercial_fornecedores ORDER BY ativo DESC, nome`;
+  } catch (e) {
+    if (e?.code !== '42703') throw e; // sem a cidade ainda (bloco 9 da migração)
+    lista = await sql`SELECT id::text, nome, categoria, bv_percentual::float8 AS bv_percentual, contato, observacoes, ativo, '' AS cidade, '' AS uf, '' AS telefone
+      FROM vybe_comercial_fornecedores ORDER BY ativo DESC, nome`;
+  }
   // O que cada fornecedor está imprimindo agora (server/impressoes.js); sem o módulo ainda, a lista segue sem isso.
   const imp = await Promise.resolve(sql`SELECT fornecedor_id::text AS id, COUNT(*) FILTER (WHERE etapa NOT IN ('entregue','cancelado'))::int AS abertas,
       COUNT(*) FILTER (WHERE etapa NOT IN ('entregue','cancelado') AND previsao < (now() AT TIME ZONE 'America/Bahia')::date)::int AS atrasadas,
@@ -394,14 +401,26 @@ async function salvarConta(sql, quem, b) {
 }
 async function salvarFornecedor(sql, quem, b) {
   const d = { nome: texto(b.nome, 120, 'Nome', true), categoria: umDe(b.categoria, calc.CATEGORIAS_FORNECEDOR.map((c) => c.id), 'Categoria'),
-    bv: numero(b.bv_percentual, { campo: 'BV', max: 100 }), contato: texto(b.contato, 200, 'Contato'), observacoes: texto(b.observacoes, 2000, 'Observações') };
+    bv: numero(b.bv_percentual, { campo: 'BV', max: 100 }), contato: texto(b.contato, 200, 'Contato'), observacoes: texto(b.observacoes, 2000, 'Observações'),
+    // Banco de fornecedores por cidade e região (Paulo, 09/11).
+    cidade: texto(b.cidade, 80, 'Cidade'), uf: texto(b.uf, 2, 'UF').toUpperCase(), telefone: texto(b.telefone, 40, 'Telefone') };
+  if (d.uf && !/^[A-Z]{2}$/.test(d.uf)) falhar('UF: duas letras, como BA.');
+  // Sem as colunas de cidade ainda (bloco 9 da migração), grava o resto e a cidade espera.
+  const tentar = async (comCidade, semCidade) => { try { return await comCidade(); } catch (e) { if (e?.code !== '42703') throw e; return semCidade(); } };
   if (!b.id) {
-    const [f] = await sql`INSERT INTO vybe_comercial_fornecedores (nome,categoria,bv_percentual,contato,observacoes,criado_por)
-      VALUES (${d.nome},${d.categoria},${d.bv},${d.contato},${d.observacoes},${quem.id}) RETURNING id::text`;
+    const [f] = await tentar(
+      () => sql`INSERT INTO vybe_comercial_fornecedores (nome,categoria,bv_percentual,contato,observacoes,cidade,uf,telefone,criado_por)
+        VALUES (${d.nome},${d.categoria},${d.bv},${d.contato},${d.observacoes},${d.cidade},${d.uf},${d.telefone},${quem.id}) RETURNING id::text`,
+      () => sql`INSERT INTO vybe_comercial_fornecedores (nome,categoria,bv_percentual,contato,observacoes,criado_por)
+        VALUES (${d.nome},${d.categoria},${d.bv},${d.contato},${d.observacoes},${quem.id}) RETURNING id::text`);
     return { id: f.id };
   }
-  const [f] = await sql`UPDATE vybe_comercial_fornecedores SET nome=${d.nome},categoria=${d.categoria},bv_percentual=${d.bv},contato=${d.contato},
-    observacoes=${d.observacoes},atualizado_em=now() WHERE id=${idValido(b.id)} AND ativo RETURNING id::text`;
+  const fid = idValido(b.id);
+  const [f] = await tentar(
+    () => sql`UPDATE vybe_comercial_fornecedores SET nome=${d.nome},categoria=${d.categoria},bv_percentual=${d.bv},contato=${d.contato},
+      observacoes=${d.observacoes},cidade=${d.cidade},uf=${d.uf},telefone=${d.telefone},atualizado_em=now() WHERE id=${fid} AND ativo RETURNING id::text`,
+    () => sql`UPDATE vybe_comercial_fornecedores SET nome=${d.nome},categoria=${d.categoria},bv_percentual=${d.bv},contato=${d.contato},
+      observacoes=${d.observacoes},atualizado_em=now() WHERE id=${fid} AND ativo RETURNING id::text`);
   if (!f) falhar('Fornecedor não encontrado.', 404);
   return { id: f.id };
 }
