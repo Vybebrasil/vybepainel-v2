@@ -108,14 +108,26 @@
       })
       .sort((a, b) => (Number(b.voxel) - Number(a.voxel)) || a.nome.localeCompare(b.nome, 'pt-BR'));
   }
+  // Ícone de cada móvel: a arte do próprio móvel (a mesma que a Minha sala desenha pixel a pixel), não o cubo genérico
+  // do catálogo. Chega quando a arte carrega; até lá, o quadrado vazio. Sem a arte, a peça voxel do catálogo.
   function iconeDe(classe) {
-    if (!icones.has(classe)) {
+    if (icones.has(classe)) return icones.get(classe);
+    icones.set(classe, '');
+    (async () => {
       let url = '';
-      try { url = estado.modulo?.iconeMovel?.(classe, 72, 72)?.toDataURL?.() || ''; } catch { /* sem WebGL: fica o quadrado */ }
-      if (url || estado.modulo) icones.set(classe, url);
-      return url;
-    }
-    return icones.get(classe);
+      try {
+        if (typeof mapaCarregarMovel === 'function' && typeof mapaDesenharMovel === 'function') {
+          const m = await mapaCarregarMovel(classe), dir = (m?.dados?.visualizations?.find?.((v) => v.size === 64)?.directions || {})[2] ? 2 : 4;
+          url = mapaDesenharMovel(m, dir, 0, 0)?.canvas?.toDataURL?.() || '';
+        }
+      } catch { /* sem a arte: o cubo voxel abaixo */ }
+      if (!url) { try { url = estado.modulo?.iconeMovel?.(classe, 72, 72)?.toDataURL?.() || ''; } catch { url = ''; } }
+      if (!url) return;
+      icones.set(classe, url);
+      // Vários ícones chegam juntos: um redesenho só por quadro.
+      if (estado.raiz && !iconeDe.pendente) { iconeDe.pendente = true; requestAnimationFrame(() => { iconeDe.pendente = false; if (estado.raiz) pintar(); }); }
+    })();
+    return '';
   }
   function iconeHtml(classe, lado) {
     const url = iconeDe(classe);
