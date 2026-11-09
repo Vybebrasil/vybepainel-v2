@@ -19,11 +19,14 @@ no ecossistema, sem copiar à mão.
 - O conector só lê e acrescenta: não apaga, não muda peça, não fala com cliente, não mostra dinheiro.
 - Na ficha do cliente, aba **Cérebro → Registros dos chats do Claude**.
 
-## Ligar (uma vez)
+## Ligar
 
-1. Vercel → `VYBE_MCP_CHAVES` em Production e Redeploy.
-2. Em cada conta do Claude.ai: Configurações → Conectores → Adicionar conector personalizado → URL `https://vybepainel-v2.vercel.app/mcp/<chave da conta>`.
-3. Nas instruções do projeto de cada cliente, colar o texto abaixo, trocando o nome do cliente.
+As contas já têm o conector **"Painel Vybe"** (`/api/painel?area=agentes&chave=<AGENTES_CHAVE>`, o dos planejamentos,
+`server/planejamentos-api.js`). Desde 09/11 ele também tem `consultar_cliente` e `registrar`, então não é preciso
+adicionar outro: basta o "Painel Vybe" estar conectado na conta e o texto abaixo estar nas instruções do projeto.
+
+A rota `/mcp/<chave>` com `VYBE_MCP_CHAVES` é a alternativa, com uma chave por conta (o registro mostra qual conta
+gravou). Só é preciso se um dia quisermos separar as contas.
 
 ## Texto para as instruções do projeto de cada cliente
 

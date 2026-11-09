@@ -1880,7 +1880,7 @@ export default async function handler(req, res) {
     return areaCarteiraBot(req, res, sql, process.env, () => garantirMigracoesIrecity(sql()));
   }
   if (areaPublica === 'agentes') {
-    try { return await conectorAgentes(req, res, sql()); }
+    try { const db = sql(); await garantirSchemaDoCadastro(db); return await conectorAgentes(req, res, db, { salvarNoDrive: registroNoDrive(db) }); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }
   }
 
