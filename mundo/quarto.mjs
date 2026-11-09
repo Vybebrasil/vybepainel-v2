@@ -17,7 +17,7 @@ import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
 
 export const NIVEL = NIVEL_HABBO; // 1 nível da planta do Habbo (32 px) na escala do ladrilho: ~0,82
-const ALTURA_PAREDE = 2.6, ESPESSURA = .3;
+const ALTURA_PAREDE = (118 / 32) * NIVEL_HABBO, ESPESSURA = .3; // a parede do Habbo tem 118 px
 const PISO_PADRAO = ['#E9DCC4', '#F2E7D3'];
 const ehCor = (c) => /^#[0-9a-f]{6}$/i.test(String(c || ''));
 const misturar = (a, b, t) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), t).getHexString();
@@ -49,7 +49,10 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   const piso = Array.isArray(quarto.piso) && quarto.piso.length === 2 && quarto.piso.every(ehCor) ? quarto.piso : PISO_PADRAO;
   const corParede = ehCor(quarto.parede) ? quarto.parede : '#EFE4CF';
   const pisoEm = typeof quarto.pisoEm === 'function' ? quarto.pisoEm : () => null;
-  const ehDeParede = typeof quarto.ehDeParede === 'function' ? quarto.ehDeParede : () => false;
+  // Peça de parede: a ficha oficial do Habbo decide (marca 16, como mapaEhDeParede no Escritório); o catálogo da loja
+  // não tem todas (a janela ficava solta na frente da parede).
+  const ehDeParedeCatalogo = typeof quarto.ehDeParede === 'function' ? quarto.ehDeParede : () => false;
+  const ehDeParede = (classe) => { const f = fisica?.[classe]; return f ? Boolean(f[0] & 16) : ehDeParedeCatalogo(classe); };
   for (const [classe, m] of quarto.medidas || []) definirMedida(classe, m);
   // O quarto como o Escritório o guarda (pintura de cada trecho de parede, luz, porta): só leitura, pelo próprio
   // Escritório (escritorioAmbienteDoQuarto). Sem ele, o quarto sai com a cor única da parede.
@@ -167,11 +170,15 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   }
   async function pecaDoHabbo(classe, x, y, d, estado, altura, parede) {
     if (parede) {
-      const pl = await placaDoHabbo(classe, d, estado); if (!pl?.blocos?.length) return null;
-      // Na parede do fundo a placa corre em x; na da esquerda, em z. A base fica acima do piso, como no Habbo.
-      const base = baseDoLadrilho(x, y) + Math.max(.35, 1.45 - pl.altura / 2) + (Number(altura) || 0) / 32 * NIVEL;
-      const blocos = pl.blocos.map((b) => (d === 2 ? { x: paredeEsquerda(y) + pl.lado / 2 + .02, y: base + b.h, z: y + .5 + b.a, cor: b.cor } : { x: x + .5 + b.a, y: base + b.h, z: paredeFundo(x) + pl.lado / 2 + .02, cor: b.cor }));
-      return obraDeBlocos(blocos, pl.lado);
+      // Pela conta do mapa do Escritório: apoio no pé da parede, no meio do ladrilho, e cada pixel no plano dela.
+      const est = trechoDe(Math.floor(x), Math.floor(y), d === 2 ? 'y' : 'x');
+      const alturaParede = Number(est?.alt) > 0 ? Number(est.alt) : 118;
+      const pl = await placaDoHabbo(classe, d, estado, Number(altura) || 0, alturaParede); if (!pl?.blocos?.length) return null;
+      const chao = baseDoLadrilho(x, y), l = pl.lado * 1.15;
+      const blocos = pl.blocos.map((b) => (d === 2
+        ? { x: Math.floor(x) + .02 + l / 2, y: chao + b.h * NIVEL - l / 2, z: y + .5 + b.a, cor: b.cor }
+        : { x: x + .5 + b.a, y: chao + b.h * NIVEL - l / 2, z: Math.floor(y) + .02 + l / 2, cor: b.cor }));
+      return obraDeBlocos([], 0, blocos, l);
     }
     const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
     const m = obraDeBlocos(e.blocos, e.lado, e.finos || [], e.ladoFino || 0);
@@ -196,8 +203,10 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     }
   }
   const carregarFisica = globalThis.mapaCarregarFisica;
-  if (typeof carregarFisica === 'function') carregarFisica().then((f) => { fisica = f || {}; lerFisica(quarto.itens); sujar(); }).catch(() => {});
+  const fisicaPronta = (typeof carregarFisica === 'function' ? carregarFisica() : Promise.resolve({})).then((f) => { fisica = f || {}; }).catch(() => { fisica = {}; });
   function montarItens(itens) {
+    // Os móveis esperam a ficha do Habbo (é ela que diz o que é de parede, assento ou cama).
+    if (!fisica) { quarto.itens = itens; fisicaPronta.then(() => { if (vivo) montarItens(quarto.itens); }); return; }
     const geracao = ++geracaoItens;
     luzes = []; if (fisica) lerFisica(itens); quarto.itens = itens;
     if (gItens) { cena.remove(gItens); liberar(gItens); }
@@ -218,13 +227,21 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   }
 
   // ---------- câmera ----------
-  const camera = new THREE.PerspectiveCamera(30, 1, .1, 400);
+  // A câmera do Habbo (Paulo, 09/11/2026: "fiel como era o quarto da pessoa mesmo"): sem perspectiva, olhando a
+  // diagonal de cima, a 30° (a projeção 2:1 do Habbo, ladrilho 64 × 32). Não gira, como no Habbo: é desse ângulo que
+  // cada pixel do desenho vira um bloco no lugar certo. Arrastar move a sala; roda, pinça e clique duplo aproximam.
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 400);
   const alvo = new THREE.Vector3(W / 2, .6 + nivelMax * NIVEL / 2, D / 2);
-  const longe = Math.max(W, D) * 1.9 + 4;
-  // Abre no ângulo do Habbo (câmera a 30°, olhando a diagonal): é dele que cada móvel esculpido repete o desenho.
-  let giro = .785, incl = .56, dist = longe; const quer = { giro, incl, dist, alvo: alvo.clone() };
-  function posicionar() { const d = dist * Math.max(1, 1.3 / Math.max(.2, camera.aspect)); camera.position.set(alvo.x + d * Math.cos(incl) * Math.sin(giro), alvo.y + d * Math.sin(incl), alvo.z + d * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo); }
-  function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); sujar(); }
+  const GIRO = Math.PI / 4, INCL = Math.asin(.5);
+  // Meia altura da vista (em unidades do mundo) com a sala inteira: largura da diagonal e altura das paredes.
+  const longe = Math.max((W + D) * .24, ((W + D) * .3 + ALTURA_PAREDE * .9) / 3.4) + .3;
+  let giro = GIRO, incl = INCL, dist = longe, aspecto = 1; const quer = { giro, incl, dist, alvo: alvo.clone() };
+  function posicionar() {
+    const meia = dist * Math.max(1, 1.25 / Math.max(.2, aspecto));
+    Object.assign(camera, { left: -meia * aspecto, right: meia * aspecto, top: meia, bottom: -meia }); camera.updateProjectionMatrix();
+    const d = 60; camera.position.set(alvo.x + d * Math.cos(incl) * Math.sin(giro), alvo.y + d * Math.sin(incl), alvo.z + d * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo);
+  }
+  function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); aspecto = r.width / Math.max(1, r.height); posicionar(); sujar(); }
 
   // ---------- pessoas na sala ----------
   // O corpo de quem está na sala: sempre o boneco voxel da Vybe (desenharBoneco), vestido como o Habbo da pessoa:
@@ -349,7 +366,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   // ---------- controles: arrastar gira, roda e pinça aproximam, clique no piso leva o boneco ----------
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const toques = new Map(); let arrasto = null, pinca = 0, aoPiso = null, seguir = false;
-  const perto = Math.max(4, Math.max(W, D) * .7), maxDist = longe * 1.8;
+  const perto = Math.max(1.2, longe * .3), maxDist = longe * 2;
   canvas.addEventListener('pointerdown', (e) => {
     toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (toques.size === 2) { const [a, b] = [...toques.values()]; pinca = Math.hypot(a.x - b.x, a.y - b.y); arrasto = null; }
@@ -364,9 +381,13 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
       return;
     }
     if (!arrasto) return;
-    seguir = false; // girar ou arrastar solta a câmera de você
-    quer.giro = Math.max(-.4, Math.min(1.95, quer.giro - (e.clientX - arrasto.x) * .005));
-    quer.incl = Math.max(.35, Math.min(1.3, quer.incl + (e.clientY - arrasto.y) * .004));
+    seguir = false; // arrastar solta a câmera de você
+    // Arrastar move a sala na tela: para o lado, pela direita da câmera; para cima, pelo chão (que a câmera a 30°
+    // encurta pela metade).
+    const r0 = canvas.getBoundingClientRect(), k = (2 * (camera.top - camera.bottom) / 2) / Math.max(1, r0.height);
+    const dx = (e.clientX - arrasto.x) * k, dy = (e.clientY - arrasto.y) * k * 2;
+    quer.alvo.x += (-dx - dy) * Math.SQRT1_2; quer.alvo.z += (dx - dy) * Math.SQRT1_2;
+    quer.alvo.x = Math.max(-1, Math.min(W + 1, quer.alvo.x)); quer.alvo.z = Math.max(-1, Math.min(D + 1, quer.alvo.z));
     arrasto.x = e.clientX; arrasto.y = e.clientY; sujar();
   });
   const soltar = (e) => { toques.delete(e.pointerId); if (toques.size < 2) pinca = 0; };
@@ -392,7 +413,16 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     else { quer.alvo.set(hit.point.x, Math.max(.5, hit.point.y), hit.point.z); quer.dist = perto * 1.3; }
     sujar();
   });
-  canvas.addEventListener('wheel', (e) => { e.preventDefault(); quer.dist = Math.max(perto, Math.min(maxDist, quer.dist * Math.exp(e.deltaY * .0012))); sujar(); }, { passive: false });
+  // A roda aproxima em direção ao ponto sob o cursor (como num mapa), não ao meio da tela.
+  const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), noChao = new THREE.Vector3();
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const antes = quer.dist, depois = Math.max(perto, Math.min(maxDist, antes * Math.exp(e.deltaY * .0012)));
+    const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    if (ray.ray.intersectPlane(chao, noChao)) { const k = 1 - depois / antes; quer.alvo.x += (noChao.x - quer.alvo.x) * k; quer.alvo.z += (noChao.z - quer.alvo.z) * k; }
+    quer.dist = depois; seguir = false; sujar();
+  }, { passive: false });
 
   montarParedes();
   montarItens(quarto.itens);
@@ -408,7 +438,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     itens: (lista) => montarItens(lista),
     // Medidas do Habbo: só a peça de reserva (catálogo) usa; a esculpida já sai do tamanho do móvel.
     medidas(lista) { for (const [classe, m] of lista || []) definirMedida(classe, m); },
-    verTudo() { quer.alvo.copy(alvo.set(W / 2, .6 + nivelMax * NIVEL / 2, D / 2)); quer.giro = .785; quer.incl = .56; quer.dist = longe; sujar(); },
+    verTudo() { quer.alvo.copy(alvo.set(W / 2, .6 + nivelMax * NIVEL / 2, D / 2)); quer.dist = longe; sujar(); },
     destruir() {
       vivo = false; if (pedido) cancelAnimationFrame(pedido); pedido = 0; clearInterval(relogio);
       ro.disconnect(); io?.disconnect(); document.removeEventListener('visibilitychange', aoVoltarAba);
