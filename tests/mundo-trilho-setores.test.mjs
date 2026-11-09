@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const js = readFileSync(new URL('../vybe-mundo.js', import.meta.url), 'utf8');
+const js = readFileSync(new URL('../vybe-mundo.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n'); // checkout no Windows
 const ini = js.indexOf('  const TRILHO = [');
 const fim = js.indexOf('  const subVisivel', ini);
 // Avalia o bloco do trilho (TRILHO, SUBMODULOS e setorDe) com um svg falso.
