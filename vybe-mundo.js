@@ -501,39 +501,46 @@
     const frase = (H.atrasadas || 0) || (H.emRisco || 0)
       ? `Hoje: <b>${n0(H.atrasadas)} atrasada${H.atrasadas === 1 ? '' : 's'}</b> e <b>${n0(H.emRisco)} com risco de furo</b>.${clientesRuins[0] ? ` O cliente mais apertado é <b>${esc(clientesRuins[0].cliente)}</b>.` : ''}`
       : `Produção em dia. ${sem3.length ? `<b>${sem3.length} cliente${sem3.length > 1 ? 's' : ''}</b> ainda sem 3 posts na semana.` : 'Todos os clientes com 3 posts na semana.'}`;
-    el.innerHTML = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+    // Agência do dono (Paulo, 08/11/2026: "merece uma puta reformulação… pro dono acompanhar as coisas importantes de
+    // cara"): o mesmo esqueleto do Hoje. Radar no topo (cada número abre a lista por trás), no centro o que pede ação, a
+    // semana em gráfico e clientes, gargalos e cobranças lado a lado; à direita VYBES, atendimento, compromissos e atalhos.
+    const V = window.VybeSetor?.pecas;
+    const radar = V ? `<div class="vs-kpis vv-dono-radar">
+        ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
+        ${V.kpi({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
+        ${V.kpi({ icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' })}
+        ${V.kpi({ icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' })}
+        ${V.kpi({ icone: 'coracao', titulo: 'Clientes em atenção', valor: n0((N.clientes || []).filter((c) => c.saude !== 'ok').length), sub: `de ${n0(ativos)} ativos`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' })}
+        ${V.kpi({ icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' })}
+      </div>` : '';
+    const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
+    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
+    const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
+    const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
+    const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
+    const cobrarHtml = time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')
+      + bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')
+      + (!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : '') + (!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : '');
+    const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
-      <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
-      ${compromissosHtml()}
-      <div class="vv-dono-kpis">
-        <button type="button" class="u1" data-abrir-gestao="hoje" data-espiar="atrasadas"><b>${n0(H.atrasadas)}</b><small>atrasadas</small></button>
-        <button type="button" class="u2" data-abrir-gestao="hoje" data-espiar="emRisco"><b>${n0(H.emRisco)}</b><small>risco de furo</small></button>
-        <button type="button" data-abrir-gestao="hoje" data-espiar="faltam"><b>${n0(H.faltam)}</b><small>faltam hoje</small></button>
-        <button type="button" class="u6" data-abrir-gestao="semana"><b>${n0(S.entregues)}<i>/${n0(S.previstas)}</i></b><small>na semana</small></button>
+      ${radar}
+      <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
+        ${bloco('O que pede ação agora', 'do mais grave ao menos grave', acao, '<button type="button" class="vs-abrir" data-abrir-gestao="hoje">Gestão →</button>')}
+        ${bloco('Semana da agência', `previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} e entregues no dia`, `${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues</p>`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
+        <div class="vv-dono-tres">
+          ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
+          ${bloco('Onde trava', '', gargalosHtml)}
+          ${bloco('O que cobrar hoje', 'time e bots', cobrarHtml)}
+        </div>
       </div>
-      ${window.VybePendencias?.atendimentoHtml?.() || ''}
-      <div class="vv-blocos"><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#18A957"><i></i>Semana da agência</div>
-      <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button></div>
-      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
-      <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
-        <p><button type="button" class="vv-num" data-espiar="sem3"><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b></button> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <button type="button" class="vv-num t-u1" data-espiar="semConteudo"><b>${C.semConteudo.length} sem nenhum</b></button>` : ''}${(C.semPlanejamento || []).length ? ` · <button type="button" class="vv-num" data-espiar="semPlanejamento">${C.semPlanejamento.length} sem planejamento</button>` : ''}</p>
-        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${cliCor(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
-      ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
-      ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
-      </section><section class="vv-bloco">
-      <div class="vv-rotulo-secao" style="--c:#8E4EC6"><i></i>O que cobrar hoje</div>
-      ${time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')}
-      ${bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')}
-      ${!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : ''}
-      ${!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : ''}
-      </section></div>
-      <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
-      <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button></div>`;
+      <aside class="vv-hoje-lado" aria-label="VYBES, atendimento, compromissos e atalhos">
+        <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
+        ${window.VybePendencias?.atendimentoHtml?.() || ''}
+        ${compromissosHtml()}
+        <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
+        <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      </aside></div>`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
 
   // ---------- Módulo Gestão: passado, agora e futuro da agência ----------
