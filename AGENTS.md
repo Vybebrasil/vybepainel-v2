@@ -271,6 +271,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   conta: só a tela muda; o servidor continua decidindo pela sessão de verdade.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
+- Depende de você (decisão do Paulo, 09/11/2026: "o que cada um tá dependendo de mim"): o módulo Agentes abre pelo dock
+  numa fila única de todos os agentes (`filaDoDono` em `vybe-mundo-agentes.js`): achado urgente, lição em revisão,
+  falha e agente que pode ganhar autonomia para decidir; os outros achados, para acompanhar; ação esperando o SIM de quem
+  pediu e proposta em sombra, só como espera (o painel não confirma ação de outra pessoa). Lê o perfil e a atividade que a
+  tela do agente já lê e decide pelas mesmas rotas; o número no item Agentes do dock é o "Para decidir", só para quem vê o
+  boletim. Não crie outra fila de pendências dos agentes.
 
 ## Escritório integrado
 

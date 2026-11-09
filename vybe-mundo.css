@@ -4040,6 +4040,25 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-form textarea,.vga-form select,.vga-form input{font:13px var(--vv-texto);padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFF;color:#1F1D1A;min-width:0}
 .vga-principal{height:38px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFF;font:600 13px var(--vv-texto);cursor:pointer}
 .vga-nota{grid-column:1/-1;margin:2px 0 0;font-size:11.5px;color:#8A8378}.vga-msg{margin:10px 0 0;font-size:12.5px;color:#7A4A00}
+/* Depende de você (09/11/2026): a fila de todos os agentes com o que espera um dono, e o número no dock. */
+.vga-linha-fila{margin-bottom:10px;border-color:#ECE6DC;background:#FFF}
+.vga-av-fila{--e:#FF7A2F;color:#C2490C}.vga-av-fila svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vga-av.grande.vga-av-fila svg{width:26px;height:26px}
+.vga-n{--c:#D13D36}
+.vga-fila{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.vga-fila li{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid #ECE6DC;border-left:3px solid var(--c,#ECE6DC);border-radius:8px;background:#FFF}
+.vga-fila-meio{flex:1;min-width:0;display:grid;gap:2px}
+.vga-fila-meio > b{font:600 13.5px/1.35 var(--vv-titulo);color:#1F1D1A;overflow-wrap:anywhere}
+.vga-fila-meio small{font-size:12px;line-height:1.4;color:#6F6A62;overflow-wrap:anywhere}
+.vga-fila-meio small em{font-style:normal;font-weight:600;color:var(--c)}
+.vga-fila .vga-acoes{flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+.vga-fila-curta{margin-top:8px}.vga-fila-curta li{border-left-width:1px}
+.vga-lendo{margin:12px 0 0}
+.vga-link{all:unset;cursor:pointer;color:#C2490C;font-weight:600;border-bottom:1px solid currentColor}
+.vga-link:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+.vv-trilho-n{position:absolute;top:3px;right:9px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#D13D36;color:#FFF;font:700 10px/16px var(--vv-texto);text-align:center;font-style:normal}
+body.trilho-largo .vv-trilho-btn .vv-trilho-n{position:static;margin-left:auto;min-width:18px;height:18px;line-height:18px;font-size:10.5px}
+@media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
 @media (max-width:900px){
   .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
   .vga-corpo{grid-template-columns:1fr;grid-template-rows:auto 1fr}.vga-lista{max-height:30vh;border-right:0;border-bottom:1px solid #ECE6DC}
