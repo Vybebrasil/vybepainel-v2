@@ -113,3 +113,42 @@ test('o conector que os chats já têm (area=agentes) ganha consultar_cliente e 
     assert.equal((await sql`SELECT origem FROM vybe_cliente_registros`)[0].origem, 'Claude.ai · conector dos agentes');
   } finally { process.env.AGENTES_CHAVE = antes; await db.close(); }
 });
+
+test('Drive voltou: o próximo registro reenvia as cópias que tinham falhado', async () => {
+  const { db, sql } = await banco();
+  try {
+    let fora = true; const enviados = [];
+    const salvarNoDrive = async (a) => { if (fora) throw new Error('Drive 404'); enviados.push(a.nome); return 'id-' + enviados.length; };
+    const reg = (titulo) => atenderMensagem(sql, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'registrar', arguments: {
+      cliente: 'Academia Lions', tipo: 'aprendizado', titulo, resumo: 'r' } } }, { conta: 'gestao', salvarNoDrive });
+    await reg('Primeiro'); await reg('Segundo');
+    fora = false;
+    await reg('Terceiro');
+    assert.equal(enviados.length, 3);
+    assert.equal((await sql`SELECT COUNT(*)::int AS n FROM vybe_cliente_registros WHERE drive_id IS NULL`)[0].n, 0);
+  } finally { await db.close(); }
+});
+test('regra de marca registrada pelo chat vira regra do cliente (revisão de arte, legendas, memória), sem repetir', async () => {
+  const { regrasDoRegistro } = await import('../server/mcp-ecossistema.js');
+  const { regrasDoCliente } = await import('../server/assistente-regras.js');
+  assert.deepEqual(regrasDoRegistro({ decisoes: '- Nunca usar fundo preto\n2) Laranja só em destaque\n\nok' }), ['Nunca usar fundo preto', 'Laranja só em destaque']);
+  const { db, sql } = await banco();
+  try {
+    const registrar = (decisoes) => atenderMensagem(sql, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'registrar', arguments: {
+      cliente: 'Academia Lions', tipo: 'regra_de_marca', titulo: 'Regras de cor', resumo: 'Cores da marca.', decisoes } } }, { conta: 'gestao' });
+    const a = await registrar('- Nunca usar fundo preto\n- Laranja só em destaque');
+    assert.match(a.result.content[0].text, /2 regra\(s\) nova\(s\)/);
+    const b = await registrar('- nunca usar fundo preto\n- Fonte sempre Montserrat');
+    assert.match(b.result.content[0].text, /1 regra\(s\) nova\(s\)/);
+    assert.deepEqual((await regrasDoCliente(sql, 1)).sort(), ['Fonte sempre Montserrat', 'Laranja só em destaque', 'Nunca usar fundo preto']);
+  } finally { await db.close(); }
+});
+
+test('memória do VYBES mostra o que os chats decidiram', async () => {
+  const { mensagemMemoria } = await import('../server/assistente-memoria.js');
+  const t = mensagemMemoria({ cliente: 'Academia Lions', dias: 120, busca: '', comentarios: [], alteracoes: [], regras: [],
+    chats: [{ titulo: 'Horário bom', resumo: 'Posts às 18h rendem mais.', decisoes: null, criado_em: '2026-11-09T16:00:00Z' }] });
+  assert.match(t, /Decidido e aprendido nos chats do Claude/);
+  assert.match(t, /09\/11 · Horário bom: Posts às 18h/);
+  assert.doesNotMatch(t, /Nenhum comentário/);
+});

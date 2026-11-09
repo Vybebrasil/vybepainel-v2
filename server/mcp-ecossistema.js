@@ -14,6 +14,7 @@
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { completude, valorDoCampo, CAMPOS_CADASTRO } from './clientes-cadastro.js';
+import { tabelaRegras } from './assistente-regras.js';
 
 export const VERSAO_PROTOCOLO = '2025-06-18';
 const TIPOS = ['conteudo', 'planejamento', 'roteiro', 'decisao', 'regra_de_marca', 'aprendizado'];
@@ -106,6 +107,14 @@ export function validarRegistro(a = {}) {
   return r;
 }
 
+// As linhas de um registro de regra de marca que viram regras: as "decisões" (ou, sem elas, o resumo), uma por linha,
+// sem marcador de lista. No máximo 12, cada uma com até 300 caracteres.
+export function regrasDoRegistro(r) {
+  return String(r.decisoes || r.resumo || '').split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+    .filter((l) => l.length >= 4).slice(0, 12).map((l) => l.slice(0, 300));
+}
+
 export function registroEmMarkdown({ cliente, conta, em, r }) {
   const dia = String(em).slice(0, 10);
   return `---\nregistro_vybe: true\ncliente: ${cliente}\ndata: ${dia}\ntipo: ${r.tipo}\ntitulo: ${r.titulo.replace(/\n/g, ' ')}\nstatus: ${r.status}\norigem: Claude.ai (${conta})\n---\n`
@@ -166,6 +175,19 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
     const [novo] = await db`INSERT INTO vybe_cliente_registros (cliente_id, tipo, titulo, status, resumo, decisoes, proximos, conteudo, origem)
       VALUES (${c.id}, ${r.tipo}, ${r.titulo}, ${r.status}, ${r.resumo}, ${r.decisoes || null}, ${r.proximos || null}, ${r.conteudo || null}, ${origem})
       RETURNING id, criado_em`;
+    // Regra de marca vira regra do cliente (vybe_ai_regras_cliente): é a tabela que a memória do VYBES, as legendas
+    // da Vybe IA e a revisão de arte (Danilo) já leem. Uma regra por linha; a que já existe não repete.
+    let regrasNovas = 0;
+    if (r.tipo === 'regra_de_marca') {
+      await tabelaRegras(db);
+      for (const texto of regrasDoRegistro(r)) {
+        const [ja] = await db`SELECT 1 AS ok FROM vybe_ai_regras_cliente WHERE cliente_id=${c.id} AND removida_em IS NULL AND LOWER(texto)=LOWER(${texto}) LIMIT 1`;
+        if (ja) continue;
+        await db`INSERT INTO vybe_ai_regras_cliente (cliente_id, texto) VALUES (${c.id}, ${texto})`;
+        regrasNovas++;
+      }
+    }
+    const avisoRegras = regrasNovas ? ` ${regrasNovas} regra(s) nova(s) entraram nas regras do cliente: valem na revisão de arte, nas legendas e na memória do VYBES.` : '';
     // O banco é a fonte; o Drive é cópia. Falha no Drive não perde o registro.
     let drive = '';
     if (salvarNoDrive) {
@@ -175,12 +197,24 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
           markdown: registroEmMarkdown({ cliente: c.nome, conta, em, r }) });
         await db`UPDATE vybe_cliente_registros SET drive_id=${id} WHERE id=${novo.id}`;
         drive = ' Cópia .md salva na pasta do cliente no Drive.';
+        // O Drive voltou: reenvia as cópias deste cliente que tinham falhado (até 5 por vez).
+        const pendentes = await db`SELECT id, tipo, titulo, status, resumo, decisoes, proximos, conteudo, origem, criado_em FROM vybe_cliente_registros
+          WHERE cliente_id=${c.id} AND drive_id IS NULL AND drive_erro IS NOT NULL ORDER BY criado_em LIMIT 5`;
+        for (const p of pendentes) {
+          try {
+            const emP = p.criado_em instanceof Date ? p.criado_em.toISOString() : String(p.criado_em);
+            const rp = { tipo: p.tipo, titulo: p.titulo, status: p.status, resumo: p.resumo, decisoes: p.decisoes || '', proximos: p.proximos || '', conteudo: p.conteudo || '' };
+            const idP = await salvarNoDrive({ cliente: c, nome: `${emP.slice(0, 10)} ${p.tipo} - ${p.titulo.slice(0, 80).replace(/[\\/:*?"<>|]/g, '-')}.md`,
+              markdown: registroEmMarkdown({ cliente: c.nome, conta: String(p.origem).replace(/^Claude\.ai · /, ''), em: emP, r: rp }) });
+            await db`UPDATE vybe_cliente_registros SET drive_id=${idP}, drive_erro=NULL WHERE id=${p.id}`;
+          } catch { break; }
+        }
       } catch (e) {
         await db`UPDATE vybe_cliente_registros SET drive_erro=${String(e.message || e).slice(0, 300)} WHERE id=${novo.id}`;
         drive = ' A cópia no Drive falhou agora; o registro está salvo no Vybe OS.';
       }
     }
-    return `Registrado em ${c.nome} (registro ${novo.id}).${drive}`;
+    return `Registrado em ${c.nome} (registro ${novo.id}).${avisoRegras}${drive}`;
   }
   throw erroDeUso(`Ferramenta desconhecida: ${nome}.`);
 }

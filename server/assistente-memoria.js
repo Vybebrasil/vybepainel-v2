@@ -11,10 +11,13 @@ const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').t
 // "alteração", "ajuste", "mudar"... viram um mesmo assunto: o que o cliente pediu para mudar.
 const PEDIDOS = /alter|ajust|mud|troc|corrig|refaz|refaze|tirar|coloc|pediu|cliente (?:quer|pede|prefere)/;
 
-export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes, regras = [] }) {
+export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes, regras = [], chats = [] }) {
   const partes = [`🧠 *Memória · ${cliente}* (últimos ${dias} dias${busca ? ` · “${busca}”` : ''})`];
   // Regras decididas pela equipe valem sempre (não dependem do período nem do assunto).
   if (regras.length) partes.push(`📌 *Regras do cliente*\n` + regras.slice(0, 10).map((r) => `- ${r}`).join('\n'));
+  // O que os chats do cliente no Claude registraram (conector Painel Vybe, server/mcp-ecossistema.js).
+  if (chats.length) partes.push(`🤖 *Decidido e aprendido nos chats do Claude*\n` + chats.slice(0, 6)
+    .map((g) => `- ${curto(g.criado_em)} · ${g.titulo}: ${String(g.decisoes || g.resumo).replace(/\s+/g, ' ').slice(0, 240)}`).join('\n'));
   if (alteracoes.length) {
     partes.push(`🔁 *Voltaram para alteração: ${alteracoes.length} vez(es)*\n` + alteracoes.slice(0, 6)
       .map((a) => `- ${curto(a.em)} · ${a.titulo || 'Sem título'}\n  🔗 ${linkDaAtividade(a.ref)}`).join('\n'));
@@ -23,7 +26,7 @@ export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes,
     partes.push(`💬 *O que foi dito nas peças*\n` + comentarios.slice(0, 10)
       .map((c) => `- ${curto(c.criado_em)} · ${c.titulo || 'Sem título'}${c.autor ? ` (${c.autor})` : ''}: “${c.corpo.replace(/\s+/g, ' ').slice(0, 220)}${c.corpo.length > 220 ? '…' : ''}”\n  🔗 ${linkDaAtividade(c.ref)}`).join('\n'));
   }
-  if (!alteracoes.length && !comentarios.length && !regras.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
+  if (!alteracoes.length && !comentarios.length && !regras.length && !chats.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
   return partes.join('\n\n');
 }
 
@@ -50,7 +53,21 @@ export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '',
   else comentarios = [...comentarios.filter((c) => PEDIDOS.test(normal(c.corpo))), ...comentarios.filter((c) => !PEDIDOS.test(normal(c.corpo)))];
   const alteracoes = voltas.map((v) => ({ ...v, ref: ref(v) }));
   const regras = await regrasDoCliente(sql, clienteId);
-  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes, regras }), fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }] };
+  const chats = await registrosDosChats(sql, clienteId, termos);
+  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes, regras, chats }),
+    fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }, ...(chats.length ? [{ modulo: 'registros_chats_claude', id: String(clienteId) }] : [])] };
+}
+
+// Decisões, regras e aprendizados que os chats do Claude registraram; com assunto, só os que falam dele. Sem a tabela, nada.
+async function registrosDosChats(sql, clienteId, termos = []) {
+  try {
+    const [t] = await sql`SELECT to_regclass('public.vybe_cliente_registros') IS NOT NULL AS ok`;
+    if (!t?.ok) return [];
+    const linhas = await sql`SELECT titulo, resumo, decisoes, criado_em::text FROM vybe_cliente_registros
+      WHERE cliente_id = ${clienteId} AND tipo IN ('decisao', 'aprendizado', 'regra_de_marca') ORDER BY criado_em DESC LIMIT 40`;
+    if (!termos.length) return linhas;
+    return linhas.filter((g) => termos.some((x) => normal(`${g.titulo} ${g.resumo} ${g.decisoes || ''}`).includes(x.slice(0, Math.max(4, x.length - 2)))));
+  } catch { return []; }
 }
 
 // Legendas que o cliente já aprovou (planejamentos aprovados ou já cadastrados no quadro), as mais recentes primeiro.
