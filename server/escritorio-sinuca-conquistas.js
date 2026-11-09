@@ -15,7 +15,7 @@
 // ZERADO (SINUCA_ZERADA_EM): vitórias, derrotas, ranking, sequência, tacos e,
 // desde 09/11/2026 (Paulo: "zera as conquistas, vitórias, derrotas"), também as
 // conquistas contam só as partidas terminadas a partir daí. Nada é apagado.
-export const SINUCA_ZERADA_EM = '2026-11-09T05:00:00.000Z';
+export const SINUCA_ZERADA_EM = '2026-11-09T06:30:00.000Z'; // hora do merge (03h30 em Brasília)
 // Os testes antigos gravam partidas com now(): eles trocam a data por aqui.
 export const sinucaZeradaEm = () => process.env.VYBE_SINUCA_ZERADA_EM || SINUCA_ZERADA_EM;
 export const TACOS_SINUCA = ['casa', 'bronze', 'prata', 'ouro', 'lenda'];
