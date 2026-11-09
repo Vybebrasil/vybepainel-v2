@@ -1554,19 +1554,51 @@
     }));
     return lista.filter(Boolean);
   }
+  // Dock central de baixo da Minha sala (Paulo, 09/11/2026: "um dock fácil pra ver quem tá online nas outras salas e mudar
+  // de sala fácil"): a minha sala primeiro, a que está aberta, e as salas com gente agora, com as iniciais de quem está
+  // nelas (acende quem fala). "Todas as salas" abre a barra de salas de voz completa.
+  function dockSalasHtml(zonaAberta) {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return '';
+    const Z = zonas3d(), eu = String(e.base?.eu || ''), minha = minhaSalaDaConta();
+    const nome = (z) => { let n = Z[z]?.nome; if (!n) { try { n = fn('escritorioAmbienteDoQuarto')?.(z)?.nome; } catch { n = ''; } } return n || 'Sala'; };
+    const por = new Map(); for (const o of e.online || []) { if (!o.zona) continue; if (!por.has(o.zona)) por.set(o.zona, []); por.get(o.zona).push(o); }
+    const falando = fn('escritorioPessoasFalando')?.() || new Set();
+    const zonas = [...new Set([minha, zonaAberta, ...[...por.keys()].sort((a, b) => por.get(b).length - por.get(a).length)].filter(Boolean))];
+    const ini = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+    const casa = svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>');
+    const porta = svg('<path d="M6 21V4h12v17"/><path d="M4 21h16"/><circle cx="14.5" cy="12.5" r=".8"/>');
+    const item = (z) => {
+      const gente = por.get(z) || [], voce = e.conectado && e.zona === z, aberta = z === zonaAberta;
+      const rot = z === minha ? 'Minha sala' : nome(z).replace(/^Sala d[aoe]s? /i, '');
+      const rostos = gente.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}${String(o.id) === eu ? ' eu' : ''}">${esc(String(o.id) === eu ? 'Eu' : ini(o.nome))}</i>`).join('');
+      return `<button type="button" class="vq-item${aberta ? ' aberta' : ''}${voce ? ' voz' : ''}${z === minha ? ' minha' : ''}" data-vq-sala="${esc(z)}" ${aberta ? 'aria-current="true"' : ''} title="${esc(nome(z))}${gente.length ? ' · ' + esc(gente.map((o) => o.nome).join(', ')) : ' · vazia'}${voce ? ' · você está na voz desta sala' : ''}">
+        <span class="vq-icone">${z === minha ? casa : gente.length ? `<span class="vq-rostos n${Math.min(3, gente.length)}">${rostos}</span>` : porta}${gente.length ? `<b class="vq-conta">${gente.length}</b>` : ''}</span>
+        <span class="vq-rotulo">${esc(rot)}</span><i class="vq-ponto" aria-hidden="true"></i></button>`;
+    };
+    const online = (e.online || []).length;
+    return zonas.map(item).join('') + `<span class="vq-sep" aria-hidden="true"></span><button type="button" class="vq-item vq-todas" data-vq-todas title="Todas as salas de voz: quem está em cada uma"><span class="vq-icone">${svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')}<b class="vq-conta on">${online}</b></span><span class="vq-rotulo">Salas</span></button>`;
+  }
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
     if (andarAberto && zona && andarAbertoId === 'quarto:' + zona) return; // já está nela
     fecharAndarVoxel(false);
     const geracao = geracaoAndar;
     marcarTrilho('minha-sala');
     const el = document.createElement('section'); el.id = 'mundo-andar'; el.className = 'quarto';
-    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Minha sala em voxel"></canvas><div class="quarto-estado"></div></div>
-      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao andar-voltar" data-sair-andar>← Voltar</button>
-        <span><small>Minha sala</small><b class="quarto-nome">Seu quarto</b></span>
-        <span class="andar-voz" id="andar-voz"></span>
-        <small class="andar-dica">Arraste para girar e use a roda para aproximar. Clique no piso para andar. A chamada é a desta sala.</small></header>`;
+    // Paulo, 09/11/2026: "esse cartão não tem sentido nenhum... voltar devia ser algo mais premium, no dock de baixo... estilo
+    // um dock mesmo". Nada por cima do quarto: o Voltar é o primeiro ícone do dock e as salas vêm ao lado dele.
+    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Sala em voxel: arraste para girar, use a roda para aproximar e clique no piso para andar" title="Arraste para girar, use a roda para aproximar e clique no piso para andar"></canvas><div class="quarto-estado"></div>
+      <nav class="vq-dock" aria-label="Salas: voltar, a sua sala e quem está online em cada uma">
+        <button type="button" class="vq-item vq-voltar" data-sair-andar title="Voltar ao painel"><span class="vq-icone">${svg('<path d="M15 6l-6 6 6 6"/>')}</span><span class="vq-rotulo">Voltar</span></button>
+        <span class="vq-sep" aria-hidden="true"></span><span class="vq-itens"></span></nav></div>`;
     body.append(el); body.classList.add('mundo-andar', 'mundo-quarto');
     el.querySelector('[data-sair-andar]').addEventListener('click', () => sairDoAndar());
+    // Dock de baixo: quem está online em cada sala; um clique abre o quarto daquela sala e entra na voz dela.
+    el.querySelector('.vq-dock').addEventListener('click', (ev) => {
+      const b = ev.target.closest('button'); if (!b) return;
+      if (b.hasAttribute('data-vq-todas')) { abrirDaDireita('voz'); return; }
+      const z = b.dataset.vqSala; if (!z) return;
+      if (quartoDaSala(z)) abrirMinhaSala(z); else irParaSala(z);
+    });
     const estado = el.querySelector('.quarto-estado');
     const mostrarEstado = (tipo, texto) => {
       estado.hidden = !tipo;
@@ -1593,7 +1625,7 @@
       return;
     }
     andarAbertoId = 'quarto:' + zona;
-    el.querySelector('.quarto-nome').textContent = quarto.nome;
+    el.querySelector('canvas').setAttribute('aria-label', (zona === minhaSalaDaConta() ? 'Minha sala: ' : 'Visitando: ') + quarto.nome + '. Arraste para girar, use a roda para aproximar e clique no piso para andar');
     // Abrir a sala é entrar nela: a pessoa vai para a zona da própria sala e para a chamada dela (mudo, como sempre).
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (e && e.zona !== zona) irParaSala(zona);
@@ -1614,8 +1646,8 @@
       // A decoração mudou no Escritório (salvou pelo editor): o quarto acompanha.
       let itens = null; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* segue com o que tem */ }
       const a = itens && JSON.stringify(itens); if (itens && a !== assinItens) { assinItens = a; quarto.itens = itens; andarAberto.itens(itens); }
-      const voz = el.querySelector('#andar-voz');
-      if (voz) { voz.textContent = minha === zona ? (fn('escritorioEstadoVozTexto')?.() || 'Na sala') : minha ? 'Você está em outra sala · a voz é de lá' : 'Fora das salas · sem voz'; voz.classList.toggle('off', minha !== zona); }
+      const dock = el.querySelector('.vq-itens'), html = dockSalasHtml(zona);
+      if (dock && dock.dataset.html !== html) { dock.innerHTML = html; dock.dataset.html = html; }
     };
     pintar(); timerAndar = setInterval(pintar, 400);
     sincronizar();

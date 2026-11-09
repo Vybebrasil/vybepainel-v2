@@ -315,7 +315,7 @@ body.mundo-andar .vv-controles{display:none!important}
 .andar-topo .andar-dica{flex-basis:100%;margin:0;padding-top:6px;border-top:1px solid rgba(31,29,26,.08);font:500 11.5px/1.4 var(--vv-texto);color:var(--vv-apagado);letter-spacing:0;text-transform:none}
 @media (max-width:900px){.andar-dica{display:none}}
 /* Minha sala (09/11/2026): o quarto voxel ocupa a tela toda, também no celular (não há placa embaixo). */
-body.mundo-quarto #vv-hoje{display:none}
+/* Minha sala: o Hoje e a Agenda ficam dos lados do quarto (regras no fim, "Minha sala com os painéis"). */
 .andar-voz.off::before{color:var(--vv-apagado)}
 /* O quarto ocupa o palco (à direita do dock e abaixo da barra do topo); o cartão do quarto fica no canto dele. */
 #mundo-andar.quarto .andar-palco{left:var(--vv-palco-esq,0px);top:var(--vv-palco-topo,0px)}
@@ -5059,3 +5059,55 @@ html body.mundo .vv-g-linha em.vv-g-datas{display:grid;justify-items:end;gap:2px
 .vv-chamada .vz-entrar small{color:rgba(255,255,255,.9)}
 .vv-chamada .vz-entrar:hover{background:#A63D08}
 .vv-chamada :is(.vz-mic,.vz-entrar):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+
+/* ===== Minha sala com os painéis (Paulo, 09/11/2026: "deixar o HUD da esquerda e da direita nessa tela também... a agência,
+   minhas demandas, a agenda ali na direita... e um dock fácil pra ver quem tá online nas outras salas, mudar de sala fácil,
+   pode ser um dock central inferior"). O Hoje à esquerda, a Agenda à direita e o quarto no meio, sem nada por cima dele.
+   As regras do Hoje e da Agenda usam !important porque as do palco (Hoje largo, Agenda na coluna) já usam. ===== */
+body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
+@media (min-width:901px){
+  html body.mundo.mundo-quarto #vv-hoje.vv-hoje{display:block;left:var(--vv-palco-esq)!important;right:auto!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vq-esq)!important;max-width:none!important;padding:16px!important}
+  html body.mundo.mundo-quarto #vv-hoje :is(.vv-hoje-grade,.vv-dono-tres,.vv-blocos){grid-template-columns:1fr!important}
+  html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
+}
+@media (min-width:1200px){
+  html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important;top:var(--vv-palco-topo)!important;right:var(--vv-m)!important;bottom:auto!important;width:var(--vq-dir)!important;max-height:calc(100% - var(--vv-palco-topo) - var(--vv-m))!important;overflow:auto}
+  html body.mundo.mundo-quarto #mundo-andar.quarto .andar-palco{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}
+}
+@media (max-width:900px){html body.mundo.mundo-quarto #vv-hoje{display:none}}
+/* Dock de baixo da sala, estilo dock de verdade (Paulo, 09/11/2026: "deixa o dock de baixo mais padrão... estilo um dock mesmo"):
+   vidro claro, ícones quadrados com o nome embaixo, o ponto verde da sala onde você está na voz e o número de quem está
+   em cada uma. O Voltar é o primeiro ícone, escuro. Sobe um pouco ao passar o mouse (desliga com Reduzir movimento). */
+#mundo-andar .vq-dock{position:absolute;left:50%;bottom:var(--vv-m,14px);transform:translateX(-50%);z-index:2;display:flex;align-items:flex-end;gap:4px;max-width:calc(100% - 2 * var(--vv-m,14px));padding:8px 10px 6px;box-sizing:border-box;overflow-x:auto;overflow-y:visible;scrollbar-width:none;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.85);border-radius:22px;
+  box-shadow:0 0 0 1px rgba(31,29,26,.08),0 22px 48px -20px rgba(31,29,26,.45);font-family:var(--vv-texto)}
+#mundo-andar .vq-dock::-webkit-scrollbar{display:none}
+.vq-dock .vq-itens{display:contents}
+.vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:40px;margin:0 6px 14px;background:rgba(31,29,26,.14)}
+.vq-dock .vq-item{position:relative;flex:none;display:grid;justify-items:center;gap:4px;width:68px;padding:2px 0 8px;border:0;background:transparent;color:#1F1D1A;cursor:pointer;transition:transform .18s var(--curva,cubic-bezier(.2,.8,.2,1))}
+.vq-dock .vq-item:hover{transform:translateY(-5px)}
+.vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:48px;height:48px;border-radius:13px;background:linear-gradient(180deg,#FFFFFF,#F3EEE6);border:1px solid rgba(31,29,26,.1);box-shadow:0 6px 14px -8px rgba(31,29,26,.45);color:#3A3F44}
+.vq-dock .vq-icone svg{width:22px;height:22px}
+.vq-dock .vq-item.minha .vq-icone{background:linear-gradient(180deg,#FF8A3D,#E2600F);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-voltar .vq-icone{background:linear-gradient(180deg,#3A3631,#1F1D1A);border-color:#1F1D1A;color:#FFFFFF}
+.vq-dock .vq-voltar .vq-icone svg{width:24px;height:24px;stroke-width:2.4}
+.vq-dock .vq-item.aberta .vq-icone{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D,0 8px 16px -8px rgba(31,29,26,.5)}
+.vq-dock .vq-rotulo{max-width:68px;font:600 10.5px/1.2 var(--vv-texto);color:#3A3F44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vq-dock .vq-item.aberta .vq-rotulo{color:#C2490C}
+.vq-dock .vq-ponto{position:absolute;bottom:1px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
+.vq-dock .vq-item.voz .vq-ponto{background:#18A957;box-shadow:0 0 0 2px rgba(24,169,87,.25)}
+.vq-dock .vq-conta{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#1F1D1A;color:#FFFFFF;font:700 10px/18px var(--vv-texto);text-align:center;box-shadow:0 0 0 2px #FFFFFF}
+.vq-dock .vq-conta.on{background:#18A957}
+.vq-dock .vq-rostos{display:flex;align-items:center}
+.vq-dock .vq-rostos i{display:grid;place-items:center;width:24px;height:24px;margin-left:-8px;border-radius:50%;background:#E9E3D8;border:2px solid #FFFFFF;font:700 9px var(--vv-texto);font-style:normal;color:#3A3F44}
+.vq-dock .vq-rostos i:first-child{margin-left:0}
+.vq-dock .vq-rostos.n1 i{width:30px;height:30px;font-size:11px}
+.vq-dock .vq-rostos.n3 i{width:19px;height:19px;margin-left:-6px;border-width:1.5px;font-size:7.5px}
+.vq-dock .vq-rostos i.eu{background:#FFE3CC;color:#C2490C}
+.vq-dock .vq-rostos i.fala{background:#18A957;color:#FFFFFF}
+.vq-dock .vq-item:focus-visible{outline:none}
+.vq-dock .vq-item:focus-visible .vq-icone{outline:2px solid #F26B1D;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.vq-dock .vq-item{transition:none}.vq-dock .vq-item:hover{transform:none}}
+html.vb-sem-movimento .vq-dock .vq-item{transition:none}
+html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
+@media (max-width:900px){#mundo-andar .vq-dock{bottom:var(--vv-m,12px)}.vq-dock .vq-item{width:60px}.vq-dock .vq-icone{width:44px;height:44px}}
