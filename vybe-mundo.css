@@ -3204,16 +3204,6 @@ body.cam-sem-clientes .mundo-rotulo.rotulo-cliente,body.cam-sem-marcos .mundo-ro
 
 /* ===== Barra de chamada ===== */
 .vv-chamada{position:absolute;left:calc(var(--vv-m) + var(--vv-trilho-w,76px) + 10px);bottom:var(--vv-m);display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-radius:10px;background:rgba(31,29,26,.9);color:#fff;box-shadow:0 14px 34px rgba(31,29,26,.3);pointer-events:auto;z-index:5;font-family:var(--vv-texto);max-width:calc(100vw - 2*var(--vv-m) - 110px);flex-wrap:wrap}
-.vv-chamada .sala{display:flex;flex-direction:column;margin-right:4px}.vv-chamada .sala b{font:700 13px var(--vv-texto);display:flex;align-items:center;gap:6px}
-.vv-chamada .sala i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.3)}
-.vv-chamada .sala small{font:500 11px var(--vv-texto);color:rgba(255,255,255,.7)}
-.vv-chamada .gente{display:flex;gap:4px}.vv-chamada .gente .p{padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.12);font:600 11px var(--vv-texto)}
-.vv-chamada .gente .p.fala{background:#18A957;box-shadow:0 0 0 2px rgba(24,169,87,.45)}
-.vv-chamada .vv-botao{height:32px;background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;font-size:12px}
-.vv-chamada .vv-botao.on{background:#18A957!important}
-.vv-chamar{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;padding-top:6px}
-.vv-chamar button{appearance:none;text-align:left;padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-family:var(--vv-texto)}
-.vv-chamar button b{display:block;font:700 12px var(--vv-texto)}.vv-chamar button small{font:500 10.5px var(--vv-texto);color:rgba(255,255,255,.7)}
 @media (max-width:900px){.vv-chamada{left:var(--vv-m);bottom:calc(64px + 2*var(--vv-m))}}
 
 /* Vista do prédio: só o prédio, os agentes e os clientes; o resto das etiquetas da cidade some */
@@ -3316,42 +3306,11 @@ html body.mundo .notif-item.nao-lida:not(#vv-x){background:#FFF6EE!important;box
 html body.mundo .notif-texto:not(#vv-x){color:#1F1D1A!important}
 html body.mundo .notif-meta:not(#vv-x){color:#6B675F!important}
 html body.mundo .notif-caixa.tem-mais::after{background:linear-gradient(180deg,rgba(255,255,255,0),#FFFFFF)!important;box-shadow:none!important}
-
-/* ===== Barra de chamada v2: sala, quem ouve você, microfone, ajustes, música, tela, chamar, sair ===== */
-.vv-chamada{gap:10px!important;padding:7px 8px 7px 14px!important;border-radius:12px!important;background:rgba(24,23,21,.92)!important;backdrop-filter:blur(14px)}
-.vv-chamada .sala{min-width:150px}
-.vv-chamada .sala.off i{background:#9AA3A8;box-shadow:none}
-.vv-chamada .sala:not(.on):not(.off) i{background:#E2A11B;box-shadow:0 0 0 3px rgba(226,161,27,.28)}
-.vv-chamada .gente{gap:0}
-.vv-chamada .gente .p{appearance:none;border:2px solid #181715;width:30px;height:30px;padding:0;margin-left:-6px;border-radius:50%;background:#3A3F44;color:#fff;font:700 10.5px var(--vv-texto);cursor:pointer;transition:transform .15s}
-.vv-chamada .gente .p:first-child{margin-left:0}
-.vv-chamada .gente .p:hover{transform:translateY(-2px);z-index:1}
-.vv-chamada .gente .p.fala{background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.5);animation:vv-fala 1s ease-in-out infinite alternate}
-@keyframes vv-fala{to{box-shadow:0 0 0 5px rgba(24,169,87,.2)}}
-.vv-chamada .gente .mais{font:600 11px var(--vv-texto);color:rgba(255,255,255,.7);margin-left:6px}
-.vv-chamada .acoes{display:flex;gap:4px}
-.vv-chamada .vv-botao.ic{width:36px;height:36px;padding:0;justify-content:center;border-radius:8px!important}
-.vv-chamada .vv-botao.ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.vv-chamada .vv-botao.ic:hover:not(:disabled){background:rgba(255,255,255,.22)!important}
-.vv-chamada .vv-botao.ic[data-chamada="mic"]:not(.on):not(:disabled){background:#D93D42!important}
-.vv-chamada .vv-botao.ic.sair:hover{background:#D93D42!important}
-.vv-chamada .vv-botao:disabled{opacity:.35;cursor:not-allowed}
-.vv-chamada .vv-chamar{position:absolute;left:0;bottom:calc(100% + 8px);width:300px;max-height:min(420px,60vh);overflow:auto;background:#fff;color:#1F1D1A;border-radius:10px;padding:10px;box-shadow:0 20px 50px rgba(31,29,26,.25);border:1px solid #E6E0D6}
-.vv-chamada .vv-chamar > button:not(.vv-botao){display:grid;grid-template-columns:1fr auto;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-family:var(--vv-texto)}
-.vv-chamada .vv-chamar > button:not(.vv-botao):hover{background:#FAF5EE}
-.vv-chamada .vv-chamar > button b{font:700 13px var(--vv-texto);color:#1F1D1A}
-.vv-chamada .vv-chamar > button small{grid-column:1;font:500 11px var(--vv-texto);color:#6B675F}
-.vv-chamada .vv-chamar > button em{grid-row:1/3;grid-column:2;align-self:center;font:700 11px var(--vv-texto);font-style:normal;color:#C2490C}
-.vv-chamada .vv-pessoa{display:flex;flex-direction:column;gap:6px;width:240px}
-.vv-chamada .vv-pessoa > b{font:700 14px var(--vv-texto)}.vv-chamada .vv-pessoa > small{color:#6B675F;font:500 11.5px var(--vv-texto)}
-.vv-chamada .vv-pessoa .vv-botao{background:#F3EFE8!important;color:#1F1D1A!important;height:34px;justify-content:center}
-.vv-chamada .vv-pessoa .vv-botao:first-of-type{background:#C2490C!important;color:#fff!important}
 /* ajustes de áudio do Escritório, trazidos para cima do mapa */
 #office-ajustes-audio.vv-flutuante{position:fixed!important;left:calc(var(--vv-m) + 96px)!important;bottom:calc(var(--vv-m) + 64px)!important;top:auto!important;right:auto!important;z-index:900!important;width:min(380px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:10px!important;box-shadow:0 24px 60px rgba(31,29,26,.25)!important;padding:14px!important;color-scheme:light}
 #office-ajustes-audio.vv-flutuante :is(label,span,b,strong,h3,h4,p,small,option){color:#1F1D1A!important}
 #office-ajustes-audio.vv-flutuante select{background:#fff!important;color:#1F1D1A!important;border:1px solid #E1DACE!important;border-radius:6px}
 @media (max-width:900px){#office-ajustes-audio.vv-flutuante{left:16px!important;bottom:calc(64px + 80px)!important}}
-.vv-chamada .vv-chamar{display:block;padding-top:10px;flex-basis:auto}.vv-chamada .vv-chamar > button:not(.vv-botao){color:#1F1D1A}.vv-chamada .vv-chamar .vv-rotulo-secao{margin:6px 4px 4px}
 
 /* ===== Nomes do mapa sem amontoar ===== */
 .mundo-rotulo.colide{opacity:0!important;pointer-events:none!important}
@@ -3381,18 +3340,6 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 /* barra de chamada nasce depois do painel "Seu dia", sem cobrir a lista */
 @media (min-width:901px){.vv-chamada{left:calc(var(--vv-livre-esq, 100px) + 10px)!important}}
 
-/* ===== Barra de chamada no padrão Irecity (vidro claro, não o cinza escuro antigo) ===== */
-.vv-chamada{background:var(--vv-vidro-forte)!important;color:var(--vv-tinta)!important;border:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra-curta)!important;backdrop-filter:var(--vv-desfoque)!important}
-.vv-chamada .sala small{color:var(--vv-apagado)!important}
-.vv-chamada .gente .p{border-color:#fff!important;background:#E9E3D8!important;color:var(--vv-tinta)!important}
-.vv-chamada .gente .p.fala{background:#18A957!important;color:#fff!important}
-.vv-chamada .gente .mais{color:var(--vv-apagado)!important}
-.vv-chamada .vv-botao{background:#fff!important;color:var(--vv-tinta)!important;border:1px solid var(--vv-linha)!important}
-.vv-chamada .vv-botao.ic:hover:not(:disabled){background:#FAF5EE!important;border-color:var(--vv-acao,#C2490C)!important}
-.vv-chamada .vv-botao.on{background:#18A957!important;color:#fff!important;border-color:#18A957!important}
-.vv-chamada .vv-botao.ic[data-chamada="mic"]:not(.on):not(:disabled){background:#FDECEE!important;color:#B42318!important;border-color:#F6BBC4!important}
-.vv-chamada .vv-botao.ic.sair:hover{background:#FDECEE!important;color:#B42318!important}
-.vv-chamada [data-chamada="reconectar"]{background:var(--vv-acao,#C2490C)!important;color:#fff!important;border:0!important;padding:0 14px}
 /* com a barra de chamada visível, o aviso de planejamentos sobe e não encosta nela */
 @media (min-width:901px){body.mundo:not(.mundo-modulo):has(#mundo-hud .vv-chamada:not([hidden])) .plj-aviso{bottom:calc(var(--vv-m) + var(--vv-voz-alto,56px) + 14px)!important}}
 
@@ -3795,37 +3742,8 @@ html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 html.tema-escuro body.mundo .vv-palco{filter:none!important}
 html.tema-escuro body.mundo #office-tv.vv-flutuante-ofc{filter:none!important}
 
-/* ===== Salas de voz (estilo Discord) ===== */
-.vv-chamada .vv-salas-voz{width:340px;max-height:min(560px,70vh)}
-.vv-voz-topo{padding:2px 6px 8px}.vv-voz-topo b{display:block;font:700 15px var(--vv-titulo);color:#1F1D1A}.vv-voz-topo small{font:500 11px var(--vv-texto);color:#6B675F}
-.vv-chamada .vv-salas-voz .vv-voz-sala{display:grid!important;grid-template-columns:22px 1fr auto;align-items:center;gap:8px;width:100%;padding:7px 8px!important;margin:1px 0;border-radius:6px!important;text-align:left}
-.vv-voz-sala .ic{font-size:13px;opacity:.75}
-.vv-voz-sala .meio b{display:block;font:600 12.5px var(--vv-texto)!important;color:#3A3F44!important}
-.vv-voz-sala.com-gente .meio b{color:#1F1D1A!important;font-weight:700!important}
-.vv-voz-sala .meio small{font:500 10.5px var(--vv-texto);color:#9A948A!important}
-.vv-voz-sala .gente{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
-.vv-voz-sala .gente i{font-style:normal;display:grid;place-items:center;min-width:22px;height:22px;padding:0 4px;border-radius:8px;background:#E9E3D8;color:#1F1D1A;font:700 9.5px var(--vv-texto)}
-.vv-voz-sala .gente i.fala{background:#18A957;color:#fff;box-shadow:0 0 0 2px rgba(24,169,87,.35)}
-.vv-voz-sala em{font:700 11px var(--vv-texto)!important;color:#C2490C!important;opacity:0;transition:opacity .12s}
-.vv-voz-sala:hover em,.vv-voz-sala.minha em{opacity:1}
-.vv-voz-sala.minha{background:color-mix(in srgb,#FF7A2F 11%,#fff)!important;box-shadow:inset 3px 0 0 #FF7A2F}
-.vv-voz-sala.minha em{color:#11613A!important}
-.vv-voz-pessoa{display:flex;align-items:center;gap:8px;padding:6px 6px;border-bottom:1px solid #F3EFE8}
-.vv-voz-pessoa .av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#E9E3D8;font:800 10px var(--vv-texto);color:#1F1D1A}
-.vv-voz-pessoa .av.fala{background:#18A957;color:#fff;box-shadow:0 0 0 3px rgba(24,169,87,.3)}
-.vv-voz-pessoa .meio{flex:1;min-width:0}.vv-voz-pessoa b{display:block;font:700 12px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vv-voz-pessoa small{font:500 10.5px var(--vv-texto);color:#6B675F}
-.vv-voz-pessoa .vv-botao{height:28px!important;padding:0 9px!important;font-size:11.5px!important;background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
-.vv-voz-pessoa .junto{color:#11613A!important;font-weight:700}
 /* dentro dos módulos: a barra de voz continua, compacta, no canto de baixo */
 body.mundo.mundo-modulo .vv-chamada{left:auto!important;right:calc(var(--vv-m) + 64px)!important;bottom:calc(var(--vv-m) + 8px)!important;padding:5px 6px 5px 10px!important;transform-origin:bottom right;scale:.9;z-index:650}
-body.mundo.mundo-modulo .vv-chamada .sala small,body.mundo.mundo-modulo .vv-chamada .gente{display:none}
-body.mundo.mundo-modulo .vv-chamada .sala{min-width:0}
-body.mundo.mundo-modulo .vv-chamada .vv-chamar{left:auto;right:0}
-/* linha da sala de voz: vence a regra genérica de botão da lista (grid de 2 colunas) */
-.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala{display:grid!important;grid-template-columns:22px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important}
-.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .ic{grid-row:auto!important;grid-column:1!important}
-.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > .meio{grid-row:auto!important;grid-column:2!important;min-width:0}
-.vv-chamada .vv-chamar.vv-salas-voz > button.vv-voz-sala > em{grid-row:auto!important;grid-column:3!important;align-self:center}
 
 /* modo escuro: o 3D do andar (e o do personagem) não inverte; ganha a mesma luz de fim de tarde do mapa */
 /* Andar por dentro no tema escuro: como o Centro, a cena só escurece (a dupla inversão deixava a maquete clara lavada);
@@ -3844,23 +3762,8 @@ html body.mundo .abr-cena{background-image:none!important}
    recados, TV, ajustes de áudio) vivem no body e continuam aparecendo. Modo legado (?legado=1) não tem body.mundo. */
 html body.mundo #painel-escritorio{visibility:hidden!important;pointer-events:none!important}
 html body.mundo :is(.ofc-lobby,.ofc-abertura,#ofc-abertura){display:none!important}
-.vv-chamada .sala small b.mudo{color:#B42318;font-weight:800}
-.vv-chamada .vv-botao.ic.chama{animation:vv-chama 1.2s ease-in-out infinite}
-@keyframes vv-chama{50%{box-shadow:0 0 0 5px rgba(217,61,66,.28)}}
 
 /* ===== Música da sala: controle na barra de voz e o player com o clipe flutuando por cima do mapa ===== */
-.vv-chamada .vv-musica{display:flex;align-items:center;gap:4px;padding:3px 6px 3px 8px;border-radius:8px;background:#F3EFE8;border:1px solid #E6E0D6;max-width:330px}
-.vv-chamada .vv-musica > i{font-style:normal;font-size:14px;color:#8E4EC6}
-.vv-chamada .vv-musica.tocando > i{animation:vv-nota 1.4s ease-in-out infinite}
-@keyframes vv-nota{50%{transform:translateY(-2px) rotate(-8deg)}}
-.vv-chamada .vv-musica .t{min-width:0;flex:1;margin-right:4px}
-.vv-chamada .vv-musica .t b{display:block;font:700 11.5px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
-.vv-chamada .vv-musica .t small{font:500 10px var(--vv-texto);color:#6B675F!important;white-space:nowrap}
-.vv-chamada .vv-musica button{appearance:none;width:26px;height:26px;border-radius:8px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;cursor:pointer;font-size:11px;line-height:1}
-.vv-chamada .vv-musica button:hover:not(:disabled){border-color:#FF7A2F}
-.vv-chamada .vv-musica button:disabled{opacity:.35;cursor:default}
-.vv-chamada .vv-musica button[aria-pressed="true"]{background:#FDECEE;border-color:#F6BBC4}
-body.mundo.mundo-modulo .vv-chamada .vv-musica .t{display:none}
 /* o player da sala (clipe do YouTube e controles) é uma janela própria do Irecity, no body: a tela escondida do
    Escritório não sobe mais para cima do mapa. Nos módulos ele some da vista (a música segue; o controle fica na barra). */
 body.mundo #office-musica.vv-musica-janela{position:fixed!important;left:auto!important;top:auto!important;right:calc(var(--vv-m,16px) + 70px)!important;bottom:calc(var(--vv-m,16px) + var(--vv-voz-alto,64px) + 12px)!important;z-index:640;width:300px;display:grid;gap:8px;padding:10px 10px 12px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:10px;box-shadow:0 20px 50px rgba(31,29,26,.22);color:#1F1D1A;font:500 12px var(--vv-texto);color-scheme:light;backdrop-filter:none}
@@ -4148,13 +4051,6 @@ body.mundo:not(.mundo-centro) .vv-barra-topo .vv-botao{min-width:0;width:34px;pa
   html body.mundo:not(.mundo-centro) .vv-chamada{width:var(--vv-col)!important}
   html body.mundo:not(.mundo-centro) .plj-aviso{width:var(--vv-col)!important;max-width:var(--vv-col)!important}
 }
-/* Barra de voz em chamada: sala em cima, gente e música no meio, botões quebram em duas linhas (antes cortava o "TV"). */
-html body.mundo:not(.mundo-centro) .vv-chamada{flex-wrap:wrap!important;row-gap:6px!important;box-sizing:border-box;max-width:none!important}
-html body.mundo:not(.mundo-centro) .vv-chamada .sala{flex:1 1 100%;min-width:0;margin:0}
-html body.mundo:not(.mundo-centro) .vv-chamada .vv-musica{flex:1 1 100%;min-width:0}
-html body.mundo:not(.mundo-centro) .vv-chamada .acoes{flex:1 1 100%;flex-wrap:wrap;gap:4px}
-html body.mundo:not(.mundo-centro) .vv-chamada .acoes .vv-botao.ic{width:34px;height:34px}
-html body.mundo:not(.mundo-centro) .vv-chamada .acoes .vv-botao:not(.ic){height:34px;padding:0 10px}
 /* Player da música: na coluna, acima da voz e do aviso, nunca fora da tela. */
 body.mundo:not(.mundo-centro) #office-musica.vv-musica-janela{right:var(--vv-m)!important;width:var(--vv-col)!important;max-width:calc(100vw - 2 * var(--vv-m))!important;box-sizing:border-box;bottom:calc(var(--vv-m) + var(--vv-pe-base,0px))!important}
 /* Aviso recolhido: só a bolinha com o total, no canto da coluna (antes: pílula larga solta com "84"). */
@@ -4524,8 +4420,6 @@ html body.mundo:not(.vv-x) #office-musica.vv-musica-janela.movida{left:var(--mx)
 .vv-musica-janela .ofc-musica-topo button:hover{color:#1F1D1A!important}
 .vv-ferr-musica[hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){html body.mundo #office-musica.vv-musica-janela{animation:none!important}}
-/* Com a sala aberta embaixo da barra, a lista de salas de voz abre para baixo (antes subia por cima da barra). */
-html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top:calc(100% + 8px);bottom:auto;left:auto;right:0;max-height:min(420px,calc(100vh - 220px))}
 /* No Centro e no Prédio o Hoje tem a altura do que mostra (antes era uma placa de vidro da altura da tela, quase vazia,
    cobrindo o mundo). */
 @media (min-width:901px){html body.mundo.mundo-centro .vv-hoje{bottom:auto!important;max-height:calc(100% - 2 * var(--vv-m))}}
@@ -4549,24 +4443,9 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top
 .vs-alertas li span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media (min-width:1280px){.vs-agencia .vs-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
 
-/* Salas de voz mais claras (Paulo, 08/11/2026: "ver as salas, quem tá online, entrar na sala de alguém, ver quem tá na
-   minha sala e em que sala eu tô de voz é muito confuso"): "Você está em", nomes de quem está junto, salas com gente
-   primeiro e as vazias recolhidas, e o nome da sala no botão da barra durante a chamada. */
-.vv-chamada .sala .vv-voz-onde{font:600 10.5px var(--vv-texto);letter-spacing:.02em;color:var(--vv-apagado,#8A847A)}
-.vv-chamada .sala b{display:flex;align-items:center;gap:6px}
-.vv-chamada .gente .p{width:auto!important;min-width:0;padding:3px 9px!important;font:600 11.5px var(--vv-texto)!important}
-.vv-voz-sala .ic svg{width:16px;height:16px}
-.vv-voz-sala .meio b small{font:600 10px var(--vv-texto);color:#B26B00;margin-left:4px}
-.vv-voz-sala .gente i{font-style:normal;width:auto!important;padding:1px 7px;border-radius:999px}
-.vv-voz-vazias summary{cursor:pointer;padding:8px 4px;font:600 12px var(--vv-texto);color:var(--vv-apagado,#6B675F);list-style:none}
-.vv-voz-vazias summary::-webkit-details-marker{display:none}
-.vv-voz-vazias summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
-.vv-voz-vazias[open] summary::before{transform:rotate(90deg)}
 .vv-ferr-voz{width:auto!important;gap:6px;padding:0 8px!important}
 .vv-ferr-voz .vv-voz-nome{font:600 11.5px var(--vv-texto);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-ferr-voz .vv-voz-nome[hidden]{display:none}
-/* Na janelinha da sala (pela barra), a lista de salas faz parte dela, rolando por dentro, em vez de uma caixa solta. */
-html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{position:static!important;flex-basis:100%;width:100%!important;max-height:min(440px,calc(100vh - 280px))!important;overflow:auto;box-shadow:none!important;border:0!important;border-top:1px solid #EFEAE2!important;border-radius:0!important;padding:10px 0 0!important;margin-top:4px;background:transparent!important}
 /* Painel de trabalho › Grupos: o quadro ainda vinha com o fundo escuro do painel antigo (o cabeçalho "Conteúdos por
    grupo" aparecia como uma faixa preta). Dentro do mundo, o mesmo cartão claro das outras telas. */
 html body.mundo.mundo-modulo #grupos-board.grupos-board{background:#fff!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;color:#1F1D1A!important}
@@ -5020,3 +4899,109 @@ html.vb-sem-movimento .vv-trilho .trancado.tremer{animation:none}
 .vv-perf-proc li span{display:grid;gap:1px}.vv-perf-proc li b{font:600 13px var(--vv-texto);color:#1F1D1A}.vv-perf-proc li small{font:500 11.5px var(--vv-texto);color:#6B665E}
 .vv-perf-proc li em{font:600 13px var(--vv-texto);color:#B8B0A4;font-style:normal}
 .vv-perf-tabela td b .cliente-carteira{font-weight:600}
+
+/* ===== HUD das salas (Paulo, 09/11/2026: "muito ruim o HUD que abre das salas... quem tá online e controles") =====
+   Uma janela só, de cima para baixo: onde você está e Sair; quem está com você; os controles com ícone e nome;
+   a música da sala; as salas com gente (vazias e "Chamar alguém" recolhidos). Cartão branco do Irecity, cantos
+   de 8px, laranja só na ação, verde e vermelho só para estado. A posição continua nas regras de layout acima;
+   aqui fica só o desenho. Dentro dos módulos a barra continua escondida; o microfone fica no topo. */
+html body.mundo .vv-chamada{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:10px;padding:12px;box-sizing:border-box;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 18px 40px -18px rgba(31,29,26,.35),0 2px 6px rgba(31,29,26,.06);
+  font-family:var(--vv-texto);max-height:calc(100vh - var(--vv-m,12px) * 2 - 64px)}
+html body.mundo .vv-chamada svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+html body.mundo .vv-chamada > :not(.vz-salas){flex-shrink:0}
+/* onde você está */
+.vv-chamada > .sala{display:flex;align-items:center;gap:10px;min-width:0}
+.vv-chamada .vz-ponto{flex:none;width:10px;height:10px;border-radius:50%;background:#E2A11B;box-shadow:0 0 0 3px rgba(226,161,27,.22)}
+.vv-chamada > .sala.on .vz-ponto{background:#18A957;box-shadow:0 0 0 3px rgba(24,169,87,.22)}
+.vv-chamada > .sala.off .vz-ponto{background:#B8B0A4;box-shadow:none}
+.vv-chamada .vz-onde{display:grid;gap:1px;flex:1;min-width:0}
+.vv-chamada .vz-onde > small:first-child{font:600 10.5px var(--vv-texto);color:#8A847A}
+.vv-chamada .vz-onde > b{font:600 15px/1.25 var(--vv-titulo,var(--vv-texto));color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada > .sala.off .vz-onde > b{font-size:14px}
+.vv-chamada .vz-onde > small:last-child{font:500 11.5px/1.35 var(--vv-texto);color:#6B675F}
+.vv-chamada .vz-mudo{color:#B42318;font-weight:700}
+.vv-chamada .vz-sair{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #F3C5C0;border-radius:8px;background:#FFFFFF;color:#B42318;font:600 12px var(--vv-texto);cursor:pointer}
+.vv-chamada .vz-sair svg{width:16px;height:16px}
+.vv-chamada .vz-sair:hover{background:#FDECEE}
+/* botões de texto (entrar, usar nesta aba, minha sala, chamar) */
+.vv-chamada .vz-botao{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto);cursor:pointer;white-space:nowrap}
+.vv-chamada .vz-botao svg{width:15px;height:15px}
+.vv-chamada .vz-botao:hover{border-color:#F26B1D;background:#FFF8F2}
+.vv-chamada .vz-botao.principal{background:#C2490C;border-color:#C2490C;color:#FFFFFF}
+.vv-chamada .vz-botao.principal:hover{background:#A63D08}
+/* quem está com você */
+.vv-chamada .vz-junto{display:flex;flex-wrap:wrap;gap:6px}
+.vv-chamada .vz-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 3px;border:1px solid #E6E0D6;border-radius:999px;background:#FAF7F2;color:#1F1D1A;font:600 12px var(--vv-texto);cursor:pointer}
+.vv-chamada .vz-chip i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E9E3D8;font:700 9.5px var(--vv-texto);font-style:normal;color:#3A3F44}
+.vv-chamada .vz-chip.fala{border-color:#18A957;background:#EAF7EF}
+.vv-chamada .vz-chip.fala i{background:#18A957;color:#FFFFFF}
+.vv-chamada .vz-chip:hover{border-color:#F26B1D}
+.vv-chamada .vz-mais{align-self:center;font:600 11.5px var(--vv-texto);color:#6B675F}
+/* controles: ícone e nome, numa linha de largura igual */
+.vv-chamada .vz-controles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.vv-chamada .vz-b{display:grid;justify-items:center;align-content:center;gap:3px;min-width:0;height:54px;padding:0 2px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#3A3F44;cursor:pointer;font:600 10.5px var(--vv-texto)}
+.vv-chamada .vz-b span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada .vz-b:hover:not(:disabled){border-color:#F26B1D;background:#FFF8F2;color:#1F1D1A}
+.vv-chamada .vz-b:disabled{opacity:.4;cursor:not-allowed}
+.vv-chamada .vz-b[data-estado="on"]{background:#EAF7EF;border-color:#9FD9B5;color:#11613A}
+.vv-chamada .vz-b[data-chamada="mic"][data-estado="off"]:not(:disabled){color:#B42318}
+.vv-chamada .vz-b[data-estado="alerta"]{background:#FDECEE;border-color:#F3A9A3;color:#B42318}
+.vv-chamada .vz-b[aria-expanded="true"]{background:#FFF1E6;border-color:#F26B1D;color:#C2490C}
+/* música da sala */
+.vv-chamada .vz-musica{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 6px 6px 10px;border-radius:8px;background:#F6F1FB;border:1px solid #E7DCF3}
+.vv-chamada .vz-nota{display:grid;place-items:center;color:#8E4EC6}
+.vv-chamada .vz-nota svg{width:16px;height:16px}
+.vv-chamada .vz-musica .t{flex:1;min-width:0;display:grid}
+.vv-chamada .vz-musica .t b{font:600 12px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada .vz-musica .t small{font:500 10.5px var(--vv-texto);color:#6B675F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada .vz-musica-bts{display:flex;gap:2px;flex:none}
+.vv-chamada .vz-musica-bts button{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:6px;background:transparent;color:#3A3F44;cursor:pointer}
+.vv-chamada .vz-musica-bts button svg{width:15px;height:15px}
+.vv-chamada .vz-musica-bts button:hover:not(:disabled){background:#FFFFFF;color:#1F1D1A}
+.vv-chamada .vz-musica-bts button:disabled{opacity:.35;cursor:default}
+.vv-chamada .vz-musica-bts button[aria-pressed="true"]{color:#B42318}
+/* cartão de uma pessoa (clique no nome) */
+.vv-chamada .vz-pessoa{display:grid;gap:4px;padding:10px 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FAF7F2}
+.vv-chamada .vz-pessoa > b{font:600 14px var(--vv-texto)}
+.vv-chamada .vz-pessoa > small{font:500 11.5px var(--vv-texto);color:#6B675F}
+.vv-chamada .vz-linha{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+/* salas de voz: parte da janela; só rola por dentro quando o prédio inteiro não cabe na altura da tela */
+.vv-chamada .vz-salas{display:flex;flex-direction:column;min-height:0;overflow:auto;margin:0 -12px -12px;padding:10px 12px 12px;border-top:1px solid #EFEAE2;overscroll-behavior:contain}
+.vv-chamada .vz-salas-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.vv-chamada .vz-salas-topo > span{display:grid;min-width:0}
+.vv-chamada .vz-salas-topo b{font:600 13px var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+.vv-chamada .vz-salas-topo small{font:500 11px var(--vv-texto);color:#6B675F}
+.vv-chamada .vz-sala{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:8px;margin:1px 0;border:0;border-radius:8px;background:transparent;color:#1F1D1A;text-align:left;cursor:pointer;font-family:var(--vv-texto)}
+.vv-chamada .vz-sala:hover{background:#FAF5EE}
+.vv-chamada .vz-sala .ic{display:grid;place-items:center;color:#8A847A}
+.vv-chamada .vz-sala .ic svg{width:16px;height:16px}
+.vv-chamada .vz-sala .meio{display:grid;gap:3px;min-width:0}
+.vv-chamada .vz-sala .meio > b{font:500 12.5px var(--vv-texto);color:#3A3F44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada .vz-sala.com-gente .meio > b{font-weight:600;color:#1F1D1A}
+.vv-chamada .vz-sala .meio > b small{margin-left:4px;font:600 10px var(--vv-texto);color:#9A5B00}
+.vv-chamada .vz-sala .meio > small{font:500 10.5px var(--vv-texto);color:#8A847A}
+.vv-chamada .vz-sala .gente{display:flex;flex-wrap:wrap;gap:4px}
+.vv-chamada .vz-sala .gente i{padding:1px 8px;border-radius:999px;background:#F0EBE3;font:600 10.5px/1.6 var(--vv-texto);font-style:normal;color:#3A3F44}
+.vv-chamada .vz-sala .gente i.fala{background:#18A957;color:#FFFFFF}
+.vv-chamada .vz-sala em{font:600 11px var(--vv-texto);font-style:normal;color:#C2490C;opacity:0}
+.vv-chamada .vz-sala:hover em,.vv-chamada .vz-sala:focus-visible em,.vv-chamada .vz-sala.minha em{opacity:1}
+.vv-chamada .vz-sala.minha{background:#FFF4EB;box-shadow:inset 3px 0 0 #F26B1D}
+.vv-chamada .vz-sala.minha em{color:#11613A}
+.vv-chamada .vz-recolhe{margin-top:4px;border-top:1px solid #F3EFE8}
+.vv-chamada .vz-recolhe summary{display:flex;align-items:center;gap:8px;padding:9px 8px 7px;list-style:none;cursor:pointer;font:600 12px var(--vv-texto);color:#3A3F44}
+.vv-chamada .vz-recolhe summary::-webkit-details-marker{display:none}
+.vv-chamada .vz-recolhe summary::before{content:"";width:6px;height:6px;margin:0 2px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(-45deg);transition:transform .15s var(--curva,ease)}
+.vv-chamada .vz-recolhe[open] summary::before{transform:rotate(45deg)}
+.vv-chamada .vz-recolhe summary span{padding:0 7px;border-radius:999px;background:#F0EBE3;font:600 10.5px/1.6 var(--vv-texto);color:#6B675F}
+.vv-chamada .vz-rotulo{margin:8px 8px 2px;font:600 10px var(--vv-texto);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
+.vv-chamada .vz-online{display:flex;align-items:center;gap:8px;padding:6px 8px}
+.vv-chamada .vz-online .av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#E9E3D8;font:700 10px var(--vv-texto);color:#3A3F44}
+.vv-chamada .vz-online .av.fala{background:#18A957;color:#FFFFFF}
+.vv-chamada .vz-online .meio{flex:1;min-width:0;display:grid}
+.vv-chamada .vz-online b{font:600 12px var(--vv-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-chamada .vz-online small{font:500 10.5px var(--vv-texto);color:#6B675F}
+.vv-chamada .vz-online .vz-botao{height:28px;padding:0 10px;font-size:11.5px}
+.vv-chamada .vz-dica{margin:6px 8px;font:500 11.5px var(--vv-texto);color:#6B675F}
+.vv-chamada :is(.vz-b,.vz-botao,.vz-sair,.vz-chip,.vz-sala,.vz-musica-bts button,.vz-recolhe summary):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.vv-chamada .vz-recolhe summary::before{transition:none}}

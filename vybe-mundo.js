@@ -2057,7 +2057,7 @@
   const fecharDaDireita = () => { if (body.classList.contains('ver-agenda') || body.classList.contains('ver-voz')) abrirDaDireita(''); };
   document.addEventListener?.('pointerdown', (ev) => {
     if (!body.classList.contains('ver-agenda') && !body.classList.contains('ver-voz')) return;
-    if (ev.target?.closest?.('#vv-agenda, .vv-chamada, .vv-ferramentas, #office-musica, dialog, .vv-chamar')) return;
+    if (ev.target?.closest?.('#vv-agenda, .vv-chamada, .vv-ferramentas, #office-musica, dialog')) return;
     fecharDaDireita();
   }, true);
   // Os avisos num lugar só: notificações do painel e o que os planejamentos e os clientes pedem (antes, uma bolinha
@@ -2424,6 +2424,7 @@
   const primeiro = (n) => String(n || '?').split(' ')[0];
   const iniciais = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   const fn = (nome) => (typeof window[nome] === 'function' ? window[nome] : null);
+  // Ícones desenhados da barra das salas (traço, herdam a cor do botão). Nada de emoji (Padrão Vybe).
   const IC = {
     mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
     micOff: '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 10V6a3 3 0 0 0-6 0M5 11a7 7 0 0 0 11 5.7M19 11a7 7 0 0 1-.6 2.8M12 18v3"/></svg>',
@@ -2433,6 +2434,16 @@
     ajustes: '<svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
     chamar: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></svg>',
     sair: '<svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>',
+    tv: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 2l4 4 4-4M8 21h8"/></svg>',
+    salas: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>',
+    cadeado: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    casa: '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg>',
+    anterior: '<svg viewBox="0 0 24 24"><path d="M6 5v14M19 5l-9 7 9 7z"/></svg>',
+    proxima: '<svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l9 7-9 7z"/></svg>',
+    tocar: '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
+    pausar: '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>',
+    som: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>',
+    semSom: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>',
   };
   // Leva a pessoa até uma sala do Escritório sem sair do Irecity (a voz segue a sala).
   // A conversa acompanha a sala, preservando a escolha de mute. Uma porta recusada não altera o microfone.
@@ -2508,11 +2519,12 @@
         fn('conectarEscritorio')();
       }
       pintarChamada.ultimo = '';
+      const topo = (titulo, frase, botao = '') => `<div class="sala off"><span class="vz-ponto" aria-hidden="true"></span><span class="vz-onde"><b>${titulo}</b><small>${frase}</small></span>${botao}</div>`;
       barra.innerHTML = outraAba
-        ? `<span class="sala off"><i></i><b>Voz aberta em outra aba</b><small>Só uma aba fica na chamada, para não ouvir em dobro</small></span><button type="button" class="vv-botao" data-chamada="assumir">Usar nesta aba</button>`
+        ? topo('Voz aberta em outra aba', 'Só uma aba fica na chamada, para não ouvir em dobro', '<button type="button" class="vz-botao principal" data-chamada="assumir">Usar nesta aba</button>')
         : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3)
-          ? `<span class="sala off"><i></i><b>Conectando às salas…</b><small>Já já você vê quem está em cada sala</small></span>`
-          : `<span class="sala off"><i></i><b>Fora das salas de voz</b><small>Entre para falar e ver quem está em cada sala</small></span><button type="button" class="vv-botao" data-chamada="reconectar">Entrar</button>`;
+          ? topo('Conectando às salas…', 'Já já você vê quem está em cada sala')
+          : topo('Fora das salas de voz', 'Entre para falar e ver quem está em cada sala', '<button type="button" class="vz-botao principal" data-chamada="reconectar">Entrar</button>');
       // Não conectou: tenta de novo sozinho até 3 vezes (a cada 20 s); depois fica o botão Entrar.
       if (pintarChamada.tentou && !e.conectando && !outraAba && (pintarChamada.vezes = (pintarChamada.vezes || 0) + (pintarChamada.agendado ? 0 : 1)) < 3 && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
       return;
@@ -2533,44 +2545,52 @@
     const foraDaVoz = juntos.length - naVoz;
     const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
     marcarVozNoTopo(naChamada, mic, nomeZona(e.zona));
-    const html = `<span class="sala${naChamada ? ' on' : ''}"><small class="vv-voz-onde">Você está em</small><b><i></i>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
-      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' (falando)' : ''}">${esc(primeiro(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+    // Botão da barra: ícone em cima e o nome embaixo (a pessoa lê o que cada um faz, sem depender do passar do mouse).
+    const botao = (id, icone, rotulo, titulo, extra = '') => `<button type="button" class="vz-b" data-chamada="${id}" ${extra} title="${esc(titulo)}" aria-label="${esc(titulo)}">${icone}<span>${rotulo}</span></button>`;
+    const mudoComGente = naChamada && !mic && juntos.length > 0;
+    // Paulo, 09/11/2026: "muito ruim o HUD que abre das salas". Uma janela só, de cima para baixo: onde você está
+    // (e sair), quem está com você, os controles com nome, a música da sala e as outras salas. Nada cobre, nada rola.
+    const html = `<div class="sala${naChamada ? ' on' : ''}"><span class="vz-ponto" aria-hidden="true"></span>
+        <span class="vz-onde"><small>Você está em</small><b>${esc(nomeZona(e.zona))}</b><small class="vz-estado">${mudoComGente ? '<b class="vz-mudo">Você está mudo</b> · toque em Mudo para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
+        ${e.vozPausada && canal ? '<button type="button" class="vz-botao principal" data-chamada="entrar-voz">Entrar na chamada</button>' : ''}
+        ${!e.vozPausada && (e.chamada || e.entrandoChamada) ? `<button type="button" class="vz-sair" data-chamada="sair" title="Sair da chamada">${IC.sair}<span>Sair</span></button>` : ''}
+      </div>
+      ${juntos.length ? `<div class="vz-junto" aria-label="Na sala com você">${juntos.slice(0, 8).map((o) => `<button type="button" class="vz-chip${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' (falando)' : ''}"><i>${esc(iniciais(o.nome))}</i>${esc(primeiro(o.nome))}</button>`).join('')}${juntos.length > 8 ? `<span class="vz-mais">+${juntos.length - 8}</span>` : ''}</div>` : ''}
+      <div class="vz-controles" role="toolbar" aria-label="Controles da chamada">
+        ${botao('mic', mic ? IC.mic : IC.micOff, mic ? 'Ligado' : 'Mudo', naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar', `aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} data-estado="${mic ? 'on' : mudoComGente ? 'alerta' : 'off'}"`)}
+        ${botao('camera', IC.camera, 'Câmera', cam ? 'Desligar a câmera' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera', `aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'} data-estado="${cam ? 'on' : 'off'}"`)}
+        ${botao('tela', IC.tela, 'Tela', tela ? 'Parar de mostrar a tela' : 'Mostrar minha tela', `aria-pressed="${tela}" ${naChamada || tela ? '' : 'disabled'} data-estado="${tela ? 'on' : 'off'}"`)}
+        ${botao('musica', IC.musica, 'Música', temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)', temSom ? '' : 'disabled')}
+        ${botao('tv', IC.tv, 'TV', 'TV da sala: passar um vídeo do YouTube', e.zona ? '' : 'disabled')}
+        ${botao('ajustes', IC.ajustes, 'Áudio', 'Ajustes de áudio: microfone, saída, ruído e teste')}
+      </div>
       ${musicaHtml(e, temSom)}
-      <span class="acoes">
-        <button type="button" class="vv-botao" data-chamada="minha-sala" ${minhaSala ? '' : 'disabled'} title="Entrar na minha sala">Minha sala</button>
-        ${e.vozPausada && canal ? '<button type="button" class="vv-botao" data-chamada="entrar-voz">Entrar na chamada</button>' : ''}
-        <button type="button" class="vv-botao ic${mic ? ' on' : ''}${naChamada && !mic && juntos.length ? ' chama' : ''}" data-chamada="mic" aria-pressed="${mic}" ${naChamada ? '' : 'disabled'} title="${naChamada ? (mic ? 'Desligar o microfone' : 'Ligar o microfone') : 'Entre numa sala com voz para falar'}">${mic ? IC.mic : IC.micOff}</button>
-        <button type="button" class="vv-botao ic" data-chamada="ajustes" title="Ajustes de áudio: microfone, saída, ruído e teste">${IC.ajustes}</button>
-        <button type="button" class="vv-botao ic" data-chamada="musica" ${temSom ? '' : 'disabled'} title="${temSom ? 'Música da sala (todos ouvem junto)' : 'Esta sala não tem aparelho de som (o Lounge tem)'}">${IC.musica}</button>
-        <button type="button" class="vv-botao ic${cam ? ' on' : ''}" data-chamada="camera" aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'} title="${cam ? 'Desligar a câmera' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera'}">${IC.camera}</button>
-        <button type="button" class="vv-botao ic${tela ? ' on' : ''}" data-chamada="tela" aria-pressed="${tela}" ${naChamada || tela ? '' : 'disabled'} title="${tela ? 'Parar de mostrar a tela' : 'Mostrar minha tela'}">${IC.tela}</button>
-        <button type="button" class="vv-botao ic" data-chamada="tv" ${e.zona ? '' : 'disabled'} title="TV da sala: passar um vídeo do YouTube">TV</button>
-        <button type="button" class="vv-botao ic" data-chamada="chamar" aria-expanded="${chamarAberto}" title="Salas de voz: quem está em cada sala; entrar, ir até alguém ou chamar">${IC.chamar}</button>
-        ${!e.vozPausada && (e.chamada || e.entrandoChamada) ? `<button type="button" class="vv-botao ic sair" data-chamada="sair" title="Sair da chamada">${IC.sair}</button>` : ''}
-      </span>
-      ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
-        ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
-      ${(chamarAberto || body.classList.contains('ver-voz')) && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
+      ${pessoa ? `<div class="vz-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
+        ${pessoa.zona !== e.zona ? `<span class="vz-linha">${pessoa.zona ? `<button type="button" class="vz-botao principal" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vz-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button></span>` : '<small>Está na mesma sala que você.</small>'}</div>` : ''}
+      ${(chamarAberto || body.classList.contains('ver-voz')) && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala }) : ''}`;
     // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
-    // da lista de salas (antes ela voltava para o topo enquanto a pessoa rolava).
+    // da lista de salas e o que a pessoa abriu nela (salas vazias, chamar alguém).
     if (html === pintarChamada.ultimo) return;
-    const lista = barra.querySelector('.vv-chamar'), rolagem = lista ? lista.scrollTop : 0;
+    const lista = barra.querySelector('.vz-salas'), rolagem = lista ? lista.scrollTop : 0;
+    const abertos = [...(barra.querySelectorAll?.('details[open][data-k]') || [])].map((d) => d.dataset.k);
     barra.innerHTML = html; pintarChamada.ultimo = html;
-    const nova = barra.querySelector('.vv-chamar'); if (nova && rolagem) nova.scrollTop = rolagem;
+    for (const k of abertos) barra.querySelector(`details[data-k="${k}"]`)?.setAttribute('open', '');
+    const nova = barra.querySelector('.vz-salas'); if (nova && rolagem) nova.scrollTop = rolagem;
   }
-  // Salas de voz, como no Discord: todas as salas do prédio por andar, quem está em cada uma (acende quem fala),
-  // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa.
-  // Música da sala na barra (como o player do Escritório): o que toca, anterior/tocar-pausar/próxima,
-  // silenciar só para você e a fila. Vale também dentro dos módulos.
+  // Música da sala na barra (como o player do Escritório): o que toca, anterior/tocar-pausar/próxima e
+  // silenciar só para você. Vale também dentro dos módulos.
   function musicaHtml(e, temSom) {
     const m = e?.musica, f = m?.fila?.[m.indice];
     if (!temSom || !f) return '';
     let titulo = ''; try { titulo = e.player?.getVideoData?.()?.title || ''; } catch { /* sem player ainda */ }
     const muda = Boolean(fn('escritorioMusicaMuda')?.());
-    return `<span class="vv-musica${m.tocando ? ' tocando' : ''}"><i aria-hidden="true">♪</i><span class="t"><b>${esc(titulo || (f.kind === 'playlist' ? 'Playlist da sala' : 'Música da sala'))}</b><small>${m.tocando ? 'Tocando' : 'Pausada'} · ${m.indice + 1} de ${m.fila.length}${f.por ? ' · de ' + esc(primeiro(f.por)) : ''}</small></span>
-      <button type="button" data-musica="anterior" ${m.indice > 0 ? '' : 'disabled'} title="Anterior" aria-label="Anterior">⏮</button><button type="button" data-musica="${m.tocando ? 'pausar' : 'tocar'}" title="${m.tocando ? 'Pausar para a sala' : 'Tocar'}" aria-label="${m.tocando ? 'Pausar' : 'Tocar'}">${m.tocando ? '⏸' : '▶'}</button><button type="button" data-musica="proxima" ${m.indice < m.fila.length - 1 ? '' : 'disabled'} title="Próxima" aria-label="Próxima">⏭</button><button type="button" data-musica="mudo" aria-pressed="${muda}" title="${muda ? 'Voltar a ouvir' : 'Silenciar só para você'}" aria-label="Silenciar só para você">${muda ? '🔈' : '🔇'}</button></span>`;
+    const b = (acao, icone, rotulo, extra = '') => `<button type="button" data-musica="${acao}" ${extra} title="${rotulo}" aria-label="${rotulo}">${icone}</button>`;
+    return `<div class="vz-musica${m.tocando ? ' tocando' : ''}"><span class="vz-nota" aria-hidden="true">${IC.musica}</span><span class="t"><b>${esc(titulo || (f.kind === 'playlist' ? 'Playlist da sala' : 'Música da sala'))}</b><small>${m.tocando ? 'Tocando' : 'Pausada'} · ${m.indice + 1} de ${m.fila.length}${f.por ? ' · de ' + esc(primeiro(f.por)) : ''}</small></span>
+      <span class="vz-musica-bts">${b('anterior', IC.anterior, 'Anterior', m.indice > 0 ? '' : 'disabled')}${b(m.tocando ? 'pausar' : 'tocar', m.tocando ? IC.pausar : IC.tocar, m.tocando ? 'Pausar para a sala' : 'Tocar')}${b('proxima', IC.proxima, 'Próxima', m.indice < m.fila.length - 1 ? '' : 'disabled')}${b('mudo', muda ? IC.semSom : IC.som, muda ? 'Voltar a ouvir' : 'Silenciar só para você', `aria-pressed="${muda}"`)}</span></div>`;
   }
-  function salasDeVozHtml({ e, Z, outros, falando, nomeZona }) {
+  // Salas de voz, como no Discord: as salas com gente primeiro (acende quem fala), as vazias recolhidas por andar,
+  // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa. Chamar alguém fica recolhido.
+  function salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala }) {
     const planta = mundo?.planta || [], porAndar = new Map();
     for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
     const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : 'Outras salas'; };
@@ -2580,26 +2600,25 @@
     const linha = ([id, z]) => {
       const aqui = outros.filter((o) => o.zona === id), minha = e.zona === id, tranc = trancas.has(id);
       const gente = [...(minha ? [eu] : []), ...aqui];
-      return `<button type="button" class="vv-voz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
-        <span class="ic" aria-hidden="true">${tranc ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>'}</span>
+      return `<button type="button" class="vz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
+        <span class="ic" aria-hidden="true">${tranc ? IC.cadeado : IC.salas}</span>
         <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}</i>`).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
-        ${minha ? '<em>aqui</em>' : '<em>Entrar</em>'}</button>`;
+        <em>${minha ? 'Você está aqui' : 'Entrar'}</em></button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
-    return `<div class="vv-chamar vv-salas-voz">
-      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar e falar com quem está nela</small></div>
-      ${(() => {
-        const temGente = ([id]) => e.zona === id || outros.some((o) => o.zona === id);
-        const ocupadas = ordem.flatMap((k) => porAndar.get(k).filter(temGente));
-        const vazias = ordem.map((k) => [k, porAndar.get(k).filter((x) => !temGente(x))]).filter(([, l]) => l.length);
-        const nVazias = vazias.reduce((n, [, l]) => n + l.length, 0);
-        return `<div class="vv-rotulo-secao"><i></i>Com gente agora</div>${ocupadas.length ? ocupadas.map(linha).join('') : '<p class="vv-dica">Ninguém nas salas agora.</p>'}
-          ${nVazias ? `<details class="vv-voz-vazias"><summary>Salas vazias (${nVazias})</summary>${vazias.map(([k, l]) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${l.map(linha).join('')}`).join('')}</details>` : ''}`;
-      })()}
-      <div class="vv-rotulo-secao"><i></i>Pessoas online</div>
-      ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
-        ${o.zona && o.zona !== e.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}${o.zona !== e.zona ? `<button type="button" class="vv-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button>` : '<small class="junto">com você</small>'}</div>`).join('') : '<p class="vv-dica">Ninguém mais online agora.</p>'}
-      ${fora.length ? `<p class="vv-dica">${fora.length} na recepção ou fora das salas.</p>` : ''}
+    const temGente = ([id]) => e.zona === id || outros.some((o) => o.zona === id);
+    const ocupadas = ordem.flatMap((k) => porAndar.get(k).filter(temGente));
+    const vazias = ordem.map((k) => [k, porAndar.get(k).filter((x) => !temGente(x))]).filter(([, l]) => l.length);
+    const nVazias = vazias.reduce((n, [, l]) => n + l.length, 0);
+    const longe = outros.filter((o) => o.zona !== e.zona);
+    return `<div class="vz-salas">
+      <div class="vz-salas-topo"><span><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar</small></span>
+        ${minhaSala && minhaSala !== e.zona ? `<button type="button" class="vz-botao" data-chamada="minha-sala" title="Entrar na minha sala">${IC.casa}Minha sala</button>` : ''}</div>
+      ${ocupadas.length ? ocupadas.map(linha).join('') : '<p class="vz-dica">Ninguém nas salas agora.</p>'}
+      ${nVazias ? `<details class="vz-recolhe" data-k="vazias"><summary>Salas vazias <span>${nVazias}</span></summary>${vazias.map(([k, l]) => `<div class="vz-rotulo">${esc(nomeAndar(k))}</div>${l.map(linha).join('')}`).join('')}</details>` : ''}
+      ${longe.length ? `<details class="vz-recolhe" data-k="chamar"><summary>Chamar alguém <span>${longe.length}</span></summary>${longe.map((o) => `<div class="vz-online"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
+        ${o.zona ? `<button type="button" class="vz-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}<button type="button" class="vz-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button></div>`).join('')}</details>` : ''}
+      ${fora.length ? `<p class="vz-dica">${fora.length} na recepção ou fora das salas.</p>` : ''}
     </div>`;
   }
   barra.addEventListener?.('click', (ev) => {
