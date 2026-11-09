@@ -1,4 +1,4 @@
-/* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro (docs/padrao-visual.md). */
+/* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
 
 /* ── janela do cadastro ── */
 #workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
