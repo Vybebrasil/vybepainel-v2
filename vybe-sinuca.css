@@ -503,3 +503,13 @@ body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-estante{gr
  .snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(32px,1fr))!important;gap:6px 4px!important}.snc-estante-aba .snc-cf-mural li{padding:6px 2px 2px!important}
 }
 @media (max-height:520px){.snc-estante-aba :is(.snc-cf-medalhas,.snc-cf-mural) h3{font-size:10px!important;margin:0 0 2px!important}.snc-estante-aba.snc-cf{gap:6px 10px!important}.snc-estante-aba .snc-cf-medalhas li>i{width:24px!important;height:24px!important;font-size:12px!important}.snc-estante-aba .snc-cf-medalhas ul{grid-template-columns:repeat(auto-fill,minmax(26px,1fr))!important;gap:4px 3px!important;padding:6px!important}.snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(28px,1fr))!important;padding:6px!important}.snc-estante-aba .snc-cf-mural li i{font-size:13px!important}#workflow-modal .bt-salao .snc-liga-relogio{padding:4px 10px!important}#workflow-modal .bt-salao .snc-liga-relogio b{font-size:20px!important}#workflow-modal .bt-salao .snc-liga-topo small{display:none!important}}
+/* O grito do boteco quando a bola cai na pancada */
+.bt-grito{position:fixed;z-index:100003;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;animation:btGritoEntra .45s cubic-bezier(.2,1.8,.4,1) both,btGritoTreme .5s .45s linear 2}
+.bt-grito.sai{animation:btGritoSai .4s ease-in both}
+.bt-grito b{position:relative;font:400 clamp(44px,8vw,104px)/.9 var(--bt-cartaz);letter-spacing:2px;color:var(--bt-cerveja);-webkit-text-stroke:3px var(--bt-preto);text-shadow:6px 6px 0 var(--bt-tinta),10px 10px 0 var(--bt-preto);transform:rotate(-6deg)}
+.bt-grito b:last-child{font-size:clamp(36px,6.4vw,84px);transform:rotate(-6deg) translateX(18px)}
+.bt-grito-estouro{position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1.6;transform:translate(-50%,-50%) rotate(-6deg);background:#fff;box-shadow:0 0 0 6px var(--bt-preto);clip-path:polygon(50% 0,58% 18%,72% 4%,74% 24%,92% 14%,86% 34%,100% 38%,88% 52%,100% 66%,84% 70%,92% 88%,72% 80%,66% 100%,54% 84%,44% 100%,36% 82%,18% 94%,22% 74%,2% 74%,14% 58%,0 42%,16% 36%,8% 16%,28% 22%,32% 2%,42% 18%);background:radial-gradient(circle,#fff 0 40%,var(--bt-tinta) 41% 100%)}
+@keyframes btGritoEntra{from{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-25deg)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes btGritoTreme{0%,100%{margin-left:0}25%{margin-left:-6px}75%{margin-left:6px}}
+@keyframes btGritoSai{to{opacity:0;transform:translate(-50%,-50%) scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.bt-grito{animation:none}}

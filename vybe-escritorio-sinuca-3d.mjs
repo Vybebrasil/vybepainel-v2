@@ -178,12 +178,24 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   for (let i = 0; i < 4; i++) peca(new BoxGeometry(2.4, 1, 1), mat(0xf2f2ea), cx - 20 + i * 5, pisoY + 17.8, fundoZ + 3.6);
   // A lousa de cavalete no chão, entre a mesa e a parede do fundo (a câmera de jogo olha para baixo e só
   // pega a base das paredes): o RANKING DO SALÃO de verdade, legível quando a mira aponta para o fundo.
-  const cavalete = new Group(), madeiraCav = mat(0x6e4420);
-  const frente = new Mesh(new PlaneGeometry(46, 32), new MeshStandardMaterial({ map: texLousa, roughness: 0.9 })); frente.position.set(0, 0, 0.7); cavalete.add(frente);
-  for (const [w, h, x, y] of [[50, 2.4, 0, 17], [50, 2.4, 0, -17], [2.4, 36, -24, 0], [2.4, 36, 24, 0]]) { const b = new Mesh(new BoxGeometry(w, h, 2), madeiraCav); b.position.set(x, y, 0); cavalete.add(b); }
-  const fundoCav = new Mesh(new BoxGeometry(46, 34, 1.2), madeiraCav); fundoCav.position.set(0, 0, -1.4); cavalete.add(fundoCav);
-  cavalete.traverse((m) => { m.castShadow = true; }); cavalete.scale.setScalar(0.78); cavalete.position.set(cx - 6, pisoY + 13.5, az0 - 52); cavalete.rotation.x = -0.18; cena.add(cavalete);
-  for (const s of [-1, 1]) peca(new BoxGeometry(1.6, 28, 1.6), madeiraCav, cx - 6 + s * 17, pisoY + 13.5, az0 - 58, 0.42);
+  const cavalete = new Group(), madeiraCav = mat(0x6e4420), AB = 0.2, FH = 36, FW = 48;
+  const folha = (comLousa, lado) => {
+    const g = new Group();
+    const fundo = new Mesh(new BoxGeometry(FW, FH, 1.2), madeiraCav); g.add(fundo);
+    if (comLousa) {
+      const face = new Mesh(new PlaneGeometry(FW - 5, FH - 5), new MeshStandardMaterial({ map: texLousa, roughness: 0.9 })); face.position.z = 0.75; g.add(face);
+      // Moldura: ripas que se encontram nos cantos (nada cruzando).
+      for (const [w, h, x, y] of [[FW, 2.5, 0, FH / 2 - 1.25], [FW, 2.5, 0, -FH / 2 + 1.25], [2.5, FH - 5, -FW / 2 + 1.25, 0], [2.5, FH - 5, FW / 2 - 1.25, 0]]) { const r = new Mesh(new BoxGeometry(w, h, 1.6), madeiraCav); r.position.set(x, y, 0.8); g.add(r); }
+      const bandeja = new Mesh(new BoxGeometry(FW - 6, 1, 2.4), madeiraCav); bandeja.position.set(0, -FH / 2 + 3, 1.9); g.add(bandeja);
+      for (let n = 0; n < 3; n++) { const giz = new Mesh(new BoxGeometry(2.2, 0.8, 0.8), mat(0xf2f2ea)); giz.position.set(-10 + n * 6, -FH / 2 + 3.9, 2.2); g.add(giz); }
+    }
+    g.position.set(0, (FH / 2) * Math.cos(AB), lado * (FH / 2) * Math.sin(AB)); g.rotation.x = -lado * AB; cavalete.add(g);
+  };
+  folha(true, 1); folha(false, -1);
+  const dobradica = new Mesh(new CylinderGeometry(0.7, 0.7, FW - 4, 10), mat(0x8a8f96, { metalness: 0.8, roughness: 0.35 })); dobradica.rotation.z = Math.PI / 2; dobradica.position.set(0, FH * Math.cos(AB), 0); cavalete.add(dobradica);
+  for (const s of [-1, 1]) { const corrente = new Mesh(new BoxGeometry(0.4, 0.4, FH * Math.sin(AB) * 1.6), mat(0x8a8f96, { metalness: 0.8 })); corrente.position.set(s * (FW / 2 - 4), FH * 0.4, 0); cavalete.add(corrente); }
+  cavalete.traverse((m) => { m.castShadow = true; m.receiveShadow = true; });
+  cavalete.scale.setScalar(0.78); cavalete.position.set(cx - 6, pisoY, az0 - 52); cena.add(cavalete);
   // Taqueira à esquerda da lousa: tábua com os tacos em pé.
   const madeiraClara = mat(0x9a6a3a), tacoMat = [mat(0xc89a5a), mat(0x7a4a22), mat(0x2b2b2b), mat(0xb5793c), mat(0x5a3418)];
   const tqX = cx - 78;
@@ -194,11 +206,18 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const ouro = mat(0xd8a62a, { metalness: 0.85, roughness: 0.3 }), prata = mat(0xc9ccd2, { metalness: 0.85, roughness: 0.3 });
   const trX = cx + 78;
   peca(new BoxGeometry(50, 1.6, 8), madeiraClara, trX, pisoY + 40, fundoZ + 4);
+  const topoPrat = pisoY + 40 + 0.8;
   [[-18, ouro, 1.3], [-6, prata, 1], [6, ouro, 1.7], [18, prata, 0.9]].forEach(([dx, m, k]) => {
-    peca(new BoxGeometry(4 * k, 2 * k, 4 * k), mat(0x2b2118), trX + dx, pisoY + 41.8 + k, fundoZ + 4);
-    peca(new CylinderGeometry(0.6 * k, 0.6 * k, 4 * k, 8), m, trX + dx, pisoY + 42.8 + 4 * k, fundoZ + 4);
-    peca(new CylinderGeometry(3 * k, 1.2 * k, 5 * k, 14), m, trX + dx, pisoY + 45 + 7 * k, fundoZ + 4);
+    const x = trX + dx, z = fundoZ + 4;
+    peca(new BoxGeometry(4.4 * k, 2 * k, 4.4 * k), mat(0x2b2118, { roughness: 0.35 }), x, topoPrat + k, z);
+    peca(new BoxGeometry(2.6 * k, 0.8 * k, 0.2), ouro, x, topoPrat + k, z + 2.2 * k + 0.1);
+    peca(new CylinderGeometry(1.4 * k, 1.8 * k, 0.8 * k, 14), m, x, topoPrat + 2.4 * k, z);
+    peca(new CylinderGeometry(0.5 * k, 0.7 * k, 3.4 * k, 10), m, x, topoPrat + 4.5 * k, z);
+    peca(new CylinderGeometry(3 * k, 1 * k, 5 * k, 18), m, x, topoPrat + 8.7 * k, z);
+    for (const s of [-1, 1]) peca(new BoxGeometry(0.5 * k, 2.6 * k, 0.5 * k), m, x + s * 3.3 * k, topoPrat + 9 * k, z);
   });
+  // Suportes da prateleira (mão-francesa) para ela não flutuar.
+  for (const s of [-1, 1]) peca(new BoxGeometry(1.4, 6, 6), madeiraClara, trX + s * 21, pisoY + 36.4, fundoZ + 3.5);
   const flamula = new BufferGeometry(); flamula.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, -16, 0, 32, -8, 0], 3)); flamula.computeVertexNormals();
   peca(flamula, new MeshStandardMaterial({ color: 0xc8261d, side: 2, roughness: 0.8 }), trX - 16, pisoY + 82, fundoZ + 1.5);
   // TV no canto do fundo com a direita, passando futebol.
@@ -217,6 +236,13 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   peca(new BoxGeometry(14, 10, 20), new MeshPhysicalMaterial({ color: 0xffffff, transmission: 0.85, roughness: 0.05, thickness: 0.5 }), balX, pisoY + 46.6, balZ - 18);
   for (let i = 0; i < 6; i++) peca(new SphereGeometry(1.6, 10, 8), mat(i % 2 ? 0xd88a2a : 0xe8b04a), balX - 3 + (i % 3) * 3, pisoY + 43.6, balZ - 24 + Math.floor(i / 3) * 6);
   for (const dz of [-30, -6, 18]) { peca(new CylinderGeometry(0.9, 1.2, 30, 8), inox, balX + 15, pisoY + 15, balZ + dz); peca(new CylinderGeometry(5, 5, 2.4, 18), mat(0xd8261c, { roughness: 0.45 }), balX + 15, pisoY + 31, balZ + dz); }
+  // Caixa registradora e porta-guardanapo no balcão.
+  const topoBal = pisoY + 41.6;
+  peca(new BoxGeometry(12, 6, 12), mat(0x3a3f47, { roughness: 0.4 }), balX - 1, topoBal + 3, balZ + 22);
+  peca(new BoxGeometry(10, 5, 2), mat(0x2b2f36), balX - 1, topoBal + 8, balZ + 17, -0.5);
+  peca(new BoxGeometry(6, 0.6, 3), mat(0x7cf28a, { emissive: 0x2a8a3a, emissiveIntensity: 0.6 }), balX - 1, topoBal + 10.3, balZ + 16.4, -0.5);
+  peca(new BoxGeometry(5, 4, 2), mat(0xd8d8d8, { metalness: 0.7, roughness: 0.3 }), balX + 2, topoBal + 2, balZ + 4);
+  peca(new BoxGeometry(4.4, 3, 1.6), mat(0xffffff), balX + 2, topoBal + 4.6, balZ + 4);
   const garrafa = [0x6b3a0a, 0x2f5d1e, 0xd8c79a, 0x8a1c14, 0x3a2a6a, 0xe0a030];
   for (const y of [70, 88]) {
     peca(new BoxGeometry(8, 1.4, balL - 20), madeiraClara, esqX + 4, pisoY + y, balZ);
@@ -224,6 +250,17 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   }
   peca(new BoxGeometry(22, 26, 36), mat(0xf4f4f0, { roughness: 0.35 }), balX - 2, pisoY + 13, balZ1 + 26);
   peca(new BoxGeometry(22.2, 6, 36.2), mat(0xc8261d, { roughness: 0.35 }), balX - 2, pisoY + 20, balZ1 + 26);
+  // Luminárias fluorescentes nas paredes (a luz branca do boteco) e o ventilador de parede.
+  const tubo = new MeshStandardMaterial({ color: 0xffffff, emissive: 0xf4f8ff, emissiveIntensity: 1.2 }), calha = mat(0xe8e8e2, { roughness: 0.4 });
+  const luminaria = (x, y, z, ry) => { const g = new Group(); const c = new Mesh(new BoxGeometry(44, 2.4, 3), calha); g.add(c); const tb = new Mesh(new CylinderGeometry(0.8, 0.8, 40, 10), tubo); tb.rotation.z = Math.PI / 2; tb.position.set(0, -1.4, 0.6); g.add(tb); g.position.set(x, y, z); g.rotation.y = ry; cena.add(g); };
+  luminaria(cx - 40, pisoY + 118, fundoZ + 2, 0); luminaria(cx + 40, pisoY + 118, fundoZ + 2, 0);
+  luminaria(esqX + 2, pisoY + 118, cz, Math.PI / 2); luminaria(dirX - 2, pisoY + 118, cz - 70, -Math.PI / 2);
+  const vent = new Group(), grade = mat(0x2b2f36, { metalness: 0.5, roughness: 0.4 });
+  const aro = new Mesh(new CylinderGeometry(12, 12, 1.2, 28, 1, true), grade); aro.rotation.x = Math.PI / 2; vent.add(aro);
+  for (let n = 0; n < 3; n++) { const pa = new Mesh(new BoxGeometry(3.4, 10, 0.4), mat(0x9aa3ad)); pa.position.set(Math.cos(n * 2.1) * 5, Math.sin(n * 2.1) * 5, 0); pa.rotation.z = n * 2.1 + Math.PI / 2; vent.add(pa); }
+  const miolo = new Mesh(new CylinderGeometry(2.2, 2.2, 3, 14), grade); miolo.rotation.x = Math.PI / 2; vent.add(miolo);
+  const braco = new Mesh(new BoxGeometry(1.4, 1.4, 10), grade); braco.position.z = -5; vent.add(braco);
+  vent.position.set(esqX + 9, pisoY + 104, fundoZ + 26); vent.rotation.y = Math.PI / 2 - 0.5; vent.rotation.x = 0.25; cena.add(vent);
   // --- Direita: a porta de aço meio aberta para a rua de noite ---
   const portaZ = cz - 6, portaL = 64, portaA = 84;
   const texRua = tela(512, 672, (g, w, h) => {

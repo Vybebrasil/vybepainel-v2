@@ -197,6 +197,17 @@ function sinucaMomentoAnuncio(t) {
   const toque = ev.find((x) => x.t === "bola" && Number.isFinite(x.ms));
   return t.falta === "errada" && toque ? toque.ms + 450 : Infinity;
 }
+// O grito do boteco: balão de quadrinho que estoura no meio da mesa e some sozinho.
+function sinucaGrito(canvas) {
+  document.querySelector(".bt-grito")?.remove();
+  const r = canvas.getBoundingClientRect(), el = document.createElement("div");
+  el.className = "bt-grito"; el.setAttribute("role", "status");
+  el.style.left = `${r.left + r.width / 2}px`; el.style.top = `${r.top + r.height * 0.38}px`;
+  el.innerHTML = '<span class="bt-grito-estouro" aria-hidden="true"></span><b>EITAAA</b><b>DESGRAÇAAAA!!</b>';
+  document.body.appendChild(el);
+  sinucaSom?.("taco", 1);
+  setTimeout(() => el.classList.add("sai"), 1500); setTimeout(() => el.remove(), 1900);
+}
 function sinucaAnuncio(j, u) {
   if (typeof document === "undefined" || !u || u.falta === "tempo") return;
   const canvas = document.getElementById("snc-canvas");
@@ -214,6 +225,9 @@ function sinucaAnuncio(j, u) {
   if (u.grupo && bar) cartoes.unshift({ tipo: u.abriuComFalta ? "neutro" : "bom", bolas: [], titulo: `${quem} é ${u.grupo === "pares" ? "PAR" : "ÍMPAR"}`, texto: u.abriuComFalta ? "Pela primeira bola que caiu; a do outro que caiu depois é falta" : "Pela primeira bola que caiu" });
   if (u.tirou) { const sai = [u.tirou, ...(u.tirouMais || [])]; cartoes.push({ tipo: "multa", bolas: sai, titulo: sai.length > 1 ? "Multa dupla" : "Multa", texto: `Sai${sai.length > 1 ? "em" : ""} a${sai.length > 1 ? "s" : ""} ${sai.join(" e ")} (${deQuem})` }); }
   if (!cartoes.length && (u.falta === "nenhuma" || u.falta === "errada")) cartoes.push({ tipo: "ruim", bolas: [], titulo: u.falta === "nenhuma" ? (bar ? "Cegou!" : "Não tocou") : "Bola errada", texto: u.falta === "nenhuma" ? "Não tocou em nenhuma bola" : u.primeiro === 1 ? "Bateu primeiro no ás" : "Bateu primeiro na bola do outro" });
+  // Bola matada na pancada (Paulo, 09/11/2026: "quando alguém matar uma bola forte vai aparecer a animação na tela
+  // Eitaaa Desgraçaaaa!!"): tacada de 65% ou mais que mata bola sem falta.
+  if (caiu.length && !u.falta && Number(u.forca) >= 0.65) sinucaGrito(canvas);
   if (!cartoes.length) return;
   document.querySelector(".snc-anuncio")?.remove();
   const r = canvas.getBoundingClientRect(), el = document.createElement("div");
