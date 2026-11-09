@@ -60,3 +60,20 @@ test('ecossistema: inativo não aparece como ok nos bots', () => {
   const s = estadoNoEcossistema({ cliente: { id: 1, nome: 'X', ativo: false, cadastro: { grupo_whatsapp: 'g' } } });
   assert.equal(s.find((l) => l.id === 'bots').estado, 'falta');
 });
+
+test('ecossistema: grupo do Monday ("Banco de dados") não conta como grupo do WhatsApp', () => {
+  const cliente = { id: 3, nome: 'Gonzalez', ativo: true, cadastro: {} };
+  const bots = estadoNoEcossistema({ cliente, acesso: { grupo: 'Banco de dados', drive: '' } }).find((l) => l.id === 'bots');
+  assert.equal(bots.estado, 'falta');
+  assert.doesNotMatch(bots.detalhe, /Banco de dados/);
+});
+
+test('ecossistema: pasta ligada que o Drive diz "não encontrado" fica como falta', () => {
+  const cliente = { id: 4, nome: 'Antonov', ativo: true, cadastro: {} };
+  const acesso = { drive: 'https://drive.google.com/drive/folders/1xnx' };
+  const drive = (driveErro) => estadoNoEcossistema({ cliente, acesso, driveErro }).find((l) => l.id === 'drive');
+  assert.equal(drive('').estado, 'ok');
+  assert.equal(drive('Drive 404: File not found: 1xnx.').estado, 'falta');
+  assert.match(drive('Drive 404: File not found: 1xnx.').detalhe, /não abre para o sistema/);
+  assert.equal(drive('Drive 503').estado, 'ok');
+});
