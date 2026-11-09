@@ -4324,7 +4324,12 @@ body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){backg
 .vga-achados,.vga-rotinas{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .vga-achados li,.vga-rotinas li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 10px;align-items:flex-start;padding:8px 10px;border:1px solid #ECE6DC;border-radius:8px;border-left:3px solid #E6E0D6}
 .vga-achados li.g-alta{border-left-color:#D93D42}.vga-achados li.g-media{border-left-color:#E2A11B}
-.vga-achados li > span:first-child,.vga-rotinas li > span{display:grid;gap:2px;min-width:0;flex:1 1 260px}
+.vga-achados li > span:first-of-type,.vga-rotinas li > span{display:grid;gap:2px;min-width:0;flex:1 1 260px}
+/* Abrir a peça do achado (vybe-mundo-peca.js): ícone de calendário antes do texto, na página do agente e na fila. */
+.vga-peca{flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid #E6E0D6;border-radius:7px;background:#FFFFFF;color:#C2490C;cursor:pointer}
+.vga-peca:hover{border-color:#F26B1D;background:#FFF7EE}.vga-peca:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+.vga-peca svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vga-fila .vga-acoes .vga-peca{width:auto;height:auto;padding:4px 7px}
 .vga-achados b,.vga-rotinas b{font-weight:600;font-size:13px}.vga-achados small,.vga-rotinas small{font-size:11.5px;color:#6F6A62}
 .vga-achados details{margin-top:4px}.vga-achados summary{cursor:pointer;font:600 11.5px var(--vv-texto);color:var(--ds-sel-texto)}
 .vga-achados pre{margin:6px 0 0;padding:8px;background:#FAF7F2;border-radius:6px;white-space:pre-wrap;font:12px/1.45 var(--vv-texto);color:#2B2925}

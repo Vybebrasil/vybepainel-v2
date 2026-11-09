@@ -20,7 +20,7 @@
   const DIA_MS = 864e5;
   const GRAV = { alta: 0, media: 1, baixa: 2 };
   const ESTADO_SETOR = { ativo: ['Ativo', '#18A957'], sombra: ['Sombra', '#0D74CE'], planejado: ['Planejado', '#7A8B82'] };
-  const st = { aberto: false, i: 0, perfis: {}, carregando: null, erro: '', lidoEm: 0 };
+  const st = { aberto: false, i: 0, perfis: {}, carregando: null, erro: '', lidoEm: 0, achados: {}, msg: '', repintando: -1 };
   let raiz = null;
 
   const diaBahia = (d = new Date()) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' });
@@ -66,7 +66,12 @@
     const ins = perfil?.insight, txt = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
     const insight = ins && txt(ins.insight, 600) ? { em: txt(ins.em, 40), referencia: txt(ins.referencia, 300), insight: txt(ins.insight, 600), aplicacao: txt(ins.aplicacao, 400) } : null;
     const ocupado = vivo && ['executando', 'aguardando_aprovacao'].includes(vivo.estado);
+    // O que fez, sem repetir: "Registrar achado da esteira" 4 vezes vira uma linha com ×4 (Paulo, 09/11/2026: "muito texto corrido").
+    const porTarefa = new Map();
+    for (const e of concluidas) { const k = e.tarefa + '|' + (e.resultado || ''); const x = porTarefa.get(k) || { ...e, vezes: 0 }; x.vezes++; porTarefa.set(k, x); }
+    const historico = Object.entries(perfil?.historico || {}).sort().slice(-14).map(([dia, v]) => ({ dia, concluidas: Number(v?.concluidas) || 0, falhas: Number(v?.falhas) || 0, aguardando: Number(v?.aguardando) || 0 }));
     return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso, agora: vivo, insight,
+      fezAgrupado: [...porTarefa.values()], historico, numeros: perfil?.numeros || null, tendencia: perfil?.projecao?.tendencia || '',
       semLeitura: !atividade && !perfil, quieto: !ocupado && !insight && !feitos.length && !fechados.length && !abertos.length };
   }
 
@@ -103,6 +108,8 @@
   }
 
   const ICONE = {
+    numeros: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    peca: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
     insight: '<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>',
     agora: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
     feito: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -115,22 +122,61 @@
     const a = b.agora, [rot, cor] = a ? [a.rotulo, a.cor] : ['Sem leitura', '#7A8B82'];
     return `<p class="vbl-agora" style="--c:${cor}"><span class="vbl-agora-rot"><i aria-hidden="true"></i>${esc(rot)}</span><span>${esc(agoraTexto(a))}${a?.emCurso > 1 ? ` · ${plural(a.emCurso, 'tarefa', 'tarefas')} na fila` : ''}</span></p>`;
   }
+  // Um achado: clicar abre a peça (calendário, quem faz, datas e a sugestão do agente para aplicar). Resolvido e Ignorar
+  // fecham pela mesma rota da página Agentes. Achado sem peça (vybe:ID) fica só com os botões.
+  const ehPeca = (ref) => /^vybe:[1-9]\d{0,19}$/.test(String(ref || ''));
+  function achadoHtml(a, setor, { fechado = false } = {}) {
+    st.achados[setor + '|' + a.chave] = a;
+    const cli = a.cliente ? (typeof G.cliCor === 'function' ? G.cliCor(a.cliente) : esc(a.cliente)) + ' ' : '';
+    const meta = fechado ? `achado fechado ${esc(quando(a.fechadoEm))}${a.comoFechou ? ' · ' + esc(a.comoFechou) : ''}`
+      : `${a.gravidade === 'alta' ? '<em>urgente</em> · ' : ''}${esc(a.prova || '')}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}`;
+    const titulo = a.titulo && !fechado ? a.titulo : a.fato;
+    const corpo = `<b>${esc(titulo)}</b>${titulo !== a.fato ? `<span class="vbl-fato">${esc(a.fato)}</span>` : ''}<small>${cli}${meta}</small>`;
+    const abrir = ehPeca(a.ref) ? `<button type="button" class="vbl-achado-abrir" data-vbl-peca="${esc(a.ref)}" data-vbl-chave="${esc(a.chave)}" data-vbl-setor="${esc(setor)}" title="Abrir a peça: calendário, quem faz, datas e a sugestão do agente"><span class="vbl-achado-ic" aria-hidden="true">${ICONE.peca}</span><span class="vbl-achado-txt">${corpo}</span><i aria-hidden="true">→</i></button>` : `<div class="vbl-achado-txt">${corpo}</div>`;
+    const acoes = fechado ? '' : `<span class="vbl-achado-acoes"><button type="button" data-vbl-achado="resolvido" data-vbl-chave="${esc(a.chave)}" data-vbl-setor="${esc(setor)}">Resolvido</button><button type="button" data-vbl-achado="ignorar" data-vbl-chave="${esc(a.chave)}" data-vbl-setor="${esc(setor)}">Ignorar</button></span>`;
+    return `<li class="vbl-achado g-${esc(fechado ? 'feito' : a.gravidade || 'baixa')}">${abrir}${acoes}</li>`;
+  }
+  // Achados do mesmo tipo numa linha (como no "Depende de você"): o resumo, os clientes e a lista um a um.
+  function grupoHtml(g, setor) {
+    const urg = g.achados.some((a) => a.gravidade === 'alta'), vis = g.clientes.slice(0, 6);
+    return `<li class="vbl-achado vbl-grupo g-${urg ? 'alta' : 'media'}"><details><summary><span class="vbl-achado-txt"><b>${esc(g.titulo)}</b>
+      <small>${urg ? '<em>urgente</em> · ' : ''}${vis.map((c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c))).join(' ')}${g.clientes.length > vis.length ? ` e mais ${g.clientes.length - vis.length}` : ''}${g.exemplo ? ' · ex.: ' + esc(g.exemplo) : ''}</small></span><span class="vbl-ver">Ver os ${g.achados.length}</span></summary>
+      <ul>${g.achados.map((a) => achadoHtml(a, setor)).join('')}</ul></details></li>`;
+  }
+  // Os números do agente (Paulo: "trazer gráfico, análise dentro de cada boletim"): o que fez por dia em 14 dias, com as
+  // falhas em vermelho, e acerto, resolvidos e tempo até resolver, das mesmas contas do perfil (core/perfil-agente.js).
+  function numerosHtml(b) {
+    const n = b.numeros || {}, h = b.historico || [];
+    if (!h.length && !b.numeros) return '';
+    const max = Math.max(1, ...h.map((d) => d.concluidas + d.falhas));
+    const total = h.reduce((t, d) => t + d.concluidas, 0), falhas = h.reduce((t, d) => t + d.falhas, 0);
+    const kpi = (v, rot, dica, cls = '') => `<span class="vbl-kpi ${cls}" title="${esc(dica)}"><b>${v}</b><small>${rot}</small></span>`;
+    const barras = h.length ? `<div class="vbl-barras" role="img" aria-label="${total} execuções concluídas e ${falhas} falhas em ${h.length} dias">${h.map((d) => `<span title="${esc(d.dia.slice(8, 10) + '/' + d.dia.slice(5, 7))}: ${d.concluidas} concluídas${d.falhas ? ', ' + d.falhas + ' falhas' : ''}${d.aguardando ? ', ' + d.aguardando + ' esperando' : ''}"><i style="height:${Math.round(d.concluidas / max * 100)}%"></i>${d.falhas ? `<i class="f" style="height:${Math.max(6, Math.round(d.falhas / max * 100))}%"></i>` : ''}<small>${esc(d.dia.slice(8, 10))}</small></span>`).join('')}</div>` : '<p class="vbl-vazio">Sem execução registrada nos últimos 14 dias.</p>';
+    return secao('numeros', 'Como está indo', `<div class="vbl-kpis">
+        ${kpi(n.abertos ?? b.abertos.length, 'em aberto', 'Achados abertos agora', (n.altas || b.urgentes) ? 'ruim' : '')}
+        ${kpi(n.resolvidos7d ?? 0, 'resolvidos em 7 dias', 'Achados que fecharam na última semana')}
+        ${kpi(n.acerto == null ? '—' : n.acerto + '%', 'de acerto', 'Resolvidos ÷ (resolvidos + marcados como errado), em 7 dias', n.acerto != null && n.acerto < 70 ? 'atencao' : '')}
+        ${kpi(n.horasAteResolver == null ? '—' : n.horasAteResolver + ' h', 'até resolver', 'Mediana do tempo entre o agente achar e o achado fechar')}
+      </div>${barras}<p class="vbl-tendencia">${h.length ? `${total} execuções em ${h.length} dias${falhas ? `, ${falhas} com falha` : ', nenhuma falha'}` : ''}${b.tendencia ? `${h.length ? ' · ' : ''}tendência: ${esc(b.tendencia)}` : ''}</p>`);
+  }
   function cartaoHtml(b) {
     const [rotEstado, corEstado] = ESTADO_SETOR[b.estado] || ESTADO_SETOR.ativo;
     const fez = [
-      ...b.concluidas.slice(0, 4).map((e) => `<li><b>${esc(e.tarefa)}</b><small>${esc(quando(e.em))}${e.resultado ? ' · ' + esc(e.resultado) : ''}</small></li>`),
-      ...b.fechados.slice(0, 3).map((a) => `<li><b>${esc(a.fato)}</b><small>achado fechado ${esc(quando(a.fechadoEm))}${a.comoFechou ? ' · ' + esc(a.comoFechou) : ''}</small></li>`),
+      ...b.fezAgrupado.slice(0, 5).map((e) => `<li class="vbl-fez"><b>${esc(e.tarefa)}${e.vezes > 1 ? ` <span class="vbl-vezes">×${e.vezes}</span>` : ''}</b><small>${e.vezes > 1 ? 'a última ' : ''}${esc(quando(e.em))}${e.resultado ? ' · ' + esc(e.resultado) : ''}</small></li>`),
+      ...b.fechados.slice(0, 3).map((a) => achadoHtml(a, b.id, { fechado: true })),
     ];
-    const mais = b.concluidas.length + b.fechados.length - fez.length;
-    const errado = b.abertos.slice(0, 4).map((a) => `<li class="g-${esc(a.gravidade || 'baixa')}"><b>${esc(a.fato)}</b><small>${a.gravidade === 'alta' ? '<em>urgente</em> · ' : ''}${a.cliente ? (typeof G.cliCor === 'function' ? G.cliCor(a.cliente) : esc(a.cliente)) + ' · ' : ''}${esc(a.prova || '')}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}</small></li>`);
+    const mais = b.fezAgrupado.length + b.fechados.length - fez.length;
+    const grupos = typeof G.VybeAgentes?.agrupar === 'function' ? G.VybeAgentes.agrupar(b.abertos) : b.abertos.map((a) => ({ achados: [a] }));
+    const errado = grupos.slice(0, 5).map((g) => (g.achados.length === 1 ? achadoHtml(g.achados[0], b.id) : grupoHtml(g, b.id)));
     const falhas = b.falhas.slice(0, 2).map((e) => `<li class="g-alta"><b>Falhou: ${esc(e.tarefa)}</b><small>${esc(quando(e.em))}${e.erro ? ' · ' + esc(e.erro) : ''}</small></li>`);
     return `<article class="vbl-cartao" aria-label="Boletim de ${esc(b.agente)}">
       <div class="vbl-cab"><span class="vbl-av" aria-hidden="true">${esc(b.agente.slice(0, 1))}</span>
         <span class="vbl-quem"><small>${esc(b.andar)} · ${esc(b.nome)}</small><b>${esc(b.agente)}</b><small>${esc(b.funcao)}</small></span>
         <span class="vbl-estado" style="--c:${corEstado}"><i></i>${rotEstado}</span></div>
       ${agoraHtml(b)}
+      ${numerosHtml(b)}
       ${secao('feito', 'O que eu fiz', fez.length ? `<ul>${fez.join('')}</ul>${mais > 0 ? `<p class="vbl-mais">e mais ${mais}</p>` : ''}` : `<p class="vbl-vazio">${b.semLeitura ? 'Sem leitura deste agente agora.' : 'Nada concluído nas últimas 24 horas.'}</p>`)}
-      ${secao('errado', 'O que está errado', falhas.length || errado.length ? `<ul>${falhas.join('')}${errado.join('')}</ul>${b.abertos.length > 4 ? `<p class="vbl-mais">e mais ${b.abertos.length - 4} em aberto</p>` : ''}` : '<p class="vbl-vazio">Nada em aberto no setor.</p>')}
+      ${secao('errado', 'O que está errado', falhas.length || errado.length ? `<ul>${falhas.join('')}${errado.join('')}</ul>${grupos.length > 5 ? `<p class="vbl-mais">e mais ${grupos.length - 5} tipos de achado: <button type="button" class="vbl-link" data-vbl-agente="${esc(b.id)}">ver todos em ${esc(b.agente)}</button></p>` : ''}` : '<p class="vbl-vazio">Nada em aberto no setor.</p>')}
       ${secao('ir', 'Pra onde ir', `${b.ir.length ? `<ol>${b.ir.map((x) => `<li><b>${esc(x.texto)}</b><small>${esc(x.motivo)}</small></li>`).join('')}</ol>` : '<p class="vbl-vazio">Seguir a rotina: nada pede decisão hoje.</p>'}
         <button type="button" class="vbl-botao principal" data-vbl-agente="${esc(b.id)}">Abrir ${esc(b.agente)}</button>`)}
       ${b.insight ? secao('insight', 'Insight da semana', `<p class="vbl-insight-texto">${esc(b.insight.insight)}</p>
@@ -146,6 +192,8 @@
       <div class="vbl-cab"><span class="vbl-av vybes" aria-hidden="true">V</span><span class="vbl-quem"><small>Todos os setores</small><b>A agência hoje</b><small>${plural(B.cartoes.length, 'agente com algo a dizer', 'agentes com algo a dizer')}</small></span></div>
       <div class="vbl-nums">${linha(r.feitos, 'feitas em 24 h')}${linha(r.fechados, 'achados fechados')}${linha(r.abertos, 'em aberto', r.abertos ? 'atencao' : '')}${linha(r.urgentes, 'urgentes', r.urgentes ? 'ruim' : '')}</div>
       ${r.falhas || r.aguardando ? `<p class="vbl-alerta">${r.falhas ? plural(r.falhas, 'execução falhou', 'execuções falharam') : ''}${r.falhas && r.aguardando ? ' · ' : ''}${r.aguardando ? plural(r.aguardando, 'proposta espera um dono', 'propostas esperam um dono') : ''}</p>` : ''}
+      ${(() => { const com = (B.todos || []).filter((b) => b.abertos.length).sort((x, y) => y.abertos.length - x.abertos.length); const max = Math.max(1, ...com.map((b) => b.abertos.length));
+        return com.length ? secao('numeros', 'Onde estão os problemas', `<ul class="vbl-onde">${com.map((b) => `<li><button type="button" data-vbl-ir="${B.cartoes.indexOf(b) + 1}" ${B.cartoes.includes(b) ? '' : 'disabled'}><b>${esc(b.agente)}</b><span class="vbl-onde-barra" style="--t:${Math.round(b.abertos.length / max * 100)}%;--u:${Math.round(b.urgentes / max * 100)}%"><i></i><i class="u"></i></span><small>${b.abertos.length}${b.urgentes ? ` · <em>${b.urgentes} urgente${b.urgentes > 1 ? 's' : ''}</em>` : ''}</small></button></li>`).join('')}</ul>`) : ''; })()}
       ${secao('agora', 'O que cada um está fazendo agora', `<ul class="vbl-agora-lista">${(B.todos || []).map((b) => `<li><b>${esc(b.agente)}</b><small>${esc(b.nome)}</small>${agoraHtml(b)}</li>`).join('')}</ul>`)}
       ${secao('ir', 'Por onde começar', B.cartoes.length ? `<ol>${B.cartoes.slice(0, 3).map((b, i) => `<li><button type="button" class="vbl-pular" data-vbl-ir="${i + 1}"><b>${esc(b.agente)} · ${esc(b.nome)}</b><small>${b.urgentes ? plural(b.urgentes, 'urgente', 'urgentes') + ' · ' : ''}${plural(b.abertos.length, 'em aberto', 'em aberto')}${b.falhas.length ? ' · ' + plural(b.falhas.length, 'falha', 'falhas') : ''}</small></button></li>`).join('')}</ol>` : '<p class="vbl-vazio">Nenhum agente pede atenção hoje.</p>')}
       ${(() => { const sem = B.quietos.filter((b) => b.semLeitura), calmos = B.quietos.filter((b) => !b.semLeitura); return `${calmos.length ? `<p class="vbl-mais">Sem nada a relatar: ${calmos.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}${sem.length ? `<p class="vbl-mais">Sem leitura da central (ainda não rodam ou não responderam): ${sem.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}`; })()}
@@ -159,7 +207,8 @@
       raiz.innerHTML = '<div class="vbl-janela" role="dialog" aria-modal="true" aria-labelledby="vbl-titulo"></div>';
       raiz.addEventListener('click', aoClicar); document.body.append(raiz);
     }
-    const jan = raiz.querySelector('.vbl-janela');
+    const jan = raiz.querySelector('.vbl-janela'); st.achados = {};
+    const rolagem = raiz.querySelector('.vbl-palco')?.scrollTop || 0, abertos = [...raiz.querySelectorAll('.vbl-palco details[open] > summary')].map((x) => x.textContent);
     const pronto = st.lidoEm && !st.erro;
     const B = pronto ? montar(agentesDaPlanta(), { atividades: st.atividades, perfis: st.perfis }) : null;
     const paginas = B ? [resumoHtml(B), ...B.cartoes.map(cartaoHtml)] : [];
@@ -173,9 +222,11 @@
         : '<div class="vbl-estado-tela vbl-carregando" aria-busy="true"><i></i><i></i><i></i><p>Pedindo o relatório de cada agente à central…</p></div>')
       : `<nav class="vbl-abas" aria-label="Agentes do boletim">${nomes.map((n, i) => `<button type="button" data-vbl-ir="${i}" ${i === st.i ? 'aria-current="true"' : ''}>${esc(n)}${i && B.cartoes[i - 1].urgentes ? '<i aria-label="tem urgente"></i>' : ''}</button>`).join('')}</nav>
         <div class="vbl-palco">${paginas[st.i]}</div>
-        <div class="vbl-pe"><button type="button" class="vbl-botao" data-vbl-passo="-1" ${st.i ? '' : 'disabled'}>Anterior</button><small>${st.i + 1} de ${paginas.length}</small>
+        ${st.msg ? `<p class="vbl-msg" role="status">${esc(st.msg)}</p>` : ''}<div class="vbl-pe"><button type="button" class="vbl-botao" data-vbl-passo="-1" ${st.i ? '' : 'disabled'}>Anterior</button><small>${st.i + 1} de ${paginas.length}</small>
           <button type="button" class="vbl-botao ${st.i < paginas.length - 1 ? 'principal' : ''}" data-vbl-passo="${st.i < paginas.length - 1 ? 1 : 0}">${st.i < paginas.length - 1 ? 'Próximo' : 'Concluir'}</button></div>`}`;
     raiz.hidden = false;
+    if (st.repintando === st.i) { raiz.querySelectorAll('.vbl-palco details > summary').forEach((x) => { if (abertos.includes(x.textContent)) x.parentElement.open = true; }); const p = raiz.querySelector('.vbl-palco'); if (p) p.scrollTop = rolagem; }
+    st.repintando = st.i;
     raiz.querySelector('.vbl-abas [aria-current]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }
   function aoClicar(e) {
@@ -185,8 +236,26 @@
     if (b.hasAttribute('data-vbl-tentar')) { st.erro = ''; pintar(); void carregar(true); return; }
     if (b.dataset.vblIr != null) { st.i = Number(b.dataset.vblIr) || 0; pintar(); return; }
     if (b.dataset.vblPasso != null) { const p = Number(b.dataset.vblPasso); if (!p) fechar(); else { st.i += p; pintar(); } return; }
-    if (b.dataset.vblAgente) { fechar(); G.VybeAgentes?.abrir?.(b.dataset.vblAgente); }
+    if (b.dataset.vblAgente) { fechar(); G.VybeAgentes?.abrir?.(b.dataset.vblAgente); return; }
+    if (b.dataset.vblPeca) { G.VybePeca?.abrir?.(b.dataset.vblPeca, { achado: st.achados[b.dataset.vblSetor + '|' + b.dataset.vblChave] || null, setor: b.dataset.vblSetor }); return; }
+    if (b.dataset.vblAchado) { void fecharAchado(b.dataset.vblChave, b.dataset.vblAchado, b.dataset.vblSetor); }
   }
+  // Resolvido / Ignorar um achado daqui: a mesma rota da página Agentes; depois relê só o perfil desse agente.
+  async function fecharAchado(chave, acao, setor) {
+    st.msg = '';
+    try {
+      const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ etapa: 'achado', chave, acao }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok && d.error !== 'Esse achado já foi fechado.') throw new Error(d.error || 'Não foi possível salvar agora.');
+      st.msg = acao === 'ignorar' ? 'Achado ignorado.' : 'Achado resolvido.';
+      await relerPerfil(setor);
+    } catch (e) { st.msg = e.message; }
+    pintar();
+  }
+  async function relerPerfil(setor) { try { st.perfis[setor] = await lerPerfil(setor); } catch { /* fica o que havia */ } if (st.aberto) pintar(); }
+  G.addEventListener?.('vybe:achado-mudou', (e) => { if (e.detail?.setor && st.lidoEm) void relerPerfil(e.detail.setor); });
+  // "Abrir a demanda completa" na peça: a gaveta abre embaixo das janelas; o boletim sai da frente.
+  G.addEventListener?.('vybe:peca-completa', () => { if (st.aberto) fechar(); });
   function abrir() {
     st.aberto = true; st.i = 0;
     try { localStorage.setItem(CHAVE_VISTO, diaBahia()); } catch { /* sem armazenamento: abre de novo amanhã do mesmo jeito */ }

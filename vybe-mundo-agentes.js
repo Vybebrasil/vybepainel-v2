@@ -65,9 +65,16 @@
       <span><b>${n.horasAteResolver == null ? '—' : n.horasAteResolver + ' h'}</b><small>até resolver (mediana)</small></span>
     </div><p class="vga-projecao"><b>Projeção:</b> ${esc(pj.tendencia || 'sem dados ainda')} · ${esc(pj.carga || '')}${pj.subirNivel ? ` · <em>${esc(pj.subirNivel)}</em>` : ''}</p>`;
   }
+  // A peça do achado (vybe-mundo-peca.js): calendário, quem faz, datas e a sugestão do agente para aplicar ali mesmo.
+  const achadosVistos = {};
+  function pecaBotao(a, setor) {
+    if (!/^vybe:[1-9]\d{0,19}$/.test(String(a?.ref || ''))) return '';
+    achadosVistos[setor + '|' + a.chave] = a;
+    return `<button type="button" class="vga-peca" data-vga-peca="${esc(a.ref)}" data-vga-chave="${esc(a.chave)}" data-vga-de="${esc(setor)}" title="Abrir a peça: calendário, quem faz, datas e a sugestão do agente" aria-label="Abrir a peça ${esc(a.titulo || a.fato || '')}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></button>`;
+  }
   function achadosHtml(P, dono) {
     const ab = P.achados?.abertos || [], fe = P.achados?.resolvidos || [];
-    const linha = (a, aberto) => `<li class="g-${esc(a.gravidade)}"><span><b>${esc(a.fato)}</b><small>${a.cliente ? (typeof G.cliCor === 'function' ? G.cliCor(a.cliente) : esc(a.cliente)) + ' · ' : ''}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''}${aberto ? ` · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}` : ` · ${esc(a.comoFechou || a.estado)} ${esc(quando(a.fechadoEm))}`}</small>
+    const linha = (a, aberto) => `<li class="g-${esc(a.gravidade)}">${pecaBotao(a, P.setor || st.setor)}<span><b>${esc(a.fato)}</b><small>${a.cliente ? (typeof G.cliCor === 'function' ? G.cliCor(a.cliente) : esc(a.cliente)) + ' · ' : ''}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''}${aberto ? ` · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}` : ` · ${esc(a.comoFechou || a.estado)} ${esc(quando(a.fechadoEm))}`}</small>
         ${a.ficha ? `<details><summary>Ficha para quem faz</summary><pre>${esc(a.ficha)}</pre></details>` : ''}${a.versaoSugerida ? `<details><summary>Versão sugerida pelo Qwen</summary><pre>${esc(a.versaoSugerida)}</pre></details>` : ''}${a.rascunho ? `<details class="vga-rascunho"${aberto ? ' open' : ''}><summary>Pedido de orçamento pronto</summary><pre>${esc(a.rascunho)}</pre><button type="button" class="vga-copiar" data-vga-copiar>Copiar pedido</button></details>` : ''}</span>
         ${aberto && dono ? `<span class="vga-acoes"><button type="button" data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button></span>` : ''}</li>`;
     return `<section class="vga-bloco"><h4>O que ele achou<span class="vga-pilula">${ab.length}</span></h4>
@@ -122,6 +129,12 @@
     const quantos = clientes.length === as.length ? `${as.length} clientes` : `${as.length} vezes`;
     return { titulo: comum ? `${quantos}: ${comum.charAt(0).toLowerCase() + comum.slice(1)}` : `${as.length} achados do mesmo tipo`, exemplo: comum ? '' : String(as[0].fato || ''), clientes };
   }
+  // Os achados do mesmo tipo (ou do mesmo fato sem o cliente) juntos; o boletim usa a mesma conta (VybeAgentes.agrupar).
+  function agrupar(lista) {
+    const grupos = new Map();
+    for (const a of lista) { const k = a.tipo || 'fato:' + semCliente(a); if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(a); }
+    return [...grupos].map(([k, as]) => ({ k, achados: as, em: as.map((a) => String(a.primeiraVez || '')).sort()[0], ...tituloDoGrupo(as) }));
+  }
   // Pedido de aprovação de agente em sombra (core/porta-agentes.js na central): entra em "Para decidir" logo depois das
   // falhas; vencido não aparece. A atividade "aguardando aprovação" do mesmo pedido (porta_aprovacao) não repete em Esperando.
   const GRAVIDADE = { alta: 0, media: 1, baixa: 2 };
@@ -138,12 +151,9 @@
         const abertos = P.achados?.abertos || [];
         // Agrupados (Paulo, 09/11/2026: a fila veio com 58 e boa parte era o mesmo achado repetido por cliente): os urgentes
         // do mesmo agente e do mesmo tipo viram uma linha só, com resolver ou ignorar o grupo e "ver um a um".
-        const grupos = new Map();
-        for (const a of abertos.filter((x) => x.gravidade === 'alta')) { const k = a.tipo || 'fato:' + semCliente(a); if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(a); }
-        for (const [k, as] of grupos) {
-          const em = as.map((a) => String(a.primeiraVez || '')).sort()[0];
-          if (as.length === 1) decidir.push({ ...quem, tipo: 'achado', em, a: as[0] });
-          else decidir.push({ ...quem, tipo: 'grupo', em, chave: s.id + ':' + k, achados: as, ...tituloDoGrupo(as) });
+        for (const g of agrupar(abertos.filter((x) => x.gravidade === 'alta'))) {
+          if (g.achados.length === 1) decidir.push({ ...quem, tipo: 'achado', em: g.em, a: g.achados[0] });
+          else decidir.push({ ...quem, tipo: 'grupo', em: g.em, chave: s.id + ':' + g.k, achados: g.achados, titulo: g.titulo, exemplo: g.exemplo, clientes: g.clientes });
         }
         for (const l of (P.licoes || []).filter((x) => x.estado === 'em_revisao')) decidir.push({ ...quem, tipo: 'licao', em: l.em || l.criadaEm || '', l });
         if (P.projecao?.subirNivel) decidir.push({ ...quem, tipo: 'nivel', em: '', texto: P.projecao.subirNivel });
@@ -192,7 +202,8 @@
       extra = `<details class="vga-grupo"><summary>Ver um a um (${n})<span hidden>${esc(it.chave)}</span></summary><ul class="vga-fila">${it.achados.map((a) => itemFilaHtml({ ...it, tipo: 'achado', a, dentro: true }, dono)).join('')}</ul></details>`;
     } else if (it.tipo === 'achado') {
       const a = it.a; titulo = a.fato; detalhe = `${cli(a.cliente)}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''} · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}`;
-      if (dono) acoes = `<button type="button" ${de} data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" ${de} data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" ${de} data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button>${abrir}`;
+      acoes = pecaBotao(a, it.setor) + (dono ? '' : abrir);
+      if (dono) acoes = pecaBotao(a, it.setor) + `<button type="button" ${de} data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" ${de} data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" ${de} data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button>${abrir}`;
     } else if (it.tipo === 'licao') {
       titulo = it.l.texto; detalhe = `O agente viu isso se repetir e quer guardar como regra${it.l.prova ? ' · ' + esc(it.l.prova) : ''}`;
       if (dono) acoes = `<button type="button" ${de} data-vga-licao="incorporar" data-vga-id="${esc(it.l.id)}">Vale sempre</button><button type="button" ${de} data-vga-licao="contestar" data-vga-id="${esc(it.l.id)}">Não vale</button>${abrir}`;
@@ -381,6 +392,7 @@
       (navigator.clipboard?.writeText(texto) || Promise.reject()).then(ok, () => { st.msg = 'Não deu para copiar sozinho: selecione o texto e copie.'; pintar(); });
       return;
     }
+    if (b.dataset.vgaPeca) { G.VybePeca?.abrir?.(b.dataset.vgaPeca, { achado: achadosVistos[b.dataset.vgaDe + '|' + b.dataset.vgaChave] || null, setor: b.dataset.vgaDe }); return; }
     if (b.dataset.vgaLote) {
       let chaves = []; try { chaves = JSON.parse(b.dataset.vgaChaves || '[]'); } catch { /* sem chaves */ }
       if (!chaves.length || st.enviando) return;
@@ -420,6 +432,10 @@
     Promise.resolve(mv().garantirModulo?.()).then(() => { mv().fonteAgentes?.()?.atualizar?.(true)?.then?.(pintar); pintar(); });
   }
   function fechar() { st.aberto = false; pintar(); }
+  // Mudou a peça e o achado foi resolvido na janela da peça: relê o perfil daquele agente. "Abrir a demanda completa":
+  // a gaveta abre embaixo das janelas, a página Agentes sai da frente.
+  G.addEventListener?.('vybe:achado-mudou', (e) => { const setor = e.detail?.setor; if (!setor) return; lerPerfil(setor, true).then(() => { pintarContagem(); if (st.aberto) pintar(); }); });
+  G.addEventListener?.('vybe:peca-completa', () => { if (st.aberto) fechar(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && st.aberto && !e.target.closest?.('input,textarea,select')) fechar(); });
   // Seletor do estado do agente (só dono): uma frase curta em cada opção; a data de volta só vale para Pausado.
   function estadoFormHtml(s, modo) {
@@ -430,5 +446,5 @@
       <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Salvar estado</button></div>
       <p class="vga-nota">Ativo faz sozinho e conta no grupo dos sócios. Sombra pede o OK de um dono no grupo dos sócios ou aqui em Depende de você. Pausado e desligado não rodam as rotinas.</p></form>`;
   }
-  G.VybeAgentes = { abrir, fechar, filaDoDono, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
+  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
 })();
