@@ -421,7 +421,8 @@
   }
   function linhaSaida(s) {
     const motivo = s.motivo ? etiqueta(MOTIVOS()[s.motivo] || s.motivo, 'u3a') : etiqueta('Sem motivo', 'u5');
-    const apoio = [`saiu em ${dataCurta(s.saida)}`, s.tipo ? TIPOS()[s.tipo] : '', s.meses != null ? `${String(s.meses).replace('.', ',')} meses de casa` : '', s.receita != null ? `${reais(s.receita)}/mês` : ''].filter(Boolean).join(' · ');
+    // Saída sem registro nem desativação datada: o servidor estima pela última peça (saida_fonte 'ultima_peca', PR #544).
+    const apoio = [`saiu em ${dataCurta(s.saida)}${s.saidaFonte === 'ultima_peca' ? ' (estimada pela última peça)' : ''}`, s.tipo ? TIPOS()[s.tipo] : '', s.meses != null ? `${String(s.meses).replace('.', ',')} meses de casa` : '', s.receita != null ? `${reais(s.receita)}/mês` : ''].filter(Boolean).join(' · ');
     const pode = estado.servidor?.pode?.churn && estado.servidor?.churn?.disponivel;
     return `<li class="vc-linha"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${cliCor(s.nome)}</b><small>${esc(apoio)}</small>
         ${s.detalhe || s.motivoLivre ? `<small class="vc-citacao">${esc(s.detalhe || s.motivoLivre)}</small>` : ''}</span>${motivo}</div>

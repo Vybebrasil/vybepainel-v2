@@ -71,6 +71,7 @@ function abrirJogoMesa(chave, j) {
 // releitura é só a rede de segurança. Era a cada 4 s para todo mundo (04/11/2026).
 function mesaRitmo(j) {
   if (!j || j.estado !== "jogando") return 4000;
+  if (j.pre) return 2500;                       // pré-partida: o PREPARADO do outro e as apostas chegam logo
   if (!j.eu) return 6000;                       // assistindo: não recebe o aviso
   if (j.bot) return 30000;                      // contra o bot: só a rede de segurança
   return j.vez === j.eu ? 20000 : 10000;        // na minha vez o outro não mexe; esperando, o aviso chega antes
@@ -106,7 +107,8 @@ async function recarregarJogoMesa(chave) {
     // dela é mais nova, e a leitura antiga a desfaria (as bolas voltavam para o
     // lugar e a próxima tacada era recusada).
     if (s.jogo !== j || r.jogo.n < j.n) return;
-    const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
+    const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar
+      || JSON.stringify(r.jogo.pre?.prontos ?? null) !== JSON.stringify(j.pre?.prontos ?? null);
     s.jogo = r.jogo;
     if (!mudou) ESCRITORIO_MESAS[chave].atualizar?.(r.jogo);
     if (mudou) {

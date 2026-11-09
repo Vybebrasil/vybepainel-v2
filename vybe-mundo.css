@@ -204,9 +204,6 @@ html body.mundo #mode-gate#mode-gate .identity-station .station-metrica > b{font
 html body.mundo #mode-gate#mode-gate .identity-station .station-metrica > span{font:500 11.5px/1.3 var(--vv-texto)!important}
 html body.mundo #mode-gate#mode-gate .identity-station .station-action{margin-top:8px!important;color:var(--station-color)!important;filter:brightness(.8)}
 html body.mundo #mode-gate#mode-gate .identity-station .station-description{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;height:auto!important}
-/* O painel pausa toda animação quando fica ocioso (html.vb-ocioso). Uma entrada pausada no
-   quadro 0 deixaria a placa invisível: no mundo, as entradas simplesmente não animam ociosas. */
-html.vb-ocioso body.mundo :is(.vv-placa,.vv-cartao-mouse,.vv-hoje),html.vb-ocioso body.mundo #mode-gate#mode-gate .identity-shell{animation:none!important}
 
 /* ---------- Trilho, painel Hoje, Agenda e salas da equipe (06/11/2026) ---------- */
 /* As estações (#mode-gate) ficam guardadas: aparecem pelo botão "Módulos" do trilho. */
@@ -376,7 +373,7 @@ body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
-body.mundo.mundo-modulo .app-header{background:transparent!important;border-bottom:1px solid rgba(255,255,255,.08)!important;box-shadow:none!important;backdrop-filter:none!important;margin-top:var(--vv-m)}
+body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:var(--vv-m)}
 body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
 @media (max-width:900px){
   body.mundo.mundo-modulo{padding-left:0!important;padding-right:0!important;padding-bottom:calc(64px + 3 * var(--vv-m))!important}
@@ -394,7 +391,7 @@ body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-e
   --vybe-text:#1F1D1A;--vybe-muted:#6B675F;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
   --pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;color:#1F1D1A}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){
-  background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+  background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:8px;box-shadow:none}
 body.mundo.mundo-modulo .board-switch-bar{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-linha)!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo.mundo-modulo .board-switch-btn:not(.active){color:#6B675F!important}
 body.mundo.mundo-modulo :is(.global-search,.header-utilities-menu,.dem-filtro-popover,.dem-controles,.date-mode-bar){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
@@ -419,8 +416,6 @@ body.mundo.mundo-modulo .ag-ev.sel{background:color-mix(in srgb,var(--ag-cor) 30
 body.mundo.mundo-modulo .ag-ev :is(b,span,small){color:#1F1D1A!important}
 /* Logo do cabeçalho no vidro claro */
 body.mundo.mundo-modulo .app-header .logo img{filter:invert(1) brightness(.25)}
-/* Entrada de quadro pausada no quadro 0 pelo modo ocioso deixava o módulo invisível (06/11/2026). */
-html.vb-ocioso body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio),.prod-v2-layout,.production-command-dashboard){animation:none!important}
 body.mundo.mundo-modulo :is(.capt-tb-setas button,.capt-menu-item span,.vb-alternar button,.ag-dia-cab small,.ag-dia-cab b){color:#1F1D1A!important}
 body.mundo.mundo-modulo .p-segment .active{background:var(--vv-tinta)!important;color:#FFFFFF!important}
 body.mundo.mundo-modulo .ag-dia-cab.hoje b,body.mundo.mundo-modulo .ag-dia-cab[aria-current] b{background:var(--vv-laranja);color:#FFFFFF!important;border-radius:50%}
@@ -477,10 +472,8 @@ body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:#6B675
 body.mundo :is(#workspace-drawer,.spotlight-dialog,#notif-caixa) :is(h1,h2,h3,h4,b,strong){color:#1F1D1A}
 body.mundo :is(#workspace-drawer) :is(.workspace-section,.workspace-mais-menu,.workspace-textarea){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
 /* Aviso de planejamento: no mundo ele mora no sino do topo (auditoria 09/11, D8); o flutuante não volta. */
-html.vb-ocioso body.mundo :is(.plj-aviso,.vv-agenda,#mundo-andar){animation:none!important}
 @media (max-width:1300px){body.mundo .plj-aviso{top:auto!important;bottom:var(--vv-m)!important}}
 @media (max-width:900px){body.mundo .plj-aviso{bottom:calc(64px + 2*var(--vv-m))!important;max-width:calc(100vw - 2*var(--vv-m))!important}}
-html.vb-ocioso body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa){animation:none!important}
 /* Ficha da peça: vidro quase opaco e textos claros que sobraram (levantados em 06/11/2026). */
 body.mundo #workspace-drawer{background:rgba(250,248,244,.97)!important}
 body.mundo #workspace-drawer :is(.vybe-link span,.workspace-close,dd,.owner-nomes,.workspace-action,.workspace-section-head,.workspace-dropzone div,.workspace-section summary){color:#1F1D1A!important}
@@ -500,7 +493,6 @@ body.mundo #fc-overlay .fc-modal :is(.fc-sub,.fc-helper-text,span){color:#6B675F
 body.mundo #fc-overlay .fc-modal .fc-kicker{color:var(--vv-laranja-escuro)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo #fc-overlay .fc-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
-html.vb-ocioso body.mundo :is(#fc-overlay,#fc-overlay .fc-modal){animation:none!important}
 body.mundo .spotlight-dialog mark{color:#1F1D1A!important;background:var(--vv-laranja-claro)!important;border-radius:4px;box-shadow:none!important}
 
 /* Avatar voxel no lugar do boneco do Habbo: sem o serrilhado de pixel art. */
@@ -519,7 +511,6 @@ body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(small,.ofc-cat-su
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]){background:#1F1D1A!important;color:#FFFFFF!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel{transition:transform .18s var(--vv-mola)!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel:hover{transform:translateY(-3px)}
-html.vb-ocioso body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){animation:none!important}
 
 /* Jogos no trilho */
 .vv-jogos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -789,7 +780,6 @@ body.mundo .ofc-ficha .ofc-ficha-acoes{border-top:1px solid #ECE6DC!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes button{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:8px!important;font:700 12.5px var(--vv-texto)!important;box-shadow:0 1px 2px rgba(31,29,26,.05)!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(255,122,47,.28)!important}
 body.mundo .ofc-ficha .ofc-x{background:#fff!important;color:#6B675F!important;border:1px solid #E6E0D6!important;border-radius:8px!important}
-html.vb-ocioso body.mundo .ofc-ficha *{animation:none!important}
 body.mundo .ofc-ficha .ofc-hud-palco{position:relative!important}
 body.mundo .ofc-ficha .vv-perfil-avatar{height:82%!important;bottom:14px!important;max-height:none!important;width:auto!important}
 body.mundo .ofc-ficha :is(.ofc-hud-proximos,.ofc-hud-ganhos,.ofc-hud-regras){background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
@@ -967,7 +957,6 @@ html body.mundo.mundo-modulo .boot-phase{color:#946000!important}
 html body.mundo.mundo-modulo .boot-count{color:#8A5F00!important}
 html body.mundo.mundo-modulo .boot-corner{color:#9E5900!important}
 html body.mundo.mundo-modulo .boot-corner::before{color:#B24B00!important}
-html body.mundo.mundo-modulo .mode-gate-title{color:#5E5A53!important}
 html body.mundo.mundo-modulo .mode-switch-btn{color:#C7009C!important}
 html body.mundo.mundo-modulo .focus-mode-name{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-hero-title{color:#5E5A53!important}
@@ -983,23 +972,11 @@ html body.mundo.mundo-modulo .risk-level.attention{color:#5B10D6!important}
 html body.mundo.mundo-modulo .pending-client{color:#7300E6!important}
 html body.mundo.mundo-modulo .pending-next{color:#5E5A53!important}
 html body.mundo.mundo-modulo .pending-copy,html body.mundo.mundo-modulo .pending-open{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-kicker{color:#B24B00!important}
-html body.mundo.mundo-modulo .command-title{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-subtitle{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-summary-item b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-summary-item span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-summary-item.critical b{color:#DB0020!important}
-html body.mundo.mundo-modulo .command-summary-item.external b{color:#005FE6!important}
-html body.mundo.mundo-modulo .command-summary-item.internal b{color:#946500!important}
 html body.mundo.mundo-modulo .command-group-note{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-client{color:#7300E6!important}
-html body.mundo.mundo-modulo .command-item button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-detail{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-owner{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-owner-label{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-unassigned{color:#DB0020!important}
-html body.mundo.mundo-modulo .command-next{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-context{color:#A85900!important}
 html body.mundo.mundo-modulo .command-copy,html body.mundo.mundo-modulo .command-open{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-more{color:#B24B00!important}
 html body.mundo.mundo-modulo .ops-action-btn{color:#756A00!important}
@@ -1007,27 +984,14 @@ html body.mundo.mundo-modulo .ops-clear-btn{color:#DB0020!important}
 html body.mundo.mundo-modulo .ops-command-toggle{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ops-selection-summary{color:#057985!important}
 html body.mundo.mundo-modulo .ops-selection-summary b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ops-today-group-head{color:#00788A!important}
-html body.mundo.mundo-modulo .ops-today-alert{color:#DB0027!important}
-html body.mundo.mundo-modulo .ops-today-due{color:#00777F!important}
 html body.mundo.mundo-modulo .ops-daily-panel .ops-panel-title{color:#7000E6!important}
-html body.mundo.mundo-modulo .ops-daily-kpi b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ops-daily-section-head{color:#5C00E6!important}
 html body.mundo.mundo-modulo .ops-daily-empty{color:#127836!important}
-html body.mundo.mundo-modulo .ops-daily-tag{color:#7000E6!important}
 html body.mundo.mundo-modulo .ops-panel-title{color:#756A00!important}
-html body.mundo.mundo-modulo .ops-item-client{color:#7300E6!important}
-html body.mundo.mundo-modulo .ops-empty{color:#007F44!important}
-html body.mundo.mundo-modulo .progress-donut-pct{color:#5E5A53!important}
 html body.mundo.mundo-modulo .item-resp-badge{color:#5E5A53!important}
-html body.mundo.mundo-modulo .kpi-card.calado .kpi-value{color:#5E5A53!important}
-html body.mundo.mundo-modulo .kpi-label{color:#5E5A53!important}
-html body.mundo.mundo-modulo .kpi-value{color:#5E5A53!important}
-html body.mundo.mundo-modulo .kpi-sub{color:#5E5A53!important}
 html body.mundo.mundo-modulo .posts-count.ok{color:#0F7A36!important}
 html body.mundo.mundo-modulo .posts-count.low{color:#8A6300!important}
 html body.mundo.mundo-modulo .posts-count.empty{color:#DB0000!important}
-html body.mundo.mundo-modulo .person-initials{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dem-rotulo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .demanda-group-title{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dem-cartao-topo .vybe-cliente{color:#5E5A53!important}
@@ -1042,30 +1006,13 @@ html body.mundo.mundo-modulo .prio-media{color:#8A6300!important}
 html body.mundo.mundo-modulo .prio-baixa{color:#0F7A36!important}
 html body.mundo.mundo-modulo .prazo-badge{color:#DB0000!important}
 html body.mundo.mundo-modulo .badge-week1,html body.mundo.mundo-modulo .badge-week2{color:#8A5F00!important}
-html body.mundo.mundo-modulo .ai-gate-shell{color:#A85800!important}
-html body.mundo.mundo-modulo .ai-system-line{color:#8A5F00!important}
-html body.mundo.mundo-modulo .ai-gate-title span{color:#945B00!important}
-html body.mundo.mundo-modulo .ai-gate-title strong{color:#A85800!important}
-html body.mundo.mundo-modulo .ai-core-label{color:#8A5F00!important}
-html body.mundo.mundo-modulo .ai-mode-node{color:#A85800!important}
-html body.mundo.mundo-modulo .ai-node-index{color:#9E5700!important}
-html body.mundo.mundo-modulo .ai-node-icon{color:#945B00!important}
-html body.mundo.mundo-modulo .ai-focus-node .ai-node-icon{color:#8A6300!important}
-html body.mundo.mundo-modulo .ai-node-copy b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ai-node-copy small{color:#83694E!important}
-html body.mundo.mundo-modulo .ai-node-arrow{color:#8A5F00!important}
-html body.mundo.mundo-modulo .ai-gate-footer{color:#9E5500!important}
-html body.mundo.mundo-modulo .ai-focus-picker .focus-picker-head{color:#8A5F00!important}
 html body.mundo.mundo-modulo .identity-shell{color:#A85800!important}
 html body.mundo.mundo-modulo .identity-topline{color:#9E5D00!important}
-html body.mundo.mundo-modulo .identity-overline{color:#945B00!important}
 html body.mundo.mundo-modulo .identity-hero h2{color:#B25200!important}
 html body.mundo.mundo-modulo .identity-hero p{color:#856642!important}
 html body.mundo.mundo-modulo .identity-station{color:#A85800!important}
 html body.mundo.mundo-modulo .station-name{color:#5E5A53!important}
 html body.mundo.mundo-modulo .station-description{color:#856642!important}
-html body.mundo.mundo-modulo .station-tags span{color:#925F35!important}
-html body.mundo.mundo-modulo .identity-core-label{color:#945A00!important}
 html body.mundo.mundo-modulo .identity-pulse-item b{color:#946400!important}
 html body.mundo.mundo-modulo .identity-pulse-item>span{color:#8A6747!important}
 html body.mundo.mundo-modulo .identity-pulse-item.critical b{color:#DB0020!important}
@@ -1077,9 +1024,6 @@ html body.mundo.mundo-modulo .pulse-detail-task{color:#8A6747!important}
 html body.mundo.mundo-modulo .pulse-detail-open{color:#9E5B00!important}
 html body.mundo.mundo-modulo .identity-footer{color:#9E5700!important}
 html body.mundo.mundo-modulo .identity-focus-picker .focus-picker-head{color:#945D00!important}
-html body.mundo.mundo-modulo .identity-focus-picker .focus-user-card{color:#925F35!important}
-html body.mundo.mundo-modulo .identity-focus-picker .focus-user-card::before{color:#9E5C00!important}
-html body.mundo.mundo-modulo .identity-focus-picker .operator-work-signal{color:#836344!important}
 html body.mundo.mundo-modulo .mode-switch-btn{color:#945B00!important}
 html body.mundo.mundo-modulo .focus-mode-label{color:#945B00!important}
 html body.mundo.mundo-modulo .focus-task-client{color:#8A5F00!important}
@@ -1122,7 +1066,6 @@ html body.mundo.mundo-modulo .arquivada-voltar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .arquivadas-vazio{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-lente-opcao{color:#83654E!important}
 html body.mundo.mundo-modulo .focus-lente-opcao span{color:#826645!important}
-html body.mundo.mundo-modulo .focus-command-strip-label{color:#8A5F00!important}
 html body.mundo.mundo-modulo .focus-command-btn{color:#90612D!important}
 html body.mundo.mundo-modulo .focus-next-kicker{color:#9E5A00!important}
 html body.mundo.mundo-modulo .focus-next-client{color:#9400E6!important}
@@ -1130,7 +1073,6 @@ html body.mundo.mundo-modulo .focus-next-name{color:#A85800!important}
 html body.mundo.mundo-modulo .focus-next-reason{color:#856642!important}
 html body.mundo.mundo-modulo .focus-next-btn{color:#946000!important}
 html body.mundo.mundo-modulo .focus-next-btn.status{color:#00757F!important}
-html body.mundo.mundo-modulo .focus-next-btn.checkin{color:#0C7E34!important}
 html body.mundo.mundo-modulo .focus-priority-control-note{color:#81643B!important}
 html body.mundo.mundo-modulo .focus-trail-step.done{color:#127836!important}
 html body.mundo.mundo-modulo .focus-continuity-head{color:#7000E6!important}
@@ -1141,11 +1083,9 @@ html body.mundo.mundo-modulo footer strong{color:#945B00!important}
 html body.mundo.mundo-modulo .day-summary-btn{color:#00787F!important}
 html body.mundo.mundo-modulo .day-pending-tabs button.has-pending{color:#B25200!important}
 html body.mundo.mundo-modulo .day-pending-date{color:#B25200!important}
-html body.mundo.mundo-modulo .day-add-btn{color:#B24A00!important}
 html body.mundo.mundo-modulo .quick-date-trigger,html body.mundo.mundo-modulo .linha-previa{color:#9E5D00!important}
 html body.mundo.mundo-modulo .quick-date-trigger.gold-risk{color:#DB0016!important}
 html body.mundo.mundo-modulo .quick-date-da{color:#9E5D00!important}
-html body.mundo.mundo-modulo .owner-editor-summary{color:#0D737D!important}
 html body.mundo.mundo-modulo .owner-editor-person{color:#5E5A53!important}
 html body.mundo.mundo-modulo .owner-editor-person-check{color:#00787F!important}
 html body.mundo.mundo-modulo .owner-editor-empty{color:#9E5E00!important}
@@ -1167,9 +1107,6 @@ html body.mundo.mundo-modulo .ai-setting-copy{color:#8A6747!important}
 html body.mundo.mundo-modulo .ai-setting-copy b{color:#A05E08!important}
 html body.mundo.mundo-modulo .ai-setting-field label{color:#8A6747!important}
 html body.mundo.mundo-modulo .ai-usage-loading{color:#8E6339!important}
-html body.mundo.mundo-modulo .command-desk-kicker{color:#945B00!important}
-html body.mundo.mundo-modulo .command-desk-title{color:#0069D1!important}
-html body.mundo.mundo-modulo .command-desk-text{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-decision-label{color:#DB0027!important}
 html body.mundo.mundo-modulo .command-decision-main{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-decision-meta{color:#5E5A53!important}
@@ -1178,7 +1115,6 @@ html body.mundo.mundo-modulo .command-team-head span:first-child{color:#955D09!i
 html body.mundo.mundo-modulo .command-team-head span:last-child{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-team-name{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-team-state{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-command-drawer-kicker{color:#945A00!important}
 html body.mundo.mundo-modulo .manager-command-drawer-title{color:#0069D1!important}
 html body.mundo.mundo-modulo .manager-command-drawer-context{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-command-close{color:#955D09!important}
@@ -1198,49 +1134,21 @@ html body.mundo.mundo-modulo .workspace-handoff .workspace-action{color:#9E5E00!
 html body.mundo.mundo-modulo .identity-pulse::before{color:#9E5C00!important}
 html body.mundo.mundo-modulo #focus-picker.identity-focus-picker .focus-picker-head{color:#8F5F23!important}
 html body.mundo.mundo-modulo .boot-act.done{color:#387A48!important}
-html body.mundo.mundo-modulo .da-controller-kicker{color:#945B00!important}
-html body.mundo.mundo-modulo .da-controller-title{color:#A85800!important}
-html body.mundo.mundo-modulo .da-controller-copy{color:#856642!important}
-html body.mundo.mundo-modulo .da-stat b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-stat span{color:#836344!important}
-html body.mundo.mundo-modulo .da-stat.danger b{color:#DB0020!important}
-html body.mundo.mundo-modulo .da-stat.warning b{color:#8A6300!important}
-html body.mundo.mundo-modulo .da-stat.ok b{color:#00754A!important}
-html body.mundo.mundo-modulo .da-period-btn,html body.mundo.mundo-modulo .da-filter-btn{color:#8C653B!important}
-html body.mundo.mundo-modulo .da-period-label{color:#8A6747!important}
 html body.mundo.mundo-modulo .da-person-card{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-person-role{color:#856642!important}
 html body.mundo.mundo-modulo .da-person-metric b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-person-metric span{color:#806447!important}
 html body.mundo.mundo-modulo .da-person-status{color:#96601D!important}
-html body.mundo.mundo-modulo .da-panel-head{color:#9E5A00!important}
-html body.mundo.mundo-modulo .da-panel-head small{color:#8A6747!important}
-html body.mundo.mundo-modulo .da-load-name{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-load-meta{color:#8C653B!important}
-html body.mundo.mundo-modulo .da-alert-owner{color:#945D00!important}
-html body.mundo.mundo-modulo .da-alert-name{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-alert-meta{color:#806447!important}
-html body.mundo.mundo-modulo .da-empty{color:#00754A!important}
 html body.mundo.mundo-modulo .da-queue-person{color:#945D00!important}
 html body.mundo.mundo-modulo .da-queue-client{color:#89633E!important}
 html body.mundo.mundo-modulo .da-queue-name{color:#A85900!important}
 html body.mundo.mundo-modulo .da-queue-date{color:#8A6747!important}
 html body.mundo.mundo-modulo .da-queue-open{color:#945D00!important}
-html body.mundo.mundo-modulo .da-controller-label{color:#945B00!important}
-html body.mundo.mundo-modulo .da-controller-name{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-controller-banner-icon{color:#945E00!important}
 html body.mundo.mundo-modulo .da-tactical-title{color:#A85800!important}
 html body.mundo.mundo-modulo .da-tactical-meta-item b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-tactical-meta-item b.danger{color:#DB0020!important}
 html body.mundo.mundo-modulo .da-tactical-meta-item b.warn{color:#8A6300!important}
 html body.mundo.mundo-modulo .da-tactical-meta-item span{color:#8A6747!important}
-html body.mundo.mundo-modulo .da-decision-kicker{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-decision-title{color:#A85800!important}
-html body.mundo.mundo-modulo .da-decision-detail{color:#856642!important}
-html body.mundo.mundo-modulo .da-decision-detail b{color:#A85900!important}
-html body.mundo.mundo-modulo .da-decision-owner{color:#90612D!important}
-html body.mundo.mundo-modulo .da-decision-side small{color:#806447!important}
-html body.mundo.mundo-modulo .da-decision-btn{color:#A85900!important}
 html body.mundo.mundo-modulo .da-cell-header b{color:#9E5A00!important}
 html body.mundo.mundo-modulo .da-cell-header span{color:#86674B!important}
 html body.mundo.mundo-modulo .da-capacity-card{color:#5E5A53!important}
@@ -1248,41 +1156,20 @@ html body.mundo.mundo-modulo .da-capacity-role{color:#8A6747!important}
 html body.mundo.mundo-modulo .da-capacity-volume b{color:#A85800!important}
 html body.mundo.mundo-modulo .da-capacity-volume span{color:#806447!important}
 html body.mundo.mundo-modulo .da-capacity-signal{color:#8C653B!important}
-html body.mundo.mundo-modulo .da-tactical-panel-head{color:#9E5A00!important}
-html body.mundo.mundo-modulo .da-tactical-panel-head small{color:#86674B!important}
-html body.mundo.mundo-modulo .da-action-owner{color:#945D00!important}
-html body.mundo.mundo-modulo .da-action-name{color:#A85900!important}
-html body.mundo.mundo-modulo .da-action-meta{color:#806447!important}
 html body.mundo.mundo-modulo .da-window-date{color:#9E5A00!important}
 html body.mundo.mundo-modulo .da-window-copy b{color:#9B5F18!important}
 html body.mundo.mundo-modulo .da-window-copy span{color:#806447!important}
-html body.mundo.mundo-modulo .da-window-empty{color:#00754A!important}
-html body.mundo.mundo-modulo .da-queue-person-tactical{color:#945D00!important}
-html body.mundo.mundo-modulo .da-queue-client-tactical{color:#836344!important}
-html body.mundo.mundo-modulo .da-queue-name-tactical{color:#A85900!important}
-html body.mundo.mundo-modulo .da-queue-date-tactical{color:#806447!important}
 html body.mundo.mundo-modulo .da-queue-go{color:#9E5A00!important}
 html body.mundo.mundo-modulo .da-empty-tactical{color:#00754A!important}
 html body.mundo.mundo-modulo .da-week-agenda-head b{color:#9E5A00!important}
 html body.mundo.mundo-modulo .da-week-agenda-head span{color:#86674B!important}
-html body.mundo.mundo-modulo .da-week-day-head b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-week-day.today .da-week-day-head b{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-week-count{color:#9E5D00!important}
 html body.mundo.mundo-modulo .da-week-delivery{color:#A85900!important}
 html body.mundo.mundo-modulo .da-week-owner{color:#936020!important}
 html body.mundo.mundo-modulo .da-week-item-name{color:#9B5F18!important}
 html body.mundo.mundo-modulo .da-week-item-meta{color:#86674B!important}
-html body.mundo.mundo-modulo .da-week-more{color:#9E5A00!important}
-html body.mundo.mundo-modulo .da-backlog-panel .da-tactical-panel-head{color:#DB001C!important}
-html body.mundo.mundo-modulo .da-backlog-owner{color:#A85900!important}
-html body.mundo.mundo-modulo .da-backlog-name{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-backlog-meta{color:#945253!important}
-html body.mundo.mundo-modulo .da-backlog-empty{color:#955055!important}
-html body.mundo.mundo-modulo .da-week-context{color:#8A6747!important}
 html body.mundo.mundo-modulo .da-quick-day{color:#916535!important}
 html body.mundo.mundo-modulo .da-day-focus-head b{color:#9E5D00!important}
 html body.mundo.mundo-modulo .da-day-focus-head span{color:#8A6747!important}
-html body.mundo.mundo-modulo .da-day-focus-clear{color:#9E5E00!important}
 html body.mundo.mundo-modulo .da-day-focus-row{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-day-focus-avatar{color:#96601D!important}
 html body.mundo.mundo-modulo .da-day-focus-copy b{color:#9B5F18!important}
@@ -1324,8 +1211,6 @@ html body.mundo.mundo-modulo .da-member-return{color:#9E5E00!important}
 html body.mundo.mundo-modulo .da-list-avatar-tip b{color:#A85900!important}
 html body.mundo.mundo-modulo .da-list-avatar-tip span{color:#89633E!important}
 html body.mundo.mundo-modulo .da-list-avatar-tip small{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-week-day.focused .da-week-day-head b{color:#9E5E00!important}
-html body.mundo.mundo-modulo .da-week-day-head::after{color:#9E5A00!important}
 html body.mundo.mundo-modulo .da-week-hover strong{color:#945C00!important}
 html body.mundo.mundo-modulo .da-week-hover span{color:#856642!important}
 html body.mundo.mundo-modulo .da-week-hover small{color:#9E5D00!important}
@@ -1335,22 +1220,8 @@ html body.mundo.mundo-modulo .da-capacity-hover-row{color:#955C32!important}
 html body.mundo.mundo-modulo .da-capacity-hover-date{color:#8E6339!important}
 html body.mundo.mundo-modulo .da-capacity-hover-name{color:#A85900!important}
 html body.mundo.mundo-modulo .da-capacity-hover-status{color:#8C653B!important}
-html body.mundo.mundo-modulo .da-control-focus{color:#945D00!important}
-html body.mundo.mundo-modulo .da-control-focus button{color:#9E5E00!important}
-html body.mundo.mundo-modulo .da-workspace-direction{color:#946400!important}
-html body.mundo.mundo-modulo .da-priority-label{color:#86674B!important}
-html body.mundo.mundo-modulo .da-priority-reason{color:#896129!important}
 html body.mundo.mundo-modulo .da-risk-mini{color:#945D00!important}
 html body.mundo.mundo-modulo .da-risk-mini.critical{color:#DB0027!important}
-html body.mundo.mundo-modulo .da-command-zone-head b{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-command-panel-head b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-command-panel-head small{color:#86674B!important}
-html body.mundo.mundo-modulo .da-command-empty{color:#86674B!important}
-html body.mundo.mundo-modulo .da-delivery-risk-copy b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-delivery-risk-meta{color:#8A6747!important}
-html body.mundo.mundo-modulo .da-delivery-risk-next{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-debt-panel summary b{color:#DB001C!important}
-html body.mundo.mundo-modulo .da-debt-panel summary small{color:#8E575F!important}
 html body.mundo.mundo-modulo .da-week-rail-day{color:#896129!important}
 html body.mundo.mundo-modulo .da-week-rail-top b{color:#9B5F18!important}
 html body.mundo.mundo-modulo .da-week-rail-info b{color:#896129!important}
@@ -1377,15 +1248,11 @@ html body.mundo.mundo-modulo .planning-date-card b{color:#9E5E00!important}
 html body.mundo.mundo-modulo .planning-date-card small{color:#806447!important}
 html body.mundo.mundo-modulo .planning-change-note{color:#89633E!important}
 html body.mundo.mundo-modulo .planning-change-note b{color:#9E5E00!important}
-html body.mundo.mundo-modulo .identity-core-label::before{color:#856642!important}
 html body.mundo.mundo-modulo .identity-pulse-caption{color:#9E5F00!important}
 html body.mundo.mundo-modulo .da-status-age{color:#925F0C!important}
 html body.mundo.mundo-modulo .da-status-age.critical{color:#DB001B!important}
 html body.mundo.mundo-modulo .da-status-age.extreme{color:#DB0025!important}
 html body.mundo.mundo-modulo .da-risk-mini.extreme{color:#DB0025!important}
-html body.mundo.mundo-modulo .da-command-empty-full{color:#26784C!important}
-html body.mundo.mundo-modulo .da-command-zone.only-delivery .da-command-panel-head b{color:#9E5E00!important}
-html body.mundo.mundo-modulo .da-command-zone.only-direction .da-command-panel-head b{color:#945C00!important}
 html body.mundo.mundo-modulo .da-member-production-head b{color:#9E5900!important}
 html body.mundo.mundo-modulo .da-member-production-head small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-member-production-week-head{color:#856642!important}
@@ -1407,11 +1274,6 @@ html body.mundo.mundo-modulo .cadastros-preview-grid b{color:#00748A!important}
 html body.mundo.mundo-modulo .cadastros-preview-grid span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cadastros-preview-modal small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-timeline-type{color:#946500!important}
-html body.mundo.mundo-modulo .da-context-label{color:#946500!important}
-html body.mundo.mundo-modulo .da-context-chip{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-context-hint{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-context-workload,html body.mundo.mundo-modulo .da-context-clear{color:#946500!important}
-html body.mundo.mundo-modulo .da-context-clear{color:#DB0016!important}
 html body.mundo.mundo-modulo .da-discipline-card span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-discipline-card small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .risk-action-owner{color:#856341!important}
@@ -1446,14 +1308,10 @@ html body.mundo.mundo-modulo .meeting-empty{color:#5E5A53!important}
 html body.mundo.mundo-modulo .meeting-foot{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-module-hero h2{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-module-hero p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .client-module-source{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-module-actions button{color:#B25000!important}
-html body.mundo.mundo-modulo .client-master-kpi b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .client-master-kpi span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-source-card b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-source-card span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-source-card em{color:#946500!important}
-html body.mundo.mundo-modulo .client-source-card.connected em{color:#0E7C49!important}
 html body.mundo.mundo-modulo .client-master-detail-card h3{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-master-detail-card p{color:#5E5A53!important}
 html body.mundo.mundo-modulo .client-master-detail-field small{color:#5E5A53!important}
@@ -1474,7 +1332,6 @@ html body.mundo.mundo-modulo .sync-health-indicator.stale .sync-health-copy b,ht
 html body.mundo.mundo-modulo .sync-health-indicator.error .sync-health-action,html body.mundo.mundo-modulo .sync-health-indicator.stale .sync-health-action{color:#A85900!important}
 html body.mundo.mundo-modulo .identity-topline{color:#936020!important}
 html body.mundo.mundo-modulo .identity-hero p{color:#83654E!important}
-html body.mundo.mundo-modulo .identity-overline{color:#9E5D00!important}
 html body.mundo.mundo-modulo .station-ready,html body.mundo.mundo-modulo .station-locked-state{color:#007F38!important}
 html body.mundo.mundo-modulo .identity-station .station-name{color:#A85800!important}
 html body.mundo.mundo-modulo .identity-station .station-description{color:#856642!important}
@@ -1482,28 +1339,7 @@ html body.mundo.mundo-modulo .identity-footer span:last-child{color:#8F642D!impo
 html body.mundo.mundo-modulo .production-command-ident i{color:#017562!important}
 html body.mundo.mundo-modulo .production-command-ident span{color:#027463!important}
 html body.mundo.mundo-modulo .production-command-ident b{color:#8A6032!important}
-html body.mundo.mundo-modulo .production-command-kicker{color:#037C6C!important}
-html body.mundo.mundo-modulo .production-command-head h2{color:#A85800!important}
-html body.mundo.mundo-modulo .production-command-head p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-command-meta b{color:#037C68!important}
-html body.mundo.mundo-modulo .production-command-meta small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-control-label{color:#47756E!important}
-html body.mundo.mundo-modulo .production-control-btn{color:#5E5A53!important}
 html body.mundo.mundo-modulo .production-control-note{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-agenda-head b{color:#027362!important}
-html body.mundo.mundo-modulo .production-agenda-head small{color:#4C7169!important}
-html body.mundo.mundo-modulo .production-day{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-day b{color:#007F42!important}
-html body.mundo.mundo-modulo .production-day small{color:#497469!important}
-html body.mundo.mundo-modulo .production-day span{color:#9B5F18!important}
-html body.mundo.mundo-modulo .production-day em{color:#4A7364!important}
-html body.mundo.mundo-modulo .production-section-head b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .production-section-head small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-item-copy b{color:#8A6032!important}
-html body.mundo.mundo-modulo .production-item-copy small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .production-item-context{color:#81643B!important}
-html body.mundo.mundo-modulo .production-ready-row b{color:#8A6032!important}
-html body.mundo.mundo-modulo .production-ready-row small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .production-empty{color:#5E5A53!important}
 html body.mundo.mundo-modulo .production-sheet{color:#8A6032!important}
 html body.mundo.mundo-modulo .production-sheet-head span{color:#027362!important}
@@ -1520,23 +1356,6 @@ html body.mundo.mundo-modulo .production-fact small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .production-sheet-action{color:#037C65!important}
 html body.mundo.mundo-modulo .production-sheet-action.secondary{color:#527565!important}
 html body.mundo.mundo-modulo .production-sheet-loading{color:#027362!important}
-html body.mundo.mundo-modulo .da-planning-head b{color:#A85800!important}
-html body.mundo.mundo-modulo .da-planning-head small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-close{color:#896129!important}
-html body.mundo.mundo-modulo .da-planning-summary b{color:#007F42!important}
-html body.mundo.mundo-modulo .da-planning-summary small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-row-head{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-seq{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-copy b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-planning-copy small{color:#4C7169!important}
-html body.mundo.mundo-modulo .da-planning-airdate b{color:#0045E6!important}
-html body.mundo.mundo-modulo .da-planning-airdate small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-deadline input{color:#007558!important}
-html body.mundo.mundo-modulo .da-planning-deadline small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-deadline small.gold-alert{color:#945D00!important}
-html body.mundo.mundo-modulo .da-planning-deadline small.gold-ok{color:#047C49!important}
-html body.mundo.mundo-modulo .da-planning-open{color:#527565!important}
-html body.mundo.mundo-modulo .da-planning-empty{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-today-pulse-kicker{color:#037C6C!important}
 html body.mundo.mundo-modulo .da-today-pulse-lead b{color:#9B5F18!important}
 html body.mundo.mundo-modulo .da-today-pulse-lead small{color:#5E5A53!important}
@@ -1564,7 +1383,6 @@ html body.mundo.mundo-modulo .da-activity-history-head span{color:#027463!import
 html body.mundo.mundo-modulo .da-activity-history-head b{color:#A85900!important}
 html body.mundo.mundo-modulo .da-activity-history-head small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-activity-history-head button{color:#9A6018!important}
-html body.mundo.mundo-modulo .da-history-note{color:#4C7169!important}
 html body.mundo.mundo-modulo .da-history-time{color:#51756D!important}
 html body.mundo.mundo-modulo .da-history-rail i{color:#037C68!important}
 html body.mundo.mundo-modulo .da-history-event.status .da-history-rail i{color:#8A6300!important}
@@ -1581,18 +1399,6 @@ html body.mundo.mundo-modulo .da-today-status-progress.empty{color:#5E5A53!impor
 html body.mundo.mundo-modulo .da-today-status-step i{color:#037C65!important}
 html body.mundo.mundo-modulo .da-today-status-step small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-today-date-chip{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-head span{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-commitment-head b{color:#A85900!important}
-html body.mundo.mundo-modulo .da-commitment-head small{color:#7E6753!important}
-html body.mundo.mundo-modulo .da-commitment-total b{color:#946500!important}
-html body.mundo.mundo-modulo .da-commitment-total span{color:#856642!important}
-html body.mundo.mundo-modulo .da-commitment-group-head small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-person{color:#89622A!important}
-html body.mundo.mundo-modulo .da-commitment-person-head small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-metrics b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-commitment-metrics small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-metrics .attention b{color:#8A6300!important}
-html body.mundo.mundo-modulo .da-commitment-metrics .late b{color:#D11B00!important}
 html body.mundo.mundo-modulo .da-execution-board-head b{color:#037C68!important}
 html body.mundo.mundo-modulo .da-execution-board-head small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-execution-board-head>span{color:#127868!important}
@@ -1630,15 +1436,12 @@ html body.mundo.mundo-modulo .status-context-preview-head small{color:#5E5A53!im
 html body.mundo.mundo-modulo .status-context-preview-loading,html body.mundo.mundo-modulo .status-context-preview-empty{color:#5E5A53!important}
 html body.mundo.mundo-modulo .status-context-preview-empty b{color:#9E5E00!important}
 html body.mundo.mundo-modulo .status-context-preview-caption{color:#5E5A53!important}
-html body.mundo.mundo-modulo .status-context-responsible-hint{color:#4C7169!important}
-html body.mundo.mundo-modulo .status-context-responsible-hint b{color:#037C68!important}
 html body.mundo.mundo-modulo .workspace-delivery-kicker{color:#047B47!important}
 html body.mundo.mundo-modulo .workspace-delivery-dock.missing .workspace-delivery-kicker{color:#945D00!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy b{color:#0069D1!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .workspace-delivery-open,html body.mundo.mundo-modulo .workspace-delivery-copy-btn,html body.mundo.mundo-modulo .workspace-delivery-focus{color:#007544!important}
+html body.mundo.mundo-modulo .workspace-delivery-open,html body.mundo.mundo-modulo .workspace-delivery-copy-btn{color:#007544!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy-btn{color:#48755B!important}
-html body.mundo.mundo-modulo .workspace-delivery-focus{color:#9E5900!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy-sheet b{color:#007544!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy-sheet small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-delivery-copy-sheet button{color:#2C7C55!important}
@@ -1650,15 +1453,10 @@ html body.mundo.mundo-modulo .da-bulk-date-preview{color:#856642!important}
 html body.mundo.mundo-modulo .da-bulk-date-preview.ok{color:#067A40!important}
 html body.mundo.mundo-modulo .da-bulk-date-preview.warn{color:#946000!important}
 html body.mundo.mundo-modulo .da-bulk-date-preview.err{color:#DB0023!important}
-html body.mundo.mundo-modulo .manager-calendar-kicker{color:#B24E00!important}
 html body.mundo.mundo-modulo .manager-calendar-title{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-calendar-sub{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-actions button,html body.mundo.mundo-modulo .manager-calendar-month button,html body.mundo.mundo-modulo .manager-calendar-add{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-month-label{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-status{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-calendar-legend-copy{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-calendar-legend-copy b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-calendar-source-legend{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-day-head{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-day-head b{color:#006CBD!important}
 html body.mundo.mundo-modulo .manager-calendar-day.is-today .manager-calendar-day-head b{color:#B25200!important}
@@ -1667,7 +1465,6 @@ html body.mundo.mundo-modulo .manager-calendar-add{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-event-copy b{color:#0069D1!important}
 html body.mundo.mundo-modulo .manager-calendar-event-copy small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-event-status{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-calendar-event-age{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-more{color:#B24D00!important}
 html body.mundo.mundo-modulo .manager-calendar-demand-note{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-calendar-fora{color:#6E21C4!important}
@@ -1678,7 +1475,7 @@ html body.mundo.mundo-modulo .manager-calendar-footer strong{color:#5E5A53!impor
 html body.mundo.mundo-modulo .manager-calendar-footer button{color:#B24D00!important}
 html body.mundo.mundo-modulo .btn-voltar-menu{color:#5E5A53!important}
 html body.mundo.mundo-modulo .btn-voltar-menu span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .mode-switch-btn,html body.mundo.mundo-modulo .ops-action-btn,html body.mundo.mundo-modulo .ops-today-btn,html body.mundo.mundo-modulo .ops-close-btn,html body.mundo.mundo-modulo .ops-clear-btn,html body.mundo.mundo-modulo .production-control-btn,html body.mundo.mundo-modulo .da-context-workload,html body.mundo.mundo-modulo .da-context-clear,html body.mundo.mundo-modulo .workspace-action,html body.mundo.mundo-modulo .workflow-secondary{color:#5E5A53!important}
+html body.mundo.mundo-modulo .mode-switch-btn,html body.mundo.mundo-modulo .ops-action-btn,html body.mundo.mundo-modulo .ops-today-btn,html body.mundo.mundo-modulo .ops-close-btn,html body.mundo.mundo-modulo .ops-clear-btn,html body.mundo.mundo-modulo .workspace-action,html body.mundo.mundo-modulo .workflow-secondary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-command-daily-head b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-command-daily-rule{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-command-daily-count{color:#5E5A53!important}
@@ -1691,53 +1488,11 @@ html body.mundo.mundo-modulo #month-nav-label{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ops-action-count{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-asset-name{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-field>span,html body.mundo.mundo-modulo .workflow-hint{color:#5E5A53!important}
-html body.mundo.mundo-modulo .manager-card-head,html body.mundo.mundo-modulo .focus-section-head,html body.mundo.mundo-modulo .production-section-head{color:#5E5A53!important}
+html body.mundo.mundo-modulo .manager-card-head,html body.mundo.mundo-modulo .focus-section-head{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-client,html body.mundo.mundo-modulo .pending-client,html body.mundo.mundo-modulo .command-client{color:#4300E6!important}
-html body.mundo.mundo-modulo .da-structure-heading span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-structure-heading b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-execution-details summary,html body.mundo.mundo-modulo .da-secondary-panel>summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-execution-details summary:after,html body.mundo.mundo-modulo .da-secondary-panel>summary:after{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-select-instruction{color:#477568!important}
-html body.mundo.mundo-modulo .da-planning-select-head{color:#00754A!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-context-plan{color:#007544!important}
-html body.mundo.mundo-modulo .da-global-context .da-control-label{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-global-context .da-control-cluster:first-child .da-control-label:last-child{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-global-context .da-control-cluster:last-child:before{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-global-context .da-period-btn,html body.mundo.mundo-modulo .da-global-context .da-filter-btn{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-cell-filter-zone .da-cell-header span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-global-context .da-window-control .da-period-btn{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-head-main>div>b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-head-main>div>small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-close{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-summary>span b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-summary>span small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-row-head{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-list input[type="date"]{color:#007558!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar small::after{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-relative-actions span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-relative-actions button{color:#0A7554!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar.direct-mode small{color:#0E7C57!important}
-html body.mundo.mundo-modulo .da-planning-direct-hint{color:#0A7554!important}
-html body.mundo.mundo-modulo .da-planning-direct-hint.quiet{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-deadline .gold-slack{color:#107955!important}
-html body.mundo.mundo-modulo .da-planning-deadline .gold-risk{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-planning-deadline .gold-pending{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-summary .gold-slack-metric b{color:#107955!important}
-html body.mundo.mundo-modulo .da-planning-summary .gold-risk-metric b{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-planning-summary .gold-ok-metric b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-health-head b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-health-head small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-deadline input[type="date"].is-saving{color:#006CBD!important}
-html body.mundo.mundo-modulo .da-planning-deadline input[type="date"].is-saving::-webkit-datetime-edit{color:#006CBD!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar.direct-mode small{color:#12784E!important}
-html body.mundo.mundo-modulo .da-planning-deadline input[type="date"].batch-date-invalid{color:#5E5A53!important}
 html body.mundo.mundo-modulo .operational-origin-tag{color:#B24D00!important}
 html body.mundo.mundo-modulo .operational-origin-tag.request{color:#6E00E6!important}
 html body.mundo.mundo-modulo .login-marca b{color:#B25200!important}
@@ -1865,27 +1620,20 @@ html body.mundo.mundo-modulo .conta-foto-atual span{color:#946000!important}
 html body.mundo.mundo-modulo .login-rosto{color:#5E5A53!important}
 html body.mundo.mundo-modulo .login-rosto-foto i{color:#946000!important}
 html body.mundo.mundo-modulo .login-voltar{color:#5E5A53!important}
-html body.mundo.mundo-modulo .grupos-kicker{color:#B24E00!important}
 html body.mundo.mundo-modulo .grupos-titulo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .grupos-sub{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupos-total b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupos-total span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupos-vazio{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupo-titulo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupo-tabela td{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupo-nome{color:#006CBD!important}
-html body.mundo.mundo-modulo .grupo-captacao{color:#5E5A53!important}
-html body.mundo.mundo-modulo .grupo-data{color:#5E5A53!important}
-html body.mundo.mundo-modulo .grupo-data.is-late{color:#DB001C!important}
 html body.mundo.mundo-modulo .grupo-data-campo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupo-data-campo.is-late{color:#DB001C!important}
 html body.mundo.mundo-modulo .subitem-tirar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .subitem-corpo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .subitem-corpo small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .subitem-data{color:#5E5A53!important}
 html body.mundo.mundo-modulo .item-tarefas{color:#5E5A53!important}
 html body.mundo.mundo-modulo .item-tarefas.completa{color:#127836!important}
-html body.mundo.mundo-modulo .grupo-texto{color:#5E5A53!important}
 html body.mundo.mundo-modulo .grupos-lote b{color:#A85200!important}
 html body.mundo.mundo-modulo .grupos-lote button{color:#006CBD!important}
 html body.mundo.mundo-modulo .grupos-lote button.quieto{color:#5E5A53!important}
@@ -1903,15 +1651,10 @@ html body.mundo.mundo-modulo .cliente-busca-conta{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dia-do-calendario-topo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dia-do-calendario-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dia-do-calendario-fechar{color:#5E5A53!important}
-html body.mundo.mundo-modulo .entrega-caminho-topo b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .entrega-caminho-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .entrega-depois span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando span{color:#B25000!important}
 html body.mundo.mundo-modulo .focus-next-quando.vencida span{color:#DB002D!important}
-html body.mundo.mundo-modulo .focus-next-prazo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .focus-next-prazo b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .focus-next-prazo.vencido{color:#DB002D!important}
 html body.mundo.mundo-modulo .focus-next-reason{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-dashboard .focus-next-btn.status{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-priority-control-note{color:#5E5A53!important}
@@ -1919,9 +1662,6 @@ html body.mundo.mundo-modulo .focus-priority-control-note b{color:#5E5A53!import
 html body.mundo.mundo-modulo .workflow-title{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-copy{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-field>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .workflow-field input,html body.mundo.mundo-modulo .workflow-field select,html body.mundo.mundo-modulo .workflow-field textarea{color:#5E5A53!important}
-html body.mundo.mundo-modulo .status-context-responsible-hint{color:#5E5A53!important}
-html body.mundo.mundo-modulo .status-context-responsible-hint b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-hint b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-secondary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-check{color:#5E5A53!important}
@@ -1981,7 +1721,6 @@ html body.mundo.mundo-modulo .brief-vazio .brief-abrir-copy small{color:#5E5A53!
 html body.mundo.mundo-modulo .brief-vazio .brief-adicionar{color:#A84E00!important}
 html body.mundo.mundo-modulo .cli-pergunta-caixa h3{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-caixa p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cli-pergunta-caixa input,html body.mundo.mundo-modulo .cli-pergunta-caixa textarea{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-previa figcaption{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cli-pergunta-previa.sem-previa figcaption{color:#5E5A53!important}
 html body.mundo.mundo-modulo .conferencia-arte figcaption{color:#5E5A53!important}
@@ -2015,8 +1754,6 @@ html body.mundo.mundo-modulo .vybe-id{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-cliente{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-data.atrasado{color:#DB001C!important}
 html body.mundo.mundo-modulo .notif-meta{color:#5E5A53!important}
-html body.mundo.mundo-modulo .resumo-alerta{color:#DB001C!important}
-html body.mundo.mundo-modulo .resumo-ok{color:#177D41!important}
 html body.mundo.mundo-modulo .resumo-item.risco b{color:#DB001C!important}
 html body.mundo.mundo-modulo .ops-clear-btn:not(.is-idle){color:#DB001C!important}
 html body.mundo.mundo-modulo .icone-btn{color:#5E5A53!important}
@@ -2024,7 +1761,6 @@ html body.mundo.mundo-modulo .cr-cliente{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cr-fechar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cr-titulo{color:#006CBD!important}
 html body.mundo.mundo-modulo .cr-linha>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cr-excluir{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary::after{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary small{color:#5E5A53!important}
@@ -2033,8 +1769,6 @@ html body.mundo.mundo-modulo .dono-pessoa{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dono-nome small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dono-vazio{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dono-sem{color:#5E5A53!important}
-html body.mundo.mundo-modulo #planning-golden-state.golden-ok b{color:#007645!important}
-html body.mundo.mundo-modulo #planning-golden-state.golden-risk b{color:#9E5B00!important}
 html body.mundo.mundo-modulo .da-segmento button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-week-agenda-dica span{color:#86674B!important}
 html body.mundo.mundo-modulo .da-regua-seta{color:#8C653B!important}
@@ -2049,27 +1783,11 @@ html body.mundo.mundo-modulo .da-command-daily-card.vazia .da-command-daily-coun
 html body.mundo.mundo-modulo .da-command-modal .da-command-modal-copy b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-command-modal .da-command-modal-copy small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .da-data-botao.gold-risk{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-metrics>span.zero b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-metrics>span.attention:not(.zero) b{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-commitment-metrics>span.late:not(.zero) b{color:#DB0021!important}
-html body.mundo.mundo-modulo .da-planning-note{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-note b{color:#9E5E00!important}
-html body.mundo.mundo-modulo .da-planning-health-legend span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-health-legend b{color:#006CBD!important}
-html body.mundo.mundo-modulo .da-planning-health-legend em{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-health-legend .health-ok{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-health-legend .health-slack{color:#107A54!important}
-html body.mundo.mundo-modulo .da-planning-health-legend .health-risk{color:#9E5D00!important}
-html body.mundo.mundo-modulo .da-planning-health-legend .health-pending{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-prova-topo b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-prova-topo small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-frase{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-commitment-detalhe>summary{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-structure-heading b,html body.mundo.mundo-modulo .da-command-daily-head b,html body.mundo.mundo-modulo .da-cell-filter-zone .da-cell-header b,html body.mundo.mundo-modulo .da-prova-topo b,html body.mundo.mundo-modulo .da-commitment-head b,html body.mundo.mundo-modulo .da-week-agenda-head b,html body.mundo.mundo-modulo .da-execution-board-head b,html body.mundo.mundo-modulo .da-command-zone-head b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-structure-heading small,html body.mundo.mundo-modulo .da-command-daily-head small,html body.mundo.mundo-modulo .da-cell-header span,html body.mundo.mundo-modulo .da-prova-topo small,html body.mundo.mundo-modulo .da-commitment-head small{color:#5E5A53!important}
+html body.mundo.mundo-modulo .da-command-daily-head b,html body.mundo.mundo-modulo .da-cell-filter-zone .da-cell-header b,html body.mundo.mundo-modulo .da-week-agenda-head b,html body.mundo.mundo-modulo .da-execution-board-head b{color:#5E5A53!important}
+html body.mundo.mundo-modulo .da-command-daily-head small,html body.mundo.mundo-modulo .da-cell-header span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-drawer .workspace-section-head,html body.mundo.mundo-modulo .workspace-drawer .workspace-section>summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-drawer .workspace-recolhida>summary{color:#5E5A53!important}
-html body.mundo.mundo-modulo .focus-group-head,html body.mundo.mundo-modulo .focus-daily-plan-head>div>span{color:#5E5A53!important}
+html body.mundo.mundo-modulo .focus-daily-plan-head>div>span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-section-fim{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-section-head > span:first-child{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-section-head > span:first-child b{color:#5E5A53!important}
@@ -2089,29 +1807,7 @@ html body.mundo.mundo-modulo #demandas-grupos-btn b,html body.mundo.mundo-modulo
 html body.mundo.mundo-modulo #demandas-grupos-btn[aria-expanded="true"],html body.mundo.mundo-modulo #demandas-agenda-btn[aria-expanded="true"]{color:#9E5C00!important}
 html body.mundo.mundo-modulo .demandas-vazio b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .demandas-vazio span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-head-main .da-planning-avatar{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher .da-planning-avatar{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-switcher small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group>span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-control-group small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-note{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-note b{color:#9E5F00!important}
-html body.mundo.mundo-modulo .da-planning-bulkbar small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-item-name,html body.mundo.mundo-modulo .da-planning-copy>b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-item-client,html body.mundo.mundo-modulo .da-planning-copy>small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-airdate b{color:#0040E6!important}
 html body.mundo.mundo-modulo .da-planning-file-vazio{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ag-num b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ag-num span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ag-num.alerta b{color:#DB001C!important}
-html body.mundo.mundo-modulo .ag-num.atencao b{color:#9E5D00!important}
-html body.mundo.mundo-modulo .ag-acao-nota{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ag-acao-nota b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ag-arrumar{color:#A84E00!important}
-html body.mundo.mundo-modulo .ag-arrumar:disabled{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-resumo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-resumo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-resumo.ok{color:#137646!important}
@@ -2125,14 +1821,8 @@ html body.mundo.mundo-modulo .ag-progresso-topo span{color:#137744!important}
 html body.mundo.mundo-modulo .ag-progresso small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-pendencia{color:#8F6524!important}
 html body.mundo.mundo-modulo .ag-pendencia b{color:#9E5A00!important}
-html body.mundo.mundo-modulo .da-planning-todos{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-todos small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-dica{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-copy small .operational-origin-tag{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-copy small .operational-origin-tag.request{color:#6E00E6!important}
 html body.mundo.mundo-modulo .brief-abrir-copy b{color:#A85800!important}
 html body.mundo.mundo-modulo .brief-abrir-copy small{color:#806851!important}
-html body.mundo.mundo-modulo .brief-chamada{color:#5E5A53!important}
 html body.mundo.mundo-modulo .brief-topo h2{color:#5E5A53!important}
 html body.mundo.mundo-modulo .brief-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .brief-copiar{color:#5E5A53!important}
@@ -2181,8 +1871,6 @@ html body.mundo.mundo-modulo .cr-previa{color:#11794B!important}
 html body.mundo.mundo-modulo .previa-peca-info b{color:#3162B5!important}
 html body.mundo.mundo-modulo .previa-peca-info small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .previa-peca-passo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .dia-demanda-tag{color:#0072A8!important}
-html body.mundo.mundo-modulo #mode-gate .identity-overline{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-hero p{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .station-top{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-station .station-description{color:#5E5A53!important}
@@ -2219,8 +1907,6 @@ html body.mundo.mundo-modulo .grupo-cadastro{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cr-texto{color:#5E5A53!important}
 html body.mundo.mundo-modulo .status-context-dialog .workflow-field>span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .context-field-help{color:#5E5A53!important}
-html body.mundo.mundo-modulo .context-reference{color:#5E5A53!important}
-html body.mundo.mundo-modulo .context-reference small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .context-actions>small{color:#5E5A53!important}
 html body.mundo.mundo-modulo #context-review dt{color:#5E5A53!important}
 html body.mundo.mundo-modulo #context-step-error{color:#DB001D!important}
@@ -2243,13 +1929,10 @@ html body.mundo.mundo-modulo .abr-texto p{color:#9B5C22!important}
 html body.mundo.mundo-modulo .abr-secundario{color:#5E5A53!important}
 html body.mundo.mundo-modulo .abr-girar button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .abr-grupo h3{color:#856242!important}
-html body.mundo.mundo-modulo .abr-estilo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .abr-erro{color:#D11600!important}
 html body.mundo.mundo-modulo .abr-dicas{color:#8A623D!important}
 html body.mundo.mundo-modulo .abr-dicas b{color:#B24B00!important}
 html body.mundo.mundo-modulo .abr-quartos small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .abr-cabe.sim{color:#0D7D2D!important}
-html body.mundo.mundo-modulo .abr-cabe.nao{color:#D12200!important}
 html body.mundo.mundo-modulo .abr-nota{color:#856242!important}
 html body.mundo.mundo-modulo .abr-erro-quarto{color:#D12200!important}
 html body.mundo.mundo-modulo .abr-amostras button{color:#5E5A53!important}
@@ -2261,13 +1944,10 @@ html body.mundo.mundo-modulo #login-gate.login-vybelandia .login-chegada p{color
 html body.mundo.mundo-modulo .ofc-editor-info b{color:#B24D00!important}
 html body.mundo.mundo-modulo .ofc-editor button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-editor button.perigo{color:#DB0000!important}
-html body.mundo.mundo-modulo .abr-busca{color:#5E5A53!important}
 html body.mundo.mundo-modulo .mapa-rotulo.trancada::before{color:#B24B00!important}
 html body.mundo.mundo-modulo .mapa-etiqueta small{color:#9E5800!important}
 html body.mundo.mundo-modulo .ofc-acao button{color:#A84F00!important}
 html body.mundo.mundo-modulo .ofc-avisos p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cri-abas button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cri-sub{color:#856242!important}
 html body.mundo.mundo-modulo .cri-peca span{color:#856242!important}
 html body.mundo.mundo-modulo .tut-passo{color:#B24B00!important}
 html body.mundo.mundo-modulo .tut-cartao p{color:#8B673C!important}
@@ -2283,7 +1963,6 @@ html body.mundo.mundo-modulo .mapa-selo[data-status=reuniao]{color:#B24B00!impor
 html body.mundo.mundo-modulo .ofc-fila small.hoje{color:#945A00!important}
 html body.mundo.mundo-modulo .ofc-fila small.atrasada{color:#DB0000!important}
 html body.mundo.mundo-modulo .ofc-numeros dd.alerta{color:#DB0000!important}
-html body.mundo.mundo-modulo .cri-grupos button{color:#7F6548!important}
 html body.mundo.mundo-modulo .cri-cor-alvo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cri-mais-cores{color:#B24B00!important}
 html body.mundo.mundo-modulo .cri-paginas{color:#7F6548!important}
@@ -2335,9 +2014,6 @@ html body.mundo.mundo-modulo .ofc-editor-flutua button.perigo{color:#DB0000!impo
 html body.mundo.mundo-modulo .ofc-giro{color:#B25000!important}
 html body.mundo.mundo-modulo .ofc-vitrine summary{color:#8A6000!important}
 html body.mundo.mundo-modulo .ofc-grupo-n{color:#B24D00!important}
-html body.mundo.mundo-modulo .abr-escolha-atual span{color:#B24D00!important}
-html body.mundo.mundo-modulo .abr-tamanhos h3{color:#5E5A53!important}
-html body.mundo.mundo-modulo .abr-tamanhos small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-ficha-inventario li{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-ficha-inventario em{color:#B25000!important}
 html body.mundo.mundo-modulo .ofc-secoes button small{color:#8A6000!important}
@@ -2361,24 +2037,14 @@ html body.mundo.mundo-modulo .plj-cad-foto{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-cad-dias span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-pedido p{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-abas button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-grupo legend{color:#9E5A00!important}
-html body.mundo.mundo-modulo .plj-linha span{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-tirar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-peca > summary b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-peca > summary em{color:#DB0000!important}
-html body.mundo.mundo-modulo .plj-peca-num{color:#9E5A00!important}
-html body.mundo.mundo-modulo .plj-peca-dia{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-tirar-texto{color:#DB0000!important}
 html body.mundo.mundo-modulo .plj-etapas li{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-etapas li.feita{color:#0E7B43!important}
 html body.mundo.mundo-modulo .plj-etapas li.agora{color:#946000!important}
 html body.mundo.mundo-modulo .plj-etapas li.agora.ajustes{color:#DB0000!important}
 html body.mundo.mundo-modulo .plj-etapas small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-dica{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-dica b{color:#946000!important}
 html body.mundo.mundo-modulo .plj-ed-sec{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-ed-sec em{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-ed-mais{color:#9E5A00!important}
@@ -2420,7 +2086,6 @@ html body.mundo.mundo-modulo .plj-rev .ruim{color:#DB0000!important}
 html body.mundo.mundo-modulo .plj-rev-cli p{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-rev-cli.ok{color:#0E7B43!important}
 html body.mundo.mundo-modulo .plj-rev-cli.ruim{color:#DB0000!important}
-html body.mundo.mundo-modulo .plj-peca > summary em.ok{color:#0E7B43!important}
 html body.mundo.mundo-modulo .plj-reserva summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-logos-drive{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-check{color:#5E5A53!important}
@@ -2518,7 +2183,6 @@ html body.mundo.mundo-modulo .ofc-rk-voce p{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-rk-degrau > small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-rk-bloco em{color:#886335!important}
 html body.mundo.mundo-modulo .ofc-rk-degrau.p1 .ofc-rk-bloco span{color:#8A6200!important}
-html body.mundo.mundo-modulo .ofc-rk-degrau.p3 .ofc-rk-bloco span{color:#B24A00!important}
 html body.mundo.mundo-modulo .ofc-rk-degrau.eu .ofc-rk-dnome{color:#B24B00!important}
 html body.mundo.mundo-modulo .ofc-rk-link{color:#B24B00!important}
 html body.mundo.mundo-modulo .ofc-rk-det-col h5{color:#B24B00!important}
@@ -2562,9 +2226,6 @@ html body.mundo.mundo-modulo .ofc-cart-legenda{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-cart-ganhos small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-cart-valor{color:#8A6000!important}
 html body.mundo.mundo-modulo .ofc-cart-valor.perde{color:#DB0000!important}
-html body.mundo.mundo-modulo .ofc-escada-nivel.n1{color:#B24A00!important}
-html body.mundo.mundo-modulo .ofc-escada-nivel.n2{color:#5E5A53!important}
-html body.mundo.mundo-modulo .ofc-escada-nivel.n3{color:#8A6200!important}
 html body.mundo.mundo-modulo .ofc-cq-grupo h3{color:#B24B00!important}
 html body.mundo.mundo-modulo .ofc-cq-grupo > small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-cq-topo small{color:#5E5A53!important}
@@ -2603,15 +2264,11 @@ html body.mundo.mundo-modulo .cri-looks-titulo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cri-look > button:first-child{color:#9E5D00!important}
 html body.mundo.mundo-modulo .cri-preco{color:#9E5C00!important}
 html body.mundo.mundo-modulo .cri-preco.raro{color:#0069D1!important}
-html body.mundo.mundo-modulo .cri-skin b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cri-skin small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cri-skin button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cri-skin button.cri-skin-comprar{color:#9E5C00!important}
 html body.mundo.mundo-modulo .prov-titulo h2{color:#5E5A53!important}
 html body.mundo.mundo-modulo .provador .prov-corpo button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-parte{color:#5E5A53!important}
 html body.mundo.mundo-modulo .provador .prov-palco .abr-girar .cri-sorte{color:#B25100!important}
-html body.mundo.mundo-modulo .prov-vitrine h3,html body.mundo.mundo-modulo .prov-cabecalho h3{color:#5E5A53!important}
+html body.mundo.mundo-modulo .prov-cabecalho h3{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-ordem select{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-skin-texto b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-skin-preco{color:#946500!important}
@@ -2650,7 +2307,6 @@ html body.mundo.mundo-modulo .prov-modo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-gr-titulo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .prov-gr-parte{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-periodo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-dica{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-coluna-topo h4{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-busca input{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-discreto{color:#5E5A53!important}
@@ -2700,7 +2356,6 @@ html body.mundo.mundo-modulo .capt-form legend{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-escolha b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-escolha small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-form label{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-form input:not([type=checkbox]),html body.mundo.mundo-modulo .capt-form textarea,html body.mundo.mundo-modulo .capt-form select{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-erro{color:#DB0000!important}
 html body.mundo.mundo-modulo .capt-coluna-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-pend-texto b{color:#5E5A53!important}
@@ -2751,7 +2406,6 @@ html body.mundo.mundo-modulo .rk2-degrau.eu .ofc-rk-dnome{color:#A85100!importan
 html body.mundo.mundo-modulo .rk2-premio{color:#8A6200!important}
 html body.mundo.mundo-modulo .rk2-bloco em{color:#896534!important}
 html body.mundo.mundo-modulo .rk2-degrau.p1 .rk2-bloco span{color:#8A6400!important}
-html body.mundo.mundo-modulo .rk2-degrau.p3 .rk2-bloco span{color:#B24E0A!important}
 html body.mundo.mundo-modulo .rk2-coroa{color:#8A6500!important}
 html body.mundo.mundo-modulo .rk2-pos{color:#5E5A53!important}
 html body.mundo.mundo-modulo .rk2-nome b{color:#5E5A53!important}
@@ -2762,9 +2416,6 @@ html body.mundo.mundo-modulo .cq-placa > small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cq-placa > span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cq-anel small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cq-medalhas small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cq-titulos h4.n1{color:#AB4F12!important}
-html body.mundo.mundo-modulo .cq-titulos h4.n2{color:#5E5A53!important}
-html body.mundo.mundo-modulo .cq-titulos h4.n3{color:#8A6000!important}
 html body.mundo.mundo-modulo .cq-titulos h4.n4{color:#007094!important}
 html body.mundo.mundo-modulo .cq-titulo-op small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .cq-dica{color:#5E5A53!important}
@@ -2788,7 +2439,6 @@ html body.mundo.mundo-modulo .lg-conv{color:#5E5A53!important}
 html body.mundo.mundo-modulo .lg-jogador-txt em{color:#5E5A53!important}
 html body.mundo.mundo-modulo .lg-fogo{color:#B25200!important}
 html body.mundo.mundo-modulo .lg-fogo b{color:#5E5A53!important}
-html body.mundo.mundo-modulo .lg-placa-sala{color:#5E5A53!important}
 html body.mundo.mundo-modulo .lg-botao{color:#5E5A53!important}
 html body.mundo.mundo-modulo .lg-botao.alerta .lg-botao-txt small{color:#D11A00!important}
 html body.mundo.mundo-modulo .lg-online h3{color:#0E7C3A!important}
@@ -2939,11 +2589,8 @@ html body.mundo.mundo-modulo .ofc-historico-texto b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-historico-texto small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-historico-item em.mais{color:#167E3E!important}
 html body.mundo.mundo-modulo .ofc-historico-item em.menos{color:#BD3D00!important}
-html body.mundo.mundo-modulo .capt-tb-nav button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-tb-titulo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-tb-titulo small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-filtro{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-filtro b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-tb-pend{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-inspetor-fechar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-paradas{color:#5E5A53!important}
@@ -2958,8 +2605,6 @@ html body.mundo.mundo-modulo .ag-previa-pecas i.ok{color:#147646!important}
 html body.mundo.mundo-modulo .ag-previa-pecas i.falta{color:#946400!important}
 html body.mundo.mundo-modulo .ag-previa-mais{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-previa-dica{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-legenda{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-legenda em{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-fila-sec .capt-coluna-topo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-mes-num{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ag-chip{color:#5E5A53!important}
@@ -3074,7 +2719,6 @@ html body.mundo.mundo-modulo .xdz-fim.perdeu b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .dmn-monte{color:#227C46!important}
 html body.mundo.mundo-modulo .dmn-monte small{color:#3C7754!important}
 html body.mundo.mundo-modulo .dmn-linha.vazia{color:#227C46!important}
-html body.mundo.mundo-modulo .dmn-ponta{color:#8A6700!important}
 html body.mundo.mundo-modulo .dmn-revelado{color:#5E5A53!important}
 html body.mundo.mundo-modulo .pkr-centro{color:#227C46!important}
 html body.mundo.mundo-modulo .pkr-pote{color:#247A43!important}
@@ -3117,7 +2761,6 @@ html body.mundo.mundo-modulo .vlh-mesa small{color:#227C46!important}
 html body.mundo.mundo-modulo .dam-peca.dama::after{color:#826712!important}
 html body.mundo.mundo-modulo .trc-vira,html body.mundo.mundo-modulo .trc-info{color:#227C46!important}
 html body.mundo.mundo-modulo .trc-info b{color:#946000!important}
-html body.mundo.mundo-modulo .trc-pedido b{color:#946000!important}
 html body.mundo.mundo-modulo .pkr-salao .pkr-centro{color:#227C46!important}
 html body.mundo.mundo-modulo .pkr-salao .pkr-pote{color:#247A43!important}
 html body.mundo.mundo-modulo .pkr-quem b{color:#5E5A53!important}
@@ -3215,9 +2858,7 @@ html body.mundo.mundo-modulo #workflow-modal.ofc-snc-jogo .snc-confronto b{color
 html body.mundo.mundo-modulo #workflow-modal.ofc-snc-jogo .snc-confronto b i{color:#A85000!important}
 html body.mundo.mundo-modulo #workflow-modal.ofc-snc-jogo .snc-efeito-nome{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-marca b{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-hero h1,html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-duelo h1{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-secao-titulo h2,html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-passo h2{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-adversario h3,html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-modo-card b{color:#5E5A53!important}
+html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-duelo h1{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal .snc-sala .snc-bar-dados h3{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal.ofc-snc-jogo .snc-pontos{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal.ofc-snc-jogo .snc-hud .snc-forca-exata input{color:#5E5A53!important}
@@ -3243,21 +2884,10 @@ html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-bar-dados p{col
 html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-bar .snc-recompensa{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-bar .snc-recompensa b{color:#8A6100!important}
 html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-bar-tranca{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-degrau small{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-degrau.p1 em{color:#906504!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-degrau.p2 em{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-degrau.p3 em{color:#A55B18!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-placar-lista button{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-placar-lista em{color:#5E5A53!important}
-html body.mundo.mundo-modulo #workflow-modal .snc-jogo-menu .snc-placar-lista small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop :is(.mes-nav,.badge,.quem-sou-btn,.mode-switch-btn,.notif-sino,.btn-refresh,.appearance-button){color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop .btn-refresh{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop :is(.client-header,.demanda-group-header,.dem-cartao-topo,.auto-regra-topo,
   .conta-secao-topo,.cli-bloco-cabeca,.workspace-section-head,.fc-prev-head){color:#5E5A53!important}
-html body.mundo.mundo-modulo .vybe-desktop .day-add-btn{color:#B25100!important}
-html body.mundo.mundo-modulo .vybe-desktop .dia-vazio-recado{color:#5E5A53!important}
-html body.mundo.mundo-modulo .vybe-desktop :is(.global-search,.fc-campo,.fc-busca,.cadastros-form input,.cadastros-form textarea,
-  .workspace-form-row input,.workspace-form-row select,.workspace-form-row textarea){color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop :is(.workspace-close,.workflow-close,.fc-close,.p-draw-close){color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-metrics .focus-metric.calado strong{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-lente-opcao{color:#5E5A53!important}
@@ -3286,9 +2916,6 @@ html body.mundo.mundo-modulo .manager-command-drawer-title{color:#5E5A53!importa
 html body.mundo.mundo-modulo .manager-command-drawer-context{color:#5E5A53!important}
 html body.mundo.mundo-modulo .manager-command-tab{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-client{color:#4300E6!important}
-html body.mundo.mundo-modulo .command-detail{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-next{color:#5E5A53!important}
-html body.mundo.mundo-modulo .command-context{color:#5E5A53!important}
 html body.mundo.mundo-modulo .command-more{color:#A84E00!important}
 html body.mundo.mundo-modulo .command-decision-meta{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-desktop .command-decision-button{color:#A84E00!important}
@@ -3303,9 +2930,7 @@ html body.mundo.mundo-modulo .notas-acao.perigo{color:#DB0021!important}
 html body.mundo.mundo-modulo .notas-item-pe{color:#5E5A53!important}
 html body.mundo.mundo-modulo .notas-emoji-grupo > span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .nota-busca-dica{color:#5E5A53!important}
-html body.mundo.mundo-modulo .notas-placeholder{color:#5E5A53!important}
 html body.mundo.mundo-modulo .notas-pe{color:#5E5A53!important}
-html body.mundo.mundo-modulo .da-planning-airdate input[type="date"]{color:#0040E6!important}
 html body.mundo.mundo-modulo .mesa-agendas button small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .mesa-contagem{color:#5E5A53!important}
 html body.mundo.mundo-modulo .mesa-seq{color:#5E5A53!important}
@@ -3471,8 +3096,6 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
   html body.mundo .vv-demanda{animation:vv-entra .24s cubic-bezier(.2,.8,.2,1) both}
   html body.mundo .vv-demanda:nth-child(2){animation-delay:.03s}html body.mundo .vv-demanda:nth-child(3){animation-delay:.06s}html body.mundo .vv-demanda:nth-child(4){animation-delay:.09s}html body.mundo .vv-demanda:nth-child(5){animation-delay:.12s}
 }
-/* parado (ocioso) ou pedindo menos movimento: nada se mexe */
-html.vb-ocioso body.mundo :is(.container>*,.cartao-rapido,.workflow-modal,.vv-placa,.vv-demanda,dialog.ofc-ficha,.day-activity-scroll){animation:none!important}
 
 /* ===== A rolagem dos módulos acontece DENTRO da moldura (antes a página toda rolava e o conteúdo
    passava da borda de vidro, aparecendo cortado por cima do mapa). O body ocupa a área da moldura;
@@ -4558,10 +4181,6 @@ body.mundo:not(.mundo-centro) #vv-hoje .vv-blocos > .vv-bloco{break-inside:avoid
 .vv-semana-controles nav button{flex:none}
 body.mundo:not(.mundo-centro) .vv-hoje .vv-fala{max-width:none!important;width:100%;box-sizing:border-box}
 
-/* Modo ocioso (html.vb-ocioso pausa as animações): nenhuma janela do Irecity pode congelar invisível na entrada.
-   Com a pessoa parada, a janela simplesmente aparece pronta (sem animação). Antes: Carteira, Pessoas, Missões e
-   Agentes abriam em branco (opacidade 0) quando o painel tinha entrado em repouso. */
-html.vb-ocioso body.mundo :is([class^="vc-"],[class*=" vc-"],.vc,[class^="vp-"],[class*=" vp-"],[class^="vv-"],[class*=" vv-"],[class^="vga-"],.vv-ag,[class^="vd-"],.mundo-rotulo){animation:none!important}
 
 /* Hierarquia única nos módulos (08/11/2026): título de seção = Inter Tight 14/600 na tinta; rótulo de cima = 12/600 cinza.
    Antes cada módulo tinha o seu laranja 10,5px (Carteira, Comercial, Pessoas, Missões...), parecendo telas diferentes. */
@@ -4585,7 +4204,7 @@ html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!importan
 html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
-html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)!important}
+html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)}
 
 /* Comercial em tela cheia (08/11/2026): gráfico do caixa com altura limitada, fases ocupando a largura, estado vazio
    na largura toda (antes um cartão pequeno à esquerda com um vazio do lado). */
@@ -4594,7 +4213,7 @@ html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)
 html body.mundo :is(#vv-comercial,#vv-conteudo,#vv-carteira,#vv-pessoas) :is(.vc-vazio,.vp-vazio){grid-column:1/-1}
 
 /* Cabeçalho das telas antigas sem a moldura laranja aberta (borda só em cima e dos lados parecia caixa quebrada). */
-html body.mundo.mundo-modulo .app-header{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-height:0!important;padding-top:4px!important;padding-bottom:4px!important}
+html body.mundo.mundo-modulo .app-header{border:0;border-radius:0;box-shadow:none;background:transparent;min-height:0;padding-top:4px;padding-bottom:4px;padding-left:26px}
 html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 
 /* Varredura 08/11/2026 (2): placas em tela cheia por cima do HUD; Conversa na coluna da direita; botões do canto
@@ -4853,8 +4472,6 @@ body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli
 @keyframes vs-estica{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (max-width:900px){.vs-topo{flex-direction:column}.vs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-kpi-valor{font-size:21px}.vs-deitadas li{grid-template-columns:minmax(90px,38%) 1fr auto}}
 @media (prefers-reduced-motion:reduce){.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i{animation:none}}
-/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada congelaria no primeiro quadro, invisível. */
-html.vb-ocioso :is(.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i,.vv-setor-visao){animation:none!important}
 
 /* ---------- Coluna da direita na barra de cima (Paulo, 08/11/2026: "o foco é no que tá aberto") ----------
    A Agenda (fixa só para o Mizinho, body.agenda-fixa) e a barra da sala de voz abrem pelos botões da barra de cima,
@@ -4907,8 +4524,6 @@ html body.mundo:not(.vv-x) #office-musica.vv-musica-janela.movida{left:var(--mx)
 .vv-musica-janela .ofc-musica-topo button:hover{color:#1F1D1A!important}
 .vv-ferr-musica[hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){html body.mundo #office-musica.vv-musica-janela{animation:none!important}}
-/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada das janelinhas da barra congelaria transparente. */
-html.vb-ocioso body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada),html.vb-ocioso body.mundo #office-musica{animation:none!important}
 /* Com a sala aberta embaixo da barra, a lista de salas de voz abre para baixo (antes subia por cima da barra). */
 html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top:calc(100% + 8px);bottom:auto;left:auto;right:0;max-height:min(420px,calc(100vh - 220px))}
 /* No Centro e no Prédio o Hoje tem a altura do que mostra (antes era uma placa de vidro da altura da tela, quase vazia,
@@ -5094,7 +4709,6 @@ html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){
    rótulo pequeno, grupos como bolinhas na cor do grupo (sem caixa de marcar). */
 html body .cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
 @media (max-width:900px){html body .cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
-html.vb-ocioso body .cg.cg-cheia{animation:none}
 .cg-titulo{position:absolute;left:16px;top:14px;z-index:2;display:grid;gap:2px;pointer-events:none}
 .cg-titulo b{font:750 16px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:#fff;letter-spacing:-.01em}
 .cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
@@ -5206,7 +4820,6 @@ body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
 .vv-avisos-menu b{font:650 13px var(--vv-texto);color:#1F1D1A}
 .vv-avisos-menu small{grid-column:1;font:500 11.5px var(--vv-texto);color:#8A847A}
 .vv-avisos-menu em{grid-row:1/3;grid-column:2;align-self:center;font:750 12px var(--vv-texto);font-style:normal;color:#fff;background:var(--vv-laranja,#F26B1D);border-radius:999px;padding:2px 8px}
-html.vb-ocioso .vv-avisos-menu{animation:none}
 /* A bolinha recolhida dos avisos some: o número está no sino. O aviso aberto (coisa nova) continua aparecendo. */
 html body.mundo .plj-aviso.recolhido{display:none!important}
 @media (min-width:901px){
@@ -5376,3 +4989,34 @@ html body.mundo :is(.vc-acao,.vp-acao,.vv-botao.acao,.ops-novo-conteudo,.capt-tb
 .vga-rascunho .vga-copiar{margin-top:6px;min-height:30px;padding:0 12px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,Inter,system-ui,sans-serif);cursor:pointer}
 .vga-rascunho .vga-copiar:hover{background:#F3EEE6}
 .vga-rascunho .vga-copiar:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+
+/* Cadeado no dock (Paulo, 09/11/2026): Negócio e Time aparecem apagados e com cadeado para quem não é dono. */
+/* Paulo, 09/11: "mais borrado, ao ponto de não dar pra ler o que é" — o nome e o ícone somem no borrão; o cadeado fica nítido. */
+.vv-trilho .trancado{opacity:.7;cursor:not-allowed;position:relative;user-select:none}
+.vv-trilho .trancado>span,.vv-trilho .trancado>svg,.vv-trilho .trancado>i{filter:blur(4.5px) grayscale(1);opacity:.75}
+.vv-trilho .trancado::after{content:"";position:absolute;right:10px;top:50%;width:12px;height:12px;margin-top:-6px;background:#6B665E;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat}
+.vv-trilho .vv-trilho-btn.trancado .vv-trilho-seta{display:none}
+.vv-trilho .trancado:hover{opacity:.7}
+.vv-trilho .trancado.tremer{animation:vv-tremer .32s var(--curva,ease)}
+@keyframes vv-tremer{25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+@media (prefers-reduced-motion:reduce){.vv-trilho .trancado.tremer{animation:none}}
+html.vb-sem-movimento .vv-trilho .trancado.tremer{animation:none}
+
+/* Ver como: faixa no topo enquanto um dono confere a tela de outra pessoa. */
+.vv-vendo-como{position:fixed;z-index:730;left:50%;top:calc(var(--vv-m,12px) + 58px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;border-radius:8px;background:#1F1D1A;color:#FFFFFF;font:600 12.5px var(--vv-texto);box-shadow:0 6px 18px -8px rgba(31,29,26,.5)}
+.vv-vendo-como b{color:#FFB37A}
+.vv-vendo-como button{appearance:none;border:0;border-radius:6px;padding:5px 10px;background:#F26B1D;color:#FFFFFF;font:700 12px var(--vv-texto);cursor:pointer}
+.vv-vendo-como button:focus-visible{outline:2px solid #FFB37A;outline-offset:2px}
+.vv-menu-conta .atual b::after{content:" ✓";color:#F26B1D}
+
+/* Performance da Gestão */
+.vv-perf-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.vv-perf-topo .vs-aviso{margin:0;flex:1 1 320px}
+.vv-perf-proc{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vv-perf-proc li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:#FAF7F2;border-left:3px solid transparent}
+.vv-perf-proc li.atencao{border-left-color:#E0A21B}.vv-perf-proc li.ruim{border-left-color:#D2453B}
+.vv-perf-proc li span{display:grid;gap:1px}.vv-perf-proc li b{font:600 13px var(--vv-texto);color:#1F1D1A}.vv-perf-proc li small{font:500 11.5px var(--vv-texto);color:#6B665E}
+.vv-perf-proc li em{font:600 13px var(--vv-texto);color:#B8B0A4;font-style:normal}
+.vv-perf-tabela td b .cliente-carteira{font-weight:600}

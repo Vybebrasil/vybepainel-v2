@@ -12,20 +12,148 @@
 
 const SINUCA_RARIDADE = { lendario: "Lendário", epico: "Épico", raro: "Raro", comum: "Comum", zoeira: "Zoeira" };
 
-// --- Cartão do confronto ------------------------------------------------------
-// Aparece uma vez por partida, quando ela começa (nenhuma tacada ainda), para os
-// dois e para quem abrir a mesa assistindo. Some sozinho ou com um clique.
+// --- Pré-partida ---------------------------------------------------------------
+// Paulo, 09/11/2026: "a animação de entrada não funcionou, ficou tela preta. Por
+// que ela não vira uma tela de pré-entrada na partida, onde cada player tem que
+// dar um preparado? E pode ser até a hora das apostas de quem tá dentro e
+// assistindo". A tela VS virou a pré-partida: fica DENTRO da arena (a janela
+// solta no body era o que falhava) e dura o que o servidor manda (j.pre), até
+// os dois darem PREPARADO ou o relógio acabar. Quem assiste vê a mesma tela e
+// aposta. Contra o bot a pré-partida é só desta tela: some no BORA.
+// Quem chamou recebe a partida pela leitura automática, que não traz as fichas
+// (só a abertura traz): a tela busca uma vez.
 function sinucaConfrontoTalvez(j) {
-  if (typeof document !== "undefined" && j?.estado === "jogando" && !j.bot && !sinucaFichas(j) && (j.mesa?.n || 0) > 0) sinucaFichasBuscar(j);
-  if (typeof document === "undefined" || !j || j.estado !== "jogando" || (j.mesa?.n || 0) > 0 || j.mesa?.rodizio) return;
-  const chave = `snc-confronto:${j.id}`;
-  try { if (sessionStorage.getItem(chave)) return; } catch { /* sem armazenamento: mostra */ }
-  // Quem chamou recebe a partida pela leitura automática, que não traz as
-  // fichas (só a abertura traz): busca e mostra depois (Paulo, 08/11/2026:
-  // "não entrou a animação quando comecei a partida com o Vinícius").
-  if (!j.bot && !sinucaFichas(j)) { sinucaFichasBuscar(j); return; }
-  try { sessionStorage.setItem(chave, "1"); } catch { /* segue */ }
-  sinucaConfrontoMostrar(j);
+  if (typeof document === "undefined" || j?.estado !== "jogando" || j.bot || sinucaFichas(j)) return;
+  sinucaFichasBuscar(j);
+}
+const sinucaPreChave = (j) => `snc-pre:${j.id}`;
+function sinucaPreAtiva(j) {
+  if (!j || j.estado !== "jogando" || j.mesa?.rodizio) return false;
+  if (j.pre) return true;
+  if (!j.bot || !j.eu || (j.mesa?.n || 0) > 0) return false;
+  const s = sinucaEstado();
+  if (s.preBot?.id !== j.id) { let feito = false; try { feito = Boolean(sessionStorage.getItem(sinucaPreChave(j))); } catch { /* sem armazenamento */ } s.preBot = { id: j.id, feito }; }
+  return !s.preBot.feito;
+}
+function sinucaPreSegundos(j) {
+  return j?.pre ? Math.max(0, Math.ceil((new Date(j.pre.ate).getTime() - Date.now()) / 1000)) : 0;
+}
+// Diagramação de tela de luta (Paulo, 09/11/2026: "rediagrama melhor tudo
+// isso"; "ter que rolar as coisas dentro de jogo não tem sentido"): cabeça com o
+// relógio e o que vale; o ringue com os dois lutadores frente a frente (cada um
+// com o próprio PRONTO embaixo) e o VS no meio; a barra de ação na base com o
+// PREPARADO no centro e a aposta em cada lado. Cabe na tela, nada rola.
+function sinucaPreLutador(j, x, lado, prontos) {
+  const f = x.f, t = f?.trofeus || [], destaques = (f?.destaques || []).map((k) => t.find((c) => c.chave === k)).filter(Boolean);
+  const nivel = x.bot ? (j.bot.nivel || String(j.bot.id).split(":")[1]) : null;
+  const titulo = f?.titulo || (x.bot ? { nome: "Dono do bar", raridade: nivel === "lendario" ? "lendario" : nivel === "medio" ? "epico" : "raro", texto: `Bot do bar, nível ${SINUCA_NIVEL_BOT[nivel] || nivel}` } : { nome: "Estreante", raridade: "comum", texto: "Ainda sem conquista na mesa" });
+  const medo = t.find((c) => c.tem && c.raridade === "lendario");
+  const ok = j.bot ? lado === "desafiado" : prontos.includes(lado);
+  const stats = x.bot ? `<li><b>${safeText(SINUCA_NIVEL_BOT[nivel] || "Bot")}</b><small>Nível</small></li>`
+    : `<li><b>${f?.posicao ? `${f.posicao}º` : "—"}</b><small>Ranking</small></li><li><b>${f?.vitorias || 0}<i>V</i> ${f?.derrotas || 0}<i>D</i></b><small>Campanha</small></li><li><b>${f?.maior_sequencia || 0}</b><small>Maior série</small></li>`;
+  const medalhas = destaques.map((c) => `<li class="${safeText(c.raridade)}" title="${safeText(c.nome)}: ${safeText(c.texto)}">${c.icone}</li>`).join("");
+  return `<section class="snc-pre-lutador ${lado === "desafiante" ? "esq" : "dir"}${ok ? " pronto" : ""}${medo ? " temido" : ""}">
+<div class="snc-pre-retrato" aria-hidden="true">${x.retrato ? `<img src="${safeText(x.retrato)}" alt="">` : `<i>${safeText(String(x.nome || "?")[0])}</i>`}</div>
+<div class="snc-pre-dados">
+<small>${x.bot ? "DESAFIO DO BAR" : f?.posicao ? `${f.posicao}º DO SALÃO` : "FORA DO RANKING"}</small>
+<h2>${safeText(String(x.nome || "").split(" ")[0])}</h2>
+<p class="snc-pre-titulo ${safeText(titulo.raridade)}" title="${safeText(titulo.texto || "")}">${titulo.icone ? `${titulo.icone} ` : ""}${safeText(titulo.nome)}</p>
+<ul class="snc-pre-stats">${stats}</ul>
+${medalhas ? `<ul class="snc-pre-medalhas" aria-label="Conquistas mais raras">${medalhas}</ul>` : ""}
+<div class="snc-pre-taco"><canvas data-snc-taco="${safeText(x.taco)}" aria-hidden="true"></canvas><small>Taco ${safeText(SINUCA_TACOS[x.taco]?.nome || x.taco)}</small></div>
+</div>
+<p class="snc-pre-estado" role="status"><i aria-hidden="true">${ok ? "✔" : "…"}</i>${ok ? "PREPARADO" : "AQUECENDO"}</p>
+</section>`;
+}
+function sinucaPreTickerHtml(j) {
+  const t = j.torcida;
+  if (!t) return "";
+  const ofertas = t.apostas.filter((a) => a.estado === "oferta" && a.de.id !== t.eu && (!a.para || a.para.id === t.eu)).slice(0, 2);
+  const minhas = t.apostas.filter((a) => a.estado === "oferta" && a.de.id === t.eu).slice(0, 1);
+  const vivas = t.apostas.filter((a) => a.estado === "aceita").length;
+  const itens = [
+    ...ofertas.map((a) => `<li><span><b>${safeText(sinucaTorcidaNome(a.de, t))}</b> · ${a.valor} 🪙 que ${safeText(sinucaApostaTexto(j, a, t))}</span><button type="button" onclick="sinucaApostaAcao('aposta-topar','${safeText(a.id)}',this)">Topar</button></li>`),
+    ...minhas.map((a) => `<li class="minha"><span>Sua oferta · ${a.valor} 🪙 que ${safeText(sinucaApostaTexto(j, a, t))}</span><button type="button" onclick="sinucaApostaAcao('aposta-cancelar','${safeText(a.id)}',this)">Cancelar</button></li>`),
+    ...(vivas ? [`<li class="vivas"><span>${vivas} ${vivas === 1 ? "aposta valendo" : "apostas valendo"}</span></li>`] : []),
+  ];
+  return `<ul class="snc-pre-ticker" data-snc-pre-ticker aria-live="polite">${itens.join("") || `<li class="vazio"><span>Ninguém apostou ainda. Abre a primeira.</span></li>`}</ul>`;
+}
+function sinucaPreHtml(j) {
+  if (!sinucaPreAtiva(j)) return "";
+  const s = sinucaEstado(), entra = s.preEntrou !== j.id;
+  s.preEntrou = j.id;
+  const a = sinucaConfrontoLado(j, "desafiante"), b = sinucaConfrontoLado(j, "desafiado");
+  const ca = sinucaFavoritismo(j, a, b), pl = j.placar || {}, prontos = j.pre?.prontos || [];
+  const primeiro = (x) => safeText(String(x.nome || "").split(" ")[0]);
+  const quebra = j.mesa?.vez ? primeiro(sinucaConfrontoLado(j, j.mesa.vez)) : "";
+  const euPronto = j.eu && prontos.includes(j.eu), outro = j.eu ? sinucaConfrontoLado(j, mesaOutro(j.eu)) : null;
+  const seg = sinucaPreSegundos(j), total = j.pre?.total || 60;
+  const relogio = j.pre ? `<div class="snc-pre-relogio" data-snc-pre-ate="${safeText(j.pre.ate)}" style="--p:${seg / total}" role="timer" aria-label="A partida abre sozinha em ${seg} segundos"><b>${seg}</b><small>SEG</small></div>` : "";
+  const acao = j.bot ? '<button type="button" class="snc-pre-pronto" onclick="sinucaPreBora()">BORA JOGAR ▸</button>'
+    : !j.eu ? '<p class="snc-pre-aviso"><b>NA ARQUIBANCADA</b>Aposte antes da quebra</p>'
+    : euPronto ? `<p class="snc-pre-aviso ok"><b>✔ PREPARADO</b>Esperando ${primeiro(outro)}</p>`
+    : '<button type="button" class="snc-pre-pronto" onclick="sinucaPrePronto(this)">PREPARADO</button>';
+  // Aposta de um toque: o valor escolhido na vitória de um lado, aberta para quem topar.
+  const bil = sinucaBilhete(), podeApostar = Boolean(j.torcida);
+  const apostaEm = (x, lado) => {
+    if (!podeApostar) return '<span class="snc-pre-aposta vazia"></span>';
+    if (j.eu && j.eu !== lado) return `<span class="snc-pre-aposta vazia" title="Quem joga só aposta em si"></span>`;
+    return `<button type="button" class="snc-pre-aposta ${lado === "desafiante" ? "esq" : "dir"}" onclick="sinucaPreApostar('${lado}',this)"><small>${j.eu === lado ? "APOSTO EM MIM" : "APOSTAR EM"}</small><b>${bil.valor} 🪙 · ${primeiro(x)}</b></button>`;
+  };
+  const fichas = podeApostar ? `<div class="snc-pre-fichas" role="group" aria-label="Valor da aposta">${[10, 50, 100, 500].map((v) => `<button type="button" aria-pressed="${bil.valor === v}" onclick="sinucaPreValor(${v})">${v}</button>`).join("")}</div>` : "";
+  return `<div class="snc-pre${entra ? " entra" : ""}" role="dialog" aria-label="Pré-partida: ${primeiro(a)} contra ${primeiro(b)}">
+<div class="snc-pre-fundo" aria-hidden="true"></div>
+<div class="snc-pre-cabeca"><small>${j.bot ? "DESAFIO DO BAR" : "PRÉ-PARTIDA"}</small>${relogio}<p>${j.moedas ? `Valendo ${j.moedas} 🪙` : j.bot ? "Desafio do bar" : "Amistoso"}${quebra ? ` · ${quebra} quebra` : ""}</p></div>
+<div class="snc-pre-ringue">
+${sinucaPreLutador(j, a, "desafiante", prontos)}
+<div class="snc-pre-centro"><b class="snc-pre-vs">VS</b>${!a.bot && !b.bot ? `<p class="snc-pre-entre"><small>ENTRE VOCÊS</small><b>${pl[String(a.p.id)] || 0}<i>×</i>${pl[String(b.p.id)] || 0}</b></p>` : ""}${ca == null ? "" : `<div class="snc-pre-fav" aria-label="Favoritismo: ${primeiro(a)} ${ca}%, ${primeiro(b)} ${100 - ca}%"><span><i style="width:${ca}%"></i></span><p><b>${ca}%</b><small>FAVORITISMO</small><b>${100 - ca}%</b></p></div>`}</div>
+${sinucaPreLutador(j, b, "desafiado", prontos)}
+</div>
+${podeApostar ? sinucaPreTickerHtml(j) : ""}
+<div class="snc-pre-barra">${apostaEm(a, "desafiante")}<div class="snc-pre-acao">${acao}${fichas}</div>${apostaEm(b, "desafiado")}</div>
+<p class="snc-torcida-erro snc-pre-erro" role="alert"></p>
+</div>`;
+}
+function sinucaPreValor(v) { sinucaBilhete().valor = v; desenharJogoMesa("snc"); }
+function sinucaPreApostar(lado, botao) {
+  const aposta = `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  sinucaApostaPedido({ acao: "aposta-oferecer", aposta, tipo: "vitoria", escolha: lado, valor: sinucaBilhete().valor, para: null }, botao, document.querySelector(".snc-pre-erro"));
+}
+// Relógio da pré-partida: conta na tela e, quando acaba, relê a mesa (o
+// servidor abre a partida sozinho).
+function sinucaPreRelogio() {
+  const s = sinucaEstado();
+  clearInterval(s.preTimer); s.preTimer = null;
+  if (!document.querySelector(".ofc-snc-jogo [data-snc-pre-ate]")) return;
+  s.preTimer = setInterval(() => {
+    const el = document.querySelector(".ofc-snc-jogo [data-snc-pre-ate]"), j = sinucaEstado().jogo;
+    if (!el || !j?.pre) { clearInterval(s.preTimer); s.preTimer = null; return; }
+    const seg = sinucaPreSegundos(j);
+    el.style.setProperty("--p", seg / (j.pre.total || 60));
+    el.querySelector("b").textContent = seg;
+    el.classList.toggle("fim", seg <= 10);
+    if (seg <= 0) { clearInterval(s.preTimer); s.preTimer = null; setTimeout(() => recarregarJogoMesa("snc"), 600); }
+  }, 250);
+}
+function sinucaPrePronto(botao) {
+  sinucaSom?.("taco", 1);
+  acaoMesaEscritorio("snc", "pronto", botao);
+}
+function sinucaPreBora() {
+  const s = sinucaEstado(), j = s.jogo;
+  if (!j) return;
+  try { sessionStorage.setItem(sinucaPreChave(j), "1"); } catch { /* fica só nesta tela */ }
+  s.preBot = { id: j.id, feito: true };
+  sinucaSom?.("taco", 1);
+  desenharJogoMesa("snc");
+}
+// Quando a pré-partida fecha (os dois prontos), quem não quebra vê o VALENDO.
+function sinucaPreSaiu(j) {
+  const s = sinucaEstado();
+  if (!j || s.preEntrou !== j.id || s.preSaiu === j.id || sinucaPreAtiva(j)) return;
+  s.preSaiu = j.id;
+  if (j.eu && j.vez === j.eu) return;
+  sinucaLetreiro("VALENDO!", `${xadrezPrimeiroNome(j[j.vez])} quebra`);
 }
 // Busca as fichas da partida uma vez (a leitura sem "visto" traz) e redesenha:
 // a barra dos jogadores ganha título e conquistas, e a tela VS entra.
@@ -86,30 +214,6 @@ ${f?.apelido ? `<div class="snc-vs-apelido"><b>${f.apelido.icone} ${safeText(f.a
 ${medo ? `<p class="snc-vs-medo"><b>⚠ CUIDADO</b> conquista lendária na ficha: ${safeText(medo.nome)}</p>` : ""}
 </div></section>`;
 }
-function sinucaConfrontoMostrar(j) {
-  document.querySelector(".snc-cc")?.remove();
-  const a = sinucaConfrontoLado(j, "desafiante"), b = sinucaConfrontoLado(j, "desafiado");
-  const ca = sinucaFavoritismo(j, a, b), pl = j.placar || {};
-  const entre = !a.bot && !b.bot ? `<p class="snc-vs-entre"><small>Entre vocês</small><b>${pl[String(a.p.id)] || 0}<i>×</i>${pl[String(b.p.id)] || 0}</b></p>` : "";
-  const favorito = ca == null ? "" : `<div class="snc-vs-fav"><small>Favoritismo</small><span><i style="width:${ca}%"></i></span><p><b>${ca}%</b><b>${100 - ca}%</b></p></div>`;
-  const assistindo = !j.eu, el = document.createElement("div");
-  el.className = "snc-cc"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", `${a.nome} contra ${b.nome}`);
-  el.innerHTML = `<div class="snc-vs-fundo" aria-hidden="true"></div>${sinucaConfrontoCartao(j, a, ca, "esq")}${sinucaConfrontoCartao(j, b, ca == null ? null : 100 - ca, "dir")}
-<div class="snc-vs-centro"><div class="snc-vs-raio" aria-hidden="true"></div><b class="snc-vs-vs">VS</b></div>
-<div class="snc-vs-rodape">${entre}${favorito}<p class="snc-vs-modo"><small>Partida</small><b>${j.moedas ? `Valendo ${j.moedas} 🪙` : j.bot ? "Desafio do bar" : "Amistoso"}</b></p>${assistindo && !j.bot ? `<button type="button" class="snc-cc-apostar" onclick="sinucaConfrontoFechar();sinucaAba('torcida')">Apostar nessa</button>` : ""}<button type="button" class="snc-cc-fechar" onclick="sinucaConfrontoFechar()">Bora jogar ▸</button></div>`;
-  el.addEventListener("click", (ev) => { if (ev.target === el || ev.target.classList.contains("snc-vs-fundo")) sinucaConfrontoFechar(); });
-  document.body.appendChild(el);
-  sinucaTacosVitrine?.(el);
-  setTimeout(() => sinucaSom?.("taco", 1), 650);
-  clearTimeout(sinucaConfrontoMostrar.t);
-  sinucaConfrontoMostrar.t = setTimeout(sinucaConfrontoFechar, assistindo ? 11000 : 8000);
-}
-function sinucaConfrontoFechar() {
-  const el = document.querySelector(".snc-cc");
-  if (!el) return;
-  el.classList.add("sai"); setTimeout(() => el.remove(), 420);
-}
-
 // --- Torcida -----------------------------------------------------------------
 // Quem assiste manda um sinal a cada 25 s (aparece na lista da torcida e pode
 // receber oferta). Quem joga não precisa: já está na mesa.
@@ -165,8 +269,13 @@ ${feitas.length ? `<h4>Já resolvidas</h4><ul>${feitas.map(linha).join("")}</ul>
 // Atualiza só o painel da torcida (as leituras de 4 s trazem as apostas novas
 // sem redesenhar a mesa, que pode estar no meio da mira).
 function sinucaTorcidaAtualizar(j) {
-  const el = typeof document !== "undefined" && document.querySelector(".ofc-snc-jogo [data-snc-torcida]");
-  if (el && !el.contains(document.activeElement)) el.outerHTML = sinucaTorcidaHtml(j);
+  if (typeof document === "undefined") return;
+  // A torcida pode estar em dois lugares: na gaveta e na pré-partida.
+  for (const el of document.querySelectorAll(".ofc-snc-jogo [data-snc-torcida]")) if (!el.contains(document.activeElement)) el.outerHTML = sinucaTorcidaHtml(j);
+  const ticker = document.querySelector(".ofc-snc-jogo [data-snc-pre-ticker]");
+  if (ticker && !ticker.contains(document.activeElement)) ticker.outerHTML = sinucaPreTickerHtml(j);
+  const feed = document.querySelector(".ofc-snc-jogo [data-snc-feed]");
+  if (feed && !feed.contains(document.activeElement)) feed.outerHTML = sinucaFeedHtml(j);
   const aba = document.querySelector('.ofc-snc-jogo [data-snc-aba="torcida"] em');
   const n = (j.torcida?.apostas || []).filter((a) => a.estado === "oferta" && a.de.id !== j.torcida.eu).length;
   if (aba) aba.textContent = n ? String(n) : "";
@@ -192,8 +301,8 @@ function sinucaBilhete() {
   return s.bilhete;
 }
 function sinucaTorcidaRedesenhar() {
-  const j = sinucaEstado().jogo, el = document.querySelector(".ofc-snc-jogo [data-snc-torcida]");
-  if (j && el) el.outerHTML = sinucaTorcidaHtml(j);
+  const j = sinucaEstado().jogo;
+  if (j) for (const el of document.querySelectorAll(".ofc-snc-jogo [data-snc-torcida]")) el.outerHTML = sinucaTorcidaHtml(j);
 }
 function sinucaApostaOferecer(botao) {
   const b = sinucaBilhete(), [tipo, escolha] = String(b.em).split(":");
@@ -201,6 +310,27 @@ function sinucaApostaOferecer(botao) {
   sinucaApostaPedido({ acao: "aposta-oferecer", aposta, tipo, escolha, valor: Math.round(b.valor), para: b.para || null }, botao, botao.parentNode.querySelector(".snc-torcida-erro"));
 }
 function sinucaApostaAcao(acao, aposta, botao) { sinucaApostaPedido({ acao, aposta }, botao); }
+// Feed da torcida na borda da mesa cheia (Paulo, 09/11/2026): as ofertas que dá
+// para topar, as apostas valendo e quem chegou, curtinhas, com o TOPAR na linha.
+function sinucaFeedHtml(j) {
+  const t = j?.torcida;
+  if (!t || j.estado !== "jogando") return "";
+  const nome = (p) => safeText(sinucaTorcidaNome(p, t));
+  const ofertas = t.apostas.filter((a) => a.estado === "oferta" && a.de.id !== t.eu && (!a.para || a.para.id === t.eu)).slice(0, 3);
+  const vivas = t.apostas.filter((a) => a.estado === "aceita").slice(0, 2);
+  const itens = [
+    ...ofertas.map((a) => `<li class="oferta"><span><b>${nome(a.de)}</b> aposta ${a.valor} 🪙 que ${safeText(sinucaApostaTexto(j, a, t))}</span><button type="button" onclick="sinucaApostaAcao('aposta-topar','${safeText(a.id)}',this)">Topar</button></li>`),
+    ...vivas.map((a) => `<li><span><b>${nome(a.de)}</b> × <b>${nome(a.com)}</b> · ${a.valor} 🪙 · ${safeText(sinucaApostaTexto(j, a, t))}</span></li>`),
+    ...(t.assistindo.length ? [`<li class="gente"><span>${t.assistindo.length === 1 ? `${safeText(String(t.assistindo[0].nome).split(" ")[0])} está assistindo` : `${t.assistindo.length} assistindo`}</span></li>`] : []),
+  ];
+  return `<ul class="snc-feed" data-snc-feed aria-label="Torcida" aria-live="polite">${itens.join("")}</ul>`;
+}
+// O atalho da vez do outro: 100 que ele não mata, aberto para quem topar.
+function sinucaApostaRapida(botao) {
+  const aposta = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  sinucaApostaPedido({ acao: "aposta-oferecer", aposta, tipo: "tacada", escolha: "nao", valor: 100, para: null }, botao);
+  if (botao) botao.textContent = "Aposta lançada · esperando quem tope";
+}
 
 // --- Conquistas (aba do salão) ---------------------------------------------
 // Paulo, 08/11/2026: "melhora toda UI UX também de tudo e todos os menus". As
@@ -262,22 +392,3 @@ function sinucaSeuBarHtml() {
 // Nada de grade de cartões: os jogadores são retratos em hexágono (a luz verde
 // é quem está no escritório) e, ao lado, a carta de jogador de quem está em
 // foco, grande, com DESAFIAR e VER FICHA. Passar o mouse ou tocar troca o foco.
-function sinucaEscolhaRivalHtml(pessoas) {
-  const x = escritorioXadrez(), fichas = x.extras?.jogo === "sinuca" ? x.extras.bots?.salao?.fichas || {} : {};
-  if (!pessoas.length) return '<div class="snc-rivais vazio"><p>Ninguém mais na equipe por enquanto. Treine na Jornada dos bares.</p></div>';
-  const foco = pessoas.find((p) => String(p.id) === String(x.sinucaFoco)) || pessoas.find((p) => p.online) || pessoas[0];
-  const id = String(foco.id), f = fichas[id], u = escritorioCabecaUrl?.(foco.id);
-  const grade = pessoas.map((p) => { const pid = String(p.id), fi = fichas[pid], ur = escritorioCabecaUrl?.(p.id);
-    return `<button type="button" class="snc-rival${pid === id ? " foco" : ""}${p.online ? " online" : ""} ${safeText(fi?.titulo?.raridade || "comum")}" onmouseenter="sinucaRivalFoco('${safeText(pid)}')" onfocus="sinucaRivalFoco('${safeText(pid)}')" onclick="sinucaRivalFoco('${safeText(pid)}',true)"><span class="snc-rival-foto">${ur ? `<img src="${safeText(ur)}" alt="">` : `<i>${safeText(String(p.nome || "?")[0])}</i>`}</span><b>${safeText(xadrezPrimeiroNome(p))}</b>${fi?.nota != null ? `<em>${fi.nota}</em>` : ""}</button>`; }).join("");
-  const carta = typeof sinucaCartaJogadorHtml === "function" ? sinucaCartaJogadorHtml(foco.nome || xadrezPrimeiroNome(foco), f, u) : "";
-  return `<div class="snc-rivais"><div class="snc-rivais-grade" role="listbox" aria-label="Escolha quem chamar">${grade}</div>
-<div class="snc-rivais-foco">${carta}<p class="snc-rivais-status">${foco.online ? '<i class="on"></i>No escritório agora' : '<i></i>Recebe o convite no sino'}</p>
-<div class="snc-rivais-acoes"><button type="button" class="snc-btn snc-rivais-desafiar" onclick="novoXadrez(null);escolherRivalXadrez('${safeText(id)}')">DESAFIAR ${safeText(xadrezPrimeiroNome(foco).toUpperCase())} ▸</button><button type="button" class="snc-btn secundario" onclick="sinucaFichaDoSalao('${safeText(id)}')">VER FICHA</button></div></div></div>`;
-}
-function sinucaRivalFoco(id, clique) {
-  const x = escritorioXadrez();
-  if (String(x.sinucaFoco) === String(id) && !clique) return;
-  x.sinucaFoco = String(id);
-  const alvo = document.querySelector(".snc-hub .snc-rivais");
-  if (alvo) { alvo.outerHTML = sinucaEscolhaRivalHtml(mesaPessoasParaChamar()); sinucaTacosVitrine?.(document.querySelector(".snc-hub") || document); document.querySelector(`.snc-rival[onclick*="'${id}'"]`)?.focus({ preventScroll: true }); }
-}

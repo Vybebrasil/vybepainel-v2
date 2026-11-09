@@ -17,12 +17,12 @@ const SINUCA_CFG = registrarMesaEscritorio({
   // "Tá dando vitória antes de mostrar a bola caindo" (Paulo, 04/11/2026): o
   // placar do fim espera a animação da última tacada terminar.
   segurarFim: (s) => Boolean(s.anim),
-  salaUI: desenharLobbySinuca, novoUI: desenharNovoSinuca, conviteUI: desenharConviteSinuca,
+  salaUI: (...a) => desenharLobbySinuca(...a), novoUI: desenharNovoSinuca, conviteUI: desenharConviteSinuca,
   nota: "Par ou ímpar, regra de bar: a mesa começa aberta e quem encaçapar primeiro fica com o grupo da bola que matou: par (as lisas) ou ímpar (as listradas). Limpe as suas e mate o ás (a 1, colado na cabeceira) para ganhar. Suicida, cegar ou matar bola do outro (mesmo junto com a sua) é falta: sai mais uma bola do outro; bater direto na bola do outro é multa de 2 bolas. Na falta nada volta para a mesa e a vez passa; na suicida o outro põe a branca no D.", desenhar: (j, s) => desenharSinuca(j, s),
   // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
   // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
   // assistia via a mesa piscar a cada tacada (Paulo, 28/10/2026).
-  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); const j = sinucaEstado().jogo; if (typeof sinucaConfrontoTalvez === "function") { sinucaConfrontoTalvez(j); sinucaTorcidaSinal(j); sinucaTorcidaAtualizar(j); } },
+  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); const j = sinucaEstado().jogo; if (typeof sinucaConfrontoTalvez === "function") { sinucaConfrontoTalvez(j); sinucaTorcidaSinal(j); sinucaTorcidaAtualizar(j); sinucaPreRelogio(); sinucaPreSaiu(j); } },
   // Leitura de 4 s sem mudança na mesa: só a torcida (as apostas novas) e o sinal de quem assiste.
   atualizar: (j) => { if (typeof sinucaTorcidaAtualizar === "function") { sinucaTorcidaAtualizar(j); sinucaTorcidaSinal(j); } },
 });
@@ -107,7 +107,7 @@ const sinucaNomeVez = (j) => xadrezPrimeiroNome(j?.[j?.vez]);
 // O ângulo da mira sempre dentro de uma volta (-π a π): somar o giro sem voltar
 // a zero passava do limite do servidor e toda tacada era recusada.
 const sinucaVolta = (a) => Math.atan2(Math.sin(a), Math.cos(a));
-const sinucaMinhaVez = (j) => j?.estado === "jogando" && j.eu && j.vez === j.eu && j.mesa.pode_tacar;
+const sinucaMinhaVez = (j) => j?.estado === "jogando" && j.eu && j.vez === j.eu && j.mesa.pode_tacar && !(typeof sinucaPreAtiva === "function" && sinucaPreAtiva(j));
 const sinucaPondo = (j, s) => sinucaMinhaVez(j) && (j.mesa.bolaNaMao || !j.mesa.bolas[0]) && !s.branca;
 // Onde a branca pode ir com bola na mão, como no servidor (brancaPode): na
 // saída, atrás da linha (x ≤ 25); depois da suicida, dentro do D (raio 9,15 com
@@ -197,6 +197,17 @@ function sinucaMomentoAnuncio(t) {
   const toque = ev.find((x) => x.t === "bola" && Number.isFinite(x.ms));
   return t.falta === "errada" && toque ? toque.ms + 450 : Infinity;
 }
+// O grito do boteco: balão de quadrinho que estoura no meio da mesa e some sozinho.
+function sinucaGrito(canvas) {
+  document.querySelector(".bt-grito")?.remove();
+  const r = canvas.getBoundingClientRect(), el = document.createElement("div");
+  el.className = "bt-grito"; el.setAttribute("role", "status");
+  el.style.left = `${r.left + r.width / 2}px`; el.style.top = `${r.top + r.height * 0.38}px`;
+  el.innerHTML = '<span class="bt-grito-estouro" aria-hidden="true"></span><b>EITAAA</b><b>DESGRAÇAAAA!!</b>';
+  document.body.appendChild(el);
+  sinucaSom?.("taco", 1);
+  setTimeout(() => el.classList.add("sai"), 1500); setTimeout(() => el.remove(), 1900);
+}
 function sinucaAnuncio(j, u) {
   if (typeof document === "undefined" || !u || u.falta === "tempo") return;
   const canvas = document.getElementById("snc-canvas");
@@ -214,6 +225,9 @@ function sinucaAnuncio(j, u) {
   if (u.grupo && bar) cartoes.unshift({ tipo: u.abriuComFalta ? "neutro" : "bom", bolas: [], titulo: `${quem} é ${u.grupo === "pares" ? "PAR" : "ÍMPAR"}`, texto: u.abriuComFalta ? "Pela primeira bola que caiu; a do outro que caiu depois é falta" : "Pela primeira bola que caiu" });
   if (u.tirou) { const sai = [u.tirou, ...(u.tirouMais || [])]; cartoes.push({ tipo: "multa", bolas: sai, titulo: sai.length > 1 ? "Multa dupla" : "Multa", texto: `Sai${sai.length > 1 ? "em" : ""} a${sai.length > 1 ? "s" : ""} ${sai.join(" e ")} (${deQuem})` }); }
   if (!cartoes.length && (u.falta === "nenhuma" || u.falta === "errada")) cartoes.push({ tipo: "ruim", bolas: [], titulo: u.falta === "nenhuma" ? (bar ? "Cegou!" : "Não tocou") : "Bola errada", texto: u.falta === "nenhuma" ? "Não tocou em nenhuma bola" : u.primeiro === 1 ? "Bateu primeiro no ás" : "Bateu primeiro na bola do outro" });
+  // Bola matada na pancada (Paulo, 09/11/2026: "quando alguém matar uma bola forte vai aparecer a animação na tela
+  // Eitaaa Desgraçaaaa!!"): tacada de 65% ou mais que mata bola sem falta.
+  if (caiu.length && !u.falta && Number(u.forca) >= 0.65) sinucaGrito(canvas);
   if (!cartoes.length) return;
   document.querySelector(".snc-anuncio")?.remove();
   const r = canvas.getBoundingClientRect(), el = document.createElement("div");
@@ -285,6 +299,31 @@ function sinucaLousaHtml(j, q) {
 <div class="lousa-bloco"><h4>Ranking da sinuca</h4>${ranking ? `<ol class="lousa-rank">${ranking}</ol><small class="lousa-pe">${q.ranking.total} ${q.ranking.total === 1 ? "jogador" : "jogadores"} · todas as partidas entre a equipe</small>` : '<p class="lousa-vazio">Ninguém ganhou ainda.</p>'}</div>
 </section>`;
 }
+// MESA CHEIA (Paulo, 09/11/2026: "Faz a mesa cheia"): a mesa vai de borda a
+// borda e o HUD fica só nas bordas e só quando serve. Os comandos que não se usam
+// a toda tacada (abas, câmera, jeito de tacar, rever) ficam no menu ⋯; na vez do
+// outro os controles somem e entra a faixa da vez e o atalho de aposta; a
+// torcida passa como um feed na borda direita.
+function sinucaBordasHtml(j, s, minha, passando) {
+  if (j.estado !== "jogando") return "";
+  const nome = (l) => (l && String(j[l]?.id) === String(j.torcida?.eu) ? "você" : xadrezPrimeiroNome(j[l]));
+  const naPre = typeof sinucaPreAtiva === "function" && sinucaPreAtiva(j);
+  const faixa = naPre || minha ? "" : `<p class="snc-faixa-vez${j.vez === "desafiado" ? " giz" : ""}" role="status">${passando ? `${safeText(xadrezPrimeiroNome(j[passando.lado]))} tacou` : `Vez de ${safeText(xadrezPrimeiroNome(j[j.vez]))}`}${j.eu ? "" : " · você está assistindo"}</p>`;
+  const rapida = !naPre && !minha && j.torcida && j.vez && j.vez !== j.eu && !passando ? `<button type="button" class="snc-aposta-rapida" onclick="sinucaApostaRapida(this)">Aposto 100 que ${safeText(nome(j.vez))} não mata</button>` : "";
+  return `<button type="button" class="snc-mais" onclick="sinucaMenu()" aria-expanded="${Boolean(s.menu)}" aria-label="Menu da mesa: abas, câmera, jeito de tacar e rever"><i></i><i></i><i></i></button><div class="snc-menu-fundo" aria-hidden="true"></div>${faixa}${rapida}${typeof sinucaFeedHtml === "function" ? sinucaFeedHtml(j) : ""}`;
+}
+function sinucaMenu(abrir) {
+  const s = sinucaEstado();
+  s.menu = abrir ?? !s.menu;
+  const a = document.querySelector(".ofc-snc-jogo .snc-arena");
+  a?.classList.toggle("menu-aberto", s.menu);
+  a?.querySelector(".snc-mais")?.setAttribute("aria-expanded", String(s.menu));
+}
+function sinucaEfeitoAbrir() {
+  const s = sinucaEstado();
+  s.efeitoAberto = !s.efeitoAberto;
+  document.querySelector(".ofc-snc-jogo .snc-arena")?.classList.toggle("efeito-aberto", s.efeitoAberto);
+}
 function desenharSinuca(j, s) {
   const m = j.mesa, eu = j.eu, outro = eu ? mesaOutro(eu) : null;
   const chave = j.id + ":" + j.n;
@@ -313,22 +352,23 @@ function desenharSinuca(j, s) {
   const statusLongo = j.estado !== "jogando" ? "" : passando ? `${xadrezPrimeiroNome(j[passando.lado])} tacou: veja a jogada.` : !eu ? "Você está assistindo." : j.vez !== eu ? `Vez de ${sinucaNomeVez(j)}.`
     : poe ? (m.bolaNaMao === "D" ? "Bola na mão: toque dentro do D para pôr a branca." : m.bolaNaMao === "saida" ? "Toque atrás da linha de saída para pôr a branca." : "Bola na mão: toque na mesa onde quer pôr a branca.")
     : naMao && s.branca ? naMao : SINUCA_DICA[s.travada ? "travada" : "livre"];
-  const status = passando ? `${xadrezPrimeiroNome(j[passando.lado])} está jogando` : !minha ? (j.estado==='jogando' ? statusLongo : '') : poe ? 'Bola na mão · escolha onde colocar a branca' : m.bolaNaMao ? (m.bolaNaMao==='D'?'Bola na mão · branca dentro do D':'Saída · branca atrás da linha') : sinucaTravadoAtivo() ? 'Sua vez · mire, escolha a força e aperte ESPAÇO' : s.travada ? 'Sua vez · mira travada' : 'Sua vez · puxe o taco e empurre para bater';
+  const naPre = typeof sinucaPreAtiva === "function" && sinucaPreAtiva(j);
+  const status = naPre ? (j.bot ? "Desafio do bar: aperte BORA JOGAR" : j.eu ? "Pré-partida: os dois dão PREPARADO e a mesa abre" : "Pré-partida: aposte antes da quebra") : passando ? `${xadrezPrimeiroNome(j[passando.lado])} está jogando` : !minha ? (j.estado==='jogando' ? statusLongo : '') : poe ? 'Bola na mão · escolha onde colocar a branca' : m.bolaNaMao ? (m.bolaNaMao==='D'?'Bola na mão · branca dentro do D':'Saída · branca atrás da linha') : sinucaTravadoAtivo() ? 'Sua vez · mire, escolha a força e aperte ESPAÇO' : s.travada ? 'Sua vez · mira travada' : 'Sua vez · puxe o taco e empurre para bater';
   const efeito = s.efeito || 0, giro = s.giro || 0, ativo = minha && !poe;
   // Tela de jogo (Paulo, 04/11/2026: "mudou praticamente as cores só... mais
   // cara de jogo"): a força é um medidor em pé ao lado da mesa (deitado no
   // celular em pé), os comandos são blocos ao lado, com a roda da mira fina, e
   // as bolas encaçapadas caem numa bandeja embaixo da mesa.
   const fz = s.forca ?? 0.4, fp = Number((fz * 100).toFixed(1));
-  const forca = `<div class="snc-forca${ativo ? '' : ' parada'}" style="--f:${fz}" role="slider" tabindex="${ativo ? 0 : -1}" aria-label="Força da tacada: clique seleciona; arraste e solte para tacar" aria-valuemin="0.1" aria-valuemax="100" aria-valuenow="${fp}" onpointerdown="sinucaForcaComeca(event)" onpointermove="sinucaForcaMove(event)" onpointerup="sinucaForcaSolta(event)" onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onkeydown="sinucaForcaTecla(event)"><b></b><span>${sinucaPercentual(fz)}%</span></div>`;
+  const forca = `<div class="snc-forca${ativo ? '' : ' parada'}" style="--f:${fz}" role="slider" tabindex="${ativo ? 0 : -1}" aria-label="Força da tacada: clique seleciona; arraste e solte para tacar" aria-valuemin="0.1" aria-valuemax="100" aria-valuenow="${fp}" onpointerdown="sinucaForcaComeca(event)" onpointermove="sinucaForcaMove(event)" onpointerup="sinucaForcaSolta(event)" onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onkeydown="sinucaForcaTecla(event)"><b></b><u class="snc-forca-marcas" aria-hidden="true"><i style="--m:.25"></i><i style="--m:.5"></i><i style="--m:.75"></i></u>${s.ultimaForca ? `<em class="snc-forca-ultima" style="--u:${s.ultimaForca}" title="Força da última tacada: ${sinucaPercentual(s.ultimaForca)}%" aria-hidden="true"></em>` : ""}<span>${sinucaPercentual(fz)}%</span></div>`;
   const medidor = `<aside class="snc-medidor" aria-label="Força da tacada"><small>FORÇA</small>${forca}<label class="snc-forca-exata"><input type="number" min="0.1" max="100" step="0.1" value="${fp}" oninput="sinucaForcaEscolher(this)" ${ativo?'':'disabled'} aria-label="Força da tacada em porcentagem"><span>%</span></label></aside>`;
   const controles = `<section class="snc-comandos" aria-label="Controles da tacada">
 <div class="snc-bloco snc-bloco-modo"><small>TACADA</small><div class="snc-modo-botoes" role="group" aria-label="Jeito de tacar"><button type="button" aria-pressed="${!sinucaTravadoAtivo()}" onclick="sinucaEscolherModo('puxar')" title="Puxe o taco para trás e empurre para bater">PUXAR</button><button type="button" aria-pressed="${sinucaTravadoAtivo()}" onclick="sinucaEscolherModo('travado')" title="Mire, escolha a força e aperte ESPAÇO ou TACAR">TRAVADO</button></div></div>
 <div class="snc-bloco snc-bloco-camera"><small>CÂMERA</small><div class="snc-camera-botoes" role="group" aria-label="Câmera"><button type="button" onclick="sinucaCameraBotao(-0.12,0)" aria-label="Aproximar">＋</button><button type="button" onclick="sinucaCameraBotao(0.12,0)" aria-label="Afastar">－</button><button type="button" onclick="sinucaCameraBotao(0,0.25)" aria-label="Subir a câmera">▲</button><button type="button" onclick="sinucaCameraBotao(0,-0.25)" aria-label="Descer a câmera">▼</button></div><em class="snc-camera-dica">Roda do mouse: zoom · Shift + roda: altura</em></div>
-<div class="snc-bloco snc-bloco-efeito"><small>EFEITO</small><div class="snc-efeito"><button type="button" class="snc-efeito-bola" onpointerdown="sinucaEfeitoComeca(event)" onpointermove="sinucaEfeito(event)" onpointerup="sinucaEfeitoSolta(event)" onpointercancel="sinucaEfeitoSolta(event)" ondblclick="sinucaEfeitoCentro(event)" onkeydown="sinucaEfeitoTecla(event)" ${ativo?'':'disabled'} title="Arraste para onde o taco bate na branca; duplo clique centraliza" aria-label="Efeito: ${sinucaEfeitoNome(efeito,giro)}"><i style="top:${50-efeito*34}%;left:${50+giro*34}%"></i></button></div><b class="snc-efeito-nome">${sinucaEfeitoNome(efeito,giro)}</b></div>
+<div class="snc-bloco snc-bloco-efeito"><small>EFEITO</small><div class="snc-efeito"><button type="button" class="snc-efeito-bola" onpointerdown="sinucaEfeitoComeca(event)" onpointermove="sinucaEfeito(event)" onpointerup="sinucaEfeitoSolta(event)" onpointercancel="sinucaEfeitoSolta(event)" ondblclick="sinucaEfeitoCentro(event)" onkeydown="sinucaEfeitoTecla(event)" ${ativo?'':'disabled'} title="Arraste para onde o taco bate na branca; duplo clique centraliza" aria-label="Efeito: ${sinucaEfeitoNome(efeito,giro)}"><i style="top:${50-efeito*34}%;left:${50+giro*34}%"></i></button></div><b class="snc-efeito-nome" role="button" tabindex="0" onclick="sinucaEfeitoAbrir()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sinucaEfeitoAbrir()}" title="${sinucaEfeitoNome(efeito,giro)} · toque para abrir efeito e inclinação">${sinucaEfeitoCurto(efeito,giro)}</b></div>
 <div class="snc-bloco snc-bloco-mira"><small>MIRA FINA</small><div class="snc-roda${ativo ? '' : ' parada'}" role="slider" tabindex="${ativo ? 0 : -1}" aria-label="Roda da mira fina: arraste para os lados" aria-valuenow="${Number(((s.angulo ?? 0) * 180 / Math.PI).toFixed(2))}" onpointerdown="sinucaRoda(event,'down')" onpointermove="sinucaRoda(event,'move')" onpointerup="sinucaRoda(event,'up')" onpointercancel="sinucaRoda(event,'up')" onkeydown="sinucaRodaTecla(event)"><i></i></div><div class="snc-mira-fina" role="group" aria-label="Ajuste fino da mira"><button type="button" onclick="sinucaGirar(-1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para um lado">↶</button><button type="button" onclick="sinucaGirar(1)" ${ativo?'':'disabled'} aria-label="Mira um pouco para o outro lado">↷</button></div></div>
 <div class="snc-bloco snc-bloco-taco"><label class="snc-taco"><small>INCLINAÇÃO <b>${s.elevacao||0}°</b></small>${sinucaTacoDesenho(s.elevacao||0,efeito)}<input type="range" min="0" max="60" step="5" value="${s.elevacao||0}" oninput="sinucaElevacao(this)" ${ativo?'':'disabled'} aria-label="Inclinação do taco"><em class="snc-taco-texto">${sinucaTacoTexto(s.elevacao||0,giro)}</em></label></div>
-<button type="button" class="snc-tacar" onclick="tacarSinuca()" aria-disabled="${!ativo}">TACAR</button><button type="button" class="snc-rever" onclick="sinucaRever()" ${s.replay && !s.anim ? '' : 'disabled'} title="Rever a última tacada em câmera lenta">↺ Rever jogada</button>${m.bolaNaMao&&s.branca&&minha?'<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa(\'snc\')">Reposicionar branca</button>':''}</section>`;
+<button type="button" class="snc-tacar" onclick="tacarSinuca()" aria-disabled="${!ativo}">TACAR</button><button type="button" class="snc-rever" onclick="sinucaRever()" ${s.replay && !s.anim ? '' : 'disabled'} title="Rever a última tacada em câmera lenta"><i aria-hidden="true">↺</i><span>REVER</span></button>${m.bolaNaMao&&s.branca&&minha?'<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa(\'snc\')">Reposicionar branca</button>':''}</section>`;
   const caidas = m.bolas.map((p, n) => (!p && n && (m.modo !== "bolavez" || n <= 7) ? n : null)).filter((n) => n !== null);
   const bandeja = `<div class="snc-bandeja${caidas.length ? '' : ' vazia'}" aria-label="Bolas fora da mesa">${caidas.map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? 'listra' : ''}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join('') || '<span>Nenhuma bola caiu ainda</span>'}</div>`;
   // O letreiro da vez: quando a vez chega para mim (depois da animação e do anúncio).
@@ -339,6 +379,9 @@ function desenharSinuca(j, s) {
   if (j.fichas) s.fichas = { id: j.id, lista: j.fichas };
   if (j.ranking) s.quadro = { id: j.id, placar: j.placar, historico: j.historico, sequencia: j.sequencia, ranking: j.ranking };
   const q = j.ranking ? j : s.quadro?.id === j.id ? s.quadro : null;
+  // A lousa do RANKING DO SALÃO na parede do bar 3D (Paulo, 09/11/2026: "a placa de giz com o rank seria massa").
+  const rkLousa = q?.ranking?.lista || (typeof escritorioXadrez === "function" ? escritorioXadrez().extras?.bots?.salao?.ranking?.lista : null);
+  if (rkLousa && sinuca3dAtivo()) SINUCA_3D.api.lousa?.(rkLousa.slice(0, 5).map((r) => [String(r.nome || "").split(" ")[0].toUpperCase(), r.vitorias]));
   // Pinta logo que o canvas entra na tela (rAF não roda com a aba escondida).
   setTimeout(() => sinucaPintar());
   return {
@@ -346,8 +389,8 @@ function desenharSinuca(j, s) {
     // HUD de jogo (Paulo, 04/11/2026: "mais cara de jogo e menos dashboard com
     // botão de balão"; o moodboard A): a mesa ocupa a tela e o placar, a força,
     // o efeito e o TACAR flutuam por cima, nas bordas, sem cartões.
-    mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}${m.rodizio ? " dupla" : ""}${eu ? "" : " assistindo"}">${eu || j.estado !== "jogando" ? "" : `<button type="button" class="snc-assistindo" onclick="sinucaAba('torcida')"><i></i>ASSISTINDO AO VIVO<b>${j.torcida ? "APOSTAR NA TORCIDA ▸" : ""}</b></button>`}${m.rodizio ? `<div class="snc-placar dupla"><div class="snc-time a">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaJogadorHtml(j, "jogador3", q)}</div><span class="snc-x" aria-hidden="true">VS</span><div class="snc-time b">${sinucaJogadorHtml(j, "desafiado", q)}${sinucaJogadorHtml(j, "jogador4", q)}</div></div>` : `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>`}${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
- onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}${bandeja}${sinucaPainelHtml(j, s, q, ultimo)}</div>`,
+    mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}${m.rodizio ? " dupla" : ""}${eu ? "" : " assistindo"}${s.menu ? " menu-aberto" : ""}${s.efeitoAberto ? " efeito-aberto" : ""}">${sinucaBordasHtml(j, s, minha, passando)}${eu || j.estado !== "jogando" ? "" : `<button type="button" class="snc-assistindo" onclick="sinucaAba('torcida')"><i></i>ASSISTINDO AO VIVO<b>${j.torcida ? "APOSTAR NA TORCIDA ▸" : ""}</b></button>`}${m.rodizio ? `<div class="snc-placar dupla"><div class="snc-time a">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaJogadorHtml(j, "jogador3", q)}</div><span class="snc-x" aria-hidden="true">VS</span><div class="snc-time b">${sinucaJogadorHtml(j, "desafiado", q)}${sinucaJogadorHtml(j, "jogador4", q)}</div></div>` : `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>`}${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
+ onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}${bandeja}${sinucaPainelHtml(j, s, q, ultimo)}${typeof sinucaPreHtml === "function" ? sinucaPreHtml(j) : ""}</div>`,
     // O caderno entra na cena (Paulo, 08/11/2026: "tudo com cara de jogo"): as abas
     // ficam no alto da mesa e cada painel abre como gaveta por cima; nada embaixo.
     painel: "",
@@ -395,7 +438,8 @@ function sinucaPonteiro(ev,tipo) {
   if(s.gesto&&!sinucaGestoValido(s,s.gesto))return sinucaGestoCancelar();
   if(s.gesto&&ev.pointerId!==s.gesto.pointerId)return;
   const R=sinucaRaio(j),rect=c.getBoundingClientRect();
-  const [x,y]=sinucaCoordenadas((ev.clientX-rect.left)/rect.width*SINUCA_W,(ev.clientY-rect.top)/rect.height*SINUCA_H);
+  // Com o 3D a mesa ocupa a tela toda em qualquer proporção: o ponto vem do raio da câmera (09/11/2026).
+  const [x,y]=sinuca3dAtivo()?(SINUCA_3D.api.mesaNoPonteiro?.(ev.clientX,ev.clientY)||[-99,-99]):sinucaCoordenadas((ev.clientX-rect.left)/rect.width*SINUCA_W,(ev.clientY-rect.top)/rect.height*SINUCA_H);
   if(sinucaPondo(j,s)){
     const [px,py]=sinucaPrender(j.mesa.bolaNaMao,x,y,sinucaRaioBranca(j));
     const livre=j.mesa.bolas.every((b,n)=>!b||n===0||Math.hypot(b[0]-px,(b[1]-py)*SINUCA_METRICA_Y)>=R+sinucaRaioBranca(j)+0.1);
@@ -518,7 +562,7 @@ function sinucaAvisoLevantado(graus) {
   const vista = document.querySelector(".ofc-snc-jogo .snc-taco-vista");
   if (vista) vista.outerHTML = sinucaTacoDesenho(elev, s.efeito || 0);
   const nome = document.querySelector(".ofc-snc-jogo .snc-efeito-nome");
-  if (nome) nome.textContent = sinucaEfeitoNome(s.efeito || 0, s.giro || 0) + (graus ? ` · taco a ${graus}°` : "");
+  if (nome) nome.textContent = sinucaEfeitoCurto(s.efeito || 0, s.giro || 0);
   document.querySelector(".ofc-snc-jogo .snc-efeito-bola")?.classList.toggle("levantado", Boolean(graus));
 }
 // Rever a última tacada em câmera lenta (metade da velocidade), com os sons e o
@@ -576,6 +620,13 @@ function sinucaEfeitoNome(e, g) {
   const v = e > 0 ? `seguir ${pc(e)}` : e < 0 ? `puxar ${pc(e)}` : "", h = g > 0 ? `direita ${pc(g)}` : g < 0 ? `esquerda ${pc(g)}` : "";
   return [v, h].filter(Boolean).join(" e ") || "no centro";
 }
+// O rótulo curto na tela (Paulo, 09/11/2026: o texto "puxar 1% e direita 10% · taco a 10°" era
+// frase de site): só a direção e o número; a frase inteira fica no title e no leitor de tela.
+function sinucaEfeitoCurto(e, g) {
+  const n = (x) => Math.round(Math.abs(x) * 100);
+  const v = e > 0 ? `▲ SEGUE ${n(e)}` : e < 0 ? `▼ PUXA ${n(e)}` : "", h = g > 0 ? `▶ DIR ${n(g)}` : g < 0 ? `◀ ESQ ${n(g)}` : "";
+  return [v, h].filter(Boolean).join("  ") || "● CENTRO";
+}
 // Ponto livre na bola (Paulo, 29/10/2026: "tá muito travado... devia deixar
 // escolher onde quer bater solto na bola"): clicar ou arrastar põe o ponto em
 // qualquer lugar do círculo (o limite é meia bola do centro, onde o taco ainda
@@ -592,7 +643,7 @@ function sinucaEfeitoPor(el, vy, vx) {
   i.style.top = `${50 - s.efeito * 34}%`; i.style.left = `${50 + s.giro * 34}%`;
   el.setAttribute("aria-label", `Efeito: ${sinucaEfeitoNome(s.efeito, s.giro)}`);
   const t = el.closest(".snc-bloco-efeito")?.querySelector(".snc-efeito-nome");
-  if (t) t.textContent = sinucaEfeitoNome(s.efeito, s.giro);
+  if (t) { t.textContent = sinucaEfeitoCurto(s.efeito, s.giro); t.title = sinucaEfeitoNome(s.efeito, s.giro); }
   sinucaTacoAtualizar(s);
   sinucaPintar();
 }
@@ -750,6 +801,7 @@ function tacarSinuca(gesto) {
   const minima = sinucaElevacaoMinima(j, sinucaBranca(j, s), angulo);
   const pedido = { tipo: "tacar", angulo: Math.round(sinucaVolta(angulo) * 10000) / 10000, forca: Math.max(SINUCA_FORCA_MIN, Math.min(1, Math.round(forca * 1000) / 1000)), efeito: s.efeito || 0, lado: s.giro || 0, elevacao: Math.max(s.elevacao || 0, minima) };
   if (j.mesa.bolaNaMao || !j.mesa.bolas[0]) pedido.branca = s.branca;
+  s.ultimaForca = pedido.forca; // marca na barra: dá para repetir a dose
   lanceMesaEscritorio("snc", pedido);
 }
 

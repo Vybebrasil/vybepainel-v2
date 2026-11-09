@@ -1,7 +1,7 @@
 // server/impressoes.js — Impressões com módulo próprio (Paulo, 09/11/2026).
 //
 //   GET  /api/painel?area=impressoes            lista, etapas, clientes, fornecedores, equipe, resumo e por fornecedor
-//   POST /api/painel?area=impressoes  { acao }  impressao_salvar | impressao_etapa
+//   POST /api/painel?area=impressoes  { acao }  impressao_salvar | impressao_etapa | cotacao_salvar | cotacao_escolher (gestão)
 //
 // Antes, impresso era só uma demanda em Solicitações com o status "Em impressão": sem fornecedor, sem dia do pedido e
 // sem saber em que ponto estava. Agora cada impressão tem cliente (cadastro ativo), projeto ou campanha, a arte na
@@ -61,8 +61,8 @@ async function andarComAArte(sql) {
     INSERT INTO vybe_impressao_eventos (impressao_id, de, para, nota) SELECT id, 'arte', 'orcamento', 'Arte concluída na esteira' FROM prontas`;
 }
 
-async function ler(sql, pessoa) {
-  const hoje = hojeBahia(), gestao = ehGestao(pessoa);
+async function ler(sql, pessoa, query = {}) {
+  const hoje = hojeBahia(), gestao = ehGestao(pessoa), todas = String(query.todas || '') === '1';
   await andarComAArte(sql);
   const linhas = await sql`SELECT i.id::text, i.titulo, i.cliente_id::text, cl.nome AS cliente_nome, i.projeto_id::text, pj.nome AS projeto_nome,
       i.conteudo_id::text, s.rotulo AS demanda_status, COALESCE(s.final, false) AS demanda_final,
@@ -76,7 +76,8 @@ async function ler(sql, pessoa) {
       LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
       LEFT JOIN vybe_comercial_fornecedores f ON f.id = i.fornecedor_id
       LEFT JOIN vybe_pessoas p ON p.id = i.responsavel
-    WHERE i.etapa NOT IN ('entregue', 'cancelado') OR i.atualizado_em >= now() - interval '90 days'
+    -- Fechadas só dos últimos 90 dias; ?todas=1 traz o histórico inteiro (as impressas antigas das Solicitações).
+    WHERE ${todas} OR i.etapa NOT IN ('entregue', 'cancelado') OR COALESCE(i.entregue_em, i.atualizado_em::date) >= (now() - interval '90 days')::date
     ORDER BY (i.etapa IN ('entregue', 'cancelado')), i.previsao NULLS LAST, i.id`;
   const ids = linhas.map((l) => l.id);
   const eventos = ids.length ? await sql`SELECT e.impressao_id::text AS impressao_id, e.de, e.para, e.nota, p.nome AS autor_nome, e.em
@@ -91,12 +92,90 @@ async function ler(sql, pessoa) {
   });
   const [clientes, fornecedores, pessoas, projetos] = await Promise.all([
     sql`SELECT id::text, nome FROM vybe_clientes WHERE apagado_em IS NULL AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`,
-    sql`SELECT id::text, nome, categoria FROM vybe_comercial_fornecedores WHERE ativo ORDER BY (categoria <> 'grafica'), nome`,
+    fornecedoresAtivos(sql),
     sql`SELECT id::text, nome FROM vybe_pessoas WHERE ativo AND pode_entrar ORDER BY nome`,
     Promise.resolve(sql`SELECT id::text, nome, cliente_id::text FROM vybe_projetos WHERE status NOT IN ('concluido','cancelado') ORDER BY inicio DESC, id DESC`).catch(() => []),
   ]);
-  return { hoje, gestao, etapas: ETAPAS.map(([id, nome]) => ({ id, nome })), impressoes, clientes, fornecedores, pessoas, projetos,
-    resumo: resumir(impressoes), porFornecedor: porFornecedor(impressoes, fornecedores) };
+  // Histórico de cada fornecedor em TODAS as impressões (não só as da tela): base do ranking da cotação.
+  const historico = await sql`SELECT fornecedor_id::text AS fornecedor_id, COUNT(*) FILTER (WHERE etapa = 'entregue')::int AS entregues,
+      COUNT(*) FILTER (WHERE etapa = 'entregue' AND previsao IS NOT NULL AND entregue_em IS NOT NULL AND entregue_em <= previsao)::int AS no_prazo,
+      COUNT(*) FILTER (WHERE etapa = 'entregue' AND previsao IS NOT NULL AND entregue_em IS NOT NULL)::int AS com_previsao,
+      ROUND(AVG(entregue_em - pedido_em) FILTER (WHERE etapa = 'entregue' AND pedido_em IS NOT NULL AND entregue_em IS NOT NULL))::int AS prazo_medio_dias
+    FROM vybe_impressoes WHERE fornecedor_id IS NOT NULL GROUP BY fornecedor_id`;
+  const ranking = rankingFornecedores(fornecedores, historico);
+  // Cotações: só a gestão vê (têm valor). Quem está antes da gráfica sem fornecedor recebe a sugestão de para quem pedir.
+  const cotacoes = gestao && ids.length ? await sql`SELECT k.id::text, k.impressao_id::text, k.fornecedor_id::text, f.nome AS fornecedor_nome,
+      k.valor::float8 AS valor, k.prazo_dias, k.observacao, k.escolhida, k.criado_em
+    FROM vybe_impressao_cotacoes k JOIN vybe_comercial_fornecedores f ON f.id = k.fornecedor_id
+    WHERE k.impressao_id::text = ANY(${ids}::text[]) ORDER BY k.valor, k.prazo_dias NULLS LAST` : [];
+  const cotacoesDe = new Map();
+  for (const k of cotacoes) (cotacoesDe.get(k.impressao_id) || cotacoesDe.set(k.impressao_id, []).get(k.impressao_id)).push(k);
+  for (const i of impressoes) {
+    if (gestao) i.cotacoes = cotacoesDe.get(i.id) || [];
+    if (['arte', 'orcamento', 'aprovado'].includes(i.etapa) && !i.fornecedor_id) i.sugestao = ranking.slice(0, 3);
+  }
+  return { hoje, gestao, todas, etapas: ETAPAS.map(([id, nome]) => ({ id, nome })), impressoes, clientes, fornecedores, pessoas, projetos,
+    resumo: resumir(impressoes), porFornecedor: porFornecedor(impressoes, fornecedores), ranking };
+}
+
+// Fornecedor com cidade, UF e telefone (bloco 9 da migração); sem as colunas ainda, segue sem elas.
+async function fornecedoresAtivos(sql) {
+  try {
+    return await sql`SELECT id::text, nome, categoria, cidade, uf, telefone FROM vybe_comercial_fornecedores WHERE ativo ORDER BY (categoria <> 'grafica'), nome`;
+  } catch (e) {
+    if (e?.code !== '42703') throw e;
+    return sql`SELECT id::text, nome, categoria, '' AS cidade, '' AS uf, '' AS telefone FROM vybe_comercial_fornecedores WHERE ativo ORDER BY (categoria <> 'grafica'), nome`;
+  }
+}
+
+// Para quem pedir orçamento: gráficas primeiro; perto (Irecê) antes de longe; quem já entregou, no prazo e rápido, antes.
+// Sem histórico ainda, entra depois de quem já provou, com o motivo dizendo isso.
+const semAcento = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+export function rankingFornecedores(fornecedores = [], historico = [], { cidade = 'Irecê' } = {}) {
+  const h = new Map(historico.map((x) => [String(x.fornecedor_id), x]));
+  const aqui = semAcento(cidade);
+  return fornecedores.map((f) => {
+    const x = h.get(String(f.id)) || {};
+    const pontual = x.com_previsao ? x.no_prazo / x.com_previsao : null;
+    const local = semAcento(f.cidade) === aqui;
+    const partes = [f.cidade ? `${f.cidade}${f.uf ? '/' + f.uf : ''}` : 'cidade não cadastrada'];
+    if (x.entregues) partes.push(`${x.entregues} ${x.entregues === 1 ? 'entrega' : 'entregas'}`);
+    if (pontual != null) partes.push(`${Math.round(pontual * 100)}% no prazo`);
+    if (x.prazo_medio_dias != null) partes.push(`${x.prazo_medio_dias} ${x.prazo_medio_dias === 1 ? 'dia' : 'dias'} em média`);
+    if (!x.entregues) partes.push('sem histórico ainda');
+    return { fornecedor_id: String(f.id), nome: f.nome, categoria: f.categoria, cidade: f.cidade || '', telefone: f.telefone || '', local,
+      entregues: x.entregues || 0, pontualidade: pontual, prazo_medio_dias: x.prazo_medio_dias ?? null, motivo: partes.join(' · ') };
+  }).sort((a, b) => (Number(b.categoria === 'grafica') - Number(a.categoria === 'grafica')) || (Number(b.local) - Number(a.local))
+    || (Number(b.entregues > 0) - Number(a.entregues > 0)) || ((b.pontualidade ?? 0) - (a.pontualidade ?? 0))
+    || ((a.prazo_medio_dias ?? 999) - (b.prazo_medio_dias ?? 999)) || (b.entregues - a.entregues) || a.nome.localeCompare(b.nome));
+}
+
+// Texto do pedido de orçamento que o agente de Compras prepara para alguém da equipe mandar ao fornecedor (o agente não
+// manda nada: falar com fornecedor é falar em nome da Vybe, sempre com aprovação de gente).
+export function pedidoDeCotacao(i, fornecedor = null) {
+  const linhas = [`Olá${fornecedor?.nome ? ', ' + fornecedor.nome : ''}! Aqui é da Vybe. Pode passar um orçamento para:`, '', `• ${i.titulo}`];
+  if (i.material) linhas.push(`• Material: ${i.material}`);
+  if (i.quantidade) linhas.push(`• Quantidade: ${i.quantidade}`);
+  if (i.especificacao) linhas.push(`• Especificação: ${i.especificacao}`);
+  if (i.previsao) linhas.push(`• Precisamos até ${i.previsao.slice(8, 10)}/${i.previsao.slice(5, 7)}`);
+  linhas.push('', 'Com o valor e o prazo de entrega, por favor. Obrigado!');
+  return linhas.join('\n');
+}
+
+// Leitura para o agente (consulta 'impressoes' do assistente, só no privado da administração): o que está aberto, a
+// quem pedir e o texto do pedido, a base de fornecedores com o que falta e o histórico de cada um.
+export async function impressoesParaAgente(sql) {
+  const r = await ler(sql, { id: 0, admin: true });
+  const abertas = r.impressoes.filter((i) => !FECHADAS.has(i.etapa));
+  return {
+    hoje: r.hoje, resumo: r.resumo, ranking: r.ranking, porFornecedor: r.porFornecedor,
+    abertas: abertas.map((i) => ({ id: i.id, titulo: i.titulo, cliente: i.cliente_nome || '', etapa: i.etapa, fornecedor: i.fornecedor_nome || '',
+      previsao: i.previsao, atrasada: i.atrasada, pedido_em: i.pedido_em, cotacoes: (i.cotacoes || []).length,
+      sugestao: (i.sugestao || []).map((s) => ({ nome: s.nome, telefone: s.telefone, motivo: s.motivo })),
+      pedido: !i.fornecedor_id && ['orcamento', 'aprovado'].includes(i.etapa) ? pedidoDeCotacao(i, i.sugestao?.[0]) : '' })),
+    fornecedores: r.fornecedores.map((f) => ({ id: f.id, nome: f.nome, categoria: f.categoria, cidade: f.cidade, uf: f.uf, telefone: f.telefone,
+      falta: [!f.cidade && 'cidade', !f.telefone && 'telefone'].filter(Boolean) })),
+  };
 }
 
 export function resumir(impressoes) {
@@ -183,6 +262,46 @@ async function salvar(sql, pessoa, b) {
   });
 }
 
+// Cotação: a gestão registra o que cada fornecedor pediu (valor e prazo) e escolhe uma. Escolher grava o fornecedor,
+// o valor e, se ainda não houver, a previsão (hoje + prazo da cotação) na impressão.
+async function salvarCotacao(sql, pessoa, b) {
+  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos e de quem administra.', 403);
+  const impressao = idValido(b.impressao_id, 'Impressão'), fornecedor = idValido(b.fornecedor_id, 'Fornecedor');
+  const valor = b.valor == null || b.valor === '' ? NaN : Number(b.valor);
+  const prazo = b.prazo_dias == null || b.prazo_dias === '' ? null : Number(b.prazo_dias);
+  if (!Number.isFinite(valor) || valor < 0) falhar('Informe o valor da cotação.');
+  if (prazo != null && (!Number.isInteger(prazo) || prazo < 0 || prazo > 365)) falhar('Prazo em dias, de 0 a 365.');
+  const observacao = texto(b.observacao, 1000, 'Observação');
+  return sql.comTransacao(async (tx) => {
+    if (!(await tx`SELECT 1 FROM vybe_impressoes WHERE id = ${impressao}`).length) falhar('Impressão não encontrada.', 404);
+    const [f] = await tx`SELECT nome FROM vybe_comercial_fornecedores WHERE id = ${fornecedor} AND ativo`;
+    if (!f) falhar('Escolha um fornecedor ativo.');
+    const [k] = await tx`INSERT INTO vybe_impressao_cotacoes (impressao_id, fornecedor_id, valor, prazo_dias, observacao, criado_por)
+      VALUES (${impressao}, ${fornecedor}, ${valor}, ${prazo}, ${observacao}, ${String(pessoa.id)})
+      ON CONFLICT (impressao_id, fornecedor_id) DO UPDATE SET valor = EXCLUDED.valor, prazo_dias = EXCLUDED.prazo_dias, observacao = EXCLUDED.observacao
+      RETURNING id::text AS id`;
+    const [atual] = await tx`SELECT etapa FROM vybe_impressoes WHERE id = ${impressao}`;
+    await evento(tx, impressao, atual.etapa, atual.etapa, `Cotação recebida de ${f.nome}`, String(pessoa.id));
+    return { id: k.id };
+  });
+}
+async function escolherCotacao(sql, pessoa, b) {
+  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos e de quem administra.', 403);
+  const id = idValido(b.id, 'Cotação'), hoje = hojeBahia();
+  return sql.comTransacao(async (tx) => {
+    const [k] = await tx`SELECT k.impressao_id::text AS impressao_id, k.fornecedor_id::text AS fornecedor_id, k.valor, k.prazo_dias, f.nome
+      FROM vybe_impressao_cotacoes k JOIN vybe_comercial_fornecedores f ON f.id = k.fornecedor_id WHERE k.id = ${id}`;
+    if (!k) falhar('Cotação não encontrada.', 404);
+    await tx`UPDATE vybe_impressao_cotacoes SET escolhida = (id = ${id}) WHERE impressao_id = ${k.impressao_id}`;
+    const prevista = k.prazo_dias == null ? null : somarDias(hoje, Number(k.prazo_dias));
+    const [i] = await tx`UPDATE vybe_impressoes SET fornecedor_id = ${k.fornecedor_id}, valor = ${k.valor}, atualizado_em = now(),
+        previsao = COALESCE(previsao, ${prevista}::date) WHERE id = ${k.impressao_id} RETURNING etapa`;
+    await evento(tx, k.impressao_id, i.etapa, i.etapa, `Cotação escolhida: ${k.nome}`, String(pessoa.id));
+    return { id, impressao_id: k.impressao_id, fornecedor_id: k.fornecedor_id };
+  });
+}
+const somarDias = (dia, n) => { const d = new Date(dia + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
 async function mudarEtapa(sql, pessoa, b) {
   const id = idValido(b.id, 'Impressão'), para = String(b.etapa || ''), nota = texto(b.nota, 500, 'Nota');
   if (!CHAVES.has(para)) falhar('Etapa inválida.');
@@ -209,12 +328,14 @@ export async function areaImpressoes(req, res, quem, sql) {
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Método não permitido.' });
   const pessoa = quem.pessoa;
   try {
-    if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await ler(sql, pessoa)) });
+    if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await ler(sql, pessoa, req.query || {})) });
     const b = req.body || {};
     const acao = String(b.acao || '');
     const r = acao === 'impressao_salvar' ? await salvar(sql, pessoa, b)
       : acao === 'impressao_etapa' ? await mudarEtapa(sql, pessoa, b)
-      : falhar('Ação desconhecida. Use impressao_salvar ou impressao_etapa.');
+      : acao === 'cotacao_salvar' ? await salvarCotacao(sql, pessoa, b)
+      : acao === 'cotacao_escolher' ? await escolherCotacao(sql, pessoa, b)
+      : falhar('Ação desconhecida. Use impressao_salvar, impressao_etapa, cotacao_salvar ou cotacao_escolher.');
     return res.status(200).json({ ok: true, ...r });
   } catch (e) {
     if (semTabela(e)) return res.status(503).json({ error: 'Impressões ainda está sendo ligado no banco. Tente de novo em alguns minutos.' });

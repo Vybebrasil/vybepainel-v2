@@ -651,10 +651,10 @@
   }
   // Orçamento ligado à oportunidade do funil (auditoria 09/11, A2): a proposta nasce de uma oportunidade do CRM e leva
   // o oportunidade_id; o nome do cliente continua indo junto (sem oportunidade, digita-se o nome, como antes).
-  async function formOrcamento() {
+  function formOrcamento() {
     const d = st.dados.orcamentos, validade = C().somarDias(hojeIso(), 15);
-    if (!st.dados.funil) { try { st.dados.funil = completar(await pedir('comercial', null, queryDaAba('funil'))); } catch { /* sem o funil, só o nome */ } }
-    const ops = (st.dados.funil?.oportunidades || []).filter((o) => o.etapa !== 'perdido').sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+    // As oportunidades abertas vêm na própria resposta de Orçamentos (servidor, sem ganho nem perdido).
+    const ops = [...(d.oportunidades || [])].sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
     abrirFolha({ titulo: 'Novo orçamento', botao: 'Criar orçamento', campos: [
       ...(ops.length ? [{ nome: 'oportunidade_id', rotulo: 'Oportunidade do funil', tipo: 'select', opcoes: [['', 'Sem oportunidade (digite o cliente)'], ...ops.map((o) => [String(o.id), o.nome])], valor: '' }] : []),
       { nome: 'cliente_nome', rotulo: ops.length ? 'Cliente (vazio usa o nome da oportunidade)' : 'Cliente', obrigatorio: !ops.length, max: 200 },
