@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
-import { pegada, giroDaDirecao, definirMedida } from './sala.mjs';
+import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
 import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, figuraDoHabbo, corDoRevestimento } from './moveis-habbo.mjs';
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
@@ -94,16 +94,20 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   const liberar = (g) => g?.traverse?.((o) => { o.geometry?.dispose?.(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m?.dispose?.()); });
 
   // ---------- casca: piso em ladrilhos com os níveis da planta, base e paredes ----------
+  let pisoAtual = piso, pisoPintado = pisoEm, corParedeAtual = corParede, gCasca = null;
+  function montarPiso() {
+  if (gCasca) { cena.remove(gCasca); liberar(gCasca); }
   const casca = new Obra();
   for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
     const n = P.grade[y][x]; if (n < 0) continue;
-    const topo = n * NIVEL, [a, b] = pisoEm(x, y) || piso;
+    const topo = n * NIVEL, [a, b] = pisoPintado(x, y) || pisoAtual;
     casca.caixa(x + .5, -.62, y + .5, 1, .5 + topo, 1, '#C9C1B2'); // a base de concreto aparece nas bordas
     casca.caixa(x + .5, -.12, y + .5, 1, .12 + topo, 1, (x + y) % 2 ? a : b);
     // Degrau: o ladrilho mais alto que o vizinho da frente ganha a borda clara (lê-se a escada de longe).
     if (n > 0 && (P.nivel(x, y + 1) < n || P.nivel(x + 1, y) < n)) casca.caixa(x + .5, topo - .02, y + .5, 1.002, .04, 1.002, misturar(a, '#FFFFFF', .35));
   }
-  const gCasca = casca.montar(); cena.add(gCasca);
+  gCasca = casca.montar(); cena.add(gCasca); sujar(true);
+  }
 
   // ---------- paredes: cada trecho com a pintura que o dono escolheu (cor, revestimento e altura) ----------
   // No Escritório cada trecho é guardado pela chave do canto do quarto: fundo "x:<coluna>,0" e esquerda "y:0,<linha>"
@@ -119,7 +123,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     const o = new Obra(), H = ALTURA_PAREDE + nivelMax * NIVEL;
     for (const { x, y, eixo } of paredesDaPlanta(P)) {
       const est = trechoDe(x, y, eixo), classe = est?.textura || ESTILO_REVESTIMENTO[est?.estilo] || null;
-      const corBase = ehCor(est?.cor) ? est.cor : corParede, cor = classe && revestimentos.get(classe) ? revestimentos.get(classe) : corBase;
+      const corBase = ehCor(est?.cor) ? est.cor : corParedeAtual, cor = classe && revestimentos.get(classe) ? revestimentos.get(classe) : corBase;
       const base = P.grade[y][x] * NIVEL, alto = Number(est?.alt) > 0 ? Math.max(.5, (Number(est.alt) / 118) * ALTURA_PAREDE) : H - base;
       const topoParede = misturar(cor, '#FFFFFF', .55), rodape = misturar(cor, '#1F1D1A', .18);
       if (eixo === 'x') {
@@ -133,7 +137,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
       }
     }
     const y0 = P.grade.findIndex((l) => l.some((n) => n >= 0)), x0 = y0 >= 0 ? P.grade[y0].findIndex((n) => n >= 0) : -1;
-    if (x0 >= 0) o.caixa(x0 - ESPESSURA / 2, P.grade[y0][x0] * NIVEL - .62, y0 - ESPESSURA / 2, ESPESSURA, H - P.grade[y0][x0] * NIVEL + .72, ESPESSURA, misturar(corParede, '#FFFFFF', .55));
+    if (x0 >= 0) o.caixa(x0 - ESPESSURA / 2, P.grade[y0][x0] * NIVEL - .62, y0 - ESPESSURA / 2, ESPESSURA, H - P.grade[y0][x0] * NIVEL + .72, ESPESSURA, misturar(corParedeAtual, '#FFFFFF', .55));
     gParedes = o.montar(); cena.add(gParedes); sujar(true);
   }
   {
@@ -204,26 +208,34 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   }
   const carregarFisica = globalThis.mapaCarregarFisica;
   const fisicaPronta = (typeof carregarFisica === 'function' ? carregarFisica() : Promise.resolve({})).then((f) => { fisica = f || {}; }).catch(() => { fisica = {}; });
-  function montarItens(itens) {
+  let gVis = []; // índice do item → malha (para escolher e arrastar no modo decorar)
+  function montarItens(itens, { junto = false } = {}) {
     // Os móveis esperam a ficha do Habbo (é ela que diz o que é de parede, assento ou cama).
-    if (!fisica) { quarto.itens = itens; fisicaPronta.then(() => { if (vivo) montarItens(quarto.itens); }); return; }
+    if (!fisica) { quarto.itens = itens; fisicaPronta.then(() => { if (vivo) montarItens(quarto.itens, { junto }); }); return; }
     const geracao = ++geracaoItens;
-    luzes = []; if (fisica) lerFisica(itens); quarto.itens = itens;
-    if (gItens) { cena.remove(gItens); liberar(gItens); }
-    gItens = new THREE.Group(); const grupo = gItens;
-    cena.add(grupo); sujar(true);
-    for (const it of Array.isArray(itens) ? itens : []) {
+    luzes = []; lerFisica(itens); quarto.itens = itens;
+    const grupo = new THREE.Group(), vis = [], antigo = gItens;
+    // Na edição, a sala nova só entra pronta (sem piscar); na abertura, cada peça entra quando chega.
+    if (!junto || !antigo) { if (antigo) { cena.remove(antigo); liberar(antigo); } gItens = grupo; gVis = vis; cena.add(grupo); sujar(true); }
+    const promessas = (Array.isArray(itens) ? itens : []).map((it, i) => {
       const [classe, ix, iy, dir, estado, altura] = Array.isArray(it) ? it : [];
-      if (!classe || !Number.isFinite(Number(ix)) || !Number.isFinite(Number(iy))) continue;
+      if (!classe || !Number.isFinite(Number(ix)) || !Number.isFinite(Number(iy))) return null;
       const x = Number(ix), y = Number(iy), d = Number(dir) || 0, parede = ehDeParede(classe) || /^vybeimg_\d+$/.test(String(classe));
-      pecaDoHabbo(String(classe), x, y, d, Number(estado) || 0, altura, parede)
+      return pecaDoHabbo(String(classe), x, y, d, Number(estado) || 0, altura, parede)
         .catch(() => null)
         .then((m) => {
           if (!vivo || geracao !== geracaoItens) { if (m) liberar(m); return; }
           if (!m && !/^vybeimg_\d+$/.test(String(classe))) m = pecaGenerica(String(classe), x, y, d, altura, parede);
-          if (m) { grupo.add(m); acenderLuzes(); sujar(true); }
+          if (!m) return;
+          m.userData.item = i; vis[i] = m; grupo.add(m);
+          if (gItens === grupo) { acenderLuzes(); sujar(true); }
         });
-    }
+    });
+    if (junto && antigo) Promise.allSettled(promessas).then(() => {
+      if (!vivo || geracao !== geracaoItens) { liberar(grupo); return; }
+      cena.remove(antigo); liberar(antigo); gItens = grupo; gVis = vis; cena.add(grupo);
+      acenderLuzes(); if (ed) marcarSelecao(); sujar(true);
+    });
   }
 
   // ---------- câmera ----------
@@ -322,6 +334,233 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     for (const [id, b] of pessoas) if (!vistos.has(id)) { cena.remove(b.g); liberar(b.g); b.el.remove(); pessoas.delete(id); sujar(true); }
   }
 
+  // ---------- Decorar (vybe-mundo-decorar.js): a mesma interface de cena do andar antigo (mundo/sala.mjs) ----------
+  // Só a sala em edição responde. Arrastar uma peça a muda de lugar encaixando na grade (peça de parede corre pela
+  // parede, pelo lugarParede do painel); R gira pelas direções que o móvel tem no Habbo; Delete guarda (volta ao
+  // inventário ao salvar); Esc larga; G mostra a grade; as setas empurram 1 ladrilho. Sobrepor é livre (Paulo,
+  // 28/10/2026), só o marcador fica âmbar. As mudanças saem por aoMudar(itens) no formato do Escritório; quem grava é
+  // o painel, pela rota do editor (o servidor confere dono, inventário, planta e versão).
+  const COR_OK = '#18A957', COR_SOBRE = '#E2A11B', COR_FORA = '#E5484D';
+  const L = { w: W, d: D };
+  let ed = null;
+  const copiaItens = (itens) => (itens || []).filter(Array.isArray).map((it) => [...it]);
+  function raioDe(e) { camera.updateMatrixWorld(); const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); }
+  const planoChao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), pChao = new THREE.Vector3();
+  function noChaoDaSala(e, livre = false) {
+    raioDe(e); if (!ray.ray.intersectPlane(planoChao, pChao)) return null;
+    if (!livre && (pChao.x < 0 || pChao.z < 0 || pChao.x >= W || pChao.z >= D)) return null;
+    return { tx: pChao.x, ty: pChao.z };
+  }
+  function pecaSob(e) {
+    if (!gItens) return null;
+    gItens.updateMatrixWorld(true); // a posição de cada peça, mesmo sem quadro desenhado desde a última mudança
+    raioDe(e); let o = ray.intersectObjects(gItens.children, true)[0]?.object;
+    while (o && o.userData?.item == null) o = o.parent;
+    return o ? o.userData.item : null;
+  }
+  const ehParedeNaEdicao = (classe) => ed?.tipoDeParede?.(classe) === 'parede' || ehDeParede(classe);
+  const ignorarSobre = (o) => Number(o[5]) > 0 || tipoDoMovel(o[0]) === 'tapete' || ehParedeNaEdicao(o[0]);
+  function corDe(i, x, y, p, classe) {
+    if (!cabeNaSala(x, y, p, L)) return COR_FORA;
+    return !ignorarSobre([classe]) && sobrepoe(ed.itens, i, x, y, p, ignorarSobre) ? COR_SOBRE : COR_OK;
+  }
+  function marcar(x, y, p, cor) {
+    const m = ed.marcador; m.visible = true; m.scale.set(p.w, p.h, 1);
+    m.position.set(x + p.w / 2, baseDoLadrilho(x, y) + .03, y + p.h / 2); m.material.color.set(cor); sujar();
+  }
+  function marcarSelecao() {
+    if (!ed) return;
+    const it = ed.itens[ed.sel];
+    if (!it) { ed.marcador.visible = false; sujar(); return; }
+    const p = ehParedeNaEdicao(it[0]) ? { w: 1, h: 1 } : pegada(it[0], it[3]);
+    marcar(Math.floor(Number(it[1])), Math.floor(Number(it[2])), p, corDe(ed.sel, Number(it[1]), Number(it[2]), p, it[0]));
+  }
+  function mostrarGrade(sim) { if (ed) { ed.grade = Boolean(sim); ed.grade3d.visible = ed.grade; sujar(); } }
+  function selecionarItem(i) {
+    if (!ed) return;
+    ed.sel = Number.isInteger(i) && ed.itens[i] ? i : null;
+    marcarSelecao(); ed.aoSelecionar?.(ed.sel, ed.sel == null ? null : [...ed.itens[ed.sel]]);
+  }
+  function mudar(novos, info) {
+    ed.itens = novos; montarItens(novos, { junto: true });
+    if (ed.sel != null && !ed.itens[ed.sel]) ed.sel = null;
+    marcarSelecao(); ed.aoMudar?.(novos.map((it) => [...it]), info);
+  }
+  // Fantasma: a peça da mão, meio transparente, já encaixada na grade (a do catálogo enquanto a do Habbo não chega).
+  function fantasmaDe(classe, dir) {
+    const peca = pecaDaClasse(classe, tipoDoMovel(classe)), g = obraDaPeca(peca.desenho, peca.cor).montar({ sombra: false });
+    g.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .55; o.material.depthWrite = false; } });
+    g.rotation.y = giroDaDirecao(dir); g.visible = false;
+    return g;
+  }
+  function dirInicial(classe) { const d = medidaDaPeca(classe).direcoes; return !d || d.includes(2) ? 2 : d[0]; }
+  function segurarPeca(classe) {
+    if (!ed) return;
+    if (ed.fantasma) { ed.camada.remove(ed.fantasma); liberar(ed.fantasma); ed.fantasma = null; }
+    ed.novo = classe ? { classe: String(classe), dir: dirInicial(String(classe)) } : null;
+    if (ed.novo) { selecionarItem(null); ed.fantasma = fantasmaDe(ed.novo.classe, ed.novo.dir); ed.camada.add(ed.fantasma); mostrarGrade(true); }
+    else marcarSelecao();
+    canvas.style.cursor = ed.novo ? 'crosshair' : '';
+    ed.aoSegurar?.(ed.novo?.classe || null); sujar();
+  }
+  function lugarDoNovo(p) {
+    const { classe, dir } = ed.novo;
+    if (ehParedeNaEdicao(classe)) {
+      const l = ed.lugarParede?.(Math.floor(p.tx), Math.floor(p.ty), p.tx, p.ty);
+      return l ? { x: l.lx, y: l.ly, dir: l.dir, ok: true, parede: true } : { x: Math.floor(p.tx), y: Math.floor(p.ty), dir, ok: false, parede: true };
+    }
+    const pg = pegada(classe, dir);
+    return { ...encaixar(p.tx - pg.w / 2, p.ty - pg.h / 2, pg, L), dir, ok: true, parede: false };
+  }
+  function moverFantasma(e) {
+    const p = noChaoDaSala(e);
+    if (!p) { ed.fantasma.visible = false; ed.marcador.visible = false; sujar(); return; }
+    const l = lugarDoNovo(p), pg = l.parede ? { w: 1, h: 1 } : pegada(ed.novo.classe, l.dir);
+    ed.fantasma.visible = true; ed.fantasma.position.set(l.x + pg.w / 2, baseDoLadrilho(l.x, l.y), l.y + pg.h / 2); ed.fantasma.rotation.y = giroDaDirecao(l.dir);
+    marcar(l.x, l.y, pg, l.ok ? corDe(-1, l.x, l.y, pg, ed.novo.classe) : COR_FORA);
+  }
+  function porNovo(p) {
+    const l = lugarDoNovo(p), classe = ed.novo.classe;
+    if (!l.ok) { ed.aoAviso?.('Itens de parede vão encostados numa parede: clique no piso junto dela.'); return; }
+    segurarPeca(null);
+    const novos = porItem(ed.itens, classe, l.x, l.y, l.dir, { parede: l.parede });
+    mudar(novos, { tipo: 'por', i: novos.length - 1, classe });
+    selecionarItem(novos.length - 1);
+  }
+  function pairar(e) {
+    if (ed.novo) { moverFantasma(e); return; }
+    canvas.style.cursor = pecaSob(e) != null ? 'grab' : '';
+  }
+  function comecarArrasto(e) {
+    if (ed.novo || (e.pointerType === 'mouse' && e.button !== 0)) return false;
+    const i = pecaSob(e);
+    if (i == null) return false;
+    selecionarItem(i);
+    const it = ed.itens[i], tipo = ed.tipoDeParede?.(it[0]) || (ehDeParede(it[0]) ? 'parede' : '');
+    if (tipo === 'imagem') { ed.aoAviso?.('A imagem da equipe fica onde está; dá para guardar (Delete).'); return true; }
+    const p = noChaoDaSala(e, true);
+    ed.arrasto = { i, x0: e.clientX, y0: e.clientY, moveu: false, dx: p ? p.tx - Number(it[1]) : 0, dy: p ? p.ty - Number(it[2]) : 0, alvo: null, parede: tipo === 'parede' };
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* sem captura */ }
+    canvas.style.cursor = 'grabbing';
+    return true;
+  }
+  function arrastar(e) {
+    const a = ed.arrasto;
+    if (!a.moveu && Math.hypot(e.clientX - a.x0, e.clientY - a.y0) < 4) return;
+    a.moveu = true;
+    const p = noChaoDaSala(e, true), it = ed.itens[a.i];
+    if (!p || !it) return;
+    const m = gVis[a.i];
+    if (a.parede) {
+      const l = ed.lugarParede?.(Math.floor(p.tx), Math.floor(p.ty), p.tx, p.ty);
+      a.alvo = l ? { x: l.lx, y: l.ly, dir: l.dir } : null;
+      if (m) m.visible = false; // a peça de parede reaparece no lugar novo ao soltar
+      marcar(l ? l.lx : Math.max(0, Math.floor(p.tx)), l ? l.ly : Math.max(0, Math.floor(p.ty)), { w: 1, h: 1 }, l ? COR_OK : COR_FORA);
+      return;
+    }
+    const pg = pegada(it[0], it[3]);
+    a.alvo = { ...encaixar(p.tx - a.dx, p.ty - a.dy, pg, L), dir: it[3] };
+    if (m) { m.position.x = a.alvo.x; m.position.z = a.alvo.y; m.position.y = baseDoLadrilho(a.alvo.x, a.alvo.y) + Math.max(0, Number(it[5]) || 0) * NIVEL; sombraSuja = true; }
+    marcar(a.alvo.x, a.alvo.y, pg, corDe(a.i, a.alvo.x, a.alvo.y, pg, it[0]));
+  }
+  function soltarArrasto(cancelar = false) {
+    const a = ed.arrasto, it = ed.itens[a.i]; ed.arrasto = null; canvas.style.cursor = '';
+    if (!cancelar && it && a.moveu && a.alvo && (a.alvo.x !== Number(it[1]) || a.alvo.y !== Number(it[2]) || a.alvo.dir !== it[3])) {
+      mudar(moverItem(ed.itens, a.i, a.alvo.x, a.alvo.y, { dir: a.parede ? a.alvo.dir : null, ehParede: ehParedeNaEdicao }), { tipo: 'mover', i: a.i });
+      return;
+    }
+    // Não mudou (ou soltou longe da parede): a peça volta para onde estava.
+    const m = gVis[a.i];
+    if (m && it) { m.visible = true; if (!a.parede) { m.position.x = Number(it[1]); m.position.z = Number(it[2]); m.position.y = baseDoLadrilho(it[1], it[2]) + Math.max(0, Number(it[5]) || 0) * NIVEL; } sombraSuja = true; }
+    marcarSelecao();
+    if (!cancelar && a.moveu && a.parede && !a.alvo) ed.aoAviso?.('Solte junto de uma parede.');
+  }
+  function cliqueNaEdicao(e) {
+    const p = noChaoDaSala(e);
+    if (ed.novo) { if (p) porNovo(p); else ed.aoAviso?.('Ponha dentro da sua sala.'); return; }
+    selecionarItem(null);
+    if (p) mostrarGrade(true);
+  }
+  function girarPeca() {
+    if (!ed) return;
+    if (ed.novo) {
+      const prox = proximaDirecao(ed.novo.dir, medidaDaPeca(ed.novo.classe).direcoes);
+      if (prox == null || ehParedeNaEdicao(ed.novo.classe)) { ed.aoAviso?.(ehParedeNaEdicao(ed.novo.classe) ? 'Peça de parede segue a parede.' : 'Esse móvel não gira no Habbo.'); return; }
+      ed.novo.dir = prox; if (ed.fantasma) ed.fantasma.rotation.y = giroDaDirecao(prox); sujar();
+      return;
+    }
+    const it = ed.itens[ed.sel];
+    if (!it) return;
+    if (ehParedeNaEdicao(it[0])) { ed.aoAviso?.('Peça de parede segue a parede: arraste para a outra parede.'); return; }
+    const prox = proximaDirecao(it[3], medidaDaPeca(it[0]).direcoes);
+    if (prox == null) { ed.aoAviso?.('Esse móvel não gira no Habbo.'); return; }
+    if (!cabeNaSala(Number(it[1]), Number(it[2]), pegada(it[0], prox), L)) { ed.aoAviso?.('Girado, ele sairia da sala. Arraste para um lugar livre e gire de novo.'); return; }
+    mudar(girarItem(ed.itens, ed.sel, prox), { tipo: 'girar', i: ed.sel });
+  }
+  function guardarPeca() {
+    if (!ed || ed.sel == null) return;
+    const r = guardarItem(ed.itens, ed.sel);
+    ed.sel = null; mudar(r.itens, { tipo: 'guardar', item: r.item }); ed.aoSelecionar?.(null, null);
+  }
+  function empurrar(dx, dy) {
+    const it = ed.itens[ed.sel];
+    if (!it) return;
+    if (ehParedeNaEdicao(it[0])) { ed.aoAviso?.('Peça de parede: arraste para outro trecho da parede.'); return; }
+    const a = encaixar(Number(it[1]) + dx, Number(it[2]) + dy, pegada(it[0], it[3]), L);
+    if (a.x !== Number(it[1]) || a.y !== Number(it[2])) mudar(moverItem(ed.itens, ed.sel, a.x, a.y, { ehParede: ehParedeNaEdicao }), { tipo: 'mover', i: ed.sel });
+  }
+  // As setas da tela do Habbo: cima/baixo andam no y do quarto e esquerda/direita no x (como no editor do Escritório).
+  const SETAS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  function teclaEdicao(e) {
+    if (!ed || e.ctrlKey || e.metaKey || e.target?.closest?.('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+    if (document.querySelector?.('dialog[open], #cli-pergunta')) return;
+    const k = e.key?.length === 1 ? e.key.toLowerCase() : e.key;
+    if (k === 'r') girarPeca();
+    else if (k === 'Delete' || k === 'Backspace') { if (ed.sel == null) return; guardarPeca(); }
+    else if (k === 'Escape') { if (ed.novo) segurarPeca(null); else if (ed.sel != null) selecionarItem(null); else ed.aoSair?.(); }
+    else if (k === 'g') mostrarGrade(!ed.grade);
+    else if (SETAS[k] && ed.sel != null && !e.altKey) empurrar(...SETAS[k]);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  }
+  function iniciarEdicao({ sala, itens, aoMudar, aoSelecionar, aoSegurar, aoAviso, aoSair, tipoDeParede, lugarParede } = {}) {
+    if (sala !== quarto.id) return false;
+    if (ed) pararEdicao();
+    const linhas = [];
+    for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+      if (P.nivel(x, y) < 0) continue;
+      const h = baseDoLadrilho(x, y) + .02;
+      linhas.push(x, h, y, x + 1, h, y, x, h, y, x, h, y + 1, x + 1, h, y, x + 1, h, y + 1, x, h, y + 1, x + 1, h, y + 1);
+    }
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(linhas, 3));
+    const grade3d = new THREE.LineSegments(gg, new THREE.LineBasicMaterial({ color: COR_OK, transparent: true, opacity: .45, depthWrite: false }));
+    const marcador = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: COR_OK, transparent: true, opacity: .35, depthWrite: false }));
+    marcador.rotation.x = -Math.PI / 2; marcador.visible = false; marcador.renderOrder = 3;
+    const camada = new THREE.Group(); camada.add(grade3d, marcador); cena.add(camada);
+    ed = { itens: copiaItens(Array.isArray(itens) ? itens : quarto.itens), sel: null, novo: null, arrasto: null, grade: true, grade3d, marcador, camada, fantasma: null,
+      aoMudar, aoSelecionar, aoSegurar, aoAviso, aoSair, tipoDeParede, lugarParede };
+    montarItens(ed.itens, { junto: true });
+    window.addEventListener('keydown', teclaEdicao, true);
+    sujar(true);
+    return true;
+  }
+  function pararEdicao() {
+    if (!ed) return;
+    window.removeEventListener('keydown', teclaEdicao, true);
+    cena.remove(ed.camada); liberar(ed.camada);
+    for (const m of gVis) if (m) m.visible = true;
+    ed = null; canvas.style.cursor = ''; sujar(true);
+  }
+  // Acabamento escolhido no painel (piso: as duas cores do ladrilho; parede: a cor). Escolher o piso tira a pintura
+  // ladrilho a ladrilho, como no editor; null volta ao do quarto.
+  function definirAcabamento(sala, { piso: novoPiso = null, parede: novaParede = null } = {}) {
+    if (sala !== quarto.id) return;
+    pisoAtual = Array.isArray(novoPiso) && novoPiso.length === 2 && novoPiso.every(ehCor) ? [...novoPiso] : piso;
+    pisoPintado = novoPiso ? () => null : pisoEm;
+    corParedeAtual = ehCor(novaParede) ? novaParede : corParede;
+    montarPiso(); montarParedes();
+  }
+
   // ---------- desenho sob demanda ----------
   let vivo = true, pedido = 0, ultimo = 0, sombraSuja = true, visivel = true;
   function sujar(sombra = false) { if (sombra) sombraSuja = true; if (!pedido && vivo && visivel && !document.hidden) pedido = requestAnimationFrame(passo); }
@@ -368,12 +607,15 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   const toques = new Map(); let arrasto = null, pinca = 0, aoPiso = null, seguir = false;
   const perto = Math.max(1.2, longe * .3), maxDist = longe * 2;
   canvas.addEventListener('pointerdown', (e) => {
+    if (ed && toques.size === 0 && comecarArrasto(e)) return; // decorando: a peça clicada é pega; o resto move a sala
     toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (toques.size === 2) { const [a, b] = [...toques.values()]; pinca = Math.hypot(a.x - b.x, a.y - b.y); arrasto = null; }
     else arrasto = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
     try { canvas.setPointerCapture(e.pointerId); } catch { /* ponteiro já solto */ }
   });
   canvas.addEventListener('pointermove', (e) => {
+    if (ed?.arrasto) { arrastar(e); return; }
+    if (ed && !arrasto) pairar(e);
     if (toques.has(e.pointerId)) toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (toques.size === 2 && pinca) {
       const [a, b] = [...toques.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
@@ -391,10 +633,13 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     arrasto.x = e.clientX; arrasto.y = e.clientY; sujar();
   });
   const soltar = (e) => { toques.delete(e.pointerId); if (toques.size < 2) pinca = 0; };
-  canvas.addEventListener('pointercancel', (e) => { soltar(e); arrasto = null; });
+  canvas.addEventListener('pointercancel', (e) => { soltar(e); arrasto = null; if (ed?.arrasto) soltarArrasto(true); });
   canvas.addEventListener('pointerup', (e) => {
-    soltar(e);
+    soltar(e); // sempre: um toque esquecido impedia o próximo arrasto
+    if (ed?.arrasto) { soltarArrasto(); return; }
     const parado = arrasto && Math.hypot(e.clientX - arrasto.x0, e.clientY - arrasto.y0) < 5; arrasto = null;
+    // Decorando: o clique é da edição (pôr a peça da mão, largar a seleção, mostrar a grade); não anda.
+    if (ed) { if (parado) cliqueNaEdicao(e); return; }
     if (!parado || !aoPiso) return;
     const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
@@ -424,6 +669,23 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     quer.dist = depois; seguir = false; sujar();
   }, { passive: false });
 
+  // WASD e setas (Paulo, 09/11/2026: "andar no quarto clicando, no WASD... como tinha no legado"): o mesmo movimento
+  // do Escritório (tecladoEscritorio), que respeita os móveis e manda a posição para todos. Só com você nesta sala,
+  // fora do modo decorar e fora de campos de texto; a câmera acompanha.
+  const naSala = () => { try { return typeof escritorio !== 'undefined' && escritorio?.zona === quarto.id && (escritorio.conectado || escritorio.base?.demo); } catch { return false; } };
+  const visivelAgora = () => canvas.isConnected && canvas.getBoundingClientRect().width > 0;
+  function teclaAndar(e) {
+    if (ed || !naSala() || !visivelAgora() || document.querySelector?.('dialog[open], .workflow-modal, #vv-decorar')) return;
+    if (e.target?.closest?.('input, textarea, select, [contenteditable]')) return;
+    const antes = e.defaultPrevented;
+    try { if (typeof escritorio !== 'undefined') escritorio.correndo = e.shiftKey; globalThis.tecladoEscritorio?.(e); } catch { /* sem o motor do Escritório */ }
+    if (e.defaultPrevented && !antes) { seguir = true; sujar(); }
+  }
+  function soltarAndar(e) { try { globalThis.soltarTeclaEscritorio?.(e); } catch { /* sem o motor */ } }
+  window.addEventListener('keydown', teclaAndar);
+  window.addEventListener('keyup', soltarAndar);
+
+  montarPiso();
   montarParedes();
   montarItens(quarto.itens);
   aplicarLuz();
@@ -435,12 +697,31 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     pessoas: definirPessoas,
     // Clique num ladrilho do piso: (x, y) em ladrilhos do quarto, como as coordenadas do Escritório.
     aoClicarPiso: (f) => { aoPiso = f; },
-    itens: (lista) => montarItens(lista),
+    // A decoração mudou fora daqui (salvou pelo editor do Escritório): o quarto acompanha, menos durante a edição.
+    itens: (lista) => { if (!ed) montarItens(lista); },
+    // Modo decorar (vybe-mundo-decorar.js): a mesma interface do andar antigo (mundo/sala.mjs).
+    iniciarEdicao, pararEdicao,
+    editando: () => (ed ? quarto.id : ''),
+    selecionar: (i) => selecionarItem(i),
+    segurar: (classe) => segurarPeca(classe),
+    girar: () => girarPeca(),
+    guardar: () => guardarPeca(),
+    grade: (sim) => mostrarGrade(sim),
+    definirItens(itens, sala = quarto.id) {
+      if (sala !== quarto.id) return;
+      const lista = copiaItens(itens);
+      if (ed) { ed.itens = lista; ed.sel = null; montarItens(lista, { junto: true }); marcarSelecao(); ed.aoSelecionar?.(null, null); return; }
+      montarItens(lista);
+    },
+    definirAcabamento,
     // Medidas do Habbo: só a peça de reserva (catálogo) usa; a esculpida já sai do tamanho do móvel.
     medidas(lista) { for (const [classe, m] of lista || []) definirMedida(classe, m); },
+    // Onde um ponto do quarto (ladrilhos e altura do mundo) aparece na tela, em pixels da página.
+    naTela(x, y = 0, z = 0) { posicionar(); const r = canvas.getBoundingClientRect(), q = new THREE.Vector3(x, y, z).project(camera); return { x: r.left + (q.x * .5 + .5) * r.width, y: r.top + (-q.y * .5 + .5) * r.height }; },
     verTudo() { quer.alvo.copy(alvo.set(W / 2, .6 + nivelMax * NIVEL / 2, D / 2)); quer.dist = longe; sujar(); },
     destruir() {
-      vivo = false; if (pedido) cancelAnimationFrame(pedido); pedido = 0; clearInterval(relogio);
+      vivo = false; if (pedido) cancelAnimationFrame(pedido); pedido = 0; clearInterval(relogio); pararEdicao();
+      window.removeEventListener('keydown', teclaAndar); window.removeEventListener('keyup', soltarAndar); try { globalThis.escritorioPararTeclado?.(); } catch { /* sem o motor */ }
       ro.disconnect(); io?.disconnect(); document.removeEventListener('visibilitychange', aoVoltarAba);
       for (const b of pessoas.values()) b.el.remove(); pessoas.clear();
       liberar(cena); renderer.dispose();

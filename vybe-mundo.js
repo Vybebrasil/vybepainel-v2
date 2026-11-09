@@ -1750,6 +1750,13 @@
     // Ver a sala: a minha e a que estou na voz (quando é a sala de alguém).
     const casa = svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>');
     partes.push(botao({ acao: 'ver-minha', cls: `minha${zonaAberta && zonaAberta === minha ? ' aberta' : ''}`, icone: casa, rot: 'Minha sala', titulo: minha ? 'Ver a minha sala (e entrar na voz dela)' : 'Você ainda não tem uma sala no Escritório', extra: minha ? '' : 'disabled' }));
+    // Decorar (Paulo, 09/11/2026: "mudar os móveis de lugar, comprar móveis, editar o quarto, como tinha no legado"): só na
+    // sala aberta que é sua (a mesma regra do servidor). Abre o painel de decorar sobre o quarto voxel.
+    const decorar = typeof window !== 'undefined' ? window.VybeDecorar : null;
+    if (zonaAberta && decorar?.podeDecorar?.(zonaAberta)) {
+      const decorando = Boolean(decorar.aberto?.());
+      partes.push(botao({ acao: 'decorar', cls: decorando ? 'aberta' : '', icone: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>'), rot: 'Decorar', titulo: decorando ? 'Fechar o modo decorar' : 'Decorar: mudar móveis de lugar, girar, guardar, pôr do inventário e comprar na Loja', extra: `aria-pressed="${decorando}"` }));
+    }
     if (e.conectado && e.zona && e.zona !== minha) {
       const temQuarto = Boolean(quartoDaSala(e.zona));
       partes.push(botao({ acao: 'ver-atual', cls: `vq-atual${zonaAberta === e.zona ? ' aberta' : ''}`, icone: svg('<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), rot: 'Sala atual', titulo: temQuarto ? `Entrar e ver ${nome(e.zona)}` : `${nome(e.zona)} ainda não tem a sala em voxel: só a voz`, extra: temQuarto ? '' : 'disabled' }));
@@ -1824,6 +1831,13 @@
     if (a === 'audio') { abrirAjustesAudio(); return; }
     if (a === 'tv') { fn('abrirTvEscritorio')?.(e?.tvAtual || null); return; }
     if (a === 'ver-minha') { const m = minhaSalaDaConta(); if (m) abrirMinhaSala(m); return; }
+    if (a === 'decorar') {
+      const D = window.VybeDecorar, z = String(andarAbertoId || '').startsWith('quarto:') ? andarAbertoId.slice(7) : '';
+      if (!D || !z) return;
+      if (D.aberto?.()) { Promise.resolve(D.fechar?.()).finally(pintarDock); return; }
+      import(MUNDO_JS).then((m) => { D.ligarCena?.(andarAberto, m); return D.abrir?.(z); }).catch(() => {}).finally(pintarDock);
+      return;
+    }
     if (a === 'ver-atual') { if (e?.zona) abrirMinhaSala(e.zona); return; }
     if (a === 'salas') { abrirDaDireita(body.classList.contains('ver-voz') ? '' : 'voz'); return; }
     if (a === 'chat') { window.VybeConversa?.abrir?.('conversa'); return; }
@@ -1841,7 +1855,7 @@
     const el = document.createElement('section'); el.id = 'mundo-andar'; el.className = 'quarto';
     // Paulo, 09/11/2026: "esse cartão não tem sentido nenhum... voltar devia ser algo mais premium, no dock de baixo... estilo
     // um dock mesmo". Nada por cima do quarto: o Voltar é o primeiro ícone do dock e as salas vêm ao lado dele.
-    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Sala em voxel: arraste para girar, use a roda para aproximar e clique no piso para andar" title="Arraste para girar, use a roda para aproximar e clique no piso para andar"></canvas><div class="quarto-estado"></div></div>`;
+    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Sala em voxel: arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD" title="Arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD"></canvas><div class="quarto-estado"></div></div>`;
     body.append(el); body.classList.add('mundo-andar', 'mundo-quarto');
     const estado = el.querySelector('.quarto-estado');
     const mostrarEstado = (tipo, texto) => {
@@ -1869,7 +1883,7 @@
       return;
     }
     andarAbertoId = 'quarto:' + zona;
-    el.querySelector('canvas').setAttribute('aria-label', (zona === minhaSalaDaConta() ? 'Minha sala: ' : 'Visitando: ') + quarto.nome + '. Arraste para girar, use a roda para aproximar e clique no piso para andar');
+    el.querySelector('canvas').setAttribute('aria-label', (zona === minhaSalaDaConta() ? 'Minha sala: ' : 'Visitando: ') + quarto.nome + '. Arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD');
     // Abrir a sala é entrar nela: a pessoa vai para a zona da própria sala e para a chamada dela (mudo, como sempre).
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     // Só com o Escritório conectado: sem conexão, irParaSala cai em irParaSalaEscritorio, que troca de quadro (e
@@ -1878,6 +1892,7 @@
     let m; try { m = await import(MUNDO_JS); } catch (err) { console.error('[mundo] minha sala', err); mostrarEstado('erro', 'Não deu para carregar o 3D. Confira a conexão.'); return; }
     if (geracao !== geracaoAndar || !el.isConnected) return;
     andarAberto = m.abrirQuarto(el.querySelector('canvas'), { quarto });
+    window.VybeDecorar?.ligarCena?.(andarAberto, m); // o painel de decorar edita este quarto
     mostrarEstado('', '');
     andarAberto.aoClicarPiso((x, y) => {
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
