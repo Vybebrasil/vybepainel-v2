@@ -4976,3 +4976,9 @@ html body.mundo.mundo-modulo #grupos-board .grupos-head :is(h2,h3,b,strong,span,
 .vs-chip{appearance:none;border:1px solid #ECE6DC;background:#fff;border-radius:999px;padding:4px 8px;cursor:pointer}
 .vs-chip:hover{border-color:var(--vv-laranja)}
 .vs-gestao-aba .vv-legenda{margin-top:6px}
+/* Gestão no celular: as 7 abas rolam dentro da própria barra e tabelas rolam dentro do bloco (antes o painel inteiro
+   rolava para o lado). */
+.vv-gestao .vv-g-abas{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.vv-gestao .vv-g-abas::-webkit-scrollbar{display:none}
+.vv-gestao .vv-g-abas button{flex:0 0 auto}
+.vv-gestao .vs-corpo,.vv-gestao .vs-corpo > *,.vv-gestao .vs-bloco,.vv-gestao .vs-tabela{min-width:0;max-width:100%}

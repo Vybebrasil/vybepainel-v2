@@ -26,6 +26,8 @@
 //
 // O botão no trilho é ligado por quem mexe em vybe-mundo.js; aqui só a janela.
 (function () {
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   'use strict';
   const ABAS = [['saude', 'Saúde'], ['onboarding', 'Onboarding'], ['churn', 'Churn'], ['contratos', 'Contratos']];
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate';
@@ -208,7 +210,7 @@
     return `<li class="vc-linha ${c.nivel}">
       <button type="button" class="vc-linha-topo" data-vc-abrir="c:${esc(c.nome)}" aria-expanded="${aberto}">
         <span class="vc-nota-num ${c.nivel}" aria-label="Nota ${c.score}">${c.score}</span>
-        <span class="vc-meio"><b>${esc(c.nome)}</b><small>${esc(resumo)}</small></span>
+        <span class="vc-meio"><b>${cliCor(c.nome)}</b><small>${esc(resumo)}</small></span>
         ${etiqueta(c.rotuloRisco, c.nivel)}
       </button>
       ${aberto ? `<div class="vc-detalhe">
@@ -357,7 +359,7 @@
     return `<li class="vc-onb${o.encerrado_em ? ' encerrado' : ''}">
       <button type="button" class="vc-linha-topo" data-vc-abrir="o:${esc(o.cliente_id)}" aria-expanded="${aberto}">
         <span class="vc-pct" style="--p:${s.pct}"><b>${s.pct}%</b></span>
-        <span class="vc-meio"><b>${esc(o.cliente || '')}</b><small>${o.encerrado_em ? `Encerrado em ${dataCurta(diaDoCarimbo(o.encerrado_em))}` : s.concluido ? 'Todas as etapas feitas' : `${esc(s.atual?.nome || '')}${resp ? ` · com ${esc(resp)}` : ' · sem responsável'}`}</small></span>
+        <span class="vc-meio"><b>${cliCor(o.cliente || '')}</b><small>${o.encerrado_em ? `Encerrado em ${dataCurta(diaDoCarimbo(o.encerrado_em))}` : s.concluido ? 'Todas as etapas feitas' : `${esc(s.atual?.nome || '')}${resp ? ` · com ${esc(resp)}` : ' · sem responsável'}`}</small></span>
         ${o.encerrado_em ? etiqueta('Encerrado', 'u5') : s.concluido ? etiqueta('Pronto', 'u6') : paradaHtml(s.atual)}
       </button>${esteira}${detalhe}</li>`;
   }
@@ -419,7 +421,7 @@
     const motivo = s.motivo ? etiqueta(MOTIVOS()[s.motivo] || s.motivo, 'u3a') : etiqueta('Sem motivo', 'u5');
     const apoio = [`saiu em ${dataCurta(s.saida)}`, s.tipo ? TIPOS()[s.tipo] : '', s.meses != null ? `${String(s.meses).replace('.', ',')} meses de casa` : '', s.receita != null ? `${reais(s.receita)}/mês` : ''].filter(Boolean).join(' · ');
     const pode = estado.servidor?.pode?.churn && estado.servidor?.churn?.disponivel;
-    return `<li class="vc-linha"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(s.nome)}</b><small>${esc(apoio)}</small>
+    return `<li class="vc-linha"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${cliCor(s.nome)}</b><small>${esc(apoio)}</small>
         ${s.detalhe || s.motivoLivre ? `<small class="vc-citacao">${esc(s.detalhe || s.motivoLivre)}</small>` : ''}</span>${motivo}</div>
       ${pode && !(estado.form?.tipo === 'churn' && estado.form.id === s.id) ? `<div class="vc-linha-acoes">${secundario(s.classificado ? 'Editar motivo' : 'Classificar', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}"`)}</div>` : ''}
       ${formChurn(s)}</li>`;
@@ -504,7 +506,7 @@
     const fc = window.VybeFinancas?.contratoDoCliente?.(l.id) || null;
     const daFin = fc ? `<small class="vc-casa">${esc(['Vybe Finanças: ' + fc.titulo, fc.assinado_em ? 'assinado em ' + dataCurta(fc.assinado_em) : 'sem data de assinatura', fc.dia_vencimento ? 'vence dia ' + fc.dia_vencimento : '', fc.status, fc.tem_pdf ? 'com PDF' : 'sem PDF'].filter(Boolean).join(' · '))}</small>` : '';
     const pode = !fc && estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel;
-    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${esc(l.nome)}</b><small>${esc(apoio)}</small><small class="vc-casa">${esc(casa)}</small>${daFin}${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
+    return `<li class="vc-linha${l.vencida ? ' u1' : l.emBreve ? ' u2' : ''}"><div class="vc-linha-topo estatico"><span class="vc-meio"><b>${cliCor(l.nome)}</b><small>${esc(apoio)}</small><small class="vc-casa">${esc(casa)}</small>${daFin}${l.observacao ? `<small class="vc-citacao">${esc(l.observacao)}</small>` : ''}</span>${ren}</div>
       ${pode && !(estado.form?.tipo === 'contrato' && estado.form.id === l.id) ? `<div class="vc-linha-acoes">${secundario(l.temContrato ? 'Editar' : 'Registrar contrato', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}"`)}</div>` : ''}
       ${formContrato(l)}</li>`;
   }
