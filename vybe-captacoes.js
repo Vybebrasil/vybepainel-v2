@@ -16,7 +16,7 @@
 const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes: [], avisoAgenda: "", erro: "", carregando: false, carregandoSemana: false,
   busca: "", abertos: new Set(), semana: "", dia: "", sel: "",
   // No celular abre no Dia (o Roteiro do dia, a tela do Mizinho na gravação); no computador, na Semana.
-  vista: typeof window !== "undefined" && window.matchMedia?.("(max-width: 700px)").matches ? "dia" : "semana", tipos: new Set(["captacao", "reuniao", "outro"]), grupo: "",
+  vista: captNoCelular() ? "mes" : "semana", tipos: new Set(["captacao", "reuniao", "outro"]), grupo: "",
   // O inspetor ("Precisa de você") abre e fecha pela barra; a escolha fica no navegador.
   inspetor: (() => { try { return localStorage.getItem("vybeCaptInspetor") === "1"; } catch { return false; } })(), verParadas: false };
 
@@ -634,6 +634,24 @@ function captPreviaHtml(id) {
 // O MÊS (rodada 3): seis semanas, cada dia com até três captações em linha
 // (hora e cliente) e "+N" para o resto. O número do dia abre o Dia; a
 // captação tem a mesma prévia do hover e o mesmo cartão no clique.
+// Celular no jeito do Google Agenda (Paulo, 09/11/2026: "o Mizinho já é acostumado: clicar no dia, adicionar, o botão de
+// adicionar no lugar de lá, e dá para ler o que está no dia; copiar literalmente essa forma de ver"): abre no mês, com a
+// faixa dos meses em cima, cada dia com as captações em faixas coloridas (a mesma cor do tipo da agenda), tocar no dia
+// abre o dia e o botão + flutuante no canto marca no dia escolhido.
+function captNoCelular() { return typeof window !== "undefined" && Boolean(window.matchMedia?.("(max-width: 700px)").matches); }
+function captTocarDia(dia) { if (captNoCelular()) captVerDia(dia); }
+function captIrMes(iso) { CAPT.dia = iso; CAPT.sel = ""; agCartaoFechar(); captBuscarFaixa(); }
+function captMesesHtml() {
+  const d = CAPT.dia || captHoje(), [a, m] = d.split("-").map(Number);
+  const meses = Array.from({ length: 15 }, (_, i) => new Date(Date.UTC(a, m - 1 - 2 + i, 1)));
+  let ano = a;
+  return `<nav class="capt-meses" aria-label="Escolher o mês">${meses.map((x) => {
+    const iso = x.toISOString().slice(0, 10), atual = iso.slice(0, 7) === d.slice(0, 7);
+    const nome = x.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" });
+    const marcaAno = x.getUTCFullYear() !== ano ? (ano = x.getUTCFullYear(), `<span class="capt-meses-ano">${ano}</span>`) : "";
+    return `${marcaAno}<button type="button" onclick="captIrMes('${iso}')"${atual ? ' aria-current="date"' : ""}>${safeText(nome)}</button>`;
+  }).join("")}</nav>`;
+}
 function captMesHtml(eventos) {
   const d = CAPT.dia || captHoje(), mes = d.slice(0, 7), hoje = captHoje();
   const ini = agSegunda(captPrimeiroDoMes(d)), dias = Array.from({ length: 42 }, (_, i) => agSomar(ini, i));
@@ -641,13 +659,15 @@ function captMesHtml(eventos) {
     return `<button type="button" class="ag-chip t-${safeText(e.tipo || "outro")}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}${e.dia < hoje ? " passou" : ""}${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"
       onclick="event.stopPropagation();agPreviaSair(true);captSelecionar('${safeText(e.id)}')" onmouseenter="agPreviaEntrar(this,'captPreviaHtml')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'captPreviaHtml')" onblur="agPreviaSair()"
       aria-label="${safeText(`${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agHorario(e)}${e.estado ? `, ${e.estado.texto}` : ""}`)}"><i aria-hidden="true"></i><span>${e.inicio ? `<em>${safeText(e.inicio)}</em> ` : ""}${safeText(p.nome)}</span></button>`; };
-  const cab = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((n) => `<div class="capt-mes-cab" role="columnheader">${n}</div>`).join("");
-  return `<div class="capt-mes" role="grid" aria-label="Mês">${cab}${dias.map((dia) => {
+  // No celular, as letras dos dias (S T Q Q S S D) e até 5 por dia, como no Google Agenda; no computador, 3 e o "+N outras".
+  const cel = captNoCelular(), max = cel ? 5 : 3;
+  const cab = (cel ? ["S", "T", "Q", "Q", "S", "S", "D"] : ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]).map((n) => `<div class="capt-mes-cab" role="columnheader">${n}</div>`).join("");
+  return `${cel ? captMesesHtml() : ""}<div class="capt-mes" role="grid" aria-label="Mês">${cab}${dias.map((dia) => {
     const lista = eventos.filter((e) => e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
-    return `<div class="capt-mes-dia${dia.slice(0, 7) !== mes ? " fora" : ""}${dia === hoje ? " hoje" : ""}${dia < hoje ? " passou" : ""}" role="gridcell">
+    return `<div class="capt-mes-dia${dia.slice(0, 7) !== mes ? " fora" : ""}${dia === hoje ? " hoje" : ""}${dia < hoje ? " passou" : ""}" role="gridcell" onclick="captTocarDia('${dia}')">
       <button type="button" class="capt-mes-num" onclick="captVerDia('${dia}')" aria-label="Ver ${safeText(captDiaLongo(dia))}">${Number(dia.slice(8))}</button>
-      ${window.VybeDatas?.chipsDoDia(dia, { max: 1 }) || ""}
-      ${lista.slice(0, 3).map(chip).join("")}${lista.length > 3 ? `<button type="button" class="capt-mes-mais" onclick="captVerDia('${dia}')">+${lista.length - 3} ${lista.length - 3 === 1 ? "outra" : "outras"}</button>` : ""}</div>`; }).join("")}</div>`;
+      ${cel ? "" : window.VybeDatas?.chipsDoDia(dia, { max: 1 }) || ""}
+      ${lista.slice(0, max).map(chip).join("")}${lista.length > max ? `<button type="button" class="capt-mes-mais" onclick="event.stopPropagation();captVerDia('${dia}')">+${lista.length - max}${captNoCelular() ? "" : lista.length - max === 1 ? " outra" : " outras"}</button>` : ""}</div>`; }).join("")}</div>`;
 }
 
 // O DIA e o ROTEIRO DO DIA (rodadas 3 e 4): à esquerda a coluna das horas, à
@@ -744,7 +764,8 @@ function captacoesHtml() {
     <div class="capt-colunas">
       <section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${corpo}</section>
       ${CAPT.inspetor ? `<aside class="capt-lado" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
-    </div></div>`;
+    </div>
+    <button type="button" class="capt-fab" onclick="captNovoEvento({dia:'${CAPT.vista === "dia" ? d : hoje}'},null)" aria-label="Marcar na agenda${CAPT.vista === "dia" ? " neste dia" : ""}" title="Marcar na agenda"><span aria-hidden="true">+</span></button></div>`;
 }
 
 // Teclado, como no Calendário: T hoje, ← → navega, D S M L troca a visão, N

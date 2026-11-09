@@ -27772,3 +27772,40 @@ button.snc-liga-quem:hover .snc-liga-foto{transform:scale(1.06)}
    O Escritório (jogo) continua escuro. */
 html body.mundo{--lg-fundo:#F6F3EE;--lg-cartao:#FFFFFF;--lg-vidro:rgba(255,255,255,.94)}
 html body.mundo #painel-escritorio{--lg-fundo:initial;--lg-cartao:initial;--lg-vidro:initial}
+
+/* ===== Agenda da Produção no celular, no jeito do Google Agenda (Paulo, 09/11/2026: "o Mizinho já é acostumado com
+   essa forma: clicar no dia, adicionar, o botão de adicionar no lugar de lá, e dar para ler o que está no dia") =====
+   Faixa dos meses em cima, a grade do mês ocupando a tela, cada captação numa faixa da cor do tipo (a mesma da agenda),
+   hoje num círculo, tocar no dia abre o dia, e o botão + flutuante no canto de baixo. No computador nada muda. */
+.capt-meses,.capt-fab{display:none}
+@media (max-width:700px){
+  .capt-cal.vista-mes .capt-meses{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}
+  .capt-cal.vista-mes .capt-meses::-webkit-scrollbar{display:none}
+  .capt-meses button{flex:none;height:30px;padding:0 14px;border:1px solid color-mix(in srgb,currentColor 22%,transparent);border-radius:999px;background:transparent;color:inherit;font:600 13px var(--mac-ui,system-ui);cursor:pointer}
+  .capt-meses button[aria-current]{background:var(--vb-laranja,#ff7a1a);border-color:var(--vb-laranja,#ff7a1a);color:#FFFFFF}
+  .capt-meses-ano{flex:none;padding:0 4px;font:700 13px var(--mac-ui,system-ui)}
+  .prod-v2-layout:has(.capt-cal.vista-mes){padding-left:0;padding-right:0}
+  .capt-cal.vista-mes .capt-mes{margin:0 -12px;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+  .capt-cal.vista-mes .capt-mes-dia.fora{background:transparent}
+  .capt-cal.vista-mes .capt-mes-dia.fora .capt-mes-num{opacity:.45}
+  .capt-cal.vista-mes .capt-mes-dia.passou:not(.fora){background:transparent}
+  .capt-cal.vista-mes .capt-mes-cab{padding:6px 0;text-align:center;font:600 11px var(--mac-ui,system-ui);letter-spacing:0}
+  .capt-cal.vista-mes .capt-mes-dia{min-height:calc((100dvh - 260px) / 6);padding:3px 1px 2px;gap:2px;cursor:pointer;border-right:1px solid rgba(127,127,127,.2);border-bottom:1px solid rgba(127,127,127,.2)}
+  .capt-cal.vista-mes .capt-mes-num{align-self:center;min-width:24px;height:24px;padding:0;border-radius:50%;font:600 12.5px var(--mac-ui,system-ui)}
+  .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num{background:var(--vb-laranja,#ff7a1a);color:#FFFFFF;text-decoration:none}
+  .capt-cal.vista-mes .ag-chip{display:block;gap:0;padding:1px 3px;border-radius:3px;background:var(--ag-cor);color:#FFFFFF;font:600 10px/1.35 var(--mac-ui,system-ui);white-space:nowrap;overflow:hidden;text-overflow:clip}
+  .capt-cal.vista-mes .ag-chip.t-reuniao{color:#1F1D1A}
+  .capt-cal.vista-mes .ag-chip i,.capt-cal.vista-mes .ag-chip em{display:none}
+  .capt-cal.vista-mes .ag-chip span{overflow:hidden;text-overflow:clip}
+  .capt-cal.vista-mes .ag-chip.passou{opacity:.7}
+  .capt-cal.vista-mes .capt-mes-mais{align-self:center;padding:0 2px;font:600 10px var(--mac-ui,system-ui)}
+  .capt-cal .capt-tb-criar{display:none}
+  /* barra numa linha só, como o topo do Google Agenda: o mês já está na faixa dos meses */
+  .capt-cal.vista-mes .capt-toolbar{flex-wrap:wrap;gap:6px;padding-bottom:6px}
+  .capt-cal.vista-mes .capt-tb-titulo{display:none}
+  .capt-cal.vista-mes .capt-tb-esq,.capt-cal.vista-mes .capt-tb-dir{flex-wrap:nowrap;gap:6px}
+  .capt-cal.vista-mes .capt-tb-pend{order:9;flex-basis:100%;font-size:12px}
+  .capt-fab{display:grid;place-items:center;position:fixed;z-index:660;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border:0;border-radius:16px;background:var(--vb-laranja,#ff7a1a);color:#FFFFFF;box-shadow:0 8px 20px -6px rgba(0,0,0,.45);cursor:pointer}
+  .capt-fab span{font:400 34px/1 var(--mac-ui,system-ui);margin-top:-3px}
+  .capt-fab:focus-visible{outline:2px solid #FFFFFF;outline-offset:3px}
+}
