@@ -219,7 +219,14 @@ async function lerCaixa(sql, hoje) {
 async function lerFornecedores(sql) {
   const lista = await sql`SELECT id::text, nome, categoria, bv_percentual::float8 AS bv_percentual, contato, observacoes, ativo
     FROM vybe_comercial_fornecedores ORDER BY ativo DESC, nome`;
-  return { fornecedores: lista, categorias: calc.CATEGORIAS_FORNECEDOR };
+  // O que cada fornecedor está imprimindo agora (server/impressoes.js); sem o módulo ainda, a lista segue sem isso.
+  const imp = await Promise.resolve(sql`SELECT fornecedor_id::text AS id, COUNT(*) FILTER (WHERE etapa NOT IN ('entregue','cancelado'))::int AS abertas,
+      COUNT(*) FILTER (WHERE etapa NOT IN ('entregue','cancelado') AND previsao < (now() AT TIME ZONE 'America/Bahia')::date)::int AS atrasadas,
+      COUNT(*) FILTER (WHERE etapa = 'entregue')::int AS entregues
+    FROM vybe_impressoes WHERE fornecedor_id IS NOT NULL GROUP BY fornecedor_id`).catch(() => []);
+  const porId = new Map(imp.map((x) => [x.id, x]));
+  const vazio = { abertas: 0, atrasadas: 0, entregues: 0 };
+  return { fornecedores: lista.map((f) => ({ ...f, impressoes: (({ id, ...r }) => r)(porId.get(f.id) || { id: null, ...vazio }) })), categorias: calc.CATEGORIAS_FORNECEDOR };
 }
 async function lerCreators(sql) {
   const lista = await sql`SELECT id::text, nome, arroba, seguidores, engajamento::float8 AS engajamento, nicho, cidade, contato, observacoes
