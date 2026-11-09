@@ -312,6 +312,45 @@ export function briefingAntigoDaPeca(p, mesTexto) {
   p.observacao && `Observação: ${p.observacao}`, `Do planejamento de ${mesTexto}, aprovado pelo cliente.`].filter(Boolean).join('\n\n');
 }
 const mesPorExtenso = (p) => new Date(`${publico(p).mes}T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+// O que a peça do planejamento tem e o briefing da demanda não (para o Augusto: "falta X; está na peça N do
+// planejamento P"). Compara sem acento, caixa e espaço; tela curta demais (<4 letras) não conta.
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+export function faltaNoBriefing(peca, briefing) {
+ const b = semAcento(briefing), tem = (t) => semAcento(t).length < 4 || b.includes(semAcento(t));
+ const falta = [];
+ const telas = (peca.telas || []).map((t, i) => ({ n: i + 1, texto: t })).filter((t) => !tem(t.texto));
+ if (telas.length) falta.push({ campo: 'telas', telas });
+ for (const campo of ['objetivo', 'linha', 'ajuste_cliente', 'legenda']) if (peca[campo] && !tem(peca[campo])) falta.push({ campo });
+ return falta;
+}
+// Consulta 'planejamento_pecas' do assistente (agentes do VYBES, só leitura, privado da administração): cada demanda
+// ABERTA que veio de planejamento e está incompleta ou em "Falta Info", com a peça de origem e o briefing atual.
+export async function planejamentoPecasParaAgente(sql) {
+ if (!(await planejamentosProntos(sql))) return { pecas: [], total_ligadas: 0 };
+ const planos = await sql`SELECT p.id,p.mes,p.conteudo,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id
+  WHERE p.estado='cadastrado' ORDER BY p.mes DESC LIMIT 40`;
+ const ligadas = [];
+ for (const p of planos) normalizarConteudo(p.conteudo).pecas.forEach((peca, i) => { if (peca.conteudo_id) ligadas.push({ p, peca, n: i + 1 }); });
+ if (!ligadas.length) return { pecas: [], total_ligadas: 0 };
+ const linhas = await sql`SELECT c.id::text AS id,c.titulo,c.briefing,c.status_chave,COALESCE(s.rotulo,c.status_chave) AS status,COALESCE(s.final,false) AS final
+  FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
+  WHERE c.id = ANY(${ligadas.map((x) => x.peca.conteudo_id)}::bigint[]) AND c.removido_em IS NULL`;
+ const porId = new Map(linhas.map((l) => [l.id, l]));
+ const pecas = [];
+ for (const { p, peca, n } of ligadas) {
+  const c = porId.get(peca.conteudo_id);
+  if (!c || c.final) continue;
+  const falta = faltaNoBriefing(peca, c.briefing), faltaInfo = c.status_chave === 'falta_info';
+  if (!falta.length && !faltaInfo) continue;
+  pecas.push({
+   conteudo_id: c.id, ref: `vybe:${c.id}`, titulo: c.titulo, status: c.status, status_chave: c.status_chave, falta_info: faltaInfo,
+   cliente: p.cliente, planejamento_id: String(p.id), mes: publico(p).mes.slice(0, 7), peca_n: n,
+   peca: { formato: peca.formato, data: peca.data, tema: peca.tema, linha: peca.linha, objetivo: peca.objetivo, telas: peca.telas, ajuste_cliente: peca.ajuste_cliente || '' },
+   briefing: String(c.briefing || '').slice(0, 2500), falta,
+  });
+ }
+ return { pecas: pecas.slice(0, 60), total_ligadas: ligadas.length };
+}
 // destinos: por formato do planejamento, o que a regra do cadastro decidiu
 // (cadastrosDestiny no navegador: board, grupo, status, captação e equipe). A
 // pessoa da equipe é a que mais fez peças deste cliente nos últimos 120 dias

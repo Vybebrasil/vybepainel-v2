@@ -238,6 +238,20 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  assert.equal(ev,1,'fica no histórico da demanda');
  const outra=await P.completarBriefings(sql,vini,{id:p.id});
  assert.deepEqual([outra.completadas.length,outra.ja_completas,outra.editadas.length],[0,2,1],'rodar de novo não muda nada');
+ // Consulta do Augusto (planejamento_pecas): só a demanda aberta incompleta ou em Falta Info, com a peça de origem.
+ await db.exec("ALTER TABLE vybe_status ADD COLUMN IF NOT EXISTS final boolean DEFAULT false");
+ let a=await P.planejamentoPecasParaAgente(sql);
+ assert.equal(a.total_ligadas,3);
+ assert.deepEqual(a.pecas.map(x=>[x.conteudo_id,x.falta.map(f=>f.campo)]),[[ps[1].conteudo_id,['objetivo','legenda']]],'só a reescrita pelo time ficou sem objetivo e roteiro');
+ assert.equal(a.pecas[0].peca_n,2);assert.equal(a.pecas[0].planejamento_id,String(p.id));
+ await sql`UPDATE vybe_conteudos SET status_chave='falta_info' WHERE id=${ps[0].conteudo_id}`;
+ a=await P.planejamentoPecasParaAgente(sql);
+ const fi=a.pecas.find(x=>x.conteudo_id===ps[0].conteudo_id);
+ assert.ok(fi&&fi.falta_info&&fi.falta.length===0,'em Falta Info entra mesmo completa, para dizer o que já está lá');
+ await sql`INSERT INTO vybe_status VALUES(7829537690,'feito','Feito',9,true)`;
+ await sql`UPDATE vybe_conteudos SET status_chave='feito' WHERE id=${ps[1].conteudo_id}`;
+ assert.ok(!(await P.planejamentoPecasParaAgente(sql)).pecas.some(x=>x.conteudo_id===ps[1].conteudo_id),'finalizada sai');
+ assert.deepEqual(P.faltaNoBriefing({telas:['Capa','Tela dois'],objetivo:'Vender'},'TELAS: 1. capa\nObjetivo: vender'),[{campo:'telas',telas:[{n:2,texto:'Tela dois'}]}]);
 });
 
 // Paulo, 20/10/2026: o cliente pede ajuste peça a peça; o texto das telas não é cortado.
