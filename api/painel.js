@@ -25,7 +25,7 @@ import { areaVybes } from '../server/vybes.js';
 //   /api/painel?area=notificacoes o que o sistema tem a dizer para quem entrou
 
 import { areaCrm } from '../server/crm-api.js';
-import { areaCarteira } from '../server/carteira.js';
+import { areaCarteira, areaCarteiraBot } from '../server/carteira.js';
 import { areaComercial } from '../server/comercial-api.js';
 // Vybe Finanças (Supabase do app de finanças), só leitura: GET area=vybe_financas&parte=comercial|carteira|rh.
 import { areaVybeFinancas } from '../server/vybe-financas-api.js';
@@ -1803,6 +1803,10 @@ export default async function handler(req, res) {
     return areaEscritorio(req, res, { tipo: 'sessao', pessoa: null }, sql());
   // Integração exclusivamente privada do WhatsApp: token próprio, sem poderes admin.
   if (areaPublica === 'assistente' && req.query?.canal === 'bot') return atenderBotAssistente(req, res, sql);
+  // A ponte da carteira do bot (server/carteira.js areaCarteiraBot): a credencial do bot, só saúde, onboarding e clima.
+  if (areaPublica === 'carteira' && req.query?.canal === 'bot') {
+    return areaCarteiraBot(req, res, sql, process.env, () => garantirMigracoesIrecity(sql()));
+  }
   if (areaPublica === 'agentes') {
     try { return await conectorAgentes(req, res, sql()); }
     catch (erro) { return res.status(500).json({ error: erro.message }); }

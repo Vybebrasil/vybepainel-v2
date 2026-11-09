@@ -9,9 +9,8 @@
 (() => {
   const G = window;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
-  const primeiro = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
-  const souDono = () => { const u = typeof G.operadorDoTopo === 'function' ? G.operadorDoTopo() : null; return Boolean(u && DONOS.includes(primeiro(u.name || u.nome))); };
+  // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome. A central confere de novo.
+  const souDono = () => { try { return typeof G.souDonoDaSessao === 'function' && G.souDonoDaSessao(); } catch { return false; } };
   const ESTADO_SETOR = { ativo: ['Ativo', 'Já trabalha hoje.', '#18A957'], sombra: ['Sombra', 'Só propõe; um dono aprova.', '#0D74CE'], planejado: ['Planejado', 'Falta ligar as ferramentas: hoje não roda.', '#7A8B82'] };
   const ANDAR = (n, id) => (n === 0 ? 'Térreo' : id === 'terraco' ? 'Terraço' : n + 'º andar');
   const FREQ = { uma_vez: 'Uma vez', diaria: 'Todo dia', semanal: 'Toda semana', mensal: 'Todo mês' };
@@ -135,7 +134,7 @@
           <label><span>Horário</span><input type="time" name="horario" value="09:00" required></label>
           <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Atribuir</button>
           <p class="vga-nota">Modo sombra: quando vencer, vira proposta de ${esc(s.agente)} e espera a aprovação de um dono. ${s.estado === 'planejado' ? 'Este setor ainda não tem as ferramentas ligadas: a proposta fica registrada, mas ninguém executa sozinho.' : ''}</p>
-        </form>` : !dono ? '<p class="vga-nota">Só os donos dão atribuições aos agentes.</p>' : ''}
+        </form>` : !dono ? '<p class="vga-nota">Só os donos (Paulo, Vinícius, Ewerton e Deivid) dão atribuições aos agentes.</p>' : ''}
         ${st.msg ? `<p class="vga-msg" role="status">${esc(st.msg)}</p>` : ''}
       </section>`;
   }

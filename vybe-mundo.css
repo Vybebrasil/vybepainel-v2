@@ -4728,27 +4728,6 @@ body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){backg
 @media (max-width:900px){.vv-trilho-recolher,.vv-trilho-grupo,.vv-trilho-sub,.vv-trilho-seta{display:none!important}}
 @media (prefers-reduced-motion:reduce){.vv-trilho-sub{animation:none}.vv-trilho-seta{transition:none}}
 
-/* ---------- Visão geral do setor (vybe-mundo-setor.js): o mesmo desenho da Gestão ---------- */
-.vv-setor-grade{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-.vv-setor-cartao{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s}
-.vv-setor-cartao:hover{border-color:var(--vv-laranja);box-shadow:0 1px 2px rgba(31,29,26,.04),0 12px 28px rgba(31,29,26,.08)}
-.vv-setor-cartao:active{transform:translateY(1px)}
-.vv-setor-cartao:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
-.vv-setor-cartao-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.vv-setor-cartao-topo b{font:700 14px/1.25 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
-.vv-setor-cartao-topo em{font:600 11.5px var(--vv-texto);font-style:normal;color:var(--vv-laranja-escuro,#C2410C);white-space:nowrap}
-.vv-setor-cartao > small{font:500 12px/1.4 var(--vv-texto);color:#6B665E}
-.vv-setor-resumo{display:block;margin-top:4px;padding-top:8px;border-top:1px solid #EFEAE2}
-.vv-setor-linhas{display:grid;gap:4px}
-.vv-setor-linhas > span{display:flex;justify-content:space-between;gap:10px;font:500 12.5px var(--vv-texto)}
-.vv-setor-linhas small{color:#6B665E;font-size:12.5px}
-.vv-setor-linhas b{font-weight:700;color:#1F1D1A;font-variant-numeric:tabular-nums}
-.vv-setor-lista{display:grid;gap:4px}
-.vv-setor-lista > span{display:flex;justify-content:space-between;gap:10px;font:500 12.5px var(--vv-texto)}
-.vv-setor-lista em{font-style:normal;color:#6B665E;font-variant-numeric:tabular-nums}
-.vv-setor-nota{display:block;margin-top:4px;font:500 11px var(--vv-texto);color:#8A847A}
-.vv-setor-falha{display:block;font:500 12px var(--vv-texto);color:#8A847A}
-.vv-setor-visao .t-u1{color:#C7362F}.vv-setor-visao .t-u2{color:#B26B00}
 
 /* ---------- Pendências do WhatsApp na Gestão e no Minhas tarefas (vybe-mundo-pendencias.js, 08/11/2026) ----------
    Reaproveita .vv-bloco, .vv-rotulo-secao e .vv-dono-linha; aqui só a grade de duas colunas e os rótulos. */
@@ -4788,3 +4767,126 @@ body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){backg
 .vga-barras i{display:block;width:100%;max-width:18px;border-radius:3px 3px 0 0;background:#8B7DFF}.vga-barras i.f{background:#D93D42;border-radius:0}
 .vga-barras small{font-size:9.5px;color:#8A8378}
 .vga-proximas li{grid-template-columns:96px 1fr auto}.vga-h4-sep{margin-top:14px!important}
+
+/* Peças das telas antigas só existem dentro delas (Paulo, 08/11/2026: "menu do legado aparecendo"): fixas ou grudadas,
+   continuavam à vista depois de sair (barra da Direção de arte, toolbar da agenda, cabeçalhos da lista de clientes, o
+   filtro das demandas e o menu do topo antigo, invisível mas clicável). Fora de uma tela antiga, somem. */
+body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli-bloco-cabeca,.dem-filtro-popover,.header-utilities-menu){display:none!important}
+
+/* ---------- Painel de gestão do setor (vybe-mundo-setor.js; Paulo, 08/11/2026: "PUTAS PAINÉIS DE GESTÃO", no nível do
+   AgencyFlow): período, metas e corrida, números com a variação, gráficos e listas do que pede ação. Desenho claro do
+   painel (o tema escuro inverte junto com o resto, como a Gestão). */
+.vs-topo .vv-g-acoes{align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.vs-periodo{display:inline-flex;align-items:center;gap:6px;margin-right:4px}
+.vs-alternar{display:inline-flex;padding:3px;border-radius:9px;background:#EDE8E0}
+.vs-alternar button{appearance:none;border:0;background:transparent;padding:6px 12px;border-radius:7px;font:600 12.5px var(--vv-texto);color:#6B665E;cursor:pointer;transition:background .14s var(--curva,ease),color .14s}
+.vs-alternar button[aria-pressed="true"]{background:#fff;color:#1F1D1A;box-shadow:0 1px 2px rgba(31,29,26,.12)}
+.vs-periodo select{height:36px;padding:0 30px 0 12px;border:1px solid #E6E0D6;border-radius:8px;background-color:#fff;font:600 12.5px var(--vv-texto);color:#1F1D1A;cursor:pointer}
+.vs-alternar button:focus-visible,.vs-periodo select:focus-visible,.vs-atalhos button:focus-visible,.vs-abrir:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+.vs-atalhos{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 14px}
+.vs-atalhos button{appearance:none;border:1px solid #E6E0D6;background:#fff;padding:6px 12px;border-radius:999px;font:600 12px var(--vv-texto);color:#4A463F;cursor:pointer;transition:border-color .14s,color .14s,transform .08s}
+.vs-atalhos button:hover{border-color:var(--vv-laranja);color:var(--vv-laranja-escuro,#C2410C)}
+.vs-atalhos button:active{transform:translateY(1px)}
+.vs-corpo{display:grid;gap:14px}
+.vs-aviso{margin:0;padding:14px 2px;font:500 12.5px/1.45 var(--vv-texto);color:#8A847A}
+.vs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.vs-kpi{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border-radius:12px;background:#fff;border:1px solid #ECE6DC;box-shadow:0 1px 2px rgba(31,29,26,.04);animation:vs-sobe .32s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.vs-kpi:nth-child(2){animation-delay:30ms}.vs-kpi:nth-child(3){animation-delay:60ms}.vs-kpi:nth-child(4){animation-delay:90ms}.vs-kpi:nth-child(5){animation-delay:120ms}.vs-kpi:nth-child(6){animation-delay:150ms}
+.vs-kpi-topo{display:flex;align-items:center;gap:8px;font:600 12px var(--vv-texto);color:#6B665E}
+.vs-kpi-topo i,.vs-bloco-cabeca > i{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:7px;background:color-mix(in srgb,var(--vv-laranja) 12%,#fff);color:var(--vv-laranja-escuro,#C2410C)}
+.vs-kpi-topo svg,.vs-bloco-cabeca > i svg{width:15px;height:15px}
+.vs-kpi-valor{font:750 26px/1.1 var(--vv-titulo,var(--vv-texto));letter-spacing:-.02em;color:#1F1D1A;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-kpi-valor i{font-style:normal;font-weight:600;font-size:16px;color:#8A847A}
+.vs-kpi-sub{font:500 11.5px/1.35 var(--vv-texto);color:#7A746A}
+.vs-kpi-sub b{color:#1F1D1A;font-weight:650}
+.vs-kpi-var{display:flex;align-items:center;gap:6px;font:500 11px var(--vv-texto);color:#8A847A}
+.vs-var{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:#F1EDE6;font:700 11px var(--vv-texto);color:#6B665E;font-variant-numeric:tabular-nums}
+.vs-var.sobe{background:#E3F4E8;color:#1D7A3E}.vs-var.desce{background:#FBE6E4;color:#B4322B}
+.vs-kpi.atencao .vs-kpi-topo i{background:#FFF1D6;color:#9A5B00}
+.vs-kpi.atencao::after,.vs-kpi.ruim::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:#E0A21B}
+.vs-kpi.ruim .vs-kpi-topo i{background:#FBE6E4;color:#B4322B}.vs-kpi.ruim::after{background:#D2453B}
+.vs-linha{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:1180px){.vs-linha{grid-template-columns:1fr}}
+.vs-bloco{min-width:0;padding:14px 16px 16px;border-radius:12px;background:#fff;border:1px solid #ECE6DC;box-shadow:0 1px 2px rgba(31,29,26,.04);animation:vs-sobe .36s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.vs-bloco-cabeca{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.vs-bloco-cabeca > span{flex:1;min-width:0;display:grid;gap:1px}
+.vs-bloco-cabeca b{font:700 14px/1.25 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+.vs-bloco-cabeca small{font:500 11.5px var(--vv-texto);color:#8A847A;text-transform:none}
+.vs-destaque{background:linear-gradient(135deg,#FFF7EF,#fff 60%);border-color:#F6DCC3}
+.vs-abrir{appearance:none;border:0;background:transparent;padding:5px 8px;border-radius:7px;font:600 12px var(--vv-texto);color:var(--vv-laranja-escuro,#C2410C);cursor:pointer;white-space:nowrap}
+.vs-abrir:hover{background:color-mix(in srgb,var(--vv-laranja) 10%,transparent)}
+.vs-grafico{margin:0}
+.vs-grafico svg{display:block;width:100%;height:auto;overflow:visible}
+.vs-barra{fill:#F59E0B;transform-box:fill-box;transform-origin:bottom;animation:vs-cresce .5s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.vs-barra.c1{fill:#F26B1D}.vs-barra.c2{fill:#7C5CDB}.vs-barra.c3{fill:#2E9D5B}.vs-barra.c4{fill:#D2453B}.vs-barra.c5{fill:#D9CDB8}
+.vs-grafico figcaption i.c1{background:#F26B1D}.vs-grafico figcaption i.c2{background:#7C5CDB}.vs-grafico figcaption i.c3{background:#2E9D5B}.vs-grafico figcaption i.c4{background:#D2453B}.vs-grafico figcaption i.c5{background:#D8CDBB}
+.vs-valor{font:650 11px var(--vv-texto);fill:#4A463F}
+.vs-eixo{font:500 11px var(--vv-texto);fill:#8A847A;text-transform:capitalize}
+.vs-linha-base{stroke:#E6E0D6;stroke-width:1}
+.vs-grafico figcaption{display:flex;gap:14px;justify-content:center;margin-top:6px;font:500 11.5px var(--vv-texto);color:#6B665E}
+.vs-grafico figcaption span{display:inline-flex;align-items:center;gap:6px}
+.vs-grafico figcaption i{width:10px;height:10px;border-radius:3px}
+.vs-deitadas,.vs-metas,.vs-corrida,.vs-agenda{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.vs-deitadas li,.vs-metas li{display:grid;grid-template-columns:minmax(110px,34%) 1fr auto;align-items:center;gap:12px}
+.vs-d-nome,.vs-metas li > span:first-child{display:grid;min-width:0;font:600 12.5px/1.25 var(--vv-texto);color:#1F1D1A}
+.vs-d-nome,.vs-d-nome small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-d-nome small,.vs-metas small{font:500 11px var(--vv-texto);color:#8A847A}
+.vs-d-trilho{position:relative;height:9px;border-radius:999px;background:#F1EDE6}
+.vs-d-trilho i{display:block;height:100%;border-radius:inherit;background:#F26B1D;transform-origin:left;animation:vs-estica .55s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.vs-d-trilho i.ok{background:#2E9D5B}.vs-d-trilho i.atencao{background:#E0A21B}.vs-d-trilho i.ruim{background:#D2453B}
+.vs-d-trilho em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:2px;background:#1F1D1A;opacity:.55}
+.vs-deitadas li > b,.vs-metas strong{font:700 12.5px var(--vv-texto);color:#1F1D1A;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.vs-deitadas li > b small{font-weight:500;color:#8A847A}
+.vs-deitadas .t-ruim{color:#B4322B!important;font-weight:650!important}
+.vs-metas li{grid-template-columns:minmax(140px,40%) 1fr 48px}
+.vs-metas .vs-d-trilho{height:12px}
+.vs-corrida li{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.7);border:1px solid #F1EAE0}
+.vs-corrida .pos{display:grid;place-items:center;height:26px;border-radius:7px;background:#F1EDE6;font:750 12px var(--vv-texto);color:#6B665E}
+.vs-corrida .pos.ouro{background:#FBE7B5;color:#8A5A00}
+.vs-corrida b{font:650 13px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-corrida small{font:500 11.5px var(--vv-texto);color:#6B665E;white-space:nowrap}
+.vs-agenda li{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F1EDE6}
+.vs-agenda li:last-child{border-bottom:0}
+.vs-agenda time{font:650 12px var(--vv-texto);color:var(--vv-laranja-escuro,#C2410C);font-variant-numeric:tabular-nums}
+.vs-agenda b{font:600 12.5px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-agenda small{font:500 11px var(--vv-texto);color:#8A847A}
+@keyframes vs-sobe{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vs-cresce{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes vs-estica{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (max-width:900px){.vs-topo{flex-direction:column}.vs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-kpi-valor{font-size:21px}.vs-deitadas li{grid-template-columns:minmax(90px,38%) 1fr auto}}
+@media (prefers-reduced-motion:reduce){.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i{animation:none}}
+/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada congelaria no primeiro quadro, invisível. */
+html.vb-ocioso :is(.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i,.vv-setor-visao){animation:none!important}
+
+/* ---------- Coluna da direita na barra de cima (Paulo, 08/11/2026: "o foco é no que tá aberto") ----------
+   A Agenda (fixa só para o Mizinho, body.agenda-fixa) e a barra da sala de voz abrem pelos botões da barra de cima,
+   como janelinha embaixo dela. São os mesmos elementos de antes. */
+html body.mundo:not(.agenda-fixa) #mundo-hud .vv-agenda{display:none!important}
+html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{display:block!important;top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:var(--vv-m)!important;width:340px;max-height:min(72vh,600px)!important;overflow:auto;z-index:720;background:#fff!important;border:1px solid #E6E0D6;box-shadow:0 22px 50px rgba(31,29,26,.22)!important;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.mundo-modulo):not(.ver-voz) #mundo-hud .vv-chamada{display:none!important}
+html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;left:auto!important;right:var(--vv-m)!important;width:380px!important;max-width:calc(100vw - 2 * var(--vv-m))!important;z-index:720;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:calc(var(--vv-m) + 392px)!important}
+.vv-ferr-voz{position:relative}
+.vv-voz-ponto{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#B8B0A4;box-shadow:0 0 0 2px #fff}
+.vv-ferr-voz.on .vv-voz-ponto{background:#18A957}
+.vv-ferramentas .vv-ferr-mic[hidden]{display:none!important}
+.vv-ferr-mic.on{background:#18A957!important;color:#fff!important}
+.vv-ferr-mic:not(.on){color:#B4322B!important}
+.vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff)!important;color:var(--vv-laranja-escuro,#C2410C)!important}
+.vv-compromissos{display:grid;gap:6px;margin:8px 0}
+@media (max-width:900px){html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada,html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important}}
+@media (prefers-reduced-motion:reduce){html body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada){animation:none!important}}
+
+/* A tela aberta domina a cena (Paulo, 08/11/2026: "o que tá aberto domina a cena toda; o HUD do lado abre por cima e
+   fecha no botão ou no Esc"): o Hoje vai até a borda direita e a barra de ícones pousa no canto de cima dele. A coluna
+   da direita só fica reservada para quem tem a Agenda fixa (o Mizinho). */
+@media (min-width:901px){
+  html body.mundo:not(.mundo-centro):not(.agenda-fixa) .vv-hoje{right:var(--vv-m)!important}
+  html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:calc(var(--vv-col) - 14px)}
+}
+
+/* Painel de Finanças com o Vybe Finanças ligado: de onde vem o dinheiro. */
+.vs-fonte{margin:0 0 8px;font:600 11.5px Inter,system-ui,sans-serif;color:#8A7F70}
+/* Valor do cartão acompanha a largura do cartão (antes cortava "R$ 28,5 mil" em cartão estreito). */
+.vs-kpi{container-type:inline-size}
+.vs-kpi-valor{font-size:clamp(16px,15cqi,26px)}
