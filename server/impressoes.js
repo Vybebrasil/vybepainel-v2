@@ -322,6 +322,72 @@ async function mudarEtapa(sql, pessoa, b) {
   });
 }
 
+// O Nestor registra o que leu na conversa com o fornecedor (Paulo, 09/11/2026: "o Nestor não era pra identificar que eu
+// não cadastrei e fazer isso?"). Chega pelo assistente do bot (consulta 'impressao_registrar', privado da administração).
+// - Com impressao_id: atualiza essa. Sem: procura uma aberta do mesmo fornecedor e cliente com o mesmo título; não
+//   achou, cria (sem abrir arte nova na esteira: a arte já foi para a gráfica).
+// - Etapa só ANDA para a frente (nunca volta, nunca cancela); fornecedor só entra se ainda não havia; previsão e valor
+//   só quando a conversa disse. Cada mudança vira evento com a frase da conversa que prova.
+const ORDEM = new Map(ETAPAS.filter(([k]) => k !== 'cancelado').map(([k], i) => [k, i]));
+const normal = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+export async function registrarPeloAgente(sql, pessoaId, b = {}) {
+  const autor = idValido(pessoaId, 'Pessoa');
+  const titulo = texto(b.titulo, 200, 'O que imprimir', true), frase = texto(b.frase, 500, 'Frase', true);
+  const nomeForn = texto(b.fornecedor, 120, 'Fornecedor', true), nomeCliente = texto(b.cliente, 120, 'Cliente');
+  const etapa = String(b.etapa || ''); if (etapa && (!ORDEM.has(etapa) || etapa === 'arte')) falhar('Etapa inválida.');
+  const previsao = dataOuNula(b.previsao, 'Previsão'), pedidoEm = dataOuNula(b.pedido_em, 'Pedido');
+  const valor = b.valor == null || b.valor === '' ? null : Number(b.valor);
+  if (valor != null && (!Number.isFinite(valor) || valor < 0)) falhar('Valor inválido.');
+  const q = b.quantidade == null || b.quantidade === '' ? null : Number(b.quantidade);
+  if (q != null && (!Number.isInteger(q) || q < 1 || q > 10000000)) falhar('Quantidade inválida.');
+  const nota = `Nestor, pela conversa com ${nomeForn}: “${frase}”`.slice(0, 500);
+  const rodar = (f) => (sql.comTransacao ? sql.comTransacao(f) : f(sql));
+  return rodar(async (tx) => {
+    const fornecedores = await tx`SELECT id::text AS id, nome FROM vybe_comercial_fornecedores WHERE ativo`;
+    const forn = fornecedores.find((f) => normal(f.nome) === normal(nomeForn));
+    if (!forn) falhar('Fornecedor não está cadastrado (ativo) em Fornecedores.');
+    let cliente = null;
+    if (nomeCliente) {
+      const ativos = await tx`SELECT id::text AS id, nome FROM vybe_clientes WHERE apagado_em IS NULL AND COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)`;
+      cliente = ativos.find((c) => normal(c.nome) === normal(nomeCliente)) || ativos.find((c) => normal(c.nome).includes(normal(nomeCliente)) || normal(nomeCliente).includes(normal(c.nome))) || null;
+    }
+    let alvo = null;
+    if (b.impressao_id) {
+      [alvo] = await tx`SELECT id::text AS id, etapa, fornecedor_id::text AS fornecedor_id, previsao::text AS previsao, valor FROM vybe_impressoes WHERE id = ${idValido(b.impressao_id, 'Impressão')} FOR UPDATE`;
+      if (!alvo) falhar('Impressão não encontrada.', 404);
+    } else {
+      const abertas = await tx`SELECT id::text AS id, titulo, etapa, fornecedor_id::text AS fornecedor_id, cliente_id::text AS cliente_id, previsao::text AS previsao, valor
+        FROM vybe_impressoes WHERE etapa NOT IN ('entregue','cancelado') FOR UPDATE`;
+      alvo = abertas.find((i) => normal(i.titulo) === normal(titulo) && (!i.fornecedor_id || i.fornecedor_id === forn.id) && (!cliente || !i.cliente_id || i.cliente_id === cliente.id)) || null;
+    }
+    if (!alvo) {
+      const etapaNova = etapa || 'orcamento', pedido = ['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(etapaNova);
+      const [novo] = await tx`INSERT INTO vybe_impressoes (titulo, quantidade, observacao, cliente_id, fornecedor_id, etapa, pedido_em, previsao, valor, criado_por)
+        VALUES (${titulo}, ${q}, ${'Registrada pelo Nestor a partir da conversa com ' + forn.nome + '.'}, ${cliente?.id || null}, ${forn.id}, ${etapaNova},
+          ${pedido ? pedidoEm || hojeBahia() : null}::date, ${previsao}::date, ${valor}, ${autor}) RETURNING id::text AS id`;
+      await evento(tx, novo.id, null, etapaNova, nota, autor);
+      return { id: novo.id, criada: true, mudou: ['criada'], cliente: cliente?.nome || null, fornecedor: forn.nome };
+    }
+    const mudou = [];
+    const anda = etapa && ORDEM.has(alvo.etapa) && ORDEM.get(etapa) > ORDEM.get(alvo.etapa);
+    if (!alvo.fornecedor_id) { await tx`UPDATE vybe_impressoes SET fornecedor_id = ${forn.id} WHERE id = ${alvo.id}`; mudou.push('fornecedor'); }
+    if (previsao && previsao !== alvo.previsao) { await tx`UPDATE vybe_impressoes SET previsao = ${previsao}::date WHERE id = ${alvo.id}`; mudou.push('previsao'); }
+    if (valor != null && Number(alvo.valor) !== valor) { await tx`UPDATE vybe_impressoes SET valor = ${valor} WHERE id = ${alvo.id}`; mudou.push('valor'); }
+    if (anda) {
+      const pedido = ['arquivo_enviado', 'em_impressao'].includes(etapa);
+      await tx`UPDATE vybe_impressoes SET etapa = ${etapa},
+          pedido_em = CASE WHEN ${pedido} THEN COALESCE(pedido_em, ${pedidoEm || hojeBahia()}::date) ELSE pedido_em END,
+          entregue_em = CASE WHEN ${etapa} = 'entregue' THEN ${hojeBahia()}::date ELSE entregue_em END
+        WHERE id = ${alvo.id}`;
+      mudou.push('etapa');
+    }
+    if (!mudou.length) return { id: alvo.id, criada: false, mudou };
+    await tx`UPDATE vybe_impressoes SET atualizado_em = now() WHERE id = ${alvo.id}`;
+    await evento(tx, alvo.id, alvo.etapa, anda ? etapa : alvo.etapa, nota, autor);
+    return { id: alvo.id, criada: false, mudou, fornecedor: forn.nome };
+  });
+}
+
 export async function areaImpressoes(req, res, quem, sql) {
   if (!quem) return res.status(401).json({ error: 'Entre no painel para acessar Impressões.' });
   if (quem.tipo !== 'sessao' || !quem.pessoa?.id) return res.status(403).json({ error: 'Impressões exige uma sessão pessoal.' });
