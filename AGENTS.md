@@ -243,7 +243,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e Toolkit próprios; Meu perfil (jogo) no menu da conta. Aberta pelo
   dock, a janela de um módulo mostra só as abas daquele item (`abrir(aba, { abas, rotulo })`).; no computador o dock é largo, com nomes, e o setor clicado abre
   para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
-  das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
+  das mesmas fontes das abas. O setor abre a visão geral e os submenus juntos, e trocar de submenu nunca recolhe (Paulo,
+  09/11/2026: "tem que continuar aberto"); recolhe só o clique no setor já na visão geral dele, a setinha ou outro item do
+  dock. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
   Largura numa variável só (`--vv-trilho-w`). Não crie outro menu nem outra visão geral; a da Gestão continua a dela.
   A Gestão abre na aba **Agência** (decisão do Paulo, 08/11/2026: "o Gestão tinha que ser bem mais completo"): a agência
   inteira (dinheiro, comercial, clientes, produção e time) pelo `setor:agencia` de `vybe-mundo-setor.js`, com as mesmas

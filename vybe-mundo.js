@@ -235,8 +235,11 @@
     hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === alvo));
     hud.querySelectorAll('.vv-trilho [data-submodulo]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.submodulo === id));
     hud.querySelectorAll('.vv-trilho [data-visao-setor]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.visaoSetor === id));
-    // Fica aberto o setor em que a pessoa está (fora de um setor, como no Hoje, tudo recolhe).
-    if (dockLargo()) expandirSetor(String(alvo).startsWith('setor:') ? alvo : '');
+    // Fica aberto o setor em que a pessoa está. Marcar outra coisa não recolhe (Paulo, 09/11/2026: "quando eu troco de
+    // submenu tem hora que fecha eles... tem que continuar aberto"): o painel antigo remarca o dock com o próprio modo e
+    // a janela que fecha remarca o Hoje, e isso recolhia o setor no meio da troca. Recolhe só quem clica (o setor aberto
+    // de novo, a setinha ou outro item do dock).
+    if (dockLargo() && String(alvo).startsWith('setor:')) expandirSetor(alvo);
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
   const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes'];
@@ -247,10 +250,11 @@
   let remarcando = 0;
   function remarcarAoFechar() {
     remarcando = 0;
-    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto) return;
+    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto || window.VybeSetor?.aberto?.()) return;
     if (JANELAS_DE_MODULO.some((n) => { try { return window[n]?.aberto?.(); } catch { return false; } })) return;
     if (document.getElementById('vv-agentes')?.isConnected && !document.getElementById('vv-agentes').hidden) return;
-    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : 'hoje');
+    // A Criação aberta pela Direção de arte do dock continua acesa como Direção de arte, não como Hoje.
+    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' ? 'direcao' : 'hoje');
   }
   if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
     const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
@@ -2570,10 +2574,16 @@
     if (b.hasAttribute('data-trilho-recolher')) { alternarDock(); return; }
     if (b.classList.contains('trancado') && b.closest('.vv-trilho')) { avisarTrancado(b); return; }
     if (b.hasAttribute('data-ver-como-sair')) { definirVerComo(''); return; }
-    // Setor no dock largo (Paulo, 08/11/2026): clicar de novo no setor aberto fecha os submenus; a setinha só abre/fecha a lista.
-    if (b.dataset.trilho?.startsWith('setor:') && dockLargo()) {
-      if (b.getAttribute('aria-expanded') === 'true') { expandirSetor(''); return; }
-      if (e.target.closest('.vv-trilho-seta')) { expandirSetor(b.dataset.trilho); return; }
+    // Setor no dock largo (Paulo, 08/11/2026 e 09/11/2026: "quando eu clico em produção, além de abrir a visão geral já
+    // devia abrir os submenus"): o setor abre a visão geral E os submenus juntos. Clicar nele de novo, já na visão geral
+    // dele, recolhe; a setinha só abre/fecha a lista. Outro item do dock (Hoje, Agentes…) recolhe os submenus.
+    if (dockLargo() && b.closest('.vv-trilho') && b.dataset.trilho) {
+      if (b.dataset.trilho.startsWith('setor:')) {
+        const aberto = b.getAttribute('aria-expanded') === 'true', seta = e.target.closest('.vv-trilho-seta');
+        if (seta) { expandirSetor(aberto ? '' : b.dataset.trilho); return; }
+        if (aberto && window.VybeSetor?.aberto?.() === b.dataset.trilho) { expandirSetor(''); return; }
+        expandirSetor(b.dataset.trilho);
+      } else if (!b.classList.contains('criar')) expandirSetor('');
     }
     if (b.dataset.visaoSetor) { abrirVisaoSetor(b.dataset.visaoSetor); return; }
     if (b.dataset.submodulo && b.closest('.vv-trilho')) { usarTrilho(b.dataset.submodulo); marcarTrilho(b.dataset.submodulo); return; }
