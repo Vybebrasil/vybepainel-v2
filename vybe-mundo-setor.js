@@ -154,7 +154,7 @@
       const metas = (M.progresso || []).filter((x) => x.meta > 0).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
       const alertas = (N?.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
       const NIVEL = { 1: 'ruim', 2: 'atencao', 3: 'atencao' };
-      const alertasHtml = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${NIVEL[a.nivel] || ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : aviso('Nada crítico na operação agora.');
+      const alertasHtml = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${NIVEL[a.nivel] || ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N?.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : aviso('Nada crítico na operação agora.');
       // Gráficos
       const vendas = (M.series || []).map((x) => ({ ...x, rotulo: mesCurto(x.mes) }));
       const semanas = (Hi.semanas || []).slice(-12).map((x) => ({ ...x, rotulo: diaMes(x.inicio) }));

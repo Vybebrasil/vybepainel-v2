@@ -490,20 +490,35 @@
   // por status e responsável"): mesmo mini painel dos números (espiar). Clicar numa peça abre a peça.
   PROVEDORES_DIA: {
     const prov = (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {});
+    // Peças em blocos por status (a cor do quadro), com cliente e responsável; clicar abre a peça.
+    const pecasEmBlocos = (itens) => {
+      const grupos = new Map();
+      for (const d of itens) { const st = String(d.status || 'Sem status').trim() || 'Sem status'; if (!grupos.has(st)) grupos.set(st, []); grupos.get(st).push(d); }
+      const ordem = [...grupos.entries()].sort((a, b) => b[1].length - a[1].length), lista = ordem.flatMap(([, l]) => l);
+      let i = 0;
+      const corpo = ordem.map(([, l]) => `<section class="vv-espiar-bloco" style="--st:${esc(corStatus(l[0], situacaoDaPeca(l[0])))}"><div class="vv-espiar-grupo"><span>${statusCor(l[0])}</span><em>${l.length}</em></div>${l.map((d) => {
+        const quem = String(d.responsavel || '').trim() || 'sem responsável', cli = typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente;
+        return `<button type="button" class="vv-g-linha" data-espiar-item="${i++}"><b>${esc(d.nome || d.titulo || 'Peça')}</b><small>${cli ? cliCor(cli) + ' · ' : ''}${esc(quem)}</small></button>`;
+      }).join('')}</section>`).join('') || '<p class="vv-vazio">Nada aqui.</p>';
+      return { corpo, itens: lista.map((d) => ({ nome: d.nome, id: d.id })), clicar: (it) => chamar('openItemWorkspace', String(it.id)) };
+    };
+    // Alerta da operação (Paulo, 08/11/2026: "fui no automático clicar pra saber o que era em cada um"): a lista por trás.
+    prov.alerta = (resto) => {
+      const a = (numerosDoDono()?.alertas || [])[Number(resto)]; if (!a?.ref) return null;
+      const todos = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+      const titulo = String(a.texto).split(':')[0].replace(/^d+s*/, '');
+      if (a.ref.tipo === 'pecas') { const ids = new Set(a.ref.ids.map(String)); const lista = todos.filter((d) => ids.has(String(d.id))); return { titulo, n: lista.length, cls: a.nivel === 1 ? 'u1' : 'u2', ...pecasEmBlocos(lista) }; }
+      if (a.ref.tipo === 'status') { const lista = todos.filter((d) => String(d.status || '').trim() === a.ref.status && situacaoDaPeca(d) !== 'concluida'); return { titulo, n: lista.length, cls: 'u2', ...pecasEmBlocos(lista) }; }
+      if (a.ref.tipo === 'clientes') return { titulo, n: a.ref.nomes.length, cls: 'u2', itens: a.ref.nomes.map((nome) => ({ nome, cliente: nome })),
+        corpo: a.ref.nomes.map((nome, i) => `<button type="button" class="vv-g-linha" data-espiar-item="${i}"><b>${cliCor(nome)}</b></button>`).join(''), clicar: (it) => mostrarPendencias(it.cliente) };
+      return null;
+    };
     prov.semdia = (resto) => {
       const [dia, campo = 'veiculacao_iso'] = String(resto).split('|');
       const itens = (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : []).filter((d) => String(d[campo] || '').slice(0, 10) === dia);
-      const grupos = new Map();
-      for (const d of itens) { const st = String(d.status || 'Sem status').trim() || 'Sem status'; if (!grupos.has(st)) grupos.set(st, []); grupos.get(st).push(d); }
-      const ordem = [...grupos.entries()].sort((a, b) => b[1].length - a[1].length);
-      const lista = ordem.flatMap(([, l]) => l);
-      let i = 0;
-      const corpo = ordem.map(([st, l]) => `<section class="vv-espiar-bloco" style="--st:${esc(corStatus(l[0], situacaoDaPeca(l[0])))}"><div class="vv-espiar-grupo"><span>${statusCor(l[0])}</span><em>${l.length}</em></div>${l.map((d) => {
-        const quem = String(d.responsavel || '').trim() || 'sem responsável', cli = typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente;
-        return `<button type="button" class="vv-g-linha" data-espiar-item="${i++}"><b>${esc(d.nome || d.titulo || 'Peça')}</b><small>${cli ? cliCor(cli) + ' · ' : ''}${esc(quem)}</small></button>`;
-      }).join('')}</section>`).join('') || '<p class="vv-vazio">Nada neste dia.</p>';
+      const blocos = pecasEmBlocos(itens);
       const nomeDia = new Date(dia + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-      return { titulo: 'peças em ' + nomeDia, n: itens.length, itens: lista.map((d) => ({ nome: d.nome, id: d.id })), corpo, clicar: (it) => chamar('openItemWorkspace', String(it.id)), rodape: campo === 'prazo_iso' ? 'pelo prazo' : 'pela veiculação' };
+      return { titulo: 'peças em ' + nomeDia, n: itens.length, ...blocos, rodape: campo === 'prazo_iso' ? 'pelo prazo' : 'pela veiculação' };
     };
   }
   function semanaPorStatusHtml(G) {
@@ -565,7 +580,7 @@
         ${V.kpi({ icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' })}
       </div>` : '';
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
-    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
+    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
     const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
     const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
     const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
@@ -645,7 +660,7 @@
           ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
           ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
         </div>
-        ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
+        ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a, i) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${i}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
           + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${n0(g.qtd)} peças, paradas há ${n0(g.idadeMedianaDias)} dias (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
         ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
           + bloco('Atrasos por cliente', 'atrasadas e risco de furo por cliente', deitadas(CL.filter((c) => c.atrasadas || c.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.atrasadas + c.emRisco, cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(c.atrasadas)} <small>+${n0(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'coracao' }))}
