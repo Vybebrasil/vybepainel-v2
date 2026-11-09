@@ -29,6 +29,7 @@ import { compromissosProximos } from './assistente-compromissos.js';
 import { guardarIdeia } from './assistente-regras.js';
 import { encaixeCaptacao } from './assistente-encaixe.js';
 import { acompanhamento, focoDaPessoa } from './assistente-acompanhamento.js';
+import { impressoesParaAgente } from './impressoes.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
@@ -98,7 +99,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -120,6 +121,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco) });
       if (consulta === 'sem_briefing') return res.status(200).json({ ok: true, pecas: await pecasSemBriefing(banco, req.body?.dia) });
       if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });
+      // Compras e Fornecedores (agente do VYBES, 09/11): impressões abertas, ranking e o pedido de cotação pronto. Só leitura.
+      if (consulta === 'impressoes') return res.status(200).json({ ok: true, ...(await impressoesParaAgente(banco)) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });
