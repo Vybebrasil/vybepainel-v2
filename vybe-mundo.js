@@ -506,7 +506,7 @@
     prov.alerta = (resto) => {
       const a = (numerosDoDono()?.alertas || [])[Number(resto)]; if (!a?.ref) return null;
       const todos = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
-      const titulo = String(a.texto).split(':')[0].replace(/^d+s*/, '');
+      const titulo = String(a.texto).split(':')[0].replace(/^\d+\s*/, '');
       if (a.ref.tipo === 'pecas') { const ids = new Set(a.ref.ids.map(String)); const lista = todos.filter((d) => ids.has(String(d.id))); return { titulo, n: lista.length, cls: a.nivel === 1 ? 'u1' : 'u2', ...pecasEmBlocos(lista) }; }
       if (a.ref.tipo === 'status') { const lista = todos.filter((d) => String(d.status || '').trim() === a.ref.status && situacaoDaPeca(d) !== 'concluida'); return { titulo, n: lista.length, cls: 'u2', ...pecasEmBlocos(lista) }; }
       if (a.ref.tipo === 'clientes') return { titulo, n: a.ref.nomes.length, cls: 'u2', itens: a.ref.nomes.map((nome) => ({ nome, cliente: nome })),
