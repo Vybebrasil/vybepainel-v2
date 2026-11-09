@@ -5160,3 +5160,23 @@ html body.mundo.mundo-modulo .client-card.cli-ficha-card .client-name{font:700 1
 #vv-hoje .vv-dono-bloco .vs-bloco-cabeca .vv-pilula{border:0;cursor:pointer}
 @media (max-width:1250px){#vv-hoje .vv-dono-tres{grid-template-columns:1fr}}
 body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
+
+/* Semana da agência por status: colunas empilhadas na cor do status, hoje em destaque, dias que passaram mais claros. */
+.vv-sem{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;align-items:end;margin-top:10px}
+.vv-sem-col{appearance:none;border:1px solid transparent;background:transparent;display:grid;grid-template-rows:auto 180px auto;gap:6px;padding:6px;border-radius:12px;cursor:pointer;font:inherit;color:inherit;text-align:center}
+.vv-sem-col:hover{border-color:#ECE6DC;background:#FAF7F2}
+.vv-sem-col.hoje{background:#FFF4EA;border-color:var(--vv-laranja,#F26B1D)}
+.vv-sem-col.passou{opacity:.6}
+.vv-sem-topo{display:grid;gap:1px;min-height:32px;align-content:end}
+.vv-sem-topo b{font:750 16px/1 var(--vv-titulo,var(--vv-texto));color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-sem-topo em{font:650 10.5px var(--vv-texto);font-style:normal;color:#1D7A3E}
+.vv-sem-pilha{align-self:end;justify-self:center;width:min(46px,80%);height:var(--h,0%);min-height:4px;display:flex;flex-direction:column-reverse;border-radius:8px;overflow:hidden;background:#F1EDE6}
+.vv-sem-pilha i{display:block;background:var(--c);min-height:3px;border-top:1px solid rgba(255,255,255,.6)}
+.vv-sem-dia{font:700 12.5px var(--vv-texto);color:#1F1D1A}
+.vv-sem-dia small{display:block;font:500 10.5px var(--vv-texto);color:#8A847A}
+.vv-sem-col.hoje .vv-sem-dia{color:#C2410C}
+.vv-sem-legenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font:500 11.5px var(--vv-texto);color:#6B665E}
+.vv-sem-legenda span{display:inline-flex;align-items:center;gap:6px}
+.vv-sem-legenda i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.vv-sem-legenda b{color:#1F1D1A}
+@media (prefers-reduced-motion:no-preference){.vv-sem-pilha{transition:height .3s var(--curva,ease)}}

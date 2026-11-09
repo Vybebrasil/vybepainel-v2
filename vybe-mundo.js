@@ -486,6 +486,37 @@
       .map(({ a, e }) => ({ nome: a.agente || a.setor, andar: a.andar, setor: a.setor, estado: e.estado, texto: e.estado === 'falhou' ? 'falhou na última execução' + (e.ultimos?.[0]?.erro ? ': ' + e.ultimos[0].erro : '') : 'esperando sua aprovação' + (e.tarefa ? ': ' + e.tarefa : '') }));
     return { sinal: !f.erro, lista };
   }
+  function semanaPorStatusHtml(G) {
+    const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+    const campo = G?.campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso', dias = (G?.porDia || []).map((x) => x.dia);
+    if (!dias.length) return '<p class="vv-vazio">Sem a semana agora.</p>';
+    const hojeDia = hojeIso(), NOMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const porDia = new Map(dias.map((d) => [d, []]));
+    for (const d of itens) { const dia = String(d[campo] || '').slice(0, 10); if (porDia.has(dia)) porDia.get(dia).push(d); }
+    const statusSet = new Map();
+    const colunas = dias.map((dia) => {
+      const lista = porDia.get(dia), grupos = new Map();
+      for (const d of lista) {
+        const st = String(d.status || 'Sem status').trim() || 'Sem status';
+        if (!grupos.has(st)) grupos.set(st, { st, n: 0, cor: corStatus(d, situacaoDaPeca(d)) });
+        grupos.get(st).n++;
+        if (!statusSet.has(st)) statusSet.set(st, { st, cor: grupos.get(st).cor, n: 0 });
+        statusSet.get(st).n++;
+      }
+      const prontas = lista.filter((d) => situacaoDaPeca(d) === 'concluida').length;
+      return { dia, lista, grupos: [...grupos.values()].sort((a, b) => b.n - a.n), prontas };
+    });
+    const max = Math.max(1, ...colunas.map((c) => c.lista.length));
+    const col = (c) => {
+      const passou = c.dia < hojeDia, hojeC = c.dia === hojeDia;
+      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-hoje-acao="dia" data-valor="${c.dia}" title="${esc(c.grupos.map((g) => g.n + ' ' + g.st).join(' · ') || 'Nada neste dia')}">
+        <span class="vv-sem-topo">${c.lista.length ? `<b>${c.lista.length}</b>${c.prontas ? `<em title="já saíram">${c.prontas} prontas</em>` : ''}` : '<b>–</b>'}</span>
+        <span class="vv-sem-pilha" style="--h:${Math.round((c.lista.length / max) * 100)}%">${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};flex:${g.n}"></i>`).join('')}</span>
+        <span class="vv-sem-dia">${NOMES[new Date(c.dia + 'T12:00:00Z').getUTCDay()]} <small>${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}</small></span></button>`;
+    };
+    const legenda = [...statusSet.values()].sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
+    return `<div class="vv-sem">${colunas.map(col).join('')}</div><div class="vv-sem-legenda">${legenda || '<span>Nada nesta semana.</span>'}</div>`;
+  }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();
     const seg = `<div class="vv-seg" role="tablist" aria-label="O que ver"><button type="button" role="tab" aria-selected="true" data-visao-hoje="agencia">Agência</button><button type="button" role="tab" aria-selected="false" data-visao-hoje="tarefas">Minhas tarefas</button></div>`;
@@ -526,7 +557,7 @@
       ${radar}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
         ${bloco('O que pede ação agora', 'do mais grave ao menos grave', acao, '<button type="button" class="vs-abrir" data-abrir-gestao="hoje">Gestão →</button>')}
-        ${bloco('Semana da agência', `previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} e entregues no dia`, `${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues</p>`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
+        ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
         <div class="vv-dono-tres">
           ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
           ${bloco('Onde trava', '', gargalosHtml)}
