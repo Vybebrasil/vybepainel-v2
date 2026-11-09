@@ -24,7 +24,7 @@ import { identificarParticipantes, avisosDeStatus, rondaDosClientes } from './as
 import { resumosDaSemana, resultadoDosPosts, diagnosticoJarvis } from './assistente-hub.js';
 import { arteDaPeca, comentarRevisao, previaDaPeca } from './assistente-revisao-arte.js';
 import { guardarEstadoVybes, acaoVybes } from './vybes.js';
-import { saudeDosClientes, pecasSemBriefing } from './assistente-saude.js';
+import { saudeDosClientes, pecasSemBriefing, pecasEmFaltaInfo } from './assistente-saude.js';
 import { compromissosProximos } from './assistente-compromissos.js';
 import { guardarIdeia } from './assistente-regras.js';
 import { encaixeCaptacao } from './assistente-encaixe.js';
@@ -100,7 +100,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'planejamento_pecas', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'planejamento_pecas', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -120,6 +120,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'acompanhamento') return res.status(200).json({ ok: true, ...(await acompanhamento(banco, { tipo: req.body?.tipo, dia: req.body?.dia })) });
       if (consulta === 'resultado_posts') return res.status(200).json({ ok: true, ...(await resultadoDosPosts(banco, req.body?.dia)) });
       if (consulta === 'compromissos') return res.status(200).json({ ok: true, compromissos: await compromissosProximos(banco) });
+      // Augusto (Copy): demanda parada em "Falta Info", quem marcou e o que já foi comentado depois. Só leitura.
+      if (consulta === 'falta_info') return res.status(200).json({ ok: true, ...(await pecasEmFaltaInfo(banco)) });
       if (consulta === 'sem_briefing') return res.status(200).json({ ok: true, pecas: await pecasSemBriefing(banco, req.body?.dia) });
       if (consulta === 'saude_clientes') return res.status(200).json({ ok: true, ...(await saudeDosClientes(banco, req.body?.dia)) });
       // Compras e Fornecedores (agente do VYBES, 09/11): impressões abertas, ranking e o pedido de cotação pronto. Só leitura.
