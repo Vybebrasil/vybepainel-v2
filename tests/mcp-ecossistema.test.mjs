@@ -95,3 +95,21 @@ test('tipo inválido e método desconhecido respondem sem quebrar', async () => 
     assert.equal((await atenderMensagem(sql, { jsonrpc: '2.0', id: 2, method: 'resources/list' }, { conta: 'gestao' })).error.code, -32601);
   } finally { await db.close(); }
 });
+
+test('o conector que os chats já têm (area=agentes) ganha consultar_cliente e registrar', async () => {
+  const { conectorAgentes } = await import('../server/planejamentos-api.js');
+  const { db, sql } = await banco();
+  const antes = process.env.AGENTES_CHAVE;
+  process.env.AGENTES_CHAVE = 'c'.repeat(32);
+  try {
+    const chamar = async (corpo) => { const r = resposta(); await conectorAgentes({ method: 'POST', query: { chave: 'c'.repeat(32) }, body: corpo }, r, sql, { salvarNoDrive: async () => 'drive-9' }); return r; };
+    const nomes = (await chamar({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).corpo.result.tools.map((t) => t.name);
+    assert.deepEqual(nomes, ['listar_clientes', 'formato_do_planejamento', 'publicar_planejamento', 'ver_planejamento', 'consultar_cliente', 'registrar']);
+    const ok = await chamar({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'registrar', arguments: { cliente: 'Academia Lions', tipo: 'aprendizado', titulo: 'Horário bom', resumo: 'Posts às 18h rendem mais.' } } });
+    assert.match(ok.corpo.result.content[0].text, /Registrado em Academia Lions/);
+    const errado = await chamar({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'registrar', arguments: { cliente: 'Gonzalez', tipo: 'aprendizado', titulo: 'x', resumo: 'y' } } });
+    assert.equal(errado.corpo.result.isError, true);
+    assert.match(errado.corpo.result.content[0].text, /Mais de um cliente parecido/);
+    assert.equal((await sql`SELECT origem FROM vybe_cliente_registros`)[0].origem, 'Claude.ai · conector dos agentes');
+  } finally { process.env.AGENTES_CHAVE = antes; await db.close(); }
+});
