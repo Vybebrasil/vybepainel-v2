@@ -127,18 +127,24 @@ test('a checagem de visibilidade do mapa é guardada por meio segundo (não varr
 
 test('economia de energia: sem mexer, o sistema entra em ócio; mexer acorda', () => {
   const ouvintes = {}, classes = new Set(), timers = [];
+  // Um laço infinito (pausa no ócio) e uma entrada (termina sozinha; antes congelava transparente).
+  const anim = (iterations) => ({ playState: 'running', effect: { getTiming: () => ({ iterations }) }, pause() { this.playState = 'paused'; }, play() { this.playState = 'running'; } });
+  const laco = anim(Infinity), entrada = anim(1);
   const c = vm.createContext({
     window: { addEventListener: (t, f) => { ouvintes[t] = f; } },
-    document: { hidden: false, addEventListener: () => {}, documentElement: { classList: { contains: (k) => classes.has(k), add: (k) => classes.add(k), remove: (k) => classes.delete(k) } } },
-    setTimeout: (f) => { timers.push(f); return timers.length; }, clearTimeout: () => {}, Date,
+    document: { hidden: false, addEventListener: () => {}, getAnimations: () => [laco, entrada], documentElement: { classList: { contains: (k) => classes.has(k), add: (k) => classes.add(k), remove: (k) => classes.delete(k) } } },
+    setTimeout: (f) => { timers.push(f); return timers.length; }, clearTimeout: () => {}, setInterval: () => 1, clearInterval: () => {}, Date, Infinity,
   });
   vm.runInContext(readFileSync('vybe-energia.js', 'utf8'), c);
   timers.at(-1)();
   assert.ok(classes.has('vb-ocioso'));
+  assert.equal(laco.playState, 'paused', 'o laço infinito para no ócio');
+  assert.equal(entrada.playState, 'running', 'a entrada termina (não congela transparente)');
   ouvintes.pointermove();
   assert.ok(!classes.has('vb-ocioso'));
+  assert.equal(laco.playState, 'running', 'mexer devolve o laço');
   const css = readFileSync('vybe-styles.css', 'utf8');
-  assert.match(css, /html\.vb-ocioso \*[^{]*\{animation-play-state:paused!important\}/);
+  assert.doesNotMatch(css, /html\.vb-ocioso \*[^{]*\{animation-play-state:paused!important\}/);
 });
 
 test('revestimento de parede: o perfil guarda só revestimentos grátis em trechos do quarto', async () => {

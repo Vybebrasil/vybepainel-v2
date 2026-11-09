@@ -23026,7 +23026,8 @@ body[data-motion=reduce] .ofc-oficina-nav button{transition:none}
 
 /* Economia de energia (vybe-energia.js): sem ninguém mexer, nada anima. */
 
-html.vb-ocioso *, html.vb-ocioso *::before, html.vb-ocioso *::after {animation-play-state:paused!important}
+/* (08/11/2026) A pausa agora é só das animações infinitas, em vybe-energia.js: pausar tudo congelava transparentes as
+   entradas que começavam com a pessoa parada (painéis, janelinhas, o dock). */
 
 /* Animações desligadas (botão do Escritório ou Reduzir movimento da Aparência,
 
