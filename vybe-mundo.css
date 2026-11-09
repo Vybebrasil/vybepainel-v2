@@ -5085,3 +5085,8 @@ html.tema-escuro body.mundo .cg{filter:invert(1) hue-rotate(180deg)}
 .cg-painel{max-height:calc(100% - 72px)}
 /* O campo de busca do grafo é escuro: a regra geral de campos dos módulos pesa três ids (:not(#ds-a…c)), por isso os quatro. */
 html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#1C1D23!important;color:#EDE8E0!important;border:1px solid rgba(255,255,255,.16)!important;-webkit-text-fill-color:#EDE8E0}
+/* Hoje: blocos de prioridade (Atrasadas, Para hoje, Próximos dias) e os botões de alternar com "todas por status". */
+.vv-bloco-prio.atrasadas{border-top:3px solid var(--sit-atrasada,#D2453B)}
+.vv-bloco-prio.hoje{border-top:3px solid var(--vv-laranja,#F26B1D)}
+.vv-bloco-prio.depois{border-top:3px solid #CFC7BB}
+.vv-ver-todas,.vv-ver-prioridades{display:block;width:100%;margin:0 0 14px;break-inside:avoid}

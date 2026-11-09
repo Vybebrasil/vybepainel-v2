@@ -336,6 +336,7 @@
   // é o mesmo da barra e do Modo Foco.
   // "Ver como" (Paulo, 06/11/2026): quem administra vê o painel Hoje de qualquer pessoa da equipe.
   let verComo = '';
+  let hojeVerTodas = (() => { try { return localStorage.getItem('vybe.hoje.todas') === '1'; } catch { return false; } })();
   function minhaFila() {
     const time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const user = (verComo && time.find((u) => String(u.id) === verComo)) || (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null);
@@ -868,25 +869,40 @@
     const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const seletor = admin && time.length ? `<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
-    el.innerHTML = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+    // Prioridades do dia: o que atrasou, o que é de hoje e o que vem depois (pela veiculação, a data do cliente).
+    function blocosDePrioridade() {
+      const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
+      const deHojeP = naFila.filter((x) => !atrasadasP.includes(x) && (veic(x) || x.ref) === hoje);
+      const depoisP = naFila.filter((x) => !atrasadasP.includes(x) && !deHojeP.includes(x));
+      const MAX = POR_GRUPO + 3;
+      const bloco = (rot, cor, lista, vazio, cls) => `<section class="vv-bloco vv-bloco-prio ${cls}" style="--st:${cor}"><div class="vv-rotulo-secao" style="--c:${cor}"><i></i>${rot}<span class="vv-pilula">${lista.length}</span></div>
+        ${lista.length ? lista.slice(0, MAX).map(item).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="todas">+ ${lista.length - MAX} em ${rot.toLowerCase()}</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
+      return bloco('Atrasadas', 'var(--sit-atrasada, #D2453B)', atrasadasP, 'Nada atrasado.', 'atrasadas')
+        + bloco('Para hoje', 'var(--vv-laranja, #F26B1D)', deHojeP, 'Nada vence hoje.', 'hoje')
+        + bloco('Depois de hoje', 'var(--sit-fazer, #8A847A)', depoisP, 'Nada depois de hoje.', 'depois')
+        + `<button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="todas">Ver todas por status (${abertas.length})</button>`;
+    }
+    const html = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
       <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
       ${compromissosHtml()}
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
       ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
-      <div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
+      <div class="vv-blocos">${!diaEscolhido && !hojeVerTodas ? blocosDePrioridade() : `${hojeVerTodas && !diaEscolhido ? '<button type="button" class="vv-mais vv-ver-prioridades" data-hoje-acao="prioridades">Voltar às prioridades do dia</button>' : ''}${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
-      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}<section class="vv-bloco">
+      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}`}<section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:var(--sit-fazer)"><i></i>Próximos dias<span class="vv-pilula">${proximos.reduce((n, p) => n + p.n, 0)}</span></div>
       <div class="vv-dias">${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}"><small>${i === 0 ? 'Amanhã' : DIAS[new Date(p.dia + 'T12:00:00Z').getUTCDay()]}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}</div>
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
       </section></div>`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     if (acao === 'dia') { diaEscolhido = diaEscolhido === valor ? '' : valor; pintarHoje(); return; }
+    if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
     if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
