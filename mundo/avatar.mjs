@@ -5,6 +5,7 @@
 // renderizador fora da tela e guardado como imagem (como as poses do robô do Vale).
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
+import { prepararRenderer, luzDoEstilo } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 
 const PELE = ['#F6D3B5', '#EDC09A', '#D9A47C', '#C68E6A', '#A8714E', '#8A5A3C', '#6B4430'];
@@ -193,16 +194,20 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
 }
 
 let renderer = null, cena = null, camera = null;
+// Retrato do boneco: a luz do padrão voxel (estilo.mjs) num estúdio pequeno, com o contorno quente mais forte para
+// o boneco descolar do fundo transparente.
+function luzDoRetrato(c) {
+  const l = luzDoEstilo(c, { centro: [0, .9, 0], raio: 4, alturaSol: 1.2 });
+  l.hemi.intensity = 1.3; l.sol.intensity = 1.6; l.sol.position.set(3, 5, 4); l.contorno.intensity = 1.2; l.contorno.position.set(-3, 2, -3);
+  return l;
+}
 const cache = new Map();
 function preparar() {
   if (renderer) return;
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(2); renderer.setSize(128, 160, false);
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  cena = new THREE.Scene();
-  cena.add(new THREE.HemisphereLight('#F3F7FF', '#4A3B2C', 1.3));
-  const sol = new THREE.DirectionalLight('#FFF1D8', 1.6); sol.position.set(3, 5, 4); cena.add(sol);
-  const contorno = new THREE.DirectionalLight('#FFB27A', 1.2); contorno.position.set(-3, 2, -3); cena.add(contorno);
+  prepararRenderer(renderer, { sombra: false });
+  cena = new THREE.Scene(); luzDoRetrato(cena);
   camera = new THREE.PerspectiveCamera(26, 128 / 160, .1, 50);
 }
 
@@ -247,11 +252,8 @@ export function avatarVoxel(figura, { cabeca = false, direcao = 2 } = {}) {
 export function desenharPreviaAvatar(canvas, figura = '', { angulo = .3 } = {}) {
   const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   r.setPixelRatio(Math.min(2, globalThis.devicePixelRatio || 1));
-  r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
-  const c = new THREE.Scene();
-  c.add(new THREE.HemisphereLight('#F3F7FF', '#4A3B2C', 1.3)); // mesma luz do preparar()
-  const sol = new THREE.DirectionalLight('#FFF1D8', 1.6); sol.position.set(3, 5, 4); c.add(sol);
-  const contorno = new THREE.DirectionalLight('#FFB27A', 1.2); contorno.position.set(-3, 2, -3); c.add(contorno);
+  prepararRenderer(r, { sombra: false });
+  const c = new THREE.Scene(); luzDoRetrato(c); // mesma luz do preparar()
   const cam = new THREE.PerspectiveCamera(26, 128 / 160, .1, 50);
   cam.position.set(0, 1.1, 5); cam.lookAt(0, .93, 0);
   let g = null, atual = null, giro = Number(angulo) || 0, quadro = 0, vivo = true;

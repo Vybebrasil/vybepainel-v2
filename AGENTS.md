@@ -228,6 +228,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
   acesas à noite; bonecos andam com passada, sentam e deitam pela ficha do Habbo, acendem quando falam e quem chega
   entra pela porta; clicar no piso faz a câmera seguir você. Tudo só lê do Escritório, sem laço infinito.
+- Identidade voxel única (Paulo, 09/11/2026: "tudo que é de voxel... precisa seguir uma identidade bem definida"):
+  luz, sombra, acabamento do renderizador e base de maquete saem de `mundo/estilo.mjs` (`ESTILO`, `prepararRenderer`,
+  `luzDoEstilo`, `baseDeMaquete`); o acabamento de cada bloco (tom próprio, quina e pé pelo tamanho do bloco) é o
+  `materialVoxel` de `mundo/voxel.mjs`. Mundo, andar, quarto e retratos dos bonecos usam os dois; não crie luz,
+  material ou renderizador próprio numa cena (mude o visual no estilo).
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa

@@ -9,6 +9,7 @@
 // escondida, nem o pedido de quadro fica pendente.
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
+import { ESTILO, prepararRenderer, luzDoEstilo, baseDeMaquete } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
@@ -60,19 +61,15 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
+  prepararRenderer(renderer); renderer.shadowMap.autoUpdate = false;
   const cena = new THREE.Scene();
-  cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
-  const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 16, D + 10); sol.target.position.set(W / 2, 0, D / 2);
-  sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048);
-  const s = Math.max(W, D) + 4; Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0008; sol.shadow.normalBias = .035; // sem serrilhado nas faces grandes (patamares, paredes)
-  const preenche = new THREE.DirectionalLight('#CFE4FF', .45); preenche.position.set(-10, 12, D + 6);
-  cena.add(sol, sol.target, preenche);
+  // Luz e sombra do padrão voxel (estilo.mjs), em modo interior; normalBias tira o serrilhado das faces grandes.
+  const raioLuz = Math.max(W, D);
+  const luz = luzDoEstilo(cena, { centro: [W / 2, 0, D / 2], raio: raioLuz, interior: true, sombra: { mapa: 2048, lado: raioLuz + 4, longe: 80 } });
+  const { sol } = luz;
   // Luz do quarto: a que o dono escolheu no Escritório (sala_luz) e o dia e a noite pela hora da Bahia, ou pela hora
   // que a pessoa escolheu no mundo (vybe.mundo.hora). À noite, os móveis que acendem no Habbo (camada de brilho)
   // ganham uma luz quente. Muda só quando a hora muda (a cada minuto), sem laço de animação.
-  const hemi = cena.children.find((o) => o.isHemisphereLight);
   const corDaLuz = (() => { try { const l = typeof ESCRITORIO_LUZES_SALA !== 'undefined' ? ESCRITORIO_LUZES_SALA.find(([id]) => id === (amb?.luz || '')) : null; return l && l[0] ? l[2] : null; } catch { return null; } })();
   const horaAgora = () => { try { const v = localStorage.getItem('vybe.mundo.hora'); if (v !== null && v !== 'auto' && Number.isFinite(Number(v))) return Number(v); } catch { /* sem armazenamento */ } return relogioBahia().minutos / 60; };
   let noite = 0, gLuzes = null, luzes = [];
@@ -80,17 +77,14 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     if (gLuzes) { cena.remove(gLuzes); gLuzes = null; }
     if (noite < .3 || !luzes.length) return;
     gLuzes = new THREE.Group();
-    for (const l of luzes.slice(0, 6)) { const p = new THREE.PointLight('#FFC77A', 1.6 * noite, 4.5, 1.6); p.position.set(l.x, l.y, l.z); gLuzes.add(p); }
+    for (const l of luzes.slice(0, 6)) { const p = new THREE.PointLight(ESTILO.luzMovel, 1.6 * noite, 4.5, 1.6); p.position.set(l.x, l.y, l.z); gLuzes.add(p); }
     cena.add(gLuzes); sujar(true);
   }
   function aplicarLuz() {
     // Quarto é interior, como no Habbo: nunca escurece. À noite a luz só esquenta um pouco (lâmpada em vez de sol) e
     // as luminárias acendem; a cor escolhida pelo dono tinge de leve.
     noite = noiteDaHora(horaAgora() * 60);
-    const tinta = new THREE.Color('#FFFFFF').lerp(new THREE.Color(corDaLuz || '#FFFFFF'), corDaLuz ? .35 : 0);
-    if (hemi) { hemi.intensity = 1.25 * (1 - .12 * noite); hemi.color.set('#F6FAFF').lerp(new THREE.Color('#FFE3C2'), .35 * noite).multiply(tinta); }
-    sol.intensity = 1.9 * (1 - .2 * noite); sol.color.set('#FFF1D8').lerp(new THREE.Color('#FFD39A'), .5 * noite).multiply(tinta);
-    preenche.intensity = .45 * (1 - .2 * noite);
+    luz.hora(noite, corDaLuz);
     acenderLuzes(); sujar(true);
   }
   const liberar = (g) => g?.traverse?.((o) => { o.geometry?.dispose?.(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m?.dispose?.()); });
@@ -104,11 +98,11 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     const n = P.grade[y][x]; if (n < 0) continue;
     const topo = n * NIVEL, [a, b] = pisoPintado(x, y) || pisoAtual;
     // Como no Habbo: o topo do ladrilho na cor do piso e a lateral de um patamar no mesmo piso, mais escuro (sem faixa
-    // de realce); a base de concreto só embaixo do chão, na borda da maquete.
-    casca.caixa(x + .5, -.62, y + .5, 1, .5, 1, '#C9C1B2');
+    // de realce). Embaixo do chão, a base de maquete do padrão (terra em camadas, estilo.mjs).
     if (topo > 0) casca.caixa(x + .5, -.12, y + .5, 1, topo, 1, misturar(a, '#1F1D1A', .32));
     casca.caixa(x + .5, topo - .12, y + .5, 1, .12, 1, (x + y) % 2 ? a : b);
   }
+  baseDeMaquete(casca, { W, D, ladrilhos: (x, y) => (P.grade[y]?.[x] ?? -1) >= 0, topo: -.12, fundo: -1.15 });
   gCasca = casca.montar(); cena.add(gCasca); sujar(true);
   }
 

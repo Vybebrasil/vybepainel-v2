@@ -1,0 +1,91 @@
+// Identidade voxel única (Paulo, 09/11/2026: "tudo que é de voxel... precisa seguir uma identidade bem definida...
+// deixa o motor inteligente pra seguir um padrão visual"). Um lugar só para a luz, a sombra, o acabamento do
+// renderizador e a base de maquete: o mundo (motor.mjs), o andar (sala.mjs), o quarto (quarto.mjs) e os retratos dos
+// bonecos (avatar.mjs) montam a cena por aqui. O acabamento de cada bloco (tom levemente diferente, quina, pé
+// escurecido) fica no material único das caixas (materialVoxel em voxel.mjs). Mude o visual aqui, não em cada cena.
+import * as THREE from 'three';
+
+// Referência: maquete voxel rica, luz quente de fim de tarde vinda do alto à esquerda, sombra macia, um contorno
+// quente atrás das peças (as bordas "acendem") e céu claro. Interior (quarto, andar) é a mesma luz, mais cheia.
+export const ESTILO = Object.freeze({
+  exposicao: 1.05,
+  dia: { ceu: '#EAF6FF', chao: '#7E6A4E', hemi: .9, sol: '#FFEBCB', forca: 2.15, preenche: '#CFE4FF', fPreenche: .35, contorno: '#FFB27A', fContorno: .55 },
+  noite: { ceu: '#7083C4', chao: '#2A2A3A', hemi: .52, sol: '#A9BBFF', forca: .8, fPreenche: .15, fContorno: .25, exposicao: .85 },
+  interior: { ceu: '#F6FAFF', chao: '#8A7A62', hemi: 1.25, sol: '#FFF0D6', forca: 1.9, preenche: '#CFE4FF', fPreenche: .45, contorno: '#FFC48F', fContorno: .5, lampada: '#FFE3C2', solNoite: '#FFD39A' },
+  // Base de maquete (terra em camadas embaixo do piso), de cima para baixo.
+  base: ['#8A6A4C', '#6E523A', '#54402E'],
+  luzMovel: '#FFC77A',
+});
+
+// Acabamento do renderizador: cor real, curva de cinema, sombra macia.
+export function prepararRenderer(r, { sombra = true, exposicao = ESTILO.exposicao } = {}) {
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = exposicao;
+  if (sombra) { r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; }
+  return r;
+}
+
+// As quatro luzes do padrão: céu (hemisfério), sol com sombra, preenchimento frio do lado oposto e o contorno quente
+// por trás. centro/raio dizem onde a cena está (para apontar o sol e cobrir a sombra); interior = quarto e andar.
+// Devolve as luzes e hora(noite, tinta) para o dia e a noite: fora, escurece para o luar; dentro, só esquenta.
+export function luzDoEstilo(cena, { centro = [0, 0, 0], raio = 10, interior = false, sombra = null, alturaSol = 1.4 } = {}) {
+  const E = interior ? ESTILO.interior : ESTILO.dia, [cx, cy, cz] = centro;
+  const hemi = new THREE.HemisphereLight(E.ceu, E.chao, E.hemi);
+  const sol = new THREE.DirectionalLight(E.sol, E.forca);
+  // Alto à esquerda e à frente da câmera do Habbo (que olha de +x+z): as faces da frente acendem, a sombra cai atrás.
+  sol.position.set(cx + raio * .75, cy + raio * alturaSol, cz + raio);
+  sol.target.position.set(cx, cy, cz);
+  if (sombra) {
+    sol.castShadow = true; sol.shadow.mapSize.set(sombra.mapa || 2048, sombra.mapa || 2048);
+    const s = sombra.lado || raio + 4;
+    Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: .5, far: sombra.longe || raio * 6 });
+    sol.shadow.bias = sombra.bias ?? -.0008; sol.shadow.normalBias = sombra.normalBias ?? .035;
+  }
+  const preenche = new THREE.DirectionalLight(E.preenche, E.fPreenche);
+  preenche.position.set(cx - raio, cy + raio * 1.2, cz + raio * .6);
+  const contorno = new THREE.DirectionalLight(E.contorno, E.fContorno);
+  contorno.position.set(cx - raio * .8, cy + raio * .5, cz - raio);
+  contorno.target.position.set(cx, cy, cz);
+  cena.add(hemi, sol, sol.target, preenche, contorno, contorno.target);
+  const branco = new THREE.Color('#FFFFFF');
+  function hora(noite = 0, tinta = null) {
+    const k = Math.min(1, Math.max(0, Number(noite) || 0)), t = tinta ? branco.clone().lerp(new THREE.Color(tinta), .35) : branco;
+    if (interior) {
+      const I = ESTILO.interior;
+      hemi.intensity = I.hemi * (1 - .12 * k); hemi.color.set(I.ceu).lerp(new THREE.Color(I.lampada), .35 * k).multiply(t);
+      sol.intensity = I.forca * (1 - .2 * k); sol.color.set(I.sol).lerp(new THREE.Color(I.solNoite), .5 * k).multiply(t);
+      preenche.intensity = I.fPreenche * (1 - .2 * k); contorno.intensity = I.fContorno * (1 + .3 * k);
+      return;
+    }
+    const D = ESTILO.dia, N = ESTILO.noite;
+    hemi.intensity = D.hemi + (N.hemi - D.hemi) * k; hemi.color.set(D.ceu).lerp(new THREE.Color(N.ceu), k); hemi.groundColor.set(D.chao).lerp(new THREE.Color(N.chao), k);
+    sol.intensity = D.forca + (N.forca - D.forca) * k; sol.color.set(D.sol).lerp(new THREE.Color(N.sol), k);
+    preenche.intensity = D.fPreenche + (N.fPreenche - D.fPreenche) * k; contorno.intensity = D.fContorno + (N.fContorno - D.fContorno) * k;
+  }
+  return { hemi, sol, preenche, contorno, hora };
+}
+
+// Base de maquete: o chão de uma cena (quarto, ilha) apoiado num bloco de terra em camadas, com a beira irregular
+// (cada coluna da borda desce um pouco diferente), como nas maquetes de referência. ladrilhos(x, z) diz onde há
+// chão; fundo é até onde a base desce. Escreve na Obra recebida.
+export function baseDeMaquete(obra, { W, D, ladrilhos = () => true, topo = -.12, fundo = -1.1, semente = 7 } = {}) {
+  const r = (x, z, n) => { const v = Math.sin((x * 12.9898 + z * 78.233 + n * 37.719 + semente) * 1.3) * 43758.5453; return v - Math.floor(v); };
+  const [c0, c1, c2] = ESTILO.base, altura = topo - fundo;
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+    if (!ladrilhos(x, z)) continue;
+    const borda = !ladrilhos(x + 1, z) || !ladrilhos(x, z + 1) || !ladrilhos(x - 1, z) || !ladrilhos(x, z - 1);
+    // Por dentro, um bloco só (ninguém vê); na borda, as três camadas com a divisa variando de coluna em coluna.
+    if (!borda) { obra.caixa(x + .5, fundo, z + .5, 1, altura, 1, c1); continue; }
+    const a = altura * (.28 + r(x, z, 1) * .1), b = altura * (.36 + r(x, z, 2) * .1), c = altura - a - b;
+    obra.caixa(x + .5, topo - a, z + .5, 1, a, 1, c0);
+    obra.caixa(x + .5, topo - a - b, z + .5, 1, b, 1, c1);
+    obra.caixa(x + .5, fundo, z + .5, 1, c, 1, c2);
+    // Pedrinhas soltas na face: o detalhe que a referência tem na beira da maquete.
+    if (r(x, z, 3) > .5) {
+      const fora = !ladrilhos(x + 1, z) ? [1, 0] : !ladrilhos(x, z + 1) ? [0, 1] : !ladrilhos(x - 1, z) ? [-1, 0] : [0, -1];
+      const ao = .2 + r(x, z, 4) * .6, y = topo - a - b * (.2 + r(x, z, 5) * .7);
+      obra.caixa(x + .5 + fora[0] * .52 + (fora[0] ? 0 : ao - .5), y, z + .5 + fora[1] * .52 + (fora[1] ? 0 : ao - .5), .14, .1, .14, r(x, z, 6) > .5 ? c2 : c0);
+    }
+  }
+}
