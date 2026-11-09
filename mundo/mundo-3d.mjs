@@ -15,6 +15,7 @@ export { PLANTA, ESTADOS };
 // Leitura dos agentes sem montar a cena (Hoje, Gestão e a página Agentes com o Centro fechado).
 export { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS, ZONAS_DO_PREDIO };
 export { abrirAndar } from './sala.mjs';
+export { abrirQuarto } from './quarto.mjs';
 export { avatarVoxel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar, desenharBoneco, figuraDaPessoa, figuraDoAgente, avatarDoAgente } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 

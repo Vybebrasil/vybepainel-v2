@@ -200,9 +200,15 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Não crie zonas novas nem mude as do Worker: as salas do prédio são as mesmas zonas.
 - Andares do Prédio (decisão do Paulo, 08/11/2026: "andares dos HUMANOS onde fica o time todo junto e os outros para os bots"):
   Térreo = recepção (VYBES) e Convivência; 1º ao 5º só agentes, com `MESAS_POR_ANDAR` mesas (as vagas ficam livres para
-  agentes novos); 6º Time Vybe (as salas de cada um e a reunião), 7º Estúdio e Operação, Terraço por último
-  (`mundo/planta.mjs`). As zonas são as mesmas do Escritório; só o andar delas mudou. Bonecos de pessoas e agentes saem
-  de `desenharBoneco` (`mundo/avatar.mjs`); não crie outro boneco. O andar por dentro fica por baixo dos HUDs.
+  agentes novos); 6º Estúdio e Operação, Terraço por último (`mundo/planta.mjs`). As zonas são as mesmas do Escritório;
+  só o andar delas mudou. Bonecos de pessoas e agentes saem de `desenharBoneco` (`mundo/avatar.mjs`); não crie outro
+  boneco. O andar por dentro fica por baixo dos HUDs.
+- Minha sala (decisão do Paulo, 09/11/2026: "aquela parte visual do andar dos humanos e o fluxo de entrar lá podemos
+  tirar... deixar as salas no esquema Discord em relação à voz"): o antigo 6º andar Time Vybe saiu. As salas de cada um e
+  a reunião ficam só como voz (`SALAS_DO_TIME`, barra de salas: entrar troca só a voz). O item "Minha sala" do dock
+  (grupo Vybe) abre o quarto do Escritório da pessoa em voxel, em tela cheia (`mundo/quarto.mjs`, `abrirMinhaSala`):
+  a planta com as alturas, piso, parede e a camada salva da sala, só leitura, e quem está na sala. Abrir entra na zona
+  da própria sala e na chamada dela. Decorar continua no editor do Escritório.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa
