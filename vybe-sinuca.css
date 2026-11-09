@@ -464,3 +464,42 @@ body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-estante{gr
 #workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista b{font:400 13px var(--bt-cartaz)!important;color:var(--bt-tinta)!important;letter-spacing:1px}
 #workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista button{background:none!important;color:var(--bt-texto)!important;border:0!important;border-bottom:1px dashed #0002!important;border-radius:0!important;font:600 13px var(--bt-ui)!important;text-align:left}
 #workflow-modal.ofc-snc-jogo .jogo-topo .snc-menu-lista button:hover{background:#0000000a!important}
+/* Topo do jogo numa linha só: o emblema, SINUCA pintado e DE BOTECO na plaquinha (a linha VYBE · SALÃO DE JOGOS cortava em 56 px). */#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca small{display:none!important}#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca{display:flex!important;align-items:center;gap:10px;height:100%}#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca>span{display:flex!important;align-items:center}#workflow-modal.ofc-snc-jogo .jogo-topo .snc-marca b{display:flex!important;align-items:center;white-space:nowrap;line-height:1!important}
+/* A janela do jogo cobre a tela sem 100vw (no Windows o 100vw conta a barra de rolagem da página e sobrava uma faixa de 15 px) e o bloco de feed vazio não empurra nada. */#workflow-modal.ofc-snc-jogo,#workflow-modal.ofc-snc-menu{left:0!important;right:0!important;width:auto!important;max-width:none!important}#workflow-modal.ofc-snc-jogo .jogo-feed:empty{display:none!important}
+/* Gavetas que cabem (medição: cortavam em 1100x600 e no celular deitado) */
+@media (min-width:600px) and (orientation:landscape) and (max-height:760px){#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-linha:nth-child(3){display:none}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida ul li:nth-child(n+2),#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida h4:nth-of-type(n+2),#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida h4:nth-of-type(n+2)+ul{display:none!important}}
+@media (min-width:600px) and (orientation:landscape) and (max-height:520px){#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-painel:not([hidden]){top:8px!important;bottom:8px!important;right:56px!important;width:min(600px,calc(100% - 150px))!important;padding:12px 14px!important}#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-arena.snc-hud.snc-hud .snc-caderno-fechar{top:12px!important;right:62px!important}#workflow-modal .snc-hud .snc-regras:not([hidden]){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-content:start}#workflow-modal .snc-hud .snc-regras article h3{font-size:16px!important}#workflow-modal .snc-hud .snc-regras article p{font-size:11px!important;line-height:1.3!important}#workflow-modal .snc-hud .snc-regras article p b{display:none}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida{display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:8px;align-items:start}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete{grid-row:1/span 4;padding:6px!important;gap:6px!important}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-opcoes button small,#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-passo{display:none}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-valor .ficha{width:30px!important;height:30px!important;font-size:10px!important}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida-oferecer{padding:8px!important;font-size:13px!important}#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida li{font-size:11px;padding:4px 6px}}
+/* Abas internas do salão sem estourar (medição: Ranking, Estante e Temporada cortavam em 1100x600 e no celular). Pódio e giz lado a lado. */
+.bt-painel[data-aba=ranking]{display:grid!important;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-content:start;column-gap:22px}
+.bt-painel[data-aba=ranking]>:not(.snc-liga-podio2):not(.snc-giz){grid-column:1/-1}
+.bt-painel[data-aba=ranking]>.snc-liga-podio2{grid-column:1;align-self:end}
+.bt-painel[data-aba=ranking]>.snc-giz{grid-column:2;align-self:start;max-height:100%;overflow:hidden}
+.bt-painel[data-aba=temporada] .snc-liga{display:grid!important;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:22px;row-gap:8px;align-items:start}
+.bt-painel[data-aba=temporada] .snc-liga>.snc-liga-topo{grid-column:1/-1}
+.bt-painel[data-aba=temporada] .snc-liga>.snc-liga-podio2{grid-column:1;grid-row:2/span 3;align-self:end}
+.bt-painel[data-aba=temporada] .snc-liga>:is(.snc-giz,.snc-giz-vazio,.snc-liga-anterior){grid-column:2}
+#workflow-modal .bt-salao .snc-liga-topo small,#workflow-modal .bt-salao .snc-liga-topo p{color:var(--bt-texto2)!important}
+#workflow-modal .bt-salao .snc-liga-anterior small{color:var(--bt-texto2)!important}
+#workflow-modal .bt-salao .snc-liga-quem em{font-family:var(--bt-cartaz)!important}
+@media (max-height:760px){
+ #workflow-modal .bt-salao .snc-liga-foto{width:58px!important;height:58px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-foto{width:72px!important;height:72px!important}
+ #workflow-modal .bt-salao .snc-liga-bloco{height:56px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-bloco{height:80px!important}#workflow-modal .bt-salao .snc-liga-degrau.p3 .snc-liga-bloco{height:42px!important}
+ #workflow-modal .bt-salao .snc-liga-bloco canvas,#workflow-modal .bt-salao .snc-liga-quem em{display:none!important}
+ #workflow-modal .bt-salao .snc-liga-bloco em{font-size:26px!important}
+ #workflow-modal .bt-salao .snc-giz{padding:10px 16px!important;gap:3px!important}#workflow-modal .bt-salao .snc-giz li{font-size:15px!important}
+ .snc-estante-aba .snc-cf-medalhas ul{grid-template-columns:repeat(auto-fill,minmax(38px,1fr))!important;gap:6px 4px!important;padding:8px!important}
+ .snc-estante-aba .snc-cf-medalhas li>i{width:34px!important;height:34px!important;font-size:15px!important}
+ .snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(42px,1fr))!important;gap:8px 6px!important;padding:10px 8px!important}
+ .snc-estante-aba .snc-cf-mural li i{font-size:16px!important}
+}
+@media (max-height:520px){
+ #workflow-modal .bt-salao .snc-liga-foto{width:40px!important;height:40px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-foto{width:48px!important;height:48px!important}
+ #workflow-modal .bt-salao .snc-liga-bloco{height:34px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-bloco{height:48px!important}#workflow-modal .bt-salao .snc-liga-degrau.p3 .snc-liga-bloco{height:26px!important}
+ #workflow-modal .bt-salao .snc-liga-bloco :is(span,small),#workflow-modal .bt-salao .snc-liga-quem small,.bt-painel[data-aba=temporada] .snc-liga-topo p,.bt-painel[data-aba=temporada] .snc-liga-anterior{display:none!important}
+ #workflow-modal .bt-salao .snc-liga-bloco em{font-size:18px!important}#workflow-modal .bt-salao .snc-liga-quem b{font-size:13px!important}
+ #workflow-modal .bt-salao .snc-giz li{font-size:13px!important}#workflow-modal .bt-salao .snc-giz li:nth-child(n+5){display:none!important}
+ .snc-estante-aba .snc-cf-legenda{display:none}
+ .snc-estante-aba .snc-cf-medalhas ul{grid-template-columns:repeat(auto-fill,minmax(30px,1fr))!important}.snc-estante-aba .snc-cf-medalhas li>i{width:28px!important;height:28px!important;font-size:13px!important}
+ .snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(32px,1fr))!important;gap:6px 4px!important}.snc-estante-aba .snc-cf-mural li{padding:6px 2px 2px!important}
+}
+@media (max-height:520px){.snc-estante-aba :is(.snc-cf-medalhas,.snc-cf-mural) h3{font-size:10px!important;margin:0 0 2px!important}.snc-estante-aba.snc-cf{gap:6px 10px!important}.snc-estante-aba .snc-cf-medalhas li>i{width:24px!important;height:24px!important;font-size:12px!important}.snc-estante-aba .snc-cf-medalhas ul{grid-template-columns:repeat(auto-fill,minmax(26px,1fr))!important;gap:4px 3px!important;padding:6px!important}.snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(28px,1fr))!important;padding:6px!important}.snc-estante-aba .snc-cf-mural li i{font-size:13px!important}#workflow-modal .bt-salao .snc-liga-relogio{padding:4px 10px!important}#workflow-modal .bt-salao .snc-liga-relogio b{font-size:20px!important}#workflow-modal .bt-salao .snc-liga-topo small{display:none!important}}

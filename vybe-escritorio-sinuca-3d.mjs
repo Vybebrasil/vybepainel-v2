@@ -82,12 +82,16 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const feltro = new MeshStandardMaterial({ map: texFeltro, color: 0xffffff, roughness: 0.9, side: 2, envMapIntensity: 0.15 });
   // --- O salão em volta: piso de tábua na penumbra e a parede do bar ao fundo ---
   // Chão de cimento queimado (pintado aqui: pontinhos e manchas).
+  // Chão de ladrilho hidráulico vermelho e creme (o piso clássico de boteco).
   const texChao = (() => {
-    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
-    g.fillStyle = '#8f8b82'; g.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 2600; i++) { const k = Math.random(); g.fillStyle = `rgba(${k < 0.5 ? '60,58,52' : '190,186,176'},${0.08 + Math.random() * 0.18})`; g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2, 1 + Math.random() * 2); }
-    for (let i = 0; i < 6; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 40 + Math.random() * 50); r.addColorStop(0, 'rgba(70,64,54,.18)'); r.addColorStop(1, 'rgba(70,64,54,0)'); g.save(); g.translate(Math.random() * 256, Math.random() * 256); g.fillStyle = r; g.fillRect(-100, -100, 200, 200); g.restore(); }
-    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.wrapS = tx.wrapT = RepeatWrapping; tx.repeat.set(10, 10); return tx;
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), q = 64;
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+      g.fillStyle = (x + y) % 2 ? '#8f5446' : '#d9cfb8'; g.fillRect(x * q, y * q, q, q);
+      g.fillStyle = (x + y) % 2 ? '#d9cfb8' : '#8f5446'; g.beginPath(); g.moveTo(x * q + q / 2, y * q + 12); g.lineTo(x * q + q - 12, y * q + q / 2); g.lineTo(x * q + q / 2, y * q + q - 12); g.lineTo(x * q + 12, y * q + q / 2); g.closePath(); g.fill();
+    }
+    g.strokeStyle = 'rgba(60,40,30,.35)'; g.lineWidth = 2; for (let i = 0; i <= 256; i += q) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
+    for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(40,30,20,${Math.random() * 0.08})`; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+    const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.wrapS = tx.wrapT = RepeatWrapping; tx.repeat.set(46, 46); tx.anisotropy = 8; return tx;
   })();
   const piso = new Mesh(new PlaneGeometry(700, 700), new MeshStandardMaterial({ map: texChao, color: 0xffffff, roughness: 0.85 }));
   piso.rotation.x = -Math.PI / 2; piso.position.set(cx, -24, cz); piso.receiveShadow = true; cena.add(piso);
@@ -110,56 +114,116 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 8; return tx;
   })();
   const parede = new Mesh(new PlaneGeometry(520, 292), new MeshStandardMaterial({ map: texParede, color: 0xffffff, roughness: 0.95 }));
-  // A parede de azulejo perto da mesa (aparece atrás quando a mira aponta para o fundo) e uma parede do lado.
-  parede.position.set(cx, 122, az0 - 75); cena.add(parede);
-  const lateral = new Mesh(new PlaneGeometry(520, 292), parede.material);
-  lateral.rotation.y = Math.PI / 2; lateral.position.set(ax0 - 95, 122, cz); cena.add(lateral);
-  // O BOTECO EM VOLTA (Paulo, 09/11/2026: "por que não traz o ar de boteco pra dentro do próprio jogo,
-  // no cenário ao redor da mesa?"): cadeira de plástico vermelha, mesa amarela de cerveja com garrafas
-  // e engradados empilhados. Tudo no chão, fora da mesa e abaixo das câmeras.
-  const pisoY = -24;
-  const plastico = (cor) => new MeshStandardMaterial({ color: cor, roughness: 0.45, metalness: 0 });
-  const vermelho = plastico(0xd8261c), amarelo = plastico(0xf2bd14);
-  const peca = (geo, mat, x, y, z, rx = 0, ry = 0) => { const m = new Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, 0); m.castShadow = true; m.receiveShadow = true; return m; };
+  // O SALÃO DO BOTECO (Paulo, 09/11/2026: "o cenário de boteco também tá pobre, vazio e aleatório...
+  // pesquisa referências antes"). Composição pelas referências (as fotos do Paulo e botecos de Rio, SP
+  // e BH: azulejo, balcão de alumínio e fórmica, prateleira de cachaça, estufa, ladrilho, porta de aço,
+  // mesa de plástico, engradado, troféu, TV no futebol): três paredes com função.
+  //  - Fundo: a parede do clube (letreiro, taqueira, lousa do placar, troféus, flâmula, TV no canto).
+  //  - Esquerda: o balcão com tampo de inox, estufa, banquetas, prateleira de cachaça e freezer.
+  //  - Direita: a porta de aço meio aberta para a rua, as mesas amarelas com as cadeiras e os engradados.
+  // Tudo no chão e nas paredes, longe da mesa e abaixo das câmeras (nada pendurado sobre o pano).
+  const pisoY = -24, fundoZ = az0 - 46, esqX = ax0 - 58, dirX = ax1 + 66;
+  const tela = (w, h, pinta) => { const c = document.createElement('canvas'); c.width = w; c.height = h; pinta(c.getContext('2d'), w, h); const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace; tx.anisotropy = 4; return tx; };
+  const mat = (cor, o = {}) => new MeshStandardMaterial({ color: cor, roughness: 0.6, ...o });
+  const peca = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const p = new Mesh(geo, m); p.position.set(x, y, z); p.rotation.set(rx, ry, rz); p.castShadow = true; p.receiveShadow = true; cena.add(p); return p; };
+  // Paredes: a do fundo com o letreiro (texParede) e as laterais só caiadas com azulejo.
+  parede.position.set(cx, 122, fundoZ); cena.add(parede);
+  const texLado = tela(1024, 576, (g, w, h) => {
+    g.fillStyle = '#ebe4d2'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 8; i++) { const r = g.createRadialGradient(0, 0, 0, 0, 0, 80 + Math.random() * 120); r.addColorStop(0, 'rgba(176,160,124,.22)'); r.addColorStop(1, 'rgba(176,160,124,0)'); g.save(); g.translate(Math.random() * w, Math.random() * 330); g.fillStyle = r; g.fillRect(-200, -200, 400, 400); g.restore(); }
+    g.fillStyle = '#2a8f86'; g.fillRect(0, 356, w, 16); g.fillStyle = '#f6f6f1'; g.fillRect(0, 372, w, h - 372);
+    g.strokeStyle = '#cfccc2'; g.lineWidth = 2;
+    for (let x = 0; x <= w; x += 38) { g.beginPath(); g.moveTo(x, 372); g.lineTo(x, h); g.stroke(); }
+    for (let y = 372; y <= h; y += 38) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  });
+  const matLado = new MeshStandardMaterial({ map: texLado, roughness: 0.95 });
+  peca(new PlaneGeometry(520, 292), matLado, esqX, 122, cz, 0, Math.PI / 2);
+  peca(new PlaneGeometry(520, 292), matLado, dirX, 122, cz, 0, -Math.PI / 2);
+  // --- Fundo: a parede do clube ---
+  // Taqueira de madeira com os tacos em pé.
+  const madeiraClara = mat(0x9a6a3a), tacoMat = [mat(0xc89a5a), mat(0x7a4a22), mat(0x2b2b2b), mat(0xb5793c), mat(0x5a3418)];
+  peca(new BoxGeometry(46, 6, 5), madeiraClara, cx - 64, pisoY + 8, fundoZ + 3);
+  peca(new BoxGeometry(46, 4, 3), madeiraClara, cx - 64, pisoY + 62, fundoZ + 2);
+  for (let i = 0; i < 6; i++) { const x = cx - 84 + i * 8; peca(new CylinderGeometry(0.45, 0.85, 64, 8), tacoMat[i % tacoMat.length], x, pisoY + 38, fundoZ + 3.5, 0.05, 0, (i % 2 ? 1 : -1) * 0.02); peca(new CylinderGeometry(0.5, 0.5, 1.2, 8), mat(0x1f6fd6), x, pisoY + 70.6, fundoZ + 3.6); }
+  // Lousa do placar a giz, com a prateleira de troféus em cima.
+  const texLousa = tela(512, 340, (g, w, h) => {
+    g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f2f2ea'; g.font = 'bold 44px "Comic Sans MS", cursive'; g.textAlign = 'center'; g.fillText('PLACAR DO MÊS', w / 2, 64);
+    g.font = 'bold 34px "Comic Sans MS", cursive'; g.textAlign = 'left';
+    [['PAULO', 'IIII IIII'], ['VINICIUS', 'IIII III'], ['EWERTON', 'IIII'], ['DEIVID', 'III']].forEach(([n, v], i) => { g.fillText(n, 40, 130 + i * 52); g.fillText(v, 290, 130 + i * 52); });
+    g.font = 'bold 26px "Comic Sans MS", cursive'; g.fillStyle = '#ffe98a'; g.fillText('FIADO SÓ AMANHÃ', 40, 320);
+  });
+  peca(new BoxGeometry(48, 34, 2), mat(0x5e3a18), cx + 62, pisoY + 62, fundoZ + 1.2);
+  peca(new PlaneGeometry(44, 30), new MeshStandardMaterial({ map: texLousa, roughness: 0.95 }), cx + 62, pisoY + 62, fundoZ + 2.3);
+  peca(new BoxGeometry(52, 1.6, 8), madeiraClara, cx + 62, pisoY + 84, fundoZ + 4);
+  const ouro = mat(0xd8a62a, { metalness: 0.85, roughness: 0.3 }), prata = mat(0xc9ccd2, { metalness: 0.85, roughness: 0.3 });
+  [[-18, ouro, 1.3], [-6, prata, 1], [6, ouro, 1.6], [18, prata, 0.9]].forEach(([dx, m, k]) => {
+    peca(new BoxGeometry(4 * k, 2 * k, 4 * k), mat(0x2b2118), cx + 62 + dx, pisoY + 85.8 + k, fundoZ + 4);
+    peca(new CylinderGeometry(0.6 * k, 0.6 * k, 4 * k, 8), m, cx + 62 + dx, pisoY + 86.8 + 4 * k, fundoZ + 4);
+    peca(new CylinderGeometry(3 * k, 1.2 * k, 5 * k, 14), m, cx + 62 + dx, pisoY + 89 + 7 * k, fundoZ + 4);
+  });
+  // Flâmula do time e a TV no canto passando futebol.
+  const flamula = new BufferGeometry(); flamula.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0, -14, 0, 28, -7, 0], 3)); flamula.computeVertexNormals();
+  peca(flamula, new MeshStandardMaterial({ color: 0xc8261d, side: 2, roughness: 0.8 }), cx - 10, pisoY + 96, fundoZ + 1.5);
+  const texTV = tela(256, 150, (g, w, h) => { g.fillStyle = '#2f8a3e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e8f5e8'; g.lineWidth = 3; g.strokeRect(12, 12, w - 24, h - 24); g.beginPath(); g.moveTo(w / 2, 12); g.lineTo(w / 2, h - 12); g.stroke(); g.beginPath(); g.arc(w / 2, h / 2, 22, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#111'; g.fillRect(8, 8, 70, 20); g.fillStyle = '#fff'; g.font = 'bold 14px sans-serif'; g.fillText('FLA 1 x 0 VAS', 12, 23); });
+  const tv = new Group();
+  tv.add(new Mesh(new BoxGeometry(36, 22, 3), mat(0x151515, { roughness: 0.4 })));
+  const telaTV = new Mesh(new PlaneGeometry(33, 19), new MeshBasicMaterial({ map: texTV })); telaTV.position.z = 1.6; tv.add(telaTV);
+  tv.position.set(dirX - 10, pisoY + 104, fundoZ + 14); tv.rotation.y = -0.6; cena.add(tv);
+  peca(new BoxGeometry(3, 3, 14), mat(0x333333), dirX - 6, pisoY + 104, fundoZ + 6);
+  // --- Esquerda: o balcão ---
+  const formica = mat(0x9c3b1e, { roughness: 0.4 }), inox = mat(0xd5d8dc, { metalness: 0.9, roughness: 0.28 });
+  const balX = esqX + 16, balZ0 = az0 - 20, balZ1 = az1 + 10, balL = balZ1 - balZ0, balZ = (balZ0 + balZ1) / 2;
+  peca(new BoxGeometry(16, 40, balL), formica, balX, pisoY + 20, balZ);
+  peca(new BoxGeometry(19, 1.6, balL + 2), inox, balX, pisoY + 40.8, balZ);
+  peca(new BoxGeometry(1, 3, balL), mat(0xf2bd14), balX + 8.1, pisoY + 30, balZ);
+  // Estufa de salgado com os pastéis e coxinhas.
+  peca(new BoxGeometry(14, 10, 20), new MeshPhysicalMaterial({ color: 0xffffff, transmission: 0.85, roughness: 0.05, thickness: 0.5 }), balX, pisoY + 46.6, balZ - 18);
+  for (let i = 0; i < 6; i++) peca(new SphereGeometry(1.6, 10, 8), mat(i % 2 ? 0xd88a2a : 0xe8b04a), balX - 3 + (i % 3) * 3, pisoY + 43.6, balZ - 24 + Math.floor(i / 3) * 6);
+  // Banquetas vermelhas na frente do balcão.
+  for (const dz of [-30, -6, 18]) { peca(new CylinderGeometry(0.9, 1.2, 30, 8), inox, balX + 15, pisoY + 15, balZ + dz); peca(new CylinderGeometry(5, 5, 2.4, 18), mat(0xd8261c, { roughness: 0.45 }), balX + 15, pisoY + 31, balZ + dz); }
+  // Prateleira de cachaça na parede atrás do balcão.
+  const garrafa = [0x6b3a0a, 0x2f5d1e, 0xd8c79a, 0x8a1c14, 0x3a2a6a, 0xe0a030];
+  for (const y of [70, 88]) {
+    peca(new BoxGeometry(8, 1.4, balL - 20), madeiraClara, esqX + 4, pisoY + y, balZ);
+    for (let i = 0; i < 9; i++) { const z = balZ - (balL - 30) / 2 + i * ((balL - 30) / 8), c = garrafa[(i + y) % garrafa.length]; peca(new CylinderGeometry(1.5, 1.5, 9, 10), new MeshPhysicalMaterial({ color: c, roughness: 0.15, transmission: 0.25, thickness: 1 }), esqX + 4, pisoY + y + 5.2, z); peca(new CylinderGeometry(0.5, 1.4, 3, 8), mat(c), esqX + 4, pisoY + y + 11, z); }
+  }
+  // Freezer horizontal branco com a faixa vermelha, no fim do balcão.
+  peca(new BoxGeometry(22, 26, 36), mat(0xf4f4f0, { roughness: 0.35 }), balX - 2, pisoY + 13, balZ1 + 28);
+  peca(new BoxGeometry(22.2, 6, 36.2), mat(0xc8261d, { roughness: 0.35 }), balX - 2, pisoY + 20, balZ1 + 28);
+  // --- Direita: a porta de aço e as mesas ---
+  const portaZ = cz - 10;
+  peca(new BoxGeometry(2, 70, 60), new MeshBasicMaterial({ color: 0x0d1018 }), dirX - 1, pisoY + 35, portaZ);
+  const texAco = tela(64, 256, (g, w, h) => { for (let y = 0; y < h; y += 8) { g.fillStyle = y % 16 ? '#9aa0a8' : '#7d838b'; g.fillRect(0, y, w, 8); } });
+  texAco.wrapS = texAco.wrapT = RepeatWrapping; texAco.repeat.set(1, 3);
+  peca(new BoxGeometry(2, 30, 62), new MeshStandardMaterial({ map: texAco, metalness: 0.6, roughness: 0.45 }), dirX - 2, pisoY + 70 + 15 - 4, portaZ);
+  const amarelo = mat(0xf2bd14, { roughness: 0.45 }), vermelho = mat(0xd8261c, { roughness: 0.45 });
   const cadeira = (x, z, giro) => {
     const g = new Group(), pe = new CylinderGeometry(0.7, 0.9, 17, 8);
-    for (const [px, pz] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) g.add(peca(pe, vermelho, px, pisoY + 8.5, pz));
-    g.add(peca(new BoxGeometry(17, 1.4, 17), vermelho, 0, pisoY + 17.5, 0));
-    g.add(peca(new BoxGeometry(17, 15, 1.2), vermelho, 0, pisoY + 25, -8.2, -0.12));
-    g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
+    for (const [px, pz] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) { const m = new Mesh(pe, vermelho); m.position.set(px, pisoY + 8.5, pz); g.add(m); }
+    const s = new Mesh(new BoxGeometry(17, 1.4, 17), vermelho); s.position.set(0, pisoY + 17.5, 0); g.add(s);
+    const b = new Mesh(new BoxGeometry(17, 15, 1.2), vermelho); b.position.set(0, pisoY + 25, -8.2); b.rotation.x = -0.12; g.add(b);
+    g.traverse((m) => { m.castShadow = m.receiveShadow = true; }); g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
   };
-  const mesaBar = (x, z) => {
-    const g = new Group(), pe = new CylinderGeometry(0.8, 1, 26, 8);
-    for (const [px, pz] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) g.add(peca(pe, amarelo, px, pisoY + 13, pz));
-    g.add(peca(new BoxGeometry(28, 1.6, 28), amarelo, 0, pisoY + 26.8, 0));
-    const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = plastico(0xf5f0e0), tampa = new MeshStandardMaterial({ color: 0xc9c9c9, metalness: 0.8, roughness: 0.3 });
-    for (const [bx, bz] of [[-5, -3], [3, 4], [6, -6]]) {
-      g.add(peca(new CylinderGeometry(1.8, 1.8, 9, 14), vidro, bx, pisoY + 32, bz));
-      g.add(peca(new CylinderGeometry(1.85, 1.85, 3, 14), rotulo, bx, pisoY + 31.5, bz));
-      g.add(peca(new CylinderGeometry(0.7, 1.6, 4, 12), vidro, bx, pisoY + 38.5, bz));
-      g.add(peca(new CylinderGeometry(0.8, 0.8, 0.6, 10), tampa, bx, pisoY + 40.8, bz));
-    }
-    g.add(peca(new CylinderGeometry(2.2, 1.8, 6, 14), new MeshPhysicalMaterial({ color: 0xf6c34a, roughness: 0.1, transmission: 0.3, thickness: 1 }), -2, pisoY + 30.6, 6));
-    g.position.set(x, 0, z); cena.add(g);
+  const vidro = new MeshPhysicalMaterial({ color: 0x5a3208, roughness: 0.15, transmission: 0.2, thickness: 1 }), rotulo = mat(0xf5f0e0);
+  const mesaBar = (x, z, garrafas) => {
+    for (const [px, pz] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) peca(new CylinderGeometry(0.8, 1, 26, 8), amarelo, x + px, pisoY + 13, z + pz);
+    peca(new BoxGeometry(28, 1.6, 28), amarelo, x, pisoY + 26.8, z);
+    garrafas.forEach(([bx, bz]) => { peca(new CylinderGeometry(1.8, 1.8, 9, 12), vidro, x + bx, pisoY + 32, z + bz); peca(new CylinderGeometry(1.85, 1.85, 3, 12), rotulo, x + bx, pisoY + 31.5, z + bz); peca(new CylinderGeometry(0.7, 1.6, 4, 10), vidro, x + bx, pisoY + 38.5, z + bz); });
+    peca(new CylinderGeometry(2.2, 1.8, 6, 12), new MeshPhysicalMaterial({ color: 0xf6c34a, roughness: 0.1, transmission: 0.3, thickness: 1 }), x - 2, pisoY + 30.6, z + 6);
   };
-  const engradado = (x, z, cores, giro = 0) => {
-    const g = new Group();
-    cores.forEach((cor, i) => {
-      const caixa = peca(new BoxGeometry(20, 11, 14), plastico(cor), 0, pisoY + 5.5 + i * 11.2, 0);
-      g.add(caixa);
-      // garrafas aparecendo no engradado de cima
-      if (i === cores.length - 1) for (let gx = -7.5; gx <= 7.5; gx += 5) for (let gz = -4; gz <= 4; gz += 4) g.add(peca(new CylinderGeometry(1.4, 1.4, 4, 10), new MeshStandardMaterial({ color: 0x4a2a08, roughness: 0.2 }), gx, pisoY + 13 + i * 11.2, gz));
-    });
-    g.position.set(x, 0, z); g.rotation.y = giro; cena.add(g);
-  };
-  cadeira(ax0 - 26, cz + 16, Math.PI / 2 + 0.3);
-  cadeira(ax1 + 28, cz - 22, -Math.PI / 2 - 0.2);
-  cadeira(cx + 30, az1 + 30, Math.PI + 0.25);
-  mesaBar(ax1 + 44, az1 + 22);
-  cadeira(ax1 + 44, az1 + 46, Math.PI);
-  engradado(ax0 - 34, az0 - 30, [0xc8261d, 0x1f7a46, 0xc8261d], 0.2);
-  engradado(ax0 - 12, az0 - 38, [0xf2bd14, 0xf2bd14], -0.15);
-  engradado(ax1 + 36, az0 - 34, [0x1f7a46, 0xc8261d, 0x1f7a46, 0xf2bd14], 0.1);
+  const m1 = [ax1 + 36, az0 - 14], m2 = [ax1 + 38, az1 + 24];
+  mesaBar(m1[0], m1[1], [[-5, -3], [4, 5]]); cadeira(m1[0] - 20, m1[1], Math.PI / 2); cadeira(m1[0] + 20, m1[1], -Math.PI / 2); cadeira(m1[0], m1[1] - 20, 0);
+  mesaBar(m2[0], m2[1], [[3, -4], [-5, 2], [6, 6]]); cadeira(m2[0] - 20, m2[1] + 3, Math.PI / 2 + 0.2); cadeira(m2[0], m2[1] + 21, Math.PI);
+  // Engradados empilhados nos cantos (como no depósito do boteco).
+  const engradado = (x, z, cores, giro = 0) => cores.forEach((cor, i) => {
+    const caixa = peca(new BoxGeometry(20, 11, 14), mat(cor, { roughness: 0.5 }), x, pisoY + 5.5 + i * 11.2, z, 0, giro);
+    if (i === cores.length - 1) for (let gx = -7.5; gx <= 7.5; gx += 5) for (let gz = -4; gz <= 4; gz += 4) { const p = new Mesh(new CylinderGeometry(1.4, 1.4, 4, 8), vidro); p.position.set(gx, 7.5, gz); caixa.add(p); }
+  });
+  engradado(dirX - 14, fundoZ + 14, [0xc8261d, 0x1f7a46, 0xc8261d, 0xf2bd14], 0.1);
+  engradado(dirX - 14, fundoZ + 32, [0x1f7a46, 0xc8261d], -0.05);
+  engradado(dirX - 36, fundoZ + 12, [0xf2bd14, 0xf2bd14, 0x1f7a46], 0.2);
+  engradado(esqX + 14, balZ1 + 56, [0xc8261d, 0xc8261d], 0.15);
   // Pés torneados e a saia da mesa.
   const H = 1.9, costas = 2.15;                                     // altura da tabela e fundo das borrachas (unidades)
   for (const [px, pz] of [[ax0 + 7, az0 + 7], [ax1 - 7, az0 + 7], [ax0 + 7, az1 - 7], [ax1 - 7, az1 - 7], [cx, az0 + 7], [cx, az1 - 7]]) {
