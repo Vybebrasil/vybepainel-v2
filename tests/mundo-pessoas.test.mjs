@@ -140,3 +140,14 @@ test('carga() devolve a carga por pessoa da semana para o Comercial', async () =
   assert.equal(c.pessoas[0].nivel, 'sobrecarregada'); assert.equal(c.pessoas[0].total, 15);
   assert.equal(t.P.aberto(), false, 'carga() não abre a janela');
 });
+
+test('Projetos: etapa que virou demanda mostra o status da esteira e o aviso de quantas foram (PR #542)', async () => {
+  const original = RESPOSTAS.projetos;
+  RESPOSTAS.projetos = (g) => { const r = original(g); r.linha.projetos[0].etapas[0] = { ...r.linha.projetos[0].etapas[0], demanda_id: '77', demanda_status: 'Em andamento' }; return r; };
+  try {
+    const t = montar({ gestao: true });
+    t.ctx.statusCor = (d) => `<span class="pill">${d.status}</span>`;
+    await t.P.abrir('projetos');
+    assert.match(t.html(), /data-vp-demanda="77"/); assert.match(t.html(), /Em andamento/);
+  } finally { RESPOSTAS.projetos = original; }
+});

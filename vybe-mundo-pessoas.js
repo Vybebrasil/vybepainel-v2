@@ -89,11 +89,19 @@
   async function gravar(corpo, sucesso) {
     estado.aviso = 'Salvando…'; avisar();
     try {
-      await pedir('POST', {}, corpo);
-      estado.aviso = sucesso; estado.form = ''; estado.editar = null;
+      const r = await pedir('POST', {}, corpo);
+      // Projeto com cliente: as etapas abertas viram demandas na esteira (servidor, PR #542); o aviso diz quantas.
+      const n = Array.isArray(r?.demandas) ? r.demandas.length : 0;
+      estado.aviso = n ? `${sucesso} ${n === 1 ? '1 etapa foi' : n + ' etapas foram'} para a esteira como demanda.` : sucesso;
+      estado.form = ''; estado.editar = null;
       await carregar();
     } catch (e) { estado.aviso = e.message; avisar(); }
   }
+
+  // Etapa que virou demanda na esteira (projeto com cliente): o status na cor do quadro e o clique abre a peça.
+  const demandaDaEtapa = (e) => (e?.demanda_id
+    ? `<button type="button" class="vp-etapa-demanda" data-vp-demanda="${esc(e.demanda_id)}" title="Abrir a demanda desta etapa">${typeof statusCor === 'function' ? statusCor({ status: e.demanda_status || 'Na esteira' }) : esc(e.demanda_status || 'Na esteira')}</button>`
+    : '');
 
   // ---------- pedaços comuns ----------
   const vazio = (titulo, texto, botao = '') => `<div class="vp-vazio"><b>${esc(titulo)}</b>${texto ? `<p>${esc(texto)}</p>` : ''}${botao}</div>`;
@@ -399,7 +407,7 @@
         ${p.pos ? `<div class="vp-gantt-trilho"><span class="vp-gantt-barra proj" style="left:${p.pos.esq}%;width:${p.pos.larg}%"></span></div>` : ''}
         ${p.etapas.map((e) => {
           const pode = d.gestao || e.responsavel === d.eu?.id;
-          return `<div class="vp-gantt-etapa"><label class="vp-gantt-rotulo"><input type="checkbox" data-vp-etapa="${esc(e.id)}"${e.feita ? ' checked' : ''}${pode ? '' : ' disabled'}><span>${esc(e.nome)}<small>${esc(e.responsavel_nome || 'sem responsável')} · ${br(e.inicio)}–${br(e.fim)}</small></span></label>
+          return `<div class="vp-gantt-etapa"><label class="vp-gantt-rotulo"><input type="checkbox" data-vp-etapa="${esc(e.id)}"${e.feita ? ' checked' : ''}${pode ? '' : ' disabled'}><span>${esc(e.nome)}<small>${esc(e.responsavel_nome || 'sem responsável')} · ${br(e.inicio)}–${br(e.fim)}</small>${demandaDaEtapa(e)}</span></label>
             <div class="vp-gantt-trilho">${e.pos ? `<span class="vp-gantt-barra${e.feita ? ' feita' : e.atrasada ? ' atrasada' : ''}" style="left:${e.pos.esq}%;width:${e.pos.larg}%"></span>` : ''}</div></div>`;
         }).join('')}</div>`).join('')}</div></div>`;
   }
@@ -658,6 +666,12 @@
     else if ((b = perto('[data-vp-carga-semana]'))) { const n = Number(b.dataset.vpCargaSemana), base = d.cargaSemana?.semana || hoje(); estado.semanaCarga = n ? somarDias(base, n) : ''; d.cargaSemana = null; pintar(); carregarCarga(); }
     else if ((b = perto('[data-vp-semana]'))) { const n = Number(b.dataset.vpSemana); estado.semana = n ? somarDias(d.semana || hoje(), n) : ''; carregar(); }
     else if ((b = perto('[data-vp-pedido]'))) gravar({ acao: 'pedido_status', id: b.dataset.vpPedido, status: b.dataset.status }, 'Pedido atualizado.');
+    else if ((b = perto('[data-vp-demanda]'))) {
+      // A demanda vive no quadro de Solicitações com o id "vybe:<id>" (contrato do servidor, PR #542).
+      const bruto = String(b.dataset.vpDemanda), lista = typeof DADOS_DEMANDAS !== 'undefined' && Array.isArray(DADOS_DEMANDAS) ? DADOS_DEMANDAS : [];
+      const id = lista.some((x) => String(x.id) === bruto) ? bruto : bruto.startsWith('vybe:') ? bruto : 'vybe:' + bruto;
+      if (typeof window.openItemWorkspace === 'function') window.openItemWorkspace(id);
+    }
     else if ((b = perto('[data-vp-filtro-pedidos]'))) { estado.filtroPedidos = b.dataset.vpFiltroPedidos; pintar(); }
     else if ((b = perto('[data-vp-ver-pesquisa]'))) { estado.pesquisaVer = b.dataset.vpVerPesquisa; pintar(); }
     else if ((b = perto('[data-vp-encerrar-pesquisa]'))) {
