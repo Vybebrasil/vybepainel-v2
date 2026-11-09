@@ -401,3 +401,18 @@ test('roda rápido com 2.100 peças (folga para a suíte inteira rodando junto)'
   assert.equal(r.fonte.contagem.lidas, 2100);
   assert.equal(r.historico.semanas.length, 12);
 });
+
+test('situação de uma peça: a função oficial para todas as telas (auditoria 09/11)', () => {
+  const s = (d) => D.util.situacaoDaPeca(d, { hoje: '2026-11-09' }).situacao;
+  assert.equal(s({ status: 'Agendado', veiculacao_iso: '2026-11-01' }), 'entregue'); // antes: atrasada no Irecity, entregue no Dono
+  assert.equal(s({ status: 'Feito', veiculacao_iso: '2026-11-01' }), 'entregue'); // "Feito" não contava no Dono
+  assert.equal(s({ status: 'Qualquer', status_final: true, veiculacao_iso: '2026-11-01' }), 'entregue'); // o final do banco manda
+  assert.equal(s({ status: 'Segurar Post', veiculacao_iso: '2026-11-01' }), 'pausada'); // pausada não é atrasada
+  assert.equal(s({ status: 'Em andamento', veiculacao_iso: '2026-09-01' }), 'esquecida');
+  assert.equal(s({ status: 'Em andamento', veiculacao_iso: '2026-11-05' }), 'atrasada');
+  assert.equal(s({ status: 'A Fazer', veiculacao_iso: '2026-11-10' }), 'risco');
+  assert.equal(s({ status: 'Ag. Aprovação Cliente', veiculacao_iso: '2026-11-20' }), 'cliente');
+  const r = D.util.situacaoDaPeca({ status: 'Em andamento', veiculacao_iso: '2026-11-20', prazo_iso: '2026-11-05' }, { hoje: '2026-11-09' });
+  assert.equal(r.referencia, '2026-11-20'); // a data do cliente vem primeiro
+  assert.equal(r.prazoVencido, true); assert.equal(r.furo, false);
+});
