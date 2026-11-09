@@ -196,7 +196,9 @@
       { id: 'roi', nome: 'Calculadora de ROI', dica: 'Quantas vendas pagam a Vybe e o retorno esperado', mod: ['VybeFerramentas', 'roi'] },
     ] },
     { id: 'centro', grupo: 'Vybe', nome: 'Centro', dica: 'Centro comercial: a Vybe no meio e os clientes ao redor, com o status de cada um', ic: svg('<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>') },
-    { id: 'predio', grupo: 'Vybe', nome: 'Prédio', dica: 'Prédio da Vybe: setores, agentes e as salas da equipe', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
+    { id: 'predio', grupo: 'Vybe', nome: 'Prédio', dica: 'Prédio da Vybe: setores e agentes de cada andar', ic: svg('<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/>') },
+    // Minha sala (Paulo, 09/11/2026): o quarto do Escritório de cada um em voxel, em tela cheia; abrir já entra na sala e na voz dela.
+    { id: 'minha-sala', grupo: 'Vybe', nome: 'Minha sala', dica: 'O seu quarto do Escritório em voxel, com a chamada da sala', ic: svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>') },
     { id: 'jogos', grupo: 'Vybe', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
     '-',
     { id: 'vybes', nome: 'VYBES', dica: 'Abrir o VYBES', ic: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>') },
@@ -318,11 +320,19 @@
     if (id !== 'criar' && id !== 'vybes') {
       limparTela();
       // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
-      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && !SUBMODULOS.find((x) => x.id === id)?.board && id !== 'centro' && id !== 'predio' && body.classList.contains('mundo-modulo')) {
+      if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && !SUBMODULOS.find((x) => x.id === id)?.board && id !== 'centro' && id !== 'predio' && id !== 'minha-sala' && body.classList.contains('mundo-modulo')) {
         chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
       }
     }
     window.VybeTutorial?.dica?.('trilho:' + id);
+    // Minha sala ocupa a tela inteira (por baixo dos HUDs, como o andar); qualquer outro destino fecha o quarto.
+    if (andarAbertoId.startsWith('quarto:') && id !== 'criar' && id !== 'vybes' && id !== 'minha-sala') fecharAndarVoxel(false);
+    if (id === 'minha-sala') {
+      if (!gestao.hidden) fecharGestao();
+      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      if (centroAberto) fecharCentro();
+      abrirMinhaSala(); return;
+    }
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
       if (!gestao.hidden) fecharGestao();
@@ -1500,6 +1510,7 @@
   async function sairDoAndar() {
     if (window.VybeDecorar?.aberto?.() && !(await window.VybeDecorar.fechar())) return;
     const id = andarAbertoId;
+    if (id.startsWith('quarto:')) { fecharAndarVoxel(true); return; } // Minha sala: volta à tela de módulos; a voz fica na sala
     fecharAndarVoxel(false);
     if (id && mundo) mostrarAndar(id);
   }
@@ -1508,12 +1519,107 @@
     clearInterval(timerAndar); timerAndar = null;
     window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
-    document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar');
+    document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar', 'mundo-quarto');
     trocarBotaoDoAndar();
     if (voltar && typeof openModeGate === 'function' && !document.getElementById('mode-gate')?.classList.contains('open')) openModeGate();
     sincronizar();
   }
   let manualAndar = null;
+
+  // ---------- Minha sala: o quarto do Escritório em voxel (Paulo, 09/11/2026) ----------
+  // "Junto ao Prédio e ao Centro vai ter o MINHA SALA, como a gente fazia com o Habbo, pra quem quiser ficar no seu
+  // quarto voxel. A chamada continua funcionando pra quem está dentro do quarto." Só lê o que o Escritório já tem: a
+  // planta do quarto (escritorioAmbienteDoQuarto, com as alturas de sala_celdas), o piso e a parede do dono e a camada
+  // salva da sala (escritorioItensDaCamada). Desenho em mundo/quarto.mjs; a voz é a da zona da sala, a mesma de sempre.
+  function quartoDaSala(zona) {
+    let a = null; try { a = fn('escritorioAmbienteDoQuarto')?.(zona) || null; } catch { /* Escritório ainda sem base */ }
+    if (!a) return null;
+    const dim = fn('escritorioDimQuarto')?.(a) || { w: a.x1 - a.x0, h: a.y1 - a.y0 };
+    const PISO = (typeof ESCRITORIO_PLANTA !== 'undefined' && ESCRITORIO_PLANTA?.PISO) || {};
+    const cores = (k) => (Array.isArray(PISO[k]) && PISO[k].length === 2 ? [...PISO[k]] : null);
+    const pintados = a.pintura?.pisos instanceof Map && a.pintura.pisos.size ? a.pintura.pisos : null;
+    const nivel = fn('escritorioNivelQuarto');
+    let itens = []; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* sem camada: quarto vazio */ }
+    return { id: zona, nome: zonas3d()[zona]?.nome || a.nome || 'Sala', w: dim.w, h: dim.h,
+      nivelEm: nivel ? (x, y) => nivel(a, x, y) : null, piso: cores(a.piso), parede: a.cor, semParedes: a.semParedes === true,
+      pisoEm: pintados ? (x, y) => cores(pintados.get(x + ',' + y)) : null,
+      ehDeParede: (c) => { try { return Boolean(fn('escritorioEhParede')?.(c)); } catch { return false; } }, itens };
+  }
+  // Tamanho de cada móvel pelo arquivo do Habbo (o mesmo que o mapa do Escritório carrega); sem ele, a caixa da peça voxel.
+  async function medidasDoHabbo(itens) {
+    const carregar = fn('mapaCarregarMovel'); if (!carregar) return [];
+    const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c)))];
+    const lista = await Promise.all(classes.map(async (c) => {
+      try { const { dados } = await carregar(c); const d = dados?.logic?.model?.dimensions; return d ? [c, { x: d.x, y: d.y }] : null; } catch { return null; }
+    }));
+    return lista.filter(Boolean);
+  }
+  async function abrirMinhaSala(zona = minhaSalaDaConta()) {
+    if (andarAberto && zona && andarAbertoId === 'quarto:' + zona) return; // já está nela
+    fecharAndarVoxel(false);
+    const geracao = geracaoAndar;
+    marcarTrilho('minha-sala');
+    const el = document.createElement('section'); el.id = 'mundo-andar'; el.className = 'quarto';
+    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Minha sala em voxel"></canvas><div class="quarto-estado"></div></div>
+      <header class="vv-ilha andar-topo"><button type="button" class="vv-botao andar-voltar" data-sair-andar>← Voltar</button>
+        <span><small>Minha sala</small><b class="quarto-nome">Seu quarto</b></span>
+        <span class="andar-voz" id="andar-voz"></span>
+        <small class="andar-dica">Arraste para girar e use a roda para aproximar. Clique no piso para andar. A chamada é a desta sala.</small></header>`;
+    body.append(el); body.classList.add('mundo-andar', 'mundo-quarto');
+    el.querySelector('[data-sair-andar]').addEventListener('click', () => sairDoAndar());
+    const estado = el.querySelector('.quarto-estado');
+    const mostrarEstado = (tipo, texto) => {
+      estado.hidden = !tipo;
+      estado.innerHTML = !tipo ? '' : tipo === 'erro'
+        ? `<div class="vv-ilha quarto-aviso" role="alert"><b>Não deu para abrir a sala</b><p>${esc(texto)}</p><button type="button" class="vv-botao acao" data-quarto-tentar>Tentar de novo</button></div>`
+        : `<div class="vv-ilha quarto-aviso carregando" role="status"><i class="quarto-brilho" aria-hidden="true"></i><p>${esc(texto)}</p></div>`;
+      estado.querySelector('[data-quarto-tentar]')?.addEventListener('click', () => abrirMinhaSala());
+    };
+    mostrarEstado('carregando', 'Montando a sua sala…');
+    andarAbertoId = 'quarto:' + (zona || '?');
+    sincronizar();
+    // Sem o Escritório carregado ainda (abriu o painel agora, ou no celular): pede a entrada dele, que também liga a
+    // voz (a mesma conexão da barra de salas), e espera a base chegar, até 20 s.
+    const esc0 = typeof escritorio !== 'undefined' ? escritorio : null;
+    if (esc0 && !esc0.base && !esc0.conectando && !esc0.conectado) { if (esc0.microfoneQuer === undefined) esc0.microfoneQuer = false; pintarChamada.tentou = true; fn('conectarEscritorio')?.(); }
+    for (let i = 0; i < 40 && geracao === geracaoAndar && !(zona && quartoDaSala(zona)); i++) {
+      await new Promise((r) => setTimeout(r, 500)); if (!zona) zona = minhaSalaDaConta();
+    }
+    if (geracao !== geracaoAndar || !el.isConnected) return;
+    const quarto = zona && quartoDaSala(zona);
+    if (!quarto) {
+      const semBase = !(typeof escritorio !== 'undefined' && escritorio?.base);
+      mostrarEstado('erro', semBase || zona ? 'O Escritório não respondeu e o seu quarto não carregou. Confira a conexão.' : 'Você ainda não tem uma sala no Escritório. Peça a quem administra para vincular uma sala a você.');
+      return;
+    }
+    andarAbertoId = 'quarto:' + zona;
+    el.querySelector('.quarto-nome').textContent = quarto.nome;
+    // Abrir a sala é entrar nela: a pessoa vai para a zona da própria sala e para a chamada dela (mudo, como sempre).
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    if (e && e.zona !== zona) irParaSala(zona);
+    let m; try { m = await import(MUNDO_JS); } catch (err) { console.error('[mundo] minha sala', err); mostrarEstado('erro', 'Não deu para carregar o 3D. Confira a conexão.'); return; }
+    if (geracao !== geracaoAndar || !el.isConnected) return;
+    andarAberto = m.abrirQuarto(el.querySelector('canvas'), { quarto });
+    mostrarEstado('', '');
+    andarAberto.aoClicarPiso((x, y) => {
+      const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
+      if (naSala && typeof escritorioIrPara === 'function') escritorioIrPara(x, y); else irParaSala(zona);
+    });
+    medidasDoHabbo(quarto.itens).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
+    let assinItens = JSON.stringify(quarto.itens);
+    const pintar = () => {
+      if (!andarAberto?.aoClicarPiso) return;
+      const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
+      andarAberto.pessoas(genteDoAndar(), minha);
+      // A decoração mudou no Escritório (salvou pelo editor): o quarto acompanha.
+      let itens = null; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* segue com o que tem */ }
+      const a = itens && JSON.stringify(itens); if (itens && a !== assinItens) { assinItens = a; quarto.itens = itens; andarAberto.itens(itens); }
+      const voz = el.querySelector('#andar-voz');
+      if (voz) { voz.textContent = minha === zona ? (fn('escritorioEstadoVozTexto')?.() || 'Na sala') : minha ? 'Você está em outra sala · a voz é de lá' : 'Fora das salas · sem voz'; voz.classList.toggle('off', minha !== zona); }
+    };
+    pintar(); timerAndar = setInterval(pintar, 400);
+    sincronizar();
+  }
 
   // ---------- Agenda (a mesma das Captações: /api/painel?area=captacoes, só leitura) ----------
   const TIPO_COR = { captacao: '#0E9A45', reuniao: '#1A8FA0', outro: '#6B7A72' };
@@ -2614,7 +2720,7 @@
   function salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala }) {
     const planta = mundo?.planta || [], porAndar = new Map();
     for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
-    const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : 'Outras salas'; };
+    const nomeAndar = (k) => { const a = planta.find((x) => x.id === k); return a ? (a.nivel === 0 ? 'Térreo' : a.id === 'terraco' ? 'Terraço' : a.nivel + 'º andar') + ' · ' + a.nome.replace(/^Terraço · /, '') : k === 'time' ? 'Salas do time' : 'Outras salas'; };
     const ordem = [...porAndar.keys()].sort((x, y) => (planta.find((a) => a.id === y)?.nivel ?? -1) - (planta.find((a) => a.id === x)?.nivel ?? -1));
     const eu = { id: String(e.base?.eu || ''), nome: 'Você' };
     const trancas = e.trancas instanceof Map ? e.trancas : new Map();
@@ -3130,6 +3236,7 @@
     agente: (andar, setor) => mostrarAgente(andar, setor),
     desenharPresenca: (lista) => { ultimaPresenca = "manual"; manualAndar = lista; mundo?.presenca(lista); },
     abrirAndar: (id) => abrirAndarVoxel(id),
+    abrirMinhaSala: () => abrirMinhaSala(),
     andarAberto: () => andarAberto,
     jogar: (id) => abrirJogo(id),
     // Conferência visual: desenha uma lista de clientes sem mexer nos dados do painel.

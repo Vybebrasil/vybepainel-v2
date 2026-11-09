@@ -7,8 +7,8 @@ import vm from 'node:vm';
 import { PLANTA, ESTADOS } from '../mundo/planta.mjs';
 
 test('a planta do prédio segue o documento: recepção, 5 andares e o terraço do Escritório', () => {
-  assert.deepEqual(PLANTA.map((a) => a.id), ['terreo', 'comercial', 'criacao', 'financeiro', 'tecnologia', 'estrategia', 'equipe', 'estudio', 'terraco']);
-  assert.deepEqual(PLANTA.map((a) => a.nivel), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(PLANTA.map((a) => a.id), ['terreo', 'comercial', 'criacao', 'financeiro', 'tecnologia', 'estrategia', 'estudio', 'terraco']);
+  assert.deepEqual(PLANTA.map((a) => a.nivel), [0, 1, 2, 3, 4, 5, 6, 7]);
   for (const a of PLANTA) for (const s of a.setores) assert.ok(ESTADOS[s.estado], `${s.id}: estado ${s.estado}`);
 });
 
@@ -52,14 +52,17 @@ test('Antonov, VOA e Hebravet dividem um complexo; DiaCenter e DiaLab são vizin
 });
 
 test('toda sala do Escritório tem lugar no prédio (as zonas de voz não mudam)', async () => {
-  const { ZONAS_DO_PREDIO } = await import('../mundo/planta.mjs');
+  const { ZONAS_DO_PREDIO, SALAS_DO_TIME } = await import('../mundo/planta.mjs');
   const servidor = fs.readFileSync('server/escritorio-mapa.js', 'utf8');
   const donos = JSON.parse(servidor.match(/DONOS_ESCRITORIO = (\[[^\]]+\])/)[1]);
   donos.forEach((dono, i) => assert.equal(ZONAS_DO_PREDIO['sala-' + i]?.dono, dono, 'sala-' + i));
   for (const zona of ['recepcao', 'reuniao', 'auditorio', 'producao', 'cafe', 'jogos', 'foco', 'academia', 'lounge', 'operacao'])
     assert.ok(ZONAS_DO_PREDIO[zona], zona);
   const andares = new Set(PLANTA.map((a) => a.id));
-  for (const [id, z] of Object.entries(ZONAS_DO_PREDIO)) assert.ok(andares.has(z.andar), id);
+  for (const [id, z] of Object.entries(ZONAS_DO_PREDIO)) assert.ok(andares.has(z.andar) || z.andar === SALAS_DO_TIME, id);
+  // O andar dos humanos saiu (Paulo, 09/11/2026): as salas de cada um e a reunião ficam só na voz e em "Minha sala".
+  assert.ok(!PLANTA.some((a) => a.id === 'equipe'), 'sem o 6º andar Time Vybe');
+  for (const id of ['reuniao', ...donos.map((_, i) => 'sala-' + i)]) assert.equal(ZONAS_DO_PREDIO[id].andar, SALAS_DO_TIME, id);
 });
 
 test('avatar voxel: a mesma figura do Habbo vira sempre o mesmo boneco, e figuras diferentes viram bonecos diferentes', async () => {
@@ -90,4 +93,25 @@ test('catálogo voxel: cada peça ligada a um item que a loja já vende, sem rep
   for (const p of ligacao) assert.ok(loja.has(p.classe), `${p.id}: ${p.classe} não existe na loja`);
   const fonte = fs.readFileSync('mundo/catalogo.mjs', 'utf8');
   for (const d of new Set(ligacao.map((p) => p.desenho))) assert.ok(fonte.includes(d + '() {'), 'desenho ' + d);
+});
+
+test('Minha sala: a planta do Habbo vira ladrilhos com nível, e as paredes ficam no fundo e à esquerda', async () => {
+  const { plantaDoQuarto, paredesDaPlanta } = await import('../mundo/quarto.mjs');
+  // 4 × 3 com um buraco no canto do fundo à esquerda e um patamar de 2 níveis.
+  const p = plantaDoQuarto({ w: 4, h: 3, nivelEm: (x, y) => (x === 0 && y === 0 ? -1 : x === 3 && y === 2 ? 2 : 0) });
+  assert.equal(p.W, 4); assert.equal(p.D, 3);
+  assert.equal(p.nivel(0, 0), -1); assert.equal(p.nivel(3, 2), 2); assert.equal(p.nivel(9, 9), -1);
+  const paredes = paredesDaPlanta(p);
+  assert.deepEqual(paredes.filter((q) => q.eixo === 'x').map((q) => [q.x, q.y]), [[0, 1], [1, 0], [2, 0], [3, 0]]);
+  assert.deepEqual(paredes.filter((q) => q.eixo === 'y').map((q) => [q.x, q.y]), [[1, 0], [0, 1], [0, 2]]);
+});
+
+test('Minha sala fica no dock junto de Centro e Prédio e abre o quarto sem o andar dos humanos', () => {
+  const src = fs.readFileSync('vybe-mundo.js', 'utf8');
+  assert.match(src, /\{ id: 'minha-sala', grupo: 'Vybe', nome: 'Minha sala'/);
+  const corpo = src.slice(src.indexOf('async function abrirMinhaSala'), src.indexOf('// ---------- Agenda'));
+  assert.match(corpo, /m\.abrirQuarto\(/, 'desenha pelo mundo/quarto.mjs');
+  assert.match(corpo, /irParaSala\(zona\)/, 'abrir entra na zona da sala (voz)');
+  assert.match(corpo, /escritorioItensDaCamada/, 'móveis da camada salva');
+  assert.doesNotMatch(corpo, /escritorioApi|fetch\(/, 'só leitura');
 });

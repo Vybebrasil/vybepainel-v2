@@ -314,6 +314,22 @@ body.mundo-andar .vv-controles{display:none!important}
 .andar-topo span.andar-acoes{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;flex-basis:100%}
 .andar-topo .andar-dica{flex-basis:100%;margin:0;padding-top:6px;border-top:1px solid rgba(31,29,26,.08);font:500 11.5px/1.4 var(--vv-texto);color:var(--vv-apagado);letter-spacing:0;text-transform:none}
 @media (max-width:900px){.andar-dica{display:none}}
+/* Minha sala (09/11/2026): o quarto voxel ocupa a tela toda, também no celular (não há placa embaixo). */
+body.mundo-quarto #vv-hoje{display:none}
+.andar-voz.off::before{color:var(--vv-apagado)}
+/* O quarto ocupa o palco (à direita do dock e abaixo da barra do topo); o cartão do quarto fica no canto dele. */
+#mundo-andar.quarto .andar-palco{left:var(--vv-palco-esq,0px);top:var(--vv-palco-topo,0px)}
+#mundo-andar.quarto .andar-topo{left:var(--vv-palco-esq,var(--vv-m));top:var(--vv-palco-topo,var(--vv-m))}
+/* Celular: o dock fica embaixo; o quarto usa a largura toda, entre a barra do topo e o dock (não há placa embaixo). */
+@media (max-width:900px){#mundo-andar.quarto .andar-palco{left:0;right:0;bottom:calc(64px + 2 * var(--vv-m))}#mundo-andar.quarto .andar-topo{left:var(--vv-m);right:var(--vv-m);max-width:none;flex-direction:row;align-items:center}}
+.quarto-estado{position:absolute;inset:0;display:grid;place-items:center;padding:16px;pointer-events:none}
+.quarto-estado[hidden]{display:none}
+.quarto-aviso{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:340px;padding:16px 18px;text-align:center;background:rgba(251,250,247,.96);color:var(--vv-tinta)}
+.quarto-aviso b{font:700 15px var(--vv-titulo)}
+.quarto-aviso p{margin:0;font:500 12.5px/1.45 var(--vv-texto);color:var(--vv-apagado)}
+.quarto-brilho{display:block;width:180px;height:10px;border-radius:6px;background:linear-gradient(90deg,rgba(31,29,26,.06) 0%,rgba(31,29,26,.16) 50%,rgba(31,29,26,.06) 100%);background-size:200% 100%;animation:quarto-brilho 1.2s var(--curva,ease) infinite}
+@keyframes quarto-brilho{from{background-position:100% 0}to{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.quarto-brilho{animation:none}}
 .sala-placa,.sala-nome{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform}
 .sala-placa{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.94);box-shadow:0 6px 16px -6px rgba(30,40,50,.35);font:700 11.5px var(--vv-texto);color:var(--vv-tinta)}
 .sala-placa.pessoal{background:#FFF6EC}
