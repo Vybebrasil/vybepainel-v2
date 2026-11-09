@@ -5139,6 +5139,14 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
 .vc-dia.hoje i{background:#F26B1D}
 .vc-dia b{font:600 12px var(--vv-texto);font-variant-numeric:tabular-nums}
 .vc-dia small{font:500 10.5px var(--vv-texto);color:#6B675F}
+/* Agenda da Produção no celular (vybe-styles.css, "jeito do Google Agenda"): no mundo, a faixa da captação fica com o texto
+   branco (o bloco gerado escurece o texto de todo .ag-chip) e o + fica acima do dock das salas e do menu de baixo. */
+@media (max-width:700px){
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip{color:#FFFFFF!important}
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.t-reuniao{color:#1F1D1A!important}
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num.capt-mes-num{color:#FFFFFF!important}
+  body.mundo .capt-fab{bottom:calc(64px + 4 * var(--vv-m,12px) + var(--vv-dock-alto,0px))}
+}
 
 /* ===== Dock fixo das salas (Paulo, 09/11/2026: "o dock das salas, chat, música, os controles e a entrada de chamada,
    fixo; o de cima fica livre pra agenda, WhatsApp, alertas, recados, notas, aparência, ajuda e perfil") =====
