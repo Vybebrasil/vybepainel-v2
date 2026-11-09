@@ -98,5 +98,17 @@
   .vbl-topo,.vbl-palco,.vbl-pe{padding-left:16px;padding-right:16px}
   .vbl-abas{padding-left:16px;padding-right:16px}
 }
+/* Botão do topo: só para quem vê o boletim (o .vv-botao do topo dá display e venceria o atributo hidden) */
+.vv-barra-topo .vv-ferr-boletim[hidden]{display:none}
+/* O que está fazendo agora (Paulo, 09/11/2026: "ver a atividade de cada um, o que tá fazendo, de qualquer lugar") */
+.vbl-agora{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0;font:500 12.5px var(--vv-texto);color:#3A3F44;min-width:0}
+.vbl-agora > span:last-child{min-width:0;overflow-wrap:anywhere}
+.vbl-agora-rot{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--c)}
+.vbl-agora-rot i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.vbl-cartao > .vbl-agora{padding:8px 12px;border-radius:10px;background:#FAF7F2}
+.vbl-secao .vbl-agora-lista li{grid-template-columns:minmax(90px,auto) 1fr;align-items:baseline;column-gap:10px}
+.vbl-agora-lista li > small{grid-column:1;font:500 11px var(--vv-texto);color:#6B675F}
+.vbl-agora-lista li > .vbl-agora{grid-column:2;grid-row:1 / span 2}
+@media (max-width:560px){.vbl-secao .vbl-agora-lista li{grid-template-columns:1fr}.vbl-agora-lista li > .vbl-agora{grid-column:1;grid-row:auto}}
 @media (prefers-reduced-motion:reduce){.vbl-janela,.vbl-carregando i{animation:none}}
 html.vb-sem-movimento :is(.vbl-janela,.vbl-carregando i){animation:none}

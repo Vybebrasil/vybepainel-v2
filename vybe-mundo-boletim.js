@@ -28,6 +28,19 @@
   const quando = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; return (diaBahia(d) === diaBahia() ? 'hoje' : 'ontem') + ' ' + hora(iso); };
   const recente = (iso, agora) => { const t = Date.parse(iso || ''); return Number.isFinite(t) && agora - t <= DIA_MS; };
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const AGORA = { executando: ['Fazendo agora', '#0D74CE'], aguardando_aprovacao: ['Esperando aprovação', '#8E4EC6'], falhou: ['Parou com falha', '#D13D36'], disponivel: ['Livre', '#18A957'] };
+  function agoraDe(atividade) {
+    if (!atividade) return null;
+    const [rotulo, cor] = AGORA[atividade.estado] || AGORA.disponivel;
+    const ultimo = atividade.ultimos?.[0] || null;
+    return { estado: atividade.estado, rotulo, cor, tarefa: atividade.tarefa || '', desde: atividade.desde || null, emCurso: atividade.emCurso || 0, ultimo };
+  }
+  function agoraTexto(a) {
+    if (!a) return 'Sem leitura da central agora.';
+    if (a.tarefa) return a.tarefa + (a.desde ? ' · desde ' + quando(a.desde) : '');
+    if (a.ultimo) return 'Último: ' + a.ultimo.tarefa + ' · ' + quando(a.ultimo.em);
+    return 'Nada registrado ainda.';
+  }
 
   // Quem tem agente, andar por andar, na ordem do prédio (a mesma planta de mundo/planta.mjs).
   function agentesDaPlanta() {
@@ -49,8 +62,10 @@
     for (const a of aguardando.slice(0, 1)) ir.push({ texto: `Aprovar ou recusar: ${a.tarefa}`, motivo: 'Em modo sombra: só sai com o ok de um dono.' });
     for (const a of abertos) { if (ir.length >= 3) break; if (a.sugestao) ir.push({ texto: a.sugestao, motivo: a.fato }); }
     const peso = urgentes * 100 + falhas.length * 50 + aguardando.length * 20 + abertos.length;
-    return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso,
-      semLeitura: !atividade && !perfil, quieto: !feitos.length && !fechados.length && !abertos.length };
+    const vivo = agoraDe(atividade);
+    const ocupado = vivo && ['executando', 'aguardando_aprovacao'].includes(vivo.estado);
+    return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso, agora: vivo,
+      semLeitura: !atividade && !perfil, quieto: !ocupado && !feitos.length && !fechados.length && !abertos.length };
   }
 
   // Ordem do boletim: quem pede ação primeiro; quem não tem nada a dizer fica para o fim (e só é contado no resumo).
@@ -59,7 +74,7 @@
     const comAlgo = lista.filter((b) => !b.quieto).sort((x, y) => y.peso - x.peso);
     const quietos = lista.filter((b) => b.quieto);
     const soma = (k) => comAlgo.reduce((n, b) => n + b[k].length, 0);
-    return { cartoes: comAlgo, quietos, resumo: { feitos: soma('concluidas'), fechados: soma('fechados'), abertos: soma('abertos'), urgentes: comAlgo.reduce((n, b) => n + b.urgentes, 0), falhas: soma('falhas'), aguardando: soma('aguardando') } };
+    return { cartoes: comAlgo, quietos, todos: lista, resumo: { feitos: soma('concluidas'), fechados: soma('fechados'), abertos: soma('abertos'), urgentes: comAlgo.reduce((n, b) => n + b.urgentes, 0), falhas: soma('falhas'), aguardando: soma('aguardando') } };
   }
 
   async function lerPerfil(setor) {
@@ -86,12 +101,17 @@
   }
 
   const ICONE = {
+    agora: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
     feito: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     errado: '<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg>',
     ir: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   };
   const secao = (tipo, titulo, corpo) => `<section class="vbl-secao vbl-${tipo}"><h4><span class="vbl-ic" aria-hidden="true">${ICONE[tipo]}</span>${titulo}</h4>${corpo}</section>`;
 
+  function agoraHtml(b) {
+    const a = b.agora, [rot, cor] = a ? [a.rotulo, a.cor] : ['Sem leitura', '#7A8B82'];
+    return `<p class="vbl-agora" style="--c:${cor}"><span class="vbl-agora-rot"><i aria-hidden="true"></i>${esc(rot)}</span><span>${esc(agoraTexto(a))}${a?.emCurso > 1 ? ` · ${plural(a.emCurso, 'tarefa', 'tarefas')} na fila` : ''}</span></p>`;
+  }
   function cartaoHtml(b) {
     const [rotEstado, corEstado] = ESTADO_SETOR[b.estado] || ESTADO_SETOR.ativo;
     const fez = [
@@ -105,6 +125,7 @@
       <div class="vbl-cab"><span class="vbl-av" aria-hidden="true">${esc(b.agente.slice(0, 1))}</span>
         <span class="vbl-quem"><small>${esc(b.andar)} · ${esc(b.nome)}</small><b>${esc(b.agente)}</b><small>${esc(b.funcao)}</small></span>
         <span class="vbl-estado" style="--c:${corEstado}"><i></i>${rotEstado}</span></div>
+      ${agoraHtml(b)}
       ${secao('feito', 'O que eu fiz', fez.length ? `<ul>${fez.join('')}</ul>${mais > 0 ? `<p class="vbl-mais">e mais ${mais}</p>` : ''}` : `<p class="vbl-vazio">${b.semLeitura ? 'Sem leitura deste agente agora.' : 'Nada concluído nas últimas 24 horas.'}</p>`)}
       ${secao('errado', 'O que está errado', falhas.length || errado.length ? `<ul>${falhas.join('')}${errado.join('')}</ul>${b.abertos.length > 4 ? `<p class="vbl-mais">e mais ${b.abertos.length - 4} em aberto</p>` : ''}` : '<p class="vbl-vazio">Nada em aberto no setor.</p>')}
       ${secao('ir', 'Pra onde ir', `${b.ir.length ? `<ol>${b.ir.map((x) => `<li><b>${esc(x.texto)}</b><small>${esc(x.motivo)}</small></li>`).join('')}</ol>` : '<p class="vbl-vazio">Seguir a rotina: nada pede decisão hoje.</p>'}
@@ -119,6 +140,7 @@
       <div class="vbl-cab"><span class="vbl-av vybes" aria-hidden="true">V</span><span class="vbl-quem"><small>Todos os setores</small><b>A agência hoje</b><small>${plural(B.cartoes.length, 'agente com algo a dizer', 'agentes com algo a dizer')}</small></span></div>
       <div class="vbl-nums">${linha(r.feitos, 'feitas em 24 h')}${linha(r.fechados, 'achados fechados')}${linha(r.abertos, 'em aberto', r.abertos ? 'atencao' : '')}${linha(r.urgentes, 'urgentes', r.urgentes ? 'ruim' : '')}</div>
       ${r.falhas || r.aguardando ? `<p class="vbl-alerta">${r.falhas ? plural(r.falhas, 'execução falhou', 'execuções falharam') : ''}${r.falhas && r.aguardando ? ' · ' : ''}${r.aguardando ? plural(r.aguardando, 'proposta espera um dono', 'propostas esperam um dono') : ''}</p>` : ''}
+      ${secao('agora', 'O que cada um está fazendo agora', `<ul class="vbl-agora-lista">${(B.todos || []).map((b) => `<li><b>${esc(b.agente)}</b><small>${esc(b.nome)}</small>${agoraHtml(b)}</li>`).join('')}</ul>`)}
       ${secao('ir', 'Por onde começar', B.cartoes.length ? `<ol>${B.cartoes.slice(0, 3).map((b, i) => `<li><button type="button" class="vbl-pular" data-vbl-ir="${i + 1}"><b>${esc(b.agente)} · ${esc(b.nome)}</b><small>${b.urgentes ? plural(b.urgentes, 'urgente', 'urgentes') + ' · ' : ''}${plural(b.abertos.length, 'em aberto', 'em aberto')}${b.falhas.length ? ' · ' + plural(b.falhas.length, 'falha', 'falhas') : ''}</small></button></li>`).join('')}</ol>` : '<p class="vbl-vazio">Nenhum agente pede atenção hoje.</p>')}
       ${(() => { const sem = B.quietos.filter((b) => b.semLeitura), calmos = B.quietos.filter((b) => !b.semLeitura); return `${calmos.length ? `<p class="vbl-mais">Sem nada a relatar: ${calmos.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}${sem.length ? `<p class="vbl-mais">Sem leitura da central (ainda não rodam ou não responderam): ${sem.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}`; })()}
     </article>`;
@@ -174,7 +196,8 @@
   document.addEventListener('click', (e) => { if (e.target.closest?.('[data-boletim]')) abrir(); });
 
   // Botão do Hoje (só para os donos, como a página Agentes).
-  const botaoHtml = () => (souDono() && !vendoComoOutro()
+  const podeVer = () => souDono() && !vendoComoOutro();
+  const botaoHtml = () => (podeVer()
     ? '<button type="button" class="vbl-abrir" data-boletim><span class="vbl-abrir-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg></span><span class="vbl-abrir-texto"><b>Boletim dos agentes</b><small>O que cada setor fez, o que está errado e pra onde ir</small></span><i aria-hidden="true">→</i></button>'
     : '');
 
@@ -192,5 +215,5 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', agendar); else agendar();
   }
 
-  G.VybeBoletim = { abrir, fechar, botaoHtml, montar, boletimDoAgente, aberto: () => st.aberto };
+  G.VybeBoletim = { abrir, fechar, botaoHtml, podeVer, montar, boletimDoAgente, aberto: () => st.aberto };
 })();
