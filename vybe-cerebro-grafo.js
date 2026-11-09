@@ -121,9 +121,14 @@
   }
 
   // ---------- Montar ----------
+  let host = null;
   function montar(alvo, opcoes = {}) {
     if (!alvo) return;
-    alvo.__grafo?.parar?.();
+    // Em tela cheia o grafo mora no body: um ancestral com transform prenderia o position: fixed no meio da página.
+    host?.__grafo?.parar?.(); host?.remove();
+    host = document.createElement('div'); host.className = 'cg-host'; document.body.append(host);
+    const casa = host;
+    alvo.innerHTML = '<p class="cg-aqui">O mapa está aberto em tela cheia.</p>';
     const { nos, ligs } = montarDados();
     const porId = new Map(nos.map((n) => [n.id, n]));
     const vizinhos = new Map(nos.map((n) => [n.id, new Set()]));
@@ -138,13 +143,15 @@
     });
     const contagem = Object.fromEntries(GRUPOS.map((g) => [g.id, nos.filter((n) => n.grupo === g.id).length]));
 
-    alvo.innerHTML = `<div class="cg">
+    casa.innerHTML = `<div class="cg cg-cheia" role="dialog" aria-label="Cérebro do VYBES em tela cheia">
+      <div class="cg-titulo"><b>Cérebro do VYBES</b><small>Tudo o que se conecta: VYBES, agentes, central, clientes, time e peças</small></div>
+      <button type="button" class="cg-sair" data-cg="sair" aria-label="Sair do mapa (Esc)" title="Sair do mapa (Esc)">Sair do mapa</button>
       <canvas class="cg-tela" tabindex="0" aria-label="Grafo do Cérebro do VYBES: ${nos.length} nós e ${ligs.length} ligações. Arraste para mover, roda do mouse para zoom."></canvas>
       <div class="cg-busca"><input type="search" placeholder="Buscar no grafo (cliente, pessoa, peça, agente)…" aria-label="Buscar no grafo"><span class="cg-conta">${nos.length} nós · ${ligs.length} ligações</span></div>
       <aside class="cg-painel"${st.painel ? '' : ' data-fechado'}>
-        <button type="button" class="cg-painel-alternar" data-cg="painel" aria-expanded="${st.painel}">${st.painel ? 'Esconder controles' : 'Controles'}</button>
+        <button type="button" class="cg-painel-alternar" data-cg="painel" aria-expanded="${st.painel}"><b>Controles</b><span>${st.painel ? 'Esconder' : 'Mostrar'}</span></button>
         <div class="cg-painel-corpo">
-          <details open><summary>Grupos</summary>${GRUPOS.map((g) => `<label class="cg-grupo"><input type="checkbox" data-cg-grupo="${g.id}"${st.ocultos.has(g.id) ? '' : ' checked'}><i style="--c:${g.cor}"></i><span>${g.nome}</span><small>${contagem[g.id] || 0}</small></label>`).join('')}</details>
+          <details open><summary>Grupos</summary>${GRUPOS.map((g) => `<label class="cg-grupo" style="--c:${g.cor}"><input type="checkbox" data-cg-grupo="${g.id}"${st.ocultos.has(g.id) ? '' : ' checked'}><i style="--c:${g.cor}"></i><span>${g.nome}</span><small>${contagem[g.id] || 0}</small></label>`).join('')}</details>
           <details open><summary>Exibição</summary>
             <label class="cg-faixa"><span>Tamanho dos nós</span><input type="range" min="50" max="200" value="${st.tamanho}" data-cg-faixa="tamanho"></label>
             <label class="cg-faixa"><span>Espessura das ligações</span><input type="range" min="20" max="300" value="${st.linhas}" data-cg-faixa="linhas"></label>
@@ -160,7 +167,7 @@
       <div class="cg-cartao" hidden></div>
       ${nos.length <= 1 ? '<p class="cg-vazio">Os nós aparecem quando o painel termina de carregar os clientes e as peças.</p>' : ''}
     </div>`;
-    const raiz = alvo.querySelector('.cg'), tela = raiz.querySelector('canvas'), ctx = tela.getContext('2d'), cartao = raiz.querySelector('.cg-cartao');
+    const raiz = casa.querySelector('.cg'), tela = raiz.querySelector('canvas'), ctx = tela.getContext('2d'), cartao = raiz.querySelector('.cg-cartao');
     const cam = { x: 0, y: 0, k: .9 };
     let pendente = null, largura = 0, altura = 0, dpr = 1, alpha = 1, quadro = 0, sobre = null, fixo = null, arrastando = null, busca = '', sujo = true;
     const visivel = (n) => !st.ocultos.has(n.grupo);
@@ -316,12 +323,13 @@
     raiz.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       const a = b.dataset.cg;
+      if (a === 'sair') { sair(); return; }
       if (a === 'mais') { cam.k = Math.min(5, cam.k * 1.25); sujo = true; pedir(); }
       else if (a === 'menos') { cam.k = Math.max(.12, cam.k * .8); sujo = true; pedir(); }
       else if (a === 'enquadrar') enquadrar();
       else if (a === 'reorganizar') { posicoes.clear(); nos.forEach((n, i) => { const ang = (i * 2.399963) % (Math.PI * 2), rr = (ANEL[n.grupo] ?? 300); n.x = Math.cos(ang) * rr; n.y = Math.sin(ang) * rr; }); aquecer(1); setTimeout(() => enquadrar(), 1600); }
       else if (a === 'fechar-cartao') { fixo = null; mostrarCartao(null); sujo = true; pedir(); }
-      else if (a === 'painel') { st.painel = !st.painel; guardar(); raiz.querySelector('.cg-painel').toggleAttribute('data-fechado', !st.painel); b.setAttribute('aria-expanded', String(st.painel)); b.textContent = st.painel ? 'Esconder controles' : 'Controles'; }
+      else if (a === 'painel') { st.painel = !st.painel; guardar(); raiz.querySelector('.cg-painel').toggleAttribute('data-fechado', !st.painel); b.setAttribute('aria-expanded', String(st.painel)); b.querySelector('span').textContent = st.painel ? 'Esconder' : 'Mostrar'; }
       else if (b.dataset.cgAbrir && fixo) {
         if (b.dataset.cgAbrir === 'cliente') { if (typeof focarClienteNoCerebro === 'function') focarClienteNoCerebro(fixo.cliente); else if (typeof abrirClienteDetalhe === 'function') abrirClienteDetalhe(fixo.cliente); }
         else if (b.dataset.cgAbrir === 'peca' && typeof openItemWorkspace === 'function') openItemWorkspace(fixo.peca);
@@ -342,6 +350,10 @@
         if (achados.length && achados.length <= 30) enquadrar(achados.flatMap((n) => [n, ...[...vizinhos.get(n.id)].map((id) => porId.get(id))]));
       }
     });
+    // Sair do mapa: volta para a Atividade do cérebro (quem abriu a aba Mapa decide o que vem depois).
+    function sair() { casa.__grafo?.parar?.(); casa.remove(); if (host === casa) host = null; document.removeEventListener('keydown', aoEsc, true); if (typeof opcoes.aoSair === 'function') opcoes.aoSair(); else if (typeof alternarAbaCerebro === 'function') alternarAbaCerebro('atividade'); }
+    function aoEsc(e) { if (e.key !== 'Escape' || !raiz.isConnected) return; if (fixo || document.activeElement?.closest?.('.cg-busca')) return; e.preventDefault(); e.stopPropagation(); sair(); }
+    document.addEventListener('keydown', aoEsc, true);
     const obs = new ResizeObserver(ajustar); obs.observe(raiz);
     ajustar();
     // Primeiro enquadramento depois de assentar um pouco; com foco num cliente, a vizinhança dele.
@@ -352,8 +364,11 @@
     const primeiro = focoN ? () => { fixo = focoN; mostrarCartao(focoN); enquadrar([focoN, ...[...vizinhos.get(focoN.id)].map((id) => porId.get(id))]); } : () => enquadrar();
     if (largura > 0 && altura > 0) primeiro(); else pendente = primeiro;
     pedir();
-    alvo.__grafo = { parar: () => { cancelAnimationFrame(quadro); quadro = 0; obs.disconnect(); for (const n of nos) posicoes.set(n.id, { x: n.x, y: n.y }); } };
+    // Se o cérebro saiu da tela (outra aba, módulo fechado), o mapa sai junto.
+    const vigia = setInterval(() => { if (!alvo.isConnected) { casa.__grafo?.parar?.(); casa.remove(); if (host === casa) host = null; } }, 800);
+    casa.__grafo = { parar: () => { clearInterval(vigia); cancelAnimationFrame(quadro); quadro = 0; obs.disconnect(); document.removeEventListener('keydown', aoEsc, true); for (const n of nos) posicoes.set(n.id, { x: n.x, y: n.y }); } };
   }
 
-  window.VybeCerebroGrafo = Object.freeze({ montar, GRUPOS });
+  function fechar() { host?.__grafo?.parar?.(); host?.remove(); host = null; }
+  window.VybeCerebroGrafo = Object.freeze({ montar, fechar, GRUPOS });
 })();

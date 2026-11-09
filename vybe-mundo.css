@@ -5090,3 +5090,30 @@ html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){
 .vv-bloco-prio.hoje{border-top:3px solid var(--vv-laranja,#F26B1D)}
 .vv-bloco-prio.depois{border-top:3px solid #CFC7BB}
 .vv-ver-todas,.vv-ver-prioridades{display:block;width:100%;margin:0 0 14px;break-inside:avoid}
+/* Grafo do Cérebro em tela cheia (Paulo, 08/11/2026: "não era pro mapa abrir em tela cheia?"): ocupa a área ao lado do
+   dock, por cima do módulo, com título, "Sair do mapa" e Esc. Controles no padrão: painel de vidro escuro, seções com
+   rótulo pequeno, grupos como bolinhas na cor do grupo (sem caixa de marcar). */
+html body .cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
+@media (max-width:900px){html body .cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
+html.vb-ocioso body .cg.cg-cheia{animation:none}
+.cg-titulo{position:absolute;left:16px;top:14px;z-index:2;display:grid;gap:2px;pointer-events:none}
+.cg-titulo b{font:750 16px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:#fff;letter-spacing:-.01em}
+.cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
+.cg.cg-cheia .cg-busca{top:62px}
+.cg-sair{position:absolute;z-index:3;top:12px;right:256px;height:34px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(28,29,35,.92);color:#EDE8E0;font:650 12.5px var(--vv-texto,inherit);cursor:pointer}
+.cg-sair:hover{background:rgba(255,255,255,.12);color:#fff}
+.cg-sair:focus-visible,.cg-painel button:focus-visible,.cg-zoom button:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
+.cg-painel[data-fechado] ~ .cg-sair,.cg:has(.cg-painel[data-fechado]) .cg-sair{right:132px}
+.cg-painel{background:rgba(24,25,31,.94)!important;backdrop-filter:blur(10px)}
+.cg-painel-alternar{display:flex!important;justify-content:space-between;align-items:center;text-align:left!important}
+.cg-painel-alternar b{font:750 12.5px var(--vv-texto,inherit);color:#fff}
+.cg-painel-alternar span{font:600 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
+.cg-painel summary{font:700 10.5px var(--vv-texto,inherit)!important;letter-spacing:.07em;text-transform:uppercase;color:rgba(237,232,224,.6)!important}
+.cg-grupo{color:rgba(237,232,224,.92)!important;border-radius:7px;padding:5px 6px!important}
+.cg-grupo:hover{background:rgba(255,255,255,.05)}
+.cg-grupo i{display:none}
+html body .cg .cg-grupo input[type=checkbox]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){appearance:none!important;-webkit-appearance:none!important;width:12px!important;height:12px!important;min-width:12px;margin:0!important;padding:0!important;border-radius:50%!important;border:2px solid var(--c,#EDE8E0)!important;background:var(--c,#EDE8E0)!important;box-shadow:none!important;cursor:pointer}
+html body .cg .cg-grupo input[type=checkbox]:not(:checked):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:transparent!important;opacity:.55}
+.cg-grupo:has(input:not(:checked)) span{opacity:.5;text-decoration:line-through}
+.cg-faixa span{color:rgba(237,232,224,.75)!important}
+html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){accent-color:var(--vv-laranja,#F26B1D);background:transparent!important;border:0!important;height:18px;padding:0!important}
