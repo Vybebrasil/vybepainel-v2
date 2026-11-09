@@ -43,6 +43,8 @@ test('torcida: oferece, topa, as moedas saem no aceite e o prêmio vai para quem
  await x.acaoMesa(sql, tacador, { id: d.id, acao: 'aposta-topar', aposta: 'tac-000002' });
  await x.acaoMesa(sql, { id: 2 }, { id: d.id, acao: 'aposta-oferecer', aposta: 'tac-000003', tipo: 'tacada', escolha: 'mata', valor: 20 });
  const antes = { t: await saldo(tacador.id), dois: await saldo(2) };
+ // As apostas valem na pré-partida; a tacada só sai depois dos dois PREPARADOS.
+ await x.acaoMesa(sql, { id: 1 }, { id: d.id, acao: 'pronto' }); await x.acaoMesa(sql, { id: 3 }, { id: d.id, acao: 'pronto' });
  // Tacada fraca para trás: não toca em nada (cega), então não matou.
  await x.lanceMesa(sql, tacador, { id: d.id, n: 0, tipo: 'tacar', angulo: Math.PI, forca: 0.02 });
  v = await x.verMesa(sql, { id: 2 }, d.id);
