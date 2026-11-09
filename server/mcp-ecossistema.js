@@ -136,7 +136,36 @@ export async function garantirTabelaDeRegistros(db) {
     criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
   await db`CREATE INDEX IF NOT EXISTS vybe_cliente_registros_cliente ON vybe_cliente_registros (cliente_id, criado_em DESC)`;
+  // Quando as linhas do registro viraram regras do cliente. Vazio = ainda não: os registros de regra de marca feitos antes
+  // desta coluna existir (retrospectiva de 09/11) são convertidos uma vez, sem repetir regra igual.
+  await db`ALTER TABLE vybe_cliente_registros ADD COLUMN IF NOT EXISTS regras_em TIMESTAMPTZ`;
   tabelaPronta.add(db);
+  await converterRegrasPendentes(db).catch((e) => console.error('[mcp-ecossistema] regras pendentes', e));
+}
+
+// Cada linha das decisões de um registro de regra de marca vira uma regra em vybe_ai_regras_cliente (lida pela revisão de
+// arte, pelas legendas e pela memória do VYBES). Devolve quantas regras novas entraram.
+async function regrasDoRegistroParaCliente(db, clienteId, r) {
+  await tabelaRegras(db);
+  let novas = 0;
+  for (const texto of regrasDoRegistro(r)) {
+    const [ja] = await db`SELECT 1 AS ok FROM vybe_ai_regras_cliente WHERE cliente_id=${clienteId} AND removida_em IS NULL AND LOWER(texto)=LOWER(${texto}) LIMIT 1`;
+    if (ja) continue;
+    await db`INSERT INTO vybe_ai_regras_cliente (cliente_id, texto) VALUES (${clienteId}, ${texto})`;
+    novas++;
+  }
+  return novas;
+}
+
+export async function converterRegrasPendentes(db) {
+  const pendentes = await db`SELECT id, cliente_id, resumo, decisoes FROM vybe_cliente_registros
+    WHERE tipo = 'regra_de_marca' AND regras_em IS NULL ORDER BY criado_em LIMIT 200`;
+  let novas = 0;
+  for (const g of pendentes) {
+    novas += await regrasDoRegistroParaCliente(db, g.cliente_id, g);
+    await db`UPDATE vybe_cliente_registros SET regras_em = NOW() WHERE id = ${g.id}`;
+  }
+  return { registros: pendentes.length, regras: novas };
 }
 
 async function clientesAtivos(db) {
@@ -179,13 +208,8 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
     // da Vybe IA e a revisão de arte (Danilo) já leem. Uma regra por linha; a que já existe não repete.
     let regrasNovas = 0;
     if (r.tipo === 'regra_de_marca') {
-      await tabelaRegras(db);
-      for (const texto of regrasDoRegistro(r)) {
-        const [ja] = await db`SELECT 1 AS ok FROM vybe_ai_regras_cliente WHERE cliente_id=${c.id} AND removida_em IS NULL AND LOWER(texto)=LOWER(${texto}) LIMIT 1`;
-        if (ja) continue;
-        await db`INSERT INTO vybe_ai_regras_cliente (cliente_id, texto) VALUES (${c.id}, ${texto})`;
-        regrasNovas++;
-      }
+      regrasNovas = await regrasDoRegistroParaCliente(db, c.id, r);
+      await db`UPDATE vybe_cliente_registros SET regras_em = NOW() WHERE id = ${novo.id}`;
     }
     const avisoRegras = regrasNovas ? ` ${regrasNovas} regra(s) nova(s) entraram nas regras do cliente: valem na revisão de arte, nas legendas e na memória do VYBES.` : '';
     // O banco é a fonte; o Drive é cópia. Falha no Drive não perde o registro.
