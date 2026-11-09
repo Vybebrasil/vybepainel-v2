@@ -332,7 +332,15 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
   if (!af || !ap) return null;
   // A cabeça do Habbo com o cabelo cabe na nossa com o cabelo (largura 0,86, profundidade 0,8, do queixo 0,92 ao topo
   // do cabelo 1,82), com 8% de folga para o acessório ficar por fora dela.
-  const folga = 1.08, kx = (.86 * folga) / cf.largura, kz = (.8 * folga) / cp.largura, ky = (.9 * folga) / Math.max(10, cf.queixo - cf.topo);
+  // Uma escala só nos três eixos (o pixel do Habbo é quadrado), pela altura da cabeça: o acessório mantém a forma
+  // (um focinho comprido continua comprido, sem esticar para caber na nossa cabeça quadrada).
+  // Máscara (cobre quase toda a cabeça, como a de cavalo) entra NO LUGAR da cabeça: vai do tamanho da cabeça sem o
+  // cabelo (0,74). Chapéu e enfeite ficam por cima do cabelo: cabeça com cabelo (0,9) e 8% de folga.
+  const alfa0 = (img, x, y) => (x >= 0 && y >= 0 && x < img.w && y < img.h ? img.px[(y * img.w + x) * 4 + 3] : 0);
+  let n0 = 0, c0 = 0;
+  for (let y = cf.topo; y <= cf.queixo; y++) for (let x = 0; x < frenteNu.w; x++) if (alfa0(frenteNu, x, y) > 40) { n0++; if (alfa0(frente, x, y) > 40) c0++; }
+  const cobre = n0 ? c0 / n0 : 0, mascara = cobre > .55;
+  const ky = (mascara ? .74 : .9 * 1.08) / Math.max(10, cf.queixo - cf.topo), kx = ky, kz = ky;
   const alfa = (img, x, y) => (x >= 0 && y >= 0 && x < img.w && y < img.h ? img.px[(y * img.w + x) * 4 + 3] : 0);
   const cor = (img, x, y) => corSemContorno(img.px, img.w, img.h, x, y);
   // Linha da foto → altura no boneco: o queixo de cada foto vai para 0,92.
@@ -360,8 +368,5 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
     const c = (naFrente ? cor(frente, q.x, q.y) : cor(perfil, q.z, q.yp)) || cor(frente, q.x, q.y) || cor(perfil, q.z, q.yp) || [128, 128, 128];
     blocos.push({ x: i * passo * kx, y: .92 + j * passo * ky - passo * ky / 2, z: l * passo * kz, cor: '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('') });
   }
-  // Quanto da cabeça (de frente) o acessório cobre: perto de toda, é máscara e substitui a nossa cabeça.
-  let n = 0, cob = 0;
-  for (let y = cf.topo; y <= cf.queixo; y++) for (let x = 0; x < frenteNu.w; x++) if (alfa(frenteNu, x, y) > 40) { n++; if (alfa(frente, x, y) > 40) cob++; }
-  return { lado: passo * Math.max(kx, ky, kz), lados: [passo * kx, passo * ky, passo * kz], cobre: n ? cob / n : 0, blocos };
+  return { lado: passo * Math.max(kx, ky, kz), lados: [passo * kx, passo * ky, passo * kz], cobre, blocos };
 }
