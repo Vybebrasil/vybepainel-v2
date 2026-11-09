@@ -22,7 +22,7 @@ const SINUCA_CFG = registrarMesaEscritorio({
   // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
   // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
   // assistia via a mesa piscar a cada tacada (Paulo, 28/10/2026).
-  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); const j = sinucaEstado().jogo; if (typeof sinucaConfrontoTalvez === "function") { sinucaConfrontoTalvez(j); sinucaTorcidaSinal(j); sinucaTorcidaAtualizar(j); sinucaPreRelogio(); sinucaPreSaiu(j); } },
+  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); const j = sinucaEstado().jogo; if (typeof sinucaConfrontoTalvez === "function") { sinucaConfrontoTalvez(j); sinucaTorcidaSinal(j); sinucaTorcidaAtualizar(j); sinucaPreRelogio(); sinucaPreSaiu(j); } if (typeof sinucaTvLigar === "function") sinucaTvLigar(); },
   // Leitura de 4 s sem mudança na mesa: só a torcida (as apostas novas) e o sinal de quem assiste.
   atualizar: (j) => { if (typeof sinucaTorcidaAtualizar === "function") { sinucaTorcidaAtualizar(j); sinucaTorcidaSinal(j); } },
 });
@@ -310,7 +310,7 @@ function sinucaBordasHtml(j, s, minha, passando) {
   const naPre = typeof sinucaPreAtiva === "function" && sinucaPreAtiva(j);
   const faixa = naPre || minha ? "" : `<p class="snc-faixa-vez${j.vez === "desafiado" ? " giz" : ""}" role="status">${passando ? `${safeText(xadrezPrimeiroNome(j[passando.lado]))} tacou` : `Vez de ${safeText(xadrezPrimeiroNome(j[j.vez]))}`}${j.eu ? "" : " · você está assistindo"}</p>`;
   const rapida = !naPre && !minha && j.torcida && j.vez && j.vez !== j.eu && !passando ? `<button type="button" class="snc-aposta-rapida" onclick="sinucaApostaRapida(this)">Aposto 100 que ${safeText(nome(j.vez))} não mata</button>` : "";
-  return `<button type="button" class="snc-mais" onclick="sinucaMenu()" aria-expanded="${Boolean(s.menu)}" aria-label="Menu da mesa: abas, câmera, jeito de tacar e rever"><i></i><i></i><i></i></button><div class="snc-menu-fundo" aria-hidden="true"></div>${faixa}${rapida}${typeof sinucaFeedHtml === "function" ? sinucaFeedHtml(j) : ""}`;
+  return `<button type="button" class="snc-tv-botao" onclick="sinucaTvAlternar()" aria-label="TV do bar: música" title="TV do bar">📺</button><button type="button" class="snc-mais" onclick="sinucaMenu()" aria-expanded="${Boolean(s.menu)}" aria-label="Menu da mesa: abas, câmera, jeito de tacar e rever"><i></i><i></i><i></i></button><div class="snc-menu-fundo" aria-hidden="true"></div>${faixa}${rapida}${typeof sinucaFeedHtml === "function" ? sinucaFeedHtml(j) : ""}`;
 }
 function sinucaMenu(abrir) {
   const s = sinucaEstado();
