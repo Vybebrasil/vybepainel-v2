@@ -14,6 +14,7 @@ import { neon } from '@neondatabase/serverless';
 import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto';
 import { promisify } from 'node:util';
 import { garantirCicloDeVida } from './server/ciclo-de-vida.js';
+import { ehDonoPessoa } from './server/donos.js';
 
 const scryptAsync = promisify(scrypt);
 const DIAS_DE_SESSAO = 30;
@@ -184,14 +185,17 @@ export async function sessaoDoPedido(req, { buscarPessoa = pessoaAtual } = {}) {
   const pessoa = await buscarPessoa(Number(sessao.id));
   if (!pessoa?.ativo || !pessoa.pode_entrar || !pessoa.senha_hash
       || Number(pessoa.sessao_versao || 0) !== Number(sessao.versao || 0)) return null;
-  // Permissão vem do banco em toda requisição, nunca do papel antigo do cookie.
-  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin) };
+  // Permissão vem do banco em toda requisição, nunca do papel antigo do cookie. Dono pela regra única (server/donos.js).
+  const dono = ehDonoPessoa({ id: Number(sessao.id), monday_user_id: pessoa.monday_user_id ?? null });
+  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin), dono };
 }
 
 async function pessoaAtual(id) {
   await garantirSchemaSessao();
-  return (await database()`SELECT id, nome, email, ativo, pode_entrar, admin, senha_hash, sessao_versao
-    FROM vybe_pessoas WHERE id=${id}`)[0];
+  // monday_user_id por to_jsonb: o banco de produção tem a coluna; um banco sem ela devolve null em vez de quebrar.
+  return (await database()`SELECT id, nome, email, ativo, pode_entrar, admin, senha_hash, sessao_versao,
+    to_jsonb(p) ->> 'monday_user_id' AS monday_user_id
+    FROM vybe_pessoas p WHERE id=${id}`)[0];
 }
 
 export function cabecalhoDeCookie(token) {

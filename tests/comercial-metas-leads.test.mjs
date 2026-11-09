@@ -94,7 +94,7 @@ test('formulário: isca, campos obrigatórios, limites, WhatsApp e limpeza de te
 // ---------- Servidor (PGlite) ----------
 const resposta = () => ({ codigo: 0, body: null, corpo: '', cab: {}, setHeader(k, v) { this.cab[k.toLowerCase()] = v; }, status(n) { this.codigo = n; return this; },
   json(d) { this.body = d; return this; }, send(s) { this.corpo = s; return this; }, end() { return this; } });
-const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false } };
+const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false, dono: true } }; // dono vem da sessão (server/donos.js)
 const atendimento = { tipo: 'sessao', pessoa: { id: 5, nome: 'Taynara', admin: false } };
 const criacao = { tipo: 'sessao', pessoa: { id: 3, nome: 'Bia', admin: false } };
 const CONFIG = `CREATE TABLE IF NOT EXISTS vybe_carteira_config (chave text PRIMARY KEY CHECK (chave ~ '^[a-z_]{1,40}$'), valor jsonb NOT NULL,

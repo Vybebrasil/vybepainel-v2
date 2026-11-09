@@ -48,7 +48,7 @@
   // Palpite antes da primeira resposta do servidor (que é quem decide): só para não piscar abas de dinheiro.
   function palpiteDono() {
     try { if (typeof souAdmin === 'function' && souAdmin()) return true; } catch {}
-    try { const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null; return ['paulo', 'vinicius', 'ewerton', 'deivid'].includes(String(u?.name || u?.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0]); } catch { return false; }
+    try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; } // dono pelo servidor (server/donos.js)
   }
   let podeDinheiro = null;
   const veDinheiro = () => (podeDinheiro == null ? palpiteDono() : podeDinheiro);

@@ -4916,3 +4916,8 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top
    cobrindo o mundo). */
 @media (min-width:901px){html body.mundo.mundo-centro .vv-hoje{bottom:auto!important;max-height:calc(100% - 2 * var(--vv-m))}}
 @media (max-width:900px){html body.mundo:not(.vv-x) #office-musica.vv-musica-janela{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important}}
+/* Painel de Finanças com o Vybe Finanças ligado: de onde vem o dinheiro. */
+.vs-fonte{margin:0 0 8px;font:600 11.5px Inter,system-ui,sans-serif;color:#8A7F70}
+/* Valor do cartão acompanha a largura do cartão (antes cortava "R$ 28,5 mil" em cartão estreito). */
+.vs-kpi{container-type:inline-size}
+.vs-kpi-valor{font-size:clamp(16px,15cqi,26px)}
