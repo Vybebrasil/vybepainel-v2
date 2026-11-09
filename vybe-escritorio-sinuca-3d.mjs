@@ -164,7 +164,16 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   };
   pintarLousa([]);
   peca(new BoxGeometry(70, 46, 2.4), mat(0x5e3a18), cx, pisoY + 40, fundoZ + 1.3);
-  const lousa = peca(new PlaneGeometry(64, 40), new MeshStandardMaterial({ map: texLousa, roughness: 0.9 }), cx, pisoY + 40, fundoZ + 2.6);
+  // A lousa da parede é o cardápio (o ranking fica só no cavalete, para não repetir).
+  const texCardapio = tela(768, 480, (g, w, h) => {
+    g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`; g.fillRect(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 20 + Math.random() * 40); }
+    g.fillStyle = '#ffe98a'; g.font = 'bold 62px "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('CARDÁPIO', w / 2, 74);
+    g.strokeStyle = '#ffe98a'; g.lineWidth = 3; g.beginPath(); g.moveTo(200, 92); g.lineTo(w - 200, 92); g.stroke();
+    g.fillStyle = '#f4f4ee'; g.font = 'bold 44px "Comic Sans MS", "Segoe Print", cursive';
+    [['Cerveja 600', '12'], ['Pinga da casa', '4'], ['Pastel', '6'], ['Torresmo', '15'], ['Ficha da mesa', '2']].forEach(([n, v], i) => { const y = 152 + i * 64; g.textAlign = 'left'; g.fillText(n, 60, y); g.textAlign = 'right'; g.fillText(`R$ ${v}`, w - 60, y); });
+  });
+  peca(new PlaneGeometry(64, 40), new MeshStandardMaterial({ map: texCardapio, roughness: 0.9 }), cx, pisoY + 40, fundoZ + 2.6);
   peca(new BoxGeometry(66, 1.6, 4), mat(0x5e3a18), cx, pisoY + 16.6, fundoZ + 3.2);
   for (let i = 0; i < 4; i++) peca(new BoxGeometry(2.4, 1, 1), mat(0xf2f2ea), cx - 20 + i * 5, pisoY + 17.8, fundoZ + 3.6);
   // A lousa de cavalete no chão, entre a mesa e a parede do fundo (a câmera de jogo olha para baixo e só
