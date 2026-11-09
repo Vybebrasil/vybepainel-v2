@@ -50,3 +50,15 @@ test('resumo do mês separa a folha lançada como despesa das outras despesas', 
   assert.equal(r.despesas_sem_folha, 550);
   assert.equal(Number(r.despesas_pagas) + Number(r.despesas_pendentes), 3550);
 });
+
+test('salário sem funcionário ligado conta como folha; mensalidade sem cliente liga pelo nome da descrição', () => {
+  const sal = { id: 9, type: 'EXPENSE', amount: 2600, status: 'PENDING', date: '2026-11-05', category: 'Salário/Prolabore', description: 'Salário - Jady' };
+  assert.equal(calc.grupoDaDespesa(sal), 'folha');
+  assert.equal(calc.resumoMes([sal], [], '2026-11').despesas_sem_folha, 0);
+  const vybe = [{ id: '30', nome: 'Ace - Associação Comercial' }, { id: '31', nome: 'Antonov' }];
+  const r = calc.recebiveisDoFinancas([
+    { id: 20, type: 'INCOME', amount: 1000, status: 'PENDING', date: '2026-10-01', description: 'Mensalidade - ACE - Associação Comercial' },
+    { id: 21, type: 'INCOME', amount: 800, status: 'PENDING', date: '2026-10-01', description: 'Mensalidade - Irecê Modas' },
+  ], {}, {}, vybe);
+  assert.deepEqual(r.map((x) => [x.cliente_id, x.cliente_nome]), [['30', 'Ace - Associação Comercial'], [null, 'Irecê Modas']]);
+});
