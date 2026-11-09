@@ -267,6 +267,7 @@
   const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
   function limparTela() {
     fecharDaDireita();
+    if (!placa().hidden) fecharPlaca(); // a placa aberta por baixo de um módulo escondia a barra de cima
     window.VybeSetor?.fechar?.();
     if (!gestao.hidden) fecharGestao();
     window.VybeAgentes?.fechar?.();

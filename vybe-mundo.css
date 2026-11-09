@@ -4601,7 +4601,7 @@ html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 /* Varredura 08/11/2026 (2): placas em tela cheia por cima do HUD; Conversa na coluna da direita; botões do canto
    das telas antigas ao lado da barra de ícones; zoom do Centro fora do painel do elevador. */
 html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
-html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
+html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
 html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
@@ -4953,3 +4953,8 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top
 .vv-ferr-voz .vv-voz-nome[hidden]{display:none}
 /* Na janelinha da sala (pela barra), a lista de salas faz parte dela, rolando por dentro, em vez de uma caixa solta. */
 html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{position:static!important;flex-basis:100%;width:100%!important;max-height:min(440px,calc(100vh - 280px))!important;overflow:auto;box-shadow:none!important;border:0!important;border-top:1px solid #EFEAE2!important;border-radius:0!important;padding:10px 0 0!important;margin-top:4px;background:transparent!important}
+/* Painel de trabalho › Grupos: o quadro ainda vinha com o fundo escuro do painel antigo (o cabeçalho "Conteúdos por
+   grupo" aparecia como uma faixa preta). Dentro do mundo, o mesmo cartão claro das outras telas. */
+html body.mundo.mundo-modulo #grupos-board.grupos-board{background:#fff!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;color:#1F1D1A!important}
+html body.mundo.mundo-modulo #grupos-board .grupos-head{background:transparent!important;color:#1F1D1A!important;border-bottom:1px solid #EFEAE2!important}
+html body.mundo.mundo-modulo #grupos-board .grupos-head :is(h2,h3,b,strong,span,small){color:inherit}
