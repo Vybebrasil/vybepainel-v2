@@ -52,3 +52,18 @@ test('dock: Impressões logo depois de Fornecedores, na Produção', () => {
   assert.match(js, /'VybeImpressoes'\]/);
   assert.match(js, /'vv-impressoes'/);
 });
+
+test('servidor #549: histórico inteiro, gráficas sugeridas com motivo, cotações só para a gestão e ranking', async () => {
+  const forn = [{ id: '3', nome: 'Emballar', categoria: 'Gráfica', cidade: 'Irecê', uf: 'BA' }];
+  const rk = [{ fornecedor_id: '3', nome: 'Emballar', local: 'Irecê/BA', entregues: 14, pontualidade: 86, prazo_medio_dias: 4.5, motivo: 'Mais entregas da região' }];
+  const base = DADOS({ fornecedores: forn, ranking: rk });
+  base.impressoes[0] = { ...base.impressoes[0], sugestao: rk, cotacoes: [{ id: 'c1', fornecedor_id: '3', fornecedor_nome: 'Emballar', valor: 180, prazo_dias: 5, escolhida: false }] };
+  const t = await montar({ ...base, gestao: true });
+  assert.match(t.html(), /Ranking das gráficas/); assert.match(t.html(), /Mais entregas da região/);
+  assert.match(t.html(), /data-vi="todas"/);
+  const fonte = readFileSync('vybe-mundo-impressoes.js', 'utf8');
+  assert.match(fonte, /'&todas=1'/);
+  assert.match(fonte, /acao: 'cotacao_salvar', impressao_id: st\.sel/);
+  assert.match(fonte, /acao: 'cotacao_escolher', id:/);
+  assert.match(fonte, /if \(!st\.dados\?\.gestao \|\| !Array\.isArray\(i\.cotacoes\)/, 'cotações só para a gestão');
+});

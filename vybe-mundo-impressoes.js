@@ -7,7 +7,7 @@
 (() => {
   'use strict';
   const URL_API = '/api/painel?area=impressoes';
-  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, aviso: '', filtro: '', fornecedor: '' };
+  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const br = (iso) => (iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
   const cli = (nome) => (nome ? (typeof window.cliCor === 'function' ? window.cliCor(nome) : esc(nome)) : '');
@@ -19,7 +19,8 @@
   const ABERTAS = (i) => !['entregue', 'cancelado'].includes(i.etapa);
 
   async function pedir(metodo, corpo) {
-    const r = await fetch(URL_API, { method: metodo, credentials: 'same-origin', cache: 'no-store',
+    // ?todas=1 traz o histórico inteiro (servidor #549); sem ele, as fechadas só dos últimos 90 dias.
+    const r = await fetch(URL_API + (metodo === 'GET' && st.todas ? '&todas=1' : ''), { method: metodo, credentials: 'same-origin', cache: 'no-store',
       headers: corpo ? { 'Content-Type': 'application/json' } : undefined, body: corpo ? JSON.stringify(corpo) : undefined });
     let d = {}; try { d = await r.json(); } catch { /* sem corpo */ }
     if (!r.ok) throw Object.assign(new Error(d.error || 'Não foi possível falar com o servidor.'), { status: r.status });
@@ -34,8 +35,8 @@
     try {
       const r = await pedir('POST', corpo);
       st.aviso = r.arte_id ? `${sucesso} A arte foi para Solicitações como demanda.` : sucesso;
-      st.form = null; st.cancelar = false;
-      if (r.id) st.sel = String(r.id);
+      st.form = null; st.cancelar = false; st.cotar = false;
+      if (r.id && corpo.acao === 'impressao_salvar') st.sel = String(r.id);
       await carregar();
     } catch (e) { st.aviso = e.message; pintarAviso(true); }
   }
@@ -89,6 +90,7 @@
       ${!i.fornecedor_id ? '<p class="vi-nota">Sem fornecedor a impressão não vai para a gráfica. Escolha em Editar.</p>' : ''}
       ${st.cancelar ? `<form class="vi-cancelar" data-vi-form="cancelar"><label><span>Por que cancelar? (fica no histórico)</span><textarea name="nota" required maxlength="500" rows="2"></textarea></label>
         <div class="vi-acoes"><button type="submit" class="vi-botao perigo">Cancelar a impressão</button><button type="button" class="vi-botao" data-vi="nao-cancelar">Voltar</button></div></form>` : ''}` : ''}
+      ${sugestoes(i)}${cotacoes(i)}
       <h4>Histórico</h4>
       <ol class="vi-hist">${(i.eventos || []).slice().reverse().map((ev) => `<li><b>${ev.de ? `${esc(etapaNome(ev.de))} → ` : ''}${esc(etapaNome(ev.para))}</b><small>${esc([ev.autor_nome, ev.em ? new Date(ev.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''].filter(Boolean).join(' · '))}</small>${ev.nota ? `<p>${esc(ev.nota)}</p>` : ''}</li>`).join('') || '<li class="vi-mudo">Sem registros.</li>'}</ol>
     </aside>`;
@@ -103,7 +105,7 @@
         <label class="largo"><span>O que imprimir</span><input name="titulo" required maxlength="200" value="${esc(f.titulo || '')}" placeholder="Ex.: Adesivo da vitrine"></label>
         <label><span>Cliente</span><select name="cliente_id" data-vi-cliente>${op(d.clientes, f.cliente_id, 'Interno (sem cliente)')}</select></label>
         <label><span>Projeto pontual</span><select name="projeto_id">${op(projetos, f.projeto_id, 'Sem projeto')}</select></label>
-        <label><span>Fornecedor (gráfica)</span>${(d.fornecedores || []).length ? `<select name="fornecedor_id">${op(d.fornecedores, f.fornecedor_id, 'Ainda sem fornecedor', (x) => x.categoria ? `${x.nome} · ${x.categoria}` : x.nome)}</select>`
+        <label><span>Fornecedor (gráfica)</span>${(d.fornecedores || []).length ? `<select name="fornecedor_id">${op(d.fornecedores, f.fornecedor_id, 'Ainda sem fornecedor', (x) => [x.nome, x.categoria, x.cidade ? `${x.cidade}${x.uf ? '/' + x.uf : ''}` : ''].filter(Boolean).join(' · '))}</select>`
           : '<span class="vi-sem-forn">Nenhum fornecedor cadastrado. <button type="button" class="vi-link" data-vi="cadastrar-fornecedor">Cadastrar fornecedor</button></span>'}</label>
         <label><span>Responsável</span><select name="responsavel">${op(d.pessoas, f.responsavel, 'Sem responsável')}</select></label>
         <label><span>Material</span><input name="material" maxlength="120" value="${esc(f.material || '')}" placeholder="Adesivo vinil, lona, papel couchê…"></label>
@@ -118,7 +120,39 @@
       <div class="vi-acoes"><button type="submit" class="vi-botao principal">${novo ? 'Criar impressão' : 'Salvar'}</button><button type="button" class="vi-botao" data-vi="fechar-form">Cancelar</button></div>
     </form>`;
   }
+  // Sugestão de gráfica (servidor #549): para impressão em arte, orçamento ou aprovado sem fornecedor, as 3 primeiras do
+  // ranking, com o motivo em texto pronto. "Usar" abre a edição com a gráfica escolhida (nada grava sem Salvar).
+  function sugestoes(i) {
+    const l = Array.isArray(i.sugestao) ? i.sugestao : [];
+    if (i.fornecedor_id || !l.length || !ABERTAS(i)) return '';
+    return `<h4>Gráficas sugeridas</h4><ul class="vi-sugestoes">${l.map((s) => `<li><span><b>${esc(s.nome)}</b>${s.motivo ? `<small>${esc(s.motivo)}</small>` : ''}</span>
+      <button type="button" class="vi-botao" data-vi-usar="${esc(s.fornecedor_id)}">Usar</button></li>`).join('')}</ul>`;
+  }
+  // Cotações (só a gestão, servidor #549): várias gráficas para a mesma impressão; escolher grava fornecedor, valor e previsão.
+  function cotacoes(i) {
+    if (!st.dados?.gestao || !Array.isArray(i.cotacoes) || !ABERTAS(i)) return '';
+    const forn = st.dados.fornecedores || [];
+    const lista = i.cotacoes.map((c) => `<li class="${c.escolhida ? 'escolhida' : ''}"><span><b>${esc(c.fornecedor_nome || 'Fornecedor')}</b>
+      <small>${[reais(c.valor), c.prazo_dias != null ? `${c.prazo_dias} dia${Number(c.prazo_dias) === 1 ? '' : 's'}` : '', c.observacao || ''].filter(Boolean).map(esc).join(' · ')}</small></span>
+      ${c.escolhida ? '<em class="vi-tag ok">escolhida</em>' : `<button type="button" class="vi-botao" data-vi-escolher="${esc(c.id)}">Escolher</button>`}</li>`).join('');
+    const form = st.cotar ? `<form class="vi-cotar" data-vi-form="cotacao"><div class="vi-grade">
+        <label><span>Fornecedor</span><select name="fornecedor_id" required><option value="">Escolha…</option>${forn.map((f) => `<option value="${esc(f.id)}">${esc(f.nome)}</option>`).join('')}</select></label>
+        <label><span>Valor (R$)</span><input name="valor" type="number" min="0" step="0.01" required></label>
+        <label><span>Prazo (dias)</span><input name="prazo_dias" type="number" min="0" step="1"></label>
+        <label class="largo"><span>Observação</span><input name="observacao" maxlength="300"></label></div>
+        <div class="vi-acoes"><button type="submit" class="vi-botao principal">Guardar cotação</button><button type="button" class="vi-botao" data-vi="nao-cotar">Voltar</button></div></form>` : '';
+    return `<h4>Cotações</h4>${lista ? `<ul class="vi-cotacoes">${lista}</ul>` : '<p class="vi-mudo">Nenhuma cotação ainda.</p>'}
+      ${form || (forn.length ? '<button type="button" class="vi-link" data-vi="cotar">+ Nova cotação</button>' : '')}`;
+  }
+  // Ranking das gráficas (servidor #549), com o motivo pronto; sem ranking, o resumo por fornecedor.
+  function ranking() {
+    const l = st.dados.ranking || []; if (!l.length) return '';
+    return `<section class="vi-bloco"><h4>Ranking das gráficas</h4><ol class="vi-ranking">${l.map((f) => `<li><button type="button" data-vi-fornecedor="${esc(f.fornecedor_id)}" aria-pressed="${String(f.fornecedor_id) === st.fornecedor}">
+      <b>${esc(f.nome)}</b><small>${esc([f.local || [f.cidade, f.uf].filter(Boolean).join('/'), f.telefone, `${f.entregues} entregue${f.entregues === 1 ? '' : 's'}`, f.pontualidade != null ? `${f.pontualidade}% no prazo` : '', f.prazo_medio_dias != null ? `${String(f.prazo_medio_dias).replace('.', ',')} d em média` : ''].filter(Boolean).join(' · '))}</small>
+      ${f.motivo ? `<small class="vi-motivo">${esc(f.motivo)}</small>` : ''}</button></li>`).join('')}</ol></section>`;
+  }
   function porFornecedor() {
+    if ((st.dados.ranking || []).length) return ranking();
     const l = st.dados.porFornecedor || []; if (!l.length) return '';
     return `<section class="vi-bloco"><h4>Por fornecedor</h4><ul class="vi-forn">${l.map((f) => `<li><button type="button" data-vi-fornecedor="${esc(f.fornecedor_id)}" aria-pressed="${String(f.fornecedor_id) === st.fornecedor}"><b>${esc(f.nome)}</b>
       <small>${f.abertas} aberta${f.abertas === 1 ? '' : 's'}${f.atrasadas ? ` · <span class="t-ruim">${f.atrasadas} atrasada${f.atrasadas === 1 ? '' : 's'}</span>` : ''} · ${f.entregues} entregue${f.entregues === 1 ? '' : 's'}${f.prazo_medio_dias != null ? ` · ${String(f.prazo_medio_dias).replace('.', ',')} d em média` : ''}</small></button></li>`).join('')}</ul></section>`;
@@ -133,7 +167,8 @@
     return `${semForn ? `<div class="vi-alerta"><span><b>Nenhum fornecedor cadastrado.</b> Sem a gráfica, a impressão não sai do orçamento. Cadastre a primeira e ela aparece aqui.</span>
         <button type="button" class="vi-botao" data-vi="cadastrar-fornecedor">Cadastrar fornecedor</button></div>` : ''}
       <div class="vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', R.abertas)}${chip('atrasadas', 'Atrasadas', R.atrasadas, R.atrasadas ? 'ruim' : '')}${chip('semfornecedor', 'Sem fornecedor', R.semFornecedor, R.semFornecedor ? 'atencao' : '')}
-        ${fNome ? `<button type="button" class="vi-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}</div>
+        ${fNome ? `<button type="button" class="vi-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}
+        <button type="button" class="vi-chip" data-vi="todas" aria-pressed="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button></div>
       ${st.form ? formulario() : ''}
       <div class="vi-meio${st.sel ? ' com-ficha' : ''}">${(d.impressoes || []).length ? quadro() : estado('vazio', 'Nenhuma impressão ainda', 'Adesivo, banner, cardápio, embalagem: cadastre o que vai para a gráfica e acompanhe até a entrega.', '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>')}${ficha()}</div>
       ${porFornecedor()}`;
@@ -170,6 +205,8 @@
     if (b.dataset.viFiltro !== undefined) { st.filtro = b.dataset.viFiltro; pintar(); return; }
     if (b.dataset.viFornecedor !== undefined) { st.fornecedor = st.fornecedor === b.dataset.viFornecedor ? '' : b.dataset.viFornecedor; pintar(); return; }
     if (b.dataset.viArte) { const id = String(b.dataset.viArte); window.openItemWorkspace?.(id.startsWith('vybe:') ? id : 'vybe:' + id); return; }
+    if (b.dataset.viUsar) { const i = st.dados.impressoes.find((x) => String(x.id) === st.sel); st.form = { ...i, fornecedor_id: b.dataset.viUsar }; pintar(); st.janela.querySelector('[name=fornecedor_id]')?.focus(); return; }
+    if (b.dataset.viEscolher) { gravar({ acao: 'cotacao_escolher', id: b.dataset.viEscolher }, 'Cotação escolhida: fornecedor, valor e previsão foram para a impressão.'); return; }
     if (b.dataset.viEtapa) { gravar({ acao: 'impressao_etapa', id: st.sel, etapa: b.dataset.viEtapa }, `Foi para ${etapaNome(b.dataset.viEtapa)}.`); return; }
     const a = b.dataset.vi;
     if (a === 'fechar') fechar();
@@ -181,6 +218,9 @@
     else if (a === 'cancelar') { st.cancelar = true; pintar(); st.janela.querySelector('[data-vi-form=cancelar] textarea')?.focus(); }
     else if (a === 'nao-cancelar') { st.cancelar = false; pintar(); }
     else if (a === 'cadastrar-fornecedor') cadastrarFornecedor();
+    else if (a === 'todas') { st.todas = !st.todas; carregar(); }
+    else if (a === 'cotar') { st.cotar = true; pintar(); st.janela.querySelector('[data-vi-form=cotacao] select')?.focus(); }
+    else if (a === 'nao-cotar') { st.cotar = false; pintar(); }
   }
   function aoMudar(e) {
     const m = e.target.closest('[data-vi-mover]'); if (m) { const para = m.value; m.value = ''; if (para) gravar({ acao: 'impressao_etapa', id: st.sel, etapa: para }, `Foi para ${etapaNome(para)}.`); return; }
@@ -188,6 +228,11 @@
   }
   function aoEnviar(e) {
     const form = e.target.closest('[data-vi-form]'); if (!form) return; e.preventDefault();
+    if (form.dataset.viForm === 'cotacao') {
+      const o = Object.fromEntries(new FormData(form).entries());
+      gravar({ acao: 'cotacao_salvar', impressao_id: st.sel, fornecedor_id: o.fornecedor_id, valor: Number(o.valor), prazo_dias: o.prazo_dias === '' ? null : Number(o.prazo_dias), observacao: o.observacao || '' }, 'Cotação guardada.');
+      return;
+    }
     if (form.dataset.viForm === 'cancelar') { const nota = String(new FormData(form).get('nota') || '').trim(); if (!nota) return; gravar({ acao: 'impressao_etapa', id: st.sel, etapa: 'cancelado', nota }, 'Impressão cancelada.'); return; }
     const o = formParaObjeto(form), id = st.form?.id;
     gravar({ acao: 'impressao_salvar', ...(id ? { id } : {}), ...o }, id ? 'Impressão salva.' : 'Impressão criada.');

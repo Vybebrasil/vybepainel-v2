@@ -84,3 +84,18 @@
   #vv-impressoes .vi-ficha{position:static}
   #vv-impressoes .vi-topo p{display:none}
 }
+/* Sugestão de gráfica, cotações e ranking (servidor #549) */
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes){list-style:none;margin:0;padding:0;display:grid;gap:6px}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FAF7F2}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) li span{display:grid;gap:2px;min-width:0;font:600 12.5px Inter,system-ui,sans-serif}
+#vv-impressoes :is(.vi-sugestoes,.vi-cotacoes) small{font:500 11.5px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-cotacoes li.escolhida{border-color:#A7D9B9;background:#EEF8F1}
+#vv-impressoes .vi-tag.ok{background:#E3F4E9;color:#1D6B3D}
+#vv-impressoes .vi-cotar{display:grid;gap:10px;padding:12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
+#vv-impressoes .vi-ranking{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;counter-reset:rank}
+#vv-impressoes .vi-ranking li{counter-increment:rank}
+#vv-impressoes .vi-ranking button{appearance:none;width:100%;display:grid;gap:3px;text-align:left;padding:10px 12px 10px 38px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;font:600 13px Inter,system-ui,sans-serif;position:relative}
+#vv-impressoes .vi-ranking button::before{content:counter(rank) "º";position:absolute;left:12px;top:10px;font:700 13px Inter,system-ui,sans-serif;color:#C2490C}
+#vv-impressoes .vi-ranking button[aria-pressed="true"]{border-color:#F76808;background:#FFF4E8}
+#vv-impressoes .vi-ranking small{font:500 12px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-ranking .vi-motivo{color:#3D3A35}

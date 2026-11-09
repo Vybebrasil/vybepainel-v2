@@ -571,7 +571,7 @@
       <div class="vc-filtros" role="group" aria-label="Categoria"><button type="button" data-vc-cat="" aria-pressed="${!cat}">Todas</button>${d.categorias.map((c) => `<button type="button" data-vc-cat="${c.id}" aria-pressed="${cat === c.id}">${esc(c.nome)}</button>`).join('')}</div>
       <input type="search" class="vc-busca" data-vc-busca="forn" placeholder="Buscar fornecedor ou contato" value="${esc(st.filtro.forn || '')}" aria-label="Buscar fornecedor">
       <div class="vc-lista">${lista.map((f) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(f.nome)}</b>${pill(nomeCat(f.categoria), 'u4')}</div>
-        <small>BV ${pc(f.bv_percentual)}${f.contato ? ' · ' + esc(f.contato) : ''}</small>${f.observacoes ? `<small>${esc(f.observacoes)}</small>` : ''}${impressoesDoFornecedor(f)}
+        <small>BV ${pc(f.bv_percentual)}${f.contato ? ' · ' + esc(f.contato) : ''}${f.cidade ? ` · ${esc(f.cidade)}${f.uf ? '/' + esc(f.uf) : ''}` : ''}${f.telefone ? ' · ' + esc(f.telefone) : ''}</small>${f.observacoes ? `<small>${esc(f.observacoes)}</small>` : ''}${impressoesDoFornecedor(f)}
         <div class="vc-linha-acoes">${(f.impressoes?.abertas || f.impressoes?.entregues) && window.VybeImpressoes ? `<button type="button" class="vc-sec" data-vc="ver-impressoes" data-id="${esc(f.id)}">Ver impressões</button>` : ''}<button type="button" class="vc-sec" data-vc="fornecedor" data-id="${esc(f.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="arquivar-forn" data-id="${esc(f.id)}">Arquivar</button></div></article>`).join('')
         || vazio(d.fornecedores.length ? 'Nenhum fornecedor com esse filtro.' : 'Nenhum fornecedor cadastrado. Guarde aqui gráficas, brindes, audiovisual e o BV de cada um.', 'Novo fornecedor', 'fornecedor')}</div>`;
   }
@@ -721,8 +721,12 @@
       { nome: 'categoria', rotulo: 'Categoria', tipo: 'select', opcoes: d.categorias.map((c) => [c.id, c.nome]), valor: x.categoria, meio: true },
       { nome: 'bv_percentual', rotulo: 'BV (%)', tipo: 'number', valor: x.bv_percentual ?? '', maxv: 100, meio: true },
       { nome: 'contato', rotulo: 'Contato', valor: x.contato, max: 200 },
+      // Cidade, UF e telefone (servidor #549): o ranking das Impressões usa o local para sugerir a gráfica mais perto.
+      { nome: 'cidade', rotulo: 'Cidade', valor: x.cidade || '', max: 80, meio: true },
+      { nome: 'uf', rotulo: 'UF', valor: x.uf || '', max: 2, meio: true },
+      { nome: 'telefone', rotulo: 'Telefone', tipo: 'tel', valor: x.telefone || '', max: 20 },
       { nome: 'observacoes', rotulo: 'Observações', tipo: 'textarea', valor: x.observacoes, max: 2000 },
-    ], enviar: (v) => comercial({ acao: 'fornecedor_salvar', id: id || undefined, ...v }) });
+    ], enviar: (v) => comercial({ acao: 'fornecedor_salvar', id: id || undefined, ...v, uf: String(v.uf || '').trim().toUpperCase() }) });
   }
   function formCreator(id) {
     const d = st.dados.creators, x = d.creators.find((c) => c.id === id) || {};
