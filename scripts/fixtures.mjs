@@ -27,6 +27,38 @@ const marcosDemo=()=>MARCOS.map((m,k)=>{const especial=['implementacoes','motion
   const nivel=degraus.filter(d=>d.ok).length,proximo=degraus[nivel]||null;
   return {id:m.id,nome:m.nome,criterio:criterioDoMarco(m.id),nivel,nomeNivel:NIVEIS_DEMO[nivel]||'',social:false,valor,unidade:m.unidade,proximo:proximo?{nivel:proximo.nivel,nome:proximo.nome,meta:proximo.meta,classe:proximo.classe}:null,degraus,ok:nivel>0,em:nivel?em:null,dica:proximo?`${proximo.meta} ${m.unidade}`:'Nível máximo',moveis:[(proximo||degraus.at(-1)).classe]};});
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
+import { SECOES_CADASTRO, CAMPOS_CADASTRO, separarCampos, estadoNoEcossistema } from '../server/clientes-cadastro.js';
+// Cadastro de clientes fictício, em estados diferentes (completo, pela metade, só o nome), para a ficha e o
+// Ecossistema aparecerem como na operação. Fica em memória: reiniciar a prévia volta ao começo.
+const CLIENTES_DEMO=['Academia Lions','Alpha1','Antonov','Brussolo Ristorante','ConectaSim','Copirecê','DiaCenter','DiaLab','Gonzalez','Hebravet','Hellen','Mangaba AI','Serra Grande Bebidas','VOA','Experimente Papelaria']
+  .map((nome,i)=>({id:i+1,nome,ativo:true,status:'Ativo',responsavel:i%2?'Ewerton':'Vinícius',heads:'Operador de teste',heads_ids:[1],
+    segmento:['Academia','Solução empresarial','Academia','Restaurante','Provedor de internet'][i%5],plano:i%3?'Plus':'',
+    cnpj:i%4===0?'12.345.678/0001-'+String(10+i).padStart(2,'0'):'',endereco:i%2?'':'Rua São Francisco, '+(100+i)+', Centro',email:'',telefone:'',valor:null,
+    cadastro:i===0?{razao_social:'Lions Top Academia LTDA',cidade:'Irecê',uf:'BA',contato_nome:'Carla (fictícia)',contato_cargo:'Sócia',contato_whatsapp:'(74) 99999-0001',
+      tipo_contrato:'Mensal recorrente',contrato_inicio:'2026-02-01',instagram:'@academialions',grupo_whatsapp:'Lions x Vybe',escopo:'12 posts e 8 stories por mês, 2 reels, tráfego no Instagram.'}
+      :i%3===0?{cidade:'Irecê',uf:'BA',instagram:'@cliente'+i}:{}}));
+const ACESSOS_DEMO=[{id:'a1',nome:'Dados & Acessos - Academia Lions',cliente_id:1,cliente:'Academia Lions',grupo:'',drive:'https://drive.google.com/drive/folders/demo-lions',link:'',manus:false,documento:true,atualizado_em:new Date().toISOString()}];
+function clientesDemo(req,res,url,body,reply){
+  const eco=url.searchParams.get('ecossistema');
+  if(eco){const c=CLIENTES_DEMO.find(x=>String(x.id)===eco);if(!c)return reply(404,{error:'Cliente não encontrado.'});
+    const a=ACESSOS_DEMO.find(x=>x.cliente_id===c.id)||null;
+    const financas=c.cnpj?{estado:'lido',ligacao:{financas_id:'f'+c.id,financas_nome:c.nome+' (Finanças)',vybe_id:String(c.id),vybe_nome:c.nome,por:'cnpj'}}:{estado:'lido',ligacao:null};
+    return reply(200,{ok:true,cliente:{id:String(c.id),nome:c.nome},sistemas:estadoNoEcossistema({cliente:c,acesso:a,financas,hubUrl:'https://hub.example.test'})});}
+  if(req.method==='POST'){let d={};try{d=JSON.parse(String(body||'{}'));}catch{return reply(400,{error:'JSON inválido.'});}
+    try{
+      if(d.acao==='criar'){const nome=String(d.nome||'').trim();if(!nome)return reply(400,{error:'Informe o nome do cliente.'});
+        const ja=CLIENTES_DEMO.find(x=>x.nome.toLowerCase()===nome.toLowerCase());
+        const c=ja||{id:CLIENTES_DEMO.length+1,nome,ativo:true,status:'Ativo',heads:'',heads_ids:[],cadastro:{}};if(!ja)CLIENTES_DEMO.push(c);
+        if(d.campos)aplicarDemo(c,d.campos);return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome,ativo:true},...(ja?{ja_existia:true}:{})});}
+      if(d.acao==='cadastro'){const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.id));if(!c)return reply(404,{error:'Cliente não encontrado.'});
+        aplicarDemo(c,d.campos);return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome}});}
+    }catch(e){return reply(e.status||400,{error:e.message});}
+    if(d.acao==='atas')return reply(200,{ok:true,atas:[],eventos:[]});
+    return reply(200,{ok:true});}
+  return reply(200,{ok:true,clientes:CLIENTES_DEMO,pessoas:[pessoa],acessos:ACESSOS_DEMO,cadastro_def:{secoes:SECOES_CADASTRO,campos:CAMPOS_CADASTRO}});
+}
+function aplicarDemo(c,campos){const {colunas,extras}=separarCampos(campos);Object.assign(c,colunas);
+  for(const [k,v] of Object.entries(extras)){if(v)c.cadastro[k]=v;else delete c.cadastro[k];}}
 const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
 // Monday atrás, e é a única forma de exercitar a tela local de ponta a ponta.
@@ -122,6 +154,15 @@ export async function demoApi(req,res,url,body) {
       const sql=()=>Promise.resolve([{preferencias:{sala_planta:'amplo'}}]);
       return reply(200,{ok:true,...await conferirEditorEscritorio(sql,{id:1,admin:true},salasDoEscritorio([{id:1,nome:'Paulo'}]),entrada)});
     } catch(e) { return reply(e.status || 400,{error:e.message}); }
+  }
+  // Cadastro de clientes fictício em memória (clientesDemo): grava só aqui, para o fluxo de cadastro dar para ser conferido.
+  if(req.method==='POST' && url.pathname==='/api/painel' && sessao && ['clientes','acessos'].includes(url.searchParams.get('area'))) {
+    if(url.searchParams.get('area')==='clientes')return clientesDemo(req,res,url,body,reply);
+    let d={};try{d=JSON.parse(String(body||'{}'));}catch{}
+    let a=ACESSOS_DEMO.find(x=>x.id===d.id)||ACESSOS_DEMO.find(x=>String(x.cliente_id)===String(d.cliente));
+    const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.cliente||a?.cliente_id));
+    if(!a&&c){a={id:'a'+c.id,nome:'Dados & Acessos - '+c.nome,cliente_id:c.id,cliente:c.nome,grupo:'',drive:'',link:'',manus:false,documento:false,atualizado_em:new Date().toISOString()};ACESSOS_DEMO.push(a);}
+    if(a&&d.pasta_drive!==undefined)a.drive=d.pasta_drive;return reply(200,{ok:true});
   }
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
@@ -236,7 +277,7 @@ export async function demoApi(req,res,url,body) {
     if(area==='vybes'&&req.method==='GET')return reply(200,{ok:true,noAr:true,agir:true});
     if(area==='pessoas'&&req.method==='GET')return reply(200,{ok:true,pessoas:[{id:'1',nome:'Operador de teste',email:'operador@vybe.invalid',admin:true,pode_entrar:true,ativo:true,tem_senha:true,ultimo_acesso:new Date().toISOString()},
       {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});
-    if(area==='clientes')return reply(200,{ok:true,clientes:[{id:1,nome:'Cliente demonstração',ativo:true,status:'Ativo',responsavel:'Vinícius',heads:'Operador de teste',heads_ids:[1]}],pessoas:[pessoa],acessos:[]});
+    if(area==='clientes')return clientesDemo(req,res,url,body,reply);
     // Log de atividade fictício: um exemplo de cada tipo de evento, em dias diferentes.
     if(area==='peca' && url.searchParams.get('log')==='1'){
       const h=(dias,hora)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-dias);d.setUTCHours(hora+3,15,0,0);return d.toISOString();};

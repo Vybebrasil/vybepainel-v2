@@ -3264,7 +3264,7 @@
     try { localStorage.setItem(CHAVE, JSON.stringify({ ligado })); } catch { /* sem armazenamento */ }
     sincronizar();
   }
-  window.mundoVoxel = { ligar, ligado: () => ligado, abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
+  window.mundoVoxel = { ligar, ligado: () => ligado, irPara: (id) => usarTrilho(id), abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
     // Conferência visual (presença e clientes) sem mexer nos dados do painel.
     desenharCaptacoes: (lista) => mundo?.definirCaptacoes(lista),
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
