@@ -431,6 +431,7 @@ async function chamarClientes(corpo, feito) {
 }
 
 async function criarCliente() {
+  if (typeof abrirCadastroCompleto === 'function') return abrirCadastroCompleto('', { depois: () => carregarConta() });
   const nome = await nomearNoPainel('Nome do novo cliente, exatamente como deve aparecer no painel:');
   if (nome === null || !String(nome).trim()) return;
   chamarClientes({ acao:'criar', nome }, 'Cliente criado.');

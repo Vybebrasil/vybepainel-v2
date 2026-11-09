@@ -5079,31 +5079,31 @@ body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
 /* Dock de baixo da sala, estilo dock de verdade (Paulo, 09/11/2026: "deixa o dock de baixo mais padrão... estilo um dock mesmo"):
    vidro claro, ícones quadrados com o nome embaixo, o ponto verde da sala onde você está na voz e o número de quem está
    em cada uma. O Voltar é o primeiro ícone, escuro. Sobe um pouco ao passar o mouse (desliga com Reduzir movimento). */
-#mundo-andar .vq-dock{position:absolute;left:50%;bottom:var(--vv-m,14px);transform:translateX(-50%);z-index:2;display:flex;align-items:flex-end;gap:4px;max-width:calc(100% - 2 * var(--vv-m,14px));padding:8px 10px 6px;box-sizing:border-box;overflow:visible;scrollbar-width:none;
-  background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.85);border-radius:22px;
+.vq-dock{position:relative;display:flex;align-items:flex-end;gap:2px;max-width:calc(100% - 2 * var(--vv-m,14px));padding:6px 8px 4px;box-sizing:border-box;overflow:visible;scrollbar-width:none;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.85);border-radius:18px;
   box-shadow:0 0 0 1px rgba(31,29,26,.08),0 22px 48px -20px rgba(31,29,26,.45);font-family:var(--vv-texto)}
-#mundo-andar .vq-dock::-webkit-scrollbar{display:none}
+.vq-dock::-webkit-scrollbar{display:none}
 .vq-dock .vq-itens{display:contents}
-.vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:40px;margin:0 6px 14px;background:rgba(31,29,26,.14)}
-.vq-dock .vq-item{position:relative;flex:none;display:grid;justify-items:center;gap:4px;width:68px;padding:2px 0 8px;border:0;background:transparent;color:#1F1D1A;cursor:pointer;transition:transform .18s var(--curva,cubic-bezier(.2,.8,.2,1))}
-.vq-dock .vq-item:hover{transform:translateY(-5px)}
-.vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:48px;height:48px;border-radius:13px;background:linear-gradient(180deg,#FFFFFF,#F3EEE6);border:1px solid rgba(31,29,26,.1);box-shadow:0 6px 14px -8px rgba(31,29,26,.45);color:#3A3F44}
-.vq-dock .vq-icone svg{width:22px;height:22px}
+.vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:28px;margin:0 4px 12px;background:rgba(31,29,26,.14)}
+.vq-dock .vq-item{position:relative;flex:none;display:grid;justify-items:center;gap:3px;width:54px;padding:2px 0 7px;border:0;background:transparent;color:#1F1D1A;cursor:pointer;transition:transform .18s var(--curva,cubic-bezier(.2,.8,.2,1))}
+.vq-dock .vq-item:hover{transform:translateY(-3px)}
+.vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#FFFFFF,#F3EEE6);border:1px solid rgba(31,29,26,.1);box-shadow:0 6px 14px -8px rgba(31,29,26,.45);color:#3A3F44}
+.vq-dock .vq-icone svg{width:18px;height:18px}
 .vq-dock .vq-item.minha .vq-icone{background:linear-gradient(180deg,#FF8A3D,#E2600F);border-color:#C2490C;color:#FFFFFF}
 .vq-dock .vq-voltar .vq-icone{background:linear-gradient(180deg,#3A3631,#1F1D1A);border-color:#1F1D1A;color:#FFFFFF}
-.vq-dock .vq-voltar .vq-icone svg{width:24px;height:24px;stroke-width:2.4}
+.vq-dock .vq-voltar .vq-icone svg{width:19px;height:19px;stroke-width:2.4}
 .vq-dock .vq-item.aberta .vq-icone{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D,0 8px 16px -8px rgba(31,29,26,.5)}
-.vq-dock .vq-rotulo{max-width:68px;font:600 10.5px/1.2 var(--vv-texto);color:#3A3F44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vq-dock .vq-rotulo{max-width:54px;font:600 9.5px/1.2 var(--vv-texto);color:#3A3F44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vq-dock .vq-item.aberta .vq-rotulo{color:#C2490C}
 .vq-dock .vq-ponto{position:absolute;bottom:1px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
 .vq-dock .vq-item.voz .vq-ponto{background:#18A957;box-shadow:0 0 0 2px rgba(24,169,87,.25)}
-.vq-dock .vq-conta{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#1F1D1A;color:#FFFFFF;font:700 10px/18px var(--vv-texto);text-align:center;box-shadow:0 0 0 2px #FFFFFF}
+.vq-dock .vq-conta{position:absolute;top:-5px;right:-5px;min-width:15px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#1F1D1A;color:#FFFFFF;font:700 9px/15px var(--vv-texto);text-align:center;box-shadow:0 0 0 2px #FFFFFF}
 .vq-dock .vq-conta.on{background:#18A957}
 .vq-dock .vq-rostos{display:flex;align-items:center}
-.vq-dock .vq-rostos i{display:grid;place-items:center;width:24px;height:24px;margin-left:-8px;border-radius:50%;background:#E9E3D8;border:2px solid #FFFFFF;font:700 9px var(--vv-texto);font-style:normal;color:#3A3F44}
+.vq-dock .vq-rostos i{display:grid;place-items:center;width:20px;height:20px;margin-left:-7px;border-radius:50%;background:#E9E3D8;border:2px solid #FFFFFF;font:700 9px var(--vv-texto);font-style:normal;color:#3A3F44}
 .vq-dock .vq-rostos i:first-child{margin-left:0}
-.vq-dock .vq-rostos.n1 i{width:30px;height:30px;font-size:11px}
-.vq-dock .vq-rostos.n3 i{width:19px;height:19px;margin-left:-6px;border-width:1.5px;font-size:7.5px}
+.vq-dock .vq-rostos.n1 i{width:26px;height:26px;font-size:10px}
+.vq-dock .vq-rostos.n3 i{width:16px;height:16px;margin-left:-5px;border-width:1.5px;font-size:6.5px}
 .vq-dock .vq-rostos i.eu{background:#FFE3CC;color:#C2490C}
 .vq-dock .vq-rostos i.fala{background:#18A957;color:#FFFFFF}
 .vq-dock .vq-item:focus-visible{outline:none}
@@ -5111,7 +5111,7 @@ body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
 @media (prefers-reduced-motion:reduce){.vq-dock .vq-item{transition:none}.vq-dock .vq-item:hover{transform:none}}
 html.vb-sem-movimento .vq-dock .vq-item{transition:none}
 html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
-@media (max-width:900px){#mundo-andar .vq-dock{bottom:var(--vv-m,12px)}.vq-dock .vq-item{width:60px}.vq-dock .vq-icone{width:44px;height:44px}}
+@media (max-width:900px){.vq-dock .vq-item{width:50px}.vq-dock .vq-icone{width:36px;height:36px}}
 
 /* ===== Guia do dia (Paulo, 09/11/2026: "alguém ali me falando: faz isso primeiro, depois aquilo") =====
    O agente do setor (ou o VYBES) com os passos numerados: o primeiro em destaque (Agora), os outros abaixo. */
@@ -5194,3 +5194,46 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
   html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num.capt-mes-num{color:#FFFFFF!important}
   body.mundo .capt-fab{bottom:calc(64px + 4 * var(--vv-m,12px) + var(--vv-dock-alto,0px))}
 }
+
+/* ===== Dock fixo das salas (Paulo, 09/11/2026: "o dock das salas, chat, música, os controles e a entrada de chamada,
+   fixo; o de cima fica livre pra agenda, WhatsApp, alertas, recados, notas, aparência, ajuda e perfil") =====
+   Faixa fixa embaixo, à direita do dock da esquerda; o dock fica no meio dela. Na sala por dentro, embaixo do quarto
+   (entre o Hoje e a Agenda). Nada por cima do conteúdo: o Hoje
+   ganha o espaço do dock no fim e a coluna da Agenda termina acima dele (marcarPalco). A barra das salas (Salas) abre colada em cima do dock. */
+body.com-dock-salas{--vv-dock-alto:74px}
+.vv-dock-salas-faixa{position:fixed;z-index:645;left:var(--vv-palco-esq,0px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);display:flex;justify-content:center;pointer-events:none}
+.vv-dock-salas-faixa[hidden]{display:none}
+.vv-dock-salas-faixa > .vq-dock{pointer-events:auto;max-width:100%}
+@media (min-width:901px){body.mundo.mundo-quarto .vv-dock-salas-faixa{left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}}
+@media (min-width:1360px){body.mundo.mundo-quarto .vv-dock-salas-faixa{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}}
+@media (max-width:900px){.vv-dock-salas-faixa{left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:calc(64px + 3 * var(--vv-m,12px))}}
+body.mundo.com-dock-salas #vv-hoje{padding-bottom:calc(var(--vv-dock-alto) + 16px)}
+body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-alto)}
+body.mundo.mundo-modulo.com-dock-salas #mundo-moldura{bottom:calc(var(--vv-m) + var(--vv-dock-alto))}
+body.mundo.mundo-modulo.com-dock-salas::after{content:"";display:block;height:var(--vv-dock-alto)}
+/* os botões da voz no dock: o estado escrito e a cor só de estado */
+.vq-dock .vq-mic.on .vq-icone{background:linear-gradient(180deg,#2BC26C,#18A957);border-color:#11613A;color:#FFFFFF}
+.vq-dock .vq-mic.mudo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
+.vq-dock .vq-mic.mudo .vq-rotulo{color:#B42318}
+.vq-dock .vq-mic.on .vq-rotulo{color:#11613A}
+.vq-dock .vq-entrar .vq-icone{background:linear-gradient(180deg,#FF8A3D,#C2490C);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-entrar .vq-rotulo{color:#C2490C}
+.vq-dock .vq-espera .vq-icone{opacity:.6}
+.vq-dock .vq-sair .vq-icone{color:#B42318;border-color:#F3C5C0}
+.vq-dock .vq-atual .vq-icone{color:#C2490C}
+.vq-dock .vq-item:disabled{cursor:not-allowed;opacity:.45}
+.vq-dock .vq-item:disabled:hover{transform:none}
+.vq-dock .vq-item.aberta .vq-rotulo{color:#C2490C}
+/* quem está mudo: o rosto apagado com o risco vermelho, no dock e na barra das salas */
+.vq-dock .vq-rostos i.mudo{position:relative;filter:grayscale(1);opacity:.75}
+.vq-dock .vq-rostos i.mudo::after{content:"";position:absolute;right:-3px;bottom:-3px;width:9px;height:9px;border-radius:50%;background:#D2453B;box-shadow:0 0 0 2px #FFFFFF}
+.vv-chamada .vz-chip.mudo{border-color:#F3C5C0;background:#FFF5F4}
+.vv-chamada .vz-chip.mudo i{background:#F0D5D2;color:#8F1D16}
+.vv-chamada .vz-chip-mudo{display:grid;place-items:center;width:18px;height:18px;margin-left:2px;border-radius:50%;background:#D2453B;color:#FFFFFF}
+.vv-chamada .vz-chip-mudo svg{width:11px;height:11px;stroke-width:2.4}
+.vv-chamada .vz-sala .gente i.mudo{background:#FDECEE;color:#B42318}
+/* a barra das salas abre em cima do dock (é a mesma barra; aqui só a posição). Vence as regras antigas de posição da barra. */
+html body.mundo .vv-dock-salas-faixa > .vv-chamada.vv-chamada{display:none;position:absolute!important;top:auto!important;left:50%!important;right:auto!important;bottom:calc(100% + 10px)!important;width:min(400px,100%)!important;transform:translateX(-50%);max-height:calc(100vh - var(--vv-dock-alto,90px) - 110px);pointer-events:auto;scale:1}
+html body.mundo.ver-voz .vv-dock-salas-faixa > .vv-chamada.vv-chamada{display:flex}
+/* os ícones da voz (IC) são só traço, como na barra das salas */
+.vq-dock svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
