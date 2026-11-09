@@ -177,7 +177,7 @@ test('cadastrar as peças aprovadas cria todas numa transação, com regra do fo
  UPDATE vybe_pessoas SET monday_user_id=id::text;
  INSERT INTO vybe_pessoas(id,nome,monday_user_id) VALUES(51,'Deivid','51'),(52,'Bia','52'),(53,'Jady','53');
  DROP TABLE vybe_conteudos CASCADE; DROP TABLE vybe_status;
- CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int);
+ CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int,final boolean DEFAULT false);
  INSERT INTO vybe_status VALUES(7829537690,'pode_fazer','Pode Fazer',1),(7829537690,'a_fazer','A Fazer',0),(8385559107,'nova_demanda','Nova Demanda',0);
  CREATE TABLE vybe_conteudos(id bigserial PRIMARY KEY,board_id bigint,titulo text,formato text,formato_chaves text[],tipo_conteudo_chaves text[],clientes_texto text,status_chave text,etapa text,grupo_id text,prazo date,veiculacao date,briefing text,prioridade text,status_em timestamptz,captacao text,removido_em timestamptz);
  CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint,tipo text,de text,para text,autor_id bigint,texto text);
