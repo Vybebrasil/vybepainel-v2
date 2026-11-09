@@ -102,7 +102,7 @@ function sinucaPreHtml(j) {
   };
   const fichas = podeApostar ? `<div class="snc-pre-fichas" role="group" aria-label="Valor da aposta">${[10, 50, 100, 500].map((v) => `<button type="button" aria-pressed="${bil.valor === v}" onclick="sinucaPreValor(${v})">${v}</button>`).join("")}</div>` : "";
   return `<div class="snc-pre${entra ? " entra" : ""}" role="dialog" aria-label="Pré-partida: ${primeiro(a)} contra ${primeiro(b)}">
-<div class="snc-pre-fundo" aria-hidden="true"></div>
+<div class="snc-pre-fundo" aria-hidden="true">${typeof btDecoParede === "function" ? btDecoParede() : ""}</div>
 <div class="snc-pre-cabeca"><small>${j.bot ? "DESAFIO DO BAR" : "PRÉ-PARTIDA"}</small>${relogio}<p>${j.moedas ? `Valendo ${j.moedas} 🪙` : j.bot ? "Desafio do bar" : "Amistoso"}${quebra ? ` · ${quebra} quebra` : ""}</p></div>
 <div class="snc-pre-ringue">
 ${sinucaPreLutador(j, a, "desafiante", prontos)}

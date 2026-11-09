@@ -18,10 +18,16 @@ function btFontes() {
   if (typeof document === "undefined" || document.getElementById("bt-fontes")) return;
   const l = document.createElement("link");
   l.id = "bt-fontes"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Anton&family=Kalam:wght@700&family=Permanent+Marker&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Anton&family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Kalam:wght@700&family=Permanent+Marker&display=swap";
   document.head.appendChild(l);
 }
 btFontes();
+
+// O que fica pendurado na parede do boteco: a placa do fiado, a folhinha do mês, a flâmula e a tomada.
+function btDecoParede() {
+  const d = new Date(), mes = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"][d.getMonth()];
+  return `<i class="bt-deco bt-fiado"></i><i class="bt-deco bt-folhinha" data-mes="${mes}" data-dia="${d.getDate()}"></i><i class="bt-deco bt-flamula"></i><i class="bt-deco bt-tomada"></i>`;
+}
 
 const BT_CARTOLINA = { sala: "amarela", desafios: "laranja", ranking: "verde", conquistas: "rosa", temporada: "azul" };
 const BT_MENU_PINCEL = { sala: "DESAFIAR A TURMA", desafios: "JORNADA DOS BARES", ranking: "RANKING DO SALÃO", conquistas: "ESTANTE DE CONQUISTAS", temporada: "TORNEIO DA TEMPORADA" };
@@ -61,7 +67,7 @@ function desenharLobbySinuca(d, cfg) {
     : `${titulo("A GLÓRIA DO BOTECO", "SEU NOME NO TOPO")}${temporada || '<div class="snc-vazio"><p>Temporada indisponível no momento.</p><button class="bt-btn papel" onclick="escritorioXadrez().extras=null;mesaLerExtras(mesaCfg())">Atualizar temporada</button></div>'}`;
   const cartazes = SINUCA_MENU.map(([id, n, sub], i) => `<button type="button" class="bt-cartaz ${BT_CARTOLINA[id]}" style="--g:${[-2, 1.5, -1, 2, -1.5][i]}deg" aria-pressed="${aba === id}" onclick="sinucaLobbySecao('${id}')"><b>${safeText(BT_MENU_PINCEL[id] || n)}</b><small>${safeText(sub)}</small></button>`).join("");
   xadrezModal(`<div class="bt-salao snc-hub" data-aba="${safeText(aba)}">
-<div class="bt-parede" aria-hidden="true"><i class="bt-luz"></i><i class="bt-azulejo"></i></div>
+<div class="bt-parede" aria-hidden="true"><i class="bt-luz"></i><i class="bt-azulejo"></i>${btDecoParede()}</div>
 <div class="bt-topo"><p class="bt-letreiro" aria-label="Clube de bilhar Vybe"><span>CLUBE DE</span><b>BILHAR</b><small>VYBE · DESDE 2026</small></p>
 <div class="bt-topo-dir">${saldo !== undefined ? `<p class="bt-comanda" title="Suas VybeCoins"><small>COMANDA</small><b class="bt-caneta">${Number(saldo).toLocaleString("pt-BR")} 🪙</b></p>` : ""}<button type="button" class="bt-fechar" aria-label="Fechar sinuca" onclick="xadrezFechar()">×</button></div></div>
 <nav class="bt-menu" aria-label="Menu da sinuca">${btCarteirinhaHtml(eu, nome, f, escritorioCabecaUrl?.(eu))}<div class="bt-cartazes">${cartazes}</div></nav>
