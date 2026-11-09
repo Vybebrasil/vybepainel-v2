@@ -233,6 +233,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `luzDoEstilo`, `baseDeMaquete`); o acabamento de cada bloco (tom próprio, quina e pé pelo tamanho do bloco) é o
   `materialVoxel` de `mundo/voxel.mjs`. Mundo, andar, quarto e retratos dos bonecos usam os dois; não crie luz,
   material ou renderizador próprio numa cena (mude o visual no estilo).
+  Boneco do Habbo (Paulo, 09/11/2026: "trocar a cabeça, corpo, pernas, braços, acessórios... cor da pele, cabelo"):
+  `figuraDoHabbo` lê da arte da pessoa a pele, o cabelo (cor e forma esculpida de frente e de perfil, `cabeloHabbo`),
+  a camisa, o casaco, as mangas e os braços (`bracosDoBoneco`), a calça, o sapato e os acessórios de cabeça
+  (chapéu, enfeite, máscara e óculos); o corpo continua o `desenharBoneco`.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa

@@ -109,8 +109,9 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
   if (f.casaco) for (const sx of [-1, 1]) C(sx * .2, .5, .005, .17, .42, .31, f.casaco);
   for (const sx of [-1, 1]) {
     const qb = -pz(sx);
-    C(sx * .37, .72, qb * .4, .17, .2, .2, manga);
-    C(sx * .37, .52, qb, .14, .2, .16, f.casaco || f.pele);
+    // Manga e antebraço: do Habbo quando vêm dele (f.manga/f.antebraco: braço de fora, manga curta ou comprida).
+    C(sx * .37, .72, qb * .4, .17, .2, .2, f.casaco || f.manga || manga);
+    C(sx * .37, .52, qb, .14, .2, .16, f.casaco || f.antebraco || f.pele);
     C(sx * .37, .44, qb * 1.2, .15, .1, .17, f.pele);
   }
   // Cabeça grande. Com máscara do Habbo (cabeça de cavalo e afins: f.acessorio cobre quase toda a cabeça), a cabeça,
@@ -142,8 +143,11 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     C(0, yo + .08, fr + .02, .1, .03, .02, '#1F1D1A');
     for (const sx of [-1, 1]) C(sx * (W / 2 + .01), yo + .1, .1, .02, .03, .5, '#1F1D1A');
   }
-  // Cabelo em blocos, com volume (mais largo que a cabeça) e mechas na franja.
-  if (ct) {
+  // Cabelo do Habbo (f.cabeloHabbo): a forma esculpida da arte da pessoa, de frente e de perfil, por cima da cabeça.
+  const cabeloEsculpido = Boolean(f.cabeloHabbo?.blocos?.length) && !bone;
+  if (cabeloEsculpido) { const [lx, ly, lz] = f.cabeloHabbo.lados.map((v) => v * 1.002); for (const k of f.cabeloHabbo.blocos) C(k.x, k.y, k.z, lx, ly, lz, k.cor); }
+  // Sem ele, o cabelo em blocos, com volume (mais largo que a cabeça) e mechas na franja.
+  if (ct && !cabeloEsculpido) {
     const cs = escuro(ct, .18), cl = claro(ct, .14);
     if (!bone) C(0, topo - .02, -.02, W + .08, .16, D + .06, ct);
     C(0, yc + .12, -fr - .03, W + .08, H - .1, .1, cs);

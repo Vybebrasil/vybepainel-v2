@@ -287,7 +287,8 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     if (p.figura) figuraDoHabbo(p.figura).then((h) => {
       if (!h || !vivo || !g.parent) return;
       const c = Object.fromEntries(Object.entries(h.cores || {}).filter(([, v]) => v));
-      trocarPoses(b, poses({ ...base, ...c, chapeu: h.acessorio ? null : base.chapeu, acessorio: h.acessorio })); sujar(true);
+      // Óculos, chapéu e máscara vêm esculpidos da arte (acessorio): os de blocos do boneco saem.
+      trocarPoses(b, poses({ ...base, ...c, chapeu: h.acessorio ? null : base.chapeu, oculos: h.acessorio ? false : base.oculos, acessorio: h.acessorio, cabeloHabbo: h.cabeloHabbo })); sujar(true);
     }).catch(() => {});
     return b;
   }
