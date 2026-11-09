@@ -1411,7 +1411,7 @@
   }
 
   // ---------- O andar por dentro (escritório aberto; a voz é da sala onde você entra) ----------
-  let andarAberto = null, timerAndar = null, andarAbertoId = '', geracaoAndar = 0, focoSala = 0;
+  let andarAberto = null, timerAndar = null, andarAbertoId = '', geracaoAndar = 0;
   const TIPO_DA_ZONA = (id) => (/^sala-\d+$/.test(id) ? 'pessoal' : id === 'recepcao' ? 'convivencia' : id);
   function perfilDoDono(zona) {
     try {
@@ -2452,18 +2452,16 @@
     som: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>',
     semSom: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>',
   };
-  // Leva a pessoa até uma sala do Escritório sem sair do Irecity (a voz segue a sala).
-  // A conversa acompanha a sala, preservando a escolha de mute. Uma porta recusada não altera o microfone.
+  // Leva a pessoa até uma sala de voz sem sair da tela em que está, como no Discord (Paulo, 09/11/2026: "quando entra na sala
+  // de alguém é pra entrar na sala de voz, não é pra mandar pro andar"). A conversa acompanha a sala, preservando a escolha
+  // de mute. Uma porta recusada não altera o microfone.
   function irParaSala(zona) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (!zona) return;
     moverParaSala(zona);
-    let focou = false;
-    const focar = () => { if (!focou && e?.zona === zona) { focou = true; void focarSalaDaChamada(zona); } };
-    focar();
     if (e?.zona === zona) e.vozPausada = false;
     const geracaoVoz = e?.geracaoVoz || 0;
-    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); focar(); } pintarChamada(); }, 700);
+    setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); } pintarChamada(); }, 700);
     setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz && !e.vozPausada) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
   }
   window.vybesIrParaSala = irParaSala;
@@ -2471,17 +2469,6 @@
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (e?.base?.eu == null) return '';
     return e.base.salas?.find((s) => s.pessoa_id != null && String(s.pessoa_id) === String(e.base.eu))?.id || '';
-  }
-  async function focarSalaDaChamada(zona) {
-    const e = typeof escritorio !== 'undefined' ? escritorio : null;
-    if (!mundo && carregando) await carregando;
-    const z = zonas3d()?.[zona]; if (!z || e?.zona !== zona) return;
-    const vez = ++focoSala;
-    try {
-      if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
-      await abrirAndarVoxel(z.andar);
-      if (vez === focoSala && e.zona === zona) andarAberto?.focarSala(zona);
-    } catch (erro) { fn('escritorioAviso')?.('Você entrou na sala, mas não foi possível abrir o andar. Tente novamente.'); console.error('[mundo] sala da chamada', erro); }
   }
   // Move a pessoa (e a voz) para a sala sem trocar a tela: a função original do Escritório, guardada antes do desvio.
   function moverParaSala(zona) {
@@ -2518,7 +2505,7 @@
   // Clique no botão laranja do topo: já entra (na chamada da sala ou nas salas de voz) e abre a sala.
   function entrarPeloTopo() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return;
-    if (e.conectado && e.vozPausada && fn('escritorioCanal')?.(e.zona)) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); void focarSalaDaChamada(e.zona); }
+    if (e.conectado && e.vozPausada && fn('escritorioCanal')?.(e.zona)) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); }
     else if (!e.conectado && !e.conectando) { pintarChamada.tentou = true; (e.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); }
     setTimeout(pintarChamada, 600);
   }
@@ -2673,13 +2660,10 @@
     else if (c === 'assumir') { fn('trazerEscritorioParaEstaAba')?.(); setTimeout(pintarChamada, 1500); }
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }
     else if (c === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(() => { pintarChamada(); trazerProPalco(); }); chamarAberto = false; pintarChamada(); }
-    else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); void focarSalaDaChamada(e.zona); pintarChamada(); } }
+    else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); pintarChamada(); } }
     else if (c === 'minha-sala') { const sala = minhaSalaDaConta(); if (sala) irParaSala(sala); }
     else if (b.dataset.pessoa) {
       pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false;
-      const e = typeof escritorio !== 'undefined' ? escritorio : null;
-      const pessoa = pessoaAberta && e?.online?.find((p) => String(p.id) === pessoaAberta);
-      if (pessoa?.zona && pessoa.zona === e.zona) void focarSalaDaChamada(pessoa.zona);
       pintarChamada();
     }
     else if (b.dataset.irSala) { irParaSala(b.dataset.irSala); chamarAberto = false; pessoaAberta = null; }
