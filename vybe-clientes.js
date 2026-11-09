@@ -1712,7 +1712,7 @@ function renderClientesLista(clientes) {
     grid.classList.remove('em-tabela');
     grid.classList.add('em-sinapses');
     grid.innerHTML = renderCerebroVybesHtml();
-    if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
+    if (typeof montarMapaCerebro === 'function') montarMapaCerebro(); else if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
     return;
   }
   grid.classList.remove('em-sinapses');
