@@ -444,7 +444,25 @@ const COMANDOS_RH = [
   )`,
 ];
 
-let promessa = null, promessaRh = null, falhaRh = 0;
+// 7. 2026-11-09-projetos-cliente.sql (auditoria de 09/11): o projeto pontual guarda o cliente pelo cadastro, não por texto.
+// Roda à parte, como o RH: falhou, só os Projetos ficam com o cliente em texto — o resto segue.
+const COMANDOS_PROJETOS = [
+  `ALTER TABLE vybe_projetos ADD COLUMN IF NOT EXISTS cliente_id bigint REFERENCES vybe_clientes(id) ON DELETE SET NULL`,
+  `CREATE INDEX IF NOT EXISTS vybe_projetos_cliente ON vybe_projetos (cliente_id)`,
+  // Etapa de projeto com cliente vira demanda na esteira (Paulo, 09/11): o vínculo etapa → peça.
+  `ALTER TABLE vybe_projeto_etapas ADD COLUMN IF NOT EXISTS conteudo_id bigint REFERENCES vybe_conteudos(id) ON DELETE SET NULL`,
+];
+
+let promessa = null, promessaRh = null, falhaRh = 0, promessaProjetos = null, falhaProjetos = 0;
+async function garantirProjetos(sql) {
+  if (promessaProjetos && falhaProjetos && Date.now() - falhaProjetos > 10 * 60e3) { promessaProjetos = null; falhaProjetos = 0; }
+  if (!promessaProjetos) promessaProjetos = (async () => {
+    const [r] = await sql`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vybe_projeto_etapas' AND column_name = 'conteudo_id') AS ok`; // o último comando do bloco
+    if (r?.ok) return;
+    for (const cmd of COMANDOS_PROJETOS) await sql.query(cmd);
+  })().catch((e) => { falhaProjetos = Date.now(); console.error('[migracoes-irecity] Projetos 09/11 aguardando:', e?.message || e); });
+  return promessaProjetos;
+}
 async function garantirRh(sql) {
   // Falhou (sem permissão, banco fora): tenta de novo só depois de 10 minutos, sem travar a tela.
   if (promessaRh && falhaRh && Date.now() - falhaRh > 10 * 60e3) { promessaRh = null; falhaRh = 0; }
@@ -465,7 +483,7 @@ export function garantirMigracoesIrecity(sql) {
     ) AS ok`;
     if (!r?.ok) for (const cmd of COMANDOS) await sql.query(cmd);
   })().catch((e) => { promessa = null; throw e; });
-  return promessa.then(() => garantirRh(sql));
+  return promessa.then(() => garantirRh(sql)).then(() => garantirProjetos(sql));
 }
 
-export function esquecerMigracoesIrecity() { promessa = null; promessaRh = null; falhaRh = 0; }
+export function esquecerMigracoesIrecity() { promessa = null; promessaRh = null; falhaRh = 0; promessaProjetos = null; falhaProjetos = 0; }
