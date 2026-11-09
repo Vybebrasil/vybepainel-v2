@@ -3400,6 +3400,7 @@
 
   // ---------- Mostrar o mundo junto com a tela de módulos ----------
   let timer = null;
+  const APP_AGENDA = typeof location !== 'undefined' && /^\/agenda\/?$/.test(location.pathname);
   function sincronizar() {
     if (body.classList.contains('auth-pending')) fonteAgentes?.limpar();
     const gateAberto = !!document.getElementById('mode-gate')?.classList.contains('open');
@@ -3433,6 +3434,9 @@
     body.classList.toggle('mundo-visivel', visivel);
     body.classList.toggle('mundo-centro', visivel && centroAberto);
     if (visivel) {
+      // App Agenda Vybe (/agenda, o que o Mizinho instala no celular): abre direto na Agenda e captações (no celular, no mês,
+      // no jeito do Google Agenda), uma vez por carga, sem passar pelo Hoje nem pelo passeio de boas-vindas. O / não muda.
+      if (APP_AGENDA && !sincronizar.agenda) { sincronizar.agenda = true; sincronizar.tour = true; setTimeout(() => usarTrilho('agenda'), 300); }
       if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => window.VybeTutorial?.iniciar?.(), 1200); }
       if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirModulo(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
       if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
