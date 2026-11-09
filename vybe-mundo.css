@@ -5215,3 +5215,20 @@ html body.mundo.com-dock-salas #vv-hoje{padding-bottom:18px}
 /* As janelas dos módulos do mundo (Gestão e visões de setor, camadas do Comercial, Finanças, Impressões, Pessoas, Missões,
    Agentes, Ferramentas, Carteira, Relatório, Planejamentos e WhatsApp) também terminam acima do dock, sem nada por baixo. */
 html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
+/* Semana da agência em painel estreito (Paulo, 09/11/2026, foto do gráfico com os números se encavalando): cada dia fica
+   com a barra do total e os números menores; as cores por status seguem na legenda e no espiar de cada dia. */
+@container hoje (max-width:620px){
+  #vv-hoje .vv-sem-col{padding:4px 2px;gap:4px;grid-template-rows:auto 140px auto;min-width:0}
+  #vv-hoje .vv-sem-barras{height:140px}
+  #vv-hoje .vv-sem-barras i:not(.total){display:none}
+  #vv-hoje .vv-sem-barras i.total{width:min(22px,70%);margin:0}
+  #vv-hoje .vv-sem-topo b{font-size:13px}
+  #vv-hoje .vv-sem-topo em{font-size:9px;line-height:1.15;white-space:normal;word-break:normal}
+  #vv-hoje .vv-sem-dia{font-size:11px}
+  #vv-hoje .vv-sem-dia small{font-size:9px}
+}
+/* Avisos do WhatsApp (coluna no alto, à direita) param acima do dock; os vídeos da chamada abrem acima dele. */
+body.mundo.com-dock-salas #vv-wa-avisos{max-height:calc(100vh - 64px - 3 * var(--vv-m,14px) - var(--vv-dock-alto,74px));overflow:hidden}
+html body.mundo.com-dock-salas .vv-palco{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)}
+/* Botão do topo com nome (Agenda, WhatsApp): a contagem fica no canto do ícone, não em cima do nome. */
+html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{right:auto;left:20px;top:0}
