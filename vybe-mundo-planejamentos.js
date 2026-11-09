@@ -115,5 +115,6 @@
     if (zona === 'operacao' && window.mundoVoxel?.ligado?.()) { abrir('acao'); return; }
     return irSala.call(this, zona, ...r);
   };
-  window.VybePlanejamentos = { abrir, fechar, _ordenar: ordenar, _filtrar: (lista, f) => { const antes = estado.filtro; estado.filtro = f; const r = filtrar(lista); estado.filtro = antes; return r; } };
+  // aberto: o dock (remarcarAoFechar em vybe-mundo.js) pergunta antes de acender o Hoje no lugar de Planejamentos.
+  window.VybePlanejamentos = { abrir, fechar, aberto: () => Boolean(janela && !janela.hidden), _ordenar: ordenar, _filtrar: (lista, f) => { const antes = estado.filtro; estado.filtro = f; const r = filtrar(lista); estado.filtro = antes; return r; } };
 })();
