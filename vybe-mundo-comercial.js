@@ -559,6 +559,11 @@
       <p class="vc-dica">${churn ? 'Risco de churn lido da Carteira.' : 'Risco de churn: a Carteira não está carregada neste painel; sem alerta de concentração.'}</p>
       ${fin() ? `<p class="vc-dica">A previsão usa os recebimentos recorrentes e as contas fixas lançados no Vybe OS. O realizado mês a mês (faturamento × custos, fonte: Vybe Finanças) está em Finanças por cliente.</p>` : avisoFin(false)}`;
   }
+  // O que o fornecedor está imprimindo agora (Impressões, servidor #547): abertas, atrasadas e entregues.
+  const impressoesDoFornecedor = (f) => {
+    const i = f.impressoes; if (!i || !(i.abertas || i.entregues)) return '';
+    return `<small class="vc-impressoes">Impressões: ${num(i.abertas)} aberta${i.abertas === 1 ? '' : 's'}${i.atrasadas ? ` · <b class="t-u1">${num(i.atrasadas)} atrasada${i.atrasadas === 1 ? '' : 's'}</b>` : ''} · ${num(i.entregues)} entregue${i.entregues === 1 ? '' : 's'}</small>`;
+  };
   function abaFornecedores(d) {
     const cat = st.filtro.categoria || '', lista = C().filtrarFornecedores(d.fornecedores.filter((f) => f.ativo), { categoria: cat, busca: st.filtro.forn || '' });
     const nomeCat = (id) => d.categorias.find((c) => c.id === id)?.nome || id;
@@ -566,8 +571,8 @@
       <div class="vc-filtros" role="group" aria-label="Categoria"><button type="button" data-vc-cat="" aria-pressed="${!cat}">Todas</button>${d.categorias.map((c) => `<button type="button" data-vc-cat="${c.id}" aria-pressed="${cat === c.id}">${esc(c.nome)}</button>`).join('')}</div>
       <input type="search" class="vc-busca" data-vc-busca="forn" placeholder="Buscar fornecedor ou contato" value="${esc(st.filtro.forn || '')}" aria-label="Buscar fornecedor">
       <div class="vc-lista">${lista.map((f) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(f.nome)}</b>${pill(nomeCat(f.categoria), 'u4')}</div>
-        <small>BV ${pc(f.bv_percentual)}${f.contato ? ' · ' + esc(f.contato) : ''}</small>${f.observacoes ? `<small>${esc(f.observacoes)}</small>` : ''}
-        <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="fornecedor" data-id="${esc(f.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="arquivar-forn" data-id="${esc(f.id)}">Arquivar</button></div></article>`).join('')
+        <small>BV ${pc(f.bv_percentual)}${f.contato ? ' · ' + esc(f.contato) : ''}</small>${f.observacoes ? `<small>${esc(f.observacoes)}</small>` : ''}${impressoesDoFornecedor(f)}
+        <div class="vc-linha-acoes">${(f.impressoes?.abertas || f.impressoes?.entregues) && window.VybeImpressoes ? `<button type="button" class="vc-sec" data-vc="ver-impressoes" data-id="${esc(f.id)}">Ver impressões</button>` : ''}<button type="button" class="vc-sec" data-vc="fornecedor" data-id="${esc(f.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="arquivar-forn" data-id="${esc(f.id)}">Arquivar</button></div></article>`).join('')
         || vazio(d.fornecedores.length ? 'Nenhum fornecedor com esse filtro.' : 'Nenhum fornecedor cadastrado. Guarde aqui gráficas, brindes, audiovisual e o BV de cada um.', 'Novo fornecedor', 'fornecedor')}</div>`;
   }
   function abaCreators(d) {
@@ -835,6 +840,7 @@
       pagar: () => executar(() => comercial({ acao: 'conta_pagar', id }), 'Conta marcada como paga.'),
       'cancelar-rec': () => confirm('Cancelar este recebimento? Ele sai dos totais (o registro fica guardado).') && executar(() => comercial({ acao: 'recebivel_cancelar', id }), 'Recebimento cancelado.'),
       'cancelar-conta': () => confirm('Cancelar esta conta? Ela sai dos totais (o registro fica guardado).') && executar(() => comercial({ acao: 'conta_cancelar', id }), 'Conta cancelada.'),
+      'ver-impressoes': () => { fechar(); window.VybeImpressoes?.abrir?.(null, { fornecedor: id }); },
       'arquivar-forn': () => confirm('Arquivar este fornecedor?') && executar(() => comercial({ acao: 'fornecedor_arquivar', id }), 'Fornecedor arquivado.'),
       'arquivar-creator': () => confirm('Arquivar este creator?') && executar(() => comercial({ acao: 'creator_arquivar', id }), 'Creator arquivado.'),
       'ir-recebimentos': () => abrir('recebimentos'),
