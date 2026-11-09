@@ -22,7 +22,9 @@ const SINUCA_CFG = registrarMesaEscritorio({
   // Pinta a mesa logo depois de a tela ser montada, na mesma volta: com um
   // setTimeout o navegador mostrava o canvas novo vazio por um quadro, e quem
   // assistia via a mesa piscar a cada tacada (Paulo, 28/10/2026).
-  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); },
+  depois: () => { sinucaPintar(); sinucaAudioPreparar?.(); sinucaTacosVitrine(document.querySelector(".ofc-snc-jogo") || document); sinuca3dIniciar(); const j = sinucaEstado().jogo; if (typeof sinucaConfrontoTalvez === "function") { sinucaConfrontoTalvez(j); sinucaTorcidaSinal(j); sinucaTorcidaAtualizar(j); } },
+  // Leitura de 4 s sem mudança na mesa: só a torcida (as apostas novas) e o sinal de quem assiste.
+  atualizar: (j) => { if (typeof sinucaTorcidaAtualizar === "function") { sinucaTorcidaAtualizar(j); sinucaTorcidaSinal(j); } },
 });
 // A imagem conserva sua proporção. O pano é mapeado por eixo; as bolas
 // continuam redondas, com raio na escala horizontal da mesa (54 mm nas novas).
@@ -184,6 +186,17 @@ function sinucaAnuncioBola(j, n) {
   const v = sinucaVisual(j.mesa.modo, n);
   return `<i class="snc-anuncio-bola${v.listra ? " listra" : ""}${n === 0 ? " branca" : ""}" style="--c:${v.cor}">${n || ""}</i>`;
 }
+// Quando o anúncio entra (Paulo, 08/11/2026: "as animações das bolas, multas,
+// parece que ficou atrás do jogo"): logo depois da última bola cair (ou do
+// toque na bola errada), sem esperar a mesa inteira parar. Cegar, bola fora da
+// mesa e tacada sem eventos só se sabem no fim.
+function sinucaMomentoAnuncio(t) {
+  if (["nenhuma", "fora", "branca-fora", "tempo"].includes(t.falta)) return Infinity;
+  const ev = t.eventos || [], caiu = ev.filter((x) => x.t === "caiu" && Number.isFinite(x.ms)).map((x) => x.ms);
+  if (caiu.length) return Math.max(...caiu) + 450;
+  const toque = ev.find((x) => x.t === "bola" && Number.isFinite(x.ms));
+  return t.falta === "errada" && toque ? toque.ms + 450 : Infinity;
+}
 function sinucaAnuncio(j, u) {
   if (typeof document === "undefined" || !u || u.falta === "tempo") return;
   const canvas = document.getElementById("snc-canvas");
@@ -197,6 +210,8 @@ function sinucaAnuncio(j, u) {
   if ((u.caiu || []).includes(0) || u.falta === "branca") cartoes.push({ tipo: "ruim", bolas: [0], titulo: bar ? "Suicida!" : "A branca caiu", texto: "Falta: bola na mão para o outro" });
   if (u.falta === "branca-fora") cartoes.push({ tipo: "ruim", bolas: [0], titulo: "A branca pulou!", texto: "Saiu da mesa: falta" });
   if (fora.length) cartoes.push({ tipo: "ruim", bolas: fora, titulo: "Pulou da mesa", texto: `${fora.length > 1 ? "As bolas voltaram" : "A bola voltou"} para a marca` });
+  // A mesa abriu nesta tacada: de quem é o par e o ímpar.
+  if (u.grupo && bar) cartoes.unshift({ tipo: u.abriuComFalta ? "neutro" : "bom", bolas: [], titulo: `${quem} é ${u.grupo === "pares" ? "PAR" : "ÍMPAR"}`, texto: u.abriuComFalta ? "Pela primeira bola que caiu; a do outro que caiu depois é falta" : "Pela primeira bola que caiu" });
   if (u.tirou) { const sai = [u.tirou, ...(u.tirouMais || [])]; cartoes.push({ tipo: "multa", bolas: sai, titulo: sai.length > 1 ? "Multa dupla" : "Multa", texto: `Sai${sai.length > 1 ? "em" : ""} a${sai.length > 1 ? "s" : ""} ${sai.join(" e ")} (${deQuem})` }); }
   if (!cartoes.length && (u.falta === "nenhuma" || u.falta === "errada")) cartoes.push({ tipo: "ruim", bolas: [], titulo: u.falta === "nenhuma" ? (bar ? "Cegou!" : "Não tocou") : "Bola errada", texto: u.falta === "nenhuma" ? "Não tocou em nenhuma bola" : u.primeiro === 1 ? "Bateu primeiro no ás" : "Bateu primeiro na bola do outro" });
   if (!cartoes.length) return;
@@ -310,7 +325,7 @@ function desenharSinuca(j, s) {
 <div class="snc-bloco snc-bloco-taco"><label class="snc-taco"><small>INCLINAÇÃO <b>${s.elevacao||0}°</b></small>${sinucaTacoDesenho(s.elevacao||0,efeito)}<input type="range" min="0" max="60" step="5" value="${s.elevacao||0}" oninput="sinucaElevacao(this)" ${ativo?'':'disabled'} aria-label="Inclinação do taco"><em class="snc-taco-texto">${sinucaTacoTexto(s.elevacao||0,giro)}</em></label></div>
 <button type="button" class="snc-tacar" onclick="tacarSinuca()" aria-disabled="${!ativo}">TACAR</button><button type="button" class="snc-rever" onclick="sinucaRever()" ${s.replay && !s.anim ? '' : 'disabled'} title="Rever a última tacada em câmera lenta">↺ Rever jogada</button>${m.bolaNaMao&&s.branca&&minha?'<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa(\'snc\')">Reposicionar branca</button>':''}</section>`;
   const caidas = m.bolas.map((p, n) => (!p && n && (m.modo !== "bolavez" || n <= 7) ? n : null)).filter((n) => n !== null);
-  const bandeja = `<div class="snc-bandeja" aria-label="Bolas fora da mesa">${caidas.map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? 'listra' : ''}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join('') || '<span>Nenhuma bola caiu ainda</span>'}</div>`;
+  const bandeja = `<div class="snc-bandeja${caidas.length ? '' : ' vazia'}" aria-label="Bolas fora da mesa">${caidas.map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? 'listra' : ''}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join('') || '<span>Nenhuma bola caiu ainda</span>'}</div>`;
   // O letreiro da vez: quando a vez chega para mim (depois da animação e do anúncio).
   if (minha && !s.anim && s.letreiro !== `${j.id}:${j.n}`) { s.letreiro = `${j.id}:${j.n}`; sinucaLetreiro(poe || m.bolaNaMao ? 'BOLA NA MÃO' : 'SUA VEZ', m.bolaNaMao === 'saida' ? 'Saída: quebre o triângulo' : 'Mire, dose e encaçape'); }
   const ultimo = sinucaUltimoTexto(j);
@@ -326,9 +341,11 @@ function desenharSinuca(j, s) {
     // HUD de jogo (Paulo, 04/11/2026: "mais cara de jogo e menos dashboard com
     // botão de balão"; o moodboard A): a mesa ocupa a tela e o placar, a força,
     // o efeito e o TACAR flutuam por cima, nas bordas, sem cartões.
-    mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}${m.rodizio ? " dupla" : ""}">${m.rodizio ? `<div class="snc-placar dupla"><div class="snc-time a">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaJogadorHtml(j, "jogador3", q)}</div><span class="snc-x" aria-hidden="true">VS</span><div class="snc-time b">${sinucaJogadorHtml(j, "desafiado", q)}${sinucaJogadorHtml(j, "jogador4", q)}</div></div>` : `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>`}${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
- onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}</div>${bandeja}`,
-    painel: sinucaPainelHtml(j, s, q, ultimo),
+    mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}${m.rodizio ? " dupla" : ""}${eu ? "" : " assistindo"}">${eu || j.estado !== "jogando" ? "" : `<button type="button" class="snc-assistindo" onclick="sinucaAba('torcida')"><i></i>ASSISTINDO AO VIVO<b>${j.torcida ? "APOSTAR NA TORCIDA ▸" : ""}</b></button>`}${m.rodizio ? `<div class="snc-placar dupla"><div class="snc-time a">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaJogadorHtml(j, "jogador3", q)}</div><span class="snc-x" aria-hidden="true">VS</span><div class="snc-time b">${sinucaJogadorHtml(j, "desafiado", q)}${sinucaJogadorHtml(j, "jogador4", q)}</div></div>` : `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>`}${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
+ onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}${bandeja}${sinucaPainelHtml(j, s, q, ultimo)}</div>`,
+    // O caderno entra na cena (Paulo, 08/11/2026: "tudo com cara de jogo"): as abas
+    // ficam no alto da mesa e cada painel abre como gaveta por cima; nada embaixo.
+    painel: "",
   };
 }
 
@@ -549,7 +566,9 @@ function sinucaLetreiro(titulo, texto) {
 // Efeito: o ponto da bolinha onde o taco bate. Em cima segue, embaixo puxa,
 // dos lados a branca abre para aquele lado na tabela (no centro, nenhum).
 function sinucaEfeitoNome(e, g) {
-  const v = e > 0 ? "seguir" : e < 0 ? "puxar" : "", h = g > 0 ? "abrir para a direita" : g < 0 ? "abrir para a esquerda" : "";
+  // Com a medida (Paulo, 08/11/2026: efeito impreciso): quanto da meia bola, em %.
+  const pc = (x) => `${Math.round(Math.abs(x) * 100)}%`;
+  const v = e > 0 ? `seguir ${pc(e)}` : e < 0 ? `puxar ${pc(e)}` : "", h = g > 0 ? `direita ${pc(g)}` : g < 0 ? `esquerda ${pc(g)}` : "";
   return [v, h].filter(Boolean).join(" e ") || "no centro";
 }
 // Ponto livre na bola (Paulo, 29/10/2026: "tá muito travado... devia deixar
@@ -561,12 +580,13 @@ const sinucaEfeitoPode = (s) => !(s.gesto || s.enviando || s.anim || !sinucaMinh
 function sinucaEfeitoPor(el, vy, vx) {
   const s = sinucaEstado(), d = Math.hypot(vx, vy);
   if (d > 1) { vx /= d; vy /= d; }
-  const passo = (v) => (Math.abs(v) < 0.03 ? 0 : Math.round(v * 50) / 50);
+  // Passos de 1% e sem zona morta (Paulo, 08/11/2026: "os efeitos estão imprecisos demais").
+  const passo = (v) => Math.round(v * 100) / 100;
   s.efeito = passo(vy); s.giro = passo(vx);
   const i = el.querySelector("i");
   i.style.top = `${50 - s.efeito * 34}%`; i.style.left = `${50 + s.giro * 34}%`;
   el.setAttribute("aria-label", `Efeito: ${sinucaEfeitoNome(s.efeito, s.giro)}`);
-  const t = el.closest(".snc-ajustes")?.querySelector(".snc-efeito-nome");
+  const t = el.closest(".snc-bloco-efeito")?.querySelector(".snc-efeito-nome");
   if (t) t.textContent = sinucaEfeitoNome(s.efeito, s.giro);
   sinucaTacoAtualizar(s);
   sinucaPintar();
@@ -586,7 +606,7 @@ function sinucaEfeitoComeca(ev) {
 function sinucaEfeitoSolta(ev) { const s = sinucaEstado(); if (s.efeitoArrasto === ev.pointerId) s.efeitoArrasto = null; }
 function sinucaEfeitoCentro(ev) { if (sinucaEfeitoPode(sinucaEstado())) sinucaEfeitoPor(ev.currentTarget, 0, 0); }
 function sinucaEfeitoTecla(ev) {
-  const s = sinucaEstado(), d = { ArrowUp: [0.05, 0], ArrowDown: [-0.05, 0], ArrowLeft: [0, -0.05], ArrowRight: [0, 0.05] }[ev.key];
+  const k = ev.shiftKey ? 0.01 : 0.05, s = sinucaEstado(), d = { ArrowUp: [k, 0], ArrowDown: [-k, 0], ArrowLeft: [0, -k], ArrowRight: [0, k] }[ev.key];
   if (!d || !sinucaEfeitoPode(s)) return;
   ev.preventDefault(); ev.stopPropagation();
   sinucaEfeitoPor(ev.currentTarget, (s.efeito || 0) + d[0], (s.giro || 0) + d[1]);
@@ -1088,7 +1108,7 @@ function sinucaAnimQuadro(s, j, agora, R) {
       else if (ev.t === "caiu") sinucaSom("cacapa", Math.max(.15,ev.f));
     }
     const acabou = e >= d.taco + d.bolas;
-    if (acabou && a.anunciado !== t.n) { a.anunciado = t.n; sinucaAnuncio(j, t); }
+    if ((acabou || ms >= sinucaMomentoAnuncio(t)) && a.anunciado !== t.n) { a.anunciado = t.n; sinucaAnuncio(j, t); }
     const impacto = ms < 260 && t.falta !== "tempo" ? { b: ini[0], ang: t.angulo ?? 0, p: ms / 260, forca: t.forca, modelo: sinucaTacoModelo(j, t.lado) } : null;
     return { ...sinucaTrilhaCena(t, ms), impacto, faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
   }

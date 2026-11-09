@@ -16,7 +16,9 @@ import { erro, idValido, minutosDesde, nomes, lerDesafio, conferirDesafio, cobra
 import { xadrezPronto } from './escritorio-xadrez.js';
 import { motorDomino } from './escritorio-domino.js';
 import { motorPoker } from './escritorio-poker.js';
-import { motorSinuca, fichaSinuca, regrasDaCasa, iniciarBolaDaVez } from './escritorio-sinuca.js';
+import { motorSinuca, regrasDaCasa, iniciarBolaDaVez } from './escritorio-sinuca.js';
+import { fichaSinuca, sinucaZeradaEm } from './escritorio-sinuca-conquistas.js';
+import { vistaTorcida, acaoTorcida, liquidarTacada, liquidarPartida } from './escritorio-sinuca-torcida.js';
 import { motorDama } from './escritorio-dama.js';
 import { motorVelha } from './escritorio-velha.js';
 import { motorTruco } from './escritorio-truco.js';
@@ -89,6 +91,8 @@ async function chamarDaFora(tx, j, resultado) {
  }
 }
 async function encerrar(tx, j, resultado, motivo) {
+ // As apostas da torcida da sinuca (escritorio-sinuca-torcida.js).
+ await liquidarPartida(tx, j, resultado);
  // Sinuca em dupla: cada um da dupla que ganhou leva a parte dele do pote.
  const motorFim = MOTORES[j.jogo];
  if (motorFim?.dupla && j.mesa?.rodizio && resultado !== 'empate') {
@@ -218,6 +222,7 @@ async function vencerTempos(sql, agora = Date.now()) {
   r.mesa.tempos = { ...(j.mesa.tempos || {}), [lado]: estouros };
   if (r.mesa.ultimo) r.mesa.ultimo.porTempo = true;
   comFalas(j, j.mesa, r.mesa);
+  await liquidarTacada(tx, j, r.mesa);
   await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(r.mesa)}::jsonb,ultimo_lance_em=now(),empate_de=NULL WHERE id=${j.id}`;
   if (r.fim) await encerrar(tx, j, r.fim.resultado, r.fim.motivo);
   });
@@ -286,9 +291,12 @@ export async function verMesa(sql, pessoa, id, { visto } = {}) {
  const v = semAnimacaoVista(vista(j, pessoa.id, await nomesDaMesa(sql, [j])), visto);
  // A ficha do bar dos dois vai na abertura e no fim (a releitura de 4 s, com `visto`, não leva).
  if (j.jogo === 'sinuca' && (visto === undefined || j.estado !== 'jogando')) v.fichas = await fichasDoBar(sql, 'sinuca', [j.desafiante, j.desafiado].filter((x) => x != null));
+ if (j.jogo === 'sinuca') v.torcida = await vistaTorcida(sql, j, pessoa.id);
  // Placar dos dois neste jogo (todas as partidas terminadas entre eles; em grupo e contra bot não há).
  if (emGrupo(j) || j.bot) return v;
+ // A sinuca foi zerada em SINUCA_ZERADA_EM: o placar entre os dois conta dali.
  const feitas = await sql`SELECT id, resultado, motivo, moedas, desafiante, desafiado, terminado_em FROM vybe_escritorio_partidas WHERE jogo=${j.jogo} AND estado='fim' AND cardinality(mais)=0
+   AND (${j.jogo !== 'sinuca'} OR terminado_em >= ${sinucaZeradaEm()}::timestamptz)
    AND ((desafiante=${j.desafiante} AND desafiado=${j.desafiado}) OR (desafiante=${j.desafiado} AND desafiado=${j.desafiante})) ORDER BY terminado_em DESC NULLS LAST, id DESC`;
  v.placar = placarDe(feitas.map((l) => ({ vencedor: l.resultado === 'empate' ? null : l[l.resultado] })), j.desafiante, j.desafiado);
  // Histórico entre os dois (Paulo, 28/10/2026: "o placar... e o histórico e
@@ -306,16 +314,20 @@ export async function verMesa(sql, pessoa, id, { visto } = {}) {
 export async function fichasDoBar(sql, jogo, ids) {
  ids = [...new Set(ids.map(String).filter((id) => /^\d+$/.test(id)))];
  if (jogo !== 'sinuca' || !ids.length) return {};
- const linhas = await sql`SELECT desafiante, desafiado, resultado, bot, moedas FROM vybe_escritorio_partidas WHERE jogo='sinuca' AND estado='fim' AND resultado IS NOT NULL AND cardinality(mais)=0
-   AND (desafiante = ANY(${ids}::bigint[]) OR desafiado = ANY(${ids}::bigint[])) ORDER BY terminado_em NULLS FIRST, id`;
+ // Todas as 1×1 terminadas (são poucas): as dos outros dizem quantas vitórias o
+ // adversário tinha na hora (azarão, zebra, matador de gigante).
+ const linhas = await sql`SELECT desafiante, desafiado, resultado, motivo, bot, moedas, terminado_em, mesa->'stats' AS stats FROM vybe_escritorio_partidas WHERE jogo='sinuca' AND estado='fim' AND resultado IS NOT NULL AND cardinality(mais)=0
+   ORDER BY terminado_em NULLS FIRST, id`;
  const rk = await rankingGeral(sql, jogo, ids);
- return Object.fromEntries(ids.map((id) => [id, fichaSinuca(id, linhas, rk.lista.find((r) => r.id === id)?.posicao ?? null)]));
+ return Object.fromEntries(ids.map((id) => [id, fichaSinuca(id, linhas, rk.lista.find((r) => r.id === id)?.posicao ?? null, { desde: sinucaZeradaEm() })]));
 }
 // Ranking geral de um jogo (todas as partidas terminadas entre pessoas, sem
 // bot): vitórias, derrotas e a posição. Vem o top 8 e, se estiverem fora dele,
 // as pessoas pedidas (`com`), cada uma com a posição dela.
 export async function rankingGeral(sql, jogo, com = []) {
- const linhas = await sql`SELECT desafiante, desafiado, mais, resultado FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='fim' AND bot IS NULL AND resultado IS NOT NULL`;
+ // A sinuca foi zerada em SINUCA_ZERADA_EM (Paulo, 08/11/2026): o ranking conta dali.
+ const linhas = await sql`SELECT desafiante, desafiado, mais, resultado FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='fim' AND bot IS NULL AND resultado IS NOT NULL
+   AND (${jogo !== 'sinuca'} OR terminado_em >= ${sinucaZeradaEm()}::timestamptz)`;
  const placar = new Map(), de = (id) => placar.get(id) || placar.set(id, { id, vitorias: 0, derrotas: 0, empates: 0 }).get(id);
  for (const l of linhas) {
   // A sinuca em dupla não entra no ranking (ele conta vitória por pessoa).
@@ -542,6 +554,7 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
   if (mesa.tempos?.[lado]) mesa.tempos = { ...mesa.tempos, [lado]: 0 };
   // Quem recebeu a proposta de empate e jogou, recusou.
   const empate = j.empate_de && String(j.empate_de) !== String(pessoa.id) ? null : j.empate_de;
+  await liquidarTacada(tx, j, mesa);
   await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now(),empate_de=${empate} WHERE id=${j.id}`;
   if (fim) await encerrar(tx, j, fim.resultado, fim.motivo);
   return { fim: Boolean(fim) };
@@ -552,8 +565,14 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
 // Desistir, propor/aceitar/recusar empate e reivindicar a vitória quando a
 // outra pessoa sumiu na vez dela. Em grupo, desistir e reivindicar tiram da
 // mesa só quem desistiu ou sumiu; a partida acaba quando sobra um.
-export async function acaoMesa(sql, pessoa, { id, acao }) {
+export async function acaoMesa(sql, pessoa, { id, acao, ...resto }) {
  await exigirTabela(sql);
+ // Torcida da sinuca: quem assiste avisa que está ali e aposta (escritorio-sinuca-torcida.js).
+ if (['assistindo', 'aposta-oferecer', 'aposta-topar', 'aposta-cancelar'].includes(acao)) {
+  const r = await acaoTorcida(sql, pessoa, { id, acao, ...resto });
+  if (acao === 'assistindo') return r;
+  return { ...r, jogo: await verMesa(sql, pessoa, id), economia: await carregarEconomia(sql, pessoa.id) };
+ }
  if (acao === 'pedir-fora' || acao === 'sair-fora') return foraMesa(sql, pessoa, { id, acao });
  if (!['desistir', 'empate', 'aceitar-empate', 'recusar-empate', 'reivindicar'].includes(acao)) throw erro('Pedido inválido.');
  const r = await sql.comTransacao(async (tx) => {

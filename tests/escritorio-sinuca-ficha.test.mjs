@@ -2,10 +2,12 @@
 // tem... os tacos... ter o perfil do cara no bar"): números, tacos e troféus
 // saem só das partidas terminadas.
 import test from 'node:test';
+// As partidas destes testes terminam agora: a sinuca zerada vale desde sempre aqui.
+process.env.VYBE_SINUCA_ZERADA_EM = '2000-01-01T00:00:00Z';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { bancoEscritorio } from './escritorio-esquema.mjs';
-import { fichaSinuca } from '../server/escritorio-sinuca.js';
+import { fichaSinuca } from '../server/escritorio-sinuca-conquistas.js';
 
 const ler = (f) => readFileSync('migrations/' + f, 'utf8');
 

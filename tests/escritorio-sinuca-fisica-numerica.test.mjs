@@ -32,6 +32,6 @@ test('física: força tem derivada contínua e efeito segue o choque real do tac
  for(const [e,l]of [[1,0],[0,1],[1,1],[-1,-1]]){const a=medir(b,.5,1/600,e,l),q=Math.min(1,e*e+l*l),real=(1+0.625*q)*fatorEfeito(e,l)**2;assert.ok(Math.abs(a.energiaInicial/base-real)<1e-9);assert.ok(real<1.25,'o taco não dá mais que o choque taco-bola permite');}
 });
 test('física: mesma distância física horizontal e vertical tem mesmo alcance sem tabela',()=>{
- const b=so({0:[50,25]}),x=simular(b,0,.15),y=simular(b,Math.PI/2,.15),dx=x.bolas[0][0]-50,dy=(y.bolas[0][1]-25)*mapa.metricaY;
+ const b=so({0:[50,25]}),x=simular(b,0,.12),y=simular(b,Math.PI/2,.12),dx=x.bolas[0][0]-50,dy=(y.bolas[0][1]-25)*mapa.metricaY;
  assert.ok(Math.abs(dx-dy)<1e-9,`${dx} / ${dy}`);
 });

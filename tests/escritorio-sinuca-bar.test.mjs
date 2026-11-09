@@ -6,7 +6,7 @@
 // nelas mesmo parece ruim, não tá real").
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { iniciarSinuca, simular, jogarSinuca, vistaSinuca, brancaPode, D_RAIO, RAIO, LARGURA } from '../server/escritorio-sinuca.js';
+import { iniciarSinuca, simular, jogarSinuca, vistaSinuca, brancaPode, D_RAIO, RAIO, LARGURA, regraDoBar } from '../server/escritorio-sinuca.js';
 
 const R = 1.15, DIAG = Math.PI / 4, PARADA = -0.35;
 function mesa(bolas, extra = {}) {
@@ -196,4 +196,33 @@ test('bar: mira girada mais de uma volta ainda taca, igual à mesma mira dentro 
  assert.equal(b.mesa.n, 1, 'a tacada saiu');
  assert.deepEqual(b.mesa.bolas.map((p) => p && p.map((v) => Math.round(v * 100))), a.mesa.bolas.map((p) => p && p.map((v) => Math.round(v * 100))));
  assert.throws(() => jogarSinuca(iniciarSinuca('desafiante'), 'desafiante', { tipo: 'tacar', angulo: 'x', forca: 0.6 }), /Mire de novo/);
+});
+
+// Paulo, 08/11/2026: "quando eu dou uma tacada no início e cai um par e um
+// ímpar... o que eu matei primeiro sou eu e o que caiu depois vira o do
+// adversário... e eu já tomaria uma multa".
+test('bar: mesa aberta, caiu par e depois ímpar: fico com o par e tomo multa (sai a menor ímpar dele)', () => {
+ const ini = (extra = {}) => mesa({ 0: [20, 25], 1: [1.4, 25], 2: [70, 20], 3: [80, 30], 5: [85, 10], 6: [90, 40] }, { grupos: { desafiante: null, desafiado: null }, tacadas: 0, bolaNaMao: 'saida', ...extra });
+ const fisica = (caiu, bolas) => ({ bolas, caiu, fora: [], primeiro: 2, quadros: [], eventos: [] });
+ const depois = (m, sem) => m.bolas.map((p, n) => (sem.includes(n) ? null : p));
+ const info = { angulo: 0, forca: 1, efeito: 0, lado2: 0, r0: R, elevacao: 0 };
+ let m = ini();
+ let r = regraDoBar(structuredClone(m), 'desafiante', fisica([2, 3], depois(m, [2, 3])), info);
+ assert.deepEqual(r.mesa.grupos, { desafiante: 'pares', desafiado: 'impares' });
+ assert.equal(r.mesa.ultimo.falta, 'do-outro'); assert.equal(r.mesa.ultimo.grupo, 'pares');
+ assert.equal(r.mesa.ultimo.tirou, 5, 'a multa tira a menor ímpar que sobrou (a 5)'); assert.equal(r.mesa.bolas[5], null);
+ assert.equal(r.mesa.vez, 'desafiado');
+ // Ordem inversa: caiu o ímpar primeiro, fico com o ímpar e a multa tira o par dele.
+ m = ini();
+ r = regraDoBar(structuredClone(m), 'desafiante', fisica([3, 2], depois(m, [2, 3])), info);
+ assert.deepEqual(r.mesa.grupos, { desafiante: 'impares', desafiado: 'pares' }); assert.equal(r.mesa.ultimo.tirou, 6); assert.equal(r.mesa.vez, 'desafiado');
+ // Casa com a bola do outro livre: fica com o grupo, sem multa, e continua (matou a sua).
+ m = ini({ casa: { multa: 1, doOutro: 'livre', modo: 'parimpar' } });
+ r = regraDoBar(structuredClone(m), 'desafiante', fisica([2, 3], depois(m, [2, 3])), info);
+ assert.equal(r.mesa.ultimo.falta, null); assert.equal(r.mesa.ultimo.tirou, undefined); assert.equal(r.mesa.vez, 'desafiante');
+ // Só bolas do mesmo grupo: sem falta, continua.
+ m = ini();
+ r = regraDoBar(structuredClone(m), 'desafiante', fisica([2, 6], depois(m, [2, 6])), info);
+ assert.equal(r.mesa.ultimo.falta, null); assert.equal(r.mesa.vez, 'desafiante');
+ assert.equal(r.mesa.stats.desafiante.saida, 2); assert.equal(r.mesa.stats.desafiante.uma, 2); assert.equal(r.mesa.stats.desafiante.maxSeq, 2);
 });
