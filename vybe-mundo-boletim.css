@@ -100,6 +100,13 @@
 }
 /* Botão do topo: só para quem vê o boletim (o .vv-botao do topo dá display e venceria o atributo hidden) */
 .vv-barra-topo .vv-ferr-boletim[hidden]{display:none}
+/* Insight da semana: o estudo de mercado do agente (só quando a central manda um) */
+.vbl-insight .vbl-ic{background:#FFF6DB;color:#A86A00}
+.vbl-insight-texto{margin:0;font:500 13px/1.5 var(--vv-texto);color:#1F1D1A;overflow-wrap:anywhere}
+.vbl-insight-aplicar{display:grid;gap:2px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#FAF7F2;border-left:3px solid #E5A100;font:500 12.5px/1.45 var(--vv-texto);color:#3A3F44;overflow-wrap:anywhere}
+.vbl-insight-aplicar b{font:600 11.5px var(--vv-texto);color:#8A5A00}
+.vbl-insight-fonte{display:block;margin-top:6px;font:500 11px var(--vv-texto);color:#6B675F;overflow-wrap:anywhere}
+.vbl-insight-fonte:empty{display:none}
 /* O que está fazendo agora (Paulo, 09/11/2026: "ver a atividade de cada um, o que tá fazendo, de qualquer lugar") */
 .vbl-agora{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0;font:500 12.5px var(--vv-texto);color:#3A3F44;min-width:0}
 .vbl-agora > span:last-child{min-width:0;overflow-wrap:anywhere}

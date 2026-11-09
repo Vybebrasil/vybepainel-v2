@@ -69,3 +69,16 @@ test('botão Boletim no topo (de qualquer lugar), só para quem vê o boletim', 
   assert.match(js, /btBoletim\.hidden = !window\.VybeBoletim\?\.podeVer\?\.\(\)/);
   assert.equal(carregar({ dono: false }).podeVer(), false);
 });
+
+test('insight da semana: aparece no cartão só quando a central manda um (estudo de mercado do agente)', () => {
+  const B = carregar();
+  const com = B.boletimDoAgente(ag('design', 'Danilo'), { agora: AGORA, perfil: { achados: { abertos: [], resolvidos: [] }, insight: { em: h(2), referencia: 'Campanha X', insight: 'Carrossel com antes e depois prende mais', aplicacao: 'Testar no próximo planejamento' } } });
+  assert.equal(com.insight.insight, 'Carrossel com antes e depois prende mais');
+  assert.equal(com.insight.aplicacao, 'Testar no próximo planejamento');
+  assert.equal(com.quieto, false, 'quem traz insight entra no boletim');
+  assert.equal(B.boletimDoAgente(ag('x', 'X'), { agora: AGORA, perfil: { insight: null } }).insight, null);
+  assert.equal(B.boletimDoAgente(ag('x', 'X'), { agora: AGORA, perfil: { insight: { insight: 42 } } }).insight, null, 'formato estranho não vira bloco');
+  const js = readFileSync('vybe-mundo-boletim.js', 'utf8');
+  assert.match(js, /b\.insight \? secao\('insight', 'Insight da semana'/);
+  assert.doesNotMatch(js.slice(js.indexOf("secao('insight'"), js.indexOf("secao('insight'") + 600), /💡/u, 'ícone desenhado, sem emoji');
+});
