@@ -213,7 +213,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   é esculpido em voxels a partir da própria arte do Habbo (`mundo/moveis-habbo.mjs`): as direções desenhadas (e os
   espelhos, que o Habbo usa para peças simétricas) são fotos de lados diferentes; fica o bloco que aparece em todas e a
   cor é a do pixel. Não desenhe móvel à mão nem use o ícone genérico do catálogo (só se a arte não carregar). A câmera
-  abre no ângulo do Habbo (30°) e 1 nível = 0,816 ladrilho.
+  abre no ângulo do Habbo (30°) e 1 nível = 0,816 ladrilho. Por cima do miolo esculpido vai uma casca fina com o desenho
+  do Habbo a cada 2 px (cor do pixel, contorno incluído), para cada peça ser reconhecível; as peças ficam guardadas no
+  IndexedDB (`vybe-minha-sala`). Sala viva (Paulo, 09/11/2026: "visual, imersão, experiência"): paredes por trecho
+  (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
+  acesas à noite; bonecos andam com passada, sentam e deitam pela ficha do Habbo, acendem quando falam e quem chega
+  entra pela porta; clicar no piso faz a câmera seguir você. Tudo só lê do Escritório, sem laço infinito.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa
