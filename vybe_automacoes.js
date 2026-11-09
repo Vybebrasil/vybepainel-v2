@@ -589,6 +589,9 @@ async function aplicarNaTransacao(sql, conteudoId, evento) {
         pessoas = [...new Set(pessoas.map(String))];
         const existentes = await sql`SELECT monday_user_id FROM vybe_pessoas WHERE monday_user_id=ANY(${pessoas}::text[]) AND COALESCE(ativo,true)`;
         if (existentes.length !== pessoas.length) throw new Error('Responsável da automação não encontrado ou inativo. Revise a regra.');
+        // Histórico da troca (como em server/responsaveis.js): o Heitor aprende com a redistribuição e a automação também conta.
+        const antesResp = (await sql`SELECT COALESCE(STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome), 'sem responsável') AS nomes
+          FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}`)[0]?.nomes || 'sem responsável';
         if (acao.modo === 'replace') await sql`DELETE FROM vybe_conteudo_responsaveis WHERE conteudo_id=${item.id}`;
         // 'add' entra depois de quem já está: a ordem define o responsável
         // principal, e quem foi chamado para ajudar não vira dono da peça.
@@ -600,6 +603,10 @@ async function aplicarNaTransacao(sql, conteudoId, evento) {
             FROM UNNEST(${pessoas}::text[]) WITH ORDINALITY AS o(uid, ord)
             JOIN vybe_pessoas p ON p.monday_user_id = o.uid
           ON CONFLICT DO NOTHING`;
+        const depoisResp = (await sql`SELECT COALESCE(STRING_AGG(p.nome, ', ' ORDER BY r.ordem, p.nome), 'sem responsável') AS nomes
+          FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}`)[0]?.nomes || 'sem responsável';
+        if (depoisResp !== antesResp) await sql`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto)
+          VALUES (${item.id}, 'responsavel', ${antesResp}, ${depoisResp}, NULL, 'automacao')`;
         // Manda a lista final, não o delta: 'add' no Monday sobrescreveria.
         const atuais = await sql`SELECT p.monday_user_id FROM vybe_conteudo_responsaveis r
           JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id=${item.id}
