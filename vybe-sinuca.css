@@ -516,3 +516,95 @@ body .snc-perfil .snc-perfil-caixa:has(.bt-ficha-carteirinha) .snc-cf-estante{gr
 /* Celular em pé (revisão 09/11): o cartaz escolhido não sai da tela e as abas cabem. */
 @media (max-width:900px) and (orientation:portrait){.bt-cartaz[aria-pressed=true]{transform:rotate(0) scale(1.03)}.bt-cartaz:hover{transform:rotate(0)}.bt-titulo h2,#workflow-modal .bt-salao .snc-painel-topo h2{font-size:24px!important}.bt-sub{display:none}.bt-jornada{gap:6px}.bt-bar{padding:6px 5px 8px;gap:4px}.bt-bar-foto{aspect-ratio:1}.bt-bar-frase,.bt-bar-vitorias{display:none}.bt-bar h3{font-size:14px}.bt-bar-nome{font-size:10px;padding:2px 4px}.bt-etiqueta{font-size:14px;padding:3px 8px 3px 12px}.bt-etiqueta small{display:none}#workflow-modal .bt-salao .bt-bar .bt-btn{font-size:13px!important;padding:8px 4px}.snc-estante-aba .snc-cf-legenda{display:none}.snc-estante-aba .snc-cf-medalhas ul{grid-template-columns:repeat(auto-fill,minmax(34px,1fr))!important;gap:5px 3px!important;padding:8px!important}.snc-estante-aba .snc-cf-medalhas li>i{width:30px!important;height:30px!important;font-size:14px!important}.snc-estante-aba .snc-cf-mural ul{grid-template-columns:repeat(auto-fill,minmax(36px,1fr))!important;gap:6px 4px!important;padding:8px!important}.snc-estante-aba .snc-cf-mural li i{font-size:15px!important}.bt-painel[data-aba=temporada] .snc-liga{grid-template-columns:1fr}.bt-painel[data-aba=temporada] .snc-liga>.snc-liga-podio2{grid-row:auto}.bt-painel[data-aba=temporada] .snc-liga-topo p,.bt-painel[data-aba=temporada] .snc-liga-anterior{display:none}.bt-painel[data-aba=ranking]{grid-template-columns:1fr}.bt-painel[data-aba=ranking]>.snc-giz{grid-column:1}#workflow-modal .bt-salao .snc-liga-foto{width:54px!important;height:54px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-foto{width:64px!important;height:64px!important}#workflow-modal .bt-salao .snc-liga-bloco{height:50px!important}#workflow-modal .bt-salao .snc-liga-degrau.p1 .snc-liga-bloco{height:70px!important}#workflow-modal .bt-salao .snc-liga-degrau.p3 .snc-liga-bloco{height:38px!important}#workflow-modal .bt-salao .snc-liga-bloco canvas{display:none!important}}
 @media (max-width:900px) and (orientation:portrait){.bt-cartaz[aria-pressed=true]{transform:none}.bt-menu,.bt-cartazes{min-width:0;max-width:100%}.bt-cartaz{min-width:0;box-sizing:border-box}}
+/* ==========================================================================
+   TUDO NA IDENTIDADE NOVA (Paulo, 09/11/2026: "tem coisa que parece herdada da
+   interface antiga... traz tudo pra essa identidade nova"). Achado por script:
+   elementos visíveis ainda com a letra antiga (Space Grotesk / do sistema).
+   ========================================================================== */
+/* 1) A letra antiga deixa de existir dentro da sinuca: as variáveis do legado apontam para a letra nova. */
+#workflow-modal:is(.ofc-snc-jogo,.ofc-snc-menu),body .snc-perfil,body .snc-anuncio,body .snc-letreiro{--bv-ui:var(--bt-ui);--snc-f:var(--bt-ui);--pv-titulo:var(--bt-cartaz);--mac-ui:var(--bt-ui);--bv-display:400 1em/1 var(--bt-cartaz)}
+#workflow-modal:is(.ofc-snc-jogo,.ofc-snc-menu) :is(button,input,select,textarea,summary),body .snc-perfil :is(button,input){font-family:var(--bt-ui)!important}
+body .snc-anuncio :is(b,strong,h2,h3){font-family:var(--bt-cartaz)!important;font-style:normal!important;letter-spacing:1px}
+/* 2) Pódio de engradados (ranking e temporada) */
+.bt-podio{display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,2.4vw,30px);padding-top:6px}
+.bt-podio-lugar{display:flex;flex-direction:column;align-items:center;gap:6px;width:clamp(104px,13vw,160px)}
+.bt-podio-quem{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0;border:0;background:none;cursor:pointer;color:var(--bt-texto)}
+.bt-podio-quem:disabled{cursor:default}
+.bt-podio-quem .bt-foto34{width:clamp(52px,8.4vh,80px);border:5px solid #fff;box-shadow:0 4px 8px #0003;transform:rotate(-3deg)}
+.bt-podio-lugar.p1 .bt-foto34{width:clamp(66px,10.4vh,100px);transform:rotate(2deg)}
+.bt-podio-lugar.p3 .bt-foto34{transform:rotate(4deg)}
+.bt-podio-quem.vago .bt-foto34{opacity:.45}
+#workflow-modal .bt-podio-quem b{font:400 clamp(16px,2.6vh,22px)/1 var(--bt-cartaz)!important;letter-spacing:.5px;color:var(--bt-preto);text-transform:uppercase;margin-top:4px}
+.bt-podio-lugar.eu .bt-podio-quem b{color:var(--bt-tinta)}
+.bt-podio-quem small{font-size:13px;line-height:1.1;text-align:center}
+.bt-podio-premio{font-size:15px!important;padding:3px 10px 3px 14px!important}
+.bt-podio-pilha{display:flex;flex-direction:column;width:100%}
+.bt-podio-caixa{position:relative;display:grid;place-items:center;height:clamp(28px,5.2vh,44px);font-style:normal;background:linear-gradient(#ffffff2e 0 3px,transparent 3px calc(100% - 4px),#00000059 calc(100% - 4px)),repeating-linear-gradient(90deg,var(--c) 0 12px,color-mix(in srgb,var(--c) 45%,#000) 12px 18px);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--c) 70%,#000),0 4px 8px #0003}
+.bt-podio-caixa::before{content:"";position:absolute;top:22%;left:50%;width:32%;height:16%;transform:translateX(-50%);border-radius:6px;background:#0000008c}
+.bt-podio-caixa b{position:relative;z-index:1;padding:0 10px;background:var(--c);color:#fff;font:400 clamp(20px,3.6vh,30px)/1.1 var(--bt-cartaz);text-shadow:2px 2px 0 #0006;box-shadow:0 0 0 2px #fff5}
+/* 3) Quadro de giz: letra de giz */
+#workflow-modal .snc-giz,#workflow-modal .snc-giz li,#workflow-modal .snc-giz li *{font-family:var(--bt-giz-f)!important;font-style:normal!important}
+#workflow-modal .snc-giz-vazio{font-family:var(--bt-giz-f)!important}
+/* Temporada: o "termina em" vira folha de calendário e os campeões, etiquetas de papel */
+#workflow-modal .bt-salao .snc-liga-relogio{clip-path:none!important;border-radius:3px;background:var(--bt-papel)!important;color:var(--bt-preto)!important;box-shadow:inset 0 10px 0 var(--bt-tinta),0 4px 8px #0003!important;padding:14px 14px 6px!important;transform:rotate(2deg)}
+#workflow-modal .bt-salao .snc-liga-relogio small{font:800 9px var(--bt-ui)!important;color:var(--bt-texto2)!important;letter-spacing:1.5px}
+#workflow-modal .bt-salao .snc-liga-relogio b{font:400 26px/1 var(--bt-cartaz)!important;color:var(--bt-preto)!important;font-style:normal!important}
+#workflow-modal .bt-salao .snc-liga-relogio b i{font-style:normal;color:var(--bt-tinta)}
+#workflow-modal .bt-salao .snc-liga-anterior span{clip-path:none!important;border-radius:2px;background:var(--bt-papel)!important;color:var(--bt-texto)!important;box-shadow:0 2px 4px #0002!important;font:400 13px var(--bt-cartaz)!important;letter-spacing:.5px;padding:3px 8px!important}
+/* 4) Conquistas como tampinhas colecionadas (estante do salão e da ficha) */
+.snc-cf-medalhas ul{background:linear-gradient(180deg,#ffffff10,#0000),url(/assets/jogos/boteco-madeira.webp) center/cover!important;background-color:#7a4c26!important}
+.snc-cf-medalhas li>i{--r:#8b9098;border-radius:0!important;clip-path:polygon(50% 0,58% 4%,67% 2%,73% 8%,82% 8%,85% 16%,93% 19%,93% 28%,99% 34%,96% 42%,100% 50%,96% 58%,99% 66%,93% 72%,93% 81%,85% 84%,82% 92%,73% 92%,67% 98%,58% 96%,50% 100%,42% 96%,33% 98%,27% 92%,18% 92%,15% 84%,7% 81%,7% 72%,1% 66%,4% 58%,0 50%,4% 42%,1% 34%,7% 28%,7% 19%,15% 16%,18% 8%,27% 8%,33% 2%,42% 4%);background:radial-gradient(circle,#fff 0 46%,var(--r) 47% 58%,#fff 59% 63%,var(--r) 64%)!important;box-shadow:none!important;filter:drop-shadow(0 2px 2px #0006)}
+.snc-cf-medalhas li.raro>i{--r:var(--bt-r-raro)}.snc-cf-medalhas li.epico>i{--r:var(--bt-r-epico)}.snc-cf-medalhas li.lendario>i{--r:var(--bt-r-lendario)}
+.snc-cf-medalhas li.falta>i{background:radial-gradient(circle,#3a2a1a 0 58%,#2a1d12 59%)!important;color:#ffffff59!important;font:400 15px var(--bt-cartaz)!important;filter:none}
+.snc-cf-medalhas li>em{clip-path:none!important;border-radius:2px;background:var(--bt-tinta)!important;font:400 10px var(--bt-cartaz)!important;font-style:normal!important}
+.snc-cf-medalhas h3,.snc-cf-mural h3,.snc-cf-parede h3{font:400 14px var(--bt-cartaz)!important;letter-spacing:1px!important;color:var(--bt-preto)!important}
+.snc-cf-medalhas h3 small,.snc-cf-mural h3 small,.snc-cf-parede h3 small{font:600 12px var(--bt-ui)!important;color:var(--bt-texto2)!important}
+.snc-cf-legenda{clip-path:none!important;border-radius:2px;background:var(--bt-papel)!important;color:var(--bt-texto)!important;box-shadow:0 2px 6px #0002!important;font:600 12px var(--bt-ui)!important}
+.snc-cf-legenda b{font:400 14px var(--bt-cartaz)!important;color:var(--bt-tinta)!important;font-style:normal!important}
+.snc-cf-mural li b{font:700 14px var(--bt-giz-f)!important;font-style:normal!important;text-transform:none!important}
+.snc-cf-parede li b{font:400 11px var(--bt-cartaz)!important;font-style:normal!important;letter-spacing:.5px}
+.snc-cf-parede li.usando::after,.snc-cf-parede li em{font-family:var(--bt-cartaz)!important}
+/* 5) Escolha de dupla: fotos e papel */
+.bt-sel-dupla .snc-dupla-titulo{font:400 15px var(--bt-cartaz)!important;color:var(--bt-preto)!important;letter-spacing:1px;margin:0}
+.bt-sel-dupla .snc-equipe{display:flex!important;flex-wrap:wrap;gap:6px}
+.bt-sel-dupla .snc-colega{display:flex!important;align-items:center;gap:8px;padding:5px 10px 5px 5px!important;border:0!important;border-radius:3px!important;clip-path:none!important;background:var(--bt-papel)!important;color:var(--bt-texto)!important;box-shadow:0 3px 6px #0002!important}
+.bt-sel-dupla .snc-colega>:is(img,.snc-inicial){width:30px!important;height:40px!important;border-radius:0!important;border:2px solid #fff;background:#d9d3c2!important;color:#8a8270!important;font:400 16px var(--bt-cartaz)!important;object-fit:cover}
+.bt-sel-dupla .snc-colega span{font:400 15px var(--bt-cartaz)!important;color:var(--bt-preto)!important}
+.bt-sel-dupla .snc-colega small{font:600 10px var(--bt-ui)!important;color:var(--bt-texto2)!important}
+.bt-sel-dupla .snc-colega i{font-style:normal;color:var(--bt-texto2)}
+.bt-sel-dupla .snc-colega.selecionado{box-shadow:inset 0 0 0 3px var(--bt-tinta),0 3px 6px #0002!important}
+.bt-sel-dupla .snc-dupla-resumo{font:700 14px var(--bt-giz-f)!important;color:var(--bt-caneta-cor)!important;margin:0}
+#workflow-modal .bt-tela .bt-tampinha{font:400 15px var(--bt-cartaz)!important}
+#workflow-modal .bt-sel-itens summary{font:600 12px var(--bt-ui)!important;color:var(--bt-texto2)}
+/* 6) HUD: a letra inicial do avatar e os rótulos pequenos */
+#workflow-modal.ofc-snc-jogo .snc-jogador>.snc-sem{font:400 18px var(--bt-cartaz)!important;font-style:normal!important;background:#d9d3c2!important;color:#8a8270!important}
+#workflow-modal.ofc-snc-jogo .snc-arena .snc-camera-dica{font:600 9px var(--bt-ui)!important}
+/* 7) Bilhete da torcida dentro da lousa: escrito a giz, valor em tampinhas */
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete{background:none!important;box-shadow:none!important;padding:0!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-linha>small{font:700 13px var(--bt-giz-f)!important;color:#ffe98a!important;letter-spacing:.5px}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-opcoes button,#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-pessoas button{clip-path:none!important;border-radius:4px!important;background:transparent!important;border:2px dashed #ffffff73!important;box-shadow:none!important;color:#fff!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] :is(.snc-bilhete-opcoes,.snc-bilhete-pessoas) button[aria-pressed=true]{border:2px solid #ffe98a!important;background:#ffe98a1f!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] :is(.snc-bilhete-opcoes,.snc-bilhete-pessoas) :is(b,i){font:700 16px var(--bt-giz-f)!important;font-style:normal!important;color:#fff!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] :is(.snc-bilhete-opcoes,.snc-bilhete-pessoas) small{font:600 11px var(--bt-giz-f)!important;color:#ffffffb3!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-valor .ficha{border-radius:50%!important;color:#fff!important;font:400 13px var(--bt-cartaz)!important;background:radial-gradient(circle,var(--bt-plastico) 0 52%,#e8e8e8 53% 60%,var(--bt-plastico) 61%)!important;box-shadow:0 2px 0 #0004!important;border:0!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-valor .ficha[aria-pressed=true]{transform:scale(1.15) rotate(12deg);box-shadow:0 0 0 3px #ffe98a!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-passo{background:none!important;box-shadow:none!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-passo b{font:700 22px var(--bt-giz-f)!important;color:#fff!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-bilhete-passo button{background:#ffffff1f!important;color:#fff!important;border-radius:4px!important;clip-path:none!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida-oferecer{clip-path:none!important;border-radius:10px!important;background:var(--bt-plastico)!important;color:#fff!important;font:400 18px var(--bt-cartaz)!important;letter-spacing:1px;font-style:normal!important;box-shadow:inset 0 -5px 0 var(--bt-plastico-escuro),0 5px 0 #0004!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida li{background:var(--bt-papel)!important;color:var(--bt-texto)!important;border-radius:2px!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida li>b{color:var(--bt-preto)!important;font:400 16px var(--bt-cartaz)!important}
+#workflow-modal .snc-hud [data-snc-painel=torcida] .snc-torcida li button.topar{background:var(--bt-pano)!important;color:#fff!important;font:400 13px var(--bt-cartaz)!important;letter-spacing:1px}
+/* 8) Placar do bar (gaveta) e a lousa do convite: giz */
+#workflow-modal .snc-hud .snc-lousa,#workflow-modal .snc-hud .snc-lousa *,#workflow-modal .snc-hud .snc-vazio,#workflow-modal .snc-hud .snc-vazio *{font-family:var(--bt-giz-f)!important;font-style:normal!important}
+/* 9) Pré-partida: rótulos pequenos na letra nova */
+#workflow-modal .snc-pre :is(small,span,p){font-family:var(--bt-ui)}
+#workflow-modal .snc-pre .snc-pre-dados>small,#workflow-modal .snc-pre .snc-pre-stats small,#workflow-modal .snc-pre .snc-pre-taco small{font:800 9px var(--bt-ui)!important;letter-spacing:1.4px}
+#workflow-modal .snc-pre .snc-pre-retrato i,#workflow-modal .snc-pre .snc-pre-estado{font-family:var(--bt-cartaz)!important}
+@media (max-height:720px){.bt-podio-caixa{height:clamp(24px,4.6vh,36px)}}
+@media (max-height:520px){.bt-podio-quem small,.bt-podio-premio{display:none}.bt-podio-quem .bt-foto34{width:40px;border-width:3px}.bt-podio-lugar.p1 .bt-foto34{width:48px}.bt-podio-caixa{height:22px}.bt-podio-caixa b{font-size:16px}#workflow-modal .bt-podio-quem b{font-size:14px!important}}
+@media (min-height:721px){.bt-podio-lugar{width:clamp(120px,14vw,190px)}.bt-painel[data-aba=temporada] .bt-podio-caixa{height:clamp(34px,5.6vh,58px)}}
+@media (min-height:841px){.bt-podio-lugar{width:clamp(130px,15vw,190px)}.bt-podio-caixa{height:clamp(40px,7vh,58px)}.bt-podio-quem .bt-foto34{width:clamp(70px,11vh,96px)}.bt-podio-lugar.p1 .bt-foto34{width:clamp(84px,13vh,120px)}.bt-podio-caixa b{font-size:34px}}
+/* Selinhos de conquista na placa do jogador: tampinhas, como na estante */
+#workflow-modal .snc-jogador-feitos span{--r:#8b9098;font-family:var(--bt-ui)!important;border-radius:0!important;clip-path:polygon(50% 0,58% 4%,67% 2%,73% 8%,82% 8%,85% 16%,93% 19%,93% 28%,99% 34%,96% 42%,100% 50%,96% 58%,99% 66%,93% 72%,93% 81%,85% 84%,82% 92%,73% 92%,67% 98%,58% 96%,50% 100%,42% 96%,33% 98%,27% 92%,18% 92%,15% 84%,7% 81%,7% 72%,1% 66%,4% 58%,0 50%,4% 42%,1% 34%,7% 28%,7% 19%,15% 16%,18% 8%,27% 8%,33% 2%,42% 4%)!important;background:radial-gradient(circle,#fff 0 46%,var(--r) 47% 58%,#fff 59% 63%,var(--r) 64%)!important;box-shadow:none!important}
+#workflow-modal .snc-jogador-feitos span.raro{--r:var(--bt-r-raro)}#workflow-modal .snc-jogador-feitos span.epico{--r:var(--bt-r-epico)}#workflow-modal .snc-jogador-feitos span.lendario{--r:var(--bt-r-lendario)}

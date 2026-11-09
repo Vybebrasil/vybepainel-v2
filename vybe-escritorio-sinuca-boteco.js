@@ -137,3 +137,18 @@ function btFichaCarteirinhaHtml(nome, f, retrato, extra = "") {
 <span class="bt-carteirinha-linha"><small>CAMPANHA</small><b>${f.vitorias || 0}V · ${f.derrotas || 0}D</b></span><span class="bt-carteirinha-linha"><small>NO SALÃO</small><b>${f.posicao ? `${f.posicao}º` : "—"}</b></span><span class="bt-carteirinha-linha"><small>MAIOR SÉRIE</small><b>${f.maior_sequencia || 0}</b></span>${f.apelido ? `<span class="bt-ficha-apelido" title="${safeText(f.apelido.texto || "")}">vulgo <b>${safeText(f.apelido.nome)}</b> ${f.apelido.icone || ""}</span>` : ""}</span>
 ${f.nota != null ? `<span class="bt-estrela"><b>${f.nota}</b><small>NOTA</small></span>` : ""}</span></div>${boletim}${extra}</section>`;
 }
+
+// Pódio de engradados (Paulo, 09/11/2026: "tem coisa que parece herdada da interface antiga... traz tudo pra
+// essa identidade nova"): o 1º em cima de três engradados, o 2º em dois, o 3º em um; a foto 3x4 colada em
+// cima, o nome à caneta, a posição pintada no engradado e o prêmio na etiqueta. Serve ao ranking e à temporada.
+// lugares: [{ pos, id, nome, sub, premio, eu, clique }]
+function btPodioHtml(lugares) {
+  const cores = { 1: ["c8261d", "1f7a46", "f2bd14"], 2: ["1f7a46", "c8261d"], 3: ["f2bd14"] };
+  const lugar = (pos) => {
+    const p = lugares.find((l) => l.pos === pos), u = p?.id ? escritorioCabecaUrl?.(p.id) : "";
+    const pilha = cores[pos].map((c, i) => `<i class="bt-podio-caixa" style="--c:#${c}">${i === 0 ? `<b>${pos}º</b>` : ""}</i>`).join("");
+    return `<div class="bt-podio-lugar p${pos}${p?.eu ? " eu" : ""}">${p ? `<button type="button" class="bt-podio-quem" ${p.clique ? `onclick="${p.clique}"` : "disabled"}><span class="bt-foto34">${u ? `<img src="${safeText(u)}" alt="">` : `<i>${safeText(String(p.nome)[0])}</i>`}</span><b>${btPrimeiro(p.nome)}</b>${p.sub ? `<small class="bt-caneta">${safeText(p.sub)}</small>` : ""}</button>` : '<div class="bt-podio-quem vago"><span class="bt-foto34"><i>?</i></span><b>VAGO</b></div>'}
+${p?.premio ? `<span class="bt-etiqueta bt-podio-premio"><b>${safeText(p.premio)}</b></span>` : ""}<div class="bt-podio-pilha">${pilha}</div></div>`;
+  };
+  return `<div class="bt-podio">${lugar(2)}${lugar(1)}${lugar(3)}</div>`;
+}

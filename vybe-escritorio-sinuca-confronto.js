@@ -370,7 +370,7 @@ function sinucaTemporadaHtml(t) {
   const giz = rk.filter((p) => p.posicao > 3).map((p) => `<li class="${p.eu ? "eu" : ""}"><em>${p.posicao}º</em><b>${safeText(String(p.nome).split(" ")[0])}</b><span>${"|".repeat(Math.min(p.vitorias, 12))}${p.vitorias > 12 ? ` ${p.vitorias}` : ""}</span></li>`).join("");
   const campeoes = t.anterior?.campeoes?.length ? `<p class="snc-liga-anterior"><small>CAMPEÕES DA ANTERIOR</small>${t.anterior.campeoes.map((c) => `<span class="p${c.posicao}">${c.posicao}º ${safeText(String(c.nome).split(" ")[0])}</span>`).join("")}</p>` : "";
   return `<section class="snc-liga"><div class="snc-liga-topo"><div><small>TEMPORADA ${data(t.inicio)} – ${data(fim)}</small><p>Contam só vitórias contra colegas (até 3 contra a mesma pessoa por dia).</p></div><div class="snc-liga-relogio"><small>TERMINA EM</small><b>${dias}<i>d</i> ${String(horas).padStart(2, "0")}<i>h</i></b></div></div>
-<div class="snc-liga-podio2">${degrau(2)}${degrau(1)}${degrau(3)}</div>
+${typeof btPodioHtml === "function" ? btPodioHtml([1, 2, 3].map((pos) => { const p = rk.find((r) => r.posicao === pos), z = pr[pos]; return p && { pos, id: p.id, nome: p.nome, sub: `${p.vitorias} vitória${p.vitorias === 1 ? "" : "s"}`, eu: p.eu, premio: z ? `${z.moedas} 🪙 · +${z.xp} XP${z.trofeu ? " · 🏆" : ""}` : "" }; }).filter(Boolean)) : `<div class="snc-liga-podio2">${degrau(2)}${degrau(1)}${degrau(3)}</div>`}
 ${giz ? `<ol class="snc-giz">${giz}</ol>` : rk.length ? "" : '<p class="snc-giz-vazio">Ninguém venceu nesta temporada ainda. A primeira vitória contra um colega já põe você no pódio.</p>'}${campeoes}</section>`;
 }
 
