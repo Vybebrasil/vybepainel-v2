@@ -5302,3 +5302,41 @@ html body .vs-kpis:has(> :nth-child(7):last-child),html body .vs-kpis:has(> :nth
   html body .vs-kpis:has(> :nth-child(4):last-child),html body .vs-kpis:has(> :nth-child(7):last-child),html body .vs-kpis:has(> :nth-child(8):last-child){--vs-cols:2}
 }
 @media (max-width:900px){html body .vs-kpis{--vs-cols:2!important}}
+
+/* ---------- Contraste medido (auditoria 09/11/2026): o que ficava ilegível no tema claro ----------
+   Medido tela a tela (contraste < 2,5:1). Cor por variável: mistura com a tinta do texto. Cor fixa no HTML: escurece só o
+   texto, nunca o cartão. */
+/* Rótulos pequenos coloridos (kickers) em tom pastel. */
+html body.mundo.mundo-modulo :is(.workspace-eyebrow,.pv-etiqueta,.client-module-kicker,.ai-usage-kicker,.auto-kicker){filter:brightness(.6) saturate(1.25)}
+/* Selo "Hoje" do Painel de trabalho: o fundo laranja vencia por outra regra. */
+html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{background:var(--vv-laranja,#F26B1D)!important;color:#fff!important}
+/* Demandas: título do grupo na cor do grupo (fixa), nome do cliente no filtro. */
+html body.mundo.mundo-modulo .grupo-cabeca .grupo-titulo b{filter:brightness(.68) saturate(1.2)}
+html body.mundo.mundo-modulo .dem-filtro-popover .manager-calendar-client b{color:#1F1D1A!important}
+/* Performance: números e rótulos com cor fixa no HTML. */
+html body.mundo.mundo-modulo #painel-performance :is([style*="color:#"],[style*="color: #"]){filter:brightness(.68) saturate(1.2)}
+html body.mundo.mundo-modulo :is(#perf-departamentos-grid,#perf-status-grid) :is([style*="color:#"],[style*="color: #"]){filter:brightness(.68) saturate(1.2)}
+/* Direção de arte: etiqueta e sinal da fila. */
+html body.mundo.mundo-modulo .da-discipline-tag{color:color-mix(in srgb,var(--discipline-color,#8A847A) 55%,#1F1D1A)!important}
+html body.mundo.mundo-modulo .da-capacity-signal strong{filter:brightness(.65) saturate(1.2)}
+/* Clientes: situação "Ativo". */
+html body.mundo.mundo-modulo .cliente-situacao.ativo{color:#1D7A3E!important}
+/* Agenda: a faixa "dia todo" ainda era escura. */
+html body.mundo .ag-dia-todo{background:#FAF7F2!important;border-color:#EFEAE2!important}
+html body.mundo .ag-dia-todo > span{color:#8A847A!important}
+/* Botão de ordenar do painel antigo com fundo escuro. */
+html body.mundo.mundo-modulo .sort-btn{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+/* Agenda e Roteiros no tema claro (auditoria D4–D6): cartão do roteiro com degradê escuro do tema antigo, datas e dias
+   do Feed e do Calendário em branco/ciano sobre claro, título das Notas branco sobre branco. */
+html body.mundo .rot-cartao{background:#fff!important;border:1px solid #ECE6DC!important;color:#1F1D1A!important}
+html body.mundo .rot-cartao :is(summary,b,strong,h3,h4){color:#1F1D1A!important}
+html body.mundo .rot-cartao :is(small,.rot-discreto,p){color:#6B665E!important}
+html body.mundo :is(.prod-v2-date-btn) :is(.p-day,.p-date){color:#4A463F!important}
+html body.mundo .prod-v2-date-btn.today :is(.p-day,.p-date),html body.mundo .prod-v2-date-btn.active :is(.p-day,.p-date){color:#C2410C!important}
+html body.mundo .p-cal-col-head :is(b,span,small){color:#4A463F!important}
+html body.mundo .p-cal-col.today .p-cal-col-head :is(b,span){color:#C2410C!important}
+html body.mundo .p-cal-col.today{background:#FFF7EF!important}
+html body.mundo .notas-janela .notas-topo :is(b,h2,h3,strong){color:#1F1D1A!important}
+html body.mundo .notas-janela{color:#1F1D1A}
+html body.mundo .notas-janela :is(b,strong,h2,h3,h4,summary,label){color:#1F1D1A!important}
+html body.mundo .notas-janela :is(small,time,.notas-meta){color:#6B665E!important}
