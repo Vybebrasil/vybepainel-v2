@@ -32,7 +32,8 @@ test('CSS: uma coluna que não quebra (a lista não pula para o lado) e as regra
   assert.match(css, /html body\.mundo \.vv-chamada\{display:flex;flex-direction:column;flex-wrap:nowrap;/);
   assert.match(css, /html body\.mundo \.vv-chamada > :not\(\.vz-salas\)\{flex-shrink:0\}/);
   assert.doesNotMatch(css, /\.vv-chamada \.vv-botao|\.vv-chamada \.gente|\.vv-chamada \.acoes|\.vv-voz-sala|\.vv-chamar\b|\.vv-chamada \.vv-musica/);
-  const bloco = css.slice(css.indexOf('/* ===== HUD das salas'));
+  const ini = css.indexOf('/* ===== HUD das salas'), fim = css.indexOf('/* =====', ini + 10);
+  const bloco = css.slice(ini, fim > ini ? fim : undefined);
   assert.doesNotMatch(bloco, /!important/, 'bloco novo sem !important');
 });
 
