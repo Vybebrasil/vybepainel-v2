@@ -18,7 +18,7 @@
 // Celular primeiro: uma coluna, abas que rolam de lado, kanban e linha do tempo com rolagem própria.
 (function () {
   'use strict';
-  const ABAS = [['produtividade', 'Produtividade'], ['rh', 'RH'], ['projetos', 'Projetos'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
+  const ABAS = [['produtividade', 'Produtividade'], ['rh', 'RH'], ['projetos', 'Projetos pontuais'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
   const SO_GESTAO = new Set(['recrutamento', 'documentos']);
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
@@ -375,9 +375,12 @@
         <div class="vp-lado">${chip(NIVEL[c.nivel])}<small>${esc(c.pct)}%</small></div></li>`).join('')}</ul>` : vazio('Ninguém na equipe ainda', '')}`;
   }
   function htmlGantt(d) {
-    const l = d.linha || {};
+    let l = d.linha || {};
     if (!(l.projetos || []).length) return vazio('Nenhum projeto pontual', 'Evento, lançamento ou site fora do mensal: crie o projeto com as etapas e veja tudo na linha do tempo.', d.gestao ? acao('Novo projeto', 'data-vp-abrir-form="projeto"') : '');
-    const largura = Math.max(560, (l.semanas || []).length * 90);
+    const PX = { dia: 46, semana: 16, mes: 6 }[estado.projZoom || 'semana'];
+    const largura = Math.max(560, (l.dias || (l.semanas || []).length * 7) * PX);
+    const sel = estado.projSel || '';
+    l = { ...l, projetos: (l.projetos || []).filter((p) => !sel || p.id === sel) };
     return `<div class="vp-gantt" role="region" aria-label="Linha do tempo dos projetos" tabindex="0"><div class="vp-gantt-in" style="min-width:${largura}px">
       <div class="vp-gantt-semanas">${l.semanas.map((s) => `<span style="left:${s.esq}%">${br(s.inicio)}</span>`).join('')}</div>
       ${l.hoje != null ? `<div class="vp-gantt-agora" aria-hidden="true"><i style="left:${l.hoje}%"></i></div>` : ''}
@@ -415,10 +418,31 @@
       <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar projeto</button></div></form>`;
   }
   function htmlProjetos(d) {
-    let html = semMigracao(d) + htmlCarga(d);
-    html += `<div class="vp-linha-topo"><h3 class="vp-titulo">Projetos pontuais</h3>${d.gestao && estado.form !== 'projeto' && (d.projetos || []).length ? acao('Novo projeto', 'data-vp-abrir-form="projeto"') : ''}</div>`;
-    if (estado.form === 'projeto') html += formProjeto(d);
-    return html + htmlGantt(d);
+    const ps = (d.projetos || []).filter((p) => p.status !== 'cancelado'), hj = d.hoje || hoje(), em7 = somarDias(hj, 7);
+    const atrasado = (p) => p.status !== 'concluido' && ((p.fim && p.fim < hj) || (p.etapas || []).some((e) => !e.feita && e.fim && e.fim < hj));
+    const vencendo = ps.flatMap((p) => (p.etapas || []).filter((e) => !e.feita && e.fim && e.fim >= hj && e.fim <= em7));
+    const num = (rot, v, cls = '', sub = '') => `<div class="vp-num ${cls}"><span>${rot}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    let html = semMigracao(d) + `<div class="vp-nums">${num('Em andamento', ps.filter((p) => p.status === 'andamento').length, '', `${ps.filter((p) => p.status === 'planejado').length} planejados`)}${num('Concluídos', ps.filter((p) => p.status === 'concluido').length, 'ok')}${num('Atrasados', ps.filter(atrasado).length, ps.some(atrasado) ? 'ruim' : '')}${num('Etapas vencendo em 7 dias', vencendo.length, vencendo.length ? 'atencao' : '')}</div>`;
+    // Gantt: um projeto ou todos, com zoom.
+    const zoom = estado.projZoom || 'semana';
+    html += `<section class="vp-cartao vp-proj-bloco"><div class="vp-linha-topo"><h3 class="vp-titulo">Gantt de projetos pontuais</h3>
+      <div class="vp-proj-ctl"><label class="vp-sr-pai"><span class="vp-sr">Projeto</span><select data-vp-proj-sel><option value="">Todos os projetos</option>${ps.map((p) => `<option value="${esc(p.id)}"${p.id === estado.projSel ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
+        <span class="vp-seg" role="group" aria-label="Zoom">${[['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês']].map(([k, r]) => `<button type="button" data-vp-proj-zoom="${k}" aria-pressed="${zoom === k}">${r}</button>`).join('')}</span>
+        ${d.gestao && estado.form !== 'projeto' ? acao('Adicionar projeto', 'data-vp-abrir-form="projeto"') : ''}</div></div>
+      ${estado.form === 'projeto' ? formProjeto(d) : ''}${htmlGantt(d)}</section>`;
+    // Linha do tempo da semana: as etapas de cada dia (todos ou só as minhas).
+    const ini = d.semana || hj, dias = Array.from({ length: 7 }, (_, i) => somarDias(ini, i));
+    const eu = d.eu?.id || (d.pessoas || []).find((x) => String(x.nome || '').split(' ')[0].toLowerCase() === String((typeof operadorDoTopo === 'function' ? (operadorDoTopo()?.name || operadorDoTopo()?.nome) : '') || '').split(' ')[0].toLowerCase())?.id;
+    const meus = estado.projFiltro === 'meus';
+    const etapasDia = (dia) => ps.flatMap((p) => (p.etapas || []).filter((e) => e.inicio && e.fim && e.inicio <= dia && e.fim >= dia && (!meus || String(e.responsavel) === String(eu))).map((e) => ({ e, p })));
+    const NOMES = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    html += `<section class="vp-cartao vp-proj-bloco"><div class="vp-linha-topo"><h3 class="vp-titulo">Linha do tempo da semana <small>${br(ini)} a ${br(somarDias(ini, 6))}</small></h3>
+      <div class="vp-proj-ctl"><span class="vp-seg" role="group" aria-label="De quem">${[['todos', 'Todos'], ['meus', 'Meus projetos']].map(([k, r]) => `<button type="button" data-vp-proj-filtro="${k}" aria-pressed="${(estado.projFiltro || 'todos') === k}">${r}</button>`).join('')}</span>
+        <div class="vp-nav">${sec('‹', 'data-vp-semana="-7" aria-label="Semana anterior"')}${sec('Hoje', 'data-vp-semana="0"')}${sec('›', 'data-vp-semana="7" aria-label="Próxima semana"')}</div></div></div>
+      <div class="vp-semana7">${dias.map((dia) => { const l = etapasDia(dia); return `<div class="vp-dia${dia === hj ? ' hoje' : ''}"><small>${NOMES[new Date(dia + 'T12:00:00Z').getUTCDay()]}</small><b>${br(dia).slice(0, 5)}</b>
+        ${l.length ? l.map(({ e, p }) => `<span class="vp-etapa-dia${e.feita ? ' feita' : e.fim < hj ? ' atrasada' : ''}" title="${esc(p.nome)} · ${esc(e.responsavel_nome || 'sem responsável')}"><b>${esc(e.nome)}</b><small>${esc(p.nome)}</small></span>`).join('') : '<span class="vp-dia-vazio">—</span>'}</div>`; }).join('')}</div></section>`;
+    // Carga da equipe (peças do painel + etapas de projeto contra a capacidade).
+    return html + `<section class="vp-cartao vp-proj-bloco">${htmlCarga(d)}</section>`;
   }
 
   // ---------- Academy ----------
@@ -532,12 +556,13 @@
     return (estado.erro ? `<p class="vp-erro">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="vp-link" data-vp-recarregar>Tentar de novo</button></p>` : '') + DESENHO[estado.aba](d);
   }
   function htmlPainel() {
-    const g = gestao(), abas = ABAS.filter(([k]) => g || !SO_GESTAO.has(k));
-    return `<div class="vp-topo"><div><span class="vp-kicker">Pessoas</span><h2 id="vp-titulo">${esc((ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1])}</h2></div>
+    // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
+    const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
+    return `<div class="vp-topo"><div><span class="vp-kicker">${esc(estado.rotulo || 'Pessoas')}</span><h2 id="vp-titulo">${esc((ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1])}</h2></div>
         <div class="vp-topo-botoes"><button type="button" class="vp-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
         <button type="button" class="vp-x" data-vp-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
       ${estado.ajuda ? `<p class="vp-ajuda" role="note">${esc(AJUDA[estado.aba])}</p>` : ''}
-      <div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas">${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div>
+      <div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div>
       <p class="vp-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
       <div class="vp-corpo" id="vp-corpo" role="tabpanel" aria-labelledby="vp-aba-${estado.aba}" aria-busy="${estado.carregando}">${htmlCorpo()}</div>`;
   }
@@ -611,6 +636,8 @@
     else if (perto('[data-vp-ajuda]')) { estado.ajuda = !estado.ajuda; pintar(); }
     else if ((b = perto('[data-vp-aba]'))) trocarAba(b.dataset.vpAba);
     else if (perto('[data-vp-recarregar]')) carregar();
+    else if ((b = perto('[data-vp-proj-zoom]'))) { estado.projZoom = b.dataset.vpProjZoom; pintar(); }
+    else if ((b = perto('[data-vp-proj-filtro]'))) { estado.projFiltro = b.dataset.vpProjFiltro; pintar(); }
     else if ((b = perto('[data-vp-abrir-form]'))) abrirForm(b.dataset.vpAbrirForm, b.dataset.vpAbrirForm === 'projeto' ? { inicio: hoje(), fim: somarDias(hoje(), 14), etapas: [{}] } : b.dataset.vpAbrirForm === 'trilha' ? { aulas: [{}] } : null);
     else if (perto('[data-vp-fechar-form]')) { estado.form = ''; estado.editar = null; pintar(); }
     else if ((b = perto('[data-vp-pessoa]'))) { estado.pessoa = b.dataset.vpPessoa; carregar(); }
@@ -635,6 +662,7 @@
   function aoMudar(e) {
     const t = e.target, ds = t?.dataset || {};
     if ('vpMes' in ds) { estado.mes = t.value; carregar(); }
+    else if ('vpProjSel' in ds) { estado.projSel = t.value; pintar(); }
     else if ('vpRef' in ds) { estado.ref = t.value; carregar(); }
     else if ('vpVaga' in ds) { estado.vaga = t.value; pintar(); }
     else if (ds.vpMover) gravar({ acao: 'candidato_mover', id: ds.vpMover, etapa: t.value }, 'Candidato movido.');
@@ -665,7 +693,8 @@
   }
 
   // ---------- API ----------
-  function abrir(aba = 'produtividade') {
+  function abrir(aba = 'produtividade', opcoes = {}) {
+    estado.soAbas = Array.isArray(opcoes.abas) && opcoes.abas.length ? new Set(opcoes.abas) : null; estado.rotulo = opcoes.rotulo || '';
     if (!estado.raiz) {
       estado.antes = document.activeElement || null;
       const raiz = document.createElement('div'), janela = document.createElement('section');

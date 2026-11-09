@@ -202,7 +202,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   no botão de hora dos controles (`definirHora`, guardada só no navegador). O motor baixa a qualidade sozinho se os
   quadros ficam lentos e só desenha quando algo muda; o andar por dentro também. Não crie outro laço de animação.
 - Dock da esquerda (decisão do Paulo, 08/11/2026: "copiar o jeito do AgencyFlow"): o `TRILHO` de `vybe-mundo.js` com
-  categorias (`grupo`: Operação, Negócio, Time, Vybe); no computador o dock é largo, com nomes, e o setor clicado abre
+  categorias (`grupo`: Operação, Negócio, Time, Vybe)
+  na organização do AgencyFlow (Paulo, 08/11/2026: "aproveitar mais a organização do AgencyFlow mantendo os nossos módulos"):
+  Produção = o Projetos deles (entregas, tarefas, demandas, projetos pontuais, agenda, aprovação, planejamentos, arte,
+  fornecedores, creators); Clientes; Comercial (CRM e funil, Conversas, produtos, orçamentos); Finanças; Gestão; Recursos
+  Humanos (equipe, produtividade, pedidos e calendário, recrutamento, documentos); Academy e Toolkit próprios. Aberta pelo
+  dock, a janela de um módulo mostra só as abas daquele item (`abrir(aba, { abas, rotulo })`).; no computador o dock é largo, com nomes, e o setor clicado abre
   para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
   das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
   Largura numa variável só (`--vv-trilho-w`). Não crie outro menu nem outra visão geral; a da Gestão continua a dela.
