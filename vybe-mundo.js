@@ -234,7 +234,7 @@
     limparTela();
     marcarTrilho(id);
     window.VybeSetor.abrir(id, { nome: t.nome, dica: t.dica, subs: (t.sub || []).filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
-      abrirSub: (sub) => usarTrilho(sub), aoFechar: () => usarTrilho('hoje') });
+      abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor), aoFechar: () => usarTrilho('hoje') });
   }
   // Lista de submódulos ao lado do setor (ou acima, no celular). Esc ou clique fora fecha.
   function fecharSetor() { hud.querySelector('.vv-setor')?.remove(); hud.querySelectorAll('[data-trilho][aria-expanded]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
@@ -527,9 +527,9 @@
   const gestao = document.createElement('section');
   gestao.className = 'vv-gestao'; gestao.hidden = true; gestao.setAttribute?.('aria-label', 'Gestão da Vybe');
   document.body.append?.(gestao);
-  let gestaoAba = 'agora';
+  let gestaoAba = 'agencia';
   function abrirGestao(aba) {
-    if (aba && ['agora', 'semana', 'clientes', 'carteiras', 'time', 'historico'].includes(aba)) gestaoAba = aba;
+    if (aba && ['agencia', 'agora', 'semana', 'clientes', 'carteiras', 'time', 'historico'].includes(aba)) gestaoAba = aba;
     if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
     gestao.hidden = false; body.classList.add('mundo-gestao'); marcarTrilho('gestao'); pintarGestao(); gestao.scrollTop = 0; window.VybeTutorial?.dica?.('trilho:gestao');
   }
@@ -540,8 +540,8 @@
   function pintarGestao() {
     if (gestao.hidden) return;
     const N = numerosDoDono();
-    const abas = [['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
-    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
+    const abas = [['agencia', 'Agência'], ['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
+    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'agencia' ? 'A agência inteira' : gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
         <p>${N ? 'Atualizado às ' + new Date(N.geradoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + n0((N.cobertura || {}).clientesAtivos) + ' clientes ativos' : 'Juntando os números…'}</p></span>
       <span class="vv-g-acoes"><button type="button" class="vv-botao" data-gestao-cheia title="Tela cheia">⛶</button><button type="button" class="vv-botao" data-gestao-fechar aria-label="Fechar">✕</button></span></div>
       <nav class="vv-seg vv-g-abas" role="tablist">${abas.map(([id, n]) => `<button type="button" role="tab" aria-selected="${id === gestaoAba}" data-gestao-aba="${id}">${n}</button>`).join('')}</nav>`;
@@ -549,6 +549,13 @@
     const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, Hi = N.historico || {}, P = N.projecao || {};
     const ultima = (Hi.semanas || []).slice(-1)[0] || {};
     let corpo = '';
+    if (gestaoAba === 'agencia' && window.VybeSetor?.pintarEm) {
+      // Dinheiro, comercial, clientes, produção e time num painel só (vybe-mundo-setor.js, mesmas leituras dos setores).
+      gestao.innerHTML = topo + '<div class="vv-g-corpo vs-agencia"></div>';
+      window.VybeSetor.pintarEm(gestao.querySelector('.vs-agencia'), 'setor:agencia', { nome: 'Gestão', subs: SUBMODULOS.filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
+        abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor) });
+      return;
+    }
     if (gestaoAba === 'agora') {
       corpo = `<div class="vv-g-kpis">
           ${kpi(`${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, 'produção de hoje', H.previstas && H.feitas < H.previstas ? 'u2' : 'u6')}

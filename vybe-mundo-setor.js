@@ -110,6 +110,71 @@
 
   // ---------- Os painéis ----------
   const PAINEIS = {
+    // A agência inteira, na aba Agência da Gestão (Paulo, 08/11/2026: "o Gestão que tinha que ser bem mais completo e foda
+    // tá resumido"). Junta os setores com as MESMAS leituras dos painéis de cada um (cache compartilhado): dinheiro (Vybe
+    // Finanças quando ligado, senão as tabelas do Comercial), comercial, clientes, produção e time. Cada bloco leva ao
+    // setor ou à aba de onde veio. Quem não pode ver dinheiro vê os outros blocos e o aviso no lugar dos números.
+    async 'setor:agencia'() {
+      const N = ctx.numeros(), H = N?.hoje || {}, S = N?.semana || {}, Hi = N?.historico || {}, P = N?.projecao || {}, C = N?.cobertura || {};
+      const mes = String(per.mes).slice(0, 7);
+      const [vf, fin, rec, com, cart] = await Promise.all([ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + mes), ler('/api/painel?area=comercial&aba=financas'),
+        ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira')]);
+      const contra = per.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
+      const rs = (v) => (Math.abs(Number(v)) >= 1e4 ? 'R$ ' + curto(v) : reais(v));
+      // Dinheiro
+      const temVF = !vf.falha && vf.conectado && vf.resumo, VR = vf.resumo || {};
+      const F = fin.resumo || {}, RA = rec.resumo?.atual || {}, RV = rec.resumo?.variacao || {};
+      const semDinheiro = !temVF && (fin.falha === 'negado' || (!fin.resumo && !rec.resumo));
+      const dinheiro = semDinheiro ? kpi({ icone: 'dinheiro', titulo: 'Dinheiro', valor: '—', sub: fin.falha === 'negado' ? 'só os donos e a administração veem' : 'sem números agora' })
+        : temVF ? kpi({ icone: 'aperto', titulo: 'Recebido no mês', valor: rs(VR.recebido), sub: `de ${reais(VR.previsto)} previsto` })
+          + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(VR.resultado), sub: 'recebido − despesas pagas', cls: Number(VR.resultado) < 0 ? 'ruim' : '' })
+          + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(vf.inadimplencia?.total), cls: Number(vf.inadimplencia?.total) > 0 ? 'ruim' : '', sub: `${num((vf.inadimplencia?.clientes || []).length)} clientes` })
+        : kpi({ icone: 'dinheiro', titulo: 'Receita contratada', valor: rs(F.receita), sub: `margem <b>${pct(F.margem_percentual)}</b>` })
+          + kpi({ icone: 'aperto', titulo: 'Recebido', valor: rs(RA.recebido), variacao: RV.recebido ?? 'sem', contra, sub: `de ${reais(RA.a_receber)} a receber` })
+          + kpi({ icone: 'relogio', titulo: 'Pendente', valor: rs(RA.pendente), inverte: true, variacao: RV.pendente ?? 'sem', contra, cls: Number(RA.pendente) > 0 ? 'atencao' : '' });
+      // Comercial
+      const M = com.mes || {}, A = M.kpis?.atual || {}, V = M.kpis?.variacao || {}, val = Boolean(M.valores);
+      const comercial = com.falha || !M.kpis ? '' : kpi({ icone: 'aperto', titulo: 'Negócios fechados', valor: num(A.negocios), variacao: V.negocios ?? 'sem', contra, sub: val ? `MRR ${reais(A.mrr)} · avulso ${reais(A.avulso)}` : `${num(A.leads)} leads · ${num(A.propostas)} propostas` });
+      // Clientes e produção
+      const saude = typeof window.VybeCarteira?.dados === 'function' ? window.VybeCarteira.dados() : [];
+      const media = saude.length ? saude.reduce((a, c) => a + (Number(c.score) || 0), 0) / saude.length : null;
+      const cl = N?.clientes || [], conta = (k) => cl.filter((c) => c.saude === k).length;
+      const pctSemana = S.previstas ? ((S.previstasEntregues ?? S.entregues) / S.previstas) * 100 : null;
+      const e = typeof escritorio !== 'undefined' ? escritorio : null, online = (e?.conectado ? e.onlineTodos || e.online : e?.lobbyOnline) || [];
+      const kpis = dinheiro + comercial
+        + kpi({ icone: 'coracao', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `saúde média ${media == null ? '—' : num(media)} · ${num(conta('critico'))} críticos`, cls: conta('critico') ? 'atencao' : '' })
+        + kpi({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${num(S.previstasEntregues ?? S.entregues)}<i>/${num(S.previstas)}</i>`, sub: pctSemana != null ? pct(pctSemana) : 'nenhuma prevista' })
+        + kpi({ icone: 'alerta', titulo: 'Atrasadas agora', valor: num(H.atrasadas), sub: `${num(H.emRisco)} com risco de furo`, cls: H.atrasadas ? 'ruim' : '' })
+        + kpi({ icone: 'relogio', titulo: 'No prazo', valor: pct(Hi.mediaNoPrazoPct), sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })
+        + kpi({ icone: 'calendario', titulo: 'Próxima semana', valor: `${num(P.proximaSemana?.previstas)}<i>/${num(P.proximaSemana?.capacidadeMediana)}</i>`, sub: 'previstas / capacidade', cls: P.proximaSemana?.risco === 'alto' ? 'ruim' : P.proximaSemana?.risco === 'medio' ? 'atencao' : '' })
+        + kpi({ icone: 'pessoas', titulo: 'Equipe online', valor: num(online.length), sub: 'agora no Escritório' });
+      // Metas do comercial (banner) e alertas da operação (o que pede ação primeiro)
+      const metas = (M.progresso || []).filter((x) => x.meta > 0).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
+      const alertas = (N?.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
+      const NIVEL = { 1: 'ruim', 2: 'atencao', 3: 'atencao' };
+      const alertasHtml = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${NIVEL[a.nivel] || ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : aviso('Nada crítico na operação agora.');
+      // Gráficos
+      const vendas = (M.series || []).map((x) => ({ ...x, rotulo: mesCurto(x.mes) }));
+      const semanas = (Hi.semanas || []).slice(-12).map((x) => ({ ...x, rotulo: diaMes(x.inicio) }));
+      const caixa = temVF ? (vf.series || []).slice(-6).map((m) => ({ ...m, rotulo: mesCurto(m.mes) })) : [];
+      const piores = [...saude].sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 6);
+      const time = [...(N?.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 6);
+      const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}">${esc(rotulo)} →</button>`;
+      return linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', alertasHtml, { icone: 'alerta', cls: 'vs-destaque' })
+          + bloco('Metas do comercial', nomeMes(per.mes), metas.length ? progresso(metas) : aviso(com.falha ? falhaTexto(com) : 'Nenhuma meta definida para este período.'), { icone: 'meta', cls: 'vs-destaque', acao: ir('setor:comercial', 'Comercial') }))
+        + `<div class="vs-kpis">${kpis}</div>`
+        + linha(temVF
+            ? bloco('Faturamento × custos', 'recebido e gasto nos últimos meses (Vybe Finanças)', barras(caixa, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais }), { icone: 'dinheiro', acao: ir('setor:financas', 'Finanças') })
+            : bloco(val ? 'Vendas por mês' : 'Negócios por mês', val ? 'MRR e avulso fechados' : 'negócios fechados', com.falha ? aviso(falhaTexto(com)) : val ? barras(vendas, [{ chave: 'mrr', rotulo: 'MRR', cls: 'c1' }, { chave: 'avulso', rotulo: 'Avulso', cls: 'c2' }], { fmt: reais }) : barras(vendas, [{ chave: 'negocios', rotulo: 'Negócios', cls: 'c1' }]), { icone: 'dinheiro', acao: ir('setor:comercial', 'Comercial') })
+          + bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, barras(semanas, [{ chave: 'previstas', rotulo: 'Previstas', cls: 'c5' }, { chave: 'entregues', rotulo: 'Entregues', cls: 'c1' }]), { icone: 'alta', acao: ir('setor:producao', 'Produção') }))
+        + linha(bloco('Clientes prioritários', 'a menor nota de saúde primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente, valor: c.score, cls: c.score < 50 ? 'ruim' : c.score < 70 ? 'atencao' : 'ok', sub: (c.motivos || []).slice(0, 2).join(' · ') })), { vazio: 'A saúde ainda está sendo calculada.' }), { icone: 'coracao', acao: ir('setor:clientes', 'Clientes') })
+          + bloco('Carga do time', 'peças abertas por pessoa', deitadas(time.map((x) => ({ nome: x.pessoa, valor: x.abertas, cls: x.atrasadas ? 'atencao' : '', rotulo: `${num(x.abertas)}${x.atrasadas ? ` <small class="t-ruim">${num(x.atrasadas)} atras.</small>` : ''}`, sub: `${num(x.entregues7d)} entregues em 7 dias` })), { vazio: 'Sem números do time.' }), { icone: 'pessoas', acao: ir('setor:pessoas', 'Pessoas') }))
+        + (cart.contratos ? linha(bloco('Carteira', 'contratos ativos e saídas do mês', deitadas([
+            { nome: 'Contratos ativos', valor: (cart.contratos.lista || []).length, cls: 'ok' },
+            { nome: 'Renovam em 30 dias', valor: (cart.contratos.lista || []).filter((c) => c.renovacao && c.renovacao >= new Date().toISOString().slice(0, 10) && c.renovacao <= new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)).length, cls: 'atencao' },
+            { nome: 'Saídas no mês', valor: (cart.churn?.registros || []).filter((r) => String(r.saiu_em || '').startsWith(mesAtual())).length, cls: 'ruim' }]), { icone: 'calendario', acao: ir('setor:clientes', 'Clientes') })
+          + bloco('Cobertura da semana', `meta de ${num(C.meta || 3)} posts por cliente`, deitadas([{ nome: `Abaixo de ${num(C.meta || 3)} posts`, valor: (C.sem3 || []).length, cls: 'atencao' }, { nome: 'Sem nenhum post', valor: (C.semConteudo || []).length, cls: 'ruim' }, { nome: 'Sem planejamento', valor: (C.semPlanejamento || []).length, cls: 'atencao' }]), { icone: 'doc', acao: ir('setor:producao', 'Produção') })) : '');
+    },
     async 'setor:comercial'() {
       const r = await ler('/api/painel?area=comercial&aba=funil' + qPeriodo());
       if (r.falha) return aviso(falhaTexto(r));
@@ -286,7 +351,8 @@
     if (b.hasAttribute('data-setor-fechar')) { fechar(); ctx?.aoFechar?.(); return; }
     if (b.hasAttribute('data-setor-atualizar')) { cache.clear(); pintar(); return; }
     if (b.dataset.vsTipo) { per.tipo = b.dataset.vsTipo; pintar(); return; }
-    if (b.dataset.setorSub) ctx?.abrirSub?.(b.dataset.setorSub);
+    if (b.dataset.setorIr) ctx?.irSetor?.(b.dataset.setorIr);
+    else if (b.dataset.setorSub) ctx?.abrirSub?.(b.dataset.setorSub);
   });
   el.addEventListener('change', (ev) => { if (ev.target.matches?.('[data-vs-mes]')) { per.mes = ev.target.value; pintar(); } });
 
@@ -300,5 +366,30 @@
     el.hidden = true; atual = ''; geracao++;
     document.body.classList.remove('mundo-setor-visao');
   }
-  window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar() });
+  let alvoEm = null, geracaoEm = 0;
+  async function pintarEm(destino, setor, contexto) {
+    if (!destino || !PAINEIS[setor]) return;
+    ctx = contexto; alvoEm = { destino, setor, contexto };
+    const g = ++geracaoEm;
+    destino.innerHTML = `<div class="vs-em-topo">${barraPeriodo()}<button type="button" class="vv-botao" data-setor-atualizar aria-label="Atualizar" title="Atualizar">↻</button></div><div class="vs-corpo">${carregando()}</div>`;
+    if (!destino.dataset.vsOuvindo) {
+      destino.dataset.vsOuvindo = '1';
+      destino.addEventListener('click', (ev) => {
+        const b = ev.target.closest('button'); if (!b || !alvoEm) return;
+        if (b.hasAttribute('data-setor-atualizar')) { cache.clear(); pintarEm(alvoEm.destino, alvoEm.setor, alvoEm.contexto); return; }
+        if (b.dataset.vsTipo) { per.tipo = b.dataset.vsTipo; pintarEm(alvoEm.destino, alvoEm.setor, alvoEm.contexto); return; }
+        if (b.dataset.setorIr) alvoEm.contexto?.irSetor?.(b.dataset.setorIr);
+        else if (b.dataset.setorSub) alvoEm.contexto?.abrirSub?.(b.dataset.setorSub);
+      });
+      destino.addEventListener('change', (ev) => { if (ev.target.matches?.('[data-vs-mes]') && alvoEm) { per.mes = ev.target.value; pintarEm(alvoEm.destino, alvoEm.setor, alvoEm.contexto); } });
+    }
+    let corpo;
+    try { corpo = await PAINEIS[setor](); } catch (e) {
+      console.error('[setor]', e);
+      corpo = typeof window.vbEstadoHtml === 'function' ? window.vbEstadoHtml({ tipo: 'erro', titulo: 'Não deu para montar o painel', texto: 'As outras abas continuam abrindo.', acao: '<button type="button" class="vb-botao" data-setor-atualizar>Tentar de novo</button>' }) : '<p>Não deu para montar o painel.</p>';
+    }
+    if (g !== geracaoEm || !destino.isConnected) return;
+    const c = destino.querySelector('.vs-corpo'); if (c) c.innerHTML = corpo;
+  }
+  window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar(), pintarEm });
 })();
