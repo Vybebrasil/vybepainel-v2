@@ -135,6 +135,28 @@
     },
 
     async 'setor:financas'() {
+      // Com o Vybe Finanças ligado, o dinheiro vem dele (Paulo, 08/11: "o que for gasto, finança, salários puxa do Vybe Finanças");
+      // as tabelas de dinheiro do próprio Vybe OS estão vazias e deixavam o painel todo em R$ 0.
+      const vf = await ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + String(per.mes).slice(0, 7));
+      if (!vf.falha && vf.conectado && vf.resumo) {
+        const R = vf.resumo, I = vf.inadimplencia || {}, Fo = vf.folha || {}, D = vf.despesas || {};
+        // Cartão estreito: "R$ 28,5 mil" cabe, "R$ 28.500" cortava. Barras lado a lado: "64 mil" não encosta no vizinho.
+        const rs = (v) => (Math.abs(Number(v)) >= 1e4 ? 'R$ ' + curto(v) : reais(v));
+        const milInteiro = (v) => { const n = Number(v) || 0; return n >= 1e3 ? Math.round(n / 1e3).toLocaleString('pt-BR') + ' mil' : String(Math.round(n)); };
+        const serie = (vf.series || []).slice(-6).map((m) => ({ ...m, rotulo: mesCurto(m.mes) }));
+        const margens = [...(vf.margens || [])].filter((c) => c.mes && c.mes.receita > 0).sort((a, b) => (a.mes.margem_percentual ?? 0) - (b.mes.margem_percentual ?? 0)).slice(0, 6);
+        const kpis = kpi({ icone: 'aperto', titulo: 'Recebido no mês', valor: rs(R.recebido), sub: `de ${reais(R.previsto)} previsto${R.recebido_percentual != null ? ` · ${pct(R.recebido_percentual)}` : ''}` })
+          + kpi({ icone: 'relogio', titulo: 'Pendente', valor: rs(R.pendente), cls: Number(R.pendente) > 0 ? 'atencao' : '', sub: R.clientes_sem_lancamento ? `${num(R.clientes_sem_lancamento)} mensalidade${R.clientes_sem_lancamento === 1 ? '' : 's'} sem lançamento` : '' })
+          + kpi({ icone: 'caixa', titulo: 'Despesas do mês', valor: rs(Number(R.despesas_pagas) + Number(R.despesas_pendentes)), sub: `pagas ${reais(R.despesas_pagas)} · a pagar ${reais(R.despesas_pendentes)}` })
+          + kpi({ icone: 'dinheiro', titulo: 'Folha do mês', valor: rs(Fo.total), variacao: Fo.variacao_percentual ?? 'sem', contra: 'vs mês anterior', inverte: true, sub: `${num(Fo.quantidade)} pessoa${Fo.quantidade === 1 ? '' : 's'}` })
+          + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(R.resultado), cls: Number(R.resultado) < 0 ? 'ruim' : '', sub: 'recebido − despesas pagas' })
+          + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(I.total), sub: `${num((I.clientes || []).length)} clientes · ${num(I.criticos)} críticos`, cls: Number(I.total) > 0 ? 'ruim' : '' });
+        return `<p class="vs-fonte">fonte: Vybe Finanças</p><div class="vs-kpis">${kpis}</div>`
+          + linha(bloco('Faturamento × custos', 'recebido e gasto nos últimos meses', barras(serie, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais, curtoFmt: milInteiro }), { icone: 'caixa', acao: abrirAba('financas') })
+            + bloco('Despesas por categoria', D.total ? `${reais(D.total)} no mês` : '', deitadas((D.categorias || []).slice(0, 6).map((c) => ({ nome: c.categoria, valor: c.total, rotulo: `${reais(c.total)} <small>${pct(c.percentual)}</small>` })), { vazio: 'Nenhuma despesa lançada no mês.' }), { icone: 'caixa', acao: abrirAba('contas') }))
+          + linha(bloco('Margem real por cliente', 'recebido − gasto com o cliente no mês, os menores primeiro', deitadas(margens.map((c) => ({ nome: c.cliente_nome, valor: Math.max(0, c.mes.margem_percentual ?? 0), cls: (c.mes.margem_percentual ?? 0) < 20 ? 'ruim' : 'ok', rotulo: pct(c.mes.margem_percentual), sub: `${reais(c.mes.receita)} recebido · ${reais(c.mes.despesas)} gasto` })), { vazio: 'Nenhum cliente com receita lançada no mês.' }), { icone: 'dinheiro', acao: abrirAba('financas') })
+            + bloco('Inadimplência', 'receitas vencidas e não pagas', deitadas((I.clientes || []).slice(0, 6).map((c) => ({ nome: c.cliente_nome, valor: c.valor, cls: c.atraso_mais_antigo > 30 ? 'ruim' : 'atencao', rotulo: reais(c.valor), sub: `${num(c.atraso_mais_antigo)} dias · ${num(c.faturas)} lançamento${c.faturas === 1 ? '' : 's'}` })), { vazio: 'Ninguém em atraso.' }), { icone: 'alerta', acao: abrirAba('inadimplencia') }));
+      }
       const [fin, rec, con, ina, cx] = await Promise.all([ler('/api/painel?area=comercial&aba=financas'), ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=contas' + qPeriodo()), ler('/api/painel?area=comercial&aba=inadimplencia'), ler('/api/painel?area=comercial&aba=caixa')]);
       if (fin.falha === 'negado') return aviso('O painel de Finanças é dos donos e da administração.');
       if (!fin.resumo && !rec.resumo) return aviso(fin.falha ? falhaTexto(fin) : 'Sem números de Finanças agora.');
