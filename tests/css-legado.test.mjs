@@ -16,9 +16,8 @@ test('cabeçalho escuro e camada do .app-header só fora do Irecity, com a forç
 test('vybe-mundo.css fecha todas as regras (uma regra aberta faz o navegador ignorar o resto do arquivo)', () => {
   const css = ler('vybe-mundo.css').replace(/\/\*[\s\S]*?\*\//g, '').replace(/"[^"]*"/g, '');
   assert.equal((css.match(/\{/g) || []).length, (css.match(/\}/g) || []).length);
-  // No bloco gerado, cada regra termina na própria linha ou na seguinte, nunca com a vírgula solta no fim.
-  const ini = css.indexOf('html body.mundo.mundo-modulo .header-title h1');
-  for (const l of css.slice(ini).split('\n').slice(0, 2000)) assert.ok(!/,\s*$/.test(l) || /\{|^\s/.test(l) || !l.trim(), l.slice(0, 80));
+  // Nenhum seletor fica sem corpo: uma lista que termina em vírgula antes de outra regra (continuação apagada).
+  assert.doesNotMatch(css, /,\s*\n\s*html body/);
 });
 
 test('campos escuros e topo laranja do tema antigo só fora do Irecity; perfil novo da sinuca sem !important', () => {
