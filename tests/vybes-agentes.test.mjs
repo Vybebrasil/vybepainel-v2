@@ -69,3 +69,13 @@ test('figuras e monitores só animam durante execução com leitura disponível'
  p.atividadeAgentes([agente('disponivel',{setor:'sdr',ultimos:[{estado:'falhou'}]})],true);assert.equal(s.estado,'falhou');assert.equal(tela(),'d13d36');
  cena.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});
 });
+
+// 09/11/2026: o Heitor (coordenacao) entrou no bot antes da planta e a página de Agentes, o Prédio e o Boletim
+// ficaram sem dados, porque um setor desconhecido derrubava a resposta inteira.
+test('Heitor está na planta e agente que a planta ainda não conhece é ignorado, sem derrubar os outros', () => {
+ const r = validarAgentes({ ok: true, geradoEm: em, agentes: [agente(), agente('disponivel', { setor: 'coordenacao' }), agente('disponivel', { setor: 'agente-que-ainda-nao-existe' })] });
+ assert.deepEqual(r.agentes.map((a) => a.setor).sort(), ['coordenacao', 'copy']);
+ // Duplicado e estado inventado continuam recusados.
+ assert.throws(() => validarAgentes({ ok: true, geradoEm: em, agentes: [agente(), agente()] }));
+ assert.throws(() => validarAgentes(dados({ ...agente(), estado: 'inventado' })));
+});

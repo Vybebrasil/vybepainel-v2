@@ -38,10 +38,12 @@ export const PLANTA = [
     setores: [
       { id: 'copy', nome: 'Copy e Conceito', agente: 'Augusto', funcao: 'Redator', papel: 'Mantém a voz de cada cliente em todos os formatos.',
         skills: ['Planejamento do mês (já publica no painel)', 'Roteiros de vídeo', 'E-mail marketing (SendPulse)'], estado: 'ativo', modulo: { tipo: 'quadro', alvo: 'producao' } },
-      { id: 'design', nome: 'Design Visual', agente: 'Danilo', funcao: 'Diretor de Arte', papel: 'Apoio conceitual para a equipe visual.',
+      { id: 'design', nome: 'Design Visual', agente: 'Danilo', funcao: 'Braço direito da Direção de Arte', papel: 'Revisa a arte e leva referências ao Deivid, o diretor de arte, e aprende a linha dele.',
         skills: ['Referências', 'Moodboards', 'Desdobrar copy em formatos'], estado: 'sombra', modulo: { tipo: 'modo', alvo: 'controler' } },
       { id: 'edicao', nome: 'Pós-produção', agente: 'Lucas', funcao: 'Assistente de Edição', papel: 'Decupagem do material captado (FX30, Hollyland).',
         skills: ['Ler transcrições', 'Minutagem de cortes para Reels', 'Roteiro de decupagem'], estado: 'planejado', modulo: { tipo: 'modo', alvo: 'producao' } },
+      { id: 'coordenacao', nome: 'Coordenação de Produção', agente: 'Heitor', funcao: 'Coordenador de Produção', papel: 'Distribui as demandas pela carga do time, acha demanda sem dono ou no grupo errado e cuida dos prazos da semana.',
+        skills: ['Fila sem dono', 'Carga do time', 'Semana equilibrada', 'Aprende com a redistribuição real'], estado: 'sombra', modulo: { tipo: 'quadro', alvo: 'producao' } },
     ],
   },
   {

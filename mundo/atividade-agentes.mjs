@@ -10,7 +10,10 @@ const ESTADOS_EVENTO = new Set(['executando','aguardando_aprovacao','concluida',
 const data = v => typeof v === 'string' && v.length <= 40 && Number.isFinite(Date.parse(v));
 const texto = (v,n) => typeof v === 'string' && v.length <= n;
 export function validarAgentes(d) {
- if(d?.ok!==true || !data(d.geradoEm) || !Array.isArray(d.agentes) || d.agentes.length>SETORES.size) throw new Error('Resposta inválida da central.');
+ // Agente novo no bot que a planta ainda não conhece é ignorado, não derruba a tela inteira (09/11/2026: o Heitor
+ // entrou no bot antes da planta e a página de Agentes, o Prédio e o Boletim ficaram sem dados).
+ if(d?.ok!==true || !data(d.geradoEm) || !Array.isArray(d.agentes) || d.agentes.length>200) throw new Error('Resposta inválida da central.');
+ d={...d,agentes:d.agentes.filter(a=>a&&SETORES.has(a.setor))};
  const vistos = new Set();
  const agentes=d.agentes.map(a=>{
   if(!a || !SETORES.has(a.setor) || vistos.has(a.setor) || !['disponivel','executando','aguardando_aprovacao','falhou'].includes(a.estado)
