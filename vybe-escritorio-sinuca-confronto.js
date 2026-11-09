@@ -123,13 +123,21 @@ function sinucaTorcidaHtml(j) {
     return `<li class="${safeText(a.estado)}"><b>${a.valor}<i>🪙</i></b><span><strong>${safeText(sinucaTorcidaNome(a.de, t))}</strong> aposta que ${safeText(sinucaApostaTexto(j, a, t))}${a.estado === "aceita" ? ` · <strong>${safeText(sinucaTorcidaNome(a.com, t))}</strong> topou` : a.para ? ` · para ${safeText(sinucaTorcidaNome(a.para, t))}` : " · aberta"}</span>${acao}${fim}</li>`;
   };
   const pessoas = [...["desafiante", "desafiado"].map((l) => ({ id: String(j[l]?.id), nome: j[l]?.nome })), ...t.assistindo].filter((p) => p.id && p.id !== eu);
-  const vitoria = ["desafiante", "desafiado"].filter((l) => !meuLado || l === meuLado).map((l) => `<option value="vitoria:${l}">${String(j[l]?.id) === eu ? "Eu" : safeText(xadrezPrimeiroNome(j[l]))} ganha a partida</option>`).join("");
-  const tacada = jogando && vez ? (j.vez === meuLado ? `<option value="tacada:mata">Eu mato nesta tacada</option>` : `<option value="tacada:nao">${safeText(nomeVez)} NÃO mata esta</option><option value="tacada:mata">${safeText(nomeVez)} mata esta</option>`) : "";
-  const form = jogando ? `<form class="snc-torcida-form" onsubmit="event.preventDefault();sinucaApostaOferecer(this)">
-<label>No quê<select name="em">${tacada}${vitoria}</select></label>
-<label>Quanto<span class="snc-torcida-valores">${[10, 50, 100, 500].map((v) => `<button type="button" onclick="this.form.valor.value=${v}">${v}</button>`).join("")}<input name="valor" type="number" min="1" max="${t.max}" step="1" value="100" required></span></label>
-<label>Contra<select name="para"><option value="">Quem topar primeiro</option>${pessoas.map((p) => `<option value="${safeText(p.id)}">${safeText(String(p.nome || "Alguém").split(" ")[0])}</option>`).join("")}</select></label>
-<button type="submit" class="snc-torcida-oferecer">Lançar aposta</button><p class="snc-torcida-erro" role="alert"></p></form>` : "";
+  // Bilhete de aposta (Paulo, 08/11/2026: "tudo com cara de jogo"): nada de
+  // caixa de seleção; o palpite, o valor e o adversário são botões grandes.
+  const b = sinucaBilhete(j), opcoes = [];
+  if (jogando && vez) {
+    const minhaVez = j.vez === meuLado, cor = vez === "desafiado" ? "giz" : "laranja";
+    opcoes.push({ id: "tacada:mata", cor, icone: "🎯", titulo: minhaVez ? "EU MATO" : `${nomeVez.toUpperCase()} MATA`, texto: `Na tacada ${(j.mesa?.n || 0) + 1}` });
+    if (!minhaVez) opcoes.push({ id: "tacada:nao", cor: "falta", icone: "🙅", titulo: `${nomeVez.toUpperCase()} NÃO MATA`, texto: `Na tacada ${(j.mesa?.n || 0) + 1}` });
+  }
+  for (const l of ["desafiante", "desafiado"]) if (!meuLado || l === meuLado) opcoes.push({ id: `vitoria:${l}`, cor: l === "desafiado" ? "giz" : "laranja", icone: "🏆", titulo: `${String(j[l]?.id) === eu ? "EU" : xadrezPrimeiroNome(j[l]).toUpperCase()} GANHA`, texto: "A partida" });
+  if (!opcoes.some((o) => o.id === b.em)) b.em = opcoes[0]?.id || "";
+  const form = jogando ? `<div class="snc-bilhete">
+<div class="snc-bilhete-linha"><small>1 · O PALPITE</small><div class="snc-bilhete-opcoes">${opcoes.map((o) => `<button type="button" class="${o.cor}" aria-pressed="${b.em === o.id}" onclick="sinucaBilhete().em='${o.id}';sinucaTorcidaRedesenhar()"><i>${o.icone}</i><b>${safeText(o.titulo)}</b><small>${safeText(o.texto)}</small></button>`).join("")}</div></div>
+<div class="snc-bilhete-linha"><small>2 · QUANTO</small><div class="snc-bilhete-valor">${[10, 50, 100, 500].map((v) => `<button type="button" class="ficha" aria-pressed="${b.valor === v}" onclick="sinucaBilhete().valor=${v};sinucaTorcidaRedesenhar()">${v}</button>`).join("")}<span class="snc-bilhete-passo"><button type="button" aria-label="Menos" onclick="sinucaBilhete().valor=Math.max(1,sinucaBilhete().valor-10);sinucaTorcidaRedesenhar()">−</button><b>${b.valor}<i>🪙</i></b><button type="button" aria-label="Mais" onclick="sinucaBilhete().valor=Math.min(${t.max},sinucaBilhete().valor+10);sinucaTorcidaRedesenhar()">+</button></span></div></div>
+<div class="snc-bilhete-linha"><small>3 · CONTRA QUEM</small><div class="snc-bilhete-pessoas"><button type="button" aria-pressed="${!b.para}" onclick="sinucaBilhete().para=null;sinucaTorcidaRedesenhar()"><i>★</i><b>Quem topar</b></button>${pessoas.map((p) => `<button type="button" aria-pressed="${b.para === p.id}" onclick="sinucaBilhete().para='${safeText(p.id)}';sinucaTorcidaRedesenhar()"><i>${safeText(String(p.nome || "?")[0])}</i><b>${safeText(String(p.nome || "Alguém").split(" ")[0])}</b></button>`).join("")}</div></div>
+<button type="button" class="snc-torcida-oferecer" onclick="sinucaApostaOferecer(this)">LANÇAR APOSTA · ${b.valor} 🪙</button><p class="snc-torcida-erro" role="alert"></p></div>` : "";
   return `<div class="snc-torcida" data-snc-torcida>
 <header><small>NA ARQUIBANCADA</small><p>${t.assistindo.length ? t.assistindo.map((p) => `<span>${safeText(String(p.nome).split(" ")[0])}</span>`).join("") : "Ninguém assistindo agora."}</p></header>
 ${form}
@@ -161,10 +169,20 @@ async function sinucaApostaPedido(corpo, botao, erroEl) {
     if (erroEl) erroEl.textContent = e.message; else sinucaAvisar?.(e.message);
   }
 }
-function sinucaApostaOferecer(form) {
-  const [tipo, escolha] = String(form.em.value).split(":"), valor = Math.round(Number(form.valor.value));
+// O bilhete guarda o palpite entre um desenho e outro (por partida).
+function sinucaBilhete() {
+  const s = sinucaEstado(), id = s.jogo?.id;
+  if (!s.bilhete || s.bilhete.jogo !== id) s.bilhete = { jogo: id, em: "", valor: 100, para: null };
+  return s.bilhete;
+}
+function sinucaTorcidaRedesenhar() {
+  const j = sinucaEstado().jogo, el = document.querySelector(".ofc-snc-jogo [data-snc-torcida]");
+  if (j && el) el.outerHTML = sinucaTorcidaHtml(j);
+}
+function sinucaApostaOferecer(botao) {
+  const b = sinucaBilhete(), [tipo, escolha] = String(b.em).split(":");
   const aposta = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-  sinucaApostaPedido({ acao: "aposta-oferecer", aposta, tipo, escolha, valor, para: form.para.value || null }, form.querySelector("button[type=submit]"), form.querySelector(".snc-torcida-erro"));
+  sinucaApostaPedido({ acao: "aposta-oferecer", aposta, tipo, escolha, valor: Math.round(b.valor), para: b.para || null }, botao, botao.parentNode.querySelector(".snc-torcida-erro"));
 }
 function sinucaApostaAcao(acao, aposta, botao) { sinucaApostaPedido({ acao, aposta }, botao); }
 

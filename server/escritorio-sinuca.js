@@ -511,6 +511,8 @@ export function vistaSinuca(m, lado, fim) {
   restam: Object.fromEntries(Object.keys(GRUPOS).map((g) => [g, restam(m.bolas, g)])),
   // Os quadros vão só em `recentes` (a partida gravada antes não tem: a última tacada vale como a lista).
   rodizio: m.rodizio || null, times: m.times || null,
+  // Os números de cada lado (a tela de fim mostra; a ficha lê das partidas).
+  stats: m.stats || null,
   pode_tacar: Boolean(vez), ultimo: m.ultimo ? { ...m.ultimo, quadros: undefined, trilhas: undefined, inicio: undefined, eventos: undefined } : null,
   recentes: m.recentes || (m.ultimo ? [{ ...m.ultimo, n: m.n || 0 }] : []),
  };

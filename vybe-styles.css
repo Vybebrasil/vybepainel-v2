@@ -26858,3 +26858,207 @@ body .snc-perfil-fechar{border-radius:0;clip-path:var(--bv-corte);background:var
 #workflow-modal.ofc-snc-jogo .snc-hud .snc-rever{top:88px!important;right:146px!important;height:24px}
 #workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-medidor .snc-forca{min-height:0!important;height:auto}
 }
+/* ==========================================================================
+   SINUCA · TUDO NA CENA (Paulo, 08/11/2026: "eu não pedi pra conferir tudo?
+   pra deixar tudo com cara de jogo? abre tudo, cada menu, cada HUD").
+   O caderno saiu de baixo da mesa: as abas são uma barra no alto da cena e o
+   painel abre como gaveta por cima do jogo, com o × para fechar. As bolas
+   encaçapadas ficam num trilho no alto. A torcida é um bilhete de aposta.
+   ========================================================================== */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno{position:absolute;inset:0;z-index:6;pointer-events:none;margin:0;padding:0;background:none;border:0}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas{pointer-events:auto;position:absolute;top:84px;left:50%;transform:translateX(-50%);display:flex;gap:4px;margin:0;padding:0;border:0;white-space:nowrap}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas>span{display:none}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas button{padding:6px 12px 6px 10px;font-size:10px;letter-spacing:1.4px;background:#0a0c12b3;color:#d7dce5;opacity:.85}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas button:hover{opacity:1;color:#fff}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas button[aria-selected=true]{opacity:1}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas button::before{display:inline-block;margin-right:6px;font-size:12px;letter-spacing:0}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas button[data-snc-aba=partida]::before{content:"🎱"}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas button[data-snc-aba=torcida]::before{content:"🪙"}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas button[data-snc-aba=lousa]::before{content:"🏆"}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-abas button[data-snc-aba=regras]::before{content:"📜"}
+/* A gaveta: vidro escuro com o canto cortado e a faixa laranja em cima. */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-painel:not([hidden]){pointer-events:auto;position:absolute;top:124px;right:64px;width:min(460px,calc(100% - 180px));max-height:calc(100% - 250px);overflow:auto;margin:0;padding:18px 18px 16px;box-sizing:border-box;background:linear-gradient(180deg,#ffffff0d,transparent 30%),#0a0c12f2;box-shadow:inset 0 3px 0 var(--bv-laranja),0 30px 80px #000c;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));animation:sncGaveta .28s cubic-bezier(.2,1.2,.4,1) both;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}
+@keyframes sncGaveta{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+#workflow-modal.ofc-snc-jogo .snc-caderno-fechar{display:none}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno.aberto .snc-caderno-fechar{pointer-events:auto;display:grid;place-items:center;position:absolute;z-index:2;top:128px;right:70px;width:30px;height:30px;border:0;clip-path:var(--bv-corte);background:#ffffff14;color:#fff;font:700 18px/1 var(--bv-ui);cursor:pointer}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno.aberto .snc-caderno-fechar:hover{background:var(--bv-laranja)}
+/* Jogadas: a última tacada como linha do placar e as bolas que caíram em fila. */
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-ultima,#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-encacapadas{background:none;box-shadow:none;padding:0;width:auto}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-ultima small,#workflow-modal.ofc-snc-jogo .snc-hud .snc-encacapadas small{display:block;margin:0 0 6px;font:800 10px var(--bv-ui);letter-spacing:2.4px;color:var(--bv-dim)}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-ultima p{margin:0;padding:10px 12px;font:700 14px/1.4 var(--bv-ui);color:#fff;background:#ffffff0a;box-shadow:inset 3px 0 0 var(--bv-laranja)}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo{display:flex;flex-wrap:wrap;gap:4px;min-height:30px;padding:6px 8px;border-radius:16px;background:linear-gradient(#000,#1a1d26);box-shadow:inset 0 2px 6px #000}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-tubo span{font-size:12px;color:var(--bv-dim);align-self:center}
+#workflow-modal.ofc-snc-jogo .snc-hud [data-snc-painel=partida]{flex-direction:column}
+/* Trilho das bolas que caíram, no alto da cena. Vazio, some. */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bandeja{position:absolute;left:50%;top:118px;transform:translateX(-50%);z-index:3;margin:0;padding:3px 8px;border-radius:14px;background:#000a;box-shadow:inset 0 2px 5px #000,0 0 0 1px #ffffff1a}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bandeja.vazia{display:none}
+/* Como jogar e o placar do bar dentro da gaveta. */
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-regras article{padding:10px 12px;background:#ffffff08;box-shadow:inset 3px 0 0 var(--bv-giz)}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-regras article small{color:var(--bv-giz2);font:800 10px var(--bv-ui);letter-spacing:2px}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-regras article h3{margin:4px 0;font:900 italic 18px var(--bv-ui);color:#fff;text-transform:uppercase}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-regras article p{margin:0;font-size:13px;line-height:1.45;color:#dfe3ea}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-vazio h3{font:900 italic 20px var(--bv-ui);text-transform:uppercase;margin:0 0 4px}
+/* Torcida: bilhete de aposta. */
+.snc-bilhete{display:flex;flex-direction:column;gap:12px;padding:14px;background:linear-gradient(180deg,#ffc24a14,transparent 40%),#ffffff06;box-shadow:inset 0 0 0 1px #ffc24a33;clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)}
+.snc-bilhete-linha>small{display:block;margin:0 0 6px;font:800 10px var(--bv-ui);letter-spacing:2px;color:var(--bv-ouro)}
+.snc-bilhete-opcoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px}
+.snc-bilhete-opcoes button{--c:var(--bv-laranja);display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:8px 10px;border:0;clip-path:var(--bv-corte);background:#0a0c12;box-shadow:inset 0 0 0 1px #ffffff26;color:#fff;text-align:left;cursor:pointer}
+.snc-bilhete-opcoes button.giz{--c:var(--bv-giz)}.snc-bilhete-opcoes button.falta{--c:var(--bv-falta)}
+.snc-bilhete-opcoes button i{grid-row:span 2;font-style:normal;font-size:20px}
+.snc-bilhete-opcoes button b{font:900 italic 13px/1.1 var(--bv-ui)}
+.snc-bilhete-opcoes button small{font-size:10px;color:var(--bv-dim)}
+.snc-bilhete-opcoes button[aria-pressed=true]{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 45%,#0a0c12),#0a0c12);box-shadow:inset 0 0 0 2px var(--c),0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
+.snc-bilhete-valor{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.snc-bilhete-valor .ficha{width:44px;height:44px;border:0;border-radius:50%;background:radial-gradient(circle,#ffd77a 0 45%,#c98a12 47% 55%,#ffd77a 57%);box-shadow:inset 0 0 0 3px #ffffff55,0 4px 10px #000a;color:#3a2400;font:900 12px var(--bv-ui);cursor:pointer;opacity:.75;transition:transform .12s}
+.snc-bilhete-valor .ficha[aria-pressed=true]{opacity:1;transform:translateY(-4px) scale(1.08);box-shadow:inset 0 0 0 3px #fff,0 0 18px #ffc24a,0 6px 12px #000a}
+.snc-bilhete-passo{display:flex;align-items:center;gap:6px;margin-left:auto}
+.snc-bilhete-passo button{width:30px;height:30px;border:0;clip-path:var(--bv-corte);background:#ffffff14;color:#fff;font:800 16px var(--bv-ui);cursor:pointer}
+.snc-bilhete-passo b{min-width:70px;text-align:center;font:900 italic 22px var(--bv-ui);color:var(--bv-ouro)}.snc-bilhete-passo b i{font-style:normal;font-size:14px;margin-left:3px}
+.snc-bilhete-pessoas{display:flex;flex-wrap:wrap;gap:6px}
+.snc-bilhete-pessoas button{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 4px;border:0;clip-path:var(--bv-corte);background:#0a0c12;box-shadow:inset 0 0 0 1px #ffffff26;color:#fff;cursor:pointer}
+.snc-bilhete-pessoas button i{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#ffffff1a;font:900 12px var(--bv-ui);font-style:normal}
+.snc-bilhete-pessoas button b{font:800 12px var(--bv-ui)}
+.snc-bilhete-pessoas button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--bv-giz);background:#0f2a3d}
+.snc-bilhete .snc-torcida-oferecer{width:100%;padding:12px 16px;font-size:18px}
+/* Grupo do taco: o nome do efeito fica em cima da bola (embaixo cobria o TACAR). */
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-efeito .snc-efeito-nome{order:-1;max-width:150px;white-space:normal;text-align:center;line-height:1.25}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bloco-efeito{display:flex!important;flex-direction:column;align-items:center}
+@media(max-width:760px){
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno{position:static;pointer-events:auto}
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas{position:static;transform:none;flex-wrap:wrap;justify-content:center;margin:10px 0 0}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-painel:not([hidden]){position:static;width:auto;max-height:none;margin-top:8px}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno.aberto .snc-caderno-fechar{display:none}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bandeja{position:static;transform:none;margin:8px auto 0;width:max-content;max-width:100%}
+}
+@media(max-height:560px) and (orientation:landscape){
+#workflow-modal.ofc-snc-jogo.ofc-snc-jogo .snc-hud .snc-abas{top:52px}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-painel:not([hidden]){top:86px;max-height:calc(100% - 96px);right:14px;width:min(400px,calc(100% - 120px))}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-caderno.aberto .snc-caderno-fechar{top:90px;right:20px}
+#workflow-modal.ofc-snc-jogo .snc-hud .snc-bandeja{top:84px;left:auto;right:12px;transform:none}
+}
+/* Convite recebido: o cartão de quem chamou à esquerda, a proposta à direita. */
+.snc-convite-palco{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:calc(100dvh - 160px)}
+.snc-convite-palco>.snc-vs-lado{min-height:100%;align-items:flex-start;padding-top:28px}
+.snc-convite-lado{display:flex;flex-direction:column;gap:14px;padding:28px clamp(18px,3vw,44px)}
+.snc-convite-kicker{font:800 11px var(--bv-ui);letter-spacing:3px;color:var(--bv-laranja2)}
+.snc-convite-lado h1{margin:0;font:900 italic clamp(40px,5.4vw,76px)/.9 var(--bv-ui);text-transform:uppercase;color:#fff;text-shadow:4px 4px 0 var(--bv-laranja3),0 0 40px #ff8a3d55}
+.snc-convite-lado h3{margin:0 0 6px;font:800 10px var(--bv-ui);letter-spacing:2.4px;color:var(--bv-dim)}
+.snc-convite-lado h3::before{content:"";display:inline-block;width:10px;height:3px;margin:0 6px 2px 0;background:var(--bv-laranja);transform:skewX(-20deg)}
+.snc-convite-amistoso{margin:0;padding:10px 12px;background:#ffffff08;box-shadow:inset 3px 0 0 var(--bv-giz);font:700 13px var(--bv-ui);color:#fff}
+.snc-convite-regras{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+.snc-convite-regras li{display:grid;grid-template-columns:auto 1fr;column-gap:8px;padding:8px 10px;clip-path:var(--bv-corte);background:#0a0c12d9;box-shadow:inset 0 0 0 1px var(--bv-linha)}
+.snc-convite-regras li i{grid-row:span 2;font-style:normal;font-size:18px;align-self:center}
+.snc-convite-regras li b{font:900 italic 13px var(--bv-ui);color:#fff;text-transform:uppercase}
+.snc-convite-regras li small{font-size:11px;color:var(--bv-dim)}
+.snc-convite-acoes{display:flex;gap:10px;margin-top:auto}
+.snc-convite-acoes .snc-btn{flex:1;padding:14px 18px!important;font:900 italic 18px var(--bv-ui)!important}
+.snc-convite-acoes .snc-btn:not(.secundario){flex:2}
+@media(max-width:760px){.snc-convite-palco{grid-template-columns:1fr}.snc-convite-palco>.snc-vs-lado{clip-path:none;padding:16px}}
+/* Preparar desafio: escolhas como placas de jogo, não caixas de formulário. */
+#workflow-modal.ofc-snc-menu .snc-passo b{display:grid;place-items:center;min-width:34px;height:28px;clip-path:var(--bv-corte);background:var(--bv-laranja);color:#fff;font:900 italic 14px var(--bv-ui);border:0;border-radius:0}
+#workflow-modal.ofc-snc-menu .snc-passo h2{font:900 italic 22px var(--bv-ui);text-transform:uppercase;letter-spacing:.3px}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button,#workflow-modal.ofc-snc-menu .snc-colega{border:0!important;border-radius:0!important;clip-path:var(--bv-corte-g);background:linear-gradient(180deg,#ffffff0a,transparent),#0a0c12!important;box-shadow:inset 0 0 0 1px var(--bv-linha)!important;color:#fff;transition:transform .12s}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button:hover,#workflow-modal.ofc-snc-menu .snc-colega:hover{transform:translateY(-2px)}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button[aria-checked=true],#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button[aria-pressed=true],#workflow-modal.ofc-snc-menu .snc-colega.selecionado{background:linear-gradient(90deg,#ff8a3d40,#ff8a3d0d 70%),#140c07!important;box-shadow:inset 0 0 0 2px var(--bv-laranja),0 0 22px #ff8a3d40!important}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button:is([aria-checked=true],[aria-pressed=true]) b,#workflow-modal.ofc-snc-menu .snc-colega.selecionado span{color:var(--bv-laranja2)}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button b{font:900 italic 15px var(--bv-ui);text-transform:uppercase}
+#workflow-modal.ofc-snc-menu :is(.snc-modos,.snc-formato) button[aria-checked=true] small,#workflow-modal.ofc-snc-menu .snc-colega.selecionado small{color:#fff}
+#workflow-modal.ofc-snc-menu .snc-colega .snc-inicial,#workflow-modal.ofc-snc-menu .snc-colega img{border-radius:0!important;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);border:0!important;background:#ffffff1f!important;font:900 italic 18px var(--bv-ui)!important;color:#fff!important}
+#workflow-modal.ofc-snc-menu .snc-colega span{font:900 italic 15px var(--bv-ui);text-transform:uppercase}
+#workflow-modal.ofc-snc-menu .snc-casa-nota{border:0;border-radius:0;clip-path:var(--bv-corte);background:#ff5a4f1a;box-shadow:inset 3px 0 0 var(--bv-falta);color:#ffd0cc}
+#workflow-modal.ofc-snc-menu .snc-aposta{border:0;border-radius:0;clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%);background:linear-gradient(180deg,#ffc24a14,transparent 40%),#0a0c12;box-shadow:inset 0 0 0 1px #ffc24a33}
+#workflow-modal.ofc-snc-menu .snc-aposta-moedas input{border:0;border-radius:0;clip-path:var(--bv-corte);background:#000;color:var(--bv-ouro);font:900 italic 26px var(--bv-ui);width:130px;text-align:center}
+#workflow-modal.ofc-snc-menu .snc-sala-pe .snc-btn{clip-path:var(--bv-corte-g);border-radius:0;font:900 italic 16px var(--bv-ui)!important;padding:13px 24px}
+/* Preparar desafio = seleção de personagem (Paulo, 08/11/2026: "é pra mudar tudo"). */
+#workflow-modal.ofc-xdz-novo{overflow:hidden!important}
+.snc-sel{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);background:#06070b;color:#fff;font-family:var(--bv-ui)}
+.snc-sel-palco{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px) minmax(0,1fr);min-height:0;overflow:hidden;background:linear-gradient(90deg,#06070bcc,#06070b40 50%,#06070bcc),url(/assets/jogos/sinuca-lobby.webp) center/cover}
+.snc-sel-lado{--cor:var(--bv-laranja);position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-width:0;padding:24px clamp(16px,3vw,44px);overflow:hidden;background:linear-gradient(90deg,color-mix(in srgb,var(--cor) 55%,transparent),transparent 85%)}
+.snc-sel-lado.rival{--cor:var(--bv-giz);align-items:flex-end;text-align:right;background:linear-gradient(270deg,color-mix(in srgb,var(--cor) 55%,transparent),transparent 85%)}
+.snc-sel-foto{position:absolute;left:4%;top:6%;bottom:30%;aspect-ratio:1;display:grid;place-items:center;filter:drop-shadow(0 20px 40px #000c);animation:sncSelEntra .5s cubic-bezier(.2,1.2,.4,1) both}
+.snc-sel-lado.rival .snc-sel-foto{left:auto;right:4%}
+.snc-sel-foto img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.snc-sel-foto i{display:grid;place-items:center;width:78%;aspect-ratio:1;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:radial-gradient(circle at 35% 30%,#ffffff40,transparent 60%),color-mix(in srgb,var(--cor) 60%,#111);font:900 italic clamp(60px,9vw,130px)/1 var(--bv-ui);font-style:italic;color:#fff;text-shadow:0 6px 0 #0006}
+.snc-sel-lado.vazio .snc-sel-foto i{background:#ffffff0d;color:#ffffff40;animation:sncSelPulsa 1.4s ease-in-out infinite}
+.snc-sel-nome{position:relative;display:flex;flex-direction:column;gap:6px;max-width:100%}
+.snc-sel-lado.rival .snc-sel-nome{align-items:flex-end}
+.snc-sel-nome>small{font:800 11px var(--bv-ui);letter-spacing:3px;color:#ffffffcc}
+.snc-sel-nome h2{margin:0;font:900 italic clamp(40px,5.5vw,84px)/.85 var(--bv-ui);text-transform:uppercase;text-shadow:0 6px 0 #0007,0 0 40px #0008;overflow-wrap:anywhere}
+.snc-sel-titulo{align-self:flex-start;padding:3px 12px;clip-path:var(--bv-corte);background:#c9d0db;color:#0b0d10;font:900 italic 13px var(--bv-ui);text-transform:uppercase}
+.snc-sel-lado.rival .snc-sel-titulo{align-self:flex-end}
+.snc-sel-titulo.raro{background:var(--snc-raro)}.snc-sel-titulo.epico{background:var(--snc-epico);color:#fff}.snc-sel-titulo.lendario{background:linear-gradient(90deg,#ffd46b,#ff9d1c);box-shadow:0 0 22px #ffb43a88}
+.snc-sel-texto{font-size:12px;color:#ffffffbb}
+.snc-sel-campanha{display:flex;align-items:baseline;gap:6px;margin:4px 0 0}
+.snc-sel-campanha b{font:900 italic 22px var(--bv-ui)}.snc-sel-campanha b i{font-style:normal;font-size:12px;opacity:.7}
+.snc-sel-campanha small{margin-right:10px;font:800 9px var(--bv-ui);letter-spacing:1.6px;text-transform:uppercase;color:#ffffffaa}
+.snc-sel-taco{width:min(320px,100%);height:26px;filter:drop-shadow(0 6px 8px #000a)}
+.snc-sel-lado.rival .snc-sel-taco{transform:scaleX(-1)}
+.snc-sel-centro{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:16px 14px;overflow:auto;scrollbar-width:none}
+.snc-sel-vs{align-self:center;font:900 italic clamp(56px,7vw,96px)/1 var(--bv-ui);color:#fff;-webkit-text-stroke:2px #1a0f00;text-shadow:5px 5px 0 var(--bv-laranja3),10px 10px 0 #0009,0 0 50px #ffb43a;animation:sncSelVs .5s .2s cubic-bezier(.2,1.8,.4,1) both}
+.snc-sel-regras{display:flex;flex-direction:column;gap:5px}
+.snc-sel-opcao{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:7px 10px;clip-path:var(--bv-corte-g);background:#0a0c12e6;box-shadow:inset 0 0 0 1px var(--bv-linha)}
+.snc-sel-opcao>small{font:800 9px var(--bv-ui);letter-spacing:2px;color:var(--bv-dim)}
+.snc-sel-opcao>div{display:grid;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center}
+.snc-sel-opcao button{height:28px;border:0;background:none;color:var(--bv-laranja);font-size:16px;cursor:pointer;transition:transform .1s}
+.snc-sel-opcao button:hover{color:#fff;transform:scale(1.25)}
+.snc-sel-opcao b{text-align:center;font:900 italic 17px var(--bv-ui);text-transform:uppercase}
+.snc-sel-opcao>span{text-align:center;font-size:11px;color:#ffffff99}
+.snc-sel-valor .snc-sel-opcao{box-shadow:inset 0 0 0 1px #ffc24a55}
+.snc-sel-valor.valendo .snc-sel-opcao b{color:var(--bv-ouro)}
+.snc-sel-fichas{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:6px}
+.snc-sel-fichas .ficha{width:40px;height:40px;border:0;border-radius:50%;background:radial-gradient(circle,#ffd77a 0 45%,#c98a12 47% 55%,#ffd77a 57%);box-shadow:inset 0 0 0 3px #ffffff55,0 4px 10px #000a;color:#3a2400;font:900 11px var(--bv-ui);cursor:pointer;opacity:.75}
+.snc-sel-fichas .ficha[aria-pressed=true]{opacity:1;transform:translateY(-3px) scale(1.08);box-shadow:inset 0 0 0 3px #fff,0 0 16px #ffc24a}
+.snc-sel-fichas input{width:76px;padding:6px;border:0;clip-path:var(--bv-corte);background:#000;color:var(--bv-ouro);font:900 italic 16px var(--bv-ui);text-align:center}
+.snc-sel-fichas small{width:100%;text-align:center;font-size:10px;color:var(--bv-dim)}
+.snc-sel-itens summary{cursor:pointer;font-size:11px;color:var(--bv-laranja2);text-align:center;margin-top:4px}
+.snc-sel-fileira{display:flex;gap:8px;overflow-x:auto;padding:12px clamp(12px,3vw,40px);background:linear-gradient(180deg,#0a0c12,#06070b);box-shadow:inset 0 1px 0 #ffffff14;scrollbar-width:thin}
+.snc-sel-carta{flex:0 0 132px;display:grid;justify-items:center;gap:2px;padding:8px 6px;border:0;clip-path:var(--bv-corte-g);background:#12151d;box-shadow:inset 0 0 0 1px var(--bv-linha);color:#fff;cursor:pointer;transition:transform .12s}
+.snc-sel-carta:hover{transform:translateY(-3px)}
+.snc-sel-carta.selecionado{background:linear-gradient(180deg,#3fb8ff40,#12151d);box-shadow:inset 0 0 0 2px var(--bv-giz),0 0 20px #3fb8ff55}
+.snc-sel-carta-foto{display:grid;place-items:center;width:46px;height:46px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:#ffffff1a;overflow:hidden}
+.snc-sel-carta-foto img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.snc-sel-carta-foto i{font:900 italic 20px var(--bv-ui);font-style:italic}
+.snc-sel-carta b{font:900 italic 14px var(--bv-ui);text-transform:uppercase}
+.snc-sel-carta small{font-size:10px;color:var(--bv-dim)}.snc-sel-carta.online small{color:#5fdc8a}
+.snc-sel-carta em{max-width:100%;padding:1px 6px;clip-path:var(--bv-corte);background:#c9d0db;color:#0b0d10;font:800 8px/1.5 var(--bv-ui);font-style:normal;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snc-sel-carta em.raro{background:var(--snc-raro)}.snc-sel-carta em.epico{background:var(--snc-epico);color:#fff}.snc-sel-carta em.lendario{background:linear-gradient(90deg,#ffd46b,#ff9d1c)}
+.snc-sel-dupla{max-height:34vh;overflow:auto;padding:10px clamp(12px,3vw,40px);background:#0a0c12}
+.snc-sel-pe{display:flex;justify-content:space-between;gap:10px;padding:10px clamp(12px,3vw,40px) 14px;background:#06070b}
+.snc-sel-pe .snc-btn{border-radius:0!important;clip-path:var(--bv-corte-g);font:900 italic 16px var(--bv-ui)!important;padding:12px 24px!important}
+.snc-sel-desafiar{min-width:260px;font-size:22px!important}
+.snc-sel-desafiar:disabled{filter:grayscale(1) brightness(.6)}
+@keyframes sncSelEntra{from{opacity:0;transform:scale(1.2)}to{opacity:1;transform:none}}
+@keyframes sncSelPulsa{50%{opacity:.5}}
+@keyframes sncSelVs{from{opacity:0;transform:scale(3) rotate(-15deg)}to{opacity:1;transform:none}}
+@media(max-width:760px){.snc-sel{height:auto;max-height:none}#workflow-modal.ofc-xdz-novo{overflow:auto!important}.snc-sel-palco{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}.snc-sel-centro{grid-column:1/-1;grid-row:2}.snc-sel-lado{min-height:220px;padding:14px}.snc-sel-foto{left:50%;transform:translateX(-50%);top:4%;bottom:46%}.snc-sel-lado.rival .snc-sel-foto{right:auto}.snc-sel-nome h2{font-size:30px}.snc-sel-texto,.snc-sel-taco{display:none}.snc-sel-vs{font-size:44px}.snc-sel-desafiar{min-width:0;flex:1}}
+@media(prefers-reduced-motion:reduce){.snc-sel *{animation:none!important}}
+.snc-sel-centro{justify-content:center;gap:6px;padding:10px 12px}
+.snc-sel-vs{font-size:clamp(40px,5vw,72px)}
+.snc-sel-opcao{padding:4px 10px 5px}
+.snc-sel-opcao b{font-size:15px}
+.snc-sel-opcao button{height:24px}
+.snc-sel-opcao>span{font-size:10px;line-height:1.2}
+@media(max-height:700px){.snc-sel-opcao>span{display:none}.snc-sel-vs{font-size:44px}}
+.snc-sel-centro{overflow:visible}
+.snc-sel-opcao>span{display:none}
+.snc-sel-opcao:hover>span,.snc-sel-opcao:focus-within>span{display:block}
+/* Fim de partida: tela de VITÓRIA / DERROTA / EMPATE com os números dos dois. */
+.jogo-fim .snc-fim{--c:var(--bv-laranja);width:min(620px,calc(100vw - 32px));padding:26px 28px 22px!important;border:0!important;border-radius:0!important;clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,26px 100%,0 calc(100% - 26px));background:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--c) 30%,transparent),transparent 65%),#0a0c12f5!important;box-shadow:inset 0 4px 0 var(--c)!important;text-align:center;animation:sncFim .5s cubic-bezier(.2,1.4,.4,1) both}
+.jogo-fim.perdeu .snc-fim{--c:var(--bv-falta)}.jogo-fim.empate .snc-fim{--c:var(--bv-giz)}
+.snc-fim-motivo{display:block;font:800 11px var(--bv-ui)!important;letter-spacing:3px;color:#ffffffaa!important;text-transform:uppercase}
+.snc-fim-palavra{display:block;margin:4px 0 2px;font:900 italic clamp(56px,10vw,110px)/.9 var(--bv-ui)!important;letter-spacing:-1px;color:#fff!important;-webkit-text-stroke:2px #0006;text-shadow:6px 6px 0 color-mix(in srgb,var(--c) 70%,#000),0 0 60px var(--c)!important;animation:sncFimPalavra .6s .15s cubic-bezier(.2,1.8,.4,1) both}
+.snc-fim-frase{margin:6px 0 10px!important;font:700 14px var(--bv-ui)!important;color:#ffffffcc!important;text-transform:none!important;letter-spacing:0!important}
+.snc-fim-premio{display:inline-block!important;padding:6px 16px;clip-path:var(--bv-corte);background:#ffc24a!important;color:#2a1a00!important;font:900 italic 18px var(--bv-ui)!important}
+.snc-fim-numeros{width:100%;margin:16px 0 4px;border-collapse:separate;border-spacing:0 3px;font-family:var(--bv-ui)}
+.snc-fim-numeros th{padding:4px 8px;font:900 italic 14px var(--bv-ui);text-transform:uppercase}
+.snc-fim-numeros th.desafiante,.snc-fim-numeros td.desafiante{color:var(--bv-laranja2)}.snc-fim-numeros th.desafiado,.snc-fim-numeros td.desafiado{color:var(--bv-giz2)}
+.snc-fim-numeros td{padding:5px 8px;background:#ffffff08;font:900 italic 18px var(--bv-ui)}
+.snc-fim-numeros td:first-child{text-align:left;font:700 12px var(--bv-ui);color:#ffffffaa;letter-spacing:.5px}
+.snc-fim-acoes{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.snc-fim-acoes button{border:0!important;border-radius:0!important;clip-path:var(--bv-corte-g);padding:12px 22px!important;font:900 italic 15px var(--bv-ui)!important;text-transform:uppercase}
+.snc-fim-acoes .workflow-primary{background:linear-gradient(180deg,var(--bv-laranja2),var(--bv-laranja) 45%,var(--bv-laranja3))!important;color:#fff!important}
+.snc-fim-acoes .workflow-secondary{background:#ffffff14!important;color:#fff!important}
+.jogo-fim .snc-fim>img{display:none}
+@keyframes sncFim{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+@keyframes sncFimPalavra{from{opacity:0;transform:scale(2.4) skewX(-10deg)}to{opacity:1;transform:none}}
+@media(max-width:760px){.snc-sel-campanha{flex-wrap:wrap;gap:4px 8px}.snc-sel-campanha small{display:none}.snc-sel-campanha b{font-size:15px}.snc-sel-lado.rival .snc-sel-campanha{justify-content:flex-end}.snc-sel-foto{opacity:.55}}

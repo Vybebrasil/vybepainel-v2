@@ -325,7 +325,7 @@ function desenharSinuca(j, s) {
 <div class="snc-bloco snc-bloco-taco"><label class="snc-taco"><small>INCLINAÇÃO <b>${s.elevacao||0}°</b></small>${sinucaTacoDesenho(s.elevacao||0,efeito)}<input type="range" min="0" max="60" step="5" value="${s.elevacao||0}" oninput="sinucaElevacao(this)" ${ativo?'':'disabled'} aria-label="Inclinação do taco"><em class="snc-taco-texto">${sinucaTacoTexto(s.elevacao||0,giro)}</em></label></div>
 <button type="button" class="snc-tacar" onclick="tacarSinuca()" aria-disabled="${!ativo}">TACAR</button><button type="button" class="snc-rever" onclick="sinucaRever()" ${s.replay && !s.anim ? '' : 'disabled'} title="Rever a última tacada em câmera lenta">↺ Rever jogada</button>${m.bolaNaMao&&s.branca&&minha?'<button type="button" class="snc-mudar" onclick="sinucaEstado().branca=null;desenharJogoMesa(\'snc\')">Reposicionar branca</button>':''}</section>`;
   const caidas = m.bolas.map((p, n) => (!p && n && (m.modo !== "bolavez" || n <= 7) ? n : null)).filter((n) => n !== null);
-  const bandeja = `<div class="snc-bandeja" aria-label="Bolas fora da mesa">${caidas.map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? 'listra' : ''}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join('') || '<span>Nenhuma bola caiu ainda</span>'}</div>`;
+  const bandeja = `<div class="snc-bandeja${caidas.length ? '' : ' vazia'}" aria-label="Bolas fora da mesa">${caidas.map((n) => { const v = sinucaVisual(m.modo, n); return `<i class="${v.listra ? 'listra' : ''}" style="--c:${v.cor}" title="Bola ${n}">${n}</i>`; }).join('') || '<span>Nenhuma bola caiu ainda</span>'}</div>`;
   // O letreiro da vez: quando a vez chega para mim (depois da animação e do anúncio).
   if (minha && !s.anim && s.letreiro !== `${j.id}:${j.n}`) { s.letreiro = `${j.id}:${j.n}`; sinucaLetreiro(poe || m.bolaNaMao ? 'BOLA NA MÃO' : 'SUA VEZ', m.bolaNaMao === 'saida' ? 'Saída: quebre o triângulo' : 'Mire, dose e encaçape'); }
   const ultimo = sinucaUltimoTexto(j);
@@ -342,8 +342,10 @@ function desenharSinuca(j, s) {
     // botão de balão"; o moodboard A): a mesa ocupa a tela e o placar, a força,
     // o efeito e o TACAR flutuam por cima, nas bordas, sem cartões.
     mesa: `<div class="snc-arena snc-hud${minha ? " minha" : ""}${m.rodizio ? " dupla" : ""}">${m.rodizio ? `<div class="snc-placar dupla"><div class="snc-time a">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaJogadorHtml(j, "jogador3", q)}</div><span class="snc-x" aria-hidden="true">VS</span><div class="snc-time b">${sinucaJogadorHtml(j, "desafiado", q)}${sinucaJogadorHtml(j, "jogador4", q)}</div></div>` : `<div class="snc-placar">${sinucaJogadorHtml(j, "desafiante", q)}${sinucaConfrontoHtml(j, q)}${sinucaJogadorHtml(j, "desafiado", q)}</div>`}${medidor}<div class="snc-area"><canvas id="snc-canvas" class="snc-canvas${minha ? " vez" : ""}${s.travada ? " travada" : ""}${poe ? " pondo" : ""}" width="${SINUCA_W}" height="${SINUCA_H}" role="img" aria-label="Mesa de sinuca"
- onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}</div>${bandeja}`,
-    painel: sinucaPainelHtml(j, s, q, ultimo),
+ onpointercancel="sinucaGestoCancelar(event)" onlostpointercapture="sinucaGestoCancelar(event)" onpointermove="sinucaPonteiro(event,'move')" onpointerdown="sinucaPonteiro(event,'down')" onpointerup="sinucaPonteiro(event,'up')" onclick="sinucaPonteiro(event,'clique')" onwheel="sinucaCameraRoda(event)"></canvas></div>${controles}${bandeja}${sinucaPainelHtml(j, s, q, ultimo)}</div>`,
+    // O caderno entra na cena (Paulo, 08/11/2026: "tudo com cara de jogo"): as abas
+    // ficam no alto da mesa e cada painel abre como gaveta por cima; nada embaixo.
+    painel: "",
   };
 }
 
