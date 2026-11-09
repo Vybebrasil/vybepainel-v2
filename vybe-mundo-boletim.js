@@ -1,0 +1,196 @@
+// vybe-mundo-boletim.js — Boletim de hoje dos agentes (Paulo, 09/11/2026: "os bots não deviam cada um me trazer um
+// relatório todo dia? ... um relatório de cada setor, do que cada um fez, do que tá errado por setor ... o que fez e pra
+// onde ir"; "meu pc fica ligado, sem problema").
+//
+// Não há outro relatório nem outra fonte: cada cartão junta o que a central do VYBES já entrega ao painel, ao vivo pelo
+// túnel (o PC do Paulo fica ligado):
+//   - O que fez: a atividade registrada do agente nas últimas 24 h (etapa=agentes, a mesma do Prédio e da página Agentes)
+//     e os achados que ele fechou nesse tempo (etapa=perfil).
+//   - O que está errado: os achados em aberto do perfil, do mais grave ao menos grave.
+//   - Pra onde ir: as sugestões dos achados mais graves e as falhas, com o botão que abre o agente.
+// Só para os donos (Agentes é trancado no dock). Abre sozinho uma vez por dia, na primeira vez que o dono entra e a
+// central responde; depois fica no botão "Boletim dos agentes" do Hoje. Nada é gravado daqui.
+(() => {
+  const G = window;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const souDono = () => { try { return typeof G.souDonoDaSessao === 'function' && Boolean(G.souDonoDaSessao()); } catch { return false; } };
+  const vendoComoOutro = () => { try { return Boolean(sessionStorage.getItem('vybe.verComo')); } catch { return false; } };
+  const mv = () => G.mundoVoxel || {};
+  const CHAVE_VISTO = 'vybe.boletim.visto';
+  const DIA_MS = 864e5;
+  const GRAV = { alta: 0, media: 1, baixa: 2 };
+  const ESTADO_SETOR = { ativo: ['Ativo', '#18A957'], sombra: ['Sombra', '#0D74CE'], planejado: ['Planejado', '#7A8B82'] };
+  const st = { aberto: false, i: 0, perfis: {}, carregando: null, erro: '', lidoEm: 0 };
+  let raiz = null;
+
+  const diaBahia = (d = new Date()) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' });
+  const hora = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }); };
+  const quando = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; return (diaBahia(d) === diaBahia() ? 'hoje' : 'ontem') + ' ' + hora(iso); };
+  const recente = (iso, agora) => { const t = Date.parse(iso || ''); return Number.isFinite(t) && agora - t <= DIA_MS; };
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
+  // Quem tem agente, andar por andar, na ordem do prédio (a mesma planta de mundo/planta.mjs).
+  function agentesDaPlanta() {
+    const planta = mv().planta?.() || [];
+    return planta.flatMap((a) => (a.setores || []).filter((s) => s.agente).map((s) => ({ id: s.id, agente: s.agente, funcao: s.funcao || '', nome: s.nome, estado: s.estado || 'ativo', andar: a.nome })));
+  }
+
+  // Monta o boletim de um agente a partir das duas leituras. Função pura: os testes chamam direto.
+  function boletimDoAgente(ag, { atividade = null, perfil = null, agora = Date.now() } = {}) {
+    const feitos = (atividade?.ultimos || []).filter((e) => recente(e.em, agora));
+    const concluidas = feitos.filter((e) => e.estado === 'concluida');
+    const falhas = feitos.filter((e) => e.estado === 'falhou');
+    const aguardando = feitos.filter((e) => e.estado === 'aguardando_aprovacao');
+    const fechados = (perfil?.achados?.resolvidos || []).filter((a) => recente(a.fechadoEm, agora));
+    const abertos = [...(perfil?.achados?.abertos || [])].sort((x, y) => (GRAV[x.gravidade] ?? 3) - (GRAV[y.gravidade] ?? 3) || (y.vezes || 0) - (x.vezes || 0));
+    const urgentes = abertos.filter((a) => a.gravidade === 'alta').length;
+    const ir = [];
+    for (const f of falhas.slice(0, 1)) ir.push({ texto: `Ver por que falhou: ${f.tarefa}`, motivo: f.erro || 'A execução não terminou.' });
+    for (const a of aguardando.slice(0, 1)) ir.push({ texto: `Aprovar ou recusar: ${a.tarefa}`, motivo: 'Em modo sombra: só sai com o ok de um dono.' });
+    for (const a of abertos) { if (ir.length >= 3) break; if (a.sugestao) ir.push({ texto: a.sugestao, motivo: a.fato }); }
+    const peso = urgentes * 100 + falhas.length * 50 + aguardando.length * 20 + abertos.length;
+    return { ...ag, feitos, concluidas, falhas, aguardando, fechados, abertos, urgentes, ir, peso,
+      semLeitura: !atividade && !perfil, quieto: !feitos.length && !fechados.length && !abertos.length };
+  }
+
+  // Ordem do boletim: quem pede ação primeiro; quem não tem nada a dizer fica para o fim (e só é contado no resumo).
+  function montar(agentes, { atividades = {}, perfis = {}, agora = Date.now() } = {}) {
+    const lista = agentes.map((ag) => boletimDoAgente(ag, { atividade: atividades[ag.id], perfil: perfis[ag.id], agora }));
+    const comAlgo = lista.filter((b) => !b.quieto).sort((x, y) => y.peso - x.peso);
+    const quietos = lista.filter((b) => b.quieto);
+    const soma = (k) => comAlgo.reduce((n, b) => n + b[k].length, 0);
+    return { cartoes: comAlgo, quietos, resumo: { feitos: soma('concluidas'), fechados: soma('fechados'), abertos: soma('abertos'), urgentes: comAlgo.reduce((n, b) => n + b.urgentes, 0), falhas: soma('falhas'), aguardando: soma('aguardando') } };
+  }
+
+  async function lerPerfil(setor) {
+    const r = await fetch(`/api/painel?area=vybes&etapa=perfil&setor=${encodeURIComponent(setor)}`, { credentials: 'same-origin', cache: 'no-store' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.perfil) throw new Error(d.error || 'Sem perfil da central agora.');
+    return d.perfil;
+  }
+  // Lê a atividade de todos e o perfil de cada agente (4 de cada vez, para não entupir o túnel).
+  function carregar(forcar = false) {
+    if (st.carregando) return st.carregando;
+    if (!forcar && st.lidoEm && Date.now() - st.lidoEm < 60e3) return Promise.resolve(true);
+    st.carregando = (async () => {
+      await mv().garantirModulo?.();
+      const fonte = mv().fonteAgentes?.();
+      const f = fonte ? await fonte.atualizar(true) : null;
+      if (!f?.dados || f.erro) throw new Error('A central do VYBES não respondeu agora.');
+      const fila = agentesDaPlanta().map((a) => a.id), perfis = {};
+      await Promise.all(Array.from({ length: 4 }, async () => { while (fila.length) { const id = fila.shift(); try { perfis[id] = await lerPerfil(id); } catch { /* sem perfil: o cartão usa só a atividade */ } } }));
+      st.perfis = perfis; st.atividades = Object.fromEntries(f.dados.agentes.map((a) => [a.setor, a])); st.erro = ''; st.lidoEm = Date.now();
+      return true;
+    })().catch((e) => { st.erro = e.message || 'A central do VYBES não respondeu agora.'; return false; }).finally(() => { st.carregando = null; if (st.aberto) pintar(); });
+    return st.carregando;
+  }
+
+  const ICONE = {
+    feito: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    errado: '<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg>',
+    ir: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  };
+  const secao = (tipo, titulo, corpo) => `<section class="vbl-secao vbl-${tipo}"><h4><span class="vbl-ic" aria-hidden="true">${ICONE[tipo]}</span>${titulo}</h4>${corpo}</section>`;
+
+  function cartaoHtml(b) {
+    const [rotEstado, corEstado] = ESTADO_SETOR[b.estado] || ESTADO_SETOR.ativo;
+    const fez = [
+      ...b.concluidas.slice(0, 4).map((e) => `<li><b>${esc(e.tarefa)}</b><small>${esc(quando(e.em))}${e.resultado ? ' · ' + esc(e.resultado) : ''}</small></li>`),
+      ...b.fechados.slice(0, 3).map((a) => `<li><b>${esc(a.fato)}</b><small>achado fechado ${esc(quando(a.fechadoEm))}${a.comoFechou ? ' · ' + esc(a.comoFechou) : ''}</small></li>`),
+    ];
+    const mais = b.concluidas.length + b.fechados.length - fez.length;
+    const errado = b.abertos.slice(0, 4).map((a) => `<li class="g-${esc(a.gravidade || 'baixa')}"><b>${esc(a.fato)}</b><small>${a.gravidade === 'alta' ? '<em>urgente</em> · ' : ''}${a.cliente ? esc(a.cliente) + ' · ' : ''}${esc(a.prova || '')}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}</small></li>`);
+    const falhas = b.falhas.slice(0, 2).map((e) => `<li class="g-alta"><b>Falhou: ${esc(e.tarefa)}</b><small>${esc(quando(e.em))}${e.erro ? ' · ' + esc(e.erro) : ''}</small></li>`);
+    return `<article class="vbl-cartao" aria-label="Boletim de ${esc(b.agente)}">
+      <div class="vbl-cab"><span class="vbl-av" aria-hidden="true">${esc(b.agente.slice(0, 1))}</span>
+        <span class="vbl-quem"><small>${esc(b.andar)} · ${esc(b.nome)}</small><b>${esc(b.agente)}</b><small>${esc(b.funcao)}</small></span>
+        <span class="vbl-estado" style="--c:${corEstado}"><i></i>${rotEstado}</span></div>
+      ${secao('feito', 'O que eu fiz', fez.length ? `<ul>${fez.join('')}</ul>${mais > 0 ? `<p class="vbl-mais">e mais ${mais}</p>` : ''}` : `<p class="vbl-vazio">${b.semLeitura ? 'Sem leitura deste agente agora.' : 'Nada concluído nas últimas 24 horas.'}</p>`)}
+      ${secao('errado', 'O que está errado', falhas.length || errado.length ? `<ul>${falhas.join('')}${errado.join('')}</ul>${b.abertos.length > 4 ? `<p class="vbl-mais">e mais ${b.abertos.length - 4} em aberto</p>` : ''}` : '<p class="vbl-vazio">Nada em aberto no setor.</p>')}
+      ${secao('ir', 'Pra onde ir', `${b.ir.length ? `<ol>${b.ir.map((x) => `<li><b>${esc(x.texto)}</b><small>${esc(x.motivo)}</small></li>`).join('')}</ol>` : '<p class="vbl-vazio">Seguir a rotina: nada pede decisão hoje.</p>'}
+        <button type="button" class="vbl-botao principal" data-vbl-agente="${esc(b.id)}">Abrir ${esc(b.agente)}</button>`)}
+    </article>`;
+  }
+
+  function resumoHtml(B) {
+    const r = B.resumo;
+    const linha = (n, rot, cls = '') => `<span class="vbl-num ${cls}"><b>${n}</b><small>${rot}</small></span>`;
+    return `<article class="vbl-cartao vbl-agencia" aria-label="Resumo da agência">
+      <div class="vbl-cab"><span class="vbl-av vybes" aria-hidden="true">V</span><span class="vbl-quem"><small>Todos os setores</small><b>A agência hoje</b><small>${plural(B.cartoes.length, 'agente com algo a dizer', 'agentes com algo a dizer')}</small></span></div>
+      <div class="vbl-nums">${linha(r.feitos, 'feitas em 24 h')}${linha(r.fechados, 'achados fechados')}${linha(r.abertos, 'em aberto', r.abertos ? 'atencao' : '')}${linha(r.urgentes, 'urgentes', r.urgentes ? 'ruim' : '')}</div>
+      ${r.falhas || r.aguardando ? `<p class="vbl-alerta">${r.falhas ? plural(r.falhas, 'execução falhou', 'execuções falharam') : ''}${r.falhas && r.aguardando ? ' · ' : ''}${r.aguardando ? plural(r.aguardando, 'proposta espera um dono', 'propostas esperam um dono') : ''}</p>` : ''}
+      ${secao('ir', 'Por onde começar', B.cartoes.length ? `<ol>${B.cartoes.slice(0, 3).map((b, i) => `<li><button type="button" class="vbl-pular" data-vbl-ir="${i + 1}"><b>${esc(b.agente)} · ${esc(b.nome)}</b><small>${b.urgentes ? plural(b.urgentes, 'urgente', 'urgentes') + ' · ' : ''}${plural(b.abertos.length, 'em aberto', 'em aberto')}${b.falhas.length ? ' · ' + plural(b.falhas.length, 'falha', 'falhas') : ''}</small></button></li>`).join('')}</ol>` : '<p class="vbl-vazio">Nenhum agente pede atenção hoje.</p>')}
+      ${(() => { const sem = B.quietos.filter((b) => b.semLeitura), calmos = B.quietos.filter((b) => !b.semLeitura); return `${calmos.length ? `<p class="vbl-mais">Sem nada a relatar: ${calmos.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}${sem.length ? `<p class="vbl-mais">Sem leitura da central (ainda não rodam ou não responderam): ${sem.map((b) => esc(b.agente)).join(', ')}.</p>` : ''}`; })()}
+    </article>`;
+  }
+
+  function pintar() {
+    if (!st.aberto) { if (raiz) raiz.hidden = true; return; }
+    if (!raiz) {
+      raiz = document.createElement('div'); raiz.className = 'vbl-fundo'; raiz.hidden = true;
+      raiz.innerHTML = '<div class="vbl-janela" role="dialog" aria-modal="true" aria-labelledby="vbl-titulo"></div>';
+      raiz.addEventListener('click', aoClicar); document.body.append(raiz);
+    }
+    const jan = raiz.querySelector('.vbl-janela');
+    const pronto = st.lidoEm && !st.erro;
+    const B = pronto ? montar(agentesDaPlanta(), { atividades: st.atividades, perfis: st.perfis }) : null;
+    const paginas = B ? [resumoHtml(B), ...B.cartoes.map(cartaoHtml)] : [];
+    st.i = Math.max(0, Math.min(st.i, paginas.length - 1));
+    const nomes = B ? ['Agência', ...B.cartoes.map((b) => b.agente)] : [];
+    const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Bahia', weekday: 'long', day: 'numeric', month: 'long' });
+    jan.innerHTML = `<div class="vbl-topo"><span><small>${esc(data)}</small><h2 id="vbl-titulo">Boletim dos agentes</h2><p>O que cada setor fez, o que está errado e pra onde ir.</p></span>
+        <button type="button" class="vbl-fechar" data-vbl-fechar aria-label="Fechar o boletim"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      ${!B ? (st.erro
+        ? `<div class="vbl-estado-tela"><b>Não deu para montar o boletim</b><p>${esc(st.erro)}</p><button type="button" class="vbl-botao principal" data-vbl-tentar>Tentar de novo</button></div>`
+        : '<div class="vbl-estado-tela vbl-carregando" aria-busy="true"><i></i><i></i><i></i><p>Pedindo o relatório de cada agente à central…</p></div>')
+      : `<nav class="vbl-abas" aria-label="Agentes do boletim">${nomes.map((n, i) => `<button type="button" data-vbl-ir="${i}" ${i === st.i ? 'aria-current="true"' : ''}>${esc(n)}${i && B.cartoes[i - 1].urgentes ? '<i aria-label="tem urgente"></i>' : ''}</button>`).join('')}</nav>
+        <div class="vbl-palco">${paginas[st.i]}</div>
+        <div class="vbl-pe"><button type="button" class="vbl-botao" data-vbl-passo="-1" ${st.i ? '' : 'disabled'}>Anterior</button><small>${st.i + 1} de ${paginas.length}</small>
+          <button type="button" class="vbl-botao ${st.i < paginas.length - 1 ? 'principal' : ''}" data-vbl-passo="${st.i < paginas.length - 1 ? 1 : 0}">${st.i < paginas.length - 1 ? 'Próximo' : 'Concluir'}</button></div>`}`;
+    raiz.hidden = false;
+    raiz.querySelector('.vbl-abas [aria-current]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }
+  function aoClicar(e) {
+    if (e.target === raiz) { fechar(); return; }
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-vbl-fechar')) { fechar(); return; }
+    if (b.hasAttribute('data-vbl-tentar')) { st.erro = ''; pintar(); void carregar(true); return; }
+    if (b.dataset.vblIr != null) { st.i = Number(b.dataset.vblIr) || 0; pintar(); return; }
+    if (b.dataset.vblPasso != null) { const p = Number(b.dataset.vblPasso); if (!p) fechar(); else { st.i += p; pintar(); } return; }
+    if (b.dataset.vblAgente) { fechar(); G.VybeAgentes?.abrir?.(b.dataset.vblAgente); }
+  }
+  function abrir() {
+    st.aberto = true; st.i = 0;
+    try { localStorage.setItem(CHAVE_VISTO, diaBahia()); } catch { /* sem armazenamento: abre de novo amanhã do mesmo jeito */ }
+    pintar(); void carregar();
+    setTimeout(() => raiz?.querySelector('.vbl-fechar')?.focus(), 0);
+  }
+  function fechar() { st.aberto = false; pintar(); }
+  document.addEventListener('keydown', (e) => {
+    if (!st.aberto || e.target.closest?.('input,textarea,select')) return;
+    if (e.key === 'Escape') fechar();
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = raiz?.querySelectorAll('.vbl-abas button').length || 0; const i = st.i + (e.key === 'ArrowRight' ? 1 : -1); if (i >= 0 && i < n) { st.i = i; pintar(); } }
+  });
+  document.addEventListener('click', (e) => { if (e.target.closest?.('[data-boletim]')) abrir(); });
+
+  // Botão do Hoje (só para os donos, como a página Agentes).
+  const botaoHtml = () => (souDono() && !vendoComoOutro()
+    ? '<button type="button" class="vbl-abrir" data-boletim><span class="vbl-abrir-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg></span><span class="vbl-abrir-texto"><b>Boletim dos agentes</b><small>O que cada setor fez, o que está errado e pra onde ir</small></span><i aria-hidden="true">→</i></button>'
+    : '');
+
+  // Uma vez por dia: na primeira vez que um dono entra no painel e a central responde. Sem central, não abre sozinho
+  // (um erro na cara logo cedo não ajuda); o botão continua no Hoje.
+  async function talvezAbrirSozinho() {
+    let visto = ''; try { visto = localStorage.getItem(CHAVE_VISTO) || ''; } catch { return; }
+    if (visto === diaBahia() || st.aberto || !souDono() || vendoComoOutro() || !document.body.classList.contains('mundo')) return;
+    if (document.body.classList.contains('auth-pending') || document.querySelector('.workflow-modal.open, dialog[open]')) return;
+    if (await carregar()) abrir();
+  }
+  if (typeof setTimeout === 'function' && typeof document !== 'undefined' && document.addEventListener) {
+    let tentativas = 0;
+    const agendar = () => setTimeout(async () => { if (++tentativas > 6) return; if (!G.mundoVoxel || !souDono()) { agendar(); return; } await talvezAbrirSozinho(); }, tentativas ? 10e3 : 6e3);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', agendar); else agendar();
+  }
+
+  G.VybeBoletim = { abrir, fechar, botaoHtml, montar, boletimDoAgente, aberto: () => st.aberto };
+})();

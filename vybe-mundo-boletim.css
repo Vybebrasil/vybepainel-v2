@@ -1,0 +1,102 @@
+/* Boletim dos agentes (vybe-mundo-boletim.js, Paulo 09/11/2026). Janela do padrão claro do Irecity: branca, cantos de
+   14px, abas por agente, um cartão por vez com O que eu fiz / O que está errado / Pra onde ir. Laranja só na ação;
+   verde, amarelo e vermelho só para estado. Camada acima do HUD e dos módulos (640), abaixo dos ajustes de áudio (900). */
+.vbl-fundo{position:fixed;inset:0;z-index:860;display:grid;place-items:center;padding:16px;background:rgba(31,29,26,.32);backdrop-filter:blur(2px)}
+.vbl-fundo[hidden]{display:none}
+.vbl-janela{display:flex;flex-direction:column;width:min(720px,100%);max-height:min(760px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px -24px rgba(31,29,26,.45);font-family:var(--vv-texto,Inter,system-ui,sans-serif);
+  animation:vbl-entra .2s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+@keyframes vbl-entra{from{opacity:0;transform:translateY(8px) scale(.985)}}
+.vbl-janela svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.vbl-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px}
+.vbl-topo small{display:block;font:600 11px var(--vv-texto);color:#8A847A}
+.vbl-topo small::first-letter{text-transform:uppercase}
+.vbl-topo h2{margin:2px 0 2px;font:600 20px/1.2 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+.vbl-topo p{margin:0;font:500 12.5px var(--vv-texto);color:#6B675F}
+.vbl-fechar{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#3A3F44;cursor:pointer}
+.vbl-fechar:hover{border-color:#F26B1D;color:#1F1D1A}
+/* abas: uma por agente, roláveis de lado quando são muitas */
+.vbl-abas{display:flex;gap:4px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid #EFEAE2}
+.vbl-abas button{position:relative;flex:none;height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#3A3F44;font:600 12px var(--vv-texto);cursor:pointer}
+.vbl-abas button:hover{border-color:#F26B1D}
+.vbl-abas button[aria-current="true"]{background:#1F1D1A;border-color:#1F1D1A;color:#FFFFFF}
+.vbl-abas button i{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#D2453B;box-shadow:0 0 0 2px #FFFFFF}
+/* o cartão da vez */
+.vbl-palco{flex:1;min-height:0;overflow:auto;padding:16px 20px;overscroll-behavior:contain}
+.vbl-cartao{display:grid;gap:14px}
+.vbl-cab{display:flex;align-items:center;gap:12px}
+.vbl-av{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#F3EEE6;color:#3A3F44;font:700 18px var(--vv-titulo,var(--vv-texto))}
+.vbl-av.vybes{background:#FFF1E6;color:#C2490C}
+.vbl-quem{flex:1;min-width:0;display:grid;gap:1px}
+.vbl-quem b{font:600 17px/1.2 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
+.vbl-quem small{font:500 11.5px var(--vv-texto);color:#6B675F}
+.vbl-estado{flex:none;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid #E6E0D6;border-radius:999px;font:600 11.5px var(--vv-texto);color:#3A3F44}
+.vbl-estado i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.vbl-secao{padding:12px 14px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF}
+.vbl-secao h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;font:600 13px var(--vv-texto);color:#1F1D1A}
+.vbl-ic{display:grid;place-items:center;width:24px;height:24px;border-radius:7px}
+.vbl-ic svg{width:15px;height:15px;stroke-width:2.2}
+.vbl-feito .vbl-ic{background:#EAF7EF;color:#11613A}
+.vbl-errado .vbl-ic{background:#FFF4E5;color:#9A5B00}
+.vbl-ir .vbl-ic{background:#FFF1E6;color:#C2490C}
+.vbl-secao ul,.vbl-secao ol{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.vbl-secao li{display:grid;gap:2px;padding:7px 10px;border-radius:8px;background:#FAF7F2;border-left:3px solid #E6E0D6}
+.vbl-feito li{border-left-color:#9FD9B5}
+.vbl-secao li.g-alta{border-left-color:#D2453B}
+.vbl-secao li.g-media{border-left-color:#E0A21B}
+.vbl-ir ol{counter-reset:vbl}
+.vbl-ir ol > li{counter-increment:vbl;position:relative;padding-left:34px;border-left-color:#F26B1D}
+.vbl-ir ol > li::before{content:counter(vbl);position:absolute;left:10px;top:7px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#F26B1D;color:#FFFFFF;font:700 10.5px var(--vv-texto)}
+.vbl-secao li b{font:600 12.5px/1.35 var(--vv-texto);color:#1F1D1A}
+.vbl-secao li small{font:500 11.5px/1.4 var(--vv-texto);color:#6B675F}
+.vbl-secao li small em{font-style:normal;font-weight:700;color:#B42318}
+.vbl-vazio{margin:0;font:500 12.5px var(--vv-texto);color:#6B675F}
+.vbl-mais{margin:6px 0 0;font:500 11.5px var(--vv-texto);color:#8A847A}
+.vbl-ir .vbl-botao{margin-top:10px}
+/* resumo da agência */
+.vbl-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.vbl-num{display:grid;gap:2px;padding:10px 12px;border:1px solid #EFEAE2;border-radius:10px;background:#FAF7F2}
+.vbl-num b{font:600 24px/1 var(--vv-titulo,var(--vv-texto));font-variant-numeric:tabular-nums;color:#1F1D1A}
+.vbl-num small{font:500 11px var(--vv-texto);color:#6B675F}
+.vbl-num.atencao b{color:#9A5B00}
+.vbl-num.ruim b{color:#B42318}
+.vbl-alerta{margin:0;padding:8px 12px;border-radius:8px;background:#FDECEE;color:#8F1D16;font:600 12px var(--vv-texto)}
+.vbl-pular{display:grid;gap:2px;width:100%;padding:0;border:0;background:transparent;text-align:left;cursor:pointer;font-family:inherit}
+.vbl-pular:hover b{color:#C2490C}
+/* rodapé: anterior / próximo */
+.vbl-pe{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid #EFEAE2}
+.vbl-pe small{font:500 12px var(--vv-texto);color:#6B675F}
+.vbl-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 14px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto);cursor:pointer}
+.vbl-botao:hover:not(:disabled){border-color:#F26B1D;background:#FFF8F2}
+.vbl-botao:disabled{opacity:.4;cursor:default}
+.vbl-botao.principal{background:#C2490C;border-color:#C2490C;color:#FFFFFF}
+.vbl-botao.principal:hover{background:#A63D08;border-color:#A63D08}
+/* carregando e erro */
+.vbl-estado-tela{display:grid;justify-items:center;gap:8px;padding:48px 20px;text-align:center}
+.vbl-estado-tela b{font:600 15px var(--vv-texto)}
+.vbl-estado-tela p{margin:0;font:500 12.5px var(--vv-texto);color:#6B675F}
+.vbl-carregando{grid-template-columns:repeat(3,auto);justify-content:center}
+.vbl-carregando p{grid-column:1/-1}
+.vbl-carregando i{width:9px;height:9px;border-radius:50%;background:#F26B1D;animation:vbl-pulo 1s ease-in-out infinite}
+.vbl-carregando i:nth-child(2){animation-delay:.15s}.vbl-carregando i:nth-child(3){animation-delay:.3s}
+@keyframes vbl-pulo{50%{transform:translateY(-6px);opacity:.5}}
+:is(.vbl-fechar,.vbl-abas button,.vbl-botao,.vbl-pular):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+/* botão no Hoje do dono */
+.vbl-abrir{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;text-align:left;cursor:pointer;font-family:var(--vv-texto,Inter,system-ui,sans-serif)}
+.vbl-abrir:hover{border-color:#F26B1D}
+.vbl-abrir:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.vbl-abrir-texto{flex:1;min-width:0;display:grid;gap:1px}
+.vbl-abrir-texto b{font:600 13px var(--vv-texto)}
+.vbl-abrir-texto small{font:500 11.5px var(--vv-texto);color:#6B675F}
+.vbl-abrir > i{font-style:normal;font-weight:700;color:#C2490C}
+.vbl-abrir-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:7px;background:#FFF1E6;color:#C2490C}
+.vbl-abrir-ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:640px){
+  .vbl-fundo{padding:0;place-items:end stretch}
+  .vbl-janela{width:100%;max-height:calc(100vh - 24px);border-radius:14px 14px 0 0}
+  .vbl-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vbl-topo,.vbl-palco,.vbl-pe{padding-left:16px;padding-right:16px}
+  .vbl-abas{padding-left:16px;padding-right:16px}
+}
+@media (prefers-reduced-motion:reduce){.vbl-janela,.vbl-carregando i{animation:none}}
+html.vb-sem-movimento :is(.vbl-janela,.vbl-carregando i){animation:none}
