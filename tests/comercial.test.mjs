@@ -10,8 +10,8 @@ import { ehDono } from '../server/crm.js';
 import handler from '../api/painel.js';
 
 const resposta = () => ({ codigo: 0, body: null, setHeader() {}, status(n) { this.codigo = n; return this; }, json(d) { this.body = d; return this; } });
-const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false } };
-const vinicius = { tipo: 'sessao', pessoa: { id: 2, nome: 'Vinícius', admin: false } };
+const paulo = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo Henrique', admin: false, dono: true } }; // dono vem da sessão (server/donos.js)
+const vinicius = { tipo: 'sessao', pessoa: { id: 2, nome: 'Vinícius', admin: false, dono: true } };
 const atendimento = { tipo: 'sessao', pessoa: { id: 5, nome: 'Taynara', admin: false } };
 const criacao = { tipo: 'sessao', pessoa: { id: 3, nome: 'Bia', admin: false } };
 const admin = { tipo: 'sessao', pessoa: { id: 4, nome: 'Suporte', admin: true } };
@@ -35,10 +35,11 @@ async function crm(sql, quem, body = null, query = {}) {
   const r = resposta(); await areaCrm({ method: body ? 'POST' : 'GET', body, query }, r, quem, () => sql); return r;
 }
 
-test('donos pelo primeiro nome (sem acento) e administração', () => {
-  assert.equal(ehDono({ nome: 'Vinícius Souza' }), true);
-  assert.equal(ehDono({ nome: 'EWERTON L.' }), true);
-  assert.equal(ehDono({ nome: 'Deivid' }), true);
+test('donos pelo id (Monday, sessão ou VYBE_DONOS_IDS) e administração; nunca pelo primeiro nome', () => {
+  assert.equal(ehDono({ id: 3, nome: 'Vinícius Souza', monday_user_id: '68035653' }), true);
+  assert.equal(ehDono({ id: 24, nome: 'EWERTON L.', monday_user_id: '68036687' }), true);
+  assert.equal(ehDono({ id: 4, nome: 'Deivid', dono: true }), true);
+  assert.equal(ehDono({ id: 9, nome: 'Vinícius Homônimo' }), false, 'primeiro nome não basta');
   assert.equal(ehDono({ nome: 'Bia' }), false);
   assert.equal(ehDono({ nome: 'Bia', admin: true }), true);
   assert.equal(ehDono(null), false);

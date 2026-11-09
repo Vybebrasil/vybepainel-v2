@@ -20,7 +20,6 @@
   'use strict';
   const ABAS = [['produtividade', 'Produtividade'], ['rh', 'RH'], ['projetos', 'Projetos'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
   const SO_GESTAO = new Set(['recrutamento', 'documentos']);
-  const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
   const AJUDA = {
@@ -42,7 +41,6 @@
     mes: '', pessoa: '', periodo: 'mensal', ref: '', semana: '', vaga: '', tipoPedido: '', filtroPedidos: '', pesquisaVer: '' };
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
-  const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
   const br = (iso) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   const opcoes = (mapa, atual) => Object.entries(mapa).map(([v, r]) => `<option value="${esc(v)}"${String(v) === String(atual ?? '') ? ' selected' : ''}>${esc(r)}</option>`).join('');
@@ -54,8 +52,8 @@
   function gestao() {
     for (const d of Object.values(estado.dados)) if (d && typeof d.gestao === 'boolean') return d.gestao;
     if (typeof souAdmin === 'function' && souAdmin()) return true;
-    const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
-    return Boolean(u && DONOS.includes(primeiroNome(u.name || u.nome)));
+    // Palpite pela sessão (dono decidido no servidor, server/donos.js), nunca pelo primeiro nome.
+    try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; }
   }
 
   // ---------- rede ----------

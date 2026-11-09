@@ -26,6 +26,9 @@
 //    { clientes: { "<nome do cliente>": { pontos: -20..10, motivo, em } } } → { gravados[], ignorados[] }.
 // Não envia mensagens.
 
+import { autenticarAssistente } from './assistente-servico.js';
+import { assistenteAtivo } from './assistente-ativacao.js';
+
 export const ETAPAS_PADRAO = Object.freeze([
   { id: 'boas_vindas', nome: 'Boas-vindas', itens: [['mensagem', 'Mensagem de boas-vindas enviada'], ['grupo', 'Grupo do cliente criado no WhatsApp'], ['equipe', 'Head e equipe apresentados ao cliente']] },
   { id: 'contrato', nome: 'Contrato', itens: [['assinado', 'Contrato assinado'], ['escopo', 'Plano e escopo no cadastro do cliente'], ['valor', 'Valor e vencimento combinados']] },
@@ -431,6 +434,23 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
     await tx`UPDATE vybe_cliente_onboarding SET etapas=${JSON.stringify(novo)}::jsonb, atualizado_em=now() WHERE cliente_id=${clienteId}`;
     return { onboarding: clienteId, etapas: novo };
   });
+}
+
+// A ponte do bot (whatsapp-ia/core/carteira-painel.js): o bot chama area=carteira&canal=bot com a credencial EXCLUSIVA
+// dele (a mesma de area=assistente&canal=bot), sem sessão do painel. Só o que o bot usa: ler a saúde e o onboarding
+// (GET acao=saude|onboarding) e mandar o clima do grupo (POST acao=clima). Qualquer outra ação: 403.
+export async function areaCarteiraBot(req, res, criarBanco, config = process.env, preparar = null) {
+  if (!autenticarAssistente(req, config.VYBE_AI_BOT_TOKEN)) return res.status(401).json({ error: 'Não autorizado.' });
+  if (!assistenteAtivo(config)) return res.status(503).json({ error: 'Vybe AI desativada neste ambiente.' });
+  if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Método não permitido.' });
+  const acao = String(req.query?.acao || '');
+  const permitida = (req.method === 'GET' && ['saude', 'onboarding'].includes(acao)) || (req.method === 'POST' && acao === 'clima');
+  if (!permitida) return res.status(403).json({ error: 'Ação da Carteira não liberada para o bot.' });
+  if (req.method === 'POST' && req.body?.acao != null && req.body.acao !== 'clima') return res.status(400).json({ error: 'Ação divergente.' });
+  const pedido = { method: req.method, headers: {}, query: { area: 'carteira', acao }, body: req.method === 'POST' ? { ...(req.body || {}), acao: 'clima' } : null };
+  // As tabelas da Carteira nascem no primeiro uso, como na rota com sessão (só depois da credencial conferida).
+  if (preparar) try { await preparar(); } catch { return res.status(503).json({ error: 'Carteira aguardando ativação.', aguardando: true }); }
+  return areaCarteira(pedido, res, { tipo: 'servico' }, criarBanco);
 }
 
 export async function areaCarteira(req, res, quem, criarBanco) {

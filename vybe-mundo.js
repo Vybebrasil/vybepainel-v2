@@ -351,11 +351,11 @@
   // Paulo, 07/11/2026: quando os sócios abrem o sistema, a primeira coisa é a agência (produção do dia,
   // semana, clientes com problema, gargalos, o que cobrar de cada um e dos bots), não a fila pessoal.
   // "Minhas tarefas" continua a um toque. Os números vêm de VybeDono.calcular (vybe-dono-metricas.js).
-  const DONOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
+  // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome.
+  // Primeiro nome só para casar a agenda e os filtros por pessoa (NUNCA para decidir dono).
   const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
   function souDono() {
-    const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
-    return Boolean(u && DONOS.includes(primeiroNome(u.name || u.nome)));
+    try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; }
   }
   let visaoHoje = (() => { try { return localStorage.getItem('vybe.mundo.visaoHoje') || 'agencia'; } catch { return 'agencia'; } })();
   // Pendências do WhatsApp (vybe-mundo-pendencias.js) chegaram: repinta o Hoje (atendimento na Agência, "esperando você").

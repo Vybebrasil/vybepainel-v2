@@ -29,7 +29,8 @@ export default async function handler(req, res) {
       if (!sessao) return res.status(401).json({ error: 'Sem sessão.' });
       return res.status(200).json({
         ok: true,
-        pessoa: { id: sessao.id, nome: sessao.nome, email: sessao.email, admin: sessao.admin },
+        // dono: a regra única de server/donos.js (as telas não decidem mais pelo primeiro nome).
+        pessoa: { id: sessao.id, nome: sessao.nome, email: sessao.email, admin: sessao.admin, dono: Boolean(sessao.dono) },
       });
     }
 

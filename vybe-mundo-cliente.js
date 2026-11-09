@@ -122,10 +122,9 @@
   // VybeComercial (financeiro) nascem em outras frentes. Aqui só se lê `X.dados()` quando o módulo
   // existe; o formato é lido com folga (lista, { clientes }, { itens }, objeto por id ou por nome) e,
   // sem o módulo ou sem o cliente nele, o bloco some ou cai na fonte que o painel já tem.
-  const SOCIOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
-  const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
+  // Sócio (dono) pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome.
   function souSocioAqui() {
-    try { const u = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null; return Boolean(u && SOCIOS.includes(primeiroNome(u.name || u.nome))); } catch { return false; }
+    try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; }
   }
   // Contrato e financeiro: só os donos e quem administra (o servidor de cada módulo confere de novo).
   const veNegocio = () => souAdminAqui() || souSocioAqui();

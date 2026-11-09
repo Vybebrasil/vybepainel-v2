@@ -7,6 +7,9 @@
 let SESSAO_ATUAL = null;
 
 function sessaoAtual() { return SESSAO_ATUAL; }
+// Dono (Paulo, Vinícius, Ewerton e Deivid): quem decide é o servidor (server/donos.js, pelo id da pessoa, campo `dono`
+// de /api/sessao). Nenhuma tela decide pelo primeiro nome.
+function souDonoDaSessao() { return Boolean(SESSAO_ATUAL && SESSAO_ATUAL.dono === true); }
 
 async function consultarSessao() {
   try {

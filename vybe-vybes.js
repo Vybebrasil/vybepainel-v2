@@ -1,6 +1,8 @@
 // VYBES dentro do Vybe OS (decisão do Paulo, 02/11/2026: "é o nosso VYBES dentro lá, não uma interface nova").
 // O cartão VYBES da tela de módulos abre a central de verdade (a que roda no PC do Paulo) com o crachá de quem está
-// logado: Paulo, Vinícius, Ewerton e Deivid veem e agem; o resto só vê. Regras no servidor (server/vybes.js) e na central.
+// logado: toda a equipe ativa vê e age, cada um com a própria permissão (o que sai no WhatsApp leva o nome de quem mandou);
+// os donos (Paulo, Vinícius, Ewerton e Deivid) têm tudo liberado. Regras no servidor (server/vybes.js, server/donos.js)
+// e na central (core/donos.js).
 let vybesAbrindo = false;
 async function chooseVybesMode(opcoes) {
   const pedido = typeof opcoes?.pedido === 'string' ? opcoes.pedido.slice(0, 400) : '';
@@ -36,9 +38,11 @@ async function conferirCartaoVybes(forcar = false) {
   try {
     const r = await fetch('/api/painel?area=vybes', { credentials: 'same-origin' });
     if (!r.ok) throw new Error();
-    const { noAr, agir } = await r.json();
+    const { noAr, agir, whatsapp } = await r.json();
     cartao.classList.toggle('fora', !noAr);
-    linha.innerHTML = noAr ? `<b>Ao vivo</b><span>${agir ? 'você vê e pede ações' : 'você acompanha tudo'}</span>`
+    // Central no ar com o WhatsApp do bot desconectado: abre normal; só o que sai no WhatsApp espera ele voltar.
+    linha.innerHTML = noAr && whatsapp === false ? '<b>WhatsApp desconectado</b><span>a central está no ar; envios esperam o WhatsApp voltar</span>'
+      : noAr ? `<b>Ao vivo</b><span>${agir ? 'você vê e pede ações' : 'você acompanha tudo'}</span>`
       : '<b>Fora do ar</b><span>volta quando o PC do Paulo ligar</span>';
   } catch { cartao.classList.remove('fora'); linha.textContent = ''; vybesConferidoEm = Date.now() - 105e3; } // tenta de novo em 15 s
 }
