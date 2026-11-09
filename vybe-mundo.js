@@ -2107,7 +2107,8 @@
   // Altura real da barra (com a música ela pode ir para duas linhas): o player e o aviso de planejamento
   // sobem junto, para nada cobrir a barra (regra do Paulo: nada cobre, nada rola).
   // Mede quando o conteúdo muda (MutationObserver não depende de a página estar desenhando) e quando a largura muda.
-  function medirBarra() { document.body?.style?.setProperty?.('--vv-voz-alto', (barra.hidden ? 0 : Math.round(barra.offsetHeight)) + 'px'); }
+  // Fora dos módulos a barra da sala abre no topo pela barra de ícones: não empurra os avisos de baixo.
+  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); document.body?.style?.setProperty?.('--vv-voz-alto', (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'); }
   if (typeof MutationObserver === 'function') new MutationObserver(medirBarra).observe(barra, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   if (typeof ResizeObserver === 'function') new ResizeObserver(medirBarra).observe(barra);
   let chamarAberto = false, pessoaAberta = null;
@@ -2173,6 +2174,8 @@
   function marcarVozNoTopo(naChamada = false, mic = false, sala = '') {
     const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
     v.classList.toggle('on', naChamada); v.title = naChamada ? `Sala de voz: ${sala} (na chamada)` : 'Sala de voz: quem está com você, microfone, música e TV';
+    let rot = v.querySelector('.vv-voz-nome'); if (!rot) { rot = document.createElement('span'); rot.className = 'vv-voz-nome'; v.append(rot); }
+    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : ''; rot.hidden = !naChamada;
     m.hidden = !naChamada; m.classList.toggle('on', mic); m.setAttribute('aria-pressed', String(mic));
     m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: clique para falar'; m.setAttribute('aria-label', m.title);
   }
@@ -2220,8 +2223,8 @@
     const foraDaVoz = juntos.length - naVoz;
     const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
     marcarVozNoTopo(naChamada, mic, nomeZona(e.zona));
-    const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
-      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+    const html = `<span class="sala${naChamada ? ' on' : ''}"><small class="vv-voz-onde">Você está em</small><b><i></i>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
+      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' (falando)' : ''}">${esc(primeiro(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       ${musicaHtml(e, temSom)}
       <span class="acoes">
         <button type="button" class="vv-botao" data-chamada="minha-sala" ${minhaSala ? '' : 'disabled'} title="Entrar na minha sala">Minha sala</button>
@@ -2237,7 +2240,7 @@
       </span>
       ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
         ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
-      ${chamarAberto && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
+      ${(chamarAberto || body.classList.contains('ver-voz')) && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
     // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
     // da lista de salas (antes ela voltava para o topo enquanto a pessoa rolava).
     if (html === pintarChamada.ultimo) return;
@@ -2268,14 +2271,21 @@
       const aqui = outros.filter((o) => o.zona === id), minha = e.zona === id, tranc = trancas.has(id);
       const gente = [...(minha ? [eu] : []), ...aqui];
       return `<button type="button" class="vv-voz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
-        <span class="ic" aria-hidden="true">${tranc ? '🔒' : '🔊'}</span>
-        <span class="meio"><b>${esc(z.nome || nomeZona(id))}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'EU' : iniciais(o.nome))}</i>`).join('')}</span>` : '<small>vazia</small>'}</span>
+        <span class="ic" aria-hidden="true">${tranc ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>'}</span>
+        <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}</i>`).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
         ${minha ? '<em>aqui</em>' : '<em>Entrar</em>'}</button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
     return `<div class="vv-chamar vv-salas-voz">
-      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar</small></div>
-      ${ordem.map((k) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${porAndar.get(k).map(linha).join('')}`).join('')}
+      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar e falar com quem está nela</small></div>
+      ${(() => {
+        const temGente = ([id]) => e.zona === id || outros.some((o) => o.zona === id);
+        const ocupadas = ordem.flatMap((k) => porAndar.get(k).filter(temGente));
+        const vazias = ordem.map((k) => [k, porAndar.get(k).filter((x) => !temGente(x))]).filter(([, l]) => l.length);
+        const nVazias = vazias.reduce((n, [, l]) => n + l.length, 0);
+        return `<div class="vv-rotulo-secao"><i></i>Com gente agora</div>${ocupadas.length ? ocupadas.map(linha).join('') : '<p class="vv-dica">Ninguém nas salas agora.</p>'}
+          ${nVazias ? `<details class="vv-voz-vazias"><summary>Salas vazias (${nVazias})</summary>${vazias.map(([k, l]) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${l.map(linha).join('')}`).join('')}</details>` : ''}`;
+      })()}
       <div class="vv-rotulo-secao"><i></i>Pessoas online</div>
       ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
         ${o.zona && o.zona !== e.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}${o.zona !== e.zona ? `<button type="button" class="vv-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button>` : '<small class="junto">com você</small>'}</div>`).join('') : '<p class="vv-dica">Ninguém mais online agora.</p>'}
