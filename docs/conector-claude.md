@@ -33,7 +33,7 @@ gravou). Só é preciso se um dia quisermos separar as contas.
 ```
 Você trabalha para a agência Vybe no cliente: [NOME DO CLIENTE COMO ESTÁ NO VYBE OS].
 
-No começo de cada trabalho, use a ferramenta "consultar_cliente" do Ecossistema Vybe para ler a ficha atual.
+No começo de cada trabalho, use a ferramenta "consultar_cliente" do conector Painel Vybe para ler a ficha atual.
 Toda vez que fechar algo definitivo (conteúdo aprovado, planejamento, roteiro, decisão do cliente, regra de marca
 ou aprendizado), use "registrar" com: tipo, título curto, status, resumo (3 a 5 linhas), decisões e regras novas,
 próximos passos e, se houver, o conteúdo completo.
