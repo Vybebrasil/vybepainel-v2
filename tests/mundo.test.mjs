@@ -141,3 +141,16 @@ test('Minha sala: o móvel é esculpido na arte do Habbo (silhueta, altura e cor
   assert.ok(topo.filter((b) => vermelho(b.cor)).length > topo.length / 2, 'o topo pega a cor do topo do desenho');
   assert.ok(new Set(r.blocos.map((b) => b.cor)).size <= 12, 'cores chapadas: a paleta curta da peça');
 });
+
+test('Minha sala: o quarto voxel tem a interface de decorar e o WASD do Escritório', () => {
+  const src = fs.readFileSync('mundo/quarto.mjs', 'utf8');
+  for (const f of ['iniciarEdicao', 'pararEdicao', 'segurar:', 'girar:', 'guardar:', 'grade:', 'definirItens(', 'definirAcabamento'])
+    assert.ok(src.includes(f), 'falta ' + f);
+  // Soltar o ponteiro sempre limpa o toque (antes, depois de arrastar uma peça, o próximo arrasto não começava).
+  const solta = src.slice(src.indexOf("canvas.addEventListener('pointerup'"));
+  assert.ok(solta.indexOf('soltar(e)') < solta.indexOf('if (ed?.arrasto) { soltarArrasto(); return; }'), 'soltar antes do arrasto');
+  assert.match(src, /tecladoEscritorio\?\.\(e\)/, 'WASD pelo movimento do Escritório');
+  const mundo = fs.readFileSync('vybe-mundo.js', 'utf8');
+  assert.match(mundo, /acao: 'decorar'/, 'botão Decorar no dock');
+  assert.match(mundo, /podeDecorar\?\.\(zonaAberta\)/, 'só na sala que a pessoa pode decorar');
+});

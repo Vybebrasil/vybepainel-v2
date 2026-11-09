@@ -215,7 +215,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   cor é a do pixel. Não desenhe móvel à mão nem use o ícone genérico do catálogo (só se a arte não carregar). A câmera
   é a do Habbo (Paulo, 09/11/2026: "fiel como era o quarto da pessoa"): sem perspectiva, a 30° na diagonal, sem girar;
   arrastar move e a roda, a pinça e o clique duplo aproximam. 1 nível = 0,816 ladrilho e a parede tem 118 px. Peças de
-  parede pela conta do mapa (`mapaAncoraParede`/`mapaTopoItemParede`), pixel a pixel. Por cima do miolo esculpido vai uma casca fina com o desenho
+  parede pela conta do mapa (`mapaAncoraParede`/`mapaTopoItemParede`), pixel a pixel.
+  Mecânica do legado no quarto voxel (Paulo, 09/11/2026: "andar no quarto clicando, no WASD, mudar os móveis de lugar,
+  comprar móveis, editar o quarto, como tinha no legado"): andar pelo clique e pelo WASD usa o movimento do Escritório
+  (`escritorioIrPara`, `tecladoEscritorio`); o botão Decorar do dock (só na sala da pessoa) abre o `VybeDecorar`, que
+  edita o quarto pela mesma interface de cena do andar antigo (`iniciarEdicao`, `segurar`, `girar`, `guardar`,
+  `definirItens`, `definirAcabamento`) e grava pela rota do editor do Escritório; a Loja é a do Escritório. Por cima do miolo esculpido vai uma casca fina com o desenho
   do Habbo a cada 2 px (cor do pixel, contorno incluído), para cada peça ser reconhecível; as peças ficam guardadas no
   IndexedDB (`vybe-minha-sala`). Sala viva (Paulo, 09/11/2026: "visual, imersão, experiência"): paredes por trecho
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
