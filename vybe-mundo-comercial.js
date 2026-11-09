@@ -761,17 +761,18 @@
     el.hidden = !st.aberto; if (!st.aberto) return;
     const ativo = document.activeElement, idFoco = el.contains(ativo) ? (ativo.dataset.vcBusca || ativo.name || '') : '', selFim = ativo?.selectionEnd;
     const corpo = el.querySelector('.vc-corpo'), rolagem = corpo ? corpo.scrollTop : 0;
-    const dinheiro = veDinheiro(), abas = ABAS.filter((a) => !a[2] || dinheiro);
+    // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
+    const dinheiro = veDinheiro(), abas = ABAS.filter((a) => (!a[2] || dinheiro) && (!st.soAbas || st.soAbas.has(a[0])));
     if (!abas.some((a) => a[0] === st.aba)) st.aba = 'funil';
     const d = st.dados[st.aba], erro = st.erro[st.aba];
     let conteudo;
     if (erro) conteudo = `<div class="vc-vazio"><p>${esc(erro)}</p><button type="button" class="vc-sec" data-vc="recarregar">Tentar de novo</button></div>`;
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';
     else { try { conteudo = PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
-    el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>Comercial</b><small>${dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
+    el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>
-      <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial">${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>
+      <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>
       ${st.ajuda ? `<div class="vc-ajuda" role="note"><b>${esc(abas.find((a) => a[0] === st.aba)?.[1])}</b><p>${esc(AJUDA[st.aba])}</p></div>` : ''}
       ${st.msg && !st.folha ? `<p class="vc-msg-geral${st.msg.startsWith('⚠️') ? ' erro' : ''}" role="status">${esc(st.msg)}</p>` : ''}
       <div class="vc-corpo${st.carregando[st.aba] && d ? ' atualizando' : ''}">${conteudo}</div>${folhaHtml()}`;
@@ -847,8 +848,9 @@
   }
 
   // ---------- Abrir / fechar ----------
-  function abrir(aba) {
+  function abrir(aba, opcoes = {}) {
     const valida = ABAS.some((a) => a[0] === aba);
+    st.soAbas = Array.isArray(opcoes.abas) && opcoes.abas.length ? new Set(opcoes.abas) : null; st.rotulo = opcoes.rotulo || '';
     st.aberto = true; if (valida) st.aba = aba; st.folha = null; st.msg = '';
     if (!st.periodo.mes) st.periodo.mes = hojeIso().slice(0, 7);
     pintar(); carregar();

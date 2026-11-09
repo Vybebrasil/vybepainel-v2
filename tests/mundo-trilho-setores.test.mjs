@@ -58,3 +58,19 @@ test('o Painel de trabalho (Gestor) é da Produção e toda navegação fecha o 
   assert.match(js, /function limparTela\(\) \{/);
   assert.match(js, /if \(id !== 'criar' && id !== 'vybes'\) \{\n      limparTela\(\);/);
 });
+
+test('dock no modelo do AgencyFlow: cada coisa no seu setor, sem perder módulo, e a janela só com as abas do item', () => {
+  // Produção = o "Projetos" do AgencyFlow (com fornecedores e creators); RH com a produtividade; Academy próprio.
+  for (const id of ['projetos', 'conteudo', 'fornecedores', 'creators']) assert.equal(setorDe(id), 'setor:producao', id);
+  assert.equal(setorDe('produtividade'), 'setor:pessoas');
+  assert.equal(setorDe('conversas'), 'setor:comercial');
+  assert.ok(TRILHO.some((t) => t && t.id === 'academy' && t.mod?.[0] === 'VybePessoas'), 'Academy é item próprio');
+  assert.ok(!SUBMODULOS.some((x) => x.id === 'academy'), 'Academy não fica dentro de outro setor');
+  // Nenhum módulo sumiu.
+  for (const id of ['gestor', 'tarefas', 'demandas', 'agenda', 'direcao', 'planejamentos', 'clientes', 'carteira', 'onboarding', 'churn', 'contratos',
+    'funil', 'pacotes', 'orcamentos', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
+    'conta', 'equipe', 'rh', 'recrutamento', 'documentos', 'perfil', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
+  assert.match(js, /abrir\?\.\(sub\.mod\[1\], \{ abas: irmaos, rotulo: setorNome \}\)/);
+  // Segundo clique no setor aberto fecha os submenus.
+  assert.match(js, /if \(b\.getAttribute\('aria-expanded'\) === 'true'\) \{ expandirSetor\(''\); return; \}/);
+});

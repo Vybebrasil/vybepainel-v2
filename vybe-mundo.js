@@ -127,29 +127,30 @@
   const TRILHO = [
     { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
-    { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: tarefas, agenda, direção de arte e conteúdo', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
+    { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: entregas, tarefas, projetos, agenda, aprovação, arte e parceiros', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
       { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade', board: 'producao' },
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
       { id: 'demandas', nome: 'Demandas', dica: 'Todas as demandas, por grupo e status', board: 'demandas' },
-      { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
-      { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
-      { id: 'planejamentos', nome: 'Planejamentos', dica: 'Centro de Operação: o planejamento de cada cliente para revisar, editar, aprovar e enviar', mod: ['VybePlanejamentos'] },
-      { id: 'conteudo', nome: 'Equilíbrio e aprovação', dica: 'Atração, educação e conversão de cada cliente; link de aprovação', mod: ['VybeConteudo'] },
       { id: 'projetos', nome: 'Projetos pontuais', dica: 'Eventos, lançamentos e sites, com a carga da equipe', mod: ['VybePessoas', 'projetos'] },
+      { id: 'agenda', nome: 'Agenda e captações', dica: 'Produção e agenda de captações' },
+      { id: 'conteudo', nome: 'Aprovação de conteúdo', dica: 'Atração, educação e conversão de cada cliente; link de aprovação', mod: ['VybeConteudo'] },
+      { id: 'planejamentos', nome: 'Planejamentos', dica: 'Centro de Operação: o planejamento de cada cliente para revisar, editar, aprovar e enviar', mod: ['VybePlanejamentos'] },
+      { id: 'direcao', nome: 'Direção de arte', dica: 'Fila, radar e revisão das peças' },
+      { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
+      { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
     ] },
     { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
-      { id: 'clientes', nome: 'Todos os clientes', dica: 'Clientes, fichas e cérebro de cada um' },
+      { id: 'clientes', nome: 'Gestão de clientes', dica: 'Todos os clientes, fichas e o cérebro de cada um' },
       { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
       { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo: boas-vindas, contrato, acessos e kickoff', mod: ['VybeCarteira', 'onboarding'] },
       { id: 'churn', nome: 'Churn', dica: 'Quem saiu, por quê, receita perdida e retenção', mod: ['VybeCarteira', 'churn'] },
       { id: 'contratos', nome: 'Contratos', dica: 'Valor, início e renovações em breve', mod: ['VybeCarteira', 'contratos'] },
     ] },
-    { id: 'setor:comercial', grupo: 'Negócio', nome: 'Comercial', dica: 'Comercial: funil, pacotes, orçamentos e creators', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
-      { id: 'funil', nome: 'Funil de vendas', dica: 'Leads, propostas, ganhos e motivos de perda', mod: ['VybeComercial', 'funil'] },
-      { id: 'pacotes', nome: 'Pacotes', dica: 'Produtos da Vybe com custo e margem', mod: ['VybeComercial', 'pacotes'] },
+    { id: 'setor:comercial', grupo: 'Negócio', nome: 'Comercial', dica: 'Comercial: CRM, conversas, produtos e orçamentos', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
+      { id: 'funil', nome: 'CRM e funil', dica: 'Leads, propostas, ganhos e motivos de perda', mod: ['VybeComercial', 'funil'] },
+      { id: 'conversas', nome: 'Conversas', dica: 'O WhatsApp da Vybe: quem espera resposta (só leitura)', acao: 'whatsapp' },
+      { id: 'pacotes', nome: 'Produtos e pacotes', dica: 'A esteira de produtos da Vybe, com custo e margem', mod: ['VybeComercial', 'pacotes'] },
       { id: 'orcamentos', nome: 'Orçamentos', dica: 'Propostas a partir dos pacotes', mod: ['VybeComercial', 'orcamentos'] },
-      { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
-      { id: 'fornecedores', nome: 'Fornecedores', dica: 'Gráficas, audiovisual, eventos, com BV', mod: ['VybeComercial', 'fornecedores'] },
     ] },
     { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
@@ -160,21 +161,21 @@
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
-      { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
       { id: 'diario', nome: 'Diário', dica: 'O diário da operação', board: 'diario' },
       { id: 'performance', nome: 'Performance', dica: 'Desempenho de cada pessoa (quem administra)', board: 'performance' },
       { id: 'ai-usage', nome: 'IA e custos', dica: 'Uso e custo da IA (quem administra)', board: 'ai-usage' },
       { id: 'automacoes', nome: 'Automações', dica: 'Regras que movem as demandas sozinhas', board: 'automacoes' },
       { id: 'conta', nome: 'Conta e equipe', dica: 'Sua conta, acessos e a equipe', board: 'conta' },
     ] },
-    { id: 'setor:pessoas', grupo: 'Time', nome: 'Pessoas', dica: 'Pessoas: equipe, RH, academy e perfil', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
+    { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: equipe, produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
-      { id: 'rh', nome: 'RH', dica: 'Pedidos, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
+      { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
+      { id: 'rh', nome: 'Pedidos e calendário', dica: 'Pedidos ao RH, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
       { id: 'recrutamento', nome: 'Recrutamento', dica: 'Vagas e candidatos', mod: ['VybePessoas', 'recrutamento'] },
       { id: 'documentos', nome: 'Documentos', dica: 'Contratos e documentos do time', mod: ['VybePessoas', 'documentos'] },
-      { id: 'academy', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'] },
       { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
     ] },
+    { id: 'academy', grupo: 'Time', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'], ic: svg('<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/>') },
     // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
     { id: 'agentes', grupo: 'Time', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
     // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
@@ -300,7 +301,8 @@
     if (id === 'agentes') { if (!gestao.hidden) fecharGestao(); marcarTrilho('agentes'); window.VybeAgentes?.abrir?.(); return; }
     if (id !== 'criar' && id !== 'vybes') window.VybeAgentes?.fechar?.();
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
-    const sub = SUBMODULOS.find((x) => x.id === id);
+    const sub = SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.mod);
+    if (sub?.acao === 'whatsapp') { marcarTrilho(id); hud.querySelector('.vv-ferramentas [aria-label="WhatsApp da Vybe"]')?.click(); return; } // o mesmo botão da barra de cima
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
     if (sub?.board) {
       if (!gestao.hidden) fecharGestao();
@@ -308,7 +310,12 @@
       if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) { chamar('chooseManagerMode'); setTimeout(quadro, 300); } else quadro();
       marcarTrilho(id); return;
     }
-    if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id); window[sub.mod[0]]?.abrir?.(sub.mod[1]); return; }
+    if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
+      // A janela mostra só as abas deste item do dock (Paulo, 08/11/2026: "não vejo lógica RH, academy… estarem aí"):
+      // os irmãos do mesmo setor que abrem o mesmo módulo. Fora do dock, o módulo abre com todas.
+      const irmaos = sub.setor ? SUBMODULOS.filter((x) => x.setor === sub.setor && x.mod?.[0] === sub.mod[0]).map((x) => x.mod[1]).filter(Boolean) : [sub.mod[1]];
+      const setorNome = TRILHO.find((t) => t && t.id === sub.setor)?.nome || sub.nome;
+      window[sub.mod[0]]?.abrir?.(sub.mod[1], { abas: irmaos, rotulo: setorNome }); return; }
     if (id === 'gestao') { abrirGestao(); return; }
     if (!gestao.hidden) fecharGestao();
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
@@ -1915,6 +1922,11 @@
         || b.dataset.visaoSetor || (b.dataset.submodulo && b.closest('.vv-trilho'))) fecharAndarVoxel(false);
     }
     if (b.hasAttribute('data-trilho-recolher')) { alternarDock(); return; }
+    // Setor no dock largo (Paulo, 08/11/2026): clicar de novo no setor aberto fecha os submenus; a setinha só abre/fecha a lista.
+    if (b.dataset.trilho?.startsWith('setor:') && dockLargo()) {
+      if (b.getAttribute('aria-expanded') === 'true') { expandirSetor(''); return; }
+      if (e.target.closest('.vv-trilho-seta')) { expandirSetor(b.dataset.trilho); return; }
+    }
     if (b.dataset.visaoSetor) { abrirVisaoSetor(b.dataset.visaoSetor); return; }
     if (b.dataset.submodulo && b.closest('.vv-trilho')) { usarTrilho(b.dataset.submodulo); marcarTrilho(b.dataset.submodulo); return; }
     if (selecionarSemana(b)) return;

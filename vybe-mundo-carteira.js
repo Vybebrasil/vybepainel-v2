@@ -571,7 +571,7 @@
       : ({ saude: abaSaude, onboarding: abaOnboarding, churn: abaChurn, contratos: abaContratos }[estado.aba] || abaSaude)();
     const erro = estado.erro && !estado.carregando ? `<p class="vc-erro" role="alert">${esc(estado.erro)} ${secundario('Tentar de novo', 'data-vc-recarregar')}</p>` : '';
     return `<div class="vc-topo">
-        <div class="vc-titulo"><span class="vc-kicker">Clientes</span><h2 id="vc-titulo">Carteira</h2></div>
+        <div class="vc-titulo"><span class="vc-kicker">Clientes</span><h2 id="vc-titulo">${esc(estado.soAbas?.size === 1 ? (ABAS.find(([k]) => k === estado.aba) || ['', 'Carteira'])[1] : 'Carteira')}</h2></div>
         <button type="button" class="vc-ico" data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é a Carteira" title="O que é a Carteira">?</button>
         <button type="button" class="vc-ico" data-vc-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
@@ -579,7 +579,7 @@
         <div class="vc-segmento" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</div>
         <label class="vc-mes"><span class="vc-sr">Mês</span><input type="month" data-vc-mes value="${esc(estado.mes)}" max="${esc(hoje().slice(0, 7))}"></label>
       </div>
-      <div class="vc-abas" role="tablist" aria-label="Partes da Carteira">${ABAS.map(([k, r]) => `<button type="button" role="tab" id="vc-aba-${k}" aria-controls="vc-corpo" aria-selected="${estado.aba === k}" tabindex="${estado.aba === k ? 0 : -1}" data-vc-aba="${k}">${r}</button>`).join('')}</div>
+      <div class="vc-abas" role="tablist" aria-label="Partes da Carteira"${abasVisiveis().length > 1 ? '' : ' hidden'}>${abasVisiveis().map(([k, r]) => `<button type="button" role="tab" id="vc-aba-${k}" aria-controls="vc-corpo" aria-selected="${estado.aba === k}" tabindex="${estado.aba === k ? 0 : -1}" data-vc-aba="${k}">${r}</button>`).join('')}</div>
       <p class="vc-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
       <div class="vc-corpo" id="vc-corpo" role="tabpanel" aria-labelledby="vc-aba-${estado.aba}">${estado.ajuda ? AJUDA : ''}${erro}${corpo}</div>`;
   }
@@ -690,7 +690,7 @@
     // Setas trocam de aba (padrão de tablist).
     const aba = e.target?.closest?.('[role="tab"][data-vc-aba]');
     if (aba && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      const i = ABAS.findIndex(([k]) => k === aba.dataset.vcAba), n = ABAS[(i + (e.key === 'ArrowRight' ? 1 : ABAS.length - 1)) % ABAS.length][0];
+      const V = abasVisiveis(), i = V.findIndex(([k]) => k === aba.dataset.vcAba), n = V[(i + (e.key === 'ArrowRight' ? 1 : V.length - 1)) % V.length][0];
       e.preventDefault();
       estado.aba = n;
       pintar();
@@ -699,7 +699,10 @@
   }
 
   // ---------- API ----------
-  function abrir(aba = 'saude') {
+  // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
+  const abasVisiveis = () => ABAS.filter(([k]) => !estado.soAbas || estado.soAbas.has(k));
+  function abrir(aba = 'saude', opcoes = {}) {
+    estado.soAbas = Array.isArray(opcoes.abas) && opcoes.abas.length ? new Set(opcoes.abas) : null;
     estado.aba = ABAS.some(([k]) => k === aba) ? aba : 'saude';
     if (!estado.mes) estado.mes = hoje().slice(0, 7);
     estado.aviso = '';

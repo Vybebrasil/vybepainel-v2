@@ -4982,3 +4982,39 @@ html body.mundo.mundo-modulo #grupos-board .grupos-head :is(h2,h3,b,strong,span,
 .vv-gestao .vv-g-abas::-webkit-scrollbar{display:none}
 .vv-gestao .vv-g-abas button{flex:0 0 auto}
 .vv-gestao .vs-corpo,.vv-gestao .vs-corpo > *,.vv-gestao .vs-bloco,.vv-gestao .vs-tabela{min-width:0;max-width:100%}
+.vp-abas[hidden],.vc-abas[hidden]{display:none!important}
+
+/* Recursos Humanos/Produção › Projetos pontuais no fluxo do AgencyFlow (Paulo, 08/11/2026). */
+.vp-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:0 0 14px}
+.vp-num{display:grid;gap:4px;padding:14px 16px;border-radius:12px;background:#fff;border:1px solid #ECE6DC;position:relative}
+.vp-num span{font:600 12px var(--vv-texto,inherit);color:#6B665E}
+.vp-num b{font:750 26px/1.1 var(--vv-titulo,var(--vv-texto,inherit));color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vp-num small{font:500 11.5px var(--vv-texto,inherit);color:#8A847A}
+.vp-num.ok b{color:#1D7A3E}.vp-num.ruim b{color:#B4322B}.vp-num.atencao b{color:#9A5B00}
+.vp-num.ruim::after,.vp-num.atencao::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:#E0A21B}.vp-num.ruim::after{background:#D2453B}
+.vp-proj-bloco{margin:0 0 14px;padding:14px 16px}
+.vp-proj-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vp-proj-ctl select{height:34px;padding:0 10px;border:1px solid #E6E0D6;border-radius:8px;background:#fff;font:600 12.5px var(--vv-texto,inherit);color:#1F1D1A}
+.vp-seg{display:inline-flex;padding:3px;border-radius:9px;background:#EDE8E0}
+.vp-seg button{appearance:none;border:0;background:transparent;padding:5px 11px;border-radius:7px;font:600 12px var(--vv-texto,inherit);color:#6B665E;cursor:pointer}
+.vp-seg button[aria-pressed="true"]{background:#fff;color:#1F1D1A;box-shadow:0 1px 2px rgba(31,29,26,.12)}
+.vp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.vp-semana7{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:8px;overflow-x:auto}
+.vp-dia{display:flex;flex-direction:column;gap:6px;min-height:120px;padding:10px;border-radius:10px;background:#FAF7F2;border:1px solid #EFEAE2}
+.vp-dia.hoje{border-color:var(--vv-laranja,#F26B1D);background:#FFF7EF}
+.vp-dia > small{font:600 11px var(--vv-texto,inherit);color:#8A847A;text-transform:capitalize}
+.vp-dia > b{font:700 13px var(--vv-texto,inherit);color:#1F1D1A}
+.vp-etapa-dia{display:grid;padding:6px 8px;border-radius:8px;background:#fff;border-left:3px solid var(--vv-laranja,#F26B1D);font:500 11.5px var(--vv-texto,inherit)}
+.vp-etapa-dia b{font-weight:650;color:#1F1D1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vp-etapa-dia small{color:#8A847A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vp-etapa-dia.feita{border-left-color:#2E9D5B;opacity:.7}.vp-etapa-dia.atrasada{border-left-color:#D2453B}
+.vp-dia-vazio{color:#C8C0B4;font:500 12px var(--vv-texto,inherit)}
+/* Dock: categorias com divisão clara (Paulo, 08/11/2026: "tá parecendo tudo a mesma coisa"): uma linha separa cada
+   categoria, o rótulo ganha peso e um traço laranja curto, e há mais respiro antes de cada bloco. A setinha tem uma área
+   de clique maior (abre/fecha os submenus). */
+body.trilho-largo .vv-trilho-grupo{display:flex;align-items:center;gap:8px;margin:12px 2px 4px;padding:12px 8px 4px;border-top:1px solid rgba(31,29,26,.1);font:750 10.5px/1.2 var(--vv-texto);letter-spacing:.08em;color:#6B665E;opacity:1}
+body.trilho-largo .vv-trilho-grupo::before{content:"";width:12px;height:3px;border-radius:2px;background:var(--vv-laranja,#F26B1D);opacity:.85}
+body.trilho-largo .vv-trilho-grupo:first-of-type{margin-top:6px}
+.vv-trilho-seta{position:relative}
+.vv-trilho-seta::after{content:"";position:absolute;inset:-12px}
+body.trilho-largo .vv-trilho-btn[aria-expanded="true"]{background:rgba(255,255,255,.7)}
