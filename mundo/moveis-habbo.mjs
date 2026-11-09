@@ -107,8 +107,9 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
   const blocos = casca.map(([i, j, k]) => { const c = cor.get(idx(i, j, k)); return { x: (i + 0.5) * s, y: j * s, z: (k + 0.5) * s, cor: hex(c ? maisPerto(paleta, c) : paleta[0] || [150, 150, 150]) }; });
   // ---------- casca fina: o desenho do Habbo pixel a pixel, na profundidade certa ----------
   // O miolo acima dá o volume; por cima, um bloco pequeno a cada `passoFino` pixels da foto da própria direção da
-  // peça, no ponto em que o raio da câmera do Habbo toca o miolo (ou, se a parte fina foi esculpida fora, no meio da
-  // peça). Da câmera do Habbo a peça fica igual ao desenho, com contorno e detalhe; girando, continua com volume.
+  // peça, no ponto em que o raio da câmera do Habbo toca o miolo. A câmera da Minha sala é a do Habbo, então da
+  // tela cada pixel do desenho cai exatamente no lugar dele. Pixel cujo raio não toca o miolo (haste, fio, folha fina)
+  // fica na profundidade do pixel vizinho mais perto que tocou: preso à peça, nunca solto no ar.
   const foto = vistas.find((v) => v.dir === dir && typeof v.pixel === 'function');
   const finos = [];
   let ladoFino = 0;
@@ -116,19 +117,34 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
     ladoFino = (passoFino / 32) * 1.15;
     const ocupado = (a, b, hNivel) => { const i = Math.floor(a / s), k = Math.floor(b / s), j = Math.floor((hNivel * NIVEL_HABBO) / s); return tem(i, j, k); };
     const passoT = s / 3, tMin = -1, tMax = W + D - 1;
-    for (let py = 0; py < foto.h; py += passoFino) for (let px = 0; px < foto.w; px += passoFino) {
+    const colunas = Math.ceil(foto.w / passoFino), linhas = Math.ceil(foto.h / passoFino);
+    const fundo = new Float32Array(colunas * linhas).fill(NaN), pixels = [];
+    for (let py = 0, ly = 0; py < foto.h; py += passoFino, ly++) for (let px = 0, lx = 0; px < foto.w; px += passoFino, lx++) {
       const c = foto.pixel(px, py); if (!c) continue;
       const sx = px + foto.ox, sy = py + foto.oy;
       // Raio da câmera do Habbo por este pixel: u − v fixo, e h sobe com u + v (t). Vem da frente (t alto) para trás.
-      let acho = null, meio = null;
       for (let t = tMax; t >= tMin; t -= passoT) {
         const u = (t + sx / 32) / 2, v = (t - sx / 32) / 2, h = (t * 16 - sy) / 32, a = u + .5, b = v + .5;
         if (a < 0 || b < 0 || a > W || b > D || h < 0) continue;
-        if (!meio && Math.abs(a - W / 2) + Math.abs(b - D / 2) < Math.max(W, D) / 2) meio = { a, b, h };
-        if (ocupado(a, b, h)) { const t2 = t + passoT * .6; acho = { a: (t2 + sx / 32) / 2 + .5, b: (t2 - sx / 32) / 2 + .5, h: (t2 * 16 - sy) / 32 }; break; } // um passo para a frente: a casca fica por fora do miolo
+        if (ocupado(a, b, h)) { fundo[ly * colunas + lx] = t + passoT * .6; break; } // um passo para a frente: por fora do miolo
       }
-      const q = acho || meio; if (!q) continue;
-      finos.push({ x: q.a, y: q.h * NIVEL_HABBO - ladoFino / 2, z: q.b, cor: hex(c) });
+      pixels.push({ lx, ly, sx, sy, c });
+    }
+    // Quem não tocou herda a profundidade do vizinho que tocou, procurando em anéis cada vez maiores.
+    const profundidade = (lx, ly) => {
+      const t0 = fundo[ly * colunas + lx]; if (!Number.isNaN(t0)) return t0;
+      for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = lx + dx, y = ly + dy; if (x < 0 || y < 0 || x >= colunas || y >= linhas) continue;
+        const t = fundo[y * colunas + x]; if (!Number.isNaN(t)) return t;
+      }
+      return NaN;
+    };
+    for (const q of pixels) {
+      const t = profundidade(q.lx, q.ly); if (Number.isNaN(t)) continue;
+      const a = (t + q.sx / 32) / 2 + .5, b = (t - q.sx / 32) / 2 + .5, h = (t * 16 - q.sy) / 32;
+      if (h < -.02) continue;
+      finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, cor: hex(q.c) });
     }
   }
   return { W, D, lado: s, blocos, finos, ladoFino, altura: ny * s, sinal };
@@ -227,7 +243,7 @@ const CACHE = new Map();
 // Peça esculpida para (classe, direção, estado), guardada: as salas repetem o mesmo móvel.
 // Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
 // segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
-const VERSAO_ESCULTURA = 'e3';
+const VERSAO_ESCULTURA = 'e4';
 const guardado = (() => {
   let banco = null;
   const abrir = () => banco || (banco = new Promise((ok) => {
@@ -268,7 +284,7 @@ export function moveisDoHabbo(classe, dir, estado = 0) {
     const dirPeca = base ? dir : fotos.size === 1 ? dir : [...fotos.keys()][0];
     const N = W * D > 9 ? 6 : W * D > 4 ? 8 : W * D > 1 ? 10 : 12; // fino o bastante para o detalhe do móvel do Habbo
     // Casca fina a cada 2 px nas peças até 2×2 ladrilhos; nas maiores (tapetes, mesas grandes), a cada 3 px.
-    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: W * D > 4 ? 3 : 2 }));
+    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: W * D > 4 ? 2 : 1 }));
     if (!e?.blocos?.length) return e;
     const r = { ...e, brilha: temBrilho(dados) };
     guardado.gravar(chave, r);
@@ -312,13 +328,33 @@ export function placaDaParede(vista, N = 12) {
   for (const b of blocos) { b.a -= ma; b.h -= mh; }
   return { lado: s, blocos, altura: Math.max(...blocos.map((b) => b.h)) + s };
 }
-export function placaDoHabbo(classe, dir, estado = 0) {
-  const chave = 'parede|' + classe + '|' + dir + '|' + (Number(estado) || 0);
+// Peça de parede no lugar exato, pela mesma conta do mapa do Escritório (mapaAncoraParede e mapaTopoItemParede em
+// vybe-escritorio-mapa.js): o desenho encosta no pé da parede no meio do ladrilho (parede do fundo: x + 0,5 na linha
+// y; da esquerda: y + 0,5 na coluna x), sobe 46 px, não passa do teto da parede (altura da parede − 4 px) nem desce
+// abaixo de 2 px do chão, e a altura escolhida pela pessoa sobe 32 px por unidade. Cada pixel vira um bloco no plano
+// da parede: no fundo, andar 1 ladrilho move (32, 16) px; na esquerda, (−32, 16); subir 1 nível, 32 px.
+// Devolve blocos { a, h, cor }: a ao longo da parede a partir do ponto de apoio (ladrilhos) e h em níveis do Habbo.
+export function placaExata(vista, { altura = 0, alturaParede = 118 } = {}) {
+  const lado = vista.dir === 2 ? -1 : 1, teto = -alturaParede + 4;
+  let topo = Math.max(teto, vista.oy - 46);
+  if (topo + vista.h > 2) topo = Math.max(teto, 2 - vista.h);
+  topo -= (Number(altura) || 0) * 32;
+  const blocos = [];
+  for (let py = 0; py < vista.h; py++) for (let px = 0; px < vista.w; px++) {
+    const c = vista.pixel ? vista.pixel(px, py) : vista.cor(px, py); if (!c) continue;
+    const sx = vista.ox + px + .5, sy = topo + py + .5;
+    const a = (lado * sx) / 32, h = (a * 16 - sy) / 32;
+    blocos.push({ a, h, cor: '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('') });
+  }
+  return { blocos, lado: 1 / 32 };
+}
+export function placaDoHabbo(classe, dir, estado = 0, altura = 0, alturaParede = 118) {
+  const chave = 'parede|' + classe + '|' + dir + '|' + (Number(estado) || 0) + '|' + altura + '|' + alturaParede;
   if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
     const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
     const movel = await carregar(classe);
     const v = vistaDaDirecao(movel, dir === 2 ? 2 : 4, estado);
-    return v ? placaDaParede(v, 16) : null;
+    return v ? placaExata(v, { altura, alturaParede }) : null;
   })().catch(() => null));
   return CACHE.get(chave);
 }

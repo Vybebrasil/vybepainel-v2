@@ -213,7 +213,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   é esculpido em voxels a partir da própria arte do Habbo (`mundo/moveis-habbo.mjs`): as direções desenhadas (e os
   espelhos, que o Habbo usa para peças simétricas) são fotos de lados diferentes; fica o bloco que aparece em todas e a
   cor é a do pixel. Não desenhe móvel à mão nem use o ícone genérico do catálogo (só se a arte não carregar). A câmera
-  abre no ângulo do Habbo (30°) e 1 nível = 0,816 ladrilho. Por cima do miolo esculpido vai uma casca fina com o desenho
+  é a do Habbo (Paulo, 09/11/2026: "fiel como era o quarto da pessoa"): sem perspectiva, a 30° na diagonal, sem girar;
+  arrastar move e a roda, a pinça e o clique duplo aproximam. 1 nível = 0,816 ladrilho e a parede tem 118 px. Peças de
+  parede pela conta do mapa (`mapaAncoraParede`/`mapaTopoItemParede`), pixel a pixel. Por cima do miolo esculpido vai uma casca fina com o desenho
   do Habbo a cada 2 px (cor do pixel, contorno incluído), para cada peça ser reconhecível; as peças ficam guardadas no
   IndexedDB (`vybe-minha-sala`). Sala viva (Paulo, 09/11/2026: "visual, imersão, experiência"): paredes por trecho
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
