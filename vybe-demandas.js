@@ -218,12 +218,12 @@ function renderAiUsageBoard(data) {
     const height = Math.max(3, (aiNumber(row.cost_brl) / maxDaily) * 100);
     const label = String(row.day || '').slice(5).replace('-', '/');
     return `<div class="ai-trend-day" title="${safeText(row.day)} · ${aiBrl(row.cost_brl)}"><div class="ai-trend-bar" style="height:${height}%"></div><span class="ai-trend-label">${label}</span></div>`;
-  }).join('') : '<div class="ai-usage-empty" style="width:100%">O histórico aparecerá após os próximos comandos ao Jarvis.</div>';
+  }).join('') : '<div class="ai-usage-empty" style="width:100%">O histórico aparecerá após os próximos pedidos ao VYBES.</div>';
   const personRows = people.length ? people.map(row => `<div class="ai-person-row"><div><span class="ai-person-name">${safeText(row.profile_name)}</span><span class="ai-person-meta">${aiNumber(row.calls)} comandos</span></div><span class="ai-person-cost">${aiBrl(row.cost_brl)}</span></div>`).join('') : '<div class="ai-usage-empty">Sem usuários no período.</div>';
   const geminiNote = settings.gemini_billing === 'paid' ? 'Pago — custo por token ativo' : 'Gratuito — custo estimado em R$ 0,00';
   root.innerHTML = `
     <div class="ai-usage-head">
-      <span class="pv-ic pv-ic-aba" style="--c:#b99cff" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3 1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"/></svg></span><div><div class="ai-usage-kicker">IA &amp; Custos</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do Jarvis por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
+      <span class="pv-ic pv-ic-aba" style="--c:#b99cff" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3 1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"/></svg></span><div><div class="ai-usage-kicker">IA &amp; Custos</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do VYBES por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
       <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 dias</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 dias</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 dias</button></div><button type="button" class="vb-botao" onclick="loadAiUsage(true)">Atualizar</button>
     </div>
     <div class="ai-usage-grid">
@@ -285,11 +285,11 @@ function switchBoard(board, btn) {
   btn.classList.add('active');
   const subs = {
     producao:    'Controle semanal de conteúdo por cliente e equipe',
-    demandas:    'Solicitações de Demandas — esteira de produção',
+    demandas:    'Demandas — esteira de produção',
     clientes:    'Visão unificada por cliente',
     diario:      'Diário de Produção — snapshots do estado dos conteúdos',
     performance: 'Médias e desempenho individual da equipe',
-    'ai-usage':  'Uso, custos estimados e limites do Jarvis',
+    'ai-usage':  'Uso, custos estimados e limites do VYBES',
     automacoes:  'Regras que movem, atribuem e avisam sozinhas',
     escritorio:  'Presença, conversas e o espaço da equipe',
     conta:       'Sua conta e, para quem administra, a equipe'
@@ -641,7 +641,7 @@ async function refreshDemandas() {
   icon.className = 'spin';
   const loadingCycle = beginLoadingCycle();
   setLoadingState({ phase:'CONECTANDO À CENTRAL DE DEMANDAS', text:'Autenticando canal de solicitações...', count:'00 / 100', code:'DEMANDAS // 00', system:'CENTRAL DE DEMANDAS EM SINCRONIA' });
-  showToast('Buscando Solicitações de Demandas...', 'info', 60000);
+  showToast('Buscando demandas...', 'info', 60000);
   try {
     const rawItems = await fetchAllDemandas();
     DADOS_DEMANDAS = processDemandas(rawItems);

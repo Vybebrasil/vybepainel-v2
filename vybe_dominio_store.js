@@ -22,6 +22,7 @@ import { getMirrorSnapshot, mondayQuery } from './operational_mirror_store.js';
 import { pastaDoConteudo, pastaSimples, enviarParaDrive, tornarPublico } from './vybe_drive.js';
 import { nomeCanonico } from './vybe_saneamento.js';
 import { criarTabelaDeGrupos } from './server/grupos.js';
+import { ehDonoPessoa } from './server/donos.js';
 
 export const BOARD_PRODUCAO = 7829537690;
 export const BOARD_DEMANDAS = 8385559107;
@@ -827,7 +828,7 @@ export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = databa
           FROM vybe_captacao ORDER BY COALESCE(ordem, monday_index), rotulo`,
     sql`SELECT coluna_id, chave, rotulo, cor, borda, indice, ativa
           FROM vybe_opcoes ORDER BY coluna_id, COALESCE(ordem, indice), rotulo`,
-    sql`SELECT monday_user_id AS id, nome, papel, disciplina, foto_url
+    sql`SELECT monday_user_id AS id, id::text AS painel_id, nome, papel, disciplina, foto_url
           FROM vybe_pessoas WHERE monday_user_id IS NOT NULL ORDER BY nome`,
     // O personagem do Escritório de cada um: o painel mostra a cabeça dele no
     // lugar da foto (Paulo, 20/10/2026). Só os campos do visual.
@@ -859,7 +860,12 @@ export async function catalogosDoQuadro(boardId = BOARD_PRODUCAO, { sql = databa
   const [status, captacao, opcoes, pessoasBase, personagens] =
     respostas.map((r) => (r.status === 'fulfilled' ? r.value : []));
   const visual = new Map(personagens.map((v) => [String(v.id), { figura: v.figura || undefined, pele: v.pele || undefined, roupa: v.roupa || undefined, cabelo: v.cabelo || undefined }]));
-  const pessoas = pessoasBase.map((p) => (visual.has(String(p.id)) ? { ...p, personagem: visual.get(String(p.id)) } : p));
+  // dono: a mesma regra do servidor (server/donos.js), para a tela de "ver como" saber quem é dono entre os outros.
+  // Só tela: quem pode o quê continua decidido pela sessão no servidor.
+  const pessoas = pessoasBase.map(({ painel_id, ...p }) => {
+    const dono = ehDonoPessoa({ id: painel_id, monday_user_id: p.id });
+    return visual.has(String(p.id)) ? { ...p, dono, personagem: visual.get(String(p.id)) } : { ...p, dono };
+  });
   return { status, captacao, opcoes, pessoas, degradado };
 }
 

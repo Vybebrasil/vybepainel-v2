@@ -23,9 +23,9 @@
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
   const AJUDA = {
-    produtividade: 'O score de 0 a 100 sai das demandas do painel, sem nada para preencher: entregas no prazo (a data do cliente manda), volume do mês contra a meta do cargo, peças que voltaram para ajuste e o que está atrasado na fila. Cada pessoa vê só o próprio detalhe; o ranking, os pesos e as metas são dos donos.',
+    produtividade: 'O score de 0 a 100 sai das demandas do painel, sem nada para preencher: entregas no prazo (a data do cliente manda), volume do mês contra a meta do cargo, peças que voltaram para ajuste e o que está atrasado na fila. Cada pessoa vê só o próprio detalhe; o ranking, a carga da semana, os pesos e as metas são dos donos. A carga da semana soma as demandas abertas do painel e as etapas de projeto de cada pessoa contra a capacidade semanal.',
     rh: 'Pedidos ao RH (férias ou folga, documento, reembolso, equipamento) com prazo de resposta em dias úteis por tipo, que os donos ajustam; fora do prazo fica em vermelho. Aniversários (só dia e mês) e férias aprovadas. A pesquisa de clima é aberta pelos donos com período e é anônima de verdade: a resposta não guarda quem respondeu nem a hora, e o resultado só aparece somado, com 3 respostas ou mais.',
-    projetos: 'Projetos fora do mensal (evento, lançamento, site) com etapas, responsáveis e datas, na linha do tempo. A carga da semana soma as demandas abertas do painel e as etapas de projeto de cada pessoa contra a capacidade semanal.',
+    projetos: 'Projetos fora do mensal (evento, lançamento, site) com etapas, responsáveis e datas, na linha do tempo.',
     academy: 'Trilhas de treinamento para quem entra na Vybe. Cada aula é um link de vídeo ou documento; marque a aula como feita quando terminar. Os donos montam as trilhas e atribuem a cada pessoa.',
     recrutamento: 'Vagas abertas e os candidatos em cada etapa. As etapas são configuráveis; mover para Aprovado (ou Contratado) conta no tempo médio de contratação. Só os donos e quem administra veem.',
     documentos: 'Contratos e documentos de cada colaborador, com o aviso de renovação nos próximos 30 dias. Sem assinatura eletrônica: o link aponta para o arquivo no Drive. Só os donos e quem administra veem.',
@@ -77,7 +77,14 @@
     catch (e) { estado.erro = e.message; if (e.status === 403 && SO_GESTAO.has(aba)) estado.dados[aba] = { proibido: true }; }
     finally { estado.carregando = false; pintar(); }
     // Folha do Vybe Finanças (só leitura, só donos; o servidor recusa os outros): chega depois e repinta.
+    // Carga da semana (auditoria 09/11: saiu de Projetos pontuais e veio para a Produtividade, que é dos donos).
+    if (aba === 'produtividade' && estado.dados.produtividade?.gestao) await carregarCarga();
     if (aba === 'rh' && gestao() && window.VybeFinancas?.carregar) await window.VybeFinancas.carregar('rh', mesFolha()).then(() => { if (estado.aba === 'rh') pintar(); });
+  }
+  async function carregarCarga() {
+    try { const c = await pedir('GET', { aba: 'projetos', semana: estado.semanaCarga || '' }); if (estado.dados.produtividade) estado.dados.produtividade.cargaSemana = c; }
+    catch { if (estado.dados.produtividade) estado.dados.produtividade.cargaSemana = { erro: true }; }
+    if (estado.aba === 'produtividade') pintar();
   }
   async function gravar(corpo, sucesso) {
     estado.aviso = 'Salvando…'; avisar();
@@ -133,6 +140,7 @@
     html += `<p class="vp-nota">${d.fonte?.ajustes ? esc(d.fonte.ajustes) + '. ' : ''}Nada para preencher: tudo vem das demandas do painel.</p>`;
     if (!d.gestao) return html;
     const r = d.ranking || [];
+    html += `<section class="vp-cartao vp-proj-bloco">${htmlCarga(d.cargaSemana)}</section>`;
     html += `<h3 class="vp-titulo">Ranking do mês <small>só os donos veem</small></h3>`;
     html += r.length ? `<ol class="vp-ranking">${r.map((p) => `<li><button type="button" class="vp-linha" data-vp-pessoa="${esc(p.id)}">
         <span class="vp-pos-n">${p.posicao ?? '–'}</span><span class="vp-meio"><b>${esc(p.nome)}</b><small>${esc(p.cargoNome)} · ${esc(p.entregues)}/${esc(p.meta || 0)} entregas${p.conquistas?.length ? ' · ' + esc(p.conquistas.map((c) => c.titulo).join(', ')) : ''}</small></span>
@@ -366,9 +374,11 @@
 
   // ---------- Projetos ----------
   function htmlCarga(d) {
+    if (!d) return `<h3 class="vp-titulo">Carga da semana</h3>${typeof vbEstadoHtml === 'function' ? vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando a carga' }) : ''}`;
+    if (d.erro) return `<h3 class="vp-titulo">Carga da semana</h3><p class="vp-nota">Não deu para ler a carga agora. ${sec('Tentar de novo', 'data-vp-carga-semana="0"')}</p>`;
     const semana = d.semana || '';
     return `<div class="vp-linha-topo"><h3 class="vp-titulo">Carga da semana <small>${br(semana)} a ${br(d.fim)} · capacidade ${esc(d.capacidade)} itens</small></h3>
-      <div class="vp-nav">${sec('‹', 'data-vp-semana="-7" aria-label="Semana anterior"')}${sec('Hoje', 'data-vp-semana="0"')}${sec('›', 'data-vp-semana="7" aria-label="Próxima semana"')}</div></div>
+      <div class="vp-nav">${sec('‹', 'data-vp-carga-semana="-7" aria-label="Semana anterior"')}${sec('Hoje', 'data-vp-carga-semana="0"')}${sec('›', 'data-vp-carga-semana="7" aria-label="Próxima semana"')}</div></div>
       ${(d.carga || []).length ? `<ul class="vp-lista vp-carga">${d.carga.map((c) => `<li class="vp-item"><div class="vp-meio"><b>${esc(c.nome)}</b>
         <small>${plural(c.pecas, 'demanda', 'demandas')}${c.atrasadas ? ` · ${c.atrasadas} atrasada${c.atrasadas === 1 ? '' : 's'}` : ''}${c.etapas ? ` · ${plural(c.etapas, 'ponto', 'pontos')} de projeto` : ''}</small>
         <span class="vp-barra larga ${NIVEL[c.nivel][1]}" aria-hidden="true"><i style="width:${Math.min(100, c.pct)}%"></i></span></div>
@@ -441,8 +451,7 @@
         <div class="vp-nav">${sec('‹', 'data-vp-semana="-7" aria-label="Semana anterior"')}${sec('Hoje', 'data-vp-semana="0"')}${sec('›', 'data-vp-semana="7" aria-label="Próxima semana"')}</div></div></div>
       <div class="vp-semana7">${dias.map((dia) => { const l = etapasDia(dia); return `<div class="vp-dia${dia === hj ? ' hoje' : ''}"><small>${NOMES[new Date(dia + 'T12:00:00Z').getUTCDay()]}</small><b>${br(dia).slice(0, 5)}</b>
         ${l.length ? l.map(({ e, p }) => `<span class="vp-etapa-dia${e.feita ? ' feita' : e.fim < hj ? ' atrasada' : ''}" title="${esc(p.nome)} · ${esc(e.responsavel_nome || 'sem responsável')}"><b>${esc(e.nome)}</b><small>${esc(p.nome)}</small></span>`).join('') : '<span class="vp-dia-vazio">—</span>'}</div>`; }).join('')}</div></section>`;
-    // Carga da equipe (peças do painel + etapas de projeto contra a capacidade).
-    return html + `<section class="vp-cartao vp-proj-bloco">${htmlCarga(d)}</section>`;
+    return html;
   }
 
   // ---------- Academy ----------
@@ -642,6 +651,7 @@
     else if (perto('[data-vp-fechar-form]')) { estado.form = ''; estado.editar = null; pintar(); }
     else if ((b = perto('[data-vp-pessoa]'))) { estado.pessoa = b.dataset.vpPessoa; carregar(); }
     else if ((b = perto('[data-vp-periodo]'))) { estado.periodo = b.dataset.vpPeriodo; carregar(); }
+    else if ((b = perto('[data-vp-carga-semana]'))) { const n = Number(b.dataset.vpCargaSemana), base = d.cargaSemana?.semana || hoje(); estado.semanaCarga = n ? somarDias(base, n) : ''; d.cargaSemana = null; pintar(); carregarCarga(); }
     else if ((b = perto('[data-vp-semana]'))) { const n = Number(b.dataset.vpSemana); estado.semana = n ? somarDias(d.semana || hoje(), n) : ''; carregar(); }
     else if ((b = perto('[data-vp-pedido]'))) gravar({ acao: 'pedido_status', id: b.dataset.vpPedido, status: b.dataset.status }, 'Pedido atualizado.');
     else if ((b = perto('[data-vp-filtro-pedidos]'))) { estado.filtroPedidos = b.dataset.vpFiltroPedidos; pintar(); }

@@ -18,7 +18,7 @@ const somar = (iso, n) => new Date(Date.parse(`${iso}T12:00:00Z`) + n * 864e5).t
 async function banco(t, { migracao = true } = {}) {
   const { db, sql } = conexao();
   t.after(() => db.close());
-  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean);
+  await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean, pode_entrar boolean DEFAULT true);
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true, status text, nao_e_cliente boolean DEFAULT false,
       valor numeric, criado_no_monday date, desativado_em timestamptz, apagado_em timestamptz); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_cliente_eventos (id bigserial PRIMARY KEY, cliente_id bigint, tipo text, de text, para text, motivo text, autor text, em timestamptz DEFAULT now());

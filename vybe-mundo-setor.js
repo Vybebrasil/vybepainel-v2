@@ -154,7 +154,7 @@
       const metas = (M.progresso || []).filter((x) => x.meta > 0).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
       const alertas = (N?.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
       const NIVEL = { 1: 'ruim', 2: 'atencao', 3: 'atencao' };
-      const alertasHtml = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${NIVEL[a.nivel] || ''}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></li>`).join('')}</ul>` : aviso('Nada crítico na operação agora.');
+      const alertasHtml = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${NIVEL[a.nivel] || ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N?.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : aviso('Nada crítico na operação agora.');
       // Gráficos
       const vendas = (M.series || []).map((x) => ({ ...x, rotulo: mesCurto(x.mes) }));
       const semanas = (Hi.semanas || []).slice(-12).map((x) => ({ ...x, rotulo: diaMes(x.inicio) }));
@@ -216,7 +216,8 @@
         const margens = [...(vf.margens || [])].filter((c) => c.mes && c.mes.receita > 0).sort((a, b) => (a.mes.margem_percentual ?? 0) - (b.mes.margem_percentual ?? 0)).slice(0, 6);
         const kpis = kpi({ icone: 'aperto', titulo: 'Recebido no mês', valor: rs(R.recebido), sub: `de ${reais(R.previsto)} previsto${R.recebido_percentual != null ? ` · ${pct(R.recebido_percentual)}` : ''}` })
           + kpi({ icone: 'relogio', titulo: 'Pendente', valor: rs(R.pendente), cls: Number(R.pendente) > 0 ? 'atencao' : '', sub: R.clientes_sem_lancamento ? `${num(R.clientes_sem_lancamento)} mensalidade${R.clientes_sem_lancamento === 1 ? '' : 's'} sem lançamento` : '' })
-          + kpi({ icone: 'caixa', titulo: 'Despesas do mês', valor: rs(Number(R.despesas_pagas) + Number(R.despesas_pendentes)), sub: `pagas ${reais(R.despesas_pagas)} · a pagar ${reais(R.despesas_pendentes)}` })
+          + // A folha tem o cartão dela: aqui só as outras despesas (auditoria 09/11; antes os dois cartões davam o mesmo valor).
+          kpi({ icone: 'caixa', titulo: 'Outras despesas', valor: rs(R.despesas_sem_folha ?? Number(R.despesas_pagas) + Number(R.despesas_pendentes)), sub: R.despesas_sem_folha != null ? `sem a folha · total ${reais(Number(R.despesas_pagas) + Number(R.despesas_pendentes))}` : `pagas ${reais(R.despesas_pagas)} · a pagar ${reais(R.despesas_pendentes)}` })
           + kpi({ icone: 'dinheiro', titulo: 'Folha do mês', valor: rs(Fo.total), variacao: Fo.variacao_percentual ?? 'sem', contra: 'vs mês anterior', inverte: true, sub: `${num(Fo.quantidade)} pessoa${Fo.quantidade === 1 ? '' : 's'}` })
           + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(R.resultado), cls: Number(R.resultado) < 0 ? 'ruim' : '', sub: 'recebido − despesas pagas' })
           + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(I.total), sub: `${num((I.clientes || []).length)} clientes · ${num(I.criticos)} críticos`, cls: Number(I.total) > 0 ? 'ruim' : '' });

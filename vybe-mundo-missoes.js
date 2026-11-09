@@ -27,8 +27,6 @@
 //    que estão no quarto veem", decisão do Paulo, 19/10/2026).
 (function () {
   'use strict';
-  // Os sócios (docs/padrao-visual.md §12; a mesma lista de DONOS em vybe-mundo.js).
-  const SOCIOS = ['paulo', 'vinicius', 'ewerton', 'deivid'];
   const ABAS = [['missoes', 'Missões'], ['cobrancas', 'Cobranças']];
   // Janelas que abrem por cima deste painel: o Esc é delas primeiro.
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate';
@@ -40,7 +38,6 @@
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
-  const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().split(/\s+/)[0];
   const base = () => (typeof escritorio !== 'undefined' && escritorio ? escritorio.base : null);
   const hojeIso = () => (typeof escritorioHojeBahia === 'function' ? escritorioHojeBahia() : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date()));
   const legadoPronto = () => typeof MISSOES_FILTROS !== 'undefined' && [
@@ -59,7 +56,8 @@
   function podeVerOutraPessoa() {
     const b = base();
     if (b?.admin || (typeof souAdmin === 'function' && souAdmin())) return true;
-    return SOCIOS.includes(primeiroNome(pessoaDoEscritorio(b?.eu)?.nome));
+    // Donos pela sessão (o servidor diz quem é dono), nunca pelo primeiro nome (auditoria 09/11, A9).
+    return typeof souDonoDaSessao === 'function' && souDonoDaSessao();
   }
   function alvoDe(pessoaId) {
     const eu = String(base()?.eu || ''), pedido = pessoaId == null ? '' : String(pessoaId);
