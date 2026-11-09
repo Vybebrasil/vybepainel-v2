@@ -22,7 +22,7 @@ const girar = (x, y, vezes, sinal) => { for (let k = 0; k < vezes; k++) [x, y] =
 
 // Uma vista: { dir, w, h, ox, oy, alfa(px, py) → 0..255, cor(px, py) → [r, g, b] }.
 // Esculpe a peça na direção `dir` com pegada W × D ladrilhos. N blocos por ladrilho.
-export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 40, cores = 12 }) {
+export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 40, cores = 12, passoFino = 0 }) {
   const s = 1 / N, nx = Math.max(1, Math.round(W * N)), nz = Math.max(1, Math.round(D * N));
   // Altura: até onde o desenho sobe, visto do canto do fundo do ladrilho de origem (u + v = −1).
   let topo = 0.04; // tapete e piso decorado: uma camada só
@@ -105,7 +105,33 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
   // e cada bloco pega a mais próxima. Some o chiado do sombreado pixel a pixel; ficam as partes e os detalhes.
   const paleta = paletaCurta(casca.map(([i, j, k]) => cor.get(idx(i, j, k))).filter(Boolean), cores);
   const blocos = casca.map(([i, j, k]) => { const c = cor.get(idx(i, j, k)); return { x: (i + 0.5) * s, y: j * s, z: (k + 0.5) * s, cor: hex(c ? maisPerto(paleta, c) : paleta[0] || [150, 150, 150]) }; });
-  return { W, D, lado: s, blocos, altura: ny * s, sinal };
+  // ---------- casca fina: o desenho do Habbo pixel a pixel, na profundidade certa ----------
+  // O miolo acima dá o volume; por cima, um bloco pequeno a cada `passoFino` pixels da foto da própria direção da
+  // peça, no ponto em que o raio da câmera do Habbo toca o miolo (ou, se a parte fina foi esculpida fora, no meio da
+  // peça). Da câmera do Habbo a peça fica igual ao desenho, com contorno e detalhe; girando, continua com volume.
+  const foto = vistas.find((v) => v.dir === dir && typeof v.pixel === 'function');
+  const finos = [];
+  let ladoFino = 0;
+  if (foto && passoFino > 0) {
+    ladoFino = (passoFino / 32) * 1.15;
+    const ocupado = (a, b, hNivel) => { const i = Math.floor(a / s), k = Math.floor(b / s), j = Math.floor((hNivel * NIVEL_HABBO) / s); return tem(i, j, k); };
+    const passoT = s / 3, tMin = -1, tMax = W + D - 1;
+    for (let py = 0; py < foto.h; py += passoFino) for (let px = 0; px < foto.w; px += passoFino) {
+      const c = foto.pixel(px, py); if (!c) continue;
+      const sx = px + foto.ox, sy = py + foto.oy;
+      // Raio da câmera do Habbo por este pixel: u − v fixo, e h sobe com u + v (t). Vem da frente (t alto) para trás.
+      let acho = null, meio = null;
+      for (let t = tMax; t >= tMin; t -= passoT) {
+        const u = (t + sx / 32) / 2, v = (t - sx / 32) / 2, h = (t * 16 - sy) / 32, a = u + .5, b = v + .5;
+        if (a < 0 || b < 0 || a > W || b > D || h < 0) continue;
+        if (!meio && Math.abs(a - W / 2) + Math.abs(b - D / 2) < Math.max(W, D) / 2) meio = { a, b, h };
+        if (ocupado(a, b, h)) { const t2 = t + passoT * .6; acho = { a: (t2 + sx / 32) / 2 + .5, b: (t2 - sx / 32) / 2 + .5, h: (t2 * 16 - sy) / 32 }; break; } // um passo para a frente: a casca fica por fora do miolo
+      }
+      const q = acho || meio; if (!q) continue;
+      finos.push({ x: q.a, y: q.h * NIVEL_HABBO - ladoFino / 2, z: q.b, cor: hex(c) });
+    }
+  }
+  return { W, D, lado: s, blocos, finos, ladoFino, altura: ny * s, sinal };
 }
 
 // Paleta curta: agrupa as cores em caixas de 40 em cada canal, fica com as `n` caixas mais cheias (a média de cada uma)
@@ -172,7 +198,9 @@ function vistaDaDirecao(movel, dir, estado) {
   const dentro = (x, y) => x >= 0 && y >= 0 && x < w && y < h;
   return { dir, w, h, ox: d.ox, oy: d.oy,
     alfa: (x, y) => (dentro(x, y) ? px[(y * w + x) * 4 + 3] : 0),
-    cor: (x, y) => corSemContorno(px, w, h, x, y) };
+    cor: (x, y) => corSemContorno(px, w, h, x, y),
+    // O pixel como está no desenho (com o contorno): é o que a casca fina repete.
+    pixel: (x, y) => (dentro(x, y) && px[(y * w + x) * 4 + 3] > 40 ? [px[(y * w + x) * 4], px[(y * w + x) * 4 + 1], px[(y * w + x) * 4 + 2]] : null) };
 }
 // Cor do bloco: a do pixel, mas o contorno preto de 1 px do Habbo não vira bloco preto: no 3×3 em volta, a média dos
 // pixels que não são contorno (se houver), senão o próprio pixel.
@@ -197,9 +225,34 @@ function direcoesDesenhadas(dados) {
 }
 const CACHE = new Map();
 // Peça esculpida para (classe, direção, estado), guardada: as salas repetem o mesmo móvel.
+// Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
+// segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
+const VERSAO_ESCULTURA = 'e3';
+const guardado = (() => {
+  let banco = null;
+  const abrir = () => banco || (banco = new Promise((ok) => {
+    try {
+      const r = indexedDB.open('vybe-minha-sala', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('pecas');
+      r.onsuccess = () => ok(r.result); r.onerror = () => ok(null);
+    } catch { ok(null); }
+  }));
+  const chaveDe = (k) => VERSAO_ESCULTURA + '|' + ((typeof ESCRITORIO_ARTE_VERSAO !== 'undefined' ? ESCRITORIO_ARTE_VERSAO : '')) + '|' + k;
+  return {
+    async ler(k) { const db = await abrir(); if (!db) return null; return new Promise((ok) => { try { const r = db.transaction('pecas').objectStore('pecas').get(chaveDe(k)); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); } catch { ok(null); } }); },
+    async gravar(k, v) { const db = await abrir(); if (!db) return; try { db.transaction('pecas', 'readwrite').objectStore('pecas').put(v, chaveDe(k)); } catch { /* cheio ou bloqueado: segue sem guardar */ } },
+  };
+})();
+// Uma escultura por vez, cedendo a vez ao navegador entre elas: a sala aparece aos poucos sem travar a tela.
+let fila = Promise.resolve();
+const naFila = (f) => (fila = fila.then(() => new Promise((ok) => setTimeout(ok, 0))).then(f, f));
+// O móvel acende (luminária, abajur, lareira, tela): o Habbo desenha o brilho como camada "ADD".
+const temBrilho = (dados) => Boolean(dados?.visualizations?.find?.((v) => v.size === 64) && Object.values(dados.visualizations.find((v) => v.size === 64).layers || {}).some((l) => l?.ink === 'ADD'));
 export function moveisDoHabbo(classe, dir, estado = 0) {
   const chave = classe + '|' + dir + '|' + (Number(estado) || 0);
   if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
+    const salvo = await guardado.ler(chave);
+    if (salvo?.blocos?.length) return salvo;
     const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
     const movel = await carregar(classe);
     const dados = movel?.dados; if (!dados) return null;
@@ -214,7 +267,25 @@ export function moveisDoHabbo(classe, dir, estado = 0) {
     const base = fotos.get(dir) || null;
     const dirPeca = base ? dir : fotos.size === 1 ? dir : [...fotos.keys()][0];
     const N = W * D > 9 ? 6 : W * D > 4 ? 8 : W * D > 1 ? 10 : 12; // fino o bastante para o detalhe do móvel do Habbo
-    return esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null });
+    // Casca fina a cada 2 px nas peças até 2×2 ladrilhos; nas maiores (tapetes, mesas grandes), a cada 3 px.
+    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: W * D > 4 ? 3 : 2 }));
+    if (!e?.blocos?.length) return e;
+    const r = { ...e, brilha: temBrilho(dados) };
+    guardado.gravar(chave, r);
+    return r;
+  })().catch(() => null));
+  return CACHE.get(chave);
+}
+// Cor que mais aparece num revestimento de parede do Habbo (a arte do móvel de parede), para a parede do quarto.
+export function corDoRevestimento(classe) {
+  const chave = 'revestimento|' + classe;
+  if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
+    const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
+    const v = vistaDaDirecao(await carregar(classe), 4, 0) || vistaDaDirecao(await carregar(classe), 2, 0); if (!v) return null;
+    const lista = [];
+    for (let y = 0; y < v.h; y += 2) for (let x = 0; x < v.w; x += 2) { const c = v.cor(x, y); if (c) lista.push(c); }
+    const [c] = paletaCurta(lista, 1); if (!c) return null;
+    return '#' + c.map((n) => Math.round(n).toString(16).padStart(2, '0')).join('');
   })().catch(() => null));
   return CACHE.get(chave);
 }
@@ -247,7 +318,7 @@ export function placaDoHabbo(classe, dir, estado = 0) {
     const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
     const movel = await carregar(classe);
     const v = vistaDaDirecao(movel, dir === 2 ? 2 : 4, estado);
-    return v ? placaDaParede(v) : null;
+    return v ? placaDaParede(v, 16) : null;
   })().catch(() => null));
   return CACHE.get(chave);
 }
