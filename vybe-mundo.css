@@ -5160,3 +5160,29 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
 :is(.vv-pessoa-chip,.vv-pessoa-add,.vv-pessoas-atalho,.vg-agente,.vg-link):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
 .vv-dia-de{display:block;margin-top:2px;font:500 12px var(--vv-texto);color:#6B675F}
 .vv-demanda-quem{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 10.5px var(--vv-texto)}
+/* ===== Criação (Paulo, 09/11/2026): o time do Deivid no estilo da Agência; o Danilo guia ===== */
+.vv-seg-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.vc-time{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:0 0 14px}
+.vc-pessoa{display:grid;gap:8px;padding:12px 14px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;text-align:left;cursor:pointer;font-family:var(--vv-texto)}
+.vc-pessoa:hover{border-color:#F26B1D}
+.vc-pessoa:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.vc-pessoa.ruim{border-left:3px solid #D2453B}
+.vc-pessoa-cab{display:flex;align-items:center;gap:10px}
+.vc-pessoa-cab > span:last-child{display:grid}
+.vc-pessoa-cab b{font:600 14px var(--vv-texto)}
+.vc-pessoa-cab small{font:500 11.5px var(--vv-texto);color:#6B675F}
+.vc-av{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--c);color:#FFFFFF;font:700 12px var(--vv-texto)}
+.vc-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.vc-nums > span{display:grid}
+.vc-nums b{font:600 18px/1.1 var(--vv-titulo,var(--vv-texto));font-variant-numeric:tabular-nums}
+.vc-nums small{font:500 10.5px var(--vv-texto);color:#6B675F}
+.vc-nums .ruim b{color:#B42318}
+.vc-carga{display:block;height:6px;border-radius:3px;background:#F0EBE3;overflow:hidden}
+.vc-carga i{display:block;height:100%;border-radius:3px;background:#F26B1D}
+.vc-prox{font:500 11px var(--vv-texto);color:#6B675F}
+.vc-semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:end;gap:6px;height:120px;padding-top:8px}
+.vc-dia{position:relative;display:grid;grid-template-rows:1fr auto auto;justify-items:center;height:100%;gap:2px}
+.vc-dia i{align-self:end;width:70%;min-height:2px;border-radius:4px 4px 0 0;background:#E9D9C8}
+.vc-dia.hoje i{background:#F26B1D}
+.vc-dia b{font:600 12px var(--vv-texto);font-variant-numeric:tabular-nums}
+.vc-dia small{font:500 10.5px var(--vv-texto);color:#6B675F}

@@ -239,6 +239,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   uma aba da Gestão (`vybe-mundo-performance.js`, `VybePerformance`), com a situação da peça pela função oficial
   (`VybeDono.util.situacaoDaPeca`); a Produtividade do RH é a do time, pessoa a pessoa. O quadro antigo de Performance
   (`renderPerformance`) não é mais aberto pelo dock.
+- Hoje guiado (decisão do Paulo, 09/11/2026: "ter alguém ali me falando: faz isso primeiro, depois aquilo"): o guia
+  (`guiaHtml`, Agora/Depois/Em seguida) é do agente do setor de quem olha (`guiaDe`: Criação → Danilo, Edição → Lucas,
+  agendamento → Mateus, donos e o resto → VYBES); a ordem é uma só (`passosDoGuia`, a data do cliente manda) e a
+  contagem de atrasadas é a do bloco. Os donos juntam o dia de várias pessoas em Minhas tarefas (`pessoasHoje`, no
+  navegador de quem olha). A Agência abre pelo guia do VYBES. A aba **Criação** (`pintarCriacao`) é o time do Deivid
+  (`EQUIPES.design` + `audiovisual`), guiada pelo Danilo; o item Direção de arte do dock abre ela (o painel antigo fica
+  a um clique durante a troca). Não crie outra ordem de fila nem outro painel de direção de arte.
 - Cadeado e "ver como" (decisão do Paulo, 09/11/2026): para quem não é dono, Comercial, Finanças, Gestão, Agentes, a
   Visão geral do RH, Recrutamento e Documentos aparecem apagados com cadeado (`TRANCADOS` em `vybe-mundo.js`); os itens
   do Time que são de todos ficam abertos. Os donos (e quem administra) podem "ver como" qualquer pessoa pelo menu da

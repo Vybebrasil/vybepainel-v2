@@ -35,8 +35,10 @@ test('fila de várias pessoas: só para os donos, sem "ver como", e a peça de d
 });
 
 test('ordem do guia: atrasada furando a data do cliente, atrasada, vai ao ar hoje, ajuste, aprovação; a contagem é a mesma do bloco Atrasadas', () => {
-  assert.ok(js.includes("if (x.sit === 'atrasada' && v && v < hoje) return 0; if (x.sit === 'atrasada' && !desatualizada(x)) return 1; if (v === hoje) return 2;"));
-  assert.ok(js.includes('const urgentes = ordemGuia.filter((x) => pesoGuia(x) <= 1).length;'));
+  assert.ok(js.includes("if (x.sit === 'atrasada' && v && v < hoje) return 0; if (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)) return 1; if (v === hoje) return 2;"));
+  assert.ok(js.includes('urgentes: ordem.filter((x) => pesoNoGuia(x, hoje) <= 1).length'));
+  assert.ok(js.includes('const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);'), 'Minhas tarefas usa a ordem compartilhada');
+  assert.ok(js.includes('const veic = veicDe, desatualizada = (x) => prazoDesatualizado(x, hoje), chaveFila = (x) => chaveDaFila(x, hoje);'), 'sem cópia das regras da fila');
   assert.ok(js.includes('${guia}${blocosHtml}'), 'o guia vem antes das colunas');
 });
 
@@ -45,4 +47,14 @@ test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, 
   assert.ok(js.includes('filter((x) => (x.minutos || 0) >= 120)'), 'cliente esperando há 2 h ou mais');
   assert.ok(js.includes('      ${guiaAgencia}\n      ${radar}'), 'o guia vem antes dos números');
   assert.ok(js.includes('<details class="vg-resto"><summary>Mais'), 'o resto fica recolhido');
+});
+
+test('Criação: o time do Deivid (design e edição), guiado pelo Danilo, com as pessoas, as filas e a semana; o dock abre ela', () => {
+  assert.ok(js.includes("const timeDeCriacao = () => (typeof EQUIPES !== 'undefined' ? [...EQUIPES.design, ...EQUIPES.audiovisual] : []).map(String);"));
+  assert.ok(js.includes("{ agente: { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' }"));
+  assert.ok(js.includes("aba('criacao', 'Criação')"), 'aba dos donos');
+  assert.ok(js.includes("if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }"));
+  assert.ok(js.includes("if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true;"), 'Direção de arte do dock abre a Criação');
+  assert.ok(js.includes("bloco('Esperando aprovação', 'o que trava a próxima etapa'") && js.includes("bloco('Pediram ajuste'"));
+  assert.ok(js.includes('data-criacao-atalho="antigo">Painel antigo de direção de arte'), 'o painel antigo fica a um clique durante a troca');
 });
