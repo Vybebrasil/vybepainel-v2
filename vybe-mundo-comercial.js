@@ -287,13 +287,20 @@
     const W = Math.max(300, Math.min(560, larg >= 760 ? larg / 2 - 50 : larg - 60)), H = 178, base = 148, alto = 112;
     const max = Math.max(1, ...meses.flatMap((m) => series.map((s) => Number(m[s.chave]) || 0)));
     const passo = W / Math.max(1, meses.length), n = series.length, bw = Math.min(40, Math.max(14, (passo - 10) / n - 4));
+    // Barras estreitas (auditoria 09/11: rótulos sobrepostos em Finanças por cliente): um número por mês, o da barra mais
+    // alta, em cima do par; se nem assim cabe, um mês sim, um não (o último sempre). O valor de cada barra fica no passar o mouse.
+    const txt = (s, v) => (s.curto ? s.curto(v) : s.fmt(v));
+    const largTxt = Math.max(...meses.flatMap((m) => series.map((s) => txt(s, Number(m[s.chave]) || 0).length))) * 6.4;
+    const apertado = n > 1 && largTxt > bw + 2, pula = largTxt > passo - 2;
     const barras = meses.map((m, i) => {
       const x0 = i * passo + passo / 2 - (n * bw + (n - 1) * 4) / 2;
+      const maior = series.reduce((a, s, j) => ((Number(m[s.chave]) || 0) > (Number(m[series[a].chave]) || 0) ? j : a), 0);
+      const comNumero = !pula || (meses.length - 1 - i) % 2 === 0;
       return series.map((s, j) => {
         const v = Number(m[s.chave]) || 0, h = v > 0 ? Math.max(2, (v / max) * alto) : 0, x = x0 + j * (bw + 4);
         const esp = espiar ? ` data-espiar="${String(espiar(m.mes, s.chave)).startsWith('financas:') ? '' : 'comercial:'}${esc(espiar(m.mes, s.chave))}" tabindex="0" role="button" aria-label="${esc(s.rotulo + ' em ' + nomeMes(m.mes) + ': ' + s.fmt(v))}"` : '';
         return `<g class="vc-g-barra"${esp}><title>${esc(s.rotulo)} · ${esc(nomeMes(m.mes))}: ${esc(s.fmt(v))}</title><rect x="${x}" y="${base - h}" width="${bw}" height="${h}" rx="4" class="${s.cls}"/>
-          <text x="${x + bw / 2}" y="${base - h - 5}" text-anchor="middle" class="valor">${esc(s.curto ? s.curto(v) : s.fmt(v))}</text></g>`;
+          ${comNumero && (!apertado || j === maior) && v > 0 ? `<text x="${apertado ? x0 + (n * bw + (n - 1) * 4) / 2 : x + bw / 2}" y="${base - h - 5}" text-anchor="middle" class="valor">${esc(txt(s, v))}</text>` : ''}</g>`;
       }).join('') + `<text x="${i * passo + passo / 2}" y="${base + 18}" text-anchor="middle">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</text>`;
     }).join('');
     return `<figure class="vc-grafico"><svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(aria)}">${barras}<line x1="0" x2="${W}" y1="${base}" y2="${base}" class="eixo"/></svg>
@@ -551,7 +558,7 @@
   function abaFornecedores(d) {
     const cat = st.filtro.categoria || '', lista = C().filtrarFornecedores(d.fornecedores.filter((f) => f.ativo), { categoria: cat, busca: st.filtro.forn || '' });
     const nomeCat = (id) => d.categorias.find((c) => c.id === id)?.nome || id;
-    return `<div class="vc-secao"><h3>Fornecedores</h3>${botaoNovo('Novo fornecedor', 'fornecedor')}</div>
+    return `<div class="vc-secao"><h3>Fornecedores</h3>${d.fornecedores.length ? botaoNovo('Novo fornecedor', 'fornecedor') : ''}</div>
       <div class="vc-filtros" role="group" aria-label="Categoria"><button type="button" data-vc-cat="" aria-pressed="${!cat}">Todas</button>${d.categorias.map((c) => `<button type="button" data-vc-cat="${c.id}" aria-pressed="${cat === c.id}">${esc(c.nome)}</button>`).join('')}</div>
       <input type="search" class="vc-busca" data-vc-busca="forn" placeholder="Buscar fornecedor ou contato" value="${esc(st.filtro.forn || '')}" aria-label="Buscar fornecedor">
       <div class="vc-lista">${lista.map((f) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(f.nome)}</b>${pill(nomeCat(f.categoria), 'u4')}</div>
@@ -562,7 +569,7 @@
   function abaCreators(d) {
     const p = d.pode || {}, f = st.filtro, lista = C().filtrarCreators(d.creators, { nicho: f.nicho || '', cidade: f.cidade || '', busca: f.creator || '' });
     const sel = (campo, opcoes, rotulo) => `<select class="vc-mini" data-vc-filtro="${campo}" aria-label="${rotulo}"><option value="">${rotulo}: todos</option>${opcoes.map((o) => `<option${o === f[campo] ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    return `<div class="vc-secao"><h3>Creators de Irecê</h3>${p.editar_comercial ? botaoNovo('Novo creator', 'creator') : ''}</div>
+    return `<div class="vc-secao"><h3>Creators de Irecê</h3>${p.editar_comercial && d.creators.length ? botaoNovo('Novo creator', 'creator') : ''}</div>
       <div class="vc-filtros">${sel('nicho', d.opcoes.nichos, 'Nicho')}${sel('cidade', d.opcoes.cidades, 'Cidade')}</div>
       <input type="search" class="vc-busca" data-vc-busca="creator" placeholder="Buscar nome ou @" value="${esc(f.creator || '')}" aria-label="Buscar creator">
       <div class="vc-lista grade">${lista.map((c) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(c.nome)}</b>${c.nicho ? pill(c.nicho, 'u4') : ''}</div>

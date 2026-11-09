@@ -229,6 +229,22 @@
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
   const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas'];
+  // Dock aceso só no que está na tela (auditoria 09/11, D10): ao fechar a janela de um módulo (X, Esc ou o próprio
+  // módulo), o item dela apaga e volta a acender o que ficou à vista. As janelas somem do body ou ganham hidden.
+  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes']);
+  const SEL_JANELAS = [...IDS_DE_JANELA].map((i) => '#' + i).join(',');
+  let remarcando = 0;
+  function remarcarAoFechar() {
+    remarcando = 0;
+    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto) return;
+    if (JANELAS_DE_MODULO.some((n) => { try { return window[n]?.aberto?.(); } catch { return false; } })) return;
+    if (document.getElementById('vv-agentes')?.isConnected && !document.getElementById('vv-agentes').hidden) return;
+    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : 'hoje');
+  }
+  if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
+    const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
+    if (fechou && !remarcando) remarcando = requestAnimationFrame(remarcarAoFechar);
+  }).observe(document.body, { childList: true, attributes: true, attributeFilter: ['hidden'], subtree: true });
   function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
@@ -1460,6 +1476,8 @@
   }
   // A agenda completa é a das Captações (módulo Produção): uma agenda só.
   function abrirAgenda(dia) {
+    // O menu da Agenda fecha ao abrir a agenda completa (auditoria 09/11, D13: ficava aberto por cima da tela que abriu).
+    fecharDaDireita();
     abrirModulo({ tipo: 'modo', alvo: 'producao' });
     if (dia) setTimeout(() => { if (typeof captVerDia === 'function') captVerDia(dia); }, 250);
   }
