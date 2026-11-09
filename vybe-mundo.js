@@ -311,6 +311,8 @@
   function usarTrilho(id, botao, saiuDaAntiga = false) {
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     // Item com cadeado chamado por outro caminho (busca, atalho): o mesmo aviso do dock.
+    // Direção de arte (Paulo, 09/11/2026: "reformular o painel de direção de arte no padrão novo"): abre a Criação do Hoje.
+    if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true; usarTrilho.criacao = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     if (TRANCADOS.has(id) && !souDono()) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
     if (String(id).startsWith('setor:')) {
       // Visão geral com cadeado (a do RH para quem não é dono): o setor só abre a lista dos itens.
@@ -365,7 +367,7 @@
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     const noModulo = body.classList.contains('mundo-modulo');
     if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
-    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); marcarTrilho('hoje'); pintarHoje(); ajustarAreaLivre(); return; }
+    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : 'hoje'); usarTrilho.criacao = false; pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
@@ -380,13 +382,24 @@
   // é o mesmo da barra e do Modo Foco.
   // "Ver como" (Paulo, 06/11/2026; 09/11 vale para a tela toda): o estado e as regras ficam junto de souDono.
   let hojeVerTodas = (() => { try { return localStorage.getItem('vybe.hoje.todas') === '1'; } catch { return false; } })();
+  // A fila do Hoje: a da pessoa (ou de quem se "vê como") ou, para os donos, a de várias pessoas juntas (pessoasHoje).
+  // Uma peça de duas pessoas aparece uma vez só, com o nome das duas (quem).
   function minhaFila() {
     const time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
-    const user = (verComo && time.find((u) => String(u.id) === verComo)) || (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null);
-    if (!user || typeof focusOwnItems !== 'function') return null;
-    let itens = []; try { itens = focusOwnItems(user) || []; } catch { return null; }
-    const ref = (d) => (typeof focusReferenceDate === 'function' ? focusReferenceDate(d, user) : (d.veiculacao_iso || d.prazo_iso || ''));
-    return { user, itens: itens.map((d) => ({ d, ref: ref(d), sit: situacaoDaPeca(d) })).sort((a, b) => (a.ref || '9').localeCompare(b.ref || '9')) };
+    const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
+    const varios = !verComo && pessoasHoje.length && souDono() ? pessoasHoje.map((id) => time.find((u) => String(u.id) === id)).filter(Boolean) : [];
+    const users = varios.length ? varios : [(verComo && time.find((u) => String(u.id) === verComo)) || eu].filter(Boolean);
+    if (!users.length || typeof focusOwnItems !== 'function') return null;
+    const porId = new Map();
+    for (const user of users) {
+      let lista = []; try { lista = focusOwnItems(user) || []; } catch { return null; }
+      const ref = (d) => (typeof focusReferenceDate === 'function' ? focusReferenceDate(d, user) : (d.veiculacao_iso || d.prazo_iso || ''));
+      for (const d of lista) {
+        const k = String(d.id); if (!porId.has(k)) porId.set(k, { d, ref: ref(d), sit: situacaoDaPeca(d), quem: [] });
+        porId.get(k).quem.push(String(user.name || user.nome || '').split(' ')[0]);
+      }
+    }
+    return { user: users[0], users, itens: [...porId.values()].sort((a, b) => (a.ref || '9').localeCompare(b.ref || '9')) };
   }
   const somar = (iso, n) => { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   const COR_SIT = (k) => `var(--sit-${k})`;
@@ -398,7 +411,7 @@
   // (status_color, vybe_status.cor) e, sem ela, a do catálogo do painel pelo nome (corDeStatus). A escala de situação é o último recurso.
   const corDoCatalogo = (s) => (typeof corDeStatus === 'function' ? corDeStatus(s)?.cor : '') || '';
   const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || corDoCatalogo(d?.status) || COR_SIT(sit || 'fazer');
-  function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
+  function linhaDemanda(d, { ref = '', sit = '', aviso = '', quem = null } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
     const hoje = hojeIso(), cor = corStatus(d, sit);
@@ -411,7 +424,7 @@
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${tagCli}${d.status ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${quem?.length ? `<span class="vv-demanda-quem">${esc(quem.join(', '))}</span>` : ''}${tagCli}${d.status ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
       <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${qual ? `<i>${qual}</i> ` : ''}${esc(quando)}</time>` : ''}</span>
     </div>`;
@@ -494,6 +507,64 @@
   let visaoHoje = (() => { try { return localStorage.getItem('vybe.mundo.visaoHoje') || 'agencia'; } catch { return 'agencia'; } })();
   // Pendências do WhatsApp (vybe-mundo-pendencias.js) chegaram: repinta o Hoje (atendimento na Agência, "esperando você").
   document.addEventListener('vybe:pendencias', () => pintarHoje());
+  // Ver o dia de várias pessoas (Paulo, 09/11/2026: "consigo adicionar e remover pessoas... ver o dia de Deivid, Jady,
+  // meu e de Ewerton, ou só de quem eu quiser, nessa mesma aba"). Só para os donos; fica guardado no navegador de quem olha.
+  const CHAVE_PESSOAS = 'vybe.hoje.pessoas';
+  let pessoasHoje = (() => { try { const l = JSON.parse(localStorage.getItem(CHAVE_PESSOAS) || '[]'); return Array.isArray(l) ? l.map(String) : []; } catch { return []; } })();
+  function definirPessoasHoje(lista) { pessoasHoje = [...new Set(lista.map(String))]; try { localStorage.setItem(CHAVE_PESSOAS, JSON.stringify(pessoasHoje)); } catch { /* fica só nesta tela */ } pintarHoje(); }
+  const timeDeCriacao = () => (typeof EQUIPES !== 'undefined' ? [...EQUIPES.design, ...EQUIPES.audiovisual] : []).map(String);
+  // Quem guia (Paulo, 09/11/2026: "abrir minhas tarefas e ter alguém ali me falando: faz isso primeiro, depois aquilo...
+  // você define nessa arquitetura quem seria o ideal"): o agente do setor da pessoa, pela planta do prédio. Criação
+  // (design) → Danilo; edição → Lucas; o time de criação junto → Danilo; agendamento → Mateus; donos e o resto → VYBES.
+  function guiaDe(users) {
+    const ids = users.map((u) => String(u.id)), E = typeof EQUIPES !== 'undefined' ? EQUIPES : {}, P = typeof PESSOAS !== 'undefined' ? PESSOAS : {};
+    const todosEm = (l) => ids.length > 0 && ids.every((i) => (l || []).map(String).includes(i));
+    if (todosEm(E.design)) return { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' };
+    if (todosEm(E.audiovisual)) return { nome: 'Lucas', papel: 'Edição · guia da Pós-produção', setor: 'edicao' };
+    if (todosEm(timeDeCriacao())) return { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' };
+    if (ids.length === 1 && ids[0] === String(P.TAINARA || '')) return { nome: 'Mateus', papel: 'Atendimento · guia do agendamento', setor: 'concierge' };
+    return { nome: 'VYBES', papel: 'Orquestrador · guia do dia', setor: 'orquestrador' };
+  }
+  // A ordem do guia (a mesma da fila: a data do cliente manda) e o porquê de cada passo. Minhas tarefas e Criação usam esta.
+  const veicDe = (x) => String(x.d.veiculacao_iso || '');
+  const prazoDesatualizado = (x, hoje) => Boolean(x.d.prazo_iso && x.d.prazo_iso < hoje && veicDe(x) && veicDe(x) >= hoje);
+  const chaveDaFila = (x, hoje) => (veicDe(x) && veicDe(x) < hoje ? '0' : '1') + (veicDe(x) || x.d.prazo_iso || '9999');
+  const diaMes = (iso) => (iso ? String(iso).slice(8, 10) + '/' + String(iso).slice(5, 7) : '');
+  function pesoNoGuia(x, hoje) {
+    const v = veicDe(x), st = String(x.d.status || ''), amanha = somar(hoje, 1);
+    if (x.sit === 'atrasada' && v && v < hoje) return 0; if (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)) return 1; if (v === hoje) return 2;
+    if (/altera|ajuste|corre/i.test(st)) return 3; if (/aprova/i.test(st)) return 4; if (v === amanha) return 5; return 6;
+  }
+  function motivoNoGuia(x, hoje) {
+    const v = veicDe(x), st = String(x.d.status || '');
+    if (x.sit === 'atrasada' && v && v < hoje) return `Furou a data do cliente (ia ao ar ${diaMes(v)})`;
+    if (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)) return `Prazo venceu em ${diaMes(x.d.prazo_iso)}${v ? ' · vai ao ar ' + (v === hoje ? 'hoje' : diaMes(v)) : ''}`;
+    if (v === hoje) return 'Vai ao ar hoje'; if (/altera|ajuste|corre/i.test(st)) return 'Pediram ajuste: devolva antes de começar outra';
+    if (/aprova/i.test(st)) return 'Esperando aprovação'; if (v === somar(hoje, 1)) return 'Vai ao ar amanhã'; return v ? 'Vai ao ar ' + diaMes(v) : 'Sem data do cliente';
+  }
+  function passosDoGuia(itens, hoje, comQuem = false) {
+    const ordem = itens.slice().sort((a, b) => pesoNoGuia(a, hoje) - pesoNoGuia(b, hoje) || chaveDaFila(a, hoje).localeCompare(chaveDaFila(b, hoje)));
+    const cli = (x) => (typeof clientesDoItem === 'function' ? clientesDoItem(x.d)[0] : x.d.cliente) || '';
+    return { ordem, urgentes: ordem.filter((x) => pesoNoGuia(x, hoje) <= 1).length,
+      passos: ordem.slice(0, 3).map((x) => ({ attrs: `data-hoje-acao="peca" data-valor="${esc(x.d.id)}"`,
+        titulo: `${esc(String(x.d.nome || x.d.titulo || 'Peça').trim())}${cli(x) ? ' ' + cliCor(cli(x)) : ''}`,
+        motivo: esc(motivoNoGuia(x, hoje)) + (comQuem && x.quem?.length ? ' · ' + esc(x.quem.join(', ')) : '') })) };
+  }
+  // As abas do Hoje para os donos: Agência (a agência inteira), Criação (o time do Deivid) e Minhas tarefas.
+  function segHoje(atual) {
+    const aba = (id, rot) => `<button type="button" role="tab" aria-selected="${atual === id}" data-visao-hoje="${id}">${rot}</button>`;
+    return `<div class="vv-seg vv-seg-3" role="tablist" aria-label="O que ver">${aba('agencia', 'Agência')}${aba('criacao', 'Criação')}${aba('tarefas', 'Minhas tarefas')}</div>`;
+  }
+  // O guia: o agente, uma frase e os passos numerados (Agora, Depois, Em seguida), cada um abre o que precisa ser feito.
+  function guiaHtml({ agente, intro, passos = [], depois = '' }) {
+    const av = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
+    const quando = ['Agora', 'Depois', 'Em seguida'];
+    return `<section class="vg-guia" aria-label="Guia de ${esc(agente.nome)}"><div class="vg-cab">${av}<span class="vg-quem"><b>${esc(agente.nome)}</b><small>${esc(agente.papel)}</small></span>
+        ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}">Ver o agente</button>` : ''}</div>
+      <p class="vg-intro">${intro}</p>
+      ${passos.length ? `<ol class="vg-passos">${passos.map((p, i) => `<li${i === 0 ? ' class="agora"' : ''}><button type="button" class="vg-passo" ${p.attrs}><span class="vg-num" aria-hidden="true">${i + 1}</span><span class="vg-meio"><small>${quando[i] || 'Depois'}</small><b>${p.titulo}</b><em>${p.motivo}</em></span><span class="vg-ir" aria-hidden="true">→</span></button></li>`).join('')}</ol>` : ''}
+      ${depois ? `<p class="vg-depois">${depois}</p>` : ''}</section>`;
+  }
   function trocarVisaoHoje(v) { visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {} pintarHoje(); }
   let cacheDono = { chave: '', valor: null };
   const semanaAgencia = { campo: 'veiculacao', referencia: '' };
@@ -659,7 +730,7 @@
   }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();
-    const seg = `<div class="vv-seg" role="tablist" aria-label="O que ver"><button type="button" role="tab" aria-selected="true" data-visao-hoje="agencia">Agência</button><button type="button" role="tab" aria-selected="false" data-visao-hoje="tarefas">Minhas tarefas</button></div>`;
+    const seg = segHoje('agencia');
     if (!N) {
       el.innerHTML = `${seg}<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2><p class="vv-vazio">Juntando os números da agência…</p>`;
       return;
@@ -686,6 +757,23 @@
       </div>` : '';
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
     const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
+    // Paulo, 09/11/2026: "muita informação na tela sem ser de forma guiada... me guie: o que eu tenho que resolver primeiro".
+    // O VYBES põe em ordem: o que fura a data do cliente, o cliente esperando no WhatsApp há mais tempo, e os outros
+    // alertas, do mais grave ao menos grave. Cada passo abre a lista do que resolver; os demais ficam recolhidos.
+    const esperando = (window.VybePendencias?.estado?.().dados?.atendimento?.clientesEsperando || []).filter((x) => (x.minutos || 0) >= 120).sort((a, b) => (b.minutos || 0) - (a.minutos || 0));
+    const horas = (min) => (min < 1440 ? Math.round(min / 60) + ' h' : Math.round(min / 1440) + ' d');
+    const passoAlerta = (a) => { const i = (N.alertas || []).indexOf(a), txt = String(a.texto || ''), p = txt.indexOf(':');
+      return { attrs: `data-espiar="alerta:${i}"`, titulo: esc(p > 0 ? txt.slice(0, p) : txt), motivo: esc(p > 0 ? txt.slice(p + 1).trim() : (a.nivel === 1 ? 'o mais grave agora' : 'pede atenção')) }; };
+    const passosAg = [
+      ...alertas.filter((a) => a.nivel === 1).map(passoAlerta),
+      ...(esperando[0] ? [{ attrs: `data-pend-cliente="${esc(esperando[0].cliente)}"`, titulo: `Responder ${cliCor(esperando[0].cliente)} no WhatsApp`, motivo: esc(`esperando há ${horas(esperando[0].minutos)}${esperando.length > 1 ? ' · mais ' + (esperando.length - 1) + ' clientes esperando' : ''}`) }] : []),
+      ...alertas.filter((a) => a.nivel !== 1).map(passoAlerta),
+    ];
+    const restoAg = alertas.filter((a) => !passosAg.slice(0, 3).some((p) => p.attrs === `data-espiar="alerta:${(N.alertas || []).indexOf(a)}"`));
+    const guiaAgencia = guiaHtml({ agente: { nome: 'VYBES', papel: 'Orquestrador · guia da agência', setor: 'orquestrador' },
+      intro: passosAg.length ? 'Por onde começar hoje, nesta ordem:' : 'Nada urgente agora. Bom momento para olhar a semana e os clientes.',
+      passos: passosAg.slice(0, 3),
+      depois: restoAg.length ? `<details class="vg-resto"><summary>Mais ${restoAg.length} ponto${restoAg.length > 1 ? 's' : ''} de atenção</summary><ul class="vs-alertas">${restoAg.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul></details>` : '' });
     const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
     const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
     const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
@@ -694,9 +782,9 @@
       + (!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : '') + (!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : '');
     const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
+      ${guiaAgencia}
       ${radar}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
-        ${bloco('O que pede ação agora', 'do mais grave ao menos grave', acao, '<button type="button" class="vs-abrir" data-abrir-gestao="hoje">Gestão →</button>')}
         ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
         <div class="vv-dono-tres">
           ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
@@ -1012,6 +1100,68 @@
         return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}"><small>${esc(quando + (e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : ''))} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
       }).join('')}${lista.length > 3 ? `<button type="button" class="vv-mais" data-hoje-acao="agenda">+ ${lista.length - 3} na agenda</button>` : ''}</section>`;
   }
+  // ---------- Criação: o time do Deivid (Paulo, 09/11/2026: "uma visualização parecida com a agência, mas voltada para
+  // a direção de arte, para o time de criação, para o Deivid acompanhar tudo... com Jady, Bia e Reriston"; "o painel de
+  // direção de arte ainda está muito defasado, muita informação solta"). O Danilo guia; os números, as pessoas e as filas
+  // saem das mesmas peças do painel (as abertas de quem é do time, pelos responsáveis), com a situação oficial da peça.
+  let criacaoPeloDock = false;
+  function pecasDaCriacao() {
+    const time = timeDeCriacao(), fonte = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : [];
+    const ids = (d) => [...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map(String);
+    return fonte.filter((d) => !(typeof isFinishedItem === 'function' && isFinishedItem(d)) && ids(d).some((id) => time.includes(id))).map((d) => ({ d, ids: ids(d) }));
+  }
+  function pintarCriacao(el, { data }) {
+    const hoje = hojeIso(), T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [], dono = souDono();
+    const membros = timeDeCriacao().map((id) => T.find((u) => String(u.id) === id)).filter(Boolean);
+    const curto = (u) => String(u.name || u.nome || '').split(' ')[0];
+    const papel = (u) => (typeof DA_CONTROLLER_ROLES !== 'undefined' && DA_CONTROLLER_ROLES[u.id]) || 'Criação';
+    const itens = pecasDaCriacao().map(({ d, ids }) => ({ d, sit: situacaoDaPeca(d), quem: membros.filter((u) => ids.includes(String(u.id))).map(curto), ids }));
+    const { passos, urgentes, ordem } = passosDoGuia(itens, hoje, true);
+    const atrasadas = itens.filter((x) => x.sit === 'atrasada' && !prazoDesatualizado(x, hoje));
+    const deHoje = itens.filter((x) => veicDe(x) === hoje && !atrasadas.includes(x));
+    const aprovar = itens.filter((x) => /aprova/i.test(String(x.d.status || '')));
+    const ajuste = itens.filter((x) => /altera|ajuste|corre/i.test(String(x.d.status || '')));
+    const dias = Array.from({ length: 7 }, (_, i) => somar(hoje, i)).map((dia) => ({ dia, n: itens.filter((x) => veicDe(x) === dia).length }));
+    const maxDia = Math.max(1, ...dias.map((x) => x.n));
+    const V = window.VybeSetor?.pecas;
+    const radar = V ? `<div class="vs-kpis vv-dono-radar">
+        ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: 'do time de criação', cls: atrasadas.length ? 'ruim' : '' })}
+        ${V.kpi({ icone: 'calendario', titulo: 'Vão ao ar hoje', valor: n0(deHoje.length), sub: 'sem contar as atrasadas', cls: deHoje.length ? 'atencao' : '' })}
+        ${V.kpi({ icone: 'aperto', titulo: 'Esperando aprovação', valor: n0(aprovar.length), sub: 'do Deivid ou dos heads', cls: aprovar.length ? 'atencao' : '' })}
+        ${V.kpi({ icone: 'relogio', titulo: 'Pediram ajuste', valor: n0(ajuste.length), sub: 'voltaram para o time', cls: ajuste.length ? 'atencao' : '' })}
+        ${V.kpi({ icone: 'doc', titulo: 'Em aberto', valor: n0(itens.length), sub: `com ${membros.length} pessoas` })}
+      </div>` : '';
+    // Cada pessoa do time: o que tem, o que atrasou, o que sai hoje e a carga comparada com a de quem tem mais.
+    const porPessoa = membros.map((u) => { const l = itens.filter((x) => x.ids.includes(String(u.id))); return { u, l, atr: l.filter((x) => atrasadas.includes(x)).length, hj: l.filter((x) => deHoje.includes(x)).length, prox: l.map(veicDe).filter((v) => v && v >= hoje).sort()[0] || '' }; });
+    const maxCarga = Math.max(1, ...porPessoa.map((p) => p.l.length));
+    const pessoasHtml = `<div class="vc-time">${porPessoa.map((p) => `<button type="button" class="vc-pessoa${p.atr ? ' ruim' : ''}" data-criacao-pessoa="${esc(p.u.id)}" title="Ver o dia de ${esc(curto(p.u))}">
+        <span class="vc-pessoa-cab"><span class="vc-av" style="--c:${esc(p.u.color || '#8A847A')}">${esc(curto(p.u).slice(0, 2).toUpperCase())}</span><span><b>${esc(curto(p.u))}</b><small>${esc(papel(p.u))}</small></span></span>
+        <span class="vc-nums"><span><b>${n0(p.l.length)}</b><small>em aberto</small></span><span class="${p.atr ? 'ruim' : ''}"><b>${n0(p.atr)}</b><small>atrasadas</small></span><span><b>${n0(p.hj)}</b><small>hoje</small></span></span>
+        <span class="vc-carga" aria-label="Carga: ${n0(p.l.length)} de ${n0(maxCarga)}"><i style="width:${Math.round(p.l.length / maxCarga * 100)}%"></i></span>
+        <small class="vc-prox">${p.prox ? 'Próxima no ar: ' + (p.prox === hoje ? 'hoje' : diaMes(p.prox)) : 'Nada marcado para ir ao ar'}</small></button>`).join('')}</div>`;
+    const lista = (l, vazio, max = 5) => l.length ? l.slice(0, max).map((x) => linhaDemanda(x.d, { ref: veicDe(x) || x.d.prazo_iso || '', sit: x.sit, quem: x.quem })).join('') + (l.length > max ? `<p class="vv-dica">e mais ${l.length - max}.</p>` : '') : `<p class="vv-vazio">${vazio}</p>`;
+    const bloco = (titulo, sub, corpo) => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span></div>${corpo}</section>`;
+    const ordenar = (l) => l.slice().sort((a, b) => chaveDaFila(a, hoje).localeCompare(chaveDaFila(b, hoje)));
+    const semanaHtml = `<div class="vc-semana">${dias.map((x, i) => `<span class="vc-dia${i === 0 ? ' hoje' : ''}" title="${x.n} peça${x.n === 1 ? '' : 's'} do time vão ao ar"><i style="height:${Math.round(x.n / maxDia * 100)}%"></i><b>${x.n}</b><small>${i === 0 ? 'Hoje' : ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(x.dia + 'T12:00:00Z').getUTCDay()]}</small></span>`).join('')}</div>`;
+    const guia = guiaHtml({ agente: { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' },
+      intro: !itens.length ? 'O time está sem peças em aberto.' : urgentes ? `O time tem <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Destrave nesta ordem:` : 'O time está em dia. Nesta ordem:',
+      passos, depois: ordem.length > 3 ? `Depois disso, mais ${ordem.length - 3} peças do time em aberto.` : '' });
+    const html = `${dono && !verComo ? segHoje('criacao') : ''}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>Criação</h2><small class="vv-dia-de">O time: ${esc(membros.map(curto).join(', '))}</small></span>
+        <span class="vv-anel" style="--p:${itens.length ? Math.round((1 - atrasadas.length / itens.length) * 100) : 100}" title="Peças do time em dia"><b>${n0(itens.length - atrasadas.length)}</b><small>/${n0(itens.length)}</small></span></div>
+      ${guia}${radar}${pessoasHtml}
+      <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
+        <div class="vv-dono-tres vc-filas">
+          ${bloco('Atrasadas', 'pela data do cliente', lista(ordenar(atrasadas), 'Nada atrasado no time.'))}
+          ${bloco('Esperando aprovação', 'o que trava a próxima etapa', lista(ordenar(aprovar), 'Nada esperando aprovação.'))}
+          ${bloco('Pediram ajuste', 'voltou do cliente ou da revisão', lista(ordenar(ajuste), 'Nenhum ajuste pendente.'))}
+        </div>
+      </div>
+      <aside class="vv-hoje-lado" aria-label="Semana e atalhos da Criação">
+        ${bloco('Semana do time', 'peças que vão ao ar em cada dia', semanaHtml)}
+        <div class="vv-chips"><button type="button" data-criacao-atalho="dia-time">Ver o dia do time</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-criacao-atalho="planejamentos">Planejamentos</button><button type="button" data-criacao-atalho="antigo">Painel antigo de direção de arte</button></div>
+      </aside></div>`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+  }
   function pintarHoje() {
     // A sessão chega depois do primeiro desenho: a cada pintura, os cadeados e o "ver como" seguem quem entrou.
     conferirVerComo(); aplicarCadeados(); marcarVerComo();
@@ -1022,7 +1172,8 @@
     const nome = String(fila?.user?.name || fila?.user?.nome || (typeof operadorDoTopo === 'function' ? (operadorDoTopo()?.name || operadorDoTopo()?.nome) : '') || '').split(' ')[0];
     const dono = souDono(); body.classList.toggle('eh-dono', dono);
     if (dono && !verComo && visaoHoje === 'agencia') { pintarAgencia(el, { data, saud, nome }); return; }
-    const segDono = dono && !verComo ? `<div class="vv-seg" role="tablist" aria-label="O que ver"><button type="button" role="tab" aria-selected="false" data-visao-hoje="agencia">Agência</button><button type="button" role="tab" aria-selected="true" data-visao-hoje="tarefas">Minhas tarefas</button></div>` : '';
+    if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }
+    const segDono = dono && !verComo ? segHoje('tarefas') : '';
     if (!fila) {
       const carregou = typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length;
       el.innerHTML = `<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>
@@ -1035,18 +1186,10 @@
     const proximos = Array.from({ length: 6 }, (_, i) => somar(hoje, i + 1)).map((dia) => ({ dia, n: abertas.filter((x) => x.ref === dia).length }));
     const titulo = (x) => String(x.d.nome || x.d.titulo || 'Peça').trim();
     const cliente = (x) => (typeof clientesDoItem === 'function' ? clientesDoItem(x.d)[0] : x.d.cliente) || '';
-    const primeiro = atrasadas[0] || deHoje[0] || abertas[0];
-    const fala = atrasadas.length
-      ? `Você tem <b>${atrasadas.length} atrasada${atrasadas.length > 1 ? 's' : ''}</b>. Comece por <b>${esc(titulo(primeiro))}</b>${cliente(primeiro) ? ' (' + esc(cliente(primeiro)) + ')' : ''}.`
-      : deHoje.length ? `Hoje saem <b>${deHoje.length}</b>. Comece por <b>${esc(titulo(primeiro))}</b>${cliente(primeiro) ? ' (' + esc(cliente(primeiro)) + ')' : ''}.`
-      : abertas.length ? `Nada vence hoje. Nos próximos dias, <b>${proximos.reduce((n, p) => n + p.n, 0)} peças</b>. Dá para adiantar <b>${esc(titulo(primeiro))}</b>.`
-      : 'Fila limpa. Bom momento para adiantar o que vem.';
     const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     // A data do cliente manda (Paulo, 08/11/2026): a fila segue a VEICULAÇÃO. Prazo interno vencido com veiculação
     // adiante é "prazo desatualizado" (o time não atualizou o prazo): alerta, mas não passa na frente de quem veicula antes.
-    const veic = (x) => String(x.d.veiculacao_iso || '');
-    const desatualizada = (x) => Boolean(x.d.prazo_iso && x.d.prazo_iso < hoje && veic(x) && veic(x) >= hoje);
-    const chaveFila = (x) => (veic(x) && veic(x) < hoje ? '0' : '1') + (veic(x) || x.d.prazo_iso || '9999');
+    const veic = veicDe, desatualizada = (x) => prazoDesatualizado(x, hoje), chaveFila = (x) => chaveDaFila(x, hoje); // as regras do guia
     const naFila = (diaEscolhido ? abertas.filter((x) => (veic(x) || x.ref) === diaEscolhido) : abertas).slice().sort((a, b) => chaveFila(a).localeCompare(chaveFila(b)));
     const desatualizadas = abertas.filter(desatualizada);
     // Por status, como o Minhas Tarefas: o grupo mais urgente primeiro (alteração, aprovação…), e dentro dele pela veiculação.
@@ -1055,10 +1198,25 @@
     // Ordem do fluxo (não do relógio): o que pede retrabalho e aprovação primeiro, depois produção, cliente e agendado.
     const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
     const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
-    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '' });
+    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null });
     const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
-    const seletor = podeVerComo() && time.length ?`<label class="vv-ver-como"><span>Ver como</span><select data-ver-como><option value="">Eu</option>${time.map((u) => `<option value="${esc(u.id)}"${String(u.id) === verComo ? ' selected' : ''}>${esc(u.name || u.nome)}</option>`).join('')}</select></label>` : '';
+    // "Ver o dia de" (só os donos): as pessoas do dia como fichas, adicionar pela lista e o atalho do time de criação.
+    const euId = String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '');
+    const nomeCurto = (u) => String(u.name || u.nome || '').split(' ')[0];
+    const selIds = fila.users.map((u) => String(u.id));
+    const filtroPessoas = dono && !verComo && time.length ? `<div class="vv-pessoas-dia" role="group" aria-label="De quem é o dia"><span class="vv-pessoas-rot">Ver o dia de</span>
+        ${fila.users.map((u) => `<button type="button" class="vv-pessoa-chip" data-pessoa-tirar="${esc(u.id)}" ${fila.users.length === 1 ? 'disabled' : ''} title="${fila.users.length === 1 ? 'Adicione alguém para juntar os dias' : 'Tirar ' + esc(nomeCurto(u)) + ' do dia'}">${String(u.id) === euId ? 'Eu' : esc(nomeCurto(u))}${fila.users.length > 1 ? '<i aria-hidden="true">×</i>' : ''}</button>`).join('')}
+        <select class="vv-pessoa-add" data-pessoa-add aria-label="Adicionar pessoa ao dia"><option value="">+ Adicionar</option>${time.filter((u) => !selIds.includes(String(u.id))).map((u) => `<option value="${esc(u.id)}">${esc(u.name || u.nome)}</option>`).join('')}</select>
+        <button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="criacao">Time de criação</button>${selIds.length > 1 || selIds[0] !== euId ? '<button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="eu">Só eu</button>' : ''}</div>` : '';
+    const varios = fila.users.length > 1;
+    // O guia do dia: a mesma ordem da fila (a data do cliente manda), com o porquê de cada passo.
+    const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);
+    const guia = !diaEscolhido ? guiaHtml({ agente: guiaDe(fila.users),
+      intro: !abertas.length ? 'Fila limpa. Bom momento para adiantar o que vem ou ajudar alguém do time.'
+        : urgentes ? `${varios ? 'O time tem' : 'Você tem'} <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Faça nesta ordem:` : 'Faça nesta ordem:',
+      passos: passosGuia,
+      depois: abertas.length > 3 ? `Depois disso, mais ${abertas.length - 3} na fila. <button type="button" class="vg-link" data-hoje-acao="foco">Abrir o dia completo</button>` : '' }) : '';
     // Prioridades do dia: o que atrasou, o que é de hoje e o que vem depois (pela veiculação, a data do cliente).
     function blocosDePrioridade() {
       const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
@@ -1086,16 +1244,15 @@
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
       </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}</div>`;
     const lado = `<aside class="vv-hoje-lado" aria-label="Avisos, compromissos e atalhos">
-      <button type="button" class="vv-fala" data-hoje-acao="foco"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${fala}</span><b aria-hidden="true">→</b></button>
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
       ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
       ${compromissosHtml()}
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
     </aside>`;
-    const html = `${segDono}${seletor}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
+    const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : ''}</span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
-      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${blocosHtml}</div>${lado}</div>`;
+      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function acaoDoHoje(acao, valor) {
@@ -1112,7 +1269,17 @@
   }
   // "Pergunte ao VYBES": abre o VYBES de verdade (a central) com o pedido, que ela atende ao abrir
   // (chooseVybesMode({ pedido })). Não cria outro chat.
-  hud.addEventListener('change', (e) => { const sel = e.target.closest('[data-ver-como]'); if (!sel) return; definirVerComo(sel.value); });
+  hud.addEventListener('change', (e) => {
+    const add = e.target.closest('[data-pessoa-add]');
+    if (add) { if (add.value) { const base = pessoasHoje.length ? pessoasHoje : [String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '')].filter(Boolean); definirPessoasHoje([...base, add.value]); } return; }
+    const sel = e.target.closest('[data-ver-como]'); if (!sel) return; definirVerComo(sel.value);
+  });
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pessoa-tirar],[data-pessoas-atalho]'); if (!b || b.disabled) return;
+    if (b.dataset.pessoasAtalho) { definirPessoasHoje(b.dataset.pessoasAtalho === 'criacao' ? timeDeCriacao() : []); return; }
+    const atuais = (pessoasHoje.length ? pessoasHoje : []).filter((id) => id !== String(b.dataset.pessoaTirar));
+    definirPessoasHoje(atuais);
+  });
   hud.addEventListener('submit', (e) => {
     const f = e.target.closest('[data-pergunta]'); if (!f) return;
     e.preventDefault();
@@ -2332,6 +2499,10 @@
     if (!mundo && (b.dataset.vista || b.dataset.ctl || b.dataset.andar || b.dataset.crmVer || b.hasAttribute('data-voltar'))) return;
     if (b.dataset.ferr) { usarFerramenta(b.dataset.ferr); return; }
     if (b.dataset.visaoHoje) { trocarVisaoHoje(b.dataset.visaoHoje); return; }
+    if (b.dataset.criacaoPessoa) { if (souDono()) { definirPessoasHoje([b.dataset.criacaoPessoa]); trocarVisaoHoje('tarefas'); } else chamar('chooseFocusUser', String(b.dataset.criacaoPessoa)); return; }
+    if (b.dataset.criacaoAtalho === 'dia-time') { if (souDono()) { definirPessoasHoje(timeDeCriacao()); trocarVisaoHoje('tarefas'); } return; }
+    if (b.dataset.criacaoAtalho === 'antigo') { chamar('chooseDaControllerMode'); return; }
+    if (b.dataset.criacaoAtalho === 'planejamentos') { usarTrilho('planejamentos'); return; }
     if (b.dataset.abrirGestao !== undefined) { abrirGestao(b.dataset.abrirGestao || ''); return; }
     if (b.dataset.hojeAcao) { acaoDoHoje(b.dataset.hojeAcao, b.dataset.valor); return; }
     if (b.dataset.vista) {
