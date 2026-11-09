@@ -565,6 +565,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   let vivo = true, pedido = 0, ultimo = 0, sombraSuja = true, visivel = true;
   function sujar(sombra = false) { if (sombra) sombraSuja = true; if (!pedido && vivo && visivel && !document.hidden) pedido = requestAnimationFrame(passo); }
   const v = new THREE.Vector3();
+  const etiquetas = [];
   function rotular(el, x, y, z, r) { v.set(x, y, z).project(camera); el.style.transform = `translate(-50%,-100%) translate(${((v.x * .5 + .5) * r.width).toFixed(1)}px,${((-v.y * .5 + .5) * r.height).toFixed(1)}px)`; }
   function passo(t) {
     pedido = 0; if (!vivo) return;
@@ -589,9 +590,17 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
       b.g.rotation.y = b.giro;
       b.g.position.set(b.x, b.y, b.z);
       b.anel.position.y = .02 + (b.alvo.y - b.y);
-      rotular(b.el, b.x, b.y + (a?.deita ? .9 : a ? b.alto * .8 : b.alto) + .15, b.z, r);
+      v.set(b.x, b.y + (a?.deita ? .9 : a ? b.alto * .8 : b.alto) + .15, b.z).project(camera); etiquetas.push({ el: b.el, x: (v.x * .5 + .5) * r.width, y: (-v.y * .5 + .5) * r.height });
       if (seguir && b.eu && anda) { quer.alvo.x = b.x; quer.alvo.z = b.z; }
     }
+    // Nomes de quem está perto não se encavalam: de cima para baixo, quem ficaria por cima de outro sobe uma linha.
+    etiquetas.sort((p, q) => q.y - p.y);
+    for (let i = 0; i < etiquetas.length; i++) for (let k = 0; k < i; k++) {
+      const p = etiquetas[i], q = etiquetas[k];
+      if (Math.abs(p.x - q.x) < 64 && Math.abs(p.y - q.y) < 18) p.y = q.y - 20;
+    }
+    for (const e of etiquetas) e.el.style.transform = `translate(-50%,-100%) translate(${e.x.toFixed(1)}px,${e.y.toFixed(1)}px)`;
+    etiquetas.length = 0;
     if (sombraSuja) { renderer.shadowMap.needsUpdate = true; sombraSuja = false; }
     renderer.render(cena, camera);
     if (mexe) sujar();
