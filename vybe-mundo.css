@@ -5140,3 +5140,14 @@ html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){acce
 @media (max-width:900px){#vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}}
 body.mundo.mundo-centro #vv-hoje .vv-hoje-grade{grid-template-columns:1fr}
 body.mundo.mundo-centro #vv-hoje .vv-blocos.vv-blocos-prio{grid-template-columns:1fr}
+
+/* Clientes › Fichas em cartões (grade), nome na cor da carteira e números com rótulo. */
+html body.mundo.mundo-modulo #grid-clientes-lista:not(.em-tabela):not(.em-sinapses){display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card{margin:0!important;border-radius:14px!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card:hover{border-color:var(--vv-laranja,#F26B1D)!important;box-shadow:0 10px 24px rgba(31,29,26,.08)!important}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
+html body.mundo.mundo-modulo .client-card.cli-ficha-card .client-name{font:700 15px var(--vv-texto)}
+.cli-ficha-nums{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+.cli-ficha-nums span{display:inline-flex;align-items:baseline;gap:4px;padding:4px 9px;border-radius:999px;background:#F5F1EA;font:500 11.5px var(--vv-texto);color:#6B665E}
+.cli-ficha-nums span b{font:750 12.5px var(--vv-texto);color:#1F1D1A}
+.cli-ficha-nums span.ruim{background:#FBE6E4;color:#B4322B}.cli-ficha-nums span.ruim b{color:#B4322B}
