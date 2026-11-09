@@ -216,3 +216,18 @@ test('texto operacional: só o link da gaveta da peça passa, inteiro (com o nú
   assert.match(t, /\[link omitido\] \[número omitido\]/); assert.doesNotMatch(t, /\u0000/);
   assert.equal((t.match(/vybepainel/g) || []).length, 2);
 });
+
+// 09/11/2026: rajadas de 403 no bot sem saber qual regra recusou. Cada recusa diz o motivo (código curto, sem identidade).
+test('recusa diz qual regra caiu: contexto velho (com atraso), grupo fora da lista, participantes e sem vínculo',async()=>{
+ const motivo=(f)=>{try{f();return null;}catch(e){return [e.status,e.motivo,e.atraso_s];}};
+ assert.deepEqual(motivo(()=>validarConversa(jid,{...contexto(),observado_em:Date.now()-45000},config)),[403,'contexto_velho',45]);
+ assert.deepEqual(motivo(()=>validarConversa(jid,{...contexto(),grupos_remetente:['999-1@g.us']},config)).slice(0,2),[403,'grupo_fora_da_lista']);
+ assert.deepEqual(motivo(()=>validarConversa(jid,{...contexto(),participantes:[outro]},config)).slice(0,2),[403,'participantes']);
+ assert.deepEqual(motivo(()=>validarConversa(jid,{},config)).slice(0,2),[403,'contexto_invalido']);
+ const {db,sql}=conexao();
+ try{
+  await db.exec('CREATE TABLE vybe_ai_vinculos(jid_hash text,pessoa_id bigint,revogado_em timestamptz); CREATE TABLE vybe_pessoas(id bigint,ativo boolean,pode_entrar boolean,senha_hash text,admin boolean)');
+  const e=await autorizarConversa(sql,jid,contexto(),segredo,{...config,VYBE_ESCOPO:'equipe'}).catch(x=>x);
+  assert.deepEqual([e.status,e.motivo,e.codigo],[403,'sem_vinculo','WHATSAPP_NAO_VINCULADO']);
+ }finally{await db.close();}
+});

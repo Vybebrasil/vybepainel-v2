@@ -24,7 +24,7 @@ test('integração bot, migração e códigos em PostgreSQL isolado',async t=>{
   assert.equal((await chamar(naoChamar,{}, {method:'GET'})).codigo,405);
  });
  await t.test('sem schema de vínculos nega acesso; não mascara indisponibilidade do banco',async()=>{
-  const r=await chamar(sql);assert.equal(r.codigo,403);assert.deepEqual(r.corpo,{error:'Conta WhatsApp não vinculada.'});
+  const r=await chamar(sql);assert.equal(r.codigo,403);assert.deepEqual(r.corpo,{error:'Conta WhatsApp não vinculada.',motivo:'sem_vinculo'});
   const r2=await chamar(()=>{throw Object.assign(Error('detalhe privado'),{code:'08006'})});
   assert.equal(r2.codigo,503);assert.ok(!JSON.stringify(r2.corpo).includes('privado'));
  });
