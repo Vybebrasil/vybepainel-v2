@@ -5186,3 +5186,90 @@ body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
 .vv-sem-barras i.total{width:16px;background:#D9CDB8;margin-right:3px}
 .vv-sem-col.hoje .vv-sem-barras i.total{background:#F5C9A6}
 @media (prefers-reduced-motion:no-preference){.vv-sem-barras i{transition:height .3s var(--curva,ease)}}
+
+/* ---------- Cabeçalho (Paulo, 08/11/2026: "o dock de cima é perdido, poluído e pregado por cima do sistema") ----------
+   Fora do Centro, no computador, a barra vira um cabeçalho: uma faixa própria em cima da área de trabalho (do dock à
+   borda), e tudo o que abre (Hoje, Gestão, painéis, telas antigas) começa ABAIXO dela. Ordem: busca larga · chamada
+   (microfone, sala, música) · agenda, avisos, conversa, WhatsApp · Mais · conta. Os avisos de planejamentos e clientes
+   (a bolinha solta) agora são o número do sino. */
+.vv-busca-texto,.vv-busca-larga kbd,.vv-mais-nome{display:none}
+.vv-grupo-chamada{display:contents}
+.vv-mais-menu{position:relative}
+.vv-mais-menu > summary{list-style:none;display:grid;place-items:center;cursor:pointer}
+.vv-mais-menu > summary::-webkit-details-marker{display:none}
+.vv-mais-menu > summary svg{width:18px;height:18px}
+.vv-mais-lista{position:absolute;right:0;top:calc(100% + 8px);z-index:760;min-width:220px;display:grid;gap:2px;padding:6px;border-radius:12px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 18px 44px rgba(31,29,26,.18)}
+.vv-mais-lista .vv-botao{width:100%!important;height:36px!important;justify-content:flex-start!important;gap:10px;padding:0 10px!important;border-radius:8px}
+.vv-mais-lista .vv-mais-nome{display:inline;font:600 13px var(--vv-texto);color:#1F1D1A}
+.vv-avisos-menu{position:fixed;z-index:770;width:300px;display:grid;gap:4px;padding:6px;border-radius:12px;background:#fff;border:1px solid #E6E0D6;box-shadow:0 18px 44px rgba(31,29,26,.18);animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}
+.vv-avisos-menu button{appearance:none;display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;padding:10px 12px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-family:var(--vv-texto)}
+.vv-avisos-menu button:hover{background:#FAF5EE}
+.vv-avisos-menu b{font:650 13px var(--vv-texto);color:#1F1D1A}
+.vv-avisos-menu small{grid-column:1;font:500 11.5px var(--vv-texto);color:#8A847A}
+.vv-avisos-menu em{grid-row:1/3;grid-column:2;align-self:center;font:750 12px var(--vv-texto);font-style:normal;color:#fff;background:var(--vv-laranja,#F26B1D);border-radius:999px;padding:2px 8px}
+html.vb-ocioso .vv-avisos-menu{animation:none}
+/* A bolinha recolhida dos avisos some: o número está no sino. O aviso aberto (coisa nova) continua aparecendo. */
+html body.mundo .plj-aviso.recolhido{display:none!important}
+@media (min-width:901px){
+  html body.mundo:not(.mundo-centro) #mundo-hud > .vv-topo{left:var(--vv-palco-esq)!important;right:var(--vv-m)!important;width:auto!important;top:var(--vv-m)!important;height:52px}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo{width:100%;height:52px;padding:0 8px!important;justify-content:flex-start!important;border-radius:14px!important}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferramentas{display:flex!important;flex:1;align-items:center;justify-content:flex-start!important;gap:4px}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-botao{width:36px;height:36px}
+  html body.mundo:not(.mundo-centro) .vv-busca-larga{width:auto!important;min-width:min(380px,32vw);justify-content:flex-start!important;gap:10px;padding:0 12px!important;margin-right:auto;border-radius:10px!important;background:#F5F1EA!important;border:1px solid #ECE6DC!important;color:#8A847A!important}
+  html body.mundo:not(.mundo-centro) .vv-busca-larga:hover{border-color:var(--vv-laranja,#F26B1D)!important}
+  html body.mundo:not(.mundo-centro) .vv-busca-larga .vv-busca-texto{display:inline;flex:1;text-align:left;font:500 13px var(--vv-texto)}
+  html body.mundo:not(.mundo-centro) .vv-busca-larga kbd{display:inline;font:600 11px var(--vv-texto);color:#8A847A;background:#fff;border:1px solid #E6E0D6;border-radius:6px;padding:1px 6px}
+  html body.mundo:not(.mundo-centro) .vv-grupo-chamada{display:inline-flex;align-items:center;gap:2px;padding:2px;margin:0 6px;border-radius:11px;background:#F5F1EA;border:1px solid #ECE6DC}
+  html body.mundo:not(.mundo-centro) .vv-grupo-chamada .vv-botao{background:transparent}
+  html body.mundo:not(.mundo-centro) .vv-ferr-agenda{margin-left:4px}
+  html body.mundo:not(.mundo-centro) .vv-mais-menu{margin-left:4px}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo [data-ferr="conta"]{margin-left:4px;border-radius:50%}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo > .vv-divisor,html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferramentas > .vv-divisor{display:none}
+  /* Tudo começa abaixo do cabeçalho. */
+  html body.mundo:not(.mundo-centro) .vv-hoje{top:calc(var(--vv-m) + 62px)!important}
+  html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:0!important}
+  html body.mundo .vv-gestao{top:calc(var(--vv-m) + 62px)!important}
+  html body.mundo.mundo-modulo:not(.mundo-tela-cheia){top:calc(var(--vv-m) + 62px)!important}
+  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) #mundo-moldura{top:calc(var(--vv-m) + 62px)!important}
+  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:22px!important}
+  /* Tela cheia e fechar do módulo: no fim do cabeçalho, à esquerda da conta. */
+  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-canto-modulo{top:calc(var(--vv-m) + 8px)!important;right:calc(var(--vv-m) + 8px)!important}
+  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-barra-topo{padding-right:96px!important}
+  /* Janelinhas da barra abrem abaixo do cabeçalho. */
+  html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda,html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 62px)!important}
+}
+html body.mundo.mundo-modulo .vv-canto-modulo{z-index:720!important}
+/* Botão das salas de voz com nome, maior que os ícones (Paulo, 08/11/2026). */
+html body.mundo .vv-barra-topo .vv-ferr-voz{width:auto!important;min-width:0;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
+html body.mundo .vv-ferr-voz .vv-voz-nome{display:inline!important;font:650 12.5px var(--vv-texto);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body.mundo .vv-ferr-voz .vv-voz-ponto{position:static;order:-1;width:8px;height:8px;box-shadow:none}
+html body.mundo .vv-ferr-voz.on{background:#E3F4E8!important;color:#1D7A3E!important}
+/* WhatsApp e Agenda com nome, como as Salas (Paulo, 08/11/2026). */
+.vv-ferr-nome{display:none}
+html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"]){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
+html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
+/* Dock: cada categoria com a sua cor (Paulo: "um roxinho, ciano… no lugar de tudo laranja"). O traço do rótulo, o
+   ícone e a marca do item aberto seguem a cor da categoria; o botão Criar continua laranja (é a ação principal). */
+.vv-trilho{--cat:var(--vv-laranja,#F26B1D)}
+.vv-trilho [data-grupo="Operação"]{--cat:#F26B1D}
+.vv-trilho [data-grupo="Negócio"]{--cat:#8B5CF6}
+.vv-trilho [data-grupo="Time"]{--cat:#0EA5B7}
+.vv-trilho [data-grupo="Vybe"]{--cat:#16A34A}
+body.trilho-largo .vv-trilho-grupo::before{background:var(--cat)!important}
+body.trilho-largo .vv-trilho-grupo{color:color-mix(in srgb,var(--cat) 70%,#4A463F)!important}
+.vv-trilho .vv-trilho-btn[data-grupo]:not(.criar) svg{color:color-mix(in srgb,var(--cat) 75%,#4A463F)}
+.vv-trilho .vv-trilho-btn[data-grupo][aria-current]:not(.criar){background:color-mix(in srgb,var(--cat) 13%,#fff)!important;color:color-mix(in srgb,var(--cat) 80%,#1F1D1A)!important}
+.vv-trilho .vv-trilho-btn[data-grupo][aria-current]::before{background:var(--cat)!important}
+.vv-trilho .vv-trilho-sub[data-grupo]{border-left-color:color-mix(in srgb,var(--cat) 30%,transparent)!important}
+.vv-trilho .vv-trilho-sub[data-grupo] button[aria-current]{background:color-mix(in srgb,var(--cat) 13%,transparent)!important;color:color-mix(in srgb,var(--cat) 80%,#1F1D1A)!important}
+/* Sem a linha vazia em cima do "Hoje": o botão de recolher fica no canto, por cima. */
+body.trilho-largo .vv-trilho{position:absolute}
+body.trilho-largo .vv-trilho-recolher{position:absolute;top:10px;right:8px;margin:0!important;z-index:1}
+/* Grupo do dia no espiar da semana. */
+.vv-espiar-grupo{display:flex;align-items:center;justify-content:space-between;margin:8px 4px 2px}
+.vv-espiar-grupo em{font:700 11px var(--vv-texto);font-style:normal;color:#8A847A}
+/* Detalhe do dia: um bloco por status, na cor do status, com as demandas dentro (Paulo, 08/11/2026). */
+.vv-espiar-bloco{margin:8px 2px;padding:6px 6px 4px;border-radius:10px;border:1px solid color-mix(in srgb,var(--st) 35%,#ECE6DC);border-left:4px solid var(--st);background:color-mix(in srgb,var(--st) 7%,#fff)}
+.vv-espiar-bloco .vv-espiar-grupo{margin:2px 4px 4px}
+.vv-espiar-bloco .vv-g-linha{background:#fff;border-radius:7px;margin:3px 0;padding:7px 9px}
+.vv-espiar-bloco .vv-g-linha:hover{background:#FAF5EE}
