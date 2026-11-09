@@ -28,3 +28,12 @@ test('/agenda (o app do Mizinho) abre direto na Agenda e captações, sem o Hoje
   assert.ok(js.includes(String.raw`const APP_AGENDA = typeof location !== 'undefined' && /^\/agenda\/?$/.test(location.pathname);`));
   assert.ok(js.includes("if (APP_AGENDA && !sincronizar.agenda) { sincronizar.agenda = true; sincronizar.tour = true; setTimeout(() => usarTrilho('agenda'), 300); }"));
 });
+
+test('varredura geral (Paulo, 09/11/2026: "todos os menus, botões, submenus"): o que ela achou ficou corrigido', () => {
+  const padrao = ler('vybe-padrao.css');
+  assert.match(css, /@container hoje \(max-width:620px\)\{\s*#vv-hoje \.vv-sem-col\{[^}]*\}[\s\S]*?#vv-hoje \.vv-sem-barras i:not\(\.total\)\{display:none\}/,'gráfico da semana no Hoje estreito: só o total por dia, números sem se cruzar');
+  assert.ok(css.includes('html body.mundo.com-dock-salas #vv-wa-avisos{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important;'), 'avisos do WhatsApp acima do dock');
+  assert.ok(css.includes('html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{position:static;order:3;'), 'selo depois do nome, sem cobrir o texto');
+  assert.ok(padrao.includes('.resumo{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));'), 'números do Painel de trabalho quebram linha em vez de espremer');
+  assert.ok(padrao.includes('gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;'), 'abas do Painel de trabalho rolam dentro da janela');
+});
