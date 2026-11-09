@@ -4350,7 +4350,7 @@ function escritorioClientesHtml() {
     return `<div class="office-chat-head"><h3>Clientes</h3></div><p class="ofc-nota">${erro ? safeText(erro) : "Carregando clientes…"}</p>`;
   }
   const busca = (escritorio.buscaCliente || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const ativo = (c) => c.ativo !== false && !/inativ/i.test(String(c.status || ""));
+  const ativo = (c) => clienteAtivo(c);
   const filtrados = lista.filter((c) => !busca || String(c.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(busca))
     .sort((a, b) => Number(ativo(b)) - Number(ativo(a)) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
   const linha = (c) => {

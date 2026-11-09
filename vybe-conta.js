@@ -229,8 +229,8 @@ function blocoContaAI() {
   const codigo = a.codigo && Date.parse(a.expiraEm)>Date.now() ? `<div class="conta-ai-codigo"><label for="conta-ai-codigo">Seu código temporário</label>
     <input id="conta-ai-codigo" value="${safeText(a.codigo)}" readonly autocomplete="off" spellcheck="false" onclick="this.select()">
     <button type="button" class="conta-botao" onclick="copiarCodigoContaAI()">Copiar código</button>
-    <small>Válido até ${safeText(new Date(a.expiraEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}. Uso único. Envie este código somente na conversa privada com o WhatsApp da Vybe AI.</small></div>` : '';
-  return `<section class="conta-cartao conta-ai" aria-labelledby="conta-ai-titulo"><h3 id="conta-ai-titulo">Vybe AI — WhatsApp</h3>
+    <small>Válido até ${safeText(new Date(a.expiraEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}. Uso único. Envie este código somente na conversa privada com o WhatsApp do VYBES.</small></div>` : '';
+  return `<section class="conta-cartao conta-ai" aria-labelledby="conta-ai-titulo"><h3 id="conta-ai-titulo">VYBES no WhatsApp</h3>
     <p class="conta-nota">Conecte seu WhatsApp à sua própria conta para consultar as demandas permitidas para você. O vínculo não dá acesso administrativo.</p>
     ${a.carregando ? vbEstadoHtml({tipo:'carregando',titulo:'Conferindo vínculo'}) : a.erro ? vbEstadoHtml({tipo:'erro',titulo:a.erro,acao:'<button type="button" class="conta-botao" onclick="carregarContaAI()">Tentar de novo</button>'}) : a.disponivel ? `<p class="conta-ai-status"><b>${a.vinculado ? 'WhatsApp vinculado' : 'WhatsApp não vinculado'}</b></p>${!a.pode_gerar ? '<p class="conta-nota">A emissão de códigos não está liberada para esta conta ou ambiente.</p>' : ''}` : '<p class="conta-ai-status">Vinculação ainda não disponível neste ambiente. Nenhuma alteração foi feita na sua conta.</p><button type="button" class="conta-botao" onclick="carregarContaAI()">Conferir disponibilidade</button>'}
     ${!a.carregando && !a.erro ? botoes + codigo : ''}<p class="conta-nota" role="status" aria-live="polite">${safeText(a.aviso || '')}</p></section>`;
@@ -263,7 +263,7 @@ async function acaoContaAI(consulta) {
     if(consulta==='vinculacao_iniciar'){
       if(!/^[0-9a-f]{20}$/.test(d.codigo || '') || !(Date.parse(d.expiraEm)>Date.now()))throw Error('Código recebido inválido. Tente novamente.');
       estado.codigo=d.codigo;estado.expiraEm=d.expiraEm;
-      estado.aviso='Código gerado. Após enviar para a Vybe AI, clique em Conferir vínculo.';
+      estado.aviso='Código gerado. Após enviar para o VYBES, clique em Conferir vínculo.';
       estado.expiracao=setTimeout(()=>{if(CONTA_AI===estado){estado.codigo=null;estado.aviso='Código expirado. Gere outro para continuar.';pintarContaAI();}},Math.max(0,Date.parse(d.expiraEm)-Date.now()));
     }else{estado.vinculado=false;estado.aviso='Vínculos revogados e códigos pendentes invalidados.';}
   }catch(e){if(estado===CONTA_AI && carga===CONTA_CARGA)estado.aviso=e.message || 'Não foi possível atualizar o vínculo.';}
