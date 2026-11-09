@@ -46,6 +46,8 @@ async function cicloConcluir(botao, executar, mensagem) {
 
 // ── criar ────────────────────────────────────────────────────────────────────
 function abrirNovoNoCiclo(tipo, { depois } = {}) {
+  // Cliente novo entra pelo cadastro completo (vybe-clientes-ficha.js): só o nome deixava o cliente pela metade no ecossistema.
+  if (tipo === 'cliente' && typeof abrirCadastroCompleto === 'function') return abrirCadastroCompleto('', { depois });
   cicloPendente = { tipo, depois };
   const pessoa = tipo === 'pessoa';
   cicloJanela(`<div class="workflow-kicker">Novo ${CICLO_NOME[tipo]}</div>

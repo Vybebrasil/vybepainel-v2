@@ -29,6 +29,8 @@ import { areaCarteira, areaCarteiraBot } from '../server/carteira.js';
 import { areaComercial } from '../server/comercial-api.js';
 // Vybe Finanças (Supabase do app de finanças), só leitura: GET area=vybe_financas&parte=comercial|carteira|rh.
 import { areaVybeFinancas } from '../server/vybe-financas-api.js';
+import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
+import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
 import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
@@ -792,18 +794,48 @@ export function semMotivoDoSubsolo(dados) {
   return { ...dados, clientes: tira(dados.clientes), pessoas: tira(dados.pessoas) };
 }
 
+// Onde este cliente existe no ecossistema (server/clientes-cadastro.js). O Finanças é lido só para achar o par, e
+// falha dele não derruba a ficha: a linha vira "conferir".
+async function ecossistemaDoCliente(db, idBruto) {
+  const id = Number(idBruto);
+  if (!Number.isSafeInteger(id) || id <= 0) throw Object.assign(new Error('Informe o cliente.'), { status: 400 });
+  const [cliente] = await db`SELECT id, nome, ativo, nao_e_cliente, apagado_em, cnpj, segmento, endereco, email, telefone,
+      plano, valor, cadastro FROM vybe_clientes WHERE id=${id}`;
+  if (!cliente || cliente.apagado_em) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
+  const [acesso] = await db`SELECT grupo, pasta_drive AS drive FROM vybe_acessos WHERE cliente_id=${id} ORDER BY atualizado_em DESC NULLS LAST LIMIT 1`;
+  let financas = { estado: 'desligado' };
+  const conector = conectorDoFinancas();
+  if (conector.configurado()) {
+    try {
+      const ano = new Date().getFullYear() - 1;
+      const [base, vybe] = await Promise.all([
+        conector.lerBase({ desde: `${ano}-01-01` }),
+        db`SELECT id::text, nome, COALESCE(cnpj,'') AS cnpj FROM vybe_clientes WHERE apagado_em IS NULL AND COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)`,
+      ]);
+      financas = { estado: 'lido', ligacao: parNoFinancas(base.clientes, vybe, id) };
+    } catch { financas = { estado: 'erro' }; }
+  }
+  return { ok: true, cliente: { id: String(cliente.id), nome: cliente.nome },
+    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '' }) };
+}
+
 async function areaClientes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
   await garantirSchemaDeReunioes(db);
   await garantirCicloDeVida(db);
+  await garantirSchemaDoCadastro(db);
 
+  if (req.method === 'GET' && req.query?.ecossistema) {
+    try { return res.status(200).json(await ecossistemaDoCliente(db, req.query.ecossistema)); }
+    catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
+  }
   if (req.method === 'GET') {
     const [linhas, acessos] = await Promise.all([
       db`SELECT c.id, c.nome, c.ativo, c.email, c.telefone, c.endereco, c.cnpj,
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
-             c.nao_e_cliente, c.nps, c.nps_em,
+             c.nao_e_cliente, c.nps, c.nps_em, c.cadastro,
              -- Regra única de cliente ativo (auditoria 09/11): as telas leem este campo em vez de cada uma ter a sua.
              (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false)) AS ativo_de_verdade,
              c.identidade->'personagem'->>'figura' AS personagem,
@@ -828,7 +860,8 @@ async function areaClientes(req, res, quem) {
     // servidor — e porque a tela de clientes nao lista a equipe sozinha.
     const pessoas = await db`SELECT id, nome, monday_user_id FROM vybe_pessoas
       WHERE ativo AND pode_entrar ORDER BY nome`; // a equipe: regra única (server/pessoas.js)
-    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas });
+    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas,
+      cadastro_def: { secoes: SECOES_CADASTRO, campos: CAMPOS_CADASTRO } });
   }
   // LER a ata e de todo mundo; escrever e apagar sao de quem administra.
   //
@@ -861,12 +894,24 @@ async function areaClientes(req, res, quem) {
     // so (server/ciclo-de-vida.js). 'ativar' segue valendo como 'reativar'.
     if (['criar', 'ativar', 'reativar', 'desativar', 'apagar'].includes(acao)) {
       try {
-        if (acao === 'criar') return res.status(200).json(await criarCliente(db, { nome, autor }));
+        if (acao === 'criar') {
+          // Cadastro completo já na criação (Paulo, 09/11/2026): o nome sozinho deixava o cliente pela metade no ecossistema.
+          // Confere os campos ANTES de criar, para um CNPJ errado não deixar um cliente criado sem o resto.
+          const campos = req.body?.campos;
+          if (campos) separarCamposDoCadastro(campos);
+          const criado = await criarCliente(db, { nome, autor });
+          if (campos && criado?.cliente?.id) await salvarCadastro(db, criado.cliente.id, campos);
+          return res.status(200).json(criado);
+        }
         return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
       } catch (erro) {
         if (erro.status) return res.status(erro.status).json({ error: erro.message });
         throw erro;
       }
+    }
+    if (acao === 'cadastro') {
+      try { return res.status(200).json(await salvarCadastro(db, id, req.body?.campos)); }
+      catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
     }
     if (acao === 'ficha') {
       // Cadastro veio do Monday; a partir daqui ele se corrige aqui.
