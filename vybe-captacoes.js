@@ -459,7 +459,7 @@ function captAcaoPrincipal(e) {
   // e as outras peças dele ainda não finalizadas (e o botão de cadastrar).
   if (e.cliente_id)
     return `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher o que vai ser gravado</button>`;
-  if (e.cliente) return `<button type="button" class="vb-botao principal" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar peça de ${safeText(e.cliente)}</button>`;
+  if (e.cliente) return `<button type="button" class="vb-botao principal" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar peça de ${cliCor(e.cliente)}</button>`;
   return "";
 }
 
@@ -491,7 +491,7 @@ function captDetalheHtml(e) {
     <p class="capt-detalhe-quando">${safeText(quando)}${e.local ? ` · ${safeText(e.local)}` : ""}</p>`;
   const gerir = captGerirHtml(e);
   const soRodape = [gerir, google].filter(Boolean).join("");
-  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-progresso">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"}${e.cliente ? ` · ${safeText(e.cliente)}` : ""}</p>${captVinculoHtml(e)}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
+  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-progresso">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"}${e.cliente ? ` · ${cliCor(e.cliente)}` : ""}</p>${captVinculoHtml(e)}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
   if (!e.cliente && !k) return `<div class="capt-detalhe">${topo}${captVinculoHtml(e)}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
   const pendentes = k ? [] : captPendentesDo(e.cliente_id, e);
   // Zeigarnik: o que falta, em número, logo no topo.
@@ -625,7 +625,7 @@ function captPreviaHtml(id) {
     <b class="ag-previa-titulo">${safeText(agPartesDoTitulo(e).nome)}</b>
     ${agPartesDoTitulo(e).nome !== e.titulo ? `<p class="ag-previa-quando">${safeText(e.titulo || "")}</p>` : ""}
     <p class="ag-previa-quando">${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
-    ${e.cliente ? `<p class="ag-previa-cliente">${safeText(e.cliente)}</p>` : ""}
+    ${e.cliente ? `<p class="ag-previa-cliente">${cliCor(e.cliente)}</p>` : ""}
     ${e.estado ? `<span class="capt-estado tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}
     ${mostra.length ? `<p class="ag-previa-sub">${k ? "Nesta captação" : "Esperando captação"}</p><ul class="ag-previa-pecas">${mostra.map(linhaPeca).join("")}</ul>${pecas.length > mostra.length ? `<p class="ag-previa-mais">e mais ${pecas.length - mostra.length}</p>` : ""}` : ""}
     <p class="ag-previa-dica">${e.tipo === "captacao" ? "Clique para abrir" : "Clique para ver"}</p>`;

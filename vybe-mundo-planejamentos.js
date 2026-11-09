@@ -7,6 +7,8 @@
 // tela cheia, editar, revisar peça a peça, histórico, marca do cliente, aprovar e enviar ao cliente pelo WhatsApp
 // com o aviso do Hub. Nada de lógica nova de planejamento aqui: só a entrada e a visão da carteira.
 (function () {
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ESTADOS = {
@@ -57,7 +59,7 @@
       .map(([k, t, c]) => { const n = (a[k] || []).length; return n ? `<span class="vv-plj-aviso ${c}">${n} ${t}</span>` : ''; }).join('');
     const edita = pl && !['aprovado', 'cadastrado'].includes(pl.estado);
     return `<article class="vv-plj-cartao${p.meu ? ' meu' : ''}">
-      <div class="vv-plj-topo"><b>${esc(p.cliente)}</b><span class="pill ${cor}">${esc(rot)}</span></div>
+      <div class="vv-plj-topo"><b>${cliCor(p.cliente)}</b><span class="pill ${cor}">${esc(rot)}</span></div>
       <small class="vv-plj-sub">${esc(p.segmento || '')}${pl ? `${p.segmento ? ' · ' : ''}${esc(mesTxt(pl.mes))} · versão ${esc(pl.versao || 1)}` : ''}</small>
       ${placar ? `<p class="vv-plj-placar">${esc(placar)}</p>` : ''}
       ${avisos ? `<div class="vv-plj-avisos">${avisos}</div>` : ''}

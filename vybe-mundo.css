@@ -4601,7 +4601,7 @@ html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 /* Varredura 08/11/2026 (2): placas em tela cheia por cima do HUD; Conversa na coluna da direita; botões do canto
    das telas antigas ao lado da barra de ícones; zoom do Centro fora do painel do elevador. */
 html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
-html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
+html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
 html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
@@ -4921,3 +4921,40 @@ html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top
 /* Valor do cartão acompanha a largura do cartão (antes cortava "R$ 28,5 mil" em cartão estreito). */
 .vs-kpi{container-type:inline-size}
 .vs-kpi-valor{font-size:clamp(16px,15cqi,26px)}
+/* Status e cliente sempre com cor (cliCor/statusCor): a pílula do status entra sem o fundo de urgência da etiqueta, e
+   nas listas dos painéis o nome do cliente/status alinha à esquerda sem esticar. */
+.vv-cli-tag.vv-cli-status{background:none!important;padding:0!important;border:0!important;box-shadow:none!important}
+.vs-d-nome :is(.pill,.cliente-carteira){justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+/* Aba Agência da Gestão (vybe-mundo-setor.js, setor:agencia): período no topo e a lista de alertas da operação. */
+.vs-em-topo{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:0 0 12px}
+.vs-em-topo .vv-botao{width:36px;height:36px;padding:0;justify-content:center;background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:8px!important}
+.vs-alertas{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vs-alertas li{display:grid;grid-template-columns:10px 1fr;gap:10px;align-items:start;padding:8px 10px;border-radius:9px;background:#FAF7F2;font:500 12.5px/1.4 var(--vv-texto);color:#1F1D1A}
+.vs-alertas li i{width:8px;height:8px;margin-top:5px;border-radius:50%;background:#B8B0A4}
+.vs-alertas li.ruim i{background:#D2453B}.vs-alertas li.atencao i{background:#E0A21B}
+.vs-alertas li span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (min-width:1280px){.vs-agencia .vs-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* Salas de voz mais claras (Paulo, 08/11/2026: "ver as salas, quem tá online, entrar na sala de alguém, ver quem tá na
+   minha sala e em que sala eu tô de voz é muito confuso"): "Você está em", nomes de quem está junto, salas com gente
+   primeiro e as vazias recolhidas, e o nome da sala no botão da barra durante a chamada. */
+.vv-chamada .sala .vv-voz-onde{font:600 10.5px var(--vv-texto);letter-spacing:.02em;color:var(--vv-apagado,#8A847A)}
+.vv-chamada .sala b{display:flex;align-items:center;gap:6px}
+.vv-chamada .gente .p{width:auto!important;min-width:0;padding:3px 9px!important;font:600 11.5px var(--vv-texto)!important}
+.vv-voz-sala .ic svg{width:16px;height:16px}
+.vv-voz-sala .meio b small{font:600 10px var(--vv-texto);color:#B26B00;margin-left:4px}
+.vv-voz-sala .gente i{font-style:normal;width:auto!important;padding:1px 7px;border-radius:999px}
+.vv-voz-vazias summary{cursor:pointer;padding:8px 4px;font:600 12px var(--vv-texto);color:var(--vv-apagado,#6B675F);list-style:none}
+.vv-voz-vazias summary::-webkit-details-marker{display:none}
+.vv-voz-vazias summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
+.vv-voz-vazias[open] summary::before{transform:rotate(90deg)}
+.vv-ferr-voz{width:auto!important;gap:6px;padding:0 8px!important}
+.vv-ferr-voz .vv-voz-nome{font:600 11.5px var(--vv-texto);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-ferr-voz .vv-voz-nome[hidden]{display:none}
+/* Na janelinha da sala (pela barra), a lista de salas faz parte dela, rolando por dentro, em vez de uma caixa solta. */
+html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{position:static!important;flex-basis:100%;width:100%!important;max-height:min(440px,calc(100vh - 280px))!important;overflow:auto;box-shadow:none!important;border:0!important;border-top:1px solid #EFEAE2!important;border-radius:0!important;padding:10px 0 0!important;margin-top:4px;background:transparent!important}
+/* Painel de trabalho › Grupos: o quadro ainda vinha com o fundo escuro do painel antigo (o cabeçalho "Conteúdos por
+   grupo" aparecia como uma faixa preta). Dentro do mundo, o mesmo cartão claro das outras telas. */
+html body.mundo.mundo-modulo #grupos-board.grupos-board{background:#fff!important;border:1px solid #ECE6DC!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;color:#1F1D1A!important}
+html body.mundo.mundo-modulo #grupos-board .grupos-head{background:transparent!important;color:#1F1D1A!important;border-bottom:1px solid #EFEAE2!important}
+html body.mundo.mundo-modulo #grupos-board .grupos-head :is(h2,h3,b,strong,span,small){color:inherit}

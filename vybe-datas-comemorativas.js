@@ -101,7 +101,7 @@
   function cartaoHtml(d) {
     const s = sugestoes(d), prazo = typeof G.sazonalPrazoDe === 'function' ? G.sazonalPrazoDe(d.iso) : '';
     return `<button type="button" class="vd-x" data-vd-fechar aria-label="Fechar" title="Fechar (Esc)">×</button><div class="vd-cartao-topo"><small>${br(d.iso)}${d.feriado ? ' · feriado' : ''}${prazo ? ' · cadastrar até ' + br(prazo) : ''}</small><b>${esc(d.nome)}</b></div>
-      ${s.length ? `<ul>${s.slice(0, 6).map((x) => `<li><b>${esc(x.cliente)}</b> ${esc(x.ideia)}</li>`).join('')}</ul>${s.length > 6 ? `<p class="vd-dica">e mais ${s.length - 6} clientes</p>` : ''}`
+      ${s.length ? `<ul>${s.slice(0, 6).map((x) => `<li><b>${cliCor(x.cliente)}</b> ${esc(x.ideia)}</li>`).join('')}</ul>${s.length > 6 ? `<p class="vd-dica">e mais ${s.length - 6} clientes</p>` : ''}`
         : '<p class="vd-dica">Nenhum cliente do ramo desta data. Vale só se combinar com a marca.</p>'}
       <p class="vd-dica">Rascunho pela regra do ramo de cada cliente. O Redator escreve a sugestão de verdade.</p>
       <div class="vd-acoes"><button type="button" class="vd-botao" data-vd-redator>Pedir ao Redator</button>${typeof G.sazonalEscolher === 'function' || typeof G.openCadastrosGoverned === 'function' ? '<button type="button" class="vd-botao principal" data-vd-cadastrar>Cadastrar conteúdo</button>' : ''}</div>`;

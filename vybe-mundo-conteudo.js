@@ -12,6 +12,10 @@
 // Contas: vybe-conteudo-equilibrio.js (VybeEquilibrio). Leitura: /api/painel?area=conteudo_modulo.
 // Escrita do objetivo: /api/conteudo (acao=objetivo). Sem a migração, tudo abre e avisa.
 (() => {
+  // Status na cor do quadro (statusCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function statusCor(d) { const g = globalThis.statusCor; return typeof g === 'function' && g !== statusCor ? g(d) : String(d?.status || 'Sem status').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const E = window.VybeEquilibrio;
   if (!E) return;
   const ROTA = '/api/painel?area=conteudo_modulo';
@@ -160,7 +164,7 @@
     const lista = d.atual.clientes.map((c) => {
       const cl = c.total || 1;
       return `<button type="button" class="vc-cliente${normal(c.cliente) === normal(st.cliente) ? ' ativo' : ''}" data-vc-cliente="${esc(c.cliente)}" aria-pressed="${normal(c.cliente) === normal(st.cliente)}">
-        <span class="vc-cliente-linha"><b>${esc(c.cliente)}</b>${c.falta.length ? `<em>falta ${esc(c.falta.map((o) => E.ROTULO[o].toLowerCase()).join(' e '))}</em>` : ''}</span>
+        <span class="vc-cliente-linha"><b>${cliCor(c.cliente)}</b>${c.falta.length ? `<em>falta ${esc(c.falta.map((o) => E.ROTULO[o].toLowerCase()).join(' e '))}</em>` : ''}</span>
         <span class="vc-barra" aria-hidden="true">${E.OBJETIVOS.map((o) => `<i style="--c:${E.COR[o]};width:${(c[o] / cl) * 100}%"></i>`).join('')}<i class="sem" style="width:${(c.sem / cl) * 100}%"></i></span>
         <small>${esc(c.frase)}</small></button>`;
     }).join('');
@@ -197,7 +201,7 @@
     const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(p, 'vc-sec vc-olho') : '';
     return `<div class="vc-previa-topo"><b>${esc(p.nome || 'Peça')}</b><button type="button" class="vc-icone" data-vc-fechar-previa aria-label="Fechar prévia">${IC.fechar}</button></div>
       ${thumb ? `<a class="vc-thumb" href="${esc(thumb.abrir || '#')}" target="_blank" rel="noopener"><img src="${esc(thumb.thumb)}" alt="Prévia de ${esc(p.nome || 'peça')}" loading="lazy"></a>` : `<div class="vc-thumb vazio">${thumb === null ? 'Sem arquivo anexado' : 'Buscando a prévia…'}</div>`}
-      <dl class="vc-ficha"><div><dt>Data</dt><dd>${data ? `${data.slice(8)}/${data.slice(5, 7)}` : '—'}</dd></div><div><dt>Status</dt><dd>${esc(p.status || '—')}</dd></div>
+      <dl class="vc-ficha"><div><dt>Data</dt><dd>${data ? `${data.slice(8)}/${data.slice(5, 7)}` : '—'}</dd></div><div><dt>Status</dt><dd>${p.status ? statusCor(p) : '—'}</dd></div>
       <div><dt>Aprovação</dt><dd>${et ? `<span class="vc-etiqueta ${et}">${E.ROTULO_ETAPA[et]}</span>` : 'Em produção'}</dd></div>
       ${resp ? `<div><dt>Cliente</dt><dd>${resp.acao === 'aprovar' ? 'Aprovou' : 'Pediu ajuste'} · ${esc(resp.nome)}</dd></div>` : ''}</dl>
       <div class="vc-previa-obj"><span>Objetivo</span>${campoObjetivoHtml(p)}</div>

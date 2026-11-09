@@ -42,7 +42,7 @@ function pendingRowHtml(d) {
   const info = externalPendingInfo(d);
   const risk = d.operational_risk || getOperationalRisk(d);
   const elapsed = risk.sla_label || 'SLA ainda sem histórico de etapa';
-  return `<div class="pending-row"><span class="pending-client" title="${safeText(d.cliente)}">${safeText(d.cliente)}</span><div class="pending-content"><button type="button" class="pending-name" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto do conteúdo">${safeText(d.nome)}</button><div class="pending-next">${safeText(info.next)} · ${safeText(elapsed)}</div></div><div class="pending-actions">${riskBadgeHtml(d,true)}${pillHtml(d.status,d.status_color,d.status_border)}<button type="button" class="pending-copy" onclick="copyPendingFollowUp('${d.id}')">Copiar</button><button type="button" class="pending-open" onclick="openItemWorkspace('${d.id}')">Abrir</button></div></div>`;
+  return `<div class="pending-row"><span class="pending-client" title="${safeText(d.cliente)}">${cliCor(d.cliente)}</span><div class="pending-content"><button type="button" class="pending-name" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto do conteúdo">${safeText(d.nome)}</button><div class="pending-next">${safeText(info.next)} · ${safeText(elapsed)}</div></div><div class="pending-actions">${riskBadgeHtml(d,true)}${pillHtml(d.status,d.status_color,d.status_border)}<button type="button" class="pending-copy" onclick="copyPendingFollowUp('${d.id}')">Copiar</button><button type="button" class="pending-open" onclick="openItemWorkspace('${d.id}')">Abrir</button></div></div>`;
 }
 function pendingCentralCard(items) {
   const visible = showAllExternalPendings ? items : items.slice(0,5);
@@ -69,7 +69,7 @@ function getIntegrityIssues(items=DADOS) {
 }
 function managerIssueRow(issue) {
   const {d,reason} = issue;
-  return `<div class="manager-row"><span class="manager-client">${safeText(d.cliente)}</span><button type="button" class="manager-name manager-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}</button><span style="color:#ff6b81;font-size:9px;font-weight:800;white-space:nowrap;">⚑ ${safeText(reason)}</span></div>`;
+  return `<div class="manager-row"><span class="manager-client">${cliCor(d.cliente)}</span><button type="button" class="manager-name manager-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir contexto da demanda">${safeText(d.nome)}</button><span style="color:#ff6b81;font-size:9px;font-weight:800;white-space:nowrap;">⚑ ${safeText(reason)}</span></div>`;
 }
 let managerCommandExpanded = { critical:false, external:false, internal:false };
 function commandEntry(d, next, opts={}) {

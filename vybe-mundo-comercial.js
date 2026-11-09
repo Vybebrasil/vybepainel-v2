@@ -10,6 +10,8 @@
 // Quem vê: o servidor decide (pode.ver_dinheiro). As abas de dinheiro nem aparecem para quem não é dono/administração.
 // Nada aqui envia mensagem: registrar contato, proposta ou cobrança é anotação da equipe.
 (() => {
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const C = () => window.VybeComercialCalculos;
   const ABAS = [
     ['funil', 'Funil'], ['pacotes', 'Pacotes'], ['orcamentos', 'Orçamentos'], ['financas', 'Finanças por cliente', 1], ['recebimentos', 'Recebimentos', 1],
@@ -444,7 +446,7 @@
     return `${topo}
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
       <div class="vc-lista">${d.clientes.filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
-        <div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(...STATUS_PAG[c.status_pagamento])}</div>
+        <div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(...STATUS_PAG[c.status_pagamento])}</div>
         ${c.valor_mensal ? `<p class="vc-grande">${din(c.valor_mensal)}<small>/mês</small></p>` : '<small>Sem contrato informado.</small>'}
         <div class="vc-margem"><span>${c.pacote_nome ? esc(c.pacote_nome) + ' · custo ' + din(c.custo) : 'Sem pacote (custo não estimado)'}</span>${c.margem_percentual != null ? `<span>Margem ${pc(c.margem_percentual)}</span>` : ''}${c.zona_critica ? pill('Zona crítica', 'u1') : ''}</div>
         ${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}${real(c)}
@@ -497,7 +499,7 @@
     const f = fin();
     const doVybe = `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
-      <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
+      <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')
         || vazio('Ninguém em atraso. As faturas vencidas e não recebidas aparecem aqui.', 'Ver recebimentos', 'ir-recebimentos')}</div>`;
     let doFin = '';
@@ -506,7 +508,7 @@
       doFin = `<div class="vc-secao"><h3>Receitas vencidas e não pagas</h3>${fonteFin()}</div>
         <div class="vc-kpis">${kpi('Em atraso', din(i.total), { u: i.total ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Clientes', num(i.clientes.length), { espiar: 'financas:comercial:inad' })}
           ${kpi('Críticos (+30 dias)', num(i.criticos), { u: i.criticos ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Lançamentos', num(i.faturas))}</div>
-        <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${esc(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
+        <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
           <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
           || vazio('Ninguém em atraso no Vybe Finanças.')}</div>`;
     }

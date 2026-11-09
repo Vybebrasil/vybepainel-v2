@@ -9,6 +9,10 @@
 // O 3D (three.js) é carregado sob demanda: o módulo do mundo, o relevo e a base de empresas
 // ganham hash no nome no build (scripts/build.mjs troca os três endereços abaixo).
 (() => {
+  // Status na cor do quadro (statusCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function statusCor(d) { const g = globalThis.statusCor; return typeof g === 'function' && g !== statusCor ? g(d) : String(d?.status || 'Sem status').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+  // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
+  function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const CHAVE = 'vybe.mundo.v1';
   const MUNDO_JS = "/assets/mundo/mundo-3d.js";
   const MUNDO_DADOS = "/assets/mundo/irece.json";
@@ -230,7 +234,7 @@
     limparTela();
     marcarTrilho(id);
     window.VybeSetor.abrir(id, { nome: t.nome, dica: t.dica, subs: (t.sub || []).filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
-      abrirSub: (sub) => usarTrilho(sub), aoFechar: () => usarTrilho('hoje') });
+      abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor), aoFechar: () => usarTrilho('hoje') });
   }
   // Lista de submódulos ao lado do setor (ou acima, no celular). Esc ou clique fora fecha.
   function fecharSetor() { hud.querySelector('.vv-setor')?.remove(); hud.querySelectorAll('[data-trilho][aria-expanded]').forEach((b) => b.setAttribute('aria-expanded', 'false')); }
@@ -263,6 +267,7 @@
   const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
   function limparTela() {
     fecharDaDireita();
+    if (!placa().hidden) fecharPlaca(); // a placa aberta por baixo de um módulo escondia a barra de cima
     window.VybeSetor?.fechar?.();
     if (!gestao.hidden) fecharGestao();
     window.VybeAgentes?.fechar?.();
@@ -421,7 +426,7 @@
     const p = placa();
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button><h3>${esc(titulo)}</h3><p class="vv-sub">${c ? 'O que pede atenção' : 'Demandas neste gargalo'}</p>
       <ul class="vv-pendencia-motivos">${motivos.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
-      <div class="vv-pendencias-lista">${lista.length ? lista.map((d) => `<button type="button" class="vv-pendencia" style="--st:${esc(corDaPendencia(d))}" data-hoje-acao="peca" data-valor="${esc(d.id)}"><b>${esc(d.nome)}</b><span class="vv-pendencia-status">${esc(d.status || 'Sem status')}</span><small>${esc(d.cliente)}</small><dl><div><dt>Responsável</dt><dd>${esc(d.responsavel || 'Sem responsável')}</dd></div><div><dt>Prazo</dt><dd>${esc(dataCompleta(d.prazo_iso))}</dd></div><div><dt>Veiculação</dt><dd>${esc(dataCompleta(d.veiculacao_iso))}</dd></div></dl>${d.motivos?.length ? `<small>${esc(d.motivos.join(' · '))}</small>` : ''}<span class="vv-pendencia-abrir">Abrir demanda →</span></button>`).join('') : '<p class="vv-vazio">Os alertas acima não têm uma demanda específica vinculada. Confira a cobertura de conteúdo e o planejamento do cliente.</p>'}</div>
+      <div class="vv-pendencias-lista">${lista.length ? lista.map((d) => `<button type="button" class="vv-pendencia" style="--st:${esc(corDaPendencia(d))}" data-hoje-acao="peca" data-valor="${esc(d.id)}"><b>${esc(d.nome)}</b><span class="vv-pendencia-status">${statusCor(d)}</span><small>${cliCor(d.cliente)}</small><dl><div><dt>Responsável</dt><dd>${esc(d.responsavel || 'Sem responsável')}</dd></div><div><dt>Prazo</dt><dd>${esc(dataCompleta(d.prazo_iso))}</dd></div><div><dt>Veiculação</dt><dd>${esc(dataCompleta(d.veiculacao_iso))}</dd></div></dl>${d.motivos?.length ? `<small>${esc(d.motivos.join(' · '))}</small>` : ''}<span class="vv-pendencia-abrir">Abrir demanda →</span></button>`).join('') : '<p class="vv-vazio">Os alertas acima não têm uma demanda específica vinculada. Confira a cobertura de conteúdo e o planejamento do cliente.</p>'}</div>
       ${c ? `<button type="button" class="vv-botao" data-abrir-cliente="${esc(c.cliente)}">Abrir o cliente →</button>` : ''}`;
     p.hidden = false; ajustarAreaLivre();
   }
@@ -462,7 +467,7 @@
       ${semanas.map((s, i) => i % 2 === 0 || i === pts.length - 1 ? `<text x="${px(i)}" y="${h - 2}" text-anchor="middle" class="eixo">${esc(String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7))}</text>` : '').join('')}
     </svg>`;
   }
-  const pecaCurta = (p) => `${esc(p.nome || 'Peça')}${p.cliente ? ' · ' + esc(p.cliente) : ''}`;
+  const pecaCurta = (p) => `${esc(p.nome || 'Peça')}${p.cliente ? ' · ' + cliCor(p.cliente) : ''}`;
   function botsParaCobrar() {
     let f = null; try { f = fonteAgentes?.ler(); } catch { f = null; } if (!f?.dados?.agentes) return { sinal: false, lista: [] };
     const lista = f.dados.agentes.map((a) => ({ a, e: estadoDoAgente(a.setor) })).filter(({ e }) => ['falhou', 'aguardando_aprovacao'].includes(e.estado))
@@ -500,12 +505,12 @@
       <div class="vv-dono-cartao">${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia)}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></div>
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#D93D42"><i></i>Clientes que pedem atenção<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button></div>
-      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
+      ${clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small></span><em class="${c.semana >= 3 ? 'ok' : ''}">${n0(c.semana)}/3</em></button>`).join('') : '<p class="vv-vazio">Nenhum cliente em atenção agora.</p>'}
       </section><section class="vv-bloco">
       <div class="vv-rotulo-secao" style="--c:#0D74CE"><i></i>3 posts por semana</div>
       <div class="vv-dono-cartao vv-cobertura"><div class="barra"><i style="width:${ativos ? Math.round((ativos - sem3.length) / ativos * 100) : 0}%"></i></div>
         <p><button type="button" class="vv-num" data-espiar="sem3"><b>${n0(ativos - sem3.length)} de ${n0(ativos)}</b></button> clientes com 3 ou mais na semana${(C.semConteudo || []).length ? ` · <button type="button" class="vv-num t-u1" data-espiar="semConteudo"><b>${C.semConteudo.length} sem nenhum</b></button>` : ''}${(C.semPlanejamento || []).length ? ` · <button type="button" class="vv-num" data-espiar="semPlanejamento">${C.semPlanejamento.length} sem planejamento</button>` : ''}</p>
-        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${esc(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
+        ${sem3.length ? `<div class="vv-chips-mini">${sem3.slice(0, 6).map((x) => `<span>${cliCor(x.cliente)} <b>${x.qtd}</b></span>`).join('')}${sem3.length > 6 ? `<button type="button" class="vv-num" data-espiar="sem3">+${sem3.length - 6}</button>` : ''}</div>` : ''}</div>
       ${gargalos.length ? `</section><section class="vv-bloco"><div class="vv-rotulo-secao" style="--c:#E2A11B"><i></i>Gargalos agora</div>
       ${gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${esc(g.status)}</b><small>${n0(g.qtd)} peças · paradas há ${n0(g.idadeMedianaDias)} dias (mediana)</small></span></button>`).join('')}` : ''}
       </section><section class="vv-bloco">
@@ -523,9 +528,9 @@
   const gestao = document.createElement('section');
   gestao.className = 'vv-gestao'; gestao.hidden = true; gestao.setAttribute?.('aria-label', 'Gestão da Vybe');
   document.body.append?.(gestao);
-  let gestaoAba = 'agora';
+  let gestaoAba = 'agencia';
   function abrirGestao(aba) {
-    if (aba && ['agora', 'semana', 'clientes', 'carteiras', 'time', 'historico'].includes(aba)) gestaoAba = aba;
+    if (aba && ['agencia', 'agora', 'semana', 'clientes', 'carteiras', 'time', 'historico'].includes(aba)) gestaoAba = aba;
     if (body.classList.contains('mundo-modulo')) chamar('voltarAoMenu');
     gestao.hidden = false; body.classList.add('mundo-gestao'); marcarTrilho('gestao'); pintarGestao(); gestao.scrollTop = 0; window.VybeTutorial?.dica?.('trilho:gestao');
   }
@@ -536,8 +541,8 @@
   function pintarGestao() {
     if (gestao.hidden) return;
     const N = numerosDoDono();
-    const abas = [['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
-    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
+    const abas = [['agencia', 'Agência'], ['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
+    const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'agencia' ? 'A agência inteira' : gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
         <p>${N ? 'Atualizado às ' + new Date(N.geradoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + n0((N.cobertura || {}).clientesAtivos) + ' clientes ativos' : 'Juntando os números…'}</p></span>
       <span class="vv-g-acoes"><button type="button" class="vv-botao" data-gestao-cheia title="Tela cheia">⛶</button><button type="button" class="vv-botao" data-gestao-fechar aria-label="Fechar">✕</button></span></div>
       <nav class="vv-seg vv-g-abas" role="tablist">${abas.map(([id, n]) => `<button type="button" role="tab" aria-selected="${id === gestaoAba}" data-gestao-aba="${id}">${n}</button>`).join('')}</nav>`;
@@ -545,6 +550,13 @@
     const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, Hi = N.historico || {}, P = N.projecao || {};
     const ultima = (Hi.semanas || []).slice(-1)[0] || {};
     let corpo = '';
+    if (gestaoAba === 'agencia' && window.VybeSetor?.pintarEm) {
+      // Dinheiro, comercial, clientes, produção e time num painel só (vybe-mundo-setor.js, mesmas leituras dos setores).
+      gestao.innerHTML = topo + '<div class="vv-g-corpo vs-agencia"></div>';
+      window.VybeSetor.pintarEm(gestao.querySelector('.vs-agencia'), 'setor:agencia', { nome: 'Gestão', subs: SUBMODULOS.filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
+        abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor) });
+      return;
+    }
     if (gestaoAba === 'agora') {
       corpo = `<div class="vv-g-kpis">
           ${kpi(`${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, 'produção de hoje', H.previstas && H.feitas < H.previstas ? 'u2' : 'u6')}
@@ -565,13 +577,13 @@
       corpo = `<div class="vv-g-kpis">${kpi(`${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, 'entregues / previstas')}${kpi(n0(C.clientesAtivos - (C.sem3 || []).length) + '<i>/' + n0(C.clientesAtivos) + '</i>', 'clientes com 3+ posts', (C.sem3 || []).length ? 'u2' : 'u6')}${kpi(n0((C.semConteudo || []).length), 'clientes sem nenhum conteúdo', (C.semConteudo || []).length ? 'u1' : '')}${kpi(n0((C.semPlanejamento || []).length), 'clientes sem planejamento', (C.semPlanejamento || []).length ? 'u2' : '')}${kpi(n0((C.proximaSemanaSem3 || []).length), 'sem 3 posts na próxima semana', (C.proximaSemanaSem3 || []).length ? 'u2' : '')}</div>
         <div class="vv-g-grade">
           <section class="vv-g-cartao largo"><h4>Dia a dia da semana</h4>${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 80)), h: 150 })}<p class="vv-legenda"><i class="pv"></i>previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} <i class="en"></i>entregues no dia</p></section>
-          <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
-          <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${esc(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
+          <section class="vv-g-cartao"><h4>Sem 3 posts nesta semana <span class="u2">${n0((C.sem3 || []).length)}</span></h4>${(C.sem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Todos com 3 ou mais.</p>'}</section>
+          <section class="vv-g-cartao"><h4>Próxima semana sem 3 <span class="u2">${n0((C.proximaSemanaSem3 || []).length)}</span></h4>${(C.proximaSemanaSem3 || []).map((x) => `<div class="vv-g-linha"><b>${cliCor(x.cliente)}</b><span class="pill ${x.qtd ? 'u2' : 'u1'}">${x.qtd}/3</span></div>`).join('') || '<p class="vv-vazio">Próxima semana coberta.</p>'}</section>
           <section class="vv-g-cartao"><h4>Sem planejamento <span>${n0((C.semPlanejamento || []).length)}</span></h4>${(C.semPlanejamento || []).map((c) => `<div class="vv-g-linha"><b>${esc(typeof c === 'string' ? c : c.cliente)}</b></div>`).join('') || '<p class="vv-vazio">Todos com planejamento.</p>'}<p class="vv-dica">${esc((N.fonte || {}).planejamento || '')}</p></section>
         </div>`;
     } else if (gestaoAba === 'clientes') {
       corpo = `<section class="vv-g-cartao largo"><table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
-        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${esc(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
+        ${(N.clientes || []).map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${cliCor(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">✓</span>' : '<span class="nao">—</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
         </tbody></table></section>`;
     } else if (gestaoAba === 'carteiras') {
       // A carteira de cada head (o "progresso das entregas por squad" do AgencyFlow). Os números vêm de N.heads.
@@ -652,11 +664,11 @@
       const porNome = new Map((N.clientes || []).map((c) => [c.cliente, c]));
       const l = (h?.clientes || []).map((nome) => porNome.get(nome) || { cliente: nome });
       return { titulo: 'Clientes na carteira', sub: valor, n: l.length, cls: h?.saude?.critico ? 'u1' : h?.saude?.atencao ? 'u2' : '', aba: 'carteiras',
-        corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Nenhum cliente ativo nesta carteira.</p>' };
+        corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Nenhum cliente ativo nesta carteira.</p>' };
     }
     if (tipo === 'atencao') {
       const l = (N.clientes || []).filter((c) => c.saude !== 'ok');
-      return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${esc(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
+      return { titulo: 'Clientes que pedem atenção', n: l.length, cls: 'u1', aba: 'clientes', corpo: l.map((c) => `<button type="button" class="vv-g-linha" data-espiar-cliente="${esc(c.cliente)}"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · ') || '—')}</small><em class="t-${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || ''}</em></button>`).join('') || '<p class="vv-vazio">Todos em dia.</p>' };
     }
     return null;
   }
@@ -2096,7 +2108,8 @@
   // Altura real da barra (com a música ela pode ir para duas linhas): o player e o aviso de planejamento
   // sobem junto, para nada cobrir a barra (regra do Paulo: nada cobre, nada rola).
   // Mede quando o conteúdo muda (MutationObserver não depende de a página estar desenhando) e quando a largura muda.
-  function medirBarra() { document.body?.style?.setProperty?.('--vv-voz-alto', (barra.hidden ? 0 : Math.round(barra.offsetHeight)) + 'px'); }
+  // Fora dos módulos a barra da sala abre no topo pela barra de ícones: não empurra os avisos de baixo.
+  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); document.body?.style?.setProperty?.('--vv-voz-alto', (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'); }
   if (typeof MutationObserver === 'function') new MutationObserver(medirBarra).observe(barra, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   if (typeof ResizeObserver === 'function') new ResizeObserver(medirBarra).observe(barra);
   let chamarAberto = false, pessoaAberta = null;
@@ -2162,6 +2175,8 @@
   function marcarVozNoTopo(naChamada = false, mic = false, sala = '') {
     const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
     v.classList.toggle('on', naChamada); v.title = naChamada ? `Sala de voz: ${sala} (na chamada)` : 'Sala de voz: quem está com você, microfone, música e TV';
+    let rot = v.querySelector('.vv-voz-nome'); if (!rot) { rot = document.createElement('span'); rot.className = 'vv-voz-nome'; v.append(rot); }
+    rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : ''; rot.hidden = !naChamada;
     m.hidden = !naChamada; m.classList.toggle('on', mic); m.setAttribute('aria-pressed', String(mic));
     m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: clique para falar'; m.setAttribute('aria-label', m.title);
   }
@@ -2209,8 +2224,8 @@
     const foraDaVoz = juntos.length - naVoz;
     const ouvem = (naVoz ? `${naVoz} ${naVoz === 1 ? 'pessoa na chamada' : 'pessoas na chamada'}` : 'só você na chamada') + (foraDaVoz ? ` · ${foraDaVoz} na sala, fora da chamada` : '');
     marcarVozNoTopo(naChamada, mic, nomeZona(e.zona));
-    const html = `<span class="sala${naChamada ? ' on' : ''}"><i></i><b>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
-      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}">${esc(iniciais(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
+    const html = `<span class="sala${naChamada ? ' on' : ''}"><small class="vv-voz-onde">Você está em</small><b><i></i>${esc(nomeZona(e.zona))}</b><small>${naChamada && !mic && juntos.length ? '<b class="mudo">Você está mudo</b> · toque no microfone para falar' : esc(estado) + (naChamada ? ' · ' + ouvem : '')}</small></span>
+      <span class="gente">${juntos.slice(0, 7).map((o) => `<button type="button" class="p${falando.has(String(o.id)) ? ' fala' : ''}" data-pessoa="${esc(o.id)}" data-voz-pessoa="${esc(o.id)}" title="${esc(o.nome)}${falando.has(String(o.id)) ? ' (falando)' : ''}">${esc(primeiro(o.nome))}</button>`).join('')}${juntos.length > 7 ? `<span class="mais">+${juntos.length - 7}</span>` : ''}</span>
       ${musicaHtml(e, temSom)}
       <span class="acoes">
         <button type="button" class="vv-botao" data-chamada="minha-sala" ${minhaSala ? '' : 'disabled'} title="Entrar na minha sala">Minha sala</button>
@@ -2226,7 +2241,7 @@
       </span>
       ${pessoa ? `<div class="vv-chamar vv-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
         ${pessoa.zona !== e.zona ? `${pessoa.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vv-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button>` : '<p class="vv-dica">Está na mesma sala que você.</p>'}</div>` : ''}
-      ${chamarAberto && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
+      ${(chamarAberto || body.classList.contains('ver-voz')) && !pessoa ? salasDeVozHtml({ e, Z, outros, falando, nomeZona }) : ''}`;
     // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
     // da lista de salas (antes ela voltava para o topo enquanto a pessoa rolava).
     if (html === pintarChamada.ultimo) return;
@@ -2257,14 +2272,21 @@
       const aqui = outros.filter((o) => o.zona === id), minha = e.zona === id, tranc = trancas.has(id);
       const gente = [...(minha ? [eu] : []), ...aqui];
       return `<button type="button" class="vv-voz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
-        <span class="ic" aria-hidden="true">${tranc ? '🔒' : '🔊'}</span>
-        <span class="meio"><b>${esc(z.nome || nomeZona(id))}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'EU' : iniciais(o.nome))}</i>`).join('')}</span>` : '<small>vazia</small>'}</span>
+        <span class="ic" aria-hidden="true">${tranc ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>'}</span>
+        <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}" title="${esc(o.nome)}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}</i>`).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
         ${minha ? '<em>aqui</em>' : '<em>Entrar</em>'}</button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
     return `<div class="vv-chamar vv-salas-voz">
-      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar</small></div>
-      ${ordem.map((k) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${porAndar.get(k).map(linha).join('')}`).join('')}
+      <div class="vv-voz-topo"><b>Salas de voz</b><small>${outros.length + 1} online · clique numa sala para entrar e falar com quem está nela</small></div>
+      ${(() => {
+        const temGente = ([id]) => e.zona === id || outros.some((o) => o.zona === id);
+        const ocupadas = ordem.flatMap((k) => porAndar.get(k).filter(temGente));
+        const vazias = ordem.map((k) => [k, porAndar.get(k).filter((x) => !temGente(x))]).filter(([, l]) => l.length);
+        const nVazias = vazias.reduce((n, [, l]) => n + l.length, 0);
+        return `<div class="vv-rotulo-secao"><i></i>Com gente agora</div>${ocupadas.length ? ocupadas.map(linha).join('') : '<p class="vv-dica">Ninguém nas salas agora.</p>'}
+          ${nVazias ? `<details class="vv-voz-vazias"><summary>Salas vazias (${nVazias})</summary>${vazias.map(([k, l]) => `<div class="vv-rotulo-secao"><i></i>${esc(nomeAndar(k))}</div>${l.map(linha).join('')}`).join('')}</details>` : ''}`;
+      })()}
       <div class="vv-rotulo-secao"><i></i>Pessoas online</div>
       ${outros.length ? outros.map((o) => `<div class="vv-voz-pessoa"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
         ${o.zona && o.zona !== e.zona ? `<button type="button" class="vv-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}${o.zona !== e.zona ? `<button type="button" class="vv-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button>` : '<small class="junto">com você</small>'}</div>`).join('') : '<p class="vv-dica">Ninguém mais online agora.</p>'}

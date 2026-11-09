@@ -206,6 +206,10 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
   das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
   Largura numa variável só (`--vv-trilho-w`). Não crie outro menu nem outra visão geral; a da Gestão continua a dela.
+  A Gestão abre na aba **Agência** (decisão do Paulo, 08/11/2026: "o Gestão tinha que ser bem mais completo"): a agência
+  inteira (dinheiro, comercial, clientes, produção e time) pelo `setor:agencia` de `vybe-mundo-setor.js`, com as mesmas
+  leituras dos painéis de setor; as outras abas da Gestão continuam. Status sempre com `statusCor` e cliente sempre com
+  `cliCor` (`vybe-core.js`): nunca o nome em texto puro.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
 
