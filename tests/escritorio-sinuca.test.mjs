@@ -101,6 +101,14 @@ test('mesa de sinuca: começa pela mesa genérica e anima a tacada para os dois'
  const r=await x.responderMesa(sql,{id:3},salas,{id:d.id,acao:'aceitar'});
  assert.equal(r.jogo.jogo,'sinuca');assert.equal(r.jogo.mesa.bolas.filter(Boolean).length,16,'a branca e as 15 bolas');assert.equal(r.jogo.mesa.modo,'parimpar');assert.deepEqual(r.jogo.mesa.grupos,{desafiante:null,desafiado:null},'mesa aberta');
  const quem=r.jogo.vez==='desafiante'?{id:1}:{id:3},outro=quem.id===1?{id:3}:{id:1};
+ // Pré-partida (Paulo, 09/11/2026): sem tacada nem relógio até os dois darem PREPARADO.
+ assert.equal(r.jogo.prazo_vez,null);assert.deepEqual(r.jogo.pre.prontos,[]);
+ await assert.rejects(x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0.01,forca:0.9}),/PREPARADO/);
+ await assert.rejects(x.acaoMesa(sql,{id:7},{id:d.id,acao:'pronto'}),/assistindo/);
+ const p1=await x.acaoMesa(sql,{id:1},{id:d.id,acao:'pronto'});
+ assert.equal(p1.comecou,false);assert.deepEqual(p1.jogo.pre.prontos,['desafiante']);
+ const p2=await x.acaoMesa(sql,{id:3},{id:d.id,acao:'pronto'});
+ assert.equal(p2.comecou,true);assert.equal(p2.jogo.pre,null);assert.ok(p2.jogo.prazo_vez,'a vez começa a contar');
  await assert.rejects(x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0,forca:2}),/força/);
  const l=await x.lanceMesa(sql,quem,{id:d.id,n:0,tipo:'tacar',angulo:0.01,forca:0.9});
  assert.equal(l.jogo.n,1);

@@ -254,7 +254,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   // Ortográfica exata de cima: o mesmo enquadramento da arte 2D (o clique na mesa vale igual).
   orto.left = ax0; orto.right = ax1; orto.top = -az0; orto.bottom = -az1; orto.position.set(0, 100, 0);
   orto.rotation.set(-Math.PI / 2, 0, 0); orto.updateProjectionMatrix();
-  let modo = 'taco', camAlvo = null, camAtual = null, transicao = 0;
+  let modo = 'taco', camAlvo = null, camAtual = null, transicao = 0, camUsada = persp;
   // Zoom (0,55 a 1,8: menor é mais perto) e altura (-1 baixa a 1 alta), do jogador.
   const vista = { zoom: 1, altura: 0 };
   const camDe = (tipo, branca, ang, elev = 0) => {
@@ -275,7 +275,14 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   let largura = 0, altura = 0, pedido = false, ultimo = null, mede = [], ultimoCusto = 0;
   const ajustar = () => {
     const w = alvo.clientWidth, h = alvo.clientHeight;
-    if (w && h && (w !== largura || h !== altura)) { largura = w; altura = h; renderer.setSize(w, h, false); persp.aspect = w / h; persp.updateProjectionMatrix(); }
+    if (w && h && (w !== largura || h !== altura)) {
+      largura = w; altura = h; renderer.setSize(w, h, false); persp.aspect = w / h; persp.updateProjectionMatrix();
+      // Mesa de borda a borda (Paulo, 09/11/2026): a tela pode ter qualquer proporção; a vista de cima
+      // mostra a mesa inteira sem esticar e sobra pano escuro dos lados (ou em cima e embaixo).
+      const mx = (ax0 + ax1) / 2, mz = (az0 + az1) / 2, a = w / h, lw = ax1 - ax0, lh = az1 - az0;
+      const hw = a > lw / lh ? (lh * a) / 2 : lw / 2, hh = a > lw / lh ? lh / 2 : lw / a / 2;
+      orto.left = mx - hw; orto.right = mx + hw; orto.top = -(mz - hh); orto.bottom = -(mz + hh); orto.updateProjectionMatrix();
+    }
   };
   const pedir = () => { if (!pedido) { pedido = true; requestAnimationFrame(() => { pedido = false; if (ultimo) desenhar(ultimo); }); } };
   const obs = typeof ResizeObserver === 'function' ? new ResizeObserver(() => pedir()) : null; obs?.observe(alvo);
@@ -314,8 +321,9 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     } else { mira.visible = false; contato.visible = false; }
     // Câmera: o modo escolhido; na animação, sobe para mostrar a jogada.
     let cam = persp;
+    camUsada = persp;
     const querCima = modo === 'cima', branca = d.camera?.b, ang = d.camera?.ang ?? 0;
-    if ((querCima || d.forcarCima) && !d.animando) cam = orto;
+    if ((querCima || d.forcarCima) && !d.animando) { cam = orto; camUsada = orto; }
     else {
       const alvoCam = d.animando || !branca ? camDe('alto') : camDe('taco', branca, ang, d.tacos?.[0]?.elev || 0);
       if (!camAtual) camAtual = { pos: alvoCam.pos.clone(), olha: alvoCam.olha.clone() };
@@ -334,7 +342,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   const raio3 = new Raycaster(), chao = new Plane(new Vector3(0, 1, 0), -R), ponto = new Vector3();
   function mesaNoPonteiro(px, py) {
     const r = alvo.getBoundingClientRect(), v = new Vector2(((px - r.left) / r.width) * 2 - 1, -((py - r.top) / r.height) * 2 + 1);
-    raio3.setFromCamera(v, modo === 'cima' ? orto : persp);
+    raio3.setFromCamera(v, camUsada);
     return raio3.ray.intersectPlane(chao, ponto) ? [ponto.x, ponto.z / MY] : null;
   }
   return {

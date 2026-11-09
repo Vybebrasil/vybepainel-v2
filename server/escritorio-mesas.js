@@ -19,6 +19,7 @@ import { motorPoker } from './escritorio-poker.js';
 import { motorSinuca, regrasDaCasa, iniciarBolaDaVez } from './escritorio-sinuca.js';
 import { fichaSinuca, sinucaZeradaEm } from './escritorio-sinuca-conquistas.js';
 import { vistaTorcida, acaoTorcida, liquidarTacada, liquidarPartida } from './escritorio-sinuca-torcida.js';
+import { preValeNaMesa, abrirPre, preAberta, marcarPronto, fecharPre, vistaPre } from './escritorio-sinuca-pre.js';
 import { motorDama } from './escritorio-dama.js';
 import { motorVelha } from './escritorio-velha.js';
 import { motorTruco } from './escritorio-truco.js';
@@ -206,6 +207,11 @@ async function vencerTempos(sql, agora = Date.now()) {
   await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${id} FOR UPDATE`;
   const motor = MOTORES[j?.jogo], lado = j?.mesa?.vez;
+  // Pré-partida da sinuca: sem relógio enquanto espera; quando o tempo dela acaba, a vez começa a contar dali.
+  if (j?.estado === 'jogando' && j.mesa?.pre) {
+   if (!preAberta(j.mesa, agora)) await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(fecharPre(j.mesa))}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
+   return;
+  }
   if (j?.bot && lado === 'desafiado' && j.estado === 'jogando') { await jogarBot(tx, j, pensado); return; }
   if (j?.estado === 'jogando' && clienteDoLado(j, lado)) { await jogarCliente(tx, j); return; }
   if (j?.estado !== 'jogando' || !motor?.tempo || !lado || (agora - new Date(j.ultimo_lance_em).getTime()) / 1000 < motor.tempo) return;
@@ -249,7 +255,9 @@ function vista(j, eu, nome, agora = Date.now()) {
   resultado: j.resultado || null, motivo: j.motivo || null, motivo_nome: motor.motivos[j.motivo] || MOTIVOS[j.motivo] || null,
   empate_de: j.empate_de ? String(j.empate_de) : null,
   // Até quando vai a vez de quem joga agora (o relógio da tela).
-  prazo_vez: jogando && motor.tempo && j.ultimo_lance_em ? new Date(new Date(j.ultimo_lance_em).getTime() + motor.tempo * 1000).toISOString() : null,
+  // Pré-partida da sinuca (os dois dão PREPARADO; a torcida aposta).
+  pre: jogando && j.jogo === 'sinuca' ? vistaPre(j.mesa, agora) : null,
+  prazo_vez: jogando && motor.tempo && j.ultimo_lance_em && !preAberta(j.mesa, agora) ? new Date(new Date(j.ultimo_lance_em).getTime() + motor.tempo * 1000).toISOString() : null,
   tempo_vez: motor.tempo || null,
   // A fora: quem está na fila (com o nome), se eu posso pedir e a próxima partida.
   fora: (j.mesa?.filaFora || []).map((id) => ({ id: String(id), nome: nome[String(id)] || 'Alguém' })),
@@ -479,6 +487,7 @@ async function comecar(tx, j, salas, quemAceita) {
  const casa = j.jogo === 'sinuca' && j.mesa?.casa ? regrasDaCasa(j.mesa.casa) : null;
  const inicio = casa?.modo === 'bolavez' ? iniciarBolaDaVez() : motorDe(j.jogo).iniciar(jogadores(j).map(([l]) => l));
  if (casa) inicio.casa = casa;
+ if (preValeNaMesa(j)) inicio.pre = abrirPre();
  if (clientesDe(j).length) {
   const info = await sentarClientes(tx, clientesDe(j), j.moedas, `${j.jogo}:${j.id}`);
   inicio.clientesInfo = Object.fromEntries(jogadores(j).filter(([, id]) => ehCliente(id)).map(([l, id]) => [l, info[id.slice(1)]]));
@@ -548,6 +557,8 @@ export async function lanceMesa(sql, pessoa, { id, n, ...pedido }) {
   const lado = ladoDe(j, pessoa.id);
   if (!lado) throw erro('Você está assistindo esta partida.', 403);
   if (j.estado !== 'jogando') throw erro('A partida já acabou.', 409);
+  if (preAberta(j.mesa)) throw erro('Esperem os dois darem PREPARADO.', 409);
+  if (j.mesa?.pre) j.mesa = fecharPre(j.mesa);
   if (Number(n) !== (Number(j.mesa?.n) || 0)) throw erro('A mesa mudou. Olhe de novo.', 409);
   const { mesa: jogada, fim } = motorDe(j.jogo).jogar(j.mesa, lado, pedido), mesa = comFora(j, jogada);
   comFalas(j, j.mesa, mesa);
@@ -574,6 +585,7 @@ export async function acaoMesa(sql, pessoa, { id, acao, ...resto }) {
   return { ...r, jogo: await verMesa(sql, pessoa, id), economia: await carregarEconomia(sql, pessoa.id) };
  }
  if (acao === 'pedir-fora' || acao === 'sair-fora') return foraMesa(sql, pessoa, { id, acao });
+ if (acao === 'pronto') return prontoMesa(sql, pessoa, { id });
  if (!['desistir', 'empate', 'aceitar-empate', 'recusar-empate', 'reivindicar'].includes(acao)) throw erro('Pedido inválido.');
  const r = await sql.comTransacao(async (tx) => {
   const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
@@ -613,6 +625,23 @@ export async function acaoMesa(sql, pessoa, { id, acao, ...resto }) {
   return { fim: true };
  });
  return { ...r, jogo: await verMesa(sql, pessoa, id), ...(r.fim ? { economia: await carregarEconomia(sql, pessoa.id) } : {}) };
+}
+
+// PREPARADO na pré-partida da sinuca: com os dois prontos, a partida abre e a
+// vez de quem quebra começa a contar.
+async function prontoMesa(sql, pessoa, { id }) {
+ const r = await sql.comTransacao(async (tx) => {
+  const [j] = await tx`SELECT * FROM vybe_escritorio_partidas WHERE id=${idValido(id)} FOR UPDATE`;
+  if (!j) throw erro('Partida não encontrada.', 404);
+  const lado = ladoDe(j, pessoa.id);
+  if (!lado) throw erro('Você está assistindo esta partida.', 403);
+  if (j.estado !== 'jogando' || !j.mesa?.pre) return { repetido: true };
+  const { mesa, comecou } = marcarPronto(j.mesa, lado);
+  if (comecou) await tx`UPDATE vybe_escritorio_partidas SET mesa=${JSON.stringify(mesa)}::jsonb,ultimo_lance_em=now() WHERE id=${j.id}`;
+  else await tx`UPDATE vybe_escritorio_partidas SET mesa=jsonb_set(mesa,'{pre}',${JSON.stringify(mesa.pre)}::jsonb) WHERE id=${j.id}`;
+  return { comecou };
+ });
+ return { ...r, jogo: await verMesa(sql, pessoa, id) };
 }
 
 async function foraMesa(sql, pessoa, { id, acao }) {
