@@ -61,3 +61,24 @@ test('a tela: abrir pelo dock cai na fila; pela mesa ou pelo boletim, no agente;
   assert.match(css, /\.vv-trilho-n\{position:absolute/);
   assert.doesNotMatch(js.slice(js.indexOf('Depende de você')), /!important/);
 });
+
+test('agrupados: urgentes do mesmo agente e tipo viram uma linha; o número do dock conta linhas', () => {
+  const { filaDoDono } = carregar();
+  const sem = (c) => ({ chave: 'sem-' + c, tipo: 'sem_conteudo_semana', gravidade: 'alta', cliente: c, fato: `${c}: nenhum conteúdo com veiculação na semana.`, primeiraVez: '2026-11-09T11:00:00Z' });
+  const perfis = { design: { achados: { abertos: [sem('Ace'), sem('Alpha1'), sem('Mangaba AI'),
+    { chave: 'v1', tipo: 'veiculacao_passou', gravidade: 'alta', cliente: 'DiaCenter', fato: 'Card com veiculação (04/11) já passou e a peça não saiu.', primeiraVez: '2026-11-08T11:00:00Z' },
+    { chave: 'v2', tipo: 'veiculacao_passou', gravidade: 'alta', cliente: 'DiaCenter', fato: 'Card com veiculação (06/11) já passou e a peça não saiu.', primeiraVez: '2026-11-07T11:00:00Z' },
+    { chave: 'u1', tipo: 'outro', gravidade: 'alta', fato: 'Sozinho' }] } } };
+  const F = filaDoDono({ agentes, perfis, atividades: {}, agora: AGORA });
+  assert.equal(F.total, 3, 'três linhas: dois grupos e o achado sozinho');
+  const [g1, g2, so] = F.decidir;
+  assert.equal(g1.tipo, 'grupo'); assert.equal(g1.titulo, '3 clientes: nenhum conteúdo com veiculação na semana.');
+  assert.deepEqual(JSON.parse(JSON.stringify(g1.achados.map((a) => a.chave))), ['sem-Ace', 'sem-Alpha1', 'sem-Mangaba AI']);
+  assert.equal(g2.titulo, '2 achados do mesmo tipo', 'fatos diferentes: título genérico com exemplo');
+  assert.equal(g2.em, '2026-11-07T11:00:00Z', 'desde o mais antigo');
+  assert.equal(so.tipo, 'achado');
+  const js = readFileSync('vybe-mundo-agentes.js', 'utf8');
+  assert.match(js, /data-vga-lote="resolvido"/); assert.match(js, /data-vga-lote="ignorar"/);
+  assert.match(js, /if \(r\.ok \|\| d\.error === 'Esse achado já foi fechado\.'\) feitos\+\+/, 'o que já estava fechado conta como feito');
+  assert.match(js, /confirm\(/, 'pede confirmação antes de fechar o grupo');
+});

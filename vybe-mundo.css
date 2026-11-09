@@ -4052,13 +4052,22 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-fila-meio small{font-size:12px;line-height:1.4;color:#6F6A62;overflow-wrap:anywhere}
 .vga-fila-meio small em{font-style:normal;font-weight:600;color:var(--c)}
 .vga-fila .vga-acoes{flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+/* Grupo de achados parecidos: "ver um a um" abre a lista dentro da linha, sem repetir avatar e cabeçalho. */
+.vga-fila li:has(> .vga-grupo){flex-wrap:wrap}
+.vga-fila li > .vga-grupo{flex:1 0 100%;margin:0 0 0 44px;min-width:0}
+.vga-grupo > summary{cursor:pointer;width:max-content;font:600 12px var(--vv-texto);color:#C2490C;list-style-position:inside}
+.vga-grupo > summary:focus-visible{outline:2px solid #F76808;outline-offset:2px;border-radius:4px}
+.vga-grupo > .vga-fila{margin-top:8px;gap:6px}
+.vga-grupo .vga-fila li{padding:8px 10px;border-left-width:1px;background:#FCFAF7}
+.vga-grupo .vga-fila li{flex-wrap:wrap;align-items:center}
+.vga-grupo .vga-fila .vga-acoes{max-width:none}
 .vga-fila-curta{margin-top:8px}.vga-fila-curta li{border-left-width:1px}
 .vga-lendo{margin:12px 0 0}
 .vga-link{all:unset;cursor:pointer;color:#C2490C;font-weight:600;border-bottom:1px solid currentColor}
 .vga-link:focus-visible{outline:2px solid #F76808;outline-offset:2px}
 .vv-trilho-n{position:absolute;top:3px;right:9px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#D13D36;color:#FFF;font:700 10px/16px var(--vv-texto);text-align:center;font-style:normal}
 body.trilho-largo .vv-trilho-btn .vv-trilho-n{position:static;margin-left:auto;min-width:18px;height:18px;line-height:18px;font-size:10.5px}
-@media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
+@media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila li > .vga-grupo{margin-left:0}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
 @media (max-width:900px){
   .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
   .vga-corpo{grid-template-columns:1fr;grid-template-rows:auto 1fr}.vga-lista{max-height:30vh;border-right:0;border-bottom:1px solid #ECE6DC}
