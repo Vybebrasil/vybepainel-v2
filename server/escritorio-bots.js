@@ -269,7 +269,8 @@ function sinuca(mesa, lado, nivel) {
  const extras = nivel === 'lendario' ? 8 : nivel === 'medio' ? 6 : 2;
  for (let i = 0; i < extras; i++) candidatas.push(Math.random() * Math.PI * 2);
  // Mesmas velocidades de antes da barra nova (29/10/2026): 0,8/1,65/3,1 m/s etc.
- const forcas = nivel === 'lendario' ? [0.232, 0.444, 0.687] : nivel === 'medio' ? [0.339, 0.633] : [0.489];
+ // Em m/s, convertidas pela barra (que mudou em 08/11/2026).
+ const forcas = (nivel === 'lendario' ? [0.79, 1.55, 2.93] : nivel === 'medio' ? [1.16, 2.51] : [1.74]).map(mesaSinuca.forcaDaVelocidade);
  const limite = nivel === 'lendario' ? 160 : nivel === 'medio' ? 60 : 20;
  const m2 = { ...mesa, bolas }, buracos = cacapas(), g = mesa.grupos?.[lado];
  // Quanto a bola que eu queria passou perto de cair (para refinar as tacadas

@@ -108,6 +108,7 @@ async function recarregarJogoMesa(chave) {
     if (s.jogo !== j || r.jogo.n < j.n) return;
     const mudou = r.jogo.n !== j.n || r.jogo.estado !== j.estado || r.jogo.empate_de !== j.empate_de || r.jogo.pode_reivindicar !== j.pode_reivindicar;
     s.jogo = r.jogo;
+    if (!mudou) ESCRITORIO_MESAS[chave].atualizar?.(r.jogo);
     if (mudou) {
       if (r.jogo.n !== j.n) { s.sel = null; jogosSom(ESCRITORIO_MESAS[chave].som ? ESCRITORIO_MESAS[chave].som(r.jogo, j) : "peca"); }
       if (r.jogo.estado === "fim" && j.estado !== "fim") { xadrezAcabou(r.jogo); seguirProximaMesa(chave, r.jogo); }

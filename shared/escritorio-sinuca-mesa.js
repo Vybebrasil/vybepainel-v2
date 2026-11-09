@@ -43,10 +43,16 @@ const ESCRITORIO_SINUCA_MESA = (() => {
   // 100% = 9 m/s, a saída de quem joga bem no bar (profissionais passam de 10 m/s,
   // medido por Onoda). O termo f^6 só pesa no fim: até 75% a barra é a de antes.
   const forcaMinima=0.001;
+  // Paulo, 08/11/2026 ("às vezes 20% parece bater fraco demais"): a mesa ficou
+  // 20% maior em 04/11 e a barra continuou a mesma, então a reta subiu de 3,4
+  // para 4,1 m/s: 20% agora anda ~1,1 m (antes ~0,8 m, nem meia mesa), 10% uns
+  // 30 cm e 100% continua 9 m/s.
   const velocidade=(valor)=>{
     const f=Math.max(0,Math.min(1,Number(valor)||0));
-    return 3.4*f+5.6*f**6;
+    return 4.1*f+4.9*f**6;
   };
-  return {arte,paredes,buracos,canto,meio,forcaMinima,velocidade,metricaY,pano:PANO_CM,bola:BOLA_CM,branca:BRANCA_CM};
+  // O contrário (m/s → barra), para os bots pensarem em velocidade de verdade.
+  const forcaDaVelocidade=(v)=>{let a=0,b=1;for(let i=0;i<40;i++){const m=(a+b)/2;if(velocidade(m)<v)a=m;else b=m;}return (a+b)/2;};
+  return {arte,paredes,buracos,canto,meio,forcaMinima,velocidade,forcaDaVelocidade,metricaY,pano:PANO_CM,bola:BOLA_CM,branca:BRANCA_CM};
 })();
 if(typeof module!=='undefined'&&module.exports) module.exports=ESCRITORIO_SINUCA_MESA;

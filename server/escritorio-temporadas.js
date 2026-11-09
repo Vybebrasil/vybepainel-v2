@@ -9,6 +9,7 @@
 // e idempotente: a primeira leitura depois da virada paga a temporada que
 // acabou (migrations/2026-10-27-escritorio-bots-temporadas.sql).
 import { nomes } from './escritorio-apostas.js';
+import { sinucaZeradaEm } from './escritorio-sinuca-conquistas.js';
 
 export const JOGOS = ['xadrez', 'sinuca', 'poker', 'domino', 'dama', 'velha', 'truco'];
 export const PREMIOS_TEMPORADA = [{ posicao: 1, xp: 300, moedas: 150, trofeu: true }, { posicao: 2, xp: 200, moedas: 80 }, { posicao: 3, xp: 100, moedas: 40 }];
@@ -63,7 +64,8 @@ export async function rankingDaTemporada(sql, jogo, temporada) {
   }
  } else {
   for (const l of await sql`SELECT desafiante, desafiado, mais, resultado, terminado_em FROM vybe_escritorio_partidas WHERE jogo=${jogo} AND estado='fim' AND bot IS NULL
-    AND resultado <> 'empate' AND terminado_em >= ${de}::timestamptz AND terminado_em < ${ate}::timestamptz ORDER BY terminado_em`) {
+    AND resultado <> 'empate' AND terminado_em >= ${de}::timestamptz AND terminado_em < ${ate}::timestamptz
+    AND (${jogo !== 'sinuca'} OR terminado_em >= ${sinucaZeradaEm()}::timestamptz) ORDER BY terminado_em`) {
    const mesa = [l.desafiante, l.desafiado, ...(l.mais || [])].map(String), v = mesa[LADOS.indexOf(l.resultado)];
    if (v) ponto(v, mesa.filter((p) => p !== v), l.terminado_em);
   }
