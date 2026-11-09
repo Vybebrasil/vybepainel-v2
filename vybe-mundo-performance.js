@@ -125,7 +125,7 @@
     return { demandas: todos, solicitacoes: sol, pessoas, hoje, dias };
   }
   const pecaPorId = () => { const m = new Map(); for (const l of [typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : [], typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []]) for (const d of l || []) m.set(String(d.id), d); return m; };
-  const itensDe = (ids) => { const m = pecaPorId(); return ids.map((id) => m.get(String(id))).filter(Boolean).map((d) => ({ id: d.id, nome: d.nome || 'Peça', sub: [d.cliente, d.status, d.responsavel].filter(Boolean).join(' · '), dir: String(d.veiculacao_iso || d.prazo_iso || '').slice(8, 10) + '/' + String(d.veiculacao_iso || d.prazo_iso || '').slice(5, 7) })); };
+  const itensDe = (ids) => { const m = pecaPorId(); return ids.map((id) => m.get(String(id))).filter(Boolean).map((d) => ({ id: d.id, nome: d.nome || 'Peça', sub: [d.cliente, d.status, d.responsavel].filter(Boolean).join(' · '), subHtml: typeof pecaMetaHtml === 'function' ? pecaMetaHtml(d) : '', dirHtml: typeof pecaDatasHtml === 'function' ? pecaDatasHtml(d) : '' })); };
   const abrirPeca = (it) => { if (typeof raiz.openItemWorkspace === 'function') raiz.openItemWorkspace(String(it.id)); };
 
   // O número abre a lista por trás dele (o mesmo mini painel dos outros painéis).

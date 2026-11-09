@@ -48,6 +48,17 @@ function statusCor(d) {
   return typeof pillHtml === "function" ? pillHtml(safeText(s), d?.status_color || "", d?.status_border || "") : safeText(s);
 }
 function cliCor(nome) { return nome ? tagClienteHtml(String(nome), { dentroDeBotao: true }) : ""; }
+// Prazo (entrega interna da equipe) e veiculação (dia em que vai ao ar) sempre com o nome, nunca uma data solta
+// (Paulo, 09/11/2026: "essa data que tá aparecendo aí é veiculação ou prazo?"). Datas sem hora, sem fuso.
+function pecaDatasHtml(d) {
+  const dm = (v) => { const s = String(v || "").slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : ""; };
+  const prazo = dm(d?.prazo_iso ?? d?.prazo), ar = dm(d?.veiculacao_iso ?? d?.veiculacao);
+  return (prazo ? `<span class="peca-data"><i>Prazo</i> ${prazo}</span>` : "") + (ar ? `<span class="peca-data"><i>No ar</i> ${ar}</span>` : "");
+}
+// Linha de peça nas listas curtas (espiar, Gestão): cliente com a cor da carteira, status com a cor do quadro e quem faz.
+function pecaMetaHtml(d) {
+  return [d?.cliente ? cliCor(d.cliente) : "", d?.status ? statusCor(d) : "", d?.responsavel ? `<span class="peca-quem">${safeText(String(d.responsavel))}</span>` : ""].filter(Boolean).join("");
+}
 
 function atualizarCoresDasCarteiras() {
   document.querySelectorAll('.cliente-carteira, .manager-calendar-client[data-carteira]').forEach(el => {

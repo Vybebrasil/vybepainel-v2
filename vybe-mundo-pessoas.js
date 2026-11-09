@@ -402,7 +402,7 @@
     return `<div class="vp-gantt" role="region" aria-label="Linha do tempo dos projetos" tabindex="0"><div class="vp-gantt-in" style="min-width:${largura}px">
       <div class="vp-gantt-semanas">${l.semanas.map((s) => `<span style="left:${s.esq}%">${br(s.inicio)}</span>`).join('')}</div>
       ${l.hoje != null ? `<div class="vp-gantt-agora" aria-hidden="true"><i style="left:${l.hoje}%"></i></div>` : ''}
-      ${l.projetos.map((p) => `<div class="vp-gantt-proj"><div class="vp-gantt-nome"><b>${esc(p.nome)}</b><small>${esc(TIPOS_PROJETO[p.tipo] || '')}${p.cliente ? ' · ' + esc(p.cliente) : ''} · ${esc(STATUS_PROJETO[p.status] || '')}</small>
+      ${l.projetos.map((p) => `<div class="vp-gantt-proj"><div class="vp-gantt-nome"><b>${esc(p.nome)}</b><small>${esc(TIPOS_PROJETO[p.tipo] || '')}${p.cliente ? ' · ' + (typeof cliCor === 'function' ? cliCor(p.cliente) : esc(p.cliente)) : ''} · ${esc(STATUS_PROJETO[p.status] || '')}</small>
           ${d.gestao ? `<button type="button" class="vp-link" data-vp-editar-projeto="${esc(p.id)}">Editar</button>` : ''}</div>
         ${p.pos ? `<div class="vp-gantt-trilho"><span class="vp-gantt-barra proj" style="left:${p.pos.esq}%;width:${p.pos.larg}%"></span></div>` : ''}
         ${p.etapas.map((e) => {
