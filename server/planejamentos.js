@@ -8,6 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { criarConteudoNaTransacao } from '../api/conteudo.js';
 import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
 import { pecaParaMostrar, assinaturaDaPeca, pecasComRevisao, resumoDaRevisao } from './planejamento-documento.js';
+import { rotuloDaPeca } from './copy-cliente.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const ESTADOS = ['revisar', 'enviado', 'aprovado', 'ajustes', 'cadastrado', 'arquivado'];
@@ -537,6 +538,12 @@ export async function revisarPecaHead(sql, pessoa, { id, assinatura, estado, not
   if (estado === 'limpar') delete r.head; else r.head = { estado, nota: n, por: quem?.nome || '', em: new Date().toISOString() };
   if (!r.head && !r.cliente) delete conteudo.revisoes[assinatura];
   await tx`UPDATE vybe_planejamentos SET conteudo=${JSON.stringify(conteudo)}::jsonb,atualizado_em=now() WHERE id=${p.id}`;
+  // O pedido do head some da revisão quando a peça é editada (revisoesQueValem). Fica também no histórico, no mesmo
+  // formato do pedido do cliente, para o Augusto aprender com ele depois (server/copy-cliente.js; Paulo, 09/11/2026).
+  if (estado === 'ajustar') {
+   const i = conteudo.pecas.findIndex((x) => assinaturaDaPeca(x) === assinatura);
+   await registrar(tx, p.id, 'comentario', { autor: pessoa.id, versao: p.versao, texto: `Ajuste do head (${(quem?.nome || 'head').slice(0, 60)}) na Peça ${i + 1} (${rotuloDaPeca(conteudo.pecas[i])}): ${n}`.slice(0, 4000) });
+  }
   return resumoDaRevisao(pecasComRevisao(conteudo));
  });
 }
