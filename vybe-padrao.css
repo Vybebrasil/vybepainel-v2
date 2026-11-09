@@ -513,7 +513,7 @@
 .grupos-board .grupo-bloco{margin-bottom:10px!important;border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;overflow:hidden}
 /* O topo tem backdrop-filter (camada própria, sem z-index): os menus dele
    (avisos, Ferramentas, conta) abriam atrás dos cartões do Painel de trabalho. */
-.app-header{z-index:200!important}
+:where(body:not(.mundo)) .app-header{z-index:200!important}
 /* Dentro do topo o desfoque não funciona (o topo já tem o dele): fundo sólido,
    senão o que está atrás aparece nítido através do menu. */
 .vybe-desktop .notif-caixa.notif-caixa,.vybe-desktop .header-utilities-menu.header-utilities-menu,.vybe-desktop .quem-sou-menu.quem-sou-menu,.notif-caixa.notif-caixa,.header-utilities-menu.header-utilities-menu,.quem-sou-menu.quem-sou-menu{background:linear-gradient(180deg,#262834,#1b1d26)!important}

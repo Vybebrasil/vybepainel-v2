@@ -11,8 +11,6 @@
 #vv-conteudo.vc[hidden]{display:none}
 @keyframes vc-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
 @media (prefers-reduced-motion:reduce){#vv-conteudo.vc{animation:none}}
-/* html.vb-ocioso (vybe-styles.css) pausa toda animação com a pessoa parada: a entrada congelaria em opacidade 0. */
-html.vb-ocioso .vc{animation:none!important}
 #vv-conteudo.vc svg{width:18px;height:18px;flex:none}
 #vv-conteudo.vc button{font-family:inherit;color:inherit}
 #vv-conteudo.vc :is(button,input,select):focus-visible{outline:0;box-shadow:var(--vc-foco)}

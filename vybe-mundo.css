@@ -204,9 +204,6 @@ html body.mundo #mode-gate#mode-gate .identity-station .station-metrica > b{font
 html body.mundo #mode-gate#mode-gate .identity-station .station-metrica > span{font:500 11.5px/1.3 var(--vv-texto)!important}
 html body.mundo #mode-gate#mode-gate .identity-station .station-action{margin-top:8px!important;color:var(--station-color)!important;filter:brightness(.8)}
 html body.mundo #mode-gate#mode-gate .identity-station .station-description{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;height:auto!important}
-/* O painel pausa toda animação quando fica ocioso (html.vb-ocioso). Uma entrada pausada no
-   quadro 0 deixaria a placa invisível: no mundo, as entradas simplesmente não animam ociosas. */
-html.vb-ocioso body.mundo :is(.vv-placa,.vv-cartao-mouse,.vv-hoje),html.vb-ocioso body.mundo #mode-gate#mode-gate .identity-shell{animation:none!important}
 
 /* ---------- Trilho, painel Hoje, Agenda e salas da equipe (06/11/2026) ---------- */
 /* As estações (#mode-gate) ficam guardadas: aparecem pelo botão "Módulos" do trilho. */
@@ -419,8 +416,6 @@ body.mundo.mundo-modulo .ag-ev.sel{background:color-mix(in srgb,var(--ag-cor) 30
 body.mundo.mundo-modulo .ag-ev :is(b,span,small){color:#1F1D1A!important}
 /* Logo do cabeçalho no vidro claro */
 body.mundo.mundo-modulo .app-header .logo img{filter:invert(1) brightness(.25)}
-/* Entrada de quadro pausada no quadro 0 pelo modo ocioso deixava o módulo invisível (06/11/2026). */
-html.vb-ocioso body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio),.prod-v2-layout,.production-command-dashboard){animation:none!important}
 body.mundo.mundo-modulo :is(.capt-tb-setas button,.capt-menu-item span,.vb-alternar button,.ag-dia-cab small,.ag-dia-cab b){color:#1F1D1A!important}
 body.mundo.mundo-modulo .p-segment .active{background:var(--vv-tinta)!important;color:#FFFFFF!important}
 body.mundo.mundo-modulo .ag-dia-cab.hoje b,body.mundo.mundo-modulo .ag-dia-cab[aria-current] b{background:var(--vv-laranja);color:#FFFFFF!important;border-radius:50%}
@@ -477,10 +472,8 @@ body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:#6B675
 body.mundo :is(#workspace-drawer,.spotlight-dialog,#notif-caixa) :is(h1,h2,h3,h4,b,strong){color:#1F1D1A}
 body.mundo :is(#workspace-drawer) :is(.workspace-section,.workspace-mais-menu,.workspace-textarea){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
 /* Aviso de planejamento: no mundo ele mora no sino do topo (auditoria 09/11, D8); o flutuante não volta. */
-html.vb-ocioso body.mundo :is(.plj-aviso,.vv-agenda,#mundo-andar){animation:none!important}
 @media (max-width:1300px){body.mundo .plj-aviso{top:auto!important;bottom:var(--vv-m)!important}}
 @media (max-width:900px){body.mundo .plj-aviso{bottom:calc(64px + 2*var(--vv-m))!important;max-width:calc(100vw - 2*var(--vv-m))!important}}
-html.vb-ocioso body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa){animation:none!important}
 /* Ficha da peça: vidro quase opaco e textos claros que sobraram (levantados em 06/11/2026). */
 body.mundo #workspace-drawer{background:rgba(250,248,244,.97)!important}
 body.mundo #workspace-drawer :is(.vybe-link span,.workspace-close,dd,.owner-nomes,.workspace-action,.workspace-section-head,.workspace-dropzone div,.workspace-section summary){color:#1F1D1A!important}
@@ -500,7 +493,6 @@ body.mundo #fc-overlay .fc-modal :is(.fc-sub,.fc-helper-text,span){color:#6B675F
 body.mundo #fc-overlay .fc-modal .fc-kicker{color:var(--vv-laranja-escuro)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo #fc-overlay .fc-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
-html.vb-ocioso body.mundo :is(#fc-overlay,#fc-overlay .fc-modal){animation:none!important}
 body.mundo .spotlight-dialog mark{color:#1F1D1A!important;background:var(--vv-laranja-claro)!important;border-radius:4px;box-shadow:none!important}
 
 /* Avatar voxel no lugar do boneco do Habbo: sem o serrilhado de pixel art. */
@@ -519,7 +511,6 @@ body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(small,.ofc-cat-su
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]){background:#1F1D1A!important;color:#FFFFFF!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel{transition:transform .18s var(--vv-mola)!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel:hover{transform:translateY(-3px)}
-html.vb-ocioso body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){animation:none!important}
 
 /* Jogos no trilho */
 .vv-jogos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -789,7 +780,6 @@ body.mundo .ofc-ficha .ofc-ficha-acoes{border-top:1px solid #ECE6DC!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes button{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:8px!important;font:700 12.5px var(--vv-texto)!important;box-shadow:0 1px 2px rgba(31,29,26,.05)!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(255,122,47,.28)!important}
 body.mundo .ofc-ficha .ofc-x{background:#fff!important;color:#6B675F!important;border:1px solid #E6E0D6!important;border-radius:8px!important}
-html.vb-ocioso body.mundo .ofc-ficha *{animation:none!important}
 body.mundo .ofc-ficha .ofc-hud-palco{position:relative!important}
 body.mundo .ofc-ficha .vv-perfil-avatar{height:82%!important;bottom:14px!important;max-height:none!important;width:auto!important}
 body.mundo .ofc-ficha :is(.ofc-hud-proximos,.ofc-hud-ganhos,.ofc-hud-regras){background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
@@ -3471,8 +3461,6 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
   html body.mundo .vv-demanda{animation:vv-entra .24s cubic-bezier(.2,.8,.2,1) both}
   html body.mundo .vv-demanda:nth-child(2){animation-delay:.03s}html body.mundo .vv-demanda:nth-child(3){animation-delay:.06s}html body.mundo .vv-demanda:nth-child(4){animation-delay:.09s}html body.mundo .vv-demanda:nth-child(5){animation-delay:.12s}
 }
-/* parado (ocioso) ou pedindo menos movimento: nada se mexe */
-html.vb-ocioso body.mundo :is(.container>*,.cartao-rapido,.workflow-modal,.vv-placa,.vv-demanda,dialog.ofc-ficha,.day-activity-scroll){animation:none!important}
 
 /* ===== A rolagem dos módulos acontece DENTRO da moldura (antes a página toda rolava e o conteúdo
    passava da borda de vidro, aparecendo cortado por cima do mapa). O body ocupa a área da moldura;
@@ -4558,10 +4546,6 @@ body.mundo:not(.mundo-centro) #vv-hoje .vv-blocos > .vv-bloco{break-inside:avoid
 .vv-semana-controles nav button{flex:none}
 body.mundo:not(.mundo-centro) .vv-hoje .vv-fala{max-width:none!important;width:100%;box-sizing:border-box}
 
-/* Modo ocioso (html.vb-ocioso pausa as animações): nenhuma janela do Irecity pode congelar invisível na entrada.
-   Com a pessoa parada, a janela simplesmente aparece pronta (sem animação). Antes: Carteira, Pessoas, Missões e
-   Agentes abriam em branco (opacidade 0) quando o painel tinha entrado em repouso. */
-html.vb-ocioso body.mundo :is([class^="vc-"],[class*=" vc-"],.vc,[class^="vp-"],[class*=" vp-"],[class^="vv-"],[class*=" vv-"],[class^="vga-"],.vv-ag,[class^="vd-"],.mundo-rotulo){animation:none!important}
 
 /* Hierarquia única nos módulos (08/11/2026): título de seção = Inter Tight 14/600 na tinta; rótulo de cima = 12/600 cinza.
    Antes cada módulo tinha o seu laranja 10,5px (Carteira, Comercial, Pessoas, Missões...), parecendo telas diferentes. */
@@ -4853,8 +4837,6 @@ body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli
 @keyframes vs-estica{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (max-width:900px){.vs-topo{flex-direction:column}.vs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-kpi-valor{font-size:21px}.vs-deitadas li{grid-template-columns:minmax(90px,38%) 1fr auto}}
 @media (prefers-reduced-motion:reduce){.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i{animation:none}}
-/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada congelaria no primeiro quadro, invisível. */
-html.vb-ocioso :is(.vs-kpi,.vs-bloco,.vs-barra,.vs-d-trilho i,.vv-setor-visao){animation:none!important}
 
 /* ---------- Coluna da direita na barra de cima (Paulo, 08/11/2026: "o foco é no que tá aberto") ----------
    A Agenda (fixa só para o Mizinho, body.agenda-fixa) e a barra da sala de voz abrem pelos botões da barra de cima,
@@ -4907,8 +4889,6 @@ html body.mundo:not(.vv-x) #office-musica.vv-musica-janela.movida{left:var(--mx)
 .vv-musica-janela .ofc-musica-topo button:hover{color:#1F1D1A!important}
 .vv-ferr-musica[hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){html body.mundo #office-musica.vv-musica-janela{animation:none!important}}
-/* Pessoa parada (html.vb-ocioso pausa toda animação): a entrada das janelinhas da barra congelaria transparente. */
-html.vb-ocioso body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada),html.vb-ocioso body.mundo #office-musica{animation:none!important}
 /* Com a sala aberta embaixo da barra, a lista de salas de voz abre para baixo (antes subia por cima da barra). */
 html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada .vv-chamar{top:calc(100% + 8px);bottom:auto;left:auto;right:0;max-height:min(420px,calc(100vh - 220px))}
 /* No Centro e no Prédio o Hoje tem a altura do que mostra (antes era uma placa de vidro da altura da tela, quase vazia,
@@ -5094,7 +5074,6 @@ html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){
    rótulo pequeno, grupos como bolinhas na cor do grupo (sem caixa de marcar). */
 html body .cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
 @media (max-width:900px){html body .cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
-html.vb-ocioso body .cg.cg-cheia{animation:none}
 .cg-titulo{position:absolute;left:16px;top:14px;z-index:2;display:grid;gap:2px;pointer-events:none}
 .cg-titulo b{font:750 16px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:#fff;letter-spacing:-.01em}
 .cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
@@ -5206,7 +5185,6 @@ body.mundo.mundo-centro #vv-hoje .vv-dono-tres{grid-template-columns:1fr}
 .vv-avisos-menu b{font:650 13px var(--vv-texto);color:#1F1D1A}
 .vv-avisos-menu small{grid-column:1;font:500 11.5px var(--vv-texto);color:#8A847A}
 .vv-avisos-menu em{grid-row:1/3;grid-column:2;align-self:center;font:750 12px var(--vv-texto);font-style:normal;color:#fff;background:var(--vv-laranja,#F26B1D);border-radius:999px;padding:2px 8px}
-html.vb-ocioso .vv-avisos-menu{animation:none}
 /* A bolinha recolhida dos avisos some: o número está no sino. O aviso aberto (coisa nova) continua aparecendo. */
 html body.mundo .plj-aviso.recolhido{display:none!important}
 @media (min-width:901px){
