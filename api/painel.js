@@ -803,6 +803,8 @@ async function areaClientes(req, res, quem) {
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
              c.nao_e_cliente, c.nps, c.nps_em,
+             -- Regra única de cliente ativo (auditoria 09/11): as telas leem este campo em vez de cada uma ter a sua.
+             (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false)) AS ativo_de_verdade,
              c.identidade->'personagem'->>'figura' AS personagem,
              (SELECT COUNT(*)::int FROM vybe_cliente_reunioes r WHERE r.cliente_id = c.id) AS atas,
              (SELECT COUNT(*)::int FROM vybe_conteudo_clientes v WHERE v.cliente_id = c.id) AS conteudos,
@@ -1658,7 +1660,7 @@ async function areaCaptacoes(req,res,quem) {
       // As peças que saíram de um roteiro do Docs trazem o link dele.
       const roteiros=await roteirosDosConteudos(banco,lista.captacoes.flatMap((k)=>k.pecas.map((p)=>p.id)));
       for(const k of lista.captacoes) k.pecas=k.pecas.map((p)=>({...p,roteiro_doc:roteiros.get(p.id)||null}));
-      const clientesAtivos=(await banco`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`);
+      const clientesAtivos=(await banco`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`);
       return res.status(200).json({ok:true,...lista,semana,clientes:clientesAtivos,agenda:agenda.eventos,proximas:proximas.eventos.filter((e)=>e.tipo==='captacao'),recentes:recentes.eventos.filter((e)=>e.tipo==='captacao'),aviso_agenda:agenda.aviso||proximas.aviso||''});
     }
     if(req.method!=='POST') return res.status(405).json({error:'Método não permitido.'});

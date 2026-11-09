@@ -12,7 +12,7 @@ const PRODUCAO = 7829537690;
 async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
-    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
+    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text, final boolean DEFAULT false);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date, briefing text,
       status_chave text, captacao_chave text, board_id bigint, removido_em timestamptz, material_bruto text);

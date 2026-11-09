@@ -152,7 +152,7 @@ async function lerFinancas(sql) {
     COALESCE(f.status_pagamento,'em_dia') AS status_pagamento, COALESCE(f.observacao,'') AS observacao, f.versao::text, f.atualizado_em,
     p.nome AS pacote_nome, p.horas::float8 AS horas, p.custo_hora::float8 AS custo_hora, p.captacoes, p.custo_captacao::float8 AS custo_captacao, p.preco::float8 AS pacote_preco
     FROM vybe_clientes c LEFT JOIN vybe_comercial_financas_cliente f ON f.cliente_id=c.id LEFT JOIN vybe_comercial_pacotes p ON p.id=f.pacote_id
-    WHERE COALESCE(c.ativo,true) ORDER BY c.nome`;
+    WHERE (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false)) ORDER BY c.nome`;
   const entradas = linhas.map((l) => ({ ...l, pacote: l.pacote_id ? { horas: l.horas, custo_hora: l.custo_hora, captacoes: l.captacoes, custo_captacao: l.custo_captacao } : null }));
   const clientes = entradas.map(({ horas, custo_hora, captacoes, custo_captacao, pacote, ...l }) =>
     ({ ...l, valor_mensal: l.valor_mensal || 0, ...calc.financasCliente({ valor_mensal: l.valor_mensal, pacote }) }));
@@ -170,7 +170,7 @@ const dentro = (d, p) => d >= p.inicio && d <= p.fim;
 function periodoDaConsulta(query, hoje) { return calc.periodo(query.mes || hoje.slice(0, 7), query.periodo === 'anual' ? 'anual' : 'mensal'); }
 async function lerRecebimentos(sql, query, hoje) {
   const p = periodoDaConsulta(query, hoje), todos = await RECEBIVEIS(sql);
-  const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+  const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
   const lista = todos.filter((r) => dentro(r.vencimento, p)).map((r) => ({ ...r, ...calc.statusRecebivel(r, hoje) }));
   return { periodo: p, hoje, resumo: calc.resumoRecebimentos(todos, p, hoje), recebiveis: lista, clientes, ciclos: Object.keys(calc.CICLOS) };
 }

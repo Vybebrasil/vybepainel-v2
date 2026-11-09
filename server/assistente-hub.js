@@ -27,7 +27,7 @@ async function ponteDoHub(sql,clienteId,config){
  const segredo=config.VYBE_OS_METRICAS_TOKEN;
  if(!/^[A-Za-z0-9_-]{48,256}$/.test(segredo||''))throw new TypeError('Ponte de métricas não configurada.');
  const headers = headersDaPonte(base, config, segredo);
- const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${clienteId} AND COALESCE(ativo,true)`;
+ const [cliente]=await sql`SELECT id::text,nome FROM vybe_clientes WHERE id=${clienteId} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
  if(!cliente)throw new TypeError('Cliente inválido.');
  // VYBE_AI_HUB_CLIENTES="auto": o slug sai do nome, igual ao sincronizador do Hub (syncVybeClientes); o Hub
  // ainda confere slug e nome exatos. Fora do modo auto, só a lista aprovada {cliente_id: slug}.
@@ -85,7 +85,7 @@ export async function metricasDoHub(sql,a,{config=process.env,buscar=fetch}={}){
 export async function resumosDaSemana(sql,dia,opcoes={}){
  if(typeof dia!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(dia))throw new TypeError('Dia inválido.');
  const de=new Date(Date.parse(dia+'T12:00:00Z')-8*864e5).toISOString().slice(0,10);
- const clientes=await sql`SELECT id::text,nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+ const clientes=await sql`SELECT id::text,nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
  const resumos=[],semDados=[];
  // Em lotes de 6: cada consulta ao Hub leva alguns segundos (planilha e Meta).
  for(let i=0;i<clientes.length;i+=6)await Promise.all(clientes.slice(i,i+6).map(async c=>{
@@ -126,7 +126,7 @@ export function mensagemResultadoPosts(dia, porCliente) {
 export async function resultadoDosPosts(sql, dia, opcoes = {}) {
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
   const de = new Date(Date.parse(dia + 'T12:00:00Z') - 30 * 864e5).toISOString().slice(0, 10);
-  const clientes = await sql`SELECT id::text,nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+  const clientes = await sql`SELECT id::text,nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
   const porCliente = [], erros = new Set();
   for (let i = 0; i < clientes.length; i += 6) await Promise.all(clientes.slice(i, i + 6).map(async (c) => {
     try {
@@ -162,7 +162,7 @@ export async function diagnosticoJarvis(sql, opcoes = {}) {
   catch { itens.push({ nome: 'Banco do painel', ok: false, detalhe: 'sem conexão com o banco' }); return { itens }; }
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
   const de = new Date(Date.parse(hoje + 'T12:00:00Z') - 6 * 864e5).toISOString().slice(0, 10);
-  const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome LIMIT 40`;
+  const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome LIMIT 40`;
   const erros = [];
   for (const c of clientes) {
     if (erros.length >= 3) break;

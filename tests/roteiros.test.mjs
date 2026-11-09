@@ -11,7 +11,7 @@ const DOC = '1C2g21ELYVUO5AkA6WbBDsw1B85rtNLDPYCdBw9Y0_gg';
 async function banco(t) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text);
-    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true);
+    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date,
       status_chave text, board_id bigint, criado_em timestamptz DEFAULT now(), removido_em timestamptz);

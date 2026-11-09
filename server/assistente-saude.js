@@ -32,7 +32,7 @@ export async function saudeDosClientes(sql, dia) {
     LEFT JOIN vybe_conteudo_clientes cc ON cc.cliente_id = cl.id
     LEFT JOIN vybe_conteudos c ON c.id = cc.conteudo_id AND c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO}
     LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-    WHERE COALESCE(cl.ativo, true) GROUP BY cl.id, cl.nome ORDER BY cl.nome`;
+    WHERE (COALESCE(cl.ativo,true) AND NOT COALESCE(cl.nao_e_cliente,false)) GROUP BY cl.id, cl.nome ORDER BY cl.nome`;
   const r = linhas.map((l) => {
     const x = { cliente: l.cliente, atrasadas: Number(l.atrasadas), proximas: Number(l.proximas), entregues30: Number(l.entregues30), alteracoes: Number(l.alteracoes) };
     return { ...x, pontos: x.atrasadas * 2 + (x.alteracoes >= 3 ? x.alteracoes - 2 : 0) + (x.proximas ? 0 : 3) + (x.entregues30 ? 0 : 1) };

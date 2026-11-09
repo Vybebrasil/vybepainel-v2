@@ -8,7 +8,7 @@ const PROD = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
   const ontem = new Date(Date.now() - 864e5).toISOString();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,veiculacao date,removido_em timestamptz,status_chave text,monday_item_id bigint);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
@@ -50,7 +50,7 @@ test('calendário do mês no banco: sem nada, só planejamento e com peças', as
 test('legendas aprovadas: só de planejamento aprovado ou cadastrado, filtrando formato', async () => {
   const { legendasAprovadas } = await import('../server/assistente-memoria.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_planejamentos(id bigint,cliente_id bigint,mes date,estado text,conteudo jsonb);
     INSERT INTO vybe_clientes VALUES (10,'Gonzalez',true);
     INSERT INTO vybe_planejamentos VALUES

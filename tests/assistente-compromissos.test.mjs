@@ -40,7 +40,7 @@ test('captação que terminou há 25 a 50 minutos volta com terminou e o cliente
   try {
     await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean,monday_user_id bigint,admin boolean);
       INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins',true,68035537,true),(2,'Ademir Souza',true,78158742,false);
-      CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);INSERT INTO vybe_clientes VALUES(7,'Antonov Academia',true),(8,'MR Fit',true);`);
+      CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;INSERT INTO vybe_clientes VALUES(7,'Antonov Academia',true),(8,'MR Fit',true);`);
     const agora = Date.parse('2026-10-27T15:00:00-03:00');
     const ev = (id, summary, iniMin, fimMin, extra = {}) => ({ id, summary, status: 'confirmed', start: { dateTime: new Date(agora + iniMin * 60e3).toISOString() }, end: { dateTime: new Date(agora + fimMin * 60e3).toISOString() }, ...extra });
     const eventos = [ev('a', 'Captação - MR Fit - Treino', -150, -30), ev('b', 'Captação - Antonov', -150, -10), ev('c', 'Reunião Copirecê', -120, -30, { colorId: '5' }), ev('d', 'Captação antiga', -300, -120)];

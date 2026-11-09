@@ -65,7 +65,7 @@ async function carteiras(tx, ids, trancar = false) {
 // Os clientes que podem sentar na mesa: ativos, com o saldo e o jeito de jogar.
 export async function clientesDaMesa(sql) {
  if (!await clientesProntos(sql)) return [];
- const lista = await sql`SELECT id,nome FROM vybe_clientes WHERE COALESCE(ativo,true) ORDER BY nome`;
+ const lista = await sql`SELECT id,nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
  const saldo = await carteiras(sql, lista.map((c) => String(c.id)));
  return lista.map((c) => ({ id: String(c.id), nome: c.nome, saldo: saldo.get(String(c.id)) ?? SALDO_INICIAL, nivel: nivelDoCliente(c.id), ...marcaDoCliente(c.id, c.nome) }));
 }
@@ -76,7 +76,7 @@ export async function conferirClientes(tx, lista) {
  if (!ids.length) return [];
  if (ids.some((id) => !/^\d{1,18}$/.test(id))) throw erro('Escolha clientes da lista.');
  if (!await clientesProntos(tx)) throw erro('Os clientes na mesa aguardam a migração do banco.', 503);
- const achados = await tx`SELECT id FROM vybe_clientes WHERE id = ANY(${ids}::bigint[]) AND COALESCE(ativo,true)`;
+ const achados = await tx`SELECT id FROM vybe_clientes WHERE id = ANY(${ids}::bigint[]) AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
  if (achados.length !== ids.length) throw erro('Algum cliente escolhido não está ativo.', 404);
  return ids;
 }

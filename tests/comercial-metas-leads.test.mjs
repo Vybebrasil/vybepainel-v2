@@ -103,7 +103,7 @@ async function banco(t, { config = true } = {}) {
   const { db, sql } = conexao(); t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY,nome text,ativo boolean,pode_entrar boolean,monday_user_id text);
     CREATE TABLE vybe_escritorio_funcoes (pessoa_id bigint PRIMARY KEY,funcao text);
-    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY,nome text,ativo boolean);
+    CREATE TABLE vybe_clientes (id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     INSERT INTO vybe_pessoas (id,nome,ativo,pode_entrar) VALUES (1,'Paulo Henrique',true,true),(3,'Bia',true,true),(5,'Taynara',true,true);
     INSERT INTO vybe_escritorio_funcoes VALUES (5,'atendimento'),(3,'criacao');`);
   await db.exec(readFileSync('migrations/2026-11-07-crm-prospeccao.sql', 'utf8'));

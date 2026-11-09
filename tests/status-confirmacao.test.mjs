@@ -45,7 +45,7 @@ async function banco(){
  CREATE TABLE vybe_conteudos(id int primary key,monday_item_id text,board_id bigint,titulo text,status_chave text,status_em timestamptz,atualizado_em timestamptz,grupo_id text,etapa text,formato_chaves text[],captacao_chave text,removido_em timestamptz);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int,cor text,borda text);
  CREATE TABLE vybe_conteudo_eventos(id serial primary key,conteudo_id int,tipo text,de text,para text,autor_id int,texto text,em timestamptz DEFAULT NOW());
- CREATE TABLE vybe_clientes(id int,nome text);
+ CREATE TABLE vybe_clientes(id int,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
  CREATE TABLE vybe_conteudo_clientes(conteudo_id int,cliente_id int);
  CREATE TABLE vybe_pessoas(id int,monday_user_id text,nome text,ativo boolean DEFAULT true);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id int,pessoa_id int,ordem int);
