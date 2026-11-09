@@ -4760,9 +4760,9 @@ html body.mundo .vv-ferr-voz.entrar .vv-voz-ponto{background:#fff}
 html body.mundo .vv-ferr-voz.espera{color:#6B675F!important}
 html body.mundo .vv-barra-topo .vv-ferr-mic{width:auto!important;min-width:0;gap:6px;padding:0 11px 0 9px!important;border-radius:9px}
 html body.mundo .vv-ferr-mic .vv-mic-rotulo{font:650 12.5px var(--vv-texto)}
-/* WhatsApp e Agenda com nome, como as Salas (Paulo, 08/11/2026). */
+/* WhatsApp, Agenda e Boletim com nome, como as Salas (Paulo, 08/11/2026; Boletim em 09/11/2026). */
 .vv-ferr-nome{display:none}
-html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"]){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
+html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"],.vv-ferr-boletim){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
 html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
 /* Celular: só os ícones no topo (Agenda e WhatsApp com o nome não cabem junto dos outros sem se espremer); o nome segue no title. */
 @media (max-width:560px){html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:none}}
