@@ -157,6 +157,10 @@
     window.VybeFinancas.carregar('comercial', mesFin(), { forcar }).then(() => { if (st.aberto && ABAS_FIN.has(st.aba)) pintar(); });
   }
   const fonteFin = () => pill('fonte: Vybe Finanças', 'u4');
+  // Lançamento que veio do Vybe Finanças (id fin:…): o servidor recusa editar e dar baixa (409); a baixa é lá.
+  const doFinancas = (id) => String(id || '').startsWith('fin:');
+  const soNoFinancas = '<div class="vc-linha-acoes"><small class="vc-dica">Dê baixa no Vybe Finanças</small></div>';
+  const fonteDa = (d) => (d?.fonte === 'Vybe Finanças' ? fonteFin() : '');
   function avisoFin(completo) {
     const e = finEstado(); if (!e) return '';
     if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo o Vybe Finanças…</p>';
@@ -174,7 +178,7 @@
       <div class="vc-periodo"><input type="month" class="vc-campo-mes" data-vc-mes value="${esc(f.mes)}" aria-label="Mês"></div>
       <div class="vc-kpis">${kpi('Recebido', din(r.recebido) + (r.recebido_percentual != null ? `<small> · ${pc(r.recebido_percentual)} do previsto</small>` : ''), { espiar: 'financas:comercial:serie:' + f.mes })}
         ${kpi('Previsto', din(r.previsto) + (r.mensalidades_sem_lancamento ? `<small> · ${din(r.mensalidades_sem_lancamento)} sem lançamento</small>` : ''))}
-        ${kpi('Despesas do mês', din(dsp.total), { espiar: 'financas:comercial:despesas', u: dsp.total > r.recebido && dsp.total ? 'u2' : '' })}
+        ${kpi(r.despesas_sem_folha != null ? 'Outras despesas' : 'Despesas do mês', din(r.despesas_sem_folha ?? dsp.total) + (r.despesas_sem_folha != null ? '<small> · sem a folha</small>' : ''), { espiar: 'financas:comercial:despesas', u: dsp.total > r.recebido && dsp.total ? 'u2' : '' })}
         ${kpi('Folha do mês', din(fo.total) + `<small> · ${num(fo.quantidade)} pessoa${fo.quantidade === 1 ? '' : 's'}</small>`, { variacao: varFin(fo.total, fo.total_anterior), rotuloVar: 'vs mês anterior', inverso: true })}
         ${kpi('Custos fixos (assinaturas)', din(cf.total) + `<small>/mês · ${num(cf.quantidade)}</small>`, { espiar: 'financas:comercial:fixos' })}
         ${kpi('Resultado (recebido − pago)', din(r.resultado), { u: r.resultado < 0 ? 'u1' : '' })}
@@ -474,12 +478,12 @@
     const r = d.resumo, v = r.variacao, rv = rotuloAnterior();
     return `${seletorPeriodo()}<div class="vc-kpis">${kpi('A receber', din(r.atual.a_receber), { variacao: v.a_receber, rotuloVar: rv })}${kpi('Recebido', din(r.atual.recebido), { variacao: v.recebido, rotuloVar: rv })}
         ${kpi('Pendente', din(r.atual.pendente), { variacao: v.pendente, rotuloVar: rv, inverso: true })}${kpi('Inadimplente', din(r.atual.inadimplente), { variacao: v.inadimplente, rotuloVar: rv, inverso: true, u: r.atual.inadimplente ? 'u1' : '' })}</div>
-      <div class="vc-secao"><h3>${esc(d.periodo.tipo === 'anual' ? d.periodo.rotulo : nomeMes(d.periodo.mes))}</h3>${botaoNovo('Novo recebimento', 'recebivel')}</div>
+      <div class="vc-secao"><h3>${esc(d.periodo.tipo === 'anual' ? d.periodo.rotulo : nomeMes(d.periodo.mes))}</h3>${fonteDa(d)}${botaoNovo('Novo recebimento', 'recebivel')}</div>
       <div class="vc-lista">${d.recebiveis.map((x) => { const [n, u] = STATUS_REC[x.status] || [x.status]; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(x.tipo === 'recorrente' ? x.cliente_nome || 'Cliente' : x.descricao)}</b>${pill(n, u)}</div>
         <p class="vc-grande">${din(x.valor)}${x.valor_recebido && x.status !== 'recebido' ? `<small> · recebido ${din(x.valor_recebido)}</small>` : ''}</p>
         <small>${x.tipo === 'recorrente' ? 'Recorrente ' + esc(x.ciclo) : 'Pontual'}${x.categoria ? ' · ' + esc(x.categoria) : ''}${x.tipo === 'recorrente' && x.descricao ? ' · ' + esc(x.descricao) : ''} · vence ${data(x.vencimento)}${x.atraso ? ` · ${num(x.atraso)} dias de atraso` : ''}${x.recebido_em ? ' · recebido em ' + data(x.recebido_em) : ''}</small>
-        ${x.cancelado ? '' : `<div class="vc-linha-acoes">${x.status !== 'recebido' ? `<button type="button" class="vc-sec" data-vc="receber" data-id="${esc(x.id)}">Receber</button>` : ''}
+        ${x.cancelado ? '' : doFinancas(x.id) ? soNoFinancas : `<div class="vc-linha-acoes">${x.status !== 'recebido' ? `<button type="button" class="vc-sec" data-vc="receber" data-id="${esc(x.id)}">Receber</button>` : ''}
           ${x.tipo === 'recorrente' ? `<button type="button" class="vc-sec" data-vc="proximo" data-id="${esc(x.id)}">Próximo ciclo</button>` : ''}
           <button type="button" class="vc-sec" data-vc="recebivel" data-id="${esc(x.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-rec" data-id="${esc(x.id)}">Cancelar</button></div>`}</article>`; }).join('')
         || vazio('Nenhum recebimento neste período. Lance os contratos recorrentes e os pontuais.', 'Novo recebimento', 'recebivel')}</div>`;
@@ -495,7 +499,7 @@
     if (f) {
       const dsp = f.despesas, max = Math.max(1, ...dsp.categorias.map((c) => c.total)), cf = f.custos_fixos;
       doFin = `<div class="vc-secao"><h3>Despesas de ${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
-        <div class="vc-kpis">${kpi('Despesas do mês', din(dsp.total), { espiar: 'financas:comercial:despesas' })}${kpi('Pagas', din(f.resumo.despesas_pagas))}
+        <div class="vc-kpis">${kpi(f.resumo.despesas_sem_folha != null ? 'Outras despesas' : 'Despesas do mês', din(f.resumo.despesas_sem_folha ?? dsp.total) + (f.resumo.despesas_sem_folha != null ? '<small> · sem a folha</small>' : ''), { espiar: 'financas:comercial:despesas' })}${kpi('Pagas', din(f.resumo.despesas_pagas))}
           ${kpi('Pendentes', din(f.resumo.despesas_pendentes), { u: f.resumo.despesas_pendentes ? 'u2' : '' })}${kpi('Folha do mês', din(f.folha.total))}
           ${kpi('Custos fixos (assinaturas)', din(cf.total) + '<small>/mês</small>', { espiar: 'financas:comercial:fixos' })}</div>
         ${dsp.categorias.length ? `<ul class="vc-barras espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">${dsp.categorias.map((c) => `<li><span>${esc(c.categoria)}</span><span class="vc-barra"><i class="u2" style="width:${(c.total / max) * 100}%"></i></span><small>${din(c.total)} · ${pc(c.percentual)}</small></li>`).join('')}</ul>`
@@ -509,7 +513,7 @@
       <div class="vc-lista">${d.contas.map((c) => { const venc = !c.pago_em && !c.cancelada && c.vencimento < d.hoje; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(c.descricao)}</b>${c.cancelada ? pill('Cancelada', 'u5') : c.pago_em ? pill('Paga', 'u6') : venc ? pill('Vencida', 'u1') : pill('A pagar', 'u4')}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${esc(r.grupos.find((g) => g.id === c.grupo)?.nome || c.grupo)}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · vence ${data(c.vencimento)}${c.pago_em ? ' · paga em ' + data(c.pago_em) : ''}</small>
-        ${c.cancelada || c.pago_em ? '' : `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="pagar" data-id="${esc(c.id)}">Marcar paga</button><button type="button" class="vc-sec" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button></div>`}</article>`; }).join('')
+        ${c.cancelada || c.pago_em ? '' : doFinancas(c.id) ? soNoFinancas : `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="pagar" data-id="${esc(c.id)}">Marcar paga</button><button type="button" class="vc-sec" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button></div>`}</article>`; }).join('')
         || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos.', 'Nova conta', 'conta')}</div>`;
   }
   function abaInadimplencia(d) {
@@ -531,7 +535,7 @@
     }
     return `${f ? doFin : avisoFin(false) + doVybe}
       ${d.faturas.length ? `<div class="vc-secao"><h3>${f ? 'Faturas atrasadas lançadas no Vybe OS' : 'Faturas atrasadas'}</h3></div><div class="vc-lista">${d.faturas.map((f) => `<article class="vc-cartao barra-${f.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(f.cliente_nome || f.descricao)}</b>${pill(num(f.atraso) + ' dias', f.severidade.nivel)}</div><small>${din(f.aberto)} em aberto · venceu ${data(f.vencimento)}</small>
-        <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="receber" data-id="${esc(f.id)}">Receber</button></div></article>`).join('')}</div>` : ''}
+        ${doFinancas(f.id) ? soNoFinancas : `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="receber" data-id="${esc(f.id)}">Receber</button></div>`}</article>`).join('')}</div>` : ''}
       ${d.marcados_a_mao.length ? `<div class="vc-secao"><h3>Marcados à mão em Finanças por cliente</h3></div><ul class="vc-grupos">${d.marcados_a_mao.map((m) => `<li><b>${esc(m.cliente_nome)}</b>${pill(...STATUS_PAG[m.status_pagamento])}</li>`).join('')}</ul>` : ''}`;
   }
   function churnDaCarteira() {
@@ -640,10 +644,15 @@
       campos: C().CARGOS.map((c) => ({ nome: 'cap_' + c.id, rotulo: c.nome, tipo: 'number', passo: '1', valor: cap.capacidades[c.id] ?? '', meio: true })),
       enviar: (v) => comercial({ acao: 'capacidade_salvar', capacidades: Object.fromEntries(C().CARGOS.map((c) => [c.id, v['cap_' + c.id] || 0])) }) });
   }
-  function formOrcamento() {
+  // Orçamento ligado à oportunidade do funil (auditoria 09/11, A2): a proposta nasce de uma oportunidade do CRM e leva
+  // o oportunidade_id; o nome do cliente continua indo junto (sem oportunidade, digita-se o nome, como antes).
+  async function formOrcamento() {
     const d = st.dados.orcamentos, validade = C().somarDias(hojeIso(), 15);
+    if (!st.dados.funil) { try { st.dados.funil = completar(await pedir('comercial', null, queryDaAba('funil'))); } catch { /* sem o funil, só o nome */ } }
+    const ops = (st.dados.funil?.oportunidades || []).filter((o) => o.etapa !== 'perdido').sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
     abrirFolha({ titulo: 'Novo orçamento', botao: 'Criar orçamento', campos: [
-      { nome: 'cliente_nome', rotulo: 'Cliente', obrigatorio: true, max: 200 },
+      ...(ops.length ? [{ nome: 'oportunidade_id', rotulo: 'Oportunidade do funil', tipo: 'select', opcoes: [['', 'Sem oportunidade (digite o cliente)'], ...ops.map((o) => [String(o.id), o.nome])], valor: '' }] : []),
+      { nome: 'cliente_nome', rotulo: ops.length ? 'Cliente (vazio usa o nome da oportunidade)' : 'Cliente', obrigatorio: !ops.length, max: 200 },
       ...d.pacotes.map((p) => ({ nome: 'q_' + p.id, rotulo: `${p.nome} · ${din(p.preco)}${p.tipo === 'recorrente' ? '/mês' : ''} (quantidade)`, tipo: 'number', passo: '1', valor: '0', meio: true })),
       { nome: 'desconto_percentual', rotulo: 'Desconto (%)', tipo: 'number', valor: '0', maxv: 100, meio: true },
       { nome: 'validade', rotulo: 'Válido até', tipo: 'date', valor: validade, obrigatorio: true, meio: true },
@@ -652,8 +661,13 @@
       const itens = d.pacotes.map((p) => ({ ...p, quantidade: Number(v['q_' + p.id]) || 0 })).filter((i) => i.quantidade > 0);
       const t = C().totalOrcamento({ itens, desconto_percentual: v.desconto_percentual });
       return `<div class="vc-total"><span>Recorrente ${din(t.total_recorrente)}/mês</span><span>Avulso ${din(t.total_avulso)}</span>${t.desconto ? `<small>Desconto ${din(t.desconto)}</small>` : ''}</div>${itens.length ? capacidadeHtml(d.capacidade, C().cargaDosItens(itens)) : ''}`;
-    }, enviar: (v) => comercial({ acao: 'orcamento_criar', cliente_nome: v.cliente_nome, desconto_percentual: v.desconto_percentual, validade: v.validade, observacoes: v.observacoes,
-      itens: d.pacotes.map((p) => ({ pacote_id: p.id, quantidade: Number(v['q_' + p.id]) || 0 })).filter((i) => i.quantidade > 0) }) });
+    }, enviar: (v) => {
+      const op = ops.find((o) => String(o.id) === String(v.oportunidade_id || ''));
+      const cliente = String(v.cliente_nome || '').trim() || op?.nome || '';
+      if (!cliente) throw new Error('Escolha a oportunidade do funil ou digite o cliente.');
+      return comercial({ acao: 'orcamento_criar', cliente_nome: cliente, oportunidade_id: op ? op.id : undefined, desconto_percentual: v.desconto_percentual, validade: v.validade, observacoes: v.observacoes,
+      itens: d.pacotes.map((p) => ({ pacote_id: p.id, quantidade: Number(v['q_' + p.id]) || 0 })).filter((i) => i.quantidade > 0) });
+    } });
   }
   function formFinancas(id) {
     const d = st.dados.financas, c = d.clientes.find((x) => x.cliente_id === id);

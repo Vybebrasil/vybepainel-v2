@@ -50,10 +50,15 @@
   // A data do cliente (veiculação/conclusão) manda; o prazo interno também conta como atraso da equipe.
   function situacaoDaPeca(item, hoje = hojeIso()) {
     const st = String(item?.status || '');
-    const fechada = typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st);
+    // Auditoria 09/11 (A4): o fechamento vem do banco (status_final) quando chega; o atraso, da função oficial
+    // (VybeDono.util.situacaoDaPeca: veiculação primeiro, pausada e esquecida fora). As categorias do Hoje (aprovar, ajuste,
+    // pronta…) continuam aqui: "Agendado" e "Para agendar" são prontas, não concluídas (contagens separadas).
+    const fechada = typeof item?.status_final === 'boolean' ? item.status_final : typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st);
     if (fechada) return 'concluida';
     const veic = String(item?.veiculacao_iso || ''), prazo = String(item?.prazo_iso || '');
-    if ((veic && veic < hoje) || item?.prazo_atrasado || (prazo && prazo < hoje)) return 'atrasada';
+    const oficial = window.VybeDono?.util?.situacaoDaPeca;
+    if (typeof oficial === 'function') { if (oficial(item, { hoje }).atrasada) return 'atrasada'; }
+    else if ((veic && veic < hoje) || item?.prazo_atrasado || (prazo && prazo < hoje)) return 'atrasada';
     if (/aprova/i.test(st)) return 'aprovar';
     if (/altera|ajuste|corre/i.test(st)) return 'ajuste';
     if (veic === hoje || prazo === hoje) return 'hoje';
