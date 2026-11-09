@@ -2,6 +2,7 @@
 // InstancedMesh (peças com luz e sombra + peças que brilham), com letreiro em
 // letras de blocos. Assim cada sede tem detalhe fino sem pesar.
 import * as THREE from 'three';
+import { ESTILO } from './estilo.mjs';
 
 // Fonte 3×5 (linhas de cima para baixo). Acentos caem na letra sem acento.
 const F = {
@@ -74,7 +75,9 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
 // Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
-export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
+// Desde 09/11/2026 (referências de quarto voxel do Paulo: "o estilo ideal pra tudo") a superfície é lisa: sem a
+// grade nem a quina de cada bloco; o volume vem da luz, da sombra macia e da oclusão (estilo.mjs).
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .86 }), { tam: 1, ...ESTILO.superficie }));
 
 // Sombra de contato (Paulo, 08/11/2026: "tem que ficar FODA de bonito"): uma mancha macia no chão embaixo de cada
 // árvore, bicho e boneco, que "assenta" a peça no chão. Uma textura só, um material só, sem entrar no cálculo da sombra.

@@ -160,14 +160,29 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
       t = dentro(t, q.sx);
       const a = (t + q.sx / 32) / 2 + .5, b = (t - q.sx / 32) / 2 + .5, h = (t * 16 - q.sy) / 32;
       if (h < -.02) continue;
-      finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, c: q.c });
+      finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, c: q.c, lx: q.lx, ly: q.ly });
     }
-    const pal = paletaCurta(finos.map((f) => f.c), cores);
-    for (const f of finos) { f.cor = hex(maisPerto(pal, f.c)); delete f.c; }
+    chapar(finos, Math.min(cores, 7));
+    for (const f of finos) { delete f.lx; delete f.ly; }
   }
   return { W, D, lado: s, blocos, finos, ladoFino, altura: ny * s, sinal };
 }
 
+// Cores chapadas (referências de 09/11/2026: faces lisas, poucas cores): a peça fica com até n cores e cada bloco
+// pega a cor que mais aparece em volta dele no desenho (3 × 3), o que tira o sombreado pontilhado do pixel art.
+// Recebe [{ c: [r,g,b], lx, ly }] (posição na grade do desenho) e escreve .cor em cada um.
+export function chapar(lista, n = 7) {
+  const pal = paletaCurta(lista.map((q) => q.c), n), mapa = new Map();
+  for (const q of lista) { q.k = pal.indexOf(maisPerto(pal, q.c)); mapa.set(q.lx + ',' + q.ly, q.k); }
+  const hex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  for (const q of lista) {
+    const conta = new Map();
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const k = mapa.get((q.lx + dx) + ',' + (q.ly + dy)); if (k !== undefined) conta.set(k, (conta.get(k) || 0) + (dx || dy ? 1 : 2)); }
+    let melhor = q.k, m = 0; for (const [k, c] of conta) if (c > m) { m = c; melhor = k; }
+    q.cor = hex(pal[melhor] || q.c); delete q.c; delete q.k;
+  }
+  return lista;
+}
 // Paleta curta: agrupa as cores em caixas de 40 em cada canal, fica com as `n` caixas mais cheias (a média de cada uma)
 // e junta cores distantes demais de todas só se forem muitas (um detalhe colorido de verdade, como uma flor).
 export function paletaCurta(lista, n = 6) {
@@ -261,7 +276,7 @@ const CACHE = new Map();
 // Peça esculpida para (classe, direção, estado), guardada: as salas repetem o mesmo móvel.
 // Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
 // segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
-const VERSAO_ESCULTURA = 'e7';
+const VERSAO_ESCULTURA = 'e9';
 const guardado = (() => {
   let banco = null;
   const abrir = () => banco || (banco = new Promise((ok) => {
@@ -300,13 +315,30 @@ export function moveisDoHabbo(classe, dir, estado = 0) {
     const vistas = fotos.size === 1 ? [0, 2, 4, 6].map((d) => ({ ...[...fotos.values()][0], dir: d })) : [...fotos.values()];
     const base = fotos.get(dir) || null;
     const dirPeca = base ? dir : fotos.size === 1 ? dir : [...fotos.keys()][0];
-    const N = W * D > 9 ? 6 : W * D > 4 ? 8 : W * D > 1 ? 10 : 12; // fino o bastante para o detalhe do móvel do Habbo
+    // No grão do motor de móveis (1/16 de ladrilho; 1/12 e 1/8 nas peças grandes), sem a casca fina: a casca de
+    // cubinhos de 2 px parecia pixel art e fazia listras de luz ao aproximar (Paulo, 09/11/2026).
+    const N = W * D > 9 ? 8 : W * D > 4 ? 12 : 16;
     // Casca no grão do mundo: um bloco a cada 2 px do Habbo (1/16 de ladrilho), em todas as peças.
-    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: 2 }));
+    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: 0, cores: 7 }));
     if (!e?.blocos?.length) return e;
     const r = { ...e, brilha: temBrilho(dados) };
     guardado.gravar(chave, r);
     return r;
+  })().catch(() => null));
+  return CACHE.get(chave);
+}
+// Para o motor de móveis modelados (moveis-voxel.mjs): as cores da arte do móvel (da mais usada para a menos
+// usada, sem o contorno) e o tamanho dele no Habbo (x, y na direção 0/4; z, a altura). Sem montar escultura.
+export function paletaDoHabbo(classe, dir = 4, estado = 0) {
+  const chave = 'paleta|' + classe + '|' + dir + '|' + (Number(estado) || 0);
+  if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
+    const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
+    const movel = await carregar(classe); const dados = movel?.dados; if (!dados) return null;
+    const dirs = direcoesDesenhadas(dados), v = vistaDaDirecao(movel, dirs.includes(dir) ? dir : dirs[0], estado); if (!v) return null;
+    const lista = []; for (let y = 0; y < v.h; y += 2) for (let x = 0; x < v.w; x += 2) { const c = v.cor(x, y); if (c) lista.push(c); }
+    const hex = (c) => '#' + c.map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')).join('');
+    const dim = dados.logic?.model?.dimensions || { x: 1, y: 1, z: 1 };
+    return { paleta: paletaCurta(lista, 6).map(hex), dim: { x: Math.max(1, Number(dim.x) || 1), y: Math.max(1, Number(dim.y) || 1), z: Number(dim.z) || 1 } };
   })().catch(() => null));
   return CACHE.get(chave);
 }
@@ -365,10 +397,10 @@ export function placaExata(vista, { altura = 0, alturaParede = 118, passo = 2 } 
     if (n * 2 < passo * passo) continue;
     const sx = vista.ox + px + passo / 2, sy = topo + py + passo / 2;
     const a = (lado * sx) / 32, h = (a * 16 - sy) / 32;
-    brutos.push({ a, h, c: [r / n, g / n, b / n] });
+    brutos.push({ a, h, c: [r / n, g / n, b / n], lx: px / passo, ly: py / passo });
   }
-  const pal = paletaCurta(brutos.map((q) => q.c), 12);
-  const blocos = brutos.map((q) => ({ a: q.a, h: q.h, cor: '#' + maisPerto(pal, q.c).map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('') }));
+  chapar(brutos, 7);
+  const blocos = brutos.map((q) => ({ a: q.a, h: q.h, cor: q.cor }));
   return { blocos, lado: passo / 32 };
 }
 export function placaDoHabbo(classe, dir, estado = 0, altura = 0, alturaParede = 118) {

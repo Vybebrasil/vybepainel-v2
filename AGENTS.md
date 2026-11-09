@@ -237,6 +237,12 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `figuraDoHabbo` lê da arte da pessoa a pele, o cabelo (cor e forma esculpida de frente e de perfil, `cabeloHabbo`),
   a camisa, o casaco, as mangas e os braços (`bracosDoBoneco`), a calça, o sapato e os acessórios de cabeça
   (chapéu, enfeite, máscara e óculos); o corpo continua o `desenharBoneco`.
+  Estilo ideal (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): voxel liso, sem
+  grade nem contorno, sombra macia, oclusão nos cantos (`acabamentoDeMaquete`), luz quente com contraste. Móvel do
+  quarto de tipo conhecido é MONTADO pelo motor `mundo/moveis-voxel.mjs` (receita por tipo, grade de 1/16 de
+  ladrilho, cores e tamanho da arte do Habbo); o resto é esculpido só no mesmo grão, sem a casca de 2 px. Isto
+  substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
+  Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa

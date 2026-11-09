@@ -51,3 +51,23 @@ test('boneco do Habbo: cabelo esculpido entra no lugar do cabelo de blocos; ócu
   assert.match(mh, /ACESSORIOS = \/\^\(ha\|he\|fa\|ea\)-\//);
   assert.match(mh, /cabeloHabbo/); assert.match(mh, /casaco: temCasaco/);
 });
+
+test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro da pegada, na grade de 1/16', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  assert.equal(m.tipoModelado('exe_chair2'), 'cadeira');
+  assert.equal(m.tipoModelado('xmas11_luxsofa2'), 'sofa');
+  assert.equal(m.tipoModelado('bling15_pooltable'), 'sinuca');
+  assert.equal(m.tipoModelado('hygge_c18_shelf'), 'estante');
+  assert.equal(m.tipoModelado('qualquer_coisa', { deita: true }), 'cama');
+  assert.equal(m.tipoModelado('thai_c21_woodenstatue'), null, 'estátua fica esculpida');
+  const cores = m.coresDaPaleta(['#1f1d1a', '#3a8fd0', '#f2c230', '#e5484d']);
+  assert.equal(cores.principal, '#3a8fd0', 'contorno escuro não vira a cor principal');
+  for (const t of m.TIPOS_MODELADOS) for (const [w, d] of [[1, 1], [2, 1], [2, 3]]) {
+    const o = m.montarMovel(t, { w, d, cores, classe: t });
+    assert.ok(o.solidos.length > 3, t);
+    for (const b of [...o.solidos, ...o.luzes]) {
+      assert.ok(Math.abs(b.x) <= w / 2 + 1e-6 && Math.abs(b.z) <= d / 2 + 1e-6, `${t} ${w}×${d}: bloco fora da pegada`);
+      assert.ok(Math.abs(b.w * 16 - Math.round(b.w * 16)) < 1e-6, `${t}: fora da grade`);
+    }
+  }
+});

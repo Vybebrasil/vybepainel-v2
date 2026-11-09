@@ -9,11 +9,12 @@
 // escondida, nem o pedido de quadro fica pendente.
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
-import { ESTILO, prepararRenderer, luzDoEstilo, baseDeMaquete } from './estilo.mjs';
+import { ESTILO, prepararRenderer, luzDoEstilo, baseDeMaquete, acabamentoDeMaquete } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
-import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, figuraDoHabbo, corDoRevestimento } from './moveis-habbo.mjs';
+import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, figuraDoHabbo, corDoRevestimento, paletaDoHabbo } from './moveis-habbo.mjs';
+import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo } from './moveis-voxel.mjs';
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
 
@@ -91,6 +92,8 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
 
   // ---------- casca: piso em ladrilhos com os níveis da planta, base e paredes ----------
   let pisoAtual = piso, pisoPintado = pisoEm, corParedeAtual = corParede, gCasca = null;
+  // Madeira: tom quente (vermelho > verde > azul) e com cor; mármore, cimento e pisos coloridos ficam em ladrilhos.
+  const madeira = (c) => { const k = new THREE.Color(c), hsl = k.getHSL({}); return k.r > k.g && k.g > k.b && hsl.s > .2 && hsl.h < .12; };
   function montarPiso() {
   if (gCasca) { cena.remove(gCasca); liberar(gCasca); }
   const casca = new Obra();
@@ -100,7 +103,15 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     // Como no Habbo: o topo do ladrilho na cor do piso e a lateral de um patamar no mesmo piso, mais escuro (sem faixa
     // de realce). Embaixo do chão, a base de maquete do padrão (terra em camadas, estilo.mjs).
     if (topo > 0) casca.caixa(x + .5, -.12, y + .5, 1, topo, 1, misturar(a, '#1F1D1A', .32));
-    casca.caixa(x + .5, topo - .12, y + .5, 1, .12, 1, (x + y) % 2 ? a : b);
+    if (!madeira(a)) { casca.caixa(x + .5, topo - .12, y + .5, 1, .12, 1, (x + y) % 2 ? a : b); continue; }
+    // Piso de madeira em tábuas (referências de 09/11/2026): 4 tábuas por ladrilho, emendas desencontradas, cada
+    // tábua num tom e a fresta escura entre elas.
+    casca.caixa(x + .5, topo - .12, y + .5, 1, .1, 1, misturar(a, '#1F1D1A', .45));
+    for (let k = 0; k < 4; k++) {
+      const z = y + k * .25 + .125, corte = ((x * 7 + y * 4 + k * 3) % 4) * .25, t = ((x * 13 + y * 7 + k * 5) % 5) / 5;
+      const cor = misturar(a, t < .4 ? b : '#FFFFFF', t < .4 ? .5 : .08 * t);
+      for (const [x0, x1] of corte ? [[0, corte], [corte, 1]] : [[0, 1]]) casca.caixa(x + (x0 + x1) / 2, topo - .02, z, x1 - x0 - .03, .02, .25 - .03, cor);
+    }
   }
   baseDeMaquete(casca, { W, D, ladrilhos: (x, y) => (P.grade[y]?.[x] ?? -1) >= 0, topo: -.12, fundo: -1.15 });
   gCasca = casca.montar(); cena.add(gCasca); sujar(true);
@@ -181,6 +192,19 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
         : { x: x + .5 + b.a, y: chao + b.h * NIVEL - l / 2, z: Math.floor(y) + .02 + l / 2, cor: b.cor }));
       return obraDeBlocos([], 0, blocos, l);
     }
+    // Motor de móveis modelados (moveis-voxel.mjs): móvel de tipo conhecido é montado em voxel limpo, no estilo das
+    // referências, com o tamanho e as cores da arte do Habbo; o resto continua esculpido.
+    const tipo = tipoModelado(classe, fichaDe(classe), (await carregarCatalogo()).get(classe));
+    if (tipo) {
+      const info = await paletaDoHabbo(classe, d, estado);
+      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta), classe });
+      if (o) {
+        const m = o.montar(), p = pegada(classe, d);
+        m.position.set(x + p.w / 2, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y + p.h / 2); m.rotation.y = giroDaDirecao(d);
+        if (tipo === 'luminaria' || tipo === 'tela') luzes.push({ x: x + p.w / 2, y: m.position.y + (tipo === 'luminaria' ? 1.1 : .5), z: y + p.h / 2 });
+        return m;
+      }
+    }
     const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
     const m = obraDeBlocos(e.blocos, e.lado, e.finos || [], e.ladoFino || 0);
     m.position.set(x, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y);
@@ -239,7 +263,9 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   // A câmera do Habbo (Paulo, 09/11/2026: "fiel como era o quarto da pessoa mesmo"): sem perspectiva, olhando a
   // diagonal de cima, a 30° (a projeção 2:1 do Habbo, ladrilho 64 × 32). Não gira, como no Habbo: é desse ângulo que
   // cada pixel do desenho vira um bloco no lugar certo. Arrastar move a sala; roda, pinça e clique duplo aproximam.
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 400);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 30, 100);
+  // Acabamento de maquete do padrão (oclusão nos cantos e brilho no que acende): o quarto como nas referências.
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera);
   const alvo = new THREE.Vector3(W / 2, .6 + nivelMax * NIVEL / 2, D / 2);
   const GIRO = Math.PI / 4, INCL = Math.asin(.5);
   // Meia altura da vista (em unidades do mundo) com a sala inteira: largura da diagonal e altura das paredes.
@@ -250,7 +276,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     Object.assign(camera, { left: -meia * aspecto, right: meia * aspecto, top: meia, bottom: -meia }); camera.updateProjectionMatrix();
     const d = 60; camera.position.set(alvo.x + d * Math.cos(incl) * Math.sin(giro), alvo.y + d * Math.sin(incl), alvo.z + d * Math.cos(incl) * Math.cos(giro)); camera.lookAt(alvo);
   }
-  function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); aspecto = r.width / Math.max(1, r.height); posicionar(); sujar(); }
+  function medir() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); acabamento.tamanho(r.width, r.height); aspecto = r.width / Math.max(1, r.height); posicionar(); sujar(); }
 
   // ---------- pessoas na sala ----------
   // O corpo de quem está na sala: sempre o boneco voxel da Vybe (desenharBoneco), vestido como o Habbo da pessoa:
@@ -600,7 +626,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     for (const e of etiquetas) e.el.style.transform = `translate(-50%,-100%) translate(${e.x.toFixed(1)}px,${e.y.toFixed(1)}px)`;
     etiquetas.length = 0;
     if (sombraSuja) { renderer.shadowMap.needsUpdate = true; sombraSuja = false; }
-    renderer.render(cena, camera);
+    acabamento.render();
     if (mexe) sujar();
   }
   const ro = new ResizeObserver(medir); ro.observe(canvas);
@@ -731,7 +757,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
       window.removeEventListener('keydown', teclaAndar); window.removeEventListener('keyup', soltarAndar); try { globalThis.escritorioPararTeclado?.(); } catch { /* sem o motor */ }
       ro.disconnect(); io?.disconnect(); document.removeEventListener('visibilitychange', aoVoltarAba);
       for (const b of pessoas.values()) b.el.remove(); pessoas.clear();
-      liberar(cena); renderer.dispose();
+      liberar(cena); acabamento.destruir(); renderer.dispose();
     },
   };
 }
