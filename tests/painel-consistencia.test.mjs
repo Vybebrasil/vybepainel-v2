@@ -69,7 +69,7 @@ test('carteira explícita prevalece, respeita alias, remoção e exceção da VO
 
 test('responsável geral persiste na ficha sem alterar heads; servidor recusa não administrador e campo inválido',async()=>{
  const {db,sql}=conexao();try{
- await db.exec(`CREATE TABLE vybe_clientes(id bigint primary key,nome text,email text,telefone text,endereco text,cnpj text,plano text,segmento text,responsavel text,planejamento_url text,valor numeric,proxima_reuniao date,ultima_reuniao date,nps smallint,nps_em date,dashboard text);
+ await db.exec(`CREATE TABLE vybe_clientes(id bigint primary key,nome text,email text,telefone text,endereco text,cnpj text,plano text,segmento text,responsavel text,planejamento_url text,valor numeric,proxima_reuniao date,ultima_reuniao date,nps smallint,nps_em date,dashboard text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
  INSERT INTO vybe_clientes(id,nome,responsavel) VALUES(1,'Teste','Legado');
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint); INSERT INTO vybe_cliente_pessoas VALUES(1,99);`);
  const c=vm.createContext({sql:()=>sql,garantirSchemaDeReunioes:async()=>{},garantirCicloDeVida:async()=>{}});

@@ -13,7 +13,7 @@ const PROD = 7829537690, DEM = 8385559107, dia = '2026-10-26';
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text,ativo boolean,pode_entrar boolean,senha_hash text,admin boolean);
-    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,etapa text,prazo date,veiculacao date,status_em timestamptz,briefing text,status_chave text,monday_item_id text,removido_em timestamptz);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);

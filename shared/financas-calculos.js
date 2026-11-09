@@ -88,7 +88,7 @@
 
   // ---------- Mês: recebido × previsto ----------
   function resumoMes(transacoes = [], clientes = [], mes) {
-    let recebido = 0, previstoLancado = 0, pendenteMes = 0, despesasPagas = 0, despesasPendentes = 0;
+    let recebido = 0, previstoLancado = 0, pendenteMes = 0, despesasPagas = 0, despesasPendentes = 0, folhaLancada = 0;
     const comReceita = new Set();
     for (const t of transacoes) {
       if (ehReceita(t)) {
@@ -96,6 +96,7 @@
         if (noMes(dia(t.date), mes)) { previstoLancado += centavos(t.amount); if (t.client_id) comReceita.add(String(t.client_id)); if (pendente(t)) pendenteMes += centavos(t.amount); }
       } else if (ehDespesa(t) && noMes(dataFiltro(t), mes)) {
         if (pago(t)) despesasPagas += centavos(t.amount); else despesasPendentes += centavos(t.amount);
+        if (ehFolha(t)) folhaLancada += centavos(t.amount); // salário lançado como despesa: é a folha, não "outra despesa"
       }
     }
     // Mensalidade de cliente ativo ainda não lançada no mês (o Finanças também casa pela descrição "Mensalidade - Nome").
@@ -109,7 +110,9 @@
     const previsto = previstoLancado + semLancamento;
     return { mes, recebido: reais(recebido), previsto: reais(previsto), previsto_lancado: reais(previstoLancado), pendente: reais(pendenteMes),
       mensalidades_sem_lancamento: reais(semLancamento), clientes_sem_lancamento: clientesSemLancamento, recebido_percentual: pct(recebido, previsto),
-      despesas_pagas: reais(despesasPagas), despesas_pendentes: reais(despesasPendentes), resultado: reais(recebido - despesasPagas) };
+      despesas_pagas: reais(despesasPagas), despesas_pendentes: reais(despesasPendentes), resultado: reais(recebido - despesasPagas),
+      // Auditoria 09/11: "Despesas do mês" e "Folha do mês" saíam com o mesmo valor porque os salários estão lançados como despesa.
+      despesas_folha: reais(folhaLancada), despesas_sem_folha: reais(despesasPagas + despesasPendentes - folhaLancada) };
   }
 
   // ---------- Despesas do mês por categoria ----------
@@ -229,7 +232,55 @@
     return ord.find((c) => c.status_carteira === 'ativo') || ord[0] || null;
   }
 
-  const api = Object.freeze({ normalizarNome, soDigitos, cnpjValido, ligarClientes, dataCaixa, dataFiltro, somarMeses, ehMes,
+  // ---------- Lançamentos do Finanças no formato das abas Recebimentos / Contas / Inadimplência (auditoria 09/11) ----------
+  // A tela do Comercial já sabe mostrar "recebíveis" e "contas"; o servidor entrega os do Finanças nesse formato, e os
+  // números deixam de se contradizer (Recebimentos R$ 0 × R$ 28,5 mil a receber; Inadimplentes 0 × R$ 41,3 mil em atraso).
+  // porFinancas: { finClienteId: { vybe_id, vybe_nome } } (de ligarClientes); nomeFin: { finClienteId: nome no Finanças }.
+  // Sem cliente no lançamento, o nome sai da descrição "Mensalidade - Nome" e é ligado ao cliente ativo do Vybe OS pela
+  // mesma regra de ligarClientes (um candidato só); sem par (ex.: cliente que saiu), fica o nome limpo.
+  const nomeDaDescricao = (d) => String(d || '').replace(/^\s*(mensalidade|parcela|fatura|pagamento)\s*[-–:]\s*/i, '').trim();
+  function recebiveisDoFinancas(transacoes = [], porFinancas = {}, nomeFin = {}, vybe = []) {
+    const out = [], porDescricao = new Map();
+    for (const t of transacoes) {
+      if (!ehReceita(t) || centavos(t.amount) <= 0 || !dia(t.date)) continue;
+      let par = t.client_id ? porFinancas[String(t.client_id)] : null;
+      const daDescricao = !t.client_id ? nomeDaDescricao(t.description) : '';
+      if (!par && daDescricao && vybe.length) {
+        if (!porDescricao.has(daDescricao)) porDescricao.set(daDescricao, ligarClientes([{ id: 'd', name: daDescricao }], vybe).porFinancas.d || null);
+        par = porDescricao.get(daDescricao);
+      }
+      const nome = par ? par.vybe_nome : t.client_id ? nomeFin[String(t.client_id)] || '' : daDescricao;
+      out.push({ id: 'fin:' + String(t.id), fonte: 'financas', tipo: /mensalidade/i.test(String(t.description || '')) ? 'recorrente' : 'avulso',
+        cliente_id: par ? String(par.vybe_id) : null, cliente_nome: nome || String(t.description || 'Sem cliente').slice(0, 80),
+        descricao: String(t.description || '').slice(0, 160), categoria: String(t.category || ''), ciclo: 'mensal',
+        valor: reais(centavos(t.amount)), valor_recebido: pago(t) ? reais(centavos(t.amount)) : 0, vencimento: dia(t.date),
+        recebido_em: pago(t) ? dia(t.paid_date) || dia(t.date) : null, cancelado: !pago(t) && !pendente(t) });
+    }
+    return out;
+  }
+  function grupoDaDespesa(t) {
+    if (ehFolha(t)) return 'folha';
+    const c = semAcentoFin(t.category);
+    if (/imposto|tribut|das|inss|fgts|iss|irpj|csll/.test(c)) return 'imposto';
+    if (/aluguel|internet|energia|agua|telefone|software|assinatura|contabil|fixa/.test(c)) return 'fixa';
+    if (/investimento|equipamento/.test(c)) return 'investimento';
+    return 'variavel';
+  }
+  // Folha: lançamento ligado a funcionário OU com categoria/descrição de salário (em produção os salários vêm só com a
+  // categoria "Salário/Prolabore", sem funcionário ligado, e caíam em "Variáveis").
+  const ehFolha = (t) => Boolean(t?.employee_id) || /salario|pro ?-?labore|folha de pagamento|ferias|13o|decimo terceiro/.test(semAcentoFin(`${t?.category || ''} ${t?.description || ''}`));
+  const semAcentoFin = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  function contasDoFinancas(transacoes = []) {
+    const out = [];
+    for (const t of transacoes) {
+      if (!ehDespesa(t) || centavos(t.amount) <= 0 || !dia(t.date)) continue;
+      out.push({ id: 'fin:' + String(t.id), fonte: 'financas', grupo: grupoDaDespesa(t), descricao: String(t.description || t.category || 'Despesa').slice(0, 160),
+        fornecedor_id: null, fornecedor_nome: String(t.category || ''), valor: reais(centavos(t.amount)), vencimento: dia(t.date),
+        pago_em: pago(t) ? dia(t.paid_date) || dia(t.date) : null, cancelada: !pago(t) && !pendente(t) });
+    }
+    return out;
+  }
+  const api = Object.freeze({ recebiveisDoFinancas, contasDoFinancas, grupoDaDespesa, normalizarNome, soDigitos, cnpjValido, ligarClientes, dataCaixa, dataFiltro, somarMeses, ehMes,
     resumoMes, despesasPorCategoria, custosFixos, compensacaoNoMes, folhaDoMes, margemPorCliente, serieMensal, inadimplencia,
     STATUS_CONTRATO, contratosDoFinancas, contratoPrincipal });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

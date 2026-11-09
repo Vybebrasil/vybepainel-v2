@@ -9,7 +9,7 @@ async function banco() {
   await db.exec(`
     CREATE TABLE vybe_conteudos (id int primary key, board_id bigint, prazo date,
       veiculacao date, removido_em timestamptz, atualizado_em timestamptz);
-    CREATE TABLE vybe_clientes (id int primary key, ativo boolean);
+    CREATE TABLE vybe_clientes (id int primary key, ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudo_clientes (conteudo_id int, cliente_id int);
     CREATE TABLE vybe_conteudo_responsaveis (conteudo_id int, pessoa_id int);
     CREATE TABLE vybe_conteudo_editores (conteudo_id int, pessoa_id int);

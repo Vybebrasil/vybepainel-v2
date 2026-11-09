@@ -27,6 +27,9 @@
 // Não envia mensagens.
 
 import { autenticarAssistente } from './assistente-servico.js';
+import { ehDonoPessoa } from './donos.js';
+// Gestão = quem administra OU um dos 4 donos (por id, server/donos.js). Antes era só admin: dono sem admin não salvava contrato nem churn (auditoria 09/11).
+const gestao = (pessoa) => Boolean(pessoa?.admin) || ehDonoPessoa(pessoa);
 import { assistenteAtivo } from './assistente-ativacao.js';
 
 export const ETAPAS_PADRAO = Object.freeze([
@@ -194,7 +197,7 @@ export function situacaoDoOnboarding(o, etapas, dia = hojeBahia()) {
 export async function saudeGuardada(sql) {
   const linhas = await sql`SELECT DISTINCT ON (s.cliente_id) s.cliente_id::text, c.nome, s.score, s.risco, s.motivos, s.heads, s.mes, s.registrado_em
       FROM vybe_carteira_saude_mensal s JOIN vybe_clientes c ON c.id = s.cliente_id
-     WHERE c.apagado_em IS NULL AND COALESCE(c.ativo, true)
+     WHERE c.apagado_em IS NULL AND (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false))
      ORDER BY s.cliente_id, s.mes DESC`;
   return linhas.map((l) => ({ cliente: l.nome, clienteId: l.cliente_id, score: Number(l.score), risco: l.risco,
     motivos: typeof l.motivos === 'string' ? JSON.parse(l.motivos) : l.motivos || [], head: l.heads || '', mes: diaDe(l.mes), registrado_em: l.registrado_em }))
@@ -249,7 +252,7 @@ export async function gravarClima(sql, b) {
 
 export async function lerCarteira(sql, quem, dia = hojeBahia()) {
   const eu = quem?.pessoa?.id != null ? String(quem.pessoa.id) : '';
-  const admin = quem?.tipo === 'servico' || Boolean(quem?.pessoa?.admin);
+  const admin = quem?.tipo === 'servico' || gestao(quem?.pessoa);
   const [pessoas, meus, atendimento, sinais, base] = await Promise.all([
     sql`SELECT id::text, nome FROM vybe_pessoas WHERE ativo ORDER BY nome`.then((r) => r, () => []),
     eu ? sql`SELECT cliente_id::text AS id FROM vybe_cliente_pessoas WHERE pessoa_id = ${eu}`.then((r) => r.map((x) => x.id), () => []) : [],
@@ -300,7 +303,7 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
 
 // ── Escritas ─────────────────────────────────────────────────────────────────────
 async function podeOnboarding(sql, quem, clienteId) {
-  if (quem.pessoa.admin) return true;
+  if (gestao(quem.pessoa)) return true;
   const [f] = await Promise.resolve(sql`SELECT funcao FROM vybe_escritorio_funcoes WHERE pessoa_id=${quem.pessoa.id}`).catch(() => []);
   if (f?.funcao === 'atendimento') return true;
   const [h] = await Promise.resolve(sql`SELECT 1 AS ok FROM vybe_cliente_pessoas WHERE cliente_id=${clienteId} AND pessoa_id=${quem.pessoa.id}`).catch(() => []);
@@ -311,7 +314,7 @@ async function clienteAtivo(tx, id) {
   if (!c) falhar('Cliente não encontrado.', 404);
   return c;
 }
-const soAdmin = (quem) => { if (!quem.pessoa.admin) falhar('Só quem administra altera contratos, cancelamentos e as etapas.', 403); };
+const soAdmin = (quem) => { if (!gestao(quem.pessoa)) falhar('Só os donos e quem administra alteram contratos, cancelamentos e as etapas.', 403); };
 
 export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
   const acao = String(b.acao || '');
@@ -459,7 +462,7 @@ export async function areaCarteira(req, res, quem, criarBanco) {
   const acao = String(req.body?.acao || req.query?.acao || '');
   // Clima do grupo: o bot (serviço) ou quem administra. O resto das escritas: sessão pessoal.
   if (req.method === 'POST' && acao === 'clima') {
-    if (!(quem.tipo === 'servico' || (quem.tipo === 'sessao' && quem.pessoa?.admin))) return res.status(403).json({ error: 'Só quem administra ou o serviço do bot grava o clima do grupo.' });
+    if (!(quem.tipo === 'servico' || (quem.tipo === 'sessao' && gestao(quem.pessoa)))) return res.status(403).json({ error: 'Só quem administra ou o serviço do bot grava o clima do grupo.' });
   } else if (req.method === 'POST' && (quem.tipo !== 'sessao' || !quem.pessoa?.id)) return res.status(403).json({ error: 'A Carteira exige uma sessão pessoal para alterar.' });
   try {
     const sql = criarBanco();

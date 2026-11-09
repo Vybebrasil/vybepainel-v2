@@ -27431,6 +27431,18 @@ button.snc-liga-quem:hover .snc-liga-foto{transform:scale(1.06)}
 #workflow-modal .snc-hub .snc-bar-tranca i{font-style:normal;font-size:36px;filter:drop-shadow(0 4px 6px #000)}
 .snc-giz li>button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 .snc-bar-carimbo{top:15%!important;left:auto!important;right:-6px;font-size:20px!important;transform:rotate(12deg)!important;animation:none!important}
+/* Barra do jogador na mesa: título na cor da raridade e as três conquistas mais raras. */
+#workflow-modal.ofc-snc-jogo .snc-jogador-taco{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#workflow-modal.ofc-snc-jogo .snc-jogador.direita .snc-jogador-taco{justify-content:flex-end}
+.snc-jogador-titulo{padding:1px 8px;clip-path:var(--bv-corte);background:#c9d0db;color:#0b0d10;font:900 italic 10px/1.5 var(--bv-ui);font-style:italic;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;text-shadow:none!important}
+.snc-jogador-titulo.raro{background:var(--snc-raro)}.snc-jogador-titulo.epico{background:var(--snc-epico);color:#fff}.snc-jogador-titulo.lendario{background:linear-gradient(90deg,#ffd46b,#ff9d1c);box-shadow:0 0 12px #ffb43a88}
+.snc-jogador-feitos{display:inline-flex;align-items:center;gap:3px;font-style:normal}
+.snc-jogador-feitos span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;background:radial-gradient(circle at 35% 30%,#ffffffaa,transparent 45%),#c9d0db;box-shadow:0 2px 4px #0008}
+.snc-jogador-feitos span.raro{background:radial-gradient(circle at 35% 30%,#ffffffaa,transparent 45%),var(--snc-raro)}
+.snc-jogador-feitos span.epico{background:radial-gradient(circle at 35% 30%,#ffffffaa,transparent 45%),var(--snc-epico)}
+.snc-jogador-feitos span.lendario{background:radial-gradient(circle at 35% 30%,#ffffffcc,transparent 45%),var(--bv-ouro);box-shadow:0 0 10px #ffc24a99}
+.snc-jogador-feitos small{font:900 10px var(--bv-ui);color:#fff;margin-left:2px}
+@media(max-width:760px){.snc-jogador-feitos{display:none}.snc-jogador-titulo{font-size:8px}}
 
 /* Fundos das telas legadas (auditoria 09/11, E2): as camadas capt-, ag-, rot-, p-cal-, prod-v2-, plj-, auto-, notas-,
    conta- e o topo do tutorial usam var(--lg-*, cor antiga). Sem o mundo, vale a cor antiga; no mundo claro, estes tokens.

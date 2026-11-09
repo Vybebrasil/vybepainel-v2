@@ -6,7 +6,7 @@ import { saudeDosClientes, sugerirResponsavel } from '../server/assistente-saude
 const PROD = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,disciplina text,ativo boolean,pode_entrar boolean);
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,prazo date,veiculacao date,removido_em timestamptz,status_chave text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
@@ -44,7 +44,7 @@ test('quem pega: experiência no formato menos a carga dos próximos 3 dias', as
 test('sem briefing: card novo e aberto, sem briefing nem comentário de briefing; pede para quem criou', async () => {
   const { pecasSemBriefing } = await import('../server/assistente-saude.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,monday_user_id text);
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,veiculacao date,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);

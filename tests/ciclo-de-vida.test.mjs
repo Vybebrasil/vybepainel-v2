@@ -8,7 +8,7 @@ async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_clientes(id bigserial primary key, nome text unique not null, ativo boolean not null default true,
       status text, email text, telefone text, cnpj text, segmento text, valor numeric, monday_item_id text,
-      identidade jsonb not null default '{}'::jsonb, nao_e_cliente boolean not null default false);
+      identidade jsonb not null default '{}'::jsonb, nao_e_cliente boolean not null default false); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_pessoas(id bigserial primary key, nome text not null, papel text, email text, ativo boolean not null default true,
       pode_entrar boolean not null default false, admin boolean not null default false, senha_hash text, senha_sal text,
       foto_url text, sessao_versao int not null default 0, monday_user_id text);

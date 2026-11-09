@@ -30,7 +30,7 @@ export async function guardarIdeia(sql, pessoaId, { cliente, texto }) {
   const t = String(texto || '').replace(/\s+/g, ' ').trim();
   if (t.length < 3 || t.length > 500) throw Object.assign(new Error('Diga a ideia (até 500 caracteres).'), { status: 400, publica: true });
   const nome = String(cliente || '').trim();
-  const achados = nome.length >= 2 ? await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + nome + '%'} ORDER BY nome LIMIT 5` : [];
+  const achados = nome.length >= 2 ? await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) AND nome ILIKE ${'%' + nome + '%'} ORDER BY nome LIMIT 5` : [];
   const normal = (v) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const c = achados.length === 1 ? achados[0] : achados.find((x) => normal(x.nome) === normal(nome));
   if (!c) throw Object.assign(new Error(achados.length ? `Mais de um cliente com "${nome}": ${achados.map((x) => x.nome).join(', ')}.` : `Não achei o cliente "${nome.slice(0, 60)}".`), { status: 400, publica: true });

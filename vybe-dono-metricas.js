@@ -779,13 +779,38 @@
     };
   }
 
+  // A situação de UMA peça, na mesma regra das contas do dono (auditoria 09/11, A4): é a função oficial para as telas,
+  // no lugar de situacaoDaPeca (vybe-mundo.js), isFinishedItem/getReferenceDate (vybe-gestor.js) e das listas soltas.
+  //   - a data que manda é a do cliente (veiculação); o prazo interno é a segunda;
+  //   - entregue = status final do banco quando vier (d.status_final), senão a lista ENTREGUE;
+  //   - pausada (Segurar Post) e esquecida (data de mais de 30 dias) não contam como atrasadas.
+  // Devolve { situacao: 'entregue'|'pausada'|'esquecida'|'atrasada'|'risco'|'cliente'|'parada'|'fazer'|'andamento', ... }.
+  function situacaoDaPeca(d = {}, { hoje = new Date(), regras = {} } = {}) {
+    const R = { ...REGRAS, ...regras }, dia = typeof hoje === 'string' ? hoje.slice(0, 10) : diaLocal(hoje);
+    const chave = chaveStatus(d.status), veic = soData(d.veiculacao_iso ?? d.veiculacao), prazo = soData(d.prazo_iso ?? d.prazo);
+    const entregue = typeof d.status_final === 'boolean' ? d.status_final : ENTREGUE.has(chave);
+    const referencia = veic || prazo, base = { chave, veic, prazo, referencia, entregue };
+    if (entregue) return { ...base, situacao: 'entregue', atrasada: false, emRisco: false };
+    if (PAUSADA.has(chave)) return { ...base, situacao: 'pausada', pausada: true, atrasada: false, emRisco: false };
+    const maisNova = veic > prazo ? veic : prazo;
+    if (maisNova && maisNova < somarDias(dia, -R.esquecidaDias)) return { ...base, situacao: 'esquecida', esquecida: true, atrasada: false, emRisco: false };
+    const furo = Boolean(veic) && veic < dia, prazoVencido = Boolean(prazo) && prazo < dia, atrasada = furo || prazoVencido;
+    const esperaCliente = ESPERA_CLIENTE.has(chave), naoComecou = NAO_COMECOU.has(chave), travada = TRAVADA.has(chave);
+    const desde = diaDe(d.status_updated_at) || diaDe(d.criado_em), idade = desde ? Math.max(0, diasEntre(desde, dia)) : null;
+    const semAndamento = naoComecou || travada || esperaCliente || (idade != null && idade >= R.paradaDias);
+    const perto = (x) => Boolean(x) && x >= dia && x <= somarDias(dia, R.riscoDias);
+    const emRisco = !atrasada && (perto(veic) || perto(prazo)) && (['critical', 'high'].includes(String(d.operational_risk?.level || '')) || semAndamento);
+    const situacao = atrasada ? 'atrasada' : emRisco ? 'risco' : esperaCliente ? 'cliente' : travada ? 'parada' : naoComecou ? 'fazer' : 'andamento';
+    return { ...base, situacao, furo, prazoVencido, atrasada, emRisco, esperaCliente, semAndamento, idade };
+  }
+
   const pessoasDe = (lista) => Object.fromEntries(mapaDePessoas(lista));
   const api = Object.freeze({
     calcular,
     REGRAS,
     // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
     util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
-      entregue: (status) => ENTREGUE.has(chaveStatus(status)), headsDe, SEM_HEAD }),
+      entregue: (status) => ENTREGUE.has(chaveStatus(status)), headsDe, SEM_HEAD, situacaoDaPeca }),
   });
   raiz.VybeDono = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeDono = api;

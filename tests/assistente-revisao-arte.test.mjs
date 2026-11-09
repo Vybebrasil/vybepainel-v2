@@ -6,7 +6,7 @@ import { arteDaPeca, comentarRevisao } from '../server/assistente-revisao-arte.j
 const PROD = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
@@ -45,7 +45,7 @@ test('revisão vira comentário da Vybe IA pela função do painel; status não 
 test('prévia da peça: as lâminas do olho do painel, na mesma ordem (mais nova primeiro), pela miniatura do Drive', async () => {
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
@@ -67,7 +67,7 @@ test('prévia da peça: as lâminas do olho do painel, na mesma ordem (mais nova
 test('prévia da peça: o vídeo do link de entrega (arquivo ou pasta do dia) vem primeiro, como no olho do painel', async () => {
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
@@ -93,7 +93,7 @@ test('prévia da peça: o vídeo do link de entrega (arquivo ou pasta do dia) ve
 test('prévia da peça: sem miniatura pela API do Drive, usa o endereço público que o painel usa', async () => {
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
@@ -115,7 +115,7 @@ test('prévia da peça: sem miniatura pela API do Drive, usa o endereço públic
 test('prévia da peça: carrossel pesado não estoura a resposta — entram as lâminas que cabem, em JPEG', async () => {
   const { previaDaPeca } = await import('../server/assistente-revisao-arte.js');
   const { db, sql } = conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,formato text,removido_em timestamptz,status_chave text,monday_item_id bigint,briefing text);
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
