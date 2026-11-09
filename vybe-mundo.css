@@ -5070,7 +5070,8 @@ body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
   html body.mundo.mundo-quarto #vv-hoje :is(.vv-hoje-grade,.vv-dono-tres,.vv-blocos){grid-template-columns:1fr!important}
   html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
 }
-@media (min-width:1200px){
+/* A Agenda vai para o lado só com espaço (1360 px): abaixo disso fica o Hoje e o quarto não espreme. */
+@media (min-width:1360px){
   html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important;top:var(--vv-palco-topo)!important;right:var(--vv-m)!important;bottom:auto!important;width:var(--vq-dir)!important;max-height:calc(100% - var(--vv-palco-topo) - var(--vv-m))!important;overflow:auto}
   html body.mundo.mundo-quarto #mundo-andar.quarto .andar-palco{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}
 }
@@ -5078,7 +5079,7 @@ body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
 /* Dock de baixo da sala, estilo dock de verdade (Paulo, 09/11/2026: "deixa o dock de baixo mais padrão... estilo um dock mesmo"):
    vidro claro, ícones quadrados com o nome embaixo, o ponto verde da sala onde você está na voz e o número de quem está
    em cada uma. O Voltar é o primeiro ícone, escuro. Sobe um pouco ao passar o mouse (desliga com Reduzir movimento). */
-#mundo-andar .vq-dock{position:absolute;left:50%;bottom:var(--vv-m,14px);transform:translateX(-50%);z-index:2;display:flex;align-items:flex-end;gap:4px;max-width:calc(100% - 2 * var(--vv-m,14px));padding:8px 10px 6px;box-sizing:border-box;overflow-x:auto;overflow-y:visible;scrollbar-width:none;
+#mundo-andar .vq-dock{position:absolute;left:50%;bottom:var(--vv-m,14px);transform:translateX(-50%);z-index:2;display:flex;align-items:flex-end;gap:4px;max-width:calc(100% - 2 * var(--vv-m,14px));padding:8px 10px 6px;box-sizing:border-box;overflow:visible;scrollbar-width:none;
   background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.85);border-radius:22px;
   box-shadow:0 0 0 1px rgba(31,29,26,.08),0 22px 48px -20px rgba(31,29,26,.45);font-family:var(--vv-texto)}
 #mundo-andar .vq-dock::-webkit-scrollbar{display:none}
