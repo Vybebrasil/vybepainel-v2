@@ -152,3 +152,22 @@ test('memória do VYBES mostra o que os chats decidiram', async () => {
   assert.match(t, /09\/11 · Horário bom: Posts às 18h/);
   assert.doesNotMatch(t, /Nenhum comentário/);
 });
+
+test('regras de marca registradas antes da conversão viram regras uma vez só', async () => {
+  const { converterRegrasPendentes, garantirTabelaDeRegistros } = await import('../server/mcp-ecossistema.js');
+  const { regrasDoCliente } = await import('../server/assistente-regras.js');
+  const { db, sql } = await banco();
+  try {
+    await sql`CREATE TABLE vybe_cliente_registros (id BIGSERIAL PRIMARY KEY, cliente_id BIGINT NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL,
+      status TEXT NOT NULL, resumo TEXT NOT NULL, decisoes TEXT, proximos TEXT, conteudo TEXT, origem TEXT NOT NULL, drive_id TEXT, drive_erro TEXT,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
+    await sql`INSERT INTO vybe_cliente_registros (cliente_id, tipo, titulo, status, resumo, decisoes, origem) VALUES
+      (1, 'regra_de_marca', 'Cores', 'aprovado', 'r', '- Nunca fundo preto
+- Laranja só em destaque', 'Claude.ai · antigo'),
+      (1, 'aprendizado', 'Horário', 'aprovado', 'Posts às 18h', null, 'Claude.ai · antigo')`;
+    await garantirTabelaDeRegistros(sql); // cria a coluna e converte o que estava pendente
+    assert.deepEqual((await regrasDoCliente(sql, 1)).sort(), ['Laranja só em destaque', 'Nunca fundo preto']);
+    assert.deepEqual(await converterRegrasPendentes(sql), { registros: 0, regras: 0 });
+    assert.equal((await regrasDoCliente(sql, 1)).length, 2);
+  } finally { await db.close(); }
+});
