@@ -4055,6 +4055,15 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-fila-meio small{font-size:12px;line-height:1.4;color:#6F6A62;overflow-wrap:anywhere}
 .vga-fila-meio small em{font-style:normal;font-weight:600;color:var(--c)}
 .vga-fila .vga-acoes{flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+/* Grupo de achados parecidos: "ver um a um" abre a lista dentro da linha, sem repetir avatar e cabeçalho. */
+.vga-fila li:has(> .vga-grupo){flex-wrap:wrap}
+.vga-fila li > .vga-grupo{flex:1 0 100%;margin:0 0 0 44px;min-width:0}
+.vga-grupo > summary{cursor:pointer;width:max-content;font:600 12px var(--vv-texto);color:#C2490C;list-style-position:inside}
+.vga-grupo > summary:focus-visible{outline:2px solid #F76808;outline-offset:2px;border-radius:4px}
+.vga-grupo > .vga-fila{margin-top:8px;gap:6px}
+.vga-grupo .vga-fila li{padding:8px 10px;border-left-width:1px;background:#FCFAF7}
+.vga-grupo .vga-fila li{flex-wrap:wrap;align-items:center}
+.vga-grupo .vga-fila .vga-acoes{max-width:none}
 .vga-fila-curta{margin-top:8px}.vga-fila-curta li{border-left-width:1px}
 .vga-lendo{margin:12px 0 0}
 .vga-link{all:unset;cursor:pointer;color:#C2490C;font-weight:600;border-bottom:1px solid currentColor}
@@ -4075,7 +4084,7 @@ body.trilho-largo .vv-trilho-btn .vv-trilho-n{position:static;margin-left:auto;m
 .vga-previa{margin:2px 0}.vga-previa summary{font-size:12px;color:#6F6A62;cursor:pointer}
 .vga-previa pre{margin:6px 0 2px;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 var(--vv-texto);color:#3A3732;background:#FBF8F3;border:1px solid #ECE6DC;border-radius:8px}
 .vga-acoes button.vga-sim{background:#FF7A2F;border-color:#FF7A2F;color:#FFF}
-@media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
+@media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila li > .vga-grupo{margin-left:0}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
 @media (max-width:900px){
   .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
   .vga-corpo{grid-template-columns:1fr;grid-template-rows:auto 1fr}.vga-lista{max-height:30vh;border-right:0;border-bottom:1px solid #ECE6DC}

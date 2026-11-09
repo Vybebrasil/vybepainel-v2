@@ -110,6 +110,18 @@
   // quem pediu (só essa pessoa confirma, em 5 min, no WhatsApp: server/assistente-acoes.js) e proposta de agente em
   // sombra. Tudo sai do perfil (etapa=perfil) e da atividade (etapa=agentes) que a tela do agente já lê; decidir usa as
   // mesmas rotas (etapa=achado). O número do dock é o tamanho de "Para decidir".
+  // O fato sem o nome do cliente na frente ("Alpha1: nenhum conteúdo…" → "nenhum conteúdo…"): é o que se repete no grupo.
+  function semCliente(a) {
+    let f = String(a.fato || '').trim(); const c = String(a.cliente || '').trim();
+    if (c && f.toLowerCase().startsWith(c.toLowerCase())) f = f.slice(c.length).replace(/^[\s:·–—-]+/, '');
+    return f;
+  }
+  function tituloDoGrupo(as) {
+    const fatos = new Set(as.map(semCliente)), clientes = [...new Set(as.map((a) => String(a.cliente || '').trim()).filter(Boolean))];
+    const comum = fatos.size === 1 ? [...fatos][0] : '';
+    const quantos = clientes.length === as.length ? `${as.length} clientes` : `${as.length} vezes`;
+    return { titulo: comum ? `${quantos}: ${comum.charAt(0).toLowerCase() + comum.slice(1)}` : `${as.length} achados do mesmo tipo`, exemplo: comum ? '' : String(as[0].fato || ''), clientes };
+  }
   // Pedido de aprovação de agente em sombra (core/porta-agentes.js na central): entra em "Para decidir" logo depois das
   // falhas; vencido não aparece. A atividade "aguardando aprovação" do mesmo pedido (porta_aprovacao) não repete em Esperando.
   const GRAVIDADE = { alta: 0, media: 1, baixa: 2 };
@@ -124,7 +136,15 @@
       const P = perfis[s.id], A = atividades[s.id], quem = { setor: s.id, agente: s.agente, nome: s.nome };
       if (P) {
         const abertos = P.achados?.abertos || [];
-        for (const a of abertos.filter((x) => x.gravidade === 'alta')) decidir.push({ ...quem, tipo: 'achado', em: a.primeiraVez, a });
+        // Agrupados (Paulo, 09/11/2026: a fila veio com 58 e boa parte era o mesmo achado repetido por cliente): os urgentes
+        // do mesmo agente e do mesmo tipo viram uma linha só, com resolver ou ignorar o grupo e "ver um a um".
+        const grupos = new Map();
+        for (const a of abertos.filter((x) => x.gravidade === 'alta')) { const k = a.tipo || 'fato:' + semCliente(a); if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(a); }
+        for (const [k, as] of grupos) {
+          const em = as.map((a) => String(a.primeiraVez || '')).sort()[0];
+          if (as.length === 1) decidir.push({ ...quem, tipo: 'achado', em, a: as[0] });
+          else decidir.push({ ...quem, tipo: 'grupo', em, chave: s.id + ':' + k, achados: as, ...tituloDoGrupo(as) });
+        }
         for (const l of (P.licoes || []).filter((x) => x.estado === 'em_revisao')) decidir.push({ ...quem, tipo: 'licao', em: l.em || l.criadaEm || '', l });
         if (P.projecao?.subirNivel) decidir.push({ ...quem, tipo: 'nivel', em: '', texto: P.projecao.subirNivel });
         const outros = abertos.filter((x) => x.gravidade !== 'alta');
@@ -142,8 +162,8 @@
         esperando.push({ ...quem, tipo: acao ? 'acao' : 'proposta', em: e.em, e });
       });
     }
-    const ordem = { falha: 0, aprovacao: 1, achado: 2, licao: 3, nivel: 4 };
-    decidir.sort((x, y) => ordem[x.tipo] - ordem[y.tipo] || String(x.em || '').localeCompare(String(y.em || '')));
+    const ordem = { falha: 0, aprovacao: 1, grupo: 2, achado: 2, licao: 3, nivel: 4 };
+    decidir.sort((x, y) => ordem[x.tipo] - ordem[y.tipo] || (y.achados?.length || 1) - (x.achados?.length || 1) || String(x.em || '').localeCompare(String(y.em || '')));
     acompanhar.sort((x, y) => y.n - x.n);
     return { decidir, acompanhar, esperando, total: decidir.length };
   }
@@ -157,13 +177,20 @@
     return { ...filaDoDono({ agentes: ag, perfis, atividades, pedidos: st.estados.dados?.pedidos || [] }), lidos: Object.keys(perfis).length, de: ag.length };
   }
   const ICONE_FILA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 4.6-3.4 8.4-8 9-4.6-.6-8-4.4-8-9V7z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
-  const TIPO = { falha: ['Parou com falha', '#D13D36'], aprovacao: ['Pede o seu OK', '#8E4EC6'], achado: ['Urgente', '#C2490C'], licao: ['Lição para confirmar', '#8E4EC6'], nivel: ['Pode ganhar autonomia', '#18A957'],
+  const TIPO = { falha: ['Parou com falha', '#D13D36'], aprovacao: ['Pede o seu OK', '#8E4EC6'], achado: ['Urgente', '#C2490C'], grupo: ['Urgente', '#C2490C'], licao: ['Lição para confirmar', '#8E4EC6'], nivel: ['Pode ganhar autonomia', '#18A957'],
     acao: ['Esperando o SIM de quem pediu', '#0D74CE'], proposta: ['Proposta esperando um dono', '#0D74CE'] };
   function itemFilaHtml(it, dono) {
     const [rot, cor] = TIPO[it.tipo], ini = String(it.agente).slice(0, 2).toUpperCase(), cli = (c) => (c ? (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c)) + ' · ' : '');
-    const de = `data-vga-de="${esc(it.setor)}"`, abrir = `<button type="button" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button>`;
-    let titulo = '', detalhe = '', acoes = abrir;
-    if (it.tipo === 'achado') {
+    // Dentro de um grupo: sem o avatar, o cabeçalho e o "Abrir" de novo (já estão na linha do grupo).
+    const de = `data-vga-de="${esc(it.setor)}"`, abrir = it.dentro ? '' : `<button type="button" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button>`;
+    let titulo = '', detalhe = '', acoes = abrir, extra = '';
+    if (it.tipo === 'grupo') {
+      const n = it.achados.length, chaves = esc(JSON.stringify(it.achados.map((a) => a.chave))), vis = it.clientes.slice(0, 6);
+      titulo = it.titulo;
+      detalhe = `${vis.length ? vis.map((c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c))).join(' ') + (it.clientes.length > vis.length ? ` e mais ${it.clientes.length - vis.length}` : '') + ' · ' : ''}${it.exemplo ? 'Ex.: ' + esc(it.exemplo) + ' · ' : ''}o mais antigo desde ${esc(quando(it.em))}`;
+      if (dono) acoes = `<button type="button" ${de} data-vga-lote="resolvido" data-vga-chaves="${chaves}">Resolver os ${n}</button><button type="button" ${de} data-vga-lote="ignorar" data-vga-chaves="${chaves}">Ignorar os ${n}</button>${abrir}`;
+      extra = `<details class="vga-grupo"><summary>Ver um a um (${n})<span hidden>${esc(it.chave)}</span></summary><ul class="vga-fila">${it.achados.map((a) => itemFilaHtml({ ...it, tipo: 'achado', a, dentro: true }, dono)).join('')}</ul></details>`;
+    } else if (it.tipo === 'achado') {
       const a = it.a; titulo = a.fato; detalhe = `${cli(a.cliente)}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''} · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}`;
       if (dono) acoes = `<button type="button" ${de} data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" ${de} data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" ${de} data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button>${abrir}`;
     } else if (it.tipo === 'licao') {
@@ -184,7 +211,7 @@
     } else {
       titulo = it.e.tarefa; detalhe = `${esc(it.nome)} está em modo sombra: propõe e espera um dono na central do VYBES · ${esc(quando(it.e.em))}`;
     }
-    return `<li style="--c:${cor}"><span class="vga-av" style="--e:${cor}">${esc(ini)}</span><span class="vga-fila-meio"><small><b>${esc(it.agente)}</b> · ${esc(it.nome)} · <em>${esc(rot)}</em></small><b>${esc(titulo)}</b><small>${detalhe}</small></span>${acoes ? `<span class="vga-acoes">${acoes}</span>` : ''}</li>`;
+    return `<li style="--c:${cor}">${it.dentro ? '' : `<span class="vga-av" style="--e:${cor}">${esc(ini)}</span>`}<span class="vga-fila-meio">${it.dentro ? '' : `<small><b>${esc(it.agente)}</b> · ${esc(it.nome)} · <em>${esc(rot)}${it.tipo === 'grupo' ? ` · ${it.achados.length} parecidos` : ''}</em></small>`}<b>${esc(titulo)}</b><small>${detalhe}</small></span>${acoes ? `<span class="vga-acoes">${acoes}</span>` : ''}${extra}</li>`;
   }
   function filaHtml() {
     const F = filaAgora(), dono = souDono(), lendo = F.lidos < F.de && setores().some((s) => st.perfis[s.id]?.lendo || !st.perfis[s.id]);
@@ -312,6 +339,21 @@
 
   // Atribuir (etapa padrão), ligar/desligar rotina ('rotina') ou dar retorno a um achado ou lição ('achado'): tudo pela
   // mesma ponte (server/vybes.js → central). A central confere se é dono.
+  // Resolver ou ignorar um grupo: um achado por vez, pela mesma rota; o que já estava fechado conta como feito.
+  async function emLote(chaves, acao, setor) {
+    st.enviando = true; st.msg = ''; pintar();
+    let feitos = 0, falhou = '';
+    for (const chave of chaves) {
+      try {
+        const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ etapa: 'achado', chave, acao }) });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok || d.error === 'Esse achado já foi fechado.') feitos++; else { falhou = d.error || 'Não foi possível salvar agora.'; break; }
+      } catch { falhou = 'Sem conexão com o servidor.'; break; }
+    }
+    st.msg = falhou ? `${feitos} de ${chaves.length} fechados. Parou: ${falhou}` : `${feitos} achado${feitos > 1 ? 's' : ''} ${acao === 'ignorar' ? 'ignorado' : 'resolvido'}${feitos > 1 ? 's' : ''}.`;
+    try { await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), lerPerfil(setor, true)]); } catch { /* a fila relê na próxima */ }
+    pintarContagem(); st.enviando = false; pintar();
+  }
   async function chamar(corpo, etapa = 'atribuir', ok = '', setor = st.setor) {
     st.enviando = true; st.msg = ''; pintar();
     try {
@@ -338,6 +380,12 @@
       const ok = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar pedido'; }, 1800); };
       (navigator.clipboard?.writeText(texto) || Promise.reject()).then(ok, () => { st.msg = 'Não deu para copiar sozinho: selecione o texto e copie.'; pintar(); });
       return;
+    }
+    if (b.dataset.vgaLote) {
+      let chaves = []; try { chaves = JSON.parse(b.dataset.vgaChaves || '[]'); } catch { /* sem chaves */ }
+      if (!chaves.length || st.enviando) return;
+      if (!confirm(`${b.dataset.vgaLote === 'ignorar' ? 'Ignorar' : 'Marcar como resolvidos'} os ${chaves.length} achados deste grupo?`)) return;
+      emLote(chaves, b.dataset.vgaLote, b.dataset.vgaDe || st.setor); return;
     }
     // Pedido de agente em sombra: aprovar executa a ação guardada; recusar não faz e vira aprendizado (motivo opcional).
     if (b.dataset.vgaAprovacao) {
