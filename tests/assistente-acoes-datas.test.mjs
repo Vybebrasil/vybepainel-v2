@@ -16,7 +16,7 @@ async function banco() {
       (21,NULL,'Arte - Backdrop',NULL,${DEMANDAS},'nova',NULL,'2026-11-12','2026-11-05');
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);
     INSERT INTO vybe_status VALUES(${PROD},'pode_fazer','Pode Fazer'),(${DEMANDAS},'nova','Nova Demanda');
-    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);INSERT INTO vybe_clientes VALUES(8,'DiaLab');
+    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;INSERT INTO vybe_clientes VALUES(8,'DiaLab');
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);INSERT INTO vybe_conteudo_clientes VALUES(20,8),(21,8);
     CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(20,2);
     CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint);INSERT INTO vybe_cliente_pessoas VALUES(8,5);

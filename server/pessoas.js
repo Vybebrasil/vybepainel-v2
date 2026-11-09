@@ -5,7 +5,7 @@
 //
 // Quem vê o quê (decidido aqui, no servidor; a tela só reflete):
 //  - Gestão = quem administra (vybe_pessoas.admin) e os quatro donos (Paulo, Vinícius,
-//    Ewerton e Deivid, pelo primeiro nome, a mesma lista de vybe-mundo.js).
+//    Ewerton e Deivid, pelo id da pessoa, server/donos.js — não pelo primeiro nome).
 //  - Produtividade: cada pessoa recebe só o próprio score e o próprio detalhe. O ranking
 //    completo, o detalhe de outra pessoa, os pesos e as metas só saem para a gestão; só a
 //    gestão grava pesos, metas e capacidade.

@@ -14,7 +14,7 @@ async function banco(t){
  const {db,sql}=conexao();t.after(()=>db.close());
  await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true);
  INSERT INTO vybe_pessoas VALUES(1,'Paulo',true),(3,'Vinícius',true),(24,'Ewerton',true);
- CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,email text,responsavel text,segmento text);
+ CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean DEFAULT true,email text,responsavel text,segmento text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
  INSERT INTO vybe_clientes(id,nome,email) VALUES(10,'Serra Grande','contato@serra.example'),(11,'Mangaba',NULL),(12,'Mangaba Kids',NULL);
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
  INSERT INTO vybe_cliente_pessoas VALUES(10,3,0),(11,24,0);

@@ -29,7 +29,7 @@ export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes,
 
 export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '', dias = 120 }) {
   if (!Number.isSafeInteger(clienteId) || clienteId <= 0) throw new TypeError('Cliente inválido.');
-  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND COALESCE(ativo, true)`;
+  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
   if (!cliente) throw new TypeError('Cliente inválido.');
   const desde = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
   const linhas = await sql`SELECT u.corpo, u.autor, u.criado_em::text, c.titulo, c.id::text, c.monday_item_id
@@ -57,7 +57,7 @@ export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '',
 // Servem de exemplo de tom para a Vybe AI escrever legendas novas do mesmo cliente.
 export async function legendasAprovadas(sql, { cliente_id: clienteId, formato = '', limite = 8 }, { normalizar } = {}) {
   if (!Number.isSafeInteger(clienteId) || clienteId <= 0) throw new TypeError('Cliente inválido.');
-  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND COALESCE(ativo, true)`;
+  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
   if (!cliente) throw new TypeError('Cliente inválido.');
   const ler = normalizar || (await import('./planejamentos.js')).normalizarConteudo;
   const planos = await sql`SELECT mes::text, conteudo FROM vybe_planejamentos

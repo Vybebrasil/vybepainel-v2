@@ -16,7 +16,7 @@ async function banco() {
     CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text);
     INSERT INTO vybe_status VALUES(${PROD},'pode_fazer','Pode Fazer'),(${PROD},'para_agendar','Para agendar'),(${PROD},'agendado','Agendado'),
       (${PROD},'para_aprovacao','Para aprovação'),(${PROD},'alteracao','Alteração'),(${PROD},'finalizado','Finalizado');
-    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);INSERT INTO vybe_clientes VALUES(7,'Hebravet');
+    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;INSERT INTO vybe_clientes VALUES(7,'Hebravet');
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);INSERT INTO vybe_conteudo_clientes VALUES(10,7),(11,7),(12,7),(13,7);
     CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint);INSERT INTO vybe_conteudo_responsaveis VALUES(10,2),(12,2);
     CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint);INSERT INTO vybe_cliente_pessoas VALUES(7,5);
@@ -272,7 +272,7 @@ test('trocar responsável (redistribuir): só administração; troca de quem é 
 test('criar com briefing (áudio do cliente pedindo peça nova): o resumo mostra e a peça nasce com ele', async () => {
   const { db, sql } = await banco();
   try {
-    await db.exec(`CREATE TABLE IF NOT EXISTS vybe_clientes_extra(x int); ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true; INSERT INTO vybe_clientes VALUES(9,'Gonzalez Gastronomia',true);`);
+    await db.exec(`CREATE TABLE IF NOT EXISTS vybe_clientes_extra(x int); ALTER TABLE vybe_clientes ADD COLUMN ativo boolean DEFAULT true; INSERT INTO vybe_clientes(id,nome,ativo) VALUES(9,'Gonzalez Gastronomia',true);`);
     const p = await prepararAcao(sql, 1, { acao: 'criar', formato: 'Card', cliente: 'Gonzalez', titulo: 'Rodízio de quarta', veiculacao: '2099-01-07', briefing: 'Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante.' }, segredo);
     assert.match(p.resumo, /\n📝 Briefing: “Rodízio de pizza toda quarta, foto da pizza de calabresa, tom elegante\.”$/);
     const criados = [];

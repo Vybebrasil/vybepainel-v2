@@ -498,7 +498,7 @@ async function semVeiculacaoParaRedacao(sql, quem, ids, clienteId, painel) {
     FROM vybe_conteudos c WHERE c.id = ANY(${ids}::bigint[]) AND c.veiculacao IS NULL AND c.removido_em IS NULL`;
   if (!pecas.length) return [];
   const heads = await sql`SELECT p.id::text AS id, p.nome FROM vybe_cliente_pessoas h JOIN vybe_pessoas p ON p.id = h.pessoa_id
-    WHERE h.cliente_id = ${clienteId} AND COALESCE(p.ativo, true) ORDER BY p.nome`;
+    WHERE h.cliente_id = ${clienteId} AND COALESCE(p.ativo,true) ORDER BY p.nome`;
   const f = painel || await import('../api/conteudo.js');
   const avisos = [];
   const quemAvisar = heads.map((h) => '@' + String(h.nome).split(' ')[0]).join(' ');
@@ -641,7 +641,7 @@ export async function agendaDeCaptacoes(sql, { inicio = '', dias = 7, listar = l
   const dia = diaValido(inicio) ? inicio : diaValido(hoje) ? hoje : new Intl.DateTimeFormat('en-CA', { timeZone: FUSO }).format(new Date());
   const [r, clientes, nossas, vinculos] = await Promise.all([
     listar(dia, { dias }),
-    sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`,
+    sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`,
     (async () => (await captacoesProntas(sql)) ? sql`SELECT id::text AS id, evento_google FROM vybe_captacoes WHERE evento_google IS NOT NULL AND estado <> 'cancelada'` : [])(),
     (async () => (await vinculosProntos(sql)) ? sql`SELECT a.evento_google, a.cliente_id::text AS id, c.nome FROM vybe_agenda_clientes a JOIN vybe_clientes c ON c.id = a.cliente_id` : [])(),
   ]);
@@ -672,7 +672,7 @@ export async function vincularCliente(sql, quem, { evento, cliente_id } = {}) {
   if (!eventoValido(evento)) throw erro('Evento da agenda inválido.');
   if (!cliente_id) { await sql`DELETE FROM vybe_agenda_clientes WHERE evento_google = ${evento}`; return { cliente: null }; }
   if (!/^\d{1,18}$/.test(String(cliente_id))) throw erro('Cliente inválido.');
-  const [c] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${cliente_id} AND COALESCE(ativo, true)`;
+  const [c] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${cliente_id} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
   if (!c) throw erro('Cliente não encontrado.', 404);
   const pessoaId = quem?.pessoa?.id ? String(quem.pessoa.id) : null;
   await sql`INSERT INTO vybe_agenda_clientes (evento_google, cliente_id, definido_por) VALUES (${evento}, ${c.id}, ${pessoaId})
@@ -706,7 +706,7 @@ export async function criarEvento(sql, quem, d = {}, { buscar = fetch, obterToke
   let cliente = null;
   if (d.cliente_id) {
     if (!/^\d{1,18}$/.test(String(d.cliente_id))) throw erro('Cliente inválido.');
-    [cliente] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${d.cliente_id} AND COALESCE(ativo, true)`;
+    [cliente] = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE id = ${d.cliente_id} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
     if (!cliente) throw erro('Cliente não encontrado.', 404);
   }
   if (tipo === 'captacao' && !cliente) throw erro('Captação precisa do cliente.');

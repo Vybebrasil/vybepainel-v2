@@ -171,7 +171,7 @@ export async function sincronizarDoDrive(sql, quem, { buscar = roteirosNoDrive, 
   await exigirTabelas(sql);
   const [docs, clientes, conhecidos] = await Promise.all([
     buscar(),
-    sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`,
+    sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`,
     sql`SELECT doc_id FROM vybe_roteiros`,
   ]);
   const ja = new Set(conhecidos.map((r) => r.doc_id));
@@ -202,4 +202,4 @@ export async function roteirosDosConteudos(sql, ids = []) {
 }
 
 // Clientes para escolher ao incluir ou corrigir um roteiro.
-export const clientesDosRoteiros = (sql) => sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`;
+export const clientesDosRoteiros = (sql) => sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;

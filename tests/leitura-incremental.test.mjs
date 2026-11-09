@@ -18,7 +18,7 @@ const PRODUCAO = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`
-    CREATE TABLE vybe_clientes (id int primary key, nome text, ativo boolean);
+    CREATE TABLE vybe_clientes (id int primary key, nome text, ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_pessoas (id int primary key, monday_user_id text, nome text);
     CREATE TABLE vybe_conteudos (
       id int primary key, monday_item_id text, titulo text, board_id bigint,

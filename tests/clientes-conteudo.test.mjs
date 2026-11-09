@@ -4,7 +4,7 @@ import { conexao } from './postgres.mjs';
 import { substituirClientes } from '../server/clientes-conteudo.js';
 async function base() {
   const {db,sql}=conexao();
-  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+  await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,clientes_texto text,atualizado_em timestamptz);
     CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint REFERENCES vybe_conteudos,cliente_id bigint REFERENCES vybe_clientes,PRIMARY KEY(conteudo_id,cliente_id));
     CREATE TABLE vybe_conteudo_eventos(conteudo_id bigint REFERENCES vybe_conteudos,tipo text,de text,para text,autor_id bigint);

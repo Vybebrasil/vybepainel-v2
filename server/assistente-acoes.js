@@ -261,7 +261,7 @@ async function montarCriacao(sql, pedido, agora) {
   if (demandas && !pedido.prazo) throw invalido('Diga o prazo de entrega da demanda.');
   const menos2 = veiculacao ? new Date(Date.parse(veiculacao + 'T12:00:00Z') - 2 * 864e5).toISOString().slice(0, 10) : hoje;
   const prazo = menos2 < hoje ? hoje : menos2;
-  const clientes = await sql`SELECT nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
+  const clientes = await sql`SELECT nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
   const cliente = clientes.length === 1 ? clientes[0] : clientes.find((c) => normal(c.nome) === normal(pedido.cliente));
   if (!String(pedido.cliente || '').trim() || !cliente) throw invalido(clientes.length ? `Mais de um cliente com esse nome: ${clientes.map((c) => c.nome).join(', ')}.` : 'Não achei esse cliente.');
   // Um ou mais responsáveis (o cadastro guiado pergunta "pra quem?"), cada um pelo nome, sem ambiguidade.
@@ -359,7 +359,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
         WHERE cc.conteudo_id = ${Number(c.id)} ORDER BY cl.nome LIMIT 1`;
     } else {
       const nome = String(pedido.cliente || pedido.busca || '').trim();
-      const achados = nome.length >= 2 ? await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true) AND nome ILIKE ${'%' + nome + '%'} ORDER BY nome LIMIT 5` : [];
+      const achados = nome.length >= 2 ? await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) AND nome ILIKE ${'%' + nome + '%'} ORDER BY nome LIMIT 5` : [];
       cliente = achados.length === 1 ? achados[0] : achados.find((x) => normal(x.nome) === normal(nome)) || null;
       if (!cliente) throw invalido(achados.length ? `Mais de um cliente com "${nome}": ${achados.map((x) => x.nome).join(', ')}.` : `Não achei o cliente "${nome.slice(0, 60)}".`);
     }

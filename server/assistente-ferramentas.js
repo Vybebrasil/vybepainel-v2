@@ -168,7 +168,7 @@ async function executarFerramentaBase(sql,nome,args,identidade={}){
    }
   }
  }else if(nome==='listar_clientes'){
-  modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE COALESCE(ativo,true) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
+  modulo='clientes';itens=await sql`SELECT id::text,nome,responsavel AS carteira FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) AND (${q}='' OR nome ILIKE '%'||${q}||'%') ORDER BY nome,id LIMIT ${limit} OFFSET ${offset}`;
  }else if(nome==='listar_responsaveis'){
   modulo='pessoas';
   // Com o boneco do Escritório (só a figura do Habbo; o resto das preferências não sai), para o VYBES mostrar cada pessoa.

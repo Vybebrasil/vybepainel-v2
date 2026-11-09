@@ -34,7 +34,7 @@ export async function compromissosProximos(sql, { agora = Date.now(), listar = l
     || (tipoNaAgenda(e) === 'captacao' && fimEntre(e))));
   if (!proximos.length) return [];
   let clientes = [];
-  try { clientes = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE COALESCE(ativo, true)`; } catch { clientes = []; }
+  try { clientes = await sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`; } catch { clientes = []; }
   const P = vm.runInContext('PESSOAS', codigoDoPainel().ctx);
   const equipe = await sql`SELECT nome, monday_user_id::text AS monday_id, COALESCE(admin, false) AS admin FROM vybe_pessoas WHERE ativo IS TRUE AND monday_user_id IS NOT NULL`;
   const porMonday = new Map(equipe.map((p) => [p.monday_id, p]));

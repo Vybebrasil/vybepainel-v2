@@ -340,7 +340,7 @@ export function mensagemResumoCliente({ cliente, inicio, dia, publicados, aprova
 export async function resumoCliente(sql, clienteId, dia) {
   if (!Number.isSafeInteger(clienteId) || clienteId <= 0) throw new TypeError('Cliente inválido.');
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
-  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND COALESCE(ativo, true)`;
+  const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
   if (!cliente) throw new TypeError('Cliente inválido.');
   const inicio = somarDias(dia, -((new Date(dia + 'T12:00:00Z').getUTCDay() + 6) % 7)), segunda = somarDias(inicio, 7), domingo = somarDias(inicio, 13);
   const pecas = await sql`SELECT c.titulo, c.veiculacao::text AS veiculacao, s.rotulo AS status, COALESCE(s.final, false) AS final
@@ -454,7 +454,7 @@ export async function calendarioClientes(sql, mesIso, clienteId = null) {
   if (typeof mesIso !== 'string' || !/^\d{4}-\d{2}/.test(mesIso)) throw new TypeError('Mês inválido.');
   const mes = mesIso.slice(0, 7), inicio = mes + '-01';
   const [ano, m] = mes.split('-').map(Number), fim = new Date(Date.UTC(ano, m, 0)).toISOString().slice(0, 10);
-  const clientes = (await sql`SELECT id::text, nome FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`);
+  const clientes = (await sql`SELECT id::text, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`);
   if (clienteId && !clientes.some((c) => c.id === String(clienteId))) throw new TypeError('Cliente inválido.');
   const planejamentos = await sql`SELECT cliente_id::text, estado FROM vybe_planejamentos
     WHERE estado <> 'arquivado' AND mes BETWEEN ${inicio}::date AND ${fim}::date`;

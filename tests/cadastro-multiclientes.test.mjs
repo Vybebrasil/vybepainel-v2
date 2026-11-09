@@ -18,7 +18,7 @@ test('seleção soma e remove clientes sem avançar nem perder o filtro',()=>{
 test('criação nos dois quadros persiste todos os clientes uma vez e reverte falhas',async()=>{
  const {db,sql}=conexao();
  try {
- await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean);
+ await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text,ativo boolean); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,monday_index int);
  CREATE TABLE vybe_conteudos(id bigserial PRIMARY KEY,board_id bigint,titulo text,formato text,clientes_texto text,status_chave text,etapa text,grupo_id text,prazo date,veiculacao date,briefing text,prioridade text,status_em timestamptz);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint REFERENCES vybe_conteudos,cliente_id bigint REFERENCES vybe_clientes,PRIMARY KEY(conteudo_id,cliente_id));
