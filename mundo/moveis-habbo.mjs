@@ -27,7 +27,8 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
   // Altura: até onde o desenho sobe, visto do canto do fundo do ladrilho de origem (u + v = −1).
   let topo = 0.04; // tapete e piso decorado: uma camada só
   for (const v of vistas) topo = Math.max(topo, (-16 - v.oy) / 32);
-  if (Number.isFinite(alturaMax)) topo = Math.max(Math.min(topo, alturaMax + 0.5), Math.min(alturaMax, topo));
+  // A altura vem do desenho: a ficha do Habbo tem altura errada em muita peça decorativa (a TV hygge_c25_tv diz 0,1).
+  void alturaMax;
   topo = Math.min(10, topo);
   const ny = Math.max(1, Math.ceil(topo * NIVEL_HABBO * N));
   const total = nx * ny * nz;
@@ -140,8 +141,13 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
       }
       return NaN;
     };
+    // Profundidade de um pixel sempre dentro da pegada da peça (nunca entra na parede de trás nem sai pela frente):
+    // a = (t + sx/32)/2 + 0,5 entre 0 e W e b = (t − sx/32)/2 + 0,5 entre 0 e D. Sem vizinho que tocou o miolo, o
+    // plano do meio da peça (a + b = (W + D)/2).
+    const dentro = (t, sx) => { const lo = Math.max(-1 - sx / 32, -1 + sx / 32) + .02, hi = Math.min(2 * W - 1 - sx / 32, 2 * D - 1 + sx / 32) - .02; return lo <= hi ? Math.min(hi, Math.max(lo, t)) : (lo + hi) / 2; };
     for (const q of pixels) {
-      const t = profundidade(q.lx, q.ly); if (Number.isNaN(t)) continue;
+      let t = profundidade(q.lx, q.ly); if (Number.isNaN(t)) t = (W + D) / 2 - 1;
+      t = dentro(t, q.sx);
       const a = (t + q.sx / 32) / 2 + .5, b = (t - q.sx / 32) / 2 + .5, h = (t * 16 - q.sy) / 32;
       if (h < -.02) continue;
       finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, cor: hex(q.c) });
@@ -243,7 +249,7 @@ const CACHE = new Map();
 // Peça esculpida para (classe, direção, estado), guardada: as salas repetem o mesmo móvel.
 // Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
 // segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
-const VERSAO_ESCULTURA = 'e4';
+const VERSAO_ESCULTURA = 'e5';
 const guardado = (() => {
   let banco = null;
   const abrir = () => banco || (banco = new Promise((ok) => {

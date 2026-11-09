@@ -66,7 +66,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
   const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 16, D + 10); sol.target.position.set(W / 2, 0, D / 2);
   sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048);
-  const s = Math.max(W, D) + 4; Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0005;
+  const s = Math.max(W, D) + 4; Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0008; sol.shadow.normalBias = .035; // sem serrilhado nas faces grandes (patamares, paredes)
   const preenche = new THREE.DirectionalLight('#CFE4FF', .45); preenche.position.set(-10, 12, D + 6);
   cena.add(sol, sol.target, preenche);
   // Luz do quarto: a que o dono escolheu no Escritório (sala_luz) e o dia e a noite pela hora da Bahia, ou pela hora
@@ -84,11 +84,13 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     cena.add(gLuzes); sujar(true);
   }
   function aplicarLuz() {
+    // Quarto é interior, como no Habbo: nunca escurece. À noite a luz só esquenta um pouco (lâmpada em vez de sol) e
+    // as luminárias acendem; a cor escolhida pelo dono tinge de leve.
     noite = noiteDaHora(horaAgora() * 60);
     const tinta = new THREE.Color('#FFFFFF').lerp(new THREE.Color(corDaLuz || '#FFFFFF'), corDaLuz ? .35 : 0);
-    if (hemi) { hemi.intensity = 1.25 * (1 - .55 * noite); hemi.color.set('#F6FAFF').lerp(new THREE.Color('#7A8CC8'), .6 * noite).multiply(tinta); }
-    sol.intensity = 1.9 * (1 - .8 * noite); sol.color.set('#FFF1D8').lerp(new THREE.Color('#8FA6E8'), noite).multiply(tinta);
-    preenche.intensity = .45 * (1 - .4 * noite);
+    if (hemi) { hemi.intensity = 1.25 * (1 - .12 * noite); hemi.color.set('#F6FAFF').lerp(new THREE.Color('#FFE3C2'), .35 * noite).multiply(tinta); }
+    sol.intensity = 1.9 * (1 - .2 * noite); sol.color.set('#FFF1D8').lerp(new THREE.Color('#FFD39A'), .5 * noite).multiply(tinta);
+    preenche.intensity = .45 * (1 - .2 * noite);
     acenderLuzes(); sujar(true);
   }
   const liberar = (g) => g?.traverse?.((o) => { o.geometry?.dispose?.(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m?.dispose?.()); });
@@ -101,10 +103,11 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
   for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
     const n = P.grade[y][x]; if (n < 0) continue;
     const topo = n * NIVEL, [a, b] = pisoPintado(x, y) || pisoAtual;
-    casca.caixa(x + .5, -.62, y + .5, 1, .5 + topo, 1, '#C9C1B2'); // a base de concreto aparece nas bordas
-    casca.caixa(x + .5, -.12, y + .5, 1, .12 + topo, 1, (x + y) % 2 ? a : b);
-    // Degrau: o ladrilho mais alto que o vizinho da frente ganha a borda clara (lê-se a escada de longe).
-    if (n > 0 && (P.nivel(x, y + 1) < n || P.nivel(x + 1, y) < n)) casca.caixa(x + .5, topo - .02, y + .5, 1.002, .04, 1.002, misturar(a, '#FFFFFF', .35));
+    // Como no Habbo: o topo do ladrilho na cor do piso e a lateral de um patamar no mesmo piso, mais escuro (sem faixa
+    // de realce); a base de concreto só embaixo do chão, na borda da maquete.
+    casca.caixa(x + .5, -.62, y + .5, 1, .5, 1, '#C9C1B2');
+    if (topo > 0) casca.caixa(x + .5, -.12, y + .5, 1, topo, 1, misturar(a, '#1F1D1A', .32));
+    casca.caixa(x + .5, topo - .12, y + .5, 1, .12, 1, (x + y) % 2 ? a : b);
   }
   gCasca = casca.montar(); cena.add(gCasca); sujar(true);
   }
