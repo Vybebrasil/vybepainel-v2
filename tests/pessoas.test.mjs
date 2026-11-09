@@ -26,7 +26,9 @@ async function banco(t, { migrar = true, rh = true } = {}) {
     INSERT INTO vybe_pessoas VALUES (1,'Paulo Martins',true,true,false),(2,'Ana Criação',true,true,false),(3,'Bruno Vídeo',true,true,false),(4,'Carla Atendimento',true,true,false),(5,'Operador',true,true,true),(6,'Saiu',false,false,false);
     INSERT INTO vybe_escritorio_funcoes VALUES (2,'criacao'),(3,'producao');
     INSERT INTO vybe_status VALUES (1,'finalizado','Finalizado',true),(1,'em_andamento','Em andamento',false),(1,'segurar_post','Segurar Post',false);`);
-  if (migrar) { const m = readFileSync('migrations/2026-11-07-pessoas.sql', 'utf8'); await db.exec(m); await db.exec(m); }
+  if (migrar) { const m = readFileSync('migrations/2026-11-07-pessoas.sql', 'utf8'); await db.exec(m); await db.exec(m);
+    await db.exec(`CREATE TABLE IF NOT EXISTS vybe_clientes (id bigserial PRIMARY KEY, nome text, ativo boolean DEFAULT true, nao_e_cliente boolean DEFAULT false, apagado_em timestamptz)`);
+    const pc = readFileSync('migrations/2026-11-09-projetos-cliente.sql', 'utf8'); await db.exec(pc); await db.exec(pc); }
   if (migrar && rh) { const m = readFileSync('migrations/2026-11-08-rh-pedidos-clima.sql', 'utf8'); await db.exec(m); await db.exec(m); }
   return { db, sql };
 }
@@ -254,6 +256,17 @@ test('projetos: só a gestão cria; responsável marca a etapa; carga soma peça
   // Editar mantendo uma etapa pelo id e removendo a outra.
   r = await chamar(sql, paulo, { body: { ...projeto, id: pid, etapas: [{ ...textos, feita: true }] } }); assert.equal(r.codigo, 200);
   r = await chamar(sql, ana, { query: { aba: 'projetos' } }); assert.deepEqual(r.body.projetos[0].etapas.map((e) => [e.id, e.feita]), [[textos.id, true]]);
+});
+
+test('projetos: cliente pelo cadastro ativo (auditoria 09/11); inativo e "não é cliente" são recusados', async (t) => {
+  const { db, sql } = await banco(t);
+  await db.exec(`INSERT INTO vybe_clientes (id, nome, ativo, nao_e_cliente) VALUES (50,'Grupo Serra Grande',true,false),(51,'Irecê Modas',false,false),(52,'Vybe',true,true)`);
+  const semana = calc.util.inicioDaSemana(hoje), base = { acao: 'projeto_salvar', nome: 'Campanha 40 anos', tipo: 'campanha', inicio: semana, fim: calc.util.somarDias(semana, 14), etapas: [] };
+  let r = await chamar(sql, paulo, { body: { ...base, cliente_id: '50', cliente: 'texto ignorado' } }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
+  for (const id of ['51', '52']) { r = await chamar(sql, paulo, { body: { ...base, cliente_id: id } }); assert.equal(r.codigo, 400); }
+  r = await chamar(sql, paulo, { query: { aba: 'projetos' } });
+  assert.deepEqual(r.body.projetos.map((p) => [p.cliente_id, p.cliente]), [['50', 'Grupo Serra Grande']]);
+  assert.deepEqual(r.body.clientes.map((c) => c.nome), ['Grupo Serra Grande']);
 });
 
 test('academy: trilha semeada, gestão atribui, cada um marca as próprias aulas', async (t) => {

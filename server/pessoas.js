@@ -243,7 +243,7 @@ async function projetos(sql, quem, query, estado) {
   const semana = calc.util.dataValida(String(query.semana || '')) ? calc.util.inicioDaSemana(String(query.semana)) : calc.util.inicioDaSemana(hoje);
   const fim = calc.util.somarDias(semana, 6);
   const [cfg, pessoas] = await Promise.all([config(sql, estado), pessoasAtivas(sql, estado)]);
-  const lista = await ler(estado, sql`SELECT id::text AS id, nome, tipo, cliente, descricao, inicio::text AS inicio, fim::text AS fim, status
+  const lista = await ler(estado, sql`SELECT id::text AS id, nome, tipo, cliente, cliente_id::text AS cliente_id, descricao, inicio::text AS inicio, fim::text AS fim, status
     FROM vybe_projetos WHERE status <> 'cancelado' OR fim >= ${calc.util.somarDias(hoje, -30)}::date ORDER BY inicio, id`);
   const etapas = await ler(estado, sql`SELECT e.id::text AS id, e.projeto_id::text AS projeto_id, e.nome, e.responsavel::text AS responsavel, p.nome AS responsavel_nome,
       e.inicio::text AS inicio, e.fim::text AS fim, e.esforco, e.feita, e.ordem
@@ -257,7 +257,9 @@ async function projetos(sql, quem, query, estado) {
     WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false) AND c.status_chave IS DISTINCT FROM 'segurar_post'
       AND LEAST(c.prazo, c.veiculacao) BETWEEN ${calc.util.somarDias(semana, -14)}::date AND ${fim}::date`;
   const ativos = comEtapas.filter((p) => !['concluido', 'cancelado'].includes(p.status));
-  return { hoje, gestao, semana, fim, capacidade: cfg.capacidade, pessoas: pessoas.map(({ id, nome }) => ({ id, nome })),
+  // Clientes ativos para a escolha do projeto (a mesma regra única: ativo e não marcado "não é cliente").
+  const clientes = await Promise.resolve(sql`SELECT id::text AS id, nome FROM vybe_clientes WHERE apagado_em IS NULL AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`).catch(() => []);
+  return { hoje, gestao, semana, fim, capacidade: cfg.capacidade, clientes, pessoas: pessoas.map(({ id, nome }) => ({ id, nome })),
     projetos: comEtapas, linha: calc.linhaDoTempo(comEtapas.filter((p) => p.status !== 'cancelado'), hoje),
     carga: calc.cargaDaSemana({ pessoas, pecas, etapas: ativos.flatMap((p) => p.etapas), inicio: semana, capacidade: cfg.capacidade }) };
 }
@@ -472,7 +474,15 @@ async function escrever(sql, quem, b) {
       const id = idOuNulo(b.id, 'Projeto'), nome = texto(b.nome, 200, 'Nome do projeto', true);
       const tipo = umDe(b.tipo || 'outro', ['evento', 'lancamento', 'site', 'campanha', 'outro'], 'Tipo');
       const status = umDe(b.status || 'planejado', ['planejado', 'andamento', 'concluido', 'cancelado'], 'Status');
-      const cliente = texto(b.cliente, 200, 'Cliente'), descricao = texto(b.descricao, 2000, 'Descrição');
+      const descricao = texto(b.descricao, 2000, 'Descrição');
+      // Cliente pelo cadastro (auditoria 09/11): com cliente_id, o nome vem do cadastro ativo; sem ele, projeto interno.
+      const clienteId = idOuNulo(b.cliente_id, 'Cliente');
+      let cliente = clienteId ? '' : texto(b.cliente, 200, 'Cliente');
+      if (clienteId) {
+        const [c] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND apagado_em IS NULL AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
+        if (!c) falhar('Escolha um cliente ativo da lista.');
+        cliente = c.nome;
+      }
       const inicio = data(b.inicio, 'Início', true), fim = data(b.fim, 'Fim', true);
       if (fim < inicio) falhar('O fim do projeto vem depois do início.');
       if (!Array.isArray(b.etapas) || b.etapas.length > 40) falhar('Até 40 etapas por projeto.');
@@ -487,12 +497,12 @@ async function escrever(sql, quem, b) {
         for (const e of etapas) if (e.responsavel) await pessoaAtiva(tx, e.responsavel);
         let pid = id;
         if (pid) {
-          const [ok] = await tx`UPDATE vybe_projetos SET nome=${nome}, tipo=${tipo}, status=${status}, cliente=${cliente}, descricao=${descricao}, inicio=${inicio}::date, fim=${fim}::date, atualizado_em=now()
+          const [ok] = await tx`UPDATE vybe_projetos SET nome=${nome}, tipo=${tipo}, status=${status}, cliente=${cliente}, cliente_id=${clienteId}, descricao=${descricao}, inicio=${inicio}::date, fim=${fim}::date, atualizado_em=now()
             WHERE id=${pid} RETURNING id`;
           if (!ok) falhar('Projeto não encontrado.', 404);
         } else {
-          [{ id: pid }] = await tx`INSERT INTO vybe_projetos (nome, tipo, status, cliente, descricao, inicio, fim, criado_por)
-            VALUES (${nome}, ${tipo}, ${status}, ${cliente}, ${descricao}, ${inicio}::date, ${fim}::date, ${eu}) RETURNING id::text AS id`;
+          [{ id: pid }] = await tx`INSERT INTO vybe_projetos (nome, tipo, status, cliente, cliente_id, descricao, inicio, fim, criado_por)
+            VALUES (${nome}, ${tipo}, ${status}, ${cliente}, ${clienteId}, ${descricao}, ${inicio}::date, ${fim}::date, ${eu}) RETURNING id::text AS id`;
         }
         const manter = etapas.filter((e) => e.id).map((e) => e.id);
         await tx`DELETE FROM vybe_projeto_etapas WHERE projeto_id = ${pid} AND NOT (id::text = ANY(${manter}::text[]))`;
