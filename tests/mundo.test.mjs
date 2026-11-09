@@ -154,3 +154,11 @@ test('Minha sala: o quarto voxel tem a interface de decorar e o WASD do Escritó
   assert.match(mundo, /acao: 'decorar'/, 'botão Decorar no dock');
   assert.match(mundo, /podeDecorar\?\.\(zonaAberta\)/, 'só na sala que a pessoa pode decorar');
 });
+
+test('Loja, inventário e decorar mostram a arte do móvel (o que o quarto mostra), não o cubo do catálogo', () => {
+  const mundo = fs.readFileSync('vybe-mundo.js', 'utf8');
+  assert.doesNotMatch(mundo, /function ligarIconesVoxel/, 'mapaDesenharMovel sem troca por cubo');
+  assert.doesNotMatch(mundo, /iconeMovel\(decodeURIComponent/, 'imagem oficial do móvel não vira cubo');
+  const decorar = fs.readFileSync('vybe-mundo-decorar.js', 'utf8');
+  assert.match(decorar, /mapaDesenharMovel\(m, dir/, 'ícone do decorar pela arte do móvel');
+});

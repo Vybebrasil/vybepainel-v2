@@ -2735,11 +2735,8 @@
     try {
       modAvatar = modAvatar || await import(MUNDO_JS);
       const u = new URL(src), q = u.searchParams;
-      const movel = u.pathname.match(/\/imaging\/furniture\/([^/]+?)\.png$/);
-      if (movel) {
-        const lado = Number(q.get('size')) || 64, ic = modAvatar.iconeMovel(decodeURIComponent(movel[1]), lado, lado);
-        img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = ic.toDataURL(); img.classList.add('avatar-voxel'); return;
-      }
+      // Imagem de móvel fica a do próprio móvel (é o que a Minha sala desenha); só os bonecos viram o boneco voxel.
+      if (/\/imaging\/furniture\//.test(u.pathname)) { img.dataset.voxel = '1'; return; }
       const url = modAvatar.avatarVoxel(q.get('figure') || '', { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 });
       img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = url; img.classList.add('avatar-voxel');
     } catch (e) { console.error('[mundo] avatar', e); }
@@ -2748,30 +2745,9 @@
   new MutationObserver((ms) => { if (!ligado) return; for (const m of ms) { if (m.type === 'attributes') { if (m.target.dataset.voxel === '1' && HABBO.test(m.target.getAttribute('src') || '')) m.target.dataset.voxel = ''; trocarAvatar(m.target); } else m.addedNodes.forEach((n) => n.nodeType === 1 && trocarAvataresEm(n)); } })
     .observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
 
-  // Móveis: o Escritório desenha toda arte de móvel do Habbo por mapaDesenharMovel (ícones de sala,
-  // loja, inventário, troféus, baú…). Com o mundo ligado, o mesmo desenho sai como ícone voxel do
-  // mesmo tipo, no mesmo tamanho e posição; o resto do Escritório não percebe a troca.
-  const classeDoMovel = new WeakMap();
-  function ligarIconesVoxel() {
-    if (ligarIconesVoxel.feito || typeof window.mapaDesenharMovel !== 'function' || typeof window.mapaCarregarMovel !== 'function') return;
-    ligarIconesVoxel.feito = true;
-    const carregar = window.mapaCarregarMovel, desenhar = window.mapaDesenharMovel;
-    window.mapaCarregarMovel = function (classe) { const pr = carregar.apply(this, arguments); pr?.then?.((m) => { if (m?.dados) classeDoMovel.set(m.dados, classe); }).catch(() => {}); return pr; };
-    window.mapaDesenharMovel = function (m) {
-      const d = desenhar.apply(this, arguments);
-      try {
-        const classe = m?.dados && classeDoMovel.get(m.dados);
-        if (ligado && modAvatar && classe && d?.canvas) {
-          const ic = modAvatar.iconeMovel(classe, d.canvas.width, d.canvas.height), ctx = d.canvas.getContext('2d');
-          ctx.clearRect(0, 0, d.canvas.width, d.canvas.height); ctx.drawImage(ic, 0, 0);
-        }
-      } catch (e) { /* sem ícone voxel, fica o desenho de antes */ }
-      return d;
-    };
-    // Móveis já carregados antes da troca e artes já prontas: registra e refaz.
-    try { if (typeof MAPA_MOVEIS !== 'undefined') for (const [classe, pr] of MAPA_MOVEIS) pr?.then?.((m) => m?.dados && classeDoMovel.set(m.dados, classe)).catch(() => {}); } catch {}
-    try { if (typeof ESCRITORIO_ARTES_PRONTAS !== 'undefined') ESCRITORIO_ARTES_PRONTAS.clear(); if (typeof escritorio !== 'undefined') { escritorio.copaArte = ''; escritorio.bauArte = ''; } } catch {}
-  }
+  // Móveis: a Loja, o inventário, os troféus e o baú mostram a arte do próprio móvel (mapaDesenharMovel, sem troca).
+  // Antes, com o mundo ligado, ela virava um cubo voxel genérico do catálogo; desde que a Minha sala desenha cada móvel
+  // pixel a pixel da mesma arte (Paulo, 09/11/2026: "copiar exatamente igual"), o ícone é o que se vê no quarto.
 
   // Loja com o catálogo voxel da Vybe: as peças próprias primeiro, com nome e categoria novos; o acervo
   // antigo continua (quem tem, não perde) numa categoria própria. Compra e inventário seguem pela classe.
@@ -3570,7 +3546,7 @@
     if (ligado) {
       trocarAvataresEm(document.body);
       const depois = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 1500));
-      depois(() => garantirModulo().then((m) => { if (m) { ligarIconesVoxel(); ligarCatalogoVoxel(); } }));
+      depois(() => garantirModulo().then((m) => { if (m) ligarCatalogoVoxel(); }));
     }
   }
   // Classe aplicada antes do primeiro desenho, para a tela de módulos não piscar no tema antigo.

@@ -220,7 +220,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   comprar móveis, editar o quarto, como tinha no legado"): andar pelo clique e pelo WASD usa o movimento do Escritório
   (`escritorioIrPara`, `tecladoEscritorio`); o botão Decorar do dock (só na sala da pessoa) abre o `VybeDecorar`, que
   edita o quarto pela mesma interface de cena do andar antigo (`iniciarEdicao`, `segurar`, `girar`, `guardar`,
-  `definirItens`, `definirAcabamento`) e grava pela rota do editor do Escritório; a Loja é a do Escritório. Por cima do miolo esculpido vai uma casca fina com o desenho
+  `definirItens`, `definirAcabamento`) e grava pela rota do editor do Escritório; a Loja é a do Escritório. Na Loja, no
+  inventário e no painel de decorar o ícone do móvel é a arte dele (o que o quarto mostra), nunca o cubo do catálogo;
+  só os bonecos viram o boneco voxel. Por cima do miolo esculpido vai uma casca fina com o desenho
   do Habbo a cada 2 px (cor do pixel, contorno incluído), para cada peça ser reconhecível; as peças ficam guardadas no
   IndexedDB (`vybe-minha-sala`). Sala viva (Paulo, 09/11/2026: "visual, imersão, experiência"): paredes por trecho
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
