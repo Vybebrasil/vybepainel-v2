@@ -696,6 +696,7 @@
       </div>
       <aside class="vv-hoje-lado" aria-label="VYBES, atendimento, compromissos e atalhos">
         <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
+        ${window.VybeBoletim?.botaoHtml?.() || ''}
         ${window.VybePendencias?.atendimentoHtml?.() || ''}
         ${compromissosHtml()}
         <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
