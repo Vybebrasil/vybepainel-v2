@@ -299,7 +299,7 @@ function togglePerfFiltro(tipo, itens) {
 
 function getStatusBadge(status) {
   const s = status || '—';
-  const c = MONDAY_STATUS_COLORS[s] || { bg:'rgba(136,136,168,.12)', color:'#8888a8', border:'rgba(136,136,168,.25)' };
+  const c = fcCorDeStatus(s);
   return `<span style="background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">${s}</span>`;
 }
 
@@ -616,7 +616,7 @@ function renderDepartamentos(base, hoje, corte, periodoLabel) {
     itens.forEach(d => { statusCount[d.status] = (statusCount[d.status]||0)+1; });
     const statusTop = Object.entries(statusCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
     const statusHtml = statusTop.map(([s, q]) => {
-      const c = MONDAY_STATUS_COLORS[s] || { color:'#8888a8', bg:'rgba(136,136,168,.12)', border:'rgba(136,136,168,.25)' };
+      const c = fcCorDeStatus(s);
       const itensStatus = itens.filter(d => d.status === s);
       // Salvar no cache
       window.deptFiltroCache[cid][`status_${s}`] = itensStatus;
@@ -761,37 +761,8 @@ function renderPerformance() {
   // SEÇÃO 4: GRÁFICOS CHART.JS
   // ================================================================
   // Dados por colaborador (excluir sem responsável)
-  // Mapa de cores dos status do Monday
-  const STATUS_CORES = {
-    // Cores EXATAS extraídas via API do Monday.com (board 7829537690)
-    'Em andamento':          '#fdab3d', // laranja
-    'Em Andamento':          '#fdab3d', // laranja
-    'Falta D.A':             '#4eccc6', // verde-água
-    'Alteração':             '#df2f4a', // vermelho
-    'Finalizado':            '#9cd326', // verde-limão
-    'Aguardo':               '#9d50dd', // roxo
-    'A Fazer':               '#c4c4c4', // cinza
-    'Para agendar':          '#037f4c', // verde escuro
-    'Para Agendar':          '#037f4c', // verde escuro
-    'Para aprovação':        '#579bfc', // azul
-    'Para Aprovação':        '#579bfc', // azul
-    'Cap. Agendada':         '#ff007f', // rosa
-    'Ag. Aprovação Cliente': '#faa1f1', // rosa claro
-    'Ag. Aprovação Cliente': '#faa1f1', // rosa claro
-    'Ag. Info Cliente':      '#bca58a', // bege
-    'Falta Info':            '#ff6d3b', // laranja-vermelho
-    'Agendando Cap':         '#ff5ac4', // rosa-magenta
-    'Agendando Cap.':        '#ff5ac4', // rosa-magenta
-    'Segurar Post':          '#7f5347', // marrom
-    'Agendado':              '#a1e3f6', // azul bebê
-    'Pode Fazer':            '#ffcb00', // amarelo
-    // Status adicionais (não presentes no board mas usados no painel)
-    'Ag. Interno':           '#bca58a', // bege (similar a Ag. Info Cliente)
-    'Revisão':               '#fdab3d', // laranja
-    'Aprovado':              '#9cd326', // verde-limão
-    'Falta Briefing':        '#ff6d3b', // laranja-vermelho
-    'default':               '#676879'  // cinza escuro
-  };
+  // Cor de cada status: a do banco (vybe_status.cor, corDeStatus); sem ela, cinza (auditoria 09/11, A5).
+  const corDoStatusNoGrafico = (st) => (typeof corDeStatus === 'function' && corDeStatus(st)?.cor) || '#676879';
   // Coletar todos os status únicos presentes nos dados
   // Usar o mesmo critério dos cards de departamento:
   // cada item pertence ao departamento pelo grupo do Monday,
@@ -1195,7 +1166,7 @@ function renderPerformance() {
     if (perfChartColaborador) perfChartColaborador.destroy();
     // Usar cor exata do Monday para cada status; adicionar opacidade 0.85 para não ficar sólido demais
     const datasetsColaborador = statusOrdenados.map(st => {
-      const corBase = STATUS_CORES[st] || STATUS_CORES['default'];
+      const corBase = corDoStatusNoGrafico(st);
       return {
         label: st,
         data: colaboradores.map(n => colaboradorStats[n].porStatus[st] || 0),
@@ -1525,7 +1496,7 @@ function renderPerformance() {
     const statusPills = Object.entries(s.porStatus)
       .sort((a,b) => b[1]-a[1])
       .map(([st, cnt]) => {
-        const cor = STATUS_CORES[st] || STATUS_CORES['default'];
+        const cor = corDoStatusNoGrafico(st);
         const itensSt = base.filter(d => firstName(d.responsavel) === nome && d.status === st)
           .sort((a,b) => (a.prazo_iso||a.veiculacao_iso||'') < (b.prazo_iso||b.veiculacao_iso||'') ? -1 : 1);
         const payload = encodeURIComponent(JSON.stringify({ nome, st, label: `${nome} — ${st} (${cnt})` }));

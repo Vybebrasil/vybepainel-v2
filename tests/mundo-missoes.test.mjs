@@ -44,7 +44,7 @@ class El {
   contains() { return false; }
   focus() {}
 }
-function montar({ base = BASE(), missoes = MISSOES, cobrancas = COBRANCAS, extras = {} } = {}) {
+function montar({ base = BASE(), missoes = MISSOES, cobrancas = COBRANCAS, extras = {}, dono = false } = {}) {
   const corpo = { filhos: [], append(el) { this.filhos.push(el); el.isConnected = true; } };
   const chamadas = [], teclas = [], abertas = [], guardado = new Map();
   const ctx = {
@@ -55,6 +55,8 @@ function montar({ base = BASE(), missoes = MISSOES, cobrancas = COBRANCAS, extra
     addEventListener: (tipo, fn) => { if (tipo === 'keydown') teclas.push(fn); },
     safeText: (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c])),
     escritorio: { base },
+    // Dono vem da sessão (auditoria 09/11), nunca do primeiro nome.
+    souDonoDaSessao: () => dono,
     escritorioHojeBahia: () => '2026-11-07',
     escritorioApi: async (acao, _corpo, consulta) => {
       chamadas.push(JSON.stringify([acao, consulta || null]));
@@ -226,12 +228,12 @@ test('missões de outra pessoa: sem permissão, recusa do servidor ou falha volt
   assert.match(html(fechado), /As missões de Bruno são só para a gestão/);
   assert.ok(!fechado.chamadas.some((c) => c.includes('"missoes"')), 'sem permissão, a rota de missões nem é chamada');
   // Sócio sem admin: o servidor recusa (403) e ficam as tarefas do painel, com o aviso.
-  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Vinícius Rocha' }, { id: '7', nome: 'Bruno Lima' }] }, missoes: servidor({ admin: false }), extras });
+  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Vinícius Rocha' }, { id: '7', nome: 'Bruno Lima' }] }, missoes: servidor({ admin: false }), extras, dono: true });
   await socio.M.abrir('missoes', '7');
   assert.ok(socio.chamadas.includes(JSON.stringify(['missoes', { pessoa: '7' }])), 'sócio pede ao servidor');
   socio.clicar({ 'data-vm-filtro': 'todas' });
   let h = html(socio);
-  assert.doesNotMatch(h, /só para a gestão/, 'sócio (pelo primeiro nome) vê');
+  assert.doesNotMatch(h, /só para a gestão/, 'sócio (dono pela sessão) vê');
   assert.match(h, /Sem XP e moedas: o valor das missões de outra pessoa só sai para quem administra\./);
   assert.match(h, /Peça atrasada/);
   assert.match(h, /<em class="ofc-missao-prazo hoje">Veiculação hoje<\/em>/);
@@ -275,7 +277,7 @@ test('resumo para o cartão do HUD', async () => {
   assert.deepEqual(a, { missoesAtrasadas: 1, missoesHoje: 1, xpEmJogo: 120, moedasEmJogo: 35, cobrancas: 0, clientesCobrando: 0, pessoaId: '7' });
   assert.ok(admin.chamadas.includes(JSON.stringify(['missoes', { pessoa: '7' }])));
   // Servidor recusou (sócio sem admin): as tarefas do painel contam, sem XP.
-  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Deivid Ribeiro' }, { id: '7', nome: 'Bruno Lima' }] }, cobrancas: [], missoes: servidor({ admin: false }), extras });
+  const socio = montar({ base: { eu: '9', admin: false, equipe: [{ id: '9', nome: 'Deivid Ribeiro' }, { id: '7', nome: 'Bruno Lima' }] }, cobrancas: [], missoes: servidor({ admin: false }), dono: true, extras });
   const s = JSON.parse(JSON.stringify(await socio.M.resumo('7')));
   assert.deepEqual(s, { missoesAtrasadas: 1, missoesHoje: 1, xpEmJogo: null, moedasEmJogo: null, cobrancas: 0, clientesCobrando: 0, pessoaId: '7' });
   const sem = JSON.parse(JSON.stringify(await montar({ base: null }).M.resumo()));

@@ -17,7 +17,7 @@ export async function salvarHeadsCliente(db, clienteId, pessoas) {
     if (!cliente) throw invalido('Cliente não encontrado.', 404);
     const heads = [];
     for (const pessoaId of ids) {
-      const [pessoa] = await tx`SELECT id, monday_user_id FROM vybe_pessoas WHERE id=${pessoaId} AND ativo FOR SHARE`;
+      const [pessoa] = await tx`SELECT id, monday_user_id FROM vybe_pessoas WHERE id=${pessoaId} AND ativo AND pode_entrar FOR SHARE`;
       if (!pessoa) throw invalido('Uma das pessoas não está disponível. Atualize a lista.');
       heads.push(pessoa);
     }

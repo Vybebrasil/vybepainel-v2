@@ -1162,7 +1162,7 @@ function cerebroListaDeClientes() {
   const registros = typeof clientMasterRecords === 'function' ? clientMasterRecords() : [];
   registros.forEach(r => {
     const f = typeof cadastroDoCliente === 'function' ? cadastroDoCliente(r.name) : null;
-    const ativo = f ? (!/inativ/i.test(String(f.status || '')) && f.ativo !== false && !f.nao_e_cliente) : false;
+    const ativo = typeof clienteAtivo === 'function' ? clienteAtivo(f) : Boolean(f) && f.ativo !== false && !f.nao_e_cliente && !/inativ/i.test(String(f.status || ''));
     if (!ativo) return;
     const base = encontrarBaseCerebro(r.name);
     const nome = base ? base.nome : r.name;

@@ -238,3 +238,8 @@ html.tema-escuro body.mundo :is(.vc-acao,#vv-comercial .vc-pill.u1,#vv-comercial
 #vv-comercial .vc-roi-res small{display:block;font:600 11px Inter,system-ui,sans-serif;color:#8A7F70}
 #vv-comercial .vc-roi-res b{display:block;margin-top:2px;font:700 17px "Inter Tight",Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
 #vv-comercial .vc-roi-res .bom b{color:#12813F}#vv-comercial .vc-roi-res .ruim b{color:#E5484D}
+/* ROI do orçamento recolhido, abaixo da lista (a calculadora solta fica no Toolkit). */
+#vv-comercial .vc-roi-det{margin:18px 0 0}
+#vv-comercial .vc-roi-det>summary{cursor:pointer;font:700 13px/1.3 var(--vv-texto,inherit);color:#1F1D1A;min-height:28px;display:flex;align-items:center;gap:8px}
+#vv-comercial .vc-roi-det>summary:focus-visible{outline:2px solid #F26B1D;outline-offset:2px;border-radius:6px}
+#vv-comercial .vc-roi-det[open]>summary{margin-bottom:10px}
