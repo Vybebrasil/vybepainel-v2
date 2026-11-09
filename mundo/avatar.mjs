@@ -107,8 +107,12 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     C(sx * .37, .52, qb, .14, .2, .16, f.casaco || f.pele);
     C(sx * .37, .44, qb * 1.2, .15, .1, .17, f.pele);
   }
-  // Cabeça grande.
+  // Cabeça grande. Com máscara do Habbo (cabeça de cavalo e afins: f.acessorio cobre quase toda a cabeça), a cabeça,
+  // o rosto e o cabelo dão lugar ao acessório.
   const yc = .92, H = .74, W = .78, D = .72, fr = D / 2, topo = yc + H;
+  const mascara = Boolean(f.acessorio && f.acessorio.cobre > .55);
+  const ct = f.cabelo, bone = Boolean(f.chapeu); // também usados pelo fone do agente, depois da cabeça
+  if (!mascara) {
   C(0, yc - .02, 0, .22, .04, .22, f.pele);
   C(0, yc, 0, W, H, D, f.pele);
   for (const sx of [-1, 1]) C(sx * (W / 2 + .02), yc + .26, 0, .05, .14, .14, escuro(f.pele, .08));
@@ -133,7 +137,6 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     for (const sx of [-1, 1]) C(sx * (W / 2 + .01), yo + .1, .1, .02, .03, .5, '#1F1D1A');
   }
   // Cabelo em blocos, com volume (mais largo que a cabeça) e mechas na franja.
-  const ct = f.cabelo, bone = Boolean(f.chapeu);
   if (ct) {
     const cs = escuro(ct, .18), cl = claro(ct, .14);
     if (!bone) C(0, topo - .02, -.02, W + .08, .16, D + .06, ct);
@@ -161,6 +164,9 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     C(0, topo - .06, fr + .16, W + .02, .05, .32, escuro(f.chapeu, .15));
     C(0, topo + .14, -.02, .1, .04, .1, claro(f.chapeu, .5));
   }
+  }
+  // Acessório de cabeça do Habbo (chapéu, máscara, enfeite), em voxels na escala da nossa cabeça (figuraDoHabbo).
+  if (f.acessorio?.blocos?.length) { const [lx, ly, lz] = (f.acessorio.lados || [f.acessorio.lado, f.acessorio.lado, f.acessorio.lado]).map((v) => v * 1.002); for (const k of f.acessorio.blocos) C(k.x, k.y, k.z, lx, ly, lz, k.cor); }
   let antena = -1;
   if (f.agente) {
     // Fone: arco por cima, conchas nas orelhas com o anel do setor e o microfone até a boca.

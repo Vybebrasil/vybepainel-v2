@@ -115,3 +115,29 @@ test('Minha sala fica no dock junto de Centro e Prédio e abre o quarto sem o an
   assert.match(corpo, /escritorioItensDaCamada/, 'móveis da camada salva');
   assert.doesNotMatch(corpo, /escritorioApi|fetch\(/, 'só leitura');
 });
+
+test('Minha sala: o móvel é esculpido na arte do Habbo (silhueta, altura e cor do pixel)', async () => {
+  const { esculpir, projetar, NIVEL_HABBO } = await import('../mundo/moveis-habbo.mjs');
+  // Um cubo de 1 ladrilho e 1 nível, desenhado como no Habbo: a imagem é a projeção dele, topo vermelho e lados azuis.
+  const dentroDoCubo = (sx, sy) => {
+    // O que a câmera vê é o ponto mais à frente (maior u + v + h) entre os que caem no pixel.
+    let melhor = null;
+    for (let u = -.5; u <= .501; u += .05) for (let v = -.5; v <= .501; v += .05) for (let h = 0; h <= 1.001; h += .05) {
+      const p = projetar(u, v, h); if (Math.abs(p.x - sx) < 1.2 && Math.abs(p.y - sy) < 1.2 && (!melhor || u + v + h > melhor.d)) melhor = { d: u + v + h, topo: h > .97 };
+    }
+    return melhor ? (melhor.topo ? 'topo' : 'lado') : null;
+  };
+  const ox = -33, oy = -50, w = 66, h = 68, mapa = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) mapa.push(dentroDoCubo(x + ox, y + oy));
+  const vista = { dir: 4, w, h, ox, oy, alfa: (x, y) => (x >= 0 && y >= 0 && x < w && y < h && mapa[y * w + x] ? 255 : 0),
+    cor: (x, y) => { const m = x >= 0 && y >= 0 && x < w && y < h ? mapa[y * w + x] : null; return m === 'topo' ? [220, 40, 40] : m ? [40, 60, 200] : null; } };
+  const r = esculpir({ W: 1, D: 1, dir: 4, vistas: [vista], N: 8, alturaMax: 1 });
+  assert.ok(r.blocos.length > 50);
+  for (const b of r.blocos) { assert.ok(b.x > 0 && b.x < 1 && b.z > 0 && b.z < 1, 'dentro da pegada'); }
+  const alto = Math.max(...r.blocos.map((b) => b.y + r.lado));
+  assert.ok(Math.abs(alto - NIVEL_HABBO) < .2, 'altura de 1 nível do Habbo: ' + alto);
+  const topo = r.blocos.filter((b) => b.y + r.lado > alto - .01);
+  const vermelho = (c) => { const [r, , b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)); return r > 150 && b < 110; };
+  assert.ok(topo.filter((b) => vermelho(b.cor)).length > topo.length / 2, 'o topo pega a cor do topo do desenho');
+  assert.ok(new Set(r.blocos.map((b) => b.cor)).size <= 12, 'cores chapadas: a paleta curta da peça');
+});
