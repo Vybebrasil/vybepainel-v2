@@ -27803,9 +27803,14 @@ html body.mundo #painel-escritorio{--lg-fundo:initial;--lg-cartao:initial;--lg-v
   /* barra numa linha só, como o topo do Google Agenda: o mês já está na faixa dos meses */
   .capt-cal.vista-mes .capt-toolbar{flex-wrap:wrap;gap:6px;padding-bottom:6px}
   .capt-cal.vista-mes .capt-tb-titulo{display:none}
-  .capt-cal.vista-mes .capt-tb-esq,.capt-cal.vista-mes .capt-tb-dir{flex-wrap:nowrap;gap:6px}
+  .capt-cal.vista-mes .capt-tb-esq,.capt-cal.vista-mes .capt-tb-dir{gap:6px}
   .capt-cal.vista-mes .capt-tb-pend{order:9;flex-basis:100%;font-size:12px}
   .capt-fab{display:grid;place-items:center;position:fixed;z-index:660;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border:0;border-radius:16px;background:var(--vb-laranja,#ff7a1a);color:#FFFFFF;box-shadow:0 8px 20px -6px rgba(0,0,0,.45);cursor:pointer}
   .capt-fab span{font:400 34px/1 var(--mac-ui,system-ui);margin-top:-3px}
   .capt-fab:focus-visible{outline:2px solid #FFFFFF;outline-offset:3px}
+}
+/* Agenda no celular, em qualquer visão: a barra quebra linha e o aviso de gravações para fechar não empurra a tela de lado. */
+@media (max-width:700px){
+  .capt-cal .capt-toolbar,.capt-cal .capt-tb-esq,.capt-cal .capt-tb-dir{flex-wrap:wrap;min-width:0}
+  .capt-cal .capt-tb-pend{white-space:normal;max-width:100%;text-align:left}
 }
