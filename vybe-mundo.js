@@ -167,14 +167,15 @@
       { id: 'automacoes', nome: 'Automações', dica: 'Regras que movem as demandas sozinhas', board: 'automacoes' },
       { id: 'conta', nome: 'Conta e equipe', dica: 'Sua conta, acessos e a equipe', board: 'conta' },
     ] },
-    { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: equipe, produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
-      { id: 'equipe', nome: 'Equipe', dica: 'Quem está online, conversa, recados, missões e ranking' },
+    { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
       { id: 'rh', nome: 'Pedidos e calendário', dica: 'Pedidos ao RH, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
       { id: 'recrutamento', nome: 'Recrutamento', dica: 'Vagas e candidatos', mod: ['VybePessoas', 'recrutamento'] },
       { id: 'documentos', nome: 'Documentos', dica: 'Contratos e documentos do time', mod: ['VybePessoas', 'documentos'] },
-      { id: 'perfil', nome: 'Meu perfil', dica: 'Nível, VybeCoins, conquistas e números do trabalho' },
     ] },
+    // Auditoria 09/11: Equipe online (presença, recados, missões) e Meu perfil (nível, VybeCoins) são do jogo, não do RH:
+    // a Equipe vira item próprio do Time e o perfil vai para o menu da conta.
+    { id: 'equipe', grupo: 'Time', nome: 'Equipe online', dica: 'Quem está online, conversa, recados, missões e ranking', ic: svg('<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="18" cy="8" r="2"/><path d="M18 13v0"/>') },
     { id: 'academy', grupo: 'Time', nome: 'Academy', dica: 'Trilhas de treinamento da Vybe', mod: ['VybePessoas', 'academy'], ic: svg('<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c3 2 7 2 10 0v-5"/>') },
     // Agentes (Paulo, 08/11/2026): quem é quem, o que cada um faz, a rotina e as atribuições, em tela cheia.
     { id: 'agentes', grupo: 'Time', nome: 'Agentes', dica: 'Agentes da Vybe: quem é quem, rotina e atribuições', ic: svg('<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/><path d="M3 13v2M21 13v2"/>') },
@@ -351,15 +352,10 @@
   // status (status_color do quadro, a regra de sempre), cliente na cor da carteira do head
   // (tagClienteHtml), data em vermelho só se atrasou e o olhinho da prévia quando já há material.
   const semGrito = (t) => { const s = String(t || '').trim(); const letras = s.replace(/[^A-Za-zÀ-ÿ]/g, ''); return letras && letras === letras.toUpperCase() && letras.length > 4 ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
-  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"): a cor do quadro (status_color) e, sem ela,
-  // as cores exatas do Monday que o painel já usa (vybe-relatorios.js, STATUS_CORES). A escala de situação é o último recurso.
-  const STATUS_CORES = { 'em andamento': '#fdab3d', 'falta d.a': '#4eccc6', 'alteracao': '#df2f4a', 'finalizado': '#9cd326', 'aguardo': '#9d50dd',
-    'a fazer': '#c4c4c4', 'para agendar': '#037f4c', 'para aprovacao': '#579bfc', 'em aprovacao': '#579bfc', 'aguardando aprovacao': '#579bfc', 'cap. agendada': '#ff007f',
-    'ag. aprovacao cliente': '#faa1f1', 'ag. info cliente': '#bca58a', 'falta info': '#ff6d3b', 'agendando cap': '#ff5ac4', 'agendando cap.': '#ff5ac4',
-    'segurar post': '#7f5347', 'agendado': '#a1e3f6', 'pode fazer': '#ffcb00', 'ag. interno': '#bca58a', 'revisao': '#fdab3d', 'aprovado': '#9cd326',
-    'falta briefing': '#ff6d3b', 'nova demanda': '#579bfc', 'em execucao': '#ff6b00', 'feito': '#00c875', 'aguardando info.': '#9d50dd' };
-  const chaveStatus = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || STATUS_CORES[chaveStatus(d?.status)] || COR_SIT(sit || 'fazer');
+  // Regra de cor dos status (Paulo, 08/11/2026: "para aprovação tá roxo"; auditoria 09/11, A5): a cor do quadro
+  // (status_color, vybe_status.cor) e, sem ela, a do catálogo do painel pelo nome (corDeStatus). A escala de situação é o último recurso.
+  const corDoCatalogo = (s) => (typeof corDeStatus === 'function' ? corDeStatus(s)?.cor : '') || '';
+  const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || corDoCatalogo(d?.status) || COR_SIT(sit || 'fazer');
   function linhaDemanda(d, { ref = '', sit = '', aviso = '' } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
@@ -425,7 +421,7 @@
   }
   function corDaPendencia(p) {
     const d = (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []).find((d) => String(d.id) === String(p?.id));
-    return d ? corStatus(d, situacaoDaPeca(d)) : STATUS_CORES[chaveStatus(p?.status)] || '#9AA3A8';
+    return d ? corStatus(d, situacaoDaPeca(d)) : corDoCatalogo(p?.status) || '#9AA3A8';
   }
   function mostrarPendencias(cliente = '', status = '') {
     const N = numerosDoDono(); if (!N) return;
@@ -1887,23 +1883,22 @@
   function alternarMenuConta() {
     let m = hud.querySelector('.vv-menu-conta');
     if (m) { m.remove(); return; }
-    const admin = typeof souAdmin === 'function' && souAdmin(), dono = souDono();
+    const dono = souDono();
     m = document.createElement('div'); m.className = 'vv-menu-conta'; m.setAttribute?.('role', 'menu');
     const item = (acao, texto, sub, cls = '') => `<button type="button" role="menuitem" class="${cls}" data-conta-acao="${acao}"><b>${texto}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
-    m.innerHTML = item('conta', 'Minha conta', 'perfil, senha e equipe')
+    // Diário e IA ficam só na Gestão (uma porta por tela, auditoria 09/11).
+    m.innerHTML = item('conta', 'Minha conta', 'senha, acessos e equipe')
+      + item('perfil', 'Meu perfil', 'nível, VybeCoins e conquistas')
       + item('atualizar', 'Atualizar dados', 'busca de novo a produção e os clientes')
-      + (admin || dono ? item('diario', 'Diário de produção', 'fotos do estado de cada dia') + item('ia', 'IA & Custos', 'uso e custo dos modelos') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
       + '<hr>' + item('sair', 'Sair', '', 'perigo');
     hud.querySelector('.vv-barra-topo')?.after?.(m);
     m.addEventListener?.('click', (e) => {
       const b = e.target.closest('[data-conta-acao]'); if (!b) return;
       const a = b.dataset.contaAcao; m.remove();
-      const quadro = (id) => { chamar('chooseManagerMode'); setTimeout(() => { const btn = document.getElementById('btn-board-' + id); if (btn) chamar('switchBoard', id, btn); }, 250); };
       if (a === 'conta') chamar('irParaMinhaConta');
+      else if (a === 'perfil') abrirPerfil();
       else if (a === 'atualizar') { chamar('refreshData'); }
-      else if (a === 'diario') quadro('diario');
-      else if (a === 'ia') quadro('ai-usage');
       else if (a === 'recado') chamar('abrirMandarAvisoEscritorio');
       else if (a === 'sair') chamar('sairDaSessao');
     });

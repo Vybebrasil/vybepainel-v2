@@ -19,7 +19,7 @@ test('trilho por setores: o separador não quebra a lista (String.prototype.sub 
 test('trilho por setores: nenhum módulo antigo sumiu', () => {
   const diretos = TRILHO.filter((t) => typeof t === 'object').map((t) => t.id);
   const todos = new Set([...diretos, ...SUBMODULOS.map((x) => x.id)]);
-  for (const id of ['hoje', 'gestao', 'tarefas', 'criar', 'gestor', 'direcao', 'agenda', 'clientes', 'equipe', 'jogos', 'predio', 'perfil', 'vybes'])
+  for (const id of ['hoje', 'gestao', 'tarefas', 'criar', 'gestor', 'direcao', 'agenda', 'clientes', 'equipe', 'jogos', 'predio', 'vybes']) // 'perfil' saiu para o menu da conta (auditoria 09/11)
     assert.ok(todos.has(id), `o módulo ${id} continua no trilho`);
   assert.equal(setorDe('agenda'), 'setor:producao');
   assert.equal(setorDe('hoje'), 'hoje');
@@ -66,10 +66,14 @@ test('dock no modelo do AgencyFlow: cada coisa no seu setor, sem perder módulo,
   assert.equal(setorDe('conversas'), 'setor:comercial');
   assert.ok(TRILHO.some((t) => t && t.id === 'academy' && t.mod?.[0] === 'VybePessoas'), 'Academy é item próprio');
   assert.ok(!SUBMODULOS.some((x) => x.id === 'academy'), 'Academy não fica dentro de outro setor');
+  // Auditoria 09/11: presença e gamificação não são RH. Equipe online é item do Time; Meu perfil fica no menu da conta.
+  assert.ok(TRILHO.some((t) => t && t.id === 'equipe' && t.grupo === 'Time'), 'Equipe online é item próprio do Time');
+  assert.ok(!SUBMODULOS.some((x) => x.id === 'equipe' || x.id === 'perfil'), 'Equipe e perfil fora do RH');
+  assert.ok(js.includes("item('perfil', 'Meu perfil'"), 'Meu perfil no menu da conta');
   // Nenhum módulo sumiu.
   for (const id of ['gestor', 'tarefas', 'demandas', 'agenda', 'direcao', 'planejamentos', 'clientes', 'carteira', 'onboarding', 'churn', 'contratos',
     'funil', 'pacotes', 'orcamentos', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
-    'conta', 'equipe', 'rh', 'recrutamento', 'documentos', 'perfil', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
+    'conta', 'rh', 'recrutamento', 'documentos', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
   assert.match(js, /abrir\?\.\(sub\.mod\[1\], \{ abas: irmaos, rotulo: setorNome \}\)/);
   // Segundo clique no setor aberto fecha os submenus.
   assert.match(js, /if \(b\.getAttribute\('aria-expanded'\) === 'true'\) \{ expandirSetor\(''\); return; \}/);

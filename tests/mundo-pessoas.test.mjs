@@ -78,7 +78,8 @@ test('quem não é da gestão: só o próprio mês, sem ranking, sem pesos e sem
 test('gestão: ranking, pesos, metas e as abas de Recrutamento e Documentos', async () => {
   const t = montar({ gestao: true });
   await t.P.abrir('produtividade');
-  assert.match(t.html(), /Ranking do mês/); assert.match(t.html(), /Pesos do score/); assert.match(t.html(), /data-vp-aba="documentos"/);
+  assert.match(t.html(), /Ranking do mês/); assert.match(t.html(), /Pesos do score/);
+  assert.match(t.html(), /Carga da semana/); assert.match(t.html(), /Sobrecarregada/, 'a carga da semana fica na Produtividade dos donos'); assert.match(t.html(), /data-vp-aba="documentos"/);
   await t.P.abrir('recrutamento');
   assert.match(t.html(), /Fulana/); assert.match(t.html(), /vs mês anterior/); assert.match(t.html(), /Mensal/);
   await t.P.abrir('documentos');
@@ -89,7 +90,8 @@ test('todas as abas desenham com dados e com o estado vazio', async () => {
   const t = montar({ gestao: true });
   for (const aba of ['rh', 'projetos', 'academy']) { await t.P.abrir(aba); assert.doesNotMatch(t.html(), /Carregando|Não deu para abrir/, aba); }
   await t.P.abrir('projetos');
-  assert.match(t.html(), /Sobrecarregada/); assert.match(t.html(), /vp-gantt-barra atrasada/);
+  assert.match(t.html(), /vp-gantt-barra atrasada/);
+  assert.doesNotMatch(t.html(), /Carga da semana/, 'a carga saiu de Projetos pontuais (auditoria 09/11)');
   await t.P.abrir('rh');
   assert.match(t.html(), /Headcount/); assert.match(t.html(), /Responder a pesquisa/); assert.match(t.html(), /O resultado aparece com 3/);
 });

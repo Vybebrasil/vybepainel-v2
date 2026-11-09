@@ -45,7 +45,8 @@ function statusInlineStyle(color, border) {
   const rgb = hexToRgb(hex);
   if (!rgb) return '';
   const borderHex = validStatusColor(border) || hex;
-  return ` style="background:rgba(${rgb.r},${rgb.g},${rgb.b},.15);color:${hex};border-color:${borderHex};"`;
+  // --st leva a cor do quadro (vybe_status.cor) para o tema claro do mundo escurecer o texto sem trocar a cor (auditoria 09/11, A5).
+  return ` style="--st:${hex};background:rgba(${rgb.r},${rgb.g},${rgb.b},.15);color:${hex};border-color:${borderHex};"`;
 }
 function statusDotInlineStyle(color) {
   const hex = validStatusColor(color);

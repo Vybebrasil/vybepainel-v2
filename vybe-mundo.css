@@ -4020,7 +4020,7 @@ body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
 body.mundo-gestao.mundo-tela-cheia .vv-gestao{top:0;bottom:0;left:0;right:0;border-radius:0;z-index:900}
 body.mundo-gestao #mundo-hud :is(.vv-hoje,.vv-agenda,.vv-placa,.vv-controles,.vv-chamada,.vv-topo){visibility:hidden}
 body.mundo-gestao .plj-aviso{visibility:hidden}
-.vv-g-topo{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 0 10px;margin:0 -22px;padding-left:22px;padding-right:22px;background:linear-gradient(180deg,rgba(246,243,238,.98) 70%,rgba(246,243,238,0))}
+.vv-g-topo{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 22px 12px;margin:0 -22px 12px;background:#F6F3EE;border-bottom:1px solid rgba(31,29,26,.08)}
 .vv-g-topo h2{margin:2px 0 2px;font:700 26px/1.1 var(--vv-titulo);letter-spacing:-.02em}
 .vv-g-topo p{margin:0;font:500 12px var(--vv-texto);color:#6B675F}
 .vv-g-acoes{display:flex;gap:6px}.vv-g-acoes .vv-botao{width:36px;height:36px;padding:0;justify-content:center;background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:8px!important}
@@ -4069,7 +4069,7 @@ body.mundo-gestao .plj-aviso{visibility:hidden}
 .vv-graf.linha .proj{fill:none;stroke:#8B7DFF;stroke-width:2.2;stroke-dasharray:2 4;stroke-linecap:round}
 .vv-graf.linha circle.pt{fill:#fff;stroke:#FF7A2F;stroke-width:2}.vv-graf.linha circle.atual{fill:#FF7A2F;stroke:#fff;stroke-width:2}.vv-graf.linha circle.ptproj{fill:#fff;stroke:#8B7DFF;stroke-width:2}
 .vv-graf.linha .rot,.vv-graf.linha .eixo{font:600 9.5px var(--vv-texto);fill:#6B675F}
-@media (max-width:900px){.vv-gestao{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px;padding:0 12px 20px}.vv-g-topo{margin:0 -12px;padding-left:12px;padding-right:12px}.vv-dono-kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:900px){.vv-gestao{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px;padding:0 12px 20px}.vv-g-topo{margin:0 -12px 12px;padding-left:12px;padding-right:12px}.vv-dono-kpis{grid-template-columns:repeat(2,1fr)}}
 
 /* ===== Agenda (cartão da captação), Notas, menu "Mais" da peça, pergunta de briefing: padrão claro ===== */
 html body.mundo :is(.ag-cartao,.capt-menu-painel):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:10px!important;box-shadow:0 22px 50px rgba(31,29,26,.2)!important;backdrop-filter:none!important;color-scheme:light}
@@ -5340,3 +5340,22 @@ html body.mundo .notas-janela .notas-topo :is(b,h2,h3,strong){color:#1F1D1A!impo
 html body.mundo .notas-janela{color:#1F1D1A}
 html body.mundo .notas-janela :is(b,strong,h2,h3,h4,summary,label){color:#1F1D1A!important}
 html body.mundo .notas-janela :is(small,time,.notas-meta){color:#6B665E!important}
+
+/* Auditoria 09/11 (D3): a barra fixa da Direção de arte ficava transparente e o texto passava por trás ao rolar. */
+html body.mundo .da-barra:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#FBF9F5;border-color:rgba(31,29,26,.1);box-shadow:0 6px 16px -10px rgba(31,29,26,.35);-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Auditoria 09/11 (D1): histórico das automações em linhas claras e legíveis (era fundo quase preto com texto laranja). */
+html body.mundo .auto-hist-linha:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#FFFFFF;border:1px solid #E6E0D6;border-radius:8px}
+html body.mundo .auto-hist-linha:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d) .auto-hist-quando{color:#6B665E}
+html body.mundo .auto-hist-linha:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d) .auto-hist-peca{color:#1F1D1A;font-weight:600}
+html body.mundo .auto-hist-linha:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d) :is(.auto-hist-peca small,.auto-hist-regra,.auto-hist-feitas){color:#5E5A53}
+/* Etiqueta de estado das captações no claro: o texto escurece a cor do tom (era o tom clarinho do tema escuro). */
+html body.mundo .capt-estado:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){color:color-mix(in srgb,var(--tom) 45%,#1F1D1A)}
+/* Auditoria 09/11 (D5 e azul legado): o "+" neon do calendário, o "+" de responsável em ciano e os rótulos apagados. */
+html body.mundo .p-cal-col-head button:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){color:#9E5C00;background:#FFF4E8;border:1px solid #F3D3B5;box-shadow:none;text-shadow:none}
+html body.mundo .p-cal-col-head button:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d):hover{background:#FDE6CF}
+html body.mundo .owner-avatar-add:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){color:#6B665E;background:#F3EFE8;border-color:#D9D2C6}
+html body.mundo :is(.workspace-eyebrow,.auto-kicker):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){color:#9E5C00}
+/* Status na cor do banco (auditoria 09/11, A5): a pílula com a cor do quadro (--st, vybe_status.cor) vence a tabela
+   por classe acima, que fica só para pílula sem cor do banco. O texto escurece a mesma cor para ler no claro. */
+html body.mundo .pill.pill[style*="--st"]{color:color-mix(in srgb,var(--st) 46%,#1F1D1A)!important;background:color-mix(in srgb,var(--st) 14%,#FFFFFF)!important;border:1px solid color-mix(in srgb,var(--st) 40%,#FFFFFF)!important}
+html body.mundo .pill.pill[style*="--st"] .pill-dot{background:var(--st)!important}
