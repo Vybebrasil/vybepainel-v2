@@ -32,6 +32,7 @@ import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
+import { cadastroFinancasPadrao } from '../server/vybe-financas-cadastro.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
 import { painelDeAprovacao, gerarLink, revogarLink } from '../server/conteudo-aprovacao.js';
@@ -817,7 +818,7 @@ async function ecossistemaDoCliente(db, idBruto) {
     } catch { financas = { estado: 'erro' }; }
   }
   return { ok: true, cliente: { id: String(cliente.id), nome: cliente.nome },
-    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '' }) };
+    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '', criaNoFinancas: cadastroFinancasPadrao().configurado() }) };
 }
 
 // Cópia .md do registro do chat: na pasta do cliente ligada no cadastro (Acessos) ou, sem ela, na pasta com o
@@ -826,11 +827,26 @@ function registroNoDrive(db) {
   return async ({ cliente, nome, markdown }) => {
     const [a] = await db`SELECT pasta_drive FROM vybe_acessos WHERE cliente_id=${cliente.id} AND pasta_drive IS NOT NULL ORDER BY atualizado_em DESC NULLS LAST LIMIT 1`;
     const ligada = String(a?.pasta_drive || '').match(/folders\/([\w-]{10,})/)?.[1];
-    const base = ligada || await pastaSimples([cliente.nome]);
-    const pastaId = await subpasta('Registros do Claude', base);
+    // A pasta ligada pode não estar compartilhada com a integração (Antonov, 09/11: "File not found"): aí vai para a
+    // pasta com o nome do cliente na raiz, em vez de perder a cópia.
+    let pastaId;
+    try { pastaId = await subpasta('Registros do Claude', ligada || await pastaSimples([cliente.nome])); }
+    catch (erro) { if (!ligada) throw erro; pastaId = await subpasta('Registros do Claude', await pastaSimples([cliente.nome])); }
     const r = await enviarParaDrive({ conteudo: Buffer.from(markdown, 'utf8'), nome, mime: 'text/markdown', pastaId });
     return r?.id || r?.fileId || String(r || '');
   };
+}
+
+// Leva o cadastro ao Finanças (server/vybe-financas-cadastro.js). Ao salvar o cadastro, falha não impede o salvamento:
+// volta como { estado: 'erro' } e a tela avisa. Com `lancar`, quem chamou trata o erro.
+async function levarAoFinancas(db, id, { lancar = false } = {}) {
+  const conector = cadastroFinancasPadrao();
+  if (!conector.configurado()) return { estado: 'desligado' };
+  try {
+    const [linha] = await db`SELECT id, nome, cnpj, email, telefone, plano, valor, cadastro FROM vybe_clientes WHERE id=${Number(id)} AND apagado_em IS NULL`;
+    if (!linha) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
+    return await conector.salvar(linha);
+  } catch (erro) { if (lancar) throw erro; return { estado: 'erro', erro: erro.message }; }
 }
 
 async function areaClientes(req, res, quem) {
@@ -923,7 +939,7 @@ async function areaClientes(req, res, quem) {
           if (campos) separarCamposDoCadastro(campos);
           const criado = await criarCliente(db, { nome, autor });
           if (campos && criado?.cliente?.id) await salvarCadastro(db, criado.cliente.id, campos);
-          return res.status(200).json(criado);
+          return res.status(200).json({ ...criado, financas: await levarAoFinancas(db, criado?.cliente?.id) });
         }
         return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
       } catch (erro) {
@@ -931,8 +947,13 @@ async function areaClientes(req, res, quem) {
         throw erro;
       }
     }
+    // Criar ou atualizar no Finanças sob pedido (botão do Ecossistema).
+    if (acao === 'financas') {
+      const r = await levarAoFinancas(db, id, { lancar: true }).catch((erro) => ({ estado: 'erro', erro: erro.message }));
+      return res.status(r.estado === 'erro' ? 502 : 200).json(r.estado === 'erro' ? { error: r.erro } : { ok: true, financas: r });
+    }
     if (acao === 'cadastro') {
-      try { return res.status(200).json(await salvarCadastro(db, id, req.body?.campos)); }
+      try { const salvo = await salvarCadastro(db, id, req.body?.campos); return res.status(200).json({ ...salvo, financas: await levarAoFinancas(db, id) }); }
       catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
     }
     if (acao === 'ficha') {

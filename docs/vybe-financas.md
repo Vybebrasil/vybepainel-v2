@@ -79,3 +79,20 @@ Rota: `GET /api/painel?area=vybe_financas&parte=comercial|carteira|rh&mes=AAAA-M
 - Ligação de clientes Finanças × Vybe OS: CNPJ (14 dígitos) quando os dois têm; senão o nome sem
   acento, minúsculo, sem pontuação e sem `ltda`/`me`/`eireli`, só se houver um único cliente do
   Vybe OS com aquele nome.
+
+## Criar e atualizar o cliente no Finanças (09/11/2026)
+
+O Paulo liberou o Vybe OS para levar o cadastro do cliente ao Finanças. É outra conexão, separada da leitura:
+
+- Papel `vybe_os_cadastro`, **sem permissão em tabela nenhuma**. Ele só pode chamar `public.vybe_os_salvar_cliente(...)`,
+  criada por [`docs/vybe-financas-cadastro-cliente.sql`](vybe-financas-cadastro-cliente.sql).
+- A função acha o cliente pelo CNPJ (ou pelo nome). Se não existir, cria como **Pendente**. A cobrança automática do
+  Finanças só roda para "Ativo"; quem administra ativa no Finanças. Se o cliente já existir, ela só preenche o que veio
+  e **nunca muda a situação**. Não apaga nada e não mexe em contratos, transações ou cobranças.
+- O Vybe OS chama ao salvar o cadastro e pelo botão **Criar no Finanças** da aba Ecossistema
+  (`server/vybe-financas-cadastro.js`). Se o Finanças falhar, o cadastro do Vybe OS fica salvo e a tela avisa.
+
+Para ligar (Paulo):
+1. Supabase do Finanças → SQL Editor → cole `docs/vybe-financas-cadastro-cliente.sql` → Run. Copie a senha da linha "COPIE".
+2. Monte a string como na leitura (pooler, porta 6543), com o usuário `vybe_os_cadastro.<ref-do-projeto>` e essa senha.
+3. Vercel do Vybe OS → `VYBE_FINANCAS_CADASTRO_URL` em Production → Redeploy.

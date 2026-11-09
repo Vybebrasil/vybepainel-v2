@@ -175,6 +175,18 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
           markdown: registroEmMarkdown({ cliente: c.nome, conta, em, r }) });
         await db`UPDATE vybe_cliente_registros SET drive_id=${id} WHERE id=${novo.id}`;
         drive = ' Cópia .md salva na pasta do cliente no Drive.';
+        // O Drive voltou: reenvia as cópias deste cliente que tinham falhado (até 5 por vez).
+        const pendentes = await db`SELECT id, tipo, titulo, status, resumo, decisoes, proximos, conteudo, origem, criado_em FROM vybe_cliente_registros
+          WHERE cliente_id=${c.id} AND drive_id IS NULL AND drive_erro IS NOT NULL ORDER BY criado_em LIMIT 5`;
+        for (const p of pendentes) {
+          try {
+            const emP = p.criado_em instanceof Date ? p.criado_em.toISOString() : String(p.criado_em);
+            const rp = { tipo: p.tipo, titulo: p.titulo, status: p.status, resumo: p.resumo, decisoes: p.decisoes || '', proximos: p.proximos || '', conteudo: p.conteudo || '' };
+            const idP = await salvarNoDrive({ cliente: c, nome: `${emP.slice(0, 10)} ${p.tipo} - ${p.titulo.slice(0, 80).replace(/[\\/:*?"<>|]/g, '-')}.md`,
+              markdown: registroEmMarkdown({ cliente: c.nome, conta: String(p.origem).replace(/^Claude\.ai · /, ''), em: emP, r: rp }) });
+            await db`UPDATE vybe_cliente_registros SET drive_id=${idP}, drive_erro=NULL WHERE id=${p.id}`;
+          } catch { break; }
+        }
       } catch (e) {
         await db`UPDATE vybe_cliente_registros SET drive_erro=${String(e.message || e).slice(0, 300)} WHERE id=${novo.id}`;
         drive = ' A cópia no Drive falhou agora; o registro está salvo no Vybe OS.';

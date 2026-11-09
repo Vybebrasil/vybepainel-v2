@@ -163,6 +163,8 @@ async function salvarCadastroCompleto(botao) {
     await ensureClientMasterSources(true);
     if (typeof atualizarCoresDasCarteiras === 'function') atualizarCoresDasCarteiras();
     delete FICHA_ECOSSISTEMA[id];
+    if (d.financas?.estado === 'erro') showToast(`Cadastro salvo, mas o Finanças não recebeu: ${d.financas.erro}`, 'warning', 8000);
+    else if (d.financas?.estado === 'criado') showToast('Também criado no Finanças, como Pendente.', 'success', 5000);
     const msg = d.reativado ? `${nomeFinal} voltou para o painel.` : d.ja_existia ? `${nomeFinal} já existia; o cadastro foi atualizado.` : aberto.id ? 'Cadastro salvo.' : `${nomeFinal} cadastrado.`;
     showToast(msg, 'success', 4500);
     CADASTRO_ABERTO = null;
@@ -224,6 +226,7 @@ const ECO_ACAO = {
   cerebro: ['Ver no cérebro', () => `trocarAbaDaFicha('cerebro')`],
   grupo: ['Informar o grupo', (n) => `abrirCadastroCompleto('${n}', { etapa: 'canais' })`],
   drive: ['Ligar a pasta', (n) => `abrirCadastroCompleto('${n}', { etapa: 'canais' })`],
+  criar_financas: ['Criar no Finanças', (n, id) => `criarNoFinancas('${id}', '${n}')`],
 };
 function ecossistemaHtml(estado, nome) {
   if (!estado || estado.carregando) return '<div class="auto-carregando">Conferindo os sistemas…</div>';
@@ -240,6 +243,19 @@ function ecossistemaHtml(estado, nome) {
       return `<li class="eco-item eco-${s.estado}"><span class="eco-estado">${ECO_ROTULO[s.estado] || s.estado}</span>
         <div><b>${fichaEsc(s.nome)}</b><p>${fichaEsc(s.detalhe)}</p></div>${botao}</li>`;
     }).join('')}</ul>`;
+}
+
+// Leva o cadastro ao Vybe Finanças (entra como Pendente) e confere o ecossistema de novo.
+async function criarNoFinancas(id, nome) {
+  try {
+    const r = await fetch('/api/painel?area=clientes', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'financas', id }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d?.error || 'O Finanças não respondeu.');
+    showToast(d.financas?.estado === 'criado' ? `${nome} criado no Finanças como Pendente. Ative lá quando o contrato estiver certo.` : `${nome} atualizado no Finanças.`, 'success', 6000);
+  } catch (e) { showToast(e.message, 'error', 7000); }
+  await carregarEcossistema(String(id), true);
+  if (CLIENTE_ABERTO === nome) renderClientMasterDetail(nome);
 }
 
 // ── ficha em abas ────────────────────────────────────────────────────────────

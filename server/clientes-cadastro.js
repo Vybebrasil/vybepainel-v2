@@ -189,7 +189,7 @@ export function completude(linha) {
 // ── onde o cliente existe ────────────────────────────────────────────────────
 // Uma linha por sistema: ok (está lá), falta (não está, e diz o que fazer) ou
 // conferir (daqui não dá para saber; diz onde olhar). Nunca "ok" sem prova.
-export function estadoNoEcossistema({ cliente, acesso = null, financas = null, hubUrl = '' }) {
+export function estadoNoEcossistema({ cliente, acesso = null, financas = null, hubUrl = '', criaNoFinancas = false }) {
   const ativo = cliente.ativo !== false && !cliente.nao_e_cliente && !cliente.apagado_em;
   const grupo = String(cliente.cadastro?.grupo_whatsapp || acesso?.grupo || '').trim();
   const drive = String(acesso?.drive || '').trim();
@@ -222,9 +222,10 @@ export function estadoNoEcossistema({ cliente, acesso = null, financas = null, h
     const porQue = { cnpj: 'pelo CNPJ', nome: 'pelo nome', nome_parecido: 'pelo nome parecido' };
     linhas.push({ id: 'financas', nome: 'Vybe Finanças', estado: par ? 'ok' : 'falta',
       detalhe: par ? `Ligado ${porQue[par.por] || ''} a "${par.financas_nome}".`
+        : criaNoFinancas ? 'Ainda não está no Finanças. "Criar no Finanças" leva o cadastro para lá como Pendente (a cobrança só começa quando alguém ativar lá).'
         : cliente.cnpj ? 'Não há cliente com este CNPJ nem com este nome no Finanças. Cadastre lá com o mesmo CNPJ.'
           : 'Não achei pelo nome. Preencha o CNPJ aqui e cadastre lá com o mesmo CNPJ: é ele que liga os dois.',
-      acao: par ? '' : 'abrir_financas', link: 'https://vybe-financas.vercel.app/' });
+      acao: par ? '' : criaNoFinancas ? 'criar_financas' : 'abrir_financas', link: 'https://vybe-financas.vercel.app/' });
   }
   return linhas;
 }

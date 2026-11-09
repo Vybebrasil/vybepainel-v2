@@ -113,3 +113,18 @@ test('o conector que os chats já têm (area=agentes) ganha consultar_cliente e 
     assert.equal((await sql`SELECT origem FROM vybe_cliente_registros`)[0].origem, 'Claude.ai · conector dos agentes');
   } finally { process.env.AGENTES_CHAVE = antes; await db.close(); }
 });
+
+test('Drive voltou: o próximo registro reenvia as cópias que tinham falhado', async () => {
+  const { db, sql } = await banco();
+  try {
+    let fora = true; const enviados = [];
+    const salvarNoDrive = async (a) => { if (fora) throw new Error('Drive 404'); enviados.push(a.nome); return 'id-' + enviados.length; };
+    const reg = (titulo) => atenderMensagem(sql, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'registrar', arguments: {
+      cliente: 'Academia Lions', tipo: 'aprendizado', titulo, resumo: 'r' } } }, { conta: 'gestao', salvarNoDrive });
+    await reg('Primeiro'); await reg('Segundo');
+    fora = false;
+    await reg('Terceiro');
+    assert.equal(enviados.length, 3);
+    assert.equal((await sql`SELECT COUNT(*)::int AS n FROM vybe_cliente_registros WHERE drive_id IS NULL`)[0].n, 0);
+  } finally { await db.close(); }
+});
