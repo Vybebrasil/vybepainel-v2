@@ -39,7 +39,7 @@ test('ordem do guia: atrasada furando a data do cliente, atrasada, vai ao ar hoj
   assert.ok(js.includes('urgentes: ordem.filter((x) => pesoNoGuia(x, hoje) <= 1).length'));
   assert.ok(js.includes('const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);'), 'Minhas tarefas usa a ordem compartilhada');
   assert.ok(js.includes('const veic = veicDe, desatualizada = (x) => prazoDesatualizado(x, hoje), chaveFila = (x) => chaveDaFila(x, hoje);'), 'sem cópia das regras da fila');
-  assert.ok(js.includes('${guia}${blocosHtml}'), 'o guia vem antes das colunas');
+  assert.ok(js.includes("${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}"), 'o guia vem antes das colunas; entre os dois, as aprovações paradas');
 });
 
 test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, os outros alertas) antes dos números', () => {

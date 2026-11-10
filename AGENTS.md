@@ -262,7 +262,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e Toolkit próprios; Meu perfil (jogo) no menu da conta. Aberta pelo
   dock, a janela de um módulo mostra só as abas daquele item (`abrir(aba, { abas, rotulo })`).; no computador o dock é largo, com nomes, e o setor clicado abre
   para baixo (Visão geral e as abas) e mostra o painelzão do setor (`vybe-mundo-setor.js`, `VybeSetor`), com os números
-  das mesmas fontes das abas. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
+  das mesmas fontes das abas. O setor abre a visão geral e os submenus juntos, e trocar de submenu nunca recolhe (Paulo,
+  09/11/2026: "tem que continuar aberto"); recolhe só o clique no setor já na visão geral dele, a setinha ou outro item do
+  dock. Recolhido (escolha da pessoa) ou no celular, volta o trilho de ícones com a lista ao lado.
   Largura numa variável só (`--vv-trilho-w`). Não crie outro menu nem outra visão geral; a da Gestão continua a dela.
   A Gestão abre na aba **Agência** (decisão do Paulo, 08/11/2026: "o Gestão tinha que ser bem mais completo"): a agência
   inteira (dinheiro, comercial, clientes, produção e time) pelo `setor:agencia` de `vybe-mundo-setor.js`, com as mesmas
@@ -290,6 +292,19 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   conta: só a tela muda; o servidor continua decidindo pela sessão de verdade.
 - Agenda: a aba lê `area=captacoes` e abre a agenda das Captações (agenda única). Painel do agente: só leitura,
   pelos endpoints existentes (planejamentos, automações, captações, DADOS do painel).
+- Depende de você (decisão do Paulo, 09/11/2026: "o que cada um tá dependendo de mim"): o módulo Agentes abre pelo dock
+  numa fila única de todos os agentes (`filaDoDono` em `vybe-mundo-agentes.js`): achado urgente, lição em revisão,
+  falha e agente que pode ganhar autonomia para decidir; os outros achados, para acompanhar; ação esperando o SIM de quem
+  pediu e proposta em sombra, só como espera (o painel não confirma ação de outra pessoa). Lê o perfil e a atividade que a
+  tela do agente já lê e decide pelas mesmas rotas; o número no item Agentes do dock é o "Para decidir", só para quem vê o
+  boletim. Não crie outra fila de pendências dos agentes.
+- Boletim que resolve (decisão do Paulo, 09/11/2026: "não ficar só me mostrando que tem algo errado"): achado com peça
+  (`vybe:ID`) abre a peça (`VybePeca`, `vybe-mundo-peca.js`), no boletim e na página Agentes: duas semanas de
+  calendário com prazo, veiculação e as outras peças do cliente, o que o agente viu, e responsável e datas para mudar ali
+  mesmo pelas funções do painel (`gravarResponsaveisDaPeca`, `moverDataDoItem`), com "Aplicar a sugestão" (a proposta da
+  central ou o texto "Passar para X ... com prazo"). A demanda completa é a gaveta de sempre. Cada agente no boletim tem
+  os números de 14 dias e os achados agrupados como no "Depende de você" (`VybeAgentes.agrupar`). Não crie outro editor
+  de peça nem outra conta de grupo.
 
 ## Escritório integrado
 
@@ -582,6 +597,11 @@ e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
 - Um lugar para avisos: no canto, recolhível, abaixo das janelas abertas.
 - Movimento com sentido e uma curva só (`--curva`): a peça que sai, o passo
   que desliza, o número que sobe; "Reduzir movimento" desliga tudo.
+  No mundo (redesign do legado, fase 1, 09/11/2026) a camada é uma só, no fim de `vybe-mundo.css`: `--vv-mola` (entrada
+  que pousa), `--vv-mola-viva` (o que é tocado), `--vv-sombra-janela`; janelas e menus entram só com movimento, nunca
+  começando transparentes (se a animação não andar, a tela aparece igual). O legado no mundo não tem ícone colorido no
+  título nem rótulo de setor colorido: as cores antigas ficam em `:where(body:not(.mundo))`. Moodboard do redesign:
+  https://claude.ai/artifact/Q3rexVtqwYWCqUCJ7U2yb3. Não crie outra curva nem outra sombra de janela.
 
 ### Padrão de jogo do Escritório (decisão do Paulo, 21/10/2026)
 

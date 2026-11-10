@@ -299,5 +299,7 @@
   });
   agendar(4000);
 
+  // Trocar de tela no mundo (dock, visão geral, módulo) fecha as Conversas: ficavam por cima das Finanças (pente-fino 09/11/2026).
+  window.addEventListener?.('vybe:trocar-tela', () => { if (st.aberto) fechar(); });
   window.vybeWhatsapp = { atualizar, abrir, fechar, alternar, marcarLida, estado: () => ({ ...contagem(), erro: st.erro, aberto: st.aberto, avisos: [...st.avisos] }) };
 })();

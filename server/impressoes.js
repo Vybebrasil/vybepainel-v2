@@ -353,8 +353,11 @@ export async function registrarPeloAgente(sql, pessoaId, b = {}) {
     }
     let alvo = null;
     if (b.impressao_id) {
-      [alvo] = await tx`SELECT id::text AS id, etapa, fornecedor_id::text AS fornecedor_id, previsao::text AS previsao, valor FROM vybe_impressoes WHERE id = ${idValido(b.impressao_id, 'Impressão')} FOR UPDATE`;
+      [alvo] = await tx`SELECT id::text AS id, etapa, fornecedor_id::text AS fornecedor_id, cliente_id::text AS cliente_id, previsao::text AS previsao, valor FROM vybe_impressoes WHERE id = ${idValido(b.impressao_id, 'Impressão')} FOR UPDATE`;
       if (!alvo) falhar('Impressão não encontrada.', 404);
+      // Impressão de um cliente só muda quando a conversa traz o MESMO cliente (09/11/2026: a sacola branca da Emballar,
+      // sem cliente na conversa, foi parar na "embalagem de presente" da VOA). Sem certeza, recusa e fica o achado.
+      if (alvo.cliente_id && (!cliente || cliente.id !== alvo.cliente_id)) falhar('O cliente da conversa não confere com o da impressão.', 409);
     } else {
       const abertas = await tx`SELECT id::text AS id, titulo, etapa, fornecedor_id::text AS fornecedor_id, cliente_id::text AS cliente_id, previsao::text AS previsao, valor
         FROM vybe_impressoes WHERE etapa NOT IN ('entregue','cancelado') FOR UPDATE`;
@@ -371,6 +374,7 @@ export async function registrarPeloAgente(sql, pessoaId, b = {}) {
     const mudou = [];
     const anda = etapa && ORDEM.has(alvo.etapa) && ORDEM.get(etapa) > ORDEM.get(alvo.etapa);
     if (!alvo.fornecedor_id) { await tx`UPDATE vybe_impressoes SET fornecedor_id = ${forn.id} WHERE id = ${alvo.id}`; mudou.push('fornecedor'); }
+    if (cliente && !alvo.cliente_id) { await tx`UPDATE vybe_impressoes SET cliente_id = ${cliente.id} WHERE id = ${alvo.id}`; mudou.push('cliente'); }
     if (previsao && previsao !== alvo.previsao) { await tx`UPDATE vybe_impressoes SET previsao = ${previsao}::date WHERE id = ${alvo.id}`; mudou.push('previsao'); }
     if (valor != null && Number(alvo.valor) !== valor) { await tx`UPDATE vybe_impressoes SET valor = ${valor} WHERE id = ${alvo.id}`; mudou.push('valor'); }
     if (anda) {
