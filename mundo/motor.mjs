@@ -106,18 +106,21 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
+  // Refazer o mapa de sombra (4096², a cidade inteira) é o quadro mais caro: mexendo, nunca (era a cada 150 ms e dava
+  // travadinhas); o mapa velho continua certo no mundo enquanto o sol não anda. Parou, refaz uma vez.
   function atualizarSombra(t, movendo) {
-    if (!sombraPendente) return;
-    if (movendo && t - ultimaSombra < 150) return;
+    if (!sombraPendente || movendo) return;
     sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
-  // Acabamento de maquete do padrão (estilo.mjs: oclusão nos cantos e brilho no que acende, como no quarto) e, por
-  // cima, o tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
+  // Acabamento de maquete do padrão (estilo.mjs: o brilho só no que acende) e, por cima, o tilt-shift: desfoca o alto e
+  // o baixo da imagem, como foto de maquete. Sem a oclusão nos cantos na cidade (investigação de 10/11/2026: "a luz
+  // parece tá bugando tudo"): vista de longe ela quase não aparece, tremulava com a câmera, pesava a 30 qps parada e
+  // ligar/desligar ao parar fazia a luz "pular". O quarto, visto de perto, continua com ela.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV], brilho: ESTILO.brilhoCidade });
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { ao: false, passes: [tiltH, tiltV], brilho: ESTILO.brilhoCidade });
   const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
@@ -376,21 +379,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     posicionarCamera();
     let animando = false;
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
-    // Oclusão nos cantos só com a câmera parada: mexendo, ela tremulava (serrilhado) e era a passada mais cara (travava).
-    // O raio acompanha a distância: de longe, cantos maiores; de perto, os do quarto.
-    const quieta = !(movendo || interagindo || mudouLivre);
-    if (quieta !== ultimaQuieta) {
-      ultimaQuieta = quieta;
-      // Parada, a sombra fica macia (raio maior do PCF, só na leitura: o mapa não é refeito); mexendo, a borda fina e barata.
-      sol.shadow.radius = quieta && qualidade > 0 ? 4.5 : 1.5;
-      if (qualidade > 1) acabamento.oclusao(quieta);
-      if (quieta) sujo = true;
-    }
-    if (quieta) { const r = limitar(orb.dist * 0.006, 0.3, 2.4); if (Math.abs(r - raioAo) > raioAo * 0.1) { raioAo = r; acabamento.raioOclusao(r); sujo = true; } }
+    if (sombraPendente && !(movendo || interagindo)) sujo = true; // parou: um quadro para refazer a sombra
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
-    // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
-    if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    // Sombra da cidade inteira só se refaz quando a câmera para (posicionarCamera marca; atualizarSombra espera parar).
+    // Quem anda (passantes, bichos) tem sombra própria no chão (vida.mjs): sem refazer a cada 12 s (dava travadinha).
     atualizarSombra(t, movendo || interagindo);
     renderer.info.reset();
     const t0 = performance.now();
@@ -405,7 +398,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // ficam lentos (menos de ~35 por segundo ou mais de 6 ms de trabalho por quadro) por uns 3 s seguidos, a cena
   // baixa um degrau: primeiro a nitidez (1×) e o desfoque de maquete, depois a sombra para 2048. Não volta sozinha
   // na mesma sessão (evita ficar trocando).
-  let qualidade = 2, lentos = 0, ultimoQ = 0, ultimaQuieta = null, raioAo = 0;
+  let qualidade = 2, lentos = 0, ultimoQ = 0;
   function conferirQualidade(t, mexendo) {
     if (!mexendo || qualidade === 0) { ultimoQ = t; return; }
     const intervalo = t - ultimoQ; ultimoQ = t;
@@ -413,7 +406,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     lentos = intervalo > 28 || medida.ms > 6 ? lentos + 1 : Math.max(0, lentos - 2);
     if (lentos < 90) return;
     lentos = 0; qualidade--;
-    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; acabamento.oclusao(false); medir(); }
+    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; medir(); }
     else { sol.shadow.mapSize.set(2048, 2048); sol.shadow.map?.dispose(); sol.shadow.map = null; renderer.shadowMap.needsUpdate = true; }
     invalidar();
   }

@@ -128,11 +128,10 @@ test('vitrine do jogador: com o mundo ligado, a .vb-vitrine é o quarto voxel em
   assert.doesNotMatch(vm + css, /vv-perfil-avatar/, 'a ficha não mostra mais o boneco solto num palco');
 });
 
-test('cidade: o motor usa o mesmo acabamento de maquete do quarto (oclusão e brilho), com o desfoque por cima', () => {
+test('cidade: o motor usa o acabamento de maquete do estilo (brilho só no que acende, sem oclusão), com o desfoque por cima', () => {
   const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
-  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ passes: \[tiltH, tiltV\], brilho: ESTILO\.brilhoCidade \}\)/);
+  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ ao: false, passes: \[tiltH, tiltV\], brilho: ESTILO\.brilhoCidade \}\)/);
   assert.ok(ESTILO.brilhoCidade.limiar > .95, 'na cidade só o que acende brilha (céu e nuvens não estouram)');
-  assert.match(m, /acabamento\.oclusao\(false\)/, 'a qualidade automática desliga a oclusão primeiro');
   assert.doesNotMatch(m, /new EffectComposer/, 'sem composer próprio na cidade');
 });
 
@@ -144,9 +143,11 @@ test('árvores da cidade: copa em camadas e coqueiro com folhas em arco, dentro 
   }
 });
 
-test('cidade sem serrilhado ao mexer: oclusão só parada e o sol muda junto com o mapa de sombra', () => {
+test('cidade sem travadinhas nem luz pulando: luz igual mexendo e parada, sombra refeita só ao parar e junto com o sol', () => {
   const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
-  assert.match(m, /acabamento\.oclusao\(quieta\)/);
+  assert.doesNotMatch(m, /acabamento\.oclusao\(/, 'a luz da cidade não muda entre mexer e parar (fazia a luz pular)');
+  assert.match(m, /if \(!sombraPendente \|\| movendo\) return;/, 'mexendo, o mapa de sombra não é refeito (travadinhas)');
+  assert.doesNotMatch(m, /passo\.sombra/, 'sem refazer a sombra a cada 12 s');
   assert.match(m, /ultimaSombra = t; aplicarSol\(\); renderer\.shadowMap\.needsUpdate = true/);
   assert.doesNotMatch(m.slice(m.indexOf('function posicionarCamera'), m.indexOf('let solQuer')), /sol\.position\.set/, 'o sol não anda fora do redesenho da sombra');
 });

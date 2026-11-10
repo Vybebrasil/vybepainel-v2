@@ -246,8 +246,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Vitrine do jogador (09/11/2026): com o mundo ligado, toda `.vb-vitrine` (ficha, criador, entrada) é um pedaço 3 × 3
   do quarto voxel da pessoa (`vitrineVoxel` em `vybe-mundo.js`, `abrirQuarto` com `vitrine: true`): piso e parede
   dela, os móveis de `escritorioMoveisDaVitrine` e o boneco fiel. Não volte ao boneco solto num palco.
-  A cidade (`motor.mjs`) usa o mesmo `acabamentoDeMaquete` do quarto, com o tilt-shift como passada extra; a
-  qualidade automática desliga a oclusão primeiro. Não crie outro composer.
+  A cidade (`motor.mjs`) usa o mesmo `acabamentoDeMaquete` do quarto, com o tilt-shift como passada extra e sem a
+  oclusão (investigação de 10/11/2026: de longe quase não aparece, tremulava e, ligando só parada, a luz "pulava").
+  A luz da cidade é a mesma mexendo e parada; o mapa de sombra só é refeito quando a câmera para. Não crie outro composer.
   Parada, a cidade anima o enfeite a 30 qps constantes e só vira foto depois de 1 min sem mexer (Paulo, 10/11/2026:
   o ritmo caindo parecia travar); `?medir=1` mostra o tempo por quadro e as chamadas de desenho num canto.
   Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
