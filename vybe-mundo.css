@@ -3236,7 +3236,9 @@ html body.mundo .vb-resumo-item b{color:inherit!important}
 
 /* ===== Módulo: tela cheia e fechar no canto ===== */
 .vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 10px);right:calc(var(--vv-m) + 14px);z-index:640;gap:6px}
-body.mundo.mundo-modulo .vv-canto-modulo{display:flex}
+/* Uma janela de módulo aberta por cima de uma tela antiga (palco-modulo) tem o próprio cabeçalho: o topo do mundo e o canto
+   da tela antiga saem, para não cobrir o fechar, a ajuda e a ação dela (fase 3d, achado no Comercial). */
+body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
 .vv-canto-modulo .vv-botao{width:36px;height:36px;padding:0;justify-content:center;border-radius:8px;background:rgba(255,255,255,.92)!important;border:1px solid #E6E0D6!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
 .vv-canto-modulo .vv-botao:hover{background:#fff!important;border-color:var(--vv-acao,#C2490C)!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -4156,7 +4158,7 @@ html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!importan
 /* Telas do painel antigo (Gestor, Demandas, Clientes, Agenda, Direção de arte) dentro do Irecity: uma barra de ícones só.
    O cabeçalho antigo repetia voltar, logo, conta, avisos, notas, busca e "Trocar de modo" (o menu da esquerda já faz). */
 html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
-html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}
+html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}
 html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
 html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)}
 
@@ -5786,3 +5788,6 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
   /* Painel de avisos no celular: acima do dock e da barra de baixo. */
   .vv-avisos-painel{max-height:calc(100dvh - var(--vv-m,12px) - 54px - var(--vv-coluna-fundo))}
 }
+/* A Carteira (Saúde, Onboarding, Contratos, Churn) mede a altura da camada dela, que já termina acima do dock; com 100dvh
+   ela passava por baixo do dock e da barra de baixo do celular (fase 3d). */
+body.mundo .vc-camada > #vv-carteira{height:100%}

@@ -141,6 +141,13 @@ test('celular: topo com busca, avisos e conta; cinco lugares embaixo com Criar n
   assert.ok(cel.includes('body.mundo .vv-dock-salas-faixa > .vq-dock{flex-wrap:wrap;'), 'na chamada o dock quebra linha em vez de cortar o último botão');
 });
 
+test('janela de módulo por cima de uma tela antiga: o topo do mundo e o canto antigo não cobrem o cabeçalho dela', () => {
+  assert.ok(css.includes('html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}'), 'com palco-modulo vale a regra que esconde o HUD');
+  assert.ok(css.includes('body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}'));
+  assert.ok(!css.includes('html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}'));
+  assert.ok(bloco3d.includes('body.mundo .vc-camada > #vv-carteira{height:100%}'), 'a Carteira termina acima do dock');
+});
+
 test('fase 3d sem forçar nada: nenhum !important nem html body.mundo no bloco novo', () => {
   assert.ok(bloco3d.length > 1000);
   assert.doesNotMatch(bloco3d, /!important/);
