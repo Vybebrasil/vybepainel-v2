@@ -17,7 +17,8 @@
 
 /* topo */
 #vv-conteudo .vc-topo{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--vc-linha);flex:none;flex-wrap:wrap}
-#vv-conteudo .vc-marca{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:var(--vv-laranja-claro,#FFE6D6);color:var(--vc-sel-t);flex:none}
+/* Fase 3 (quadro 49): sem ícone laranja no título; o cabeçalho é título, frase e ação. */
+#vv-conteudo .vc-marca{display:none}
 #vv-conteudo .vc-titulo{display:flex;flex-direction:column;min-width:0;flex:1}
 #vv-conteudo .vc-titulo b{font:700 18px var(--vv-titulo,"Space Grotesk",system-ui);letter-spacing:-.01em;white-space:nowrap}
 #vv-conteudo .vc-titulo small{font:500 11.5px var(--vv-texto,system-ui);color:var(--vc-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

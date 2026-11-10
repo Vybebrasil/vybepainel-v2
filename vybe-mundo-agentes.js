@@ -110,6 +110,18 @@
   const quando = (iso) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { timeZone: 'America/Bahia', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace('.', ''); };
 
   function setores() { return planta().flatMap((a) => a.setores.filter((s) => s.agente).map((s) => ({ ...s, andar: a }))); }
+  // Retrato voxel do agente (quadros 62 e 63 do moodboard): o mesmo boneco de agente do Prédio (figuraDoAgente, com a cor
+  // do andar no visor e no fone), pela avatarDoAgente de mundo/avatar.mjs. Enquanto o módulo 3D não chega (ou sem
+  // WebGL), as iniciais de antes.
+  let modRetrato = null;
+  function retratoHtml(s, { grande = false } = {}) {
+    const cor = s?.andar?.cor || '#FF7A2F', nome = String(s?.agente || '');
+    let url = '';
+    try { url = modRetrato?.avatarDoAgente?.(nome, cor, { cabeca: true }) || ''; } catch { url = ''; }
+    const cls = `vga-av${grande ? ' grande' : ''}`;
+    if (url) return `<img class="${cls} vga-retrato" src="${esc(url)}" alt="" style="--e:${esc(cor)}" width="${grande ? 52 : 32}" height="${grande ? 52 : 32}">`;
+    return `<span class="${cls}" style="--e:${esc(cor)}" aria-hidden="true">${esc(nome.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase())}</span>`;
+  }
 
   // "Depende de você" (Paulo, 09/11/2026: "o que cada um tá dependendo de mim"): uma fila só, de todos os agentes, com o
   // que espera um dono. Para decidir: achado urgente, lição em revisão, execução que parou com falha e agente que pode
@@ -138,8 +150,26 @@
   // Pedido de aprovação de agente em sombra (core/porta-agentes.js na central): entra em "Para decidir" logo depois das
   // falhas; vencido não aparece. A atividade "aguardando aprovação" do mesmo pedido (porta_aprovacao) não repete em Esperando.
   const GRAVIDADE = { alta: 0, media: 1, baixa: 2 };
+  // O mesmo achado visto por vários agentes (quadro 62 do moodboard, 10/11/2026: "Cliente demonstração pediu no grupo…"
+  // aparecia quatro vezes, uma por agente): mesmo cliente, mesmo fato sem o nome do cliente e mesma peça. Cada agente
+  // guarda o seu com chave própria na central (core/achados-agentes.js), então a linha leva as chaves de todos.
+  const normal = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.!]+$/, '');
+  const mesmoAchado = (a) => `${normal(a.cliente)}|${normal(semCliente(a))}|${String(a.ref || '')}`;
+  function juntarVistos(lista) {
+    const por = new Map();
+    for (const { quem, a } of lista) {
+      const k = mesmoAchado(a);
+      if (!por.has(k)) por.set(k, { a, copias: [] });
+      const m = por.get(k);
+      m.copias.push({ ...quem, a });
+      if (String(a.primeiraVez || '') < String(m.a.primeiraVez || '')) m.a = a; // o mais antigo representa
+    }
+    return [...por.values()];
+  }
+  // "VYBES, Otávio, Beto e Mateus".
+  const listaDeNomes = (ns) => (ns.length < 2 ? ns.join('') : `${ns.slice(0, -1).join(', ')} e ${ns[ns.length - 1]}`);
   function filaDoDono({ agentes = [], perfis = {}, atividades = {}, pedidos = [], agora = Date.now() } = {}) {
-    const decidir = [], acompanhar = [], esperando = [];
+    const decidir = [], acompanhar = [], esperando = [], urgentes = [];
     for (const x of Array.isArray(pedidos) ? pedidos : []) {
       if (!x || x.status !== 'pendente' || !(Date.parse(x.expiraEm) > agora)) continue;
       const s = agentes.find((a) => a.id === x.setor);
@@ -149,12 +179,7 @@
       const P = perfis[s.id], A = atividades[s.id], quem = { setor: s.id, agente: s.agente, nome: s.nome };
       if (P) {
         const abertos = P.achados?.abertos || [];
-        // Agrupados (Paulo, 09/11/2026: a fila veio com 58 e boa parte era o mesmo achado repetido por cliente): os urgentes
-        // do mesmo agente e do mesmo tipo viram uma linha só, com resolver ou ignorar o grupo e "ver um a um".
-        for (const g of agrupar(abertos.filter((x) => x.gravidade === 'alta'))) {
-          if (g.achados.length === 1) decidir.push({ ...quem, tipo: 'achado', em: g.em, a: g.achados[0] });
-          else decidir.push({ ...quem, tipo: 'grupo', em: g.em, chave: s.id + ':' + g.k, achados: g.achados, titulo: g.titulo, exemplo: g.exemplo, clientes: g.clientes });
-        }
+        for (const a of abertos.filter((x) => x.gravidade === 'alta')) urgentes.push({ quem, a });
         for (const l of (P.licoes || []).filter((x) => x.estado === 'em_revisao')) decidir.push({ ...quem, tipo: 'licao', em: l.em || l.criadaEm || '', l });
         if (P.projecao?.subirNivel) decidir.push({ ...quem, tipo: 'nivel', em: '', texto: P.projecao.subirNivel });
         const outros = abertos.filter((x) => x.gravidade !== 'alta');
@@ -172,6 +197,20 @@
         esperando.push({ ...quem, tipo: acao ? 'acao' : 'proposta', em: e.em, e });
       });
     }
+    // Urgentes: primeiro o mesmo achado de vários agentes vira um só; depois os do mesmo tipo e dos mesmos agentes viram um
+    // grupo (Paulo, 09/11/2026: a fila veio com 58 e boa parte era o mesmo achado repetido por cliente), com resolver ou
+    // ignorar o grupo e "ver um a um".
+    const juntos = juntarVistos(urgentes), deQuem = new Map(juntos.map((m) => [m.a, m])), porVistos = new Map();
+    for (const m of juntos) { const k = [...new Set(m.copias.map((c) => c.setor))].join('+'); if (!porVistos.has(k)) porVistos.set(k, []); porVistos.get(k).push(m.a); }
+    for (const lista of porVistos.values()) {
+      for (const g of agrupar(lista)) {
+        const membros = g.achados.map((a) => deQuem.get(a)), copias = membros.flatMap((m) => m.copias);
+        const vistos = [...new Map(copias.map((c) => [c.setor, { setor: c.setor, agente: c.agente, nome: c.nome }])).values()];
+        const base = { ...vistos[0], vistos, chaves: copias.map((c) => c.a.chave), em: g.em };
+        if (g.achados.length === 1) decidir.push({ ...base, tipo: 'achado', a: g.achados[0] });
+        else decidir.push({ ...base, tipo: 'grupo', chave: vistos.map((v) => v.setor).join('+') + ':' + g.k, achados: g.achados, membros, titulo: g.titulo, exemplo: g.exemplo, clientes: g.clientes });
+      }
+    }
     const ordem = { falha: 0, aprovacao: 1, grupo: 2, achado: 2, licao: 3, nivel: 4 };
     decidir.sort((x, y) => ordem[x.tipo] - ordem[y.tipo] || (y.achados?.length || 1) - (x.achados?.length || 1) || String(x.em || '').localeCompare(String(y.em || '')));
     acompanhar.sort((x, y) => y.n - x.n);
@@ -187,42 +226,65 @@
     return { ...filaDoDono({ agentes: ag, perfis, atividades, pedidos: st.estados.dados?.pedidos || [] }), lidos: Object.keys(perfis).length, de: ag.length };
   }
   const ICONE_FILA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 4.6-3.4 8.4-8 9-4.6-.6-8-4.4-8-9V7z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
-  const TIPO = { falha: ['Parou com falha', '#D13D36'], aprovacao: ['Pede o seu OK', '#8E4EC6'], achado: ['Urgente', '#C2490C'], grupo: ['Urgente', '#C2490C'], licao: ['Lição para confirmar', '#8E4EC6'], nivel: ['Pode ganhar autonomia', '#18A957'],
-    acao: ['Esperando o SIM de quem pediu', '#0D74CE'], proposta: ['Proposta esperando um dono', '#0D74CE'] };
+  // Selo com texto (sem faixa colorida na borda): a cor segue a escala de urgência de docs/padrao-visual.md.
+  const TIPO = { falha: ['Parou com falha', 'critico'], aprovacao: ['Pede o seu OK', 'bloqueio'], achado: ['Urgente', 'alto'], grupo: ['Urgente', 'alto'], licao: ['Lição para confirmar', 'bloqueio'],
+    nivel: ['Pode ganhar autonomia', 'andando'], acao: ['Esperando o SIM de quem pediu', 'espera'], proposta: ['Proposta esperando um dono', 'espera'] };
+  const ICONE_MAIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  const maisHtml = (botoes) => (botoes ? `<details class="vga-mais"><summary>${ICONE_MAIS}<span>Mais</span></summary><div class="vga-mais-menu">${botoes}</div></details>` : '');
+  // Botão de decidir um achado: um agente só, a rota dele (data-vga-achado); vários, a mesma rota para cada chave (lote).
+  function botaoAchado(it, acao, rotulo, extra = '') {
+    const chaves = it.chaves || [it.a?.chave], setores = [...new Set((it.vistos || [it]).map((v) => v.setor))];
+    if (chaves.length === 1) return `<button type="button" data-vga-de="${esc(it.setor)}" data-vga-achado="${acao}" data-vga-chave="${esc(chaves[0])}"${extra}>${rotulo}</button>`;
+    return `<button type="button" data-vga-de="${esc(it.setor)}" data-vga-lote="${acao}" data-vga-chaves="${esc(JSON.stringify(chaves))}" data-vga-setores="${esc(JSON.stringify(setores))}"${it.tipo === 'grupo' ? '' : ' data-vga-vistos'}${extra}>${rotulo}</button>`;
+  }
   function itemFilaHtml(it, dono) {
-    const [rot, cor] = TIPO[it.tipo], ini = String(it.agente).slice(0, 2).toUpperCase(), cli = (c) => (c ? (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c)) + ' · ' : '');
-    // Dentro de um grupo: sem o avatar, o cabeçalho e o "Abrir" de novo (já estão na linha do grupo).
-    const de = `data-vga-de="${esc(it.setor)}"`, abrir = it.dentro ? '' : `<button type="button" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button>`;
-    let titulo = '', detalhe = '', acoes = abrir, extra = '';
+    const [rot, nivel] = TIPO[it.tipo], cli = (c) => (c ? (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c)) + ' · ' : '');
+    const vistos = it.vistos || [{ setor: it.setor, agente: it.agente, nome: it.nome }];
+    // Abrir o agente: um botão por agente que viu (no "Mais" quando há outra ação principal).
+    const abrirAgentes = it.dentro ? '' : vistos.map((v) => `<button type="button" data-vga-setor="${esc(v.setor)}">Abrir ${esc(v.agente)}</button>`).join('');
+    const abrirPrincipal = it.dentro ? '' : `<button type="button" class="vga-sim" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button>`;
+    let titulo = '', detalhe = '', principal = '', segunda = '', mais = '', extra = '';
     if (it.tipo === 'grupo') {
-      const n = it.achados.length, chaves = esc(JSON.stringify(it.achados.map((a) => a.chave))), vis = it.clientes.slice(0, 6);
+      const n = it.achados.length, vis = it.clientes.slice(0, 6);
       titulo = it.titulo;
       detalhe = `${vis.length ? vis.map((c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c))).join(' ') + (it.clientes.length > vis.length ? ` e mais ${it.clientes.length - vis.length}` : '') + ' · ' : ''}${it.exemplo ? 'Ex.: ' + esc(it.exemplo) + ' · ' : ''}o mais antigo desde ${esc(quando(it.em))}`;
-      if (dono) acoes = `<button type="button" ${de} data-vga-lote="resolvido" data-vga-chaves="${chaves}">Resolver os ${n}</button><button type="button" ${de} data-vga-lote="ignorar" data-vga-chaves="${chaves}">Ignorar os ${n}</button>${abrir}`;
-      extra = `<details class="vga-grupo"><summary>Ver um a um (${n})<span hidden>${esc(it.chave)}</span></summary><ul class="vga-fila">${it.achados.map((a) => itemFilaHtml({ ...it, tipo: 'achado', a, dentro: true }, dono)).join('')}</ul></details>`;
+      if (dono) { principal = botaoAchado(it, 'resolvido', `Resolver os ${n}`, ' class="vga-sim"'); mais = botaoAchado(it, 'ignorar', `Ignorar os ${n}`) + abrirAgentes; }
+      else principal = abrirPrincipal;
+      const membros = it.membros || it.achados.map((a) => ({ a, copias: [{ ...vistos[0], a }] }));
+      extra = `<details class="vga-grupo"><summary>Ver um a um (${n})<span hidden>${esc(it.chave)}</span></summary><ul class="vga-fila">${membros.map((m) => itemFilaHtml({ ...it, tipo: 'achado', a: m.a, chaves: m.copias.map((c) => c.a.chave), dentro: true }, dono)).join('')}</ul></details>`;
     } else if (it.tipo === 'achado') {
-      const a = it.a; titulo = a.fato; detalhe = `${cli(a.cliente)}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''} · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}`;
-      acoes = pecaBotao(a, it.setor) + (dono ? '' : abrir);
-      if (dono) acoes = pecaBotao(a, it.setor) + `<button type="button" ${de} data-vga-achado="resolvido" data-vga-chave="${esc(a.chave)}">Resolvido</button><button type="button" ${de} data-vga-achado="ignorar" data-vga-chave="${esc(a.chave)}">Ignorar</button><button type="button" ${de} data-vga-achado="errado" data-vga-chave="${esc(a.chave)}" title="O agente se enganou: conta no acerto dele">Estava errado</button>${abrir}`;
+      const a = it.a, peca = /^vybe:[1-9]\d{0,19}$/.test(String(a?.ref || ''));
+      titulo = a.fato; detalhe = `${cli(a.cliente)}${esc(a.prova)}${a.sugestao ? ' · ' + esc(a.sugestao) : ''} · desde ${esc(quando(a.primeiraVez))}${a.vezes > 1 ? ` · visto ${a.vezes}x` : ''}`;
+      if (peca) { pecaBotao(a, it.setor); principal = `<button type="button" class="vga-sim" data-vga-peca="${esc(a.ref)}" data-vga-chave="${esc(a.chave)}" data-vga-de="${esc(it.setor)}" title="Calendário, quem faz, datas e a sugestão do agente">Abrir a peça</button>`; }
+      if (dono) {
+        const resolver = botaoAchado(it, 'resolvido', 'Já resolvi', peca ? '' : ' class="vga-sim"');
+        if (peca) segunda = resolver; else principal = resolver;
+        mais = botaoAchado(it, 'ignorar', 'Ignorar') + botaoAchado(it, 'errado', 'Estava errado', ' title="O agente se enganou: conta no acerto dele"') + abrirAgentes;
+      } else if (!peca) principal = abrirPrincipal;
+      else mais = abrirAgentes;
     } else if (it.tipo === 'licao') {
       titulo = it.l.texto; detalhe = `O agente viu isso se repetir e quer guardar como regra${it.l.prova ? ' · ' + esc(it.l.prova) : ''}`;
-      if (dono) acoes = `<button type="button" ${de} data-vga-licao="incorporar" data-vga-id="${esc(it.l.id)}">Vale sempre</button><button type="button" ${de} data-vga-licao="contestar" data-vga-id="${esc(it.l.id)}">Não vale</button>${abrir}`;
+      if (dono) { principal = `<button type="button" class="vga-sim" data-vga-de="${esc(it.setor)}" data-vga-licao="incorporar" data-vga-id="${esc(it.l.id)}">Vale sempre</button>`; segunda = `<button type="button" data-vga-de="${esc(it.setor)}" data-vga-licao="contestar" data-vga-id="${esc(it.l.id)}">Não vale</button>`; mais = abrirAgentes; }
+      else principal = abrirPrincipal;
     } else if (it.tipo === 'aprovacao') {
       const x = it.p, vence = Date.parse(x.expiraEm) - Date.now();
       titulo = x.resumo; detalhe = `${x.destino ? 'Para ' + esc(x.destino) + ' · ' : ''}${esc(it.agente)} está em sombra e só faz depois do OK de um dono · pedido ${esc(quando(x.criadoEm))}${vence > 0 ? ` · vence em ${Math.max(1, Math.round(vence / 3600e3))} h` : ''} · código ${esc(x.id)}`
         + (x.previa ? `</small><details class="vga-previa"><summary>O que será feito</summary><pre>${esc(x.previa)}</pre></details><small>` : '');
-      acoes = dono ? `<button type="button" class="vga-sim" ${de} data-vga-aprovacao="aprovar" data-vga-id="${esc(x.id)}">Aprovar</button><button type="button" ${de} data-vga-aprovacao="recusar" data-vga-id="${esc(x.id)}" title="Não faz e vira aprendizado do agente">Recusar</button>${abrir}`
-        : `<span class="vga-nota">Só um dono aprova.</span>${abrir}`;
+      if (dono) { principal = `<button type="button" class="vga-sim" data-vga-de="${esc(it.setor)}" data-vga-aprovacao="aprovar" data-vga-id="${esc(x.id)}">Aprovar</button>`; segunda = `<button type="button" data-vga-de="${esc(it.setor)}" data-vga-aprovacao="recusar" data-vga-id="${esc(x.id)}" title="Não faz e vira aprendizado do agente">Recusar</button>`; mais = abrirAgentes; }
+      else { principal = abrirPrincipal; segunda = '<span class="vga-nota">Só um dono aprova.</span>'; }
     } else if (it.tipo === 'falha') {
-      titulo = it.e.tarefa; detalhe = `${esc(it.e.erro || 'Sem detalhe do erro.')} · ${esc(quando(it.e.em))}`;
+      titulo = it.e.tarefa; detalhe = `${esc(it.e.erro || 'Sem detalhe do erro.')} · ${esc(quando(it.e.em))}`; principal = abrirPrincipal;
     } else if (it.tipo === 'nivel') {
-      titulo = `${it.agente} acertou o bastante para agir com menos aprovação`; detalhe = `${esc(it.texto)}. A mudança é feita na central do VYBES.`;
+      titulo = `${it.agente} acertou o bastante para agir com menos aprovação`; detalhe = `${esc(it.texto)}. A mudança é feita na central do VYBES.`; principal = abrirPrincipal;
     } else if (it.tipo === 'acao') {
-      titulo = it.e.tarefa; detalhe = `Só quem pediu confirma, respondendo SIM no WhatsApp; o código vale 5 minutos · ${esc(quando(it.e.em))}`; acoes = '';
+      titulo = it.e.tarefa; detalhe = `Só quem pediu confirma, respondendo SIM no WhatsApp; o código vale 5 minutos · ${esc(quando(it.e.em))}`;
     } else {
-      titulo = it.e.tarefa; detalhe = `${esc(it.nome)} está em modo sombra: propõe e espera um dono na central do VYBES · ${esc(quando(it.e.em))}`;
+      titulo = it.e.tarefa; detalhe = `${esc(it.nome)} está em modo sombra: propõe e espera um dono na central do VYBES · ${esc(quando(it.e.em))}`; principal = abrirPrincipal;
     }
-    return `<li style="--c:${cor}">${it.dentro ? '' : `<span class="vga-av" style="--e:${cor}">${esc(ini)}</span>`}<span class="vga-fila-meio">${it.dentro ? '' : `<small><b>${esc(it.agente)}</b> · ${esc(it.nome)} · <em>${esc(rot)}${it.tipo === 'grupo' ? ` · ${it.achados.length} parecidos` : ''}</em></small>`}<b>${esc(titulo)}</b><small>${detalhe}</small></span>${acoes ? `<span class="vga-acoes">${acoes}</span>` : ''}${extra}</li>`;
+    const acoes = principal + segunda + maisHtml(mais);
+    const quem = vistos.length > 1 ? `visto por ${esc(listaDeNomes(vistos.map((v) => v.agente)))}` : `<b>${esc(it.agente)}</b> · ${esc(it.nome)}`;
+    const s0 = setores().find((x) => x.id === it.setor) || { agente: it.agente, andar: null };
+    return `<li class="vga-item">${it.dentro ? '' : retratoHtml(s0)}<span class="vga-fila-meio">${it.dentro ? '' : `<span class="vga-fila-cab"><span class="vga-selo ${nivel}">${esc(rot)}</span><small>${quem}${it.tipo === 'grupo' ? ` · ${it.achados.length} parecidos` : ''}</small></span>`}<b>${esc(titulo)}</b><small>${detalhe}</small></span>${acoes ? `<span class="vga-acoes">${acoes}</span>` : ''}${extra}</li>`;
   }
   function filaHtml() {
     const F = filaAgora(), dono = souDono(), lendo = F.lidos < F.de && setores().some((s) => st.perfis[s.id]?.lendo || !st.perfis[s.id]);
@@ -265,10 +327,9 @@
     return `<button type="button" class="vga-linha vga-linha-fila${st.vista === 'fila' ? ' sel' : ''}" data-vga-fila>
         <span class="vga-av vga-av-fila">${ICONE_FILA}</span><span class="vga-meio"><b>Depende de você</b><small>O que espera um dono, de todos os agentes</small></span>
         ${n ? `<em class="vga-n">${n}</em>` : ''}</button>` + planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel, a.id))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
-      const E = mv().estadoDoAgente?.(s.id) || {}, m = modoDo(s), [rot, , cor] = rotuloDoModo(m);
-      const ini = String(s.agente).split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      const m = modoDo(s), [rot, , cor] = rotuloDoModo(m);
       return `<button type="button" class="vga-linha${st.vista !== 'fila' && s.id === st.setor ? ' sel' : ''}" data-vga-setor="${esc(s.id)}">
-        <span class="vga-av" style="--e:${esc(E.cor || cor)}">${esc(ini)}</span>
+        ${retratoHtml(s)}
         <span class="vga-meio"><b>${esc(s.agente)}</b><small>${esc(s.funcao || s.nome)} · ${esc(s.nome)}</small></span>
         <em style="--c:${cor}"${m.ate ? ` title="Volta ${esc(quando(m.ate))}"` : ''}>${esc(rot)}</em></button>`;
     }).join('')}</div>`).join('');
@@ -290,7 +351,7 @@
     const semCentral = f.erro || !f.dados;
     void lerPerfil(s.id);
     const pf = st.perfis[s.id] || {}, P = pf.dados?.perfil || null;
-    return `<div class="vga-cab"><span class="vga-av grande" style="--e:${esc((mv().estadoDoAgente?.(s.id) || {}).cor || cor)}">${esc(String(s.agente).slice(0, 2).toUpperCase())}</span>
+    return `<div class="vga-cab">${retratoHtml(s, { grande: true })}
         <span><small>${esc(ANDAR(s.andar.nivel))} · ${esc(s.andar.nome)} · ${esc(s.nome)}</small><h3>${esc(s.agente)} <i>${esc(s.funcao || '')}</i></h3>
         <span class="vga-estado" style="--c:${cor}">${esc(rot)}</span><span class="vga-expl">${esc(expl)}</span></span></div>
       <p class="vga-papel">${esc(s.papel || '')}</p>
@@ -337,13 +398,13 @@
     // A tela repinta a cada leitura da central (5 s): guarda a rolagem e os detalhes abertos do mesmo agente.
     const det0 = raiz.querySelector('.vga-detalhe'), lista0 = raiz.querySelector('.vga-lista');
     const mesmo = raiz.dataset.setor === st.setor, rolagem = mesmo && det0 ? det0.scrollTop : 0, rolagemLista = lista0 ? lista0.scrollTop : 0;
-    const abertos = mesmo ? [...raiz.querySelectorAll('.vga-detalhe details[open] > summary')].map((s) => s.textContent) : [];
+    const abertos = mesmo ? [...raiz.querySelectorAll('.vga-detalhe details[open]:not(.vga-mais) > summary')].map((s) => s.textContent) : [];
     raiz.dataset.setor = st.setor;
     raiz.innerHTML = `<div class="vga-topo"><span><small>Prédio da Vybe</small><h2>Agentes</h2><p>${f.dados ? `Central do VYBES · leitura às ${new Date(f.atualizadoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : f.erro ? 'Sem sinal da central do VYBES agora' : 'Consultando a central do VYBES…'}</p></span>
       <button type="button" class="vga-fechar" data-vga-fechar aria-label="Fechar">×</button></div>
       <div class="vga-corpo"><nav class="vga-lista" aria-label="Agentes por andar">${listaHtml()}</nav><div class="vga-detalhe">${detalheHtml()}</div></div>`;
     raiz.hidden = false;
-    if (abertos.length) raiz.querySelectorAll('.vga-detalhe details > summary').forEach((s) => { if (abertos.includes(s.textContent)) s.parentElement.open = true; });
+    if (abertos.length) raiz.querySelectorAll('.vga-detalhe details:not(.vga-mais) > summary').forEach((s) => { if (abertos.includes(s.textContent)) s.parentElement.open = true; });
     const det1 = raiz.querySelector('.vga-detalhe'), lista1 = raiz.querySelector('.vga-lista');
     if (det1) det1.scrollTop = rolagem; if (lista1) lista1.scrollTop = rolagemLista;
   }
@@ -351,7 +412,7 @@
   // Atribuir (etapa padrão), ligar/desligar rotina ('rotina') ou dar retorno a um achado ou lição ('achado'): tudo pela
   // mesma ponte (server/vybes.js → central). A central confere se é dono.
   // Resolver ou ignorar um grupo: um achado por vez, pela mesma rota; o que já estava fechado conta como feito.
-  async function emLote(chaves, acao, setor) {
+  async function emLote(chaves, acao, setores, { vistos = false } = {}) {
     st.enviando = true; st.msg = ''; pintar();
     let feitos = 0, falhou = '';
     for (const chave of chaves) {
@@ -361,8 +422,10 @@
         if (r.ok || d.error === 'Esse achado já foi fechado.') feitos++; else { falhou = d.error || 'Não foi possível salvar agora.'; break; }
       } catch { falhou = 'Sem conexão com o servidor.'; break; }
     }
-    st.msg = falhou ? `${feitos} de ${chaves.length} fechados. Parou: ${falhou}` : `${feitos} achado${feitos > 1 ? 's' : ''} ${acao === 'ignorar' ? 'ignorado' : 'resolvido'}${feitos > 1 ? 's' : ''}.`;
-    try { await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), lerPerfil(setor, true)]); } catch { /* a fila relê na próxima */ }
+    const feito = { ignorar: 'ignorado', errado: 'anotado como errado', resolvido: 'resolvido' }[acao] || 'resolvido';
+    st.msg = falhou ? `${feitos} de ${chaves.length} fechados. Parou: ${falhou}`
+      : vistos ? `Achado ${feito} para os ${setores.length} agentes que o viram.` : `${feitos} achado${feitos > 1 ? 's' : ''} ${feito}${feitos > 1 && acao !== 'errado' ? 's' : ''}.`;
+    try { await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), ...setores.map((x) => lerPerfil(x, true))]); } catch { /* a fila relê na próxima */ }
     pintarContagem(); st.enviando = false; pintar();
   }
   async function chamar(corpo, etapa = 'atribuir', ok = '', setor = st.setor) {
@@ -379,6 +442,7 @@
     finally { st.enviando = false; pintar(); }
   }
   function aoClicar(e) {
+    raiz?.querySelectorAll('.vga-mais[open]').forEach((d) => { if (!d.contains(e.target) || e.target.closest('button')) d.open = false; });
     const b = e.target.closest('button'); if (!b) return;
     if (b.hasAttribute('data-vga-fechar')) { fechar(); return; }
     if (b.dataset.vgaSetor) { st.setor = b.dataset.vgaSetor; st.vista = 'agente'; st.msg = ''; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
@@ -394,10 +458,13 @@
     }
     if (b.dataset.vgaPeca) { G.VybePeca?.abrir?.(b.dataset.vgaPeca, { achado: achadosVistos[b.dataset.vgaDe + '|' + b.dataset.vgaChave] || null, setor: b.dataset.vgaDe }); return; }
     if (b.dataset.vgaLote) {
-      let chaves = []; try { chaves = JSON.parse(b.dataset.vgaChaves || '[]'); } catch { /* sem chaves */ }
+      let chaves = [], setoresDoLote = []; try { chaves = JSON.parse(b.dataset.vgaChaves || '[]'); setoresDoLote = JSON.parse(b.dataset.vgaSetores || '[]'); } catch { /* sem chaves */ }
       if (!chaves.length || st.enviando) return;
-      if (!confirm(`${b.dataset.vgaLote === 'ignorar' ? 'Ignorar' : 'Marcar como resolvidos'} os ${chaves.length} achados deste grupo?`)) return;
-      emLote(chaves, b.dataset.vgaLote, b.dataset.vgaDe || st.setor); return;
+      if (!setoresDoLote.length) setoresDoLote = [b.dataset.vgaDe || st.setor];
+      // O mesmo achado visto por vários agentes é uma decisão só (vale para todos); um grupo de achados pede confirmação.
+      const vistos = b.hasAttribute('data-vga-vistos');
+      if (!vistos && !confirm(`${b.dataset.vgaLote === 'ignorar' ? 'Ignorar' : 'Marcar como resolvidos'} os ${chaves.length} achados deste grupo?`)) return;
+      emLote(chaves, b.dataset.vgaLote, setoresDoLote, { vistos }); return;
     }
     // Pedido de agente em sombra: aprovar executa a ação guardada; recusar não faz e vira aprendizado (motivo opcional).
     if (b.dataset.vgaAprovacao) {
@@ -429,7 +496,7 @@
     pintar();
     if (st.vista === 'fila') lerTodos().then(() => { pintarContagem(); pintar(); });
     lerEstados(true);
-    Promise.resolve(mv().garantirModulo?.()).then(() => { mv().fonteAgentes?.()?.atualizar?.(true)?.then?.(pintar); pintar(); });
+    Promise.resolve(mv().garantirModulo?.()).then((m) => { if (m?.avatarDoAgente) modRetrato = m; mv().fonteAgentes?.()?.atualizar?.(true)?.then?.(pintar); pintar(); });
   }
   function fechar() { st.aberto = false; pintar(); }
   // Mudou a peça e o achado foi resolvido na janela da peça: relê o perfil daquele agente. "Abrir a demanda completa":
@@ -446,5 +513,5 @@
       <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Salvar estado</button></div>
       <p class="vga-nota">Ativo faz sozinho e conta no grupo dos sócios. Sombra pede o OK de um dono no grupo dos sócios ou aqui em Depende de você. Pausado e desligado não rodam as rotinas.</p></form>`;
   }
-  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
+  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, itemFilaHtml, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
 })();

@@ -173,7 +173,7 @@
   const acao = (rotulo, attrs) => `<button type="button" class="vc-acao" ${attrs}>${esc(rotulo)}</button>`;
   const secundario = (rotulo, attrs) => `<button type="button" class="vc-sec" ${attrs}>${esc(rotulo)}</button>`;
   const etiqueta = (texto, nivel) => `<em class="vc-tag ${nivel}">${esc(texto)}</em>`;
-  const aguardando = (o = '') => `<div class="vc-ativacao" role="note"><b>Aguardando ativação</b><p>${esc(o || 'Esta parte guarda dados novos no banco.')} Falta o Paulo aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code>.</p>${secundario('Tentar de novo', 'data-vc-recarregar')}</div>`;
+  const aguardando = (o = '') => `<div class="vc-ativacao" role="note"><b>Aguardando ativação</b><p>${esc(o || 'Esta parte guarda dados novos no banco.')} Quando estiver ligada, ela aparece aqui sozinha. Os donos já sabem o que falta.</p>${typeof souAdmin === 'function' && souAdmin() ? `<small class="vc-ativacao-tec">Para quem administra: migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code>.</small>` : ''}${secundario('Tentar de novo', 'data-vc-recarregar')}</div>`;
   const comparacao = () => (estado.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
   // comparar:false = número que não tem "vs" (contagem do momento): só o número.
   function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true, espiar = '' } = {}) {

@@ -13,6 +13,7 @@ const catalogo = JSON.parse(readFileSync(new URL('../assets/escritorio/habbo/cat
 function editor() {
   const c = vm.createContext({ console, window: {}, safeText: String, addEventListener() {}, localStorage: { getItem: () => null, setItem() {} }, performance: { now: () => 0 },
     document: { querySelector: () => null, getElementById: () => null, addEventListener() {}, documentElement: {} } });
+  vm.runInContext(readFileSync('shared/escritorio-nome-movel.js', 'utf8'), c);
   vm.runInContext(readFileSync('vybe-escritorio-editor.js', 'utf8'), c);
   c.cat = catalogo;
   return (busca) => vm.runInContext(`cat.filter((m) => escritorioBuscaCombina(escritorioNomeMovel(m) + " " + m.nome + " " + m.classe, ${JSON.stringify(busca)})).map((m) => m.classe)`, c);

@@ -9,10 +9,13 @@
 .vv-plj-abas button{appearance:none;border:1px solid #E6E0D6;background:#fff;border-radius:8px;padding:7px 14px;font:600 12.5px var(--vv-texto);color:#1F1D1A;cursor:pointer}
 .vv-plj-abas button span{color:#6B675F;font-weight:500;margin-left:4px}
 .vv-plj-abas button[aria-selected="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff);border-color:color-mix(in srgb,#FF7A2F 40%,transparent);color:#C2490C}
-.vv-plj-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;align-content:start}
-.vv-plj-cartao{display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #ECE6DC;border-radius:10px}
+/* Fase 3 (quadro 48): uma linha por cliente, com mês, situação, peças e o que falta, e a ação à direita. */
+.vv-plj-grade{display:grid;grid-template-columns:1fr;gap:6px;align-content:start}
+.vv-plj-cartao{display:grid;grid-template-columns:minmax(200px,1.2fr) minmax(160px,1fr) minmax(160px,1fr) auto;grid-template-areas:"topo placar avisos acoes" "sub placar avisos acoes";align-items:center;gap:2px 16px;padding:10px 14px;background:#fff;border:1px solid #ECE6DC;border-radius:10px}
+.vv-plj-cartao > .vv-plj-topo{grid-area:topo}.vv-plj-cartao > .vv-plj-sub{grid-area:sub}.vv-plj-cartao > .vv-plj-placar{grid-area:placar}.vv-plj-cartao > .vv-plj-avisos{grid-area:avisos}.vv-plj-cartao > .vv-plj-acoes{grid-area:acoes;margin-top:0;justify-content:flex-end}
+@media (max-width:900px){.vv-plj-cartao{grid-template-columns:1fr;grid-template-areas:"topo" "sub" "placar" "avisos" "acoes";gap:6px}.vv-plj-cartao > .vv-plj-acoes{justify-content:flex-start}}
 .vv-plj-cartao.meu{border-color:color-mix(in srgb,#FF7A2F 35%,#ECE6DC)}
-.vv-plj-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.vv-plj-topo{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-width:0}
 .vv-plj-topo b{font:700 14.5px var(--vv-texto)}
 .vv-plj-sub{color:#6B675F;font:500 12px var(--vv-texto)}
 .vv-plj-placar{margin:0;font:600 12.5px var(--vv-texto)}
@@ -23,3 +26,5 @@
 .vv-plj-vazio{color:#6B675F;font:500 13px var(--vv-texto)}
 @media (max-width:900px){.vv-plj{inset:8px 8px calc(64px + 2*var(--vv-m,16px)) 8px;padding:16px}}
 html.tema-escuro body.mundo .vv-plj{filter:invert(.92) hue-rotate(180deg)}
+/* Editar e revisar e Histórico são botões (eram texto solto): o secundário do sistema. */
+.vv-plj-acoes .vv-botao:not(.acao){border:1px solid var(--pc-linha,#E6E0D6);background:#FFFFFF}

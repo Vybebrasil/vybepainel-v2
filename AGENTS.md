@@ -221,8 +221,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (`escritorioIrPara`, `tecladoEscritorio`); o botão Decorar do dock (só na sala da pessoa) abre o `VybeDecorar`, que
   edita o quarto pela mesma interface de cena do andar antigo (`iniciarEdicao`, `segurar`, `girar`, `guardar`,
   `definirItens`, `definirAcabamento`) e grava pela rota do editor do Escritório; a Loja é a do Escritório. Na Loja, no
-  inventário e no painel de decorar o ícone do móvel é a arte dele (o que o quarto mostra), nunca o cubo do catálogo;
-  só os bonecos viram o boneco voxel. Por cima do miolo esculpido vai uma casca fina com o desenho
+  inventário e no painel de decorar o ícone do móvel é o que o quarto mostra, nunca o cubo do catálogo: desde a fase
+  3c (10/11/2026) é o retrato voxel do próprio móvel (`retratoDoMovel`, pela mesma `movelEmVoxel` do quarto); peça de
+  parede ou sem voxel fica com a arte de sempre. Por cima do miolo esculpido vai uma casca fina com o desenho
   do Habbo a cada 2 px (cor do pixel, contorno incluído), para cada peça ser reconhecível; as peças ficam guardadas no
   IndexedDB (`vybe-minha-sala`). Sala viva (Paulo, 09/11/2026: "visual, imersão, experiência"): paredes por trecho
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
@@ -620,7 +621,18 @@ e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
   título nem rótulo de setor colorido: as cores antigas ficam em `:where(body:not(.mundo))`. Moodboard do redesign:
   https://claude.ai/artifact/Q3rexVtqwYWCqUCJ7U2yb3. Não crie outra curva nem outra sombra de janela.
 
-### Padrão de jogo do Escritório (decisão do Paulo, 21/10/2026)
+### Padrão de jogo do Escritório (decisão do Paulo, 21/10/2026; no mundo, substituído em 10/11/2026)
+
+O jogo também é claro (Paulo, moodboard de 10/11/2026, quadros 35 a 38: "parecem dois produtos"). No mundo, Loja,
+Ranking, Conquistas, Jogos e Equipe online usam o material do painel: cartão branco, borda fina e um degrau sutil
+embaixo, poço bege claro, laranja só no selecionado e na ação. O escuro fica só no tema escuro (o mundo inverte a
+tela clara inteira). O bloco "O JOGO TAMBÉM É CLARO" no fim de `vybe-mundo.css` faz isso pelas janelas (`#office-catalogo`,
+`#ofc-ranking`, `#ofc-conquistas`), trocando os tokens `--jg-*`/`--vb-jogo-*` e sem `!important`. Toda imagem é voxel
+(o retrato do móvel, o boneco voxel) e todo nome é em português pela tradução única do catálogo
+(`shared/escritorio-nome-movel.js`, `escritorioNomeMovel`); não traduza item a item nem crie outro dicionário. Na
+Loja a raridade é uma etiqueta e o preço tem linha própria, inteiro. Jogos e Equipe online são telas com conteúdo:
+as mesas com o botão de jogar e quem está online, com Ir até e Chamar (`mostrarJogos`, `mostrarEquipe`); Ranking,
+Conquistas e Loja moram no dock, não na Equipe. O que segue vale para o desenho do Escritório antigo (fora do mundo):
 
 "Os padrões visuais da aba Conquistas, que ficou igual joguinho, ficam como
 padrão para quando eu for corrigindo visuais e HUDs." A referência viva é a
@@ -629,11 +641,12 @@ peças compartilhadas `vb-jogo-*` no fim de `vybe-appearance.css`:
 
 - Cartão de jogo (`vb-jogo-cartao`): fundo #1d2029, borda fina, degrau
   embaixo; clicável sobe no hover e afunda no clique. Dentro, o poço
-  (`vb-jogo-poco`) para listas e números.
+  (`vb-jogo-poco`) para listas e números. No mundo, o cartão claro acima.
 - Rótulo de seção em caixa alta pequena (`vb-jogo-rotulo`); número grosso com
   sombra (`vb-jogo-numero`); botão laranja com degrau (`vb-jogo-botao`).
 - Níveis Bronze, Prata, Ouro e Diamante com as cores `--vb-n1…--vb-n4`, só no
-  ícone, na borda ou no texto pequeno; a faixa de título é `vb-titulo`.
+  ícone, na borda ou no texto pequeno; a faixa de título é `vb-titulo`. A
+  escala de raridade (Comum a Lendário) segue a mesma regra.
 - Progresso como trilha de pontos (`cq-trilha`), medalhas por nível
   (`cq-medalhas`), vitrine com pedestal (`cq-vitrine`) e placa dourada para
   destaque raro (`vb-jogo-placa`).

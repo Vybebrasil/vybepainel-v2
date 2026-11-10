@@ -9,7 +9,7 @@ function contexto() {
  var ESCRITORIO_PLANTA={W:8,H:8,ambientes:[{id:'sala-0',x0:0,y0:0,x1:8,y1:8}]},MAPA_ASSENTOS=new Set();
  function escritorioPerfilDecoracao(){return escritorio.edicao?.decoracao || {}}function escritorioImagemDe(){return null}function escritorioAviso(x){avisos.push(x)}function escritorioAmbienteDoQuarto(){return null}function escritorioModeloPlanta(){return null}function escritorioNivelQuarto(){return 0}
  function escritorioPosicao(){return {x:-9,y:-9}}function escritorioOcupado(){return false}function escritorioPortaQuarto(){return null}function mapaFisica(){return {poe:true}}function mapaTopoMovel(m){return (m.altura||0)+1}`,c);
- vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
+ vm.runInContext(readFileSync('shared/escritorio-nome-movel.js','utf8'),c); vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
  vm.runInContext(`renderBarraEditorEscritorio=()=>{};escritorioEditorMudou=()=>{};escritorioLembrarMovel=()=>{};escritorioEhParede=()=>false`,c);
  return {c,avisos,eventos,r:s=>vm.runInContext(s,c)};
 }

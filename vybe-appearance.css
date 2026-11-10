@@ -299,9 +299,9 @@ body.vybe-desktop {
   box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
 }
 .vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head) { padding: 22px !important; }
-.vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
+:where(body:not(.mundo)).vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
 .vybe-desktop .conta-aba { border-radius: 6px !important; }
-.vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
+:where(body:not(.mundo)).vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
 .vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
 /* A barra de ações é grudada no rodapé (position: sticky). Com fundo quase
    transparente o conteúdo rolava por trás e aparecia através dela, com os textos
@@ -950,8 +950,8 @@ body.vybe-desktop {
   border: 1px solid var(--glass-edge); border-radius: var(--radius-window);
   background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window);
   backdrop-filter: blur(24px) saturate(1.35); -webkit-backdrop-filter: blur(24px) saturate(1.35); }
-.notas-janela.cheia { inset: 16px !important; width: auto !important; height: auto !important; }
-.notas-janela.barra { inset: auto 16px 16px auto !important; width: 240px !important; height: auto !important; }
+.notas-janela.cheia:not(.na-coluna) { inset: 16px !important; width: auto !important; height: auto !important; }
+.notas-janela.barra:not(.na-coluna) { inset: auto 16px 16px auto !important; width: 240px !important; height: auto !important; }
 .notas-topo { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: grab;
   border-bottom: 1px solid var(--border); touch-action: none; }
 .notas-janela.barra .notas-topo { border-bottom: 0; }
@@ -1061,8 +1061,9 @@ body.vybe-desktop {
   background: linear-gradient(135deg, transparent 50%, #ffffff2e 50%); touch-action: none; }
 .notas-janela.cheia .notas-canto, .notas-janela.barra .notas-canto { display: none; }
 @media (max-width: 640px) {
-  .notas-janela { inset: 8px !important; width: auto !important; height: auto !important; }
-  .notas-janela.barra { inset: auto 8px 8px auto !important; width: 200px !important; height: auto !important; }
+  /* Fora do mundo; no mundo as Notas ficam na coluna da Conversa (vybe-mundo.css, fase 3d). */
+  .notas-janela:not(.na-coluna) { inset: 8px !important; width: auto !important; height: auto !important; }
+  .notas-janela.barra:not(.na-coluna) { inset: auto 8px 8px auto !important; width: 200px !important; height: auto !important; }
   /* Duas linhas: a fila de cadernos no tamanho dela, a lista no resto. Sem
      isto a grade dividia a altura em duas metades iguais. */
   .notas-conteudo { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
@@ -1816,7 +1817,7 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 /* Telas antigas dentro do Irecity (08/11/2026): mesma fonte do resto (Inter), sem caixa alta espaçada. */
 body.mundo{--mac-ui:"Inter",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 body.mundo.mundo-modulo :is(h1,h2,h3,h4,.workflow-title,.command-title){font-family:"Inter Tight","Inter",var(--mac-ui)!important;letter-spacing:-.01em}
-body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]){text-transform:none!important}
+body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]):not(:where(.vv-trilho,.vv-barra-topo,.vv-dock-salas-faixa) *){text-transform:none!important}
 
 /* Versão nova publicada (vybe-init.js): no canto de baixo, acima do dock das salas no mundo; não some sozinho. */
 #vb-versao { position: fixed; z-index: 960; right: 16px; bottom: calc(16px + var(--vv-dock-alto, 0px) + 14px); display: flex; align-items: center; gap: 10px; max-width: min(460px, calc(100vw - 32px)); padding: 12px 12px 12px 16px; border: 1px solid #E6E0D6; border-radius: 12px; background: #FFFFFF; color: #1F1D1A; box-shadow: 0 18px 50px rgba(40,26,10,.22), 0 2px 6px rgba(40,26,10,.08); font: 500 13px/1.35 var(--vv-texto, "Inter"), system-ui, sans-serif; animation: vb-versao-entra .3s cubic-bezier(.34,1.56,.64,1); }

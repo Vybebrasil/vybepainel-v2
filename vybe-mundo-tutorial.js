@@ -82,7 +82,7 @@
       'trilho:clientes': { grupo: 'Dock', titulo: 'Clientes', alvo: '.vv-trilho-btn[data-trilho="clientes"]',
         texto: 'Aqui está cada cliente ativo, com as peças em aberto, os heads e o cérebro dele. Se já sabe o nome, comece pela busca.' },
       'trilho:equipe': { grupo: 'Dock', titulo: 'Equipe', alvo: '.vv-trilho-btn[data-trilho="equipe"]',
-        texto: 'Aqui você vê quem está online, conversa e deixa recado. As missões, o ranking, as conquistas e as VybeCoins da equipe também ficam aqui.' },
+        texto: 'Aqui você vê quem está online e em qual sala: vá até a pessoa ou chame para a sua. Conversa, recados e missões também ficam aqui; Ranking, Conquistas e Loja estão no dock.' },
       'trilho:jogos': { grupo: 'Dock', titulo: 'Jogos', alvo: '.vv-trilho-btn[data-trilho="jogos"]',
         texto: 'Para o intervalo: sinuca, xadrez, pôquer, dominó, dama, jogo da velha e truco com quem estiver online.' },
       'trilho:predio': { grupo: 'Dock', titulo: 'Prédio da Vybe', alvo: '.vv-trilho-btn[data-trilho="predio"]',
@@ -278,7 +278,8 @@
   function aoTeclar(e) {
     const k = e.key;
     if (ajudaAtual) {
-      if (k === 'Escape') { engolir(e); fecharAjuda(); } else if (k === 'Tab') prenderFoco(e, ajudaAtual.focaveis);
+      // Painel, não janela por cima de tudo: o Tab sai dele normalmente; o Esc fecha.
+      if (k === 'Escape') { engolir(e); fecharAjuda(); }
       return;
     }
     if (passeio) {
@@ -502,7 +503,8 @@
     const chave = guardar(h('input', { type: 'checkbox', 'data-tour': 'chave-dicas', checked: !e.semDicas, onchange: (ev) => desligarDicas(!ev.target.checked) }));
     const zerar = guardar(botao('vv-tour-link', 'Zerar o que já vi', () => { fecharAjuda(false); reset(); ajuda(); }, { 'data-tour': 'zerar' }));
 
-    const janela = h('section', { class: 'vv-tour-janela', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'vv-tour-ajuda-titulo', 'aria-describedby': 'vv-tour-ajuda-texto', tabindex: '-1' },
+    // Painel no canto (quadro 66, 10/11/2026): sem véu nem fundo desfocado; o resto da tela continua clicável.
+    const janela = h('section', { class: 'vv-tour-janela', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-ajuda-titulo', 'aria-describedby': 'vv-tour-ajuda-texto', tabindex: '-1' },
       h('header', { class: 'vv-tour-janela-topo' },
         h('span', { class: 'vv-tour-avatar', 'aria-hidden': 'true' }, h('i')),
         h('div', {}, h('small', { class: 'vv-tour-kicker' }, 'Ajuda'), h('h2', { class: 'vv-tour-titulo', id: 'vv-tour-ajuda-titulo' }, 'Ajuda do VYBES')),
@@ -514,7 +516,7 @@
       h('div', { class: 'vv-tour-janela-pe' },
         h('label', { class: 'vv-tour-chave' }, chave, h('span', {}, 'Mostrar uma dica quando eu abrir algo pela primeira vez')),
         zerar));
-    const tela = h('div', { class: 'vv-tour vv-tour-ajuda', 'data-modo': 'ajuda' }, h('div', { class: 'vv-tour-veu', onclick: () => fecharAjuda() }), janela);
+    const tela = h('div', { class: 'vv-tour vv-tour-ajuda', 'data-modo': 'ajuda' }, janela);
     raizDoTutorial().append(tela);
     ajudaAtual = { tela, janela, focaveis, focoAntes: doc.activeElement };
     atualizarOuvidos();

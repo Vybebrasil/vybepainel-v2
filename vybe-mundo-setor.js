@@ -64,7 +64,7 @@
 
   // ---------- Peças do painel ----------
   // Número com ícone, título, valor grande e a variação contra o período anterior (verde quando melhora).
-  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '', espiar = '' }) {
+  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '', espiar = '', ir = null }) {
     let chip = '';
     if (variacao != null && variacao !== 'sem' && Number.isFinite(Number(variacao))) {
       const v = Number(variacao), bom = inverte ? v < 0 : v > 0, ruim = inverte ? v > 0 : v < 0;
@@ -73,7 +73,7 @@
     // Com espiar, o cartão é um botão que abre a lista por trás do número (o mini painel da Gestão).
     const tag = espiar ? `button type="button" data-espiar="${esc(espiar)}"` : 'div', fim = espiar ? 'button' : 'div';
     return `<${tag} class="vs-kpi ${cls}${espiar ? ' vs-kpi-espiar' : ''}"${dica ? ` title="${esc(dica)}"` : ''}><span class="vs-kpi-topo"><i>${ic(icone)}</i><span>${esc(titulo)}</span></span>
-      <b class="vs-kpi-valor">${valor}</b>${sub ? `<span class="vs-kpi-sub">${sub}</span>` : ''}${chip ? `<span class="vs-kpi-var">${chip}</span>` : ''}</${fim}>`;
+      <b class="vs-kpi-valor">${valor}</b>${sub ? `<span class="vs-kpi-sub">${sub}</span>` : ''}${chip ? `<span class="vs-kpi-var">${chip}</span>` : ''}${ir && !espiar ? abrirAba(ir[0], ir[1]).replace('class="vs-abrir"', 'class="vs-abrir vs-kpi-ir"') : ''}</${fim}>`;
   }
   const bloco = (titulo, sub, corpo, { icone = 'alta', cls = '', acao = '' } = {}) => `<section class="vs-bloco ${cls}"><div class="vs-bloco-cabeca"><i>${ic(icone)}</i><span><b>${esc(titulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${acao}</div>${corpo}</section>`;
   const abrirAba = (id, rotulo = 'Abrir') => (ctx?.subs || []).some((s) => s.id === id) ? `<button type="button" class="vs-abrir" data-setor-sub="${esc(id)}">${esc(rotulo)} →</button>` : '';
@@ -109,6 +109,24 @@
   }
   const atalhos = () => `<nav class="vs-atalhos" aria-label="Abas do setor">${ctx.subs.map((s) => `<button type="button" data-setor-sub="${esc(s.id)}" title="${esc(s.dica || '')}">${esc(s.nome)}${s.url ? ' ↗' : ''}</button>`).join('')}</nav>`;
   const linha = (corpo) => `<div class="vs-linha">${corpo}</div>`;
+  // Próximos passos (redesign, quadro 57): o que destrava o setor, cada um com o caminho para a aba. ponto: a = âmbar
+  // (falta algo), r = vermelho (atrasado), v = verde (andando), c = neutro.
+  const passos = (lista) => (lista.length ? `<ul class="vs-passos">${lista.map((p) => `<li><i class="vs-ponto ${p.ponto || 'c'}" aria-hidden="true"></i><span><b>${esc(p.titulo)}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</span>${p.ir ? abrirAba(p.ir[0], p.ir[1]) : ''}</li>`).join('')}</ul>` : aviso('Nada travando o setor agora.'));
+  // Meta do mês sempre à vista: com meta, a barra de cada uma; sem meta, a barra vazia e o caminho para definir.
+  function metaDoMes(progressoLista, periodoNome, { filtro = () => true, titulo = 'Meta do mês' } = {}) {
+    const metas = (progressoLista || []).filter((x) => x.meta > 0 && filtro(x)).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
+    // As metas moram no Funil (Editar metas); fora do Comercial, o botão leva ao setor.
+    const rotulo = metas.length ? 'Metas' : 'Definir a meta';
+    const acao = abrirAba('funil', rotulo) || `<button type="button" class="vs-abrir" data-setor-ir="setor:comercial">${rotulo} →</button>`;
+    const corpo = metas.length ? progresso(metas)
+      : `<div class="vs-meta-vazia"><span class="vs-d-trilho"><i style="width:0%"></i></span><p>Nenhuma meta definida para ${esc(periodoNome)}. Os donos definem no Funil, em Editar metas.</p></div>`;
+    return bloco(titulo, periodoNome, corpo, { icone: 'meta', cls: 'vs-destaque', acao });
+  }
+  // Clientes ativos do painel (o mesmo cadastro das outras telas) e contratos vigentes da carteira (aba Contratos).
+  const cadastro = () => (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []);
+  const clientesAtivos = () => cadastro().filter((c) => c && c.id && c.nome && c.ativo !== false);
+  const nomeDoCliente = (id) => cadastro().find((c) => String(c.id) === String(id))?.nome || 'Cliente';
+  const contratosAtivos = (cart) => (cart?.contratos?.lista || []).filter((c) => !/encerr|cancel/i.test(String(c.status || '')));
 
   // ---------- Os painéis ----------
   const PAINEIS = {
@@ -177,37 +195,68 @@
             { nome: 'Saídas no mês', valor: (cart.churn?.registros || []).filter((r) => String(r.saiu_em || '').startsWith(mesAtual())).length, cls: 'ruim' }]), { icone: 'calendario', acao: ir('setor:clientes', 'Clientes') })
           + bloco('Cobertura da semana', `meta de ${num(C.meta || 3)} posts por cliente`, deitadas([{ nome: `Abaixo de ${num(C.meta || 3)} posts`, valor: (C.sem3 || []).length, cls: 'atencao' }, { nome: 'Sem nenhum post', valor: (C.semConteudo || []).length, cls: 'ruim' }, { nome: 'Sem planejamento', valor: (C.semPlanejamento || []).length, cls: 'atencao' }]), { icone: 'doc', acao: ir('setor:producao', 'Produção') })) : '');
     },
+    // Redesign (quadro 57, 10/11/2026): sem dados no mês, a visão geral era uma frase solta. Agora os números do setor
+    // aparecem mesmo zerados (cada um com o caminho para a aba), "Próximos passos" diz o que destrava o setor e a meta do
+    // mês fica sempre à vista. Mesmas leituras das abas (funil, pacotes e a carteira dos contratos), sem conta nova.
     async 'setor:comercial'() {
-      const r = await ler('/api/painel?area=comercial&aba=funil' + qPeriodo());
+      const [r, pac, cart] = await Promise.all([ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=comercial&aba=pacotes'), ler('/api/painel?area=carteira')]);
       if (r.falha) return aviso(falhaTexto(r));
-      const m = r.mes, R = r.resumo;
-      if (!m?.kpis || !R) return aviso('Sem números do Comercial agora. Abra o Funil para conferir.');
-      const A = m.kpis.atual || {}, V = m.kpis.variacao || {}, val = Boolean(m.valores), contra = m.periodo?.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
-      const metas = (m.progresso || []).filter((x) => x.meta > 0).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
+      const m = r.mes || {}, R = r.resumo || {}, semNumeros = !m.kpis || !r.resumo;
+      const A = m.kpis?.atual || {}, V = m.kpis?.variacao || {}, val = Boolean(m.valores), contra = m.periodo?.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
       const corrida = (m.ranking?.linhas || []).slice(0, 5);
       const neg = R.em_negociacao || {};
       const periodoNome = m.periodo?.tipo === 'anual' ? String(m.periodo?.mes || per.mes).slice(0, 4) : nomeMes(m.periodo?.mes || per.mes);
-      const kpis = kpi({ icone: 'pessoas', titulo: 'Leads', valor: num(A.leads), variacao: V.leads ?? 'sem', contra })
-        + kpi({ icone: 'doc', titulo: 'Propostas enviadas', valor: num(A.propostas), variacao: V.propostas ?? 'sem', contra })
-        + kpi({ icone: 'aperto', titulo: 'Negócios fechados', valor: num(A.negocios), variacao: V.negocios ?? 'sem', contra })
-        + kpi({ icone: 'alta', titulo: 'Pipeline', valor: num(neg.quantidade), sub: val ? `MRR <b>${reais(neg.mensal)}</b> · Avulso <b>${reais(neg.avulso)}</b>` : 'em negociação agora' })
-        + kpi({ icone: 'dinheiro', titulo: 'Vendas feitas', valor: val ? reais((Number(A.mrr) || 0) + (Number(A.avulso) || 0)) : num(A.negocios), sub: val ? `MRR <b>${reais(A.mrr)}</b> · Avulso <b>${reais(A.avulso)}</b>` : 'negócios ganhos', variacao: val ? (V.mrr ?? 'sem') : null, contra });
+      const clientes = clientesAtivos(), contratos = contratosAtivos(cart);
+      const kpis = kpi({ icone: 'pessoas', titulo: 'Leads novos', valor: num(A.leads), variacao: semNumeros ? null : V.leads ?? 'sem', contra, ir: ['funil', 'Abrir o funil'] })
+        + kpi({ icone: 'doc', titulo: 'Propostas enviadas', valor: num(A.propostas), variacao: semNumeros ? null : V.propostas ?? 'sem', contra, ir: ['orcamentos', 'Montar orçamento'] })
+        + kpi({ icone: 'aperto', titulo: val ? 'Fechado no período' : 'Negócios fechados', valor: val ? reais(semNumeros ? null : (Number(A.mrr) || 0) + (Number(A.avulso) || 0)) : num(A.negocios),
+          sub: val ? `${num(A.negocios)} negócio${A.negocios === 1 ? '' : 's'} · MRR <b>${reais(A.mrr)}</b> · Avulso <b>${reais(A.avulso)}</b>` : 'negócios ganhos', variacao: semNumeros ? null : (val ? V.mrr : V.negocios) ?? 'sem', contra })
+        + kpi({ icone: 'coracao', titulo: 'Clientes ativos', valor: clientes.length ? num(clientes.length) : '—', sub: cart.falha ? '' : `${num(contratos.length)} com contrato`, ir: ['contratos', 'Contratos'] });
+      // O que destrava o setor, na ordem de quem tem pressa.
+      const hoje = new Date().toISOString().slice(0, 10), em30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+      const renovam = contratos.filter((c) => c.renovacao && c.renovacao >= hoje && c.renovacao <= em30).sort((a, b) => String(a.renovacao).localeCompare(String(b.renovacao)));
+      const pacotesAtivos = (pac.pacotes || []).filter((p) => p.ativo !== false);
+      const lista = [];
+      if (!pac.falha && !pacotesAtivos.length) lista.push({ ponto: 'a', titulo: 'Cadastrar os pacotes da Vybe', sub: 'sem pacote não há orçamento', ir: ['pacotes', 'Cadastrar'] });
+      if (renovam.length) lista.push({ ponto: 'c', titulo: `${num(renovam.length)} contrato${renovam.length === 1 ? ' renova' : 's renovam'} em 30 dias`, sub: renovam.slice(0, 4).map((c) => `${cliCor(nomeDoCliente(c.cliente_id))} ${diaMes(c.renovacao)}`).join(' · ') + (renovam.length > 4 ? ` e mais ${num(renovam.length - 4)}` : ''), ir: ['contratos', 'Contratos'] });
+      if (!semNumeros && !Number(A.leads)) lista.push({ ponto: 'c', titulo: `Nenhum lead novo em ${periodoNome}`, sub: 'o formulário de leads e o SDR alimentam o funil', ir: ['funil', 'Abrir o funil'] });
+      if (Number(neg.quantidade)) lista.push({ ponto: 'v', titulo: `${num(neg.quantidade)} oportunidade${neg.quantidade === 1 ? '' : 's'} em negociação`, sub: val ? `MRR ${reais(neg.mensal)} · avulso ${reais(neg.avulso)}` : 'acompanhe no funil', ir: ['funil', 'Ver o funil'] });
+      if (semNumeros) lista.push({ ponto: 'c', titulo: 'Os números do mês ainda não chegaram', sub: 'o funil abre com as oportunidades de agora', ir: ['funil', 'Abrir o funil'] });
       const series = (m.series || []).map((s) => ({ ...s, rotulo: mesCurto(s.mes) }));
       const fases = (R.fases || []).filter((f) => f.id !== 'perdido');
-      return linha(bloco('Meta do período', periodoNome, metas.length ? progresso(metas) : aviso('Nenhuma meta definida para este período. Os donos definem no Funil, em Editar metas.'), { icone: 'meta', cls: 'vs-destaque', acao: abrirAba('funil', 'Metas') })
-          + bloco('Corrida comercial', 'quem mais fechou no período', corrida.length ? `<ol class="vs-corrida">${corrida.map((x) => `<li><span class="pos${x.posicao === 1 ? ' ouro' : ''}">${x.posicao}º</span><b>${esc(x.nome)}</b><small>${num(x.quantidade)} negócio${x.quantidade === 1 ? '' : 's'}${val && x.total != null ? ' · ' + reais(x.total) : ''}</small></li>`).join('')}</ol>` : aviso('Ninguém fechou negócio neste período ainda.'), { icone: 'trofeu', cls: 'vs-destaque' }))
-        + `<div class="vs-kpis">${kpis}</div>`
+      return `<div class="vs-kpis">${kpis}</div>`
+        + linha(bloco('Próximos passos', 'o que destrava o setor', passos(lista), { icone: 'aperto' })
+          + metaDoMes(m.progresso, periodoNome))
         + linha(bloco('Leads gerados por mês', 'evolução até o período escolhido', barras(series, [{ chave: 'leads', rotulo: 'Leads', cls: 'c1' }]), { icone: 'pessoas' })
           + bloco(val ? 'Valor fechado por mês' : 'Negócios fechados por mês', val ? 'MRR e avulso, mês a mês' : 'mês a mês', val ? barras(series, [{ chave: 'mrr', rotulo: 'MRR', cls: 'c1' }, { chave: 'avulso', rotulo: 'Avulso', cls: 'c2' }], { fmt: reais }) : barras(series, [{ chave: 'negocios', rotulo: 'Negócios', cls: 'c1' }]), { icone: 'dinheiro' }))
-        + linha(bloco('Funil por fase', `taxa de ganho ${pct(R.taxa_ganho)} · ${num(R.total)} oportunidades`, deitadas(fases.map((f) => ({ nome: f.nome, valor: f.atual, sub: f.conversao != null ? `conversão para a próxima: ${pct(f.conversao)}` : '' })), { vazio: 'Nenhuma oportunidade no funil.' }), { icone: 'alta', acao: abrirAba('funil') })
-          + bloco('Motivos de perda', 'por que os negócios não fecharam', deitadas((R.motivos_perda || []).filter((x) => x.quantidade).map((x) => ({ nome: x.nome, valor: x.quantidade, cls: 'ruim', sub: pct(x.percentual) + ' das perdas' })), { vazio: 'Nenhuma perda registrada.' }), { icone: 'alerta' }));
+        + linha(bloco('Funil por fase', `taxa de ganho ${pct(R.taxa_ganho)} · ${num(R.total ?? 0)} oportunidades · ${num(neg.quantidade ?? 0)} em negociação${val ? ` (MRR ${reais(neg.mensal)} · avulso ${reais(neg.avulso)})` : ''}`, deitadas(fases.map((f) => ({ nome: f.nome, valor: f.atual, sub: f.conversao != null ? `conversão para a próxima: ${pct(f.conversao)}` : '' })), { vazio: 'Nenhuma oportunidade no funil.' }), { icone: 'alta', acao: abrirAba('funil') })
+          + bloco('Corrida comercial', 'quem mais fechou no período', corrida.length ? `<ol class="vs-corrida">${corrida.map((x) => `<li><span class="pos${x.posicao === 1 ? ' ouro' : ''}">${x.posicao}º</span><b>${esc(x.nome)}</b><small>${num(x.quantidade)} negócio${x.quantidade === 1 ? '' : 's'}${val && x.total != null ? ' · ' + reais(x.total) : ''}</small></li>`).join('')}</ol>` : aviso('Ninguém fechou negócio neste período ainda.'), { icone: 'trofeu' }))
+        + bloco('Motivos de perda', 'por que os negócios não fecharam', deitadas((R.motivos_perda || []).filter((x) => x.quantidade).map((x) => ({ nome: x.nome, valor: x.quantidade, cls: 'ruim', sub: pct(x.percentual) + ' das perdas' })), { vazio: 'Nenhuma perda registrada.' }), { icone: 'alerta', acao: abrirAba('funil', 'Filtrar no funil') });
     },
 
     async 'setor:financas'() {
       // Com o Vybe Finanças ligado, o dinheiro vem dele (Paulo, 08/11: "o que for gasto, finança, salários puxa do Vybe Finanças");
       // as tabelas de dinheiro do próprio Vybe OS estão vazias e deixavam o painel todo em R$ 0.
       const vf = await ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + String(per.mes).slice(0, 7));
-      if (!vf.falha && vf.conectado && vf.resumo) {
+      // Próximos passos e meta do mês (redesign, quadro 57: o mesmo desenho do Comercial), das leituras das abas.
+      const [fin, ina, con, funil, cart] = await Promise.all([ler('/api/painel?area=comercial&aba=financas'), ler('/api/painel?area=comercial&aba=inadimplencia'),
+        ler('/api/painel?area=comercial&aba=contas' + qPeriodo()), ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira')]);
+      const ligado = !vf.falha && vf.conectado && vf.resumo;
+      const periodoNome = per.tipo === 'anual' ? String(per.mes).slice(0, 4) : nomeMes(per.mes);
+      const proximos = () => {
+        const lista = [], semContrato = (fin.clientes || []).filter((c) => !(Number(c.valor_mensal) > 0)).length;
+        const atraso = ligado ? (vf.inadimplencia?.clientes || []).length : (ina.clientes || []).length;
+        const hoje = new Date().toISOString().slice(0, 10), em30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+        const renovam = contratosAtivos(cart).filter((c) => c.renovacao && c.renovacao >= hoje && c.renovacao <= em30);
+        if (!ligado && !vf.falha) lista.push({ ponto: 'c', titulo: 'Ligar o Vybe Finanças', sub: 'até lá, a margem é estimada pelo contrato e pelas horas do time', ir: ['financas', 'Ver como'] });
+        if (atraso) lista.push({ ponto: 'r', titulo: `${num(atraso)} cliente${atraso === 1 ? '' : 's'} em atraso`, sub: 'cobrar antes de virar inadimplência', ir: ['inadimplencia', 'Inadimplência'] });
+        if (!fin.falha && semContrato) lista.push({ ponto: 'a', titulo: `${num(semContrato)} cliente${semContrato === 1 ? '' : 's'} sem contrato informado`, sub: 'sem o valor do contrato não há margem', ir: ['financas', 'Informar'] });
+        if (Number(con.resumo?.a_pagar)) lista.push({ ponto: 'c', titulo: `${reais(con.resumo.a_pagar)} a pagar no período`, sub: 'contas lançadas ainda em aberto', ir: ['contas', 'Contas'] });
+        if (renovam.length) lista.push({ ponto: 'c', titulo: `${num(renovam.length)} contrato${renovam.length === 1 ? ' renova' : 's renovam'} em 30 dias`, sub: renovam.slice(0, 4).map((c) => `${cliCor(nomeDoCliente(c.cliente_id))} ${diaMes(c.renovacao)}`).join(' · ') });
+        return linha(bloco('Próximos passos', 'o que destrava o setor', passos(lista), { icone: 'aperto' })
+          + metaDoMes(funil.mes?.progresso, periodoNome, { filtro: (x) => x.tipo === 'dinheiro', titulo: 'Meta de vendas do mês' }));
+      };
+      if (ligado) {
         const R = vf.resumo, I = vf.inadimplencia || {}, Fo = vf.folha || {}, D = vf.despesas || {};
         // Cartão estreito: "R$ 28,5 mil" cabe, "R$ 28.500" cortava. Barras lado a lado: "64 mil" não encosta no vizinho.
         const rs = (v) => (Math.abs(Number(v)) >= 1e4 ? 'R$ ' + curto(v) : reais(v));
@@ -221,27 +270,28 @@
           + kpi({ icone: 'dinheiro', titulo: 'Folha do mês', valor: rs(Fo.total), variacao: Fo.variacao_percentual ?? 'sem', contra: 'vs mês anterior', inverte: true, sub: `${num(Fo.quantidade)} pessoa${Fo.quantidade === 1 ? '' : 's'}` })
           + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(R.resultado), cls: Number(R.resultado) < 0 ? 'ruim' : '', sub: 'recebido − despesas pagas' })
           + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(I.total), sub: `${num((I.clientes || []).length)} clientes · ${num(I.criticos)} críticos`, cls: Number(I.total) > 0 ? 'ruim' : '' });
-        return `<p class="vs-fonte">fonte: Vybe Finanças</p><div class="vs-kpis">${kpis}</div>`
+        return `<p class="vs-fonte">fonte: Vybe Finanças</p><div class="vs-kpis">${kpis}</div>` + proximos()
           + linha(bloco('Faturamento × custos', 'recebido e gasto nos últimos meses', barras(serie, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais, curtoFmt: milInteiro }), { icone: 'caixa', acao: abrirAba('financas') })
             + bloco('Despesas por categoria', D.total ? `${reais(D.total)} no mês` : '', deitadas((D.categorias || []).slice(0, 6).map((c) => ({ nome: c.categoria, valor: c.total, rotulo: `${reais(c.total)} <small>${pct(c.percentual)}</small>` })), { vazio: 'Nenhuma despesa lançada no mês.' }), { icone: 'caixa', acao: abrirAba('contas') }))
           + linha(bloco('Margem real por cliente', 'recebido − gasto com o cliente no mês, os menores primeiro', deitadas(margens.map((c) => ({ cli: true, nome: c.cliente_nome, valor: Math.max(0, c.mes.margem_percentual ?? 0), cls: (c.mes.margem_percentual ?? 0) < 20 ? 'ruim' : 'ok', rotulo: pct(c.mes.margem_percentual), sub: `${reais(c.mes.receita)} recebido · ${reais(c.mes.despesas)} gasto` })), { vazio: 'Nenhum cliente com receita lançada no mês.' }), { icone: 'dinheiro', acao: abrirAba('financas') })
             + bloco('Inadimplência', 'receitas vencidas e não pagas', deitadas((I.clientes || []).slice(0, 6).map((c) => ({ cli: true, nome: c.cliente_nome, valor: c.valor, cls: c.atraso_mais_antigo > 30 ? 'ruim' : 'atencao', rotulo: reais(c.valor), sub: `${num(c.atraso_mais_antigo)} dias · ${num(c.faturas)} lançamento${c.faturas === 1 ? '' : 's'}` })), { vazio: 'Ninguém em atraso.' }), { icone: 'alerta', acao: abrirAba('inadimplencia') }));
       }
-      const [fin, rec, con, ina, cx] = await Promise.all([ler('/api/painel?area=comercial&aba=financas'), ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=contas' + qPeriodo()), ler('/api/painel?area=comercial&aba=inadimplencia'), ler('/api/painel?area=comercial&aba=caixa')]);
+      const [rec, cx] = await Promise.all([ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=caixa')]);
       if (fin.falha === 'negado') return aviso('O painel de Finanças é dos donos e da administração.');
-      if (!fin.resumo && !rec.resumo) return aviso(fin.falha ? falhaTexto(fin) : 'Sem números de Finanças agora.');
-      const F = fin.resumo || {}, A = rec.resumo?.atual || {}, VR = rec.resumo?.variacao || {}, K = con.resumo || {};
-      const contra = per.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
+      if (fin.falha && rec.falha) return aviso(falhaTexto(fin));
+      // Sem dados no mês, os números aparecem com traço (não um zero inventado), cada um com o caminho para a aba.
+      const F = fin.resumo || {}, A = rec.resumo?.atual || {}, VR = rec.resumo?.variacao || {}, K = con.resumo || {}, semNumeros = !fin.resumo && !rec.resumo;
+      const contra = per.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior', vr = (v) => (semNumeros ? null : v ?? 'sem');
       const varResultado = K.resultado_anterior ? ((K.resultado - K.resultado_anterior) / Math.abs(K.resultado_anterior)) * 100 : 'sem';
-      const kpis = kpi({ icone: 'dinheiro', titulo: 'Receita contratada', valor: reais(F.receita), sub: `margem <b>${pct(F.margem_percentual)}</b> · custo ${reais(F.custo)}` })
-        + kpi({ icone: 'aperto', titulo: 'Recebido', valor: reais(A.recebido), variacao: VR.recebido ?? 'sem', contra, sub: `de ${reais(A.a_receber)} a receber` })
-        + kpi({ icone: 'relogio', titulo: 'Pendente', valor: reais(A.pendente), variacao: VR.pendente ?? 'sem', contra, inverte: true, cls: Number(A.pendente) > 0 ? 'atencao' : '' })
-        + kpi({ icone: 'caixa', titulo: 'Contas', valor: reais(K.total), variacao: K.variacao_total ?? 'sem', contra, inverte: true, sub: `${pct(K.percentual_faturamento)} do faturamento · a pagar ${reais(K.a_pagar)}` })
-        + kpi({ icone: 'alta', titulo: 'Resultado', valor: reais(K.resultado), variacao: varResultado, contra, cls: Number(K.resultado) < 0 ? 'ruim' : '' })
-        + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: reais(ina.total), sub: `${num((ina.clientes || []).length)} clientes · ${num(ina.criticos)} críticos`, cls: Number(ina.total) > 0 ? 'ruim' : '' });
+      const kpis = kpi({ icone: 'dinheiro', titulo: 'Receita contratada', valor: reais(F.receita), sub: `margem <b>${pct(F.margem_percentual)}</b> · custo ${reais(F.custo)}`, ir: ['financas', 'Por cliente'] })
+        + kpi({ icone: 'aperto', titulo: 'Recebido', valor: reais(A.recebido), variacao: vr(VR.recebido), contra, sub: `de ${reais(A.a_receber)} a receber`, ir: ['recebimentos', 'Recebimentos'] })
+        + kpi({ icone: 'relogio', titulo: 'Pendente', valor: reais(A.pendente), variacao: vr(VR.pendente), contra, inverte: true, cls: Number(A.pendente) > 0 ? 'atencao' : '' })
+        + kpi({ icone: 'caixa', titulo: 'Contas', valor: reais(K.total), variacao: vr(K.variacao_total), contra, inverte: true, sub: `${pct(K.percentual_faturamento)} do faturamento · a pagar ${reais(K.a_pagar)}`, ir: ['contas', 'Contas a pagar'] })
+        + kpi({ icone: 'alta', titulo: 'Resultado', valor: reais(K.resultado), variacao: semNumeros ? null : varResultado, contra, cls: Number(K.resultado) < 0 ? 'ruim' : '' })
+        + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: reais(ina.total), sub: `${num((ina.clientes || []).length)} clientes · ${num(ina.criticos ?? 0)} críticos`, cls: Number(ina.total) > 0 ? 'ruim' : '', ir: ['inadimplencia', 'Inadimplência'] });
       const prev = (cx.previsao?.meses || []).map((m) => ({ ...m, rotulo: mesCurto(m.mes) }));
       const piores = [...(fin.clientes || [])].filter((c) => c.margem_percentual != null && c.valor_mensal > 0).sort((a, b) => a.margem_percentual - b.margem_percentual).slice(0, 6);
-      return `<div class="vs-kpis">${kpis}</div>`
+      return `<div class="vs-kpis">${kpis}</div>` + proximos()
         + linha(bloco('Previsão de caixa', 'entradas e saídas dos próximos meses', cx.falha ? aviso(falhaTexto(cx)) : barras(prev, [{ chave: 'entradas', rotulo: 'Entradas', cls: 'c3' }, { chave: 'saidas', rotulo: 'Saídas', cls: 'c4' }], { fmt: reais }), { icone: 'caixa', acao: abrirAba('caixa') })
           + bloco('Contas por grupo', K.total ? `${pct(K.fixo_percentual)} fixo · ${pct(K.variavel_percentual)} variável` : '', con.falha ? aviso(falhaTexto(con)) : deitadas((K.grupos || []).filter((g) => g.total).map((g) => ({ nome: g.nome, valor: g.total, rotulo: `${reais(g.total)} <small>${pct(g.percentual_faturamento)}</small>` })), { fmt: reais, vazio: 'Nenhuma conta neste período.' }), { icone: 'doc', acao: abrirAba('contas') }))
         + linha(bloco('Margem por cliente', 'os de menor margem primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente_nome, valor: Math.max(0, c.margem_percentual), cls: c.zona_critica ? 'ruim' : 'ok', rotulo: pct(c.margem_percentual), sub: `${reais(c.valor_mensal)} por mês · custo ${reais(c.custo)}` })), { vazio: 'Nenhum cliente com pacote e custo cadastrados.' }), { icone: 'dinheiro', acao: abrirAba('financas') })

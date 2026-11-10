@@ -2,14 +2,70 @@
 // Uma área própria no dock, com uma aba por ferramenta. Ferramenta nova = uma entrada em ABAS e a função da aba.
 // QR Code (para peça impressa, cardápio, evento) e link do WhatsApp com mensagem pronta (bio, campanha).
 // Tudo no navegador: o QR sai do vybe-qr.js, nada é enviado para serviço de fora.
-// API: window.VybeFerramentas = { abrir(aba = 'qr' | 'whatsapp' | 'roi'), fechar(), aberto() }
+// API: window.VybeFerramentas = { abrir(aba = 'inicio' | 'qr' | 'whatsapp' | 'roi'), fechar(), aberto() }
+// Visão geral (fase 3d, quadro 39 do moodboard): o Toolkit abria em branco pelo dock. Agora abre nos cartões das
+// ferramentas e em "Usados por último" (o que foi baixado, copiado ou calculado neste navegador, para refazer num clique).
 // Calculadora de ROI: a mesma conta da proposta em Orçamentos (VybeComercialCalculos.roiCampanha), aqui sem proposta.
 (() => {
   'use strict';
-  const ABAS = [['qr', 'QR Code'], ['whatsapp', 'Link do WhatsApp'], ['roi', 'Calculadora de ROI']];
+  const ABAS = [['inicio', 'Visão geral'], ['qr', 'QR Code'], ['whatsapp', 'Link do WhatsApp'], ['roi', 'Calculadora de ROI']];
+  // As três ferramentas da Visão geral: o ícone, o que faz e o botão de começar.
+  const FERRAMENTAS = [
+    { aba: 'qr', nome: 'QR Code', frase: 'Link ou texto vira QR em PNG ou SVG para a gráfica.', botao: 'Gerar QR', ic: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7"/>' },
+    { aba: 'whatsapp', nome: 'Link do WhatsApp', frase: 'Número e mensagem pronta num link para bio, anúncio e cardápio.', botao: 'Criar link', ic: '<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>' },
+    { aba: 'roi', nome: 'Calculadora de ROI', frase: 'Investimento e retorno para mostrar na reunião de venda.', botao: 'Calcular', ic: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>' },
+  ];
+  // Paleta do QR (no lugar da cor nativa): tons escuros que o celular lê. "Outra" continua para a cor da marca.
+  const CORES = [['#1F1D1A', 'Preto'], ['#3A3F44', 'Grafite'], ['#C2490C', 'Laranja Vybe'], ['#1F4FA8', 'Azul'], ['#11613A', 'Verde'], ['#7A1F3D', 'Vinho']];
+  const RECENTES = 'vybe-toolkit-recentes';
+  const MAX_RECENTES = 6;
   const NIVEIS = [['M', 'Padrão'], ['Q', 'Reforçado'], ['H', 'Máximo (com logo por cima)']];
-  const st = { raiz: null, janela: null, antes: null, aba: 'qr', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, aviso: '' };
+  const st = { raiz: null, janela: null, antes: null, aba: 'inicio', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, aviso: '' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const icone = (d, t = 16) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true">${d}</svg>`;
+  const numero = (v) => Number(String(v ?? '').replace(/\./g, '').replace(',', '.')) || null;
+
+  // ---------- Usados por último (só neste navegador; nada vai ao servidor) ----------
+  function lerRecentes() {
+    try { const l = JSON.parse(localStorage.getItem(RECENTES) || '[]'); return Array.isArray(l) ? l.filter((r) => r && r.dados && FERRAMENTAS.some((f) => f.aba === r.tipo)) : []; } catch { return []; }
+  }
+  // Guarda o uso no topo da lista; o mesmo QR, link ou conta não se repete (sobe para o topo).
+  function guardarUso(tipo, dados) {
+    const chave = tipo + ':' + JSON.stringify(dados);
+    const lista = [{ tipo, dados, chave, quando: Date.now() }].concat(lerRecentes().filter((r) => r.chave !== chave)).slice(0, MAX_RECENTES);
+    try { localStorage.setItem(RECENTES, JSON.stringify(lista)); } catch { /* sem memória no navegador: segue sem a lista */ }
+  }
+  function quandoFoi(ms) {
+    const d = new Date(ms); if (!ms || Number.isNaN(d.getTime())) return '';
+    const hoje = new Date(), ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === hoje.toDateString()) return 'hoje, ' + hora;
+    if (d.toDateString() === ontem.toDateString()) return 'ontem, ' + hora;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ', ' + hora;
+  }
+  // O nome de cada uso: o endereço do QR, o número do link ou os valores da conta.
+  function rotuloDoUso(r) {
+    const d = r.dados || {};
+    if (r.tipo === 'qr') return { titulo: String(d.texto || '').replace(/^https?:\/\//, '') || 'QR', sub: 'QR Code' };
+    if (r.tipo === 'whatsapp') return { titulo: d.numero || 'Link do WhatsApp', sub: 'Link do WhatsApp' + (d.mensagem ? ` · "${d.mensagem}"` : '') };
+    return { titulo: `Investimento ${din(numero(d.investimento))} · ticket ${din(numero(d.ticket))}`, sub: `Calculadora de ROI · margem ${d.margem || '—'}%` };
+  }
+  function abaInicio() {
+    const recentes = lerRecentes();
+    const acoes = (r, i) => r.tipo === 'qr' ? `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir</button><button type="button" class="vf-botao" data-vf="baixar-uso" data-vf-uso="${i}">Baixar PNG</button>`
+      : r.tipo === 'whatsapp' ? `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir</button><button type="button" class="vf-botao" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>`
+      : `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir a conta</button>`;
+    return `<p class="vf-frase">Ferramentas rápidas da Vybe para o dia a dia com o cliente. Tudo roda aqui no navegador: nada é enviado para fora.</p>
+      <div class="vf-cartoes">${FERRAMENTAS.map((f) => `<article class="vf-cartao">
+        <span class="vf-cartao-ic">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><p>${esc(f.frase)}</p>
+        <button type="button" class="vf-botao principal" data-vf-aba="${f.aba}">${esc(f.botao)}</button></article>`).join('')}</div>
+      <section class="vf-recentes" aria-labelledby="vf-recentes-titulo"><h3 id="vf-recentes-titulo">Usados por último</h3>
+        ${recentes.length ? `<ul>${recentes.map((r, i) => { const f = FERRAMENTAS.find((x) => x.aba === r.tipo), n = rotuloDoUso(r); return `<li class="vf-uso">
+          <span class="vf-uso-ic">${icone(f.ic)}</span><div class="vf-uso-txt"><b>${esc(n.titulo)}</b><small>${esc(n.sub)} · ${esc(quandoFoi(r.quando))}</small></div>
+          <div class="vf-uso-acoes">${acoes(r, i)}</div></li>`; }).join('')}</ul>`
+        : '<p class="vf-vazio">Nada usado ainda neste computador. O QR que você baixar, o link que copiar e a conta que fizer aparecem aqui para refazer com um clique.</p>'}
+      </section>`;
+  }
 
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
   function numeroWhatsapp(entrada) {
@@ -35,7 +91,9 @@
       <form class="vf-campos" data-vf-form="qr" onsubmit="return false">
         <label><span>Link ou texto</span><textarea rows="3" data-vf-campo="qr.texto" placeholder="https://… ou o texto que o QR deve abrir" maxlength="300">${esc(st.qr.texto)}</textarea></label>
         <label><span>Resistência</span><select data-vf-campo="qr.ecc">${NIVEIS.map(([k, n]) => `<option value="${k}"${k === st.qr.ecc ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
-        <label class="vf-cor"><span>Cor</span><input type="color" data-vf-campo="qr.cor" value="${esc(st.qr.cor)}"><small>Escura sobre fundo claro: cor clara demais o celular não lê.</small></label>
+        <fieldset class="vf-cor"><legend>Cor</legend><div class="vf-paleta">${CORES.map(([c, n]) => `<label class="vf-amostra" title="${n}"><input type="radio" name="vf-cor" data-vf-campo="qr.cor" value="${c}"${st.qr.cor.toUpperCase() === c ? ' checked' : ''}><i style="background:${c}" aria-hidden="true"></i><span class="vf-oculto">${n}</span></label>`).join('')}
+          <label class="vf-amostra outra${CORES.some(([c]) => c === st.qr.cor.toUpperCase()) ? '' : ' on'}" title="Outra cor (a da marca do cliente)"><input type="color" data-vf-campo="qr.cor" value="${esc(st.qr.cor)}"><span>Outra</span></label></div>
+          <small>Escura sobre fundo claro: cor clara demais o celular não lê.</small></fieldset>
         <p class="vf-dica">Para impressão, use "Máximo" se for colocar a logo do cliente no meio. Teste sempre com a câmera do celular antes de mandar para a gráfica.</p>
       </form>
       <div class="vf-previa">
@@ -88,7 +146,7 @@
       </div>
     </div>`;
   }
-  function corpoDaAba() { return st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
+  function corpoDaAba() { return st.aba === 'inicio' ? abaInicio() : st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
     return `<div class="vf-topo"><div><small>Vybe</small><h2 id="vf-titulo">Toolkit</h2></div>
         <button type="button" class="vf-x" data-vf="fechar" aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
@@ -119,6 +177,7 @@
   const nomeArquivo = () => 'qr-' + (st.qr.texto.trim().replace(/^https?:\/\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40) || 'vybe');
   function baixarPNG() {
     const svg = svgQR(st.qr.texto.trim()).svg; if (!svg) return;
+    guardarUso('qr', { texto: st.qr.texto.trim(), ecc: st.qr.ecc, cor: st.qr.cor });
     const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     img.onload = () => {
       const c = document.createElement('canvas'); c.width = c.height = 1200;
@@ -135,16 +194,35 @@
     const b = e.target.closest('[data-vf]'); if (!b || b.disabled) return;
     const a = b.dataset.vf;
     if (a === 'fechar') fechar();
-    else if (a === 'svg') { const s = svgQR(st.qr.texto.trim()).svg; if (s) { baixar(nomeArquivo() + '.svg', new Blob([s], { type: 'image/svg+xml' })); avisar('SVG baixado: é o melhor para a gráfica (não perde qualidade).'); } }
+    else if (a === 'svg') { const s = svgQR(st.qr.texto.trim()).svg; if (s) { guardarUso('qr', { texto: st.qr.texto.trim(), ecc: st.qr.ecc, cor: st.qr.cor }); baixar(nomeArquivo() + '.svg', new Blob([s], { type: 'image/svg+xml' })); avisar('SVG baixado: é o melhor para a gráfica (não perde qualidade).'); } }
     else if (a === 'png') baixarPNG();
     else if (a === 'copiar') {
       const link = linkWhatsapp(st.wa.numero, st.wa.mensagem);
+      guardarUso('whatsapp', { numero: st.wa.numero.trim(), mensagem: st.wa.mensagem.trim() });
       (navigator.clipboard?.writeText(link) || Promise.reject()).then(() => avisar('Link copiado.'), () => avisar('Não deu para copiar sozinho: selecione o link e copie.'));
+    } else if (a === 'refazer' || a === 'baixar-uso' || a === 'copiar-uso') {
+      const r = lerRecentes()[Number(b.dataset.vfUso)]; if (!r) return;
+      if (r.tipo === 'qr') Object.assign(st.qr, { texto: '', ecc: 'M', cor: CORES[0][0] }, r.dados);
+      else if (r.tipo === 'whatsapp') Object.assign(st.wa, { numero: '', mensagem: '' }, r.dados);
+      else Object.assign(st.roi, r.dados);
+      if (a === 'baixar-uso') baixarPNG();
+      else if (a === 'copiar-uso') {
+        const link = linkWhatsapp(st.wa.numero, st.wa.mensagem); guardarUso('whatsapp', { numero: st.wa.numero.trim(), mensagem: st.wa.mensagem.trim() });
+        (navigator.clipboard?.writeText(link) || Promise.reject()).then(() => avisar('Link copiado.'), () => avisar('Não deu para copiar sozinho: abra e copie o link.'));
+      } else { st.aba = r.tipo; st.aviso = ''; pintar(false); }
     } else if (a === 'qr-do-link') { st.qr.texto = linkWhatsapp(st.wa.numero, st.wa.mensagem); st.aba = 'qr'; pintar(false); }
   }
   function aoDigitar(e) {
     const c = e.target.closest('[data-vf-campo]'); if (!c) return;
     const [g, k] = c.dataset.vfCampo.split('.'); ({ qr: st.qr, wa: st.wa, roi: st.roi })[g][k] = c.value;
+    // A cor: a amostra escolhida fica marcada e "Outra" acende quando a cor não é da paleta.
+    if (c.dataset.vfCampo === 'qr.cor') {
+      const daPaleta = CORES.some(([cor]) => cor === c.value.toUpperCase());
+      st.janela?.querySelectorAll('[data-vf-campo="qr.cor"]').forEach((x) => { if (x.type === 'radio') x.checked = x.value === c.value.toUpperCase(); else if (x !== c) x.value = c.value; });
+      st.janela?.querySelector('.vf-amostra.outra')?.classList.toggle('on', !daPaleta);
+    }
+    // Conta de ROI feita (ao sair do campo) entra nos usados por último.
+    if (g === 'roi' && e.type === 'change' && window.VybeComercialCalculos?.roiCampanha?.(st.roi)) guardarUso('roi', { ...st.roi });
     pintarPrevia();
   }
   function aoTeclar(e) {
@@ -153,8 +231,8 @@
     e.preventDefault(); e.stopPropagation(); fechar();
   }
 
-  function abrir(aba = 'qr') {
-    st.aba = ABAS.some(([k]) => k === aba) ? aba : 'qr';
+  function abrir(aba = 'inicio') {
+    st.aba = ABAS.some(([k]) => k === aba) ? aba : 'inicio';
     if (!st.raiz) {
       st.antes = document.activeElement || null;
       const raiz = document.createElement('div'), janela = document.createElement('section');
@@ -167,7 +245,7 @@
       Object.assign(st, { raiz, janela });
     }
     pintar(false);
-    st.janela.querySelector('[data-vf-campo]')?.focus();
+    (st.janela.querySelector('[data-vf-campo]') || st.janela.querySelector('.vf-cartao .vf-botao'))?.focus();
   }
   function fechar() {
     const { raiz, antes } = st; if (!raiz) return;
@@ -175,5 +253,5 @@
     raiz.remove(); if (antes?.isConnected) antes.focus?.();
   }
   window.addEventListener('keydown', aoTeclar, true);
-  window.VybeFerramentas = Object.freeze({ abrir, fechar, aberto: () => Boolean(st.raiz), _linkWhatsapp: linkWhatsapp, _numeroWhatsapp: numeroWhatsapp });
+  window.VybeFerramentas = Object.freeze({ abrir, fechar, aberto: () => Boolean(st.raiz), _linkWhatsapp: linkWhatsapp, _numeroWhatsapp: numeroWhatsapp, _rotuloDoUso: rotuloDoUso });
 })();

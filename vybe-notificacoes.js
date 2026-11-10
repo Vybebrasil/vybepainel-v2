@@ -14,14 +14,32 @@ const INTERVALO_NOTIFICACOES = 5 * 60 * 1000;
 let notificacoes = [];
 let notificacoesAbertas = false;
 let notificacoesNaoLidas = 0; // total real (a lista traz no máximo 100)
+let notificacoesVistas = null; // ids da última leitura (null: ainda não leu; a primeira leitura não avisa)
+
+// Até dois avisos curtos por leitura; o resto fica no sino. Menção mostra a frase e leva direto à peça.
+function avisarNotificacoesNovas(novas) {
+  if (typeof mostrarAvisoCurto !== 'function' || !novas.length) return;
+  for (const n of novas.slice(0, 2)) {
+    const mencao = /mencion/i.test(n.texto || '');
+    const acoes = [];
+    if (n.conteudo_id) acoes.push({ rotulo: 'Abrir a peça', principal: true, fazer: () => abrirDoNotificacao(n.id, n.conteudo_id) });
+    acoes.push({ rotulo: 'Ver avisos', fazer: () => document.querySelector('[data-ferr="avisos"]')?.click() });
+    mostrarAvisoCurto({ chave: 'notif:' + n.id, icone: mencao ? 'mencao' : 'sino', titulo: n.conteudo_nome || (mencao ? 'Mencionaram você' : 'Aviso novo'), frase: n.texto || '', acoes, tempo: mencao ? 12000 : 8000 });
+  }
+  if (novas.length > 2) mostrarAvisoCurto({ chave: 'notif:mais', icone: 'sino', titulo: `Mais ${novas.length - 2} ${novas.length - 2 === 1 ? 'aviso novo' : 'avisos novos'}`, frase: 'Estão no sino, no topo.', acoes: [{ rotulo: 'Ver avisos', fazer: () => document.querySelector('[data-ferr="avisos"]')?.click() }] });
+}
 
 async function carregarNotificacoes() {
   try {
     const resposta = await fetch(NOTIFICACOES_API, { credentials: 'same-origin' });
     if (!resposta.ok) return;
     const dados = await resposta.json();
+    const antes = notificacoesVistas;
     notificacoes = dados.notificacoes || [];
     notificacoesNaoLidas = dados.nao_lidas || 0;
+    notificacoesVistas = new Set(notificacoes.map((n) => String(n.id)));
+    // Aviso novo desde a última leitura vira um aviso curto no mundo (fase 3d), com a peça a um clique.
+    if (antes) avisarNotificacoesNovas(notificacoes.filter((n) => !n.lida_em && !antes.has(String(n.id))));
     pintarSino(notificacoesNaoLidas);
     if (notificacoesAbertas) pintarListaNotificacoes();
     if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
@@ -119,7 +137,8 @@ async function abrirDoNotificacao(id, itemId) {
   pintarListaNotificacoes();
   if (typeof escritorioAvisos === 'function') escritorioAvisos(notificacoes);
   if (typeof openSearchItem === 'function') openSearchItem(itemId);
-  alternarNotificacoes();
+  // Do painel de avisos do mundo a caixa antiga está fechada: abrir a peça não a abre.
+  if (notificacoesAbertas) alternarNotificacoes();
 }
 
 function iniciarNotificacoes() {

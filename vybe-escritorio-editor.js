@@ -804,26 +804,11 @@ function escritorioGirosDe(classe) {
   const m = (escritorioCatalogo || []).find((x) => x.classe === classe) || ESCRITORIO_COMPUTADORES.find((x) => x.classe === classe);
   return m?.giros || 0;
 }
-// Nome em português: o catálogo do Habbo vem em inglês. Traduz as palavras
-// mais comuns e põe o substantivo na frente ("Gray Sofa" → "Sofá cinza").
-const ESCRITORIO_SUBSTANTIVOS = { table: "Mesa", chair: "Cadeira", tree: "Árvore", lamp: "Luminária", sofa: "Sofá", corner: "Canto", divider: "Divisória", stool: "Banqueta", rug: "Tapete", plant: "Planta", bench: "Banco", shelf: "Prateleira", light: "Luz", lights: "Luzes", desk: "Escrivaninha", seat: "Assento", armchair: "Poltrona", flower: "Flor", flowers: "Flores", fence: "Cerca", floor: "Piso", wall: "Parede", counter: "Balcão", block: "Bloco", pillow: "Almofada", stage: "Palco", bookcase: "Estante", carpet: "Carpete", candles: "Velas", candle: "Vela", throne: "Trono", vase: "Vaso", lantern: "Lanterna", ball: "Bola", bush: "Arbusto", toilet: "Vaso sanitário", lounge: "Espreguiçadeira", cat: "Gato", screen: "Tela", scoreboard: "Placar", drinks: "Bebidas", tea: "Chá", pillar: "Pilar", chandelier: "Lustre", box: "Caixa", rock: "Pedra", bed: "Cama", garden: "Jardim", cushion: "Almofada", fan: "Ventilador", cactus: "Cacto", bonsai: "Bonsai", gate: "Portão", mattress: "Colchão", computer: "Computador", laptop: "Notebook", tv: "TV", fridge: "Geladeira", stove: "Fogão", sink: "Pia", cabinet: "Armário", crate: "Caixote", pot: "Vaso", torch: "Tocha", palm: "Palmeira", jukebox: "Jukebox", clock: "Relógio", mirror: "Espelho", window: "Janela", door: "Porta", statue: "Estátua", fountain: "Fonte", printer: "Impressora", whiteboard: "Quadro branco", bar: "Bar", railing: "Grade" };
-const ESCRITORIO_ADJETIVOS = { dark: "escuro", blue: "azul", red: "vermelho", black: "preto", modern: "moderno", yellow: "amarelo", pink: "rosa", white: "branco", coffee: "de centro", green: "verde", large: "grande", glass: "de vidro", gold: "dourado", dining: "de jantar", street: "de rua", side: "lateral", beige: "bege", "(beige)": "bege", small: "pequeno", purple: "roxo", gray: "cinza", grey: "cinza", wooden: "de madeira", kitchen: "de cozinha", picnic: "de piquenique", chinese: "chinês", inflatable: "inflável", folding: "dobrável", ancient: "antigo", marble: "de mármore", executive: "executivo", orange: "laranja", hanging: "suspenso", leather: "de couro", school: "da escola", bathroom: "de banheiro", solid: "sólido", potted: "no vaso", aquamarine: "água-marinha", electric: "elétrico", old: "antigo", office: "de escritório", three: "de três lugares", two: "de dois lugares", suspended: "suspenso", "pool-side": "de piscina", iced: "gelo", round: "redondo", square: "quadrado", long: "comprido", mini: "mini", big: "grande", tall: "alto", low: "baixo", double: "duplo", silver: "prateado", brown: "marrom", wood: "madeira", metal: "de metal", plastic: "de plástico", "&": "e" };
+// Nome em português: a tradução única do catálogo (shared/escritorio-nome-movel.js, regra 4 do redesign de
+// 10/11/2026), carregada antes deste arquivo: substantivo na frente, adjetivos concordando, avisos do Habbo
+// entre parênteses fora. A busca junta este nome ao original.
 function escritorioNomeMovel(m) {
-  // Nomes de rascunho do acervo ("… name", prefixo de anúncio) saem do nome.
-  if (/\s+name$|^ads[ _]|^dtl[ _]/i.test(m.nome || "")) m = { ...m, nome: String(m.nome).replace(/\s+name$/i, "").replace(/^(ads|dtl)[ _]/i, "") };
-  if (m.categoria === "Computadores" || /[ãçéíóú]/i.test(m.nome)) return m.nome;
-  // Sem nome no catálogo vem a classe ("bling_sofa_mu"): vira palavras.
-  const base = /_/.test(m.nome || "") || !m.nome ? String(m.nome || m.classe).replace(/_?c\d+_/g, " ").replace(/_/g, " ") : m.nome;
-  const palavras = base.split(/\s+/).filter(Boolean);
-  const nomes = [], resto = [];
-  for (const p of palavras) {
-    const k = p.toLowerCase();
-    if (ESCRITORIO_SUBSTANTIVOS[k] && !nomes.length) nomes.push(ESCRITORIO_SUBSTANTIVOS[k]);
-    else if (ESCRITORIO_SUBSTANTIVOS[k]) resto.push(ESCRITORIO_SUBSTANTIVOS[k].toLowerCase());
-    else if (ESCRITORIO_ADJETIVOS[k]) resto.push(ESCRITORIO_ADJETIVOS[k]);
-    else resto.push(p);
-  }
-  return [...nomes, ...resto].join(" ") || m.nome;
+  return VybeNomeMovel.nomeEmPortugues(m);
 }
 // Categorias por uso (as do Habbo misturavam 299 cadeiras e sofás numa só).
 const ESCRITORIO_GRUPOS_CATALOGO = [
@@ -1039,10 +1024,11 @@ function escritorioCartaoMovel(m, opcoes) {
   // Móvel que abre partida com a equipe (xadrez, dominó, pôquer, sinuca).
   const jogo = typeof escritorioJogoDoMovel === "function" ? escritorioJogoDoMovel(m.classe) : null;
   const etiquetaJogo = jogo ? `<i class="ofc-movel-jogo" title="Abre uma partida de ${jogo.toLowerCase()} com quem está online">Jogo</i>` : "";
-  // Na loja, o preço numa etiqueta só (a raridade já vem na cor da borda).
+  // Na loja, a raridade numa etiqueta (o nome, não só a cor) e o preço em linha própria, inteiro (redesign fase 3c:
+  // "900 moedas res…" saía cortado quando os dois dividiam a linha).
   if (naLoja && !travado && !meu && q !== Infinity && !(inventario && q > 0)) {
     const arrastaL = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
-    return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${i.preco > Number(escritorio.base?.economia?.saldo || 0) ? " caro" : ""}" draggable="${arrastaL}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)}${i.raridade !== "comum" ? ` · ${safeText(i.nome)}` : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha ofc-preco">${i.raridade !== "comum" ? `${safeText(i.nome)} · ` : ""}${i.preco.toLocaleString("pt-BR")} moedas${i.restante > 0 ? `<small>${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}</small>` : ""}</em>${!meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : ""}${etiquetaJogo}</button>`;
+    return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}${i.preco > Number(escritorio.base?.economia?.saldo || 0) ? " caro" : ""}" draggable="${arrastaL}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)}${i.raridade !== "comum" ? ` · ${safeText(i.nome)}` : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span>${i.raridade !== "comum" ? `<i class="ofc-movel-faixa r-${safeText(i.raridade)}">${safeText(i.nome)}</i>` : ""}<em class="ofc-movel-linha ofc-preco">${i.preco.toLocaleString("pt-BR")} moedas${i.restante > 0 ? `<small>${i.restante === 1 ? "resta 1" : `restam ${i.restante}`}</small>` : ""}</em>${!meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : ""}${etiquetaJogo}</button>`;
   }
   // Prêmio (conquista ou ranking) traz a etiqueta no cartão do inventário.
   const faixa = (meu && i.marco ? "Prêmio · " : "") + (!comum && i.raridade !== "comum" ? `${safeText(i.nome)} · ` : "");
@@ -1398,7 +1384,7 @@ async function miniaturaLocalEscritorio(img, classe) {
     const v = m.dados.visualizations.find((x) => x.size === 64);
     const dir = Number(Object.keys(v?.directions || { 2: 1 })[0]) || 0;
     const d = mapaDesenharMovel(m, mapaDirecaoValida(m.dados, 2) ?? dir, 0, 0);
-    if (d) img.src = d.canvas.toDataURL();
+    if (d && !img.classList.contains("movel-voxel")) img.src = d.canvas.toDataURL(); // o retrato voxel do mundo, se já chegou, fica
   } catch {
     img.style.visibility = "hidden";
   }

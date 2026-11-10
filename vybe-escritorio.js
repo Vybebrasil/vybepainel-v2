@@ -1986,7 +1986,7 @@ function atualizarPessoasEscritorio() {
   // Conectado, só quem está na mesma cena (o mapa geral ou este quarto).
   const visiveis = escritorio.conectado
     ? pessoas.filter(escritorioNaCena)
-    : [{ id: eu, nome: escritorio.base?.equipe?.find((p) => p.id === eu)?.nome || "Você", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil.x || 50, y: escritorio.perfil.y || 75 }];
+    : [{ id: eu, nome: escritorio.base?.equipe?.find((p) => p.id === eu)?.nome || "Você", perfil: escritorio.perfil, sala, status: "ausente", x: escritorio.perfil?.x || 50, y: escritorio.perfil?.y || 75 }];
   if (escritorio.mapa) {
     const quarto = escritorioAmbienteDoQuarto();
     escritorio.mapa.atualizarPessoas(visiveis.map((p) => {
