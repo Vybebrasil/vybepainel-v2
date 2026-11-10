@@ -1858,8 +1858,9 @@ async function areaReunioes(req, res, quem) {
   if (req.method === 'GET') {
     const cliente = Number(req.query?.cliente || 0);
     if (!cliente) return res.status(400).json({ error: 'Informe o cliente.' });
-    const [reunioes, pauta, onboarding, pode] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente)]);
-    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, tipos: TIPOS_REUNIAO, questoes: QUESTOES });
+    const [reunioes, pauta, onboarding, pode, esteira] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente),
+      db`SELECT 1 FROM vybe_cliente_onboarding WHERE cliente_id=${Number(cliente)} AND encerrado_em IS NULL`.catch(() => [])]);
+    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0, tipos: TIPOS_REUNIAO, questoes: QUESTOES });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const b = req.body || {};

@@ -358,12 +358,19 @@
       <div class="vc-linha-acoes">${podeOnboarding(o.cliente_id) ? (o.encerrado_em ? secundario('Reabrir', `data-vc-onb="onboarding_reabrir" data-vc-cli="${esc(o.cliente_id)}"`)
         : secundario('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)) : nota('Só quem administra, o Atendimento e os heads do cliente mexem aqui.')}</div></div>` : '';
     const resp = s.atual?.responsavel_id ? nomeDaPessoa(s.atual.responsavel_id) : '';
+    // Reunião e questionário (vybe-clientes-reunioes.js): o kickoff grava o áudio; o questionário serve para preencher junto
+    // na reunião ou para mandar o link ao cliente.
+    const atalhos = pode && typeof window.abrirReuniao === 'function' ? `<div class="vc-linha-acoes vc-onb-atalhos">
+        ${acao('Reunião de kickoff', `data-vc-kickoff="${esc(o.cliente || '')}"`)}
+        ${secundario('Questionário com o cliente', `data-vc-quest="junto" data-vc-cli="${esc(o.cliente_id)}"`)}
+        ${secundario('Link do questionário', `data-vc-quest="link" data-vc-cli="${esc(o.cliente_id)}"`)}
+        ${secundario('Ficha', `data-vc-cliente="${esc(o.cliente || '')}"`)}</div>` : '';
     return `<li class="vc-onb${o.encerrado_em ? ' encerrado' : ''}">
       <button type="button" class="vc-linha-topo" data-vc-abrir="o:${esc(o.cliente_id)}" aria-expanded="${aberto}">
         <span class="vc-pct" style="--p:${s.pct}"><b>${s.pct}%</b></span>
         <span class="vc-meio"><b>${cliCor(o.cliente || '')}</b><small>${o.encerrado_em ? `Encerrado em ${dataCurta(diaDoCarimbo(o.encerrado_em))}` : s.concluido ? 'Todas as etapas feitas' : `${esc(s.atual?.nome || '')}${resp ? ` · com ${esc(resp)}` : ' · sem responsável'}`}</small></span>
         ${o.encerrado_em ? etiqueta('Encerrado', 'u5') : s.concluido ? etiqueta('Pronto', 'u6') : paradaHtml(s.atual)}
-      </button>${esteira}${detalhe}</li>`;
+      </button>${esteira}${atalhos}${detalhe}</li>`;
   }
   function editorEtapasHtml() {
     const lista = estado.editorEtapas;
@@ -394,14 +401,22 @@
     const emAberto = lista.filter((o) => !o.encerrado_em), encerrados = lista.filter((o) => o.encerrado_em);
     const ocupados = new Set(emAberto.map((o) => o.cliente_id));
     const candidatos = (sv.clientes || []).filter((c) => c.ativo && !ocupados.has(c.id) && podeOnboarding(c.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    const iniciar = candidatos.length ? `<div class="vc-iniciar"><label class="vc-campo"><span>Cliente</span><select data-vc-novo-onb>${candidatos.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>
-      ${acao('Iniciar onboarding', 'data-vc-iniciar')}</div>` : '';
+    // Onboarding começa por um fato novo (Paulo, 09/11/2026: "qual sentido de eu fazer onboard com quem já é cliente?"):
+    // cliente novo (cadastro → esteira) ou contrato novo de um cliente da casa (renovação, serviço novo: esteira do zero).
+    const podeNovo = typeof window.abrirCadastroCompleto === 'function' && (typeof podeEditarClientes !== 'function' || podeEditarClientes());
+    const contrato = estado.contratoNovo ? `<div class="vc-iniciar"><label class="vc-campo"><span>Cliente que fechou contrato novo</span><select data-vc-novo-onb>${candidatos.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>
+      ${secundario('Cancelar', 'data-vc-contrato-novo')}${acao('Começar a esteira', 'data-vc-iniciar')}</div>` : '';
+    const iniciar = `<section class="vc-secao vc-onb-comecar" aria-label="Começar um onboarding">
+      <div class="vc-onb-caminhos">
+        ${podeNovo ? `<button type="button" class="vc-onb-caminho" data-vc-onb-novo><b>Cliente novo</b><small>Cadastra o cliente e já abre a esteira, o questionário e o kickoff.</small></button>` : ''}
+        ${candidatos.length ? `<button type="button" class="vc-onb-caminho" data-vc-contrato-novo aria-expanded="${Boolean(estado.contratoNovo)}"><b>Contrato novo</b><small>Cliente da casa que renovou ou fechou um serviço novo: a esteira começa do zero.</small></button>` : ''}
+      </div>${contrato}</section>`;
     const ordenados = [...emAberto].sort((a, b) => (b.situacao.atual?.dias_parada ?? -1) - (a.situacao.atual?.dias_parada ?? -1));
     return `${iniciar}
       ${sv.pode?.etapas ? `<div class="vc-linha-acoes">${secundario('Configurar etapas', 'data-vc-ed-abrir')}</div>` : ''}
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Em onboarding</h3><span class="vc-conta">${emAberto.length}</span></div>
       ${ordenados.length ? `<ol class="vc-lista">${cortar(ordenados, 'onboarding').map((o) => cartaoOnboarding(o, etapas)).join('')}</ol>${verMais('onboarding', ordenados.length)}`
-        : vazio('Nenhum cliente em onboarding agora.', candidatos.length ? acao('Escolher um cliente', 'data-vc-focar-novo') : '')}
+        : vazio('Nenhum cliente em onboarding agora. Quando entrar um cliente ou um contrato novo, comece por cima.')}
       </section>
       ${encerrados.length ? `<section class="vc-secao"><button type="button" class="vc-link" data-vc-encerrados aria-expanded="${estado.verEncerrados}">${estado.verEncerrados ? 'Esconder' : 'Ver'} encerrados (${encerrados.length})</button>
         ${estado.verEncerrados ? `<ol class="vc-lista">${encerrados.map((o) => cartaoOnboarding(o, etapas)).join('')}</ol>` : ''}</section>` : ''}`;
@@ -564,7 +579,7 @@
   // ---------- janela ----------
   const AJUDA = `<div class="vc-ajuda" role="note"><b>Como a Carteira funciona</b>
     <p><b>Saúde</b>: cada cliente ativo começa com 100 e perde pontos por peça atrasada, risco de furo, voltas para alteração, aprovação parada, entregas fora do prazo, calendário vazio, contrato vencendo, pagamento atrasado, NPS baixo, muito tempo sem reunião e clima ruim no grupo. Abaixo de 50 é risco alto; de 50 a 74, médio. Toque num cliente para ver os motivos.</p>
-    <p><b>Onboarding</b>: a esteira de cada cliente novo, com checklist e responsável por etapa. "Parada desde" mostra há quanto tempo a etapa atual não anda.</p>
+    <p><b>Onboarding</b>: começa quando entra um cliente novo (o cadastro abre na hora) ou um contrato novo de um cliente da casa. Cada um tem a esteira com checklist e responsável por etapa, a reunião de kickoff (com gravação) e o questionário. "Parada desde" mostra há quanto tempo a etapa atual não anda.</p>
     <p><b>Churn</b>: quem saiu (pela desativação no cadastro), com tipo e motivo. Taxa = saídas ÷ clientes ativos no começo do período. O cohort mostra quantos de cada mês de entrada seguiam ativos depois de 1, 2, 3, 6 e 12 meses.</p>
     <p><b>Contratos</b>: valor mensal, início, renovação e status. Renovações dos próximos 30 dias ficam em destaque. LTV = há quantos meses o cliente está com a Vybe (do início do contrato; sem ele, da entrada no cadastro); receita estimada = valor mensal × meses. O mês a mês mostra ativos, novos, LTV médio e ticket médio.</p>
     <p><b>Contas por head</b> (na Saúde): quantos clientes cada head tem, a nota média deles e a receita mensal.</p>
@@ -578,7 +593,7 @@
         <button type="button" class="vc-ico" data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é a Carteira" title="O que é a Carteira">?</button>
         <button type="button" class="vc-ico" data-vc-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
-      <div class="vc-controles">
+      <div class="vc-controles"${['churn', 'contratos'].includes(estado.aba) ? '' : ' hidden'}>
         <div class="vc-segmento" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</div>
         <label class="vc-mes"><span class="vc-sr">Mês</span><input type="month" data-vc-mes value="${esc(estado.mes)}" max="${esc(hoje().slice(0, 7))}"></label>
       </div>
@@ -634,10 +649,21 @@
     }
     if ('vcIniciar' in d) {
       const id = estado.janela.querySelector('[data-vc-novo-onb]')?.value;
-      if (id) { estado.abertos.add(`o:${id}`); gravar({ acao: 'onboarding_iniciar', cliente_id: id }, 'Onboarding iniciado.'); }
+      if (id) { estado.contratoNovo = false; gravar({ acao: 'onboarding_iniciar', cliente_id: id, novo_contrato: true }, 'Esteira do contrato novo começada. Marque o kickoff.'); }
       return;
     }
-    if ('vcFocarNovo' in d) return estado.janela.querySelector('[data-vc-novo-onb]')?.focus();
+    if ('vcContratoNovo' in d) { estado.contratoNovo = !estado.contratoNovo; pintar(); if (estado.contratoNovo) estado.janela.querySelector('[data-vc-novo-onb]')?.focus(); return; }
+    if ('vcOnbNovo' in d) {
+      // O cadastro completo (vybe-clientes-ficha.js) abre por cima; ao salvar, a esteira do cliente novo já começa.
+      window.abrirCadastroCompleto('', { depois: async (r) => {
+        const id = String(r?.cliente?.id || '');
+        if (!id || !estado.raiz) return;
+        await gravar({ acao: 'onboarding_iniciar', cliente_id: id }, 'Cliente cadastrado e esteira começada. Marque o kickoff.');
+      } });
+      return;
+    }
+    if (d.vcKickoff) return window.abrirReuniao?.(d.vcKickoff, '', { tipo: 'onboarding', titulo: `Kickoff - ${d.vcKickoff}` });
+    if (d.vcQuest) return d.vcQuest === 'junto' ? window.onboardingJunto?.(d.vcCli) : window.onboardingLink?.(d.vcCli);
     if (d.vcOnb) return gravar({ acao: d.vcOnb, cliente_id: d.vcCli }, d.vcOnb === 'onboarding_encerrar' ? 'Onboarding encerrado.' : 'Onboarding reaberto.');
     if ('vcEncerrados' in d) { estado.verEncerrados = !estado.verEncerrados; return pintar(); }
     if (d.vcFormAbrir) { estado.form = { tipo: d.vcFormAbrir, id: d.vcCli }; pintar(); estado.janela.querySelector('.vc-form input, .vc-form select')?.focus(); return; }

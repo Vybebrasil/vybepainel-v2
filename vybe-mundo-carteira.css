@@ -248,3 +248,14 @@
   #vv-carteira .vc-esteira span{font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){#vv-carteira{animation:none}#vv-carteira *{transition:none!important}}
+/* Onboarding começa por um fato novo: cliente novo ou contrato novo (09/11/2026). */
+#vv-carteira .vc-onb-comecar{margin:0}
+#vv-carteira .vc-onb-caminhos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+#vv-carteira .vc-onb-caminho{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:76px;padding:14px 16px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+#vv-carteira .vc-onb-caminho b{font:700 14px var(--vv-texto,system-ui),sans-serif}
+#vv-carteira .vc-onb-caminho small{font:500 12.5px/1.4 var(--vv-texto,system-ui),sans-serif;color:#6B655C}
+#vv-carteira .vc-onb-caminho:hover,#vv-carteira .vc-onb-caminho[aria-expanded="true"]{border-color:#FF7A2F;box-shadow:0 6px 18px -10px #E8602E}
+#vv-carteira .vc-onb-caminho:focus-visible{outline:2px solid #FF7A2F;outline-offset:2px}
+#vv-carteira .vc-onb-comecar .vc-iniciar{margin-top:10px}
+#vv-carteira .vc-onb-atalhos{padding-top:10px}
+#vv-carteira .vc-controles[hidden]{display:none}
