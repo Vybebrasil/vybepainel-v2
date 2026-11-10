@@ -46,3 +46,10 @@ test('Hoje: trocar status, briefing, bruto, entregar e roteiro na própria linha
   assert.match(risco, /\$\{botaoDeMaterialBrutoHtml\(d\)\}\$\{botaoDeEntregaHtml\(d\)\}/, 'Minhas tarefas usa o mesmo botão');
   assert.match(css, /body\.mundo \.vv-demanda-acoes \.focus-brief-btn\.faltando\{background:#FFF4DC;/, 'a etiqueta Sem briefing');
 });
+
+test('janelas de formulário cabem acima do dock (Cancelar e Salvar da Nova reunião ficavam atrás dele)', () => {
+  assert.match(css, /body\.mundo\{--vv-janela-alto:calc\(100dvh - var\(--vv-dock-alto,0px\) - 2 \* var\(--vv-m,14px\) - 28px\)\}/);
+  assert.match(css, /body\.mundo \.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\)\)\{max-height:var\(--vv-janela-alto\);top:calc\(50% - var\(--vv-dock-alto,0px\) \/ 2 - 7px\)\}/);
+  assert.ok(ler('vybe-styles.css').includes(':where(body:not(.mundo)) .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:88vh!important}'), 'os 88% valem só fora do mundo');
+  assert.ok(ler('vybe-mundo-clientes-ficha.css').includes('max-height:var(--vv-janela-alto,calc(100dvh - 32px))'));
+});
