@@ -54,15 +54,19 @@
   function cartao(p) {
     const pl = p.planejamento, [rot, cor] = pl ? (ESTADOS[pl.estado] || [pl.estado, 'u5']) : ['Sem planejamento', 'u5'];
     const r = pl?.revisao || {}, a = p.alertas || {};
-    const placar = r.total ? `${r.head_ok || 0} de ${r.total} peças OK${r.cliente_ajustes ? ` · ${r.cliente_ajustes} com ajuste do cliente` : ''}` : '';
-    const avisos = [['atrasadas', ['atrasada', 'atrasadas'], 'u1'], ['aprovar', 'para aprovar', 'u2'], ['sem_info', 'sem informação', 'u5']]
-      .map(([k, t, c]) => { const n = (a[k] || []).length; return n ? `<span class="vv-plj-aviso ${c}">${n} ${Array.isArray(t) ? t[n === 1 ? 0 : 1] : t}</span>` : ''; }).join('');
+    // Quadro 48 (10/11/2026): o número de peças em toda linha, com quantas o head já deu OK; os avisos viram uma frase
+    // ("1 atrasada · 1 para aprovar"), sem três chips de cores.
+    const n = Number(r.total) || 0;
+    const placar = pl && r.total == null ? '' : pl ? `<b>${n} ${n === 1 ? 'peça' : 'peças'}</b>${n ? ` · ${r.head_ok || 0} OK` : ''}${r.cliente_ajustes ? ` · ${r.cliente_ajustes} com ajuste do cliente` : ''}` : '<span class="vv-plj-mudo">sem peças</span>';
+    const avisos = [['atrasadas', ['atrasada', 'atrasadas']], ['aprovar', 'para aprovar'], ['sem_info', 'sem informação']]
+      .map(([k, t]) => { const q = (a[k] || []).length; return q ? `${q} ${Array.isArray(t) ? t[q === 1 ? 0 : 1] : t}` : ''; }).filter(Boolean).join(' · ')
+      || (pl ? '' : 'o agente ainda não publicou');
     const edita = pl && !['aprovado', 'cadastrado'].includes(pl.estado);
     return `<article class="vv-plj-cartao${p.meu ? ' meu' : ''}">
       <div class="vv-plj-topo"><b>${cliCor(p.cliente)}</b><span class="pill ${cor}">${esc(rot)}</span></div>
       <small class="vv-plj-sub">${esc(p.segmento || '')}${pl ? `${p.segmento ? ' · ' : ''}${esc(mesTxt(pl.mes))} · versão ${esc(pl.versao || 1)}` : ''}</small>
-      ${placar ? `<p class="vv-plj-placar">${esc(placar)}</p>` : ''}
-      ${avisos ? `<div class="vv-plj-avisos">${avisos}</div>` : ''}
+      <p class="vv-plj-placar">${placar}</p>
+      ${avisos ? `<p class="vv-plj-avisos">${esc(avisos)}</p>` : ''}
       <div class="vv-plj-acoes">${pl
         ? `<button type="button" class="vv-botao acao" data-plj-abrir="${esc(pl.id)}">Abrir</button>${edita ? `<button type="button" class="vv-botao" data-plj-abrir="${esc(pl.id)}" data-plj-aba="editar">Editar e revisar</button>` : ''}<button type="button" class="vv-botao" data-plj-abrir="${esc(pl.id)}" data-plj-aba="historico">Histórico</button>`
         : `<button type="button" class="vv-botao" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}">Começar planejamento</button>`}</div>

@@ -289,3 +289,7 @@ html.tema-escuro body.mundo :is(.vc-acao,#vv-comercial .vc-pill.u1,#vv-comercial
 @media (min-width:760px){
   #vv-comercial .vc-funil{grid-auto-flow:row;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));overflow-x:visible}
 }
+/* Frente time (quadros 17 e 49, 10/11/2026): contagem no chip do filtro e os filtros de Creators no menu do sistema. */
+#vv-comercial .vc-filtros button em{font-style:normal;color:#8A847A;font-variant-numeric:tabular-nums}
+#vv-comercial .vc-filtros button[aria-pressed="true"] em{color:inherit;opacity:.8}
+#vv-comercial .vc-escolhas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}

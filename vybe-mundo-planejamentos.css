@@ -28,3 +28,7 @@
 html.tema-escuro body.mundo .vv-plj{filter:invert(.92) hue-rotate(180deg)}
 /* Editar e revisar e Histórico são botões (eram texto solto): o secundário do sistema. */
 .vv-plj-acoes .vv-botao:not(.acao){border:1px solid var(--pc-linha,#E6E0D6);background:#FFFFFF}
+/* Quadro 48 (10/11/2026): peças em toda linha e os avisos numa frase só, sem chips de cores. */
+.vv-plj-placar b{font-weight:700;color:#1F1D1A}
+.vv-plj-mudo{color:#8A847A;font-weight:500}
+p.vv-plj-avisos{display:block;margin:0;color:#5E5A53;font:500 12px/1.4 var(--vv-texto)}

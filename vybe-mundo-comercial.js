@@ -654,25 +654,30 @@
   function abaFornecedores(d) {
     const cat = st.filtro.categoria || '', lista = C().filtrarFornecedores(d.fornecedores.filter((f) => f.ativo), { categoria: cat, busca: st.filtro.forn || '' });
     const nomeCat = (id) => d.categorias.find((c) => c.id === id)?.nome || id;
-    return `<div class="vc-secao"><h3>Fornecedores</h3>${d.fornecedores.length ? botaoNovo('Novo fornecedor', 'fornecedor') : ''}</div>
-      <div class="vc-filtros" role="group" aria-label="Categoria"><button type="button" data-vc-cat="" aria-pressed="${!cat}">Todas</button>${d.categorias.map((c) => `<button type="button" data-vc-cat="${c.id}" aria-pressed="${cat === c.id}">${esc(c.nome)}</button>`).join('')}</div>
+    // Quadros 17 e 49 (10/11/2026): o título e "Novo fornecedor" ficam no cabeçalho da janela; o filtro por tipo leva a
+    // contagem dos ativos de cada categoria.
+    const ativos = d.fornecedores.filter((f) => f.ativo), porCat = (id) => ativos.filter((f) => f.categoria === id).length;
+    const chipCat = (id, nome, n) => `<button type="button" data-vc-cat="${esc(id)}" aria-pressed="${cat === id}">${esc(nome)} <em>${num(n)}</em></button>`;
+    return `<div class="vc-filtros" role="group" aria-label="Tipo de fornecedor">${chipCat('', 'Todos', ativos.length)}${d.categorias.map((c) => chipCat(c.id, c.nome, porCat(c.id))).join('')}</div>
       <input type="search" class="vc-busca" data-vc-busca="forn" placeholder="Buscar fornecedor ou contato" value="${esc(st.filtro.forn || '')}" aria-label="Buscar fornecedor">
       <div class="vc-lista">${lista.map((f) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(f.nome)}</b>${pill(nomeCat(f.categoria), 'u4')}</div>
         <small>BV ${pc(f.bv_percentual)}${f.contato ? ' · ' + esc(f.contato) : ''}${f.cidade ? ` · ${esc(f.cidade)}${f.uf ? '/' + esc(f.uf) : ''}` : ''}${f.telefone ? ' · ' + esc(f.telefone) : ''}</small>${f.observacoes ? `<small>${esc(f.observacoes)}</small>` : ''}${impressoesDoFornecedor(f)}
         <div class="vc-linha-acoes">${(f.impressoes?.abertas || f.impressoes?.entregues) && window.VybeImpressoes ? `<button type="button" class="vc-sec" data-vc="ver-impressoes" data-id="${esc(f.id)}">Ver impressões</button>` : ''}<button type="button" class="vc-sec" data-vc="fornecedor" data-id="${esc(f.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="arquivar-forn" data-id="${esc(f.id)}">Arquivar</button></div></article>`).join('')
-        || vazio(d.fornecedores.length ? 'Nenhum fornecedor com esse filtro.' : 'Nenhum fornecedor cadastrado. Guarde aqui gráficas, brindes, audiovisual e o BV de cada um.', 'Novo fornecedor', 'fornecedor')}</div>`;
+        || vazio(d.fornecedores.length ? 'Nenhum fornecedor com esse filtro.' : 'Nenhum fornecedor ainda. Guarde aqui as gráficas, os estúdios e o BV de cada um: as Impressões puxam o fornecedor daqui.', d.fornecedores.length ? '' : 'Cadastrar o primeiro', 'fornecedor')}</div>`;
   }
   function abaCreators(d) {
     const p = d.pode || {}, f = st.filtro, lista = C().filtrarCreators(d.creators, { nicho: f.nicho || '', cidade: f.cidade || '', busca: f.creator || '' });
-    const sel = (campo, opcoes, rotulo) => `<select class="vc-mini" data-vc-filtro="${campo}" aria-label="${rotulo}"><option value="">${rotulo}: todos</option>${opcoes.map((o) => `<option${o === f[campo] ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    return `<div class="vc-secao"><h3>Creators de Irecê</h3>${p.editar_comercial && d.creators.length ? botaoNovo('Novo creator', 'creator') : ''}</div>
-      <div class="vc-filtros">${sel('nicho', d.opcoes.nichos, 'Nicho')}${sel('cidade', d.opcoes.cidades, 'Cidade')}</div>
+    // Nicho e cidade no menu do sistema (quadros 17 e 49: sem select nativo), com quantos creators há em cada um.
+    const quantos = (campo, o) => d.creators.filter((c) => String(c[campo] || '').trim().toLowerCase() === String(o).trim().toLowerCase()).length;
+    const escolha = (campo, opcoes, rotulo) => (opcoes.length && typeof window.vbEscolhaHtml === 'function'
+      ? window.vbEscolhaHtml({ rotulo, valor: f[campo] || '', vazio: 'Todos', campo: `data-vc-filtro="${campo}"`, opcoes: opcoes.map((o) => ({ valor: o, nome: o, n: quantos(campo, o) })) }) : '');
+    return `${d.creators.length ? `<div class="vc-escolhas" role="group" aria-label="Filtrar creators">${escolha('nicho', d.opcoes.nichos, 'Nicho')}${escolha('cidade', d.opcoes.cidades, 'Cidade')}</div>` : ''}
       <input type="search" class="vc-busca" data-vc-busca="creator" placeholder="Buscar nome ou @" value="${esc(f.creator || '')}" aria-label="Buscar creator">
       <div class="vc-lista grade">${lista.map((c) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(c.nome)}</b>${c.nicho ? pill(c.nicho, 'u4') : ''}</div>
         <small>${c.arroba ? '@' + esc(c.arroba) + ' · ' : ''}${num(c.seguidores)} seguidores · ${pc(c.engajamento)} engajamento${c.cidade ? ' · ' + esc(c.cidade) : ''}</small>
         ${c.contato ? `<small>${esc(c.contato)}</small>` : ''}${c.observacoes ? `<small>${esc(c.observacoes)}</small>` : ''}
         ${p.editar_comercial ? `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="creator" data-id="${esc(c.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="arquivar-creator" data-id="${esc(c.id)}">Arquivar</button></div>` : ''}</article>`).join('')
-        || vazio(d.creators.length ? 'Nenhum creator com esse filtro.' : 'Nenhum creator cadastrado. Monte a lista de influenciadores locais.', p.editar_comercial ? 'Novo creator' : '', 'creator')}</div>`;
+        || vazio(d.creators.length ? 'Nenhum creator com esse filtro.' : 'Nenhum creator cadastrado. Monte a lista de influenciadores de Irecê e região com nicho, cidade e contato.', !d.creators.length && p.editar_comercial ? 'Cadastrar creator' : '', 'creator')}</div>`;
   }
   const PINTOR = { funil: abaFunil, pacotes: abaPacotes, orcamentos: abaOrcamentos, financas: abaFinancas, recebimentos: abaRecebimentos, contas: abaContas,
     inadimplencia: abaInadimplencia, caixa: abaCaixa, fornecedores: abaFornecedores, creators: abaCreators };
@@ -907,6 +912,8 @@
     el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
         ${acaoDoTopo(d)}
         ${st.aba === 'funil' && d?.pode?.editar_comercial ? `<button type="button" class="vc-acao vc-topo-acao" data-vc="lead">${IC.mais}<span>Novo lead</span></button>` : ''}
+        ${st.aba === 'fornecedores' && d && !erro ? `<button type="button" class="vc-acao vc-topo-acao" data-vc="fornecedor">${IC.mais}<span>Novo fornecedor</span></button>` : ''}
+        ${st.aba === 'creators' && d?.pode?.editar_comercial ? `<button type="button" class="vc-acao vc-topo-acao" data-vc="creator">${IC.mais}<span>Novo creator</span></button>` : ''}
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>
       <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>

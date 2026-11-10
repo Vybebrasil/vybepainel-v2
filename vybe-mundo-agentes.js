@@ -169,7 +169,7 @@
   // "VYBES, Otávio, Beto e Mateus".
   const listaDeNomes = (ns) => (ns.length < 2 ? ns.join('') : `${ns.slice(0, -1).join(', ')} e ${ns[ns.length - 1]}`);
   function filaDoDono({ agentes = [], perfis = {}, atividades = {}, pedidos = [], agora = Date.now() } = {}) {
-    const decidir = [], acompanhar = [], esperando = [], urgentes = [];
+    const decidir = [], acompanhar = [], esperando = [], urgentes = [], licoes = new Map();
     for (const x of Array.isArray(pedidos) ? pedidos : []) {
       if (!x || x.status !== 'pendente' || !(Date.parse(x.expiraEm) > agora)) continue;
       const s = agentes.find((a) => a.id === x.setor);
@@ -180,7 +180,15 @@
       if (P) {
         const abertos = P.achados?.abertos || [];
         for (const a of abertos.filter((x) => x.gravidade === 'alta')) urgentes.push({ quem, a });
-        for (const l of (P.licoes || []).filter((x) => x.estado === 'em_revisao')) decidir.push({ ...quem, tipo: 'licao', em: l.em || l.criadaEm || '', l });
+        // A mesma lição de vários agentes (quadro 62, 10/11/2026: "card sem briefing se repetiu 3 vezes" aparecia uma vez por
+        // agente) vira uma linha só, "visto por" todos; decidir vale para a lição de cada um.
+        for (const l of (P.licoes || []).filter((x) => x.estado === 'em_revisao')) {
+          const k = normal(l.texto) || 'licao:' + s.id + ':' + l.id;
+          if (!licoes.has(k)) licoes.set(k, { ...quem, tipo: 'licao', em: l.em || l.criadaEm || '', l, vistos: [], copias: [] });
+          const g = licoes.get(k); g.copias.push({ setor: s.id, id: l.id });
+          if (!g.vistos.some((v) => v.setor === s.id)) g.vistos.push(quem);
+          const em = l.em || l.criadaEm || ''; if (em && (!g.em || em < g.em)) g.em = em;
+        }
         if (P.projecao?.subirNivel) decidir.push({ ...quem, tipo: 'nivel', em: '', texto: P.projecao.subirNivel });
         const outros = abertos.filter((x) => x.gravidade !== 'alta');
         if (outros.length) acompanhar.push({ ...quem, n: outros.length, mais: outros[0] });
@@ -197,6 +205,7 @@
         esperando.push({ ...quem, tipo: acao ? 'acao' : 'proposta', em: e.em, e });
       });
     }
+    decidir.push(...licoes.values());
     // Urgentes: primeiro o mesmo achado de vários agentes vira um só; depois os do mesmo tipo e dos mesmos agentes viram um
     // grupo (Paulo, 09/11/2026: a fila veio com 58 e boa parte era o mesmo achado repetido por cliente), com resolver ou
     // ignorar o grupo e "ver um a um".
@@ -264,7 +273,10 @@
       else mais = abrirAgentes;
     } else if (it.tipo === 'licao') {
       titulo = it.l.texto; detalhe = `O agente viu isso se repetir e quer guardar como regra${it.l.prova ? ' · ' + esc(it.l.prova) : ''}`;
-      if (dono) { principal = `<button type="button" class="vga-sim" data-vga-de="${esc(it.setor)}" data-vga-licao="incorporar" data-vga-id="${esc(it.l.id)}">Vale sempre</button>`; segunda = `<button type="button" data-vga-de="${esc(it.setor)}" data-vga-licao="contestar" data-vga-id="${esc(it.l.id)}">Não vale</button>`; mais = abrirAgentes; }
+      const varias = (it.copias || []).length > 1, lote = varias ? ` data-vga-licoes="${esc(JSON.stringify(it.copias))}"` : '';
+      const botaoLicao = (acao, rotulo, cls = '') => varias ? `<button type="button"${cls} data-vga-licao-lote="${acao}"${lote}>${rotulo}</button>`
+        : `<button type="button"${cls} data-vga-de="${esc(it.setor)}" data-vga-licao="${acao}" data-vga-id="${esc(it.l.id)}">${rotulo}</button>`;
+      if (dono) { principal = botaoLicao('incorporar', 'Vale sempre', ' class="vga-sim"'); segunda = botaoLicao('contestar', 'Não vale'); mais = abrirAgentes; }
       else principal = abrirPrincipal;
     } else if (it.tipo === 'aprovacao') {
       const x = it.p, vence = Date.parse(x.expiraEm) - Date.now();
@@ -275,7 +287,7 @@
     } else if (it.tipo === 'falha') {
       titulo = it.e.tarefa; detalhe = `${esc(it.e.erro || 'Sem detalhe do erro.')} · ${esc(quando(it.e.em))}`; principal = abrirPrincipal;
     } else if (it.tipo === 'nivel') {
-      titulo = `${it.agente} acertou o bastante para agir com menos aprovação`; detalhe = `${esc(it.texto)}. A mudança é feita na central do VYBES.`; principal = abrirPrincipal;
+      titulo = `${it.agente} acertou o bastante para agir com menos aprovação`; detalhe = `${esc(it.texto)}. Um dono decide em "Dar autonomia", na página do agente.`; principal = abrirPrincipal;
     } else if (it.tipo === 'acao') {
       titulo = it.e.tarefa; detalhe = `Só quem pediu confirma, respondendo SIM no WhatsApp; o código vale 5 minutos · ${esc(quando(it.e.em))}`;
     } else {
@@ -376,9 +388,12 @@
     const semCentral = f.erro || !f.dados;
     void lerPerfil(s.id);
     const pf = st.perfis[s.id] || {}, P = pf.dados?.perfil || null;
+    // "Dar autonomia" (quadro 63, 10/11/2026): o agente em sombra passa a Ativo pelo mesmo estado da central (etapa=estado,
+    // só dono; a central confere de novo). É para onde leva o "Pode ganhar autonomia" de Depende de você.
+    const autonomia = dono && modo.real && modo.id === 'sombra' ? `<button type="button" class="vga-autonomia" data-vga-autonomia="${esc(s.id)}" title="Ativo: age sozinho e conta no grupo dos sócios o que fez"${st.enviando ? ' disabled' : ''}>Dar autonomia</button>` : '';
     return `<div class="vga-cab">${retratoHtml(s, { grande: true })}
         <span><small>${esc(ANDAR(s.andar.nivel))} · ${esc(s.andar.nome)} · ${esc(s.nome)}</small><h3>${esc(s.agente)} <i>${esc(s.funcao || '')}</i></h3>
-        <span class="vga-estado" style="--c:${cor}">${esc(rot)}</span><span class="vga-expl">${esc(expl)}</span></span></div>
+        <span class="vga-estado" style="--c:${cor}">${esc(rot)}</span><span class="vga-expl">${esc(expl)}</span></span>${autonomia}</div>
       <p class="vga-papel">${esc(s.papel || '')}</p>
       ${souDono() && modo.real ? estadoFormHtml(s, modo) : ''}
       ${(s.skills || []).length ? `<div class="vga-skills">${s.skills.map((k) => `<span>${esc(k)}</span>`).join('')}</div>` : ''}
@@ -453,6 +468,21 @@
     try { await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), ...setores.map((x) => lerPerfil(x, true))]); } catch { /* a fila relê na próxima */ }
     pintarContagem(); st.enviando = false; pintar();
   }
+  // A mesma lição vista por vários agentes: uma decisão, gravada na lição de cada um pela mesma rota (etapa=achado).
+  async function licoesEmLote(lista, acao) {
+    st.enviando = true; st.msg = ''; pintar();
+    let feitas = 0, falhou = '';
+    for (const x of lista) {
+      try {
+        const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ etapa: 'achado', licao: x.id, acao }) });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) feitas++; else { falhou = d.error || 'Não foi possível salvar agora.'; break; }
+      } catch { falhou = 'Sem conexão com o servidor.'; break; }
+    }
+    st.msg = falhou ? `${feitas} de ${lista.length} lições atualizadas. Parou: ${falhou}` : `Lição atualizada para os ${lista.length} agentes que a viram.`;
+    try { await Promise.all([...new Set(lista.map((x) => x.setor))].map((s) => lerPerfil(s, true))); } catch { /* a fila relê na próxima */ }
+    pintarContagem(); st.enviando = false; pintar();
+  }
   async function chamar(corpo, etapa = 'atribuir', ok = '', setor = st.setor) {
     st.enviando = true; st.msg = ''; pintar();
     try {
@@ -500,6 +530,17 @@
       return;
     }
     if (b.dataset.vgaAchado) { chamar({ chave: b.dataset.vgaChave, acao: b.dataset.vgaAchado }, 'achado', b.dataset.vgaAchado === 'errado' ? 'Anotado: conta no acerto do agente.' : 'Achado fechado.', b.dataset.vgaDe || st.setor); return; }
+    if (b.dataset.vgaAutonomia) {
+      const s = setores().find((x) => x.id === b.dataset.vgaAutonomia);
+      if (!s || st.enviando || !confirm(`Dar autonomia a ${s.agente}? Ele passa a agir sozinho, sem esperar o OK de um dono, e conta no grupo dos sócios o que fez. Dá para voltar a Sombra no Estado.`)) return;
+      chamar({ setor: s.id, estado: 'ativo' }, 'estado', `${s.agente} agora age sozinho (Ativo).`, s.id);
+      return;
+    }
+    if (b.dataset.vgaLicaoLote) {
+      let lista = []; try { lista = JSON.parse(b.dataset.vgaLicoes || '[]'); } catch { /* sem lições */ }
+      if (lista.length && !st.enviando) licoesEmLote(lista, b.dataset.vgaLicaoLote);
+      return;
+    }
     if (b.dataset.vgaLicao) { chamar({ licao: b.dataset.vgaId, acao: b.dataset.vgaLicao }, 'achado', 'Lição atualizada.', b.dataset.vgaDe || st.setor); return; }
     if (b.dataset.vgaAcao) { if (b.dataset.vgaAcao === 'remover' && !confirm('Remover esta atribuição?')) return; chamar({ acao: b.dataset.vgaAcao, id: b.dataset.vgaId }); }
   }

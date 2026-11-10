@@ -107,6 +107,19 @@
   const vazio = (titulo, texto, botao = '') => `<div class="vp-vazio"><b>${esc(titulo)}</b>${texto ? `<p>${esc(texto)}</p>` : ''}${botao}</div>`;
   const acao = (texto, attrs) => `<button type="button" class="vp-acao" ${attrs}>${esc(texto)}</button>`;
   const sec = (texto, attrs) => `<button type="button" class="vp-sec" ${attrs}>${esc(texto)}</button>`;
+  // Escolha em chip do sistema (vbEscolhaHtml, vybe-core.js) no lugar do select nativo (quadros 21 e 61, 10/11/2026).
+  // Sem o vybe-core (testes), só o campo escondido com o valor.
+  const escolha = (o) => (typeof window.vbEscolhaHtml === 'function' ? window.vbEscolhaHtml(o) : `<input type="hidden" ${o.campo || ''} value="${esc(o.valor ?? '')}">`);
+  // A ação principal de cada aba fica no cabeçalho da janela, uma vez só (quadros 21, 40 e 61): o vazio não repete o botão.
+  function acaoDoTopo(d) {
+    if (!d || d.proibido) return '';
+    const a = estado.aba, f = estado.form;
+    if (a === 'rh' && f !== 'pedido') return acao('Nova solicitação', 'data-vp-abrir-form="pedido"');
+    if (a === 'recrutamento' && f !== 'vaga') return acao('Nova vaga', 'data-vp-abrir-form="vaga"');
+    if (a === 'documentos' && f !== 'documento') return acao('Novo documento', 'data-vp-abrir-form="documento"');
+    if (a === 'academy' && d.gestao && d.provisionado !== false && f !== 'trilha') return acao('Nova trilha', 'data-vp-abrir-form="trilha"');
+    return '';
+  }
   const semMigracao = (d) => (d?.provisionado === false ? '<p class="vp-nota">Esta parte ainda não foi ligada: o que você vê é o começo. Os donos já sabem o que falta.</p>' : '');
   function versus(v, { menorMelhor = false, unidade = '' } = {}) {
     if (!v || v.delta == null) return '<small class="vp-vs">sem base no período anterior</small>';
@@ -233,7 +246,7 @@
   }
   function htmlPedidos(d) {
     const todos = d.pedidos || [], f = FILTROS_PEDIDO[estado.filtroPedidos];
-    let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">${d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH'}</h3>${estado.form === 'pedido' ? '' : acao('Nova solicitação', 'data-vp-abrir-form="pedido"')}</div>`;
+    let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">${d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH'}</h3></div>`;
     if (estado.form === 'pedido') html += formPedido(d);
     if (todos.length || d.gestao) html += kpisPedidos(d);
     if (f) {
@@ -243,7 +256,7 @@
     }
     const abertos = todos.filter((p) => p.sla !== 'encerrado');
     html += todos.length ? `<ul class="vp-lista">${[...abertos, ...todos.filter((p) => p.sla === 'encerrado').slice(0, 10)].map((p) => linhaPedido(p, d)).join('')}</ul>`
-      : estado.form === 'pedido' ? '' : vazio('Nenhum pedido por aqui', 'Precisa de uma declaração, de férias, de um reembolso ou de algo do RH? Abra uma solicitação e acompanhe o prazo.');
+      : estado.form === 'pedido' ? '' : vazio('Nenhum pedido por aqui', 'Precisa de uma declaração, de férias, de um reembolso ou de algo do RH? Use "Nova solicitação", no alto, e acompanhe o prazo.');
     return html + (d.gestao ? formPrazos(d) : '');
   }
 
@@ -401,8 +414,8 @@
   function campoAniversario(iso, rotulo) {
     const ok = /^\d{4}-\d{2}-\d{2}/.test(iso || ''), ano = ok ? iso.slice(0, 4) : '', mes = ok ? Number(iso.slice(5, 7)) : 0, dia = ok ? Number(iso.slice(8, 10)) : 0;
     return `<fieldset class="vp-aniv"><legend>${esc(rotulo)}</legend><input type="hidden" name="nasc_ano" value="${esc(ano)}">
-      <div class="vp-aniv-campos"><select name="nasc_dia" aria-label="${esc(rotulo)}: dia"><option value="">Dia</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}"${i + 1 === dia ? ' selected' : ''}>${i + 1}</option>`).join('')}</select>
-      <select name="nasc_mes" aria-label="${esc(rotulo)}: mês"><option value="">Mês</option>${MESES_RH.map((m, i) => `<option value="${i + 1}"${i + 1 === mes ? ' selected' : ''}>${m}</option>`).join('')}</select></div></fieldset>`;
+      <div class="vp-aniv-campos">${escolha({ rotulo: 'Dia', valor: dia ? String(dia) : '', vazio: '—', campo: 'name="nasc_dia"', grade: 7, opcoes: Array.from({ length: 31 }, (_, i) => ({ valor: String(i + 1), nome: String(i + 1) })) })}
+      ${escolha({ rotulo: 'Mês', valor: mes ? String(mes) : '', vazio: '—', campo: 'name="nasc_mes"', opcoes: MESES_RH.map((m, i) => ({ valor: String(i + 1), nome: maiuscula(m) })) })}</div></fieldset>`;
   }
   // { valor: 'AAAA-MM-DD' | null } ou { erro }. Sem ano guardado vai 2000 (bissexto: aceita 29 de fevereiro); o servidor
   // só mostra o dia e o mês.
@@ -425,7 +438,7 @@
         ${kpi('Tempo médio de casa', a.tempoMedioMeses == null ? '—' : String(a.tempoMedioMeses).replace('.', ',') + ' meses', versus(v.vs.tempoMedioMeses, { unidade: ' meses' }))}</div>
         ${v.semEntrada ? `<p class="vp-nota">${plural(v.semEntrada, 'pessoa está', 'pessoas estão')} sem data de entrada: o tempo de casa não conta ${v.semEntrada === 1 ? 'ela' : 'elas'}. Preencha em Datas de RH.</p>` : ''}`;
     }
-    html += htmlPedidos(d);
+    html += `<div class="vp-duas"><section class="vp-meia">${htmlPedidos(d)}</section><section class="vp-meia">${htmlClima(d)}</section></div>`;
     html += htmlCalendario(d);
     if (d.gestao) {
       const pessoas = d.pessoas || [];
@@ -434,7 +447,7 @@
         ${campoAniversario('', 'Aniversário')}<label><span>Entrada na Vybe</span><input type="date" name="entrada"></label><label><span>Saída</span><input type="date" name="saida"></label>
         <div class="vp-botoes"><button type="submit" class="vp-acao">Salvar datas</button></div></form></details>`;
     }
-    return html + (d.gestao ? htmlFolha() : '') + htmlClima(d);
+    return html + (d.gestao ? htmlFolha() : '');
   }
 
   // Mini painel dos números da fila e do clima (data-espiar="pessoas:…", desenhado por vybe-mundo.js).
@@ -580,7 +593,6 @@
   }
   function htmlAcademy(d) {
     let html = semMigracao(d);
-    if (d.gestao && d.provisionado !== false) html += `<div class="vp-linha-topo"><h3 class="vp-titulo">Trilhas</h3>${estado.form === 'trilha' ? '' : acao('Nova trilha', 'data-vp-abrir-form="trilha"')}</div>`;
     if (estado.form === 'trilha') html += formTrilha();
     const trilhas = [...(d.trilhas || [])].sort((a, b) => Number(b.minha) - Number(a.minha));
     if (trilhas.length) return html + trilhas.map((t) => cartaoTrilha(t, d)).join('');
@@ -589,7 +601,7 @@
     // Vybe" para editar e salvar; quem não monta trilhas sabe a quem pedir.
     if (estado.form === 'trilha') return html;
     const modelo = window.VybePessoasCalculos?.TRILHA_PADRAO;
-    const botoes = d.gestao ? `<div class="vp-botoes">${acao('Montar a primeira trilha', 'data-vp-trilha-modelo')}${sec('Começar do zero', 'data-vp-abrir-form="trilha"')}</div>`
+    const botoes = d.gestao ? `<div class="vp-botoes">${acao('Montar a primeira trilha', 'data-vp-trilha-modelo')}</div>`
       : '<p class="vp-nota">Quem monta as trilhas são os donos e o RH: peça a eles a sua.</p>';
     return html + `<div class="vp-vazio vp-vazio-academy"><span class="vp-vazio-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6v16"/></svg></span>
       <b>Nenhuma trilha ainda</b><p>Monte a primeira com os vídeos e documentos que todo mundo que chega precisa ver.${modelo && d.gestao ? ` Ela já começa com o roteiro "${esc(modelo.nome)}": é só pôr os links e salvar.` : ''}</p>${botoes}</div>`;
@@ -603,8 +615,9 @@
     const nomeVaga = Object.fromEntries((d.vagas || []).map((v) => [v.id, v.titulo]));
     let html = semMigracao(d) + seletorPeriodo() + `<div class="vp-kpis">${kpi('Vagas abertas', ind.abertas)}${kpi('Candidatos', ind.candidatos)}
       ${kpi('Tempo médio de contratação', ind.tempoMedio?.dias == null ? '—' : plural(ind.tempoMedio.dias, 'dia', 'dias'), versus(ind.vs, { menorMelhor: true, unidade: ' dias' }))}</div>`;
-    html += `<div class="vp-linha-topo"><label class="vp-campo-inline"><span>Vaga</span><select data-vp-vaga><option value="">Todas</option>${(d.vagas || []).map((v) => `<option value="${esc(v.id)}"${v.id === estado.vaga ? ' selected' : ''}>${esc(v.titulo)}${v.status !== 'aberta' ? ' (' + esc(v.status) + ')' : ''}</option>`).join('')}</select></label>
-      <div class="vp-botoes">${sec('Etapas', 'data-vp-abrir-form="etapas"')}${sec('Nova vaga', 'data-vp-abrir-form="vaga"')}${(d.vagas || []).length ? acao('Novo candidato', 'data-vp-abrir-form="candidato"') : ''}</div></div>`;
+    const nCand = (id) => (d.candidatos || []).filter((c) => c.vaga_id === id).length;
+    html += `<div class="vp-linha-topo">${(d.vagas || []).length ? escolha({ rotulo: 'Vaga', valor: estado.vaga || '', vazio: 'Todas', campo: 'data-vp-vaga', opcoes: d.vagas.map((v) => ({ valor: v.id, nome: v.titulo + (v.status !== 'aberta' ? ` (${v.status})` : ''), n: nCand(v.id) })) }) : '<span></span>'}
+      <div class="vp-botoes">${sec('Etapas', 'data-vp-abrir-form="etapas"')}${(d.vagas || []).length ? sec('Novo candidato', 'data-vp-abrir-form="candidato"') : ''}</div></div>`;
     if (estado.form === 'vaga') {
       const v = estado.editar || {};
       html += `<form data-vp-form="vaga" class="vp-cartao vp-form"><input type="hidden" name="id" value="${esc(v.id || '')}"><div class="vp-grade">
@@ -624,7 +637,7 @@
     }
     if (estado.form === 'etapas') html += `<form data-vp-form="etapas" class="vp-cartao vp-form"><label><span>Etapas do funil (uma por linha, na ordem)</span><textarea name="etapas" rows="5">${esc(etapas.join('\n'))}</textarea></label>
       <p class="vp-nota">A etapa chamada Aprovado (ou Contratado) conta como contratação; a última é a de saída.</p><div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar etapas</button></div></form>`;
-    if (!(d.vagas || []).length) return html + (estado.form === 'vaga' ? '' : vazio('Nenhuma vaga aberta', 'Abra uma vaga para começar a receber candidatos no funil.', acao('Abrir vaga', 'data-vp-abrir-form="vaga"')));
+    if (!(d.vagas || []).length) return html + (estado.form === 'vaga' ? '' : vazio('Nenhuma vaga aberta', 'Use "Nova vaga", no alto, para começar a receber candidatos no funil.'));
     if (estado.vaga) html += `<p class="vp-nota"><button type="button" class="vp-link" data-vp-editar-vaga="${esc(estado.vaga)}">Editar esta vaga</button></p>`;
     return html + `<div class="vp-kanban" role="region" aria-label="Funil de candidatos" tabindex="0">${etapas.map((e) => {
       const lista = cands.filter((c) => c.etapa === e);
@@ -639,7 +652,7 @@
   function htmlDocumentos(d) {
     if (d.proibido) return vazio('Documentos são dos donos', 'Esta aba é só para os donos e quem administra.');
     let html = semMigracao(d) + `<div class="vp-linha-topo"><p class="vp-nota">${d.avisos ? `<b class="vp-alerta">${plural(d.avisos, 'documento pede', 'documentos pedem')} atenção</b> (vencido ou renovando em até ${esc(d.avisoDias)} dias).` : 'Nenhuma renovação nos próximos dias.'}</p>
-      ${estado.form === 'documento' ? '' : acao('Novo documento', 'data-vp-abrir-form="documento"')}</div>`;
+</div>`;
     if (estado.form === 'documento') {
       const x = estado.editar || {};
       html += `<form data-vp-form="documento" class="vp-cartao vp-form"><input type="hidden" name="id" value="${esc(x.id || '')}"><div class="vp-grade">
@@ -652,7 +665,7 @@
         <label><span>Observação</span><textarea name="observacao" rows="2" maxlength="2000">${esc(x.observacao || '')}</textarea></label>
         <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar documento</button></div></form>`;
     }
-    if (!(d.documentos || []).length) return html + (estado.form === 'documento' ? '' : vazio('Nenhum documento cadastrado', 'Registre contratos e documentos da equipe para ser avisado antes de vencer.', acao('Cadastrar o primeiro', 'data-vp-abrir-form="documento"')));
+    if (!(d.documentos || []).length) return html + (estado.form === 'documento' ? '' : vazio('Nenhum documento cadastrado', 'Use "Novo documento", no alto, para registrar contratos e documentos da equipe e ser avisado antes de vencer.'));
     return html + `<ul class="vp-lista">${d.documentos.map((x) => `<li class="vp-item ${(DOC[x.situacao] || DOC.em_dia)[1]}"><div class="vp-meio"><b>${esc(x.titulo)}</b>
       <small>${esc(x.pessoa_nome)} · ${esc((d.tipos || {})[x.tipo] || x.tipo)} · início ${br(x.inicio)} · renovação ${br(x.renovacao)}</small></div>
       <div class="vp-lado">${chip(DOC[x.situacao] || DOC.em_dia)}<span class="vp-botoes">${x.link ? `<a class="vp-link" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : ''}<button type="button" class="vp-link" data-vp-editar-documento="${esc(x.id)}">Editar</button></span></div></li>`).join('')}</ul>`;
@@ -669,7 +682,7 @@
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
     return `<div class="vp-topo"><div><span class="vp-kicker">${esc(estado.rotulo || 'Pessoas')}</span><h2 id="vp-titulo">${esc((ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1])}</h2></div>
-        <div class="vp-topo-botoes"><button type="button" class="vp-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
+        <div class="vp-topo-botoes">${acaoDoTopo(estado.dados[estado.aba])}<button type="button" class="vp-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
         <button type="button" class="vp-x" data-vp-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
       ${estado.ajuda ? `<p class="vp-ajuda" role="note">${esc(AJUDA[estado.aba])}</p>` : ''}
       <div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div>
@@ -796,7 +809,8 @@
       const p = (estado.dados.rh?.perfis || []).find((x) => x.pessoa_id === t.value) || {}, form = t.closest('form');
       for (const k of ['entrada', 'saida']) { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = p[k] || ''; }
       const nasc = /^\d{4}-\d{2}-\d{2}/.test(p.nascimento || '') ? p.nascimento : '', poe = (k, v) => { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = v; };
-      poe('nasc_ano', nasc.slice(0, 4)); poe('nasc_dia', nasc ? String(Number(nasc.slice(8, 10))) : ''); poe('nasc_mes', nasc ? String(Number(nasc.slice(5, 7))) : '');
+      const caixa = form?.querySelector('.vp-aniv'); if (caixa) caixa.outerHTML = campoAniversario(nasc, 'Aniversário');
+      else { poe('nasc_ano', nasc.slice(0, 4)); poe('nasc_dia', nasc ? String(Number(nasc.slice(8, 10))) : ''); poe('nasc_mes', nasc ? String(Number(nasc.slice(5, 7))) : ''); }
     }
     else if ('vpTipoPedido' in ds) {
       // Férias ou folga: primeiro e último dia (obrigatórios); os outros tipos: data desejada.
