@@ -501,15 +501,14 @@ body.mundo #workspace-drawer .workspace-mais-menu .perigo{color:var(--sit-atrasa
 body.mundo #workspace-drawer .workspace-rodape{background:rgba(255,255,255,.96)!important;border-top:1px solid #E6E0D6!important}
 body.mundo #workspace-drawer :is(.workspace-action,.workspace-close){background:#FFFFFF!important;border:1px solid #E6E0D6!important}
 /* Cadastros (fc-*): a mesma janela e o mesmo fluxo, na pele clara do mundo. */
-body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.28)!important;backdrop-filter:blur(6px)!important}
+body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.18)!important;backdrop-filter:none!important}
 body.mundo #fc-overlay .fc-modal{background:rgba(250,248,244,.97)!important;background-image:none!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal *{border-color:#E6E0D6}
-body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli),.fc-preview-card){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
+body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli)){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-escolha.ativo,.fc-escolha[aria-pressed="true"],.fc-escolha.selecionado,.fc-escolha:focus-visible):not(.fc-cli){box-shadow:0 0 0 2px var(--vv-laranja),var(--vv-sombra-curta)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,b,strong,h2,h3,.fc-prev-users,div){color:#1F1D1A}
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,.fc-prev-users){color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sub,.fc-helper-text,span){color:#6B675F}
-body.mundo #fc-overlay .fc-modal .fc-kicker{color:var(--vv-laranja-escuro)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo #fc-overlay .fc-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo .spotlight-dialog mark{color:#1F1D1A!important;background:var(--vv-laranja-claro)!important;border-radius:4px;box-shadow:none!important}
@@ -3437,7 +3436,6 @@ html body.mundo .cb-palco-acoes .vb-botao:not(#vv-x){background:rgba(255,255,255
 html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
 
 /* ===== Cadastro rápido e botão principal das janelas ===== */
-html body.mundo #fc-overlay .fc-kicker:not(#vv-x){color:#A84E00!important}
 html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B675F!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
 html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#C2490C!important;color:#FFFFFF!important;box-shadow:0 8px 20px -8px #C2490C!important}
@@ -5555,13 +5553,6 @@ body.mundo .ofc-tv-opcao i{color:var(--ds-sel-texto)}
 body.mundo .ofc-tv-opcao .ofc-tv-ic,body.mundo .ofc-tv-opcao.tela .ofc-tv-ic{background:#F1ECE4;color:#1F1D1A}
 body.mundo .ofc-tv-desligar{display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid #F6BBC4;border-radius:var(--pc-r,8px);background:#FFFFFF;color:#B42318;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
 body.mundo .ofc-tv-desligar:hover{background:#FDECEE}
-/* Música fora de uma sala com som: balão em cima do dock (fase 3b). */
-body.mundo .vv-musica-fora{position:fixed;z-index:700;width:300px;display:grid;gap:6px;padding:14px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;box-shadow:var(--vv-sombra-janela,0 18px 50px rgba(40,26,10,.22));pointer-events:auto;animation:vv-surge .2s var(--vv-mola,ease) both}
-body.mundo .vv-musica-fora b{font:650 14px var(--vv-texto,"Inter"),sans-serif}
-body.mundo .vv-musica-fora small{font:500 12.5px/1.45 var(--vv-texto,"Inter"),sans-serif;color:#5E5A53}
-body.mundo .vv-musica-fora-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
-body.mundo .vv-musica-fora .vv-botao{border:1px solid #E6E0D6;background:#FFFFFF}
-body.mundo .vv-musica-fora .vv-botao.acao{border-color:transparent}
 /* Legenda da Cidade (fase 3b): só no Centro, no canto de cima, abaixo do topo; o número e a frase dizem a situação. */
 body.mundo .vv-legenda-cidade{display:none}
 body.mundo.mundo-centro:not(.mundo-modulo) .vv-legenda-cidade{position:absolute;top:calc(var(--vv-m,14px) + 62px);right:var(--vv-m,14px);display:flex;gap:12px;align-items:center;padding:7px 12px;border-radius:12px;font:600 12px var(--vv-texto,"Inter"),sans-serif;color:#5E5A53;pointer-events:auto}
@@ -6517,3 +6508,84 @@ body.mundo .vb-resumo-item.zero b{color:inherit;font-weight:650}
 body.mundo .vb-seletor-busca input:focus-visible{outline:none;box-shadow:none}
 /* A seta do seletor vence o `background:` curto dos campos de cada módulo (Creators perdia a seta, sobrava só o espaço). */
 body.mundo select:not([multiple]):not([size]):not(#pc-campo){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px}
+
+/* === Criar (frente topo, quadros 08 e 64) ===
+   As etapas viram uma trilha discreta com "Etapa 1 de 5 · Onde" (os traços continuam voltando a uma etapa feita); a prévia é
+   uma coluna no papel claro, sem o painel cinza nem o cartão flutuando; o fundo não desfoca (regra em #fc-overlay, acima). */
+body.mundo #fc-overlay .fc-trilha{gap:4px;margin-bottom:18px;padding-right:44px}
+body.mundo #fc-overlay .fc-trilha-passo{min-height:20px;cursor:pointer}
+body.mundo #fc-overlay .fc-trilha-passo:disabled{opacity:1;cursor:default}
+body.mundo #fc-overlay .fc-trilha-passo::before{content:"";width:22px;height:4px;border:0;border-radius:2px;background:#E6E0D6;box-shadow:none}
+body.mundo #fc-overlay .fc-trilha-passo:is(.agora,.feito)::before{background:var(--vv-laranja,#FF7A2F)}
+body.mundo #fc-overlay .fc-trilha-passo.feito:hover::before{background:var(--vv-laranja-escuro,#C2490C)}
+body.mundo #fc-overlay .fc-trilha-passo:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px;border-radius:3px}
+body.mundo #fc-overlay .fc-trilha-nome{display:none}
+body.mundo #fc-overlay .fc-trilha-texto{display:inline;margin-left:4px;color:#6B675F;font:600 11.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-side-col{width:300px;padding:20px 18px;background:#F6F3EE}
+body.mundo #fc-overlay .fc-side-title{margin-bottom:10px}
+body.mundo #fc-overlay .fc-preview-card{gap:10px;padding:14px 16px;border-radius:10px}
+body.mundo #fc-overlay .fc-prev-head b{color:#1F1D1A;font:650 15px/1.3 var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-prev-head span{color:#5E5A53;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-prev-body{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:6px 12px;padding-top:10px;border-top:1px solid #ECE6DC}
+body.mundo #fc-overlay .fc-prev-item{display:contents}
+body.mundo #fc-overlay .fc-prev-item small{font:500 12px var(--vv-texto,"Inter"),sans-serif;text-transform:none;letter-spacing:0}
+body.mundo #fc-overlay .fc-prev-item div{color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-helper-text{margin-top:10px;font-size:12px}
+body.mundo #fc-overlay .fc-escolha.grande + .fc-sazonal-btn,body.mundo #fc-overlay .fc-sazonal-btn{margin-top:6px;padding:6px 12px;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
+@media (max-width:900px){body.mundo #fc-overlay .fc-side-col{width:100%}}
+
+/* === TV da sala (frente topo, quadro 44) ===
+   Abre em cima do dock das salas, sem fundo desfocado (o fundo sai em abrirTvEscritorio); o clipe que está passando continua
+   no alto. A fonte num alternador (vídeo ou tela de alguém), sem cartões grandes nem o play vermelho. */
+body.mundo .workflow-modal.ofc-tv-janela{top:auto;bottom:calc(var(--vv-dock-alto,0px) + var(--vv-m,14px) + 6px);left:50%;transform:translateX(-50%);
+  width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 80px);padding:16px 18px}
+body.mundo .ofc-tv-janela .workflow-title{font-size:20px;margin:6px 0 2px}
+body.mundo .ofc-tv-janela .ofc-tvform{gap:10px;margin-top:10px}
+body.mundo .ofc-tv-janela .ofc-tv-tela{aspect-ratio:16/8;border-radius:10px}
+body.mundo .ofc-tv-tela span{width:44px;height:44px;background:rgba(255,255,255,.14);color:#FFFFFF;box-shadow:none}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes.vb-alternar{display:inline-flex;justify-self:start;gap:2px;padding:3px;border:1px solid #E6E0D6;border-radius:8px;background:#F4EFE8}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:6px;background:transparent;color:#5E5A53;font:650 12.5px/1 var(--vv-texto,"Inter"),sans-serif;box-shadow:none}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 2px rgba(31,29,26,.12)}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao b{flex:none;font:inherit}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-ic{width:auto;height:auto;background:none;color:currentColor}
+
+/* === Notas: Renomear e Apagar no menu (frente topo, quadro 42) ===
+   O caderno e a nota aberta guardam as ações num menu de três pontos; nada de botão vermelho à vista no topo da aba. */
+body.mundo .notas-janela .notas-menu{position:relative;display:inline-flex}
+body.mundo .notas-janela .notas-menu > summary{list-style:none;cursor:pointer}
+body.mundo .notas-janela .notas-menu > summary::-webkit-details-marker{display:none}
+body.mundo .notas-janela .notas-menu > summary:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px}
+body.mundo .notas-janela .notas-menu-lista{position:absolute;z-index:5;top:calc(100% + 4px);right:0;display:grid;gap:2px;min-width:170px;padding:4px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-curta,0 6px 18px rgba(31,29,26,.12))}
+/* Na barra dos cadernos (que corta o que passa dela), o menu abre na própria linha, ao lado dos três pontos. */
+body.mundo .notas-janela .notas-caderno-acoes[open]{flex-wrap:wrap;align-items:center;gap:4px}
+body.mundo .notas-janela .notas-caderno-acoes .notas-menu-lista{position:static;display:flex;min-width:0;padding:0;border:0;background:none;box-shadow:none}
+body.mundo .notas-janela .notas-menu-lista .notas-discreto{justify-content:flex-start}
+body.mundo .notas-janela .notas-menu:not(.notas-caderno-acoes) .notas-menu-lista .notas-discreto{width:100%}
+
+/* === Busca (frente topo, quadros 09 e 66) ===
+   Só "Esc" escrito para fechar (no celular, o ×); ícones neutros; cliente e status nas cores de sempre; a busca vazia
+   mostra o que você abriu por último e os atalhos, e embaixo só os atalhos do teclado. */
+.spotlight-fechar-x{display:none}
+body.mundo .spotlight-dialog .spotlight-fechar{width:auto;height:26px;padding:0 9px;font:600 11.5px var(--vv-texto,"Inter"),sans-serif;color:#5E5A53}
+body.mundo .spotlight-dialog .spotlight-icone{background:#F1ECE4;color:#1F1D1A;box-shadow:none;width:34px;height:34px;border-radius:8px}
+body.mundo .spotlight-dialog .spotlight-icone svg{width:18px;height:18px}
+body.mundo .spotlight-dialog .spotlight-linha{grid-template-columns:34px minmax(0,1fr) auto auto;min-height:50px}
+body.mundo .spotlight-dialog .spotlight-clientes{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}
+body.mundo .spotlight-dialog .spotlight-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+body.mundo .spotlight-dialog .spotlight-titulo .cliente-carteira{font-size:13px}
+body.mundo .spotlight-dialog .spotlight-dica-digitar{padding:14px 12px 4px;color:#6B675F;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+@media (max-width:600px){
+  .spotlight-fechar .spotlight-fechar-esc{display:none}
+  .spotlight-fechar .spotlight-fechar-x{display:inline}
+  body.mundo .spotlight-dialog .spotlight-fechar{width:30px;padding:0;font-size:18px}
+}
+:where(body:not(.mundo)) .spotlight-fechar{width:auto;padding:0 8px;font-size:12px}
+/* Ajuda (quadro 66): a janela recebe o foco ao abrir para o leitor de tela ler o título; sem o contorno laranja grosso em
+   volta dela (os botões dentro continuam com o anel de foco). */
+body.mundo .vv-tour-janela:focus{outline:none}
+@media (max-height:760px){body.mundo .ofc-tv-janela .ofc-tv-tela{aspect-ratio:16/5}body.mundo .ofc-tv-janela .workflow-title{font-size:17px}}
+/* Sino (quadro 41): sem nada novo, uma linha curta "Nada novo" e o último aviso logo abaixo, no desenho das outras linhas. */
+body.mundo .vv-avisos-painel .vv-aviso-vazio.vv-aviso-ultimo{display:flex;align-items:baseline;gap:6px;padding:4px 2px 6px;text-align:left}
+body.mundo .vv-avisos-painel .vv-aviso-vazio.vv-aviso-ultimo p{margin:0}
+/* Com o sino aberto, os avisos curtos do canto não ficam por cima dele (uma janela por vez, quadro 09); voltam ao fechar. */
+body.mundo:has(.vv-avisos-painel) #vv-wa-avisos{visibility:hidden}

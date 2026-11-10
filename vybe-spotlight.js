@@ -15,10 +15,23 @@
 const SPOTLIGHT_DIAS_ANTIGA = 30;
 const SPOTLIGHT_POR_BLOCO = 8;
 const SPOTLIGHT_POR_ATALHO = 5;
+const SPOTLIGHT_RECENTES_CHAVE = 'vybe.busca.recentes';
+const SPOTLIGHT_RECENTES_MAX = 4;
 const SPOTLIGHT_ABAS = [
   ['tudo', 'Tudo'], ['conteudos', 'Conteúdos'], ['demandas', 'Demandas'],
   ['clientes', 'Clientes'], ['pessoas', 'Pessoas'],
 ];
+
+// O que a pessoa abriu pela busca por último (quadro 09: a busca vazia continua de onde parou). Só neste navegador;
+// sem ele (aba privada, armazenamento bloqueado) a lista fica vazia e os atalhos continuam.
+function spotlightLerRecentes() {
+  try { const l = JSON.parse(localStorage.getItem(SPOTLIGHT_RECENTES_CHAVE) || '[]'); return Array.isArray(l) ? l.filter((r) => r && r.tipo && r.valor) : []; } catch { return []; }
+}
+function spotlightGuardarRecente(tipo, valor) {
+  if (!tipo || !valor) return;
+  const lista = [{ tipo, valor: String(valor) }, ...spotlightLerRecentes().filter((r) => !(r.tipo === tipo && r.valor === String(valor)))].slice(0, SPOTLIGHT_RECENTES_MAX);
+  try { localStorage.setItem(SPOTLIGHT_RECENTES_CHAVE, JSON.stringify(lista)); } catch { /* sem armazenamento: só não lembra */ }
+}
 
 // ── a regra da busca, sem tela ────────────────────────────────────────────────
 
@@ -202,8 +215,7 @@ function spotlightDialogo() {
       <input id="spotlight-input" type="search" role="combobox" aria-expanded="true" aria-controls="spotlight-lista"
         aria-autocomplete="list" autocomplete="off" spellcheck="false"
         placeholder="Buscar peça, cliente ou pessoa">
-      <kbd class="spotlight-tecla">esc</kbd>
-      <button type="button" class="spotlight-fechar" aria-label="Fechar busca" title="Fechar (Esc)">×</button>
+      <button type="button" class="spotlight-fechar" aria-label="Fechar busca" title="Fechar (Esc)"><span class="spotlight-fechar-esc">Esc</span><span class="spotlight-fechar-x" aria-hidden="true">×</span></button>
     </div>
     <div class="spotlight-abas" role="tablist" aria-label="Filtrar resultados">${SPOTLIGHT_ABAS.map(([chave, rotulo]) =>
       `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === 'tudo'}">${rotulo}</button>`).join('')}</div>
@@ -259,6 +271,8 @@ async function abrirSpotlight(texto = '') {
   const input = d.querySelector('#spotlight-input');
   if (texto) { SPOTLIGHT.consulta = texto; input.value = texto; }
   SPOTLIGHT.ativo = 0;
+  // Uma janela por vez (quadro 09): abrir a busca fecha os avisos e os menus do topo, que ouvem este evento.
+  document.dispatchEvent(new CustomEvent('vybe:janela-topo', { detail: { qual: 'busca' } }));
   if (!d.open) d.showModal();
   input.focus();
   if (texto) input.setSelectionRange(texto.length, texto.length); else input.select();
@@ -309,11 +323,14 @@ function spotlightPintar() {
     const clientes = spotlightClientes(item);
     const data = spotlightDataBr(spotlightDataDoItem(item));
     const tipo = demanda ? (item.tipo || 'Solicitação') : (item.formato || 'Conteúdo');
+    // Status e cliente nas cores de sempre (quadros 09 e 66): statusCor e cliCor, para achar sem ler.
     const pill = demanda && typeof pillHtmlDemanda === 'function'
-      ? pillHtmlDemanda(item.status, item.status_color, item.status_border)
-      : (typeof pillHtml === 'function' ? pillHtml(item.status || 'Sem status', item.status_color, item.status_border) : safeText(item.status || ''));
+      ? pillHtmlDemanda(safeText(item.status || 'Sem status'), item.status_color, item.status_border)
+      : (typeof statusCor === 'function' ? statusCor(item) : safeText(item.status || ''));
+    const cores = clientes.length && typeof cliCor === 'function'
+      ? `<span class="spotlight-clientes">${clientes.map((c) => cliCor(c)).join('')}</span>` : '';
     const meta = [`<span class="spotlight-origem">${demanda ? 'Demanda' : 'Conteúdo'}</span>`,
-      spotlightRealce(tipo, q), clientes.length ? spotlightRealce(clientes.join(', '), q) : '',
+      spotlightRealce(tipo, q), cores || (clientes.length ? spotlightRealce(clientes.join(', '), q) : ''),
       data ? `${demanda ? 'Conclusão' : 'Veiculação'} ${data}` : 'Sem data'].filter(Boolean).join(' · ');
     return linha({ tipo: 'item', id: item.id },
       `<span class="spotlight-icone ${demanda ? 'is-demanda' : ''}">${demanda ? SPOTLIGHT_ICONES.demanda : SPOTLIGHT_ICONES.conteudo}</span>
@@ -330,7 +347,7 @@ function spotlightPintar() {
     bloco('clientes', 'Clientes', r.clientes.slice(0, SPOTLIGHT_POR_ATALHO).map((c) => linha(
       { tipo: 'cliente', valor: c.nome },
       `<span class="spotlight-icone is-cliente">${SPOTLIGHT_ICONES.cliente}</span>
-       <span class="spotlight-textos"><span class="spotlight-titulo">${spotlightRealce(c.nome, q)}</span>
+       <span class="spotlight-textos"><span class="spotlight-titulo">${typeof cliCor === 'function' ? cliCor(c.nome) : spotlightRealce(c.nome, q)}</span>
        <span class="spotlight-meta">${c.ativas} em andamento · ${c.total} no total</span></span>`,
       `Buscar em ${safeText(c.nome)} <kbd>tab</kbd>`))),
     bloco('andamento', 'Em andamento', cortar('andamento', r.andamento)),
@@ -347,17 +364,44 @@ function spotlightPintar() {
   if (SPOTLIGHT.ativo >= opcoes.length) SPOTLIGHT.ativo = Math.max(0, opcoes.length - 1);
   const lista = d.querySelector('#spotlight-lista');
   const precisaDeTexto = !SPOTLIGHT.escopo && spotlightNormalizar(q).length < 2;
-  lista.innerHTML = html || `<div class="spotlight-vazio">${precisaDeTexto
+  // Busca vazia útil (quadro 09): o que a pessoa abriu por último e os atalhos do dia, antes de digitar.
+  const inicio = !html && precisaDeTexto ? spotlightInicioHtml({ bloco, linha, atividade }) : '';
+  lista.innerHTML = html || inicio || `<div class="spotlight-vazio">${precisaDeTexto
     ? 'Digite o nome de um cliente, conteúdo, demanda ou pessoa.'
     : `Nada encontrado para “${safeText(q.trim() || (SPOTLIGHT.escopo?.rotulo || ''))}”.`}</div>`;
   spotlightMarcarAtivo();
 
+  // Sem rodapé técnico (quadro 09): só o que ainda falta carregar e os atalhos do teclado.
   const partes = [];
-  if (!precisaDeTexto) partes.push(`${r.andamento.length} em andamento`, `${r.encerradas.length} finalizadas e antigas`);
   if (SPOTLIGHT.carregando) partes.push('carregando solicitações…');
   else if (!spotlightItens().length) partes.push('as atividades ainda estão carregando');
   d.querySelector('.spotlight-rodape').innerHTML = `<span>${partes.join(' · ')}</span>
     <span class="spotlight-atalhos"><kbd>↑</kbd><kbd>↓</kbd> navegar <kbd>↵</kbd> abrir <kbd>tab</kbd> filtrar</span>`;
+}
+
+function spotlightInicioHtml({ bloco, linha, atividade }) {
+  const itensPorId = new Map(spotlightItens().map((i) => [String(i.id), i]));
+  const recentes = spotlightLerRecentes().map((rc) => {
+    if (rc.tipo === 'item') { const it = itensPorId.get(rc.valor); return it ? atividade(it) : ''; }
+    if (rc.tipo === 'cliente') return linha({ tipo: 'cliente', valor: rc.valor },
+      `<span class="spotlight-icone is-cliente">${SPOTLIGHT_ICONES.cliente}</span>
+       <span class="spotlight-textos"><span class="spotlight-titulo">${typeof cliCor === 'function' ? cliCor(rc.valor) : safeText(rc.valor)}</span>
+       <span class="spotlight-meta">ver o que é deste cliente</span></span>`, `Buscar em ${safeText(rc.valor)} <kbd>tab</kbd>`);
+    return '';
+  }).filter(Boolean);
+  let hoje = null;
+  try { hoje = typeof kpisDoTopo === 'function' ? kpisDoTopo() : null; } catch { hoje = null; }
+  const atalhos = [];
+  if (document.querySelector?.('[data-submodulo="tarefas"], [data-trilho="tarefas"]')) atalhos.push(linha({ tipo: 'atalho', fazer: () => document.querySelector('[data-submodulo="tarefas"], [data-trilho="tarefas"]')?.click() },
+    `<span class="spotlight-icone is-atalho">${SPOTLIGHT_ICONES.conteudo}</span>
+     <span class="spotlight-textos"><span class="spotlight-titulo">Minhas tarefas de hoje</span>
+     <span class="spotlight-meta">${hoje ? `${hoje.hoje} para hoje · ${hoje.abertas} em aberto` : 'a sua fila, na ordem do dia'}</span></span>`, 'Abrir ↵'));
+  if (typeof openCadastrosGoverned === 'function') atalhos.push(linha({ tipo: 'atalho', fazer: () => openCadastrosGoverned() },
+    `<span class="spotlight-icone is-atalho">${SPOTLIGHT_ICONES.demanda}</span>
+     <span class="spotlight-textos"><span class="spotlight-titulo">Criar conteúdo ou demanda</span>
+     <span class="spotlight-meta">o cadastro de sempre, com cliente, formato e datas</span></span>`, 'Abrir ↵'));
+  const blocos = bloco('recentes', 'Continuar de onde parou', recentes) + bloco('atalhos', 'Atalhos', atalhos);
+  return blocos ? blocos + '<div class="spotlight-dica-digitar">Digite o nome de um cliente, conteúdo, demanda ou pessoa.</div>' : '';
 }
 
 function spotlightMarcarAtivo() {
@@ -396,12 +440,15 @@ function spotlightAcionar(indice) {
   const d = SPOTLIGHT_DIALOGO;
   const input = d.querySelector('#spotlight-input');
   if (!acao) return;
+  if (acao.tipo === 'atalho') { d.close(); acao.fazer?.(); return; }
   if (acao.tipo === 'item') {
+    spotlightGuardarRecente('item', acao.id);
     d.close();
     if (typeof openItemWorkspace === 'function') openItemWorkspace(acao.id);
     return;
   }
   if (acao.tipo === 'mais') { SPOTLIGHT.abertos.add(acao.bloco); spotlightPintar(); return; }
+  if (acao.tipo === 'cliente') spotlightGuardarRecente('cliente', acao.valor);
   SPOTLIGHT.escopo = { tipo: acao.tipo, valor: acao.valor, rotulo: acao.rotulo || acao.valor };
   SPOTLIGHT.consulta = ''; input.value = '';
   SPOTLIGHT.ativo = 0; SPOTLIGHT.abertos.clear();

@@ -101,7 +101,7 @@
         texto: 'Aqui estão os grupos internos e os dos clientes de que você participa, com as menções a você numa aba só, e eu aviso quando chega mensagem nova. Por enquanto é só para ler: para responder, use o seu WhatsApp.' },
       pessoas: { grupo: 'Topo', titulo: 'Pessoas', alvo: '#vv-pessoas .vp-abas', lado: 'esquerda',
         texto: 'Aqui fica o setor de Pessoas: o seu mês de produtividade, o RH, os projetos pontuais e a Academy. O score sai das demandas do painel, sem nada para preencher, e no botão de interrogação eu explico cada aba.' },
-      'ferr:aparencia': { grupo: 'Topo', titulo: 'Aparência', alvo: '.vv-menu-tema', lado: 'esquerda',
+      'ferr:aparencia': { grupo: 'Topo', titulo: 'Aparência', alvo: '.vv-menu-tema-linha', lado: 'esquerda',
         texto: 'Claro, escuro ou automático, que segue o seu computador. Em Mais ajustes dá para reduzir o movimento da tela.' },
       'ferr:conta': { grupo: 'Topo', titulo: 'Sua conta', alvo: '.vv-menu-conta:not(.vv-menu-tema)', lado: 'esquerda',
         texto: 'Aqui ficam a sua conta, com perfil e senha, o botão de atualizar os dados do painel e o Sair.' },
