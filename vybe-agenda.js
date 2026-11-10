@@ -695,27 +695,34 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       onclick="event.stopPropagation();renomearPeca('${safeText(item.id)}',event)"
       onkeydown="if(this.dataset.editando!=='1'&&(event.key==='Enter'||event.key===' ')){event.preventDefault();renomearPeca('${safeText(item.id)}',event)}"
       title="Clique para renomear aqui mesmo">${safeText(item.nome || 'Sem título')}</div>
-    <div class="cr-campos">
+    <!-- Redesign do legado, fase 2 (Paulo, 09/11/2026): o essencial em cima (status, quem faz, prazo e veiculação);
+         o resto em "Mais campos", aberto do mesmo jeito na próxima vez. Os botões são os mesmos de antes. -->
+    <div class="cr-campos cr-essenciais">
       ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
+      ${linha('Prazo', data(item.prazo_iso))}
+      ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+    </div>
+    <details class="cr-mais"${window.CR_MAIS_ABERTO ? ' open' : ''} ontoggle="window.CR_MAIS_ABERTO=this.open">
+      <summary>Mais campos<small>clientes, grupo, ${ehDemanda ? 'tipo' : 'formato, captação'}, prioridade…</small></summary>
+    <div class="cr-campos">
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
-      ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
       ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
-      ${linha('Prazo', data(item.prazo_iso))}
-      ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
       ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
     </div>
+    </details>
     ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
     ${ehDemanda ? `<div class="cr-subs" id="cr-subs-${safeText(item.id)}"><div class="cr-subs-carregando">Carregando subdemandas…</div></div>` : ''}
     <div class="cr-rodape">
       ${jaTemMaterial(item) ? `<button type="button" class="cr-previa" onclick="verPreviaDoCartao('${safeText(item.id)}')"
         title="Ver o material entregue">${ICONE_LINHA.previa}<span>Ver prévia</span></button>` : ''}
       <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
-        title="Arquivos, histórico e entrega">Abrir detalhes</button>
+        title="Arquivos, histórico e entrega">${ehDemanda ? 'Abrir a demanda' : 'Abrir a peça'}</button>
     </div>`;
   document.body.append(fundo, cartao);
   ancorarPopover(cartao, rect);

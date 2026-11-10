@@ -1341,3 +1341,24 @@ body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
 @keyframes vybesSalaEntra{from{opacity:0;transform:translate(-50%,-46%) scale(.86)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes vybesSalaSai{to{opacity:0;transform:translate(-50%,-52%) scale(.92)}}
 @media (prefers-reduced-motion:reduce){.vybes-sala-ser,.vybes-sala-ser *,.vybes-sala-orbe::before,.vybes-sala-orbe::after{animation:none!important}}
+
+/* Cartão rápido, redesign fase 2 (09/11/2026): o essencial em grade de dois, o resto recolhido em "Mais campos". */
+.cartao-rapido .cr-essenciais{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:2px 0 6px}
+.cartao-rapido .cr-essenciais .cr-linha{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;min-height:0;padding:7px 9px;border:1px solid color-mix(in srgb,currentColor 14%,transparent);border-radius:8px}
+.cartao-rapido .cr-essenciais .cr-linha>span{text-transform:uppercase;letter-spacing:.05em;font-size:10px}
+.cartao-rapido .cr-essenciais .cr-linha>div{justify-content:flex-start;max-width:100%}
+.cartao-rapido .cr-mais{border-top:1px solid color-mix(in srgb,currentColor 12%,transparent);margin-top:4px}
+.cartao-rapido .cr-mais>summary{display:flex;align-items:baseline;gap:8px;padding:8px 2px;cursor:pointer;list-style:none;font:600 12px var(--mac-ui);white-space:nowrap}
+.cartao-rapido .cr-mais>summary small{flex:1;min-width:0}
+.cartao-rapido .cr-mais>summary::-webkit-details-marker{display:none}
+.cartao-rapido .cr-mais>summary::after{content:"›";margin-left:auto;transition:rotate .2s var(--curva,ease)}
+.cartao-rapido .cr-mais[open]>summary::after{rotate:90deg}
+.cartao-rapido .cr-mais>summary small{font:500 11px var(--mac-ui);opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Painel de trabalho, redesign fase 2: Fechamento do dia, Mesa de comando, Modo Reunião e Carga da equipe num menu "Modos". */
+.ops-modos{position:relative;flex:none}
+.ops-modos>summary{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);cursor:pointer;list-style:none;font:600 12.5px var(--mac-ui);white-space:nowrap}
+.ops-modos>summary::-webkit-details-marker{display:none}
+.ops-modos>summary::after{content:"";width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;rotate:45deg;translate:0 -2px;transition:rotate .2s var(--curva,ease)}
+.ops-modos[open]>summary::after{rotate:-135deg;translate:0 2px}
+.ops-modos>.ops-acoes{position:absolute;z-index:30;top:calc(100% + 6px);right:0;display:grid!important;gap:2px;min-width:220px;padding:6px;border-radius:12px;flex-wrap:nowrap}
+.ops-modos>.ops-acoes>button{justify-content:flex-start;width:100%}

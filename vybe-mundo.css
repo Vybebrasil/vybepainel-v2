@@ -3087,7 +3087,7 @@ html body.mundo .cartao-rapido :is(.cr-data,.cr-linha button:not(.pill):not([cla
 html body.mundo .cartao-rapido :is(.cr-topo-acoes button){background:#fff!important;color:#6B675F!important;border:1px solid #E6E0D6!important;border-radius:6px!important}
 html body.mundo .cartao-rapido .cr-fechar{color:#6B675F!important}
 html body.mundo .cartao-rapido .cr-rodape{border-top:1px solid #ECE6DC!important}
-html body.mundo .cartao-rapido .cr-abrir{color:var(--vv-acao)!important;font-weight:700}
+html body.mundo .cartao-rapido .cr-abrir{font-weight:700}
 html body.mundo .cartao-rapido .cr-excluir{color:#B42318!important}
 html body.mundo .cartao-rapido .cliente-carteira{padding:2px 8px!important;border-radius:7px!important;background:var(--carteira-fundo)!important;color:var(--carteira-texto)!important}
 html body.mundo #cartao-rapido-fundo{background:rgba(31,29,26,.08)!important}
@@ -4581,7 +4581,8 @@ body.trilho-largo .vv-trilho-grupo:first-of-type{margin-top:6px}
 body.trilho-largo .vv-trilho-btn[aria-expanded="true"]{background:rgba(255,255,255,.7)}
 /* Painel de trabalho (Paulo, 08/11/2026: "o dia atual tem que ter mais destaque, se não parece tudo igual"): o dia de hoje
    com borda laranja, fundo levemente laranja, cabeçalho com o selo "Hoje" e sombra; os outros dias seguem neutros. */
-html body.mundo.mundo-modulo .week-panel .client-card.day-scroll-card.day-is-today{border:2px solid var(--vv-laranja,#F26B1D)!important;background:linear-gradient(180deg,#FFF1E6 0,#FFF9F4 120px,#FFFFFF 100%)!important;box-shadow:0 14px 34px rgba(242,107,29,.18)!important;border-radius:14px!important}
+/* Hoje na agenda da semana (redesign fase 2): um traço laranja no topo da coluna, não a moldura laranja inteira. */
+html body.mundo.mundo-modulo .week-panel .client-card.day-scroll-card.day-is-today{border:1px solid #E6E0D6!important;background:#FFFFFF!important;box-shadow:inset 0 3px 0 var(--vv-laranja,#F26B1D),0 1px 2px rgba(31,29,26,.06)!important;border-radius:12px!important}
 html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today > .client-header{background:transparent!important;border-bottom:1px solid rgba(242,107,29,.25)!important}
 html body.mundo.mundo-modulo .week-panel .day-scroll-card.day-is-today .client-name{color:#C2410C!important;text-shadow:none!important;font-weight:800!important}
 html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--vv-laranja,#F26B1D);color:#fff!important;font:700 10.5px/1.4 var(--vv-texto);letter-spacing:.02em;vertical-align:middle}
@@ -5418,3 +5419,48 @@ html body.mundo #toast{background:rgba(255,255,255,.97);color:#1F1D1A;border-col
   bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px) + 12px);right:var(--vv-m,14px);box-shadow:var(--vv-sombra-janela)}
 html body.mundo #toast{display:flex;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px;font:600 13px/1.4 var(--vv-texto,Inter,system-ui,sans-serif)}
 html body.mundo #toast.err{color:#B42318}
+
+/* ===== Redesign do legado, fase 2 (Paulo, 09/11/2026: "Sim, fase 2"): as telas do dia a dia. ===== */
+/* Cartão rápido: "Abrir a peça" é a ação principal, o essencial em cartões claros. */
+html body.mundo .cartao-rapido .cr-essenciais .cr-linha{background:#FFFFFF;border-color:#E6E0D6}
+html body.mundo .cartao-rapido .cr-essenciais .cr-linha>span{color:#7A746B}
+html body.mundo .cartao-rapido .cr-mais>summary{color:#3A3F44}
+html body.mundo .cartao-rapido .cr-abrir{flex:none;margin-left:auto;padding:8px 14px;border-radius:8px;background:#C2490C;color:#FFFFFF;text-align:center;font-weight:650}
+html body.mundo .cartao-rapido .cr-abrir:hover{background:#A63D08}
+/* Demanda completa (gaveta): termina acima do dock das salas, com o "Passar bastão" sempre à vista. */
+html body.mundo.com-dock-salas .workspace-drawer{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)}
+@media (max-width:900px){html body.mundo.com-dock-salas .workspace-drawer{bottom:calc(64px + 2 * var(--vv-m,14px) + var(--vv-dock-alto,74px))}}
+/* Painel de trabalho: a busca do topo (⌘K) já procura em tudo; o menu Modos no material das janelas. */
+html body.mundo .ops-command-bar .global-search-wrap{display:none}
+html body.mundo .ops-modos>summary{background:#FFFFFF;border-color:#E6E0D6;color:#1F1D1A}
+html body.mundo .ops-modos>summary:hover{border-color:#F26B1D}
+html body.mundo .ops-modos>.ops-acoes{background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:var(--vv-sombra-janela)}
+/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o título vira uma linha com
+   reticências e o horário sai, em vez de quebrar a palavra no meio ("Reuni / de / pa"). */
+html body.mundo .ag-ev{container-type:inline-size}
+@container (max-width:64px){
+  .ag-ev b{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10.5px}
+  .ag-ev small{display:none}
+}
+/* "N gravações para fechar" é um chip de alerta, não um texto solto. */
+html body.mundo .capt-tb-pend.atencao{background:#FDECEE;border:1px solid #F3C7C2;border-radius:999px}
+html body.mundo .capt-tb-pend.atencao b{background:#B42318;color:#FFFFFF}
+/* Agenda da semana do Escritório aberta fora de um módulo (botão Agenda do jogo): a janela é clara no mundo, então
+   o texto do legado (branco) vira escuro aqui também. */
+html body.mundo .ofc-agenda .capt-periodo{color:#5E5A53}
+html body.mundo .ofc-agenda .ag-dia-cab b{color:#1F1D1A}
+html body.mundo .ofc-agenda .ag-ev{color:#1F1D1A}
+html body.mundo .ofc-agenda .ag-ev small{color:#5E5A53}
+/* No celular a semana vira uma faixa de dias (Captações e Agenda do Escritório): números escuros no fundo claro. */
+html body.mundo .ag-faixa-dia{color:#1F1D1A}
+html body.mundo .ag-faixa-dia small{color:#8A847A}
+html body.mundo .ag-faixa-dia.hoje b{color:#C2410C}
+html body.mundo .ag-nada{background:#F6F3EE;color:#5E5A53}
+/* Redes, Demandas ou Pendências para a semana inteira, logo depois do título (escolha por dia continua no cartão). */
+html body.mundo .section-title .semana-abas{margin-left:12px}
+html body.mundo .section-title .semana-abas button{padding:6px 11px;font-size:12px}
+html body.mundo .section-title:has(> .semana-abas){flex-wrap:wrap;row-gap:8px}
+@media (max-width:700px){
+  html body.mundo .section-title .semana-abas{order:5;flex:1 0 100%;margin-left:0}
+  html body.mundo .section-title .semana-abas button{flex:1}
+}
