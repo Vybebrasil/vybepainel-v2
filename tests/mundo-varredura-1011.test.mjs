@@ -29,3 +29,10 @@ test('plural e vírgula: 1 atrasada, 1 conteúdo, 3,5 h', () => {
   assert.ok(ler('vybe-gestor.js').includes("${total === 1 ? 'conteúdo' : 'conteúdos'}"));
   assert.ok(ler('vybe-mundo-agentes.js').includes("String(n.horasAteResolver).replace('.', ',') + ' h'"));
 });
+
+test('mapa do Cérebro: Esc solta o cliente e depois sai; trocar de tela fecha o mapa', () => {
+  const g = ler('vybe-cerebro-grafo.js');
+  assert.match(g, /if \(fixo\) \{ fixo = null; mostrarCartao\(null\); sujo = true; pedir\(\); return; \}\s*sair\(\);/);
+  assert.match(g, /window\.addEventListener\('vybe:trocar-tela', aoTrocarDeTela\);/);
+  assert.match(g, /window\.removeEventListener\('vybe:trocar-tela', aoTrocarDeTela\);/);
+});
