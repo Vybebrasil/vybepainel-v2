@@ -101,17 +101,21 @@ function decisaoDoHead(x, n, revisando, i) {
 <div class="acoes"><button type="button" class="sim" data-acao="ok">Peça OK</button><button type="button" class="nao" data-acao="abrir">Ajustar</button><button type="button" class="nao" data-acao="editar">Editar peça</button>${h ? '<button type="button" class="link" data-acao="limpar">Desfazer</button>' : ''}</div>
 <div class="nota" hidden><label>O que ajustar na peça ${n}? (o agente lê)<textarea rows="3" maxlength="1500">${h?.estado === 'ajustar' ? esc(h.nota) : ''}</textarea></label><button type="button" class="sim" data-acao="ajustar">Salvar ajuste</button></div></div>`;
 }
+// O que o cliente pediu nesta peça: a decisão dele (link/VybeHub) ou o texto
+// guardado na peça (ajuste_cliente). Vale para a coluna "Pedidos do cliente".
+export const pedidoDaPeca = (x) => (x.revisao_cliente?.estado === 'ajuste' ? String(x.revisao_cliente.nota || '') : (!x.revisao_cliente && x.ajuste_cliente ? String(x.ajuste_cliente) : ''));
 function fichaDaPeca(x0, i, { paraCliente, respondendo, revisor, revisando }) {
  const x = x0.assinatura ? x0 : pecaParaMostrar(x0);
  const n = String(i + 1).padStart(2, '0'), corF = CORES_FORMATO[x.formato] || '#6b7280';
+ const comPedido = Boolean(revisor && !paraCliente && pedidoDaPeca(x));
  // Telas numeradas ao lado da legenda, como no PDF do agente.
  const telas = x.telas?.length ? `<div class="telas"><b>Texto das telas</b><ol>${x.telas.map((t) => `<li>${esc(t)}</li>`).join('')}</ol></div>` : '';
  const legenda = x.legenda ? `<div class="bloco"><b>${ehVideo(x.formato) ? 'Roteiro' : 'Legenda'}</b><p>${esc(x.legenda)}</p></div>` : '';
  const referencia = x.referencia ? (paraCliente
   ? `<details class="ref"><summary>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência'}</summary><p>${esc(x.referencia)}</p></details>`
   : `<div class="ref"><b>${ehVideo(x.formato) ? 'Referência do vídeo' : 'Referência'}</b><p>${esc(x.referencia)}</p></div>`) : '';
- return `<article class="peca" id="peca-${i + 1}" style="--f:${corF}">
-<header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span>${x.linha ? `<span class="linha">${esc(x.linha)}</span>` : ''}</header>
+ return `<article class="peca${comPedido ? ' com-pedido' : ''}" id="peca-${i + 1}" style="--f:${corF}">
+<header><span class="num">${n}</span><span class="tag">${esc(x.formato)}</span><span class="quando">${esc(x.data ? dia(x.data) : 'sem data')}</span>${x.linha ? `<span class="linha">${esc(x.linha)}</span>` : ''}${comPedido ? '<span class="marca-pedido"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3 3h10v7H7l-3 3v-3H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Pedido do cliente</span>' : ''}</header>
 ${!paraCliente && x.prazo ? `<p class="prazo-peca">Prazo de produção: ${esc(dia(x.prazo))}</p>` : ''}
 <h3>${esc(semNumero(x.tema) || 'Sem tema')}</h3>
 ${x.objetivo ? `<p class="objetivo">${esc(x.objetivo)}</p>` : ''}
@@ -144,7 +148,7 @@ document.querySelectorAll('.modos [data-modo]').forEach(b=>b.setAttribute('aria-
 if(m==='um'){const livre=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);mostrar(livre<0?0:livre,false);}else document.body.classList.remove('no-envio');}
 document.addEventListener('click',e=>{const m=e.target.closest('[data-modo]');if(m){if(m.dataset.modo==='sistema'){parent.postMessage({vybe:'planejamento-head-editar'},'*');return;}aplicarModo(m.dataset.modo);return;}
 const ir=e.target.closest('[data-ir]');if(ir){if(ir.dataset.ir==='pecas'){mostrar(atual);return;}if(ir.dataset.ir==='1'&&atual===pecasEl.length-1){if(ENVIO)irEnvio();return;}mostrar(atual+Number(ir.dataset.ir));return;}
-const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a');if(cal&&modo==='um'){e.preventDefault();mostrar(Number(cal.getAttribute('href').slice(6))-1);}});
+const cal=e.target.closest('.cal a[href^="#peca-"],.cal-mini a,.pedidos-cliente a');if(cal&&modo==='um'){e.preventDefault();mostrar(Number(cal.getAttribute('href').slice(6))-1);}});
 // Uma peça por vez: respondeu, vai para a próxima sem resposta.
 document.addEventListener('vybe-respondida',()=>{if(modo!=='um')return;setTimeout(()=>{const livre=pecasEl.findIndex((el,k)=>k>atual&&!el.querySelector('.decisao')?.dataset.estado);
 const qualquer=pecasEl.findIndex(el=>!el.querySelector('.decisao')?.dataset.estado);const alvo=livre>=0?livre:qualquer;if(alvo>=0)mostrar(alvo);else if(ENVIO)irEnvio();},450);});
@@ -171,6 +175,19 @@ export function documentoHtml(p, { paraCliente = false, token = '', aviso = '', 
  const resposta = p.estado === 'aprovado' || p.estado === 'cadastrado' ? `<div class="resposta ok"><b>Planejamento aprovado</b><p>Aprovado por ${esc(p.resposta_nome || 'cliente')}${quando}. Obrigado! A Vybe já começa a produzir.</p></div>`
   : p.estado === 'ajustes' ? `<div class="resposta"><b>Ajustes recebidos</b><p>${esc(p.resposta_nome || 'O cliente')} pediu ajustes${quando}. A Vybe vai revisar e mandar uma nova versão por este mesmo caminho.</p>${p.resposta_texto ? `<p class="texto">${esc(p.resposta_texto)}</p>` : ''}</div>` : '';
  const respondidas = pecas.filter((x) => x.revisao_cliente).length;
+ // Pedidos do cliente numa coluna ao lado do documento (no celular, um bloco
+ // acima das peças), só na prévia do painel; cada peça com pedido também leva a
+ // marca. Substitui o balão fixo que cobria o documento (redesign, 10/11/2026).
+ const naPrevia = Boolean(revisor) && !paraCliente;
+ const pedidosPecas = naPrevia ? pecas.map((x, i) => ({ x, i, nota: pedidoDaPeca(x) })).filter((y) => y.nota) : [];
+ const pedidoGeral = naPrevia && p.estado === 'ajustes';
+ const comPedidos = pedidosPecas.length > 0 || pedidoGeral;
+ const contaPedidos = pedidosPecas.length ? `${pedidosPecas.length} ${pedidosPecas.length === 1 ? 'peça com ajuste pedido' : 'peças com ajuste pedido'}` : 'Um pedido sobre o mês';
+ const pedidos = comPedidos ? `<aside class="pedidos-cliente" aria-labelledby="pedidos-titulo"><h2 id="pedidos-titulo"><small>Revisão do cliente</small>Pedidos do cliente</h2>
+<p class="pc-conta">${contaPedidos}</p>
+${pedidoGeral ? `<div class="pc-geral"><b>${esc(p.resposta_nome || 'O cliente')} pediu ajustes${quando}</b>${p.resposta_texto ? `<p>${esc(p.resposta_texto)}</p>` : ''}</div>` : ''}
+${pedidosPecas.length ? `<ol class="pc-lista">${pedidosPecas.map(({ x, i, nota }) => `<li><a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}"><span class="pc-n">${String(i + 1).padStart(2, '0')}</span><span><b>${esc(semNumero(x.tema) || 'Sem tema')}</b><small>${esc(x.formato)} · ${esc(x.data ? dia(x.data) : 'sem data')}</small><p>${esc(nota)}</p></span></a></li>`).join('')}</ol>` : ''}
+</aside>` : '';
  // Dois jeitos de aprovar, à escolha do cliente e trocáveis a qualquer hora
  // (Paulo, 20/10/2026): uma peça por vez, como o cadastro do painel, ou o
  // documento inteiro. O calendário aparece nos dois.
@@ -202,7 +219,7 @@ ${c.datas?.length ? `${secao('03', 'Datas', 'Datas que orientam o mês')}<div cl
 </div>
 ${secao('04', 'Calendário', esc(nomeDoMes(p.mes).replace(/^./, (x) => x.toUpperCase())))}${revisando ? '<p class="cal-dica">Arraste uma peça para outro dia para mudar a veiculação. Você também pode usar o botão Veiculação na ficha.</p><p id="cal-estado" role="status" aria-live="polite" hidden></p>' : ''}${calendario(p.mes, pecas, { editavel: revisando })}${outrosMeses.map((mes) => `<h3 class="mes-cal">${esc(nomeDoMes(mes).replace(/^./, (x) => x.toUpperCase()))}</h3>${calendario(mes, pecas, { editavel: revisando })}`).join('')}
 ${navegando ? `<nav class="cal-mini" aria-label="Peças do mês">${pecas.map((x, i) => `<a href="#peca-${i + 1}" style="--f:${CORES_FORMATO[x.formato] || '#6b7280'}" data-n="${i}"><b>${esc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : '--')}</b><span>${esc(x.formato)}</span></a>`).join('')}</nav>` : ''}
-<section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${navegando ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
+${pedidos}<section id="area-pecas">${secao('05', 'Peças', 'Uma a uma')}${navegando ? `<div class="navega"><button type="button" class="nao" data-ir="-1">← Anterior</button><span id="pos"></span><button type="button" class="nao" data-ir="1">Próxima →</button></div>` : ''}<div class="pecas">${pecas.map((x, i) => fichaDaPeca(x, i, { paraCliente, respondendo, revisor, revisando })).join('')}</div></section>
 ${c.observacoes ? `<div class="so-doc">${secao('06', 'Observações', 'Para combinar')}<div class="obs">${esc(c.observacoes)}</div></div>` : ''}`;
  const formulario = respondendo ? `<section class="aprovar" id="aprovar"><button type="button" class="link voltar-pecas" data-ir="pecas">← Voltar às peças</button><h2><small>Sua resposta</small>Enviar para a Vybe</h2>
 <p class="contagem" id="contagem" aria-live="polite"></p>
@@ -494,12 +511,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 footer{margin-top:52px;color:var(--sub);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}footer img{height:16px;filter:invert(1);opacity:.7;vertical-align:middle;margin-right:6px}
 @media print{.aprovar,.pedir,.ir,.como{display:none}main{padding:0}.peca{break-inside:avoid}}
 ${revisor ? '.no-painel main{max-width:1180px;padding-top:96px;padding-bottom:110px}.no-painel .peca,.no-painel #area-pecas{scroll-margin-top:100px}' : ''}
-</style></head><body class="${[revisor ? 'no-painel' : '', modo === 'portal' ? 'portal' : ''].filter(Boolean).join(' ')}"><main>
+${comPedidos ? `.pedidos-cliente{margin:32px 0 0;padding:16px 18px;display:grid;gap:10px;background:var(--cartao);border:1px solid #efd9ad;border-top:3px solid #c98a12;border-radius:16px}
+.pedidos-cliente h2{margin:0;font-size:18px}.pc-conta{margin:0;color:var(--sub);font-size:13px;font-weight:600}
+.pc-geral{padding:10px 12px;border-radius:12px;background:#fff6e2}.pc-geral b{display:block;color:#7a4b00;font:700 12.5px Manrope,sans-serif}.pc-geral p{margin:4px 0 0;font-size:14px;white-space:pre-wrap}
+.pc-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pc-lista a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;padding:10px;border:1px solid var(--linha);border-radius:12px;color:var(--tinta);text-decoration:none}
+.pc-lista a:hover{border-color:var(--vybe);background:#fffaf4}.pc-n{font:800 16px/1.2 Sora,sans-serif;color:var(--f);font-variant-numeric:tabular-nums}
+.pc-lista b{display:block;font:700 13.5px/1.3 Sora,sans-serif}.pc-lista small{color:var(--sub);font-size:12px;font-weight:600}.pc-lista p{margin:4px 0 0;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.peca.com-pedido{box-shadow:0 0 0 2px #efd9ad}
+.marca-pedido{display:inline-flex;align-items:center;gap:5px;margin-left:auto;padding:3px 10px;border-radius:99px;background:#fff1d6;color:#7a4b00;font-size:11.5px;font-weight:700}
+@media(min-width:1100px){.com-pedidos main{max-width:1300px;display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:28px;align-items:start}.com-pedidos main>*{grid-column:1}
+.com-pedidos main>.pedidos-cliente{grid-column:2;grid-row:1/span 40;position:sticky;top:96px;margin:0;max-height:calc(100vh - 200px);overflow:auto}}
+@media print{.pedidos-cliente{display:none}}` : ''}
+</style></head><body class="${[revisor ? 'no-painel' : '', comPedidos ? 'com-pedidos' : '', modo === 'portal' ? 'portal' : ''].filter(Boolean).join(' ')}"><main>
 <header class="capa"><div class="marcas"><img class="vybe" src="${LOGO_VYBE}" alt="Vybe"><i aria-hidden="true">×</i>${logo ? `<span class="cli"><img src="${esc(logo)}" alt="${esc(p.cliente)}"></span>` : `<span class="cli-nome">${esc(p.cliente)}</span>`}</div>
 <div><small>Planejamento de conteúdo · ${esc(nomeDoMes(p.mes))}</small><h1>${esc(p.cliente)}</h1></div>
 ${p.titulo && p.titulo !== 'Planejamento de conteúdo' ? `<p>${esc(p.titulo)}</p>` : ''}
 <div class="meta"><span>${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}</span><span>${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></div></header>
-${aviso ? `<div class="aviso" role="alert">${esc(aviso)}</div>` : ''}${resposta}${comoUsar}
+${aviso ? `<div class="aviso" role="alert">${esc(aviso)}</div>` : ''}${pedidoGeral ? '' : resposta}${comoUsar}
 ${respondendo ? `<div id="resposta">${corpo}${formulario}</div><div class="ir"><a href="#aprovar">Ir para o envio</a></div>` : corpo}
 <footer><span><img src="${LOGO_VYBE}" alt="">Feito pela Vybe para ${esc(p.cliente)} · ${esc(nomeDoMes(p.mes))}</span><span>Versão ${esc(p.versao)}</span></footer>
 </main>${dialogoEdicao}${script}${scriptHead}${LINKS_INTERNOS}</body></html>`;
