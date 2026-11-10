@@ -1,0 +1,31 @@
+// Varredura de 10/11/2026 (Paulo: "abriu todas as abas, menus e submenus e botões?"): o que quebrava no uso.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const ler = (f) => readFileSync(f, 'utf8');
+
+test('Esc com o cartão de um evento aberto fecha só o cartão, não a Agenda', () => {
+  const js = ler('vybe-mundo.js');
+  const corpo = js.slice(js.indexOf('function fecharBaloesAntigos() {'), js.indexOf('function limparTela() {'));
+  assert.match(corpo, /getElementById\('ag-cartao'\)/);
+  assert.match(corpo, /if \(cartao && !cartao\.hidden\) \{[^}]*agCartaoFechar\?\.\(\)[^]*?return true; \}/);
+});
+
+test('cartão, prévia e balões param acima do dock das salas', () => {
+  const capt = ler('vybe-captacoes.js');
+  assert.match(capt, /function agFundoLivre\(\) \{[^]*?--vv-dock-alto[^]*?return window\.innerHeight - \(dock \? dock \+ 14 : 0\);/);
+  assert.equal((capt.match(/agFundoLivre\(\) - h - m/g) || []).length, 2, 'cartão e prévia');
+  assert.doesNotMatch(capt, /window\.innerHeight - h - m\)/);
+  const st = ler('vybe-status.js');
+  const ancora = st.slice(st.indexOf('function ancorarPopover('), st.indexOf("menu.style.visibility = '';", st.indexOf('function ancorarPopover(')));
+  assert.match(ancora, /const fundo = window\.innerHeight - \(dock \? dock \+ 14 : 0\);/);
+  assert.equal((ancora.match(/window\.innerHeight/g) || []).length, 1, 'todas as contas usam o fundo livre');
+});
+
+test('plural e vírgula: 1 atrasada, 1 conteúdo, 3,5 h', () => {
+  assert.ok(ler('vybe-mundo-planejamentos.js').includes("['atrasadas', ['atrasada', 'atrasadas'], 'u1']"));
+  assert.ok(ler('vybe-dominio.js').includes("${todos.length === 1 ? 'conteúdo' : 'conteúdos'}"));
+  assert.ok(ler('vybe-gestor.js').includes("${total === 1 ? 'conteúdo' : 'conteúdos'}"));
+  assert.ok(ler('vybe-mundo-agentes.js').includes("String(n.horasAteResolver).replace('.', ',') + ' h'"));
+});

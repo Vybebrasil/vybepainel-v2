@@ -55,8 +55,8 @@
     const pl = p.planejamento, [rot, cor] = pl ? (ESTADOS[pl.estado] || [pl.estado, 'u5']) : ['Sem planejamento', 'u5'];
     const r = pl?.revisao || {}, a = p.alertas || {};
     const placar = r.total ? `${r.head_ok || 0} de ${r.total} peças OK${r.cliente_ajustes ? ` · ${r.cliente_ajustes} com ajuste do cliente` : ''}` : '';
-    const avisos = [['atrasadas', 'atrasadas', 'u1'], ['aprovar', 'para aprovar', 'u2'], ['sem_info', 'sem informação', 'u5']]
-      .map(([k, t, c]) => { const n = (a[k] || []).length; return n ? `<span class="vv-plj-aviso ${c}">${n} ${t}</span>` : ''; }).join('');
+    const avisos = [['atrasadas', ['atrasada', 'atrasadas'], 'u1'], ['aprovar', 'para aprovar', 'u2'], ['sem_info', 'sem informação', 'u5']]
+      .map(([k, t, c]) => { const n = (a[k] || []).length; return n ? `<span class="vv-plj-aviso ${c}">${n} ${Array.isArray(t) ? t[n === 1 ? 0 : 1] : t}</span>` : ''; }).join('');
     const edita = pl && !['aprovado', 'cadastrado'].includes(pl.estado);
     return `<article class="vv-plj-cartao${p.meu ? ' meu' : ''}">
       <div class="vv-plj-topo"><b>${cliCor(p.cliente)}</b><span class="pill ${cor}">${esc(rot)}</span></div>

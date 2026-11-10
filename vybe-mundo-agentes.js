@@ -62,7 +62,7 @@
       <span><b>${n.abertos ?? 0}</b><small>em aberto${n.altas ? ` · <em>${n.altas} urgente${n.altas > 1 ? 's' : ''}</em>` : ''}</small></span>
       <span><b>${n.resolvidos7d ?? 0}</b><small>resolvidos em 7 dias</small></span>
       <span title="Resolvidos ÷ (resolvidos + marcados como errado) em 7 dias"><b>${pct(n.acerto)}</b><small>acerto${n.errados7d ? ` · ${n.errados7d} errado${n.errados7d > 1 ? 's' : ''}` : ''}</small></span>
-      <span><b>${n.horasAteResolver == null ? '—' : n.horasAteResolver + ' h'}</b><small>até resolver (mediana)</small></span>
+      <span><b>${n.horasAteResolver == null ? '—' : String(n.horasAteResolver).replace('.', ',') + ' h'}</b><small>até resolver (mediana)</small></span>
     </div><p class="vga-projecao"><b>Projeção:</b> ${esc(pj.tendencia || 'sem dados ainda')} · ${esc(pj.carga || '')}${pj.subirNivel ? ` · <em>${esc(pj.subirNivel)}</em>` : ''}</p>`;
   }
   // A peça do achado (vybe-mundo-peca.js): calendário, quem faz, datas e a sugestão do agente para aplicar ali mesmo.
