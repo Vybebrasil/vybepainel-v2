@@ -130,7 +130,8 @@ test('vitrine do jogador: com o mundo ligado, a .vb-vitrine é o quarto voxel em
 
 test('cidade: o motor usa o mesmo acabamento de maquete do quarto (oclusão e brilho), com o desfoque por cima', () => {
   const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
-  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ passes: \[tiltH, tiltV\] \}\)/);
+  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ passes: \[tiltH, tiltV\], brilho: ESTILO\.brilhoCidade \}\)/);
+  assert.ok(ESTILO.brilhoCidade.limiar > .95, 'na cidade só o que acende brilha (céu e nuvens não estouram)');
   assert.match(m, /acabamento\.oclusao\(false\)/, 'a qualidade automática desliga a oclusão primeiro');
   assert.doesNotMatch(m, /new EffectComposer/, 'sem composer próprio na cidade');
 });
