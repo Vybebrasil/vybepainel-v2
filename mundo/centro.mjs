@@ -382,10 +382,26 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       motor.invalidar();
     }, undefined, () => { g.remove(m); m.geometry.dispose(); mat.dispose(); });
   }
-  function bolinhasHtml(c) {
-    const st = (c.status || []).filter((s) => s.n > 0).slice(0, 5);
-    if (!st.length) return '<span class="loja-bolinhas vazia"><i style="--c:#18A957" title="Em dia">✓</i></span>';
-    return `<span class="loja-bolinhas">${st.map((s) => `<i style="--c:${esc(s.cor)}" title="${esc(s.n + ' · ' + s.nome)}">${s.n > 99 ? '99+' : s.n}</i>`).join('')}</span>`;
+  // Pino do cliente (redesign fase 3, quadro 32: "o pino diz a situação do cliente com o número"): a bolinha na cor da
+  // situação, o nome e, na mesma linha, a situação que manda escrita com o número ("3 atrasadas", "2 vencem hoje",
+  // "4 em aberto"). Cada status com a sua contagem continua na dica e no nome acessível; o clique abre as peças.
+  function fraseDoPino(c) {
+    const por = c.por || {}, n = (k) => Number(por[k] || 0), pl = (q, um, varios) => `${q} ${q === 1 ? um : varios}`;
+    if (n('atrasada')) return pl(n('atrasada'), 'atrasada', 'atrasadas');
+    if (n('hoje')) return pl(n('hoje'), 'vence hoje', 'vencem hoje');
+    if (n('aprovar')) return pl(n('aprovar'), 'para aprovar', 'para aprovar');
+    if (n('ajuste')) return pl(n('ajuste'), 'com ajuste', 'com ajuste');
+    if (n('briefing')) return pl(n('briefing'), 'sem briefing', 'sem briefing');
+    const aberto = Number(c.total || 0) - n('concluida');
+    return aberto > 0 ? pl(aberto, 'em aberto', 'em aberto') : 'em dia';
+  }
+  function pinoHtml(c) {
+    const st = (c.status || []).filter((s) => s.n > 0);
+    const frase = fraseDoPino(c), detalhe = st.length ? st.map((s) => `${s.n} ${s.nome}`).join(' · ') : 'Em dia';
+    // A bolinha nas cores da legenda da Cidade: atraso, atenção ou em dia (quem não tem peça em aberto também está em dia).
+    const ponto = ['atrasada', 'aprovar', 'ajuste', 'hoje', 'briefing'].includes(c.situacao) ? (c.cor || '#18A957') : '#18A957';
+    return { html: `<span class="loja-linha"><i class="loja-ponto" style="--c:${esc(ponto)}"></i><b class="loja-nome">${esc(c.nome)}</b><span class="loja-situacao">· ${esc(frase)}</span></span>`,
+      dica: `${c.nome}: ${frase}. ${detalhe}` };
   }
 
   function definir(lista = [], { aoClicar = null } = {}) {
@@ -418,7 +434,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       alvo.position.set(v.x, 2.2, v.z); alvo.userData.alvo = { tipo: 'cliente', nome: c.nome }; g.add(alvo); motor.clicavel(alvo); alvos.push(alvo);
       const atrasada = c.situacao === 'atrasada';
       rotulos.push(motor.rotulo({ pos: new T.Vector3(v.x, 5.1, v.z), classe: 'rotulo-loja' + (atrasada ? ' atrasada' : ''), prioridade: 5 + (c.peso || 0), fixo: true,
-        html: `<b class="loja-nome">${esc(c.nome)}</b>${bolinhasHtml(c)}`, aoClicar: () => aoClicar?.({ tipo: 'cliente', nome: c.nome }) }));
+        ...(() => { const p = pinoHtml(c); return { html: p.html, dica: p.dica }; })(), aoClicar: () => aoClicar?.({ tipo: 'cliente', nome: c.nome }) }));
       estadosDasLojas.push({ nome: c.nome, x: v.x, z: v.z, frente: v.frente, lado: v.lado, atrasada, atrasadas: c.por?.atrasada || 0, prontas: c.por?.pronta || 0, hoje: c.por?.hoje || 0 });
       return { nome: c.nome, x: v.frente.x, z: v.frente.z, lado: v.lado, loja: { x: v.x, z: v.z } };
     });

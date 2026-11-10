@@ -277,7 +277,7 @@ const CACHE = new Map();
 // Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
 // segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
 const VERSAO_ESCULTURA = 'e9';
-const guardado = (() => {
+export const guardado = (() => {
   let banco = null;
   const abrir = () => banco || (banco = new Promise((ok) => {
     try {

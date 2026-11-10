@@ -8,7 +8,9 @@ const css = ler('vybe-mundo.css'), js = ler('vybe-mundo.js');
 
 test('Camadas: balão junto dos controles, interruptores e as etapas da prospecção só com ela ligada', () => {
   assert.match(js, /data-ctl="camadas"/);
-  assert.match(js, /<input type="checkbox" role="switch" data-camada=/);
+  // Desde a frente mundo (10/11/2026) a Prospecção também é um interruptor, pela mesma linha das outras camadas.
+  assert.match(js, /<input type="checkbox" role="switch" \$\{attr\}/);
+  assert.match(js, /chave\(k, n, d, camadas\[k\], `data-camada="\$\{k\}"`\)/);
   assert.match(js, /<div class="vv-cb-legenda"\$\{pros \? '' : ' hidden'\}>/);
   assert.match(css, /body\.mundo \.vv-placa:has\(\.vv-camada\)\{position:absolute;top:auto;left:auto;bottom:96px;/);
   assert.match(css, /body\.mundo \.vv-camada input\[type="checkbox"\]\{order:2;[^}]*appearance:none;/);
