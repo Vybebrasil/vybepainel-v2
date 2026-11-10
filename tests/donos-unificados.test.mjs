@@ -32,6 +32,9 @@ test('sessão: dono vem do banco a cada pedido (id do Monday), e /api/sessao man
     const pessoa = (m) => async (id) => ({ id, nome: 'Vinícius Damascena', email: 'v@x', ativo: true, pode_entrar: true, admin: false, senha_hash: 'h', sessao_versao: 1, monday_user_id: m });
     assert.equal((await sessaoDoPedido(cookie(3), { buscarPessoa: pessoa('68035653') })).dono, true);
     assert.equal((await sessaoDoPedido(cookie(3), { buscarPessoa: pessoa('555') })).dono, false);
+    // Dono sem a marca de administrador no cadastro (o Vinícius, 10/11/2026) passa nas telas e rotas de quem administra.
+    assert.equal((await sessaoDoPedido(cookie(3), { buscarPessoa: pessoa('68035653') })).admin, true);
+    assert.equal((await sessaoDoPedido(cookie(3), { buscarPessoa: pessoa('555') })).admin, false);
     assert.equal((await sessaoDoPedido(cookie(3), { buscarPessoa: pessoa(null) })).dono, false);
     assert.match(readFileSync('api/sessao.js', 'utf8'), /dono: Boolean\(sessao\.dono\)/);
   } finally { if (antes === undefined) delete process.env.SESSAO_SECRET; else process.env.SESSAO_SECRET = antes; }

@@ -187,7 +187,9 @@ export async function sessaoDoPedido(req, { buscarPessoa = pessoaAtual } = {}) {
       || Number(pessoa.sessao_versao || 0) !== Number(sessao.versao || 0)) return null;
   // Permissão vem do banco em toda requisição, nunca do papel antigo do cookie. Dono pela regra única (server/donos.js).
   const dono = ehDonoPessoa({ id: Number(sessao.id), monday_user_id: pessoa.monday_user_id ?? null });
-  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin), dono };
+  // Dono tem tudo (Paulo, 08/11/2026), e muita tela e rota ainda pergunta só "administra?" (quem.pessoa.admin): o Vinícius,
+  // dono sem a marca de administrador no cadastro, via coisa bloqueada (Paulo, 10/11/2026). Dono conta como quem administra.
+  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin) || dono, dono };
 }
 
 async function pessoaAtual(id) {
