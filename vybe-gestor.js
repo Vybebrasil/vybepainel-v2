@@ -79,15 +79,18 @@ async function copiarLinkDaAtividade(id, botao) {
   const link = linkDaAtividade(id);
   try {
     await navigator.clipboard.writeText(link);
-    if (botao) { const antes = botao.innerHTML; botao.innerHTML = '✓ copiado';
+    // O botão só de ícone (gaveta, quadro 06) mostra o visto no lugar do desenho, sem mudar de largura.
+    const visto = '<svg class="icone-linha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3.5 8.4 2.9 2.9 6.1-6.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sr-only">Link copiado</span>';
+    if (botao) { const antes = botao.innerHTML; botao.innerHTML = botao.classList.contains('so-icone') ? visto : '✓ copiado';
       setTimeout(() => { botao.innerHTML = antes; }, 1600); }
     showToast('✓ Link copiado · quem abrir cai direto nesta atividade', 'ok', 4000);
   } catch { showToast(link, 'info', 12000); }
 }
-function botaoDeLinkHtml(item) {
+// icone: só o desenho, com o nome para o leitor de tela e a dica ao passar o mouse (gaveta, quadro 06 do redesign).
+function botaoDeLinkHtml(item, { icone = false } = {}) {
   if (!item?.id) return '';
-  return `<button type="button" class="vybe-link" onclick="event.stopPropagation();copiarLinkDaAtividade('${safeText(item.id)}',this)"
-    title="Copiar o link desta atividade para mandar no grupo">${ICONE_LINHA.link}<span>Copiar link</span></button>`;
+  return `<button type="button" class="vybe-link${icone ? ' so-icone' : ''}" onclick="event.stopPropagation();copiarLinkDaAtividade('${safeText(item.id)}',this)"
+    title="Copiar o link desta atividade para mandar no grupo"${icone ? ' aria-label="Copiar link"' : ''}>${ICONE_LINHA.link}<span${icone ? ' class="sr-only"' : ''}>Copiar link</span></button>`;
 }
 
 function vybeChipId(item) {

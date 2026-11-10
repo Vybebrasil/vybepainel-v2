@@ -202,7 +202,8 @@ ficam ligados; a conferência do cliente é opcional, como no planejamento.
   novo? quando não tem um cliente vinculado na agenda, não posso vincular?".
 - Reuniões e compromissos aparecem por padrão, mais quietos que as captações;
   no bloco deles o nome do evento vem primeiro e o cliente embaixo.
-- Criação rápida (`captNovoEvento`): clicar num horário vazio, ou em "+ Novo",
+- Criação rápida (`captNovoEvento`): clicar num horário vazio, ou em "Marcar
+  captação" no cabeçalho da Agenda (redesign, 10/11/2026: o "+ Novo" saiu da barra),
   abre um cartão ali mesmo com título, tipo, dia e horário, cliente e local.
   O evento vai para o Google Agenda da Vybe (`criarEvento`) com a cor da
   convenção: azul (9) captação, amarelo (5) reunião, grafite (8) compromisso.
