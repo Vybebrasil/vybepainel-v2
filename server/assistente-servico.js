@@ -1,4 +1,6 @@
 import {exigirAdministradorPrivado} from './assistente-exclusivo.js';
+import { garantirSchemaReunioes, reunioesParaTranscrever, trechoDaGravacao, guardarTranscricao } from './reunioes.js';
+import { baixarTrechoDoDrive } from '../vybe_drive.js';
 import { aprovacoesDaPessoa } from './aprovacoes.js';
 import { validarConversa, autorizarConversa } from './assistente-politica.js';
 import { FERRAMENTAS_ASSISTENTE, executarFerramenta } from './assistente-ferramentas.js';
@@ -102,7 +104,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -139,6 +141,13 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'planejamento_pecas') return res.status(200).json({ ok: true, ...(await planejamentoPecasParaAgente(banco)) });
       // Aprovações paradas (server/aprovacoes.js): a lista inteira, para o Augusto cobrar cada head e o grupo dos sócios.
       if (consulta === 'aprovacoes') return res.status(200).json(await aprovacoesDaPessoa(banco, { id: pessoaId, dono: true }));
+      // Reuniões gravadas (server/reunioes.js): o bot baixa o áudio em trechos, transcreve no PC e devolve as sugestões.
+      if (['reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita'].includes(consulta)) {
+        await garantirSchemaReunioes(banco);
+        if (consulta === 'reunioes_pendentes') return res.status(200).json({ ok: true, reunioes: await reunioesParaTranscrever(banco) });
+        if (consulta === 'reuniao_audio') return res.status(200).json({ ok: true, ...(await trechoDaGravacao(banco, req.body || {}, baixarTrechoDoDrive)) });
+        return res.status(200).json(await guardarTranscricao(banco, req.body || {}));
+      }
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });

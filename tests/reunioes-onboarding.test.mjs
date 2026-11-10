@@ -67,3 +67,38 @@ test('reunião: cria com ata, lista, atualiza e a pauta sugerida retoma a últim
     await assert.rejects(() => salvarReuniao(sql, { clienteId: 0 }), /Escolha o cliente/);
   } finally { await db.close(); }
 });
+
+test('fase 2: o bot recebe o áudio em trechos, devolve a transcrição e as demandas viram Solicitações', async () => {
+  const { reunioesParaTranscrever, trechoDaGravacao, guardarTranscricao, cadastrarDemandasDaReuniao, registrarGravacao } = await import('../server/reunioes.js');
+  const { db, sql } = await banco();
+  try {
+    const r = await salvarReuniao(sql, { clienteId: 1, tipo: 'onboarding', titulo: 'Entrada da Lil', data: '2026-11-10', ata: '' });
+    const total = 6 * 1024 * 1024;
+    await registrarGravacao(sql, r.id, { driveId: 'arq-1', bytes: total });
+    const fila = await reunioesParaTranscrever(sql);
+    assert.deepEqual(fila.map((x) => [x.id, x.cliente, x.arquivo, x.bytes]), [[r.id, 'Lil', 'arq-1', total]]);
+
+    const pedidos = [];
+    const baixar = async (arq, de, ate) => { pedidos.push([arq, de, ate]); return Buffer.alloc(ate - de + 1, 1); };
+    let inicio = 0, partes = 0, t;
+    do { t = await trechoDaGravacao(sql, { id: r.id, inicio }, baixar); inicio += Buffer.from(t.conteudo, 'base64').length; partes++; } while (!t.fim);
+    assert.equal(inicio, total); assert.equal(partes, 3); // 2,5 + 2,5 + 1 MB
+
+    await guardarTranscricao(sql, { id: r.id, transcricao: 'Larissa: queremos lançar a Lil em dezembro...', resumo: 'Lançamento da Lil em dezembro.',
+      decisoes: ['3 posts por semana'], demandas: [{ titulo: 'Card - Lançamento da Lil', formato: 'Card', prazo: '2026-11-20', responsavel: 'Jady' }, { titulo: '' }] });
+    const [depois] = await listarReunioes(sql, 1);
+    assert.equal(depois.estado, 'transcrita'); assert.equal(depois.ata, 'Lançamento da Lil em dezembro.'); // ata vazia recebe o resumo
+    assert.equal(depois.sugestoes.demandas.length, 1);
+    assert.equal((await reunioesParaTranscrever(sql)).length, 0);
+
+    const criadas = [];
+    sql.comTransacao = (fn) => fn(sql);
+    const res = await cadastrarDemandasDaReuniao(sql, { pessoa: { id: 1 } }, { id: r.id, demandas: depois.sugestoes.demandas },
+      { boardDemandas: 8385559107, criarConteudoNaTransacao: async (tx, quem, d) => { criadas.push(d); return { conteudo_id: 900 + criadas.length }; } });
+    assert.equal(res.criadas.length, 1);
+    assert.equal(criadas[0].cliente, 'Lil'); assert.equal(criadas[0].status, 'nova_demanda'); assert.equal(criadas[0].board, 8385559107);
+    assert.match(criadas[0].briefing, /Saiu da reunião "Entrada da Lil" de 10\/11\/2026\.[\s\S]*Responsável sugerido: Jady/);
+    const [fim] = await listarReunioes(sql, 1);
+    assert.equal(fim.estado, 'cadastrada'); assert.equal(fim.sugestoes.cadastradas[0].conteudo_id, '901');
+  } finally { await db.close(); }
+});

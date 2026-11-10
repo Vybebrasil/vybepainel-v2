@@ -47,6 +47,7 @@
         ${r.pauta ? `<h5>Pauta</h5><p>${esc(r.pauta).replace(/\n/g, '<br>')}</p>` : ''}
         ${r.ata ? `<h5>Ata</h5><p>${esc(r.ata).replace(/\n/g, '<br>')}</p>` : '<p class="cli-vazio">Ainda sem ata.</p>'}
         ${r.gravacao ? `<p><a class="cli-porta" href="https://drive.google.com/file/d/${esc(r.gravacao.id)}/view" target="_blank" rel="noopener">Ouvir a gravação no Drive ↗</a></p>` : ''}
+        ${sugestoesHtml(r, pode)}
         ${r.transcricao ? `<h5>Transcrição</h5><p class="reu-transcricao">${esc(r.transcricao.slice(0, 4000)).replace(/\n/g, '<br>')}</p>` : r.gravacao ? '<p class="cli-vazio">A transcrição e as demandas sugeridas chegam aqui depois que o bot processar a gravação.</p>' : ''}
         ${pode ? `<div class="reu-acoes"><button type="button" class="vb-botao" onclick="abrirReuniao('${asp(nome)}','${esc(r.id)}')">Editar ata</button>
           ${r.gravacao ? '' : `<button type="button" class="vb-botao" ${gravando ? 'disabled' : ''} onclick="gravarReuniao('${esc(id)}','${esc(r.id)}','${asp(r.titulo)}')">● Gravar</button>`}</div>` : ''}
@@ -57,6 +58,42 @@
       ${pauta.length ? `<div class="reu-pauta"><b>Pauta sugerida para a próxima</b><ul>${pauta.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>` : ''}
       <ul class="reu-lista">${lista}</ul></div>`;
   }
+
+  // O que o bot tirou da gravação: resumo, decisões e demandas para marcar, ajustar e cadastrar no quadro de Solicitações.
+  function sugestoesHtml(r, pode) {
+    const s = r.sugestoes;
+    if (!s) return r.estado === 'transcricao_falhou' ? '<p class="ciclo-erro">O bot não conseguiu transcrever esta gravação. Escreva a ata à mão.</p>' : '';
+    const feitas = s.cadastradas || [];
+    const dem = (s.demandas || []).map((d, i) => `<li class="reu-dem"><label><input type="checkbox" data-reu-dem="${i}" ${pode && !feitas.some((f) => f.titulo === d.titulo) ? 'checked' : 'disabled'}>
+        <input type="text" data-reu-campo="titulo" data-i="${i}" value="${esc(d.titulo)}" ${pode ? '' : 'disabled'}></label>
+        <span class="reu-dem-meta"><input type="text" data-reu-campo="formato" data-i="${i}" value="${esc(d.formato || '')}" placeholder="formato" ${pode ? '' : 'disabled'}>
+        <input type="date" data-reu-campo="prazo" data-i="${i}" value="${esc(d.prazo || '')}" title="Prazo" ${pode ? '' : 'disabled'}>
+        ${d.responsavel ? `<small>sugestão: ${esc(d.responsavel)}</small>` : ''}${feitas.some((f) => f.titulo === d.titulo) ? '<small class="ok">✓ cadastrada</small>' : ''}</span></li>`).join('');
+    return `<div class="reu-sug" data-reu-sug="${esc(r.id)}"><h5>O que o bot tirou da reunião</h5>
+      ${s.resumo ? `<p>${esc(s.resumo).replace(/\n/g, '<br>')}</p>` : ''}
+      ${(s.decisoes || []).length ? `<b>Decisões</b><ul>${s.decisoes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${(s.demandas || []).length ? `<b>Demandas sugeridas</b><ul class="reu-dems">${dem}</ul>
+        ${pode ? `<button type="button" class="vb-botao principal" onclick="cadastrarDemandasReuniao('${esc(r.cliente_id)}','${esc(r.id)}', this)">Cadastrar as marcadas em Solicitações</button>` : ''}` : '<p class="cli-vazio">Nenhuma demanda sugerida.</p>'}
+      ${feitas.length ? `<p class="reu-ok">${feitas.length} demanda${feitas.length > 1 ? 's' : ''} já cadastrada${feitas.length > 1 ? 's' : ''}.</p>` : ''}</div>`;
+  }
+  window.cadastrarDemandasReuniao = async function cadastrarDemandasReuniao(clienteId, reuniaoId, botao) {
+    const caixa = document.querySelector(`[data-reu-sug="${reuniaoId}"]`);
+    const r = (dados[clienteId]?.d?.reunioes || []).find((x) => x.id === String(reuniaoId));
+    if (!caixa || !r?.sugestoes) return;
+    const escolhidas = [...caixa.querySelectorAll('[data-reu-dem]')].filter((c) => c.checked && !c.disabled).map((c) => {
+      const i = c.dataset.reuDem, campo = (k) => caixa.querySelector(`[data-reu-campo="${k}"][data-i="${i}"]`)?.value || '';
+      return { ...r.sugestoes.demandas[i], titulo: campo('titulo'), formato: campo('formato'), prazo: campo('prazo') };
+    });
+    if (!escolhidas.length) return showToast('Marque ao menos uma demanda.', 'warning', 4000);
+    if (typeof confirmarNoPainel === 'function' && !await confirmarNoPainel(`Cadastrar ${escolhidas.length} demanda${escolhidas.length > 1 ? 's' : ''} em Solicitações para este cliente?`)) return;
+    botao.disabled = true;
+    try {
+      const d = await postar({ acao: 'cadastrar-demandas', id: reuniaoId, demandas: escolhidas });
+      showToast(`${d.criadas.length} demanda${d.criadas.length > 1 ? 's' : ''} cadastrada${d.criadas.length > 1 ? 's' : ''} em Solicitações.`, 'success', 5000);
+      await carregar(clienteId, true);
+      if (typeof refreshData === 'function') refreshData();
+    } catch (e) { botao.disabled = false; showToast(e.message, 'error', 6000); }
+  };
 
   window.abrirReuniao = function abrirReuniao(nome, reuniaoId = '') {
     const id = String(idDoCliente(nome) || '');

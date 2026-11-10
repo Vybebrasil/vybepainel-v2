@@ -101,3 +101,16 @@
 .onb-forcas{--c:#11613A}.onb-fraquezas{--c:#A3366F}.onb-oportunidades{--c:#1F4FA8}.onb-ameacas{--c:#8A5A00}
 .onb-dica{font:500 12px var(--vv-texto);color:var(--vv-apagado);margin-top:12px}
 @media (max-width:640px){.onb-swot{grid-template-columns:1fr}.reu-barra{bottom:84px}}
+
+/* Sugestões do bot na reunião */
+.reu-sug{border:1px solid #E8DDF7;background:#FBF8FF;border-radius:12px;padding:8px 10px;margin:8px 12px}
+.reu-sug b{display:block;margin:8px 0 4px;font:700 12px var(--vv-texto)}
+.reu-sug ul{margin:0;padding-left:18px}
+.reu-dems{list-style:none;padding:0 !important;display:flex;flex-direction:column;gap:6px;margin-bottom:8px !important}
+.reu-dem{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--vv-branco);border:1px solid var(--vv-linha);border-radius:10px;padding:6px 8px}
+.reu-dem label{display:flex;gap:8px;align-items:center;flex:1 1 260px;min-width:0}
+.reu-dem input[type=text],.reu-dem input[type=date]{border:1px solid var(--vv-linha);border-radius:8px;padding:5px 8px;font:500 12.5px var(--vv-texto);color:var(--vv-tinta);background:#fff;color-scheme:light;min-width:0}
+.reu-dem label input[type=text]{flex:1}
+.reu-dem-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.reu-dem-meta input[type=text]{width:110px}
+.reu-dem small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}.reu-dem small.ok,.reu-ok{color:#11613A;font-weight:700}
