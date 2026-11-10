@@ -239,3 +239,36 @@ html.tema-escuro body.mundo :is(.vc-acao,#vv-comercial .vc-pill.u1,#vv-comercial
 #vv-comercial .vc-roi-det>summary{cursor:pointer;font:700 13px/1.3 var(--vv-texto,inherit);color:#1F1D1A;min-height:28px;display:flex;align-items:center;gap:8px}
 #vv-comercial .vc-roi-det>summary:focus-visible{outline:2px solid #F26B1D;outline-offset:2px;border-radius:6px}
 #vv-comercial .vc-roi-det[open]>summary{margin-bottom:10px}
+
+/* Redesign do Funil (quadro 58, 10/11/2026): uma coluna por fase, mesmo vazia, lado a lado e rolando de lado quando não
+   cabe (no celular, uma coluna e um pedaço da próxima). Os motivos de perda são o filtro da coluna Perdido. */
+#vv-comercial .vc-topo-acao{flex:none}
+#vv-comercial .vc-funil{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(184px,1fr);gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0 0 4px;scroll-snap-type:x proximity;scrollbar-width:thin}
+#vv-comercial .vc-coluna{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:150px;padding:10px;border:1px solid var(--vc-linha);border-radius:10px;background:#FBF9F5;scroll-snap-align:start}
+#vv-comercial .vc-coluna>header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 8px;padding:0 2px}
+#vv-comercial .vc-coluna>header b{font:650 13px var(--vv-texto,system-ui);color:var(--vc-tinta)}
+#vv-comercial .vc-coluna-n{min-width:22px;padding:1px 7px;border-radius:999px;background:#FFFFFF;border:1px solid var(--vc-linha);font:700 11.5px var(--vv-texto,system-ui);text-align:center;font-variant-numeric:tabular-nums}
+#vv-comercial .vc-coluna>header small{grid-column:1/-1;font-size:11px;color:var(--vc-apagado)}
+#vv-comercial .vc-coluna.ganho>header b{color:#11613A}
+#vv-comercial .vc-coluna.perdido>header b{color:#8F2A2D}
+#vv-comercial .vc-coluna-lista{display:flex;flex-direction:column;gap:8px}
+#vv-comercial .vc-coluna-lista .vc-cartao{padding:10px 11px}
+#vv-comercial .vc-coluna-lista .vc-linha-acoes{flex-wrap:wrap}
+#vv-comercial .vc-coluna-vazia{margin:0;padding:14px 8px;border:1px dashed var(--vc-linha);border-radius:8px;color:var(--vc-apagado);font-size:12px;line-height:1.45;text-align:center}
+#vv-comercial .vc-funil-filtro{display:flex;flex-wrap:wrap;gap:4px}
+#vv-comercial .vc-chip{appearance:none;display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 9px;border:1px solid var(--vc-linha);border-radius:999px;background:#FFFFFF;color:var(--vc-tinta);font:600 11.5px var(--vv-texto,system-ui);cursor:pointer}
+#vv-comercial .vc-chip b{font-weight:700;font-variant-numeric:tabular-nums}
+#vv-comercial .vc-chip small{font-size:10.5px;color:var(--vc-apagado)}
+#vv-comercial .vc-chip:hover{border-color:var(--vc-acao)}
+#vv-comercial .vc-chip[aria-pressed="true"]{background:var(--vc-sel);border-color:transparent;color:var(--vc-sel-t)}
+#vv-comercial .vc-chip[aria-pressed="true"] small{color:var(--vc-sel-t)}
+@media (max-width:759px){#vv-comercial .vc-funil{grid-auto-columns:minmax(78%,1fr)}#vv-comercial .vc-topo-acao span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}#vv-comercial .vc-topo-acao{padding:0 10px}}
+
+/* Finanças por cliente (quadro 59): o aviso do Vybe Finanças desligado é uma nota neutra (não é erro), sem amarelo. */
+#vv-comercial .vc-nota{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border:1px solid var(--vc-linha);border-radius:10px;background:#FFFFFF}
+#vv-comercial .vc-nota-ico{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:8px;background:#F1ECE4;color:var(--vc-tinta)}
+#vv-comercial .vc-nota-ico svg{width:16px;height:16px}
+#vv-comercial .vc-nota b{display:block;font:650 13px var(--vv-texto,system-ui)}
+#vv-comercial .vc-nota p{margin:3px 0 0;color:var(--vc-apagado);line-height:1.45}
+#vv-comercial .vc-nota small{display:block;margin-top:6px;font-size:11.5px;color:var(--vc-apagado)}
+#vv-comercial .vc-nota ol{margin:6px 0 0;padding-left:18px;font-size:11.5px;color:var(--vc-apagado);line-height:1.5}

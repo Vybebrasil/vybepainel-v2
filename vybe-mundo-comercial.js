@@ -42,7 +42,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'), marca: svg('<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'), ajuda: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>'),
-    mais: svg('<path d="M12 5v14M5 12h14"/>'), cima: svg('<path d="m6 15 6-6 6 6"/>'), baixo: svg('<path d="m6 9 6 6 6-6"/>') };
+    dinheiro: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/>'), mais: svg('<path d="M12 5v14M5 12h14"/>'), cima: svg('<path d="m6 15 6-6 6 6"/>'), baixo: svg('<path d="m6 9 6 6 6-6"/>') };
   const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
   const din = (v) => (v == null ? '—' : BRL.format(Number(v) || 0));
   const num = (v) => Number(v || 0).toLocaleString('pt-BR');
@@ -168,8 +168,11 @@
     const d = e.dados; if (!d || d.conectado) return '';
     // Sem motivo vindo do servidor a frase começava com ": o passo a passo…" (pente-fino 09/11/2026).
     if (!completo) return `<p class="vc-dica">${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}. O passo a passo está na aba Finanças por cliente.</p>`;
-    return `<div class="vc-aviso" role="note"><b>${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}</b><p>Ligado, o dinheiro destas abas passa a vir do Vybe Finanças (só leitura): recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
-      ${d.aviso ? `<p>${esc(d.aviso)}</p>` : ''}<ol>${(d.passos || []).map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>`;
+    // Redesign (quadro 59): o aviso explica o efeito para quem usa, em caixa neutra (não é erro). O motivo técnico e o
+    // passo a passo de ligar continuam na caixa, em letra menor.
+    return `<div class="vc-nota" role="note"><span class="vc-nota-ico">${IC.dinheiro}</span><div><b>Os valores reais chegam quando o Vybe Finanças for ligado</b>
+      <p>Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
+      <small>${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</small>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div></div>`;
   }
   const varFin = (atual, anterior) => (anterior ? Math.round(((atual - anterior) / Math.abs(anterior)) * 1000) / 10 : null);
   function finTopo(f) {
@@ -247,11 +250,12 @@
   // ---------- Abas ----------
   function abaFunil(d) {
     const p = d.pode || {}, cap = d.capacidade;
-    const fases = d.fases || [], r = d.resumo;
+    // Sem resposta do funil (banco sem as tabelas, demonstração), as fases padrão zeradas: o funil aparece como funil.
+    const padrao = (() => { try { return { fases: C().FASES, resumo: C().resumoFunil([]) }; } catch { return { fases: [], resumo: { fases: [], motivos_perda: [] } }; } })();
+    const fases = d.fases.length ? d.fases : padrao.fases;
+    const r = d.resumo.fases.length ? d.resumo : { ...padrao.resumo, ...d.resumo, fases: padrao.resumo.fases, motivos_perda: d.resumo.motivos_perda.length ? d.resumo.motivos_perda : padrao.resumo.motivos_perda || [] };
     const etapaNome = (id) => d.etapas.find((e) => e.id === id)?.nome || id;
-    const faseDe = (etapa) => fases.find((f) => f.etapas.includes(etapa))?.id;
-    const sel = st.fase || fases.find((f) => (r.fases.find((x) => x.id === f.id)?.atual || 0) > 0 && !['ganho', 'perdido'].includes(f.id))?.id || 'novo';
-    const ops = d.oportunidades.filter((o) => faseDe(o.etapa) === sel);
+    const faseDe = (etapa) => fases.find((f) => (f.etapas || []).includes(etapa))?.id;
     const pacote = (id) => d.pacotes.find((x) => String(x.id) === String(id));
     const card = (o) => {
       const i = d.etapas.findIndex((e) => e.id === o.etapa), prox = d.etapas[i + 1], fim = ['ganho', 'perdido'].includes(o.etapa);
@@ -268,17 +272,33 @@
         ${o.etapa === 'perdido' ? `<small>Motivo: ${esc(d.motivos.find((m) => m.id === o.motivo_perda)?.nome || 'não registrado')}${o.motivo_texto ? ' — ' + esc(o.motivo_texto) : ''}</small>` : ''}
         ${botoes}</article>`;
     };
-    const maxMotivo = Math.max(1, ...r.motivos_perda.map((m) => m.quantidade));
-    return `${blocoMes(d)}<div class="vc-secao"><h3>Funil agora</h3></div><div class="vc-kpis">
+    // Redesign (quadro 58, 10/11/2026): o funil aparece como funil, uma coluna por fase, mesmo vazia. Os motivos de perda
+    // viram o filtro da coluna Perdido (com a quantidade e o % de cada um); o funil do mês (metas, gráficos) vem depois.
+    const motivoSel = st.filtro.motivo || '';
+    const perdidas = r.fases.find((f) => f.id === 'perdido')?.atual;
+    const coluna = (f) => {
+      let ops = d.oportunidades.filter((o) => faseDe(o.etapa) === f.id);
+      let filtro = '';
+      if (f.id === 'perdido') {
+        const comMotivo = r.motivos_perda.filter((m) => m.quantidade);
+        if (motivoSel) ops = ops.filter((o) => o.motivo_perda === motivoSel);
+        filtro = comMotivo.length ? `<div class="vc-funil-filtro" role="group" aria-label="Filtrar perdidas por motivo">
+          <button type="button" class="vc-chip" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos <b>${num(perdidas)}</b></button>
+          ${comMotivo.map((m) => `<button type="button" class="vc-chip" data-vc-motivo="${esc(m.id)}" aria-pressed="${motivoSel === m.id}" title="${esc(pc(m.percentual))} das perdas">${esc(m.nome)} <b>${num(m.quantidade)}</b><small>${pc(m.percentual)}</small></button>`).join('')}</div>` : '';
+      }
+      const vazioCol = f.id === 'novo' ? 'Nenhuma empresa nova. O SDR propõe pelo CRM do 1º andar.' : f.id === 'perdido' ? (motivoSel ? 'Nenhuma perda com este motivo.' : 'Nenhuma perda registrada. O motivo de cada uma aparece aqui.') : 'Nenhuma oportunidade nesta fase.';
+      return `<section class="vc-coluna${f.id === 'perdido' ? ' perdido' : f.id === 'ganho' ? ' ganho' : ''}" aria-label="${esc(f.nome)}: ${num(f.atual)}">
+        <header><b>${esc(f.nome)}</b><span class="vc-coluna-n">${num(f.atual)}</span>${f.conversao != null ? `<small>${pc(f.conversao)} seguem</small>` : f.alcancaram != null && f.id !== 'perdido' ? `<small>${num(f.alcancaram)} chegaram</small>` : ''}</header>
+        ${filtro}<div class="vc-coluna-lista">${ops.length ? ops.map(card).join('') : `<p class="vc-coluna-vazia">${esc(vazioCol)}</p>`}</div></section>`;
+    };
+    return `<div class="vc-secao"><h3>Funil agora</h3>${p.editar_pacotes ? '<button type="button" class="vc-link" data-vc="etapas">Configurar etapas</button>' : ''}</div><div class="vc-kpis">
         ${kpi('Em negociação (mensal)', din(r.em_negociacao.mensal))}${kpi('Em negociação (avulso)', din(r.em_negociacao.avulso))}
         ${kpi('Abertas', num(r.em_negociacao.quantidade))}${kpi('Taxa de ganho', pc(r.taxa_ganho))}</div>
-      ${d.valor_disponivel ? '' : '<p class="vc-aviso">Valor da negociação, Follow-up e etapas novas dependem da migração 2026-11-07-comercial.sql (o Paulo aplica).</p>'}
+      ${d.valor_disponivel ? '' : '<p class="vc-dica">Valor da negociação, Follow-up e etapas novas dependem da migração 2026-11-07-comercial.sql (o Paulo aplica).</p>'}
       ${d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos) · ticket médio ${din(d.produtos.ticket_medio_mensal)}/mês${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : ''}
-      <div class="vc-secao"><h3>Fases</h3>${p.editar_pacotes ? '<button type="button" class="vc-link" data-vc="etapas">Configurar etapas</button>' : ''}</div>
-      <div class="vc-fases" role="tablist" aria-label="Fases do funil">${r.fases.map((f) => `<button type="button" role="tab" aria-selected="${f.id === sel}" data-vc-fase="${esc(f.id)}"><span>${esc(f.nome)}</span><b>${num(f.atual)}</b>${f.conversao != null ? `<small>${pc(f.conversao)} seguem</small>` : `<small>${num(f.alcancaram)} chegaram</small>`}</button>`).join('')}</div>
-      <div class="vc-lista">${ops.length ? ops.map(card).join('') : vazio(sel === 'novo' ? 'Nenhuma empresa nova no funil. O SDR propõe pelo CRM do 1º andar.' : 'Nenhuma oportunidade nesta fase agora.')}</div>
-      <div class="vc-secao"><h3>Motivos de perda</h3><small>${num(r.fases.find((f) => f.id === 'perdido')?.atual)} perdidas</small></div>
-      ${r.motivos_perda.some((m) => m.quantidade) ? `<ul class="vc-barras">${r.motivos_perda.filter((m) => m.quantidade).map((m) => `<li><span>${esc(m.nome)}</span><span class="vc-barra"><i class="u2" style="width:${(m.quantidade / maxMotivo) * 100}%"></i></span><small>${num(m.quantidade)} · ${pc(m.percentual)}</small></li>`).join('')}</ul>` : vazio('Nenhuma perda registrada. Quando marcar Perdido, o motivo aparece aqui.')}`;
+      <div class="vc-funil" aria-label="Fases do funil">${r.fases.map(coluna).join('')}</div>
+      <p class="vc-dica">O SDR propõe empresas pelo CRM do 1º andar; avance uma etapa por vez pelos botões de cada cartão.</p>
+      ${blocoMes(d)}`;
   }
   // ---------- Funil: o mês (metas, KPIs × mês anterior, gráficos, corrida comercial, formulário de leads) ----------
   const curto = (v) => { const n = Number(v) || 0, f = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
@@ -457,6 +477,14 @@
         || vazio('Nenhum orçamento ainda. Monte o primeiro a partir dos pacotes.', p.editar_comercial && d.pacotes.length ? 'Novo orçamento' : '', 'orcamento')}</div>
       ${d.orcamentos.length ? roiHtml(d) : ''}`;
   }
+  // Redesign (quadro 59): os clientes ativos aparecem mesmo sem contrato. O servidor já manda todos os ativos; sem
+  // resposta dele (banco sem a tabela, demonstração), a lista é o cadastro de clientes do painel, todos "sem contrato".
+  function clientesDaAba(d) {
+    if (d.clientes.length) return d.clientes;
+    const cad = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
+    return cad.filter((c) => c && c.id && c.nome && c.ativo !== false).sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
+      .map((c) => ({ cliente_id: String(c.id), cliente_nome: c.nome, valor_mensal: 0, pacote_id: null, pacote_nome: null, status_pagamento: 'em_dia', observacao: '', versao: '', custo: null, margem_percentual: null, zona_critica: false }));
+  }
   function abaFinancas(d) {
     const r = d.resumo, f = fin();
     // Com o Finanças: o dinheiro de verdade em cima; os cartões dos clientes ficam (pacote, custo estimado e status à mão).
@@ -467,9 +495,9 @@
     const real = (c) => { const m = margemFinDe(f, c.cliente_id); return m ? `<small>Margem real (Vybe Finanças): ${din(m.mes.margem)} no mês · ${din(m.periodo.margem)} em 3 meses</small>` : ''; };
     return `${topo}
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
-      <div class="vc-lista">${d.clientes.filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
-        <div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(...STATUS_PAG[c.status_pagamento])}</div>
-        ${c.valor_mensal ? `<p class="vc-grande">${din(c.valor_mensal)}<small>/mês</small></p>` : '<small>Sem contrato informado.</small>'}
+      <div class="vc-lista">${clientesDaAba(d).filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
+        <div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${!c.valor_mensal && c.status_pagamento === 'em_dia' ? pill('sem contrato', 'u5') : pill(...(STATUS_PAG[c.status_pagamento] || STATUS_PAG.em_dia))}</div>
+        ${c.valor_mensal ? `<p class="vc-grande">${din(c.valor_mensal)}<small>/mês</small></p>` : '<small>Sem contrato informado: informe o valor em Editar.</small>'}
         <div class="vc-margem"><span>${c.pacote_nome ? esc(c.pacote_nome) + ' · custo ' + din(c.custo) : 'Sem pacote (custo não estimado)'}</span>${c.margem_percentual != null ? `<span>Margem ${pc(c.margem_percentual)}</span>` : ''}${c.zona_critica ? pill('Zona crítica', 'u1') : ''}</div>
         ${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}${real(c)}
         <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="financas" data-id="${esc(c.cliente_id)}">Editar</button></div></article>`).join('') || vazio('Nenhum cliente ativo no cadastro.')}</div>`;
@@ -676,11 +704,11 @@
     } });
   }
   function formFinancas(id) {
-    const d = st.dados.financas, c = d.clientes.find((x) => x.cliente_id === id);
+    const d = st.dados.financas, c = clientesDaAba(d).find((x) => x.cliente_id === id); if (!c) return;
     abrirFolha({ titulo: 'Finanças · ' + c.cliente_nome, campos: [
       { nome: 'valor_mensal', rotulo: 'Valor mensal do contrato (R$)', tipo: 'number', passo: '0.01', valor: c.valor_mensal || '', meio: true },
       { nome: 'pacote_id', rotulo: 'Pacote', tipo: 'select', opcoes: opcoes(d.pacotes, 'Sem pacote'), valor: c.pacote_id || '', meio: true },
-      { nome: 'status_pagamento', rotulo: 'Pagamento', tipo: 'select', opcoes: d.status.map((s) => [s.id, s.nome]), valor: c.status_pagamento },
+      { nome: 'status_pagamento', rotulo: 'Pagamento', tipo: 'select', opcoes: (d.status.length ? d.status : C().STATUS_PAGAMENTO).map((s) => [s.id, s.nome]), valor: c.status_pagamento },
       { nome: 'observacao', rotulo: 'Observação', tipo: 'textarea', valor: c.observacao, max: 1000 },
     ], aoVivo: (v) => { const p = d.pacotes.find((x) => x.id === v.pacote_id); const f = C().financasCliente({ valor_mensal: v.valor_mensal, pacote: p });
       return f.sem_pacote ? '<p class="vc-dica">Sem pacote, o custo não é estimado.</p>' : `<p class="vc-dica">Custo ${din(f.custo)} · margem ${pc(f.margem_percentual)}${f.zona_critica ? ' · ' + pill('Zona crítica', 'u1') : ''}</p>`; },
@@ -751,6 +779,14 @@
     ], aoVivo: (v) => { const p = d.pacotes.find((x) => x.id === v.pacote_id); return p ? capacidadeHtml(d.capacidade, C().cargaDosItens([{ carga: p.carga, quantidade: 1 }])) : ''; },
     enviar: (v) => crm({ acao: 'valor', id, versao: o.versao, ...v }) });
   }
+  // Novo lead (redesign, quadro 58): a empresa entra no começo do funil pelo mesmo CRM do 1º andar (area=crm, acao criar).
+  function formLead() {
+    abrirFolha({ titulo: 'Novo lead', botao: 'Pôr no funil', campos: [
+      { nome: 'nome', rotulo: 'Empresa', obrigatorio: true, max: 200 },
+      { nome: 'cnpj', rotulo: 'CNPJ (opcional)', max: 30, meio: true, dica: '14 dígitos; evita a mesma empresa duas vezes' },
+      { nome: 'setor_empresa', rotulo: 'Setor (opcional)', max: 200, meio: true },
+    ], enviar: (v) => crm({ acao: 'criar', etapa: 'empresa', ...v }).then((r) => { if (r.criada === false) throw new Error('Esta empresa já está no funil.'); }) });
+  }
   function formPerder(id, de) {
     const d = st.dados.funil, o = d.oportunidades.find((x) => x.id === id);
     abrirFolha({ titulo: 'Marcar perdido · ' + o.nome, botao: 'Marcar perdido', campos: [
@@ -811,6 +847,7 @@
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';
     else { try { conteudo = PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
     el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
+        ${st.aba === 'funil' && d?.pode?.editar_comercial ? `<button type="button" class="vc-acao vc-topo-acao" data-vc="lead">${IC.mais}<span>Novo lead</span></button>` : ''}
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>
       <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>
@@ -830,6 +867,7 @@
     const t = e.target.closest?.('button, [data-vc="fechar-folha"]'); if (!t) return;
     if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; st.msg = ''; st.folha = null; pintar(); if (!st.dados[st.aba]) carregar(); else carregar(); return; }
     if (t.dataset.vcFase) { st.fase = t.dataset.vcFase; pintar(); return; }
+    if (t.dataset.vcMotivo !== undefined) { st.filtro.motivo = t.dataset.vcMotivo; pintar(); return; }
     if (t.dataset.vcPeriodo) { st.periodo.tipo = t.dataset.vcPeriodo; carregar(); return; }
     if (t.dataset.vcCat !== undefined) { st.filtro.categoria = t.dataset.vcCat; pintar(); return; }
     if (t.dataset.vcEtapa) return mexerEtapa(t.dataset.vcEtapa, Number(t.dataset.i));
@@ -839,7 +877,7 @@
       fechar, ajuda: () => { st.ajuda = !st.ajuda; pintar(); }, recarregar: () => carregar(), 'fechar-folha': () => { st.folha = null; st.msg = ''; pintar(); },
       pacote: () => formPacote(id), capacidade: formCapacidade, orcamento: formOrcamento, financas: () => formFinancas(id), recebivel: () => formRecebivel(id),
       receber: () => formReceber(id), conta: () => formConta(id), fornecedor: () => formFornecedor(id), creator: () => formCreator(id), valor: () => formValor(id),
-      perder: () => formPerder(id, t.dataset.de), imprimir: () => imprimir(id),
+      perder: () => formPerder(id, t.dataset.de), imprimir: () => imprimir(id), lead: formLead,
       mover: () => (t.dataset.para === 'ganho' ? confirmarGanho(id, t.dataset.de, t.dataset.para) : executar(() => crm({ acao: 'mover', id, de_etapa: t.dataset.de, etapa: t.dataset.para }), 'Etapa registrada.')),
       proximo: () => executar(() => comercial({ acao: 'recebivel_proximo', id }).then((r) => { if (!r.criado) throw new Error('O próximo ciclo já estava lançado.'); }), 'Próximo ciclo lançado.'),
       pagar: () => executar(() => comercial({ acao: 'conta_pagar', id }), 'Conta marcada como paga.'),

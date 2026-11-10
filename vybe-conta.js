@@ -98,15 +98,15 @@ const ICONES_DA_CONTA = {
 
 function secoesDaConta(eu) {
   const minhas = [
-    { chave: 'perfil', rotulo: 'Perfil', tom: '#ff8a3d' },
-    { chave: 'senha', rotulo: 'Senha', tom: '#5aa9ff' },
+    { chave: 'perfil', rotulo: 'Perfil' },
+    { chave: 'senha', rotulo: 'Senha' },
   ];
   const daOperacao = [
-    { chave: 'equipe', rotulo: 'Equipe', tom: '#34c77b' },
-    { chave: 'clientes', rotulo: 'Clientes', tom: '#c084fc' },
-    { chave: 'opcoes', rotulo: 'Opções das fichas', tom: '#ffb240' },
-    { chave: 'acessos', rotulo: 'Credenciais', tom: '#ff6b81' },
-    { chave: 'manutencao', rotulo: 'Manutenção', tom: '#8f98a9' },
+    { chave: 'equipe', rotulo: 'Equipe' },
+    { chave: 'clientes', rotulo: 'Clientes' },
+    { chave: 'opcoes', rotulo: 'Opções das fichas' },
+    { chave: 'acessos', rotulo: 'Credenciais' },
+    { chave: 'manutencao', rotulo: 'Manutenção' },
   ];
   const mostraOperacao = eu.admin && !VER_COMO_O_TIME;
   return [
@@ -147,14 +147,11 @@ function pintarConta() {
       <span class="conta-grupo-titulo">${safeText(g.titulo)}</span>
       ${g.itens.map((i) => `<button type="button" class="conta-aba ${i.chave === SECAO_ATIVA ? 'ativa' : ''}"
         onclick="escolherSecaoDaConta('${i.chave}')" aria-current="${i.chave === SECAO_ATIVA}">
-        <span class="conta-aba-icone" style="--tom:${i.tom}"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">${ICONES_DA_CONTA[i.chave] || ''}</svg></span>
-        ${safeText(i.rotulo)}</button>`).join('')}
+        <span class="conta-aba-icone"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">${ICONES_DA_CONTA[i.chave] || ''}</svg></span>
+        <span class="conta-aba-rotulo">${safeText(i.rotulo)}</span></button>`).join('')}
     </div>`).join('');
 
-  const iniciais = String(eu.nome || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
-  const retrato = eu.foto_url
-    ? `<img src="${safeText(eu.foto_url)}" alt="">`
-    : `<span>${safeText(iniciais)}</span>`;
+  const retrato = retratoDaPessoa(eu);
 
   raiz.innerHTML = `
     <div class="conta-tela">
@@ -289,6 +286,43 @@ function blocoSenha() {
     </div>`;
 }
 
+// Retrato de alguém da equipe (redesign, quadro 60): o boneco do Escritório da pessoa, que o mundo troca pelo retrato
+// voxel (vybe-mundo.js, trocarAvatar); sem boneco, a foto do painel; sem foto, as iniciais.
+function retratoDaPessoa(p) {
+  const iniciais = String(p?.nome || '?').trim().split(/\s+/).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+  let boneco = null;
+  try { boneco = typeof escritorioCabecaUrl === 'function' ? (escritorioCabecaUrl(p?.id) || escritorioCabecaUrl(p?.nome)) : null; } catch { boneco = null; }
+  if (boneco) return `<img src="${safeText(boneco)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+  if (p?.foto_url) return `<img src="${safeText(p.foto_url)}" alt="">`;
+  return `<span>${safeText(iniciais)}</span>`;
+}
+
+// Equipe (redesign, quadro 60): cada pessoa com o retrato, a situação escrita e UM botão principal (o que a pessoa
+// mais precisa agora); as ações raras ficam no "Mais", e a perigosa (subsolo) só lá dentro, em vermelho.
+function acoesDaPessoa(p, sou, travado) {
+  const email = safeText(p.email), nome = safeText(p.nome), id = safeText(String(p.id));
+  const b = (rotulo, onclick, extra = '') => ({ rotulo, html: (cls) => `<button type="button" class="${cls}"${extra} onclick="${onclick}">${rotulo}</button>` });
+  const senha = b('Definir senha', `redefinirSenhaDe('${email}','${nome}')`);
+  const destravar = b('Destravar', `acaoPessoa('${email}','destravar')`);
+  const liberar = b('Liberar acesso', `acaoPessoa('${email}','liberar')`);
+  const principal = travado ? destravar : !p.pode_entrar ? liberar : senha;
+  const raras = [
+    travado && principal !== destravar ? destravar : null,
+    principal !== senha ? senha : null,
+    p.pode_entrar ? (sou ? null : b('Tirar acesso', `acaoPessoa('${email}','bloquear')`)) : (principal !== liberar ? liberar : null),
+    p.admin ? (sou ? null : b('Tirar admin', `acaoPessoa('${email}','tirar_admin')`)) : b('Tornar admin', `acaoPessoa('${email}','tornar_admin')`),
+  ].filter(Boolean);
+  const subsolo = sou ? '' : `<button type="button" class="eq-mais-item eq-mais-perigo" role="menuitem" data-id="${id}" data-nome="${nome}" onclick="abrirDesativarNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})"><span>Mandar para o subsolo</span></button>`;
+  const mais = raras.length || subsolo ? `<details class="eq-mais"><summary class="conta-botao" aria-label="Mais ações para ${nome}">Mais<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="eq-mais-menu" role="menu">${raras.map((x) => x.html('eq-mais-item').replace('<button type="button"', '<button type="button" role="menuitem"')).join('')}${subsolo}</div></details>` : '';
+  return principal.html('conta-botao') + mais;
+}
+
+function situacaoDaPessoa(p, travado) {
+  const partes = [p.pode_entrar ? 'liberado' : 'sem acesso', p.tem_senha ? quandoAcessou(p.ultimo_acesso) : 'sem senha definida'];
+  return safeText(partes.join(' · ')) + (travado ? ' · <b class="eq-travado">travado por erro de senha</b>' : '');
+}
+
 function blocoEquipe(eu) {
   const linhas = EQUIPE.map((p) => {
     const travado = p.bloqueado_ate && new Date(p.bloqueado_ate) > new Date();
@@ -297,39 +331,37 @@ function blocoEquipe(eu) {
     // quem saiu seria abrir a porta sem trazer a pessoa de volta.
     if (p.ativo === false) return `
     <div class="eq-linha fora">
-      <div class="eq-quem"><b>${safeText(p.nome)}</b><span class="eq-tag">no subsolo</span><span class="eq-email">${safeText(p.email)}</span></div>
-      <div class="eq-estado">desativado · sem login</div>
-      <div class="eq-acoes"><button data-id="${safeText(String(p.id))}" data-nome="${safeText(p.nome)}" onclick="reviverNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})">reviver</button></div>
+      <span class="eq-retrato">${retratoDaPessoa(p)}</span>
+      <div class="eq-quem"><b>${safeText(p.nome)}</b><span class="eq-email">${safeText(p.email)}</span>
+        <div class="eq-estado">desativado · sem login · no subsolo do Escritório</div></div>
+      <div class="eq-acoes"><button type="button" class="conta-botao" data-id="${safeText(String(p.id))}" data-nome="${safeText(p.nome)}" onclick="reviverNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})">Reativar</button></div>
     </div>`;
     return `
     <div class="eq-linha ${p.pode_entrar ? '' : 'fora'}">
+      <span class="eq-retrato">${retratoDaPessoa(p)}</span>
       <div class="eq-quem">
         <b>${safeText(p.nome)}</b>${p.admin ? '<span class="eq-tag">admin</span>' : ''}${sou ? '<span class="eq-tag eu">você</span>' : ''}
         <span class="eq-email">${safeText(p.email)}</span>
+        <div class="eq-estado">${situacaoDaPessoa(p, travado)}</div>
       </div>
-      <div class="eq-estado">
-        ${p.pode_entrar ? 'liberado' : 'sem acesso'} ·
-        ${p.tem_senha ? quandoAcessou(p.ultimo_acesso) : 'sem senha definida'}
-        ${travado ? ' · <b class="eq-travado">travado por erro de senha</b>' : ''}
-      </div>
-      <div class="eq-acoes">
-        ${p.pode_entrar
-          ? (sou ? '' : `<button onclick="acaoPessoa('${safeText(p.email)}','bloquear')">tirar acesso</button>`)
-          : `<button onclick="acaoPessoa('${safeText(p.email)}','liberar')">liberar</button>`}
-        ${p.admin
-          ? (sou ? '' : `<button onclick="acaoPessoa('${safeText(p.email)}','tirar_admin')">tirar admin</button>`)
-          : `<button onclick="acaoPessoa('${safeText(p.email)}','tornar_admin')">tornar admin</button>`}
-        ${travado ? `<button onclick="acaoPessoa('${safeText(p.email)}','destravar')">destravar</button>` : ''}
-        <button onclick="redefinirSenhaDe('${safeText(p.email)}','${safeText(p.nome)}')">definir senha</button>
-        ${sou ? '' : `<button class="perigo" data-id="${safeText(String(p.id))}" data-nome="${safeText(p.nome)}" onclick="abrirDesativarNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})">mandar para o subsolo</button>`}
-      </div>
+      <div class="eq-acoes">${acoesDaPessoa(p, sou, travado)}</div>
     </div>`;
   }).join('');
   return cabecaDaSecao('Equipe',
-    'Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora. Quem sai do time vai para o subsolo do Escritório; de lá volta ou é apagado para sempre.')
-    + `<div class="conta-form-acoes"><button class="conta-botao primario" onclick="abrirNovoNoCiclo('pessoa',{depois:carregarConta})">Novo colaborador</button></div>`
+    'Liberar, tirar acesso e definir senha. Oito erros de senha travam a conta por 15 minutos — aqui dá para destravar na hora. Quem sai do time vai para o subsolo do Escritório; de lá volta ou é apagado para sempre.',
+    `<button type="button" class="conta-botao primario" onclick="abrirNovoNoCiclo('pessoa',{depois:carregarConta})">Novo colaborador</button>`)
     + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhuma pessoa cadastrada.</div>'}</div>`;
 }
+
+// O "Mais" fecha ao clicar fora dele ou ao escolher uma ação (um aberto por vez).
+document.addEventListener('click', (e) => {
+  for (const d of document.querySelectorAll('.eq-mais[open]')) if (!d.contains(e.target) || e.target.closest('.eq-mais-item')) d.open = false;
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const aberto = document.querySelector('.eq-mais[open]'); if (!aberto) return;
+  aberto.open = false; aberto.querySelector('summary')?.focus();
+});
 
 function blocoManutencao() {
   return cabecaDaSecao('Manutenção',
