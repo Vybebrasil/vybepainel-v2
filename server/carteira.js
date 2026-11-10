@@ -105,7 +105,7 @@ export function validarEtapas(lista) {
     }) };
   });
 }
-async function etapasConfiguradas(sql) {
+export async function etapasConfiguradas(sql) {
   const [linha] = await sql`SELECT valor FROM vybe_carteira_config WHERE chave='onboarding_etapas'`;
   if (!linha) return { etapas: ETAPAS_PADRAO, padrao: true };
   try { return { etapas: validarEtapas(typeof linha.valor === 'string' ? JSON.parse(linha.valor) : linha.valor), padrao: false }; }

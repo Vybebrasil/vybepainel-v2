@@ -114,3 +114,11 @@
 .reu-dem-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .reu-dem-meta input[type=text]{width:110px}
 .reu-dem small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}.reu-dem small.ok,.reu-ok{color:#11613A;font-weight:700}
+/* Questionário do onboarding dentro do Vybe OS (09/11/2026). */
+.onb-q .onb-q-bloco{border:1px solid #E6E0D6;border-radius:12px;padding:12px 14px;margin:0 0 12px;background:#FFFFFF}
+.onb-q .onb-q-bloco legend{font-weight:800;font-size:14px;padding:0 6px;color:#1F1D1A}
+.onb-q .onb-q-sub{margin:0 0 8px;font-size:12.5px;color:#6B655C}
+.onb-q .onb-q-swot{grid-template-columns:repeat(2,minmax(0,1fr))}
+.onb-q textarea{resize:vertical}
+.vc-link-inline{border:0;background:none;padding:0;color:#C2490C;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+@media (max-width:640px){.onb-q .onb-q-swot{grid-template-columns:1fr}}

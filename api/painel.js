@@ -32,7 +32,7 @@ import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
-import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, TIPOS_REUNIAO, QUESTOES } from '../server/reunioes.js';
+import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, salvarOnboarding, TIPOS_REUNIAO, QUESTOES, ACESSOS_PEDIDOS } from '../server/reunioes.js';
 import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
 import { cadastroFinancasPadrao } from '../server/vybe-financas-cadastro.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
@@ -1860,7 +1860,7 @@ async function areaReunioes(req, res, quem) {
     if (!cliente) return res.status(400).json({ error: 'Informe o cliente.' });
     const [reunioes, pauta, onboarding, pode, esteira] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente),
       db`SELECT 1 FROM vybe_cliente_onboarding WHERE cliente_id=${Number(cliente)} AND encerrado_em IS NULL`.catch(() => [])]);
-    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0, tipos: TIPOS_REUNIAO, questoes: QUESTOES });
+    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0, tipos: TIPOS_REUNIAO, questoes: QUESTOES, acessos_pedidos: ACESSOS_PEDIDOS });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const b = req.body || {};
@@ -1871,6 +1871,12 @@ async function areaReunioes(req, res, quem) {
   try {
     if (b.acao === 'salvar') return res.status(200).json({ ok: true, reuniao: await salvarReuniao(db, { ...b, id: b.id || null, clienteId, autor: quem?.pessoa?.nome || 'Vybe OS' }) });
     if (b.acao === 'link-onboarding') return res.status(200).json({ ok: true, ...(await linkDoOnboarding(db, clienteId)) });
+    // Questionário preenchido dentro do Vybe OS, junto com o cliente (o mesmo salvar do link, marcado "na reunião").
+    if (b.acao === 'onboarding-salvar') {
+      const [c] = await db`SELECT * FROM vybe_clientes WHERE id=${clienteId} AND apagado_em IS NULL`;
+      if (!c) return res.status(404).json({ error: 'Cliente não encontrado.' });
+      return res.status(200).json(await salvarOnboarding(db, c, { respostas: b.respostas, acessos: b.acessos }, { por: 'reuniao' }));
+    }
     if (b.acao === 'cadastrar-demandas') return res.status(200).json(await cadastrarDemandasDaReuniao(db, quem, { id: b.id, demandas: b.demandas }, { criarConteudoNaTransacao, boardDemandas: 8385559107 }));
     if (b.acao === 'gravacao') {
       const item = 'reuniao:' + Number(b.id);

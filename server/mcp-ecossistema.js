@@ -15,6 +15,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { completude, valorDoCampo, CAMPOS_CADASTRO } from './clientes-cadastro.js';
 import { tabelaRegras } from './assistente-regras.js';
+import { respostasDoCliente, respostasEmLinhas } from './onboarding-contexto.js';
 
 export const VERSAO_PROTOCOLO = '2025-06-18';
 const TIPOS = ['conteudo', 'planejamento', 'roteiro', 'decisao', 'regra_de_marca', 'aprendizado'];
@@ -192,7 +193,9 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
     const comp = completude(c);
     const regs = await db`SELECT tipo, titulo, status, resumo, decisoes, criado_em FROM vybe_cliente_registros
       WHERE cliente_id=${c.id} ORDER BY criado_em DESC LIMIT 10`;
+    const onb = respostasEmLinhas(await respostasDoCliente(db, c.id), { n: 500 });
     return `# ${c.nome}\n\n## Cadastro\n${cadastroParaChat(c) || '(vazio)'}\n\n`
+      + (onb.length ? `## O que o cliente contou no onboarding\n${onb.join('\n')}\n\n` : '')
       + `Cadastro com ${comp.feitos} de ${comp.total} itens essenciais.${comp.faltam.length ? ` Falta: ${comp.faltam.join(', ')}.` : ''}\n\n`
       + `## Últimos registros dos chats\n${regs.length ? regs.map((g) => `- ${String(g.criado_em instanceof Date ? g.criado_em.toISOString() : g.criado_em).slice(0, 10)} · ${g.tipo} · ${g.titulo} (${g.status})\n  ${String(g.resumo).replace(/\n/g, ' ').slice(0, 300)}${g.decisoes ? `\n  Decisões: ${String(g.decisoes).replace(/\n/g, ' ').slice(0, 300)}` : ''}`).join('\n') : '(nenhum ainda)'}`;
   }

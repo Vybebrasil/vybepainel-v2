@@ -13,6 +13,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { CAMPOS_CADASTRO, SECOES_CADASTRO, salvarCadastro, valorDoCampo, garantirSchemaDoCadastro } from './clientes-cadastro.js';
 import { ehDonoPessoa } from './donos.js';
+import { marcarNaEsteira, regrasDoQuestionario } from './onboarding-contexto.js';
 
 export const TIPOS_REUNIAO = Object.freeze({ rotina: 'Rotina com o cliente', onboarding: 'Onboarding / kickoff', alinhamento: 'Alinhamento', comercial: 'Comercial', interna: 'Interna' });
 
@@ -101,6 +102,7 @@ export async function salvarReuniao(db, { id, clienteId, autor, ...b }) {
       WHERE id=${Number(id)} RETURNING *`;
     if (!n) throw erro('Reunião não encontrada.', 404);
     await atualizarUltimaReuniao(db, n.cliente_id);
+    await marcarKickoff(db, n);
     return publica(n);
   }
   if (!Number(clienteId)) throw erro('Escolha o cliente da reunião.');
@@ -108,7 +110,16 @@ export async function salvarReuniao(db, { id, clienteId, autor, ...b }) {
     VALUES (${Number(clienteId)}, COALESCE(${r.data}::date, CURRENT_DATE), ${r.ata}, ${autor || null}, ${r.tipo}, ${r.titulo || null},
       ${r.participantes || null}, ${r.pauta || null}, ${r.ata ? 'com_ata' : 'registrada'}, NOW()) RETURNING *`;
   await atualizarUltimaReuniao(db, n.cliente_id);
+  await marcarKickoff(db, n);
   return publica(n);
+}
+// Reunião de onboarding com ata ou gravação = kickoff feito (só a pauta, antes de acontecer, não conta).
+async function marcarKickoff(db, n) {
+  if (n.tipo !== 'onboarding') return 0;
+  const marcas = [];
+  if (String(n.resumo || '').trim() || n.gravacao_drive_id) marcas.push(['kickoff', 'reuniao']);
+  if (String(n.resumo || '').trim()) marcas.push(['kickoff', 'ata']);
+  return marcarNaEsteira(db, n.cliente_id, marcas);
 }
 async function atualizarUltimaReuniao(db, clienteId) {
   try { await db`UPDATE vybe_clientes SET ultima_reuniao=(SELECT MAX(data) FROM vybe_cliente_reunioes WHERE cliente_id=${clienteId} AND (resumo<>'' OR gravacao_drive_id IS NOT NULL)) WHERE id=${clienteId}`; }
@@ -121,6 +132,7 @@ export async function registrarGravacao(db, id, { driveId, bytes }) {
       estado='gravada', atualizado_em=NOW() WHERE id=${Number(id)} RETURNING *`;
   if (!n) throw erro('Reunião não encontrada.', 404);
   await atualizarUltimaReuniao(db, n.cliente_id);
+  await marcarKickoff(db, n);
   return publica(n);
 }
 
@@ -194,7 +206,13 @@ export async function salvarOnboarding(db, cliente, body = {}, { por = 'link', a
     if (a) await db`UPDATE vybe_acessos SET doc_conteudo=COALESCE(doc_conteudo,'') || ${bloco}, doc_atualizado_em=NOW(), atualizado_em=NOW() WHERE id=${a.id}`;
     else await db`INSERT INTO vybe_acessos (nome, cliente_id, doc_conteudo, doc_atualizado_em) VALUES (${'Dados & Acessos - ' + cliente.nome}, ${cliente.id}, ${bloco.trim()}, NOW())`;
   }
-  return { ok: true, acessos_recebidos: acessos.length };
+  // O que o sistema já sabe vai para a esteira e para as regras do cliente (server/onboarding-contexto.js).
+  const marcas = [];
+  if (['publico', 'tom', 'diferenciais', 'produtos'].some((k) => respostas[k])) marcas.push(['kickoff', 'briefing']);
+  if (acessos.length) marcas.push(['acessos', 'logins']);
+  const marcados = await marcarNaEsteira(db, cliente.id, marcas, { agora });
+  const regras = Object.prototype.hasOwnProperty.call(body.respostas || {}, 'nao_fazer') ? await regrasDoQuestionario(db, cliente.id, respostas.nao_fazer) : 0;
+  return { ok: true, acessos_recebidos: acessos.length, marcados, regras_novas: regras };
 }
 
 // ── página do link ───────────────────────────────────────────────────────────

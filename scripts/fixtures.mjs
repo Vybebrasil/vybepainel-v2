@@ -284,8 +284,8 @@ export async function demoApi(req,res,url,body) {
       {id:'9',nome:'Ex-colaborador demonstração',email:'ex@vybe.invalid',admin:false,pode_entrar:false,ativo:false,tem_senha:true,ultimo_acesso:null}]});
     if(area==='clientes')return clientesDemo(req,res,url,body,reply);
     // Reuniões e onboarding fictícios (server/reunioes.js).
-    if(area==='reunioes'&&req.method==='GET'){const {QUESTOES,TIPOS_REUNIAO}=await import('../server/reunioes.js');
-      return reply(200,{ok:true,pode:true,tipos:TIPOS_REUNIAO,questoes:QUESTOES,
+    if(area==='reunioes'&&req.method==='GET'){const {QUESTOES,TIPOS_REUNIAO,ACESSOS_PEDIDOS}=await import('../server/reunioes.js');
+      return reply(200,{ok:true,pode:true,tipos:TIPOS_REUNIAO,questoes:QUESTOES,acessos_pedidos:ACESSOS_PEDIDOS,
         pauta:['Retomar o que ficou da reunião de 03/11: novo cardápio de dezembro','Aprovação do planejamento de 12/2026 (está com o cliente)','Próximos passos, responsáveis e datas'],
         onboarding:{link_ativo:true,respostas:{publico:'Mulheres de 25 a 40 anos em Irecê',diferenciais:'Atendimento próximo e produto exclusivo',forcas:'Marca conhecida',ameacas:'Concorrência de lojas online',_atualizado_em:new Date().toISOString(),_por:'reuniao'}},
         reunioes:[{id:'1',cliente_id:'1',data:'2026-11-03',tipo:'rotina',titulo:'Rotina de novembro',participantes:'Paulo, Carla',pauta:'- Cardápio novo\n- Datas de dezembro',ata:'Combinamos 3 posts por semana e o reels do cardápio novo até sexta.',gravacao:{id:'demo',bytes:4200000},transcricao:'',estado:'gravada'}]});}

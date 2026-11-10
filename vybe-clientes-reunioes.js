@@ -157,6 +157,7 @@
       closeWorkflowModal();
       showToast('Reunião salva.', 'success', 3500);
       await carregar(id, true);
+      if (window.VybeCarteira?.aberto?.()) window.VybeCarteira.abrir('onboarding', { abas: ['onboarding'] });
       if (gravarDepois) gravarReuniao(id, d.reuniao.id, d.reuniao.titulo || (nome ? `Reunião - ${nome}` : 'Reunião'));
     } catch (e) { const er = document.getElementById('reu-erro'); if (er) er.textContent = e.message; else showToast(e.message, 'error', 6000); }
   };
@@ -235,13 +236,59 @@
     const bloco = (secao) => questoes.filter((q) => q.secao === secao).map((q) => `<div class="${resp[q.chave] ? '' : 'falta'}"><dt>${esc(q.rotulo)}</dt><dd>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</dd></div>`).join('');
     const swot = questoes.filter((q) => q.secao === 'swot').map((q) => `<div class="onb-swot-q onb-${q.chave}"><b>${esc(q.rotulo)}</b><p>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</p></div>`).join('');
     return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Onboarding de ${esc(nome)}</h3>
-        ${pode ? `<span class="onb-botoes"><button type="button" class="vb-botao principal" onclick="onboardingJunto('${esc(id)}')">Preencher com o cliente agora</button>
+        ${pode ? `<span class="onb-botoes"><button type="button" class="vb-botao principal" onclick="abrirQuestionario('${esc(id)}','${asp(nome)}')">Preencher com o cliente agora</button>
           <button type="button" class="vb-botao" onclick="onboardingLink('${esc(id)}')">Link para o cliente</button></span>` : ''}</div>
       <p>${preenchidas} de ${questoes.length} perguntas respondidas${resp._atualizado_em ? ` · última vez em ${dataBr(resp._atualizado_em)}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : ''}. O cadastro (empresa, responsável, canais) vai para a aba Cadastro; os acessos, para o cofre de Acessos.</p>
       ${SECOES.map(([s, t]) => `<section class="cad-leitura"><h4>${t}</h4><dl>${bloco(s)}</dl></section>`).join('')}
       <section class="cad-leitura"><h4>Análise SWOT</h4><div class="onb-swot">${swot}</div></section>
       <p class="onb-dica">A esteira (boas-vindas, contrato, acessos, kickoff, primeiro mês) e a reunião de kickoff ficam em Clientes → Onboarding, na lateral.</p></div>`;
   }
+  // Questionário dentro do Vybe OS (Paulo, 09/11/2026: "todo questionário e tudo do onboard não devia já ser feito dentro
+  // do Vybe OS?"): na reunião, preenche aqui mesmo, sem abrir outra aba. O link continua para o cliente responder sozinho.
+  // Salva como o link (server/reunioes.js salvarOnboarding, "na reunião"): marca a esteira e vira regra o "O que nunca fazer".
+  const nomeDoId = (id) => ((typeof CADASTRO_CLIENTES === 'undefined' ? [] : CADASTRO_CLIENTES).find((c) => String(c.id) === String(id)) || {}).nome || '';
+  window.abrirQuestionario = async function abrirQuestionario(id, nome = '') {
+    id = String(id || ''); nome = nome || nomeDoId(id);
+    if (!id) return showToast('Escolha o cliente.', 'warning', 4000);
+    if (!dados[id]?.d) await carregar(id);
+    const e = dados[id];
+    if (!e?.d) return showToast(e?.erro || 'Não consegui ler o questionário.', 'error', 6000);
+    const { questoes = [], onboarding, acessos_pedidos: acessos = [] } = e.d;
+    const resp = onboarding?.respostas || {};
+    const bloco = (secao, titulo, sub = '') => `<fieldset class="onb-q-bloco"><legend>${titulo}</legend>${sub ? `<p class="onb-q-sub">${sub}</p>` : ''}
+      <div class="cad-grade${secao === 'swot' ? ' onb-q-swot' : ''}">${questoes.filter((q) => q.secao === secao).map((q) => `<label class="cad-campo${secao === 'swot' ? '' : ' largo'}"><span>${esc(q.rotulo)}</span>
+        <textarea data-onb-resp="${esc(q.chave)}" rows="${secao === 'swot' ? 4 : 3}">${esc(resp[q.chave] || '')}</textarea></label>`).join('')}</div></fieldset>`;
+    openWorkflowModal(`<div class="cad-janela onb-q"><div class="workflow-kicker"><span>Vybe OS · Onboarding${nome ? ' · ' + esc(nome) : ''}</span>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+      <h2 class="workflow-title">Questionário${nome ? ' de ' + esc(nome) : ''}</h2>
+      <p class="workflow-copy">Preencha junto com o cliente. As respostas vão para a ficha, para a memória do VYBES, para o Augusto e para os chats do Claude; o "O que nunca fazer" vira regra do cliente. Empresa, responsável e canais ficam no ${nome ? `<button type="button" class="vc-link-inline" onclick="closeWorkflowModal();abrirCadastroCompleto('${asp(nome)}')">cadastro</button>` : 'cadastro'}.</p>
+      <form class="cad-corpo" onsubmit="event.preventDefault()">
+        ${bloco('negocio', 'Sobre o negócio')}${bloco('marca', 'A marca')}${bloco('swot', 'Análise SWOT', 'Forças e fraquezas são de dentro da empresa; oportunidades e ameaças vêm do mercado.')}
+        ${acessos.length ? `<fieldset class="onb-q-bloco"><legend>Acessos</legend><p class="onb-q-sub">🔒 Vão direto para o cofre (Acessos), que só a administração abre, e não voltam para esta tela.</p>
+          <div class="cad-grade">${acessos.map(([k, rot]) => `<label class="cad-campo largo"><span>${esc(rot)}</span><textarea data-onb-acesso="${esc(k)}" rows="2" autocomplete="off" placeholder="usuário / senha / observações"></textarea></label>`).join('')}</div></fieldset>` : ''}
+      </form><p class="ciclo-erro" id="onb-q-erro" role="alert"></p>
+      <div class="workflow-actions"><span class="cli-espaco"></span>
+        <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button>
+        <button type="button" class="workflow-primary" onclick="salvarQuestionario('${esc(id)}', this)">Salvar respostas</button></div></div>`);
+    document.getElementById('workflow-modal')?.classList.add('cad-modal');
+    setTimeout(() => document.querySelector('.onb-q textarea')?.focus(), 40);
+  };
+  window.salvarQuestionario = async function salvarQuestionario(id, botao) {
+    const respostas = {}, acessos = {};
+    document.querySelectorAll('.onb-q [data-onb-resp]').forEach((t) => { respostas[t.dataset.onbResp] = t.value; });
+    document.querySelectorAll('.onb-q [data-onb-acesso]').forEach((t) => { if (t.value.trim()) acessos[t.dataset.onbAcesso] = t.value; });
+    if (botao) botao.disabled = true;
+    try {
+      const d = await postar({ acao: 'onboarding-salvar', cliente: id, respostas, acessos });
+      document.querySelectorAll('.onb-q [data-onb-acesso]').forEach((t) => { t.value = ''; });
+      const extra = [d.acessos_recebidos ? `${d.acessos_recebidos} acesso(s) no cofre` : '', d.marcados ? `${d.marcados} item(ns) marcado(s) na esteira` : '', d.regras_novas ? `${d.regras_novas} regra(s) nova(s) do cliente` : ''].filter(Boolean).join(' · ');
+      showToast(`Respostas salvas.${extra ? ' ' + extra + '.' : ''}`, 'success', 6000);
+      await carregar(id, true);
+      if (window.VybeCarteira?.aberto?.()) window.VybeCarteira.abrir('onboarding', { abas: ['onboarding'] });
+    } catch (e) { const er = document.getElementById('onb-q-erro'); if (er) er.textContent = e.message; else showToast(e.message, 'error', 6000); }
+    finally { if (botao) botao.disabled = false; }
+  };
+
   async function gerarLink(id) { const d = await postar({ acao: 'link-onboarding', cliente: id }); await carregar(id, true); return d.url; }
   window.onboardingJunto = async function onboardingJunto(id) {
     const janela = window.open('about:blank', '_blank');

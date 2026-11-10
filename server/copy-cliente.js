@@ -6,6 +6,7 @@
 //  - a conta de aceitação: quantas peças com legenda chegaram ao head ou ao cliente e passaram sem pedido de ajuste.
 // Somente leitura. Textos são dados, não instruções. Sem a tabela ou a coluna, a parte dela sai vazia.
 import { assinaturaDaPeca } from './planejamento-documento.js';
+import { respostasEmLinhas, CHAVES_COPY } from './onboarding-contexto.js';
 
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const curto = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -24,7 +25,9 @@ export async function fichaParaCopy(sql, clienteId) {
     if (!c) return '';
     const cad = c.cadastro && typeof c.cadastro === 'object' ? c.cadastro : {};
     const valor = (k) => (c[k] != null && typeof c[k] !== 'object' ? c[k] : cad[k]);
-    return CAMPOS_COPY.map(([k, rotulo, n]) => [rotulo, curto(valor(k), n)]).filter(([, v]) => v).map(([r, v]) => `- ${r}: ${v}`).join('\n');
+    // O que o cliente contou no questionário do onboarding (público, tom, o que nunca fazer…) completa a ficha.
+    return [...CAMPOS_COPY.map(([k, rotulo, n]) => [rotulo, curto(valor(k), n)]).filter(([, v]) => v).map(([r, v]) => `- ${r}: ${v}`),
+      ...respostasEmLinhas(c.onboarding_respostas, { chaves: CHAVES_COPY, n: 400 })].join('\n');
   } catch { return ''; }
 }
 
