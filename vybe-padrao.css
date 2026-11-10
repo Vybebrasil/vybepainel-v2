@@ -607,33 +607,34 @@
 .manager-calendar-event-status{color:var(--event-color,#ff8b38)!important;font-weight:600}
 .manager-calendar-more,.manager-calendar-day [class*="mais"]{border-radius:8px!important;background:rgba(255,255,255,.04)!important;color:#a8a39c!important;border:1px dashed rgba(255,255,255,.1)!important}
 
+/* Fora do mundo (10/11/2026, regra do legado escopada): no mundo a prévia tem o desenho do fim de vybe-mundo.css. */
 /* Prévia (olhinho): um visualizador de verdade. Fundo escuro desfocado, a arte
    grande com brilho, o cabeçalho da peça em vidro (título no padrão, "peça 2 de
    20" em pílula), Baixar e Trocar como botões do padrão e as setas de peça
    redondas nas laterais. */
-.previa-grande{background:radial-gradient(80% 70% at 50% 45%,rgba(30,32,44,.72),rgba(6,7,10,.94))!important;backdrop-filter:blur(14px)!important}
-.previa-grande-vidro{position:relative;width:min(1180px,94vw)!important;max-width:none!important;max-height:94vh!important;gap:12px!important;padding:16px 18px 18px!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.9),rgba(20,22,30,.92))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 50px 120px -30px rgba(0,0,0,.95)!important}
-.previa-grande-topo{gap:8px!important;color:#a8a39c!important}
-#previa-grande-nome{margin-right:auto;color:#a8a39c;font:600 11px var(--mac-ui);letter-spacing:0;text-transform:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.previa-grande-topo button:not(.x-fechar){height:34px!important;padding:0 14px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
-.previa-grande-topo .previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
-.previa-grande-topo .x-fechar{width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;color:#ece8e3!important}
-.previa-grande-pecas{display:flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important;background:none!important}
-.previa-peca-info{display:grid;justify-items:center;gap:4px;text-align:center}
-#previa-peca-nome{color:#fff;font:700 22px/1.15 var(--pv-titulo);letter-spacing:-.015em}
-#previa-peca-onde{display:inline-block;padding:3px 10px;border-radius:8px;background:rgba(255,255,255,.06);color:#a8a39c!important;font:600 11.5px var(--mac-ui)!important}
+:where(body:not(.mundo)) .previa-grande{background:radial-gradient(80% 70% at 50% 45%,rgba(30,32,44,.72),rgba(6,7,10,.94))!important;backdrop-filter:blur(14px)!important}
+:where(body:not(.mundo)) .previa-grande-vidro{position:relative;width:min(1180px,94vw)!important;max-width:none!important;max-height:94vh!important;gap:12px!important;padding:16px 18px 18px!important;border-radius:14px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(38,40,52,.9),rgba(20,22,30,.92))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 50px 120px -30px rgba(0,0,0,.95)!important}
+:where(body:not(.mundo)) .previa-grande-topo{gap:8px!important;color:#a8a39c!important}
+:where(body:not(.mundo)) #previa-grande-nome{margin-right:auto;color:#a8a39c;font:600 11px var(--mac-ui);letter-spacing:0;text-transform:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(body:not(.mundo)) .previa-grande-topo button:not(.x-fechar){height:34px!important;padding:0 14px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+:where(body:not(.mundo)) .previa-grande-topo .previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) .previa-grande-topo .x-fechar{width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;color:#ece8e3!important}
+:where(body:not(.mundo)) .previa-grande-pecas{display:flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important;background:none!important}
+:where(body:not(.mundo)) .previa-peca-info{display:grid;justify-items:center;gap:4px;text-align:center}
+:where(body:not(.mundo)) #previa-peca-nome{color:#fff;font:700 22px/1.15 var(--pv-titulo);letter-spacing:-.015em}
+:where(body:not(.mundo)) #previa-peca-onde{display:inline-block;padding:3px 10px;border-radius:8px;background:rgba(255,255,255,.06);color:#a8a39c!important;font:600 11.5px var(--mac-ui)!important}
 /* As setas de peça: botões redondos grandes, fora da janela, nas laterais */
-.previa-peca-passo{position:absolute!important;top:50%;z-index:2;width:52px!important;height:52px!important;padding:0!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:linear-gradient(180deg,#2c2f3c,#1d1f28)!important;color:#fff!important;font:400 26px/1 var(--mac-ui)!important;box-shadow:0 14px 30px -10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1)!important;transform:translateY(-50%)}
-.previa-peca-passo span{display:none!important}
-#previa-peca-antes{left:-70px}
-#previa-peca-depois{right:-70px}
-.previa-peca-passo:hover:not(:disabled){border-color:#ffb35c!important;box-shadow:0 0 0 3px rgba(255,179,92,.25),0 14px 30px -10px rgba(0,0,0,.8)!important}
-@media (max-width:1320px){#previa-peca-antes{left:8px}#previa-peca-depois{right:8px}}
-.previa-grande-palco{padding:6px 0 0;border-radius:10px;background:repeating-conic-gradient(rgba(255,255,255,.025) 0 25%,transparent 0 50%) 0 0/24px 24px}
-.previa-grande-palco img,.previa-grande-palco video{border-radius:8px!important;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06)!important}
-.previa-grande-seta{width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(20,22,30,.8)!important;color:#ece8e3!important}
-.previa-grande-topo button.previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
-.previa-peca-passo{display:grid!important;place-items:center!important;text-align:center!important}
+:where(body:not(.mundo)) .previa-peca-passo{position:absolute!important;top:50%;z-index:2;width:52px!important;height:52px!important;padding:0!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:linear-gradient(180deg,#2c2f3c,#1d1f28)!important;color:#fff!important;font:400 26px/1 var(--mac-ui)!important;box-shadow:0 14px 30px -10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1)!important;transform:translateY(-50%)}
+:where(body:not(.mundo)) .previa-peca-passo span{display:none!important}
+:where(body:not(.mundo)) #previa-peca-antes{left:-70px}
+:where(body:not(.mundo)) #previa-peca-depois{right:-70px}
+:where(body:not(.mundo)) .previa-peca-passo:hover:not(:disabled){border-color:#ffb35c!important;box-shadow:0 0 0 3px rgba(255,179,92,.25),0 14px 30px -10px rgba(0,0,0,.8)!important}
+@media (max-width:1320px){:where(body:not(.mundo)) #previa-peca-antes{left:8px}:where(body:not(.mundo)) #previa-peca-depois{right:8px}}
+:where(body:not(.mundo)) .previa-grande-palco{padding:6px 0 0;border-radius:10px;background:repeating-conic-gradient(rgba(255,255,255,.025) 0 25%,transparent 0 50%) 0 0/24px 24px}
+:where(body:not(.mundo)) .previa-grande-palco img,:where(body:not(.mundo)) .previa-grande-palco video{border-radius:8px!important;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06)!important}
+:where(body:not(.mundo)) .previa-grande-seta{width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(20,22,30,.8)!important;color:#ece8e3!important}
+:where(body:not(.mundo)) .previa-grande-topo button.previa-grande-trocar{border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font-weight:700!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) .previa-peca-passo{display:grid!important;place-items:center!important;text-align:center!important}
 
 /* ===== Direção de arte, execução completa ===== */
 /* Agenda da semana: a peça como no desenho, pelas áreas do grid que já existem

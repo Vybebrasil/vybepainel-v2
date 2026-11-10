@@ -90,6 +90,7 @@ async function mostrarPecaDaPrevia(indice) {
     const detalhe = await detalheDaPrevia(id);
     if (vez !== PREVIA_PECA_VEZ) return;
     PREVIA_MATERIAL = materialDaPeca(detalhe, local);
+    PREVIA_PECA.detalhe = detalhe;
     // Sem imagem, pode haver link — e o link e material tanto quanto o arquivo.
     const entrega = !PREVIA_MATERIAL.length && typeof workspaceDeliveryInfo === 'function' ? workspaceDeliveryInfo(detalhe) : null;
     PREVIA_PECA.link = entrega?.url || '';
@@ -123,6 +124,7 @@ function abrirPreviaGrande(indice = 0) {
     caixa.className = 'previa-grande';
     caixa.innerHTML = `
       <div class="previa-grande-vidro">
+        <div class="previa-grande-midia">
         <div class="previa-grande-topo">
           <span id="previa-grande-nome"></span>
           <button type="button" id="previa-baixar" class="previa-grande-baixar"
@@ -142,7 +144,10 @@ function abrirPreviaGrande(indice = 0) {
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>
           <div id="previa-grande-media" class="previa-grande-media"></div>
           <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(1)" aria-label="Próxima">❯</button>
+          <span id="previa-grande-conta" class="previa-grande-conta" aria-live="polite" hidden></span>
         </div>
+        </div>
+        <aside id="previa-ficha" class="previa-ficha" aria-label="Sobre a peça" hidden></aside>
       </div>`;
     document.body.appendChild(caixa);
     // Clicar fora fecha; dentro, não — senão fecha ao tentar arrastar a imagem.
@@ -308,14 +313,76 @@ function estadoDaPecaNaPrevia() {
   return vbEstadoHtml({ titulo: 'Ainda sem material',
     // Antes dizia 'marcada como entregue' para qualquer peça, até em A Fazer (pente-fino 09/11/2026).
     texto: 'Quando o material ficar pronto, anexe o arquivo ou o link para a peça seguir.',
-    acao: `<button type="button" class="vb-botao" onclick="trocarMaterialDaPrevia(event)">Entregar material</button>` });
+    acao: `<button type="button" class="vb-botao principal" onclick="trocarMaterialDaPrevia(event)">Entregar material</button>` });
+}
+
+// ── A FICHA AO LADO DA MÍDIA (quadro 27 do redesign, 10/11/2026) ─────────────
+//
+// Para conferir sem abrir mais nada: cliente com a cor da carteira, status com a
+// cor do quadro, prazo e veiculação (ou conclusão) com o nome, quem fez e a
+// legenda do briefing, se houver. Só leitura: mudar continua na demanda, pelo
+// mesmo caminho de sempre. Fora de uma peça do painel (portão, arquivo solto) ela some.
+function dataDaFichaDaPrevia(iso) {
+  const s = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  // Data sem hora: monta no dia local, sem passar por UTC.
+  const d = new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+  return `${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][d.getDay()]} ${s.slice(8, 10)}/${s.slice(5, 7)}`;
+}
+// A legenda mora no briefing (seção "Legenda" ou a linha "Legenda: …"); não há outro campo dela.
+function legendaDaPrevia(detalhe) {
+  const texto = typeof briefingDaPeca === 'function' ? briefingDaPeca(detalhe)?.texto : '';
+  if (!texto || typeof briefingEmSecoes !== 'function') return '';
+  const secoes = briefingEmSecoes(texto);
+  const secao = secoes.find((s) => /^legenda/i.test(String(s.titulo || '')));
+  if (secao) return secao.linhas.map((l) => l.rotulo && l.valor ? `${l.rotulo}: ${l.valor}` : String(l.valor || l.rotulo || '')).filter(Boolean).join('\n');
+  const linha = secoes.flatMap((s) => s.linhas).find((l) => /^legenda/i.test(String(l.rotulo || '')) && l.valor);
+  return linha ? String(linha.valor) : '';
+}
+function fichaDaPreviaHtml() {
+  const p = PREVIA_PECA;
+  const local = pecaLocalDaPrevia(p.id) || {};
+  const clientes = typeof clientesDoItem === 'function' ? clientesDoItem(local) : [];
+  const nomesCli = (clientes.length ? clientes : [local.cliente || p.cliente]).filter(Boolean);
+  const pedido = typeof isRequestItem === 'function' && isRequestItem(local);
+  const quem = typeof ownerUsersFor === 'function' ? ownerUsersFor(local) : [];
+  const linha = (rotulo, valor) => valor ? `<dt>${rotulo}</dt><dd>${valor}</dd>` : '';
+  const prazo = dataDaFichaDaPrevia(local.prazo_iso), ar = dataDaFichaDaPrevia(local.veiculacao_iso);
+  const legenda = p.estado === 'pronta' ? legendaDaPrevia(p.detalhe) : '';
+  const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
+  const id = safeText(String(p.id));
+  return `${nomesCli.length ? `<div class="previa-ficha-clientes">${nomesCli.map(cliCor).join('')}</div>` : ''}
+    <h2 class="previa-ficha-nome">${safeText(local.nome || p.nome || 'Peça sem título')}</h2>
+    <dl class="previa-ficha-dados">
+      ${linha('Status', statusCor(local))}
+      ${linha('Prazo', prazo ? safeText(prazo) : '<span class="previa-ficha-vazio">sem prazo</span>')}
+      ${linha(pedido ? 'Conclusão' : 'Veicula', ar ? safeText(ar) : '<span class="previa-ficha-vazio">sem data</span>')}
+      ${linha('Quem fez', quem.length ? quem.map((u) => `<span class="previa-ficha-pessoa">${ownerAvatarHtml(u)}${safeText(firstName(u.name))}</span>`).join('') : '<span class="previa-ficha-vazio">sem responsável</span>')}
+    </dl>
+    ${legenda ? `<div class="previa-ficha-legenda"><span class="previa-ficha-rotulo">Legenda</span><p>${safeText(legenda)}</p></div>` : ''}
+    <div class="previa-ficha-acoes">
+      <button type="button" class="vc-acao" onclick="fecharPreviaGrande();openItemWorkspace('${id}')">Abrir a demanda</button>
+      ${a?.local_id ? '<button type="button" class="vc-sec" onclick="baixarDaPrevia(event)">Baixar o arquivo</button>' : ''}
+      ${a ? '<button type="button" class="vc-sec" onclick="trocarMaterialDaPrevia(event)">Trocar material</button>' : ''}
+    </div>`;
+}
+function pintarFichaDaPrevia() {
+  const ficha = document.getElementById('previa-ficha');
+  if (!ficha) return;
+  ficha.hidden = !PREVIA_PECA;
+  document.getElementById('previa-grande')?.classList.toggle('com-ficha', !!PREVIA_PECA);
+  if (PREVIA_PECA) ficha.innerHTML = fichaDaPreviaHtml();
 }
 
 function pintarPreviaGrande() {
   pintarPecasDaPrevia();
+  pintarFichaDaPrevia();
   const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
   const palco = document.getElementById('previa-grande-media');
   const nome = document.getElementById('previa-grande-nome');
+  // A galeria diz onde está: "2 de 5" sobre a mídia, só quando há mais de uma lâmina.
+  const conta = document.getElementById('previa-grande-conta');
+  if (conta) { conta.hidden = PREVIA_MATERIAL.length < 2; conta.textContent = `${PREVIA_GRANDE_INDICE + 1} de ${PREVIA_MATERIAL.length}`; }
   if (!a) {
     if (!PREVIA_PECA) return;
     if (palco) palco.innerHTML = `<div class="previa-grande-estado">${estadoDaPecaNaPrevia()}</div>`;
@@ -335,7 +402,7 @@ function pintarPreviaGrande() {
       : a.capa ? capaDaPrevia(a)
       : `<img id="previa-grande-img" src="${fonte}" alt="${safeText(a.name || '')}">`;
   }
-  if (nome) nome.textContent = `(${PREVIA_GRANDE_INDICE + 1}/${PREVIA_MATERIAL.length}) ${a.tipo === 'video' || a.tipo === 'link' || a.tipo === 'pasta' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
+  if (nome) nome.textContent = `${PREVIA_MATERIAL.length > 1 && !document.body.classList.contains('mundo') ? `${PREVIA_GRANDE_INDICE + 1} de ${PREVIA_MATERIAL.length} · ` : ''}${a.tipo === 'video' || a.tipo === 'link' || a.tipo === 'pasta' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
   // Baixar precisa do id do arquivo no banco: e por ele que o servidor acha os
   // bytes. Previa de coisa que nao esta na peca (um link colado, por exemplo)
   // nao tem esse id, e o botao nao aparece em vez de aparecer quebrado.

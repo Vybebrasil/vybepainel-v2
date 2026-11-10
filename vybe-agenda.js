@@ -2294,13 +2294,11 @@ function deckDeLoteHtml(quadro) {
       <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? 'demandas a alterar' : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
-      ${acao('Grupo', `loteGrupo(event,'${quadro}')`)}
       ${acao('Responsável', 'loteResponsavel(event)')}
-      ${acao(quadro === 'demandas' ? 'Tipo' : 'Formato', "loteEscolha(event,'formato')")}
-      ${quadro === 'demandas' ? '' : acao('Captação', "loteEscolha(event,'captacao')")}
-      ${acao('Prioridade', "loteEscolha(event,'prioridade')")}
       ${acao('Prazo', "lotePrazo(event,'prazo')")}
       ${acao(quadro === 'demandas' ? 'Conclusão' : 'Veiculação', "lotePrazo(event,'veiculacao')")}
+      <button type="button" class="lote-acao lote-mais" onclick="loteMais(event,'${quadro}')" aria-haspopup="menu"
+        title="Grupo, ${quadro === 'demandas' ? 'tipo' : 'formato, captação'} e prioridade">Mais<i>${abre}</i></button>
       <span class="lote-risco" aria-hidden="true"></span>
       <button type="button" class="lote-acao perigo" onclick="loteArquivar()"
         title="Tirar as marcadas das listas — voltam do Arquivo por 15 dias">Arquivar</button>
@@ -2308,6 +2306,23 @@ function deckDeLoteHtml(quadro) {
       <button type="button" class="lote-limpar" onclick="limparSelecao()"
         title="Desmarcar todas" aria-label="Desmarcar todas">✕</button>
     </div>` : '';
+}
+
+// "Mais" da barra do lote (quadro 23 do redesign, 10/11/2026): à vista ficam as quatro ações mais usadas; grupo,
+// formato (ou tipo), captação e prioridade vêm daqui, pelas MESMAS funções de antes. Cada uma abre o próprio balão
+// ancorado no "Mais", que continua na barra; o balão deste menu sai antes (um balão por vez).
+function loteMais(event, quadro) {
+  const demandas = quadro === 'demandas';
+  abrirMenuDeLote(event, 'Mais ações', [
+    { rotulo: 'Grupo', chamar: (ev) => loteGrupo(ev, quadro) },
+    { rotulo: demandas ? 'Tipo' : 'Formato', chamar: (ev) => loteEscolha(ev, 'formato') },
+    ...(demandas ? [] : [{ rotulo: 'Captação', chamar: (ev) => loteEscolha(ev, 'captacao') }]),
+    { rotulo: 'Prioridade', chamar: (ev) => loteEscolha(ev, 'prioridade') },
+  ].map((o) => ({ ...o, direto: true, cor: '#8A847A', aplicar: () => {
+    const botao = document.querySelector('#lote-deck .lote-mais');
+    if (botao) o.chamar({ preventDefault() {}, stopPropagation() {}, currentTarget: botao });
+  } })), '');
+  document.getElementById('lote-editor')?.classList.add('lote-mais-menu');
 }
 
 // A MESMA tabela do painel, para quem quiser mostrar uma lista de atividades
