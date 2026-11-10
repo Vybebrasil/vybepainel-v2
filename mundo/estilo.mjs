@@ -128,6 +128,8 @@ export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho 
     ligar(sim) { ligado = Boolean(sim); },
     // Qualidade automática: a oclusão é a passada mais cara; sai primeiro quando os quadros ficam lentos.
     oclusao(sim) { if (gtao) gtao.enabled = Boolean(sim); },
+    // Raio da oclusão em unidades do mundo (a cidade ajusta pela distância da câmera).
+    raioOclusao(r) { gtao?.updateGtaoMaterial({ radius: r }); },
     destruir() { for (const p of composer.passes) p.dispose?.(); composer.dispose?.(); },
   };
 }

@@ -142,3 +142,10 @@ test('árvores da cidade: copa em camadas e coqueiro com folhas em arco, dentro 
     for (const b of o.solidos) assert.ok(Math.abs(b.x) < 2.4 && Math.abs(b.z) < 2.4, tipo + ': bloco longe demais do tronco');
   }
 });
+
+test('cidade sem serrilhado ao mexer: oclusão só parada e o sol muda junto com o mapa de sombra', () => {
+  const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
+  assert.match(m, /acabamento\.oclusao\(quieta\)/);
+  assert.match(m, /ultimaSombra = t; aplicarSol\(\); renderer\.shadowMap\.needsUpdate = true/);
+  assert.doesNotMatch(m.slice(m.indexOf('function posicionarCamera'), m.indexOf('let solQuer')), /sol\.position\.set/, 'o sol não anda fora do redesenho da sombra');
+});

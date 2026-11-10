@@ -88,19 +88,26 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // tamanho do pixel da sombra (antes era fixo e alto, com sombra vazando e listras em peças finas).
     const lado = limitar(40 * Math.pow(1.25, Math.round(Math.log(Math.max(1, dist * 0.42) / 40) / Math.log(1.25))), 40, 260);
     const texel = (2 * lado) / sol.shadow.mapSize.x;
+    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
+    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; solQuer = { ax, az, y: alvo.y, lado, texel }; }
+  }
+  // O sol e a área da sombra só mudam no quadro em que o mapa de sombra é refeito: antes o sol andava na hora e o
+  // mapa velho ficava até 150 ms aplicado com o sol novo (a borda das sombras pulava e serrilhava ao mexer o mapa).
+  let solQuer = null;
+  function aplicarSol() {
+    if (!solQuer) return;
+    const { ax, az, y, lado, texel } = solQuer; solQuer = null;
     if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
     sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
-    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
-    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, alvo.y, az);
-    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
-    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; }
+    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
   function atualizarSombra(t, movendo) {
     if (!sombraPendente) return;
     if (movendo && t - ultimaSombra < 150) return;
-    sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
+    sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
   // Acabamento de maquete do padrão (estilo.mjs: oclusão nos cantos e brilho no que acende, como no quarto) e, por
@@ -366,6 +373,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     posicionarCamera();
     let animando = false;
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
+    // Oclusão nos cantos só com a câmera parada: mexendo, ela tremulava (serrilhado) e era a passada mais cara (travava).
+    // O raio acompanha a distância: de longe, cantos maiores; de perto, os do quarto.
+    const quieta = !(movendo || interagindo || mudouLivre);
+    if (quieta !== ultimaQuieta) { ultimaQuieta = quieta; if (qualidade > 1) { acabamento.oclusao(quieta); if (quieta) sujo = true; } }
+    if (quieta) { const r = limitar(orb.dist * 0.006, 0.3, 2.4); if (Math.abs(r - raioAo) > raioAo * 0.1) { raioAo = r; acabamento.raioOclusao(r); sujo = true; } }
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
     // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
@@ -384,7 +396,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // ficam lentos (menos de ~35 por segundo ou mais de 6 ms de trabalho por quadro) por uns 3 s seguidos, a cena
   // baixa um degrau: primeiro a nitidez (1×) e o desfoque de maquete, depois a sombra para 2048. Não volta sozinha
   // na mesma sessão (evita ficar trocando).
-  let qualidade = 2, lentos = 0, ultimoQ = 0;
+  let qualidade = 2, lentos = 0, ultimoQ = 0, ultimaQuieta = null, raioAo = 0;
   function conferirQualidade(t, mexendo) {
     if (!mexendo || qualidade === 0) { ultimoQ = t; return; }
     const intervalo = t - ultimoQ; ultimoQ = t;
