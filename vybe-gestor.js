@@ -691,6 +691,28 @@ function adicionarDemandaNoDia(dateIso, aba) {
 }
 
 const abasPendenciasDia = new Map();
+// Redesign do legado, fase 2 (Paulo, 09/11/2026): Redes, Demandas ou Pendências escolhido uma vez para a semana
+// inteira, na linha do título. Cada dia ainda pode trocar só o dele; escolher para a semana desfaz essas trocas.
+let abaDaSemana = 'social';
+function escolherAbaDaSemana(sem, aba) {
+  if (!['social', 'demandas', 'pendencias'].includes(aba)) return;
+  abaDaSemana = aba;
+  abasPendenciasDia.clear();
+  renderByDay(sem, currentFilter, currentDayFilter);
+}
+function pintarAbaDaSemana(grid, sem) {
+  const titulo = grid.previousElementSibling?.classList.contains('section-title') ? grid.previousElementSibling : null;
+  if (!titulo) return;
+  let grupo = titulo.querySelector('.semana-abas');
+  if (panelMode !== 'gestor') { grupo?.remove(); return; }
+  if (!grupo) {
+    grupo = document.createElement('span');
+    grupo.className = 'semana-abas vb-alternar'; grupo.setAttribute('role', 'group'); grupo.setAttribute('aria-label', 'Mostrar em todos os dias');
+    titulo.insertBefore(grupo, titulo.querySelector('.dias-setas, .dias-layout-btn'));
+  }
+  grupo.innerHTML = [['social', 'Redes'], ['demandas', 'Demandas'], ['pendencias', 'Pendências']].map(([id, nome]) =>
+    `<button type="button" aria-pressed="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${sem},'${id}')">${nome}</button>`).join('');
+}
 const diasExpandidos = new Set();
 const concluidasAbertasDia = new Set();
 function dataDoCartaoDia(item) {
@@ -852,7 +874,7 @@ function renderByDay(sem, filter, dayFilter) {
     const estado=typeof unifiedDemandasState==='undefined'?'ready':unifiedDemandasState;
     const aviso=estado==='error'?'Não foi possível atualizar as solicitações. Os dados exibidos podem estar desatualizados.':estado!=='ready'?'Carregando solicitações…':'';
     const salva=abasPendenciasDia.get(dia.iso);
-    const aba=panelMode==='gestor'?(salva===true?'pendencias':salva===false||!salva?'social':salva):'social';
+    const aba=panelMode==='gestor'?(salva===true?'pendencias':salva===false?'social':!salva?abaDaSemana:salva):'social';
     const {redes,demandas,lista,abertas,concluidas}=listasDoCartaoDia(dayItems,pendencias,aba);
     const mostrarConcluidas=concluidasAbertasDia.has(`${dia.iso}:${aba}`);
     [...abertas,...(mostrarConcluidas?concluidas:[])].forEach(i=>ordemVisivel.push(String(i.id)));
@@ -891,6 +913,7 @@ function renderByDay(sem, filter, dayFilter) {
       ${lista.length>6?`<div class="day-expansion-footer"><button type="button" class="day-summary-btn day-expand-btn" data-total="${lista.length}" aria-controls="${listaId}" aria-expanded="${diasExpandidos.has(dia.iso)}" onclick="alternarExpansaoDoDia('${dia.iso}',this)">${diasExpandidos.has(dia.iso)?'Recolher dia':`Ver todas as ${lista.length} atividades`}</button></div>`:''}
     </div>`;
   }).join('');
+  pintarAbaDaSemana(grid,sem);
   ORDEM_VISIVEL_DO_DIA=ordemVisivel;
   if(!aplicarLayoutDosDias(grid,sem,true)) encaixarCartoesDoDia(grid);
 }

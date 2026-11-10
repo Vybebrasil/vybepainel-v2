@@ -5456,3 +5456,11 @@ html body.mundo .ag-faixa-dia{color:#1F1D1A}
 html body.mundo .ag-faixa-dia small{color:#8A847A}
 html body.mundo .ag-faixa-dia.hoje b{color:#C2410C}
 html body.mundo .ag-nada{background:#F6F3EE;color:#5E5A53}
+/* Redes, Demandas ou Pendências para a semana inteira, logo depois do título (escolha por dia continua no cartão). */
+html body.mundo .section-title .semana-abas{margin-left:12px}
+html body.mundo .section-title .semana-abas button{padding:6px 11px;font-size:12px}
+html body.mundo .section-title:has(> .semana-abas){flex-wrap:wrap;row-gap:8px}
+@media (max-width:700px){
+  html body.mundo .section-title .semana-abas{order:5;flex:1 0 100%;margin-left:0}
+  html body.mundo .section-title .semana-abas button{flex:1}
+}
