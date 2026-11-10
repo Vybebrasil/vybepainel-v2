@@ -329,7 +329,7 @@ function registrosDosChatsHtml(nome) {
   if (!estado) carregarRegistrosDoCliente(id).then(() => { if (FICHA_ABA === 'cerebro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
   const corpo = !estado ? '<div class="auto-carregando">Lendo os registros…</div>'
     : estado.erro ? `<p class="ciclo-erro">${fichaEsc(estado.erro)}</p>`
-    : !estado.dados.length ? '<p>Nenhum registro ainda. Quando o chat deste cliente no Claude fechar uma entrega, ele registra aqui pelo conector "Ecossistema Vybe".</p>'
+    : !estado.dados.length ? '<p>Nada registrado ainda. Quando alguém fechar uma entrega deste cliente com o assistente, o resumo aparece aqui.</p>'
     : `<ul class="reg-lista">${estado.dados.map((g) => `<li class="reg-item"><details><summary>
         <span class="reg-tipo">${fichaEsc(TIPO_REGISTRO[g.tipo] || g.tipo)}</span><b>${fichaEsc(g.titulo)}</b>
         <small>${fichaEsc(String(g.criado_em || '').slice(0, 10).split('-').reverse().join('/'))} · ${fichaEsc(g.status.replace(/_/g, ' '))} · ${fichaEsc(g.origem)}${g.drive_erro ? ' · cópia no Drive falhou' : ''}</small></summary>
@@ -337,7 +337,7 @@ function registrosDosChatsHtml(nome) {
         ${g.decisoes ? `<h5>Decisões e regras novas</h5><p>${fichaEsc(g.decisoes).replace(/\n/g, '<br>')}</p>` : ''}
         ${g.proximos ? `<h5>Próximos passos</h5><p>${fichaEsc(g.proximos).replace(/\n/g, '<br>')}</p>` : ''}
         ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</details></li>`).join('')}</ul>`;
-  return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Registros dos chats do Claude</h3>
+  return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>O que a equipe registrou</h3>
       <button type="button" class="cli-lapis" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">Atualizar</button></div>
     ${corpo}</div>`;
 }
@@ -345,7 +345,7 @@ function registrosDosChatsHtml(nome) {
 function cerebroDaFichaHtml(nome) {
   const cartao = typeof cerebroDoClienteCardHtml === 'function' ? cerebroDoClienteCardHtml(nome) : '';
   return `${cartao}${registrosDosChatsHtml(nome)}<div class="client-master-detail-card"><h3>O que é o cérebro</h3>
-    <p>O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa (lógica fixa, Qwen ou Vybe OS). O botão acima abre o mapa completo com este cliente em foco.</p></div>`;
+    <p>O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa. O botão acima abre o mapa completo com este cliente em foco.</p></div>`;
 }
 
 // Embrulha a ficha que já existia: a Visão geral é ela mesma; as outras abas

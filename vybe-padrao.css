@@ -317,9 +317,9 @@
 /* Cartão do evento: Reagendar / Não gravou / Apagar em pílulas, separadas do link do Google */
 .capt-rodape{flex-wrap:wrap;gap:10px!important}
 .capt-gerir{display:flex;flex-wrap:wrap;gap:6px;width:100%}
-.capt-gerir .vb-link{height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#ece8e3!important;text-decoration:none!important;font:600 12px var(--mac-ui)}
-.capt-gerir .vb-link:hover{border-color:rgba(255,179,92,.5)}
-.capt-gerir .vb-link.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.3)}
+:where(body:not(.mundo)) .capt-gerir .vb-link{height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--pv-linha);background:var(--pv-tile);box-shadow:var(--pv-brilho);color:#ece8e3!important;text-decoration:none!important;font:600 12px var(--mac-ui)}
+:where(body:not(.mundo)) .capt-gerir .vb-link:hover{border-color:rgba(255,179,92,.5)}
+:where(body:not(.mundo)) .capt-gerir .vb-link.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.3)}
 .pv-opcao > span:not(.pv-opcao-ic){display:grid;gap:2px;text-align:left}
 .pv-opcao small.capt-discreto{margin:0}
 .capt-outras{margin-top:8px}
