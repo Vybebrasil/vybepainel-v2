@@ -23,6 +23,9 @@ export const ESTILO = Object.freeze({
   // Acabamento de maquete: oclusão nos cantos (raio em unidades do mundo) e brilho só no que acende.
   ao: { forca: 1.1, raio: .3 },
   brilho: { forca: .55, limiar: .85 },
+  // Cidade: céu, nuvens e paredes brancas ao sol passavam do limiar e estouravam (Paulo, 10/11/2026: "blooms
+  // estourados"). Só o que acende (janelas, postes, letreiros, a água) passa de .97, e com metade da força.
+  brilhoCidade: { forca: .28, limiar: .97 },
   // Superfície: lisa como nas referências (sem grade nem quina de cada bloco); o volume vem da luz e da oclusão.
   superficie: { amp: .03, grade: 0, borda: false, tomBloco: .025 },
 });
@@ -105,6 +108,7 @@ export function baseDeMaquete(obra, { W, D, ladrilhos = () => true, topo = -.12,
 // nos cantos e embaixo das peças (GTAO, o que dá o ar de render), e um brilho leve só no que acende (luminária,
 // tela, janela). Devolve { render(), tamanho(w, h), ligar(sim), destruir() }; desligado, desenha direto.
 // `passes`: passadas da cena entre o brilho e a saída (o desfoque de maquete da cidade, motor.mjs).
+// `brilho`: true (o do ESTILO) ou { forca, limiar } próprio da cena (a cidade tem céu e nuvens claras: só o que acende brilha).
 export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho = true, passes = [] } = {}) {
   const tam = renderer.getSize(new THREE.Vector2());
   const composer = new EffectComposer(renderer);
@@ -118,7 +122,7 @@ export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho 
     gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
     composer.addPass(gtao);
   }
-  if (brilho) { bloom = new UnrealBloomPass(new THREE.Vector2(Math.max(1, tam.x), Math.max(1, tam.y)), ESTILO.brilho.forca, .5, ESTILO.brilho.limiar); composer.addPass(bloom); }
+  if (brilho) { const b = { ...ESTILO.brilho, ...(typeof brilho === 'object' ? brilho : {}) }; bloom = new UnrealBloomPass(new THREE.Vector2(Math.max(1, tam.x), Math.max(1, tam.y)), b.forca, .5, b.limiar); composer.addPass(bloom); }
   for (const p of passes) composer.addPass(p);
   composer.addPass(new OutputPass());
   let ligado = true;
