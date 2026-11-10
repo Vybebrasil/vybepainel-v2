@@ -1412,8 +1412,8 @@
       </div>
       <span class="vv-divisor" aria-hidden="true"></span>
       <div class="vv-vistas" role="group" aria-label="Vista do mundo">
-        <button type="button" class="vv-botao" data-vista="cidade" aria-pressed="true">${ic.cidade}<span class="vv-rotulo-longo">Cidade</span></button>
-        <button type="button" class="vv-botao" data-vista="predio" aria-pressed="false">${ic.predio}<span class="vv-rotulo-longo">Prédio da Vybe</span></button>
+        <button type="button" class="vv-botao" data-vista="cidade" aria-pressed="true" aria-label="Cidade" title="Cidade">${ic.cidade}<span class="vv-rotulo-longo">Cidade</span></button>
+        <button type="button" class="vv-botao" data-vista="predio" aria-pressed="false" aria-label="Prédio da Vybe" title="Prédio da Vybe">${ic.predio}<span class="vv-rotulo-longo">Prédio da Vybe</span></button>
       </div>
       </div>
     </div>
@@ -1449,7 +1449,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function ajustarAreaLivre() {
-    if (!mundo) return;
+    if (typeof innerWidth !== 'number') return; // fora do navegador (testes): nada a medir
     const celular = innerWidth <= 900;
     // À esquerda, o que estiver à vista por último: o Hoje (também no Centro) ou o trilho; à direita, o painel do
     // prédio/andar ou, sem ele, a Agenda.
@@ -1459,8 +1459,9 @@
     const esq = celular ? 0 : (gate?.getBoundingClientRect().right || 0) + 6;
     const agenda = hud.querySelector('#vv-agenda');
     const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : body.classList.contains('agenda-fixa') && visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
-    mundo.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
+    // As medidas valem para o HUD mesmo antes do mapa montar (o topo do Centro começa depois do Hoje).
     body.style.setProperty('--vv-livre-esq', Math.round(esq) + 'px'); body.style.setProperty('--vv-livre-dir', Math.round(dir) + 'px');
+    mundo?.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
   }
 
   // ---------- Portas: cada sala abre o módulo que já existe ----------
@@ -3108,7 +3109,13 @@
         img.dataset.voxel = '1';
         const classe = decodeURIComponent(u.pathname.split('/').pop().replace(/\.png$/i, ''));
         img.dataset.movel = classe; // a arte local que entra no erro da imagem (miniaturaLocalEscritorio) é o mesmo móvel
-        modAvatar.retratoDoMovel?.(classe).then((url) => { if (url && img.dataset.movel === classe && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } }).catch(() => {});
+        // Enquanto o voxel não chega, a pixel art do Habbo não aparece (Paulo: "nada de pixel art do Habbo"): o lugar da
+        // imagem brilha como um carregando. Só um móvel que nem o quarto consegue montar em voxel volta à arte de sempre.
+        img.classList.add('movel-esperando');
+        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
+        // Pulada na fila se a imagem sair de vista antes da vez dela; volta a pedir quando reaparecer (o observador de src).
+        const vivo = () => img.isConnected && img.offsetParent !== null && img.dataset.movel === classe;
+        modAvatar.retratoDoMovel?.(classe, 96, vivo).then((url) => { if (!url && !vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; } pronto(url); }, () => pronto(''));
         return;
       }
       const fig = q.get('figure') || '', opcoes = { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 };
@@ -3118,6 +3125,8 @@
       modAvatar.avatarVoxelFiel?.(fig, opcoes).then((fiel) => { if (fiel && img.dataset.habbo === src && img.isConnected) img.src = fiel; }).catch(() => {});
     } catch (e) { console.error('[mundo] avatar', e); }
   }
+  // Móvel pulado na fila por estar fora de vista: pede de novo quando a imagem aparecer.
+  const reVer = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { reVer.unobserve(e.target); trocarAvatar(e.target); } }) : null;
   function trocarAvataresEm(raiz) { (raiz.querySelectorAll ? raiz.querySelectorAll('img') : []).forEach(trocarAvatar); if (raiz.tagName === 'IMG') trocarAvatar(raiz); }
   new MutationObserver((ms) => { if (!ligado) return; for (const m of ms) { if (m.type === 'attributes') { if (m.target.dataset.voxel === '1' && HABBO.test(m.target.getAttribute('src') || '')) m.target.dataset.voxel = ''; trocarAvatar(m.target); } else m.addedNodes.forEach((n) => n.nodeType === 1 && trocarAvataresEm(n)); } })
     .observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
@@ -3572,27 +3581,39 @@
   function salvarCamadas() { try { localStorage.setItem(CAMADAS_CHAVE, JSON.stringify(camadas)); } catch { /* sem armazenamento */ } }
   function mostrarCamadas() {
     const p = placa();
-    // Fase 3b (quadro 43): um balão compacto junto dos controles do mapa, que fica à vista e muda na hora; interruptores;
-    // as etapas da prospecção só aparecem com ela ligada.
+    // Fase 3b (quadro 43): um balão compacto junto dos controles do mapa, que fica à vista e muda na hora; interruptores.
+    // A Prospecção também é um interruptor: as etapas do funil (chips) e a legenda só aparecem com ela ligada.
     const pros = camadas.prospeccao && camadas.prospeccao !== 'nenhuma';
+    const chave = (k, n, d, ligado, attr) => `<label class="vv-camada"><input type="checkbox" role="switch" ${attr}${ligado ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`;
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <h3>Camadas do mapa</h3>
-      ${[['clientes', 'Clientes', 'Pinos com a situação de cada cliente'], ['marcos', 'Marcos e ruas', 'Prefeitura, praças, avenidas'], ['captacoes', 'Captações', 'Vans da Vybe a caminho dos clientes']].map(([k, n, d]) => `<label class="vv-camada"><input type="checkbox" role="switch" data-camada="${k}"${camadas[k] ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}
-      <div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Prospecção (CRM)</div>
-      <div class="vv-camada-filtros">${FILTROS_PROS.map(([k, n]) => `<button type="button" class="vv-cb-aba${camadas.prospeccao === k ? ' on' : ''}" data-prospeccao="${k}">${n}</button>`).join('')}</div>
+      ${[['clientes', 'Clientes', 'Pinos com a situação de cada cliente'], ['marcos', 'Marcos e ruas', 'Prefeitura, praças, avenidas'], ['captacoes', 'Captações', 'Vans da Vybe a caminho dos clientes']].map(([k, n, d]) => chave(k, n, d, camadas[k], `data-camada="${k}"`)).join('')}
+      ${chave('prospeccao', 'Prospecção (CRM)', 'Empresas de Irecê que ainda não são clientes', pros, 'data-camada-pros')}
+      <div class="vv-camada-filtros" role="group" aria-label="Etapa da prospecção"${pros ? '' : ' hidden'}>${FILTROS_PROS.filter(([k]) => k !== 'nenhuma').map(([k, n]) => `<button type="button" class="vv-cb-aba${camadas.prospeccao === k ? ' on' : ''}" aria-pressed="${camadas.prospeccao === k}" data-prospeccao="${k}">${n}</button>`).join('')}</div>
       <div class="vv-cb-legenda"${pros ? '' : ' hidden'}>${Object.entries(ETAPA_NOME).map(([k, n]) => `<span><i style="background:${ETAPA_COR[k]}"></i>${n}</span>`).join('')}</div>
       <p class="vv-dica" id="vv-camada-conta"></p>`;
     p.hidden = false; ajustarAreaLivre();
   }
-  hud.addEventListener('change', (e) => { const c = e.target.closest('[data-camada]'); if (!c) return; camadas[c.dataset.camada] = c.checked; salvarCamadas(); aplicarCamadasEtiquetas(); });
-  hud.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-prospeccao]'); if (!b) return;
-    camadas.prospeccao = b.dataset.prospeccao; salvarCamadas();
-    hud.querySelectorAll('[data-prospeccao]').forEach((x) => x.classList.toggle('on', x === b));
-    const leg = placa()?.querySelector('.vv-cb-legenda'); if (leg) leg.hidden = camadas.prospeccao === 'nenhuma';
-    const conta = hud.querySelector('#vv-camada-conta'); if (conta) conta.textContent = 'Carregando…';
+  // Liga a prospecção num filtro (o último escolhido; da primeira vez, todas) ou desliga; o mapa muda na hora.
+  async function escolherProspeccao(filtro) {
+    if (filtro !== 'nenhuma') camadas.prosFiltro = filtro;
+    camadas.prospeccao = filtro; salvarCamadas();
+    const ligada = filtro !== 'nenhuma';
+    hud.querySelectorAll('[data-prospeccao]').forEach((x) => { const on = x.dataset.prospeccao === filtro; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+    const pl = placa();
+    pl?.querySelectorAll('.vv-camada-filtros,.vv-cb-legenda').forEach((x) => { x.hidden = !ligada; });
+    const sw = pl?.querySelector('[data-camada-pros]'); if (sw) sw.checked = ligada;
+    const conta = hud.querySelector('#vv-camada-conta'); if (conta) conta.textContent = ligada ? 'Carregando…' : '';
     const n = await aplicarProspeccao();
-    if (conta) conta.textContent = camadas.prospeccao === 'nenhuma' ? '' : `${(n || 0).toLocaleString('pt-BR')} empresas neste filtro${n > 900 ? ' (no mapa, as 900 mais perto da Vybe)' : ''}.`;
+    if (conta) conta.textContent = !ligada ? '' : `${(n || 0).toLocaleString('pt-BR')} empresas neste filtro${n > 900 ? ' (no mapa, as 900 mais perto da Vybe)' : ''}.`;
+  }
+  hud.addEventListener('change', (e) => {
+    if (e.target.closest('[data-camada-pros]')) { escolherProspeccao(e.target.checked ? (camadas.prosFiltro || 'todas') : 'nenhuma'); return; }
+    const c = e.target.closest('[data-camada]'); if (!c) return; camadas[c.dataset.camada] = c.checked; salvarCamadas(); aplicarCamadasEtiquetas();
+  });
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-prospeccao]'); if (!b) return;
+    escolherProspeccao(b.dataset.prospeccao);
   });
   aplicarCamadasEtiquetas();
 

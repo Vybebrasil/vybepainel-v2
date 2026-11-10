@@ -278,10 +278,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   camadaRotulos.className = 'mundo-rotulos';
   canvas.parentElement.appendChild(camadaRotulos);
   const rotulos = [];
-  function rotulo({ pos, html, classe = '', distMax = Infinity, aoClicar = null, prioridade = 0, fixo = false }) {
+  function rotulo({ pos, html, classe = '', distMax = Infinity, aoClicar = null, prioridade = 0, fixo = false, dica = '' }) {
     const el = document.createElement(aoClicar ? 'button' : 'div');
     if (aoClicar) { el.type = 'button'; el.addEventListener('click', (e) => { e.stopPropagation(); aoClicar(e); }); }
     el.className = 'mundo-rotulo ' + classe; el.innerHTML = html;
+    if (dica) { el.title = dica; el.setAttribute('aria-label', dica); }
     camadaRotulos.appendChild(el);
     el.classList.add('escondido');
     const r = { el, pos: pos.clone(), distMax, prioridade, desce: 0, visivel: false, fixo };
@@ -289,7 +290,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
   function removerRotulo(r) { invalidar(); r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
   const v3 = new THREE.Vector3();
-  let quadro = 0;
+  let quadro = 0, recolidir = 0, refeitas = false;
   function posicionarRotulos() {
     const caixas = [];
     for (const r of rotulos) {
@@ -304,7 +305,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     }
     // A cada 4 quadros resolve as colisões, sem empilhar nome em cima de nome:
     // pino fixo (cliente) que encosta noutro pino junta-se a ele ("+N"); nome comum que encosta some.
-    if (quadro % 4 === 0) {
+    if (quadro % 4 === 0 || recolidir > 0) {
+      recolidir = Math.max(0, recolidir - 1);
       caixas.sort((a, b) => (b.fixo - a.fixo) || b.prioridade - a.prioridade || a.y - b.y);
       const postos = [];
       for (const r of caixas) {
@@ -315,10 +317,17 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
         if (bate) { r.oculto = true; if (r.fixo && bate.r.fixo) bate.r.junto++; continue; }
         postos.push({ x: r.x, y: r.y, w, h, r });
       }
+      let mudouMais = false;
       for (const r of caixas) {
         r.el.classList.toggle('colide', r.oculto);
-        if (r.junto) r.el.dataset.mais = '+' + r.junto; else delete r.el.dataset.mais;
+        // O número e, por extenso, o que ele quer dizer (quadro 32: o pino não fica com um "+2" solto).
+        const mais = r.junto ? '+' + r.junto : undefined;
+        if (mais !== r.el.dataset.mais) mudouMais = true; // a linha muda a altura do pino: confere as colisões de novo
+        if (r.junto) { r.el.dataset.mais = mais; r.el.dataset.maisTexto = `+${r.junto} ${r.junto === 1 ? 'cliente' : 'clientes'} aqui perto`; }
+        else { delete r.el.dataset.mais; delete r.el.dataset.maisTexto; }
       }
+      // Até 3 conferências seguidas (sem ficar trocando para sempre): o motor só desenha quando algo muda.
+      if (mudouMais && !refeitas) { recolidir = 3; refeitas = true; invalidar(); } else if (!mudouMais) refeitas = false;
     }
     for (const r of caixas) r.el.style.transform = `translate(-50%,-100%) translate(${r.x.toFixed(1)}px,${(r.y + r.desce).toFixed(1)}px)`;
   }

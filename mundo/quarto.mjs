@@ -13,7 +13,7 @@ import { ESTILO, PALETA, prepararRenderer, luzDoEstilo, baseDeMaquete, acabament
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraFiel } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
-import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, corDoRevestimento, paletaDoHabbo } from './moveis-habbo.mjs';
+import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, corDoRevestimento, paletaDoHabbo, guardado } from './moveis-habbo.mjs';
 import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, temModelo } from './moveis-voxel.mjs';
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
@@ -79,17 +79,29 @@ function prepararFotografo() {
   fotografo = { renderer, cena };
   return fotografo;
 }
-export function retratoDoMovel(classe, lado = 96) {
+// O retrato pronto fica guardado no navegador (o mesmo IndexedDB das peças esculpidas, chave própria): a Loja e as
+// Conquistas abrem com os ícones voxel na hora a partir da segunda vez. A versão muda quando o desenho do retrato muda.
+const VERSAO_RETRATO = 'r2';
+// `vivo` (opcional): diz se quem pediu ainda está à vista. Na vez da foto, se ninguém mais quer (a janela fechou, a
+// Loja trocou de prateleira), a foto é pulada sem travar a fila: as Conquistas abertas depois não esperam a Loja.
+const interessados = new Map();
+export function retratoDoMovel(classe, lado = 96, vivo = null) {
   const chave = classe + '|' + lado;
+  if (vivo) { if (!interessados.has(chave)) interessados.set(chave, new Set()); interessados.get(chave).add(vivo); }
   if (!retratos.has(chave)) {
-    const vez = filaDeFotos.then(async () => {
+    const chaveGuardada = `retrato|${VERSAO_RETRATO}|${chave}`, antes = filaDeFotos; // a vez na fila é marcada agora
+    const vez = guardado.ler(chaveGuardada).then((salvo) => (typeof salvo === 'string' && salvo.startsWith('data:image/') ? salvo : antes.then(async () => {
+      const quem = interessados.get(chave);
+      if (quem?.size && ![...quem].some((f) => { try { return f(); } catch { return false; } })) { retratos.delete(chave); interessados.delete(chave); return ''; }
+      interessados.delete(chave);
       const fis = await (typeof globalThis.mapaCarregarFisica === 'function' ? globalThis.mapaCarregarFisica() : Promise.resolve({})).catch(() => ({}));
       const f = fis?.[classe];
-      if (f && (f[0] & 16)) return ''; // peça de parede: fica a arte de sempre
-      const v = await movelEmVoxel(classe, 4, 0, f ? { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), altura: Number(f[1]) || 0 } : null);
+      // Peça de parede também vira voxel (quadro 35: "nunca a arte do Habbo"): esculpida da arte dela, de frente.
+      const parede = Boolean(f && (f[0] & 16));
+      const v = await movelEmVoxel(classe, parede ? 2 : 4, 0, f && !parede ? { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), altura: Number(f[1]) || 0 } : null);
       if (!v) return '';
       const { renderer, cena } = prepararFotografo();
-      const g = v.malha; g.rotation.y = -.5; cena.add(g);
+      const g = v.malha; g.rotation.y = parede ? 0 : -.5; cena.add(g);
       // Enquadra só o móvel: a sombra de contato no chão (mais larga que uma peça pequena) não conta.
       g.updateMatrixWorld(true);
       const caixa = new THREE.Box3(); g.traverse((o) => { if (o.isMesh && !o.userData.sombraDeContato) caixa.expandByObject(o); });
@@ -100,8 +112,9 @@ export function retratoDoMovel(classe, lado = 96) {
       renderer.setSize(lado * 2, lado * 2, false); renderer.render(cena, cam);
       const url = renderer.domElement.toDataURL('image/png');
       cena.remove(g); g.traverse((o) => { o.geometry?.dispose?.(); });
+      if (url) guardado.gravar(chaveGuardada, url);
       return url;
-    }).catch(() => '');
+    }))).catch(() => '');
     filaDeFotos = vez.then(() => new Promise((r) => setTimeout(r, 0)));
     retratos.set(chave, vez);
   }

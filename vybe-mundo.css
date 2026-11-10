@@ -4169,7 +4169,6 @@ html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden]
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-coluna-fundo,var(--vv-m))!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
 html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
-html body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{right:calc(var(--vv-m) * 2 + 360px)}
 @media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:var(--vv-coluna-fundo,calc(64px + 2 * var(--vv-m)))!important}}
 /* X do Cadastro rápido visível no papel claro (antes: #ece8e3 sobre creme, sumia). Paulo: "não tem o x de fechar". */
 html body.mundo #fc-overlay .fc-close{color:#3D3A35!important;background:#FFFFFF!important;border:1px solid #D9D1C3!important;width:32px!important;height:32px!important;top:16px!important;right:16px!important;opacity:1!important}
@@ -6310,3 +6309,73 @@ body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;widt
 }
 body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
 body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
+
+/* ===== Frente mundo (redesign fase 3, quadros 32, 33, 43, 35–37 e 38; 10/11/2026) ===== */
+/* 32 · Cidade: o Hoje mais estreito sobre o 3D (o mapa usa o resto); o topo começa depois dele, como uma barra só, sem
+   cobrir as abas do Hoje ("Minhas tarefas"), e a busca mostra o texto quando cabe. --vv-livre-esq vem de ajustarAreaLivre. */
+@media (min-width:901px){
+  body.mundo.mundo-centro .vv-hoje{width:340px}
+  body.mundo.mundo-centro .vv-topo{left:max(var(--vv-m),var(--vv-livre-esq,0px))}
+  body.mundo.mundo-centro .vv-topo .vv-espaco{display:none}
+  body.mundo.mundo-centro .vv-topo .vv-barra-topo{flex:1;min-width:0;container-type:inline-size}
+  body.mundo.mundo-centro .vv-barra-topo .vv-ferramentas{flex:1;min-width:0}
+  body.mundo.mundo-centro .vv-barra-topo .vv-busca-larga{flex:1 1 auto;min-width:36px;max-width:320px;width:auto;justify-content:flex-start;gap:8px;padding:0 10px;margin-right:auto;border-radius:10px;background:#F5F1EA;color:#6B675F}
+  body.mundo.mundo-centro .vv-barra-topo :is(.vv-ferramentas,.vv-vistas) > :not(.vv-busca-larga){flex-shrink:0}
+}
+@media (min-width:901px) and (max-width:1180px){body.mundo.mundo-centro .vv-hoje{width:300px}}
+/* A barra mede o próprio espaço: a busca ganha o texto a partir de 760 px; Cidade e Prédio ficam com o nome a partir de
+   1.000 px (abaixo, só o ícone, com o nome na dica e no leitor de tela). */
+@container (max-width:999px){body.mundo.mundo-centro .vv-barra-topo .vv-vistas .vv-rotulo-longo{display:none}}
+@container (min-width:760px){
+  body.mundo.mundo-centro .vv-barra-topo .vv-busca-larga .vv-busca-texto{display:inline;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 13px var(--vv-texto,Inter),sans-serif}
+}
+/* O pino da loja: bolinha da situação e nome numa linha, a situação escrita com o número embaixo; os vizinhos que ele
+   esconde viram uma linha "+2 clientes aqui perto", não um "+2" preto solto. */
+.mundo-rotulo.rotulo-loja .loja-linha{display:flex;align-items:center;gap:6px;max-width:240px}
+.mundo-rotulo.rotulo-loja .loja-ponto{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.mundo-rotulo.rotulo-loja .loja-nome{flex:0 1 auto;min-width:0}
+.mundo-rotulo.rotulo-loja .loja-situacao{flex:none;font:600 10.5px/1.2 var(--vv-texto);color:#5E5A53}
+.mundo-rotulo.rotulo-loja.atrasada .loja-situacao{color:#B42318}
+.mundo-rotulo.rotulo-loja:has(.loja-linha){max-width:250px}
+body.mundo .mundo-rotulo.rotulo-loja[data-mais]::after{content:attr(data-mais-texto);position:static;min-width:0;height:auto;padding:2px 0 0;margin-top:1px;border-top:1px solid #EFEAE2;border-radius:0;background:none;color:#8A847A;box-shadow:none;font:600 9.5px/1.3 var(--vv-texto);text-align:center}
+/* 33 e 43 · Controles do mapa no canto, acima do dock, também com o elevador (ou outro painel) aberto: em vez de pular para
+   o meio da tela, viram uma fileira e o painel termina acima dela. O balão das Camadas abre ao lado da coluna. */
+@media (min-width:901px){
+  body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{flex-direction:row}
+  body.mundo.mundo-centro:has(#vv-placa:not([hidden]) .vv-camada) .vv-controles{flex-direction:column}
+  body.mundo.mundo-centro .vv-placa:not(:has(.vv-camada)){max-height:calc(100dvh - var(--vv-m) - 64px - 96px - 60px)}
+}
+/* 43 · Prospecção desligada: sem as etapas nem a legenda (o display:flex das regras antigas vencia o hidden). */
+body.mundo .vv-placa :is(.vv-camada-filtros,.vv-cb-legenda)[hidden]{display:none}
+body.mundo .vv-placa .vv-camada-filtros{padding-left:4px}
+/* 38 · Jogos e Equipe online param acima do dock das salas (antes desciam por trás dele até o pé da tela). */
+@media (min-width:901px){
+  body.mundo:not(.mundo-centro) .vv-placa:has(> .vv-jogos,> .vv-online-lista){bottom:calc(var(--vv-m) * 2 + var(--vv-dock-alto,0px))}
+}
+/* 36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, à direita do dock lateral e acima do dock das salas,
+   em vez de cobrir quase a tela toda (a largura de 1.480 px do jogo antigo ficou só fora do mundo). */
+body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - 2 * var(--vv-m)));max-width:none}
+@media (min-width:901px){
+  body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - var(--vv-palco-esq,0px) - var(--vv-m)));left:calc(50% + (var(--vv-palco-esq,0px) - var(--vv-m)) / 2)}
+}
+/* 35 e 37 · Loja, inventário, Conquistas e Ranking: enquanto o retrato voxel do móvel ou do troféu não chega, o lugar
+   brilha (a imagem do Habbo fica fora da caixa); com "Reduzir movimento", fica parado. */
+body.mundo img.movel-esperando{object-position:-9999px -9999px;border-radius:8px;background:linear-gradient(100deg,#EFEAE2 30%,#F8F5F0 50%,#EFEAE2 70%) 0 0/300% 100%;animation:vv-retrato-espera 1.2s linear infinite}
+@keyframes vv-retrato-espera{from{background-position:100% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){body.mundo img.movel-esperando{animation:none}}
+/* 35 · Loja: as categorias saem da lista lateral e viram uma fileira de chips em cima da grade (os mesmos botões, com
+   o número de cada); o escolhido no selecionado do sistema. A ordem também é chip (escritorioOrdemChipsHtml). */
+body.mundo #office-catalogo .ofc-catj-corpo{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+body.mundo #office-catalogo.com-ficha .ofc-catj-corpo{grid-template-columns:minmax(0,1fr) 320px}
+body.mundo #office-catalogo.com-ficha .ofc-catj-arvore{grid-column:1/-1}
+body.mundo #office-catalogo .ofc-catj-arvore{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;overflow:visible;max-height:none;border-right:0;border-bottom:1px solid #ECE6DC}
+body.mundo #office-catalogo .ofc-catj-arvore .ofc-loja-grupo{display:contents}
+body.mundo #office-catalogo .ofc-catj-arvore .ofc-loja-grupo h5{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.mundo #office-catalogo .ofc-loja-nav{flex:none;width:auto;min-height:30px;gap:6px;padding:0 11px 0 7px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#4A463F;font:650 12.5px var(--vv-texto,Inter),sans-serif;box-shadow:none}
+body.mundo #office-catalogo .ofc-loja-nav .ofc-ico{width:20px;height:20px;padding:2px;background:none}
+body.mundo #office-catalogo .ofc-loja-nav span{flex:none;overflow:visible}
+body.mundo #office-catalogo .ofc-loja-nav small{color:#8A847A;font:700 11px var(--vv-texto,Inter),sans-serif}
+body.mundo #office-catalogo .ofc-loja-nav:hover{border-color:var(--ds-sel-borda);background:#FFFFFF}
+body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto);box-shadow:none}
+body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true] :is(.ofc-ico,small){background:none;color:var(--ds-sel-texto)}
+body.mundo #office-catalogo .ofc-catj-faixas .ofc-ordem-chips{border-left-color:#E6E0D6}
