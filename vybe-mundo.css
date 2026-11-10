@@ -2974,7 +2974,7 @@ body.mundo{--vv-acao:#C2490C}
 html body.mundo.mundo-modulo .board-switch-btn.active,html body.mundo .ai-setting-save,html body.mundo .workflow-modal .workflow-primary,html body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-acao)!important}
 /* Rótulos coloridos pequenos (kicker, etiqueta, "Hoje" do dia): mesmo tom, escurecido. Só o texto: o kicker que leva
    botão (o X da janela) escurecia o botão junto e o X ficava um quadrado cinza (Paulo, 09/11/2026). */
-html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select){filter:brightness(.6) saturate(1.35)}
+html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select):not(:has(button,a,input,select)){filter:brightness(.6) saturate(1.35)}
 /* Cinzas de apoio que ficavam claros demais */
 html body.mundo.mundo-modulo :is(label.filtro-carteira,.agenda-filtros-rotulo,.conta-ensaio,.cli-porta.quieto,.ai-usage-label,.ai-usage-detail,.ai-setting-copy,.toolbar-label,.day-date-context,.day-progress-label,.resumo-nota){color:#6B675F!important}
 html body.mundo.mundo-modulo .ai-settings :is(strong,label),html body.mundo.mundo-modulo [class*="ai-setting"] :is(strong,label){color:#4A463F!important}
@@ -3539,7 +3539,7 @@ html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;
 html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-checked="true"]):not(#ds-a):not(#ds-b),html body.mundo .dono-pessoa:has(input:checked):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
 html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
 /* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */
-html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(.ativo):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
 html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
 
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
@@ -5422,11 +5422,12 @@ html body.mundo .ops-command-bar .global-search-wrap{display:none}
 html body.mundo .ops-modos>summary{background:#FFFFFF;border-color:#E6E0D6;color:#1F1D1A}
 html body.mundo .ops-modos>summary:hover{border-color:#F26B1D}
 html body.mundo .ops-modos>.ops-acoes{background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:var(--vv-sombra-janela)}
-/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o título vira uma linha com
-   reticências e o horário sai, em vez de quebrar a palavra no meio ("Reuni / de / pa"). */
+/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o horário sai e o título usa a
+   altura toda em letra menor, quebrando entre palavras (quadro 04: "Client…" e "Reuni…" cortavam o nome); só a palavra
+   que não cabe inteira na largura ganha hífen (pt-BR), nunca reticências no meio do nome. */
 html body.mundo .ag-ev{container-type:inline-size}
-@container (max-width:64px){
-  .ag-ev b{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10.5px}
+@container (max-width:72px){
+  .ag-ev b{font-size:10.5px;line-height:13px;margin-right:-5px;-webkit-line-clamp:var(--linhas-estreito,2);hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
   .ag-ev small{display:none}
 }
 /* "N gravações para fechar" é um chip de alerta, não um texto solto. */
@@ -6699,3 +6700,85 @@ body.mundo #office-catalogo .ofc-loja-nav:hover{border-color:var(--ds-sel-borda)
 body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto);box-shadow:none}
 body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true] :is(.ofc-ico,small){background:none;color:var(--ds-sel-texto)}
 body.mundo #office-catalogo .ofc-catj-faixas .ofc-ordem-chips{border-left-color:#E6E0D6}
+
+/* ===== Frente operação do redesign (quadros 04, 06, 28 e 65; 10/11/2026) ===== */
+/* 04 Agenda e captações: o cabeçalho tem a ação ("Marcar captação"); as abas da agenda abrem a barra única. */
+body.mundo .prod-v2-head.com-acao{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px}
+.p-head-acoes{flex:none;display:flex;align-items:center;gap:8px}
+.capt-marcar{display:inline-flex;align-items:center;gap:7px}
+.capt-marcar svg{flex:none}
+.capt-toolbar .p-abas{flex:none;margin-right:6px}
+/* Uma barra só (abas, período, gravações para fechar, Exibir e Dia/Semana/Mês) que quebra em linhas inteiras quando
+   não cabe: o período (Hoje, setas e o nome) anda junto, sem um pedaço numa linha e outro na outra. */
+body.mundo .capt-cal .capt-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+body.mundo .capt-cal .capt-tb-esq{flex:1 1 auto;flex-wrap:wrap;row-gap:8px}
+body.mundo .capt-cal .capt-tb-dir{flex:0 1 auto;margin-left:auto;flex-wrap:wrap}
+.capt-tb-nav{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
+body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+body.mundo .capt-cal .capt-tb-esq{flex-wrap:wrap;row-gap:8px}
+/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
+body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+/* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
+.capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
+.capt-linha-pecas .capt-progresso{margin:0}
+.capt-linha-pecas .capt-trocar{margin:0 0 0 auto}
+.capt-trocar > summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:28px;padding:0 11px;font-size:12.5px}
+body.mundo .capt-trocar > summary.vb-botao{border:1px solid var(--pc-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:#1F1D1A;font-weight:600}
+body.mundo .capt-trocar > summary.vb-botao:hover{border-color:#F26B1D;color:#C2490C}
+body.mundo .capt-trocar > summary.vb-botao:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.capt-trocar > summary::-webkit-details-marker{display:none}
+.capt-trocar[open]{flex-basis:100%;display:grid;gap:8px}
+.capt-trocar[open] > summary{justify-self:end}
+.capt-trocar-caixa{display:grid;gap:8px}
+.capt-esperando{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.capt-esperando-item{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:9px;background:#FFFFFF}
+.capt-esperando-item > span{min-width:0;display:grid;gap:1px}
+.capt-esperando-item .capt-peca-nome{font:600 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;overflow-wrap:break-word}
+.capt-esperando-item small{font:500 11.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B675F}
+.capt-esperando-ponto{flex:none;width:8px;height:8px;margin-top:5px;border-radius:50%;background:#A8A29E}
+.capt-esperando-ponto.ok{background:#1F9D55}
+.capt-esperando-ponto.atencao{background:#D97706}
+.capt-esperando-ponto.alerta{background:#DC2626}
+/* 06 Demanda completa: copiar link e log viram ícones (nome para o leitor de tela e dica no title). */
+.so-icone .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.mundo #workspace-drawer .workspace-barra-acoes{display:flex;align-items:center;gap:6px}
+body.mundo #workspace-drawer .vybe-link.so-icone{display:inline-grid;place-items:center;width:34px;height:34px;min-height:34px;padding:0;gap:0;border-radius:8px;color:#1F1D1A}
+body.mundo #workspace-drawer .vybe-link.so-icone svg{width:16px;height:16px}
+body.mundo #workspace-drawer .vybe-link.so-icone:hover{border-color:#F26B1D;color:#C2490C}
+body.mundo #workspace-drawer .vybe-link.so-icone:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.workspace-voltar,.workspace-mais-cel{display:none}
+/* Objetivo na gaveta: os três objetivos numa linha, no mesmo desenho da janela Conteúdo (quadros 06 e 28). */
+body.mundo #workspace-drawer .vc-objetivo-campo{display:inline-flex;flex-wrap:nowrap;gap:4px;max-width:100%}
+body.mundo #workspace-drawer .vc-objetivo-campo button{appearance:none;flex:0 1 auto;min-width:0;height:28px;padding:0 9px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+body.mundo #workspace-drawer .vc-objetivo-campo button i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c)}
+body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds-sel-fundo,#FFEBDF);border:1px solid transparent;color:var(--ds-sel-texto,#C2490C)}
+/* 28 Celular: um dock só (Hoje, Produção, Criar, Voz, Mais); o cartão das salas abre pelo Voz; a gaveta ocupa a tela
+   com ‹ para voltar, copiar link e log no "⋯", campos em grade de dois e comentar e passar bastão fixos embaixo. */
+.vv-cel-voz-ponto{display:none}
+@media (max-width:600px){
+  body.mundo .vv-trilho [data-cel="conversas"]{display:none}
+  body.mundo .vv-trilho [data-cel="voz"]{order:3;position:relative}
+  body.mundo .vv-trilho [data-cel="voz"][aria-expanded="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  body.mundo .vv-trilho [data-cel="voz"].na-chamada .vv-cel-voz-ponto{display:block;position:absolute;top:5px;left:calc(50% + 6px);width:8px;height:8px;border-radius:50%;background:#1F9D55;box-shadow:0 0 0 2px #FFFFFF}
+  body.mundo.dock-cartao:not(.cel-voz-aberta) .vv-dock-salas-faixa{display:none}
+  body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-dock-alto:0px}
+  body.mundo .prod-v2-head.com-acao{flex-wrap:wrap;gap:10px}
+  body.mundo .prod-v2-head.com-acao .p-head-acoes{width:100%}
+  body.mundo #workspace-drawer.workspace-drawer{inset:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px)) 0;width:100%;max-width:none;border-radius:0 0 14px 14px;border-left:0}
+  /* Fora de uma chamada o cartão das salas está guardado no Voz: a gaveta vai até a barra de baixo. */
+  body.mundo.dock-cartao:not(.cel-voz-aberta) #workspace-drawer.workspace-drawer{bottom:calc(64px + 2 * var(--vv-m,12px))}
+  /* Sem o desfoque atrás: no celular a gaveta é a tela (e o WebKit deixava o painel de baixo aparecer através dela). */
+  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0}
+  body.mundo #workspace-drawer .workspace-rolagem{padding:0 14px}
+  body.mundo #workspace-drawer .workspace-barra{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:6px;margin:0 -14px;padding:8px 10px;background:#FFFFFF;border-bottom:1px solid #EFEAE2}
+  body.mundo #workspace-drawer .workspace-voltar{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border-radius:8px}
+  body.mundo #workspace-drawer .workspace-barra-nome{flex:1;min-width:0}
+  body.mundo #workspace-drawer .workspace-barra .so-icone,body.mundo #workspace-drawer .workspace-barra .workspace-close{display:none}
+  body.mundo #workspace-drawer .workspace-mais-cel{display:block}
+  body.mundo #workspace-drawer .workspace-faixa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  body.mundo #workspace-drawer .workspace-faixa > .workspace-faixa-objetivo{grid-column:1/-1}
+  body.mundo #workspace-drawer .vc-objetivo-campo button{padding:0 7px;font-size:11.5px;gap:4px}
+  body.mundo #workspace-drawer .workspace-rodape{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 -14px;padding:8px 10px}
+  body.mundo #workspace-drawer .workspace-rodape .workspace-textarea{grid-column:1/-1;width:100%;min-height:40px}
+}

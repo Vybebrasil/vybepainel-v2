@@ -21,9 +21,9 @@ test('Painel: os modos num menu só, que fecha ao escolher', () => {
   assert.match(html, /if\(event\.target\.closest\('button'\)\)this\.closest\('details'\)\.open=false/);
 });
 
-test('agenda: evento estreito vira uma linha com reticências; a do Escritório fica legível fora do módulo', () => {
+test('agenda: evento estreito quebra entre palavras (quadro 04, sem reticências no nome); a do Escritório fica legível fora do módulo', () => {
   assert.match(css, /html body\.mundo \.ag-ev\{container-type:inline-size\}/);
-  assert.match(css, /@container \(max-width:64px\)\{\s*\.ag-ev b\{display:block;white-space:nowrap;text-overflow:ellipsis/);
+  assert.match(css, /@container \(max-width:72px\)\{\s*\.ag-ev b\{font-size:10\.5px;line-height:13px;[^}]*-webkit-line-clamp:var\(--linhas-estreito,2\);hyphens:auto/);
   assert.match(css, /html body\.mundo \.capt-tb-pend\.atencao\{background:#FDECEE;/);
   assert.match(css, /html body\.mundo \.ofc-agenda \.ag-ev\{color:#1F1D1A\}/);
 });

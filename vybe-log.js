@@ -126,10 +126,11 @@ function logRotuloDoDia(dia, agora = Date.now()) {
   return logDataBr(dia);
 }
 
-function botaoDoLogHtml(itemId, { demanda = false } = {}) {
-  return `<button type="button" class="vybe-link log-botao"
+// icone: só o desenho, com o nome para o leitor de tela e a dica ao passar o mouse (gaveta, quadro 06 do redesign).
+function botaoDoLogHtml(itemId, { demanda = false, icone = false } = {}) {
+  return `<button type="button" class="vybe-link log-botao${icone ? ' so-icone' : ''}"${icone ? ' aria-label="Log de atividade"' : ''}
     onclick="event.stopPropagation();abrirLogDaPeca('${safeText(itemId)}',{demanda:${demanda}})"
-    title="Quem fez o quê nesta peça, com dia e hora"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span>Log de atividade</span></button>`;
+    title="Log de atividade: quem fez o quê nesta peça, com dia e hora"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span${icone ? ' class="sr-only"' : ''}>Log de atividade</span></button>`;
 }
 
 async function abrirLogDaPeca(itemId, { demanda = false } = {}) {

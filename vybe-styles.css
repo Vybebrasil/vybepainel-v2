@@ -1306,6 +1306,8 @@
 
     .workspace-backdrop { position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(5px)}
 
+    /* O miolo rolável da gaveta (era estilo na linha; virou classe para o celular poder mudar o respiro, quadro 28). */
+    .workspace-rolagem { flex:1;overflow-y:auto;padding:22px 24px 0;box-sizing:border-box;width:100%;height:100% }
     .workspace-drawer { position:fixed;z-index:501;right:0;top:0;bottom:0;width:min(640px,100vw);padding:26px;overflow-y:auto;overscroll-behavior-y:contain;background:linear-gradient(145deg,#150801,#070403 60%);border-left:1px solid rgba(255,107,0,.32);box-shadow:-20px 0 60px rgba(0,0,0,.5);color:#fff4e8}
 
     .workspace-kicker { display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffb000;font:700 10px var(--mac-ui)}
@@ -19452,7 +19454,9 @@ body.ag-arrastando .ag-col {background-image:repeating-linear-gradient(180deg,tr
 
 .ag-dia-todo .ag-ev,.ag-lista .ag-ev {position:relative}
 
-.ag-dia-todo .ag-ev b {-webkit-line-clamp:1}
+.ag-dia-todo .ag-ev b {-webkit-line-clamp:3}
+
+.ag-ev.mini small {display:none}
 
 .ag-ev:hover {background:color-mix(in srgb,var(--ag-cor) 32%,var(--lg-cartao,#15171e));z-index:4}
 

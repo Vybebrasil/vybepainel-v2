@@ -1463,6 +1463,10 @@
         const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
         return cab + botao + subs;
       }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
+        // Celular (quadro 28): um dock só. A voz vira um lugar da barra de baixo; fora de uma chamada, o cartão das salas
+        // (Salas e Entrar) abre por cima dela só quando se toca em Voz. Na chamada o dock das salas fica à vista (o
+        // microfone ligado sempre visível e silenciar num toque) e o Voz abre a lista de salas.
+        + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="voz" aria-expanded="false" aria-controls="vv-dock-salas-faixa" title="Voz: entrar numa sala, ver quem está em cada uma" aria-label="Voz">${svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}<span>Voz</span><i class="vv-cel-voz-ponto" aria-hidden="true"></i></button>`
         + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="mais" aria-haspopup="dialog" aria-expanded="false" title="Mais: ferramentas, voz e os outros módulos" aria-label="Mais">${svg('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>')}<span>Mais</span></button>`;
     })()}</nav>
     <section class="vv-hoje" id="vv-hoje" aria-label="Seu dia"></section>
@@ -1983,7 +1987,7 @@
     if (e.base?.eu != null) m.set(String(e.base.eu), Boolean(e.chamada.self?.audioEnabled));
     return m;
   }
-  const faixaDock = document.createElement('div'); faixaDock.className = 'vv-dock-salas-faixa'; faixaDock.hidden = true;
+  const faixaDock = document.createElement('div'); faixaDock.className = 'vv-dock-salas-faixa'; faixaDock.id = 'vv-dock-salas-faixa'; faixaDock.hidden = true;
   faixaDock.innerHTML = '<nav class="vq-dock vv-dock-salas" aria-label="Salas: voz, ver a sala, quem está em cada uma, chat e música"></nav>';
   document.body.append?.(faixaDock);
   function pintarDock() {
@@ -2002,6 +2006,10 @@
     // termina "acima do dock" (Hoje, janelas, coluna da Conversa, Notas, avisos) usa a mesma conta do computador.
     const cel = noCelular();
     body.classList.toggle('dock-cartao', cel && Boolean(nav.querySelector('.vq-cartao')));
+    // O Voz da barra de baixo (quadro 28): sem o cartão (numa chamada ou fora do celular), o cartão aberto pelo Voz fecha;
+    // na chamada o Voz ganha o ponto verde, e o dock da chamada continua à vista.
+    if (!body.classList.contains('dock-cartao') && body.classList.contains('cel-voz-aberta')) { body.classList.remove('cel-voz-aberta'); hud.querySelector('[data-cel="voz"]')?.setAttribute('aria-expanded', 'false'); }
+    hud.querySelector('[data-cel="voz"]')?.classList.toggle('na-chamada', cel && !nav.querySelector('.vq-cartao'));
     body.classList.toggle('cel-na-sala', cel && String(andarAbertoId || '').startsWith('quarto:'));
     const estreita = typeof matchMedia === 'function' && matchMedia('(max-width:900px)').matches;
     const margem = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 12, topo = nav.getBoundingClientRect?.().top || 0;
@@ -2947,8 +2955,27 @@
     return `<div class="vv-cel-mais-cab"><h2 id="vv-cel-mais-titulo">Mais</h2><button type="button" class="vc-ico" data-cel-fechar aria-label="Fechar" title="Fechar (Esc)">${svg('<path d="M6 6l12 12M18 6 6 18"/>')}</button></div>
       <div class="vv-cel-mais-corpo">${partes.join('')}</div>`;
   }
+  // O cartão das salas no celular, aberto pelo Voz da barra de baixo (quadro 28). Fecha com toque fora, Esc ou ao
+  // entrar numa chamada (aí o dock da chamada fica à vista por conta própria).
+  function vozCelAberta() { return body.classList.contains('cel-voz-aberta'); }
+  function abrirVozCel(abrir) {
+    body.classList.toggle('cel-voz-aberta', abrir);
+    hud.querySelector('[data-cel="voz"]')?.setAttribute('aria-expanded', String(abrir));
+    document.removeEventListener('pointerdown', foraDaVozCel, true);
+    if (abrir) setTimeout(() => document.addEventListener('pointerdown', foraDaVozCel, true), 0);
+    pintarDock();
+  }
+  function foraDaVozCel(e) { if (!e.target.closest?.('.vv-dock-salas-faixa, [data-cel="voz"], .vq-barra-salas, .vv-salas')) abrirVozCel(false); }
+  document.addEventListener?.('keydown', (e) => { if (e.key === 'Escape' && vozCelAberta()) { abrirVozCel(false); hud.querySelector('[data-cel="voz"]')?.focus?.(); } });
   function usarCelular(qual) {
     if (qual === 'conversas') { fecharMaisCel(); usarTrilho('conversas'); return; }
+    if (qual === 'voz') {
+      fecharMaisCel();
+      if (!body.classList.contains('dock-cartao')) { faixaDock.querySelector('[data-dock="salas"]')?.click(); return; }
+      abrirVozCel(!vozCelAberta());
+      if (vozCelAberta()) faixaDock.querySelector('[data-dock="entrar"], [data-dock="salas"]')?.focus?.();
+      return;
+    }
     if (qual !== 'mais' || fecharMaisCel(true)) return;
     fecharSetor(); fecharAvisos();
     const origem = [], m = document.createElement('section');

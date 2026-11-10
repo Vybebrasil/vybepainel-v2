@@ -21,7 +21,8 @@ const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes:
   inspetor: (() => { try { return localStorage.getItem("vybeCaptInspetor") === "1"; } catch { return false; } })(), verParadas: false };
 
 const AG_TIPOS = { captacao: "Captação", reuniao: "Reunião", outro: "Compromisso" };
-const AG_HORA_PX = 58, AG_TOPO = 10;
+// 62 px por hora: o compromisso de 1 h cabe o título em duas linhas e o horário embaixo (quadro 04).
+const AG_HORA_PX = 62, AG_TOPO = 10;
 const agHoje = () => (typeof hojeDeVerdade === "function" && hojeDeVerdade()) || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia" }).format(new Date());
 const agSomar = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const agSegunda = (iso) => { const d = new Date(`${iso}T12:00:00Z`); return agSomar(iso, -((d.getUTCDay() + 6) % 7)); };
@@ -49,6 +50,8 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   const fim = Math.max(20 * 60, ...comHora.map((e) => Math.ceil((agMin(e.fim) ?? agMin(e.inicio) + 60) / 60) * 60));
   // Um respiro em cima para a primeira hora não ficar sob o cabeçalho.
   const px = (min) => AG_TOPO + ((min - ini) / 60) * AG_HORA_PX;
+  // A grade abre no primeiro compromisso do período (quadro 04): sem as manhãs vazias empurrando tudo para baixo.
+  const primeiro = comHora.length ? Math.min(...comHora.map((e) => Math.floor(agMin(e.inicio) / 60) * 60)) : 7 * 60;
   const rotulo = (e) => `${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agDiaSemana(e.dia, "long")} ${agHorario(e)}${e.cliente ? `, ${e.cliente}` : ""}${e.estado ? `, ${e.estado.texto}` : ""}`;
   const clicar = (e) => acoes.evento ? ` onclick="event.stopPropagation();agPreviaSair(true);${acoes.evento}('${safeText(e.id)}')"` : "";
   // Passar o mouse mostra a prévia (Paulo, 26/10/2026); clicar abre o cartão.
@@ -56,7 +59,7 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   // O que já passou recua, como no calendário; o que pede ação não.
   const agoraHm = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
   const passou = (e) => e.dia < hoje || (e.dia === hoje && (agMin(e.fim) ?? agMin(e.inicio) ?? 24 * 60) <= agMin(agoraHm));
-  const bloco = (e, estilo = "", curto = false, recuado = false) => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
+  const bloco = (e, estilo = "", curto = false, recuado = false, mini = false) => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""}${mini ? " mini" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
       <b>${safeText(p.nome)}</b><small>${safeText([e.inicio ? agHorario(e) : "", e.estado?.chave === "fechar" ? "falta fechar" : e.estado?.chave === "gravada" ? "gravada" : curto ? "" : p.resto].filter(Boolean).join(" · "))}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`; };
   // Eventos que se cruzam dividem a coluna (faixas).
   const posicionar = (lista) => {
@@ -83,16 +86,19 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   const grade = `<div class="ag-semana${n === 1 ? " um-dia" : ""}" role="grid" aria-label="${n === 1 ? safeText(agDiaSemana(inicio, "long")) : `Semana de ${safeText(agPeriodo(inicio))}`}">
     <div class="ag-cabeca"><span></span>${dias.map((d) => `<div class="ag-dia-cab${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" role="columnheader"><small>${safeText(agDiaSemana(d))}</small><b>${Number(d.slice(8))}</b>${window.VybeDatas?.chipsDoDia(d, { max: 1 }) || ""}</div>`).join("")}</div>
     ${diaTodo.length ? `<div class="ag-dia-todo"><span>dia todo</span>${dias.map((d) => `<div>${diaTodo.filter((e) => e.dia === d).map((e) => bloco(e)).join("")}</div>`).join("")}</div>` : ""}
-    <div class="ag-corpo" data-ag-rolar="${Math.max(0, px(Math.max(ini, 7 * 60)) - AG_TOPO)}">
+    <div class="ag-corpo" data-ag-rolar="${Math.max(0, px(primeiro) - AG_TOPO)}">
       <div class="ag-horas" style="height:${px(fim) + AG_TOPO}px">${horas.map((m) => `<span style="top:${px(m)}px">${agHora(m)}</span>`).join("")}</div>
       ${dias.map((d) => `<div class="ag-col${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" data-dia="${d}" style="height:${px(fim) + AG_TOPO}px"${vazio(d)}${largado}>
         ${horas.map((m) => `<i class="ag-linha" style="top:${px(m)}px"></i>`).join("")}
         ${d === hoje && agoraMin >= ini && agoraMin <= fim ? `<i class="ag-agora" style="top:${px(agoraMin)}px" aria-hidden="true"></i>` : ""}
         ${posicionar(comHora.filter((e) => e.dia === d)).map(({ e, a, b, faixa, n, lado }) => { const h = Math.max(26, px(b) - px(a) - 2);
-          // Quantas linhas de título cabem no bloco (o resto vira reticências).
-          const linhas = Math.max(1, Math.min(3, Math.floor((h - 26) / 15) + 1));
+          // Quantas linhas de título cabem no bloco com o horário embaixo (quadro 04: título em até duas linhas, palavra
+          // inteira, e o horário sempre inteiro). Bloco baixo demais para os dois ("mini") fica só com o título. No bloco
+          // estreito (dois na mesma hora) o horário sai e o título usa a altura toda, em letra menor (--linhas-estreito).
+          const mini = h < 40, linhas = mini ? 1 : Math.max(1, Math.min(3, Math.floor((h - 27) / 15)));
+          const estreito = Math.max(1, Math.min(4, Math.floor((h - 10) / 13)));
           const pos = lado || n === 1 ? `left:calc(${(faixa / n) * 100}% + 2px);width:calc(${100 / n}% - 4px)` : `left:calc(${faixa * 16}% + 2px);width:calc(${100 - faixa * 16}% - 4px);z-index:${2 + faixa}`;
-          return bloco(e, ` style="top:${px(a)}px;height:${h}px;${pos};--linhas:${linhas}"`, h < 60 || (lado && n > 1), !lado && faixa > 0); }).join("")}
+          return bloco(e, ` style="top:${px(a)}px;height:${h}px;${pos};--linhas:${linhas};--linhas-estreito:${estreito}"`, h < 60 || (lado && n > 1), !lado && faixa > 0, mini); }).join("")}
       </div>`).join("")}
     </div></div>`;
   // Celular: faixa de dias e a lista do dia.
@@ -109,11 +115,23 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
 function agPartesDoTitulo(e) {
   const semSinais = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   // Reuni\u00e3o e compromisso: o nome do evento \u00e9 o que importa; o cliente vem embaixo.
-  if (e.tipo && e.tipo !== "captacao") return { nome: e.titulo || "Sem t\u00edtulo", resto: e.cliente && !semSinais(e.titulo).includes(semSinais(e.cliente)) ? e.cliente : "" };
+  if (e.tipo && e.tipo !== "captacao") {
+    // "Reunião de pauta - Cliente B": o nome do evento sem o cliente, e o cliente embaixo (quadro 04: no bloco estreito
+    // o cliente no fim do título era o que virava reticências).
+    // O título costuma trazer o nome curto ("Cliente B" para "Cliente B (fictício)"): procura os dois.
+    const t = String(e.titulo || ""), nomes = e.cliente ? [e.cliente, e.cliente.replace(/\s*\([^)]*\)\s*/g, " ").trim()] : [];
+    const achado = nomes.map((n) => ({ n, i: n ? semSinais(t).indexOf(semSinais(n)) : -1 })).find((x) => x.i >= 0);
+    const sem = achado ? (t.slice(0, achado.i) + t.slice(achado.i + achado.n.length)).replace(/^[\s\-–·:]+|[\s\-–·:]+$/g, "") : t;
+    // Título que é só o cliente: o cliente fica no nome e não se repete embaixo.
+    return { nome: sem || t || "Sem título", resto: e.cliente && (sem || !achado) ? e.cliente : "" };
+  }
   let resto = String(e.titulo || "").replace(/^\s*(capta[çc][ãa]o|grava[çc][ãa]o|gavacao)\b\s*[-–·:]?\s*/i, "");
   if (e.cliente) {
-    const i = semSinais(resto).indexOf(semSinais(e.cliente));
-    if (i >= 0) resto = resto.slice(0, i) + resto.slice(i + e.cliente.length);
+    // O nome inteiro ou o curto ("Cliente C" para "Cliente C (fictício)"): o que sobra é o assunto ("fachada").
+    for (const n of [e.cliente, e.cliente.replace(/\s*\([^)]*\)\s*/g, " ").trim()]) {
+      const i = n ? semSinais(resto).indexOf(semSinais(n)) : -1;
+      if (i >= 0) { resto = resto.slice(0, i) + resto.slice(i + n.length); break; }
+    }
   }
   resto = resto.replace(/\s*[-–·]\s*(?=[-–·])/g, "").replace(/^[\s\-–·:]+|[\s\-–·:]+$/g, "");
   // "Gavacao Lions" com cliente "Academia Lions": o que sobrou já está no nome.
@@ -131,7 +149,7 @@ function agCartaoAbrir(id, html, aoFechar = "", ponto = null) {
   if (!pop) {
     pop = document.createElement("div"); pop.id = "ag-cartao"; pop.className = "ag-cartao"; pop.setAttribute("role", "dialog");
     document.body.append(pop);
-    document.addEventListener("mousedown", (ev) => { const p = document.getElementById("ag-cartao"); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest(".capt-tb-criar") && !ev.target.closest(".ag-ev,.ag-chip,.capt-linha,.capt-pend-texto,.capt-rd")) agCartaoFechar(); }, true);
+    document.addEventListener("mousedown", (ev) => { const p = document.getElementById("ag-cartao"); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest(".capt-marcar") &&!ev.target.closest(".ag-ev,.ag-chip,.capt-linha,.capt-pend-texto,.capt-rd")) agCartaoFechar(); }, true);
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !document.getElementById("ag-cartao")?.hidden) agCartaoFechar(); });
   }
   pop.dataset.fechar = aoFechar; pop.dataset.ev = id; pop._ponto = ponto;
@@ -480,13 +498,25 @@ function captRoteiroDoCartao(k) {
 // O cartão do evento, ao lado do bloco clicado (versão sóbria, 26/10/2026):
 // quem, quando e o progresso em cima; a ação da vez; as peças DESTA captação
 // numa lista curta; Google e cancelar no pé. As peças do cliente que só estão
-// esperando não entram aqui (proximidade: parecia que eram desta captação) —
-// aparecem no formulário de escolher ou de fechar.
+// esperando não se misturam às desta captação: aparecem só no evento ainda sem
+// peças, sob o selo "N peças esperando" (captPecasEsperandoHtml, quadro 65).
 function captPecaCompactaHtml(p, k) {
   const fechada = Boolean(k?.fechada_em);
   const marcar = k && !fechada ? `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` : "";
   const falta = !p.gravado && p.tipo !== "foto" && !captTemRoteiro(p) ? '<small class="capt-falta">sem roteiro</small>' : "";
   return `<li class="capt-peca-curta${p.gravado ? " gravada" : ""}">${marcar}<button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>${falta}</li>`;
+}
+// As peças do cliente que esperam captação, no cartão de um evento ainda sem peças ligadas (quadro 65: "As peças
+// aparecem no cartão, não só '4 peças'"). Ficam sob o selo "N peças esperando", que diz que ainda não são desta
+// captação; escolher quais entram continua no "Escolher o que vai ser gravado". Até 5; o resto vira "e mais N".
+const CAPT_ESPERANDO_NO_CARTAO = 5;
+function captPecasEsperandoHtml(pendentes) {
+  if (!pendentes.length) return "";
+  const ordem = [...pendentes].sort((a, b) => String(a.prazo || a.veiculacao || "9999").localeCompare(String(b.prazo || b.veiculacao || "9999")));
+  const linha = (p) => { const prazo = captPrazo(p);
+    return `<li class="capt-esperando-item"><i class="capt-esperando-ponto ${prazo.tom || (p.prazo || p.veiculacao ? "ok" : "sem")}" aria-hidden="true"></i><span><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.formato && !captSemSinais(p.titulo).includes(captSemSinais(p.formato)) ? `${p.formato} · ${p.titulo}` : p.titulo)}</button><small>${safeText(prazo.texto)}${p.sem_material ? ` · ${captFaltaRotulo(p)}` : ""}</small></span></li>`; };
+  const resto = ordem.length - CAPT_ESPERANDO_NO_CARTAO;
+  return `<ul class="capt-esperando" aria-label="Peças do cliente esperando captação">${ordem.slice(0, CAPT_ESPERANDO_NO_CARTAO).map(linha).join("")}</ul>${resto > 0 ? `<p class="capt-discreto">e mais ${captPlural(resto, "peça", "peças")} no "Escolher o que vai ser gravado"</p>` : ""}`;
 }
 function captDetalheHtml(e) {
   const k = e.nossa, p = agPartesDoTitulo(e), est = e.estado;
@@ -497,15 +527,19 @@ function captDetalheHtml(e) {
     <p class="capt-detalhe-quando">${safeText(quando)}${e.local ? ` · ${safeText(e.local)}` : ""}</p>`;
   const gerir = captGerirHtml(e);
   const soRodape = [gerir, google].filter(Boolean).join("");
-  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<p class="capt-progresso">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"}${e.cliente ? ` · ${cliCor(e.cliente)}` : ""}</p>${captVinculoHtml(e)}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
+  if (e.tipo !== "captacao") return `<div class="capt-detalhe">${topo}<div class="capt-linha-pecas"><p class="capt-progresso">${e.tipo === "reuniao" ? "Reunião" : "Compromisso"}${e.cliente ? ` · ${cliCor(e.cliente)}` : ""}</p>${captVinculoHtml(e)}</div>${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
   if (!e.cliente && !k) return `<div class="capt-detalhe">${topo}${captVinculoHtml(e)}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
   const pendentes = k ? [] : captPendentesDo(e.cliente_id, e);
-  // Zeigarnik: o que falta, em número, logo no topo.
-  const progresso = k?.fechada_em ? "" : k ? `${k.pecas.filter((x) => x.gravado).length} de ${captPlural(k.pecas.length, "peça gravada", "peças gravadas")}`
-    : pendentes.length ? `${captPlural(pendentes.length, "peça do cliente esperando", "peças do cliente esperando")}` : "nenhuma peça no sistema";
+  // Zeigarnik: o que falta, em número, logo no topo. Sem peças ligadas, o selo já diz quantas esperam (o texto
+  // "4 peças do cliente esperando" ao lado do selo "4 peças esperando" repetia a mesma conta).
+  const progresso = k?.fechada_em ? "" : k ? `${k.pecas.filter((x) => x.gravado).length} de ${captPlural(k.pecas.length, "peça gravada", "peças gravadas")}` : "";
   const estado = est && est.tom !== "ok" ? `<span class="capt-estado tom-${est.tom}">${safeText(est.texto)}</span>` : "";
   const acao = captAcaoPrincipal(e);
   let corpo = "";
+  if (!k) return `<div class="capt-detalhe">${topo}
+    <div class="capt-linha-pecas">${estado}${captVinculoHtml(e)}</div>
+    ${captPecasEsperandoHtml(pendentes)}
+    ${acao ? `<div class="capt-acao">${acao}</div>` : ""}${soRodape ? `<div class="capt-rodape">${soRodape}</div>` : ""}</div>`;
   if (k?.fechada_em) corpo = captGeradoHtml(k) + captRoteiroDoCartao(k);
   else if (k) corpo = `${k.aviso ? `<p class="capt-aviso">${safeText(k.aviso)} <button type="button" class="vb-link" onclick="captAgenda('${k.id}')">Tentar de novo</button></p>` : ""}
     <ul class="capt-pecas-curtas">${k.pecas.map((x) => captPecaCompactaHtml(x, k)).join("")}</ul>
@@ -750,10 +784,10 @@ function captacoesHtml() {
   return `<div class="capt capt-cal vista-${CAPT.vista}${CAPT.inspetor ? " com-inspetor" : ""}">
     <div class="capt-toolbar" role="toolbar" aria-label="Captações">
       <div class="capt-tb-esq">
-        <button type="button" class="capt-tb-criar" onclick="captNovoEvento({dia:'${CAPT.vista === "dia" ? d : ""}'},this.getBoundingClientRect())" title="Novo na agenda (N)"><span aria-hidden="true">+</span> Novo</button>
-        <button type="button" class="capt-tb-hoje" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button>
+        ${typeof prodV2AbasHtml === "function" ? prodV2AbasHtml() : ""}
+        <span class="capt-tb-nav"><button type="button" class="capt-tb-hoje" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button>
         <span class="capt-tb-setas"><button type="button" aria-label="${passo === "mês" ? "Mês" : passo === "dia" ? "Dia" : "Semana"} anterior" title="Anterior (←)" onclick="captNavegar(-1)">‹</button><button type="button" aria-label="Próximo ${passo}" title="Próximo (→)" onclick="captNavegar(1)">›</button></span>
-        <h4 class="capt-tb-titulo">${safeText(titulo)}</h4>
+        <h4 class="capt-tb-titulo">${safeText(titulo)}</h4></span>
       </div>
       <div class="capt-tb-dir">
         ${pendTexto}
@@ -786,7 +820,7 @@ document.addEventListener("keydown", (ev) => {
   else if (ev.key === "ArrowLeft") captNavegar(-1);
   else if (ev.key === "ArrowRight") captNavegar(1);
   else if (vistas[k]) captVista(vistas[k]);
-  else if (k === "n") captNovoEvento({ dia: CAPT.vista === "dia" ? CAPT.dia : "" }, document.querySelector(".capt-tb-criar")?.getBoundingClientRect() || null);
+  else if (k === "n") captMarcarCaptacao();
   else if (k === "p") captAlternarInspetor();
   else return;
   ev.preventDefault();
@@ -801,6 +835,9 @@ function captAbrirFolha(html) {
 }
 
 function captMarcarEm(dia, hora) { captNovoEvento({ dia, inicio: hora }, AG_ULTIMO_TOQUE); }
+// "Marcar captação" do cabeçalho (quadro 04): o mesmo cartão de criar, já em Captação, no centro da tela; na visão do
+// dia, já no dia aberto. Substitui o "+ Novo" que ficava solto dentro da barra.
+function captMarcarCaptacao() { captNovoEvento({ dia: CAPT.vista === "dia" ? CAPT.dia : "", tipo: "captacao" }, null); }
 
 // CRIAÇÃO RÁPIDA (Paulo, 26/10/2026: "não tem como criar um compromisso
 // novo?"): um cartão pequeno no próprio horário, como no Google Agenda —
@@ -852,7 +889,8 @@ function captVinculoHtml(e) {
   const opcoes = (sel) => (CAPT.clientes || []).map((c) => `<option value="${safeText(c.id)}"${c.id === sel ? " selected" : ""}>${safeText(c.nome)}</option>`).join("");
   const form = (sel, rotulo) => `<form class="capt-vinculo" onsubmit="event.preventDefault();captVincular(this,'${safeText(e.id)}')"><select name="cliente" aria-label="Cliente" required><option value="">Escolha o cliente</option>${opcoes(sel)}</select><button type="submit" class="vb-botao">${rotulo}</button></form>`;
   if (!e.cliente) return `<div class="capt-vinculo-caixa"><p class="capt-discreto">De qual cliente é este evento? O painel guarda o vínculo; o evento no Google não muda.</p>${form("", "Vincular")}</div>`;
-  return `<details class="capt-trocar"><summary>${e.cliente_manual ? "Cliente escolhido à mão · trocar" : "Não é este cliente? Trocar"}</summary>${form(e.cliente_id, "Trocar")}${e.cliente_manual ? `<button type="button" class="vb-link" onclick="captVincular(null,'${safeText(e.id)}')">Voltar a ler pelo título</button>` : ""}</details>`;
+  // "Trocar cliente" é botão (quadro 65), ao lado das peças esperando; o cliente escolhido à mão continua dito ao lado.
+  return `<details class="capt-trocar"><summary class="vb-botao" title="${e.cliente_manual ? "Cliente escolhido à mão; trocar por outro" : "Não é este cliente? Escolha o certo"}">Trocar cliente</summary><div class="capt-trocar-caixa">${e.cliente_manual ? '<p class="capt-discreto">Cliente escolhido à mão.</p>' : ""}${form(e.cliente_id, "Trocar")}${e.cliente_manual ? `<button type="button" class="vb-botao" onclick="captVincular(null,'${safeText(e.id)}')">Voltar a ler pelo título</button>` : ""}</div></details>`;
 }
 async function captVincular(form, eventoId) {
   const cliente_id = form ? String(new FormData(form).get("cliente") || "") : "";
