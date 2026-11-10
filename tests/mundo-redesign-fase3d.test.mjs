@@ -142,7 +142,8 @@ test('celular: topo com busca, avisos e conta; cinco lugares embaixo com Criar n
 });
 
 test('janela de módulo por cima de uma tela antiga: o topo do mundo e o canto antigo não cobrem o cabeçalho dela', () => {
-  assert.ok(css.includes('html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}'), 'com palco-modulo vale a regra que esconde o HUD');
+  // Moldura única (10/11/2026): o topo do mundo não volta nas telas antigas; a regra do HUD em mundo-modulo esconde tudo menos o trilho.
+  assert.ok(!css.includes('#mundo-hud > .vv-topo{display:flex!important}'), 'o topo do mundo não volta por cima de janela nenhuma');
   assert.ok(css.includes('body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}'));
   assert.ok(!css.includes('html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}'));
   assert.ok(bloco3d.includes('body.mundo .vc-camada > #vv-carteira{height:100%}'), 'a Carteira termina acima do dock');
