@@ -67,7 +67,9 @@ test('tabela de clientes: saem Dashboard, Última reunião, NPS e Manus; entram 
   const html = ctx.tabelaDeClientesHtml(nomes);
   const cabecalho = html.slice(html.indexOf('<thead>'), html.indexOf('</thead>'));
   for (const sai of ['Dashboard', 'Última reunião', 'NPS', 'Manus']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
-  for (const entra of ['Saúde', 'Em aberto', 'Cadastro', 'Head', 'Drive', 'Documento']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
+  for (const entra of ['Saúde', 'Em aberto', 'Cadastro', 'Head', 'Segmento']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
+  // Quadro 05: Status, Drive e Documento saem da frente; ficam no menu Colunas e na ficha.
+  for (const sai of ['Status', 'Drive', 'Documento']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
   const linha = html.slice(html.indexOf('data-cliente="Academia Lions"'), html.indexOf('</tr>', html.indexOf('data-cliente="Academia Lions"')));
   assert.match(linha, /class="cli-saude ok"[^>]*><i aria-hidden="true"><\/i><b>88<\/b>/);
   assert.match(linha, /<b>1<\/b> conteúdo<\/span>/, 'o finalizado não conta como em aberto');
@@ -95,7 +97,7 @@ test('filtros da lista: head, segmento e busca recortam; os chips mostram o esco
   ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', value: 0, acao: "focarClientes('sem-contato')", tom: 'alerta', dica: 'x', aceso: false }]);
   const chips = pegar('clientes-filtros').innerHTML;
   assert.match(chips, /aria-pressed="true"[^>]*>Head: Vinícius/);
-  assert.match(chips, /disabled title="x \(nenhum agora\)"[^>]*>Sem contato <b>0<\/b>/, 'zero continua escrito, sem clicar');
+  assert.doesNotMatch(chips, /Sem contato <b>0<\/b>/, 'quadro 05: o zero sai da frente (vai na frase do cabeçalho)');
   assert.match(chips, /Limpar filtros/);
   const opcoes = vm.runInContext("opcoesDeFiltroDeClientes('head').map((o) => o.rotulo)", ctx);
   assert.deepEqual([...opcoes], ['Todos os heads', 'Ewerton (1)', 'Vinícius (1)']);
@@ -108,7 +110,7 @@ test('cabeçalho da lista: os números viram uma frase e Novo cliente é a açã
   const { ctx, pegar } = carregar();
   ctx.podeAdministrar = () => true;
   ctx.renderClientesBoard();
-  assert.equal(pegar('clientes-frase').textContent, '2 ativos · NPS médio 9,0 (1 nota).');
+  assert.equal(pegar('clientes-frase').textContent, '2 ativos · NPS médio 9,0 (1 nota) · ninguém sem contato · nenhum detrator · nenhum painel a atualizar.');
   assert.match(pegar('clientes-acoes').innerHTML, /class="vb-botao principal"[^>]*>[\s\S]*Novo cliente/);
   assert.equal(pegar('kpi-grid-clientes').innerHTML, '');
 });

@@ -60,8 +60,8 @@ test('renderCerebroVybesHtml e cerebroDoClienteCardHtml geram marcação do canv
   assert.match(htmlCanvas, /vybes-cerebro-canvas/);
   assert.match(htmlCanvas, /CÉREBRO DO VYBES/);
   const htmlCard = c.cerebroDoClienteCardHtml('Brussolo Ristorante');
-  assert.match(htmlCard, /Cérebro do VYBES · Identidade Visual &amp; Sinapses/);
-  assert.match(htmlCard, /Abrir Canvas de Sinapses/);
+  assert.match(htmlCard, /O que o VYBES sabe de Brussolo Ristorante/);
+  assert.match(htmlCard, /Abrir o mapa<\/button>/);
 });
 
 test('visaoDeClientes aceita tabela, fichas e sinapses preservando compatibilidade', () => {

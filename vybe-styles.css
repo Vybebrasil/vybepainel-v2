@@ -26490,9 +26490,16 @@ body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.v
 .cb-legenda { display:flex; gap:6px; flex-wrap:wrap; padding:0 24px 16px; }
 .cb > .cb-centro > .vb-resumo { padding:0 24px; }
 .cb-cartao { display:flex; flex-direction:column; gap:10px; }
-.cb-cartao-paleta { display:flex; flex-wrap:wrap; gap:8px; }
-.cb-cartao-paleta span { display:flex; align-items:center; gap:6px; font:11px monospace; }
-.cb-cartao-paleta i,.cb-amostra { display:inline-block; width:14px; height:14px; border-radius:4px; }
+.cb-cartao-paleta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+/* Quadro 53: só a amostra; o código fica na dica de cada uma. */
+.cb-cartao-cor { display:inline-block; width:26px; height:26px; border-radius:6px; box-shadow:inset 0 0 0 1px rgba(31,29,26,.12); }
+.cb-cartao-cores { margin-left:4px; font-size:11.5px; color:var(--text-muted); }
+.cb-amostra { display:inline-block; width:14px; height:14px; border-radius:4px; }
+.cb-cartao-titulo { display:inline-flex; align-items:center; gap:6px; }
+.cb-dica { appearance:none; display:inline-grid; place-items:center; width:24px; height:24px; padding:0; border:0; border-radius:6px; background:none; color:var(--text-muted); cursor:help; }
+.cb-dica:hover, .cb-dica:focus-visible { color:var(--text); }
+.cb-dica:focus-visible { outline:2px solid #C2490C; outline-offset:1px; }
+.cb-dica.vb-jogo-dica[data-dica]::after { left:0; right:auto; width:min(320px,70vw); text-align:left; font-weight:500; }
 @media(max-width:1100px) { .cb-topo { flex-wrap:wrap; gap:14px; } .cb-identidade { flex-basis:180px; } .cb-identidade small { display:none; } .cb-contexto { align-items:flex-start; flex-direction:column; gap:9px; } .vybes-cerebro-shell.cb.cb-com-detalhe { grid-template-columns:minmax(0,1fr) 320px; } }
 @media(max-width:760px) { .vybes-cerebro-shell.cb,.vybes-cerebro-shell.cb.cb-com-detalhe { grid-template-columns:minmax(0,1fr); min-height:720px; } .vybes-cerebro-shell.cb.cb-ampliado { inset:0; border:0; border-radius:0; min-height:0; } .cb-topo { padding:16px; gap:13px; } .cb-identidade { flex:1; } .cb-cliente-seletor { order:3; flex-basis:100%; max-width:none; } .cb .vb-alternar { order:4; } .cb-ampliar { order:2; } .cb-ferramentas { padding:0 16px 14px; flex-wrap:wrap; gap:10px; } .cb-pesquisa { flex-basis:100%; } .cb-origem-filtro { flex:1; } .cb-ferramentas > button { flex-shrink:0; } .cb-contexto { padding:18px 16px 12px; } .cb-contexto h2 { font-size:20px; } .cb-mapa-trilho { padding:0 16px 10px; } .cb-palco { min-height:360px; } .cb-mapa-rodape { left:16px; right:16px; bottom:12px; font-size:9px; } .cb-mapa-rodape span:last-child { display:none; } .cb-com-detalhe > .cb-inspetor.cb-aberto { position:absolute; top:auto !important; left:0 !important; right:0 !important; bottom:0 !important; height:min(62%,600px); border:1px solid var(--vb-linha); border-bottom:0; border-radius:12px 12px 0 0; box-shadow:0 -20px 60px #0008; z-index:12; padding:18px 20px max(20px,env(safe-area-inset-bottom)); } .cb-fechar { margin-bottom:15px; } .cb-ficha { padding:0 16px 20px; } .cb-atividade-cliente > header { align-items:flex-start; } .cb-linha { flex-direction:column; align-items:stretch; } }
 
@@ -26504,10 +26511,17 @@ body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.v
 .cb-sin-bloco h3 small { font:500 11.5px var(--vv-texto, inherit); color:#6B675F; margin-left:6px; }
 .cb-sin-bloco h4 { margin:0 0 6px; font:700 12px var(--vv-texto, inherit); color:#4A4640; }
 .cb-sin-nota { margin:6px 0 0; font-size:12.5px; color:#6B675F; }
-.cb-sin-resumo { display:flex; flex-wrap:wrap; gap:8px; }
-.cb-sin-resumo button { appearance:none; display:grid; min-width:96px; padding:8px 12px; text-align:left; border-radius:10px; border:1px solid #E6E0D6; border-top:3px solid var(--c); background:#FFF; cursor:pointer; font-family:inherit; }
-.cb-sin-resumo button[aria-pressed="true"] { background:#FFF4EC; border-color:#FF7A2F; }
-.cb-sin-resumo b { font:700 18px var(--vv-titulo, inherit); color:#1F1D1A; } .cb-sin-resumo span { font-size:11.5px; color:#6B675F; }
+/* Quadro 54: os contadores viraram chips de filtro, sem borda colorida; o que importa é o texto. */
+.cb-sin-resumo { display:flex; flex-wrap:wrap; gap:6px; }
+.cb-sin-filtro { appearance:none; display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 11px; border:1px solid #E6E0D6; border-radius:999px; background:#FFF; color:#1F1D1A; font:600 12px var(--vv-texto, inherit); cursor:pointer; }
+.cb-sin-filtro b { font-weight:700; font-variant-numeric:tabular-nums; }
+.cb-sin-filtro:hover { border-color:#FF7A2F; color:#C2490C; }
+.cb-sin-filtro[aria-pressed="true"] { background:#FFE9DC; border-color:transparent; color:#C2490C; }
+.cb-sin-filtro:focus-visible { outline:2px solid #C2490C; outline-offset:2px; }
+.cb-sin-estudo-topo { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.cb-sin-estudo-topo h3 { margin:0; font-size:17px; }
+.cb-sin-quando { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0 0; font-size:12.5px; color:#6B675F; }
+.cb-sin-grade li small .cb-sin-fonte, .cb-sin-fonte { display:inline-block; margin-right:2px; padding:0 6px; border-radius:4px; background:#F4F0EA; color:#4A4640; font-weight:600; font-size:10.5px; }
 .cb-sin-lista, .cb-sin-fontes { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
 .cb-sin-lista li { padding:9px 11px; border:1px solid #EFEAE2; border-radius:8px; }
 .cb-sin-lista li.off { opacity:.55; }
@@ -26518,7 +26532,9 @@ body:has(> #workflow-modal.ofc-xdz) > :not(#workflow-modal,#workflow-backdrop,.v
 .cb-sin-chip { padding:2px 8px; border-radius:999px; background:#F4F0EA; border:1px solid #E6E0D6; font-size:11.5px; color:#4A4640; }
 .cb-sin-chip.t-memoria { background:#F1EEFF; border-color:#DCD5FF; }
 .cb-sin-chip.t-saida { background:#EEF7F1; border-color:#CFE8D8; }
-.cb-motor { font-style:normal; padding:2px 9px; border-radius:999px; font:700 11.5px var(--vv-texto, inherit); color:#FFF; background:var(--c); }
+/* O selo de quem pensa (Qwen, Lógica fixa…) fica visível; no padrão, a cor só no ponto e o texto escuro. */
+.cb-motor { display:inline-flex; align-items:center; gap:5px; font-style:normal; padding:1px 8px; border-radius:999px; border:1px solid #E6E0D6; background:#FFF; font:600 11.5px var(--vv-texto, inherit); color:#2B2925; }
+.cb-motor i { width:7px; height:7px; border-radius:2px; background:var(--c); }
 .cb-sin-parado { font-style:normal; color:#C2490C; font-weight:600; }
 .cb-sinapses code { display:block; font:10.5px/1.4 ui-monospace, Consolas, monospace; color:#8A8378; overflow-wrap:anywhere; }
 .cb-sin-fontes li { display:grid; gap:2px; padding:8px 10px; border:1px solid #EFEAE2; border-radius:8px; }
