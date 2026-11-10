@@ -102,3 +102,12 @@ test('motor de móveis: nenhuma peça empata face com outra (o que serrilhava ao
     }
   }
 });
+
+test('lote 3: peças especiais dos quartos (estúdio, festa, banho, jogo) têm modelo próprio', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const c of ['classic7_djbooth', 'studio_camera', 'scifi_r17_bed', 'val15_hottub', 'CF_250_goldenchessboard', 'xmas_c18_presents', 'virus_r16_turttank', 'mafia_c26_drinkcabinet', 'gaming_c18_setuppro', 'attic15_carpet']) {
+    assert.ok(m.temModelo(c), c);
+    const o = m.montarMovel(null, { w: 2, d: 2, classe: c });
+    assert.ok(o.solidos.length + o.luzes.length > 4, c);
+  }
+});

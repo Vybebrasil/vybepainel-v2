@@ -326,7 +326,7 @@ const RECEITAS = {
 
 // Móveis modelados um a um (moveis-biblioteca.mjs), com as ferramentas deste motor.
 let BIBLIOTECA = null;
-const modelos = () => (BIBLIOTECA ||= biblioteca({ C, L, G, tom, gaveta, LIVROS, RECEITAS, METAL }));
+const modelos = () => (BIBLIOTECA ||= biblioteca({ C, L, G, tom, gaveta, pernas, LIVROS, RECEITAS, METAL }));
 export const temModelo = (classe) => Object.prototype.hasOwnProperty.call(modelos(), String(classe));
 
 // Monta o móvel: devolve a Obra (centro da pegada em 0, base 0, frente +z) ou null (tipo sem receita).
