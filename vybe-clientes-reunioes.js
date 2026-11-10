@@ -13,14 +13,16 @@
   const hojeIso = () => new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10);
 
   async function carregar(id, forcar = false) {
-    if (dados[id] && !forcar && (dados[id].d || dados[id].carregando)) return;
-    dados[id] = { carregando: true };
+    if (dados[id] && !forcar && (dados[id].d || dados[id].carregando)) return dados[id].promessa;
+    let fim; const promessa = new Promise((ok) => { fim = ok; });
+    dados[id] = { carregando: true, promessa };
     try {
       const r = await fetch(`/api/painel?area=reunioes&cliente=${encodeURIComponent(id)}`, { credentials: 'same-origin', cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'Não consegui ler as reuniões.');
       dados[id] = { d };
     } catch (e) { dados[id] = { erro: e.message }; }
+    fim();
     repintar();
   }
   const repintar = () => { if (typeof CLIENTE_ABERTO === 'string' && CLIENTE_ABERTO && typeof renderClientMasterDetail === 'function') renderClientMasterDetail(CLIENTE_ABERTO); };
@@ -95,19 +97,37 @@
     } catch (e) { botao.disabled = false; showToast(e.message, 'error', 6000); }
   };
 
-  window.abrirReuniao = function abrirReuniao(nome, reuniaoId = '') {
-    const id = String(idDoCliente(nome) || '');
-    const e = dados[id]?.d || {};
+  // Lateral → Clientes → Reuniões, o kickoff do Onboarding e a aba Reuniões da ficha abrem este mesmo modal (Paulo,
+  // 09/11/2026: "cadê o botão de reunião?… se eu quiser só abrir uma reunião e ter aquele fluxo do áudio"). Sem cliente,
+  // o modal pede o cliente e traz a pauta sugerida dele ao escolher. opcoes: { tipo, titulo } para a reunião nova.
+  const TIPOS_PADRAO = { rotina: 'Rotina com o cliente', onboarding: 'Onboarding / kickoff', alinhamento: 'Alinhamento', comercial: 'Comercial', interna: 'Interna' };
+  const clientesAtivos = () => (typeof CADASTRO_CLIENTES === 'undefined' ? [] : CADASTRO_CLIENTES)
+    .filter((c) => c && c.ativo !== false && c.id && c.nome).sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+  const pautaDe = (id) => (dados[id]?.d?.pauta || []).map((p) => '- ' + p).join('\n');
+  window.abrirReuniao = async function abrirReuniao(nome = '', reuniaoId = '', opcoes = {}) {
+    if (!nome && !clientesAtivos().length && typeof ensureClientMasterSources === 'function') {
+      showToast('Carregando os clientes…', 'info', 2500);
+      await ensureClientMasterSources(true).catch(() => null);
+      if (!clientesAtivos().length) return showToast('A lista de clientes não carregou. Recarregue a página.', 'error', 6000);
+    }
+    const id = nome ? String(idDoCliente(nome) || '') : '';
+    if (nome && !id) return showToast('Este cliente ainda não tem ficha própria. Crie a ficha para registrar reuniões.', 'warning', 5000);
+    if (id && !dados[id]?.d) await carregar(id);
+    const e = (id && dados[id]?.d) || {};
     const r = (e.reunioes || []).find((x) => x.id === String(reuniaoId)) || null;
-    const tipos = e.tipos || { rotina: 'Rotina com o cliente', onboarding: 'Onboarding / kickoff', alinhamento: 'Alinhamento', comercial: 'Comercial', interna: 'Interna' };
-    const pautaPadrao = r ? r.pauta : (e.pauta || []).map((p) => '- ' + p).join('\n');
-    openWorkflowModal(`<div class="cad-janela"><div class="workflow-kicker"><span>Vybe OS · Reunião · ${esc(nome)}</span>
+    const tipos = e.tipos || TIPOS_PADRAO;
+    const tipo = r?.tipo || opcoes.tipo || 'rotina';
+    const pautaPadrao = r ? r.pauta : pautaDe(id);
+    const escolha = nome ? '' : `<label class="cad-campo largo"><span>Cliente</span><select id="reu-cliente" onchange="trocarClienteDaReuniao(this.value)" required>
+        <option value="">Escolha o cliente</option>${clientesAtivos().map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>`;
+    openWorkflowModal(`<div class="cad-janela"><div class="workflow-kicker"><span>Vybe OS · Reunião${nome ? ' · ' + esc(nome) : ''}</span>
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
       <h2 class="workflow-title">${r ? 'Ata da reunião' : 'Nova reunião'}</h2>
-      <div class="cad-grade">
-        <label class="cad-campo"><span>Tipo</span><select id="reu-tipo">${Object.entries(tipos).map(([k, v]) => `<option value="${k}" ${(r?.tipo || 'rotina') === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
+      <p class="workflow-copy">${r ? 'Escreva a ata durante ou depois da reunião.' : 'Salve e grave: o áudio vai para a pasta Reuniões do cliente no Drive, e o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha.'}</p>
+      <div class="cad-grade">${escolha}
+        <label class="cad-campo"><span>Tipo</span><select id="reu-tipo">${Object.entries(tipos).map(([k, v]) => `<option value="${k}" ${tipo === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
         <label class="cad-campo"><span>Data</span><input id="reu-data" type="date" value="${esc(r?.data || hojeIso())}"></label>
-        <label class="cad-campo largo"><span>Título</span><input id="reu-titulo" maxlength="160" value="${esc(r?.titulo || '')}" placeholder="Ex.: Entrada da Lil"></label>
+        <label class="cad-campo largo"><span>Título</span><input id="reu-titulo" maxlength="160" value="${esc(r?.titulo || opcoes.titulo || '')}" placeholder="Ex.: Entrada da Lil"></label>
         <label class="cad-campo largo"><span>Participantes</span><input id="reu-participantes" maxlength="600" value="${esc(r?.participantes || '')}" placeholder="Quem estava"></label>
         <label class="cad-campo largo"><span>Pauta</span><textarea id="reu-pauta" rows="5">${esc(pautaPadrao || '')}</textarea><small>Sugerida com o que o sistema sabe do cliente. Edite à vontade.</small></label>
         <label class="cad-campo largo"><span>Ata</span><textarea id="reu-ata" rows="10" placeholder="O que foi falado, o que ficou decidido, próximos passos e responsáveis">${esc(r?.ata || '')}</textarea></label>
@@ -117,17 +137,27 @@
         ${!r?.gravacao ? `<button type="button" class="workflow-secondary" ${gravando ? 'disabled' : ''} onclick="salvarReuniao('${asp(nome)}','${esc(r?.id || '')}',true)">Salvar e gravar</button>` : ''}
         <button type="button" class="workflow-primary" onclick="salvarReuniao('${asp(nome)}','${esc(r?.id || '')}')">Salvar</button></div></div>`);
     document.getElementById('workflow-modal')?.classList.add('cad-modal');
+    setTimeout(() => document.querySelector(nome ? '#reu-titulo' : '#reu-cliente')?.focus(), 40);
+  };
+  // Cliente escolhido no modal avulso: traz a pauta sugerida dele, se a pauta ainda não foi escrita.
+  window.trocarClienteDaReuniao = async function trocarClienteDaReuniao(id) {
+    const campo = document.getElementById('reu-pauta');
+    if (!id || !campo) return;
+    const antes = campo.value;
+    await carregar(String(id));
+    if (campo.isConnected && campo.value === antes && (!antes.trim() || campo.dataset.auto === '1')) { campo.value = pautaDe(String(id)); campo.dataset.auto = '1'; }
   };
 
   window.salvarReuniao = async function salvarReuniao(nome, reuniaoId, gravarDepois = false) {
-    const id = String(idDoCliente(nome) || '');
+    const id = String((nome ? idDoCliente(nome) : document.getElementById('reu-cliente')?.value) || '');
     const v = (k) => document.getElementById('reu-' + k)?.value || '';
+    if (!id) { const er = document.getElementById('reu-erro'); if (er) er.textContent = 'Escolha o cliente da reunião.'; document.getElementById('reu-cliente')?.focus(); return; }
     try {
       const d = await postar({ acao: 'salvar', cliente: id, id: reuniaoId || undefined, tipo: v('tipo'), data: v('data'), titulo: v('titulo'), participantes: v('participantes'), pauta: v('pauta'), ata: v('ata') });
       closeWorkflowModal();
       showToast('Reunião salva.', 'success', 3500);
       await carregar(id, true);
-      if (gravarDepois) gravarReuniao(id, d.reuniao.id, d.reuniao.titulo);
+      if (gravarDepois) gravarReuniao(id, d.reuniao.id, d.reuniao.titulo || (nome ? `Reunião - ${nome}` : 'Reunião'));
     } catch (e) { const er = document.getElementById('reu-erro'); if (er) er.textContent = e.message; else showToast(e.message, 'error', 6000); }
   };
 
@@ -210,7 +240,7 @@
       <p>${preenchidas} de ${questoes.length} perguntas respondidas${resp._atualizado_em ? ` · última vez em ${dataBr(resp._atualizado_em)}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : ''}. O cadastro (empresa, responsável, canais) vai para a aba Cadastro; os acessos, para o cofre de Acessos.</p>
       ${SECOES.map(([s, t]) => `<section class="cad-leitura"><h4>${t}</h4><dl>${bloco(s)}</dl></section>`).join('')}
       <section class="cad-leitura"><h4>Análise SWOT</h4><div class="onb-swot">${swot}</div></section>
-      <p class="onb-dica">O checklist do onboarding (boas-vindas, contrato, acessos, kickoff, primeiro mês) continua em Clientes → Onboarding. A reunião de kickoff fica na aba Reuniões.</p></div>`;
+      <p class="onb-dica">A esteira (boas-vindas, contrato, acessos, kickoff, primeiro mês) e a reunião de kickoff ficam em Clientes → Onboarding, na lateral.</p></div>`;
   }
   async function gerarLink(id) { const d = await postar({ acao: 'link-onboarding', cliente: id }); await carregar(id, true); return d.url; }
   window.onboardingJunto = async function onboardingJunto(id) {
@@ -227,5 +257,15 @@
     } catch (e) { showToast(e.message, 'error', 6000); }
   };
 
-  window.VybeReunioes = { reunioesHtml, onboardingHtml, carregar };
+  // A ficha só mostra a aba Onboarding de quem está em onboarding ou já respondeu o questionário (Paulo, 09/11/2026:
+  // "qual sentido de eu fazer onboard com quem já é cliente?"). O onboarding começa em Clientes → Onboarding.
+  function temOnboarding(nome) {
+    const id = String(idDoCliente(nome) || '');
+    const d = id && dados[id]?.d;
+    if (!d) return false;
+    return Boolean(d.em_onboarding || Object.keys(d.onboarding?.respostas || {}).some((k) => !k.startsWith('_')));
+  }
+  // Lateral → Clientes → Reuniões (vybe-mundo.js chama abrir(parte, opções), como nos outros módulos).
+  const abrir = () => window.abrirReuniao('');
+  window.VybeReunioes = { reunioesHtml, onboardingHtml, carregar, temOnboarding, abrir };
 })();

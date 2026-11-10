@@ -146,10 +146,12 @@
       { id: 'impressoes', nome: 'Impressões', dica: 'Da arte à entrega na gráfica: etapa, fornecedor e prazo', mod: ['VybeImpressoes'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
     ] },
-    { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
+    { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde, onboarding e reuniões', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
       { id: 'clientes', nome: 'Gestão de clientes', dica: 'Todos os clientes, fichas e o cérebro de cada um' },
       { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
-      { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo: boas-vindas, contrato, acessos e kickoff', mod: ['VybeCarteira', 'onboarding'] },
+      { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo ou contrato novo: cadastro, questionário, kickoff e checklist', mod: ['VybeCarteira', 'onboarding'] },
+      // Reuniões (Paulo, 09/11/2026: "cadê o botão de reunião?"): abre uma reunião com qualquer cliente, com pauta, ata e gravação.
+      { id: 'reunioes', nome: 'Reuniões', dica: 'Abrir uma reunião com um cliente: pauta, ata e gravação do áudio', mod: ['VybeReunioes', 'nova'] },
     ] },
     // Contratos e Churn (Paulo, 09/11/2026: "churn e contratos não faria mais sentido no comercial?"): renovação e saída
     // são receita, do Comercial. A tela continua a da Carteira (VybeCarteira), só o lugar no dock mudou.
@@ -383,9 +385,9 @@
       marcarTrilho(id); return;
     }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
-      // A janela mostra só as abas deste item do dock (Paulo, 08/11/2026: "não vejo lógica RH, academy… estarem aí"):
-      // os irmãos do mesmo setor que abrem o mesmo módulo. Fora do dock, o módulo abre com todas.
-      const irmaos = sub.setor ? SUBMODULOS.filter((x) => x.setor === sub.setor && x.mod?.[0] === sub.mod[0]).map((x) => x.mod[1]).filter(Boolean) : [sub.mod[1]];
+      // A janela mostra só a parte deste item do dock, sem barra de abas (Paulo, 09/11/2026: "elas só abrem pela lateral
+      // mesmo"): Saúde e Onboarding, Contratos e Churn já são itens próprios na lateral e não se repetem como abas.
+      const irmaos = [sub.mod[1]];
       const setorNome = TRILHO.find((t) => t && t.id === sub.setor)?.nome || sub.nome;
       window[sub.mod[0]]?.abrir?.(sub.mod[1], { abas: irmaos, rotulo: setorNome }); return; }
     // Performance (Paulo, 09/11/2026: "medir e acompanhar tudo da agência… todos operacionais e processos") é uma aba da

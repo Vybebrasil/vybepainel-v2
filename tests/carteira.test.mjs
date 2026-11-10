@@ -220,3 +220,21 @@ test('clima do grupo pelo bot: só serviço ou quem administra; casa pelo nome d
   assert.equal(r.body.clima.porCliente['10'].motivo, 'elogiou');
   assert.equal((await chamar(sql, admin, { acao: 'clima', clientes: [] })).codigo, 400);
 });
+
+test('onboarding: contrato novo recomeça a esteira do zero; reabrir guarda o que já foi feito', async (t) => {
+  const { db, sql } = await banco(t);
+  assert.equal((await chamar(sql, admin, { acao: 'onboarding_iniciar', cliente_id: 10 })).codigo, 200);
+  assert.equal((await chamar(sql, admin, { acao: 'onboarding_marcar', cliente_id: 10, etapa: 'boas_vindas', item: 'mensagem', feito: true })).codigo, 200);
+  assert.equal((await chamar(sql, admin, { acao: 'onboarding_encerrar', cliente_id: 10 })).codigo, 200);
+  // Reabrir (sem contrato novo) volta com o checklist marcado.
+  assert.equal((await chamar(sql, admin, { acao: 'onboarding_iniciar', cliente_id: 10 })).codigo, 200);
+  let [o] = (await db.query('SELECT etapas, encerrado_em FROM vybe_cliente_onboarding WHERE cliente_id=10')).rows;
+  assert.ok(o.etapas.boas_vindas?.feitos?.mensagem, 'reabrir mantém o que foi feito');
+  assert.equal(o.encerrado_em, null);
+  // Contrato novo: esteira limpa.
+  assert.equal((await chamar(sql, head, { acao: 'onboarding_iniciar', cliente_id: 10, novo_contrato: true })).codigo, 200);
+  [o] = (await db.query('SELECT etapas, encerrado_em, iniciado_por FROM vybe_cliente_onboarding WHERE cliente_id=10')).rows;
+  assert.deepEqual(o.etapas, {});
+  assert.equal(o.encerrado_em, null);
+  assert.equal(Number(o.iniciado_por), 2);
+});

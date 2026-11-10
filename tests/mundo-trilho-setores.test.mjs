@@ -75,6 +75,8 @@ test('dock no modelo do AgencyFlow: cada coisa no seu setor, sem perder módulo,
     'funil', 'pacotes', 'orcamentos', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
     'conta', 'rh', 'recrutamento', 'documentos', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
   assert.match(js, /abrir\?\.\(sub\.mod\[1\], \{ abas: irmaos, rotulo: setorNome \}\)/);
+  assert.match(js, /const irmaos = \[sub\.mod\[1\]\];/); // cada item da lateral abre só a sua parte, sem abas repetidas
+  assert.ok(SUBMODULOS.some((x) => x.id === 'reunioes' && x.mod?.[0] === 'VybeReunioes'), 'Reuniões na lateral de Clientes');
   // Segundo clique no setor aberto, já na visão geral dele, fecha os submenus (09/11/2026: visão geral e submenus juntos).
   assert.match(js, /if \(aberto && window\.VybeSetor\?\.aberto\?\.\(\) === b\.dataset\.trilho\) \{ expandirSetor\(''\); return; \}/);
 });
