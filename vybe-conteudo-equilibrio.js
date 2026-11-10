@@ -75,6 +75,18 @@
     if (cont.sem) t += ` · ${cont.sem} sem objetivo`;
     return t;
   }
+  // O que falta em poucas palavras, para a linha do cliente (redesign, quadro 16): "falta educação", "só atração",
+  // "equilibrado". tom: 'falta' (amarelo), 'ok' (verde) ou 'neutro'. A mesma regra de `faltando`.
+  function resumoCurto(cont) {
+    const classificadas = OBJETIVOS.reduce((n, o) => n + (cont?.[o] || 0), 0);
+    const falta = Array.isArray(cont?.falta) ? cont.falta : faltando(cont || {});
+    if (!classificadas) return { texto: 'sem objetivo marcado', tom: 'neutro' };
+    if (falta.length) return { texto: `falta ${falta.map((o) => MINUSCULO[o]).join(' e ')}`, tom: 'falta' };
+    const presentes = OBJETIVOS.filter((o) => cont[o] > 0);
+    if (presentes.length === 1) return { texto: `só ${MINUSCULO[presentes[0]]}`, tom: 'neutro' };
+    if (classificadas < 3) return { texto: 'poucas peças ainda', tom: 'neutro' };
+    return { texto: 'equilibrado', tom: 'ok' };
+  }
   function vazio() { return { total: 0, atracao: 0, educacao: 0, conversao: 0, sem: 0 }; }
   function fechar(cont) { cont.falta = faltando(cont); cont.frase = frase(cont); return cont; }
 
@@ -125,7 +137,7 @@
   }
 
   const api = Object.freeze({ OBJETIVOS, ROTULO, COR, ETAPAS, ROTULO_ETAPA, objetivoValido, dataDaPeca, clientesDe,
-    equilibrioDoMes, etapaDeAprovacao, comparar, mesAnterior, faltando, frase });
+    equilibrioDoMes, etapaDeAprovacao, comparar, mesAnterior, faltando, frase, resumoCurto });
   raiz.VybeEquilibrio = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeEquilibrio = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

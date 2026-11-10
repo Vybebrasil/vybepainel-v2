@@ -518,6 +518,14 @@
     const atrasado = (p) => p.status !== 'concluido' && ((p.fim && p.fim < hj) || (p.etapas || []).some((e) => !e.feita && e.fim && e.fim < hj));
     const vencendo = ps.flatMap((p) => (p.etapas || []).filter((e) => !e.feita && e.fim && e.fim >= hj && e.fim <= em7));
     const num = (rot, v, cls = '', sub = '') => `<div class="vp-num ${cls}"><span>${rot}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    // Sem nenhum projeto (redesign, quadro 16): um estado vazio só, com "Novo projeto" para quem cria, no lugar dos quatro
+    // zeros, do Gantt vazio e das sete caixas da semana. Com o formulário aberto, ele aparece sozinho.
+    if (!ps.length) {
+      if (estado.form === 'projeto') return semMigracao(d) + formProjeto(d);
+      const texto = 'Evento, lançamento ou site fora do mensal: crie o projeto com as etapas e veja tudo na linha do tempo.' + (d.gestao ? '' : ' Quem cuida da gestão cria os projetos.');
+      const botao = d.gestao ? acao('Novo projeto', 'data-vp-abrir-form="projeto"') : '';
+      return semMigracao(d) + (typeof vbEstadoHtml === 'function' ? `<div class="vp-proj-vazio">${vbEstadoHtml({ tipo: 'vazio', titulo: 'Nenhum projeto pontual', texto, acao: botao })}</div>` : vazio('Nenhum projeto pontual', texto, botao));
+    }
     let html = semMigracao(d) + `<div class="vp-nums">${num('Em andamento', ps.filter((p) => p.status === 'andamento').length, '', `${ps.filter((p) => p.status === 'planejado').length} planejados`)}${num('Concluídos', ps.filter((p) => p.status === 'concluido').length, 'ok')}${num('Atrasados', ps.filter(atrasado).length, ps.some(atrasado) ? 'ruim' : '')}${num('Etapas vencendo em 7 dias', vencendo.length, vencendo.length ? 'atencao' : '')}</div>`;
     // Gantt: um projeto ou todos, com zoom.
     const zoom = estado.projZoom || 'semana';
