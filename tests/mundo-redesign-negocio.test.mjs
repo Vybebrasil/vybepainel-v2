@@ -115,7 +115,7 @@ test('Finanças por cliente: os clientes ativos aparecem sem contrato e o aviso 
   assert.equal((html.match(/>sem contrato</g) || []).length, 2);
   assert.match(html, /class="vc-nota"/);
   assert.doesNotMatch(html, /só leitura|class="vc-aviso"/);
-  assert.match(html, /Falta a ligação do banco/, 'o motivo continua na tela');
+  assert.doesNotMatch(html, /Falta a ligação do banco/, 'o motivo técnico fica em Ver o que falta, só para quem administra (quadro 56)');
 });
 
 test('Equipe: retrato, situação escrita, um botão principal e as ações raras no Mais; perigoso só lá dentro', () => {
