@@ -1398,6 +1398,7 @@
       <button type="button" class="vv-botao" data-ctl="menos" aria-label="Afastar">${ic.menos}</button>
       <button type="button" class="vv-botao" data-ctl="girar" aria-label="Girar 90 graus">${ic.girar}</button>
       <button type="button" class="vv-botao" data-ctl="tudo" aria-label="Ver a cidade toda">${ic.tudo}</button>
+      <button type="button" class="vv-botao" data-ctl="camadas" aria-label="Camadas do mapa" title="Camadas do mapa">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}</button>
       <button type="button" class="vv-botao" data-ctl="hora" aria-label="Hora do dia no mundo" aria-expanded="false" aria-controls="vv-hora">${svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')}</button>
       <div class="vv-hora" id="vv-hora" role="group" aria-label="Hora do mundo" hidden>
         <b>Hora do mundo</b>
@@ -2493,16 +2494,28 @@
     if (m) { m.remove(); return; }
     const dono = souDono();
     m = document.createElement('div'); m.className = 'vv-menu-conta'; m.setAttribute?.('role', 'menu');
-    const item = (acao, texto, sub, cls = '') => `<button type="button" role="menuitem" class="${cls}" data-conta-acao="${acao}"><b>${texto}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
+    // Fase 3b (quadro 46): um menu só, com quem você é e o saldo no alto, um ícone em cada linha e a aparência num
+    // alternador na própria linha (o menu separado de aparência continua no botão do topo, para quem já usa).
+    const IC_MENU = { conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>', perfil: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M12 13v4M8 21h8"/>', atualizar: '<path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/>', vercomo: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', recado: '<path d="M4 5h16v11H8l-4 4z"/>', sair: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>' };
+    const item = (acao, texto, sub, cls = '') => `<button type="button" role="menuitem" class="${cls}" data-conta-acao="${acao}">${IC_MENU[acao.split(':')[0]] ? `<i class="vv-menu-ic" aria-hidden="true">${svg(IC_MENU[acao.split(':')[0]])}</i>` : ''}<span><b>${texto}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+    const eu = (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null) || {};
+    const nomeEu = String(eu.name || eu.nome || '').trim();
+    const saldoEu = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
+    const temaAgora = temaEscolhido();
+    const temaBt = (t, rot) => `<button type="button" role="menuitemradio" data-tema-linha="${t}" aria-checked="${temaAgora === t}">${rot}</button>`;
     // Diário e IA ficam só na Gestão (uma porta por tela, auditoria 09/11).
-    m.innerHTML = item('conta', 'Minha conta', 'senha, acessos e equipe')
+    m.innerHTML = (nomeEu ? `<div class="vv-menu-quem"><span class="vv-menu-av" aria-hidden="true">${esc(nomeEu.split(/s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</span><span><b>${esc(nomeEu)}</b><small>${saldoEu !== null ? Number(saldoEu).toLocaleString('pt-BR') + ' VybeCoins' : (dono ? 'dono' : 'equipe')}</small></span></div><hr>` : '')
+      + item('conta', 'Minha conta', 'senha, acessos e equipe')
       + item('perfil', 'Meu perfil', 'nível, VybeCoins e conquistas')
       + item('atualizar', 'Atualizar dados', 'busca de novo a produção e os clientes')
       + (podeVerComo() ? item('vercomo', verComo ? 'Ver como outra pessoa' : 'Ver como…', verComo ? `agora: ${esc(pessoaVista()?.name || '')}` : 'conferir a tela de qualquer pessoa da equipe') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
-      + '<hr>' + item('sair', 'Sair', '', 'perigo');
+      + `<div class="vv-menu-tema-linha" role="group" aria-label="Aparência"><span>Aparência</span><span class="vb-alternar">${temaBt('claro', 'Claro')}${temaBt('escuro', 'Escuro')}${temaBt('auto', 'Auto')}</span></div>`
+      + '<hr>' + item('sair', 'Sair', '', 'vv-menu-perigo');
     hud.querySelector('.vv-barra-topo')?.after?.(m);
     m.addEventListener?.('click', (e) => {
+      const tl = e.target.closest('[data-tema-linha]');
+      if (tl) { trocarTema(tl.dataset.temaLinha); m.querySelectorAll('[data-tema-linha]').forEach((x) => x.setAttribute('aria-checked', String(x === tl))); return; }
       const b = e.target.closest('[data-conta-acao]'); if (!b) return;
       const a = b.dataset.contaAcao;
       // Ver como: a lista da equipe no próprio menu; escolher troca a tela inteira (Hoje, dock e números de dono).
@@ -2701,7 +2714,7 @@
       if (b.dataset.vista === 'predio') { mundo.verPredio(); mostrarAndares(); }
       else { mundo.verCidade(); fecharPlaca(); }
     } else if (b.dataset.ctl) {
-      ({ mais: () => mundo.zoom(.7), menos: () => mundo.zoom(1.4), girar: () => mundo.girar90(), tudo: () => { mundo.verCidade(); fecharPlaca(); }, hora: () => abrirHora() })[b.dataset.ctl]();
+      ({ mais: () => mundo.zoom(.7), menos: () => mundo.zoom(1.4), girar: () => mundo.girar90(), tudo: () => { mundo.verCidade(); fecharPlaca(); }, hora: () => abrirHora(), camadas: () => (placa()?.querySelector('.vv-camada') && !placa().hidden ? fecharPlaca() : mostrarCamadas()) })[b.dataset.ctl]();
     } else if (b.dataset.horaModo) {
       escolherHora(b.dataset.horaModo === 'auto' ? 'auto' : b.dataset.horaModo === 'dia' ? 12 : 22);
     } else if (b.dataset.andar) mostrarAndar(b.dataset.andar);
@@ -3316,13 +3329,15 @@
   function salvarCamadas() { try { localStorage.setItem(CAMADAS_CHAVE, JSON.stringify(camadas)); } catch { /* sem armazenamento */ } }
   function mostrarCamadas() {
     const p = placa();
+    // Fase 3b (quadro 43): um balão compacto junto dos controles do mapa, que fica à vista e muda na hora; interruptores;
+    // as etapas da prospecção só aparecem com ela ligada.
+    const pros = camadas.prospeccao && camadas.prospeccao !== 'nenhuma';
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <small class="vv-cb-kicker">Mapa</small><h3>Camadas</h3>
-      <p class="vv-sub">Escolha o que aparece sobre Irecê. A prospecção mostra as empresas que ainda não são clientes, pela etapa do CRM do Qualificador.</p>
-      ${[['clientes', 'Clientes', 'Pinos com a situação de cada cliente'], ['marcos', 'Marcos e ruas', 'Prefeitura, praças, avenidas'], ['captacoes', 'Captações', 'Vans da Vybe a caminho dos clientes']].map(([k, n, d]) => `<label class="vv-camada"><input type="checkbox" data-camada="${k}"${camadas[k] ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}
+      <h3>Camadas do mapa</h3>
+      ${[['clientes', 'Clientes', 'Pinos com a situação de cada cliente'], ['marcos', 'Marcos e ruas', 'Prefeitura, praças, avenidas'], ['captacoes', 'Captações', 'Vans da Vybe a caminho dos clientes']].map(([k, n, d]) => `<label class="vv-camada"><input type="checkbox" role="switch" data-camada="${k}"${camadas[k] ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}
       <div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Prospecção (CRM)</div>
       <div class="vv-camada-filtros">${FILTROS_PROS.map(([k, n]) => `<button type="button" class="vv-cb-aba${camadas.prospeccao === k ? ' on' : ''}" data-prospeccao="${k}">${n}</button>`).join('')}</div>
-      <div class="vv-cb-legenda">${Object.entries(ETAPA_NOME).map(([k, n]) => `<span><i style="background:${ETAPA_COR[k]}"></i>${n}</span>`).join('')}</div>
+      <div class="vv-cb-legenda"${pros ? '' : ' hidden'}>${Object.entries(ETAPA_NOME).map(([k, n]) => `<span><i style="background:${ETAPA_COR[k]}"></i>${n}</span>`).join('')}</div>
       <p class="vv-dica" id="vv-camada-conta"></p>`;
     p.hidden = false; ajustarAreaLivre();
   }
@@ -3331,6 +3346,7 @@
     const b = e.target.closest('[data-prospeccao]'); if (!b) return;
     camadas.prospeccao = b.dataset.prospeccao; salvarCamadas();
     hud.querySelectorAll('[data-prospeccao]').forEach((x) => x.classList.toggle('on', x === b));
+    const leg = placa()?.querySelector('.vv-cb-legenda'); if (leg) leg.hidden = camadas.prospeccao === 'nenhuma';
     const conta = hud.querySelector('#vv-camada-conta'); if (conta) conta.textContent = 'Carregando…';
     const n = await aplicarProspeccao();
     if (conta) conta.textContent = camadas.prospeccao === 'nenhuma' ? '' : `${(n || 0).toLocaleString('pt-BR')} empresas neste filtro${n > 900 ? ' (no mapa, as 900 mais perto da Vybe)' : ''}.`;

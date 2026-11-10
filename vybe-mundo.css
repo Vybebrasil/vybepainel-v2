@@ -5576,3 +5576,35 @@ body.mundo .vv-legenda-item i{width:8px;height:8px;border-radius:50%;background:
 body.mundo .vv-legenda-item b{color:#1F1D1A;font-weight:750}
 body.mundo .vv-legenda-item.zero{opacity:.55}
 body.mundo:is(:has(#vv-placa:not([hidden])),:has(.vv-vistas [data-vista="predio"][aria-pressed="true"])) .vv-legenda-cidade{display:none}
+/* Camadas (fase 3b, quadro 43): balão compacto à esquerda dos controles do mapa; o mapa continua à vista. */
+body.mundo .vv-placa:has(.vv-camada){position:absolute;top:auto;left:auto;bottom:96px;right:calc(var(--vv-m,14px) + 54px);width:290px;max-height:min(70vh,520px);padding:14px 14px 10px}
+body.mundo .vv-placa:has(.vv-camada) h3{margin:0 0 10px;font:650 15px var(--vv-titulo,"Inter Tight"),sans-serif}
+body.mundo .vv-placa .vv-camada{align-items:center;padding:8px 10px;margin-bottom:4px}
+body.mundo .vv-placa .vv-camada span{flex:1;min-width:0}
+/* Interruptor no lugar da caixa de marcar (a mesma marcação: input checkbox com role=switch). */
+body.mundo .vv-camada input[type="checkbox"]{order:2;flex:none;appearance:none;-webkit-appearance:none;width:32px;height:19px;margin:0;border-radius:999px;background:#D6CFC4;position:relative;cursor:pointer;transition:background-color .15s}
+body.mundo .vv-camada input[type="checkbox"]::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.25);transition:translate .15s}
+body.mundo .vv-camada input[type="checkbox"]:checked{background:var(--ds-acao,#FF7A2F)}
+body.mundo .vv-camada input[type="checkbox"]:checked::after{translate:13px 0}
+body.mundo .vv-camada input[type="checkbox"]:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.3)}
+body.mundo .vv-placa .vv-cb-legenda[hidden]{display:none}
+/* Menu da conta (fase 3b, quadro 46): quem você é e o saldo no alto, ícone neutro em cada linha, aparência na linha. */
+.vv-menu-conta{width:280px}
+.vv-menu-conta button[data-conta-acao]{display:flex;align-items:center;gap:10px}
+.vv-menu-conta .vv-menu-ic{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#F4EFE8;color:#1F1D1A}
+.vv-menu-conta .vv-menu-ic svg{width:15px;height:15px}
+.vv-menu-conta .vv-menu-perigo .vv-menu-ic{background:#FDECEE;color:#B42318}
+.vv-menu-conta .vv-menu-perigo b{color:#B42318}
+.vv-menu-conta button[data-conta-acao] > span{min-width:0}
+.vv-menu-quem{display:flex;align-items:center;gap:10px;padding:8px 10px}
+.vv-menu-av{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#C2490C;color:#FFFFFF;font:750 12px var(--vv-texto)}
+.vv-menu-tema-linha{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px}
+.vv-menu-tema-linha > span:first-child{font:700 12.5px var(--vv-texto);color:#1F1D1A}
+.vv-menu-tema-linha .vb-alternar button{display:inline-flex;width:auto;padding:4px 8px;font:600 11.5px var(--vv-texto)}
+.vv-menu-tema-linha .vb-alternar button[aria-checked="true"]{background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
+/* Topo na Cidade (fase 3b, quadro 32): com espaço, Agenda, WhatsApp e Boletim têm o nome escrito, como no resto do sistema. */
+@media (min-width:1280px){
+  body.mundo.mundo-centro .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"],.vv-ferr-boletim){width:auto;padding:0 11px 0 9px;gap:6px}
+  body.mundo.mundo-centro .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
+}
+.vv-menu-tema-linha .vb-alternar button{color:#5E5A53}
