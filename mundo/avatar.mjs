@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { prepararRenderer, luzDoEstilo } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
+import { figuraDoHabbo } from './moveis-habbo.mjs';
 
 const PELE = ['#F6D3B5', '#EDC09A', '#D9A47C', '#C68E6A', '#A8714E', '#8A5A3C', '#6B4430'];
 const CABELO = ['#1F1612', '#2B1D14', '#4A2E1A', '#6B4A2E', '#8A5A2E', '#C99A3C', '#E3C27A', '#B5462F', '#7A7268', '#2E3A5C'];
@@ -236,8 +237,32 @@ export function avatarDoAgente(nome, cor = '#FF7A2F', { cabeca = false } = {}) {
 export function avatarVoxel(figura, { cabeca = false, direcao = 2 } = {}) {
   const chave = figura + '|' + cabeca + '|' + direcao;
   if (cache.has(chave)) return cache.get(chave);
+  const url = retratar(lerFigura(figura), { cabeca, direcao });
+  cache.set(chave, url);
+  return url;
+}
+
+// Figura fiel (Paulo, 09/11/2026: o boneco de cada um igual ao Habbo dele, no nosso estilo): a mesma do quarto, com
+// as cores, o cabelo esculpido, o casaco, as mangas, os óculos e os acessórios tirados da arte da pessoa
+// (figuraDoHabbo). Sem a arte, a leitura rápida (lerFigura).
+export async function figuraFiel(figura = '') {
+  const base = lerFigura(figura);
+  const h = figura ? await figuraDoHabbo(figura).catch(() => null) : null;
+  if (!h) return base;
+  const cores = Object.fromEntries(Object.entries(h.cores || {}).filter(([, v]) => v));
+  return { ...base, ...cores, chapeu: h.acessorio ? null : base.chapeu, oculos: h.acessorio ? false : base.oculos, acessorio: h.acessorio, cabeloHabbo: h.cabeloHabbo };
+}
+// Retrato fiel: o mesmo desenho do avatarVoxel com a figura fiel. Quem mostra pinta o rápido e troca por este.
+const fieis = new Map();
+export function avatarVoxelFiel(figura, { cabeca = false, direcao = 2 } = {}) {
+  const chave = figura + '|' + cabeca + '|' + direcao;
+  if (!fieis.has(chave)) fieis.set(chave, figuraFiel(figura).then((f) => retratar(f, { cabeca, direcao })).catch(() => avatarVoxel(figura, { cabeca, direcao })));
+  return fieis.get(chave);
+}
+
+function retratar(f, { cabeca = false, direcao = 2 } = {}) {
   preparar();
-  const g = boneco(lerFigura(figura));
+  const g = boneco(f);
   g.rotation.y = [-.6, -.3, .3, .6, 2.6, 3, -2.6, -3][Number(direcao) % 8] ?? .3;
   cena.add(g);
   if (cabeca) { camera.position.set(0, 1.36, 2.7); camera.lookAt(0, 1.3, 0); }
@@ -245,7 +270,6 @@ export function avatarVoxel(figura, { cabeca = false, direcao = 2 } = {}) {
   renderer.render(cena, camera);
   const url = renderer.domElement.toDataURL('image/png');
   cena.remove(g); g.traverse((x) => x.geometry?.dispose?.());
-  cache.set(chave, url);
   return url;
 }
 

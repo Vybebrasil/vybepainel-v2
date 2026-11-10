@@ -112,3 +112,10 @@ test('lote 3: peças especiais dos quartos (estúdio, festa, banho, jogo) têm m
     assert.ok(o.solidos.length + o.luzes.length > 4, c);
   }
 });
+
+test('retratos: o painel troca a foto do Habbo pelo rápido e depois pelo fiel; o quarto usa a mesma figura fiel', () => {
+  const av = fs.readFileSync('mundo/avatar.mjs', 'utf8'), q = fs.readFileSync('mundo/quarto.mjs', 'utf8'), vm = fs.readFileSync('vybe-mundo.js', 'utf8');
+  assert.match(av, /export async function figuraFiel/); assert.match(av, /export function avatarVoxelFiel/);
+  assert.match(q, /figuraFiel\(p\.figura\)/);
+  assert.match(vm, /avatarVoxelFiel\?\.\(fig, opcoes\)/);
+});
