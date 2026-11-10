@@ -81,3 +81,12 @@ test('biblioteca: os móveis dos quartos modelados um a um entram antes da recei
   }
   assert.equal(m.temModelo('winter15_iceskater'), false, 'estátua continua esculpida');
 });
+
+test('lote 2: peças de construção viram bloco na paleta; móveis dos outros quartos têm modelo próprio', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  assert.equal(m.tipoModelado('xmas11_woodfloor', null, { nome: 'Piso Madeira', categoria: 'Pisos do acervo' }), 'bloco');
+  assert.equal(m.tipoModelado('bc_cylinder_recolorable', null, { nome: 'Cilindro', categoria: 'Blocos e materiais' }), 'bloco');
+  const piso = m.montarMovel('bloco', { w: 2, d: 2, classe: 'xmas11_woodfloor' });
+  assert.ok(piso.solidos.length > 8, 'piso de madeira com tábuas');
+  for (const c of ['vikings_bed', 'bed_armas_two', 'js_exe_sofa', 'xmas11_luxsofa1', 'vikings_indoorstove', 'carpet_polar', 'st_wildwest_barrel', 'cpunk_c15_table', 'hblooza_bbq', 'modern_c17_tv', 'uni_desk']) assert.ok(m.temModelo(c), c);
+});

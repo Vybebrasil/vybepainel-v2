@@ -43,6 +43,7 @@ const TIPOS = [
   ['mesa', /table|desk|counter|(^|[_ ])bar($|[_ ])|workbench|mesa|balcão|escrivaninha/],
 ];
 // A categoria da Loja desempata quando o nome não diz.
+const BLOCOS = new Set(['Pisos do acervo', 'Blocos e materiais', 'Acabamentos', 'Divisórias']);
 const POR_CATEGORIA = { 'Cadeiras e sofás': 'cadeira', Mesas: 'mesa', Estantes: 'estante', Luzes: 'luminaria', Tapetes: 'tapete', 'Troféus': 'trofeu', 'Música': 'som' };
 let catalogo = null;
 // O catálogo da Loja, uma vez (o mesmo arquivo do editor do Escritório). classe → { nome, categoria }.
@@ -57,6 +58,8 @@ export function carregarCatalogo() {
 // tipo, ou null (o motor não sabe: fica a escultura). ficha: { senta, deita, pisa } do Habbo.
 export function tipoModelado(classe, ficha = null, info = null) {
   const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
+  // Peça de construção (piso, bloco, divisória): um bloco na paleta, com o desenho do material.
+  if (BLOCOS.has(info?.categoria)) return 'bloco';
   let t = (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
   if (!t && info?.categoria) t = POR_CATEGORIA[info.categoria] || null;
   if (ficha?.deita) return 'cama';
@@ -242,6 +245,18 @@ const RECEITAS = {
     C(o, 0, G / 4, 0, w - G * 4, G / 2, d - G * 4, c);
     for (let k = 0; k < Math.floor((w - G * 8) / (G * 4)); k++) C(o, -w / 2 + G * 6 + k * G * 4, G / 2, 0, G * 2, G / 4, d - G * 8, k % 2 ? b : cor.acento);
   },
+  bloco(o, { w, d, cor, classe, alto = 0 }) {
+    const h = Math.max(G, q(alto) || G), c = cor.principal, nome = classe;
+    if (/water|shallow|pool|água|agua/.test(nome)) { C(o, 0, 0, 0, w, Math.max(G, h - G), d, tom(c, -.2)); L(o, 0, Math.max(G, h - G), 0, w - G / 2, G / 2, d - G / 2, '#7FC8E8'); return; }
+    C(o, 0, 0, 0, w, h, d, tom(c, -.08));
+    if (/wood|madeira|log|plank|tábua|tabua/.test(nome)) { // tábuas com a fresta escura e as emendas desencontradas
+      C(o, 0, h - G / 2, 0, w, G / 2, d, tom(c, -.35));
+      const n = Math.max(4, Math.round(d * 4)); for (let k = 0; k < n; k++) { const corte = ((k * 3) % 4) / 4 * w; for (const [a, b] of corte ? [[-w / 2, -w / 2 + corte], [-w / 2 + corte, w / 2]] : [[-w / 2, w / 2]]) C(o, (a + b) / 2, h - G / 4, -d / 2 + (k + .5) * d / n, b - a - G / 4, G / 2, d / n - G / 4, k % 3 === 0 ? tom(c, .1) : k % 3 === 1 ? c : tom(c, -.06)); }
+      return; }
+    if (/grass|grama|leaf|folha/.test(nome)) { C(o, 0, h - G / 4, 0, w, G / 2, d, '#5FA34E'); for (let k = 0; k < 6; k++) C(o, -w / 2 + G * 2 + (k * 5 % 12) * w / 13, h + G / 4, -d / 2 + G * 2 + (k * 7 % 12) * d / 13, G, G, G, k % 2 ? '#7DBB5E' : '#4F9A4E'); return; }
+    // Ladrilho: o topo em quatro placas com a junta fina (mármore, cerâmica, concreto).
+    for (const a of [-1, 1]) for (const b of [-1, 1]) C(o, a * w / 4, h - G / 4, b * d / 4, w / 2 - G / 2, G / 2, d / 2 - G / 2, (a * b > 0) ? c : tom(c, .06));
+  },
   sinuca(o, { w, d, cor }) {
     const madeira = lum(cor.segunda) < .6 ? cor.segunda : MADEIRA_ESC, feltro = sat(cor.principal) > .15 ? cor.principal : '#2E8B57', tw = w - G * 2, td = d - G * 2, h = .72;
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { C(o, a * (tw / 2 - G * 3), 0, b * (td / 2 - G * 3), G * 3, h - G * 4, G * 3, madeira); C(o, a * (tw / 2 - G * 3), 0, b * (td / 2 - G * 3), G * 4, G, G * 4, tom(madeira, -.2)); }
@@ -311,11 +326,11 @@ export const temModelo = (classe) => Object.prototype.hasOwnProperty.call(modelo
 
 // Monta o móvel: devolve a Obra (centro da pegada em 0, base 0, frente +z) ou null (tipo sem receita).
 // w e d: pegada em ladrilhos na direção 4 (a de frente). cores: { principal, segunda, acento }.
-export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '' } = {}) {
+export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0 } = {}) {
   const f = modelos()[classe] || RECEITAS[tipo]; if (!f) return null;
   const o = new Obra();
-  f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase() });
-  o.sombra(0, 0, Math.max(w, d) * .55, .005);
+  f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase(), alto });
+  if (tipo !== 'bloco') o.sombra(0, 0, Math.max(w, d) * .55, .005);
   return o;
 }
 export const TIPOS_MODELADOS = Object.keys(RECEITAS);

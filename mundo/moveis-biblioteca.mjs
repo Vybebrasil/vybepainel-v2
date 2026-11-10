@@ -6,6 +6,35 @@
 // Recebe as ferramentas do motor (C caixa, L luz, G grade, tom, gaveta, LIVROS, RECEITAS, METAL) para não haver
 // importação circular.
 export function biblioteca({ C, L, G, tom, gaveta, LIVROS, RECEITAS, METAL }) {
+  // Peças que vários modelos repetem com cores diferentes (sofá moderno, chesterfield, cama).
+  const BIBLIOTECA_UTIL = {
+    sofaModerno(o, { w, d, tecido, lado }) {
+      const sw = w - G * 2, sd = Math.min(d, 1) - G * 2, n = Math.max(1, Math.round(sw)), lw = G * 3, cw = (sw - lw * 2) / n;
+      C(o, 0, 0, 0, sw - G * 2, G * 2, sd - G * 2, '#1F1D1A');
+      C(o, 0, G * 2, 0, sw - lw * 2, G * 4, sd, tom(tecido, -.08));
+      for (let k = 0; k < n; k++) { const x = -sw / 2 + lw + cw * (k + .5); C(o, x, G * 6, G, cw - G / 2, G * 2.5, sd - G * 5, tecido); C(o, x, G * 6, -(sd / 2 - G * 2.5), cw - G / 2, G * 7, G * 4, tecido); }
+      for (const a of [-1, 1]) C(o, a * (sw / 2 - lw / 2), 0, 0, lw, G * 10, sd, lado);
+    },
+    chesterfield(o, { w, d, cor }) {
+      const c = cor, e = tom(c, -.18), cl = tom(c, .1), sw = w - G * 2, sd = Math.min(d, 1) - G * 2;
+      for (const a of [-1, 1]) for (const b of [-1, 1]) C(o, a * (sw / 2 - G * 2), 0, b * (sd / 2 - G * 2), G * 2, G * 2, G * 2, '#2B1D14');
+      C(o, 0, G * 2, 0, sw, G * 5, sd, e);
+      const n = Math.max(1, Math.round(sw - .3)), cw = (sw - G * 8) / n;
+      for (let k = 0; k < n; k++) C(o, -sw / 2 + G * 4 + cw * (k + .5), G * 7, G, cw - G / 2, G * 2, sd - G * 6, c);
+      C(o, 0, G * 7, -(sd / 2 - G * 2), sw, G * 7, G * 4, c);
+      for (let x = -sw / 2 + G * 3; x < sw / 2 - G * 2; x += G * 2) for (let y = G * 9; y < G * 14; y += G * 2) C(o, x, y, -(sd / 2 - G * 4.1), G / 2, G / 2, G / 4, e);
+      for (const a of [-1, 1]) { C(o, a * (sw / 2 - G * 2), G * 7, 0, G * 4, G * 6, sd, c); C(o, a * (sw / 2 - G * 2), G * 13, 0, G * 5, G * 1.5, sd, cl); }
+    },
+    cama(o, { w, d, madeira, manta, lencol, travesseiro }) {
+      const bw = w - G * 2, bd = d - G * 2;
+      C(o, 0, 0, 0, bw, G * 5, bd, madeira);
+      C(o, 0, G * 5, 0, bw - G * 2, G * 3, bd - G * 2, lencol);
+      C(o, 0, G * 8, G * 2, bw - G, G * 1.5, bd * .62, manta); C(o, 0, G * 6, bd * .31 + G * 2, bw - G, G * 3.5, G, tom(manta, -.12));
+      const n = Math.max(1, Math.round(bw / .8)); for (let k = 0; k < n; k++) C(o, -bw / 2 + bw / n * (k + .5), G * 8, -bd / 2 + G * 4, bw / n - G * 2, G * 3, G * 4, travesseiro);
+      C(o, 0, 0, -bd / 2 + G, bw, G * 15, G * 2, madeira); C(o, 0, G * 15, -bd / 2 + G, bw + G, G, G * 3, tom(madeira, .12));
+      C(o, 0, 0, bd / 2 - G, bw, G * 9, G * 2, madeira);
+    },
+  };
   return {
     // Cadeira executiva: estrela de 5 pés com rodinhas, coluna cromada, couro preto em gomos, braços de madeira.
     exe_chair2(o) {
@@ -187,6 +216,215 @@ export function biblioteca({ C, L, G, tom, gaveta, LIVROS, RECEITAS, METAL }) {
       for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) C(o, -G * 4 + k * G * 2, G * 14 + r * G * 4.5, G * 4.4, G * 1.5, G * 3, G / 2, ['#E5484D', '#18A957', '#F2C230', '#0D74CE'][(r + k) % 4]);
       C(o, G * 4.5, G * 14, G * 4.2, G * 2, G * 10, G / 2, '#3A3F44'); L(o, G * 4.5, G * 21, G * 4.5, G * 1.5, G, G / 4, '#4FE07A');
       C(o, -G, G * 3, G * 4.2, G * 8, G * 4, G / 2, '#111315');
+    },
+
+    // ---------- lote 2 (quartos de Paulo, Ewerton, Bia, Jady, Mizinho, Taynara e Reriston) ----------
+    // Cadeira moderna: pés pretos finos, assento e encosto curvo estofados em bege-rosado.
+    hc26_10(o) {
+      const c = '#D9C3B5';
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) C(o, a * G * 3, 0, b * G * 3, G, G * 7, G, '#2B2F33');
+      C(o, 0, G * 7, 0, G * 8, G * 2, G * 8, c); C(o, 0, G * 9, G / 2, G * 7, G / 2, G * 6, tom(c, .12));
+      C(o, 0, G * 9, -G * 3.5, G * 8, G * 7, G * 1.5, c); C(o, 0, G * 16, -G * 3, G * 7, G, G * 2, tom(c, .1));
+    },
+    // Cadeira neon: disco amarelo no chão, haste cromada e a cuba de acrílico azul-gelo.
+    party_chair(o) {
+      C(o, 0, 0, 0, G * 7, G, G * 7, '#F2C230'); C(o, 0, G, 0, G * 5, G / 2, G * 5, tom('#F2C230', .2));
+      C(o, 0, G * 1.5, 0, G, G * 5, G, METAL);
+      C(o, 0, G * 6.5, 0, G * 8, G * 2, G * 8, '#BFE6F2'); C(o, 0, G * 8.5, 0, G * 9, G * 6, G * 2, '#D6F1F8');
+      C(o, 0, G * 8.5, -G * 3.5, G * 9, G * 6, G * 2, '#BFE6F2'); for (const a of [-1, 1]) C(o, a * G * 4, G * 8.5, 0, G, G * 4, G * 8, '#D6F1F8');
+      C(o, 0, G * 8.5, 0, G * 7, G / 2, G * 6, '#FFFFFF');
+    },
+    // Cadeira de madeira de encosto em escada (três travessas).
+    waasa_chair_wood(o) {
+      const m = '#D9A45E', e = tom(m, -.2);
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) C(o, a * G * 3, 0, b * G * 3, G * 1.5, G * 7, G * 1.5, e);
+      C(o, 0, G * 7, 0, G * 8, G, G * 8, m);
+      for (const a of [-1, 1]) C(o, a * G * 3, G * 8, -G * 3, G * 1.5, G * 10, G * 1.5, e);
+      for (let k = 0; k < 3; k++) C(o, 0, G * 10.5 + k * G * 2.5, -G * 3, G * 6, G, G, m);
+    },
+    // Cadeira de escritório preta de tela, com estrela de rodinhas.
+    ads_idol_ch(o) {
+      const c = '#2B2F33';
+      for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; C(o, Math.cos(a) * G * 3.5, G, Math.sin(a) * G * 3.5, G * 2.5, G / 2, G * 2.5, '#3A3F44'); C(o, Math.cos(a) * G * 5, 0, Math.sin(a) * G * 5, G, G, G, '#1F1D1A'); }
+      C(o, 0, G * 1.5, 0, G, G * 5, G, METAL);
+      C(o, 0, G * 6.5, G / 2, G * 8, G * 1.5, G * 8, c); C(o, 0, G * 8, -G * 3.5, G * 8, G * 9, G, c);
+      for (let k = 0; k < 4; k++) C(o, 0, G * 9 + k * G * 2, -G * 2.9, G * 6, G / 2, G / 4, '#454C52');
+      for (const a of [-1, 1]) { C(o, a * G * 4, G * 8, 0, G / 2, G * 2.5, G / 2, '#3A3F44'); C(o, a * G * 4, G * 10.5, 0, G, G / 2, G * 4, '#3A3F44'); }
+    },
+    // Mesa de reunião: tampo de madeira avermelhada com borda e um bloco escuro de base.
+    army_c15_contable(o, { w, d }) {
+      const t = '#8A3A2A', tw = w - G * 2, td = d - G * 2, h = .74;
+      C(o, 0, G, 0, tw - G * 6, h - G * 3, td - G * 6, '#2F3438'); C(o, 0, 0, 0, tw - G * 4, G, td - G * 4, '#1F2326');
+      C(o, 0, h - G * 2, 0, tw, G * 2, td, t); C(o, 0, h - G / 2, 0, tw - G * 2, G / 2, td - G * 2, tom(t, .15));
+    },
+    // Prateleira baixa branca com livros e a planta caindo em cascata.
+    art_c20_shelves(o, { w }) {
+      const b = '#F4EFE6', ew = Math.max(.9, w - G * 2);
+      for (const y of [0, G * 6]) C(o, 0, y, -G * 3, ew, G, G * 5, b);
+      for (const a of [-1, 1]) C(o, a * (ew / 2 - G / 2), 0, -G * 3, G, G * 7, G * 5, b);
+      let x = ew * .05; for (let k = 0; x < ew / 2 - G * 2; k++) { const lw = G * (1 + k % 2); C(o, x + lw / 2, G * 7, -G * 3, lw, G * (4 + k % 3), G * 4, LIVROS[k % LIVROS.length]); x += lw; }
+      C(o, -ew / 4, G * 7, -G * 3, G * 3, G * 2, G * 3, '#F2C230');
+      for (let k = 0; k < 7; k++) C(o, -ew / 4 + (k % 3 - 1) * G * 1.5, G * (9 - k * 1.3), -G * 1 + (k % 2) * G, G * 1.5, G * 1.5, G * 1.5, ['#3E8F4E', '#4FA35A', '#6BBF5E'][k % 3]);
+    },
+    // Balcão longo preto com tampo de vidro esverdeado.
+    public_x_counter4(o, { w, d }) {
+      const tw = w - G * 2, td = Math.min(d, 1) - G * 4;
+      C(o, 0, 0, 0, tw, G * 13, td, '#2B2F33'); C(o, 0, G, td / 2, tw - G * 2, G * 11, G / 2, '#3A3F44');
+      C(o, 0, G * 13, 0, tw + G, G, td + G, '#9FC9C0'); C(o, 0, G * 13.5, 0, tw - G, G / 2, td - G, '#BFE3DA');
+    },
+    // Sofá baunilha moderno: almofadas creme e laterais de madeira escura.
+    js_exe_sofa(o, { w, d }) { BIBLIOTECA_UTIL.sofaModerno(o, { w, d, tecido: '#EFE6D6', lado: '#4A3427' }); },
+    exe_sofa(o, { w, d }) { BIBLIOTECA_UTIL.sofaModerno(o, { w, d, tecido: '#2F3438', lado: '#8A5A3C' }); },
+    // Escrivaninha de madeira clara com gaveteiro à esquerda.
+    uni_desk(o, { w, d }) {
+      const m = '#D9A45E', tw = w - G * 2, td = d - G * 2, h = .72;
+      C(o, 0, h - G * 2, 0, tw, G * 2, td, m);
+      C(o, -tw / 2 + G * 4, 0, 0, G * 7, h - G * 2, td - G * 2, tom(m, -.05));
+      for (let k = 0; k < 3; k++) gaveta(o, -tw / 2 + G * 4, G + k * G * 3.7, td / 2 - G, G * 6, G * 3, m, '#8E959B');
+      C(o, tw / 2 - G * 1.5, 0, 0, G * 2, h - G * 2, td - G * 2, tom(m, -.1));
+    },
+    // Notebook preto aberto de tela laranja.
+    computer_laptop(o) {
+      C(o, 0, 0, G, G * 7, G / 2, G * 5, '#2B2F33'); for (let k = 0; k < 5; k++) C(o, -G * 2.6 + k * G * 1.3, G / 2, G * .8, G, G / 4, G * 2.5, '#5A6268');
+      C(o, 0, 0, -G * 1.8, G * 7, G * 5, G / 2, '#2B2F33'); L(o, 0, G * .6, -G * 1.5, G * 6, G * 3.8, G / 4, '#FFB46B');
+    },
+    // Chesterfield branco (o sofá luxuoso de 1 lugar ou mais).
+    xmas11_luxsofa1(o, { w, d }) { BIBLIOTECA_UTIL.chesterfield(o, { w, d, cor: '#E9EEE9' }); },
+    // Estante de nichos em zigue-zague de madeira escura.
+    darkmodern_c20_shelf(o) {
+      const m = '#5A3427', i = tom(m, -.3);
+      for (const [x, y] of [[-G * 2, 0], [G * 2, G * 5], [-G * 2, G * 10], [G * 2, G * 15]]) { C(o, x, y, -G * 2, G * 8, G * 5, G * 6, m); C(o, x, y + G, -G * 1.6, G * 6, G * 3, G * 5, i); }
+      C(o, -G * 2, G * 11, -G, G * 2, G * 2, G * 2, '#F2C230'); C(o, G * 2, G * 6, -G, G * 3, G * 2, G * 2, '#3D7DD8');
+    },
+    // TV grande preta num pé fino.
+    modern_c17_tv(o) {
+      C(o, 0, 0, -G * 2, G * 5, G / 2, G * 3, '#2B2F33'); C(o, 0, G / 2, -G * 2, G, G * 4, G, '#2B2F33');
+      C(o, 0, G * 4.5, -G * 2, G * 15, G * 10, G, '#17181A'); L(o, 0, G * 5, -G * 1.4, G * 14, G * 9, G / 4, '#3A4A5E');
+      C(o, G * 4, G * 10, -G * 1.2, G * 4, G / 2, G / 8, '#5C7090');
+    },
+    // Luminária de arco: base redonda, haste curvada e a cúpula cinza.
+    modern_c17_floorlamp(o) {
+      const c = '#9AA3A8';
+      C(o, 0, 0, 0, G * 5, G, G * 5, '#5A6268'); C(o, 0, G, 0, G, G * 18, G, c);
+      for (let k = 0; k < 5; k++) C(o, G * (k + 1), G * (19 + Math.min(k, 2) * .5), 0, G, G, G, c);
+      C(o, G * 6, G * 16, 0, G * 4, G * 3, G * 4, c); C(o, G * 6, G * 19, 0, G * 2, G, G * 2, tom(c, -.2));
+      L(o, G * 6, G * 15.5, 0, G * 3, G / 2, G * 3, '#FFE7A3');
+    },
+    // Cama moderna escura: manta azul, travesseiros cinza.
+    darkmodern_c20_bed(o, { w, d }) { BIBLIOTECA_UTIL.cama(o, { w, d, madeira: '#3B2A22', manta: '#4F6E9E', lencol: '#E2E6EA', travesseiro: '#9AA3A8' }); },
+    // Cama viking: madeira rústica, pele marrom por cima.
+    vikings_bed(o, { w, d }) {
+      BIBLIOTECA_UTIL.cama(o, { w, d, madeira: '#6E4B33', manta: '#8A5E3C', lencol: '#D9C3A0', travesseiro: '#C9AE84' });
+      for (let k = 0; k < 8; k++) C(o, (k % 4 - 1.5) * G * 3, G * 10, (Math.floor(k / 4) - .5) * G * 5, G * 2, G, G * 2, k % 2 ? '#5E4030' : '#A87A52'); // pelagem
+    },
+    // Criado-mudo de madeira com gaveta e o abajur de cúpula creme.
+    xmas11_nghtstnd(o) {
+      const m = '#9A5E34';
+      C(o, 0, 0, 0, G * 9, G * 8, G * 8, m); gaveta(o, 0, G * 4, G * 4, G * 7, G * 3, m, '#F2C230'); C(o, 0, G * 8, 0, G * 10, G, G * 9, tom(m, .12));
+      C(o, -G, G * 9, -G, G * 3, G, G * 3, '#C9A34A'); C(o, -G, G * 10, -G, G, G * 4, G, '#C9A34A');
+      C(o, -G, G * 14, -G, G * 5, G * 3, G * 5, '#F0DFB0'); L(o, -G, G * 13.5, -G, G * 3, G / 2, G * 3, '#FFE7A3');
+    },
+    // Luminária de mesa preta fina.
+    modern_c17_lamp(o) {
+      C(o, 0, 0, 0, G * 3, G / 2, G * 3, '#2B2F33'); C(o, 0, G / 2, 0, G / 2, G * 12, G / 2, '#2B2F33');
+      C(o, G, G * 12, 0, G * 3, G * 1.5, G * 2, '#2B2F33'); L(o, G * 1.5, G * 11.5, 0, G * 2, G / 2, G * 1.5, '#FFE7A3');
+    },
+    // Cama de casal com colunas de latão, lençol branco e manta marrom.
+    bed_armas_two(o, { w, d }) {
+      BIBLIOTECA_UTIL.cama(o, { w, d, madeira: '#C9A34A', manta: '#7A4A2E', lencol: '#F4EFE6', travesseiro: '#FFFFFF' });
+      const bw = w - G * 2, bd = d - G * 2;
+      for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { C(o, a * (bw / 2 - G), 0, b * (bd / 2 - G), G * 1.5, b < 0 ? G * 20 : G * 12, G * 1.5, '#C9A34A'); C(o, a * (bw / 2 - G), b < 0 ? G * 20 : G * 12, b * (bd / 2 - G), G * 2, G * 1.5, G * 2, '#E6C46A'); }
+    },
+    // Duas caixinhas de som cinza em forma de ovo.
+    modern_c17_speakers(o) {
+      for (const a of [-1, 1]) { const x = a * G * 3; C(o, x, 0, 0, G * 3, G * 5, G * 3, '#9AA3A8'); C(o, x, G, 0, G * 3.5, G * 3, G * 3.5, '#9AA3A8'); C(o, x, G * 2, G * 1.6, G * 1.5, G * 1.5, G / 2, '#2B2F33'); }
+    },
+    // Tapete neutro bege com borda mais escura.
+    hygge_c25_carpet(o, { w, d }) {
+      C(o, 0, 0, 0, w - G * 2, G / 2, d - G * 2, '#B88C62'); C(o, 0, G / 4, 0, w - G * 4, G / 2, d - G * 4, '#E2C79E');
+      for (let k = 0; k < Math.floor((d - G * 6) / (G * 3)); k++) C(o, 0, G / 2, -d / 2 + G * 4 + k * G * 3, w - G * 6, G / 4, G / 2, '#D2B48A');
+    },
+    // Planta pendente num vaso de macramê, folhas caindo.
+    recycler_bottleplant(o) {
+      for (const a of [-1, 1]) C(o, a * G * 1.5, G * 8, 0, G / 4, G * 16, G / 4, '#C9A983');
+      C(o, 0, G * 6, 0, G * 4, G * 3, G * 4, '#E9DCC4');
+      for (let k = 0; k < 10; k++) { const a = k * 2.2; C(o, Math.cos(a) * G * 2.5, G * (9 - (k % 4) * 1.5), Math.sin(a) * G * 2.5, G * 1.5, G * 2, G * 1.5, ['#3E8F4E', '#4FA35A', '#6BBF5E'][k % 3]); }
+    },
+    // Pilha de toras de cabana: toras deitadas com o anel claro na ponta.
+    xmas_c22_roofblock(o, { w, d }) {
+      const s = Math.min(w, d) - G, c = '#8A5A3C';
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 3 - (r === 2 ? 1 : 0); k++) {
+        const z = -s / 2 + G * 3 + k * G * 5 + (r === 2 ? G * 2.5 : 0), y = r * G * 4.5;
+        C(o, 0, y, z, s, G * 4.5, G * 4.5, r % 2 ? tom(c, -.08) : c);
+        C(o, s / 2, y + G, z, G / 2, G * 2.5, G * 2.5, '#D9B48A'); C(o, s / 2 + G / 4, y + G * 1.8, z, G / 4, G, G, '#B98A55');
+      }
+    },
+    // Parede de toras: toras horizontais empilhadas, finas.
+    wintercabin_c19_wall(o, { w }) {
+      const c = '#8A5A3C';
+      for (let k = 0; k < 10; k++) C(o, 0, k * G * 3.2, -G * 6, w, G * 3.2, G * 3, k % 2 ? tom(c, -.1) : c);
+    },
+    // Divisória de vidro: dois postes de metal e o painel azul-gelo.
+    olympics_c16_glssdvdr(o, { w }) {
+      const s = Math.max(.9, w - G * 2);
+      for (const a of [-1, 1]) C(o, a * s / 2, 0, 0, G * 1.5, G * 16, G * 1.5, METAL);
+      L(o, 0, G, 0, s - G * 2, G * 14, G / 2, '#CDEBF5');
+    },
+
+    // Fogueira viking: moldura de toras no chão, lenha, fogo aceso, tripé de galhos e o caldeirão pendurado.
+    vikings_indoorstove(o, { w, d }) {
+      const s = Math.min(w, d) - G * 2, mad = '#6E4B33';
+      for (const a of [-1, 1]) { C(o, a * (s / 2 - G), 0, 0, G * 2, G * 2, s, mad); C(o, 0, 0, a * (s / 2 - G), s, G * 2, G * 2, tom(mad, -.1)); }
+      C(o, 0, 0, 0, s - G * 4, G / 2, s - G * 4, '#4A403A');
+      for (let k = 0; k < 4; k++) C(o, (k - 1.5) * G * 1.6, G / 2, 0, G * 1.2, G, G * 5, k % 2 ? '#5E4030' : '#8A5A3C');
+      L(o, 0, G * 1.5, 0, G * 3, G * 3, G * 3, '#FF8A2B'); L(o, 0, G * 3, 0, G * 2, G * 2, G * 2, '#FFC64D'); L(o, G / 2, G * 4.5, 0, G, G * 1.5, G, '#FFE38A');
+      for (const a of [-1, 1]) for (const b of [-1, 1]) for (let k = 0; k < 8; k++) C(o, a * (G * 5 - k * G * .55), k * G * 1.6, b * G * 1.5, G, G * 1.8, G, '#7A5534'); // galhos do tripé
+      C(o, 0, G * 13, 0, G * 7, G, G, '#7A5534');
+      C(o, 0, G * 9, 0, G / 4, G * 4, G / 4, '#3A3F44');
+      C(o, 0, G * 6, 0, G * 4, G * 3, G * 4, '#2B2F33'); L(o, 0, G * 9, 0, G * 3, G / 2, G * 3, '#E5703A');
+    },
+    // Tapete de urso polar: pele branca com as quatro patas abertas e a cabeça com orelhas e focinho.
+    carpet_polar(o, { w, d }) {
+      const b = '#F7F5F0', s = '#E2DED4', L2 = Math.min(w, d);
+      C(o, 0, 0, 0, L2 * .55, G / 2, L2 * .75, b); C(o, 0, G / 4, 0, L2 * .45, G / 2, L2 * .6, s);
+      for (const a of [-1, 1]) for (const c of [-1, 1]) C(o, a * L2 * .33, 0, c * L2 * .25, L2 * .2, G / 2, G * 3, b);
+      C(o, 0, 0, L2 * .43, G * 6, G * 2, G * 5, b); C(o, 0, G * 2, L2 * .43, G * 5, G, G * 4, s);
+      for (const a of [-1, 1]) { C(o, a * G * 2.5, G * 2, L2 * .43 - G * 1.5, G * 1.5, G * 1.5, G, b); C(o, a * G * 1.3, G * 2, L2 * .43 + G * 1.2, G / 2, G / 2, G / 4, '#2B2F33'); }
+      C(o, 0, G, L2 * .43 + G * 2.6, G * 2, G, G, s); C(o, 0, G * 1.5, L2 * .43 + G * 3.1, G, G / 2, G / 4, '#2B2F33');
+    },
+    // Barril de madeira com cintas de metal e água em cima.
+    st_wildwest_barrel(o) {
+      const m = '#9A6A3E';
+      C(o, 0, 0, 0, G * 7, G * 2, G * 7, tom(m, -.1)); C(o, 0, G * 2, 0, G * 8, G * 8, G * 8, m); C(o, 0, G * 10, 0, G * 7, G * 2, G * 7, tom(m, -.1));
+      for (const y of [G * 1.5, G * 5.5, G * 10]) C(o, 0, y, 0, G * 8.4, G / 2, G * 8.4, '#5A6268');
+      for (let k = 0; k < 4; k++) C(o, -G * 3 + k * G * 2, G * 2, G * 4.1, G / 4, G * 8, G / 4, tom(m, -.25));
+      L(o, 0, G * 11.5, 0, G * 6, G / 2, G * 6, '#7FC8E8');
+    },
+    // Banquinho viking: três pés grossos de madeira escura e o assento rústico.
+    vikings_stool(o) {
+      const m = '#5E4030';
+      for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; C(o, Math.cos(a) * G * 2.5, 0, Math.sin(a) * G * 2.5, G * 1.5, G * 6, G * 1.5, m); }
+      C(o, 0, G * 6, 0, G * 7, G * 1.5, G * 6, tom(m, .1)); C(o, G, G * 7.5, G / 2, G * 3, G / 4, G * 2, tom(m, .2));
+    },
+    // Mesa cyberpunk: tampo preto, painéis laterais em ângulo e o filete de luz azul-esverdeada.
+    cpunk_c15_table(o, { w, d }) {
+      const tw = w - G * 2, td = d - G * 2, h = .72;
+      C(o, 0, h - G * 2, 0, tw, G * 2, td, '#1F2326'); L(o, 0, h - G * 2.5, td / 2 - G / 2, tw, G / 2, G / 2, '#3FE0C8');
+      for (const a of [-1, 1]) { C(o, a * (tw / 2 - G * 2), 0, 0, G * 2, h - G * 2, td - G * 2, '#2B3035'); L(o, a * (tw / 2 - G * 2.6), G * 2, 0, G / 4, h - G * 6, G / 2, '#3FE0C8'); }
+    },
+    // Churrasqueira de bola: três pés, a bola preta e a tampa com o puxador.
+    hblooza_bbq(o) {
+      for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; for (let j = 0; j < 4; j++) C(o, Math.cos(a) * G * (3 - j * .5), j * G * 2, Math.sin(a) * G * (3 - j * .5), G / 2, G * 2, G / 2, '#3A3F44'); }
+      C(o, 0, G * 8, 0, G * 7, G * 3, G * 7, '#22262B'); C(o, 0, G * 11, 0, G * 7.4, G / 2, G * 7.4, '#5A6268');
+      C(o, 0, G * 11.5, 0, G * 6, G * 2, G * 6, '#2B2F33'); C(o, 0, G * 13.5, 0, G * 4, G, G * 4, '#2B2F33'); C(o, 0, G * 14.5, 0, G * 2, G / 2, G / 2, METAL);
+    },
+    // Porta de cabana de toras com a janelinha azul.
+    xmas_c22_door(o, { w }) {
+      const m = '#8A5A3C', s = Math.max(.8, w - G * 2);
+      for (let k = 0; k < 5; k++) C(o, -s / 2 + s / 10 + k * s / 5, 0, -G * 6, s / 5 - G / 4, G * 30, G * 2, k % 2 ? tom(m, -.08) : m);
+      C(o, 0, G * 30, -G * 6, s + G, G * 1.5, G * 3, tom(m, -.2));
+      L(o, s / 5, G * 20, -G * 4.9, G * 4, G * 5, G / 4, '#9AD8F0'); C(o, s / 5, G * 22.5, -G * 4.8, G * 4, G / 2, G / 4, m);
+      C(o, -s / 4, G * 14, -G * 4.8, G, G, G, '#C9A34A');
     },
   };
 }

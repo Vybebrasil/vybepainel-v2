@@ -230,7 +230,7 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     const tipo = tipoModelado(classe, fichaDe(classe), (await carregarCatalogo()).get(classe));
     if (tipo || temModelo(classe)) {
       const info = await paletaDoHabbo(classe, d, estado);
-      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe });
+      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe, alto: (fichaDe(classe)?.altura || 0) * NIVEL });
       if (o) for (const b of o.solidos) b.cor = harmonizar(b.cor);
       if (o) {
         const m = o.montar(), p = pegada(classe, d);
