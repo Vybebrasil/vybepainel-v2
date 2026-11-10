@@ -2777,8 +2777,11 @@
       const u = new URL(src), q = u.searchParams;
       // Imagem de móvel fica a do próprio móvel (é o que a Minha sala desenha); só os bonecos viram o boneco voxel.
       if (/\/imaging\/furniture\//.test(u.pathname)) { img.dataset.voxel = '1'; return; }
-      const url = modAvatar.avatarVoxel(q.get('figure') || '', { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 });
+      const fig = q.get('figure') || '', opcoes = { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 };
+      const url = modAvatar.avatarVoxel(fig, opcoes);
       img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = url; img.classList.add('avatar-voxel');
+      // Em seguida o retrato fiel (cabelo, roupas, óculos e acessórios do Habbo da pessoa, como no quarto).
+      modAvatar.avatarVoxelFiel?.(fig, opcoes).then((fiel) => { if (fiel && img.dataset.habbo === src && img.isConnected) img.src = fiel; }).catch(() => {});
     } catch (e) { console.error('[mundo] avatar', e); }
   }
   function trocarAvataresEm(raiz) { (raiz.querySelectorAll ? raiz.querySelectorAll('img') : []).forEach(trocarAvatar); if (raiz.tagName === 'IMG') trocarAvatar(raiz); }

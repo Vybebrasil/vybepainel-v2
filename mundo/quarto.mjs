@@ -11,9 +11,9 @@ import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
 import { ESTILO, PALETA, prepararRenderer, luzDoEstilo, baseDeMaquete, acabamentoDeMaquete, harmonizar, corDeParede, corDePiso } from './estilo.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
-import { tipoDoMovel, desenharBoneco, figuraDaPessoa } from './avatar.mjs';
+import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraFiel } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
-import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, figuraDoHabbo, corDoRevestimento, paletaDoHabbo } from './moveis-habbo.mjs';
+import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, corDoRevestimento, paletaDoHabbo } from './moveis-habbo.mjs';
 import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, temModelo } from './moveis-voxel.mjs';
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
@@ -344,12 +344,8 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     canvas.parentElement.appendChild(el);
     const b = { g, inner, anel, el, x: 0, z: 0, y: 0, alvo: { x: 0, z: 0, y: 0 }, novo: true, assin: '', alto: 1.75 * ESCALA_BONECO, eu: Boolean(p.eu), giro: 0, poses: null, pose: '', assento: null };
     trocarPoses(b, poses(base));
-    if (p.figura) figuraDoHabbo(p.figura).then((h) => {
-      if (!h || !vivo || !g.parent) return;
-      const c = Object.fromEntries(Object.entries(h.cores || {}).filter(([, v]) => v));
-      // Óculos, chapéu e máscara vêm esculpidos da arte (acessorio): os de blocos do boneco saem.
-      trocarPoses(b, poses({ ...base, ...c, chapeu: h.acessorio ? null : base.chapeu, oculos: h.acessorio ? false : base.oculos, acessorio: h.acessorio, cabeloHabbo: h.cabeloHabbo })); sujar(true);
-    }).catch(() => {});
+    // A figura fiel do Habbo da pessoa (avatar.mjs, a mesma dos retratos): cores, cabelo, roupas e acessórios.
+    if (p.figura) figuraFiel(p.figura).then((f) => { if (!vivo || !g.parent) return; trocarPoses(b, poses(f)); sujar(true); }).catch(() => {});
     return b;
   }
   function definirPessoas(lista = [], minhaZona = '') {
