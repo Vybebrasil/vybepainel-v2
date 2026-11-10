@@ -745,20 +745,26 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]) [style*="color: #ffd7de"
 /* Diário: linha do tempo dos registros */
 .diario-linha-tempo{position:relative;display:grid;gap:8px;padding-left:18px}
 .diario-linha-tempo::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:2px;background:#ECE6DC;border-radius:2px}
-.diario-registro{position:relative;display:grid;grid-template-columns:minmax(140px,1fr) auto auto auto 34px;align-items:center;gap:18px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:transform .15s var(--vv-mola,ease),box-shadow .15s}
+.diario-registro{position:relative;display:grid;grid-template-columns:minmax(120px,1fr) 48px 84px 124px auto 34px;grid-template-areas:"quando mini total varia abrir apagar";align-items:center;gap:18px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:transform .15s var(--vv-mola,ease),box-shadow .15s}
 .diario-registro:hover,.diario-registro:focus-visible{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.08);outline:none}
 .diario-ponto{position:absolute;left:-17px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff;border:3px solid var(--vv-laranja,#FF7A2F)}
 .diario-quando b,.diario-total b{display:block;font:700 14px var(--vv-texto,inherit);color:#1F1D1A}
 .diario-quando small,.diario-total small{display:block;font:500 11.5px var(--vv-texto,inherit);color:#6E6A62}
-.diario-total{text-align:right}
-.diario-varia{min-width:58px;text-align:center;padding:4px 10px;border-radius:8px;font:700 11.5px var(--vv-texto,inherit)}
+.diario-total{grid-area:total;text-align:right}
+.diario-quando{grid-area:quando;min-width:0}
+/* Retrato pequeno do registro (quadro 10): com data, sem data, prazo passado; a frase inteira fica na dica e no leitor. */
+.diario-mini{grid-area:mini;display:flex;align-items:flex-end;gap:3px;width:48px;height:28px}
+.diario-mini i{flex:1;min-height:0;border-radius:2px 2px 0 0;background:#9FD9B5}
+.diario-mini i.atencao{background:#E0A21B}.diario-mini i.passou{background:#E3786F}
+.diario-varia small{font:600 10.5px var(--vv-texto,inherit);opacity:.8}
+.diario-varia{grid-area:varia;justify-self:start;white-space:nowrap;min-width:58px;text-align:center;padding:4px 10px;border-radius:8px;font:700 11.5px var(--vv-texto,inherit)}
 .diario-varia.sobe{background:#E6F6EC;color:#12804A}.diario-varia.desce{background:#FDECEE;color:#C0263E}.diario-varia.igual{background:#F2EEE7;color:#6B675F}
-.diario-abrir{font:600 12px var(--vv-texto,inherit);color:#B4510E;opacity:0;transition:opacity .15s}
+.diario-abrir{grid-area:abrir;font:600 12px var(--vv-texto,inherit);color:#B4510E;opacity:0;transition:opacity .15s}
 .diario-registro:hover .diario-abrir{opacity:1}
-.diario-apagar{width:30px;height:30px;border-radius:6px;border:1px solid transparent;background:none;color:#8A857C;font-size:18px;cursor:pointer;opacity:0;transition:opacity .15s}
+.diario-apagar{grid-area:apagar;width:30px;height:30px;border-radius:6px;border:1px solid transparent;background:none;color:#8A857C;font-size:18px;cursor:pointer;opacity:0;transition:opacity .15s}
 .diario-registro:hover .diario-apagar{opacity:1}
 .diario-apagar:hover{background:#FDECEE;color:#C0263E;border-color:#F6BBC4}
-@media (max-width:700px){.diario-registro{grid-template-columns:1fr auto auto;gap:10px}.diario-abrir{display:none}.diario-apagar{opacity:1}}
+@media (max-width:700px){.diario-registro{grid-template-columns:minmax(0,1fr) auto auto 30px;grid-template-areas:"quando mini total apagar" "varia varia varia varia";gap:8px 10px}.diario-varia{justify-self:start}.diario-abrir{display:none}.diario-apagar{opacity:1}}
 .vv-time{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px}
 .vv-pessoa{appearance:none;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--vv-linha);background:#fff;cursor:pointer;font-family:var(--vv-texto);transition:transform .15s var(--vv-mola),box-shadow .15s}
 .vv-pessoa:hover{transform:translateY(-1px);box-shadow:var(--vv-sombra-curta);border-color:#FFD7AE}
@@ -6159,3 +6165,82 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
 /* A Carteira (Saúde, Onboarding, Contratos, Churn) mede a altura da camada dela, que já termina acima do dock; com 100dvh
    ela passava por baixo do dock e da barra de baixo do celular (fase 3d). */
 body.mundo .vc-camada > #vv-carteira{height:100%}
+
+/* ======================================================================================
+   GESTÃO: DIÁRIO, AUTOMAÇÕES E IA E CUSTOS (redesign, quadros 10 a 12 do moodboard, 10/11/2026). Só peças do sistema
+   (vb-*, --pc-*, --ds-*), sem forçar nada.
+   ====================================================================================== */
+/* O rodapé técnico ("Vybe OS · Painel de Produção · Banco próprio · N conteúdos") sai destas três telas. */
+body.mundo.mundo-modulo:has(:is(#painel-diario,#painel-automacoes,#painel-ai-usage)[style*="block"]) > footer{display:none}
+/* Alternador destas telas: o escolhido no selecionado laranja do sistema. */
+body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDD);font-weight:750}
+body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="false"]{background:transparent}
+.ar-n{display:inline-block;min-width:16px;margin-left:4px;font-variant-numeric:tabular-nums}
+
+/* Automações (quadro 11): barra com o alternador Regras/Falhas e as dicas; cada regra numa linha. */
+/* O menu "Mais" do cabeçalho abre por cima da barra de baixo. */
+#automacoes-root > .vb-cabecalho{position:relative;z-index:3}
+.ar-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px}
+.ar-espaco{flex:1}
+.ar-dica{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--vv-texto,inherit);color:#6B675F;cursor:help}
+.ar-dica-i{display:grid;place-items:center;width:16px;height:16px;border:1.5px solid currentColor;border-radius:50%;font:700 10px/1 var(--vv-texto,inherit);font-style:normal}
+.ar-dica:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ar-dica.vb-jogo-dica[data-dica]::after{left:auto;right:0;width:min(340px,80vw)}
+body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-color:#E6E0D6;box-shadow:0 12px 32px -8px rgba(31,29,26,.25)}
+.ar-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.ar-lista{display:grid;gap:8px}
+.ar-regra{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:12px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FFFFFF}
+.ar-regra.desligada{background:#FAF8F4}
+.ar-regra.desligada .ar-frase{color:#6B675F}
+.ar-corpo{min-width:0;display:grid;gap:4px}
+.ar-nome{margin:0;font:650 13px/1.35 var(--vv-texto,inherit);color:#1F1D1A;overflow-wrap:anywhere}
+.ar-frase{margin:0;font:500 13px/1.5 var(--vv-texto,inherit);color:#3A3F44;overflow-wrap:anywhere}
+.ar-frase em{font:700 10.5px var(--vv-texto,inherit);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:#8A847A;margin-right:2px}
+.ar-detalhe{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font:500 11.5px var(--vv-texto,inherit);color:#6B675F}
+.ar-detalhe .auto-selo{margin:0}
+.ar-acoes{display:flex;align-items:center;gap:8px}
+.ar-acoes .vb-botao{min-height:var(--pc-h-p,28px);padding:0 11px}
+.ar-estado{font:600 12px var(--vv-texto,inherit);color:#6B675F}
+/* Liga/desliga: o interruptor do sistema (o mesmo das camadas), com o estado dito no nome acessível e na dica. */
+.ar-liga{flex:none;position:relative;width:36px;height:20px;padding:0;border:0;border-radius:999px;background:#D6CFC4;cursor:pointer;transition:background-color .15s}
+.ar-liga i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.25);transition:translate .15s var(--vv-mola,ease)}
+.ar-liga[aria-checked="true"]{background:var(--ds-acao,#FF7A2F)}
+.ar-liga[aria-checked="true"] i{translate:16px 0}
+.ar-liga:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.3)}
+.ar-secao{margin:22px 0 8px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
+.ar-falhas-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin:0 0 10px}
+.ar-falhas-topo p{flex:1 1 320px;margin:0;font:500 12.5px/1.45 var(--vv-texto,inherit);color:#5E5A53}
+.ar-aba[hidden]{display:none}
+@media (max-width:640px){
+  .ar-regra{grid-template-columns:1fr}
+  .ar-acoes{justify-content:flex-end}
+  .ar-acoes .vga-mais-menu{left:auto;right:0}
+  .ar-espaco{display:none}
+}
+
+/* IA e custos (quadro 12): gasto por dia e as tabelas em cartões claros; os parâmetros recolhidos embaixo. */
+.ia-duas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 14px}
+.ia-cartao{min-width:0;padding:12px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FFFFFF;margin:0 0 14px}
+.ia-duas .ia-cartao{margin:0}
+.ia-rotulo{margin:0 0 10px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
+.ia-grafico{display:flex;align-items:flex-end;gap:2px;height:110px;padding:0 2px;border-bottom:1px solid #ECE6DC}
+.ia-grafico i{flex:1;min-width:0;border-radius:3px 3px 0 0;background:#F2B48A}
+.ia-grafico i.hoje{background:var(--ds-acao,#FF7A2F)}
+.ia-grafico i.gratis{background:#D6CFC4}
+.ia-grafico-eixo{display:flex;justify-content:space-between;margin-top:4px;font:500 11.5px var(--vv-texto,inherit);color:#6B675F}
+.ia-tabela{width:100%;border-collapse:collapse;font:500 12.5px var(--vv-texto,inherit);color:#1F1D1A}
+.ia-tabela th{padding:6px 8px;border-bottom:1px solid #ECE6DC;font:700 10.5px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F;text-align:left}
+.ia-tabela td{padding:7px 8px;border-bottom:1px solid #F2EEE7;overflow-wrap:anywhere}
+.ia-tabela tr:last-child td{border-bottom:0}
+.ia-tabela :is(th,td).num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ia-tabela small{color:#6B675F;font-size:11.5px}
+.ia-nota{margin:0;font:500 12px/1.5 var(--vv-texto,inherit);color:#5E5A53}
+.ia-parametros{margin:4px 0 0;padding:10px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FAF8F4}
+.ia-parametros > summary{cursor:pointer;font:650 13px var(--vv-texto,inherit);color:#1F1D1A}
+.ia-parametros > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ia-parametros[open] > summary{margin-bottom:10px}
+.ia-campos{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin:10px 0}
+.ia-campos .ai-setting-field{display:grid;gap:4px;flex:1 1 160px;min-width:0}
+.ia-campos .ai-setting-field label{font:600 12px var(--vv-texto,inherit);color:#4A463F}
+.ia-campos :is(input,select){min-height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto,inherit)}
+@media (max-width:760px){.ia-duas{grid-template-columns:1fr}}

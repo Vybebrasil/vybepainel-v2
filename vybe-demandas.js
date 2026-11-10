@@ -157,14 +157,13 @@ function aiNumber(value) { const n = Number(value); return Number.isFinite(n) ? 
 function aiBrl(value) { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2}).format(aiNumber(value)); }
 // Dólar no jeito brasileiro (US$ 0,12); quatro casas só abaixo de um centavo.
 function aiUsd(value) { const v = aiNumber(value); return 'US$ ' + new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:v > 0 && v < 0.01 ? 4 : 2}).format(v); }
-function aiTokens(value) { return new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(aiNumber(value)); }
 function aiProviderLabel(provider) { return ({gpt:'GPT',gemini:'GEMINI',claude:'CLAUDE'})[provider] || String(provider || 'IA').toUpperCase(); }
 
 async function loadAiUsage(force=false) {
   if (aiUsageLoading || (!force && aiUsageData?.period_days === aiUsageDays)) { renderAiUsageBoard(aiUsageData); return; }
   aiUsageLoading = true;
   const root = document.getElementById('ai-usage-root');
-  if (root) root.innerHTML = '<div class="ai-usage-loading">Consultando uso e custos...</div>';
+  if (root) root.innerHTML = aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'carregando', titulo: 'Consultando uso e custos' });
   try {
     const response = await fetch(`${AI_USAGE_API}?days=${aiUsageDays}`);
     const data = await response.json();
@@ -172,7 +171,8 @@ async function loadAiUsage(force=false) {
     aiUsageData = data;
     renderAiUsageBoard(data);
   } catch (error) {
-    if (root) root.innerHTML = `<div class="ai-usage-loading">Monitor indisponível<br><small style="display:block;margin-top:8px;color:#8b6b52;font-family:Arial;font-weight:400;letter-spacing:0">${safeText(error.message || 'Tente atualizar.')}</small></div>`;
+    if (root) root.innerHTML = aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível ler os gastos da IA', texto: error.message || '',
+      acao: '<button type="button" class="vb-botao" onclick="loadAiUsage(true)">Tentar de novo</button>' });
   } finally {
     aiUsageLoading = false;
   }
@@ -180,7 +180,7 @@ async function loadAiUsage(force=false) {
 
 function setAiUsageDays(days, button) {
   aiUsageDays = Number(days) || 30;
-  document.querySelectorAll('.ai-usage-period').forEach(node => node.classList.toggle('active', Number(node.dataset.days) === aiUsageDays));
+  document.querySelectorAll('.ia-periodos button').forEach(node => node.setAttribute('aria-pressed', String(Number(node.dataset.days) === aiUsageDays)));
   loadAiUsage(true);
 }
 
@@ -197,6 +197,46 @@ function aiBudgetMeta(data) {
   };
 }
 
+// Quadro 12 do redesign (10/11/2026): os números numa linha, com o teto e o quanto foi usado; sem uso, um estado vazio
+// só; com uso, o gasto por dia e a tabela de quem gastou. Português de quem usa: "pedidos ao VYBES" e reais (dólar
+// como "US$ 0,12"). Os parâmetros da estimativa (teto, dólar, Gemini) continuam ali, recolhidos.
+function aiPeriodosHtml() {
+  return `<div class="vb-alternar ia-periodos" role="group" aria-label="Período">${[7, 30, 90].map((d) =>
+    `<button type="button" data-days="${d}" aria-pressed="${aiUsageDays === d}" onclick="setAiUsageDays(${d},this)">${d} dias</button>`).join('')}</div>`;
+}
+
+function aiCabecalhoHtml() {
+  return vbCabecalhoHtml({ titulo: 'IA e custos', texto: 'Quanto o VYBES gasta, com quem e em quê.',
+    acoes: `${aiPeriodosHtml()}<button type="button" class="vb-botao" onclick="loadAiUsage(true)">Atualizar</button>` });
+}
+
+// Um dia por barra, inclusive os dias sem pedido (o banco só devolve os dias com uso), do mais antigo até hoje.
+function aiGastoPorDiaHtml(daily, dias) {
+  const porDia = new Map(daily.map((row) => [String(row.day || ''), row]));
+  const lista = [];
+  for (let i = dias - 1; i >= 0; i -= 1) {
+    const chave = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+    const row = porDia.get(chave) || {};
+    lista.push({ chave, custo: aiNumber(row.cost_brl), pedidos: aiNumber(row.calls) });
+  }
+  const maior = Math.max(0.00001, ...lista.map((d) => d.custo));
+  const dm = (chave) => `${chave.slice(8, 10)}/${chave.slice(5, 7)}`;
+  const pico = lista.reduce((a, b) => (b.custo > a.custo ? b : a), lista[0]);
+  const resumo = `Gasto por dia nos últimos ${dias} dias; o maior foi ${aiBrl(pico.custo)} em ${dm(pico.chave)}`;
+  const barras = lista.map((d, i) => {
+    const pedidos = `${d.pedidos} ${d.pedidos === 1 ? 'pedido' : 'pedidos'}`;
+    const altura = d.custo > 0 ? Math.max(4, Math.round((d.custo / maior) * 100)) : 0;
+    return `<i class="${i === lista.length - 1 ? 'hoje' : ''}${d.pedidos && !d.custo ? ' gratis' : ''}" style="height:${d.pedidos && !d.custo ? 3 : altura}%" title="${dm(d.chave)} · ${aiBrl(d.custo)} · ${pedidos}"></i>`;
+  }).join('');
+  return `<div class="ia-grafico" role="img" aria-label="${safeText(resumo)}">${barras}</div>
+    <div class="ia-grafico-eixo"><span>${dm(lista[0].chave)}</span><span>hoje</span></div>`;
+}
+
+function aiTabelaHtml(cabecalho, linhas) {
+  return `<table class="ia-tabela"><thead><tr>${cabecalho.map((c, i) => `<th${i ? ' class="num"' : ''}>${c}</th>`).join('')}</tr></thead>
+    <tbody>${linhas.map((l) => `<tr>${l.map((c, i) => `<td${i ? ' class="num"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
 function renderAiUsageBoard(data) {
   const root = document.getElementById('ai-usage-root');
   if (!root || !data) return;
@@ -206,46 +246,43 @@ function renderAiUsageBoard(data) {
   const providers = Array.isArray(data.providers) ? data.providers : [];
   const daily = Array.isArray(data.daily) ? data.daily : [];
   const people = Array.isArray(data.people) ? data.people : [];
-  const budget = aiBudgetMeta(data);
-  const maxDaily = Math.max(0.00001, ...daily.map(row => aiNumber(row.cost_brl)));
-  const providerRows = providers.length ? providers.map(row => `
-    <div class="ai-provider-row">
-      <div><span class="ai-provider-name">${safeText(aiProviderLabel(row.provider))}</span><span class="ai-provider-model">${safeText(row.model || 'Modelo não identificado')}</span></div>
-      <div class="ai-provider-calls">${aiNumber(row.calls)} comandos</div>
-      <div class="ai-provider-cost">${aiBrl(row.cost_brl)}</div>
-    </div>`).join('') : '<div class="ai-usage-empty">Ainda não há chamadas registradas neste período.</div>';
-  const trend = daily.length ? daily.map(row => {
-    const height = Math.max(3, (aiNumber(row.cost_brl) / maxDaily) * 100);
-    const label = String(row.day || '').slice(5).replace('-', '/');
-    return `<div class="ai-trend-day" title="${safeText(row.day)} · ${aiBrl(row.cost_brl)}"><div class="ai-trend-bar" style="height:${height}%"></div><span class="ai-trend-label">${label}</span></div>`;
-  }).join('') : '<div class="ai-usage-empty" style="width:100%">O histórico aparecerá após os próximos pedidos ao VYBES.</div>';
-  const personRows = people.length ? people.map(row => `<div class="ai-person-row"><div><span class="ai-person-name">${safeText(row.profile_name)}</span><span class="ai-person-meta">${aiNumber(row.calls)} comandos</span></div><span class="ai-person-cost">${aiBrl(row.cost_brl)}</span></div>`).join('') : '<div class="ai-usage-empty">Sem usuários no período.</div>';
-  const geminiNote = settings.gemini_billing === 'paid' ? 'Pago — custo por token ativo' : 'Gratuito — custo estimado em R$ 0,00';
+  const dias = Number(data.period_days) || aiUsageDays;
+  const pedidos = aiNumber(overview.calls);
+  const teto = aiNumber(settings.monthly_budget_brl);
+  const usado = teto > 0 ? (aiNumber(month.cost_brl) / teto) * 100 : 0;
+  const resumo = vbResumoHtml([
+    { valor: aiBrl(month.cost_brl), rotulo: `no mês (${aiUsd(month.cost_usd)})` },
+    { valor: pedidos.toLocaleString('pt-BR'), rotulo: `${pedidos === 1 ? 'pedido' : 'pedidos'} ao VYBES em ${dias} dias` },
+    teto > 0
+      ? { valor: `${usado.toFixed(0)}%`, rotulo: `do teto de ${aiBrl(teto)} usado`, tom: usado >= 100 ? 'alerta' : usado >= 80 ? 'atencao' : '' }
+      : { rotulo: 'Sem teto mensal definido' },
+  ]);
+  const quem = people.map((row) => [safeText(row.profile_name), aiNumber(row.calls).toLocaleString('pt-BR'), aiBrl(row.cost_brl)]);
+  const modelos = providers.map((row) => [`${safeText(aiProviderLabel(row.provider))} <small>${safeText(row.model || 'modelo não identificado')}</small>`,
+    aiNumber(row.calls).toLocaleString('pt-BR'), aiBrl(row.cost_brl)]);
+  const corpo = pedidos === 0
+    ? vbEstadoHtml({ titulo: `Nenhum pedido ao VYBES nos últimos ${dias} dias`, texto: 'Os gastos aparecem aqui assim que alguém usar o VYBES.' })
+    : `<div class="ia-duas">
+        <section class="ia-cartao"><h3 class="ia-rotulo">Gasto por dia</h3>${aiGastoPorDiaHtml(daily, dias)}</section>
+        <section class="ia-cartao"><h3 class="ia-rotulo">Quem usou</h3>${quem.length ? aiTabelaHtml(['Quem', 'Pedidos', 'Gasto'], quem) : '<p class="ia-nota">Sem pessoas identificadas no período.</p>'}</section>
+      </div>
+      ${modelos.length ? `<section class="ia-cartao"><h3 class="ia-rotulo">Por modelo</h3>${aiTabelaHtml(['Modelo', 'Pedidos', 'Gasto'], modelos)}</section>` : ''}`;
+  const gemini = settings.gemini_billing === 'paid' ? 'API paga: o custo entra na conta' : 'plano gratuito: custo estimado em R$ 0,00';
   root.innerHTML = `
-    <div class="ai-usage-head">
-      <span class="pv-ic pv-ic-aba" style="--c:#b99cff" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3 1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"/></svg></span><div><div class="ai-usage-kicker">IA &amp; Custos</div><h2 class="ai-usage-title">Monitor de IA e custos</h2><p class="ai-usage-sub">Consumo estimado do VYBES por modelo, equipe e período. O registro é criado automaticamente a cada comando respondido.</p></div>
-      <div class="ai-usage-periods"><button class="ai-usage-period ${aiUsageDays===7?'active':''}" data-days="7" onclick="setAiUsageDays(7,this)">7 dias</button><button class="ai-usage-period ${aiUsageDays===30?'active':''}" data-days="30" onclick="setAiUsageDays(30,this)">30 dias</button><button class="ai-usage-period ${aiUsageDays===90?'active':''}" data-days="90" onclick="setAiUsageDays(90,this)">90 dias</button></div><button type="button" class="vb-botao" onclick="loadAiUsage(true)">Atualizar</button>
-    </div>
-    <div class="ai-usage-grid">
-      <div class="ai-usage-metric"><div class="ai-usage-label">Custo no mês</div><div class="ai-usage-value">${aiBrl(month.cost_brl)}</div><div class="ai-usage-detail">estimado, cobrado em dólar (${aiUsd(month.cost_usd)})</div></div>
-      <div class="ai-usage-metric"><div class="ai-usage-label">Comandos no período</div><div class="ai-usage-value">${aiNumber(overview.calls)}</div><div class="ai-usage-detail">${aiNumber(month.calls)} no mês corrente</div></div>
-      <div class="ai-usage-metric"><div class="ai-usage-label">Texto processado</div><div class="ai-usage-value">${aiTokens(aiNumber(overview.input_tokens)+aiNumber(overview.output_tokens))}</div><div class="ai-usage-detail">${aiTokens(overview.input_tokens)} lidos · ${aiTokens(overview.output_tokens)} escritos (em tokens)</div></div>
-      <div class="ai-usage-metric"><div class="ai-usage-label">Teto mensal</div><div class="ai-usage-value">${budget.value}</div><div class="ai-usage-detail">${safeText(budget.label)}</div></div>
-    </div>
-    <div class="ai-usage-main-grid">
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Uso por provedor</span><small>${aiUsageDays} DIAS</small></div>${providerRows}</div>
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Equipe</span><small>Custo estimado</small></div>${personRows}</div>
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Trajetória diária</span><small>R$ POR DIA</small></div><div class="ai-trend">${trend}</div></div>
-      <div class="ai-usage-block"><div class="ai-usage-block-title"><span>Orçamento do mês</span><small>Alerta visual</small></div><div class="ai-budget-wrap"><div class="ai-budget-line"><span>${safeText(budget.label)}</span><span>${budget.value}</span></div><div class="ai-budget-track"><div class="ai-budget-fill ${budget.state}" style="width:${budget.percentage}%"></div></div><div class="ai-usage-note">Quando o teto é definido, a barra sinaliza em amarelo a partir de 80% e em vermelho ao atingir 100%.</div></div></div>
-    </div>
-    <div class="ai-usage-settings">
-      <div class="ai-setting-copy"><b>Parâmetros de estimativa</b>Use o teto para receber alertas visuais. O Gemini está configurado como <strong>${safeText(geminiNote)}</strong>.</div>
-      <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
-      <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd)||5.5}"></div>
-      <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing==='free'?'selected':''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing==='paid'?'selected':''}>API paga</option></select></div>
-      <button class="ai-setting-save" type="button" onclick="saveAiUsageSettings()">Salvar</button>
-    </div>
-    <div class="ai-usage-note">Os valores são estimativas calculadas por tokens. Eles não substituem os consoles de cobrança do OpenAI, Google e Anthropic e podem variar conforme plano, créditos, descontos, cache ou cobrança intermediada.</div>`;
+    ${aiCabecalhoHtml()}
+    ${resumo}
+    ${corpo}
+    <details class="ia-parametros">
+      <summary>Parâmetros da estimativa</summary>
+      <p class="ia-nota">O teto acende o aviso no resumo a partir de 80% e em vermelho ao chegar a 100%. O Gemini está no ${safeText(gemini)}.</p>
+      <div class="ia-campos">
+        <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
+        <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
+        <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
+        <button class="ai-setting-save vb-botao principal" type="button" onclick="saveAiUsageSettings()">Salvar</button>
+      </div>
+      <p class="ia-nota">Os valores são estimativas pelo tamanho de cada pedido e da resposta. Não substituem as faturas da OpenAI, do Google e da Anthropic, que mudam com plano, créditos, descontos e cobrança intermediada.</p>
+    </details>`;
 }
 
 async function saveAiUsageSettings() {

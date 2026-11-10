@@ -24,6 +24,7 @@ let CATALOGOS = { status: [], captacao: [], grupos: [], pessoas: [], formatos: [
 let automacaoEmEdicao = null;
 let RASCUNHO = null;          // a regra sendo montada no construtor
 let FILTRO_DE_REGRAS = 'todas';
+let ABA_DE_AUTOMACOES = 'regras'; // 'regras' | 'falhas' (quadro 11: as falhas numa aba própria)
 
 function podeEditarAutomacoes() {
   return Boolean(typeof sessaoAtual === 'function' && sessaoAtual()?.admin);
@@ -50,7 +51,7 @@ function garantirRegrasECatalogos() {
 
 async function carregarAutomacoes() {
   const raiz = document.getElementById('automacoes-root');
-  if (raiz) raiz.innerHTML = '<div class="auto-carregando">CARREGANDO REGRAS…</div>';
+  if (raiz) raiz.innerHTML = vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando as regras' });
   try {
     // Abrir a tela recarrega de verdade: quem acabou de salvar uma regra precisa
     // ver a dela, nao a resposta guardada de antes.
@@ -61,7 +62,8 @@ async function carregarAutomacoes() {
     carregarFalhasAutomacoes();
   } catch (erro) {
     REGRAS_CARREGADAS = null;
-    if (raiz) raiz.innerHTML = `<div class="auto-carregando">Não foi possível carregar<br><small>${safeText(erro.message)}</small></div>`;
+    if (raiz) raiz.innerHTML = vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível carregar as automações', texto: erro.message,
+      acao: '<button type="button" class="vb-botao" onclick="carregarAutomacoes()">Tentar de novo</button>' });
   }
 }
 
@@ -152,18 +154,19 @@ function saudeDaRegra(a) {
   const ultima = a.ultima_em ? new Date(a.ultima_em) : null;
   if (!a.ativa) {
     return { chave: 'desligada', rotulo: 'desligada', detalhe: total
-      ? `chegou a rodar ${total}×` : 'nunca chegou a rodar' };
+      ? `chegou a rodar ${vezesAutomacao(total)}` : 'nunca chegou a rodar' };
   }
   if (!total) {
     return { chave: 'nunca', rotulo: 'nunca rodou', detalhe: motivoDeNuncaTerRodado(a) };
   }
   if (recentes) {
     return { chave: 'trabalhando', rotulo: 'trabalhando',
-      detalhe: `${recentes}× em ${DIAS_PARA_CONSIDERAR_PARADA} dias · última ${quandoFoiAutomacao(ultima)}` };
+      detalhe: `rodou ${vezesAutomacao(recentes)} em ${DIAS_PARA_CONSIDERAR_PARADA} dias · última ${quandoFoiAutomacao(ultima)}` };
   }
   return { chave: 'parada', rotulo: 'parada',
-    detalhe: `${total}× no total · última ${quandoFoiAutomacao(ultima)}` };
+    detalhe: `rodou ${vezesAutomacao(total)} no total · última ${quandoFoiAutomacao(ultima)}` };
 }
+function vezesAutomacao(n) { return `${Number(n).toLocaleString('pt-BR')} ${Number(n) === 1 ? 'vez' : 'vezes'}`; }
 
 // Um palpite honesto, dito como palpite. Vale mais que "nunca rodou" sozinho,
 // que deixa a pessoa sem próximo passo.
@@ -188,6 +191,15 @@ function quandoFoiAutomacao(data) {
 }
 
 // ── a lista ───────────────────────────────────────────────────────────────────
+//
+// Quadro 11 do redesign (10/11/2026): as regras vêm primeiro, cada uma numa linha
+// "Quando… então…" com liga/desliga e quantas vezes rodou; as falhas ficam numa aba
+// própria com a contagem; Recalcular e Sincronizar vão para o "Mais" e a ação
+// principal é "Nova regra"; a explicação da Prioridade vira dica no ⓘ.
+const ICONE_MAIS_AUTOMACOES = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const DICA_PRIORIDADE = 'A coluna Prioridade não é escrita à mão: é o espelho da veiculação. Atrasado, hoje ou amanhã é Crítica; 2 a 3 dias, Alta; 4 a 7 dias, Média; 8 dias ou mais, Baixa. Sobe e desce sozinha na varredura da madrugada; peça finalizada ou sem veiculação não é tocada.';
+const DICA_REGRAS_DE_DATA = 'As regras por data rodam numa varredura por dia, de madrugada, e não na hora que estiver escrita nelas.';
+
 function pintarAutomacoes() {
   const raiz = document.getElementById('automacoes-root');
   if (!raiz) return;
@@ -205,91 +217,87 @@ function pintarAutomacoes() {
     ['nunca', 'Nunca rodaram', conta('nunca')],
     ['desligada', 'Desligadas', conta('desligada')],
   ].filter(([chave, , n]) => chave === 'todas' || n)
-   .map(([chave, rotulo, n]) => `<button type="button" class="auto-pastilha ${chave} ${
-      FILTRO_DE_REGRAS === chave ? 'ativa' : ''}" onclick="filtrarRegras('${chave}')"
-      aria-pressed="${FILTRO_DE_REGRAS === chave}">${rotulo}<span>${n}</span></button>`).join('');
+   .map(([chave, rotulo, n]) => `<button type="button" class="vb-chip" onclick="filtrarRegras('${chave}')"
+      aria-pressed="${FILTRO_DE_REGRAS === chave}">${rotulo} <b>${n}</b></button>`).join('');
 
   const linhas = visiveis.map((a) => {
     const s = a.saude;
     const condicao = frasearCondicao(a.condicao);
+    const acoes = (a.acoes || []).map((x) => safeText(frasearAcao(x))).join(' e ') || '—';
+    const nome = safeText(a.nome);
+    const liga = admin
+      ? `<button type="button" class="ar-liga" role="switch" aria-checked="${a.ativa ? 'true' : 'false'}"
+          aria-label="Regra ${nome} ${a.ativa ? 'ligada' : 'desligada'}" title="${a.ativa ? 'Ligada: clique para desligar' : 'Desligada: clique para ligar'}"
+          onclick="alternarAutomacao(${a.id})"><i aria-hidden="true"></i></button>`
+      : `<span class="ar-estado">${a.ativa ? 'Ligada' : 'Desligada'}</span>`;
     return `
-    <article class="auto-regra ${a.ativa ? '' : 'desligada'} saude-${s.chave}">
-      <header class="auto-regra-topo">
-        <div class="auto-regra-ident">
-          <span class="auto-selo ${s.chave}" title="${safeText(s.detalhe)}"><i></i>${safeText(s.rotulo)}</span>
-          <h3 class="auto-nome">${safeText(a.nome)}</h3>
-          <small class="auto-regra-detalhe">${safeText(s.detalhe)}</small>
-        </div>
-        ${admin ? `<div class="auto-botoes">
-          <button onclick="ensaiarAutomacao(${a.id})" title="Ver o que ela faria, sem mexer em nada">ensaiar</button>
-          <button onclick="editarAutomacao(${a.id})">editar</button>
-          <button onclick="alternarAutomacao(${a.id})">${a.ativa ? 'desligar' : 'ligar'}</button>
-          <button class="perigo" onclick="excluirAutomacao(${a.id})">excluir</button>
-        </div>` : ''}
-      </header>
-      <div class="auto-receita">
-        <div class="auto-passo quando">
-          <span class="auto-passo-rotulo">Quando</span>
-          <span class="auto-passo-texto">${safeText(frasearGatilho(a.gatilho))}</span>
-        </div>
-        ${condicao ? `<div class="auto-passo so-se">
-          <span class="auto-passo-rotulo">Só se</span>
-          <span class="auto-passo-texto">${safeText(condicao)}</span>
-        </div>` : ''}
-        <div class="auto-passo entao">
-          <span class="auto-passo-rotulo">Então</span>
-          <ul class="auto-passo-lista">${(a.acoes || [])
-            .map((x) => `<li>${safeText(frasearAcao(x))}</li>`).join('') || '<li>—</li>'}</ul>
-        </div>
+    <article class="ar-regra ${a.ativa ? '' : 'desligada'}">
+      <div class="ar-corpo">
+        <h3 class="ar-nome">${nome}</h3>
+        <p class="ar-frase"><em>Quando</em> ${safeText(frasearGatilho(a.gatilho))}${condicao
+          ? ` <em>só se</em> ${safeText(condicao)}` : ''} <em>então</em> ${acoes}</p>
+        <small class="ar-detalhe"><span class="auto-selo ${s.chave}"><i></i>${safeText(s.rotulo)}</span>${safeText(s.detalhe)}</small>
+      </div>
+      <div class="ar-acoes">
+        ${admin ? `<button type="button" class="vb-botao" onclick="editarAutomacao(${a.id})">Editar</button>
+        <details class="vga-mais ar-mais"><summary aria-label="Mais ações da regra ${nome}">Mais ${ICONE_MAIS_AUTOMACOES}</summary>
+          <div class="vga-mais-menu">
+            <button type="button" onclick="this.closest('details').open=false;ensaiarAutomacao(${a.id})" title="Ver o que ela faria, sem mexer em nada">Ensaiar</button>
+            <button type="button" onclick="this.closest('details').open=false;excluirAutomacao(${a.id})">Excluir</button>
+          </div></details>` : ''}
+        ${liga}
       </div>
     </article>`;
   }).join('');
 
-  // A varredura diária tem uma hora só, e as regras por data guardam uma hora
-  // própria que ninguém lê. Dizer isso aqui evita a conclusão errada de que a
-  // regra está quebrada quando o aviso chega em outro horário.
   const temRegraDeData = AUTOMACOES.some((a) => a.gatilho?.tipo === 'data' && a.ativa);
+  const dica = (rotulo, texto) => `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${safeText(texto)}" title="${safeText(texto)}">${rotulo}<span class="ar-dica-i" aria-hidden="true">i</span></span>`;
+  const mais = admin ? `<details class="vga-mais ar-mais"><summary>Mais ${ICONE_MAIS_AUTOMACOES}</summary>
+      <div class="vga-mais-menu">
+        <button type="button" onclick="this.closest('details').open=false;recalcularPrioridadesAgora(this)"
+          title="Refaz a coluna Prioridade de todas as peças a partir da veiculação. Roda sozinho toda madrugada; isto aqui é para não esperar.">Recalcular prioridades</button>
+        <button type="button" onclick="this.closest('details').open=false;sincronizarRegrasDoSistema(this)"
+          title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
+      </div></details>` : '';
+  const novo = admin ? `<button type="button" class="vb-botao principal" onclick="editarAutomacao(null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova regra</button>` : '';
+  const regras = ABA_DE_AUTOMACOES !== 'falhas';
 
   raiz.innerHTML = `
-    <div class="auto-cabeca"><span class="pv-ic pv-ic-aba" style="--c:#ff8f4f" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3 5 11h5l-1 6 6-8h-5l1-6Z"/></svg></span>
-      <div>
-        <div class="auto-kicker">Regras do quadro</div>
-        <h2 class="auto-titulo">Automações</h2>
-        <p class="auto-sub">As regras que movem, atribuem e avisam sozinhas. ${admin
-          ? 'Alterar aqui vale na hora, sem publicar nada.'
-          : 'Só quem administra pode alterar — a lista fica visível para todos porque é ela que explica por que um card muda de dono sozinho.'}</p>
+    ${vbCabecalhoHtml({ titulo: 'Automações',
+      texto: admin ? 'As regras que movem, atribuem e avisam sozinhas. Mudar aqui vale na hora.'
+        : 'As regras que movem, atribuem e avisam sozinhas. Só quem administra altera; a lista explica por que um card muda de dono sozinho.',
+      acoes: mais + novo })}
+    <div class="ar-barra">
+      <div class="vb-alternar ar-abas" role="group" aria-label="Regras ou falhas">
+        <button type="button" aria-pressed="${regras}" onclick="trocarAbaAutomacoes('regras')">Regras <span class="ar-n">${comSaude.length}</span></button>
+        <button type="button" aria-pressed="${!regras}" onclick="trocarAbaAutomacoes('falhas')">Falhas <span class="ar-n" id="auto-aba-falhas-n">…</span></button>
       </div>
-      ${admin ? `<div class="auto-cabeca-acoes">
-        <button class="auto-sincronizar" onclick="recalcularPrioridadesAgora(this)"
-          title="Refaz a coluna Prioridade de todas as peças a partir da veiculação. Roda sozinho toda madrugada; isto aqui é para não esperar.">Recalcular prioridades</button>
-        <button class="auto-sincronizar" onclick="sincronizarRegrasDoSistema(this)"
-          title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
-        <button class="auto-novo" onclick="editarAutomacao(null)">+ Nova regra</button>
-      </div>` : ''}
+      <span class="ar-espaco"></span>
+      ${temRegraDeData ? dica('Regras por data rodam de madrugada', DICA_REGRAS_DE_DATA) : ''}
+      ${dica('Prioridade é automática', DICA_PRIORIDADE)}
     </div>
-    <section class="auto-falhas" aria-labelledby="auto-falhas-titulo">
-      <div class="auto-cabeca"><div><h2 id="auto-falhas-titulo" class="auto-titulo">Encaminhamentos com falha</h2>
-        <p class="auto-sub">Status de Produção e Demandas · Falhas registradas a partir desta versão. Resolvidas permanecem no histórico. Até 100 ocorrências, com pendentes primeiro.</p></div>
-        <button type="button" class="auto-sincronizar" onclick="carregarFalhasAutomacoes()">Atualizar falhas</button></div>
-      <div id="auto-falhas-lista" aria-live="polite"><p class="auto-carregando">Carregando falhas…</p></div>
+    <section class="ar-aba" data-aba="regras" aria-label="Regras" ${regras ? '' : 'hidden'}>
+      <div id="auto-editor"></div>
+      ${comSaude.length > 1 ? `<div class="ar-filtros" role="group" aria-label="Filtrar regras">${pastilhas}</div>` : ''}
+      <div class="ar-lista">${linhas || (comSaude.length
+        ? vbEstadoHtml({ titulo: 'Nenhuma regra neste recorte', texto: 'Escolha “Todas” para ver a lista inteira.' })
+        : vbEstadoHtml({ titulo: 'Nenhuma regra ainda', texto: admin ? 'Uma regra move, atribui ou avisa sozinha quando uma peça muda. Comece por “Nova regra”, no topo.' : 'Quando quem administra criar uma regra, ela aparece aqui.' }))}</div>
+      <h3 class="ar-secao">O que as regras fizeram</h3>
+      <div id="auto-historico" class="auto-hist">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando o registro' })}</div>
     </section>
-    <div class="auto-pastilhas">${pastilhas}</div>
-    ${temRegraDeData ? `<p class="auto-aviso-varredura">As regras por data rodam numa
-      varredura por dia, de madrugada — não na hora que estiver escrita nelas.</p>` : ''}
-    <p class="auto-aviso-varredura">A coluna <b>Prioridade</b> não é escrita à mão: ela é o
-      espelho da veiculação. Atrasado, hoje ou amanhã é <b>Crítica</b>; 2 a 3 dias, <b>Alta</b>;
-      4 a 7 dias, <b>Média</b>; 8 dias ou mais, <b>Baixa</b>. Sobe e desce sozinha na mesma
-      varredura da madrugada, e peça finalizada ou sem data de veiculação não é tocada.</p>
-    <div id="auto-editor"></div>
-    <div class="auto-lista">${linhas || '<div class="auto-carregando">Nenhuma regra neste recorte.</div>'}</div>
-    <div class="auto-cabeca" style="margin-top:28px">
-      <div>
-        <div class="auto-kicker">Vybe OS · Registro</div>
-        <h2 class="auto-titulo">O que as regras fizeram</h2>
-        <p class="auto-sub">Cada movimento automático fica registrado — o que cada regra fez, quando executou e qual peça foi afetada.</p>
-      </div>
-    </div>
-    <div id="auto-historico" class="auto-hist"><div class="auto-carregando">CARREGANDO…</div></div>`;
+    <section class="ar-aba" data-aba="falhas" aria-label="Encaminhamentos com falha" ${regras ? 'hidden' : ''}>
+      <div class="ar-falhas-topo"><p>Status de Produção e Demandas que não conseguiram seguir. As resolvidas ficam no histórico; até 100, com as pendentes primeiro.</p>
+        <button type="button" class="vb-botao" onclick="carregarFalhasAutomacoes()">Atualizar</button></div>
+      <div id="auto-falhas-lista" aria-live="polite">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando as falhas' })}</div>
+    </section>`;
+}
+
+function trocarAbaAutomacoes(aba) {
+  ABA_DE_AUTOMACOES = aba === 'falhas' ? 'falhas' : 'regras';
+  const raiz = document.getElementById('automacoes-root');
+  if (!raiz) return;
+  raiz.querySelectorAll('.ar-abas button').forEach((b, i) => b.setAttribute('aria-pressed', String((i === 1) === (ABA_DE_AUTOMACOES === 'falhas'))));
+  raiz.querySelectorAll('.ar-aba').forEach((sec) => { sec.hidden = sec.dataset.aba !== ABA_DE_AUTOMACOES; });
 }
 
 function filtrarRegras(chave) {
@@ -306,12 +314,17 @@ async function carregarFalhasAutomacoes() {
   const pedido = String(Number(caixa.dataset.pedido || 0) + 1);
   caixa.dataset.pedido = pedido;
   caixa.innerHTML = '<p class="auto-carregando">Carregando falhas…</p>';
+  // A contagem da aba Falhas (quadro 11) são as pendentes: as que ainda pedem alguém.
+  const contagem = (texto, dica) => { const n = document.getElementById('auto-aba-falhas-n'); if (n && n !== caixa) { n.textContent = texto; n.title = dica; } };
+  contagem('…', 'Consultando as falhas');
   try {
     const r = await fetch(`${AUTOMACOES_API}&falhas=1`,{credentials:'same-origin'});
     const d = await r.json();
     if (!r.ok) throw new Error(d?.error || 'Falha ao consultar encaminhamentos.');
     if (document.getElementById('auto-falhas-lista') !== caixa || caixa.dataset.pedido !== pedido) return;
     const falhas = d.falhas || [];
+    const pendentes = falhas.filter((f) => f.estado === 'pendente').length;
+    contagem(String(pendentes), pendentes === 1 ? '1 falha pendente' : `${pendentes} falhas pendentes`);
     if (!falhas.length) { caixa.innerHTML = '<p class="auto-carregando">Nenhuma falha de encaminhamento registrada.</p>'; return; }
     const data = valor => new Date(valor).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const nomes = {pendente:'Pendente',resolvida:'Resolvida',superada:'Etapa alterada',removida:'Atividade removida'};
@@ -328,8 +341,10 @@ async function carregarFalhasAutomacoes() {
         </div>
       </article>`).join('');
   } catch (erro) {
-    if (document.getElementById('auto-falhas-lista') === caixa && caixa.dataset.pedido === pedido)
-      caixa.innerHTML = `<p class="auto-carregando" role="alert">Não foi possível consultar as falhas. ${safeText(erro.message)}</p>`;
+    if (document.getElementById('auto-falhas-lista') === caixa && caixa.dataset.pedido === pedido) {
+      contagem('!', 'Não foi possível consultar as falhas');
+      caixa.innerHTML = `<p class="auto-carregando" role="alert">Não foi possível consultar as falhas. ${safeText(erro.message)}</p><button type="button" class="vb-botao" onclick="carregarFalhasAutomacoes()">Tentar de novo</button>`;
+    }
   }
 }
 
@@ -338,10 +353,15 @@ async function carregarHistorico() {
   try {
     const r = await fetch(`${AUTOMACOES_API}&historico=1&limite=40`, { credentials: 'same-origin' });
     const d = await r.json();
-    if (!r.ok) return;
+    if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
     EXECUCOES = d.execucoes || [];
     pintarHistorico();
-  } catch { /* a lista de regras não depende do histórico */ }
+  } catch (erro) {
+    // A lista de regras não depende do histórico; só o lugar dele diz que falhou, em vez de carregar para sempre.
+    const caixa = document.getElementById('auto-historico');
+    if (caixa) caixa.innerHTML = vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível ler o registro', texto: erro.message,
+      acao: '<button type="button" class="vb-botao" onclick="carregarHistorico()">Tentar de novo</button>' });
+  }
 }
 
 function pintarHistorico() {
@@ -432,6 +452,7 @@ const ACOES_DISPONIVEIS = [
 ];
 
 function editarAutomacao(id) {
+  trocarAbaAutomacoes('regras'); // o construtor mora na aba Regras
   automacaoEmEdicao = id ? AUTOMACOES.find((a) => Number(a.id) === Number(id)) : null;
   const a = automacaoEmEdicao
     || { nome: '', ordem: 50, ativa: true, gatilho: { tipo: 'status', para: '' }, condicao: null, acoes: [] };

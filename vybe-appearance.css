@@ -1648,7 +1648,8 @@ body.vybe-desktop {
    vbEstadoHtml (vybe-core.js). */
 :root { --vb-laranja: #ff8a35; --vb-laranja-2: #ffb15c; --vb-verde: #4cc98a; --vb-vermelho: #ff6b5a; --vb-amarelo: #f5c542; --vb-azul: #4ea1ff; --vb-linha: #ffffff14; }
 /* Cabeçalho de página: título, uma frase e a ação principal à direita. */
-.vb-cabecalho { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 0 0 16px; }
+/* flex-direction e padding: o <header> do vbCabecalhoHtml herdava a coluna e o recuo da regra antiga de header (vybe-styles.css). */
+.vb-cabecalho { display: flex; flex-direction: row; padding: 0; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 0 0 16px; }
 .vb-cabecalho-texto { flex: 1 1 260px; min-width: 0; display: grid; gap: 3px; }
 .vb-cabecalho-texto h2 { margin: 0; color: var(--text); font: 800 22px/1.15 var(--mac-ui); letter-spacing: -.02em; text-wrap: balance; }
 .vb-cabecalho-texto p { margin: 0; color: var(--text-muted); font: 500 13.5px/1.45 var(--mac-ui); max-width: 70ch; }
