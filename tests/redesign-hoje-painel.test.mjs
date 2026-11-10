@@ -29,7 +29,7 @@ test('Minhas tarefas: o item do dock abre o Hoje na aba Minhas tarefas, não o M
 
 test('Hoje sem fila: pergunta de quem é o dia, guia do VYBES, agenda de hoje e o que os agentes viram, com Criar', () => {
   const src = fonte('vybe-mundo.js');
-  const pintar = funcao(src, 'pintarHoje');
+  const pintar = funcao(src, 'desenharHoje');
   const semFila = pintar.slice(pintar.indexOf('if (!fila) {'), pintar.indexOf('const abertas = fila.itens'));
   assert.match(semFila, /De quem é este dia\?/);
   assert.match(semFila, /data-pessoa-dia=/);
