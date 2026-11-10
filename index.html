@@ -474,35 +474,33 @@
 <!-- ===== PAINEL CLIENTES ===== -->
 <div id="painel-clientes" style="display:none;">
   <div class="container">
-    <div class="client-module-hero"><div class="pv-cabeca" style="--c:#7aa7ff"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg></span><div><span class="pv-etiqueta client-module-kicker">Relacionamento</span><h2>Clientes</h2><p>Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div></div><div class="client-module-actions"><button type="button" class="vb-botao" onclick="openCadastrosStation()">Cadastros</button></div></div>
+    <div class="client-module-hero" id="clientes-hero"><div class="pv-cabeca" style="--c:#7aa7ff"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg></span><div><span class="pv-etiqueta client-module-kicker">Relacionamento</span><h2>Clientes</h2><p id="clientes-frase">Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div></div><div class="client-module-actions" id="clientes-acoes"><button type="button" class="vb-botao" onclick="openCadastrosStation()">Cadastros</button></div></div>
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
     <div id="kpi-grid-clientes" class="kpi-grid"></div>
-    <!-- Lista de clientes -->
+    <!-- Lista de clientes (quadro 50 do redesign): visão, filtros em chips e a busca à direita. -->
     <div id="panel-clientes-lista">
-      <div class="section-title"><span></span>Selecione um Cliente</div>
-      <div class="filter-bar" style="margin-bottom:16px;">
-        <span class="filter-label">Buscar:</span>
-        <input id="cliente-search" type="text" placeholder="Digite o nome..." oninput="filterClientesList(this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:20px;font-size:12px;outline:none;width:220px;">
+      <h3 class="cli-oculto">Lista de clientes</h3>
+      <div class="filter-bar cli-barra">
         <span class="clientes-visao" id="clientes-visao"></span>
+        <span class="cli-filtros" id="clientes-filtros"></span>
+        <label class="cli-busca"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="cli-oculto">Buscar cliente</span><input id="cliente-search" type="search" placeholder="Buscar cliente" autocomplete="off" oninput="filterClientesList(this.value)"></label>
       </div>
       <div class="clients-grid" id="grid-clientes-lista"></div>
     </div>
-    <!-- Detalhe de um cliente -->
+    <!-- Detalhe de um cliente (quadro 51): cabeçalho com o cliente na cor dele; as abas e os cartões vêm do JS. -->
     <div id="panel-cliente-detalhe" style="display:none;">
-      <div class="filter-bar" style="margin-bottom:16px;">
-        <button class="sort-btn" onclick="voltarClientesLista()">← Voltar</button>
-        <span id="cliente-detalhe-nome" style="font-weight:700;font-size:14px;color:var(--text);margin-left:8px;"></span>
-      </div>
+      <span id="cliente-detalhe-nome" hidden></span>
+      <div id="cliente-detalhe-cabeca" class="clf-cabeca"></div>
       <div id="client-master-detail" class="client-master-detail"></div>
       <!-- Listas responsivas com os mesmos editores da operação. -->
       <div class="cliente-listas">
         <section>
-          <div class="section-title"><span></span>Produção de Conteúdo</div>
+          <h3 class="clf-secao">Conteúdos em aberto</h3>
           <div class="clients-grid uma-coluna" id="grid-cliente-producao"></div>
         </section>
         <section>
-          <div class="section-title"><span></span>Solicitações de Demandas</div>
+          <h3 class="clf-secao">Pedidos em aberto</h3>
           <div class="demandas-grid uma-coluna" id="grid-cliente-demandas"></div>
         </section>
       </div>

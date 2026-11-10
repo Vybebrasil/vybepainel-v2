@@ -521,7 +521,7 @@
 .vybe-desktop .notif-caixa.notif-caixa,.vybe-desktop .header-utilities-menu.header-utilities-menu,.vybe-desktop .quem-sou-menu.quem-sou-menu,.notif-caixa.notif-caixa,.header-utilities-menu.header-utilities-menu,.quem-sou-menu.quem-sou-menu{background:linear-gradient(180deg,#262834,#1b1d26)!important}
 
 /* Clientes: o cabeçalho do padrão, sem a caixa em volta */
-.client-module-hero{display:flex!important;align-items:center!important;justify-content:space-between;border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 6px!important}
+.client-module-hero:not([hidden]){display:flex!important;align-items:center!important;justify-content:space-between;border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 6px!important}
 .client-module-hero .pv-cabeca{margin:0}
 .client-module-hero .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
 :where(body:not(.mundo)) .client-module-hero .client-module-kicker{color:#7aa7ff!important}
