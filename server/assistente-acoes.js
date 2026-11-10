@@ -501,7 +501,8 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
       try { await fazer.trocarEscolha(sql, quem, { item: ref, campo: 'captacao', para: d.captacao.chave }); }
       catch { semCaptacao = `\n⚠️ A captação (${d.captacao.rotulo}) não foi marcada; marque no painel.`; }
     }
-    return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).${semCaptacao}`, link: ref ? linkDaAtividade(ref) : null };
+    // conteudo_id: o pacote de produção (server/pacotes-producao.js) liga a peça criada ao roteiro.
+    return { feito: `✅ Criada: *${d.titulo}* (${d.cliente}).${semCaptacao}`, link: ref ? linkDaAtividade(ref) : null, conteudo_id: r?.conteudo_id ?? null };
   }
   const p = await pessoaAtiva(sql, pessoaId), c = await pecaPorReferencia(sql, 'vybe:' + t.c);
   if (t.a === 'data') {

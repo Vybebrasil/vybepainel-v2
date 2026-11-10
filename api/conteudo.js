@@ -611,7 +611,10 @@ export async function guardarMaterialBruto(sql, quem, { item, link }) {
 //
 // É de todo mundo do time, como comentar: fica no log quem pôs e quando.
 export const BRIEFING_MAX = 20000;
-async function guardarBriefing(sql, quem, { item, texto }) {
+// Apagar só de propósito (Paulo, 10/11/2026: um chat do Claude, procurando peças, mandou "briefing" sem o texto e o
+// briefing do "Reels - FAQ 01" da Antonov sumiu). Sem o campo texto é erro; texto vazio só apaga com apagar: true.
+export async function guardarBriefing(sql, quem, { item, texto, apagar = false }) {
+  if (typeof texto !== 'string') throw new Error('Falta o texto do briefing (campo "texto"). Nada foi alterado.');
   const novo = String(texto ?? '').replace(/\r\n/g, '\n').trim();
   if (novo.length > BRIEFING_MAX) throw new Error(`Briefing muito longo (máximo ${BRIEFING_MAX} caracteres).`);
   const linhas = await sql`SELECT id, titulo, briefing FROM vybe_conteudos
@@ -619,6 +622,7 @@ async function guardarBriefing(sql, quem, { item, texto }) {
   if (!linhas.length) throw new Error(`Conteúdo ${item} não existe no banco.`);
   const c = linhas[0];
   const antes = String(c.briefing || '').trim();
+  if (!novo && antes && apagar !== true) throw new Error('O briefing veio vazio. Para apagar de propósito, mande apagar: true. Nada foi alterado.');
   if (antes === novo) return { conteudo_id: c.id, titulo: c.titulo, briefing: novo, mudou: false };
   await sql`UPDATE vybe_conteudos SET briefing = ${novo || null}, atualizado_em = NOW() WHERE id = ${c.id}`;
   await registrarEvento(sql, c.id, {
@@ -1014,7 +1018,7 @@ export default async function handler(req, res) {
     }
     if (acao === 'briefing') {
       return res.status(200).json({ ok: true, acao,
-        ...(await guardarBriefing(sql, quem, { item, texto: corpo.texto })) });
+        ...(await guardarBriefing(sql, quem, { item, texto: corpo.texto, apagar: corpo.apagar === true })) });
     }
     if (acao === 'titulo') {
       return res.status(200).json({ ok: true, acao,
