@@ -1483,8 +1483,9 @@ body.vybe-desktop {
 #painel-demandas.dem-mostrar-id .grupo-tabela { width:1620px; }
 #painel-demandas.dem-mostrar-cadastro .grupo-tabela { width:1830px; }
 #painel-demandas.dem-mostrar-id.dem-mostrar-cadastro .grupo-tabela { width:1960px; }
-#painel-demandas .grupo-tabela tr.marcada td { background:#493326; }
-#painel-demandas .grupo-tabela tr:hover td { background:#303039; }
+/* Marcada e hover escuros só no tema antigo; no mundo valem a marca e o hover claros de vybe-styles (quadro 23, 10/11/2026). */
+:where(body:not(.mundo)) #painel-demandas .grupo-tabela tr.marcada td { background:#493326; }
+:where(body:not(.mundo)) #painel-demandas .grupo-tabela tr:hover td { background:#303039; }
 #painel-demandas :is(summary,button,input):focus-visible { outline:2px solid #ffc08a; outline-offset:3px; }
 @media(max-width:600px) {
  #painel-demandas .quadro-toolbar { position:relative; align-items:stretch; }

@@ -7855,6 +7855,15 @@ html{scrollbar-gutter:stable}
 
 .dono-ver-todos:hover{text-decoration:underline}
 
+.dono-ver-todos[hidden]{display:none}
+
+/* Busca do menu de responsável (quadro 23, 10/11/2026); no mundo, o papel claro do fim de vybe-mundo.css. */
+.dono-busca{box-sizing:border-box;flex:none;width:calc(100% - 12px);min-height:32px;margin:2px 6px 6px;padding:0 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.05);color:inherit;font:500 12.5px var(--mac-ui)}
+
+/* A prévia ganhou a coluna da mídia e a ficha ao lado (quadro 27); fora do mundo a coluna segue como era e a ficha não aparece. */
+.previa-grande-midia{display:flex;flex-direction:column;gap:inherit;min-width:0;min-height:0}
+:where(body:not(.mundo)) .previa-ficha,:where(body:not(.mundo)) .previa-grande-conta{display:none}
+
 /* Linha Grupo do cartao rapido: a pilula leva a cor da etapa, igual a visao de grupos. */
 
 .cr-grupo-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;
@@ -27816,3 +27825,6 @@ html body.mundo #painel-escritorio{--lg-fundo:initial;--lg-cartao:initial;--lg-v
   .capt-cal .capt-toolbar,.capt-cal .capt-tb-esq,.capt-cal .capt-tb-dir{flex-wrap:wrap;min-width:0}
   .capt-cal .capt-tb-pend{white-space:normal;max-width:100%;text-align:left}
 }
+
+/* "Mais" da barra do lote (quadro 23): ações, não etiquetas; sem a bolinha de cor. */
+.lote-mais-menu .status-editor-dot{display:none}

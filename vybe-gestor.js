@@ -300,43 +300,83 @@ let pendingOwnerEditorItemId='';
 let donoSelecionados = new Set();
 let donoMostraTimeTodo = false;
 
-function pessoasDoSeletorDeDono(item, rule) {
+// Menu de responsável (quadro 23 do redesign, 10/11/2026): busca no topo, quem já está na peça e a disciplina
+// primeiro, e o resto do time recolhido em "+ N fora da disciplina". A disciplina continua informando, não
+// trancando: a busca acha qualquer pessoa do time, e escolher fora dela segue indo para o histórico.
+let donoBusca = '';
+const semAcentoDoDono = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function gruposDoSeletorDeDono(item, rule) {
   const todos = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS);
-  const daRegra = rule.users;
   const jaNoItem = ownerUsersFor(item);
-  const base = [...new Map([...daRegra, ...jaNoItem].map((u) => [String(u.id), u])).values()];
-  if (!donoMostraTimeTodo) return base;
+  const unicos = (lista) => [...new Map(lista.map((u) => [String(u.id), u])).values()];
+  const base = unicos([...jaNoItem, ...rule.users]);
   const dentro = new Set(base.map((u) => String(u.id)));
-  return [...base, ...todos.filter((u) => !dentro.has(String(u.id)))];
+  return { base, fora: todos.filter((u) => !dentro.has(String(u.id))) };
+}
+
+function pessoasDoSeletorDeDono(item, rule) {
+  const { base, fora } = gruposDoSeletorDeDono(item, rule);
+  const termo = semAcentoDoDono(donoBusca).trim();
+  // Buscando, vale o time inteiro; sem disciplina definida, também (não há o que recolher).
+  if (termo) return [...base, ...fora].filter((u) => semAcentoDoDono(u.name).includes(termo));
+  if (!donoMostraTimeTodo && rule.users.length) return base;
+  return [...base, ...fora];
 }
 
 function listaDoSeletorDeDono(item, rule) {
   const pessoas = pessoasDoSeletorDeDono(item, rule);
-  if (!pessoas.length) return '<div class="dono-vazio">Ninguém elegível até o formato ser classificado.</div>';
+  if (!pessoas.length) return donoBusca.trim()
+    ? `<div class="dono-vazio">Ninguém do time com “${safeText(donoBusca.trim())}”.</div>`
+    : '<div class="dono-vazio">Ninguém elegível até o formato ser classificado.</div>';
   const elegiveis = new Set(rule.users.map((u) => String(u.id)));
   return pessoas.map((u) => {
     const marcado = donoSelecionados.has(String(u.id));
     const daRegra = elegiveis.has(String(u.id));
     return `<button type="button" class="dono-pessoa owner-editor-person ${marcado ? 'selected' : ''} ${daRegra ? '' : 'fora'}"
-      data-owner-id="${u.id}" onclick="toggleOwnerEditorPerson('${u.id}')">
+      data-owner-id="${u.id}" aria-pressed="${marcado}" onclick="toggleOwnerEditorPerson('${u.id}')">
       ${ownerAvatarHtml(u)}<span class="dono-nome"><b>${safeText(firstName(u.name))}</b>
       <small>${safeText(daRegra ? (rule.label || '') : 'fora da disciplina')}</small></span>
-      <span class="owner-editor-person-check">${marcado ? '✓' : ''}</span></button>`;
+      <span class="owner-editor-person-check" aria-hidden="true">${marcado ? '✓' : ''}</span></button>`;
   }).join('');
+}
+
+// O botão do pé da lista: recolhido, conta quem está fora; aberto, volta à disciplina. Buscando ou sem disciplina, some.
+function rotuloDoVerTodos(item, rule) {
+  if (donoBusca.trim() || !rule.users.length) return '';
+  const { fora } = gruposDoSeletorDeDono(item, rule);
+  if (!fora.length) return '';
+  return donoMostraTimeTodo ? 'Só a disciplina' : `+ ${fora.length} fora da disciplina`;
 }
 
 function redesenharListaDeDonos() {
   const item = findOperationalItem(pendingOwnerEditorItemId);
   const lista = document.getElementById('owner-editor-options');
   if (!item || !lista) return;
-  lista.innerHTML = listaDoSeletorDeDono(item, ownerEligibility(item));
+  const rule = ownerEligibility(item);
+  lista.innerHTML = listaDoSeletorDeDono(item, rule);
   const link = document.getElementById('dono-ver-todos');
-  if (link) link.textContent = donoMostraTimeTodo ? 'Só a disciplina' : 'Ver o time todo';
+  if (link) { const r = rotuloDoVerTodos(item, rule); link.textContent = r; link.hidden = !r; }
 }
 
 function alternarTimeTodoNoDono() {
   donoMostraTimeTodo = !donoMostraTimeTodo;
   redesenharListaDeDonos();
+}
+
+function buscarNoSeletorDeDono(valor) {
+  donoBusca = String(valor || '');
+  redesenharListaDeDonos();
+}
+
+// Esc na busca fecha o balão de uma vez (num campo, o Esc do mundo só tiraria o foco). Enter com um nome só achado
+// marca essa pessoa, como quem digita e escolhe.
+function teclaNaBuscaDeDono(event) {
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeOwnerEditor(); return; }
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const achados = document.querySelectorAll('#owner-editor-options [data-owner-id]');
+  if (achados.length === 1) toggleOwnerEditorPerson(achados[0].dataset.ownerId);
 }
 
 function openOwnerEditor(event, itemId) {
@@ -348,17 +388,12 @@ function openOwnerEditor(event, itemId) {
   const rule = ownerEligibility(item);
   pendingOwnerEditorItemId = String(item.id);
   donoSelecionados = new Set(ownerAssignedIds(item));
-  // A LISTA ABRE COM O TIME INTEIRO.
-  //
-  // Ela comecava recortada pela disciplina do formato, e havia um "Ver o time
-  // todo" para sair do recorte. Mas quem abre o seletor ja sabe quem quer pôr
-  // ali — o recorte so acrescentava um clique antes de toda escolha fora do
-  // comum, que e justamente quando a pessoa esta com pressa.
-  //
-  // A disciplina NAO SUMIU: continua escrita no topo do seletor e ao lado de
-  // cada nome, e escolher fora dela continua indo para o historico da peca. A
-  // diferenca e que ela informa em vez de impedir.
-  donoMostraTimeTodo = true;
+  // A lista abre com quem está na peça e a disciplina; o resto do time fica a um clique ("+ N fora da disciplina")
+  // ou a uma busca (quadro 23 do redesign, 10/11/2026). Antes abria com o time inteiro, doze nomes sem busca, para
+  // não custar um clique a quem escolhe fora do comum: a busca resolve isso sem a lista longa.
+  // A disciplina informa em vez de impedir: escolher fora dela continua indo para o histórico da peça.
+  donoMostraTimeTodo = false;
+  donoBusca = '';
 
   // Era uma caixa no meio da tela, cobrindo tudo, para escolher uma pessoa. É o
   // mesmo popover ancorado dos outros seletores: as bolinhas ficam ao lado do
@@ -383,15 +418,19 @@ function openOwnerEditor(event, itemId) {
     ${emLote ? `<p class="dono-regra dono-lote-aviso">O que você escolher aqui vale para as
       ${SELECIONADAS.size} atividades marcadas.</p>` : ''}
     <p class="dono-regra">${safeText(rule.rule || '')}</p>
+    <input type="search" id="dono-busca" class="dono-busca" placeholder="Buscar pessoa" aria-label="Buscar pessoa do time"
+      autocomplete="off" oninput="buscarNoSeletorDeDono(this.value)" onkeydown="teclaNaBuscaDeDono(event)">
     <div id="owner-editor-options" class="dono-lista">${listaDoSeletorDeDono(item, rule)}</div>
-    <button type="button" id="dono-ver-todos" class="dono-ver-todos"
-      onclick="alternarTimeTodoNoDono()">${donoMostraTimeTodo ? 'Só a disciplina' : 'Ver o time todo'}</button>
+    <button type="button" id="dono-ver-todos" class="dono-ver-todos"${rotuloDoVerTodos(item, rule) ? '' : ' hidden'}
+      onclick="alternarTimeTodoNoDono()">${safeText(rotuloDoVerTodos(item, rule))}</button>
     <label class="dono-sem"><input id="owner-editor-empty" type="checkbox"> Pode ficar sem responsável</label>
     <div class="dono-rodape">
       <button type="button" id="owner-editor-save" class="dono-salvar" onclick="saveOwnerAssignments()">Salvar</button>
     </div>`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, rect);
+  // No computador o cursor já vai para a busca; no toque, abrir o teclado por cima da lista atrapalha.
+  if (window.matchMedia?.('(hover: hover)').matches) document.getElementById('dono-busca')?.focus({ preventScroll: true });
 }
 
 function fecharSeletorDeDono() {
@@ -405,6 +444,7 @@ function toggleOwnerEditorPerson(userId) {
   const button = document.querySelector(`#owner-editor-options [data-owner-id="${id}"]`);
   if (!button) return;
   button.classList.toggle('selected', donoSelecionados.has(id));
+  button.setAttribute('aria-pressed', String(donoSelecionados.has(id)));
   const check = button.querySelector('.owner-editor-person-check');
   if (check) check.textContent = donoSelecionados.has(id) ? '✓' : '';
 }

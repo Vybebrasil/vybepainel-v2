@@ -1588,10 +1588,6 @@ html body.mundo.mundo-modulo .eq-acoes button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .auto-hist-peca{color:#96601D!important}
 html body.mundo.mundo-modulo .auto-hist-regra{color:#856642!important}
 html body.mundo.mundo-modulo .auto-hist-feitas{color:#8A6747!important}
-html body.mundo.mundo-modulo .previa-grande-topo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-topo button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-seta{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-abrir{color:#946000!important}
 html body.mundo.mundo-modulo .workspace-ficha-linha span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-ficha-linha b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .op-grupo-topo b{color:#5E5A53!important}
@@ -1879,12 +1875,8 @@ html body.mundo.mundo-modulo .vybe-link{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando.urgente span{color:#B25000!important}
 html body.mundo.mundo-modulo .focus-next-btn.brief{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-topo button.previa-grande-trocar,html body.mundo.mundo-modulo .previa-grande-topo button.previa-grande-baixar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .linha-previa{color:#11794B!important}
 html body.mundo.mundo-modulo .cr-previa{color:#11794B!important}
-html body.mundo.mundo-modulo .previa-peca-info b{color:#3162B5!important}
-html body.mundo.mundo-modulo .previa-peca-info small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-peca-passo{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-hero p{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .station-top{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-station .station-description{color:#5E5A53!important}
@@ -2694,11 +2686,6 @@ html body.mundo.mundo-modulo .ofc-p-sala{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-sala.aqui{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-sala > small{color:#177D42!important}
 html body.mundo.mundo-modulo .ofc-p-quarto{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-video-abrir{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-capa-selo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-capa-aviso{color:#9E5B00!important}
-html body.mundo.mundo-modulo .previa-pasta-lista{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-pasta-lista button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ciclo-janela .ciclo-erro{color:#DB0017!important}
 html body.mundo.mundo-modulo .workflow-modal .ciclo-janela .ciclo-perigo{color:#DB0017!important}
 html body.mundo.mundo-modulo .workflow-secondary.perigo{color:#DB0016!important}
@@ -3684,9 +3671,6 @@ html body.mundo .cli-pergunta-caixa :is(p,small,label):not(#ds-a):not(#ds-b){col
 /* cartão rápido: seta, traço vazio e trecho do briefing legíveis */
 html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:#6B675F!important}
 html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B675F!important}
-/* prévia grande (fundo escuro de propósito): textos claros */
-html body.mundo .previa-grande :is(small,p,b,span):not(.pill):not(#ds-a):not(#ds-b){color:#F4F1EA!important}
-html body.mundo .previa-grande-seta:not(#ds-a):not(#ds-b){color:#FFFFFF!important;background:rgba(255,255,255,.14)!important}
 
 /* ===== Menu da conta (topo do mapa) ===== */
 .vv-menu-conta{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;padding:6px;border-radius:10px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 20px 44px rgba(31,29,26,.2);pointer-events:auto;animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}
@@ -6255,3 +6239,74 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 .ia-campos .ai-setting-field label{font:600 12px var(--vv-texto,inherit);color:#4A463F}
 .ia-campos :is(input,select){min-height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto,inherit)}
 @media (max-width:760px){.ia-duas{grid-template-columns:1fr}}
+/* ===== Menus da tabela (quadro 23 do redesign, 10/11/2026) =====
+   Menu de responsável: a busca no topo, no papel claro dos outros campos; o pé "+ N fora da disciplina" é um link. */
+body.mundo .dono-editor .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .dono-editor .dono-busca::placeholder{color:#8A847A}
+body.mundo .dono-editor .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo .dono-editor .dono-ver-todos{margin:4px 8px 2px;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
+
+/* ===== Prévia da peça (quadro 27 do redesign, 10/11/2026) =====
+   Fundo escuro só atrás da mídia (é o que valoriza foto e vídeo); ao lado, a ficha no papel claro. Sem ficha (prévia
+   aberta de um portão ou de um arquivo solto), a mídia ocupa a janela inteira. No celular a ficha desce para baixo dela. */
+body.mundo .previa-grande{padding:24px;background:rgba(31,29,26,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+body.mundo .previa-grande-vidro{position:relative;display:grid;grid-template-columns:minmax(0,1fr);width:min(1180px,94vw);max-width:none;height:min(820px,92vh);max-height:none;gap:0;padding:0;overflow:hidden;border:1px solid #2A251F;border-radius:18px;background:#17140F;box-shadow:var(--vv-sombra-janela,0 30px 80px rgba(31,29,26,.35))}
+body.mundo .previa-grande.com-ficha .previa-grande-vidro{grid-template-columns:minmax(0,1fr) 320px}
+body.mundo .previa-grande-midia{gap:10px;padding:14px 16px 16px;color:#E8E2D8}
+body.mundo .previa-grande-topo{display:flex;align-items:center;gap:8px;min-height:32px;color:#BDB5A8;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo #previa-grande-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#BDB5A8}
+body.mundo .previa-grande-topo button:not(.x-fechar){display:inline-flex;align-items:center;width:auto;height:32px;padding:0 12px;border:1px solid rgba(255,255,255,.18);border-radius:var(--pc-r,8px);background:rgba(255,255,255,.06);color:#F4F1EA;font:600 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-grande-topo button.previa-grande-trocar{border-color:transparent;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700}
+/* Com a ficha, Baixar e Trocar moram nela; o topo da mídia fica só com o nome do arquivo. */
+body.mundo .previa-grande.com-ficha .previa-grande-topo :is(.previa-grande-baixar,.previa-grande-trocar){display:none}
+body.mundo .previa-grande-topo .x-fechar{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:50%;background:#FFFFFF;color:#1F1D1A}
+body.mundo .previa-grande-pecas{display:flex;align-items:center;justify-content:center;gap:10px;padding:0;border:0;background:none}
+body.mundo .previa-peca-info{flex:0 1 auto;display:grid;justify-items:center;gap:2px;min-width:0;text-align:center}
+body.mundo #previa-peca-nome{color:#F4F1EA;font:650 14px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-grande.com-ficha #previa-peca-nome{display:none}
+body.mundo #previa-peca-onde{color:#E8E2D8;font:600 11.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-peca-passo{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#FFFFFF;font:600 17px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;cursor:pointer}
+body.mundo .previa-peca-passo > span{display:none}
+body.mundo .previa-peca-passo:hover:not(:disabled){background:rgba(255,255,255,.22)}
+body.mundo .previa-grande-palco{position:relative;flex:1 1 auto;display:flex;align-items:safe center;gap:10px;min-height:0;padding:0;background:none}
+body.mundo .previa-grande-media{align-self:stretch;min-height:0}
+body.mundo .previa-grande-palco :is(img,video){max-width:100%;max-height:100%;border-radius:10px;background:#0E0C09;box-shadow:0 20px 40px -20px #000}
+body.mundo .previa-grande-palco .previa-video{max-height:100%}
+body.mundo .previa-grande-palco .previa-video iframe{max-height:calc(100% - 28px)}
+body.mundo .previa-grande-seta{flex:none;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#FFFFFF;font-size:14px}
+body.mundo .previa-grande-seta:hover{background:rgba(255,255,255,.22)}
+body.mundo .previa-grande-conta{position:absolute;top:6px;left:50%;z-index:2;transform:translateX(-50%);padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.5);color:#E8E2D8;font:600 11.5px var(--vv-texto,"Inter"),system-ui,sans-serif;pointer-events:none}
+body.mundo .previa-grande-conta[hidden]{display:none}
+body.mundo .previa-video-abrir{color:#E8E2D8}
+body.mundo .previa-capa-aviso{color:#FFD9A6}
+/* Os estados (carregando, sem material, erro) são o cartão claro do padrão, sobre o escuro. */
+body.mundo .previa-grande-estado .vb-estado{padding:26px 22px;border-radius:14px;background:#FFFFFF;color:#1F1D1A}
+body.mundo .previa-grande-estado .vb-estado p{color:#5E5A53}
+
+body.mundo .previa-ficha{display:flex;flex-direction:column;gap:14px;min-height:0;padding:20px 18px 18px;overflow-y:auto;border-left:1px solid var(--pc-linha,#E6E0D6);background:#FFFFFF;color:#1F1D1A;font:500 12.5px/1.4 var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-ficha[hidden]{display:none}
+body.mundo .previa-ficha-clientes{display:flex;flex-wrap:wrap;gap:6px;padding-right:40px}
+body.mundo .previa-ficha-nome{margin:0;padding-right:40px;color:#1F1D1A;font:650 17px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;letter-spacing:0;overflow-wrap:anywhere}
+body.mundo .previa-ficha-dados{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;margin:0;align-items:center}
+body.mundo .previa-ficha-dados dt{color:#6B675F;font-weight:500}
+body.mundo .previa-ficha-dados dd{display:flex;flex-wrap:wrap;gap:6px;margin:0;color:#1F1D1A;font-weight:600}
+body.mundo .previa-ficha-vazio{color:#8A847A;font-weight:500}
+body.mundo .previa-ficha-pessoa{display:inline-flex;align-items:center;gap:6px}
+body.mundo .previa-ficha-pessoa :is(img,.owner-avatar-fallback){display:inline-grid;place-items:center;box-sizing:border-box;width:22px;height:22px;border:2px solid;border-radius:50%;object-fit:cover;color:#FFFFFF;font:700 9px var(--vv-texto,"Inter"),sans-serif}
+body.mundo .previa-ficha-legenda{display:grid;gap:4px}
+body.mundo .previa-ficha-rotulo{color:#6B675F;font:650 11px var(--vv-texto,"Inter"),system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+body.mundo .previa-ficha-legenda p{max-height:220px;margin:0;overflow-y:auto;color:#3A3F44;font:500 12.5px/1.5 var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:pre-line}
+body.mundo .previa-ficha-acoes{display:grid;gap:8px;margin-top:auto}
+body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;width:100%}
+
+@media (max-width:760px){
+  body.mundo .previa-grande{padding:0}
+  body.mundo .previa-grande-vidro,body.mundo .previa-grande.com-ficha .previa-grande-vidro{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(58dvh,1fr) auto;width:100vw;height:100dvh;border:0;border-radius:0;overflow-y:auto}
+  body.mundo .previa-grande-midia{padding:12px 10px}
+  body.mundo .previa-grande-topo{padding-right:44px}
+  body.mundo .previa-grande-seta{width:30px;height:30px}
+  body.mundo .previa-ficha{overflow:visible;border-left:0;border-top:1px solid var(--pc-linha,#E6E0D6)}
+  body.mundo .previa-ficha-acoes{margin-top:4px}
+}
+body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
+body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
