@@ -113,14 +113,15 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
-  // Acabamento de maquete do padrão (estilo.mjs: o brilho só no que acende) e, por cima, o tilt-shift: desfoca o alto e
-  // o baixo da imagem, como foto de maquete. Sem a oclusão nos cantos na cidade (investigação de 10/11/2026: "a luz
+  // Acabamento de maquete do padrão (estilo.mjs) com o tilt-shift: desfoca o alto e o baixo da imagem, como foto de
+  // maquete. Sem o brilho (Paulo, 10/11/2026: "se o brilho do V e do nome tiver pesando pode tirar": era uma cadeia de
+  // desfoques a cada quadro só para o halo do V, dos letreiros e das janelas, que continuam acesos sem ele). Sem a oclusão nos cantos na cidade (investigação de 10/11/2026: "a luz
   // parece tá bugando tudo"): vista de longe ela quase não aparece, tremulava com a câmera, pesava a 30 qps parada e
   // ligar/desligar ao parar fazia a luz "pular". O quarto, visto de perto, continua com ela.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { ao: false, passes: [tiltH, tiltV], brilho: ESTILO.brilhoCidade });
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { ao: false, brilho: false, passes: [tiltH, tiltV] });
   const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.

@@ -25,9 +25,6 @@ export const ESTILO = Object.freeze({
   // Acabamento de maquete: oclusão nos cantos (raio em unidades do mundo) e brilho só no que acende.
   ao: { forca: 1.1, raio: .3 },
   brilho: { forca: .55, limiar: .85 },
-  // Cidade: céu, nuvens e paredes brancas ao sol passavam do limiar e estouravam (Paulo, 10/11/2026: "blooms
-  // estourados"). Só o que acende (janelas, postes, letreiros, a água) passa de .97, e com metade da força.
-  brilhoCidade: { forca: .28, limiar: .97 },
   // Superfície: lisa como nas referências (sem grade nem quina de cada bloco); o volume vem da luz e da oclusão.
   superficie: { amp: .03, grade: 0, borda: false, tomBloco: .025 },
 });

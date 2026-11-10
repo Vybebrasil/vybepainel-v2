@@ -128,10 +128,9 @@ test('vitrine do jogador: com o mundo ligado, a .vb-vitrine é o quarto voxel em
   assert.doesNotMatch(vm + css, /vv-perfil-avatar/, 'a ficha não mostra mais o boneco solto num palco');
 });
 
-test('cidade: o motor usa o acabamento de maquete do estilo (brilho só no que acende, sem oclusão), com o desfoque por cima', () => {
+test('cidade: o motor usa o acabamento de maquete do estilo, sem oclusão nem brilho, com o desfoque por cima', () => {
   const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
-  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ ao: false, passes: \[tiltH, tiltV\], brilho: ESTILO\.brilhoCidade \}\)/);
-  assert.ok(ESTILO.brilhoCidade.limiar > .95, 'na cidade só o que acende brilha (céu e nuvens não estouram)');
+  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ ao: false, brilho: false, passes: \[tiltH, tiltV\] \}\)/, 'cidade sem oclusão nem brilho (pesavam e estouravam)');
   assert.doesNotMatch(m, /new EffectComposer/, 'sem composer próprio na cidade');
 });
 
@@ -152,9 +151,7 @@ test('cidade sem travadinhas nem luz pulando: luz igual mexendo e parada, sombra
   assert.doesNotMatch(m.slice(m.indexOf('function posicionarCamera'), m.indexOf('let solQuer')), /sol\.position\.set/, 'o sol não anda fora do redesenho da sombra');
 });
 
-test('nuvens do Centro: cubos opacos com a cor por face, fora do brilho e da névoa', () => {
+test('nuvens do Centro: cubos opacos com a cor por face, fora da névoa', () => {
   const c = fs.readFileSync('mundo/centro.mjs', 'utf8');
   assert.match(c, /new T\.MeshBasicMaterial\(\{ vertexColors: true, fog: false \}\)/);
-  const claras = [...c.slice(c.indexOf('Nuvens voxel'), c.indexOf('const U = ')).matchAll(/'#([0-9A-F]{6})'/g)].map((m) => parseInt(m[1].slice(0, 2), 16) / 255);
-  for (const v of claras) assert.ok(Math.pow((v + .055) / 1.055, 2.4) < ESTILO.brilhoCidade.limiar, 'nenhuma face da nuvem passa do limiar do brilho');
 });

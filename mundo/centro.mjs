@@ -130,8 +130,8 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     });
     // Nuvens voxel "bonitinhas" (Paulo, 10/11/2026: "as nuvens estão feias... gosto mais no estilo bonitinho voxel",
     // "tira esse bloom delas"): cada nuvem é um tufo de cubos inteiros na grade (base larga, meio com calombos, topo
-    // pequeno), opaca, com o topo branco, os lados em dois tons e a barriga azulada, cor já pintada por face. Fica abaixo
-    // do limiar do brilho e fora da névoa: não acende nem vira borrão. Paradas (vida.mjs só gira o conjunto devagar).
+    // pequeno), opaca, com o topo branco, os lados em dois tons e a barriga azulada, cor já pintada por face. Fica fora
+    // da névoa: não vira borrão. Paradas (vida.mjs só gira o conjunto devagar).
     const cubo = new T.BoxGeometry(1, 1, 1), nuvens = [];
     {
       const cores = { y1: '#F4F7FA', y0: '#C7D4E3', x: '#E3EAF2', z: '#D7E0EB' }, cor = new T.Color(), cs = [], n = cubo.attributes.normal;
