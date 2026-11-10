@@ -95,9 +95,21 @@ async function criarPlanejamento(clienteId, botao) {
 }
 
 // ── Janela do planejamento ───────────────────────────────────────────────────
+// Esqueleto do documento com brilho enquanto ele chega (no lugar da tela branca).
+// Entra como srcdoc da própria moldura, no mesmo desenho do documento.
+const PLJ_ESQUELETO = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>
+body{margin:0;background:#f7f5f1;font:15px system-ui,sans-serif}main{max-width:1180px;margin:0 auto;padding:96px 16px 40px;display:grid;gap:16px}
+i{display:block;position:relative;overflow:hidden;border-radius:14px;background:#ebe6dd}
+i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#ffffff99 50%,transparent 70%);translate:-100% 0;animation:b 1.4s cubic-bezier(.2,.8,.2,1) infinite}
+@keyframes b{to{translate:100% 0}}@media (prefers-reduced-motion:reduce){i::after{animation:none}}
+.capa{height:190px;border-radius:22px;background:#2a2a30}.capa::after{background:linear-gradient(100deg,transparent 30%,#ffffff14 50%,transparent 70%)}
+.t{height:22px;width:38%}.l{height:14px;width:72%}.n{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.n i{height:78px}.c{height:120px}
+</style></head><body><main role="status" aria-label="Abrindo o documento"><i class="capa"></i><i class="t"></i><i class="l"></i><div class="n"><i></i><i></i><i></i><i></i></div><i class="t"></i><i class="c"></i><i class="c"></i></main></body></html>`;
+const pljMolduraHtml = () => `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals" srcdoc="${pljEsc(PLJ_ESQUELETO)}"></iframe>`;
 async function abrirPlanejamento(id, aba = 'documento') {
-  openWorkflowModal(`<div class="auto-carregando">Abrindo o planejamento…</div>`);
+  openWorkflowModal(aba === 'documento' ? pljMolduraHtml() : vbEstadoHtml({ tipo: 'carregando', titulo: 'Abrindo o planejamento' }));
   document.getElementById('workflow-modal')?.classList.add('plj-janela');
+  document.getElementById('workflow-modal')?.classList.toggle('plj-modo-doc', aba === 'documento');
   try {
     const d = await pljPedir(`acao=detalhe&id=${encodeURIComponent(id)}`);
     PLJ_ABERTO = d.planejamento;
@@ -145,9 +157,10 @@ function pintarPlanejamento(aba) {
   }
   if (aba === 'documento') {
     const revisando = p.pode_editar && ['revisar', 'ajustes'].includes(p.estado);
-    m.innerHTML = `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
+    // O pedido do cliente fica no próprio documento, na coluna "Pedidos do cliente"
+    // e marcado na peça (redesign, 10/11/2026), não num balão por cima dele.
+    m.innerHTML = `${pljMolduraHtml()}
     ${barra}
-    ${resposta ? `<div class="plj-flut plj-flut-aviso">${resposta}</div>` : ''}
     <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div></div>`;
     m.dataset.aba = aba;
     pljCarregarPrevia(p);
@@ -324,6 +337,9 @@ function pljEditorHtml() {
   return `<div class="plj-ed"><aside class="plj-ed-lista" id="plj-ed-lista" aria-label="Partes do planejamento">${pljEdListaHtml()}</aside>
     <section class="plj-ed-detalhe" id="plj-ed-detalhe">${pljEdDetalheHtml()}</section></div>`;
 }
+// O pedido do cliente na peça: a mesma regra de pedidoDaPeca (server/planejamento-documento.js), que monta a coluna
+// "Pedidos do cliente" do documento: o ajuste respondido pelo cliente, ou o ajuste guardado na peça sem resposta nova.
+const pljPedidoDaPeca = (x) => (x?.revisao_cliente?.estado === 'ajuste' ? String(x.revisao_cliente.nota || '') : (!x?.revisao_cliente && x?.ajuste_cliente ? String(x.ajuste_cliente) : ''));
 function pljEdListaHtml() {
   const c = PLJ_RASCUNHO || {}, pecas = c.pecas || [];
   const item = (sel, icone, nome, extra = '') => `<button type="button" class="plj-ed-item${PLJ_SEL === sel ? ' sel' : ''}" onclick="pljEdSelecionar('${sel}')" aria-current="${PLJ_SEL === sel}"><i aria-hidden="true">${icone}</i><span>${nome}</span>${extra}</button>`;
@@ -338,7 +354,7 @@ function pljEdListaHtml() {
     <div class="plj-ed-sec plj-ed-sec-pecas"><span>Peças <em>${pecas.length}</em></span><button type="button" class="plj-ed-mais" onclick="pljEdNovaPeca()" aria-label="Nova peça" title="Nova peça">+</button></div>
     <div class="plj-ed-filtros" role="group" aria-label="Filtrar peças">${filtro('todas', 'Todas')}${filtro('pedido', 'Com pedido')}${filtro('sem-ok', 'Sem OK')}</div>
     <div class="plj-ed-pecas">${pecas.map((x, i) => passa(x) ? `<button type="button" class="plj-ed-peca${PLJ_SEL === 'peca:' + i ? ' sel' : ''}" onclick="pljEdSelecionar('peca:${i}')" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}">
-      <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
+      <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${pljPedidoDaPeca(x) ? `<em class="plj-ed-pedido" title="${pljEsc(pljPedidoDaPeca(x))}">pedido</em>` : ''}${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
 }
 const PLJ_COR_FORMATO = { Card: '#d9534f', Carrossel: '#c98a12', Reels: '#7b4bd6', Fotografia: '#2f8f5b', 'Vídeo': '#2c6fb3', Stories: '#d1497a', Outro: '#6b7280' };
 // Campo ligado ao rascunho pelo caminho (ex.: "pecas.3.tema").

@@ -1148,7 +1148,7 @@ function desenharInventarioJanelaEscritorio(d) {
     .sort(ordens[f.ordemInv] || ordens.nome);
   const contaOrigem = (t) => (escritorioMeuInventario?.() || []).filter((i) => (origens[i.classe] || []).includes(t)).length;
   d.querySelector("#office-catj-faixas").innerHTML = `${[["premio", "Prêmios"], ["compra", "Comprados"], ["presente", "Presentes"], ["troca", "Trocas"]].map(([k, n]) => `<button type="button" class="ofc-cat-chip" aria-pressed="${f.origem === k}" ${contaOrigem(k) ? "" : "disabled"} onclick="escritorio.cat.origem=escritorio.cat.origem==='${k}'?'':'${k}';desenharCatalogoJanelaEscritorio()">${n} <small>${contaOrigem(k)}</small></button>`).join("")}
-<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordemInv=this.value;desenharCatalogoJanelaEscritorio()">${[["nome", "A–Z"], ["raros", "Mais raros"], ["quantidade", "Mais unidades"]].map(([v, n]) => `<option value="${v}"${(f.ordemInv || "nome") === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
+${escritorioOrdemChipsHtml("ordemInv", f.ordemInv || "nome", [["nome", "A–Z"], ["raros", "Mais raros"], ["quantidade", "Mais unidades"]])}`;
   const todos = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
   const roupas = (escritorio.base?.economia?.inventario || []).filter((i) => String(i.classe).startsWith("roupa:") && Number(i.quantidade) > 0).length;
   d.querySelector("#office-catj-info").innerHTML = `<b>${meus.length} ${meus.length === 1 ? "móvel" : "móveis"}</b><span>comprados, prêmios, presentes e trocas</span>${roupas ? `<button type="button" class="office-text-button" onclick="document.getElementById('office-catalogo')?.close();criador.armario='guarda';abrirAberturaEscritorio('personagem')">Roupas · ${roupas} no Guarda-roupa</button>` : ""}<button type="button" class="office-text-button" onclick="abrirTrocaEscritorio()">Propor troca</button>`;
@@ -1184,7 +1184,7 @@ function desenharCatalogoJanelaEscritorio() {
   d.querySelector("#office-catj-faixas").innerHTML = `${faixas.map((r) => `<button type="button" class="ofc-cat-chip r-${safeText(r.chave)}" aria-pressed="${f.raridade === r.chave}" ${conta.get(r.chave) ? "" : "disabled"} onclick="escritorio.cat.raridade=escritorio.cat.raridade==='${safeText(r.chave)}'?'':'${safeText(r.chave)}';escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()">${safeText(r.nome)} <small>${(conta.get(r.chave) || 0).toLocaleString("pt-BR")}</small></button>`).join("")}
 <button type="button" class="ofc-cat-chip venda" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Só o que está à venda esta semana e cabe no seu saldo">Cabe no saldo</button>
 <button type="button" class="ofc-cat-chip" aria-pressed="${Boolean(f.desejos)}" ${escritorioDesejos().size ? "" : "disabled"} onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Os móveis que você marcou com Quero">Desejos <small>${escritorioDesejos().size}</small></button>
-<label class="ofc-ordem"><span class="ofc-sr">Ordem</span><select onchange="escritorio.cat.ordem=this.value;desenharCatalogoJanelaEscritorio()">${[["destaque", "Em destaque"], ["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]].map(([v, n]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>`;
+${escritorioOrdemChipsHtml("ordem", f.ordem || "destaque", [["destaque", "Em destaque"], ["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]])}`;
   const lista = (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
   const onde = f.categoria && f.categoria !== "*" ? escritorioRotuloCategoria(f.categoria.replace(/^secao:/, "")) : "todo o catálogo";
   const ativos = [f.raridade && (faixas.find((r) => r.chave === f.raridade)?.nome || f.raridade), f.posso && "à venda agora", f.busca && `“${f.busca}”`].filter(Boolean);
@@ -1197,6 +1197,11 @@ function desenharCatalogoJanelaEscritorio() {
   const sub = typeof escritorioSubcategoriasLojaHtml === "function" && f.categoria && f.categoria !== "*" ? escritorioSubcategoriasLojaHtml(f.categoria) : "";
   d.querySelector("#office-catj-grade").innerHTML = sub + destaque + (lista.length ? lista.slice(0, f.ver).map((m) => escritorioCartaoMovel(m, { loja: true })).join("") + (lista.length > f.ver ? `<button type="button" class="ofc-secundario ofc-cat-mais" onclick="escritorio.cat.ver+=60;desenharCatalogoJanelaEscritorio()">Mostrar mais (${(lista.length - f.ver).toLocaleString("pt-BR")})</button>` : "")
     : '<p class="ofc-nota">Nenhum móvel com esses filtros. Tire um filtro ou busque outra palavra.</p>');
+}
+// Ordem da Loja e do inventário em chips (redesign fase 3, quadro 35: "ordem e categorias em chips", não um select
+// nativo): um grupo com a ordem escolhida marcada; o mesmo chip das faixas de raridade.
+function escritorioOrdemChipsHtml(campo, atual, opcoes) {
+  return `<span class="ofc-ordem-chips" role="group" aria-label="Ordem">${opcoes.map(([v, n]) => `<button type="button" class="ofc-cat-chip ofc-ordem-chip" aria-pressed="${atual === v}" onclick="escritorio.cat.${campo}='${v}';escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()">${n}</button>`).join("")}</span>`;
 }
 function escritorioCatalogoGeralLista(f) {
   const busca = String(f.busca || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

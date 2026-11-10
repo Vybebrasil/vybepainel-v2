@@ -65,26 +65,45 @@ async function renderDiarioLista(forcar=false) {
   document.getElementById('diario-lista').style.display = 'block';
   document.getElementById('diario-detalhe').style.display = 'none';
   if (lista.length === 0) {
-    el.innerHTML = vbEstadoHtml({ titulo: 'Nenhum registro salvo ainda', texto: 'Um registro guarda como estão os conteúdos neste momento, para comparar com outro dia.',
-      acao: '<button type="button" class="vb-botao principal" onclick="salvarSnapshot()">Registrar agora</button>' });
+    // Quadro 10: o estado vazio explica para que serve; o botão fica só no topo.
+    el.innerHTML = vbEstadoHtml({ titulo: 'Nenhum registro salvo ainda', texto: 'Um registro guarda como estão os conteúdos agora, para comparar com outro dia. Use “Registrar agora”, no topo.' });
     return;
   }
-  // Linha do tempo: dia legível, hora, total e a variação para o registro anterior.
+  // Linha do tempo: dia legível, hora, total, o retrato pequeno do estado e a variação para o registro anterior.
   const diaDe = (txt) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\D+(\d{2}:\d{2}))?/.exec(String(txt || '')); return m ? { d: new Date(+m[3], +m[2] - 1, +m[1]), hora: m[4] || '' } : null; };
   const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0);
   const rotuloDia = (d) => { const dif = Math.round((hojeD - d) / 864e5); if (dif === 0) return 'Hoje'; if (dif === 1) return 'Ontem';
     const t = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, ''); return t.charAt(0).toUpperCase() + t.slice(1); };
   el.innerHTML = `<div class="diario-linha-tempo">${lista.map((s, i) => {
     const info = diaDe(s.dataHora), ant = lista[i + 1], dif = ant ? Number(s.total || 0) - Number(ant.total || 0) : null;
-    const varia = dif === null ? '' : `<span class="diario-varia ${dif > 0 ? 'sobe' : dif < 0 ? 'desce' : 'igual'}">${dif > 0 ? '+' : ''}${dif === 0 ? 'igual' : dif.toLocaleString('pt-BR')}</span>`;
+    const infoAnt = ant ? diaDe(ant.dataHora) : null;
+    const contra = !infoAnt ? '' : info && Math.round((info.d - infoAnt.d) / 864e5) === 1 ? 'vs. ontem'
+      : `vs. ${infoAnt.d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+    const varia = dif === null ? '' : `<span class="diario-varia ${dif > 0 ? 'sobe' : dif < 0 ? 'desce' : 'igual'}" title="Total de conteúdos comparado com o registro anterior">${dif > 0 ? '+' : ''}${dif === 0 ? 'igual' : dif.toLocaleString('pt-BR')}${contra ? ` <small>${contra}</small>` : ''}</span>`;
     return `<div class="diario-registro" role="button" tabindex="0" onclick="abrirSnapshot(${s.id})" onkeydown="if(event.key==='Enter')abrirSnapshot(${s.id})">
       <span class="diario-ponto" aria-hidden="true"></span>
       <div class="diario-quando"><b>${info ? rotuloDia(info.d) : String(s.dataHora || '').replace(/[<>&]/g, '')}</b><small>${info?.hora ? 'às ' + info.hora : ''}</small></div>
-      <div class="diario-total"><b>${Number(s.total || 0).toLocaleString('pt-BR')}</b><small>conteúdos</small></div>
+      ${diarioMiniHtml(s)}
+      <div class="diario-total"><b>${Number(s.total || 0).toLocaleString('pt-BR')}</b><small>${Number(s.total || 0) === 1 ? 'conteúdo' : 'conteúdos'}</small></div>
       ${varia}
       <span class="diario-abrir">Abrir →</span>
       <button type="button" class="diario-apagar" title="Apagar este registro" aria-label="Apagar este registro" onclick="event.stopPropagation();excluirSnapshot(${s.id})">×</button>
     </div>`; }).join('')}</div>`;
+}
+
+// O retrato pequeno de um registro (quadro 10), com os números que o próprio registro guardou (payload.conteudos):
+// com data, sem data e com o prazo já passado. O prazo passado conta peça de qualquer status, finalizada inclusive,
+// então não é chamado de "atrasado". Registro antigo sem esses números fica sem o retrato.
+function diarioMiniHtml(s) {
+  const c = s?.payload?.conteudos || {};
+  const ativos = Number(c.ativos), semData = Number(c.sem_data), passado = Number(c.prazo_passado);
+  if (![ativos, semData, passado].every(Number.isFinite) || ativos <= 0) return '<span class="diario-mini vazio" aria-hidden="true"></span>';
+  const comData = Math.max(0, ativos - semData - passado);
+  const fmt = (n) => n.toLocaleString('pt-BR');
+  const frase = `${fmt(comData)} com data à frente, ${fmt(semData)} sem data, ${fmt(passado)} com o prazo já passado (de qualquer status)`;
+  const maior = Math.max(comData, semData, passado, 1); // a maior barra enche o quadro; a frase leva os números
+  const barra = (n, cls) => `<i class="${cls}" style="height:${Math.max(n ? 8 : 0, Math.round((n / maior) * 100))}%"></i>`;
+  return `<span class="diario-mini" role="img" aria-label="${frase}" title="${frase}">${barra(comData, 'ok')}${barra(semData, 'atencao')}${barra(passado, 'passou')}</span>`;
 }
 
 async function abrirSnapshot(id) {

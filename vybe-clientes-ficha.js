@@ -358,8 +358,8 @@ function registrosDosChatsHtml(nome) {
 
 function cerebroDaFichaHtml(nome) {
   const cartao = typeof cerebroDoClienteCardHtml === 'function' ? cerebroDoClienteCardHtml(nome) : '';
-  return `${cartao}${registrosDosChatsHtml(nome)}<div class="client-master-detail-card"><h3>O que é o cérebro</h3>
-    <p>O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa. O botão acima abre o mapa completo com este cliente em foco.</p></div>`;
+  // "O que é o cérebro" virou a dica do "?" no título do cartão (quadro 53).
+  return `${cartao}${registrosDosChatsHtml(nome)}`;
 }
 
 // Embrulha a ficha que já existia: a Visão geral é ela mesma; as outras abas

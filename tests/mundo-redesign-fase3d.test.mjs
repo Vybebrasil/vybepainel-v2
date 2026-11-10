@@ -82,7 +82,7 @@ test('sino: aviso novo vira aviso curto com "Abrir a peça"; a primeira leitura 
 test('avisos do sino: painel preso no sino, tipo num ícone neutro, frase inteira, ação em cada linha e "Novo" escrito', () => {
   assert.ok(js.includes("p.className = 'vv-avisos-painel'; p.setAttribute('role', 'dialog')"), 'painel, não a janela no meio da tela');
   assert.ok(!js.includes("m.className = 'vv-avisos-menu'"), 'sem o menu de escolha antigo');
-  for (const t of ['<h3>Esperando você</h3>', '<h3>Nos seus clientes</h3>', '<h3>Notificações</h3>', 'data-aviso-lidos>Marcar como lidos', 'data-aviso-centro>Ir ao Centro de Operação'])
+  for (const t of ['<h3>Esperando você</h3>', '<h3>Nos seus clientes</h3>', "'Anteriores' : 'Notificações'}</h3>", "' disabled title=\"Tudo já foi lido\"'}>Marcar como lidos", 'data-aviso-centro>Ir ao Centro de Operação'])
     assert.ok(js.includes(t), t);
   assert.ok(js.includes('<em class="vv-aviso-novo">Novo</em>'), 'não lido com a palavra, não só a cor');
   assert.ok(js.includes(">Abrir a peça</button>` : ''"), 'a notificação abre a peça');
@@ -142,7 +142,8 @@ test('celular: topo com busca, avisos e conta; cinco lugares embaixo com Criar n
 });
 
 test('janela de módulo por cima de uma tela antiga: o topo do mundo e o canto antigo não cobrem o cabeçalho dela', () => {
-  assert.ok(css.includes('html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}'), 'com palco-modulo vale a regra que esconde o HUD');
+  // Moldura única (10/11/2026): o topo do mundo não volta nas telas antigas; a regra do HUD em mundo-modulo esconde tudo menos o trilho.
+  assert.ok(!css.includes('#mundo-hud > .vv-topo{display:flex!important}'), 'o topo do mundo não volta por cima de janela nenhuma');
   assert.ok(css.includes('body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}'));
   assert.ok(!css.includes('html body.mundo.mundo-modulo #mundo-hud > .vv-topo{display:flex!important}'));
   assert.ok(bloco3d.includes('body.mundo .vc-camada > #vv-carteira{height:100%}'), 'a Carteira termina acima do dock');

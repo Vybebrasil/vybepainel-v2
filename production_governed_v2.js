@@ -266,6 +266,12 @@
       }
   };
 
+  // As abas da agenda (Captações, Roteiros, Feed, Calendário): no cabeçalho das outras vistas; na de Captações, na
+  // barra única da agenda (captacoesHtml chama esta mesma função; quadro 04 do redesign, 10/11/2026).
+  window.prodV2AbasHtml = function() {
+    const aba = (v, nome) => `<button type="button" class="${window.productionV2View===v?'active':''}" aria-pressed="${window.productionV2View===v}" onclick="setProdV2View('${v}')">${nome}</button>`;
+    return `<div class="p-segment p-abas" role="group" aria-label="Agenda">${aba('captacoes','Captações')}${aba('roteiros','Roteiros')}${aba('feed','Feed')}${aba('calendar','Calendário')}</div>`;
+  };
 
   window.renderProductionCommand = function() {
     ensureProductionV2Styles();
@@ -399,28 +405,26 @@
         `;
     }
 
+    // Quadro 04 (redesign, 10/11/2026): na agenda o cabeçalho tem a ação ("Marcar captação", o mesmo formulário do
+    // clique num horário, já em Captação) e as abas vão para a barra única da agenda, com o período e Dia/Semana/Mês.
+    const naAgenda = window.productionV2View === 'captacoes' && typeof captacoesHtml === 'function';
     root.innerHTML = `
       <div class="prod-v2-layout">
-         <header class="prod-v2-head">
+         <header class="prod-v2-head${naAgenda ? ' com-acao' : ''}">
             <div class="p-head-title pv-cabeca" style="--c:#38d9c5">
-               <span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="10" height="9" rx="2"/><path d="m13 9 4-2v7l-4-2"/></svg></span>
-               <div><span class="pv-etiqueta">Produção</span>
+               ${naAgenda ? '' : `<span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="10" height="9" rx="2"/><path d="m13 9 4-2v7l-4-2"/></svg></span>`}
+               <div>${naAgenda ? '' : '<span class="pv-etiqueta">Produção</span>'}
                <h3>Agenda e captações</h3>
-               <p>Controle central de captações, roteiros e agendamentos.</p>
+               <p>${naAgenda ? 'Gravações do Mizinho e os compromissos da Vybe, do Google Agenda.' : 'Controle central de captações, roteiros e agendamentos.'}</p>
                </div>
             </div>
-            <div class="p-controls-row">
+            ${naAgenda ? `<div class="p-head-acoes"><button type="button" class="vb-botao principal capt-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Marcar captação</button></div>` : `<div class="p-controls-row">
+               ${window.prodV2AbasHtml()}
                <div class="p-segment">
-                  <button class="${window.productionV2View==='captacoes'?'active':''}" onclick="setProdV2View('captacoes')">Captações</button>
-                  <button class="${window.productionV2View==='roteiros'?'active':''}" onclick="setProdV2View('roteiros')">Roteiros</button>
-                  <button class="${window.productionV2View==='feed'?'active':''}" onclick="setProdV2View('feed')">Feed</button>
-                  <button class="${window.productionV2View==='calendar'?'active':''}" onclick="setProdV2View('calendar')">Calendário</button>
-               </div>
-               ${window.productionV2View==='captacoes' ? '' : `<div class="p-segment">
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='prazo'?'active':''}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo Base</button>
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='veiculacao'?'active':''}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button>
-               </div>`}
-            </div>
+               </div>
+            </div>`}
          </header>
          ${contentHtml}
       </div>

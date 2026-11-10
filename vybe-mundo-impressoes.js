@@ -7,7 +7,7 @@
 (() => {
   'use strict';
   const URL_API = '/api/painel?area=impressoes';
-  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false };
+  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false, vista: 'etapas' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const br = (iso) => (iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
   const cli = (nome) => (nome ? (typeof window.cliCor === 'function' ? window.cliCor(nome) : esc(nome)) : '');
@@ -44,13 +44,18 @@
   // ---------- desenho ----------
   const visiveis = () => (st.dados?.impressoes || []).filter((i) => (!st.fornecedor || String(i.fornecedor_id) === st.fornecedor)
     && (st.filtro === 'atrasadas' ? i.atrasada : st.filtro === 'semfornecedor' ? !i.fornecedor_id && ABERTAS(i) : true));
+  // Dias de atraso pela previsão (datas sem hora, sem fuso: só ano/mês/dia).
+  const diasDeAtraso = (i) => { const h = String(st.dados?.hoje || new Date().toISOString()).slice(0, 10); if (!i.previsao) return 0;
+    return Math.max(0, Math.round((Date.parse(h + 'T12:00:00Z') - Date.parse(String(i.previsao).slice(0, 10) + 'T12:00:00Z')) / 864e5)); };
+  const atrasoTxt = (i) => { const n = diasDeAtraso(i); return n ? `atrasada ${n} dia${n === 1 ? '' : 's'}` : 'atrasada'; };
+  // Quadro 17: o atraso em vermelho na própria peça e "sem fornecedor · escolher" (abre a edição já no campo da gráfica).
   function cartao(i) {
     return `<button type="button" class="vi-cartao${i.atrasada ? ' atrasada' : ''}${String(i.id) === st.sel ? ' sel' : ''}" data-vi-abrir="${esc(i.id)}">
       <b>${esc(i.titulo)}</b>
       <span class="vi-linha">${cli(i.cliente_nome) || '<em class="vi-mudo">sem cliente</em>'}</span>
-      <span class="vi-linha">${i.fornecedor_nome ? esc(i.fornecedor_nome) : '<em class="vi-tag ruim">sem fornecedor</em>'}</span>
+      <span class="vi-linha">${i.fornecedor_nome ? esc(i.fornecedor_nome) : `<em class="vi-mudo">sem fornecedor</em>${ABERTAS(i) ? ` · <span class="vi-escolher" data-vi-escolher-forn="${esc(i.id)}">escolher</span>` : ''}`}</span>
       <span class="vi-pe">${[i.material, i.quantidade ? `${Number(i.quantidade).toLocaleString('pt-BR')} un.` : ''].filter(Boolean).map(esc).join(' · ')}
-        ${i.previsao ? `<time class="${i.atrasada ? 'atrasada' : ''}">${i.atrasada ? 'atrasada · ' : ''}${br(i.previsao)}</time>` : ''}</span>
+        ${i.previsao ? `<time class="${i.atrasada ? 'atrasada' : ''}">${i.atrasada ? atrasoTxt(i) + ' · ' : 'entrega '}${br(i.previsao)}</time>` : ''}</span>
       ${i.conteudo_id && i.etapa === 'arte' ? `<span class="vi-linha">${statusDemanda(i.demanda_status || 'Na esteira')}</span>` : ''}
     </button>`;
   }
@@ -61,6 +66,14 @@
       return `<section class="vi-coluna" role="listitem" aria-label="${esc(e.nome)}"><div class="vi-coluna-topo"><b>${esc(e.nome)}</b><em>${l.length}</em></div>
         ${l.map(cartao).join('') || '<p class="vi-mudo">Nada aqui.</p>'}</section>`; }).join('')}</div>
       ${canceladas ? `<p class="vi-nota">${canceladas} cancelada${canceladas > 1 ? 's' : ''} nos últimos 90 dias.</p>` : ''}`;
+  }
+  // A mesma seleção em lista (alternador Etapas | Lista do quadro 17): uma linha por peça.
+  function listaHtml() {
+    const lista = visiveis();
+    if (!lista.length) return '<p class="vi-mudo">Nenhuma impressão neste filtro.</p>';
+    return `<div class="vi-tabela-wrap"><table class="vi-tabela"><thead><tr><th>Peça</th><th>Cliente</th><th>Etapa</th><th>Fornecedor</th><th>Entrega</th></tr></thead><tbody>${lista.map((i) => `<tr class="${String(i.id) === st.sel ? 'sel' : ''}">
+      <td><button type="button" class="vi-link" data-vi-abrir="${esc(i.id)}">${esc(i.titulo)}</button></td><td>${cli(i.cliente_nome) || '<em class="vi-mudo">interno</em>'}</td><td>${esc(etapaNome(i.etapa))}</td>
+      <td>${i.fornecedor_nome ? esc(i.fornecedor_nome) : '<em class="vi-mudo">sem fornecedor</em>'}</td><td>${i.previsao ? `<span class="${i.atrasada ? 't-ruim' : ''}">${br(i.previsao)}${i.atrasada ? ' · ' + atrasoTxt(i) : ''}</span>` : '—'}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function ficha() {
     const i = (st.dados.impressoes || []).find((x) => String(x.id) === st.sel); if (!i) return '';
@@ -161,23 +174,23 @@
     if (!st.dados && !st.erro) return estado('carregando', 'Carregando as impressões', '');
     if (st.erro && !st.dados) return estado('erro', 'Não deu para abrir Impressões', st.erro, '<button type="button" class="vi-botao" data-vi="recarregar">Tentar de novo</button>');
     const d = st.dados, R = d.resumo || {};
-    const semForn = !(d.fornecedores || []).length;
     const chip = (k, rot, n, cls = '') => `<button type="button" class="vi-chip ${cls}" data-vi-filtro="${k}" aria-pressed="${st.filtro === k}">${rot}${n != null ? ` <em>${n}</em>` : ''}</button>`;
     const fNome = st.fornecedor ? (d.fornecedores || []).find((f) => String(f.id) === st.fornecedor)?.nome || 'fornecedor' : '';
-    return `${semForn ? `<div class="vi-alerta"><span><b>Nenhum fornecedor cadastrado.</b> Sem a gráfica, a impressão não sai do orçamento. Cadastre a primeira e ela aparece aqui.</span>
-        <button type="button" class="vi-botao" data-vi="cadastrar-fornecedor">Cadastrar fornecedor</button></div>` : ''}
-      <div class="vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', R.abertas)}${chip('atrasadas', 'Atrasadas', R.atrasadas, R.atrasadas ? 'ruim' : '')}${chip('semfornecedor', 'Sem fornecedor', R.semFornecedor, R.semFornecedor ? 'atencao' : '')}
+    // Quadro 17: sem o aviso solto de "nenhum fornecedor" (o chip Sem fornecedor e o campo do formulário levam ao cadastro).
+    const vista = (k, r) => `<button type="button" data-vi-vista="${k}" aria-pressed="${st.vista === k}">${r}</button>`;
+    return `<div class="vi-barra"><div class="vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', R.abertas)}${chip('atrasadas', 'Atrasadas', R.atrasadas, R.atrasadas ? 'ruim' : '')}${chip('semfornecedor', 'Sem fornecedor', R.semFornecedor, R.semFornecedor ? 'atencao' : '')}
         ${fNome ? `<button type="button" class="vi-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}
         <button type="button" class="vi-chip" data-vi="todas" aria-pressed="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button></div>
+        ${(d.impressoes || []).length ? `<span class="vb-alternar vi-vista" role="group" aria-label="Ver como">${vista('etapas', 'Etapas')}${vista('lista', 'Lista')}</span>` : ''}</div>
       ${st.form ? formulario() : ''}
-      <div class="vi-meio${st.sel ? ' com-ficha' : ''}">${(d.impressoes || []).length ? quadro() : estado('vazio', 'Nenhuma impressão ainda', 'Adesivo, banner, cardápio, embalagem: cadastre o que vai para a gráfica e acompanhe até a entrega.', '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>')}${ficha()}</div>
+      <div class="vi-meio${st.sel ? ' com-ficha' : ''}">${(d.impressoes || []).length ? (st.vista === 'lista' ? listaHtml() : quadro()) : estado('vazio', 'Nenhuma impressão ainda', 'Adesivo, banner, cardápio, embalagem: use "Nova impressão", no alto, e acompanhe da arte à entrega na gráfica.')}${ficha()}</div>
       ${porFornecedor()}`;
   }
   function pintar() {
     if (!st.janela) return;
     const tinha = st.janela.querySelector('.vi-corpo')?.scrollTop || 0;
-    st.janela.innerHTML = `<div class="vi-topo"><span><small>Produção</small><h2 id="vi-titulo">Impressões</h2><p>Da arte à entrega na gráfica: etapa, fornecedor, prazo e histórico de cada peça impressa.</p></span>
-      <span class="vi-topo-acoes">${st.dados && (st.dados.impressoes || []).length && !st.form ? '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>' : ''}<button type="button" class="vi-x" data-vi="fechar" aria-label="Fechar">✕</button></span></div>
+    st.janela.innerHTML = `<div class="vi-topo"><span><h2 id="vi-titulo">Impressões</h2><p>Da arte à entrega na gráfica: etapa, fornecedor, prazo e histórico de cada peça impressa.</p></span>
+      <span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>' : ''}<button type="button" class="vi-x" data-vi="fechar" aria-label="Fechar">✕</button></span></div>
       <p class="vi-aviso" role="status"></p><div class="vi-corpo">${corpo()}</div>`;
     pintarAviso();
     const c = st.janela.querySelector('.vi-corpo'); if (c) c.scrollTop = tinha;
@@ -200,7 +213,10 @@
   }
   function aoClicar(e) {
     if (e.target === st.raiz) { fechar(); return; }
+    const ef = e.target.closest('[data-vi-escolher-forn]');
+    if (ef) { const i = st.dados.impressoes.find((x) => String(x.id) === ef.dataset.viEscolherForn); if (i) { st.sel = String(i.id); st.form = { ...i }; pintar(); st.janela.querySelector('[name=fornecedor_id], [data-vi="cadastrar-fornecedor"]')?.focus(); } return; }
     const b = e.target.closest('button'); if (!b || b.disabled) return;
+    if (b.dataset.viVista) { st.vista = b.dataset.viVista; pintar(); return; }
     if (b.dataset.viAbrir) { st.sel = b.dataset.viAbrir; st.cancelar = false; pintar(); return; }
     if (b.dataset.viFiltro !== undefined) { st.filtro = b.dataset.viFiltro; pintar(); return; }
     if (b.dataset.viFornecedor !== undefined) { st.fornecedor = st.fornecedor === b.dataset.viFornecedor ? '' : b.dataset.viFornecedor; pintar(); return; }

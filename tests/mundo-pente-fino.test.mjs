@@ -16,7 +16,9 @@ test('o dock acende o item certo (Conversas, Equipe, Aprovação de conteúdo, v
   assert.match(js, /if \(!document\.getElementById\('vv-whatsapp'\)\?\.hidden && document\.getElementById\('vv-whatsapp'\)\?\.isConnected\) return;\r?\n\s*if \(placa\(\) && !placa\(\)\.hidden\) return;/);
   assert.match(js, /criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'/);
   assert.match(js, /if \(modulo && !window\.VybeSetor\?\.aberto\?\.\(\)\) marcarTrilhoDoModulo\(\);/);
-  assert.match(js, /if \(id === 'tarefas'\) \{ marcarTrilho\('tarefas'\);/);
+  // Minhas tarefas abre o Hoje na aba Minhas tarefas e acende o item dele (quadro 31, 10/11/2026).
+  assert.match(js, /if \(id === 'tarefas'\) \{ visaoHoje = 'tarefas';/);
+  assert.match(js, /usarTrilho\.tarefas \? 'tarefas' : 'hoje'/);
   assert.match(readFileSync('vybe-mundo-conteudo.js', 'utf8'), /aberto: \(\) => st\.aberto/);
   assert.match(js, /window\.dispatchEvent\?\.\(new CustomEvent\('vybe:trocar-tela'\)\);/, 'trocar de tela avisa');
   assert.match(readFileSync('vybe-mundo-whatsapp.js', 'utf8'), /addEventListener\?\.\('vybe:trocar-tela', \(\) => \{ if \(st\.aberto\) fechar\(\); \}\)/, 'e as Conversas fecham');
@@ -24,7 +26,9 @@ test('o dock acende o item certo (Conversas, Equipe, Aprovação de conteúdo, v
 
 test('Finanças sem frase quebrada nem recado de documentação; prévia sem dizer "entregue"', () => {
   const c = readFileSync('vybe-mundo-comercial.js', 'utf8');
-  assert.match(c, /esc\(d\.motivo \|\| 'O Vybe Finanças ainda não está ligado'\)\}\. O passo a passo/);
+  // Quadros 20 e 56 (10/11/2026): nada de passo a passo para a equipe; o motivo fica em "Ver o que falta" (quem administra).
+  assert.doesNotMatch(c, /O passo a passo está na aba/);
+  assert.match(c, /if \(!completo\) return ativacao\('', '', tecnico\);/);
   assert.doesNotMatch(c, /docs\/vybe-financas\.md\.<\/p>/);
   const m = readFileSync('vybe-material.js', 'utf8');
   assert.doesNotMatch(m, /A peça está marcada como entregue/);

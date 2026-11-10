@@ -21,9 +21,9 @@ test('Painel: os modos num menu só, que fecha ao escolher', () => {
   assert.match(html, /if\(event\.target\.closest\('button'\)\)this\.closest\('details'\)\.open=false/);
 });
 
-test('agenda: evento estreito vira uma linha com reticências; a do Escritório fica legível fora do módulo', () => {
+test('agenda: evento estreito quebra entre palavras (quadro 04, sem reticências no nome); a do Escritório fica legível fora do módulo', () => {
   assert.match(css, /html body\.mundo \.ag-ev\{container-type:inline-size\}/);
-  assert.match(css, /@container \(max-width:64px\)\{\s*\.ag-ev b\{display:block;white-space:nowrap;text-overflow:ellipsis/);
+  assert.match(css, /@container \(max-width:72px\)\{\s*\.ag-ev b\{font-size:10\.5px;line-height:13px;[^}]*-webkit-line-clamp:var\(--linhas-estreito,2\);hyphens:auto/);
   assert.match(css, /html body\.mundo \.capt-tb-pend\.atencao\{background:#FDECEE;/);
   assert.match(css, /html body\.mundo \.ofc-agenda \.ag-ev\{color:#1F1D1A\}/);
 });
@@ -43,11 +43,12 @@ test('celular: a faixa de dias e o dia vazio da agenda legíveis no fundo claro'
   assert.match(css, /html body\.mundo \.ag-nada\{background:#F6F3EE;color:#5E5A53\}/);
 });
 
-test('agenda da equipe: Redes, Demandas ou Pendências escolhido uma vez para a semana; o dia ainda troca o dele', () => {
+test('agenda da equipe: Redes, Demandas ou Pendências escolhido uma vez para a semana; o dia troca o dele só no tema antigo', () => {
   const g = readFileSync('vybe-gestor.js', 'utf8');
   assert.match(g, /let abaDaSemana = 'social';/);
   assert.match(g, /abaDaSemana = aba;\s*abasPendenciasDia\.clear\(\);/, 'escolher para a semana desfaz as trocas por dia');
   assert.ok(g.includes("salva===false?'social':!salva?abaDaSemana:salva"), 'dia sem escolha própria segue a semana');
-  assert.match(g, /pintarAbaDaSemana\(grid,sem\);/);
+  // Quadro 02 (10/11/2026): no mundo as abas de cada dia saem e a contagem da semana vai para o alternador.
+  assert.match(g, /pintarAbaDaSemana\(grid,sem,\{social:naSemana\.social\.size/);
   assert.match(css, /@media \(max-width:700px\)\{\s*html body\.mundo \.section-title \.semana-abas\{order:5;flex:1 0 100%;margin-left:0\}/, 'no celular, linha própria');
 });

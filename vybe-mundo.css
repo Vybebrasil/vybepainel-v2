@@ -385,22 +385,25 @@ body.mundo.mundo-modulo #mundo{display:block;z-index:-1}
 body.mundo.mundo-modulo #mundo .mundo-fonte,body.mundo.mundo-modulo #mundo .mundo-rotulos{display:none}
 body.mundo.mundo-modulo #mundo-hud{display:block}
 body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
-#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
+/* Moldura única (Paulo, 10/11/2026: "não parece que tá integrado"): a tela antiga ocupa a MESMA caixa das janelas novas
+   (Comercial, Pessoas, Carteira…): ao lado do dock lateral, do topo até acima do dock das salas. Sem o dock, a conta
+   cai em var(--vv-m) (o -6px desfaz o vão). */
+#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
-body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:var(--vv-m)}
+body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:0}
 body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
 @media (max-width:900px){
   body.mundo.mundo-modulo{padding-left:0!important;padding-right:0!important;padding-bottom:calc(64px + 3 * var(--vv-m))!important}
-  #mundo-moldura{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
+  #mundo-moldura{left:0;right:0;top:0;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);border-radius:0}
 }
 
 /* ---------- Pele clara dos módulos (camada 2 da roupagem nova) ----------
    As variáveis do painel (--surface, --text, --vybe-*, --pv-*) mudam só dentro das áreas de trabalho;
    as janelas por cima (workflow-modal etc.) continuam como estão até ganharem a camada delas.
    Peças com cor fixa no vybe-styles.css recebem ajuste pontual abaixo (levantadas no navegador). */
-body.mundo.mundo-modulo #mundo-moldura{background:rgba(250,248,244,.9)}
+body.mundo.mundo-modulo #mundo-moldura{background:#F6F3EE;border-color:transparent}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)){
   --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
   --vybe-glass:rgba(255,255,255,.86);--vybe-glass-strong:rgba(255,255,255,.95);--vybe-line:rgba(31,29,26,.10);--vybe-line-quiet:rgba(31,29,26,.06);
@@ -498,15 +501,14 @@ body.mundo #workspace-drawer .workspace-mais-menu .perigo{color:var(--sit-atrasa
 body.mundo #workspace-drawer .workspace-rodape{background:rgba(255,255,255,.96)!important;border-top:1px solid #E6E0D6!important}
 body.mundo #workspace-drawer :is(.workspace-action,.workspace-close){background:#FFFFFF!important;border:1px solid #E6E0D6!important}
 /* Cadastros (fc-*): a mesma janela e o mesmo fluxo, na pele clara do mundo. */
-body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.28)!important;backdrop-filter:blur(6px)!important}
+body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.18)!important;backdrop-filter:none!important}
 body.mundo #fc-overlay .fc-modal{background:rgba(250,248,244,.97)!important;background-image:none!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal *{border-color:#E6E0D6}
-body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli),.fc-preview-card){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
+body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli)){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-escolha.ativo,.fc-escolha[aria-pressed="true"],.fc-escolha.selecionado,.fc-escolha:focus-visible):not(.fc-cli){box-shadow:0 0 0 2px var(--vv-laranja),var(--vv-sombra-curta)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,b,strong,h2,h3,.fc-prev-users,div){color:#1F1D1A}
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,.fc-prev-users){color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sub,.fc-helper-text,span){color:#6B675F}
-body.mundo #fc-overlay .fc-modal .fc-kicker{color:var(--vv-laranja-escuro)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo #fc-overlay .fc-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo .spotlight-dialog mark{color:#1F1D1A!important;background:var(--vv-laranja-claro)!important;border-radius:4px;box-shadow:none!important}
@@ -647,14 +649,11 @@ body.mundo .badge.badge-date{background:#F2EEE7!important;color:#4A463F!importan
 body.mundo .tab-btn.e-hoje{color:#B4510E!important}
 body.mundo .item-name.item-workspace-link{color:#1F1D1A!important}
 body.mundo .owner-avatar-add{color:#0D74CE!important;border-color:#BBD8F7!important}
-body.mundo #footer-update{color:#6E6A62!important}
 body.mundo .ai-setting-save{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;border-radius:6px!important}
 body.mundo .cli-bloco-cabeca b{color:#1F1D1A!important}
 body.mundo .cli-painel.novo{background:#E6F6EC!important;color:#12804A!important;border-color:#B5E3C7!important}
 body.mundo td.cli-editavel{color:#4A463F!important}
 body.mundo .grupos-total b{color:#1F1D1A!important}
-body.mundo.mundo-modulo footer{color:#6E6A62!important}
-body.mundo.mundo-modulo footer :is(a,b,span){color:inherit!important}
 
 /* Cores fixas no HTML dos módulos (style="color:#…") pensadas para o fundo escuro: escurecidas na pele clara (gerado). */
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]) [style*="color:#00f0ff"]:not([style*="background:#00f0ff"]){color:#00A3AD!important}
@@ -745,20 +744,26 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]) [style*="color: #ffd7de"
 /* Diário: linha do tempo dos registros */
 .diario-linha-tempo{position:relative;display:grid;gap:8px;padding-left:18px}
 .diario-linha-tempo::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:2px;background:#ECE6DC;border-radius:2px}
-.diario-registro{position:relative;display:grid;grid-template-columns:minmax(140px,1fr) auto auto auto 34px;align-items:center;gap:18px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:transform .15s var(--vv-mola,ease),box-shadow .15s}
+.diario-registro{position:relative;display:grid;grid-template-columns:minmax(120px,1fr) 48px 84px 124px auto 34px;grid-template-areas:"quando mini total varia abrir apagar";align-items:center;gap:18px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:transform .15s var(--vv-mola,ease),box-shadow .15s}
 .diario-registro:hover,.diario-registro:focus-visible{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.08);outline:none}
 .diario-ponto{position:absolute;left:-17px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff;border:3px solid var(--vv-laranja,#FF7A2F)}
 .diario-quando b,.diario-total b{display:block;font:700 14px var(--vv-texto,inherit);color:#1F1D1A}
 .diario-quando small,.diario-total small{display:block;font:500 11.5px var(--vv-texto,inherit);color:#6E6A62}
-.diario-total{text-align:right}
-.diario-varia{min-width:58px;text-align:center;padding:4px 10px;border-radius:8px;font:700 11.5px var(--vv-texto,inherit)}
+.diario-total{grid-area:total;text-align:right}
+.diario-quando{grid-area:quando;min-width:0}
+/* Retrato pequeno do registro (quadro 10): com data, sem data, prazo passado; a frase inteira fica na dica e no leitor. */
+.diario-mini{grid-area:mini;display:flex;align-items:flex-end;gap:3px;width:48px;height:28px}
+.diario-mini i{flex:1;min-height:0;border-radius:2px 2px 0 0;background:#9FD9B5}
+.diario-mini i.atencao{background:#E0A21B}.diario-mini i.passou{background:#E3786F}
+.diario-varia small{font:600 10.5px var(--vv-texto,inherit);opacity:.8}
+.diario-varia{grid-area:varia;justify-self:start;white-space:nowrap;min-width:58px;text-align:center;padding:4px 10px;border-radius:8px;font:700 11.5px var(--vv-texto,inherit)}
 .diario-varia.sobe{background:#E6F6EC;color:#12804A}.diario-varia.desce{background:#FDECEE;color:#C0263E}.diario-varia.igual{background:#F2EEE7;color:#6B675F}
-.diario-abrir{font:600 12px var(--vv-texto,inherit);color:#B4510E;opacity:0;transition:opacity .15s}
+.diario-abrir{grid-area:abrir;font:600 12px var(--vv-texto,inherit);color:#B4510E;opacity:0;transition:opacity .15s}
 .diario-registro:hover .diario-abrir{opacity:1}
-.diario-apagar{width:30px;height:30px;border-radius:6px;border:1px solid transparent;background:none;color:#8A857C;font-size:18px;cursor:pointer;opacity:0;transition:opacity .15s}
+.diario-apagar{grid-area:apagar;width:30px;height:30px;border-radius:6px;border:1px solid transparent;background:none;color:#8A857C;font-size:18px;cursor:pointer;opacity:0;transition:opacity .15s}
 .diario-registro:hover .diario-apagar{opacity:1}
 .diario-apagar:hover{background:#FDECEE;color:#C0263E;border-color:#F6BBC4}
-@media (max-width:700px){.diario-registro{grid-template-columns:1fr auto auto;gap:10px}.diario-abrir{display:none}.diario-apagar{opacity:1}}
+@media (max-width:700px){.diario-registro{grid-template-columns:minmax(0,1fr) auto auto 30px;grid-template-areas:"quando mini total apagar" "varia varia varia varia";gap:8px 10px}.diario-varia{justify-self:start}.diario-abrir{display:none}.diario-apagar{opacity:1}}
 .vv-time{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px}
 .vv-pessoa{appearance:none;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--vv-linha);background:#fff;cursor:pointer;font-family:var(--vv-texto);transition:transform .15s var(--vv-mola),box-shadow .15s}
 .vv-pessoa:hover{transform:translateY(-1px);box-shadow:var(--vv-sombra-curta);border-color:#FFD7AE}
@@ -1087,7 +1092,6 @@ html body.mundo.mundo-modulo .focus-continuity-head{color:#7000E6!important}
 html body.mundo.mundo-modulo .focus-continuity-body{color:#7D578F!important}
 html body.mundo.mundo-modulo .focus-continuity-body b{color:#BD00BD!important}
 html body.mundo.mundo-modulo .material-review-open{color:#007544!important}
-html body.mundo.mundo-modulo footer strong{color:#945B00!important}
 html body.mundo.mundo-modulo .day-summary-btn{color:#00787F!important}
 html body.mundo.mundo-modulo .day-pending-tabs button.has-pending{color:#B25200!important}
 html body.mundo.mundo-modulo .day-pending-date{color:#B25200!important}
@@ -1582,10 +1586,6 @@ html body.mundo.mundo-modulo .eq-acoes button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .auto-hist-peca{color:#96601D!important}
 html body.mundo.mundo-modulo .auto-hist-regra{color:#856642!important}
 html body.mundo.mundo-modulo .auto-hist-feitas{color:#8A6747!important}
-html body.mundo.mundo-modulo .previa-grande-topo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-topo button{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-seta{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-abrir{color:#946000!important}
 html body.mundo.mundo-modulo .workspace-ficha-linha span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workspace-ficha-linha b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .op-grupo-topo b{color:#5E5A53!important}
@@ -1745,7 +1745,6 @@ html body.mundo.mundo-modulo .status-editor-arrumar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-conta{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-nota{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-chip{color:#B25000!important}
-html body.mundo.mundo-modulo .resumo-limpar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-data.com-rotulo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-data{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-data b{color:#5E5A53!important}
@@ -1873,12 +1872,8 @@ html body.mundo.mundo-modulo .vybe-link{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-next-quando.urgente span{color:#B25000!important}
 html body.mundo.mundo-modulo .focus-next-btn.brief{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-grande-topo button.previa-grande-trocar,html body.mundo.mundo-modulo .previa-grande-topo button.previa-grande-baixar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .linha-previa{color:#11794B!important}
 html body.mundo.mundo-modulo .cr-previa{color:#11794B!important}
-html body.mundo.mundo-modulo .previa-peca-info b{color:#3162B5!important}
-html body.mundo.mundo-modulo .previa-peca-info small{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-peca-passo{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-hero p{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .station-top{color:#5E5A53!important}
 html body.mundo.mundo-modulo #mode-gate .identity-station .station-description{color:#5E5A53!important}
@@ -2658,7 +2653,6 @@ html body.mundo.mundo-modulo .capt-cal .ag-ev.t-reuniao small,html body.mundo.mu
 html body.mundo.mundo-modulo #workflow-modal.capt-folha .workflow-kicker span{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal.capt-folha .capt-quando-fixo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-vinculo select{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-trocar > summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-cabeca.inicial{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-eu-texto b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-eu-texto small{color:#5E5A53!important}
@@ -2688,11 +2682,6 @@ html body.mundo.mundo-modulo .ofc-p-sala{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-sala.aqui{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-sala > small{color:#177D42!important}
 html body.mundo.mundo-modulo .ofc-p-quarto{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-video-abrir{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-capa-selo{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-capa-aviso{color:#9E5B00!important}
-html body.mundo.mundo-modulo .previa-pasta-lista{color:#5E5A53!important}
-html body.mundo.mundo-modulo .previa-pasta-lista button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ciclo-janela .ciclo-erro{color:#DB0017!important}
 html body.mundo.mundo-modulo .workflow-modal .ciclo-janela .ciclo-perigo{color:#DB0017!important}
 html body.mundo.mundo-modulo .workflow-secondary.perigo{color:#DB0016!important}
@@ -2969,8 +2958,6 @@ html body.mundo.mundo-modulo .ops-command-bar .ops-acoes button{color:#5E5A53!im
 html body.mundo.mundo-modulo .vb-botao.perigo{color:#D11A00!important}
 html body.mundo.mundo-modulo .vb-alternar button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vb-chip{color:#5E5A53!important}
-html body.mundo.mundo-modulo .vb-link{color:#B24B00!important}
-html body.mundo.mundo-modulo .vb-link.perigo{color:#DB0014!important}
 html body.mundo.mundo-modulo .vb-estado-icone{color:#B24B00!important}
 html body.mundo.mundo-modulo .vb-estado.erro .vb-estado-icone{color:#D11600!important}
 html body.mundo.mundo-modulo .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button{color:#5E5A53!important}
@@ -2987,14 +2974,13 @@ body.mundo{--vv-acao:#C2490C}
 html body.mundo.mundo-modulo .board-switch-btn.active,html body.mundo .ai-setting-save,html body.mundo .workflow-modal .workflow-primary,html body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-acao)!important}
 /* Rótulos coloridos pequenos (kicker, etiqueta, "Hoje" do dia): mesmo tom, escurecido. Só o texto: o kicker que leva
    botão (o X da janela) escurecia o botão junto e o X ficava um quadrado cinza (Paulo, 09/11/2026). */
-html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select){filter:brightness(.6) saturate(1.35)}
+html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select):not(:has(button,a,input,select)){filter:brightness(.6) saturate(1.35)}
 /* Cinzas de apoio que ficavam claros demais */
-html body.mundo.mundo-modulo :is(label.filtro-carteira,.agenda-filtros-rotulo,.resumo-limpar,.conta-ensaio,.cli-porta.quieto,.ai-usage-label,.ai-usage-detail,.ai-setting-copy,.toolbar-label,.day-date-context,.day-progress-label,.resumo-nota){color:#6B675F!important}
+html body.mundo.mundo-modulo :is(label.filtro-carteira,.agenda-filtros-rotulo,.conta-ensaio,.cli-porta.quieto,.ai-usage-label,.ai-usage-detail,.ai-setting-copy,.toolbar-label,.day-date-context,.day-progress-label,.resumo-nota){color:#6B675F!important}
 html body.mundo.mundo-modulo .ai-settings :is(strong,label),html body.mundo.mundo-modulo [class*="ai-setting"] :is(strong,label){color:#4A463F!important}
 html body.mundo.mundo-modulo [class*="auto-"] button:not(.vb-botao):not([class*="primario"]):not(.auto-novo){color:#5E5A53!important}
 html body.mundo.mundo-modulo [class*="auto-"] button.perigo{color:#B42318!important}
 html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(p,small,i,em):not([class]){color:#5E5A53}
-html body.mundo.mundo-modulo footer,html body.mundo.mundo-modulo #footer-update{color:#6B675F!important}
 /* Carteira do head: o texto um tom mais fundo */
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="vinicius"]{--carteira-texto:#9C4209}
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="ewerton"]{--carteira-texto:#1A54A6}
@@ -3098,7 +3084,7 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
   html body.mundo :is(.vv-botao,.vv-trilho button,.board-switch-btn,.date-mode-btn,.day-pending-tabs button,.vv-cb-aba,.vv-pessoa,.vv-demanda-abrir,.workflow-primary,.workflow-secondary,.irecity-modos button,.cr-abrir,.vb-chip,.vb-botao):active{transform:scale(.97);transition:transform .08s ease}
   html body.mundo :is(.vv-botao,.vv-trilho button,.date-mode-btn,.day-pending-tabs button,.vv-cb-aba,.vb-chip,.vb-botao){transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease}
   /* troca de aba/quadro: o conteúdo entra subindo */
-  html body.mundo.mundo-modulo .container>*:not(script):not(style){animation:vv-entra .26s cubic-bezier(.2,.8,.2,1) both}
+  html body.mundo.mundo-modulo .container{animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}
   html body.mundo.mundo-modulo :is(.day-activity-scroll,.grupo-tabela-rolagem,.da-controller-dashboard,#conta-conteudo){animation:vv-aba .22s ease both}
   /* janelas e cartões flutuantes surgem com escala curta */
   html body.mundo :is(.cartao-rapido,.workflow-modal:not(.ofc-snc-jogo),dialog.ofc-ficha[open],.spotlight-dialog,#notif-caixa){animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
@@ -3114,9 +3100,9 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
 html:has(> body.mundo.mundo-modulo){overflow:hidden!important;height:100%}
 /* Com o dock das salas embaixo, a área que rola termina onde a moldura termina (Paulo, 09/11/2026: a tabela de Clientes
    passava da moldura e aparecia por cima do mapa, atrás do dock). --vv-dock-alto só existe com o dock. */
-html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, 0px))!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
+html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
   padding:0 18px 28px!important;overflow-x:hidden!important;overflow-y:auto!important;border-radius:var(--vv-r-placa);overscroll-behavior:contain;scrollbar-gutter:stable;scroll-behavior:smooth}
-@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(64px + 2 * var(--vv-m))!important;border-radius:0 0 14px 14px;padding:0 10px 20px!important}}
+@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;border-radius:0;padding:0 10px 20px!important}}
 html body.mundo.mundo-modulo::-webkit-scrollbar{width:10px}
 html body.mundo.mundo-modulo::-webkit-scrollbar-thumb{background:rgba(31,29,26,.18);border-radius:6px;border:3px solid transparent;background-clip:padding-box}
 html body.mundo.mundo-modulo::-webkit-scrollbar-track{background:transparent}
@@ -3235,12 +3221,15 @@ html body.mundo .vb-resumo-item:is(.info,.neutro):not(#vv-x){background:#EEF4FC!
 html body.mundo .vb-resumo-item b{color:inherit!important}
 
 /* ===== Módulo: tela cheia e fechar no canto ===== */
-.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 10px);right:calc(var(--vv-m) + 14px);z-index:640;gap:6px}
+.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 12px);right:calc(var(--vv-m) + 16px);z-index:640;gap:2px}
 /* Uma janela de módulo aberta por cima de uma tela antiga (palco-modulo) tem o próprio cabeçalho: o topo do mundo e o canto
    da tela antiga saem, para não cobrir o fechar, a ajuda e a ação dela (fase 3d, achado no Comercial). */
 body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
-.vv-canto-modulo .vv-botao{width:36px;height:36px;padding:0;justify-content:center;border-radius:8px;background:rgba(255,255,255,.92)!important;border:1px solid #E6E0D6!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
-.vv-canto-modulo .vv-botao:hover{background:#fff!important;border-color:var(--vv-acao,#C2490C)!important}
+/* O canto é do cabeçalho da janela: um vão flutuando no alto à direita faz o cabeçalho da tela antiga (título, ações)
+   terminar antes do ⛶ e do X, sem mexer em cada tela; o que gruda no topo ao rolar já deixa o canto livre (abaixo). */
+body.mundo.mundo-modulo::before{content:"";float:right;width:84px;height:48px}
+.vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:transparent!important;border:0!important;box-shadow:none}
+.vv-canto-modulo .vv-botao:hover{background:#F4EFE8!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .vv-canto-modulo .vv-botao[aria-pressed="true"]{background:var(--vv-acao,#C2490C)!important}.vv-canto-modulo .vv-botao[aria-pressed="true"] svg{stroke:#fff}
 html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
@@ -3248,6 +3237,8 @@ body.mundo.mundo-modulo.mundo-tela-cheia #mundo-moldura{top:0!important;left:0!i
 body.mundo.mundo-modulo.mundo-tela-cheia #mundo-hud .vv-trilho{display:none!important}
 body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:10px;right:14px}
 @media (max-width:900px){.vv-canto-modulo{top:8px;right:8px}}
+/* No celular não cabe o cabeçalho ao lado do canto: o vão vira uma faixa no alto, como a barra das janelas novas. */
+@media (max-width:900px){body.mundo.mundo-modulo::before{float:none;display:block;width:auto;height:44px}}
 
 /* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
 html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
@@ -3445,7 +3436,6 @@ html body.mundo .cb-palco-acoes .vb-botao:not(#vv-x){background:rgba(255,255,255
 html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
 
 /* ===== Cadastro rápido e botão principal das janelas ===== */
-html body.mundo #fc-overlay .fc-kicker:not(#vv-x){color:#A84E00!important}
 html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B675F!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
 html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#C2490C!important;color:#FFFFFF!important;box-shadow:0 8px 20px -8px #C2490C!important}
@@ -3549,7 +3539,7 @@ html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;
 html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-checked="true"]):not(#ds-a):not(#ds-b),html body.mundo .dono-pessoa:has(input:checked):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
 html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
 /* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */
-html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(.ativo):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
 html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
 
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
@@ -3678,9 +3668,6 @@ html body.mundo .cli-pergunta-caixa :is(p,small,label):not(#ds-a):not(#ds-b){col
 /* cartão rápido: seta, traço vazio e trecho do briefing legíveis */
 html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:#6B675F!important}
 html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B675F!important}
-/* prévia grande (fundo escuro de propósito): textos claros */
-html body.mundo .previa-grande :is(small,p,b,span):not(.pill):not(#ds-a):not(#ds-b){color:#F4F1EA!important}
-html body.mundo .previa-grande-seta:not(#ds-a):not(#ds-b){color:#FFFFFF!important;background:rgba(255,255,255,.14)!important}
 
 /* ===== Menu da conta (topo do mapa) ===== */
 .vv-menu-conta{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;padding:6px;border-radius:10px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 20px 44px rgba(31,29,26,.2);pointer-events:auto;animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}
@@ -4158,8 +4145,6 @@ html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!importan
 /* Telas do painel antigo (Gestor, Demandas, Clientes, Agenda, Direção de arte) dentro do Irecity: uma barra de ícones só.
    O cabeçalho antigo repetia voltar, logo, conta, avisos, notas, busca e "Trocar de modo" (o menu da esquerda já faz). */
 html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
-html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}
-html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
 html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)}
 
 /* Comercial em tela cheia (08/11/2026): gráfico do caixa com altura limitada, fases ocupando a largura, estado vazio
@@ -4178,8 +4163,6 @@ html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
 html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-coluna-fundo,var(--vv-m))!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
-html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
-html body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{right:calc(var(--vv-m) * 2 + 360px)}
 @media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:var(--vv-coluna-fundo,calc(64px + 2 * var(--vv-m)))!important}}
 /* X do Cadastro rápido visível no papel claro (antes: #ece8e3 sobre creme, sumia). Paulo: "não tem o x de fechar". */
 html body.mundo #fc-overlay .fc-close{color:#3D3A35!important;background:#FFFFFF!important;border:1px solid #D9D1C3!important;width:32px!important;height:32px!important;top:16px!important;right:16px!important;opacity:1!important}
@@ -4228,7 +4211,6 @@ button.vv-pilula{border:0;font:inherit;cursor:pointer}
   body.mundo #manager-command-toggle{white-space:normal;min-width:0;max-width:100%;box-sizing:border-box}
   body.mundo details.header-utilities .header-utilities-menu{right:0;left:auto;max-width:calc(100vw - 16px)}
   /* Botões tela cheia/fechar dos módulos: abaixo da barra de ícones, no canto direito (antes: fora da tela à esquerda). */
-  body.mundo .vv-canto-modulo{right:var(--vv-m)!important;left:auto!important;top:calc(var(--vv-m) + 56px)!important}
 }
 /* Celular: barra do menu rolável de lado, cada botão com largura própria (antes: 13 botões em 357px, rótulos colados "HojeGestãoCriar"). */
 @media (max-width:900px){
@@ -4461,9 +4443,9 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:calc(var(--vv-col) - 14px)}
 }
 
-/* Telas antigas abaixo da barra de ícones (Paulo, 08/11/2026: "menu que se sobrepõe"): o conteúdo do módulo começava
-   a 58 px e a barra do mundo termina a 62 px, cobrindo os números do topo (ex.: Direção de arte). */
-@media (min-width:901px){html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:56px!important}}
+/* Moldura única (10/11/2026): sem a barra do mundo por cima, o cabeçalho da tela antiga sobe para o topo da janela, como
+   o das janelas novas (antes descia 56 px para sair de baixo da barra). */
+@media (min-width:901px){html body.mundo.mundo-modulo > .container{padding-top:6px!important}}
 /* Mesa de comando sem nada para decidir: uma linha discreta, sem cartões de zero (padrão Vybe). */
 .da-command-daily-vazio{margin:6px 0 0;padding:12px 14px;border-radius:10px;background:rgba(46,157,91,.08);color:#1D7A3E;font:600 13px var(--vv-texto,inherit)}
 .da-command-daily-card.vazia .da-command-daily-count{font-size:20px;opacity:.55}
@@ -4589,92 +4571,79 @@ html body.mundo.mundo-modulo .pv-anel{background:conic-gradient(#2E9D5B calc(var
 html body.mundo.mundo-modulo .pv-anel::before{background:#fff!important}
 html body.mundo.mundo-modulo .pv-anel i{color:#1F1D1A!important;font-weight:750}
 
-/* ---------- Cérebro do VYBES: o grafo vivo (vybe-cerebro-grafo.js; Paulo, 08/11/2026: "nessa linha" do Obsidian) ----------
-   Fundo escuro para os nós brilharem (o único bloco escuro do painel claro, de propósito: é um mapa), controles num painel
-   à direita, busca em cima, o cartão do nó escolhido embaixo à esquerda. */
+/* ---------- Cérebro do VYBES: o mapa (vybe-cerebro-grafo.js; Paulo, 08/11/2026: "nessa linha" do Obsidian) ----------
+   Quadro 55 do redesign (10/11/2026): claro, no fundo do padrão, dentro da área ao lado do trilho e acima do dock das
+   salas; escuro só no tema escuro (a moldura inverte). Em cima à esquerda, um vidro com o título, a busca, os chips do
+   que aparece e a frase do que está à mostra; o X fecha (como o Esc); os ajustes do desenho ficam recolhidos embaixo. */
 .cb-grafo{position:relative;height:min(78vh,820px);min-height:460px;border-radius:14px;overflow:hidden}
-.cg{position:absolute;inset:0;background:#16171C;color:#EDE8E0;font-family:var(--vv-texto,Inter,system-ui,sans-serif)}
+.cg{--cg-vidro:rgba(255,255,255,.94);--cg-linha:#E6E0D6;--cg-tinta:#1F1D1A;--cg-apagado:#6B675F;position:absolute;inset:0;background:#F4F0EA;color:var(--cg-tinta);font-family:var(--vv-texto,Inter,system-ui,sans-serif)}
+.cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border:1px solid var(--cg-linha);border-radius:16px;box-shadow:var(--vv-sombra-janela,0 24px 60px -24px rgba(31,29,26,.35));overflow:hidden;animation:vv-surge .2s var(--vv-mola,cubic-bezier(.2,.8,.2,1)) both}
+@media (max-width:900px){.cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
+html.tema-escuro body.mundo .cg{filter:invert(1) hue-rotate(180deg)}
 .cg-tela{position:absolute;inset:0;display:block;cursor:grab;outline:none}
 .cg-tela:active{cursor:grabbing}
 .cg-tela:focus-visible{box-shadow:inset 0 0 0 2px var(--vv-laranja,#F26B1D)}
-.cg-busca{position:absolute;left:14px;top:14px;display:flex;align-items:center;gap:10px;z-index:2}
-.cg-busca input{width:min(340px,52vw);height:36px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(28,29,35,.92);color:#EDE8E0;font:500 13px inherit}
-.cg-busca input::placeholder{color:rgba(237,232,224,.45)}
-.cg-busca input:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:1px}
-.cg-conta{font:500 11.5px inherit;color:rgba(237,232,224,.5)}
-.cg-painel{position:absolute;right:12px;top:12px;width:230px;max-height:calc(100% - 24px);overflow:auto;z-index:2;padding:8px;border-radius:12px;background:rgba(28,29,35,.94);border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 40px rgba(0,0,0,.35);scrollbar-width:thin}
-.cg-painel[data-fechado]{width:auto;padding:4px}
+.cg-topo{position:absolute;left:12px;top:12px;z-index:2;display:grid;gap:8px;width:min(360px,calc(100% - 76px));padding:12px;border:1px solid var(--cg-linha);border-radius:12px;background:var(--cg-vidro);box-shadow:0 8px 24px -12px rgba(31,29,26,.35);backdrop-filter:blur(8px)}
+.cg-titulo{display:grid;gap:2px}
+.cg-titulo b{font:700 15px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:var(--cg-tinta);letter-spacing:-.01em}
+.cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:var(--cg-apagado)}
+.cg-busca input{width:100%;height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--cg-linha);background:#FFFFFF;color:var(--cg-tinta);font:500 12.5px var(--vv-texto,inherit)}
+.cg-busca input::placeholder{color:var(--cg-apagado)}
+.cg-busca input:focus-visible{outline:0;border-color:var(--vv-laranja,#F26B1D);box-shadow:0 0 0 3px rgba(242,107,29,.22)}
+.cg-chips{display:flex;flex-wrap:wrap;gap:5px}
+.cg-chip{appearance:none;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border:1px solid var(--cg-linha);border-radius:999px;background:#FFFFFF;color:var(--cg-apagado);font:600 11.5px var(--vv-texto,inherit);cursor:pointer}
+.cg-chip i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--c);background:transparent;flex:none}
+.cg-chip b{font-weight:700;font-variant-numeric:tabular-nums}
+.cg-chip[aria-pressed="true"]{color:var(--cg-tinta);border-color:#D6CEC2}
+.cg-chip[aria-pressed="true"] i{background:var(--c)}
+.cg-chip:hover{border-color:var(--vv-laranja,#F26B1D)}
+.cg-conta{margin:0;font:500 11.5px/1.4 var(--vv-texto,inherit);color:var(--cg-apagado)}
+.cg-fechar{appearance:none;position:absolute;z-index:3;top:12px;right:12px;display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--cg-linha);border-radius:10px;background:var(--cg-vidro);color:var(--cg-tinta);cursor:pointer}
+.cg-fechar:hover{border-color:var(--vv-laranja,#F26B1D);color:#C2490C}
+.cg-painel{position:absolute;left:12px;bottom:12px;z-index:2;width:240px;max-height:calc(100% - 24px);overflow:auto;padding:6px;border:1px solid var(--cg-linha);border-radius:12px;background:var(--cg-vidro);box-shadow:0 8px 24px -12px rgba(31,29,26,.35);scrollbar-width:thin}
+.cg-painel[data-fechado]{width:auto}
 .cg-painel[data-fechado] .cg-painel-corpo{display:none}
-.cg-painel-alternar{appearance:none;width:100%;border:0;background:transparent;color:rgba(237,232,224,.7);font:600 11.5px inherit;padding:6px 8px;text-align:right;cursor:pointer;border-radius:7px}
-.cg-painel-alternar:hover{background:rgba(255,255,255,.06);color:#fff}
-.cg-painel details{border-top:1px solid rgba(255,255,255,.07);padding:6px 4px}
-.cg-painel summary{cursor:pointer;list-style:none;font:700 12px inherit;color:#EDE8E0;padding:4px 2px}
+.cg-painel-alternar{appearance:none;display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:6px 8px;border:0;border-radius:7px;background:transparent;color:var(--cg-tinta);text-align:left;cursor:pointer}
+.cg-painel-alternar b{font:650 12px var(--vv-texto,inherit)}
+.cg-painel-alternar span{font:600 11.5px var(--vv-texto,inherit);color:var(--cg-apagado)}
+.cg-painel-alternar:hover{background:#F4F0EA}
+.cg-painel details{border-top:1px solid var(--cg-linha);padding:6px 4px}
+.cg-painel summary{cursor:pointer;list-style:none;padding:4px 2px;font:700 10.5px var(--vv-texto,inherit);letter-spacing:.07em;text-transform:uppercase;color:var(--cg-apagado)}
 .cg-painel summary::-webkit-details-marker{display:none}
 .cg-painel summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
 .cg-painel details[open] summary::before{transform:rotate(90deg)}
-.cg-grupo{display:flex;align-items:center;gap:8px;padding:5px 2px;font:500 12px inherit;color:rgba(237,232,224,.85);cursor:pointer}
-.cg-grupo input{accent-color:var(--vv-laranja,#F26B1D)}
-.cg-grupo i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
-.cg-grupo span{flex:1}
-.cg-grupo small{color:rgba(237,232,224,.45);font-variant-numeric:tabular-nums}
-.cg-faixa{display:grid;gap:4px;padding:6px 2px;font:500 11.5px inherit;color:rgba(237,232,224,.75)}
-.cg-faixa input{accent-color:var(--vv-laranja,#F26B1D);width:100%}
-.cg-botao{appearance:none;margin-top:6px;width:100%;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#EDE8E0;font:600 12px inherit;cursor:pointer}
-.cg-botao:hover{background:rgba(255,255,255,.12)}
-.cg-botao.principal{background:var(--vv-laranja,#F26B1D);border-color:var(--vv-laranja,#F26B1D);color:#fff}
-.cg-zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;z-index:2}
-.cg-zoom button{appearance:none;min-width:34px;height:34px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(28,29,35,.92);color:#EDE8E0;font:600 13px inherit;cursor:pointer}
-.cg-zoom button:hover{background:rgba(45,46,54,.95)}
-.cg-cartao{position:absolute;left:14px;bottom:14px;width:min(320px,calc(100% - 28px));z-index:3;padding:12px 14px;border-radius:12px;background:rgba(28,29,35,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.cg-faixa{display:grid;gap:4px;padding:6px 2px;font:500 11.5px var(--vv-texto,inherit);color:var(--cg-tinta)}
+.cg-painel .cg-chip{margin:4px 2px}
+.cg-botao{appearance:none;margin-top:6px;width:100%;height:32px;border-radius:8px;border:1px solid var(--cg-linha);background:#FFFFFF;color:var(--cg-tinta);font:600 12px var(--vv-texto,inherit);cursor:pointer}
+.cg-botao:hover{border-color:var(--vv-laranja,#F26B1D)}
+.cg-botao.principal{background:var(--vv-laranja,#F26B1D);border-color:var(--vv-laranja,#F26B1D);color:#FFFFFF}
+.cg-zoom{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;gap:6px}
+.cg-zoom button{appearance:none;min-width:34px;height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--cg-linha);background:var(--cg-vidro);color:var(--cg-tinta);font:600 13px var(--vv-texto,inherit);cursor:pointer}
+.cg-zoom button:hover{border-color:var(--vv-laranja,#F26B1D)}
+.cg-zoom .cg-sair{font-size:12.5px}
+.cg-cartao{position:absolute;right:12px;top:58px;z-index:3;width:min(300px,calc(100% - 24px));padding:12px 14px;border:1px solid var(--cg-linha);border-radius:12px;background:var(--cg-vidro);box-shadow:0 8px 24px -12px rgba(31,29,26,.35)}
 .cg-cartao[hidden]{display:none}
 .cg-cartao-topo{display:flex;align-items:center;gap:10px}
-.cg-cartao-topo i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.cg-cartao-topo i{width:12px;height:12px;border-radius:4px;background:var(--c);flex:none}
 .cg-cartao-topo span{flex:1;min-width:0;display:grid}
-.cg-cartao-topo small{font:600 10.5px inherit;color:rgba(237,232,224,.55);text-transform:uppercase;letter-spacing:.05em}
-.cg-cartao-topo b{font:700 14px inherit;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cg-x{appearance:none;border:0;background:transparent;color:rgba(237,232,224,.6);font-size:18px;cursor:pointer;width:28px;height:28px;border-radius:7px}
-.cg-x:hover{background:rgba(255,255,255,.08);color:#fff}
-.cg-cartao p{margin:8px 0 0;font:500 12px/1.45 inherit;color:rgba(237,232,224,.75)}
-.cg-cartao .cg-ligado{color:rgba(237,232,224,.55)}
-.cg-vazio{position:absolute;inset:auto 0 45%;text-align:center;font:500 13px inherit;color:rgba(237,232,224,.6)}
+.cg-cartao-topo small{font:600 10.5px var(--vv-texto,inherit);color:var(--cg-apagado);text-transform:uppercase;letter-spacing:.05em}
+.cg-cartao-topo b{font:700 14px var(--vv-texto,inherit);color:var(--cg-tinta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cg-x{appearance:none;display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--cg-apagado);cursor:pointer}
+.cg-x:hover{background:#F4F0EA;color:var(--cg-tinta)}
+.cg-cartao p{margin:8px 0 0;font:500 12px/1.45 var(--vv-texto,inherit);color:#4A4640}
+.cg-cartao .cg-ligado{color:var(--cg-apagado)}
+.cg-cartao .cg-abertas b{color:#B42318}
+.cg-vazio{position:absolute;inset:auto 0 45%;text-align:center;font:500 13px var(--vv-texto,inherit);color:var(--cg-apagado)}
+.cg :is(.cg-chip,.cg-fechar,.cg-painel button,.cg-zoom button,.cg-x,.cg-botao):focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
 @media (max-width:900px){.cg-painel{width:200px}.cb-grafo{height:70vh}}
-/* No tema escuro do painel o grafo já é escuro: não inverte. */
-html.tema-escuro body.mundo .cg{filter:invert(1) hue-rotate(180deg)}
-.cg-grupo input[type=checkbox]{appearance:auto!important;width:14px;height:14px;margin:0;flex:none}
-.cg-painel{max-height:calc(100% - 72px)}
-/* O campo de busca do grafo é escuro: a regra geral de campos dos módulos pesa três ids (:not(#ds-a…c)), por isso os quatro. */
-html body.mundo .cg .cg-busca input:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#1C1D23!important;color:#EDE8E0!important;border:1px solid rgba(255,255,255,.16)!important;-webkit-text-fill-color:#EDE8E0}
+@media (max-width:640px){.cg-topo{right:56px;width:auto}.cg-cartao{top:auto;bottom:60px;right:12px;left:12px;width:auto}.cg-zoom{bottom:12px}.cg-zoom .cg-sair{display:none}}
+/* Os ajustes do desenho usam faixas: a regra geral de campos dos módulos pesa três ids, por isso os quatro (legado). */
+html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){accent-color:var(--vv-laranja,#F26B1D);background:transparent!important;border:0!important;height:18px;padding:0!important}
 /* Hoje: blocos de prioridade (Atrasadas, Para hoje, Próximos dias) e os botões de alternar com "todas por status". */
 .vv-bloco-prio.atrasadas{border-top:3px solid var(--sit-atrasada,#D2453B)}
 .vv-bloco-prio.hoje{border-top:3px solid var(--vv-laranja,#F26B1D)}
 .vv-bloco-prio.depois{border-top:3px solid #CFC7BB}
 .vv-ver-todas,.vv-ver-prioridades{display:block;width:100%;margin:0 0 14px;break-inside:avoid}
-/* Grafo do Cérebro em tela cheia (Paulo, 08/11/2026: "não era pro mapa abrir em tela cheia?"): ocupa a área ao lado do
-   dock, por cima do módulo, com título, "Sair do mapa" e Esc. Controles no padrão: painel de vidro escuro, seções com
-   rótulo pequeno, grupos como bolinhas na cor do grupo (sem caixa de marcar). */
-html body .cg.cg-cheia{position:fixed;z-index:850;top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:var(--vv-m,14px);left:calc(var(--vv-m,14px) * 2 + var(--vv-trilho-w,76px));border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
-@media (max-width:900px){html body .cg.cg-cheia{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m,14px));border-radius:0 0 14px 14px}}
-.cg-titulo{position:absolute;left:16px;top:14px;z-index:2;display:grid;gap:2px;pointer-events:none}
-.cg-titulo b{font:750 16px/1.2 var(--vv-titulo,var(--vv-texto,inherit));color:#fff;letter-spacing:-.01em}
-.cg-titulo small{font:500 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
-.cg.cg-cheia .cg-busca{top:62px}
-.cg-sair{position:absolute;z-index:3;top:12px;right:256px;height:34px;padding:0 14px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:rgba(28,29,35,.92);color:#EDE8E0;font:650 12.5px var(--vv-texto,inherit);cursor:pointer}
-.cg-sair:hover{background:rgba(255,255,255,.12);color:#fff}
-.cg-sair:focus-visible,.cg-painel button:focus-visible,.cg-zoom button:focus-visible{outline:2px solid var(--vv-laranja,#F26B1D);outline-offset:2px}
-.cg-painel[data-fechado] ~ .cg-sair,.cg:has(.cg-painel[data-fechado]) .cg-sair{right:132px}
-.cg-painel{background:rgba(24,25,31,.94)!important;backdrop-filter:blur(10px)}
-.cg-painel-alternar{display:flex!important;justify-content:space-between;align-items:center;text-align:left!important}
-.cg-painel-alternar b{font:750 12.5px var(--vv-texto,inherit);color:#fff}
-.cg-painel-alternar span{font:600 11.5px var(--vv-texto,inherit);color:rgba(237,232,224,.55)}
-.cg-painel summary{font:700 10.5px var(--vv-texto,inherit)!important;letter-spacing:.07em;text-transform:uppercase;color:rgba(237,232,224,.6)!important}
-.cg-grupo{color:rgba(237,232,224,.92)!important;border-radius:7px;padding:5px 6px!important}
-.cg-grupo:hover{background:rgba(255,255,255,.05)}
-.cg-grupo i{display:none}
-html body .cg .cg-grupo input[type=checkbox]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){appearance:none!important;-webkit-appearance:none!important;width:12px!important;height:12px!important;min-width:12px;margin:0!important;padding:0!important;border-radius:50%!important;border:2px solid var(--c,#EDE8E0)!important;background:var(--c,#EDE8E0)!important;box-shadow:none!important;cursor:pointer}
-html body .cg .cg-grupo input[type=checkbox]:not(:checked):not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:transparent!important;opacity:.55}
-.cg-grupo:has(input:not(:checked)) span{opacity:.5;text-decoration:line-through}
-.cg-faixa span{color:rgba(237,232,224,.75)!important}
-html body .cg input[type=range]:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){accent-color:var(--vv-laranja,#F26B1D);background:transparent!important;border:0!important;height:18px;padding:0!important}
 /* ---------- Hoje: layout de prioridade (Paulo, 08/11/2026) ----------
    Topo: saudação e faixa de dias. Centro: Atrasadas | Para hoje | Próximos dias. Direita: VYBES, avisos, compromissos,
    pergunta e atalhos. No Centro (mundo à vista) e no celular, tudo numa coluna. */
@@ -4785,13 +4754,6 @@ html body.mundo .plj-aviso.recolhido{display:none!important}
   /* Tudo começa abaixo do cabeçalho. */
   html body.mundo:not(.mundo-centro) .vv-hoje{top:calc(var(--vv-m) + 62px)!important}
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:0!important}
-  html body.mundo .vv-gestao{top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia){top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) #mundo-moldura{top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:22px!important}
-  /* Tela cheia e fechar do módulo: no fim do cabeçalho, à esquerda da conta. */
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-canto-modulo{top:calc(var(--vv-m) + 8px)!important;right:calc(var(--vv-m) + 8px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-barra-topo{padding-right:96px!important}
   /* Janelinhas da barra abrem abaixo do cabeçalho. */
   html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda,html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 62px)!important}
 }
@@ -4878,7 +4840,7 @@ html body.mundo.mundo-modulo :is(.workspace-eyebrow,.pv-etiqueta,.client-module-
 /* Selo "Hoje" do Painel de trabalho: o fundo laranja vencia por outra regra. */
 html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{background:var(--vv-laranja,#F26B1D)!important;color:#fff!important}
 /* Demandas: título do grupo na cor do grupo (fixa), nome do cliente no filtro. */
-html body.mundo.mundo-modulo .grupo-cabeca .grupo-titulo b{filter:brightness(.68) saturate(1.2)}
+/* O nome do grupo fica neutro: a cor do grupo vai só no traço (quadro 03, fim do arquivo). */
 html body.mundo.mundo-modulo .dem-filtro-popover .manager-calendar-client b{color:#1F1D1A!important}
 /* Performance: números e rótulos com cor fixa no HTML. */
 html body.mundo.mundo-modulo #painel-performance :is([style*="color:#"],[style*="color: #"]){filter:brightness(.68) saturate(1.2)}
@@ -5068,18 +5030,50 @@ html body.mundo .vv-g-linha em.vv-g-datas{display:grid;justify-items:end;gap:2px
    minhas demandas, a agenda ali na direita... e um dock fácil pra ver quem tá online nas outras salas, mudar de sala fácil,
    pode ser um dock central inferior"). O Hoje à esquerda, a Agenda à direita e o quarto no meio, sem nada por cima dele.
    As regras do Hoje e da Agenda usam !important porque as do palco (Hoje largo, Agenda na coluna) já usam. ===== */
-body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
+/* Quadro 34 do redesign (10/11/2026): o Hoje mais estreito, com a Agenda dentro dele (a gaveta da direita sai e o quarto
+   fica com o resto), e a faixa da sala acima do quarto. */
+body.mundo.mundo-quarto{--vq-esq:clamp(272px,22vw,320px);--vq-vao:12px;--vq-cab:52px}
 @media (min-width:901px){
   html body.mundo.mundo-quarto #vv-hoje.vv-hoje{display:block;left:var(--vv-palco-esq)!important;right:auto!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vq-esq)!important;max-width:none!important;padding:16px!important}
   html body.mundo.mundo-quarto #vv-hoje :is(.vv-hoje-grade,.vv-dono-tres,.vv-blocos){grid-template-columns:1fr!important}
-  html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
-}
-/* A Agenda vai para o lado só com espaço (1360 px): abaixo disso fica o Hoje e o quarto não espreme. */
-@media (min-width:1360px){
-  html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important;top:var(--vv-palco-topo)!important;right:var(--vv-m)!important;bottom:auto!important;width:var(--vq-dir)!important;max-height:calc(100% - var(--vv-palco-topo) - var(--vv-m))!important;overflow:auto}
-  html body.mundo.mundo-quarto #mundo-andar.quarto .andar-palco{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}
+  html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo,.quarto-cab){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
 }
 @media (max-width:900px){html body.mundo.mundo-quarto #vv-hoje{display:none}}
+/* A Agenda fixa (Mizinho) também entra no Hoje na sala; o botão Agenda do topo continua abrindo a gaveta por cima. */
+body.mundo.mundo-quarto.agenda-fixa:not(.ver-agenda) #mundo-hud .vv-agenda{display:none}
+#vv-hoje .vv-hoje-contas{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 12px}
+#vv-hoje .vv-hoje-contas span{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:#F4EFE8;font:650 11px var(--vv-texto);color:#3A3F44}
+#vv-hoje .vv-hoje-contas span.ruim{background:#FDECEE;color:#B42318}
+#vv-hoje .vv-hoje-contas span.atencao{background:#FFF4E5;color:#8A5200}
+#vv-hoje .vv-hoje-agenda{margin-top:14px;padding-top:12px;border-top:1px solid rgba(31,29,26,.08)}
+#vv-hoje .vv-hoje-agenda .vv-agenda-lista{margin-top:8px}
+#vv-hoje .vv-hoje-agenda .vv-roteiros{margin-top:8px}
+#vv-hoje .vv-hoje-agenda .vv-mais{margin-top:4px}
+/* A faixa da sala: nome, quem está nela, a voz em texto e as ações. Fica acima do palco, que desce o mesmo tanto. */
+#mundo-andar.quarto .quarto-cab{position:absolute;z-index:2;flex-direction:row;left:var(--vv-palco-esq,var(--vv-m));right:var(--vv-m);top:var(--vv-palco-topo,var(--vv-m));min-height:var(--vq-cab);box-sizing:border-box;gap:12px;padding:6px 8px 6px 14px;border-radius:14px}
+#mundo-andar.quarto .quarto-cab:empty{display:none}
+#mundo-andar.quarto .andar-palco{top:calc(var(--vv-palco-topo,0px) + var(--vq-cab,52px) + 8px)}
+.quarto-cab-nome{display:grid;gap:1px;min-width:0}
+.quarto-cab-nome small{font:600 11px var(--vv-texto);color:#8A847A}
+.quarto-cab-nome b{font:650 15px/1.2 var(--vv-titulo,var(--vv-texto));color:var(--vv-tinta,#1F1D1A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-rostos{display:flex;flex:none;padding-left:4px}
+.quarto-rostos i{display:grid;place-items:center;width:28px;height:28px;margin-left:-6px;border-radius:50%;background:#F1ECE4;border:2px solid #FFFFFF;font:700 10.5px var(--vv-texto);font-style:normal;color:#3A3F44}
+.quarto-rostos i.eu{background:#F26B1D;color:#FFFFFF}
+.quarto-rostos i.fala{box-shadow:0 0 0 2px #18A957}
+.quarto-quem{display:grid;gap:1px;min-width:0;flex:1}
+.quarto-quem b{font:600 12.5px var(--vv-texto);color:var(--vv-tinta,#1F1D1A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-quem small{font:500 11.5px var(--vv-texto);color:#6B675F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-acoes{display:flex;flex:none;gap:6px;margin-left:auto}
+.quarto-acoes .vv-botao{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;font:600 12.5px var(--vv-texto)}
+.quarto-acoes .vv-botao svg{width:16px;height:16px}
+.quarto-acoes .vv-botao[aria-pressed="true"]{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D}
+@media (max-width:900px){
+  #mundo-andar.quarto .quarto-cab{left:var(--vv-m);right:var(--vv-m);gap:8px;padding:6px 6px 6px 12px}
+  .quarto-rostos{display:none}
+  .quarto-quem small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+  .quarto-acoes .vv-botao{width:36px;padding:0;justify-content:center}
+  .quarto-acoes .vv-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+}
 /* Dock de baixo da sala, estilo dock de verdade (Paulo, 09/11/2026: "deixa o dock de baixo mais padrão... estilo um dock mesmo"):
    vidro claro, ícones quadrados com o nome embaixo, o ponto verde da sala onde você está na voz e o número de quem está
    em cada uma. O Voltar é o primeiro ícone, escuro. Sobe um pouco ao passar o mouse (desliga com Reduzir movimento). */
@@ -5209,12 +5203,8 @@ body.com-dock-salas{--vv-dock-alto:74px}
 .vv-dock-salas-faixa[hidden]{display:none}
 .vv-dock-salas-faixa > .vq-dock{pointer-events:auto;max-width:100%}
 @media (min-width:901px){body.mundo.mundo-quarto .vv-dock-salas-faixa{left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}}
-@media (min-width:1360px){body.mundo.mundo-quarto .vv-dock-salas-faixa{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}}
 @media (max-width:900px){.vv-dock-salas-faixa{left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:calc(64px + 3 * var(--vv-m,12px))}}
 body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-alto)}
-body.mundo.mundo-modulo.com-dock-salas #mundo-moldura{bottom:calc(var(--vv-m) + var(--vv-dock-alto))}
-/* No celular a área do módulo vai até o trilho de baixo: a folga deixa o fim da lista acima do dock das salas. */
-@media (max-width:900px){body.mundo.mundo-modulo.com-dock-salas::after{content:"";display:block;height:var(--vv-dock-alto)}}
 /* os botões da voz no dock: o estado escrito e a cor só de estado */
 .vq-dock .vq-mic.on .vq-icone{background:linear-gradient(180deg,#2BC26C,#18A957);border-color:#11613A;color:#FFFFFF}
 .vq-dock .vq-mic.mudo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
@@ -5365,7 +5355,7 @@ body.mundo{
 body.mundo :is(.vs-kpi b,.vbl-kpi b,.vbl-num b,.pv-kpi strong,.vga-numeros b,.kpi b){font-variant-numeric:tabular-nums}
 
 /* Material das janelas: papel com um fio de luz em cima e sombra em camadas (perto, meio, longe). */
-html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,.vbl-janela,.vpc-janela){
+html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,.vbl-janela,.vpc-janela,.vv-gestao,#mundo-moldura){
   box-shadow:var(--vv-sombra-janela),inset 0 1px 0 rgba(255,255,255,.75)}
 
 /* O legado sem os vícios (quadros 01–13 do moodboard) */
@@ -5378,7 +5368,7 @@ html body.mundo.trilho-largo .vs-atalhos{display:none}
   /* Janelas de módulo, boletim, peça e visão geral: entram subindo com mola. */
   /* Só movimento, sem opacidade: se a animação não andar (aba em segundo plano, pausa), a janela aparece do mesmo jeito. */
   @keyframes vv-janela{from{scale:.982;translate:0 10px}to{scale:1;translate:0 0}}
-  html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,#vv-agentes,.vv-gestao,.vbl-janela,.vpc-janela,#vv-whatsapp):not([hidden]){
+  html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,#vv-agentes,.vv-gestao,.vbl-janela,.vpc-janela,#vv-whatsapp,#mundo-moldura):not([hidden]){
     animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}
   /* O fundo das janelas por cima escurece devagar, em vez de piscar. */
   @keyframes vv-fundo{from{opacity:0}to{opacity:1}}
@@ -5432,11 +5422,12 @@ html body.mundo .ops-command-bar .global-search-wrap{display:none}
 html body.mundo .ops-modos>summary{background:#FFFFFF;border-color:#E6E0D6;color:#1F1D1A}
 html body.mundo .ops-modos>summary:hover{border-color:#F26B1D}
 html body.mundo .ops-modos>.ops-acoes{background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:var(--vv-sombra-janela)}
-/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o título vira uma linha com
-   reticências e o horário sai, em vez de quebrar a palavra no meio ("Reuni / de / pa"). */
+/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o horário sai e o título usa a
+   altura toda em letra menor, quebrando entre palavras (quadro 04: "Client…" e "Reuni…" cortavam o nome); só a palavra
+   que não cabe inteira na largura ganha hífen (pt-BR), nunca reticências no meio do nome. */
 html body.mundo .ag-ev{container-type:inline-size}
-@container (max-width:64px){
-  .ag-ev b{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10.5px}
+@container (max-width:72px){
+  .ag-ev b{font-size:10.5px;line-height:13px;margin-right:-5px;-webkit-line-clamp:var(--linhas-estreito,2);hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
   .ag-ev small{display:none}
 }
 /* "N gravações para fechar" é um chip de alerta, não um texto solto. */
@@ -5562,13 +5553,6 @@ body.mundo .ofc-tv-opcao i{color:var(--ds-sel-texto)}
 body.mundo .ofc-tv-opcao .ofc-tv-ic,body.mundo .ofc-tv-opcao.tela .ofc-tv-ic{background:#F1ECE4;color:#1F1D1A}
 body.mundo .ofc-tv-desligar{display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid #F6BBC4;border-radius:var(--pc-r,8px);background:#FFFFFF;color:#B42318;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
 body.mundo .ofc-tv-desligar:hover{background:#FDECEE}
-/* Música fora de uma sala com som: balão em cima do dock (fase 3b). */
-body.mundo .vv-musica-fora{position:fixed;z-index:700;width:300px;display:grid;gap:6px;padding:14px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;box-shadow:var(--vv-sombra-janela,0 18px 50px rgba(40,26,10,.22));pointer-events:auto;animation:vv-surge .2s var(--vv-mola,ease) both}
-body.mundo .vv-musica-fora b{font:650 14px var(--vv-texto,"Inter"),sans-serif}
-body.mundo .vv-musica-fora small{font:500 12.5px/1.45 var(--vv-texto,"Inter"),sans-serif;color:#5E5A53}
-body.mundo .vv-musica-fora-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
-body.mundo .vv-musica-fora .vv-botao{border:1px solid #E6E0D6;background:#FFFFFF}
-body.mundo .vv-musica-fora .vv-botao.acao{border-color:transparent}
 /* Legenda da Cidade (fase 3b): só no Centro, no canto de cima, abaixo do topo; o número e a frase dizem a situação. */
 body.mundo .vv-legenda-cidade{display:none}
 body.mundo.mundo-centro:not(.mundo-modulo) .vv-legenda-cidade{position:absolute;top:calc(var(--vv-m,14px) + 62px);right:var(--vv-m,14px);display:flex;gap:12px;align-items:center;padding:7px 12px;border-radius:12px;font:600 12px var(--vv-texto,"Inter"),sans-serif;color:#5E5A53;pointer-events:auto}
@@ -6159,3 +6143,642 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
 /* A Carteira (Saúde, Onboarding, Contratos, Churn) mede a altura da camada dela, que já termina acima do dock; com 100dvh
    ela passava por baixo do dock e da barra de baixo do celular (fase 3d). */
 body.mundo .vc-camada > #vv-carteira{height:100%}
+
+/* ======================================================================================
+   PRODUÇÃO, VISÃO GERAL (redesign, quadro 15, 10/11/2026). "Pede ação" primeiro, com o botão de resolver em cada linha;
+   os seis números numa linha de resumo (vbResumoHtml), com o zero discreto.
+   ====================================================================================== */
+.vs-pede .vs-passos li{padding:8px 10px}
+.vs-pede .vs-passos small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.vs-resolver{white-space:nowrap}
+.vs-resumo .vb-resumo{margin:0}
+.vs-resumo .vb-resumo-item{background:#FFFFFF;border-color:#ECE6DC;color:#5E5A53}
+.vs-resumo .vb-resumo-item.zero{background:transparent;border-style:dashed;color:#8A847A}
+.vs-resumo .vb-resumo-item b{white-space:nowrap}
+/* ======================================================================================
+   GESTÃO: DIÁRIO, AUTOMAÇÕES E IA E CUSTOS (redesign, quadros 10 a 12 do moodboard, 10/11/2026). Só peças do sistema
+   (vb-*, --pc-*, --ds-*), sem forçar nada.
+   ====================================================================================== */
+/* O rodapé técnico ("Vybe OS · Painel de Produção · Banco próprio · N conteúdos") sai destas três telas. */
+/* Alternador destas telas: o escolhido no selecionado laranja do sistema. */
+body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDD);font-weight:750}
+body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="false"]{background:transparent}
+.ar-n{display:inline-block;min-width:16px;margin-left:4px;font-variant-numeric:tabular-nums}
+
+/* Automações (quadro 11): barra com o alternador Regras/Falhas e as dicas; cada regra numa linha. */
+/* O menu "Mais" do cabeçalho abre por cima da barra de baixo. */
+#automacoes-root > .vb-cabecalho{position:relative;z-index:3}
+.ar-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px}
+.ar-espaco{flex:1}
+.ar-dica{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--vv-texto,inherit);color:#6B675F;cursor:help}
+.ar-dica-i{display:grid;place-items:center;width:16px;height:16px;border:1.5px solid currentColor;border-radius:50%;font:700 10px/1 var(--vv-texto,inherit);font-style:normal}
+.ar-dica:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ar-dica.vb-jogo-dica[data-dica]::after{left:auto;right:0;width:min(340px,80vw)}
+body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-color:#E6E0D6;box-shadow:0 12px 32px -8px rgba(31,29,26,.25)}
+.ar-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.ar-lista{display:grid;gap:8px}
+.ar-regra{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:12px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FFFFFF}
+.ar-regra.desligada{background:#FAF8F4}
+.ar-regra.desligada .ar-frase{color:#6B675F}
+.ar-corpo{min-width:0;display:grid;gap:4px}
+.ar-nome{margin:0;font:650 13px/1.35 var(--vv-texto,inherit);color:#1F1D1A;overflow-wrap:anywhere}
+.ar-frase{margin:0;font:500 13px/1.5 var(--vv-texto,inherit);color:#3A3F44;overflow-wrap:anywhere}
+.ar-frase em{font:700 10.5px var(--vv-texto,inherit);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:#8A847A;margin-right:2px}
+.ar-detalhe{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font:500 11.5px var(--vv-texto,inherit);color:#6B675F}
+.ar-detalhe .auto-selo{margin:0}
+.ar-acoes{display:flex;align-items:center;gap:8px}
+.ar-acoes .vb-botao{min-height:var(--pc-h-p,28px);padding:0 11px}
+.ar-estado{font:600 12px var(--vv-texto,inherit);color:#6B675F}
+/* Liga/desliga: o interruptor do sistema (o mesmo das camadas), com o estado dito no nome acessível e na dica. */
+.ar-liga{flex:none;position:relative;width:36px;height:20px;padding:0;border:0;border-radius:999px;background:#D6CFC4;cursor:pointer;transition:background-color .15s}
+.ar-liga i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.25);transition:translate .15s var(--vv-mola,ease)}
+.ar-liga[aria-checked="true"]{background:var(--ds-acao,#FF7A2F)}
+.ar-liga[aria-checked="true"] i{translate:16px 0}
+.ar-liga:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.3)}
+.ar-secao{margin:22px 0 8px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
+.ar-falhas-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin:0 0 10px}
+.ar-falhas-topo p{flex:1 1 320px;margin:0;font:500 12.5px/1.45 var(--vv-texto,inherit);color:#5E5A53}
+.ar-aba[hidden]{display:none}
+@media (max-width:640px){
+  .ar-regra{grid-template-columns:1fr}
+  .ar-acoes{justify-content:flex-end}
+  .ar-acoes .vga-mais-menu{left:auto;right:0}
+  .ar-espaco{display:none}
+}
+
+/* IA e custos (quadro 12): gasto por dia e as tabelas em cartões claros; os parâmetros recolhidos embaixo. */
+.ia-duas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 14px}
+.ia-cartao{min-width:0;padding:12px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FFFFFF;margin:0 0 14px}
+.ia-duas .ia-cartao{margin:0}
+.ia-rotulo{margin:0 0 10px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
+.ia-grafico{display:flex;align-items:flex-end;gap:2px;height:110px;padding:0 2px;border-bottom:1px solid #ECE6DC}
+.ia-grafico i{flex:1;min-width:0;border-radius:3px 3px 0 0;background:#F2B48A}
+.ia-grafico i.hoje{background:var(--ds-acao,#FF7A2F)}
+.ia-grafico i.gratis{background:#D6CFC4}
+.ia-grafico-eixo{display:flex;justify-content:space-between;margin-top:4px;font:500 11.5px var(--vv-texto,inherit);color:#6B675F}
+.ia-tabela{width:100%;border-collapse:collapse;font:500 12.5px var(--vv-texto,inherit);color:#1F1D1A}
+.ia-tabela th{padding:6px 8px;border-bottom:1px solid #ECE6DC;font:700 10.5px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F;text-align:left}
+.ia-tabela td{padding:7px 8px;border-bottom:1px solid #F2EEE7;overflow-wrap:anywhere}
+.ia-tabela tr:last-child td{border-bottom:0}
+.ia-tabela :is(th,td).num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ia-tabela small{color:#6B675F;font-size:11.5px}
+.ia-nota{margin:0;font:500 12px/1.5 var(--vv-texto,inherit);color:#5E5A53}
+.ia-parametros{margin:4px 0 0;padding:10px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FAF8F4}
+.ia-parametros > summary{cursor:pointer;font:650 13px var(--vv-texto,inherit);color:#1F1D1A}
+.ia-parametros > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ia-parametros[open] > summary{margin-bottom:10px}
+.ia-campos{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin:10px 0}
+.ia-campos .ai-setting-field{display:grid;gap:4px;flex:1 1 160px;min-width:0}
+.ia-campos .ai-setting-field label{font:600 12px var(--vv-texto,inherit);color:#4A463F}
+.ia-campos :is(input,select){min-height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto,inherit)}
+@media (max-width:760px){.ia-duas{grid-template-columns:1fr}}
+/* ===== Menus da tabela (quadro 23 do redesign, 10/11/2026) =====
+   Menu de responsável: a busca no topo, no papel claro dos outros campos; o pé "+ N fora da disciplina" é um link. */
+body.mundo .dono-editor .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .dono-editor .dono-busca::placeholder{color:#8A847A}
+body.mundo .dono-editor .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo .dono-editor .dono-ver-todos{margin:4px 8px 2px;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
+
+/* ===== Prévia da peça (quadro 27 do redesign, 10/11/2026) =====
+   Fundo escuro só atrás da mídia (é o que valoriza foto e vídeo); ao lado, a ficha no papel claro. Sem ficha (prévia
+   aberta de um portão ou de um arquivo solto), a mídia ocupa a janela inteira. No celular a ficha desce para baixo dela. */
+body.mundo .previa-grande{padding:24px;background:rgba(31,29,26,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+body.mundo .previa-grande-vidro{position:relative;display:grid;grid-template-columns:minmax(0,1fr);width:min(1180px,94vw);max-width:none;height:min(820px,92vh);max-height:none;gap:0;padding:0;overflow:hidden;border:1px solid #2A251F;border-radius:18px;background:#17140F;box-shadow:var(--vv-sombra-janela,0 30px 80px rgba(31,29,26,.35))}
+body.mundo .previa-grande.com-ficha .previa-grande-vidro{grid-template-columns:minmax(0,1fr) 320px}
+body.mundo .previa-grande-midia{gap:10px;padding:14px 16px 16px;color:#E8E2D8}
+body.mundo .previa-grande-topo{display:flex;align-items:center;gap:8px;min-height:32px;color:#BDB5A8;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo #previa-grande-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#BDB5A8}
+body.mundo .previa-grande-topo button:not(.x-fechar){display:inline-flex;align-items:center;width:auto;height:32px;padding:0 12px;border:1px solid rgba(255,255,255,.18);border-radius:var(--pc-r,8px);background:rgba(255,255,255,.06);color:#F4F1EA;font:600 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-grande-topo button.previa-grande-trocar{border-color:transparent;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700}
+/* Com a ficha, Baixar e Trocar moram nela; o topo da mídia fica só com o nome do arquivo. */
+body.mundo .previa-grande.com-ficha .previa-grande-topo :is(.previa-grande-baixar,.previa-grande-trocar){display:none}
+body.mundo .previa-grande-topo .x-fechar{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:50%;background:#FFFFFF;color:#1F1D1A}
+body.mundo .previa-grande-pecas{display:flex;align-items:center;justify-content:center;gap:10px;padding:0;border:0;background:none}
+body.mundo .previa-peca-info{flex:0 1 auto;display:grid;justify-items:center;gap:2px;min-width:0;text-align:center}
+body.mundo #previa-peca-nome{color:#F4F1EA;font:650 14px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-grande.com-ficha #previa-peca-nome{display:none}
+body.mundo #previa-peca-onde{color:#E8E2D8;font:600 11.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-peca-passo{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#FFFFFF;font:600 17px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;cursor:pointer}
+body.mundo .previa-peca-passo > span{display:none}
+body.mundo .previa-peca-passo:hover:not(:disabled){background:rgba(255,255,255,.22)}
+body.mundo .previa-grande-palco{position:relative;flex:1 1 auto;display:flex;align-items:safe center;gap:10px;min-height:0;padding:0;background:none}
+body.mundo .previa-grande-media{align-self:stretch;min-height:0}
+body.mundo .previa-grande-palco :is(img,video){max-width:100%;max-height:100%;border-radius:10px;background:#0E0C09;box-shadow:0 20px 40px -20px #000}
+body.mundo .previa-grande-palco .previa-video{max-height:100%}
+body.mundo .previa-grande-palco .previa-video iframe{max-height:calc(100% - 28px)}
+body.mundo .previa-grande-seta{flex:none;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#FFFFFF;font-size:14px}
+body.mundo .previa-grande-seta:hover{background:rgba(255,255,255,.22)}
+body.mundo .previa-grande-conta{position:absolute;top:6px;left:50%;z-index:2;transform:translateX(-50%);padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.5);color:#E8E2D8;font:600 11.5px var(--vv-texto,"Inter"),system-ui,sans-serif;pointer-events:none}
+body.mundo .previa-grande-conta[hidden]{display:none}
+body.mundo .previa-video-abrir{color:#E8E2D8}
+body.mundo .previa-capa-aviso{color:#FFD9A6}
+/* Os estados (carregando, sem material, erro) são o cartão claro do padrão, sobre o escuro. */
+body.mundo .previa-grande-estado .vb-estado{padding:26px 22px;border-radius:14px;background:#FFFFFF;color:#1F1D1A}
+body.mundo .previa-grande-estado .vb-estado p{color:#5E5A53}
+
+body.mundo .previa-ficha{display:flex;flex-direction:column;gap:14px;min-height:0;padding:20px 18px 18px;overflow-y:auto;border-left:1px solid var(--pc-linha,#E6E0D6);background:#FFFFFF;color:#1F1D1A;font:500 12.5px/1.4 var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo .previa-ficha[hidden]{display:none}
+body.mundo .previa-ficha-clientes{display:flex;flex-wrap:wrap;gap:6px;padding-right:40px}
+body.mundo .previa-ficha-nome{margin:0;padding-right:40px;color:#1F1D1A;font:650 17px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;letter-spacing:0;overflow-wrap:anywhere}
+body.mundo .previa-ficha-dados{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;margin:0;align-items:center}
+body.mundo .previa-ficha-dados dt{color:#6B675F;font-weight:500}
+body.mundo .previa-ficha-dados dd{display:flex;flex-wrap:wrap;gap:6px;margin:0;color:#1F1D1A;font-weight:600}
+body.mundo .previa-ficha-vazio{color:#8A847A;font-weight:500}
+body.mundo .previa-ficha-pessoa{display:inline-flex;align-items:center;gap:6px}
+body.mundo .previa-ficha-pessoa :is(img,.owner-avatar-fallback){display:inline-grid;place-items:center;box-sizing:border-box;width:22px;height:22px;border:2px solid;border-radius:50%;object-fit:cover;color:#FFFFFF;font:700 9px var(--vv-texto,"Inter"),sans-serif}
+body.mundo .previa-ficha-legenda{display:grid;gap:4px}
+body.mundo .previa-ficha-rotulo{color:#6B675F;font:650 11px var(--vv-texto,"Inter"),system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+body.mundo .previa-ficha-legenda p{max-height:220px;margin:0;overflow-y:auto;color:#3A3F44;font:500 12.5px/1.5 var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:pre-line}
+body.mundo .previa-ficha-acoes{display:grid;gap:8px;margin-top:auto}
+body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;width:100%}
+
+@media (max-width:760px){
+  body.mundo .previa-grande{padding:0}
+  body.mundo .previa-grande-vidro,body.mundo .previa-grande.com-ficha .previa-grande-vidro{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(58dvh,1fr) auto;width:100vw;height:100dvh;border:0;border-radius:0;overflow-y:auto}
+  body.mundo .previa-grande-midia{padding:12px 10px}
+  body.mundo .previa-grande-topo{padding-right:44px}
+  body.mundo .previa-grande-seta{width:30px;height:30px}
+  body.mundo .previa-ficha{overflow:visible;border-left:0;border-top:1px solid var(--pc-linha,#E6E0D6)}
+  body.mundo .previa-ficha-acoes{margin-top:4px}
+}
+body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
+body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
+/* Hoje · Minhas tarefas (quadro 31 do redesign, 10/11/2026): "Criar" à direita do título, a pergunta "De quem é este dia?"
+   com as pessoas como chips e o dia (agenda de hoje e o que os agentes viram) no lugar da tela vazia. */
+.vv-hoje-topo-acoes{display:flex;align-items:center;gap:10px;flex:none}
+.vv-hoje-criar{appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:8px;background:var(--vv-laranja);color:#fff;font:700 13px var(--vv-texto);cursor:pointer;box-shadow:0 3px 0 var(--vv-laranja-escuro);transition:transform .15s var(--vv-mola)}
+.vv-hoje-criar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.vv-hoje-criar:hover{background:var(--vv-laranja-escuro)}
+.vv-hoje-criar:active{transform:translateY(2px);box-shadow:0 1px 0 var(--vv-laranja-escuro)}
+.vv-hoje-criar:focus-visible,.vv-quem-chips .vv-pessoa-chip:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+.vv-quem-dia{display:grid;gap:10px;margin:0 0 14px;padding:14px 16px;border:1px solid #F7C9A6;border-radius:var(--vv-r-cartao,12px);background:#FFF8F2}
+.vv-quem-dia h3{margin:0;font:700 15px/1.3 var(--vv-titulo);color:var(--vv-tinta)}
+.vv-quem-dia p{margin:2px 0 0;font:500 12.5px/1.45 var(--vv-texto);color:var(--vv-apagado)}
+.vv-quem-chips{display:flex;flex-wrap:wrap;gap:6px}
+.vv-quem-chips .vv-pessoa-chip{height:32px;padding:0 12px;background:#FFFFFF;border-color:#EADFD2;cursor:pointer}
+.vv-hoje-sem-fila{display:grid;gap:14px}
+.vv-hoje-sem-fila .vg-guia{margin:0}
+.vv-hoje-dia{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.vv-hoje-caixa{min-width:0;padding:4px 14px 12px;border:1px solid #ECE6DC;border-radius:var(--vv-r-cartao,12px);background:#FFFFFF}
+.vv-hoje-caixa .vb-estado{padding:10px 4px;text-align:left;justify-items:start}
+.vv-hoje-caixa .vb-carregando{padding:6px 0}
+.vv-agentes-viram{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vv-agentes-viram li{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #EFEAE2;border-radius:8px;background:#FFFFFF}
+.vv-agentes-viram li > span{flex:1;min-width:0;display:grid;gap:2px}
+.vv-agentes-viram b{font:600 12.5px/1.35 var(--vv-texto);color:var(--vv-tinta);overflow-wrap:anywhere}
+.vv-agentes-viram small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
+.vv-agentes-viram .vv-mais{flex:none;padding:4px 0}
+#vv-hoje .vv-hoje-lado .vv-hoje-caixa{padding-top:2px}
+@media (max-width:900px){.vv-hoje-dia{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.vv-hoje-criar{height:34px;padding:0 11px}.vv-hoje-topo-acoes{gap:8px}}
+.vv-hoje-caixa .vb-estado b{color:var(--vv-tinta);font:650 13.5px/1.3 var(--vv-texto)}
+.vv-hoje-caixa .vb-estado p{color:var(--vv-apagado);font:500 12.5px/1.45 var(--vv-texto)}
+.vv-hoje-caixa .vb-estado-icone{color:var(--vv-laranja-escuro)}
+
+/* Painel de trabalho (quadro 01 do redesign, 10/11/2026): um cabeçalho só (título e frase à esquerda, Modos e Novo
+   conteúdo à direita), os números com o link da ação e uma barra só: vista, pessoa, Requer ação e Vence hoje, status,
+   Veiculação/Prazo e Mais filtros. As regras da barra antiga ficaram com o tema antigo (:where(body:not(.mundo)) em
+   vybe-padrao.css). A busca do meio continua escondida: a do topo (⌘K) procura em tudo. */
+body.mundo .workspace-heading .workspace-titulo{flex:1 1 280px;min-width:0}
+body.mundo .workspace-heading .workspace-sub{margin:4px 0 0;font:500 13.5px/1.45 var(--vv-texto);color:#6B675F}
+body.mundo #compact-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.mundo #compact-summary .pv-kpi > div{display:grid;gap:2px;min-width:0}
+body.mundo .pv-kpi-acao{appearance:none;justify-self:start;display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:0;border:0;background:none;color:var(--vv-acao,#C2490C);font:700 12.5px var(--vv-texto);cursor:pointer}
+body.mundo .pv-kpi-acao i{font-style:normal;transition:transform .15s var(--vv-mola)}
+body.mundo .pv-kpi-acao:hover i{transform:translateX(3px)}
+body.mundo .pv-kpi-acao:focus-visible,body.mundo .pv-kpi-linha-item:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px;border-radius:4px}
+body.mundo .pv-kpi-linha{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:0;padding:0 2px;font:500 12.5px var(--vv-texto);color:#6B675F}
+body.mundo .pv-kpi-linha-rot{font-weight:650;color:#5E5A53}
+body.mundo .pv-kpi-linha-item{appearance:none;padding:0;border:0;background:none;font:inherit;color:inherit}
+body.mundo .pv-kpi-linha-item b{font:700 13.5px var(--vv-texto);color:#1F1D1A;margin-right:2px}
+body.mundo button.pv-kpi-linha-item{cursor:pointer;text-decoration:underline;text-decoration-color:#E6E0D6;text-underline-offset:3px}
+body.mundo button.pv-kpi-linha-item:hover{color:var(--vv-acao,#C2490C)}
+body.mundo .ops-command-bar{display:block;margin:6px 0 12px;padding:0;border:0;background:none;box-shadow:none}
+body.mundo .ops-command-bar .ops-botoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;overflow:visible;padding:0}
+body.mundo .ops-command-bar :is(.toolbar-label,.ops-vao),body.mundo #agenda-filtros .agenda-filtros-rotulo{display:none}
+body.mundo .ops-command-bar .ops-segmentos{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:2px;margin:0;padding:3px;border:1px solid #E6E0D6;border-radius:10px;background:#F4EFE8;overflow-x:auto;scrollbar-width:none;max-width:100%}
+body.mundo .ops-command-bar .ops-segmentos button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;font:600 12.5px var(--vv-texto);white-space:nowrap}
+body.mundo .ops-command-bar .ops-segmentos button svg{width:15px;height:15px;flex:none}
+body.mundo .ops-command-bar .ops-attention{display:inline-flex;align-items:center;gap:8px}
+body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn){display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;font:600 12.5px var(--vv-texto)}
+body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn) .ops-action-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font:800 11px var(--vv-texto)}
+body.mundo .ops-command-bar #agenda-filtros{display:contents}
+body.mundo .ops-command-bar #agenda-filtros summary{height:32px;min-height:32px;border-radius:999px;background:#FFFFFF;border:1px solid #E6E0D6;color:#1F1D1A}
+body.mundo .ops-command-bar #agenda-filtros summary:hover,body.mundo .ops-command-bar #agenda-filtros details[open]>summary{border-color:#F26B1D;background:#FFF8F2}
+body.mundo .ops-command-bar #agenda-filtros summary.tem-escolha{border-color:#F7C9A6;background:#FFF4EB}
+body.mundo .ops-command-bar #filter-bar{display:inline-flex;align-items:center;margin:0}
+body.mundo .ops-command-bar #date-mode-bar{margin:0}
+body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:0;display:grid;gap:8px}
+body.mundo .ops-command-bar .agenda-mais-rotulo{font:650 11.5px var(--vv-texto);color:#6B675F}
+body.mundo .ops-command-bar .agenda-mais-linha,body.mundo .ops-command-bar .agenda-mais-linha .agenda-filtros-semana{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button:hover{background:#F7F3EE}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]::after{content:"";width:6px;height:10px;border:solid currentColor;border-width:0 2px 2px 0;rotate:45deg;translate:0 -2px}
+body.mundo .ops-command-bar .ops-clear-btn{height:32px;margin-left:auto}
+@media (max-width:900px){body.mundo #compact-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+  body.mundo #compact-summary{grid-template-columns:minmax(0,1fr)}
+  body.mundo .ops-command-bar .ops-segmentos{flex:1 1 100%}
+  body.mundo .ops-command-bar .ops-clear-btn{margin-left:0}
+  body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:-8px}
+}
+
+/* Agenda da semana (quadro 02 do redesign, 10/11/2026): um seletor ‹ semana › no lugar das seis pílulas, Redes, Demandas
+   e Pendências escolhidas uma vez para a semana (com a contagem), o menu de cada dia como um ícone e o cartão de peça
+   com o cliente e o status nas cores de sempre. */
+body.mundo #week-tabs-container > :is(.tab-btn,.tabs-rotulo){display:none}
+body.mundo .semana-seletor{display:inline-flex;align-items:center;gap:6px}
+body.mundo .semana-passo{appearance:none;width:30px;height:30px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;display:grid;place-items:center;cursor:pointer}
+body.mundo .semana-passo svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .semana-passo:disabled{opacity:.4;cursor:default}
+body.mundo #semana-seletor-rotulo{min-width:170px;text-align:center;font:650 15px var(--vv-texto);color:#1F1D1A}
+body.mundo .semana-hoje{appearance:none;height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto);cursor:pointer}
+body.mundo .semana-hoje[aria-pressed="true"]{background:#FFEDE2;border-color:#F7C9A6;color:#C2490C}
+body.mundo :is(.semana-passo,.semana-hoje):focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+body.mundo .semana-abas-n{margin-left:2px;font-weight:700;font-variant-numeric:tabular-nums;opacity:.75}
+body.mundo .week-panel .day-menu .day-menu-ic{width:16px;height:16px;fill:currentColor;display:block}
+body.mundo .week-panel .day-menu .day-menu-rot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.mundo .week-panel .day-menu summary::after{content:none}
+/* O título "Clientes — Semana 03 (…)" repetia o seletor de semana: no mundo fica só o seletor. */
+body.mundo .week-panel > .section-title > span:is(:first-child:empty,[id^="title-s"]){display:none}
+
+/* Demandas (quadro 03 do redesign, 10/11/2026): os recortes como alternador com a contagem dentro, os filtros como
+   chips (o ativo aceso, com a escolha escrita) e o grupo com a cor só no traço, a contagem ao lado e o "+ Nova" dele. */
+body.mundo #dem-visoes{display:inline-flex;flex-wrap:wrap;gap:2px;margin:0 0 12px;padding:3px;border:1px solid #E6E0D6;border-radius:10px;background:#F4EFE8}
+body.mundo #dem-visoes button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:7px;background:none;color:#5E5A53;font:600 12.5px var(--vv-texto)}
+body.mundo #dem-visoes button:hover{color:#1F1D1A}
+body.mundo #dem-visoes button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.12)}
+body.mundo #dem-visoes span{font:700 11.5px var(--vv-texto);opacity:.8}
+body.mundo #dem-visoes button:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+body.mundo #painel-demandas .dem-controles summary{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto)}
+body.mundo #painel-demandas .dem-controles summary:hover,body.mundo #painel-demandas .dem-controles details[open]>summary{border-color:#F26B1D;background:#FFF8F2}
+body.mundo #painel-demandas .dem-controles summary.tem-escolha{border-color:#F7C9A6;background:#FFF4EB}
+body.mundo #painel-demandas .agenda-filtro-escolha{color:#C2490C;font-weight:650}
+body.mundo #painel-demandas .agenda-filtro-escolha:empty{display:none}
+body.mundo #painel-demandas .agenda-filtro-escolha::before{content:"· ";color:#8A847A}
+body.mundo .grupo-bloco .grupo-cabecalho{background:none;border-bottom-color:#EFEAE2}
+body.mundo .grupo-bloco .grupo-cabeca,body.mundo .grupo-bloco.recolhido .grupo-cabeca{background:none}
+body.mundo .grupo-bloco .grupo-cabeca:hover{background:#FAF7F2}
+body.mundo .grupo-bloco .grupo-titulo b{color:#1F1D1A}
+/* === NEGÓCIO (redesign, quadros 13, 18 a 20, 56, 58 a 60, 10/11/2026): seletor de período, linha de números das janelas
+   do Comercial e da Carteira, e o WhatsApp da conta numa linha */
+body.mundo .vb-mes{display:inline-flex;align-items:center;gap:2px;height:38px;padding:3px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
+body.mundo .vb-mes b{min-width:136px;padding:0 6px;color:#1F1D1A;font:650 13px var(--vv-texto,system-ui),sans-serif;text-align:center;white-space:nowrap}
+body.mundo .vb-mes button{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:#5E5A53;cursor:pointer}
+body.mundo .vb-mes button:hover:not(:disabled){background:#F6F3EE;color:#1F1D1A}
+body.mundo .vb-mes button:disabled{opacity:.35;cursor:default}
+body.mundo .vb-mes button:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+body.mundo .vb-mes svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+:is(#vv-carteira,#vv-comercial) .vc-resumo .vb-resumo{margin:0;gap:6px}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item{padding:6px 10px;background:#FFFFFF;border-color:#E6E0D6;color:#5E5A53;font-size:12.5px}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.zero{background:transparent;border-style:dashed;color:#8A847A}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.espiavel{cursor:pointer}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.espiavel:hover{border-color:#C9C1B4}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item .ar-dica{align-self:center;margin-left:2px}
+.conta-ai-linha{display:grid;grid-template-columns:120px minmax(0,1fr) auto;align-items:center;gap:12px}
+body.mundo .conta-ai-rotulo{color:#5E5A53;font:500 12.5px var(--vv-texto,system-ui),sans-serif}
+.conta-ai-meio{display:grid;gap:2px;min-width:0}
+body.mundo .conta-ai-meio b{color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif}
+body.mundo .conta-ai-meio small{color:#6B675F;font:500 12px/1.4 var(--vv-texto,system-ui),sans-serif}
+body.mundo .conta-ai-linha.erro .conta-ai-meio b{color:#B42318}
+.conta-ai .conta-ai-acoes{margin:0;justify-content:flex-end}
+.conta-ai>.conta-nota:empty{display:none}
+@media (max-width:600px){
+  .conta-ai-linha{grid-template-columns:minmax(0,1fr)}
+  .conta-ai .conta-ai-acoes{justify-content:flex-start}
+}
+
+/* ======================================================================================
+   PEÇAS COMPARTILHADAS DO SISTEMA, parte 2 (redesign, quadros 00, 29 e 30; 10/11/2026).
+   - Seletor do padrão (vybe-seletor.js): todo <select> simples do mundo abre este menu no lugar do nativo; o próprio
+     campo continua sendo o botão com o valor (a seta do padrão está em "Menu de escolha (select)").
+   - Texto clicável vira botão discreto: `vb-link` e os apelidos dos módulos (resumo-limpar, o "Trocar" da captação).
+   - Foco: laranja só no foco do teclado; painel, janela ou contêiner que recebe foco pelo clique ou pelo código não
+     ganha o anel do navegador (no WebKit, lilás/azul).
+   - Rodapé técnico ("Vybe OS · Painel de Produção · Banco próprio · N conteúdos") não aparece no mundo.
+   ====================================================================================== */
+body.mundo > footer{display:none}
+
+/* Campo de escolha: aberto com a borda do foco; desligado em cinza, sem a seta laranja do hover. */
+body.mundo select:not([multiple]):not([size])[aria-expanded="true"]{border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo select:not([multiple]):not([size]):disabled{background-color:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed}
+body.mundo select:not([multiple]):not([size]):not(:disabled){cursor:pointer}
+
+.vb-seletor-menu{position:fixed;inset:auto;z-index:2147481000;margin:0;padding:6px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box;overflow:hidden;border:1px solid var(--pc-linha,#E6E0D6);border-radius:12px;background:#FFFFFF;color:var(--pc-tinta,#1F1D1A);box-shadow:var(--vv-sombra-janela,0 18px 50px rgba(40,26,10,.22));font:500 13px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;animation:vb-seletor-entra .16s var(--vv-mola,cubic-bezier(.32,.72,0,1)) both}
+.vb-seletor-menu.acima{animation-name:vb-seletor-entra-acima}
+@keyframes vb-seletor-entra{from{transform:translateY(-4px)}to{transform:none}}
+@keyframes vb-seletor-entra-acima{from{transform:translateY(4px)}to{transform:none}}
+.vb-seletor-busca{display:flex;align-items:center;gap:6px;flex:none;height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FAF8F4;cursor:text}
+.vb-seletor-busca:focus-within{border-color:var(--ds-acao,#FF7A2F);background:#FFFFFF}
+.vb-seletor-busca svg{width:14px;height:14px;flex:none;fill:none;stroke:#8A847A;stroke-width:2;stroke-linecap:round}
+.vb-seletor-busca input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.vb-seletor-lista{position:relative;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;outline:0}
+.vb-seletor-grupo{padding:8px 10px 4px;color:#6B675F;font:650 11px/1.2 var(--vv-texto,"Inter"),sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.vb-seletor-opcao{display:flex;align-items:center;gap:8px;min-height:var(--pc-h,34px);padding:6px 10px;box-sizing:border-box;border-radius:var(--pc-r,8px);cursor:pointer;user-select:none}
+.vb-seletor-opcao span{flex:1;min-width:0;overflow-wrap:anywhere}
+.vb-seletor-opcao svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+.vb-seletor-opcao.ativa{background:#F4EFE8}
+.vb-seletor-opcao.escolhida{background:var(--ds-sel-fundo,#FFEBDD);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+.vb-seletor-opcao.escolhida svg{visibility:visible}
+.vb-seletor-opcao.escolhida.ativa{box-shadow:inset 0 0 0 1px var(--ds-sel-borda,#FFC9A6)}
+.vb-seletor-opcao[aria-disabled="true"]{color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed;background:none}
+.vb-seletor-vazio{margin:0;padding:10px;color:#6B675F;font-size:12.5px}
+@media (prefers-reduced-motion:reduce){.vb-seletor-menu{animation:none}}
+body[data-motion="reduce"] .vb-seletor-menu{animation:none}
+
+/* Texto clicável vira botão discreto (quadro 30, item 3): sem sublinhado, com área de clique de 34 px e o fundo
+   do hover; perigoso em vermelho. Links dentro de uma frase (<p>) continuam link. */
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary){position:relative;display:inline-flex;align-items:center;gap:5px;min-height:var(--pc-h-p,28px);padding:0 10px;border:1px solid transparent;border-radius:var(--pc-r,8px);background:transparent;color:var(--pc-tinta,#1F1D1A);font:600 12.5px/1.2 var(--vv-texto,"Inter"),system-ui,sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer}
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary)::before{content:"";position:absolute;inset:-3px 0}
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary):hover{background:#F4EFE8;color:var(--ds-sel-texto,#C2490C);text-decoration:none}
+body.mundo :is(button.vb-link,a.vb-link:not(p a)).perigo{color:#B42318}
+body.mundo :is(button.vb-link,a.vb-link:not(p a)).perigo:hover{background:#FDECEE;color:#B42318}
+body.mundo p a.vb-link{color:var(--ds-sel-texto,#C2490C);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* Foco (quadro 29): o anel é laranja e só do teclado. Janela, painel ou contêiner focado pelo clique ou pelo código
+   (tabindex="-1", <dialog>, regiões) não ganha o anel do navegador, que no WebKit é lilás ("nada de foco azul"). */
+body.mundo :is(dialog,[tabindex="-1"],[role="dialog"],[role="region"],[role="listbox"]):focus{outline:none}
+body.mundo :is(button,a,summary,[role="button"],[role="tab"],[tabindex]:not([tabindex="-1"])):focus:not(:focus-visible){outline:none}
+/* Resumo (vbResumoHtml): o zero sai do cartão e fica como texto discreto na mesma linha (quadro 00: "zero vira uma linha"). */
+body.mundo .vb-resumo-item.zero{border-color:transparent;background:transparent;color:#8A847A;padding-inline:4px}
+body.mundo .vb-resumo-item.zero b{color:inherit;font-weight:650}
+/* A busca do seletor já mostra o foco na caixa inteira; o campo dentro não ganha um segundo anel. */
+body.mundo .vb-seletor-busca input:focus-visible{outline:none;box-shadow:none}
+/* A seta do seletor vence o `background:` curto dos campos de cada módulo (Creators perdia a seta, sobrava só o espaço). */
+body.mundo select:not([multiple]):not([size]):not(#pc-campo){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px}
+
+/* === Criar (frente topo, quadros 08 e 64) ===
+   As etapas viram uma trilha discreta com "Etapa 1 de 5 · Onde" (os traços continuam voltando a uma etapa feita); a prévia é
+   uma coluna no papel claro, sem o painel cinza nem o cartão flutuando; o fundo não desfoca (regra em #fc-overlay, acima). */
+body.mundo #fc-overlay .fc-trilha{gap:4px;margin-bottom:18px;padding-right:44px}
+body.mundo #fc-overlay .fc-trilha-passo{min-height:20px;cursor:pointer}
+body.mundo #fc-overlay .fc-trilha-passo:disabled{opacity:1;cursor:default}
+body.mundo #fc-overlay .fc-trilha-passo::before{content:"";width:22px;height:4px;border:0;border-radius:2px;background:#E6E0D6;box-shadow:none}
+body.mundo #fc-overlay .fc-trilha-passo:is(.agora,.feito)::before{background:var(--vv-laranja,#FF7A2F)}
+body.mundo #fc-overlay .fc-trilha-passo.feito:hover::before{background:var(--vv-laranja-escuro,#C2490C)}
+body.mundo #fc-overlay .fc-trilha-passo:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px;border-radius:3px}
+body.mundo #fc-overlay .fc-trilha-nome{display:none}
+body.mundo #fc-overlay .fc-trilha-texto{display:inline;margin-left:4px;color:#6B675F;font:600 11.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-side-col{width:300px;padding:20px 18px;background:#F6F3EE}
+body.mundo #fc-overlay .fc-side-title{margin-bottom:10px}
+body.mundo #fc-overlay .fc-preview-card{gap:10px;padding:14px 16px;border-radius:10px}
+body.mundo #fc-overlay .fc-prev-head b{color:#1F1D1A;font:650 15px/1.3 var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-prev-head span{color:#5E5A53;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-prev-body{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:6px 12px;padding-top:10px;border-top:1px solid #ECE6DC}
+body.mundo #fc-overlay .fc-prev-item{display:contents}
+body.mundo #fc-overlay .fc-prev-item small{font:500 12px var(--vv-texto,"Inter"),sans-serif;text-transform:none;letter-spacing:0}
+body.mundo #fc-overlay .fc-prev-item div{color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo #fc-overlay .fc-helper-text{margin-top:10px;font-size:12px}
+body.mundo #fc-overlay .fc-escolha.grande + .fc-sazonal-btn,body.mundo #fc-overlay .fc-sazonal-btn{margin-top:6px;padding:6px 12px;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
+@media (max-width:900px){body.mundo #fc-overlay .fc-side-col{width:100%}}
+
+/* === TV da sala (frente topo, quadro 44) ===
+   Abre em cima do dock das salas, sem fundo desfocado (o fundo sai em abrirTvEscritorio); o clipe que está passando continua
+   no alto. A fonte num alternador (vídeo ou tela de alguém), sem cartões grandes nem o play vermelho. */
+body.mundo .workflow-modal.ofc-tv-janela{top:auto;bottom:calc(var(--vv-dock-alto,0px) + var(--vv-m,14px) + 6px);left:50%;transform:translateX(-50%);
+  width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 80px);padding:16px 18px}
+body.mundo .ofc-tv-janela .workflow-title{font-size:20px;margin:6px 0 2px}
+body.mundo .ofc-tv-janela .ofc-tvform{gap:10px;margin-top:10px}
+body.mundo .ofc-tv-janela .ofc-tv-tela{aspect-ratio:16/8;border-radius:10px}
+body.mundo .ofc-tv-tela span{width:44px;height:44px;background:rgba(255,255,255,.14);color:#FFFFFF;box-shadow:none}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes.vb-alternar{display:inline-flex;justify-self:start;gap:2px;padding:3px;border:1px solid #E6E0D6;border-radius:8px;background:#F4EFE8}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:6px;background:transparent;color:#5E5A53;font:650 12.5px/1 var(--vv-texto,"Inter"),sans-serif;box-shadow:none}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 2px rgba(31,29,26,.12)}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-opcao b{flex:none;font:inherit}
+body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-ic{width:auto;height:auto;background:none;color:currentColor}
+
+/* === Notas: Renomear e Apagar no menu (frente topo, quadro 42) ===
+   O caderno e a nota aberta guardam as ações num menu de três pontos; nada de botão vermelho à vista no topo da aba. */
+body.mundo .notas-janela .notas-menu{position:relative;display:inline-flex}
+body.mundo .notas-janela .notas-menu > summary{list-style:none;cursor:pointer}
+body.mundo .notas-janela .notas-menu > summary::-webkit-details-marker{display:none}
+body.mundo .notas-janela .notas-menu > summary:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px}
+body.mundo .notas-janela .notas-menu-lista{position:absolute;z-index:5;top:calc(100% + 4px);right:0;display:grid;gap:2px;min-width:170px;padding:4px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-curta,0 6px 18px rgba(31,29,26,.12))}
+/* Na barra dos cadernos (que corta o que passa dela), o menu abre na própria linha, ao lado dos três pontos. */
+body.mundo .notas-janela .notas-caderno-acoes[open]{flex-wrap:wrap;align-items:center;gap:4px}
+body.mundo .notas-janela .notas-caderno-acoes .notas-menu-lista{position:static;display:flex;min-width:0;padding:0;border:0;background:none;box-shadow:none}
+body.mundo .notas-janela .notas-menu-lista .notas-discreto{justify-content:flex-start}
+body.mundo .notas-janela .notas-menu:not(.notas-caderno-acoes) .notas-menu-lista .notas-discreto{width:100%}
+
+/* === Busca (frente topo, quadros 09 e 66) ===
+   Só "Esc" escrito para fechar (no celular, o ×); ícones neutros; cliente e status nas cores de sempre; a busca vazia
+   mostra o que você abriu por último e os atalhos, e embaixo só os atalhos do teclado. */
+.spotlight-fechar-x{display:none}
+body.mundo .spotlight-dialog .spotlight-fechar{width:auto;height:26px;padding:0 9px;font:600 11.5px var(--vv-texto,"Inter"),sans-serif;color:#5E5A53}
+body.mundo .spotlight-dialog .spotlight-icone{background:#F1ECE4;color:#1F1D1A;box-shadow:none;width:34px;height:34px;border-radius:8px}
+body.mundo .spotlight-dialog .spotlight-icone svg{width:18px;height:18px}
+body.mundo .spotlight-dialog .spotlight-linha{grid-template-columns:34px minmax(0,1fr) auto auto;min-height:50px}
+body.mundo .spotlight-dialog .spotlight-clientes{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}
+body.mundo .spotlight-dialog .spotlight-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+body.mundo .spotlight-dialog .spotlight-titulo .cliente-carteira{font-size:13px}
+body.mundo .spotlight-dialog .spotlight-dica-digitar{padding:14px 12px 4px;color:#6B675F;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+@media (max-width:600px){
+  .spotlight-fechar .spotlight-fechar-esc{display:none}
+  .spotlight-fechar .spotlight-fechar-x{display:inline}
+  body.mundo .spotlight-dialog .spotlight-fechar{width:30px;padding:0;font-size:18px}
+}
+:where(body:not(.mundo)) .spotlight-fechar{width:auto;padding:0 8px;font-size:12px}
+/* Ajuda (quadro 66): a janela recebe o foco ao abrir para o leitor de tela ler o título; sem o contorno laranja grosso em
+   volta dela (os botões dentro continuam com o anel de foco). */
+body.mundo .vv-tour-janela:focus{outline:none}
+@media (max-height:760px){body.mundo .ofc-tv-janela .ofc-tv-tela{aspect-ratio:16/5}body.mundo .ofc-tv-janela .workflow-title{font-size:17px}}
+/* Sino (quadro 41): sem nada novo, uma linha curta "Nada novo" e o último aviso logo abaixo, no desenho das outras linhas. */
+body.mundo .vv-avisos-painel .vv-aviso-vazio.vv-aviso-ultimo{display:flex;align-items:baseline;gap:6px;padding:4px 2px 6px;text-align:left}
+body.mundo .vv-avisos-painel .vv-aviso-vazio.vv-aviso-ultimo p{margin:0}
+/* Com o sino aberto, os avisos curtos do canto não ficam por cima dele (uma janela por vez, quadro 09); voltam ao fechar. */
+body.mundo:has(.vv-avisos-painel) #vv-wa-avisos{visibility:hidden}
+/* ======================================================================================
+   FRENTE TIME (10/11/2026; quadros 17, 21, 22, 25, 39, 40, 48, 49, 61, 62 e 63 do moodboard).
+   Escolha em chip (vbEscolhaHtml, vybe-core.js): o select nativo vira um chip com o valor e um menu do sistema.
+   ====================================================================================== */
+.vb-escolha{position:relative;display:inline-block;flex:none}
+.vb-escolha > summary{list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:var(--pc-h-p,28px);padding:0 10px 0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#3D3A35;font:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:nowrap;cursor:pointer;user-select:none}
+.vb-escolha > summary::-webkit-details-marker{display:none}
+.vb-escolha > summary:hover{border-color:var(--ds-acao,#FF7A2F)}
+.vb-escolha > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:2px}
+.vb-escolha > summary.vb-escolha-com{border-color:var(--ds-sel-borda,#FFD3B8);background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C)}
+.vb-escolha-rotulo{color:#6B665E;font-weight:500}
+.vb-escolha-com .vb-escolha-rotulo{color:inherit;opacity:.8}
+.vb-escolha-valor{font-weight:650}
+.vb-escolha > summary svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.vb-escolha[open] > summary svg{transform:rotate(180deg)}
+.vb-escolha-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;display:grid;gap:2px;min-width:max(100%,180px);max-width:min(320px,calc(100vw - 32px));max-height:280px;overflow-y:auto;padding:6px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-janela,0 18px 40px -12px rgba(31,29,26,.3));animation:vv-surge .16s var(--vv-mola,ease) both}
+.vb-escolha-menu.grade{grid-template-columns:repeat(var(--colunas,7),34px);min-width:0}
+.vb-escolha-menu button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:#1F1D1A;font:500 13px var(--vv-texto,"Inter"),system-ui,sans-serif;text-align:left;cursor:pointer}
+.vb-escolha-menu.grade button{justify-content:center;padding:0;font-variant-numeric:tabular-nums}
+.vb-escolha-menu button em{font-style:normal;color:#8A847A;font-size:12px;font-variant-numeric:tabular-nums}
+.vb-escolha-menu button:hover,.vb-escolha-menu button:focus-visible{background:#F6F2EC;outline:none}
+.vb-escolha-menu button[aria-selected="true"]{background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+@media (prefers-reduced-motion:reduce){.vb-escolha-menu{animation:none}.vb-escolha > summary svg{transition:none}}
+/* Equipe online (quadro 22) e os outros painéis de página inteira (Jogos, cliente, agente): terminam acima do dock das salas. */
+@media (min-width:901px){body.mundo.com-dock-salas:not(.mundo-centro) .vv-placa{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)}}
+/* Equipe online (quadro 22): moedas num selo pequeno no cabeçalho e os atalhos do Escritório como botões com ícone. */
+.vv-equipe-selos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.vv-moedas-selo{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border:1px solid #F1D9A8;border-radius:999px;background:#FFF7E6;font:700 12px var(--vv-texto,"Inter"),sans-serif;color:#5C3700;font-variant-numeric:tabular-nums}
+.vv-moedas-selo svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .vv-placa .vv-equipe-acoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+body.mundo .vv-placa .vv-atalho{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:46px;padding:8px 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;text-align:left;cursor:pointer;transition:border-color .15s}
+body.mundo .vv-placa .vv-atalho:hover{border-color:var(--ds-acao,#FF7A2F)}
+body.mundo .vv-placa .vv-atalho > i{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
+body.mundo .vv-placa .vv-atalho svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Editor do planejamento (quadro 25): a peça com pedido do cliente marcada "pedido" no menu lateral. */
+.plj-ed-pedido{flex:none;margin-left:auto;padding:2px 7px;border-radius:999px;background:#FFF1DB;color:#8A5200;font:650 10.5px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;font-style:normal}
+:where(body:not(.mundo)) .plj-ed-pedido{background:rgba(255,157,0,.18);color:#ffc46b}
+/* Página do agente (quadro 63): "Dar autonomia" como ação do cabeçalho, à direita. */
+.vga-cab > .vga-autonomia{margin-left:auto;flex:none;display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:var(--pc-fonte,600 12.5px/1 "Inter",sans-serif);cursor:pointer}
+.vga-cab > .vga-autonomia:hover:not(:disabled){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+.vga-cab > .vga-autonomia:disabled{background:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:default}
+
+/* ===== Frente mundo (redesign fase 3, quadros 32, 33, 43, 35–37 e 38; 10/11/2026) ===== */
+/* 32 · Cidade: o Hoje mais estreito sobre o 3D (o mapa usa o resto); o topo começa depois dele, como uma barra só, sem
+   cobrir as abas do Hoje ("Minhas tarefas"), e a busca mostra o texto quando cabe. --vv-livre-esq vem de ajustarAreaLivre. */
+@media (min-width:901px){
+  body.mundo.mundo-centro .vv-hoje{width:340px}
+  body.mundo.mundo-centro .vv-topo{left:max(var(--vv-m),var(--vv-livre-esq,0px))}
+  body.mundo.mundo-centro .vv-topo .vv-espaco{display:none}
+  body.mundo.mundo-centro .vv-topo .vv-barra-topo{flex:1;min-width:0;container-type:inline-size}
+  body.mundo.mundo-centro .vv-barra-topo .vv-ferramentas{flex:1;min-width:0}
+  body.mundo.mundo-centro .vv-barra-topo .vv-busca-larga{flex:1 1 auto;min-width:36px;max-width:320px;width:auto;justify-content:flex-start;gap:8px;padding:0 10px;margin-right:auto;border-radius:10px;background:#F5F1EA;color:#6B675F}
+  body.mundo.mundo-centro .vv-barra-topo :is(.vv-ferramentas,.vv-vistas) > :not(.vv-busca-larga){flex-shrink:0}
+}
+@media (min-width:901px) and (max-width:1180px){body.mundo.mundo-centro .vv-hoje{width:300px}}
+/* A barra mede o próprio espaço: a busca ganha o texto a partir de 760 px; Cidade e Prédio ficam com o nome a partir de
+   1.000 px (abaixo, só o ícone, com o nome na dica e no leitor de tela). */
+@container (max-width:999px){body.mundo.mundo-centro .vv-barra-topo .vv-vistas .vv-rotulo-longo{display:none}}
+@container (min-width:760px){
+  body.mundo.mundo-centro .vv-barra-topo .vv-busca-larga .vv-busca-texto{display:inline;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 13px var(--vv-texto,Inter),sans-serif}
+}
+/* O pino da loja: bolinha da situação e nome numa linha, a situação escrita com o número embaixo; os vizinhos que ele
+   esconde viram uma linha "+2 clientes aqui perto", não um "+2" preto solto. */
+.mundo-rotulo.rotulo-loja .loja-linha{display:flex;align-items:center;gap:6px;max-width:240px}
+.mundo-rotulo.rotulo-loja .loja-ponto{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.mundo-rotulo.rotulo-loja .loja-nome{flex:0 1 auto;min-width:0}
+.mundo-rotulo.rotulo-loja .loja-situacao{flex:none;font:600 10.5px/1.2 var(--vv-texto);color:#5E5A53}
+.mundo-rotulo.rotulo-loja.atrasada .loja-situacao{color:#B42318}
+.mundo-rotulo.rotulo-loja:has(.loja-linha){max-width:250px}
+body.mundo .mundo-rotulo.rotulo-loja[data-mais]::after{content:attr(data-mais-texto);position:static;min-width:0;height:auto;padding:2px 0 0;margin-top:1px;border-top:1px solid #EFEAE2;border-radius:0;background:none;color:#8A847A;box-shadow:none;font:600 9.5px/1.3 var(--vv-texto);text-align:center}
+/* 33 e 43 · Controles do mapa no canto, acima do dock, também com o elevador (ou outro painel) aberto: em vez de pular para
+   o meio da tela, viram uma fileira e o painel termina acima dela. O balão das Camadas abre ao lado da coluna. */
+@media (min-width:901px){
+  body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{flex-direction:row}
+  body.mundo.mundo-centro:has(#vv-placa:not([hidden]) .vv-camada) .vv-controles{flex-direction:column}
+  body.mundo.mundo-centro .vv-placa:not(:has(.vv-camada)){max-height:calc(100dvh - var(--vv-m) - 64px - 96px - 60px)}
+}
+/* 43 · Prospecção desligada: sem as etapas nem a legenda (o display:flex das regras antigas vencia o hidden). */
+body.mundo .vv-placa :is(.vv-camada-filtros,.vv-cb-legenda)[hidden]{display:none}
+body.mundo .vv-placa .vv-camada-filtros{padding-left:4px}
+/* 38 · Jogos e Equipe online param acima do dock das salas (antes desciam por trás dele até o pé da tela). */
+@media (min-width:901px){
+  body.mundo:not(.mundo-centro) .vv-placa:has(> .vv-jogos,> .vv-online-lista){bottom:calc(var(--vv-m) * 2 + var(--vv-dock-alto,0px))}
+}
+/* 36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, à direita do dock lateral e acima do dock das salas,
+   em vez de cobrir quase a tela toda (a largura de 1.480 px do jogo antigo ficou só fora do mundo). */
+body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - 2 * var(--vv-m)));max-width:none}
+@media (min-width:901px){
+  body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - var(--vv-palco-esq,0px) - var(--vv-m)));left:calc(50% + (var(--vv-palco-esq,0px) - var(--vv-m)) / 2)}
+}
+/* 35 e 37 · Loja, inventário, Conquistas e Ranking: enquanto o retrato voxel do móvel ou do troféu não chega, o lugar
+   brilha (a imagem do Habbo fica fora da caixa); com "Reduzir movimento", fica parado. */
+body.mundo img.movel-esperando{object-position:-9999px -9999px;border-radius:8px;background:linear-gradient(100deg,#EFEAE2 30%,#F8F5F0 50%,#EFEAE2 70%) 0 0/300% 100%;animation:vv-retrato-espera 1.2s linear infinite}
+@keyframes vv-retrato-espera{from{background-position:100% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){body.mundo img.movel-esperando{animation:none}}
+/* 35 · Loja: as categorias saem da lista lateral e viram uma fileira de chips em cima da grade (os mesmos botões, com
+   o número de cada); o escolhido no selecionado do sistema. A ordem também é chip (escritorioOrdemChipsHtml). */
+body.mundo #office-catalogo .ofc-catj-corpo{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+body.mundo #office-catalogo.com-ficha .ofc-catj-corpo{grid-template-columns:minmax(0,1fr) 320px}
+body.mundo #office-catalogo.com-ficha .ofc-catj-arvore{grid-column:1/-1}
+body.mundo #office-catalogo .ofc-catj-arvore{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;overflow:visible;max-height:none;border-right:0;border-bottom:1px solid #ECE6DC}
+body.mundo #office-catalogo .ofc-catj-arvore .ofc-loja-grupo{display:contents}
+body.mundo #office-catalogo .ofc-catj-arvore .ofc-loja-grupo h5{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.mundo #office-catalogo .ofc-loja-nav{flex:none;width:auto;min-height:30px;gap:6px;padding:0 11px 0 7px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#4A463F;font:650 12.5px var(--vv-texto,Inter),sans-serif;box-shadow:none}
+body.mundo #office-catalogo .ofc-loja-nav .ofc-ico{width:20px;height:20px;padding:2px;background:none}
+body.mundo #office-catalogo .ofc-loja-nav span{flex:none;overflow:visible}
+body.mundo #office-catalogo .ofc-loja-nav small{color:#8A847A;font:700 11px var(--vv-texto,Inter),sans-serif}
+body.mundo #office-catalogo .ofc-loja-nav:hover{border-color:var(--ds-sel-borda);background:#FFFFFF}
+body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto);box-shadow:none}
+body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true] :is(.ofc-ico,small){background:none;color:var(--ds-sel-texto)}
+body.mundo #office-catalogo .ofc-catj-faixas .ofc-ordem-chips{border-left-color:#E6E0D6}
+
+/* ===== Frente operação do redesign (quadros 04, 06, 28 e 65; 10/11/2026) ===== */
+/* 04 Agenda e captações: o cabeçalho tem a ação ("Marcar captação"); as abas da agenda abrem a barra única. */
+body.mundo .prod-v2-head.com-acao{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px}
+.p-head-acoes{flex:none;display:flex;align-items:center;gap:8px}
+.capt-marcar{display:inline-flex;align-items:center;gap:7px}
+.capt-marcar svg{flex:none}
+.capt-toolbar .p-abas{flex:none;margin-right:6px}
+/* Uma barra só (abas, período, gravações para fechar, Exibir e Dia/Semana/Mês) que quebra em linhas inteiras quando
+   não cabe: o período (Hoje, setas e o nome) anda junto, sem um pedaço numa linha e outro na outra. */
+body.mundo .capt-cal .capt-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+body.mundo .capt-cal .capt-tb-esq{flex:1 1 auto;flex-wrap:wrap;row-gap:8px}
+body.mundo .capt-cal .capt-tb-dir{flex:0 1 auto;margin-left:auto;flex-wrap:wrap}
+.capt-tb-nav{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
+body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+body.mundo .capt-cal .capt-tb-esq{flex-wrap:wrap;row-gap:8px}
+/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
+body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+/* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
+.capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
+.capt-linha-pecas .capt-progresso{margin:0}
+.capt-linha-pecas .capt-trocar{margin:0 0 0 auto}
+.capt-trocar > summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:28px;padding:0 11px;font-size:12.5px}
+body.mundo .capt-trocar > summary.vb-botao{border:1px solid var(--pc-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:#1F1D1A;font-weight:600}
+body.mundo .capt-trocar > summary.vb-botao:hover{border-color:#F26B1D;color:#C2490C}
+body.mundo .capt-trocar > summary.vb-botao:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.capt-trocar > summary::-webkit-details-marker{display:none}
+.capt-trocar[open]{flex-basis:100%;display:grid;gap:8px}
+.capt-trocar[open] > summary{justify-self:end}
+.capt-trocar-caixa{display:grid;gap:8px}
+.capt-esperando{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.capt-esperando-item{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:9px;background:#FFFFFF}
+.capt-esperando-item > span{min-width:0;display:grid;gap:1px}
+.capt-esperando-item .capt-peca-nome{font:600 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;overflow-wrap:break-word}
+.capt-esperando-item small{font:500 11.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B675F}
+.capt-esperando-ponto{flex:none;width:8px;height:8px;margin-top:5px;border-radius:50%;background:#A8A29E}
+.capt-esperando-ponto.ok{background:#1F9D55}
+.capt-esperando-ponto.atencao{background:#D97706}
+.capt-esperando-ponto.alerta{background:#DC2626}
+/* 06 Demanda completa: copiar link e log viram ícones (nome para o leitor de tela e dica no title). */
+.so-icone .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.mundo #workspace-drawer .workspace-barra-acoes{display:flex;align-items:center;gap:6px}
+body.mundo #workspace-drawer .vybe-link.so-icone{display:inline-grid;place-items:center;width:34px;height:34px;min-height:34px;padding:0;gap:0;border-radius:8px;color:#1F1D1A}
+body.mundo #workspace-drawer .vybe-link.so-icone svg{width:16px;height:16px}
+body.mundo #workspace-drawer .vybe-link.so-icone:hover{border-color:#F26B1D;color:#C2490C}
+body.mundo #workspace-drawer .vybe-link.so-icone:focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+.workspace-voltar,.workspace-mais-cel{display:none}
+/* Objetivo na gaveta: os três objetivos numa linha, no mesmo desenho da janela Conteúdo (quadros 06 e 28). */
+body.mundo #workspace-drawer .vc-objetivo-campo{display:inline-flex;flex-wrap:nowrap;gap:4px;max-width:100%}
+body.mundo #workspace-drawer .vc-objetivo-campo button{appearance:none;flex:0 1 auto;min-width:0;height:28px;padding:0 9px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+body.mundo #workspace-drawer .vc-objetivo-campo button i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c)}
+body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds-sel-fundo,#FFEBDF);border:1px solid transparent;color:var(--ds-sel-texto,#C2490C)}
+/* 28 Celular: um dock só (Hoje, Produção, Criar, Voz, Mais); o cartão das salas abre pelo Voz; a gaveta ocupa a tela
+   com ‹ para voltar, copiar link e log no "⋯", campos em grade de dois e comentar e passar bastão fixos embaixo. */
+.vv-cel-voz-ponto{display:none}
+@media (max-width:600px){
+  body.mundo .vv-trilho [data-cel="conversas"]{display:none}
+  body.mundo .vv-trilho [data-cel="voz"]{order:3;position:relative}
+  body.mundo .vv-trilho [data-cel="voz"][aria-expanded="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  body.mundo .vv-trilho [data-cel="voz"].na-chamada .vv-cel-voz-ponto{display:block;position:absolute;top:5px;left:calc(50% + 6px);width:8px;height:8px;border-radius:50%;background:#1F9D55;box-shadow:0 0 0 2px #FFFFFF}
+  body.mundo.dock-cartao:not(.cel-voz-aberta) .vv-dock-salas-faixa{display:none}
+  body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-dock-alto:0px}
+  body.mundo .prod-v2-head.com-acao{flex-wrap:wrap;gap:10px}
+  body.mundo .prod-v2-head.com-acao .p-head-acoes{width:100%}
+  body.mundo #workspace-drawer.workspace-drawer{inset:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px)) 0;width:100%;max-width:none;border-radius:0 0 14px 14px;border-left:0}
+  /* Fora de uma chamada o cartão das salas está guardado no Voz: a gaveta vai até a barra de baixo. */
+  body.mundo.dock-cartao:not(.cel-voz-aberta) #workspace-drawer.workspace-drawer{bottom:calc(64px + 2 * var(--vv-m,12px))}
+  /* Sem o desfoque atrás: no celular a gaveta é a tela (e o WebKit deixava o painel de baixo aparecer através dela). */
+  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0}
+  body.mundo #workspace-drawer .workspace-rolagem{padding:0 14px}
+  body.mundo #workspace-drawer .workspace-barra{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:6px;margin:0 -14px;padding:8px 10px;background:#FFFFFF;border-bottom:1px solid #EFEAE2}
+  body.mundo #workspace-drawer .workspace-voltar{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border-radius:8px}
+  body.mundo #workspace-drawer .workspace-barra-nome{flex:1;min-width:0}
+  body.mundo #workspace-drawer .workspace-barra .so-icone,body.mundo #workspace-drawer .workspace-barra .workspace-close{display:none}
+  body.mundo #workspace-drawer .workspace-mais-cel{display:block}
+  body.mundo #workspace-drawer .workspace-faixa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  body.mundo #workspace-drawer .workspace-faixa > .workspace-faixa-objetivo{grid-column:1/-1}
+  body.mundo #workspace-drawer .vc-objetivo-campo button{padding:0 7px;font-size:11.5px;gap:4px}
+  body.mundo #workspace-drawer .workspace-rodape{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 -14px;padding:8px 10px}
+  body.mundo #workspace-drawer .workspace-rodape .workspace-textarea{grid-column:1/-1;width:100%;min-height:40px}
+}

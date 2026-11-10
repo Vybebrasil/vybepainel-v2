@@ -1660,14 +1660,15 @@ async function abrirConquistasEscritorio() {
   pintarConquistasEscritorio();
   // As escadas vêm com a carteira (o servidor confere e concede os níveis novos).
   escritorio.conquistasErro = "";
-  try { const r = await escritorioApi("economia"); if (r?.economia) escritorio.base.economia = { ...escritorio.base.economia, ...r.economia }; escritorio.conquistasLidas = true; } catch (e) { escritorio.conquistasErro = e.message; }
+  try { const r = await escritorioApi("economia"); const base = escritorio.base || (escritorio.conquistasBase ||= {}); if (r?.economia) base.economia = { ...base.economia, ...r.economia }; escritorio.conquistasLidas = true; } catch (e) { escritorio.conquistasErro = e.message; }
   if (typeof escritorioCatalogo !== "undefined" && !escritorioCatalogo && typeof carregarCatalogoEscritorio === "function") await carregarCatalogoEscritorio();
   pintarConquistasEscritorio();
 }
 function pintarConquistasEscritorio() {
   const el = document.getElementById("ofc-conquistas");
   if (!el) return;
-  const marcos = escritorio.base?.economia?.marcos;
+  // Sem o Escritório carregado (celular, antes de entrar), a carteira lida aqui fica à parte.
+  const marcos = (escritorio.base || escritorio.conquistasBase)?.economia?.marcos;
   const topo = `<header class="ofc-rk-cab"><span class="ofc-rk-icone" aria-hidden="true">${escritorioIcone("estrela")}</span><div><h2>Conquistas</h2><small>Bronze, Prata, Ouro e Diamante · cada nível dá um troféu, moedas e XP</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>`;
   // Respondeu sem as escadas (tabela ainda não ativada): diz isso, não gira para sempre.
   if (!marcos && escritorio.conquistasLidas && !escritorio.conquistasErro) { el.innerHTML = topo + '<p class="ofc-nota">As conquistas em níveis estão sendo ativadas. Abra de novo em alguns minutos.</p>'; return; }

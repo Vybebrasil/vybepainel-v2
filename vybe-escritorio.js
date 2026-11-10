@@ -154,6 +154,8 @@ async function escritorioApi(acao, corpo, consulta = null) {
 }
 // Aviso no canto: some sozinho depois de alguns segundos (erros ficam mais).
 function escritorioAviso(texto) {
+  // No mundo o desenho antigo do Escritório está pausado: o aviso sai no lugar e no desenho dos outros (quadro 45).
+  if (texto && typeof avisoCurtoNoMundo === "function" && avisoCurtoNoMundo(texto, { erro: /falh|não |erro|negad|bloque/i.test(texto) })) return;
   const el = document.getElementById("office-feedback");
   if (!el) return;
   el.textContent = texto;
@@ -3864,16 +3866,30 @@ function abrirTvEscritorio(m) {
   const quemPassou = (tvAberta?.querySelector("header span")?.textContent || "").replace(/^TV · /, "").replace(/ passou$/, "");
   const telaHtml = idPassando
     ? `<div class="ofc-tv-tela passando"><img src="https://i.ytimg.com/vi/${encodeURIComponent(idPassando)}/hqdefault.jpg" alt="" loading="lazy"><small>▶ Passando agora${quemPassou ? " · posto por " + safeText(quemPassou) : ""}</small></div>`
-    : '<div class="ofc-tv-tela" aria-hidden="true"><span>▶</span><small>A TV está desligada</small></div>';
+    : '<div class="ofc-tv-tela" aria-hidden="true"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg></span><small>A TV está desligada</small></div>';
   // Como no desenho: a tela da TV em cima, as duas opções em cartões (vídeo ou
   // a própria tela), o link embaixo e Desligar à esquerda.
   openWorkflowModal(`<div class="workflow-kicker"><span>TV da sala</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div><h2 class="workflow-title">O que passar?</h2><p class="workflow-copy">Todo mundo que está na sala assiste junto.</p>
 <form class="ofc-tvform" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
 ${telaHtml}
-<div class="ofc-tv-opcoes"><button type="button" class="ofc-tv-opcao on" onclick="this.form.elements.url.focus()"><span class="ofc-tv-ic">▶</span><b>Vídeo do YouTube</b><i aria-hidden="true">✓</i></button><button type="button" class="ofc-tv-opcao tela" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}><span class="ofc-tv-ic">▭</span><b>Compartilhar minha tela</b></button></div>
+<div class="ofc-tv-opcoes vb-alternar" role="group" aria-label="O que passar na TV"><button type="button" class="ofc-tv-opcao on" aria-pressed="true" onclick="this.form.elements.url.focus()"><svg class="ofc-tv-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg><b>Vídeo do YouTube</b></button><button type="button" class="ofc-tv-opcao tela" aria-pressed="false" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}><svg class="ofc-tv-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg><b>Compartilhar minha tela</b></button></div>
 <label class="ofc-tv-link"><span class="sr-only">Link do vídeo do YouTube</span><input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
 ${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}
 <div class="workflow-actions"><button type="button" class="ofc-tv-desligar" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar a TV</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Passar o vídeo</button></div></form>`);
+  // No mundo a TV abre em cima do dock das salas, sem a janela no meio nem o fundo desfocado (quadro 44): sai o fundo e
+  // o clique fora fecha, como os outros balões do dock.
+  if (document.body.classList.contains("mundo")) {
+    document.getElementById("workflow-backdrop")?.remove();
+    const janela = document.getElementById("workflow-modal");
+    janela?.classList.add("ofc-tv-janela");
+    const fora = (ev) => {
+      if (!janela?.isConnected) return document.removeEventListener("pointerdown", fora, true);
+      if (janela.contains(ev.target) || ev.target.closest?.(".vv-dock-salas, .vv-dock-salas-faixa")) return;
+      document.removeEventListener("pointerdown", fora, true);
+      closeWorkflowModal();
+    };
+    setTimeout(() => document.addEventListener("pointerdown", fora, true), 0);
+  }
 }
 function escritorioIdYoutube(url) {
   const m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(String(url || "").trim());

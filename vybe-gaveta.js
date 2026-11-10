@@ -88,12 +88,16 @@ function escolherCaminhoDeEntrega(qual) {
 // menu, ao lado do fechar — e é onde ela está agora.
 // O mesmo menu serve à gaveta e ao cartão de resumo: o Arquivar mora num lugar
 // só, do mesmo jeito. 'mover' é falso para solicitação, que não muda de quadro.
-function menuDeAcoesDaPecaHtml(item, { mover = true } = {}) {
+// linkELog: na gaveta, "Copiar link" e "Log de atividade" também moram no menu; no celular os ícones da barra saem
+// e ficam só aqui (quadro 28 do redesign: as ações secundárias no "⋯").
+function menuDeAcoesDaPecaHtml(item, { mover = true, linkELog = false } = {}) {
   const id = safeText(String(item.id));
   const monday = podeVerMonday();
   return `<details class="workspace-mais">
     <summary aria-label="Mais ações" title="Mais ações">${ICONE_LINHA.mais}</summary>
     <div class="workspace-mais-menu" role="menu">
+      ${linkELog ? `<button type="button" role="menuitem" class="workspace-mais-cel" onclick="fecharMenusDaGaveta();copiarLinkDaAtividade('${id}')">Copiar link</button>
+      <button type="button" role="menuitem" class="workspace-mais-cel" onclick="fecharMenusDaGaveta();abrirLogDaPeca('${id}')">Log de atividade</button><hr class="workspace-mais-cel">` : ''}
       ${monday && mover ? `<button type="button" role="menuitem" onclick="fecharMenusDaGaveta();moverPecaDeBoard('${id}')">Mover para Demandas</button>` : ''}
       ${monday && item.url ? `<a role="menuitem" data-external-monday="true" href="${safeText(item.url)}" target="_blank" rel="noopener" onclick="fecharMenusDaGaveta()">Abrir no Monday ↗</a>` : ''}
       ${monday ? '<hr>' : ''}
@@ -126,9 +130,9 @@ let DETALHE_DA_GAVETA = null;
   const datasDoTopo = [dataDoTopo(item.prazo) && `Prazo ${item.prazo}`,
     dataDoTopo(item.veiculacao) && `Veiculação ${item.veiculacao}`].filter(Boolean).join(' · ') || 'Sem datas definidas';
   drawer.innerHTML = `
-      <div style="flex:1;overflow-y:auto;padding:22px 24px 0;box-sizing:border-box;width:100%;height:100%;">
-      <div class="workspace-kicker workspace-barra"><span>Conteúdo</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id)}${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item)}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar">×</button></div></div>
-    <div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}
+      <div class="workspace-rolagem">
+      <div class="workspace-kicker workspace-barra"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><span class="workspace-barra-nome">Conteúdo</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { icone: true })}${menuDeAcoesDaPecaHtml(item, { linkELog: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">×</button></div></div>
+    <div class="workspace-client">${(typeof clientesDoItem === 'function' ? clientesDoItem(item) : [item.cliente]).filter(Boolean).map(cliCor).join(' ') || 'Cliente não informado'}
       <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
               title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
     <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
@@ -138,7 +142,7 @@ let DETALHE_DA_GAVETA = null;
       <div><dt>Prazo</dt><dd>${safeText(dataDoTopo(item.prazo) || '—')}</dd></div>
       <div><dt>Veiculação</dt><dd>${safeText(dataDoTopo(item.veiculacao) || '—')}</dd></div>
       <div><dt>Responsável</dt><dd>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'workspace-faixa-dono', { comNome: true }) : ''}</dd></div>
-      ${window.VybeConteudo?.campoObjetivoHtml ? `<div><dt>Objetivo</dt><dd>${window.VybeConteudo.campoObjetivoHtml(item)}</dd></div>` : ''}
+      ${window.VybeConteudo?.campoObjetivoHtml ? `<div class="workspace-faixa-objetivo"><dt>Objetivo</dt><dd>${window.VybeConteudo.campoObjetivoHtml(item)}</dd></div>` : ''}
     </dl>
     ${blocoDoBriefingHtml(detail, item)}
     ${faixaDeMaterialBrutoHtml(detail, item)}
@@ -237,7 +241,7 @@ function renderDemandaWorkspace(detail, item) {
     activeWorkspaceItemId = String(item.id);
     const updates = detail?.updates || [];
     ATUALIZACOES_DA_GAVETA = updates;
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDoLogHtml(item.id, { demanda: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}${botaoDeLinkHtml(item)}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body">${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
+    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body">${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
 }
 
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.

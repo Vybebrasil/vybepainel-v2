@@ -59,7 +59,7 @@ test('cliques do dock: sala com gente troca só a voz; Minha sala e Sala atual a
 
 test('CSS: Hoje e Agenda dos lados na sala, dock fixo pequeno, nada por cima do conteúdo', () => {
   assert.ok(!css.includes('body.mundo-quarto #vv-hoje{display:none}'));
-  assert.ok(css.includes('html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important'));
+  assert.ok(!css.includes('html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important'), 'quadro 34: a Agenda entra no Hoje, sem a gaveta da direita');
   assert.ok(css.includes('.vv-dock-salas-faixa{position:fixed;z-index:645;'));
   assert.ok(css.includes('html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}'), 'o Hoje termina acima do dock');
   assert.ok(css.includes('.vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:38px;height:38px;'), 'dock menor');

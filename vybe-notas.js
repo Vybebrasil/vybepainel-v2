@@ -168,6 +168,7 @@ const NOTAS_ICONES = {
   voltar: '<path d="M15 6l-6 6 6 6"/>',
   renomear: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   apagar: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+  mais: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
 };
 const notasIcone = (nome) => `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NOTAS_ICONES[nome] || ''}</svg>`;
 function notasIrParaAba(aba) {
@@ -356,9 +357,11 @@ function pintarNotas() {
       <aside class="notas-cadernos">
         ${cadernos}
         <button type="button" class="notas-caderno novo" onclick="novoCaderno()">+ Caderno</button>
-        ${NOTAS_CADERNOS.length ? `<div class="notas-caderno-acoes">
-          <button type="button" class="notas-discreto" onclick="renomearCadernoAtual()" title="Renomear o caderno ${safeText(NOTAS_CADERNO)}">${notasIcone('renomear')}<span>Renomear</span></button>
-          <button type="button" class="notas-discreto perigo" onclick="apagarCadernoAtual()" title="Apagar o caderno ${safeText(NOTAS_CADERNO)} (as notas vão para outro caderno)">${notasIcone('apagar')}<span>Apagar</span></button></div>` : ''}
+        ${NOTAS_CADERNOS.length ? `<details class="notas-menu notas-caderno-acoes">
+          <summary class="notas-discreto" aria-label="Mais ações do caderno ${safeText(NOTAS_CADERNO)}" title="Renomear ou apagar o caderno">${notasIcone('mais')}<span>Caderno</span></summary>
+          <div class="notas-menu-lista" role="menu">
+            <button type="button" role="menuitem" class="notas-discreto" onclick="renomearCadernoAtual()" title="Renomear o caderno ${safeText(NOTAS_CADERNO)}">${notasIcone('renomear')}<span>Renomear</span></button>
+            <button type="button" role="menuitem" class="notas-discreto perigo" onclick="apagarCadernoAtual()" title="Apagar o caderno ${safeText(NOTAS_CADERNO)} (as notas vão para outro caderno)">${notasIcone('apagar')}<span>Apagar</span></button></div></details>` : ''}
       </aside>
       <div class="notas-lista">
         <div class="notas-barra">
@@ -469,7 +472,8 @@ function notasFerramentasHtml() {
       ${b('😀 Emoji', 'alternarEmojis()', 'Inserir emoji')}
       <span class="notas-ferramentas-fim">
         <button type="button" class="notas-acao" onclick="salvarNotaAgora()">Salvar</button>
-        <button type="button" class="notas-acao perigo" onclick="apagarNotaAberta()">Apagar</button>
+        <details class="notas-menu"><summary class="notas-icone" aria-label="Mais ações da nota" title="Mais ações da nota">${notasIcone('mais')}</summary>
+          <div class="notas-menu-lista" role="menu"><button type="button" role="menuitem" class="notas-discreto perigo" onclick="apagarNotaAberta()">${notasIcone('apagar')}<span>Apagar a nota</span></button></div></details>
       </span>
     </div>${NOTAS_EMOJI_ABERTO ? notasEmojisHtml() : ''}`;
 }

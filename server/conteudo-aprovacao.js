@@ -24,6 +24,7 @@ export const DIAS_MAXIMO = 30;
 export const hashDoToken = (token) => createHash('sha256').update(String(token)).digest('hex');
 export const tokenComFormato = (token) => /^[A-Za-z0-9_-]{32}$/.test(String(token || ''));
 const EXT_IMAGEM = /^\.?(jpe?g|png|webp|gif|avif)$/i;
+const EXT_VIDEO = /^\.?(mp4|m4v|mov|webm)$/i;
 
 export async function aprovacaoPronta(sql) {
   const [r] = await sql`SELECT (to_regclass('vybe_aprovacao_links') IS NOT NULL AND to_regclass('vybe_aprovacao_respostas') IS NOT NULL) AS existe`;
@@ -120,7 +121,8 @@ export async function pecasDoLink(sql, token) {
           AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC`) {
       if (!arquivos.has(a.conteudo_id)) arquivos.set(a.conteudo_id, []);
       const lista = arquivos.get(a.conteudo_id);
-      if (lista.length < 12) lista.push({ id: a.id, nome: a.nome || 'Arquivo', imagem: EXT_IMAGEM.test(String(a.extensao || a.nome?.match(/\.\w+$/)?.[0] || '')) });
+      const ext = String(a.extensao || a.nome?.match(/\.\w+$/)?.[0] || '');
+      if (lista.length < 12) lista.push({ id: a.id, nome: a.nome || 'Arquivo', imagem: EXT_IMAGEM.test(ext), video: EXT_VIDEO.test(ext) });
     }
   }
   const respondidas = await sql`SELECT c.titulo, r.acao, r.nome, r.comentario, r.em
@@ -128,6 +130,13 @@ export async function pecasDoLink(sql, token) {
     WHERE r.link_id = ${l.id} ORDER BY r.em DESC LIMIT 50`;
   return { cliente: l.cliente, expira_em: l.expira_em,
     pecas: pecas.map((p) => ({ ...p, formato: p.formato || '', arquivos: arquivos.get(p.id) || [] })), respondidas };
+}
+
+// O mesmo critério de arquivo da página (pecasDoLink): presente no Drive e não marcado como ausente.
+async function pecaTemArquivo(sql, conteudoId) {
+  if (!await arquivosProntos(sql)) return false;
+  const [a] = await sql`SELECT 1 AS ok FROM vybe_conteudo_arquivos WHERE conteudo_id = ${conteudoId} AND ausente_em IS NULL AND drive_file_id IS NOT NULL LIMIT 1`;
+  return Boolean(a);
 }
 
 // Arquivo de uma peça do link: só se a peça é do cliente do link e ainda está em aprovação.
@@ -171,6 +180,11 @@ export async function responderPeca(sql, token, corpo, fazer) {
       AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${l.cliente_id})`;
   if (!c) throw erro('Peça não encontrada neste link.', 404);
   if (c.status_chave !== STATUS_EM_APROVACAO) throw erro('Esta peça já foi respondida ou não está mais esperando sua aprovação.', 409);
+  // Sem arte, sem aprovar (redesign, 10/11/2026): o cliente só aprova o que viu. A página já esconde
+  // o botão; a regra vale aqui porque controle visual não é autorização. Pedir ajuste continua livre.
+  if (r.acao === 'aprovar' && !await pecaTemArquivo(sql, c.id)) {
+    throw erro('A arte desta peça ainda não está aqui. A Vybe avisa quando chegar; não dá para aprovar sem ver.', 409);
+  }
   const quem = { tipo: 'link_cliente', pessoa: { nome: `${r.nome} (cliente · link de aprovação)` } };
   const mudou = await fazer.trocarStatus(sql, quem, { item: `vybe:${c.id}`, para: DESTINO[r.acao] });
   await sql`INSERT INTO vybe_aprovacao_respostas (link_id, conteudo_id, acao, nome, comentario, status_de, status_para)

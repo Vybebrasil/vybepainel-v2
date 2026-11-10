@@ -180,15 +180,13 @@
   <div id="production-command-banner" class="production-command-banner"><div class="production-command-ident"><i>◫</i><div><span>Unidade de comando</span><b>PRODUÇÃO · CAPTAÇÃO, FOTO E EDIÇÃO</b></div></div><button class="mode-switch-btn" onclick="openModeGate()">Trocar modo</button></div>
   <section id="production-command-dashboard" class="production-command-dashboard"></section>
 
-  <div class="workspace-heading"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.5"/></svg></span><div><span class="workspace-eyebrow">Operação · Gestor</span><h2>Painel de trabalho</h2></div><details class="ops-modos"><summary title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe">Modos</summary><div class="ops-acoes" role="group" aria-label="Ferramentas" onclick="if(event.target.closest('button'))this.closest('details').open=false">        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
+  <!-- Painel de trabalho (quadro 01 do redesign, 10/11/2026): um cabeçalho só, com Modos e Novo conteúdo à direita. -->
+  <div class="workspace-heading"><div class="workspace-titulo"><h2>Painel de trabalho</h2><p class="workspace-sub">Prioridades, prazos e a agenda da semana da produção.</p></div><details class="ops-modos"><summary title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe">Modos</summary><div class="ops-acoes" role="group" aria-label="Ferramentas" onclick="if(event.target.closest('button'))this.closest('details').open=false">        <button id="ops-daily-close-btn" class="ops-close-btn" onclick="toggleDailyClose()">Fechamento do dia</button>
         <button id="manager-command-toggle" class="ops-command-toggle" onclick="toggleManagerCommandDrawer()" aria-expanded="false" title="Mesa de Comando · Toda a operação · 0 alertas">Mesa de comando <span id="manager-command-count" class="ops-action-count">0</span></button>
 
         <button id="ops-meeting-btn" class="ops-close-btn" onclick="openMeetingMode()">Modo Reunião</button><button id="ops-carga-btn" class="ops-close-btn" type="button" aria-expanded="false" onclick="const d=document.querySelector('.team-load-disclosure');if(d){d.open=!d.open;this.setAttribute('aria-expanded',String(d.open));this.classList.toggle('active',d.open)}">▸ Carga da equipe</button>
         
-      </div></details><label class="filtro-carteira">Responsável geral
-      <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
-        <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label><button type="button" class="ops-novo-conteudo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">+ Novo conteúdo</button></div>
+      </div></details><button type="button" class="ops-novo-conteudo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">+ Novo conteúdo</button></div>
   <!-- Barra de resumo compacta -->
   <div id="compact-summary" class="resumo focus-hidden"><div class="resumo-principal"><div class="resumo-numero">—<i>%</i></div><div class="resumo-legenda"><span>da semana fechada</span><div class="resumo-barra"><i style="width:0"></i></div><small>carregando…</small></div></div></div>
 
@@ -200,15 +198,79 @@
       <input id="global-search" class="global-search" type="search" autocomplete="off" placeholder="Buscar em todo o painel  ⌘K" aria-haspopup="dialog" oninput="handleGlobalSearch(this.value)">
     </div>
     <div class="ops-botoes">
+      <div class="ops-segmentos" role="tablist" aria-label="Vista"><span class="toolbar-label">Vista</span>
+        <button id="ops-semana-btn" class="ops-close-btn active" onclick="mostrarAgendaDaSemana()" aria-expanded="true" title="Agenda da equipe, dia a dia"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="4" height="12" rx="1.2"/><rect x="8" y="4" width="4" height="12" rx="1.2"/><rect x="13" y="4" width="4" height="12" rx="1.2"/></svg>Semana</button>
+        <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3.5" width="14" height="4" rx="1.2"/><rect x="3" y="9.5" width="14" height="3" rx="1"/><rect x="3" y="14" width="14" height="3" rx="1"/></svg>Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
+        <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Calendário do mês por cliente"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3"/></svg>Mês <span id="ops-agenda-count" class="ops-action-count">0</span></button>
+        <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="14" height="4" rx="1.2"/><path d="M4.5 8v8h11V8M8 11h4"/></svg>Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button><button id="ops-equipe-btn" class="ops-close-btn tab-btn" onclick="mostrarEquipeDaSemana(this)" aria-expanded="false" title="Carga de cada pessoa e distribuição por formato na semana"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>Equipe</button>
+      </div>
       <div class="ops-attention" role="group" aria-label="Prioridades"><span class="toolbar-label">Prioridades</span>
         <button id="ops-action-btn" class="ops-action-btn" onclick="toggleActionQueue()">Requer ação <span id="ops-action-count" class="ops-action-count">0</span></button>
-        <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()">O que vence hoje <span id="ops-today-count" class="ops-action-count">0</span></button>
+        <button id="ops-today-btn" class="ops-today-btn" onclick="toggleTodayQueue()" title="O que vence hoje">Vence hoje <span id="ops-today-count" class="ops-action-count">0</span></button>
       </div>
-      <div class="ops-segmentos" role="tablist" aria-label="Ver como"><span class="toolbar-label">Ver como</span>
-        <button id="ops-semana-btn" class="ops-close-btn active" onclick="mostrarAgendaDaSemana()" aria-expanded="true" title="Agenda da equipe, dia a dia"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="4" height="12" rx="1.2"/><rect x="8" y="4" width="4" height="12" rx="1.2"/><rect x="13" y="4" width="4" height="12" rx="1.2"/></svg>Agenda da semana</button>
-        <button id="ops-grupos-btn" class="ops-close-btn" onclick="toggleVisaoDeGrupos()" aria-expanded="false" title="Conteúdos divididos pelos grupos do board"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3.5" width="14" height="4" rx="1.2"/><rect x="3" y="9.5" width="14" height="3" rx="1"/><rect x="3" y="14" width="14" height="3" rx="1"/></svg>Grupos <span id="ops-grupos-count" class="ops-action-count">0</span></button>
-        <button id="ops-agenda-btn" class="ops-close-btn focus-hidden" onclick="toggleAgendaMensal()" aria-expanded="false" title="Agenda mensal por cliente"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3"/></svg>Calendário do mês <span id="ops-agenda-count" class="ops-action-count">0</span></button>
-        <button id="ops-arquivo-btn" class="ops-close-btn" onclick="alternarArquivo()" aria-expanded="false" title="Atividades arquivadas — voltam com um clique por 15 dias"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="14" height="4" rx="1.2"/><path d="M4.5 8v8h11V8M8 11h4"/></svg>Arquivo <span id="ops-arquivo-count" class="ops-action-count">0</span></button><button id="ops-equipe-btn" class="ops-close-btn tab-btn" onclick="mostrarEquipeDaSemana(this)" aria-expanded="false" title="Carga de cada pessoa e distribuição por formato na semana"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>Equipe</button>
+      <!-- FILTROS À VISTA (Paulo, 04/11/2026).
+           Status, equipe e o resto moravam numa gaveta escondida atrás de um botão
+           no canto de baixo da tela: quem não sabia dela não filtrava nada. Agora
+           ficam numa barra logo acima da agenda — a do mês e a da semana — com o
+           mesmo desenho da barra de Solicitações. Os ids continuam os mesmos, então
+           as funções de filtro não mudaram de lugar. -->
+      <div id="agenda-filtros" class="dem-controles agenda-filtros focus-hidden" role="group" aria-label="Filtros da agenda"
+        onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
+        <span class="agenda-filtros-rotulo">Filtros</span>
+        <!-- Pessoa: o Responsável geral (a carteira de clientes de cada head), sem select nativo. -->
+        <details class="dem-filtro agenda-pessoa" name="filtros-agenda" data-filtro-carteira data-carteira="all">
+          <summary title="Responsável geral: a carteira de clientes de cada head">Pessoa<b class="agenda-filtro-escolha" data-filtro-carteira-rotulo>Todos</b></summary>
+          <div class="dem-filtro-popover agenda-pessoa-menu" role="group" aria-label="Responsável geral">
+            <span class="agenda-mais-rotulo">Responsável geral</span>
+            <button type="button" data-carteira-opcao="all" aria-pressed="true" onclick="definirFiltroCarteira('all');this.closest('details').open=false">Todos</button>
+            <button type="button" data-carteira-opcao="vinicius" aria-pressed="false" onclick="definirFiltroCarteira('vinicius');this.closest('details').open=false">Vinícius · Laranja</button>
+            <button type="button" data-carteira-opcao="ewerton" aria-pressed="false" onclick="definirFiltroCarteira('ewerton');this.closest('details').open=false">Ewerton · Azul</button>
+          </div>
+        </details>
+        <details class="dem-filtro" name="filtros-agenda">
+          <summary>Status<b class="agenda-filtro-escolha" id="agenda-filtro-status"></b></summary>
+          <div class="dem-filtro-popover">
+            <div class="legend" id="status-legend">
+              <button type="button" class="pill pill-agendado" onclick="filterByStatus('Agendado',this)"><span class="pill-dot"></span>Agendado</button>
+              <button type="button" class="pill pill-pode-fazer" onclick="filterByStatus('Pode Fazer',this)" style="background: rgba(255, 203, 0, 0.15); color: rgb(255, 203, 0); border-color: rgb(192, 171, 27);"><span class="pill-dot" style="background: rgb(255, 203, 0);"></span>Pode Fazer</button>
+              <button type="button" class="pill pill-falta-da" onclick="filterByStatus('Falta D.A',this)"><span class="pill-dot"></span>Falta D.A</button>
+              <button type="button" class="pill pill-a-fazer" onclick="filterByStatus('A Fazer',this)" style="background: rgba(196, 196, 196, 0.15); color: rgb(196, 196, 196); border-color: rgb(176, 176, 176);"><span class="pill-dot" style="background: rgb(196, 196, 196);"></span>A Fazer</button>
+              <button type="button" class="pill pill-aguardo" onclick="filterByStatus('Aguardo',this)" style="background: rgba(157, 80, 221, 0.15); color: rgb(157, 80, 221); border-color: rgb(146, 56, 175);"><span class="pill-dot" style="background: rgb(157, 80, 221);"></span>Aguardo</button>
+              <button type="button" class="pill pill-finalizado" onclick="filterByStatus('Finalizado',this)" style="background: rgba(156, 211, 38, 0.15); color: rgb(156, 211, 38); border-color: rgb(137, 185, 33);"><span class="pill-dot" style="background: rgb(156, 211, 38);"></span>Finalizado</button>
+              <button type="button" class="pill pill-para-agendar" onclick="filterByStatus('Para agendar',this)" style="background: rgba(3, 127, 76, 0.15); color: rgb(3, 127, 76); border-color: rgb(0, 107, 56);"><span class="pill-dot" style="background: rgb(3, 127, 76);"></span>Para Agendar</button>
+              <button type="button" class="pill pill-em-andamento" onclick="filterByStatus('Em andamento',this)" style="background: rgba(253, 171, 61, 0.15); color: rgb(253, 171, 61); border-color: rgb(233, 151, 41);"><span class="pill-dot" style="background: rgb(253, 171, 61);"></span>Em Andamento</button>
+              <button type="button" class="pill pill-para-aprovacao" onclick="filterByStatus('Para aprovação',this)"><span class="pill-dot"></span>Para Aprovação</button>
+              <button type="button" class="pill pill-ag-aprovacao" onclick="filterByStatus('Ag. Aprovação Cliente',this)"><span class="pill-dot"></span>Ag. Aprovação Cliente</button>
+              <button type="button" class="pill pill-ag-info" onclick="filterByStatus('Ag. Info Cliente',this)" style="background: rgba(188, 165, 138, 0.15); color: rgb(188, 165, 138); border-color: rgb(188, 165, 138);"><span class="pill-dot" style="background: rgb(188, 165, 138);"></span>Ag. Info Cliente</button>
+              <button type="button" class="pill pill-falta-info" onclick="filterByStatus('Falta Info',this)" style="background: rgba(255, 109, 59, 0.15); color: rgb(255, 109, 59); border-color: rgb(224, 88, 40);"><span class="pill-dot" style="background: rgb(255, 109, 59);"></span>Falta Info</button>
+              <button type="button" class="pill pill-alteracao" onclick="filterByStatus('Alteração',this)" style="background: rgba(223, 47, 74, 0.15); color: rgb(223, 47, 74); border-color: rgb(206, 48, 72);"><span class="pill-dot" style="background: rgb(223, 47, 74);"></span>Alteração</button>
+              <button type="button" class="pill pill-ag-interno" onclick="filterByStatus('Ag. Interno',this)"><span class="pill-dot"></span>Ag. Interno</button>
+            </div>
+          </div>
+        </details>
+        <!-- Estes só mexem na agenda da semana; com o mês aberto, o mês tem a própria Veiculação/Prazo. -->
+        <div id="filter-bar" class="filter-bar agenda-filtros-semana">
+          <div class="date-mode-bar" id="date-mode-bar" role="group" aria-label="Data de referência">
+            <button type="button" class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">Veiculação</button>
+            <button type="button" class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">Prazo</button>
+          </div>
+        </div>
+        <details class="dem-filtro agenda-mais" name="filtros-agenda">
+          <summary>Mais filtros<b class="agenda-filtro-escolha" id="agenda-filtro-equipe"></b></summary>
+          <div class="dem-filtro-popover">
+            <span class="agenda-mais-rotulo">Equipe</span>
+            <div id="person-filter-bar" class="person-filter-bar"></div>
+            <span class="agenda-mais-rotulo">Na agenda</span>
+            <div class="agenda-mais-linha">
+              <button type="button" class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" aria-pressed="false"
+                title="Esconde o que já está Finalizado, Agendado ou Para agendar">Só pendentes</button>
+              <span class="agenda-filtros-semana">
+                <select id="day-select" onchange="filterByDay(this)" aria-label="Filtrar por dia"><option value="">Todos os dias</option></select>
+                <button type="button" class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" aria-pressed="false" title="Ordenar por criticidade: clientes com menos posts primeiro">Crítico primeiro</button>
+              </span>
+            </div>
+          </div>
+        </details>
       </div>
       <button id="ops-clear-btn" class="ops-clear-btn is-idle" onclick="clearAllFilters()" title="Nenhum filtro ativo">✓ Sem filtros</button>
       <div class="ops-vao"></div>
@@ -225,53 +287,6 @@
        lugar. A marca nao ocupa espaco e nunca sai daqui. -->
   <section id="grupos-board" class="grupos-board focus-hidden" aria-label="Conteúdos por grupo"></section>
   <span id="grupos-board-lugar" hidden></span>
-  <!-- FILTROS À VISTA (Paulo, 04/11/2026).
-       Status, equipe e o resto moravam numa gaveta escondida atrás de um botão
-       no canto de baixo da tela: quem não sabia dela não filtrava nada. Agora
-       ficam numa barra logo acima da agenda — a do mês e a da semana — com o
-       mesmo desenho da barra de Solicitações. Os ids continuam os mesmos, então
-       as funções de filtro não mudaram de lugar. -->
-  <div id="agenda-filtros" class="dem-controles agenda-filtros focus-hidden" role="group" aria-label="Filtros da agenda"
-    onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
-    <span class="agenda-filtros-rotulo">Filtros</span>
-    <details class="dem-filtro" name="filtros-agenda">
-      <summary>Status<b class="agenda-filtro-escolha" id="agenda-filtro-status"></b></summary>
-      <div class="dem-filtro-popover">
-        <div class="legend" id="status-legend">
-          <button type="button" class="pill pill-agendado" onclick="filterByStatus('Agendado',this)"><span class="pill-dot"></span>Agendado</button>
-          <button type="button" class="pill pill-pode-fazer" onclick="filterByStatus('Pode Fazer',this)" style="background: rgba(255, 203, 0, 0.15); color: rgb(255, 203, 0); border-color: rgb(192, 171, 27);"><span class="pill-dot" style="background: rgb(255, 203, 0);"></span>Pode Fazer</button>
-          <button type="button" class="pill pill-falta-da" onclick="filterByStatus('Falta D.A',this)"><span class="pill-dot"></span>Falta D.A</button>
-          <button type="button" class="pill pill-a-fazer" onclick="filterByStatus('A Fazer',this)" style="background: rgba(196, 196, 196, 0.15); color: rgb(196, 196, 196); border-color: rgb(176, 176, 176);"><span class="pill-dot" style="background: rgb(196, 196, 196);"></span>A Fazer</button>
-          <button type="button" class="pill pill-aguardo" onclick="filterByStatus('Aguardo',this)" style="background: rgba(157, 80, 221, 0.15); color: rgb(157, 80, 221); border-color: rgb(146, 56, 175);"><span class="pill-dot" style="background: rgb(157, 80, 221);"></span>Aguardo</button>
-          <button type="button" class="pill pill-finalizado" onclick="filterByStatus('Finalizado',this)" style="background: rgba(156, 211, 38, 0.15); color: rgb(156, 211, 38); border-color: rgb(137, 185, 33);"><span class="pill-dot" style="background: rgb(156, 211, 38);"></span>Finalizado</button>
-          <button type="button" class="pill pill-para-agendar" onclick="filterByStatus('Para agendar',this)" style="background: rgba(3, 127, 76, 0.15); color: rgb(3, 127, 76); border-color: rgb(0, 107, 56);"><span class="pill-dot" style="background: rgb(3, 127, 76);"></span>Para Agendar</button>
-          <button type="button" class="pill pill-em-andamento" onclick="filterByStatus('Em andamento',this)" style="background: rgba(253, 171, 61, 0.15); color: rgb(253, 171, 61); border-color: rgb(233, 151, 41);"><span class="pill-dot" style="background: rgb(253, 171, 61);"></span>Em Andamento</button>
-          <button type="button" class="pill pill-para-aprovacao" onclick="filterByStatus('Para aprovação',this)"><span class="pill-dot"></span>Para Aprovação</button>
-          <button type="button" class="pill pill-ag-aprovacao" onclick="filterByStatus('Ag. Aprovação Cliente',this)"><span class="pill-dot"></span>Ag. Aprovação Cliente</button>
-          <button type="button" class="pill pill-ag-info" onclick="filterByStatus('Ag. Info Cliente',this)" style="background: rgba(188, 165, 138, 0.15); color: rgb(188, 165, 138); border-color: rgb(188, 165, 138);"><span class="pill-dot" style="background: rgb(188, 165, 138);"></span>Ag. Info Cliente</button>
-          <button type="button" class="pill pill-falta-info" onclick="filterByStatus('Falta Info',this)" style="background: rgba(255, 109, 59, 0.15); color: rgb(255, 109, 59); border-color: rgb(224, 88, 40);"><span class="pill-dot" style="background: rgb(255, 109, 59);"></span>Falta Info</button>
-          <button type="button" class="pill pill-alteracao" onclick="filterByStatus('Alteração',this)" style="background: rgba(223, 47, 74, 0.15); color: rgb(223, 47, 74); border-color: rgb(206, 48, 72);"><span class="pill-dot" style="background: rgb(223, 47, 74);"></span>Alteração</button>
-          <button type="button" class="pill pill-ag-interno" onclick="filterByStatus('Ag. Interno',this)"><span class="pill-dot"></span>Ag. Interno</button>
-        </div>
-      </div>
-    </details>
-    <details class="dem-filtro" name="filtros-agenda">
-      <summary>Equipe<b class="agenda-filtro-escolha" id="agenda-filtro-equipe"></b></summary>
-      <div class="dem-filtro-popover"><div id="person-filter-bar" class="person-filter-bar"></div></div>
-    </details>
-    <button type="button" class="sort-btn" id="btn-pending-only" onclick="togglePendingOnly(this)" aria-pressed="false"
-      title="Esconde o que já está Finalizado, Agendado ou Para agendar">Só pendentes</button>
-    <!-- Estes três só mexem na agenda da semana; com o mês aberto, o mês tem a
-         própria Veiculação/Prazo e não há "dia" nem ordem para escolher. -->
-    <div id="filter-bar" class="filter-bar agenda-filtros-semana">
-      <div class="date-mode-bar" id="date-mode-bar" role="group" aria-label="Data de referência">
-        <button type="button" class="date-mode-btn active" id="btn-mode-veiculacao" onclick="setDateMode('veiculacao',this)">Veiculação</button>
-        <button type="button" class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">Prazo</button>
-      </div>
-      <select id="day-select" onchange="filterByDay(this)" aria-label="Filtrar por dia"><option value="">Todos os dias</option></select>
-      <button type="button" class="sort-btn" id="sort-critico-btn" onclick="toggleSortCritico(this)" aria-pressed="false" title="Ordenar por criticidade">Crítico primeiro</button>
-    </div>
-  </div>
   <section id="manager-calendar" class="manager-calendar focus-hidden" aria-label="Agenda mensal do GESTOR"></section>
   <span id="manager-calendar-lugar" hidden></span>
 
@@ -285,6 +300,8 @@
 </div><div class="agenda-navigation-weeks">
     <div class="tabs focus-hidden" id="week-tabs-container" style="margin-bottom:0;border-bottom:none;">
       <span class="tabs-rotulo">Semana</span>
+      <!-- Agenda da semana (quadro 02, 10/11/2026): no mundo, um seletor no lugar das pílulas (as pílulas ficam no tema antigo). -->
+      <span class="semana-seletor" role="group" aria-label="Escolher a semana"><button type="button" class="semana-passo" data-semana-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b id="semana-seletor-rotulo" aria-live="polite">Semana</b><button type="button" class="semana-passo" data-semana-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button type="button" class="semana-hoje" onclick="semanaDeHoje()" aria-pressed="true">Hoje</button></span>
       <button class="tab-btn" id="tab-s1-label" onclick="showWeek(1,this)" style="">01 · 27/07–02/08</button>
       <button class="tab-btn" id="tab-s2-label" onclick="showWeek(2,this)" style="">02 · 03/08–09/08</button>
       <button class="tab-btn" id="tab-s3-label" onclick="showWeek(3,this)" style="">03 · 10/08–16/08</button>
@@ -334,13 +351,14 @@
 <!-- ===== PAINEL DIÁRIO DE PRODUÇÃO ===== -->
 <div id="painel-diario" style="display:none;">
   <div class="container">
-    <div class="vb-cabecalho"><span class="pv-ic pv-ic-aba" style="--c:#ee83b7" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/></svg></span>
+    <!-- Quadro 10 do redesign (10/11/2026): sem o ícone rosa e a etiqueta; o alternador e o botão de registrar uma vez só, no topo. -->
+    <div class="vb-cabecalho">
       <div class="vb-cabecalho-texto">
-        <span class="pv-etiqueta" style="--c:#ee83b7">Diário</span><h2>Diário de Produção</h2>
-        <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
+        <h2>Diário de produção</h2>
+        <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois.</p>
       </div>
       <div class="vb-cabecalho-acoes">
-        <div id="date-mode-bar-diario" class="date-mode-bar">
+        <div id="date-mode-bar-diario" class="date-mode-bar" role="group" aria-label="Ordenar o registro por">
           <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">Veiculação</button>
           <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">Prazo</button>
         </div>
@@ -367,10 +385,6 @@
   <div class="container">
     <div class="pv-cabeca" style="--c:#f7c948"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h10M5 10h10M5 14h6"/></svg></span><div><span class="pv-etiqueta">Produção</span><h2>Demandas</h2></div></div>
     <div class="quadro-toolbar">
-      <label class="filtro-carteira">Responsável geral
-      <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
-        <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label>
       <label class="quadro-busca"><span class="focus-oculto-visual">Buscar cliente ou demanda</span><input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>
     </div>
@@ -379,9 +393,17 @@
 
     <!-- Filtros progressivos preservam os seletores e handlers do recorte. -->
     <div class="dem-controles" onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
-      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input id="dem-coluna-id" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked);guardarPreferenciasDemandas()"> Mostrar ID</label><label><input id="dem-coluna-cadastro" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked);guardarPreferenciasDemandas()"> Mostrar cadastro e criação</label></div></details>
+      <!-- Demandas (quadro 03, 10/11/2026): filtros como chips; o Responsável geral (carteira) sai do select nativo. -->
+      <details class="dem-filtro agenda-pessoa" name="filtros-demandas" data-filtro-carteira data-carteira="all">
+        <summary title="Responsável geral: a carteira de clientes de cada head">Responsável geral<b class="agenda-filtro-escolha" data-filtro-carteira-rotulo>Todos</b></summary>
+        <div class="dem-filtro-popover agenda-pessoa-menu" role="group" aria-label="Responsável geral">
+          <button type="button" data-carteira-opcao="all" aria-pressed="true" onclick="definirFiltroCarteira('all');this.closest('details').open=false">Todos</button>
+          <button type="button" data-carteira-opcao="vinicius" aria-pressed="false" onclick="definirFiltroCarteira('vinicius');this.closest('details').open=false">Vinícius · Laranja</button>
+          <button type="button" data-carteira-opcao="ewerton" aria-pressed="false" onclick="definirFiltroCarteira('ewerton');this.closest('details').open=false">Ewerton · Azul</button>
+        </div>
+      </details>
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Status</summary>
+        <summary data-dem-chip="status">Status<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar status" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-status-legend')">
         <div class="legend" id="demanda-status-legend">
           <button type="button" class="pill pill-nova-demanda" onclick="filterDemandaByStatusLegend('Nova Demanda',this)" title="Ver só as de status Nova demanda"><span class="pill-dot"></span>Nova demanda</button>
@@ -397,7 +419,7 @@
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Tipo</summary>
+        <summary data-dem-chip="tipo">Tipo<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar tipo" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-tipo-legend')">
         <div class="legend tipo-legend" id="demanda-tipo-legend"
           title="Clique para filtrar. Marque várias e use “Tipo” no deck para classificar em lote."></div>
@@ -405,14 +427,14 @@
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Cliente</summary>
+        <summary data-dem-chip="cliente">Cliente<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar cliente" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-cliente-legend')">
         <div class="dem-clientes" id="demanda-cliente-legend"></div>
         </div>
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Responsável</summary>
+        <summary data-dem-chip="responsavel">Responsável<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar equipe" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'person-filter-bar-demandas')">
         <div id="person-filter-bar-demandas" class="person-filter-bar">
           <button type="button" class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas" title="Toda a equipe" aria-label="Toda a equipe">
@@ -440,6 +462,7 @@
             <b id="demandas-agenda-count"></b></button>
         </div>
       </div>
+      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input id="dem-coluna-id" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked);guardarPreferenciasDemandas()"> Mostrar ID</label><label><input id="dem-coluna-cadastro" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked);guardarPreferenciasDemandas()"> Mostrar cadastro e criação</label></div></details>
     </div>
 
     <!-- Quanto esta sendo mostrado, de quanto, e por que. Fica COLADO na lista,
@@ -478,6 +501,7 @@
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
     <div id="kpi-grid-clientes" class="kpi-grid"></div>
+    <div id="clientes-aviso" class="cli-aviso" role="status" hidden></div>
     <!-- Lista de clientes (quadro 50 do redesign): visão, filtros em chips e a busca à direita. -->
     <div id="panel-clientes-lista">
       <h3 class="cli-oculto">Lista de clientes</h3>
@@ -621,6 +645,7 @@
   <script src="/vybe-cerebro-grafo.js"></script>
   <script src="/vybe-planejamentos.js"></script>
   <script src="/vybe-calendario.js"></script>
+  <script src="/vybe-seletor.js"></script>
   <script src="/vybe-topo.js"></script>
   <script type="vybe/sob-demanda" data-grupo="sazonal" src="/vybe-sazonal.js"></script>
   <script type="vybe/sob-demanda" data-grupo="relatorios" src="/vybe-relatorios.js"></script>

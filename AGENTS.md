@@ -209,6 +209,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (grupo Vybe) abre o quarto do Escritório da pessoa em voxel, em tela cheia (`mundo/quarto.mjs`, `abrirMinhaSala`):
   a planta com as alturas, piso, parede e a camada salva da sala, só leitura, e quem está na sala. Abrir entra na zona
   da própria sala e na chamada dela. Decorar continua no editor do Escritório.
+  Na sala (quadro 34 do redesign, 10/11/2026): o Hoje fica à esquerda, mais estreito, com a Agenda dentro dele (sem a
+  gaveta da direita); uma faixa ACIMA do quarto (nunca por cima) diz de quem é a sala, quem está nela e a voz em texto, com
+  Convidar (o convite do Escritório, `convidarParaMinhaSalaEscritorio`) e Decorar (`VybeDecorar`, também no dock).
   Móveis fiéis (Paulo, 09/11/2026: "olhar móvel a móvel, detalhe a detalhe, e copiar exatamente igual"): cada móvel
   é esculpido em voxels a partir da própria arte do Habbo (`mundo/moveis-habbo.mjs`): as direções desenhadas (e os
   espelhos, que o Habbo usa para peças simétricas) são fotos de lados diferentes; fica o bloco que aparece em todas e a
@@ -296,6 +299,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   navegador de quem olha). A Agência abre pelo guia do VYBES. A aba **Criação** (`pintarCriacao`) é o time do Deivid
   (`EQUIPES.design` + `audiovisual`), guiada pelo Danilo; o item Direção de arte do dock abre ela (o painel antigo fica
   a um clique durante a troca). Não crie outra ordem de fila nem outro painel de direção de arte.
+  Minhas tarefas (quadro 31 do redesign, 10/11/2026): o item do dock e a aba abrem o mesmo Hoje. Sem a fila pelo
+  usuário, a pergunta "De quem é este dia?" guarda a escolha em `pessoasHoje`, o guia segue `passosDoGuia` e o dia
+  mostra a agenda de hoje (agenda única) e o que os agentes viram (`VybeAgentes.resumoParaHoje`, a fila Depende de você).
 - Assistente do Deivid na Criação (pedido do Deivid, autorizado pelo Paulo em 10/11/2026: "o que temos para hoje?"; "nada é
   executado sem o meu OK"): `vybe-mundo-criacao.js` (`VybeCriacao`) dá à aba Criação a conversa do Danilo (frases na ordem de
   `passosDoGuia`), o que mudou desde a última olhada, as delegações (carga pelo peso e limite do painel antigo de direção de

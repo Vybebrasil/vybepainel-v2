@@ -75,10 +75,15 @@ let filtroCarteira = 'all';
 function itemNaCarteira(item) {
   return filtroCarteira === 'all' || clientesDoItem(item).some(nome => carteiraDoCliente(nome) === filtroCarteira);
 }
+const ROTULO_CARTEIRA = { all: 'Todos', vinicius: 'Vinícius', ewerton: 'Ewerton' };
 function pintarFiltroCarteira() {
   document.querySelectorAll('[data-filtro-carteira]').forEach(campo => {
-    campo.value = filtroCarteira;
+    // O chip "Pessoa" do Painel de trabalho (quadro 01): o nome escolhido no chip e a opção marcada no menu.
+    const rotulo = campo.querySelector?.('[data-filtro-carteira-rotulo]');
+    if (!rotulo) campo.value = filtroCarteira;
     campo.dataset.carteira = filtroCarteira;
+    if (rotulo) { rotulo.textContent = ROTULO_CARTEIRA[filtroCarteira] || 'Todos'; rotulo.parentElement?.classList.toggle('tem-escolha', filtroCarteira !== 'all'); }
+    campo.querySelectorAll?.('[data-carteira-opcao]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.carteiraOpcao === filtroCarteira)));
   });
 }
 function atualizarVisoesDaCarteira() {
@@ -196,6 +201,8 @@ function recalcSemanas() {
 // pe enquanto o lote roda.
 let TEMPO_DO_AVISO = null;
 function showToast(msg, type='info', duration=3000) {
+  // No mundo o aviso curto é um só (quadro 45): mesmo lugar (canto de cima, com os do WhatsApp) e mesmo desenho.
+  if (avisoCurtoNoMundo(msg, { erro: type === 'err' || type === 'error', tempo: Math.max(duration, 4000) })) return;
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `show ${type}`;
@@ -216,11 +223,18 @@ const AVISO_CURTO_ICONES = {
   erro: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
 };
+// Aviso de uma frase só (toast antigo, aviso do Escritório) vira o aviso curto no mundo; fora dele devolve false.
+function avisoCurtoNoMundo(texto, { erro = false, tempo = 6000, icone = 'info', acoes = [] } = {}) {
+  if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !texto) return false;
+  return Boolean(mostrarAvisoCurto({ chave: 'curto:' + String(texto).slice(0, 80), icone, titulo: String(texto), erro, tempo, acoes }));
+}
 function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = '', acoes = [], erro = false, tempo = 7000 } = {}) {
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !titulo) return null;
   let caixa = document.getElementById('vv-wa-avisos');
   if (!caixa) { caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa); }
   if (chave) caixa.querySelectorAll('.vv-aviso-curto').forEach((x) => { if (x.dataset.chave === chave) x.remove(); });
+  // O sino mostra o último aviso quando não há nada novo (quadro 41).
+  globalThis.ULTIMO_AVISO_CURTO = { titulo: String(titulo), frase: String(frase || ''), em: new Date().toISOString() };
   const el = document.createElement('div');
   el.className = 'vv-aviso-curto' + (erro ? ' erro' : '');
   el.setAttribute('role', erro ? 'alert' : 'status');
@@ -775,18 +789,79 @@ function vbIcone(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${V
 function vbCabecalhoHtml({ titulo, texto = '', acoes = '' }) {
   return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;
 }
-// itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'', onclick }]; zero sem tom vira texto discreto.
+// itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'zero'|'', onclick, espiar, dica }]; tom 'zero' = texto discreto.
+// espiar: a chave do mini painel (data-espiar, "quem está neste número"); dica: a explicação no ⓘ ao passar o mouse.
 function vbResumoHtml(itens) {
   return `<div class="vb-resumo" role="group" aria-label="Resumo">${itens.filter(Boolean).map((x) => {
-    const corpo = x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`;
-    const cls = `vb-resumo-item${x.tom ? ' ' + x.tom : ''}`;
-    return x.onclick ? `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>` : `<span class="${cls}">${corpo}</span>`;
+    const corpo = (x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`)
+      + (x.dica ? `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${safeText(x.dica)}" aria-label="${safeText(x.dica)}"><span class="ar-dica-i" aria-hidden="true">i</span></span>` : '');
+    // Zero não pede ação: perde a cor de estado e vira texto discreto ("0 atrasadas" não é alarme).
+    const zero = x.valor === 0 || x.valor === '0';
+    const cls = `vb-resumo-item${zero ? ' zero' : (x.tom ? ' ' + x.tom : '')}`;
+    if (x.onclick) return `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>`;
+    return x.espiar ? `<span class="${cls} espiavel" data-espiar="${safeText(x.espiar)}" role="button" tabindex="0">${corpo}</span>` : `<span class="${cls}">${corpo}</span>`;
   }).join('')}</div>`;
+}
+// Seletor de período (Padrão Vybe): ‹ novembro de 2026 › no lugar do campo de mês. O botão leva o mês de destino
+// (AAAA-MM) no atributo `attr`, que o módulo escuta; `ano: true` anda de ano em ano. Não passa de `max` (AAAA-MM).
+const VB_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function vbMesSomar(mes, n) {
+  const d = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+function vbMesHtml({ mes, max = '', attr = 'data-vb-mes', ano = false } = {}) {
+  if (!/^\d{4}-\d{2}$/.test(mes || '')) return '';
+  const passo = ano ? 12 : 1, antes = vbMesSomar(mes, -passo), depois = vbMesSomar(mes, passo), corte = ano ? 4 : 7;
+  const fim = /^\d{4}-\d{2}/.test(max) && depois.slice(0, corte) > max.slice(0, corte);
+  const nome = ano ? 'ano' : 'mês', seta = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  return `<div class="vb-mes" role="group" aria-label="${ano ? 'Ano' : 'Mês'}">`
+    + `<button type="button" ${attr}="${antes}" aria-label="${ano ? 'Ano' : 'Mês'} anterior" title="${ano ? 'Ano' : 'Mês'} anterior">${seta('m15 6-6 6 6 6')}</button>`
+    + `<b aria-live="polite">${ano ? mes.slice(0, 4) : `${VB_MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`}</b>`
+    + `<button type="button" ${attr}="${depois}" aria-label="Próximo ${nome}" title="Próximo ${nome}"${fim ? ' disabled' : ''}>${seta('m9 6 6 6-6 6')}</button></div>`;
 }
 // tipo: 'vazio' | 'erro' | 'carregando'; acao: HTML de um botão (opcional).
 function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icone = '' } = {}) {
   if (tipo === 'carregando') return `<div class="vb-carregando" role="status" aria-label="${safeText(titulo || 'Carregando')}"><div class="vb-brilho"></div><div class="vb-brilho"></div><div class="vb-brilho"></div></div>`;
   return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${titulo ? `<b>${safeText(titulo)}</b>` : ''}${texto ? `<p>${safeText(texto)}</p>` : ''}${acao}</div>`;
+}
+// Escolha em chip (moodboard 10/11/2026, quadros 17, 21, 30, 39, 49 e 61: "select nativo vira o menu do sistema"): um
+// chip com o valor atual e um menu de opções. O valor vai num campo escondido (`campo` = os atributos dele, ex.
+// 'name="nasc_mes"' ou 'data-vc-filtro="nicho"'), que dispara `change` como o select fazia: os ouvintes de sempre
+// (FormData, aoMudar) continuam iguais. opcoes: [{ valor, nome, n? }]; vazio: a opção "todos"/"nenhum" (valor '');
+// grade: colunas do menu (o dia do mês usa 7).
+function vbEscolhaHtml({ rotulo = '', valor = '', opcoes = [], campo = '', vazio = '', grade = 0 } = {}) {
+  const e = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const v = String(valor ?? ''), atual = opcoes.find((o) => String(o.valor) === v);
+  const nomeAtual = atual ? atual.nome : (vazio || 'Escolha');
+  const conta = (n) => (n === undefined || n === null || n === '' ? '' : `<em>${e(n)}</em>`);
+  const lista = (vazio ? [{ valor: '', nome: vazio }] : []).concat(opcoes);
+  return `<details class="vb-escolha"><summary class="vb-chip${atual ? ' vb-escolha-com' : ''}" aria-label="${e(rotulo)}: ${e(nomeAtual)}">${rotulo ? `<span class="vb-escolha-rotulo">${e(rotulo)}</span>` : ''}<b class="vb-escolha-valor">${e(nomeAtual)}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>`
+    + `<input type="hidden" ${campo} value="${e(v)}">`
+    + `<div class="vb-escolha-menu${grade ? ' grade' : ''}" role="listbox" aria-label="${e(rotulo)}"${grade ? ` style="--colunas:${Number(grade) || 1}"` : ''}>${lista.map((o) => `<button type="button" role="option" data-vb-escolha="${e(o.valor)}" aria-selected="${String(o.valor) === v}"><span>${e(o.nome)}</span>${conta(o.n)}</button>`).join('')}</div></details>`;
+}
+if (typeof window !== 'undefined') window.vbEscolhaHtml = vbEscolhaHtml;
+// Um menu aberto por vez: a opção grava no campo escondido e avisa (input e change); clicar fora ou Esc fecha.
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  const fecharEscolhas = (menos) => document.querySelectorAll('details.vb-escolha[open]').forEach((d) => { if (d !== menos) d.open = false; });
+  document.addEventListener('click', (ev) => {
+    const op = ev.target?.closest?.('.vb-escolha [data-vb-escolha]'), caixa = ev.target?.closest?.('details.vb-escolha');
+    fecharEscolhas(op ? null : caixa);
+    if (!op || !caixa) return;
+    ev.preventDefault();
+    const campo = caixa.querySelector(':scope > input[type=hidden]'), valor = op.dataset.vbEscolha, resumo = caixa.querySelector('summary');
+    caixa.querySelectorAll('[data-vb-escolha]').forEach((b) => b.setAttribute('aria-selected', String(b === op)));
+    const nome = op.querySelector('span')?.textContent || '', alvo = caixa.querySelector('.vb-escolha-valor'); if (alvo) alvo.textContent = nome;
+    resumo?.setAttribute('aria-label', `${caixa.querySelector('[role=listbox]')?.getAttribute('aria-label') || ''}: ${nome}`);
+    resumo?.classList.toggle('vb-escolha-com', valor !== '');
+    resumo?.focus?.();
+    if (campo && campo.value !== valor) { campo.value = valor; campo.dispatchEvent(new Event('input', { bubbles: true })); campo.dispatchEvent(new Event('change', { bubbles: true })); }
+  });
+  // Na captura, antes das janelas: Esc com o menu aberto fecha só o menu.
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    const aberto = document.querySelector('details.vb-escolha[open]'); if (!aberto) return;
+    ev.preventDefault(); ev.stopImmediatePropagation(); aberto.open = false; aberto.querySelector('summary')?.focus?.();
+  }, true);
 }
 // Números que contam (Padrão Vybe): um <b data-vb-contar="463" data-vb-chave="moedas">
 // sobe ou desce contando do último valor visto até o novo, como placar de
