@@ -5729,3 +5729,71 @@ body.mundo .vcal-pe{border-top-color:#F0EBE3}
 body.mundo .vcal-pe button{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font-family:var(--vv-texto,"Inter"),system-ui,sans-serif}
 body.mundo .vcal-pe button:hover{background:#FFFFFF;border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
 body.mundo .vcal-pe button.vcal-limpar:hover{background:#FDECEE;border-color:#F6BBC4;color:#B42318}
+
+/* ======================================================================================
+   COMERCIAL E FINANÇAS, VISÕES GERAIS (redesign, quadro 57, 10/11/2026). Os números aparecem mesmo zerados, cada um com
+   o caminho para a aba; "Próximos passos" diz o que destrava o setor; a meta do mês fica sempre à vista.
+   ====================================================================================== */
+.vs-kpi-ir{align-self:flex-start;margin:auto 0 -4px -8px}
+.vs-passos{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vs-passos li{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 11px;border:1px solid #ECE6DC;border-radius:9px;background:#FFFFFF}
+.vs-passos li>span{display:grid;gap:2px;min-width:0;flex:1}
+.vs-passos b{font:600 12.5px/1.35 var(--vv-texto);color:#1F1D1A}
+.vs-passos small{font:500 11.5px/1.4 var(--vv-texto);color:#6B675F}
+.vs-passos .vs-abrir{flex:none}
+.vs-ponto{flex:none;width:8px;height:8px;border-radius:50%;background:#A8A29E}
+.vs-ponto.a{background:#D97706}.vs-ponto.r{background:#DC2626}.vs-ponto.v{background:#1F9D55}
+.vs-meta-vazia{display:grid;gap:8px}
+.vs-meta-vazia p{margin:0;font:500 12px/1.45 var(--vv-texto);color:#6B675F}
+@media (max-width:520px){.vs-passos li{flex-wrap:wrap}.vs-passos .vs-abrir{margin-left:18px}}
+
+/* ======================================================================================
+   CONTA E EQUIPE (redesign, quadro 60, 10/11/2026). O menu da conta é o menu lateral fixo da página (não um cartão
+   flutuante), com ícones neutros e o item ativo em laranja. Na Equipe, cada pessoa tem o retrato voxel, a situação
+   escrita e um botão principal; as ações raras ficam no "Mais" e a perigosa (subsolo) só lá dentro, em vermelho.
+   O tema escuro antigo dessas peças vale só fora do mundo (vybe-appearance.css, :where(body:not(.mundo))).
+   ====================================================================================== */
+body.mundo .conta-barra{border:0;border-radius:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:4px 0}
+body.mundo .conta-eu{border-bottom:1px solid #ECE6DC}
+body.mundo .conta-eu-retrato{border-radius:10px;border:1px solid #ECE6DC;background:linear-gradient(180deg,#F6F0E6,#EDE4D6)}
+body.mundo :is(.conta-eu-retrato,.eq-retrato) img{width:100%;height:100%;object-fit:contain}
+body.mundo .conta-grupo-titulo{padding:0 10px 4px;font:600 11.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:#8A847A}
+body.mundo .conta-aba{gap:10px;min-height:34px;padding:0 10px;border-radius:8px;font:500 13px var(--vv-texto)}
+body.mundo .conta-aba:hover{background:#F6F3EE}
+body.mundo .conta-aba.ativa{background:var(--ds-sel-fundo,#FFEBDF);font-weight:600}
+body.mundo .conta-aba-rotulo{color:#1F1D1A}
+body.mundo .conta-aba.ativa .conta-aba-rotulo{color:var(--ds-sel-texto,#C2490C)}
+body.mundo .conta-aba-icone{width:18px;height:18px;border-radius:0;background:transparent}
+body.mundo .conta-aba.ativa .conta-aba-icone svg{fill:var(--ds-sel-texto,#C2490C)}
+body.mundo .conta-aba.ativa .conta-aba-icone svg [stroke]{stroke:var(--ds-sel-texto,#C2490C)}
+@media (min-width:901px){
+  body.mundo .conta-tela{grid-template-columns:216px minmax(0,1fr);gap:28px;padding:8px 0 32px}
+  body.mundo .conta-barra{position:sticky;top:0;align-self:start;padding:4px 20px 4px 0;border-right:1px solid #ECE6DC;min-height:min(560px,70vh)}
+}
+body.mundo .eq-lista{gap:8px}
+body.mundo .eq-linha{grid-template-columns:44px minmax(0,1fr) auto;gap:14px;padding:10px 14px;overflow:visible}
+body.mundo .eq-retrato{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#F6F0E6,#EDE4D6);border:1px solid #ECE6DC;font:600 13px var(--vv-texto);color:#8A7E6E}
+body.mundo .eq-quem{display:block;min-width:0}
+body.mundo .conta-secao-topo{display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 16px;padding:0}
+body.mundo .conta-secao-topo>div{min-width:0;max-width:72ch}
+body.mundo .conta-secao-topo>:is(button,a){flex:none}
+body.mundo .eq-email{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo .eq-estado{margin-top:3px;font:500 12px/1.4 var(--vv-texto)}
+body.mundo .eq-acoes{opacity:1;align-items:center;flex-wrap:nowrap;gap:6px}
+body.mundo .eq-mais{position:relative}
+body.mundo .eq-mais>summary{list-style:none;gap:4px;padding:0 10px}
+body.mundo .eq-mais>summary::-webkit-details-marker{display:none}
+body.mundo .eq-mais[open]>summary{border-color:var(--ds-acao,#FF7A2F)}
+body.mundo .eq-mais-menu{position:absolute;z-index:5;right:0;top:calc(100% + 4px);display:grid;min-width:200px;padding:4px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-janela,0 14px 34px -14px rgba(31,29,26,.35));animation:vv-aba .16s var(--curva,ease) both}
+body.mundo .eq-mais-item{display:flex;align-items:center;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;font:500 12.5px var(--vv-texto);text-align:left;cursor:pointer}
+body.mundo .eq-mais-item:hover{background:#F6F3EE}
+body.mundo .eq-mais-perigo{margin-top:4px;box-shadow:inset 0 1px 0 #F1ECE4;border-radius:0 0 7px 7px}
+body.mundo .eq-mais-perigo span{color:#B42318}
+body.mundo .eq-mais-perigo:hover{background:#FDECEE}
+body.mundo .eq-mais-item:focus-visible,body.mundo .eq-mais>summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+@media (max-width:640px){
+  body.mundo .eq-linha{grid-template-columns:44px minmax(0,1fr)}
+  body.mundo .eq-acoes{grid-column:1/-1;justify-content:flex-start}
+  body.mundo .eq-mais-menu{right:auto;left:0}
+}
+@media (prefers-reduced-motion:reduce){body.mundo .eq-mais-menu{animation:none}}

@@ -299,9 +299,9 @@ body.vybe-desktop {
   box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
 }
 .vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head) { padding: 22px !important; }
-.vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
+:where(body:not(.mundo)).vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
 .vybe-desktop .conta-aba { border-radius: 6px !important; }
-.vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
+:where(body:not(.mundo)).vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
 .vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
 /* A barra de ações é grudada no rodapé (position: sticky). Com fundo quase
    transparente o conteúdo rolava por trás e aparecia através dela, com os textos
