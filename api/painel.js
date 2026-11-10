@@ -9,7 +9,7 @@ import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
 import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, pecasLigaveisDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
-import { trocarEscolha, trocarStatus, comentar } from './conteudo.js';
+import { trocarEscolha, trocarStatus, comentar, criarConteudoNaTransacao } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -32,7 +32,7 @@ import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
-import { garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, TIPOS_REUNIAO, QUESTOES } from '../server/reunioes.js';
+import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, TIPOS_REUNIAO, QUESTOES } from '../server/reunioes.js';
 import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
 import { cadastroFinancasPadrao } from '../server/vybe-financas-cadastro.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
@@ -1870,6 +1870,7 @@ async function areaReunioes(req, res, quem) {
   try {
     if (b.acao === 'salvar') return res.status(200).json({ ok: true, reuniao: await salvarReuniao(db, { ...b, id: b.id || null, clienteId, autor: quem?.pessoa?.nome || 'Vybe OS' }) });
     if (b.acao === 'link-onboarding') return res.status(200).json({ ok: true, ...(await linkDoOnboarding(db, clienteId)) });
+    if (b.acao === 'cadastrar-demandas') return res.status(200).json(await cadastrarDemandasDaReuniao(db, quem, { id: b.id, demandas: b.demandas }, { criarConteudoNaTransacao, boardDemandas: 8385559107 }));
     if (b.acao === 'gravacao') {
       const item = 'reuniao:' + Number(b.id);
       if (!b.id) return res.status(400).json({ error: 'Salve a reunião antes de gravar.' });

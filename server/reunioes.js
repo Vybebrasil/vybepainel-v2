@@ -272,3 +272,71 @@ export async function paginaDoOnboarding(req, res, db) {
   res.setHeader('X-Robots-Tag', 'noindex');
   return res.status(200).send(htmlDoOnboarding(cliente, token));
 }
+
+// ── transcrição pelo bot (fase 2) ────────────────────────────────────────────
+// O bot (PC do Paulo) transcreve com o transcrever.py (faster-whisper) e o Qwen sugere resumo, decisões e demandas.
+// O áudio sai do Drive em trechos de até 2,5 MB (cabem na resposta da função); a transcrição volta por outra consulta.
+export const TRECHO_AUDIO = 2.5 * 1024 * 1024;
+
+export async function reunioesParaTranscrever(db) {
+  return (await db`SELECT r.id::text AS id, c.nome AS cliente, r.tipo, r.titulo, TO_CHAR(r.data, 'YYYY-MM-DD') AS data, r.gravacao_drive_id AS arquivo,
+      r.gravacao_bytes AS bytes, r.pauta, r.resumo AS ata, r.participantes
+    FROM vybe_cliente_reunioes r JOIN vybe_clientes c ON c.id = r.cliente_id
+    WHERE r.gravacao_drive_id IS NOT NULL AND r.transcricao IS NULL AND r.estado NOT IN ('transcricao_falhou')
+    ORDER BY r.atualizado_em NULLS LAST LIMIT 2`).map((r) => ({ ...r, bytes: Number(r.bytes) || null }));
+}
+
+export async function trechoDaGravacao(db, { id, inicio = 0 }, baixarTrecho) {
+  const [r] = await db`SELECT gravacao_drive_id AS arquivo, gravacao_bytes AS bytes FROM vybe_cliente_reunioes WHERE id=${Number(id)}`;
+  if (!r?.arquivo) throw erro('Reunião sem gravação.', 404);
+  const total = Number(r.bytes) || 0, de = Math.max(0, Number(inicio) || 0);
+  if (total && de >= total) return { fim: true, inicio: de, total, conteudo: '' };
+  const ate = total ? Math.min(total - 1, de + TRECHO_AUDIO - 1) : de + TRECHO_AUDIO - 1;
+  const bytes = await baixarTrecho(r.arquivo, de, ate);
+  return { inicio: de, total, conteudo: bytes.toString('base64'), fim: !bytes.length || (total ? de + bytes.length >= total : bytes.length < TRECHO_AUDIO) };
+}
+
+const DATA = /^\d{4}-\d{2}-\d{2}$/;
+function limparDemanda(d = {}) {
+  const titulo = txt(d.titulo, 200);
+  if (!titulo) return null;
+  return { titulo, formato: txt(d.formato, 60), responsavel: txt(d.responsavel, 80), briefing: txt(d.briefing, 3000),
+    prazo: DATA.test(String(d.prazo || '')) ? d.prazo : null, veiculacao: DATA.test(String(d.veiculacao || '')) ? d.veiculacao : null, conteudo_id: null };
+}
+
+export async function guardarTranscricao(db, { id, transcricao, resumo, decisoes, demandas, falhou }) {
+  if (falhou) {
+    await db`UPDATE vybe_cliente_reunioes SET estado='transcricao_falhou', atualizado_em=NOW() WHERE id=${Number(id)}`;
+    return { ok: true };
+  }
+  const sugestoes = { resumo: txt(resumo, 4000), decisoes: (Array.isArray(decisoes) ? decisoes : []).map((x) => txt(x, 400)).filter(Boolean).slice(0, 20),
+    demandas: (Array.isArray(demandas) ? demandas : []).map(limparDemanda).filter(Boolean).slice(0, 20), em: new Date().toISOString() };
+  const [n] = await db`UPDATE vybe_cliente_reunioes SET transcricao=${txt(transcricao, 60000)}, sugestoes=${JSON.stringify(sugestoes)}::jsonb,
+      resumo=CASE WHEN resumo='' THEN ${sugestoes.resumo} ELSE resumo END, estado='transcrita', atualizado_em=NOW()
+    WHERE id=${Number(id)} RETURNING id`;
+  if (!n) throw erro('Reunião não encontrada.', 404);
+  return { ok: true, demandas: sugestoes.demandas.length };
+}
+
+// Cadastra no quadro de Solicitações as demandas escolhidas (com o que a pessoa ajustou na tela). Uma transação só.
+export async function cadastrarDemandasDaReuniao(db, quem, { id, demandas }, { criarConteudoNaTransacao, boardDemandas }) {
+  const [r] = await db`SELECT r.id, r.cliente_id, r.sugestoes, r.titulo, r.tipo, TO_CHAR(r.data,'DD/MM/YYYY') AS data, c.nome AS cliente
+    FROM vybe_cliente_reunioes r JOIN vybe_clientes c ON c.id = r.cliente_id WHERE r.id=${Number(id)}`;
+  if (!r) throw erro('Reunião não encontrada.', 404);
+  const escolhidas = (Array.isArray(demandas) ? demandas : []).map(limparDemanda).filter(Boolean).slice(0, 20);
+  if (!escolhidas.length) throw erro('Escolha ao menos uma demanda.');
+  const origem = `Saiu da reunião "${r.titulo || TIPOS_REUNIAO[r.tipo] || 'reunião'}" de ${r.data}.`;
+  const criadas = await db.comTransacao(async (tx) => {
+    const feitas = [];
+    for (const d of escolhidas) {
+      const c = await criarConteudoNaTransacao(tx, quem, { board: boardDemandas, titulo: d.titulo, cliente: r.cliente, formato: d.formato || null,
+        prazo: d.prazo, veiculacao: d.veiculacao, status: 'nova_demanda', briefing: [d.briefing, origem, d.responsavel ? `Responsável sugerido: ${d.responsavel}.` : ''].filter(Boolean).join('\n\n') });
+      feitas.push({ titulo: d.titulo, conteudo_id: String(c.conteudo_id) });
+    }
+    const sug = r.sugestoes || {};
+    sug.cadastradas = [...(sug.cadastradas || []), ...feitas];
+    await tx`UPDATE vybe_cliente_reunioes SET sugestoes=${JSON.stringify(sug)}::jsonb, estado='cadastrada', atualizado_em=NOW() WHERE id=${r.id}`;
+    return feitas;
+  });
+  return { ok: true, criadas };
+}
