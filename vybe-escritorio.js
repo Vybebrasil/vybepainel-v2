@@ -36,6 +36,16 @@ const ESCRITORIO_MIC_CHAVE = "vybe-escritorio-microfone";
 function escritorioMicGuardado() {
   try { const v = localStorage.getItem(ESCRITORIO_MIC_CHAVE); return v === "1" ? true : v === "0" ? false : undefined; } catch { return undefined; }
 }
+// A última sala com voz em que a pessoa esteve (Paulo, 10/11/2026: "quando loga, a pessoa já loga na última sala que
+// ela tava; não tem como não estar em nenhuma sala"). O mundo (vybe-mundo.js) leva a pessoa para ela ao entrar.
+const ESCRITORIO_ULTIMA_SALA = "vybe-escritorio-ultima-sala";
+function escritorioUltimaSala() {
+  try { return localStorage.getItem(ESCRITORIO_ULTIMA_SALA) || ""; } catch { return ""; }
+}
+function escritorioGuardarUltimaSala(zona = escritorio.zona) {
+  if (!zona || escritorio.base?.convidado || !escritorioCanal(zona)) return;
+  try { localStorage.setItem(ESCRITORIO_ULTIMA_SALA, String(zona)); } catch {}
+}
 function escritorioQuererMicrofone(quer) {
   escritorio.microfoneQuer = Boolean(quer);
   try { localStorage.setItem(ESCRITORIO_MIC_CHAVE, quer ? "1" : "0"); } catch {}
@@ -1433,6 +1443,7 @@ function escritorioChegar() {
   Object.assign(escritorio.perfil, escritorioParaPorcentagem(lugar.x, lugar.y));
   escritorio.sala = a.sala;
   escritorio.zona = a.id;
+  escritorioGuardarUltimaSala();
   // Entrar ou sair do subsolo muda quem esta tela pode ver.
   if (escritorio.onlineTodos) escritorio.online = escritorioPresencaVisivel(escritorio.onlineTodos);
 }
@@ -2500,6 +2511,7 @@ function escritorioMudouLugar(x, y, forcar = false) {
   escritorio.perfil = { ...escritorio.perfil, ...escritorioParaPorcentagem(x, y) };
   escritorio.sala = sala;
   escritorio.zona = zona;
+  escritorioGuardarUltimaSala();
   if (escritorio.onlineTodos) escritorio.online = escritorioPresencaVisivel(escritorio.onlineTodos);
   // Como no SoWork: sair da zona encerra a conversa dela. Entrar numa sala
   // (decisão do Paulo) já entra na conversa dela com o microfone ligado.
