@@ -334,13 +334,14 @@
 <!-- ===== PAINEL DIÁRIO DE PRODUÇÃO ===== -->
 <div id="painel-diario" style="display:none;">
   <div class="container">
-    <div class="vb-cabecalho"><span class="pv-ic pv-ic-aba" style="--c:#ee83b7" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/></svg></span>
+    <!-- Quadro 10 do redesign (10/11/2026): sem o ícone rosa e a etiqueta; o alternador e o botão de registrar uma vez só, no topo. -->
+    <div class="vb-cabecalho">
       <div class="vb-cabecalho-texto">
-        <span class="pv-etiqueta" style="--c:#ee83b7">Diário</span><h2>Diário de Produção</h2>
-        <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois</p>
+        <h2>Diário de produção</h2>
+        <p>Fotos do estado dos conteúdos em momentos do dia, para comparar depois.</p>
       </div>
       <div class="vb-cabecalho-acoes">
-        <div id="date-mode-bar-diario" class="date-mode-bar">
+        <div id="date-mode-bar-diario" class="date-mode-bar" role="group" aria-label="Ordenar o registro por">
           <button class="date-mode-btn active" id="diario-mode-veiculacao" onclick="setDiarioDateMode('veiculacao',this)">Veiculação</button>
           <button class="date-mode-btn" id="diario-mode-prazo" onclick="setDiarioDateMode('prazo',this)">Prazo</button>
         </div>
