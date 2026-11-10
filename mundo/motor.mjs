@@ -1,13 +1,10 @@
 // Motor do mundo voxel: renderizador, luz, câmera de maquete, controles de mapa,
 // efeito tilt-shift e rótulos em HTML. Sem dados da Vybe aqui: só o palco.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { HorizontalTiltShiftShader } from 'three/examples/jsm/shaders/HorizontalTiltShiftShader.js';
 import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTiltShiftShader.js';
-import { ESTILO, prepararRenderer, luzDoEstilo } from './estilo.mjs';
+import { ESTILO, prepararRenderer, luzDoEstilo, acabamentoDeMaquete } from './estilo.mjs';
 
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
@@ -106,14 +103,13 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
   }
 
-  // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(cena, camera));
+  // Acabamento de maquete do padrão (estilo.mjs: oclusão nos cantos e brilho no que acende, como no quarto) e, por
+  // cima, o tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  composer.addPass(tiltH); composer.addPass(tiltV);
-  composer.addPass(new OutputPass());
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV] });
+  const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
   const livre = { esq: 0, dir: 0, baixo: 0, atual: { esq: 0, dir: 0, baixo: 0 } };
@@ -396,7 +392,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     lentos = intervalo > 28 || medida.ms > 6 ? lentos + 1 : Math.max(0, lentos - 2);
     if (lentos < 90) return;
     lentos = 0; qualidade--;
-    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; medir(); }
+    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; acabamento.oclusao(false); medir(); }
     else { sol.shadow.mapSize.set(2048, 2048); sol.shadow.map?.dispose(); sol.shadow.map = null; renderer.shadowMap.needsUpdate = true; }
     invalidar();
   }
@@ -441,8 +437,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       if (destruido) return;
       destruido = true; pausado = true; ciclo.destruir(); eventos.abort(); io.disconnect(); ro.disconnect();
       liberarCena(cena);
-      for (const pass of composer.passes) pass.dispose?.();
-      composer.dispose(); renderer.renderLists.dispose(); renderer.dispose();
+      acabamento.destruir(); renderer.renderLists.dispose(); renderer.dispose();
       animadores.length = clicaveis.length = rotulos.length = 0;
       for (const lista of Object.values(ouvintes)) lista.length = 0;
       camadaRotulos.remove();

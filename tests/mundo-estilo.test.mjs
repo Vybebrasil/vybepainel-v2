@@ -127,3 +127,18 @@ test('vitrine do jogador: com o mundo ligado, a .vb-vitrine é o quarto voxel em
   assert.match(q, /if \(!vitrine\) \{ window\.addEventListener\('keydown'/);
   assert.doesNotMatch(vm + css, /vv-perfil-avatar/, 'a ficha não mostra mais o boneco solto num palco');
 });
+
+test('cidade: o motor usa o mesmo acabamento de maquete do quarto (oclusão e brilho), com o desfoque por cima', () => {
+  const m = fs.readFileSync('mundo/motor.mjs', 'utf8');
+  assert.match(m, /acabamentoDeMaquete\(renderer, cena, camera, \{ passes: \[tiltH, tiltV\] \}\)/);
+  assert.match(m, /acabamento\.oclusao\(false\)/, 'a qualidade automática desliga a oclusão primeiro');
+  assert.doesNotMatch(m, /new EffectComposer/, 'sem composer próprio na cidade');
+});
+
+test('árvores da cidade: copa em camadas e coqueiro com folhas em arco, dentro de um raio razoável', () => {
+  for (const tipo of ['copa', 'coqueiro']) {
+    const o = new Obra(); o.arvore(0, 0, 0, { s: 2, tipo });
+    assert.ok(o.solidos.length >= 12, tipo + ' tem detalhe');
+    for (const b of o.solidos) assert.ok(Math.abs(b.x) < 2.4 && Math.abs(b.z) < 2.4, tipo + ': bloco longe demais do tronco');
+  }
+});

@@ -21,7 +21,9 @@ function motorIsolado() {
   doc.createElement = () => ({ className: '', appendChild() {}, remove() {} });
   const canvas = new EventTarget(); canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 300 });
   canvas.parentElement = { appendChild() {} }; canvas.style = {};
-  const ctx = { ...estilo, THREE: { ...THREE, WebGLRenderer: Renderer }, EffectComposer: Composer, RenderPass: Pass, ShaderPass: Pass, OutputPass: Pass,
+  // O acabamento de maquete (estilo.mjs) também é simulado: cada desenho dele conta como um quadro.
+  const acabamentoDeMaquete = () => ({ render() { renders++; }, tamanho() {}, oclusao() {}, destruir() {} });
+  const ctx = { ...estilo, acabamentoDeMaquete, THREE: { ...THREE, WebGLRenderer: Renderer }, EffectComposer: Composer, RenderPass: Pass, ShaderPass: Pass, OutputPass: Pass,
     HorizontalTiltShiftShader: {}, VerticalTiltShiftShader: {}, AbortController, document: doc, window: janela,
     IntersectionObserver: Observer, ResizeObserver: Observer, performance: { now: () => tempo },
     requestAnimationFrame: fn => { frames.set(++i, fn); return i; }, cancelAnimationFrame: id => frames.delete(id),
