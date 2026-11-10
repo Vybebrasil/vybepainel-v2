@@ -253,6 +253,13 @@ function botaoDePreviaNaLinha(item, classe = 'linha-previa') {
     title="Ver o material entregue" aria-label="Ver prévia de ${safeText(item.nome || 'atividade')}">${ICONE_LINHA.previa}</button>`;
 }
 
+// Entregar (enviar o arquivo ou colar o link) ou, já entregue, ver a prévia. Minhas tarefas e o Hoje usam o mesmo botão.
+function botaoDeEntregaHtml(d) {
+  return jaTemMaterial(d)
+      ? `<button type="button" class="focus-brief-btn previa" data-previa-id="${safeText(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
+      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`;
+}
+
 function jaTemMaterial(item) {
   return STATUS_JA_ENTREGUE.has(normalizedWorkflowStatus(operationalFlowStatus(item)));
 }
@@ -343,9 +350,7 @@ function focusTaskHtml(d, contextText='', opcoes={}) {
     <div class="focus-task-title"><div class="focus-task-name">${d.cliente ? `<span class="focus-task-client" title="Cliente: ${safeText(d.cliente)}">${safeText(d.cliente)}</span>` : ''}<button type="button" class="focus-task-open" onclick="openItemWorkspace('${d.id}')">${safeText(d.nome)}</button>${opcoes.origemVaria === false ? '' : operationalOriginTag(d)}${opcoes.riscoVaria === false ? '' : (riskBadgeHtml(d,true) ? `<span class="focus-risk">${riskBadgeHtml(d,true)}</span>` : '')}</div>${prontidaoDaAtividadeHtml(d)}</div>
     <div class="focus-task-meta">${finalMetaHtml}</div>
     ${datasEditaveisHtml(d, user)}
-    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${botaoDeBriefingHtml(d)}${botaoDeMaterialBrutoHtml(d)}${jaTemMaterial(d)
-      ? `<button type="button" class="focus-brief-btn previa" data-previa-id="${safeText(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
-      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
+    <div style="display:flex;align-items:center;gap:7px;justify-content:flex-end;">${botaoDeBriefingHtml(d)}${botaoDeMaterialBrutoHtml(d)}${botaoDeEntregaHtml(d)}${opcoes.donoVaria === false ? '' : ownerEditorTrigger(d,'focus-owner-trigger')}${focusStatusButtonHtml(d)}</div>
   </div>`;
 }
 

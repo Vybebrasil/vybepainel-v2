@@ -1,7 +1,7 @@
 /* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
 
 /* ── janela do cadastro ── */
-#workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
+#workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:var(--vv-janela-alto,calc(100dvh - 32px));overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
 .cad-janela .workflow-copy{color:var(--vv-apagado)}
 .cad-obrig{color:#C2490C;font-style:normal;font-weight:800}
 .cad-passos{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
@@ -19,7 +19,7 @@
 .cad-campo.largo{grid-column:1/-1}
 .cad-campo>span{font:600 12px var(--vv-texto);color:var(--vv-tinta)}
 .cad-campo small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
-.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
+.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background-color:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
 .cad-campo textarea{resize:vertical;min-height:88px;line-height:1.45}
 .cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
 .cad-campo input:disabled{background:#F6F3EE;color:var(--vv-apagado)}
