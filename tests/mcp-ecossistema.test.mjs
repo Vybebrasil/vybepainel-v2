@@ -47,7 +47,7 @@ test('conversa completa: initialize, lista, consulta e registro com cópia no Dr
     assert.equal(ini.corpo.result.serverInfo.name, 'ecossistema-vybe');
     assert.equal((await chamar({ jsonrpc: '2.0', method: 'notifications/initialized' })).code, 202);
     const lista = await chamar({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-    assert.deepEqual(lista.corpo.result.tools.map((t) => t.name), ['listar_clientes', 'consultar_cliente', 'registrar']);
+    assert.deepEqual(lista.corpo.result.tools.map((t) => t.name), ['listar_clientes', 'consultar_cliente', 'registrar', 'propor_pacote_producao']);
 
     const ativos = await chamar({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'listar_clientes', arguments: {} } });
     assert.match(ativos.corpo.result.content[0].text, /Academia Lions/);

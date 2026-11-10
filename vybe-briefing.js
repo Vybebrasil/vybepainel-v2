@@ -252,7 +252,8 @@ async function abrirBriefing(itemId, gatilho) {
 async function gravarBriefing(itemId, texto) {
   const resposta = await fetch('/api/conteudo', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ acao: 'briefing', item: String(itemId), texto: String(texto ?? '') }),
+    // Apagar tudo no editor é escolha de quem editou: vai com apagar: true (o servidor recusa vazio sem isso).
+    body: JSON.stringify({ acao: 'briefing', item: String(itemId), texto: String(texto ?? ''), apagar: !String(texto ?? '').trim() }),
   });
   const dados = await resposta.json().catch(() => ({}));
   if (!resposta.ok || !dados?.ok) throw new Error(dados?.error || `Não foi possível salvar (${resposta.status}).`);
