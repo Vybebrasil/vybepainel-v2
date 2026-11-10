@@ -65,7 +65,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // mundo vem do alto à esquerda e acompanha o que se olha (posicionarCamera).
   const luz = luzDoEstilo(cena, { raio: 140, sombra: { mapa: 4096, lado: 140, longe: 600, bias: -0.0004, normalBias: 0.4 } });
   const { sol, preenche, contorno } = luz;
-  sol.position.set(-110, 160, 70);
+  sol.position.set(-130, 115, 85);
   const sc = sol.shadow.camera; sc.near = 10; sc.updateProjectionMatrix();
   preenche.position.set(120, 80, -90);
   contorno.position.set(110, 70, -120); contorno.target.position.set(0, 0, 0);
@@ -82,6 +82,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // Profundidade (Paulo, 08/11/2026: "a luz meio bugando"): com o corte perto fixo em 1 e a cena vista de até 460,
     // a profundidade perdia precisão e faces vizinhas brigavam (piscavam). O corte acompanha a distância.
     const perto = limitar(dist * 0.12, 0.5, 40), longe = dist * 6 + 900;
+    // Névoa de maquete: o que está bem mais longe que o foco desbota no céu (profundidade, como nas referências).
+    if (cena.fog) { cena.fog.near = dist * 1.15; cena.fog.far = dist * 3.4; }
     if (Math.abs(camera.near - perto) > perto * 0.05 || Math.abs(camera.far - longe) > longe * 0.05) { camera.near = perto; camera.far = longe; camera.updateProjectionMatrix(); }
     // A sombra acompanha o que se olha. A área anda em degraus (não muda a cada pixel de zoom) e o centro da sombra
     // encaixa na grade dos pixels dela: a borda da sombra não "nada" quando a câmera anda. O desvio é medido pelo
@@ -100,22 +102,26 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     const { ax, az, y, lado, texel } = solQuer; solQuer = null;
     if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
     sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
-    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
+    sol.position.set(ax - 130, 115, az + 85); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
+  // Refazer o mapa de sombra (4096², a cidade inteira) é o quadro mais caro: mexendo, nunca (era a cada 150 ms e dava
+  // travadinhas); o mapa velho continua certo no mundo enquanto o sol não anda. Parou, refaz uma vez.
   function atualizarSombra(t, movendo) {
-    if (!sombraPendente) return;
-    if (movendo && t - ultimaSombra < 150) return;
+    if (!sombraPendente || movendo) return;
     sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
-  // Acabamento de maquete do padrão (estilo.mjs: oclusão nos cantos e brilho no que acende, como no quarto) e, por
-  // cima, o tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
+  // Acabamento de maquete do padrão (estilo.mjs) com o tilt-shift: desfoca o alto e o baixo da imagem, como foto de
+  // maquete. Sem o brilho (Paulo, 10/11/2026: "se o brilho do V e do nome tiver pesando pode tirar": era uma cadeia de
+  // desfoques a cada quadro só para o halo do V, dos letreiros e das janelas, que continuam acesos sem ele). Sem a oclusão nos cantos na cidade (investigação de 10/11/2026: "a luz
+  // parece tá bugando tudo"): vista de longe ela quase não aparece, tremulava com a câmera, pesava a 30 qps parada e
+  // ligar/desligar ao parar fazia a luz "pular". O quarto, visto de perto, continua com ela.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV], brilho: ESTILO.brilhoCidade });
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { ao: false, brilho: false, passes: [tiltH, tiltV] });
   const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
@@ -346,12 +352,13 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   function passo(t) {
     if (destruido || pausado || contextoPerdido || !visivel || document.hidden) return false;
     const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
-    // Mexendo: todo quadro. Parado, a cidade vira "foto" aos poucos (Paulo, 07/11/2026: "não ficar renderizando a cidade
-    // toda o tempo todo"): o que só enfeita (nuvem, água, o V girando) cai para 30 qps, depois de 6 s para 15, depois de
-    // 20 s para 4, e depois de 1 min o mapa para de ser desenhado até alguém mexer (ou um dado novo chegar: invalidar).
+    // Mexendo: todo quadro. Parado, o que só enfeita (nuvem, água, o V girando, passantes) anda a 30 qps constantes e,
+    // depois de 1 min sem mexer, o mapa vira "foto": para de ser desenhado até alguém mexer (ou um dado novo chegar).
+    // Antes o ritmo caía aos poucos (6 s, 20 s) e dava a sensação de travar (Paulo, 10/11/2026: "deixa só para depois
+    // de 1 min sem mexer na tela"; 07/11/2026: "não ficar renderizando a cidade toda o tempo todo").
     const parado = performance.now() - ultimaAcao;
     if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
-    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 80 : 50)) return true;
+    if (!interagindo && t - ultimo < 33) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -373,15 +380,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     posicionarCamera();
     let animando = false;
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
-    // Oclusão nos cantos só com a câmera parada: mexendo, ela tremulava (serrilhado) e era a passada mais cara (travava).
-    // O raio acompanha a distância: de longe, cantos maiores; de perto, os do quarto.
-    const quieta = !(movendo || interagindo || mudouLivre);
-    if (quieta !== ultimaQuieta) { ultimaQuieta = quieta; if (qualidade > 1) { acabamento.oclusao(quieta); if (quieta) sujo = true; } }
-    if (quieta) { const r = limitar(orb.dist * 0.006, 0.3, 2.4); if (Math.abs(r - raioAo) > raioAo * 0.1) { raioAo = r; acabamento.raioOclusao(r); sujo = true; } }
+    if (sombraPendente && !(movendo || interagindo)) sujo = true; // parou: um quadro para refazer a sombra
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
-    // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
-    if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    // Sombra da cidade inteira só se refaz quando a câmera para (posicionarCamera marca; atualizarSombra espera parar).
+    // Quem anda (passantes, bichos) tem sombra própria no chão (vida.mjs): sem refazer a cada 12 s (dava travadinha).
     atualizarSombra(t, movendo || interagindo);
     renderer.info.reset();
     const t0 = performance.now();
@@ -396,7 +399,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // ficam lentos (menos de ~35 por segundo ou mais de 6 ms de trabalho por quadro) por uns 3 s seguidos, a cena
   // baixa um degrau: primeiro a nitidez (1×) e o desfoque de maquete, depois a sombra para 2048. Não volta sozinha
   // na mesma sessão (evita ficar trocando).
-  let qualidade = 2, lentos = 0, ultimoQ = 0, ultimaQuieta = null, raioAo = 0;
+  let qualidade = 2, lentos = 0, ultimoQ = 0;
   function conferirQualidade(t, mexendo) {
     if (!mexendo || qualidade === 0) { ultimoQ = t; return; }
     const intervalo = t - ultimoQ; ultimoQ = t;
@@ -404,7 +407,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     lentos = intervalo > 28 || medida.ms > 6 ? lentos + 1 : Math.max(0, lentos - 2);
     if (lentos < 90) return;
     lentos = 0; qualidade--;
-    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; acabamento.oclusao(false); medir(); }
+    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; medir(); }
     else { sol.shadow.mapSize.set(2048, 2048); sol.shadow.map?.dispose(); sol.shadow.map = null; renderer.shadowMap.needsUpdate = true; }
     invalidar();
   }

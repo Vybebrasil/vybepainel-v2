@@ -3587,7 +3587,23 @@
     try { localStorage.setItem(CHAVE, JSON.stringify({ ligado })); } catch { /* sem armazenamento */ }
     sincronizar();
   }
-  window.mundoVoxel = { ligar, ligado: () => ligado, irPara: (id) => usarTrilho(id), abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
+  // Medidor discreto (Paulo, 10/11/2026: "bem otimizado"): com ?medir=1 no endereço (ou mundoVoxel.medir(true)), um
+  // canto mostra o tempo de cada quadro, as chamadas de desenho e a nitidez do mundo, para conferir nos notebooks do
+  // time. Lê a cada segundo só enquanto está ligado; desligado, nada roda.
+  let medidorTimer = 0;
+  function medir(sim = true) {
+    clearInterval(medidorTimer); medidorTimer = 0; document.getElementById('vv-medidor')?.remove();
+    if (!sim) return;
+    const el = document.createElement('div'); el.id = 'vv-medidor'; el.className = 'vv-medidor'; el.setAttribute('role', 'status');
+    const pintar = () => {
+      if (!el.isConnected) document.body.append(el); // a montagem da página pode trocar o body: volta para o canto
+      const d = mundo?.desempenho?.();
+      el.textContent = d ? `${d.msPorQuadro} ms por quadro · ${d.chamadas} desenhos · ${Math.round(d.triangulos / 1000)} mil triângulos · nitidez ${d.pixelRatio}×` : 'Mundo ainda carregando';
+    };
+    pintar(); medidorTimer = setInterval(pintar, 1000);
+  }
+  if (typeof location !== 'undefined' && /[?&]medir=1(&|$)/.test(location.search)) addEventListener('load', () => medir(true), { once: true });
+  window.mundoVoxel = { ligar, ligado: () => ligado, medir, irPara: (id) => usarTrilho(id), abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
     // Conferência visual (presença e clientes) sem mexer nos dados do painel.
     desenharCaptacoes: (lista) => mundo?.definirCaptacoes(lista),
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),
