@@ -115,7 +115,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV] });
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV], brilho: ESTILO.brilhoCidade });
   const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.

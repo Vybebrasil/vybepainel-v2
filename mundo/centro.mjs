@@ -129,7 +129,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       return m;
     });
     // Nuvens de blocos paradas no céu (não animam: o centro só redesenha quando algo muda).
-    const nuvem = new T.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: .92 });
+    const nuvem = new T.MeshBasicMaterial({ color: '#EEF2F6', transparent: true, opacity: .9 }); // abaixo do limiar do brilho: não estoura
     const cubo = new T.BoxGeometry(1, 1, 1), nuvens = [];
     for (let k = 0; k < 7; k++) {
       // Em volta da maquete, nunca por cima dela (não tapam as lojas em nenhuma vista).
