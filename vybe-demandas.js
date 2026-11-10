@@ -744,7 +744,11 @@ function renderDemandaKPIs() {
   // zero fica discreto; cada item continua filtrando a lista.
   alvo.className = 'vb-resumo';
   const tom = (k) => (!k.valor ? '' : k.cls === 'red' ? 'alerta' : k.cls === 'orange' ? 'atencao' : '');
-  alvo.innerHTML = kpis.map((k) => `<button type="button" class="vb-resumo-item ${tom(k)}" aria-pressed="${Boolean(k.aceso)}"
+  // Redesign do legado, fase 2 (Paulo, 09/11/2026): zero não pede ação, então sai da linha (fica só o filtro aceso,
+  // para dar como desligar); tudo zerado, a linha some.
+  const visiveis = kpis.filter((k) => k.valor || k.aceso);
+  alvo.hidden = !visiveis.length;
+  alvo.innerHTML = visiveis.map((k) => `<button type="button" class="vb-resumo-item ${tom(k)}" aria-pressed="${Boolean(k.aceso)}"
       onclick="${k.acao}" title="${k.aceso ? 'Clique para mostrar todas de novo' : `Ver só as ${k.label.toLowerCase()} (${k.sub})`}"><b>${k.valor}</b>${vbRotulo(k.label)}</button>`).join('');
 }
 

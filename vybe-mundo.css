@@ -5435,3 +5435,24 @@ html body.mundo .ops-command-bar .global-search-wrap{display:none}
 html body.mundo .ops-modos>summary{background:#FFFFFF;border-color:#E6E0D6;color:#1F1D1A}
 html body.mundo .ops-modos>summary:hover{border-color:#F26B1D}
 html body.mundo .ops-modos>.ops-acoes{background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:var(--vv-sombra-janela)}
+/* Agenda e captações: o evento mede a própria largura. Estreito (dois na mesma hora), o título vira uma linha com
+   reticências e o horário sai, em vez de quebrar a palavra no meio ("Reuni / de / pa"). */
+html body.mundo .ag-ev{container-type:inline-size}
+@container (max-width:64px){
+  .ag-ev b{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10.5px}
+  .ag-ev small{display:none}
+}
+/* "N gravações para fechar" é um chip de alerta, não um texto solto. */
+html body.mundo .capt-tb-pend.atencao{background:#FDECEE;border:1px solid #F3C7C2;border-radius:999px}
+html body.mundo .capt-tb-pend.atencao b{background:#B42318;color:#FFFFFF}
+/* Agenda da semana do Escritório aberta fora de um módulo (botão Agenda do jogo): a janela é clara no mundo, então
+   o texto do legado (branco) vira escuro aqui também. */
+html body.mundo .ofc-agenda .capt-periodo{color:#5E5A53}
+html body.mundo .ofc-agenda .ag-dia-cab b{color:#1F1D1A}
+html body.mundo .ofc-agenda .ag-ev{color:#1F1D1A}
+html body.mundo .ofc-agenda .ag-ev small{color:#5E5A53}
+/* No celular a semana vira uma faixa de dias (Captações e Agenda do Escritório): números escuros no fundo claro. */
+html body.mundo .ag-faixa-dia{color:#1F1D1A}
+html body.mundo .ag-faixa-dia small{color:#8A847A}
+html body.mundo .ag-faixa-dia.hoje b{color:#C2410C}
+html body.mundo .ag-nada{background:#F6F3EE;color:#5E5A53}
