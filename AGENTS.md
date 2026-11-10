@@ -295,6 +295,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   navegador de quem olha). A Agência abre pelo guia do VYBES. A aba **Criação** (`pintarCriacao`) é o time do Deivid
   (`EQUIPES.design` + `audiovisual`), guiada pelo Danilo; o item Direção de arte do dock abre ela (o painel antigo fica
   a um clique durante a troca). Não crie outra ordem de fila nem outro painel de direção de arte.
+- Assistente do Deivid na Criação (pedido do Deivid, autorizado pelo Paulo em 10/11/2026: "o que temos para hoje?"; "nada é
+  executado sem o meu OK"): `vybe-mundo-criacao.js` (`VybeCriacao`) dá à aba Criação a conversa do Danilo (frases na ordem de
+  `passosDoGuia`), o que mudou desde a última olhada, as delegações (carga pelo peso e limite do painel antigo de direção de
+  arte, `daEffortWeight`/`daCapacitySignal`; experiência por formato e cliente em 90 dias; só peça não começada, mesma
+  disciplina, nunca para o Deivid) e as cobranças (peça parada com a data chegando ou prazo vencido), cada uma com Aprovar →
+  Confirmar, gravadas por `gravarResponsaveisDaPeca` e `postItemUpdate`; e o confirmado × sugestão por cliente (sugestão
+  das regras e dos achados do Danilo, nunca vira demanda daqui). A pergunta livre usa a rota do VYBES (`etapa=perguntar`,
+  respondida pelo Qwen da central). Não crie outra fila, outro peso de carga nem outro jeito de gravar.
 - Cadeado e "ver como" (decisão do Paulo, 09/11/2026): para quem não é dono, Comercial, Finanças, Gestão, Agentes, a
   Visão geral do RH, Recrutamento e Documentos aparecem apagados com cadeado (`TRANCADOS` em `vybe-mundo.js`); os itens
   do Time que são de todos ficam abertos. Os donos (e quem administra) podem "ver como" qualquer pessoa pelo menu da
