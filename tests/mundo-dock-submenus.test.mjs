@@ -24,6 +24,6 @@ test('HUDs: X da janela sem o filtro do kicker, rodapé do tema antigo só no te
   assert.match(css, /\[class\*="-kicker"\],\.day-today-label,\.client-module-kicker\):not\(:has\(button,a,input,select\)\)/);
   assert.match(css, /\[class\*="-kicker"\]:has\(button,a,input,select\) > :not\(button,a,input,select\)\{filter:/);
   assert.ok(legado.includes(':where(body:not(.mundo)) :is(.workspace-actions,.workflow-actions){position:sticky;bottom:0!important;'));
-  assert.ok(css.includes('html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, 0px))!important;'));
-  assert.match(css, /@media \(max-width:900px\)\{body\.mundo\.mundo-modulo\.com-dock-salas::after\{/, 'a folga embaixo só no celular');
+  assert.ok(css.includes('html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;'));
+  assert.ok(!css.includes('body.mundo.mundo-modulo.com-dock-salas::after'), 'no celular a janela já termina acima do dock, sem folga a mais');
 });

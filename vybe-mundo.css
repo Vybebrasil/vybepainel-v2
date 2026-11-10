@@ -385,22 +385,25 @@ body.mundo.mundo-modulo #mundo{display:block;z-index:-1}
 body.mundo.mundo-modulo #mundo .mundo-fonte,body.mundo.mundo-modulo #mundo .mundo-rotulos{display:none}
 body.mundo.mundo-modulo #mundo-hud{display:block}
 body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
-#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:var(--vv-m);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
+/* Moldura única (Paulo, 10/11/2026: "não parece que tá integrado"): a tela antiga ocupa a MESMA caixa das janelas novas
+   (Comercial, Pessoas, Carteira…): ao lado do dock lateral, do topo até acima do dock das salas. Sem o dock, a conta
+   cai em var(--vv-m) (o -6px desfaz o vão). */
+#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
-body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:var(--vv-m)}
+body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;backdrop-filter:none;margin-top:0}
 body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
 @media (max-width:900px){
   body.mundo.mundo-modulo{padding-left:0!important;padding-right:0!important;padding-bottom:calc(64px + 3 * var(--vv-m))!important}
-  #mundo-moldura{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
+  #mundo-moldura{left:0;right:0;top:0;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);border-radius:0}
 }
 
 /* ---------- Pele clara dos módulos (camada 2 da roupagem nova) ----------
    As variáveis do painel (--surface, --text, --vybe-*, --pv-*) mudam só dentro das áreas de trabalho;
    as janelas por cima (workflow-modal etc.) continuam como estão até ganharem a camada delas.
    Peças com cor fixa no vybe-styles.css recebem ajuste pontual abaixo (levantadas no navegador). */
-body.mundo.mundo-modulo #mundo-moldura{background:rgba(250,248,244,.9)}
+body.mundo.mundo-modulo #mundo-moldura{background:#F6F3EE;border-color:transparent}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)){
   --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
   --vybe-glass:rgba(255,255,255,.86);--vybe-glass-strong:rgba(255,255,255,.95);--vybe-line:rgba(31,29,26,.10);--vybe-line-quiet:rgba(31,29,26,.06);
@@ -3098,7 +3101,7 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
   html body.mundo :is(.vv-botao,.vv-trilho button,.board-switch-btn,.date-mode-btn,.day-pending-tabs button,.vv-cb-aba,.vv-pessoa,.vv-demanda-abrir,.workflow-primary,.workflow-secondary,.irecity-modos button,.cr-abrir,.vb-chip,.vb-botao):active{transform:scale(.97);transition:transform .08s ease}
   html body.mundo :is(.vv-botao,.vv-trilho button,.date-mode-btn,.day-pending-tabs button,.vv-cb-aba,.vb-chip,.vb-botao){transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease}
   /* troca de aba/quadro: o conteúdo entra subindo */
-  html body.mundo.mundo-modulo .container>*:not(script):not(style){animation:vv-entra .26s cubic-bezier(.2,.8,.2,1) both}
+  html body.mundo.mundo-modulo .container{animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}
   html body.mundo.mundo-modulo :is(.day-activity-scroll,.grupo-tabela-rolagem,.da-controller-dashboard,#conta-conteudo){animation:vv-aba .22s ease both}
   /* janelas e cartões flutuantes surgem com escala curta */
   html body.mundo :is(.cartao-rapido,.workflow-modal:not(.ofc-snc-jogo),dialog.ofc-ficha[open],.spotlight-dialog,#notif-caixa){animation:vv-surge .2s cubic-bezier(.2,.8,.2,1) both}
@@ -3114,9 +3117,9 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
 html:has(> body.mundo.mundo-modulo){overflow:hidden!important;height:100%}
 /* Com o dock das salas embaixo, a área que rola termina onde a moldura termina (Paulo, 09/11/2026: a tabela de Clientes
    passava da moldura e aparecia por cima do mapa, atrás do dock). --vv-dock-alto só existe com o dock. */
-html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, 0px))!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
+html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
   padding:0 18px 28px!important;overflow-x:hidden!important;overflow-y:auto!important;border-radius:var(--vv-r-placa);overscroll-behavior:contain;scrollbar-gutter:stable;scroll-behavior:smooth}
-@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(64px + 2 * var(--vv-m))!important;border-radius:0 0 14px 14px;padding:0 10px 20px!important}}
+@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;border-radius:0;padding:0 10px 20px!important}}
 html body.mundo.mundo-modulo::-webkit-scrollbar{width:10px}
 html body.mundo.mundo-modulo::-webkit-scrollbar-thumb{background:rgba(31,29,26,.18);border-radius:6px;border:3px solid transparent;background-clip:padding-box}
 html body.mundo.mundo-modulo::-webkit-scrollbar-track{background:transparent}
@@ -3235,12 +3238,15 @@ html body.mundo .vb-resumo-item:is(.info,.neutro):not(#vv-x){background:#EEF4FC!
 html body.mundo .vb-resumo-item b{color:inherit!important}
 
 /* ===== Módulo: tela cheia e fechar no canto ===== */
-.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 10px);right:calc(var(--vv-m) + 14px);z-index:640;gap:6px}
+.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 12px);right:calc(var(--vv-m) + 16px);z-index:640;gap:2px}
 /* Uma janela de módulo aberta por cima de uma tela antiga (palco-modulo) tem o próprio cabeçalho: o topo do mundo e o canto
    da tela antiga saem, para não cobrir o fechar, a ajuda e a ação dela (fase 3d, achado no Comercial). */
 body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
-.vv-canto-modulo .vv-botao{width:36px;height:36px;padding:0;justify-content:center;border-radius:8px;background:rgba(255,255,255,.92)!important;border:1px solid #E6E0D6!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
-.vv-canto-modulo .vv-botao:hover{background:#fff!important;border-color:var(--vv-acao,#C2490C)!important}
+/* O canto é do cabeçalho da janela: um vão flutuando no alto à direita faz o cabeçalho da tela antiga (título, ações)
+   terminar antes do ⛶ e do X, sem mexer em cada tela; o que gruda no topo ao rolar já deixa o canto livre (abaixo). */
+body.mundo.mundo-modulo::before{content:"";float:right;width:84px;height:48px}
+.vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:transparent!important;border:0!important;box-shadow:none}
+.vv-canto-modulo .vv-botao:hover{background:#F4EFE8!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .vv-canto-modulo .vv-botao[aria-pressed="true"]{background:var(--vv-acao,#C2490C)!important}.vv-canto-modulo .vv-botao[aria-pressed="true"] svg{stroke:#fff}
 html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
@@ -3248,6 +3254,8 @@ body.mundo.mundo-modulo.mundo-tela-cheia #mundo-moldura{top:0!important;left:0!i
 body.mundo.mundo-modulo.mundo-tela-cheia #mundo-hud .vv-trilho{display:none!important}
 body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:10px;right:14px}
 @media (max-width:900px){.vv-canto-modulo{top:8px;right:8px}}
+/* No celular não cabe o cabeçalho ao lado do canto: o vão vira uma faixa no alto, como a barra das janelas novas. */
+@media (max-width:900px){body.mundo.mundo-modulo::before{float:none;display:block;width:auto;height:44px}}
 
 /* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
 html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
@@ -4158,8 +4166,6 @@ html body #login-gate.irecity .abr-kicker{font:600 12px var(--vv-texto)!importan
 /* Telas do painel antigo (Gestor, Demandas, Clientes, Agenda, Direção de arte) dentro do Irecity: uma barra de ícones só.
    O cabeçalho antigo repetia voltar, logo, conta, avisos, notas, busca e "Trocar de modo" (o menu da esquerda já faz). */
 html body.mundo.mundo-modulo .app-header :is(.header-left,.logo,.header-row2){display:none!important}
-html body.mundo.mundo-modulo:not(.palco-modulo) #mundo-hud > .vv-topo{display:flex!important}
-html body.mundo.mundo-modulo #mundo-hud > .vv-topo :is(.vv-vistas,.vv-divisor,[data-ferr="camadas"]){display:none!important}
 html body.mundo.mundo-modulo .app-header{padding-right:calc(var(--vv-col) + 8px)}
 
 /* Comercial em tela cheia (08/11/2026): gráfico do caixa com altura limitada, fases ocupando a largura, estado vazio
@@ -4178,7 +4184,6 @@ html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
 html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-coluna-fundo,var(--vv-m))!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
-html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
 html body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{right:calc(var(--vv-m) * 2 + 360px)}
 @media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:var(--vv-coluna-fundo,calc(64px + 2 * var(--vv-m)))!important}}
 /* X do Cadastro rápido visível no papel claro (antes: #ece8e3 sobre creme, sumia). Paulo: "não tem o x de fechar". */
@@ -4228,7 +4233,6 @@ button.vv-pilula{border:0;font:inherit;cursor:pointer}
   body.mundo #manager-command-toggle{white-space:normal;min-width:0;max-width:100%;box-sizing:border-box}
   body.mundo details.header-utilities .header-utilities-menu{right:0;left:auto;max-width:calc(100vw - 16px)}
   /* Botões tela cheia/fechar dos módulos: abaixo da barra de ícones, no canto direito (antes: fora da tela à esquerda). */
-  body.mundo .vv-canto-modulo{right:var(--vv-m)!important;left:auto!important;top:calc(var(--vv-m) + 56px)!important}
 }
 /* Celular: barra do menu rolável de lado, cada botão com largura própria (antes: 13 botões em 357px, rótulos colados "HojeGestãoCriar"). */
 @media (max-width:900px){
@@ -4461,9 +4465,9 @@ html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:calc(var(--vv-col) - 14px)}
 }
 
-/* Telas antigas abaixo da barra de ícones (Paulo, 08/11/2026: "menu que se sobrepõe"): o conteúdo do módulo começava
-   a 58 px e a barra do mundo termina a 62 px, cobrindo os números do topo (ex.: Direção de arte). */
-@media (min-width:901px){html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:56px!important}}
+/* Moldura única (10/11/2026): sem a barra do mundo por cima, o cabeçalho da tela antiga sobe para o topo da janela, como
+   o das janelas novas (antes descia 56 px para sair de baixo da barra). */
+@media (min-width:901px){html body.mundo.mundo-modulo > .container{padding-top:6px!important}}
 /* Mesa de comando sem nada para decidir: uma linha discreta, sem cartões de zero (padrão Vybe). */
 .da-command-daily-vazio{margin:6px 0 0;padding:12px 14px;border-radius:10px;background:rgba(46,157,91,.08);color:#1D7A3E;font:600 13px var(--vv-texto,inherit)}
 .da-command-daily-card.vazia .da-command-daily-count{font-size:20px;opacity:.55}
@@ -4785,13 +4789,6 @@ html body.mundo .plj-aviso.recolhido{display:none!important}
   /* Tudo começa abaixo do cabeçalho. */
   html body.mundo:not(.mundo-centro) .vv-hoje{top:calc(var(--vv-m) + 62px)!important}
   html body.mundo:not(.mundo-centro):not(.agenda-fixa) #vv-hoje > :first-child{margin-right:0!important}
-  html body.mundo .vv-gestao{top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia){top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) #mundo-moldura{top:calc(var(--vv-m) + 62px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) > .container{padding-top:22px!important}
-  /* Tela cheia e fechar do módulo: no fim do cabeçalho, à esquerda da conta. */
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-canto-modulo{top:calc(var(--vv-m) + 8px)!important;right:calc(var(--vv-m) + 8px)!important}
-  html body.mundo.mundo-modulo:not(.mundo-tela-cheia) .vv-barra-topo{padding-right:96px!important}
   /* Janelinhas da barra abrem abaixo do cabeçalho. */
   html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda,html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 62px)!important}
 }
@@ -5212,9 +5209,6 @@ body.com-dock-salas{--vv-dock-alto:74px}
 @media (min-width:1360px){body.mundo.mundo-quarto .vv-dock-salas-faixa{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}}
 @media (max-width:900px){.vv-dock-salas-faixa{left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:calc(64px + 3 * var(--vv-m,12px))}}
 body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-alto)}
-body.mundo.mundo-modulo.com-dock-salas #mundo-moldura{bottom:calc(var(--vv-m) + var(--vv-dock-alto))}
-/* No celular a área do módulo vai até o trilho de baixo: a folga deixa o fim da lista acima do dock das salas. */
-@media (max-width:900px){body.mundo.mundo-modulo.com-dock-salas::after{content:"";display:block;height:var(--vv-dock-alto)}}
 /* os botões da voz no dock: o estado escrito e a cor só de estado */
 .vq-dock .vq-mic.on .vq-icone{background:linear-gradient(180deg,#2BC26C,#18A957);border-color:#11613A;color:#FFFFFF}
 .vq-dock .vq-mic.mudo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
@@ -5365,7 +5359,7 @@ body.mundo{
 body.mundo :is(.vs-kpi b,.vbl-kpi b,.vbl-num b,.pv-kpi strong,.vga-numeros b,.kpi b){font-variant-numeric:tabular-nums}
 
 /* Material das janelas: papel com um fio de luz em cima e sombra em camadas (perto, meio, longe). */
-html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,.vbl-janela,.vpc-janela){
+html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,.vbl-janela,.vpc-janela,.vv-gestao,#mundo-moldura){
   box-shadow:var(--vv-sombra-janela),inset 0 1px 0 rgba(255,255,255,.75)}
 
 /* O legado sem os vícios (quadros 01–13 do moodboard) */
@@ -5378,7 +5372,7 @@ html body.mundo.trilho-largo .vs-atalhos{display:none}
   /* Janelas de módulo, boletim, peça e visão geral: entram subindo com mola. */
   /* Só movimento, sem opacidade: se a animação não andar (aba em segundo plano, pausa), a janela aparece do mesmo jeito. */
   @keyframes vv-janela{from{scale:.982;translate:0 10px}to{scale:1;translate:0 0}}
-  html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,#vv-agentes,.vv-gestao,.vbl-janela,.vpc-janela,#vv-whatsapp):not([hidden]){
+  html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,#vv-agentes,.vv-gestao,.vbl-janela,.vpc-janela,#vv-whatsapp,#mundo-moldura):not([hidden]){
     animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}
   /* O fundo das janelas por cima escurece devagar, em vez de piscar. */
   @keyframes vv-fundo{from{opacity:0}to{opacity:1}}
