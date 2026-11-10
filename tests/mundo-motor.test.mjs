@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as THREE from 'three';
+import * as estilo from '../mundo/estilo.mjs';
 
 // Executa o passo real com WebGL/RAF simulados: prova quando há desenho sem depender de GPU.
 function motorIsolado() {
@@ -20,7 +21,7 @@ function motorIsolado() {
   doc.createElement = () => ({ className: '', appendChild() {}, remove() {} });
   const canvas = new EventTarget(); canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 300 });
   canvas.parentElement = { appendChild() {} }; canvas.style = {};
-  const ctx = { THREE: { ...THREE, WebGLRenderer: Renderer }, EffectComposer: Composer, RenderPass: Pass, ShaderPass: Pass, OutputPass: Pass,
+  const ctx = { ...estilo, THREE: { ...THREE, WebGLRenderer: Renderer }, EffectComposer: Composer, RenderPass: Pass, ShaderPass: Pass, OutputPass: Pass,
     HorizontalTiltShiftShader: {}, VerticalTiltShiftShader: {}, AbortController, document: doc, window: janela,
     IntersectionObserver: Observer, ResizeObserver: Observer, performance: { now: () => tempo },
     requestAnimationFrame: fn => { frames.set(++i, fn); return i; }, cancelAnimationFrame: id => frames.delete(id),

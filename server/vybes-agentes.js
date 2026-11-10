@@ -8,6 +8,9 @@
 //   GET  /api/cosmos/agentes/estudos?cliente → estudo do cliente (setor, concorrentes, ameaças, oportunidades)
 //   POST /api/cosmos/agentes/rotinas         → ligar/desligar rotina (a central aceita só dos donos)
 //   POST /api/cosmos/agentes/achados         → resolvido / ignorar / errado; lição: incorporar / contestar
+//   GET  /api/cosmos/agentes/estados         → estado de cada agente e os pedidos de aprovação (só donos)
+//   POST /api/cosmos/agentes/estado          → ativo / sombra / pausado (com "até" opcional) / desligado (só donos)
+//   POST /api/cosmos/agentes/aprovacao       → aprovar / recusar um pedido de agente em sombra (só donos)
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 const SETOR = /^[a-z]{2,20}$/;
 
@@ -86,8 +89,31 @@ export async function lerEstudoCliente(urlEntrada, cliente, opcoes = {}) {
   return { ok: true, fonte: 'central-vybes', lidoEm: Date.now(), ...limparJson(c ? { cliente: d.cliente, ultimo: d.ultimo, anteriores: d.anteriores } : { estudos: d.estudos }) };
 }
 
+// Estados e pedidos de aprovação (Paulo, 09/11/2026). A central decide e executa; aqui só passa o que tem forma certa.
+const MODO = ['ativo', 'sombra', 'pausado', 'desligado'], CODIGO = /^[a-z]{2}\d{2}$/;
+const TXT = (v, n) => typeof v === 'string' && v.length <= n, DATA = (v) => v == null || (TXT(v, 40) && Number.isFinite(Date.parse(v)));
+export function validarEstados(d) {
+  if (d?.ok !== true || !Array.isArray(d.agentes) || !Array.isArray(d.pedidos)) throw erro('Resposta inválida da central.', 502);
+  const agentes = d.agentes.slice(0, 60).filter((a) => a && SETOR.test(a.setor) && MODO.includes(a.estado) && DATA(a.ate) && DATA(a.em))
+    .map((a) => ({ setor: a.setor, agente: TXT(a.agente, 40) ? a.agente : '', estado: a.estado, padrao: MODO.includes(a.padrao) ? a.padrao : null, ate: a.ate || null,
+      por: TXT(a.por, 60) ? a.por : '', em: a.em || null, explica: TXT(a.explica, 200) ? a.explica : '' }));
+  const pedido = (x) => x && CODIGO.test(x.id) && SETOR.test(x.setor) && TXT(x.resumo, 200) && DATA(x.criadoEm) && DATA(x.expiraEm);
+  const limpo = (x) => ({ id: x.id, setor: x.setor, agente: TXT(x.agente, 40) ? x.agente : '', tipo: TXT(x.tipo, 30) ? x.tipo : '', resumo: x.resumo, destino: TXT(x.destino, 80) ? x.destino : '',
+    previa: TXT(x.previa, 1200) ? x.previa : String(x.previa || '').slice(0, 1200), status: TXT(x.status, 20) ? x.status : '', criadoEm: x.criadoEm || null, expiraEm: x.expiraEm || null,
+    decididoPor: TXT(x.decididoPor, 60) ? x.decididoPor : '', decididoEm: DATA(x.decididoEm) ? x.decididoEm || null : null, motivo: TXT(x.motivo, 300) ? x.motivo : '', erro: TXT(x.erro, 80) ? x.erro : '' });
+  return { ok: true, fonte: 'central-vybes', lidoEm: Date.now(), geradoEm: DATA(d.geradoEm) ? d.geradoEm || '' : '', agentes,
+    pedidos: d.pedidos.slice(0, 200).filter(pedido).map(limpo), recentes: (Array.isArray(d.recentes) ? d.recentes : []).slice(0, 30).filter(pedido).map(limpo) };
+}
+export async function lerEstadosAgentes(urlEntrada, opcoes = {}) {
+  const { status, d } = await chamarCentral(urlEntrada, '/api/cosmos/agentes/estados', opcoes);
+  if (status >= 400) throw erro('Não foi possível ler os estados dos agentes.', 502);
+  return validarEstados(d);
+}
+
 const ERROS = { ROTINA_INVALIDA: 'Rotina inválida.', ROTINA_FIXA: 'Essa rotina é de lembrete pedido pela pessoa e não desliga por aqui.', ACAO_INVALIDA: 'Ação inválida.',
-  NAO_ENCONTRADO: 'Esse achado já foi fechado.', NAO_ENCONTRADA: 'Lição não encontrada.' };
+  NAO_ENCONTRADO: 'Esse achado já foi fechado.', NAO_ENCONTRADA: 'Lição não encontrada.',
+  SETOR_INVALIDO: 'Agente inválido.', ESTADO_INVALIDO: 'Estado inválido.', ATE_SO_NA_PAUSA: 'A data de volta só vale para pausar.', ATE_INVALIDO: 'A data de volta precisa ser no futuro (até 90 dias).',
+  DECISAO_INVALIDA: 'Decisão inválida.', JA_DECIDIDO: 'Esse pedido já foi decidido.', EXPIRADO: 'Esse pedido venceu sem decisão.' };
 export async function mudarNaCentral(urlEntrada, corpo, opcoes = {}) {
   const b = corpo || {}, etapa = String(b.etapa || '');
   let caminho, envio;
@@ -97,18 +123,30 @@ export async function mudarNaCentral(urlEntrada, corpo, opcoes = {}) {
   } else if (etapa === 'achado') {
     if (b.licao ? !['incorporar', 'contestar'].includes(b.acao) : !['resolvido', 'ignorar', 'errado'].includes(b.acao)) throw erro('Ação inválida.', 400);
     caminho = '/api/cosmos/agentes/achados'; envio = b.licao ? { licao: String(b.licao).slice(0, 60), acao: b.acao } : { chave: String(b.chave || '').slice(0, 200), acao: b.acao };
+  } else if (etapa === 'estado') {
+    if (!SETOR.test(String(b.setor || '')) || !MODO.includes(b.estado)) throw erro('Estado inválido.', 400);
+    if (b.ate != null && b.ate !== '' && (b.estado !== 'pausado' || !Number.isFinite(Date.parse(String(b.ate))))) throw erro(ERROS.ATE_SO_NA_PAUSA, 400);
+    caminho = '/api/cosmos/agentes/estado'; envio = { setor: b.setor, estado: b.estado, ...(b.ate ? { ate: new Date(Date.parse(String(b.ate))).toISOString() } : {}) };
+  } else if (etapa === 'aprovacao') {
+    if (!CODIGO.test(String(b.id || '')) || !['aprovar', 'recusar'].includes(b.decisao)) throw erro('Decisão inválida.', 400);
+    caminho = '/api/cosmos/agentes/aprovacao'; envio = { id: b.id, decisao: b.decisao, motivo: String(b.motivo || '').replace(/\s+/g, ' ').trim().slice(0, 300) };
   } else throw erro('Ação inválida.', 400);
   const { status, d } = await chamarCentral(urlEntrada, caminho, { metodo: 'POST', corpo: envio, limite: 64 * 1024, ...opcoes });
+  // Aprovado mas a ação falhou ao executar: a central devolve o pedido com status "falhou" (a decisão ficou registrada).
+  if (etapa === 'aprovacao' && status === 200 && d?.pedido?.status === 'falhou') return { ok: false, falhou: true, erro: String(d.erro || d.pedido.erro || 'falhou').slice(0, 80) };
   if (status >= 400 || d?.ok !== true) throw erro(ERROS[d?.erro] || 'A central recusou a mudança.', status === 400 ? 400 : 502);
-  return { ok: true };
+  return etapa === 'estado' ? { ok: true, agente: limparJson(d.agente) } : etapa === 'aprovacao' ? { ok: true, pedido: limparJson(d.pedido) } : { ok: true };
 }
 
 // Leituras GET da área VYBES que este módulo atende (o roteador em server/vybes.js e o servidor de desenvolvimento usam).
-export const ETAPAS_LEITURA = ['perfil', 'mapa', 'pendencias', 'estudo'];
+export const ETAPAS_LEITURA = ['perfil', 'mapa', 'pendencias', 'estudo', 'estados'];
+// Etapas só de dono: o servidor confere a sessão antes de ir à central (que confere de novo).
+export const ETAPAS_DE_DONO = ['estados', 'estado', 'aprovacao'];
 export async function lerEtapa(etapa, urlEntrada, query = {}, opcoes = {}) {
   if (etapa === 'perfil') return lerPerfilAgente(urlEntrada, query.setor, opcoes);
   if (etapa === 'mapa') return lerMapaCerebro(urlEntrada, opcoes);
   if (etapa === 'pendencias') return lerPendencias(urlEntrada, opcoes);
   if (etapa === 'estudo') return lerEstudoCliente(urlEntrada, query.cliente, opcoes);
+  if (etapa === 'estados') return lerEstadosAgentes(urlEntrada, opcoes);
   throw erro('Leitura inválida.', 400);
 }

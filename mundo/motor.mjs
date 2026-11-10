@@ -7,6 +7,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { HorizontalTiltShiftShader } from 'three/examples/jsm/shaders/HorizontalTiltShiftShader.js';
 import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTiltShiftShader.js';
+import { ESTILO, prepararRenderer, luzDoEstilo } from './estilo.mjs';
 
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
@@ -55,11 +56,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   // 1,5× já é nítido no Retina e desenha ~44% menos pixels que 2×.
   renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  prepararRenderer(renderer); // acabamento do padrão voxel (estilo.mjs)
   // Sombra só é recalculada quando a câmera (ou a área iluminada) muda: o sol é parado e a cidade também.
   renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
   renderer.info.autoReset = false; // o composer desenha várias passadas: zera uma vez por quadro, para medir o quadro inteiro
@@ -67,19 +64,14 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const cena = new THREE.Scene();
   cena.fog = new THREE.Fog(0xcfe2e6, 900, 2200);
 
-  const hemi = new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9);
-  cena.add(hemi);
-  const sol = new THREE.DirectionalLight(0xfff1d8, 2.1);
+  // Luz do padrão voxel (estilo.mjs): céu, sol com sombra, preenchimento frio e o contorno quente por trás. O sol do
+  // mundo vem do alto à esquerda e acompanha o que se olha (posicionarCamera).
+  const luz = luzDoEstilo(cena, { raio: 140, sombra: { mapa: 4096, lado: 140, longe: 600, bias: -0.0004, normalBias: 0.4 } });
+  const { sol, preenche, contorno } = luz;
   sol.position.set(-110, 160, 70);
-  sol.castShadow = true;
-  sol.shadow.mapSize.set(4096, 4096);
-  sol.shadow.bias = -0.0004;
-  sol.shadow.normalBias = 0.4;
-  const sc = sol.shadow.camera; sc.left = -140; sc.right = 140; sc.top = 140; sc.bottom = -140; sc.near = 10; sc.far = 600;
-  cena.add(sol, sol.target);
-  const preenche = new THREE.DirectionalLight(0xcfe4ff, 0.35);
+  const sc = sol.shadow.camera; sc.near = 10; sc.updateProjectionMatrix();
   preenche.position.set(120, 80, -90);
-  cena.add(preenche);
+  contorno.position.set(110, 70, -120); contorno.target.position.set(0, 0, 0);
 
   const camera = new THREE.PerspectiveCamera(22, 1, 1, 6000);
   const orb = { alvo: new THREE.Vector3(0, 0, 0), dist: 420, giro: -0.75, incl: 0.92 };
@@ -427,10 +419,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // passa a se destacar sozinho, porque não depende da luz.
     ambiente(noite = 0) {
       const k = limitar(Number(noite) || 0, 0, 1);
-      hemi.intensity = .9 - .38 * k; hemi.color.set(0xeaf6ff).lerp(new THREE.Color(0x7083c4), k); hemi.groundColor.set(0x7e6a4e).lerp(new THREE.Color(0x2a2a3a), k);
-      sol.intensity = 2.1 - 1.3 * k; sol.color.set(0xfff1d8).lerp(new THREE.Color(0xa9bbff), k);
-      preenche.intensity = .35 - .2 * k;
-      renderer.toneMappingExposure = 1.05 - .2 * k;
+      luz.hora(k);
+      renderer.toneMappingExposure = ESTILO.exposicao + (ESTILO.noite.exposicao - ESTILO.exposicao) * k;
       cena.background = k > 0 ? new THREE.Color(0xcfe2e6).lerp(new THREE.Color(0x26345e), k) : null;
       cena.fog.color.set(0xcfe2e6).lerp(new THREE.Color(0x26345e), k);
       renderer.shadowMap.needsUpdate = true; invalidar();

@@ -3,6 +3,7 @@
 // pessoas que estão nele. Cada zona do Escritório é uma sala do andar.
 import * as THREE from 'three';
 import { Obra } from './voxel.mjs';
+import { prepararRenderer, luzDoEstilo } from './estilo.mjs';
 import { ruido } from './irece.mjs';
 import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraDoAgente } from './avatar.mjs';
@@ -205,18 +206,15 @@ export function abrirAndar(canvas, { zonas = [], titulo = '', agentes = [], cor 
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  prepararRenderer(renderer); // acabamento do padrão voxel (estilo.mjs)
   const cena = new THREE.Scene();
   let sujo = true; // algo mudou e a cena precisa ser desenhada de novo (ver passo)
   // Vista arrumada (Paulo, 08/11/2026: o andar do time "embolado"): esconde a decoração e os móveis das salas e
   // deixa só a planta (pisos, paredes, placas e as pessoas). Não muda nada salvo; a sala em edição sempre aparece.
   let arrumado = false;
-  cena.add(new THREE.HemisphereLight('#F6FAFF', '#8A7A62', 1.25));
-  const sol = new THREE.DirectionalLight('#FFF1D8', 1.9); sol.position.set(W + 8, 18, D + 10); sol.target.position.set(W / 2, 0, D / 2);
-  sol.castShadow = true; sol.shadow.mapSize.set(4096, 4096); const s = Math.max(W, D); Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, far: 80 }); sol.shadow.bias = -.0005;
-  const preenche = new THREE.DirectionalLight('#CFE4FF', .45); preenche.position.set(-10, 12, D + 6);
-  cena.add(sol, sol.target, preenche);
+  // Luz e sombra do padrão voxel (estilo.mjs), em modo interior.
+  const raioLuz = Math.max(W, D);
+  const { sol } = luzDoEstilo(cena, { centro: [W / 2, 0, D / 2], raio: raioLuz, interior: true, sombra: { mapa: 4096, lado: raioLuz, longe: 80, bias: -.0005, normalBias: .03 } });
 
   const casca = new Obra(), corSetor = new THREE.Color(cor);
   const tom = (t) => '#' + corSetor.clone().lerp(new THREE.Color('#FFFFFF'), t).getHexString();

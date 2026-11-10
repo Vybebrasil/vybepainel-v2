@@ -120,9 +120,19 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
     const passoT = s / 3, tMin = -1, tMax = W + D - 1;
     const colunas = Math.ceil(foto.w / passoFino), linhas = Math.ceil(foto.h / passoFino);
     const fundo = new Float32Array(colunas * linhas).fill(NaN), pixels = [];
+    // Grão do mundo (Paulo, 09/11/2026: "os quartos e o mundo parecem nem pertencer ao mesmo criador"): cada bloco
+    // da casca cobre passoFino × passoFino pixels; entra se a célula estiver ao menos meio cheia, com a cor da célula
+    // sem o contorno preto do Habbo (corSemContorno), e depois cai na paleta curta da peça (cores chapadas).
+    const celula = (px, py) => {
+      let n = 0, r = 0, g = 0, b = 0;
+      for (let y = py; y < Math.min(foto.h, py + passoFino); y++) for (let x = px; x < Math.min(foto.w, px + passoFino); x++) {
+        const c = foto.cor ? foto.cor(x, y) : foto.pixel(x, y); if (!c) continue; n++; r += c[0]; g += c[1]; b += c[2];
+      }
+      return n * 2 >= passoFino * passoFino ? [r / n, g / n, b / n] : null;
+    };
     for (let py = 0, ly = 0; py < foto.h; py += passoFino, ly++) for (let px = 0, lx = 0; px < foto.w; px += passoFino, lx++) {
-      const c = foto.pixel(px, py); if (!c) continue;
-      const sx = px + foto.ox, sy = py + foto.oy;
+      const c = celula(px, py); if (!c) continue;
+      const sx = px + passoFino / 2 + foto.ox, sy = py + passoFino / 2 + foto.oy;
       // Raio da câmera do Habbo por este pixel: u − v fixo, e h sobe com u + v (t). Vem da frente (t alto) para trás.
       for (let t = tMax; t >= tMin; t -= passoT) {
         const u = (t + sx / 32) / 2, v = (t - sx / 32) / 2, h = (t * 16 - sy) / 32, a = u + .5, b = v + .5;
@@ -150,12 +160,29 @@ export function esculpir({ W, D, dir, vistas, N = 8, alturaMax = null, limiar = 
       t = dentro(t, q.sx);
       const a = (t + q.sx / 32) / 2 + .5, b = (t - q.sx / 32) / 2 + .5, h = (t * 16 - q.sy) / 32;
       if (h < -.02) continue;
-      finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, cor: hex(q.c) });
+      finos.push({ x: a, y: Math.max(0, h * NIVEL_HABBO - ladoFino / 2), z: b, c: q.c, lx: q.lx, ly: q.ly });
     }
+    chapar(finos, Math.min(cores, 7));
+    for (const f of finos) { delete f.lx; delete f.ly; }
   }
   return { W, D, lado: s, blocos, finos, ladoFino, altura: ny * s, sinal };
 }
 
+// Cores chapadas (referências de 09/11/2026: faces lisas, poucas cores): a peça fica com até n cores e cada bloco
+// pega a cor que mais aparece em volta dele no desenho (3 × 3), o que tira o sombreado pontilhado do pixel art.
+// Recebe [{ c: [r,g,b], lx, ly }] (posição na grade do desenho) e escreve .cor em cada um.
+export function chapar(lista, n = 7) {
+  const pal = paletaCurta(lista.map((q) => q.c), n), mapa = new Map();
+  for (const q of lista) { q.k = pal.indexOf(maisPerto(pal, q.c)); mapa.set(q.lx + ',' + q.ly, q.k); }
+  const hex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  for (const q of lista) {
+    const conta = new Map();
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const k = mapa.get((q.lx + dx) + ',' + (q.ly + dy)); if (k !== undefined) conta.set(k, (conta.get(k) || 0) + (dx || dy ? 1 : 2)); }
+    let melhor = q.k, m = 0; for (const [k, c] of conta) if (c > m) { m = c; melhor = k; }
+    q.cor = hex(pal[melhor] || q.c); delete q.c; delete q.k;
+  }
+  return lista;
+}
 // Paleta curta: agrupa as cores em caixas de 40 em cada canal, fica com as `n` caixas mais cheias (a média de cada uma)
 // e junta cores distantes demais de todas só se forem muitas (um detalhe colorido de verdade, como uma flor).
 export function paletaCurta(lista, n = 6) {
@@ -249,7 +276,7 @@ const CACHE = new Map();
 // Peça esculpida para (classe, direção, estado), guardada: as salas repetem o mesmo móvel.
 // Peças já esculpidas ficam guardadas no navegador (IndexedDB, por móvel, direção, estado e versão da arte): a
 // segunda vez que a sala abre, nada é esculpido de novo. Sem IndexedDB (aba anônima, bloqueado), esculpe sempre.
-const VERSAO_ESCULTURA = 'e5';
+const VERSAO_ESCULTURA = 'e9';
 const guardado = (() => {
   let banco = null;
   const abrir = () => banco || (banco = new Promise((ok) => {
@@ -288,13 +315,30 @@ export function moveisDoHabbo(classe, dir, estado = 0) {
     const vistas = fotos.size === 1 ? [0, 2, 4, 6].map((d) => ({ ...[...fotos.values()][0], dir: d })) : [...fotos.values()];
     const base = fotos.get(dir) || null;
     const dirPeca = base ? dir : fotos.size === 1 ? dir : [...fotos.keys()][0];
-    const N = W * D > 9 ? 6 : W * D > 4 ? 8 : W * D > 1 ? 10 : 12; // fino o bastante para o detalhe do móvel do Habbo
-    // Casca fina a cada 2 px nas peças até 2×2 ladrilhos; nas maiores (tapetes, mesas grandes), a cada 3 px.
-    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: W * D > 4 ? 2 : 1 }));
+    // No grão do motor de móveis (1/16 de ladrilho; 1/12 e 1/8 nas peças grandes), sem a casca fina: a casca de
+    // cubinhos de 2 px parecia pixel art e fazia listras de luz ao aproximar (Paulo, 09/11/2026).
+    const N = W * D > 9 ? 8 : W * D > 4 ? 12 : 16;
+    // Casca no grão do mundo: um bloco a cada 2 px do Habbo (1/16 de ladrilho), em todas as peças.
+    const e = await naFila(() => esculpir({ W, D, dir: dirPeca, vistas, N, alturaMax: Number(dim.z) || null, passoFino: 0, cores: 7 }));
     if (!e?.blocos?.length) return e;
     const r = { ...e, brilha: temBrilho(dados) };
     guardado.gravar(chave, r);
     return r;
+  })().catch(() => null));
+  return CACHE.get(chave);
+}
+// Para o motor de móveis modelados (moveis-voxel.mjs): as cores da arte do móvel (da mais usada para a menos
+// usada, sem o contorno) e o tamanho dele no Habbo (x, y na direção 0/4; z, a altura). Sem montar escultura.
+export function paletaDoHabbo(classe, dir = 4, estado = 0) {
+  const chave = 'paleta|' + classe + '|' + dir + '|' + (Number(estado) || 0);
+  if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
+    const carregar = globalThis.mapaCarregarMovel; if (typeof carregar !== 'function') return null;
+    const movel = await carregar(classe); const dados = movel?.dados; if (!dados) return null;
+    const dirs = direcoesDesenhadas(dados), v = vistaDaDirecao(movel, dirs.includes(dir) ? dir : dirs[0], estado); if (!v) return null;
+    const lista = []; for (let y = 0; y < v.h; y += 2) for (let x = 0; x < v.w; x += 2) { const c = v.cor(x, y); if (c) lista.push(c); }
+    const hex = (c) => '#' + c.map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')).join('');
+    const dim = dados.logic?.model?.dimensions || { x: 1, y: 1, z: 1 };
+    return { paleta: paletaCurta(lista, 6).map(hex), dim: { x: Math.max(1, Number(dim.x) || 1), y: Math.max(1, Number(dim.y) || 1), z: Number(dim.z) || 1 } };
   })().catch(() => null));
   return CACHE.get(chave);
 }
@@ -340,19 +384,24 @@ export function placaDaParede(vista, N = 12) {
 // abaixo de 2 px do chão, e a altura escolhida pela pessoa sobe 32 px por unidade. Cada pixel vira um bloco no plano
 // da parede: no fundo, andar 1 ladrilho move (32, 16) px; na esquerda, (−32, 16); subir 1 nível, 32 px.
 // Devolve blocos { a, h, cor }: a ao longo da parede a partir do ponto de apoio (ladrilhos) e h em níveis do Habbo.
-export function placaExata(vista, { altura = 0, alturaParede = 118 } = {}) {
+export function placaExata(vista, { altura = 0, alturaParede = 118, passo = 2 } = {}) {
   const lado = vista.dir === 2 ? -1 : 1, teto = -alturaParede + 4;
   let topo = Math.max(teto, vista.oy - 46);
   if (topo + vista.h > 2) topo = Math.max(teto, 2 - vista.h);
   topo -= (Number(altura) || 0) * 32;
-  const blocos = [];
-  for (let py = 0; py < vista.h; py++) for (let px = 0; px < vista.w; px++) {
-    const c = vista.pixel ? vista.pixel(px, py) : vista.cor(px, py); if (!c) continue;
-    const sx = vista.ox + px + .5, sy = topo + py + .5;
+  // No grão do mundo: um bloco a cada `passo` px, a cor da célula sem o contorno, na paleta curta da peça.
+  const brutos = [];
+  for (let py = 0; py < vista.h; py += passo) for (let px = 0; px < vista.w; px += passo) {
+    let n = 0, r = 0, g = 0, b = 0;
+    for (let y = py; y < Math.min(vista.h, py + passo); y++) for (let x = px; x < Math.min(vista.w, px + passo); x++) { const c = vista.cor(x, y); if (!c) continue; n++; r += c[0]; g += c[1]; b += c[2]; }
+    if (n * 2 < passo * passo) continue;
+    const sx = vista.ox + px + passo / 2, sy = topo + py + passo / 2;
     const a = (lado * sx) / 32, h = (a * 16 - sy) / 32;
-    blocos.push({ a, h, cor: '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('') });
+    brutos.push({ a, h, c: [r / n, g / n, b / n], lx: px / passo, ly: py / passo });
   }
-  return { blocos, lado: 1 / 32 };
+  chapar(brutos, 7);
+  const blocos = brutos.map((q) => ({ a: q.a, h: q.h, cor: q.cor }));
+  return { blocos, lado: passo / 32 };
 }
 export function placaDoHabbo(classe, dir, estado = 0, altura = 0, alturaParede = 118) {
   const chave = 'parede|' + classe + '|' + dir + '|' + (Number(estado) || 0) + '|' + altura + '|' + alturaParede;
@@ -374,7 +423,8 @@ export function placaDoHabbo(classe, dir, estado = 0, altura = 0, alturaParede =
 // da cabeça no desenho SEM chapéu nem máscara (figura sem ha, he e fa).
 const urlBoneco = (figura, dir) => '/api/painel?' + new URLSearchParams({ area: 'escritorio', acao: 'boneco', figura, dir: String(dir) });
 const FIGURA = /^[a-z]{2}-\d+(-\d+){0,2}(\.[a-z]{2}-\d+(-\d+){0,2})*$/;
-const ACESSORIOS = /^(ha|he|fa)-/;
+// Acessórios de cabeça: chapéu (ha), enfeite (he), máscara/rosto (fa) e óculos (ea), esculpidos da arte.
+const ACESSORIOS = /^(ha|he|fa|ea)-/;
 async function pixelsDoBoneco(figura, dir) {
   const img = new Image(); img.src = urlBoneco(figura, dir);
   await new Promise((ok, falha) => { img.onload = ok; img.onerror = () => falha(new Error('sem boneco')); });
@@ -407,6 +457,14 @@ function soAcessorio(com, sem, ate) {
   }
   return { w: com.w, h: com.h, px };
 }
+// Braços (direção 2, 64 px de largura, corpo no meio): a faixa de fora do tronco, em cima (manga) e embaixo
+// (antebraço). Igual à pele = braço de fora (manga curta ou regata); senão a cor da manga.
+const perto = (a, b) => { if (!a || !b) return false; const n = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const [x, y] = [n(a), n(b)]; return Math.abs(x[0] - y[0]) + Math.abs(x[1] - y[1]) + Math.abs(x[2] - y[2]) < 60; };
+export function bracosDoBoneco(img, pe, pele) {
+  const lado = (y0, y1) => corDaFaixa(img, y0, y1, 12, 21) || corDaFaixa(img, y0, y1, 43, 52);
+  const cima = lado(pe - 44, pe - 37), baixo = lado(pe - 34, pe - 27);
+  return { manga: cima && !perto(cima, pele) ? cima : pele || null, antebraco: baixo && !perto(baixo, pele) ? baixo : pele || null };
+}
 export function figuraDoHabbo(figura) {
   const chave = 'figura|' + figura;
   if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
@@ -416,13 +474,31 @@ export function figuraDoHabbo(figura) {
     const temAcessorio = semAcessorio !== String(figura);
     const frente = await pixelsDoBoneco(figura, 2), nu = temAcessorio ? await pixelsDoBoneco(semAcessorio, 2) : frente;
     const pe = linhaDoPe(nu), topo = linhaDoTopo(nu), queixo = pe - 49; if (pe < 0 || topo < 0) return null;
+    // Cada parte da figura vira a parte do boneco (Paulo, 09/11/2026: "trocar a cabeça, corpo, pernas, braços,
+    // acessórios... cor da pele, cabelo"): pele (hd), cabelo (hr, cor e forma), camisa (ch), casaco (cc), mangas e
+    // braços (o que a camisa/casaco cobre do braço), calça (lg), sapato (sh) e os acessórios de cabeça.
+    const temCabelo = partes.some((p) => p.startsWith('hr-')), temCasaco = partes.some((p) => p.startsWith('cc-'));
+    const pele = corDaFaixa(nu, queixo - 12, queixo - 2, 22, 44);
+    const semCasaco = temCasaco ? await pixelsDoBoneco(partes.filter((p) => !/^cc-/.test(p) && !ACESSORIOS.test(p)).join('.'), 2).catch(() => null) : null;
     const cores = {
-      pele: corDaFaixa(nu, queixo - 12, queixo - 2, 22, 44),
-      cabelo: partes.some((p) => p.startsWith('hr-')) ? corDaFaixa(nu, topo, topo + 10, 16, 48) : null,
-      roupa: corDaFaixa(frente, pe - 44, pe - 28, 20, 44),
+      pele,
+      cabelo: temCabelo ? corDaFaixa(nu, topo, topo + 10, 16, 48) : null,
+      roupa: corDaFaixa(semCasaco || frente, pe - 44, pe - 28, 26, 38) || corDaFaixa(frente, pe - 44, pe - 28, 20, 44),
+      casaco: temCasaco ? corDaFaixa(frente, pe - 44, pe - 28, 18, 28) : null,
       calca: corDaFaixa(frente, pe - 22, pe - 12, 22, 42),
       tenis: corDaFaixa(frente, pe - 7, pe - 2, 22, 44),
+      ...bracosDoBoneco(frente, pe, pele),
     };
+    // Forma do cabelo: o que a figura tem a mais que a mesma figura careca, de frente e de perfil, como os acessórios.
+    let cabeloHabbo = null;
+    if (temCabelo) {
+      try {
+        const careca = partes.filter((p) => !/^hr-/.test(p) && !ACESSORIOS.test(p)).join('.');
+        const [cf, cs, pf, ps] = await Promise.all([pixelsDoBoneco(semAcessorio, 3), pixelsDoBoneco(careca, 3), pixelsDoBoneco(semAcessorio, 1), pixelsDoBoneco(careca, 1)]);
+        const ate = (nu2) => linhaDoPe(nu2) - 22; // até o peito: cabelo comprido desce pelos ombros
+        cabeloHabbo = acessorioDeFrenteEPerfil({ frente: soAcessorio(cf, cs, ate(cs)), frenteNu: cs, perfil: soAcessorio(pf, ps, ate(ps)), perfilNu: ps }, 2, { escala: .74 * 1.08 });
+      } catch { /* sem as fotos: o cabelo de blocos do boneco */ }
+    }
     let acessorio = null;
     if (temAcessorio) {
       try {
@@ -430,7 +506,7 @@ export function figuraDoHabbo(figura) {
         acessorio = acessorioDeFrenteEPerfil({ frente: soAcessorio(fc, fs, linhaDoPe(fs) - 46), frenteNu: fs, perfil: soAcessorio(sc, ss, linhaDoPe(ss) - 46), perfilNu: ss });
       } catch { /* sem as fotos: boneco sem o acessório */ }
     }
-    return { cores, acessorio };
+    return { cores, acessorio, cabeloHabbo };
   })().catch(() => null));
   return CACHE.get(chave);
 }
@@ -438,7 +514,7 @@ export function figuraDoHabbo(figura) {
 // Acessório de cabeça em voxels, na escala da NOSSA cabeça (largura 0,78, altura 0,74, queixo em 0,92, frente em +z).
 // Da foto de frente (direção 3) saem x e y; da de perfil (direção 1, olhando para a direita da imagem) saem z e y.
 // Fica o bloco que aparece nas duas; a cor é a da frente na face da frente e a do perfil nos lados.
-export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu }, passo = 2) {
+export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu }, passo = 2, { escala = 0 } = {}) {
   const caixa = (img) => { let x0 = Infinity, x1 = -1, y0 = Infinity, y1 = -1; for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) if (img.px[(y * img.w + x) * 4 + 3] > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } return x1 < 0 ? null : { x0, x1, y0, y1 }; };
   const cabecaDe = (nu) => { const pe = linhaDoPe(nu), topo = linhaDoTopo(nu), queixo = pe - 49; let x0 = Infinity, x1 = -1; for (let y = topo; y <= queixo; y++) for (let x = 0; x < nu.w; x++) if (nu.px[(y * nu.w + x) * 4 + 3] > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); } return { topo, queixo, cx: (x0 + x1) / 2, largura: Math.max(8, x1 - x0 + 1) }; };
   const cf = cabecaDe(frenteNu), cp = cabecaDe(perfilNu), af = caixa(frente), ap = caixa(perfil);
@@ -453,7 +529,8 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
   let n0 = 0, c0 = 0;
   for (let y = cf.topo; y <= cf.queixo; y++) for (let x = 0; x < frenteNu.w; x++) if (alfa0(frenteNu, x, y) > 40) { n0++; if (alfa0(frente, x, y) > 40) c0++; }
   const cobre = n0 ? c0 / n0 : 0, mascara = cobre > .55;
-  const ky = (mascara ? .74 : .9 * 1.08) / Math.max(10, cf.queixo - cf.topo), kx = ky, kz = ky;
+  // escala: medida fixa (o cabelo vai do tamanho da cabeça careca, com folga para ficar por fora dela).
+  const ky = (escala || (mascara ? .74 : .9 * 1.08)) / Math.max(10, cf.queixo - cf.topo), kx = ky, kz = ky;
   const alfa = (img, x, y) => (x >= 0 && y >= 0 && x < img.w && y < img.h ? img.px[(y * img.w + x) * 4 + 3] : 0);
   const cor = (img, x, y) => corSemContorno(img.px, img.w, img.h, x, y);
   // Linha da foto → altura no boneco: o queixo de cada foto vai para 0,92.

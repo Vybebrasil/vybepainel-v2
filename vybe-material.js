@@ -305,8 +305,9 @@ function estadoDaPecaNaPrevia() {
     acao: `<button type="button" class="vb-botao" onclick="mostrarPecaDaPrevia(PREVIA_SEQUENCIA.indice)">Tentar de novo</button>` });
   if (p.link) return vbEstadoHtml({ titulo: 'O material desta peça é um link', texto: 'Ele abre numa aba nova.',
     acao: `<a class="vb-botao principal" href="${safeText(p.link)}" target="_blank" rel="noopener">Abrir o link</a>` });
-  return vbEstadoHtml({ titulo: 'Sem arquivo nem link registrado',
-    texto: 'A peça está marcada como entregue, mas o material não foi anexado.',
+  return vbEstadoHtml({ titulo: 'Ainda sem material',
+    // Antes dizia 'marcada como entregue' para qualquer peça, até em A Fazer (pente-fino 09/11/2026).
+    texto: 'Quando o material ficar pronto, anexe o arquivo ou o link para a peça seguir.',
     acao: `<button type="button" class="vb-botao" onclick="trocarMaterialDaPrevia(event)">Entregar material</button>` });
 }
 
