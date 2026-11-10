@@ -7,13 +7,13 @@ const js = readFileSync('vybe-mundo.js', 'utf8'), css = readFileSync('vybe-mundo
 
 test('Esc fecha o balão do painel antigo, não a tela de trás; trocar de tela fecha os balões', () => {
   assert.match(js, /const SEL_BALOES = '\.status-editor, \.status-editor-backdrop';/);
-  assert.match(js, /if \(campo\) \{ campo\.blur\(\); return; \}\n\s*if \(fecharBaloesAntigos\(\)\) \{ janelaNoEsc = null; return; \}/);
-  assert.match(js, /function limparTela\(\) \{\n\s*fecharBaloesAntigos\(\);/);
+  assert.match(js, /if \(campo\) \{ campo\.blur\(\); return; \}\r?\n\s*if \(fecharBaloesAntigos\(\)\) \{ janelaNoEsc = null; return; \}/);
+  assert.match(js, /function limparTela\(\) \{\r?\n\s*fecharBaloesAntigos\(\);/);
   for (const f of ['closeStatusEditor', 'fecharSeletorDeDono', 'fecharEscolha', 'fecharMenuDoGrupo', 'fecharMenuDeLote']) assert.ok(js.includes(`'${f}'`), f);
 });
 
 test('o dock acende o item certo (Conversas, Equipe, Aprovação de conteúdo, visão geral, Minhas tarefas)', () => {
-  assert.match(js, /if \(!document\.getElementById\('vv-whatsapp'\)\?\.hidden && document\.getElementById\('vv-whatsapp'\)\?\.isConnected\) return;\n\s*if \(placa\(\) && !placa\(\)\.hidden\) return;/);
+  assert.match(js, /if \(!document\.getElementById\('vv-whatsapp'\)\?\.hidden && document\.getElementById\('vv-whatsapp'\)\?\.isConnected\) return;\r?\n\s*if \(placa\(\) && !placa\(\)\.hidden\) return;/);
   assert.match(js, /criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'/);
   assert.match(js, /if \(modulo && !window\.VybeSetor\?\.aberto\?\.\(\)\) marcarTrilhoDoModulo\(\);/);
   assert.match(js, /if \(id === 'tarefas'\) \{ marcarTrilho\('tarefas'\);/);
