@@ -1817,7 +1817,7 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 /* Telas antigas dentro do Irecity (08/11/2026): mesma fonte do resto (Inter), sem caixa alta espaçada. */
 body.mundo{--mac-ui:"Inter",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 body.mundo.mundo-modulo :is(h1,h2,h3,h4,.workflow-title,.command-title){font-family:"Inter Tight","Inter",var(--mac-ui)!important;letter-spacing:-.01em}
-body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]){text-transform:none!important}
+body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]):not(:where(.vv-trilho,.vv-barra-topo,.vv-dock-salas-faixa) *){text-transform:none!important}
 
 /* Versão nova publicada (vybe-init.js): no canto de baixo, acima do dock das salas no mundo; não some sozinho. */
 #vb-versao { position: fixed; z-index: 960; right: 16px; bottom: calc(16px + var(--vv-dock-alto, 0px) + 14px); display: flex; align-items: center; gap: 10px; max-width: min(460px, calc(100vw - 32px)); padding: 12px 12px 12px 16px; border: 1px solid #E6E0D6; border-radius: 12px; background: #FFFFFF; color: #1F1D1A; box-shadow: 0 18px 50px rgba(40,26,10,.22), 0 2px 6px rgba(40,26,10,.08); font: 500 13px/1.35 var(--vv-texto, "Inter"), system-ui, sans-serif; animation: vb-versao-entra .3s cubic-bezier(.34,1.56,.64,1); }

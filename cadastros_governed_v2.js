@@ -1115,7 +1115,7 @@ function fcGrupoDoQuadro(grupo) {
         </div>
         <div class="fc-atalhos">
           <label class="fc-atalho"><input type="checkbox" ${state.briefReady ? 'checked' : ''}
-            onchange="fcHandleInput('briefReady', this.checked);updateDestinyUI()">
+            onchange="fcHandleInput('briefReady', this.checked)">
             <span>Os briefings já estão prontos <small>pula a Redação</small></span></label>
           <label class="fc-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
             onchange="fcHandleInput('materialReady', this.checked);fcDesenharPasso()">

@@ -106,7 +106,7 @@
   // Centro comercial aberto (Paulo, 08/11/2026): só com ele o 3D é montado e desenhado.
   let centroAberto = false;
   const raiz = document.createElement('div'); raiz.id = 'mundo';
-  raiz.innerHTML = '<canvas aria-label="Mapa de Irecê com o Prédio da Vybe e os clientes"></canvas><div class="mundo-vinheta"></div><div class="mundo-carregando">Montando o Centro…</div>'
+  raiz.innerHTML = '<canvas aria-label="Mapa de Irecê com o Prédio da Vybe e os clientes"></canvas><div class="mundo-vinheta"></div><div class="mundo-carregando" hidden>Montando o Centro…</div>'
     + '<div class="mundo-fonte">Arraste para andar · botão direito ou Shift para girar · clique numa loja para abrir o cliente</div>';
   const hud = document.createElement('div'); hud.id = 'mundo-hud';
   raiz.addEventListener?.('click', (e) => {
@@ -301,7 +301,12 @@
     hud.append(el);
     const r = botao?.getBoundingClientRect?.(), trilho = hud.querySelector('.vv-trilho')?.getBoundingClientRect?.();
     if (r && trilho) {
-      if (trilho.height < 90) { el.style.left = Math.max(8, Math.min(innerWidth - 300, r.left)) + 'px'; el.style.bottom = (innerHeight - trilho.top + 8) + 'px'; }
+      if (trilho.height < 90) {
+        // No celular: acima das abas e da barra das salas, abaixo do topo; rola por dentro se não couber.
+        const faixa = document.querySelector('.vv-dock-salas-faixa:not([hidden])')?.getBoundingClientRect?.();
+        const chao = Math.min(trilho.top, faixa?.height ? faixa.top : Infinity), teto = (hud.querySelector('.vv-barra-topo')?.getBoundingClientRect?.().bottom || 0) + 8;
+        el.style.left = Math.max(8, Math.min(innerWidth - 300, r.left)) + 'px'; el.style.bottom = (innerHeight - chao + 8) + 'px'; el.style.maxHeight = Math.max(160, chao - 8 - teto) + 'px';
+      }
       else { el.style.left = (trilho.right + 8) + 'px'; el.style.top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, r.top - 6)) + 'px'; }
     }
     botao?.setAttribute?.('aria-expanded', 'true');

@@ -46,3 +46,13 @@ test('Cérebro da ficha sem Claude nem conector; busca com frase curta; rodapé 
   assert.ok(ler('vybe-padrao.css').includes(':where(body:not(.mundo)) .capt-gerir .vb-link{'));
   assert.match(js, /Ranking, Loja e Conquistas ficam no dock, no grupo Vybe\./);
 });
+
+test('junção da fase 3: lista do setor no celular entre o topo e a barra das salas; dock com caixa alta nos módulos; sem erros soltos', () => {
+  assert.match(js, /const chao = Math\.min\(trilho\.top, faixa\?\.height \? faixa\.top : Infinity\)/);
+  assert.match(js, /el\.style\.maxHeight = Math\.max\(160, chao - 8 - teto\) \+ 'px';/);
+  assert.match(css, /\.vv-setor\{position:fixed;[^}]*max-height:calc\(100dvh - 16px\);overflow-y:auto;/);
+  assert.ok(ler('vybe-appearance.css').includes(':not(:where(.vv-trilho,.vv-barra-topo,.vv-dock-salas-faixa) *){text-transform:none!important}'), 'a regra das telas antigas não tira a caixa alta do dock');
+  assert.ok(js.includes('<div class="mundo-carregando" hidden>Montando o Centro…</div>'), 'o aviso só aparece quando o Centro está montando');
+  assert.ok(!ler('cadastros_governed_v2.js').includes("this.checked);updateDestinyUI()"), 'updateDestinyUI é interna: o fcHandleInput já atualiza');
+  assert.match(ler('vybe-escritorio.js'), /x: escritorio\.perfil\?\.x \|\| 50, y: escritorio\.perfil\?\.y \|\| 75 \}\]/);
+});
