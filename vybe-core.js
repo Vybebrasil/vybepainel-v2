@@ -786,7 +786,9 @@ function vbResumoHtml(itens) {
   return `<div class="vb-resumo" role="group" aria-label="Resumo">${itens.filter(Boolean).map((x) => {
     const corpo = (x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`)
       + (x.dica ? `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${safeText(x.dica)}" aria-label="${safeText(x.dica)}"><span class="ar-dica-i" aria-hidden="true">i</span></span>` : '');
-    const cls = `vb-resumo-item${x.tom ? ' ' + x.tom : ''}`;
+    // Zero não pede ação: perde a cor de estado e vira texto discreto ("0 atrasadas" não é alarme).
+    const zero = x.valor === 0 || x.valor === '0';
+    const cls = `vb-resumo-item${zero ? ' zero' : (x.tom ? ' ' + x.tom : '')}`;
     if (x.onclick) return `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>`;
     return x.espiar ? `<span class="${cls} espiavel" data-espiar="${safeText(x.espiar)}" role="button" tabindex="0">${corpo}</span>` : `<span class="${cls}">${corpo}</span>`;
   }).join('')}</div>`;
