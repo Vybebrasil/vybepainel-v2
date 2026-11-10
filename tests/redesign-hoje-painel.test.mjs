@@ -178,3 +178,56 @@ test('sem !important novo nem html body.mundo nas regras do redesign', () => {
   assert.ok(!bloco.includes('!important'));
   assert.ok(!bloco.includes('html body.mundo'));
 });
+
+test('Agenda da semana (quadro 02): seletor ‹ semana › pelas mesmas pílulas, abas da semana com contagem, cartão com cores', () => {
+  const html = fonte('index.html'), src = fonte('vybe-gestor.js');
+  const tabs = html.slice(html.indexOf('id="week-tabs-container"'), html.indexOf('id="btn-view-day"'));
+  for (const f of ['passarSemana(-1)', 'passarSemana(1)', 'semanaDeHoje()', 'id="semana-seletor-rotulo"']) assert.ok(tabs.includes(f), f);
+  for (let n = 1; n <= 6; n++) assert.ok(tabs.includes(`id="tab-s${n}-label"`), `a pílula ${n} continua (tema antigo e navegação)`);
+  const dia = funcao(src, 'renderByDay');
+  assert.match(dia, /abasPorDia=panelMode==='gestor'&&!document\.body\.classList\.contains\('mundo'\)/, 'no mundo as abas de cada dia saem');
+  assert.match(dia, /pintarAbaDaSemana\(grid,sem,\{social:naSemana\.social\.size/, 'a contagem vai para o alternador da semana');
+  assert.match(dia, /clientesDoItem\(d\)\.map\(nome=>cliCor\(nome\)\)/, 'cliente com a cor da carteira');
+  assert.match(dia, /day-menu-ic/, 'o menu do dia vira ícone, com o nome acessível');
+  assert.match(funcao(src, 'managerStatusControl'), /item\.status_color \|\| \(typeof corDeStatus === 'function' \? corDeStatus\(item\.status\)\?\.cor : ''\)/);
+  // O rótulo do seletor e os limites, com a mesma lista de pílulas.
+  const pilula = (n, txt, extra = '') => ({ id: `tab-s${n}-label`, textContent: txt, style: { display: '' }, classList: { contains: (c) => extra === c }, clicado: 0, click() { this.clicado++; } });
+  const pilulas = [pilula(1, '01 · 26/10–01/11'), pilula(2, '02 · 02/11–08/11'), pilula(3, '03 · 09/11–15/11', 'e-hoje')];
+  const attrs = {};
+  const botao = (k) => ({ toggleAttribute: (a, v) => { attrs[k] = v; }, setAttribute: (a, v) => { attrs[k] = v; } });
+  const rotulo = { textContent: '', closest: () => ({ querySelector: (sel) => botao(sel) }) };
+  const ctx = { currentWeek: 3, document: { getElementById: (id) => (id === 'semana-seletor-rotulo' ? rotulo : pilulas.find((p) => p.id === id)), querySelectorAll: () => pilulas } };
+  vm.createContext(ctx);
+  vm.runInContext(`${funcao(src, 'pilulasDeSemana')}\n${funcao(src, 'pintarSeletorDeSemana')}\n${funcao(src, 'passarSemana')}\npintarSeletorDeSemana();`, ctx);
+  assert.equal(rotulo.textContent, 'Semana 09/11–15/11');
+  assert.equal(attrs['[data-semana-passo="1"]'], true, 'sem semana depois da última');
+  assert.equal(attrs['.semana-hoje'], 'true');
+  vm.runInContext('passarSemana(-1)', ctx);
+  assert.equal(pilulas[1].clicado, 1, 'a semana anterior abre pela própria pílula (showWeek)');
+});
+
+test('Demandas (quadro 03): Responsável geral como chip, filtros acesos com a escolha e Colunas no fim da barra', () => {
+  const html = fonte('index.html');
+  const painel = html.slice(html.indexOf('<div id="painel-demandas"'), html.indexOf('<!-- Quanto esta sendo mostrado'));
+  assert.ok(!/<select[^>]*data-filtro-carteira/.test(painel), 'sem select nativo');
+  assert.match(painel, /<details class="dem-filtro agenda-pessoa" name="filtros-demandas" data-filtro-carteira/);
+  for (const c of ['status', 'tipo', 'cliente', 'responsavel']) assert.match(painel, new RegExp(`data-dem-chip="${c}"`));
+  assert.ok(painel.indexOf('class="dem-colunas"') > painel.indexOf('id="demandas-agenda-btn"'), 'Colunas como menu no fim');
+  for (const id of ['dem-coluna-id', 'dem-coluna-cadastro', 'demanda-status-legend', 'demanda-tipo-legend', 'demanda-cliente-legend', 'person-filter-bar-demandas', 'date-mode-bar-demandas', 'day-select-demandas', 'busca-cliente-demandas'])
+    assert.equal(html.split(`id="${id}"`).length - 1, 1, `${id} continua`);
+  const src = fonte('vybe-demandas.js');
+  const chips = {};
+  const chip = (k) => (chips[k] = { classes: new Set(), escolha: { textContent: '' }, classList: { toggle(c, on) { on ? chips[k].classes.add(c) : chips[k].classes.delete(c); } }, querySelector() { return chips[k].escolha; } });
+  const ctx = { currentDemandaStatusFilter: 'Pode Fazer', currentDemandaTipoFilter: '__sem__', clienteDemandasExato: '', currentDemandaPersonFilter: '7', TEAM_USERS: [{ id: 7, name: 'Beatriz Lima' }],
+    document: { querySelector: (sel) => chip(sel.match(/data-dem-chip="(\w+)"/)[1]) } };
+  vm.createContext(ctx);
+  vm.runInContext(`${funcao(src, 'pintarChipsDeDemandas')}\npintarChipsDeDemandas();`, ctx);
+  assert.equal(chips.status.escolha.textContent, 'Pode Fazer'); assert.ok(chips.status.classes.has('tem-escolha'));
+  assert.equal(chips.tipo.escolha.textContent, 'Sem tipo');
+  assert.equal(chips.cliente.escolha.textContent, ''); assert.ok(!chips.cliente.classes.has('tem-escolha'));
+  assert.equal(chips.responsavel.escolha.textContent, 'Beatriz');
+  // Grupo com a cor só no traço: o fundo tingido sai no mundo.
+  const css = fonte('vybe-mundo.css');
+  assert.match(css, /body\.mundo \.grupo-bloco \.grupo-cabecalho\{background:none/);
+  assert.ok(!css.includes('.grupo-cabeca .grupo-titulo b{filter:brightness(.68)'), 'o nome do grupo fica neutro');
+});

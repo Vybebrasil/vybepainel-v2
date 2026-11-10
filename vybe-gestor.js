@@ -231,7 +231,8 @@ function pillHtml(s, color='', border='') {
 }
 function managerStatusControl(item, { comTempo = true } = {}) {
     const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Vybe OS`;
-    const pill = `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, item.status_color, item.status_border)}</button>`;
+    const cor = item.status_color || (typeof corDeStatus === 'function' ? corDeStatus(item.status)?.cor : '') || '';
+    const pill = `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, cor, item.status_border)}</button>`;
     
     if (!comTempo || !item.status_updated_at || ['Finalizado', 'Agendado', 'Para agendar'].includes(item.status)) {
         return pill;
@@ -700,7 +701,7 @@ function escolherAbaDaSemana(sem, aba) {
   abasPendenciasDia.clear();
   renderByDay(sem, currentFilter, currentDayFilter);
 }
-function pintarAbaDaSemana(grid, sem) {
+function pintarAbaDaSemana(grid, sem, totais = null) {
   const titulo = grid.previousElementSibling?.classList.contains('section-title') ? grid.previousElementSibling : null;
   if (!titulo) return;
   let grupo = titulo.querySelector('.semana-abas');
@@ -710,8 +711,36 @@ function pintarAbaDaSemana(grid, sem) {
     grupo.className = 'semana-abas vb-alternar'; grupo.setAttribute('role', 'group'); grupo.setAttribute('aria-label', 'Mostrar em todos os dias');
     titulo.insertBefore(grupo, titulo.querySelector('.dias-setas, .dias-layout-btn'));
   }
+  // Agenda da semana (quadro 02, 10/11/2026): a contagem da semana fica no alternador, já que no mundo as abas de cada
+  // dia saíram (Redes, Demandas e Pendências escolhidas uma vez para a semana inteira).
   grupo.innerHTML = [['social', 'Redes'], ['demandas', 'Demandas'], ['pendencias', 'Pendências']].map(([id, nome]) =>
-    `<button type="button" aria-pressed="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${sem},'${id}')">${nome}</button>`).join('');
+    `<button type="button" aria-pressed="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${sem},'${id}')">${nome}${totais ? ` <span class="semana-abas-n">${totais[id]}</span>` : ''}</button>`).join('');
+}
+// Agenda da semana (quadro 02): um seletor ‹ semana › no lugar das seis pílulas (que ficam no tema antigo); "Hoje" volta
+// para a semana atual. Passa pelas mesmas pílulas (showWeek), então nada muda no que cada semana mostra.
+function pilulasDeSemana() {
+  return [...document.querySelectorAll('#week-tabs-container [id^="tab-s"][id$="-label"]')].filter((b) => b.style.display !== 'none');
+}
+function passarSemana(passo) {
+  const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`);
+  const i = Math.max(0, lista.indexOf(atual)), alvo = lista[Math.min(lista.length - 1, Math.max(0, i + passo))];
+  if (alvo && alvo !== atual) alvo.click();
+  pintarSeletorDeSemana();
+}
+function semanaDeHoje() {
+  const alvo = pilulasDeSemana().find((b) => b.classList.contains('e-hoje'));
+  if (alvo) alvo.click();
+  pintarSeletorDeSemana();
+}
+function pintarSeletorDeSemana() {
+  const rotulo = document.getElementById('semana-seletor-rotulo'); if (!rotulo) return;
+  const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
+  const texto = atual ? 'Semana ' + String(atual.textContent || '').replace(/^\s*\d+\s*·\s*/, '').trim() : 'Semana';
+  if (rotulo.textContent !== texto) rotulo.textContent = texto;
+  const seletor = rotulo.closest('.semana-seletor');
+  seletor?.querySelector('[data-semana-passo="-1"]')?.toggleAttribute('disabled', i <= 0);
+  seletor?.querySelector('[data-semana-passo="1"]')?.toggleAttribute('disabled', i < 0 || i >= lista.length - 1);
+  seletor?.querySelector('.semana-hoje')?.setAttribute('aria-pressed', String(Boolean(atual?.classList.contains('e-hoje'))));
 }
 const diasExpandidos = new Set();
 const concluidasAbertasDia = new Set();
@@ -866,6 +895,9 @@ function renderByDay(sem, filter, dayFilter) {
   const grid=document.getElementById(`grid-s${sem}`);
   if(!grid)return;
   const ordemVisivel=[];
+  // No mundo, as abas de cada dia saem (quadro 02): a escolha é da semana e a contagem vai para o alternador dela.
+  const abasPorDia=panelMode==='gestor'&&!document.body.classList.contains('mundo');
+  const naSemana={social:new Set(),demandas:new Set(),pendencias:new Set()};
   const hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Bahia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   grid.innerHTML=dias.filter(d=>!dayFilter||d.iso===dayFilter).map(dia=>{
     const dataCurta=dia.iso.slice(8,10)+'/'+dia.iso.slice(5,7);
@@ -876,6 +908,7 @@ function renderByDay(sem, filter, dayFilter) {
     const salva=abasPendenciasDia.get(dia.iso);
     const aba=panelMode==='gestor'?(salva===true?'pendencias':salva===false?'social':!salva?abaDaSemana:salva):'social';
     const {redes,demandas,lista,abertas,concluidas}=listasDoCartaoDia(dayItems,pendencias,aba);
+    redes.forEach(i=>naSemana.social.add(String(i.id)));demandas.forEach(i=>naSemana.demandas.add(String(i.id)));pendencias.forEach(i=>naSemana.pendencias.add(String(i.id)));
     const mostrarConcluidas=concluidasAbertasDia.has(`${dia.iso}:${aba}`);
     [...abertas,...(mostrarConcluidas?concluidas:[])].forEach(i=>ordemVisivel.push(String(i.id)));
     const pct=lista.length?Math.round(concluidas.length*100/lista.length):0;
@@ -890,7 +923,7 @@ function renderByDay(sem, filter, dayFilter) {
           onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <div class="day-activity-content"><div class="day-activity-main">
           <button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir detalhes da atividade">${safeText(d.nome)}</button>
-          <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>tagClienteHtml(nome)).join(' ')||'Sem cliente'}${clientesDoItem(d).length>1?`<span class="dia-mais-clientes" title="${safeText(clientesDoItem(d).join(', '))}">+${clientesDoItem(d).length-1}</span>`:''}</span>${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
+          <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>cliCor(nome)).join(' ')||'Sem cliente'}${clientesDoItem(d).length>1?`<span class="dia-mais-clientes" title="${safeText(clientesDoItem(d).join(', '))}">+${clientesDoItem(d).length-1}</span>`:''}</span>${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
         </div><div class="day-activity-lado">
           <div class="day-activity-pessoas">${botaoDePreviaNaLinha(d)}${ownerEditorTrigger(d,'manager-owner-trigger')}</div>
           <div class="day-activity-actions">${d.formato?`<span class="day-activity-formato" style="--formato:${corDoFormato(d.formato)}">${safeText(d.formato)}</span>`:''}${managerStatusControl(d,{comTempo:false})}</div>
@@ -904,16 +937,17 @@ function renderByDay(sem, filter, dayFilter) {
     const contexto=dateMode==='prazo'?'Por prazo':aba==='social'?'Por veiculação':'Por conclusão prevista ou prazo';
     return `<div class="client-card dia-solta day-scroll-card${dia.iso===hoje?' day-is-today':''}${diasExpandidos.has(dia.iso)?' day-expanded':''}${lista.length?'':' day-empty'}" data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}${dia.iso===hoje?'<span class="day-today-label">Hoje</span>':''}</div><span class="day-date-context">${contexto}</span></div>
-        <div class="day-header-actions"><span class="day-progress-label">${concluidas.length}/${lista.length} concluídas</span><details class="day-menu"><summary aria-label="Ações de ${dataCurta}">Ações</summary><div class="day-menu-options">${panelMode==='gestor'?`<button type="button" onclick="this.closest('details').open=false;adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>`:''}<button type="button" onclick="this.closest('details').open=false;openDailySummary('${dia.iso}')">Gerar resumo</button></div></details></div>
+        <div class="day-header-actions"><span class="day-progress-label">${concluidas.length}/${lista.length} concluídas</span><details class="day-menu"><summary aria-label="Ações de ${dataCurta}" title="Adicionar atividade ou gerar o resumo do dia"><svg class="day-menu-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg><span class="day-menu-rot">Ações</span></summary><div class="day-menu-options">${panelMode==='gestor'?`<button type="button" onclick="this.closest('details').open=false;adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>`:''}<button type="button" onclick="this.closest('details').open=false;openDailySummary('${dia.iso}')">Gerar resumo</button></div></details></div>
       </div>
-      ${panelMode==='gestor'?`<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">${[['social','Redes',redes.length],['demandas','Demandas',demandas.length],['pendencias','Pendências',pendencias.length]].map(([id,nome,total])=>`<button type="button" aria-pressed="${aba===id}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}','${id}')">${nome}<span>${id!=='social'&&aviso?'!':total}</span></button>`).join('')}</div>`:''}
+      ${abasPorDia?`<div class="day-pending-tabs" role="group" aria-label="Atividades de ${dia.iso}">${[['social','Redes',redes.length],['demandas','Demandas',demandas.length],['pendencias','Pendências',pendencias.length]].map(([id,nome,total])=>`<button type="button" aria-pressed="${aba===id}" onclick="selecionarAbaDoDia(${sem},'${dia.iso}','${id}')">${nome}<span>${id!=='social'&&aviso?'!':total}</span></button>`).join('')}</div>`:''}
       <div class="client-progress" role="progressbar" aria-label="Progresso de ${tituloAba} em ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="client-progress-bar"><div class="client-progress-fill" style="width:${pct}%;background:${pct===100?'var(--green,#00c875)':'var(--accent,#ff6b00)'}"></div></div><span class="client-progress-text">${pct}%</span></div>
       ${aba==='pendencias'?'<p class="day-pending-note">Solicitações abertas anteriores a este dia ou sem data. Datas originais preservadas.</p>':''}
       <div class="item-list day-activity-scroll" id="${listaId}" role="region" aria-label="${tituloAba} de ${dataCurta}" tabindex="0">${avisoHtml}${abertas.map(linha).join('')}${!abertas.length?`<p class="day-pending-note">${lista.length?'Tudo concluído nesta aba.':vazio}</p>`:''}${concluidas.length?`<details class="day-completed" ${mostrarConcluidas?'open':''} ontoggle="registrarConcluidasDoDia('${dia.iso}','${aba}',this)"><summary>Concluídas <span>${concluidas.length}</span></summary>${concluidas.map(linha).join('')}</details>`:''}</div>
       ${lista.length>6?`<div class="day-expansion-footer"><button type="button" class="day-summary-btn day-expand-btn" data-total="${lista.length}" aria-controls="${listaId}" aria-expanded="${diasExpandidos.has(dia.iso)}" onclick="alternarExpansaoDoDia('${dia.iso}',this)">${diasExpandidos.has(dia.iso)?'Recolher dia':`Ver todas as ${lista.length} atividades`}</button></div>`:''}
     </div>`;
   }).join('');
-  pintarAbaDaSemana(grid,sem);
+  pintarAbaDaSemana(grid,sem,{social:naSemana.social.size,demandas:naSemana.demandas.size,pendencias:naSemana.pendencias.size});
+  pintarSeletorDeSemana();
   ORDEM_VISIVEL_DO_DIA=ordemVisivel;
   if(!aplicarLayoutDosDias(grid,sem,true)) encaixarCartoesDoDia(grid);
 }
@@ -1119,6 +1153,7 @@ function renderWeek(sem, filter, dayFilter) {
     });
   }
   grid.innerHTML = clientes.map(c=>renderClientCard(c, porCliente[c]||[], dias, filter, dayFilter||currentDayFilter)).join("");
+  pintarSeletorDeSemana();
   updateClearFiltersState();
 }
 

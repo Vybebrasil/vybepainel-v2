@@ -4878,7 +4878,7 @@ html body.mundo.mundo-modulo :is(.workspace-eyebrow,.pv-etiqueta,.client-module-
 /* Selo "Hoje" do Painel de trabalho: o fundo laranja vencia por outra regra. */
 html body.mundo.mundo-modulo .week-panel .day-scroll-card .day-today-label{background:var(--vv-laranja,#F26B1D)!important;color:#fff!important}
 /* Demandas: título do grupo na cor do grupo (fixa), nome do cliente no filtro. */
-html body.mundo.mundo-modulo .grupo-cabeca .grupo-titulo b{filter:brightness(.68) saturate(1.2)}
+/* O nome do grupo fica neutro: a cor do grupo vai só no traço (quadro 03, fim do arquivo). */
 html body.mundo.mundo-modulo .dem-filtro-popover .manager-calendar-client b{color:#1F1D1A!important}
 /* Performance: números e rótulos com cor fixa no HTML. */
 html body.mundo.mundo-modulo #painel-performance :is([style*="color:#"],[style*="color: #"]){filter:brightness(.68) saturate(1.2)}
@@ -6228,11 +6228,11 @@ body.mundo .ops-command-bar #date-mode-bar{margin:0}
 body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:0;display:grid;gap:8px}
 body.mundo .ops-command-bar .agenda-mais-rotulo{font:650 11.5px var(--vv-texto);color:#6B675F}
 body.mundo .ops-command-bar .agenda-mais-linha,body.mundo .ops-command-bar .agenda-mais-linha .agenda-filtros-semana{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-body.mundo .ops-command-bar .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
-body.mundo .ops-command-bar .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
-body.mundo .ops-command-bar .agenda-pessoa-menu button:hover{background:#F7F3EE}
-body.mundo .ops-command-bar .agenda-pessoa-menu button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
-body.mundo .ops-command-bar .agenda-pessoa-menu button[aria-pressed="true"]::after{content:"";width:6px;height:10px;border:solid currentColor;border-width:0 2px 2px 0;rotate:45deg;translate:0 -2px}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button:hover{background:#F7F3EE}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]::after{content:"";width:6px;height:10px;border:solid currentColor;border-width:0 2px 2px 0;rotate:45deg;translate:0 -2px}
 body.mundo .ops-command-bar .ops-clear-btn{height:32px;margin-left:auto}
 @media (max-width:900px){body.mundo #compact-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){
@@ -6241,3 +6241,41 @@ body.mundo .ops-command-bar .ops-clear-btn{height:32px;margin-left:auto}
   body.mundo .ops-command-bar .ops-clear-btn{margin-left:0}
   body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:-8px}
 }
+
+/* Agenda da semana (quadro 02 do redesign, 10/11/2026): um seletor ‹ semana › no lugar das seis pílulas, Redes, Demandas
+   e Pendências escolhidas uma vez para a semana (com a contagem), o menu de cada dia como um ícone e o cartão de peça
+   com o cliente e o status nas cores de sempre. */
+body.mundo #week-tabs-container > :is(.tab-btn,.tabs-rotulo){display:none}
+body.mundo .semana-seletor{display:inline-flex;align-items:center;gap:6px}
+body.mundo .semana-passo{appearance:none;width:30px;height:30px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;display:grid;place-items:center;cursor:pointer}
+body.mundo .semana-passo svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .semana-passo:disabled{opacity:.4;cursor:default}
+body.mundo #semana-seletor-rotulo{min-width:170px;text-align:center;font:650 15px var(--vv-texto);color:#1F1D1A}
+body.mundo .semana-hoje{appearance:none;height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto);cursor:pointer}
+body.mundo .semana-hoje[aria-pressed="true"]{background:#FFEDE2;border-color:#F7C9A6;color:#C2490C}
+body.mundo :is(.semana-passo,.semana-hoje):focus-visible{outline:2px solid var(--vv-laranja);outline-offset:2px}
+body.mundo .semana-abas-n{margin-left:2px;font-weight:700;font-variant-numeric:tabular-nums;opacity:.75}
+body.mundo .week-panel .day-menu .day-menu-ic{width:16px;height:16px;fill:currentColor;display:block}
+body.mundo .week-panel .day-menu .day-menu-rot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.mundo .week-panel .day-menu summary::after{content:none}
+/* O título "Clientes — Semana 03 (…)" repetia o seletor de semana: no mundo fica só o seletor. */
+body.mundo .week-panel > .section-title > span:is(:first-child:empty,[id^="title-s"]){display:none}
+
+/* Demandas (quadro 03 do redesign, 10/11/2026): os recortes como alternador com a contagem dentro, os filtros como
+   chips (o ativo aceso, com a escolha escrita) e o grupo com a cor só no traço, a contagem ao lado e o "+ Nova" dele. */
+body.mundo #dem-visoes{display:inline-flex;flex-wrap:wrap;gap:2px;margin:0 0 12px;padding:3px;border:1px solid #E6E0D6;border-radius:10px;background:#F4EFE8}
+body.mundo #dem-visoes button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:7px;background:none;color:#5E5A53;font:600 12.5px var(--vv-texto)}
+body.mundo #dem-visoes button:hover{color:#1F1D1A}
+body.mundo #dem-visoes button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.12)}
+body.mundo #dem-visoes span{font:700 11.5px var(--vv-texto);opacity:.8}
+body.mundo #dem-visoes button:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+body.mundo #painel-demandas .dem-controles summary{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto)}
+body.mundo #painel-demandas .dem-controles summary:hover,body.mundo #painel-demandas .dem-controles details[open]>summary{border-color:#F26B1D;background:#FFF8F2}
+body.mundo #painel-demandas .dem-controles summary.tem-escolha{border-color:#F7C9A6;background:#FFF4EB}
+body.mundo #painel-demandas .agenda-filtro-escolha{color:#C2490C;font-weight:650}
+body.mundo #painel-demandas .agenda-filtro-escolha:empty{display:none}
+body.mundo #painel-demandas .agenda-filtro-escolha::before{content:"· ";color:#8A847A}
+body.mundo .grupo-bloco .grupo-cabecalho{background:none;border-bottom-color:#EFEAE2}
+body.mundo .grupo-bloco .grupo-cabeca,body.mundo .grupo-bloco.recolhido .grupo-cabeca{background:none}
+body.mundo .grupo-bloco .grupo-cabeca:hover{background:#FAF7F2}
+body.mundo .grupo-bloco .grupo-titulo b{color:#1F1D1A}

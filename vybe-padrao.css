@@ -95,6 +95,8 @@
 :where(body:not(.mundo)) .ops-command-bar .ops-segmentos{margin-bottom:0!important;border-bottom:1px solid var(--pv-linha)!important}
 
 :where(body:not(.mundo)) .ops-command-bar #agenda-filtros{grid-column:1/-1}
+/* Seletor de semana e ícone do menu do dia: só no mundo (quadro 02); o tema antigo segue com as pílulas e o texto. */
+:where(body:not(.mundo)) :is(.semana-seletor,.day-menu-ic){display:none}
 /* ---- Agenda da equipe: colunas, abas do dia e peças ---- */
 .week-panel .client-card.dia-solta{border-radius:10px!important;border:1px solid rgba(255,255,255,.07)!important;background:rgba(255,255,255,.025)!important;box-shadow:none!important;overflow:hidden}
 .week-panel .client-card.day-is-today{border-color:rgba(232,96,46,.6)!important;background:linear-gradient(180deg,rgba(232,96,46,.1),rgba(255,255,255,.02) 40%)!important}

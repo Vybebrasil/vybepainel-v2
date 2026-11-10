@@ -300,6 +300,8 @@
 </div><div class="agenda-navigation-weeks">
     <div class="tabs focus-hidden" id="week-tabs-container" style="margin-bottom:0;border-bottom:none;">
       <span class="tabs-rotulo">Semana</span>
+      <!-- Agenda da semana (quadro 02, 10/11/2026): no mundo, um seletor no lugar das pílulas (as pílulas ficam no tema antigo). -->
+      <span class="semana-seletor" role="group" aria-label="Escolher a semana"><button type="button" class="semana-passo" data-semana-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b id="semana-seletor-rotulo" aria-live="polite">Semana</b><button type="button" class="semana-passo" data-semana-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button type="button" class="semana-hoje" onclick="semanaDeHoje()" aria-pressed="true">Hoje</button></span>
       <button class="tab-btn" id="tab-s1-label" onclick="showWeek(1,this)" style="">01 · 27/07–02/08</button>
       <button class="tab-btn" id="tab-s2-label" onclick="showWeek(2,this)" style="">02 · 03/08–09/08</button>
       <button class="tab-btn" id="tab-s3-label" onclick="showWeek(3,this)" style="">03 · 10/08–16/08</button>
@@ -382,10 +384,6 @@
   <div class="container">
     <div class="pv-cabeca" style="--c:#f7c948"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h10M5 10h10M5 14h6"/></svg></span><div><span class="pv-etiqueta">Produção</span><h2>Demandas</h2></div></div>
     <div class="quadro-toolbar">
-      <label class="filtro-carteira">Responsável geral
-      <select data-filtro-carteira onchange="definirFiltroCarteira(this.value)" aria-label="Filtrar por responsável geral">
-        <option value="all">Todos</option><option value="vinicius">Vinícius · Laranja</option><option value="ewerton">Ewerton · Azul</option>
-      </select></label>
       <label class="quadro-busca"><span class="focus-oculto-visual">Buscar cliente ou demanda</span><input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>
     </div>
@@ -394,9 +392,17 @@
 
     <!-- Filtros progressivos preservam os seletores e handlers do recorte. -->
     <div class="dem-controles" onkeydown="if(event.key==='Escape'){const aberto=this.querySelector('details[open]');if(aberto){aberto.open=false;aberto.querySelector('summary').focus();event.stopPropagation();}}">
-      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input id="dem-coluna-id" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked);guardarPreferenciasDemandas()"> Mostrar ID</label><label><input id="dem-coluna-cadastro" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked);guardarPreferenciasDemandas()"> Mostrar cadastro e criação</label></div></details>
+      <!-- Demandas (quadro 03, 10/11/2026): filtros como chips; o Responsável geral (carteira) sai do select nativo. -->
+      <details class="dem-filtro agenda-pessoa" name="filtros-demandas" data-filtro-carteira data-carteira="all">
+        <summary title="Responsável geral: a carteira de clientes de cada head">Responsável geral<b class="agenda-filtro-escolha" data-filtro-carteira-rotulo>Todos</b></summary>
+        <div class="dem-filtro-popover agenda-pessoa-menu" role="group" aria-label="Responsável geral">
+          <button type="button" data-carteira-opcao="all" aria-pressed="true" onclick="definirFiltroCarteira('all');this.closest('details').open=false">Todos</button>
+          <button type="button" data-carteira-opcao="vinicius" aria-pressed="false" onclick="definirFiltroCarteira('vinicius');this.closest('details').open=false">Vinícius · Laranja</button>
+          <button type="button" data-carteira-opcao="ewerton" aria-pressed="false" onclick="definirFiltroCarteira('ewerton');this.closest('details').open=false">Ewerton · Azul</button>
+        </div>
+      </details>
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Status</summary>
+        <summary data-dem-chip="status">Status<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar status" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-status-legend')">
         <div class="legend" id="demanda-status-legend">
           <button type="button" class="pill pill-nova-demanda" onclick="filterDemandaByStatusLegend('Nova Demanda',this)" title="Ver só as de status Nova demanda"><span class="pill-dot"></span>Nova demanda</button>
@@ -412,7 +418,7 @@
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Tipo</summary>
+        <summary data-dem-chip="tipo">Tipo<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar tipo" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-tipo-legend')">
         <div class="legend tipo-legend" id="demanda-tipo-legend"
           title="Clique para filtrar. Marque várias e use “Tipo” no deck para classificar em lote."></div>
@@ -420,14 +426,14 @@
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Cliente</summary>
+        <summary data-dem-chip="cliente">Cliente<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar cliente" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'demanda-cliente-legend')">
         <div class="dem-clientes" id="demanda-cliente-legend"></div>
         </div>
       </details>
 
       <details class="dem-filtro" name="filtros-demandas">
-        <summary>Responsável</summary>
+        <summary data-dem-chip="responsavel">Responsável<b class="agenda-filtro-escolha"></b></summary>
         <div class="dem-filtro-popover"><input type="search" aria-label="Buscar equipe" placeholder="Buscar…" oninput="pesquisarOpcoesDemanda(this,'person-filter-bar-demandas')">
         <div id="person-filter-bar-demandas" class="person-filter-bar">
           <button type="button" class="person-wrap" onclick="filterDemandaByPerson('all',this)" id="person-all-demandas" title="Toda a equipe" aria-label="Toda a equipe">
@@ -455,6 +461,7 @@
             <b id="demandas-agenda-count"></b></button>
         </div>
       </div>
+      <details class="dem-colunas" name="filtros-demandas"><summary>Colunas</summary><div class="dem-filtro-popover"><label><input id="dem-coluna-id" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-id',this.checked);guardarPreferenciasDemandas()"> Mostrar ID</label><label><input id="dem-coluna-cadastro" type="checkbox" onchange="document.getElementById('painel-demandas').classList.toggle('dem-mostrar-cadastro',this.checked);guardarPreferenciasDemandas()"> Mostrar cadastro e criação</label></div></details>
     </div>
 
     <!-- Quanto esta sendo mostrado, de quanto, e por que. Fica COLADO na lista,
