@@ -5614,3 +5614,50 @@ body.mundo .capt-gerir .vb-link{display:inline-flex;align-items:center;min-heigh
 body.mundo .capt-gerir .vb-link:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
 body.mundo .capt-gerir .vb-link.perigo{order:-1;margin-right:auto;border-color:#F6BBC4;color:#B42318}
 body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}
+/* ===== Criação: o assistente do Deivid (10/11/2026; vybe-mundo-criacao.js). A conversa do Danilo dentro do guia, as
+   caixas de aprovar (delegar e cobrar) e o confirmado × sugestão por cliente. Botões são os do sistema (vc-acao/vc-sec). */
+.vcr-conversa{display:grid;gap:8px}
+.vcr-pergunta{margin:0;display:flex;justify-content:flex-end}
+.vcr-pergunta span{max-width:80%;padding:7px 12px;border-radius:12px 12px 4px 12px;background:#1F1D1A;color:#FFFFFF;font:600 12.5px/1.35 var(--vv-texto)}
+.vcr-resposta{display:grid;gap:6px;max-width:92%;padding:10px 12px;border:1px solid #EFEAE2;border-radius:12px 12px 12px 4px;background:#FAF7F2}
+.vcr-resposta p{margin:0;font:500 13px/1.5 var(--vv-texto);color:#3A3F44}
+.vcr-resposta p b{color:#1F1D1A}
+.vcr-nota{margin:0;font:500 11.5px/1.4 var(--vv-texto);color:#6B675F}
+.vcr-mudou{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 0 14px;padding:10px 14px;border:1px solid #F7C9A6;border-radius:12px;background:#FFF4EB;font:500 12.5px/1.45 var(--vv-texto);color:#3A3F44}
+.vcr-mudou span{flex:1 1 260px;min-width:0}
+.vcr-bloco{margin:0 0 14px}
+.vcr-sugs,.vcr-clis{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.vcr-sug{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF}
+.vcr-sug-meio{flex:1 1 280px;min-width:0;display:grid;gap:3px}
+.vcr-sug-meio small{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:700 10px var(--vv-texto);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
+.vcr-sug[data-vcr-tipo="delegar"] .vcr-sug-meio > small{color:#C2490C}
+.vcr-sug-meio b{font:600 13px/1.35 var(--vv-texto);color:#1F1D1A;overflow-wrap:anywhere}
+.vcr-sug-meio span{font:500 12px/1.45 var(--vv-texto);color:#5E5A53}
+.vcr-sug-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.vcr-conf{flex:1 0 100%;font:600 12px/1.4 var(--vv-texto);color:#1F1D1A}
+.vcr-msg{margin:4px 0 0;font:600 12px/1.4 var(--vv-texto);color:#1F7A45}
+.vcr-msg.erro{color:#B42318}
+.vcr-msg.erro::before{content:"Erro: "}
+.vcr-cli{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1fr) minmax(0,1.4fr);gap:10px 14px;align-items:start;padding:10px 12px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF}
+.vcr-cli-cab{display:grid;gap:4px;justify-items:start}
+.vcr-cli-cab small,.vcr-cli-col > small{font:500 11.5px var(--vv-texto);color:#6B675F}
+.vcr-cli-col{display:grid;gap:4px;min-width:0;justify-items:start}
+.vcr-rot{font:700 10px var(--vv-texto);letter-spacing:.04em;text-transform:uppercase}
+.vcr-rot.confirmado{color:#1F7A45}
+.vcr-rot.sugestao{color:#8A5A00}
+.vcr-rot.confirmado::before{content:"✓ "}
+.vcr-rot.sugestao::before{content:"? "}
+.vcr-peca{max-width:100%;padding:0;border:0;background:none;color:#1F1D1A;font:600 12.5px/1.35 var(--vv-texto);text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vcr-peca:hover{color:#C2490C;text-decoration:underline;text-underline-offset:2px}
+.vcr-ideia{margin:0;padding:6px 8px;border:1px dashed #E6D3A8;border-radius:8px;background:#FFFBF0;font:500 12px/1.45 var(--vv-texto);color:#3A3F44}
+.vcr-ideia em{display:block;font:700 10px var(--vv-texto);font-style:normal;letter-spacing:.04em;text-transform:uppercase;color:#8A5A00}
+:is(.vcr-peca,.vcr-ideia .vg-link):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+@container hoje (max-width:720px){.vcr-cli{grid-template-columns:1fr}.vcr-resposta{max-width:100%}}
+@media (max-width:640px){.vcr-cli{grid-template-columns:1fr}.vcr-resposta{max-width:100%}.vcr-sug-acoes{width:100%}}
+.vcr-perguntar{display:flex;gap:6px}
+.vcr-perguntar input{flex:1;min-width:0;min-height:var(--pc-h,34px);padding:0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:500 12.5px var(--vv-texto)}
+.vcr-perguntar input:focus-visible{outline:2px solid #F26B1D;outline-offset:1px}
+.vcr-pensando p{color:#8A847A}
+.vcr-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.vcr-lotado{margin:0 0 8px;padding:8px 12px;border:1px solid #F6BBC4;border-radius:10px;background:#FDECEE;font:500 12px/1.45 var(--vv-texto);color:#3A3F44}
+.vcr-lotado b{color:#B42318}
