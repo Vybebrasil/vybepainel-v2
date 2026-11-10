@@ -1885,7 +1885,7 @@
     const temSom = Boolean(fn('escritorioNaPista')?.());
     partes.push(botao({ acao: 'musica', cls: body.classList.contains('musica-aberta') ? 'aberta' : '', icone: IC.musica, rot: 'Música', titulo: temSom ? 'Música da sala (todos ouvem junto)' : 'Música da sala: só nas salas com aparelho de som (o Lounge tem)' }));
     partes.push(botao({ acao: 'tv', icone: IC.tv, rot: 'TV', titulo: 'TV da sala: passar um vídeo do YouTube para quem está nela', extra: e.zona ? '' : 'disabled' }));
-    if (naChamada || e.entrandoChamada) partes.push(botao({ acao: 'sair', cls: 'vq-sair', icone: IC.sair, rot: 'Sair', titulo: 'Sair da chamada' }));
+    // Sem "Sair da chamada" (Paulo, 10/11/2026: "não tem como não estar em nenhuma sala"): quem não quer falar fica mudo.
     return partes.join('');
   }
   // Ouvir (Paulo, 09/11/2026: "o de mutar o que ouve"): silencia as vozes de todos só para você, enquanto a aba estiver
@@ -3300,7 +3300,7 @@
     pintarDock();
     if (!e.conectado) {
       const outraAba = Boolean(e.emOutraAba || fn('escritorioOutraAbaConectada')?.());
-      marcarVozNoTopo(outraAba ? 'outra' : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3) ? 'conectando' : 'fora');
+      marcarVozNoTopo(outraAba ? 'outra' : 'conectando');
       if (!outraAba && !e.conectando && e.base && !e.base.demo && !pintarChamada.tentou && fn('conectarEscritorio')) {
         pintarChamada.tentou = true;
         if (e.microfoneQuer === undefined) e.microfoneQuer = false; // entra calado; liga o microfone quando quiser falar
@@ -3310,21 +3310,31 @@
       const topo = (titulo, frase, botao = '') => `<div class="sala off"><span class="vz-ponto" aria-hidden="true"></span><span class="vz-onde"><b>${titulo}</b><small>${frase}</small></span>${botao}</div>`;
       barra.innerHTML = outraAba
         ? topo('Voz aberta em outra aba', 'Só uma aba fica na chamada, para não ouvir em dobro', '<button type="button" class="vz-botao principal" data-chamada="assumir">Usar nesta aba</button>')
-        : e.conectando || (pintarChamada.tentou && (pintarChamada.vezes || 0) < 3)
-          ? topo('Conectando às salas…', 'Já já você vê quem está em cada sala')
-          : topo('Fora das salas de voz', 'Entre para falar e ver quem está em cada sala', '<button type="button" class="vz-botao principal" data-chamada="reconectar">Entrar</button>');
-      // Não conectou: tenta de novo sozinho até 3 vezes (a cada 20 s); depois fica o botão Entrar.
-      if (pintarChamada.tentou && !e.conectando && !outraAba && (pintarChamada.vezes = (pintarChamada.vezes || 0) + (pintarChamada.agendado ? 0 : 1)) < 3 && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
+        : topo('Conectando às salas…', 'Já já você vê quem está em cada sala');
+      // Não conectou: tenta de novo sozinho a cada 20 s, sem botão "Entrar" (não existe ficar fora das salas).
+      if (pintarChamada.tentou && !e.conectando && !outraAba && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
       return;
     }
     // Quem entra no painel já entra na própria sala, online e na chamada dela, com o microfone mudo (Paulo, 09/11/2026:
     // "obrigar a quem entrar já entrar online na sua sala... ver quem tá ON, poder ir fácil e ver as outras salas").
     // Uma vez por carga da página, sem abrir o andar em 3D; depois, sair da chamada ou trocar de sala continua livre.
+    // Paulo, 10/11/2026: entra na ÚLTIMA sala em que estava (guardada neste navegador); sem ela, ou se ela não abrir
+    // (trancada, sumiu), na própria sala.
     if (!pintarChamada.naMinha) {
-      const s = minhaSalaDaConta();
+      const minha = minhaSalaDaConta(), ultima = fn('escritorioUltimaSala')?.() || '';
+      const valida = ultima && fn('escritorioCanal')?.(ultima) && (zonas3d()?.[ultima] || fn('escritorioAmbienteDoQuarto')?.(ultima));
+      const s = valida ? ultima : minha;
       if (s) {
         pintarChamada.naMinha = true;
-        if (e.zona !== s) { moverParaSala(s); setTimeout(() => { if (e.zona === s && !e.vozPausada) fn('escritorioConversaAutomatica')?.(); pintarChamada(); }, 700); }
+        e.vozPausada = false;
+        if (e.zona !== s) {
+          moverParaSala(s);
+          setTimeout(() => {
+            if (e.zona !== s && s !== minha && minha && e.zona !== minha) moverParaSala(minha);
+            if (!e.vozPausada) fn('escritorioConversaAutomatica')?.();
+            pintarChamada();
+          }, 700);
+        }
       }
     }
     const canal = fn('escritorioCanal')?.(e.zona);

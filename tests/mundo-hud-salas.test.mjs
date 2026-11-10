@@ -34,9 +34,13 @@ test('CSS: uma coluna que não quebra (a lista não pula para o lado) e as regra
   assert.doesNotMatch(bloco, /!important/, 'bloco novo sem !important');
 });
 
-test('quem entra no painel já entra na própria sala (uma vez, sem abrir o andar) e na chamada dela, mudo', () => {
-  assert.match(trecho, /if \(!pintarChamada\.naMinha\) \{\n\s*const s = minhaSalaDaConta\(\);/);
-  assert.match(trecho, /if \(e\.zona !== s\) \{ moverParaSala\(s\);/);
+// Paulo, 10/11/2026: entra na última sala em que estava; sem ela (ou se não abrir), na própria sala.
+test('quem entra no painel já entra na última sala (ou na própria), uma vez, sem abrir o andar, e na chamada dela', () => {
+  assert.match(trecho, /if \(!pintarChamada\.naMinha\) \{\n\s*const minha = minhaSalaDaConta\(\), ultima = fn\('escritorioUltimaSala'\)/);
+  assert.match(trecho, /const s = valida \? ultima : minha;/);
+  assert.match(trecho, /if \(e\.zona !== s\) \{\n\s*moverParaSala\(s\);/);
+  assert.match(trecho, /if \(e\.zona !== s && s !== minha && minha && e\.zona !== minha\) moverParaSala\(minha\);/, 'a última não abriu: vai para a própria');
+  assert.match(js, /escritorioGuardarUltimaSala|escritorioUltimaSala/);
   assert.doesNotMatch(trecho.slice(trecho.indexOf('pintarChamada.naMinha'), trecho.indexOf("const canal = fn('escritorioCanal')")), /focarSalaDaChamada|abrirAndarVoxel/, 'sem levar a pessoa para o 3D');
   assert.match(js, /if \(e\.microfoneQuer === undefined\) e\.microfoneQuer = false;/, 'entra mudo');
 });
