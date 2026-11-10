@@ -2,6 +2,7 @@
 // InstancedMesh (peças com luz e sombra + peças que brilham), com letreiro em
 // letras de blocos. Assim cada sede tem detalhe fino sem pesar.
 import * as THREE from 'three';
+import { ESTILO } from './estilo.mjs';
 
 // Fonte 3×5 (linhas de cima para baixo). Acentos caem na letra sem acento.
 const F = {
@@ -20,10 +21,10 @@ export const semAcento = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '
 // bloco escurecida e o pé das paredes mais escuro (oclusão de contato). Tudo no shader: nenhum triângulo a mais.
 // De longe (cubinho menor que 1 pixel) a grade some sozinha, sem tremer.
 // borda: só para caixas (BoxGeometry de 1×1×1 escalada), que sabem onde fica a quina de cada uma.
-export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = true } = {}) {
+export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = true, tomBloco = 0.07 } = {}) {
   material.onBeforeCompile = (s) => {
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc; varying vec3 vVxOri;')
       .replace('#include <project_vertex>', `#include <project_vertex>
 #ifdef USE_INSTANCING
   mat4 vxM = modelMatrix * instanceMatrix;
@@ -33,9 +34,10 @@ export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = 
   vVxPos = (vxM * vec4(transformed, 1.0)).xyz;
   vVxNor = normalize(mat3(vxM) * objectNormal);
   vVxLoc = position;
-  vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));`);
+  vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));
+  vVxOri = vxM[3].xyz;`);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc; varying vec3 vVxOri;')
       .replace('#include <color_fragment>', `#include <color_fragment>
 {
   vec3 vxN = normalize(vVxNor), vxA = abs(vxN);
@@ -50,24 +52,32 @@ export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = 
   if (vxA.y < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.y));
   if (vxA.z < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.z));
   diffuseColor.rgb *= (1.0 + (vxH - 0.5) * ${amp.toFixed(3)} * vxVis) * mix(1.0, mix(0.8, 1.0, vxS), vxVis * ${grade.toFixed(2)});
+  // Cada bloco com o próprio tom (padrão voxel, estilo.mjs): também nos blocos miúdos dos móveis e bonecos.
+  float vxT = fract(sin(dot(floor(vVxOri * 97.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  diffuseColor.rgb *= 1.0 + (vxT - 0.5) * ${tomBloco.toFixed(3)};
 ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
   float vxE = 1e3;
   if (vxA.x < 0.5) vxE = min(vxE, vxL.x);
   if (vxA.y < 0.5) vxE = min(vxE, vxL.y);
   if (vxA.z < 0.5) vxE = min(vxE, vxL.z);
-  float vxQ = smoothstep(0.0, 0.03 + fwidth(vxE), vxE);
-  diffuseColor.rgb *= mix(0.74, 1.0, vxQ) * (1.0 + step(0.5, vxN.y) * 0.05);
+  // A quina acompanha o tamanho do bloco e some quando o bloco tem poucos pixels na tela: bloco miúdo (móvel, boneco)
+  // fica com a face limpa e a luz desenha as facetas, sem escurecer inteiro.
+  float vxLado = min(min(vVxEsc.x, vVxEsc.y), vVxEsc.z), vxPx = vxLado / max(fwidth(vxE), 1e-5);
+  float vxQ = smoothstep(0.0, min(0.03, vxLado * 0.16) + fwidth(vxE), vxE);
+  diffuseColor.rgb *= mix(mix(mix(0.9, 0.74, smoothstep(0.15, 0.5, vxLado)), 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
   float vxB = (vVxLoc.y + 0.5) * vVxEsc.y;
-  diffuseColor.rgb *= mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0));` : ''}
+  diffuseColor.rgb *= mix(1.0, mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0)), smoothstep(0.15, 0.4, vVxEsc.y));` : ''}
 }`);
   };
-  material.customProgramCacheKey = () => `voxel:${tam}:${amp}:${grade}:${borda}`;
+  material.customProgramCacheKey = () => `voxel2:${tam}:${amp}:${grade}:${borda}:${tomBloco}`;
   return material;
 }
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
 // Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
-export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
+// Desde 09/11/2026 (referências de quarto voxel do Paulo: "o estilo ideal pra tudo") a superfície é lisa: sem a
+// grade nem a quina de cada bloco; o volume vem da luz, da sombra macia e da oclusão (estilo.mjs).
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .86 }), { tam: 1, ...ESTILO.superficie }));
 
 // Sombra de contato (Paulo, 08/11/2026: "tem que ficar FODA de bonito"): uma mancha macia no chão embaixo de cada
 // árvore, bicho e boneco, que "assenta" a peça no chão. Uma textura só, um material só, sem entrar no cálculo da sombra.
