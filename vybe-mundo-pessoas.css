@@ -207,3 +207,38 @@
 #vv-pessoas .vp-etapa-demanda{appearance:none;border:0;background:none;padding:0 4px;cursor:pointer;align-self:center;flex:none}
 #vv-pessoas .vp-etapa-demanda:focus-visible{outline:2px solid #F26B1D;outline-offset:2px;border-radius:6px}
 #vv-pessoas .vp-gantt-rotulo .vp-etapa-demanda{display:inline-flex;margin-top:3px;padding:0}
+
+/* Calendário do time (quadro 61, 10/11/2026): o mês com os aniversários e as férias e folgas aprovadas, e ao lado as
+   listas dos próximos e o "Seu aniversário" com dia e mês. Aniversário e férias diferem pelo ícone e pela cor. */
+#vv-pessoas .vp-cal-duas{display:grid;gap:12px}
+@media (min-width:1200px){#vv-pessoas .vp-cal-duas{grid-template-columns:minmax(0,1.6fr) minmax(240px,1fr);align-items:start}}
+@media (min-width:720px) and (max-width:1199px){#vv-pessoas .vp-cal-lado{grid-template-columns:1fr 1fr;align-items:start}}
+#vv-pessoas .vp-cal-lado{display:grid;gap:12px}
+#vv-pessoas .vp-cal-topo{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#vv-pessoas .vp-cal-mes{flex:1;min-width:0;text-align:center;font:600 15px var(--vv-titulo,var(--vv-texto,system-ui)),sans-serif;color:#1F1D1A}
+#vv-pessoas .vp-cal-topo .vp-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-pessoas .vp-cal-grade{display:grid;gap:4px}
+#vv-pessoas .vp-cal-semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#vv-pessoas .vp-cal-nomes span{text-align:center;font:600 11px var(--vv-texto,system-ui),sans-serif;color:#6B675F}
+#vv-pessoas .vp-cal-dia{display:flex;flex-direction:column;gap:2px;min-height:58px;min-width:0;padding:4px 5px;border-radius:6px;background:#F7F3ED;overflow:hidden}
+#vv-pessoas .vp-cal-dia.fora{background:transparent}
+#vv-pessoas .vp-cal-dia > b{font:600 11.5px var(--vv-texto,system-ui),sans-serif;color:#3A3F44;font-variant-numeric:tabular-nums}
+#vv-pessoas .vp-cal-dia.hoje{background:var(--ds-sel-fundo,#FFEBDD);box-shadow:inset 0 0 0 1px #FFC9A6}
+#vv-pessoas .vp-cal-dia.hoje > b{color:#C2490C}
+#vv-pessoas .vp-cal-ev{display:inline-flex;align-items:center;gap:3px;min-width:0;max-width:100%;padding:1px 4px;border-radius:4px;font:600 10.5px/1.3 var(--vv-texto,system-ui),sans-serif}
+#vv-pessoas .vp-cal-ev span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-pessoas .vp-cal-ev svg{flex:none;width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-pessoas .vp-cal-ev.aniv{background:#FCE7F1;color:#A3366F}
+#vv-pessoas .vp-cal-ev.ferias{background:#E7F6EE;color:#11613A}
+#vv-pessoas .vp-cal-mais{font:600 10.5px var(--vv-texto,system-ui),sans-serif;color:#6B675F}
+#vv-pessoas .vp-cal-legenda{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+#vv-pessoas .vp-cal-legenda .vp-cal-ev{font-size:11.5px;padding:2px 7px}
+/* Celular: o dia fica só com o número e pontinhos; quem é aparece na lista ao lado (embaixo). */
+@media (max-width:560px){
+  #vv-pessoas .vp-cal-dia{min-height:40px;padding:3px}
+  #vv-pessoas .vp-cal-dia .vp-cal-ev{padding:0;background:none}
+  #vv-pessoas .vp-cal-dia .vp-cal-ev span{display:none}
+}
+#vv-pessoas .vp-aniv{flex:1 1 220px}
+#vv-pessoas .vp-aniv legend{font-size:12px;font-weight:600;color:#3A3F44;margin-bottom:4px}
+#vv-pessoas .vp-aniv-campos{display:grid;grid-template-columns:minmax(76px,.7fr) minmax(0,1.3fr);gap:6px}

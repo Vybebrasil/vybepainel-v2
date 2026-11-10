@@ -1,9 +1,11 @@
 /* Boletim dos agentes (vybe-mundo-boletim.js, Paulo 09/11/2026). Janela do padrão claro do Irecity: branca, cantos de
    14px, abas por agente, um cartão por vez com O que eu fiz / O que está errado / Pra onde ir. Laranja só na ação;
    verde, amarelo e vermelho só para estado. Camada acima do HUD e dos módulos (640), abaixo dos ajustes de áudio (900). */
-.vbl-fundo{position:fixed;inset:0;z-index:860;display:grid;place-items:center;padding:16px;background:rgba(31,29,26,.32);backdrop-filter:blur(2px)}
+/* Painel no canto (quadro 66, 10/11/2026), sem fundo escurecido nem desfocado: a camada não segura clique, só o painel.
+   Fica à direita (o Hoje mora à esquerda), entre o topo e o dock das salas. */
+.vbl-fundo{position:fixed;inset:0;z-index:860;display:flex;justify-content:flex-end;align-items:flex-end;padding:var(--vv-m,14px);padding-bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));box-sizing:border-box;pointer-events:none;background:none}
 .vbl-fundo[hidden]{display:none}
-.vbl-janela{display:flex;flex-direction:column;width:min(720px,100%);max-height:min(760px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;
+.vbl-janela{pointer-events:auto;display:flex;flex-direction:column;width:min(560px,100%);max-height:min(760px,calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 64px));overflow:hidden;box-sizing:border-box;
   background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px -24px rgba(31,29,26,.45);font-family:var(--vv-texto,Inter,system-ui,sans-serif);
   animation:vbl-entra .2s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
 @keyframes vbl-entra{from{transform:translateY(8px) scale(.985)}}
@@ -92,8 +94,8 @@
 .vbl-abrir-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:7px;background:#FFF1E6;color:#C2490C}
 .vbl-abrir-ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 @media (max-width:640px){
-  .vbl-fundo{padding:0;place-items:end stretch}
-  .vbl-janela{width:100%;max-height:calc(100vh - 24px);border-radius:14px 14px 0 0}
+  .vbl-fundo{padding:0 0 var(--vv-dock-alto,0px);align-items:flex-end;justify-content:stretch}
+  .vbl-janela{width:100%;max-height:calc(100dvh - var(--vv-dock-alto,0px) - 24px);border-radius:14px 14px 0 0}
   .vbl-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
   .vbl-topo,.vbl-palco,.vbl-pe{padding-left:16px;padding-right:16px}
   .vbl-abas{padding-left:16px;padding-right:16px}

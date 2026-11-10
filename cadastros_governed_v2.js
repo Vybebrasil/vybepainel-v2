@@ -673,7 +673,10 @@ function fcGrupoDoQuadro(grupo) {
      titleEl.textContent = n > 1
        ? `${formatText} - ${titleText}  +${n - 1}`
        : `${formatText} - ${titleText}`;
-     clientEl.textContent = (state.clients?.length ? state.clients.join(', ') : state.client) || 'Cliente não selecionado';
+     // A prévia mostra os clientes na cor de cada um, como a escolha (cliCor escapa o nome).
+     const escolhidos = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
+     if (escolhidos.length && typeof cliCor === 'function') clientEl.innerHTML = escolhidos.map((c) => cliCor(c)).join(' ');
+     else clientEl.textContent = escolhidos.join(', ') || 'Cliente não selecionado';
      
      const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
      const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
@@ -1051,10 +1054,16 @@ function fcGrupoDoQuadro(grupo) {
       const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
       return `<input type="text" class="fc-busca" id="fc-busca-cliente" placeholder="Buscar cliente..."
           oninput="fcFiltrar('fc-lista-cliente', this.value)">
-        <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => `
-          <button type="button" class="fc-escolha ${(state.clients?.length ? state.clients : [state.client]).includes(c) ? 'marcada' : ''}"
-            aria-pressed="${(state.clients?.length ? state.clients : [state.client]).includes(c)}" data-busca="${esc2(String(c).toLowerCase())}"
-            data-valor="${esc2(c)}" onclick="fcAlternarCliente(this.dataset.valor)">${esc2(c)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
+        <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => {
+          // Cada cliente na cor da carteira dele (cliCor, quadro 64); o escolhido ganha o contorno laranja e o visto.
+          const marcado = (state.clients?.length ? state.clients : [state.client]).includes(c);
+          const visto = '<svg class="fc-cli-visto" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+          const nome = typeof cliCor === 'function' ? cliCor(c).replace(/<\/span>$/, visto + '</span>') : esc2(c) + visto;
+          return `
+          <button type="button" class="fc-escolha fc-cli ${marcado ? 'marcada' : ''}"
+            aria-pressed="${marcado}" aria-label="${esc2(c)}" data-busca="${esc2(String(c).toLowerCase())}"
+            data-valor="${esc2(c)}" onclick="fcAlternarCliente(this.dataset.valor)">${nome}</button>`;
+        }).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
     }
     if (p === 'format') {
       const lista = fcListaCatalogo('format');

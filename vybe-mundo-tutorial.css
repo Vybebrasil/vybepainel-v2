@@ -71,13 +71,13 @@
 /* ---------- Dica: sem escurecer a tela; um anel lilás em volta do que ela explica ---------- */
 .vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px #8B7DFF,0 0 0 6px rgba(139,125,255,.22);animation:vv-tour-surge .2s var(--tour-curva) both}
 
-/* ---------- Ajuda do VYBES: janela do padrão (branca, raio 24, sombra de janela, fundo com blur) ---------- */
-.vv-tour-ajuda{display:grid;place-items:center;padding:16px;pointer-events:auto}
-.vv-tour-veu{position:fixed;inset:0;background:var(--tour-veu-janela);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-.vv-tour-janela{position:relative;box-sizing:border-box;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;overscroll-behavior:contain;
+/* ---------- Ajuda do VYBES: painel no canto direito, acima do dock (quadro 66, 10/11/2026), sem véu nem blur ---------- */
+.vv-tour-ajuda{display:flex;justify-content:flex-end;align-items:flex-end;box-sizing:border-box;padding:var(--vv-m,14px);padding-bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));pointer-events:none}
+.vv-tour-janela{position:relative;box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 64px);overflow:auto;overscroll-behavior:contain;pointer-events:auto;
   padding:20px 22px 18px;border-radius:14px;background:var(--tour-papel);color:var(--tour-tinta);border:1px solid var(--tour-linha);
   box-shadow:0 30px 80px rgba(31,29,26,.25);outline:0;scrollbar-width:thin;animation:vv-tour-surge .2s var(--tour-curva) both}
-.vv-tour-janela-topo{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+/* O X na linha do título: a regra global antiga de header (vybe-styles.css) empilhava avatar, título e X em coluna. */
+.vv-tour-janela-topo{display:flex;flex-direction:row;align-items:center;gap:12px;margin-bottom:10px;padding:0}
 .vv-tour-janela-topo .vv-tour-titulo{font-size:19px;margin:0}
 .vv-tour-kicker{display:block;margin-bottom:2px;font:700 10.5px/1.2 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none;color:var(--tour-kicker)}
 .vv-tour-x{flex:none;margin-left:auto;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--tour-linha);border-radius:8px;

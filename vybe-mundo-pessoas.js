@@ -18,13 +18,13 @@
 // Celular primeiro: uma coluna, abas que rolam de lado, kanban e linha do tempo com rolagem própria.
 (function () {
   'use strict';
-  const ABAS = [['produtividade', 'Produtividade'], ['rh', 'RH'], ['projetos', 'Projetos pontuais'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
+  const ABAS = [['produtividade', 'Produtividade'], ['rh', 'Pedidos e calendário'], ['projetos', 'Projetos pontuais'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
   const SO_GESTAO = new Set(['recrutamento', 'documentos']);
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
   const AJUDA = {
     produtividade: 'O score de 0 a 100 sai das demandas do painel, sem nada para preencher: entregas no prazo (a data do cliente manda), volume do mês contra a meta do cargo, peças que voltaram para ajuste e o que está atrasado na fila. Cada pessoa vê só o próprio detalhe; o ranking, a carga da semana, os pesos e as metas são dos donos. A carga da semana soma as demandas abertas do painel e as etapas de projeto de cada pessoa contra a capacidade semanal.',
-    rh: 'Pedidos ao RH (férias ou folga, documento, reembolso, equipamento) com prazo de resposta em dias úteis por tipo, que os donos ajustam; fora do prazo fica em vermelho. Aniversários (só dia e mês) e férias aprovadas. A pesquisa de clima é aberta pelos donos com período e é anônima de verdade: a resposta não guarda quem respondeu nem a hora, e o resultado só aparece somado, com 3 respostas ou mais.',
+    rh: 'Pedidos ao RH (férias ou folga, documento, reembolso, equipamento) com prazo de resposta em dias úteis por tipo, que os donos ajustam; fora do prazo fica em vermelho. O calendário do time mostra os aniversários (só dia e mês) e as férias e folgas aprovadas. A pesquisa de clima é aberta pelos donos com período e é anônima de verdade: a resposta não guarda quem respondeu nem a hora, e o resultado só aparece somado, com 3 respostas ou mais.',
     projetos: 'Projetos fora do mensal (evento, lançamento, site) com etapas, responsáveis e datas, na linha do tempo.',
     academy: 'Trilhas de treinamento para quem entra na Vybe. Cada aula é um link de vídeo ou documento; marque a aula como feita quando terminar. Os donos montam as trilhas e atribuem a cada pessoa.',
     recrutamento: 'Vagas abertas e os candidatos em cada etapa. As etapas são configuráveis; mover para Aprovado (ou Contratado) conta no tempo médio de contratação. Só os donos e quem administra veem.',
@@ -38,7 +38,7 @@
 
   const hoje = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
   const estado = { raiz: null, janela: null, antes: null, aba: 'produtividade', dados: {}, carregando: false, erro: '', aviso: '', ajuda: false, form: '', editar: null,
-    mes: '', pessoa: '', periodo: 'mensal', ref: '', semana: '', vaga: '', tipoPedido: '', filtroPedidos: '', pesquisaVer: '' };
+    mes: '', pessoa: '', periodo: 'mensal', ref: '', semana: '', vaga: '', tipoPedido: '', filtroPedidos: '', pesquisaVer: '', calMes: '' };
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const br = (iso) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
@@ -336,6 +336,85 @@
         : vazio('Nenhum funcionário no Finanças', 'Cadastre a equipe em Funcionários no Vybe Finanças.')}
       <p class="vp-nota">Salário + bônus vigentes no mês pelo histórico de remuneração do Finanças (sem histórico, o valor atual). Variação contra o mês anterior. Para mudar, edite no Finanças.</p>`;
   }
+  // ---------- Calendário do time (quadro 61 do moodboard) ----------
+  // Aniversários (só dia e mês) e férias e folgas aprovadas num mês de verdade, com as listas dos próximos ao lado para
+  // nada sair da tela. As férias vêm do servidor a partir de 31 dias atrás (rota rh): meses mais antigos ficam vazios.
+  const SEMANA_RH = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const ICONE_ANIV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M5 20v-7h14v7M12 13V9M9 9.5c0-1 1.3-2 3-4.5 1.7 2.5 3 3.5 3 4.5"/></svg>';
+  const ICONE_FERIAS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>';
+  const primeiroNome = (n) => String(n || '').trim().split(/\s+/)[0] || '';
+  const diasNoMes = (ano, mes) => new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+  const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  // Mês "AAAA-MM" andando n meses, sem fuso.
+  function andarMes(ym, n) { const [a, m] = ym.split('-').map(Number), t = a * 12 + (m - 1) + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; }
+  // O que cai em cada dia do mês: { 'AAAA-MM-DD': [{ tipo: 'aniv' | 'ferias', nome }] }. Puro, para o teste.
+  function eventosDoMes(ym, aniversarios = [], ferias = []) {
+    const [ano, mes] = ym.split('-').map(Number), n = diasNoMes(ano, mes), por = {};
+    const pos = (iso, ev) => { (por[iso] ||= []).push(ev); };
+    for (const a of aniversarios || []) {
+      const [m, d] = String(a.dia || '').split('-').map(Number);
+      if (m !== mes || !d) continue;
+      // 29/02 num ano sem ele aparece no dia 28, para ninguém passar o ano sem parabéns.
+      pos(`${ym}-${String(Math.min(d, n)).padStart(2, '0')}`, { tipo: 'aniv', nome: a.nome });
+    }
+    const ini = `${ym}-01`, fim = `${ym}-${String(n).padStart(2, '0')}`;
+    for (const f of ferias || []) {
+      if (!f?.inicio) continue;
+      const de = f.inicio > ini ? f.inicio : ini, ultimo = f.fim || f.inicio, ate = ultimo < fim ? ultimo : fim;
+      if (de > ate) continue;
+      for (let d = Number(de.slice(8, 10)); d <= Number(ate.slice(8, 10)); d++) pos(`${ym}-${String(d).padStart(2, '0')}`, { tipo: 'ferias', nome: f.nome });
+    }
+    return por;
+  }
+  function htmlCalendario(d) {
+    const h = hoje(), ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), [ano, mes] = ym.split('-').map(Number);
+    const por = eventosDoMes(ym, d.aniversarios, d.ferias), n = diasNoMes(ano, mes), vazios = new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay();
+    const nomeMes = MESES_RH[mes - 1], celulas = [];
+    for (let i = 0; i < vazios; i++) celulas.push('<span class="vp-cal-dia fora" role="gridcell" aria-hidden="true"></span>');
+    for (let dia = 1; dia <= n; dia++) {
+      const iso = `${ym}-${String(dia).padStart(2, '0')}`, evs = por[iso] || [];
+      const fala = evs.map((e) => (e.tipo === 'aniv' ? `aniversário de ${e.nome}` : `${e.nome} de férias ou folga`)).join('; ');
+      celulas.push(`<span class="vp-cal-dia${iso === h ? ' hoje' : ''}${evs.length ? ' com' : ''}" role="gridcell" aria-label="${esc(`${dia} de ${nomeMes}${iso === h ? ', hoje' : ''}${fala ? ': ' + fala : ''}`)}"><b aria-hidden="true">${dia}</b>`
+        + evs.slice(0, 3).map((e) => `<small class="vp-cal-ev ${e.tipo}" aria-hidden="true" title="${esc(e.tipo === 'aniv' ? 'Aniversário de ' + e.nome : e.nome + ' de férias ou folga')}">${e.tipo === 'aniv' ? ICONE_ANIV : ICONE_FERIAS}<span>${esc(primeiroNome(e.nome))}</span></small>`).join('')
+        + (evs.length > 3 ? `<small class="vp-cal-mais" aria-hidden="true" title="${esc(evs.slice(3).map((e) => e.nome).join(', '))}">+${evs.length - 3}</small>` : '') + '</span>');
+    }
+    while (celulas.length % 7) celulas.push('<span class="vp-cal-dia fora" role="gridcell" aria-hidden="true"></span>');
+    const semanas = []; for (let i = 0; i < celulas.length; i += 7) semanas.push(`<div class="vp-cal-semana" role="row">${celulas.slice(i, i + 7).join('')}</div>`);
+    const aniv = proximosAniversarios(d.aniversarios);
+    return `<div class="vp-linha-topo"><h3 class="vp-titulo">Calendário do time</h3></div><div class="vp-cal-duas">
+      <div class="vp-cartao vp-cal">
+        <div class="vp-cal-topo"><button type="button" class="vp-x" data-vp-cal="-1" aria-label="Mês anterior" title="Mês anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <b class="vp-cal-mes" aria-live="polite">${esc(maiuscula(nomeMes))} de ${ano}</b>
+          <button type="button" class="vp-x" data-vp-cal="1" aria-label="Próximo mês" title="Próximo mês"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+          ${ym === h.slice(0, 7) ? '' : '<button type="button" class="vp-sec" data-vp-cal="0">Este mês</button>'}</div>
+        <div class="vp-cal-grade" role="grid" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}"><div class="vp-cal-semana vp-cal-nomes" role="row">${SEMANA_RH.map((s) => `<span role="columnheader">${s}</span>`).join('')}</div>${semanas.join('')}</div>
+        <p class="vp-cal-legenda"><span class="vp-cal-ev aniv">${ICONE_ANIV}<span>Aniversário</span></span><span class="vp-cal-ev ferias">${ICONE_FERIAS}<span>Férias ou folga aprovada</span></span></p>
+      </div>
+      <div class="vp-cal-lado">
+        <div class="vp-cartao"><span class="vp-kicker">Próximos aniversários</span>${aniv.length ? `<ul class="vp-simples">${aniv.map((a) => `<li><b>${esc(a.dia.slice(3))}/${esc(a.dia.slice(0, 2))}</b> ${esc(a.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Ninguém cadastrou o aniversário ainda.</p>'}
+          <form data-vp-form="meu-aniversario" class="vp-form vp-inline">${campoAniversario(d.meuPerfil?.nascimento || '', 'Seu aniversário')}<button type="submit" class="vp-sec">Salvar</button></form>
+          <p class="vp-nota">Só o dia e o mês: é o que a equipe vê.</p></div>
+        <div class="vp-cartao"><span class="vp-kicker">Férias e folgas aprovadas</span>${(d.ferias || []).length ? `<ul class="vp-simples">${d.ferias.map((f) => `<li><b>${f.inicio === f.fim ? br(f.inicio) : `${br(f.inicio)}–${br(f.fim)}`}</b> ${esc(f.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Nenhuma férias ou folga marcada para os próximos dias.</p>'}</div>
+      </div></div>`;
+  }
+  // Aniversário só com dia e mês (os seletores do painel). O ano já guardado, se houver, segue escondido e não muda.
+  function campoAniversario(iso, rotulo) {
+    const ok = /^\d{4}-\d{2}-\d{2}/.test(iso || ''), ano = ok ? iso.slice(0, 4) : '', mes = ok ? Number(iso.slice(5, 7)) : 0, dia = ok ? Number(iso.slice(8, 10)) : 0;
+    return `<fieldset class="vp-aniv"><legend>${esc(rotulo)}</legend><input type="hidden" name="nasc_ano" value="${esc(ano)}">
+      <div class="vp-aniv-campos"><select name="nasc_dia" aria-label="${esc(rotulo)}: dia"><option value="">Dia</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}"${i + 1 === dia ? ' selected' : ''}>${i + 1}</option>`).join('')}</select>
+      <select name="nasc_mes" aria-label="${esc(rotulo)}: mês"><option value="">Mês</option>${MESES_RH.map((m, i) => `<option value="${i + 1}"${i + 1 === mes ? ' selected' : ''}>${m}</option>`).join('')}</select></div></fieldset>`;
+  }
+  // { valor: 'AAAA-MM-DD' | null } ou { erro }. Sem ano guardado vai 2000 (bissexto: aceita 29 de fevereiro); o servidor
+  // só mostra o dia e o mês.
+  function nascimentoDoForm(f) {
+    const dia = Number(f.nasc_dia) || 0, mes = Number(f.nasc_mes) || 0;
+    if (!dia && !mes) return { valor: null };
+    if (!dia || !mes) return { erro: 'Escolha o dia e o mês do aniversário.' };
+    if (dia > diasNoMes(2000, mes)) return { erro: `${maiuscula(MESES_RH[mes - 1])} não tem dia ${dia}.` };
+    let ano = /^\d{4}$/.test(f.nasc_ano || '') ? Number(f.nasc_ano) : 2000;
+    if (dia > diasNoMes(ano, mes)) ano = 2000;
+    return { valor: `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}` };
+  }
   function htmlRh(d) {
     let html = semMigracao(d);
     if (d.gestao && d.visao) {
@@ -347,17 +426,12 @@
         ${v.semEntrada ? `<p class="vp-nota">${plural(v.semEntrada, 'pessoa está', 'pessoas estão')} sem data de entrada: o tempo de casa não conta ${v.semEntrada === 1 ? 'ela' : 'elas'}. Preencha em Datas de RH.</p>` : ''}`;
     }
     html += htmlPedidos(d);
-    const aniv = proximosAniversarios(d.aniversarios);
-    html += `<h3 class="vp-titulo">Calendário</h3><div class="vp-duas">
-      <div class="vp-cartao"><span class="vp-kicker">Aniversários</span>${aniv.length ? `<ul class="vp-simples">${aniv.map((a) => `<li><b>${esc(a.dia.slice(3))}/${esc(a.dia.slice(0, 2))}</b> ${esc(a.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Ninguém cadastrou o aniversário ainda.</p>'}
-        <form data-vp-form="meu-aniversario" class="vp-form vp-inline"><label><span>Seu aniversário</span><input type="date" name="nascimento" value="${esc(d.meuPerfil?.nascimento || '')}"></label><button type="submit" class="vp-sec">Salvar</button></form>
-        <p class="vp-nota">Para a equipe aparecem só o dia e o mês.</p></div>
-      <div class="vp-cartao"><span class="vp-kicker">Férias e folgas aprovadas</span>${(d.ferias || []).length ? `<ul class="vp-simples">${d.ferias.map((f) => `<li><b>${f.inicio === f.fim ? br(f.inicio) : `${br(f.inicio)}–${br(f.fim)}`}</b> ${esc(f.nome)}</li>`).join('')}</ul>` : '<p class="vp-nota">Nenhuma férias ou folga marcada para os próximos dias.</p>'}</div></div>`;
+    html += htmlCalendario(d);
     if (d.gestao) {
       const pessoas = d.pessoas || [];
       html += `<details class="vp-cartao vp-det"><summary>Datas de RH (entrada, saída e aniversário)</summary>
         <form data-vp-form="perfil" class="vp-form vp-grade"><label><span>Pessoa</span><select name="pessoa_id" required data-vp-perfil-pessoa>${pessoasOpcoes(pessoas, '', 'Escolha')}</select></label>
-        <label><span>Aniversário</span><input type="date" name="nascimento"></label><label><span>Entrada na Vybe</span><input type="date" name="entrada"></label><label><span>Saída</span><input type="date" name="saida"></label>
+        ${campoAniversario('', 'Aniversário')}<label><span>Entrada na Vybe</span><input type="date" name="entrada"></label><label><span>Saída</span><input type="date" name="saida"></label>
         <div class="vp-botoes"><button type="submit" class="vp-acao">Salvar datas</button></div></form></details>`;
     }
     return html + (d.gestao ? htmlFolha() : '') + htmlClima(d);
@@ -619,8 +693,12 @@
       for (const x of d.pesquisa?.dimensoes || []) r[x.id] = num(f[x.id]);
       return gravar(r, 'Resposta enviada sem nome. Obrigado!');
     }
-    if (nome === 'meu-aniversario') return gravar({ acao: 'perfil', nascimento: f.nascimento || null }, 'Aniversário salvo.');
-    if (nome === 'perfil') return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: f.nascimento || null, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
+    if (nome === 'meu-aniversario' || nome === 'perfil') {
+      const n = nascimentoDoForm(f);
+      if (n.erro) { estado.aviso = n.erro; avisar(); return null; }
+      if (nome === 'meu-aniversario') return gravar({ acao: 'perfil', nascimento: n.valor }, n.valor ? 'Aniversário salvo.' : 'Aniversário apagado.');
+      return gravar({ acao: 'perfil', pessoa_id: f.pessoa_id, nascimento: n.valor, entrada: f.entrada || null, saida: f.saida || null }, 'Datas salvas.');
+    }
     if (nome === 'projeto') {
       const etapas = linhas(form, '.vp-etapa-form').map((e) => ({ id: e.e_id || null, nome: e.e_nome, responsavel: e.e_responsavel || null, inicio: e.e_inicio, fim: e.e_fim, esforco: num(e.e_esforco) || 1, feita: e.e_feita === '1' }));
       return gravar({ acao: 'projeto_salvar', id: f.id || null, nome: f.nome, tipo: f.tipo, cliente_id: f.cliente_id || null, cliente: f.cliente_id ? '' : f.cliente || '', status: f.status, inicio: f.inicio, fim: f.fim, descricao: f.descricao, etapas }, 'Projeto salvo.');
@@ -673,6 +751,7 @@
       if (typeof window.openItemWorkspace === 'function') window.openItemWorkspace(id);
     }
     else if ((b = perto('[data-vp-filtro-pedidos]'))) { estado.filtroPedidos = b.dataset.vpFiltroPedidos; pintar(); }
+    else if ((b = perto('[data-vp-cal]'))) { const n = Number(b.dataset.vpCal), base = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : hoje().slice(0, 7); estado.calMes = n ? andarMes(base, n) : ''; pintar(); }
     else if ((b = perto('[data-vp-ver-pesquisa]'))) { estado.pesquisaVer = b.dataset.vpVerPesquisa; pintar(); }
     else if ((b = perto('[data-vp-encerrar-pesquisa]'))) {
       if (typeof confirm === 'function' && !confirm('Encerrar a pesquisa agora? Ninguém mais consegue responder.')) return;
@@ -699,7 +778,9 @@
     else if ('vpPerfilPessoa' in ds) {
       // Preenche com o que já está salvo, para o Salvar não apagar uma data sem querer.
       const p = (estado.dados.rh?.perfis || []).find((x) => x.pessoa_id === t.value) || {}, form = t.closest('form');
-      for (const k of ['nascimento', 'entrada', 'saida']) { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = p[k] || ''; }
+      for (const k of ['entrada', 'saida']) { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = p[k] || ''; }
+      const nasc = /^\d{4}-\d{2}-\d{2}/.test(p.nascimento || '') ? p.nascimento : '', poe = (k, v) => { const i = form?.querySelector(`[name="${k}"]`); if (i) i.value = v; };
+      poe('nasc_ano', nasc.slice(0, 4)); poe('nasc_dia', nasc ? String(Number(nasc.slice(8, 10))) : ''); poe('nasc_mes', nasc ? String(Number(nasc.slice(5, 7))) : '');
     }
     else if ('vpTipoPedido' in ds) {
       // Férias ou folga: primeiro e último dia (obrigatórios); os outros tipos: data desejada.
@@ -758,5 +839,5 @@
   }
 
   window.addEventListener('keydown', aoTeclar, true);
-  window.VybePessoas = { abrir, fechar, aberto, carga, novoPedido };
+  window.VybePessoas = { abrir, fechar, aberto, carga, novoPedido, _teste: { eventosDoMes, nascimentoDoForm, andarMes } };
 })();
