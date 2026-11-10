@@ -807,6 +807,9 @@ async function ecossistemaDoCliente(db, idBruto) {
       plano, valor, cadastro FROM vybe_clientes WHERE id=${id}`;
   if (!cliente || cliente.apagado_em) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
   const [acesso] = await db`SELECT grupo, pasta_drive AS drive FROM vybe_acessos WHERE cliente_id=${id} ORDER BY atualizado_em DESC NULLS LAST LIMIT 1`;
+  // O último envio ao Drive deste cliente: se falhou por "não encontrado", a pasta ligada não abre para o sistema.
+  let driveErro = '';
+  try { const [g] = await db`SELECT drive_id, drive_erro FROM vybe_cliente_registros WHERE cliente_id=${id} AND (drive_id IS NOT NULL OR drive_erro IS NOT NULL) ORDER BY criado_em DESC LIMIT 1`; driveErro = g && !g.drive_id ? String(g.drive_erro || '') : ''; } catch { /* sem a tabela */ }
   let financas = { estado: 'desligado' };
   const conector = conectorDoFinancas();
   if (conector.configurado()) {
@@ -820,7 +823,7 @@ async function ecossistemaDoCliente(db, idBruto) {
     } catch { financas = { estado: 'erro' }; }
   }
   return { ok: true, cliente: { id: String(cliente.id), nome: cliente.nome },
-    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '', criaNoFinancas: cadastroFinancasPadrao().configurado() }) };
+    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '', criaNoFinancas: cadastroFinancasPadrao().configurado(), driveErro }) };
 }
 
 // Cópia .md do registro do chat: na pasta do cliente ligada no cadastro (Acessos) ou, sem ela, na pasta com o
