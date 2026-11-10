@@ -435,6 +435,7 @@ function xadrezEconomia(eco) {
 function abrirJogoXadrez(j) {
   const x = escritorioXadrez();
   xadrezPoeSprite();
+  mesaIrAteAMesa(j);
   x.jogo = j; x.sel = null; x.promo = null; x.nova = null;
   desenharJogoXadrez();
   clearInterval(x.timer);
