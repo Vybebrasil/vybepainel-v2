@@ -119,3 +119,11 @@ test('retratos: o painel troca a foto do Habbo pelo rápido e depois pelo fiel; 
   assert.match(q, /figuraFiel\(p\.figura\)/);
   assert.match(vm, /avatarVoxelFiel\?\.\(fig, opcoes\)/);
 });
+
+test('vitrine do jogador: com o mundo ligado, a .vb-vitrine é o quarto voxel em modo vitrine, sem boneco solto', () => {
+  const vm = fs.readFileSync('vybe-mundo.js', 'utf8'), ve = fs.readFileSync('vybe-escritorio.js', 'utf8'), q = fs.readFileSync('mundo/quarto.mjs', 'utf8'), css = fs.readFileSync('vybe-mundo.css', 'utf8');
+  assert.match(vm, /window\.vybeVitrineVoxel = vitrineVoxel/); assert.match(vm, /abrirQuarto\(canvas, \{ quarto, vitrine: true \}\)/);
+  assert.match(ve, /window\.vybeVitrineVoxel\(el\)/);
+  assert.match(q, /if \(!vitrine\) \{ window\.addEventListener\('keydown'/);
+  assert.doesNotMatch(vm + css, /vv-perfil-avatar/, 'a ficha não mostra mais o boneco solto num palco');
+});
