@@ -30,7 +30,18 @@ const ESCRITORIO_STATUS = {
   reuniao: ["Em reunião", "#ff9548"],
   ausente: ["Ausente", "#8a93a3"],
 };
+// O microfone lembra a escolha da pessoa neste navegador (Paulo, 10/11/2026: "se cair ou eu sair, quando eu voltar já
+// volta ligado"): ligado continua ligado, mudo continua mudo. Sem escolha guardada (primeira vez), entra calado.
+const ESCRITORIO_MIC_CHAVE = "vybe-escritorio-microfone";
+function escritorioMicGuardado() {
+  try { const v = localStorage.getItem(ESCRITORIO_MIC_CHAVE); return v === "1" ? true : v === "0" ? false : undefined; } catch { return undefined; }
+}
+function escritorioQuererMicrofone(quer) {
+  escritorio.microfoneQuer = Boolean(quer);
+  try { localStorage.setItem(ESCRITORIO_MIC_CHAVE, quer ? "1" : "0"); } catch {}
+}
 const escritorio = {
+  microfoneQuer: escritorioMicGuardado(),
   geracao: 0,
   base: null,
   perfil: null,
@@ -690,7 +701,7 @@ function escritorioLobbyAcoesHtml(b) {
   const mic = escritorio.lobbyMic, mudo = escritorio.microfoneQuer === false;
   return `<div class="lg-base lg-entra" style="--o:5"><div class="lg-bandeja">
 <div class="lg-audio"><button type="button" class="lg-redondo${mic?.ligado ? " ativo" : ""}" onclick="${mic?.ligado ? "pararTesteMicLobbyEscritorio()" : "testarMicLobbyEscritorio()"}" aria-label="${mic?.ligado ? "Parar o teste do microfone" : "Testar o microfone"}" aria-describedby="lg-regra" title="${mic?.ligado ? "Parar o teste" : "Testar o microfone · microfone ligado nas salas, câmera desligada"}">${escritorioIcone("microfone")}</button>${mic?.ligado ? `<span class="ofc-lobby-nivel" aria-label="Nível do microfone"><i id="ofc-lobby-nivel"></i></span>${mic.dispositivos?.length > 1 ? `<select aria-label="Microfone" onchange="trocarMicLobbyEscritorio(this.value)">${mic.dispositivos.map((d) => `<option value="${safeText(d.deviceId)}"${d.deviceId === mic.atual ? " selected" : ""}>${safeText(d.label || "Microfone")}</option>`).join("")}</select>` : ""}` : mic?.erro ? `<small role="alert">${safeText(mic.erro)}</small>` : ""}
-<label class="lg-mudo"><input type="checkbox" ${mudo ? "checked" : ""} onchange="escritorio.microfoneQuer=this.checked?false:true"><span aria-hidden="true"></span>Entrar silenciado</label></div>
+<label class="lg-mudo"><input type="checkbox" ${mudo ? "checked" : ""} onchange="escritorioQuererMicrofone(!this.checked)"><span aria-hidden="true"></span>Entrar silenciado</label></div>
 <div class="lg-outros"><button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('convivencia')">${escritorioIcone("pessoas")}Convivência</button>${temSala ? `<button type="button" class="lg-secundario" onclick="entrarPeloLobbyEscritorio('ultimo')">${escritorioIcone("avancar")}Onde parei</button>` : ""}<button type="button" class="lg-secundario" onclick="personalizarEscritorio()">${escritorioIcone("editar")}Personalizar</button></div></div>
 <button id="office-connect" type="button" class="lg-entrar" onclick="entrarPeloLobbyEscritorio('${temSala ? "sala" : "ultimo"}')"><span class="lg-entrar-txt"><b>Entrar</b><small>${temSala ? "na minha sala" : "no escritório"}</small></span><kbd aria-hidden="true">Enter</kbd></button></div>`;
 }
@@ -4649,6 +4660,26 @@ function escritorioConversaAutomatica() {
 }
 // Microfone e som acompanham o lugar, sem sair da conversa: na sala, o
 // microfone volta como a pessoa deixou; no corredor ou no Foco, desliga.
+// Microfone que desliga sem a pessoa mandar (Paulo, 10/11/2026: "às vezes o cara tá falando e o microfone muta do
+// nada"): troca de fone, o navegador derrubou o áudio. Se ela quer falar e está numa sala com voz, liga de novo e avisa;
+// no máximo 3 vezes por minuto. Desligar de propósito (botão, Foco, corredor, sair) não passa daqui: nesses casos a
+// vontade já é "mudo", o lugar não tem voz ou a chamada já não é esta.
+function escritorioMicDesligouSozinho(m) {
+  const deveFalar = () => m === escritorio.chamada && !m.self.audioEnabled && escritorio.microfoneQuer !== false && !escritorio.vozPausada
+    && !escritorio.erroMic && Boolean(escritorioCanal()) && escritorio.canalChamada === escritorioCanal();
+  if (!deveFalar()) return false;
+  const agora = Date.now();
+  escritorio.micReligado = (escritorio.micReligado || []).filter((t) => agora - t < 60000);
+  if (escritorio.micReligado.length >= 3) return false;
+  escritorio.micReligado.push(agora);
+  setTimeout(async () => {
+    if (!deveFalar()) return;
+    try { await m.self.enableAudio(); } catch {}
+    if (m.self.audioEnabled) escritorioAviso("Seu microfone tinha desligado sozinho. Liguei de novo.");
+    renderMidiaEscritorio();
+  }, 600);
+  return true;
+}
 async function escritorioSincronizarVoz() {
   const m = escritorio.chamada;
   if (!m) return;
@@ -4736,6 +4767,7 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
       meeting.participants.joined.on(evento, () => { escritorioTocarVozes(); renderMidiaEscritorio(); });
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
+    meeting.self.on("audioUpdate", () => escritorioMicDesligouSozinho(meeting));
     // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
     // tecla em qualquer lugar já libera (o botão fica como atalho visível).
     // A conversa caiu sozinha (rede, servidor de mídia): entra de novo na
@@ -4946,7 +4978,7 @@ async function alternarMidiaEscritorio(tipo) {
   try {
     if (tipo === "audio") {
       if (!self.audioEnabled && (!escritorioCanal() || escritorio.canalChamada !== escritorioCanal())) return escritorioAviso("Aqui não tem voz. Entre numa sala para falar.");
-      escritorio.microfoneQuer = !self.audioEnabled;
+      escritorioQuererMicrofone(!self.audioEnabled);
       await self[self.audioEnabled ? "disableAudio" : "enableAudio"]();
       escritorio.erroMic = self.audioEnabled ? null : escritorio.erroMic;
     }

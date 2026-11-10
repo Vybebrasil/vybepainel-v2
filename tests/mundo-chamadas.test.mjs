@@ -28,7 +28,8 @@ function chamada() {
     aplicarQualidadeTelaEscritorio: async () => eventos.push('qualidade'),
   });
   c.fn = n => c[n];
-  for (const n of ['escritorioCanal', 'escritorioSincronizarVoz', 'alternarMidiaEscritorio', 'escritorioEstadoVozTexto']) vm.runInContext(fonte(office, n), c);
+  for (const n of ['escritorioCanal', 'escritorioSincronizarVoz', 'alternarMidiaEscritorio', 'escritorioEstadoVozTexto', 'escritorioMicGuardado', 'escritorioQuererMicrofone', 'escritorioMicDesligouSozinho']) vm.runInContext(fonte(office, n), c);
+  vm.runInContext('var ESCRITORIO_MIC_CHAVE = "vybe-escritorio-microfone";', c);
   vm.runInContext(fonte(world, 'irParaSala', '  '), c);
   return { c, e, self, eventos, timers, avisos };
 }
@@ -242,4 +243,37 @@ test('saída antiga concluída depois de nova entrada não limpa o vídeo da cha
   for (let i = 0; i < 10 && !concluir; i++) await Promise.resolve(); assert.ok(concluir);
   e.vozPausada = false; e.chamada = { self: {} }; concluir(); await pendente;
   assert.equal(limpou, 0);
+});
+
+// Paulo, 10/11/2026: "às vezes o microfone muta do nada... se cair ou eu sair, quando eu voltar já volta ligado".
+test('a escolha do microfone fica guardada neste navegador e volta ao entrar de novo', async () => {
+  const { c, e, self } = chamada();
+  const guardado = new Map();
+  c.localStorage = { getItem: (k) => guardado.get(k) ?? null, setItem: (k, v) => guardado.set(k, String(v)) };
+  assert.equal(c.escritorioMicGuardado(), undefined, 'primeira vez: sem escolha (entra calado)');
+  e.microfoneQuer = false; self.audioEnabled = false;
+  await c.alternarMidiaEscritorio('audio');
+  assert.equal(self.audioEnabled, true); assert.equal(guardado.get('vybe-escritorio-microfone'), '1');
+  assert.equal(c.escritorioMicGuardado(), true, 'caiu ou saiu: volta ligado');
+  await c.alternarMidiaEscritorio('audio');
+  assert.equal(self.audioEnabled, false); assert.equal(c.escritorioMicGuardado(), false, 'mudo continua mudo');
+  assert.match(office, /microfoneQuer: escritorioMicGuardado\(\),/);
+  assert.match(office, /onchange="escritorioQuererMicrofone\(!this\.checked\)"/);
+});
+
+test('microfone que desliga sozinho volta (até 3 vezes por minuto); desligado de propósito ou fora da sala, não', async () => {
+  const { c, e, self, timers, avisos } = chamada();
+  const m = e.chamada; e.microfoneQuer = true; self.audioEnabled = false;
+  assert.equal(c.escritorioMicDesligouSozinho(m), true);
+  await timers.pop()();
+  assert.equal(self.audioEnabled, true); assert.match(avisos.at(-1), /desligado sozinho\. Liguei de novo/);
+  for (const [nome, mexe] of [['quis mudo', () => { e.microfoneQuer = false; }], ['sala sem voz (Foco)', () => { e.zona = 'foco'; }],
+    ['chamada antiga', () => { e.chamada = { self: {} }; }], ['erro de permissão', () => { e.erroMic = { titulo: 'Negado' }; }]]) {
+    e.microfoneQuer = true; e.zona = 'sala-a'; e.chamada = m; e.erroMic = null; self.audioEnabled = false; mexe();
+    assert.equal(c.escritorioMicDesligouSozinho(m), false, nome);
+  }
+  e.microfoneQuer = true; e.zona = 'sala-a'; e.chamada = m; e.erroMic = null; self.audioEnabled = false;
+  assert.equal(c.escritorioMicDesligouSozinho(m), true); assert.equal(c.escritorioMicDesligouSozinho(m), true);
+  assert.equal(c.escritorioMicDesligouSozinho(m), false, 'no máximo 3 por minuto');
+  assert.match(office, /meeting\.self\.on\("audioUpdate", \(\) => escritorioMicDesligouSozinho\(meeting\)\)/);
 });
