@@ -9,10 +9,14 @@ import { Obra } from './voxel.mjs';
 import { biblioteca } from './moveis-biblioteca.mjs';
 
 const G = 1 / 16;
-const q = (v) => Math.round(v / G) * G;
+// Encaixe fino (1/64): o grão do desenho é G, mas detalhe de meia grade (fresta, puxador, botão) existe de verdade.
+// Antes o encaixe era G com mínimo G: a peça de meia grade crescia, ficava com a face no mesmo plano de outra e as
+// duas brigavam na tela ("serrilhando quando mexo", Paulo, 09/11/2026).
+const Q = G / 4;
+const q = (v) => Math.round(v / Q) * Q;
 // Uma caixa na grade do padrão: centro (x, z), base y, tamanho w × h × d.
-const C = (o, x, y, z, w, h, d, cor) => o.caixa(q(x * 2) / 2, q(y), q(z * 2) / 2, Math.max(G, q(w)), Math.max(G, q(h)), Math.max(G, q(d)), cor);
-const L = (o, x, y, z, w, h, d, cor) => o.luz(q(x * 2) / 2, q(y), q(z * 2) / 2, Math.max(G, q(w)), Math.max(G, q(h)), Math.max(G, q(d)), cor);
+const C = (o, x, y, z, w, h, d, cor) => o.caixa(q(x), q(y), q(z), Math.max(Q, q(w)), Math.max(Q, q(h)), Math.max(Q, q(d)), cor);
+const L = (o, x, y, z, w, h, d, cor) => o.luz(q(x), q(y), q(z), Math.max(Q, q(w)), Math.max(Q, q(h)), Math.max(Q, q(d)), cor);
 
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(String(h).slice(i, i + 2), 16) || 0);
 const rgbHex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -248,9 +252,10 @@ const RECEITAS = {
   bloco(o, { w, d, cor, classe, alto = 0 }) {
     const h = Math.max(G, q(alto) || G), c = cor.principal, nome = classe;
     if (/water|shallow|pool|água|agua/.test(nome)) { C(o, 0, 0, 0, w, Math.max(G, h - G), d, tom(c, -.2)); L(o, 0, Math.max(G, h - G), 0, w - G / 2, G / 2, d - G / 2, '#7FC8E8'); return; }
-    C(o, 0, 0, 0, w, h, d, tom(c, -.08));
-    if (/wood|madeira|log|plank|tábua|tabua/.test(nome)) { // tábuas com a fresta escura e as emendas desencontradas
-      C(o, 0, h - G / 2, 0, w, G / 2, d, tom(c, -.35));
+    const madeira = /wood|madeira|log|plank|tábua|tabua/.test(nome);
+    // A base é a cor da fresta (madeira) ou do rejunte; as placas e tábuas ficam por cima, sem face no mesmo plano.
+    C(o, 0, 0, 0, w, h, d, madeira ? tom(c, -.35) : tom(c, -.08));
+    if (madeira) { // tábuas com a fresta escura e as emendas desencontradas
       const n = Math.max(4, Math.round(d * 4)); for (let k = 0; k < n; k++) { const corte = ((k * 3) % 4) / 4 * w; for (const [a, b] of corte ? [[-w / 2, -w / 2 + corte], [-w / 2 + corte, w / 2]] : [[-w / 2, w / 2]]) C(o, (a + b) / 2, h - G / 4, -d / 2 + (k + .5) * d / n, b - a - G / 4, G / 2, d / n - G / 4, k % 3 === 0 ? tom(c, .1) : k % 3 === 1 ? c : tom(c, -.06)); }
       return; }
     if (/grass|grama|leaf|folha/.test(nome)) { C(o, 0, h - G / 4, 0, w, G / 2, d, '#5FA34E'); for (let k = 0; k < 6; k++) C(o, -w / 2 + G * 2 + (k * 5 % 12) * w / 13, h + G / 4, -d / 2 + G * 2 + (k * 7 % 12) * d / 13, G, G, G, k % 2 ? '#7DBB5E' : '#4F9A4E'); return; }
@@ -330,6 +335,9 @@ export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0 }
   const f = modelos()[classe] || RECEITAS[tipo]; if (!f) return null;
   const o = new Obra();
   f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase(), alto });
+  // Sem empate de faces: cada peça desenhada depois (o detalhe) cresce um fio a mais que a anterior (o corpo), então
+  // duas faces no mesmo plano nunca brigam na tela ao mover a câmera. 0,00006 por peça: invisível no tamanho.
+  [...o.solidos, ...o.luzes].forEach((b, i) => { const e = (i + 1) * .00006; b.w += e; b.h += e; b.d += e; b.y -= e / 2; });
   if (tipo !== 'bloco') o.sombra(0, 0, Math.max(w, d) * .55, .005);
   return o;
 }

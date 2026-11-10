@@ -52,7 +52,7 @@ test('boneco do Habbo: cabelo esculpido entra no lugar do cabelo de blocos; ócu
   assert.match(mh, /cabeloHabbo/); assert.match(mh, /casaco: temCasaco/);
 });
 
-test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro da pegada, na grade de 1/16', async () => {
+test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro da pegada, na grade fina', async () => {
   const m = await import('../mundo/moveis-voxel.mjs');
   assert.equal(m.tipoModelado('exe_chair2'), 'cadeira');
   assert.equal(m.tipoModelado('xmas11_luxsofa2'), 'sofa');
@@ -67,7 +67,7 @@ test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro d
     assert.ok(o.solidos.length > 3, t);
     for (const b of [...o.solidos, ...o.luzes]) {
       assert.ok(Math.abs(b.x) <= w / 2 + 1e-6 && Math.abs(b.z) <= d / 2 + 1e-6, `${t} ${w}×${d}: bloco fora da pegada`);
-      assert.ok(Math.abs(b.w * 16 - Math.round(b.w * 16)) < 1e-6, `${t}: fora da grade`);
+      assert.ok(Math.abs(b.w * 64 - Math.round(b.w * 64)) < .3, `${t}: fora da grade fina (1/64)`);
     }
   }
 });
@@ -89,4 +89,16 @@ test('lote 2: peças de construção viram bloco na paleta; móveis dos outros q
   const piso = m.montarMovel('bloco', { w: 2, d: 2, classe: 'xmas11_woodfloor' });
   assert.ok(piso.solidos.length > 8, 'piso de madeira com tábuas');
   for (const c of ['vikings_bed', 'bed_armas_two', 'js_exe_sofa', 'xmas11_luxsofa1', 'vikings_indoorstove', 'carpet_polar', 'st_wildwest_barrel', 'cpunk_c15_table', 'hblooza_bbq', 'modern_c17_tv', 'uni_desk']) assert.ok(m.temModelo(c), c);
+});
+
+test('motor de móveis: nenhuma peça empata face com outra (o que serrilhava ao mover a câmera)', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const t of m.TIPOS_MODELADOS) {
+    const b = [...(o => [...o.solidos, ...o.luzes])(m.montarMovel(t, { w: 2, d: 2, classe: t === 'bloco' ? 'xmas11_woodfloor' : t }))];
+    for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+      const A = b[i], B = b[j];
+      const junto = Math.min(A.x + A.w / 2, B.x + B.w / 2) - Math.max(A.x - A.w / 2, B.x - B.w / 2) > 1e-6 && Math.min(A.z + A.d / 2, B.z + B.d / 2) - Math.max(A.z - A.d / 2, B.z - B.d / 2) > 1e-6;
+      assert.ok(!(junto && Math.abs(A.y + A.h - (B.y + B.h)) < 1e-7 && A.cor !== B.cor), `${t}: topos empatados`);
+    }
+  }
 });
