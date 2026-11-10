@@ -250,9 +250,10 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
     for (const c of classes) corDoRevestimento(c).then((cor) => { if (cor && vivo) { revestimentos.set(c, cor); montarParedes(); } });
   }
 
-  // ---------- móveis da camada salva, esculpidos na arte do Habbo (mundo/moveis-habbo.mjs) ----------
-  // Cada móvel sai do próprio desenho dele (forma, cores, estado, pegada, direção e altura). Enquanto a arte chega,
-  // nada aparece no lugar; só se a arte do Habbo não carregar fica a peça voxel do catálogo, para a sala não sumir.
+  // ---------- móveis da camada salva, em voxel liso (movelEmVoxel) ----------
+  // Tipo conhecido é montado pelo motor de móveis (moveis-voxel.mjs), com o tamanho e as cores tirados da arte; o resto é
+  // esculpido no mesmo grão. Enquanto a arte chega, nada aparece no lugar; só se ela não carregar fica a peça voxel do
+  // catálogo, para a sala não sumir.
   let gItens = null, geracaoItens = 0;
   const baseDoLadrilho = (x, y) => Math.max(0, P.nivel(Math.min(W - 1, Math.max(0, Math.floor(x))), Math.min(D - 1, Math.max(0, Math.floor(y))))) * NIVEL;
   // A parede encostada num ladrilho: a do fundo fica no primeiro ladrilho da coluna; a da esquerda, no da linha.

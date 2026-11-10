@@ -5058,18 +5058,50 @@ html body.mundo .vv-g-linha em.vv-g-datas{display:grid;justify-items:end;gap:2px
    minhas demandas, a agenda ali na direita... e um dock fácil pra ver quem tá online nas outras salas, mudar de sala fácil,
    pode ser um dock central inferior"). O Hoje à esquerda, a Agenda à direita e o quarto no meio, sem nada por cima dele.
    As regras do Hoje e da Agenda usam !important porque as do palco (Hoje largo, Agenda na coluna) já usam. ===== */
-body.mundo.mundo-quarto{--vq-esq:360px;--vq-dir:300px;--vq-vao:12px}
+/* Quadro 34 do redesign (10/11/2026): o Hoje mais estreito, com a Agenda dentro dele (a gaveta da direita sai e o quarto
+   fica com o resto), e a faixa da sala acima do quarto. */
+body.mundo.mundo-quarto{--vq-esq:clamp(272px,22vw,320px);--vq-vao:12px;--vq-cab:52px}
 @media (min-width:901px){
   html body.mundo.mundo-quarto #vv-hoje.vv-hoje{display:block;left:var(--vv-palco-esq)!important;right:auto!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vq-esq)!important;max-width:none!important;padding:16px!important}
   html body.mundo.mundo-quarto #vv-hoje :is(.vv-hoje-grade,.vv-dono-tres,.vv-blocos){grid-template-columns:1fr!important}
-  html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
-}
-/* A Agenda vai para o lado só com espaço (1360 px): abaixo disso fica o Hoje e o quarto não espreme. */
-@media (min-width:1360px){
-  html body.mundo.mundo-quarto #vv-agenda.vv-agenda{display:block!important;top:var(--vv-palco-topo)!important;right:var(--vv-m)!important;bottom:auto!important;width:var(--vq-dir)!important;max-height:calc(100% - var(--vv-palco-topo) - var(--vv-m))!important;overflow:auto}
-  html body.mundo.mundo-quarto #mundo-andar.quarto .andar-palco{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}
+  html body.mundo.mundo-quarto #mundo-andar.quarto :is(.andar-palco,.andar-topo,.quarto-cab){left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}
 }
 @media (max-width:900px){html body.mundo.mundo-quarto #vv-hoje{display:none}}
+/* A Agenda fixa (Mizinho) também entra no Hoje na sala; o botão Agenda do topo continua abrindo a gaveta por cima. */
+body.mundo.mundo-quarto.agenda-fixa:not(.ver-agenda) #mundo-hud .vv-agenda{display:none}
+#vv-hoje .vv-hoje-contas{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 12px}
+#vv-hoje .vv-hoje-contas span{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:#F4EFE8;font:650 11px var(--vv-texto);color:#3A3F44}
+#vv-hoje .vv-hoje-contas span.ruim{background:#FDECEE;color:#B42318}
+#vv-hoje .vv-hoje-contas span.atencao{background:#FFF4E5;color:#8A5200}
+#vv-hoje .vv-hoje-agenda{margin-top:14px;padding-top:12px;border-top:1px solid rgba(31,29,26,.08)}
+#vv-hoje .vv-hoje-agenda .vv-agenda-lista{margin-top:8px}
+#vv-hoje .vv-hoje-agenda .vv-roteiros{margin-top:8px}
+#vv-hoje .vv-hoje-agenda .vv-mais{margin-top:4px}
+/* A faixa da sala: nome, quem está nela, a voz em texto e as ações. Fica acima do palco, que desce o mesmo tanto. */
+#mundo-andar.quarto .quarto-cab{position:absolute;z-index:2;flex-direction:row;left:var(--vv-palco-esq,var(--vv-m));right:var(--vv-m);top:var(--vv-palco-topo,var(--vv-m));min-height:var(--vq-cab);box-sizing:border-box;gap:12px;padding:6px 8px 6px 14px;border-radius:14px}
+#mundo-andar.quarto .quarto-cab:empty{display:none}
+#mundo-andar.quarto .andar-palco{top:calc(var(--vv-palco-topo,0px) + var(--vq-cab,52px) + 8px)}
+.quarto-cab-nome{display:grid;gap:1px;min-width:0}
+.quarto-cab-nome small{font:600 11px var(--vv-texto);color:#8A847A}
+.quarto-cab-nome b{font:650 15px/1.2 var(--vv-titulo,var(--vv-texto));color:var(--vv-tinta,#1F1D1A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-rostos{display:flex;flex:none;padding-left:4px}
+.quarto-rostos i{display:grid;place-items:center;width:28px;height:28px;margin-left:-6px;border-radius:50%;background:#F1ECE4;border:2px solid #FFFFFF;font:700 10.5px var(--vv-texto);font-style:normal;color:#3A3F44}
+.quarto-rostos i.eu{background:#F26B1D;color:#FFFFFF}
+.quarto-rostos i.fala{box-shadow:0 0 0 2px #18A957}
+.quarto-quem{display:grid;gap:1px;min-width:0;flex:1}
+.quarto-quem b{font:600 12.5px var(--vv-texto);color:var(--vv-tinta,#1F1D1A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-quem small{font:500 11.5px var(--vv-texto);color:#6B675F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quarto-acoes{display:flex;flex:none;gap:6px;margin-left:auto}
+.quarto-acoes .vv-botao{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;font:600 12.5px var(--vv-texto)}
+.quarto-acoes .vv-botao svg{width:16px;height:16px}
+.quarto-acoes .vv-botao[aria-pressed="true"]{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D}
+@media (max-width:900px){
+  #mundo-andar.quarto .quarto-cab{left:var(--vv-m);right:var(--vv-m);gap:8px;padding:6px 6px 6px 12px}
+  .quarto-rostos{display:none}
+  .quarto-quem small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+  .quarto-acoes .vv-botao{width:36px;padding:0;justify-content:center}
+  .quarto-acoes .vv-botao span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+}
 /* Dock de baixo da sala, estilo dock de verdade (Paulo, 09/11/2026: "deixa o dock de baixo mais padrão... estilo um dock mesmo"):
    vidro claro, ícones quadrados com o nome embaixo, o ponto verde da sala onde você está na voz e o número de quem está
    em cada uma. O Voltar é o primeiro ícone, escuro. Sobe um pouco ao passar o mouse (desliga com Reduzir movimento). */
@@ -5199,7 +5231,6 @@ body.com-dock-salas{--vv-dock-alto:74px}
 .vv-dock-salas-faixa[hidden]{display:none}
 .vv-dock-salas-faixa > .vq-dock{pointer-events:auto;max-width:100%}
 @media (min-width:901px){body.mundo.mundo-quarto .vv-dock-salas-faixa{left:calc(var(--vv-palco-esq) + var(--vq-esq) + var(--vq-vao))}}
-@media (min-width:1360px){body.mundo.mundo-quarto .vv-dock-salas-faixa{right:calc(var(--vq-dir) + var(--vv-m) + var(--vq-vao))}}
 @media (max-width:900px){.vv-dock-salas-faixa{left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:calc(64px + 3 * var(--vv-m,12px))}}
 body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-alto)}
 body.mundo.mundo-modulo.com-dock-salas #mundo-moldura{bottom:calc(var(--vv-m) + var(--vv-dock-alto))}
