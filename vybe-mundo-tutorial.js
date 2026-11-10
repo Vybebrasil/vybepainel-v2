@@ -82,7 +82,7 @@
       'trilho:clientes': { grupo: 'Dock', titulo: 'Clientes', alvo: '.vv-trilho-btn[data-trilho="clientes"]',
         texto: 'Aqui está cada cliente ativo, com as peças em aberto, os heads e o cérebro dele. Se já sabe o nome, comece pela busca.' },
       'trilho:equipe': { grupo: 'Dock', titulo: 'Equipe', alvo: '.vv-trilho-btn[data-trilho="equipe"]',
-        texto: 'Aqui você vê quem está online, conversa e deixa recado. As missões, o ranking, as conquistas e as VybeCoins da equipe também ficam aqui.' },
+        texto: 'Aqui você vê quem está online e em qual sala: vá até a pessoa ou chame para a sua. Conversa, recados e missões também ficam aqui; Ranking, Conquistas e Loja estão no dock.' },
       'trilho:jogos': { grupo: 'Dock', titulo: 'Jogos', alvo: '.vv-trilho-btn[data-trilho="jogos"]',
         texto: 'Para o intervalo: sinuca, xadrez, pôquer, dominó, dama, jogo da velha e truco com quem estiver online.' },
       'trilho:predio': { grupo: 'Dock', titulo: 'Prédio da Vybe', alvo: '.vv-trilho-btn[data-trilho="predio"]',

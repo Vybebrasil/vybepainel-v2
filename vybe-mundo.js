@@ -2360,18 +2360,33 @@
     ['catalogo', 'Catálogo (loja)', 'abrirCatalogoEscritorio()'],
     ['espaco', 'Meu personagem', 'personalizarEscritorio()'],
   ];
+  // Equipe online (redesign fase 3c, quadro 38: "mostra pessoas, não links"): quem está em qual sala, com Ir até e
+  // Chamar, e o time inteiro para abrir o perfil. Ranking, Conquistas e Loja moram no dock; ficam aqui só as portas do
+  // Escritório que não têm outro lugar (conversa, recados, missões e o personagem).
+  const EQUIPE_NO_DOCK = new Set(['ranking', 'conquistas', 'inventario', 'catalogo']);
+  // Uma pessoa online: o rosto voxel (o mesmo boneco do mundo), a sala e as ações. Usado também nos Jogos.
+  function pessoaOnlineHtml(g, Z, { jogos = false } = {}) {
+    const z = Z[g.zona], eu = typeof escritorio !== 'undefined' && String(escritorio?.base?.eu || '') === g.id;
+    const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(g.id) : '';
+    return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(g.nome))}</i>`}</span>
+      <span class="vv-online-txt"><b>${esc(eu ? 'Você' : g.nome)}</b><small>${z ? (/^sala/i.test(z.nome) ? `na ${esc(z.nome)}` : `na sala ${esc(z.nome)}`) : 'fora das salas'}</small></span>
+      ${eu ? '' : `${z && !jogos ? `<button type="button" class="vc-sec" data-entrar-zona="${esc(g.zona)}">Ir até</button>` : ''}<button type="button" class="vc-sec" data-chamar-online="${esc(g.id)}">Chamar</button>`}</div>`;
+  }
   function mostrarEquipe() {
     const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
     const saldo = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
+    const time = (typeof escritorio !== 'undefined' && escritorio?.base?.equipe) || [];
+    const onlineIds = new Set(gente.map((g) => g.id));
+    const fora = time.filter((t) => !onlineIds.has(String(t.id)));
+    const acoes = EQUIPE_ACOES.filter(([id, , f]) => !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <h3>Equipe</h3><p class="vv-sub">Quem está onde no prédio, e o que era o saguão do Escritório.</p>
+      <div class="vv-jogo-cab"><div><h3>Equipe online</h3><p class="vv-sub">Quem está em qual sala do prédio agora. Vá até a pessoa ou chame para a sua sala.</p></div>
+      <span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} online agora</span></div>
       ${saldo !== null ? `<div class="vv-coins"><b>${Number(saldo).toLocaleString('pt-BR')}</b><span>VybeCoins</span></div>` : ''}
-      <div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>Online agora<span class="vv-pilula">${gente.length}</span></div>
-      ${gente.length ? gente.map((g) => { const z = Z[g.zona]; return `<div class="vv-zona"><span><b>${esc(g.nome)}</b><small>${z ? esc(z.nome) : 'Fora das salas'}</small></span>${z ? `<button type="button" class="vv-botao" data-entrar-zona="${esc(g.zona)}">Ir até</button>` : ''}</div>`; }).join('') : '<p class="vv-dica">Ninguém online agora.</p>'}
-      ${(() => { const time = (typeof escritorio !== 'undefined' && escritorio?.base?.equipe) || []; return time.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Perfis do time<span class="vv-pilula">${time.length}</span></div>
-      <div class="vv-time">${time.map((t) => `<button type="button" class="vv-pessoa" data-perfil="${esc(t.id)}"><b>${esc(String(t.nome || '').split(' ')[0])}</b><small>${esc(String(t.nome || '').split(' ').slice(1, 2).join(' '))}</small></button>`).join('')}</div>` : ''; })()}
-      <div class="vv-rotulo-secao" style="--c:var(--vv-laranja)"><i></i>Do Escritório</div>
-      <div class="vv-grade-acoes">${EQUIPE_ACOES.filter(([, , f]) => typeof window[f.split('(')[0]] === 'function').map(([id, nome, f]) => `<button type="button" class="vv-acao-equipe" data-equipe="${id}">${esc(nome)}</button>`).join('')}</div>`;
+      <div class="vv-online-lista">${gente.length ? gente.map((g) => pessoaOnlineHtml(g, Z)).join('') : '<p class="vv-dica">Ninguém online agora. Quem entrar aparece aqui, com a sala onde está.</p>'}</div>
+      ${fora.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Fora agora<span class="vv-pilula">${fora.length}</span></div>
+      <div class="vv-online-lista vv-online-fora">${fora.map((t) => { const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(String(t.id)) : ''; return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(t.nome))}</i>`}</span><span class="vv-online-txt"><b>${esc(t.nome || 'Pessoa')}</b><small>offline</small></span><button type="button" class="vc-sec" data-perfil="${esc(t.id)}">Perfil</button></div>`; }).join('')}</div>` : ''}
+      ${acoes.length ? `<div class="vv-equipe-acoes">${acoes.map(([id, nome]) => `<button type="button" class="vc-sec" data-equipe="${id}">${esc(nome)}</button>`).join('')}</div>` : ''}`;
     p.hidden = false; ajustarAreaLivre();
   }
   // Perfil = a ficha completa que o Escritório já tinha (resumo, meta da semana, ganhos, como ganhar,
@@ -2452,17 +2467,25 @@
   // ---------- Jogos: as mesas do Escritório (sala Jogos, no terraço) ----------
   // A partida é da mesa (o servidor guarda a partida pela sala e pelo móvel): o mundo leva a pessoa
   // até a sala Jogos (voz e presença do Escritório) e abre a mesa daquele jogo, pela mesma função de sempre.
+  // [id, nome, frase, regra da mesa, função que abre, móvel da mesa (a arte do cartão), rótulo do botão]
   const JOGOS = [
-    ['sinuca', 'Sinuca', 'Sinuca de boteco, com mira e física.', 'ESCRITORIO_SINUCA', 'abrirSinucaEscritorio'],
-    ['xadrez', 'Xadrez', 'Partida contra alguém da equipe.', 'ESCRITORIO_XADREZ', 'abrirXadrezEscritorio'],
-    ['poker', 'Pôquer', 'Texas hold’em valendo VybeCoins ou de graça.', 'ESCRITORIO_POKER', 'abrirPokerEscritorio'],
-    ['mesa', 'Mesa de Jogos', 'Dominó, dama, velha e truco.', 'ESCRITORIO_DOMINO', 'abrirMesaDeJogosEscritorio'],
+    ['sinuca', 'Sinuca', 'Sinuca de boteco, com mira e física.', 'ESCRITORIO_SINUCA', 'abrirSinucaEscritorio', 'bling15_pooltable', 'Jogar'],
+    ['xadrez', 'Xadrez', 'Partida contra alguém da equipe; vale aposta.', 'ESCRITORIO_XADREZ', 'abrirXadrezEscritorio', 'CF_250_goldenchessboard', 'Desafiar'],
+    ['poker', 'Pôquer', 'Texas hold’em valendo VybeCoins ou de graça.', 'ESCRITORIO_POKER', 'abrirPokerEscritorio', 'wildwest_table', 'Jogar'],
+    ['mesa', 'Mesa de jogos', 'Dominó, dama, velha e truco.', 'ESCRITORIO_DOMINO', 'abrirMesaDeJogosEscritorio', 'hobbies_c26_gamingtable', 'Jogar'],
   ];
+  // Jogos (redesign fase 3c, quadro 38): cada mesa com a arte dela (o retrato voxel troca a imagem do móvel, como na
+  // Loja) e o botão de jogar; embaixo, quem está online para chamar, sem ir a outro lugar.
   function mostrarJogos() {
-    const p = placa();
+    const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <h3>Jogos</h3><p class="vv-sub">As mesas ficam na sala Jogos, no terraço do prédio. Escolha o jogo: você vai até a mesa e chama quem estiver online.</p>
-      <div class="vv-jogos">${JOGOS.map(([id, nome, txt]) => `<button type="button" class="vv-jogo" data-jogo="${id}"><b>${esc(nome)}</b><small>${esc(txt)}</small></button>`).join('')}</div>
+      <div class="vv-jogo-cab"><div><h3>Jogos</h3><p class="vv-sub">As mesas ficam no terraço do prédio. Escolha o jogo e chame quem está online.</p></div>
+      <span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} online agora</span></div>
+      <div class="vv-jogos">${JOGOS.map(([id, nome, txt, , , classe, rotulo]) => `<article class="vv-jogo">
+        <img class="vv-jogo-arte" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy">
+        <div class="vv-jogo-txt"><b>${esc(nome)}</b><small>${esc(txt)}</small><button type="button" class="vc-acao" data-jogo="${id}">${esc(rotulo)}</button></div></article>`).join('')}</div>
+      <div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>Quem pode jogar agora<span class="vv-pilula">${gente.length}</span></div>
+      <div class="vv-online-lista">${gente.length ? gente.map((g) => pessoaOnlineHtml(g, Z, { jogos: true })).join('') : '<p class="vv-dica">Ninguém online agora. Dá para abrir a mesa e esperar alguém chegar.</p>'}</div>
       <p class="vv-dica">Ranking, Loja e Conquistas ficam no dock, no grupo Vybe.</p>`;
     p.hidden = false; ajustarAreaLivre();
   }
@@ -2762,6 +2785,7 @@
       crmExecutar({ acao: 'criar', cnpj: l.cnpj || '', nome: l.nome, setor_empresa: l.setor || '', etapa: b.dataset.crmPropor ? 'abordagem_proposta' : 'empresa' }, b);
     }
     else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);
+    else if (b.dataset.chamarOnline) fn('chamarParaSalaEscritorio')?.(b.dataset.chamarOnline);
     else if (b.dataset.agente) { const [an, se] = b.dataset.agente.split('|'); mostrarAgente(an, se); }
     else if (b.dataset.entrarAndar) abrirAndarVoxel(b.dataset.entrarAndar);
     else if (b.hasAttribute('data-sair-andar')) sairDoAndar();
@@ -2882,8 +2906,15 @@
     try {
       modAvatar = modAvatar || await import(MUNDO_JS);
       const u = new URL(src), q = u.searchParams;
-      // Imagem de móvel fica a do próprio móvel (é o que a Minha sala desenha); só os bonecos viram o boneco voxel.
-      if (/\/imaging\/furniture\//.test(u.pathname)) { img.dataset.voxel = '1'; return; }
+      // Imagem de móvel (Loja, inventário, troféus; redesign fase 3c, "tudo que é imagem é voxel"): o retrato do móvel
+      // em voxel, montado como a Minha sala o monta (retratoDoMovel). Peça de parede ou sem voxel fica com a arte de sempre.
+      if (/\/imaging\/furniture\//.test(u.pathname)) {
+        img.dataset.voxel = '1';
+        const classe = decodeURIComponent(u.pathname.split('/').pop().replace(/\.png$/i, ''));
+        img.dataset.movel = classe; // a arte local que entra no erro da imagem (miniaturaLocalEscritorio) é o mesmo móvel
+        modAvatar.retratoDoMovel?.(classe).then((url) => { if (url && img.dataset.movel === classe && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } }).catch(() => {});
+        return;
+      }
       const fig = q.get('figure') || '', opcoes = { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 };
       const url = modAvatar.avatarVoxel(fig, opcoes);
       img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = url; img.classList.add('avatar-voxel');

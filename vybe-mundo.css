@@ -519,12 +519,12 @@ body.mundo img.avatar-voxel{image-rendering:auto!important;object-fit:contain}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){background:rgba(250,248,244,.97)!important;background-image:none!important;color:#1F1D1A!important;
   border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;
   --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none}
-body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-abas,.ofc-catj-arvore,.ofc-catj-barra,.ofc-loja-saudacao,.ofc-movel,.ofc-movel-linha,[class*="rk2-"]:not(.rk2-janela):not([class*="degrau"]):not([class*="pilula"]),.workflow-item){
+body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-abas,.ofc-catj-arvore,.ofc-catj-barra,.workflow-item){
   background:#FFFFFF!important;background-image:none!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important;color:#1F1D1A!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-busca,.ofc-cat-chip,select,input:not([type=checkbox]):not([type=radio]):not([type=range])){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(h1,h2,h3,h4,b,strong,p,span,small,label,button,dt,dd,li):not([class*="raro"]):not([class*="epico"]):not([class*="lendario"]):not([class*="incomum"]):not(.ativo):not([aria-selected="true"]):not([aria-current]){color:inherit}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(small,.ofc-cat-sub,p){opacity:.82}
-body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]){background:#1F1D1A!important;color:#FFFFFF!important}
+body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]):not(.rk2-camp):not(.rk2-chip):not(.vb-chip){background:#1F1D1A!important;color:#FFFFFF!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel{transition:transform .18s var(--vv-mola)!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel:hover{transform:translateY(-3px)}
 
@@ -5797,3 +5797,198 @@ body.mundo .eq-mais-item:focus-visible,body.mundo .eq-mais>summary:focus-visible
   body.mundo .eq-mais-menu{right:auto;left:0}
 }
 @media (prefers-reduced-motion:reduce){body.mundo .eq-mais-menu{animation:none}}
+
+/* ======================================================================================
+   O JOGO TAMBÉM É CLARO (redesign fase 3c, Paulo, moodboard de 10/11/2026, quadros 35 a 38). Loja, Ranking e
+   Conquistas eram cartões escuros com degrau dentro de janelas claras ("parecem dois produtos"). No mundo eles usam o
+   material do painel: cartão branco, borda fina e um degrau sutil embaixo; o poço é o bege claro. As cores de raridade
+   (Comum a Lendário) e de nível (Bronze a Diamante) ficam só no ícone, na borda ou no texto pequeno. O tema escuro do
+   mundo inverte a tela clara inteira (html.tema-escuro body.mundo), então o escuro continua só no tema escuro.
+   Cada janela pelo seu id: a mesma força que o tema antigo tinha, sem forçar nada.
+   ====================================================================================== */
+body.mundo{--jg-claro-cartao:#FFFFFF;--jg-claro-poco:#F6F3EE;--jg-claro-trilha:#EFEAE2;--jg-claro-borda:#E6E0D6;--jg-claro-borda-forte:#D9D1C4;
+  --jg-claro-degrau:0 2px 0 #ECE5DA;--jg-claro-degrau-alto:0 3px 0 #E4DCCF,0 10px 22px -16px rgba(40,26,10,.35);--jg-claro-tinta:#1F1D1A;--jg-claro-apagado:#6B675F;
+  --jg-claro-sel-fundo:var(--ds-sel-fundo,#FFF1E6);--jg-claro-sel-borda:var(--ds-sel-borda,#FFB98A);--jg-claro-sel-texto:var(--ds-sel-texto,#C2490C)}
+/* Os tokens do jogo escuro (--jg-*, --vb-jogo-*) viram o material claro dentro das janelas do jogo. */
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas,.vv-jogos-tela){--jg-fundo:#FAF8F4;--jg-painel:#FFFFFF;--jg-painel-2:#F6F3EE;--jg-slot:#FFFFFF;
+  --jg-borda:#E6E0D6;--jg-borda-forte:#D9D1C4;--jg-relevo:0 0 0 transparent;--jg-sombra:0 18px 50px rgba(40,26,10,.18);--jg-sombra-leve:0 2px 0 #ECE5DA;
+  --jg-apertado:0 0 0 #ECE5DA;--jg-ativo:var(--jg-claro-sel-fundo);--jg-raio:10px;--jg-raio-p:8px;--vb-jogo-fundo:#FFFFFF;--vb-jogo-degrau:#ECE5DA;
+  --vb-n1:#B8733F;--vb-n2:#8C96A6;--vb-n3:#C98B00;--vb-n4:#2E8FB8;color:var(--jg-claro-tinta)}
+/* Texto: a tinta do painel em tudo; os destaques voltam logo abaixo, cada um pela sua peça. */
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) :is(h2,h3,h4,h5,b,strong,span,small,em,p,li,summary,time,label){color:inherit;text-shadow:none}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) :is(small,.ofc-nota,.cq-dica,.rk2-regra,.ofc-rk-legenda){color:var(--jg-claro-apagado)}
+/* Cartão de jogo e poço (vb-jogo-*) dentro das janelas: o cartão do painel com o degrau. */
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-cartao{background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau)}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-poco{background:var(--jg-claro-poco);border:1px solid #EFEAE2}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-rotulo{color:var(--jg-claro-apagado)}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-numero{color:var(--jg-claro-tinta);text-shadow:none}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-botao{background:var(--ds-acao,#FF7A2F);color:#FFFFFF;box-shadow:0 2px 0 #C2490C}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-dica[data-dica]::after{background:#1F1D1A;color:#FFFFFF;border-color:transparent}
+
+/* ---------- Loja (quadro 35) ---------- */
+/* A janela para acima do dock das salas, como as outras janelas do mundo. */
+body.mundo #office-catalogo[open]{max-height:var(--vv-janela-alto);margin-top:calc(var(--vv-m,14px) + 14px);margin-bottom:calc(var(--vv-dock-alto,0px) + var(--vv-m,14px) + 14px)}
+body.mundo #office-catalogo :is(.ofc-loja-saudacao,.ofc-loja-prateleira,.ofc-loja-destaque,.ofc-loja-kit,.ofc-loja-ambiente){background:var(--jg-claro-cartao);background-image:none;border:1px solid var(--jg-claro-borda);border-radius:10px;box-shadow:none;color:var(--jg-claro-tinta)}
+body.mundo #office-catalogo .ofc-loja-saudacao i{color:var(--jg-claro-sel-texto);font-style:normal;font-weight:700}
+body.mundo #office-catalogo :is(.ofc-loja-prat-topo h3,.ofc-loja-destaque-topo h4,.ofc-loja-todos){color:var(--jg-claro-tinta)}
+body.mundo #office-catalogo :is(.ofc-loja-prat-topo,.ofc-loja-destaque-topo) small{color:var(--jg-claro-apagado)}
+body.mundo #office-catalogo .ofc-loja-prat-topo button{color:var(--jg-claro-sel-texto)}
+/* O cartão do móvel: branco, a arte num poço bege, o nome em até duas linhas, a raridade numa etiqueta e o preço inteiro. */
+body.mundo #office-catalogo .ofc-movel{gap:6px;padding:8px;border:1px solid var(--jg-claro-borda);border-radius:10px;background:var(--jg-claro-cartao);background-image:none;box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta);justify-items:stretch;text-align:left}
+body.mundo #office-catalogo .ofc-movel:hover{border-color:var(--jg-claro-borda-forte);box-shadow:var(--jg-claro-degrau-alto)}
+body.mundo #office-catalogo .ofc-movel:active{transform:translateY(1px);box-shadow:0 1px 0 #ECE5DA}
+body.mundo #office-catalogo .ofc-movel:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:2px}
+body.mundo #office-catalogo .ofc-movel > img{width:100%;height:84px;object-fit:contain;padding:6px;border-radius:8px;box-shadow:none;background:linear-gradient(180deg,#F6F0E6,#EDE4D6);image-rendering:auto}
+body.mundo #office-catalogo .ofc-movel > img:not(.movel-voxel){image-rendering:pixelated}
+body.mundo #office-catalogo .ofc-movel > span{font:600 12px/1.3 var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-tinta);min-height:2.6em}
+body.mundo #office-catalogo .ofc-movel .ofc-movel-linha{display:block;width:auto;padding:0;border:0;background:none;box-shadow:none;font:500 11.5px/1.35 var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-apagado);white-space:normal;overflow:visible;text-overflow:clip;text-align:left}
+body.mundo #office-catalogo .ofc-movel .ofc-movel-linha::before{display:inline-block;vertical-align:-1px;margin-right:5px}
+body.mundo #office-catalogo .ofc-movel .ofc-movel-linha small{display:inline;font:inherit;color:inherit}
+body.mundo #office-catalogo .ofc-movel .ofc-movel-linha small::before{content:" · "}
+body.mundo #office-catalogo .ofc-movel.caro .ofc-movel-linha{color:#8A847A}
+body.mundo #office-catalogo .ofc-movel-faixa{justify-self:start;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font:700 10.5px var(--vv-texto,"Inter"),sans-serif;font-style:normal;background:#F1ECE4;color:#5F5B54}
+body.mundo #office-catalogo .ofc-movel-faixa.r-incomum{background:#E7F6EC;color:#166534}
+body.mundo #office-catalogo .ofc-movel-faixa.r-raro{background:#E3ECFF;color:#1E40AF}
+body.mundo #office-catalogo .ofc-movel-faixa.r-epico{background:#F3E8FF;color:#6B21A8}
+body.mundo #office-catalogo .ofc-movel-faixa.r-lendario{background:#FFF4E5;color:#8A5200}
+body.mundo #office-catalogo .ofc-movel :is(.ofc-movel-jogo,.ofc-movel-desejo){background:var(--ds-acao,#FF7A2F);color:#FFFFFF;box-shadow:none}
+/* Fileiras com cartões da mesma largura: nada de "900 moedas res…". */
+body.mundo #office-catalogo :is(.ofc-loja-fila,.ofc-loja-vitrine){display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;overflow:visible}
+body.mundo #office-catalogo .ofc-loja-jogos .ofc-nota{color:var(--jg-claro-apagado)}
+
+/* ---------- Ranking (quadro 36) ---------- */
+body.mundo #ofc-ranking .rk2-cab-icone{background:#F1ECE4;color:var(--jg-claro-tinta);box-shadow:none;border:0}
+body.mundo #ofc-ranking .rk2-cab h2{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-periodos{background:#F1ECE4;border:0;box-shadow:none}
+body.mundo #ofc-ranking .rk2-periodos button{background:transparent;color:#5E5A53;box-shadow:none;border:0}
+/* Categorias principais: cartões claros com o líder; a escolhida no selecionado laranja. */
+body.mundo #ofc-ranking .rk2-camp{background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-camp:hover{border-color:var(--jg-claro-borda-forte)}
+body.mundo #ofc-ranking .rk2-camp:active{transform:translateY(1px);box-shadow:0 1px 0 #ECE5DA}
+body.mundo #ofc-ranking .rk2-camp.ativo{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda)}
+body.mundo #ofc-ranking .rk2-camp-arte{background:var(--jg-claro-poco);border:0;box-shadow:none;border-radius:8px}
+body.mundo #ofc-ranking .rk2-camp-txt small{color:var(--jg-claro-apagado);letter-spacing:.06em}
+body.mundo #ofc-ranking .rk2-camp-txt b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-camp-txt em{color:var(--jg-claro-sel-texto);font-style:normal}
+body.mundo #ofc-ranking .rk2-camp-eu{background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-sel-borda);color:var(--jg-claro-sel-texto);box-shadow:none}
+/* Por atividade: chips com o nome inteiro ("Peças captadas", "Briefings no cadastro"), quebrando linha. */
+body.mundo #ofc-ranking .rk2-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+body.mundo #ofc-ranking .rk2-chips > small{flex:1 0 100%;color:var(--jg-claro-apagado)}
+body.mundo #ofc-ranking .rk2-chip{width:auto;max-width:none;min-height:30px;padding:0 10px 0 4px;border:1px solid var(--jg-claro-borda);border-radius:999px;background:var(--jg-claro-cartao);color:var(--jg-claro-tinta);box-shadow:none}
+body.mundo #ofc-ranking .rk2-chip:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-chip.ativo{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-chip-txt{overflow:visible;text-overflow:clip;white-space:nowrap;max-width:none}
+body.mundo #ofc-ranking .rk2-chip-icone{background:#F1ECE4;color:var(--jg-claro-tinta);border-radius:999px;box-shadow:none}
+body.mundo #ofc-ranking .rk2-chip b{color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-regra{background:var(--jg-claro-poco);border:1px solid #EFEAE2;box-shadow:none}
+body.mundo #ofc-ranking .rk2-regra b{color:var(--jg-claro-tinta)}
+/* Pódio claro: os degraus no poço, o 1º no laranja claro; o boneco sem halo. */
+body.mundo #ofc-ranking .rk2-degrau .ofc-rk-dnome{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-degrau .ofc-rk-dvalor{color:var(--jg-claro-tinta);background:none;-webkit-background-clip:border-box;background-clip:border-box;-webkit-text-fill-color:currentColor}
+body.mundo #ofc-ranking .rk2-degrau.eu .ofc-rk-dnome{color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-bloco{background:#F1ECE4;border:1px solid var(--jg-claro-borda);box-shadow:none}
+body.mundo #ofc-ranking .rk2-bloco span{color:#8A847A;text-shadow:none}
+body.mundo #ofc-ranking .rk2-degrau.p1 .rk2-bloco{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda);box-shadow:none}
+body.mundo #ofc-ranking .rk2-degrau.p1 .rk2-bloco span{color:var(--jg-claro-sel-texto);text-shadow:none}
+body.mundo #ofc-ranking .rk2-degrau.p2 .rk2-bloco span{color:var(--vb-n2)}
+body.mundo #ofc-ranking .rk2-degrau.p3 .rk2-bloco span{color:var(--vb-n1)}
+body.mundo #ofc-ranking .ofc-rk-figura::after{display:none}
+body.mundo #ofc-ranking .rk2-coroa{color:var(--vb-n3)}
+body.mundo #ofc-ranking .rk2-premio{color:var(--jg-claro-sel-texto);background:none}
+body.mundo #ofc-ranking .rk2-porque{color:var(--jg-claro-apagado)}
+body.mundo #ofc-ranking .rk2-selo{background:#FFFFFF;border:1px solid var(--jg-claro-borda);color:var(--jg-claro-tinta);box-shadow:none}
+/* Lista: uma linha por pessoa no cartão claro; você em laranja, com a barra da própria meta. */
+body.mundo #ofc-ranking .rk2-lista > li:not(.ofc-rk-det-li){background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:none;color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-lista > li:not(.ofc-rk-det-li){grid-template-columns:44px 32px minmax(0,1fr) minmax(56px,130px) auto}
+body.mundo #ofc-ranking .rk2-lista > li:not(.ofc-rk-det-li):hover{border-color:var(--jg-claro-borda-forte)}
+body.mundo #ofc-ranking .rk2-lista > li.eu{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda)}
+body.mundo #ofc-ranking .rk2-pos,body.mundo #ofc-ranking .rk2-valor b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-barra{background:var(--jg-claro-trilha);box-shadow:none}
+body.mundo #ofc-ranking .rk2-barra i{background:var(--ds-acao,#FF7A2F);box-shadow:none}
+body.mundo #ofc-ranking .rk2-seta.sobe{color:#1F7A45}
+body.mundo #ofc-ranking .rk2-seta.desce{color:#B42318}
+body.mundo #ofc-ranking .rk2-seta.igual{color:#8A847A}
+body.mundo #ofc-ranking .rk2-seta.novo{color:var(--jg-claro-sel-texto)}
+/* Você, fixo embaixo: o cartão claro com a borda laranja. */
+body.mundo #ofc-ranking :is(.rk2-voce,.rk2-voce-fixa){background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-sel-borda);box-shadow:0 -10px 24px -18px rgba(40,26,10,.4);backdrop-filter:none;-webkit-backdrop-filter:none}
+body.mundo #ofc-ranking .rk2-voce-pos b{color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-voce-txt > b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .rk2-voce-txt p b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .ofc-rk-link{color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .ofc-rk-anel{background:conic-gradient(var(--ds-acao,#FF7A2F) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
+body.mundo #ofc-ranking .ofc-rk-anel i{background:var(--jg-claro-cartao);color:var(--jg-claro-tinta)}
+/* Detalhe, como funciona, copa, tesouros e a meta da agência: poço e cartão claros. */
+body.mundo #ofc-ranking :is(.ofc-rk-detalhe,.ofc-rk-det-col,.ofc-rk-como,.ofc-rk-anterior){background:var(--jg-claro-poco);border:1px solid #EFEAE2;box-shadow:none;color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking :is(.rk2-copa,.ofc-rk-tesouro,.ofc-rk-agencia){background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .ofc-rk-det-col h5{color:var(--jg-claro-tinta)}
+body.mundo #ofc-ranking .ofc-rk-tesouro li.eu{background:var(--jg-claro-sel-fundo)}
+body.mundo #ofc-ranking .ofc-rk-ag-barra{background:var(--jg-claro-trilha)}
+body.mundo #ofc-ranking .ofc-rk-ag-barra i{background:var(--ds-acao,#FF7A2F)}
+body.mundo #ofc-ranking .ofc-rk-ag-num strong{color:var(--jg-claro-tinta);text-shadow:none}
+
+/* ---------- Conquistas (quadro 37) ---------- */
+body.mundo #ofc-conquistas :is(.cq-vitrine,.cq-cartao,.cq-proximo,.cq-estante,.cq-titulos,.cq-bloco){background:var(--jg-claro-cartao);background-image:none;border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta)}
+body.mundo #ofc-conquistas .cq-cartao:hover{border-color:var(--jg-claro-borda-forte)}
+body.mundo #ofc-conquistas .cq-cartao[open]{border-color:var(--jg-claro-borda-forte)}
+body.mundo #ofc-conquistas .cq-pedestal{background:linear-gradient(180deg,#F6F0E6,#EDE4D6);border:0;box-shadow:none}
+body.mundo #ofc-conquistas .cq-luz{display:none}
+body.mundo #ofc-conquistas .cq-placa b{color:var(--jg-claro-tinta);text-shadow:none}
+body.mundo #ofc-conquistas .cq-placa small{color:var(--jg-claro-apagado)}
+body.mundo #ofc-conquistas .cq-trocar{background:#FFFFFF;border:1px solid var(--jg-claro-borda);color:var(--jg-claro-tinta);box-shadow:none;border-radius:8px}
+body.mundo #ofc-conquistas .cq-trocar:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-conquistas .cq-anel{background:conic-gradient(var(--ds-acao,#FF7A2F) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
+body.mundo #ofc-conquistas .cq-anel::before{background:var(--jg-claro-cartao)}
+body.mundo #ofc-conquistas .cq-anel b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-conquistas :is(.cq-arte,.cq-niveis li,.cq-premio){background:var(--jg-claro-poco);border:1px solid #EFEAE2;box-shadow:none}
+body.mundo #ofc-conquistas .cq-arte img{image-rendering:auto}
+body.mundo #ofc-conquistas .cq-arte img:not(.movel-voxel){image-rendering:pixelated}
+body.mundo #ofc-conquistas .cq-premio b{color:var(--jg-claro-tinta)}
+body.mundo #ofc-conquistas .cq-trilha-linha{background:var(--jg-claro-trilha)}
+body.mundo #ofc-conquistas .cq-trilha-linha i{background:var(--ds-acao,#FF7A2F)}
+body.mundo #ofc-conquistas .cq-no i{background:#FFFFFF;border-color:var(--jg-claro-borda);box-shadow:none}
+body.mundo #ofc-conquistas .cq-no small{color:var(--jg-claro-apagado)}
+/* O nível só no ícone, na borda e no texto pequeno. */
+body.mundo #ofc-conquistas .ofc-escada-nivel{background:#FFFFFF;border:1px solid currentColor;box-shadow:none;text-shadow:none}
+body.mundo #ofc-conquistas .ofc-escada-nivel.n1,body.mundo #ofc-conquistas .cq-niveis li.n1 > b{color:var(--vb-n1)}
+body.mundo #ofc-conquistas .ofc-escada-nivel.n2,body.mundo #ofc-conquistas .cq-niveis li.n2 > b{color:var(--vb-n2)}
+body.mundo #ofc-conquistas .ofc-escada-nivel.n3,body.mundo #ofc-conquistas .cq-niveis li.n3 > b{color:var(--vb-n3)}
+body.mundo #ofc-conquistas .ofc-escada-nivel.n4,body.mundo #ofc-conquistas .cq-niveis li.n4 > b{color:var(--vb-n4)}
+body.mundo #ofc-conquistas .cq-no.ok.n1 i{background:var(--vb-n1);border-color:var(--vb-n1)}
+body.mundo #ofc-conquistas .cq-no.ok.n2 i{background:var(--vb-n2);border-color:var(--vb-n2)}
+body.mundo #ofc-conquistas .cq-no.ok.n3 i{background:var(--vb-n3);border-color:var(--vb-n3)}
+body.mundo #ofc-conquistas .cq-no.ok.n4 i{background:var(--vb-n4);border-color:var(--vb-n4)}
+body.mundo #ofc-conquistas .cq-seu{background:var(--ds-acao,#FF7A2F);color:#FFFFFF}
+/* Abas das escadas: chips do sistema; "Perto de subir" e a escolhida no selecionado laranja. */
+body.mundo #ofc-conquistas .vb-chip[aria-pressed="true"]{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-conquistas .vb-titulo{background:#FFFFFF;border:1px solid currentColor;box-shadow:none;text-shadow:none;color:var(--jg-claro-sel-texto)}
+
+/* ---------- Jogos e Equipe online (quadro 38): telas com conteúdo, não listas de links ---------- */
+.vv-jogo-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-right:44px}
+.vv-jogo-cab h3{margin:0}
+.vv-online-conta{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:28px;padding:0 10px;border:1px solid var(--jg-claro-borda);border-radius:999px;background:#FFFFFF;font:600 12px var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-tinta)}
+.vv-online-conta i{width:8px;height:8px;border-radius:50%;background:#1F9D55}
+body.mundo .vv-placa .vv-jogos{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:4px 0 6px}
+body.mundo .vv-placa .vv-jogo{display:grid;grid-template-columns:104px minmax(0,1fr);gap:12px;align-items:center;padding:10px;border:1px solid var(--jg-claro-borda);border-radius:10px;background:#FFFFFF;box-shadow:var(--jg-claro-degrau);cursor:default;text-align:left;transform:none}
+body.mundo .vv-placa .vv-jogo:hover{transform:none;border-color:var(--jg-claro-borda-forte)}
+.vv-jogo-arte{width:104px;height:84px;object-fit:contain;padding:6px;border-radius:8px;background:linear-gradient(180deg,#F6F0E6,#EDE4D6);image-rendering:pixelated}
+.vv-jogo-arte.movel-voxel{image-rendering:auto}
+.vv-jogo-txt{display:grid;gap:3px;justify-items:start;min-width:0}
+.vv-jogo-txt b{font:650 14px var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-tinta)}
+.vv-jogo-txt small{font:500 12px/1.4 var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-apagado);margin-bottom:6px}
+.vv-online-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:6px}
+.vv-online{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--jg-claro-borda);border-radius:10px;background:#FFFFFF}
+.vv-online-rosto{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;overflow:hidden;background:#F1ECE4}
+.vv-online-rosto img{width:34px;height:34px;object-fit:cover}
+.vv-online-rosto i{font:700 11px var(--vv-texto,"Inter"),sans-serif;font-style:normal;color:var(--jg-claro-tinta)}
+.vv-online-txt{flex:1;min-width:0;display:grid;gap:1px}
+.vv-online-txt b{font:600 12.5px var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-tinta);overflow-wrap:anywhere}
+.vv-online-txt small{font:500 12px var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-apagado)}
+.vv-equipe-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+@media (max-width:640px){
+  body.mundo .vv-placa .vv-jogos{grid-template-columns:1fr}
+  body.mundo .vv-placa .vv-jogo{grid-template-columns:84px minmax(0,1fr)}
+  .vv-jogo-arte{width:84px;height:70px}
+  .vv-online{flex-wrap:wrap}
+}
+.vv-online-fora{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.vv-online-fora .vv-online-rosto{filter:grayscale(.6);opacity:.8}

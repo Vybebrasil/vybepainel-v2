@@ -6,14 +6,14 @@ test('cartões abrem a ficha; inventário mostra o que é seu, loja mostra preç
  const c=vm.createContext({window:{},document:{},safeText:String,localStorage:{getItem:()=>null}});
  vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:['exe_table']},economia:{disponivel:true,saldo:700,inventario:[{classe:'raro_teste',quantidade:2}],loja:{raridades:[{chave:'raro',nome:'Raro',preco:120,vitrine:false}],itens:[{classe:'raro_teste',raridade:'raro',preco:120,restante:1}],vitrine:[]}}},edicao:{camada:'sala-0',itens:[['raro_teste',1,1,2]]},abaQuarto:'meus'};function escritorioMinhaMesa(){return {ambiente:{id:'sala-0'}}}function escritorioImagemDe(){return null}`,c);
  vm.runInContext(readFileSync('vybe-escritorio-mapa.js','utf8'),c);
- vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
+ vm.runInContext(readFileSync('shared/escritorio-nome-movel.js','utf8'),c); vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
  let card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4})`,c);
  assert.match(card,/2 seus/);assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'o clique abre a ficha, colocar é nela');
  // Inventário da janela: o cartão diz quantos são seus e onde estão.
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:1,guardados:1}})`,c),/2 seus · 1 no quarto/);
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste'},{inventario:{total:2,noQuarto:0,guardados:2}})`,c),/2 guardados/);
  card=vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4},{loja:true})`,c);
- assert.match(card,/Raro · 120 moedas/,'a faixa vem escrita, não só na cor');assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'na loja o clique abre a prévia; comprar é nela');assert.match(card,/ofc-movel compacto r-raro/,'borda na cor da faixa');assert.match(card,/resta 1/);
+ assert.match(card,/<i class="ofc-movel-faixa r-raro">Raro<\/i><em class="ofc-movel-linha ofc-preco">120 moedas/,'a faixa vem escrita, não só na cor, e o preço tem linha própria (fase 3c)');assert.match(card,/abrirPreviaMovelEscritorio\('raro_teste'\)/,'na loja o clique abre a prévia; comprar é nela');assert.match(card,/ofc-movel compacto r-raro/,'borda na cor da faixa');assert.match(card,/resta 1/);
  vm.runInContext(`escritorio.base.economia.loja.mapa.get('raro_teste').restante=0`,c);
  assert.match(vm.runInContext(`escritorioCartaoMovel({classe:'raro_teste',nome:'Raro teste',giros:4},{loja:true})`,c),/Esgotado/);
 });
@@ -36,7 +36,7 @@ test('categorias em árvore e caixa agrupada, sem as faixas de raridade misturad
  const c=vm.createContext({window:{},document:{},safeText:String,localStorage:{getItem:()=>null}});
  vm.runInContext(`var escritorio={base:{eu:'1',quartos:{essenciais:[]},economia:{disponivel:true,saldo:0,inventario:[],loja:{raridades:[{chave:'raro',nome:'Raro',preco:120}],itens:[{classe:'cad_raro',raridade:'raro',preco:120,restante:null}],vitrine:[]}}},edicao:null};function escritorioMinhaMesa(){return null}function escritorioImagemDe(){return null}`,c);
  vm.runInContext(readFileSync('vybe-escritorio-mapa.js','utf8'),c);
- vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
+ vm.runInContext(readFileSync('shared/escritorio-nome-movel.js','utf8'),c); vm.runInContext(readFileSync('vybe-escritorio-editor.js','utf8'),c);
  vm.runInContext(`escritorioCatalogo=[{classe:'cad_raro',nome:'Shelf',categoria:'Estantes'},{classe:'mesa_x',nome:'Table',categoria:'Mesas'}]`,c);
  const arvore=vm.runInContext(`escritorioArvoreCategoriasHtml('Mesas',"ir('%')")`,c);
  assert.match(arvore,/<details class="ofc-catj-secao" open><summary>Móveis<\/summary>/,'a seção da categoria escolhida fica aberta');
