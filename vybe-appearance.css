@@ -155,7 +155,7 @@ body.vybe-desktop {
 }
 .vybe-desktop :is(.workspace-section,.auto-passo,.fc-item) { border-radius: 8px !important; border-color: #ffffff17 !important; }
 .vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 6px !important; }
-.vybe-desktop #toast { background: var(--glass) !important; border-radius: 8px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
+:where(body:not(.mundo)).vybe-desktop #toast { background: var(--glass) !important; border-radius: 8px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
 
 /* A entrada preserva a cor individual e a iluminação reativa. */
 .vybe-desktop #mode-gate .identity-shell {

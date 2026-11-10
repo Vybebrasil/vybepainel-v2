@@ -649,7 +649,7 @@ async function refreshDemandas() {
     syncStatusLegendColors('#demanda-status-legend', DADOS_DEMANDAS);
     renderDemandas();
     renderIntegratedOperationalViews();
-    showToast(`✓ ${DADOS_DEMANDAS.length} demandas carregadas`, 'ok');
+    showToast(`${DADOS_DEMANDAS.length} ${DADOS_DEMANDAS.length === 1 ? 'demanda carregada' : 'demandas carregadas'}`, 'ok');
   } catch(e) {
     console.error(e);
     showToast(`Erro: ${e.message}`, 'err', 8000);

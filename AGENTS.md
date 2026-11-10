@@ -578,6 +578,11 @@ e funções `vb*Html` em `vybe-core.js`; use-as antes de desenhar outra.
 - Um lugar para avisos: no canto, recolhível, abaixo das janelas abertas.
 - Movimento com sentido e uma curva só (`--curva`): a peça que sai, o passo
   que desliza, o número que sobe; "Reduzir movimento" desliga tudo.
+  No mundo (redesign do legado, fase 1, 09/11/2026) a camada é uma só, no fim de `vybe-mundo.css`: `--vv-mola` (entrada
+  que pousa), `--vv-mola-viva` (o que é tocado), `--vv-sombra-janela`; janelas e menus entram só com movimento, nunca
+  começando transparentes (se a animação não andar, a tela aparece igual). O legado no mundo não tem ícone colorido no
+  título nem rótulo de setor colorido: as cores antigas ficam em `:where(body:not(.mundo))`. Moodboard do redesign:
+  https://claude.ai/artifact/Q3rexVtqwYWCqUCJ7U2yb3. Não crie outra curva nem outra sombra de janela.
 
 ### Padrão de jogo do Escritório (decisão do Paulo, 21/10/2026)
 
