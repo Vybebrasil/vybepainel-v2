@@ -647,14 +647,11 @@ body.mundo .badge.badge-date{background:#F2EEE7!important;color:#4A463F!importan
 body.mundo .tab-btn.e-hoje{color:#B4510E!important}
 body.mundo .item-name.item-workspace-link{color:#1F1D1A!important}
 body.mundo .owner-avatar-add{color:#0D74CE!important;border-color:#BBD8F7!important}
-body.mundo #footer-update{color:#6E6A62!important}
 body.mundo .ai-setting-save{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;border-radius:6px!important}
 body.mundo .cli-bloco-cabeca b{color:#1F1D1A!important}
 body.mundo .cli-painel.novo{background:#E6F6EC!important;color:#12804A!important;border-color:#B5E3C7!important}
 body.mundo td.cli-editavel{color:#4A463F!important}
 body.mundo .grupos-total b{color:#1F1D1A!important}
-body.mundo.mundo-modulo footer{color:#6E6A62!important}
-body.mundo.mundo-modulo footer :is(a,b,span){color:inherit!important}
 
 /* Cores fixas no HTML dos módulos (style="color:#…") pensadas para o fundo escuro: escurecidas na pele clara (gerado). */
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]) [style*="color:#00f0ff"]:not([style*="background:#00f0ff"]){color:#00A3AD!important}
@@ -1093,7 +1090,6 @@ html body.mundo.mundo-modulo .focus-continuity-head{color:#7000E6!important}
 html body.mundo.mundo-modulo .focus-continuity-body{color:#7D578F!important}
 html body.mundo.mundo-modulo .focus-continuity-body b{color:#BD00BD!important}
 html body.mundo.mundo-modulo .material-review-open{color:#007544!important}
-html body.mundo.mundo-modulo footer strong{color:#945B00!important}
 html body.mundo.mundo-modulo .day-summary-btn{color:#00787F!important}
 html body.mundo.mundo-modulo .day-pending-tabs button.has-pending{color:#B25200!important}
 html body.mundo.mundo-modulo .day-pending-date{color:#B25200!important}
@@ -1747,7 +1743,6 @@ html body.mundo.mundo-modulo .status-editor-arrumar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-conta{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-nota{color:#5E5A53!important}
 html body.mundo.mundo-modulo .resumo-chip{color:#B25000!important}
-html body.mundo.mundo-modulo .resumo-limpar{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vybe-data.com-rotulo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-data{color:#5E5A53!important}
 html body.mundo.mundo-modulo .focus-data b{color:#5E5A53!important}
@@ -2656,7 +2651,6 @@ html body.mundo.mundo-modulo .capt-cal .ag-ev.t-reuniao small,html body.mundo.mu
 html body.mundo.mundo-modulo #workflow-modal.capt-folha .workflow-kicker span{color:#5E5A53!important}
 html body.mundo.mundo-modulo #workflow-modal.capt-folha .capt-quando-fixo{color:#5E5A53!important}
 html body.mundo.mundo-modulo .capt-vinculo select{color:#5E5A53!important}
-html body.mundo.mundo-modulo .capt-trocar > summary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-cabeca.inicial{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-eu-texto b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .ofc-p-eu-texto small{color:#5E5A53!important}
@@ -2962,8 +2956,6 @@ html body.mundo.mundo-modulo .ops-command-bar .ops-acoes button{color:#5E5A53!im
 html body.mundo.mundo-modulo .vb-botao.perigo{color:#D11A00!important}
 html body.mundo.mundo-modulo .vb-alternar button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .vb-chip{color:#5E5A53!important}
-html body.mundo.mundo-modulo .vb-link{color:#B24B00!important}
-html body.mundo.mundo-modulo .vb-link.perigo{color:#DB0014!important}
 html body.mundo.mundo-modulo .vb-estado-icone{color:#B24B00!important}
 html body.mundo.mundo-modulo .vb-estado.erro .vb-estado-icone{color:#D11600!important}
 html body.mundo.mundo-modulo .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button{color:#5E5A53!important}
@@ -2982,12 +2974,11 @@ html body.mundo.mundo-modulo .board-switch-btn.active,html body.mundo .ai-settin
    botão (o X da janela) escurecia o botão junto e o X ficava um quadrado cinza (Paulo, 09/11/2026). */
 html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select){filter:brightness(.6) saturate(1.35)}
 /* Cinzas de apoio que ficavam claros demais */
-html body.mundo.mundo-modulo :is(label.filtro-carteira,.agenda-filtros-rotulo,.resumo-limpar,.conta-ensaio,.cli-porta.quieto,.ai-usage-label,.ai-usage-detail,.ai-setting-copy,.toolbar-label,.day-date-context,.day-progress-label,.resumo-nota){color:#6B675F!important}
+html body.mundo.mundo-modulo :is(label.filtro-carteira,.agenda-filtros-rotulo,.conta-ensaio,.cli-porta.quieto,.ai-usage-label,.ai-usage-detail,.ai-setting-copy,.toolbar-label,.day-date-context,.day-progress-label,.resumo-nota){color:#6B675F!important}
 html body.mundo.mundo-modulo .ai-settings :is(strong,label),html body.mundo.mundo-modulo [class*="ai-setting"] :is(strong,label){color:#4A463F!important}
 html body.mundo.mundo-modulo [class*="auto-"] button:not(.vb-botao):not([class*="primario"]):not(.auto-novo){color:#5E5A53!important}
 html body.mundo.mundo-modulo [class*="auto-"] button.perigo{color:#B42318!important}
 html body.mundo.mundo-modulo :is(.container,[id^="painel-"]) :is(p,small,i,em):not([class]){color:#5E5A53}
-html body.mundo.mundo-modulo footer,html body.mundo.mundo-modulo #footer-update{color:#6B675F!important}
 /* Carteira do head: o texto um tom mais fundo */
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="vinicius"]{--carteira-texto:#9C4209}
 body.mundo :is(.cliente-carteira,.manager-calendar-client,[data-filtro-carteira])[data-carteira="ewerton"]{--carteira-texto:#1A54A6}
@@ -6166,7 +6157,6 @@ body.mundo .vc-camada > #vv-carteira{height:100%}
    (vb-*, --pc-*, --ds-*), sem forçar nada.
    ====================================================================================== */
 /* O rodapé técnico ("Vybe OS · Painel de Produção · Banco próprio · N conteúdos") sai destas três telas. */
-body.mundo.mundo-modulo:has(:is(#painel-diario,#painel-automacoes,#painel-ai-usage)[style*="block"]) > footer{display:none}
 /* Alternador destas telas: o escolhido no selecionado laranja do sistema. */
 body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDD);font-weight:750}
 body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="false"]{background:transparent}
@@ -6310,3 +6300,62 @@ body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;widt
 }
 body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
 body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
+
+/* ======================================================================================
+   PEÇAS COMPARTILHADAS DO SISTEMA, parte 2 (redesign, quadros 00, 29 e 30; 10/11/2026).
+   - Seletor do padrão (vybe-seletor.js): todo <select> simples do mundo abre este menu no lugar do nativo; o próprio
+     campo continua sendo o botão com o valor (a seta do padrão está em "Menu de escolha (select)").
+   - Texto clicável vira botão discreto: `vb-link` e os apelidos dos módulos (resumo-limpar, o "Trocar" da captação).
+   - Foco: laranja só no foco do teclado; painel, janela ou contêiner que recebe foco pelo clique ou pelo código não
+     ganha o anel do navegador (no WebKit, lilás/azul).
+   - Rodapé técnico ("Vybe OS · Painel de Produção · Banco próprio · N conteúdos") não aparece no mundo.
+   ====================================================================================== */
+body.mundo > footer{display:none}
+
+/* Campo de escolha: aberto com a borda do foco; desligado em cinza, sem a seta laranja do hover. */
+body.mundo select:not([multiple]):not([size])[aria-expanded="true"]{border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo select:not([multiple]):not([size]):disabled{background-color:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed}
+body.mundo select:not([multiple]):not([size]):not(:disabled){cursor:pointer}
+
+.vb-seletor-menu{position:fixed;inset:auto;z-index:2147481000;margin:0;padding:6px;display:flex;flex-direction:column;gap:4px;box-sizing:border-box;overflow:hidden;border:1px solid var(--pc-linha,#E6E0D6);border-radius:12px;background:#FFFFFF;color:var(--pc-tinta,#1F1D1A);box-shadow:var(--vv-sombra-janela,0 18px 50px rgba(40,26,10,.22));font:500 13px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;animation:vb-seletor-entra .16s var(--vv-mola,cubic-bezier(.32,.72,0,1)) both}
+.vb-seletor-menu.acima{animation-name:vb-seletor-entra-acima}
+@keyframes vb-seletor-entra{from{transform:translateY(-4px)}to{transform:none}}
+@keyframes vb-seletor-entra-acima{from{transform:translateY(4px)}to{transform:none}}
+.vb-seletor-busca{display:flex;align-items:center;gap:6px;flex:none;height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FAF8F4;cursor:text}
+.vb-seletor-busca:focus-within{border-color:var(--ds-acao,#FF7A2F);background:#FFFFFF}
+.vb-seletor-busca svg{width:14px;height:14px;flex:none;fill:none;stroke:#8A847A;stroke-width:2;stroke-linecap:round}
+.vb-seletor-busca input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.vb-seletor-lista{position:relative;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;outline:0}
+.vb-seletor-grupo{padding:8px 10px 4px;color:#6B675F;font:650 11px/1.2 var(--vv-texto,"Inter"),sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.vb-seletor-opcao{display:flex;align-items:center;gap:8px;min-height:var(--pc-h,34px);padding:6px 10px;box-sizing:border-box;border-radius:var(--pc-r,8px);cursor:pointer;user-select:none}
+.vb-seletor-opcao span{flex:1;min-width:0;overflow-wrap:anywhere}
+.vb-seletor-opcao svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+.vb-seletor-opcao.ativa{background:#F4EFE8}
+.vb-seletor-opcao.escolhida{background:var(--ds-sel-fundo,#FFEBDD);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+.vb-seletor-opcao.escolhida svg{visibility:visible}
+.vb-seletor-opcao.escolhida.ativa{box-shadow:inset 0 0 0 1px var(--ds-sel-borda,#FFC9A6)}
+.vb-seletor-opcao[aria-disabled="true"]{color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed;background:none}
+.vb-seletor-vazio{margin:0;padding:10px;color:#6B675F;font-size:12.5px}
+@media (prefers-reduced-motion:reduce){.vb-seletor-menu{animation:none}}
+body[data-motion="reduce"] .vb-seletor-menu{animation:none}
+
+/* Texto clicável vira botão discreto (quadro 30, item 3): sem sublinhado, com área de clique de 34 px e o fundo
+   do hover; perigoso em vermelho. Links dentro de uma frase (<p>) continuam link. */
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary){position:relative;display:inline-flex;align-items:center;gap:5px;min-height:var(--pc-h-p,28px);padding:0 10px;border:1px solid transparent;border-radius:var(--pc-r,8px);background:transparent;color:var(--pc-tinta,#1F1D1A);font:600 12.5px/1.2 var(--vv-texto,"Inter"),system-ui,sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer}
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary)::before{content:"";position:absolute;inset:-3px 0}
+body.mundo :is(button.vb-link,a.vb-link:not(p a),.resumo-limpar,.capt-trocar > summary):hover{background:#F4EFE8;color:var(--ds-sel-texto,#C2490C);text-decoration:none}
+body.mundo :is(button.vb-link,a.vb-link:not(p a)).perigo{color:#B42318}
+body.mundo :is(button.vb-link,a.vb-link:not(p a)).perigo:hover{background:#FDECEE;color:#B42318}
+body.mundo p a.vb-link{color:var(--ds-sel-texto,#C2490C);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* Foco (quadro 29): o anel é laranja e só do teclado. Janela, painel ou contêiner focado pelo clique ou pelo código
+   (tabindex="-1", <dialog>, regiões) não ganha o anel do navegador, que no WebKit é lilás ("nada de foco azul"). */
+body.mundo :is(dialog,[tabindex="-1"],[role="dialog"],[role="region"],[role="listbox"]):focus{outline:none}
+body.mundo :is(button,a,summary,[role="button"],[role="tab"],[tabindex]:not([tabindex="-1"])):focus:not(:focus-visible){outline:none}
+/* Resumo (vbResumoHtml): o zero sai do cartão e fica como texto discreto na mesma linha (quadro 00: "zero vira uma linha"). */
+body.mundo .vb-resumo-item.zero{border-color:transparent;background:transparent;color:#8A847A;padding-inline:4px}
+body.mundo .vb-resumo-item.zero b{color:inherit;font-weight:650}
+/* A busca do seletor já mostra o foco na caixa inteira; o campo dentro não ganha um segundo anel. */
+body.mundo .vb-seletor-busca input:focus-visible{outline:none;box-shadow:none}
+/* A seta do seletor vence o `background:` curto dos campos de cada módulo (Creators perdia a seta, sobrava só o espaço). */
+body.mundo select:not([multiple]):not([size]):not(#pc-campo){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px}

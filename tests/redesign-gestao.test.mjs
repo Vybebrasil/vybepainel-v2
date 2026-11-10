@@ -32,7 +32,9 @@ test('Diário: o retrato pequeno usa os números do registro e não chama prazo 
 });
 
 test('o rodapé técnico sai das três telas, sem forçar nada', () => {
-  assert.ok(bloco.includes('body.mundo.mundo-modulo:has(:is(#painel-diario,#painel-automacoes,#painel-ai-usage)[style*="block"]) > footer{display:none}'));
+  // A frente "sistema" (10/11/2026) tirou o rodapé de todas as telas do mundo com uma regra só (body.mundo > footer).
+  assert.ok(bloco.includes('body.mundo.mundo-modulo:has(:is(#painel-diario,#painel-automacoes,#painel-ai-usage)[style*="block"]) > footer{display:none}')
+    || ler('vybe-mundo.css').includes('body.mundo > footer{display:none}'));
   assert.doesNotMatch(bloco, /!important/);
   assert.doesNotMatch(bloco, /html body\.mundo/);
 });
