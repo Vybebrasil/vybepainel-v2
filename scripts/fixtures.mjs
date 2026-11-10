@@ -323,11 +323,11 @@ export async function demoApi(req,res,url,body) {
         resposta_nome:'Cliente fictício',resposta_texto:'Podemos trocar o tema do dia 12 por um Reels?',identidade:{cor:'#2f7d5b',cor_apoio:'#1d2227',fonte:'Montserrat'},
         conteudo:{resumo:'Mês de reforçar a presença da marca com bastidores e prova social.',numeros:[],linhas:[{titulo:'Bastidores',texto:'Mostrar quem faz o trabalho.'},{titulo:'Prova social',texto:'Depoimentos reais de clientes.'}],
           datas:[{data:'02/'+mes.slice(5,7),nome:'Data fictícia',texto:'Só para ilustrar a tela.'}],
-          pecas:[{data:dia(5),formato:'Card',tema:'Apresentação da equipe',legenda:'Legenda de exemplo.',referencia:'',observacao:''},{data:dia(12),formato:'Carrossel',tema:'Três dúvidas comuns',legenda:'Legenda de exemplo.',referencia:'',observacao:''},{data:dia(19),formato:'Reels',tema:'Bastidores',legenda:'Roteiro de exemplo.',referencia:'',observacao:''}],
+          pecas:[{data:dia(5),formato:'Card',tema:'Apresentação da equipe',legenda:'Legenda de exemplo.',referencia:'',observacao:''},{data:dia(12),formato:'Carrossel',tema:'Três dúvidas comuns',legenda:'Legenda de exemplo.',referencia:'',observacao:'',ajuste_cliente:'Trocar por um Reels com as mesmas três dúvidas.'},{data:dia(19),formato:'Reels',tema:'Bastidores',legenda:'Roteiro de exemplo.',referencia:'',observacao:''}],
           observacoes:'Confirmar as fotos com o cliente.'},
         eventos:[{tipo:'ajustes',texto:'Podemos trocar o tema do dia 12 por um Reels?',autor_externo:'Cliente fictício',em:new Date().toISOString(),versao:2},{tipo:'publicado',em:new Date(Date.now()-864e5).toISOString(),versao:1}]};
       const acao=url.searchParams.get('acao');
-      if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano));}
+      if(acao==='previa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml(plano,{revisor:'head'}));}
       // Página do cliente para responder (link direto ou dentro do VybeHub), só na demonstração.
       if(acao==='previa-cliente'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(documentoHtml({...plano,estado:'enviado'},{paraCliente:true,token:'demonstracao',modo:url.searchParams.get('modo')==='portal'?'portal':'link'}));}
       if(acao==='detalhe')return reply(200,{ok:true,planejamento:plano});
