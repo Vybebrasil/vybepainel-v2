@@ -228,6 +228,25 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (pintura e revestimento do dono), luz do quarto e dia/noite pela hora da Bahia (ou a escolhida no mundo), luminárias
   acesas à noite; bonecos andam com passada, sentam e deitam pela ficha do Habbo, acendem quando falam e quem chega
   entra pela porta; clicar no piso faz a câmera seguir você. Tudo só lê do Escritório, sem laço infinito.
+- Identidade voxel única (Paulo, 09/11/2026: "tudo que é de voxel... precisa seguir uma identidade bem definida"):
+  luz, sombra, acabamento do renderizador e base de maquete saem de `mundo/estilo.mjs` (`ESTILO`, `prepararRenderer`,
+  `luzDoEstilo`, `baseDeMaquete`); o acabamento de cada bloco (tom próprio, quina e pé pelo tamanho do bloco) é o
+  `materialVoxel` de `mundo/voxel.mjs`. Mundo, andar, quarto e retratos dos bonecos usam os dois; não crie luz,
+  material ou renderizador próprio numa cena (mude o visual no estilo).
+  Boneco do Habbo (Paulo, 09/11/2026: "trocar a cabeça, corpo, pernas, braços, acessórios... cor da pele, cabelo"):
+  `figuraDoHabbo` lê da arte da pessoa a pele, o cabelo (cor e forma esculpida de frente e de perfil, `cabeloHabbo`),
+  a camisa, o casaco, as mangas e os braços (`bracosDoBoneco`), a calça, o sapato e os acessórios de cabeça
+  (chapéu, enfeite, máscara e óculos); o corpo continua o `desenharBoneco`.
+  Estilo ideal (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): voxel liso, sem
+  grade nem contorno, sombra macia, oclusão nos cantos (`acabamentoDeMaquete`), luz quente com contraste. Móvel do
+  quarto de tipo conhecido é MONTADO pelo motor `mundo/moveis-voxel.mjs` (receita por tipo, grade de 1/16 de
+  ladrilho, cores e tamanho da arte do Habbo); o resto é esculpido só no mesmo grão, sem a casca de 2 px. Isto
+  substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
+  Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
+  Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
+  estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
+  parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é
+  sempre claro; a câmera abre na parte mobiliada. Móveis, posições e o que a pessoa salvou não mudam.
 - Centro vivo (Paulo, 08/11/2026): o que anda ou anima (passantes, time online na praça, bichos, água, pássaros,
   lojas reagindo, luz dos postes) fica em `mundo/vida.mjs`; passantes e time online saem num desenho só (multidão).
   Lojas: no máximo 6 pulsando por atraso e 5 com confete. Dia e noite pela hora da Bahia, com a escolha de cada pessoa

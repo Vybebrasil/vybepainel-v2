@@ -199,7 +199,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(ind); geo.computeVertexNormals();
-  const terreno = new THREE.Mesh(geo, voxelizar(new THREE.MeshStandardMaterial({ map: imagem, roughness: .92 }), { amp: .16, grade: .6, borda: false }));
+  const terreno = new THREE.Mesh(geo, voxelizar(new THREE.MeshStandardMaterial({ map: imagem, roughness: .92 }), { amp: .16, grade: .6, borda: false, tomBloco: 0 }));
   terreno.receiveShadow = true;
   motor.adicionar(terreno);
   // Paredes dos degraus em faixas: junta as quadras vizinhas com o mesmo degrau (cor de terra/pedra).
@@ -235,7 +235,7 @@ export function construirIrece(motor, dados, { reservas = {}, comercios = [] } =
     g2.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3));
     g2.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3));
     g2.setIndex(ii); g2.computeVertexNormals();
-    const paredes = new THREE.Mesh(g2, voxelizar(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide }), { amp: .16, grade: 1, borda: false }));
+    const paredes = new THREE.Mesh(g2, voxelizar(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide }), { amp: .16, grade: 1, borda: false, tomBloco: 0 }));
     paredes.receiveShadow = true; motor.adicionar(paredes);
     // De longe os degraus quase não aparecem: as paredes só entram com a câmera mais baixa.
     motor.animar(() => { const ver = motor.camera.position.y < 230, mudou = ver !== paredes.visible; paredes.visible = ver; return mudou; });

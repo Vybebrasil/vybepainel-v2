@@ -112,8 +112,19 @@ export function construirPredio(motor, { x, z, y }) {
         if (!janela) { o.caixa(px, Y0, pz, w, H, d, i % 2 ? p1 : p2); continue; }
         o.caixa(px, Y0, pz, w, .5, d, p1).caixa(px, Y0 + H - .35, pz, w, .35, d, p1);
         o.luz(px, Y0 + .5, pz, w === 1 ? .84 : .44, H - .85, d === 1 ? .84 : .44, '#FFE2B0');
+        // Detalhe de maquete (padrão voxel, 09/11/2026: "rico em detalhe"): peitoril branco saindo da parede e, em
+        // janelas alternadas, o ar-condicionado com a grade, como nos prédios de Irecê.
+        const fora = w === 1 ? [0, -.27] : [-.27, 0], [ox, oz] = [px + fora[0], pz + fora[1]];
+        o.caixa(ox, Y0 + .44, oz, w === 1 ? 1 : .16, .07, w === 1 ? .16 : 1, '#FFFFFF');
+        if ((i + andar.nivel) % 2 === 0) {
+          const [ax, az] = [px + fora[0] * 1.3, pz + fora[1] * 1.3], [aw, ad] = w === 1 ? [.56, .3] : [.3, .56];
+          o.caixa(ax, Y0 + .05, az, aw, .32, ad, '#E3E5E7');
+          for (let k = 0; k < 3; k++) o.caixa(ax + (w === 1 ? 0 : -.16), Y0 + .1 + k * .09, az + (w === 1 ? -.16 : 0), w === 1 ? aw - .1 : .02, .04, w === 1 ? .02 : ad - .1, '#8A9096');
+        }
       }
     }
+    // Friso no alto de cada andar nas paredes de blocos: marca os andares de fora.
+    o.caixa(0, Y0 + H - .06, -M - .3, LADO + .5, .1, .12, escuro(p1, .14)).caixa(-M - .3, Y0 + H - .06, 0, .12, .1, LADO + .5, escuro(p1, .14));
     for (const [px, pz] of [[-M, -M], [M, -M], [-M, M], [M, M]]) o.caixa(px, Y0 - .02, pz, .5, H + .04, .5, '#FFFFFF');
     for (let k = 1; k < 4; k++) { const p = -M + k * LADO / 4; o.caixa(p, Y0, M + .02, .14, H, .14, '#FFFFFF'); o.caixa(M + .02, Y0, p, .14, H, .14, '#FFFFFF'); }
     o.caixa(0, Y0 + H - .12, M + .02, LADO, .14, .16, '#FFFFFF').caixa(M + .02, Y0 + H - .12, 0, .16, .14, LADO, '#FFFFFF');

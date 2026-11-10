@@ -200,6 +200,11 @@
     // Minha sala (Paulo, 09/11/2026): o quarto do Escritório de cada um em voxel, em tela cheia; abrir já entra na sala e na voz dela.
     { id: 'minha-sala', grupo: 'Vybe', nome: 'Minha sala', dica: 'O seu quarto do Escritório em voxel, com a chamada da sala', ic: svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>') },
     { id: 'jogos', grupo: 'Vybe', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
+    // Jogo à vista (Paulo, 09/11/2026: "loja, ranking... eu nunca nem achei esses menus"): as janelas do Escritório
+    // (as mesmas funções de sempre) ganham lugar no dock, em vez de ficar só no fim da Equipe online.
+    { id: 'loja', grupo: 'Vybe', nome: 'Loja', dica: 'Loja do Escritório: móveis e roupas com VybeCoins, e o seu inventário', fn: ['abrirCatalogoEscritorio'], ic: svg('<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>') },
+    { id: 'ranking', grupo: 'Vybe', nome: 'Ranking', dica: 'Ranking da semana: XP do trabalho, superação e campeões', fn: ['abrirRankingEscritorio', 'geral', 'semana'], ic: svg('<path d="M4 20V12h4v8M10 20V6h4v14M16 20v-6h4v6"/>') },
+    { id: 'conquistas', grupo: 'Vybe', nome: 'Conquistas', dica: 'Conquistas, troféus e títulos', fn: ['abrirConquistasEscritorio'], ic: svg('<circle cx="12" cy="9" r="5"/><path d="M9 13l-2 8 5-3 5 3-2-8"/>') },
     '-',
     { id: 'vybes', nome: 'VYBES', dica: 'Abrir o VYBES', ic: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>') },
   ];
@@ -367,6 +372,8 @@
     if (id !== 'criar' && id !== 'vybes') window.VybeAgentes?.fechar?.();
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
     const sub = SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.mod);
+    const doJogo = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && Array.isArray(t.fn));
+    if (doJogo) { marcarTrilho(id); if (typeof window[doJogo.fn[0]] === 'function') chamar(...doJogo.fn); else chamar('showToast', 'Entre no Escritório (Entrar, na barra de baixo) para abrir ' + doJogo.nome + '.', 'info', 4000); return; }
     if (sub?.acao === 'whatsapp') { marcarTrilho(id); hud.querySelector('.vv-ferramentas [aria-label="WhatsApp da Vybe"]')?.click(); return; } // o mesmo botão da barra de cima
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
     if (sub?.board) {
