@@ -6310,3 +6310,30 @@ body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;widt
 }
 body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
 body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
+/* === NEGÓCIO (redesign, quadros 13, 18 a 20, 56, 58 a 60, 10/11/2026): seletor de período, linha de números das janelas
+   do Comercial e da Carteira, e o WhatsApp da conta numa linha */
+body.mundo .vb-mes{display:inline-flex;align-items:center;gap:2px;height:38px;padding:3px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
+body.mundo .vb-mes b{min-width:136px;padding:0 6px;color:#1F1D1A;font:650 13px var(--vv-texto,system-ui),sans-serif;text-align:center;white-space:nowrap}
+body.mundo .vb-mes button{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:#5E5A53;cursor:pointer}
+body.mundo .vb-mes button:hover:not(:disabled){background:#F6F3EE;color:#1F1D1A}
+body.mundo .vb-mes button:disabled{opacity:.35;cursor:default}
+body.mundo .vb-mes button:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+body.mundo .vb-mes svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+:is(#vv-carteira,#vv-comercial) .vc-resumo .vb-resumo{margin:0;gap:6px}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item{padding:6px 10px;background:#FFFFFF;border-color:#E6E0D6;color:#5E5A53;font-size:12.5px}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.zero{background:transparent;border-style:dashed;color:#8A847A}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.espiavel{cursor:pointer}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item.espiavel:hover{border-color:#C9C1B4}
+:is(#vv-carteira,#vv-comercial) .vb-resumo-item .ar-dica{align-self:center;margin-left:2px}
+.conta-ai-linha{display:grid;grid-template-columns:120px minmax(0,1fr) auto;align-items:center;gap:12px}
+body.mundo .conta-ai-rotulo{color:#5E5A53;font:500 12.5px var(--vv-texto,system-ui),sans-serif}
+.conta-ai-meio{display:grid;gap:2px;min-width:0}
+body.mundo .conta-ai-meio b{color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif}
+body.mundo .conta-ai-meio small{color:#6B675F;font:500 12px/1.4 var(--vv-texto,system-ui),sans-serif}
+body.mundo .conta-ai-linha.erro .conta-ai-meio b{color:#B42318}
+.conta-ai .conta-ai-acoes{margin:0;justify-content:flex-end}
+.conta-ai>.conta-nota:empty{display:none}
+@media (max-width:600px){
+  .conta-ai-linha{grid-template-columns:minmax(0,1fr)}
+  .conta-ai .conta-ai-acoes{justify-content:flex-start}
+}

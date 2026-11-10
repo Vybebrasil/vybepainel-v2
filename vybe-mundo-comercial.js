@@ -25,6 +25,8 @@
     inadimplencia: 'Faturas vencidas e não recebidas, por cliente', caixa: 'Previsão do caixa no mês e nos 3 seguintes',
     fornecedores: 'Gráficas, estúdios e parceiros, com BV e contato', creators: 'Influenciadores de Irecê e região para as campanhas',
   };
+  // Título da janela aberta por um item do dock: o nome do item (quadros 19 e 58: "CRM e funil", não "Funil").
+  const TITULO = { funil: 'CRM e funil', pacotes: 'Produtos e pacotes', financas: 'Finanças por cliente' };
   const AJUDA = {
     funil: 'O funil é o mesmo CRM do 1º andar. Novo junta as etapas do SDR (empresa, qualificação, abordagem e aprovação humana). Avance uma etapa por vez; Follow-up é opcional. Para marcar Perdido, o motivo é obrigatório e vira o relatório de motivos. Conversão = quantos chegaram à fase seguinte ÷ quantos chegaram a esta. Em negociação soma o valor mensal (recorrente) e o avulso das oportunidades abertas. O selo Cabe/Aperta/Estoura diz se o time aguenta o pacote vendido. Os donos podem acrescentar e reordenar etapas do meio do funil. No topo, o mês (ou o ano): metas de MRR, avulso, negócios fechados e leads (só os donos editam; no anual, soma dos meses), leads novos (oportunidades que entraram no funil), propostas enviadas (entradas na etapa Proposta comercial) e negócios fechados (foram para Ganho), comparados com o período anterior; a corrida comercial (quem fechou mais: o responsável da oportunidade, ou quem cadastrou quando não há responsável) e os gráficos dos últimos 6 meses. Os valores em reais aparecem só para os donos. O formulário de leads é um link público para a bio e o site: quem preenche entra em Novo com a etiqueta Formulário.',
     pacotes: 'A esteira de produtos da Vybe. Cada pacote tem tipo (recorrente ou avulso), preço, entregas e a carga por cargo (demandas por mês) usada no Capacidade × vendas. Os donos veem o custo estimado (horas × custo/hora + captações × custo) e a margem; abaixo de 20% é zona crítica. Produto campeão e ticket médio saem dos negócios ganhos.',
@@ -37,12 +39,12 @@
     fornecedores: 'Só donos e administração. Cadastro por categoria, com BV (% de bonificação de volume) e contato.',
     creators: 'Influenciadores locais de Irecê e região: @, seguidores, engajamento, nicho, cidade e contato. Filtre por nicho e cidade.',
   };
-  const st = { aberto: false, aba: 'funil', dados: {}, erro: {}, carregando: {}, folha: null, ajuda: false, periodo: { tipo: 'mensal', mes: '' },
+  const st = { aberto: false, aba: 'funil', dados: {}, erro: {}, carregando: {}, folha: null, ajuda: false, periodo: { tipo: 'mensal', mes: '' }, verFalta: false,
     fase: '', filtro: {}, msg: '', ocupado: false, etapasEdit: null };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'), marca: svg('<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'), ajuda: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>'),
-    dinheiro: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/>'), mais: svg('<path d="M12 5v14M5 12h14"/>'), cima: svg('<path d="m6 15 6-6 6 6"/>'), baixo: svg('<path d="m6 9 6 6 6-6"/>') };
+    dinheiro: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/>'), relogio: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'), mais: svg('<path d="M12 5v14M5 12h14"/>'), cima: svg('<path d="m6 15 6-6 6 6"/>'), baixo: svg('<path d="m6 9 6 6 6-6"/>') };
   const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
   const din = (v) => (v == null ? '—' : BRL.format(Number(v) || 0));
   const num = (v) => Number(v || 0).toLocaleString('pt-BR');
@@ -60,6 +62,9 @@
     try { if (typeof souAdmin === 'function' && souAdmin()) return true; } catch {}
     try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; } // dono pelo servidor (server/donos.js)
   }
+  const souAdminAqui = () => { try { return typeof souAdmin === 'function' && Boolean(souAdmin()); } catch { return false; } };
+  // O servidor diz o que a pessoa pode; sem essa resposta (banco sem as tabelas), o palpite de dono só desenha o botão.
+  const podeFazer = (d, chave) => (d?.pode && chave in d.pode ? Boolean(d.pode[chave]) : palpiteDono());
   let podeDinheiro = null;
   const veDinheiro = () => (podeDinheiro == null ? palpiteDono() : podeDinheiro);
   const pode = () => st.dados[st.aba]?.pode || Object.values(st.dados).find((d) => d?.pode)?.pode || {};
@@ -166,20 +171,25 @@
     if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo o Vybe Finanças…</p>';
     if (e.erro) return `<p class="vc-aviso">Vybe Finanças: ${esc(e.erro)} Abaixo, o que está lançado no Vybe OS.</p>`;
     const d = e.dados; if (!d || d.conectado) return '';
-    // Sem motivo vindo do servidor a frase começava com ": o passo a passo…" (pente-fino 09/11/2026).
-    if (!completo) return `<p class="vc-dica">${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}. O passo a passo está na aba Finanças por cliente.</p>`;
-    // Redesign (quadro 59): o aviso explica o efeito para quem usa, em caixa neutra (não é erro). O motivo técnico e o
-    // passo a passo de ligar continuam na caixa, em letra menor.
-    return `<div class="vc-nota" role="note"><span class="vc-nota-ico">${IC.dinheiro}</span><div><b>Os valores reais chegam quando o Vybe Finanças for ligado</b>
-      <p>Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
-      <small>${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</small>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div></div>`;
+    // Redesign (quadros 20, 56 e 59): a equipe vê o efeito em caixa neutra (não é erro), sem documentação nem passo a
+    // passo; o motivo técnico e como ligar ficam em "Ver o que falta", só para quem administra.
+    const tecnico = `${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}`;
+    if (!completo) return ativacao('', '', tecnico);
+    return ativacao('Os valores reais chegam quando o Vybe Finanças for ligado', 'Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.', tecnico, IC.dinheiro);
+  }
+  // Parte ainda não ligada (quadro 56): caixa neutra para todos; "Ver o que falta" (o técnico, já em HTML) só para quem
+  // administra. Sem título, só a linha de quem administra (as outras abas de dinheiro).
+  function ativacao(titulo, texto, tecnico, icone = IC.relogio) {
+    const adm = souAdminAqui() && tecnico ? `<span class="vc-nota-adm">Para quem administra: <button type="button" class="vc-link" data-vc="falta" aria-expanded="${st.verFalta}">Ver o que falta</button></span>${st.verFalta ? `<small class="vc-nota-tec">${tecnico}</small>` : ''}` : '';
+    if (!titulo) return adm ? `<div class="vc-nota vc-nota-curta" role="note"><div>${adm}</div></div>` : '';
+    return `<div class="vc-nota" role="note"><span class="vc-nota-ico">${icone}</span><div><b>${esc(titulo)}</b><p>${esc(texto)}</p>${adm}</div></div>`;
   }
   const varFin = (atual, anterior) => (anterior ? Math.round(((atual - anterior) / Math.abs(anterior)) * 1000) / 10 : null);
   function finTopo(f) {
     const r = f.resumo, fo = f.folha, cf = f.custos_fixos, dsp = f.despesas;
     const negativas = f.margens.filter((m) => m.periodo.margem < 0).length;
     return `<div class="vc-secao"><h3>${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
-      <div class="vc-periodo"><input type="month" class="vc-campo-mes" data-vc-mes value="${esc(f.mes)}" aria-label="Mês"></div>
+      <div class="vc-periodo">${mesHtml(f.mes, false)}</div>
       <div class="vc-kpis">${kpi('Recebido', din(r.recebido) + (r.recebido_percentual != null ? `<small> · ${pc(r.recebido_percentual)} do previsto</small>` : ''), { espiar: 'financas:comercial:serie:' + f.mes })}
         ${kpi('Previsto', din(r.previsto) + (r.mensalidades_sem_lancamento ? `<small> · ${din(r.mensalidades_sem_lancamento)} sem lançamento</small>` : ''))}
         ${kpi(r.despesas_sem_folha != null ? 'Outras despesas' : 'Despesas do mês', din(r.despesas_sem_folha ?? dsp.total) + (r.despesas_sem_folha != null ? '<small> · sem a folha</small>' : ''), { espiar: 'financas:comercial:despesas', u: dsp.total > r.recebido && dsp.total ? 'u2' : '' })}
@@ -242,7 +252,31 @@
   function seletorPeriodo() {
     const m = st.periodo.mes || hojeIso().slice(0, 7);
     return `<div class="vc-periodo"><div class="vc-seg" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, n]) => `<button type="button" data-vc-periodo="${k}" aria-pressed="${st.periodo.tipo === k}">${n}</button>`).join('')}</div>
-      <input type="month" class="vc-campo-mes" data-vc-mes value="${esc(m)}" aria-label="Mês"></div>`;
+      ${mesHtml(m, st.periodo.tipo === 'anual')}</div>`;
+  }
+  // Mês num seletor de período (vbMesHtml, vybe-core.js), não num campo de texto: ‹ novembro de 2026 ›.
+  function mesHtml(m, ano) { return typeof vbMesHtml === 'function' ? vbMesHtml({ mes: m, max: hojeIso().slice(0, 7), attr: 'data-vc-mes-ir', ano }) : ''; }
+  // Uma linha de números (vbResumoHtml; quadros 18 a 20 e 59): zero e "sem dado" discretos, o que pede ação com tom.
+  function resumo(itens) {
+    if (typeof vbResumoHtml === 'function') return `<div class="vc-resumo">${vbResumoHtml(itens)}</div>`;
+    return `<div class="vc-resumo"><div class="vb-resumo">${itens.filter(Boolean).map((x) => `<span class="vb-resumo-item ${x.tom || ''}">${x.valor !== '' ? `<b>${esc(x.valor)}</b>` : ''}${esc(x.rotulo)}</span>`).join('')}</div></div>`;
+  }
+  // n = número cru (null = sem dado); texto = ele formatado; a variação (%) vai no fim do rótulo; espiar = a chave inteira.
+  function numero(n, texto, rotulo, { variacao = null, rotuloVar = '', tom = '', espiar = '', semDado = '' } = {}) {
+    if (n == null) return { valor: '', rotulo: semDado || `${rotulo.trim()}: sem dado`, tom: 'zero' };
+    const mudou = rotuloVar && variacao ? ` · ${variacao > 0 ? '▲' : '▼'} ${pc(Math.abs(variacao))} ${rotuloVar}` : '';
+    return { valor: texto, rotulo: rotulo + mudou, tom: tom || (Number(n) ? '' : 'zero'), espiar };
+  }
+  // A ação principal da aba no cabeçalho, uma vez (quadros 19 e 20): com a lista vazia, o botão de começar fica no vazio.
+  function acaoDoTopo(d) {
+    if (!d) return '';
+    const b = (texto, acao) => `<button type="button" class="vc-acao vc-topo-acao" data-vc="${acao}">${IC.mais}<span>${esc(texto)}</span></button>`;
+    // Funil: com a resposta do servidor, o "Novo lead" é a linha de baixo (editar_comercial); sem ela, o palpite de dono.
+    if (st.aba === 'funil') return !(d.pode && 'editar_comercial' in d.pode) && palpiteDono() ? b('Novo lead', 'lead') : '';
+    if (st.aba === 'pacotes') return podeFazer(d, 'editar_pacotes') && d.pacotes.length ? b('Novo pacote', 'pacote') : '';
+    if (st.aba === 'orcamentos') return podeFazer(d, 'editar_comercial') && d.pacotes.length && d.orcamentos.length ? b('Novo orçamento', 'orcamento') : '';
+    if (st.aba === 'contas') return d.contas.length ? b('Nova conta', 'conta') : '';
+    return '';
   }
   const rotuloAnterior = () => (st.periodo.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
   const botaoNovo = (texto, acao) => `<button type="button" class="vc-acao" data-vc="${acao}">${IC.mais}<span>${esc(texto)}</span></button>`;
@@ -291,10 +325,11 @@
         <header><b>${esc(f.nome)}</b><span class="vc-coluna-n">${num(f.atual)}</span>${f.conversao != null ? `<small>${pc(f.conversao)} seguem</small>` : f.alcancaram != null && f.id !== 'perdido' ? `<small>${num(f.alcancaram)} chegaram</small>` : ''}</header>
         ${filtro}<div class="vc-coluna-lista">${ops.length ? ops.map(card).join('') : `<p class="vc-coluna-vazia">${esc(vazioCol)}</p>`}</div></section>`;
     };
-    return `<div class="vc-secao"><h3>Funil agora</h3>${p.editar_pacotes ? '<button type="button" class="vc-link" data-vc="etapas">Configurar etapas</button>' : ''}</div><div class="vc-kpis">
-        ${kpi('Em negociação (mensal)', din(r.em_negociacao.mensal))}${kpi('Em negociação (avulso)', din(r.em_negociacao.avulso))}
-        ${kpi('Abertas', num(r.em_negociacao.quantidade))}${kpi('Taxa de ganho', pc(r.taxa_ganho))}</div>
-      ${d.valor_disponivel ? '' : `<p class="vc-dica">Valor da negociação, follow-up e as etapas novas ainda não foram ligados. Os donos já sabem o que falta.${typeof souAdmin === 'function' && souAdmin() ? ' <small>(migração 2026-11-07-comercial.sql)</small>' : ''}</p>`}
+    const neg = r.em_negociacao, abertas = Number(neg.quantidade) || 0;
+    return `<div class="vc-secao"><h3>Funil agora</h3>${p.editar_pacotes ? '<button type="button" class="vc-link" data-vc="etapas">Configurar etapas</button>' : ''}</div>
+      ${resumo([numero(neg.mensal, din(neg.mensal), ' por mês em negociação', { semDado: 'em negociação (mensal): sem valor' }), numero(neg.avulso, din(neg.avulso), ' avulso em negociação', { semDado: 'em negociação (avulso): sem valor' }),
+        numero(abertas, num(abertas), abertas === 1 ? ' aberta' : ' abertas'), numero(r.taxa_ganho, pc(r.taxa_ganho), ' de taxa de ganho', { semDado: 'taxa de ganho: sem negócio fechado ainda' })])}
+      ${d.valor_disponivel ? '' : ativacao('O valor da negociação ainda não foi ligado', 'Valor, follow-up e as etapas novas aparecem aqui quando estiverem ligados; o funil já funciona. Os donos já sabem o que falta.', 'Falta aplicar a migração <code>2026-11-07-comercial.sql</code> no banco.')}
       ${d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos) · ticket médio ${din(d.produtos.ticket_medio_mensal)}/mês${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : ''}
       <div class="vc-funil" aria-label="Fases do funil">${r.fases.map(coluna).join('')}</div>
       <p class="vc-dica">O SDR propõe empresas pelo CRM do 1º andar; avance uma etapa por vez pelos botões de cada cartão.</p>
@@ -349,7 +384,7 @@
       + (val ? grafico({ meses: m.series, aria: 'Valor fechado por mês (MRR e avulso), últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes,
         series: [{ chave: 'mrr', cls: 'mrr', rotulo: 'MRR fechado (R$/mês)', fmt: din, curto }, { chave: 'avulso', cls: 'avu', rotulo: 'Avulso fechado (R$)', fmt: din, curto }] })
         : grafico({ meses: m.series, aria: 'Negócios fechados por mês, últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes, series: [{ chave: 'negocios', cls: 'mrr', rotulo: 'Negócios fechados', fmt: num }] })) : '';
-    return `${seletorPeriodo()}${m.config_disponivel === false ? `<p class="vc-aviso">${esc(m.aviso_config || 'Metas e formulário de leads aguardando a migração.')}</p>` : ''}
+    return `${seletorPeriodo()}${m.config_disponivel === false ? ativacao('As metas e o formulário de leads ainda não foram ligados', 'Quando estiverem ligados, as metas do mês e o link do formulário aparecem aqui.', esc(m.aviso_config || 'Falta a migração das metas e do formulário de leads.')) : ''}
       <div class="vc-secao"><h3>Metas ${esc(m.periodo.tipo === 'anual' ? 'de ' + m.periodo.rotulo + ' (soma dos meses)' : 'de ' + nomeMes(m.periodo.mes))}</h3>${p.editar_pacotes && m.config_disponivel !== false ? '<button type="button" class="vc-link" data-vc="metas">Editar metas</button>' : ''}</div>
       ${metas}${val ? '' : '<p class="vc-dica">Os valores em reais (MRR e avulso) aparecem só para os donos.</p>'}${kp}
       <div class="vc-secao"><h3>Últimos 6 meses</h3></div><div class="vc-graficos">${graficos}</div>
@@ -436,9 +471,12 @@
       ${x.custo != null ? `<div class="vc-margem"><span>Custo ${din(x.custo)}</span><span>Margem ${din(x.margem)} (${pc(x.margem_percentual)})</span>${x.zona_critica ? pill('Zona crítica', 'u1') : ''}</div>` : ''}
       ${p.editar_pacotes ? `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="pacote" data-id="${esc(x.id)}">Editar</button></div>` : ''}</article>`).join('');
     const pr = d.produtos || {};
-    return `<div class="vc-kpis">${kpi('Produto campeão', pr.campeao ? esc(pr.campeao.nome) : '—')}${kpi('Ticket médio mensal', din(pr.ticket_medio_mensal))}${kpi('Ticket médio avulso', din(pr.ticket_medio_avulso))}${kpi('Negócios ganhos', num(pr.ganhos))}</div>
-      <div class="vc-secao"><h3>Pacotes</h3>${p.editar_pacotes ? botaoNovo('Novo pacote', 'pacote') : ''}</div>
-      <div class="vc-lista grade">${lista || vazio('Nenhum pacote cadastrado. Cadastre a esteira de produtos da Vybe para montar orçamentos.', p.editar_pacotes ? 'Cadastrar pacote' : '', 'pacote')}</div>
+    const ganhos = Number(pr.ganhos) || 0;
+    return `${resumo([pr.campeao ? { valor: pr.campeao.nome, rotulo: ' é o produto campeão' } : { valor: '', rotulo: 'produto campeão: sem negócio ganho ainda', tom: 'zero' },
+        numero(pr.ticket_medio_mensal, din(pr.ticket_medio_mensal), ' de ticket médio mensal', { semDado: 'ticket médio mensal: sem dado' }), numero(pr.ticket_medio_avulso, din(pr.ticket_medio_avulso), ' de ticket médio avulso', { semDado: 'ticket médio avulso: sem dado' }),
+        numero(ganhos, num(ganhos), ganhos === 1 ? ' negócio ganho' : ' negócios ganhos')])}
+      <div class="vc-secao"><h3>Pacotes</h3></div>
+      <div class="vc-lista grade">${lista || vazio('Nenhum pacote ainda. Cadastre a esteira de produtos da Vybe: os orçamentos e a carga do time saem daqui.', podeFazer(d, 'editar_pacotes') ? 'Cadastrar o primeiro pacote' : '', 'pacote')}</div>
       ${p.editar_pacotes ? `<div class="vc-secao"><h3>Capacidade do time</h3><button type="button" class="vc-link" data-vc="capacidade">Configurar</button></div>${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}` : ''}`;
   }
   // Calculadora de ROI: quantas vendas a mais o cliente precisa para pagar a Vybe, e o retorno esperado.
@@ -467,7 +505,7 @@
   }
   function abaOrcamentos(d) {
     const p = d.pode || {};
-    return `<div class="vc-secao"><h3>Orçamentos</h3>${p.editar_comercial && d.pacotes.length && d.orcamentos.length ? botaoNovo('Novo orçamento', 'orcamento') : ''}</div>
+    return `<div class="vc-secao"><h3>Orçamentos</h3></div>
       ${!d.pacotes.length ? '<p class="vc-dica">Sem pacotes ativos: os donos cadastram na aba Pacotes.</p>' : ''}
       <div class="vc-lista">${d.orcamentos.map((o) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.cliente_nome)}</b>${pill(...(STATUS_ORC[o.status] || [o.status]))}</div>
         <p class="vc-grande">${o.totais.total_recorrente ? din(o.totais.total_recorrente) + '<small>/mês</small>' : ''}${o.totais.total_recorrente && o.totais.total_avulso ? ' + ' : ''}${o.totais.total_avulso ? din(o.totais.total_avulso) + '<small> avulso</small>' : ''}</p>
@@ -488,10 +526,15 @@
   function abaFinancas(d) {
     const r = d.resumo, f = fin();
     // Com o Finanças: o dinheiro de verdade em cima; os cartões dos clientes ficam (pacote, custo estimado e status à mão).
-    const contadores = `${kpi('Zona crítica', num(r.criticas), { u: r.criticas ? 'u1' : '', espiar: 'financas:critica' })}${kpi('Atrasados', num(r.pagamento.atrasado), { u: r.pagamento.atrasado ? 'u2' : '', espiar: 'financas:atrasado' })}${kpi('Inadimplentes', num(r.pagamento.inadimplente), { espiar: 'financas:inadimplente', u: r.pagamento.inadimplente ? 'u1' : '' })}`;
-    const topo = f ? `${finTopo(f)}${finGraficos(f)}${finMargens(f)}<div class="vc-secao"><h3>Pacote e margem estimada por cliente (Vybe OS)</h3></div><div class="vc-kpis">${contadores}</div>`
-      : `${avisoFin(true)}<div class="vc-kpis">${kpi('Receita mensal', din(r.receita))}${kpi('Custo estimado', din(r.custo))}${kpi('Margem', pc(r.margem_percentual), { u: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'u1' : '' })}
-        ${contadores}</div>`;
+    // Redesign (quadro 59): os seis números numa linha de resumo; o que pede ação ganha o tom, zero fica discreto.
+    const cri = Number(r.criticas) || 0, atr = Number(r.pagamento.atrasado) || 0, ina = Number(r.pagamento.inadimplente) || 0;
+    const contadores = [numero(cri, num(cri), ' em zona crítica de margem', { tom: cri ? 'alerta' : '', espiar: 'comercial:financas:critica' }),
+      numero(atr, num(atr), atr === 1 ? ' atrasado' : ' atrasados', { tom: atr ? 'atencao' : '', espiar: 'comercial:financas:atrasado' }),
+      numero(ina, num(ina), ina === 1 ? ' inadimplente' : ' inadimplentes', { tom: ina ? 'alerta' : '', espiar: 'comercial:financas:inadimplente' })];
+    const topo = f ? `${finTopo(f)}${finGraficos(f)}${finMargens(f)}<div class="vc-secao"><h3>Pacote e margem estimada por cliente (Vybe OS)</h3></div>${resumo(contadores)}`
+      : `${avisoFin(true)}${resumo([numero(r.receita || null, din(r.receita), ' por mês em contratos', { semDado: 'receita mensal: nenhum contrato informado' }),
+        numero(r.custo || null, din(r.custo), ' de custo estimado', { semDado: 'custo estimado: sem pacote' }),
+        numero(r.margem_percentual, pc(r.margem_percentual), ' de margem', { tom: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'alerta' : '', semDado: 'margem: sem contrato e pacote' }), ...contadores])}`;
     const real = (c) => { const m = margemFinDe(f, c.cliente_id); return m ? `<small>Margem real (Vybe Finanças): ${din(m.mes.margem)} no mês · ${din(m.periodo.margem)} em 3 meses</small>` : ''; };
     return `${topo}
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
@@ -519,9 +562,13 @@
   }
   function abaContas(d) {
     const r = d.resumo, rv = rotuloAnterior(), f = fin();
-    const doVybe = `<div class="vc-kpis">${kpi('Total de contas', din(r.total), { variacao: r.variacao_total, rotuloVar: rv, inverso: true })}${kpi('A pagar em 7 dias', din(r.sete_dias.total) + `<small> · ${num(r.sete_dias.quantidade)}</small>`, { u: r.sete_dias.quantidade ? 'u2' : '' })}
-        ${kpi('Vencidas sem pagar', din(r.vencidas.total), { u: r.vencidas.quantidade ? 'u1' : '' })}${kpi('Resultado (faturamento − contas)', din(r.resultado), { variacao: C().variacao(r.resultado, r.resultado_anterior), rotuloVar: rv, u: r.resultado < 0 ? 'u1' : '' })}</div>
-      <div class="vc-fixo"><div><span>Fixo ${din(r.fixo)} · ${pc(r.fixo_percentual)}</span><span>Variável ${din(r.variavel)} · ${pc(r.variavel_percentual)}</span></div><span class="vc-barra dupla"><i style="width:${r.fixo_percentual || 0}%"></i></span></div>
+    // Redesign (quadro 20): os quatro números numa linha; a barra diz para onde vai o dinheiro, com a % escrita.
+    const vq = Number(r.vencidas.quantidade) || 0, sq = Number(r.sete_dias.quantidade) || 0;
+    const doVybe = `${resumo([numero(r.total || null, din(r.total), ' em contas no período', { variacao: r.variacao_total, rotuloVar: rv, semDado: 'nenhuma conta lançada no período' }),
+        numero(vq, num(vq), `${vq === 1 ? ' vencida' : ' vencidas'} sem pagar${vq ? ' · ' + din(r.vencidas.total) : ''}`, { tom: vq ? 'alerta' : '' }),
+        numero(sq, num(sq), `${sq === 1 ? ' vence' : ' vencem'} em 7 dias${sq ? ' · ' + din(r.sete_dias.total) : ''}`, { tom: sq ? 'atencao' : '' }),
+        numero(r.total || d.faturamento ? r.resultado : null, din(r.resultado), ' de resultado (faturamento − contas)', { variacao: C().variacao(r.resultado, r.resultado_anterior), rotuloVar: rv, tom: r.resultado < 0 ? 'alerta' : '', semDado: 'resultado: sem faturamento nem contas' })])}
+      ${paraOndeVai(r)}
       <ul class="vc-grupos">${r.grupos.map((g) => `<li><b>${esc(g.nome)}</b><span>${din(g.total)}</span><small>${pc(g.percentual_faturamento)} do faturamento${g.variacao != null ? ` · ${g.variacao > 0 ? '▲' : g.variacao < 0 ? '▼' : '='} ${pc(Math.abs(g.variacao))} ${rv}` : ''}</small></li>`).join('')}</ul>
       <p class="vc-dica">Faturamento do período (a receber): ${din(d.faturamento)}.</p>`;
     let doFin = '';
@@ -538,12 +585,23 @@
         <p class="vc-dica">Os números acima vêm do Vybe Finanças. Abaixo, as contas lançadas à mão no Vybe OS (continuam editáveis).</p>`;
     }
     return `${seletorPeriodo()}${f ? doFin : avisoFin(false) + doVybe}
-      <div class="vc-secao"><h3>${f ? 'Contas lançadas no Vybe OS' : 'Contas'}</h3>${botaoNovo('Nova conta', 'conta')}</div>
+      <div class="vc-secao"><h3>${f ? 'Contas lançadas no Vybe OS' : 'Contas'}</h3></div>
       <div class="vc-lista">${d.contas.map((c) => { const venc = !c.pago_em && !c.cancelada && c.vencimento < d.hoje; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(c.descricao)}</b>${c.cancelada ? pill('Cancelada', 'u5') : c.pago_em ? pill('Paga', 'u6') : venc ? pill('Vencida', 'u1') : pill('A pagar', 'u4')}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${esc(r.grupos.find((g) => g.id === c.grupo)?.nome || c.grupo)}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · vence ${data(c.vencimento)}${c.pago_em ? ' · paga em ' + data(c.pago_em) : ''}</small>
         ${c.cancelada || c.pago_em ? '' : doFinancas(c.id) ? soNoFinancas : `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="pagar" data-id="${esc(c.id)}">Marcar paga</button><button type="button" class="vc-sec" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button></div>`}</article>`; }).join('')
         || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos.', 'Nova conta', 'conta')}</div>`;
+  }
+  // Para onde vai o dinheiro: uma faixa por grupo de conta, com a % do total escrita (não só a cor).
+  const CORES_GRUPO = ['#1D4ED8', '#5B4BD6', '#E0A21B', '#8A847A', '#0F766E', '#B42318'];
+  function paraOndeVai(r) {
+    const grupos = r.grupos.filter((g) => Number(g.total) > 0), total = grupos.reduce((t, g) => t + Number(g.total), 0);
+    if (!total) return '<p class="vc-dica">Para onde vai o dinheiro: a divisão entre fixas, folha, variáveis e impostos aparece com a primeira conta lançada.</p>';
+    const fatias = grupos.map((g, i) => ({ nome: g.nome, cor: CORES_GRUPO[i % CORES_GRUPO.length], pct: Math.round((Number(g.total) / total) * 1000) / 10 }));
+    return `<div class="vc-fixo"><b>Para onde vai o dinheiro</b>
+      <span class="vc-divisao" role="img" aria-label="${esc(fatias.map((x) => `${x.nome} ${pc(x.pct)}`).join(', '))}">${fatias.map((x) => `<i style="width:${x.pct}%;background:${x.cor}"></i>`).join('')}</span>
+      <span class="vc-divisao-leg">${fatias.map((x) => `<span><i style="background:${x.cor}"></i>${esc(x.nome)} ${pc(x.pct)}</span>`).join('')}</span>
+      <small>Fixo ${din(r.fixo)} (${pc(r.fixo_percentual)} do faturamento) · Variável ${din(r.variavel)} (${pc(r.variavel_percentual)})</small></div>`;
   }
   function abaInadimplencia(d) {
     const f = fin();
@@ -846,7 +904,8 @@
     if (erro) conteudo = `<div class="vc-vazio"><p>${esc(erro)}</p><button type="button" class="vc-sec" data-vc="recarregar">Tentar de novo</button></div>`;
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';
     else { try { conteudo = PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
-    el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
+    el.innerHTML = `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
+        ${acaoDoTopo(d)}
         ${st.aba === 'funil' && d?.pode?.editar_comercial ? `<button type="button" class="vc-acao vc-topo-acao" data-vc="lead">${IC.mais}<span>Novo lead</span></button>` : ''}
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>
@@ -869,12 +928,13 @@
     if (t.dataset.vcFase) { st.fase = t.dataset.vcFase; pintar(); return; }
     if (t.dataset.vcMotivo !== undefined) { st.filtro.motivo = t.dataset.vcMotivo; pintar(); return; }
     if (t.dataset.vcPeriodo) { st.periodo.tipo = t.dataset.vcPeriodo; carregar(); return; }
+    if (t.dataset.vcMesIr) { if (/^\d{4}-\d{2}$/.test(t.dataset.vcMesIr)) { st.periodo.mes = t.dataset.vcMesIr; carregar(); } return; }
     if (t.dataset.vcCat !== undefined) { st.filtro.categoria = t.dataset.vcCat; pintar(); return; }
     if (t.dataset.vcEtapa) return mexerEtapa(t.dataset.vcEtapa, Number(t.dataset.i));
     const a = t.dataset.vc, id = t.dataset.id;
     if (!a) return;
     const acoes = {
-      fechar, ajuda: () => { st.ajuda = !st.ajuda; pintar(); }, recarregar: () => carregar(), 'fechar-folha': () => { st.folha = null; st.msg = ''; pintar(); },
+      fechar, ajuda: () => { st.ajuda = !st.ajuda; pintar(); }, falta: () => { st.verFalta = !st.verFalta; pintar(); }, recarregar: () => carregar(), 'fechar-folha': () => { st.folha = null; st.msg = ''; pintar(); },
       pacote: () => formPacote(id), capacidade: formCapacidade, orcamento: formOrcamento, financas: () => formFinancas(id), recebivel: () => formRecebivel(id),
       receber: () => formReceber(id), conta: () => formConta(id), fornecedor: () => formFornecedor(id), creator: () => formCreator(id), valor: () => formValor(id),
       perder: () => formPerder(id, t.dataset.de), imprimir: () => imprimir(id), lead: formLead,
@@ -913,7 +973,6 @@
   }
   function aoMudar(e) {
     const t = e.target;
-    if (t.dataset?.vcMes !== undefined && /^\d{4}-\d{2}$/.test(t.value)) { st.periodo.mes = t.value; carregar(); return; }
     if (t.dataset?.vcFiltro) { st.filtro[t.dataset.vcFiltro] = t.value; pintar(); return; }
     if (t.dataset?.vcRoiOrc !== undefined) { const o = (st.dados.orcamentos?.orcamentos || []).find((x) => String(x.id) === t.value); st.roi.orc = t.value; if (o) st.roi.investimento = String(o.totais.total_recorrente).replace('.', ','); pintar(); return; }
     if (t.dataset?.vcStatusOrc) { executar(() => comercial({ acao: 'orcamento_status', id: t.dataset.vcStatusOrc, status: t.value }), 'Status do orçamento salvo.'); return; }

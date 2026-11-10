@@ -295,7 +295,7 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
     clientes: [{ cliente_id: '10', cliente_nome: 'Hebravet', valor_mensal: 2000, status_pagamento: 'em_dia', custo: 0, margem_percentual: null }],
     resumo: { receita: 2000, custo: 0, margem_percentual: null, criticas: 0, pagamento: { atrasado: 0, inadimplente: 0 } }, pacotes: [], zona_critica: 20, status: [] };
   for (const [conector, espera, naoEspera] of [[conectorFalso(), /fonte: Vybe Finanças[\s\S]*Margem real por cliente[\s\S]*Margem real \(Vybe Finanças\): R\$\s?1\.700,00/, /Custo estimado/],
-    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /Conectar o Vybe Finanças[\s\S]*VYBE_FINANCAS_DB_URL[\s\S]*Custo estimado/, /fonte: Vybe Finanças/]]) {
+    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /Os valores reais chegam quando o Vybe Finanças for ligado[\s\S]*custo estimado/, /fonte: Vybe Finanças/]]) {
     const respostas = (q) => (q.area === 'vybe_financas' ? null : { codigo: 200, corpo: comercialVazio });
     const t = contexto((q) => respostas(q) || { codigo: 0, corpo: null });
     // A área de verdade, com o conector falso (as permissões do servidor valem também aqui).
@@ -370,7 +370,7 @@ test('tela da Carteira → Contratos: fonte do Finanças, sem par e o contrato d
   const html = t.criados.find((e) => e.id === 'vv-carteira').innerHTML;
   assert.match(html, /Contratos do Vybe Finanças[\s\S]*fonte: Vybe Finanças/);
   assert.match(html, /Vybe Finanças: Social mídia · assinado em 20\/12\/25 · vence dia 10 · Ativo · com PDF/);
-  assert.match(html, /No Finanças, sem par no Vybe OS/);
+  assert.match(html, /no Finanças sem par no Vybe OS/);
   assert.doesNotMatch(html, /Aguardando ativação/);
   // Hebravet (contrato do Finanças) sem "Editar"; Antonov (registro do Vybe OS) continua editável.
   const heb = html.slice(html.indexOf('<b>Hebravet</b>'), html.indexOf('</li>', html.indexOf('<b>Hebravet</b>')));

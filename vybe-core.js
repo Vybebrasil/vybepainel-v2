@@ -775,13 +775,33 @@ function vbIcone(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${V
 function vbCabecalhoHtml({ titulo, texto = '', acoes = '' }) {
   return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;
 }
-// itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'', onclick }]; zero sem tom vira texto discreto.
+// itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'zero'|'', onclick, espiar, dica }]; tom 'zero' = texto discreto.
+// espiar: a chave do mini painel (data-espiar, "quem está neste número"); dica: a explicação no ⓘ ao passar o mouse.
 function vbResumoHtml(itens) {
   return `<div class="vb-resumo" role="group" aria-label="Resumo">${itens.filter(Boolean).map((x) => {
-    const corpo = x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`;
+    const corpo = (x.valor === null || x.valor === undefined || x.valor === '' ? safeText(x.rotulo) : `<b>${safeText(String(x.valor))}</b>${safeText(x.rotulo)}`)
+      + (x.dica ? `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${safeText(x.dica)}" aria-label="${safeText(x.dica)}"><span class="ar-dica-i" aria-hidden="true">i</span></span>` : '');
     const cls = `vb-resumo-item${x.tom ? ' ' + x.tom : ''}`;
-    return x.onclick ? `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>` : `<span class="${cls}">${corpo}</span>`;
+    if (x.onclick) return `<button type="button" class="${cls}" onclick="${x.onclick}">${corpo}</button>`;
+    return x.espiar ? `<span class="${cls} espiavel" data-espiar="${safeText(x.espiar)}" role="button" tabindex="0">${corpo}</span>` : `<span class="${cls}">${corpo}</span>`;
   }).join('')}</div>`;
+}
+// Seletor de período (Padrão Vybe): ‹ novembro de 2026 › no lugar do campo de mês. O botão leva o mês de destino
+// (AAAA-MM) no atributo `attr`, que o módulo escuta; `ano: true` anda de ano em ano. Não passa de `max` (AAAA-MM).
+const VB_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function vbMesSomar(mes, n) {
+  const d = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+function vbMesHtml({ mes, max = '', attr = 'data-vb-mes', ano = false } = {}) {
+  if (!/^\d{4}-\d{2}$/.test(mes || '')) return '';
+  const passo = ano ? 12 : 1, antes = vbMesSomar(mes, -passo), depois = vbMesSomar(mes, passo), corte = ano ? 4 : 7;
+  const fim = /^\d{4}-\d{2}/.test(max) && depois.slice(0, corte) > max.slice(0, corte);
+  const nome = ano ? 'ano' : 'mês', seta = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  return `<div class="vb-mes" role="group" aria-label="${ano ? 'Ano' : 'Mês'}">`
+    + `<button type="button" ${attr}="${antes}" aria-label="${ano ? 'Ano' : 'Mês'} anterior" title="${ano ? 'Ano' : 'Mês'} anterior">${seta('m15 6-6 6 6 6')}</button>`
+    + `<b aria-live="polite">${ano ? mes.slice(0, 4) : `${VB_MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`}</b>`
+    + `<button type="button" ${attr}="${depois}" aria-label="Próximo ${nome}" title="Próximo ${nome}"${fim ? ' disabled' : ''}>${seta('m9 6 6 6-6 6')}</button></div>`;
 }
 // tipo: 'vazio' | 'erro' | 'carregando'; acao: HTML de um botão (opcional).
 function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icone = '' } = {}) {

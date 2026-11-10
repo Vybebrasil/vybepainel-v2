@@ -24,7 +24,9 @@ test('o dock acende o item certo (Conversas, Equipe, Aprovação de conteúdo, v
 
 test('Finanças sem frase quebrada nem recado de documentação; prévia sem dizer "entregue"', () => {
   const c = readFileSync('vybe-mundo-comercial.js', 'utf8');
-  assert.match(c, /esc\(d\.motivo \|\| 'O Vybe Finanças ainda não está ligado'\)\}\. O passo a passo/);
+  // Quadros 20 e 56 (10/11/2026): nada de passo a passo para a equipe; o motivo fica em "Ver o que falta" (quem administra).
+  assert.doesNotMatch(c, /O passo a passo está na aba/);
+  assert.match(c, /if \(!completo\) return ativacao\('', '', tecnico\);/);
   assert.doesNotMatch(c, /docs\/vybe-financas\.md\.<\/p>/);
   const m = readFileSync('vybe-material.js', 'utf8');
   assert.doesNotMatch(m, /A peça está marcada como entregue/);

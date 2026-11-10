@@ -218,19 +218,29 @@ function blocoPerfil(eu) {
 
 // A conta WhatsApp usa a mesma sessão do Perfil; código fica só em memória.
 function blocoContaAI() {
-  const a=CONTA_AI;
-  const botoes = a.disponivel ? `<div class="conta-ai-acoes">
-    <button type="button" class="conta-botao primario" onclick="acaoContaAI('vinculacao_iniciar')" ${a.ocupado || !a.pode_gerar ? 'disabled' : ''}>${a.ocupado ? 'Aguarde…' : 'Gerar código temporário'}</button>
-    <button type="button" class="conta-botao" onclick="carregarContaAI()" ${a.ocupado ? 'disabled' : ''}>Conferir vínculo</button>
-    <button type="button" class="conta-botao" onclick="acaoContaAI('vinculacao_revogar')" ${a.ocupado ? 'disabled' : ''}>Revogar vínculo e códigos</button></div>` : '';
-  const codigo = a.codigo && Date.parse(a.expiraEm)>Date.now() ? `<div class="conta-ai-codigo"><label for="conta-ai-codigo">Seu código temporário</label>
+  // Redesign (quadros 13 e 60): uma linha, como Nome e E-mail — "WhatsApp", a situação em texto e "Conectar" à direita;
+  // o código temporário abre embaixo só depois de pedir. Erro de conferência é uma linha com "Tentar de novo".
+  const a=CONTA_AI, ocupado=a.ocupado ? ' disabled' : '';
+  const temCodigo = a.codigo && Date.parse(a.expiraEm)>Date.now();
+  const botao = (rotulo, acao, primario=false, extra='') => `<button type="button" class="conta-botao${primario ? ' primario' : ''}" onclick="${acao}"${ocupado}${extra}>${rotulo}</button>`;
+  let situacao, explica, acoes='';
+  if (a.carregando) { situacao='Conferindo…'; explica='Lendo se o seu número já está ligado ao VYBES.'; }
+  else if (a.erro) { situacao='Não deu para conferir agora'; explica=a.erro; acoes=botao('Tentar de novo','carregarContaAI()'); }
+  else if (!a.disponivel) { situacao='Conexão ainda não disponível neste ambiente'; explica='Nenhuma alteração foi feita na sua conta.'; acoes=`<button type="button" class="conta-botao" onclick="carregarContaAI()">Conferir</button>`; }
+  else if (a.vinculado) { situacao='Conectado'; explica='Você consulta pelo WhatsApp as demandas permitidas para você. O vínculo não dá acesso administrativo.'; acoes=botao('Desconectar',"acaoContaAI('vinculacao_revogar')"); }
+  else {
+    situacao='Não conectado'; explica=a.pode_gerar ? 'Ligue o VYBES ao seu número para consultar as demandas permitidas para você. O vínculo não dá acesso administrativo.' : 'A conexão não está liberada para esta conta ou ambiente.';
+    acoes = temCodigo ? botao('Já enviei o código','carregarContaAI()',true) + botao('Cancelar o código',"acaoContaAI('vinculacao_revogar')")
+      : botao(a.ocupado ? 'Aguarde…' : 'Conectar',"acaoContaAI('vinculacao_iniciar')",true,!a.pode_gerar && !a.ocupado ? ' disabled' : '');
+  }
+  const codigo = temCodigo && !a.carregando && !a.erro ? `<div class="conta-ai-codigo"><label for="conta-ai-codigo">Seu código temporário</label>
     <input id="conta-ai-codigo" value="${safeText(a.codigo)}" readonly autocomplete="off" spellcheck="false" onclick="this.select()">
     <button type="button" class="conta-botao" onclick="copiarCodigoContaAI()">Copiar código</button>
     <small>Válido até ${safeText(new Date(a.expiraEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}. Uso único. Envie este código somente na conversa privada com o WhatsApp do VYBES.</small></div>` : '';
-  return `<section class="conta-cartao conta-ai" aria-labelledby="conta-ai-titulo"><h3 id="conta-ai-titulo">VYBES no WhatsApp</h3>
-    <p class="conta-nota">Conecte seu WhatsApp à sua própria conta para consultar as demandas permitidas para você. O vínculo não dá acesso administrativo.</p>
-    ${a.carregando ? vbEstadoHtml({tipo:'carregando',titulo:'Conferindo vínculo'}) : a.erro ? vbEstadoHtml({tipo:'erro',titulo:a.erro,acao:'<button type="button" class="conta-botao" onclick="carregarContaAI()">Tentar de novo</button>'}) : a.disponivel ? `<p class="conta-ai-status"><b>${a.vinculado ? 'WhatsApp vinculado' : 'WhatsApp não vinculado'}</b></p>${!a.pode_gerar ? '<p class="conta-nota">A emissão de códigos não está liberada para esta conta ou ambiente.</p>' : ''}` : '<p class="conta-ai-status">Vinculação ainda não disponível neste ambiente. Nenhuma alteração foi feita na sua conta.</p><button type="button" class="conta-botao" onclick="carregarContaAI()">Conferir disponibilidade</button>'}
-    ${!a.carregando && !a.erro ? botoes + codigo : ''}<p class="conta-nota" role="status" aria-live="polite">${safeText(a.aviso || '')}</p></section>`;
+  return `<section class="conta-cartao conta-ai" aria-label="VYBES no WhatsApp">
+    <div class="conta-ai-linha${a.erro ? ' erro' : ''}"><span class="conta-ai-rotulo">WhatsApp</span>
+      <div class="conta-ai-meio"><b>${safeText(situacao)}</b><small>${safeText(explica)}</small></div>${acoes ? `<div class="conta-ai-acoes">${acoes}</div>` : ''}</div>
+    ${codigo}<p class="conta-nota" role="status" aria-live="polite">${safeText(a.aviso || '')}</p></section>`;
 }
 function pintarContaAI() {
   const el=document.querySelector('.conta-ai');

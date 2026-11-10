@@ -32,7 +32,8 @@ test('Planejamentos em linhas, Comercial e Conteúdo sem ícone laranja no títu
 test('avisos de ativação falam com quem usa: sem nome de arquivo nem "o Paulo aplica" para a equipe', () => {
   const telas = ler('vybe-mundo-carteira.js') + ler('vybe-mundo-comercial.js') + ler('vybe-mundo-pessoas.js');
   assert.doesNotMatch(telas, /o Paulo aplica|Falta o Paulo aplicar|Peça ao Paulo para aplicar/);
-  assert.match(ler('vybe-mundo-carteira.js'), /souAdmin\(\) \? `<small class="vc-ativacao-tec">Para quem administra: migração/);
+  // Quadro 56 (10/11/2026): o técnico fica atrás de "Ver o que falta", só para quem administra.
+  assert.match(ler('vybe-mundo-carteira.js'), /souAdminAqui\(\)\s*\? `<span class="vc-ativacao-adm">Para quem administra: \$\{secundario\('Ver o que falta'/);
   assert.match(ler('vybe-mundo-carteira.css'), /#vv-carteira \.vc-ativacao\{[^}]*background:#FFFFFF;color:#1F1D1A\}/);
 });
 
