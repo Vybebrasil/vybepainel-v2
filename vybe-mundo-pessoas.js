@@ -107,7 +107,7 @@
   const vazio = (titulo, texto, botao = '') => `<div class="vp-vazio"><b>${esc(titulo)}</b>${texto ? `<p>${esc(texto)}</p>` : ''}${botao}</div>`;
   const acao = (texto, attrs) => `<button type="button" class="vp-acao" ${attrs}>${esc(texto)}</button>`;
   const sec = (texto, attrs) => `<button type="button" class="vp-sec" ${attrs}>${esc(texto)}</button>`;
-  const semMigracao = (d) => (d?.provisionado === false ? '<p class="vp-nota">Esta parte ainda não foi ligada no banco: o que você vê é o começo. Peça ao Paulo para aplicar a migração do setor de Pessoas.</p>' : '');
+  const semMigracao = (d) => (d?.provisionado === false ? '<p class="vp-nota">Esta parte ainda não foi ligada: o que você vê é o começo. Os donos já sabem o que falta.</p>' : '');
   function versus(v, { menorMelhor = false, unidade = '' } = {}) {
     if (!v || v.delta == null) return '<small class="vp-vs">sem base no período anterior</small>';
     if (v.delta === 0) return '<small class="vp-vs">igual ao período anterior</small>';
@@ -290,7 +290,7 @@
     const c = d.pesquisa || {}, atual = c.atual;
     let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">Pesquisa de clima <small>anônima</small></h3>
       ${d.gestao && atual ? sec('Encerrar agora', `data-vp-encerrar-pesquisa="${esc(atual.id)}"`) : ''}${d.gestao && !atual && d.rhPronto !== false && estado.form !== 'pesquisa-abrir' ? acao('Iniciar pesquisa', 'data-vp-abrir-form="pesquisa-abrir"') : ''}</div>`;
-    if (d.rhPronto === false) html += `<p class="vp-nota">A pesquisa de clima com período está aguardando a migração ${esc(d.migracaoRh || '')}. Peça ao Paulo para aplicar.</p>`;
+    if (d.rhPronto === false) html += `<p class="vp-nota">A pesquisa de clima com período ainda não foi ligada. Os donos já sabem o que falta.</p>`;
     if (estado.form === 'pesquisa-abrir') html += formAbrirPesquisa();
     if (atual?.situacao === 'aberta') {
       if (atual.respondeu) html += vazio('Obrigado por responder', `A sua resposta entrou sem nome nem hora. "${atual.titulo}" fica aberta até ${br(atual.fecha)}.`);

@@ -3660,7 +3660,7 @@ body.mundo-gestao .plj-aviso{visibility:hidden}
 html body.mundo :is(.ag-cartao,.capt-menu-painel):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:10px!important;box-shadow:0 22px 50px rgba(31,29,26,.2)!important;backdrop-filter:none!important;color-scheme:light}
 html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(h3,h4,b,strong,.capt-detalhe-titulo):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
 html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(p,small,.capt-detalhe-quando,.capt-progresso,.capt-discreto,.capt-menu-rotulo):not(#ds-a):not(#ds-b){color:#6B675F!important}
-html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(#ds-a):not(#ds-b){background:transparent!important;color:#C2490C!important;border:0!important}
+html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(.capt-gerir > .vb-link):not(#ds-a):not(#ds-b){background:transparent!important;color:#C2490C!important;border:0!important}
 html body.mundo .ag-cartao-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:6px!important}
 html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;color-scheme:light}
 html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
@@ -5608,3 +5608,9 @@ body.mundo .vv-placa .vv-cb-legenda[hidden]{display:none}
   body.mundo.mundo-centro .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
 }
 .vv-menu-tema-linha .vb-alternar button{color:#5E5A53}
+/* Cartão da captação (fase 3, quadro 65): rodapé do padrão, Apagar como perigoso à esquerda, os outros secundários à direita. */
+body.mundo .capt-gerir{align-items:center}
+body.mundo .capt-gerir .vb-link{display:inline-flex;align-items:center;min-height:var(--pc-h-p,28px);padding:0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;text-decoration:none}
+body.mundo .capt-gerir .vb-link:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo .capt-gerir .vb-link.perigo{order:-1;margin-right:auto;border-color:#F6BBC4;color:#B42318}
+body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}

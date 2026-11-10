@@ -201,7 +201,7 @@ function spotlightDialogo() {
       <span class="spotlight-escopo" hidden></span>
       <input id="spotlight-input" type="search" role="combobox" aria-expanded="true" aria-controls="spotlight-lista"
         aria-autocomplete="list" autocomplete="off" spellcheck="false"
-        placeholder="Buscar conteúdos, demandas, clientes e pessoas">
+        placeholder="Buscar peça, cliente ou pessoa">
       <kbd class="spotlight-tecla">esc</kbd>
       <button type="button" class="spotlight-fechar" aria-label="Fechar busca" title="Fechar (Esc)">×</button>
     </div>
@@ -294,7 +294,7 @@ function spotlightPintar() {
   escopo.innerHTML = SPOTLIGHT.escopo
     ? `Em <b>${safeText(SPOTLIGHT.escopo.rotulo)}</b><button type="button" aria-label="Tirar o filtro ${safeText(SPOTLIGHT.escopo.rotulo)}">×</button>` : '';
   d.querySelector('#spotlight-input').placeholder = SPOTLIGHT.escopo
-    ? `Buscar em ${SPOTLIGHT.escopo.rotulo}` : 'Buscar conteúdos, demandas, clientes e pessoas';
+    ? `Buscar em ${SPOTLIGHT.escopo.rotulo}` : 'Buscar peça, cliente ou pessoa';
 
   const opcoes = [];
   const q = SPOTLIGHT.consulta;

@@ -272,7 +272,7 @@
     return `${blocoMes(d)}<div class="vc-secao"><h3>Funil agora</h3></div><div class="vc-kpis">
         ${kpi('Em negociação (mensal)', din(r.em_negociacao.mensal))}${kpi('Em negociação (avulso)', din(r.em_negociacao.avulso))}
         ${kpi('Abertas', num(r.em_negociacao.quantidade))}${kpi('Taxa de ganho', pc(r.taxa_ganho))}</div>
-      ${d.valor_disponivel ? '' : '<p class="vc-aviso">Valor da negociação, Follow-up e etapas novas dependem da migração 2026-11-07-comercial.sql (o Paulo aplica).</p>'}
+      ${d.valor_disponivel ? '' : `<p class="vc-aviso">Valor da negociação, follow-up e as etapas novas ainda não foram ligados. Os donos já sabem o que falta.${typeof souAdmin === 'function' && souAdmin() ? ' <small>(migração 2026-11-07-comercial.sql)</small>' : ''}</p>`}
       ${d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos) · ticket médio ${din(d.produtos.ticket_medio_mensal)}/mês${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : ''}
       <div class="vc-secao"><h3>Fases</h3>${p.editar_pacotes ? '<button type="button" class="vc-link" data-vc="etapas">Configurar etapas</button>' : ''}</div>
       <div class="vc-fases" role="tablist" aria-label="Fases do funil">${r.fases.map((f) => `<button type="button" role="tab" aria-selected="${f.id === sel}" data-vc-fase="${esc(f.id)}"><span>${esc(f.nome)}</span><b>${num(f.atual)}</b>${f.conversao != null ? `<small>${pc(f.conversao)} seguem</small>` : `<small>${num(f.alcancaram)} chegaram</small>`}</button>`).join('')}</div>

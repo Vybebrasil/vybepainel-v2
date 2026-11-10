@@ -2448,7 +2448,7 @@
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <h3>Jogos</h3><p class="vv-sub">As mesas ficam na sala Jogos, no terraço do prédio. Escolha o jogo: você vai até a mesa e chama quem estiver online.</p>
       <div class="vv-jogos">${JOGOS.map(([id, nome, txt]) => `<button type="button" class="vv-jogo" data-jogo="${id}"><b>${esc(nome)}</b><small>${esc(txt)}</small></button>`).join('')}</div>
-      <p class="vv-dica">Ranking, Missões e Conquistas ficam em Equipe.</p>`;
+      <p class="vv-dica">Ranking, Loja e Conquistas ficam no dock, no grupo Vybe.</p>`;
     p.hidden = false; ajustarAreaLivre();
   }
   let jogandoAgora = false;
