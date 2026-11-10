@@ -877,7 +877,8 @@ function renderByDay(sem, filter, dayFilter) {
     };
     const avisoHtml=aba!=='social'&&aviso?`<p class="day-pending-note" role="status">${aviso}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>`:'';
     const tituloAba=aba==='social'?'Redes sociais':aba==='demandas'?'Demandas':'Pendências';
-    const vazio=aba==='social'?'Nenhum conteúdo nesta data com os filtros atuais.':aba==='demandas'?'Nenhuma demanda com entrega nesta data e nos filtros atuais.':'Nenhuma solicitação atrasada ou sem data nos filtros atuais.';
+    // Redesign fase 2: a frase repetida em todas as colunas vazias virou uma linha curta.
+    const vazio=aba==='social'?'Nada marcado neste dia.':aba==='demandas'?'Nenhuma entrega neste dia.':'Nada atrasado ou sem data.';
     const contexto=dateMode==='prazo'?'Por prazo':aba==='social'?'Por veiculação':'Por conclusão prevista ou prazo';
     return `<div class="client-card dia-solta day-scroll-card${dia.iso===hoje?' day-is-today':''}${diasExpandidos.has(dia.iso)?' day-expanded':''}${lista.length?'':' day-empty'}" data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}${dia.iso===hoje?'<span class="day-today-label">Hoje</span>':''}</div><span class="day-date-context">${contexto}</span></div>
