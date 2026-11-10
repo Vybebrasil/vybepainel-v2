@@ -16993,7 +16993,7 @@ body.no-escritorio .plj-aviso {display:none}
 
    rolagem; só nesta janela os valores próprios precisam vencer. */
 
-#workflow-modal.ofc-ranking-janela {width:min(640px,calc(100vw - 32px))!important;max-width:none;max-height:calc(100vh - 32px)!important;padding:0!important;overflow:hidden!important;display:flex;flex-direction:column;background:linear-gradient(180deg,#232633,#181a22);border:1px solid #ffffff1a;border-radius:12px!important}
+:where(body:not(.mundo)) #workflow-modal.ofc-ranking-janela {max-height:calc(100vh - 32px)!important}#workflow-modal.ofc-ranking-janela {width:min(640px,calc(100vw - 32px))!important;max-width:none;padding:0!important;overflow:hidden!important;display:flex;flex-direction:column;background:linear-gradient(180deg,#232633,#181a22);border:1px solid #ffffff1a;border-radius:12px!important}
 
 .ofc-ranking {display:flex;flex-direction:column;min-height:0;color:#eef0f5;font-family:var(--mac-ui)}
 
@@ -20405,7 +20405,7 @@ a.capt-sinal:focus-visible {outline:2px solid #ff8a35;outline-offset:2px}
 
    que é estreita, continua numa coluna. */
 
-#workflow-modal.ofc-menu-jogo {width:min(1480px,calc(100vw - 32px))!important;height:calc(100vh - 32px)!important;max-height:none!important}
+#workflow-modal.ofc-menu-jogo {width:min(1480px,calc(100vw - 32px))!important}:where(body:not(.mundo)) #workflow-modal.ofc-menu-jogo {height:calc(100vh - 32px)!important;max-height:none!important}
 
 #workflow-modal.ofc-menu-jogo .ofc-ranking {flex:1;min-height:0}
 

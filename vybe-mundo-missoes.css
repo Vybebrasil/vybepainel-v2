@@ -8,7 +8,7 @@
 
 #vv-missoes{box-sizing:border-box;display:flex;flex-direction:column;width:min(720px,92vw);max-height:86vh;overflow:hidden;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 80px rgba(31,29,26,.25);color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vv-missoes-entra .2s cubic-bezier(.22,1,.36,1) both}
 #vv-missoes *,#vv-missoes *::before,#vv-missoes *::after{box-sizing:border-box}
-@keyframes vv-missoes-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vv-missoes-entra{from{scale:.97}to{scale:1}}
 
 /* cabeçalho */
 #vv-missoes .vv-missoes-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px 22px}

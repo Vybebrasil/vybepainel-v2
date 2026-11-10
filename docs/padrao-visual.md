@@ -91,7 +91,7 @@ Desde a fase 3a (10/11/2026) os botões têm **uma** definição, no bloco "PEÇ
 
 | Componente | Especificação |
 |---|---|
-| **Ação principal** | igual ao botão **Criar** do dock: `#FF7A2F` cheio, texto branco 700, raio 8, 34px, sombra laranja. Um por área. Ex.: Novo conteúdo, Salvar, Continuar, Entrar no andar, Abrir contexto. |
+| **Ação principal** | igual ao botão **Criar** do dock: `#FF7A2F` cheio, texto branco 700, raio 8, 34px, sombra laranja. Um por área. Texto branco no laranja fica (Paulo, 10/11/2026: "é bonito"), mesmo com contraste de 2,6:1; não é defeito para as varreduras. Ex.: Novo conteúdo, Salvar, Continuar, Entrar no andar, Abrir contexto. |
 | **Secundário** | branco, borda `--ds-linha`, texto tinta 600; hover borda laranja e texto `#C2490C`. |
 | **Perigo** | branco com contorno vermelho `#F6BBC4`, texto `#B42318`; cheio só na confirmação. |
 | **Link** | texto `#C2490C` 700, sem fundo. |

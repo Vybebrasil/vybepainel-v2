@@ -173,7 +173,7 @@ body.mundo .vv-botao:focus-visible,body.mundo .vv-sala:focus-visible{outline:2px
 /* Botão do mundo no cabeçalho (voltar ao mundo de qualquer módulo) e preferência */
 .vv-mundo-btn{display:inline-flex;align-items:center;gap:6px}
 
-@keyframes vv-entra{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes vv-entra{from{transform:translateY(16px) scale(.97)}to{transform:none}}
 @keyframes vv-pulso{0%,100%{box-shadow:0 0 0 0 rgba(255,227,200,.6)}50%{box-shadow:0 0 0 5px rgba(255,227,200,0)}}
 
 /* ---------- Celular e tablet: o mapa em cima, a tela de módulos vira gaveta ---------- */
@@ -3088,9 +3088,11 @@ html body.mundo #cartao-rapido-fundo{background:rgba(31,29,26,.08)!important}
 html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,color .2s ease,box-shadow .2s ease,transform .12s ease!important}
 
 /* ===== Movimento: fluido, curto e leve (só transform/opacity) ===== */
-@keyframes vv-entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* Entram só com movimento (regra do redesign): se a animação não andar (aba em repouso, Safari, máquina lenta),
+   o conteúdo aparece igual. Antes começavam transparentes e podiam ficar invisíveis. */
+@keyframes vv-entra{from{transform:translateY(6px)}to{transform:none}}
 /* scale/translate separados: não apagam o transform de quem se centraliza com translate(-50%,-50%) */
-@keyframes vv-surge{from{opacity:0;scale:.97;translate:0 4px}to{opacity:1;scale:1;translate:0 0}}
+@keyframes vv-surge{from{scale:.97;translate:0 4px}to{scale:1;translate:0 0}}
 @keyframes vv-aba{from{opacity:.4}to{opacity:1}}
 @media (prefers-reduced-motion:no-preference){
   /* clique: o botão afunda de leve */
@@ -4423,7 +4425,7 @@ body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli
 .vs-agenda time{font:650 12px var(--vv-texto);color:var(--vv-laranja-escuro,#C2410C);font-variant-numeric:tabular-nums}
 .vs-agenda b{font:600 12.5px var(--vv-texto);color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs-agenda small{font:500 11px var(--vv-texto);color:#8A847A}
-@keyframes vs-sobe{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vs-sobe{from{transform:translateY(6px)}to{transform:none}}
 @keyframes vs-cresce{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes vs-estica{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (max-width:900px){.vs-topo{flex-direction:column}.vs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-kpi-valor{font-size:21px}.vs-deitadas li{grid-template-columns:minmax(90px,38%) 1fr auto}}
@@ -5523,3 +5525,22 @@ body.mundo .vv-bloco-prio{container-type:inline-size}
    a varredura de 10/11/2026 achou Cancelar e Salvar da Nova reunião atrás do dock. */
 body.mundo{--vv-janela-alto:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 28px)}
 body.mundo .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:var(--vv-janela-alto);top:calc(50% - var(--vv-dock-alto,0px) / 2 - 7px)}
+/* Janela de notebook: "Buscar em tudo" não quebra em duas linhas no topo; se faltar espaço, encurta. */
+body.mundo .vv-busca-larga .vv-busca-texto{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Janela de notebook (varredura de 10/11/2026, 1110 px): o alternador Redes/Demandas/Pendências era espremido até
+   ficar mais estreito que os botões e "Pendências" passava por baixo das setas; sem encolher, ele desce de linha.
+   A fileira "Ver como" do Painel quebra em linhas em vez de esconder Equipe numa rolagem lateral. */
+body.mundo .section-title :is(.semana-abas,.dias-setas,.dias-layout-btn){flex:0 0 auto}
+body.mundo .ops-segmentos{flex-wrap:wrap;overflow:visible;row-gap:8px}
+/* Janelas do jogo (Loja, Ranking, Conquistas): no mundo cabem entre o topo e o dock, como as de formulário. Numa
+   janela de notebook (1110 x 650) o cabeçalho com o título saía cortado em cima (varredura no WebKit, 10/11/2026). */
+body.mundo #workflow-modal.ofc-menu-jogo{height:var(--vv-janela-alto);max-height:var(--vv-janela-alto)}
+/* Cabeçalho das janelas do jogo (Conquistas, Ranking, Loja) na janela clara do mundo: o título vinha com a cor clara
+   do jogo escuro e sumia (#EEF0F5 sobre papel). */
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab{color:#1F1D1A}
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab small{color:#5E5A53}
+/* Conquistas na janela clara: as abas (Entregas, Produção, Ritmo…) e a dica vinham na cor clara do jogo escuro e sumiam.
+   Ficam no chip e no selecionado do sistema; os cartões de troféu continuam escuros (fase 3c). */
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip[aria-pressed="true"]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
+body.mundo #workflow-modal.ofc-menu-jogo .cq-dica{color:#5E5A53}

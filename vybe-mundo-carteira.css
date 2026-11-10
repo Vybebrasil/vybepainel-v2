@@ -8,7 +8,7 @@
 .vc-camada{position:fixed;inset:0;z-index:650;display:flex;align-items:stretch;justify-content:center;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color-scheme:light}
 #vv-carteira{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;height:100dvh;overflow:hidden;background:#F6F3EE;color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vc-entra .2s cubic-bezier(.22,1,.36,1) both}
 #vv-carteira *,#vv-carteira *::before,#vv-carteira *::after{box-sizing:border-box}
-@keyframes vc-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vc-entra{from{scale:.97}to{scale:1}}
 #vv-carteira .vc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* topo, controles e abas: fixos; o corpo rola por dentro */
