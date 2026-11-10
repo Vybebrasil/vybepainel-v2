@@ -83,7 +83,7 @@ test('dock aceso só no que está na tela (auditoria 09/11, D10 e D13)', () => {
   // Fechar a janela de um módulo (X, Esc ou o próprio módulo) apaga o item e acende o que ficou à vista.
   for (const id of ['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas']) assert.ok(js.includes(`'${id}'`), id);
   assert.match(js, /function remarcarAoFechar\(\)/);
-  assert.match(js, /marcarTrilho\(body\.classList\.contains\('mundo-cartoes'\) \? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' \? 'direcao' : 'hoje'\)/);
+  assert.match(js, /marcarTrilho\(body\.classList\.contains\('mundo-cartoes'\) \? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'\)/);
   // Abrir a agenda completa fecha o menu da Agenda, que ficava por cima da tela que abriu.
   assert.match(js, /function abrirAgenda\(dia\) \{[\s\S]{0,200}fecharDaDireita\(\);/);
 });

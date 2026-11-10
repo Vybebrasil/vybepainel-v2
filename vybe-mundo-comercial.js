@@ -166,9 +166,10 @@
     if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo o Vybe Finanças…</p>';
     if (e.erro) return `<p class="vc-aviso">Vybe Finanças: ${esc(e.erro)} Abaixo, o que está lançado no Vybe OS.</p>`;
     const d = e.dados; if (!d || d.conectado) return '';
-    if (!completo) return `<p class="vc-dica">${esc(d.motivo)}: o passo a passo está na aba Finanças por cliente.</p>`;
-    return `<div class="vc-aviso" role="note"><b>${esc(d.motivo)}</b><p>Ligado, o dinheiro destas abas passa a vir do Vybe Finanças (só leitura): recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
-      ${d.aviso ? `<p>${esc(d.aviso)}</p>` : ''}<ol>${(d.passos || []).map((p) => `<li>${esc(p)}</li>`).join('')}</ol><p>Detalhes em docs/vybe-financas.md.</p></div>`;
+    // Sem motivo vindo do servidor a frase começava com ": o passo a passo…" (pente-fino 09/11/2026).
+    if (!completo) return `<p class="vc-dica">${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}. O passo a passo está na aba Finanças por cliente.</p>`;
+    return `<div class="vc-aviso" role="note"><b>${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}</b><p>Ligado, o dinheiro destas abas passa a vir do Vybe Finanças (só leitura): recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.</p>
+      ${d.aviso ? `<p>${esc(d.aviso)}</p>` : ''}<ol>${(d.passos || []).map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>`;
   }
   const varFin = (atual, anterior) => (anterior ? Math.round(((atual - anterior) / Math.abs(anterior)) * 1000) / 10 : null);
   function finTopo(f) {

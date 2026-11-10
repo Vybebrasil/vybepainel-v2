@@ -5470,9 +5470,12 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
    parecia nao servir para nada. Flutuando, ele acompanha a leitura. */
 
+/* Pente-fino 09/11/2026: a altura e as cores escuras valem só no tema antigo (:where(body:not(.mundo)), mesma força de
+   antes lá); no mundo a barra é clara e fica acima do dock das salas (vybe-mundo.css, "Barra do lote"). */
+:where(body:not(.mundo)) .grupos-lote{bottom:24px!important;border:1px solid rgba(255,255,255,.13)!important;background:rgba(17,20,27,.94)!important;box-shadow:0 22px 54px rgba(0,0,0,.66),0 2px 0 rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)!important}
 .grupos-lote{position:fixed!important;top:auto!important;left:50%!important;
 
-  bottom:24px!important;transform:translateX(-50%);z-index:660!important;
+  transform:translateX(-50%);z-index:660!important;
 
   width:auto!important;max-width:min(1040px,calc(100vw - 24px));
 
@@ -5488,7 +5491,7 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
   padding:7px 8px 7px 14px!important;
 
-  border:1px solid rgba(255,255,255,.13)!important;border-radius:10px!important;
+  border-radius:10px!important;
 
   /* Superficie neutra, nao laranja: o deck acompanha a lista o tempo todo e uma
 
@@ -5496,15 +5499,15 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
      no numero e no botao sob o dedo. */
 
-  background:rgba(17,20,27,.94)!important;
+
 
   -webkit-backdrop-filter:blur(20px) saturate(1.25)!important;
 
   backdrop-filter:blur(20px) saturate(1.25)!important;
 
-  box-shadow:0 22px 54px rgba(0,0,0,.66),0 2px 0 rgba(0,0,0,.3),
 
-             inset 0 1px 0 rgba(255,255,255,.08)!important;
+
+
 
   animation:lote-sobe .18s var(--curva,ease) both}
 
@@ -7007,7 +7010,8 @@ button.cli-situacao:hover{filter:brightness(1.25)}
 
 @media(max-width:760px){
 
-  .grupos-lote{bottom:12px!important;max-width:calc(100vw - 16px);
+  :where(body:not(.mundo)) .grupos-lote{bottom:12px!important}
+  .grupos-lote{max-width:calc(100vw - 16px);
 
     overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
 

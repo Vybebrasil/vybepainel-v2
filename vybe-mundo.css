@@ -5266,7 +5266,7 @@ html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv
 html body.mundo.com-dock-salas #vv-hoje{padding-bottom:18px}
 /* As janelas dos módulos do mundo (Gestão e visões de setor, camadas do Comercial, Finanças, Impressões, Pessoas, Missões,
    Agentes, Ferramentas, Carteira, Relatório, Planejamentos e WhatsApp) também terminam acima do dock, sem nada por baixo. */
-html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
+html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa,#vv-comercial,#vv-pessoas,#vv-conteudo,#vv-impressoes){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
 /* Semana da agência em painel estreito (Paulo, 09/11/2026, foto do gráfico com os números se encavalando): cada dia fica
    com a barra do total e os números menores; as cores por status seguem na legenda e no espiar de cada dia. */
 @container hoje (max-width:620px){
@@ -5285,3 +5285,68 @@ html body.mundo.com-dock-salas .vv-palco{bottom:calc(var(--vv-m,14px) + var(--vv
 /* Botão do topo com nome (Agenda, WhatsApp): a contagem fica no canto do ícone, não em cima do nome. */
 /* Botão com nome (Agenda, WhatsApp): o selo vai depois do nome, em linha, sem cobrir o texto */
 html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{position:static;order:3;margin-left:2px;transform:none}
+
+/* ===== Pente-fino de 09/11/2026 (quadro 14 do moodboard do redesign) ===== */
+/* As janelas de módulo não herdavam as cores do tema claro: o que usa --text (o vbEstadoHtml, por exemplo) saía quase
+   branco sobre branco ("Nenhuma impressão ainda" nas Impressões). */
+body.mundo :is(#vv-impressoes,#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-agentes){
+  --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F}
+/* Avisos do WhatsApp com uma janela aberta: descem para baixo do cabeçalho dela (antes cobriam o X e as abas). */
+html body.mundo:is(.palco-modulo,.mundo-modulo,.mundo-gestao) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
+/* Barra do lote: clara como o resto do mundo e acima do dock das salas (a escura do tema antigo cobria o dock). */
+html body.mundo .grupos-lote{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px) + 24px);background:rgba(255,255,255,.96);
+  border:1px solid #E6E0D6;box-shadow:0 18px 40px -18px rgba(31,29,26,.45)}
+html body.mundo .grupos-lote .lote-conta small{color:#6B675F}
+html body.mundo .grupos-lote .lote-risco{background:#E6E0D6}
+html body.mundo .grupos-lote .lote-acao{background:#FFFFFF;border-color:#E6E0D6;color:#3A3F44}
+html body.mundo .grupos-lote .lote-acao i{color:#8A847A}
+html body.mundo .grupos-lote .lote-acao:hover{background:#FFF1E6;border-color:#F26B1D;color:#1F1D1A}
+@media (max-width:900px){html body.mundo .grupos-lote{bottom:calc(64px + 2 * var(--vv-m,14px) + var(--vv-dock-alto,0px) + 8px)}}
+/* Planejamento (documento e editor) no mundo: as cores claras do bloco de contraste valiam só no modo módulo antigo
+   (.mundo-modulo) e o Planejamentos abre na janela própria; o editor ficava com o menu escuro e o título branco sobre
+   claro, invisível. Mesmas cores do resto do mundo; as regras do tema antigo aqui não são forçadas, então basta a força do seletor. */
+html body.mundo .plj-ed{background:#FBF9F5;border-color:#E6E0D6}
+html body.mundo .plj-ed-lista{background:#F6F3EE;border-right-color:#E6E0D6}
+html body.mundo .plj-ed-sec{color:#6B675F}
+html body.mundo .plj-ed-sec em{color:#3A3F44}
+html body.mundo .plj-ed-mais{background:#FFF1E6;color:#C2490C}
+html body.mundo :is(.plj-ed-item,.plj-ed-peca){color:#3A3F44}
+html body.mundo .plj-ed-item i,html body.mundo .plj-ed-item em,html body.mundo .plj-ed-peca .n,html body.mundo .plj-ed-vazio{color:#6B675F}
+html body.mundo :is(.plj-ed-item,.plj-ed-peca):hover{background:#FFFFFF}
+html body.mundo :is(.plj-ed-item,.plj-ed-peca).sel{background:#FFFFFF;box-shadow:inset 3px 0 0 #F26B1D,0 1px 2px rgba(31,29,26,.08);color:#1F1D1A}
+html body.mundo .plj-ed-filtros{background:#EFEAE2}
+html body.mundo .plj-ed-filtros button{color:#5F5B54}
+html body.mundo .plj-ed-cab h3{color:#1F1D1A}
+html body.mundo .plj-ed-cab p{color:#6B675F}
+html body.mundo .plj-ed-grupo{background:#FFFFFF;border-color:#E6E0D6}
+html body.mundo .plj-ed-campo > span{color:#3A3F44}
+html body.mundo .plj-ed-campo small,html body.mundo .plj-ed-rodape{color:#6B675F}
+html body.mundo :is(.plj-ed-campo input,.plj-ed-campo textarea,.plj-ed-campo select,.plj-ed-telas textarea){background:#FFFFFF;border-color:#E6E0D6;color:#1F1D1A;min-height:38px}
+html body.mundo .plj-ed-acrescentar{border-color:#D8CFC2;color:#C2490C}
+html body.mundo .plj-ed-x{background:#F1ECE4;color:#5F5B54}
+html body.mundo .plj-ed-link{color:#5F5B54}
+html body.mundo .plj-ed-telas .nt{background:#FFF1E6;color:#C2490C}
+/* Barras flutuantes do planejamento (topo e base) e o balão do pedido do cliente: claras, como as janelas. */
+html body.mundo .plj-flut{background:rgba(255,255,255,.96);border-color:#E6E0D6;box-shadow:0 14px 34px -18px rgba(31,29,26,.45);color:#1F1D1A}
+html body.mundo .plj-flut-x{background:#F1ECE4;color:#3A3F44}
+html body.mundo .plj-flut-nome b{color:#1F1D1A}
+html body.mundo .plj-flut-nome small,html body.mundo .plj-flut-dica{color:#6B675F}
+html body.mundo .plj-flut-dica b{color:#A63D08}
+html body.mundo .plj-flut-links .cli-porta{background:#FFFFFF;border-color:#E6E0D6;color:#3A3F44}
+html body.mundo .plj-flut-links .cli-porta:hover{border-color:#F26B1D;color:#1F1D1A;background:#FFF7EE}
+html body.mundo .plj-flut-links .plj-flut-editar{background:#FFF1E6;border-color:#F2B48A;color:#A63D08}
+html body.mundo .ofc-dock-plano{background:#FFF4E5;border-color:#F1D9A8;color:#5C3700;box-shadow:0 10px 26px -14px rgba(31,29,26,.4)}
+html body.mundo .ofc-dock-plano b{color:#5C3700}
+html body.mundo .plj-pedido{background:#FDECEE;border-color:#F3C7C2}
+html body.mundo .plj-pedido b{color:#B42318}
+html body.mundo .plj-pedido p{color:#1F1D1A}
+html body.mundo .plj-pedido small{color:#6B675F}
+html body.mundo .plj-etapas li{background:#F6F3EE;border-color:#E6E0D6;color:#6B675F}
+html body.mundo .plj-etapas li i{background:#E6E0D6;color:#3A3F44}
+html body.mundo .plj-etapas li.feita{color:#11613A}
+html body.mundo .plj-etapas li.feita i{background:#11613A;color:#FFFFFF}
+html body.mundo .plj-etapas li.agora{background:#FFF1E6;border-color:#F2B48A;color:#A63D08}
+html body.mundo .plj-etapas li.agora i{background:#C2490C;color:#FFFFFF}
+html body.mundo .plj-etapas li.agora.ajustes{background:#FDECEE;border-color:#F3C7C2;color:#B42318}
+html body.mundo .plj-etapas li.agora.ajustes i{background:#B42318;color:#FFFFFF}
+html body.mundo .plj-etapas small{color:#6B675F}

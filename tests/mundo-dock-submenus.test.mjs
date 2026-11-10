@@ -15,7 +15,7 @@ test('submenus: marcar outra coisa não recolhe; o setor abre a visão geral e o
 
 test('a janela que fecha não acende o Hoje por cima da visão geral, de Planejamentos ou da Direção de arte', () => {
   assert.match(js, /centroAberto \|\| window\.VybeSetor\?\.aberto\?\.\(\)\) return;/);
-  assert.match(js, /criacaoPeloDock && visaoHoje === 'criacao' \? 'direcao' : 'hoje'/);
+  assert.match(js, /criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'/);
   assert.match(readFileSync('vybe-mundo-planejamentos.js', 'utf8'), /aberto: \(\) => Boolean\(janela && !janela\.hidden\)/);
   assert.ok(js.includes("'VybePlanejamentos'"), 'Planejamentos está entre as janelas que o dock pergunta');
 });

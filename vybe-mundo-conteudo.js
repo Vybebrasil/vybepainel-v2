@@ -314,6 +314,6 @@
   function ciclo() { clearTimeout(st.timer); st.timer = setTimeout(async () => { if (!document.hidden) await carregarObjetivos(); ciclo(); }, 120e3); }
   setTimeout(() => { carregarObjetivos(); ciclo(); }, 3000);
 
-  window.VybeConteudo = Object.freeze({ abrir, fechar, atualizar: carregarObjetivos, bolinhaHtml, campoObjetivoHtml, definirObjetivo, objetivoDe,
+  window.VybeConteudo = Object.freeze({ abrir, fechar, aberto: () => st.aberto, atualizar: carregarObjetivos, bolinhaHtml, campoObjetivoHtml, definirObjetivo, objetivoDe,
     estado: () => ({ aberto: st.aberto, aba: st.aba, mes: st.mes, cliente: st.cliente, pronto: st.pronto, objetivos: { ...st.objetivos } }) });
 })();
