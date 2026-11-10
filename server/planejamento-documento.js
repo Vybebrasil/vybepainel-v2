@@ -323,7 +323,7 @@ function contarHead(){const ds=[...document.querySelectorAll('.decisao[data-assi
 ${modosJs({ chave: 'vybe-modo-revisao', envio: false })}
 contarHead();})();</script>` : '';
  const dialogoEdicao = revisando ? `<dialog id="editar-peca" class="editar"><form method="dialog"><h3>Editar a peça</h3>
-<div class="campos"><label>Veiculação<input type="date" name="data"></label><label>Prazo de produção<input type="date" name="prazo"><small>Vazio = Prazo de Ouro</small></label><label data-completo>Formato<select name="formato">${['Card', 'Carrossel', 'Reels', 'Fotografia', 'Vídeo', 'Stories', 'Outro'].map((f) => `<option>${f}</option>`).join('')}</select></label><label class="largo" data-completo>Tema<input name="tema" maxlength="200"></label>
+<div class="campos"><label>Veiculação<input type="date" name="data"></label><label>Prazo de produção<input type="date" name="prazo"><small>Vazio: automático, 7 dias antes da veiculação</small></label><label data-completo>Formato<select name="formato">${['Card', 'Carrossel', 'Reels', 'Fotografia', 'Vídeo', 'Stories', 'Outro'].map((f) => `<option>${f}</option>`).join('')}</select></label><label class="largo" data-completo>Tema<input name="tema" maxlength="200"></label>
 <label data-completo>Linha de conteúdo<input name="linha" maxlength="80"></label><label class="largo" data-completo>Objetivo<input name="objetivo" maxlength="800"></label></div>
 <label data-completo>Texto das telas (uma por linha)<textarea name="telas" rows="5"></textarea></label>
 <label data-completo>Legenda ou roteiro<textarea name="legenda" rows="6" maxlength="5000"></textarea></label>
