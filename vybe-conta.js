@@ -354,10 +354,10 @@ function blocoEquipe(eu) {
 }
 
 // O "Mais" fecha ao clicar fora dele ou ao escolher uma ação (um aberto por vez).
-document.addEventListener('click', (e) => {
+document.addEventListener?.('click', (e) => {
   for (const d of document.querySelectorAll('.eq-mais[open]')) if (!d.contains(e.target) || e.target.closest('.eq-mais-item')) d.open = false;
 });
-document.addEventListener('keydown', (e) => {
+document.addEventListener?.('keydown', (e) => {
   if (e.key !== 'Escape') return;
   const aberto = document.querySelector('.eq-mais[open]'); if (!aberto) return;
   aberto.open = false; aberto.querySelector('summary')?.focus();
