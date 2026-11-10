@@ -42,7 +42,9 @@
 .workspace-heading{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap}
 .workspace-heading .pv-ic{width:46px;height:46px;flex:none;border-radius:8px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4),0 10px 24px -12px #ee83b7}
 .workspace-heading .pv-ic svg{width:21px;height:21px;display:block}
-.workspace-heading .workspace-eyebrow{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+/* Rosa do setor só no tema antigo; no mundo o rótulo é neutro (redesign 09/11/2026, vybe-mundo.css). */
+:where(body:not(.mundo)) .workspace-heading .workspace-eyebrow{color:#ee83b7!important}
+.workspace-heading .workspace-eyebrow{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 .workspace-heading h2{font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em!important;margin:2px 0 0!important}
 .workspace-heading .ops-acoes{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .workspace-heading .ops-acoes button,.ops-clear-btn{height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
@@ -522,14 +524,15 @@
 .client-module-hero{display:flex!important;align-items:center!important;justify-content:space-between;border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 6px!important}
 .client-module-hero .pv-cabeca{margin:0}
 .client-module-hero .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
-.client-module-hero .client-module-kicker{color:#7aa7ff!important}
+:where(body:not(.mundo)) .client-module-hero .client-module-kicker{color:#7aa7ff!important}
 
 /* Avisos rápidos (toast): cartão de vidro com o ícone do tipo, texto claro */
-#toast{display:flex!important;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;border-left-width:1px!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;color:#ece8e3!important;font:600 13px/1.4 var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 44px -16px rgba(0,0,0,.8)!important}
+/* Escuro só no tema antigo; no mundo o aviso é claro (vybe-mundo.css, redesign 09/11/2026). */
+:where(body:not(.mundo)) #toast{display:flex!important;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;border-left-width:1px!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;color:#ece8e3!important;font:600 13px/1.4 var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 44px -16px rgba(0,0,0,.8)!important}
 #toast::before{content:"i";flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--mac-ui);color:#06240f;background:#7aa7ff}
 #toast.ok::before{content:"✓";background:#46d48c}
 #toast.err::before{content:"!";background:#ff6b8a;color:#2a0610}
-#toast.ok,#toast.err,#toast.info{color:#ece8e3!important}
+:where(body:not(.mundo)) :is(#toast.ok,#toast.err,#toast.info){color:#ece8e3!important}
 
 /* Editor de regra (Automações): os passos à esquerda; a frase da regra e os
    botões numa coluna à direita, sempre à vista */
@@ -886,7 +889,8 @@
 .vb-cabecalho:has(.pv-ic-aba){flex-wrap:nowrap!important;align-items:center!important}
 .vb-cabecalho .pv-etiqueta{margin-bottom:2px}
 .auto-cabeca:has(.pv-ic-aba){display:flex!important;align-items:center;gap:14px}
-.auto-kicker,.ai-usage-kicker{color:#ff8f4f!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+:where(body:not(.mundo)) :is(.auto-kicker,.ai-usage-kicker){color:#ff8f4f!important}
+.auto-kicker,.ai-usage-kicker{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 .ai-usage-kicker{color:#b99cff!important}
 .ai-usage-head,.ai-usage-cab{display:flex!important;align-items:center;gap:14px}
 .ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}

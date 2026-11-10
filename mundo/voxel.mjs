@@ -2,6 +2,7 @@
 // InstancedMesh (peças com luz e sombra + peças que brilham), com letreiro em
 // letras de blocos. Assim cada sede tem detalhe fino sem pesar.
 import * as THREE from 'three';
+import { ESTILO } from './estilo.mjs';
 
 // Fonte 3×5 (linhas de cima para baixo). Acentos caem na letra sem acento.
 const F = {
@@ -63,7 +64,7 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
   // fica com a face limpa e a luz desenha as facetas, sem escurecer inteiro.
   float vxLado = min(min(vVxEsc.x, vVxEsc.y), vVxEsc.z), vxPx = vxLado / max(fwidth(vxE), 1e-5);
   float vxQ = smoothstep(0.0, min(0.03, vxLado * 0.16) + fwidth(vxE), vxE);
-  diffuseColor.rgb *= mix(mix(0.74, 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
+  diffuseColor.rgb *= mix(mix(mix(0.9, 0.74, smoothstep(0.15, 0.5, vxLado)), 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
   float vxB = (vVxLoc.y + 0.5) * vVxEsc.y;
   diffuseColor.rgb *= mix(1.0, mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0)), smoothstep(0.15, 0.4, vVxEsc.y));` : ''}
 }`);
@@ -74,7 +75,9 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
 // Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
-export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
+// Desde 09/11/2026 (referências de quarto voxel do Paulo: "o estilo ideal pra tudo") a superfície é lisa: sem a
+// grade nem a quina de cada bloco; o volume vem da luz, da sombra macia e da oclusão (estilo.mjs).
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .86 }), { tam: 1, ...ESTILO.superficie }));
 
 // Sombra de contato (Paulo, 08/11/2026: "tem que ficar FODA de bonito"): uma mancha macia no chão embaixo de cada
 // árvore, bicho e boneco, que "assenta" a peça no chão. Uma textura só, um material só, sem entrar no cálculo da sombra.

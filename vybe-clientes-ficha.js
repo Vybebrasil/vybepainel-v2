@@ -259,7 +259,7 @@ async function criarNoFinancas(id, nome) {
 }
 
 // ── ficha em abas ────────────────────────────────────────────────────────────
-const FICHA_ABAS = [['geral', 'Visão geral'], ['cadastro', 'Cadastro'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro']];
+const FICHA_ABAS = [['geral', 'Visão geral'], ['cadastro', 'Cadastro'], ['reunioes', 'Reuniões'], ['onboarding', 'Onboarding'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro']];
 
 function trocarAbaDaFicha(aba) {
   FICHA_ABA = FICHA_ABAS.some(([id]) => id === aba) ? aba : 'geral';
@@ -362,6 +362,8 @@ function cerebroDaFichaHtml(nome) {
     if (FICHA_ABA === 'cadastro') node.innerHTML = cadastroLeituraHtml(nome);
     else if (FICHA_ABA === 'ecossistema') node.innerHTML = ecossistemaDaFichaHtml(nome);
     else if (FICHA_ABA === 'cerebro') node.innerHTML = cerebroDaFichaHtml(nome);
+    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) node.innerHTML = window.VybeReunioes.reunioesHtml(nome);
+    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) node.innerHTML = window.VybeReunioes.onboardingHtml(nome);
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
     if (listas) listas.style.display = FICHA_ABA === 'geral' ? '' : 'none';
     node.dataset.aba = FICHA_ABA;

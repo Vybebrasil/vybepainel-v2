@@ -305,6 +305,14 @@ export async function baixarDoDrive(fileId) {
   return r;
 }
 
+// Um trecho do arquivo (bytes inicio..fim), para arquivos grandes saírem em pedaços que cabem na resposta da função.
+export async function baixarTrechoDoDrive(fileId, inicio, fim) {
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${await token()}`, Range: `bytes=${inicio}-${fim}` } });
+  if (!r.ok) throw new Error(`Drive ${r.status} ao baixar o trecho.`);
+  return Buffer.from(await r.arrayBuffer());
+}
+
 export async function tornarPublico(fileId) {
   await drive(`files/${fileId}/permissions?supportsAllDrives=true`, {
     method: 'POST',

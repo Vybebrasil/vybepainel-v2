@@ -21,7 +21,7 @@ test('leituras vão à rota certa da central com o crachá no cookie e sem segui
     if (u.pathname === '/api/cosmos/whatsapp/pendencias') return resposta(200, { ok: true, atendimento: { agente: 'Mateus', clientesEsperando: [], timeSemResolver: [] }, paraVoce: [] });
     if (u.pathname === '/api/cosmos/agentes/estudos') return resposta(404, { ok: false, erro: 'SEM_ESTUDO' });
     return resposta(500, {}); };
-  assert.deepEqual(ETAPAS_LEITURA, ['perfil', 'mapa', 'pendencias', 'estudo']);
+  assert.deepEqual(ETAPAS_LEITURA, ['perfil', 'mapa', 'pendencias', 'estudo', 'estados']);
   const p = await lerEtapa('perfil', ENTRADA, { setor: 'bi' }, { fetchImpl });
   assert.equal(p.perfil.agente, 'Alex'); assert.equal(p.perfil.rotinas[0].motor, 'logica'); assert.equal(p.fonte, 'central-vybes');
   assert.equal((await lerEtapa('mapa', ENTRADA, {}, { fetchImpl })).contagem.qwen, 4);

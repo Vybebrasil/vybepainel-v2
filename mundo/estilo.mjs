@@ -4,6 +4,11 @@
 // bonecos (avatar.mjs) montam a cena por aqui. O acabamento de cada bloco (tom levemente diferente, quina, pé
 // escurecido) fica no material único das caixas (materialVoxel em voxel.mjs). Mude o visual aqui, não em cada cena.
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 // Referência: maquete voxel rica, luz quente de fim de tarde vinda do alto à esquerda, sombra macia, um contorno
 // quente atrás das peças (as bordas "acendem") e céu claro. Interior (quarto, andar) é a mesma luz, mais cheia.
@@ -11,10 +16,15 @@ export const ESTILO = Object.freeze({
   exposicao: 1.05,
   dia: { ceu: '#EAF6FF', chao: '#7E6A4E', hemi: .9, sol: '#FFEBCB', forca: 2.15, preenche: '#CFE4FF', fPreenche: .35, contorno: '#FFB27A', fContorno: .55 },
   noite: { ceu: '#7083C4', chao: '#2A2A3A', hemi: .52, sol: '#A9BBFF', forca: .8, fPreenche: .15, fContorno: .25, exposicao: .85 },
-  interior: { ceu: '#F6FAFF', chao: '#8A7A62', hemi: 1.25, sol: '#FFF0D6', forca: 1.9, preenche: '#CFE4FF', fPreenche: .45, contorno: '#FFC48F', fContorno: .5, lampada: '#FFE3C2', solNoite: '#FFD39A' },
+  interior: { ceu: '#E9E2FF', chao: '#6A4A3A', hemi: .8, sol: '#FFD8A0', forca: 3.1, preenche: '#B8B4FF', fPreenche: .22, contorno: '#FFB070', fContorno: .55, lampada: '#FFE3C2', solNoite: '#FFD39A' },
   // Base de maquete (terra em camadas embaixo do piso), de cima para baixo.
   base: ['#8A6A4C', '#6E523A', '#54402E'],
   luzMovel: '#FFC77A',
+  // Acabamento de maquete: oclusão nos cantos (raio em unidades do mundo) e brilho só no que acende.
+  ao: { forca: 1.1, raio: .3 },
+  brilho: { forca: .55, limiar: .85 },
+  // Superfície: lisa como nas referências (sem grade nem quina de cada bloco); o volume vem da luz e da oclusão.
+  superficie: { amp: .03, grade: 0, borda: false, tomBloco: .025 },
 });
 
 // Acabamento do renderizador: cor real, curva de cinema, sombra macia.
@@ -22,7 +32,8 @@ export function prepararRenderer(r, { sombra = true, exposicao = ESTILO.exposica
   r.outputColorSpace = THREE.SRGBColorSpace;
   r.toneMapping = THREE.ACESFilmicToneMapping;
   r.toneMappingExposure = exposicao;
-  if (sombra) { r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; }
+  // Sombra macia de verdade (raio do PCF), como nas referências de 09/11/2026.
+  if (sombra) { r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; }
   return r;
 }
 
@@ -40,7 +51,7 @@ export function luzDoEstilo(cena, { centro = [0, 0, 0], raio = 10, interior = fa
     sol.castShadow = true; sol.shadow.mapSize.set(sombra.mapa || 2048, sombra.mapa || 2048);
     const s = sombra.lado || raio + 4;
     Object.assign(sol.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: .5, far: sombra.longe || raio * 6 });
-    sol.shadow.bias = sombra.bias ?? -.0008; sol.shadow.normalBias = sombra.normalBias ?? .035;
+    sol.shadow.bias = sombra.bias ?? -.0008; sol.shadow.normalBias = sombra.normalBias ?? .035; sol.shadow.radius = sombra.raio ?? 3;
   }
   const preenche = new THREE.DirectionalLight(E.preenche, E.fPreenche);
   preenche.position.set(cx - raio, cy + raio * 1.2, cz + raio * .6);
@@ -88,4 +99,66 @@ export function baseDeMaquete(obra, { W, D, ladrilhos = () => true, topo = -.12,
       obra.caixa(x + .5 + fora[0] * .52 + (fora[0] ? 0 : ao - .5), y, z + .5 + fora[1] * .52 + (fora[1] ? 0 : ao - .5), .14, .1, .14, r(x, z, 6) > .5 ? c2 : c0);
     }
   }
+}
+
+// Acabamento de maquete (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): oclusão
+// nos cantos e embaixo das peças (GTAO, o que dá o ar de render), e um brilho leve só no que acende (luminária,
+// tela, janela). Devolve { render(), tamanho(w, h), ligar(sim), destruir() }; desligado, desenha direto.
+export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho = true } = {}) {
+  const tam = renderer.getSize(new THREE.Vector2());
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(cena, camera));
+  let gtao = null, bloom = null;
+  if (ao) {
+    gtao = new GTAOPass(cena, camera, Math.max(1, tam.x), Math.max(1, tam.y));
+    gtao.output = GTAOPass.OUTPUT.Default; // com o filtro (pd) ligado: sem grão nem listras ao mover a câmera
+    gtao.blendIntensity = ESTILO.ao.forca;
+    gtao.updateGtaoMaterial({ radius: ESTILO.ao.raio, distanceExponent: 1.4, thickness: 1, scale: 1 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    composer.addPass(gtao);
+  }
+  if (brilho) { bloom = new UnrealBloomPass(new THREE.Vector2(Math.max(1, tam.x), Math.max(1, tam.y)), ESTILO.brilho.forca, .5, ESTILO.brilho.limiar); composer.addPass(bloom); }
+  composer.addPass(new OutputPass());
+  let ligado = true;
+  return {
+    render() { if (ligado) composer.render(); else renderer.render(cena, camera); },
+    tamanho(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(Math.max(1, w), Math.max(1, h)); },
+    ligar(sim) { ligado = Boolean(sim); },
+    destruir() { composer.dispose?.(); gtao?.dispose?.(); bloom?.dispose?.(); },
+  };
+}
+
+// Paleta Vybe (Paulo, 09/11/2026: "pode reinterpretar"): o quarto de cada um é uma releitura no estilo das
+// referências. Toda cor (piso, parede, móvel) cai no tom mais próximo desta paleta, que combina entre si: madeiras
+// quentes, pastéis de parede, acentos vivos e neutros quentes. O móvel continua reconhecível; o quarto fica harmonioso.
+export const PALETA = Object.freeze({
+  parede: ['#8FD3C7', '#A9BE8E', '#F0D8A8', '#F4B9A0', '#BBA9E0', '#A2C8E8', '#EDE3D2', '#E9C46A'],
+  madeira: ['#E0A36A', '#C9774A', '#B0623C', '#8A5A3C', '#5E4030'],
+  acento: ['#FF7A2F', '#F2C230', '#E5484D', '#2FA7A0', '#3D7DD8', '#8E6CC9', '#4FA35A', '#F06EA0', '#7FC8E8'],
+  neutro: ['#F7F2E8', '#E2D9C8', '#B8AE9F', '#857B70', '#4A403A', '#2E2824'],
+});
+const TODAS = [...PALETA.madeira, ...PALETA.acento, ...PALETA.neutro, ...PALETA.parede];
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(String(h).slice(i, i + 2), 16) || 0);
+// Distância "de olho": verde pesa mais, vermelho e azul menos (aproximação rápida da percepção).
+const dist = (a, b) => { const r = (a[0] + b[0]) / 2, d = a.map((v, i) => v - b[i]); return (2 + r / 256) * d[0] ** 2 + 4 * d[1] ** 2 + (2 + (255 - r) / 256) * d[2] ** 2; };
+const perto = (lista, cor) => { const c = rgb(cor); let m = lista[0], dm = Infinity; for (const p of lista) { const dd = dist(c, rgb(p)); if (dd < dm) { dm = dd; m = p; } } return m; };
+const memo = new Map();
+// Cor de móvel: o tom mais próximo de toda a paleta.
+export function harmonizar(cor) {
+  if (!/^#[0-9a-f]{6}$/i.test(String(cor))) return cor;
+  const k = String(cor).toLowerCase(); if (!memo.has(k)) memo.set(k, perto(TODAS, k)); return memo.get(k);
+}
+// Parede: sempre um pastel claro da paleta (parede escura do Habbo vira o pastel do mesmo matiz; cinza vira creme).
+export function corDeParede(cor) {
+  const c = new THREE.Color(/^#[0-9a-f]{6}$/i.test(String(cor)) ? cor : '#EDE3D2'), hsl = c.getHSL({});
+  if (hsl.s < .14) return hsl.l < .35 ? '#A9BE8E' : '#EDE3D2';
+  const alvo = '#' + new THREE.Color().setHSL(hsl.h, .5, .72).getHexString();
+  return perto(PALETA.parede, alvo);
+}
+// Piso: madeira quente (as referências), ou um neutro claro para pisos claros (mármore, cerâmica).
+export function corDePiso(cor) {
+  const c = new THREE.Color(/^#[0-9a-f]{6}$/i.test(String(cor)) ? cor : '#C9774A'), hsl = c.getHSL({});
+  if (hsl.l > .72) return perto(PALETA.neutro.slice(0, 2), '#' + c.getHexString());
+  if (hsl.l < .22) return PALETA.madeira[3];
+  return perto(PALETA.madeira, '#' + c.getHexString());
 }
