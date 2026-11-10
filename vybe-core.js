@@ -196,6 +196,8 @@ function recalcSemanas() {
 // pe enquanto o lote roda.
 let TEMPO_DO_AVISO = null;
 function showToast(msg, type='info', duration=3000) {
+  // No mundo o aviso curto é um só (quadro 45): mesmo lugar (canto de cima, com os do WhatsApp) e mesmo desenho.
+  if (avisoCurtoNoMundo(msg, { erro: type === 'err' || type === 'error', tempo: Math.max(duration, 4000) })) return;
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `show ${type}`;
@@ -216,11 +218,18 @@ const AVISO_CURTO_ICONES = {
   erro: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
 };
+// Aviso de uma frase só (toast antigo, aviso do Escritório) vira o aviso curto no mundo; fora dele devolve false.
+function avisoCurtoNoMundo(texto, { erro = false, tempo = 6000, icone = 'info', acoes = [] } = {}) {
+  if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !texto) return false;
+  return Boolean(mostrarAvisoCurto({ chave: 'curto:' + String(texto).slice(0, 80), icone, titulo: String(texto), erro, tempo, acoes }));
+}
 function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = '', acoes = [], erro = false, tempo = 7000 } = {}) {
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !titulo) return null;
   let caixa = document.getElementById('vv-wa-avisos');
   if (!caixa) { caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa); }
   if (chave) caixa.querySelectorAll('.vv-aviso-curto').forEach((x) => { if (x.dataset.chave === chave) x.remove(); });
+  // O sino mostra o último aviso quando não há nada novo (quadro 41).
+  globalThis.ULTIMO_AVISO_CURTO = { titulo: String(titulo), frase: String(frase || ''), em: new Date().toISOString() };
   const el = document.createElement('div');
   el.className = 'vv-aviso-curto' + (erro ? ' erro' : '');
   el.setAttribute('role', erro ? 'alert' : 'status');

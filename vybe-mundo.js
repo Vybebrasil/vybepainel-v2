@@ -1406,7 +1406,6 @@
         <button type="button" class="vv-botao" data-ferr="conversa" title="Conversa da equipe e recados" aria-label="Conversa da equipe">${svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}<span class="vv-mais-nome">Notas</span></button>
         <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}<span class="vv-mais-nome">Camadas do mapa</span></button>
-        <button type="button" class="vv-botao" data-ferr="aparencia" title="Aparência (inclui ligar e desligar o mundo)" aria-label="Aparência">${svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>')}<span class="vv-mais-nome">Aparência</span></button>
         <button type="button" class="vv-botao" data-ferr="ajuda" title="Ajuda do VYBES: refazer o passeio e rever as dicas" aria-label="Ajuda do VYBES">${svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 16.8h.01"/>')}<span class="vv-mais-nome">Ajuda</span></button>
         <button type="button" class="vv-botao" data-ferr="conta" title="Sua conta e equipe" aria-label="Conta">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>')}</button>
       </div>
@@ -1968,7 +1967,8 @@
       if (body.classList.contains('musica-aberta')) abrirMusica(false);
       else if (pl && !pl.hidden) abrirMusica(true);
       // Fora de uma sala com som, um caminho em vez de só o aviso (fase 3b, quadro 44): ir para o Lounge, que tem som.
-      else if (typeof escritorio !== 'undefined' && escritorio.conectado && typeof escritorioNaPista === 'function' && !escritorioNaPista() && zonas3d()?.lounge) musicaForaDaSala(b);
+      // Fora do escritório também (frente topo, quadro 44): o mesmo aviso, com "Entrar no Lounge".
+      else if (typeof escritorio !== 'undefined' && (!escritorio.conectado || (typeof escritorioNaPista === 'function' && !escritorioNaPista()))) musicaForaDaSala(b);
       else fn('abrirMusicaEscritorio')?.();
       pintarDock(); return;
     }
@@ -2567,22 +2567,26 @@
     const dono = souDono();
     m = document.createElement('div'); m.className = 'vv-menu-conta'; m.setAttribute?.('role', 'menu');
     // Fase 3b (quadro 46): um menu só, com quem você é e o saldo no alto, um ícone em cada linha e a aparência num
-    // alternador na própria linha (o menu separado de aparência continua no botão do topo, para quem já usa).
-    const IC_MENU = { conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>', perfil: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M12 13v4M8 21h8"/>', atualizar: '<path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/>', vercomo: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', recado: '<path d="M4 5h16v11H8l-4 4z"/>', sair: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>' };
+    // alternador na própria linha. O ícone separado de aparência saiu do topo (frente topo): "Mais ajustes" fica aqui.
+    const IC_MENU = { conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>', perfil: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M12 13v4M8 21h8"/>', atualizar: '<path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/>', vercomo: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', recado: '<path d="M4 5h16v11H8l-4 4z"/>', ajustes: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>', sair: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>' };
     const item = (acao, texto, sub, cls = '') => `<button type="button" role="menuitem" class="${cls}" data-conta-acao="${acao}">${IC_MENU[acao.split(':')[0]] ? `<i class="vv-menu-ic" aria-hidden="true">${svg(IC_MENU[acao.split(':')[0]])}</i>` : ''}<span><b>${texto}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
-    const eu = (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null) || {};
+    // Quem você é sai da sessão quando a equipe ainda não casou o nome (operadorDoTopo devolve null até lá).
+    const eu = (typeof operadorDoTopo === 'function' ? operadorDoTopo() : null) || (typeof pessoaLogada === 'function' ? pessoaLogada() : null) || {};
     const nomeEu = String(eu.name || eu.nome || '').trim();
-    const saldoEu = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
+    const eco = typeof escritorio !== 'undefined' ? escritorio?.base?.economia : null;
+    const saldoEu = eco && eco.saldo != null ? eco.saldo : null;
+    const papelEu = dono ? 'Gestão' : 'Equipe';
     const temaAgora = temaEscolhido();
     const temaBt = (t, rot) => `<button type="button" role="menuitemradio" data-tema-linha="${t}" aria-checked="${temaAgora === t}">${rot}</button>`;
     // Diário e IA ficam só na Gestão (uma porta por tela, auditoria 09/11).
-    m.innerHTML = (nomeEu ? `<div class="vv-menu-quem"><span class="vv-menu-av" aria-hidden="true">${esc(nomeEu.split(/s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</span><span><b>${esc(nomeEu)}</b><small>${saldoEu !== null ? Number(saldoEu).toLocaleString('pt-BR') + ' VybeCoins' : (dono ? 'dono' : 'equipe')}</small></span></div><hr>` : '')
+    m.innerHTML = (nomeEu ? `<div class="vv-menu-quem"><span class="vv-menu-av" aria-hidden="true">${esc(nomeEu.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</span><span><b>${esc(nomeEu)}</b><small>${esc(papelEu)} · ${saldoEu !== null ? Number(saldoEu).toLocaleString('pt-BR') + ' VybeCoins' : 'saldo ao entrar no escritório'}</small></span></div><hr>` : '')
       + item('conta', 'Minha conta', 'senha, acessos e equipe')
       + item('perfil', 'Meu perfil', 'nível, VybeCoins e conquistas')
       + item('atualizar', 'Atualizar dados', 'busca de novo a produção e os clientes')
       + (podeVerComo() ? item('vercomo', verComo ? 'Ver como outra pessoa' : 'Ver como…', verComo ? `agora: ${esc(pessoaVista()?.name || '')}` : 'conferir a tela de qualquer pessoa da equipe') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
       + `<div class="vv-menu-tema-linha" role="group" aria-label="Aparência"><span>Aparência</span><span class="vb-alternar">${temaBt('claro', 'Claro')}${temaBt('escuro', 'Escuro')}${temaBt('auto', 'Auto')}</span></div>`
+      + item('ajustes', 'Mais ajustes de aparência', 'vidro, movimento e o mundo nos módulos')
       + '<hr>' + item('sair', 'Sair', '', 'vv-menu-perigo');
     hud.querySelector('.vv-barra-topo')?.after?.(m);
     m.addEventListener?.('click', (e) => {
@@ -2601,27 +2605,10 @@
       else if (a === 'perfil') abrirPerfil();
       else if (a === 'atualizar') { chamar('refreshData'); }
       else if (a === 'recado') chamar('abrirMandarAvisoEscritorio');
+      else if (a === 'ajustes') document.querySelector('[data-open-appearance]')?.click();
       else if (a === 'sair') chamar('sairDaSessao');
     });
     setTimeout(() => document.addEventListener('click', function fora(e) { if (!e.target.closest('.vv-menu-conta, [data-ferr="conta"]')) { m.remove(); document.removeEventListener('click', fora); } }), 0);
-  }
-  function alternarMenuTema() {
-    let m = hud.querySelector('.vv-menu-tema');
-    hud.querySelector('.vv-menu-conta')?.remove();
-    if (m) { m.remove(); return; }
-    const atual = temaEscolhido();
-    m = document.createElement('div'); m.className = 'vv-menu-conta vv-menu-tema'; m.setAttribute?.('role', 'menu');
-    const op = (t, titulo, sub, ic) => `<button type="button" role="menuitemradio" aria-checked="${atual === t}" data-tema="${t}"><i aria-hidden="true">${ic}</i><span><b>${titulo}</b><small>${sub}</small></span></button>`;
-    m.innerHTML = `<div class="vv-tema-titulo">Aparência</div>`
-      + op('claro', 'Claro', 'papel claro, o padrão', '☀') + op('escuro', 'Escuro', 'para a noite e salas escuras', '☾') + op('auto', 'Automático', 'segue o seu computador', '◐')
-      + '<hr><button type="button" data-tema="mais"><span><b>Mais ajustes</b><small>vidro, movimento e o mundo nos módulos</small></span></button>';
-    hud.querySelector('.vv-barra-topo')?.after?.(m);
-    m.addEventListener?.('click', (e) => {
-      const b = e.target.closest('[data-tema]'); if (!b) return;
-      if (b.dataset.tema === 'mais') { m.remove(); document.querySelector('[data-open-appearance]')?.click(); return; }
-      trocarTema(b.dataset.tema); m.querySelectorAll('[data-tema]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
-    });
-    setTimeout(() => document.addEventListener('click', function fora(e) { if (!e.target.closest('.vv-menu-tema, [data-ferr="aparencia"]')) { m.remove(); document.removeEventListener('click', fora); } }), 0);
   }
   // Coluna da direita na barra de cima (Paulo, 08/11/2026: "essas coisas da direita não precisam ficar fixas, o foco é
   // no que tá aberto"). A Agenda e a barra da sala de voz são as MESMAS de antes; só deixam de ficar fixas e abrem
@@ -2700,14 +2687,24 @@
         acao: itens.length ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-grupo="${esc(chave)}" aria-expanded="${aberto}">${aberto ? 'Fechar' : 'Ver'}</button>` : '' }).replace(/<\/li>$/, pecas + '</li>');
     }));
     if (doCliente.length) partes.push(`<h3>Nos seus clientes</h3><ul>${doCliente.join('')}</ul>`);
-    if (notifs.length) partes.push(`<h3>Notificações</h3><ul>${notifs.map((n) => linha({ ic: /mencion/i.test(n.texto || '') ? IC_AVISO.mencao : IC_AVISO.sino, novo: !n.lida_em,
+    // Sem nada novo, o último aviso fica no alto, para lembrar o que foi (quadro 41); o resto continua embaixo.
+    const ultimo = novas ? null : [...notifs].sort((a, b) => String(b.criada_em || '').localeCompare(String(a.criada_em || '')))[0] || null;
+    const anteriores = ultimo ? notifs.filter((n) => n !== ultimo) : notifs;
+    const notifLinha = (n) => linha({ ic: /mencion/i.test(n.texto || '') ? IC_AVISO.mencao : IC_AVISO.sino, novo: !n.lida_em,
       titulo: esc(n.texto || 'Aviso'), sub: esc([n.conteudo_nome, quandoFoiAviso(n.criada_em)].filter(Boolean).join(' · ')),
-      acao: n.conteudo_id ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-notif="${esc(n.id)}" data-item="${esc(n.conteudo_id)}">Abrir a peça</button>` : '' })).join('')}</ul>`);
+      acao: n.conteudo_id ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-notif="${esc(n.id)}" data-item="${esc(n.conteudo_id)}">Abrir a peça</button>` : '' });
+    // Sem notificação guardada, o último aviso curto desta sessão (menção, WhatsApp, Música) faz o mesmo papel.
+    const curto = globalThis.ULTIMO_AVISO_CURTO;
+    const curtoLinha = curto?.titulo ? linha({ ic: IC_AVISO.sino, titulo: esc(curto.titulo), sub: esc([curto.frase, quandoFoiAviso(curto.em)].filter(Boolean).join(' · ')) }) : '';
+    if (ultimo) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${notifLinha(ultimo)}</ul>`);
+    else if (!novas && curtoLinha && partes.length) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${curtoLinha}</ul>`);
+    if (anteriores.length) partes.push(`<h3>${ultimo ? 'Anteriores' : 'Notificações'}</h3><ul>${anteriores.map(notifLinha).join('')}</ul>`);
     const resumo = novas ? `${novas} ${novas === 1 ? 'notificação nova' : 'notificações novas'}` : pend.length || doCliente.length ? 'Nada novo nas notificações' : 'Nada novo';
-    const vazio = partes.length ? '' : `<div class="vv-aviso-vazio"><b>Nada novo</b><p>Quando uma entrega sua estiver perto do prazo, um planejamento esperar você ou alguém mencionar você, o aviso aparece aqui.</p></div>`;
+    const vazio = partes.length ? '' : `<div class="vv-aviso-vazio"><b>Nada novo</b><p>Quando uma entrega sua estiver perto do prazo, um planejamento esperar você ou alguém mencionar você, o aviso aparece aqui.</p></div>`
+      + (curtoLinha ? `<h3>Último aviso</h3><ul>${curtoLinha}</ul>` : '');
     const centro = typeof irParaSalaEscritorio === 'function' && (pend.length || doCliente.length);
     return `<div class="vv-avisos-cab"><div><h2 id="vv-avisos-titulo">Avisos</h2><small>${esc(resumo)}</small></div>
-        ${novas ? '<button type="button" class="vc-sec vv-aviso-lidos" data-aviso-lidos>Marcar como lidos</button>' : ''}
+        ${partes.length ? `<button type="button" class="vc-sec vv-aviso-lidos" data-aviso-lidos${novas ? '' : ' disabled title="Tudo já foi lido"'}>Marcar como lidos</button>` : ''}
         <button type="button" class="vc-ico vv-aviso-x" data-aviso-fechar aria-label="Fechar os avisos" title="Fechar (Esc)">${IC_AVISO.fechar}</button></div>
       <div class="vv-avisos-corpo">${partes.join('') || vazio}</div>
       ${centro ? '<div class="vv-avisos-pe"><button type="button" class="vc-sec" data-aviso-centro>Ir ao Centro de Operação</button></div>' : ''}`;
@@ -2839,16 +2836,23 @@
     if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
     if (id === 'musica') { abrirMusica(!body.classList.contains('musica-aberta')); return; }
     if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
+    if (['busca', 'avisos', 'conta'].includes(id)) fecharJanelasDoTopo(id);
     if (id !== 'ajuda') window.VybeTutorial?.dica?.('ferr:' + id);
     if (id === 'busca') document.querySelector('[data-open-spotlight]')?.click();
-    else if (id === 'aparencia') alternarMenuTema();
     else if (id === 'camadas') mostrarCamadas();
     else if (id === 'notas') chamar('abrirNotas');
     else if (id === 'ajuda') window.VybeTutorial?.ajuda?.();
     else if (id === 'conversa') { if (window.VybeConversa?.aberto?.()) window.VybeConversa.fechar(); else window.VybeConversa?.abrir?.('conversa'); }
-    else if (id === 'conta') { hud.querySelector('.vv-menu-tema')?.remove(); alternarMenuConta(); }
+    else if (id === 'conta') alternarMenuConta();
     else if (id === 'avisos') abrirAvisos();
   }
+  // Uma janela por vez no topo (quadro 09): a busca, os avisos e o menu da conta não ficam um por cima do outro.
+  function fecharJanelasDoTopo(menos) {
+    if (menos !== 'busca') document.querySelector('.spotlight-dialog[open]')?.close?.();
+    if (menos !== 'avisos') fecharAvisos();
+    if (menos !== 'conta') hud.querySelector('.vv-menu-conta')?.remove();
+  }
+  document.addEventListener?.('vybe:janela-topo', (e) => fecharJanelasDoTopo(e.detail?.qual));
   // O número do sino: notificações não lidas (o total do servidor; o ponto antigo do cabeçalho não tem número) e o que
   // os planejamentos e clientes pedem. Com o painel aberto, ele se atualiza junto.
   setInterval(() => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); }, 3000);
@@ -3225,23 +3229,15 @@
   }
   window.vybesIrParaSala = irParaSala;
   // Música fora de uma sala com som (fase 3b, quadro 44): um balão em cima do dock com o caminho, não só o aviso.
-  function musicaForaDaSala(botao) {
-    hud.querySelector('.vv-musica-fora')?.remove();
-    const el = document.createElement('div');
-    el.className = 'vv-musica-fora'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Música');
-    el.innerHTML = '<b>Música</b><small>A música toca nas salas com aparelho de som, e todo mundo da sala ouve junto. O Lounge tem.</small>'
-      + '<div class="vv-musica-fora-acoes"><button type="button" class="vv-botao" data-fechar>Agora não</button><button type="button" class="vv-botao acao" data-lounge>Ir para o Lounge</button></div>';
-    hud.append(el);
-    // Chamado pelo "Mais" do celular, o botão do dock está guardado (sem tamanho): o balão sai em cima do dock.
-    const r0 = botao?.getBoundingClientRect?.(), r = r0?.width ? r0 : faixaDock.getBoundingClientRect?.();
-    if (r) { el.style.left = `${Math.max(12, Math.min(innerWidth - el.offsetWidth - 12, r.left + r.width / 2 - el.offsetWidth / 2))}px`; el.style.bottom = `${Math.round(innerHeight - r.top + 10)}px`; }
-    const fechar = () => { el.remove(); document.removeEventListener('pointerdown', fora, true); document.removeEventListener('keydown', esc, true); };
-    const fora = (ev) => { if (!el.contains(ev.target) && ev.target !== botao && !botao?.contains?.(ev.target)) fechar(); };
-    const esc = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); fechar(); } };
-    document.addEventListener('pointerdown', fora, true); document.addEventListener('keydown', esc, true);
-    el.querySelector('[data-fechar]').addEventListener('click', fechar);
-    el.querySelector('[data-lounge]').addEventListener('click', () => { fechar(); irParaSala('lounge'); setTimeout(() => { if (typeof escritorioNaPista === 'function' && escritorioNaPista()) fn('abrirMusicaEscritorio')?.(); pintarDock(); }, 1800); });
-    el.querySelector('[data-lounge]').focus({ preventScroll: true });
+  // Música fora de uma sala com som (quadros 44 e 45): o aviso curto de sempre (canto de cima, mesmo desenho dos outros),
+  // com o caminho "Entrar no Lounge", que tem som, em vez de só avisar.
+  function musicaForaDaSala() {
+    const entrar = () => { irParaSala('lounge'); setTimeout(() => { if (typeof escritorioNaPista === 'function' && escritorioNaPista()) fn('abrirMusicaEscritorio')?.(); pintarDock(); }, 1800); };
+    const el = fn('mostrarAvisoCurto')?.({ chave: 'musica-fora', icone: 'musica', titulo: 'A música toca dentro de uma sala',
+      frase: 'Entre numa sala com aparelho de som para escolher o que tocar; quem está nela ouve junto. O Lounge tem.',
+      acoes: [{ rotulo: 'Entrar no Lounge', principal: true, fazer: entrar }], tempo: 10000 });
+    el?.querySelector?.('.vc-acao')?.focus?.({ preventScroll: true });
+    if (!el) entrar();
   }
   function minhaSalaDaConta() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;

@@ -23,13 +23,14 @@ test('Prédio: número do andar neutro, nome inteiro, situação num ponto e avi
 test('TV: o player fica (o clipe que está passando e quem pôs); Desligar é o perigoso do padrão', () => {
   assert.ok(esc.includes('const idPassando = '), 'lê o vídeo que está passando');
   assert.match(esc, /Passando agora\$\{quemPassou \? " · posto por " \+ safeText\(quemPassou\) : ""\}/);
-  assert.match(esc, /\$\{telaHtml\}\r?\n<div class="ofc-tv-opcoes">/);
+  assert.match(esc, /\$\{telaHtml\}\r?\n<div class="ofc-tv-opcoes vb-alternar"/);
   assert.match(css, /body\.mundo \.ofc-tv-desligar\{[^}]*border:1px solid #F6BBC4;[^}]*color:#B42318/);
   assert.match(css, /body\.mundo \.ofc-tv-opcao\.on\{background:var\(--ds-sel-fundo\)/);
 });
 
-test('Música fora de uma sala com som: um caminho (Ir para o Lounge), não só o aviso', () => {
-  assert.match(js, /function musicaForaDaSala\(botao\) \{/);
-  assert.match(js, /!escritorioNaPista\(\) && zonas3d\(\)\?\.lounge\) musicaForaDaSala\(b\);/);
+test('Música fora de uma sala com som: um caminho (Entrar no Lounge), não só o aviso', () => {
+  // Desde a frente topo (quadros 44/45) o caminho vai no aviso curto de sempre; ver tests/redesign-topo.test.mjs.
+  assert.match(js, /function musicaForaDaSala\(\) \{/);
+  assert.match(js, /musicaForaDaSala\(b\);/);
   assert.match(js, /irParaSala\('lounge'\)/);
 });

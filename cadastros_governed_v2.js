@@ -103,9 +103,9 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
 
       .fc-main-col { flex:1; display:flex; flex-direction:column; min-width:0; border-right:1px solid rgba(255,255,255,0.06); }
       
-      .fc-header { position:relative; padding:28px 32px 20px; display:flex; flex-direction:column; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
-      .fc-kicker { font:800 11px monospace; color:#ffb000; letter-spacing:1px; text-transform:uppercase; }
-      .fc-sazonal-btn { align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
+      /* Só segura o X (quadro 08): sem o rótulo "Cadastro rápido" e sem a faixa vazia em cima da pergunta. */
+      .fc-header { position:relative; height:0; padding:0; flex-shrink:0; }
+      .fc-sazonal-btn { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; margin-top:4px;
         background:rgba(255,176,0,.1); border:1px solid rgba(255,176,0,.32); color:#ffd9a6;
         border-radius:999px; padding:6px 14px; font:600 12px var(--mac-ui, sans-serif); cursor:pointer;
         transition:background .15s, color .15s; }
@@ -223,7 +223,6 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         .fc-label { margin-top:0; width:100%; }
         .fc-auto-group { grid-template-columns:1fr; }
         .fc-modal { margin:12px; height:auto; max-height:calc(100dvh - 24px); }
-        .fc-header { padding:20px 24px 16px; }
         .fc-body { padding:20px 24px; }
       }
     
@@ -233,6 +232,7 @@ function cadastroNomeNoBanco(nome, fichas, normalizar) {
         background:rgba(255,255,255,.05); color:#7d8b96; font:600 10.5px var(--mac-ui,system-ui);
         transition:background-color .14s var(--curva), color .14s var(--curva); }
       .fc-trilha-passo:disabled { opacity:.4; cursor:default; }
+      .fc-trilha-texto { display:none; }
       .fc-trilha-passo.feito { background:rgba(255,176,0,.10); color:#ffcf8a; }
       .fc-trilha-passo.agora { background:#ffb000; color:#061016; }
       .fc-pergunta { margin:0 0 5px; color:#fff; font:700 27px/1.15 var(--mac-ui,system-ui); letter-spacing:-.02em; }
@@ -1048,7 +1048,10 @@ function fcGrupoDoQuadro(grupo) {
           onclick="fcEscolherQuadro('${q}')">
           <b>${esc2(FC_QUADROS[q].nome)}</b>
           <small>${q === 'producao' ? 'Conteúdo que a Vybe produz e publica'
-                                    : 'Pedido que chega e precisa de triagem'}</small></button>`).join('');
+                                    : 'Pedido que chega e precisa de triagem'}</small></button>`).join('')
+        // O calendário sazonal é um atalho para começar (quadro 08): junto das opções, não solto no topo.
+        + `<button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg> Começar pelo calendário sazonal</button>`;
     }
     if (p === 'client') {
       const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
@@ -1638,7 +1641,8 @@ function fcGrupoDoQuadro(grupo) {
     caixa.innerHTML = `
       <div class="fc-trilha">${FC_PASSOS.map((q, i) => `
         <button type="button" class="fc-trilha-passo ${i === fcPasso ? 'agora' : ''} ${i < fcPasso ? 'feito' : ''}"
-          onclick="fcIrPara(${i})" ${i > fcPasso ? 'disabled' : ''}>${esc(fcRotulo(q))}</button>`).join('')}</div>
+          onclick="fcIrPara(${i})" ${i > fcPasso ? 'disabled' : ''} title="Etapa ${i + 1}: ${esc(fcRotulo(q))}"${i === fcPasso ? ' aria-current="step"' : ''}><span class="fc-trilha-nome">${esc(fcRotulo(q))}</span></button>`).join('')}
+        <span class="fc-trilha-texto">Etapa ${fcPasso + 1} de ${FC_PASSOS.length} · ${esc(fcRotulo(p))}</span></div>
       <h2 class="fc-pergunta">${esc(titulo)}</h2>
       ${sub ? `<p class="fc-sub">${esc(sub)}</p>` : ''}
       <div class="fc-resposta">${fcCorpo(p)}</div>
@@ -1835,14 +1839,11 @@ function fcGrupoDoQuadro(grupo) {
     };
 
     overlay.innerHTML = `
-      <div class="fc-modal" role="dialog" aria-modal="true" aria-label="Cadastro rápido">
+      <div class="fc-modal" role="dialog" aria-modal="true" aria-label="Criar">
          
          <div class="fc-main-col">
              <div class="fc-header">
                 <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()"></button>
-                <div class="fc-kicker">Cadastro rápido</div>
-                <button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
-                   <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg> Calendário sazonal</button>
              </div>
              <div class="fc-body"><div id="fc-guia"></div></div>
          </div>
@@ -1850,7 +1851,7 @@ function fcGrupoDoQuadro(grupo) {
          <!-- RIGHT COLUMN: LIVE PREVIEW -->
          <div class="fc-side-col">
              
-             <div class="fc-side-title">Prévia de destino</div>
+             <div class="fc-side-title">Como vai chegar na equipe</div>
              
              <div class="fc-preview-card">
                  <div class="fc-prev-head">
@@ -1860,7 +1861,7 @@ function fcGrupoDoQuadro(grupo) {
                  
                  <div class="fc-prev-body">
                     <div class="fc-prev-item">
-                       <small>Grupo de destino</small>
+                       <small>Grupo</small>
                        <div id="fc-prev-group">Redação</div>
                     </div>
                     
@@ -1870,14 +1871,14 @@ function fcGrupoDoQuadro(grupo) {
                     </div>
                     
                     <div class="fc-prev-item">
-                       <small>Equipe Atribuída</small>
+                       <small>Equipe</small>
                        <div class="fc-prev-users" id="fc-prev-users">
                           Definido na Triagem
                        </div>
                     </div>
                     
                     <div class="fc-prev-item">
-                       <small>Sinalização Visual</small>
+                       <small>Status</small>
                        <div id="fc-prev-status">
                           <span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">A fazer</span>
                        </div>
@@ -1886,7 +1887,7 @@ function fcGrupoDoQuadro(grupo) {
              </div>
              
              <div class="fc-helper-text">
-                O cartão acima reflete como a demanda chegará na visão da equipe, considerando o formato escolhido e as regras de entrada (automações).
+                A prévia segue o formato escolhido e as regras de entrada (automações).
              </div>
          </div>
          
