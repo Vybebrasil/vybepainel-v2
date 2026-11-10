@@ -93,7 +93,7 @@ test('TV (44): em cima do dock, sem fundo desfocado, fonte num alternador e sem 
   assert.ok(esc.includes('const idPassando = '), 'o clipe que está passando continua no alto');
   assert.match(css, /body\.mundo \.workflow-modal\.ofc-tv-janela\{top:auto;bottom:calc\(var\(--vv-dock-alto,0px\)/);
   assert.match(css, /body\.mundo \.ofc-tv-tela span\{[^}]*background:rgba\(255,255,255,\.14\)/);
-  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\)\)\{width:min\(940px,94vw\)!important/);
+  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\)\)\{width:min\(940px,94vw\)!important/);
 });
 
 test('Música (44/45): fora de uma sala com som, o aviso curto de sempre com "Entrar no Lounge", também fora do escritório', () => {
