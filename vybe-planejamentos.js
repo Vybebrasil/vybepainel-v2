@@ -677,7 +677,9 @@ function pljDestinos() {
   const destinos = {};
   for (const f of PLJ_FORMATOS) {
     if (f === 'Outro' || typeof cadastrosDestiny !== 'function') continue;
-    const d = cadastrosDestiny(PLJ_FORMATO_DO_PAINEL[f], true, false, []);
+    // Fotografia do planejamento usa a foto do banco do cliente (Paulo, 09/11/2026: "usar foto que já existe pra eu não
+    // travar o fluxo"): entra com o material pronto, em Design & Edição. Banco fraco: quem faz avisa e marca captação.
+    const d = cadastrosDestiny(PLJ_FORMATO_DO_PAINEL[f], true, f === 'Fotografia', []);
     destinos[f] = { grupo_id: d.group, grupo: d.groupLabel, status: chaveDeStatus(d.status), statusRotulo: d.status, captacao: d.capture ? 'Agendar Captação' : '', responsaveis: (d.assignees || []).map(String) };
   }
   return destinos;
@@ -696,7 +698,7 @@ function confirmarCadastroPlanejamento() {
   const linha = ([f, lista]) => {
     const d = destinos[f], outro = f === 'Outro', equipe = pessoas(d?.responsaveis);
     const quem = outro ? 'Sem responsável: quem faz a triagem distribui.' : !equipe.length ? 'Fila de Produção, para a captação.'
-      : equipe.length > 1 ? `Vai para quem mais fez peças de ${pljEsc(p.cliente)}.` : `Vai para ${pljEsc(equipe[0].name.split(' ')[0])}.`;
+      : equipe.length > 1 ? `Uma por pessoa da equipe, para quem tem menos peças até a veiculação (no empate, quem mais fez peças de ${pljEsc(p.cliente)}).` : `Vai para ${pljEsc(equipe[0].name.split(' ')[0])}.`;
     const dias = lista.map((x) => dia(x.data)).filter(Boolean);
     return `<li><div class="plj-cad-topo"><b><em>${lista.length}</em> ${pljEsc(PLJ_FORMATO_DO_PAINEL[f] || f)}</b>${outro ? etiqueta('Nova demanda') : `${etiqueta(d?.statusRotulo || 'A fazer')}${d?.captacao ? etiqueta(d.captacao) : ''}`}</div>
       <div class="plj-cad-meio"><span class="plj-cad-onde">${pljEsc(outro ? 'Solicitações de demanda' : d?.grupo || 'Produção')}</span><span class="plj-cad-equipe">${equipe.slice(0, 5).map(foto).join('')}<small>${quem}</small></span></div>

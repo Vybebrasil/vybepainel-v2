@@ -51,3 +51,63 @@ test('boneco do Habbo: cabelo esculpido entra no lugar do cabelo de blocos; ócu
   assert.match(mh, /ACESSORIOS = \/\^\(ha\|he\|fa\|ea\)-\//);
   assert.match(mh, /cabeloHabbo/); assert.match(mh, /casaco: temCasaco/);
 });
+
+test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro da pegada, na grade fina', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  assert.equal(m.tipoModelado('exe_chair2'), 'cadeira');
+  assert.equal(m.tipoModelado('xmas11_luxsofa2'), 'sofa');
+  assert.equal(m.tipoModelado('bling15_pooltable'), 'sinuca');
+  assert.equal(m.tipoModelado('hygge_c18_shelf'), 'estante');
+  assert.equal(m.tipoModelado('qualquer_coisa', { deita: true }), 'cama');
+  assert.equal(m.tipoModelado('thai_c21_woodenstatue'), null, 'estátua fica esculpida');
+  const cores = m.coresDaPaleta(['#1f1d1a', '#3a8fd0', '#f2c230', '#e5484d']);
+  assert.equal(cores.principal, '#3a8fd0', 'contorno escuro não vira a cor principal');
+  for (const t of m.TIPOS_MODELADOS) for (const [w, d] of [[1, 1], [2, 1], [2, 3]]) {
+    const o = m.montarMovel(t, { w, d, cores, classe: t });
+    assert.ok(o.solidos.length > 3, t);
+    for (const b of [...o.solidos, ...o.luzes]) {
+      assert.ok(Math.abs(b.x) <= w / 2 + 1e-6 && Math.abs(b.z) <= d / 2 + 1e-6, `${t} ${w}×${d}: bloco fora da pegada`);
+      assert.ok(Math.abs(b.w * 64 - Math.round(b.w * 64)) < .3, `${t}: fora da grade fina (1/64)`);
+    }
+  }
+});
+
+test('biblioteca: os móveis dos quartos modelados um a um entram antes da receita do tipo', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const c of ['exe_chair2', 'hygge_c25_tv', 'exe_table', 'xmas11_luxsofa2', 'hc3_stereo', 'skorea_c22_drinksmachine', 'mm_lamp', 'xmas_c22_festivetree2']) {
+    assert.ok(m.temModelo(c), c);
+    const o = m.montarMovel(null, { w: 2, d: 1, classe: c });
+    assert.ok(o && o.solidos.length > 6, c + ' tem detalhe');
+  }
+  assert.equal(m.temModelo('winter15_iceskater'), false, 'estátua continua esculpida');
+});
+
+test('lote 2: peças de construção viram bloco na paleta; móveis dos outros quartos têm modelo próprio', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  assert.equal(m.tipoModelado('xmas11_woodfloor', null, { nome: 'Piso Madeira', categoria: 'Pisos do acervo' }), 'bloco');
+  assert.equal(m.tipoModelado('bc_cylinder_recolorable', null, { nome: 'Cilindro', categoria: 'Blocos e materiais' }), 'bloco');
+  const piso = m.montarMovel('bloco', { w: 2, d: 2, classe: 'xmas11_woodfloor' });
+  assert.ok(piso.solidos.length > 8, 'piso de madeira com tábuas');
+  for (const c of ['vikings_bed', 'bed_armas_two', 'js_exe_sofa', 'xmas11_luxsofa1', 'vikings_indoorstove', 'carpet_polar', 'st_wildwest_barrel', 'cpunk_c15_table', 'hblooza_bbq', 'modern_c17_tv', 'uni_desk']) assert.ok(m.temModelo(c), c);
+});
+
+test('motor de móveis: nenhuma peça empata face com outra (o que serrilhava ao mover a câmera)', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const t of m.TIPOS_MODELADOS) {
+    const b = [...(o => [...o.solidos, ...o.luzes])(m.montarMovel(t, { w: 2, d: 2, classe: t === 'bloco' ? 'xmas11_woodfloor' : t }))];
+    for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+      const A = b[i], B = b[j];
+      const junto = Math.min(A.x + A.w / 2, B.x + B.w / 2) - Math.max(A.x - A.w / 2, B.x - B.w / 2) > 1e-6 && Math.min(A.z + A.d / 2, B.z + B.d / 2) - Math.max(A.z - A.d / 2, B.z - B.d / 2) > 1e-6;
+      assert.ok(!(junto && Math.abs(A.y + A.h - (B.y + B.h)) < 1e-7 && A.cor !== B.cor), `${t}: topos empatados`);
+    }
+  }
+});
+
+test('lote 3: peças especiais dos quartos (estúdio, festa, banho, jogo) têm modelo próprio', async () => {
+  const m = await import('../mundo/moveis-voxel.mjs');
+  for (const c of ['classic7_djbooth', 'studio_camera', 'scifi_r17_bed', 'val15_hottub', 'CF_250_goldenchessboard', 'xmas_c18_presents', 'virus_r16_turttank', 'mafia_c26_drinkcabinet', 'gaming_c18_setuppro', 'attic15_carpet']) {
+    assert.ok(m.temModelo(c), c);
+    const o = m.montarMovel(null, { w: 2, d: 2, classe: c });
+    assert.ok(o.solidos.length + o.luzes.length > 4, c);
+  }
+});
