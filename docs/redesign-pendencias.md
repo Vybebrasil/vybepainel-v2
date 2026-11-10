@@ -30,6 +30,7 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
     abrem na mesma janela das novas (pedido do Paulo: "não parece que tá integrado").
   - Hoje e Painel (31, 01, 02, 03) — "De quem é este dia?", guia, agenda de hoje e o que os agentes viram; Painel com um
     cabeçalho, números com ação e uma barra só; agenda da semana com seletor; Demandas com chips.
+  - Clientes e Cérebro (05, 53, 54, 55) — avisos só do que pede ação, chips Ativos/Inativos/Carteira, menos colunas (menu Colunas), head na cor da carteira; ficha do cérebro em português; Sinapses com rótulos em português e o selo Qwen; Mapa do Cérebro claro, acima do dock, com X e filtros em chips. Fora: "Refazer o estudo" (não existe no servidor; há "Consultar de novo").
   - Minha sala (34) — Hoje estreito com a agenda dentro, faixa com nome da sala e quem está nela, Decorar e Convidar.
 - **Frentes que estavam trabalhando quando este arquivo foi escrito** (cada uma numa pasta e branch próprios, criados a
   partir do branch de junção; o trabalho pode estar SEM COMMIT na pasta — confira `git -C <pasta> status`):
@@ -40,7 +41,6 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
   | topo | C:/Projetos-Vybe/vybe-os-r-topo | codex/r-topo | 08 e 64 Criar, 09 e 66 Busca/Ajuda/Boletim, 41 Sino, 42 Conversa, 44 TV/Música, 45 avisos curtos, 46 menus do topo |
   | negocio | C:/Projetos-Vybe/vybe-os-r-negocio | codex/r-negocio | 18 Carteira/Contratos/Churn/Onboarding, 19 e 58 Funil/Pacotes, 20 Contas, 59 Finanças por cliente, 56 avisos de ativação, 13 e 60 Conta |
   | time | C:/Projetos-Vybe/vybe-os-r-time | codex/r-time | 17 e 49 Fornecedores/Impressões/Creators, 21 e 61 RH, 22 Equipe online, 39 Toolkit, 40 Academy, 48 Planejamentos, 25 marca "pedido" no editor, 62 e 63 Agentes |
-  | cerebro | C:/Projetos-Vybe/vybe-os-r-cerebro | codex/r-cerebro | 05 Gestão de clientes (o 50–52 manda), 53 Cérebro na ficha, 54 Sinapses, 55 Mapa do Cérebro |
   | mundo | C:/Projetos-Vybe/vybe-os-r-mundo | codex/r-mundo | 32 Cidade, 33 Prédio, 43 Camadas, 35 Loja, 36 Ranking, 37 Conquistas (arte em voxel, não Habbo) |
   | sistema | C:/Projetos-Vybe/vybe-os-r-sistema | codex/r-sistema | 00, 29, 30: seletor do padrão no lugar de todo `<select>` no mundo, texto clicável vira botão, foco laranja, sem rodapé técnico |
 
