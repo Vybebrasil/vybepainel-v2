@@ -53,3 +53,10 @@ test('janelas de formulário cabem acima do dock (Cancelar e Salvar da Nova reun
   assert.ok(ler('vybe-styles.css').includes(':where(body:not(.mundo)) .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:88vh!important}'), 'os 88% valem só fora do mundo');
   assert.ok(ler('vybe-mundo-clientes-ficha.css').includes('max-height:var(--vv-janela-alto,calc(100dvh - 32px))'));
 });
+
+test('janela de notebook (1110 px): busca numa linha, alternador da semana sem passar por baixo das setas, Ver como quebra', () => {
+  assert.match(css, /body\.mundo \.vv-busca-larga \.vv-busca-texto\{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
+  assert.match(css, /body\.mundo \.section-title :is\(\.semana-abas,\.dias-setas,\.dias-layout-btn\)\{flex:0 0 auto\}/);
+  assert.match(css, /body\.mundo \.ops-segmentos\{flex-wrap:wrap;overflow:visible;row-gap:8px\}/);
+  assert.ok(ler('docs/padrao-visual.md').includes('Texto branco no laranja fica (Paulo, 10/11/2026'), 'decisão do contraste registrada');
+});

@@ -5523,3 +5523,10 @@ body.mundo .vv-bloco-prio{container-type:inline-size}
    a varredura de 10/11/2026 achou Cancelar e Salvar da Nova reunião atrás do dock. */
 body.mundo{--vv-janela-alto:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 28px)}
 body.mundo .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:var(--vv-janela-alto);top:calc(50% - var(--vv-dock-alto,0px) / 2 - 7px)}
+/* Janela de notebook: "Buscar em tudo" não quebra em duas linhas no topo; se faltar espaço, encurta. */
+body.mundo .vv-busca-larga .vv-busca-texto{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Janela de notebook (varredura de 10/11/2026, 1110 px): o alternador Redes/Demandas/Pendências era espremido até
+   ficar mais estreito que os botões e "Pendências" passava por baixo das setas; sem encolher, ele desce de linha.
+   A fileira "Ver como" do Painel quebra em linhas em vez de esconder Equipe numa rolagem lateral. */
+body.mundo .section-title :is(.semana-abas,.dias-setas,.dias-layout-btn){flex:0 0 auto}
+body.mundo .ops-segmentos{flex-wrap:wrap;overflow:visible;row-gap:8px}
