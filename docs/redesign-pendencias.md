@@ -33,19 +33,12 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
   - Clientes e Cérebro (05, 53, 54, 55) — avisos só do que pede ação, chips Ativos/Inativos/Carteira, menos colunas (menu Colunas), head na cor da carteira; ficha do cérebro em português; Sinapses com rótulos em português e o selo Qwen; Mapa do Cérebro claro, acima do dock, com X e filtros em chips. Fora: "Refazer o estudo" (não existe no servidor; há "Consultar de novo").
   - Negócio (13, 18, 19, 20, 56, 58, 59, 60) — seletor de período (vbMesHtml), números numa linha, migração só para quem administra atrás de "Ver o que falta", Novo lead e Novo pacote no cabeçalho, Onboarding com esteira, WhatsApp da conta numa linha. Fora: item ativo do menu da conta segue laranja (o 60 manda sobre o 13).
   - Minha sala (34) — Hoje estreito com a agenda dentro, faixa com nome da sala e quem está nela, Decorar e Convidar.
-- **Frentes que estavam trabalhando quando este arquivo foi escrito** (cada uma numa pasta e branch próprios, criados a
-  partir do branch de junção; o trabalho pode estar SEM COMMIT na pasta — confira `git -C <pasta> status`):
-
-  | Frente | Pasta | Branch | Quadros |
-  | --- | --- | --- | --- |
-  | operacao | C:/Projetos-Vybe/vybe-os-r-operacao | codex/r-operacao | 04 Agenda e captações, 06 gaveta, 28 celular, 65 cartão da captação |
-  | topo | C:/Projetos-Vybe/vybe-os-r-topo | codex/r-topo | 08 e 64 Criar, 09 e 66 Busca/Ajuda/Boletim, 41 Sino, 42 Conversa, 44 TV/Música, 45 avisos curtos, 46 menus do topo |
-  | time | C:/Projetos-Vybe/vybe-os-r-time | codex/r-time | 17 e 49 Fornecedores/Impressões/Creators, 21 e 61 RH, 22 Equipe online, 39 Toolkit, 40 Academy, 48 Planejamentos, 25 marca "pedido" no editor, 62 e 63 Agentes |
-  | mundo | C:/Projetos-Vybe/vybe-os-r-mundo | codex/r-mundo | 32 Cidade, 33 Prédio, 43 Camadas, 35 Loja, 36 Ranking, 37 Conquistas (arte em voxel, não Habbo) |
-  | sistema | C:/Projetos-Vybe/vybe-os-r-sistema | codex/r-sistema | 00, 29, 30: seletor do padrão no lugar de todo `<select>` no mundo, texto clicável vira botão, foco laranja, sem rodapé técnico |
-
-  O que falta em cada quadro, item por item, está em `docs/redesign-auditoria-2026-11-10.md`. As regras comuns das frentes
-  estão abaixo.
+- **Todas as 17 frentes já estão juntas neste branch** (10/11/2026, noite), com `npm run check` passando e as 47 telas do dock
+  abrindo sem erro de script no Chromium e no WebKit (1440, 1110 e 390). Além das de cima: Operação (04, 06, 28, 65), Topo (08,
+  09, 41, 42, 44, 45, 46, 64, 66), Time (17, 21, 22, 25, 39, 40, 48, 49, 61, 62, 63), Mundo (32, 33, 35, 36, 37, 43) e Sistema
+  (00, 29, 30: seletor do padrão no lugar de todo select no mundo, texto clicável como botão, foco, sem rodapé técnico).
+- **Falta:** a re-auditoria dos 66 quadros contra este branch (relatório em
+  `docs/redesign-reauditoria-2026-11-10.md` quando sair), corrigir o que ela achar, e publicar.
 
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
