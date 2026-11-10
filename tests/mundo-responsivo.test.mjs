@@ -14,7 +14,7 @@ test('números do Hoje pela largura do próprio painel (na Minha sala o Hoje é 
 
 test('nada por baixo do dock: o Hoje e as janelas dos módulos terminam acima dele; no celular o dock rola por dentro', () => {
   assert.ok(css.includes('html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}'));
-  assert.ok(css.includes('html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa){bottom:'));
+  assert.ok(css.includes('html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa,#vv-comercial,#vv-pessoas,#vv-conteudo,#vv-impressoes){bottom:'));
   assert.ok(css.includes('.vv-dock-salas-faixa > .vq-dock{overflow-x:auto;'));
   assert.ok(css.includes('@media (max-width:560px){html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:none}}'), 'topo só com ícones no celular');
 });

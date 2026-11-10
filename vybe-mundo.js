@@ -253,8 +253,12 @@
     if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto || window.VybeSetor?.aberto?.()) return;
     if (JANELAS_DE_MODULO.some((n) => { try { return window[n]?.aberto?.(); } catch { return false; } })) return;
     if (document.getElementById('vv-agentes')?.isConnected && !document.getElementById('vv-agentes').hidden) return;
+    // Pente-fino 09/11/2026: Conversas (WhatsApp) e a placa (Equipe online, Jogos) também são telas à vista; sem isso o dock
+    // voltava para o Hoje ou para a Direção de arte (criacaoPeloDock de uma visita antiga) com elas abertas.
+    if (!document.getElementById('vv-whatsapp')?.hidden && document.getElementById('vv-whatsapp')?.isConnected) return;
+    if (placa() && !placa().hidden) return;
     // A Criação aberta pela Direção de arte do dock continua acesa como Direção de arte, não como Hoje.
-    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' ? 'direcao' : 'hoje');
+    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' && !body.classList.contains('mundo-modulo') ? 'direcao' : 'hoje');
   }
   if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
     const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
@@ -302,12 +306,25 @@
   // antigo) e sai da tela antiga antes de abrir outra coisa. Antes as janelas se empilhavam e a tela antiga que ficava
   // atrás remarcava o dock.
   const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
+  // Balões do painel antigo (status, responsável, campos, cor e menu do grupo, lote): todos são .status-editor com um fundo
+  // .status-editor-backdrop e cada um tem o próprio fechar. Pente-fino 09/11/2026: o Esc fechava o módulo por baixo e os
+  // balões ficavam soltos por cima da tela seguinte.
+  const SEL_BALOES = '.status-editor, .status-editor-backdrop';
+  function fecharBaloesAntigos() {
+    if (!document.querySelector(SEL_BALOES)) return false;
+    for (const f of ['closeStatusEditor', 'fecharSeletorDeDono', 'fecharEscolha', 'fecharMenuDoGrupo', 'fecharMenuDeLote']) { try { window[f]?.(); } catch { /* segue */ } }
+    document.querySelectorAll(SEL_BALOES).forEach((el) => el.remove());
+    return true;
+  }
   function limparTela() {
+    fecharBaloesAntigos();
     fecharDaDireita();
     if (!placa().hidden) fecharPlaca(); // a placa aberta por baixo de um módulo escondia a barra de cima
     window.VybeSetor?.fechar?.();
     if (!gestao.hidden) fecharGestao();
     window.VybeAgentes?.fechar?.();
+    // As Conversas e outras janelas soltas fecham pelo aviso (cada uma escuta o seu; o WhatsApp não depende do mundo).
+    window.dispatchEvent?.(new CustomEvent('vybe:trocar-tela'));
     fecharJanelasDeModulo(); fecharSetor();
     try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
     document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
@@ -376,7 +393,7 @@
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
-    if (id === 'tarefas') { if (eu) chamar('chooseFocusUser', String(eu.id)); else chamar('openFocusPicker'); return; }
+    if (id === 'tarefas') { marcarTrilho('tarefas'); if (eu) chamar('chooseFocusUser', String(eu.id)); else chamar('openFocusPicker'); return; }
     ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
       agenda: () => abrirAgenda(), clientes: () => chamar('chooseClientMode'), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
@@ -3119,6 +3136,7 @@
     if (e.key === 'f' && !campo && !e.metaKey && !e.ctrlKey && !e.altKey && body.classList.contains('mundo-modulo')) { alternarTelaCheia(); return; }
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     if (campo) { campo.blur(); return; }
+    if (fecharBaloesAntigos()) { janelaNoEsc = null; return; }
     // Conversa/ferramentas e busca abertas pelo ícone da barra: o foco fica fora delas, então o Esc chega aqui.
     const busca = document.querySelector('dialog.spotlight-dialog[open]');
     if (busca) { busca.close(); janelaNoEsc = null; return; }
@@ -3442,7 +3460,7 @@
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
     if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
-    if (modulo) marcarTrilhoDoModulo();
+    if (modulo && !window.VybeSetor?.aberto?.()) marcarTrilhoDoModulo();
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);
     body.classList.toggle('mundo-visivel', visivel);
