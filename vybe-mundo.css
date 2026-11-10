@@ -6159,3 +6159,15 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
 /* A Carteira (Saúde, Onboarding, Contratos, Churn) mede a altura da camada dela, que já termina acima do dock; com 100dvh
    ela passava por baixo do dock e da barra de baixo do celular (fase 3d). */
 body.mundo .vc-camada > #vv-carteira{height:100%}
+
+/* ======================================================================================
+   PRODUÇÃO, VISÃO GERAL (redesign, quadro 15, 10/11/2026). "Pede ação" primeiro, com o botão de resolver em cada linha;
+   os seis números numa linha de resumo (vbResumoHtml), com o zero discreto.
+   ====================================================================================== */
+.vs-pede .vs-passos li{padding:8px 10px}
+.vs-pede .vs-passos small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.vs-resolver{white-space:nowrap}
+.vs-resumo .vb-resumo{margin:0}
+.vs-resumo .vb-resumo-item{background:#FFFFFF;border-color:#ECE6DC;color:#5E5A53}
+.vs-resumo .vb-resumo-item.zero{background:transparent;border-style:dashed;color:#8A847A}
+.vs-resumo .vb-resumo-item b{white-space:nowrap}

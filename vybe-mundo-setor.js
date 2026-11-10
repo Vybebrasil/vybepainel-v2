@@ -42,6 +42,9 @@
   el.className = 'vv-gestao vv-setor-visao'; el.hidden = true; el.setAttribute('aria-label', 'Visão geral do setor');
   document.body.append(el);
   let atual = '', ctx = null, geracao = 0;
+  // Mensal/Anual só onde muda algo (quadro 15): o painel que não recebeu número nenhum do servidor marca aqui e a barra
+  // de período sai do topo (trocar o mês não traria nada).
+  let periodoSemEfeito = false;
   const per = { tipo: 'mensal', mes: mesAtual() }; // período dos painéis que o servidor recorta (Comercial e Finanças)
 
   // Leituras do servidor com cache de 1 minuto por endereço.
@@ -111,7 +114,40 @@
   const linha = (corpo) => `<div class="vs-linha">${corpo}</div>`;
   // Próximos passos (redesign, quadro 57): o que destrava o setor, cada um com o caminho para a aba. ponto: a = âmbar
   // (falta algo), r = vermelho (atrasado), v = verde (andando), c = neutro.
-  const passos = (lista) => (lista.length ? `<ul class="vs-passos">${lista.map((p) => `<li><i class="vs-ponto ${p.ponto || 'c'}" aria-hidden="true"></i><span><b>${esc(p.titulo)}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</span>${p.ir ? abrirAba(p.ir[0], p.ir[1]) : ''}</li>`).join('')}</ul>` : aviso('Nada travando o setor agora.'));
+  const passos = (lista, vazio = 'Nada travando o setor agora.') => (lista.length ? `<ul class="vs-passos">${lista.map((p) => `<li><i class="vs-ponto ${p.ponto || 'c'}" aria-hidden="true"></i><span><b>${esc(p.titulo)}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</span>${p.botao ?? (p.ir ? abrirAba(p.ir[0], p.ir[1]) : '')}</li>`).join('')}</ul>` : aviso(vazio));
+  // Pede ação da Produção (quadro 15): os alertas da operação até "esperando o cliente" (nível 4), na ordem de gravidade,
+  // cada um com o caminho para resolver: uma peça só abre a peça; várias abrem a lista por trás do alerta (o mesmo espiar
+  // da Gestão, onde cada linha abre a peça ou o cliente); a semana cheia leva ao Painel de trabalho. Nível 5 em diante
+  // (cobertura, sem planejamento) continua nos cartões de baixo.
+  function pedeAcaoProducao(N, filaAtr) {
+    const linhas = (N?.alertas || []).map((a, i) => ({ a, i })).filter(({ a }) => a && a.nivel <= 4).map(({ a, i }) => {
+      const t = String(a.texto || ''), p = t.indexOf(':');
+      const ids = a.ref?.tipo === 'pecas' ? a.ref.ids || [] : [];
+      const rotulo = a.nivel === 4 ? 'Cobrar' : 'Resolver';
+      const botao = ids.length === 1 ? `<button type="button" class="vs-abrir vs-resolver" data-vs-peca="${esc(ids[0])}">Abrir a peça →</button>`
+        : a.ref?.tipo === 'semana' ? abrirAba('gestor', 'Ver a semana')
+          : a.ref ? `<button type="button" class="vs-abrir vs-resolver" data-espiar="alerta:${i}">${rotulo} →</button>` : '';
+      return { ponto: a.nivel === 1 ? 'r' : a.nivel <= 3 ? 'a' : 'c', titulo: p > 0 ? t.slice(0, p) : t, sub: p > 0 ? esc(t.slice(p + 1).trim()) : '', botao };
+    });
+    if (filaAtr) linhas.push({ ponto: 'r', titulo: `${num(filaAtr)} ${filaAtr === 1 ? 'peça atrasada' : 'peças atrasadas'} na sua fila`, sub: 'na ordem do dia, em Minhas tarefas', ir: ['tarefas', 'Abrir a fila'] });
+    return passos(linhas, 'Nada pedindo ação na produção agora.');
+  }
+  // Os seis números da Produção numa linha (vbResumoHtml): o que pede atenção ganha o tom; zero fica discreto.
+  function resumoProducao({ prontas, previstas, entregues, noPrazo, atrasadas, emRisco, emAprov, prox, fila, filaAtr }) {
+    const n = (v) => Number(v) || 0, s = (v, um, varios) => (n(v) === 1 ? um : varios);
+    const itens = [
+      previstas ? { valor: `${num(prontas)} de ${num(previstas)}`, rotulo: `previstas da semana prontas (${pct((n(prontas) / previstas) * 100)}) · ${num(entregues)} ${s(entregues, 'entrega registrada', 'entregas registradas')}`, tom: n(prontas) >= previstas ? 'ok' : '' }
+        : { rotulo: 'nenhuma peça prevista nesta semana', tom: 'zero' },
+      noPrazo != null ? { valor: pct(noPrazo), rotulo: 'no prazo (últimas 12 semanas)', tom: noPrazo < 80 ? 'atencao' : '' } : { rotulo: 'no prazo: sem histórico ainda', tom: 'zero' },
+      { valor: num(atrasadas), rotulo: s(atrasadas, 'atrasada agora', 'atrasadas agora'), tom: n(atrasadas) ? 'alerta' : 'zero' },
+      { valor: num(emRisco), rotulo: 'com risco de furo', tom: n(emRisco) ? 'atencao' : 'zero' },
+      { valor: num(emAprov), rotulo: 'em aprovação (cliente ou DA)', tom: n(emAprov) ? 'atencao' : 'zero' },
+      { valor: `${num(prox.previstas)}/${num(prox.capacidadeMediana)}`, rotulo: `próxima semana, previstas / capacidade${prox.folga != null ? (prox.folga >= 0 ? ` · folga ${num(prox.folga)}` : ` · faltam ${num(-prox.folga)}`) : ''}`, tom: prox.risco === 'alto' ? 'alerta' : prox.risco === 'medio' ? 'atencao' : n(prox.previstas) ? '' : 'zero' },
+      { valor: num(fila), rotulo: filaAtr ? `na sua fila · ${num(filaAtr)} ${s(filaAtr, 'atrasada', 'atrasadas')}` : 'na sua fila, em dia', tom: filaAtr ? 'alerta' : n(fila) ? '' : 'zero' },
+    ];
+    if (typeof window.vbResumoHtml === 'function') return `<div class="vs-resumo">${window.vbResumoHtml(itens)}</div>`;
+    return `<div class="vs-resumo"><div class="vb-resumo">${itens.map((x) => `<span class="vb-resumo-item ${x.tom || ''}">${x.valor != null ? `<b>${esc(x.valor)}</b>` : ''}${esc(x.rotulo)}</span>`).join('')}</div></div>`;
+  }
   // Meta do mês sempre à vista: com meta, a barra de cada uma; sem meta, a barra vazia e o caminho para definir.
   function metaDoMes(progressoLista, periodoNome, { filtro = () => true, titulo = 'Meta do mês' } = {}) {
     const metas = (progressoLista || []).filter((x) => x.meta > 0 && filtro(x)).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
@@ -202,6 +238,7 @@
       const [r, pac, cart] = await Promise.all([ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=comercial&aba=pacotes'), ler('/api/painel?area=carteira')]);
       if (r.falha) return aviso(falhaTexto(r));
       const m = r.mes || {}, R = r.resumo || {}, semNumeros = !m.kpis || !r.resumo;
+      periodoSemEfeito = semNumeros;
       const A = m.kpis?.atual || {}, V = m.kpis?.variacao || {}, val = Boolean(m.valores), contra = m.periodo?.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
       const corrida = (m.ranking?.linhas || []).slice(0, 5);
       const neg = R.em_negociacao || {};
@@ -281,6 +318,7 @@
       if (fin.falha && rec.falha) return aviso(falhaTexto(fin));
       // Sem dados no mês, os números aparecem com traço (não um zero inventado), cada um com o caminho para a aba.
       const F = fin.resumo || {}, A = rec.resumo?.atual || {}, VR = rec.resumo?.variacao || {}, K = con.resumo || {}, semNumeros = !fin.resumo && !rec.resumo;
+      periodoSemEfeito = semNumeros;
       const contra = per.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior', vr = (v) => (semNumeros ? null : v ?? 'sem');
       const varResultado = K.resultado_anterior ? ((K.resultado - K.resultado_anterior) / Math.abs(K.resultado_anterior)) * 100 : 'sem';
       const kpis = kpi({ icone: 'dinheiro', titulo: 'Receita contratada', valor: reais(F.receita), sub: `margem <b>${pct(F.margem_percentual)}</b> · custo ${reais(F.custo)}`, ir: ['financas', 'Por cliente'] })
@@ -335,21 +373,23 @@
       const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
       const emAprov = itens.filter((d) => /aprova/i.test(String(d.status || ''))).length;
       const prox = P.proximaSemana || {};
-      const pctSemana = S.previstas ? ((S.previstasEntregues ?? S.entregues) / S.previstas) * 100 : null;
-      const kpis = kpi({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${num(S.previstasEntregues ?? S.entregues)}<i>/${num(S.previstas)}</i>`, sub: pctSemana != null ? `${pct(pctSemana)} · ${num(S.entregues)} entregas registradas na semana` : 'nenhuma prevista' })
-        + kpi({ icone: 'relogio', titulo: 'No prazo', valor: pct(Hi.mediaNoPrazoPct), sub: 'média das últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })
-        + kpi({ icone: 'alerta', titulo: 'Atrasadas agora', valor: num(H.atrasadas ?? (L.atrasadas || []).length), sub: `${num(H.emRisco ?? (L.emRisco || []).length)} com risco de furo`, cls: H.atrasadas ? 'ruim' : '' })
-        + kpi({ icone: 'doc', titulo: 'Em aprovação', valor: num(emAprov), sub: 'esperando o cliente ou a DA', cls: emAprov ? 'atencao' : '' })
-        + kpi({ icone: 'calendario', titulo: 'Próxima semana', valor: `${num(prox.previstas)}<i>/${num(prox.capacidadeMediana)}</i>`, sub: prox.folga != null ? (prox.folga >= 0 ? `previstas / capacidade · folga ${num(prox.folga)}` : `previstas / capacidade · faltam ${num(-prox.folga)}`) : 'previstas / capacidade', cls: prox.risco === 'alto' ? 'ruim' : prox.risco === 'medio' ? 'atencao' : '' })
-        + kpi({ icone: 'pessoas', titulo: 'Sua fila', valor: num(minhas.length), sub: minhasAtr ? `${num(minhasAtr)} atrasadas` : 'em dia', cls: minhasAtr ? 'ruim' : '' });
+      // Redesign (quadro 15, 10/11/2026): "Pede ação" primeiro, cada linha com o botão de resolver; os seis números viram
+      // uma linha de resumo (zero discreto) e o gráfico só aparece com histórico. Os mesmos números e alertas de antes.
+      const atrasadas = H.atrasadas ?? (L.atrasadas || []).length, emRisco = H.emRisco ?? (L.emRisco || []).length;
+      const prontas = S.previstasEntregues ?? S.entregues;
+      const resumo = resumoProducao({ prontas, previstas: S.previstas, entregues: S.entregues, noPrazo: Hi.mediaNoPrazoPct, atrasadas, emRisco, emAprov, prox, fila: minhas.length, filaAtr: minhasAtr });
       const semanas = (Hi.semanas || []).slice(-12).map((s) => ({ ...s, rotulo: diaMes(s.inicio) }));
+      const comHistorico = semanas.filter((s) => Number(s.previstas) > 0 || Number(s.entregues) > 0).length >= 2;
+      const entregasHtml = comHistorico ? barras(semanas, [{ chave: 'previstas', rotulo: 'Previstas', cls: 'c5' }, { chave: 'entregues', rotulo: 'Entregues', cls: 'c1' }])
+        : aviso(`Sem histórico ainda: o gráfico aparece com duas semanas de entregas. Nesta semana, ${num(prontas)} de ${num(S.previstas)} previstas prontas.`);
       const time = [...(N.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 8);
       const porCliente = [...(N.clientes || [])].filter((c) => c.atrasadas || c.emRisco).sort((a, b) => (b.atrasadas || 0) - (a.atrasadas || 0) || (b.emRisco || 0) - (a.emRisco || 0)).slice(0, 6);
       const gargalos = (N.gargalos || []).slice(0, 6);
       const ag = ctx.agenda?.();
       const tipoAg = (t) => (t === 'captacao' ? 'Captação' : t === 'reuniao' ? 'Reunião' : 'Compromisso');
-      return `<div class="vs-kpis">${kpis}</div>`
-        + linha(bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, barras(semanas, [{ chave: 'previstas', rotulo: 'Previstas', cls: 'c5' }, { chave: 'entregues', rotulo: 'Entregues', cls: 'c1' }]), { icone: 'alta', acao: abrirAba('gestor', 'Painel de trabalho') })
+      return bloco('Pede ação', 'o que resolver hoje, do mais grave ao menos grave', pedeAcaoProducao(N, minhasAtr), { icone: 'alerta', cls: 'vs-destaque vs-pede' })
+        + resumo
+        + linha(bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, entregasHtml, { icone: 'alta', acao: abrirAba('gestor', 'Painel de trabalho') })
           + bloco('Carga do time', 'peças abertas por pessoa', deitadas(time.map((t) => ({ nome: t.pessoa, valor: t.abertas, cls: t.atrasadas ? 'atencao' : '', rotulo: `${num(t.abertas)}${t.atrasadas ? ` <small class="t-ruim">${num(t.atrasadas)} atras.</small>` : ''}`, sub: `${num(t.entregues7d)} entregues em 7 dias` })), { vazio: 'Sem números do time.' }), { icone: 'pessoas', acao: abrirAba('tarefas', 'Minhas tarefas') }))
         + linha(bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas(gargalos.map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${num(g.qtd)} <small>${num(g.idadeMedianaDias)} d</small>`, sub: `${num(g.qtd)} peças, paradas há ${num(g.idadeMedianaDias)} dias (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio', acao: abrirAba('direcao') })
           + bloco('Clientes com atraso', 'atrasadas e risco de furo por cliente', deitadas(porCliente.map((c) => ({ cli: true, nome: c.cliente, valor: (c.atrasadas || 0) + (c.emRisco || 0), cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${num(c.atrasadas)} <small>+${num(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'alerta' }))
@@ -387,6 +427,7 @@
       <span class="vv-g-acoes">${comPeriodo ? barraPeriodo() : ''}<button type="button" class="vv-botao" data-setor-atualizar aria-label="Atualizar" title="Atualizar">↻</button><button type="button" class="vv-botao" data-setor-fechar aria-label="Fechar">✕</button></span></div>
       ${atalhos()}<div class="vv-g-corpo vs-corpo">${carregando()}</div>`;
     let corpo;
+    periodoSemEfeito = false;
     try {
       corpo = montar ? await montar() : '';
     } catch (e) {
@@ -397,6 +438,7 @@
     }
     if (g !== geracao || el.hidden) return;
     el.querySelector('.vs-corpo').innerHTML = corpo;
+    if (periodoSemEfeito && per.tipo === 'mensal' && per.mes === mesAtual()) { const barra = el.querySelector('.vs-topo .vs-periodo'); if (typeof barra?.remove === 'function') barra.remove(); }
   }
 
   el.addEventListener('click', (ev) => {
@@ -404,6 +446,8 @@
     if (b.hasAttribute('data-setor-fechar')) { fechar(); ctx?.aoFechar?.(); return; }
     if (b.hasAttribute('data-setor-atualizar')) { cache.clear(); pintar(); return; }
     if (b.dataset.vsTipo) { per.tipo = b.dataset.vsTipo; pintar(); return; }
+    // A gaveta da peça fica abaixo das janelas de módulo: a visão geral volta para o Hoje e a peça abre por cima dele.
+    if (b.dataset.vsPeca) { const id = b.dataset.vsPeca, c = ctx; fechar(); c?.aoFechar?.(); setTimeout(() => { if (typeof window.openItemWorkspace === 'function') window.openItemWorkspace(id); }, 0); return; }
     if (b.dataset.setorIr) ctx?.irSetor?.(b.dataset.setorIr);
     else if (b.dataset.setorSub) ctx?.abrirSub?.(b.dataset.setorSub);
   });

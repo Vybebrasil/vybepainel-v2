@@ -4,9 +4,9 @@
 //    do Irecity (decoradas aqui, sem mexer no vybe-mundo.js), no calendário (vybe-agenda.js chama
 //    bolinhaHtml), na gaveta da peça (vybe-gaveta.js chama campoObjetivoHtml, que deixa trocar) e no
 //    cadastro (cadastros_governed_v2.js).
-// 2. Janela "Equilíbrio do mês": cartões com o mês anterior, os clientes com a frase do equilíbrio
-//    ("12 peças: 6 atração, 4 educação, 2 conversão — falta conversão"), o calendário do cliente com cada
-//    peça como bolinha do objetivo e a marca da etapa de aprovação, e a prévia da peça ao lado.
+// 2. Janela "Equilíbrio do mês": os números do mês numa linha (com o mês anterior), uma barra por cliente com
+//    o que falta ("falta conversão", "equilibrado") e a frase inteira embaixo; clicar no cliente abre o
+//    calendário dele com cada peça como bolinha do objetivo e a marca da etapa de aprovação, e a prévia ao lado.
 // 3. Aba "Links de aprovação": o head gera o link público (/aprovar-pecas/<token>) para o cliente aprovar
 //    ou pedir ajuste sem login (server/conteudo-aprovacao.js).
 // Contas: vybe-conteudo-equilibrio.js (VybeEquilibrio). Leitura: /api/painel?area=conteudo_modulo.
@@ -130,10 +130,21 @@
     const aprovadas = (m) => doMes(m).filter((d) => etapaDe(d) === 'aprovado_cliente').length;
     return { todas, atual, anterior, etapaDe, aprovadasAgora: aprovadas(st.mes), aprovadasAntes: aprovadas(E.mesAnterior(st.mes)) };
   }
-  function cartao(rotulo, atual, anterior, cor = '') {
-    const c = E.comparar(atual, anterior);
-    return `<div class="vc-kpi">${cor ? `<i style="--c:${cor}"></i>` : ''}<span>${esc(rotulo)}</span><b>${c.atual}</b><small class="${c.diferenca > 0 ? 'sobe' : c.diferenca < 0 ? 'desce' : ''}">${esc(c.texto)}</small></div>`;
+  // Os números do mês numa linha (redesign, quadro 16): peças, cada objetivo e as aprovadas pelo cliente, com a
+  // diferença para o mês anterior quando muda; zero fica discreto.
+  function resumoDoMes(d) {
+    const g = d.atual.geral, a = d.anterior.geral, ant = MESES[Number(E.mesAnterior(st.mes).slice(5)) - 1];
+    const item = (valor, antes, um, varios) => {
+      const c = E.comparar(valor, antes);
+      return { valor: c.atual, rotulo: `${c.atual === 1 ? um : varios}${c.diferenca ? ` (${c.diferenca > 0 ? '+' : '−'}${Math.abs(c.diferenca)} vs ${ant})` : ''}`, tom: c.atual ? '' : 'zero' };
+    };
+    const itens = [item(g.total, a.total, 'peça no mês', 'peças no mês'),
+      ...E.OBJETIVOS.map((o) => item(g[o], a[o], E.ROTULO[o].toLowerCase(), E.ROTULO[o].toLowerCase())),
+      item(d.aprovadasAgora, d.aprovadasAntes, 'aprovada pelo cliente', 'aprovadas pelo cliente')];
+    if (typeof vbResumoHtml === 'function') return `<div class="vc-resumo">${vbResumoHtml(itens)}</div>`;
+    return `<div class="vc-resumo">${itens.map((x) => `<span><b>${x.valor}</b> ${esc(x.rotulo)}</span>`).join(' · ')}</div>`;
   }
+  const legendaObjetivos = () => `<div class="vc-leg-topo" aria-label="Legenda">${E.OBJETIVOS.map((o) => `<span><i class="vc-leg-ponto" style="--c:${E.COR[o]}"></i>${E.ROTULO[o]}</span>`).join('')}<span><i class="vc-leg-ponto" style="--c:#D9D3C8"></i>Sem objetivo</span></div>`;
   function pintar() {
     const el = janela();
     if (!st.aberto) { el.hidden = true; return; }
@@ -153,23 +164,23 @@
   }
 
   // ---------- Equilíbrio ----------
+  // Redesign (quadro 16, 10/11/2026): o equilíbrio é uma barra por cliente (atração, educação, conversão) com o que falta
+  // em poucas palavras; a legenda fica no topo e o calendário do cliente abre só ao clicar nele (clicar de novo fecha).
   function corpoEquilibrio() {
     if (!pecasDoPainel().length) return vazio('As peças ainda estão carregando.', 'Assim que o painel trouxer a produção, o equilíbrio aparece aqui.');
     const d = dadosDoMes();
-    const mesNav = `<div class="vc-mes"><button type="button" class="vc-icone" data-vc-mes="-1" aria-label="Mês anterior">${IC.esq}</button><b>${esc(nomeDoMes(st.mes))}</b><button type="button" class="vc-icone" data-vc-mes="1" aria-label="Próximo mês">${IC.dir}</button>${st.mes !== hoje().slice(0, 7) ? '<button type="button" class="vc-sec" data-vc-mes="0">Este mês</button>' : ''}</div>`;
-    const g = d.atual.geral, a = d.anterior.geral;
-    const kpis = `<div class="vc-kpis">${cartao('Peças no mês', g.total, a.total)}${E.OBJETIVOS.map((o) => cartao(E.ROTULO[o], g[o], a[o], E.COR[o])).join('')}${cartao('Aprovadas pelo cliente', d.aprovadasAgora, d.aprovadasAntes)}</div>`;
-    if (!d.atual.clientes.length) return mesNav + kpis + vazio(`Nenhuma peça com data em ${nomeDoMes(st.mes)}.`, 'Cadastre os conteúdos do mês e marque o objetivo de cada um para ver o equilíbrio.', '<button type="button" class="vc-acao" data-vc-novo>Novo conteúdo</button>');
-    if (!d.atual.clientes.some((c) => normal(c.cliente) === normal(st.cliente))) st.cliente = d.atual.clientes[0].cliente;
-    const lista = d.atual.clientes.map((c) => {
-      const cl = c.total || 1;
-      return `<button type="button" class="vc-cliente${normal(c.cliente) === normal(st.cliente) ? ' ativo' : ''}" data-vc-cliente="${esc(c.cliente)}" aria-pressed="${normal(c.cliente) === normal(st.cliente)}">
-        <span class="vc-cliente-linha"><b>${cliCor(c.cliente)}</b>${c.falta.length ? `<em>falta ${esc(c.falta.map((o) => E.ROTULO[o].toLowerCase()).join(' e '))}</em>` : ''}</span>
-        <span class="vc-barra" aria-hidden="true">${E.OBJETIVOS.map((o) => `<i style="--c:${E.COR[o]};width:${(c[o] / cl) * 100}%"></i>`).join('')}<i class="sem" style="width:${(c.sem / cl) * 100}%"></i></span>
-        <small>${esc(c.frase)}</small></button>`;
+    const mesNav = `<div class="vc-mes"><button type="button" class="vc-icone" data-vc-mes="-1" aria-label="Mês anterior">${IC.esq}</button><b>${esc(nomeDoMes(st.mes))}</b><button type="button" class="vc-icone" data-vc-mes="1" aria-label="Próximo mês">${IC.dir}</button>${st.mes !== hoje().slice(0, 7) ? '<button type="button" class="vc-sec" data-vc-mes="0">Este mês</button>' : ''}${resumoDoMes(d)}</div>`;
+    if (!d.atual.clientes.length) return mesNav + vazio(`Nenhuma peça com data em ${nomeDoMes(st.mes)}.`, 'Cadastre os conteúdos do mês e marque o objetivo de cada um para ver o equilíbrio.', '<button type="button" class="vc-acao" data-vc-novo>Novo conteúdo</button>');
+    if (st.cliente && !d.atual.clientes.some((c) => normal(c.cliente) === normal(st.cliente))) { st.cliente = ''; st.peca = ''; }
+    const linhas = d.atual.clientes.map((c) => {
+      const cl = c.total || 1, aberto = normal(c.cliente) === normal(st.cliente), r = E.resumoCurto(c);
+      const linha = `<button type="button" class="vc-eq-linha${aberto ? ' ativo' : ''}" role="listitem" data-vc-cliente="${esc(c.cliente)}" aria-expanded="${aberto}" title="${esc(aberto ? 'Fechar o calendário' : 'Ver o calendário do cliente')}">
+        <span class="vc-eq-nome">${cliCor(c.cliente)}</span>
+        <span class="vc-eq-barra"><span class="vc-barra" role="img" aria-label="${esc(c.frase)}">${E.OBJETIVOS.map((o) => `<i style="--c:${E.COR[o]};width:${(c[o] / cl) * 100}%"></i>`).join('')}<i class="sem" style="width:${(c.sem / cl) * 100}%"></i></span><small>${esc(c.frase)}</small></span>
+        <span class="vc-eq-falta ${r.tom}">${esc(r.texto)}</span></button>`;
+      return linha + (aberto ? `<div class="vc-eq-detalhe"><div class="vc-grade${st.peca ? ' com-previa' : ''}"><div class="vc-cal-caixa">${calendario(d)}</div>${st.peca ? `<div class="vc-previa">${previa(d)}</div>` : ''}</div></div>` : '');
     }).join('');
-    return mesNav + kpis + `<div class="vc-grade${st.peca ? ' com-previa' : ''}"><div class="vc-clientes" role="list" aria-label="Clientes do mês">${lista}</div>
-      <div class="vc-cal-caixa">${calendario(d)}</div>${st.peca ? `<div class="vc-previa">${previa(d)}</div>` : ''}</div>`;
+    return mesNav + `<div class="vc-eq">${legendaObjetivos()}<div class="vc-eq-lista" role="list" aria-label="Clientes do mês">${linhas}</div></div>`;
   }
   function calendario(d) {
     const pecas = d.todas.filter((x) => E.dataDaPeca(x).startsWith(st.mes + '-') && clientesDe(x).some((c) => normal(c) === normal(st.cliente)));
@@ -279,7 +290,7 @@
     if (t.matches('[data-vc-ajuda]')) { st.ajuda = !st.ajuda; return pintar(); }
     if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; if (st.aba === 'links' && !st.links) carregarLinks(); return pintar(); }
     if (t.dataset.vcMes !== undefined) { const n = Number(t.dataset.vcMes); st.mes = n === 0 ? hoje().slice(0, 7) : n < 0 ? E.mesAnterior(st.mes) : mesSeguinte(st.mes); st.peca = ''; return pintar(); }
-    if (t.dataset.vcCliente !== undefined) { st.cliente = t.dataset.vcCliente; st.peca = ''; return pintar(); }
+    if (t.dataset.vcCliente !== undefined) { st.cliente = normal(st.cliente) === normal(t.dataset.vcCliente) ? '' : t.dataset.vcCliente; st.peca = ''; return pintar(); }
     if (t.dataset.vcPeca) { st.peca = st.peca === t.dataset.vcPeca ? '' : t.dataset.vcPeca; return pintar(); }
     if (t.matches('[data-vc-fechar-previa]')) { st.peca = ''; return pintar(); }
     if (t.dataset.vcAbrirPeca) { if (typeof openItemWorkspace === 'function') openItemWorkspace(t.dataset.vcAbrirPeca); return; }
