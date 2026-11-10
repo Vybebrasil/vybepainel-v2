@@ -6,7 +6,7 @@
 .vbl-janela{display:flex;flex-direction:column;width:min(720px,100%);max-height:min(760px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;
   background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px -24px rgba(31,29,26,.45);font-family:var(--vv-texto,Inter,system-ui,sans-serif);
   animation:vbl-entra .2s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
-@keyframes vbl-entra{from{opacity:0;transform:translateY(8px) scale(.985)}}
+@keyframes vbl-entra{from{transform:translateY(8px) scale(.985)}}
 .vbl-janela svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .vbl-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px}
 .vbl-topo small{display:block;font:600 11px var(--vv-texto);color:#8A847A}

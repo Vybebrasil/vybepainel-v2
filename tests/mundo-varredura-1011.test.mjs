@@ -20,7 +20,11 @@ test('cartão, prévia e balões param acima do dock das salas', () => {
   const st = ler('vybe-status.js');
   const ancora = st.slice(st.indexOf('function ancorarPopover('), st.indexOf("menu.style.visibility = '';", st.indexOf('function ancorarPopover(')));
   assert.match(ancora, /const fundo = window\.innerHeight - \(dock \? dock \+ 14 : 0\);/);
-  assert.equal((ancora.match(/window\.innerHeight/g) || []).length, 1, 'todas as contas usam o fundo livre');
+  assert.doesNotMatch(ancora, /window\.innerHeight - (height|margem)/, 'todas as contas usam o fundo livre');
+  // E o teto: abaixo da barra do topo do mundo; mais alto que o espaço, rola por dentro.
+  assert.match(ancora, /const teto = fimBarra > 0 && fimBarra < window\.innerHeight \/ 3 \? fimBarra \+ 8 : margem;/);
+  assert.match(ancora, /Math\.min\(Math\.max\(teto, desejado\), Math\.max\(teto, limite\)\)/);
+  assert.match(ancora, /menu\.style\.overflowY = 'auto'/);
 });
 
 test('plural e vírgula: 1 atrasada, 1 conteúdo, 3,5 h', () => {

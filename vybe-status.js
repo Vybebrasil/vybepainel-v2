@@ -31,10 +31,17 @@ function ancorarPopover(menu, rect) {
   // No mundo, o balão para acima do dock das salas (varredura de 10/11/2026: o status abria por baixo dele).
   const dock = parseFloat(getComputedStyle(document.body).getPropertyValue('--vv-dock-alto')) || 0;
   const fundo = window.innerHeight - (dock ? dock + 14 : 0);
+  // E não sobe por baixo da barra do topo (varredura de 10/11/2026, janela de notebook: o cartão rápido escondia o
+  // título e o fechar atrás dela). Fora do mundo a barra não existe e o teto é a margem.
+  const barra = document.body.classList.contains('mundo') ? document.querySelector('.vv-barra-topo') : null;
+  const fimBarra = barra && barra.getClientRects().length ? barra.getBoundingClientRect().bottom : 0;
+  const teto = fimBarra > 0 && fimBarra < window.innerHeight / 3 ? fimBarra + 8 : margem;
   menu.style.visibility = 'hidden';
   menu.style.top = '0px';
   menu.style.left = '0px';
-  const { width, height } = menu.getBoundingClientRect();
+  let { width, height } = menu.getBoundingClientRect();
+  // Mais alto que o espaço livre: rola por dentro em vez de passar por cima do topo ou do dock.
+  if (height > fundo - teto - margem) { menu.style.maxHeight = `${Math.round(fundo - teto - margem)}px`; menu.style.overflowY = 'auto'; height = menu.getBoundingClientRect().height; }
   const cabeAbaixo = rect.bottom + 6 + height <= fundo - margem;
   const desejado = cabeAbaixo ? rect.bottom + 6 : rect.top - 6 - height;
   // O popover nunca sai da tela, mesmo quando o que o ancora esta fora dela.
@@ -42,8 +49,8 @@ function ancorarPopover(menu, rect) {
   // ficha clicada ficava abaixo da dobra, e o cartao nascia com metade cortada.
   // Sem teto, so o topo era protegido; agora o rodape tambem.
   const limite = fundo - height - margem;
-  const top = height + margem * 2 >= fundo ? margem
-    : Math.min(Math.max(margem, desejado), Math.max(margem, limite));
+  const top = height + teto + margem >= fundo ? teto
+    : Math.min(Math.max(teto, desejado), Math.max(teto, limite));
   menu.style.top = `${Math.round(top)}px`;
   menu.style.left = `${Math.round(Math.min(Math.max(margem, rect.left), Math.max(margem, window.innerWidth - width - margem)))}px`;
   menu.style.visibility = '';

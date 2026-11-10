@@ -1,7 +1,7 @@
 // Redesign, fase 3a (Paulo, 10/11/2026: "Sim, fase 3a"): as peças do sistema numa camada só, e o Hoje de quem trabalha.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const ler = (f) => readFileSync(f, 'utf8');
 const css = ler('vybe-mundo.css');
@@ -52,4 +52,28 @@ test('janelas de formulário cabem acima do dock (Cancelar e Salvar da Nova reun
   assert.match(css, /body\.mundo \.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\)\)\{max-height:var\(--vv-janela-alto\);top:calc\(50% - var\(--vv-dock-alto,0px\) \/ 2 - 7px\)\}/);
   assert.ok(ler('vybe-styles.css').includes(':where(body:not(.mundo)) .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:88vh!important}'), 'os 88% valem só fora do mundo');
   assert.ok(ler('vybe-mundo-clientes-ficha.css').includes('max-height:var(--vv-janela-alto,calc(100dvh - 32px))'));
+});
+
+test('janela de notebook (1110 px): busca numa linha, alternador da semana sem passar por baixo das setas, Ver como quebra', () => {
+  assert.match(css, /body\.mundo \.vv-busca-larga \.vv-busca-texto\{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
+  assert.match(css, /body\.mundo \.section-title :is\(\.semana-abas,\.dias-setas,\.dias-layout-btn\)\{flex:0 0 auto\}/);
+  assert.match(css, /body\.mundo \.ops-segmentos\{flex-wrap:wrap;overflow:visible;row-gap:8px\}/);
+  assert.ok(ler('docs/padrao-visual.md').includes('Texto branco no laranja fica (Paulo, 10/11/2026'), 'decisão do contraste registrada');
+});
+
+test('janelas e conteúdo do mundo entram só com movimento: nada começa transparente (só os fundos escurecidos)', () => {
+  const arquivos = ['vybe-mundo.css', ...readdirSync('.').filter((f) => /^vybe-mundo-.*\.css$/.test(f))];
+  for (const f of arquivos) {
+    for (const [, nome] of ler(f).matchAll(/@keyframes ([a-z-]+)\{from\{opacity:0/g)) {
+      assert.ok(/fundo|pisca/.test(nome), `${f}: @keyframes ${nome} começa transparente`);
+    }
+  }
+  assert.ok(ler('vybe-styles.css').includes(':where(body:not(.mundo)) #workflow-modal.ofc-menu-jogo {height:calc(100vh - 32px)!important;max-height:none!important}'), 'a janela do jogo cabe entre o topo e o dock');
+  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo\{height:var\(--vv-janela-alto\);max-height:var\(--vv-janela-alto\)\}/);
+  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.ofc-rk-cab\{color:#1F1D1A\}/, 'título das Conquistas legível');
+});
+
+test('Conquistas na janela clara: abas e dica com a cor do sistema', () => {
+  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.ofc-cq-abas \.vb-chip\{background:#FFFFFF;/);
+  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.cq-dica\{color:#5E5A53\}/);
 });

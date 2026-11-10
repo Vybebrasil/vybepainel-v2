@@ -6,7 +6,7 @@
 .vp-camada{position:fixed;inset:0;z-index:650;display:grid;place-items:stretch;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color-scheme:light}
 #vv-pessoas{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;max-height:100dvh;overflow:hidden;background:#F6F3EE;color:#1F1D1A;font:500 13px/1.45 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vp-entra .2s cubic-bezier(.22,1,.36,1) both;padding-bottom:env(safe-area-inset-bottom)}
 #vv-pessoas *,#vv-pessoas *::before,#vv-pessoas *::after{box-sizing:border-box}
-@keyframes vp-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vp-entra{from{scale:.97}to{scale:1}}
 @media (prefers-reduced-motion:reduce){#vv-pessoas{animation:none}}
 @media (min-width:720px){
   .vp-camada{place-items:center;padding:16px}
