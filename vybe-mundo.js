@@ -572,6 +572,8 @@
   document.addEventListener('vybe:pendencias', () => pintarHoje());
   // Aprovações paradas (vybe-mundo-aprovacoes.js): o bloco entra logo de cara no Seu dia.
   document.addEventListener('vybe:aprovacoes', () => pintarHoje());
+  // O assistente da Criação (vybe-mundo-criacao.js) aprovou, adiou ou leu os achados do Danilo: repinta o Hoje.
+  document.addEventListener('vybe:criacao', () => pintarHoje());
   // Ver o dia de várias pessoas (Paulo, 09/11/2026: "consigo adicionar e remover pessoas... ver o dia de Deivid, Jady,
   // meu e de Ewerton, ou só de quem eu quiser, nessa mesma aba"). Só para os donos; fica guardado no navegador de quem olha.
   const CHAVE_PESSOAS = 'vybe.hoje.pessoas';
@@ -621,12 +623,12 @@
     return `<div class="vv-seg vv-seg-3" role="tablist" aria-label="O que ver">${aba('agencia', 'Agência')}${aba('criacao', 'Criação')}${aba('tarefas', 'Minhas tarefas')}</div>`;
   }
   // O guia: o agente, uma frase e os passos numerados (Agora, Depois, Em seguida), cada um abre o que precisa ser feito.
-  function guiaHtml({ agente, intro, passos = [], depois = '' }) {
+  function guiaHtml({ agente, intro, passos = [], depois = '', conversa = '' }) {
     const av = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
     const quando = ['Agora', 'Depois', 'Em seguida'];
     return `<section class="vg-guia" aria-label="Guia de ${esc(agente.nome)}"><div class="vg-cab">${av}<span class="vg-quem"><b>${esc(agente.nome)}</b><small>${esc(agente.papel)}</small></span>
         ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}">Ver o agente</button>` : ''}</div>
-      <p class="vg-intro">${intro}</p>
+      ${conversa || `<p class="vg-intro">${intro}</p>`}
       ${passos.length ? `<ol class="vg-passos">${passos.map((p, i) => `<li${i === 0 ? ' class="agora"' : ''}><button type="button" class="vg-passo" ${p.attrs}><span class="vg-num" aria-hidden="true">${i + 1}</span><span class="vg-meio"><small>${quando[i] || 'Depois'}</small><b>${p.titulo}</b><em>${p.motivo}</em></span><span class="vg-ir" aria-hidden="true">→</span></button></li>`).join('')}</ol>` : ''}
       ${depois ? `<p class="vg-depois">${depois}</p>` : ''}</section>`;
   }
@@ -1171,8 +1173,8 @@
   // direção de arte ainda está muito defasado, muita informação solta"). O Danilo guia; os números, as pessoas e as filas
   // saem das mesmas peças do painel (as abertas de quem é do time, pelos responsáveis), com a situação oficial da peça.
   let criacaoPeloDock = false;
-  function pecasDaCriacao() {
-    const time = timeDeCriacao(), fonte = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : [];
+  function pecasDaCriacao(fonte = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : []) {
+    const time = timeDeCriacao();
     const ids = (d) => [...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map(String);
     return fonte.filter((d) => !(typeof isFinishedItem === 'function' && isFinishedItem(d)) && ids(d).some((id) => time.includes(id))).map((d) => ({ d, ids: ids(d) }));
   }
@@ -1181,7 +1183,8 @@
     const membros = timeDeCriacao().map((id) => T.find((u) => String(u.id) === id)).filter(Boolean);
     const curto = (u) => String(u.name || u.nome || '').split(' ')[0];
     const papel = (u) => (typeof DA_CONTROLLER_ROLES !== 'undefined' && DA_CONTROLLER_ROLES[u.id]) || 'Criação';
-    const itens = pecasDaCriacao().map(({ d, ids }) => ({ d, sit: situacaoDaPeca(d), quem: membros.filter((u) => ids.includes(String(u.id))).map(curto), ids }));
+    const todas = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : [];
+    const itens = pecasDaCriacao(todas).map(({ d, ids }) => ({ d, sit: situacaoDaPeca(d), quem: membros.filter((u) => ids.includes(String(u.id))).map(curto), ids }));
     const { passos, urgentes, ordem } = passosDoGuia(itens, hoje, true);
     const atrasadas = itens.filter((x) => x.sit === 'atrasada' && !prazoDesatualizado(x, hoje));
     const deHoje = itens.filter((x) => veicDe(x) === hoje && !atrasadas.includes(x));
@@ -1189,6 +1192,16 @@
     const ajuste = itens.filter((x) => /altera|ajuste|corre/i.test(String(x.d.status || '')));
     const dias = Array.from({ length: 7 }, (_, i) => somar(hoje, i)).map((dia) => ({ dia, n: itens.filter((x) => veicDe(x) === dia).length }));
     const maxDia = Math.max(1, ...dias.map((x) => x.n));
+    // O assistente do Deivid (vybe-mundo-criacao.js): a conversa do dia, o que delegar e cobrar (com aprovar) e o
+    // confirmado × sugestão por cliente. Peso e limite de carga são os do painel antigo de direção de arte.
+    const fin = (d) => (typeof isFinishedItem === 'function' ? isFinishedItem(d) : situacaoDaPeca(d) === 'concluida');
+    let A = null;
+    try {
+      A = window.VybeCriacao?.assistente?.({ itens, todas, ordem, aprovar: ordem.filter((x) => aprovar.includes(x)), deHoje: deHoje.length, atrasadas: atrasadas.length, membros,
+        motivo: (x) => motivoNoGuia(x, hoje), finalizada: fin, eu: typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '',
+        peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1), limite: (u) => (typeof daCapacitySignal === 'function' ? daCapacitySignal(u, []).threshold : 14) }) || null;
+    } catch (e) { console.error('[mundo] assistente da Criação', e); }
+    const cargaDe = (u) => A?.perfis?.find((p) => p.id === String(u.id));
     const V = window.VybeSetor?.pecas;
     const radar = V ? `<div class="vs-kpis vv-dono-radar">
         ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: 'do time de criação', cls: atrasadas.length ? 'ruim' : '' })}
@@ -1204,6 +1217,7 @@
         <span class="vc-pessoa-cab"><span class="vc-av" style="--c:${esc(p.u.color || '#8A847A')}">${esc(curto(p.u).slice(0, 2).toUpperCase())}</span><span><b>${esc(curto(p.u))}</b><small>${esc(papel(p.u))}</small></span></span>
         <span class="vc-nums"><span><b>${n0(p.l.length)}</b><small>em aberto</small></span><span class="${p.atr ? 'ruim' : ''}"><b>${n0(p.atr)}</b><small>atrasadas</small></span><span><b>${n0(p.hj)}</b><small>hoje</small></span></span>
         <span class="vc-carga" aria-label="Carga: ${n0(p.l.length)} de ${n0(maxCarga)}"><i style="width:${Math.round(p.l.length / maxCarga * 100)}%"></i></span>
+        ${cargaDe(p.u) ? `<small class="vc-prox">Carga: ${cargaDe(p.u).carga} de ${cargaDe(p.u).limite} pontos${cargaDe(p.u).carga > cargaDe(p.u).limite ? ' · acima do limite' : ''}</small>` : ''}
         <small class="vc-prox">${p.prox ? 'Próxima no ar: ' + (p.prox === hoje ? 'hoje' : diaMes(p.prox)) : 'Nada marcado para ir ao ar'}</small></button>`).join('')}</div>`;
     const lista = (l, vazio, max = 5) => l.length ? l.slice(0, max).map((x) => linhaDemanda(x.d, { ref: veicDe(x) || x.d.prazo_iso || '', sit: x.sit, quem: x.quem })).join('') + (l.length > max ? `<p class="vv-dica">e mais ${l.length - max}.</p>` : '') : `<p class="vv-vazio">${vazio}</p>`;
     const bloco = (titulo, sub, corpo) => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span></div>${corpo}</section>`;
@@ -1211,10 +1225,10 @@
     const semanaHtml = `<div class="vc-semana">${dias.map((x, i) => `<span class="vc-dia${i === 0 ? ' hoje' : ''}" title="${x.n} peça${x.n === 1 ? '' : 's'} do time vão ao ar"><i style="height:${Math.round(x.n / maxDia * 100)}%"></i><b>${x.n}</b><small>${i === 0 ? 'Hoje' : ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(x.dia + 'T12:00:00Z').getUTCDay()]}</small></span>`).join('')}</div>`;
     const guia = guiaHtml({ agente: { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' },
       intro: !itens.length ? 'O time está sem peças em aberto.' : urgentes ? `O time tem <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Destrave nesta ordem:` : 'O time está em dia. Nesta ordem:',
-      passos, depois: ordem.length > 3 ? `Depois disso, mais ${ordem.length - 3} peças do time em aberto.` : '' });
+      passos, conversa: A?.conversa || '', depois: ordem.length > 3 ? `Depois disso, mais ${ordem.length - 3} peças do time em aberto.` : '' });
     const html = `${dono && !verComo ? segHoje('criacao') : ''}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>Criação</h2><small class="vv-dia-de">O time: ${esc(membros.map(curto).join(', '))}</small></span>
         <span class="vv-anel" style="--p:${itens.length ? Math.round((1 - atrasadas.length / itens.length) * 100) : 100}" title="Peças do time em dia"><b>${n0(itens.length - atrasadas.length)}</b><small>/${n0(itens.length)}</small></span></div>
-      ${guia}${radar}${pessoasHtml}
+      ${guia}${A?.mudouHtml || ''}${A?.sugestoes || ''}${radar}${pessoasHtml}
       ${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('criacao') || '') : ''}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
         <div class="vv-dono-tres vc-filas">
@@ -1222,6 +1236,7 @@
           ${bloco('Esperando aprovação', 'o que trava a próxima etapa', lista(ordenar(aprovar), 'Nada esperando aprovação.'))}
           ${bloco('Pediram ajuste', 'voltou do cliente ou da revisão', lista(ordenar(ajuste), 'Nenhum ajuste pendente.'))}
         </div>
+        ${A?.clientesHtml || ''}
       </div>
       <aside class="vv-hoje-lado" aria-label="Semana e atalhos da Criação">
         ${bloco('Semana do time', 'peças que vão ao ar em cada dia', semanaHtml)}
