@@ -41,6 +41,72 @@ export function biblioteca({ C, L, G, tom, gaveta, pernas, LIVROS, RECEITAS, MET
         C(o, x + pw / 2 - G * 1.5, alto / 2, G * 1.9, G / 2, G * 2, G / 2, '#C9A34A');
       }
     },
+    // Árvore retorcida (místicas, mangue): tronco em zigue-zague, galhos e copa em cachos.
+    arvoreRetorcida(o, { tronco, folha, alto = 1.2, largo = false, raizes = false, olhos = null }) {
+      const n = Math.round(alto / G / 2.5);
+      if (raizes) for (let k = 0; k < 5; k++) { const a = k * 1.25; C(o, Math.cos(a) * G * 3, 0, Math.sin(a) * G * 3, G * 1.5, G * 3, G * 1.5, tronco); }
+      else { C(o, 0, 0, 0, G * 6, G * 2, G * 6, '#5A4034'); }
+      for (let k = 0; k < n; k++) C(o, Math.sin(k * .9) * G * 1.5, G * 2 + k * G * 2.5, Math.cos(k * .7) * G, G * (2.5 - k / n), G * 2.6, G * (2.5 - k / n), k % 2 ? tom(tronco, -.1) : tronco);
+      const topo = G * 2 + n * G * 2.5, r = largo ? G * 6 : G * 4;
+      for (let k = 0; k < (largo ? 9 : 6); k++) { const a = k * 2.3; C(o, Math.cos(a) * r * .8, topo - G * 2 + (k % 3) * G * 1.5, Math.sin(a) * r * .8, G * 4, G * 3, G * 4, [folha, tom(folha, -.15), tom(folha, .12)][k % 3]); }
+      C(o, 0, topo + G * 2, 0, G * 5, G * 3, G * 5, tom(folha, .08));
+      if (olhos) for (let k = 0; k < 3; k++) L(o, Math.cos(k * 2) * G * 3, topo + G * (k % 2), Math.sin(k * 2) * G * 3 + G * 2, G, G, G, olhos);
+    },
+    // Troféu com figura em cima, numa base de madeira escura.
+    trofeuFigura(o, { metal, pose }) {
+      C(o, 0, 0, 0, G * 5, G * 3, G * 5, '#4A2E1E'); C(o, 0, G * 3, 0, G * 4, G, G * 4, tom(metal, -.2));
+      BIBLIOTECA_UTIL.figura(o, { y: G * 4, cor: metal, s: .55, pose });
+    },
+    // Troféu de duas mãos verdes segurando a bola.
+    trofeuMaos(o, { mao, bola }) {
+      C(o, 0, 0, 0, G * 5, G * 2, G * 5, '#2B2F33'); C(o, 0, G * 2, 0, G * 3, G * 4, G * 3, mao);
+      for (const a of [-1, 1]) { C(o, a * G * 2, G * 6, 0, G * 1.5, G * 5, G * 2, mao); C(o, a * G * 1.5, G * 11, 0, G * 1.5, G * 1.5, G * 2, mao); }
+      C(o, 0, G * 8, 0, G * 4, G * 4, G * 4, bola); C(o, 0, G * 9, G * 1.6, G * 2, G * 2, G, tom(bola, .2));
+    },
+    // Pedestal em degraus (estátuas): devolve a altura do topo.
+    pedestal(o, { cor, alto = G * 6, lado = G * 7 }) {
+      C(o, 0, 0, 0, lado + G * 2, G * 1.5, lado + G * 2, tom(cor, -.12)); C(o, 0, G * 1.5, 0, lado, alto - G * 3, lado, cor); C(o, 0, alto - G * 1.5, 0, lado + G, G * 1.5, lado + G, tom(cor, .1));
+      return alto;
+    },
+    // Bicho de quatro patas, blocado como o coelhinho das referências: corpo, patas, cabeça na frente (+z), focinho,
+    // olhos, orelhas e rabo. sentado: o corpo sobe na frente e as patas de trás dobram.
+    bicho(o, { y = 0, cor, claro = null, escuro = null, s = 1, sentado = false, orelha = 'caida', focinho = null, chifre = null, rabo = true }) {
+      const e = escuro || tom(cor, -.25), c = claro || tom(cor, .15), k = (v) => v * s;
+      if (sentado) {
+        C(o, 0, y, -G * k(1), G * k(6), G * k(3), G * k(6), cor); // ancas
+        C(o, 0, y + G * k(2), G * k(1), G * k(5), G * k(6), G * k(4), cor); // peito
+        C(o, 0, y + G * k(3), G * k(2.6), G * k(3), G * k(4), G / 2, c);
+        for (const a of [-1, 1]) { C(o, a * G * k(1.6), y, G * k(2.5), G * k(1.5), G * k(3), G * k(1.5), cor); C(o, a * G * k(1.6), y, G * k(3.4), G * k(1.6), G * k(.8), G * k(1.2), c); C(o, a * G * k(2.8), y, -G * k(.5), G * k(1.5), G * k(1.5), G * k(3), e); }
+      } else {
+        C(o, 0, y + G * k(3), 0, G * k(5), G * k(4), G * k(8), cor);
+        for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) C(o, a * G * k(1.6), y, b * G * k(2.8), G * k(1.5), G * k(3), G * k(1.5), e);
+      }
+      const hy = y + G * k(sentado ? 7.5 : 6), hz = G * k(sentado ? 2.2 : 4.5);
+      C(o, 0, hy, hz, G * k(4.5), G * k(4), G * k(4), cor);
+      C(o, 0, hy + G * k(.3), hz + G * k(2.2), G * k(2.6), G * k(2), G * k(1.5), focinho || c);
+      C(o, 0, hy + G * k(1.6), hz + G * k(3), G * k(1), G * k(.6), G * k(.4), '#2B2F33');
+      for (const a of [-1, 1]) {
+        C(o, a * G * k(1.2), hy + G * k(2.4), hz + G * k(2), G * k(.8), G * k(.8), G / 4, '#1F1D1A');
+        if (orelha === 'caida') C(o, a * G * k(2.6), hy + G * k(1.4), hz, G * k(1), G * k(2.6), G * k(1.6), e);
+        else if (orelha === 'longa') C(o, a * G * k(1), hy + G * k(4), hz - G * k(.5), G * k(1.2), G * k(5), G * k(1), cor);
+        else if (orelha === 'pe') C(o, a * G * k(1.4), hy + G * k(4), hz, G * k(1.2), G * k(1.6), G * k(1), e);
+        if (chifre) { C(o, a * G * k(2.6), hy + G * k(3), hz, G * k(1.6), G * k(.8), G * k(.8), chifre); C(o, a * G * k(3.2), hy + G * k(3.8), hz, G * k(.8), G * k(1.4), G * k(.8), chifre); }
+      }
+      if (rabo) C(o, 0, y + G * k(sentado ? 1 : 5), -G * k(sentado ? 4 : 4.6), G * k(1), G * k(1), G * k(2), e);
+    },
+    // Figura humana de estátua, blocada: pernas, tronco, braços (pose: 'baixo', 'alto', 'abertos') e cabeça.
+    figura(o, { y = 0, cor, s = 1, pose = 'baixo', cabelo = null }) {
+      const k = (v) => G * v * s, c = tom(cor, .12);
+      for (const a of [-1, 1]) C(o, a * k(1), y, 0, k(1.6), k(6), k(1.8), cor);
+      C(o, 0, y + k(6), 0, k(4.5), k(5.5), k(2.6), cor); C(o, 0, y + k(10), k(1.2), k(3), k(1), k(.4), c);
+      for (const a of [-1, 1]) {
+        if (pose === 'alto') C(o, a * k(2.8), y + k(10), 0, k(1.3), k(5), k(1.3), cor);
+        else if (pose === 'abertos') C(o, a * k(4.2), y + k(9.8), 0, k(4), k(1.3), k(1.3), cor);
+        else C(o, a * k(2.8), y + k(6.2), 0, k(1.3), k(5), k(1.3), cor);
+      }
+      C(o, 0, y + k(11.5), 0, k(1.4), k(1), k(1.4), cor); C(o, 0, y + k(12.5), 0, k(3.6), k(3.6), k(3.4), c);
+      if (cabelo) C(o, 0, y + k(15), -k(.3), k(3.8), k(1.2), k(3.6), cabelo);
+    },
     cama(o, { w, d, madeira, manta, lencol, travesseiro }) {
       const bw = w - G * 2, bd = d - G * 2;
       C(o, 0, 0, 0, bw, G * 5, bd, madeira);
@@ -653,5 +719,101 @@ export function biblioteca({ C, L, G, tom, gaveta, pernas, LIVROS, RECEITAS, MET
       C(o, 0, G / 2, 0, (w - G * 5) * .4, G / 4, (d - G * 5) * .4, '#E8C27A'); C(o, 0, G * .6, 0, (w - G * 5) * .2, G / 4, (d - G * 5) * .2, '#2E5A8A');
       for (let k = 0; k < Math.floor((w - G * 2) / G / 2); k++) for (const b of [-1, 1]) C(o, -w / 2 + G * 2 + k * G * 2, 0, b * (d / 2 - G / 2), G / 2, G / 4, G, '#F4EFE6');
     },
+
+    // ---------- estátuas e figuras (blocadas, no estilo das referências) ----------
+    statue(o) { // cupido: coluna cinza, anjinho de asas com o arco
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#B8B4AE', alto: G * 12, lado: G * 5 });
+      BIBLIOTECA_UTIL.figura(o, { y, cor: '#D9D6D0', s: .55, pose: 'abertos', cabelo: '#C9C4BC' });
+      for (const a of [-1, 1]) C(o, a * G * 1.5, y + G * 4, -G * 1.5, G * 2, G * 3, G / 2, '#F4F1EA');
+      C(o, G * 3, y + G * 4, G, G / 2, G * 4, G / 2, '#8A5A3C');
+    },
+    china_ox(o) { // boi de pedra em pé no pedestal, com os chifres
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#8E8A84', alto: G * 4 });
+      BIBLIOTECA_UTIL.bicho(o, { y, cor: '#A9A49C', s: 1, sentado: true, orelha: 'pe', chifre: '#E9E2D2', rabo: false });
+    },
+    china_snake(o) { // cobra de pedra enrolada no pedestal
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#8E8A84', alto: G * 4 }), c = '#A9A49C';
+      for (let k = 0; k < 4; k++) C(o, 0, y + k * G * 2, 0, G * (7 - k * 1.2), G * 2, G * (7 - k * 1.2), k % 2 ? tom(c, -.08) : c);
+      C(o, 0, y + G * 8, G, G * 2, G * 4, G * 2, c); C(o, 0, y + G * 12, G * 1.8, G * 3, G * 2, G * 3.5, c);
+      for (const a of [-1, 1]) C(o, a * G, y + G * 13, G * 3.4, G / 2, G / 2, G / 4, '#1F1D1A');
+    },
+    bling11_statue1(o) { // Eros: base dourada, figura de mármore com os braços erguidos
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#D9B45A', alto: G * 5 });
+      BIBLIOTECA_UTIL.figura(o, { y, cor: '#E8E6E2', s: .9, pose: 'alto', cabelo: '#D2CFC8' });
+      L(o, 0, y + G * 15, 0, G, G, G, '#BFE6F2');
+    },
+    modern_c17_pug(o) { BIBLIOTECA_UTIL.bicho(o, { cor: '#D9B88A', escuro: '#3A2E26', focinho: '#3A2E26', sentado: true, orelha: 'caida', s: 1.3 }); },
+    br_c25_caramelodog(o) { BIBLIOTECA_UTIL.bicho(o, { cor: '#C98A4A', claro: '#E0AD70', sentado: true, orelha: 'caida', s: 1.3 }); },
+    dino15_dinoprize5(o) { // tricerátopo de pelúcia laranja
+      BIBLIOTECA_UTIL.bicho(o, { cor: '#E07A2E', claro: '#F2A65A', s: 1.4, orelha: 'nenhuma', chifre: '#F4EFE6' });
+      C(o, 0, G * 10, G * 3.5, G * 7, G * 4, G, '#C8642A'); C(o, 0, G * 12, G * 7, G, G * 2, G, '#F4EFE6');
+    },
+    xmas11_hd1(o) { // cabeça de alce numa placa de madeira, com a galhada
+      C(o, 0, G * 10, -G * 6, G * 6, G * 8, G, '#8A5A3C'); C(o, 0, G * 11, -G * 5.5, G * 4.5, G * 6, G / 2, tom('#8A5A3C', .12));
+      C(o, 0, G * 11, -G * 4, G * 4, G * 5, G * 4, '#6E4B33'); C(o, 0, G * 10, -G * 1, G * 3, G * 3, G * 3, '#5E4030'); C(o, 0, G * 11.5, G * .6, G * 2, G * 1.2, G / 2, '#2B2F33');
+      for (const a of [-1, 1]) { C(o, a * G * 4, G * 16, -G * 4, G * 5, G, G * 2, '#E2C79E'); for (let k = 0; k < 3; k++) C(o, a * G * (2.5 + k * 1.5), G * 17, -G * 4, G, G * 2, G, '#E2C79E'); C(o, a * G * 1.2, G * 14, -G * 2, G / 2, G / 2, G / 4, '#1F1D1A'); }
+    },
+    winter15_iceskater(o) { // patinadora de gelo azul num bloco de gelo
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#9AD8F0', alto: G * 6 });
+      BIBLIOTECA_UTIL.figura(o, { y, cor: '#6FC3E6', s: .9, pose: 'abertos', cabelo: '#4FA8D0' });
+    },
+    thai_c21_woodenstatue(o) { // figura de madeira dourada com a coroa pontuda
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#7A4A2E', alto: G * 4 });
+      BIBLIOTECA_UTIL.figura(o, { y, cor: '#B8722E', s: 1, pose: 'baixo' });
+      for (let k = 0; k < 3; k++) C(o, 0, y + G * (16 + k * 1.5), 0, G * (3 - k), G * 1.5, G * (3 - k), '#D9A040');
+    },
+    classic8_statue(o) { // elefante azul em base dourada
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#C9A34A', alto: G * 3, lado: G * 9 });
+      BIBLIOTECA_UTIL.bicho(o, { y, cor: '#7FBFE8', claro: '#A8D6F2', s: 1.3, orelha: 'caida' });
+      C(o, 0, y + G * 6, G * 9, G * 1.5, G * 5, G * 1.5, '#7FBFE8'); // tromba
+      for (const a of [-1, 1]) C(o, a * G * 3.5, y + G * 7.5, G * 5.5, G * 2, G * 4, G, '#6AAFD8');
+    },
+    china_rabbitstatue(o) { // coelho de pedra sentado no pedestal, orelhas longas
+      const y = BIBLIOTECA_UTIL.pedestal(o, { cor: '#8E8A84', alto: G * 4 });
+      BIBLIOTECA_UTIL.bicho(o, { y, cor: '#B4AFA6', s: 1, sentado: true, orelha: 'longa' });
+    },
+    cland15_ltd3(o) { // criatura verde-água abraçada ao pote roxo
+      C(o, 0, 0, 0, G * 5, G * 4, G * 5, '#8E4EC6'); C(o, 0, G * 4, 0, G * 5.5, G, G * 5.5, '#A56BD6');
+      C(o, 0, 0, -G * 3, G * 7, G * 7, G * 5, '#4FC8B0'); C(o, 0, G * 7, -G * 3, G * 6, G * 5, G * 5, '#6FD8C2');
+      for (const a of [-1, 1]) { C(o, a * G * 2.5, G * 4, -G, G * 2, G * 2, G * 3, '#4FC8B0'); C(o, a * G * 1.5, G * 9.5, -G * .4, G, G, G / 2, '#1F1D1A'); C(o, a * G * 3.5, G * 11, -G * 3, G, G * 2, G, '#4FC8B0'); }
+      C(o, 0, G * 8, -G * .4, G * 2, G / 2, G / 4, '#2B7A6C');
+    },
+    mystics_bbed(o, { w }) { // escultura do lado sombrio: pedra escura com espinhos e cristais azuis acesos
+      const s = Math.max(1, w - G * 2);
+      C(o, 0, 0, 0, s, G * 3, G * 7, '#2E2A3A');
+      for (let k = 0; k < 7; k++) { const x = -s / 2 + G * 2 + k * (s - G * 4) / 6; C(o, x, G * 3, (k % 2 - .5) * G * 2, G * 2, G * (4 + (k * 5) % 6), G * 2, k % 2 ? '#3E3850' : '#2E2A3A'); }
+      for (let k = 0; k < 4; k++) L(o, -s / 3 + k * s / 4.5, G * 3, G * 3, G * 1.5, G * (3 + k % 2 * 2), G * 1.5, '#5FD3F0');
+    },
+    mystics_gtree(o) { BIBLIOTECA_UTIL.arvoreRetorcida(o, { tronco: '#7A5534', folha: '#4FA35A', alto: 1.1, olhos: '#5FB0E0' }); },
+    easter_r20_mystictree(o) { BIBLIOTECA_UTIL.arvoreRetorcida(o, { tronco: '#6E4B33', folha: '#2E6B3A', alto: 1.6, largo: true }); },
+    thai_c21_mangrovetree(o) { BIBLIOTECA_UTIL.arvoreRetorcida(o, { tronco: '#5E4030', folha: '#3E8F4E', alto: 1.8, largo: true, raizes: true }); },
+    xmas_r24_divinedeer(o) { // rena divina: branca, galhada clara e um brilho
+      BIBLIOTECA_UTIL.bicho(o, { cor: '#F4F6FA', claro: '#FFFFFF', escuro: '#C9D6E6', s: 1.5, orelha: 'pe', chifre: '#DCE8F5' });
+      for (const a of [-1, 1]) for (let k = 0; k < 3; k++) C(o, a * G * (2.5 + k * 1.2), G * (16 + k * 1.6), G * 6, G, G * 2, G, '#DCE8F5');
+      L(o, 0, G * 1, 0, G * 9, G / 4, G * 13, '#E8F4FF');
+    },
+    bazaar_r17_fountain(o, { w }) { // fonte de parede do pátio: arco de pedra, bica e a bacia com água
+      const s = Math.max(1, w - G * 2), p = '#E2D9C8';
+      C(o, 0, 0, -G * 5, s, G * 24, G * 4, p); C(o, 0, G * 24, -G * 5, s - G * 2, G * 2, G * 4, tom(p, .08)); C(o, 0, G * 26, -G * 5, s - G * 6, G * 2, G * 4, tom(p, .08));
+      C(o, 0, G * 6, -G * 3, s - G * 6, G * 14, G / 2, '#3D7DD8'); for (let k = 0; k < 4; k++) C(o, 0, G * (8 + k * 3), -G * 2.7, s - G * 8, G / 2, G / 4, '#F2C230');
+      C(o, 0, G * 14, -G * 2.5, G * 2, G, G * 2, '#C9A34A'); L(o, 0, G * 5, -G * 1.8, G, G * 9, G, '#BFE6F2');
+      C(o, 0, 0, 0, s - G * 2, G * 5, G * 6, tom(p, -.08)); L(o, 0, G * 4, 0, s - G * 4, G, G * 4, '#7FC8E8');
+    },
+    anc_trophy_sstone(o) { // obelisco de arenito com o topo em pirâmide
+      const c = '#E2B26A';
+      C(o, 0, 0, 0, G * 6, G * 2, G * 6, tom(c, -.12)); C(o, 0, G * 2, 0, G * 4, G * 22, G * 4, c);
+      for (let k = 0; k < 5; k++) C(o, 0, G * (5 + k * 4), G * 2.05, G * 2, G / 2, G / 4, tom(c, -.3));
+      C(o, 0, G * 24, 0, G * 3, G * 1.5, G * 3, tom(c, .08)); C(o, 0, G * 25.5, 0, G * 1.5, G * 1.5, G * 1.5, '#F2C230');
+    },
+    trophy_viraldancer_bronze(o) { BIBLIOTECA_UTIL.trofeuFigura(o, { metal: '#C2763A', pose: 'abertos' }); },
+    trophy_viraldancer_silver(o) { BIBLIOTECA_UTIL.trofeuFigura(o, { metal: '#C9CED3', pose: 'abertos' }); },
+    trophy_streamer_bronze(o) { BIBLIOTECA_UTIL.trofeuFigura(o, { metal: '#C2763A', pose: 'alto' }); },
+    prize3(o) { // taça de bronze numa placa de madeira com a plaquinha
+      C(o, 0, 0, 0, G * 6, G * 4, G * 5, '#8A5A3C'); C(o, 0, G, G * 2.6, G * 3, G * 2, G / 4, '#F4EFE6');
+      C(o, 0, G * 4, 0, G, G * 3, G, '#B87333'); C(o, 0, G * 7, 0, G * 4, G * 4, G * 4, '#B87333'); C(o, 0, G * 11, 0, G * 5, G, G * 5, '#D08A4A');
+      for (const a of [-1, 1]) C(o, a * G * 3, G * 8, 0, G, G * 2, G, '#B87333');
+    },
+    fball_trophybrasil_bronze(o) { BIBLIOTECA_UTIL.trofeuMaos(o, { mao: '#3FAF6A', bola: '#C2763A' }); },
+    fball_trophybrasil_silver(o) { BIBLIOTECA_UTIL.trofeuMaos(o, { mao: '#3FAF6A', bola: '#C9CED3' }); },
   };
 }
