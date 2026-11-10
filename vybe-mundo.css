@@ -6177,6 +6177,7 @@ body.mundo .vc-camada > #vv-carteira{height:100%}
 .vs-resumo .vb-resumo-item{background:#FFFFFF;border-color:#ECE6DC;color:#5E5A53}
 .vs-resumo .vb-resumo-item.zero{background:transparent;border-style:dashed;color:#8A847A}
 .vs-resumo .vb-resumo-item b{white-space:nowrap}
+/* ======================================================================================
    GESTÃO: DIÁRIO, AUTOMAÇÕES E IA E CUSTOS (redesign, quadros 10 a 12 do moodboard, 10/11/2026). Só peças do sistema
    (vb-*, --pc-*, --ds-*), sem forçar nada.
    ====================================================================================== */
