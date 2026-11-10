@@ -3019,9 +3019,9 @@ html body.mundo.mundo-modulo .da-controller-dashboard{margin-left:0!important;ma
 html body.mundo.mundo-modulo :is(.container,[id^="painel-"]){overflow-x:clip}
 html body.mundo.mundo-modulo :is(button,a).marcado{background:var(--vv-acao)!important;color:#fff!important}
 /* Regra do Paulo: o que estiver selecionado tem fundo na cor de ação e TEXTO BRANCO (com ícone e contador juntos). */
-html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira){background:var(--vv-acao)!important;border-color:var(--vv-acao)!important;color:#fff!important}
-html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira) :is(span,b,small,i,em,strong,svg){color:#fff!important;stroke:currentColor}
-html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira) :is(span,b,small)[class]{background:rgba(255,255,255,.22)!important;border-color:transparent!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.cli-situacao):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira){background:var(--vv-acao)!important;border-color:var(--vv-acao)!important;color:#fff!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.cli-situacao):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira) :is(span,b,small,i,em,strong,svg){color:#fff!important;stroke:currentColor}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"],label):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"],[aria-current="page"],[aria-current="true"]):not(.cli-situacao):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira) :is(span,b,small)[class]{background:rgba(255,255,255,.22)!important;border-color:transparent!important}
 
 /* ===== Cartões de peça (Agenda da equipe, listas do dia): um cartão de vidro por peça, como no escuro ===== */
 html body.mundo.mundo-modulo .day-activity-row{background:rgba(255,255,255,.78)!important;border:1px solid rgba(31,29,26,.08)!important;border-radius:8px!important;box-shadow:0 1px 2px rgba(31,29,26,.05),0 6px 16px rgba(31,29,26,.05)!important;margin:0 0 8px!important;backdrop-filter:blur(6px);transition:box-shadow .15s,transform .15s var(--vv-mola,ease)}
@@ -3162,7 +3162,7 @@ html body.mundo.mundo-modulo .ag-ev:not(#vv-x):not(#vv-y) :is(b,strong){color:#0
 html body.mundo.mundo-modulo .ag-ev:not(#vv-x):not(#vv-y) small{color:#1F4F3A!important}
 html body.mundo.mundo-modulo button[onclick^="setProdV2View"]:not(.active):not(#vv-x){color:#5E5A53!important}
 /* Selecionado vence qualquer regra antiga (id na especificidade): fundo de ação + texto branco */
-html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"]):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"]):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira):not(#vv-x):not(#vv-y){background:var(--vv-acao)!important;border-color:var(--vv-acao)!important;color:#fff!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"],[role="button"]):is(.active,.marcado,.ativo,.selected,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.vv-olho):not(.linha-previa):not([class*="pill"]):not(.cliente-carteira):not(#vv-x):not(#vv-y){background:var(--vv-acao)!important;border-color:var(--vv-acao)!important;color:#fff!important}
 /* Últimos textos coloridos fracos (mesmo tom, mais fundo) */
 html body.mundo.mundo-modulo :is(#grupos-board-demandas b,.da-discipline-tag,.da-capacity-card strong,#painel-performance button:not(.active)):not(#vv-x){filter:brightness(.72) saturate(1.2)}
 /* Pino cravado no endereço: quando dois clientes ficam perto, os nomes se sobrepõem em vez de sair do lugar;
@@ -3465,8 +3465,8 @@ html body.mundo{--ds-acao:#FF7A2F;--ds-acao-hover:#E8602E;--ds-acao-sombra:0 8px
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important;font-weight:700!important;text-shadow:none!important}
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao-hover)!important}
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,button.primary,.btn-primary) *:not(svg):not(path):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
-html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-sel-fundo)!important;background-image:none!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important;box-shadow:none!important;text-shadow:none!important}
-html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill) :is(span,b,strong,small,em,i):not([class*="badge"]):not([class*="count"]):not([class*="dot"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-sel-fundo)!important;background-image:none!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important;box-shadow:none!important;text-shadow:none!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill) :is(span,b,strong,small,em,i):not([class*="badge"]):not([class*="count"]):not([class*="dot"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 
 /* ======================================================================================
    DESIGN SYSTEM · COMPONENTES (manual em docs/padrao-visual.md). Escalas únicas:
@@ -5350,3 +5350,71 @@ html body.mundo .plj-etapas li.agora i{background:#C2490C;color:#FFFFFF}
 html body.mundo .plj-etapas li.agora.ajustes{background:#FDECEE;border-color:#F3C7C2;color:#B42318}
 html body.mundo .plj-etapas li.agora.ajustes i{background:#B42318;color:#FFFFFF}
 html body.mundo .plj-etapas small{color:#6B675F}
+
+/* ===== Redesign do legado, fase 1 (Paulo, 09/11/2026: "dar aquele tchan de macOS, de Apple… acabamento premium em
+   alguns efeitinhos, animações, sistema fluido"). Moodboard: https://claude.ai/artifact/Q3rexVtqwYWCqUCJ7U2yb3
+   Uma camada só: tokens de movimento e material, janelas que entram com mola, dock que abre em cascata, cartões que
+   respondem ao ponteiro e o legado sem os vícios (ícone colorido no título, rótulo de setor colorido, manchas nos
+   cartões, atalhos repetindo o dock). Só transform/opacity/filter no movimento; "Reduzir movimento" desliga tudo. ===== */
+body.mundo{
+  --vv-mola:cubic-bezier(.32,.72,0,1);          /* folha que assenta: entra rápido e pousa devagar */
+  --vv-mola-viva:cubic-bezier(.34,1.32,.64,1);  /* pequeno passo além do ponto, para o que é tocado */
+  --vv-t-rapido:.16s;--vv-t-medio:.28s;--vv-t-janela:.42s;
+  --vv-sombra-janela:0 1px 1px rgba(31,29,26,.04),0 10px 24px -10px rgba(31,29,26,.18),0 36px 72px -28px rgba(31,29,26,.32);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
+  font-feature-settings:"cv11","ss01"}
+/* números que mudam sem dançar */
+body.mundo :is(.vs-kpi b,.vbl-kpi b,.vbl-num b,.pv-kpi strong,.vga-numeros b,.kpi b){font-variant-numeric:tabular-nums}
+
+/* Material das janelas: papel com um fio de luz em cima e sombra em camadas (perto, meio, longe). */
+html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,.vbl-janela,.vpc-janela){
+  box-shadow:var(--vv-sombra-janela),inset 0 1px 0 rgba(255,255,255,.75)}
+
+/* O legado sem os vícios (quadros 01–13 do moodboard) */
+html body.mundo :is(.workspace-heading,.pv-cabeca) > .pv-ic,html body.mundo .pv-ic-aba{display:none}
+html body.mundo .workspace-heading .workspace-eyebrow,html body.mundo :is(.client-module-kicker,.ai-usage-kicker,.auto-kicker,.pv-etiqueta){color:#6B675F;filter:none}
+html body.mundo .pv-kpi::after{display:none}
+html body.mundo.trilho-largo .vs-atalhos{display:none}
+
+@media (prefers-reduced-motion:no-preference){
+  /* Janelas de módulo, boletim, peça e visão geral: entram subindo com mola. */
+  /* Só movimento, sem opacidade: se a animação não andar (aba em segundo plano, pausa), a janela aparece do mesmo jeito. */
+  @keyframes vv-janela{from{scale:.982;translate:0 10px}to{scale:1;translate:0 0}}
+  html body.mundo :is(#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-impressoes,#vv-agentes,.vv-gestao,.vbl-janela,.vpc-janela,#vv-whatsapp):not([hidden]){
+    animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}
+  /* O fundo das janelas por cima escurece devagar, em vez de piscar. */
+  @keyframes vv-fundo{from{opacity:0}to{opacity:1}}
+  html body.mundo :is(.vbl-fundo,.vpc-fundo,#workflow-backdrop):not([hidden]){animation:vv-fundo var(--vv-t-medio) ease both}
+  /* Submenu do dock: abre em cascata curta, item por item. */
+  @keyframes vv-desce{from{translate:0 -5px}to{translate:0 0}}
+  html body.mundo .vv-trilho-sub:not([hidden]) > *{animation:vv-desce var(--vv-t-medio) var(--vv-mola) both}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(2){animation-delay:.02s}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(3){animation-delay:.04s}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(4){animation-delay:.06s}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(5){animation-delay:.08s}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(6){animation-delay:.1s}
+  html body.mundo .vv-trilho-sub:not([hidden]) > :nth-child(n+7){animation-delay:.12s}
+  /* A setinha do setor gira com a mesma mola. */
+  html body.mundo .vv-trilho-seta{transition:rotate var(--vv-t-medio) var(--vv-mola),transform var(--vv-t-medio) var(--vv-mola)}
+  /* Avisos do WhatsApp chegam deslizando da direita, com um passo além do ponto. */
+  @keyframes vv-aviso{from{translate:28px 0;scale:.98}to{translate:0 0;scale:1}}
+  html body.mundo #vv-wa-avisos > *{animation:vv-aviso .46s var(--vv-mola-viva) both}
+}
+/* Ponteiro de verdade (mouse/trackpad): o que é clicável responde ao passar e ao apertar. */
+@media (prefers-reduced-motion:no-preference) and (hover:hover){
+  html body.mundo :is(.vs-kpi,.vbl-achado-abrir,.vga-linha,.vpc-outra,.vbl-onde button,.cli-porta,.vc-cartao.espiavel,.vs-abrir){
+    transition:transform var(--vv-t-medio) var(--vv-mola),box-shadow var(--vv-t-medio) var(--vv-mola),background-color var(--vv-t-rapido) ease,border-color var(--vv-t-rapido) ease}
+  html body.mundo .vs-kpi:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 28px -14px rgba(31,29,26,.28)}
+  html body.mundo .vs-kpi:active{transform:translateY(0) scale(.99)}
+  /* Dock das salas: o ícone sob o ponteiro cresce um pouco, como no Dock. */
+  html body.mundo .vq-dock :is(button,a){transition:transform var(--vv-t-medio) var(--vv-mola-viva)}
+  html body.mundo .vq-dock :is(button,a):hover{transform:translateY(-3px) scale(1.06)}
+  html body.mundo .vq-dock :is(button,a):active{transform:translateY(0) scale(.96);transition-duration:.08s}
+}
+/* Foco do teclado: um anel laranja macio em tudo que não desenha o próprio. */
+:where(body.mundo) :where(button,a,[tabindex],summary,input,select,textarea):focus-visible{outline:2px solid #F26B1D;outline-offset:2px}
+/* O aviso curto do painel antigo (#toast) no mundo: claro e acima do dock das salas (era escuro, no canto de baixo). */
+html body.mundo #toast{background:rgba(255,255,255,.97);color:#1F1D1A;border-color:#E6E0D6;border-radius:10px;
+  bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px) + 12px);right:var(--vv-m,14px);box-shadow:var(--vv-sombra-janela)}
+html body.mundo #toast{display:flex;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px;font:600 13px/1.4 var(--vv-texto,Inter,system-ui,sans-serif)}
+html body.mundo #toast.err{color:#B42318}
