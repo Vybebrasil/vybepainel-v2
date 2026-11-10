@@ -28,6 +28,15 @@ function valorDoCadastro(f, campo) {
   return campo.tipo === 'data' ? String(bruto).slice(0, 10) : String(bruto);
 }
 
+// Quantos itens essenciais do cadastro estão preenchidos: a mesma conta do servidor (completude em
+// server/clientes-cadastro.js), usada na tabela de clientes, na ficha e no Ecossistema.
+function completudeDoCadastro(f) {
+  if (!CADASTRO_DEF || !f || !f.id) return null;
+  const essenciais = CADASTRO_DEF.campos.filter((c) => c.obrigatorio);
+  const faltam = essenciais.filter((c) => !valorDoCadastro(f, c).trim()).map((c) => c.rotulo);
+  return { feitos: essenciais.length - faltam.length, total: essenciais.length, faltam };
+}
+
 function campoDoCadastroHtml(campo, valor) {
   const id = `cad-${campo.chave}`;
   const obrig = campo.obrigatorio ? ' <i class="cad-obrig" title="Essencial para o cadastro completo">•</i>' : '';
@@ -219,7 +228,9 @@ async function carregarEcossistema(id, forcar = false) {
   return estado.promessa;
 }
 
-const ECO_ROTULO = { ok: 'Está lá', falta: 'Falta', conferir: 'Conferir' };
+// Redesign, quadro 52 (10/11/2026): sem a faixa colorida na borda; o estado é um selo com texto à esquerda, a barra
+// no topo diz quantos estão certos, e só o que falta ganha o botão laranja. Mesma informação, mesma ordem.
+const ECO_ROTULO = { ok: 'Ligado', falta: 'Falta', conferir: 'Conferir' };
 const ECO_ACAO = {
   cadastro: ['Completar cadastro', (n) => `abrirCadastroCompleto('${n}')`],
   reativar: ['Trazer de volta', (n, id) => `alternarAtivoDoCliente('${id}', false)`],
@@ -234,14 +245,17 @@ function ecossistemaHtml(estado, nome) {
   const { sistemas = [], cliente = {} } = estado.dados || {};
   const n = fichaAspas(nome || cliente.nome);
   const ok = sistemas.filter((s) => s.estado === 'ok').length;
+  const pct = Math.round((ok / Math.max(1, sistemas.length)) * 100);
   return `<p class="eco-resumo"><b>${ok} de ${sistemas.length}</b> sistemas com tudo certo.</p>
+    <div class="eco-progresso" role="progressbar" aria-valuemin="0" aria-valuemax="${sistemas.length}" aria-valuenow="${ok}" aria-label="Sistemas com tudo certo"><i style="width:${pct}%"></i></div>
     <ul class="eco-lista">${sistemas.map((s) => {
       const acao = ECO_ACAO[s.acao];
+      const tipo = s.estado === 'falta' ? 'vb-botao principal' : 'vb-botao';
       const botao = acao && (typeof podeEditarClientes !== 'function' || podeEditarClientes() || s.acao === 'cerebro')
-        ? `<button type="button" class="vb-botao" onclick="closeWorkflowModal();${acao[1](n, fichaEsc(cliente.id))}">${acao[0]}</button>`
-        : s.link ? `<a class="vb-botao" href="${fichaEsc(s.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : '';
-      return `<li class="eco-item eco-${s.estado}"><span class="eco-estado">${ECO_ROTULO[s.estado] || s.estado}</span>
-        <div><b>${fichaEsc(s.nome)}</b><p>${fichaEsc(s.detalhe)}</p></div>${botao}</li>`;
+        ? `<button type="button" class="${tipo}" onclick="closeWorkflowModal();${acao[1](n, fichaEsc(cliente.id))}">${acao[0]}</button>`
+        : s.link ? `<a class="${tipo}" href="${fichaEsc(s.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : '';
+      return `<li class="eco-item eco-${s.estado}"><span class="eco-estado"><i aria-hidden="true"></i>${ECO_ROTULO[s.estado] || s.estado}</span>
+        <div class="eco-texto"><b>${fichaEsc(s.nome)}</b><p>${fichaEsc(s.detalhe)}</p></div>${botao}</li>`;
     }).join('')}</ul>`;
 }
 
@@ -274,9 +288,8 @@ function cadastroLeituraHtml(nome) {
       ? `<button type="button" class="vb-botao principal" onclick="cadastrarClienteDaOperacao('${fichaAspas(nome)}')">Criar a ficha</button>` : ''}</p></div>`;
   if (!CADASTRO_DEF) return '<div class="auto-carregando">Carregando o cadastro…</div>';
   const pode = typeof podeEditarClientes === 'function' && podeEditarClientes();
-  const essenciais = CADASTRO_DEF.campos.filter((c) => c.obrigatorio);
-  const feitos = essenciais.filter((c) => valorDoCadastro(f, c).trim()).length;
-  const pct = Math.round((feitos / Math.max(1, essenciais.length)) * 100);
+  const { feitos, total } = completudeDoCadastro(f);
+  const pct = Math.round((feitos / Math.max(1, total)) * 100);
   const mostrar = (c, v) => {
     if (!v) return '<span class="cli-vazio">—</span>';
     if (c.tipo === 'data') return fichaEsc(v.split('-').reverse().join('/'));
@@ -296,7 +309,7 @@ function cadastroLeituraHtml(nome) {
         ${pode ? `<button type="button" class="vb-botao principal" onclick="abrirCadastroCompleto('${fichaAspas(nome)}')">Editar cadastro</button>` : ''}</div>
       <div class="cad-progresso" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Cadastro completo">
         <i style="width:${pct}%"></i></div>
-      <p>${feitos === essenciais.length ? 'Cadastro completo.' : `${feitos} de ${essenciais.length} itens essenciais preenchidos. Os que faltam estão marcados.`}</p>
+      <p>${feitos === total ? 'Cadastro completo.' : `${feitos} de ${total} itens essenciais preenchidos. Os que faltam estão marcados.`}</p>
       ${secoes}</div>`;
 }
 
@@ -305,10 +318,11 @@ function ecossistemaDaFichaHtml(nome) {
   if (!id) return cadastroLeituraHtml(nome);
   const estado = FICHA_ECOSSISTEMA[id];
   if (!estado) carregarEcossistema(id).then(() => { if (FICHA_ABA === 'ecossistema' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
-  return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Ecossistema</h3>
-      <button type="button" class="cli-lapis" onclick="carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${fichaAspas(nome)}'))">Conferir de novo</button></div>
-    <p>Um cliente, um cadastro. Cada sistema lê daqui; esta lista diz onde ele já está e o que falta.</p>
-    ${ecossistemaHtml(estado || { carregando: true }, nome)}</div>`;
+  return `<section class="client-master-detail-card clf-cartao eco-cartao"><div class="clf-cartao-topo"><div>
+      <h3 class="clf-titulo">Ecossistema</h3>
+      <p class="clf-texto">Um cliente, um cadastro. Cada sistema lê daqui; esta lista diz onde ele já está e o que falta.</p></div>
+      <button type="button" class="vb-botao" onclick="carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${fichaAspas(nome)}'))"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/></svg>Conferir de novo</button></div>
+    ${ecossistemaHtml(estado || { carregando: true }, nome)}</section>`;
 }
 
 // Registros que os chats do Claude.ai mandaram pelo conector "Ecossistema Vybe" (server/mcp-ecossistema.js).
@@ -371,7 +385,7 @@ function cerebroDaFichaHtml(nome) {
     const idFicha = typeof idDoCliente === 'function' ? String(idDoCliente(nome) || '') : '';
     if (idFicha && window.VybeReunioes?.carregar) window.VybeReunioes.carregar(idFicha);
     const abas = FICHA_ABAS.filter(([id]) => id !== 'onboarding' || FICHA_ABA === 'onboarding' || window.VybeReunioes?.temOnboarding?.(nome));
-    node.insertAdjacentHTML('afterbegin', `<nav class="ficha-abas" role="tablist" aria-label="Ficha do cliente">${abas.map(([id, rotulo]) =>
+    node.insertAdjacentHTML('afterbegin', `<nav class="ficha-abas vv-seg" role="tablist" aria-label="Ficha do cliente">${abas.map(([id, rotulo]) =>
       `<button type="button" role="tab" aria-selected="${id === FICHA_ABA}" class="${id === FICHA_ABA ? 'ativo' : ''}" onclick="trocarAbaDaFicha('${id}')">${rotulo}</button>`).join('')}</nav>`);
   };
   // Abrir outro cliente volta para a Visão geral.

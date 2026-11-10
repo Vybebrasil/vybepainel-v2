@@ -1,4 +1,4 @@
-/* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
+/* Clientes no Irecity: a lista (quadro 50), a ficha (51), o Ecossistema (52) e o cadastro único (vybe-clientes.js, vybe-clientes-ficha.js) — padrão claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
 
 /* ── janela do cadastro ── */
 #workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:var(--vv-janela-alto,calc(100dvh - 32px));overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
@@ -27,25 +27,28 @@
 .cad-acoes [hidden]{display:none}
 @media (max-width:640px){.cad-grade{grid-template-columns:1fr}.cad-passos button{height:32px;font-size:12px}}
 
-/* ── ecossistema ── */
-.eco-resumo{margin:6px 0 10px;color:var(--vv-apagado);font:500 13px var(--vv-texto)}
+/* ── ecossistema (quadro 52, 10/11/2026): sem a faixa colorida na borda; o estado é um selo com texto à esquerda, a
+   barra no topo conta os sistemas certos e só o que falta tem o botão laranja (vb-botao principal). ── */
+.eco-resumo{margin:6px 0 8px;color:var(--vv-apagado);font:500 13px var(--vv-texto)}
 .eco-resumo b{color:var(--vv-tinta)}
+.eco-progresso{height:8px;margin:0 0 14px;border-radius:999px;background:#EFEAE2;overflow:hidden}
+.eco-progresso i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#FF7A2F)}
 .eco-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.eco-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--vv-linha);border-radius:14px;background:var(--vv-branco);box-shadow:inset 3px 0 0 var(--eco-barra,#5B6268)}
-.eco-item b{font:700 13.5px var(--vv-texto);color:var(--vv-tinta)}
+.eco-item{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--vv-linha);border-radius:10px;background:var(--vv-branco)}
+.eco-item b{font:600 13.5px var(--vv-texto);color:var(--vv-tinta)}
 .eco-item p{margin:2px 0 0;font:500 12.5px/1.4 var(--vv-texto);color:var(--vv-apagado)}
-.eco-estado{font:700 11px var(--vv-texto);padding:3px 9px;border-radius:999px;white-space:nowrap}
-.eco-ok{--eco-barra:#11613A}.eco-ok .eco-estado{background:#E7F6EE;color:#11613A}
-.eco-falta{--eco-barra:#A3366F}.eco-falta .eco-estado{background:#FCE7F1;color:#A3366F}
-.eco-conferir{--eco-barra:#5B6268}.eco-conferir .eco-estado{background:#F1F2F3;color:#5B6268}
-.eco-item .vb-botao{white-space:nowrap;text-decoration:none}
-@media (max-width:640px){.eco-item{grid-template-columns:1fr}.eco-item .vb-botao{justify-self:start}}
+.eco-estado{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font:700 11px var(--vv-texto);white-space:nowrap}
+.eco-estado i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.eco-ok .eco-estado{background:#E7F6EE;color:#11613A}
+.eco-falta .eco-estado{background:#FDECEE;color:#B42318}
+.eco-conferir .eco-estado{background:#FFF1CC;color:#8A5A00}
+.eco-item :is(.vb-botao){white-space:nowrap;text-decoration:none}
+.eco-cartao .clf-cartao-topo{margin-bottom:6px}
+@media (max-width:640px){.eco-item{grid-template-columns:1fr}.eco-item :is(.vb-botao,.eco-estado){justify-self:start}}
 
-/* ── abas da ficha ── */
-.ficha-abas{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}
-.ficha-abas button{appearance:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:600 12.5px var(--vv-texto);cursor:pointer}
-.ficha-abas button:hover{border-color:var(--vv-laranja);color:#C2490C}
-.ficha-abas button.ativo{background:rgba(255,122,47,.13);border-color:transparent;color:#C2490C}
+/* ── abas da ficha: o alternador do sistema (vv-seg, em vybe-mundo.css), que não estica na largura toda ── */
+.ficha-abas.vv-seg{grid-column:1/-1;justify-self:start;display:inline-flex;flex-wrap:wrap;max-width:100%;margin:0 0 4px}
+.ficha-abas.vv-seg button{flex:0 0 auto}
 .ficha-abas button:focus-visible,.cad-passos button:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
 
 /* ── cadastro em leitura ── */
@@ -122,3 +125,107 @@
 .onb-q textarea{resize:vertical}
 .vc-link-inline{border:0;background:none;padding:0;color:#C2490C;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 @media (max-width:640px){.onb-q .onb-q-swot{grid-template-columns:1fr}}
+/* ── lista de clientes (quadro 50, 10/11/2026; vybe-clientes.js) ── */
+.cli-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* Os números viraram a frase do cabeçalho e os chips: as caixas antigas ficam vazias e não somam margem. */
+:is(#client-master-kpis,#client-master-source-rail,#kpi-grid-clientes):empty{display:none}
+.cli-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:2px 0 14px;padding:0;background:none;border:0}
+.cli-barra .clientes-visao.vv-seg{display:inline-flex;flex:0 0 auto;margin:0}
+.cli-barra .clientes-visao.vv-seg button{flex:0 0 auto}
+.cli-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cli-filtros[hidden],.cli-busca[hidden]{display:none}
+.cli-filtros-sep{width:1px;height:20px;margin:0 4px;background:var(--vv-linha,#E6E0D6)}
+.cli-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:var(--pc-h-p,28px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:var(--vv-tinta,#1F1D1A);font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,background-color .15s}
+.cli-chip b{font-weight:700;font-variant-numeric:tabular-nums}
+.cli-chip.tom-alerta b{color:#B42318}
+.cli-chip.tom-atencao b{color:#8A5A00}
+.cli-chip svg{color:var(--vv-apagado,#6B675F)}
+.cli-chip:hover:not(:disabled){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+.cli-chip[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFE9DC);border-color:var(--ds-sel-borda,transparent);color:var(--ds-sel-texto,#C2490C)}
+.cli-chip[aria-pressed="true"] :is(b,svg){color:inherit}
+.cli-chip:disabled{color:var(--vv-apagado,#6B675F);background:#FFFFFF;cursor:default}
+.cli-chip:disabled b{color:inherit;font-weight:600}
+.cli-chip:focus-visible,.cli-limpar:focus-visible,.clf-link:focus-visible,.clf-meta-item.editavel:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+.cli-limpar,.clf-link{appearance:none;padding:0;border:0;background:none;color:var(--ds-sel-texto,#C2490C);font:700 12px var(--vv-texto,"Inter"),sans-serif;cursor:pointer}
+.cli-limpar:hover,.clf-link:hover{text-decoration:underline;text-underline-offset:2px}
+/* A busca é o próprio campo do sistema (a regra de campos do design system desenha borda e foco); a lupa fica dentro. */
+.cli-busca{position:relative;margin-left:auto;display:inline-flex;align-items:center;color:var(--vv-apagado,#6B675F)}
+.cli-busca svg{position:absolute;left:11px;top:50%;translate:0 -50%;pointer-events:none}
+.cli-busca input{width:220px;min-width:0;height:var(--pc-h,34px);padding:0 10px 0 31px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:var(--vv-tinta,#1F1D1A);font:500 12.5px var(--vv-texto,"Inter"),sans-serif;color-scheme:light}
+.cli-busca input[type="search"]{appearance:none;-webkit-appearance:none}
+.cli-busca input::-webkit-search-decoration{-webkit-appearance:none}
+.cli-busca input:focus-visible{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.cli-busca input::placeholder{color:var(--vv-apagado,#6B675F)}
+/* Células novas da tabela */
+.cli-head{display:inline-flex;align-items:center;gap:8px;min-width:0;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-tinta,#1F1D1A);white-space:nowrap}
+.cli-head.vazio{color:var(--vv-apagado,#6B675F);font-weight:500}
+.cli-head .cli-retratos{display:inline-flex;flex:none}
+.cli-head .cli-retratos>:is(img,span){width:28px;height:28px;margin:0 0 0 -6px;border:2px solid #FFFFFF;border-radius:8px;background:#F1ECE4;object-fit:cover}
+.cli-head .cli-retratos>:first-child{margin-left:0}
+.cli-head .cli-retratos>.owner-avatar-fallback{display:inline-grid;place-items:center;color:#FFFFFF;font:700 10px var(--vv-texto,"Inter"),sans-serif}
+.cli-saude{display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap}
+.cli-saude i{align-self:center;width:8px;height:8px;border-radius:50%;background:#1F9D55}
+.cli-saude.atencao i{background:#D97706}
+.cli-saude.ruim i{background:#D93D42}
+.cli-saude b{font:700 13px var(--vv-titulo,"Inter Tight"),sans-serif;font-variant-numeric:tabular-nums;color:var(--vv-tinta,#1F1D1A)}
+.cli-saude.ruim b{color:#B42318}
+.cli-saude small{font:500 11px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.cli-abertos{display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap;font:500 12.5px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-tinta,#1F1D1A)}
+.cli-abertos b{font-weight:700;font-variant-numeric:tabular-nums}
+.cli-abertos .zero{color:var(--vv-apagado,#6B675F)}
+.cli-abertos .atencao b{color:#8A5A00}
+.cli-abertos i{font-style:normal;color:var(--vv-apagado,#6B675F)}
+.cli-completo{display:inline-grid;gap:4px;min-width:84px}
+.cli-completo-barra{display:block;width:84px;height:6px;border-radius:999px;background:#EFEAE2;overflow:hidden}
+.cli-completo-barra i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#FF7A2F)}
+.cli-completo.cheio .cli-completo-barra i{background:#1F9D55}
+.cli-completo small{font:500 11px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F);font-variant-numeric:tabular-nums}
+@media (max-width:760px){.cli-busca{margin-left:0;flex:1 1 100%}.cli-busca input{width:100%}}
+
+/* ── ficha do cliente (quadro 51): cabeçalho, três números e Dados e acessos ── */
+/* Com uma ficha aberta, o cabeçalho "Clientes" da lista sai: o da ficha toma o lugar (numerosDaListaDeClientes). */
+#clientes-hero[hidden]{display:none}
+.clf-cabeca{margin:0 0 14px}
+.clf-cabeca:empty{display:none}
+.clf-voltar{margin:0 0 12px}
+.clf-cabeca-linha{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
+.clf-cabeca-texto{min-width:0}
+.clf-nome .cliente-carteira{padding:4px 10px;font-size:16px;font-weight:700}
+.clf-nome{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0;font:600 24px/1.2 var(--vv-titulo,"Inter Tight"),sans-serif;letter-spacing:-.02em;color:var(--vv-tinta,#1F1D1A)}
+.clf-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:8px 0 0;font:500 13px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.clf-meta-item{display:inline-flex;align-items:center;gap:6px;border-radius:6px}
+.clf-meta-item.editavel{cursor:pointer}
+.clf-meta-item.editavel:hover{color:var(--ds-sel-texto,#C2490C)}
+.clf-meta-rot{color:var(--vv-apagado,#6B675F)}
+.clf-ponto{font-style:normal;color:#C9C2B7}
+.clf-acoes{display:flex;flex-wrap:wrap;gap:8px}
+.client-master-detail>:is(.clf-kpis,.clf-dupla){grid-column:1/-1}
+.clf-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.clf-kpi{display:grid;align-content:start;gap:2px;padding:12px 14px;border:1px solid var(--vv-linha,#E6E0D6);border-radius:10px;background:#FFFFFF}
+.clf-kpi>b{font:600 24px/1.15 var(--vv-titulo,"Inter Tight"),sans-serif;font-variant-numeric:tabular-nums;color:var(--vv-tinta,#1F1D1A)}
+.clf-kpi.zero>b{color:#A8A29A}
+.clf-kpi>small{font:500 12px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.clf-kpi .clf-hist{font:500 11px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.clf-kpi .clf-link{justify-self:start;margin-top:6px}
+.clf-kpi input{max-width:100%}
+.clf-dupla>.client-master-detail-card.plj-cartao{grid-column:auto}
+.clf-dupla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start}
+.clf-titulo{margin:0 0 6px;font:600 14px var(--vv-titulo,"Inter Tight"),sans-serif;color:var(--vv-tinta,#1F1D1A)}
+.clf-texto{margin:0;font:500 12.5px/1.5 var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.clf-cartao-topo{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px}
+.clf-portas{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.clf-porta{text-decoration:none}
+.clf-acessos{margin:10px 0 0}
+.clf-acessos>summary{list-style:none;display:inline-flex;cursor:pointer}
+.clf-acessos>summary::-webkit-details-marker{display:none}
+.clf-acessos-lista{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(0,1fr) auto;column-gap:10px;margin:10px 0 0;border-top:1px solid #F0EBE3}
+.clf-acesso{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;padding:8px 0;border-bottom:1px solid #F0EBE3}
+.clf-acesso>small{font:500 12px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F)}
+.clf-acesso>b{min-width:0;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-tinta,#1F1D1A);overflow-wrap:anywhere}
+.clf-acesso>.clf-link{justify-self:end;text-align:right}
+.clf-acesso>b a{color:var(--ds-sel-texto,#C2490C);text-decoration:none}
+.clf-acesso>b a:hover{text-decoration:underline}
+.clf-falta{color:#8A5A00}
+.clf-secao{margin:20px 0 8px;font:600 14px var(--vv-titulo,"Inter Tight"),sans-serif;color:var(--vv-tinta,#1F1D1A)}
+@media (max-width:900px){.clf-dupla{grid-template-columns:1fr}}
+@media (max-width:640px){.clf-kpis{grid-template-columns:1fr 1fr}.clf-kpis>:last-child{grid-column:1/-1}.clf-nome{font-size:21px}.clf-acessos-lista{grid-template-columns:minmax(0,1fr) auto}.clf-acesso>small{grid-column:1/-1}}
