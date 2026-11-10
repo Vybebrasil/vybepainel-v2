@@ -954,7 +954,6 @@ body.mundo .plj-aviso{top:auto!important;bottom:var(--vv-m)!important}
 /* ===== GERADO: texto claro do tema antigo (vybe-styles.css, vybe-appearance.css) escurecido para o fundo claro, contraste >= 4,8:1. Regras que pintam fundo escuro próprio ficam de fora. Regerar com gera_texto_claro.py ===== */
 html body.mundo.mundo-modulo .header-title h1{color:#5E5A53!important}
 html body.mundo.mundo-modulo .badge-week2{color:#0067DB!important}
-html body.mundo.mundo-modulo #toast.ok{color:#0F7A36!important}
 html body.mundo.mundo-modulo #toast.err{color:#DB0000!important}
 html body.mundo.mundo-modulo #loading.is-complete .boot-system{color:#007F26!important}
 html body.mundo.mundo-modulo .boot-topline{color:#9E5D00!important}
@@ -3663,7 +3662,7 @@ html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(p,small,.capt-detalhe-quan
 html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(#ds-a):not(#ds-b){background:transparent!important;color:#C2490C!important;border:0!important}
 html body.mundo .ag-cartao-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:6px!important}
 html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;color-scheme:light}
-html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
+html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary):not([role="tab"]):not(.notas-discreto)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
 html body.mundo #notas-janela :is(.notas-caderno.ativo,.notas-caderno.active,.notas-caderno[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important}
 html body.mundo #notas-janela :is(.notas-item-pe,small):not(#ds-a):not(#ds-b){color:#6B675F!important}
 html body.mundo #notas-janela :is(textarea,input):not(#ds-a):not(#ds-b){background:#FFFCF6!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
@@ -4176,10 +4175,10 @@ html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
 html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
 html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
-html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-m)!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
+html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-coluna-fundo,var(--vv-m))!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
 html body.mundo.mundo-modulo .vv-canto-modulo{right:calc(var(--vv-m) * 2 + var(--vv-col))!important}
 html body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{right:calc(var(--vv-m) * 2 + 360px)}
-@media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:calc(64px + 2 * var(--vv-m))!important}}
+@media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:var(--vv-coluna-fundo,calc(64px + 2 * var(--vv-m)))!important}}
 /* X do Cadastro rápido visível no papel claro (antes: #ece8e3 sobre creme, sumia). Paulo: "não tem o x de fechar". */
 html body.mundo #fc-overlay .fc-close{color:#3D3A35!important;background:#FFFFFF!important;border:1px solid #D9D1C3!important;width:32px!important;height:32px!important;top:16px!important;right:16px!important;opacity:1!important}
 html body.mundo #fc-overlay .fc-close:hover{background:#F3EEE6!important;color:#1F1D1A!important;transform:none!important}
@@ -5623,3 +5622,167 @@ body.mundo:is(:has(#vv-placa:not([hidden])),:has(.vv-vistas [data-vista="predio"
 .vcr-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .vcr-lotado{margin:0 0 8px;padding:8px 12px;border:1px solid #F6BBC4;border-radius:10px;background:#FDECEE;font:500 12px/1.45 var(--vv-texto);color:#3A3F44}
 .vcr-lotado b{color:#B42318}
+
+/* ======================================================================================
+   FASE 3d (10/11/2026; quadros 39–42, 45 e 47 do moodboard): Toolkit, Academy, avisos do sino, Conversa e Notas,
+   avisos curtos e o celular. Peças do sistema (--pc-*), sem forçar nada.
+   ====================================================================================== */
+/* Avisos do sino (quadro 41): um painel preso no sino, branco opaco, sem fundo desfocado. */
+.vv-avisos-painel{position:fixed;z-index:770;top:calc(var(--vv-m,14px) + 56px);right:var(--vv-m,14px);width:min(420px,calc(100vw - 2 * var(--vv-m,14px)));
+  max-height:calc(100dvh - var(--vv-m,14px) * 2 - 64px - var(--vv-dock-alto,0px));display:flex;flex-direction:column;overflow:hidden;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--pc-linha,#E6E0D6);border-radius:14px;box-shadow:var(--vv-sombra-janela,0 30px 80px rgba(31,29,26,.25));
+  font:500 13px/1.45 var(--vv-texto,Inter),system-ui,sans-serif;color-scheme:light;pointer-events:auto;animation:vv-surge .18s var(--vv-mola,ease) both}
+.vv-avisos-cab{flex:none;display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;border-bottom:1px solid #EFEAE2}
+.vv-avisos-cab > div{flex:1;min-width:0}
+.vv-avisos-cab h2{margin:0;font:600 17px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+.vv-avisos-cab small{display:block;margin-top:2px;font:500 12px var(--vv-texto,Inter),sans-serif;color:#6B675F}
+body.mundo .vv-avisos-cab .vv-aviso-lidos{min-height:var(--pc-h-p,28px);padding:0 10px;border-color:transparent;background:transparent;color:#C2490C}
+body.mundo .vv-avisos-cab .vv-aviso-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.vv-avisos-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 10px 12px}
+.vv-avisos-corpo h3{margin:12px 6px 6px;font:600 13px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#2B2925}
+.vv-avisos-corpo ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.vv-aviso-linha{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:9px 10px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF}
+.vv-aviso-linha.nao-lido{background:#FFFBF7;border-color:#F3DCC9}
+.vv-aviso-linha.nao-lido .vv-aviso-txt b{font-weight:700}
+.vv-aviso-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
+.vv-aviso-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.vv-aviso-linha.urgente .vv-aviso-ic{background:#FDECEE;color:#B42318}
+.vv-aviso-txt{display:grid;gap:2px;min-width:0}
+.vv-aviso-txt b{font:600 13px/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;overflow-wrap:anywhere}
+.vv-aviso-txt small{font:500 11.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B675F;overflow-wrap:anywhere}
+.vv-aviso-novo{display:inline-block;margin-right:6px;padding:1px 6px;border-radius:6px;background:#FFE6D6;color:#C2490C;font:700 10.5px/1.5 var(--vv-texto,Inter),sans-serif;font-style:normal;vertical-align:1px}
+body.mundo .vv-aviso-acao{min-height:var(--pc-h-p,28px);padding:0 10px}
+.vv-aviso-linha > .vv-aviso-pecas{grid-column:1/-1;margin-top:4px}
+.vv-aviso-linha.peca{grid-template-columns:minmax(0,1fr) auto;padding:7px 8px;border-style:dashed}
+.vv-aviso-linha.peca .vv-aviso-ic{display:none}
+.vv-aviso-mais{padding:2px 8px;font:500 11.5px var(--vv-texto,Inter),sans-serif;color:#6B675F}
+.vv-aviso-vazio{display:grid;gap:6px;justify-items:center;padding:28px 18px;text-align:center}
+.vv-aviso-vazio b{font:600 15px var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+.vv-aviso-vazio p{margin:0;max-width:300px;color:#6B675F;font-size:12.5px}
+.vv-avisos-pe{flex:none;display:flex;justify-content:flex-end;padding:10px 12px;border-top:1px solid #EFEAE2}
+@media (max-width:600px){
+  .vv-avisos-painel{left:var(--vv-m,12px);right:var(--vv-m,12px);width:auto;top:calc(var(--vv-m,12px) + 54px);
+    max-height:calc(100dvh - var(--vv-m,12px) * 3 - 54px - var(--vv-barra-cel,64px))}
+  .vv-aviso-linha{grid-template-columns:30px minmax(0,1fr)}
+  .vv-aviso-linha > .vv-aviso-acao{grid-column:2;justify-self:start}
+  .vv-aviso-linha.peca{grid-template-columns:minmax(0,1fr)}
+  .vv-aviso-linha.peca > .vv-aviso-acao{grid-column:1}
+}
+/* Avisos curtos (quadro 45): um desenho só (mostrarAvisoCurto, vybe-core.js). Ícone neutro, título inteiro, a frase e até
+   duas ações; sem faixa colorida na borda; cor só para erro. Ficam na caixa #vv-wa-avisos, no canto de cima à direita. */
+.vv-aviso-curto{pointer-events:auto;display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:start;gap:10px;width:100%;box-sizing:border-box;padding:10px 8px 10px 12px;
+  background:#FFFFFF;color:#1F1D1A;border:1px solid var(--pc-linha,#E6E0D6);border-radius:12px;box-shadow:0 1px 2px rgba(40,26,10,.06),0 12px 32px rgba(40,26,10,.14);
+  font:500 12.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif;animation:vv-surge .2s var(--vv-mola,ease) both}
+.vv-aviso-curto-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
+.vv-aviso-curto svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.vv-aviso-curto-txt{display:grid;gap:3px;min-width:0;padding-top:1px}
+.vv-aviso-curto-txt b{font:650 13px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;overflow-wrap:anywhere}
+.vv-aviso-curto-txt small{font:500 12px/1.45 var(--vv-texto,Inter),sans-serif;color:#5E5A53;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.vv-aviso-curto-acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+body.mundo .vv-aviso-curto-acoes :is(.vc-acao,.vc-sec){min-height:var(--pc-h-p,28px);padding:0 10px}
+body.mundo .vv-aviso-curto .vv-aviso-curto-x{min-width:28px;width:28px;height:28px;min-height:28px;border-color:transparent;background:transparent;color:#6B675F}
+.vv-aviso-curto.erro{border-color:#F6BBC4}
+.vv-aviso-curto.erro .vv-aviso-curto-ic{background:#FDECEE;color:#B42318}
+/* O aviso curto do painel antigo (#toast) no mesmo desenho: ícone neutro, sem a faixa colorida; vermelho só no erro. */
+body.mundo #toast:is(.ok,.err,.info){border-left-width:1px}
+body.mundo #toast::before{background:#F1ECE4;color:#1F1D1A}
+body.mundo #toast.err::before{background:#FDECEE;color:#B42318}
+body.mundo #toast.err{border-color:#F6BBC4}
+/* Coluna da Conversa e das Notas (quadro 42): termina acima do dock, nunca atrás dele. --vv-coluna-fundo é a mesma conta
+   em toda tela; na tela estreita o --vv-dock-alto já vem medido do pé da tela ao topo do dock (pintarDock). */
+body.mundo{--vv-coluna-fundo:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px) + 6px)}
+@media (max-width:900px){body.mundo:not(.com-dock-salas){--vv-coluna-fundo:calc(64px + 2 * var(--vv-m,14px) + 6px)}}
+body.mundo .vv-conversa{max-height:calc(100dvh - var(--vv-coluna-fundo) - var(--vv-m,14px) - 62px)}
+/* Notas na coluna (vybe-notas.js, .na-coluna): o mesmo lugar e o mesmo desenho da Conversa, com as abas no topo. */
+body.mundo .notas-janela.na-coluna{z-index:650;left:auto;right:var(--vv-m,14px);top:var(--vv-palco-topo,76px);bottom:var(--vv-coluna-fundo);width:var(--vv-col,380px);height:auto;border-radius:14px;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.mundo.mundo-centro .notas-janela.na-coluna{right:auto;left:calc(max(var(--vv-livre-esq,0px),90px) + 12px);top:auto;width:380px;height:min(560px,70dvh,calc(100dvh - var(--vv-coluna-fundo) - 76px))}
+body.mundo .notas-janela.na-coluna.cheia{left:var(--vv-palco-esq,var(--vv-m,14px));right:var(--vv-m,14px);top:var(--vv-palco-topo,76px);bottom:var(--vv-coluna-fundo);width:auto;height:auto}
+@media (max-width:900px){
+  body.mundo .notas-janela.na-coluna,body.mundo.mundo-centro .notas-janela.na-coluna,body.mundo .notas-janela.na-coluna.cheia{left:var(--vv-m,12px);right:var(--vv-m,12px);top:calc(var(--vv-m,12px) + 56px);bottom:var(--vv-coluna-fundo);width:auto;height:auto}
+}
+body.mundo .notas-janela.na-coluna .notas-canto{display:none}
+body.mundo .notas-topo-coluna{cursor:default;touch-action:auto;padding:12px 12px 10px 14px;gap:8px;border-bottom:1px solid #F0EBE3}
+body.mundo .notas-topo-coluna .vv-conversa-abas{flex:1}
+body.mundo .notas-janela :is(.notas-icone,.notas-voltar){width:34px;height:34px;border-radius:8px;color:#5E5A53}
+body.mundo .notas-janela :is(.notas-icone,.notas-voltar):hover{border-color:#FF7A2F;color:#C2490C}
+body.mundo .notas-sub{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #F0EBE3}
+body.mundo .notas-sub b{flex:1;min-width:0;font:600 14px var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo .notas-sub .notas-voltar{width:auto;padding:0 10px 0 6px;gap:2px;display:inline-flex;align-items:center;font:600 12.5px var(--vv-texto,Inter),sans-serif}
+/* Na coluna estreita os cadernos viram uma fila em cima da lista (como no celular). */
+body.mundo .notas-janela.na-coluna:not(.cheia) .notas-conteudo:not(.nota){grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+body.mundo .notas-janela.na-coluna:not(.cheia) .notas-cadernos{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;flex:0 0 auto;max-height:132px;padding:8px 10px;overflow-x:hidden;overflow-y:auto;border-right:0;border-bottom:1px solid #F0EBE3}
+body.mundo .notas-janela.na-coluna:not(.cheia) .notas-caderno{flex:0 0 auto;height:30px;padding:0 10px;white-space:nowrap}
+body.mundo .notas-janela.na-coluna:not(.cheia) .notas-caderno-acoes{flex:0 0 auto;margin:0;padding:0}
+/* Renomear e apagar o caderno: botões discretos com ícone, não texto solto. */
+body.mundo .notas-caderno-acoes{gap:4px}
+body.mundo .notas-janela .notas-discreto{display:inline-flex;align-items:center;gap:5px;min-height:var(--pc-h-p,28px);padding:0 8px;border:0;border-radius:var(--pc-r,8px);background:transparent;color:#5E5A53;font:600 12px var(--vv-texto,Inter),sans-serif;cursor:pointer;text-decoration:none}
+body.mundo .notas-janela .notas-discreto:hover{background:#F5F1EA;color:#1F1D1A;text-decoration:none}
+body.mundo .notas-janela .notas-discreto.perigo:hover{background:#FDECEE;color:#B42318}
+
+/* Academy (quadro 40): o vazio com o ícone, a frase e o botão de começar. */
+#vv-pessoas .vp-vazio-academy{justify-items:center;text-align:center;padding:32px 20px;gap:8px}
+#vv-pessoas .vp-vazio-academy p{max-width:440px}
+#vv-pessoas .vp-vazio-academy .vp-botoes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+.vp-vazio-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;background:#FFF1E6;color:#C2490C}
+.vp-vazio-ic svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* Os avisos do WhatsApp descem para baixo do cabeçalho das janelas dos módulos (não cobrem Nova trilha, atualizar e fechar). */
+body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-conteudo,#vv-impressoes):not([hidden])) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
+
+/* ===== Celular (quadro 47), até 600 px: topo com busca, avisos e conta; barra de baixo com cinco lugares e Criar no
+   meio; o dock das salas vira um cartão fora de uma sala; o "Mais" junta o resto. Nada cortado, nada rolando de lado. */
+.vv-trilho .vv-so-cel{display:none}
+@media (max-width:600px){
+  body.mundo .vv-barra-topo .vv-ferramentas > :is([data-ferr]:not([data-ferr="busca"]):not([data-ferr="avisos"]):not([data-ferr="conta"]),[data-boletim],.vv-divisor),
+  body.mundo .vv-barra-topo > :is(.vv-divisor,.vv-vistas){display:none}
+  body.mundo .vv-barra-topo .vv-ferramentas{justify-content:flex-end;gap:6px}
+  body.mundo .vv-barra-topo .vv-busca-larga{flex:1;width:auto;justify-content:flex-start;gap:8px;padding:0 12px;margin-right:auto;border-radius:10px;background:#F5F1EA;color:#6B675F}
+  body.mundo .vv-barra-topo .vv-busca-larga .vv-busca-texto{display:inline;font:500 13px var(--vv-texto,Inter),sans-serif}
+  body.mundo .vv-barra-topo .vv-busca-larga kbd{display:none}
+  body.mundo .vv-trilho{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;overflow:visible;scroll-snap-type:none}
+  body.mundo .vv-trilho > :not([data-trilho="hoje"]):not([data-trilho="criar"]):not([data-trilho="setor:producao"]):not(.vv-so-cel){display:none}
+  body.mundo .vv-trilho .vv-so-cel{display:flex}
+  body.mundo .vv-trilho .vv-trilho-btn{min-width:0;flex:none}
+  body.mundo .vv-trilho .vv-trilho-btn span{max-width:100%}
+  body.mundo .vv-trilho [data-trilho="setor:producao"]{order:1}
+  body.mundo .vv-trilho [data-trilho="criar"]{order:2}
+  body.mundo .vv-trilho [data-cel="conversas"]{order:3}
+  body.mundo .vv-trilho [data-cel="mais"]{order:4}
+  body.mundo .vv-trilho > .vv-trilho-btn[aria-current]:not(.criar){background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  body.mundo .vv-trilho [data-cel="mais"][aria-expanded="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  /* Dock das salas: no cartão, uma linha; numa chamada, os botões quebram em linhas em vez de rolar e cortar o último. */
+  body.mundo .vv-dock-salas-faixa > .vq-dock{flex-wrap:wrap;justify-content:center;overflow:visible;padding-top:6px;row-gap:2px}
+  body.mundo .vv-dock-salas-faixa > .vq-dock .vq-sep{display:none}
+  body.mundo .vv-dock-salas-faixa > .vq-dock:has(.vq-cartao){width:100%;padding:6px}
+  .vq-cartao{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
+  .vq-cartao-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
+  .vq-cartao-ic svg{width:17px;height:17px}
+  .vq-cartao-txt{flex:1;min-width:0;display:grid;gap:1px}
+  .vq-cartao-txt b{font:650 13px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+  .vq-cartao-txt small{font:500 11.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B675F;overflow-wrap:anywhere}
+  body.mundo .vq-cartao :is(.vc-acao,.vc-sec){flex:none;padding:0 12px}
+  /* Dentro de uma sala o dock toma o lugar da barra de baixo. */
+  body.mundo.cel-na-sala .vv-trilho{display:none}
+  body.mundo.cel-na-sala .vv-dock-salas-faixa{bottom:var(--vv-m,12px)}
+  /* O "Mais": uma folha em cima da barra de baixo, com rolagem por dentro. */
+  .vv-cel-mais{position:fixed;z-index:780;left:var(--vv-m,12px);right:var(--vv-m,12px);bottom:var(--vv-coluna-fundo);max-height:calc(100dvh - var(--vv-coluna-fundo) - var(--vv-m,12px) - 56px);
+    display:flex;flex-direction:column;overflow:hidden;background:#FFFFFF;color:#1F1D1A;border:1px solid var(--pc-linha,#E6E0D6);border-radius:14px;box-shadow:var(--vv-sombra-janela,0 30px 80px rgba(31,29,26,.25));pointer-events:auto;animation:vv-surge .18s var(--vv-mola,ease) both}
+  .vv-cel-mais-cab{flex:none;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 16px;border-bottom:1px solid #EFEAE2}
+  .vv-cel-mais-cab h2{flex:1;margin:0;font:600 17px var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+  .vv-cel-mais-cab svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .vv-cel-mais-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 14px}
+  .vv-cel-mais-corpo h3{margin:12px 2px 6px;font:600 13px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#2B2925}
+  .vv-cel-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .vv-cel-grade + .vv-cel-grade{margin-top:6px}
+  .vv-cel-setor{margin:6px 0 10px}
+  .vv-cel-setor > b{display:flex;align-items:center;gap:6px;margin:0 2px 6px;font:600 12.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+  .vv-cel-setor > b svg{width:15px;height:15px}
+  .vv-cel-item{appearance:none;display:flex;align-items:center;gap:8px;min-width:0;min-height:40px;padding:6px 10px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px/1.25 var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+  .vv-cel-item > span{flex:1;min-width:0;overflow-wrap:anywhere}
+  .vv-cel-item svg{flex:none;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .vv-cel-item[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);border-color:#F7C9A6;color:var(--ds-sel-texto,#C2490C)}
+  .vv-cel-item:disabled{color:#A8A29A;cursor:not-allowed}
+  .vv-cel-item.trancado{color:#8A847A}
+  .vv-cel-cadeado svg{width:13px;height:13px}
+  /* Painel de avisos no celular: acima do dock e da barra de baixo. */
+  .vv-avisos-painel{max-height:calc(100dvh - var(--vv-m,12px) - 54px - var(--vv-coluna-fundo))}
+}

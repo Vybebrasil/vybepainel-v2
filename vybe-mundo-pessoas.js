@@ -503,7 +503,14 @@
     const trilhas = [...(d.trilhas || [])].sort((a, b) => Number(b.minha) - Number(a.minha));
     if (trilhas.length) return html + trilhas.map((t) => cartaoTrilha(t, d)).join('');
     if (d.modelo) return html + cartaoTrilha({ ...d.modelo, aulas: d.modelo.aulas.map((a, i) => ({ ...a, id: 'm' + i })) }, d, true);
-    return html + vazio('Nenhuma trilha ainda', 'Monte a primeira trilha com os vídeos e documentos de quem está chegando.', d.gestao ? acao('Nova trilha', 'data-vp-abrir-form="trilha"') : '');
+    // Vazio com o botão de começar (fase 3d, quadro 40): a primeira trilha já vem montada com o modelo "Primeira semana na
+    // Vybe" para editar e salvar; quem não monta trilhas sabe a quem pedir.
+    if (estado.form === 'trilha') return html;
+    const modelo = window.VybePessoasCalculos?.TRILHA_PADRAO;
+    const botoes = d.gestao ? `<div class="vp-botoes">${acao('Montar a primeira trilha', 'data-vp-trilha-modelo')}${sec('Começar do zero', 'data-vp-abrir-form="trilha"')}</div>`
+      : '<p class="vp-nota">Quem monta as trilhas são os donos e o RH: peça a eles a sua.</p>';
+    return html + `<div class="vp-vazio vp-vazio-academy"><span class="vp-vazio-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6v16"/></svg></span>
+      <b>Nenhuma trilha ainda</b><p>Monte a primeira com os vídeos e documentos que todo mundo que chega precisa ver.${modelo && d.gestao ? ` Ela já começa com o roteiro "${esc(modelo.nome)}": é só pôr os links e salvar.` : ''}</p>${botoes}</div>`;
   }
 
   // ---------- Recrutamento ----------
@@ -684,6 +691,7 @@
     else if ((b = perto('[data-vp-editar-candidato]'))) abrirForm('candidato', (d.candidatos || []).find((x) => x.id === b.dataset.vpEditarCandidato));
     else if ((b = perto('[data-vp-editar-documento]'))) abrirForm('documento', (d.documentos || []).find((x) => x.id === b.dataset.vpEditarDocumento));
     else if (perto('[data-vp-nova-etapa]')) acrescentar('[data-vp-etapas]', linhaEtapa({ inicio: hoje(), fim: somarDias(hoje(), 3) }, d.pessoas));
+    else if (perto('[data-vp-trilha-modelo]')) { const m = window.VybePessoasCalculos?.TRILHA_PADRAO; abrirForm('trilha', m ? { nome: m.nome, descricao: m.descricao, aulas: m.aulas.map((x) => ({ ...x })) } : { aulas: [{}] }); }
     else if (perto('[data-vp-nova-aula]')) acrescentar('[data-vp-aulas]', linhaAula({}, estado.janela.querySelectorAll('.vp-aula-form').length));
     else if ((b = perto('[data-vp-remover-linha]'))) b.parentElement?.remove?.();
   }

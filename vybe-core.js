@@ -203,6 +203,51 @@ function showToast(msg, type='info', duration=3000) {
   TEMPO_DO_AVISO = setTimeout(() => { t.className = ''; TEMPO_DO_AVISO = null; }, duration);
 }
 
+// ─── Aviso curto do mundo (fase 3d, quadro 45 do moodboard) ───────────────────
+// Um desenho só para os avisos que chegam (menção, mensagem do WhatsApp, aviso do sino): ícone neutro, o título
+// inteiro, a frase e até duas ações. Sem faixa colorida na borda; cor só para erro. Empilham no canto de cima à direita,
+// na caixa #vv-wa-avisos (decisão do Paulo de 09/11/2026), no máximo três. Fora do mundo não aparece (devolve null) e
+// quem chamou segue com o aviso antigo. Parar o mouse ou o foco em cima segura o aviso na tela.
+const AVISO_CURTO_ICONES = {
+  mencao: '<circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.4 6.8"/>',
+  conversa: '<path d="M4 5h16v11H8l-4 4z"/>',
+  sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  musica: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  erro: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
+};
+function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = '', acoes = [], erro = false, tempo = 7000 } = {}) {
+  if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !titulo) return null;
+  let caixa = document.getElementById('vv-wa-avisos');
+  if (!caixa) { caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa); }
+  if (chave) caixa.querySelectorAll('.vv-aviso-curto').forEach((x) => { if (x.dataset.chave === chave) x.remove(); });
+  const el = document.createElement('div');
+  el.className = 'vv-aviso-curto' + (erro ? ' erro' : '');
+  el.setAttribute('role', erro ? 'alert' : 'status');
+  if (chave) el.dataset.chave = chave;
+  const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const lista = (Array.isArray(acoes) ? acoes : []).filter((a) => a && a.rotulo && typeof a.fazer === 'function').slice(0, 2);
+  el.innerHTML = `<span class="vv-aviso-curto-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16">${AVISO_CURTO_ICONES[erro ? 'erro' : icone] || AVISO_CURTO_ICONES.info}</svg></span>
+    <div class="vv-aviso-curto-txt"><b>${esc(titulo)}</b>${frase ? `<small>${esc(frase)}</small>` : ''}${lista.length ? `<div class="vv-aviso-curto-acoes">${lista.map((a, i) => `<button type="button" class="${a.principal ? 'vc-acao' : 'vc-sec'}" data-aviso-curto="${i}">${esc(a.rotulo)}</button>`).join('')}</div>` : ''}</div>
+    <button type="button" class="vc-ico vv-aviso-curto-x" aria-label="Fechar o aviso" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+  let relogio = null;
+  const sair = () => { clearTimeout(relogio); el.remove(); };
+  const contar = () => { clearTimeout(relogio); if (tempo > 0) relogio = setTimeout(sair, tempo); };
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    sair();
+    if (b.dataset.avisoCurto != null) { try { lista[Number(b.dataset.avisoCurto)].fazer(); } catch { /* a ação falhou: o aviso já saiu */ } }
+  });
+  el.addEventListener('pointerenter', () => clearTimeout(relogio));
+  el.addEventListener('pointerleave', contar);
+  el.addEventListener('focusin', () => clearTimeout(relogio));
+  el.addEventListener('focusout', (e) => { if (!el.contains(e.relatedTarget)) contar(); });
+  caixa.append(el);
+  while (caixa.children.length > 3) caixa.firstElementChild.remove();
+  contar();
+  return el;
+}
+
 // ─── GraphQL Query ────────────────────────────────────────────────────────────
 async function mondayQuery() {
   throw new Error('Integração Monday encerrada. Use os dados e ações do Vybe.');

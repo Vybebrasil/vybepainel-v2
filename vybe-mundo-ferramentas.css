@@ -18,7 +18,6 @@
 #vv-ferramentas .vf-campos textarea{resize:vertical;min-height:70px}
 #vv-ferramentas .vf-campos :is(input,select,textarea):focus{outline:2px solid #F76808;outline-offset:0;border-color:#F76808}
 #vv-ferramentas .vf-campos [aria-invalid="true"]{border-color:#E5484D}
-#vv-ferramentas .vf-cor input[type=color]{width:56px;height:36px;padding:2px}
 #vv-ferramentas .vf-cor small,#vv-ferramentas .vf-dica{font:500 12px/1.45 Inter,system-ui,sans-serif;color:#8A7F70;margin:0}
 #vv-ferramentas .vf-erro{margin:-6px 0 0;font:600 12px Inter,system-ui,sans-serif;color:#E5484D}
 #vv-ferramentas .vf-previa{display:grid;gap:12px;position:sticky;top:0}
@@ -35,3 +34,37 @@
   #vv-ferramentas .vf-previa{position:static}
   #vv-ferramentas .vf-qr{max-width:320px;width:100%;margin:0 auto}
 }
+/* Visão geral (fase 3d, quadro 39): as três ferramentas como cartões e "Usados por último". */
+#vv-ferramentas .vf-frase{margin:0 0 14px;font:500 13px/1.5 Inter,system-ui,sans-serif;color:#5E5A53}
+#vv-ferramentas .vf-cartoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+#vv-ferramentas .vf-cartao{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:10px}
+#vv-ferramentas .vf-cartao h3{margin:2px 0 0;font:600 15px/1.25 "Inter Tight",Inter,system-ui,sans-serif;color:#1F1D1A}
+#vv-ferramentas .vf-cartao p{flex:1;margin:0;font:500 12.5px/1.45 Inter,system-ui,sans-serif;color:#5E5A53}
+#vv-ferramentas .vf-cartao .vf-botao{flex:none;margin-top:4px}
+#vv-ferramentas .vf-cartao-ic,#vv-ferramentas .vf-uso-ic{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:8px;background:#FFF1E6;color:#C2490C}
+#vv-ferramentas .vf-uso-ic{width:30px;height:30px;background:#F1ECE4;color:#1F1D1A}
+#vv-ferramentas :is(.vf-cartao-ic,.vf-uso-ic) svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#vv-ferramentas .vf-recentes{margin-top:16px;padding:14px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:10px}
+#vv-ferramentas .vf-recentes h3{margin:0 0 8px;font:600 13px "Inter Tight",Inter,system-ui,sans-serif;color:#2B2925}
+#vv-ferramentas .vf-recentes ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+#vv-ferramentas .vf-uso{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:9px 11px;border:1px solid #EFEAE2;border-radius:8px}
+#vv-ferramentas .vf-uso-txt{flex:1 1 200px;min-width:0;display:grid;gap:2px}
+#vv-ferramentas .vf-uso-txt b{font:600 13px/1.35 Inter,system-ui,sans-serif;color:#1F1D1A;overflow-wrap:anywhere}
+#vv-ferramentas .vf-uso-txt small{font:500 11.5px/1.4 Inter,system-ui,sans-serif;color:#6B675F;overflow-wrap:anywhere}
+#vv-ferramentas .vf-uso-acoes{display:flex;flex-wrap:wrap;gap:6px}
+#vv-ferramentas .vf-uso-acoes .vf-botao{flex:none;min-height:var(--pc-h-p,28px);padding:0 10px}
+#vv-ferramentas .vf-vazio{margin:0;font:500 12.5px/1.5 Inter,system-ui,sans-serif;color:#6B675F}
+/* Cor do QR: a paleta do sistema no lugar da cor nativa; "Outra" guarda a cor da marca do cliente. */
+#vv-ferramentas .vf-cor{display:grid;gap:6px;margin:0;padding:0;border:0;min-width:0}
+#vv-ferramentas .vf-cor legend{padding:0;margin-bottom:5px;font:600 12px Inter,system-ui,sans-serif;color:#3D3A35}
+#vv-ferramentas .vf-paleta{display:flex;flex-wrap:wrap;gap:6px}
+#vv-ferramentas .vf-amostra{position:relative;display:inline-grid;place-items:center;min-width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF;cursor:pointer}
+#vv-ferramentas .vf-amostra input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+#vv-ferramentas .vf-amostra i{width:18px;height:18px;border-radius:5px}
+#vv-ferramentas .vf-amostra:has(input:checked),#vv-ferramentas .vf-amostra.outra.on{border-color:#FF7A2F;box-shadow:0 0 0 2px rgba(255,122,47,.25)}
+#vv-ferramentas .vf-amostra:has(input:focus-visible){outline:2px solid #F26B1D;outline-offset:2px}
+#vv-ferramentas .vf-amostra.outra{padding:0 10px;font:600 12px Inter,system-ui,sans-serif;color:#1F1D1A}
+#vv-ferramentas .vf-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#vv-ferramentas .vf-abas{overflow-x:auto;scrollbar-width:none}
+#vv-ferramentas .vf-abas button{flex:none;white-space:nowrap}
+@media (max-width:600px){#vv-ferramentas .vf-abas{flex-wrap:wrap;overflow:visible;padding:6px 12px 0}#vv-ferramentas .vf-abas button{padding:8px 10px}}

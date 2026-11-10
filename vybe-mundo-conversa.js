@@ -13,7 +13,7 @@
 //  - Com o Irecity ligado (body.mundo), abrirRecadosEscritorio e alternarAbaEscritorio
 //    ('conversa' | 'recados') abrem este painel: a ficha ("Deixar recado"), o menu da pessoa e a
 //    Equipe do mundo chamam essas duas. Fora do Irecity, o Escritório antigo segue igual.
-// API: window.VybeConversa = { abrir(aba = 'conversa' | 'recados', pessoaId?), fechar(), aberto() }
+// API: window.VybeConversa = { abrir(aba = 'conversa' | 'recados' | 'notas', pessoaId?), fechar(), aberto() }
 (function () {
   'use strict';
   if (typeof window === 'undefined' || window.VybeConversa) return;
@@ -92,17 +92,20 @@
     const raiz = el('section', 'vv-conversa', { role: 'dialog', 'aria-modal': 'false', 'aria-label': 'Conversa da equipe', tabindex: '-1' });
     raiz.hidden = true;
     const topo = el('header', 'vv-conversa-topo');
-    const abas = el('div', 'vv-conversa-abas', { role: 'tablist', 'aria-label': 'Conversa da equipe ou recados' });
-    for (const [id, rotulo] of [['conversa', 'Conversa'], ['recados', 'Recados']]) {
+    const abas = el('div', 'vv-conversa-abas', { role: 'tablist', 'aria-label': 'Conversa da equipe, recados ou notas' });
+    // Notas é a terceira aba da coluna (fase 3d, quadro 42): abre o caderno de sempre (vybe-notas.js) no mesmo lugar.
+    const ordem = ['conversa', 'recados', 'notas'];
+    const irPara = (id) => { if (id === 'notas') { abrirNotasNaColuna(); return; } mostrar(id, null); focar(); };
+    for (const [id, rotulo] of [['conversa', 'Conversa'], ['recados', 'Recados'], ['notas', 'Notas']]) {
       const b = el('button', '', { type: 'button', role: 'tab', id: 'vv-conversa-aba-' + id, 'aria-controls': 'vv-conversa-corpo', 'data-aba': id });
       b.textContent = rotulo;
-      b.addEventListener('click', () => { mostrar(id, null); focar(); });
+      b.addEventListener('click', () => irPara(id));
       b.addEventListener('keydown', (ev) => {
         if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
         ev.preventDefault?.();
-        const outra = id === 'conversa' ? 'recados' : 'conversa';
-        mostrar(outra, null);
-        st.botoesAba[outra].focus?.();
+        const outra = ordem[(ordem.indexOf(id) + (ev.key === 'ArrowRight' ? 1 : ordem.length - 1)) % ordem.length];
+        irPara(outra);
+        if (outra !== 'notas') st.botoesAba[outra].focus?.();
       });
       st.botoesAba[id] = b;
       abas.append(b);
@@ -487,7 +490,16 @@
   }
 
   // ---------- API ----------
+  // Notas na coluna: fecha a conversa e abre o caderno no mesmo lugar, com as mesmas abas no topo dele.
+  function abrirNotasNaColuna() {
+    fechar();
+    const abrirNotas = fn('abrirNotas');
+    if (abrirNotas) abrirNotas();
+  }
   function abrir(aba = 'conversa', pessoaId = null) {
+    if (aba === 'notas') { abrirNotasNaColuna(); return; }
+    // Uma coluna por vez: as Notas abertas no lugar dela saem (o que estava escrito é salvo pelo fecharNotas).
+    if (document.getElementById('notas-janela')?.classList.contains('na-coluna')) fn('fecharNotas')?.();
     const raiz = garantirRaiz();
     const alvo = destino(aba, pessoaId);
     // Já aberto no mesmo lugar: não redesenha (o texto que está sendo escrito fica).

@@ -6,7 +6,7 @@
    (.workflow-modal 841) e dos ajustes de áudio (900). Os valores repetem os tokens como reserva,
    para a janela não perder a cara se os tokens do mundo ainda não tiverem carregado. */
 .vv-conversa{
-  position:fixed;z-index:650;left:calc(14px + 100px);bottom:84px;width:380px;
+  position:fixed;z-index:650;left:calc(14px + 100px);bottom:var(--vv-coluna-fundo,84px);width:380px;
   max-height:min(560px,70vh,calc(100vh - 98px));min-height:min(340px,70vh,calc(100vh - 98px));
   display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;
   background:#FFFFFF;color:#1F1D1A;border:1px solid var(--ds-linha,#E6E0D6);border-radius:14px;
@@ -21,9 +21,9 @@
 /* Entrada: opacidade e escala com scale/translate separados (não desmonta transform). */
 @keyframes vv-conversa-entra{from{scale:.97;translate:0 8px}to{scale:1;translate:0 0}}
 
-/* Cabeçalho: abas segmentadas e fechar */
-.vv-conversa-topo{flex:none;display:flex;align-items:center;gap:8px;padding:12px 12px 10px 14px}
-.vv-conversa-abas{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;border-radius:8px;background:#EFEAE2}
+/* Cabeçalho: abas segmentadas (Conversa, Recados e Notas) e o fechar na mesma linha (o header antigo empilhava em coluna). */
+.vv-conversa-topo{flex:none;display:flex;flex-direction:row;align-items:center;gap:8px;padding:12px 12px 10px 14px}
+.vv-conversa-abas{flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;border-radius:8px;background:#EFEAE2}
 .vv-conversa-abas button{appearance:none;margin:0;border:0;height:30px;padding:0 10px;border-radius:6px;background:transparent;color:#6B675F;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;
   transition:background .15s,color .15s}
@@ -88,13 +88,13 @@
 
 /* Tela estreita: ocupa a largura, acima da barra de voz (que sobe para 64px + 2 margens) */
 @media (max-width:899px){
-  .vv-conversa{left:14px;right:14px;width:auto;bottom:152px;
+  .vv-conversa{left:14px;right:14px;width:auto;bottom:var(--vv-coluna-fundo,152px);
     max-height:min(560px,70vh,calc(100vh - 166px));min-height:min(300px,70vh,calc(100vh - 166px))}
 }
 @supports (height:100dvh){
   .vv-conversa{max-height:min(560px,70dvh,calc(100dvh - 98px));min-height:min(340px,70dvh,calc(100dvh - 98px))}
   @media (max-width:899px){
-    .vv-conversa{max-height:min(560px,70dvh,calc(100dvh - 166px));min-height:min(300px,70dvh,calc(100dvh - 166px))}
+    .vv-conversa{max-height:min(560px,70dvh,calc(100dvh - 166px),calc(100dvh - var(--vv-coluna-fundo,152px) - 72px));min-height:min(300px,70dvh,calc(100dvh - 166px),calc(100dvh - var(--vv-coluna-fundo,152px) - 72px))}
   }
 }
 @media (prefers-reduced-motion:reduce){.vv-conversa{animation:none}}

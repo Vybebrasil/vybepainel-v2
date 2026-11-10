@@ -132,7 +132,25 @@
       n.onclick = () => { try { window.focus(); } catch {} abrir(a.conversa, a.seq); n.close?.(); };
     } catch { /* navegador sem notificação fora de service worker (Android): fica o aviso na tela */ }
   }
+  // A peça citada na mensagem (fase 3d, quadro 45: "a menção leva direto à peça"): um vybe:ID ou o nome exato de uma peça
+  // do painel escrito no texto. Sem peça, o aviso abre a conversa.
+  function pecaCitada(texto) {
+    const t = String(texto || ''), id = /\bvybe:(\d+)\b/i.exec(t)?.[1];
+    if (id) return id;
+    try {
+      const baixo = t.toLowerCase(), itens = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : [];
+      const achou = itens.find((x) => String(x?.nome || x?.name || '').trim().length >= 10 && baixo.includes(String(x.nome || x.name).trim().toLowerCase()));
+      return achou ? String(achou.id) : '';
+    } catch { return ''; }
+  }
   function avisoNaTela(a) {
+    // O aviso curto do sistema (vybe-core.js): ícone neutro, título inteiro, a frase e as ações.
+    if (typeof mostrarAvisoCurto === 'function') {
+      const peca = a.mencao ? pecaCitada(a.corpo) : '';
+      const abrirConversa = { rotulo: a.conversa ? 'Abrir a conversa' : 'Abrir Conversas', principal: !peca, fazer: () => abrir(a.conversa, a.seq) };
+      const acoes = peca ? [{ rotulo: 'Abrir a peça', principal: true, fazer: () => { if (typeof openSearchItem === 'function') openSearchItem(peca); } }, abrirConversa] : [abrirConversa];
+      if (mostrarAvisoCurto({ chave: 'wa:' + (a.conversa || 'varias') + (a.mencao ? ':' + a.seq : ''), icone: a.mencao ? 'mencao' : 'conversa', titulo: a.titulo, frase: a.corpo, acoes, tempo: a.mencao ? 12000 : 7000 })) return;
+    }
     try {
       let caixa = document.getElementById('vv-wa-avisos');
       if (!caixa) { caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa); }
