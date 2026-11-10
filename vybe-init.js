@@ -116,3 +116,52 @@ function openMeetingMode() {
   document.body.appendChild(overlay); requestAnimationFrame(()=>overlay.classList.add('open'));
 }
 
+
+// VERSÃO NOVA (Paulo, 10/11/2026: "todos já estão usando as novas interfaces?"). Quem estava com o painel aberto
+// numa publicação seguia na versão antiga até recarregar, sem saber. O build põe um código no nome de cada arquivo
+// (/assets/painel-871d42118b93.css): o painel guarda os que carregou e, de tempos em tempos e ao voltar para a aba,
+// lê a página de novo; se o site já serve outros arquivos, avisa no canto com "Recarregar". Nunca recarrega sozinho
+// (pode ter alguém escrevendo). Na demonstração local os arquivos não têm código e o aviso não aparece.
+const VERSAO_ARQUIVO = /\/assets\/[\w.-]+-[a-f0-9]{8,}\.(?:js|css)/g;
+function arquivosDaVersao(texto) { return new Set(String(texto || '').match(VERSAO_ARQUIVO) || []); }
+const VERSAO_CARREGADA = arquivosDaVersao([...document.querySelectorAll('script[src], link[href]')].map((e) => e.getAttribute('src') || e.getAttribute('href')).join('\n'));
+const VERSAO = { ultima: 0, ignorada: '', avisada: false };
+function haVersaoNova(servidos) {
+  if (!VERSAO_CARREGADA.size || !servidos.size) return false;
+  for (const a of servidos) if (!VERSAO_CARREGADA.has(a)) return true;
+  return false;
+}
+async function conferirVersao(forcar = false) {
+  if (!VERSAO_CARREGADA.size || document.hidden || VERSAO.avisada) return;
+  if (!forcar && Date.now() - VERSAO.ultima < 120000) return;
+  VERSAO.ultima = Date.now();
+  try {
+    const r = await fetch('/', { cache: 'no-store', credentials: 'same-origin' });
+    if (!r.ok) return;
+    const servidos = arquivosDaVersao(await r.text());
+    const chave = [...servidos].sort().join('|');
+    if (haVersaoNova(servidos) && chave !== VERSAO.ignorada) mostrarVersaoNova(chave);
+  } catch { /* sem rede: confere na próxima */ }
+}
+function mostrarVersaoNova(chave) {
+  if (document.getElementById('vb-versao')) return;
+  VERSAO.avisada = true;
+  const el = document.createElement('div');
+  el.id = 'vb-versao'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span class="vb-versao-texto"><b>Tem versão nova do Vybe OS</b><small>Recarregue para usar o que acabou de ser publicado.</small></span>'
+    + '<button type="button" class="vb-versao-depois">Depois</button><button type="button" class="vb-versao-recarregar">Recarregar</button>';
+  el.querySelector('.vb-versao-recarregar').addEventListener('click', () => location.reload());
+  el.querySelector('.vb-versao-depois').addEventListener('click', () => { VERSAO.ignorada = chave; VERSAO.avisada = false; el.remove(); });
+  document.body.appendChild(el);
+  posicionarVersaoNova();
+}
+// Logo acima do que estiver embaixo (dock das salas e, no celular, a barra de baixo): mede em vez de somar alturas.
+function posicionarVersaoNova() {
+  const el = document.getElementById('vb-versao'); if (!el) return;
+  const baixo = [...document.querySelectorAll('.vv-dock-salas, .vv-celular-nav, .mobile-nav')].filter((e) => e.getClientRects().length).map((e) => e.getBoundingClientRect().top).filter((t) => t > innerHeight / 2);
+  el.style.bottom = baixo.length ? `${Math.round(innerHeight - Math.min(...baixo) + 12)}px` : '';
+}
+window.addEventListener('resize', posicionarVersaoNova);
+setInterval(() => conferirVersao(), 10 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) conferirVersao(); });
+window.addEventListener('focus', () => conferirVersao());
