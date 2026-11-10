@@ -11,6 +11,7 @@ import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
 import { tabelaRegras } from './assistente-regras.js';
 import { marcarEncaixe } from './assistente-encaixe.js';
 import { gruposDoQuadro } from './grupos.js';
+import { ehDonoPessoa } from './donos.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -25,6 +26,8 @@ async function pessoaAtiva(sql, pessoaId) {
   const [p] = await sql`SELECT id::text AS id, nome, email, COALESCE(admin, false) AS admin, monday_user_id::text AS monday_id
     FROM vybe_pessoas WHERE id = ${pessoaId} AND ativo IS TRUE AND pode_entrar IS TRUE`;
   if (!p) throw negar('Pessoa sem acesso ao Vybe OS.');
+  // Dono pelo WhatsApp tem o mesmo que no painel: tudo (vybe_sessao.js; Paulo, 10/11/2026).
+  if (!p.admin && ehDonoPessoa({ id: p.id, monday_user_id: p.monday_id })) p.admin = true;
   return p;
 }
 // O que falta na peça para o próximo passo (Paulo, 27/10/2026: "tem briefing? tem OFF? já foi mandado pro cliente?"):

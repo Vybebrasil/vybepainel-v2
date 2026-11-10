@@ -64,7 +64,8 @@ test('ações: permissões por papel, confirmação de uso único e execução p
     // Em aprovação: design é do Deivid; vídeo é do head do cliente (Ewerton). Admin pode tudo.
     await assert.rejects(() => prepararAcao(sql, 2, { acao: 'status', item: '12', para: 'para agendar' }, segredo), /só quem aprova/);
     assert.ok((await prepararAcao(sql, 4, { acao: 'status', item: '12', para: 'para agendar' }, segredo)).codigo);
-    await assert.rejects(() => prepararAcao(sql, 4, { acao: 'status', item: '13', para: 'para agendar' }, segredo), /só quem aprova/);
+    // Deivid é dono: aprova também o vídeo (os quatro donos podem tudo; Paulo, 08/11 e 10/11/2026).
+    assert.ok((await prepararAcao(sql, 4, { acao: 'status', item: '13', para: 'para agendar' }, segredo)).codigo);
     assert.ok((await prepararAcao(sql, 5, { acao: 'status', item: '13', para: 'alteração' }, segredo)).codigo);
     assert.ok((await prepararAcao(sql, 1, { acao: 'status', item: '10', para: 'finalizado' }, segredo)).codigo);
     await assert.rejects(() => prepararAcao(sql, 2, { acao: 'status', item: '10', para: 'finalizado' }, segredo), /administração/);
@@ -198,14 +199,15 @@ test('pedido de alteração: comentário na peça e, com permissão, status Alte
   const { db, sql } = await banco();
   try {
     await db.exec(`ALTER TABLE vybe_conteudos ADD COLUMN prazo date; ALTER TABLE vybe_status ADD COLUMN final boolean;
-      UPDATE vybe_conteudos SET titulo='Card - Agenda Musical' WHERE id=10;`);
+      UPDATE vybe_conteudos SET titulo='Card - Agenda Musical' WHERE id=10;
+      INSERT INTO vybe_pessoas VALUES(6,'Lara Head','lara@x',false,true,true,555001);INSERT INTO vybe_cliente_pessoas VALUES(7,6);`);
     feitos.length = 0;
-    // Ewerton (head da Hebravet, sem permissão de status nessa etapa): fica só o comentário.
-    const a = await prepararAcao(sql, 5, { acao: 'alteracao', busca: 'agenda musical da hebravet', texto: 'quarta para Maria Luísa e sexta para Greyce Pires' }, segredo);
+    // Head da Hebravet que não é dono, sem permissão de status nessa etapa: fica só o comentário.
+    const a = await prepararAcao(sql, 6, { acao: 'alteracao', busca: 'agenda musical da hebravet', texto: 'quarta para Maria Luísa e sexta para Greyce Pires' }, segredo);
     assert.match(a.resumo, /Pedido de alteração em "Card - Agenda Musical" \(Hebravet\):\n“quarta para Maria Luísa e sexta para Greyce Pires”\n\(fica registrado como comentário/);
-    const ok = await confirmarAcao(sql, 5, a.codigo, segredo, { executar });
+    const ok = await confirmarAcao(sql, 6, a.codigo, segredo, { executar });
     assert.match(ok.feito, /Pedido de alteração registrado em "Card - Agenda Musical": “quarta para Maria Luísa e sexta para Greyce Pires”\. Status segue \*Pode Fazer\*/);
-    assert.deepEqual(feitos, [['comentar', 'ew@x', { item: 'vybe:10', texto: '🔧 Alteração pedida pelo WhatsApp: quarta para Maria Luísa e sexta para Greyce Pires' }]]);
+    assert.deepEqual(feitos, [['comentar', 'lara@x', { item: 'vybe:10', texto: '🔧 Alteração pedida pelo WhatsApp: quarta para Maria Luísa e sexta para Greyce Pires' }]]);
     // Administração: comentário e status.
     const b = await prepararAcao(sql, 1, { acao: 'alteracao', item: 'vybe:10', texto: 'trocar a foto' }, segredo);
     assert.match(b.resumo, /e status de \*Pode Fazer\* para \*Alteração\*/);
