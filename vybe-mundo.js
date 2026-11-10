@@ -1277,7 +1277,22 @@
       </aside></div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
-  function pintarHoje() {
+  // Minha sala (quadro 34 do redesign, 10/11/2026: "o Hoje continua à vista na sala, mais estreito... a gaveta da Agenda
+  // entra nele, e o quarto fica com o resto"): na sala, o fim do Hoje ganha a Agenda (a mesma lista da gaveta, pintada por
+  // agendaListaHtml) e a gaveta da direita sai. Fora da sala nada muda.
+  function pintarHoje() { desenharHoje(); agendaNoHoje(); }
+  function agendaNoHoje() {
+    const el = hud.querySelector('#vv-hoje'); if (!el) return;
+    let sec = el.querySelector(':scope > .vv-hoje-agenda');
+    if (!body.classList.contains('mundo-quarto') || body.classList.contains('mundo-cartoes')) { sec?.remove(); return; }
+    let lista = ''; try { lista = agendaListaHtml(3); } catch { /* a agenda ainda não foi lida */ }
+    const roteiros = hud.querySelector('#vv-roteiros'), rot = roteiros && !roteiros.hidden ? roteiros.innerHTML : '';
+    const html = `<div class="vv-rotulo-secao" style="--c:#1A8FA0"><i></i>Agenda</div><div class="vv-agenda-lista">${lista || '<p class="vv-dica">Carregando a agenda…</p>'}</div>${rot ? `<div class="vv-roteiros">${rot}</div>` : ''}<button type="button" class="vv-mais" data-hoje-acao="agenda">Abrir a agenda completa →</button>`;
+    if (!sec) { sec = document.createElement('section'); sec.className = 'vv-hoje-agenda'; sec.setAttribute('aria-label', 'Agenda da Vybe'); }
+    if (sec.vvHtml !== html) { sec.innerHTML = html; sec.vvHtml = html; }
+    if (sec.parentNode !== el || el.lastElementChild !== sec) el.append(sec);
+  }
+  function desenharHoje() {
     // A sessão chega depois do primeiro desenho: a cada pintura, os cadeados e o "ver como" seguem quem entrou.
     conferirVerComo(); aplicarCadeados(); marcarVerComo();
     const el = hud.querySelector('#vv-hoje'); if (!el || body.classList.contains('mundo-cartoes')) return;
@@ -1395,6 +1410,7 @@
     </aside>`;
     const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : !dono && !euId ? `<small class="vv-dia-de">O dia de ${esc(nomeCurto(fila.user))} · <button type="button" class="vg-link" data-pessoas-atalho="trocar">Trocar</button></small>` : ''}</span>
         <span class="vv-hoje-topo-acoes"><span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span>${criarHtml}</span></div>
+      ${body.classList.contains('mundo-quarto') ? `<p class="vv-hoje-contas">${[[atrasadas.length, 'atrasada', 'atrasadas', 'ruim'], [deHoje.length, 'vence hoje', 'vencem hoje', 'atencao'], [abertas.length, 'na fila', 'na fila', '']].map(([n, um, varios, cls]) => `<span class="${n ? cls : ''}">${n} ${n === 1 ? um : varios}</span>`).join('')}</p>` : ''}
       ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
@@ -2008,13 +2024,7 @@
     if (a === 'audio') { abrirAjustesAudio(); return; }
     if (a === 'tv') { fn('abrirTvEscritorio')?.(e?.tvAtual || null); return; }
     if (a === 'ver-minha') { const m = minhaSalaDaConta(); if (m) abrirMinhaSala(m); return; }
-    if (a === 'decorar') {
-      const D = window.VybeDecorar, z = String(andarAbertoId || '').startsWith('quarto:') ? andarAbertoId.slice(7) : '';
-      if (!D || !z) return;
-      if (D.aberto?.()) { Promise.resolve(D.fechar?.()).finally(pintarDock); return; }
-      import(MUNDO_JS).then((m) => { D.ligarCena?.(andarAberto, m); return D.abrir?.(z); }).catch(() => {}).finally(pintarDock);
-      return;
-    }
+    if (a === 'decorar') { alternarDecorar(); return; }
     if (a === 'ver-atual') { if (e?.zona) abrirMinhaSala(e.zona); return; }
     if (a === 'salas') { abrirDaDireita(body.classList.contains('ver-voz') ? '' : 'voz'); return; }
     if (a === 'chat') { window.VybeConversa?.abrir?.('conversa'); return; }
@@ -2032,6 +2042,44 @@
     }
     if (a === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(pintarChamada); }
   });
+  // Decorar a sala aberta (o dock e a faixa da sala usam o mesmo): abre ou fecha o VybeDecorar sobre o quarto voxel.
+  function alternarDecorar() {
+    const D = window.VybeDecorar, z = String(andarAbertoId || '').startsWith('quarto:') ? andarAbertoId.slice(7) : '';
+    if (!D || !z) return;
+    if (D.aberto?.()) { Promise.resolve(D.fechar?.()).finally(pintarDock); return; }
+    import(MUNDO_JS).then((m) => { D.ligarCena?.(andarAberto, m); return D.abrir?.(z); }).catch(() => {}).finally(pintarDock);
+  }
+  // Faixa da sala, acima do quarto (quadro 34): de quem é a sala, quem está nela (você primeiro), a voz dita em texto e,
+  // à direita, Convidar (o convite do Escritório, só na sua sala, como no servidor) e Decorar (VybeDecorar, quem pode).
+  function pintarCabDaSala(el, zona, quarto) {
+    const cab = el?.querySelector?.('.quarto-cab'); if (!cab) return;
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
+    const minha = minhaSalaDaConta(), eu = String(e?.base?.eu || '');
+    const nomeDe = (z) => { let n = quarto && z === zona ? quarto.nome : zonas3d()[z]?.nome; if (!n) { try { n = fn('escritorioAmbienteDoQuarto')?.(z)?.nome; } catch { n = ''; } } return n || 'outra sala'; };
+    const gente = (e?.online || []).filter((o) => o.zona === zona).map((o) => ({ id: String(o.id), nome: o.nome || '' }));
+    if (e?.conectado && e.zona === zona && eu && !gente.some((o) => o.id === eu)) gente.push({ id: eu, nome: 'Você' });
+    gente.sort((a, b) => (b.id === eu) - (a.id === eu));
+    const nomes = gente.map((o) => (o.id === eu ? 'você' : String(o.nome).split(' ')[0] || 'alguém'));
+    const quem = !nomes.length ? 'ninguém na sala agora' : nomes.length === 1 ? (nomes[0] === 'você' ? 'só você' : nomes[0])
+      : nomes.length <= 3 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : `${nomes.slice(0, 2).join(', ')} e mais ${nomes.length - 2}`;
+    const canal = e?.conectado ? fn('escritorioCanal')?.(e.zona) : null;
+    const naChamada = Boolean(!e?.vozPausada && e?.conectado && canal && e.chamada && e.canalChamada === canal), mic = Boolean(e?.chamada?.self?.audioEnabled);
+    const minus = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+    const voz = !e?.conectado ? (e?.conectando ? 'conectando à voz…' : 'voz desligada: entre pelo microfone do dock')
+      : e.zona !== zona ? `sua voz está em ${nomeDe(e.zona)}`
+      : naChamada ? (mic ? 'voz ligada, microfone aberto' : 'voz ligada, você está mudo')
+      : minus(String(fn('escritorioEstadoVozTexto')?.() || 'sem voz aqui'));
+    const falando = fn('escritorioPessoasFalando')?.() || new Set();
+    const ini = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+    const rostos = gente.slice(0, 4).map((o) => `<i class="${o.id === eu ? 'eu' : ''}${falando.has(o.id) ? ' fala' : ''}" title="${esc(o.id === eu ? 'Você' : o.nome)}${falando.has(o.id) ? ' (falando)' : ''}">${esc(o.id === eu ? 'Eu' : ini(o.nome))}</i>`).join('') + (gente.length > 4 ? `<i class="mais">+${gente.length - 4}</i>` : '');
+    const D = window.VybeDecorar, decorar = Boolean(D?.podeDecorar?.(zona)), decorando = decorar && Boolean(D.aberto?.());
+    const convidar = zona && zona === minha && typeof window.convidarParaMinhaSalaEscritorio === 'function';
+    const html = `<span class="quarto-cab-nome"><small>${zona && zona === minha ? 'Minha sala' : 'Visitando'}</small><b>${esc(nomeDe(zona))}</b></span>
+      ${rostos ? `<span class="quarto-rostos" aria-hidden="true">${rostos}</span>` : ''}
+      <span class="quarto-quem" title="${esc(nomes.length ? gente.map((o) => (o.id === eu ? 'Você' : o.nome)).join(', ') : 'Ninguém na sala agora')} · ${esc(voz)}"><b>${esc(quem.charAt(0).toUpperCase() + quem.slice(1))}</b><small>${esc(voz.charAt(0).toUpperCase() + voz.slice(1))}</small></span>
+      ${convidar || decorar ? `<span class="quarto-acoes">${convidar ? `<button type="button" class="vv-botao" data-quarto-acao="convidar" title="Mande um link para alguém de fora entrar na sua sala (vale 12 horas)">${svg('<path d="M16 21v-2a4 4 0 0 0-8 0v2"/><circle cx="12" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>')}<span>Convidar</span></button>` : ''}${decorar ? `<button type="button" class="vv-botao acao" data-quarto-acao="decorar" aria-pressed="${decorando}" title="${decorando ? 'Fechar o modo decorar' : 'Decorar: mudar móveis de lugar, girar, guardar, pôr do inventário e comprar na Loja'}">${svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>')}<span>${decorando ? 'Fechar decorar' : 'Decorar'}</span></button>` : ''}</span>` : ''}`;
+    if (cab.vvHtml !== html) { cab.innerHTML = html; cab.vvHtml = html; }
+  }
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
     if (andarAberto && zona && andarAbertoId === 'quarto:' + zona) return; // já está nela
     fecharAndarVoxel(false);
@@ -2040,8 +2088,17 @@
     const el = document.createElement('section'); el.id = 'mundo-andar'; el.className = 'quarto';
     // Paulo, 09/11/2026: "esse cartão não tem sentido nenhum... voltar devia ser algo mais premium, no dock de baixo... estilo
     // um dock mesmo". Nada por cima do quarto: o Voltar é o primeiro ícone do dock e as salas vêm ao lado dele.
-    el.innerHTML = `<div class="andar-palco"><canvas aria-label="Sala em voxel: arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD" title="Arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD"></canvas><div class="quarto-estado"></div></div>`;
+    // Quadro 34 do redesign (10/11/2026): o nome da sala, quem está nela e a voz em texto, com Convidar e Decorar à vista,
+    // numa faixa ACIMA do quarto (não por cima dele). Pintada por pintarCabDaSala a cada leitura de presença.
+    el.innerHTML = `<div class="vv-ilha quarto-cab" role="group" aria-label="A sala: quem está nela e a voz"></div><div class="andar-palco"><canvas aria-label="Sala em voxel: arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD" title="Arraste para mover a vista, use a roda para aproximar e ande clicando no piso ou com WASD"></canvas><div class="quarto-estado"></div></div>`;
     body.append(el); body.classList.add('mundo-andar', 'mundo-quarto');
+    pintarHoje(); // a Agenda entra no Hoje enquanto a sala está aberta
+    el.querySelector('.quarto-cab').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-quarto-acao]'); if (!b || b.disabled) return;
+      if (b.dataset.quartoAcao === 'decorar') alternarDecorar();
+      else if (b.dataset.quartoAcao === 'convidar') fn('convidarParaMinhaSalaEscritorio')?.();
+    });
+    pintarCabDaSala(el, zona, null);
     const estado = el.querySelector('.quarto-estado');
     const mostrarEstado = (tipo, texto) => {
       estado.hidden = !tipo;
@@ -2089,6 +2146,7 @@
       if (!andarAberto?.aoClicarPiso) return;
       const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
       andarAberto.pessoas(genteDoAndar(), minha);
+      pintarCabDaSala(el, zona, quarto);
       // A decoração mudou no Escritório (salvou pelo editor): o quarto acompanha.
       let itens = null; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* segue com o que tem */ }
       const a = itens && JSON.stringify(itens); if (itens && a !== assinItens) { assinItens = a; quarto.itens = itens; andarAberto.itens(itens); }
@@ -2121,15 +2179,21 @@
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
     pintarRoteiros();
+    el.innerHTML = agendaListaHtml(centroAberto ? 3 : 6);
+    agendaNoHoje();
+  }
+  // Os próximos 3 compromissos e as datas comemorativas: a lista da gaveta da Agenda (e da Agenda no Hoje da Minha sala).
+  function agendaListaHtml(maxDatas = 6) {
+    if (!agendaEventos) return '';
     const hoje = hojeIso(), agora = new Date(), hm = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
     const amanha = (() => { const x = new Date(`${hoje}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
     const proximos = agendaEventos.filter((e) => e.dia > hoje || !e.fim || e.fim >= hm)
       .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00'))).slice(0, 3);
     // Datas comemorativas dos próximos 14 dias, abaixo dos compromissos e com menos destaque (Paulo, 08/11/2026).
     const datas = window.VybeDatas?.proximas(hoje, 14) || [];
-    const datasHtml = datas.length ? `<div class="vd-agenda"><small class="vd-agenda-rotulo">Datas comemorativas</small>${datas.slice(0, centroAberto ? 3 : 6).map((d) => `<div class="vd-agenda-linha"><span>${d.iso === hoje ? 'Hoje' : d.iso.slice(8, 10) + '/' + d.iso.slice(5, 7)}</span>${window.VybeDatas.chipHtml(d)}</div>`).join('')}</div>` : '';
-    if (!proximos.length) { el.innerHTML = '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>' + datasHtml; return; }
-    el.innerHTML = proximos.map((e) => {
+    const datasHtml = datas.length ? `<div class="vd-agenda"><small class="vd-agenda-rotulo">Datas comemorativas</small>${datas.slice(0, maxDatas).map((d) => `<div class="vd-agenda-linha"><span>${d.iso === hoje ? 'Hoje' : d.iso.slice(8, 10) + '/' + d.iso.slice(5, 7)}</span>${window.VybeDatas.chipHtml(d)}</div>`).join('')}</div>` : '';
+    if (!proximos.length) return '<p class="vv-dica">Nada marcado nos próximos 7 dias.</p>' + datasHtml;
+    return proximos.map((e) => {
       const quando = e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', '');
       const hora = e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : '';
       return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}">
