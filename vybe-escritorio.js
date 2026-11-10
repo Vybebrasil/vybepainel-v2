@@ -3834,11 +3834,19 @@ function abrirTvEscritorio(m) {
   // preciso); Foco e Praça não têm conversa.
   const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco");
   escritorio.tvAtual = m;
+  // O que está passando fica no alto (Paulo, 10/11/2026: "o player de vídeo vai sair? passando o clipe?"): a capa do
+  // vídeo da TV aberta e quem pôs; desligada, a tela escura de sempre.
+  const tvAberta = document.getElementById("office-tv");
+  const idPassando = /\/embed\/([A-Za-z0-9_-]{11})/.exec(tvAberta?.querySelector("iframe")?.getAttribute("src") || "")?.[1] || "";
+  const quemPassou = (tvAberta?.querySelector("header span")?.textContent || "").replace(/^TV · /, "").replace(/ passou$/, "");
+  const telaHtml = idPassando
+    ? `<div class="ofc-tv-tela passando"><img src="https://i.ytimg.com/vi/${encodeURIComponent(idPassando)}/hqdefault.jpg" alt="" loading="lazy"><small>▶ Passando agora${quemPassou ? " · posto por " + safeText(quemPassou) : ""}</small></div>`
+    : '<div class="ofc-tv-tela" aria-hidden="true"><span>▶</span><small>A TV está desligada</small></div>';
   // Como no desenho: a tela da TV em cima, as duas opções em cartões (vídeo ou
   // a própria tela), o link embaixo e Desligar à esquerda.
   openWorkflowModal(`<div class="workflow-kicker"><span>TV da sala</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div><h2 class="workflow-title">O que passar?</h2><p class="workflow-copy">Todo mundo que está na sala assiste junto.</p>
 <form class="ofc-tvform" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)">
-<div class="ofc-tv-tela" aria-hidden="true"><span>▶</span><small>A TV está desligada</small></div>
+${telaHtml}
 <div class="ofc-tv-opcoes"><button type="button" class="ofc-tv-opcao on" onclick="this.form.elements.url.focus()"><span class="ofc-tv-ic">▶</span><b>Vídeo do YouTube</b><i aria-hidden="true">✓</i></button><button type="button" class="ofc-tv-opcao tela" onclick="closeWorkflowModal();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}><span class="ofc-tv-ic">▭</span><b>Compartilhar minha tela</b></button></div>
 <label class="ofc-tv-link"><span class="sr-only">Link do vídeo do YouTube</span><input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
 ${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}

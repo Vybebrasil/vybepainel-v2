@@ -3206,12 +3206,14 @@ body.cam-sem-clientes .mundo-rotulo.rotulo-cliente,body.cam-sem-marcos .mundo-ro
 /* ===== Elevador e painel do andar ===== */
 .vv-elevador{position:relative;display:flex;align-items:center;gap:10px;width:100%;margin-bottom:6px;padding:10px 14px 10px 12px;border-radius:10px;border:1px solid #EFEAE2;background:#fff;text-align:left;cursor:pointer;font-family:var(--vv-texto);overflow:hidden;transition:box-shadow .15s,transform .15s var(--vv-mola)}
 .vv-elevador:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.09)}
-.vv-elevador .num{flex:none;width:30px;height:30px;border-radius:6px;display:grid;place-items:center;font:800 13px var(--vv-texto);color:#fff;background:var(--c)}
+/* Fase 3b (quadro 33): número do andar neutro, sem arco-íris; a cor do setor fica num traço fino embaixo dele. */
+.vv-elevador .num{flex:none;width:30px;height:30px;border-radius:6px;display:grid;place-items:center;font:800 13px var(--vv-texto);color:var(--vv-tinta);background:#F1ECE4;box-shadow:inset 0 -2px 0 var(--c)}
+.vv-elevador[aria-current] .num,.vv-elevador.atual .num{background:var(--ds-acao,#FF7A2F);color:#fff;box-shadow:none}
 .vv-elevador .meio{flex:1;min-width:0}.vv-elevador .meio>b{display:block;font:700 13px var(--vv-texto);color:var(--vv-tinta)}
 .vv-elevador .kpis{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
 .vv-elevador .kpis em{font:500 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}.vv-elevador .kpis strong{color:var(--vv-tinta);font-weight:800}
 .vv-elevador .pontos{display:flex;gap:3px;flex:none}.vv-elevador .pontos i{width:9px;height:9px;border-radius:50%;background:var(--e)}
-.vv-elevador .sit{position:absolute;right:0;top:0;bottom:0;width:4px;background:var(--s)}
+.vv-elevador .sit{flex:none;width:8px;height:8px;border-radius:50%;background:var(--s)}
 .vv-andar-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 10px;padding:4px;border-radius:10px;background:linear-gradient(90deg,var(--s) 0 4px,#FAF8F4 4px)}
 .vv-andar-kpis div{padding:8px 10px;border-radius:8px;background:#fff;border:1px solid #F0EBE3}
 .vv-andar-kpis b{display:block;font:800 20px var(--vv-texto);color:var(--vv-tinta)}.vv-andar-kpis small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}
@@ -3340,11 +3342,11 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 .vv-elevador-lista .vv-fechar{position:static!important}
 .vv-elevador-lista .vv-elevador{padding:8px 12px 8px 8px;margin-bottom:4px;gap:8px;border-radius:8px}
 .vv-elevador-lista .vv-elevador .num{width:26px;height:26px;border-radius:6px;font-size:12px}
-.vv-elevador-lista .vv-elevador .meio b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-elevador-lista .vv-elevador .meio b{font-size:12.5px;line-height:1.25}
 .vv-elevador-lista .vv-elevador .meio em{display:block;font:500 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}
 .vv-elevador-lista .vv-elevador .meio em strong{color:var(--vv-tinta);font-weight:800}
 .vv-elevador-aviso{margin:8px 4px 2px;font:500 11px/1.4 var(--vv-texto);color:var(--vv-apagado)}
-.vv-elevador-aviso.off{color:#8A5A00;background:#FFF4DC;border-radius:6px;padding:7px 9px}
+.vv-elevador-aviso.off{color:var(--vv-apagado)}
 
 /* ===== Barra de topo única: ferramentas | vistas ===== */
 .vv-barra-topo{gap:2px}
@@ -5547,3 +5549,30 @@ body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab small{color:#5E5A53}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip[aria-pressed="true"]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
 body.mundo #workflow-modal.ofc-menu-jogo .cq-dica{color:#5E5A53}
+/* TV da sala (fase 3b, quadro 44): o player fica, com o clipe que está passando e quem pôs; as opções no cartão claro
+   do sistema (o escolhido no selecionado laranja, sem rosa nem texto apagado) e Desligar como o perigoso do padrão. */
+body.mundo .ofc-tv-tela{position:relative;overflow:hidden;aspect-ratio:16/8}
+body.mundo .ofc-tv-tela.passando{display:block;background:#0b0c11}
+body.mundo .ofc-tv-tela.passando img{display:block;width:100%;height:100%;object-fit:cover}
+body.mundo .ofc-tv-tela.passando small{position:absolute;left:10px;top:10px;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.6);color:#FFFFFF;font:650 11.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo .ofc-tv-opcao{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
+body.mundo .ofc-tv-opcao.on{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
+body.mundo .ofc-tv-opcao i{color:var(--ds-sel-texto)}
+body.mundo .ofc-tv-opcao .ofc-tv-ic,body.mundo .ofc-tv-opcao.tela .ofc-tv-ic{background:#F1ECE4;color:#1F1D1A}
+body.mundo .ofc-tv-desligar{display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid #F6BBC4;border-radius:var(--pc-r,8px);background:#FFFFFF;color:#B42318;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
+body.mundo .ofc-tv-desligar:hover{background:#FDECEE}
+/* Música fora de uma sala com som: balão em cima do dock (fase 3b). */
+body.mundo .vv-musica-fora{position:fixed;z-index:700;width:300px;display:grid;gap:6px;padding:14px;border:1px solid #E6E0D6;border-radius:12px;background:#FFFFFF;color:#1F1D1A;box-shadow:var(--vv-sombra-janela,0 18px 50px rgba(40,26,10,.22));pointer-events:auto;animation:vv-surge .2s var(--vv-mola,ease) both}
+body.mundo .vv-musica-fora b{font:650 14px var(--vv-texto,"Inter"),sans-serif}
+body.mundo .vv-musica-fora small{font:500 12.5px/1.45 var(--vv-texto,"Inter"),sans-serif;color:#5E5A53}
+body.mundo .vv-musica-fora-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+body.mundo .vv-musica-fora .vv-botao{border:1px solid #E6E0D6;background:#FFFFFF}
+body.mundo .vv-musica-fora .vv-botao.acao{border-color:transparent}
+/* Legenda da Cidade (fase 3b): só no Centro, no canto de cima, abaixo do topo; o número e a frase dizem a situação. */
+body.mundo .vv-legenda-cidade{display:none}
+body.mundo.mundo-centro:not(.mundo-modulo) .vv-legenda-cidade{position:absolute;top:calc(var(--vv-m,14px) + 62px);right:var(--vv-m,14px);display:flex;gap:12px;align-items:center;padding:7px 12px;border-radius:12px;font:600 12px var(--vv-texto,"Inter"),sans-serif;color:#5E5A53;pointer-events:auto}
+body.mundo .vv-legenda-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+body.mundo .vv-legenda-item i{width:8px;height:8px;border-radius:50%;background:var(--e)}
+body.mundo .vv-legenda-item b{color:#1F1D1A;font-weight:750}
+body.mundo .vv-legenda-item.zero{opacity:.55}
+body.mundo:is(:has(#vv-placa:not([hidden])),:has(.vv-vistas [data-vista="predio"][aria-pressed="true"])) .vv-legenda-cidade{display:none}

@@ -1913,7 +1913,15 @@
     // Música (Paulo, 09/11/2026: "não era pra abrir nosso player e tocar pra quem está na sala?"): com música na fila,
     // abre o player da sala; com a fila vazia, a janela de pôr um link (a do Escritório: quem está na sala ouve junto, e ela
     // mesma avisa se a sala não tem aparelho de som).
-    if (a === 'musica') { const pl = document.getElementById('office-musica'); if (body.classList.contains('musica-aberta')) abrirMusica(false); else if (pl && !pl.hidden) abrirMusica(true); else fn('abrirMusicaEscritorio')?.(); pintarDock(); return; }
+    if (a === 'musica') {
+      const pl = document.getElementById('office-musica');
+      if (body.classList.contains('musica-aberta')) abrirMusica(false);
+      else if (pl && !pl.hidden) abrirMusica(true);
+      // Fora de uma sala com som, um caminho em vez de só o aviso (fase 3b, quadro 44): ir para o Lounge, que tem som.
+      else if (typeof escritorio !== 'undefined' && escritorio.conectado && typeof escritorioNaPista === 'function' && !escritorioNaPista() && zonas3d()?.lounge) musicaForaDaSala(b);
+      else fn('abrirMusicaEscritorio')?.();
+      pintarDock(); return;
+    }
     if (a === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(pintarChamada); }
   });
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
@@ -2746,6 +2754,20 @@
     }
   });
 
+  // Legenda da Cidade (fase 3b, quadro 32): conta os clientes do mapa pela situação, nas mesmas cores dos pinos.
+  // Atraso = alguma peça atrasada; atenção = sai hoje, espera aprovação, pediu ajuste ou falta briefing; o resto (inclusive
+  // quem não tem peça em aberto, o pino com ✓) está em dia.
+  function pintarLegendaCidade(lista) {
+    let el = hud.querySelector('.vv-legenda-cidade');
+    if (!el) { el = document.createElement('div'); el.className = 'vv-ilha vv-legenda-cidade'; el.setAttribute('role', 'status'); el.setAttribute('aria-label', 'Situação dos clientes no mapa'); hud.append(el); }
+    const n = { atraso: 0, atencao: 0, dia: 0 };
+    for (const c of lista || []) {
+
+      if (c.situacao === 'atrasada') n.atraso++; else if (['aprovar', 'ajuste', 'hoje', 'briefing'].includes(c.situacao)) n.atencao++; else n.dia++;
+    }
+    const item = (k, rot, cor) => `<span class="vv-legenda-item${n[k] ? '' : ' zero'}"><i style="--e:${cor}"></i><b>${n[k]}</b> ${rot}</span>`;
+    el.innerHTML = item('dia', 'em dia', COR.pronta) + item('atencao', 'em atenção', COR.hoje) + item('atraso', 'com atraso', COR.atrasada);
+  }
   function pintarClientes(forcar = false) {
     if (!mundo) return;
     const lista = clientesDoMundo();
@@ -2753,6 +2775,7 @@
     if (!forcar && assinatura === ultimaAssinatura) return;
     ultimaAssinatura = assinatura; naTela = lista;
     mundo.definirClientes(lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) });
+    pintarLegendaCidade(lista);
     mundo.alertaVybes(lista.some((c) => c.situacao === 'atrasada'));
   }
 
@@ -2946,6 +2969,24 @@
     setTimeout(() => { if (e?.zona === zona && (e.geracaoVoz || 0) === geracaoVoz && !e.vozPausada) fn('escritorioSincronizarVoz')?.(); pintarChamada(); }, 2500);
   }
   window.vybesIrParaSala = irParaSala;
+  // Música fora de uma sala com som (fase 3b, quadro 44): um balão em cima do dock com o caminho, não só o aviso.
+  function musicaForaDaSala(botao) {
+    hud.querySelector('.vv-musica-fora')?.remove();
+    const el = document.createElement('div');
+    el.className = 'vv-musica-fora'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Música');
+    el.innerHTML = '<b>Música</b><small>A música toca nas salas com aparelho de som, e todo mundo da sala ouve junto. O Lounge tem.</small>'
+      + '<div class="vv-musica-fora-acoes"><button type="button" class="vv-botao" data-fechar>Agora não</button><button type="button" class="vv-botao acao" data-lounge>Ir para o Lounge</button></div>';
+    hud.append(el);
+    const r = botao?.getBoundingClientRect?.();
+    if (r) { el.style.left = `${Math.max(12, Math.min(innerWidth - el.offsetWidth - 12, r.left + r.width / 2 - el.offsetWidth / 2))}px`; el.style.bottom = `${Math.round(innerHeight - r.top + 10)}px`; }
+    const fechar = () => { el.remove(); document.removeEventListener('pointerdown', fora, true); document.removeEventListener('keydown', esc, true); };
+    const fora = (ev) => { if (!el.contains(ev.target) && ev.target !== botao && !botao?.contains?.(ev.target)) fechar(); };
+    const esc = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); fechar(); } };
+    document.addEventListener('pointerdown', fora, true); document.addEventListener('keydown', esc, true);
+    el.querySelector('[data-fechar]').addEventListener('click', fechar);
+    el.querySelector('[data-lounge]').addEventListener('click', () => { fechar(); irParaSala('lounge'); setTimeout(() => { if (typeof escritorioNaPista === 'function' && escritorioNaPista()) fn('abrirMusicaEscritorio')?.(); pintarDock(); }, 1800); });
+    el.querySelector('[data-lounge]').focus({ preventScroll: true });
+  }
   function minhaSalaDaConta() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (e?.base?.eu == null) return '';

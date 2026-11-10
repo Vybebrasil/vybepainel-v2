@@ -67,7 +67,8 @@ test('CSS: Hoje e Agenda dos lados na sala, dock fixo pequeno, nada por cima do 
 });
 
 test('Música do dock: abre o player da sala (também dentro da sala e dos módulos), ou a janela de pôr um link com a fila vazia', () => {
-  assert.ok(js.includes("if (body.classList.contains('musica-aberta')) abrirMusica(false); else if (pl && !pl.hidden) abrirMusica(true); else fn('abrirMusicaEscritorio')?.();"));
+  // Desde a fase 3b (10/11/2026) a mesma ordem em linhas, com o caminho para o Lounge fora de uma sala com som.
+  assert.match(js, /if \(body\.classList\.contains\('musica-aberta'\)\) abrirMusica\(false\);\s*else if \(pl && !pl\.hidden\) abrirMusica\(true\);[\s\S]{0,400}?else fn\('abrirMusicaEscritorio'\)\?\.\(\);/);
   assert.ok(css.includes('html body.mundo.musica-aberta #office-musica.vv-musica-janela{visibility:visible!important;pointer-events:auto!important}'), 'antes ficava escondido na sala e nos módulos');
   assert.ok(css.includes('#office-musica.vv-musica-janela:not(.movida){top:auto!important;bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important'), 'em cima do dock');
 });
