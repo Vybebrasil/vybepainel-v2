@@ -45,6 +45,69 @@ export function paredesDaPlanta(p) {
   return lista;
 }
 
+function obraDeBlocos(blocos, lado, finos = [], ladoFino = 0) {
+  const o = new Obra();
+  for (const b of blocos) o.caixa(b.x, b.y, b.z, lado * 1.002, lado * 1.002, lado * 1.002, b.cor);
+  for (const b of finos) o.caixa(b.x, b.y, b.z, ladoFino, ladoFino, ladoFino, b.cor);
+  return o.montar();
+}
+// Um móvel do chão em voxel, do jeito que o quarto o monta: o motor de móveis modelados (moveis-voxel.mjs) para tipo
+// conhecido, em voxel limpo com o tamanho e as cores da arte do Habbo; o resto esculpido da própria arte. A Loja, o
+// inventário e as Conquistas usam o mesmo (retratoDoMovel), para o ícone ser o que o quarto mostra.
+// { malha, modelado, tipo, esculpido } ou null. A malha modelada vem centrada na pegada; a esculpida, a partir de 0.
+export async function movelEmVoxel(classe, d = 4, estado = 0, ficha = null) {
+  const tipo = tipoModelado(classe, ficha, (await carregarCatalogo()).get(classe));
+  if (tipo || temModelo(classe)) {
+    const info = await paletaDoHabbo(classe, d, estado);
+    const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe, alto: (ficha?.altura || 0) * NIVEL });
+    if (o) { for (const b of o.solidos) b.cor = harmonizar(b.cor); return { malha: o.montar(), modelado: true, tipo }; }
+  }
+  const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
+  return { malha: obraDeBlocos(e.blocos.map((b) => ({ ...b, cor: harmonizar(b.cor) })), e.lado, e.finos || [], e.ladoFino || 0), modelado: false, tipo, esculpido: e };
+}
+// Retrato do móvel (redesign fase 3c, regra 4 do moodboard de 10/11/2026: "tudo que é imagem é voxel"): o móvel de
+// movelEmVoxel numa foto de frente, na luz do estilo, sem fundo. Um renderizador só para todas as fotos, uma de cada
+// vez, com cache por classe. Devolve o endereço da imagem (data:) ou '' quando o quarto também não teria o voxel.
+const retratos = new Map();
+let fotografo = null, filaDeFotos = Promise.resolve();
+function prepararFotografo() {
+  if (fotografo) return fotografo;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  prepararRenderer(renderer, { sombra: false }); renderer.setPixelRatio(1); renderer.setClearColor(0x000000, 0);
+  const cena = new THREE.Scene();
+  luzDoEstilo(cena, { centro: [0, 0, 0], raio: 3, interior: true });
+  fotografo = { renderer, cena };
+  return fotografo;
+}
+export function retratoDoMovel(classe, lado = 96) {
+  const chave = classe + '|' + lado;
+  if (!retratos.has(chave)) {
+    const vez = filaDeFotos.then(async () => {
+      const fis = await (typeof globalThis.mapaCarregarFisica === 'function' ? globalThis.mapaCarregarFisica() : Promise.resolve({})).catch(() => ({}));
+      const f = fis?.[classe];
+      if (f && (f[0] & 16)) return ''; // peça de parede: fica a arte de sempre
+      const v = await movelEmVoxel(classe, 4, 0, f ? { pisa: Boolean(f[0] & 1), senta: Boolean(f[0] & 2), deita: Boolean(f[0] & 4), altura: Number(f[1]) || 0 } : null);
+      if (!v) return '';
+      const { renderer, cena } = prepararFotografo();
+      const g = v.malha; g.rotation.y = -.5; cena.add(g);
+      // Enquadra só o móvel: a sombra de contato no chão (mais larga que uma peça pequena) não conta.
+      g.updateMatrixWorld(true);
+      const caixa = new THREE.Box3(); g.traverse((o) => { if (o.isMesh && !o.userData.sombraDeContato) caixa.expandByObject(o); });
+      if (caixa.isEmpty()) caixa.setFromObject(g);
+      const centro = caixa.getCenter(new THREE.Vector3()), tam = Math.max(.25, caixa.getSize(new THREE.Vector3()).length());
+      const cam = new THREE.PerspectiveCamera(24, 1, .05, 80), dist = tam / (2 * Math.tan(12 * Math.PI / 180)) * .92;
+      cam.position.copy(centro).add(new THREE.Vector3(.5, .5, .72).normalize().multiplyScalar(dist)); cam.lookAt(centro);
+      renderer.setSize(lado * 2, lado * 2, false); renderer.render(cena, cam);
+      const url = renderer.domElement.toDataURL('image/png');
+      cena.remove(g); g.traverse((o) => { o.geometry?.dispose?.(); });
+      return url;
+    }).catch(() => '');
+    filaDeFotos = vez.then(() => new Promise((r) => setTimeout(r, 0)));
+    retratos.set(chave, vez);
+  }
+  return retratos.get(chave);
+}
+
 export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   const P = plantaDoQuarto(quarto), { W, D } = P;
   const nivelMax = Math.max(0, ...P.grade.flat());
@@ -195,12 +258,6 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   // A parede encostada num ladrilho: a do fundo fica no primeiro ladrilho da coluna; a da esquerda, no da linha.
   const paredeFundo = (x) => { const c = Math.min(W - 1, Math.max(0, Math.floor(x))), y = P.grade.findIndex((l) => l[c] >= 0); return Math.max(0, y); };
   const paredeEsquerda = (y) => { const l = P.grade[Math.min(D - 1, Math.max(0, Math.floor(y)))] || []; return Math.max(0, l.findIndex((n) => n >= 0)); };
-  function obraDeBlocos(blocos, lado, finos = [], ladoFino = 0) {
-    const o = new Obra();
-    for (const b of blocos) o.caixa(b.x, b.y, b.z, lado * 1.002, lado * 1.002, lado * 1.002, b.cor);
-    for (const b of finos) o.caixa(b.x, b.y, b.z, ladoFino, ladoFino, ladoFino, b.cor);
-    return o.montar();
-  }
   function pecaGenerica(classe, x, y, d, altura, parede) {
     const peca = pecaDaClasse(classe, tipoDoMovel(classe)), m = obraDaPeca(peca.desenho, peca.cor).montar();
     if (parede) {
@@ -225,22 +282,15 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
         : { x: x + .5 + b.a, y: chao + b.h * NIVEL - l / 2, z: Math.floor(y) + .02 + l / 2, cor: b.cor }));
       return obraDeBlocos([], 0, blocos, l);
     }
-    // Motor de móveis modelados (moveis-voxel.mjs): móvel de tipo conhecido é montado em voxel limpo, no estilo das
-    // referências, com o tamanho e as cores da arte do Habbo; o resto continua esculpido.
-    const tipo = tipoModelado(classe, fichaDe(classe), (await carregarCatalogo()).get(classe));
-    if (tipo || temModelo(classe)) {
-      const info = await paletaDoHabbo(classe, d, estado);
-      const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe, alto: (fichaDe(classe)?.altura || 0) * NIVEL });
-      if (o) for (const b of o.solidos) b.cor = harmonizar(b.cor);
-      if (o) {
-        const m = o.montar(), p = pegada(classe, d);
-        m.position.set(x + p.w / 2, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y + p.h / 2); m.rotation.y = giroDaDirecao(d);
-        if (tipo === 'luminaria' || tipo === 'tela') luzes.push({ x: x + p.w / 2, y: m.position.y + (tipo === 'luminaria' ? 1.1 : .5), z: y + p.h / 2 });
-        return m;
-      }
+    const v = await movelEmVoxel(classe, d, estado, fichaDe(classe)); if (!v) return null;
+    const m = v.malha;
+    if (v.modelado) {
+      const p = pegada(classe, d);
+      m.position.set(x + p.w / 2, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y + p.h / 2); m.rotation.y = giroDaDirecao(d);
+      if (v.tipo === 'luminaria' || v.tipo === 'tela') luzes.push({ x: x + p.w / 2, y: m.position.y + (v.tipo === 'luminaria' ? 1.1 : .5), z: y + p.h / 2 });
+      return m;
     }
-    const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
-    const m = obraDeBlocos(e.blocos.map((b) => ({ ...b, cor: harmonizar(b.cor) })), e.lado, e.finos || [], e.ladoFino || 0);
+    const e = v.esculpido;
     m.position.set(x, baseDoLadrilho(x, y) + Math.max(0, Number(altura) || 0) * NIVEL, y);
     if (e.brilha) luzes.push({ x: x + e.W / 2, y: m.position.y + (e.altura || 1) * .85, z: y + e.D / 2 });
     return m;

@@ -134,7 +134,7 @@ function montar({ base = BASE(), perfil = PERFIL(), confirmar = true, falhar = n
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ['vybe-escritorio-planta.js', 'vybe-escritorio-editor.js', 'vybe-escritorio.js', 'vybe-escritorio-ficha.js']) vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f });
+  for (const f of ['shared/escritorio-nome-movel.js', 'vybe-escritorio-planta.js', 'vybe-escritorio-editor.js', 'vybe-escritorio.js', 'vybe-escritorio-ficha.js']) vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f });
   ctx.__base = base; ctx.__perfil = perfil;
   vm.runInContext('escritorio.base = __base; escritorio.perfil = __perfil; escritorio.quarto = null;'
     + "escritorioCatalogo = [{ classe: 'attic15_window', nome: 'Attic Window', parede: true, giros: 1 }, { classe: 'chair_silo', nome: 'Chair', giros: 4 }];", ctx);

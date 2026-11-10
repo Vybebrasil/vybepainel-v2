@@ -564,7 +564,7 @@ function cenaDoEscritorio() {
     performance: { now: () => 0 },
     setTimeout() { return 0; }, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {}, requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
   });
-  for (const f of ["vybe-escritorio-planta.js", "vybe-escritorio-mapa.js", "vybe-escritorio.js", "vybe-escritorio-editor.js", "vybe-escritorio-ficha.js", "vybe-escritorio-musica.js"]) vm.runInContext(readFileSync(f, "utf8"), c);
+  for (const f of ["shared/escritorio-nome-movel.js", "vybe-escritorio-planta.js", "vybe-escritorio-mapa.js", "vybe-escritorio.js", "vybe-escritorio-editor.js", "vybe-escritorio-ficha.js", "vybe-escritorio-musica.js"]) vm.runInContext(readFileSync(f, "utf8"), c);
   c.enviados = enviados;
   vm.runInContext(`escritorio.base = { eu: "1", admin: false, worker: "https://w.test", equipe: [{ id: "1", nome: "Paulo Martins", perfil: {} }, { id: "2", nome: "Deivid Lima", perfil: { sala_pisos: "5".repeat(144) } }],
     salas: [{ id: "sala-0", dono: "Paulo", pessoa_id: "1" }, { id: "sala-3", dono: "Deivid", pessoa_id: "2" }], mapa: { editavel: true, camadas: { "sala-3": { itens: [["exe_plant", 1, 1, 2, 0, 0]], versao: 2, em: "2027-01-01T00:00:00Z" } } } };
