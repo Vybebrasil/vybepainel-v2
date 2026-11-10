@@ -362,7 +362,7 @@
     // na reunião ou para mandar o link ao cliente.
     const atalhos = pode && typeof window.abrirReuniao === 'function' ? `<div class="vc-linha-acoes vc-onb-atalhos">
         ${acao('Reunião de kickoff', `data-vc-kickoff="${esc(o.cliente || '')}"`)}
-        ${secundario('Questionário com o cliente', `data-vc-quest="junto" data-vc-cli="${esc(o.cliente_id)}"`)}
+        ${secundario('Questionário com o cliente', `data-vc-quest="junto" data-vc-cli="${esc(o.cliente_id)}" data-vc-nome="${esc(o.cliente || '')}"`)}
         ${secundario('Link do questionário', `data-vc-quest="link" data-vc-cli="${esc(o.cliente_id)}"`)}
         ${secundario('Ficha', `data-vc-cliente="${esc(o.cliente || '')}"`)}</div>` : '';
     return `<li class="vc-onb${o.encerrado_em ? ' encerrado' : ''}">
@@ -663,7 +663,7 @@
       return;
     }
     if (d.vcKickoff) return window.abrirReuniao?.(d.vcKickoff, '', { tipo: 'onboarding', titulo: `Kickoff - ${d.vcKickoff}` });
-    if (d.vcQuest) return d.vcQuest === 'junto' ? window.onboardingJunto?.(d.vcCli) : window.onboardingLink?.(d.vcCli);
+    if (d.vcQuest) return d.vcQuest === 'junto' ? window.abrirQuestionario?.(d.vcCli, d.vcNome || '') : window.onboardingLink?.(d.vcCli);
     if (d.vcOnb) return gravar({ acao: d.vcOnb, cliente_id: d.vcCli }, d.vcOnb === 'onboarding_encerrar' ? 'Onboarding encerrado.' : 'Onboarding reaberto.');
     if ('vcEncerrados' in d) { estado.verEncerrados = !estado.verEncerrados; return pintar(); }
     if (d.vcFormAbrir) { estado.form = { tipo: d.vcFormAbrir, id: d.vcCli }; pintar(); estado.janela.querySelector('.vc-form input, .vc-form select')?.focus(); return; }
