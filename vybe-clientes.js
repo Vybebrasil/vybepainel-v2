@@ -1606,7 +1606,8 @@ async function cadastrarClienteDaOperacao(nome) {
     texto: 'Ele sai de "Só na operação" e passa a contar como cliente ativo.',
     confirmar: 'Criar ficha' })) return;
   try {
-    await gravarCadastroDeCliente({ acao:'criar', nome }, `${nome} entrou no cadastro.`);
+    await gravarCadastroDeCliente({ acao:'criar', nome }, `${nome} entrou no cadastro. Complete a ficha agora.`);
+    if (typeof abrirCadastroCompleto === 'function') abrirCadastroCompleto(nome);
   } catch (e) { showToast(e.message, 'error', 5000); }
 }
 

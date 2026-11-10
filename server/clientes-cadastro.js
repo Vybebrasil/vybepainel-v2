@@ -189,9 +189,11 @@ export function completude(linha) {
 // ── onde o cliente existe ────────────────────────────────────────────────────
 // Uma linha por sistema: ok (está lá), falta (não está, e diz o que fazer) ou
 // conferir (daqui não dá para saber; diz onde olhar). Nunca "ok" sem prova.
-export function estadoNoEcossistema({ cliente, acesso = null, financas = null, hubUrl = '', criaNoFinancas = false }) {
+export function estadoNoEcossistema({ cliente, acesso = null, financas = null, hubUrl = '', criaNoFinancas = false, driveErro = '' }) {
   const ativo = cliente.ativo !== false && !cliente.nao_e_cliente && !cliente.apagado_em;
-  const grupo = String(cliente.cadastro?.grupo_whatsapp || acesso?.grupo || '').trim();
+  // Só o grupo do WhatsApp informado no cadastro: vybe_acessos.grupo é o grupo do Monday ("Banco de dados"), e usá-lo
+  // fazia a ficha dizer "Está lá" sem prova (revisão de 09/11/2026).
+  const grupo = String(cliente.cadastro?.grupo_whatsapp || '').trim();
   const drive = String(acesso?.drive || '').trim();
   const comp = completude(cliente);
   const linhas = [];
@@ -205,9 +207,11 @@ export function estadoNoEcossistema({ cliente, acesso = null, financas = null, h
     detalhe: !ativo ? 'Só entra quem está ativo.' : grupo ? `Agentes leem o cliente da lista de ativos. Grupo: ${grupo}.`
       : 'Os agentes já conhecem o cliente, mas falta dizer qual é o grupo do WhatsApp dele.',
     acao: grupo ? '' : 'grupo' });
-  linhas.push({ id: 'drive', nome: 'Google Drive', estado: drive ? 'ok' : 'falta',
-    detalhe: drive ? 'Pasta do cliente ligada.' : 'Nenhuma pasta ligada. Peças e planejamentos procuram a pasta pelo nome; ligue a certa.',
-    acao: drive ? 'abrir_drive' : 'drive', link: drive || '' });
+  const driveNaoAbre = Boolean(drive && /\b404\b|not found|não encontrad/i.test(String(driveErro || '')));
+  linhas.push({ id: 'drive', nome: 'Google Drive', estado: drive && !driveNaoAbre ? 'ok' : 'falta',
+    detalhe: driveNaoAbre ? 'A pasta ligada não abre para o sistema (o Drive respondeu "não encontrado"). Compartilhe a pasta com a integração ou ligue a certa.'
+      : drive ? 'Pasta do cliente ligada.' : 'Nenhuma pasta ligada. Peças e planejamentos procuram a pasta pelo nome; ligue a certa.',
+    acao: drive && !driveNaoAbre ? 'abrir_drive' : 'drive', link: drive || '' });
   linhas.push({ id: 'hub', nome: 'Vybe Hub', estado: 'conferir',
     detalhe: ativo ? 'O Hub lista os clientes ativos daqui. O portal (endereço e senha) se cria lá, no admin.' : 'O Hub segue o Vybe OS: inativo aqui some de lá.',
     acao: hubUrl ? 'abrir_hub' : '', link: hubUrl ? new URL('/admin', hubUrl).href : '' });

@@ -554,7 +554,7 @@ window.fcSalvarNovaOpcao = async function() {
   try {
     let valor;
     if (campo === 'client') {
-      const d = await gravarCadastroDeCliente({ acao: 'criar', nome }, 'Cliente salvo.');
+      const d = await gravarCadastroDeCliente({ acao: 'criar', nome }, 'Cliente criado só com o nome. Depois, complete a ficha em Clientes → Cadastro.');
       if (!d.cliente?.nome) throw new Error('O servidor não confirmou o cliente.');
       valor = typeof normalizarCliente === 'function' ? normalizarCliente(d.cliente.nome) : d.cliente.nome;
       const i = CADASTRO_CLIENTES.findIndex(c => String(c.id) === String(d.cliente.id));
