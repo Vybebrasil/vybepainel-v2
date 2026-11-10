@@ -67,31 +67,34 @@
 .pv-mini .resumo-item{display:inline-flex;align-items:baseline;gap:5px;font-size:11.5px;color:#a8a39c}
 .pv-mini .resumo-item b{font:700 15px var(--pv-titulo);color:#fff}
 .pv-mini .resumo-item.risco b{color:#f7c948}
-.ops-command-bar{display:grid!important;gap:12px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
-.ops-command-bar .global-search-wrap{grid-row:1}
-.ops-command-bar .ops-botoes{display:contents!important}
-.ops-command-bar .ops-attention{grid-row:1;justify-self:end;display:flex;gap:8px;align-items:center}
-.ops-command-bar{grid-template-columns:minmax(0,1fr) auto}
-.ops-command-bar .ops-attention .toolbar-label{display:none}
-.global-search{height:42px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(8,9,13,.6)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)!important}
-.ops-action-btn,.ops-today-btn{--c:#ff6b6b;height:42px!important;padding:0 14px!important;border-radius:8px!important;border:1px solid color-mix(in srgb,var(--c) 35%,transparent)!important;background:color-mix(in srgb,var(--c) 9%,#12141a)!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;display:inline-flex!important;align-items:center;gap:8px}
-.ops-today-btn{--c:#f7c948}
-.ops-action-btn::before,.ops-today-btn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
-.ops-action-btn .ops-action-count,.ops-today-btn .ops-action-count{min-width:20px;height:20px;padding:0 6px;border-radius:6px;display:inline-grid;place-items:center;background:var(--c)!important;color:#1b0d06!important;font:800 11px var(--pv-titulo)!important}
-.ops-action-btn.active,.ops-today-btn.active,.ops-action-btn[aria-expanded="true"],.ops-today-btn[aria-expanded="true"]{background:var(--c)!important;color:#1b0d06!important}
-.ops-command-bar .ops-segmentos{grid-column:1/-1;display:flex!important;align-items:flex-end;gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin-bottom:-13px;position:relative;z-index:2;border:0!important;background:none!important;padding:0 0 0 2px!important}
-.ops-command-bar .ops-segmentos .toolbar-label{align-self:center;margin-right:8px;font:700 9.5px var(--mac-ui);letter-spacing:0;text-transform:none;color:#7d7870}
-.ops-command-bar .ops-segmentos button{flex:none;display:inline-flex!important;align-items:center;gap:8px;height:40px!important;padding:0 16px!important;border-radius:8px 8px 0 0!important;border:1px solid rgba(255,255,255,.07)!important;border-bottom:0!important;background:rgba(255,255,255,.025)!important;color:#a8a39c!important;font:600 12.5px var(--mac-ui)!important;box-shadow:none!important}
-.ops-command-bar .ops-segmentos button svg{width:16px;height:16px;flex:none;opacity:.8}
-.ops-command-bar .ops-segmentos button.active{height:46px!important;color:#fff!important;background:linear-gradient(180deg,rgba(255,255,255,.07),#1a1c24)!important;border-color:rgba(255,255,255,.1)!important;box-shadow:inset 0 2px 0 #ff8a35!important}
-.ops-command-bar .ops-segmentos button.active svg{color:#ff9a5c;opacity:1}
-.ops-command-bar .ops-segmentos .ops-action-count{background:rgba(255,255,255,.06)!important;color:#7d7870!important;border-radius:6px!important}
-.ops-command-bar .ops-clear-btn{grid-column:1/-1;justify-self:end;margin-top:-34px;height:28px!important;background:none!important;border-color:transparent!important;box-shadow:none!important;color:#a8a39c!important}
-.ops-command-bar .ops-vao{display:none}
+/* Barra do Painel de trabalho: no mundo ela é uma barra só (quadro 01 do redesign, 10/11/2026, fim de vybe-mundo.css); estas regras ficam com o tema antigo. */
+.ops-command-bar{padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+:where(body:not(.mundo)) .ops-command-bar{display:grid!important;gap:12px!important}
+:where(body:not(.mundo)) .ops-command-bar .global-search-wrap{grid-row:1}
+:where(body:not(.mundo)) .ops-command-bar .ops-botoes{display:contents!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-attention{grid-row:1;justify-self:end;display:flex;gap:8px;align-items:center}
+:where(body:not(.mundo)) .ops-command-bar{grid-template-columns:minmax(0,1fr) auto}
+:where(body:not(.mundo)) .ops-command-bar .ops-attention .toolbar-label{display:none}
+:where(body:not(.mundo)) .global-search{height:42px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:rgba(8,9,13,.6)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.35)!important}
+:where(body:not(.mundo)) .ops-action-btn,:where(body:not(.mundo)) .ops-today-btn{--c:#ff6b6b;height:42px!important;padding:0 14px!important;border-radius:8px!important;border:1px solid color-mix(in srgb,var(--c) 35%,transparent)!important;background:color-mix(in srgb,var(--c) 9%,#12141a)!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;display:inline-flex!important;align-items:center;gap:8px}
+:where(body:not(.mundo)) .ops-today-btn{--c:#f7c948}
+:where(body:not(.mundo)) .ops-action-btn::before,:where(body:not(.mundo)) .ops-today-btn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+:where(body:not(.mundo)) .ops-action-btn .ops-action-count,:where(body:not(.mundo)) .ops-today-btn .ops-action-count{min-width:20px;height:20px;padding:0 6px;border-radius:6px;display:inline-grid;place-items:center;background:var(--c)!important;color:#1b0d06!important;font:800 11px var(--pv-titulo)!important}
+:where(body:not(.mundo)) .ops-action-btn.active,:where(body:not(.mundo)) .ops-today-btn.active,:where(body:not(.mundo)) .ops-action-btn[aria-expanded="true"],:where(body:not(.mundo)) .ops-today-btn[aria-expanded="true"]{background:var(--c)!important;color:#1b0d06!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos{grid-column:1/-1;display:flex!important;align-items:flex-end;gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin-bottom:-13px;position:relative;z-index:2;border:0!important;background:none!important;padding:0 0 0 2px!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos .toolbar-label{align-self:center;margin-right:8px;font:700 9.5px var(--mac-ui);letter-spacing:0;text-transform:none;color:#7d7870}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos button{flex:none;display:inline-flex!important;align-items:center;gap:8px;height:40px!important;padding:0 16px!important;border-radius:8px 8px 0 0!important;border:1px solid rgba(255,255,255,.07)!important;border-bottom:0!important;background:rgba(255,255,255,.025)!important;color:#a8a39c!important;font:600 12.5px var(--mac-ui)!important;box-shadow:none!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos button svg{width:16px;height:16px;flex:none;opacity:.8}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos button.active{height:46px!important;color:#fff!important;background:linear-gradient(180deg,rgba(255,255,255,.07),#1a1c24)!important;border-color:rgba(255,255,255,.1)!important;box-shadow:inset 0 2px 0 #ff8a35!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos button.active svg{color:#ff9a5c;opacity:1}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos .ops-action-count{background:rgba(255,255,255,.06)!important;color:#7d7870!important;border-radius:6px!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-clear-btn{grid-column:1/-1;justify-self:end;margin-top:-34px;height:28px!important;background:none!important;border-color:transparent!important;box-shadow:none!important;color:#a8a39c!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-vao{display:none}
 #compact-summary.resumo{border:0!important;background:none!important;box-shadow:none!important;outline:0!important}
-.ops-command-bar .global-search-wrap{width:100%!important;max-width:none!important}
-.ops-command-bar .ops-segmentos{margin-bottom:0!important;border-bottom:1px solid var(--pv-linha)!important}
+:where(body:not(.mundo)) .ops-command-bar .global-search-wrap{width:100%!important;max-width:none!important}
+:where(body:not(.mundo)) .ops-command-bar .ops-segmentos{margin-bottom:0!important;border-bottom:1px solid var(--pv-linha)!important}
 
+:where(body:not(.mundo)) .ops-command-bar #agenda-filtros{grid-column:1/-1}
 /* ---- Agenda da equipe: colunas, abas do dia e peças ---- */
 .week-panel .client-card.dia-solta{border-radius:10px!important;border:1px solid rgba(255,255,255,.07)!important;background:rgba(255,255,255,.025)!important;box-shadow:none!important;overflow:hidden}
 .week-panel .client-card.day-is-today{border-color:rgba(232,96,46,.6)!important;background:linear-gradient(180deg,rgba(232,96,46,.1),rgba(255,255,255,.02) 40%)!important}

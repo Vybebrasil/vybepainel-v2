@@ -27,7 +27,9 @@ test('quem guia: Danilo para a criação, Lucas para a edição, Mateus para o a
 });
 
 test('fila de várias pessoas: só para os donos, sem "ver como", e a peça de duas pessoas aparece uma vez com os dois nomes', () => {
-  assert.ok(js.includes('const varios = !verComo && pessoasHoje.length && souDono() ?'));
+  // Quem não tem a fila pelo usuário também escolhe (quadro 31), mas só uma pessoa; juntar várias continua dos donos.
+  assert.ok(js.includes('const escolhidos = !verComo && pessoasHoje.length && (souDono() || !eu) ?'));
+  assert.ok(js.includes('const varios = souDono() ? escolhidos : escolhidos.slice(0, 1);'));
   assert.ok(js.includes("porId.get(k).quem.push(String(user.name || user.nome || '').split(' ')[0]);"));
   assert.ok(js.includes("quem: fila.users.length > 1 ? x.quem : null"));
   assert.ok(js.includes("const CHAVE_PESSOAS = 'vybe.hoje.pessoas';"), 'guardado no navegador de quem olha');

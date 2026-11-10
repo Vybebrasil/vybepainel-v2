@@ -75,10 +75,15 @@ let filtroCarteira = 'all';
 function itemNaCarteira(item) {
   return filtroCarteira === 'all' || clientesDoItem(item).some(nome => carteiraDoCliente(nome) === filtroCarteira);
 }
+const ROTULO_CARTEIRA = { all: 'Todos', vinicius: 'Vinícius', ewerton: 'Ewerton' };
 function pintarFiltroCarteira() {
   document.querySelectorAll('[data-filtro-carteira]').forEach(campo => {
-    campo.value = filtroCarteira;
+    // O chip "Pessoa" do Painel de trabalho (quadro 01): o nome escolhido no chip e a opção marcada no menu.
+    const rotulo = campo.querySelector?.('[data-filtro-carteira-rotulo]');
+    if (!rotulo) campo.value = filtroCarteira;
     campo.dataset.carteira = filtroCarteira;
+    if (rotulo) { rotulo.textContent = ROTULO_CARTEIRA[filtroCarteira] || 'Todos'; rotulo.parentElement?.classList.toggle('tem-escolha', filtroCarteira !== 'all'); }
+    campo.querySelectorAll?.('[data-carteira-opcao]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.carteiraOpcao === filtroCarteira)));
   });
 }
 function atualizarVisoesDaCarteira() {

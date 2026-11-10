@@ -1148,22 +1148,47 @@ function renderCompactSummary() {
   // nenhum destaque: o olho não sabia por onde começar. Agora um número lidera
   // — quanto da semana está fechado —, o dia vem em seguida, e o resto é
   // detalhe em texto quieto. Cor só onde ela quer dizer risco.
-  const detalhe = (valor, rotulo, risco = false) => `
-    <span class="resumo-item${risco && valor > 0 ? ' risco' : ''}">
-      <b>${valor}</b><span>${rotulo}</span></span>`;
 
   // Padrão visual: os números viram cartões. Um lidera (a semana fechada, com
   // o anel), o dia vem ao lado e o resto fica junto num cartão só.
+  // Os números dizem o que fazer (quadro 01 do redesign, 10/11/2026): cada cartão que pede ação tem o link dela, pelas
+  // mesmas filas e filtros da barra. O antigo "Na semana" espremido virou o cartão dos clientes com menos de 3 posts e
+  // uma linha de resumo com as outras contagens.
   const cartao = (cls, conteudo) => `<div class="pv-kpi ${cls}">${conteudo}</div>`;
+  const acao = (rotulo, onclick) => `<button type="button" class="pv-kpi-acao" onclick="${onclick}">${rotulo} <i aria-hidden="true">→</i></button>`;
+  const linha = (valor, rotulo, onclick = '') => onclick && valor > 0
+    ? `<button type="button" class="pv-kpi-linha-item" onclick="${onclick}"><b>${valor}</b> ${rotulo}</button>`
+    : `<span class="pv-kpi-linha-item"><b>${valor}</b> ${rotulo}</span>`;
   document.getElementById('compact-summary').innerHTML =
     cartao('pv-kpi-semana', `<span class="pv-anel" style="--p:${pct}"><i>${done}/${total}</i></span>
       <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</span></div>`) +
     cartao(todayPending > 0 ? 'pv-kpi-risco' : '', `<b>${todayItems.length}</b><div><small>Publica hoje</small>
-      <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span></div>`) +
-    cartao(pendentes > 0 ? 'pv-kpi-atencao' : '', `<b>${pendentes}</b><div><small>Pendentes</small><span>a fazer ou falta D.A</span></div>`) +
-    cartao('pv-kpi-semana-mini', `<div><small>Na semana</small><div class="pv-mini">
-      ${detalhe(clientes.length, 'clientes')}${detalhe(podeFazer, 'pode fazer')}${detalhe(captacao, 'captação')}${detalhe(clientesLow, 'com menos de 3', true)}
-    </div></div>`);
+      <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span>
+      ${todayPending > 0 ? acao('Resolver', "abrirDoResumo('hoje')") : todayItems.length ? acao('Ver', "abrirDoResumo('hoje')") : ''}</div>`) +
+    cartao(pendentes > 0 ? 'pv-kpi-atencao' : '', `<b>${pendentes}</b><div><small>Pendentes</small><span>a fazer ou falta D.A</span>
+      ${pendentes > 0 ? acao('Ver', "abrirDoResumo('acao')") : ''}</div>`) +
+    cartao(clientesLow > 0 ? 'pv-kpi-atencao' : '', `<b>${clientesLow}</b><div><small>Com menos de 3 posts</small>
+      <span>${clientesLow === 1 ? 'cliente' : 'clientes'} em alguma semana</span>
+      ${clientesLow > 0 ? acao(clientesLow === 1 ? 'Ver qual' : 'Ver quais', 'verClientesComPoucosPosts()') : ''}</div>`) +
+    `<p class="pv-kpi-linha" aria-label="Na semana"><span class="pv-kpi-linha-rot">Na semana</span>${linha(clientes.length, clientes.length === 1 ? 'cliente' : 'clientes')}${linha(podeFazer, 'pode fazer', "filtrarStatusDoResumo('Pode Fazer')")}${linha(captacao, 'em captação', "filtrarStatusDoResumo('Aguardo')")}</p>`;
+}
+// Os links dos cartões: abrem a mesma fila da barra (Requer ação, Vence hoje) e descem até ela, sem fechar se já estiver aberta.
+function abrirDoResumo(nome) {
+  const p = PAINEIS_DA_BARRA[nome];
+  if (!p) return;
+  if (!p.aberto()) alternarPainelDaBarra(nome);
+  setTimeout(() => document.getElementById(nome === 'hoje' ? 'ops-today-panel' : 'ops-action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+// "Ver qual": liga o "Crítico primeiro" (clientes com menos posts primeiro) e desce até a agenda da semana.
+function verClientesComPoucosPosts() {
+  if (!sortCritico) toggleSortCritico(document.getElementById('sort-critico-btn'));
+  mostrarAgendaDaSemana();
+}
+// O mesmo filtro de Status da barra, pela pílula da legenda.
+function filtrarStatusDoResumo(status) {
+  const pilula = [...document.querySelectorAll('#status-legend .pill')].find((p) => p.getAttribute('onclick')?.includes(`'${status}'`));
+  if (pilula && currentFilter !== 'status:' + status) filterByStatus(status, pilula);
+  mostrarAgendaDaSemana();
 }
 
 // ─── Resumo do Dia ──────────────────────────────────────────────────────────

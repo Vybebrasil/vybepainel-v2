@@ -317,7 +317,32 @@
     if (!forcar && Date.now() - ultimaContagem < 10 * 60e3) return;
     if (!setores().length) return; // o mundo ainda não carregou a planta
     ultimaContagem = Date.now();
-    Promise.all([lerTodos(), lerEstados(), mv().fonteAgentes?.()?.atualizar?.()]).then(() => { pintarContagem(); if (st.aberto && st.vista === 'fila') pintar(); });
+    Promise.all([lerTodos(), lerEstados(), mv().fonteAgentes?.()?.atualizar?.()]).then(() => { pintarContagem(); if (st.aberto && st.vista === 'fila') pintar(); document.dispatchEvent(new CustomEvent('vybe:agentes')); });
+  }
+  // "Os agentes viram" no Hoje (quadro 31 do redesign): o começo da mesma fila Depende de você, só para quem vê o boletim.
+  function tituloDoItem(it) {
+    if (it.tipo === 'grupo') return it.titulo;
+    if (it.tipo === 'achado') return it.a?.fato;
+    if (it.tipo === 'licao') return it.l?.texto;
+    if (it.tipo === 'aprovacao') return it.p?.resumo;
+    if (it.tipo === 'nivel') return `${it.agente} pode agir com menos aprovação`;
+    return it.e?.tarefa;
+  }
+  function resumoParaHoje(n = 3) {
+    if (!G.VybeBoletim?.podeVer?.()) return { pode: false, itens: [], total: 0 };
+    contar();
+    const F = filaAgora(), lendo = !F.de || (F.lidos < F.de && setores().some((s) => st.perfis[s.id]?.lendo || !st.perfis[s.id]));
+    const itens = F.decidir.slice(0, n).map((it) => ({ titulo: String(tituloDoItem(it) || TIPO[it.tipo][0]), agente: it.agente, rotulo: TIPO[it.tipo][0], setor: it.setor,
+      chave: it.tipo === 'achado' && /^vybe:[1-9]\d{0,19}$/.test(String(it.a?.ref || '')) ? it.a.chave : '' }));
+    return { pode: true, lendo, itens, total: F.decidir.length };
+  }
+  // Abre a peça do achado (a mesma janela do boletim); devolve false quando não é achado com peça.
+  function abrirPeca(setor, chave) {
+    if (!chave) return false;
+    const it = filaAgora().decidir.find((x) => x.tipo === 'achado' && x.setor === setor && x.a?.chave === chave);
+    if (!it || !G.VybePeca?.abrir || !pecaBotao(it.a, setor)) return false;
+    G.VybePeca.abrir(it.a.ref, { achado: it.a, setor });
+    return true;
   }
   setInterval(() => contar(), 60e3);
   document.addEventListener('visibilitychange', () => contar());
@@ -513,5 +538,5 @@
       <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Salvar estado</button></div>
       <p class="vga-nota">Ativo faz sozinho e conta no grupo dos sócios. Sombra pede o OK de um dono no grupo dos sócios ou aqui em Depende de você. Pausado e desligado não rodam as rotinas.</p></form>`;
   }
-  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, itemFilaHtml, contar, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
+  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, itemFilaHtml, contar, resumoParaHoje, abrirPeca, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
 })();
