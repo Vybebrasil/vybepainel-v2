@@ -10,12 +10,14 @@
 // Entrada: /mcp/<chave>. Cada conta do Claude.ai tem a sua chave, guardada em
 // VYBE_MCP_CHAVES ("gestao:chave1,segunda:chave2"); trocar a chave corta a conta.
 // O conector só lê cadastro e só ACRESCENTA registros: não apaga, não muda status
-// de peça, não fala com cliente.
+// de peça, não fala com cliente. O pacote de produção (propor_pacote_producao) também só ACRESCENTA: fica proposto até
+// um dos donos dar o ok no grupo Produção pelo VYBES (server/pacotes-producao.js).
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { completude, valorDoCampo, CAMPOS_CADASTRO } from './clientes-cadastro.js';
 import { tabelaRegras } from './assistente-regras.js';
 import { respostasDoCliente, respostasEmLinhas } from './onboarding-contexto.js';
+import { proporPacote, dataCurta } from './pacotes-producao.js';
 
 export const VERSAO_PROTOCOLO = '2025-06-18';
 const TIPOS = ['conteudo', 'planejamento', 'roteiro', 'decisao', 'regra_de_marca', 'aprendizado'];
@@ -74,6 +76,43 @@ export const FERRAMENTAS = [
     },
   },
 ];
+
+// O pacote de produção (Paulo, 10/11/2026): o chat termina o roteiro e entrega as peças; o VYBES leva ao grupo Produção.
+FERRAMENTAS.push({
+  name: 'propor_pacote_producao',
+  title: 'Mandar um pacote de produção para o VYBES',
+  description: 'Entrega ao Vybe OS um roteiro/planejamento pronto para virar produção: as peças (título, formato, veiculação, prazo e briefing com as perguntas ou o texto de cada uma), o link do documento e uma data sugerida de captação. NADA é criado agora: o VYBES avisa o grupo Produção com o resumo e o link e só cadastra as peças (em "Agendar Captação", ligadas ao roteiro) e marca a captação na agenda depois que um dos donos responder "ok pacote N". Use quando o chat terminou algo que precisa virar demandas; não tente criar peça pelo navegador. Antes, confira o cliente com consultar_cliente e mostre o pacote ao Paulo.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      cliente: { type: 'string', description: 'Nome do cliente como está no Vybe OS.' },
+      titulo: { type: 'string', description: 'Nome do pacote, ex.: "Diária Tira-dúvidas (FAQ)".' },
+      documento: { type: 'string', description: 'Link https do documento/roteiro (Google Docs de preferência; vira o roteiro ligado às peças).' },
+      pecas: {
+        type: 'array', minItems: 1, maxItems: 20, description: 'As peças, uma por item.',
+        items: {
+          type: 'object',
+          properties: {
+            titulo: { type: 'string', description: 'Sem o formato na frente (ex.: "FAQ 03 · Wellhub, TotalPass e diária").' },
+            formato: { type: 'string', description: 'Reels, Card, Carrossel, Story... (padrão Reels).' },
+            veiculacao: { type: 'string', description: 'Data em que vai ao ar, AAAA-MM-DD.' },
+            prazo: { type: 'string', description: 'Prazo da equipe, AAAA-MM-DD (opcional; sem ele o painel calcula).' },
+            briefing: { type: 'string', description: 'O que essa peça precisa: as perguntas dela, o roteiro do trecho, o que a resposta deve trazer.' },
+          },
+          required: ['titulo', 'veiculacao'], additionalProperties: false,
+        },
+      },
+      captacao: {
+        type: 'object', description: 'Data sugerida da gravação (o cliente ainda confirma). Opcional.',
+        properties: { dia: { type: 'string', description: 'AAAA-MM-DD' }, inicio: { type: 'string', description: 'HH:MM' }, fim: { type: 'string', description: 'HH:MM' }, local: { type: 'string' }, obs: { type: 'string' } },
+        required: ['dia', 'inicio', 'fim'], additionalProperties: false,
+      },
+      recado: { type: 'string', description: 'O que falta confirmar com o cliente antes da captação (ex.: professor e CREF, valores dos planos).' },
+    },
+    required: ['cliente', 'titulo', 'pecas'],
+    additionalProperties: false,
+  },
+});
 
 const semSinais = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 function erroDeUso(msg) { return Object.assign(new Error(msg), { deUso: true }); }
@@ -242,6 +281,14 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
       }
     }
     return `Registrado em ${c.nome} (registro ${novo.id}).${avisoRegras}${drive}`;
+  }
+  if (nome === 'propor_pacote_producao') {
+    const c = acharCliente(args.cliente, await clientesAtivos(db));
+    let p;
+    try { p = await proporPacote(db, c.id, args, { origem: `Claude.ai · ${conta}` }); }
+    catch (e) { if (e.publica) throw erroDeUso(e.message); throw e; }
+    return `Pacote de produção #${p.id} registrado para ${c.nome}: ${p.pecas.length} peça(s)${p.captacao ? `, captação sugerida ${dataCurta(p.captacao.dia)} das ${p.captacao.inicio} às ${p.captacao.fim}` : ''}. `
+      + `Nada foi criado ainda. O VYBES avisa o grupo Produção (em até 10 minutos, com o bot ligado) e cadastra tudo quando um dos donos responder "ok pacote ${p.id}".`;
   }
   throw erroDeUso(`Ferramenta desconhecida: ${nome}.`);
 }

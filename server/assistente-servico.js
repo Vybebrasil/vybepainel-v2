@@ -35,6 +35,7 @@ import { encaixeCaptacao } from './assistente-encaixe.js';
 import { acompanhamento, focoDaPessoa } from './assistente-acompanhamento.js';
 import { impressoesParaAgente, registrarPeloAgente } from './impressoes.js';
 import { planejamentoPecasParaAgente } from './planejamentos.js';
+import { pacotesParaAvisar, marcarAvisado, executarPacote, recusarPacote } from './pacotes-producao.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
@@ -82,6 +83,21 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
         throw erro;
       }
     }
+    // Pacote de produção (server/pacotes-producao.js): "ok pacote N" / "recusa pacote N" de um dono, no grupo Produção ou no
+    // privado. Quem decide é o servidor (só donos); recusa esperada volta como resposta normal, com o motivo.
+    if (consulta === 'pacote_executar' || consulta === 'pacote_recusar') {
+      const banco = criarBanco();
+      const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
+      const id = Number(req.body?.pacote?.id);
+      if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Pacote inválido.' });
+      try {
+        if (consulta === 'pacote_recusar') return res.status(200).json({ ok: true, ...(await recusarPacote(banco, pessoaId, id, { config })) });
+        return res.status(200).json({ ok: true, ...(await executarPacote(banco, pessoaId, id, segredo, { config })) });
+      } catch (erro) {
+        if (erro.publica) return res.status(200).json({ ok: true, recusa: String(erro.message).slice(0, 500) });
+        throw erro;
+      }
+    }
     // Banco de ideias: qualquer pessoa vinculada guarda uma ideia para um cliente.
     if (consulta === 'ideia') {
       const id=await autorizarConversa(criarBanco(),jid,contexto,segredo,config);
@@ -104,7 +120,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita', 'redistribuicoes', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita', 'redistribuicoes', 'pacotes', 'pacote_avisado', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -148,6 +164,9 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
         if (consulta === 'reuniao_audio') return res.status(200).json({ ok: true, ...(await trechoDaGravacao(banco, req.body || {}, baixarTrechoDoDrive)) });
         return res.status(200).json(await guardarTranscricao(banco, req.body || {}));
       }
+      // Pacotes de produção que o VYBES ainda não levou ao grupo Produção, e a marca de que levou.
+      if (consulta === 'pacotes') return res.status(200).json({ ok: true, pacotes: await pacotesParaAvisar(banco) });
+      if (consulta === 'pacote_avisado') return res.status(200).json({ ok: true, ...(await marcarAvisado(banco, Number(req.body?.pacote?.id) || 0)) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });
