@@ -1373,7 +1373,7 @@ function renderInspetorNoCerebroHtml(sel, c = null) {
     ${cerebroBlocoTexto('Conteúdo completo',it.detalhe || it.sub || 'Esta fonte não retornou conteúdo descritivo.')}
     ${it.briefing?cerebroBlocoTexto('Briefing',it.briefing):''}${it.estrutura?cerebroBlocoTexto('Estrutura / roteiro',it.estrutura):''}${it.legenda?cerebroBlocoTexto('Legenda sugerida',it.legenda):''}
     ${it.porque?cerebroBlocoTexto('Justificativa registrada',it.porque):''}
-    ${cerebroBlocoTexto('Evidência',it.prova || (it.origem==='operacao'?`Registro ${it.idOperacional} no quadro ${it.quadro==='request'?'Solicitações':'Produção'}.`:'Nenhum trecho de evidência foi retornado para este registro.'))}
+    ${cerebroBlocoTexto('Evidência',cerebroProvaTexto(it.prova) || (it.origem==='operacao'?`Registro ${it.idOperacional} no quadro ${it.quadro==='request'?'Solicitações':'Produção'}.`:'Nenhum trecho de evidência foi retornado para este registro.'))}
     ${cerebroBlocoTexto('Origem e atualização',`${it.fonte || 'Origem não informada.'}\n${it.atualizadoEm?'Estudo: '+cerebroDataHora(it.atualizadoEm):'Data de atualização da fonte não informada.'}${it.consultadoEm?'\nConsultado: '+cerebroDataHora(it.consultadoEm):''}`)}
     ${cerebroBlocoTexto('Relações verificadas',`Cliente: ${c.nomeNoCadastro || c.nome}\nÁrea: ${g.nome}${it.idOperacional?'\nPeça vinculada: #'+it.idOperacional:''}\nNão há outros vínculos explícitos neste retorno.`)}
     ${cerebroBlocoTexto('Uso pelo VYBES',uso)}
@@ -1413,16 +1413,21 @@ function renderDossieNeuralClienteHtml(cOuNome) {
 function cerebroDoClienteCardHtml(nomeCliente) {
   const c = cerebroDoCliente(nomeCliente);
   const paleta = c.base?.paleta || [];
+  // Quadro 53 (10/11/2026): as cores da marca só como amostras (o código fica na dica de cada uma), e "o que é o cérebro"
+  // vira a dica do "?" ao lado do título, não um bloco no corpo.
+  const dica = 'O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa. "Abrir o mapa" mostra a rede inteira com este cliente em foco.';
+  const nomesDaPaleta = [...new Set(paleta.map((p) => String(p.nome || '').trim()).filter(Boolean))].slice(0, 4);
   return `
     <div class="client-master-detail-card cb-cartao" id="vybes-cli-cerebro-card">
       <div class="cli-ficha-topo">
-        <h3>Cérebro do VYBES · Identidade Visual &amp; Sinapses</h3>
-        <button type="button" class="vb-botao principal" onclick="abrirModalCerebroCliente('${cerebroAspas(c.nome)}')">Abrir Canvas de Sinapses</button>
+        <h3 class="cb-cartao-titulo">O que o VYBES sabe de ${cerebroEsc(c.nomeNoCadastro || c.nome)}
+          <button type="button" class="cb-dica vb-jogo-dica" data-dica="${cerebroEsc(dica)}" aria-label="O que é o cérebro: ${cerebroEsc(dica)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/></svg></button></h3>
+        <button type="button" class="vb-botao principal" onclick="abrirModalCerebroCliente('${cerebroAspas(c.nome)}', 'mapa')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Abrir o mapa</button>
       </div>
       <p>${c.base
         ? `O que o VYBES sabe desta conta: ${cerebroEsc(c.base.instagram || '')} · ${cerebroEsc(c.base.segmento || '')}. É com isto que ele revisa peças e sugere pautas.`
         : 'Este cliente ainda não tem estudo de identidade no VYBES. O cérebro mostra a operação, as pastas e o que a equipe registrar.'}</p>
-      ${paleta.length ? `<div class="cb-cartao-paleta">${paleta.map(p => `<span title="${cerebroEsc(p.nome)}"><i style="background:${cerebroEsc(p.hex)}"></i>${cerebroEsc(p.hex)}</span>`).join('')}</div>` : ''}
+      ${paleta.length ? `<div class="cb-cartao-paleta" role="list" aria-label="Cores da marca">${paleta.map(p => `<span role="listitem" class="cb-cartao-cor" title="${cerebroEsc([p.nome, p.hex].filter(Boolean).join(' · '))}" aria-label="${cerebroEsc(p.nome || 'Cor da marca')}" style="background:${cerebroEsc(p.hex)}"></span>`).join('')}${nomesDaPaleta.length ? `<small class="cb-cartao-cores">${cerebroEsc(nomesDaPaleta.join(', '))}</small>` : ''}</div>` : ''}
       ${typeof vbResumoHtml === 'function' ? vbResumoHtml([
         { valor: c.resumo.atrasados, rotulo: 'atrasados', tom: c.resumo.atrasados ? 'alerta' : '' },
         { valor: c.resumo.pendencias, rotulo: 'pendências', tom: c.resumo.pendencias ? 'atencao' : '' },
@@ -1538,9 +1543,9 @@ async function cerebroApagarExtra(nome, tipo, id) {
   cerebroRepintar();
 }
 
-function abrirModalCerebroCliente(nomeCliente) {
+function abrirModalCerebroCliente(nomeCliente, aba = 'atividade') {
   CEREBRO_STATE.clienteFoco = encontrarBaseCerebro(nomeCliente)?.nome || nomeCliente;
-  CEREBRO_STATE.abaInterna = 'atividade';
+  CEREBRO_STATE.abaInterna = ['atividade', 'ficha', 'mapa', 'sinapses'].includes(aba) ? aba : 'atividade';
   CEREBRO_STATE.selecionado = null;
   if (typeof voltarClientesLista === 'function') voltarClientesLista();
   if (typeof trocarVisaoDeClientes === 'function') trocarVisaoDeClientes('sinapses');
@@ -1578,15 +1583,47 @@ async function carregarEstudoCerebro(cliente) {
     e.dados = d;
   } catch (x) { e.erro = x.message; } finally { e.carregando = false; cerebroRepintar(); }
 }
+// Quadro 54 (10/11/2026): a central marca de onde veio cada prova com uma etiqueta ("[FICHA]", "[NOTICIA_SETOR]"); a tela
+// mostra o nome em português. Etiqueta que a central inventar depois vira texto comum ("[NOVA_FONTE]" → "Nova fonte").
+const CEREBRO_FONTES_DA_PROVA = { FICHA: 'Ficha do cliente', INSTAGRAM: 'Instagram', NOTICIA_CLIENTE: 'Notícia do cliente', NOTICIAS_CLIENTE: 'Notícia do cliente',
+  NOTICIA_SETOR: 'Notícia do setor', NOTICIAS_SETOR: 'Notícia do setor', LICAO: 'Lição da equipe', LICOES: 'Lição da equipe', HISTORICO: 'Histórico de peças', PECAS: 'Histórico de peças', SITE: 'Site do cliente' };
+function cerebroRotuloDaFonte(tag) {
+  const t = String(tag || '').trim().toUpperCase();
+  if (CEREBRO_FONTES_DA_PROVA[t]) return CEREBRO_FONTES_DA_PROVA[t];
+  const texto = t.toLowerCase().replace(/_/g, ' ').trim();
+  return texto ? texto[0].toUpperCase() + texto.slice(1) : '';
+}
+// Em texto puro (blocos do inspetor): "[FICHA] o público…" vira "Ficha do cliente: o público…".
+function cerebroProvaTexto(prova) {
+  return String(prova || '').replace(/\[([A-Za-z][A-Za-z0-9_]{1,30})\]\s*/g, (_, tag) => `${cerebroRotuloDaFonte(tag)}: `);
+}
+function cerebroProvaHtml(prova) {
+  const bruto = String(prova || '');
+  if (!bruto.trim()) return '';
+  return cerebroEsc(bruto).replace(/\[([A-Za-z][A-Za-z0-9_]{1,30})\]\s*/g, (_, tag) => `<span class="cb-sin-fonte">${cerebroEsc(cerebroRotuloDaFonte(tag))}</span> `);
+}
 function filtrarMotorSinapses(m) { CEREBRO_SINAPSES.motor = m in CEREBRO_MOTORES || m === 'todos' ? m : 'todos'; cerebroRepintar(); }
-function cerebroMotorHtml(m) { const [n, c] = CEREBRO_MOTORES[m] || CEREBRO_MOTORES.nao_mapeado; return `<em class="cb-motor" style="--c:${c}">${cerebroEsc(n)}</em>`; }
+// O selo de quem pensa fica à vista (Paulo, 08/11: "saber de onde vem tudo"); no padrão, a cor só no ponto, o texto escuro.
+function cerebroMotorHtml(m) { const [n, c] = CEREBRO_MOTORES[m] || CEREBRO_MOTORES.nao_mapeado; return `<em class="cb-motor" style="--c:${c}"><i aria-hidden="true"></i>${cerebroEsc(n)}</em>`; }
+function consultarEstudoCerebroDeNovo(cliente) {
+  delete CEREBRO_SINAPSES.estudos[cliente];
+  void carregarEstudoCerebro(cliente);
+  cerebroRepintar();
+}
 function renderEstudoClienteCerebroHtml(cliente) {
   const e = CEREBRO_SINAPSES.estudos[cliente] || {}; if (!e.dados && !e.erro) void carregarEstudoCerebro(cliente);
   const u = e.dados?.ultimo;
   if (!u) return `<section class="cb-sin-bloco"><h3>Estudo do cliente</h3><p class="cb-sin-nota">${cerebroEsc(e.erro || (e.carregando || !e.dados ? 'Consultando a central…' : 'Ainda não estudado. O Alex estuda 2 clientes por noite, de domingo a quinta, às 22h.'))}</p></section>`;
-  const itens = (xs) => (xs || []).map((x) => `<li><b>${cerebroEsc(x.texto || x.nome)}</b>${x.observacao ? `<span>${cerebroEsc(x.observacao)}</span>` : ''}<small>${cerebroEsc(x.prova || x.porque || '')}</small></li>`).join('');
+  const itens = (xs) => (xs || []).map((x) => `<li><b>${cerebroEsc(x.texto || x.nome)}</b>${x.observacao ? `<span>${cerebroEsc(x.observacao)}</span>` : ''}<small>${x.prova ? cerebroProvaHtml(x.prova) : cerebroEsc(x.porque || '')}</small></li>`).join('');
   const f = u.fontes || {};
-  return `<section class="cb-sin-bloco"><h3>Estudo do cliente <small>${cerebroEsc(cerebroDataHora(u.em))} · ${cerebroMotorHtml('qwen')} · fontes: ${[f.ficha ? 'ficha .md' : '', f.instagram ? 'Instagram' : '', f.noticiasCliente ? f.noticiasCliente + ' notícias do cliente' : '', f.noticiasSetor ? f.noticiasSetor + ' do setor' : '', f.licoes ? f.licoes + ' lições' : ''].filter(Boolean).map(cerebroEsc).join(', ') || 'nenhuma'}</small></h3>
+  const plural = (n, um, varios) => `${n} ${Number(n) === 1 ? um : varios}`;
+  const fontes = [f.ficha ? 'a ficha do cliente' : '', f.instagram ? 'o Instagram' : '', f.noticiasCliente ? plural(f.noticiasCliente, 'notícia do cliente', 'notícias do cliente') : '',
+    f.noticiasSetor ? plural(f.noticiasSetor, 'notícia do setor', 'notícias do setor') : '', f.licoes ? plural(f.licoes, 'lição da equipe', 'lições da equipe') : ''].filter(Boolean);
+  const comFontes = fontes.length > 1 ? `${fontes.slice(0, -1).join(', ')} e ${fontes[fontes.length - 1]}` : fontes[0] || '';
+  // Refazer o estudo (quadro 54) não existe na central: o estudo roda à noite (o Alex). "Consultar de novo" só relê o último.
+  return `<section class="cb-sin-bloco cb-sin-estudo"><div class="cb-sin-estudo-topo"><div><h3>Estudo de ${cerebroEsc(cliente)}</h3>
+      <p class="cb-sin-quando">Feito em ${cerebroEsc(cerebroDataHora(u.em))}${comFontes ? ` com ${cerebroEsc(comFontes)}` : ', sem fonte registrada'} · ${cerebroMotorHtml('qwen')}</p></div>
+      <button type="button" class="vb-botao" onclick="consultarEstudoCerebroDeNovo('${cerebroAspas(cliente)}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/></svg>Consultar de novo</button></div>
     ${u.setor ? `<p><b>Setor:</b> ${cerebroEsc(u.setor)}</p>` : ''}${u.posicionamento ? `<p><b>Posicionamento:</b> ${cerebroEsc(u.posicionamento)}</p>` : ''}
     <div class="cb-sin-grade">
       <div><h4>Oportunidades</h4>${(u.oportunidades || []).length ? `<ul>${itens(u.oportunidades)}</ul>` : '<p class="cb-sin-nota">Nenhuma com prova.</p>'}</div>
@@ -1616,7 +1653,7 @@ function renderSinapsesCerebroHtml(cliente = null) {
   return `<div class="cb-ficha cb-sinapses">
     ${estudo}
     <section class="cb-sin-bloco"><h3>Como o VYBES pensa <small>gerado do código em ${cerebroEsc(cerebroDataHora(d.geradoEm))}</small></h3>
-      <div class="cb-sin-resumo">${[['todos', 'Todas', (k.qwen || 0) + (k.logica || 0) + (k.misto || 0) + (k.vybe_os || 0)], ['qwen', 'Qwen', k.qwen], ['logica', 'Lógica fixa', k.logica], ['misto', 'Lógica + Qwen', k.misto], ['vybe_os', 'Vybe OS', k.vybe_os]].map(([id, nome, n]) => `<button type="button" aria-pressed="${filtro === id}" onclick="filtrarMotorSinapses('${id}')" style="--c:${(CEREBRO_MOTORES[id] || ['', '#4A4640'])[1]}"><b>${n ?? 0}</b><span>${nome}</span></button>`).join('')}</div>
+      <div class="cb-sin-resumo" role="group" aria-label="Filtrar por quem pensa">${[['todos', 'Todas', (k.qwen || 0) + (k.logica || 0) + (k.misto || 0) + (k.vybe_os || 0)], ['qwen', 'Qwen', k.qwen], ['logica', 'Lógica fixa', k.logica], ['misto', 'Lógica + Qwen', k.misto], ['vybe_os', 'Vybe OS', k.vybe_os]].map(([id, nome, n]) => `<button type="button" class="vb-chip cb-sin-filtro" aria-pressed="${filtro === id}" onclick="filtrarMotorSinapses('${id}')">${nome} <b>${n ?? 0}</b></button>`).join('')}</div>
       <p class="cb-sin-nota">${k.modulosParados ? `${k.modulosParados} ${k.modulosParados > 1 ? 'módulos' : 'módulo'} de Qwen ${k.modulosParados > 1 ? 'existem' : 'existe'} no código e ainda não ${k.modulosParados > 1 ? 'são chamados' : 'é chamado'} (aparece como "parado"). ` : ''}${k.naoMapeadas ? `<b>${k.naoMapeadas} rotinas sem origem conferida.</b> ` : 'Toda rotina tem origem conferida. '}${fila ? `Fila do Qwen agora: ${fila.ocupado ? 'trabalhando' : 'livre'}, ${fila.esperando} esperando, ${fila.feitos} feitos, ${fila.falhas} falhas, ${fila.descartados} descartados.` : ''}</p>
     </section>
     ${porAgente.map(({ a, itens }) => `<section class="cb-sin-bloco"><h3>${cerebroEsc(a.nome)} <small>${cerebroEsc(a.estado || '')}${a.numeros?.abertos ? ` · ${a.numeros.abertos} achados em aberto` : ''}${a.numeros?.acerto != null ? ` · acerto ${a.numeros.acerto}%` : ''}</small></h3><ul class="cb-sin-lista">${itens.map(linha).join('')}</ul></section>`).join('') || '<section class="cb-sin-bloco"><p class="cb-sin-nota">Nenhuma sinapse com esse motor.</p></section>'}

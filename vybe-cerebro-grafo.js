@@ -12,15 +12,20 @@
 // nada de animação contínua); só volta a mexer quando a pessoa arrasta um nó ou muda uma força. Somente leitura.
 (() => {
   'use strict';
+  // Quadro 55 (10/11/2026): o mapa é claro, no fundo do padrão (#F4F0EA); no tema escuro a moldura inverte (vybe-mundo.css).
+  // As cores dos grupos são as mesmas de antes, escurecidas para o fundo claro.
   const GRUPOS = [
-    { id: 'vybes', nome: 'VYBES', cor: '#F5F1EA' },
-    { id: 'agente', nome: 'Agentes', cor: '#A78BFA' },
-    { id: 'central', nome: 'Rotinas e módulos', cor: '#2DD4BF' },
-    { id: 'cliente', nome: 'Clientes', cor: '#FF8A35' },
-    { id: 'pessoa', nome: 'Time', cor: '#60A5FA' },
-    { id: 'peca', nome: 'Peças abertas', cor: '#E8C547' },
-    { id: 'atrasada', nome: 'Atrasadas', cor: '#F87171' },
+    { id: 'vybes', nome: 'VYBES', cor: '#2B2925' },
+    { id: 'agente', nome: 'Agentes', cor: '#7C5CE0' },
+    { id: 'central', nome: 'Rotinas e módulos', cor: '#0F9488' },
+    { id: 'cliente', nome: 'Clientes', cor: '#F26B1D' },
+    { id: 'pessoa', nome: 'Time', cor: '#2F6FD6' },
+    { id: 'peca', nome: 'Peças abertas', cor: '#C99A06' },
+    { id: 'atrasada', nome: 'Atrasadas', cor: '#D2453B' },
   ];
+  const FUNDO = '#F4F0EA';
+  // Como cada grupo se diz numa frase ("15 clientes · 6 agentes"), no lugar de "51 nós · 67 ligações".
+  const NA_FRASE = { agente: ['agente', 'agentes'], central: ['rotina ou módulo', 'rotinas e módulos'], cliente: ['cliente', 'clientes'], pessoa: ['pessoa do time', 'pessoas do time'], peca: ['peça aberta', 'peças abertas'], atrasada: ['atrasada', 'atrasadas'] };
   const COR = Object.fromEntries(GRUPOS.map((g) => [g.id, g.cor]));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const chave = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -31,7 +36,8 @@
   const pref = (() => { try { return JSON.parse(localStorage.getItem(PREF) || '{}'); } catch { return {}; } })();
   const st = {
     ocultos: new Set(pref.ocultos || []), repulsao: pref.repulsao ?? 60, distancia: pref.distancia ?? 38, centro: pref.centro ?? 30,
-    tamanho: pref.tamanho ?? 100, linhas: pref.linhas ?? 100, rotulos: pref.rotulos ?? true, painel: pref.painel ?? true,
+    // Os ajustes do desenho (tamanho, espessura, forças) começam recolhidos: quem usa o mapa filtra pelos chips.
+    tamanho: pref.tamanho ?? 100, linhas: pref.linhas ?? 100, rotulos: pref.rotulos ?? true, ajustes: pref.ajustes ?? false,
   };
   const guardar = () => { try { localStorage.setItem(PREF, JSON.stringify({ ...st, ocultos: [...st.ocultos] })); } catch { /* sem guardar */ } };
   const posicoes = new Map(); // id → {x, y}: remontar (a tela do cérebro repinta) continua de onde parou
@@ -142,30 +148,48 @@
       n.vx = 0; n.vy = 0;
     });
     const contagem = Object.fromEntries(GRUPOS.map((g) => [g.id, nos.filter((n) => n.grupo === g.id).length]));
+    // Quantas peças abertas (e atrasadas) cada cliente tem: vai no nome do nó ("Alpha1 · 2 em aberto").
+    for (const n of nos) if (n.grupo === 'cliente') {
+      const viz = [...vizinhos.get(n.id)].map((id) => porId.get(id));
+      n.abertas = viz.filter((v) => v.grupo === 'peca' || v.grupo === 'atrasada').length;
+      n.atrasadas = viz.filter((v) => v.grupo === 'atrasada').length;
+    }
+    const rotuloDe = (n) => {
+      const base = n.nome.length > 30 ? n.nome.slice(0, 28) + '…' : n.nome;
+      if (n.grupo !== 'cliente' || !n.abertas) return base;
+      return `${base} · ${n.abertas} em aberto${n.atrasadas ? `, ${n.atrasadas} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'}` : ''}`;
+    };
+    const frase = () => GRUPOS.filter((g) => g.id !== 'vybes' && contagem[g.id] && !st.ocultos.has(g.id))
+      .map((g) => `${contagem[g.id]} ${NA_FRASE[g.id][contagem[g.id] === 1 ? 0 : 1]}`).join(' · ') || 'Nada à mostra: ligue um grupo nos chips.';
+    const focoNome = opcoes.foco ? (nos.find((n) => n.id === 'cl:' + chave(opcoes.foco))?.nome || opcoes.foco) : '';
+    const icX = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-    casa.innerHTML = `<div class="cg cg-cheia" role="dialog" aria-label="Cérebro do VYBES em tela cheia">
-      <div class="cg-titulo"><b>Cérebro do VYBES</b><small>Tudo o que se conecta: VYBES, agentes, central, clientes, time e peças</small></div>
-      <button type="button" class="cg-sair" data-cg="sair" aria-label="Sair do mapa (Esc)" title="Sair do mapa (Esc)">Sair do mapa</button>
-      <canvas class="cg-tela" tabindex="0" aria-label="Grafo do Cérebro do VYBES: ${nos.length} nós e ${ligs.length} ligações. Arraste para mover, roda do mouse para zoom."></canvas>
-      <div class="cg-busca"><input type="search" placeholder="Buscar no grafo (cliente, pessoa, peça, agente)…" aria-label="Buscar no grafo"><span class="cg-conta">${nos.length} nós · ${ligs.length} ligações</span></div>
-      <aside class="cg-painel"${st.painel ? '' : ' data-fechado'}>
-        <button type="button" class="cg-painel-alternar" data-cg="painel" aria-expanded="${st.painel}"><b>Controles</b><span>${st.painel ? 'Esconder' : 'Mostrar'}</span></button>
+    casa.innerHTML = `<div class="cg cg-cheia" role="dialog" aria-label="Mapa do Cérebro do VYBES">
+      <canvas class="cg-tela" tabindex="0" aria-label="Mapa do Cérebro: ${esc(frase())}. Arraste para mover, roda do mouse para aproximar."></canvas>
+      <div class="cg-topo">
+        <div class="cg-titulo"><b>${focoNome ? `Rede de ${esc(focoNome)}` : 'Cérebro do VYBES'}</b><small>Como o VYBES, os agentes, os clientes, o time e as peças se ligam</small></div>
+        <div class="cg-busca"><input type="search" placeholder="Buscar cliente, pessoa ou peça" aria-label="Buscar no mapa"></div>
+        <div class="cg-chips" role="group" aria-label="O que aparece no mapa">${GRUPOS.filter((g) => g.id !== 'vybes').map((g) => `<button type="button" class="cg-chip" data-cg-grupo="${g.id}" aria-pressed="${!st.ocultos.has(g.id)}" style="--c:${g.cor}"><i aria-hidden="true"></i>${g.nome} <b>${contagem[g.id] || 0}</b></button>`).join('')}</div>
+        <p class="cg-conta" aria-live="polite">${esc(frase())}</p>
+      </div>
+      <button type="button" class="cg-fechar" data-cg="sair" aria-label="Fechar o mapa (Esc)" title="Fechar o mapa (Esc)">${icX}</button>
+      <aside class="cg-painel"${st.ajustes ? '' : ' data-fechado'}>
+        <button type="button" class="cg-painel-alternar" data-cg="painel" aria-expanded="${st.ajustes}"><b>Ajustes do desenho</b><span>${st.ajustes ? 'Esconder' : 'Mostrar'}</span></button>
         <div class="cg-painel-corpo">
-          <details open><summary>Grupos</summary>${GRUPOS.map((g) => `<label class="cg-grupo" style="--c:${g.cor}"><input type="checkbox" data-cg-grupo="${g.id}"${st.ocultos.has(g.id) ? '' : ' checked'}><i style="--c:${g.cor}"></i><span>${g.nome}</span><small>${contagem[g.id] || 0}</small></label>`).join('')}</details>
           <details open><summary>Exibição</summary>
-            <label class="cg-faixa"><span>Tamanho dos nós</span><input type="range" min="50" max="200" value="${st.tamanho}" data-cg-faixa="tamanho"></label>
+            <label class="cg-faixa"><span>Tamanho dos pontos</span><input type="range" min="50" max="200" value="${st.tamanho}" data-cg-faixa="tamanho"></label>
             <label class="cg-faixa"><span>Espessura das ligações</span><input type="range" min="20" max="300" value="${st.linhas}" data-cg-faixa="linhas"></label>
-            <label class="cg-grupo"><input type="checkbox" data-cg="rotulos"${st.rotulos ? ' checked' : ''}><span>Nomes dos nós</span></label></details>
-          <details><summary>Forças</summary>
-            <label class="cg-faixa"><span>Repulsão</span><input type="range" min="10" max="200" value="${st.repulsao}" data-cg-faixa="repulsao"></label>
-            <label class="cg-faixa"><span>Distância das ligações</span><input type="range" min="10" max="120" value="${st.distancia}" data-cg-faixa="distancia"></label>
-            <label class="cg-faixa"><span>Força do centro</span><input type="range" min="0" max="100" value="${st.centro}" data-cg-faixa="centro"></label>
+            <button type="button" class="cg-chip" data-cg="rotulos" aria-pressed="${st.rotulos}">Mostrar os nomes</button></details>
+          <details><summary>Espaçamento</summary>
+            <label class="cg-faixa"><span>Afastar os pontos</span><input type="range" min="10" max="200" value="${st.repulsao}" data-cg-faixa="repulsao"></label>
+            <label class="cg-faixa"><span>Comprimento das ligações</span><input type="range" min="10" max="120" value="${st.distancia}" data-cg-faixa="distancia"></label>
+            <label class="cg-faixa"><span>Puxar para o centro</span><input type="range" min="0" max="100" value="${st.centro}" data-cg-faixa="centro"></label>
             <button type="button" class="cg-botao" data-cg="reorganizar">Reorganizar</button></details>
         </div>
       </aside>
-      <div class="cg-zoom"><button type="button" data-cg="mais" aria-label="Aproximar">+</button><button type="button" data-cg="menos" aria-label="Afastar">−</button><button type="button" data-cg="enquadrar">Enquadrar</button></div>
+      <div class="cg-zoom"><button type="button" data-cg="mais" aria-label="Aproximar">+</button><button type="button" data-cg="menos" aria-label="Afastar">−</button><button type="button" data-cg="enquadrar">Enquadrar</button><button type="button" class="cg-sair" data-cg="sair">Sair do mapa</button></div>
       <div class="cg-cartao" hidden></div>
-      ${nos.length <= 1 ? '<p class="cg-vazio">Os nós aparecem quando o painel termina de carregar os clientes e as peças.</p>' : ''}
+      ${nos.length <= 1 ? '<p class="cg-vazio">Os pontos aparecem quando o painel termina de carregar os clientes e as peças.</p>' : ''}
     </div>`;
     const raiz = casa.querySelector('.cg'), tela = raiz.querySelector('canvas'), ctx = tela.getContext('2d'), cartao = raiz.querySelector('.cg-cartao');
     const cam = { x: 0, y: 0, k: .9 };
@@ -210,7 +234,7 @@
     function desenhar() {
       sujo = false;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = '#16171C'; ctx.fillRect(0, 0, largura, altura);
+      ctx.fillStyle = FUNDO; ctx.fillRect(0, 0, largura, altura);
       ctx.save(); ctx.translate(largura / 2, altura / 2); ctx.scale(cam.k, cam.k); ctx.translate(-cam.x, -cam.y);
       const foco = sobre || fixo, viz = foco ? vizinhos.get(foco.id) : null;
       const acende = (n) => !foco || n === foco || viz.has(n.id);
@@ -220,33 +244,45 @@
       for (const l of ligs) {
         const a = porId.get(l.a), b = porId.get(l.b); if (!visivel(a) || !visivel(b)) continue;
         const on = foco && (a === foco || b === foco);
-        ctx.strokeStyle = on ? 'rgba(255,255,255,.55)' : foco ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.085)';
+        ctx.strokeStyle = on ? 'rgba(31,29,26,.5)' : foco ? 'rgba(31,29,26,.04)' : 'rgba(31,29,26,.12)';
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       }
       // Nós
       for (const n of nos) {
         if (!visivel(n)) continue;
         const r = raio(n), apagado = (foco && !acende(n)) || (achado && !achado(n));
-        ctx.globalAlpha = apagado ? .14 : 1;
+        ctx.globalAlpha = apagado ? .16 : 1;
         ctx.fillStyle = COR[n.grupo];
         ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); ctx.fill();
-        if (n === foco || (achado && achado(n))) { ctx.lineWidth = 2 / cam.k; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+        if (n === foco || (achado && achado(n))) { ctx.lineWidth = 2.5 / cam.k; ctx.strokeStyle = '#1F1D1A'; ctx.stroke(); }
       }
       ctx.globalAlpha = 1;
-      // Nomes: os grandes sempre (com zoom), o foco e os vizinhos dele, e o que a busca achou.
+      // Nomes: os grandes sempre (com zoom), o foco e os vizinhos dele, e o que a busca achou. Quadro 55: nome que cairia em
+      // cima de outro já escrito fica para quando aproximar (o foco e o VYBES vêm primeiro), nada de nomes empilhados.
       if (st.rotulos) {
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const peso = (n) => (n === foco ? 0 : n.grupo === 'vybes' ? 1 : achado && achado(n) ? 2 : viz && viz.has(n.id) ? 3 : n.grupo === 'cliente' ? 4 : n.grupo === 'agente' ? 5 : 6);
+        const candidatos = [];
         for (const n of nos) {
           if (!visivel(n)) continue;
           const r = raio(n);
           const mostra = n === foco || (viz && viz.has(n.id)) || (achado && achado(n)) || n.grupo === 'vybes' || (n.grupo === 'agente' && cam.k > 1.1) || n.grupo === 'cliente' || (cam.k > 1.6 && r > 3.5) || cam.k > 2.6;
           if (!mostra || (foco && !acende(n) && !(achado && achado(n)))) continue;
+          candidatos.push(n);
+        }
+        candidatos.sort((a, b) => peso(a) - peso(b) || b.grau - a.grau);
+        const ocupados = [];
+        for (const n of candidatos) {
+          const r = raio(n);
           const tam = Math.max(9, Math.min(14, (n.grupo === 'vybes' ? 15 : n.grupo === 'cliente' || n.grupo === 'agente' ? 12 : 10.5))) / cam.k;
           ctx.font = `${n === foco ? 700 : 600} ${tam}px Inter, system-ui, sans-serif`;
-          const texto = n.nome.length > 34 ? n.nome.slice(0, 32) + '…' : n.nome;
-          ctx.fillStyle = 'rgba(22,23,28,.75)'; const w = ctx.measureText(texto).width;
-          ctx.fillRect(n.x - w / 2 - 3 / cam.k, n.y + r + 3 / cam.k, w + 6 / cam.k, tam + 4 / cam.k);
-          ctx.fillStyle = n === foco ? '#fff' : 'rgba(240,236,228,.88)';
+          const texto = rotuloDe(n), w = ctx.measureText(texto).width;
+          const caixa = { x0: n.x - w / 2 - 3 / cam.k, y0: n.y + r + 3 / cam.k, x1: n.x + w / 2 + 3 / cam.k, y1: n.y + r + 7 / cam.k + tam };
+          if (n !== foco && ocupados.some((o) => caixa.x0 < o.x1 && caixa.x1 > o.x0 && caixa.y0 < o.y1 && caixa.y1 > o.y0)) continue;
+          ocupados.push(caixa);
+          ctx.fillStyle = 'rgba(255,255,255,.88)';
+          ctx.fillRect(caixa.x0, caixa.y0, caixa.x1 - caixa.x0, caixa.y1 - caixa.y0);
+          ctx.fillStyle = n === foco ? '#1F1D1A' : '#3A3732';
           ctx.fillText(texto, n.x, n.y + r + 5 / cam.k);
         }
       }
@@ -279,8 +315,9 @@
       const acao = n.grupo === 'cliente' ? `<button type="button" class="cg-botao principal" data-cg-abrir="cliente">Abrir o cliente</button>`
         : n.peca ? `<button type="button" class="cg-botao principal" data-cg-abrir="peca">Abrir a peça</button>`
         : n.grupo === 'agente' ? `<button type="button" class="cg-botao principal" data-cg-abrir="agente">Ver os agentes</button>` : '';
-      cartao.innerHTML = `<div class="cg-cartao-topo"><i style="--c:${g.cor}"></i><span><small>${esc(g.nome)}</small><b>${esc(n.nome)}</b></span><button type="button" class="cg-x" data-cg="fechar-cartao" aria-label="Fechar">×</button></div>
-        ${n.sub ? `<p>${esc(n.sub)}</p>` : ''}<p class="cg-ligado">${viz.length} ligações${porGrupo.length ? ': ' + porGrupo.map(([x, c]) => `${c} ${esc(x.nome.toLowerCase())}`).join(' · ') : ''}</p>${acao}`;
+      const abertas = n.grupo === 'cliente' && n.abertas ? `<p class="cg-abertas">${n.abertas} ${n.abertas === 1 ? 'peça em aberto' : 'peças em aberto'}${n.atrasadas ? ` · <b>${n.atrasadas} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'}</b>` : ''}</p>` : '';
+      cartao.innerHTML = `<div class="cg-cartao-topo"><i style="--c:${g.cor}"></i><span><small>${esc(g.nome)}</small><b>${esc(n.nome)}</b></span><button type="button" class="cg-x" data-cg="fechar-cartao" aria-label="Fechar o cartão">${icX}</button></div>
+        ${n.sub ? `<p>${esc(n.sub)}</p>` : ''}${abertas}<p class="cg-ligado">Ligações: ${porGrupo.length ? porGrupo.map(([x, c]) => x.id === 'vybes' ? 'o VYBES' : `${c} ${esc(NA_FRASE[x.id]?.[c === 1 ? 0 : 1] || x.nome.toLowerCase())}`).join(' · ') : 'nada mais'}</p>${acao}`;
       cartao.hidden = false;
     }
     // Interação
@@ -328,18 +365,20 @@
       else if (a === 'menos') { cam.k = Math.max(.12, cam.k * .8); sujo = true; pedir(); }
       else if (a === 'enquadrar') enquadrar();
       else if (a === 'reorganizar') { posicoes.clear(); nos.forEach((n, i) => { const ang = (i * 2.399963) % (Math.PI * 2), rr = (ANEL[n.grupo] ?? 300); n.x = Math.cos(ang) * rr; n.y = Math.sin(ang) * rr; }); aquecer(1); setTimeout(() => enquadrar(), 1600); }
+      else if (a === 'rotulos') { st.rotulos = !st.rotulos; b.setAttribute('aria-pressed', String(st.rotulos)); guardar(); sujo = true; pedir(); }
       else if (a === 'fechar-cartao') { fixo = null; mostrarCartao(null); sujo = true; pedir(); }
-      else if (a === 'painel') { st.painel = !st.painel; guardar(); raiz.querySelector('.cg-painel').toggleAttribute('data-fechado', !st.painel); b.setAttribute('aria-expanded', String(st.painel)); b.querySelector('span').textContent = st.painel ? 'Esconder' : 'Mostrar'; }
+      else if (a === 'painel') { st.ajustes = !st.ajustes; guardar(); raiz.querySelector('.cg-painel').toggleAttribute('data-fechado', !st.ajustes); b.setAttribute('aria-expanded', String(st.ajustes)); b.querySelector('span').textContent = st.ajustes ? 'Esconder' : 'Mostrar'; }
+      else if (b.dataset.cgGrupo) {
+        const g = b.dataset.cgGrupo, ligado = st.ocultos.has(g);
+        if (ligado) st.ocultos.delete(g); else st.ocultos.add(g);
+        b.setAttribute('aria-pressed', String(ligado)); guardar(); aquecer(.3); sujo = true;
+        raiz.querySelector('.cg-conta').textContent = frase();
+      }
       else if (b.dataset.cgAbrir && fixo) {
         if (b.dataset.cgAbrir === 'cliente') { if (typeof focarClienteNoCerebro === 'function') focarClienteNoCerebro(fixo.cliente); else if (typeof abrirClienteDetalhe === 'function') abrirClienteDetalhe(fixo.cliente); }
         else if (b.dataset.cgAbrir === 'peca' && typeof openItemWorkspace === 'function') openItemWorkspace(fixo.peca);
         else if (b.dataset.cgAbrir === 'agente') window.VybeAgentes?.abrir?.();
       }
-    });
-    raiz.addEventListener('change', (e) => {
-      const t = e.target;
-      if (t.dataset.cgGrupo) { t.checked ? st.ocultos.delete(t.dataset.cgGrupo) : st.ocultos.add(t.dataset.cgGrupo); guardar(); aquecer(.3); sujo = true; }
-      else if (t.dataset.cg === 'rotulos') { st.rotulos = t.checked; guardar(); sujo = true; pedir(); }
     });
     raiz.addEventListener('input', (e) => {
       const t = e.target;

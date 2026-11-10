@@ -181,6 +181,22 @@
 .cli-completo.cheio .cli-completo-barra i{background:#1F9D55}
 .cli-completo small{font:500 11px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F);font-variant-numeric:tabular-nums}
 @media (max-width:760px){.cli-busca{margin-left:0;flex:1 1 100%}.cli-busca input{width:100%}}
+/* Quadro 05 (10/11/2026): o aviso só do que pede ação, o head na cor da carteira e o menu Colunas. */
+.cli-aviso{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 12px;border:1px solid #F1D9A8;border-radius:10px;background:#FFF7E8;color:#8A5200;font:500 12.5px var(--vv-texto,"Inter"),sans-serif}
+.cli-aviso[hidden]{display:none}
+.cli-aviso b{color:#5C3700;font-weight:650}
+.cli-aviso-ic{display:inline-grid;flex:none;color:#B26A00}
+.cli-aviso-texto{flex:1;min-width:0}
+.cli-aviso .cli-aviso-acao{flex:none;height:28px}
+.cli-head[data-carteira="vinicius"]{--cli-cart:#B4510E}
+.cli-head[data-carteira="ewerton"]{--cli-cart:#1F5FB8}
+.cli-head[data-carteira] .cli-retratos>:is(img,span){border-color:var(--cli-cart);box-shadow:0 0 0 1px #FFFFFF}
+.cli-head[data-carteira] .cli-head-nome{color:var(--cli-cart)}
+.cli-col-opcao{display:inline-flex;align-items:center;gap:8px}
+.cli-col-marca{display:inline-grid;place-items:center;width:16px;height:16px;border:1.5px solid var(--pc-linha,#CFC7BA);border-radius:4px;background:#FFFFFF;color:#FFFFFF}
+/* Sem largura para tudo numa linha, a busca fica na linha do alternador e os chips descem juntos (a busca não cai sozinha). */
+@media (max-width:1360px) and (min-width:761px){.cli-barra .cli-busca{order:1}.cli-barra .cli-filtros{order:2;flex:1 1 100%}}
+.cli-col-marca.on{border-color:var(--ds-acao,#FF7A2F);background:var(--ds-acao,#FF7A2F)}
 
 /* ── ficha do cliente (quadro 51): cabeçalho, três números e Dados e acessos ── */
 /* Com uma ficha aberta, o cabeçalho "Clientes" da lista sai: o da ficha toma o lugar (numerosDaListaDeClientes). */
