@@ -146,10 +146,12 @@
       { id: 'impressoes', nome: 'Impressões', dica: 'Da arte à entrega na gráfica: etapa, fornecedor e prazo', mod: ['VybeImpressoes'] },
       { id: 'creators', nome: 'Creators', dica: 'Influenciadores de Irecê e região', mod: ['VybeComercial', 'creators'] },
     ] },
-    { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde e onboarding', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
+    { id: 'setor:clientes', grupo: 'Operação', nome: 'Clientes', dica: 'Clientes: carteira, saúde, onboarding e reuniões', ic: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), sub: [
       { id: 'clientes', nome: 'Gestão de clientes', dica: 'Todos os clientes, fichas e o cérebro de cada um' },
       { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
-      { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo: boas-vindas, contrato, acessos e kickoff', mod: ['VybeCarteira', 'onboarding'] },
+      { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo ou contrato novo: cadastro, questionário, kickoff e checklist', mod: ['VybeCarteira', 'onboarding'] },
+      // Reuniões (Paulo, 09/11/2026: "cadê o botão de reunião?"): abre uma reunião com qualquer cliente, com pauta, ata e gravação.
+      { id: 'reunioes', nome: 'Reuniões', dica: 'Abrir uma reunião com um cliente: pauta, ata e gravação do áudio', mod: ['VybeReunioes', 'nova'] },
     ] },
     // Contratos e Churn (Paulo, 09/11/2026: "churn e contratos não faria mais sentido no comercial?"): renovação e saída
     // são receita, do Comercial. A tela continua a da Carteira (VybeCarteira), só o lugar no dock mudou.
@@ -200,6 +202,11 @@
     // Minha sala (Paulo, 09/11/2026): o quarto do Escritório de cada um em voxel, em tela cheia; abrir já entra na sala e na voz dela.
     { id: 'minha-sala', grupo: 'Vybe', nome: 'Minha sala', dica: 'O seu quarto do Escritório em voxel, com a chamada da sala', ic: svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>') },
     { id: 'jogos', grupo: 'Vybe', nome: 'Jogos', dica: 'Jogos com a equipe: sinuca, xadrez, pôquer, dominó, dama, velha e truco', ic: svg('<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 14h.01"/>') },
+    // Jogo à vista (Paulo, 09/11/2026: "loja, ranking... eu nunca nem achei esses menus"): as janelas do Escritório
+    // (as mesmas funções de sempre) ganham lugar no dock, em vez de ficar só no fim da Equipe online.
+    { id: 'loja', grupo: 'Vybe', nome: 'Loja', dica: 'Loja do Escritório: móveis e roupas com VybeCoins, e o seu inventário', fn: ['abrirCatalogoEscritorio'], ic: svg('<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>') },
+    { id: 'ranking', grupo: 'Vybe', nome: 'Ranking', dica: 'Ranking da semana: XP do trabalho, superação e campeões', fn: ['abrirRankingEscritorio', 'geral', 'semana'], ic: svg('<path d="M4 20V12h4v8M10 20V6h4v14M16 20v-6h4v6"/>') },
+    { id: 'conquistas', grupo: 'Vybe', nome: 'Conquistas', dica: 'Conquistas, troféus e títulos', fn: ['abrirConquistasEscritorio'], ic: svg('<circle cx="12" cy="9" r="5"/><path d="M9 13l-2 8 5-3 5 3-2-8"/>') },
     '-',
     { id: 'vybes', nome: 'VYBES', dica: 'Abrir o VYBES', ic: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>') },
   ];
@@ -235,8 +242,11 @@
     hud.querySelectorAll('[data-trilho]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.trilho === alvo));
     hud.querySelectorAll('.vv-trilho [data-submodulo]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.submodulo === id));
     hud.querySelectorAll('.vv-trilho [data-visao-setor]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.visaoSetor === id));
-    // Fica aberto o setor em que a pessoa está (fora de um setor, como no Hoje, tudo recolhe).
-    if (dockLargo()) expandirSetor(String(alvo).startsWith('setor:') ? alvo : '');
+    // Fica aberto o setor em que a pessoa está. Marcar outra coisa não recolhe (Paulo, 09/11/2026: "quando eu troco de
+    // submenu tem hora que fecha eles... tem que continuar aberto"): o painel antigo remarca o dock com o próprio modo e
+    // a janela que fecha remarca o Hoje, e isso recolhia o setor no meio da troca. Recolhe só quem clica (o setor aberto
+    // de novo, a setinha ou outro item do dock).
+    if (dockLargo() && String(alvo).startsWith('setor:')) expandirSetor(alvo);
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
   const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes'];
@@ -247,10 +257,15 @@
   let remarcando = 0;
   function remarcarAoFechar() {
     remarcando = 0;
-    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto) return;
+    if (body.classList.contains('mundo-modulo') || !gestao.hidden || centroAberto || window.VybeSetor?.aberto?.()) return;
     if (JANELAS_DE_MODULO.some((n) => { try { return window[n]?.aberto?.(); } catch { return false; } })) return;
     if (document.getElementById('vv-agentes')?.isConnected && !document.getElementById('vv-agentes').hidden) return;
-    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : 'hoje');
+    // Pente-fino 09/11/2026: Conversas (WhatsApp) e a placa (Equipe online, Jogos) também são telas à vista; sem isso o dock
+    // voltava para o Hoje ou para a Direção de arte (criacaoPeloDock de uma visita antiga) com elas abertas.
+    if (!document.getElementById('vv-whatsapp')?.hidden && document.getElementById('vv-whatsapp')?.isConnected) return;
+    if (placa() && !placa().hidden) return;
+    // A Criação aberta pela Direção de arte do dock continua acesa como Direção de arte, não como Hoje.
+    marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' && !body.classList.contains('mundo-modulo') ? 'direcao' : 'hoje');
   }
   if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
     const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
@@ -298,12 +313,28 @@
   // antigo) e sai da tela antiga antes de abrir outra coisa. Antes as janelas se empilhavam e a tela antiga que ficava
   // atrás remarcava o dock.
   const TELAS_ANTIGAS = new Set(['tarefas', 'gestor', 'direcao', 'agenda', 'clientes']);
+  // Balões do painel antigo (status, responsável, campos, cor e menu do grupo, lote): todos são .status-editor com um fundo
+  // .status-editor-backdrop e cada um tem o próprio fechar. Pente-fino 09/11/2026: o Esc fechava o módulo por baixo e os
+  // balões ficavam soltos por cima da tela seguinte.
+  const SEL_BALOES = '.status-editor, .status-editor-backdrop';
+  function fecharBaloesAntigos() {
+    // Varredura de 10/11/2026: o Esc com o cartão de um evento aberto fechava também a Agenda, e o dock ficava aceso nela.
+    const cartao = document.getElementById('ag-cartao');
+    if (cartao && !cartao.hidden) { try { window.agCartaoFechar?.(); } catch { /* segue */ } return true; }
+    if (!document.querySelector(SEL_BALOES)) return false;
+    for (const f of ['closeStatusEditor', 'fecharSeletorDeDono', 'fecharEscolha', 'fecharMenuDoGrupo', 'fecharMenuDeLote']) { try { window[f]?.(); } catch { /* segue */ } }
+    document.querySelectorAll(SEL_BALOES).forEach((el) => el.remove());
+    return true;
+  }
   function limparTela() {
+    fecharBaloesAntigos();
     fecharDaDireita();
     if (!placa().hidden) fecharPlaca(); // a placa aberta por baixo de um módulo escondia a barra de cima
     window.VybeSetor?.fechar?.();
     if (!gestao.hidden) fecharGestao();
     window.VybeAgentes?.fechar?.();
+    // As Conversas e outras janelas soltas fecham pelo aviso (cada uma escuta o seu; o WhatsApp não depende do mundo).
+    window.dispatchEvent?.(new CustomEvent('vybe:trocar-tela'));
     fecharJanelasDeModulo(); fecharSetor();
     try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
     document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
@@ -346,6 +377,8 @@
     if (id !== 'criar' && id !== 'vybes') window.VybeAgentes?.fechar?.();
     // Submódulo de um módulo novo (Carteira, Conteúdo, Comercial, Pessoas) ou link externo.
     const sub = SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.mod);
+    const doJogo = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && Array.isArray(t.fn));
+    if (doJogo) { marcarTrilho(id); if (typeof window[doJogo.fn[0]] === 'function') chamar(...doJogo.fn); else chamar('showToast', 'Entre no Escritório (Entrar, na barra de baixo) para abrir ' + doJogo.nome + '.', 'info', 4000); return; }
     if (sub?.acao === 'whatsapp') { marcarTrilho(id); hud.querySelector('.vv-ferramentas [aria-label="WhatsApp da Vybe"]')?.click(); return; } // o mesmo botão da barra de cima
     if (sub?.url) { window.open(sub.url, '_blank', 'noopener'); return; }
     if (sub?.board) {
@@ -355,9 +388,9 @@
       marcarTrilho(id); return;
     }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
-      // A janela mostra só as abas deste item do dock (Paulo, 08/11/2026: "não vejo lógica RH, academy… estarem aí"):
-      // os irmãos do mesmo setor que abrem o mesmo módulo. Fora do dock, o módulo abre com todas.
-      const irmaos = sub.setor ? SUBMODULOS.filter((x) => x.setor === sub.setor && x.mod?.[0] === sub.mod[0]).map((x) => x.mod[1]).filter(Boolean) : [sub.mod[1]];
+      // A janela mostra só a parte deste item do dock, sem barra de abas (Paulo, 09/11/2026: "elas só abrem pela lateral
+      // mesmo"): Saúde e Onboarding, Contratos e Churn já são itens próprios na lateral e não se repetem como abas.
+      const irmaos = [sub.mod[1]];
       const setorNome = TRILHO.find((t) => t && t.id === sub.setor)?.nome || sub.nome;
       window[sub.mod[0]]?.abrir?.(sub.mod[1], { abas: irmaos, rotulo: setorNome }); return; }
     // Performance (Paulo, 09/11/2026: "medir e acompanhar tudo da agência… todos operacionais e processos") é uma aba da
@@ -372,7 +405,7 @@
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
-    if (id === 'tarefas') { if (eu) chamar('chooseFocusUser', String(eu.id)); else chamar('openFocusPicker'); return; }
+    if (id === 'tarefas') { marcarTrilho('tarefas'); if (eu) chamar('chooseFocusUser', String(eu.id)); else chamar('openFocusPicker'); return; }
     ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
       agenda: () => abrirAgenda(), clientes: () => chamar('chooseClientMode'), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
@@ -411,7 +444,36 @@
   // (status_color, vybe_status.cor) e, sem ela, a do catálogo do painel pelo nome (corDeStatus). A escala de situação é o último recurso.
   const corDoCatalogo = (s) => (typeof corDeStatus === 'function' ? corDeStatus(s)?.cor : '') || '';
   const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || corDoCatalogo(d?.status) || COR_SIT(sit || 'fazer');
-  function linhaDemanda(d, { ref = '', sit = '', aviso = '', quem = null } = {}) {
+  // Roteiro de cada peça (Paulo, 10/11/2026: "pegar o roteiro" sem sair do Hoje): a mesma lista da biblioteca de
+  // roteiros (area=roteiros, vybe_roteiro_conteudos), lida uma vez e guardada por id da peça.
+  let roteirosPorPeca = null, roteirosPedidos = false;
+  function roteiroDaPeca(d) {
+    if (!roteirosPedidos) {
+      roteirosPedidos = true;
+      fetch('/api/painel?area=roteiros', { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        const m = new Map();
+        for (const r of j?.roteiros || []) for (const c of r.conteudos || []) if (r.link && !m.has('vybe:' + c.id)) m.set('vybe:' + c.id, { link: r.link, titulo: r.titulo });
+        roteirosPorPeca = m; pintarHoje();
+      }).catch(() => { roteirosPorPeca = new Map(); });
+    }
+    return roteirosPorPeca?.get(String(d.id)) || null;
+  }
+  // O que dá para fazer na peça sem abrir a gaveta (Paulo, 10/11/2026: "quem está abrindo já consiga fazer tudo por aqui"):
+  // trocar o status, o briefing (ou a etiqueta Sem briefing), o material bruto, entregar ou ver a prévia e o roteiro.
+  // São os mesmos botões de Minhas tarefas (vybe-briefing.js, vybe-material.js, vybe-risco.js), não uma cópia.
+  function acoesDaPeca(d) {
+    const id = esc(String(d.id));
+    const rot = roteiroDaPeca(d);
+    const partes = [
+      d.status ? `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(d.status)}">${statusCor(d)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : '',
+      typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(d) : '',
+      typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(d) : '',
+      typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(d) : '',
+      rot ? `<a class="focus-brief-btn roteiro" href="${esc(rot.link)}" target="_blank" rel="noopener" title="${esc(rot.titulo || 'Roteiro')}">${typeof vbIcone === 'function' ? vbIcone('documento') : ''}<span>Roteiro</span></a>` : '',
+    ].filter(Boolean).join('');
+    return partes ? `<div class="vv-demanda-acoes" role="group" aria-label="Ações da peça">${partes}</div>` : '';
+  }
+  function linhaDemanda(d, { ref = '', sit = '', aviso = '', quem = null, acoes = false } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
     const hoje = hojeIso(), cor = corStatus(d, sit);
@@ -424,9 +486,10 @@
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${quem?.length ? `<span class="vv-demanda-quem">${esc(quem.join(', '))}</span>` : ''}${tagCli}${d.status ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${quem?.length ? `<span class="vv-demanda-quem">${esc(quem.join(', '))}</span>` : ''}${tagCli}${d.status && !acoes ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
       <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${qual ? `<i>${qual}</i> ` : ''}${esc(quando)}</time>` : ''}</span>
+      ${acoes ? acoesDaPeca(d) : ''}
     </div>`;
   }
   // ---------- Visão do dono (Paulo, Vinícius, Ewerton e Deivid) ----------
@@ -507,6 +570,8 @@
   let visaoHoje = (() => { try { return localStorage.getItem('vybe.mundo.visaoHoje') || 'agencia'; } catch { return 'agencia'; } })();
   // Pendências do WhatsApp (vybe-mundo-pendencias.js) chegaram: repinta o Hoje (atendimento na Agência, "esperando você").
   document.addEventListener('vybe:pendencias', () => pintarHoje());
+  // Aprovações paradas (vybe-mundo-aprovacoes.js): o bloco entra logo de cara no Seu dia.
+  document.addEventListener('vybe:aprovacoes', () => pintarHoje());
   // Ver o dia de várias pessoas (Paulo, 09/11/2026: "consigo adicionar e remover pessoas... ver o dia de Deivid, Jady,
   // meu e de Ewerton, ou só de quem eu quiser, nessa mesma aba"). Só para os donos; fica guardado no navegador de quem olha.
   const CHAVE_PESSOAS = 'vybe.hoje.pessoas';
@@ -784,6 +849,7 @@
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
       ${guiaAgencia}
       ${radar}
+      ${window.VybeAprovacoes?.blocoHtml?.('agencia') || ''}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
         ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
         <div class="vv-dono-tres">
@@ -1149,6 +1215,7 @@
     const html = `${dono && !verComo ? segHoje('criacao') : ''}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>Criação</h2><small class="vv-dia-de">O time: ${esc(membros.map(curto).join(', '))}</small></span>
         <span class="vv-anel" style="--p:${itens.length ? Math.round((1 - atrasadas.length / itens.length) * 100) : 100}" title="Peças do time em dia"><b>${n0(itens.length - atrasadas.length)}</b><small>/${n0(itens.length)}</small></span></div>
       ${guia}${radar}${pessoasHtml}
+      ${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('criacao') || '') : ''}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
         <div class="vv-dono-tres vc-filas">
           ${bloco('Atrasadas', 'pela data do cliente', lista(ordenar(atrasadas), 'Nada atrasado no time.'))}
@@ -1178,7 +1245,7 @@
       const carregou = typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length;
       el.innerHTML = `<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>
         <button type="button" class="vv-fala" data-trilho="tarefas"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${carregou ? 'Não achei sua fila pelo seu usuário. Escolha de quem acompanhar as tarefas.' : 'Carregando sua fila…'}</span><b aria-hidden="true">→</b></button>
-        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>`;
+        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}`;
       return;
     }
     const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
@@ -1198,7 +1265,7 @@
     // Ordem do fluxo (não do relógio): o que pede retrabalho e aprovação primeiro, depois produção, cliente e agendado.
     const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
     const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
-    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null });
+    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null, acoes: true });
     const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     // "Ver o dia de" (só os donos): as pessoas do dia como fichas, adicionar pela lista e o atalho do time de criação.
@@ -1252,7 +1319,7 @@
     </aside>`;
     const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : ''}</span>
         <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
-      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${blocosHtml}</div>${lado}</div>`;
+      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function acaoDoHoje(acao, valor) {
@@ -1310,7 +1377,7 @@
         <button type="button" class="vv-botao vv-busca-larga" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}<span class="vv-busca-texto">Buscar em tudo</span><kbd>⌘K</kbd></button>
         <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}<span class="vv-ferr-nome">Agenda</span></button>
         <button type="button" class="vv-botao" data-ferr="whatsapp" title="WhatsApp da Vybe (só leitura)" aria-label="WhatsApp da Vybe" aria-pressed="false">${svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>')}<span class="vv-badge" id="vv-badge-whatsapp" hidden></span><span class="vv-ferr-nome">WhatsApp</span></button>
-        <button type="button" class="vv-botao vv-ferr-boletim" data-boletim hidden title="Boletim dos agentes e do VYBES: o que cada um fez, o que está errado e o que está fazendo agora" aria-label="Boletim dos agentes">${svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>')}</button>
+        <button type="button" class="vv-botao vv-ferr-boletim" data-boletim hidden title="Boletim dos agentes e do VYBES: o que cada um fez, o que está errado e o que está fazendo agora" aria-label="Boletim dos agentes">${svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>')}<span class="vv-ferr-nome">Boletim</span></button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="conversa" title="Conversa da equipe e recados" aria-label="Conversa da equipe">${svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}<span class="vv-mais-nome">Notas</span></button>
@@ -1470,7 +1537,9 @@
   }
   // Operação do andar em números: por agente, o estado agora, execuções de hoje, taxa de sucesso, última execução,
   // maturidade (ativo / em sombra / planejado) e se já tem módulo. Só o que a central informa; sem número inventado.
-  const MATURIDADE = { ativo: ['Ativo', '#18A957'], sombra: ['Em sombra', '#E2A11B'], planejado: ['Planejado', '#9AA3A8'] };
+  // Desde 09/11/2026 a central manda o estado real (ativo · sombra · pausado · desligado, core/estado-agentes.js): vale ele;
+  // sem leitura, a maturidade da planta, como antes.
+  const MATURIDADE = { ativo: ['Ativo', '#18A957'], sombra: ['Em sombra', '#E2A11B'], planejado: ['Planejado', '#9AA3A8'], pausado: ['Pausado', '#C2490C'], desligado: ['Desligado', '#9AA3A8'] };
   function opAndarHtml(a) {
     const ags = a.setores.filter((s) => s.agente); if (!ags.length) return '';
     const hoje = new Date().toDateString(), f = fonteAgentes?.ler(), sinal = Boolean(f?.dados && !f.erro);
@@ -1479,7 +1548,7 @@
       const e = estadoDoAgente(s.id), ult = (e.ultimos || []), dHoje = ult.filter((u) => new Date(u.em).toDateString() === hoje);
       const c = ult.filter((u) => u.estado === 'concluida').length, fl = ult.filter((u) => u.estado === 'falhou').length;
       exec += dHoje.length; ok += c; falha += fl; curso += e.emCurso || 0;
-      const taxa = c + fl ? Math.round(c / (c + fl) * 100) + '%' : '—', m = MATURIDADE[s.estado] || MATURIDADE.planejado;
+      const taxa = c + fl ? Math.round(c / (c + fl) * 100) + '%' : '—', m = MATURIDADE[e.modo] || MATURIDADE[s.estado] || MATURIDADE.planejado;
       return `<tr data-agente="${esc(a.id)}|${esc(s.id)}" title="Abrir o dia de ${esc(s.agente)}">
         <td><i class="pt" style="--e:${e.cor}"></i><b>${esc(s.agente)}</b><small>${esc(s.nome)}</small></td>
         <td><span class="mat" style="--m:${m[1]}">${m[0]}</span></td>
@@ -2295,17 +2364,38 @@
     const id = idEscritorio || idDoEscritorio(verComo) || b.eu;
     abrirFichaEscritorio(id);
   }
-  // A ficha no mundo: boneco voxel num palco claro (no lugar da sala do Habbo); "ir para o quarto" leva
-  // à sala da pessoa no Prédio; a pintura de piso e paredes do Habbo some (a sala agora é voxel).
+  // Vitrine do jogador (Paulo, 21/10/2026: "o boneco aparece sempre na vitrine do quarto dele"; 09/11/2026: tudo em
+  // voxel): com o mundo ligado, toda .vb-vitrine do Escritório (ficha, entrada, criador) é um pedaço 3 × 3 do quarto
+  // voxel da pessoa (abrirQuarto em modo vitrine): o piso e a parede dela, até dois móveis do quarto
+  // (escritorioMoveisDaVitrine) e o boneco fiel no meio. Desenha só quando muda, como o quarto.
+  function vitrineVoxel(el) {
+    if (!ligado || !el) return null;
+    const pid = String(el.dataset.pessoa || '');
+    let vivo = true, cena = null;
+    const canvas = document.createElement('canvas'); canvas.className = 'vv-vitrine-3d'; el.append(canvas); el.classList.add('vv-vitrine');
+    (modAvatar ? Promise.resolve(modAvatar) : import(MUNDO_JS)).then(async (m) => {
+      modAvatar = modAvatar || m; if (!vivo || !el.isConnected) return;
+      let sala = null; try { sala = pid ? fn('escritorioDonos')?.()?.get(pid) : null; } catch { /* sem base */ }
+      const base = sala ? quartoDaSala(sala.id) : null;
+      const quarto = { id: 'vitrine-' + (pid || 'x'), nome: '', w: 3, h: 3, piso: base?.piso, parede: base?.parede, ehDeParede: base?.ehDeParede, itens: [] };
+      cena = m.abrirQuarto(canvas, { quarto, vitrine: true });
+      if (el.dataset.boneco) {
+        const e = typeof escritorio !== 'undefined' ? escritorio : null;
+        const perfil = pid && String(pid) === String(e?.base?.eu) ? e?.perfil : e?.base?.equipe?.find((p) => String(p.id) === pid)?.perfil;
+        cena.pessoas([{ id: 'vitrine-' + pid, nome: '', zona: quarto.id, x: 1, y: 1, figura: perfil?.figura || '', roupa: perfil?.roupa, pele: perfil?.pele, cabelo: perfil?.cabelo }], '');
+      }
+      const itens = await (fn('escritorioMoveisDaVitrine')?.(pid) || Promise.resolve([])).catch(() => []);
+      if (!vivo || !itens.length) return;
+      cena.itens(itens);
+      medidasDoHabbo(itens).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
+    }).catch((err) => console.error('[mundo] vitrine', err));
+    return { destruir() { vivo = false; try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
+  }
+  window.vybeVitrineVoxel = vitrineVoxel;
+  // A ficha no mundo: o boneco na vitrine voxel do quarto dele (acima); "ir para o quarto" leva à sala da pessoa no
+  // Prédio; a pintura de piso e paredes do Habbo some (a sala agora é voxel).
   function ajustarFicha() {
     const d = document.getElementById('office-ficha'); if (!d || !ligado) return;
-    const palco = d.querySelector('.ofc-hud-palco');
-    if (palco && !palco.querySelector('.vv-perfil-avatar')) {
-      const id = palco.querySelector('[data-pessoa]')?.dataset.pessoa;
-      const p = (escritorio?.base?.equipe || []).find((x) => String(x.id) === String(id));
-      const fig = p?.perfil?.figura;
-      if (fig) (modAvatar ? Promise.resolve(modAvatar) : import(MUNDO_JS)).then((m) => { modAvatar = m; if (palco.querySelector('.vv-perfil-avatar')) return; const img = new Image(); img.className = 'vv-perfil-avatar'; img.alt = ''; img.src = m.avatarVoxel(fig, { direcao: 3 }); palco.append(img); }).catch(() => {});
-    }
     d.querySelectorAll('.ofc-ficha-acoes button').forEach((b) => {
       const on = b.getAttribute('onclick') || '';
       if (on.includes('abrirEstiloSalaEscritorio')) b.hidden = true;
@@ -2568,10 +2658,16 @@
     if (b.hasAttribute('data-trilho-recolher')) { alternarDock(); return; }
     if (b.classList.contains('trancado') && b.closest('.vv-trilho')) { avisarTrancado(b); return; }
     if (b.hasAttribute('data-ver-como-sair')) { definirVerComo(''); return; }
-    // Setor no dock largo (Paulo, 08/11/2026): clicar de novo no setor aberto fecha os submenus; a setinha só abre/fecha a lista.
-    if (b.dataset.trilho?.startsWith('setor:') && dockLargo()) {
-      if (b.getAttribute('aria-expanded') === 'true') { expandirSetor(''); return; }
-      if (e.target.closest('.vv-trilho-seta')) { expandirSetor(b.dataset.trilho); return; }
+    // Setor no dock largo (Paulo, 08/11/2026 e 09/11/2026: "quando eu clico em produção, além de abrir a visão geral já
+    // devia abrir os submenus"): o setor abre a visão geral E os submenus juntos. Clicar nele de novo, já na visão geral
+    // dele, recolhe; a setinha só abre/fecha a lista. Outro item do dock (Hoje, Agentes…) recolhe os submenus.
+    if (dockLargo() && b.closest('.vv-trilho') && b.dataset.trilho) {
+      if (b.dataset.trilho.startsWith('setor:')) {
+        const aberto = b.getAttribute('aria-expanded') === 'true', seta = e.target.closest('.vv-trilho-seta');
+        if (seta) { expandirSetor(aberto ? '' : b.dataset.trilho); return; }
+        if (aberto && window.VybeSetor?.aberto?.() === b.dataset.trilho) { expandirSetor(''); return; }
+        expandirSetor(b.dataset.trilho);
+      } else if (!b.classList.contains('criar')) expandirSetor('');
     }
     if (b.dataset.visaoSetor) { abrirVisaoSetor(b.dataset.visaoSetor); return; }
     if (b.dataset.submodulo && b.closest('.vv-trilho')) { usarTrilho(b.dataset.submodulo); marcarTrilho(b.dataset.submodulo); return; }
@@ -2737,8 +2833,11 @@
       const u = new URL(src), q = u.searchParams;
       // Imagem de móvel fica a do próprio móvel (é o que a Minha sala desenha); só os bonecos viram o boneco voxel.
       if (/\/imaging\/furniture\//.test(u.pathname)) { img.dataset.voxel = '1'; return; }
-      const url = modAvatar.avatarVoxel(q.get('figure') || '', { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 });
+      const fig = q.get('figure') || '', opcoes = { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 };
+      const url = modAvatar.avatarVoxel(fig, opcoes);
       img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = url; img.classList.add('avatar-voxel');
+      // Em seguida o retrato fiel (cabelo, roupas, óculos e acessórios do Habbo da pessoa, como no quarto).
+      modAvatar.avatarVoxelFiel?.(fig, opcoes).then((fiel) => { if (fiel && img.dataset.habbo === src && img.isConnected) img.src = fiel; }).catch(() => {});
     } catch (e) { console.error('[mundo] avatar', e); }
   }
   function trocarAvataresEm(raiz) { (raiz.querySelectorAll ? raiz.querySelectorAll('img') : []).forEach(trocarAvatar); if (raiz.tagName === 'IMG') trocarAvatar(raiz); }
@@ -3103,6 +3202,7 @@
     if (e.key === 'f' && !campo && !e.metaKey && !e.ctrlKey && !e.altKey && body.classList.contains('mundo-modulo')) { alternarTelaCheia(); return; }
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     if (campo) { campo.blur(); return; }
+    if (fecharBaloesAntigos()) { janelaNoEsc = null; return; }
     // Conversa/ferramentas e busca abertas pelo ícone da barra: o foco fica fora delas, então o Esc chega aqui.
     const busca = document.querySelector('dialog.spotlight-dialog[open]');
     if (busca) { busca.close(); janelaNoEsc = null; return; }
@@ -3426,7 +3526,7 @@
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
     if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
-    if (modulo) marcarTrilhoDoModulo();
+    if (modulo && !window.VybeSetor?.aberto?.()) marcarTrilhoDoModulo();
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);
     body.classList.toggle('mundo-visivel', visivel);
@@ -3487,7 +3587,23 @@
     try { localStorage.setItem(CHAVE, JSON.stringify({ ligado })); } catch { /* sem armazenamento */ }
     sincronizar();
   }
-  window.mundoVoxel = { ligar, ligado: () => ligado, irPara: (id) => usarTrilho(id), abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
+  // Medidor discreto (Paulo, 10/11/2026: "bem otimizado"): com ?medir=1 no endereço (ou mundoVoxel.medir(true)), um
+  // canto mostra o tempo de cada quadro, as chamadas de desenho e a nitidez do mundo, para conferir nos notebooks do
+  // time. Lê a cada segundo só enquanto está ligado; desligado, nada roda.
+  let medidorTimer = 0;
+  function medir(sim = true) {
+    clearInterval(medidorTimer); medidorTimer = 0; document.getElementById('vv-medidor')?.remove();
+    if (!sim) return;
+    const el = document.createElement('div'); el.id = 'vv-medidor'; el.className = 'vv-medidor'; el.setAttribute('role', 'status');
+    const pintar = () => {
+      if (!el.isConnected) document.body.append(el); // a montagem da página pode trocar o body: volta para o canto
+      const d = mundo?.desempenho?.();
+      el.textContent = d ? `${d.msPorQuadro} ms por quadro · ${d.chamadas} desenhos · ${Math.round(d.triangulos / 1000)} mil triângulos · nitidez ${d.pixelRatio}×` : 'Mundo ainda carregando';
+    };
+    pintar(); medidorTimer = setInterval(pintar, 1000);
+  }
+  if (typeof location !== 'undefined' && /[?&]medir=1(&|$)/.test(location.search)) addEventListener('load', () => medir(true), { once: true });
+  window.mundoVoxel = { ligar, ligado: () => ligado, medir, irPara: (id) => usarTrilho(id), abrirCentro, fecharCentro, centroAberto: () => centroAberto, planta: plantaDoPredio, estadoDoAgente, atividadeDoAgenteHtml, fonteAgentes: () => fonteAgentes, garantirModulo, situacaoDaPeca, clientesDoMundo, camera: () => mundo?.estado(), projetar: (...a) => mundo?.projetar(...a),
     // Conferência visual (presença e clientes) sem mexer nos dados do painel.
     desenharCaptacoes: (lista) => mundo?.definirCaptacoes(lista),
     focar: (x, z, dist, incl, giro) => mundo?.focarPonto(x, z, dist, incl, giro),

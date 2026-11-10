@@ -65,6 +65,8 @@ test('o que está fazendo agora: o estado ao vivo da central; quem está executa
 test('botão Boletim no topo (de qualquer lugar), só para quem vê o boletim', () => {
   const js = readFileSync('vybe-mundo.js', 'utf8');
   assert.match(js, /class="vv-botao vv-ferr-boletim" data-boletim hidden/);
+  assert.match(js, /vv-ferr-boletim[^\n]*<span class="vv-ferr-nome">Boletim<\/span>/, 'com o nome, como WhatsApp e Agenda');
+  assert.match(readFileSync('vybe-mundo.css', 'utf8'), /\[data-ferr="agenda"\],\.vv-ferr-boletim\)\{width:auto/);
   assert.ok(js.indexOf('vv-ferr-boletim') > js.indexOf('data-ferr="whatsapp"') && js.indexOf('vv-ferr-boletim') < js.indexOf('data-ferr="avisos"'), 'depois do WhatsApp');
   assert.match(js, /btBoletim\.hidden = !window\.VybeBoletim\?\.podeVer\?\.\(\)/);
   assert.equal(carregar({ dono: false }).podeVer(), false);

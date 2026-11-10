@@ -19,7 +19,7 @@
 .vv-personagem *,.vv-personagem *::before,.vv-personagem *::after{box-sizing:border-box}
 .vv-personagem:focus{outline:none}
 /* Entrada: opacidade e escala, com scale separado do translate que centraliza. */
-@keyframes vv-personagem-entra{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vv-personagem-entra{from{scale:.97}to{scale:1}}
 @keyframes vv-personagem-fundo{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.vv-personagem,.vv-personagem-fundo{animation:none}}
 

@@ -154,8 +154,8 @@ body.vybe-desktop {
   border-radius: 50% !important; min-width: 30px; min-height: 30px; background: #ffffff10 !important; color: #dce0e8 !important;
 }
 .vybe-desktop :is(.workspace-section,.auto-passo,.fc-item) { border-radius: 8px !important; border-color: #ffffff17 !important; }
-.vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 6px !important; }
-.vybe-desktop #toast { background: var(--glass) !important; border-radius: 8px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
+:where(body:not(.mundo)).vybe-desktop :is(.workspace-action,.fc-escolha,.auto-sincronizar,.auto-novo,.production-control-btn) { border-radius: 6px !important; }
+:where(body:not(.mundo)).vybe-desktop #toast { background: var(--glass) !important; border-radius: 8px !important; box-shadow: var(--shadow-window) !important; backdrop-filter: blur(20px); }
 
 /* A entrada preserva a cor individual e a iluminação reativa. */
 .vybe-desktop #mode-gate .identity-shell {
@@ -1677,6 +1677,7 @@ body.vybe-desktop {
 .vb-link.perigo { color: #ff9ca5; }
 /* Resumo: uma linha com o que importa; o item com problema vira peça colorida. */
 .vb-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.vb-resumo[hidden] { display: none; }
 .vb-resumo-item { --c: var(--text-muted); display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--vb-linha); background: #ffffff06; color: var(--text-muted); font: 600 12.5px/1.2 var(--mac-ui); }
 .vb-resumo-item b { color: var(--text); font: 800 15px/1 var(--mac-ui); font-variant-numeric: tabular-nums; }
 .vb-resumo-item.alerta { --c: var(--vb-vermelho); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); color: color-mix(in srgb, var(--c) 60%, #fff); }
@@ -1816,3 +1817,17 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 body.mundo{--mac-ui:"Inter",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 body.mundo.mundo-modulo :is(h1,h2,h3,h4,.workflow-title,.command-title){font-family:"Inter Tight","Inter",var(--mac-ui)!important;letter-spacing:-.01em}
 body.mundo.mundo-modulo :is(small,span,b,strong,label,th,button,summary,.badge,[class*="kicker"],[class*="overline"],[class*="eyebrow"]){text-transform:none!important}
+
+/* Versão nova publicada (vybe-init.js): no canto de baixo, acima do dock das salas no mundo; não some sozinho. */
+#vb-versao { position: fixed; z-index: 960; right: 16px; bottom: calc(16px + var(--vv-dock-alto, 0px) + 14px); display: flex; align-items: center; gap: 10px; max-width: min(460px, calc(100vw - 32px)); padding: 12px 12px 12px 16px; border: 1px solid #E6E0D6; border-radius: 12px; background: #FFFFFF; color: #1F1D1A; box-shadow: 0 18px 50px rgba(40,26,10,.22), 0 2px 6px rgba(40,26,10,.08); font: 500 13px/1.35 var(--vv-texto, "Inter"), system-ui, sans-serif; animation: vb-versao-entra .3s cubic-bezier(.34,1.56,.64,1); }
+#vb-versao .vb-versao-texto { display: grid; gap: 2px; min-width: 0; }
+#vb-versao b { font-weight: 650; }
+#vb-versao small { color: #5E5A53; font-size: 12px; }
+#vb-versao button { flex: none; min-height: 34px; padding: 0 14px; border-radius: 8px; font: 600 12.5px/1 var(--vv-texto, "Inter"), system-ui, sans-serif; cursor: pointer; }
+#vb-versao .vb-versao-depois { border: 1px solid transparent; background: transparent; color: #5E5A53; }
+#vb-versao .vb-versao-recarregar { border: 1px solid transparent; background: #FF7A2F; color: #FFFFFF; font-weight: 700; box-shadow: 0 8px 20px -8px #E8602E; }
+#vb-versao .vb-versao-recarregar:hover { background: #E8602E; }
+#vb-versao button:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(255,122,47,.3); }
+@keyframes vb-versao-entra { from { translate: 0 14px; } to { translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { #vb-versao { animation: none; } }
+@media (max-width: 560px) { #vb-versao { left: 16px; right: 16px; flex-wrap: wrap; } #vb-versao .vb-versao-texto { flex: 1 0 100%; } }

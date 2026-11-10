@@ -42,7 +42,9 @@
 .workspace-heading{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap}
 .workspace-heading .pv-ic{width:46px;height:46px;flex:none;border-radius:8px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4),0 10px 24px -12px #ee83b7}
 .workspace-heading .pv-ic svg{width:21px;height:21px;display:block}
-.workspace-heading .workspace-eyebrow{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+/* Rosa do setor só no tema antigo; no mundo o rótulo é neutro (redesign 09/11/2026, vybe-mundo.css). */
+:where(body:not(.mundo)) .workspace-heading .workspace-eyebrow{color:#ee83b7!important}
+.workspace-heading .workspace-eyebrow{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 .workspace-heading h2{font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em!important;margin:2px 0 0!important}
 .workspace-heading .ops-acoes{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .workspace-heading .ops-acoes button,.ops-clear-btn{height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
@@ -244,7 +246,7 @@
 .capt-novo-quando input{border-radius:6px!important;font:600 12.5px var(--mac-ui)!important}
 .capt-novo-acoes{display:flex!important;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--pv-linha)}
 .capt-novo-acoes .vb-link{color:#ff9a5c!important;font:600 12px var(--mac-ui)!important}
-.vb-botao.principal{border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
+:where(body:not(.mundo)) .vb-botao.principal{border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
 .capt-novo [name="titulo"]:focus{outline:0!important;box-shadow:0 12px 20px -14px #ee83b7!important;border-color:transparent transparent #ff9ac8!important}
 
 /* ---- Cadastro rápido (fc-*) ---- */
@@ -327,10 +329,10 @@
    botões e mesmos seletores de período do Painel de trabalho ---- */
 .vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
 .auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
-.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
-.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover{border-color:rgba(255,179,92,.45)!important}
-.eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
-.conta-botao.primario,.auto-novo{height:34px!important;padding:0 14px!important;border-radius:6px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) :is(.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal)){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
+:where(body:not(.mundo)) :is(.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover){border-color:rgba(255,179,92,.45)!important}
+:where(body:not(.mundo)) .eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
+:where(body:not(.mundo)) :is(.conta-botao.primario,.auto-novo){height:34px!important;padding:0 14px!important;border-radius:6px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .eq-linha{border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 .eq-linha:hover{border-color:rgba(255,179,92,.3)!important}
 
@@ -522,14 +524,15 @@
 .client-module-hero{display:flex!important;align-items:center!important;justify-content:space-between;border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 6px!important}
 .client-module-hero .pv-cabeca{margin:0}
 .client-module-hero .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
-.client-module-hero .client-module-kicker{color:#7aa7ff!important}
+:where(body:not(.mundo)) .client-module-hero .client-module-kicker{color:#7aa7ff!important}
 
 /* Avisos rápidos (toast): cartão de vidro com o ícone do tipo, texto claro */
-#toast{display:flex!important;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;border-left-width:1px!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;color:#ece8e3!important;font:600 13px/1.4 var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 44px -16px rgba(0,0,0,.8)!important}
+/* Escuro só no tema antigo; no mundo o aviso é claro (vybe-mundo.css, redesign 09/11/2026). */
+:where(body:not(.mundo)) #toast{display:flex!important;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px 12px 12px!important;border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;border-left-width:1px!important;background:linear-gradient(180deg,#262834,#1b1d26)!important;color:#ece8e3!important;font:600 13px/1.4 var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 44px -16px rgba(0,0,0,.8)!important}
 #toast::before{content:"i";flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 13px var(--mac-ui);color:#06240f;background:#7aa7ff}
 #toast.ok::before{content:"✓";background:#46d48c}
 #toast.err::before{content:"!";background:#ff6b8a;color:#2a0610}
-#toast.ok,#toast.err,#toast.info{color:#ece8e3!important}
+:where(body:not(.mundo)) :is(#toast.ok,#toast.err,#toast.info){color:#ece8e3!important}
 
 /* Editor de regra (Automações): os passos à esquerda; a frase da regra e os
    botões numa coluna à direita, sempre à vista */
@@ -572,7 +575,7 @@
 
 /* Mizinho: a aba ativa na cor do módulo (Audiovisual) */
 .prod-v2-head .p-segment button.active{background:linear-gradient(180deg,rgba(56,217,197,.3),rgba(56,217,197,.12))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(56,217,197,.45)!important}
-.capt-tb-criar{border:0!important;border-radius:6px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) .capt-tb-criar{border:0!important;border-radius:6px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .meeting-mode-sheet .meeting-head.meeting-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}.meeting-mode-sheet .meeting-head .x-fechar{position:static!important;margin:0!important;order:2}
 
 
@@ -886,7 +889,8 @@
 .vb-cabecalho:has(.pv-ic-aba){flex-wrap:nowrap!important;align-items:center!important}
 .vb-cabecalho .pv-etiqueta{margin-bottom:2px}
 .auto-cabeca:has(.pv-ic-aba){display:flex!important;align-items:center;gap:14px}
-.auto-kicker,.ai-usage-kicker{color:#ff8f4f!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+:where(body:not(.mundo)) :is(.auto-kicker,.ai-usage-kicker){color:#ff8f4f!important}
+.auto-kicker,.ai-usage-kicker{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 .ai-usage-kicker{color:#b99cff!important}
 .ai-usage-head,.ai-usage-cab{display:flex!important;align-items:center;gap:14px}
 .ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
@@ -1337,3 +1341,24 @@ body.no-escritorio #office-feedback{background-color:rgba(0,0,0,.82)!important}
 @keyframes vybesSalaEntra{from{opacity:0;transform:translate(-50%,-46%) scale(.86)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes vybesSalaSai{to{opacity:0;transform:translate(-50%,-52%) scale(.92)}}
 @media (prefers-reduced-motion:reduce){.vybes-sala-ser,.vybes-sala-ser *,.vybes-sala-orbe::before,.vybes-sala-orbe::after{animation:none!important}}
+
+/* Cartão rápido, redesign fase 2 (09/11/2026): o essencial em grade de dois, o resto recolhido em "Mais campos". */
+.cartao-rapido .cr-essenciais{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:2px 0 6px}
+.cartao-rapido .cr-essenciais .cr-linha{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;min-height:0;padding:7px 9px;border:1px solid color-mix(in srgb,currentColor 14%,transparent);border-radius:8px}
+.cartao-rapido .cr-essenciais .cr-linha>span{text-transform:uppercase;letter-spacing:.05em;font-size:10px}
+.cartao-rapido .cr-essenciais .cr-linha>div{justify-content:flex-start;max-width:100%}
+.cartao-rapido .cr-mais{border-top:1px solid color-mix(in srgb,currentColor 12%,transparent);margin-top:4px}
+.cartao-rapido .cr-mais>summary{display:flex;align-items:baseline;gap:8px;padding:8px 2px;cursor:pointer;list-style:none;font:600 12px var(--mac-ui);white-space:nowrap}
+.cartao-rapido .cr-mais>summary small{flex:1;min-width:0}
+.cartao-rapido .cr-mais>summary::-webkit-details-marker{display:none}
+.cartao-rapido .cr-mais>summary::after{content:"›";margin-left:auto;transition:rotate .2s var(--curva,ease)}
+.cartao-rapido .cr-mais[open]>summary::after{rotate:90deg}
+.cartao-rapido .cr-mais>summary small{font:500 11px var(--mac-ui);opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Painel de trabalho, redesign fase 2: Fechamento do dia, Mesa de comando, Modo Reunião e Carga da equipe num menu "Modos". */
+.ops-modos{position:relative;flex:none}
+.ops-modos>summary{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);cursor:pointer;list-style:none;font:600 12.5px var(--mac-ui);white-space:nowrap}
+.ops-modos>summary::-webkit-details-marker{display:none}
+.ops-modos>summary::after{content:"";width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;rotate:45deg;translate:0 -2px;transition:rotate .2s var(--curva,ease)}
+.ops-modos[open]>summary::after{rotate:-135deg;translate:0 2px}
+.ops-modos>.ops-acoes{position:absolute;z-index:30;top:calc(100% + 6px);right:0;display:grid!important;gap:2px;min-width:220px;padding:6px;border-radius:12px;flex-wrap:nowrap}
+.ops-modos>.ops-acoes>button{justify-content:flex-start;width:100%}

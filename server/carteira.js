@@ -105,7 +105,7 @@ export function validarEtapas(lista) {
     }) };
   });
 }
-async function etapasConfiguradas(sql) {
+export async function etapasConfiguradas(sql) {
   const [linha] = await sql`SELECT valor FROM vybe_carteira_config WHERE chave='onboarding_etapas'`;
   if (!linha) return { etapas: ETAPAS_PADRAO, padrao: true };
   try { return { etapas: validarEtapas(typeof linha.valor === 'string' ? JSON.parse(linha.valor) : linha.valor), padrao: false }; }
@@ -431,8 +431,13 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
     const c = await clienteAtivo(tx, clienteId);
     if (acao === 'onboarding_iniciar') {
       if (c.ativo === false) falhar('O cliente está desativado.');
-      const [o] = await tx`INSERT INTO vybe_cliente_onboarding (cliente_id, iniciado_por) VALUES (${clienteId}, ${pessoaId})
-        ON CONFLICT (cliente_id) DO UPDATE SET encerrado_em=NULL, atualizado_em=now() RETURNING cliente_id::text`;
+      // Contrato novo (renovação, serviço novo) recomeça a esteira do zero; sem ele, reabre a que já existia.
+      const novo = b.novo_contrato === true;
+      const [o] = novo
+        ? await tx`INSERT INTO vybe_cliente_onboarding (cliente_id, iniciado_por) VALUES (${clienteId}, ${pessoaId})
+            ON CONFLICT (cliente_id) DO UPDATE SET etapas='{}'::jsonb, iniciado_em=now(), iniciado_por=${pessoaId}, encerrado_em=NULL, atualizado_em=now() RETURNING cliente_id::text`
+        : await tx`INSERT INTO vybe_cliente_onboarding (cliente_id, iniciado_por) VALUES (${clienteId}, ${pessoaId})
+            ON CONFLICT (cliente_id) DO UPDATE SET encerrado_em=NULL, atualizado_em=now() RETURNING cliente_id::text`;
       return { onboarding: o.cliente_id };
     }
     const [o] = await tx`SELECT etapas, encerrado_em FROM vybe_cliente_onboarding WHERE cliente_id=${clienteId} FOR UPDATE`;

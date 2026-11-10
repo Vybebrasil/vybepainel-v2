@@ -28,7 +28,7 @@
   background:var(--tour-papel);color:var(--tour-tinta);border:1px solid var(--tour-linha);box-shadow:0 24px 60px rgba(31,29,26,.25);
   pointer-events:auto;outline:0;animation:vv-tour-surge .2s var(--tour-curva) both}
 .vv-tour-balao:focus-visible{box-shadow:var(--tour-foco),0 24px 60px rgba(31,29,26,.25)}
-@keyframes vv-tour-surge{from{opacity:0;scale:.97}to{opacity:1;scale:1}}
+@keyframes vv-tour-surge{from{scale:.97}to{scale:1}}
 
 /* bico apontando para o alvo (data-lado = de que lado do alvo o balão ficou) */
 .vv-tour-bico{position:absolute;display:none;box-sizing:border-box;width:12px;height:12px;background:var(--tour-papel);border:1px solid transparent;rotate:45deg;pointer-events:none}

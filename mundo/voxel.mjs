@@ -2,6 +2,7 @@
 // InstancedMesh (peças com luz e sombra + peças que brilham), com letreiro em
 // letras de blocos. Assim cada sede tem detalhe fino sem pesar.
 import * as THREE from 'three';
+import { ESTILO } from './estilo.mjs';
 
 // Fonte 3×5 (linhas de cima para baixo). Acentos caem na letra sem acento.
 const F = {
@@ -20,10 +21,10 @@ export const semAcento = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '
 // bloco escurecida e o pé das paredes mais escuro (oclusão de contato). Tudo no shader: nenhum triângulo a mais.
 // De longe (cubinho menor que 1 pixel) a grade some sozinha, sem tremer.
 // borda: só para caixas (BoxGeometry de 1×1×1 escalada), que sabem onde fica a quina de cada uma.
-export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = true } = {}) {
+export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = true, tomBloco = 0.07 } = {}) {
   material.onBeforeCompile = (s) => {
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc; varying vec3 vVxOri;')
       .replace('#include <project_vertex>', `#include <project_vertex>
 #ifdef USE_INSTANCING
   mat4 vxM = modelMatrix * instanceMatrix;
@@ -33,9 +34,10 @@ export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = 
   vVxPos = (vxM * vec4(transformed, 1.0)).xyz;
   vVxNor = normalize(mat3(vxM) * objectNormal);
   vVxLoc = position;
-  vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));`);
+  vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));
+  vVxOri = vxM[3].xyz;`);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc; varying vec3 vVxOri;')
       .replace('#include <color_fragment>', `#include <color_fragment>
 {
   vec3 vxN = normalize(vVxNor), vxA = abs(vxN);
@@ -50,24 +52,32 @@ export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = 
   if (vxA.y < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.y));
   if (vxA.z < 0.5) vxS = min(vxS, smoothstep(0.0, 0.11, vxM2.z));
   diffuseColor.rgb *= (1.0 + (vxH - 0.5) * ${amp.toFixed(3)} * vxVis) * mix(1.0, mix(0.8, 1.0, vxS), vxVis * ${grade.toFixed(2)});
+  // Cada bloco com o próprio tom (padrão voxel, estilo.mjs): também nos blocos miúdos dos móveis e bonecos.
+  float vxT = fract(sin(dot(floor(vVxOri * 97.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  diffuseColor.rgb *= 1.0 + (vxT - 0.5) * ${tomBloco.toFixed(3)};
 ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
   float vxE = 1e3;
   if (vxA.x < 0.5) vxE = min(vxE, vxL.x);
   if (vxA.y < 0.5) vxE = min(vxE, vxL.y);
   if (vxA.z < 0.5) vxE = min(vxE, vxL.z);
-  float vxQ = smoothstep(0.0, 0.03 + fwidth(vxE), vxE);
-  diffuseColor.rgb *= mix(0.74, 1.0, vxQ) * (1.0 + step(0.5, vxN.y) * 0.05);
+  // A quina acompanha o tamanho do bloco e some quando o bloco tem poucos pixels na tela: bloco miúdo (móvel, boneco)
+  // fica com a face limpa e a luz desenha as facetas, sem escurecer inteiro.
+  float vxLado = min(min(vVxEsc.x, vVxEsc.y), vVxEsc.z), vxPx = vxLado / max(fwidth(vxE), 1e-5);
+  float vxQ = smoothstep(0.0, min(0.03, vxLado * 0.16) + fwidth(vxE), vxE);
+  diffuseColor.rgb *= mix(mix(mix(0.9, 0.74, smoothstep(0.15, 0.5, vxLado)), 1.0, vxQ), 1.0, 1.0 - smoothstep(4.0, 10.0, vxPx)) * (1.0 + step(0.5, vxN.y) * 0.05);
   float vxB = (vVxLoc.y + 0.5) * vVxEsc.y;
-  diffuseColor.rgb *= mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0));` : ''}
+  diffuseColor.rgb *= mix(1.0, mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0)), smoothstep(0.15, 0.4, vVxEsc.y));` : ''}
 }`);
   };
-  material.customProgramCacheKey = () => `voxel:${tam}:${amp}:${grade}:${borda}`;
+  material.customProgramCacheKey = () => `voxel2:${tam}:${amp}:${grade}:${borda}:${tomBloco}`;
   return material;
 }
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
 // Centro comercial (08/11/2026): a grade é de 1 bloco (antes 10 cm, o que virava "500 quadradinhos" em cada face).
-export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .82 }), { tam: 1, amp: .16, grade: .55 }));
+// Desde 09/11/2026 (referências de quarto voxel do Paulo: "o estilo ideal pra tudo") a superfície é lisa: sem a
+// grade nem a quina de cada bloco; o volume vem da luz, da sombra macia e da oclusão (estilo.mjs).
+export const materialVoxel = () => (matCaixa ||= voxelizar(new THREE.MeshStandardMaterial({ roughness: .86 }), { tam: 1, ...ESTILO.superficie }));
 
 // Sombra de contato (Paulo, 08/11/2026: "tem que ficar FODA de bonito"): uma mancha macia no chão embaixo de cada
 // árvore, bicho e boneco, que "assenta" a peça no chão. Uma textura só, um material só, sem entrar no cálculo da sombra.
@@ -171,10 +181,14 @@ export class Obra {
     if (tipo === 'coqueiro') {
       for (let k = 0; k < 6; k++) this.caixa(x + Math.sin(k * .35) * .22 * s, y + k * .32 * s, z, (.2 - k * .01) * s, .3 * s, (.2 - k * .01) * s, k % 2 ? '#8A6A48' : '#7A5A3C');
       const tx = x + Math.sin(5 * .35) * .22 * s, ty = y + 1.92 * s;
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [-.7, -.7]]) {
-        this.caixa(tx + dx * .45 * s, ty, z + dz * .45 * s, (Math.abs(dx) > .1 ? .7 : .22) * s, .1 * s, (Math.abs(dz) > .1 ? .7 : .22) * s, tons[0]);
-        this.caixa(tx + dx * .85 * s, ty - .18 * s, z + dz * .85 * s, .32 * s, .1 * s, .32 * s, tons[1]);
+      // Folhas em arco (referências voxel): oito folhas saindo do topo, cada uma em quatro gomos que vão afinando e
+      // caindo, em dois verdes alternados, e o miolo claro por cima.
+      for (let f = 0; f < 8; f++) {
+        const a = f / 8 * Math.PI * 2 + .2, dx = Math.cos(a), dz = Math.sin(a), cor = f % 2 ? tons[0] : tons[1];
+        [[.22, 0, .3], [.48, -.04, .26], [.72, -.16, .2], [.9, -.34, .14]].forEach(([r, h, larg]) =>
+          this.caixa(tx + dx * r * s, ty + h * s, z + dz * r * s, (Math.abs(dx) > .5 ? .3 : larg) * s, .09 * s, (Math.abs(dz) > .5 ? .3 : larg) * s, cor));
       }
+      this.caixa(tx, ty + .04 * s, z, .3 * s, .14 * s, .3 * s, tons[2]);
       this.caixa(tx, ty - .14 * s, z + .12 * s, .14 * s, .14 * s, .14 * s, '#7A5534').caixa(tx + .12 * s, ty - .16 * s, z - .08 * s, .14 * s, .14 * s, .14 * s, '#7A5534');
       return this;
     }
@@ -194,11 +208,19 @@ export class Obra {
       if (fruta) this.caixa(x + .1 * s, y + .5 * s, z + .2 * s, .12, .12, .12, fruta);
       return this;
     }
-    this.caixa(x, y, z, .18 * s, .75 * s, .18 * s, tronco);
-    this.caixa(x, y + .55 * s, z, .95 * s, .62 * s, .95 * s, tons[0]);
-    [[.4, 0, .1], [-.4, 0, 0], [0, .4, .05], [0, -.4, .14], [.24, .22, .34], [-.24, -.2, .3]].forEach(([a2, b2, c], k) => this.caixa(x + a2 * s, y + (.55 + c) * s, z + b2 * s, .52 * s, .48 * s, .52 * s, tons[k % 3]));
-    this.caixa(x, y + 1.12 * s, z, .5 * s, .28 * s, .5 * s, tons[2]);
-    if (fruta) for (const [a2, b2] of [[.3, .52], [-.52, .1], [.1, -.52]]) this.caixa(x + a2 * s, y + .85 * s, z + b2 * s, .1, .1, .1, fruta);
+    // Copa das referências voxel (Paulo, 09/11/2026: "rico em detalhe"): pé alargado, tronco com um galho e a copa
+    // arredondada em camadas (mais escura embaixo, clara em cima), com tufos em volta e brotos claros no topo.
+    const escuro = tom(.01, .04, -.12), claro = tom(-.03, -.02, .12);
+    this.caixa(x, y, z, .3 * s, .1 * s, .3 * s, '#5E3F2B').caixa(x, y, z, .19 * s, .78 * s, .19 * s, tronco);
+    this.caixa(x + .16 * s, y + .48 * s, z + .04 * s, .22 * s, .09 * s, .09 * s, tronco);
+    this.caixa(x, y + .56 * s, z, 1.0 * s, .2 * s, .92 * s, escuro);
+    this.caixa(x, y + .7 * s, z, 1.28 * s, .34 * s, 1.18 * s, tons[0]);
+    this.caixa(x + .03 * s, y + 1.0 * s, z - .02 * s, 1.08 * s, .26 * s, 1.1 * s, tons[1]);
+    this.caixa(x - .04 * s, y + 1.22 * s, z + .03 * s, .74 * s, .2 * s, .7 * s, tons[2]);
+    [[.62, 0], [-.6, .08], [.06, .6], [-.04, -.6], [.44, .44], [-.46, -.4], [.42, -.44], [-.4, .46]].forEach(([a2, b2], k) =>
+      this.caixa(x + a2 * s, y + (.64 + (k % 3) * .1) * s, z + b2 * s, .42 * s, .36 * s, .42 * s, k % 2 ? escuro : tons[k % 3]));
+    for (const [a2, b2, h] of [[.2, .1, 1.4], [-.18, -.14, 1.36], [.02, -.24, 1.32]]) this.caixa(x + a2 * s, y + h * s, z + b2 * s, .26 * s, .14 * s, .26 * s, claro);
+    if (fruta) for (const [a2, b2] of [[.3, .62], [-.66, .1], [.1, -.62], [.6, -.2]]) this.caixa(x + a2 * s, y + .9 * s, z + b2 * s, .1, .1, .1, fruta);
     return this;
   }
   // Árvore sorteada pela posição (sempre a mesma no mesmo lugar): mistura de espécies, tamanhos e verdes.

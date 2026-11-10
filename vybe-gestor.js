@@ -691,6 +691,28 @@ function adicionarDemandaNoDia(dateIso, aba) {
 }
 
 const abasPendenciasDia = new Map();
+// Redesign do legado, fase 2 (Paulo, 09/11/2026): Redes, Demandas ou Pendências escolhido uma vez para a semana
+// inteira, na linha do título. Cada dia ainda pode trocar só o dele; escolher para a semana desfaz essas trocas.
+let abaDaSemana = 'social';
+function escolherAbaDaSemana(sem, aba) {
+  if (!['social', 'demandas', 'pendencias'].includes(aba)) return;
+  abaDaSemana = aba;
+  abasPendenciasDia.clear();
+  renderByDay(sem, currentFilter, currentDayFilter);
+}
+function pintarAbaDaSemana(grid, sem) {
+  const titulo = grid.previousElementSibling?.classList.contains('section-title') ? grid.previousElementSibling : null;
+  if (!titulo) return;
+  let grupo = titulo.querySelector('.semana-abas');
+  if (panelMode !== 'gestor') { grupo?.remove(); return; }
+  if (!grupo) {
+    grupo = document.createElement('span');
+    grupo.className = 'semana-abas vb-alternar'; grupo.setAttribute('role', 'group'); grupo.setAttribute('aria-label', 'Mostrar em todos os dias');
+    titulo.insertBefore(grupo, titulo.querySelector('.dias-setas, .dias-layout-btn'));
+  }
+  grupo.innerHTML = [['social', 'Redes'], ['demandas', 'Demandas'], ['pendencias', 'Pendências']].map(([id, nome]) =>
+    `<button type="button" aria-pressed="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${sem},'${id}')">${nome}</button>`).join('');
+}
 const diasExpandidos = new Set();
 const concluidasAbertasDia = new Set();
 function dataDoCartaoDia(item) {
@@ -852,7 +874,7 @@ function renderByDay(sem, filter, dayFilter) {
     const estado=typeof unifiedDemandasState==='undefined'?'ready':unifiedDemandasState;
     const aviso=estado==='error'?'Não foi possível atualizar as solicitações. Os dados exibidos podem estar desatualizados.':estado!=='ready'?'Carregando solicitações…':'';
     const salva=abasPendenciasDia.get(dia.iso);
-    const aba=panelMode==='gestor'?(salva===true?'pendencias':salva===false||!salva?'social':salva):'social';
+    const aba=panelMode==='gestor'?(salva===true?'pendencias':salva===false?'social':!salva?abaDaSemana:salva):'social';
     const {redes,demandas,lista,abertas,concluidas}=listasDoCartaoDia(dayItems,pendencias,aba);
     const mostrarConcluidas=concluidasAbertasDia.has(`${dia.iso}:${aba}`);
     [...abertas,...(mostrarConcluidas?concluidas:[])].forEach(i=>ordemVisivel.push(String(i.id)));
@@ -877,7 +899,8 @@ function renderByDay(sem, filter, dayFilter) {
     };
     const avisoHtml=aba!=='social'&&aviso?`<p class="day-pending-note" role="status">${aviso}<button type="button" class="day-summary-btn" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>`:'';
     const tituloAba=aba==='social'?'Redes sociais':aba==='demandas'?'Demandas':'Pendências';
-    const vazio=aba==='social'?'Nenhum conteúdo nesta data com os filtros atuais.':aba==='demandas'?'Nenhuma demanda com entrega nesta data e nos filtros atuais.':'Nenhuma solicitação atrasada ou sem data nos filtros atuais.';
+    // Redesign fase 2: a frase repetida em todas as colunas vazias virou uma linha curta.
+    const vazio=aba==='social'?'Nada marcado neste dia.':aba==='demandas'?'Nenhuma entrega neste dia.':'Nada atrasado ou sem data.';
     const contexto=dateMode==='prazo'?'Por prazo':aba==='social'?'Por veiculação':'Por conclusão prevista ou prazo';
     return `<div class="client-card dia-solta day-scroll-card${dia.iso===hoje?' day-is-today':''}${diasExpandidos.has(dia.iso)?' day-expanded':''}${lista.length?'':' day-empty'}" data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="client-header"><div class="day-heading"><div class="client-name">${dia.label} · ${dataCurta}${dia.iso===hoje?'<span class="day-today-label">Hoje</span>':''}</div><span class="day-date-context">${contexto}</span></div>
@@ -890,6 +913,7 @@ function renderByDay(sem, filter, dayFilter) {
       ${lista.length>6?`<div class="day-expansion-footer"><button type="button" class="day-summary-btn day-expand-btn" data-total="${lista.length}" aria-controls="${listaId}" aria-expanded="${diasExpandidos.has(dia.iso)}" onclick="alternarExpansaoDoDia('${dia.iso}',this)">${diasExpandidos.has(dia.iso)?'Recolher dia':`Ver todas as ${lista.length} atividades`}</button></div>`:''}
     </div>`;
   }).join('');
+  pintarAbaDaSemana(grid,sem);
   ORDEM_VISIVEL_DO_DIA=ordemVisivel;
   if(!aplicarLayoutDosDias(grid,sem,true)) encaixarCartoesDoDia(grid);
 }
@@ -1133,7 +1157,7 @@ function renderCompactSummary() {
   const cartao = (cls, conteudo) => `<div class="pv-kpi ${cls}">${conteudo}</div>`;
   document.getElementById('compact-summary').innerHTML =
     cartao('pv-kpi-semana', `<span class="pv-anel" style="--p:${pct}"><i>${done}/${total}</i></span>
-      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} conteúdos</span></div>`) +
+      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</span></div>`) +
     cartao(todayPending > 0 ? 'pv-kpi-risco' : '', `<b>${todayItems.length}</b><div><small>Publica hoje</small>
       <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span></div>`) +
     cartao(pendentes > 0 ? 'pv-kpi-atencao' : '', `<b>${pendentes}</b><div><small>Pendentes</small><span>a fazer ou falta D.A</span></div>`) +

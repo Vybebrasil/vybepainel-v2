@@ -75,15 +75,17 @@ test('dock no modelo do AgencyFlow: cada coisa no seu setor, sem perder módulo,
     'funil', 'pacotes', 'orcamentos', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
     'conta', 'rh', 'recrutamento', 'documentos', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
   assert.match(js, /abrir\?\.\(sub\.mod\[1\], \{ abas: irmaos, rotulo: setorNome \}\)/);
-  // Segundo clique no setor aberto fecha os submenus.
-  assert.match(js, /if \(b\.getAttribute\('aria-expanded'\) === 'true'\) \{ expandirSetor\(''\); return; \}/);
+  assert.match(js, /const irmaos = \[sub\.mod\[1\]\];/); // cada item da lateral abre só a sua parte, sem abas repetidas
+  assert.ok(SUBMODULOS.some((x) => x.id === 'reunioes' && x.mod?.[0] === 'VybeReunioes'), 'Reuniões na lateral de Clientes');
+  // Segundo clique no setor aberto, já na visão geral dele, fecha os submenus (09/11/2026: visão geral e submenus juntos).
+  assert.match(js, /if \(aberto && window\.VybeSetor\?\.aberto\?\.\(\) === b\.dataset\.trilho\) \{ expandirSetor\(''\); return; \}/);
 });
 
 test('dock aceso só no que está na tela (auditoria 09/11, D10 e D13)', () => {
   // Fechar a janela de um módulo (X, Esc ou o próprio módulo) apaga o item e acende o que ficou à vista.
   for (const id of ['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas']) assert.ok(js.includes(`'${id}'`), id);
   assert.match(js, /function remarcarAoFechar\(\)/);
-  assert.match(js, /marcarTrilho\(body\.classList\.contains\('mundo-cartoes'\) \? 'modulos' : 'hoje'\)/);
+  assert.match(js, /marcarTrilho\(body\.classList\.contains\('mundo-cartoes'\) \? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'\)/);
   // Abrir a agenda completa fecha o menu da Agenda, que ficava por cima da tela que abriu.
   assert.match(js, /function abrirAgenda\(dia\) \{[\s\S]{0,200}fecharDaDireita\(\);/);
 });

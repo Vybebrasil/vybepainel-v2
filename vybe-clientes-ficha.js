@@ -259,7 +259,7 @@ async function criarNoFinancas(id, nome) {
 }
 
 // ── ficha em abas ────────────────────────────────────────────────────────────
-const FICHA_ABAS = [['geral', 'Visão geral'], ['cadastro', 'Cadastro'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro']];
+const FICHA_ABAS = [['geral', 'Visão geral'], ['cadastro', 'Cadastro'], ['reunioes', 'Reuniões'], ['onboarding', 'Onboarding'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro']];
 
 function trocarAbaDaFicha(aba) {
   FICHA_ABA = FICHA_ABAS.some(([id]) => id === aba) ? aba : 'geral';
@@ -362,10 +362,16 @@ function cerebroDaFichaHtml(nome) {
     if (FICHA_ABA === 'cadastro') node.innerHTML = cadastroLeituraHtml(nome);
     else if (FICHA_ABA === 'ecossistema') node.innerHTML = ecossistemaDaFichaHtml(nome);
     else if (FICHA_ABA === 'cerebro') node.innerHTML = cerebroDaFichaHtml(nome);
+    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) node.innerHTML = window.VybeReunioes.reunioesHtml(nome);
+    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) node.innerHTML = window.VybeReunioes.onboardingHtml(nome);
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
     if (listas) listas.style.display = FICHA_ABA === 'geral' ? '' : 'none';
     node.dataset.aba = FICHA_ABA;
-    node.insertAdjacentHTML('afterbegin', `<nav class="ficha-abas" role="tablist" aria-label="Ficha do cliente">${FICHA_ABAS.map(([id, rotulo]) =>
+    // Onboarding só aparece para quem está (ou esteve) em onboarding; a leitura das reuniões diz isso e repinta.
+    const idFicha = typeof idDoCliente === 'function' ? String(idDoCliente(nome) || '') : '';
+    if (idFicha && window.VybeReunioes?.carregar) window.VybeReunioes.carregar(idFicha);
+    const abas = FICHA_ABAS.filter(([id]) => id !== 'onboarding' || FICHA_ABA === 'onboarding' || window.VybeReunioes?.temOnboarding?.(nome));
+    node.insertAdjacentHTML('afterbegin', `<nav class="ficha-abas" role="tablist" aria-label="Ficha do cliente">${abas.map(([id, rotulo]) =>
       `<button type="button" role="tab" aria-selected="${id === FICHA_ABA}" class="${id === FICHA_ABA ? 'ativo' : ''}" onclick="trocarAbaDaFicha('${id}')">${rotulo}</button>`).join('')}</nav>`);
   };
   // Abrir outro cliente volta para a Visão geral.

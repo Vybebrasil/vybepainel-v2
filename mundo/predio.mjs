@@ -112,11 +112,35 @@ export function construirPredio(motor, { x, z, y }) {
         if (!janela) { o.caixa(px, Y0, pz, w, H, d, i % 2 ? p1 : p2); continue; }
         o.caixa(px, Y0, pz, w, .5, d, p1).caixa(px, Y0 + H - .35, pz, w, .35, d, p1);
         o.luz(px, Y0 + .5, pz, w === 1 ? .84 : .44, H - .85, d === 1 ? .84 : .44, '#FFE2B0');
+        // Detalhe de maquete (padrão voxel, 09/11/2026: "rico em detalhe"): peitoril branco saindo da parede e, em
+        // janelas alternadas, o ar-condicionado com a grade, como nos prédios de Irecê.
+        const fora = w === 1 ? [0, -.27] : [-.27, 0], [ox, oz] = [px + fora[0], pz + fora[1]];
+        o.caixa(ox, Y0 + .44, oz, w === 1 ? 1 : .16, .07, w === 1 ? .16 : 1, '#FFFFFF');
+        // Janela de maquete (referências voxel, 10/11/2026: "o prédio no nível das referências"): moldura branca saindo
+        // da parede, cruzeta no meio, verga mais escura em cima e, em uma de cada três, a persiana meio baixada.
+        const ao = (u, y, du, h, prof, sai, cor) => o.caixa(w === 1 ? px + u : px + fora[0] * sai, y, w === 1 ? pz + fora[1] * sai : pz + u, w === 1 ? du : prof, h, w === 1 ? prof : du, cor);
+        const vao = H - .85;
+        for (const u of [-.45, .45]) ao(u, Y0 + .5, .08, vao, .1, 1.15, '#FFFFFF');
+        ao(0, Y0 + .5 + vao - .02, .98, .08, .1, 1.15, '#FFFFFF');
+        ao(0, Y0 + .5, .05, vao, .05, 1.05, '#FFFFFF');
+        ao(0, Y0 + .5 + vao * .55, .84, .05, .05, 1.05, '#FFFFFF');
+        ao(0, Y0 + .5 + vao + .06, 1.08, .14, .16, 1.2, escuro(p1, .22));
+        if ((i + andar.nivel) % 3 === 0) ao(0, Y0 + .5 + vao * .6, .82, vao * .38, .03, 1.03, '#F2EADB');
+        if ((i + andar.nivel) % 2 === 0) {
+          const [ax, az] = [px + fora[0] * 1.3, pz + fora[1] * 1.3], [aw, ad] = w === 1 ? [.56, .3] : [.3, .56];
+          o.caixa(ax, Y0 + .05, az, aw, .32, ad, '#E3E5E7');
+          for (let k = 0; k < 3; k++) o.caixa(ax + (w === 1 ? 0 : -.16), Y0 + .1 + k * .09, az + (w === 1 ? -.16 : 0), w === 1 ? aw - .1 : .02, .04, w === 1 ? .02 : ad - .1, '#8A9096');
+        }
       }
     }
+    // Friso no alto de cada andar nas paredes de blocos: marca os andares de fora.
+    o.caixa(0, Y0 + H - .06, -M - .3, LADO + .5, .1, .12, escuro(p1, .14)).caixa(-M - .3, Y0 + H - .06, 0, .12, .1, LADO + .5, escuro(p1, .14));
     for (const [px, pz] of [[-M, -M], [M, -M], [-M, M], [M, M]]) o.caixa(px, Y0 - .02, pz, .5, H + .04, .5, '#FFFFFF');
     for (let k = 1; k < 4; k++) { const p = -M + k * LADO / 4; o.caixa(p, Y0, M + .02, .14, H, .14, '#FFFFFF'); o.caixa(M + .02, Y0, p, .14, H, .14, '#FFFFFF'); }
     o.caixa(0, Y0 + H - .12, M + .02, LADO, .14, .16, '#FFFFFF').caixa(M + .02, Y0 + H - .12, 0, .16, .14, LADO, '#FFFFFF');
+    // Vidro em painéis: travessa branca a 40% da altura e montantes finos entre os pilares (o vidro liso parecia vazio).
+    o.caixa(0, Y0 + H * .4, M + .03, LADO, .06, .1, '#FFFFFF').caixa(M + .03, Y0 + H * .4, 0, .1, .06, LADO, '#FFFFFF');
+    for (let k = 0; k < 8; k++) { const p = -M + (k + .5) * LADO / 8; if (k % 2 === 1) continue; o.caixa(p, Y0, M + .025, .05, H, .06, '#F4F1EA'); o.caixa(M + .025, Y0, p, .06, H, .05, '#F4F1EA'); }
     // Coluna laranja na quina da frente: a marca da Vybe, sobe o prédio inteiro.
     o.caixa(-M + 1.3, Y0 - .02, M + .14, 2.2, H + .04, .26, '#FF7A2F');
     if (andar.nivel === TOPO - 2) o.letreiro('VYBE', { x: -M + 1.3, y: Y0 + H / 2, z: M + .3, px: .15, cor: '#FFFFFF', aceso: true });

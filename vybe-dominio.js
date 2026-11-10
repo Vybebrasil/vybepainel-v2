@@ -239,7 +239,7 @@ async function puxarDominio() {
   }));
   applyCachedProductionDataset(todos, opcoes);
   saveProductionCache();
-  cacheSyncLabel(`Banco próprio · ${todos.length} conteúdos · ${dados.total} no recorte`);
+  cacheSyncLabel(`Banco próprio · ${todos.length} ${todos.length === 1 ? 'conteúdo' : 'conteúdos'} · ${dados.total} no recorte`);
   setSyncHealth('healthy', `Lendo do banco da Vybe às ${new Date().toLocaleTimeString('pt-BR')}`);
   return true;
 }

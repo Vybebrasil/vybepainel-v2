@@ -13,7 +13,7 @@ import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
-import { ETAPAS_LEITURA, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
+import { ETAPAS_LEITURA, ETAPAS_DE_DONO, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
 import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
@@ -238,7 +238,13 @@ export async function areaVybes(req, res, quem, sql) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await (req.query.etapa==='agentes'?lerAgentesDaCentral:lerCerebroDaCentral)(url));
     }
-    // Perfil do agente, mapa do cérebro, pendências do WhatsApp e estudo do cliente (server/vybes-agentes.js).
+    // Estados dos agentes e pedidos de aprovação (Paulo, 09/11/2026): só os donos, conferido aqui e de novo na central.
+    const etapaDono = req.method === 'GET' ? req.query?.etapa : req.body?.etapa;
+    if (ETAPAS_DE_DONO.includes(etapaDono) && !(await donoDaSessao(sql, quem))) {
+      if (quem?.tipo !== 'sessao') throw erro('Entre no painel para abrir o VYBES.', 401);
+      throw erro('Só os donos (Paulo, Vinícius, Ewerton e Deivid) mudam o estado dos agentes e decidem os pedidos.', 403);
+    }
+    // Perfil do agente, mapa do cérebro, pendências do WhatsApp, estudo do cliente e estados (server/vybes-agentes.js).
     if (req.method === 'GET' && ETAPAS_LEITURA.includes(req.query?.etapa)) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await lerEtapa(req.query.etapa, url, req.query));
@@ -249,7 +255,7 @@ export async function areaVybes(req, res, quem, sql) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await atribuirNaCentral(url, req.body));
     }
-    if (req.method === 'POST' && ['rotina', 'achado'].includes(req.body?.etapa)) {
+    if (req.method === 'POST' && ['rotina', 'achado', 'estado', 'aprovacao'].includes(req.body?.etapa)) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await mudarNaCentral(url, req.body));
     }

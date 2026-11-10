@@ -1,12 +1,10 @@
 // Motor do mundo voxel: renderizador, luz, câmera de maquete, controles de mapa,
 // efeito tilt-shift e rótulos em HTML. Sem dados da Vybe aqui: só o palco.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { HorizontalTiltShiftShader } from 'three/examples/jsm/shaders/HorizontalTiltShiftShader.js';
 import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTiltShiftShader.js';
+import { ESTILO, prepararRenderer, luzDoEstilo, acabamentoDeMaquete } from './estilo.mjs';
 
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
@@ -55,11 +53,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   // 1,5× já é nítido no Retina e desenha ~44% menos pixels que 2×.
   renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  prepararRenderer(renderer); // acabamento do padrão voxel (estilo.mjs)
   // Sombra só é recalculada quando a câmera (ou a área iluminada) muda: o sol é parado e a cidade também.
   renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
   renderer.info.autoReset = false; // o composer desenha várias passadas: zera uma vez por quadro, para medir o quadro inteiro
@@ -67,19 +61,14 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   const cena = new THREE.Scene();
   cena.fog = new THREE.Fog(0xcfe2e6, 900, 2200);
 
-  const hemi = new THREE.HemisphereLight(0xeaf6ff, 0x7e6a4e, 0.9);
-  cena.add(hemi);
-  const sol = new THREE.DirectionalLight(0xfff1d8, 2.1);
-  sol.position.set(-110, 160, 70);
-  sol.castShadow = true;
-  sol.shadow.mapSize.set(4096, 4096);
-  sol.shadow.bias = -0.0004;
-  sol.shadow.normalBias = 0.4;
-  const sc = sol.shadow.camera; sc.left = -140; sc.right = 140; sc.top = 140; sc.bottom = -140; sc.near = 10; sc.far = 600;
-  cena.add(sol, sol.target);
-  const preenche = new THREE.DirectionalLight(0xcfe4ff, 0.35);
+  // Luz do padrão voxel (estilo.mjs): céu, sol com sombra, preenchimento frio e o contorno quente por trás. O sol do
+  // mundo vem do alto à esquerda e acompanha o que se olha (posicionarCamera).
+  const luz = luzDoEstilo(cena, { raio: 140, sombra: { mapa: 4096, lado: 140, longe: 600, bias: -0.0004, normalBias: 0.4 } });
+  const { sol, preenche, contorno } = luz;
+  sol.position.set(-130, 115, 85);
+  const sc = sol.shadow.camera; sc.near = 10; sc.updateProjectionMatrix();
   preenche.position.set(120, 80, -90);
-  cena.add(preenche);
+  contorno.position.set(110, 70, -120); contorno.target.position.set(0, 0, 0);
 
   const camera = new THREE.PerspectiveCamera(22, 1, 1, 6000);
   const orb = { alvo: new THREE.Vector3(0, 0, 0), dist: 420, giro: -0.75, incl: 0.92 };
@@ -93,35 +82,47 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // Profundidade (Paulo, 08/11/2026: "a luz meio bugando"): com o corte perto fixo em 1 e a cena vista de até 460,
     // a profundidade perdia precisão e faces vizinhas brigavam (piscavam). O corte acompanha a distância.
     const perto = limitar(dist * 0.12, 0.5, 40), longe = dist * 6 + 900;
+    // Névoa de maquete: o que está bem mais longe que o foco desbota no céu (profundidade, como nas referências).
+    if (cena.fog) { cena.fog.near = dist * 1.15; cena.fog.far = dist * 3.4; }
     if (Math.abs(camera.near - perto) > perto * 0.05 || Math.abs(camera.far - longe) > longe * 0.05) { camera.near = perto; camera.far = longe; camera.updateProjectionMatrix(); }
     // A sombra acompanha o que se olha. A área anda em degraus (não muda a cada pixel de zoom) e o centro da sombra
     // encaixa na grade dos pixels dela: a borda da sombra não "nada" quando a câmera anda. O desvio é medido pelo
     // tamanho do pixel da sombra (antes era fixo e alto, com sombra vazando e listras em peças finas).
     const lado = limitar(40 * Math.pow(1.25, Math.round(Math.log(Math.max(1, dist * 0.42) / 40) / Math.log(1.25))), 40, 260);
     const texel = (2 * lado) / sol.shadow.mapSize.x;
+    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
+    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; solQuer = { ax, az, y: alvo.y, lado, texel }; }
+  }
+  // O sol e a área da sombra só mudam no quadro em que o mapa de sombra é refeito: antes o sol andava na hora e o
+  // mapa velho ficava até 150 ms aplicado com o sol novo (a borda das sombras pulava e serrilhava ao mexer o mapa).
+  let solQuer = null;
+  function aplicarSol() {
+    if (!solQuer) return;
+    const { ax, az, y, lado, texel } = solQuer; solQuer = null;
     if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
     sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
-    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
-    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, alvo.y, az);
-    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
-    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; }
+    sol.position.set(ax - 130, 115, az + 85); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
+  // Refazer o mapa de sombra (4096², a cidade inteira) é o quadro mais caro: mexendo, nunca (era a cada 150 ms e dava
+  // travadinhas); o mapa velho continua certo no mundo enquanto o sol não anda. Parou, refaz uma vez.
   function atualizarSombra(t, movendo) {
-    if (!sombraPendente) return;
-    if (movendo && t - ultimaSombra < 150) return;
-    sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
+    if (!sombraPendente || movendo) return;
+    sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
-  // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(cena, camera));
+  // Acabamento de maquete do padrão (estilo.mjs) com o tilt-shift: desfoca o alto e o baixo da imagem, como foto de
+  // maquete. Sem o brilho (Paulo, 10/11/2026: "se o brilho do V e do nome tiver pesando pode tirar": era uma cadeia de
+  // desfoques a cada quadro só para o halo do V, dos letreiros e das janelas, que continuam acesos sem ele). Sem a oclusão nos cantos na cidade (investigação de 10/11/2026: "a luz
+  // parece tá bugando tudo"): vista de longe ela quase não aparece, tremulava com a câmera, pesava a 30 qps parada e
+  // ligar/desligar ao parar fazia a luz "pular". O quarto, visto de perto, continua com ela.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  composer.addPass(tiltH); composer.addPass(tiltV);
-  composer.addPass(new OutputPass());
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { ao: false, brilho: false, passes: [tiltH, tiltV] });
+  const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
   const livre = { esq: 0, dir: 0, baixo: 0, atual: { esq: 0, dir: 0, baixo: 0 } };
@@ -351,12 +352,13 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   function passo(t) {
     if (destruido || pausado || contextoPerdido || !visivel || document.hidden) return false;
     const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
-    // Mexendo: todo quadro. Parado, a cidade vira "foto" aos poucos (Paulo, 07/11/2026: "não ficar renderizando a cidade
-    // toda o tempo todo"): o que só enfeita (nuvem, água, o V girando) cai para 30 qps, depois de 6 s para 15, depois de
-    // 20 s para 4, e depois de 1 min o mapa para de ser desenhado até alguém mexer (ou um dado novo chegar: invalidar).
+    // Mexendo: todo quadro. Parado, o que só enfeita (nuvem, água, o V girando, passantes) anda a 30 qps constantes e,
+    // depois de 1 min sem mexer, o mapa vira "foto": para de ser desenhado até alguém mexer (ou um dado novo chegar).
+    // Antes o ritmo caía aos poucos (6 s, 20 s) e dava a sensação de travar (Paulo, 10/11/2026: "deixa só para depois
+    // de 1 min sem mexer na tela"; 07/11/2026: "não ficar renderizando a cidade toda o tempo todo").
     const parado = performance.now() - ultimaAcao;
     if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
-    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 80 : 50)) return true;
+    if (!interagindo && t - ultimo < 33) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -378,10 +380,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     posicionarCamera();
     let animando = false;
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
+    if (sombraPendente && !(movendo || interagindo)) sujo = true; // parou: um quadro para refazer a sombra
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
-    // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
-    if (animando && parado < 6000 && t - (passo.sombra || 0) > 12000) { passo.sombra = t; renderer.shadowMap.needsUpdate = true; }
+    // Sombra da cidade inteira só se refaz quando a câmera para (posicionarCamera marca; atualizarSombra espera parar).
+    // Quem anda (passantes, bichos) tem sombra própria no chão (vida.mjs): sem refazer a cada 12 s (dava travadinha).
     atualizarSombra(t, movendo || interagindo);
     renderer.info.reset();
     const t0 = performance.now();
@@ -427,10 +430,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // passa a se destacar sozinho, porque não depende da luz.
     ambiente(noite = 0) {
       const k = limitar(Number(noite) || 0, 0, 1);
-      hemi.intensity = .9 - .38 * k; hemi.color.set(0xeaf6ff).lerp(new THREE.Color(0x7083c4), k); hemi.groundColor.set(0x7e6a4e).lerp(new THREE.Color(0x2a2a3a), k);
-      sol.intensity = 2.1 - 1.3 * k; sol.color.set(0xfff1d8).lerp(new THREE.Color(0xa9bbff), k);
-      preenche.intensity = .35 - .2 * k;
-      renderer.toneMappingExposure = 1.05 - .2 * k;
+      luz.hora(k);
+      renderer.toneMappingExposure = ESTILO.exposicao + (ESTILO.noite.exposicao - ESTILO.exposicao) * k;
       cena.background = k > 0 ? new THREE.Color(0xcfe2e6).lerp(new THREE.Color(0x26345e), k) : null;
       cena.fog.color.set(0xcfe2e6).lerp(new THREE.Color(0x26345e), k);
       renderer.shadowMap.needsUpdate = true; invalidar();
@@ -451,8 +452,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       if (destruido) return;
       destruido = true; pausado = true; ciclo.destruir(); eventos.abort(); io.disconnect(); ro.disconnect();
       liberarCena(cena);
-      for (const pass of composer.passes) pass.dispose?.();
-      composer.dispose(); renderer.renderLists.dispose(); renderer.dispose();
+      acabamento.destruir(); renderer.renderLists.dispose(); renderer.dispose();
       animadores.length = clicaveis.length = rotulos.length = 0;
       for (const lista of Object.values(ouvintes)) lista.length = 0;
       camadaRotulos.remove();

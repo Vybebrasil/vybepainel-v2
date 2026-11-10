@@ -52,8 +52,22 @@ function mesaSinalTodos(cfg, j, tipo) {
   for (const id of mesaOutrosIds(j)) mesaSinal(cfg, j.id, id, tipo);
 }
 
+// Quem joga vai até a sala da mesa, e a voz vai junto (Paulo, 10/11/2026: "quando vai pra sala do sinuca não
+// devia ser a sala de voz do sinuca?"). Quem aceitava o desafio de outra sala abria a partida, mas o boneco e a
+// conversa ficavam onde estavam: os dois jogavam sem se ouvir. No mundo, escritorioIrParaAmbiente é o desvio de
+// vybe-mundo.js, que move a pessoa e religa a voz da sala (irParaSala). Quem só assiste fica onde está.
+function mesaIrAteAMesa(j) {
+  const sala = j?.camada;
+  if (!j?.eu || !sala || escritorio.quarto === sala || (sala === "praca" && !escritorio.quarto)) return false;
+  if (!escritorio.conectado || !escritorio.mapa || escritorio.base?.demo || escritorio.base?.convidado) return false;
+  if (sala !== "praca" && !escritorioAmbienteDoQuarto(sala)) return false;
+  const ir = typeof window.escritorioIrParaAmbiente === "function" ? window.escritorioIrParaAmbiente : escritorioIrParaAmbiente;
+  try { ir(sala); } catch { return false; }
+  return true;
+}
 function abrirJogoMesa(chave, j) {
   const s = escritorioMesa(chave);
+  mesaIrAteAMesa(j);
   s.jogo = j; s.sel = null;
   escritorioXadrez().nova = null;
   desenharJogoMesa(chave);

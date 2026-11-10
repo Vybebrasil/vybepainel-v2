@@ -1,7 +1,7 @@
 /* Cadastro único e ficha do cliente (vybe-clientes-ficha.js) — padrão Irecity claro. Nome vybe-mundo-* para o build empacotar (scripts/build.mjs). */
 
 /* ── janela do cadastro ── */
-#workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
+#workflow-modal.cad-modal{width:min(820px,calc(100vw - 32px));max-height:var(--vv-janela-alto,calc(100dvh - 32px));overflow:auto;background:var(--vv-branco);color:var(--vv-tinta);border-radius:24px}
 .cad-janela .workflow-copy{color:var(--vv-apagado)}
 .cad-obrig{color:#C2490C;font-style:normal;font-weight:800}
 .cad-passos{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
@@ -19,7 +19,7 @@
 .cad-campo.largo{grid-column:1/-1}
 .cad-campo>span{font:600 12px var(--vv-texto);color:var(--vv-tinta)}
 .cad-campo small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
-.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
+.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background-color:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
 .cad-campo textarea{resize:vertical;min-height:88px;line-height:1.45}
 .cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
 .cad-campo input:disabled{background:#F6F3EE;color:var(--vv-apagado)}
@@ -75,3 +75,50 @@
 .reg-item details>:not(summary){margin:0 12px 10px;font:500 13px/1.5 var(--vv-texto);color:var(--vv-tinta)}
 .reg-item h5{margin:10px 12px 4px;font:700 12px var(--vv-texto);color:var(--vv-apagado)}
 .reg-item pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#FAF5EE;border-radius:10px;padding:10px;font:500 12.5px/1.5 var(--vv-texto)}
+
+/* Reuniões e onboarding (vybe-clientes-reunioes.js) */
+.reu-pauta{background:#FAF5EE;border-radius:12px;padding:10px 12px;margin:8px 0 12px;font:500 13px/1.5 var(--vv-texto);color:var(--vv-tinta)}
+.reu-pauta ul{margin:6px 0 0;padding-left:18px}
+.reu-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.reu-item{border:1px solid var(--vv-linha);border-radius:14px;background:var(--vv-branco)}
+.reu-item summary{cursor:pointer;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;list-style:none}
+.reu-item summary::-webkit-details-marker{display:none}
+.reu-item summary b{font:700 13.5px var(--vv-texto)}
+.reu-item summary small{flex-basis:100%;font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
+.reu-tipo{font:700 11px var(--vv-texto);padding:3px 9px;border-radius:999px;background:#EAF1FF;color:#1F4FA8}
+.reu-item details>:not(summary){margin:0 12px 10px;font:500 13px/1.5 var(--vv-texto);color:var(--vv-tinta)}
+.reu-item h5{margin:10px 12px 4px;font:700 12px var(--vv-texto);color:var(--vv-apagado)}
+.reu-transcricao{max-height:220px;overflow:auto;background:#FAF5EE;border-radius:10px;padding:10px}
+.reu-acoes{display:flex;gap:8px;flex-wrap:wrap}
+.reu-barra{position:fixed;left:50%;bottom:92px;translate:-50% 0;z-index:9000;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:16px;background:var(--vv-branco,#fff);border:1px solid #F6BBC4;box-shadow:var(--vv-sombra);font:500 13px var(--vv-texto);color:var(--vv-tinta);max-width:calc(100vw - 32px)}
+.reu-ponto{width:10px;height:10px;border-radius:50%;background:#D93D42;animation:reu-pulso 1.2s ease-in-out infinite}
+@keyframes reu-pulso{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.reu-ponto{animation:none}}
+.onb-botoes{display:flex;gap:8px;flex-wrap:wrap}
+.onb-swot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.onb-swot-q{border:1px solid var(--vv-linha);border-radius:12px;padding:10px 12px;background:var(--vv-branco);box-shadow:inset 3px 0 0 var(--c,#5B6268)}
+.onb-swot-q b{font:800 12px var(--vv-texto)}.onb-swot-q p{margin:6px 0 0;font:500 13px/1.45 var(--vv-texto)}
+.onb-forcas{--c:#11613A}.onb-fraquezas{--c:#A3366F}.onb-oportunidades{--c:#1F4FA8}.onb-ameacas{--c:#8A5A00}
+.onb-dica{font:500 12px var(--vv-texto);color:var(--vv-apagado);margin-top:12px}
+@media (max-width:640px){.onb-swot{grid-template-columns:1fr}.reu-barra{bottom:84px}}
+
+/* Sugestões do bot na reunião */
+.reu-sug{border:1px solid #E8DDF7;background:#FBF8FF;border-radius:12px;padding:8px 10px;margin:8px 12px}
+.reu-sug b{display:block;margin:8px 0 4px;font:700 12px var(--vv-texto)}
+.reu-sug ul{margin:0;padding-left:18px}
+.reu-dems{list-style:none;padding:0 !important;display:flex;flex-direction:column;gap:6px;margin-bottom:8px !important}
+.reu-dem{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--vv-branco);border:1px solid var(--vv-linha);border-radius:10px;padding:6px 8px}
+.reu-dem label{display:flex;gap:8px;align-items:center;flex:1 1 260px;min-width:0}
+.reu-dem input[type=text],.reu-dem input[type=date]{border:1px solid var(--vv-linha);border-radius:8px;padding:5px 8px;font:500 12.5px var(--vv-texto);color:var(--vv-tinta);background:#fff;color-scheme:light;min-width:0}
+.reu-dem label input[type=text]{flex:1}
+.reu-dem-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.reu-dem-meta input[type=text]{width:110px}
+.reu-dem small{font:500 11px var(--vv-texto);color:var(--vv-apagado)}.reu-dem small.ok,.reu-ok{color:#11613A;font-weight:700}
+/* Questionário do onboarding dentro do Vybe OS (09/11/2026). */
+.onb-q .onb-q-bloco{border:1px solid #E6E0D6;border-radius:12px;padding:12px 14px;margin:0 0 12px;background:#FFFFFF}
+.onb-q .onb-q-bloco legend{font-weight:800;font-size:14px;padding:0 6px;color:#1F1D1A}
+.onb-q .onb-q-sub{margin:0 0 8px;font-size:12.5px;color:#6B655C}
+.onb-q .onb-q-swot{grid-template-columns:repeat(2,minmax(0,1fr))}
+.onb-q textarea{resize:vertical}
+.vc-link-inline{border:0;background:none;padding:0;color:#C2490C;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+@media (max-width:640px){.onb-q .onb-q-swot{grid-template-columns:1fr}}

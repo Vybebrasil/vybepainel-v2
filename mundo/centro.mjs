@@ -83,7 +83,22 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     const anelI = R - 3.2;
     for (const [x, z, w, d] of [[0, -(R - 1.6), 2 * R, 3.2], [0, R - 1.6, 2 * R, 3.2], [-(R - 1.6), 0, 3.2, 2 * R - 6.4], [R - 1.6, 0, 3.2, 2 * R - 6.4]]) o.caixa(x, 0, z, w, CHAO, d, '#DCD3C2');
     o.caixa(0, 0, 0, 26, CHAO, 26, '#E8E0D0');
-    for (const [x, z, w, d] of [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]]) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
+    const alamedas = [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]];
+    for (const [x, z, w, d] of alamedas) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
+    // Piso de pedra (referências de 09/11/2026): a praça em ladrilhos com anéis de tom em volta do prédio, as
+    // alamedas e a calçada do anel em ladrilhos com a guia mais escura nas bordas. Só a camada fina (sem sombra).
+    const PEDRAS = ['#E8E0D0', '#DED4C2', '#F0E9DC', '#D6CBB8'];
+    const ladrilhos = (x0, z0, w, d, cor) => {
+      for (let i = 0; i < Math.round(w); i++) for (let j = 0; j < Math.round(d); j++) {
+        const cx = x0 + i + .5, cz = z0 + j + .5;
+        fino.caixa(cx, CHAO, cz, .9, .025, .9, cor(cx, cz, i, j));
+      }
+    };
+    ladrilhos(-13, -13, 26, 26, (cx, cz) => { const anel = Math.floor(Math.max(Math.abs(cx), Math.abs(cz))); const k = ruido(cx * 1.3 + 2, cz * 1.7 + 5); return anel % 4 === 3 ? '#CDBFA8' : PEDRAS[k > .8 ? 2 : k > .45 ? 0 : 1]; });
+    for (const [x, z, w, d] of alamedas) ladrilhos(x - w / 2, z - d / 2, w, d, (cx, cz, i, j) => {
+      const borda = w < d ? i === 0 || i === Math.round(w) - 1 : j === 0 || j === Math.round(d) - 1;
+      return borda ? '#C9BCA6' : PEDRAS[Math.floor(ruido(cx * 2.1, cz * 1.9) * 3) % 3 + 1];
+    });
     // Fundo das lojas: um bosque em grupos (não mais uma fila de árvores iguais): espécies, alturas e verdes misturados,
     // clareiras de vez em quando e arbustos entre as árvores.
     for (let i = -S + 2.5; i <= S - 2.5; i += 3.1) for (const [lado, a, b] of [[0, i, -(S - 3.4)], [1, i, S - 3.4], [2, -(S - 3.4), i], [3, S - 3.4, i]]) {
@@ -113,17 +128,30 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       const m = q.montar(); m.position.set(ix, iy, iz); m.userData.y0 = iy; g.add(m);
       return m;
     });
-    // Nuvens de blocos paradas no céu (não animam: o centro só redesenha quando algo muda).
-    const nuvem = new T.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: .92 });
+    // Nuvens voxel "bonitinhas" (Paulo, 10/11/2026: "as nuvens estão feias... gosto mais no estilo bonitinho voxel",
+    // "tira esse bloom delas"): cada nuvem é um tufo de cubos inteiros na grade (base larga, meio com calombos, topo
+    // pequeno), opaca, com o topo branco, os lados em dois tons e a barriga azulada, cor já pintada por face. Fica fora
+    // da névoa: não vira borrão. Paradas (vida.mjs só gira o conjunto devagar).
     const cubo = new T.BoxGeometry(1, 1, 1), nuvens = [];
+    {
+      const cores = { y1: '#F4F7FA', y0: '#C7D4E3', x: '#E3EAF2', z: '#D7E0EB' }, cor = new T.Color(), cs = [], n = cubo.attributes.normal;
+      for (let i = 0; i < n.count; i++) {
+        const nx = n.getX(i), ny = n.getY(i);
+        cor.set(ny > .5 ? cores.y1 : ny < -.5 ? cores.y0 : Math.abs(nx) > .5 ? cores.x : cores.z); cs.push(cor.r, cor.g, cor.b);
+      }
+      cubo.setAttribute('color', new T.Float32BufferAttribute(cs, 3));
+    }
+    const nuvem = new T.MeshBasicMaterial({ vertexColors: true, fog: false });
+    const U = 2.3; // tamanho do cubo da nuvem
     for (let k = 0; k < 7; k++) {
       // Em volta da maquete, nunca por cima dela (não tapam as lojas em nenhuma vista).
       const ang = k / 7 * Math.PI * 2 + ruido(k, 41) * .6, raio = S * (1.35 + ruido(41, k) * .35);
-      const cx = Math.cos(ang) * raio, cz = Math.sin(ang) * raio, cy = 4 + ruido(k, k + 3) * 10;
-      const larg = 9 + ruido(k, 5) * 7;
-      nuvens.push([cx, cy, cz, larg, 1.2, larg * .55]);
-      for (let p = 0; p < 4; p++) { const r = ruido(p + k, k), tam = 2.4 + r * 3.2; nuvens.push([cx + (p - 1.5) * larg * .24, cy + 1 + r * .8, cz + (ruido(k, p) - .5) * 2, tam, tam * .8, tam]); }
-      nuvens.push([cx - larg * .1, cy + 2.6, cz, larg * .3, 1.6, larg * .25]);
+      const cx = Math.round(Math.cos(ang) * raio / U) * U, cz = Math.round(Math.sin(ang) * raio / U) * U, cy = Math.round((4 + ruido(k, k + 3) * 10) / U) * U;
+      const largo = 4 + Math.floor(ruido(k, 5) * 4), fundo = 2 + Math.floor(ruido(5, k) * 2);
+      const bloco = (i, j, l) => nuvens.push([cx + i * U, cy + l * U, cz + j * U, U, U, U]);
+      for (let i = 0; i < largo; i++) for (let j = 0; j < fundo; j++) bloco(i - largo / 2 + .5, j - fundo / 2 + .5, 0);
+      for (let i = 1; i < largo - 1; i++) if (ruido(i + k * 3, 7) > .25) bloco(i - largo / 2 + .5, (ruido(k, i) > .5 ? .5 : -.5) * (fundo > 2 ? 1 : 0), 1);
+      const meio = Math.floor(largo / 2) - largo / 2 + .5; bloco(meio, 0, 1); bloco(meio + (ruido(k, 9) > .5 ? 1 : 0), 0, 2);
     }
     const inst = new T.InstancedMesh(cubo, nuvem, nuvens.length), m4 = new T.Matrix4();
     nuvens.forEach(([x, y, z, w, h, d], i) => { m4.makeScale(w, h, d).setPosition(x, y, z); inst.setMatrixAt(i, m4); });
@@ -211,10 +239,21 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       return ax > borda || az > borda;
     };
     // Manchas de grama em outros tons (o gramado não é uma cor só).
-    for (let x = -S + 3; x < S - 3; x += 4.3) for (let z = -S + 3; z < S - 3; z += 4.3) {
+    // Gramado com vida (Paulo, 10/11/2026: "tudo mais FODA"): manchas grandes em quatro verdes, em duas alturas
+    // finas (a de cima menor, mais clara), para o gramado não ser uma cor só nem uma colcha de retalhos.
+    for (let x = -S + 2.5; x < S - 2.5; x += 3.2) for (let z = -S + 2.5; z < S - 2.5; z += 3.2) {
       const k = ruido(x * .37 + 11, z * .41 + 2), px = x + (k - .5) * 2, pz = z + (ruido(z, x + 4) - .5) * 2;
-      if (k < .45 || !grama(px, pz)) continue;
-      fino.caixa(px, 0, pz, 2 + k * 2.4, .03, 1.6 + k * 2, k > .75 ? '#86C46A' : k > .6 ? '#68AD50' : '#7DBE60');
+      if (k < .33 || !grama(px, pz)) continue;
+      fino.caixa(px, 0, pz, 2 + k * 2.4, .03, 1.6 + k * 2, ['#6FB353', '#86C46A', '#64A84D', '#7DBE60'][Math.floor(k * 41) % 4]);
+      if (k > .7) fino.caixa(px + (k - .8) * 1.4, .03, pz - (k - .8), 1 + k, .02, .8 + k * .8, '#93CC74');
+    }
+    // Meio-fio claro entre a grama e as calçadas (praça, alamedas e o lado de dentro do anel), com recortes onde
+    // as alamedas cruzam: a borda nítida que as maquetes de referência têm entre piso e gramado.
+    const MEIO_FIO = '#D3C9B6', anelI2 = R - 3.2, guia = (x, z, w, d) => fino.caixa(x, 0, z, w, CHAO + .05, d, MEIO_FIO);
+    for (const s of [-1, 1]) {
+      for (const [a, b] of [[-13, -2.2], [2.2, 13]]) { guia((a + b) / 2, s * 13.07, b - a, .14); guia(s * 13.07, (a + b) / 2, .14, b - a); }
+      for (const t of [-1, 1]) { guia(t * 2.07, s * (13 + anelI2) / 2, .14, anelI2 - 13); guia(s * (13 + anelI2) / 2, t * 2.07, anelI2 - 13, .14); }
+      for (const [a, b] of [[-anelI2, -2.2], [2.2, anelI2]]) { guia((a + b) / 2, s * (anelI2 - .07), b - a, .14); guia(s * (anelI2 - .07), (a + b) / 2, .14, b - a); }
     }
     for (let x = -S + 1; x < S - 1; x += 1.55) for (let z = -S + 1; z < S - 1; z += 1.55) {
       const k = ruido(x * 1.7 + 3, z * 2.3 + 9), px = x + (ruido(z, x) - .5) * .8, pz = z + (ruido(x + 5, z) - .5) * .8;
@@ -276,6 +315,28 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     const faixas = 7, fw = LW / faixas;
     for (let f = 0; f < faixas; f++) C(-LW / 2 + fw * (f + .5), 2.38, LD / 2 - .2, fw, .16, 1.15, f % 2 ? '#FFFFFF' : toldo);
     for (const s of [-1, 1]) { C(s * (LW / 2 + .05), CHAO, LD / 2 + .05, .5, .45, .5, '#B5462F'); C(s * (LW / 2 + .05), CHAO + .45, LD / 2 + .05, .6, .6, .6, '#5FA34E'); }
+  }
+
+  // Calçada viva na frente de cada loja (Paulo, 10/11/2026: "as lojas ainda são caixas perto do prédio"): um
+  // cavalete na cor da marca e, conforme a loja, banco de madeira, mesinha com cadeiras ou bicicletário com bicicleta.
+  // Fica do lado da porta oposto ao dono (que está em -LW/2 + .9), sem tapar a vitrine nem a passagem.
+  function calcadaViva(C, k, P) {
+    const z = LD / 2 + .95, madeira = '#9A6A42', ferro = '#4A4F55';
+    if (k % 2 === 0) { C(.2, CHAO, z - .2, .5, .7, .06, ferro); C(.2, CHAO + .12, z - .16, .44, .5, .04, P.marca); C(.2, CHAO + .3, z - .13, .3, .06, .02, '#FFFFFF'); }
+    const tipo = k % 3, x = 1.35;
+    if (tipo === 0) {
+      for (const d of [-.5, .5]) C(x + d, CHAO, z, .08, .3, .34, ferro);
+      C(x, CHAO + .3, z, 1.2, .07, .4, madeira); C(x, CHAO + .37, z - .17, 1.2, .3, .06, madeira); C(x, CHAO + .52, z - .17, 1.2, .05, .07, '#B07C50');
+    } else if (tipo === 1) {
+      C(x, CHAO, z, .08, .62, .08, ferro); C(x, CHAO + .62, z, .62, .05, .62, '#FFFFFF');
+      for (const d of [-.5, .5]) { C(x + d, CHAO, z, .32, .34, .32, P.marca); C(x + d, CHAO + .34, z + (d < 0 ? -.13 : .13), .32, .3, .06, P.marca); }
+      C(x + .12, CHAO + .67, z, .1, .12, .1, '#F2EADB');
+    } else {
+      for (const d of [-.45, 0, .45]) C(x + d, CHAO, z, .05, .42, .05, ferro);
+      C(x, CHAO + .42, z, 1, .05, .05, ferro);
+      for (const d of [-.32, .32]) C(x - .05 + d, CHAO + .02, z + .25, .3, .3, .05, '#2B2F33');
+      C(x - .05, CHAO + .3, z + .25, .7, .06, .05, P.marca); C(x - .3, CHAO + .36, z + .25, .2, .05, .06, '#2B2F33');
+    }
   }
 
   // Vaga sem cliente (Paulo, 08/11/2026: "o mundo tá muito pobre"): tapume listrado laranja e branco da Vybe com a
@@ -348,6 +409,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       // Placa: fundo branco no bloco e a logo como imagem por cima (só aparece se o cliente tiver logo no Drive).
       C(0, placa.y - placa.h / 2 - .06, placa.z - .08, placa.w + .12, placa.h + .12, .1, '#FFFFFF');
       if (c.logo) logoNaPlaca(g, v, c.logo, placa);
+      calcadaViva(C, k, P);
       // O dono na porta (Paulo, 08/11/2026: lojas com alma): o personagem do cliente, quando o cadastro tem um; senão
       // um boneco fixo por cliente. De frente para a praça, com a sombra de contato no chão.
       const fig = c.personagem ? lerFigura(c.personagem) : figuraDaPessoa({ id: 'loja:' + c.nome }), pd = paraMundo(v, -LW / 2 + .9, LD / 2 + .55, 0, 0);

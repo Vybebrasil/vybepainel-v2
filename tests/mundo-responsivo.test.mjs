@@ -14,7 +14,7 @@ test('números do Hoje pela largura do próprio painel (na Minha sala o Hoje é 
 
 test('nada por baixo do dock: o Hoje e as janelas dos módulos terminam acima dele; no celular o dock rola por dentro', () => {
   assert.ok(css.includes('html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}'));
-  assert.ok(css.includes('html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa){bottom:'));
+  assert.ok(css.includes('html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa,#vv-comercial,#vv-pessoas,#vv-conteudo,#vv-impressoes){bottom:'));
   assert.ok(css.includes('.vv-dock-salas-faixa > .vq-dock{overflow-x:auto;'));
   assert.ok(css.includes('@media (max-width:560px){html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:none}}'), 'topo só com ícones no celular');
 });
@@ -32,7 +32,9 @@ test('/agenda (o app do Mizinho) abre direto na Agenda e captações, sem o Hoje
 test('varredura geral (Paulo, 09/11/2026: "todos os menus, botões, submenus"): o que ela achou ficou corrigido', () => {
   const padrao = ler('vybe-padrao.css');
   assert.match(css, /@container hoje \(max-width:620px\)\{\s*#vv-hoje \.vv-sem-col\{[^}]*\}[\s\S]*?#vv-hoje \.vv-sem-barras i:not\(\.total\)\{display:none\}/,'gráfico da semana no Hoje estreito: só o total por dia, números sem se cruzar');
-  assert.ok(css.includes('html body.mundo.com-dock-salas #vv-wa-avisos{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 10px)!important;'), 'avisos do WhatsApp acima do dock');
+  // Desde 09/11/2026 (Paulo: "fora do padrão visual") os avisos do WhatsApp ficam no canto de cima, longe do dock.
+  assert.doesNotMatch(css, /#vv-wa-avisos\{[^}]*(bottom|left):/, 'avisos do WhatsApp sem a posição de baixo/esquerda');
+  assert.match(ler('vybe-mundo-whatsapp.css'), /#vv-wa-avisos\{position:fixed;[^}]*top:calc\(var\(--vv-m,14px\) \+ 64px\);right:var\(--vv-m,14px\)/, 'no canto de cima à direita');
   assert.ok(css.includes('html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{position:static;order:3;'), 'selo depois do nome, sem cobrir o texto');
   assert.ok(padrao.includes('.resumo{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));'), 'números do Painel de trabalho quebram linha em vez de espremer');
   assert.ok(padrao.includes('gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;'), 'abas do Painel de trabalho rolam dentro da janela');

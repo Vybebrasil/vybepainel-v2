@@ -87,16 +87,18 @@ alta não fazem hierarquia.
 
 ## 6. Componentes
 
+Desde a fase 3a (10/11/2026) os botões têm **uma** definição, no bloco "PEÇAS DO SISTEMA" do fim de `vybe-mundo.css`: quatro jeitos (principal, secundário, discreto, perigoso), três alturas (`--pc-h-p` 28, `--pc-h` 34, `--pc-h-g` 40), o botão de ícone (fechar, setas) e o desligado cinza (`--pc-desligado-*`, nunca laranja claro). Módulo novo põe a classe dele nas listas do bloco; não desenha o próprio botão. Janela de formulário (`workflow-modal`) cabe entre o topo e o dock (`--vv-janela-alto`).
+
 | Componente | Especificação |
 |---|---|
-| **Ação principal** | igual ao botão **Criar** do dock: `#FF7A2F` cheio, texto branco 700, raio 12–14, sombra laranja. Um por área. Ex.: Novo conteúdo, Salvar, Continuar, Entrar no andar, Abrir contexto. |
+| **Ação principal** | igual ao botão **Criar** do dock: `#FF7A2F` cheio, texto branco 700, raio 8, 34px, sombra laranja. Um por área. Texto branco no laranja fica (Paulo, 10/11/2026: "é bonito"), mesmo com contraste de 2,6:1; não é defeito para as varreduras. Ex.: Novo conteúdo, Salvar, Continuar, Entrar no andar, Abrir contexto. |
 | **Secundário** | branco, borda `--ds-linha`, texto tinta 600; hover borda laranja e texto `#C2490C`. |
 | **Perigo** | branco com contorno vermelho `#F6BBC4`, texto `#B42318`; cheio só na confirmação. |
 | **Link** | texto `#C2490C` 700, sem fundo. |
 | **Selecionado** (aba, filtro, segmento, dia, pessoa) | igual ao **Gestor** no dock: fundo laranja 13%, texto `#C2490C`, sem sombra. Nunca laranja cheio. |
 | **Pílula / chip** (pessoa, carteira, visão) | branco, borda, raio 999, 28px; a cor da pessoa só no avatar ou numa barra fina à esquerda. |
 | **Etiqueta de estado** | pílula 11px 700 na cor da escala de urgência. |
-| **Campo** | branco, borda, raio 12, 38px; foco borda laranja + anel. `color-scheme:light`. |
+| **Campo** | branco, borda, raio 8, 38px; select com a seta única do sistema; foco borda laranja + anel. `color-scheme:light`. |
 | **Cartão** | branco, borda, raio 18, sombra curta. Clicável: sobe 1px no hover. |
 | **Janela** (briefing, status, cadastro, reunião) | branca, raio 24, sombra de janela, fundo atrás `rgba(31,29,26,.3)` com blur; título 17–19px; fechar (×) no canto; Esc fecha. |
 | **Menu suspenso** (status, responsável, ferramentas, avisos) | branco **opaco**, raio 16, borda e sombra; nunca translúcido escuro. |

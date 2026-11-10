@@ -6,16 +6,19 @@ import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
 import { linkDaAtividade } from './assistente-rotinas.js';
 import { regrasDoCliente, ideiasDoCliente } from './assistente-regras.js';
 import { fichaParaCopy, ajustesDeCopy, aceitacaoDasLegendas, legendasDosChats } from './copy-cliente.js';
+import { respostasDoCliente, respostasEmLinhas } from './onboarding-contexto.js';
 
 const curto = (iso) => (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '');
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // "alteração", "ajuste", "mudar"... viram um mesmo assunto: o que o cliente pediu para mudar.
 const PEDIDOS = /alter|ajust|mud|troc|corrig|refaz|refaze|tirar|coloc|pediu|cliente (?:quer|pede|prefere)/;
 
-export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes, regras = [], chats = [] }) {
+export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes, regras = [], chats = [], onboarding = [] }) {
   const partes = [`🧠 *Memória · ${cliente}* (últimos ${dias} dias${busca ? ` · “${busca}”` : ''})`];
   // Regras decididas pela equipe valem sempre (não dependem do período nem do assunto).
   if (regras.length) partes.push(`📌 *Regras do cliente*\n` + regras.slice(0, 10).map((r) => `- ${r}`).join('\n'));
+  // O que o próprio cliente contou no questionário do onboarding (server/onboarding-contexto.js).
+  if (onboarding.length) partes.push(`📋 *O cliente contou no onboarding*\n` + onboarding.slice(0, 15).join('\n'));
   // O que os chats do cliente no Claude registraram (conector Painel Vybe, server/mcp-ecossistema.js).
   if (chats.length) partes.push(`🤖 *Decidido e aprendido nos chats do Claude*\n` + chats.slice(0, 6)
     .map((g) => `- ${curto(g.criado_em)} · ${g.titulo}: ${String(g.decisoes || g.resumo).replace(/\s+/g, ' ').slice(0, 240)}`).join('\n'));
@@ -27,7 +30,7 @@ export function mensagemMemoria({ cliente, dias, busca, comentarios, alteracoes,
     partes.push(`💬 *O que foi dito nas peças*\n` + comentarios.slice(0, 10)
       .map((c) => `- ${curto(c.criado_em)} · ${c.titulo || 'Sem título'}${c.autor ? ` (${c.autor})` : ''}: “${c.corpo.replace(/\s+/g, ' ').slice(0, 220)}${c.corpo.length > 220 ? '…' : ''}”\n  🔗 ${linkDaAtividade(c.ref)}`).join('\n'));
   }
-  if (!alteracoes.length && !comentarios.length && !regras.length && !chats.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
+  if (!alteracoes.length && !comentarios.length && !regras.length && !chats.length && !onboarding.length) partes.push(busca ? `Nada sobre “${busca}” nas peças desse período.` : 'Nenhum comentário ou alteração nas peças desse período.');
   return partes.join('\n\n');
 }
 
@@ -55,7 +58,10 @@ export async function memoriaDoCliente(sql, { cliente_id: clienteId, busca = '',
   const alteracoes = voltas.map((v) => ({ ...v, ref: ref(v) }));
   const regras = await regrasDoCliente(sql, clienteId);
   const chats = await registrosDosChats(sql, clienteId, termos);
-  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes, regras, chats }),
+  // Com assunto, só as respostas que falam dele; sem assunto, todas.
+  let onboarding = respostasEmLinhas(await respostasDoCliente(sql, clienteId), { n: 260 });
+  if (termos.length) onboarding = onboarding.filter((l) => termos.some((t) => normal(l).includes(t.slice(0, Math.max(4, t.length - 2)))));
+  return { texto: mensagemMemoria({ cliente: cliente.nome, dias, busca: busca.trim(), comentarios, alteracoes, regras, chats, onboarding }),
     fontes: [{ modulo: 'memoria_cliente', id: String(clienteId) }, ...(chats.length ? [{ modulo: 'registros_chats_claude', id: String(clienteId) }] : [])] };
 }
 

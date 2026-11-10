@@ -6,9 +6,9 @@
 .vbl-janela{display:flex;flex-direction:column;width:min(720px,100%);max-height:min(760px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;
   background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px -24px rgba(31,29,26,.45);font-family:var(--vv-texto,Inter,system-ui,sans-serif);
   animation:vbl-entra .2s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
-@keyframes vbl-entra{from{opacity:0;transform:translateY(8px) scale(.985)}}
+@keyframes vbl-entra{from{transform:translateY(8px) scale(.985)}}
 .vbl-janela svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.vbl-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px}
+.vbl-topo{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px}
 .vbl-topo small{display:block;font:600 11px var(--vv-texto);color:#8A847A}
 .vbl-topo small::first-letter{text-transform:uppercase}
 .vbl-topo h2{margin:2px 0 2px;font:600 20px/1.2 var(--vv-titulo,var(--vv-texto));color:#1F1D1A}
@@ -16,7 +16,7 @@
 .vbl-fechar{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#3A3F44;cursor:pointer}
 .vbl-fechar:hover{border-color:#F26B1D;color:#1F1D1A}
 /* abas: uma por agente, roláveis de lado quando são muitas */
-.vbl-abas{display:flex;gap:4px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid #EFEAE2}
+.vbl-abas{flex:none;display:flex;gap:4px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid #EFEAE2}
 .vbl-abas button{position:relative;flex:none;height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#3A3F44;font:600 12px var(--vv-texto);cursor:pointer}
 .vbl-abas button:hover{border-color:#F26B1D}
 .vbl-abas button[aria-current="true"]{background:#1F1D1A;border-color:#1F1D1A;color:#FFFFFF}
@@ -119,3 +119,129 @@
 @media (max-width:560px){.vbl-secao .vbl-agora-lista li{grid-template-columns:1fr}.vbl-agora-lista li > .vbl-agora{grid-column:1;grid-row:auto}}
 @media (prefers-reduced-motion:reduce){.vbl-janela,.vbl-carregando i{animation:none}}
 html.vb-sem-movimento :is(.vbl-janela,.vbl-carregando i){animation:none}
+
+/* ---------- A peça do achado (vybe-mundo-peca.js, Paulo 09/11/2026: "abrir um HUD com o calendário ... e alterar"). ----------
+   Mesma janela clara do boletim, uma camada acima dele (o boletim fica atrás, à espera). */
+.vpc-fundo{position:fixed;inset:0;z-index:880;display:grid;place-items:center;padding:16px;background:rgba(31,29,26,.28)}
+.vpc-fundo[hidden]{display:none}
+.vpc-janela{display:flex;flex-direction:column;width:min(760px,100%);max-height:min(820px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;background:#FFFFFF;color:#1F1D1A;
+  border:1px solid #E6E0D6;border-radius:14px;box-shadow:0 30px 70px -24px rgba(31,29,26,.5);font-family:var(--vv-texto,Inter,system-ui,sans-serif);animation:vbl-entra .2s var(--curva,cubic-bezier(.2,.8,.2,1)) both}
+.vpc-janela svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vpc-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px;border-bottom:1px solid #EFEAE2}
+.vpc-topo > span{min-width:0;display:grid;gap:4px}
+.vpc-topo small{font:600 11.5px var(--vv-texto);color:#6B675F;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.vpc-topo h2{margin:0;font:600 19px/1.25 var(--vv-titulo,var(--vv-texto));overflow-wrap:anywhere}
+.vpc-linha{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font:500 12.5px var(--vv-texto);color:#3A3F44}
+.vpc-falta,.vpc-ruim{font-style:normal;font-weight:600;color:#B4232A}
+.vpc-fechar{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#3A3F44;cursor:pointer}
+.vpc-fechar:hover{border-color:#F26B1D}
+.vpc-corpo{flex:1;min-height:0;overflow:auto;padding:14px 20px 16px;display:grid;gap:14px;align-content:start}
+.vpc-viu{display:grid;gap:3px;padding:10px 12px;border-radius:10px;background:#FFF7EE;border-left:3px solid #E07A1F;font:500 13px/1.45 var(--vv-texto)}
+.vpc-viu > b{font:600 11.5px var(--vv-texto);color:#9A5B00}
+.vpc-viu small{font:500 12px/1.45 var(--vv-texto);color:#3A3F44}
+.vpc-vazio{margin:0;font:500 13px var(--vv-texto);color:#6B675F}
+/* calendário de duas semanas: sete colunas, fim de semana mais apagado, hoje com o anel laranja */
+.vpc-cal ol{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:0;padding:0;list-style:none}
+.vpc-cal li{min-height:74px;display:flex;flex-direction:column;gap:3px;padding:5px 6px;border:1px solid #EFEAE2;border-radius:8px;background:#FFFFFF;min-width:0}
+.vpc-cal li[data-fim]{background:#FAF8F4}
+.vpc-cal li.passado{opacity:.62}
+.vpc-cal li.hoje{border-color:#F26B1D;box-shadow:0 0 0 2px rgba(242,107,29,.18);opacity:1}
+.vpc-cal li.marcado{opacity:1}
+.vpc-cal li > small{font:500 10.5px var(--vv-texto);color:#6B675F;white-space:nowrap}
+.vpc-cal li > small b{font:700 12.5px var(--vv-texto);color:#1F1D1A}
+.vpc-m{display:block;padding:1px 5px;border-radius:5px;font:700 10.5px/1.5 var(--vv-texto);font-style:normal;color:#FFFFFF}
+.vpc-m.prazo{background:#C2490C}.vpc-m.veicula{background:#5B4BD6}
+.vpc-outra{all:unset;cursor:pointer;display:block;padding:1px 4px;border-radius:4px;background:#F3EFE8;font:500 10.5px/1.4 var(--vv-texto);color:#3A3F44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vpc-outra:hover{background:#EAE3D8}.vpc-outra:focus-visible{outline:2px solid #F76808;outline-offset:1px}
+.vpc-mais{font:500 10px var(--vv-texto);color:#8A847A}
+.vpc-legenda{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0 0;font:500 11px var(--vv-texto);color:#6B675F}
+.vpc-legenda i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.vpc-legenda i.prazo{background:#C2490C}.vpc-legenda i.veicula{background:#5B4BD6}.vpc-legenda i.outra{background:#E6E0D6}
+/* o que dá para mudar ali mesmo */
+.vpc-form{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:12px;border:1px solid #EFEAE2;border-radius:10px;background:#FCFAF7}
+.vpc-form label{display:grid;gap:4px;font:600 11.5px var(--vv-texto);color:#6B675F;min-width:0}
+.vpc-form select,.vpc-form input[type="date"]{height:36px;padding:0 10px;border:1px solid #E6E0D6;border-radius:8px;background-color:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto);min-width:0}
+.vpc-form :is(select,input):focus-visible{outline:2px solid #F76808;outline-offset:1px}
+.vpc-form label.vpc-check{grid-column:1/-1;display:flex;align-items:center;gap:8px;font:500 12.5px var(--vv-texto);color:#3A3F44}
+.vpc-acoes{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.vpc-nota{grid-column:1/-1;margin:0;font:500 11.5px var(--vv-texto);color:#6B675F}
+.vpc-botao{height:36px;padding:0 14px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto);cursor:pointer}
+.vpc-botao:hover{border-color:#F26B1D}
+.vpc-botao.principal{background:#C2490C;border-color:#C2490C;color:#FFFFFF}
+.vpc-botao.sugestao{border-color:#E9B78C;background:#FFF4EA;color:#8A3D0A}
+.vpc-botao:disabled{opacity:.6;cursor:default}
+.vpc-botao:focus-visible,.vpc-fechar:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+.vpc-msg{margin:0;padding:8px 10px;border-radius:8px;background:#EAF7EF;color:#11613A;font:600 12.5px var(--vv-texto)}
+.vpc-msg.erro{background:#FDECEE;color:#B4232A}
+.vpc-pe{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #EFEAE2}
+@media (max-width:640px){
+  .vpc-fundo{padding:0;place-items:end stretch}
+  .vpc-janela{width:100%;max-height:calc(100vh - 24px);border-radius:14px 14px 0 0}
+  .vpc-cal li{min-height:56px;padding:4px}.vpc-outra{display:none}
+  .vpc-form{grid-template-columns:1fr 1fr}.vpc-form label:first-child{grid-column:1/-1}
+}
+
+/* ---------- Boletim que resolve (Paulo, 09/11/2026: "ver o que dá para trazer de tecnologia ... clicar e ter mais
+   informações ... gráfico, análise ... tomar ações dentro do próprio boletim"). ---------- */
+.vbl-numeros .vbl-ic{background:#EEF2FF;color:#4338CA}
+.vbl-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.vbl-kpi{display:grid;gap:1px;padding:8px 10px;border:1px solid #EFEAE2;border-radius:8px;background:#FAF7F2;cursor:help}
+.vbl-kpi b{font:600 19px/1.1 var(--vv-titulo,var(--vv-texto));font-variant-numeric:tabular-nums;color:#1F1D1A}
+.vbl-kpi small{font:500 11px var(--vv-texto);color:#6B675F}
+.vbl-kpi.ruim b{color:#B42318}.vbl-kpi.atencao b{color:#9A5B00}
+.vbl-barras{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));align-items:end;gap:3px;height:74px;padding:0 2px}
+.vbl-barras > span{position:relative;display:flex;flex-direction:column-reverse;justify-content:flex-start;gap:1px;height:100%;padding-bottom:14px}
+.vbl-barras i{display:block;min-height:2px;border-radius:3px 3px 0 0;background:#9FD9B5}
+.vbl-barras i.f{background:#E3786F}
+.vbl-barras small{position:absolute;bottom:0;left:0;right:0;text-align:center;font:500 9.5px var(--vv-texto);color:#8A847A}
+.vbl-tendencia{margin:6px 0 0;font:500 11.5px var(--vv-texto);color:#6B675F}
+/* achado: a linha abre a peça; os botões fecham o achado */
+.vbl-secao li.vbl-achado{display:flex;align-items:center;gap:8px;padding:0;background:#FAF7F2}
+.vbl-achado > .vbl-achado-txt{padding:7px 10px}
+.vbl-achado-abrir{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer}
+.vbl-achado-abrir:hover{background:#F3EDE4}
+.vbl-achado-abrir:focus-visible{outline:2px solid #F76808;outline-offset:-2px}
+.vbl-achado-abrir > i{flex:none;font-style:normal;color:#C2490C;font-weight:700}
+.vbl-achado-ic{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#FFFFFF;border:1px solid #EFEAE2;color:#C2490C}
+.vbl-achado-ic svg{width:14px;height:14px}
+.vbl-achado-txt{flex:1;min-width:0;display:grid;gap:2px}
+.vbl-achado-txt b{font:600 12.5px/1.35 var(--vv-texto);color:#1F1D1A;overflow-wrap:anywhere}
+.vbl-fato{font:500 12px/1.35 var(--vv-texto);color:#3A3F44;overflow-wrap:anywhere}
+.vbl-achado-txt small{display:flex;flex-wrap:wrap;gap:3px 4px;align-items:center}
+.vbl-achado-acoes{flex:none;display:flex;gap:4px;padding-right:8px}
+.vbl-achado-acoes button{height:28px;padding:0 9px;border:1px solid #E6E0D6;border-radius:6px;background:#FFFFFF;color:#3A3F44;font:600 11.5px var(--vv-texto);cursor:pointer}
+.vbl-achado-acoes button:hover{border-color:#F26B1D;color:#1F1D1A}
+.vbl-achado-acoes button:focus-visible{outline:2px solid #F76808;outline-offset:1px}
+.vbl-secao li.g-feito{border-left-color:#9FD9B5}
+/* grupo de achados parecidos */
+.vbl-secao li.vbl-grupo{display:block}
+.vbl-grupo > details > summary{display:flex;align-items:center;gap:10px;padding:7px 10px;cursor:pointer;list-style:none;border-radius:8px}
+.vbl-grupo > details > summary::-webkit-details-marker{display:none}
+.vbl-grupo > details > summary:hover{background:#F3EDE4}
+.vbl-grupo > details > summary:focus-visible{outline:2px solid #F76808;outline-offset:-2px}
+.vbl-ver{flex:none;font:600 11.5px var(--vv-texto);color:#C2490C}
+.vbl-grupo details[open] .vbl-ver{color:#6B675F}
+.vbl-grupo > details > ul{padding:0 8px 8px 18px}
+.vbl-grupo > details > ul > li{background:#FFFFFF}
+.vbl-vezes{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#EAF7EF;color:#11613A;font:700 11px/1.6 var(--vv-texto)}
+.vbl-link{all:unset;cursor:pointer;color:#C2490C;font-weight:600;border-bottom:1px solid currentColor}
+.vbl-link:focus-visible{outline:2px solid #F76808;outline-offset:2px}
+.vbl-msg{margin:0;padding:8px 20px;border-top:1px solid #EFEAE2;background:#FAF7F2;font:600 12px var(--vv-texto);color:#3A3F44}
+/* agência: onde estão os problemas, uma barra por agente (urgentes em vermelho por cima) */
+.vbl-onde{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.vbl-secao .vbl-onde li{padding:0;background:none;border:0}
+.vbl-onde button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:90px minmax(0,1fr) auto;align-items:center;gap:10px;padding:4px 6px;border-radius:6px;cursor:pointer}
+.vbl-onde button:hover:not(:disabled){background:#FAF7F2}
+.vbl-onde button:focus-visible{outline:2px solid #F76808;outline-offset:1px}
+.vbl-onde button:disabled{cursor:default}
+.vbl-onde b{font:600 12px var(--vv-texto);color:#1F1D1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vbl-onde-barra{position:relative;height:10px;border-radius:5px;background:#F3EFE8;overflow:hidden}
+.vbl-onde-barra i{position:absolute;left:0;top:0;bottom:0;width:var(--t);border-radius:5px;background:#E0A21B}
+.vbl-onde-barra i.u{width:var(--u);background:#D2453B}
+.vbl-onde small{font:500 11.5px var(--vv-texto);color:#6B675F;white-space:nowrap}
+.vbl-onde small em{font-style:normal;font-weight:700;color:#B42318}
+@media (max-width:560px){
+  .vbl-kpis{grid-template-columns:1fr 1fr}
+  .vbl-secao li.vbl-achado{flex-wrap:wrap}.vbl-achado-acoes{padding:0 8px 8px 46px}
+  .vbl-onde button{grid-template-columns:70px minmax(0,1fr) auto}
+}

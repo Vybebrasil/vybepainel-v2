@@ -9,7 +9,7 @@ import { unificarStatus } from '../server/catalogos.js';
 import { listarAgendaProducao, configuracaoAgenda } from '../server/agenda-producao.js';
 import { listarRoteiros, candidatos as candidatosDoRoteiro, ligar as ligarRoteiro, incluirRoteiro, editarRoteiro, sincronizarDoDrive as roteirosDoDrive, roteirosDosConteudos, clientesDosRoteiros } from '../server/roteiros.js';
 import { pecasSemMaterial, pecasParaCaptar, listarCaptacoes, montarCaptacao, marcarGravado, cancelarCaptacao, sincronizarAgenda, agendaDeCaptacoes, fecharGravacao, roteiroDaCaptacao, vincularCliente, criarEvento, outrasPecasDoCliente, pecasLigaveisDoCliente, reagendarCaptacao, apagarCaptacao } from '../server/captacoes.js';
-import { trocarEscolha, trocarStatus, comentar } from './conteudo.js';
+import { trocarEscolha, trocarStatus, comentar, criarConteudoNaTransacao } from './conteudo.js';
 import { salvarHeadsCliente } from '../server/clientes-heads.js';
 import { garantirCicloDeVida, criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo } from '../server/ciclo-de-vida.js';
 import { areaPlanejamentos, paginaDeAprovacao, conectorAgentes, portalDoCliente, logoDoCliente } from '../server/planejamentos-api.js';
@@ -32,6 +32,8 @@ import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
 import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
+import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, salvarOnboarding, TIPOS_REUNIAO, QUESTOES, ACESSOS_PEDIDOS } from '../server/reunioes.js';
+import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
 import { cadastroFinancasPadrao } from '../server/vybe-financas-cadastro.js';
 import { paginaFormularioLeads } from '../server/comercial-leads.js';
 import { listarObjetivos } from '../server/conteudo-objetivo.js';
@@ -1850,7 +1852,67 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
   return res.status(405).json({ error: 'Operação não habilitada.' });
 }
 
-const AREAS = { crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
+// Reuniões e onboarding do cliente (server/reunioes.js): ata, pauta sugerida, gravação no Drive e link do onboarding.
+async function areaReunioes(req, res, quem) {
+  const db = sql();
+  await garantirSchemaReunioes(db);
+  const pessoa = quem.tipo === 'servico' ? { admin: true } : (quem.pessoa || {});
+  const falha = (e) => { if (e.status) return res.status(e.status).json({ error: e.message }); throw e; };
+  if (req.method === 'GET') {
+    const cliente = Number(req.query?.cliente || 0);
+    if (!cliente) return res.status(400).json({ error: 'Informe o cliente.' });
+    const [reunioes, pauta, onboarding, pode, esteira] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente),
+      db`SELECT 1 FROM vybe_cliente_onboarding WHERE cliente_id=${Number(cliente)} AND encerrado_em IS NULL`.catch(() => [])]);
+    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0, tipos: TIPOS_REUNIAO, questoes: QUESTOES, acessos_pedidos: ACESSOS_PEDIDOS });
+  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+  const b = req.body || {};
+  let clienteId = Number(b.cliente || 0);
+  if (b.id) { const [r] = await db`SELECT cliente_id FROM vybe_cliente_reunioes WHERE id=${Number(b.id)}`; if (!r) return res.status(404).json({ error: 'Reunião não encontrada.' }); clienteId = Number(r.cliente_id); }
+  if (!clienteId) return res.status(400).json({ error: 'Informe o cliente.' });
+  if (!await podeMexer(db, pessoa, clienteId)) return res.status(403).json({ error: 'Só a administração, os sócios ou o head do cliente mexem nas reuniões dele.' });
+  try {
+    if (b.acao === 'salvar') return res.status(200).json({ ok: true, reuniao: await salvarReuniao(db, { ...b, id: b.id || null, clienteId, autor: quem?.pessoa?.nome || 'Vybe OS' }) });
+    if (b.acao === 'link-onboarding') return res.status(200).json({ ok: true, ...(await linkDoOnboarding(db, clienteId)) });
+    // Questionário preenchido dentro do Vybe OS, junto com o cliente (o mesmo salvar do link, marcado "na reunião").
+    if (b.acao === 'onboarding-salvar') {
+      const [c] = await db`SELECT * FROM vybe_clientes WHERE id=${clienteId} AND apagado_em IS NULL`;
+      if (!c) return res.status(404).json({ error: 'Cliente não encontrado.' });
+      return res.status(200).json(await salvarOnboarding(db, c, { respostas: b.respostas, acessos: b.acessos }, { por: 'reuniao' }));
+    }
+    if (b.acao === 'cadastrar-demandas') return res.status(200).json(await cadastrarDemandasDaReuniao(db, quem, { id: b.id, demandas: b.demandas }, { criarConteudoNaTransacao, boardDemandas: 8385559107 }));
+    if (b.acao === 'gravacao') {
+      const item = 'reuniao:' + Number(b.id);
+      if (!b.id) return res.status(400).json({ error: 'Salve a reunião antes de gravar.' });
+      if (b.etapa === 'abrir') {
+        const bytes = Number(b.bytes);
+        if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > 200 * 1024 * 1024) return res.status(400).json({ error: 'Gravação grande demais (máximo 200 MB).' });
+        const [c] = await db`SELECT id, nome FROM vybe_clientes WHERE id=${clienteId}`;
+        const [a] = await db`SELECT pasta_drive FROM vybe_acessos WHERE cliente_id=${clienteId} AND pasta_drive IS NOT NULL ORDER BY atualizado_em DESC NULLS LAST LIMIT 1`;
+        const ligada = String(a?.pasta_drive || '').match(/folders\/([\w-]{10,})/)?.[1];
+        let pastaId; try { pastaId = await subpasta('Reuniões', ligada || await pastaSimples([c.nome])); } catch (e) { if (!ligada) throw e; pastaId = await subpasta('Reuniões', await pastaSimples([c.nome])); }
+        const sessao = await iniciarUploadNoDrive({ nome: String(b.nome || 'gravacao.webm').slice(0, 120), mime: String(b.mime || 'audio/webm'), pastaId });
+        return res.status(200).json({ ok: true, contexto: protegerUpload({ sessao, total: bytes, item }, quem) });
+      }
+      if (b.etapa === 'parte' || b.etapa === 'consultar') {
+        let dados; try { dados = abrirContextoUpload(b.contexto, quem, item); } catch (e) { return res.status(400).json({ error: e.message, ...(e.code === 'UPLOAD_EXPIRADO' ? { expirado: true } : {}) }); }
+        return res.status(200).json({ ok: true, ...(b.etapa === 'consultar' ? await consultarUploadNoDrive(dados) : await enviarParteNoDrive({ ...dados, conteudo: b.conteudo, inicio: b.inicio })) });
+      }
+      if (b.etapa === 'registrar') return res.status(200).json({ ok: true, reuniao: await registrarGravacao(db, b.id, { driveId: b.drive_file_id, bytes: b.bytes }) });
+      return res.status(400).json({ error: 'Etapa inválida.' });
+    }
+  } catch (e) { return falha(e); }
+  return res.status(400).json({ error: 'Ação inválida.' });
+}
+
+// Aprovações paradas da pessoa da sessão (server/aprovacoes.js): bloco do Seu dia.
+async function areaAprovacoes(req, res, quem) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const pessoa = quem.tipo === 'servico' ? { id: 0, dono: true } : (quem.pessoa || {});
+  return res.status(200).json(await aprovacoesDaPessoa(sql(), pessoa));
+}
+
+const AREAS = { reunioes: areaReunioes, aprovacoes: areaAprovacoes, crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()) };
@@ -1878,6 +1940,8 @@ export default async function handler(req, res) {
   const areaPublica = String(req.query?.area || '');
   // Conector MCP dos chats do Claude.ai (server/mcp-ecossistema.js): a chave na URL é a de cada conta.
   if (areaPublica === 'mcp') { const db = sql(); await garantirSchemaDoCadastro(db); return areaMcp(req, res, db, { salvarNoDrive: registroNoDrive(db) }); }
+  // Onboarding do cliente pelo link (server/reunioes.js): o segredo é o link; serve para o cliente e para preencher junto na reunião.
+  if (areaPublica === 'onboarding') return paginaDoOnboarding(req, res, sql());
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
   // Aprovação de peças pelo cliente (módulo Conteúdo): outro link, outro segredo, só as peças em
   // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).
