@@ -140,6 +140,12 @@ function agCartaoAbrir(id, html, aoFechar = "", ponto = null) {
   pop.hidden = false;
   agCartaoPosicionar();
 }
+// Onde o cartão e a prévia podem chegar: no mundo, acima do dock das salas (varredura de 10/11/2026: os botões do
+// cartão caíam em cima do dock).
+function agFundoLivre() {
+  const dock = parseFloat(getComputedStyle(document.body).getPropertyValue("--vv-dock-alto")) || 0;
+  return window.innerHeight - (dock ? dock + 14 : 0);
+}
 let AG_ULTIMO_TOQUE = null;
 document.addEventListener("pointerdown", (ev) => { AG_ULTIMO_TOQUE = { left: ev.clientX, right: ev.clientX, top: ev.clientY - 8, bottom: ev.clientY }; }, true);
 function agCartaoPosicionar() {
@@ -156,7 +162,7 @@ function agCartaoPosicionar() {
   const r = ancora ? ancora.getBoundingClientRect() : pop._ponto, w = pop.offsetWidth, h = pop.offsetHeight, m = 12;
   const direita = r.right + m + w <= window.innerWidth - m;
   pop.style.left = `${Math.max(m, direita ? r.right + m : r.left - m - w)}px`;
-  pop.style.top = `${Math.max(m, Math.min(r.top, window.innerHeight - h - m))}px`;
+  pop.style.top = `${Math.max(m, Math.min(r.top, agFundoLivre() - h - m))}px`;
   pop.classList.toggle("a-esquerda", !direita);
 }
 function agCartaoFechar() {
@@ -185,7 +191,7 @@ function agPreviaEntrar(el, funcao) {
     const r = el.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, m = 10;
     const direita = r.right + m + w <= window.innerWidth - m;
     pop.style.left = `${Math.max(m, direita ? r.right + m : r.left - m - w)}px`;
-    pop.style.top = `${Math.max(m, Math.min(r.top, window.innerHeight - h - m))}px`;
+    pop.style.top = `${Math.max(m, Math.min(r.top, agFundoLivre() - h - m))}px`;
     pop.classList.toggle("a-esquerda", !direita);
   }, 260);
 }

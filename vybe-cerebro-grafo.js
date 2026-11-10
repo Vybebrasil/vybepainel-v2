@@ -352,8 +352,17 @@
     });
     // Sair do mapa: volta para a Atividade do cérebro (quem abriu a aba Mapa decide o que vem depois).
     function sair() { casa.__grafo?.parar?.(); casa.remove(); if (host === casa) host = null; document.removeEventListener('keydown', aoEsc, true); if (typeof opcoes.aoSair === 'function') opcoes.aoSair(); else if (typeof alternarAbaCerebro === 'function') alternarAbaCerebro('atividade'); }
-    function aoEsc(e) { if (e.key !== 'Escape' || !raiz.isConnected) return; if (fixo || document.activeElement?.closest?.('.cg-busca')) return; e.preventDefault(); e.stopPropagation(); sair(); }
+    // Varredura de 10/11/2026: com um cliente em foco o Esc não fazia nada e o mapa ficava por cima de todas as telas.
+    // Agora o primeiro Esc solta o cliente e o seguinte sai; trocar de tela pelo dock fecha o mapa.
+    function aoEsc(e) {
+      if (e.key !== 'Escape' || !raiz.isConnected || document.activeElement?.closest?.('.cg-busca')) return;
+      e.preventDefault(); e.stopPropagation();
+      if (fixo) { fixo = null; mostrarCartao(null); sujo = true; pedir(); return; }
+      sair();
+    }
+    function aoTrocarDeTela() { casa.__grafo?.parar?.(); casa.remove(); if (host === casa) host = null; }
     document.addEventListener('keydown', aoEsc, true);
+    window.addEventListener('vybe:trocar-tela', aoTrocarDeTela);
     const obs = new ResizeObserver(ajustar); obs.observe(raiz);
     ajustar();
     // Primeiro enquadramento depois de assentar um pouco; com foco num cliente, a vizinhança dele.
@@ -366,7 +375,7 @@
     pedir();
     // Se o cérebro saiu da tela (outra aba, módulo fechado), o mapa sai junto.
     const vigia = setInterval(() => { if (!alvo.isConnected) { casa.__grafo?.parar?.(); casa.remove(); if (host === casa) host = null; } }, 800);
-    casa.__grafo = { parar: () => { clearInterval(vigia); cancelAnimationFrame(quadro); quadro = 0; obs.disconnect(); document.removeEventListener('keydown', aoEsc, true); for (const n of nos) posicoes.set(n.id, { x: n.x, y: n.y }); } };
+    casa.__grafo = { parar: () => { clearInterval(vigia); cancelAnimationFrame(quadro); quadro = 0; obs.disconnect(); document.removeEventListener('keydown', aoEsc, true); window.removeEventListener('vybe:trocar-tela', aoTrocarDeTela); for (const n of nos) posicoes.set(n.id, { x: n.x, y: n.y }); } };
   }
 
   function fechar() { host?.__grafo?.parar?.(); host?.remove(); host = null; }

@@ -1157,7 +1157,7 @@ function renderCompactSummary() {
   const cartao = (cls, conteudo) => `<div class="pv-kpi ${cls}">${conteudo}</div>`;
   document.getElementById('compact-summary').innerHTML =
     cartao('pv-kpi-semana', `<span class="pv-anel" style="--p:${pct}"><i>${done}/${total}</i></span>
-      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} conteúdos</span></div>`) +
+      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</span></div>`) +
     cartao(todayPending > 0 ? 'pv-kpi-risco' : '', `<b>${todayItems.length}</b><div><small>Publica hoje</small>
       <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span></div>`) +
     cartao(pendentes > 0 ? 'pv-kpi-atencao' : '', `<b>${pendentes}</b><div><small>Pendentes</small><span>a fazer ou falta D.A</span></div>`) +

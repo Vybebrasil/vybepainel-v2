@@ -318,6 +318,9 @@
   // balões ficavam soltos por cima da tela seguinte.
   const SEL_BALOES = '.status-editor, .status-editor-backdrop';
   function fecharBaloesAntigos() {
+    // Varredura de 10/11/2026: o Esc com o cartão de um evento aberto fechava também a Agenda, e o dock ficava aceso nela.
+    const cartao = document.getElementById('ag-cartao');
+    if (cartao && !cartao.hidden) { try { window.agCartaoFechar?.(); } catch { /* segue */ } return true; }
     if (!document.querySelector(SEL_BALOES)) return false;
     for (const f of ['closeStatusEditor', 'fecharSeletorDeDono', 'fecharEscolha', 'fecharMenuDoGrupo', 'fecharMenuDeLote']) { try { window[f]?.(); } catch { /* segue */ } }
     document.querySelectorAll(SEL_BALOES).forEach((el) => el.remove());
