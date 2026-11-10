@@ -65,7 +65,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // mundo vem do alto à esquerda e acompanha o que se olha (posicionarCamera).
   const luz = luzDoEstilo(cena, { raio: 140, sombra: { mapa: 4096, lado: 140, longe: 600, bias: -0.0004, normalBias: 0.4 } });
   const { sol, preenche, contorno } = luz;
-  sol.position.set(-110, 160, 70);
+  sol.position.set(-130, 115, 85);
   const sc = sol.shadow.camera; sc.near = 10; sc.updateProjectionMatrix();
   preenche.position.set(120, 80, -90);
   contorno.position.set(110, 70, -120); contorno.target.position.set(0, 0, 0);
@@ -82,6 +82,8 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // Profundidade (Paulo, 08/11/2026: "a luz meio bugando"): com o corte perto fixo em 1 e a cena vista de até 460,
     // a profundidade perdia precisão e faces vizinhas brigavam (piscavam). O corte acompanha a distância.
     const perto = limitar(dist * 0.12, 0.5, 40), longe = dist * 6 + 900;
+    // Névoa de maquete: o que está bem mais longe que o foco desbota no céu (profundidade, como nas referências).
+    if (cena.fog) { cena.fog.near = dist * 1.15; cena.fog.far = dist * 3.4; }
     if (Math.abs(camera.near - perto) > perto * 0.05 || Math.abs(camera.far - longe) > longe * 0.05) { camera.near = perto; camera.far = longe; camera.updateProjectionMatrix(); }
     // A sombra acompanha o que se olha. A área anda em degraus (não muda a cada pixel de zoom) e o centro da sombra
     // encaixa na grade dos pixels dela: a borda da sombra não "nada" quando a câmera anda. O desvio é medido pelo
@@ -100,7 +102,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     const { ax, az, y, lado, texel } = solQuer; solQuer = null;
     if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
     sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
-    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
+    sol.position.set(ax - 130, 115, az + 85); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
@@ -346,12 +348,13 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   function passo(t) {
     if (destruido || pausado || contextoPerdido || !visivel || document.hidden) return false;
     const interagindo = arrasto || pinca || voo || vel.lengthSq() > 0.01;
-    // Mexendo: todo quadro. Parado, a cidade vira "foto" aos poucos (Paulo, 07/11/2026: "não ficar renderizando a cidade
-    // toda o tempo todo"): o que só enfeita (nuvem, água, o V girando) cai para 30 qps, depois de 6 s para 15, depois de
-    // 20 s para 4, e depois de 1 min o mapa para de ser desenhado até alguém mexer (ou um dado novo chegar: invalidar).
+    // Mexendo: todo quadro. Parado, o que só enfeita (nuvem, água, o V girando, passantes) anda a 30 qps constantes e,
+    // depois de 1 min sem mexer, o mapa vira "foto": para de ser desenhado até alguém mexer (ou um dado novo chegar).
+    // Antes o ritmo caía aos poucos (6 s, 20 s) e dava a sensação de travar (Paulo, 10/11/2026: "deixa só para depois
+    // de 1 min sem mexer na tela"; 07/11/2026: "não ficar renderizando a cidade toda o tempo todo").
     const parado = performance.now() - ultimaAcao;
     if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
-    if (!interagindo && t - ultimo < (parado > 20000 ? 250 : parado > 6000 ? 80 : 50)) return true;
+    if (!interagindo && t - ultimo < 33) return true;
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -376,7 +379,13 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // Oclusão nos cantos só com a câmera parada: mexendo, ela tremulava (serrilhado) e era a passada mais cara (travava).
     // O raio acompanha a distância: de longe, cantos maiores; de perto, os do quarto.
     const quieta = !(movendo || interagindo || mudouLivre);
-    if (quieta !== ultimaQuieta) { ultimaQuieta = quieta; if (qualidade > 1) { acabamento.oclusao(quieta); if (quieta) sujo = true; } }
+    if (quieta !== ultimaQuieta) {
+      ultimaQuieta = quieta;
+      // Parada, a sombra fica macia (raio maior do PCF, só na leitura: o mapa não é refeito); mexendo, a borda fina e barata.
+      sol.shadow.radius = quieta && qualidade > 0 ? 4.5 : 1.5;
+      if (qualidade > 1) acabamento.oclusao(quieta);
+      if (quieta) sujo = true;
+    }
     if (quieta) { const r = limitar(orb.dist * 0.006, 0.3, 2.4); if (Math.abs(r - raioAo) > raioAo * 0.1) { raioAo = r; acabamento.raioOclusao(r); sujo = true; } }
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;

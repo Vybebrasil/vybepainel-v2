@@ -5523,3 +5523,6 @@ body.mundo .vv-bloco-prio{container-type:inline-size}
    a varredura de 10/11/2026 achou Cancelar e Salvar da Nova reunião atrás do dock. */
 body.mundo{--vv-janela-alto:calc(100dvh - var(--vv-dock-alto,0px) - 2 * var(--vv-m,14px) - 28px)}
 body.mundo .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:var(--vv-janela-alto);top:calc(50% - var(--vv-dock-alto,0px) / 2 - 7px)}
+
+/* Medidor do mundo (?medir=1): canto de baixo à direita, discreto, sem roubar clique. */
+.vv-medidor{position:fixed;right:12px;bottom:84px;z-index:60;pointer-events:none;padding:4px 10px;border-radius:8px;background:rgba(31,29,26,.78);color:#fff;font:600 11px var(--vv-texto, system-ui);font-variant-numeric:tabular-nums}

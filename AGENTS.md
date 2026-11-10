@@ -248,6 +248,8 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   dela, os móveis de `escritorioMoveisDaVitrine` e o boneco fiel. Não volte ao boneco solto num palco.
   A cidade (`motor.mjs`) usa o mesmo `acabamentoDeMaquete` do quarto, com o tilt-shift como passada extra; a
   qualidade automática desliga a oclusão primeiro. Não crie outro composer.
+  Parada, a cidade anima o enfeite a 30 qps constantes e só vira foto depois de 1 min sem mexer (Paulo, 10/11/2026:
+  o ritmo caindo parecia travar); `?medir=1` mostra o tempo por quadro e as chamadas de desenho num canto.
   Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
   estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
   parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é

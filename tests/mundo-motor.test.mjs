@@ -52,12 +52,15 @@ test('passo real: repouso não redesenha; animação, câmera, resize e invalida
   h.motor.zoom(.9); h.motor.destruir(); h.motor.destruir(); assert.equal(h.frames.size, 0); assert.equal(h.timers.size, 0);
 });
 
-test('cidade parada vira foto: enfeite desacelera e, depois de 1 min sem mexer, o mapa para até alguém mexer', () => {
+test('cidade parada vira foto: enfeite em ritmo constante e, depois de 1 min sem mexer, o mapa para até alguém mexer', () => {
   const h = motorIsolado(); h.esvaziar();
   let quadros = 0; h.motor.animar(() => { quadros++; return true; }); h.motor.zoom(.95);
   // nos primeiros segundos a animação de enfeite segue rodando
   for (let k = 0; k < 40 && h.frames.size; k++) h.rodar(34);
   assert.ok(h.frames.size > 0); const antes = h.renderizados();
+  // aos 30 s parado o enfeite ainda anda no mesmo ritmo (sem ir caindo: parecia travar)
+  h.avancar(30000); const meio = quadros; for (let k = 0; k < 10 && h.frames.size; k++) h.rodar(34);
+  assert.ok(quadros - meio >= 9, 'até 1 min, a animação não desacelera');
   // 61 s sem mexer: o laço para (nenhum quadro pedido) e nada mais é desenhado
   h.avancar(61000); for (let k = 0; k < 5 && h.frames.size; k++) h.rodar(34);
   assert.equal(h.frames.size, 0, 'parado há 1 min, o motor não pede mais quadros');

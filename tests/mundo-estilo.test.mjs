@@ -150,3 +150,10 @@ test('cidade sem serrilhado ao mexer: oclusão só parada e o sol muda junto com
   assert.match(m, /ultimaSombra = t; aplicarSol\(\); renderer\.shadowMap\.needsUpdate = true/);
   assert.doesNotMatch(m.slice(m.indexOf('function posicionarCamera'), m.indexOf('let solQuer')), /sol\.position\.set/, 'o sol não anda fora do redesenho da sombra');
 });
+
+test('nuvens do Centro: cubos opacos com a cor por face, fora do brilho e da névoa', () => {
+  const c = fs.readFileSync('mundo/centro.mjs', 'utf8');
+  assert.match(c, /new T\.MeshBasicMaterial\(\{ vertexColors: true, fog: false \}\)/);
+  const claras = [...c.slice(c.indexOf('Nuvens voxel'), c.indexOf('const U = ')).matchAll(/'#([0-9A-F]{6})'/g)].map((m) => parseInt(m[1].slice(0, 2), 16) / 255);
+  for (const v of claras) assert.ok(Math.pow((v + .055) / 1.055, 2.4) < ESTILO.brilhoCidade.limiar, 'nenhuma face da nuvem passa do limiar do brilho');
+});
