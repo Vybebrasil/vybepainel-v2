@@ -97,7 +97,7 @@ test('peças: rodapé técnico fora do mundo, texto clicável como botão, foco 
 });
 
 test('vbResumoHtml: zero vira texto discreto, sem a cor de estado', () => {
-  const src = ler('vybe-core.js');
+  const src = ler('vybe-core.js').replace(/\r\n/g, '\n');
   const ini = src.indexOf('function vbResumoHtml');
   const fim = src.indexOf('\n}\n', ini) + 2;
   const ctx = { safeText: (v) => String(v ?? '') };
