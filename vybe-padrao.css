@@ -246,7 +246,7 @@
 .capt-novo-quando input{border-radius:6px!important;font:600 12.5px var(--mac-ui)!important}
 .capt-novo-acoes{display:flex!important;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--pv-linha)}
 .capt-novo-acoes .vb-link{color:#ff9a5c!important;font:600 12px var(--mac-ui)!important}
-.vb-botao.principal{border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
+:where(body:not(.mundo)) .vb-botao.principal{border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13px var(--mac-ui)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
 .capt-novo [name="titulo"]:focus{outline:0!important;box-shadow:0 12px 20px -14px #ee83b7!important;border-color:transparent transparent #ff9ac8!important}
 
 /* ---- Cadastro rápido (fc-*) ---- */
@@ -329,10 +329,10 @@
    botões e mesmos seletores de período do Painel de trabalho ---- */
 .vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
 .auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
-.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
-.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover{border-color:rgba(255,179,92,.45)!important}
-.eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
-.conta-botao.primario,.auto-novo{height:34px!important;padding:0 14px!important;border-radius:6px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) :is(.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal)){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
+:where(body:not(.mundo)) :is(.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover){border-color:rgba(255,179,92,.45)!important}
+:where(body:not(.mundo)) .eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
+:where(body:not(.mundo)) :is(.conta-botao.primario,.auto-novo){height:34px!important;padding:0 14px!important;border-radius:6px!important;border:0!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .eq-linha{border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 .eq-linha:hover{border-color:rgba(255,179,92,.3)!important}
 
@@ -575,7 +575,7 @@
 
 /* Mizinho: a aba ativa na cor do módulo (Audiovisual) */
 .prod-v2-head .p-segment button.active{background:linear-gradient(180deg,rgba(56,217,197,.3),rgba(56,217,197,.12))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(56,217,197,.45)!important}
-.capt-tb-criar{border:0!important;border-radius:6px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
+:where(body:not(.mundo)) .capt-tb-criar{border:0!important;border-radius:6px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .meeting-mode-sheet .meeting-head.meeting-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}.meeting-mode-sheet .meeting-head .x-fechar{position:static!important;margin:0!important;order:2}
 
 

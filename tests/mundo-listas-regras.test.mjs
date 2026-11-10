@@ -23,6 +23,8 @@ test('espiar, Gestão e Performance: cliente com cliCor, status com statusCor e 
   assert.match(perf, /subHtml: typeof pecaMetaHtml === 'function' \? pecaMetaHtml\(d\)/);
   assert.match(perf, /dirHtml: typeof pecaDatasHtml === 'function' \? pecaDatasHtml\(d\)/);
   assert.doesNotMatch(mundo + perf, /String\([a-z]\.veiculacao_iso \|\| [a-z]\.prazo_iso \|\| ''\)\.slice\(8, 10\)/, 'data sem nome');
-  assert.match(mundo, /\$\{d\.status \? statusCor\(d\) : ''\}/, 'Minhas tarefas com a pílula do status');
+  // Desde 10/11/2026 a pílula do Hoje é o botão que troca o status (acoesDaPeca); nas outras listas continua solta.
+  assert.match(mundo, /\$\{d\.status && !acoes \? statusCor\(d\) : ''\}/, 'Minhas tarefas com a pílula do status');
+  assert.match(mundo, /class="vv-demanda-status" onclick="openStatusEditor\(event,'\$\{id\}'\)"[^`]*\$\{statusCor\(d\)\}/, 'no Hoje, a pílula troca o status');
   assert.match(mundo, /'Prazo' : ref === String\(d\.veiculacao_iso \|\| ''\)\.slice\(0, 10\) \? 'No ar'/);
 });

@@ -160,7 +160,7 @@ html.vb-sem-movimento :is(.vbl-janela,.vbl-carregando i){animation:none}
 /* o que dá para mudar ali mesmo */
 .vpc-form{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:12px;border:1px solid #EFEAE2;border-radius:10px;background:#FCFAF7}
 .vpc-form label{display:grid;gap:4px;font:600 11.5px var(--vv-texto);color:#6B675F;min-width:0}
-.vpc-form select,.vpc-form input[type="date"]{height:36px;padding:0 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto);min-width:0}
+.vpc-form select,.vpc-form input[type="date"]{height:36px;padding:0 10px;border:1px solid #E6E0D6;border-radius:8px;background-color:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto);min-width:0}
 .vpc-form :is(select,input):focus-visible{outline:2px solid #F76808;outline-offset:1px}
 .vpc-form label.vpc-check{grid-column:1/-1;display:flex;align-items:center;gap:8px;font:500 12.5px var(--vv-texto);color:#3A3F44}
 .vpc-acoes{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}

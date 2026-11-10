@@ -5,19 +5,11 @@
 #vv-impressoes .vi-topo h2{margin:2px 0 2px;font:700 20px/1.2 "Inter Tight",Inter,system-ui,sans-serif;letter-spacing:-.01em}
 #vv-impressoes .vi-topo p{margin:0;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#6B665E}
 #vv-impressoes .vi-topo-acoes{display:flex;gap:8px;align-items:center;flex:none}
-#vv-impressoes .vi-x{width:34px;height:34px;display:grid;place-items:center;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#3D3A35;cursor:pointer;font-size:14px}
-#vv-impressoes .vi-x:hover{background:#F3EEE6}
 #vv-impressoes .vi-aviso{margin:0;padding:0 18px;font:600 12px Inter,system-ui,sans-serif;color:#12813F}
 #vv-impressoes .vi-aviso:not(:empty){padding:8px 18px 0}
 #vv-impressoes .vi-aviso.erro{color:#C2262E}
 #vv-impressoes .vi-corpo{flex:1 1 auto;min-height:0;overflow:auto;padding:14px 18px 22px;display:grid;gap:14px;align-content:start}
-#vv-impressoes .vi-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid #D9D1C3;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
-#vv-impressoes .vi-botao:hover{background:#F3EEE6}
-#vv-impressoes .vi-botao.principal{background:#F76808;border-color:#F76808;color:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.16)}
-#vv-impressoes .vi-botao.principal:hover{background:#E05A00}
-#vv-impressoes .vi-botao.perigo{color:#B4232F;border-color:#F0C4C7}
-#vv-impressoes .vi-botao:disabled{opacity:.45;cursor:not-allowed}
-#vv-impressoes :is(button,a,input,select,textarea):focus-visible{outline:2px solid #F76808;outline-offset:2px}
+#vv-impressoes :is(button,a,input,select,textarea):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
 #vv-impressoes .vi-link{appearance:none;border:0;background:none;padding:0;color:#C2490C;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 #vv-impressoes .vi-mudo{color:#8A847A;font:500 12px Inter,system-ui,sans-serif;font-style:normal;margin:0}
 #vv-impressoes .vi-nota{margin:0;font:500 12px/1.45 Inter,system-ui,sans-serif;color:#6B665E}
@@ -27,11 +19,11 @@
 /* Sem fornecedor cadastrado: o caminho para cadastrar fica à vista. */
 #vv-impressoes .vi-alerta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:8px;background:#FFF4E8;border:1px solid #F3D3B5;font:500 13px/1.45 Inter,system-ui,sans-serif}
 #vv-impressoes .vi-filtros{display:flex;gap:6px;flex-wrap:wrap}
-#vv-impressoes .vi-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#3D3A35;font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer}
+#vv-impressoes .vi-chip{display:inline-flex;align-items:center;gap:6px;min-height:var(--pc-h-p);padding:0 12px;border:1px solid #E6E0D6;border-radius:var(--pc-r);background:#FFFFFF;color:#3D3A35;font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer}
 #vv-impressoes .vi-chip em{font-style:normal;color:#6B665E}
 #vv-impressoes .vi-chip.ruim em{color:#B4232F}
 #vv-impressoes .vi-chip.atencao em{color:#9E5C00}
-#vv-impressoes .vi-chip[aria-pressed="true"]{border-color:#F76808;background:#FFF4E8;color:#9E3D00}
+#vv-impressoes .vi-chip[aria-pressed="true"]{border-color:var(--ds-sel-borda);background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
 /* Quadro por etapa e a ficha ao lado */
 #vv-impressoes .vi-meio{display:grid;gap:14px;align-items:start}
 #vv-impressoes .vi-meio.com-ficha{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
@@ -68,7 +60,7 @@
 #vv-impressoes .vi-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 #vv-impressoes .vi-grade .largo{grid-column:1/-1}
 #vv-impressoes label{display:grid;gap:5px;font:600 12px Inter,system-ui,sans-serif;color:#3D3A35}
-#vv-impressoes label :is(input:not([type=checkbox]),select,textarea){font:500 13.5px Inter,system-ui,sans-serif;color:#1F1D1A;background:#FFFFFF;border:1px solid #D9D1C3;border-radius:6px;padding:8px 10px;width:100%;box-sizing:border-box}
+#vv-impressoes label :is(input:not([type=checkbox]),select,textarea){font:500 13.5px Inter,system-ui,sans-serif;color:#1F1D1A;background-color:#FFFFFF;border:1px solid #D9D1C3;border-radius:6px;padding:8px 10px;width:100%;box-sizing:border-box}
 #vv-impressoes label textarea{resize:vertical}
 #vv-impressoes .vi-check{display:flex;align-items:flex-start;gap:8px;font-weight:500}
 #vv-impressoes .vi-check input{accent-color:#F76808;width:16px;height:16px;margin-top:1px}

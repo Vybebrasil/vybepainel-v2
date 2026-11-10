@@ -444,7 +444,36 @@
   // (status_color, vybe_status.cor) e, sem ela, a do catálogo do painel pelo nome (corDeStatus). A escala de situação é o último recurso.
   const corDoCatalogo = (s) => (typeof corDeStatus === 'function' ? corDeStatus(s)?.cor : '') || '';
   const corStatus = (d, sit) => String(d?.status_color || '').match(/^#[0-9a-f]{3,8}$/i)?.[0] || corDoCatalogo(d?.status) || COR_SIT(sit || 'fazer');
-  function linhaDemanda(d, { ref = '', sit = '', aviso = '', quem = null } = {}) {
+  // Roteiro de cada peça (Paulo, 10/11/2026: "pegar o roteiro" sem sair do Hoje): a mesma lista da biblioteca de
+  // roteiros (area=roteiros, vybe_roteiro_conteudos), lida uma vez e guardada por id da peça.
+  let roteirosPorPeca = null, roteirosPedidos = false;
+  function roteiroDaPeca(d) {
+    if (!roteirosPedidos) {
+      roteirosPedidos = true;
+      fetch('/api/painel?area=roteiros', { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        const m = new Map();
+        for (const r of j?.roteiros || []) for (const c of r.conteudos || []) if (r.link && !m.has('vybe:' + c.id)) m.set('vybe:' + c.id, { link: r.link, titulo: r.titulo });
+        roteirosPorPeca = m; pintarHoje();
+      }).catch(() => { roteirosPorPeca = new Map(); });
+    }
+    return roteirosPorPeca?.get(String(d.id)) || null;
+  }
+  // O que dá para fazer na peça sem abrir a gaveta (Paulo, 10/11/2026: "quem está abrindo já consiga fazer tudo por aqui"):
+  // trocar o status, o briefing (ou a etiqueta Sem briefing), o material bruto, entregar ou ver a prévia e o roteiro.
+  // São os mesmos botões de Minhas tarefas (vybe-briefing.js, vybe-material.js, vybe-risco.js), não uma cópia.
+  function acoesDaPeca(d) {
+    const id = esc(String(d.id));
+    const rot = roteiroDaPeca(d);
+    const partes = [
+      d.status ? `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(d.status)}">${statusCor(d)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : '',
+      typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(d) : '',
+      typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(d) : '',
+      typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(d) : '',
+      rot ? `<a class="focus-brief-btn roteiro" href="${esc(rot.link)}" target="_blank" rel="noopener" title="${esc(rot.titulo || 'Roteiro')}">${typeof vbIcone === 'function' ? vbIcone('documento') : ''}<span>Roteiro</span></a>` : '',
+    ].filter(Boolean).join('');
+    return partes ? `<div class="vv-demanda-acoes" role="group" aria-label="Ações da peça">${partes}</div>` : '';
+  }
+  function linhaDemanda(d, { ref = '', sit = '', aviso = '', quem = null, acoes = false } = {}) {
     if (!d) return '';
     sit = sit || situacaoDaPeca(d); ref = ref || d.veiculacao_iso || d.prazo_iso || '';
     const hoje = hojeIso(), cor = corStatus(d, sit);
@@ -457,9 +486,10 @@
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
         <b>${esc(semGrito(d.nome || d.titulo || 'Peça'))}</b>
-        <span class="vv-demanda-meta">${quem?.length ? `<span class="vv-demanda-quem">${esc(quem.join(', '))}</span>` : ''}${tagCli}${d.status ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
+        <span class="vv-demanda-meta">${quem?.length ? `<span class="vv-demanda-quem">${esc(quem.join(', '))}</span>` : ''}${tagCli}${d.status && !acoes ? statusCor(d) : ''}${aviso ? `<span class="vv-demanda-aviso">${esc(aviso)}</span>` : ''}</span>
       </button>
       <span class="vv-demanda-lado">${olho}${quando ? `<time${sit === 'atrasada' ? ' class="atrasada"' : ''}>${qual ? `<i>${qual}</i> ` : ''}${esc(quando)}</time>` : ''}</span>
+      ${acoes ? acoesDaPeca(d) : ''}
     </div>`;
   }
   // ---------- Visão do dono (Paulo, Vinícius, Ewerton e Deivid) ----------
@@ -1235,7 +1265,7 @@
     // Ordem do fluxo (não do relógio): o que pede retrabalho e aprovação primeiro, depois produção, cliente e agendado.
     const rankStatus = (st) => /altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : /agend|pronta|aprovado/i.test(st) ? 7 : 6;
     const porStatus = [...grupos.values()].sort((a, b) => rankStatus(a.st) - rankStatus(b.st) || chaveFila(a.itens[0]).localeCompare(chaveFila(b.itens[0])));
-    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null });
+    const item = (x) => linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null, acoes: true });
     const POR_GRUPO = innerHeight >= 1000 ? 4 : innerHeight >= 760 ? 3 : 2; // cabe na tela; o resto fica no "+N" (Modo Foco)
     const admin = typeof souAdmin === 'function' && souAdmin(), time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     // "Ver o dia de" (só os donos): as pessoas do dia como fichas, adicionar pela lista e o atalho do time de criação.

@@ -19,7 +19,7 @@
 .cad-campo.largo{grid-column:1/-1}
 .cad-campo>span{font:600 12px var(--vv-texto);color:var(--vv-tinta)}
 .cad-campo small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
-.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
+.cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background-color:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
 .cad-campo textarea{resize:vertical;min-height:88px;line-height:1.45}
 .cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
 .cad-campo input:disabled{background:#F6F3EE;color:var(--vv-apagado)}
