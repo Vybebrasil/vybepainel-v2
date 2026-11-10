@@ -37,8 +37,11 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
   abrindo sem erro de script no Chromium e no WebKit (1440, 1110 e 390). Além das de cima: Operação (04, 06, 28, 65), Topo (08,
   09, 41, 42, 44, 45, 46, 64, 66), Time (17, 21, 22, 25, 39, 40, 48, 49, 61, 62, 63), Mundo (32, 33, 35, 36, 37, 43) e Sistema
   (00, 29, 30: seletor do padrão no lugar de todo select no mundo, texto clicável como botão, foco, sem rodapé técnico).
-- **Falta:** a re-auditoria dos 66 quadros contra este branch (relatório em
-  `docs/redesign-reauditoria-2026-11-10.md` quando sair), corrigir o que ela achar, e publicar.
+- **Re-auditoria de 10/11 (noite):** 50 quadros FEITOS, 18 PELA METADE, nenhum sem fazer, sem regressões
+  (`docs/redesign-reauditoria-2026-11-10.md`, item por item). Este branch foi publicado com isso.
+- **Falta (segunda rodada):** os 18 pela metade e os defeitos listados na re-auditoria (aviso curto que não some e cobre
+  botões da gaveta; janelas translúcidas na busca, no Criar e na gaveta do celular; Loja por cima do dock lateral; contorno
+  lilás no WebKit em menu da conta, Camadas e painel do cliente; plurais "1 peças"/"Ver os 1"; chips cortados nas Conquistas).
 
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
