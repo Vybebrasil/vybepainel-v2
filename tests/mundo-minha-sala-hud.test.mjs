@@ -20,11 +20,12 @@ function dock({ online, zona = 'sala-1', minha = 'sala-1', aberta = '', mic = fa
   return ctx.dockSalasHtml(cabem);
 }
 
-test('dock fixo: microfone com o estado escrito, Minha sala e Sala atual (ver a sala), salas com gente, Salas, Chat, Música e Sair', () => {
+// Sem "Sair" (Paulo, 10/11/2026: "não tem como não estar em nenhuma sala").
+test('dock fixo: microfone com o estado escrito, Minha sala e Sala atual (ver a sala), salas com gente, Salas, Chat, Música e TV, sem Sair', () => {
   const h = dock({ zona: 'sala-2', online: [{ id: '1', nome: 'Paulo M', zona: 'sala-2' }, { id: '3', nome: 'Bia Souza', zona: 'sala-2' }, { id: '2', nome: 'Vinícius L', zona: 'recepcao' }],
     outros: [{ customParticipantId: '3:x', audioEnabled: false }] });
   const ordem = [...h.matchAll(/data-dock="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.equal(ordem.join(','), 'mic,ouvir,camera,tela,audio,ver-minha,ver-atual,salas,chat,musica,tv,sair');
+  assert.equal(ordem.join(','), 'mic,ouvir,camera,tela,audio,ver-minha,ver-atual,salas,chat,musica,tv');
   assert.ok(h.includes('<span class="vq-rotulo">Mudo</span>'), 'mudo escrito');
   assert.ok(h.includes('<span class="vq-rotulo">Sala atual</span>'));
   assert.equal([...h.matchAll(/data-vq-sala="([^"]+)"/g)].map((m) => m[1]).join(','), 'sala-2,recepcao', 'salas com gente, da que tem mais');

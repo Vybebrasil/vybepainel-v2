@@ -277,3 +277,19 @@ test('microfone que desliga sozinho volta (até 3 vezes por minuto); desligado d
   assert.equal(c.escritorioMicDesligouSozinho(m), false, 'no máximo 3 por minuto');
   assert.match(office, /meeting\.self\.on\("audioUpdate", \(\) => escritorioMicDesligouSozinho\(meeting\)\)/);
 });
+
+// Paulo, 10/11/2026: "quando loga, a pessoa já loga na última sala que ela tava".
+test('a última sala com voz fica guardada neste navegador; Foco, corredor e convidado não contam', () => {
+  const guardado = new Map();
+  const e = { zona: 'sala-3', base: {}, online: [], trancas: new Map() };
+  const c = vm.createContext({ escritorio: e, Set, Map, localStorage: { getItem: (k) => guardado.get(k) ?? null, setItem: (k, v) => guardado.set(k, String(v)) } });
+  vm.runInContext('var ESCRITORIO_ULTIMA_SALA = "vybe-escritorio-ultima-sala";', c);
+  for (const n of ['escritorioCanal', 'escritorioUltimaSala', 'escritorioGuardarUltimaSala']) vm.runInContext(fonte(office, n), c);
+  assert.equal(c.escritorioUltimaSala(), '');
+  c.escritorioGuardarUltimaSala(); assert.equal(c.escritorioUltimaSala(), 'sala-3');
+  e.zona = 'foco'; c.escritorioGuardarUltimaSala(); assert.equal(c.escritorioUltimaSala(), 'sala-3', 'Foco não tem voz');
+  e.zona = ''; c.escritorioGuardarUltimaSala(); assert.equal(c.escritorioUltimaSala(), 'sala-3', 'corredor');
+  e.zona = 'recepcao'; e.base = { convidado: { vozes: [] } }; c.escritorioGuardarUltimaSala(); assert.equal(c.escritorioUltimaSala(), 'sala-3', 'convidado não guarda');
+  e.base = {}; c.escritorioGuardarUltimaSala(); assert.equal(c.escritorioUltimaSala(), 'recepcao');
+  assert.equal((office.match(/escritorioGuardarUltimaSala\(\);/g) || []).length, 2, 'guarda ao entrar no quarto e ao andar para outra zona');
+});
