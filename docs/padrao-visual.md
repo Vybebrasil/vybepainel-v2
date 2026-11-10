@@ -105,6 +105,8 @@ Desde a fase 3a (10/11/2026) os botões têm **uma** definição, no bloco "PEÇ
 | **Painel lateral** (detalhes da peça, mesa de comando) | branco, borda à esquerda, cabeçalho fixo branco. |
 | **Tabela** | cabeçalho 9,5px 700 maiúsculas `#6B675F`; linhas com divisória `#F0EBE3`; números à direita em `tabular-nums`; hover `#FAF5EE`. |
 | **KPI** | número grande + rótulo curto; cor da escala só no número que pede ação. |
+| **Aviso curto** (fase 3d) | um desenho só, `mostrarAvisoCurto` (`vybe-core.js`): ícone neutro, título inteiro, a frase e até duas ações; sem faixa colorida na borda, vermelho só no erro; empilha no canto de cima à direita (`#vv-wa-avisos`), no máximo três. Menção com peça tem "Abrir a peça" como ação principal. |
+| **Avisos do sino** (fase 3d) | painel preso no sino (`.vv-avisos-painel`), sem fundo desfocado: Esperando você, Nos seus clientes e Notificações; cada linha com o tipo num ícone neutro, a frase inteira e a ação; não lido com a etiqueta "Novo" escrita. |
 
 ## 7. Estrutura da tela
 
@@ -114,6 +116,8 @@ Desde a fase 3a (10/11/2026) os botões têm **uma** definição, no bloco "PEÇ
 - **Placas** (Elevador, andar, agente) à direita e estreitas; o mapa nunca fica coberto por mais de um terço.
 - **Módulo aberto**: moldura de vidro com rolagem por dentro; no canto, **tela cheia** (F) e **fechar** (×).
 - **Esc** fecha de cima para baixo: janela → lista da chamada → placa → andar → módulo → cidade.
+
+- **Celular (até 600 px, fase 3d)**: topo com busca, avisos e conta; barra de baixo com cinco lugares (Hoje, Produção, **Criar** no meio, Conversas e Mais). O **Mais** junta as outras ferramentas, a voz fora de uma sala, as vistas e os outros módulos, chamando os mesmos botões. Fora de uma sala o dock das salas é um cartão "Fora das salas · Salas · Entrar"; numa chamada ele quebra linha; vendo uma sala, toma o lugar da barra de baixo. A coluna da Conversa e das Notas (terceira aba) termina acima do dock (`--vv-coluna-fundo`).
 
 ## 8. Mapa e prédio
 

@@ -950,8 +950,8 @@ body.vybe-desktop {
   border: 1px solid var(--glass-edge); border-radius: var(--radius-window);
   background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-window);
   backdrop-filter: blur(24px) saturate(1.35); -webkit-backdrop-filter: blur(24px) saturate(1.35); }
-.notas-janela.cheia { inset: 16px !important; width: auto !important; height: auto !important; }
-.notas-janela.barra { inset: auto 16px 16px auto !important; width: 240px !important; height: auto !important; }
+.notas-janela.cheia:not(.na-coluna) { inset: 16px !important; width: auto !important; height: auto !important; }
+.notas-janela.barra:not(.na-coluna) { inset: auto 16px 16px auto !important; width: 240px !important; height: auto !important; }
 .notas-topo { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: grab;
   border-bottom: 1px solid var(--border); touch-action: none; }
 .notas-janela.barra .notas-topo { border-bottom: 0; }
@@ -1061,8 +1061,9 @@ body.vybe-desktop {
   background: linear-gradient(135deg, transparent 50%, #ffffff2e 50%); touch-action: none; }
 .notas-janela.cheia .notas-canto, .notas-janela.barra .notas-canto { display: none; }
 @media (max-width: 640px) {
-  .notas-janela { inset: 8px !important; width: auto !important; height: auto !important; }
-  .notas-janela.barra { inset: auto 8px 8px auto !important; width: 200px !important; height: auto !important; }
+  /* Fora do mundo; no mundo as Notas ficam na coluna da Conversa (vybe-mundo.css, fase 3d). */
+  .notas-janela:not(.na-coluna) { inset: 8px !important; width: auto !important; height: auto !important; }
+  .notas-janela.barra:not(.na-coluna) { inset: auto 8px 8px auto !important; width: 200px !important; height: auto !important; }
   /* Duas linhas: a fila de cadernos no tamanho dela, a lista no resto. Sem
      isto a grade dividia a altura em duas metades iguais. */
   .notas-conteudo { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }

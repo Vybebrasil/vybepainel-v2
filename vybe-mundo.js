@@ -193,6 +193,8 @@
     // Centro comercial (Paulo, 08/11/2026): o mapa deixou de ser a tela principal e virou este botão. O 3D só
     // carrega quando ele (ou o Prédio) é aberto; Hoje, Gestão e os módulos ocupam a tela sem nada atrás.
     { id: 'setor:toolkit', grupo: 'Vybe', nome: 'Toolkit', dica: 'Ferramentas rápidas da Vybe: QR Code, link do WhatsApp e calculadora de ROI', ic: svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'), sub: [
+      // A Visão geral do Toolkit é a dele (fase 3d, quadro 39): os cartões das ferramentas e os usados por último.
+      { id: 'toolkit', nome: 'Visão geral', dica: 'As ferramentas e o que você usou por último', mod: ['VybeFerramentas', 'inicio'] },
       { id: 'qr', nome: 'QR Code', dica: 'QR para peça impressa, cardápio e evento', mod: ['VybeFerramentas', 'qr'] },
       { id: 'whatsapp-link', nome: 'Link do WhatsApp', dica: 'Link com mensagem pronta para bio e anúncio', mod: ['VybeFerramentas', 'whatsapp'] },
       { id: 'roi', nome: 'Calculadora de ROI', dica: 'Quantas vendas pagam a Vybe e o retorno esperado', mod: ['VybeFerramentas', 'roi'] },
@@ -274,6 +276,7 @@
   function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
+    if (id === 'setor:toolkit') { usarTrilho('toolkit'); return; }
     const t = TRILHO.find((x) => x && x.id === id);
     if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
     if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
@@ -1380,7 +1383,8 @@
         const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
         const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
         return cab + botao + subs;
-      }).join('');
+      }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
+        + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="mais" aria-haspopup="dialog" aria-expanded="false" title="Mais: ferramentas, voz e os outros módulos" aria-label="Mais">${svg('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>')}<span>Mais</span></button>`;
     })()}</nav>
     <section class="vv-hoje" id="vv-hoje" aria-label="Seu dia"></section>
     <div class="vv-topo">
@@ -1816,6 +1820,19 @@
     const falando = fn('escritorioPessoasFalando')?.() || new Set(), mics = microfonesNaChamada(e);
     const canal = e.conectado ? fn('escritorioCanal')?.(e.zona) : null;
     const naChamada = Boolean(!e.vozPausada && e.conectado && canal && e.chamada && e.canalChamada === canal), mic = Boolean(e.chamada?.self?.audioEnabled);
+    // Celular fora de uma sala (fase 3d, quadro 47): o dock vira um cartão "Fora das salas" com Salas e Entrar, sem cortar
+    // o último botão. O resto do dock (áudio, ouvir, música, TV) vai para o "Mais" da barra de baixo, pelos mesmos botões.
+    if (typeof noCelular === 'function' && noCelular() && !zonaAberta && !naChamada && !e.entrandoChamada) {
+      const n = (e.online || []).length, comGente = por.size;
+      const extra = (acao, nome, icone, titulo, desligado = false) => `<button type="button" data-dock="${acao}" data-dock-extra data-nome="${esc(nome)}" title="${esc(titulo)}" hidden${desligado ? ' disabled' : ''}>${icone}</button>`;
+      return `<div class="vq-cartao" role="group" aria-label="Voz das salas">
+        <span class="vq-cartao-ic" aria-hidden="true">${IC.mic}</span>
+        <span class="vq-cartao-txt"><b>Fora das salas</b><small>${n ? `${n} ${n === 1 ? 'pessoa' : 'pessoas'} online${comGente ? ` · ${comGente} ${comGente === 1 ? 'sala' : 'salas'} com gente` : ''}` : 'Ninguém nas salas agora'}</small></span>
+        <button type="button" class="vc-sec vq-cartao-salas" data-dock="salas" title="Todas as salas de voz: quem está em cada uma">Salas</button>
+        ${e.conectando ? '<button type="button" class="vc-acao" disabled>Conectando…</button>' : '<button type="button" class="vc-acao" data-dock="entrar" title="Entrar na chamada da sala (você entra mudo)">Entrar</button>'}
+        ${extra('audio', 'Ajustes de áudio', IC.ajustes, 'Ajustes de áudio: microfone, saída, ruído e teste')}${extra('ouvir', surdo ? 'Voltar a ouvir' : 'Silenciar as vozes', surdo ? IC.semSom : IC.som, 'Silenciar as vozes só para você')}${extra('musica', 'Música da sala', IC.musica, 'Música da sala: só nas salas com aparelho de som (o Lounge tem)')}${extra('tv', 'TV da sala', IC.tv, 'TV da sala', !e.zona)}
+      </div>`;
+    }
     const ini = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
     const botao = ({ acao, cls = '', icone, rot, titulo, extra = '' }) => `<button type="button" class="vq-item ${cls}" data-dock="${acao}" title="${esc(titulo)}" aria-label="${esc(titulo)}" ${extra}><span class="vq-icone">${icone}</span><span class="vq-rotulo">${rot}</span><i class="vq-ponto" aria-hidden="true"></i></button>`;
     const sep = '<span class="vq-sep" aria-hidden="true"></span>';
@@ -1896,12 +1913,24 @@
     const ver = Boolean(e) && ligado && !body.classList.contains('auth-pending') && !body.classList.contains('mundo-lobby');
     if (faixaDock.hidden === ver) faixaDock.hidden = !ver;
     body.classList.toggle('com-dock-salas', ver);
-    if (!ver) return;
+    if (!ver) { body.style.removeProperty?.('--vv-dock-alto'); return; }
     const nav = faixaDock.firstElementChild, passo = 56;
     const cabem = Math.floor((faixaDock.clientWidth - 20 - 12 * passo - 4 * 9) / passo);
     const html = dockSalasHtml(cabem);
     if (nav.dataset.html !== html) { nav.innerHTML = html; nav.dataset.html = html; }
+    // Celular: dentro de uma sala o dock toma o lugar da barra de baixo; fora, o cartão. Na tela estreita (dock em cima
+    // da barra de baixo) --vv-dock-alto vira a distância de verdade do pé da tela ao topo do dock, menos a margem: o que
+    // termina "acima do dock" (Hoje, janelas, coluna da Conversa, Notas, avisos) usa a mesma conta do computador.
+    const cel = noCelular();
+    body.classList.toggle('dock-cartao', cel && Boolean(nav.querySelector('.vq-cartao')));
+    body.classList.toggle('cel-na-sala', cel && String(andarAbertoId || '').startsWith('quarto:'));
+    const estreita = typeof matchMedia === 'function' && matchMedia('(max-width:900px)').matches;
+    const margem = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 12, topo = nav.getBoundingClientRect?.().top || 0;
+    const alto = estreita && topo > 0 ? Math.ceil(innerHeight - topo - margem) : 0;
+    if (alto) { if (body.style.getPropertyValue?.('--vv-dock-alto') !== alto + 'px') body.style.setProperty?.('--vv-dock-alto', alto + 'px'); }
+    else if (body.style.getPropertyValue?.('--vv-dock-alto')) body.style.removeProperty?.('--vv-dock-alto');
   }
+  if (typeof addEventListener === 'function') { let quadro = 0; addEventListener('resize', () => { cancelAnimationFrame(quadro); quadro = requestAnimationFrame(pintarDock); }); }
   faixaDock.addEventListener?.('click', (ev) => {
     const b = ev.target.closest('button'); if (!b || b.disabled) return;
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
@@ -2620,20 +2649,182 @@
   }
   const notificacoesDoPainel = () => Number(document.getElementById('notif-contador')?.textContent || 0) || 0;
   function abrirNotificacoes() { chamar('chooseManagerMode'); setTimeout(() => chamar('alternarNotificacoes'), 350); }
-  function abrirAvisos() {
-    const pl = avisosPlanejamento(), nt = notificacoesDoPainel();
-    hud.querySelector('.vv-avisos-menu')?.remove();
-    if (pl && !nt) { chamar('abrirPendentesPlanejamento'); return; }
-    if (!pl) { abrirNotificacoes(); return; }
-    const b = hud.querySelector('[data-ferr="avisos"]'), r = b.getBoundingClientRect();
-    const m = document.createElement('div'); m.className = 'vv-avisos-menu'; m.setAttribute('role', 'menu');
-    m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.round(innerWidth - r.right) + 'px';
-    m.innerHTML = `<button type="button" role="menuitem" data-avisos="plj"><b>Planejamentos e clientes</b><small>o que espera você e os avisos nas peças</small><em>${pl}</em></button>
-      <button type="button" role="menuitem" data-avisos="notif"><b>Notificações do painel</b><small>menções, mudanças e lembretes</small><em>${nt}</em></button>`;
-    m.addEventListener('click', (e) => { const x = e.target.closest('[data-avisos]'); if (!x) return; m.remove(); if (x.dataset.avisos === 'plj') chamar('abrirPendentesPlanejamento'); else abrirNotificacoes(); });
-    hud.append(m);
-    setTimeout(() => document.addEventListener('pointerdown', function fora(e) { if (!e.target.closest('.vv-avisos-menu, [data-ferr="avisos"]')) { m.remove(); document.removeEventListener('pointerdown', fora, true); } }, true), 0);
+  // Avisos do sino (fase 3d, quadro 41): um painel preso no sino, no estilo do sistema, no lugar da janela no meio da tela
+  // com fundo desfocado e dos triângulos nativos. Junta o que espera você (planejamentos), o que pede atenção nas peças dos
+  // seus clientes e as notificações do painel (prazo, menções). Cada linha tem o tipo num ícone neutro, a frase inteira e a
+  // ação dela (Abrir, Ver, Abrir a peça). Não lido tem a etiqueta "Novo" escrita, não só a cor.
+  const naoLidasDoPainel = () => {
+    try { if (typeof notificacoesNaoLidas === 'number') return notificacoesNaoLidas; } catch { /* sem o sino antigo */ }
+    return notificacoesDoPainel();
+  };
+  const listaDoPainel = () => { try { return typeof notificacoes !== 'undefined' && Array.isArray(notificacoes) ? notificacoes : []; } catch { return []; } };
+  const IC_AVISO = {
+    plano: svg('<path d="M5 3h10l4 4v14H5z"/><path d="M9 11h6M9 15h6"/>'),
+    atraso: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>'),
+    aprovar: svg('<path d="M5 12l4 4 10-10"/>'),
+    falta: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/>'),
+    mencao: svg('<circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.4 6.8"/>'),
+    sino: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+    fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
+  };
+  const grupoAberto = new Set();
+  const dataCurta = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? String(iso).slice(0, 10).split('-').reverse().join('/') : '');
+  function quandoFoiAviso(iso) {
+    const t = Date.parse(iso); if (!t) return '';
+    const min = Math.max(0, Math.floor((Date.now() - t) / 60000));
+    return min < 60 ? `há ${min} min` : min < 1440 ? `há ${Math.floor(min / 60)} h` : `há ${Math.floor(min / 1440)} d`;
   }
+  function avisosHtml() {
+    const pend = (() => { try { return typeof PLJ_PENDENTES !== 'undefined' ? PLJ_PENDENTES : []; } catch { return []; } })();
+    const alertas = (() => { try { return typeof PLJ_ALERTAS !== 'undefined' ? PLJ_ALERTAS : []; } catch { return []; } })();
+    const estados = (() => { try { return typeof PLJ_ESTADOS !== 'undefined' ? PLJ_ESTADOS : {}; } catch { return {}; } })();
+    const mes = (iso) => { try { return typeof pljMes === 'function' ? pljMes(iso) : String(iso || ''); } catch { return String(iso || ''); } };
+    const notifs = listaDoPainel(), novas = naoLidasDoPainel();
+    const linha = ({ ic, titulo, sub = '', acao = '', novo = false, cls = '' }) => `<li class="vv-aviso-linha${novo ? ' nao-lido' : ''}${cls ? ' ' + cls : ''}">
+      <span class="vv-aviso-ic" aria-hidden="true">${ic}</span><div class="vv-aviso-txt"><b>${novo ? '<em class="vv-aviso-novo">Novo</em>' : ''}${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div>${acao}</li>`;
+    const partes = [];
+    if (pend.length) partes.push(`<h3>Esperando você</h3><ul>${pend.map((p) => linha({ ic: IC_AVISO.plano,
+      titulo: esc(`Planejamento de ${mes(p.mes)}`), sub: esc([p.cliente, p.titulo, estados[p.estado]?.rotulo || p.estado].filter(Boolean).join(' · ')),
+      acao: `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-plano="${esc(p.id)}">Abrir</button>` })).join('')}</ul>`);
+    const tipos = [['atrasadas', 'status', 'muito atrasada', 'muito atrasadas', IC_AVISO.atraso], ['aprovar', 'status', 'para aprovar', 'para aprovar', IC_AVISO.aprovar], ['sem_info', 'motivo', 'sem informação', 'sem informação', IC_AVISO.falta]];
+    const doCliente = alertas.flatMap((a) => tipos.filter(([k]) => Number(a[k + '_total'] || 0) > 0).map(([k, campo, um, varios, ic]) => {
+      const total = Number(a[k + '_total']), itens = Array.isArray(a[k]) ? a[k] : [], chave = `${a.cliente_id || a.cliente}:${k}`, aberto = grupoAberto.has(chave);
+      const pecas = aberto ? `<ul class="vv-aviso-pecas">${itens.map((x) => linha({ ic: '', cls: 'peca', titulo: esc(x.titulo || 'Peça'), sub: esc([x.prazo ? 'prazo ' + dataCurta(x.prazo) : '', x[campo]].filter(Boolean).join(' · ')),
+        acao: `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-peca="${esc(x.ref)}" data-quadro="${esc(x.quadro || '')}">Abrir a peça</button>` })).join('')}${total > itens.length ? `<li class="vv-aviso-mais">e mais ${total - itens.length} no painel</li>` : ''}</ul>` : '';
+      return linha({ ic, cls: k === 'atrasadas' ? 'urgente' : '', titulo: esc(`${total} ${total === 1 ? 'peça' : 'peças'} ${total === 1 ? um : varios}`), sub: esc(a.cliente || 'Cliente'),
+        acao: itens.length ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-grupo="${esc(chave)}" aria-expanded="${aberto}">${aberto ? 'Fechar' : 'Ver'}</button>` : '' }).replace(/<\/li>$/, pecas + '</li>');
+    }));
+    if (doCliente.length) partes.push(`<h3>Nos seus clientes</h3><ul>${doCliente.join('')}</ul>`);
+    if (notifs.length) partes.push(`<h3>Notificações</h3><ul>${notifs.map((n) => linha({ ic: /mencion/i.test(n.texto || '') ? IC_AVISO.mencao : IC_AVISO.sino, novo: !n.lida_em,
+      titulo: esc(n.texto || 'Aviso'), sub: esc([n.conteudo_nome, quandoFoiAviso(n.criada_em)].filter(Boolean).join(' · ')),
+      acao: n.conteudo_id ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-notif="${esc(n.id)}" data-item="${esc(n.conteudo_id)}">Abrir a peça</button>` : '' })).join('')}</ul>`);
+    const resumo = novas ? `${novas} ${novas === 1 ? 'notificação nova' : 'notificações novas'}` : pend.length || doCliente.length ? 'Nada novo nas notificações' : 'Nada novo';
+    const vazio = partes.length ? '' : `<div class="vv-aviso-vazio"><b>Nada novo</b><p>Quando uma entrega sua estiver perto do prazo, um planejamento esperar você ou alguém mencionar você, o aviso aparece aqui.</p></div>`;
+    const centro = typeof irParaSalaEscritorio === 'function' && (pend.length || doCliente.length);
+    return `<div class="vv-avisos-cab"><div><h2 id="vv-avisos-titulo">Avisos</h2><small>${esc(resumo)}</small></div>
+        ${novas ? '<button type="button" class="vc-sec vv-aviso-lidos" data-aviso-lidos>Marcar como lidos</button>' : ''}
+        <button type="button" class="vc-ico vv-aviso-x" data-aviso-fechar aria-label="Fechar os avisos" title="Fechar (Esc)">${IC_AVISO.fechar}</button></div>
+      <div class="vv-avisos-corpo">${partes.join('') || vazio}</div>
+      ${centro ? '<div class="vv-avisos-pe"><button type="button" class="vc-sec" data-aviso-centro>Ir ao Centro de Operação</button></div>' : ''}`;
+  }
+  function posicionarAvisos(p) {
+    const b = hud.querySelector('[data-ferr="avisos"]'), r = b?.getBoundingClientRect?.();
+    if (!r || !r.width || innerWidth < 600) { p.style.top = ''; p.style.right = ''; return; }
+    p.style.top = Math.round(r.bottom + 8) + 'px'; p.style.right = Math.max(8, Math.round(innerWidth - r.right)) + 'px';
+  }
+  function pintarAvisos() {
+    const p = hud.querySelector('.vv-avisos-painel'); if (!p) return;
+    const html = avisosHtml(); if (p.dataset.html === html) return; p.dataset.html = html;
+    const corpo = p.querySelector('.vv-avisos-corpo'), rolagem = corpo ? corpo.scrollTop : 0;
+    p.innerHTML = html;
+    const novo = p.querySelector('.vv-avisos-corpo'); if (novo) novo.scrollTop = rolagem;
+  }
+  function fecharAvisos(devolverFoco = false) {
+    const p = hud.querySelector('.vv-avisos-painel'); if (!p) return false;
+    p.remove(); document.removeEventListener('pointerdown', foraDosAvisos, true);
+    const b = hud.querySelector('[data-ferr="avisos"]'); b?.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) b?.focus?.();
+    return true;
+  }
+  function foraDosAvisos(e) { if (!e.target.closest?.('.vv-avisos-painel, [data-ferr="avisos"], .vv-cel-mais')) fecharAvisos(); }
+  function abrirAvisos() {
+    if (fecharAvisos()) return; // o sino abre e fecha
+    hud.querySelector('.vv-avisos-menu')?.remove();
+    const p = document.createElement('section');
+    p.className = 'vv-avisos-painel'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-labelledby', 'vv-avisos-titulo');
+    hud.append(p); pintarAvisos(); posicionarAvisos(p);
+    hud.querySelector('[data-ferr="avisos"]')?.setAttribute('aria-expanded', 'true');
+    p.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fecharAvisos(true); } });
+    p.addEventListener('click', (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.hasAttribute('data-aviso-fechar')) { fecharAvisos(true); return; }
+      if (x.dataset.avisoGrupo) { const k = x.dataset.avisoGrupo; if (grupoAberto.has(k)) grupoAberto.delete(k); else grupoAberto.add(k); pintarAvisos(); p.querySelector(`[data-aviso-grupo="${CSS.escape(k)}"]`)?.focus(); return; }
+      if (x.hasAttribute('data-aviso-lidos')) { Promise.resolve(fn('marcarNotificacoesLidas')?.()).finally(() => { pintarAvisos(); pintarSelosDeAviso(); }); return; }
+      fecharAvisos();
+      if (x.dataset.avisoPlano) chamar('abrirPlanejamento', x.dataset.avisoPlano);
+      else if (x.dataset.avisoPeca) chamar('pljAbrirPeca', x.dataset.avisoPeca, x.dataset.quadro);
+      else if (x.dataset.avisoNotif) chamar('abrirDoNotificacao', x.dataset.avisoNotif, x.dataset.item);
+      else if (x.hasAttribute('data-aviso-centro')) chamar('irParaSalaEscritorio', 'operacao');
+    });
+    setTimeout(() => document.addEventListener('pointerdown', foraDosAvisos, true), 0);
+    (p.querySelector('.vv-aviso-acao') || p.querySelector('[data-aviso-fechar]'))?.focus?.();
+    // Relê as notificações: o painel se repinta quando chegam.
+    Promise.resolve(fn('carregarNotificacoes')?.()).then(() => pintarAvisos(), () => {});
+  }
+  function pintarSelosDeAviso() {
+    const n = naoLidasDoPainel() + avisosPlanejamento(), el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
+    if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
+    b?.setAttribute('aria-label', n ? `Avisos · ${n} para ver` : 'Avisos');
+  }
+  // ---------- Celular (fase 3d, quadro 47) ----------
+  // No celular o topo fica com busca, avisos e conta; a barra de baixo tem cinco lugares (Hoje, Produção, Criar no meio,
+  // Conversas e Mais). O "Mais" junta tudo o que saiu da vista: as outras ferramentas do topo, a voz fora de uma sala, as
+  // vistas do mundo e os outros módulos do dock, com os submenus de cada setor. Cada item chama o MESMO botão de antes
+  // (cadeado, aviso e destino iguais): nenhuma função sai da tela, só muda de lugar.
+  function noCelular() { return typeof matchMedia === 'function' && matchMedia('(max-width:600px)').matches; }
+  const FERR_NO_TOPO_CEL = ['busca', 'avisos', 'conta'];
+  const NA_BARRA_CEL = ['hoje', 'criar', 'setor:producao'];
+  function fecharMaisCel(devolverFoco = false) {
+    const m = hud.querySelector('.vv-cel-mais'); if (!m) return false;
+    m.remove(); document.removeEventListener('pointerdown', foraDoMaisCel, true);
+    const b = hud.querySelector('[data-cel="mais"]'); b?.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) b?.focus?.();
+    return true;
+  }
+  function foraDoMaisCel(e) { if (!e.target.closest?.('.vv-cel-mais, [data-cel="mais"]')) fecharMaisCel(); }
+  function maisCelHtml(origem) {
+    const iconeDe = (b) => b.querySelector('svg')?.outerHTML || '';
+    const item = (orig, nome) => {
+      const i = origem.push(orig) - 1, trancado = orig.classList.contains('trancado');
+      return `<button type="button" class="vv-cel-item${trancado ? ' trancado' : ''}" data-cel-orig="${i}"${orig.getAttribute('aria-pressed') === 'true' ? ' aria-pressed="true"' : ''}${orig.disabled ? ' disabled' : ''}>${iconeDe(orig)}<span>${esc(nome)}</span>${trancado ? '<i class="vv-cel-cadeado" aria-label="só os donos">' + svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') + '</i>' : ''}</button>`;
+    };
+    const grade = (lista) => `<div class="vv-cel-grade">${lista.join('')}</div>`;
+    const partes = [];
+    const ferr = [...hud.querySelectorAll('.vv-ferramentas [data-ferr], .vv-ferramentas [data-boletim]')]
+      .filter((b) => !FERR_NO_TOPO_CEL.includes(b.dataset.ferr) && !b.hidden && (b.dataset.ferr !== 'camadas' || body.classList.contains('mundo-centro')));
+    if (ferr.length) partes.push(`<h3>Ferramentas</h3>${grade(ferr.map((b) => item(b, (b.getAttribute('aria-label') || b.textContent).trim())))}`);
+    // A voz fora de uma sala: o cartão do dock só tem Salas e Entrar; o resto do dock vem para cá.
+    const dock = faixaDock.querySelector('.vq-cartao') ? [...faixaDock.querySelectorAll('[data-dock-extra]')] : [];
+    if (dock.length) partes.push(`<h3>Salas e voz</h3>${grade(dock.map((b) => item(b, b.dataset.nome || b.title)))}`);
+    const vistas = [...hud.querySelectorAll('.vv-vistas [data-vista]')];
+    if (vistas.length) partes.push(`<h3>Vista do mundo</h3>${grade(vistas.map((b) => item(b, b.textContent.trim())))}`);
+    let grupo = '', bloco = [];
+    const fechaGrupo = () => { if (bloco.length) partes.push(`<h3>${esc(grupo || 'Módulos')}</h3>${bloco.join('')}`); bloco = []; };
+    for (const b of hud.querySelectorAll('.vv-trilho > [data-trilho]')) {
+      const id = b.dataset.trilho; if (NA_BARRA_CEL.includes(id) || b.hidden) continue;
+      const g = b.dataset.grupo || grupo; if (g !== grupo) { fechaGrupo(); grupo = g; }
+      const nome = b.querySelector('span')?.textContent.trim() || b.getAttribute('aria-label') || id;
+      const subs = id.startsWith('setor:') ? [...(hud.querySelector(`.vv-trilho-sub[data-sub-de="${id}"]`)?.children || [])].filter((x) => x.matches('button') && !x.hidden) : [];
+      if (subs.length && !b.classList.contains('trancado')) bloco.push(`<div class="vv-cel-setor"><b>${iconeDe(b)}${esc(nome)}</b>${grade(subs.map((x) => item(x, x.textContent.replace('↗', '').trim())))}</div>`);
+      else bloco.push(grade([item(b, nome)]));
+    }
+    fechaGrupo();
+    return `<div class="vv-cel-mais-cab"><h2 id="vv-cel-mais-titulo">Mais</h2><button type="button" class="vc-ico" data-cel-fechar aria-label="Fechar" title="Fechar (Esc)">${svg('<path d="M6 6l12 12M18 6 6 18"/>')}</button></div>
+      <div class="vv-cel-mais-corpo">${partes.join('')}</div>`;
+  }
+  function usarCelular(qual) {
+    if (qual === 'conversas') { fecharMaisCel(); usarTrilho('conversas'); return; }
+    if (qual !== 'mais' || fecharMaisCel(true)) return;
+    fecharSetor(); fecharAvisos();
+    const origem = [], m = document.createElement('section');
+    m.className = 'vv-cel-mais'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-labelledby', 'vv-cel-mais-titulo');
+    m.innerHTML = maisCelHtml(origem);
+    hud.append(m);
+    hud.querySelector('[data-cel="mais"]')?.setAttribute('aria-expanded', 'true');
+    m.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      e.stopPropagation();
+      if (b.hasAttribute('data-cel-fechar')) { fecharMaisCel(true); return; }
+      const orig = origem[Number(b.dataset.celOrig)]; if (!orig) return;
+      fecharMaisCel();
+      orig.click();
+    });
+    m.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fecharMaisCel(true); } });
+    setTimeout(() => document.addEventListener('pointerdown', foraDoMaisCel, true), 0);
+    m.querySelector('.vv-cel-item')?.focus?.();
+  }
+  // Ao passar para o computador (girar o tablet, abrir a janela), o "Mais" do celular sai.
+  if (typeof addEventListener === 'function') addEventListener('resize', () => { if (!noCelular()) fecharMaisCel(); });
   // O "Mais" fecha com clique fora e com Esc.
   document.addEventListener?.('pointerdown', (e) => { const m = hud.querySelector('.vv-mais-menu[open]'); if (m && !m.contains(e.target)) m.removeAttribute('open'); }, true);
   document.addEventListener?.('keydown', (e) => { const m = e.key === 'Escape' && hud.querySelector('.vv-mais-menu[open]'); if (m) { m.removeAttribute('open'); e.stopPropagation(); } }, true);
@@ -2653,10 +2844,9 @@
     else if (id === 'conta') { hud.querySelector('.vv-menu-tema')?.remove(); alternarMenuConta(); }
     else if (id === 'avisos') abrirAvisos();
   }
-  setInterval(() => {
-    const n = notificacoesDoPainel() + avisosPlanejamento(), el = hud.querySelector('#vv-badge-avisos');
-    if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
-  }, 3000);
+  // O número do sino: notificações não lidas (o total do servidor; o ponto antigo do cabeçalho não tem número) e o que
+  // os planejamentos e clientes pedem. Com o painel aberto, ele se atualiza junto.
+  setInterval(() => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); }, 3000);
 
   function mostrarCliente(nome) {
     const c = naTela.find((x) => x.nome === nome) || clientesDoMundo().find((x) => x.nome === nome); if (!c) return;
@@ -2715,6 +2905,7 @@
         || b.dataset.visaoSetor || (b.dataset.submodulo && b.closest('.vv-trilho'))) fecharAndarVoxel(false);
     }
     if (b.hasAttribute('data-trilho-recolher')) { alternarDock(); return; }
+    if (b.dataset.cel) { usarCelular(b.dataset.cel); return; }
     if (b.classList.contains('trancado') && b.closest('.vv-trilho')) { avisarTrancado(b); return; }
     if (b.hasAttribute('data-ver-como-sair')) { definirVerComo(''); return; }
     // Setor no dock largo (Paulo, 08/11/2026 e 09/11/2026: "quando eu clico em produção, além de abrir a visão geral já
@@ -3036,7 +3227,8 @@
     el.innerHTML = '<b>Música</b><small>A música toca nas salas com aparelho de som, e todo mundo da sala ouve junto. O Lounge tem.</small>'
       + '<div class="vv-musica-fora-acoes"><button type="button" class="vv-botao" data-fechar>Agora não</button><button type="button" class="vv-botao acao" data-lounge>Ir para o Lounge</button></div>';
     hud.append(el);
-    const r = botao?.getBoundingClientRect?.();
+    // Chamado pelo "Mais" do celular, o botão do dock está guardado (sem tamanho): o balão sai em cima do dock.
+    const r0 = botao?.getBoundingClientRect?.(), r = r0?.width ? r0 : faixaDock.getBoundingClientRect?.();
     if (r) { el.style.left = `${Math.max(12, Math.min(innerWidth - el.offsetWidth - 12, r.left + r.width / 2 - el.offsetWidth / 2))}px`; el.style.bottom = `${Math.round(innerHeight - r.top + 10)}px`; }
     const fechar = () => { el.remove(); document.removeEventListener('pointerdown', fora, true); document.removeEventListener('keydown', esc, true); };
     const fora = (ev) => { if (!el.contains(ev.target) && ev.target !== botao && !botao?.contains?.(ev.target)) fechar(); };

@@ -156,8 +156,33 @@ function notasGuardarGeometria(mudanca) {
   try { localStorage.setItem(NOTAS_GEOMETRIA, JSON.stringify({ ...notasGeometria(), ...mudanca })); } catch { /* sem memória, tudo bem */ }
 }
 
+// No mundo (fase 3d, quadro 42) as Notas são a terceira aba da coluna da Conversa: abrem no mesmo lugar dela, acima do
+// dock, com as abas Conversa, Recados e Notas no topo. Expandir continua; arrastar e a barrinha ficam para fora do mundo.
+const notasNaColuna = () => Boolean(document.body?.classList?.contains('mundo'));
+const NOTAS_ICONES = {
+  expandir: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
+  reduzir: '<path d="M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7"/>',
+  encolher: '<path d="M5 12h14"/>',
+  janela: '<rect x="4" y="5" width="16" height="14" rx="2"/>',
+  fechar: '<path d="M6 6l12 12M18 6 6 18"/>',
+  voltar: '<path d="M15 6l-6 6 6 6"/>',
+  renomear: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  apagar: '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',
+};
+const notasIcone = (nome) => `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NOTAS_ICONES[nome] || ''}</svg>`;
+function notasIrParaAba(aba) {
+  fecharNotas();
+  if (window.VybeConversa?.abrir) window.VybeConversa.abrir(aba);
+}
+
 function notasAplicarGeometria(janela) {
   const g = notasGeometria();
+  if (janela.classList.contains('na-coluna')) {
+    janela.classList.remove('barra');
+    for (const k of ['width', 'height', 'left', 'top']) janela.style[k] = '';
+    janela.classList.toggle('cheia', g.modo === 'cheia');
+    return;
+  }
   if (g.modo === 'cheia') { janela.classList.add('cheia'); return; }
   if (g.modo === 'barra') { janela.classList.add('barra'); }
   const largura = Math.min(Math.max(Number(g.largura) || 520, 340), window.innerWidth - 16);
@@ -171,7 +196,7 @@ function notasAplicarGeometria(janela) {
 // e para dedo, e não depende de biblioteca.
 function notasArrastar(evento) {
   const janela = document.getElementById('notas-janela');
-  if (!janela || janela.classList.contains('cheia') || evento.target.closest('button')) return;
+  if (!janela || janela.classList.contains('cheia') || janela.classList.contains('na-coluna') || evento.target.closest('button')) return;
   const inicio = janela.getBoundingClientRect();
   const x0 = evento.clientX, y0 = evento.clientY;
   const mover = (e) => {
@@ -239,11 +264,13 @@ async function notasPedir(caminho, opcoes = {}) {
 }
 
 async function abrirNotas() {
+  // Na coluna do mundo, a Conversa aberta dá o lugar às Notas.
+  if (notasNaColuna() && window.VybeConversa?.aberto?.()) window.VybeConversa.fechar();
   const existente = document.getElementById('notas-janela');
   if (existente) { existente.classList.remove('barra'); notasGuardarGeometria({ modo: 'solta' }); notasAplicarGeometria(existente); return pintarNotas(); }
   const janela = document.createElement('section');
   janela.id = 'notas-janela';
-  janela.className = 'notas-janela';
+  janela.className = 'notas-janela' + (notasNaColuna() ? ' na-coluna' : '');
   janela.setAttribute('role', 'dialog');
   janela.setAttribute('aria-label', 'Suas notas');
   janela.innerHTML = '<div class="workspace-loading">Carregando suas notas…</div>';
@@ -283,13 +310,22 @@ function notasTopoHtml() {
   const cheia = document.getElementById('notas-janela')?.classList.contains('cheia');
   const barra = document.getElementById('notas-janela')?.classList.contains('barra');
   const naNota = NOTAS_ESTADO === 'nota' && !barra;
+  if (document.getElementById('notas-janela')?.classList.contains('na-coluna')) {
+    // O topo da coluna: as abas e o fechar na mesma linha, como todo cabeçalho de janela; dentro de uma nota, a volta.
+    const aba = (id, rotulo) => `<button type="button" role="tab" aria-selected="${id === 'notas'}" tabindex="${id === 'notas' ? 0 : -1}"${id === 'notas' ? '' : ` onclick="notasIrParaAba('${id}')"`}>${rotulo}</button>`;
+    return `<div class="notas-topo notas-topo-coluna">
+        <div class="vv-conversa-abas" role="tablist" aria-label="Conversa da equipe, recados ou notas">${aba('conversa', 'Conversa')}${aba('recados', 'Recados')}${aba('notas', 'Notas')}</div>
+        <button type="button" class="notas-icone" onclick="expandirNotas()" title="${cheia ? 'Voltar para a coluna' : 'Expandir para a tela'}" aria-label="${cheia ? 'Voltar para a coluna' : 'Expandir'}">${notasIcone(cheia ? 'reduzir' : 'expandir')}</button>
+        <button type="button" class="notas-icone" onclick="fecharNotas()" title="Fechar (Esc)" aria-label="Fechar as notas">${notasIcone('fechar')}</button>
+      </div>${naNota ? `<div class="notas-sub"><button type="button" class="notas-voltar" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas">${notasIcone('voltar')}<span>Notas</span></button><b>${safeText(NOTA_ABERTA?.titulo || 'Nota')}</b></div>` : ''}`;
+  }
   return `<div class="notas-topo" onpointerdown="notasArrastar(event)">
-      ${naNota ? '<button type="button" class="notas-voltar" onclick="voltarParaAsNotas()">‹</button>' : ''}
+      ${naNota ? `<button type="button" class="notas-voltar" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas">${notasIcone('voltar')}</button>` : ''}
       <b>${naNota ? safeText(NOTA_ABERTA?.titulo || 'Nota') : 'Notas'}</b>
       <div class="notas-topo-acoes">
-        ${barra ? '' : `<button type="button" class="notas-icone" onclick="expandirNotas()" title="${cheia ? 'Voltar ao tamanho' : 'Expandir para a tela'}" aria-label="Expandir">${cheia ? '⤡' : '⤢'}</button>`}
-        <button type="button" class="notas-icone" onclick="encolherNotas()" title="${barra ? 'Abrir a janela' : 'Encolher para uma barrinha'}" aria-label="Encolher">${barra ? '▣' : '—'}</button>
-        <button type="button" class="notas-icone" onclick="fecharNotas()" title="Fechar" aria-label="Fechar">×</button>
+        ${barra ? '' : `<button type="button" class="notas-icone" onclick="expandirNotas()" title="${cheia ? 'Voltar ao tamanho' : 'Expandir para a tela'}" aria-label="Expandir">${notasIcone(cheia ? 'reduzir' : 'expandir')}</button>`}
+        <button type="button" class="notas-icone" onclick="encolherNotas()" title="${barra ? 'Abrir a janela' : 'Encolher para uma barrinha'}" aria-label="Encolher">${notasIcone(barra ? 'janela' : 'encolher')}</button>
+        <button type="button" class="notas-icone" onclick="fecharNotas()" title="Fechar" aria-label="Fechar">${notasIcone('fechar')}</button>
       </div>
     </div>`;
 }
@@ -321,8 +357,8 @@ function pintarNotas() {
         ${cadernos}
         <button type="button" class="notas-caderno novo" onclick="novoCaderno()">+ Caderno</button>
         ${NOTAS_CADERNOS.length ? `<div class="notas-caderno-acoes">
-          <button type="button" onclick="renomearCadernoAtual()">renomear</button>
-          <button type="button" onclick="apagarCadernoAtual()">apagar</button></div>` : ''}
+          <button type="button" class="notas-discreto" onclick="renomearCadernoAtual()" title="Renomear o caderno ${safeText(NOTAS_CADERNO)}">${notasIcone('renomear')}<span>Renomear</span></button>
+          <button type="button" class="notas-discreto perigo" onclick="apagarCadernoAtual()" title="Apagar o caderno ${safeText(NOTAS_CADERNO)} (as notas vão para outro caderno)">${notasIcone('apagar')}<span>Apagar</span></button></div>` : ''}
       </aside>
       <div class="notas-lista">
         <div class="notas-barra">
