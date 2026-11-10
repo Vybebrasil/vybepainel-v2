@@ -45,7 +45,7 @@ export function paredesDaPlanta(p) {
   return lista;
 }
 
-export function abrirQuarto(canvas, { quarto = {} } = {}) {
+export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   const P = plantaDoQuarto(quarto), { W, D } = P;
   const nivelMax = Math.max(0, ...P.grade.flat());
   // Releitura no estilo Vybe (Paulo, 09/11/2026: "pode reinterpretar"): piso e parede caem na paleta (estilo.mjs).
@@ -745,15 +745,16 @@ export function abrirQuarto(canvas, { quarto = {} } = {}) {
     if (e.defaultPrevented && !antes) { seguir = true; sujar(); }
   }
   function soltarAndar(e) { try { globalThis.soltarTeclaEscritorio?.(e); } catch { /* sem o motor */ } }
-  window.addEventListener('keydown', teclaAndar);
-  window.addEventListener('keyup', soltarAndar);
+  // Vitrine (cartão do jogador, entrada do jogo): só mostra; sem teclado e sem mexer a vista.
+  if (!vitrine) { window.addEventListener('keydown', teclaAndar); window.addEventListener('keyup', soltarAndar); }
 
   montarPiso();
   montarParedes();
   montarItens(quarto.itens);
   // Câmera na parte mobiliada (as referências enchem a tela com o quarto): na abertura, o centro e o tamanho dos
   // móveis de chão, com folga e no mínimo 5 × 5 ladrilhos; o duplo clique continua mostrando o quarto inteiro.
-  {
+  if (vitrine) { quer.alvo.copy(alvo.set(W / 2, 1.35, D / 2)); quer.dist = dist = longe; posicionar(); }
+  else {
     const chao = (Array.isArray(quarto.itens) ? quarto.itens : []).filter((it) => Array.isArray(it) && it[0] && !ehDeParedeCatalogo(it[0]));
     if (chao.length) {
       let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;

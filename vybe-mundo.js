@@ -2331,17 +2331,38 @@
     const id = idEscritorio || idDoEscritorio(verComo) || b.eu;
     abrirFichaEscritorio(id);
   }
-  // A ficha no mundo: boneco voxel num palco claro (no lugar da sala do Habbo); "ir para o quarto" leva
-  // à sala da pessoa no Prédio; a pintura de piso e paredes do Habbo some (a sala agora é voxel).
+  // Vitrine do jogador (Paulo, 21/10/2026: "o boneco aparece sempre na vitrine do quarto dele"; 09/11/2026: tudo em
+  // voxel): com o mundo ligado, toda .vb-vitrine do Escritório (ficha, entrada, criador) é um pedaço 3 × 3 do quarto
+  // voxel da pessoa (abrirQuarto em modo vitrine): o piso e a parede dela, até dois móveis do quarto
+  // (escritorioMoveisDaVitrine) e o boneco fiel no meio. Desenha só quando muda, como o quarto.
+  function vitrineVoxel(el) {
+    if (!ligado || !el) return null;
+    const pid = String(el.dataset.pessoa || '');
+    let vivo = true, cena = null;
+    const canvas = document.createElement('canvas'); canvas.className = 'vv-vitrine-3d'; el.append(canvas); el.classList.add('vv-vitrine');
+    (modAvatar ? Promise.resolve(modAvatar) : import(MUNDO_JS)).then(async (m) => {
+      modAvatar = modAvatar || m; if (!vivo || !el.isConnected) return;
+      let sala = null; try { sala = pid ? fn('escritorioDonos')?.()?.get(pid) : null; } catch { /* sem base */ }
+      const base = sala ? quartoDaSala(sala.id) : null;
+      const quarto = { id: 'vitrine-' + (pid || 'x'), nome: '', w: 3, h: 3, piso: base?.piso, parede: base?.parede, ehDeParede: base?.ehDeParede, itens: [] };
+      cena = m.abrirQuarto(canvas, { quarto, vitrine: true });
+      if (el.dataset.boneco) {
+        const e = typeof escritorio !== 'undefined' ? escritorio : null;
+        const perfil = pid && String(pid) === String(e?.base?.eu) ? e?.perfil : e?.base?.equipe?.find((p) => String(p.id) === pid)?.perfil;
+        cena.pessoas([{ id: 'vitrine-' + pid, nome: '', zona: quarto.id, x: 1, y: 1, figura: perfil?.figura || '', roupa: perfil?.roupa, pele: perfil?.pele, cabelo: perfil?.cabelo }], '');
+      }
+      const itens = await (fn('escritorioMoveisDaVitrine')?.(pid) || Promise.resolve([])).catch(() => []);
+      if (!vivo || !itens.length) return;
+      cena.itens(itens);
+      medidasDoHabbo(itens).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
+    }).catch((err) => console.error('[mundo] vitrine', err));
+    return { destruir() { vivo = false; try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
+  }
+  window.vybeVitrineVoxel = vitrineVoxel;
+  // A ficha no mundo: o boneco na vitrine voxel do quarto dele (acima); "ir para o quarto" leva à sala da pessoa no
+  // Prédio; a pintura de piso e paredes do Habbo some (a sala agora é voxel).
   function ajustarFicha() {
     const d = document.getElementById('office-ficha'); if (!d || !ligado) return;
-    const palco = d.querySelector('.ofc-hud-palco');
-    if (palco && !palco.querySelector('.vv-perfil-avatar')) {
-      const id = palco.querySelector('[data-pessoa]')?.dataset.pessoa;
-      const p = (escritorio?.base?.equipe || []).find((x) => String(x.id) === String(id));
-      const fig = p?.perfil?.figura;
-      if (fig) (modAvatar ? Promise.resolve(modAvatar) : import(MUNDO_JS)).then((m) => { modAvatar = m; if (palco.querySelector('.vv-perfil-avatar')) return; const img = new Image(); img.className = 'vv-perfil-avatar'; img.alt = ''; img.src = m.avatarVoxel(fig, { direcao: 3 }); palco.append(img); }).catch(() => {});
-    }
     d.querySelectorAll('.ofc-ficha-acoes button').forEach((b) => {
       const on = b.getAttribute('onclick') || '';
       if (on.includes('abrirEstiloSalaEscritorio')) b.hidden = true;

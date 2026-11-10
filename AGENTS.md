@@ -243,6 +243,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   ladrilho, cores e tamanho da arte do Habbo); o resto é esculpido só no mesmo grão, sem a casca de 2 px. Isto
   substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
+  Vitrine do jogador (09/11/2026): com o mundo ligado, toda `.vb-vitrine` (ficha, criador, entrada) é um pedaço 3 × 3
+  do quarto voxel da pessoa (`vitrineVoxel` em `vybe-mundo.js`, `abrirQuarto` com `vitrine: true`): piso e parede
+  dela, os móveis de `escritorioMoveisDaVitrine` e o boneco fiel. Não volte ao boneco solto num palco.
   Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
   estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
   parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é

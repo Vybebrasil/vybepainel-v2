@@ -1145,6 +1145,9 @@ function escritorioMontarVitrines(raiz = document) {
   for (let i = vivas.length - 1; i >= 0; i--) if (!vivas[i].el.isConnected) { try { vivas[i].mapa.destruir(); } catch {} vivas.splice(i, 1); }
   for (const el of raiz.querySelectorAll(".vb-vitrine:not([data-montada])")) {
     el.dataset.montada = "1";
+    // Com o mundo ligado, a vitrine é o pedaço do quarto voxel da pessoa (vybe-mundo.js), com o boneco fiel.
+    const voxel = typeof window.vybeVitrineVoxel === "function" ? window.vybeVitrineVoxel(el) : null;
+    if (voxel) { vivas.push({ el, mapa: voxel }); continue; }
     const pid = el.dataset.pessoa, sala = pid ? escritorioDonos().get(String(pid)) : null;
     const base = sala || ESCRITORIO_PLANTA.ambientes.find((a) => a.pessoal);
     // Outra planta (a prévia do recado mostra a Mansão no piso da pessoa).
