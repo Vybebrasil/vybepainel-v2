@@ -352,6 +352,9 @@
     // Item com cadeado chamado por outro caminho (busca, atalho): o mesmo aviso do dock.
     // Direção de arte (Paulo, 09/11/2026: "reformular o painel de direção de arte no padrão novo"): abre a Criação do Hoje.
     if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true; usarTrilho.criacao = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
+    // Minhas tarefas (quadro 31 do redesign, 10/11/2026): o item do dock e a aba do Hoje levam ao mesmo lugar, o Hoje na
+    // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
+    if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     if (TRANCADOS.has(id) && !souDono()) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
     if (String(id).startsWith('setor:')) {
       // Visão geral com cadeado (a do RH para quem não é dono): o setor só abre a lista dos itens.
@@ -405,15 +408,13 @@
     // Gestão (vybe-mundo-performance.js); a Visão geral volta para a Agência.
     if (id === 'gestao' || id === 'performance') { abrirGestao(id === 'performance' ? 'performance' : 'agencia'); return; }
     if (!gestao.hidden) fecharGestao();
-    const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     const noModulo = body.classList.contains('mundo-modulo');
     if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
-    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : 'hoje'); usarTrilho.criacao = false; pintarHoje(); ajustarAreaLivre(); return; }
+    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : usarTrilho.tarefas ? 'tarefas' : 'hoje'); usarTrilho.criacao = false; usarTrilho.tarefas = false; pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
-    if (id === 'tarefas') { marcarTrilho('tarefas'); if (eu) chamar('chooseFocusUser', String(eu.id)); else chamar('openFocusPicker'); return; }
     ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
       agenda: () => abrirAgenda(), clientes: () => chamar('chooseClientMode'), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
@@ -428,7 +429,10 @@
   function minhaFila() {
     const time = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
-    const varios = !verComo && pessoasHoje.length && souDono() ? pessoasHoje.map((id) => time.find((u) => String(u.id) === id)).filter(Boolean) : [];
+    // Sem a fila pelo usuário (quadro 31): a pessoa escolhe uma vez "De quem é este dia?" e a escolha fica na mesma
+    // lista guardada do "Ver o dia de" (pessoasHoje). Quem não é dono acompanha uma pessoa só.
+    const escolhidos = !verComo && pessoasHoje.length && (souDono() || !eu) ? pessoasHoje.map((id) => time.find((u) => String(u.id) === id)).filter(Boolean) : [];
+    const varios = souDono() ? escolhidos : escolhidos.slice(0, 1);
     const users = varios.length ? varios : [(verComo && time.find((u) => String(u.id) === verComo)) || eu].filter(Boolean);
     if (!users.length || typeof focusOwnItems !== 'function') return null;
     const porId = new Map();
@@ -1166,15 +1170,36 @@
       && (citado(e) || (mizinho && (e.tipo === 'captacao' || /\bmizinho\b/.test(semAcento(e.titulo)))) || (quem === 'paulo' && e.tipo !== 'captacao')))
       .sort((a, b) => (a.dia + (a.inicio || '00:00')).localeCompare(b.dia + (b.inicio || '00:00')));
   }
+  const eventoHtml = (e, quando) => `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}"><small>${esc([quando, e.inicio ? e.inicio.replace(':00', 'h').replace(':', 'h') : ''].filter(Boolean).join(' · '))} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
+  // Agenda de hoje (quadro 31): os eventos do dia pela agenda única (a das Captações), com carregando, erro e vazio.
+  function agendaDeHojeHtml() {
+    const hoje = hojeIso();
+    let eventos = null, erro = ''; try { eventos = agendaEventos; erro = agendaErro; } catch { /* a agenda ainda não foi lida */ }
+    const lista = Array.isArray(eventos) ? eventos.filter((e) => e.dia === hoje).sort((a, b) => (a.inicio || '00:00').localeCompare(b.inicio || '00:00')) : [];
+    const corpo = erro && !Array.isArray(eventos) ? vbEstadoHtml({ tipo: 'erro', titulo: 'A agenda não veio', texto: erro, acao: '<button type="button" class="vv-mais" data-hoje-acao="agenda-ler">Tentar de novo</button>' })
+      : !Array.isArray(eventos) ? vbEstadoHtml({ tipo: 'carregando', titulo: 'Lendo a agenda' })
+      : lista.length ? lista.slice(0, 4).map((e) => eventoHtml(e, '')).join('') + (lista.length > 4 ? `<button type="button" class="vv-mais" data-hoje-acao="agenda">+ ${lista.length - 4} na agenda</button>` : '')
+      : vbEstadoHtml({ tipo: 'vazio', titulo: 'Nada marcado hoje', texto: 'Captações e reuniões do dia aparecem aqui, pela agenda das Captações.', acao: '<button type="button" class="vv-mais" data-hoje-acao="agenda">Abrir a agenda</button>' });
+    return `<section class="vv-hoje-caixa" aria-label="Agenda de hoje"><div class="vv-rotulo-secao" style="--c:#1A8FA0"><i></i>Agenda de hoje${lista.length ? `<span class="vv-pilula">${lista.length}</span>` : ''}</div>${corpo}</section>`;
+  }
+  // Os agentes viram (quadro 31): o começo da fila Depende de você (filaDoDono, vybe-mundo-agentes.js), com Abrir.
+  function agentesViramHtml() {
+    const r = window.VybeAgentes?.resumoParaHoje?.(3);
+    const corpo = !r ? vbEstadoHtml({ tipo: 'carregando', titulo: 'Lendo os agentes' })
+      : !r.pode ? vbEstadoHtml({ tipo: 'vazio', titulo: 'Os achados vão para os donos', texto: 'O que os agentes encontram espera um dono decidir em Depende de você. Quando mexe nas suas peças, aparece nelas.' })
+      : !r.itens.length && r.lendo ? vbEstadoHtml({ tipo: 'carregando', titulo: 'Lendo os agentes' })
+      : !r.itens.length ? vbEstadoHtml({ tipo: 'vazio', titulo: 'Nada esperando você', texto: 'Quando um agente pedir o seu OK, achar algo urgente ou falhar, aparece aqui.', acao: '<button type="button" class="vv-mais" data-hoje-acao="agentes">Abrir Depende de você</button>' })
+      : `<ul class="vv-agentes-viram">${r.itens.map((it) => `<li><span><b>${esc(it.titulo)}</b><small>${esc(it.agente)} · ${esc(it.rotulo)}</small></span><button type="button" class="vv-mais" data-hoje-acao="agente" data-valor="${esc(it.setor)}|${esc(it.chave || '')}" aria-label="Abrir: ${esc(it.titulo)}">Abrir</button></li>`).join('')}</ul>`
+        + (r.total > r.itens.length ? `<button type="button" class="vv-mais" data-hoje-acao="agentes">+ ${r.total - r.itens.length} em Depende de você</button>` : '');
+    return `<section class="vv-hoje-caixa" aria-label="Os agentes viram"><div class="vv-rotulo-secao" style="--c:#7A5AF8"><i></i>Os agentes viram${r?.total ? `<span class="vv-pilula">${r.total}</span>` : ''}</div>${corpo}</section>`;
+  }
+  document.addEventListener('vybe:agentes', () => pintarHoje());
   function compromissosHtml() {
     if (!verComo && agendaFixa()) return ''; // o Mizinho já tem a Agenda fixa ao lado
     const lista = meusCompromissos(); if (!lista.length) return '';
     const hoje = hojeIso(), amanha = somar(hoje, 1);
     return `<section class="vv-compromissos" aria-label="Seus compromissos"><div class="vv-rotulo-secao" style="--c:#1A8FA0"><i></i>Seus compromissos<span class="vv-pilula">${lista.length}</span></div>
-      ${lista.slice(0, 3).map((e) => {
-        const quando = e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', '');
-        return `<button type="button" class="vv-evento" style="--c:${TIPO_COR[e.tipo] || TIPO_COR.outro}" data-agenda-dia="${esc(e.dia)}"><small>${esc(quando + (e.inicio ? ' · ' + e.inicio.replace(':00', 'h').replace(':', 'h') : ''))} · ${esc(TIPO_NOME[e.tipo] || 'Compromisso')}</small><b>${esc(e.titulo || 'Sem título')}</b>${e.local || e.cliente ? `<span>${esc(e.local || e.cliente)}</span>` : ''}</button>`;
-      }).join('')}${lista.length > 3 ? `<button type="button" class="vv-mais" data-hoje-acao="agenda">+ ${lista.length - 3} na agenda</button>` : ''}</section>`;
+      ${lista.slice(0, 3).map((e) => eventoHtml(e, e.dia === hoje ? 'Hoje' : e.dia === amanha ? 'Amanhã' : new Date(`${e.dia}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).replace('.', ''))).join('')}${lista.length > 3 ? `<button type="button" class="vv-mais" data-hoje-acao="agenda">+ ${lista.length - 3} na agenda</button>` : ''}</section>`;
   }
   // ---------- Criação: o time do Deivid (Paulo, 09/11/2026: "uma visualização parecida com a agência, mas voltada para
   // a direção de arte, para o time de criação, para o Deivid acompanhar tudo... com Jady, Bia e Reriston"; "o painel de
@@ -1264,11 +1289,38 @@
     if (dono && !verComo && visaoHoje === 'agencia') { pintarAgencia(el, { data, saud, nome }); return; }
     if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }
     const segDono = dono && !verComo ? segHoje('tarefas') : '';
+    // O título do dia com "Criar" à direita, o mesmo cabeçalho de todas as telas (quadro 31).
+    const criarHtml = `<button type="button" class="vv-hoje-criar" data-trilho="criar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Criar</button>`;
     if (!fila) {
+      // Sem a fila pelo usuário (quadro 31 do redesign): a pergunta "De quem é este dia?" na própria tela, o guia do VYBES
+      // na ordem da fila (passosDoGuia, com as peças abertas da agência) e o dia: agenda de hoje e o que os agentes viram.
       const carregou = typeof DADOS_ALL !== 'undefined' && DADOS_ALL?.length;
-      el.innerHTML = `<small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>
-        <button type="button" class="vv-fala" data-trilho="tarefas"><span class="vv-ser" aria-hidden="true"><i></i></span><span>${carregou ? 'Não achei sua fila pelo seu usuário. Escolha de quem acompanhar as tarefas.' : 'Carregando sua fila…'}</span><b aria-hidden="true">→</b></button>
-        <div class="vv-chips"><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}`;
+      const time = (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).filter((u) => u?.id != null && (u.name || u.nome));
+      const nomeCurto = (u) => String(u.name || u.nome || '').split(' ')[0];
+      // Dois com o mesmo primeiro nome (Ewerton e Ewerton L.): o chip leva o segundo nome também.
+      const repetido = (u) => time.filter((x) => nomeCurto(x) === nomeCurto(u)).length > 1;
+      const nomeDoChip = (u) => (repetido(u) ? String(u.name || u.nome).split(' ').slice(0, 2).join(' ') : nomeCurto(u));
+      const topo = `${segDono}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>${criarHtml}</div>`;
+      const quem = `<section class="vv-quem-dia" aria-labelledby="vv-quem-dia-t"><div class="vv-quem-dia-txt"><h3 id="vv-quem-dia-t">De quem é este dia?</h3>
+          <p>Não achei sua fila pelo seu usuário. Escolha uma vez; fica guardado neste navegador.</p></div>
+        ${time.length ? `<div class="vv-quem-chips" role="group" aria-label="Pessoas da equipe">${time.map((u) => `<button type="button" class="vv-pessoa-chip" data-pessoa-dia="${esc(u.id)}" title="${esc(u.name || u.nome)}">${esc(nomeDoChip(u))}</button>`).join('')}</div>`
+          : vbEstadoHtml({ tipo: carregou ? 'vazio' : 'carregando', titulo: carregou ? 'Sem a lista da equipe' : 'Carregando a equipe', texto: 'A lista da equipe chega com os dados do painel.' })}</section>`;
+      let guia = '';
+      if (!carregou) guia = vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando a fila' });
+      else {
+        const todas = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : DADOS_ALL;
+        const porId = new Map(time.map((u) => [String(u.id), nomeCurto(u)]));
+        const abertasAg = todas.filter((d) => !(typeof isFinishedItem === 'function' && isFinishedItem(d)))
+          .map((d) => ({ d, sit: situacaoDaPeca(d), quem: [...new Set([...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map((x) => porId.get(String(x))).filter(Boolean))] }));
+        const { urgentes: urg, passos } = passosDoGuia(abertasAg, hoje, true);
+        guia = guiaHtml({ agente: { nome: 'VYBES', papel: 'Orquestrador · guia do dia', setor: 'orquestrador' },
+          intro: !abertasAg.length ? 'Nenhuma peça aberta na agência agora.' : urg ? `A agência tem <b>${urg} atrasada${urg > 1 ? 's' : ''}</b>. Enquanto você não escolhe, a ordem da agência:` : 'Enquanto você não escolhe, a ordem da agência:',
+          passos,
+          depois: abertasAg.length > 3 ? `Depois disso, mais ${abertasAg.length - 3} na agência. <button type="button" class="vg-link" data-hoje-acao="demandas">Ver todas as demandas</button>` : '' });
+      }
+      const html = `${topo}${quem}<div class="vv-hoje-sem-fila">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}
+          <div class="vv-hoje-dia">${agendaDeHojeHtml()}${agentesViramHtml()}</div></div>`;
+      if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
       return;
     }
     const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
@@ -1336,12 +1388,13 @@
     const lado = `<aside class="vv-hoje-lado" aria-label="Avisos, compromissos e atalhos">
       ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
       ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
-      ${compromissosHtml()}
+      ${compromissosHtml() || agendaDeHojeHtml()}
+      ${agentesViramHtml()}
       <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
     </aside>`;
-    const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : ''}</span>
-        <span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span></div>
+    const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : !dono && !euId ? `<small class="vv-dia-de">O dia de ${esc(nomeCurto(fila.user))} · <button type="button" class="vg-link" data-pessoas-atalho="trocar">Trocar</button></small>` : ''}</span>
+        <span class="vv-hoje-topo-acoes"><span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span>${criarHtml}</span></div>
       ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
@@ -1353,6 +1406,10 @@
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
     if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
     if (acao === 'agenda') { abrirAgenda(); return; }
+    if (acao === 'agenda-ler') { carregarAgenda(true); return; }
+    // Os agentes viram (quadro 31): a peça do achado abre na janela da peça; o resto, na fila Depende de você.
+    if (acao === 'agente') { const [setor, chave] = String(valor || '').split('|'); if (!window.VybeAgentes?.abrirPeca?.(setor, chave)) usarTrilho('agentes'); return; }
+    if (acao === 'agentes') { usarTrilho('agentes'); return; }
     if (acao === 'pedido_rh') { window.VybePessoas?.novoPedido?.(); return; } // Nova solicitação ao RH (vybe-mundo-pessoas.js)
     if (acao === 'missoes') { window.VybeMissoes?.abrir?.('missoes', verComo || undefined); window.VybeTutorial?.dica?.('missoes'); return; }
     if (acao === 'radar') chamar('chooseManagerMode');
@@ -1365,7 +1422,8 @@
     const sel = e.target.closest('[data-ver-como]'); if (!sel) return; definirVerComo(sel.value);
   });
   hud.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-pessoa-tirar],[data-pessoas-atalho]'); if (!b || b.disabled) return;
+    const b = e.target.closest('[data-pessoa-tirar],[data-pessoas-atalho],[data-pessoa-dia]'); if (!b || b.disabled) return;
+    if (b.dataset.pessoaDia) { definirPessoasHoje([b.dataset.pessoaDia]); return; }
     if (b.dataset.pessoasAtalho) { definirPessoasHoje(b.dataset.pessoasAtalho === 'criacao' ? timeDeCriacao() : []); return; }
     const atuais = (pessoasHoje.length ? pessoasHoje : []).filter((id) => id !== String(b.dataset.pessoaTirar));
     definirPessoasHoje(atuais);
@@ -2042,7 +2100,7 @@
   // ---------- Agenda (a mesma das Captações: /api/painel?area=captacoes, só leitura) ----------
   const TIPO_COR = { captacao: '#0E9A45', reuniao: '#1A8FA0', outro: '#6B7A72' };
   const TIPO_NOME = { captacao: 'Captação', reuniao: 'Reunião', outro: 'Compromisso' };
-  let agendaEm = 0, agendaEventos = null;
+  let agendaEm = 0, agendaEventos = null, agendaErro = '';
   async function carregarAgenda(forcar = false) {
     const fixa = agendaFixa();
     if (body.classList.contains('agenda-fixa') !== fixa) { body.classList.toggle('agenda-fixa', fixa); ajustarAreaLivre(); }
@@ -2052,8 +2110,8 @@
       const r = await fetch(`/api/painel?area=captacoes&semana=${hoje}&dias=7`, { credentials: 'same-origin', cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d?.error || 'Agenda indisponível.');
-      agendaEventos = (d.agenda || []).filter((e) => e.dia >= hoje); agendaEm = Date.now();
-    } catch (e) { agendaEventos = null; hud.querySelector('#vv-agenda-lista').innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; return; }
+      agendaEventos = (d.agenda || []).filter((e) => e.dia >= hoje); agendaEm = Date.now(); agendaErro = '';
+    } catch (e) { agendaEventos = null; agendaErro = e.message || 'Agenda indisponível.'; hud.querySelector('#vv-agenda-lista').innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; pintarHoje(); return; }
     pintarAgenda(); pintarHoje();
     const hoje2 = mundo?.diaNaBahia?.() || hojeIso();
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)

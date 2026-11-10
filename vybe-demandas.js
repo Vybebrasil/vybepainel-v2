@@ -1166,9 +1166,23 @@ function pintarClientesDeDemandas() {
   caixa.innerHTML = todos + clientes.map(([n, q]) => botao(n, q)).join('');
 }
 
+// Demandas (quadro 03, 10/11/2026): o filtro ativo acende o chip dele, com a escolha escrita no próprio chip.
+function pintarChipsDeDemandas() {
+  const marcar = (chave, valor) => {
+    const chip = document.querySelector(`#painel-demandas [data-dem-chip="${chave}"]`); if (!chip) return;
+    const escolha = chip.querySelector('.agenda-filtro-escolha'); if (escolha && escolha.textContent !== valor) escolha.textContent = valor;
+    chip.classList.toggle('tem-escolha', Boolean(valor));
+  };
+  const pessoa = currentDemandaPersonFilter !== 'all' && typeof TEAM_USERS !== 'undefined' ? TEAM_USERS.find((u) => String(u.id) === String(currentDemandaPersonFilter)) : null;
+  marcar('status', currentDemandaStatusFilter !== 'all' ? String(currentDemandaStatusFilter) : '');
+  marcar('tipo', currentDemandaTipoFilter === '__sem__' ? 'Sem tipo' : currentDemandaTipoFilter !== 'all' ? String(currentDemandaTipoFilter) : '');
+  marcar('cliente', clienteDemandasExato || '');
+  marcar('responsavel', currentDemandaPersonFilter === 'all' ? '' : String(pessoa?.name || pessoa?.nome || '1 pessoa').split(' ')[0]);
+}
 function renderDemandas() {
   restaurarPreferenciasDemandas();
   pintarVisoesDemandas();
+  pintarChipsDeDemandas();
   document.querySelectorAll('#date-mode-bar-demandas .date-mode-btn').forEach(el=>el.classList.toggle('active', el.id === 'btn-dmode-' + currentDemandaDateMode));
   guardarPreferenciasDemandas();
   pintarFiltroCarteira();

@@ -43,11 +43,12 @@ test('celular: a faixa de dias e o dia vazio da agenda legíveis no fundo claro'
   assert.match(css, /html body\.mundo \.ag-nada\{background:#F6F3EE;color:#5E5A53\}/);
 });
 
-test('agenda da equipe: Redes, Demandas ou Pendências escolhido uma vez para a semana; o dia ainda troca o dele', () => {
+test('agenda da equipe: Redes, Demandas ou Pendências escolhido uma vez para a semana; o dia troca o dele só no tema antigo', () => {
   const g = readFileSync('vybe-gestor.js', 'utf8');
   assert.match(g, /let abaDaSemana = 'social';/);
   assert.match(g, /abaDaSemana = aba;\s*abasPendenciasDia\.clear\(\);/, 'escolher para a semana desfaz as trocas por dia');
   assert.ok(g.includes("salva===false?'social':!salva?abaDaSemana:salva"), 'dia sem escolha própria segue a semana');
-  assert.match(g, /pintarAbaDaSemana\(grid,sem\);/);
+  // Quadro 02 (10/11/2026): no mundo as abas de cada dia saem e a contagem da semana vai para o alternador.
+  assert.match(g, /pintarAbaDaSemana\(grid,sem,\{social:naSemana\.social\.size/);
   assert.match(css, /@media \(max-width:700px\)\{\s*html body\.mundo \.section-title \.semana-abas\{order:5;flex:1 0 100%;margin-left:0\}/, 'no celular, linha própria');
 });

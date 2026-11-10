@@ -16,7 +16,9 @@ test('o dock acende o item certo (Conversas, Equipe, Aprovação de conteúdo, v
   assert.match(js, /if \(!document\.getElementById\('vv-whatsapp'\)\?\.hidden && document\.getElementById\('vv-whatsapp'\)\?\.isConnected\) return;\r?\n\s*if \(placa\(\) && !placa\(\)\.hidden\) return;/);
   assert.match(js, /criacaoPeloDock && visaoHoje === 'criacao' && !body\.classList\.contains\('mundo-modulo'\) \? 'direcao' : 'hoje'/);
   assert.match(js, /if \(modulo && !window\.VybeSetor\?\.aberto\?\.\(\)\) marcarTrilhoDoModulo\(\);/);
-  assert.match(js, /if \(id === 'tarefas'\) \{ marcarTrilho\('tarefas'\);/);
+  // Minhas tarefas abre o Hoje na aba Minhas tarefas e acende o item dele (quadro 31, 10/11/2026).
+  assert.match(js, /if \(id === 'tarefas'\) \{ visaoHoje = 'tarefas';/);
+  assert.match(js, /usarTrilho\.tarefas \? 'tarefas' : 'hoje'/);
   assert.match(readFileSync('vybe-mundo-conteudo.js', 'utf8'), /aberto: \(\) => st\.aberto/);
   assert.match(js, /window\.dispatchEvent\?\.\(new CustomEvent\('vybe:trocar-tela'\)\);/, 'trocar de tela avisa');
   assert.match(readFileSync('vybe-mundo-whatsapp.js', 'utf8'), /addEventListener\?\.\('vybe:trocar-tela', \(\) => \{ if \(st\.aberto\) fechar\(\); \}\)/, 'e as Conversas fecham');
