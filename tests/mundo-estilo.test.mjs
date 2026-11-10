@@ -79,7 +79,8 @@ test('biblioteca: os móveis dos quartos modelados um a um entram antes da recei
     const o = m.montarMovel(null, { w: 2, d: 1, classe: c });
     assert.ok(o && o.solidos.length > 6, c + ' tem detalhe');
   }
-  assert.equal(m.temModelo('winter15_iceskater'), false, 'estátua continua esculpida');
+  assert.ok(m.temModelo('winter15_iceskater'), 'estátuas também têm modelo próprio');
+  assert.equal(m.temModelo('classe_que_nao_existe'), false, 'o que não tem modelo nem tipo continua esculpido');
 });
 
 test('lote 2: peças de construção viram bloco na paleta; móveis dos outros quartos têm modelo próprio', async () => {
