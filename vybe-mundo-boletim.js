@@ -204,7 +204,7 @@
     if (!st.aberto) { if (raiz) raiz.hidden = true; return; }
     if (!raiz) {
       raiz = document.createElement('div'); raiz.className = 'vbl-fundo'; raiz.hidden = true;
-      raiz.innerHTML = '<div class="vbl-janela" role="dialog" aria-modal="true" aria-labelledby="vbl-titulo"></div>';
+      raiz.innerHTML = '<div class="vbl-janela" role="dialog" aria-modal="false" aria-labelledby="vbl-titulo"></div>';
       raiz.addEventListener('click', aoClicar); document.body.append(raiz);
     }
     const jan = raiz.querySelector('.vbl-janela'); st.achados = {};
@@ -266,7 +266,8 @@
   document.addEventListener('keydown', (e) => {
     if (!st.aberto || e.target.closest?.('input,textarea,select')) return;
     if (e.key === 'Escape') fechar();
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = raiz?.querySelectorAll('.vbl-abas button').length || 0; const i = st.i + (e.key === 'ArrowRight' ? 1 : -1); if (i >= 0 && i < n) { st.i = i; pintar(); } }
+    // Painel sem fundo (o resto da tela segue clicável): as setas só trocam de agente com o foco dentro dele.
+    else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && raiz?.contains(document.activeElement)) { const n = raiz?.querySelectorAll('.vbl-abas button').length || 0; const i = st.i + (e.key === 'ArrowRight' ? 1 : -1); if (i >= 0 && i < n) { st.i = i; pintar(); } }
   });
   document.addEventListener('click', (e) => { if (e.target.closest?.('[data-boletim]')) abrir(); });
 

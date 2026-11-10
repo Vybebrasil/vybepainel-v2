@@ -78,7 +78,7 @@ test('agrupados: urgentes do mesmo agente e tipo viram uma linha; o número do d
   assert.equal(g2.em, '2026-11-07T11:00:00Z', 'desde o mais antigo');
   assert.equal(so.tipo, 'achado');
   const js = readFileSync('vybe-mundo-agentes.js', 'utf8');
-  assert.match(js, /data-vga-lote="resolvido"/); assert.match(js, /data-vga-lote="ignorar"/);
+  assert.match(js, /data-vga-lote="\$\{acao\}"/); assert.match(js, /botaoAchado\(it, 'resolvido', `Resolver os \$\{n\}`/); assert.match(js, /botaoAchado\(it, 'ignorar', `Ignorar os \$\{n\}`\)/);
   assert.match(js, /if \(r\.ok \|\| d\.error === 'Esse achado já foi fechado\.'\) feitos\+\+/, 'o que já estava fechado conta como feito');
   assert.match(js, /confirm\(/, 'pede confirmação antes de fechar o grupo');
 });

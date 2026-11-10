@@ -262,8 +262,8 @@
 #fc-overlay .fc-trilha{counter-reset:fcpasso}
 #fc-overlay .fc-trilha-passo.agora{color:#fff!important}
 #fc-overlay .fc-trilha-passo.agora::before{background:#f7c948;border-color:#f7c948;color:#1b0d06;box-shadow:0 0 14px rgba(247,201,72,.5)}
-#fc-overlay .fc-escolha{border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;padding:16px 18px!important}
-#fc-overlay .fc-escolha.marcada{border-color:rgba(247,201,72,.6)!important;background:linear-gradient(180deg,rgba(247,201,72,.14),rgba(247,201,72,.04)),#14161d!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 14px 30px -16px #f7c948!important}
+#fc-overlay .fc-escolha:not(.fc-cli){border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;padding:16px 18px!important}
+#fc-overlay .fc-escolha.marcada:not(.fc-cli){border-color:rgba(247,201,72,.6)!important;background:linear-gradient(180deg,rgba(247,201,72,.14),rgba(247,201,72,.04)),#14161d!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 14px 30px -16px #f7c948!important}
 #fc-overlay .fc-escolha b,#fc-overlay .fc-escolha strong{font-family:var(--pv-titulo)!important}
 #fc-overlay .fc-btn-create{border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px #e8602e!important}
 #fc-overlay .fc-sazonal-btn,#fc-overlay .fc-close{border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important}
