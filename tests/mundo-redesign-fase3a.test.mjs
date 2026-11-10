@@ -49,7 +49,8 @@ test('Hoje: trocar status, briefing, bruto, entregar e roteiro na própria linha
 
 test('janelas de formulário cabem acima do dock (Cancelar e Salvar da Nova reunião ficavam atrás dele)', () => {
   assert.match(css, /body\.mundo\{--vv-janela-alto:calc\(100dvh - var\(--vv-dock-alto,0px\) - 2 \* var\(--vv-m,14px\) - 28px\)\}/);
-  assert.match(css, /body\.mundo \.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\)\)\{max-height:var\(--vv-janela-alto\);top:calc\(50% - var\(--vv-dock-alto,0px\) \/ 2 - 7px\)\}/);
+  assert.match(css, /body\.mundo \.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.plj-janela\)\)\{max-height:var\(--vv-janela-alto\);top:calc\(50% - var\(--vv-dock-alto,0px\) \/ 2 - 7px\)\}/,
+    'o documento do planejamento é tela cheia (top:0): fica fora, senão abre pela metade da tela');
   assert.ok(ler('vybe-styles.css').includes(':where(body:not(.mundo)) .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){max-height:88vh!important}'), 'os 88% valem só fora do mundo');
   assert.ok(ler('vybe-mundo-clientes-ficha.css').includes('max-height:var(--vv-janela-alto,calc(100dvh - 32px))'));
 });
