@@ -104,7 +104,8 @@ export function baseDeMaquete(obra, { W, D, ladrilhos = () => true, topo = -.12,
 // Acabamento de maquete (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): oclusão
 // nos cantos e embaixo das peças (GTAO, o que dá o ar de render), e um brilho leve só no que acende (luminária,
 // tela, janela). Devolve { render(), tamanho(w, h), ligar(sim), destruir() }; desligado, desenha direto.
-export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho = true } = {}) {
+// `passes`: passadas da cena entre o brilho e a saída (o desfoque de maquete da cidade, motor.mjs).
+export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho = true, passes = [] } = {}) {
   const tam = renderer.getSize(new THREE.Vector2());
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(cena, camera));
@@ -118,13 +119,18 @@ export function acabamentoDeMaquete(renderer, cena, camera, { ao = true, brilho 
     composer.addPass(gtao);
   }
   if (brilho) { bloom = new UnrealBloomPass(new THREE.Vector2(Math.max(1, tam.x), Math.max(1, tam.y)), ESTILO.brilho.forca, .5, ESTILO.brilho.limiar); composer.addPass(bloom); }
+  for (const p of passes) composer.addPass(p);
   composer.addPass(new OutputPass());
   let ligado = true;
   return {
     render() { if (ligado) composer.render(); else renderer.render(cena, camera); },
     tamanho(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(Math.max(1, w), Math.max(1, h)); },
     ligar(sim) { ligado = Boolean(sim); },
-    destruir() { composer.dispose?.(); gtao?.dispose?.(); bloom?.dispose?.(); },
+    // Qualidade automática: a oclusão é a passada mais cara; sai primeiro quando os quadros ficam lentos.
+    oclusao(sim) { if (gtao) gtao.enabled = Boolean(sim); },
+    // Raio da oclusão em unidades do mundo (a cidade ajusta pela distância da câmera).
+    raioOclusao(r) { gtao?.updateGtaoMaterial({ radius: r }); },
+    destruir() { for (const p of composer.passes) p.dispose?.(); composer.dispose?.(); },
   };
 }
 

@@ -1,13 +1,10 @@
 // Motor do mundo voxel: renderizador, luz, câmera de maquete, controles de mapa,
 // efeito tilt-shift e rótulos em HTML. Sem dados da Vybe aqui: só o palco.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { HorizontalTiltShiftShader } from 'three/examples/jsm/shaders/HorizontalTiltShiftShader.js';
 import { VerticalTiltShiftShader } from 'three/examples/jsm/shaders/VerticalTiltShiftShader.js';
-import { ESTILO, prepararRenderer, luzDoEstilo } from './estilo.mjs';
+import { ESTILO, prepararRenderer, luzDoEstilo, acabamentoDeMaquete } from './estilo.mjs';
 
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
@@ -91,29 +88,35 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // tamanho do pixel da sombra (antes era fixo e alto, com sombra vazando e listras em peças finas).
     const lado = limitar(40 * Math.pow(1.25, Math.round(Math.log(Math.max(1, dist * 0.42) / 40) / Math.log(1.25))), 40, 260);
     const texel = (2 * lado) / sol.shadow.mapSize.x;
+    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
+    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
+    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; solQuer = { ax, az, y: alvo.y, lado, texel }; }
+  }
+  // O sol e a área da sombra só mudam no quadro em que o mapa de sombra é refeito: antes o sol andava na hora e o
+  // mapa velho ficava até 150 ms aplicado com o sol novo (a borda das sombras pulava e serrilhava ao mexer o mapa).
+  let solQuer = null;
+  function aplicarSol() {
+    if (!solQuer) return;
+    const { ax, az, y, lado, texel } = solQuer; solQuer = null;
     if (sc.right !== lado) { sc.left = -lado; sc.right = lado; sc.top = lado; sc.bottom = -lado; sc.updateProjectionMatrix(); }
     sol.shadow.bias = -0.0002; sol.shadow.normalBias = Math.max(0.02, texel * 1.4);
-    const passo = texel * 4, ax = Math.round(alvo.x / passo) * passo, az = Math.round(alvo.z / passo) * passo;
-    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, alvo.y, az);
-    const chave = `${ax.toFixed(2)},${az.toFixed(2)},${lado.toFixed(1)}`;
-    if (chave !== posicionarCamera.ultima) { posicionarCamera.ultima = chave; sombraPendente = true; }
+    sol.position.set(ax - 110, 160, az + 70); sol.target.position.set(ax, y, az); sol.target.updateMatrixWorld();
   }
   // Refazer a sombra é o mais caro do quadro: com a câmera andando, no máximo a cada 150 ms; parou, refaz a última.
   let sombraPendente = true, ultimaSombra = 0;
   function atualizarSombra(t, movendo) {
     if (!sombraPendente) return;
     if (movendo && t - ultimaSombra < 150) return;
-    sombraPendente = false; ultimaSombra = t; renderer.shadowMap.needsUpdate = true;
+    sombraPendente = false; ultimaSombra = t; aplicarSol(); renderer.shadowMap.needsUpdate = true;
   }
 
-  // Tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(cena, camera));
+  // Acabamento de maquete do padrão (estilo.mjs: oclusão nos cantos e brilho no que acende, como no quarto) e, por
+  // cima, o tilt-shift: desfoca o alto e o baixo da imagem, como foto de maquete.
   const tiltH = new ShaderPass(HorizontalTiltShiftShader);
   const tiltV = new ShaderPass(VerticalTiltShiftShader);
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
-  composer.addPass(tiltH); composer.addPass(tiltV);
-  composer.addPass(new OutputPass());
+  const acabamento = acabamentoDeMaquete(renderer, cena, camera, { passes: [tiltH, tiltV] });
+  const composer = { render: () => acabamento.render(), setSize: (w, h) => acabamento.tamanho(w, h) };
 
   // Área livre: os painéis cobrem parte da tela; a cena centraliza no resto.
   const livre = { esq: 0, dir: 0, baixo: 0, atual: { esq: 0, dir: 0, baixo: 0 } };
@@ -370,6 +373,11 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     posicionarCamera();
     let animando = false;
     for (const fn of animadores) animando = (fn(t / 1000, dt) === true) || animando;
+    // Oclusão nos cantos só com a câmera parada: mexendo, ela tremulava (serrilhado) e era a passada mais cara (travava).
+    // O raio acompanha a distância: de longe, cantos maiores; de perto, os do quarto.
+    const quieta = !(movendo || interagindo || mudouLivre);
+    if (quieta !== ultimaQuieta) { ultimaQuieta = quieta; if (qualidade > 1) { acabamento.oclusao(quieta); if (quieta) sujo = true; } }
+    if (quieta) { const r = limitar(orb.dist * 0.006, 0.3, 2.4); if (Math.abs(r - raioAo) > raioAo * 0.1) { raioAo = r; acabamento.raioOclusao(r); sujo = true; } }
     const precisa = sujo || movendo || interagindo || mudouLivre || animando;
     if (!precisa) return false;
     // Sombra da cidade inteira só se refaz com a câmera (posicionarCamera) ou, com algo andando, a cada 12 s de uso.
@@ -388,7 +396,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   // ficam lentos (menos de ~35 por segundo ou mais de 6 ms de trabalho por quadro) por uns 3 s seguidos, a cena
   // baixa um degrau: primeiro a nitidez (1×) e o desfoque de maquete, depois a sombra para 2048. Não volta sozinha
   // na mesma sessão (evita ficar trocando).
-  let qualidade = 2, lentos = 0, ultimoQ = 0;
+  let qualidade = 2, lentos = 0, ultimoQ = 0, ultimaQuieta = null, raioAo = 0;
   function conferirQualidade(t, mexendo) {
     if (!mexendo || qualidade === 0) { ultimoQ = t; return; }
     const intervalo = t - ultimoQ; ultimoQ = t;
@@ -396,7 +404,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     lentos = intervalo > 28 || medida.ms > 6 ? lentos + 1 : Math.max(0, lentos - 2);
     if (lentos < 90) return;
     lentos = 0; qualidade--;
-    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; medir(); }
+    if (qualidade === 1) { renderer.setPixelRatio(1); tiltH.enabled = tiltV.enabled = false; acabamento.oclusao(false); medir(); }
     else { sol.shadow.mapSize.set(2048, 2048); sol.shadow.map?.dispose(); sol.shadow.map = null; renderer.shadowMap.needsUpdate = true; }
     invalidar();
   }
@@ -441,8 +449,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       if (destruido) return;
       destruido = true; pausado = true; ciclo.destruir(); eventos.abort(); io.disconnect(); ro.disconnect();
       liberarCena(cena);
-      for (const pass of composer.passes) pass.dispose?.();
-      composer.dispose(); renderer.renderLists.dispose(); renderer.dispose();
+      acabamento.destruir(); renderer.renderLists.dispose(); renderer.dispose();
       animadores.length = clicaveis.length = rotulos.length = 0;
       for (const lista of Object.values(ouvintes)) lista.length = 0;
       camadaRotulos.remove();

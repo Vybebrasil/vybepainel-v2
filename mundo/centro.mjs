@@ -83,7 +83,22 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     const anelI = R - 3.2;
     for (const [x, z, w, d] of [[0, -(R - 1.6), 2 * R, 3.2], [0, R - 1.6, 2 * R, 3.2], [-(R - 1.6), 0, 3.2, 2 * R - 6.4], [R - 1.6, 0, 3.2, 2 * R - 6.4]]) o.caixa(x, 0, z, w, CHAO, d, '#DCD3C2');
     o.caixa(0, 0, 0, 26, CHAO, 26, '#E8E0D0');
-    for (const [x, z, w, d] of [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]]) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
+    const alamedas = [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]];
+    for (const [x, z, w, d] of alamedas) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
+    // Piso de pedra (referências de 09/11/2026): a praça em ladrilhos com anéis de tom em volta do prédio, as
+    // alamedas e a calçada do anel em ladrilhos com a guia mais escura nas bordas. Só a camada fina (sem sombra).
+    const PEDRAS = ['#E8E0D0', '#DED4C2', '#F0E9DC', '#D6CBB8'];
+    const ladrilhos = (x0, z0, w, d, cor) => {
+      for (let i = 0; i < Math.round(w); i++) for (let j = 0; j < Math.round(d); j++) {
+        const cx = x0 + i + .5, cz = z0 + j + .5;
+        fino.caixa(cx, CHAO, cz, .9, .025, .9, cor(cx, cz, i, j));
+      }
+    };
+    ladrilhos(-13, -13, 26, 26, (cx, cz) => { const anel = Math.floor(Math.max(Math.abs(cx), Math.abs(cz))); const k = ruido(cx * 1.3 + 2, cz * 1.7 + 5); return anel % 4 === 3 ? '#CDBFA8' : PEDRAS[k > .8 ? 2 : k > .45 ? 0 : 1]; });
+    for (const [x, z, w, d] of alamedas) ladrilhos(x - w / 2, z - d / 2, w, d, (cx, cz, i, j) => {
+      const borda = w < d ? i === 0 || i === Math.round(w) - 1 : j === 0 || j === Math.round(d) - 1;
+      return borda ? '#C9BCA6' : PEDRAS[Math.floor(ruido(cx * 2.1, cz * 1.9) * 3) % 3 + 1];
+    });
     // Fundo das lojas: um bosque em grupos (não mais uma fila de árvores iguais): espécies, alturas e verdes misturados,
     // clareiras de vez em quando e arbustos entre as árvores.
     for (let i = -S + 2.5; i <= S - 2.5; i += 3.1) for (const [lado, a, b] of [[0, i, -(S - 3.4)], [1, i, S - 3.4], [2, -(S - 3.4), i], [3, S - 3.4, i]]) {
