@@ -1642,7 +1642,7 @@
     if (!mundo?.presenca) return;
     const gente = presencaDoEscritorio(), assinatura = gente.map((p) => p.id + ':' + p.zona).sort().join('|');
     if (assinatura === ultimaPresenca) return;
-    ultimaPresenca = assinatura; mundo.presenca(gente);
+    ultimaPresenca = assinatura; mundo.presenca(gente); marcarVistos(gente);
   }
   function salasDaEquipeHtml(idAndar) {
     const zonas = Object.entries(zonas3d()).filter(([, z]) => z.andar === idAndar);
@@ -2385,15 +2385,32 @@
   // ---------- Equipe: o que era o saguão do Escritório, agora no mundo ----------
   // As funções são as do Escritório (mesmas janelas, mesmas regras); só a porta mudou.
   const EQUIPE_ACOES = [
-    ['conversa', 'Conversa da equipe', "alternarAbaEscritorio('conversa',true)"],
-    ['recados', 'Recados', 'abrirRecadosEscritorio()'],
-    ['missoes', 'Missões do dia', 'abrirMissoesPeloLobbyEscritorio()'],
-    ['ranking', 'Ranking da semana', "abrirRankingEscritorio('geral','semana')"],
-    ['conquistas', 'Conquistas', 'abrirConquistasEscritorio()'],
-    ['inventario', 'Inventário', "abrirCatalogoEscritorio('inventario')"],
-    ['catalogo', 'Catálogo (loja)', 'abrirCatalogoEscritorio()'],
-    ['espaco', 'Meu personagem', 'personalizarEscritorio()'],
+    ['conversa', 'Conversa da equipe', "alternarAbaEscritorio('conversa',true)", '<path d="M4 5h16v11H8l-4 4z"/>'],
+    ['recados', 'Recados', 'abrirRecadosEscritorio()', '<path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h4"/>'],
+    ['missoes', 'Missões do dia', 'abrirMissoesPeloLobbyEscritorio()', '<path d="M12 3l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 10l6-1z"/>'],
+    ['ranking', 'Ranking da semana', "abrirRankingEscritorio('geral','semana')", '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/>'],
+    ['conquistas', 'Conquistas', 'abrirConquistasEscritorio()', '<circle cx="12" cy="9" r="5"/><path d="M9 13.5 8 21l4-2 4 2-1-7.5"/>'],
+    ['inventario', 'Inventário', "abrirCatalogoEscritorio('inventario')", '<path d="M4 7h16v13H4z"/><path d="M9 7V4h6v3"/>'],
+    ['catalogo', 'Catálogo (loja)', 'abrirCatalogoEscritorio()', '<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>'],
+    ['espaco', 'Meu personagem', 'personalizarEscritorio()', '<circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/>'],
   ];
+  // "Visto há…" (quadro 22): o servidor não guarda a última presença; o painel anota, neste navegador, a última vez que viu
+  // cada pessoa online (presença do Escritório). Sem anotação, "fora agora". É conveniência de quem olha, não registro.
+  const VISTOS = 'vybe-equipe-vistos';
+  function lerVistos() { try { const v = JSON.parse(localStorage.getItem(VISTOS) || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } }
+  function marcarVistos(gente) {
+    if (!gente.length) return;
+    const v = lerVistos(), agora = Date.now(); for (const g of gente) v[g.id] = agora;
+    try { localStorage.setItem(VISTOS, JSON.stringify(v)); } catch { /* sem armazenamento: fica "fora agora" */ }
+  }
+  function vistoHa(ts) {
+    const min = Math.floor((Date.now() - Number(ts)) / 60e3);
+    if (!(min >= 0)) return 'fora agora';
+    if (min < 2) return 'visto há pouco';
+    if (min < 60) return `visto há ${min} min`;
+    const h = Math.floor(min / 60); if (h < 24) return `visto há ${h} h`;
+    const d = Math.floor(h / 24); return d === 1 ? 'visto ontem' : `visto há ${d} dias`;
+  }
   // Equipe online (redesign fase 3c, quadro 38: "mostra pessoas, não links"): quem está em qual sala, com Ir até e
   // Chamar, e o time inteiro para abrir o perfil. Ranking, Conquistas e Loja moram no dock; ficam aqui só as portas do
   // Escritório que não têm outro lugar (conversa, recados, missões e o personagem).
@@ -2411,16 +2428,19 @@
     const saldo = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
     const time = (typeof escritorio !== 'undefined' && escritorio?.base?.equipe) || [];
     const onlineIds = new Set(gente.map((g) => g.id));
-    const fora = time.filter((t) => !onlineIds.has(String(t.id)));
+    marcarVistos(gente);
+    const vistos = lerVistos();
+    // Quem saiu há menos tempo primeiro.
+    const fora = time.filter((t) => !onlineIds.has(String(t.id))).sort((a, b) => (Number(vistos[b.id]) || 0) - (Number(vistos[a.id]) || 0));
     const acoes = EQUIPE_ACOES.filter(([id, , f]) => !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
     p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
       <div class="vv-jogo-cab"><div><h3>Equipe online</h3><p class="vv-sub">Quem está em qual sala do prédio agora. Vá até a pessoa ou chame para a sua sala.</p></div>
-      <span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} online agora</span></div>
-      ${saldo !== null ? `<div class="vv-coins"><b>${Number(saldo).toLocaleString('pt-BR')}</b><span>VybeCoins</span></div>` : ''}
+      <span class="vv-equipe-selos"><span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} de ${Math.max(time.length, gente.length)} online agora</span>
+      ${saldo !== null ? `<span class="vv-moedas-selo" title="Seu saldo de VybeCoins"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/></svg>${Number(saldo).toLocaleString('pt-BR')} VybeCoins</span>` : ''}</span></div>
       <div class="vv-online-lista">${gente.length ? gente.map((g) => pessoaOnlineHtml(g, Z)).join('') : '<p class="vv-dica">Ninguém online agora. Quem entrar aparece aqui, com a sala onde está.</p>'}</div>
       ${fora.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Fora agora<span class="vv-pilula">${fora.length}</span></div>
-      <div class="vv-online-lista vv-online-fora">${fora.map((t) => { const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(String(t.id)) : ''; return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(t.nome))}</i>`}</span><span class="vv-online-txt"><b>${esc(t.nome || 'Pessoa')}</b><small>offline</small></span><button type="button" class="vc-sec" data-perfil="${esc(t.id)}">Perfil</button></div>`; }).join('')}</div>` : ''}
-      ${acoes.length ? `<div class="vv-equipe-acoes">${acoes.map(([id, nome]) => `<button type="button" class="vc-sec" data-equipe="${id}">${esc(nome)}</button>`).join('')}</div>` : ''}`;
+      <div class="vv-online-lista vv-online-fora">${fora.map((t) => { const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(String(t.id)) : ''; return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(t.nome))}</i>`}</span><span class="vv-online-txt"><b>${esc(t.nome || 'Pessoa')}</b><small>${esc(vistos[t.id] ? vistoHa(vistos[t.id]) : 'fora agora')}</small></span><button type="button" class="vc-sec" data-perfil="${esc(t.id)}">Perfil</button></div>`; }).join('')}</div>` : ''}
+      ${acoes.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Do Escritório</div><div class="vv-equipe-acoes">${acoes.map(([id, nome, , icone]) => `<button type="button" class="vv-atalho" data-equipe="${id}"><i aria-hidden="true"><svg viewBox="0 0 24 24">${icone}</svg></i><span>${esc(nome)}</span></button>`).join('')}</div>` : ''}`;
     p.hidden = false; ajustarAreaLivre();
   }
   // Perfil = a ficha completa que o Escritório já tinha (resumo, meta da semana, ganhos, como ganhar,

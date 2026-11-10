@@ -337,6 +337,9 @@ function pljEditorHtml() {
   return `<div class="plj-ed"><aside class="plj-ed-lista" id="plj-ed-lista" aria-label="Partes do planejamento">${pljEdListaHtml()}</aside>
     <section class="plj-ed-detalhe" id="plj-ed-detalhe">${pljEdDetalheHtml()}</section></div>`;
 }
+// O pedido do cliente na peça: a mesma regra de pedidoDaPeca (server/planejamento-documento.js), que monta a coluna
+// "Pedidos do cliente" do documento: o ajuste respondido pelo cliente, ou o ajuste guardado na peça sem resposta nova.
+const pljPedidoDaPeca = (x) => (x?.revisao_cliente?.estado === 'ajuste' ? String(x.revisao_cliente.nota || '') : (!x?.revisao_cliente && x?.ajuste_cliente ? String(x.ajuste_cliente) : ''));
 function pljEdListaHtml() {
   const c = PLJ_RASCUNHO || {}, pecas = c.pecas || [];
   const item = (sel, icone, nome, extra = '') => `<button type="button" class="plj-ed-item${PLJ_SEL === sel ? ' sel' : ''}" onclick="pljEdSelecionar('${sel}')" aria-current="${PLJ_SEL === sel}"><i aria-hidden="true">${icone}</i><span>${nome}</span>${extra}</button>`;
@@ -351,7 +354,7 @@ function pljEdListaHtml() {
     <div class="plj-ed-sec plj-ed-sec-pecas"><span>Peças <em>${pecas.length}</em></span><button type="button" class="plj-ed-mais" onclick="pljEdNovaPeca()" aria-label="Nova peça" title="Nova peça">+</button></div>
     <div class="plj-ed-filtros" role="group" aria-label="Filtrar peças">${filtro('todas', 'Todas')}${filtro('pedido', 'Com pedido')}${filtro('sem-ok', 'Sem OK')}</div>
     <div class="plj-ed-pecas">${pecas.map((x, i) => passa(x) ? `<button type="button" class="plj-ed-peca${PLJ_SEL === 'peca:' + i ? ' sel' : ''}" onclick="pljEdSelecionar('peca:${i}')" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}">
-      <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
+      <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${pljPedidoDaPeca(x) ? `<em class="plj-ed-pedido" title="${pljEsc(pljPedidoDaPeca(x))}">pedido</em>` : ''}${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
 }
 const PLJ_COR_FORMATO = { Card: '#d9534f', Carrossel: '#c98a12', Reels: '#7b4bd6', Fotografia: '#2f8f5b', 'Vídeo': '#2c6fb3', Stories: '#d1497a', Outro: '#6b7280' };
 // Campo ligado ao rascunho pelo caminho (ex.: "pecas.3.tema").

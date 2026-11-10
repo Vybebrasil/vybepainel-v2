@@ -6310,3 +6310,44 @@ body.mundo .previa-ficha-acoes :is(.vc-acao,.vc-sec){justify-content:center;widt
 }
 body.mundo .previa-grande-estado .vb-estado b{color:#1F1D1A}
 body.mundo .previa-grande-palco:has(.previa-grande-conta:not([hidden])){padding-top:30px}
+/* ======================================================================================
+   FRENTE TIME (10/11/2026; quadros 17, 21, 22, 25, 39, 40, 48, 49, 61, 62 e 63 do moodboard).
+   Escolha em chip (vbEscolhaHtml, vybe-core.js): o select nativo vira um chip com o valor e um menu do sistema.
+   ====================================================================================== */
+.vb-escolha{position:relative;display:inline-block;flex:none}
+.vb-escolha > summary{list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:var(--pc-h-p,28px);padding:0 10px 0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#3D3A35;font:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:nowrap;cursor:pointer;user-select:none}
+.vb-escolha > summary::-webkit-details-marker{display:none}
+.vb-escolha > summary:hover{border-color:var(--ds-acao,#FF7A2F)}
+.vb-escolha > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:2px}
+.vb-escolha > summary.vb-escolha-com{border-color:var(--ds-sel-borda,#FFD3B8);background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C)}
+.vb-escolha-rotulo{color:#6B665E;font-weight:500}
+.vb-escolha-com .vb-escolha-rotulo{color:inherit;opacity:.8}
+.vb-escolha-valor{font-weight:650}
+.vb-escolha > summary svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.vb-escolha[open] > summary svg{transform:rotate(180deg)}
+.vb-escolha-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;display:grid;gap:2px;min-width:max(100%,180px);max-width:min(320px,calc(100vw - 32px));max-height:280px;overflow-y:auto;padding:6px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-janela,0 18px 40px -12px rgba(31,29,26,.3));animation:vv-surge .16s var(--vv-mola,ease) both}
+.vb-escolha-menu.grade{grid-template-columns:repeat(var(--colunas,7),34px);min-width:0}
+.vb-escolha-menu button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:#1F1D1A;font:500 13px var(--vv-texto,"Inter"),system-ui,sans-serif;text-align:left;cursor:pointer}
+.vb-escolha-menu.grade button{justify-content:center;padding:0;font-variant-numeric:tabular-nums}
+.vb-escolha-menu button em{font-style:normal;color:#8A847A;font-size:12px;font-variant-numeric:tabular-nums}
+.vb-escolha-menu button:hover,.vb-escolha-menu button:focus-visible{background:#F6F2EC;outline:none}
+.vb-escolha-menu button[aria-selected="true"]{background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+@media (prefers-reduced-motion:reduce){.vb-escolha-menu{animation:none}.vb-escolha > summary svg{transition:none}}
+/* Equipe online (quadro 22) e os outros painéis de página inteira (Jogos, cliente, agente): terminam acima do dock das salas. */
+@media (min-width:901px){body.mundo.com-dock-salas:not(.mundo-centro) .vv-placa{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)}}
+/* Equipe online (quadro 22): moedas num selo pequeno no cabeçalho e os atalhos do Escritório como botões com ícone. */
+.vv-equipe-selos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.vv-moedas-selo{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border:1px solid #F1D9A8;border-radius:999px;background:#FFF7E6;font:700 12px var(--vv-texto,"Inter"),sans-serif;color:#5C3700;font-variant-numeric:tabular-nums}
+.vv-moedas-selo svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .vv-placa .vv-equipe-acoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+body.mundo .vv-placa .vv-atalho{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:46px;padding:8px 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;text-align:left;cursor:pointer;transition:border-color .15s}
+body.mundo .vv-placa .vv-atalho:hover{border-color:var(--ds-acao,#FF7A2F)}
+body.mundo .vv-placa .vv-atalho > i{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
+body.mundo .vv-placa .vv-atalho svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Editor do planejamento (quadro 25): a peça com pedido do cliente marcada "pedido" no menu lateral. */
+.plj-ed-pedido{flex:none;margin-left:auto;padding:2px 7px;border-radius:999px;background:#FFF1DB;color:#8A5200;font:650 10.5px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;font-style:normal}
+:where(body:not(.mundo)) .plj-ed-pedido{background:rgba(255,157,0,.18);color:#ffc46b}
+/* Página do agente (quadro 63): "Dar autonomia" como ação do cabeçalho, à direita. */
+.vga-cab > .vga-autonomia{margin-left:auto;flex:none;display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:var(--pc-fonte,600 12.5px/1 "Inter",sans-serif);cursor:pointer}
+.vga-cab > .vga-autonomia:hover:not(:disabled){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+.vga-cab > .vga-autonomia:disabled{background:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:default}

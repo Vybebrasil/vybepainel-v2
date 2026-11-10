@@ -68,3 +68,6 @@
 #vv-ferramentas .vf-abas{overflow-x:auto;scrollbar-width:none}
 #vv-ferramentas .vf-abas button{flex:none;white-space:nowrap}
 @media (max-width:600px){#vv-ferramentas .vf-abas{flex-wrap:wrap;overflow:visible;padding:6px 12px 0}#vv-ferramentas .vf-abas button{padding:8px 10px}}
+/* Resistência do QR no menu do sistema (quadro 39, 10/11/2026). */
+#vv-ferramentas .vf-campo-escolha{display:grid;gap:5px;justify-items:start}
+#vv-ferramentas .vf-campo-escolha>span{font:600 12px Inter,system-ui,sans-serif;color:#3D3A35}

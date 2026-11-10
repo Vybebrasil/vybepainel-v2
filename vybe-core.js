@@ -788,6 +788,45 @@ function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icon
   if (tipo === 'carregando') return `<div class="vb-carregando" role="status" aria-label="${safeText(titulo || 'Carregando')}"><div class="vb-brilho"></div><div class="vb-brilho"></div><div class="vb-brilho"></div></div>`;
   return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${titulo ? `<b>${safeText(titulo)}</b>` : ''}${texto ? `<p>${safeText(texto)}</p>` : ''}${acao}</div>`;
 }
+// Escolha em chip (moodboard 10/11/2026, quadros 17, 21, 30, 39, 49 e 61: "select nativo vira o menu do sistema"): um
+// chip com o valor atual e um menu de opções. O valor vai num campo escondido (`campo` = os atributos dele, ex.
+// 'name="nasc_mes"' ou 'data-vc-filtro="nicho"'), que dispara `change` como o select fazia: os ouvintes de sempre
+// (FormData, aoMudar) continuam iguais. opcoes: [{ valor, nome, n? }]; vazio: a opção "todos"/"nenhum" (valor '');
+// grade: colunas do menu (o dia do mês usa 7).
+function vbEscolhaHtml({ rotulo = '', valor = '', opcoes = [], campo = '', vazio = '', grade = 0 } = {}) {
+  const e = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const v = String(valor ?? ''), atual = opcoes.find((o) => String(o.valor) === v);
+  const nomeAtual = atual ? atual.nome : (vazio || 'Escolha');
+  const conta = (n) => (n === undefined || n === null || n === '' ? '' : `<em>${e(n)}</em>`);
+  const lista = (vazio ? [{ valor: '', nome: vazio }] : []).concat(opcoes);
+  return `<details class="vb-escolha"><summary class="vb-chip${atual ? ' vb-escolha-com' : ''}" aria-label="${e(rotulo)}: ${e(nomeAtual)}">${rotulo ? `<span class="vb-escolha-rotulo">${e(rotulo)}</span>` : ''}<b class="vb-escolha-valor">${e(nomeAtual)}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>`
+    + `<input type="hidden" ${campo} value="${e(v)}">`
+    + `<div class="vb-escolha-menu${grade ? ' grade' : ''}" role="listbox" aria-label="${e(rotulo)}"${grade ? ` style="--colunas:${Number(grade) || 1}"` : ''}>${lista.map((o) => `<button type="button" role="option" data-vb-escolha="${e(o.valor)}" aria-selected="${String(o.valor) === v}"><span>${e(o.nome)}</span>${conta(o.n)}</button>`).join('')}</div></details>`;
+}
+if (typeof window !== 'undefined') window.vbEscolhaHtml = vbEscolhaHtml;
+// Um menu aberto por vez: a opção grava no campo escondido e avisa (input e change); clicar fora ou Esc fecha.
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  const fecharEscolhas = (menos) => document.querySelectorAll('details.vb-escolha[open]').forEach((d) => { if (d !== menos) d.open = false; });
+  document.addEventListener('click', (ev) => {
+    const op = ev.target?.closest?.('.vb-escolha [data-vb-escolha]'), caixa = ev.target?.closest?.('details.vb-escolha');
+    fecharEscolhas(op ? null : caixa);
+    if (!op || !caixa) return;
+    ev.preventDefault();
+    const campo = caixa.querySelector(':scope > input[type=hidden]'), valor = op.dataset.vbEscolha, resumo = caixa.querySelector('summary');
+    caixa.querySelectorAll('[data-vb-escolha]').forEach((b) => b.setAttribute('aria-selected', String(b === op)));
+    const nome = op.querySelector('span')?.textContent || '', alvo = caixa.querySelector('.vb-escolha-valor'); if (alvo) alvo.textContent = nome;
+    resumo?.setAttribute('aria-label', `${caixa.querySelector('[role=listbox]')?.getAttribute('aria-label') || ''}: ${nome}`);
+    resumo?.classList.toggle('vb-escolha-com', valor !== '');
+    resumo?.focus?.();
+    if (campo && campo.value !== valor) { campo.value = valor; campo.dispatchEvent(new Event('input', { bubbles: true })); campo.dispatchEvent(new Event('change', { bubbles: true })); }
+  });
+  // Na captura, antes das janelas: Esc com o menu aberto fecha só o menu.
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    const aberto = document.querySelector('details.vb-escolha[open]'); if (!aberto) return;
+    ev.preventDefault(); ev.stopImmediatePropagation(); aberto.open = false; aberto.querySelector('summary')?.focus?.();
+  }, true);
+}
 // Números que contam (Padrão Vybe): um <b data-vb-contar="463" data-vb-chave="moedas">
 // sobe ou desce contando do último valor visto até o novo, como placar de
 // jogo. Na primeira vez só guarda o valor; "Reduzir movimento" pula a conta.

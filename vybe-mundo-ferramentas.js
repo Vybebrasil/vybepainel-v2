@@ -85,12 +85,17 @@
     try { return { svg: window.VybeQR.svg(texto, { ecc: st.qr.ecc, cor: st.qr.cor }), erro: '' }; }
     catch (e) { return { svg: '', erro: e.message }; }
   }
+  // Resistência no menu do sistema (quadro 39, 10/11/2026: sem select nativo). Sem o vybe-core (testes), só o valor.
+  function escolhaNivel() {
+    if (typeof window.vbEscolhaHtml === 'function') return window.vbEscolhaHtml({ rotulo: 'Resistência', valor: st.qr.ecc, campo: 'data-vf-campo="qr.ecc"', opcoes: NIVEIS.map(([k, n]) => ({ valor: k, nome: n })) });
+    return `<input type="hidden" data-vf-campo="qr.ecc" value="${esc(st.qr.ecc)}">`;
+  }
   function abaQR() {
     const t = st.qr.texto.trim(), r = t ? svgQR(t) : { svg: '', erro: '' };
     return `<div class="vf-grade">
       <form class="vf-campos" data-vf-form="qr" onsubmit="return false">
         <label><span>Link ou texto</span><textarea rows="3" data-vf-campo="qr.texto" placeholder="https://… ou o texto que o QR deve abrir" maxlength="300">${esc(st.qr.texto)}</textarea></label>
-        <label><span>Resistência</span><select data-vf-campo="qr.ecc">${NIVEIS.map(([k, n]) => `<option value="${k}"${k === st.qr.ecc ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+        <div class="vf-campo-escolha"><span>Resistência</span>${escolhaNivel()}</div>
         <fieldset class="vf-cor"><legend>Cor</legend><div class="vf-paleta">${CORES.map(([c, n]) => `<label class="vf-amostra" title="${n}"><input type="radio" name="vf-cor" data-vf-campo="qr.cor" value="${c}"${st.qr.cor.toUpperCase() === c ? ' checked' : ''}><i style="background:${c}" aria-hidden="true"></i><span class="vf-oculto">${n}</span></label>`).join('')}
           <label class="vf-amostra outra${CORES.some(([c]) => c === st.qr.cor.toUpperCase()) ? '' : ' on'}" title="Outra cor (a da marca do cliente)"><input type="color" data-vf-campo="qr.cor" value="${esc(st.qr.cor)}"><span>Outra</span></label></div>
           <small>Escura sobre fundo claro: cor clara demais o celular não lê.</small></fieldset>

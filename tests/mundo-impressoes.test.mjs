@@ -30,12 +30,14 @@ async function montar(dados) {
   return { ctx, pedidos, html: () => corpo.filho?.filho?.innerHTML || '' };
 }
 
-test('lista vazia de fornecedores mostra o caminho para cadastrar; cartões com cliente, sem fornecedor e atraso', async () => {
+// Quadro 17 (10/11/2026): sem o aviso solto de fornecedor; a peça sem gráfica tem "escolher", que abre a edição (onde
+// fica o caminho para cadastrar quando não há nenhuma), e o atraso aparece em dias na própria peça.
+test('sem fornecedor: escolher na própria peça, sem aviso solto; cartões com cliente e atraso', async () => {
   const t = await montar(DADOS());
   const h = t.html();
-  assert.match(h, /Nenhum fornecedor cadastrado/);
-  assert.match(h, /data-vi="cadastrar-fornecedor"/);
-  assert.match(h, /sem fornecedor/); assert.match(h, /atrasada · 05\/11/);
+  assert.doesNotMatch(h, /Nenhum fornecedor cadastrado|vi-alerta/);
+  assert.match(h, /sem fornecedor<\/em> · <span class="vi-escolher" data-vi-escolher-forn="1">escolher<\/span>/);
+  assert.match(h, /atrasada \d+ dias? · 05\/11/);
   assert.equal((h.match(/vi-botao principal/g) || []).length, 1, 'um botão principal só');
   assert.ok(t.pedidos.some((p) => p.url === '/api/painel?area=impressoes' && p.metodo === 'GET'));
 });
