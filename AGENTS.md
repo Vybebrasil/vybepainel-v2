@@ -310,6 +310,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Confirmar, gravadas por `gravarResponsaveisDaPeca` e `postItemUpdate`; e o confirmado × sugestão por cliente (sugestão
   das regras e dos achados do Danilo, nunca vira demanda daqui). A pergunta livre usa a rota do VYBES (`etapa=perguntar`,
   respondida pelo Qwen da central). Não crie outra fila, outro peso de carga nem outro jeito de gravar.
+- Cobrar manda no WhatsApp (Paulo, 10/11/2026: "ao clicar em Cobrar o bot cobra de verdade"): o Confirmar da cobrança
+  chama `area=cobrancas` (`server/cobrancas-whatsapp.js`, tabela `vybe_cobrancas_whatsapp`, migração
+  `2026-11-10-cobrancas-whatsapp.sql`). Só dono pede; só entra quem é responsável ativo da peça no banco (nunca cliente,
+  nunca grupo); o texto é montado no servidor; uma cobrança por pessoa, por peça, por dia. O VYBES busca pela consulta
+  `cobrancas` (a busca já marca "enviando", para nada sair em dobro), manda no privado da pessoa assinado pelo agente dono
+  da cobrança (Danilo no design, Lucas no audiovisual, por `EQUIPES.audiovisual`) e devolve `cobranca_resultado`
+  ("enviado" ou "falhou" com o motivo). A caixa mostra o estado e, se falhou, deixa tentar de novo ou copiar a mensagem.
+  Não volte a só copiar a mensagem nem mande cobrança por outro caminho.
 - Cadeado e "ver como" (decisão do Paulo, 09/11/2026): para quem não é dono, Comercial, Finanças, Gestão, Agentes, a
   Visão geral do RH, Recrutamento e Documentos aparecem apagados com cadeado (`TRANCADOS` em `vybe-mundo.js`); os itens
   do Time que são de todos ficam abertos. Os donos (e quem administra) podem "ver como" qualquer pessoa pelo menu da

@@ -62,6 +62,7 @@ test('cobrar: parada com a data chegando ou prazo vencido; aprovação fica fora
   assert.deepEqual(json(c.map((s) => s.id)), ['20', '22', '24']);
   assert.equal(c[0].oque, 'mandar a prévia'); assert.equal(c[0].quando, 'agora'); assert.equal(c[0].parado, 4);
   assert.match(c[0].mensagem, /^Bia, sobre "Peça 20" \(VOA\): parada há 4 dias em Em andamento/);
+  assert.deepEqual(json(c[0].para), [BIA], 'para quem o bot manda: os ids de quem responde pela peça');
   assert.equal(c[1].oque, 'devolver o ajuste'); assert.equal(c[1].quando, 'hoje até as 14h');
   assert.match(c[2].destravar, /head do cliente/, 'esperando informação: destrava com o head antes de cobrar o time');
 });
@@ -105,13 +106,67 @@ test('a conversa: frases de guia na ordem do guia (primeiro, depois, enquanto is
   assert.deepEqual(json(U.frasesDoDia({ ordem: [] })), ['O time está sem peças em aberto. Bom momento para olhar as sugestões dos clientes abaixo.']);
 });
 
+// A tela inteira, com o painel de mentira: o clique em Cobrar → Confirmar pede o envio (area=cobrancas) e a caixa passa
+// a mostrar o que houve com cada pessoa (aguardando o bot, mandou, falhou com o motivo).
+test('cobrar pelo WhatsApp: Confirmar pede o envio com os ids de quem responde pela peça e a caixa mostra o estado', async () => {
+  const ouvintes = {}, chamadas = [], historico = [], relogios = [];
+  let lista = [];
+  const resposta = (corpo, ok = true) => ({ ok, json: async () => corpo });
+  const ctx = { console, Date, JSON, Promise, Math, Number, String, Array, Object, Set, Map, Error, Intl, CustomEvent: class {},
+    setTimeout: (f) => { relogios.push(f); return relogios.length; }, clearTimeout() {}, localStorage: { getItem: () => null, setItem() {} },
+    document: { addEventListener: (tipo, f) => { (ouvintes[tipo] ||= []).push(f); }, dispatchEvent() {} },
+    PESSOAS: { DEIVID }, souDonoDaSessao: () => true, hojeDeVerdade: () => HOJE, showToast() {},
+    findOperationalItem: (id) => ({ id, nome: 'Peça ' + id }), postItemUpdate: async (id, texto) => { historico.push([id, texto]); return true; },
+    fetch: async (url, o = {}) => {
+      chamadas.push([url, o.method || 'GET', o.body ? JSON.parse(o.body) : null]);
+      if (!String(url).includes('area=cobrancas')) return resposta({ perfil: { achados: { abertos: [] } } });
+      if (o.method === 'POST') { lista = [{ id: 5, ref: '20', conteudo_id: 20, pessoa: 'Bia Souza', setor: 'design', agente: 'Danilo', estado: 'pedido', motivo: '', texto: 'Bia, sobre "Peça 20"…' }]; return resposta({ ok: true, cobrancas: lista }); }
+      return resposta({ ok: true, cobrancas: lista });
+    } };
+  ctx.window = ctx; vm.createContext(ctx);
+  vm.runInContext(readFileSync('vybe-mundo-criacao.js', 'utf8'), ctx);
+  const d = peca(20, { status: 'Em andamento', status_updated_at: '2026-11-06', veiculacao_iso: '2026-11-11' });
+  const item = { d, ids: [BIA, DEIVID], quem: ['Bia', 'Deivid'], sit: 'fazer' };
+  const membros = time.map((u) => ({ id: u.id, name: u.name }));
+  const pintar = () => ctx.VybeCriacao.assistente({ itens: [item], todas: [d], ordem: [item], motivo: () => '', aprovar: [], deHoje: 0, atrasadas: 0, membros, peso, limite, finalizada, eu: DEIVID }).sugestoes;
+  const esperar = () => new Promise((ok) => setImmediate(ok));
+  const reler = async () => { relogios.pop()(); await esperar(); await esperar(); };
+  const clicar = (attrs) => { for (const f of ouvintes.click) f({ target: { closest: () => ({ dataset: attrs, hasAttribute: (n) => n in attrs }) } }); };
+  let html = pintar(); await esperar();
+  assert.match(html, /data-vcr-aprovar="cobrar:20:2026-11-10">Cobrar<\/button>/);
+  assert.match(html, /Cobrar manda a mensagem no WhatsApp da pessoa/);
+  clicar({ vcrAprovar: 'cobrar:20:2026-11-10' });
+  assert.match(pintar(), /Mandar a cobrança no WhatsApp de Bia e deixar no histórico da peça\?/, 'o primeiro clique só pergunta; o Deivid não cobra a si mesmo');
+  assert.ok(!chamadas.some((c) => c[1] === 'POST'));
+  clicar({ vcrConfirmar: 'cobrar:20:2026-11-10' }); await esperar(); await esperar();
+  const post = chamadas.find((c) => c[1] === 'POST');
+  assert.equal(post[0], '/api/painel?area=cobrancas');
+  assert.deepEqual(json(post[2]), { acao: 'pedir', item: '20', para: [BIA], oque: 'mandar a prévia', quando: 'agora', por: 'parada há 4 dias em Em andamento · vai ao ar 11/11' });
+  assert.match(historico[0][1], /Envio: pedido ao VYBES pelo WhatsApp \(Danilo\)$/);
+  html = pintar();
+  assert.match(html, /class="vcr-msg espera" role="status">Danilo vai mandar para Bia no WhatsApp\. Aguardando o bot…/);
+  assert.doesNotMatch(html, /data-vcr-aprovar="cobrar:20/, 'pedido a caminho: sem botão para cobrar de novo');
+  // O bot mandou.
+  lista[0] = { ...lista[0], estado: 'enviado', resolvido_em: '2026-11-10T17:32:00.000Z' };
+  assert.ok(relogios.length >= 1, 'enquanto espera o bot, a tela marca a próxima leitura');
+  await reler(); html = pintar();
+  assert.match(html, /class="vcr-msg" role="status">Danilo mandou para Bia no WhatsApp às 14:32\./);
+  // O bot não conseguiu: o motivo aparece, com tentar de novo e copiar a mensagem.
+  lista[0] = { ...lista[0], estado: 'falhou', motivo: 'Bia não está com o WhatsApp vinculado ao VYBES.' };
+  ctx.VybeCriacao.util.relerCobrancas(); await esperar(); await esperar(); html = pintar();
+  assert.match(html, /class="vcr-msg erro" role="status">Não foi para Bia: Bia não está com o WhatsApp vinculado ao VYBES\./);
+  assert.match(html, /data-vcr-aprovar="cobrar:20:2026-11-10">Tentar de novo<\/button><button type="button" class="vc-sec" data-vcr-copiar="cobrar:20:2026-11-10"/);
+});
+
 test('nada sem o OK: aprovar só pede confirmação; grava pelas funções do painel; pergunta livre pela rota do VYBES', () => {
   const js = readFileSync('vybe-mundo-criacao.js', 'utf8'), mundo = readFileSync('vybe-mundo.js', 'utf8'), html = readFileSync('index.html', 'utf8');
   assert.match(js, /if \(b\.dataset\.vcrAprovar\) \{ st\.confirmando = b\.dataset\.vcrAprovar; repintar\(\); return; \}/, 'o primeiro clique não grava');
   assert.match(js, /await G\.gravarResponsaveisDaPeca\(item, novos\)/); assert.match(js, /await G\.postItemUpdate\(item\.id, `\[Vybe OS · Cobrança da Direção de Arte\]/);
   assert.match(js, /G\.VybePeca\?\.abrir\?\.\(s\.id, \{ achado:/, '"Ver antes" abre a peça de sempre');
   assert.match(js, /etapa: 'perguntar', texto:/); assert.match(js, /etapa=perfil&setor=design/);
-  assert.match(js, /if \(!ok\) throw new Error/, 'erro do histórico não vira sucesso');
+  assert.match(js, /if \(!ok\) \{ st\.msg\[chave\] = \{ erro: true, texto: 'O pedido de envio foi registrado, mas a nota no histórico/, 'erro do histórico não vira sucesso');
+  assert.match(js, /fetch\('\/api\/painel\?area=cobrancas', \{ method: 'POST'/, 'Cobrar pede o envio pelo WhatsApp (server/cobrancas-whatsapp.js)');
+  assert.match(js, /if \(d\) st\.feitas\.add\(chave\)/, 'a cobrança continua na tela, com o estado do envio');
   assert.match(mundo, /window\.VybeCriacao\?\.assistente\?\.\(\{ itens, todas, ordem,/, 'a Criação continua em pintarCriacao');
   assert.match(mundo, /daEffortWeight\(d, u\)/, 'peso da regra do painel de direção de arte, sem cópia');
   assert.match(mundo, /document\.addEventListener\('vybe:criacao', \(\) => pintarHoje\(\)\);/);

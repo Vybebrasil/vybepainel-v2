@@ -10,9 +10,11 @@
 //   - delegações: peça ainda não começada de quem está acima do limite (ou da mesa do Deivid) para quem é da mesma
 //     disciplina, tem folga e mais fez aquele formato e aquele cliente. Aprovar grava pelo gravarResponsaveisDaPeca; "Ver
 //     antes" abre a peça no VybePeca com a sugestão preenchida.
-//   - cobranças: peça parada no mesmo status ou com prazo vencido e a data do cliente chegando. Aprovar deixa a cobrança
-//     no histórico da peça (postItemUpdate) e copia a mensagem para mandar à pessoa. O comentário não avisa ninguém
-//     sozinho: está escrito no botão.
+//   - cobranças: peça parada no mesmo status ou com prazo vencido e a data do cliente chegando. Aprovar manda a cobrança
+//     pelo WhatsApp (Paulo, 10/11/2026: "o bot cobra de verdade"): o painel pede em area=cobrancas
+//     (server/cobrancas-whatsapp.js), o VYBES busca o pedido e o agente dono da cobrança (Danilo no design, Lucas no
+//     audiovisual) manda no privado da pessoa. A caixa mostra se foi ou se falhou; se falhou, dá para copiar a mensagem.
+//     A cobrança também fica no histórico da peça (postItemUpdate).
 //   - clientes: confirmado (as peças abertas do time) × sugestão (regras do painel e os achados do Danilo na central,
 //     pela mesma rota do perfil da página Agentes). Sugestão nunca vira demanda daqui.
 //   - mudanças: o que mudou desde a última vez que ele marcou "Entendi" (guardado só neste navegador).
@@ -107,7 +109,7 @@
         : tipo === 'ajuste' ? 'Confira se o pedido de ajuste está claro na peça.'
           : parado >= 4 ? 'Parada há muito tempo: pergunte se está travada em algo (briefing, material, outra peça na frente).' : 'Combine a hora da prévia.';
       const por = [parado != null && parado >= diasParado ? `parada há ${plural(parado, 'dia', 'dias')} em ${d.status || 'sem status'}` : '', prazoVencido ? `prazo venceu em ${dm(d.prazo_iso)}` : '', v ? `vai ao ar ${v === hoje ? 'hoje' : v < hoje ? 'em ' + dm(v) + ' (já passou)' : dm(v)}` : ''].filter(Boolean).join(' · ');
-      out.push({ chave: `cobrar:${d.id}:${hoje}`, id: String(d.id), nome: String(d.nome || 'Peça'), cliente: clientesDe(d)[0] || '', quem: x.quem, oque, quando, destravar, parado, por, vaiAoAr: v,
+      out.push({ chave: `cobrar:${d.id}:${hoje}`, id: String(d.id), nome: String(d.nome || 'Peça'), cliente: clientesDe(d)[0] || '', quem: x.quem, para: (Array.isArray(x.para) ? x.para : x.ids || []).map(String), oque, quando, destravar, parado, por, vaiAoAr: v,
         mensagem: `${x.quem.join(' e ')}, sobre "${String(d.nome || 'a peça').trim()}"${clientesDe(d)[0] ? ' (' + clientesDe(d)[0] + ')' : ''}: ${por}. Consegue ${oque} ${quando}?` });
     }
     return out.sort((a, b) => (a.vaiAoAr || '9').localeCompare(b.vaiAoAr || '9')).slice(0, max);
@@ -165,7 +167,7 @@
   const util = { idsDe, clientesDe, disciplinaDaPeca, tipoDoStatus, perfis, melhorPara, sugerirDelegacoes, sugerirCobrancas, clientesConfirmadoSugestao, mudancas, foto, frasesDoDia };
 
   // ---------- estado (neste navegador) e leitura dos achados do Danilo ----------
-  const st = { confirmando: '', gravando: '', msg: {}, feitas: new Set(), achados: { lista: [], erro: '', em: 0, lendo: null }, conversa: { texto: '', fala: '', erro: '', enviando: false } };
+  const st = { confirmando: '', gravando: '', msg: {}, feitas: new Set(), achados: { lista: [], erro: '', em: 0, lendo: null }, cob: { lista: [], erro: '', em: 0, lendo: null, relogio: null, voltas: 0 }, conversa: { texto: '', fala: '', erro: '', enviando: false } };
   const hojeIso = () => (typeof G.hojeDeVerdade === 'function' ? G.hojeDeVerdade() : new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' }));
   const ler = (k, padrao) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? padrao; } catch { return padrao; } };
   const gravar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fica só nesta tela */ } };
@@ -181,10 +183,41 @@
       .catch((e) => { a.erro = e.message || 'a central não respondeu'; }).finally(() => { a.lendo = null; repintar(); });
   }
 
+  // Cobranças pelo WhatsApp de hoje (area=cobrancas): pedido → enviando → enviado ou falhou. Enquanto alguma espera o bot,
+  // relê a cada 15 s (até 10 min); depois, só a cada 5 min ou quando o Deivid cobra de novo.
+  const esperando = (r) => r.estado === 'pedido' || r.estado === 'enviando';
+  const daPeca = (s) => st.cob.lista.filter((r) => r.ref === s.id || String(r.conteudo_id) === s.id || 'vybe:' + r.conteudo_id === s.id);
+  function lerCobrancas(forcar = false) {
+    const c = st.cob;
+    if (!souDono() || c.lendo || (!forcar && Date.now() - c.em < 5 * 60e3)) return;
+    c.em = Date.now();
+    c.lendo = fetch('/api/painel?area=cobrancas', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'o painel não respondeu'); c.lista = Array.isArray(d.cobrancas) ? d.cobrancas : []; c.erro = ''; })
+      .catch((e) => { c.erro = e.message || 'o painel não respondeu'; }).finally(() => { c.lendo = null; vigiarCobrancas(); repintar(); });
+  }
+  function vigiarCobrancas() {
+    const c = st.cob; clearTimeout(c.relogio); c.relogio = null;
+    if (!c.lista.some(esperando)) { c.voltas = 0; return; }
+    if (c.voltas >= 40) return;
+    c.relogio = setTimeout(() => { c.voltas++; lerCobrancas(true); }, 15e3);
+  }
+  const hora = (iso) => { const d = new Date(iso); return iso && Number.isFinite(d.getTime()) ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bahia' }) : ''; };
+  // Uma linha por pessoa cobrada: quem mandou (o agente), para quem e o que houve.
+  const linhaDaCobranca = (r) => (r.estado === 'enviado' ? { texto: `${r.agente} mandou para ${primeiro(r.pessoa)} no WhatsApp${hora(r.resolvido_em) ? ' às ' + hora(r.resolvido_em) : ''}.` }
+    : r.estado === 'falhou' ? { erro: true, texto: `Não foi para ${primeiro(r.pessoa)}: ${r.motivo || 'o bot não conseguiu enviar.'}` }
+      : { espera: true, texto: `${r.agente} vai mandar para ${primeiro(r.pessoa)} no WhatsApp. Aguardando o bot…` });
+
   // ---------- desenho (pintarCriacao chama; o resto da aba continua lá) ----------
   const cli = (c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c));
-  function caixa({ chave, tipo, titulo, cliente, linhas, aprovar, verAntes = '' }) {
+  function caixa({ chave, tipo, titulo, cliente, linhas, aprovar, verAntes = '', envios = [] }) {
     const conf = st.confirmando === chave, grav = st.gravando === chave, m = st.msg[chave];
+    // Cobrança já pedida hoje: a caixa mostra o que houve com cada envio; só volta a ter botão se algum falhou.
+    if (envios.length && !conf && !grav) {
+      const falhou = envios.some((r) => r.estado === 'falhou');
+      return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>Cobrar${cliente ? ' · ' + cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
+        ${envios.map(linhaDaCobranca).map((l) => `<p class="vcr-msg${l.erro ? ' erro' : l.espera ? ' espera' : ''}" role="status">${esc(l.texto)}</p>`).join('')}${m ? `<p class="vcr-msg${m.erro ? ' erro' : ''}" role="status">${esc(m.texto)}</p>` : ''}</div>
+      <div class="vcr-sug-acoes">${falhou ? `<button type="button" class="vc-acao" data-vcr-aprovar="${esc(chave)}">Tentar de novo</button><button type="button" class="vc-sec" data-vcr-copiar="${esc(chave)}" title="Para você mesmo mandar">Copiar a mensagem</button>` : ''}</div></li>`;
+    }
     return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>${tipo === 'delegar' ? 'Delegar' : 'Cobrar'}${cliente ? ' · ' + cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
         ${m ? `<p class="vcr-msg${m.erro ? ' erro' : ''}" role="status">${esc(m.texto)}</p>` : ''}</div>
       <div class="vcr-sug-acoes">${conf ? `<span class="vcr-conf">${aprovar.confirmar}</span><button type="button" class="vc-acao" data-vcr-confirmar="${esc(chave)}" ${grav ? 'disabled' : ''}>${grav ? 'Gravando…' : 'Confirmar'}</button><button type="button" class="vc-sec" data-vcr-voltar ${grav ? 'disabled' : ''}>Voltar</button>`
@@ -213,7 +246,7 @@
   document.addEventListener('submit', (e) => { const f = e.target.closest?.('[data-vcr-perguntar]'); if (!f) return; e.preventDefault(); perguntar(new FormData(f).get('texto')); });
   // ctx: { itens, todas, ordem, motivo, aprovar, deHoje, atrasadas, membros, peso, limite, finalizada, eu }
   function assistente(ctx) {
-    lerAchados();
+    lerAchados(); lerCobrancas();
     const hoje = hojeIso(), deivid = String(G.PESSOAS?.DEIVID || (typeof PESSOAS !== 'undefined' ? PESSOAS.DEIVID : '') || '');
     const audio = (typeof EQUIPES !== 'undefined' ? EQUIPES.audiovisual : []).map(String);
     const time = ctx.membros.map((u) => ({ ...u, disciplina: audio.includes(String(u.id)) ? 'audiovisual' : 'design' }));
@@ -222,7 +255,8 @@
     const delegacoes = sugerirDelegacoes({ itens: ctx.itens, perfis: lista, hoje, peso: ctx.peso, deivid }).filter(visivel);
     // O Deivid não cobra a si mesmo: o que é só dele fica em "na sua mesa".
     const nomeDeivid = primeiro(ctx.membros.find((u) => String(u.id) === deivid)?.name || '');
-    const cobrancas = sugerirCobrancas({ itens: ctx.itens.map((x) => ({ ...x, quem: (x.quem || []).filter((n) => !nomeDeivid || n !== nomeDeivid) })), hoje }).filter(visivel);
+    const cobrancas = sugerirCobrancas({ itens: ctx.itens.map((x) => ({ ...x, quem: (x.quem || []).filter((n) => !nomeDeivid || n !== nomeDeivid),
+      para: ctx.membros.map((u) => String(u.id)).filter((id) => id !== deivid && (x.ids || []).map(String).includes(id)) })), hoje }).filter(visivel);
     const minhas = ctx.ordem.filter((x) => x.ids.includes(deivid));
     const antecipar = ctx.ordem.find((x) => tipoDoStatus(x.d.status) === 'naoComecou' && veic(x.d) >= somar(hoje, 2) && veic(x.d) <= somar(hoje, 5)) || null;
     const frases = frasesDoDia({ ordem: ctx.ordem, motivo: ctx.motivo, aprovar: ctx.aprovar, delegacoes, cobrancas, minhas, antecipar, deHoje: ctx.deHoje, atrasadas: ctx.atrasadas, souDeivid: String(ctx.eu) === deivid, hoje });
@@ -243,14 +277,14 @@
         verAntes: `<button type="button" class="vc-sec" data-vcr-ver="${esc(s.chave)}">Ver antes</button>` })),
       ...cobrancas.map((s) => caixa({ chave: s.chave, tipo: 'cobrar', cliente: s.cliente, titulo: `${esc(s.quem.join(' e '))}: ${esc(s.oque)} em ${esc(s.nome)}`,
         linhas: [`${esc(s.por)}. Cobrar ${esc(s.quando)}.`, esc(s.destravar)],
-        aprovar: { rotulo: 'Cobrar', confirmar: 'Deixar a cobrança no histórico da peça e copiar a mensagem para mandar?' } }))].join('');
+        envios: daPeca(s), aprovar: { rotulo: 'Cobrar', confirmar: `Mandar a cobrança no WhatsApp de ${esc(s.quem.join(' e '))} e deixar no histórico da peça?` } }))].join('');
     // Quem passou do limite sem ninguém com folga na mesma disciplina: não há para quem passar; o caminho é o prazo.
     const lotados = lista.filter((p) => p.carga > p.limite);
     const semPara = lotados.filter((p) => !delegacoes.some((d) => d.de.id === p.id) && !lista.some((q) => q.disciplina === p.disciplina && q.id !== p.id && q.id !== deivid && q.carga < q.limite));
     const lotadosHtml = semPara.length ? `<p class="vcr-lotado"><b>Acima do limite sem ter para quem passar:</b> ${semPara.map((p) => `${esc(primeiro(p.nome))} (${p.carga} de ${p.limite})`).join(', ')}. Vale renegociar prazo com o head ou segurar peça nova.</p>` : '';
     const sugestoes = `<section class="vs-bloco vcr-bloco" aria-label="Para você aprovar"><div class="vs-bloco-cabeca"><span><b>Para você aprovar</b><small>delegações pela carga e pelo que cada um já fez · cobranças do que parou</small></span></div>
       ${lotadosHtml}${sugHtml ? `<ul class="vcr-sugs">${sugHtml}</ul>` : `<p class="vv-vazio">${lotados.length ? 'Nada parado com a data chegando.' : 'Nada para delegar nem cobrar agora: ninguém acima do limite e nada parado com a data chegando.'}</p>`}
-      <p class="vcr-nota">Cobrar fica no histórico da peça e não avisa a pessoa sozinho: a mensagem vai copiada para você mandar.</p></section>`;
+      <p class="vcr-nota">Cobrar manda a mensagem no WhatsApp da pessoa (o Danilo cobra o design; o Lucas, o audiovisual) e deixa a cobrança no histórico da peça. Aqui aparece se foi ou se falhou.</p></section>`;
     const clientes = clientesConfirmadoSugestao({ itens: ctx.itens, todas: ctx.todas, achados: st.achados.lista, hoje, finalizada: ctx.finalizada });
     const MAX = 8, cartao = (c) => `<li class="vcr-cli"><div class="vcr-cli-cab">${cli(c.cliente)}<small>${plural(c.confirmadas.length, 'demanda', 'demandas')} · ${plural(c.sugestoes.length, 'sugestão', 'sugestões')}</small></div>
         <div class="vcr-cli-col"><small class="vcr-rot confirmado">Demanda confirmada</small>${c.confirmadas.length ? c.confirmadas.slice(0, 3).map((p) => `<button type="button" class="vcr-peca" data-hoje-acao="peca" data-valor="${esc(p.id)}">${esc(p.nome)}</button>`).join('') + (c.confirmadas.length > 3 ? `<small>e mais ${c.confirmadas.length - 3}</small>` : '') : '<small>Nenhuma aberta com o time.</small>'}</div>
@@ -276,19 +310,31 @@
         G.renderIntegratedOperationalViews?.();
         G.showToast?.(`${item.nome || 'Peça'} passou para ${primeiro(d.para.nome)}.`, 'ok', 4200);
       } else {
-        if (typeof G.postItemUpdate !== 'function') throw new Error('o painel ainda não carregou o histórico da peça');
-        const ok = await G.postItemUpdate(item.id, `[Vybe OS · Cobrança da Direção de Arte]\nPara: ${c.quem.join(', ')}\nO quê: ${c.oque} (${c.quando})\nPor quê: ${c.por}\nComo destravar: ${c.destravar}`);
-        if (!ok) throw new Error('o histórico da peça não confirmou a gravação');
-        let copiou = false; try { await navigator.clipboard.writeText(c.mensagem); copiou = true; } catch { /* sem permissão de copiar */ }
-        G.showToast?.(copiou ? 'Cobrança no histórico e mensagem copiada.' : `Cobrança no histórico. Mensagem: ${c.mensagem}`, 'ok', copiou ? 4200 : 9000);
+        // 1º o pedido de envio (o que importa); depois a nota no histórico. O VYBES busca o pedido e manda no WhatsApp.
+        const r = await fetch('/api/painel?area=cobrancas', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acao: 'pedir', item: String(item.id), para: c.para, oque: c.oque, quando: c.quando, por: c.por }) });
+        const resp = await r.json().catch(() => ({}));
+        if (!r.ok || !Array.isArray(resp.cobrancas)) throw new Error(resp.error || 'o painel não registrou o pedido de envio');
+        const ids = new Set(resp.cobrancas.map((x) => x.id));
+        st.cob.lista = [...resp.cobrancas, ...st.cob.lista.filter((x) => !ids.has(x.id))]; st.cob.voltas = 0; vigiarCobrancas();
+        const agentes = [...new Set(resp.cobrancas.map((x) => x.agente))].join(' e ');
+        const ok = typeof G.postItemUpdate === 'function' && await G.postItemUpdate(item.id, `[Vybe OS · Cobrança da Direção de Arte]\nPara: ${c.quem.join(', ')}\nO quê: ${c.oque} (${c.quando})\nPor quê: ${c.por}\nComo destravar: ${c.destravar}\nEnvio: pedido ao VYBES pelo WhatsApp (${agentes})`);
+        if (!ok) { st.msg[chave] = { erro: true, texto: 'O pedido de envio foi registrado, mas a nota no histórico da peça não gravou.' }; return; }
+        G.showToast?.(`Cobrança pedida: ${agentes} manda no WhatsApp.`, 'ok', 4200);
       }
-      st.feitas.add(chave); delete st.msg[chave];
-    } catch (e) { st.msg[chave] = { erro: true, texto: `Não gravou: ${e?.message || 'tente de novo'}. A peça continua como estava.` }; }
+      if (d) st.feitas.add(chave); delete st.msg[chave];
+    } catch (e) { st.msg[chave] = { erro: true, texto: d ? `Não gravou: ${e?.message || 'tente de novo'}. A peça continua como estava.` : `A cobrança não saiu: ${e?.message || 'tente de novo'}. Nada foi enviado.` }; }
     finally { st.gravando = ''; st.confirmando = ''; repintar(); }
   }
   document.addEventListener('click', (e) => {
-    const b = e.target.closest?.('[data-vcr-reperguntar],[data-vcr-aprovar],[data-vcr-confirmar],[data-vcr-voltar],[data-vcr-adiar],[data-vcr-ver],[data-vcr-visto],[data-vcr-achado]'); if (!b) return;
+    const b = e.target.closest?.('[data-vcr-reperguntar],[data-vcr-copiar],[data-vcr-aprovar],[data-vcr-confirmar],[data-vcr-voltar],[data-vcr-adiar],[data-vcr-ver],[data-vcr-visto],[data-vcr-achado]'); if (!b) return;
     if (b.hasAttribute('data-vcr-reperguntar')) { perguntar(st.conversa.texto); return; }
+    if (b.dataset.vcrCopiar) {
+      // Saída para quando o bot não conseguiu: a mesma mensagem, para o Deivid mandar ele mesmo.
+      const s = ultimas.cobrancas.find((x) => x.chave === b.dataset.vcrCopiar), txt = (s ? daPeca(s).filter((r) => r.estado === 'falhou').map((r) => r.texto) : []).join('\n\n') || s?.mensagem || '';
+      navigator.clipboard?.writeText(txt).then(() => G.showToast?.('Mensagem copiada.', 'ok', 3000), () => G.showToast?.(`Mensagem: ${txt}`, 'info', 9000));
+      return;
+    }
     if (b.dataset.vcrAprovar) { st.confirmando = b.dataset.vcrAprovar; repintar(); return; }
     if (b.dataset.vcrConfirmar) { if (!st.gravando) executar(b.dataset.vcrConfirmar); return; }
     if (b.hasAttribute('data-vcr-voltar')) { st.confirmando = ''; repintar(); return; }
@@ -301,5 +347,6 @@
     }
   });
 
+  util.relerCobrancas = () => lerCobrancas(true);
   G.VybeCriacao = { assistente, util };
 })();
