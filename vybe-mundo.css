@@ -5185,10 +5185,12 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
 .vc-dia b{font:600 12px var(--vv-texto);font-variant-numeric:tabular-nums}
 .vc-dia small{font:500 10.5px var(--vv-texto);color:#6B675F}
 /* Agenda da Produção no celular (vybe-styles.css, "jeito do Google Agenda"): no mundo, a faixa da captação fica com o texto
-   branco (o bloco gerado escurece o texto de todo .ag-chip) e o + fica acima do dock das salas e do menu de baixo.
-   Terceira rodada (11/11/2026): no mundo o chip do mês é branco com o traço na cor do tipo (bloco "Terceira rodada ·
-   Telas", no fim), então o texto branco da faixa cheia saiu daqui. */
+   escuro (o bloco gerado deixaria cinza, vermelho ou verde, que não se leem sobre a cor) e o + fica acima do dock das
+   salas e do menu de baixo. Terceira rodada (11/11/2026): o texto era branco; sobre o azul da captação e o cinza do
+   compromisso dava 3,3:1. Escuro dá 5:1 ou mais nas três cores. */
 @media (max-width:700px){
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip{color:#1F1D1A!important}
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.t-reuniao{color:#1F1D1A!important}
   html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num.capt-mes-num{color:#FFFFFF!important}
   body.mundo .capt-fab{bottom:calc(64px + 4 * var(--vv-m,12px) + var(--vv-dock-alto,0px))}
 }
@@ -6919,11 +6921,13 @@ body.mundo .ag-col{container:agcol / inline-size}
   body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) small,body.mundo .ag-col .ag-ev.junto-fora:is(.n4,.gm){display:none}
   body.mundo .ag-col .ag-junto-mais:is(.n4,.gm){display:flex}
 }
-/* 04 · Mês. O compromisso é branco com o traço na cor do tipo, como na Semana e no Dia (saem o fundo tingido de
-   "gravada" e "falta fechar" e, no celular, a faixa cheia); o nome quebra em linhas (até três; quatro no celular,
-   onde o dia tem 50 px) em vez de terminar em reticências na primeira, e o que passa do limite do dia fica no "+N",
-   que abre o dia. O estado segue na cor do texto; o nome inteiro, no rótulo, na prévia e no cartão. A data
-   comemorativa quebra igual. */
+/* 04 · Mês. No computador o compromisso é branco com o traço na cor do tipo, como na Semana e no Dia (sai o fundo
+   tingido de "gravada" e "falta fechar"), e o estado segue na cor do texto. No celular fica a faixa cheia na cor do
+   tipo, do jeito do Google Agenda (pedido do Paulo, 09/11/2026), com o texto escuro (regra lá em cima, junto do +) e
+   sem apagar o que já passou (apagado, o texto não se lia sobre a cor). Nos dois, o nome quebra em linhas (até três;
+   quatro no celular, onde o dia tem 50 px) em vez de terminar em reticências na primeira, e o que passa do limite do
+   dia fica no "+N", que abre o dia; o nome inteiro está no rótulo, na prévia e no cartão. A data comemorativa quebra
+   igual. */
 body.mundo .capt-cal .capt-mes .ag-chip{display:block;padding:3px 4px 3px 8px;border-radius:6px;background:#FFFFFF;box-shadow:inset 3px 0 0 var(--ag-cor),inset 0 0 0 1px var(--pc-linha,#E6E0D6);font:600 11px/13.5px var(--vv-texto);white-space:normal}
 body.mundo .capt-cal .capt-mes .ag-chip em{font-weight:500;font-size:10.5px}
 body.mundo .capt-cal .capt-mes .ag-chip:hover{background:#FBF8F4}
@@ -6934,7 +6938,9 @@ body.mundo .capt-cal .capt-mes .vd-chips{flex-wrap:wrap}
 body.mundo .capt-cal .capt-mes .vd-chip{align-items:flex-start}
 body.mundo .capt-cal .capt-mes .vd-chip span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;white-space:normal;text-overflow:clip;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
 @media (max-width:700px){
-  body.mundo .capt-cal .capt-mes .ag-chip{padding:2px 2px 2px 6px;border-radius:4px;font:600 10px/12px var(--vv-texto)}
+  body.mundo .capt-cal .capt-mes .ag-chip,body.mundo .capt-cal .capt-mes .ag-chip:hover{padding:2px 3px;border-radius:4px;background:var(--ag-cor);box-shadow:none;font:600 10px/12px var(--vv-texto)}
+  body.mundo .capt-cal .capt-mes .ag-chip.sel{box-shadow:0 0 0 2px var(--vv-laranja)}
+  body.mundo .capt-cal.vista-mes .capt-mes .ag-chip.passou{opacity:1}
   body.mundo .capt-cal .capt-mes .ag-chip span{-webkit-line-clamp:4}
 }
 /* 30 · Campo de data (Nova reunião). O calendário que abre já é o do painel (vybe-calendario.js segura o do navegador em

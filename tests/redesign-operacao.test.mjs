@@ -134,11 +134,16 @@ test('04 (3ª rodada): dois na mesma hora levam as medidas da pilha; o "+N" abre
   assert.equal(vm.runInContext('AG_HORA_PX', c), 66, 'a hora da grade não cresceu');
 });
 
-test('04 (3ª rodada): no Mês o compromisso é branco com o traço na cor do tipo e o nome quebra em linhas', () => {
+test('04 (3ª rodada): no Mês o nome quebra em linhas; branco com o traço no computador, faixa cheia com texto escuro no celular', () => {
   assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip\{[^}]*background:#FFFFFF;box-shadow:inset 3px 0 0 var\(--ag-cor\),inset 0 0 0 1px/);
   assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip span\{[^}]*-webkit-line-clamp:3;[^}]*white-space:normal;text-overflow:clip/);
   assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip i\{display:none\}/, 'a cor fica só no traço');
-  assert.doesNotMatch(css, /\.capt-mes \.ag-chip\.ag-chip\{color:#FFFFFF/, 'sem texto branco: a faixa cheia do celular saiu no mundo');
+  // Celular: a faixa cheia na cor do tipo fica (Paulo, 09/11/2026: "igual ao Google Agenda"), com texto que se lê.
+  const celular = bloco3.slice(bloco3.indexOf('@media (max-width:700px){'));
+  assert.match(celular, /body\.mundo \.capt-cal \.capt-mes \.ag-chip,body\.mundo \.capt-cal \.capt-mes \.ag-chip:hover\{[^}]*background:var\(--ag-cor\);box-shadow:none/);
+  assert.match(celular, /body\.mundo \.capt-cal\.vista-mes \.capt-mes \.ag-chip\.passou\{opacity:1\}/, 'o que passou não apaga: apagado não se lia sobre a cor');
+  assert.match(css, /\.capt-cal\.vista-mes \.capt-mes \.ag-chip\.ag-chip\{color:#1F1D1A!important\}/, 'texto escuro: 5:1 ou mais no azul, no amarelo e no cinza');
+  assert.doesNotMatch(css, /\.capt-mes \.ag-chip\.ag-chip\{color:#FFFFFF/, 'branco sobre o azul dava 3,3:1');
   assert.ok(captJs.includes('onclick="event.stopPropagation();captVerDia(\'${dia}\')">+${lista.length - max}'), 'o "+N" abre o dia');
 });
 

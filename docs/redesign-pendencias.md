@@ -60,9 +60,10 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
 
 ## Terceira rodada: frente Telas (branch `codex/r3-telas`, 11/11/2026)
 Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a agenda cheia.
-- Agenda › Mês: no mundo o compromisso é branco com o traço na cor do tipo (saíram o fundo tingido de "gravada" e
-  "falta fechar" e, no celular, a faixa cheia); o nome quebra em até 3 linhas (4 no celular) e o "+N" abre o dia. O
-  tema antigo (fora do mundo) segue com a faixa cheia do jeito do Google Agenda.
+- Agenda › Mês: no computador o compromisso é branco com o traço na cor do tipo (saiu o fundo tingido de "gravada" e
+  "falta fechar"). No celular fica a faixa cheia na cor do tipo, do jeito do Google Agenda (pedido do Paulo, 09/11),
+  agora com o texto escuro (branco dava 3,3:1 sobre o azul; escuro dá 5:1 ou mais nas três cores) e sem apagar o que
+  já passou. Nos dois, o nome quebra em até 3 linhas (4 no celular) e o "+N" abre o dia.
 - Agenda › Semana: o bloco estreito (dois lado a lado) mostra o título e o começo do horário ("09:00"); o intervalo
   inteiro fica no rótulo, na prévia e no cartão. Quando a coluna não dá 60 px para cada um (2 abaixo de 120 px, 3
   abaixo de 180, 4 ou mais abaixo de 240), os que se cruzam viram uma pilha na faixa de horas do grupo, cada um com
