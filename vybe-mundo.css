@@ -4906,19 +4906,38 @@ html body.mundo :is(.vc-acao,.vp-acao,.vv-botao.acao,.ops-novo-conteudo,.capt-tb
 .vga-rascunho .vga-copiar:hover{background:#F3EEE6}
 .vga-rascunho .vga-copiar:focus-visible{outline:2px solid #F76808;outline-offset:2px}
 
-/* Cadeado no dock (Paulo, 09/11/2026): Negócio e Time aparecem apagados e com cadeado para quem não é dono. */
-/* Paulo, 09/11: "mais borrado, ao ponto de não dar pra ler o que é" — o nome e o ícone somem no borrão; o cadeado fica nítido. */
-.vv-trilho .trancado{opacity:.7;cursor:not-allowed;position:relative;user-select:none}
-.vv-trilho .trancado>span,.vv-trilho .trancado>svg,.vv-trilho .trancado>i{filter:blur(4.5px) grayscale(1);opacity:.75}
-.vv-trilho .trancado::after{content:"";position:absolute;right:10px;top:50%;width:12px;height:12px;margin-top:-6px;background:#6B665E;
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat}
-.vv-trilho .vv-trilho-btn.trancado .vv-trilho-seta{display:none}
-.vv-trilho .trancado:hover{opacity:.7}
-.vv-trilho .trancado.tremer{animation:vv-tremer .32s var(--curva,ease)}
-@keyframes vv-tremer{25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
-@media (prefers-reduced-motion:reduce){.vv-trilho .trancado.tremer{animation:none}}
-html.vb-sem-movimento .vv-trilho .trancado.tremer{animation:none}
+/* Área só dos donos (Paulo, 11/11/2026): quem não tem acesso não vê o item no dock (antes: borrado e com cadeado). */
+.vv-trilho .trancado{display:none}
+body.trilho-largo .vv-trilho-grupo[hidden],.vv-trilho-grupo[hidden],body.trilho-largo .vv-trilho-fav[hidden],.vv-trilho-fav[hidden]{display:none}
+/* VybeHub e outros sistemas irmãos: a seta de "abre fora" só no dock largo. */
+.vv-trilho-fora{display:none;font-style:normal;opacity:.6}
+body.trilho-largo .vv-trilho-fora{display:inline}
+/* Favoritos do dock (Paulo, 11/11/2026): a estrela aparece ao passar o mouse no item; os favoritos ficam no alto. */
+.vv-fav{display:none}
+body.trilho-largo .vv-trilho-btn,body.trilho-largo .vv-trilho-sub button{position:relative}
+body.trilho-largo .vv-fav{display:grid;place-items:center;position:absolute;right:4px;top:50%;width:24px;height:24px;margin-top:-12px;border-radius:6px;color:var(--vv-apagado);opacity:0;transition:opacity .12s var(--curva,ease);cursor:pointer}
+body.trilho-largo .vv-fav svg{width:14px;height:14px;flex:none}
+body.trilho-largo .vv-trilho-btn:hover .vv-fav,body.trilho-largo .vv-trilho-sub button:hover .vv-fav,body.trilho-largo .vv-trilho-btn:focus-visible .vv-fav,body.trilho-largo .vv-trilho-sub button:focus-visible .vv-fav{opacity:.7}
+body.trilho-largo .vv-fav:hover{opacity:1;background:rgba(31,29,26,.07);color:var(--vv-tinta)}
+body.trilho-largo .vv-fav.on{opacity:1;color:var(--vv-laranja)}
+body.trilho-largo .vv-fav.on svg{fill:currentColor}
+@media (hover:none){body.trilho-largo .vv-fav{opacity:.45}}
+.vv-trilho-fav{display:none;--cat:var(--vv-laranja,#F26B1D)}
+body.trilho-largo .vv-trilho-fav{display:flex;flex-direction:column;gap:1px}
+body.trilho-largo .vv-trilho-fav .vv-trilho-grupo{padding-top:8px}
+.vv-trilho-fav-item{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--vv-tinta);font:600 13px/1.2 var(--vv-texto);text-align:left;cursor:pointer}
+.vv-trilho-fav-item svg{width:18px;height:18px;flex:none;color:var(--vv-apagado)}
+.vv-trilho-fav-item span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-trilho-fav-item small{flex:none;max-width:74px;font:500 10.5px/1.2 var(--vv-texto);color:var(--vv-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-trilho-fav-item:hover{background:rgba(255,255,255,.75)}
+/* No favorito, a estrela (cheia) só aparece ao passar o mouse, no lugar do nome do setor: clicar nela tira da lista. */
+.vv-trilho-fav-item{position:relative}
+body.trilho-largo .vv-trilho-fav-item .vv-fav.on{opacity:0}
+body.trilho-largo .vv-trilho-fav-item:hover .vv-fav.on,body.trilho-largo .vv-trilho-fav-item:focus-visible .vv-fav.on{opacity:1}
+.vv-trilho-fav-item:hover small,.vv-trilho-fav-item:focus-visible small{visibility:hidden}
+@media (hover:none){body.trilho-largo .vv-trilho-fav-item .vv-fav.on{opacity:1}.vv-trilho-fav-item small{display:none}}
+.vv-trilho-fav-item:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){body.trilho-largo .vv-fav{transition:none}}
 
 /* Ver como: faixa no topo enquanto um dono confere a tela de outra pessoa. */
 .vv-vendo-como{position:fixed;z-index:730;left:50%;top:calc(var(--vv-m,12px) + 58px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;border-radius:8px;background:#1F1D1A;color:#FFFFFF;font:600 12.5px var(--vv-texto);box-shadow:0 6px 18px -8px rgba(31,29,26,.5)}
