@@ -117,8 +117,13 @@
         texto: 'Esse é o cérebro do cliente: tudo o que eu sei dele, em nove áreas, cada uma com o agente que cuida dela. Clique numa área para ver de onde veio cada informação.' },
       // evitar: a ação principal do cabeçalho da tela ("Marcar captação" na Agenda, "+ Nova demanda" nas Demandas, "Novo
       // cliente" nos Clientes) fica logo à esquerda do alvo; o balão não pode abrir em cima dela (re-auditoria de 10/11/2026).
+      // Terceira rodada: nem em cima de nenhum outro controle da tela ("Completar" nos Clientes, o menu da Conta no
+      // celular), do dock lateral ou da barra de baixo; sem lado livre, o balão vai para a vaga livre mais perto do alvo.
+      // O seletor que começa com "body.mundo-modulo" é o dos controles comuns da tela: sem vaga nenhuma (tela cheia de
+      // botões), o balão fica onde cobre menos deles, e nunca sobre os demais (ação do cabeçalho, docks).
       modulo: { grupo: 'Telas', titulo: 'Tela de trabalho', alvo: '.vv-canto-modulo', lado: 'esquerda',
-        evitar: ['.p-head-acoes', '.vb-cabecalho-acoes', '.client-module-actions', '.quadro-novo', '.vb-botao.principal', '.workspace-heading :is(button, summary, a)', '.prod-v2-head :is(button, summary, a)'],
+        evitar: ['.p-head-acoes', '.vb-cabecalho-acoes', '.client-module-actions', '.quadro-novo', '.vb-botao.principal', '.workspace-heading :is(button, summary, a)', '.prod-v2-head :is(button, summary, a)', '.cli-aviso-acao', '.conta-barra :is(button, a)',
+          'body.mundo-modulo :is(.container, [id^="painel-"]) :is(button, a[href], summary, input, select, textarea, [role="button"])', '.vv-trilho', '.vv-dock-salas'],
         texto: 'Você abriu uma tela de trabalho: ela ocupa a tela toda. Esc ou o × voltam para o seu dia.' },
     },
   };
@@ -234,7 +239,10 @@
       for (const el of lista) {
         if (el.closest?.('.vv-tour-raiz') || !visivel(el)) continue;
         const r = el.getBoundingClientRect();
-        fora.push({ left: r.left, top: r.top, right: r.right ?? r.left + r.width, bottom: r.bottom ?? r.top + r.height });
+        // fora da tela não atrapalha; do tamanho da tela é região, não botão
+        const W = G.innerWidth || 0, H = G.innerHeight || 0;
+        if (W && H && (r.top >= H || r.left >= W || (r.bottom ?? r.top + r.height) <= 0 || r.width * r.height > W * H * 0.35) && !el.matches?.('.vv-trilho')) continue;
+        fora.push({ left: r.left, top: r.top, right: r.right ?? r.left + r.width, bottom: r.bottom ?? r.top + r.height, peso: String(sel).startsWith('body.mundo-modulo') ? 1 : 1000 });
       }
     }
     return fora;
@@ -266,6 +274,18 @@
         if (cobre(x, y)) {
           const livre = Math.max(c.top + c.height, ...evitar.filter((o) => sobre(o, xLado, o.top)).map((o) => o.bottom)) + VAO;
           if (livre + bh <= H - MARGEM) { lado = 'baixo'; x = xLado; y = livre; }
+        }
+        // Ainda em cima de algum controle: a vaga livre mais perto do alvo, na tela toda; sem vaga, onde cobre menos.
+        if (cobre(x, y)) {
+          const quantos = (bx, by) => evitar.reduce((n, o) => n + (sobre(o, bx, by) ? o.peso || 1 : 0), 0);
+          let melhor = { x, y, n: quantos(x, y), d: 0 };
+          for (let by = MARGEM; by <= H - bh - MARGEM; by += 12) for (let bx = MARGEM; bx <= W - bw - MARGEM; bx += 12) {
+            const d = Math.abs(bx + bw / 2 - cx) + Math.abs(by + bh / 2 - cy);
+            if (!melhor.n && d >= melhor.d && melhor.d) continue;
+            const n = quantos(bx, by);
+            if (n < melhor.n || (n === melhor.n && melhor.d && d < melhor.d) || (n === melhor.n && !melhor.d && n === 0)) melhor = { x: bx, y: by, n, d };
+          }
+          if (melhor.d) { x = melhor.x; y = melhor.y; lado = y >= c.top + c.height ? 'baixo' : x + bw <= c.left ? 'esquerda' : y + bh <= c.top ? 'cima' : 'dentro'; }
         }
       }
       bico = lado === 'direita' || lado === 'esquerda' ? lim(cy - y, 22, bh - 22) : lim(cx - x, 22, bw - 22);

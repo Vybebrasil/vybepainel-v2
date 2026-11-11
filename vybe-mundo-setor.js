@@ -381,7 +381,7 @@
       const semanas = (Hi.semanas || []).slice(-12).map((s) => ({ ...s, rotulo: diaMes(s.inicio) }));
       const comHistorico = semanas.filter((s) => Number(s.previstas) > 0 || Number(s.entregues) > 0).length >= 2;
       const entregasHtml = comHistorico ? barras(semanas, [{ chave: 'previstas', rotulo: 'Previstas', cls: 'c5' }, { chave: 'entregues', rotulo: 'Entregues', cls: 'c1' }])
-        : aviso(`Sem histórico ainda: o gráfico aparece com duas semanas de entregas. Nesta semana, ${num(prontas)} de ${num(S.previstas)} previstas prontas.`);
+        : aviso(`Sem histórico ainda: o gráfico aparece com duas semanas de entregas. Nesta semana, ${num(prontas)} de ${num(S.previstas)} ${Number(S.previstas) === 1 ? 'prevista pronta' : 'previstas prontas'}.`);
       const time = [...(N.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 8);
       const porCliente = [...(N.clientes || [])].filter((c) => c.atrasadas || c.emRisco).sort((a, b) => (b.atrasadas || 0) - (a.atrasadas || 0) || (b.emRisco || 0) - (a.emRisco || 0)).slice(0, 6);
       const gargalos = (N.gargalos || []).slice(0, 6);

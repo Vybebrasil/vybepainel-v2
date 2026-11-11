@@ -151,8 +151,13 @@ O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido
 - Gaveta da demanda aberta: a caixa da tela de trás some (`body.mundo:has(> #workspace-drawer)`), fica só o X da gaveta.
 - Aviso curto (`ajustarAvisosCurtos`, vybe-core.js): nunca sobre controle (botão, campo, linha clicável, dock lateral,
   barra de baixo). Ordem: canto de cima à direita; ao lado do painel da direita, sem entrar no dock; a vaga livre mais
-  perto do canto; encolhido (`#vv-wa-avisos.compacto`); só então onde cobre menos. No celular: encolhido acima da barra
-  de baixo, ou na faixa do título da janela. O foco do teclado segura no máximo 8 s (`AVISO_CURTO_TETO_FOCO`).
+  perto do canto; encolhido (`#vv-wa-avisos.compacto`); só então onde cobre menos. No celular (pós-auditoria): sempre
+  encolhido logo acima da barra de baixo, na largura da tela, com o texto em até duas linhas; ali ele fica por cima do
+  fim da janela por alguns segundos. A pilha só sobe se não cobrir botão ou linha clicável; senão o mais novo espera o
+  primeiro sair. O foco do teclado segura no máximo 8 s (`AVISO_CURTO_TETO_FOCO`).
+- Dica "Tela de trabalho" (`evitar` em `vybe-mundo-tutorial.js`): nunca sobre a ação do cabeçalho, "Completar" dos
+  Clientes, o menu da Conta, o dock lateral e a barra de baixo; dos demais controles, fica onde cobre menos. O balão tem
+  320×245 px e em tela cheia de botões (Clientes e Agenda no celular) não há vaga sem nenhum: falta um balão menor.
 - Título de 22 px na Agenda e na Conta; Gestão, Performance e visões de setor com fundo sólido.
 - Celular: com a barra de baixo à vista, toda janela e o Hoje terminam acima dela (`--vv-pe-barra` entra na conta do
   `bottom`). Antes iam até o pé da tela; o Hoje ficava por cima da barra.

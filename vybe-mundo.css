@@ -6974,8 +6974,8 @@ body.mundo :is(#vv-impressoes,#vv-ferramentas) .vb-janela-topo{padding-top:17px;
 /* Planejamentos: o cabeçalho vai de borda a borda da janela, como nas outras */
 body.mundo .vv-plj{padding-top:0}
 body.mundo .vv-plj > .vv-plj-cabeca{margin:0 -24px}
-/* 1 · .vc-topo (Conteúdo, Comercial, Finanças, Fornecedores, Creators) */
-body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo{align-items:flex-start}
+/* 1 · .vc-topo (Conteúdo, Comercial, Finanças, Fornecedores, Creators e as quatro telas da Carteira) */
+body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{align-items:flex-start}
 body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo{padding-top:3px}
 /* 1 · Gestão, Performance e visões de setor */
 body.mundo .vv-g-topo{padding:16px 16px 12px 22px}
@@ -7016,6 +7016,9 @@ body.mundo:has(> #workspace-drawer) .vv-canto-modulo{display:none}
 #vv-wa-avisos.compacto .vv-aviso-curto-txt small{grid-column:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-wa-avisos.compacto .vv-aviso-curto-acoes{grid-column:2;grid-row:1 / span 2;flex-wrap:nowrap;margin:0}
 #vv-wa-avisos.compacto.minimo .vv-aviso-curto-txt small{display:none}
+/* no celular a frase também pode ter duas linhas; quem espera a vez (pilha que cobriria uma linha clicável) não aparece */
+@media (max-width:600px){#vv-wa-avisos.compacto .vv-aviso-curto-txt small{display:-webkit-box;white-space:normal;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+#vv-wa-avisos .vv-aviso-curto[hidden]{display:none}
 
 /* 4 · um título só: Agenda e Conta no tamanho das outras janelas */
 body.mundo .prod-v2-head .pv-cabeca h3,

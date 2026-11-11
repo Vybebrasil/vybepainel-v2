@@ -843,7 +843,7 @@
     const radar = V ? radarHtml(V, [
       { n: H.atrasadas, zero: 'atrasadas', icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' },
       { n: H.emRisco, zero: 'com risco de furo nos próximos 2 dias', icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' },
-      { n: H.faltam, zero: `faltam hoje · ${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' },
+      { n: H.faltam, zero: `faltam hoje · ${n0(feitasHoje)} de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'feita', 'feitas')}`, icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'feita', 'feitas')}`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' },
       { n: S.previstas, zero: 'previstas nesta semana', icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' },
       { n: emAtencao, zero: `clientes em atenção, de ${plural(ativos, 'ativo', 'ativos')}`, icone: 'coracao', titulo: 'Clientes em atenção', valor: n0(emAtencao), sub: `de ${plural(ativos, 'ativo', 'ativos')}`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' },
       { n: sem3.length, zero: 'clientes sem 3 posts nesta semana', icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' },
