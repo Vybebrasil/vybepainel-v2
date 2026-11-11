@@ -191,14 +191,14 @@
     const negativas = f.margens.filter((m) => m.periodo.margem < 0).length;
     return `<div class="vc-secao"><h3>${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
       <div class="vc-periodo">${mesHtml(f.mes, false)}</div>
-      <div class="vc-kpis">${kpi('Recebido', din(r.recebido) + (r.recebido_percentual != null ? `<small> · ${pc(r.recebido_percentual)} do previsto</small>` : ''), { espiar: 'financas:comercial:serie:' + f.mes })}
-        ${kpi('Previsto', din(r.previsto) + (r.mensalidades_sem_lancamento ? `<small> · ${din(r.mensalidades_sem_lancamento)} sem lançamento</small>` : ''))}
-        ${kpi(r.despesas_sem_folha != null ? 'Outras despesas' : 'Despesas do mês', din(r.despesas_sem_folha ?? dsp.total) + (r.despesas_sem_folha != null ? '<small> · sem a folha</small>' : ''), { espiar: 'financas:comercial:despesas', u: dsp.total > r.recebido && dsp.total ? 'u2' : '' })}
-        ${kpi('Folha do mês', din(fo.total) + `<small> · ${num(fo.quantidade)} pessoa${fo.quantidade === 1 ? '' : 's'}</small>`, { variacao: varFin(fo.total, fo.total_anterior), rotuloVar: 'vs mês anterior', inverso: true })}
-        ${kpi('Custos fixos (assinaturas)', din(cf.total) + `<small>/mês · ${num(cf.quantidade)}</small>`, { espiar: 'financas:comercial:fixos' })}
-        ${kpi('Resultado (recebido − pago)', din(r.resultado), { u: r.resultado < 0 ? 'u1' : '' })}
-        ${kpi('Em atraso', din(f.inadimplencia.total), { espiar: 'financas:comercial:inad', u: f.inadimplencia.total ? 'u1' : '' })}
-        ${kpi('Margem negativa (3 meses)', num(negativas), { espiar: 'financas:comercial:margem:negativa', u: negativas ? 'u1' : '' })}</div>`;
+      ${resumo([numero(r.recebido, din(r.recebido), ' recebido' + (r.recebido_percentual != null ? ` · ${pc(r.recebido_percentual)} do previsto` : ''), { espiar: 'financas:comercial:serie:' + f.mes, semDado: 'recebido: sem dado' }),
+        numero(r.previsto, din(r.previsto), ' previsto' + (r.mensalidades_sem_lancamento ? ` · ${din(r.mensalidades_sem_lancamento)} sem lançamento` : ''), { semDado: 'previsto: sem dado' }),
+        numero(r.despesas_sem_folha ?? dsp.total, din(r.despesas_sem_folha ?? dsp.total), r.despesas_sem_folha != null ? ' em outras despesas (sem a folha)' : ' em despesas do mês', { espiar: 'financas:comercial:despesas', tom: dsp.total > r.recebido && dsp.total ? 'atencao' : '', semDado: 'despesas: sem dado' }),
+        numero(fo.total, din(fo.total), ` de folha do mês · ${num(fo.quantidade)} pessoa${fo.quantidade === 1 ? '' : 's'}`, { variacao: varFin(fo.total, fo.total_anterior), rotuloVar: 'vs mês anterior', semDado: 'folha: sem dado' }),
+        numero(cf.total, din(cf.total), ` por mês em custos fixos · ${num(cf.quantidade)} assinatura${cf.quantidade === 1 ? '' : 's'}`, { espiar: 'financas:comercial:fixos', semDado: 'custos fixos: sem dado' }),
+        numero(r.resultado, din(r.resultado), ' de resultado (recebido − pago)', { tom: r.resultado < 0 ? 'alerta' : '', semDado: 'resultado: sem dado' }),
+        numero(f.inadimplencia.total, din(f.inadimplencia.total), ' em atraso', { espiar: 'financas:comercial:inad', tom: f.inadimplencia.total ? 'alerta' : '', semDado: 'nada em atraso' }),
+        numero(negativas, num(negativas), negativas === 1 ? ' cliente com margem negativa (3 meses)' : ' clientes com margem negativa (3 meses)', { espiar: 'financas:comercial:margem:negativa', tom: negativas ? 'alerta' : '' })])}`;
   }
   function finGraficos(f) {
     if (!f.series.length) return '';
@@ -241,15 +241,6 @@
 
   // ---------- Pedaços ----------
   const vazio = (frase, botao = '', acao = '') => `<div class="vc-vazio"><p>${esc(frase)}</p>${botao ? `<button type="button" class="vc-acao" data-vc="${acao}">${esc(botao)}</button>` : ''}</div>`;
-  function kpi(rotulo, valor, { variacao = null, rotuloVar = '', u = '', inverso = false, espiar = '' } = {}) {
-    let v = '';
-    if (rotuloVar) {
-      if (variacao == null) v = `<small class="vc-var">sem base ${esc(rotuloVar)}</small>`;
-      else { const bom = inverso ? variacao <= 0 : variacao >= 0; v = `<small class="vc-var ${variacao === 0 ? '' : bom ? 'bom' : 'ruim'}">${variacao > 0 ? '▲' : variacao < 0 ? '▼' : '='} ${pc(Math.abs(variacao))} ${esc(rotuloVar)}</small>`; }
-    }
-    const ab = espiar ? ` data-espiar="${espiar.startsWith('financas:') ? '' : 'comercial:'}${esc(espiar)}" role="button" tabindex="0"` : '';
-    return `<div class="vc-kpi${u ? ' ' + u : ''}${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b>${valor}</b>${v}</div>`;
-  }
   function seletorPeriodo() {
     const m = st.periodo.mes || hojeIso().slice(0, 7);
     return `<div class="vc-periodo"><div class="vc-seg" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, n]) => `<button type="button" data-vc-periodo="${k}" aria-pressed="${st.periodo.tipo === k}">${n}</button>`).join('')}</div>
@@ -260,7 +251,8 @@
   // Uma linha de números (vbResumoHtml; quadros 18 a 20 e 59): zero e "sem dado" discretos, o que pede ação com tom.
   function resumo(itens) {
     if (typeof vbResumoHtml === 'function') return `<div class="vc-resumo">${vbResumoHtml(itens)}</div>`;
-    return `<div class="vc-resumo"><div class="vb-resumo">${itens.filter(Boolean).map((x) => `<span class="vb-resumo-item ${x.tom || ''}">${x.valor !== '' ? `<b>${esc(x.valor)}</b>` : ''}${esc(x.rotulo)}</span>`).join('')}</div></div>`;
+    // Sem a peça (vybe-core.js fora): a mesma linha, e o número continua abrindo quem está nele.
+    return `<div class="vc-resumo"><div class="vb-resumo">${itens.filter(Boolean).map((x) => `<span class="vb-resumo-item ${x.tom || ''}${x.espiar ? ' espiavel" data-espiar="' + esc(x.espiar) + '" role="button" tabindex="0' : ''}">${x.valor !== '' ? `<b>${esc(x.valor)}</b>` : ''}${esc(x.rotulo)}</span>`).join('')}</div></div>`;
   }
   // n = número cru (null = sem dado); texto = ele formatado; a variação (%) vai no fim do rótulo; espiar = a chave inteira.
   function numero(n, texto, rotulo, { variacao = null, rotuloVar = '', tom = '', espiar = '', semDado = '' } = {}) {
@@ -278,10 +270,11 @@
     if (st.aba === 'orcamentos') return podeFazer(d, 'editar_comercial') && d.pacotes.length && d.orcamentos.length ? b('Novo orçamento', 'orcamento') : '';
     // Contas a pagar (quadro 20): "Nova conta" só no cabeçalho, também com a lista vazia (o vazio fica só com a frase).
     if (st.aba === 'contas') return b('Nova conta', 'conta');
+    // Recebimentos (quadro 20): igual a Contas, "Novo recebimento" só no cabeçalho; o vazio aponta para ele.
+    if (st.aba === 'recebimentos') return b('Novo recebimento', 'recebivel');
     return '';
   }
   const rotuloAnterior = () => (st.periodo.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
-  const botaoNovo = (texto, acao) => `<button type="button" class="vc-acao" data-vc="${acao}">${IC.mais}<span>${esc(texto)}</span></button>`;
 
   // ---------- Abas ----------
   function abaFunil(d) {
@@ -377,10 +370,12 @@
         <div><b>${esc(x.nome)}</b><small>${fmt(x, x.realizado)}${x.meta > 0 ? ' de ' + fmt(x, x.meta) + (x.batida ? ' · meta batida' : ' · faltam ' + fmt(x, x.falta)) : ' · sem meta'}</small></div>
         <span class="vc-barra"><i class="${x.batida ? 'u6' : ''}" style="width:${x.barra}%"></i></span><strong>${x.percentual == null ? '—' : pc(x.percentual)}</strong></li>`).join('')}</ul>`
       : `<p class="vc-dica">${p.editar_pacotes ? 'Nenhuma meta para este período. Em "Editar metas" você define MRR, avulso, negócios fechados e leads do mês.' : 'Os donos ainda não definiram as metas deste período.'}</p>`;
-    const kp = `<div class="vc-kpis">${kpi('Leads novos', num(k.atual.leads), { variacao: k.variacao.leads, rotuloVar: rv, espiar: 'funil:leads' })}
-      ${kpi('Propostas enviadas', num(k.atual.propostas), { variacao: k.variacao.propostas, rotuloVar: rv, espiar: 'funil:propostas' })}
-      ${kpi('Negócios fechados', num(k.atual.negocios), { variacao: k.variacao.negocios, rotuloVar: rv, espiar: 'funil:fechados' })}
-      ${val ? kpi('Fechado (MRR)', din(k.atual.mrr) + '<small>/mês</small>', { variacao: k.variacao.mrr, rotuloVar: rv, espiar: 'funil:fechados' }) + kpi('Fechado (avulso)', din(k.atual.avulso), { variacao: k.variacao.avulso, rotuloVar: rv, espiar: 'funil:fechados' }) : ''}</div>`;
+    // Zero vira uma linha (00 Main, regra 4): os números do mês numa linha de resumo, cada um abrindo quem está nele.
+    const kp = resumo([numero(k.atual.leads ?? 0, num(k.atual.leads), Number(k.atual.leads) === 1 ? ' lead novo' : ' leads novos', { variacao: k.variacao.leads, rotuloVar: rv, espiar: 'comercial:funil:leads' }),
+      numero(k.atual.propostas ?? 0, num(k.atual.propostas), Number(k.atual.propostas) === 1 ? ' proposta enviada' : ' propostas enviadas', { variacao: k.variacao.propostas, rotuloVar: rv, espiar: 'comercial:funil:propostas' }),
+      numero(k.atual.negocios ?? 0, num(k.atual.negocios), Number(k.atual.negocios) === 1 ? ' negócio fechado' : ' negócios fechados', { variacao: k.variacao.negocios, rotuloVar: rv, espiar: 'comercial:funil:fechados' }),
+      val ? numero(k.atual.mrr ?? 0, din(k.atual.mrr ?? 0), ' por mês fechado (MRR)', { variacao: k.variacao.mrr, rotuloVar: rv, espiar: 'comercial:funil:fechados' }) : null,
+      val ? numero(k.atual.avulso ?? 0, din(k.atual.avulso ?? 0), ' fechado avulso', { variacao: k.variacao.avulso, rotuloVar: rv, espiar: 'comercial:funil:fechados' }) : null]);
     const graficos = m.series.length ? grafico({ meses: m.series, aria: 'Leads novos por mês, últimos 6 meses', espiar: (mes) => 'funil:leads:' + mes,
         series: [{ chave: 'leads', cls: 'lead', rotulo: 'Leads novos', fmt: num }] })
       + (val ? grafico({ meses: m.series, aria: 'Valor fechado por mês (MRR e avulso), últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes,
@@ -507,14 +502,17 @@
   }
   function abaOrcamentos(d) {
     const p = d.pode || {};
-    return `<div class="vc-secao"><h3>Orçamentos</h3></div>
-      ${!d.pacotes.length ? '<p class="vc-dica">Sem pacotes ativos: os donos cadastram na aba Pacotes.</p>' : ''}
+    // Sem pacote ativo (auditoria 11/11, quadro 19): um botão leva à aba Pacotes, em vez de só o texto; o título
+    // "Orçamentos" já está no cabeçalho da janela e saiu do corpo.
+    const semPacote = !d.pacotes.length;
+    return `${semPacote && d.orcamentos.length ? `<div class="vc-sem-pacote"><p class="vc-dica">Sem pacotes ativos: os donos cadastram na aba Pacotes.</p><button type="button" class="vc-sec" data-vc="ir-pacotes">Ir para Pacotes</button></div>` : ''}
       <div class="vc-lista">${d.orcamentos.map((o) => `<article class="vc-cartao"><div class="vc-cartao-topo"><b>${esc(o.cliente_nome)}</b>${pill(...(STATUS_ORC[o.status] || [o.status]))}</div>
         <p class="vc-grande">${o.totais.total_recorrente ? din(o.totais.total_recorrente) + '<small>/mês</small>' : ''}${o.totais.total_recorrente && o.totais.total_avulso ? ' + ' : ''}${o.totais.total_avulso ? din(o.totais.total_avulso) + '<small> avulso</small>' : ''}</p>
         <small>${o.itens.map((i) => `${num(i.quantidade)}× ${esc(i.nome)}`).join(' · ')}${o.desconto_percentual ? ' · desconto ' + pc(o.desconto_percentual) : ''} · válido até ${data(o.validade)}${o.validade < hojeIso() ? ' (vencido)' : ''}</small>
         <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="imprimir" data-id="${esc(o.id)}">Imprimir</button>
         ${p.editar_comercial ? `<select class="vc-mini" data-vc-status-orc="${esc(o.id)}" aria-label="Status do orçamento">${Object.entries(STATUS_ORC).map(([k, [n]]) => `<option value="${k}"${k === o.status ? ' selected' : ''}>${n}</option>`).join('')}</select>` : ''}</div></article>`).join('')
-        || vazio('Nenhum orçamento ainda. Monte o primeiro a partir dos pacotes.', p.editar_comercial && d.pacotes.length ? 'Novo orçamento' : '', 'orcamento')}</div>
+        || (semPacote ? vazio('Nenhum orçamento ainda. O orçamento sai dos pacotes, e ainda não há pacote ativo: os donos cadastram na aba Pacotes.', 'Ir para Pacotes', 'ir-pacotes')
+          : vazio('Nenhum orçamento ainda. Monte o primeiro a partir dos pacotes.', p.editar_comercial ? 'Novo orçamento' : '', 'orcamento'))}</div>
       ${d.orcamentos.length ? roiHtml(d) : ''}`;
   }
   // Redesign (quadro 59): os clientes ativos aparecem mesmo sem contrato. O servidor já manda todos os ativos; sem
@@ -564,9 +562,14 @@
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function abaRecebimentos(d) {
     const r = d.resumo, v = r.variacao, rv = rotuloAnterior();
-    return `${seletorPeriodo()}<div class="vc-kpis">${kpi('A receber', din(r.atual.a_receber), { variacao: v.a_receber, rotuloVar: rv })}${kpi('Recebido', din(r.atual.recebido), { variacao: v.recebido, rotuloVar: rv })}
-        ${kpi('Pendente', din(r.atual.pendente), { variacao: v.pendente, rotuloVar: rv, inverso: true })}${kpi('Inadimplente', din(r.atual.inadimplente), { variacao: v.inadimplente, rotuloVar: rv, inverso: true, u: r.atual.inadimplente ? 'u1' : '' })}</div>
-      <div class="vc-secao"><h3>${esc(d.periodo.tipo === 'anual' ? d.periodo.rotulo : nomeMes(d.periodo.mes))}</h3>${fonteDa(d)}${botaoNovo('Novo recebimento', 'recebivel')}</div>
+    // Redesign (quadro 20 e 00 Main, regra 4): os quatro números numa linha (zero e "sem dado" discretos, inadimplente
+    // com tom); "Novo recebimento" só no cabeçalho, como em Contas a pagar.
+    const a = r.atual, inad = Number(a.inadimplente) || 0, pend = Number(a.pendente) || 0;
+    return `${seletorPeriodo()}${resumo([numero(a.a_receber, din(a.a_receber), ' a receber', { variacao: v.a_receber, rotuloVar: rv, semDado: 'nenhum recebimento lançado no período' }),
+        numero(a.recebido, din(a.recebido), ' recebido', { variacao: v.recebido, rotuloVar: rv, semDado: 'recebido: sem dado' }),
+        numero(a.pendente, din(a.pendente), ' pendente', { variacao: v.pendente, rotuloVar: rv, tom: pend ? 'atencao' : '', semDado: 'pendente: sem dado' }),
+        numero(a.inadimplente, din(a.inadimplente), ' inadimplente', { variacao: v.inadimplente, rotuloVar: rv, tom: inad ? 'alerta' : '', semDado: 'inadimplente: sem dado' })])}
+      <div class="vc-secao"><h3>${esc(d.periodo.tipo === 'anual' ? d.periodo.rotulo : nomeMes(d.periodo.mes))}</h3>${fonteDa(d)}</div>
       <div class="vc-lista">${d.recebiveis.map((x) => { const [n, u] = STATUS_REC[x.status] || [x.status]; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(x.tipo === 'recorrente' ? x.cliente_nome || 'Cliente' : x.descricao)}</b>${pill(n, u)}</div>
         <p class="vc-grande">${din(x.valor)}${x.valor_recebido && x.status !== 'recebido' ? `<small> · recebido ${din(x.valor_recebido)}</small>` : ''}</p>
@@ -574,7 +577,7 @@
         ${x.cancelado ? '' : doFinancas(x.id) ? soNoFinancas : `<div class="vc-linha-acoes">${x.status !== 'recebido' ? `<button type="button" class="vc-sec" data-vc="receber" data-id="${esc(x.id)}">Receber</button>` : ''}
           ${x.tipo === 'recorrente' ? `<button type="button" class="vc-sec" data-vc="proximo" data-id="${esc(x.id)}">Próximo ciclo</button>` : ''}
           <button type="button" class="vc-sec" data-vc="recebivel" data-id="${esc(x.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-rec" data-id="${esc(x.id)}">Cancelar</button></div>`}</article>`; }).join('')
-        || vazio('Nenhum recebimento neste período. Lance os contratos recorrentes e os pontuais.', 'Novo recebimento', 'recebivel')}</div>`;
+        || vazio('Nenhum recebimento neste período. Lance os contratos recorrentes e os pontuais pelo botão do alto da tela.')}</div>`;
   }
   function abaContas(d) {
     const r = d.resumo, rv = rotuloAnterior(), f = fin();
@@ -591,9 +594,11 @@
     if (f) {
       const dsp = f.despesas, max = Math.max(1, ...dsp.categorias.map((c) => c.total)), cf = f.custos_fixos;
       doFin = `<div class="vc-secao"><h3>Despesas de ${esc(nomeMes(f.mes))}</h3>${fonteFin()}</div>
-        <div class="vc-kpis">${kpi(f.resumo.despesas_sem_folha != null ? 'Outras despesas' : 'Despesas do mês', din(f.resumo.despesas_sem_folha ?? dsp.total) + (f.resumo.despesas_sem_folha != null ? '<small> · sem a folha</small>' : ''), { espiar: 'financas:comercial:despesas' })}${kpi('Pagas', din(f.resumo.despesas_pagas))}
-          ${kpi('Pendentes', din(f.resumo.despesas_pendentes), { u: f.resumo.despesas_pendentes ? 'u2' : '' })}${kpi('Folha do mês', din(f.folha.total))}
-          ${kpi('Custos fixos (assinaturas)', din(cf.total) + '<small>/mês</small>', { espiar: 'financas:comercial:fixos' })}</div>
+        ${resumo([numero(f.resumo.despesas_sem_folha ?? dsp.total, din(f.resumo.despesas_sem_folha ?? dsp.total), f.resumo.despesas_sem_folha != null ? ' em outras despesas (sem a folha)' : ' em despesas do mês', { espiar: 'financas:comercial:despesas', semDado: 'despesas: sem dado' }),
+          numero(f.resumo.despesas_pagas, din(f.resumo.despesas_pagas), ' pagas', { semDado: 'pagas: sem dado' }),
+          numero(f.resumo.despesas_pendentes, din(f.resumo.despesas_pendentes), ' pendentes', { tom: f.resumo.despesas_pendentes ? 'atencao' : '', semDado: 'pendentes: sem dado' }),
+          numero(f.folha.total, din(f.folha.total), ' de folha do mês', { semDado: 'folha: sem dado' }),
+          numero(cf.total, din(cf.total), ' por mês em custos fixos (assinaturas)', { espiar: 'financas:comercial:fixos', semDado: 'custos fixos: sem dado' })])}
         ${dsp.categorias.length ? `<ul class="vc-barras espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">${dsp.categorias.map((c) => `<li><span>${esc(c.categoria)}</span><span class="vc-barra"><i class="u2" style="width:${(c.total / max) * 100}%"></i></span><small>${din(c.total)} · ${pc(c.percentual)}</small></li>`).join('')}</ul>`
           : vazio('Nenhuma despesa lançada no Finanças neste mês.')}
         ${cf.itens.length ? `<div class="vc-secao"><h3>Custos fixos</h3><small>${num(cf.quantidade)} assinatura${cf.quantidade === 1 ? '' : 's'} ativa${cf.quantidade === 1 ? '' : 's'}</small></div>
@@ -621,7 +626,12 @@
   }
   function abaInadimplencia(d) {
     const f = fin();
-    const doVybe = `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
+    // Redesign (quadro 20 e 00 Main, regra 4): os quatro números numa linha; o crítico continua abrindo quem está nele.
+    const nCli = d.clientes.length, nFat = d.faturas.length, crit = Number(d.criticos) || 0;
+    const doVybe = `${resumo([numero(d.total, din(d.total), ' em atraso', { tom: d.total ? 'alerta' : '', semDado: 'nada em atraso' }),
+        numero(nCli, num(nCli), nCli === 1 ? ' cliente' : ' clientes'),
+        numero(crit, num(crit), crit === 1 ? ' crítico (+30 dias)' : ' críticos (+30 dias)', { tom: crit ? 'alerta' : '', espiar: 'comercial:inadimplencia:criticos' }),
+        numero(nFat, num(nFat), nFat === 1 ? ' fatura' : ' faturas')])}
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
       <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')
@@ -630,8 +640,10 @@
     if (f) {
       const i = f.inadimplencia;
       doFin = `<div class="vc-secao"><h3>Receitas vencidas e não pagas</h3>${fonteFin()}</div>
-        <div class="vc-kpis">${kpi('Em atraso', din(i.total), { u: i.total ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Clientes', num(i.clientes.length), { espiar: 'financas:comercial:inad' })}
-          ${kpi('Críticos (+30 dias)', num(i.criticos), { u: i.criticos ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Lançamentos', num(i.faturas))}</div>
+        ${resumo([numero(i.total, din(i.total), ' em atraso', { tom: i.total ? 'alerta' : '', espiar: 'financas:comercial:inad', semDado: 'nada em atraso' }),
+          numero(i.clientes.length, num(i.clientes.length), i.clientes.length === 1 ? ' cliente' : ' clientes', { espiar: 'financas:comercial:inad' }),
+          numero(Number(i.criticos) || 0, num(i.criticos), Number(i.criticos) === 1 ? ' crítico (+30 dias)' : ' críticos (+30 dias)', { tom: i.criticos ? 'alerta' : '', espiar: 'financas:comercial:inad' }),
+          numero(Number(i.faturas) || 0, num(i.faturas), Number(i.faturas) === 1 ? ' lançamento' : ' lançamentos')])}
         <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
           <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
           || vazio('Ninguém em atraso no Vybe Finanças.')}</div>`;
@@ -970,6 +982,7 @@
       'arquivar-forn': () => confirm('Arquivar este fornecedor?') && executar(() => comercial({ acao: 'fornecedor_arquivar', id }), 'Fornecedor arquivado.'),
       'arquivar-creator': () => confirm('Arquivar este creator?') && executar(() => comercial({ acao: 'creator_arquivar', id }), 'Creator arquivado.'),
       'ir-recebimentos': () => abrir('recebimentos'),
+      'ir-pacotes': () => abrir('pacotes', st.soAbas?.has('pacotes') ? { abas: [...st.soAbas], rotulo: st.rotulo } : {}),
       metas: formMetas,
       'form-copiar': copiarLinkFormulario,
       'form-gerar': () => (!st.dados.funil?.mes?.formulario?.ativo || confirm('Trocar o link? O link antigo para de funcionar na hora (troque também na bio e no site).'))

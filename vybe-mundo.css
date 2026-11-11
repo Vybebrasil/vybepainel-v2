@@ -7126,3 +7126,13 @@ body.mundo.mundo-modulo #mundo > *{display:none}
   /* um deslize só: o .container de dentro de um quadro não desliza de novo por cima do quadro */
   body.mundo.mundo-modulo [id^="painel-"] .container{animation:none}
 }
+
+/* ==== Quadro 20 (Finanças, 11/11/2026): Orçamentos sem pacote ativo, a frase e o botão que leva à aba Pacotes ==== */
+#vv-comercial .vc-sem-pacote{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px}
+#vv-comercial .vc-sem-pacote .vc-dica{margin:0}
+/* ==== 00 Main, regra 4 (11/11/2026): nos painéis de setor, Gestão e Performance, os números zerados numa linha discreta abaixo dos cartões ==== */
+.vs-zeros{margin:10px 0 4px}
+.vs-zeros .vb-resumo{gap:6px}
+.vs-zeros .vb-resumo-item{font-size:12.5px;font-weight:500;line-height:1.35;text-align:left}
+.vs-zeros button.vb-resumo-item{cursor:pointer;font-family:inherit}
+.vs-zeros button.vb-resumo-item:hover{color:#5E5A53}

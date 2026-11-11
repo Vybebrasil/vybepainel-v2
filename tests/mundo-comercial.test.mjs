@@ -61,7 +61,7 @@ async function montar(t, quem) {
 
 test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML injetado', async (t) => {
   const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
-  const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'Inadimplente', contas: 'Aluguel',
+  const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'inadimplente', contas: 'Aluguel',
     inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
     ctx.VybeComercial.abrir(aba); await esperar();
