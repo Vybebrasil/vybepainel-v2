@@ -1562,6 +1562,15 @@ function alternarAbaCerebro(qual) {
 // função onde está. Com um cliente escolhido, mostra também o estudo dele (setor, concorrentes, ameaças, oportunidades).
 const CEREBRO_SINAPSES = { dados: null, erro: '', carregando: false, motor: 'todos', estudos: {} };
 const CEREBRO_MOTORES = { qwen: ['Qwen', '#8B7DFF'], logica: ['Lógica fixa', '#0D74CE'], misto: ['Lógica + Qwen', '#8E4EC6'], vybe_os: ['Vybe OS', '#7A8B82'], nao_mapeado: ['Não mapeada', '#D13D36'] };
+// Quadro 54 (quarta rodada, 11/11/2026): a central dá às fontes o nome de quem programa ("Fichas .md dos clientes",
+// "Grupos de clientes (só leitura)"). Na tela vai o português de quem usa, sem nome de arquivo; o caminho continua no
+// `origem` (o código cinza embaixo de cada fonte). Sinapses, "Como o VYBES pensa" e o Mapa do Cérebro leem daqui.
+function cerebroNomeDeQuemUsa(nome) {
+  return String(nome || '')
+    .replace(/\s*\(só leitura\)/gi, ' (o VYBES só lê)')
+    .replace(/\s+\.(md|json|js|csv|txt)\b/gi, '')
+    .replace(/\s{2,}/g, ' ').trim();
+}
 async function carregarMapaCerebro(forcar = false) {
   const s = CEREBRO_SINAPSES; if (s.carregando || (s.dados && !forcar)) return;
   s.carregando = true; s.erro = ''; cerebroRepintar();
@@ -1569,6 +1578,7 @@ async function carregarMapaCerebro(forcar = false) {
     const r = await fetch('/api/painel?area=vybes&etapa=mapa', { credentials: 'same-origin', cache: 'no-store' });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !Array.isArray(d.nos)) throw new Error(d.error || 'O mapa do cérebro ainda não está disponível neste ambiente.');
+    for (const n of d.nos) if (n && typeof n.nome === 'string') n.nome = cerebroNomeDeQuemUsa(n.nome);
     s.dados = d;
   } catch (e) { s.erro = e.message; } finally { s.carregando = false; cerebroRepintar(); cerebroAvisarMapa(); }
 }

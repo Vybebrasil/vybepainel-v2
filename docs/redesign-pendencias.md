@@ -186,3 +186,22 @@ O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido
 - Continua pela metade: a dica "Tela de trabalho" ainda cobre controles em telas cheias (precisa de balão menor ou lugar
   fixo); no celular o aviso curto cobre por ~6 s o fim da janela e, com a gaveta aberta, 39% de "Arquivo" e "Link";
   reticências depois da 3ª linha no Mês a 1110. Móveis e Loja seguem fora (decisão do Paulo, branch `codex/r2-moveis`).
+
+## Quarta rodada: sobras (branch `codex/r4-sobras`, 11/11/2026)
+Conferido no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a demo vazia e a cheia. CSS no bloco
+"Quarta rodada · sobras", no fim de `vybe-mundo.css`.
+- Dica "Tela de trabalho" compacta (`compacta` em `vybe-mundo-tutorial.js`): título e "Entendi" numa linha, a frase curta
+  em até duas e "Ver de novo depois" / "Não mostrar mais dicas" numa linha pequena. Lugar (`colocarCompacta`): a vaga sem
+  nenhum controle à vista (só conta o que está por cima de verdade) mais perto da caixa; sem vaga, o cabeçalho da janela,
+  em cima do título; sem isso (menu cheio por cima), espera escondida. Com outra janela por cima da caixa, também espera.
+- Agenda › Mês no computador: o nome e a data comemorativa aparecem inteiros (a célula cresce); a 1110 a letra do
+  compromisso desce para 10,5 px. No celular fica o limite de 4 linhas com a faixa na cor do tipo (pedido do Paulo).
+- Agenda › Semana: os dias ficam presos logo abaixo da barra ao rolar (`captCabecaFixa`, `--ag-cabeca-topo`); o cabeçalho
+  dos dias saiu do vão de 104 px da moldura (desalinhava as colunas); a data comemorativa quebra dentro da coluna.
+- Painel: status e formato do cartão da semana cabem inteiros (a coluna do avatar tinha 64 px fixos).
+- Cidade e Prédio: o nome do pino fica inteiro na tela (`dentroDaTela` em `mundo/motor.mjs`).
+- Nova reunião: cabeçalho único (`vbCabecalhoHtml` + `vbFecharHtml`), o cliente vai no título; os dois menus já abriam o
+  seletor do padrão, e o campo ganhou a seta do padrão (a linha das janelas apagava a imagem de fundo).
+- Conta: divisória do menu até o fim da janela e dados em rótulo | valor.
+- Sinapses: as fontes no português de quem usa ("Fichas dos clientes", "o VYBES só lê"); o caminho fica no `origem`.
+- Plurais: "1 aberta", "0 de 1 feita", "0 de 1 prevista pronta" vistos na tela; "1 cliente ativo" na Performance.

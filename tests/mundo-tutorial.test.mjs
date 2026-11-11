@@ -434,27 +434,45 @@ test('os donos da Vybe são tratados por "senhor" (mesma personalidade do VYBES)
 });
 
 // 3ª rodada (11/11/2026): a dica "Tela de trabalho" abria à esquerda da caixa de tela cheia/fechar, em cima da ação do
-// cabeçalho ("Marcar captação" na Agenda).
-test('a dica não abre em cima da ação do cabeçalho: desce até passar do botão', () => {
-  const canto = { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)] };
-  const cobre = (b, o) => { const x = parseInt(b.style.left, 10), y = parseInt(b.style.top, 10); return x < o[2] && x + 320 > o[0] && y < o[3] && y + 190 > o[1]; };
-  const botao = [1180, 64, 1336, 98]; // esquerda, topo, direita, fundo de "Marcar captação" a 1440
-  // Sem ação no cabeçalho: o lado pedido (esquerda), como sempre.
-  const livre = montar({ alvos: canto });
-  livre.T.dica('modulo', { forcar: true }); livre.rodar();
-  assert.equal(livre.titulo(), 'Tela de trabalho');
-  assert.equal(livre.balao().getAttribute('data-lado'), 'esquerda');
-  assert.ok(cobre(livre.balao(), botao), 'é esse lugar que cobriria o botão');
-  // Com a ação: nenhum lado que cabe fica livre, então o balão vai para baixo do botão.
-  const comAcao = montar({ alvos: { ...canto, '.p-head-acoes': [alvo(1180, 64, 156, 34)] } });
+// cabeçalho ("Marcar captação" na Agenda). 4ª rodada: o balão é compacto e nunca fica em cima de controle nenhum; sem
+// vaga, vai para o cabeçalho da janela, em cima do título.
+const CONTROLES = 'button, a[href], summary, input:not([type="hidden"]), select, textarea, [role="button"], [role="tab"], [onclick], [tabindex="0"]';
+const cobreCaixa = (b, o, w = 320, h = 190) => { const x = parseInt(b.style.left, 10), y = parseInt(b.style.top, 10); return x < o[2] && x + w > o[0] && y < o[3] && y + h > o[1]; };
+test('a dica "Tela de trabalho" é compacta: título e Entendi numa linha, a frase curta e os outros botões embaixo', () => {
+  const t = montar({ alvos: { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)] } });
+  t.T.dica('modulo', { forcar: true }); t.rodar();
+  const b = t.balao();
+  assert.ok(b.classes.has('vv-tour-compacta'));
+  const topo = t.classe('vv-tour-compacta-topo');
+  assert.ok(topo.contains(t.classe('vv-tour-titulo')) && topo.contains(t.botao('entendi')), 'título e Entendi na mesma linha');
+  assert.equal(t.classe('vv-tour-texto').textContent, 'Ela ocupa a tela toda. Esc ou o × voltam para o seu dia.');
+  assert.ok(t.botao('depois') && t.botao('sem-dicas'), 'nenhum botão some');
+  assert.equal(b.getAttribute('data-posto'), 'vaga');
+  const x = parseInt(b.style.left, 10), y = parseInt(b.style.top, 10);
+  assert.ok(x >= 12 && y >= 12 && x + 320 <= 1440 - 12 && y + 190 <= 900 - 12, 'dentro da tela');
+});
+test('a dica compacta não cobre nenhum controle; sem vaga, fica no cabeçalho da janela, em cima do título', () => {
+  const caixa = [1334, 12, 1410, 46], botao = [1180, 64, 1336, 98]; // caixa e "Marcar captação" a 1440
+  const comAcao = montar({ alvos: { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)], [CONTROLES]: [alvo(1334, 12, 76, 34), alvo(1180, 64, 156, 34)] } });
   comAcao.T.dica('modulo', { forcar: true }); comAcao.rodar();
-  const b = comAcao.balao();
-  assert.equal(b.getAttribute('data-lado'), 'baixo');
-  assert.ok(parseInt(b.style.top, 10) >= 98 + 4, 'começa abaixo do botão');
-  assert.ok(!cobre(b, botao), 'não cobre o botão');
-  assert.ok(parseInt(b.style.left, 10) + 320 <= 1440 - 12 && parseInt(b.style.top, 10) + 190 <= 900 - 12, 'dentro da tela');
-  // Ação escondida não conta.
-  const escondida = montar({ alvos: { ...canto, '.p-head-acoes': [alvo(1180, 64, 156, 34, { hidden: true })] } });
-  escondida.T.dica('modulo', { forcar: true }); escondida.rodar();
-  assert.equal(escondida.balao().getAttribute('data-lado'), 'esquerda');
+  assert.ok(!cobreCaixa(comAcao.balao(), botao), 'não cobre a ação do cabeçalho');
+  assert.ok(!cobreCaixa(comAcao.balao(), caixa), 'nem a caixa de tela cheia/fechar');
+  // Tela cheia de botões do y=200 para baixo: não há vaga de 320×190; o título da janela está em (300, 40).
+  const grade = []; for (let y = 200; y < 900; y += 50) for (let x = 0; x < 1440; x += 60) grade.push(alvo(x, y, 56, 46));
+  const cheia = montar({ alvos: { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)], [CONTROLES]: [alvo(1334, 12, 76, 34), ...grade], 'h1, h2, h3': [alvo(300, 40, 260, 28)] } });
+  cheia.T.dica('modulo', { forcar: true }); cheia.rodar();
+  const b = cheia.balao();
+  assert.equal(b.getAttribute('data-posto'), 'cabecalho');
+  assert.equal(parseInt(b.style.left, 10), 290, 'alinhado ao título');
+  assert.ok(parseInt(b.style.top, 10) >= 4 && parseInt(b.style.top, 10) + 190 <= 200 - 2, 'acima da primeira fileira de botões');
+  assert.ok(!cobreCaixa(b, caixa), 'à esquerda da caixa');
+});
+test('sem vaga nem cabeçalho livre (um menu cheio por cima), a dica compacta espera escondida, sem cobrir nada', () => {
+  const grade = []; for (let y = 0; y < 900; y += 50) for (let x = 0; x < 1440; x += 60) grade.push(alvo(x, y, 56, 46));
+  const t = montar({ alvos: { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)], [CONTROLES]: grade, 'h1, h2, h3': [alvo(300, 40, 260, 28)] } });
+  t.T.dica('modulo', { forcar: true }); t.rodar();
+  const b = t.balao();
+  assert.equal(b.getAttribute('data-posto'), 'espera');
+  assert.equal(b.hidden, true);
+  assert.equal(t.salvo?.dicas?.modulo, undefined, 'não conta como vista');
 });

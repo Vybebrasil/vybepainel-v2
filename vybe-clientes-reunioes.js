@@ -120,10 +120,14 @@
     const pautaPadrao = r ? r.pauta : pautaDe(id);
     const escolha = nome ? '' : `<label class="cad-campo largo"><span>Cliente</span><select id="reu-cliente" onchange="trocarClienteDaReuniao(this.value)" required>
         <option value="">Escolha o cliente</option>${clientesAtivos().map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>`;
-    openWorkflowModal(`<div class="cad-janela"><div class="workflow-kicker"><span>Vybe OS · Reunião${nome ? ' · ' + esc(nome) : ''}</span>
-      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-      <h2 class="workflow-title">${r ? 'Ata da reunião' : 'Nova reunião'}</h2>
-      <p class="workflow-copy">${r ? 'Escreva a ata durante ou depois da reunião.' : 'Salve e grave: o áudio vai para a pasta Reuniões do cliente no Drive, e o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha.'}</p>
+    // Cabeçalho único (quarta rodada, 11/11/2026): saiu o rótulo "Vybe OS · Reunião" de cima do título; o nome do
+    // cliente, que vinha nele, vai no título. O X é o das outras janelas (vbFecharHtml).
+    const tituloReu = (r ? 'Ata da reunião' : 'Nova reunião') + (nome ? ' · ' + nome : '');
+    const fraseReu = r ? 'Escreva a ata durante ou depois da reunião.' : 'Salve e grave: o áudio vai para a pasta Reuniões do cliente no Drive, e o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha.';
+    const cabecalhoReu = typeof vbCabecalhoHtml === 'function' && typeof vbFecharHtml === 'function'
+      ? vbCabecalhoHtml({ titulo: tituloReu, texto: fraseReu, acoes: vbFecharHtml('onclick="closeWorkflowModal()"') })
+      : `<div class="workflow-kicker"><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">${esc(tituloReu)}</h2><p class="workflow-copy">${fraseReu}</p>`;
+    openWorkflowModal(`<div class="cad-janela cad-reuniao">${cabecalhoReu}
       <div class="cad-grade">${escolha}
         <label class="cad-campo"><span>Tipo</span><select id="reu-tipo">${Object.entries(tipos).map(([k, v]) => `<option value="${k}" ${tipo === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
         <label class="cad-campo cad-data"><span>Data</span><input id="reu-data" type="date" value="${esc(r?.data || hojeIso())}"><svg class="cad-data-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></label>
