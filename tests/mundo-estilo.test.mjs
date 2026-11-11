@@ -97,7 +97,7 @@ test('quadro 34: objetos pequenos, peça sem receita e peças de parede saem do 
   }
   const q = fs.readFileSync('mundo/quarto.mjs', 'utf8');
   assert.match(q, /export async function paredeEmVoxel\(/);
-  assert.match(q, /tipoModelado\(classe, ficha, \(await carregarCatalogo\(\)\)\.get\(classe\)\) \|\| 'generico'/);
+  assert.match(q, /const doCatalogo = \(await carregarCatalogo\(\)\)\.get\(classe\);\n {2}const tipo = tipoModelado\(classe, ficha, doCatalogo\) \|\| 'generico'/);
 });
 
 test('biblioteca: os móveis dos quartos modelados um a um entram antes da receita do tipo', async () => {

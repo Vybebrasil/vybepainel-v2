@@ -128,6 +128,25 @@ export function tipoPeloNucleo(nome) {
   return null;
 }
 
+// Construção (redesign r5, quadro 35): as categorias de construção (divisórias, blocos, pisos, acabamentos) saíam todas
+// num cubo de material. Pelo nome, cada uma vira o que é; o que o nome não diz continua bloco.
+export const TIPOS_CONSTRUCAO = [
+  ['janela', /window|janela|vitral/],
+  ['escada', /stair|escada|ladder|degrau|(^|[_ ])steps?($|[_ ])/],
+  ['porta', /(^|[_ ])door|porta($|[ _-]|s)|(^|[_ ])gate|port[ãa]o|turnstile|catraca/],
+  ['arco', /(^|[_ ])arch|(^|[ _])arco($|[ _])|portal|archway/],
+  ['coluna', /pillar|pilar|column|coluna|(^|[_ ])post($|[_ ]|s|\d)|(^|[ _])poste|(^|[_ ])pole|obelisk|obelisco|tubes?($|[_ ])|tubos?($|[ _])/],
+  ['canto', /corner|(^|[ _])canto($|[ _])|crnr|(^|[_ ])angle|quina/],
+  ['cerca', /fence|fnc|cerca|railing|(^|[_ ])rail|grade($|[ _])|(^|[_ ])rope|corda|buoy|boia|hedge|sebe|shrub|(^|[_ ])maze|labirinto|barrier|barreira|bars/],
+  ['divisoria', /divider|dvdr|divis|divisor|screen|biombo|partition|shoji|panel|painel/],
+  ['parede', /wall|parede|muro|muralha|brick|tijolo|facade|fachada/],
+  ['palco', /stage|palco|platform|plataforma|catwalk|passarela|(^|[_ ])deck/],
+];
+export function tipoDeConstrucao(texto) {
+  const t = String(texto || '').toLowerCase();
+  return (TIPOS_CONSTRUCAO.find(([, r]) => r.test(t)) || [null])[0];
+}
+
 export function familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, pernas, LIVROS, METAL }) {
   const PRETO = '#2B2F33', BRANCO = '#F4EFE6', MADEIRA = '#C08A5B', MADEIRA_ESC = '#8A5A3C', AGUA = '#7FC8E8', VIDRO = '#BFE6F2';
   const alto = (altoArte, padrao, min = .2, max = 2.6) => Math.max(min, Math.min(max, altoArte > G ? altoArte : padrao));
@@ -626,6 +645,63 @@ export function familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, per
       C(o, 0, 0, 0, s * .6, G * 2, s * .4, '#7A9A5A'); C(o, 0, G * 2, -s * .05, s * .45, H * .75, G * 3, pedra);
       C(o, 0, G * 2 + H * .75, -s * .05, s * .35, H * .1, G * 3, pedra); C(o, 0, G * 2 + H * .85, -s * .05, s * .2, H * .08, G * 3, pedra);
       C(o, 0, H * .45, -s * .05 + G * 1.6, s * .25, G, G / 4, tom(pedra, -.3)); C(o, 0, H * .35, -s * .05 + G * 1.6, s * .2, G, G / 4, tom(pedra, -.3));
+    },
+    // ---------- Construção (redesign r5, quadro 35): divisórias, paredes, cantos e portas, que saíam todos num cubo ----------
+    // Parede e muro: o pano alto em fiadas (tijolo, pedra) ou liso com o friso, rodapé e o capeamento em cima.
+    parede(o, { w, d, cor, classe, altoArte = 0 }) {
+      const lw = w - G / 2, c = cor.principal, H = alto(altoArte, 1.6, .4, 2.6), e = G * 4;
+      C(o, 0, 0, 0, lw, G * 2, e + G, tom(c, -.22)); // rodapé
+      if (/brick|tijolo|stone|pedra|rock|castle|castelo|medieval|dungeon|masmorra|cave|caverna|tomb|tumba|sand|areia|greek|grega|ice|gelo/.test(classe)) {
+        const fh = G * 3, n = Math.max(3, Math.round((H - G * 4) / fh)), pedra = Math.max(G * 4, lw / 4);
+        for (let k = 0; k < n; k++) { // fiadas desencontradas, a junta um tom abaixo
+          const y = G * 2 + k * (H - G * 4) / n, desl = k % 2 ? pedra / 2 : 0;
+          C(o, 0, y, 0, lw, (H - G * 4) / n, e, tom(c, -.12));
+          for (let x = -lw / 2 - desl; x < lw / 2; x += pedra) { const a = Math.max(-lw / 2, x), b = Math.min(lw / 2, x + pedra - G / 2); if (b - a > G) C(o, (a + b) / 2, y + G / 4, G / 4, b - a, (H - G * 4) / n - G / 2, e, (k + Math.round(x / pedra)) % 3 ? c : tom(c, .07)); }
+        }
+      } else {
+        C(o, 0, G * 2, 0, lw, H - G * 4, e, c);
+        C(o, 0, H * .55, G / 4, lw, G, e, tom(c, -.1)); // friso
+        if (cor.acento !== c && sat(cor.acento) > .25) C(o, 0, H * .55 + G, G / 2, lw - G * 2, G / 2, e, cor.acento);
+      }
+      C(o, 0, H - G * 2, 0, lw + G / 2, G * 2, e + G, tom(c, .1)); // capeamento
+    },
+    // Divisória e biombo: o pano em painéis com moldura, de pé sobre dois pés; o shoji com a grade de ripas.
+    divisoria(o, { w, d, cor, classe, altoArte = 0 }) {
+      const lw = w - G, c = cor.principal, H = alto(altoArte, 1.3, .3, 2.4), m = escura(cor.segunda, tom(c, -.3)), z = 0;
+      const n = Math.max(2, Math.round(lw / .34));
+      for (const a of [-1, 1]) C(o, a * (lw / 2 - G * 2), 0, z, G * 3, G, G * 6, m); // pés
+      for (let k = 0; k < n; k++) {
+        const pw = lw / n, x = -lw / 2 + pw * (k + .5);
+        C(o, x, G, z, pw - G / 2, H - G, G * 2, m); // moldura do painel
+        if (/shoji|japan|jap[aã]o|onsen|bamboo|bambu/.test(classe)) {
+          C(o, x, G * 2, z + G / 4, pw - G * 2.5, H - G * 3, G, BRANCO);
+          for (let y = G * 2 + (H - G * 3) / 4; y < H - G * 2; y += (H - G * 3) / 4) C(o, x, y, z + G / 2, pw - G * 2.5, G / 2, G, m);
+          C(o, x, G * 2, z + G / 2, G / 2, H - G * 3, G, m);
+        } else C(o, x, G * 2, z + G / 4, pw - G * 2.5, H - G * 3, G * 2, k % 2 ? tom(c, -.06) : c);
+      }
+    },
+    // Canto: o L de parede (as duas abas, uma no fundo e uma do lado), com o mesmo capeamento.
+    canto(o, { w, d, cor, altoArte = 0 }) {
+      const s = Math.min(w, d) - G / 2, c = cor.principal, H = alto(altoArte, 1.4, .3, 2.6), e = G * 4;
+      C(o, 0, 0, -s / 2 + e / 2, s, H - G * 2, e, c); C(o, -s / 2 + e / 2, 0, e / 2, e, H - G * 2, s - e, tom(c, -.05));
+      C(o, 0, H - G * 2, -s / 2 + e / 2, s + G / 2, G * 2, e + G, tom(c, .1)); C(o, -s / 2 + e / 2, H - G * 2, e / 2, e + G, G * 2, s - e, tom(c, .1));
+      C(o, -s / 2 + e / 2, 0, -s / 2 + e / 2, e + G, H, e + G, tom(c, -.15)); // a quina
+    },
+    // Porta e portão: batente com a folha em almofadas e a maçaneta; o portão é de grade (barras e travessas).
+    porta(o, { w, d, cor, classe, altoArte = 0 }) {
+      const lw = w - G * 2, c = cor.principal, H = alto(altoArte, 1.8, .6, 2.6), b = escura(cor.segunda, tom(c, -.3)), z = -d / 2 + G * 3;
+      for (const a of [-1, 1]) C(o, a * (lw / 2 - G), 0, z, G * 2, H, G * 4, b); C(o, 0, H - G * 2, z, lw, G * 2, G * 4, b); // batente
+      if (/gate|port[ãa]o|fence|cerca|turnstile|catraca/.test(classe) && !/door|porta($|[ _])/.test(classe)) {
+        const n = Math.max(3, Math.round(lw / (G * 3)));
+        for (let k = 0; k < n; k++) C(o, -lw / 2 + G * 2 + (k + .5) * (lw - G * 4) / n, G, z, G, H * .8, G, c);
+        for (const y of [G * 2, H * .45, H * .8]) C(o, 0, y, z, lw - G * 4, G * 1.5, G * 1.5, tom(c, -.1));
+        return;
+      }
+      const fw = lw - G * 4, fh = H - G * 3;
+      C(o, 0, 0, z + G / 2, fw, fh, G * 2, c); // folha
+      for (const y of [fh * .1, fh * .55]) C(o, 0, y, z + G * 1.5, fw - G * 4, fh * .35, G / 2, tom(c, -.08)); // almofadas
+      if (/glass|vidro|window|janela/.test(classe)) L(o, 0, fh * .55, z + G * 1.75, fw - G * 5, fh * .33, G / 2, VIDRO);
+      C(o, fw / 2 - G * 2, fh * .48, z + G * 2, G, G * 2, G, viva(cor.acento, '#F2C230')); // maçaneta
     },
   };
   return R;

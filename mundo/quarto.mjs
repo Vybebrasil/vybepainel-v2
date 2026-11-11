@@ -14,7 +14,8 @@ import { pecaDaClasse, obraDaPeca } from './catalogo.mjs';
 import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraFiel } from './avatar.mjs';
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
 import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, corDoRevestimento, paletaDoHabbo, medidaDaPlaca, guardado } from './moveis-habbo.mjs';
-import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, tipoDeParede, montarDeParede } from './moveis-voxel.mjs';
+import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, tipoDeParede, montarDeParede, coresSemArte, pegadaSemArte, placaSemArte } from './moveis-voxel.mjs';
+import ARTES_LOCAIS from './artes-locais.json' with { type: 'json' };
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
 
@@ -57,20 +58,49 @@ function obraDeBlocos(blocos, lado, finos = [], ladoFino = 0) {
 // arte não chegar. A Loja, o inventário e as Conquistas usam o mesmo (retratoDoMovel), para o ícone ser o que o
 // quarto mostra. { malha, modelado, tipo, esculpido } ou null. A malha modelada vem centrada na pegada; a esculpida,
 // a partir de 0.
+// Peças com a arte do Habbo no repositório (redesign r5, quadro 35; gerada no build por scripts/artes-locais.mjs). As
+// outras não pedem arte nenhuma: a API ia ao habboassets, que limita os pedidos, e devolvia 404.
+const COM_ARTE = new Set(ARTES_LOCAIS);
+export const temArteLocal = (classe) => COM_ARTE.has(String(classe || '')) || /^vybeimg_\d+$/.test(String(classe || ''));
 export async function movelEmVoxel(classe, d = 4, estado = 0, ficha = null) {
-  const tipo = tipoModelado(classe, ficha, (await carregarCatalogo()).get(classe)) || 'generico';
-  const info = await paletaDoHabbo(classe, d, estado);
-  const o = info && montarMovel(tipo, { w: info.dim.x, d: info.dim.y, cores: coresDaPaleta(info.paleta.map(harmonizar)), classe, alto: (ficha?.altura || 0) * NIVEL, perfil: info.perfil, altoArte: info.altura });
-  if (o) { for (const b of o.solidos) b.cor = harmonizar(b.cor); return { malha: o.montar(), modelado: true, tipo }; }
-  const e = await moveisDoHabbo(classe, d, estado); if (!e?.blocos?.length) return null;
-  return { malha: obraDeBlocos(e.blocos.map((b) => ({ ...b, cor: harmonizar(b.cor) })), e.lado, e.finos || [], e.ladoFino || 0), modelado: false, tipo, esculpido: e };
+  const doCatalogo = (await carregarCatalogo()).get(classe);
+  const tipo = tipoModelado(classe, ficha, doCatalogo) || 'generico';
+  // Uma montagem só (a mesma receita para quem tem e quem não tem a arte).
+  const montar = (w, fundo, cores, extra = {}) => {
+    const o = montarMovel(tipo, { w, d: fundo, cores, classe, alto: (ficha?.altura || 0) * NIVEL, ...extra });
+    if (!o) return null;
+    for (const b of o.solidos) b.cor = harmonizar(b.cor);
+    return o;
+  };
+  // Sem a arte (ou com a arte que não desenha): o tipo e a família pelo nome e a categoria, a altura pela ficha, a cor
+  // pelo nome (coresSemArte). Nunca fica sem voxel.
+  const semArte = () => {
+    const { w, d: fundo } = pegadaSemArte(tipo, doCatalogo, classe), giro = d === 2 || d === 6;
+    const o = montar(giro ? fundo : w, giro ? w : fundo, coresSemArte(classe, doCatalogo, tipo));
+    return o ? { malha: o.montar(), modelado: true, tipo, semArte: true } : null;
+  };
+  if (!temArteLocal(classe)) return semArte();
+  try {
+    const info = await paletaDoHabbo(classe, d, estado);
+    const o = info && montar(info.dim.x, info.dim.y, coresDaPaleta(info.paleta.map(harmonizar)), { perfil: info.perfil, altoArte: info.altura });
+    if (o) return { malha: o.montar(), modelado: true, tipo };
+    const e = await moveisDoHabbo(classe, d, estado);
+    if (e?.blocos?.length) return { malha: obraDeBlocos(e.blocos.map((b) => ({ ...b, cor: harmonizar(b.cor) })), e.lado, e.finos || [], e.ladoFino || 0), modelado: false, tipo, esculpido: e };
+  } catch (erro) { console.warn('[mundo] móvel', classe, erro?.message || erro); }
+  return semArte();
 }
 // Uma peça de parede em voxel (redesign r2, quadro 34): montada pelo motor (montarDeParede) no retângulo que a arte
 // dela ocupa na parede, com as cores da arte. { malha, a, base, w, h, tipo }: a malha vem com o centro em x = 0, a
 // base em y = 0 e as costas em z = 0; `a` é o centro ao longo da parede a partir do apoio e `base` a altura do pé,
 // em ladrilhos. null quando a arte não carrega.
 export async function paredeEmVoxel(classe, d = 4, estado = 0, altura = 0, alturaParede = 118) {
-  const m = medidaDaPlaca(await placaDoHabbo(classe, d, estado, altura, alturaParede)); if (!m) return null;
+  if (!temArteLocal(classe)) { // sem a arte (redesign r5): o retângulo mais comum do tipo, no meio do trecho, a 1 ladrilho do chão
+    const info = (await carregarCatalogo()).get(classe), tipo = tipoDeParede(classe, info), { w, h } = placaSemArte(tipo);
+    const o = montarDeParede(tipo, { w, h, cores: coresSemArte(classe, info, tipo), classe });
+    for (const b of o.solidos) b.cor = harmonizar(b.cor);
+    return { malha: o.montar(), a: 0, base: Math.max(0, Number(altura) || 0) * NIVEL + (tipo === 'revestimento' || tipo === 'paisagem' ? .1 : 1), w, h, tipo, semArte: true };
+  }
+  const m = medidaDaPlaca(await placaDoHabbo(classe, d, estado, altura, alturaParede).catch(() => null)); if (!m) return null;
   const tipo = tipoDeParede(classe, (await carregarCatalogo()).get(classe)), w = m.a1 - m.a0, h = (m.h1 - m.h0) * NIVEL;
   const o = montarDeParede(tipo, { w, h, cores: coresDaPaleta(m.paleta.map(harmonizar)), classe });
   for (const b of o.solidos) b.cor = harmonizar(b.cor);
@@ -92,13 +122,14 @@ function prepararFotografo() {
 }
 // O retrato pronto fica guardado no navegador (o mesmo IndexedDB das peças esculpidas, chave própria): a Loja e as
 // Conquistas abrem com os ícones voxel na hora a partir da segunda vez. A versão muda quando o desenho do retrato muda.
-const VERSAO_RETRATO = 'r5';
+const VERSAO_RETRATO = 'r6';
 // `vivo` (opcional): diz se quem pediu ainda está à vista. Na vez da foto, se ninguém mais quer (a janela fechou, a
 // Loja trocou de prateleira), a foto é pulada sem travar a fila: as Conquistas abertas depois não esperam a Loja.
 const interessados = new Map();
 // A arte do móvel (json + png) chega pela rede: pedida já, em paralelo, enquanto a fila só monta e fotografa uma
 // peça por vez. Antes os dois arquivos de cada peça eram pedidos dentro da vez dela, um móvel depois do outro.
 function adiantarArte(classe) {
+  if (!temArteLocal(classe)) { try { globalThis.mapaCarregarFisica?.()?.catch?.(() => {}); carregarCatalogo(); } catch { /* idem */ } return; }
   try { const p = globalThis.mapaCarregarMovel?.(classe); p?.catch?.(() => {}); } catch { /* sem a arte: a vez da peça resolve */ }
   try { globalThis.mapaCarregarFisica?.()?.catch?.(() => {}); carregarCatalogo(); } catch { /* idem */ }
 }
@@ -277,7 +308,7 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   {
     const classes = new Set();
     for (const { x, y, eixo } of paredesDaPlanta(P)) { const est = trechoDe(x, y, eixo); const c = est?.textura || ESTILO_REVESTIMENTO[est?.estilo]; if (c) classes.add(c); }
-    for (const c of classes) corDoRevestimento(c).then((cor) => { if (cor && vivo) { revestimentos.set(c, cor); montarParedes(); } });
+    for (const c of classes) if (temArteLocal(c)) corDoRevestimento(c).then((cor) => { if (cor && vivo) { revestimentos.set(c, cor); montarParedes(); } });
   }
 
   // ---------- móveis da camada salva, em voxel liso (movelEmVoxel) ----------

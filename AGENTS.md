@@ -264,7 +264,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   "Pia de Limo" é pia; o último em inglês, ou o de antes do "of"). Parede: `TIPOS_PAREDE_FAMILIAS`/`paredeFamilias`
   (paisagem, revestimento, enfeite, tela, adesivo, cabeça montada, armas, instrumento, alvo, cortina, armário, fonte,
   lareira, luzes) depois das regras antigas; o painel liso caiu de 337 para 29 das 710. Mudou receita, suba
-  `VERSAO_RETRATO` (quarto.mjs, hoje r5) para refazer o cache dos ícones. O ícone da lista do Decorar também é o
+  `VERSAO_RETRATO` (quarto.mjs, hoje r6) para refazer o cache dos ícones. Sem arte no repositório (r5, quadro 35):
+  só as peças de `mundo/artes-locais.json` (gerada no build por `scripts/artes-locais.mjs`) pedem a arte; as outras
+  (~80% do catálogo) saem pelo nome, categoria e ficha (`coresSemArte`, `pegadaSemArte`, `placaSemArte` em
+  moveis-voxel.mjs), sem pedido nenhum (o habboassets limitava com 429 e a Loja caía na pixel art com 404 no console).
+  Construção (divisórias, blocos, acabamentos) vira parede, divisória, canto, porta, cerca, coluna, escada ou janela
+  pelo nome (`tipoDeConstrucao`); piso continua bloco. Toda `<img>` de móvel do Habbo fica escondida pelo CSS desde
+  que entra na página (`movel-habbo` só para o raro que nem o voxel monta). O ícone da lista do Decorar também é o
   `retratoDoMovel` (antes desenhava a arte do Habbo num canvas e a troca do mundo nunca o via). Sem o Escritório
   carregado (celular), a Loja e o Decorar pedem a base sozinhos (`garantirBaseEscritorio`, mesma entrada e chegada).
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
