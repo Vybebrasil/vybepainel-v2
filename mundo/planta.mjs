@@ -52,7 +52,7 @@ export const PLANTA = [
     setores: [
       { id: 'receber', nome: 'Cobrança', agente: 'Renato', funcao: 'Contas a Receber', papel: 'Garante a entrada e cuida da inadimplência com tom corporativo.',
         skills: ['Consultar pagamentos', 'Link Pix/Boleto atualizado', 'Régua de cobrança'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
-      { id: 'tesouraria', nome: 'Tesouraria', agente: 'Vicente', funcao: 'Contas a Pagar', papel: 'Controla SaaS e freelancers.',
+      { id: 'tesouraria', nome: 'Tesouraria', agente: 'Vorcaro', funcao: 'Contas a Pagar', papel: 'Controla SaaS e freelancers.',
         skills: ['OCR de faturas', 'Cruzar com orçamento aprovado'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
       { id: 'controladoria', nome: 'Controladoria e Fiscal', agente: 'Moreira', funcao: 'Controller', papel: 'Ponte com a contabilidade e documentos fiscais.',
         skills: ['Emitir NFS-e', 'DRE por projeto', 'Pacote contábil do mês'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
