@@ -116,7 +116,9 @@ Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110�
 - 26 Aprovação do cliente: não há rota para "aprovar todas" nem registro de "vista"; o progresso conta as respondidas.
 - 27 Prévia: a ficha é só leitura (aprovar por ela abriria os portões de conferência por baixo).
 - 23: "Nova etiqueta" e "Ordem" continuam no menu de status; responsável em lote ainda sem busca.
-- 34 Minha sala: peças de parede e móveis sem receita ainda com cara do Habbo (precisa receita nova em `mundo/moveis-voxel.mjs`).
+- 34 Minha sala: feito na frente `codex/r2-moveis` (10/11, noite): objetos pequenos, peças de parede e o que não tem receita
+  saem do motor (`mundo/moveis-voxel.mjs`: receitas novas, `generico` e `montarDeParede`). Só a imagem que a pessoa pendura
+  (`vybeimg_*`) continua ponto a ponto, porque é a imagem dela. Os ícones da lista do Decorar ainda mostram a arte antiga.
 - 02: o cartão da semana manteve a caixa de marcar e o formato (são do lote).
 - 03: escolher outras colunas não existe; "+ Nova aqui" ficou "+ Nova demanda".
 - Celular: o X da janela cobre o começo do título no Painel e nas Demandas.
