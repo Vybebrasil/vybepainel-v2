@@ -7126,3 +7126,34 @@ body.mundo.mundo-modulo #mundo > *{display:none}
   /* um deslize só: o .container de dentro de um quadro não desliza de novo por cima do quadro */
   body.mundo.mundo-modulo [id^="painel-"] .container{animation:none}
 }
+
+/* ==== Quinta rodada · aviso curto no celular (11/11/2026) ====
+   Quadro 29, regra 6, e a regra do Paulo "nada cobre": no celular o aviso nunca fica sobre controle (avisoCurtoNoCelular,
+   vybe-core.js). Sem faixa livre, ele vira uma pílula de uma linha na barra do topo, junto do sino: a busca fica só com a
+   lupa enquanto a pílula está ali, e tocar a pílula abre o aviso inteiro logo abaixo da barra. */
+@media (max-width:600px){
+  body.mundo.vv-aviso-na-barra .vv-barra-topo .vv-busca-larga{flex:0 0 36px;width:36px;padding:0;justify-content:center}
+  body.mundo.vv-aviso-na-barra .vv-barra-topo .vv-busca-larga .vv-busca-texto{display:none}
+}
+#vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto{height:34px;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:6px;padding:0 12px 0 6px;border-radius:999px;cursor:pointer;
+  box-shadow:0 1px 2px rgba(40,26,10,.08),0 4px 12px rgba(40,26,10,.10)}
+#vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-ic{width:22px;height:22px;border-radius:50%}
+#vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-ic svg{width:14px;height:14px}
+#vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-txt{display:block;padding:0}
+#vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-txt b{display:block;font-size:12.5px;line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-wa-avisos.pilula:not(.aberto) :is(.vv-aviso-curto-txt small,.vv-aviso-curto-acoes,.vv-aviso-curto-x){display:none}
+
+/* ==== Quinta rodada · tela antiga em pedaços (11/11/2026) ====
+   No Safari o Painel de trabalho levava ~850 ms do clique até parar (Projetos pontuais, ~420 ms): o primeiro quadro
+   montava as ~10 mil peças da tela e cada quadro da entrada repintava tudo por baixo do deslize. Enquanto a tela antiga
+   entra (.container.vv-abrindo, abrirEmPedacos em vybe-mundo.js), o conteúdo fica fora da montagem e no lugar dele aparece o
+   esqueleto; o desenho vem por trás e o conteúdo aparece no fim da entrada. O cabeçalho e a moldura deslizam como nas
+   janelas novas. */
+body.mundo.mundo-modulo > .container.vv-abrindo > :not(.workspace-heading):not(#production-command-dashboard){display:none}
+body.mundo.mundo-modulo[data-modo="gestor"] > .container.vv-abrindo::after{content:"";display:block;height:calc(100dvh - 240px);margin-top:14px;border-radius:12px;
+  background:linear-gradient(#EFEAE2,#EFEAE2) 0 0 / 100% 96px no-repeat,
+    linear-gradient(#F2EEE7,#F2EEE7) 0 112px / 100% 34px no-repeat,
+    linear-gradient(#F2EEE7,#F2EEE7) 0 166px / 100% calc(100% - 166px) no-repeat}
+#painel-demandas.vv-abrindo #grupos-board-demandas,#painel-clientes.vv-abrindo #panel-clientes-lista{display:none}
+body.mundo.mundo-modulo > :is(#painel-demandas,#painel-clientes).vv-abrindo > .container::after{content:"";display:block;height:calc(100dvh - 320px);margin-top:14px;border-radius:12px;
+  background:linear-gradient(#F2EEE7,#F2EEE7) 0 0 / 100% 40px no-repeat,linear-gradient(#F2EEE7,#F2EEE7) 0 52px / 100% calc(100% - 52px) no-repeat}

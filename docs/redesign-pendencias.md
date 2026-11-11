@@ -238,3 +238,32 @@ do clique no dock até a tela parada, três rodadas alternando a main e este bra
   não um elemento de janela; a entrada é só o deslize (a escala de .982 descolaria a moldura do conteúdo); a primeira
   pintura recalcula o estilo da página inteira, porque troca a classe do body; e o `pintarChamada` de 1,5 s em 1,5 s ainda
   força recálculos quando cai no meio da entrada (vale para as janelas novas também).
+
+## Quinta rodada: aviso no celular e Painel no Safari (branch `codex/r5-celular-painel`, 11/11/2026)
+Medido nos dois motores (WebKit e Chromium) com a demo cheia; aviso a 390×844 com Música e WhatsApp, com e sem a gaveta.
+- Aviso curto no celular (`avisoCurtoNoCelular`, vybe-core.js): nunca fica sobre controle. (1) A faixa livre mais perto do
+  pé, a pilha inteira e depois só o primeiro (o título da janela também conta como ocupado); (2) sem faixa, vira uma
+  pílula de uma linha na barra do topo, entre a lupa e o sino (a busca fica só com a lupa enquanto ela está ali); tocar
+  abre o aviso inteiro logo abaixo da barra, tocar fora ou Esc devolve a pílula; (3) sem nem isso (a janela, a gaveta ou
+  o Mais cobrem a barra), vai direto para o sino, que acende o número e mostra "Chegaram agora" com a ação do aviso.
+  Todos os avisos da sessão ficam em `AVISOS_CURTOS_NO_SINO` (o quarto da pilha também vai para lá, não some). Um botão
+  meio coberto (rodapé preso da gaveta) conta como controle; com o foco do teclado no aviso, o que chega depois espera
+  escondido em vez de cair sobre a barra de baixo. Controles cobertos, antes → depois (WebKit e Chromium): Painel 5 → 0,
+  Clientes 14/11 → 0, Hoje 4 → 0, gaveta 2 → 0, Demandas 4 → 0, Agenda 16/17 → 0, Carteira 2 → 0, Projetos (WebKit) 5 → 0,
+  QR e Minha sala 0 → 0. No Clientes e na Agenda a janela cobre a barra do topo: lá o aviso vai para o sino.
+- Tela antiga em pedaços (`abrirEmPedacos`, vybe-mundo.js): o clique só troca a tela; o resumo, a agenda e as semanas do
+  Painel se desenham depois do primeiro quadro (a semana à vista primeiro; as outras nas folgas, com o seletor, a aba e
+  a barra repintados uma vez só no fim). Durante o deslize o Painel mostra cabeçalho, resumo e um esqueleto
+  (`.container.vv-abrindo`); Demandas e Clientes escondem só a lista. Causa medida no WebKit: o primeiro quadro montava as
+  ~10 mil peças do Painel (~150 ms) e cada quadro do deslize repintava linhas e cartões com desfoque e sombra (~120 ms
+  por quadro). O conteúdo aparece aos 300 ms (a mola já está a menos de 1 px do lugar).
+- `pintarDock` (de 1,5 s em 1,5 s, via `pintarChamada`) só lê a largura e a posição do dock quando a tela, a classe que
+  muda a largura dele ou o conteúdo mudam.
+- Tempos (mediana de 3, clique de verdade até a tela parada, 1440×900), antes → depois. WebKit: Painel 995 → 575,
+  Demandas 728 → 606, Agenda 827 → 564, Clientes 815 → 590, Diário 650 → 590, IA 710 → 528, Automações 625 → 511, Conta
+  663 → 571 (Projetos 508 → 498, Carteira 469 → 463). Chromium: Painel 690 → 526, Demandas 542 → 472, Agenda 602 → 508,
+  Clientes 597 → 457, Diário 531 → 462, IA 529 → 475, Automações 523 → 476, Conta 502 → 474 (Projetos 560 → 555, Carteira
+  577 → 542). Neste WebKit de Windows todo quadro de animação custa ~90–100 ms (sombras desenhadas sem placa de vídeo);
+  por isso até Projetos fica perto de 500 ms aqui.
+- Ficou de fora: no Clientes, `renderClientesBoard` chama `clientMasterRecords` uma vez por linha (~3 ms cada); a pílula
+  só aparece onde a barra do topo está à vista (Hoje, Centro); dentro de uma janela o aviso sem faixa vai para o sino.
