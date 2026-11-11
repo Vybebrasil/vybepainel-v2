@@ -165,3 +165,12 @@ O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido
   Finanças, Pessoas, Performance, visões de setor, Hoje e Cérebro.
 - Ficou de fora: o título das telas antigas ainda começa mais baixo (34 a 48 px) que o das janelas novas (17 px); a
   página rola por trás das janelas novas no WebKit com barra clássica (já era assim).
+
+## Terceira rodada (11/11/2026): fechamento
+- Juntas em `codex/redesign-rodada3`: `codex/r3-telas` (Agenda Mês/Semana, dica, Nova reunião, Churn, Saúde) e
+  `codex/r3-moldura` (caixa de tela cheia/fechar, um X com a gaveta, aviso curto, títulos, fundos, celular acima da barra,
+  plurais). Re-auditoria independente em `docs/redesign-reauditoria-2026-11-11-rodada3.md`: 63 FEITO, 3 PELA METADE, 2 FORA,
+  sem regressão; depois dela entraram o X da Carteira, três plurais e o aviso do celular acima da barra.
+- Continua pela metade: a dica "Tela de trabalho" ainda cobre controles em telas cheias (precisa de balão menor ou lugar
+  fixo); no celular o aviso curto cobre por ~6 s o fim da janela e, com a gaveta aberta, 39% de "Arquivo" e "Link";
+  reticências depois da 3ª linha no Mês a 1110. Móveis e Loja seguem fora (decisão do Paulo, branch `codex/r2-moveis`).
