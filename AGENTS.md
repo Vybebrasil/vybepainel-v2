@@ -254,9 +254,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   pedra, barril, cortina, janela, bandeira, bandeirola, cavalete/placa, aquário, bola, dado, boneco de neve, sacola,
   cesta, palco/pódio, escada, coluna, cerca/muro, fogueira, veículo, banheira/piscina, guarda-sol, cogumelo, relógio,
   instrumento, disco, espelho, cadeado, telhado, lápide) só vale para quem nenhuma regra antiga reconhece
-  (`tipoModelado` olha por último), pelo nome do catálogo sem renomear nada; sobram 1.067 no `generico`. Mudou
-  receita, suba `VERSAO_RETRATO` (quarto.mjs) para refazer o cache dos ícones. O ícone da lista do Decorar também é o
-  `retratoDoMovel` (antes desenhava a arte do Habbo num canvas e a troca do mundo nunca o via).
+  (`tipoModelado` olha por último), pelo nome do catálogo sem renomear nada; sobram ~1.080 no `generico`. Antes das
+  palavras soltas vale o substantivo principal do nome (`tipoPeloNucleo`, palavra inteira: o primeiro em português,
+  "Pia de Limo" é pia; o último em inglês, ou o de antes do "of"). Parede: `TIPOS_PAREDE_FAMILIAS`/`paredeFamilias`
+  (paisagem, revestimento, enfeite, tela, adesivo, cabeça montada, armas, instrumento, alvo, cortina, armário, fonte,
+  lareira, luzes) depois das regras antigas; o painel liso caiu de 337 para 29 das 710. Mudou receita, suba
+  `VERSAO_RETRATO` (quarto.mjs, hoje r5) para refazer o cache dos ícones. O ícone da lista do Decorar também é o
+  `retratoDoMovel` (antes desenhava a arte do Habbo num canvas e a troca do mundo nunca o via). Sem o Escritório
+  carregado (celular), a Loja e o Decorar pedem a base sozinhos (`garantirBaseEscritorio`, mesma entrada e chegada).
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
   Vitrine do jogador (09/11/2026): com o mundo ligado, toda `.vb-vitrine` (ficha, criador, entrada) é um pedaço 3 × 3
   do quarto voxel da pessoa (`vitrineVoxel` em `vybe-mundo.js`, `abrirQuarto` com `vitrine: true`): piso e parede

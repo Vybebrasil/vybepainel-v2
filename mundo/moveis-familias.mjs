@@ -9,30 +9,31 @@
 // que já tinha receita muda. Mesma convenção do motor: frente +z, centro da pegada em 0, base 0, grade de 1/16; as
 // cores são as da arte (principal, segunda, acento) e a altura, quando a arte diz, é a dela (altoArte).
 export const TIPOS_FAMILIAS = [
+  ['disco', /sound_?set/], // os discos de música vêm antes de qualquer palavra do nome ("Yngvie Van Halen" não é van)
   ['ovo', /(^|[_ ])egg|(^|[ _])ovos?($|[ _])|(^|[_ ])nest($|[_ ]|s|\d)|ninho/],
   ['abobora', /pumpkin|abóbora|abobora|jack.?o.?lantern/],
   ['bolo', /cake|(^|[_ ])bolo|cupcake|(^|[_ ])pie($|[_ ])|torta|muffin|donut|rosquinha|dessert|sobremesa/],
-  ['comida', /food|lunch|sushi|bread|(^|[_ ])p[ãa]o($|[ _])|toast|torrad|pizza|burger|hamb[uú]rguer|sandwich|sandu[ií]che|candy|candies|sweets|doces|chocolate|choco|cookie|biscoit|fruit|fruta|apple|ma[çc][ãa]|banana|melon|melancia|cheese|queijo|icecream|ice_cream|sorvete|picnic|piquenique|pcnc|tray|bandeja|meal|refei/],
+  ['comida', /food|lunch|sushi|bread|(^|[_ ])p[ãa]o($|[ _])|toast|torrad|pizza|burger|hamb[uú]rguer|sandwich|sandu[ií]che|candy|candies|sweets|doces|chocolate|choco|cookie|biscoit|fruit|fruta|apple|ma[çc][ãa]|banana|melon|melancia|cheese|queijo|icecream|ice_cream|sorvete|picnic|piquenique|tray|bandeja|meal|refei/],
   ['balao', /balloon|bal[ãa]o|bal[õo]es/],
   ['bola', /bomb|(^|[_ ])ball|bola($|[ s_])|orb($|[_ ]|\d)|sphere|esfera|discoball/],
   ['dado', /dice|(^|[_ ])die($|[_ ])|(^|[ _])dados?($|[ _])/],
   ['neve', /snowman|snow_?man|boneco de neve|bonecos de neve/],
   ['cabine', /teleport|teletransport|(^|[_ ])tele($|[_ ]|\d)|booth|cabine|phonebox|elevator|elevador|scanner/],
   ['aquario', /aquarium|aqu[áa]rio|fish_?tank|terrarium|terr[áa]rio|vivarium|ant_?farm|formigueiro/],
-  ['bicho', /duck|pato|penguin|pinguim|rabbit|bunny|coelh|(^|[_ ])cat($|[_ ]|s|\d)|kitten|gat[oa]($|[ s_])|gatinh|(^|[_ ])dog($|[_ ]|s|\d)|puppy|cachorr|bear|urso|teddy|plush|pel[uú]cia|dragon|drag[ãa]o|horse|cavalo|pony|p[ôo]nei|(^|[_ ])lion|le[ãa]o|leãozinho|(^|[_ ])owl|coruja|reindeer|(^|[ _])rena($|[ s_])|unicorn|unic[óo]rnio|monkey|macaco|fish|peixe|(^|[_ ])carp|carpa|frog|sapo|(^|[_ ])pig($|[_ ]|s|\d)|porc[oa]|(^|[_ ])cow|(^|[ _])vaca|(^|[_ ])bird|p[áa]ssaro|passarinho|chick|galinha|pintinho|elephant|elefante|turtle|tartaruga|dino|(^|[_ ])bee($|[_ ]|s|\d)|abelh|(^|[_ ])fox|raposa|wolf|lobo|tiger|tigre|panda|shark|tubar[ãa]o|octopus|polvo|crab|caranguejo|snail|caracol|(^|[_ ])bat($|[_ ]|s|\d)|morcego|spider|aranha|snake|cobra|deer|cervo|sheep|ovelha|goat|(^|[_ ])bode|mouse|(^|[_ ])rat($|[_ ]|o|s)|hamster|parrot|papagaio|flamingo|swan|cisne|whale|baleia|dolphin|golfinho|(^|[_ ])seal|foca|walrus|morsa|camel|camelo|giraffe|girafa|zebra|kangaroo|canguru|koala|sloth|pregui[çc]a|hedgehog|ouri[çc]o|squirrel|esquilo|kougra|acara|neopet|(^|[_ ])pet($|[_ ]|s|\d)|animal|bicho|habbo?ween_?bat|ladybug|joaninha|butterfl|borboleta|jellyfish|[aá]gua-viva|seahorse|cavalo-marinho|peacock|pav[ãa]o|toucan|tucano|crocodil|jacar[ée]|hippo|hipop[óo]tamo|rhino|rinoceronte|gorilla|gorila|yeti|monstr|monster|creature|criatura/],
+  ['bicho', /(^|[_ ])duck($|[_ ]|s|\d|y)|pato|penguin|pinguim|rabbit|bunny|coelh|(^|[_ ])cat($|[_ ]|s|\d)|kitten|gat[oa]($|[ s_])|gatinh|(^|[_ ])dog($|[_ ]|s|\d)|puppy|cachorr|bear|urso|teddy|plush|pel[uú]cia|dragon|drag[ãa]o|horse|cavalo|pony|p[ôo]nei|(^|[_ ])lion|le[ãa]o|leãozinho|(^|[_ ])owl|coruja|reindeer|(^|[ _])rena($|[ s_])|unicorn|unic[óo]rnio|monkey|macaco|fish|peixe|(^|[_ ])carp|carpa|frog|sapo|(^|[_ ])pig($|[_ ]|s|\d)|porc[oa]|(^|[_ ])cow|(^|[ _])vaca|(^|[_ ])bird|p[áa]ssaro|passarinho|chick|galinha|pintinho|elephant|elefante|turtle|tartaruga|dino|(^|[_ ])bee($|[_ ]|s|\d)|abelh|(^|[_ ])fox|raposa|wolf|lobo|tiger|tigre|panda|shark|tubar[ãa]o|octopus|polvo|crab|caranguejo|snail|caracol|(^|[_ ])bat($|[_ ]|s|\d)|morcego|spider|aranha|snake|cobra|deer|cervo|sheep|ovelha|goat|(^|[_ ])bode|mouse|(^|[_ ])rat($|[_ ]|o|s)|hamster|parrot|papagaio|flamingo|swan|cisne|whale|baleia|dolphin|golfinho|(^|[_ ])seal|foca|walrus|morsa|camel|camelo|giraffe|girafa|zebra|kangaroo|canguru|koala|sloth|pregui[çc]a|hedgehog|ouri[çc]o|squirrel|esquilo|kougra|acara|neopet|jaguar|on[çc]a|animal|bicho|habbo?ween_?bat|ladybug|joaninha|butterfl|borboleta|jellyfish|[aá]gua-viva|seahorse|cavalo-marinho|peacock|pav[ãa]o|toucan|tucano|crocodil|jacar[ée]|hippo|hipop[óo]tamo|rhino|rinoceronte|gorilla|gorila|yeti|monstr|monster|creature|criatura/],
   ['estatua', /statue|est[áa]tua|sculpt|escultura|(^|[_ ])bust|busto|(^|[_ ])idol|[íi]dolo|totem|gargoyle|g[áa]rgula|monument|monumento|zodiac|zod[íi]aco|(^|[_ ])skull|caveira|cr[âa]nio|mask|m[áa]scara|(^|[_ ])head($|[_ ]|s|\d)|cabe[çc]a/],
   ['boneco', /doll|boneca|boneco|matriosc|matryosh|figurine|figura|(^|[_ ])figure|skeleton|esqueleto|ghost|fantasma|zombie|zumbi|robot|rob[ôo]|android|knight|cavaleiro|armou?r|armadura|(^|[_ ])elf|elfo|angel|anjo|gnome|gnomo|santa|noel|fairy|(^|[ _])fada|mermaid|sereia|pirat|(^|[_ ])god($|[_ ]|s|\d)|deus|(^|[_ ])king|(^|[ _])rei($|[ _])|queen|rainha|alien|(^|[_ ])mummy|m[úu]mia|vampir|witch|bruxa|wizard|mago|clown|palha[çc]o|ninja|samurai|soldier|soldado|guard($|[_ ]|s|\d)|scarecrow|espantalho|mannequin|manequim|puppet|fantoche|nutcracker|quebra-nozes|garçon|waiter|gar[çc]om/],
-  ['cortina', /hanging|curtain|cortina|drape|cortinado|(^|[_ ])beads|mi[çc]angas|backdrop|cen[áa]rio de fundo|veil|v[ée]u|tapestry|tape[çc]aria|(^|[_ ])cloth|tecido|lençol|sheet/],
-  ['arco', /(^|[_ ])arch|(^|[ _])arco($|[ s_])|rainbow|arco-[íi]ris|(^|[_ ])gate|port[ãa]o|portal|(^|[_ ])door|(^|[ _])porta($|[ _])|doorway|torii/],
+  ['cortina', /curtain|cortina|drape|cortinado|(^|[_ ])beads|mi[çc]angas|backdrop|cen[áa]rio de fundo|veil|v[ée]u|tapestry|tape[çc]aria|(^|[_ ])cloth($|[_ ]|s)|tecido|lençol|sheet/],
+  ['arco', /(^|[_ ])arch($|[_ ]|\d|way|es)|(^|[ _])arco($|[ s_])|rainbow|arco-[íi]ris|(^|[_ ])gate|port[ãa]o|portal|(^|[_ ])door|(^|[ _])porta($|[ _])|doorway|torii/],
   ['casinha', /house|(^|[ _])casa($|[ _]de|inha)|casinha|building|pr[ée]dio|edif[íi]cio|fachada|facade|cottage|chal[ée]|cabana|(^|[_ ])hut($|[_ ]|s|\d)|castle|castelo|tower|torre|church|igreja|lighthouse|farol|maquete|igloo|iglu|temple|templo|shrine|santu[áa]rio|pagod|pagode|windmill|moinho|birdhouse|kennel|casinha/],
-  ['barraca', /tent($|[_ ]|s|\d)|barraca|tenda|stall|kiosk|quiosque|banquinha|banca($|[ _])|(^|[_ ])stand($|[_ ]|s|\d)|market|mercado|cart($|[_ ]|s|\d)|carrinho|awning|toldo|canopy|gazebo|pergola|p[ée]rgola|trellis|treli[çc]a|cub[íi]culo|cubicle|(^|[_ ])shop|lojinha|bazaar|bazar/],
+  ['barraca', /tent($|[_ ]|s|\d)|barraca|tenda|stall|kiosk|quiosque|banquinha|banca($|[ _])|(^|[_ ])stand($|[_ ]|s|\d)|cart($|[_ ]|s|\d)|carrinho|awning|toldo|canopy|gazebo|pergola|p[ée]rgola|trellis|treli[çc]a|cub[íi]culo|cubicle|(^|[_ ])shop($|[_ ]|s|\d)|lojinha/],
   ['janela', /window|janela|vitral|(^|[_ ])glass_?wall|parede de vidro/],
   ['vaso', /vase|(^|[ _])jarr|jar($|[_ ]|s|\d)|urn($|[_ ]|s|\d)|urna|bottle|garrafa|amphora|[âa]nfora|(^|[_ ])pot($|[_ ]|s|\d)|pote($|[ s_])|potion|po[çc][ãa]o|jug($|[_ ]|s|\d)|(^|[ _])jarro|cauldron|caldeir|chaleira|teapot|kettle|(^|[_ ])mug|caneca|(^|[_ ])cup|x[íi]cara|copo|(^|[_ ])glass($|[_ ]|es)|ta[çc]a|spray|tinta|paint(?!ing)|perfume|candle?stick|castiçal/],
-  ['cristal', /crystal|cristal|(^|[_ ])gem|gema|jewel|joia|j[óo]ia|diamond|diamante|ruby|rubi|emerald|esmeralda|sapphire|safira|amethyst|ametista|quartz|quartzo|(^|[_ ])ice($|[_ ]|block|\d)|gelo|iceberg|glacier/],
+  ['cristal', /crystal|cristal|(^|[_ ])gem($|[_ ]|s|\d)|gema|jewel|joia|j[óo]ia|ruby|rubi|emerald|esmeralda|sapphire|safira|amethyst|ametista|quartz|quartzo|(^|[_ ])ice($|[_ ]|block|\d)|gelo|iceberg|glacier/],
   ['pedra', /rock|stone|pedra|rocha|boulder|fossil|f[óo]ssil|meteor|meteoro|pebble|seixo|cave($|[_ ]|s|\d)|caverna|coral|concha|shell($|[_ ]|s|\d)|anemone|an[êe]mona|geode|geodo|volcan|vulc[ãa]o|cliff|penhasco|mound|monte($|[ _])/],
-  ['barril', /barrel|barril|(^|[_ ])keg|tonel|bucket|balde|(^|[_ ])tub($|[_ ]|s|\d)|cuba|tank($|[_ ]|s|\d)|tanque|silo|cask/],
+  ['barril', /barrel|barril|(^|[_ ])keg|tonel|bucket|balde|(^|[_ ])tub($|[_ ]|s|\d)|cuba|tank($|[_ ]|s|\d)|tanque|cask/],
   ['bandeirola', /bunting|bandeirol|garland|guirlanda|pennant|fl[âa]mula|festiveflags|flags($|[_ ]|\d)|bandeirinhas/],
-  ['bandeira', /flag|bandeira|banner|estandarte|standard/],
+  ['bandeira', /flag|bandeira|banner|estandarte/],
   ['cavalete', /easel|cavalete|canvas|tela de pintura|(^|[_ ])art_?stand|quadro($|[ _]|s)|painting|pintura|poster|p[ôo]ster|frame|moldura|picture|foto|photo|(^|[_ ])board|billboard|placa|(^|[_ ])sign|plaque|shield|escudo|badge|emblema|(^|[_ ])map($|[_ ]|s|\d)|(^|[ _])mapa/],
   ['sacola', /(^|[_ ])bag($|[_ ]|s|\d)|bonusbag|sacol|bolsa|(^|[_ ])sack|saco($|[ s_])|saquinho|backpack|mochila|purse|suitcase|mala($|[ s_])|luggage|bagagem|seed|semente|kit($|[_ ]|s|\d)/],
   ['cesta', /basket|cesta|cestinha|hamper|crib|ber[çc]o|cradle/],
@@ -40,13 +41,13 @@ export const TIPOS_FAMILIAS = [
   ['escada', /stair|escada|ladder|degrau|steps($|[_ ])/],
   ['coluna', /pillar|column|coluna|pilar|obelisk|obelisco|pedestal|pilastra|post($|[_ ]|s|\d)|poste|(^|[_ ])pole|mastro|lamppost|bollard|baliza|hydrant|hidrante|mailbox|caixa de correio/],
   ['cerca', /fence|cerca|railing|(^|[_ ])rail($|[_ ]|s|\d)|balaustrada|balustrade|grade($|[ s_])|grid($|[_ ]|\d)|hedge|sebe|barrier|barreira|(^|[ _])corda|(^|[_ ])rope|wall($|[_ ]|s|\d)|muro|(^|[ _])parede|divider|divis[óo]ria|screen|biombo|partition/],
-  ['fogueira', /fire($|[_ ]|place|pit|works|s|\d)|(^|[_ ])fogo|fogueira|campfire|bonfire|brasa|flame|chama|torch|tocha|heater|aquecedor|(^|[_ ])lava($|[_ ]|\d)|grill|churrasq|barbecue|(^|[_ ])bbq|stove|fog[ãa]o|forge|forja|furnace|fornalha|smoke|fuma[çc]a|steam|vapor|boiling/],
-  ['veiculo', /(^|[_ ])car($|[_ ]|s|\d)|carro|kart|train|trem|locomot|wagon|vag[ãa]o|carro[çc]a|carriage|boat|barco|ship|navio|canoe|canoa|raft|jangada|submarin|bike|bicicleta|bicycle|moto|scooter|patinete|skate|truck|caminh[ãa]o|(^|[_ ])bus($|[_ ]|\d)|[ôo]nibus|taxi|t[áa]xi|tractor|trator|sled|tren[óo]|sleigh|rocket|foguete|(^|[_ ])plane($|[_ ]|s|\d)|avi[ãa]o|helicop|ufo|ovni|spaceship|nave|tank_?army|blindado|vehicle|ve[íi]culo|(^|[_ ])limo($|[_ ]|\d)|jeep|van($|[_ ]|\d)|ambul|carousel|carrossel|ferris|roda-gigante/],
-  ['banheira', /bath|banho|banheira|hot_?tub|hottub|jacuzzi|(^|[_ ])spa($|[_ ]|\d)|(^|[_ ])pool($|[_ ]|s|\d)|piscina|(^|[_ ])sink|(^|[ _])pia($|[ _])|toilet|privada|vaso sanit|shower|chuveiro|bidet|basin|lavat[óo]rio|puddle|po[çc]a|(^|[_ ])pond|(^|[ _])lagoa?($|[ _])|(^|[_ ])well($|[_ ]|s|\d)|po[çc]o($|[ _])|pump|bomba d|[áa]gua|water|fountain_?drink|bebedouro|bird_?bath/],
+  ['fogueira', /fire($|[_ ]|place|pit|works|s|\d)|(^|[_ ])fogo|fogueira|campfire|bonfire|brasa|flame|chama|torch|tocha|heater|aquecedor|(^|[_ ])lava($|[_ ]|\d)|grill|churrasq|barbecue|(^|[_ ])bbq|fog[ãa]o|forge|forja|furnace|fornalha|smoke|fuma[çc]a|(^|[_ ])steam($|[_ ])|vapor|boiling/],
+  ['veiculo', /(^|[_ ])car($|[_ ]|s|\d)|carro|kart|(^|[_ ])train($|[_ ]|s|\d)|(^|[ _])trem($|[ _])|locomot|wagon|vag[ãa]o|carro[çc]a|carriage|boat|barco|ship|navio|canoe|canoa|raft|jangada|submarin|bike|bicicleta|bicycle|moto|scooter|patinete|skate|truck|caminh[ãa]o|(^|[_ ])bus($|[_ ]|\d)|[ôo]nibus|taxi|t[áa]xi|tractor|trator|sled|tren[óo]|sleigh|rocket|foguete|(^|[_ ])plane($|[_ ]|s|\d)|avi[ãa]o|helicop|ufo|ovni|spaceship|nave|tank_?army|blindado|vehicle|ve[íi]culo|(^|[_ ])limo($|[_ ]|\d)|jeep|van($|[_ ]|\d)|ambul|carousel|carrossel|ferris|roda-gigante/],
+  ['banheira', /bath|banho|banheira|hot_?tub|hottub|jacuzzi|(^|[_ ])spa($|[_ ]|\d)|(^|[_ ])pool($|[_ ]|s|\d)|piscina|(^|[_ ])sink|(^|[ _])pia($|[ _])|toilet|privada|vaso sanit|shower|chuveiro|bidet|basin|lavat[óo]rio|puddle|po[çc]a|(^|[_ ])pond|(^|[ _])lagoa?($|[ _])|(^|[_ ])well($|[_ ]|s|\d)|po[çc]o($|[ _])|pump|bomba d|fountain_?drink|bebedouro|bird_?bath/],
   ['guardasol', /parasol|umbrella|guarda-sol|guarda-chuva|guardasol|sombrinha|sunshade/],
   ['cogumelo', /mushroom|cogumelo|toadstool|fungo|fungus/],
   ['relogio', /clock|rel[óo]gio|hourglass|ampulheta|timer|cron[ôo]metro|sundial/],
-  ['instrumento', /piano|keyboard|teclado|guitar|guitarra|viol[ãa]o|viol[ãa]o|violin|violino|cello|harp($|[_ ]|s|\d)|harpa|(^|[_ ])bass($|[_ ]|\d)|baixo el|drums|drumkit|bateria|saxo|trumpet|trompete|trombone|tuba|flute|flauta|accordion|acorde[ãa]o|microphone|microfone|(^|[_ ])mic($|[_ ]|\d)|xylophone|xilofone|organ($|[_ ]|\d)|[óo]rg[ãa]o|tambourine|pandeiro|berimbau|ukulele|cavaquinho|banjo|maraca/],
+  ['instrumento', /piano|keyboard|teclado|guitar|guitarra|viol[ãa]o|viol[ãa]o|violin|violino|cello|harp($|[_ ]|s|\d)|harpa|(^|[_ ])bass($|[_ ]|\d)|baixo el|drums|drumkit|saxo|trumpet|trompete|trombone|tuba|flute|flauta|accordion|acorde[ãa]o|microphone|microfone|(^|[_ ])mic($|[_ ]|\d)|xylophone|xilofone|organ($|[_ ]|\d)|[óo]rg[ãa]o|tambourine|pandeiro|berimbau|ukulele|cavaquinho|banjo|maraca/],
   ['disco', /sound_?set|trax|vinyl|vinil|(^|[_ ])record($|[_ ]|s|\d)|(^|[_ ])lp($|[_ ]|\d)|(^|[_ ])cd($|[_ ]|s|\d)|cassette|fita k7|song|m[úu]sica/],
   ['espelho', /mirror|espelho/],
   ['cadeado', /(^|[_ ])lock($|[_ ]|s|\d)|lovelock|padlock|cadeado|(^|[_ ])key($|[_ ]|s|\d)|(^|[ _])chaves?($|[ _])/],
@@ -56,6 +57,76 @@ export const TIPOS_FAMILIAS = [
   ['coluna', /(^|[_ ])tubes?($|[_ ]|\d)|(^|[ _])tubos?($|[ _])|(^|[_ ])pipes?($|[_ ]|\d)|(^|[ _])cano/],
   ['lapide', /tomb|grave($|[_ ]|s|stone|\d)|l[áa]pide|t[úu]mulo|headstone|coffin|caix[ãa]o|sarc[óo]fago|sarcophag|cross($|[_ ]|\d)|(^|[ _])cruz($|[ _])|memorial/],
 ];
+
+// Substantivo principal do nome do catálogo (redesign r4, 2ª passada): "Pia de Limo" é uma pia, não um carro;
+// "Porta-Janela La Parisienne" é uma janela, não um bolo. Em português o substantivo vem primeiro ("Adesivo de
+// Morcego", "Sacola de provisões 3"); em inglês, por último ("Garden Bird Bath", "Ice Hockey Pro Statue"). A palavra
+// tem de ser inteira (sem acento, minúscula). Quem o nome decide aqui não passa pelas regras de palavra solta.
+const NUCLEO = (pares) => new Map(pares.flatMap(([t, ps]) => ps.split(' ').map((p) => [p, t])));
+export const NUCLEO_PT = NUCLEO([
+  ['mesa', 'mesa mesinha escrivaninha balcao bancada'], ['barril', 'barris'], ['palco', 'prancha'], ['planta', 'ervas'], ['bicho', 'croco louva-a-deus pardais'], ['bandeirola', 'fitas'], ['vaso', 'incenso'], ['banheira', 'riacho'], ['boneco', 'matriosca artesao'], ['fogueira', 'fumaca'], ['pedra', 'estrume'], ['caixa', 'fita envelope aderecos'], ['bicho', 'pinguinha pardal'], ['coluna', 'ancora adaga'], ['maquina', 'controlador'], ['livros', 'licao'], ['vaso', 'ceramicas'], ['instrumento', 'flauta'], ['cabine', 'teleport teloucoporte'], ['maquina', 'gravadora dispensador exaustor ventilador'], ['estante', 'mostrador expositor'], ['barraca', 'banca confeitaria padaria cafeteria'], ['cavalete', 'menu quadros projeto'], ['comida', 'tigela'], ['livros', 'diario'], ['adesivo', 'borrao'], ['tapete', 'pista buraco'], ['bloco', 'areia'], ['som', 'gramofone'], ['vaso', 'drink bebida sombras maquiagem'], ['coluna', 'mastro tridente'], ['veiculo', 'borda proa popa'], ['barril', 'canhao'], ['bola', 'piao pinhata'], ['cristal', 'estrela'], ['planta', 'arbustos'], ['cadeira', 'cadeira banco banquinho banqueta'], ['poltrona', 'poltrona trono'],
+  ['sofa', 'sofa'], ['cama', 'cama beliche berco'], ['estante', 'estante prateleira mostruario vitrine'], ['armario', 'armario gaveteiro comoda criado-mudo'],
+  ['planta', 'planta plantas arbusto flor flores topiaria canteiro samambaia cacto bonsai'], ['arvore', 'arvore pinheiro'],
+  ['luminaria', 'luminaria lampada abajur lustre luz lanterna iluminacao candelabro'], ['tapete', 'tapete caminho passadeira'],
+  ['estatua', 'estatua busto escultura idolo totem mascara caveira cranio'], ['boneco', 'boneco boneca gnomo espantalho cavaleiro robo manequim fantoche'],
+  ['bicho', 'ursinho pato patinho coelho coelhinho pinguim dragao cavalo gato gatinho cachorro peixe pelucia leao leaozinho coruja rena unicornio macaco sapo porco vaca passaro galinha elefante tartaruga abelha raposa lobo tigre panda tubarao polvo caranguejo caracol morcego aranha cobra ovelha rato hamster papagaio flamingo cisne baleia golfinho foca camelo girafa zebra borboleta joaninha'],
+  ['trofeu', 'trofeu taca medalha'], ['fonte', 'fonte chafariz cachoeira'], ['arco', 'portao portal porta arco entrada'],
+  ['janela', 'janela janelas porta-janela vitral'], ['banheira', 'pia banheira piscina privada chuveiro poco lago lagoa jacuzzi ofuro'],
+  ['sacola', 'sacola saco saquinho bolsa mochila sementes mala kit'], ['caixa', 'caixa caixote arca bau presente presentes'],
+  ['bloco', 'bloco piso chao gramado grama ladrilho tabua calcada'], ['cerca', 'parede muro cerca divisoria grade biombo sebe'],
+  ['maquina', 'maquina geladeira fogao forno'], ['vaso', 'garrafa jarro jarra pote pocao vaso urna caldeirao xicara caneca copo'],
+  ['barril', 'barril balde tonel tanque'], ['bolo', 'bolo torta cupcake'], ['comida', 'prato bandeja geleia doces doce sorvete lanche pao torrada pizza fruta frutas fruto biscoito sushi'],
+  ['cesta', 'cesta cestinha'], ['bola', 'bola bolas'], ['ovo', 'ovo ovos ninho'], ['cadeado', 'cadeado chave'], ['veiculo', 'carrinho carro barco navio trem carroca treno kart moto bicicleta'],
+  ['barraca', 'barraca banquinha quiosque tenda loja lojinha toldo coreto'], ['casinha', 'casa casinha chale cabana torre castelo templo igreja fachada predio edificio santuario'],
+  ['palco', 'palco plataforma ponte altar podio passarela rampa'], ['escada', 'escada escadas'], ['coluna', 'pilar coluna poste obelisco pedestal tubo hidrante'],
+  ['telhado', 'telhado teto chamine'], ['balao', 'balao baloes'], ['espelho', 'espelho'], ['relogio', 'relogio ampulheta'], ['globo', 'globo'],
+  ['livros', 'livro livros revista'], ['aquario', 'aquario terrario'], ['cristal', 'cristal cristais gelo'], ['pedra', 'pedra pedras rocha rochas coral concha fossil'],
+  ['bandeira', 'bandeira estandarte'], ['bandeirola', 'bandeirola bandeirolas bandeirinhas guirlanda'], ['cortina', 'cortina cortinas'],
+  ['telefone', 'telefone'], ['tela', 'televisao computador monitor tela notebook'], ['instrumento', 'piano teclado guitarra violao harpa bateria orgao microfone'],
+  ['lapide', 'lapide tumba tumulo sarcofago caixao'], ['cogumelo', 'cogumelo cogumelos'], ['adesivo', 'adesivo adesivos'], ['lareira', 'lareira'],
+  ['fogueira', 'fogueira fogos tocha churrasqueira aquecedor'], ['cavalete', 'cavalete placa quadro escudo mapa'], ['letreiro', 'letreiro'],
+  ['som', 'som radio jukebox'], ['impressora', 'impressora'], ['lixeira', 'lixeira lixo'], ['louca', 'bule chaleira'], ['guardasol', 'guarda-sol guarda-chuva sombrinha'],
+  ['dado', 'dado dados'], ['abobora', 'abobora'], ['cabine', 'teleporte teletransporte cabine elevador'], ['disco', 'vinil'],
+]);
+export const NUCLEO_EN = NUCLEO([
+  ['mesa', 'table desk counter workbench'], ['caixa', 'envelope costume'], ['coluna', 'hammer'], ['cortina', 'net'], ['cavalete', 'signs signage'], ['coluna', 'anchor dagger'], ['bandeirola', 'rope'], ['vaso', 'mokapot'], ['maquina', 'pastamaker mochamaster mocchamaster'], ['luminaria', 'lightstick'], ['veiculo', 'trolley'], ['planta', 'shrub herbs'], ['vaso', 'drink milkshake smoothie juice tubes makeup can'], ['coluna', 'hoop pipes trident'], ['som', 'gramophone'], ['barril', 'cannon'], ['bola', 'pinata'], ['estante', 'expositor'], ['cavalete', 'blueprint menu'], ['cadeira', 'chair stool bench seat'], ['poltrona', 'armchair throne recliner'], ['sofa', 'sofa couch loveseat'],
+  ['cama', 'bed futon hammock bunkbed'], ['estante', 'shelf shelves bookcase bookshelf display rack'], ['armario', 'cabinet wardrobe dresser drawer drawers locker closet cupboard nightstand'],
+  ['planta', 'plant plants bush flower flowers cactus fern bonsai hedge'], ['arvore', 'tree'], ['luminaria', 'lamp light lights lantern chandelier'], ['tapete', 'rug carpet mat path'],
+  ['estatua', 'statue bust sculpture idol totem mask skull'], ['boneco', 'doll robot knight gnome scarecrow mannequin puppet figure'],
+  ['bicho', 'plush plushie plushy teddy duck bear bunny rabbit cat kitten dog puppy fish carp penguin dragon horse pony owl lion monkey frog pig cow bird chick elephant turtle fox wolf tiger panda shark octopus crab snail bat spider snake sheep mouse hamster parrot flamingo swan whale dolphin seal unicorn butterfly reindeer'],
+  ['trofeu', 'trophy medal'], ['fonte', 'fountain waterfall'], ['arco', 'gate door arch portal doorway archway'], ['janela', 'window windows'],
+  ['banheira', 'sink bath bathtub tub pool toilet shower pump well pond jacuzzi'], ['sacola', 'bag sack backpack satchel suitcase kit seeds'], ['caixa', 'box crate chest present gift'],
+  ['bloco', 'tile floor block pavement grass'], ['cerca', 'wall fence railing divider partition'], ['maquina', 'machine fridge oven stove microwave'],
+  ['vaso', 'bottle jar vase pot potion urn cauldron mug'], ['barril', 'barrel bucket keg'], ['bolo', 'cake pie cupcake'], ['comida', 'tray plate food snack candy sweets dish'],
+  ['cesta', 'basket hamper'], ['bola', 'ball'], ['ovo', 'egg eggs nest'], ['cadeado', 'lock padlock lovelock key'], ['veiculo', 'cart car boat ship train sled sleigh bike kart truck van'],
+  ['barraca', 'stall tent kiosk shop awning gazebo'], ['casinha', 'house cottage hut tower castle building temple church shrine'], ['palco', 'stage platform bridge podium'],
+  ['escada', 'stairs ladder staircase'], ['coluna', 'pillar column pole post pedestal hydrant'], ['telhado', 'roof chimney'], ['balao', 'balloon balloons'], ['espelho', 'mirror'],
+  ['relogio', 'clock hourglass'], ['globo', 'globe'], ['livros', 'book books'], ['aquario', 'terrarium aquarium'], ['cristal', 'crystal crystals'], ['pedra', 'rock rocks stone stones boulder coral shell fossil'],
+  ['bandeira', 'flag banner'], ['bandeirola', 'bunting flags garland'], ['cortina', 'curtain curtains drape beads backdrop'], ['telefone', 'phone telephone'],
+  ['tela', 'tv television computer screen monitor laptop'], ['instrumento', 'piano guitar drums harp organ microphone synth keyboard'], ['lapide', 'tomb grave gravestone coffin'],
+  ['cogumelo', 'mushroom mushrooms'], ['adesivo', 'sticker stickers decal'], ['lareira', 'fireplace'], ['fogueira', 'fire campfire bonfire fireworks torch heater grill bbq'],
+  ['cavalete', 'easel sign board scoreboard billboard shield map'], ['som', 'speaker stereo jukebox radio'], ['impressora', 'printer'], ['lixeira', 'bin trash'],
+  ['louca', 'teapot kettle'], ['guardasol', 'umbrella parasol'], ['neve', 'snowman'], ['dado', 'dice'], ['abobora', 'pumpkin'], ['cabine', 'teleport booth scanner elevator'],
+  ['disco', 'vinyl record'],
+]);
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const RUIDO = /^(\d+|[ivx]+|ltd|hc|deluxe|mini|super|pack|grande|pequeno|pequena|big|small|large|giant|rare|raro|name)$/;
+// tipo pelo substantivo principal do nome, ou null.
+export function tipoPeloNucleo(nome) {
+  const limpo = semAcento(nome).replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9\- ]+/g, ' ').trim();
+  if (!limpo) return null;
+  const p = limpo.split(/\s+/).filter((x) => !RUIDO.test(x));
+  if (p[0] === 'boneco' && p[1] === 'de' && p[2] === 'neve') return 'neve';
+  if (p[0] === 'ninho' && p[1] === 'de' && /^corvos?$/.test(p[2] || '')) return 'coluna'; // o cesto da gávea, no mastro
+  if (p[0] && NUCLEO_PT.has(p[0])) return NUCLEO_PT.get(p[0]);
+  if (p[0] === 'estrela' && p[1] === 'do' && p[2] === 'mar') return 'bicho';
+  if (p[0] === 'gelo' && p[1] === 'seco') return 'fogueira'; // a fumaça
+  const of = p.indexOf('of');
+  if (of > 0 && NUCLEO_EN.has(p[of - 1])) return NUCLEO_EN.get(p[of - 1]); // "Basket of Pumpkins" é cesta
+  const ultima = p[p.length - 1];
+  if (ultima && NUCLEO_EN.has(ultima)) return NUCLEO_EN.get(ultima);
+  return null;
+}
 
 export function familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, pernas, LIVROS, METAL }) {
   const PRETO = '#2B2F33', BRANCO = '#F4EFE6', MADEIRA = '#C08A5B', MADEIRA_ESC = '#8A5A3C', AGUA = '#7FC8E8', VIDRO = '#BFE6F2';
@@ -540,6 +611,13 @@ export function familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, per
       const n = Math.max(3, Math.round(H / (G * 2)));
       for (let k = 0; k < n; k++) C(o, 0, k * H / n, 0, lw, H / n, ld * (1 - k / n) + G, k % 2 ? tom(c, -.1) : c);
     },
+    // Adesivo de chão: a chapa fina com a figura recortada nas cores da arte, um degrauzinho acima do piso.
+    adesivo(o, { w, d, cor }) {
+      const s = Math.min(w, d), c = cor.principal, a2 = cor.acento !== c ? cor.acento : tom(c, -.25);
+      C(o, 0, 0, 0, s * .7, G / 2, s * .7, BRANCO);
+      C(o, 0, G / 4, 0, s * .6, G / 2, s * .6, c);
+      for (const [x, z, l] of [[0, 0, .3], [-.18, -.12, .14], [.18, -.12, .14], [0, .2, .12]]) C(o, x * s, G / 2, z * s, l * s, G / 2, l * s, a2);
+    },
     // Lápide, túmulo, cruz: a pedra de topo arredondado em degraus, com a inscrição.
     lapide(o, { w, d, cor, classe, altoArte = 0 }) {
       const s = Math.min(w, d), pedra = clara(cor.principal, '#B8B2A6'), H = alto(altoArte, .7, .3, 1.6);
@@ -551,4 +629,147 @@ export function familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, per
     },
   };
   return R;
+}
+
+// ---------- famílias de parede (redesign r4): 337 das 710 peças de parede caíam no painel liso ----------
+// Valem depois das regras de parede que já existiam (tipoDeParede olha estas por último). Convenção de parede: x ao
+// longo dela (centro 0), y para cima (base 0), z saindo da parede (a parede em z = 0); w × h é o retângulo da arte.
+export const TIPOS_PAREDE_FAMILIAS = [
+  ['lareira', /fireplace|lareira|frplc|(^|[_ ])fp($|[_ ]|\d)/],
+  ['fonte', /fountain|fonte|waterfall|wfall|cascata|cachoeira/],
+  ['tela', /(^|[_ ])tv($|[_ ]|\d)|tel[ãa]o|televis|screen|monitor|countdown|(^|[_ ])year\d|display/],
+  ['arandela', /luzes|(^|[ _])luz($|[ _])|(^|[_ ])lights?($|[_ ])|(^|[_ ])led($|[_ ])/],
+  ['adesivo', /stick(y|ies|er)|post_?it|adesivo|(^|[_ ])card|(^|[ _])carta|tar[ôo]|calendar|calend[áa]rio|(^|[_ ])note|bilhete|kakejiku|(^|[_ ])sheet/],
+  ['armas', /sword|scimitar|espada|ninja|knife|faca|forquilha|pitchfork|shield|escudo|crest|bras[ãa]o|ferradura|horse_?shoe|machado|(^|[_ ])axe/],
+  ['instrumento', /guitar|guitarra|surf|prancha|viol[ãa]o|violin/],
+  ['enfeite', /bauble|enfeite|ornament|stocking|(^|[ _])meias? d[eo] natal|wreath|guirlanda|apanhador|dreamc|bolinha|na corda|wallskull|(^|[_ ])stars?($|[_ ])|estrela/],
+  ['cabeca', /mounted|(^|[_ ])hd\d|cr[âa]nio|skull|caveira|jaws|deer|(^|[_ ])head|cabe[çc]a|mask|m[áa]scara|trof[ée]u|troph|javali|alce|(^|[ _])rena($|[ _])/],
+  ['alvo', /dart|(^|[ _])alvo|target|bullet|(^|[_ ])hole|buraco/],
+  ['cortina', /curtain|curt($|[_ ]|\d)|cortina|fabric|tecido|sequin|drape|wallrug|tape[çc]aria|tapestry|bordado/],
+  ['armario', /(^|[_ ])safe|cofre|wardrobe|wdrobe|roupeiro|oven|forno|sink|(^|[ _])pia($|[ _])|urinal|holder|cabinet|sensor|turbine|turbina|(^|[_ ])fan($|[_ ])|speakers?|walltable|(^|[_ ])can($|[_ ])|crank|plaque/],
+  ['paisagem', /(^|[_ ])bg($|[_ ]|\d)|background|landscape|paisagem|sunset|p[ôo]r do sol|horizon|(^|[_ ])sky|c[ée]u|(^|[_ ])view|vista|cityscape|cidade|city|montanha|mountain|savana|savanna|dunas|dunes|paradise|neopia|olympus|seabg|loadscreen|(^|[_ ])build\d|(^|[_ ])big\d|buildings|campestre|horizonte|selvagem|town|fuji/],
+  ['revestimento', /wall|parede|muro|muralha|wallpaper|papel de parede|revestimento|isolamento|painel de madeira|(^|[_ ])crnr|(^|[ _])canto|stone|pedras|garagem|cabana|cover/],
+];
+
+export function paredeFamilias({ C, L, G, tom, lum, sat, hexRgb, moldura, madeiraDe, LIVROS, METAL }) {
+  const PRETO = '#2B2F33', CLARO = '#F7F2E8', TELA = '#1F1D1A';
+  const viva = (cor, reserva) => (sat(cor) > .2 ? cor : reserva);
+  return {
+    // Paisagem, fundo de cena, vista: faixas de céu, morros em degraus e o sol, sem moldura (é o fundo da sala).
+    paisagem(o, { w, h, cor }) {
+      const ceu = lum(cor.principal) > .45 ? cor.principal : tom(cor.principal, .45), chao = cor.segunda;
+      C(o, 0, 0, G / 4, w, h, G / 2, tom(ceu, -.08));
+      for (let k = 0; k < 3; k++) C(o, 0, h * (.45 + k * .18), G * .6, w, h * .18, G / 4, tom(ceu, k * .08)); // céu clareando para cima
+      const n = Math.max(3, Math.round(w / (G * 6)));
+      for (let k = 0; k < n; k++) { const x = -w / 2 + (k + .5) * w / n, alto = h * (.2 + .25 * ((k * 7) % 5) / 4); C(o, x, 0, G * .6, w / n, alto, G / 4, k % 2 ? chao : tom(chao, -.1)); }
+      const sol = Math.min(w, h) * .18; C(o, w * .25, h * .62, G * .75, sol, sol, G / 4, viva(cor.acento, '#FFC24D'));
+    },
+    // Revestimento de parede (tijolo, madeira, azulejo, pedra): o painel com as fiadas desencontradas.
+    revestimento(o, { w, h, cor }) {
+      const c = cor.principal, junta = tom(c, -.25);
+      C(o, 0, 0, G / 4, w, h, G / 2, junta);
+      const fiada = Math.max(G * 2, Math.min(G * 4, h / 6)), n = Math.max(2, Math.floor(h / fiada)), peca = Math.max(G * 4, Math.min(w, G * 8));
+      for (let k = 0; k < n; k++) {
+        const y = k * (h / n), desloc = k % 2 ? peca / 2 : 0;
+        for (let x = -w / 2 - desloc; x < w / 2; x += peca) {
+          const a = Math.max(-w / 2, x) + G / 4, b = Math.min(w / 2, x + peca) - G / 4; if (b - a < G) continue;
+          C(o, (a + b) / 2, y + G / 4, G * .6, b - a, h / n - G / 2, G / 4, (k + Math.round(x / peca)) % 3 ? c : tom(c, .07));
+        }
+      }
+      C(o, 0, 0, G * .9, w, G, G / 2, tom(c, -.15)); // rodapé
+    },
+    // Enfeite pendurado (bola de Natal, meia, guirlanda, apanhador): o fio e as peças penduradas nas cores da arte.
+    enfeite(o, { w, h, cor }) {
+      const cores = [viva(cor.principal, '#E5484D'), viva(cor.acento, '#F2C230'), viva(cor.segunda, '#18A957')];
+      const n = w >= .8 ? 3 : w >= .4 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const x = n === 1 ? 0 : -w / 2 + G * 2 + k * (w - G * 4) / (n - 1), fio = h * (.25 + .2 * (k % 2)), b = Math.max(G * 3, Math.min(w / (n + 1), h * .4));
+        C(o, x, h - fio, G * 1.5, G / 2, fio, G / 2, '#C9A23A'); C(o, x, h - G, G * 1.5, G * 1.5, G, G, '#C9A23A'); // fio e o prego
+        const y = h - fio - b; C(o, x, y + G, G * 2, b, b - G * 2, b * .6, cores[k % 3]); C(o, x, y, G * 2, b - G * 2, b, b * .6, cores[k % 3]); // a bola em degraus
+        C(o, x - b / 4, y + b * .6, G * 2 + b * .3, G, G, G / 4, '#FFFFFF'); C(o, x, y + b, G * 2, G * 1.5, G, G, '#D9B45A'); // brilho e a tampa
+      }
+    },
+    // Tela de parede (TV, telão, placar de contagem): moldura escura e a imagem acesa em faixas.
+    tela(o, { w, h, cor }) {
+      const iw = w - G * 2, ih = h - G * 2;
+      C(o, 0, 0, G * .75, w, h, G * 1.5, TELA); C(o, 0, h * .3, G / 4, G * 3, G * 3, G / 2, PRETO); // a caixa e o suporte
+      L(o, 0, G, G * 1.6, iw, ih, G / 4, tom(viva(cor.principal, '#5BC8F5'), .25));
+      C(o, 0, G, G * 1.7, iw, ih * .3, G / 4, tom(cor.segunda, .1)); C(o, iw / 5, G + ih * .55, G * 1.7, Math.min(iw, ih) * .25, Math.min(iw, ih) * .25, G / 4, viva(cor.acento, '#FFC24D'));
+    },
+    // Recado, cartão, carta de tarô, calendário, pergaminho: papéis presos na parede, um sobre o outro, com o alfinete.
+    adesivo(o, { w, h, cor }) {
+      const papel = lum(cor.principal) > .55 ? cor.principal : CLARO, n = w >= .8 ? 3 : w >= .45 ? 2 : 1, pw = Math.min(w / n + G * 2, w), ph = Math.min(h, pw * 1.3);
+      for (let k = 0; k < n; k++) {
+        const x = n === 1 ? 0 : -w / 2 + pw / 2 + k * (w - pw) / (n - 1), y = (h - ph) / 2 + (k % 2 ? -G : G), z = G / 4 + k * G / 4;
+        C(o, x, y, z, pw - G, ph, G / 2, k % 2 ? tom(papel, -.06) : papel);
+        for (let i = 0; i < 3; i++) C(o, x - pw * .1, y + ph * (.3 + i * .18), z + G / 4, Math.max(G, pw * (.5 - i * .1)), G / 2, G / 4, tom(cor.segunda, -.2)); // as linhas escritas
+        C(o, x, y + ph - G * 1.5, z + G / 2, G, G, G / 2, viva(cor.acento, '#E5484D')); // o alfinete
+      }
+    },
+    // Cabeça montada (troféu de caça, caveira, máscara): a placa de madeira e a cabeça saindo dela, com chifres ou orelhas.
+    cabeca(o, { w, h, cor, classe }) {
+      const s = Math.max(G * 6, Math.min(w, h)), y0 = (h - s) / 2, c = cor.principal, placa = madeiraDe(cor);
+      C(o, 0, y0 + G, G / 2, s * .7, s * .8, G, placa); C(o, 0, y0, G / 2, s * .5, s, G, placa);
+      C(o, 0, y0 + s * .3, G * 2, s * .4, s * .38, G * 3, c); C(o, 0, y0 + s * .32, G * 4, s * .26, s * .22, G * 2, tom(c, .08)); // cabeça e focinho
+      for (const a of [-1, 1]) C(o, a * s * .1, y0 + s * .55, G * 3.6, G, G, G / 2, PRETO); // olhos
+      const chifre = /deer|alce|rena|javali|horn|chifre/.test(classe);
+      for (const a of [-1, 1]) C(o, a * s * .25, y0 + s * .62, G * 2, G * 1.5, chifre ? s * .35 : s * .14, G * 1.5, chifre ? '#E8D9B0' : tom(c, -.08));
+    },
+    // Armas e brasões: o escudo na parede e duas lâminas cruzadas em degraus.
+    armas(o, { w, h, cor, classe }) {
+      const s = Math.max(G * 6, Math.min(w, h)), y0 = (h - s) / 2, metal = '#C9CED3', cabo = madeiraDe(cor);
+      if (/shield|escudo|crest|bras/.test(classe)) {
+        const c = viva(cor.principal, '#B5462F');
+        for (let k = 0; k < 4; k++) C(o, 0, y0 + k * s / 5, G * .75, s * (.5 + k * .12), s / 5, G * 1.5, k % 2 ? tom(c, -.08) : c); // o escudo afinando para baixo
+        C(o, 0, y0 + s * .8, G * .75, s * .9, s * .2, G * 1.5, tom(c, .08)); C(o, 0, y0 + s * .3, G * 1.6, s * .2, s * .3, G / 2, viva(cor.acento, '#F2C230'));
+        return;
+      }
+      const n = Math.max(4, Math.round(s / G / 1.5));
+      for (const lado of [-1, 1]) for (let k = 0; k < n; k++) { // cada lâmina é uma escada de blocos na diagonal
+        const t = k / (n - 1), x = lado * (t - .5) * s * .8, y = y0 + t * s * .85;
+        C(o, x, y, G * (1 + (lado + 1) / 4), G * 1.5, G * 1.5, G, k < 2 ? cabo : metal);
+      }
+      C(o, 0, y0 + s * .4, G * 2, G * 3, G * 3, G, viva(cor.acento, '#D9B45A'));
+    },
+    // Guitarra, prancha: o objeto comprido pendurado em pé, com o corpo e o braço.
+    instrumento(o, { w, h, cor, classe }) {
+      const c = viva(cor.principal, '#B5462F'), lw = Math.min(w * .8, h * .45);
+      if (/surf|prancha/.test(classe)) { for (let k = 0; k < 5; k++) { const t = 1 - Math.abs(k - 2) / 3; C(o, 0, k * h / 5, G, lw * t, h / 5, G * 1.5, c); } C(o, 0, G, G * 1.8, G, h - G * 2, G / 4, viva(cor.acento, CLARO)); return; }
+      C(o, 0, 0, G, lw, h * .3, G * 1.5, c); C(o, 0, h * .3, G, lw * .75, h * .15, G * 1.5, c); C(o, 0, h * .15, G * 1.8, G * 2, G * 2, G / 4, PRETO); // corpo e boca
+      C(o, 0, h * .45, G, G * 1.5, h * .45, G, madeiraDe(cor)); C(o, 0, h * .9, G, G * 2.5, h * .1, G, PRETO); // braço e cabeça
+    },
+    // Alvo (dardos, buraco de bala): anéis concêntricos em degraus.
+    alvo(o, { w, h, cor }) {
+      const s = Math.max(G * 6, Math.min(w, h)), y0 = (h - s) / 2, cores = [PRETO, viva(cor.principal, '#E5484D'), CLARO, viva(cor.principal, '#E5484D'), '#F2C230'];
+      cores.forEach((c, k) => { const l = s * (1 - k * .18); C(o, 0, y0 + (s - l) / 2, G / 2 + k * G / 4, l, l, G / 2, c); });
+    },
+    // Cortina e tecido de parede: o varão e as dobras até embaixo.
+    cortina(o, { w, h, cor }) {
+      const c = cor.principal, n = Math.max(3, Math.round(w / (G * 2)));
+      C(o, 0, h - G * 1.5, G * 1.5, w, G, G, madeiraDe(cor));
+      for (let k = 0; k < n; k++) C(o, -w / 2 + (k + .5) * w / n, 0, G * (.75 + (k % 2) * .5), w / n, h - G * 2, G, k % 2 ? tom(c, -.1) : c);
+      if (cor.acento !== c) C(o, 0, h - G * 3, G * 2, w, G, G / 2, cor.acento);
+    },
+    // Armário de parede, cofre, forno, pia, aparelho: a caixa saltada com a porta e o puxador.
+    armario(o, { w, h, cor }) {
+      const c = cor.principal, bw = w - G, bh = h - G;
+      C(o, 0, G / 2, G * 2.5, bw, bh, G * 5, c); C(o, 0, G / 2 + bh - G, G * 2.75, bw + G / 2, G, G * 5.5, tom(c, .1));
+      C(o, 0, G * 1.5, G * 5.25, bw - G * 2, bh - G * 3, G / 2, tom(c, .06));
+      C(o, bw / 2 - G * 2, G / 2 + bh / 2, G * 5.75, G, G * 2, G / 2, viva(cor.acento, METAL));
+    },
+    // Fonte de parede e cascata: a placa, a água caindo acesa e a bacia embaixo.
+    fonte(o, { w, h, cor }) {
+      const pedra = lum(cor.principal) > .4 ? cor.principal : '#CFC6B2';
+      C(o, 0, 0, G / 2, w, h, G, tom(pedra, -.1)); C(o, 0, h - G * 2, G * 1.5, w * .5, G * 2, G * 2, pedra);
+      L(o, 0, G * 3, G * 1.2, w * .3, h - G * 5, G / 2, '#9AD8F0');
+      C(o, 0, 0, G * 3, w * .8, G * 3, G * 5, pedra); L(o, 0, G * 2, G * 3, w * .7, G, G * 4, '#7FC8E8');
+    },
+    // Lareira de parede: a moldura de pedra, a boca escura e o fogo aceso.
+    lareira(o, { w, h, cor }) {
+      const pedra = lum(cor.principal) > .35 ? cor.principal : '#B8B2A6', bh = Math.min(h, w * .9);
+      C(o, 0, 0, G * 2, w, bh, G * 4, pedra); C(o, 0, bh - G, G * 2.5, w + G, G * 1.5, G * 5, tom(pedra, .1));
+      C(o, 0, 0, G * 3.6, w * .55, bh * .6, G * .8, '#2B1D14');
+      for (let k = 0; k < 3; k++) L(o, 0, G + k * G * 1.5, G * 4.1, w * (.4 - k * .1), G * 1.5, G / 2, ['#FF7A2F', '#FFB347', '#FFE38A'][k]);
+    },
+  };
 }

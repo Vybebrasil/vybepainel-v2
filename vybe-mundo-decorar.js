@@ -362,7 +362,11 @@
 
   // Abre a cena para a edição: inventário fresco (como abrirEditorEscritorio), catálogo, móveis e acabamento salvos.
   async function preparar() {
+    // Sem o Escritório carregado (celular): pede a base e a chegada, que dizem de quem é a sala e o quarto montado.
+    if (!base() && typeof garantirBaseEscritorio === 'function') { estado.carregando = true; pintar(); try { await garantirBaseEscritorio(); } catch { /* o erro abaixo avisa */ } }
     const b = base(), id = estado.sala;
+    if (!b) { estado.carregando = false; estado.erroAbrir = 'O Escritório não respondeu. Confira a conexão e tente de novo.'; pintar(); return false; }
+    estado.nome = chamar(typeof escritorioNomeCamada === 'function' ? escritorioNomeCamada : null, id) || estado.nome;
     estado.carregando = true; estado.erroAbrir = ''; pintar();
     try {
       if (!b.demo && typeof escritorioApi === 'function') b.economia = (await escritorioApi('economia')).economia;

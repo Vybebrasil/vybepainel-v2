@@ -85,7 +85,7 @@ test('quadro 34: objetos pequenos, peça sem receita e peças de parede saem do 
   for (const b of g.solidos) assert.ok(Math.abs(b.x) + b.w / 2 <= .5 + 1e-3 && Math.abs(b.z) + b.d / 2 <= 1 + 1e-3, 'dentro da pegada');
   assert.ok(m.montarMovel('generico', { w: 1, d: 1, cores, perfil: [{ f: 1, cor: '#c9774a' }], altoArte: .06 }).solidos.every((b) => b.y + b.h < .2), 'peça rasteira vira chapa');
   // Parede: cada tipo tem receita, o resto é painel; tudo cabe no retângulo da arte e não entra na parede.
-  for (const [classe, tipo] of [['window_double_default', 'janela'], ['hc_wall_lamp', 'arandela'], ['pixel_clock_black', 'relogio'], ['attic15_painting', 'quadro'], ['wallmirror', 'espelho'], ['flag_portugal', 'bandeira'], ['exe_map', 'mapa'], ['sw_swords', 'painel']]) assert.equal(m.tipoDeParede(classe), tipo, classe);
+  for (const [classe, tipo] of [['window_double_default', 'janela'], ['hc_wall_lamp', 'arandela'], ['pixel_clock_black', 'relogio'], ['attic15_painting', 'quadro'], ['wallmirror', 'espelho'], ['flag_portugal', 'bandeira'], ['exe_map', 'mapa'], ['sw_swords', 'armas'], ['xm09_bauble_3', 'enfeite'], ['post_it', 'adesivo'], ['peca_sem_nome', 'painel']]) assert.equal(m.tipoDeParede(classe), tipo, classe);
   for (const t of m.TIPOS_DE_PAREDE) for (const [w, h] of [[.5, .5], [1.5, 1], [1, 2]]) {
     const o = m.montarDeParede(t, { w, h, cores, classe: t });
     assert.ok(o.solidos.length + o.luzes.length >= 4, t);

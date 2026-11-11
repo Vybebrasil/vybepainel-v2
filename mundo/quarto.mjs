@@ -92,7 +92,7 @@ function prepararFotografo() {
 }
 // O retrato pronto fica guardado no navegador (o mesmo IndexedDB das peças esculpidas, chave própria): a Loja e as
 // Conquistas abrem com os ícones voxel na hora a partir da segunda vez. A versão muda quando o desenho do retrato muda.
-const VERSAO_RETRATO = 'r4';
+const VERSAO_RETRATO = 'r5';
 // `vivo` (opcional): diz se quem pediu ainda está à vista. Na vez da foto, se ninguém mais quer (a janela fechou, a
 // Loja trocou de prateleira), a foto é pulada sem travar a fila: as Conquistas abertas depois não esperam a Loja.
 const interessados = new Map();

@@ -8,7 +8,7 @@
 // Tudo na grade de 1/16 de ladrilho (o grão do padrão): medidas e posições caem nela.
 import { Obra } from './voxel.mjs';
 import { biblioteca } from './moveis-biblioteca.mjs';
-import { familias, TIPOS_FAMILIAS } from './moveis-familias.mjs';
+import { familias, TIPOS_FAMILIAS, tipoPeloNucleo, paredeFamilias, TIPOS_PAREDE_FAMILIAS } from './moveis-familias.mjs';
 
 const G = 1 / 16;
 // Encaixe fino (1/64): o grão do desenho é G, mas detalhe de meia grade (fresta, puxador, botão) existe de verdade.
@@ -76,7 +76,8 @@ export function tipoModelado(classe, ficha = null, info = null) {
   const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
   // Peça de construção (piso, bloco, divisória): um bloco na paleta, com o desenho do material.
   if (BLOCOS.has(info?.categoria)) return 'bloco';
-  let t = (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
+  // O substantivo principal do nome do catálogo manda ("Pia de Limo" é pia); só sem ele valem as palavras soltas.
+  let t = tipoPeloNucleo(info?.nome) || (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
   if (!t && info?.categoria) t = POR_CATEGORIA[info.categoria] || null;
   // Famílias que antes caíam no volume liso (redesign r4): só para quem nenhuma regra acima reconheceu.
   if (!t) t = (TIPOS_FAMILIAS.find(([, r]) => r.test(c)) || [null])[0];
@@ -479,7 +480,8 @@ const TIPOS_PAREDE = [
 ];
 export function tipoDeParede(classe, info = null) {
   const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
-  return (TIPOS_PAREDE.find(([, r]) => r.test(c)) || ['painel'])[0];
+  // As famílias de parede do redesign r4 só valem para quem as regras acima não reconhecem; o resto é o painel.
+  return (TIPOS_PAREDE.find(([, r]) => r.test(c)) || TIPOS_PAREDE_FAMILIAS.find(([, r]) => r.test(c)) || ['painel'])[0];
 }
 const CLARO = '#F7F2E8';
 // Moldura em quatro réguas (o miolo fica livre para o que vai dentro) e o fundo um passo atrás.
@@ -601,6 +603,7 @@ const RECEITAS_PAREDE = {
     C(o, w / 5, h * .6, G * .75, Math.max(G, Math.min(w, h) * .25), Math.max(G, Math.min(w, h) * .25), G / 4, cor.acento);
   },
 };
+Object.assign(RECEITAS_PAREDE, paredeFamilias({ C, L, G, tom, lum, sat, hexRgb, moldura, madeiraDe, LIVROS, METAL }));
 export const TIPOS_DE_PAREDE = Object.keys(RECEITAS_PAREDE);
 // Monta a peça de parede: devolve a Obra (centro em x = 0, base em y = 0, encostada na parede em z = 0, frente +z).
 export function montarDeParede(tipo, { w = 1, h = 1, cores, classe = '' } = {}) {
