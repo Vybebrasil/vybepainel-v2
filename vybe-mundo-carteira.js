@@ -73,9 +73,11 @@
 
   // Barras mês a mês em SVG inline, com o número em cima de cada barra (o mesmo jeito de barrasSemana
   // em vybe-mundo.js). `espiar(p)` devolve a chave do mini painel daquele mês (opcional).
-  function barrasMes(pontos, campo, { titulo, formato = (x) => virgula(x), cor = '#FF7A2F', fraca = '#E1DACE', espiar = null, w = 340, h = 78 } = {}) {
+  function barrasMes(pontos, campo, { titulo, formato = (x) => virgula(x), cor = '#FF7A2F', fraca = '#E1DACE', espiar = null, w = 340, h = 78, zero = 'Zero em todos os meses.' } = {}) {
     const vals = (pontos || []).map((p) => p[campo]);
     if (!vals.length || vals.every((v) => v == null)) return `<figure class="vc-graf"><figcaption>${esc(titulo)}</figcaption>${nota('Sem dado para este gráfico ainda.')}</figure>`;
+    // Redesign (quadros 00 e 18): gráfico só de zeros vira uma linha discreta, não seis barras de "0".
+    if (vals.every((v) => !Number(v))) return `<figure class="vc-graf"><figcaption>${esc(titulo)}</figcaption>${nota(zero)}</figure>`;
     const max = Math.max(1, ...vals.filter((v) => v != null));
     const bw = w / pontos.length, T = 13;
     // Barra estreita (12 meses): rótulo e número um sim, um não, contando do último (auditoria 09/11: "02/2603/26" colados).
@@ -179,6 +181,8 @@
   const aguardando = (titulo, texto) => `<div class="vc-ativacao" role="note"><b>${esc(titulo)}</b><p>${esc(texto)} Os donos já sabem o que falta.</p>${souAdminAqui()
     ? `<span class="vc-ativacao-adm">Para quem administra: ${secundario('Ver o que falta', `data-vc-falta aria-expanded="${estado.verFalta}"`)}</span>${estado.verFalta
       ? `<small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small>` : ''}` : ''}</div>`;
+  // Dica no ⓘ (a mesma peça do vbResumoHtml): a explicação longa sai do rodapé e fica ao passar o mouse.
+  const dicaHtml = (texto) => `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${esc(texto)}" aria-label="${esc(texto)}"><span class="ar-dica-i" aria-hidden="true">i</span></span>`;
   // Uma linha de números (vbResumoHtml, vybe-core.js; redesign, quadro 18): zero e "sem dado" ficam discretos.
   function resumo(itens) {
     if (typeof vbResumoHtml === 'function') return `<div class="vc-resumo">${vbResumoHtml(itens)}</div>`;
@@ -511,22 +515,37 @@
     if (!s) return '';
     guardarBase();
     return `<section class="vc-secao"><h3>Saídas por mês</h3><div class="vc-grafs">
-      ${barrasMes(s.meses, 'saidas', { titulo: 'Clientes que saíram', cor: '#D93D42', fraca: '#F2C4C6', formato: String, espiar: (p) => `mes:saidas:${p.mes}` })}
-      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}` })}</div>
+      ${barrasMes(s.meses, 'saidas', { titulo: 'Clientes que saíram', cor: '#D93D42', fraca: '#F2C4C6', formato: String, espiar: (p) => `mes:saidas:${p.mes}`, zero: 'Ninguém saiu nestes meses.' })}
+      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}`, zero: 'Ninguém entrou nestes meses.' })}</div>
       ${nota('Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro. Toque numa barra para ver quem.')}</section>`;
   }
 
   // ---------- Contratos ----------
+  // Como o mês a mês é contado: vai para o ⓘ do título (redesign, quadro 18: o parágrafo técnico sai do rodapé).
+  function comoContaMesAMes(s) {
+    return `Cada mês na data do último dia (o mês corrente, hoje). Ativos = entraram até ali e não tinham saído${s?.semEntrada ? ` (${plural(s.semEntrada, 'cliente sem data de entrada conta', 'clientes sem data de entrada contam')} como antigo)` : ''}. Ticket = receita mensal ativa ÷ clientes ativos com valor. As saídas por mês ficam na aba Churn.`;
+  }
+  const CAMPOS_MES_A_MES = ['ativos', 'novos', 'ltvMedio', 'ticketMedio'];
+  const mesAMesTemDado = (s) => Boolean(s && s.meses.some((p) => CAMPOS_MES_A_MES.some((c) => Number(p[c]) > 0)));
   function mesAMesHtml() {
     const s = serieDosMeses();
     if (!s) return '';
     guardarBase();
-    return `<section class="vc-secao"><h3>Mês a mês</h3><div class="vc-grafs">
+    // Redesign (quadro 18): sem nenhum valor, nada de quatro gráficos só de zero; uma linha diz quando aparecem.
+    // A explicação de como se conta fica no ⓘ do título nos dois casos (com e sem dado), para todo mundo.
+    const semDado = 'Os gráficos de ativos, novos, LTV e ticket aparecem quando houver cliente ativo com data de entrada.';
+    if (!mesAMesTemDado(s)) return `<section class="vc-secao"><h3>Mês a mês ${dicaHtml(comoContaMesAMes(s))}</h3>${typeof vbEstadoHtml === 'function' ? vbEstadoHtml({ titulo: 'Ainda sem histórico para mostrar', texto: semDado }) : nota(semDado)}</section>`;
+    return `<section class="vc-secao"><h3>Mês a mês ${dicaHtml(comoContaMesAMes(s))}</h3><div class="vc-grafs">
       ${barrasMes(s.meses, 'ativos', { titulo: 'Clientes ativos', formato: String })}
-      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes novos', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}` })}
+      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes novos', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}`, zero: 'Ninguém entrou nestes meses.' })}
       ${barrasMes(s.meses, 'ltvMedio', { titulo: 'LTV médio (meses)' })}
-      ${barrasMes(s.meses, 'ticketMedio', { titulo: 'Ticket médio (R$)', formato: milTxt })}</div>
-      ${nota(`Cada mês na data do último dia (o mês corrente, hoje). Ativos = entraram até ali e não tinham saído${s.semEntrada ? ` (${plural(s.semEntrada, 'cliente sem data de entrada conta', 'clientes sem data de entrada contam')} como antigo)` : ''}. Ticket = receita mensal ativa ÷ clientes ativos com valor. As saídas por mês ficam na aba Churn.`)}</section>`;
+      ${barrasMes(s.meses, 'ticketMedio', { titulo: 'Ticket médio (R$)', formato: milTxt })}</div></section>`;
+  }
+  // Redesign (quadro 18): Mensal/Anual e o mês só onde mudam algo. Nos Contratos sem nenhum cliente ativo, nada muda.
+  function periodoMudaAlgo() {
+    if (estado.aba === 'churn') return true;
+    if (estado.aba !== 'contratos') return false;
+    try { return Boolean(contratosAgora()?.linhas?.length); } catch { return false; }
   }
   function formContrato(l) {
     const f = estado.form;
@@ -616,7 +635,7 @@
         <button type="button" class="vc-ico" data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é a Carteira" title="O que é a Carteira">?</button>
         <button type="button" class="vc-ico" data-vc-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
-      <div class="vc-controles"${['churn', 'contratos'].includes(estado.aba) ? '' : ' hidden'}>
+      <div class="vc-controles"${periodoMudaAlgo() ? '' : ' hidden'}>
         <div class="vc-segmento" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</div>
         ${typeof vbMesHtml === 'function' ? vbMesHtml({ mes: estado.mes, max: hoje().slice(0, 7), attr: 'data-vc-mes-ir', ano: estado.tipo === 'anual' }) : ''}
       </div>

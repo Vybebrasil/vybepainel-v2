@@ -359,13 +359,24 @@
   setInterval(() => contar(), 60e3);
   document.addEventListener('visibilitychange', () => contar());
 
+  // "Como o VYBES pensa" (quadro 54 do redesign, 2ª rodada): o diagnóstico que ficava nas Sinapses do cliente (quem pensa
+  // cada rotina, Qwen ou lógica fixa, a fila do Qwen e o detalhe por agente) mora aqui. O desenho é o mesmo do cérebro
+  // (renderDiagnosticoCerebroHtml, vybe-clientes-cerebro.js), lido do mesmo mapa da central.
+  const ICONE_CEREBRO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 6h7M7.2 8.2l3.6 7.6M16.8 8.2l-3.6 7.6"/></svg>';
+  const temDiagnostico = () => typeof G.renderDiagnosticoCerebroHtml === 'function';
+  function cerebroHtml() {
+    return `<div class="vga-cab"><span class="vga-av grande vga-av-fila">${ICONE_CEREBRO}</span><span><small>Todos os agentes</small><h3>Como o VYBES pensa</h3>
+      <span class="vga-expl">Quem pensa cada rotina (o Qwen ou a lógica fixa), de onde ela lê e onde escreve, agente por agente.</span></span></div>
+      <div class="vga-cerebro">${temDiagnostico() ? G.renderDiagnosticoCerebroHtml() : '<p class="vga-vazio">O mapa do cérebro não carregou nesta tela.</p>'}</div>`;
+  }
   function listaHtml() {
     const n = st.vista === 'fila' || ultimaContagem ? filaAgora().total : 0;
     return `<button type="button" class="vga-linha vga-linha-fila${st.vista === 'fila' ? ' sel' : ''}" data-vga-fila>
         <span class="vga-av vga-av-fila">${ICONE_FILA}</span><span class="vga-meio"><b>Depende de você</b><small>O que espera um dono, de todos os agentes</small></span>
-        ${n ? `<em class="vga-n">${n}</em>` : ''}</button>` + planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel, a.id))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
+        ${n ? `<em class="vga-n">${n}</em>` : ''}</button>` + (temDiagnostico() ? `<button type="button" class="vga-linha vga-linha-fila${st.vista === 'cerebro' ? ' sel' : ''}" data-vga-cerebro>
+        <span class="vga-av vga-av-fila">${ICONE_CEREBRO}</span><span class="vga-meio"><b>Como o VYBES pensa</b><small>Qwen ou lógica fixa, rotina por rotina</small></span></button>` : '') + planta().map((a) => `<div class="vga-andar"><small>${esc(ANDAR(a.nivel, a.id))} · ${esc(a.nome)}</small>${a.setores.filter((s) => s.agente).map((s) => {
       const m = modoDo(s), [rot, , cor] = rotuloDoModo(m);
-      return `<button type="button" class="vga-linha${st.vista !== 'fila' && s.id === st.setor ? ' sel' : ''}" data-vga-setor="${esc(s.id)}">
+      return `<button type="button" class="vga-linha${st.vista === 'agente' && s.id === st.setor ? ' sel' : ''}" data-vga-setor="${esc(s.id)}">
         ${retratoHtml(s)}
         <span class="vga-meio"><b>${esc(s.agente)}</b><small>${esc(s.funcao || s.nome)} · ${esc(s.nome)}</small></span>
         <em style="--c:${cor}"${m.ate ? ` title="Volta ${esc(quando(m.ate))}"` : ''}>${esc(rot)}</em></button>`;
@@ -374,6 +385,7 @@
 
   function detalheHtml() {
     if (st.vista === 'fila') return filaHtml();
+    if (st.vista === 'cerebro') return cerebroHtml();
     const s = setores().find((x) => x.id === st.setor) || setores()[0]; if (!s) return '<p class="vga-vazio">Carregando a planta do prédio…</p>';
     st.setor = s.id;
     const f = fonte(), dados = f.dados || {}, modo = modoDo(s), [rot, expl0, cor] = rotuloDoModo(modo);
@@ -502,6 +514,7 @@
     if (b.hasAttribute('data-vga-fechar')) { fechar(); return; }
     if (b.dataset.vgaSetor) { st.setor = b.dataset.vgaSetor; st.vista = 'agente'; st.msg = ''; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
     if (b.hasAttribute('data-vga-fila')) { st.vista = 'fila'; st.msg = ''; pintar(); Promise.all([lerTodos(), lerEstados()]).then(() => { pintarContagem(); pintar(); }); return; }
+    if (b.hasAttribute('data-vga-cerebro')) { st.vista = 'cerebro'; st.msg = ''; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
     if (b.hasAttribute('data-vga-recarregar')) { setores().forEach((x) => { if (st.perfis[x.id]) st.perfis[x.id].em = 0; }); lerTodos().then(() => { pintarContagem(); pintar(); }); pintar(); return; }
     if (b.dataset.vgaRotina) { chamar({ id: b.dataset.vgaRotina, acao: b.dataset.vgaLigar }, 'rotina', b.dataset.vgaLigar === 'ligar' ? 'Rotina ligada.' : 'Rotina desligada: o agendador pula até ligar de novo.'); return; }
     // Pedido de orçamento que o Nestor (Compras) deixa pronto: copia o texto para colar no WhatsApp ou e-mail da gráfica.
@@ -557,7 +570,9 @@
     chamar({ acao: 'criar', setor: st.setor, texto: v.texto, cliente: v.cliente, frequencia: v.frequencia, horario: v.horario });
   }
   function abrir(setor) {
-    if (setor) { st.setor = setor; st.vista = 'agente'; } else st.vista = 'fila';
+    // Sem agente escolhido abre na fila; ou na vista pedida há instantes pelo abrirCerebro (o dock abre com um respiro).
+    if (setor) { st.setor = setor; st.vista = 'agente'; } else st.vista = pedido.vista && Date.now() < pedido.ate ? pedido.vista : 'fila';
+    pedido = { vista: '', ate: 0 };
     st.aberto = true; st.msg = '';
     pintar();
     if (st.vista === 'fila') lerTodos().then(() => { pintarContagem(); pintar(); });
@@ -565,6 +580,16 @@
     Promise.resolve(mv().garantirModulo?.()).then((m) => { if (m?.avatarDoAgente) modRetrato = m; mv().fonteAgentes?.()?.atualizar?.(true)?.then?.(pintar); pintar(); });
   }
   function fechar() { st.aberto = false; pintar(); }
+  // Abre a página Agentes já em "Como o VYBES pensa" (o botão das Sinapses do cliente leva para cá). Pelo dock quando ele
+  // existe, para acender o item certo, fechar o que estiver por cima e valer o cadeado de quem não é dono.
+  let pedido = { vista: '', ate: 0 };
+  function abrirCerebro() {
+    if (st.aberto) { st.vista = 'cerebro'; st.msg = ''; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
+    pedido = { vista: 'cerebro', ate: Date.now() + 3000 };
+    if (typeof mv().irPara === 'function') mv().irPara('agentes'); else abrir();
+  }
+  // O mapa da central chegou ou o filtro (Qwen, lógica fixa…) mudou: repinta só se a vista aberta for a dele.
+  document.addEventListener('vybe:cerebro-mapa', () => { if (st.aberto && st.vista === 'cerebro') pintar(); });
   // Mudou a peça e o achado foi resolvido na janela da peça: relê o perfil daquele agente. "Abrir a demanda completa":
   // a gaveta abre embaixo das janelas, a página Agentes sai da frente.
   G.addEventListener?.('vybe:achado-mudou', (e) => { const setor = e.detail?.setor; if (!setor) return; lerPerfil(setor, true).then(() => { pintarContagem(); if (st.aberto) pintar(); }); });
@@ -579,5 +604,5 @@
       <button type="submit" class="vga-principal"${st.enviando ? ' disabled' : ''}>Salvar estado</button></div>
       <p class="vga-nota">Ativo faz sozinho e conta no grupo dos sócios. Sombra pede o OK de um dono no grupo dos sócios ou aqui em Depende de você. Pausado e desligado não rodam as rotinas.</p></form>`;
   }
-  G.VybeAgentes = { abrir, fechar, filaDoDono, agrupar, itemFilaHtml, contar, resumoParaHoje, abrirPeca, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
+  G.VybeAgentes = { abrir, abrirCerebro, fechar, filaDoDono, agrupar, itemFilaHtml, contar, resumoParaHoje, abrirPeca, aberto: () => st.aberto, repintar: () => { if (st.aberto && !raiz?.contains(document.activeElement)) pintar(); } };
 })();

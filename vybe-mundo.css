@@ -6783,3 +6783,15 @@ body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds
   body.mundo #workspace-drawer .workspace-rodape{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 -14px;padding:8px 10px}
   body.mundo #workspace-drawer .workspace-rodape .workspace-textarea{grid-column:1/-1;width:100%;min-height:40px}
 }
+/* ==== Redesign negocio2 (quadro 54, 2ª rodada, 10/11/2026): "Como o VYBES pensa" mora na página Agentes (o diagnóstico que
+   ficava nas Sinapses do cliente). O desenho das cadeias é o do cérebro (.cb-sin-*); aqui só o que a página Agentes muda:
+   sem a caixa de rolagem própria e com os chips claros do padrão. Na Sinapses do cliente fica o atalho para cá. ==== */
+#vv-agentes .vga-cerebro{margin-top:14px}
+#vv-agentes .vga-cerebro .cb-diagnostico{flex:none;overflow:visible;padding:0;gap:12px}
+#vv-agentes .vga-cerebro .cb-sin-filtro{min-height:28px;border-color:var(--pc-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:#1F1D1A}
+#vv-agentes .vga-cerebro .cb-sin-filtro b{min-width:0;padding:0;background:transparent;color:inherit;font:inherit;font-weight:700}
+#vv-agentes .vga-cerebro .cb-sin-filtro:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+#vv-agentes .vga-cerebro .cb-sin-filtro[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFE9DC);border-color:var(--ds-sel-borda,transparent);color:var(--ds-sel-texto,#C2490C)}
+.cb-sin-onde-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cb-sin-onde-acoes:empty{display:none}
+@media (max-width:640px){#vv-agentes .vga-cerebro{padding-bottom:56px}}

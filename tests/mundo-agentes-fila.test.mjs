@@ -53,7 +53,7 @@ test('esperando: ação só enquanto o código vale; proposta até 1 semana; nad
 
 test('a tela: abrir pelo dock cai na fila; pela mesa ou pelo boletim, no agente; número no dock só para quem vê o boletim', () => {
   const js = readFileSync('vybe-mundo-agentes.js', 'utf8'), css = readFileSync('vybe-mundo.css', 'utf8');
-  assert.match(js, /if \(setor\) \{ st\.setor = setor; st\.vista = 'agente'; \} else st\.vista = 'fila';/);
+  assert.match(js, /if \(setor\) \{ st\.setor = setor; st\.vista = 'agente'; \} else st\.vista = pedido\.vista && Date\.now\(\) < pedido\.ate \? pedido\.vista : 'fila';/, 'pelo dock cai na fila (ou em Como o VYBES pensa, quando o atalho das Sinapses acabou de pedir)');
   assert.match(js, /if \(st\.vista === 'fila'\) return filaHtml\(\);/);
   assert.match(js, /data-vga-de="\$\{esc\(it\.setor\)\}"/, 'decidir na fila atualiza o perfil do agente certo');
   assert.match(js, /G\.VybeBoletim\?\.podeVer\?\.\(\) \? filaAgora\(\)\.total : 0/);

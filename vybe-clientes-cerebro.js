@@ -1570,7 +1570,7 @@ async function carregarMapaCerebro(forcar = false) {
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !Array.isArray(d.nos)) throw new Error(d.error || 'O mapa do cérebro ainda não está disponível neste ambiente.');
     s.dados = d;
-  } catch (e) { s.erro = e.message; } finally { s.carregando = false; cerebroRepintar(); }
+  } catch (e) { s.erro = e.message; } finally { s.carregando = false; cerebroRepintar(); cerebroAvisarMapa(); }
 }
 async function carregarEstudoCerebro(cliente) {
   const e = CEREBRO_SINAPSES.estudos[cliente] ||= { dados: null, erro: '', carregando: false };
@@ -1602,7 +1602,7 @@ function cerebroProvaHtml(prova) {
   if (!bruto.trim()) return '';
   return cerebroEsc(bruto).replace(/\[([A-Za-z][A-Za-z0-9_]{1,30})\]\s*/g, (_, tag) => `<span class="cb-sin-fonte">${cerebroEsc(cerebroRotuloDaFonte(tag))}</span> `);
 }
-function filtrarMotorSinapses(m) { CEREBRO_SINAPSES.motor = m in CEREBRO_MOTORES || m === 'todos' ? m : 'todos'; cerebroRepintar(); }
+function filtrarMotorSinapses(m) { CEREBRO_SINAPSES.motor = m in CEREBRO_MOTORES || m === 'todos' ? m : 'todos'; cerebroRepintar(); cerebroAvisarMapa(); }
 // O selo de quem pensa fica à vista (Paulo, 08/11: "saber de onde vem tudo"); no padrão, a cor só no ponto, o texto escuro.
 function cerebroMotorHtml(m) { const [n, c] = CEREBRO_MOTORES[m] || CEREBRO_MOTORES.nao_mapeado; return `<em class="cb-motor" style="--c:${c}"><i aria-hidden="true"></i>${cerebroEsc(n)}</em>`; }
 function consultarEstudoCerebroDeNovo(cliente) {
@@ -1634,11 +1634,36 @@ function renderEstudoClienteCerebroHtml(cliente) {
     ${(u.confirmar || []).length ? `<details class="cb-sin-confirmar"><summary>Para confirmar (${u.confirmar.length}): o modelo não achou prova</summary><ul>${u.confirmar.map((t) => `<li>${cerebroEsc(t)}</li>`).join('')}</ul></details>` : ''}
   </section>`;
 }
+// Redesign (quadro 54, 2ª rodada, 10/11/2026): a Sinapses do cliente fica com o estudo (em destaque, com o selo Qwen) e
+// "de onde vem cada coisa". O diagnóstico de como o VYBES pensa (Qwen, lógica fixa, módulos parados, fila do Qwen e as
+// rotinas de cada agente) mora na página Agentes (vybe-mundo-agentes.js, "Como o VYBES pensa"), pelo
+// renderDiagnosticoCerebroHtml abaixo: o mesmo mapa da central, nada some.
+// A página Agentes é dos donos (cadeado do dock, vybe-mundo.js): o atalho só aparece para quem consegue abrir.
+function cerebroPodeVerDiagnostico() {
+  try { return Boolean(typeof souDonoDaSessao === 'function' && souDonoDaSessao()); } catch { return false; }
+}
+function abrirDiagnosticoDosAgentes() { window.VybeAgentes?.abrirCerebro?.(); }
+// Avisa quem mostra o mapa fora do cérebro (a página Agentes) que ele chegou ou mudou de filtro.
+function cerebroAvisarMapa() { try { document.dispatchEvent(new CustomEvent('vybe:cerebro-mapa')); } catch { /* sem DOM */ } }
 function renderSinapsesCerebroHtml(cliente = null) {
   const s = CEREBRO_SINAPSES, d = s.dados;
   if (!d && !s.erro && !s.carregando) void carregarMapaCerebro();
   const estudo = cliente ? renderEstudoClienteCerebroHtml(cliente) : '';
-  if (!d) return `<div class="cb-ficha cb-sinapses">${estudo}<section class="cb-sin-bloco"><h3>Sinapses</h3><p class="cb-sin-nota">${cerebroEsc(s.erro || 'Consultando o mapa na central do VYBES…')}</p>${s.erro ? '<button type="button" class="vb-botao" onclick="carregarMapaCerebro(true)">Tentar de novo</button>' : ''}</section></div>`;
+  const nomes = d ? d.nos.filter((n) => ['fonte', 'memoria'].includes(n.tipo)).map((n) => n.nome).filter(Boolean) : [];
+  const pode = cerebroPodeVerDiagnostico() && typeof window.VybeAgentes?.abrirCerebro === 'function';
+  const texto = d ? (nomes.length ? `${nomes.join(' · ')}.` : 'A central não registrou fonte ainda.') : (s.erro || 'Consultando a central do VYBES…');
+  return `<div class="cb-ficha cb-sinapses">
+    ${estudo}
+    <section class="cb-sin-bloco cb-sin-onde"><h3>De onde vem cada coisa</h3>
+      <p class="cb-sin-nota">${cerebroEsc(texto)} O diagnóstico dos agentes (quem pensa cada coisa e por onde passa) fica na página Agentes${pode ? '' : ', que é dos donos'}.</p>
+      <div class="cb-sin-onde-acoes">${!d && s.erro ? '<button type="button" class="vb-botao" onclick="carregarMapaCerebro(true)">Tentar de novo</button>' : ''}${pode ? '<button type="button" class="vb-botao" onclick="abrirDiagnosticoDosAgentes()">Ver o diagnóstico em Agentes</button>' : ''}</div>
+    </section>
+  </div>`;
+}
+function renderDiagnosticoCerebroHtml() {
+  const s = CEREBRO_SINAPSES, d = s.dados;
+  if (!d && !s.erro && !s.carregando) void carregarMapaCerebro();
+  if (!d) return `<div class="cb-ficha cb-sinapses cb-diagnostico"><section class="cb-sin-bloco"><h3>Como o VYBES pensa</h3><p class="cb-sin-nota">${cerebroEsc(s.erro || 'Consultando o mapa na central do VYBES…')}</p>${s.erro ? '<button type="button" class="vb-botao" onclick="carregarMapaCerebro(true)">Tentar de novo</button>' : ''}</section></div>`;
   const no = new Map(d.nos.map((n) => [n.id, n])), de = (id, tipo) => d.ligacoes.filter((l) => l.para === id && l.tipo === tipo).map((l) => no.get(l.de)).filter(Boolean);
   const para = (id, tipos) => d.ligacoes.filter((l) => l.de === id && tipos.includes(l.tipo)).map((l) => no.get(l.para)).filter(Boolean);
   const k = d.contagem || {}, filtro = s.motor;
@@ -1650,9 +1675,8 @@ function renderSinapsesCerebroHtml(cliente = null) {
       <code>${cerebroEsc(p.origem || '')}</code></li>`;
   const qwen = no.get('motor:qwen'), fila = qwen?.fila;
   const fontes = d.nos.filter((n) => ['fonte', 'memoria'].includes(n.tipo)).map((f) => ({ f, usam: d.ligacoes.filter((l) => l.de === f.id && l.tipo === 'le').length, alimentam: d.ligacoes.filter((l) => l.para === f.id && l.tipo === 'realimenta').length }));
-  return `<div class="cb-ficha cb-sinapses">
-    ${estudo}
-    <section class="cb-sin-bloco"><h3>Como o VYBES pensa <small>gerado do código em ${cerebroEsc(cerebroDataHora(d.geradoEm))}</small></h3>
+  return `<div class="cb-ficha cb-sinapses cb-diagnostico">
+    <section class="cb-sin-bloco"><h3>Quem pensa cada rotina <small>gerado do código em ${cerebroEsc(cerebroDataHora(d.geradoEm))}</small></h3>
       <div class="cb-sin-resumo" role="group" aria-label="Filtrar por quem pensa">${[['todos', 'Todas', (k.qwen || 0) + (k.logica || 0) + (k.misto || 0) + (k.vybe_os || 0)], ['qwen', 'Qwen', k.qwen], ['logica', 'Lógica fixa', k.logica], ['misto', 'Lógica + Qwen', k.misto], ['vybe_os', 'Vybe OS', k.vybe_os]].map(([id, nome, n]) => `<button type="button" class="vb-chip cb-sin-filtro" aria-pressed="${filtro === id}" onclick="filtrarMotorSinapses('${id}')">${nome} <b>${n ?? 0}</b></button>`).join('')}</div>
       <p class="cb-sin-nota">${k.modulosParados ? `${k.modulosParados} ${k.modulosParados > 1 ? 'módulos' : 'módulo'} de Qwen ${k.modulosParados > 1 ? 'existem' : 'existe'} no código e ainda não ${k.modulosParados > 1 ? 'são chamados' : 'é chamado'} (aparece como "parado"). ` : ''}${k.naoMapeadas ? `<b>${k.naoMapeadas} rotinas sem origem conferida.</b> ` : 'Toda rotina tem origem conferida. '}${fila ? `Fila do Qwen agora: ${fila.ocupado ? 'trabalhando' : 'livre'}, ${fila.esperando} esperando, ${fila.feitos} feitos, ${fila.falhas} falhas, ${fila.descartados} descartados.` : ''}</p>
     </section>

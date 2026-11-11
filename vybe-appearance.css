@@ -293,7 +293,9 @@ body.vybe-desktop {
 .appearance-check input { width: 18px; height: 18px; }
 .appearance-done { min-height: 38px; border: 1px solid #ffc18a66; border-radius: 6px; background: #a74d20; color: white; font: 600 13px var(--mac-ui); cursor: pointer; }
 .vybe-desktop .appearance-dialog > form > header { background: transparent !important; border: 0 !important; box-shadow: none !important; }
-.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.conta-tela,.login-caixa) {
+/* A conta só vira cartão no tema antigo: no mundo ela é a própria janela (quadros 13 e 60, sem cartão sobre cartão). */
+.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.login-caixa),
+:where(body:not(.mundo)).vybe-desktop .conta-tela {
   background: linear-gradient(125deg,#ffffff07,transparent),var(--surface) !important;
   border: 1px solid var(--glass-edge) !important; border-radius: var(--radius-window) !important;
   box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
