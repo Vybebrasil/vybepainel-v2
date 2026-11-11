@@ -1,6 +1,10 @@
 import { readFile, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { transform, build } from 'esbuild';
+import { gerarArtesLocais } from './artes-locais.mjs';
+
+// Peças com a arte no repositório (mundo/artes-locais.json): o mundo voxel não pede a arte das outras.
+await gerarArtesLocais();
 
 let html = await readFile('index.html', 'utf8');
 // Os módulos sob demanda (vybe-sob-demanda.js) ganham hash como os outros;

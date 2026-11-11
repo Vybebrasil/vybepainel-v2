@@ -311,11 +311,12 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       const postos = [];
       for (const r of caixas) {
         const w = r.el.offsetWidth, h = r.el.offsetHeight;
-        r.junto = 0; r.oculto = false; r.desce = 0;
+        r.junto = 0; r.oculto = false; r.desce = 0; r.w = w; r.h = h;
         if (!w || !h) { r.oculto = true; continue; } // escondido pela vista (CSS): não ocupa lugar
-        const bate = postos.find((p) => Math.abs(p.x - r.x) < (p.w + w) / 2 - 2 && Math.abs(p.y - r.y) < (p.h + h) / 2 - 1);
+        const [x, y] = dentroDaTela(r);
+        const bate = postos.find((p) => Math.abs(p.x - x) < (p.w + w) / 2 - 2 && Math.abs(p.y - y) < (p.h + h) / 2 - 1);
         if (bate) { r.oculto = true; if (r.fixo && bate.r.fixo) bate.r.junto++; continue; }
-        postos.push({ x: r.x, y: r.y, w, h, r });
+        postos.push({ x, y, w, h, r });
       }
       let mudouMais = false;
       for (const r of caixas) {
@@ -329,7 +330,16 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       // Até 3 conferências seguidas (sem ficar trocando para sempre): o motor só desenha quando algo muda.
       if (mudouMais && !refeitas) { recolidir = 3; refeitas = true; invalidar(); } else if (!mudouMais) refeitas = false;
     }
-    for (const r of caixas) r.el.style.transform = `translate(-50%,-100%) translate(${r.x.toFixed(1)}px,${(r.y + r.desce).toFixed(1)}px)`;
+    for (const r of caixas) { const [x, y] = dentroDaTela(r); r.el.style.transform = `translate(-50%,-100%) translate(${x.toFixed(1)}px,${(y + r.desce).toFixed(1)}px)`; }
+  }
+  // Quarta rodada (11/11/2026): no celular (390 px) o nome do pino perto da borda saía da tela ("Papelaria · 4
+  // atrasadas" cortado à esquerda, "DiaCenter" à direita). O rótulo fica inteiro na tela, a 4 px da borda; o ponto do
+  // pino continua onde está, o nome só desliza o que precisa. Largura e altura vêm da última conferência de colisões.
+  function dentroDaTela(r) {
+    const w = r.w || 0, h = r.h || 0, m = 4;
+    const x = w && W > w + 2 * m ? Math.min(Math.max(r.x, w / 2 + m), W - w / 2 - m) : r.x;
+    const y = h && H > h + 2 * m ? Math.min(Math.max(r.y, h + m), H - m) : r.y;
+    return [x, y];
   }
 
   const frustum = new THREE.Frustum(), projecao = new THREE.Matrix4(), esferaVista = new THREE.Sphere();

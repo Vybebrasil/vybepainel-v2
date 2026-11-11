@@ -113,10 +113,22 @@ Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110�
 ## Itens conhecidos que ficaram de fora (ditos pelas frentes, decidir com o Paulo)
 - 10 Diário: o gráfico usa os números que o registro guarda (data à frente, sem data, prazo passado); não há "feito/atrasado" no banco.
 - 11 Automações: não existe filtro "Quadro: todos" no código.
-- 26 Aprovação do cliente: não há rota para "aprovar todas" nem registro de "vista"; o progresso conta as respondidas.
+- 26 Aprovação do cliente: fechado no branch `codex/r4-aprovacao` (11/11/2026). "Aprovar todas as vistas" no fim da página
+  (POST `acao:'aprovar_vistas'` em `/aprovar-pecas/<token>`, `aprovarVistas`: uma transação, peça a peça as regras da
+  aprovação de uma, o que fica de fora volta com o motivo) e registro de vista (`registrarVista`, tabela
+  `vybe_aprovacao_vistas`). **Depende do Paulo:** aplicar `migrations/2026-11-11-aprovacao-vistas.sql` no Neon. Sem ela a
+  página conta as respondidas e o botão vira "Aprovar todas" (aprova o que está em aprovação e tem arte). O vídeo agora
+  responde por partes (Range/206), que o player do iPhone exige.
 - 27 Prévia: a ficha é só leitura (aprovar por ela abriria os portões de conferência por baixo).
 - 23: "Nova etiqueta" e "Ordem" continuam no menu de status; responsável em lote ainda sem busca.
-- 34 Minha sala: peças de parede e móveis sem receita ainda com cara do Habbo (precisa receita nova em `mundo/moveis-voxel.mjs`).
+- 34 Minha sala: feito na frente `codex/r2-moveis` (10/11, noite): objetos pequenos, peças de parede e o que não tem receita
+  saem do motor (`mundo/moveis-voxel.mjs`: receitas novas, `generico` e `montarDeParede`). Só a imagem que a pessoa pendura
+  (`vybeimg_*`) continua ponto a ponto, porque é a imagem dela. Rodada 4 (`codex/r4-moveis`, 11/11): famílias novas
+  (`mundo/moveis-familias.mjs`) tiram 3.185 peças do volume liso (4.252 → 1.067 das 8.887 de chão); a lista do Decorar
+  passou ao retrato voxel. Segunda passada: substantivo principal do nome manda (amostra de 15 por família: 88 falsos
+  em 613 antes, 20 depois, a maioria corrigida em seguida); famílias de parede (painel liso 337 → 29 de 710);
+  `VERSAO_RETRATO` r5. No celular a Loja e o Decorar pedem a base do Escritório sozinhos (antes: "Carregando a loja…"
+  e "Sala livre" até o Escritório carregar).
 - 02: o cartão da semana manteve a caixa de marcar e o formato (são do lote).
 - 03: escolher outras colunas não existe; "+ Nova aqui" ficou "+ Nova demanda".
 - Celular: o X da janela cobre o começo do título no Painel e nas Demandas.
@@ -174,3 +186,106 @@ O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido
 - Continua pela metade: a dica "Tela de trabalho" ainda cobre controles em telas cheias (precisa de balão menor ou lugar
   fixo); no celular o aviso curto cobre por ~6 s o fim da janela e, com a gaveta aberta, 39% de "Arquivo" e "Link";
   reticências depois da 3ª linha no Mês a 1110. Móveis e Loja seguem fora (decisão do Paulo, branch `codex/r2-moveis`).
+
+## Quarta rodada: sobras (branch `codex/r4-sobras`, 11/11/2026)
+Conferido no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a demo vazia e a cheia. CSS no bloco
+"Quarta rodada · sobras", no fim de `vybe-mundo.css`.
+- Dica "Tela de trabalho" compacta (`compacta` em `vybe-mundo-tutorial.js`): título e "Entendi" numa linha, a frase curta
+  em até duas e "Ver de novo depois" / "Não mostrar mais dicas" numa linha pequena. Lugar (`colocarCompacta`): a vaga sem
+  nenhum controle à vista (só conta o que está por cima de verdade) mais perto da caixa; sem vaga, o cabeçalho da janela,
+  em cima do título; sem isso (menu cheio por cima), espera escondida. Com outra janela por cima da caixa, também espera.
+- Agenda › Mês no computador: o nome e a data comemorativa aparecem inteiros (a célula cresce); a 1110 a letra do
+  compromisso desce para 10,5 px. No celular fica o limite de 4 linhas com a faixa na cor do tipo (pedido do Paulo).
+- Agenda › Semana: os dias ficam presos logo abaixo da barra ao rolar (`captCabecaFixa`, `--ag-cabeca-topo`); o cabeçalho
+  dos dias saiu do vão de 104 px da moldura (desalinhava as colunas); a data comemorativa quebra dentro da coluna.
+- Painel: status e formato do cartão da semana cabem inteiros (a coluna do avatar tinha 64 px fixos).
+- Cidade e Prédio: o nome do pino fica inteiro na tela (`dentroDaTela` em `mundo/motor.mjs`).
+- Nova reunião: cabeçalho único (`vbCabecalhoHtml` + `vbFecharHtml`), o cliente vai no título; os dois menus já abriam o
+  seletor do padrão, e o campo ganhou a seta do padrão (a linha das janelas apagava a imagem de fundo).
+- Conta: divisória do menu até o fim da janela e dados em rótulo | valor.
+- Sinapses: as fontes no português de quem usa ("Fichas dos clientes", "o VYBES só lê"); o caminho fica no `origem`.
+- Plurais: "1 aberta", "0 de 1 feita", "0 de 1 prevista pronta" vistos na tela; "1 cliente ativo" na Performance.
+
+## Quarta rodada: abertura das telas antigas (branch `codex/r4-abertura`, 11/11/2026)
+Paulo: "quando eu clico em Projetos pontuais abre instantaneamente; quando eu clico em Painel de trabalho (que veio do
+legado) parece que demora um pouquinho e tá abrindo de outra tela". Medido no WebKit e no Chromium (demo cheia, 1440×900),
+do clique no dock até a tela parada, três rodadas alternando a main e este branch.
+- Causa do tempo: abrir uma tela antiga pelo dock chamava `chooseManagerMode` (vybe-perfis.js), que desenhava as semanas do
+  Painel duas vezes (`applyPanelMode` e `renderIntegratedOperationalViews`); cada `renderWeek` passava por
+  `acomodarBarraDoPainel` (vybe-agenda.js), que media a barra e obrigava o navegador a montar a página inteira na hora (até
+  90 ms por vez). Demandas, Diário, IA, Automações e Conta ainda abriam o Painel antes e trocavam 300 ms depois
+  (`usarTrilho`, vybe-mundo.js): o Painel piscava. Sair de uma antiga para uma nova (ou para o Hoje, o Centro, Minha sala, a
+  visão de um setor) esperava 350 ms. E `sincronizar` escrevia `body.scrollTop` logo depois de trocar as classes do body:
+  mais um recálculo de estilo da página inteira (~100 ms) antes da primeira pintura.
+- Causa do "outra tela": atrás da moldura aparecia o céu azul do mapa (o palco das janelas novas é bege) e o quadro entrava
+  com `vybe-quadro-entra` (do zero de opacidade, 340 ms), separado da moldura.
+- O que mudou: a barra do Painel é medida uma vez, no quadro seguinte (`pedirAcomodarBarraDoPainel`);
+  `chooseManagerMode(quadro)` abre direto no quadro pedido (sem argumento é o de sempre); `applyPanelMode` não desenha as
+  semanas quando `renderIntegratedOperationalViews` vai desenhá-las logo abaixo; `sairDaTelaAntiga` (voltarAoMenu +
+  sincronizar) no lugar das esperas de 350 ms; a volta ao topo vai para o próximo quadro. CSS no bloco "Quarta rodada ·
+  abertura", no fim de `vybe-mundo.css`: o palco bege atrás da moldura e moldura, cabeçalho e quadro entrando juntos, com
+  `--vv-mola` e `--vv-t-janela`; `vybe-quadro-entra` ficou em `:where(body:not(.mundo))`.
+- Tempos (mediana de 3 rodadas, do clique até a tela parada, demo cheia 1440×900), main → este branch: WebKit, Painel de
+  trabalho 844 → 388 ms, Demandas 716 → 169, Agenda 463 → 265, Clientes 363 → 296, Diário 1058 → 171, IA 1152 → 137,
+  Automações 1120 → 230, Conta 1149 → 138 (Projetos pontuais 138, Agentes 142, Carteira 116). Chromium: Painel 2302 → 310,
+  Demandas 1651 → 85, Agenda 1109 → 128, Clientes 545 → 143, Diário 2048 → 84, IA 2056 → 102, Automações 2221 → 130,
+  Conta 2390 → 115 (Projetos 142, Agentes 140, Carteira 94).
+- Esc fecha só o que está por cima: a gaveta da peça não entrava em `POR_CIMA` (vybe-mundo.js procurava
+  `#workspace-drawer.open`, classe que a gaveta nunca tem) e o mesmo Esc fechava a gaveta e a tela antiga. O link
+  `?atividade=` abre a gaveta como na main, mais cedo (≈3 s contra 5 a 9 s na demo). O que abre a peça no Painel é o
+  título dela (`.item-workspace-link`); a linha em si só arrasta.
+- Ainda diferente das janelas novas: a tela antiga continua sendo a própria página (rola o body; o cabeçalho é o do legado),
+  não um elemento de janela; a entrada é só o deslize (a escala de .982 descolaria a moldura do conteúdo); a primeira
+  pintura recalcula o estilo da página inteira, porque troca a classe do body; e o `pintarChamada` de 1,5 s em 1,5 s ainda
+  força recálculos quando cai no meio da entrada (vale para as janelas novas também).
+
+## Quinta rodada: frente Loja (branch `codex/r5-loja`, 11/11/2026) — quadro 35 e regra 4 do 29
+
+- **Causa da arte do Habbo:** ~80% do catálogo (7.770 das 9.597 peças) não tem a arte em `assets/escritorio/habbo`; a API
+  ia buscá-la no habboassets, que limita os pedidos (429 com 40 de 60 pedidos simultâneos) e devolvia 404. O retrato
+  voxel caía no `<img>` do Habbo. Agora só as peças de `mundo/artes-locais.json` (gerada no build por
+  `scripts/artes-locais.mjs`, conferida nos testes) pedem a arte; as outras saem pelo nome, categoria e ficha
+  (`coresSemArte`, `pegadaSemArte`, `placaSemArte`), sem pedido. Arte local que não desenha também cai nesse caminho.
+  `VERSAO_RETRATO` r6. O quarto e a vitrine seguem a mesma regra (medidas e revestimentos só de quem tem arte).
+- **Construção:** divisórias, blocos e acabamentos viram parede, divisória, canto, porta/portão, cerca, coluna, escada,
+  janela ou palco pelo nome (`tipoDeConstrucao`, receitas novas `parede`, `divisoria`, `canto`, `porta`); piso segue bloco.
+- **Sem Habbo nem no começo:** o CSS esconde toda imagem de móvel do Habbo (pelo endereço) desde que entra na página,
+  com o brilho de carregando do padrão; `movel-habbo` só para a que nem o voxel monta.
+- **Nomes:** ~830 palavras que sobravam em inglês entraram no tradutor (`shared/escritorio-nome-movel.js`, só na
+  exibição; `catalogo.json` não muda). O tradutor guarda cada nome traduzido (a Loja traduzia o mesmo nome a cada
+  comparação da ordem).
+- **Celular:** a base do Escritório é pedida no toque (antes, ~2 s depois), a capa não ordena o catálogo inteiro e as
+  contagens da árvore ficam guardadas. Grade em ~1,3 s (antes 3,1–5,6 s), primeiro ícone voxel em ~1,9–2,8 s.
+- Medido (demo 4501 e cheia 4502, WebKit e Chromium, 1440 e 390, 120 cartões por categoria): 0 Habbo, 0 respostas 404
+  na Loja, no Ranking e nas Conquistas. Fica: no WebKit a 1440, na primeira abertura (sem o cache do navegador), uma
+  página de ícones pode levar até ~8–12 s brilhando até todos virarem voxel (uma foto por vez); a partir da segunda vez,
+  na hora (IndexedDB).
+
+## Quinta rodada: aviso no celular e Painel no Safari (branch `codex/r5-celular-painel`, 11/11/2026)
+Medido nos dois motores (WebKit e Chromium) com a demo cheia; aviso a 390×844 com Música e WhatsApp, com e sem a gaveta.
+- Aviso curto no celular (`avisoCurtoNoCelular`, vybe-core.js): nunca fica sobre controle. (1) A faixa livre mais perto do
+  pé, a pilha inteira e depois só o primeiro (o título da janela também conta como ocupado); (2) sem faixa, vira uma
+  pílula de uma linha na barra do topo, entre a lupa e o sino (a busca fica só com a lupa enquanto ela está ali); tocar
+  abre o aviso inteiro logo abaixo da barra, tocar fora ou Esc devolve a pílula; (3) sem nem isso (a janela, a gaveta ou
+  o Mais cobrem a barra), vai direto para o sino, que acende o número e mostra "Chegaram agora" com a ação do aviso.
+  Todos os avisos da sessão ficam em `AVISOS_CURTOS_NO_SINO` (o quarto da pilha também vai para lá, não some). Um botão
+  meio coberto (rodapé preso da gaveta) conta como controle; com o foco do teclado no aviso, o que chega depois espera
+  escondido em vez de cair sobre a barra de baixo. Controles cobertos, antes → depois (WebKit e Chromium): Painel 5 → 0,
+  Clientes 14/11 → 0, Hoje 4 → 0, gaveta 2 → 0, Demandas 4 → 0, Agenda 16/17 → 0, Carteira 2 → 0, Projetos (WebKit) 5 → 0,
+  QR e Minha sala 0 → 0. No Clientes e na Agenda a janela cobre a barra do topo: lá o aviso vai para o sino.
+- Tela antiga em pedaços (`abrirEmPedacos`, vybe-mundo.js): o clique só troca a tela; o resumo, a agenda e as semanas do
+  Painel se desenham depois do primeiro quadro (a semana à vista primeiro; as outras nas folgas, com o seletor, a aba e
+  a barra repintados uma vez só no fim). Durante o deslize o Painel mostra cabeçalho, resumo e um esqueleto
+  (`.container.vv-abrindo`); Demandas e Clientes escondem só a lista. Causa medida no WebKit: o primeiro quadro montava as
+  ~10 mil peças do Painel (~150 ms) e cada quadro do deslize repintava linhas e cartões com desfoque e sombra (~120 ms
+  por quadro). O conteúdo aparece aos 300 ms (a mola já está a menos de 1 px do lugar).
+- `pintarDock` (de 1,5 s em 1,5 s, via `pintarChamada`) só lê a largura e a posição do dock quando a tela, a classe que
+  muda a largura dele ou o conteúdo mudam.
+- Tempos (mediana de 3, clique de verdade até a tela parada, 1440×900), antes → depois. WebKit: Painel 995 → 575,
+  Demandas 728 → 606, Agenda 827 → 564, Clientes 815 → 590, Diário 650 → 590, IA 710 → 528, Automações 625 → 511, Conta
+  663 → 571 (Projetos 508 → 498, Carteira 469 → 463). Chromium: Painel 690 → 526, Demandas 542 → 472, Agenda 602 → 508,
+  Clientes 597 → 457, Diário 531 → 462, IA 529 → 475, Automações 523 → 476, Conta 502 → 474 (Projetos 560 → 555, Carteira
+  577 → 542). Neste WebKit de Windows todo quadro de animação custa ~90–100 ms (sombras desenhadas sem placa de vídeo);
+  por isso até Projetos fica perto de 500 ms aqui.
+- Ficou de fora: no Clientes, `renderClientesBoard` chama `clientMasterRecords` uma vez por linha (~3 ms cada); a pílula
+  só aparece onde a barra do topo está à vista (Hoje, Centro); dentro de uma janela o aviso sem faixa vai para o sino.

@@ -285,7 +285,7 @@ test('tela do funil: metas com barra, KPIs espiáveis, gráficos, corrida e bloc
   const dono = await tela(t, sql, paulo);
   let h = dono.html();
   assert.ok(!h.includes('Não foi possível mostrar'), h.slice(0, 300));
-  assert.match(h, /Metas de /); assert.match(h, /vc-metas/); assert.match(h, />50%</); assert.match(h, /Fechado \(MRR\)/);
+  assert.match(h, /Metas de /); assert.match(h, /vc-metas/); assert.match(h, />50%</); assert.match(h, /fechado \(MRR\)/);
   assert.match(h, /data-espiar="comercial:funil:leads"/); assert.match(h, /data-espiar="comercial:funil:propostas"/);
   assert.match(h, /<svg viewBox/); assert.match(h, /MRR fechado/); assert.match(h, /class="valor">2 mil</);
   assert.match(h, /Corrida comercial/); assert.match(h, /Taynara/);
@@ -304,7 +304,7 @@ test('tela do funil: metas com barra, KPIs espiáveis, gráficos, corrida e bloc
 
   const equipe = await tela(t, sql, criacao);
   h = equipe.html();
-  assert.ok(!h.includes('Fechado (MRR)') && !h.includes('MRR fechado') && !h.includes('Editar metas') && !h.includes('Formulário de leads'));
+  assert.ok(!h.includes('fechado (MRR)') && !h.includes('MRR fechado') && !h.includes('Editar metas') && !h.includes('Formulário de leads'));
   assert.match(h, /Negócios fechados/); assert.match(h, /só para os donos/);
   assert.equal(equipe.ctx.VybeEspiarProvedores.comercial('funil:fechados').itens[0].dir, '');
 });

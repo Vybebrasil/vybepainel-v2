@@ -121,7 +121,13 @@
       // celular), do dock lateral ou da barra de baixo; sem lado livre, o balão vai para a vaga livre mais perto do alvo.
       // O seletor que começa com "body.mundo-modulo" é o dos controles comuns da tela: sem vaga nenhuma (tela cheia de
       // botões), o balão fica onde cobre menos deles, e nunca sobre os demais (ação do cabeçalho, docks).
-      modulo: { grupo: 'Telas', titulo: 'Tela de trabalho', alvo: '.vv-canto-modulo', lado: 'esquerda',
+      // Quarta rodada (11/11/2026): mesmo assim, em tela cheia de botões (Painel, Demandas, Agenda, Clientes, Conta no
+      // celular) o balão de 320×245 cobria algum. `compacta`: título e "Entendi" numa linha, a frase curta em até duas e
+      // os outros dois botões numa linha pequena; o lugar é uma vaga sem controle nenhum, a mais perto do alvo, e sem
+      // vaga, o cabeçalho da janela, em cima do título (texto, nunca controle); sem isso também (um menu cheio por cima),
+      // espera escondida até ter lugar. Ver colocarCompacta.
+      modulo: { grupo: 'Telas', titulo: 'Tela de trabalho', alvo: '.vv-canto-modulo', lado: 'esquerda', compacta: true,
+        textoCurto: 'Ela ocupa a tela toda. Esc ou o × voltam para o seu dia.',
         evitar: ['.p-head-acoes', '.vb-cabecalho-acoes', '.client-module-actions', '.quadro-novo', '.vb-botao.principal', '.workspace-heading :is(button, summary, a)', '.prod-v2-head :is(button, summary, a)', '.cli-aviso-acao', '.conta-barra :is(button, a)',
           'body.mundo-modulo :is(.container, [id^="painel-"]) :is(button, a[href], summary, input, select, textarea, [role="button"])', '.vv-trilho', '.vv-dock-salas'],
         texto: 'Você abriu uma tela de trabalho: ela ocupa a tela toda. Esc ou o × voltam para o seu dia.' },
@@ -481,7 +487,13 @@
     const entendi = botao('vv-tour-principal', 'Entendi', () => fecharDica('entendi'), { 'data-tour': 'entendi' });
     const depois = botao('vv-tour-sec', 'Ver de novo depois', () => fecharDica('depois'), { 'data-tour': 'depois' });
     const nunca = botao('vv-tour-link', 'Não mostrar mais dicas', () => { fecharDica(null); desligarDicas(true); }, { 'data-tour': 'sem-dicas' });
-    const balao = h('section', { class: 'vv-tour-balao vv-tour-dica', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-dica-titulo', 'aria-describedby': 'vv-tour-dica-texto', tabindex: '-1', 'data-dica': id },
+    const balao = d.compacta ? h('section', { class: 'vv-tour-balao vv-tour-dica vv-tour-compacta', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-dica-titulo', 'aria-describedby': 'vv-tour-dica-texto', tabindex: '-1', 'data-dica': id },
+      h('div', { class: 'vv-tour-compacta-topo' },
+        h('span', { class: 'vv-tour-avatar', 'aria-hidden': 'true' }, h('i')),
+        h('h2', { class: 'vv-tour-titulo', id: 'vv-tour-dica-titulo' }, d.titulo),
+        entendi),
+      h('p', { class: 'vv-tour-texto', id: 'vv-tour-dica-texto', 'aria-live': 'polite' }, comNome(d.textoCurto || d.texto, eu.nome)),
+      h('div', { class: 'vv-tour-mais' }, depois, nunca)) : h('section', { class: 'vv-tour-balao vv-tour-dica', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-dica-titulo', 'aria-describedby': 'vv-tour-dica-texto', tabindex: '-1', 'data-dica': id },
       h('span', { class: 'vv-tour-bico', 'aria-hidden': 'true' }),
       cabeca('Dica'),
       h('h2', { class: 'vv-tour-titulo', id: 'vv-tour-dica-titulo' }, d.titulo),
@@ -503,7 +515,118 @@
     if (d.temAlvo && !alvo) { fecharDica('depois'); return; } // o que ela explicava fechou: volta outro dia
     const c = alvo ? caixaDe(alvo) : null;
     if (d.anel && c) estilo(d.anel, { left: px(c.left), top: px(c.top), width: px(c.width), height: px(c.height) });
-    colocarBalao(d.balao, c, def?.lado, c && def?.evitar ? caixasAEvitar(def.evitar) : []);
+    // A compacta explica a tela de trás: com outra janela, menu ou modal por cima da caixa dela, o balão espera escondido.
+    if (def?.compacta) {
+      const ra = alvo ? alvo.getBoundingClientRect() : null;
+      const coberto = Boolean(ra) && !soOsDaFrente([{ left: ra.left, top: ra.top, right: ra.right ?? ra.left + ra.width, bottom: ra.bottom ?? ra.top + ra.height, el: alvo }]).length;
+      d.balao.hidden = coberto; if (d.anel) d.anel.hidden = coberto;
+      if (!coberto && colocarCompacta(d.balao, c, alvo, c && def?.evitar ? caixasAEvitar(def.evitar) : []) === 'espera') { d.balao.hidden = true; if (d.anel) d.anel.hidden = true; }
+    }
+    else colocarBalao(d.balao, c, def?.lado, c && def?.evitar ? caixasAEvitar(def.evitar) : []);
+  }
+  // ---------- dica compacta: nunca em cima de controle ----------
+  // Todo controle à vista conta (botão, link, campo, aba, linha clicável), não só os do `evitar`. Região do tamanho de
+  // meia tela (o fundo clicável de uma lista, o mapa) não é controle. Controle de uma tela que ficou por trás de outra
+  // janela (a Agenda debaixo do Conteúdo) também não: com o tutorial escondido, nenhum ponto dele fica por cima.
+  const CONTROLES = 'button, a[href], summary, input:not([type="hidden"]), select, textarea, [role="button"], [role="tab"], [onclick], [tabindex="0"]';
+  // Os controles à vista, só pelo retângulo (barato): { left, top, right, bottom, el }.
+  function controlesNaTela() {
+    const W = G.innerWidth || 0, H = G.innerHeight || 0, fora = [];
+    for (const el of doc.querySelectorAll(CONTROLES)) {
+      if (el.closest?.('.vv-tour-raiz')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 3 || r.height < 3 || r.bottom <= 0 || r.right <= 0 || r.top >= H || r.left >= W || r.width * r.height > W * H * 0.35) continue;
+      if (!visivel(el)) continue;
+      fora.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, el });
+    }
+    return fora;
+  }
+  // Fica só o que está por cima de verdade: com o tutorial escondido, algum ponto de uma grade 3×3 dentro do controle é
+  // ele mesmo (canto arredondado e rodapé fixo da janela por cima do meio não enganam).
+  function soOsDaFrente(lista) {
+    if (typeof doc.elementFromPoint !== 'function' || !lista.length) return lista;
+    const W = G.innerWidth || 0, H = G.innerHeight || 0;
+    const r0 = raiz && raiz.style ? raiz : null, antes = r0 ? r0.style.visibility : '';
+    if (r0) r0.style.visibility = 'hidden';
+    try {
+      return lista.filter((o) => {
+        if (!o.el) return true;
+        const l = Math.max(0, o.left), t = Math.max(0, o.top), dir = Math.min(W - 1, o.right), bx = Math.min(H - 1, o.bottom);
+        for (const fx of [0.15, 0.5, 0.85]) for (const fy of [0.2, 0.5, 0.8]) {
+          const e = doc.elementFromPoint(l + (dir - l) * fx, t + (bx - t) * fy);
+          if (e && (e === o.el || o.el.contains?.(e))) return true;
+        }
+        return false;
+      });
+    } finally { if (r0) r0.style.visibility = antes; }
+  }
+  // O título da janela aberta: o maior título à vista no alto da tela, à esquerda da caixa de tela cheia/fechar.
+  function tituloDaJanela(caixa) {
+    const H = G.innerHeight || 0;
+    let melhor = null, tam = 0;
+    for (const el of doc.querySelectorAll('h1, h2, h3')) {
+      if (el.closest?.('.vv-tour-raiz, .vv-trilho') || !visivel(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.top > Math.min(220, H * 0.3) || (caixa && r.left >= caixa.left)) continue;
+      const t = parseFloat(G.getComputedStyle(el).fontSize) || 1;
+      if (t > tam) { tam = t; melhor = r; }
+    }
+    return melhor;
+  }
+  function colocarCompacta(b, c, alvo, evitar = []) {
+    const W = G.innerWidth || 0, H = G.innerHeight || 0;
+    const todos = controlesNaTela();
+    let bw = b.offsetWidth || 360, bh = b.offsetHeight || 110;
+    let obst = null; // os da frente, medidos só quando precisa procurar lugar
+    const daFrente = () => (obst ||= soOsDaFrente(todos).concat(evitar));
+    const sobre = (o, bx, by) => bx < o.right + 4 && bx + bw > o.left - 4 && by < o.bottom + 4 && by + bh > o.top - 4;
+    const dentro = (bx, by) => bx >= MARGEM - 0.5 && by >= 3.5 && bx + bw <= W - MARGEM + 0.5 && by + bh <= H - MARGEM + 0.5;
+    const cx = c ? c.left + c.width / 2 : W / 2, cy = c ? c.top + c.height / 2 : H / 2;
+    // Onde já está continua valendo enquanto nada novo aparecer embaixo (o balão não pula a cada 400 ms).
+    const x0 = parseFloat(b.style.left), y0 = parseFloat(b.style.top);
+    const assinatura = [W, H, todos.length, Math.round(cx), Math.round(cy)].join(':');
+    const postoAntes = b.getAttribute('data-posto');
+    if (postoAntes && postoAntes !== 'espera' && Number.isFinite(x0) && Number.isFinite(y0) && dentro(x0, y0) && ((postoAntes !== 'vaga' && b.getAttribute('data-assinatura') === assinatura) || !soOsDaFrente(todos.filter((o) => sobre(o, x0, y0))).concat(evitar).some((o) => sobre(o, x0, y0)))) return postoAntes;
+    // Procura de novo com a largura do padrão (a do cabeçalho é estreitada só lá).
+    if (b.style.width) { b.style.width = ''; bw = b.offsetWidth || 360; bh = b.offsetHeight || 110; }
+    let x = null, y = null, d = Infinity, posto = 'vaga';
+    for (let by = MARGEM; by <= H - bh - MARGEM; by += 8) {
+      for (let bx = MARGEM; bx <= W - bw - MARGEM; bx += 8) {
+        const dist = Math.abs(bx + bw / 2 - cx) + Math.abs(by + bh / 2 - cy);
+        if (dist >= d || daFrente().some((o) => sobre(o, bx, by))) continue;
+        x = bx; y = by; d = dist;
+      }
+    }
+    // Sem vaga: o cabeçalho da janela, em cima do título e da frase dele (texto, não controle), à esquerda da caixa.
+    // No celular a caixa estreita o cabeçalho: o balão fica da largura que sobra à esquerda dela, no alto da janela.
+    if (x == null) {
+      const caixa = alvo?.getBoundingClientRect?.() || null;
+      const t = tituloDaJanela(caixa);
+      if (t) {
+        const tx = lim(t.left - 10, MARGEM, W - MARGEM - 240);
+        const largura = Math.min(bw, (caixa ? caixa.left - 6 : W - MARGEM) - tx);
+        if (largura >= 240) {
+          b.style.width = px(largura);
+          const ah = b.offsetHeight || bh;
+          const cobreAqui = (by) => daFrente().reduce((n, o) => n + (tx < o.right + 2 && tx + largura > o.left - 2 && by < o.bottom + 2 && by + ah > o.top - 2 ? 1 : 0), 0);
+          let melhor = null;
+          for (let by = Math.max(4, Math.min(t.top - 10, H - ah - MARGEM)); by >= 4; by -= 2) {
+            const n = cobreAqui(by);
+            if (!melhor || n < melhor.n) melhor = { n, by };
+            if (!n) break;
+          }
+          if (melhor && !melhor.n) { x = tx; y = melhor.by; posto = 'cabecalho'; }
+          else b.style.width = '';
+        }
+      }
+    }
+    // Nem isso (um menu ou outra janela cheia de botões por cima da tela): o balão espera escondido, sem cobrir nada, e
+    // volta assim que houver lugar. A dica continua sem marcar como vista.
+    if (x == null) { b.setAttribute('data-posto', 'espera'); b.removeAttribute('data-assinatura'); return 'espera'; }
+    estilo(b, { left: px(x), top: px(y) });
+    b.setAttribute('data-posto', posto); b.setAttribute('data-assinatura', assinatura);
+    if (b.getAttribute('data-lado') !== 'centro') b.setAttribute('data-lado', 'centro');
+    return posto;
   }
   // motivo: 'entendi' marca como vista; 'depois' guarda para a próxima abertura; null só fecha.
   // seguir: chama a próxima da fila (não quando outra dica já vai tomar o lugar).

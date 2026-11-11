@@ -17,8 +17,17 @@ function escritorioVendivelNaLoja(m) {
 const ESCRITORIO_SECOES_LOJA = [
   ["Móveis", "mesa"], ["Decoração", "estrela"], ["Ambientes", "mapa"], ["Construção", "pilha"], ["Jogos e efeitos", "ajustes"], ["Estilos e coleções", "loja"],
 ];
+// Quantas peças por seção/categoria: guardado enquanto o catálogo, a base e a loja forem os mesmos (redesign r5,
+// quadro 35: a árvore refazia ~60 filtros do catálogo inteiro a cada redesenho; no celular, mais de 1 s).
+// Sem a base ainda (Loja aberta direto do dock), não conta: a árvore sai sem número até a base chegar.
+let escritorioContasLoja = null;
 function escritorioContaLoja(categoria) {
-  return escritorioCatalogoGeralLista({ categoria, busca: "", raridade: "", posso: false, desejos: false }).length;
+  if (!escritorio.base) return null;
+  const eco = escritorio.base.economia, chave = [escritorioCatalogo, escritorio.base, eco, eco?.loja];
+  if (!escritorioContasLoja || escritorioContasLoja.chave.some((v, i) => v !== chave[i])) escritorioContasLoja = { chave, n: new Map() };
+  const n = escritorioContasLoja.n;
+  if (!n.has(categoria)) n.set(categoria, escritorioCatalogoGeralLista({ categoria, busca: "", raridade: "", posso: false, desejos: false }).length);
+  return n.get(categoria);
 }
 // Navegação da esquerda: atalhos e seções sempre abertas, com ícone e número.
 function escritorioArvoreLojaHtml(ativo, acao) {
@@ -27,9 +36,9 @@ function escritorioArvoreLojaHtml(ativo, acao) {
   const vitrine = (escritorio.base?.economia?.loja?.vitrine || []).length, desejos = escritorioDesejos().size, jogos = escritorioContaLoja("Jogos com a equipe");
   const secoes = ESCRITORIO_SECOES_LOJA.map(([t, ico]) => {
     const n = escritorioContaLoja(`secao:${t}`);
-    return n ? item(`secao:${t}`, t, ico, n) : "";
+    return n !== 0 ? item(`secao:${t}`, t, ico, n) : "";
   }).join("");
-  return `<div class="ofc-loja-grupo">${item("*", "Destaques", "estrela", null, " forte")}${jogos ? item("Jogos com a equipe", "Jogos com a equipe", "jogo", jogos, " jogos") : ""}${vitrine ? item("Vitrine da semana", "Vitrine da semana", "alvo", vitrine, " vitrine") : ""}${desejos ? `<button type="button" class="ofc-loja-nav" aria-pressed="${Boolean(escritorio.cat?.desejos)}" onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.categoria='*';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">${escritorioIcone("estrela")}<span>Meus desejos</span><small>${desejos}</small></button>` : ""}${escritorioRecentes().length ? item("Recentes", "Vistos por você", "lista", escritorioRecentes().length) : ""}</div><div class="ofc-loja-grupo"><h5>Categorias</h5>${secoes}</div>`;
+  return `<div class="ofc-loja-grupo">${item("*", "Destaques", "estrela", null, " forte")}${jogos !== 0 ? item("Jogos com a equipe", "Jogos com a equipe", "jogo", jogos, " jogos") : ""}${vitrine ? item("Vitrine da semana", "Vitrine da semana", "alvo", vitrine, " vitrine") : ""}${desejos ? `<button type="button" class="ofc-loja-nav" aria-pressed="${Boolean(escritorio.cat?.desejos)}" onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.categoria='*';escritorio.cat.ver=60;redesenharCatalogoJanelaEscritorio()">${escritorioIcone("estrela")}<span>Meus desejos</span><small>${desejos}</small></button>` : ""}${escritorioRecentes().length ? item("Recentes", "Vistos por você", "lista", escritorioRecentes().length) : ""}</div><div class="ofc-loja-grupo"><h5>Categorias</h5>${secoes}</div>`;
 }
 // Dentro de uma seção: as categorias dela como fichas no topo da grade.
 function escritorioSubcategoriasLojaHtml(categoria) {

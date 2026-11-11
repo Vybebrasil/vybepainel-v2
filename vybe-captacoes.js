@@ -260,6 +260,17 @@ function agDiaLocal(d, botao) {
 }
 // A grade abre rolada nas 7 h, como o calendário.
 function agRolar(raiz = document) { raiz.querySelectorAll("[data-ag-rolar]").forEach((el) => { if (!el.dataset.agRolado) { el.scrollTop = Number(el.dataset.agRolar); el.dataset.agRolado = "1"; } }); }
+// Semana e Dia (quarta rodada, 11/11/2026): ao rolar a janela, os dias da semana (seg 9, ter 10…) ficam presos logo
+// abaixo da barra da Agenda, que também fica presa. A barra muda de altura com a largura (duas linhas a 1110), então a
+// altura dela é medida e vai para --ag-cabeca-topo (o CSS, em vybe-mundo.css, só usa isso no mundo).
+function captCabecaFixa() {
+  document.querySelectorAll(".capt-cal").forEach((cal) => {
+    const barra = cal.querySelector(".capt-toolbar"); if (!barra) return;
+    const topo = parseFloat(getComputedStyle(barra).top) || 0;
+    cal.style.setProperty("--ag-cabeca-topo", Math.round(topo + barra.offsetHeight) + "px");
+  });
+}
+if (typeof window !== "undefined") window.addEventListener("resize", () => captCabecaFixa());
 function agHoraDoClique(ev, col, ini) {
   const y = ev.clientY - col.getBoundingClientRect().top - AG_TOPO, min = ini + Math.floor((y / AG_HORA_PX) * 2) * 30;
   return agHora(Math.max(0, Math.min(23 * 60, min)));
@@ -812,7 +823,7 @@ function captacoesHtml() {
     : CAPT.vista === "dia" ? captDiaHtml(eventos)
     : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml", verDia: "captVerDia" } });
   // Redesenhar troca os blocos embaixo do mouse: a prévia do bloco antigo sai junto.
-  setTimeout(() => { agPreviaSair(true); if (CAPT.vista === "semana" || CAPT.vista === "dia") agRolar(); captCartaoAtualizar(); }, 0);
+  setTimeout(() => { agPreviaSair(true); if (CAPT.vista === "semana" || CAPT.vista === "dia") { agRolar(); captCabecaFixa(); } captCartaoAtualizar(); }, 0);
   return `<div class="capt capt-cal vista-${CAPT.vista}${CAPT.inspetor ? " com-inspetor" : ""}">
     <div class="capt-toolbar" role="toolbar" aria-label="Captações">
       <div class="capt-tb-esq">

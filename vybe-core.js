@@ -232,7 +232,12 @@ function avisoCurtoNoMundo(texto, { erro = false, tempo = 6000, icone = 'info', 
 function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = '', acoes = [], erro = false, tempo = 7000 } = {}) {
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !titulo) return null;
   let caixa = document.getElementById('vv-wa-avisos');
-  if (!caixa) { caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa); }
+  if (!caixa) {
+    caixa = document.createElement('div'); caixa.id = 'vv-wa-avisos'; caixa.setAttribute('aria-live', 'polite'); document.body.append(caixa);
+    // Na pílula da barra do topo (celular), tocar ou Enter abre o aviso inteiro.
+    caixa.addEventListener('click', (e) => { if (!e.target.closest('button')) abrirPilulaDoAviso(caixa); });
+    caixa.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button') && caixa.classList.contains('pilula') && !caixa.classList.contains('aberto')) { e.preventDefault(); abrirPilulaDoAviso(caixa); } });
+  }
   if (chave) caixa.querySelectorAll('.vv-aviso-curto').forEach((x) => { if (x.dataset.chave === chave) x.remove(); });
   // O sino mostra o último aviso quando não há nada novo (quadro 41).
   globalThis.ULTIMO_AVISO_CURTO = { titulo: String(titulo), frase: String(frase || ''), em: new Date().toISOString() };
@@ -245,8 +250,9 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   el.innerHTML = `<span class="vv-aviso-curto-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16">${AVISO_CURTO_ICONES[erro ? 'erro' : icone] || AVISO_CURTO_ICONES.info}</svg></span>
     <div class="vv-aviso-curto-txt" title="${esc(frase ? `${titulo} · ${frase}` : titulo)}"><b>${esc(titulo)}</b>${frase ? `<small>${esc(frase)}</small>` : ''}${lista.length ? `<div class="vv-aviso-curto-acoes">${lista.map((a, i) => `<button type="button" class="${a.principal ? 'vc-acao' : 'vc-sec'}" data-aviso-curto="${i}">${esc(a.rotulo)}</button>`).join('')}</div>` : ''}</div>
     <button type="button" class="vc-ico vv-aviso-curto-x" aria-label="Fechar o aviso" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+  el.vvDados = { chave, icone: erro ? 'erro' : icone, titulo: String(titulo), frase: String(frase || ''), erro, acoes: lista, em: new Date().toISOString() };
   let relogio = null;
-  const sair = () => { clearTimeout(relogio); el.remove(); ajustarAvisosCurtos(); };
+  const sair = () => { clearTimeout(relogio); const ultimaAberta = Boolean(caixa.classList?.contains?.('aberto')) && caixa.children.length < 2; el.remove(); if (ultimaAberta) caixa.vvFecharPilula?.(); ajustarAvisosCurtos(); };
   const contar = () => { clearTimeout(relogio); if (tempo > 0) relogio = setTimeout(sair, tempo); };
   // No celular, o aviso que espera a vez na pilha (ajustarAvisosCurtos) não gasta o tempo dele escondido.
   el.vvPausar = () => clearTimeout(relogio);
@@ -266,8 +272,10 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   const restante = () => Math.max(0, nasceu + teto - Date.now());
   el.addEventListener('focusin', () => { if (AVISO_CURTO_PELO_TECLADO && tempo > 0 && !comMouse) { clearTimeout(relogio); relogio = setTimeout(sair, restante()); } });
   el.addEventListener('focusout', (e) => { if (el.contains(e.relatedTarget) || comMouse || !(tempo > 0)) return; clearTimeout(relogio); relogio = setTimeout(sair, Math.min(tempo, restante())); });
+  el.vvNovo = true;
   caixa.append(el);
-  while (caixa.children.length > 3) caixa.firstElementChild.remove();
+  guardarAvisoCurto(el.vvDados, true);
+  while (caixa.children.length > 3) mandarAvisoAoSino(caixa.firstElementChild);
   contar();
   ajustarAvisosCurtos();
   if (!AVISO_CURTO_VIGIA) AVISO_CURTO_VIGIA = setInterval(ajustarAvisosCurtos, 500);
@@ -295,13 +303,20 @@ const AVISO_CURTO_BARRAS = '.vv-trilho,.vv-dock-salas,.vv-canto-modulo';
 function ajustarAvisosCurtos() {
   const caixa = document.getElementById('vv-wa-avisos');
   if (!caixa || !caixa.children.length) {
-    if (caixa?.style) { caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList?.remove('compacto', 'minimo'); }
+    if (caixa?.style) { caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList?.remove('compacto', 'minimo', 'pilula', 'aberto'); }
+    avisoNaBarra(false);
     clearInterval(AVISO_CURTO_VIGIA); AVISO_CURTO_VIGIA = null;
     return;
   }
   if (typeof document.elementsFromPoint !== 'function') return;
   // Com o mouse ou o foco em cima, a caixa não sai do lugar (não foge de quem vai clicar nela).
-  if (caixa.matches(':hover') || (AVISO_CURTO_PELO_TECLADO && caixa.contains(document.activeElement))) return;
+  // No celular, o aviso que chega nessa hora espera escondido (sem gastar o tempo dele): solto embaixo da pilha, ele caía
+  // por cima da barra de baixo (quinta rodada).
+  if (caixa.classList.contains('aberto') || (!caixa.classList.contains('pilula') && caixa.matches(':hover')) || (AVISO_CURTO_PELO_TECLADO && caixa.contains(document.activeElement))) {
+    for (const x of caixa.children) if (x.vvNovo && !caixa.classList.contains('aberto') && window.innerWidth <= 600) { x.hidden = true; x.vvPausar?.(); }
+    return;
+  }
+  for (const x of caixa.children) x.vvNovo = false;
   const W = window.innerWidth, H = window.innerHeight;
   // Os controles que estão de fato à vista (por cima de tudo, sem contar a caixa). Um "controle" do tamanho da tela é
   // uma região que rola, não um botão: não conta.
@@ -310,16 +325,20 @@ function ajustarAvisosCurtos() {
     if (caixa.contains(c) || c.disabled) continue;
     const q = c.getBoundingClientRect();
     if (q.width < 3 || q.height < 3 || q.bottom <= 0 || q.top >= H || q.right <= 0 || q.left >= W || q.width * q.height > W * H * 0.35) continue;
-    const x = Math.min(W - 1, Math.max(0, q.left + q.width / 2)), y = Math.min(H - 1, Math.max(0, q.top + q.height / 2));
-    const visto = document.elementsFromPoint(x, y).find((e) => !caixa.contains(e));
-    if (visto && (visto === c || c.contains(visto))) obstaculos.push({ el: c, l: q.left, t: q.top, r: q.right, b: q.bottom });
+    // O meio e, se o meio estiver coberto (rodapé preso da gaveta por cima da metade de baixo), as beiradas de cima e de
+    // baixo: um botão meio à vista ainda é um botão (quinta rodada).
+    const x = Math.min(W - 1, Math.max(0, q.left + q.width / 2));
+    for (const y of [q.top + q.height / 2, q.top + 3, q.bottom - 3].map((v) => Math.min(H - 1, Math.max(0, v)))) {
+      const visto = document.elementsFromPoint(x, y).find((e) => !caixa.contains(e));
+      if (visto && (visto === c || c.contains(visto))) { obstaculos.push({ el: c, l: q.left, t: q.top, r: q.right, b: q.bottom }); break; }
+    }
   }
   const barras = [...document.querySelectorAll(AVISO_CURTO_BARRAS)].map((b) => b.getBoundingClientRect()).filter((q) => q.width > 2 && q.height > 2);
   for (const q of barras) obstaculos.push({ el: null, l: q.left, t: q.top, r: q.right, b: q.bottom });
   const cobertos = (l, t, w, h) => obstaculos.filter((o) => o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1);
   const quantos = (l, t, w, h, teto) => { let n = 0; for (const o of obstaculos) if (o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1 && ++n > teto) break; return n; };
   // Volta ao lugar e ao tamanho de sempre (quem esperava a vez reaparece e o tempo dele começa) e mede de novo.
-  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList.remove('compacto', 'minimo');
+  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList.remove('compacto', 'minimo', 'pilula');
   const esperando = [...caixa.children].filter((x) => x.hidden);
   for (const x of esperando) x.hidden = false;
   const acordar = () => { for (const x of esperando) if (!x.hidden) x.vvContar?.(); };
@@ -349,24 +368,15 @@ function ajustarAvisosCurtos() {
   const lateral = barras.find((q) => q.left < W / 2 && q.right < W / 2 && q.height > H / 2);
   const esquerda = (lateral ? lateral.right : 0) + margem;
   if (W <= 600) {
-    // Celular: encolhido, na largura da tela, sempre logo acima da barra de baixo (título e frase em até duas linhas);
-    // a faixa do título e o meio da tela não entram. Dois ou três avisos empilham para cima; se o que sobe cobriria um
-    // botão ou uma linha clicável, os mais novos esperam o primeiro sair (o tempo deles só conta quando aparecem).
-    caixa.classList.add('compacto');
-    const larga = W - 2 * margem; caixa.style.width = `${Math.round(larga)}px`;
-    const filhos = [...caixa.children];
-    for (let i = filhos.length - 1; i > 0; i--) {
-      const alto = caixa.getBoundingClientRect().height, primeiro = filhos[0].getBoundingClientRect().height;
-      if (!quantos(margem - 4, pe - 8 - alto - 4, larga + 8, alto - primeiro, 0)) break;
-      filhos[i].hidden = true; filhos[i].vvPausar?.();
+    // No celular o título da janela também fica livre (o aviso não senta em cima do nome da tela).
+    for (const t of document.querySelectorAll('h1,h2')) {
+      if (caixa.contains(t)) continue;
+      const q = t.getBoundingClientRect(); if (q.width < 3 || q.height < 3 || q.bottom <= 0 || q.top >= H) continue;
+      const visto = document.elementsFromPoint(Math.min(W - 1, q.left + 4), q.top + q.height / 2).find((e) => !caixa.contains(e));
+      if (visto && (visto === t || t.contains(visto))) obstaculos.push({ el: t, l: q.left, t: q.top, r: q.right, b: q.bottom });
     }
-    const alto = caixa.getBoundingClientRect().height, base = pe - 8 - alto;
-    // Com a gaveta da demanda aberta (tela inteira, com o campo e os botões no pé), sobe até onde cobre menos.
-    const naGaveta = document.getElementById('workspace-drawer') ? procurar(larga, alto, { l: margem, r: W - margem, t: Math.max(margem, base - H * 0.2), b: pe - 8 }, { x: margem, y: base }) : null;
-    por(margem, naGaveta ? naGaveta.y : base, larga);
-    acordar();
-    return;
-  }
+    avisoCurtoNoCelular({ caixa, filhos: [...caixa.children], W, margem, pe, procurar, por, acordar }); return; }
+  avisoNaBarra(false);
   // (1) Painel encostado à direita (gaveta, ficha): ao lado dele, sem entrar no dock lateral.
   for (const c of embaixo) {
     if (!c.el) continue;
@@ -405,6 +415,93 @@ function ajustarAvisosCurtos() {
     }
   }
   if (menor) { caixa.classList.toggle('minimo', menor.minimo); por(menor.x, menor.y, menor.w); }
+}
+
+// Celular (quinta rodada, 11/11/2026; quadro 29, regra 6, e a regra do Paulo "nada cobre"): o aviso NUNCA fica sobre um
+// controle. Nesta ordem: (1) a faixa livre mais perto do pé (logo acima da barra de baixo), com a pilha inteira e depois só
+// o primeiro; (2) sem faixa, vira uma pílula de uma linha encaixada na barra do topo, junto do sino (o canto de cima à
+// direita é dos avisos, decisão do Paulo): a busca vira só a lupa e a pílula ocupa o lugar do texto dela; tocar abre o
+// aviso inteiro logo abaixo da barra; (3) sem nem isso (barra coberta pela gaveta, pela busca ou pelo Mais), o aviso vai
+// direto para o sino, com o número aceso. Nenhum aviso se perde: todos ficam no sino (AVISOS_CURTOS_NO_SINO).
+function avisoNaBarra(sim) {
+  const b = document.body;
+  if (b?.classList && b.classList.contains('vv-aviso-na-barra') !== Boolean(sim)) b.classList.toggle('vv-aviso-na-barra', Boolean(sim));
+}
+function avisoCurtoNoCelular({ caixa, filhos, W, margem, pe, procurar, por, acordar }) {
+  const larga = W - 2 * margem;
+  const barra = document.querySelector('.vv-barra-topo'), qb = barra?.getBoundingClientRect?.();
+  const topo = qb && qb.height > 2 && qb.bottom > 0 ? qb.bottom : 0;
+  // (1) Faixa livre: a pilha inteira; senão os mais novos esperam e tenta só o primeiro.
+  caixa.classList.add('compacto'); caixa.style.width = `${Math.round(larga)}px`;
+  const area = { l: margem, r: W - margem, t: Math.max(margem, topo + 8), b: pe - 8 };
+  for (const n of [filhos.length, 1]) {
+    filhos.forEach((x, i) => { if (i >= n && !x.hidden) { x.hidden = true; x.vvPausar?.(); } });
+    const alto = caixa.getBoundingClientRect().height;
+    const v = alto && area.b - area.t >= alto ? procurar(larga, alto, area, { x: margem, y: area.b - alto }) : null;
+    if (v && !v.n) { avisoNaBarra(false); por(margem, v.y, larga); acordar(); return; }
+    if (filhos.length < 2) break;
+  }
+  // (2) Pílula na barra do topo, entre a lupa e o sino. Só vale com a barra à vista (nada por cima dela).
+  caixa.classList.remove('compacto'); caixa.classList.add('pilula');
+  avisoNaBarra(true);
+  const busca = barra?.querySelector('[data-ferr="busca"]'), sino = barra?.querySelector('[data-ferr="avisos"]');
+  const rb = busca?.getBoundingClientRect?.(), rs = sino?.getBoundingClientRect?.(), qb2 = barra?.getBoundingClientRect?.();
+  let cabe = Boolean(rb && rs && qb2 && rb.width > 2 && rs.width > 2 && qb2.top >= 0);
+  const l = cabe ? rb.right + 6 : 0, w = cabe ? rs.left - 6 - l : 0, h = 34, t = cabe ? qb2.top + (qb2.height - h) / 2 : 0;
+  if (cabe && w >= 110) {
+    // A barra precisa ser o que está por cima nas pontas e no meio da vaga (a gaveta e o Mais cobrem a barra), e ali não
+    // pode haver botão dela (a lupa encolhida e o sino ficam dos lados).
+    for (const x of [l + 2, l + w / 2, l + w - 2]) for (const y of [t + 3, t + h / 2, t + h - 3]) {
+      const visto = document.elementsFromPoint(x, y).find((e) => !caixa.contains(e));
+      if (!visto || !barra.contains(visto) || visto.closest('button,a[href],input')) { cabe = false; break; }
+    }
+  } else cabe = false;
+  if (cabe) {
+    filhos.forEach((x, i) => { if (i > 0 && !x.hidden) { x.hidden = true; x.vvPausar?.(); } });
+    por(l, t, w); acordar(); return;
+  }
+  // (3) Direto para o sino.
+  caixa.classList.remove('pilula'); avisoNaBarra(false);
+  for (const x of [...caixa.children]) mandarAvisoAoSino(x);
+  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = '';
+}
+// Os avisos curtos desta sessão, para o sino: os que foram direto para ele chegam com lido=false (acendem o número); os que
+// apareceram na tela ficam como lidos. Até 20, o mais novo primeiro.
+globalThis.AVISOS_CURTOS_NO_SINO = globalThis.AVISOS_CURTOS_NO_SINO || [];
+function guardarAvisoCurto(dados, lido) {
+  if (!dados?.titulo) return;
+  const lista = globalThis.AVISOS_CURTOS_NO_SINO, achado = dados.chave ? lista.find((a) => a.chave === dados.chave) : null;
+  if (achado) lista.splice(lista.indexOf(achado), 1);
+  lista.unshift({ ...dados, lido: Boolean(lido && (!achado || achado.lido)) });
+  lista.length = Math.min(lista.length, 20);
+  if (typeof CustomEvent === 'function') document.dispatchEvent?.(new CustomEvent('vybe:aviso-no-sino'));
+}
+function mandarAvisoAoSino(el) {
+  if (!el) return;
+  el.vvPausar?.(); el.remove();
+  guardarAvisoCurto(el.vvDados, false);
+}
+// Tocar a pílula abre o aviso inteiro (e os que esperam a vez) logo abaixo da barra; tocar fora ou Esc devolve a pílula;
+// o X fecha o aviso.
+function abrirPilulaDoAviso(caixa) {
+  if (!caixa.classList.contains('pilula') || caixa.classList.contains('aberto')) return;
+  const barra = document.querySelector('.vv-barra-topo')?.getBoundingClientRect?.(), m = 8;
+  caixa.classList.add('aberto');
+  for (const x of caixa.children) { x.hidden = false; x.vvPausar?.(); }
+  caixa.style.width = `${Math.round(window.innerWidth - 2 * m)}px`; caixa.style.right = `${m}px`;
+  caixa.style.top = `${Math.round((barra?.bottom || 56) + 6)}px`;
+  const fora = (e) => { if (!caixa.contains(e.target)) fechar(); };
+  const tecla = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } };
+  function fechar() {
+    document.removeEventListener('pointerdown', fora, true); document.removeEventListener('keydown', tecla, true);
+    caixa.vvFecharPilula = null;
+    if (!caixa.classList.contains('aberto')) return;
+    caixa.classList.remove('aberto');
+    for (const x of caixa.children) x.vvContar?.();
+    ajustarAvisosCurtos();
+  }
+  caixa.vvFecharPilula = fechar;
+  document.addEventListener('pointerdown', fora, true); document.addEventListener('keydown', tecla, true);
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────

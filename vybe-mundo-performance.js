@@ -155,7 +155,8 @@
     ultimo = P;
     const seletor = `<span class="vs-alternar vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>`;
     if (!V || !P) { alvo.innerHTML = '<p class="vv-vazio">Os números aparecem quando a produção terminar de carregar.</p>'; return; }
-    const { kpi: k, bloco, barras, deitadas, linha } = V, T = P.total, Pr = P.processos;
+    // Zero vira uma linha (00 Main, regra 4): kpiLinha marca o zero e G (pecas.grade) junta os zeros numa linha discreta.
+    const { kpiLinha: k = V.kpi, grade: G = (h) => `<div class="vs-kpis">${h}</div>`, bloco, barras, deitadas, linha } = V, T = P.total, Pr = P.processos;
     const sem = P.semanas.map((s) => ({ ...s, rotulo: s.inicio.slice(8, 10) + '/' + s.inicio.slice(5, 7) }));
     const etapasMax = P.etapas.slice(0, 12);
     const proc = [
@@ -169,14 +170,14 @@
       ['esquecidas', 'Esquecidas', 'data vencida há 30+ dias: limpar', 'atencao'],
     ];
     alvo.innerHTML = `<div class="vv-perf-topo"><p class="vs-aviso">Como a operação inteira está andando: o que saiu, no prazo ou não, quanto leva e onde trava. A produtividade de cada pessoa do time fica no RH.</p>${seletor}</div>
-      <div class="vs-kpis">
+      ${G(`
         ${k({ icone: 'aperto', titulo: 'Entregues', valor: n0(T.entregues), sub: `nos últimos ${n0(dias)} dias`, espiar: T.entregues ? 'perf:total|entregues' : '' })}
         ${k({ icone: 'relogio', titulo: 'No prazo do cliente', valor: pc(T.noPrazoPct), sub: `${n0(T.noPrazo)} no prazo · ${n0(T.atrasadasEnt)} depois da data`, cls: T.noPrazoPct != null && T.noPrazoPct < 80 ? 'atencao' : '' })}
         ${k({ icone: 'calendario', titulo: 'Tempo de entrega', valor: dd(T.tempoMediano), sub: 'mediana do cadastro à entrega' })}
         ${k({ icone: 'doc', titulo: 'Abertas agora', valor: n0(T.abertas), sub: `${n0(T.paradas)} paradas há 3+ dias`, espiar: T.abertas ? 'perf:total|abertas' : '' })}
         ${k({ icone: 'alerta', titulo: 'Atrasadas agora', valor: n0(T.atrasadas), cls: T.atrasadas ? 'ruim' : '', espiar: T.atrasadas ? 'perf:total|atrasadas' : '' })}
         ${k({ icone: 'saida', titulo: 'Em alteração', valor: n0(T.alteracao), sub: 'retrabalho na fila agora', cls: T.alteracao ? 'atencao' : '' })}
-      </div>
+      `)}
       ${bloco('Entregas por semana', 'no prazo do cliente e depois da data; e as peças cadastradas', barras(sem, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadas', rotulo: 'Depois da data', cls: 'c4' }, { chave: 'criadas', rotulo: 'Cadastradas', cls: 'c5' }]), { icone: 'alta' })}
       ${linha(bloco('Fluxo: onde a fila está', 'peças abertas por etapa; a barra é a quantidade, o número pequeno é quantos dias paradas (mediana)', deitadas(etapasMax.map((e) => ({ st: true, nome: e.status, valor: e.qtd, cls: (e.idadeMediana || 0) >= 3 ? 'ruim' : e.atrasadas ? 'atencao' : 'ok', rotulo: `<button type="button" class="vv-num" data-espiar="perf:etapa|${esc(e.status)}">${n0(e.qtd)}</button> <small>${dd(e.idadeMediana)}</small>`, sub: `${n0(e.atrasadas)} atrasada${Number(e.atrasadas) === 1 ? '' : 's'}` })), { vazio: 'Nenhuma peça aberta.' }), { icone: 'relogio' })
         + bloco('Processos', 'o que costuma travar antes da produção', `<ul class="vv-perf-proc">${proc.map(([q, t, s, cls]) => { const n = (Pr[q] || []).length; return `<li class="${n && cls ? cls : ''}"><span><b>${esc(t)}</b><small>${esc(s)}</small></span>${n ? `<button type="button" class="vv-num" data-espiar="perf:proc|${q}">${n0(n)}</button>` : '<em>0</em>'}</li>`; }).join('')}</ul>`, { icone: 'alerta' }))}

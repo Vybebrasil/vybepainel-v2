@@ -1065,6 +1065,9 @@ function escritorioSelectRaridadeHtml(ativa, aoMudar) {
   return `<select aria-label="Raridade" onchange="${aoMudar}"><option value="">Todas as raridades</option>${faixas.map((r) => `<option value="${safeText(r.chave)}"${ativa === r.chave ? " selected" : ""}>${safeText(r.nome)}</option>`).join("")}</select>`;
 }
 function abrirCatalogoEscritorio(aba) {
+  // Sem o Escritório carregado (celular, Loja aberta direto do dock): a base é pedida já, junto do catálogo, e não
+  // depois de a janela desenhar (redesign r5, quadro 35: o pedido só saía ~2 s depois do toque).
+  if (!escritorio.base && typeof garantirBaseEscritorio === "function") garantirBaseEscritorio().catch(() => {});
   if (!escritorioCatalogo) { carregarCatalogoEscritorio().then(() => abrirCatalogoEscritorio(aba)); return; }
   garantirLojaEscritorio();
   escritorio.cat ||= { raridade: "", ordem: "destaque", categoria: "*", busca: "", posso: false, ver: 60, aba: "loja", inv: "todos" };
@@ -1090,6 +1093,11 @@ function abrirCatalogoEscritorio(aba) {
   if (!d.open) d.showModal();
   redesenharCatalogoJanelaEscritorio();
   d.querySelector(".ofc-catj-busca")?.focus();
+  // Sem o Escritório carregado (celular, Loja aberta direto do dock): a Loja pede a base sozinha e se redesenha.
+  if (!escritorio.base && typeof garantirBaseEscritorio === "function") garantirBaseEscritorio().then(() => redesenharCatalogoJanelaEscritorio(), () => {
+    const g = document.querySelector("#office-catalogo #office-catj-grade");
+    if (g) g.innerHTML = '<p class="ofc-nota" role="alert">Não deu para abrir a loja agora. Confira a conexão e abra de novo.</p>';
+  });
 }
 // Árvore, faixas e grade (a busca não é refeita: o cursor fica onde está).
 function redesenharCatalogoJanelaEscritorio() {
@@ -1166,6 +1174,12 @@ function desenharCatalogoJanelaEscritorio() {
     return;
   }
   d.querySelector(".ofc-catj-barra").hidden = false;
+  // Loja sem a base ainda: só o aviso de carregando (as faixas e a capa dependem dela); redesenha quando chegar.
+  if (escritorio.cat.aba === "loja" && !escritorio.base && typeof escritorioCapaLojaHtml === "function") {
+    d.querySelector("#office-catj-faixas").innerHTML = ""; d.querySelector("#office-catj-info").innerHTML = "";
+    d.querySelector("#office-catj-grade").innerHTML = escritorioCapaLojaHtml();
+    return;
+  }
   const f = escritorio.cat, info = new Map();
   const de = (m) => info.get(m.classe) || (info.set(m.classe, escritorioInfoLoja(m.classe)), info.get(m.classe));
   const nome = (a, b) => escritorioNomeMovel(a).localeCompare(escritorioNomeMovel(b), "pt-BR");
@@ -1185,12 +1199,13 @@ function desenharCatalogoJanelaEscritorio() {
 <button type="button" class="ofc-cat-chip venda" aria-pressed="${f.posso}" onclick="escritorio.cat.posso=!escritorio.cat.posso;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Só o que está à venda esta semana e cabe no seu saldo">Cabe no saldo</button>
 <button type="button" class="ofc-cat-chip" aria-pressed="${Boolean(f.desejos)}" ${escritorioDesejos().size ? "" : "disabled"} onclick="escritorio.cat.desejos=!escritorio.cat.desejos;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()" title="Os móveis que você marcou com Quero">Desejos <small>${escritorioDesejos().size}</small></button>
 ${escritorioOrdemChipsHtml("ordem", f.ordem || "destaque", [["destaque", "Em destaque"], ["preco", "Mais baratos"], ["caro", "Mais caros"], ["raridade", "Mais raros"], ["nome", "A–Z"]])}`;
-  const lista = (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
+  // Sem filtro nenhum, a capa (vitrine e prateleiras) em vez dos milhares de itens: sem ordenar o catálogo inteiro
+  // (redesign r5, quadro 35: no celular a ordem de ~9 mil nomes travava a Loja por mais de 1 s antes da capa).
+  const capa = typeof escritorioCapaLojaHtml === "function" && (!f.categoria || f.categoria === "*") && !f.busca && !f.raridade && !f.posso && !f.desejos;
+  const lista = capa ? semFaixa : (f.raridade ? semFaixa.filter((m) => de(m).raridade === f.raridade) : semFaixa).sort(ordem);
   const onde = f.categoria && f.categoria !== "*" ? escritorioRotuloCategoria(f.categoria.replace(/^secao:/, "")) : "todo o catálogo";
   const ativos = [f.raridade && (faixas.find((r) => r.chave === f.raridade)?.nome || f.raridade), f.posso && "à venda agora", f.busca && `“${f.busca}”`].filter(Boolean);
   d.querySelector("#office-catj-info").innerHTML = `<b>${lista.length.toLocaleString("pt-BR")} móveis</b><span>em ${safeText(onde)}${ativos.length ? ` · ${safeText(ativos.join(" · "))}` : ""}</span>${ativos.length || (f.categoria && f.categoria !== "*") ? `<button type="button" class="office-text-button" onclick="escritorio.cat={...escritorio.cat,raridade:'',posso:false,busca:'',categoria:'*',ver:60};abrirCatalogoEscritorio()">Limpar filtros</button>` : ""}`;
-  // Sem filtro nenhum, a capa (vitrine e prateleiras) em vez dos milhares de itens.
-  const capa = typeof escritorioCapaLojaHtml === "function" && (!f.categoria || f.categoria === "*") && !f.busca && !f.raridade && !f.posso && !f.desejos;
   d.classList.toggle("na-capa", Boolean(capa));
   if (capa) { d.querySelector("#office-catj-info").innerHTML = ""; d.querySelector("#office-catj-grade").innerHTML = escritorioCapaLojaHtml(); return; }
   const destaque = typeof escritorioCapaLojaHtml === "function" ? "" : !f.busca && !f.raridade && !f.posso && !f.desejos ? escritorioDestaquesLojaHtml() : "";

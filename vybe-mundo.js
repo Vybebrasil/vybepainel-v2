@@ -273,13 +273,17 @@
     const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
     if (fechou && !remarcando) remarcando = requestAnimationFrame(remarcarAoFechar);
   }).observe(document.body, { childList: true, attributes: true, attributeFilter: ['hidden'], subtree: true });
+  // Sair de uma tela antiga para o mundo na mesma hora (quarta rodada, 11/11/2026: "o que veio do legado não abre como as
+  // interfaces novas"). Antes era voltarAoMenu e o destino 350 ms depois; agora o mundo volta a valer já (sincronizar, que
+  // o observador do portão só rodaria depois do clique) e o destino abre no mesmo clique.
+  function sairDaTelaAntiga() { chamar('voltarAoMenu'); sincronizar(); }
   function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
     if (id === 'setor:toolkit') { usarTrilho('toolkit'); return; }
     const t = TRILHO.find((x) => x && x.id === id);
     if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
-    if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
+    if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
     if (centroAberto) fecharCentro();
     if (!gestao.hidden) fecharGestao();
     limparTela();
@@ -347,6 +351,88 @@
     try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
     document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
   }
+  // Tela antiga em pedaços (quinta rodada, 11/11/2026). No Safari o Painel de trabalho levava ~850 ms do clique até
+  // parar, contra ~420 ms de Projetos pontuais. Medido no WebKit: o desenho do resumo, da agenda e das seis semanas ia no
+  // mesmo passo do clique, e o primeiro quadro ainda montava as ~10 mil peças da tela (~150 ms); depois, cada quadro da
+  // entrada repintava as linhas e cartões (com desfoque e sombra) por baixo do deslize (~120 ms por quadro, aos trancos).
+  // Agora: o clique só troca a tela e o primeiro quadro mostra a moldura, o cabeçalho, o resumo e o esqueleto do resto
+  // (.container.vv-abrindo, CSS no fim de vybe-mundo.css: o resto fica fora da montagem); o desenho pesado vem logo depois
+  // desse quadro, a semana à vista primeiro, enquanto a moldura desliza leve; o conteúdo aparece no fim do deslize;
+  // as outras semanas se desenham quando o navegador folga. Cada desenho adiado é o MESMO de antes, com os mesmos
+  // argumentos; se a tela pedir o mesmo desenho de novo antes da vez dele, vale o pedido novo (nada se perde, nada sai velho).
+  const DESENHOS_ADIAVEIS = ['renderWeek', 'renderCompactSummary', 'renderOperationalTools', 'renderManagerCalendar', 'renderManagerIntelligence',
+    'renderDemandas', 'renderClientesBoard', 'renderDiarioLista', 'renderPerformance', 'renderProductionCommand', 'loadAiUsage', 'carregarAutomacoes', 'carregarConta',
+    'pintarSeletorDeSemana', 'pintarAbaDaSemana', 'updateClearFiltersState', 'pedirAcomodarBarraDoPainel'];
+  // O que cada semana escondida repinta na parte à vista (seletor e aba da semana, "limpar filtros", a barra): nas folgas,
+  // uma vez só, depois da última semana (antes, cada semana escondida remontava a tela inteira mais uma vez).
+  const SO_NO_FIM_DAS_FOLGAS = new Set(['pintarSeletorDeSemana', 'pintarAbaDaSemana', 'updateClearFiltersState', 'pedirAcomodarBarraDoPainel']);
+  let nasFolgas = false;
+  const desenhosNaFila = new Map();
+  // A entrada leva 420 ms (--vv-t-janela) com a mola --vv-mola (cubic-bezier(.32,.72,0,1)): aos 300 ms a janela já está a
+  // menos de 1 px do lugar. O conteúdo aparece aí, e o quadro dele cai no fim do deslize (medido: 509 ms no WebKit,
+  // contra 685 ms esperando a entrada acabar).
+  const CONTEUDO_APARECE_MS = 300;
+  let adiandoDesenho = false, aberturaAtual = 0;
+  function embrulharDesenhos() {
+    for (const nome of DESENHOS_ADIAVEIS) {
+      const f = window[nome];
+      if (typeof f !== 'function' || f.vvAdiavel) continue;
+      const embrulho = function (...a) {
+        const chave = nome === 'renderWeek' ? nome + ':' + a[0] : nome === 'pintarAbaDaSemana' ? nome + ':' + a[1] : nome;
+        if (adiandoDesenho ? !SO_NO_FIM_DAS_FOLGAS.has(nome) : nasFolgas && SO_NO_FIM_DAS_FOLGAS.has(nome)) { desenhosNaFila.delete(chave); desenhosNaFila.set(chave, { f, a, este: this }); return undefined; }
+        desenhosNaFila.delete(chave);
+        return f.apply(this, a);
+      };
+      embrulho.vvAdiavel = true;
+      try { window[nome] = embrulho; } catch { /* fica o de sempre */ }
+    }
+  }
+  function desenharDaFila(chave) {
+    const x = desenhosNaFila.get(chave); if (!x) return;
+    desenhosNaFila.delete(chave);
+    try { const r = x.f.apply(x.este, x.a); if (r && typeof r.catch === 'function') r.catch((e) => console.error('[mundo] desenho', e)); } catch (e) { console.error('[mundo] desenho', e); }
+  }
+  const quandoFolgar = (fn) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 300 }) : setTimeout(fn, 40));
+  function abrirEmPedacos(abrir) {
+    if (typeof requestAnimationFrame !== 'function') { abrir(); return; }
+    embrulharDesenhos();
+    const vez = ++aberturaAtual;
+    adiandoDesenho = true;
+    try { abrir(); } finally { adiandoDesenho = false; }
+    // A classe fica na própria tela (o Painel ou o #painel-… do quadro), não no body: trocar classe do body recalcula a
+    // página inteira, um quadro a mais.
+    document.querySelectorAll('body > .vv-abrindo').forEach((el) => el.classList.remove('vv-abrindo'));
+    const painel = [...body.children].find((el) => (el.matches('.container') && el.style.display !== 'none') || (el.matches('[id^="painel-"]:not(#painel-escritorio)') && el.style.display === 'block'));
+    painel?.classList.add('vv-abrindo');
+    // 1 · depois do primeiro quadro pintado (o rAF roda antes da pintura; o setTimeout, depois dela): a semana à vista e o
+    // resto da tela, ainda escondidos (sem montar a página no meio do deslize).
+    // 2 · no fim do deslize (CONTEUDO_APARECE_MS, contado do primeiro quadro), o conteúdo aparece e a barra do Painel é
+    // medida de novo, agora com a tela montada; 3 · as outras semanas, uma por folga.
+    const reduzido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const ativa = 'renderWeek:' + (document.querySelector('.week-panel.active')?.id?.match(/(\d+)$/)?.[1] || '');
+        for (const chave of [...desenhosNaFila.keys()]) if (!chave.startsWith('renderWeek:') || chave === ativa) desenharDaFila(chave);
+      }, 0);
+      setTimeout(() => {
+        if (vez !== aberturaAtual) return;
+        // O conteúdo chega já no lugar (a moldura terminou de deslizar): o esmaecer das abas do dia, que começaria agora,
+        // vai direto ao fim.
+        if (painel?.classList.contains('vv-abrindo')) {
+          painel.classList.remove('vv-abrindo');
+          if (typeof document.getAnimations === 'function') for (const a of document.getAnimations()) { const alvo = a.effect?.target; if (alvo && alvo !== painel && painel.contains(alvo) && /^vv-aba/.test(a.animationName || '')) { try { a.finish(); } catch { /* segue */ } } }
+        }
+        chamar('pedirAcomodarBarraDoPainel');
+        const proxima = () => {
+          const chave = desenhosNaFila.keys().next().value; if (!chave) return;
+          nasFolgas = [...desenhosNaFila.keys()].some((k) => !SO_NO_FIM_DAS_FOLGAS.has(k.split(':')[0]));
+          try { desenharDaFila(chave); } finally { nasFolgas = false; }
+          quandoFolgar(proxima);
+        };
+        quandoFolgar(proxima);
+      }, reduzido ? 0 : CONTEUDO_APARECE_MS);
+    });
+  }
   function usarTrilho(id, botao, saiuDaAntiga = false) {
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     // Item com cadeado chamado por outro caminho (busca, atalho): o mesmo aviso do dock.
@@ -365,7 +451,7 @@
       limparTela();
       // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
       if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && !SUBMODULOS.find((x) => x.id === id)?.board && id !== 'centro' && id !== 'predio' && id !== 'minha-sala' && body.classList.contains('mundo-modulo')) {
-        chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
+        sairDaTelaAntiga(); usarTrilho(id, botao, true); return;
       }
     }
     window.VybeTutorial?.dica?.('trilho:' + id);
@@ -373,14 +459,14 @@
     if (andarAbertoId.startsWith('quarto:') && id !== 'criar' && id !== 'vybes' && id !== 'minha-sala') fecharAndarVoxel(false);
     if (id === 'minha-sala') {
       if (!gestao.hidden) fecharGestao();
-      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
       if (centroAberto) fecharCentro();
       abrirMinhaSala(); return;
     }
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
       if (!gestao.hidden) fecharGestao();
-      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
       abrirCentro(id === 'predio' ? 'predio' : 'cidade'); return;
     }
     if (centroAberto && id !== 'criar' && id !== 'vybes') fecharCentro();
@@ -395,7 +481,8 @@
     if (sub?.board) {
       if (!gestao.hidden) fecharGestao();
       const quadro = () => chamar('switchBoard', sub.board, document.getElementById('btn-board-' + sub.board));
-      if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) { chamar('chooseManagerMode'); setTimeout(quadro, 300); } else quadro();
+      // Direto no quadro pedido (quarta rodada, 11/11/2026): antes abria o Painel de trabalho e trocava 300 ms depois.
+      abrirEmPedacos(() => { if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) chamar('chooseManagerMode', sub.board); else quadro(); });
       marcarTrilho(id); return;
     }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
@@ -409,14 +496,14 @@
     if (id === 'gestao' || id === 'performance') { abrirGestao(id === 'performance' ? 'performance' : 'agencia'); return; }
     if (!gestao.hidden) fecharGestao();
     const noModulo = body.classList.contains('mundo-modulo');
-    if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+    if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) sairDaTelaAntiga();
     if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : usarTrilho.tarefas ? 'tarefas' : 'hoje'); usarTrilho.criacao = false; usarTrilho.tarefas = false; pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
     ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
-      agenda: () => abrirAgenda(), clientes: () => chamar('chooseClientMode'), vybes: () => chamar('chooseVybesMode') })[id]?.();
+      agenda: () => abrirEmPedacos(() => abrirAgenda()), clientes: () => abrirEmPedacos(() => chamar('chooseClientMode')), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
 
   // ---------- Painel "Hoje": o dia da pessoa, com o VYBES dizendo por onde começar ----------
@@ -918,7 +1005,7 @@
     const N = numerosDoDono();
     const abas = [['agencia', 'Agência'], ['performance', 'Performance'], ['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
     const topo = `<div class="vv-g-topo"><span><small class="vv-cb-kicker">Gestão da Vybe</small><h2>${gestaoAba === 'agencia' ? 'A agência inteira' : gestaoAba === 'performance' ? 'Performance da operação' : gestaoAba === 'historico' ? 'Passado e futuro' : gestaoAba === 'clientes' ? 'Clientes' : gestaoAba === 'carteiras' ? 'Carteiras dos heads' : gestaoAba === 'time' ? 'Time e bots' : gestaoAba === 'semana' ? 'Semana da agência' : 'Agora na agência'}</h2>
-        <p>${N ? 'Atualizado às ' + new Date(N.geradoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + n0((N.cobertura || {}).clientesAtivos) + ' clientes ativos' : 'Juntando os números…'}</p></span>
+        <p>${N ? 'Atualizado às ' + new Date(N.geradoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + n0((N.cobertura || {}).clientesAtivos) + (Number((N.cobertura || {}).clientesAtivos) === 1 ? ' cliente ativo' : ' clientes ativos') : 'Juntando os números…'}</p></span>
       <span class="vv-g-acoes"><button type="button" class="vv-botao" data-gestao-cheia title="Tela cheia">⛶</button><button type="button" class="vv-botao" data-gestao-fechar aria-label="Fechar">✕</button></span></div>
       <nav class="vv-seg vv-g-abas" role="tablist">${abas.map(([id, n]) => `<button type="button" role="tab" aria-selected="${id === gestaoAba}" data-gestao-aba="${id}">${n}</button>`).join('')}</nav>`;
     if (!N) { gestao.innerHTML = topo + '<p class="vv-vazio">Os números aparecem quando a produção terminar de carregar.</p>'; return; }
@@ -942,19 +1029,20 @@
     // deitadas) são as de vybe-mundo-setor.js; o número clicável continua abrindo a lista por trás dele (data-espiar).
     const V = window.VybeSetor?.pecas;
     if (!V) { gestao.innerHTML = topo + '<p class="vv-vazio">Carregando os painéis…</p>'; return; }
-    const { kpi: k, bloco, barras, deitadas, linha, progresso } = V;
+    // Zero vira uma linha (00 Main, regra 4): kpiLinha marca o zero e G (pecas.grade) junta os zeros numa linha discreta.
+    const { kpiLinha: k = V.kpi, grade: G = (h) => `<div class="vs-kpis">${h}</div>`, bloco, barras, deitadas, linha, progresso } = V;
     const tabela = (h) => `<div class="vs-tabela">${h}</div>`;
     const SAUDE_CLS = { critico: 'ruim', atencao: 'atencao', ok: 'ok' };
     if (gestaoAba === 'agora') {
       const L = H.lista || {}, T = N.time || [], CL = N.clientes || [];
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Produção de hoje', valor: `${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, sub: H.previstas ? `${n0(Math.round((H.feitas / H.previstas) * 100))}% das previstas para hoje` : 'nada previsto para hoje', cls: H.previstas && H.feitas < H.previstas ? 'atencao' : '' })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
           ${k({ icone: 'calendario', titulo: 'Ainda não feitas hoje', valor: n0(H.faltam), sub: `${n0(H.paraAgendar?.hoje)} para agendar hoje`, espiar: 'faltam' })}
           ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
           ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
-        </div>
+        `)}
         ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a, i) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${i}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
           + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${plural(g.qtd, 'peça, parada', 'peças, paradas')} há ${plural(g.idadeMedianaDias, 'dia', 'dias')} (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
         ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
@@ -965,26 +1053,26 @@
     } else if (gestaoAba === 'semana') {
       const CL = N.clientes || [], meta = C.meta || 3;
       const pctSem = S.previstas ? Math.round(((S.previstasEntregues ?? S.entregues) / S.previstas) * 100) : null;
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${n0(S.previstasEntregues ?? S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: pctSem != null ? `${pctSem}% · ${n0(S.entregues)} entregas registradas` : 'nada previsto' })}
           ${k({ icone: 'doc', titulo: `Clientes com ${meta}+ posts`, valor: `${n0(C.clientesAtivos - (C.sem3 || []).length)}<i>/${n0(C.clientesAtivos)}</i>`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
           ${k({ icone: 'alerta', titulo: 'Sem nenhum conteúdo', valor: n0((C.semConteudo || []).length), sub: 'clientes nesta semana', cls: (C.semConteudo || []).length ? 'ruim' : '', espiar: 'semConteudo' })}
           ${k({ icone: 'calendario', titulo: 'Próxima semana abaixo', valor: n0((C.proximaSemanaSem3 || []).length), sub: `clientes com menos de ${meta} posts`, cls: (C.proximaSemanaSem3 || []).length ? 'atencao' : '' })}
           ${k({ icone: 'meta', titulo: 'Sem planejamento', valor: n0((C.semPlanejamento || []).length), sub: 'do mês atual ou seguinte', cls: (C.semPlanejamento || []).length ? 'atencao' : '', espiar: 'semPlanejamento' })}
-        </div>
+        `)}
         ${bloco('Dia a dia da semana', `previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} e entregues no dia`, `${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 110)), h: 160 })}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues no dia</p>`, { icone: 'alta' })}
         ${linha(bloco('Posts por cliente nesta semana', `a marca é a meta de ${meta}; os mais longe da meta primeiro`, deitadas([...CL].sort((a, b) => a.semana - b.semana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.semana, meta, cls: c.semana >= meta ? 'ok' : c.semana ? 'atencao' : 'ruim', rotulo: `${n0(c.semana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'doc' })
           + bloco('Próxima semana', `posts já previstos por cliente (meta ${meta})`, deitadas([...CL].sort((a, b) => a.proximaSemana - b.proximaSemana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.proximaSemana, meta, cls: c.proximaSemana >= meta ? 'ok' : c.proximaSemana ? 'atencao' : 'ruim', rotulo: `${n0(c.proximaSemana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'calendario' }))}
         ${bloco('Sem planejamento', esc((N.fonte || {}).planejamento || ''), (C.semPlanejamento || []).length ? `<div class="vs-chips">${(C.semPlanejamento || []).map((c) => `<button type="button" class="vs-chip" data-espiar-cliente="${esc(typeof c === 'string' ? c : c.cliente)}">${cliCor(typeof c === 'string' ? c : c.cliente)}</button>`).join('')}</div>` : '<p class="vs-aviso">Todos com planejamento.</p>', { icone: 'meta' })}`;
     } else if (gestaoAba === 'clientes') {
       const CL = N.clientes || [], conta = (s) => CL.filter((c) => c.saude === s).length;
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'pessoas', titulo: 'Clientes ativos', valor: n0(CL.length), sub: `${n0(CL.filter((c) => c.temPlanejamento).length)} com planejamento` })}
           ${k({ icone: 'alerta', titulo: 'Críticos', valor: n0(conta('critico')), sub: 'furo, 3+ atrasadas ou sem conteúdo', cls: conta('critico') ? 'ruim' : '', espiar: 'atencao' })}
           ${k({ icone: 'relogio', titulo: 'Em atenção', valor: n0(conta('atencao')), sub: 'atraso, risco ou abaixo da meta', cls: conta('atencao') ? 'atencao' : '' })}
           ${k({ icone: 'coracao', titulo: 'Em dia', valor: n0(conta('ok')), sub: CL.length ? `${n0(Math.round((conta('ok') / CL.length) * 100))}% da carteira` : '' })}
           ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(CL.reduce((a, c) => a + (c.abertas || 0), 0)), sub: plural(CL.reduce((a, c) => a + (c.atrasadas || 0), 0), 'atrasada', 'atrasadas') })}
-        </div>
+        `)}
         ${linha(bloco('Saúde da carteira', 'quantos clientes em cada faixa', deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]), { icone: 'coracao' })
           + bloco('Peças abertas por cliente', 'os que mais têm peça em aberto', deitadas([...CL].sort((a, b) => b.abertas - a.abertas).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.abertas, cls: SAUDE_CLS[c.saude] || '', rotulo: `${n0(c.abertas)}${c.atrasadas ? ` <small class="t-ruim">${n0(c.atrasadas)} atras.</small>` : ''}` }))), { icone: 'doc' }))}
         ${bloco('Todos os clientes', 'clique na linha para abrir o cérebro do cliente; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
@@ -998,12 +1086,12 @@
       const ROT_SAUDE = { critico: ['crítico', 'críticos'], atencao: ['em atenção', 'em atenção'], ok: ['em dia', 'em dia'] };
       const pilulas = (sd = {}) => ['critico', 'atencao', 'ok'].filter((x) => sd[x]).map((x) => `<span class="pill ${SAUDE[x][1]}">${n0(sd[x])} ${ROT_SAUDE[x][sd[x] === 1 ? 0 : 1]}</span>`).join('') || '<span class="nao">—</span>';
       const comHead = heads.filter((h) => !h.semHead);
-      corpo = `${aviso}<div class="vs-kpis">
+      corpo = `${aviso}${G(`
           ${k({ icone: 'pessoas', titulo: 'Heads', valor: n0(comHead.length), sub: `${plural(heads.reduce((a, h) => a + (h.contas || 0), 0), 'conta', 'contas')} nas carteiras` })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas nas carteiras', valor: n0(heads.reduce((a, h) => a + (h.atrasadas || 0), 0)), cls: heads.some((h) => h.atrasadas) ? 'ruim' : '' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(heads.reduce((a, h) => a + (h.emRisco || 0), 0)), cls: heads.some((h) => h.emRisco) ? 'atencao' : '' })}
           ${k({ icone: 'coracao', titulo: 'Clientes críticos', valor: n0(heads.reduce((a, h) => a + (h.saude?.critico || 0), 0)), cls: heads.some((h) => h.saude?.critico) ? 'ruim' : '' })}
-        </div>
+        `)}
         ${linha(bloco('Entregas da semana por head', 'previstas da semana já entregues', heads.length ? progresso(heads.map((h) => ({ nome: h.head, texto: `${n0(h.semana?.entregues)} de ${n0(h.semana?.previstas)} · ${plural(h.contas, 'conta', 'contas')}`, barra: Math.max(0, Math.min(100, Number(h.semana?.pct) || 0)), percentual: h.semana?.pct, batida: h.semana?.pct === 100 }))) : '<p class="vs-aviso">Sem carteiras.</p>', { icone: 'meta' })
           + bloco('Peças por head', 'abertas, atrasadas e risco de furo', barras(heads.map((h) => ({ rotulo: h.semHead ? 'Sem head' : String(h.head).split(' ')[0], abertas: h.abertas, atrasadas: h.atrasadas, risco: h.emRisco })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }, { chave: 'risco', rotulo: 'Risco', cls: 'c1' }]), { icone: 'alta' }))}
         ${bloco('Carteiras por head', 'cliente com dois heads entra nas duas carteiras', tabela(`<table class="vv-g-tabela vv-g-carteiras"><thead><tr><th>Head</th><th class="n">Contas</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th></tr></thead><tbody>
@@ -1013,14 +1101,14 @@
       const bots = botsParaCobrar(); let f = null; try { f = fonteAgentes?.ler(); } catch {} const ags = f?.dados?.agentes || [];
       const T = N.time || [];
       const falhas = ags.reduce((a, ag) => a + ((estadoDoAgente(ag.setor).ultimos || []).filter((x) => x.estado === 'falhou').length), 0);
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'pessoas', titulo: 'Pessoas com peças', valor: n0(T.length) })}
           ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(T.reduce((a, t) => a + (t.abertas || 0), 0)), sub: 'cada peça conta para cada responsável' })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(T.reduce((a, t) => a + (t.atrasadas || 0), 0)), cls: T.some((t) => t.atrasadas) ? 'ruim' : '' })}
           ${k({ icone: 'aperto', titulo: 'Entregues em 7 dias', valor: n0(T.reduce((a, t) => a + (t.entregues7d || 0), 0)) })}
           ${k({ icone: 'relogio', titulo: 'Paradas há 3+ dias', valor: n0(T.reduce((a, t) => a + (t.paradas || 0), 0)), cls: T.some((t) => t.paradas) ? 'atencao' : '' })}
           ${k({ icone: 'alta', titulo: 'Bots', valor: n0(ags.length), sub: falhas ? plural(falhas, 'falha recente', 'falhas recentes') : 'sem falhas recentes', cls: falhas ? 'atencao' : '' })}
-        </div>
+        `)}
         ${linha(bloco('Carga por pessoa', 'abertas e atrasadas de cada um', barras([...T].sort((a, b) => b.abertas - a.abertas).slice(0, 10).map((t) => ({ rotulo: String(t.pessoa).split(' ')[0], abertas: t.abertas, atrasadas: t.atrasadas })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'pessoas' })
           + bloco('Entregues em 7 dias', 'por pessoa', deitadas([...T].sort((a, b) => b.entregues7d - a.entregues7d).slice(0, 10).map((t) => ({ nome: t.pessoa, valor: t.entregues7d, cls: 'ok', sub: `${n0(t.abertas)} abertas` })), { vazio: 'Sem entregas nos últimos 7 dias.' }), { icone: 'aperto' }))}
         ${bloco('Time', 'o que cobrar de cada pessoa; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Pessoa</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Entregues 7d</th><th class="n">Parado (med.)</th><th>O que cobrar</th></tr></thead><tbody>
@@ -1033,12 +1121,12 @@
     } else {
       const proj = P.proximaSemana || {};
       const sems = (Hi.semanas || []).map((s) => ({ ...s, rotulo: String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7) }));
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Entregues nesta semana', valor: n0(ultima.entregues), sub: `mediana de ${n0(Hi.medianaEntregues)} por semana` })}
           ${k({ icone: 'relogio', titulo: 'No prazo', valor: Hi.mediaNoPrazoPct != null ? `${Math.round(Hi.mediaNoPrazoPct)}%` : '—', sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })}
           ${k({ icone: 'alta', titulo: 'Tendência', valor: { subindo: 'Subindo', estavel: 'Estável', caindo: 'Caindo' }[Hi.tendencia] || '—', sub: '4 últimas semanas contra as 4 anteriores', cls: Hi.tendencia === 'caindo' ? 'ruim' : '' })}
           ${k({ icone: 'calendario', titulo: 'Próxima semana', valor: `${n0(proj.previstas)}<i>/${n0(proj.capacidadeMediana)}</i>`, sub: proj.folga != null ? (proj.folga >= 0 ? `previstas / capacidade · folga ${n0(proj.folga)}` : `previstas / capacidade · faltam ${n0(-proj.folga)}`) : 'previstas / capacidade', cls: proj.risco === 'alto' ? 'ruim' : proj.risco === 'medio' ? 'atencao' : '' })}
-        </div>
+        `)}
         ${bloco(`Entregas por semana · últimas ${n0((Hi.semanas || []).length)} e as próximas 4 previstas`, 'entregues, mediana e o que já está previsto', `${linhaHistorico(Hi.semanas || [], { mediana: Hi.medianaEntregues, projecao: P.proximas4 || [] })}<p class="vv-legenda"><i class="en2"></i>entregues <i class="md"></i>mediana <i class="pj"></i>previstas (futuro)</p>`, { icone: 'alta' })}
         ${linha(bloco('No prazo × atrasadas', 'entregas de cada semana', barras(sems, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadasEntregues', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'relogio' })
           + bloco('Semana a semana', 'previstas, entregues, no prazo e atrasadas', tabela(`<table class="vv-g-tabela"><thead><tr><th>Semana</th><th class="n">Previstas</th><th class="n">Entregues</th><th class="n">No prazo</th><th class="n">Atrasadas</th></tr></thead><tbody>
@@ -1436,7 +1524,7 @@
     if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
-    if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
+    if (acao === 'demandas') { chamar('chooseManagerMode', 'demandas'); return; } // direto em Demandas, sem passar pelo Painel
     if (acao === 'agenda') { abrirAgenda(); return; }
     if (acao === 'agenda-ler') { carregarAgenda(true); return; }
     // Os agentes viram (quadro 31): a peça do achado abre na janela da peça; o resto, na fila Depende de você.
@@ -1567,10 +1655,8 @@
         controler: () => chamar('chooseDaControllerMode'), producao: () => chamar('chooseProductionMode'), gestor: () => chamar('chooseManagerMode') })[mod.alvo]?.();
       return;
     }
-    // Quadro: o mesmo caminho do Modo Gestor, mais a aba pedida.
-    chamar('chooseManagerMode');
-    const btn = document.getElementById('btn-board-' + mod.alvo);
-    if (btn) chamar('switchBoard', mod.alvo, btn);
+    // Quadro: o mesmo caminho do Modo Gestor, já na aba pedida (sem desenhar o Painel de trabalho antes).
+    chamar('chooseManagerMode', mod.alvo);
   }
   const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybehub: 'Abrir o VybeHub', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
@@ -1896,9 +1982,10 @@
       ehDeParede: (c) => { try { return Boolean(fn('escritorioEhParede')?.(c)); } catch { return false; } }, itens };
   }
   // Tamanho de cada móvel pelo arquivo do Habbo (o mesmo que o mapa do Escritório carrega); sem ele, a caixa da peça voxel.
-  async function medidasDoHabbo(itens) {
+  // Só pede a arte de quem a tem no repositório (m.temArteLocal, redesign r5): as outras saem na medida do tipo.
+  async function medidasDoHabbo(itens, m = null) {
     const carregar = fn('mapaCarregarMovel'); if (!carregar) return [];
-    const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c)))];
+    const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c) && (!m?.temArteLocal || m.temArteLocal(c))))];
     const lista = await Promise.all(classes.map(async (c) => {
       try { const { dados } = await carregar(c); const d = dados?.logic?.model?.dimensions; return d ? [c, { x: d.x, y: d.y }] : null; } catch { return null; }
     }));
@@ -2008,15 +2095,21 @@
   const faixaDock = document.createElement('div'); faixaDock.className = 'vv-dock-salas-faixa'; faixaDock.id = 'vv-dock-salas-faixa'; faixaDock.hidden = true;
   faixaDock.innerHTML = '<nav class="vq-dock vv-dock-salas" aria-label="Salas: voz, ver a sala, quem está em cada uma, chat e música"></nav>';
   document.body.append?.(faixaDock);
+  // pintarDock roda a cada 1,5 s (pintarChamada). Ler a largura do dock e a posição dele obrigava o navegador a montar a
+  // página inteira na hora, e no meio da entrada de uma janela isso engasgava a animação (quinta rodada, 11/11/2026).
+  // Agora ele só mede quando algo que muda a medida mudou: o tamanho da tela, o dock à vista, o conteúdo do dock ou o
+  // jeito dele no celular. O resto do tempo usa a última medida.
+  const medidaDock = { tela: '', cabem: 0, chave: '' };
   function pintarDock() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (surdo) prenderSurdo();
     const ver = Boolean(e) && ligado && !body.classList.contains('auth-pending') && !body.classList.contains('mundo-lobby');
     if (faixaDock.hidden === ver) faixaDock.hidden = !ver;
     body.classList.toggle('com-dock-salas', ver);
-    if (!ver) { body.style.removeProperty?.('--vv-dock-alto'); return; }
-    const nav = faixaDock.firstElementChild, passo = 56;
-    const cabem = Math.floor((faixaDock.clientWidth - 20 - 12 * passo - 4 * 9) / passo);
+    if (!ver) { body.style.removeProperty?.('--vv-dock-alto'); medidaDock.tela = ''; medidaDock.chave = ''; return; }
+    const nav = faixaDock.firstElementChild, passo = 56, tela = `${innerWidth}x${innerHeight}|${body.classList.contains('trilho-largo')}|${body.classList.contains('mundo-quarto')}`;
+    if (medidaDock.tela !== tela) { medidaDock.tela = tela; medidaDock.cabem = Math.floor((faixaDock.clientWidth - 20 - 12 * passo - 4 * 9) / passo); }
+    const cabem = medidaDock.cabem;
     const html = dockSalasHtml(cabem);
     if (nav.dataset.html !== html) { nav.innerHTML = html; nav.dataset.html = html; }
     // Celular: dentro de uma sala o dock toma o lugar da barra de baixo; fora, o cartão. Na tela estreita (dock em cima
@@ -2030,6 +2123,9 @@
     hud.querySelector('[data-cel="voz"]')?.classList.toggle('na-chamada', cel && !nav.querySelector('.vq-cartao'));
     body.classList.toggle('cel-na-sala', cel && String(andarAbertoId || '').startsWith('quarto:'));
     const estreita = typeof matchMedia === 'function' && matchMedia('(max-width:900px)').matches;
+    const chave = [tela, estreita, html, ...['dock-cartao', 'cel-na-sala', 'cel-voz-aberta'].map((c) => body.classList.contains(c))].join('|');
+    if (chave === medidaDock.chave) return;
+    medidaDock.chave = chave;
     const margem = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 12, topo = nav.getBoundingClientRect?.().top || 0;
     const alto = estreita && topo > 0 ? Math.ceil(innerHeight - topo - margem) : 0;
     if (alto) { if (body.style.getPropertyValue?.('--vv-dock-alto') !== alto + 'px') body.style.setProperty?.('--vv-dock-alto', alto + 'px'); }
@@ -2167,7 +2263,7 @@
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
       if (naSala && typeof escritorioIrPara === 'function') escritorioIrPara(x, y); else if (typeof escritorio !== 'undefined' && escritorio?.conectado) irParaSala(zona);
     });
-    medidasDoHabbo(quarto.itens).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
+    medidasDoHabbo(quarto.itens, m).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
     let assinItens = JSON.stringify(quarto.itens);
     const pintar = () => {
       if (!andarAberto?.aoClicarPiso) return;
@@ -2629,7 +2725,7 @@
       const itens = await (fn('escritorioMoveisDaVitrine')?.(pid) || Promise.resolve([])).catch(() => []);
       if (!vivo || !itens.length) return;
       cena.itens(itens);
-      medidasDoHabbo(itens).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
+      medidasDoHabbo(itens, m).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
     }).catch((err) => console.error('[mundo] vitrine', err));
     return { destruir() { vivo = false; try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
   }
@@ -2840,7 +2936,9 @@
     const alertas = (() => { try { return typeof PLJ_ALERTAS !== 'undefined' ? PLJ_ALERTAS : []; } catch { return []; } })();
     const estados = (() => { try { return typeof PLJ_ESTADOS !== 'undefined' ? PLJ_ESTADOS : {}; } catch { return {}; } })();
     const mes = (iso) => { try { return typeof pljMes === 'function' ? pljMes(iso) : String(iso || ''); } catch { return String(iso || ''); } };
-    const notifs = listaDoPainel(), novas = naoLidasDoPainel();
+    // Avisos curtos que foram direto para o sino (celular sem vaga, quinta rodada): contam como novos até o sino abrir.
+    const curtosNovos = curtosNaoVistos();
+    const notifs = listaDoPainel(), novas = naoLidasDoPainel() + curtosNovos.length;
     const linha = ({ ic, titulo, sub = '', acao = '', novo = false, cls = '' }) => `<li class="vv-aviso-linha${novo ? ' nao-lido' : ''}${cls ? ' ' + cls : ''}">
       <span class="vv-aviso-ic" aria-hidden="true">${ic}</span><div class="vv-aviso-txt"><b>${novo ? '<em class="vv-aviso-novo">Novo</em>' : ''}${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div>${acao}</li>`;
     const partes = [];
@@ -2865,6 +2963,9 @@
     // Sem notificação guardada, o último aviso curto desta sessão (menção, WhatsApp, Música) faz o mesmo papel.
     const curto = globalThis.ULTIMO_AVISO_CURTO;
     const curtoLinha = curto?.titulo ? linha({ ic: IC_AVISO.sino, titulo: esc(curto.titulo), sub: esc([curto.frase, quandoFoiAviso(curto.em)].filter(Boolean).join(' · ')) }) : '';
+    if (curtosNovos.length) partes.unshift(`<h3>Chegaram agora</h3><ul>${curtosNovos.map((a) => linha({ ic: a.icone === 'mencao' ? IC_AVISO.mencao : IC_AVISO.sino, novo: true,
+      titulo: esc(a.titulo), sub: esc([a.frase, quandoFoiAviso(a.em)].filter(Boolean).join(' · ')),
+      acao: a.acoes?.[0] ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-curto-sino="${esc(a.em)}">${esc(a.acoes[0].rotulo)}</button>` : '' })).join('')}</ul>`);
     if (ultimo) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${notifLinha(ultimo)}</ul>`);
     else if (!novas && curtoLinha && partes.length) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${curtoLinha}</ul>`);
     if (anteriores.length) partes.push(`<h3>${ultimo ? 'Anteriores' : 'Notificações'}</h3><ul>${anteriores.map(notifLinha).join('')}</ul>`);
@@ -2893,6 +2994,7 @@
   function fecharAvisos(devolverFoco = false) {
     const p = hud.querySelector('.vv-avisos-painel'); if (!p) return false;
     p.remove(); document.removeEventListener('pointerdown', foraDosAvisos, true);
+    if (curtosNaoVistos().length) { marcarCurtosVistos(); pintarSelosDeAviso(); } // o sino abriu: os que chegaram foram vistos
     const b = hud.querySelector('[data-ferr="avisos"]'); b?.setAttribute('aria-expanded', 'false');
     if (devolverFoco) b?.focus?.();
     return true;
@@ -2910,11 +3012,12 @@
       const x = e.target.closest('button'); if (!x) return;
       if (x.hasAttribute('data-aviso-fechar')) { fecharAvisos(true); return; }
       if (x.dataset.avisoGrupo) { const k = x.dataset.avisoGrupo; if (grupoAberto.has(k)) grupoAberto.delete(k); else grupoAberto.add(k); pintarAvisos(); p.querySelector(`[data-aviso-grupo="${CSS.escape(k)}"]`)?.focus(); return; }
-      if (x.hasAttribute('data-aviso-lidos')) { Promise.resolve(fn('marcarNotificacoesLidas')?.()).finally(() => { pintarAvisos(); pintarSelosDeAviso(); }); return; }
+      if (x.hasAttribute('data-aviso-lidos')) { marcarCurtosVistos(); Promise.resolve(fn('marcarNotificacoesLidas')?.()).finally(() => { pintarAvisos(); pintarSelosDeAviso(); }); return; }
       fecharAvisos();
       if (x.dataset.avisoPlano) chamar('abrirPlanejamento', x.dataset.avisoPlano);
       else if (x.dataset.avisoPeca) chamar('pljAbrirPeca', x.dataset.avisoPeca, x.dataset.quadro);
       else if (x.dataset.avisoNotif) chamar('abrirDoNotificacao', x.dataset.avisoNotif, x.dataset.item);
+      else if (x.dataset.avisoCurtoSino) { try { (globalThis.AVISOS_CURTOS_NO_SINO || []).find((a) => a.em === x.dataset.avisoCurtoSino)?.acoes?.[0]?.fazer?.(); } catch { /* a ação falhou */ } }
       else if (x.hasAttribute('data-aviso-centro')) chamar('irParaSalaEscritorio', 'operacao');
     });
     setTimeout(() => document.addEventListener('pointerdown', foraDosAvisos, true), 0);
@@ -2922,8 +3025,12 @@
     // Relê as notificações: o painel se repinta quando chegam.
     Promise.resolve(fn('carregarNotificacoes')?.()).then(() => pintarAvisos(), () => {});
   }
+  const curtosNaoVistos = () => (Array.isArray(globalThis.AVISOS_CURTOS_NO_SINO) ? globalThis.AVISOS_CURTOS_NO_SINO.filter((a) => !a.lido) : []);
+  const marcarCurtosVistos = () => { for (const a of globalThis.AVISOS_CURTOS_NO_SINO || []) a.lido = true; };
+  // Aviso curto que foi direto para o sino (vybe-core.js): o número acende na hora.
+  document.addEventListener?.('vybe:aviso-no-sino', () => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); });
   function pintarSelosDeAviso() {
-    const n = naoLidasDoPainel() + avisosPlanejamento(), el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
+    const n = naoLidasDoPainel() + avisosPlanejamento() + curtosNaoVistos().length, el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
     if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
     b?.setAttribute('aria-label', n ? `Avisos · ${n} para ver` : 'Avisos');
   }
@@ -3305,10 +3412,13 @@
         img.dataset.voxel = '1';
         const classe = decodeURIComponent(u.pathname.split('/').pop().replace(/\.png$/i, ''));
         img.dataset.movel = classe; // a arte local que entra no erro da imagem (miniaturaLocalEscritorio) é o mesmo móvel
+        // A arte do Habbo também não aparece antes disto (redesign r5, quadro 35: no celular dois ícones do Habbo ficavam ~1 s
+        // à vista enquanto o módulo do mundo carregava): o CSS esconde toda imagem de móvel do Habbo pelo endereço, na hora
+        // em que ela entra na página; só a que nem o voxel monta ganha movel-habbo e volta a aparecer.
         // Enquanto o voxel não chega, a pixel art do Habbo não aparece (Paulo: "nada de pixel art do Habbo"): o lugar da
         // imagem brilha como um carregando. Só um móvel que nem o quarto consegue montar em voxel volta à arte de sempre.
         img.classList.add('movel-esperando');
-        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
+        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (!url) img.classList.add('movel-habbo'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
         // Pulada na fila se a imagem sair de vista antes da vez dela; volta a pedir quando reaparecer (o observador de src).
         const vivo = () => img.isConnected && img.offsetParent !== null && img.dataset.movel === classe;
         modAvatar.retratoDoMovel?.(classe, 96, vivo).then((url) => { if (!url && !vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; } pronto(url); }, () => pronto(''));
@@ -3383,7 +3493,7 @@
   // sobem junto, para nada cobrir a barra (regra do Paulo: nada cobre, nada rola).
   // Mede quando o conteúdo muda (MutationObserver não depende de a página estar desenhando) e quando a largura muda.
   // Fora dos módulos a barra da sala abre no topo pela barra de ícones: não empurra os avisos de baixo.
-  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); document.body?.style?.setProperty?.('--vv-voz-alto', (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'); }
+  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); const v = (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'; if (document.body?.style?.getPropertyValue?.('--vv-voz-alto') !== v) document.body?.style?.setProperty?.('--vv-voz-alto', v); }
   if (typeof MutationObserver === 'function') new MutationObserver(medirBarra).observe(barra, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   if (typeof ResizeObserver === 'function') new ResizeObserver(medirBarra).observe(barra);
   let chamarAberto = false, pessoaAberta = null;
@@ -3693,7 +3803,9 @@
   const fecharModulo = () => { body.classList.remove('mundo-tela-cheia'); chamar('voltarAoMenu'); };
   cantoModulo.addEventListener?.('click', (e) => { const b = e.target.closest('[data-modulo-acao]'); if (!b) return; if (b.dataset.moduloAcao === 'cheia') alternarTelaCheia(); else fecharModulo(); });
   // Janelas por cima do módulo (briefing, cartão, menus, notificações, busca…): o Esc é delas.
-  const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
+  // A gaveta da peça (#workspace-drawer) nunca ganha a classe "open": ela só existe enquanto está aberta. Sem o id puro
+  // aqui, o Esc fechava a gaveta e a tela antiga juntas (quarta rodada, 11/11/2026).
+  const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #workspace-drawer, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
   const visivel = (el) => { if (!el.getClientRects?.().length) return false; const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > .05; };
   const janelaPorCima = () => [...document.querySelectorAll(POR_CIMA)].filter((el) => !el.closest('#mundo-hud, #mundo') && visivel(el)).pop() || null;
   const FECHAR_JANELA = '[data-fechar], .brief-fechar, [aria-label="Fechar"], [aria-label="Fechar janela"], [aria-label^="Fechar "], .modal-close, .fechar, .close, .fc-close, .workflow-close, .workspace-close, .cr-fechar, .p-draw-close, .manager-command-close, .cadastros-preview-close, .production-sheet-close, .x-fechar, [onclick*="fechar"], [onclick*="close"], [onclick*="Close"]';
@@ -4017,6 +4129,14 @@
   // ---------- Mostrar o mundo junto com a tela de módulos ----------
   let timer = null;
   const APP_AGENDA = typeof location !== 'undefined' && /^\/agenda\/?$/.test(location.pathname);
+  // A volta ao topo vai para o próximo quadro (quarta rodada, 11/11/2026): escrever scrollTop aqui, logo depois de trocar
+  // as classes do body, obrigava o navegador a recalcular o estilo da página inteira uma vez a mais (~100 ms) antes da
+  // primeira pintura. No quadro, antes de pintar, sai o mesmo recálculo que a pintura faria de qualquer jeito.
+  function voltarAoTopoNoQuadro() {
+    if (typeof requestAnimationFrame !== 'function') { body.scrollTop = 0; return; }
+    if (voltarAoTopoNoQuadro.pedido) return; voltarAoTopoNoQuadro.pedido = true;
+    requestAnimationFrame(() => { voltarAoTopoNoQuadro.pedido = false; if (body.classList.contains('mundo-modulo')) body.scrollTop = 0; });
+  }
   function sincronizar() {
     if (body.classList.contains('auth-pending')) fonteAgentes?.limpar();
     const gateAberto = !!document.getElementById('mode-gate')?.classList.contains('open');
@@ -4044,7 +4164,7 @@
     body.classList.toggle('mundo-modulo', modulo);
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
-    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
+    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { voltarAoTopoNoQuadro(); setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
     if (modulo && !window.VybeSetor?.aberto?.()) marcarTrilhoDoModulo();
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);

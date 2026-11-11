@@ -3,10 +3,12 @@
 // pelo tipo (cadeira, sofá, mesa, cama, estante, armário, planta, luminária, tela, troféu, tapete, som, máquina) e
 // MONTADO em voxel limpo, como nas referências: tampo com borda, pernas, gavetas com puxador, ripas, almofadas,
 // livros, vaso com borda. Do Habbo vêm o tamanho (pegada), o assento/cama (ficha) e as cores da arte do próprio
-// móvel. O que o motor não reconhece continua esculpido (moveis-habbo.mjs).
+// móvel. O que o motor não reconhece sai num volume liso pelo tamanho da peça (receita 'generico'); peça de parede
+// tem as receitas dela (montarDeParede). A escultura da arte (moveis-habbo.mjs) só fica se a medida não chegar.
 // Tudo na grade de 1/16 de ladrilho (o grão do padrão): medidas e posições caem nela.
 import { Obra } from './voxel.mjs';
 import { biblioteca } from './moveis-biblioteca.mjs';
+import { familias, TIPOS_FAMILIAS, tipoPeloNucleo, paredeFamilias, TIPOS_PAREDE_FAMILIAS, tipoDeConstrucao } from './moveis-familias.mjs';
 
 const G = 1 / 16;
 // Encaixe fino (1/64): o grão do desenho é G, mas detalhe de meia grade (fresta, puxador, botão) existe de verdade.
@@ -28,6 +30,14 @@ const sat = (cor) => { const c = hexRgb(cor); return (Math.max(...c) - Math.min(
 // Vale para a classe e para o nome do catálogo da Loja (assets/escritorio/habbo/catalogo.json, em inglês ou
 // português): "Three Seat Sofa", "Árvore de Natal Nevada", "Temple Fountain".
 const TIPOS = [
+  // Objetos pequenos de mesa e de canto (redesign r2, quadro 34: o que ainda saía esculpido da arte do Habbo).
+  ['telefone', /telephone|(^|[_ ])phone($|[_ ])|telefone/],
+  ['impressora', /printer|copier|(^|[_ ])fax($|[_ ])|impressora|copiadora/],
+  ['globo', /globe|globo/],
+  ['lixeira', /trash|(^|[_ ])bin($|[_ ])|garbage|wastebasket|lixeira|lixo/],
+  ['louca', /teapot|(^|[_ ])tea($|[_ ])|kettle|(^|[_ ])mug($|[_ ])|bule|chaleira|caneca/],
+  ['letreiro', /neon_?sign|(^|[_ ])sign($|[_ ]|\d)|letreiro/],
+  ['lareira', /fireplace|lareira/],
   ['tapete', /rug|carpet|(^|[_ ])mat($|[_ ])|tapete/],
   ['cama', /(^|[_ ])bed|futon|bunk|hammock|cama|beliche|rede/],
   ['trofeu', /troph|prize|(^|[_ ])cup($|[_ ])|award|medal|troféu|trofeu|taça|medalha/],
@@ -36,15 +46,17 @@ const TIPOS = [
   ['planta', /plant|flower|bush|cactus|palm|fern|bonsai|bamboo|rose|tulip|sunflower|hedge|planta|flor|vaso|cacto|samambaia|bambu/],
   ['luminaria', /lamp|(^|[_ ])light|lantern|torch|candle|chandelier|luminária|luminaria|abajur|lustre|lampião|vela/],
   ['sinuca', /pool_?table|pooltable|billiard|snooker|sinuca|bilhar/],
-  ['tela', /(^|[_ ])tv|telly|television|computer|(^|[_ ])comp($|[_ ])|laptop|(^|[_ ])pc($|[_ ])|monitor|screen|console|arcade|gaming_c\d+_rig|televis|computador|notebook|tela/],
+  ['tela', /(^|[_ ])tv|telly|television|computer|(^|[_ ])comp($|[_ ])|laptop|(^|[_ ])pc($|[_ ])|monitor|screen|console|arcade|gaming_c\d+_rig|televis|computador|notebook|tablet|tela/],
   ['som', /stereo|speaker|jukebox|radio|hifi|boombox|turntable|(^|[_ ])dj|estéreo|estereo|caixa de som|rádio/],
   ['maquina', /fridge|freezer|vending|drinksmachine|drinks machine|machine|oven|cooker|stove|microwave|washer|geladeira|fogão|forno|máquina|maquina/],
   ['sofa', /sofa|couch|lounger|loveseat|settee|sofá/],
   ['poltrona', /armchair|(^|[_ ])easy_?chair|recliner|throne|poltrona|trono/],
   ['cadeira', /chair|stool|(^|[_ ])seat|bench|cadeira|banco|banqueta/],
   ['estante', /shelf|shelves|bookcase|book_?shelf|mantelbooks|library|estante|prateleira/],
+  ['livros', /book|(^|[_ ])reads($|[_ ])|folder|magazine|livro|revista|fichário/],
   ['armario', /cabinet|wardrobe|closet|drawer|dresser|cupboard|locker|sideboard|nightstand|commode|armário|armario|gaveteiro|cômoda|criado/],
   ['mesa', /table|desk|counter|(^|[_ ])bar($|[_ ])|workbench|mesa|balcão|escrivaninha/],
+  ['caixa', /(^|[_ ])box($|[_ ]|\d)|crate|(^|[_ ])chest($|[_ ]|\d)|(^|[_ ])gift|present|caixa|baú|arca|presente/],
 ];
 // A categoria da Loja desempata quando o nome não diz.
 const BLOCOS = new Set(['Pisos do acervo', 'Blocos e materiais', 'Acabamentos', 'Divisórias']);
@@ -63,9 +75,13 @@ export function carregarCatalogo() {
 export function tipoModelado(classe, ficha = null, info = null) {
   const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
   // Peça de construção (piso, bloco, divisória): um bloco na paleta, com o desenho do material.
-  if (BLOCOS.has(info?.categoria)) return 'bloco';
-  let t = (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
+  // Divisórias, paredes, cantos, portas, cercas, colunas e escadas viram o que o nome diz (redesign r5); piso fica bloco.
+  if (BLOCOS.has(info?.categoria)) return (info.categoria !== 'Pisos do acervo' && tipoDeConstrucao(c)) || 'bloco';
+  // O substantivo principal do nome do catálogo manda ("Pia de Limo" é pia); só sem ele valem as palavras soltas.
+  let t = tipoPeloNucleo(info?.nome) || (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
   if (!t && info?.categoria) t = POR_CATEGORIA[info.categoria] || null;
+  // Famílias que antes caíam no volume liso (redesign r4): só para quem nenhuma regra acima reconheceu.
+  if (!t) t = (TIPOS_FAMILIAS.find(([, r]) => r.test(c)) || [null])[0];
   if (ficha?.deita) return 'cama';
   if (ficha?.senta && !['sofa', 'poltrona', 'cadeira', 'cama'].includes(t)) return t === 'mesa' || t === 'estante' || t === 'armario' ? t : 'cadeira';
   return t;
@@ -215,6 +231,17 @@ const RECEITAS = {
   },
   tela(o, { w, d, cor, classe }) {
     const pc = /comp|laptop|pc|monitor|rig/.test(classe);
+    if (/tablet/.test(classe)) { // mesa digitalizadora: tela inclinada num pé, caneta ao lado
+      const c = lum(cor.principal) < .45 ? cor.principal : '#2B2F33';
+      C(o, 0, 0, 0, G * 9, G, G * 6, tom(c, -.15)); C(o, 0, G, -G * 2, G * 2, G * 2, G * 2, c);
+      const brilho = cor.acento !== c && sat(cor.acento) > .25 ? tom(cor.acento, .35) : '#9FD8F5';
+      for (let k = 0; k < 4; k++) { // a tela inclinada para trás, em degraus, cada degrau aceso em cima
+        C(o, 0, G * 2 + k * G, G * 1.5 - k * G * 1.2, G * 10, G, G * 1.4, c);
+        L(o, 0, G * 3 + k * G, G * 1.5 - k * G * 1.2, G * 8, G / 4, G * 1.1, brilho);
+      }
+      C(o, G * 6, 0, G * 1.5, G / 2, G * 4, G / 2, '#1F1D1A'); C(o, G * 6, G * 4, G * 1.5, G, G / 2, G, cor.acento);
+      return;
+    }
     if (/laptop|notebook/.test(classe)) { // notebook aberto em cima da mesa
       const c = lum(cor.principal) > .35 ? cor.principal : '#C9CED3';
       C(o, 0, 0, G, G * 7, G / 2, G * 5, c); for (let k = 0; k < 4; k++) C(o, -G * 2 + k * G * 1.4, G / 2, G * 1.5, G, G / 4, G * 2, tom(c, -.2));
@@ -322,7 +349,282 @@ const RECEITAS = {
     C(o, mw / 2 - G * 2.5, G * 4, G * 5.3, G, G * 6, G, METAL);
     C(o, 0, 1.35, 0, mw + G, G, G * 11, tom(c, -.15));
   },
+  // ---- objetos pequenos (redesign r2, quadro 34): antes esculpidos da arte, agora montados no mesmo grão ----
+  telefone(o, { cor }) {
+    const c = lum(cor.principal) < .7 ? cor.principal : '#3A3F44';
+    C(o, 0, 0, 0, G * 7, G * 2, G * 6, c); C(o, 0, G * 2, -G, G * 7, G, G * 4, tom(c, .08)); // corpo em degrau
+    for (let k = 0; k < 9; k++) C(o, -G * 1.5 + (k % 3) * G * 1.5, G * 2, G * 1.5 + Math.floor(k / 3) * G * .9 - G * .9, G, G / 2, G / 2, tom(c, .4)); // teclas
+    C(o, 0, G * 3, -G, G * 7, G, G * 2, '#1F1D1A'); for (const a of [-1, 1]) C(o, a * G * 3, G * 3, -G, G * 2, G * 1.5, G * 2.5, tom(c, -.1)); // fone
+    L(o, G * 2.5, G * 2, G * 2.4, G * 1.5, G / 2, G / 2, cor.acento !== c ? cor.acento : '#7FE08A'); // luz de linha
+  },
+  impressora(o, { cor }) {
+    const c = lum(cor.principal) > .35 ? cor.principal : '#D6D3CC', esc = tom(c, -.3);
+    C(o, 0, 0, 0, G * 11, G * 5, G * 8, c); C(o, 0, G * 5, -G, G * 11, G, G * 6, tom(c, .08)); // corpo e tampa
+    C(o, 0, G * 6, -G * 3, G * 7, G * 2, G * 1.5, esc); C(o, 0, G * 6, -G * 3.6, G * 6, G * 3, G / 2, BRANCO); // bandeja de papel atrás
+    C(o, 0, G * 2, G * 4, G * 8, G, G * 2, esc); C(o, 0, G * 3, G * 4.2, G * 6, G / 2, G * 1.5, BRANCO); // saída na frente
+    C(o, G * 4, G * 6, G * 1.5, G * 2, G / 2, G * 1.5, '#1F1D1A'); L(o, G * 3, G * 6.2, G * 2.4, G / 2, G / 2, G / 2, '#7FE08A');
+  },
+  globo(o, { cor }) {
+    const metal = lum(cor.segunda) > .3 && sat(cor.segunda) < .5 ? cor.segunda : '#D9B45A', mar = hexRgb(cor.principal)[2] > hexRgb(cor.principal)[0] ? cor.principal : '#3C7DC4';
+    const terra = sat(cor.acento) > .2 && cor.acento !== mar ? cor.acento : '#6BBF5E';
+    C(o, 0, 0, 0, G * 6, G, G * 6, tom(metal, -.25)); C(o, 0, G, 0, G * 2, G * 3, G * 2, metal); // pé
+    esfera(o, 0, G * 4, 0, G * 4.5, mar);
+    for (let k = 0; k < 7; k++) { const a = k * 2.3, b = (r(k, 7) - .5) * 2.2; C(o, Math.cos(a) * G * 4.2 * Math.cos(b * .6), G * 8.5 + Math.sin(b * .6) * G * 3.5, Math.sin(a) * G * 4.2 * Math.cos(b * .6), G * 2, G * 1.5, G * 2, terra); } // continentes
+    for (let k = 0; k < 9; k++) { const a = -Math.PI / 2 + k * Math.PI / 8; C(o, Math.cos(a) * G * 5.5, G * 8.5 + Math.sin(a) * G * 5.5, 0, G, G, G, metal); } // meridiano
+  },
+  livros(o, { cor, classe, alto }) {
+    const base = (k) => [cor.principal, cor.acento, cor.segunda, ...LIVROS][k % (3 + LIVROS.length)];
+    if (/folder|pasta|fichário|magazine|revista/.test(classe)) { // porta-revistas com pastas saindo
+      for (let k = 0; k < 3; k++) {
+        const x = (k - 1) * G * 4.5, c = k % 2 ? tom(PRETO, .1) : PRETO;
+        C(o, x, 0, 0, G * 4, G * 8, G * 7, c); C(o, x, G * 6, G * 3.6, G * 4, G * 2, G / 2, c); // caixa com o recorte na frente
+        for (let p = 0; p < 3; p++) C(o, x - G + p * G, G * 2, -G * .5, G * .8, G * (7 + (k + p) % 3), G * 5, base(k * 3 + p));
+      }
+      return;
+    }
+    if (alto > 0 && alto < .25) { // um livro deitado (a ficha diz que é baixinho), com as páginas aparecendo
+      C(o, 0, 0, 0, G * 9, G * 1.5, G * 7, base(0)); C(o, G / 2, G / 4, 0, G * 8, G, G * 7.25, BRANCO); C(o, -G * 2, G * 1.5, G, G * 1.5, G / 4, G * 5, base(1));
+      return;
+    }
+    if (/pile|stack|pilha|(^|_)books_\d/.test(classe)) { // pilha de livros deitados
+      for (let k = 0; k < 5; k++) { const lw = G * (9 - (k % 3)), ld = G * (6 - (k % 2)); C(o, (r(k, 3) - .5) * G * 2, k * G * 1.6, (r(k, 5) - .5) * G * 2, lw, G * 1.5, ld, base(k)); C(o, (r(k, 3) - .5) * G * 2 + G / 2, k * G * 1.6 + G / 4, (r(k, 5) - .5) * G * 2, lw - G, G, ld + G / 4, BRANCO); }
+      return;
+    }
+    // Livros em pé entre dois apoios, com um deitado em cima (os livros soltos das referências).
+    const apoio = lum(cor.segunda) < .5 ? cor.segunda : MADEIRA_ESC;
+    for (const a of [-1, 1]) { C(o, a * G * 6, 0, 0, G, G * 7, G * 5, apoio); C(o, a * G * 5, 0, 0, G * 2, G, G * 5, apoio); }
+    let x = -G * 5;
+    for (let k = 0; x < G * 5 - G / 2; k++) { const lw = G * (1 + (k % 2)), lh = G * (5 + (k * 3) % 3); C(o, x + lw / 2, 0, 0, lw - G / 8, lh, G * 4.5, base(k)); x += lw; }
+    C(o, -G * 2, G * 7, 0, G * 6, G * 1.5, G * 4, base(4));
+  },
+  lixeira(o, { cor }) {
+    const c = lum(cor.principal) > .2 ? cor.principal : '#8D949A';
+    octogono(o, 0, 0, 0, G * 3, G * 8, tom(c, -.1)); octogono(o, 0, G * 8, 0, G * 3.5, G, tom(c, .12)); // corpo e borda
+    octogono(o, 0, G * 7.6, 0, G * 2.5, G / 2, '#2B2F33'); // o fundo escuro aparecendo
+    C(o, G, G * 8.2, 0, G * 2, G * 2, G * 2, BRANCO); C(o, -G, G * 8, G, G * 1.5, G * 1.5, G * 1.5, '#E9DFC8'); // papel amassado
+  },
+  louca(o, { cor }) {
+    const c = lum(cor.principal) > .25 ? cor.principal : BRANCO, d = tom(c, -.15);
+    octogono(o, 0, 0, 0, G * 2.5, G / 2, d); octogono(o, 0, G / 2, 0, G * 3, G * 4, c); octogono(o, 0, G * 4.5, 0, G * 2.2, G, d); // corpo
+    C(o, 0, G * 5.5, 0, G * 3, G / 2, G * 3, c); C(o, 0, G * 6, 0, G, G, G, cor.acento); // tampa e botão
+    for (let k = 0; k < 3; k++) C(o, G * (3 + k), G * (2 + k), 0, G, G, G, c); // bico subindo
+    C(o, -G * 3.5, G * 1.5, 0, G, G * 3, G, c); C(o, -G * 3, G * 4, 0, G * 1.5, G, G, c); C(o, -G * 3, G * 1, 0, G * 1.5, G, G, c); // alça
+    C(o, 0, G * 2.5, G * 2.8, G * 3, G, G / 2, cor.acento); // faixa pintada
+  },
+  letreiro(o, { cor, alto }) {
+    // Letreiro de neon pendurado (o neon de Tóquio): moldura escura, correntes e o desenho em tubos acesos.
+    const neon = sat(cor.acento) > .3 ? tom(cor.acento, .2) : '#FF7A2F', y0 = Math.max(G * 3, q(alto) || 0) + G * 2;
+    for (const a of [-1, 1]) for (let k = 0; k < 4; k++) C(o, a * G * 4, y0 + G * 9 + k * G, 0, G / 2, G / 2 + G / 4, G / 2, '#3A3F44'); // correntes
+    C(o, 0, y0 + G * 13, 0, G * 10, G / 2, G / 2, '#3A3F44');
+    C(o, 0, y0, -G / 2, G * 11, G * 9, G, '#1F1D1A'); // fundo
+    const traco = [[-3, 1, 6, 1], [-3, 4, 6, 1], [-3, 7, 6, 1], [-3, 1, 1, 7], [2, 1, 1, 7], [-1, 4, 1, 4]]; // o desenho em tubos
+    for (const [x, y, tw, th] of traco) L(o, (x + tw / 2) * G, y0 + y * G, G * .25, tw * G, th * G, G / 2, neon);
+    if (y0 > G * 4) { C(o, 0, 0, 0, G * 6, G, G * 4, '#3A3F44'); C(o, 0, G, -G / 2, G, y0 - G, G, '#3A3F44'); } // pé quando fica de pé
+  },
+  lareira(o, { w, cor }) {
+    const pedra = lum(cor.principal) > .3 ? cor.principal : '#B9A48A', lw = Math.min(w, 2) - G * 2;
+    C(o, 0, 0, -G * 3, lw, G * 14, G * 6, pedra); C(o, 0, G * 14, -G * 2.5, lw + G * 2, G * 2, G * 8, tom(pedra, .12)); // corpo e consolo
+    C(o, 0, G, G * 0.5, lw * .55, G * 8, G, '#2B1D14'); // boca
+    L(o, 0, G * 1.5, 0, lw * .4, G * 3, G * 2, '#FF9D4D'); L(o, -G, G * 3, 0, G * 2, G * 2, G * 1.5, '#FFD27A'); // fogo
+    C(o, 0, 0, G * 1.5, lw + G * 2, G, G * 3, tom(pedra, -.15)); // soleira
+  },
+  caixa(o, { w, d, cor, classe }) {
+    const s = Math.min(w, d, 1) * .55, c = cor.principal, presente = /gift|present|presente/.test(classe);
+    C(o, 0, 0, 0, s, s * .8, s, presente ? c : tom(c, -.05)); C(o, 0, s * .8, 0, s + G, G * 1.5, s + G, tom(c, .1)); // caixa e tampa
+    if (presente) { const f = cor.acento !== c ? cor.acento : '#E5484D'; C(o, 0, 0, 0, G * 1.5, s * .8 + G * 1.6, s + G * 1.1, f); C(o, 0, 0, 0, s + G * 1.1, s * .8 + G * 1.6, G * 1.5, f); for (const a of [-1, 1]) C(o, a * G * 1.5, s * .8 + G * 1.5, 0, G * 2, G * 2, G, f); return; }
+    for (const a of [-1, 1]) C(o, a * (s / 2 - G * 1.5), G, s / 2, G, s * .8 - G * 2, G / 2, tom(c, -.2)); // ripas
+    C(o, 0, s * .4, s / 2, s - G * 2, G, G / 2, tom(c, -.2));
+  },
+  // Peça sem receita própria (estátua, brinquedo, enfeite): em vez da escultura da arte, um volume liso em degraus
+  // pelo tamanho dela. A arte só dá medidas (moveis-habbo.mjs, perfilDaVista): a altura, quanto da pegada a peça
+  // ocupa em cada faixa de altura e a cor da faixa. Sem a medida, um pedestal com o enfeite em cima.
+  generico(o, { w, d, cor, perfil = null, altoArte = 0 }) {
+    const lw = w - G * 2, ld = d - G * 2;
+    const faixas = (perfil || []).filter((p) => p.f > 0);
+    if (faixas.length && altoArte <= G * 2.5) { // peça rasteira (adesivo de chão, placa): uma chapa com a borda
+      C(o, 0, 0, 0, lw, G / 2, ld, cor.segunda); C(o, 0, G / 4, 0, lw - G * 2, G / 2, ld - G * 2, faixas[0].cor || cor.principal);
+      C(o, 0, G / 2, 0, Math.max(G, lw - G * 6), G / 2, Math.max(G, ld - G * 6), cor.acento);
+      return;
+    }
+    const lista = faixas.length ? faixas : [{ f: .8, cor: cor.segunda }, { f: .62, cor: cor.principal }, { f: .62, cor: cor.principal }, { f: .4, cor: cor.acento }];
+    const total = faixas.length ? altoArte : .62, hb = Math.max(G, q(total / lista.length));
+    let antes = null;
+    lista.forEach((p, k) => {
+      const bw = Math.max(G * 2, q(p.f * lw)), bd = Math.max(G * 2, q(p.f * ld)), c = p.cor || cor.principal;
+      // Faixa igual à de baixo (mesma largura) ganha um friso de meia grade a menos: o volume não vira um caixote liso.
+      const igual = antes && antes.bw === bw && antes.c === c;
+      C(o, 0, k * hb, 0, igual ? bw - G / 2 : bw, hb, igual ? bd - G / 2 : bd, k % 2 ? tom(c, -.05) : c);
+      antes = { bw, c };
+    });
+    const topo = lista[lista.length - 1], tw = Math.max(G * 2, q(topo.f * lw)), td = Math.max(G * 2, q(topo.f * ld));
+    C(o, 0, lista.length * hb, 0, Math.max(G, tw - G * 2), G / 2, Math.max(G, td - G * 2), tom(topo.cor || cor.principal, .14)); // topo pegando luz
+    C(o, 0, 0, 0, Math.min(lw, Math.max(G * 3, q(lista[0].f * lw)) + G), G, Math.min(ld, Math.max(G * 3, q(lista[0].f * ld)) + G), tom(lista[0].cor || cor.segunda, -.22)); // rodapé
+  },
 };
+
+// ---------- peças de parede (redesign r2, quadro 34): antes uma placa com o desenho do Habbo pixel a pixel ----------
+// Agora montadas como os móveis do chão. Convenção: x ao longo da parede (centro em 0), y para cima (base em 0),
+// z saindo da parede (a parede em z = 0). w × h: o retângulo que a peça ocupa na parede, medido da arte dela.
+const TIPOS_PAREDE = [
+  ['relogio', /clock|relógio|relogio/],
+  ['janela', /window|wndw|(^|[_ ])wdw|skyline|janela|vitral|st_glass/],
+  ['espelho', /mirror|espelho/],
+  ['arandela', /lamp|light|lantern|torch|candle|sconce|dimmer|luminária|luminaria|arandela|tocha|lanterna|vela/],
+  ['prateleira', /shelf|shelves|shrack|clrack|(^|[_ ])rack|cabinet|cabnt|prateleira|armário|armario/],
+  ['bandeira', /flag|bunting|banner|bandeira|faixa/],
+  ['letreiro', /neon|(^|[_ ])sign($|[_ ]|\d)|logo|letreiro/],
+  ['mapa', /(^|[_ ])map($|[_ ]|\d)|mapa/],
+  ['lousa', /chalkboard|blackboard|whiteboard|noticeboard|(^|[_ ])board|lousa/],
+  ['planta', /plant|plnt|flower|(^|[_ ])ivy|vine|garden|jngl|forest|planta|flor|trepadeira/],
+  ['disco', /vinyl|record|(^|[_ ])disc($|[_ ])|vinil/],
+  ['quadro', /paint|poster|pstr|picture|photo|frame|portrait|(^|[_ ])art($|[_ ])|canvas|decal|sticker|(^|[_ ])tag\d*($|[_ ])|xray|chart|quadro|pôster|foto|retrato|adesivo/],
+];
+export function tipoDeParede(classe, info = null) {
+  const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
+  // As famílias de parede do redesign r4 só valem para quem as regras acima não reconhecem; o resto é o painel.
+  return (TIPOS_PAREDE.find(([, r]) => r.test(c)) || TIPOS_PAREDE_FAMILIAS.find(([, r]) => r.test(c)) || ['painel'])[0];
+}
+const CLARO = '#F7F2E8';
+// Moldura em quatro réguas (o miolo fica livre para o que vai dentro) e o fundo um passo atrás.
+function moldura(o, w, h, cor, fundo, t = G) {
+  C(o, 0, 0, G / 2, w, t, G, cor); C(o, 0, h - t, G / 2, w, t, G, cor);
+  for (const a of [-1, 1]) C(o, a * (w / 2 - t / 2), t, G / 2, t, h - t * 2, G, cor);
+  if (fundo) C(o, 0, t, G / 4, w - t * 2, h - t * 2, G / 2, fundo);
+}
+const madeiraDe = (cor) => (lum(cor.segunda) < .55 && sat(cor.segunda) > .12 ? cor.segunda : MADEIRA_ESC);
+const RECEITAS_PAREDE = {
+  janela(o, { w, h, cor }) {
+    const m = lum(cor.principal) > .6 || sat(cor.principal) < .12 ? CLARO : cor.principal, vidros = Math.max(1, Math.round(w / .7));
+    moldura(o, w, h, m, null, G * 1.5);
+    C(o, 0, G * 1.5, G / 4, w - G * 3, h - G * 3, G / 2, '#BFE6F2'); // o céu no vidro (liso: aceso, o brilho apagava a moldura)
+    for (let k = 0; k < vidros; k++) for (let i = 0; i < 2; i++) C(o, -w / 2 + (w / vidros) * (k + .3) + i * G * 1.5, h * .58 + i * G * 1.5, G / 2, G * 1.5, G, G / 4, '#F4FBFF'); // reflexo em degraus
+    for (let k = 1; k < vidros; k++) C(o, -w / 2 + (w / vidros) * k, G * 1.5, G / 2, G, h - G * 3, G / 2, m); // montantes
+    C(o, 0, h / 2 - G / 2, G / 2, w - G * 3, G, G / 2, m); // travessa
+    C(o, 0, -G, G * 1.5, w + G * 2, G, G * 3, tom(m, .06)); // peitoril
+  },
+  arandela(o, { w, h, cor }) {
+    const metal = lum(cor.segunda) > .3 && sat(cor.segunda) < .6 ? cor.segunda : '#D9B45A', cupula = lum(cor.principal) > .5 ? cor.principal : '#FFF4D6';
+    const cx = Math.min(G * 7, w), y = Math.max(0, h / 2 - G * 4);
+    C(o, 0, y, G / 2, G * 3, G * 5, G, tom(metal, -.2)); // espelho na parede
+    C(o, 0, y + G * 2, G * 2, G, G, G * 3, metal); C(o, 0, y + G * 2, G * 3.5, G, G * 2, G, metal); // braço
+    C(o, 0, y + G * 4, G * 3.5, cx - G * 2, G, G * 4, tom(cupula, -.08)); C(o, 0, y + G * 5, G * 3.5, cx - G, G * 3, G * 5, cupula); C(o, 0, y + G * 8, G * 3.5, cx - G * 3, G, G * 3, tom(cupula, -.06)); // cúpula
+    L(o, 0, y + G * 3.6, G * 3.5, cx - G * 3, G / 2, G * 3, '#FFE7A3'); // a luz por baixo
+  },
+  relogio(o, { w, h, cor, classe }) {
+    const s = Math.max(G * 6, Math.min(w, h)), caixa = lum(cor.principal) < .6 ? cor.principal : PRETO, y0 = (h - s) / 2;
+    if (/pixel|digital|led/.test(classe)) { // relógio digital: caixa escura e os números acesos
+      const lw = Math.max(s, Math.min(w, s * 1.6)), aceso = sat(cor.acento) > .3 ? tom(cor.acento, .25) : '#7FE08A';
+      C(o, 0, y0, G / 2, lw, s, G, caixa); C(o, 0, y0 + G, G, lw - G * 2, s - G * 2, G / 2, '#1F1D1A');
+      const dw = (lw - G * 5) / 4, dh = s - G * 4;
+      for (let k = 0; k < 4; k++) { // quatro dígitos em tubos e os dois pontos no meio
+        const x = -lw / 2 + G * 2 + dw * (k + .5) + (k > 1 ? G : 0);
+        for (const yy of [0, dh / 2 - G / 4, dh - G / 2]) if (!(k === 1 && yy === 0)) L(o, x, y0 + G * 2 + yy, G * 1.25, dw - G, G / 2, G / 4, aceso);
+        L(o, x + (dw - G) / 2 - G / 4, y0 + G * 2, G * 1.25, G / 2, k % 2 ? dh : dh / 2, G / 4, aceso);
+        if (k !== 2) L(o, x - (dw - G) / 2 + G / 4, y0 + G * 2 + (k ? dh / 2 : 0), G * 1.25, G / 2, dh / 2, G / 4, aceso);
+      }
+      for (const yy of [.33, .66]) L(o, G / 2, y0 + G * 2 + dh * yy - G / 4, G * 1.25, G / 2, G / 2, G / 4, aceso);
+      return;
+    }
+    C(o, 0, y0 + G, G / 2, s, s - G * 2, G, caixa); C(o, 0, y0, G / 2, s - G * 2, s, G, caixa); // caixa de cantos chanfrados
+    C(o, 0, y0 + G * 1.5, G, s - G * 2, s - G * 3, G / 2, CLARO); C(o, 0, y0 + G, G, s - G * 3, s - G * 2, G / 2, CLARO); // mostrador
+    for (const [a, b] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) C(o, a * (s / 2 - G * 1.75), y0 + s / 2 - G / 4 + b * (s / 2 - G * 1.75), G * 1.4, G / 2, G / 2, G / 4, caixa); // 12, 3, 6, 9
+    C(o, 0, y0 + s / 2 - G / 4, G * 1.5, G / 2, s / 2 - G * 2, G / 4, '#1F1D1A'); C(o, s / 8, y0 + s / 2 - G / 4, G * 1.5, s / 4, G / 2, G / 4, '#1F1D1A'); // ponteiros
+    C(o, 0, y0 + s / 2 - G / 2, G * 1.6, G, G, G / 4, cor.acento !== caixa ? cor.acento : '#E5484D');
+  },
+  espelho(o, { w, h, cor }) {
+    const m = lum(cor.principal) < .75 ? cor.principal : '#D9B45A';
+    moldura(o, w, h, m, '#BFE6F2', G * 1.5);
+    for (let k = 0; k < 3; k++) C(o, -w / 4 + k * G * 1.5, h * .55 + k * G * 1.5, G / 2, G * 2, G, G / 4, '#F4FBFF'); // o reflexo, em degraus
+    C(o, 0, h - G / 2, G, Math.max(G * 2, w * .4), G, G * 1.5, tom(m, .14));
+  },
+  prateleira(o, { w, h, cor }) {
+    const m = lum(cor.principal) > .2 ? cor.principal : MADEIRA, n = Math.max(1, Math.round(h / .5));
+    for (let k = 0; k < n; k++) {
+      const y = k * (h / n);
+      C(o, 0, y, G * 2, w, G, G * 4, m); for (const a of [-1, 1]) C(o, a * (w / 2 - G * 2), Math.max(0, y - G * 2), G, G, G * 2, G * 2, tom(m, -.25)); // tábua e mãos-francesas
+      let x = -w / 2 + G * 2; const alt = Math.max(G * 2, h / n - G * 3);
+      for (let i = 0; x < w / 2 - G * 5; i++) { const lw = G * (1 + (i % 2)); C(o, x + lw / 2, y + G, G * 2, lw - G / 8, Math.min(alt, G * (3 + (i * 3 + k) % 3)), G * 3, LIVROS[(i + k * 2) % LIVROS.length]); x += lw; }
+      C(o, w / 2 - G * 3, y + G, G * 2, G * 2, Math.min(alt, G * 2), G * 2, cor.acento); // um enfeite na ponta
+    }
+  },
+  bandeira(o, { w, h, cor }) {
+    const faixas = [cor.principal, cor.segunda, cor.acento].filter((c, i, l) => l.indexOf(c) === i), bw = w - G * 2, alto = Math.min(h - G, bw * .7);
+    C(o, -w / 2 + G / 2, 0, G, G, h, G, METAL); C(o, -w / 2 + G / 2, h, G, G * 1.5, G, G * 1.5, '#D9B45A'); // mastro
+    faixas.forEach((c, k) => C(o, G / 2, h - G - alto + (faixas.length - 1 - k) * (alto / faixas.length), G / 2 + (k % 2) * G / 4, bw, alto / faixas.length, G / 2, c));
+  },
+  letreiro(o, { w, h, cor }) {
+    const neon = sat(cor.acento) > .3 ? tom(cor.acento, .2) : '#FF7A2F', outro = sat(cor.principal) > .3 && cor.principal !== cor.acento ? tom(cor.principal, .25) : '#7FD3FF';
+    C(o, 0, 0, G / 4, w, h, G / 2, '#1F1D1A');
+    for (const [y, c] of [[G, neon], [h - G * 1.5, neon]]) L(o, 0, y, G * .75, w - G * 2, G / 2, G / 2, c); // tubos da borda
+    for (const a of [-1, 1]) L(o, a * (w / 2 - G * 1.25), G, G * .75, G / 2, h - G * 2, G / 2, neon);
+    const n = Math.max(2, Math.round((w - G * 6) / (G * 3)));
+    for (let k = 0; k < n; k++) L(o, -(w - G * 6) / 2 + (k + .5) * (w - G * 6) / n, G * 3, G * .75, G, Math.max(G, (h - G * 6) * (.5 + .5 * r(k, 9))), G / 2, k % 2 ? outro : neon); // o desenho em tubos
+  },
+  mapa(o, { w, h, cor }) {
+    const mar = hexRgb(cor.principal)[2] >= hexRgb(cor.principal)[0] ? cor.principal : '#6BAED6', terra = sat(cor.acento) > .2 && cor.acento !== mar ? cor.acento : '#8FBF6B';
+    moldura(o, w, h, madeiraDe(cor), mar);
+    const iw = w - G * 4, ih = h - G * 4; // continentes em manchas de blocos
+    for (const [x, y, a, b] of [[-.3, .55, .3, .3], [-.22, .2, .16, .3], [.12, .5, .34, .36], [.3, .2, .14, .16], [.02, .78, .18, .1]]) C(o, x * iw, G * 2 + y * ih, G / 2, Math.max(G, a * iw), Math.max(G, b * ih), G / 4, terra);
+    C(o, .12 * iw, G * 2 + .62 * ih, G * .6, G, G, G / 4, '#E5484D'); // o alfinete
+  },
+  lousa(o, { w, h, cor }) {
+    const quadro = lum(cor.principal) < .5 ? cor.principal : '#3F6B55';
+    moldura(o, w, h, madeiraDe(cor), quadro, G);
+    for (let k = 0; k < 3; k++) C(o, -w / 6 + (k % 2) * G, h - G * 4 - k * G * 2.5, G / 2, Math.max(G * 2, w * (.5 - k * .1)), G / 2, G / 4, CLARO); // linhas de giz
+    C(o, 0, 0, G * 1.5, w - G * 2, G / 2, G * 2, madeiraDe(cor)); C(o, w / 4, G / 2, G * 1.5, G * 2, G / 2, G / 2, CLARO); // calha com o giz
+  },
+  planta(o, { w, h, cor }) {
+    const verde = sat(cor.principal) > .2 && hexRgb(cor.principal)[1] > hexRgb(cor.principal)[0] ? cor.principal : VERDES[0], folhas = [verde, tom(verde, -.18), tom(verde, .15)];
+    const vaso = sat(cor.acento) > .25 && hexRgb(cor.acento)[1] <= hexRgb(cor.acento)[0] ? cor.acento : '#D9774B', pv = Math.min(w, G * 7);
+    const topo = Math.max(G * 5, h - G * 3); // o vaso preso no alto, com as folhas cabendo acima dele
+    C(o, 0, topo - G * 5, G * 2, pv, G * 4, G * 4, vaso); C(o, 0, topo - G, G * 2.25, pv + G, G, G * 4.5, tom(vaso, .12));
+    for (let k = 0; k < 4; k++) C(o, (r(k, 2) - .5) * (pv - G * 2), topo + (k % 2) * G, G * 2.25, G * 2.5, G * 2, G * 2.5, folhas[k % 3]);
+    const n = Math.max(2, Math.round(w / (G * 3))), pe = topo - G * 5; // ramos caindo, cada um com um comprimento
+    for (let k = 0; k < n; k++) { const x = -w / 2 + G * 1.5 + (k + .5) * (w - G * 3) / n, comp = pe * (.35 + .65 * r(k, 4)); for (let y = 0; y + G * 2 <= comp; y += G * 2) C(o, x + (r(k, y * 9) - .5) * G, pe - y - G * 2, G * 1.5 + (k % 2) * G, G * 2, G * 2, G * 1.5, folhas[(k + Math.round(y / G)) % 3]); }
+  },
+  disco(o, { w, h, cor }) {
+    const s = Math.max(G * 6, Math.min(w, h)), y0 = (h - s) / 2, selo = sat(cor.acento) > .25 ? cor.acento : '#E5484D';
+    C(o, 0, y0 + G * 1.5, G / 4, s, s - G * 3, G / 2, '#1F1D1A'); C(o, 0, y0, G / 4, s - G * 3, s, G / 2, '#1F1D1A'); C(o, 0, y0 + G * .75, G / 4, s - G * 1.5, s - G * 1.5, G / 2, '#1F1D1A'); // o disco, em octógono
+    C(o, 0, y0 + s / 2 - s / 3, G / 2, s * .66, s * .66, G / 4, '#2B2F33'); // sulcos
+    C(o, 0, y0 + s / 2 - G * 1.5, G * .75, G * 3, G * 3, G / 4, selo); C(o, 0, y0 + s / 2 - G / 4, G, G / 2, G / 2, G / 4, CLARO); // selo e furo
+  },
+  quadro(o, { w, h, cor, classe }) {
+    const papel = /poster|pstr|decal|sticker|adesivo|pôster/.test(classe), ceu = lum(cor.principal) > .35 ? cor.principal : tom(cor.principal, .45);
+    if (papel) C(o, 0, 0, G / 4, w, h, G / 2, ceu); else moldura(o, w, h, madeiraDe(cor), ceu, G * 1.5);
+    const b = papel ? G : G * 1.5, iw = w - b * 2, ih = h - b * 2, z = G / 2;
+    // A pintura em manchas lisas: chão, morro e o sol (as cores são as da arte da peça).
+    C(o, 0, b, z, iw, ih * .3, G / 4, cor.segunda); C(o, -iw / 5, b + ih * .3, z, iw * .45, ih * .22, G / 4, tom(cor.segunda, .15));
+    C(o, iw / 4, b + ih * .3, z, iw * .3, ih * .12, G / 4, tom(cor.segunda, -.12));
+    C(o, iw / 5, b + ih * .62, z + G / 8, Math.min(iw, ih) * .26, Math.min(iw, ih) * .26, G / 4, cor.acento);
+  },
+  painel(o, { w, h, cor }) {
+    // Peça de parede sem receita própria: um painel liso com a faixa e o detalhe nas cores da arte.
+    C(o, 0, 0, G / 4, w, h, G / 2, tom(cor.principal, -.18)); C(o, 0, G, G / 2, w - G * 2, h - G * 2, G / 2, cor.principal);
+    C(o, 0, G * 2, G * .75, w - G * 4, Math.max(G, (h - G * 4) * .3), G / 4, cor.segunda);
+    C(o, w / 5, h * .6, G * .75, Math.max(G, Math.min(w, h) * .25), Math.max(G, Math.min(w, h) * .25), G / 4, cor.acento);
+  },
+};
+Object.assign(RECEITAS_PAREDE, paredeFamilias({ C, L, G, tom, lum, sat, hexRgb, moldura, madeiraDe, LIVROS, METAL }));
+export const TIPOS_DE_PAREDE = Object.keys(RECEITAS_PAREDE);
+// Monta a peça de parede: devolve a Obra (centro em x = 0, base em y = 0, encostada na parede em z = 0, frente +z).
+export function montarDeParede(tipo, { w = 1, h = 1, cores, classe = '' } = {}) {
+  const f = RECEITAS_PAREDE[tipo] || RECEITAS_PAREDE.painel, o = new Obra();
+  f(o, { w: Math.max(G * 4, q(w)), h: Math.max(G * 4, q(h)), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase() });
+  [...o.solidos, ...o.luzes].forEach((b, i) => { const e = (i + 1) * .00006; b.w += e; b.h += e; b.d += e; b.y -= e / 2; });
+  return o;
+}
+// Peças redondas na grade: octógono (duas caixas cruzadas) e esfera em fatias de octógono.
+function octogono(o, x, y, z, raio, h, cor) { C(o, x, y, z, raio * 2, h, raio * 1.2, cor); C(o, x, y, z, raio * 1.2, h, raio * 2, cor); }
+function esfera(o, x, y, z, raio, cor) {
+  const n = Math.max(3, Math.round(raio / G));
+  for (let k = 0; k < n * 2; k++) {
+    const yc = -raio + (k + .5) * G, rr = Math.sqrt(Math.max(0, raio * raio - yc * yc)); if (rr < G / 2) continue;
+    for (const [a, b] of [[rr * 2, rr * 1.2], [rr * 1.2, rr * 2]]) C(o, x, y + raio + yc - G / 2, z, a, G, b, cor);
+  }
+}
+
+// As famílias novas (moveis-familias.mjs) entram como receitas do motor, com as mesmas ferramentas.
+Object.assign(RECEITAS, familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, pernas, LIVROS, METAL }));
 
 // Móveis modelados um a um (moveis-biblioteca.mjs), com as ferramentas deste motor.
 let BIBLIOTECA = null;
@@ -330,11 +632,12 @@ const modelos = () => (BIBLIOTECA ||= biblioteca({ C, L, G, tom, gaveta, pernas,
 export const temModelo = (classe) => Object.prototype.hasOwnProperty.call(modelos(), String(classe));
 
 // Monta o móvel: devolve a Obra (centro da pegada em 0, base 0, frente +z) ou null (tipo sem receita).
+// perfil e altoArte: as medidas da arte para a peça sem receita própria (tipo 'generico').
 // w e d: pegada em ladrilhos na direção 4 (a de frente). cores: { principal, segunda, acento }.
-export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0 } = {}) {
+export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0, perfil = null, altoArte = 0 } = {}) {
   const f = modelos()[classe] || RECEITAS[tipo]; if (!f) return null;
   const o = new Obra();
-  f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase(), alto });
+  f(o, { w: Math.max(.5, w), d: Math.max(.5, d), cor: cores || coresDaPaleta([]), classe: String(classe).toLowerCase(), alto, perfil, altoArte });
   // Sem empate de faces: cada peça desenhada depois (o detalhe) cresce um fio a mais que a anterior (o corpo), então
   // duas faces no mesmo plano nunca brigam na tela ao mover a câmera. 0,00006 por peça: invisível no tamanho.
   [...o.solidos, ...o.luzes].forEach((b, i) => { const e = (i + 1) * .00006; b.w += e; b.h += e; b.d += e; b.y -= e / 2; });
@@ -342,3 +645,51 @@ export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0 }
   return o;
 }
 export const TIPOS_MODELADOS = Object.keys(RECEITAS);
+
+// ---------- peça sem a arte do Habbo no repositório (redesign r5, quadro 35) ----------
+// A arte das peças fora de assets/escritorio/habbo vinha do habboassets pela API, que limita os pedidos (429) e
+// devolvia 404: a Loja ficava com a pixel art do Habbo e o console cheio de 404. Agora essas peças não pedem nada: o
+// voxel sai pelo que se sabe delas (tipo e família pelo nome e categoria do catálogo, altura da ficha do Habbo, cor
+// pelas palavras do nome ou a padrão da categoria). A lista das que têm arte é mundo/artes-locais.json.
+const CORES_DO_NOME = [
+  [/(^|[_ ])(red|vermelh|crimson|scarlet|carmesim|ruby|rubi)/, '#E5484D'], [/(^|[_ ])(pink|rosa($|[ _])|rose($|[ _])|fuchsia|magenta)/, '#F06EA0'],
+  [/(^|[_ ])(orange|laranja|tangerine)/, '#FF7A2F'], [/(^|[_ ])(yellow|amarel|lemon)/, '#F2C230'], [/(^|[_ ])(gold|golden|dourad|ouro)/, '#E9C46A'],
+  [/(^|[_ ])(lime|mint|menta)/, '#8FD3C7'], [/(^|[_ ])(green|verde|emerald|esmeralda|jade|olive)/, '#4FA35A'], [/(^|[_ ])(teal|turquoise|turquesa|aqua|cyan|ciano)/, '#2FA7A0'],
+  [/(^|[_ ])(blue|azul|navy|sapphire|safira|cobalt)/, '#3D7DD8'], [/(^|[_ ])(sky|celeste|ice|gelo|frozen|frost|snow|neve)/, '#A2C8E8'],
+  [/(^|[_ ])(purple|roxo|roxa|violet|violeta|lilac|lil[áa]s|lavender|lavanda|amethyst)/, '#8E6CC9'], [/(^|[_ ])(black|pret[oa]|dark|escur|ebony|obsidian|shadow|gothic|g[óo]tic)/, '#4A403A'],
+  [/(^|[_ ])(white|branc|ivory|marfim|pearl|marble|m[áa]rmore|cream|creme)/, '#F7F2E8'], [/(^|[_ ])(grey|gray|cinza|silver|prata|steel|a[çc]o|metal|iron|ferro|concrete|concreto|stone|pedra|rock)/, '#B8AE9F'],
+  [/(^|[_ ])(beige|bege|sand|areia|tan)/, '#E2D9C8'], [/(^|[_ ])(brown|marrom|chocolate|coffee|caf[ée]|mahogany|mogno|walnut)/, '#8A5A3C'],
+  [/(^|[_ ])(wood|madeira|oak|carvalho|pine|pinho|log|tronco|bamboo|bambu|plank|t[áa]bua|country|lodge|cabin|chal[ée])/, '#C9774A'],
+  [/(^|[_ ])(neon|rainbow|multicolou?r|colorid)/, '#F06EA0'], [/(^|[_ ])(lava|fire|fogo|flame|chama)/, '#FF7A2F'], [/(^|[_ ])(water|[áa]gua|sea|mar($|[ _])|ocean|pool|piscina)/, '#7FC8E8'],
+  [/(^|[_ ])(grass|grama|hedge|leaf|folha|jungle|selva|forest|floresta|garden|jardim|bush|arbusto|tree|[áa]rvore|plant)/, '#4FA35A'],
+];
+const COR_DA_CATEGORIA = { Jardim: '#4FA35A', Luzes: '#F2C230', 'Cadeiras e sofás': '#C9774A', Mesas: '#E0A36A', Estantes: '#B0623C', Tapetes: '#E5484D',
+  'Divisórias': '#E2D9C8', 'Blocos e materiais': '#B8AE9F', 'Pisos do acervo': '#E0A36A', Acabamentos: '#E2D9C8', Cozinha: '#F7F2E8', 'Detalhes de cozinha': '#F7F2E8',
+  Jogos: '#3D7DD8', 'Música': '#8E6CC9', Festa: '#F06EA0', 'Troféus': '#E9C46A', 'Física': '#2FA7A0', Gatilhos: '#8E6CC9', Ferramentas: '#857B70',
+  'Barracas e veículos': '#E5484D', 'Na parede': '#EDE3D2', 'Do escritório': '#857B70', 'Escritório': '#857B70', Casa: '#C9774A' };
+const COR_DO_TIPO = { planta: '#4FA35A', arvore: '#4FA35A', cogumelo: '#E5484D', abobora: '#FF7A2F', pedra: '#B8AE9F', cristal: '#A2C8E8', balao: '#E5484D',
+  aquario: '#7FC8E8', banheira: '#F7F2E8', maquina: '#F7F2E8', tela: '#2E2824', trofeu: '#E9C46A', neve: '#F7F2E8', fogueira: '#FF7A2F', bolo: '#F06EA0',
+  ovo: '#F7F2E8', lapide: '#B8AE9F', coluna: '#E2D9C8', parede: '#E2D9C8', divisoria: '#E0A36A', porta: '#C9774A', janela: '#F7F2E8', escada: '#C9774A',
+  cerca: '#C9774A', canto: '#E2D9C8', luminaria: '#F2C230', bicho: '#E0A36A', livros: '#B0623C', cama: '#3D7DD8', sofa: '#3D7DD8', poltrona: '#8E6CC9' };
+// { principal, segunda, acento } pelo nome (classe + nome do catálogo), pelo tipo e pela categoria.
+export function coresSemArte(classe, info = null, tipo = '') {
+  const texto = (String(classe || '').replace(/_/g, ' ') + ' ' + String(info?.nome || '')).toLowerCase();
+  const achadas = CORES_DO_NOME.filter(([r]) => r.test(texto)).map(([, c]) => c);
+  const base = achadas[0] || COR_DO_TIPO[tipo] || COR_DA_CATEGORIA[info?.categoria] || MADEIRA;
+  const segunda = achadas[1] || (lum(base) > .7 ? tom(base, -.3) : tom(base, .28));
+  const acento = achadas[2] || achadas[1] || (sat(base) > .3 ? '#F7F2E8' : '#FF7A2F');
+  return { principal: base, segunda, acento };
+}
+// Pegada (w × d, em ladrilhos) de quem não tem a arte: a mais comum de cada tipo no acervo; o nome ajusta ("Large",
+// "Three Seat", "Double").
+const PEGADA_DO_TIPO = { sofa: [2, 1], cama: [1, 2], sinuca: [2, 2], palco: [2, 2], barraca: [2, 2], casinha: [2, 2], veiculo: [2, 1], banheira: [2, 1],
+  tapete: [2, 2], arco: [2, 1], porta: [1, 1], parede: [1, 1], divisoria: [1, 1], cerca: [1, 1], canto: [1, 1], estante: [1, 1], mesa: [1, 1] };
+export function pegadaSemArte(tipo, info = null, classe = '') {
+  const [w, d] = PEGADA_DO_TIPO[tipo] || [1, 1], n = (String(classe) + ' ' + String(info?.nome || '')).toLowerCase();
+  const grande = /large|big|grande|giant|gigante|double|duplo|dupla|three|triple|three_?seat|long($|[ _])|longo|longa|wide|largo/.test(n);
+  return grande && tipo !== 'porta' && tipo !== 'coluna' ? { w: Math.max(w, 2), d } : { w, d };
+}
+// Peça de parede sem a arte: o retângulo (w × h, em ladrilhos/níveis) mais comum do tipo.
+const PLACA_DO_TIPO = { janela: [1, 1.3], paisagem: [1, 1.6], revestimento: [1, 2.2], cortina: [1, 1.8], prateleira: [.9, .5], quadro: [.7, .8], espelho: [.6, 1],
+  relogio: [.5, .5], arandela: [.35, .6], bandeira: [.7, 1], letreiro: [.9, .5], lousa: [1, .8], tela: [1, .7], lareira: [1, 1.2], fonte: [.8, 1] };
+export function placaSemArte(tipo) { const [w, h] = PLACA_DO_TIPO[tipo] || [.7, .7]; return { w, h }; }
