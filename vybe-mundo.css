@@ -5623,6 +5623,7 @@ body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}
 .vcr-msg{margin:4px 0 0;font:600 12px/1.4 var(--vv-texto);color:#1F7A45}
 .vcr-msg.erro{color:#B42318}
 .vcr-msg.erro::before{content:"Erro: "}
+.vcr-msg.espera{color:#8A5A00}
 .vcr-cli{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1fr) minmax(0,1.4fr);gap:10px 14px;align-items:start;padding:10px 12px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF}
 .vcr-cli-cab{display:grid;gap:4px;justify-items:start}
 .vcr-cli-cab small,.vcr-cli-col > small{font:500 11.5px var(--vv-texto);color:#6B675F}

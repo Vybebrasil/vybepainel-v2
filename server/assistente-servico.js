@@ -36,6 +36,7 @@ import { acompanhamento, focoDaPessoa } from './assistente-acompanhamento.js';
 import { impressoesParaAgente, registrarPeloAgente } from './impressoes.js';
 import { planejamentoPecasParaAgente } from './planejamentos.js';
 import { pacotesParaAvisar, marcarAvisado, executarPacote, recusarPacote } from './pacotes-producao.js';
+import { cobrancasParaEnviar, registrarResultado } from './cobrancas-whatsapp.js';
 
 // Mesmo handler do endpoint existente, com banco injetável para integração.
 export async function atenderBotAssistente(req, res, criarBanco, config = process.env) {
@@ -120,7 +121,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       return res.status(200).json({ ok: true, ...(await minhasDemandas(criarBanco(), id)) });
     }
     // Rotinas e avisos ativos (agência inteira): só pessoa administradora, no privado.
-    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita', 'redistribuicoes', 'pacotes', 'pacote_avisado', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
+    if (['vybes_publicar', 'vybes_acao', 'rotina', 'identificar', 'avisos', 'ronda', 'dias_pessoais', 'riscos', 'resumos_semana', 'arte_da_peca', 'comentar_revisao', 'previa_da_peca', 'saude_clientes', 'impressoes', 'impressao_registrar', 'planejamento_pecas', 'aprovacoes', 'reunioes_pendentes', 'reuniao_audio', 'reuniao_transcrita', 'redistribuicoes', 'pacotes', 'pacote_avisado', 'cobrancas', 'cobranca_resultado', 'falta_info', 'sem_briefing', 'compromissos', 'resultado_posts', 'acompanhamento', 'diagnostico', 'encaixe'].includes(consulta)) {
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
@@ -167,6 +168,9 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       // Pacotes de produção que o VYBES ainda não levou ao grupo Produção, e a marca de que levou.
       if (consulta === 'pacotes') return res.status(200).json({ ok: true, pacotes: await pacotesParaAvisar(banco) });
       if (consulta === 'pacote_avisado') return res.status(200).json({ ok: true, ...(await marcarAvisado(banco, Number(req.body?.pacote?.id) || 0)) });
+      // Cobranças pedidas no painel do Deivid (server/cobrancas-whatsapp.js): a busca já marca "enviando"; depois o bot diz se foi.
+      if (consulta === 'cobrancas') return res.status(200).json({ ok: true, cobrancas: await cobrancasParaEnviar(banco) });
+      if (consulta === 'cobranca_resultado') return res.status(200).json({ ok: true, ...(await registrarResultado(banco, req.body?.cobranca || {})) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
       if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });
