@@ -244,7 +244,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   Estilo ideal (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): voxel liso, sem
   grade nem contorno, sombra macia, oclusão nos cantos (`acabamentoDeMaquete`), luz quente com contraste. Móvel do
   quarto de tipo conhecido é MONTADO pelo motor `mundo/moveis-voxel.mjs` (receita por tipo, grade de 1/16 de
-  ladrilho, cores e tamanho da arte do Habbo); o resto é esculpido só no mesmo grão, sem a casca de 2 px. Isto
+  ladrilho, cores e tamanho da arte do Habbo); o que não tem receita sai num volume liso pelas medidas da arte
+  (receita `generico`) e peça de parede tem as receitas dela (`montarDeParede`, por `paredeEmVoxel`); a escultura da
+  arte só fica se a medida não chegar, e a imagem pendurada pela pessoa (`vybeimg_*`) segue ponto a ponto. Isto
   substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
   Vitrine do jogador (09/11/2026): com o mundo ligado, toda `.vb-vitrine` (ficha, criador, entrada) é um pedaço 3 × 3
