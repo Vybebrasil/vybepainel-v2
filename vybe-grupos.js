@@ -155,6 +155,12 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
   menu.id = 'grupo-menu';
   menu.className = 'status-editor grupo-menu';
   menu.setAttribute('role', 'menu');
+  // "Nova etiqueta" e "Ordem" do status moram aqui (quadro 23 do redesign): o menu de status fica só com as escolhas,
+  // e o vocabulário do quadro se arruma junto dos grupos dele. As funções são as mesmas de antes (vybe-agenda.js).
+  const etiquetasDeStatus = typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas()
+    && typeof criarEtiqueta === 'function' && typeof organizarEtiquetas === 'function';
+  const colunaDoStatus = `status:${QUADRO_ID()[quadro]}`;
+  const nomeDoStatus = quadro === 'demandas' ? 'Status da solicitação' : 'Status do conteúdo';
   const item = (rotulo, acao, { desligado = false, perigo = false } = {}) =>
     `<button type="button" role="menuitem" class="status-editor-option${perigo ? ' perigo' : ''}" data-acao="${acao}" ${desligado ? 'disabled' : ''}>${rotulo}</button>`;
   menu.innerHTML = `<div class="status-editor-head">${safeText(grupo.titulo)}</div>
@@ -163,6 +169,9 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
     ${item('Mover para cima', 'subir', { desligado: i === 0 })}
     ${item('Mover para baixo', 'descer', { desligado: i === grupos.length - 1 })}
     ${item('Novo grupo abaixo…', 'novo')}
+    ${etiquetasDeStatus ? `<div class="status-editor-head grupo-menu-secao">Etiquetas de status</div>
+    ${item('Nova etiqueta…', 'etiqueta')}
+    ${item('Ordem das etiquetas…', 'ordem')}` : ''}
     ${item('Apagar grupo…', 'apagar', { perigo: true })}`;
   menu.onclick = (e) => {
     const cor = e.target.closest('[data-cor]')?.dataset.cor;
@@ -175,6 +184,8 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
       return void mudarGrupo(quadro, { acao: 'mover', grupo_id: grupoId, direcao: acao === 'subir' ? -1 : 1 }, null);
     }
     if (acao === 'novo') return void novoGrupo(quadro, grupo);
+    if (acao === 'etiqueta') return void criarEtiqueta(colunaDoStatus, 'status', nomeDoStatus);
+    if (acao === 'ordem') return void organizarEtiquetas(colunaDoStatus, 'status', nomeDoStatus);
     if (acao === 'apagar') return void apagarGrupoDoQuadro(quadro, grupo);
   };
   menu.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); fecharMenuDoGrupo(); origem.focus(); } };

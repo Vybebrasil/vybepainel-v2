@@ -661,6 +661,19 @@
     return valor;
   }
   const n0 = (v) => Number(v || 0).toLocaleString('pt-BR');
+  // Plural certo (Padrão Vybe): o rótulo que acompanha o número, no singular quando é 1 ("1 peça em aberto").
+  const plural = (n, um, varios) => `${n0(n)} ${Number(n) === 1 ? um : varios}`;
+  const rotuloDe = (n, um, varios) => (Number(n) === 1 ? um : varios);
+  // Número grande só quando pede ação (Padrão Vybe, quadro 00 do moodboard): no radar do Hoje, o cartão de zero vira
+  // uma linha discreta (vbResumoHtml, o desenho da Visão geral da Produção). Nenhum número some: o zero continua
+  // escrito, com o que ele conta, e o que tem lista por trás continua abrindo (espiar).
+  // itens: os mesmos do cartão (V.kpi) mais `n` (o número) e `zero` (o texto do zero).
+  function radarHtml(V, itens) {
+    const cheios = itens.filter((x) => Number(x.n) > 0), zeros = itens.filter((x) => !(Number(x.n) > 0));
+    const cartoes = (l) => (l.length ? `<div class="vs-kpis vv-dono-radar">${l.map((x) => V.kpi(x)).join('')}</div>` : '');
+    if (typeof vbResumoHtml !== 'function') return cartoes(itens);
+    return cartoes(cheios) + (zeros.length ? `<div class="vs-resumo vv-radar-zeros">${vbResumoHtml(zeros.map((x) => ({ valor: 0, rotulo: x.zero, espiar: x.espiar || '' })))}</div>` : '');
+  }
   const SAUDE = { critico: ['Crítico', 'u1'], atencao: ['Atenção', 'u2'], ok: ['Em dia', 'u6'] };
   const dataCompleta = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : 'Não definido';
   function controlesSemana(g) {
@@ -826,14 +839,15 @@
     // cara"): o mesmo esqueleto do Hoje. Radar no topo (cada número abre a lista por trás), no centro o que pede ação, a
     // semana em gráfico e clientes, gargalos e cobranças lado a lado; à direita VYBES, atendimento, compromissos e atalhos.
     const V = window.VybeSetor?.pecas;
-    const radar = V ? `<div class="vs-kpis vv-dono-radar">
-        ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
-        ${V.kpi({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
-        ${V.kpi({ icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' })}
-        ${V.kpi({ icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' })}
-        ${V.kpi({ icone: 'coracao', titulo: 'Clientes em atenção', valor: n0((N.clientes || []).filter((c) => c.saude !== 'ok').length), sub: `de ${n0(ativos)} ativos`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' })}
-        ${V.kpi({ icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' })}
-      </div>` : '';
+    const emAtencao = (N.clientes || []).filter((c) => c.saude !== 'ok').length;
+    const radar = V ? radarHtml(V, [
+      { n: H.atrasadas, zero: 'atrasadas', icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' },
+      { n: H.emRisco, zero: 'com risco de furo nos próximos 2 dias', icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' },
+      { n: H.faltam, zero: `faltam hoje · ${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} feitas`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' },
+      { n: S.previstas, zero: 'previstas nesta semana', icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' },
+      { n: emAtencao, zero: `clientes em atenção, de ${plural(ativos, 'ativo', 'ativos')}`, icone: 'coracao', titulo: 'Clientes em atenção', valor: n0(emAtencao), sub: `de ${plural(ativos, 'ativo', 'ativos')}`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' },
+      { n: sem3.length, zero: 'clientes sem 3 posts nesta semana', icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' },
+    ]) : '';
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
     const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
     // Paulo, 09/11/2026: "muita informação na tela sem ser de forma guiada... me guie: o que eu tenho que resolver primeiro".
@@ -863,9 +877,10 @@
         <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
       ${guiaAgencia}
       ${radar}
+      <div class="vv-hoje-agenda-3d">${agendaDeHojeHtml()}</div>
       ${window.VybeAprovacoes?.blocoHtml?.('agencia') || ''}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
-        ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vs-abrir" data-abrir-gestao="semana">Semana →</button>')}
+        ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vc-sec vv-semana-abrir" data-abrir-gestao="semana">Abrir a semana</button>')}
         <div class="vv-dono-tres">
           ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
           ${bloco('Onde trava', '', gargalosHtml)}
@@ -877,6 +892,7 @@
         ${window.VybeBoletim?.botaoHtml?.() || ''}
         ${window.VybePendencias?.atendimentoHtml?.() || ''}
         ${compromissosHtml()}
+        <div class="vv-hoje-agenda-lado">${agendaDeHojeHtml()}</div>
         <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
         <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
       </aside></div>`;
@@ -943,9 +959,9 @@
           + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${n0(g.qtd)} peças, paradas há ${n0(g.idadeMedianaDias)} dias (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
         ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
           + bloco('Atrasos por cliente', 'atrasadas e risco de furo por cliente', deitadas(CL.filter((c) => c.atrasadas || c.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.atrasadas + c.emRisco, cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(c.atrasadas)} <small>+${n0(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'coracao' }))}
-        ${linha(bloco('Atrasadas', `${n0(H.atrasadas)} peças`, listaPecas(L.atrasadas, 'Nada atrasado.'), { icone: 'alerta' })
-          + bloco('Risco de furo', `${n0(H.emRisco)} peças nos próximos 2 dias`, listaPecas(L.emRisco, 'Nada com risco de furo.'), { icone: 'relogio' }))}
-        ${bloco('Ainda não feitas hoje', `${n0(H.faltam)} peças que vão ao ar hoje`, listaPecas(L.faltam, 'Tudo de hoje feito.'), { icone: 'calendario' })}`;
+        ${linha(bloco('Atrasadas', plural(H.atrasadas, 'peça', 'peças'), listaPecas(L.atrasadas, 'Nada atrasado.'), { icone: 'alerta' })
+          + bloco('Risco de furo', `${plural(H.emRisco, 'peça', 'peças')} nos próximos 2 dias`, listaPecas(L.emRisco, 'Nada com risco de furo.'), { icone: 'relogio' }))}
+        ${bloco('Ainda não feitas hoje', `${plural(H.faltam, 'peça que vai', 'peças que vão')} ao ar hoje`, listaPecas(L.faltam, 'Tudo de hoje feito.'), { icone: 'calendario' })}`;
     } else if (gestaoAba === 'semana') {
       const CL = N.clientes || [], meta = C.meta || 3;
       const pctSem = S.previstas ? Math.round(((S.previstasEntregues ?? S.entregues) / S.previstas) * 100) : null;
@@ -1236,13 +1252,13 @@
     } catch (e) { console.error('[mundo] assistente da Criação', e); }
     const cargaDe = (u) => A?.perfis?.find((p) => p.id === String(u.id));
     const V = window.VybeSetor?.pecas;
-    const radar = V ? `<div class="vs-kpis vv-dono-radar">
-        ${V.kpi({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: 'do time de criação', cls: atrasadas.length ? 'ruim' : '' })}
-        ${V.kpi({ icone: 'calendario', titulo: 'Vão ao ar hoje', valor: n0(deHoje.length), sub: 'sem contar as atrasadas', cls: deHoje.length ? 'atencao' : '' })}
-        ${V.kpi({ icone: 'aperto', titulo: 'Esperando aprovação', valor: n0(aprovar.length), sub: 'do Deivid ou dos heads', cls: aprovar.length ? 'atencao' : '' })}
-        ${V.kpi({ icone: 'relogio', titulo: 'Pediram ajuste', valor: n0(ajuste.length), sub: 'voltaram para o time', cls: ajuste.length ? 'atencao' : '' })}
-        ${V.kpi({ icone: 'doc', titulo: 'Em aberto', valor: n0(itens.length), sub: `com ${membros.length} pessoas` })}
-      </div>` : '';
+    const radar = V ? radarHtml(V, [
+      { n: atrasadas.length, zero: 'atrasadas no time de criação', icone: 'alerta', titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: 'do time de criação', cls: atrasadas.length ? 'ruim' : '' },
+      { n: deHoje.length, zero: 'vão ao ar hoje, sem contar as atrasadas', icone: 'calendario', titulo: 'Vão ao ar hoje', valor: n0(deHoje.length), sub: 'sem contar as atrasadas', cls: deHoje.length ? 'atencao' : '' },
+      { n: aprovar.length, zero: 'esperando aprovação do Deivid ou dos heads', icone: 'aperto', titulo: 'Esperando aprovação', valor: n0(aprovar.length), sub: 'do Deivid ou dos heads', cls: aprovar.length ? 'atencao' : '' },
+      { n: ajuste.length, zero: 'pediram ajuste', icone: 'relogio', titulo: 'Pediram ajuste', valor: n0(ajuste.length), sub: 'voltaram para o time', cls: ajuste.length ? 'atencao' : '' },
+      { n: itens.length, zero: `em aberto, com ${plural(membros.length, 'pessoa', 'pessoas')}`, icone: 'doc', titulo: 'Em aberto', valor: n0(itens.length), sub: `com ${plural(membros.length, 'pessoa', 'pessoas')}` },
+    ]) : '';
     // Cada pessoa do time: o que tem, o que atrasou, o que sai hoje e a carga comparada com a de quem tem mais.
     const porPessoa = membros.map((u) => { const l = itens.filter((x) => x.ids.includes(String(u.id))); return { u, l, atr: l.filter((x) => atrasadas.includes(x)).length, hj: l.filter((x) => deHoje.includes(x)).length, prox: l.map(veicDe).filter((v) => v && v >= hoje).sort()[0] || '' }; });
     const maxCarga = Math.max(1, ...porPessoa.map((p) => p.l.length));
@@ -1591,28 +1607,30 @@
     let n = [], sit = falhou ? 'vermelho' : aguardando ? 'amarelo' : 'verde';
     if (a.id === 'criacao') {
       const atr = conta('atrasada'), apr = conta('aprovar');
-      n = [[sits.filter((x) => x !== 'concluida').length, 'em produção'], [atr, 'atrasadas'], [apr, 'para aprovar']];
+      n = [[sits.filter((x) => x !== 'concluida').length, 'em produção'], [atr, 'atrasadas', 'atrasada'], [apr, 'para aprovar']];
       sit = falhou || atr ? 'vermelho' : apr || aguardando ? 'amarelo' : 'verde';
     } else if (a.id === 'comercial') {
       const crm = crmCache || [], contato = crm.filter((o) => ['abordagem_proposta', 'aprovada', 'contato_feito', 'reuniao', 'proposta_comercial'].includes(o.etapa)).length;
-      n = [[naTela.length, 'clientes ativos'], [contato, 'em contato'], [crm.filter((o) => o.etapa === 'ganho').length, 'ganhos']];
+      n = [[naTela.length, 'clientes ativos', 'cliente ativo'], [contato, 'em contato'], [crm.filter((o) => o.etapa === 'ganho').length, 'ganhos', 'ganho']];
       sit = falhou ? 'vermelho' : crm.some((o) => o.etapa === 'abordagem_proposta') || aguardando ? 'amarelo' : 'verde';
     } else if (a.id === 'terreo') {
-      n = [[sits.filter((x) => x !== 'concluida').length, 'peças em aberto'], [conta('hoje'), 'saem hoje'], [executando, 'agentes trabalhando']];
+      n = [[sits.filter((x) => x !== 'concluida').length, 'peças em aberto', 'peça em aberto'], [conta('hoje'), 'saem hoje', 'sai hoje'], [executando, 'agentes trabalhando', 'agente trabalhando']];
     } else if (a.tipo === 'equipe' && a.id !== 'terraco') {
       // Andar do time: quem está nele agora e quantas salas têm gente (não há agente aqui).
       const zonas = Object.entries(zonas3d()).filter(([, z]) => z.andar === a.id).map(([id]) => id);
       const aqui = presencaDoEscritorio().filter((g) => zonas.includes(g.zona));
-      n = [[aqui.length, 'no andar agora'], [new Set(aqui.map((g) => g.zona)).size, 'salas com gente'], [zonas.length, 'salas']];
+      n = [[aqui.length, 'no andar agora'], [new Set(aqui.map((g) => g.zona)).size, 'salas com gente', 'sala com gente'], [zonas.length, 'salas', 'sala']];
       sit = 'verde';
     } else if (a.id === 'terraco') {
       const gente = presencaDoEscritorio();
-      n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(zonas3d()).length, 'salas']];
+      n = [[gente.length, 'online agora'], [gente.filter((g) => g.zona && g.zona !== 'recepcao').length, 'em salas'], [Object.keys(zonas3d()).length, 'salas', 'sala']];
       sit = 'verde';
     } else {
-      n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis']];
+      n = [[executando, 'trabalhando'], [aguardando, 'aguardando você'], [agentes.filter((e) => e === 'disponivel').length, 'disponíveis', 'disponível']];
       if (!agentes.length || agentes.every((e) => ['sem_execucao', 'indisponivel'].includes(e))) sit = 'cinza';
     }
+    // Cada número com o rótulo no singular quando é 1: [valor, vários, um] vira [valor, rótulo].
+    n = n.map(([v, varios, um]) => [v, um ? rotuloDe(v, um, varios) : varios]);
     return comSaude(a, { n, sit });
   }
   function pintarSituacaoDosAndares() {
@@ -2282,7 +2300,7 @@
       const hoje = hojeIso(), itens = itensDoPainel(), abertas = itens.filter((i) => situacaoDaPeca(i, hoje) !== 'concluida');
       const porCliente = new Map(); for (const i of abertas) { const c = clienteDe(i); if (c) porCliente.set(c, (porCliente.get(c) || 0) + 1); }
       const atrasadas = abertas.filter((i) => situacaoDaPeca(i, hoje) === 'atrasada').length;
-      return { agora: `${abertas.length} peças em aberto · ${atrasadas} atrasadas.`,
+      return { agora: `${plural(abertas.length, 'peça em aberto', 'peças em aberto')} · ${plural(atrasadas, 'atrasada', 'atrasadas')}.`,
         feitos: [...porCliente].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([c, n]) => ({ quando: '', texto: c, sub: `${n} em aberto` })), fila: [],
         rotuloFeitos: 'Onde está o volume' };
     },
@@ -3043,7 +3061,12 @@
       <p class="vv-sub">${esc(c.segmento || 'Cliente ativo')} · ${c.total} peça${c.total === 1 ? '' : 's'} em aberto</p>
       ${base ? `<div class="vv-cb-fato"><small>Endereço (base de CNPJ)</small><b>${esc(base.endereco || '')}${base.bairro ? ' · ' + esc(base.bairro) : ''}</b><small style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(base.razao || '')}${cnpj ? ' · CNPJ ' + esc(cnpj) : ''}${!['rua', 'numero'].includes(base.onde) ? ' · posição aproximada' : ''}</small></div>`
         : '<div class="vv-cb-fato"><small>Endereço</small><b>Não achei na base de CNPJ pelo nome. Ficou num lote perto da agência.</b></div>'}
-      <div class="vv-contagens">${quadros.map(([k, r]) => `<div style="--f:var(--sit-${k}-f);--t:var(--sit-${k}-t)"><b>${c.por[k] || 0}</b><small>${r}</small></div>`).join('')}</div>
+      ${(() => { // Número grande só no que pede ação: a situação com zero vira a linha discreta (nenhuma some).
+        const cheios = quadros.filter(([k]) => c.por[k] > 0), zeros = quadros.filter(([k]) => !(c.por[k] > 0));
+        const ladrilhos = (l) => (l.length ? `<div class="vv-contagens">${l.map(([k, r]) => `<div style="--f:var(--sit-${k}-f);--t:var(--sit-${k}-t)"><b>${c.por[k] || 0}</b><small>${r}</small></div>`).join('')}</div>` : '');
+        if (typeof vbResumoHtml !== 'function') return ladrilhos(quadros);
+        return ladrilhos(cheios) + (zeros.length ? `<div class="vs-resumo vv-radar-zeros">${vbResumoHtml(zeros.map(([, r]) => ({ valor: 0, rotulo: r })))}</div>` : '');
+      })()}
       ${pecas.length ? `<div class="vv-rotulo-secao" style="--c:${c.cor}"><i></i>Em aberto<span class="vv-pilula">${pecas.length}</span></div>${pecas.slice(0, 8).map((x) => linhaDemanda(x.d, { ref: x.ref, sit: x.sit })).join('')}` : ''}
       <div class="vv-acoes-cliente"><button type="button" class="vv-botao acao" data-abrir-cliente="${esc(c.nome)}">Abrir o cliente →</button>
       ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="vv-botao" data-cerebro-cliente="${esc(c.nome)}">Sinapses do cérebro</button>` : ''}</div>${window.VybeClientePlaca?.html(c.nome) || ''}`;
@@ -3413,7 +3436,7 @@
     const entrar = () => { irParaSala('lounge'); setTimeout(() => { if (typeof escritorioNaPista === 'function' && escritorioNaPista()) fn('abrirMusicaEscritorio')?.(); pintarDock(); }, 1800); };
     const el = fn('mostrarAvisoCurto')?.({ chave: 'musica-fora', icone: 'musica', titulo: 'A música toca dentro de uma sala',
       frase: 'Entre numa sala com aparelho de som para escolher o que tocar; quem está nela ouve junto. O Lounge tem.',
-      acoes: [{ rotulo: 'Entrar no Lounge', principal: true, fazer: entrar }], tempo: 10000 });
+      acoes: [{ rotulo: 'Entrar no Lounge', principal: true, fazer: entrar }], tempo: 6000 });
     el?.querySelector?.('.vc-acao')?.focus?.({ preventScroll: true });
     if (!el) entrar();
   }

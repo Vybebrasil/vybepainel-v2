@@ -352,7 +352,7 @@ function registrosDosChatsHtml(nome) {
         ${g.proximos ? `<h5>Próximos passos</h5><p>${fichaEsc(g.proximos).replace(/\n/g, '<br>')}</p>` : ''}
         ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</details></li>`).join('')}</ul>`;
   return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>O que a equipe registrou</h3>
-      <button type="button" class="cli-lapis" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">Atualizar</button></div>
+      <button type="button" class="vb-botao" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">Atualizar</button></div>
     ${corpo}</div>`;
 }
 

@@ -255,9 +255,13 @@
             <button type="button" class="date-mode-btn" id="btn-mode-prazo" onclick="setDateMode('prazo',this)">Prazo</button>
           </div>
         </div>
+        <!-- A marca guarda o lugar do Veiculação/Prazo: quando a barra não cabe numa linha ele vai para dentro de
+             "Mais filtros" (acomodarBarraDoPainel, vybe-agenda.js) e volta para cá quando couber. -->
+        <span id="filter-bar-lugar" hidden></span>
         <details class="dem-filtro agenda-mais" name="filtros-agenda">
           <summary>Mais filtros<b class="agenda-filtro-escolha" id="agenda-filtro-equipe"></b></summary>
           <div class="dem-filtro-popover">
+            <div id="agenda-mais-data" class="agenda-mais-data agenda-filtros-semana" hidden><span class="agenda-mais-rotulo">Data de referência</span></div>
             <span class="agenda-mais-rotulo">Equipe</span>
             <div id="person-filter-bar" class="person-filter-bar"></div>
             <span class="agenda-mais-rotulo">Na agenda</span>
@@ -383,7 +387,7 @@
 <!-- ===== PAINEL SOLICITAÇÕES DE DEMANDAS ===== -->
 <div id="painel-demandas" style="display:none;">
   <div class="container">
-    <div class="pv-cabeca" style="--c:#f7c948"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h10M5 10h10M5 14h6"/></svg></span><div><span class="pv-etiqueta">Produção</span><h2>Demandas</h2></div></div>
+    <div class="pv-cabeca" style="--c:#f7c948"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h10M5 10h10M5 14h6"/></svg></span><div><span class="pv-etiqueta">Produção</span><h2>Demandas</h2><p class="pv-frase">Todas as demandas, por grupo e status.</p></div></div>
     <div class="quadro-toolbar">
       <label class="quadro-busca"><span class="focus-oculto-visual">Buscar cliente ou demanda</span><input id="busca-cliente-demandas" type="search" placeholder="Buscar cliente ou demanda…" oninput="buscarClienteDemandas(this.value)"></label>
       <button type="button" class="quadro-novo" onclick="cadastrarNoGrupo('demandas','')">+ Nova demanda</button>

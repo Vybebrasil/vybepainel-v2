@@ -294,8 +294,8 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
   const comercialVazio = { ok: true, aba: 'financas', pode: { ver_dinheiro: true, editar_comercial: true, editar_pacotes: true },
     clientes: [{ cliente_id: '10', cliente_nome: 'Hebravet', valor_mensal: 2000, status_pagamento: 'em_dia', custo: 0, margem_percentual: null }],
     resumo: { receita: 2000, custo: 0, margem_percentual: null, criticas: 0, pagamento: { atrasado: 0, inadimplente: 0 } }, pacotes: [], zona_critica: 20, status: [] };
-  for (const [conector, espera, naoEspera] of [[conectorFalso(), /fonte: Vybe Finanças[\s\S]*Margem real por cliente[\s\S]*Margem real \(Vybe Finanças\): R\$\s?1\.700,00/, /Custo estimado/],
-    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /Os valores reais chegam quando o Vybe Finanças for ligado[\s\S]*custo estimado/, /fonte: Vybe Finanças/]]) {
+  for (const [conector, espera, naoEspera] of [[conectorFalso(), /fonte: Vybe Finanças[\s\S]*Margem real por cliente[\s\S]*Margem real \(Vybe Finanças\): R\$\s?1\.700,00/, /Os valores reais chegam quando/],
+    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /Os valores reais chegam quando o controle financeiro for ligado[\s\S]*Custo estimado/, /fonte: Vybe Finanças/]]) {
     const respostas = (q) => (q.area === 'vybe_financas' ? null : { codigo: 200, corpo: comercialVazio });
     const t = contexto((q) => respostas(q) || { codigo: 0, corpo: null });
     // A área de verdade, com o conector falso (as permissões do servidor valem também aqui).

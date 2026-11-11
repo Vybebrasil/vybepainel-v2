@@ -1242,6 +1242,59 @@ function pintarFiltrosDaAgenda() {
   if (pendentes) pendentes.setAttribute('aria-pressed', String(filtro === 'status:pending_all'));
   const critico = document.getElementById('sort-critico-btn');
   if (critico) critico.setAttribute('aria-pressed', String(typeof sortCritico !== 'undefined' && sortCritico));
+  acomodarBarraDoPainel();
+}
+
+// A barra do Painel numa linha (re-auditoria de 10/11/2026). No mundo ela cabe inteira a 1440; quando passa de uma
+// linha (contagem grande, filtro ligado, janela mais estreita) e tirar o Veiculação/Prazo basta para caber, ele vai
+// para dentro de "Mais filtros" (#agenda-mais-data) e volta ao lugar (#filter-bar-lugar) quando houver espaço. Se nem
+// assim couber, fica onde está e a barra quebra como sempre. Os ids não mudam, então setDateMode segue igual.
+let barraDoPainelVigiada = false;
+let acomodandoBarraDoPainel = false;
+function acomodarBarraDoPainel() {
+  const barra = document.querySelector('.ops-command-bar .ops-botoes');
+  const filtros = document.getElementById('agenda-filtros');
+  const data = document.getElementById('filter-bar');
+  const lugar = document.getElementById('filter-bar-lugar');
+  const dentro = document.getElementById('agenda-mais-data');
+  if (!barra || !filtros || !data || !lugar || !dentro || acomodandoBarraDoPainel) return;
+  if (!barraDoPainelVigiada && typeof ResizeObserver === 'function') {
+    barraDoPainelVigiada = true;
+    new ResizeObserver(() => acomodarBarraDoPainel()).observe(barra);
+  }
+  // Com o Prazo escolhido lá dentro, o botão "Mais filtros" acende como os outros filtros com escolha.
+  const acender = () => {
+    const prazoLaDentro = data.parentElement === dentro && typeof dateMode !== 'undefined' && dateMode === 'prazo';
+    const equipe = document.getElementById('agenda-filtro-equipe');
+    dentro.closest('details')?.querySelector('summary')?.classList.toggle('tem-escolha', prazoLaDentro || Boolean(equipe?.textContent));
+  };
+  // Quem está com o foco no Veiculação/Prazo não perde o foco (nem o botão debaixo do dedo) por causa de uma medida.
+  if (data.contains(document.activeElement)) { acender(); return; }
+  acomodandoBarraDoPainel = true;
+  try {
+    const linhas = () => {
+      const meios = [];
+      [...barra.children, ...filtros.children].forEach(el => {
+        if (el === filtros || !el.getClientRects().length) return;
+        const caixa = el.getBoundingClientRect();
+        const meio = caixa.top + caixa.height / 2;
+        if (!meios.some(m => Math.abs(m - meio) < 8)) meios.push(meio);
+      });
+      return meios.length;
+    };
+    const guardar = sim => {
+      if (sim) dentro.append(data); else lugar.before(data);
+      dentro.hidden = !sim;
+    };
+    if (data.parentElement === dentro) guardar(false);
+    if (document.body.classList.contains('mundo') && barra.getClientRects().length && linhas() > 1) {
+      guardar(true);
+      if (linhas() > 1) guardar(false);
+    }
+    acender();
+  } finally {
+    acomodandoBarraDoPainel = false;
+  }
 }
 
 function toggleLegend() {
@@ -2291,7 +2344,7 @@ function deckDeLoteHtml(quadro) {
   const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
     safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
   return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
-      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? 'demandas a alterar' : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
+      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? (SELECIONADAS.size === 1 ? 'demanda a alterar' : 'demandas a alterar') : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Responsável', 'loteResponsavel(event)')}
@@ -2782,13 +2835,47 @@ function loteResponsavel(event) {
     <div class="lote-dono-modos">${modos.map(([id, rotulo]) => `<button type="button"
       class="lote-dono-modo ${LOTE_MODO_DE_RESPONSAVEL === id ? 'ativo' : ''}" data-modo="${id}"
       onclick="trocarModoDeResponsavel('${id}')">${rotulo}</button>`).join('')}</div>
+    <input type="search" id="lote-dono-busca" class="dono-busca" placeholder="Buscar pessoa" aria-label="Buscar pessoa do time"
+      autocomplete="off" oninput="buscarResponsavelEmLote(this.value)" onkeydown="teclaNaBuscaDoLote(event)">
     <div class="dono-fichas">${equipe.map((u) => `<button type="button" class="dono-ficha"
+      data-nome="${safeText(semAcentoDoLote(u.name))}"
       onclick="aplicarResponsavelEmLote('${safeText(String(u.id))}')" title="${safeText(u.name)}">
       ${ownerAvatarHtml(u)}<span><b>${safeText(firstName(u.name))}</b></span></button>`).join('')}</div>
+    <div id="lote-dono-vazio" class="dono-vazio" hidden></div>
     <p class="lote-dono-nota">A disciplina de cada peça continua valendo: quem ficar fora dela entra
       marcado no histórico da peça, como no editor de uma só.</p>`;
   document.body.append(fundo, menu);
   ancorarPopover(menu, event.currentTarget.getBoundingClientRect());
+  // Como no menu de responsável da peça: no computador o cursor já vai para a busca; no toque, não abre o teclado.
+  if (window.matchMedia?.('(hover: hover)').matches) document.getElementById('lote-dono-busca')?.focus({ preventScroll: true });
+}
+
+// Busca do responsável em lote (quadro 23 do redesign): a mesma do menu de responsável da peça. Acha pelo nome
+// inteiro, sem acento; a lista só esconde quem não casa, ninguém sai dela.
+const semAcentoDoLote = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function buscarResponsavelEmLote(valor) {
+  const termo = semAcentoDoLote(valor).trim();
+  let achados = 0;
+  document.querySelectorAll('#lote-editor .dono-ficha').forEach((ficha) => {
+    const casa = !termo || (ficha.dataset.nome || '').includes(termo);
+    ficha.style.display = casa ? '' : 'none';
+    if (casa) achados += 1;
+  });
+  const vazio = document.getElementById('lote-dono-vazio');
+  if (vazio) {
+    vazio.hidden = achados > 0;
+    vazio.textContent = achados ? '' : `Ninguém do time com “${String(valor || '').trim()}”.`;
+  }
+}
+
+// Esc na busca fecha o menu; Enter com uma pessoa só achada escolhe essa pessoa, como quem digita e escolhe.
+function teclaNaBuscaDoLote(event) {
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); fecharMenuDeLote(); return; }
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const achados = [...document.querySelectorAll('#lote-editor .dono-ficha')].filter((ficha) => ficha.style.display !== 'none');
+  if (achados.length === 1) achados[0].click();
 }
 
 function trocarModoDeResponsavel(modo) {

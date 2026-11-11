@@ -168,19 +168,20 @@
   const fonteDa = (d) => (d?.fonte === 'Vybe Finanças' ? fonteFin() : '');
   function avisoFin(completo) {
     const e = finEstado(); if (!e) return '';
-    if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo o Vybe Finanças…</p>';
-    if (e.erro) return `<p class="vc-aviso">Vybe Finanças: ${esc(e.erro)} Abaixo, o que está lançado no Vybe OS.</p>`;
+    if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo os valores reais…</p>';
+    if (e.erro) return `<p class="vc-aviso">Os valores reais não vieram agora: ${esc(e.erro)} Abaixo, o que está lançado no painel.</p>`;
     const d = e.dados; if (!d || d.conectado) return '';
     // Redesign (quadros 20, 56 e 59): a equipe vê o efeito em caixa neutra (não é erro), sem documentação nem passo a
     // passo; o motivo técnico e como ligar ficam em "Ver o que falta", só para quem administra.
     const tecnico = `${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}`;
     if (!completo) return ativacao('', '', tecnico);
-    return ativacao('Os valores reais chegam quando o Vybe Finanças for ligado', 'Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.', tecnico, IC.dinheiro);
+    // Quadro 59: o aviso explica o efeito para quem usa, sem nome de sistema (o nome fica no "Ver o que falta").
+    return ativacao('Os valores reais chegam quando o controle financeiro for ligado', 'Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.', tecnico, IC.dinheiro);
   }
   // Parte ainda não ligada (quadro 56): caixa neutra para todos; "Ver o que falta" (o técnico, já em HTML) só para quem
   // administra. Sem título, só a linha de quem administra (as outras abas de dinheiro).
   function ativacao(titulo, texto, tecnico, icone = IC.relogio) {
-    const adm = souAdminAqui() && tecnico ? `<span class="vc-nota-adm">Para quem administra: <button type="button" class="vc-link" data-vc="falta" aria-expanded="${st.verFalta}">Ver o que falta</button></span>${st.verFalta ? `<small class="vc-nota-tec">${tecnico}</small>` : ''}` : '';
+    const adm = souAdminAqui() && tecnico ? `<span class="vc-nota-adm">Para quem administra: <button type="button" class="vc-sec" data-vc="falta" aria-expanded="${st.verFalta}">Ver o que falta</button></span>${st.verFalta ? `<small class="vc-nota-tec">${tecnico}</small>` : ''}` : '';
     if (!titulo) return adm ? `<div class="vc-nota vc-nota-curta" role="note"><div>${adm}</div></div>` : '';
     return `<div class="vc-nota" role="note"><span class="vc-nota-ico">${icone}</span><div><b>${esc(titulo)}</b><p>${esc(texto)}</p>${adm}</div></div>`;
   }
@@ -275,7 +276,8 @@
     if (st.aba === 'funil') return !(d.pode && 'editar_comercial' in d.pode) && palpiteDono() ? b('Novo lead', 'lead') : '';
     if (st.aba === 'pacotes') return podeFazer(d, 'editar_pacotes') && d.pacotes.length ? b('Novo pacote', 'pacote') : '';
     if (st.aba === 'orcamentos') return podeFazer(d, 'editar_comercial') && d.pacotes.length && d.orcamentos.length ? b('Novo orçamento', 'orcamento') : '';
-    if (st.aba === 'contas') return d.contas.length ? b('Nova conta', 'conta') : '';
+    // Contas a pagar (quadro 20): "Nova conta" só no cabeçalho, também com a lista vazia (o vazio fica só com a frase).
+    if (st.aba === 'contas') return b('Nova conta', 'conta');
     return '';
   }
   const rotuloAnterior = () => (st.periodo.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
@@ -527,23 +529,37 @@
     const r = d.resumo, f = fin();
     // Com o Finanças: o dinheiro de verdade em cima; os cartões dos clientes ficam (pacote, custo estimado e status à mão).
     // Redesign (quadro 59): os seis números numa linha de resumo; o que pede ação ganha o tom, zero fica discreto.
+    // Redesign (quadro 59, 2ª rodada): os números do topo entram na tabela. Cada cliente é uma linha (Contrato, Custo
+    // estimado, Margem, Pagamento) e o total de cada coluna fica no rodapé dela: receita, custo, margem e as contagens de
+    // zona crítica, atrasados e inadimplentes (com o mesmo "quem está neste número").
     const cri = Number(r.criticas) || 0, atr = Number(r.pagamento.atrasado) || 0, ina = Number(r.pagamento.inadimplente) || 0;
-    const contadores = [numero(cri, num(cri), ' em zona crítica de margem', { tom: cri ? 'alerta' : '', espiar: 'comercial:financas:critica' }),
-      numero(atr, num(atr), atr === 1 ? ' atrasado' : ' atrasados', { tom: atr ? 'atencao' : '', espiar: 'comercial:financas:atrasado' }),
-      numero(ina, num(ina), ina === 1 ? ' inadimplente' : ' inadimplentes', { tom: ina ? 'alerta' : '', espiar: 'comercial:financas:inadimplente' })];
-    const topo = f ? `${finTopo(f)}${finGraficos(f)}${finMargens(f)}<div class="vc-secao"><h3>Pacote e margem estimada por cliente (Vybe OS)</h3></div>${resumo(contadores)}`
-      : `${avisoFin(true)}${resumo([numero(r.receita || null, din(r.receita), ' por mês em contratos', { semDado: 'receita mensal: nenhum contrato informado' }),
-        numero(r.custo || null, din(r.custo), ' de custo estimado', { semDado: 'custo estimado: sem pacote' }),
-        numero(r.margem_percentual, pc(r.margem_percentual), ' de margem', { tom: r.margem_percentual != null && r.margem_percentual < d.zona_critica ? 'alerta' : '', semDado: 'margem: sem contrato e pacote' }), ...contadores])}`;
+    const topo = f ? `${finTopo(f)}${finGraficos(f)}${finMargens(f)}<div class="vc-secao"><h3>Pacote e margem estimada por cliente (Vybe OS)</h3></div>` : avisoFin(true);
     const real = (c) => { const m = margemFinDe(f, c.cliente_id); return m ? `<small>Margem real (Vybe Finanças): ${din(m.mes.margem)} no mês · ${din(m.periodo.margem)} em 3 meses</small>` : ''; };
+    const conta = (n, um, varios, chave, tom) => `<span class="vc-tab-conta${n ? ' ' + tom : ''}" data-espiar="${chave}" role="button" tabindex="0">${n ? `<b>${num(n)}</b>` : num(n)} ${n === 1 ? um : varios}</span>`;
+    const todos = clientesDaAba(d), lista = todos.filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas)));
+    const linha = (c) => {
+      const sem = !c.valor_mensal && c.status_pagamento === 'em_dia';
+      return `<tr${c.zona_critica ? ' class="critico"' : ''}>
+        <th scope="row" data-rot="Cliente">${cliCor(c.cliente_nome)}${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}</th>
+        <td data-rot="Contrato">${c.valor_mensal ? `${din(c.valor_mensal)}<small>/mês</small>` : '<span class="vc-tab-vazio">—</span>'}</td>
+        <td data-rot="Custo estimado">${c.pacote_nome ? `${din(c.custo)}<small>${esc(c.pacote_nome)}</small>` : '<span class="vc-tab-vazio">sem pacote</span>'}</td>
+        <td data-rot="Margem">${c.margem_percentual != null ? pc(c.margem_percentual) : '<span class="vc-tab-vazio">—</span>'}${c.zona_critica ? pill('Zona crítica', 'u1') : ''}${real(c)}</td>
+        <td data-rot="Pagamento">${sem ? pill('sem contrato', 'u5') : pill(...(STATUS_PAG[c.status_pagamento] || STATUS_PAG.em_dia))}</td>
+        <td class="vc-tab-acao"><button type="button" class="vc-sec" data-vc="financas" data-id="${esc(c.cliente_id)}" aria-label="Editar ${esc(c.cliente_nome)}">Editar</button></td></tr>`;
+    };
+    const rodape = `<tfoot><tr>
+        <th scope="row" data-rot="Total">${todos.length === 1 ? '1 cliente ativo' : `${num(todos.length)} clientes ativos`}</th>
+        <td data-rot="Contrato">${r.receita ? `<b>${din(r.receita)}</b><small>por mês</small>` : '<span class="vc-tab-vazio">nenhum contrato informado</span>'}</td>
+        <td data-rot="Custo estimado">${r.custo ? `<b>${din(r.custo)}</b><small>estimado</small>` : '<span class="vc-tab-vazio">sem pacote</span>'}</td>
+        <td data-rot="Margem">${r.margem_percentual != null ? `<b class="${r.margem_percentual < d.zona_critica ? 'vc-ruim' : ''}">${pc(r.margem_percentual)}</b>` : '<span class="vc-tab-vazio">sem contrato e pacote</span>'}${conta(cri, 'em zona crítica', 'em zona crítica', 'comercial:financas:critica', 'alerta')}</td>
+        <td data-rot="Pagamento">${conta(atr, 'atrasado', 'atrasados', 'comercial:financas:atrasado', 'atencao')}${conta(ina, 'inadimplente', 'inadimplentes', 'comercial:financas:inadimplente', 'alerta')}</td>
+        <td></td></tr></tfoot>`;
     return `${topo}
       <input type="search" class="vc-busca" data-vc-busca="financas" placeholder="Buscar cliente" value="${esc(st.filtro.financas || '')}" aria-label="Buscar cliente">
-      <div class="vc-lista">${clientesDaAba(d).filter((c) => !st.filtro.financas || norm(c.cliente_nome).includes(norm(st.filtro.financas))).map((c) => `<article class="vc-cartao${c.zona_critica ? ' critico' : ''}">
-        <div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${!c.valor_mensal && c.status_pagamento === 'em_dia' ? pill('sem contrato', 'u5') : pill(...(STATUS_PAG[c.status_pagamento] || STATUS_PAG.em_dia))}</div>
-        ${c.valor_mensal ? `<p class="vc-grande">${din(c.valor_mensal)}<small>/mês</small></p>` : '<small>Sem contrato informado: informe o valor em Editar.</small>'}
-        <div class="vc-margem"><span>${c.pacote_nome ? esc(c.pacote_nome) + ' · custo ' + din(c.custo) : 'Sem pacote (custo não estimado)'}</span>${c.margem_percentual != null ? `<span>Margem ${pc(c.margem_percentual)}</span>` : ''}${c.zona_critica ? pill('Zona crítica', 'u1') : ''}</div>
-        ${c.observacao ? `<small>${esc(c.observacao)}</small>` : ''}${real(c)}
-        <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="financas" data-id="${esc(c.cliente_id)}">Editar</button></div></article>`).join('') || vazio('Nenhum cliente ativo no cadastro.')}</div>`;
+      ${todos.length ? `<div class="vc-tabela-rola"><table class="vc-tabela vc-tab-financas">
+        <thead><tr><th scope="col">Cliente</th><th scope="col">Contrato</th><th scope="col">Custo estimado</th><th scope="col">Margem</th><th scope="col">Pagamento</th><th scope="col"><span class="vc-sr">Ações</span></th></tr></thead>
+        <tbody>${lista.map(linha).join('') || `<tr><td colspan="6" class="vc-tab-nada">Nenhum cliente com "${esc(st.filtro.financas)}".</td></tr>`}</tbody>${rodape}</table></div>`
+        : vazio('Nenhum cliente ativo no cadastro.')}`;
   }
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function abaRecebimentos(d) {
@@ -590,7 +606,7 @@
         <div class="vc-cartao-topo"><b>${esc(c.descricao)}</b>${c.cancelada ? pill('Cancelada', 'u5') : c.pago_em ? pill('Paga', 'u6') : venc ? pill('Vencida', 'u1') : pill('A pagar', 'u4')}</div>
         <p class="vc-grande">${din(c.valor)}</p><small>${esc(r.grupos.find((g) => g.id === c.grupo)?.nome || c.grupo)}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · vence ${data(c.vencimento)}${c.pago_em ? ' · paga em ' + data(c.pago_em) : ''}</small>
         ${c.cancelada || c.pago_em ? '' : doFinancas(c.id) ? soNoFinancas : `<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="pagar" data-id="${esc(c.id)}">Marcar paga</button><button type="button" class="vc-sec" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button></div>`}</article>`; }).join('')
-        || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos.', 'Nova conta', 'conta')}</div>`;
+        || vazio('Nenhuma conta neste período. Lance fixas, variáveis, folha, impostos e investimentos pelo botão do alto da tela.')}</div>`;
   }
   // Para onde vai o dinheiro: uma faixa por grupo de conta, com a % do total escrita (não só a cor).
   const CORES_GRUPO = ['#1D4ED8', '#5B4BD6', '#E0A21B', '#8A847A', '#0F766E', '#B42318'];

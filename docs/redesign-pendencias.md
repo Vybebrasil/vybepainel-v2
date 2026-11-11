@@ -43,6 +43,21 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
   botões da gaveta; janelas translúcidas na busca, no Criar e na gaveta do celular; Loja por cima do dock lateral; contorno
   lilás no WebKit em menu da conta, Camadas e painel do cliente; plurais "1 peças"/"Ver os 1"; chips cortados nas Conquistas).
 
+## Segunda rodada: frente Acabamento (branch `codex/r2-acabamento`, 10/11/2026, noite)
+Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32), conferidos no Chromium e no WebKit em
+1440×900, 1110×650 e 390×844.
+- Aviso curto: some sozinho (Música 6 s, WhatsApp 7 s; só o mouse que se mexe em cima ou o foco do teclado seguram) e
+  sai de cima dos controles da janela (`ajustarAvisosCurtos`, vybe-core.js): com painel à direita fica ao lado dele;
+  sem vaga, desce até uma faixa livre. Em tela estreita (1110) com a gaveta aberta ele fica por cima do dock lateral.
+- Busca, Criar e gaveta com fundo sólido; Loja à direita do dock lateral; Equipe online com o mesmo fim das outras
+  janelas; período do Ranking em laranja; chips das Conquistas quebram em linhas.
+- Foco: o contorno grosso da aparência antiga ficou em `:where(body:not(.mundo))`; o anel da dica é laranja.
+- Um cabeçalho (`vbCabecalhoHtml` + `vbFecharHtml`): Pessoas, Impressões, Toolkit, Agentes e Planejamentos pelo JS; as
+  telas antigas, a Gestão, Fornecedores/Creators e as janelas `vc-topo` pelo CSS (título de 22 px, sem rótulo de setor,
+  X e ⛶ na mesma caixa). O HTML das telas da frente Negócio não foi tocado.
+- Zeros em linha discreta (Hoje, painel do cliente na Cidade, Recrutamento), plurais, mês no seletor de período em
+  Pessoas, "Abrir a semana" como botão e a agenda do dia no Hoje da Cidade.
+
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
    os itens que faltam do quadro (pela auditoria), verifique e faça o commit no branch dela. Se a pasta não existir mais,
@@ -86,3 +101,18 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
 ## Já publicado em 10/11/2026
 - #637 fase 3 (3b, 3c, 3d, Clientes, Comercial, RH e Agentes) — a auditoria mostrou que vários desses quadros ainda estão pela metade.
 - #639 conserto: o documento do planejamento voltou a abrir em tela cheia.
+
+## Segunda rodada (10/11/2026, noite): o que entrou e o que ficou
+- Juntas neste branch: `codex/r2-operacao` (01, 04, 23, 28), `codex/r2-negocio` (13, 18, 20, 54, 59, 60 e parte do 30) e
+  `codex/r2-acabamento` (00, 29, 30, 32 e os defeitos do conjunto). Re-auditoria independente em
+  `docs/redesign-reauditoria-2026-11-10-rodada2.md`: 61 FEITO, 5 PELA METADE, 2 FORA, sem regressão.
+- **Móveis e ícones da Loja ficaram de fora por decisão do Paulo** ("não precisa refazer ainda"). O trabalho está guardado
+  no branch `codex/r2-moveis` (commit 49c0d2a0) e foi revertido aqui (accecadc). Para retomar, reverta essa reversão
+  (`git revert accecadc`) em vez de juntar o branch de novo, senão o git não traz as mudanças.
+- Pela metade, para uma terceira rodada: ação do cabeçalho encostando na caixa de tela cheia/fechar (Painel, Conta › Equipe);
+  aviso curto sobre o dock a 1110 com a gaveta, no meio da tela no celular e sobre "Buscar cliente"; Churn com Mensal/Anual
+  sem dado e parágrafo técnico no rodapé; zeros grandes na Saúde da carteira; vista Mês da agenda (reticências e fundo
+  tingido); título de 28 px na Agenda e na Conta; visões gerais de setor/Gestão/Performance em 0,97; no celular, fim da
+  rolagem atrás da barra no QR Code (Baixar PNG/SVG), Agentes e Conversas.
+- Decisões que esperam o Paulo: posição do aviso quando há janela aberta; menção do WhatsApp 12 s; "Como o VYBES pensa" só
+  para donos (página Agentes); "Nova etiqueta" e "Ordem" só no menu do grupo; hora da grade da agenda em 66 px.

@@ -45,7 +45,7 @@
 /* Rosa do setor só no tema antigo; no mundo o rótulo é neutro (redesign 09/11/2026, vybe-mundo.css). */
 :where(body:not(.mundo)) .workspace-heading .workspace-eyebrow{color:#ee83b7!important}
 .workspace-heading .workspace-eyebrow{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
-.workspace-heading h2{font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em!important;margin:2px 0 0!important}
+:where(body:not(.mundo)) .workspace-heading h2{font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em!important;margin:2px 0 0!important}
 .workspace-heading .ops-acoes{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .workspace-heading .ops-acoes button,.ops-clear-btn{height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
 .workspace-heading .ops-acoes button.active,.workspace-heading .ops-acoes button[aria-expanded="true"]{background:var(--pv-laranja)!important;color:#1b0d06!important;border-color:transparent!important}
@@ -332,7 +332,7 @@
 /* ---- Abas do topo que ainda estavam no estilo antigo (Demandas, Diário,
    Performance, IA & Custos, Automações, Conta & Equipe): mesmo título, mesmos
    botões e mesmos seletores de período do Painel de trabalho ---- */
-.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
+:where(body:not(.mundo)) :is(.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo),.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
 .auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
 :where(body:not(.mundo)) :is(.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal)){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
 :where(body:not(.mundo)) :is(.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover){border-color:rgba(255,179,92,.45)!important}
@@ -394,7 +394,7 @@
 .pv-cabeca .pv-ic{width:46px;height:46px;flex:none;border-radius:8px;display:grid;place-items:center;color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 26%,transparent),color-mix(in srgb,var(--c) 10%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px color-mix(in srgb,var(--c) 40%,transparent),0 10px 24px -12px var(--c)}
 .pv-cabeca .pv-ic svg{width:21px;height:21px;display:block}
 .pv-etiqueta{display:block;color:var(--c);font:700 10.5px var(--mac-ui);letter-spacing:0;text-transform:none}
-.pv-cabeca h2{margin:2px 0 0!important;color:#fff;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
+:where(body:not(.mundo)) .pv-cabeca h2{margin:2px 0 0!important;color:#fff;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
 .pv-cabeca p{margin:4px 0 0!important}
 #painel-demandas .pv-cabeca{margin-top:18px}
 

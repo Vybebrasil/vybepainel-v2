@@ -9,6 +9,9 @@
   const URL_API = '/api/painel?area=impressoes';
   const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false, vista: 'etapas' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
+  const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
+  const botaoX = (attr, classe = '') => (typeof window !== 'undefined' && typeof window.vbFecharHtml === 'function' ? window.vbFecharHtml(attr, classe) : `<button type="button" class="vb-janela-x ${classe}" ${attr} aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`);
   const br = (iso) => (iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
   const cli = (nome) => (nome ? (typeof window.cliCor === 'function' ? window.cliCor(nome) : esc(nome)) : '');
   const statusDemanda = (s) => (s ? (typeof window.statusCor === 'function' ? window.statusCor({ status: s }) : esc(s)) : '');
@@ -189,8 +192,8 @@
   function pintar() {
     if (!st.janela) return;
     const tinha = st.janela.querySelector('.vi-corpo')?.scrollTop || 0;
-    st.janela.innerHTML = `<div class="vi-topo"><span><h2 id="vi-titulo">Impressões</h2><p>Da arte à entrega na gráfica: etapa, fornecedor, prazo e histórico de cada peça impressa.</p></span>
-      <span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>' : ''}<button type="button" class="vi-x" data-vi="fechar" aria-label="Fechar">✕</button></span></div>
+    st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões', texto: 'Da arte à entrega na gráfica: etapa, fornecedor, prazo e histórico de cada peça impressa.',
+      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
       <p class="vi-aviso" role="status"></p><div class="vi-corpo">${corpo()}</div>`;
     pintarAviso();
     const c = st.janela.querySelector('.vi-corpo'); if (c) c.scrollTop = tinha;

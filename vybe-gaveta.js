@@ -25,6 +25,13 @@ function workspaceBytes(bytes=0) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+// No celular a barra de baixo fica à vista por cima da gaveta (quadro 28): tocar nela fecha a gaveta antes de a barra
+// fazer o que faz, para a tela escolhida não abrir escondida atrás dela.
+if (typeof document !== 'undefined') document.addEventListener('click', (evento) => {
+  if (!document.getElementById('workspace-drawer')) return;
+  if (evento.target instanceof Element && evento.target.closest('#mundo-hud .vv-trilho')) closeItemWorkspace();
+}, true);
+
 function closeItemWorkspace() {
   if (typeof fecharLogDaPeca === 'function') fecharLogDaPeca();
   document.getElementById('workspace-backdrop')?.remove();

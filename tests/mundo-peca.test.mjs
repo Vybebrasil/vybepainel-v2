@@ -59,5 +59,5 @@ test('boletim: achado abre a peça, grupos, números de 14 dias, onde estão os 
   assert.match(js, /data-vbl-achado="resolvido"/); assert.match(js, /data-vbl-achado="ignorar"/);
   assert.match(js, /<span class="vbl-vezes">×\$\{e\.vezes\}<\/span>/, 'o que fez repetido vira uma linha com a contagem');
   assert.match(ag, /G\.VybePeca\?\.abrir\?\.\(b\.dataset\.vgaPeca,/, 'a página Agentes abre a mesma peça');
-  assert.match(ag, /G\.VybeAgentes = \{ abrir, fechar, filaDoDono, agrupar,/);
+  assert.match(ag, /G\.VybeAgentes = \{ abrir, abrirCerebro, fechar, filaDoDono, agrupar,/);
 });

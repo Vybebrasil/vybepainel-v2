@@ -33,7 +33,7 @@ function domFalso({ mundo = true } = {}) {
 function avisoCurto(opcoes) {
   const fonte = ler('vybe-core.js');
   const trecho = fonte.slice(fonte.indexOf('// ─── Aviso curto do mundo'), fonte.indexOf('// ─── GraphQL Query'));
-  const ctx = { ...domFalso(opcoes), setTimeout: () => 0, clearTimeout() {} };
+  const ctx = { ...domFalso(opcoes), setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {} };
   vm.createContext(ctx); vm.runInContext(trecho, ctx);
   return ctx;
 }
@@ -154,4 +154,17 @@ test('fase 3d sem forçar nada: nenhum !important nem html body.mundo no bloco n
   assert.doesNotMatch(bloco3d, /!important/);
   assert.doesNotMatch(bloco3d, /html body\.mundo/);
   assert.doesNotMatch(ler('vybe-mundo-ferramentas.css'), /!important/);
+});
+
+test('aviso curto: some sozinho (o foco posto pelo código não segura) e sai de cima dos controles da janela', () => {
+  const fonte = ler('vybe-core.js'), mundo = ler('vybe-mundo.js');
+  // Só o teclado e o mouse que se mexe em cima seguram o aviso; o da Música dura 6 s.
+  assert.match(fonte, /addEventListener\('focusin', \(\) => \{ if \(AVISO_CURTO_PELO_TECLADO\) clearTimeout\(relogio\); \}\)/);
+  assert.match(fonte, /addEventListener\('pointermove'/);
+  assert.doesNotMatch(fonte, /addEventListener\('pointerenter', \(\) => clearTimeout\(relogio\)\)/);
+  assert.match(mundo, /chave: 'musica-fora'[\s\S]{0,400}tempo: 6000/);
+  // A caixa se ajusta quando o aviso entra e enquanto houver aviso; mede os controles à vista por baixo dela.
+  assert.match(fonte, /function ajustarAvisosCurtos\(\)/);
+  assert.match(fonte, /contar\(\);\r?\n  ajustarAvisosCurtos\(\);/);
+  assert.match(fonte, /document\.elementsFromPoint\(x, y\)\.find\(\(e\) => !caixa\.contains\(e\)\)/);
 });

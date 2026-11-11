@@ -429,9 +429,9 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) 
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) td{border-color:#EFEAE1!important}
 /* Agenda (Captações) no jeito do Google Agenda: grade clara, horas discretas, evento na cor do tipo. */
 body.mundo.mundo-modulo :is(.ag-semana,.ag-cabeca){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
-body.mundo.mundo-modulo .ag-ev{background:color-mix(in srgb,var(--ag-cor) 16%,#FFFFFF)!important;color:#1F1D1A!important;box-shadow:inset 3px 0 0 var(--ag-cor)!important;border-radius:8px!important}
-body.mundo.mundo-modulo .ag-ev:hover{background:color-mix(in srgb,var(--ag-cor) 26%,#FFFFFF)!important}
-body.mundo.mundo-modulo .ag-ev.sel{background:color-mix(in srgb,var(--ag-cor) 30%,#FFFFFF)!important;box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)!important}
+body.mundo.mundo-modulo .ag-ev{background:#FFFFFF!important;color:#1F1D1A!important;box-shadow:inset 3px 0 0 var(--ag-cor),inset 0 0 0 1px #E6E0D6!important;border-radius:8px!important}
+body.mundo.mundo-modulo .ag-ev:hover{background:#FBF8F4!important}
+body.mundo.mundo-modulo .ag-ev.sel{background:#FFFFFF!important;box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)!important}
 body.mundo.mundo-modulo .ag-ev :is(b,span,small){color:#1F1D1A!important}
 /* Logo do cabeçalho no vidro claro */
 body.mundo.mundo-modulo .app-header .logo img{filter:invert(1) brightness(.25)}
@@ -481,8 +481,8 @@ body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dial
   --vybe-glass:rgba(255,255,255,.9);--vybe-glass-strong:rgba(255,255,255,.96);--vybe-line:rgba(31,29,26,.10);--vybe-line-quiet:rgba(31,29,26,.06);
   --vybe-text:#1F1D1A;--vybe-muted:#6B675F;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
   --pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;color:#1F1D1A}
-body.mundo #workspace-drawer{background:var(--vv-vidro-forte)!important;background-image:none!important;backdrop-filter:var(--vv-desfoque)!important;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
-body.mundo .spotlight-dialog{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
+body.mundo #workspace-drawer{background:#FAF8F4!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
+body.mundo .spotlight-dialog{background:#FBFAF7!important;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #notif-caixa{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;backdrop-filter:var(--vv-desfoque)!important}
 body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
 body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:#1F1D1A!important}
@@ -493,16 +493,16 @@ body.mundo :is(#workspace-drawer) :is(.workspace-section,.workspace-mais-menu,.w
 /* Aviso de planejamento: no mundo ele mora no sino do topo (auditoria 09/11, D8); o flutuante não volta. */
 @media (max-width:1300px){body.mundo .plj-aviso{top:auto!important;bottom:var(--vv-m)!important}}
 @media (max-width:900px){body.mundo .plj-aviso{bottom:calc(64px + 2*var(--vv-m))!important;max-width:calc(100vw - 2*var(--vv-m))!important}}
-/* Ficha da peça: vidro quase opaco e textos claros que sobraram (levantados em 06/11/2026). */
-body.mundo #workspace-drawer{background:rgba(250,248,244,.97)!important}
+/* Ficha da peça: fundo sólido (o texto de trás não aparece, re-auditoria de 10/11/2026) e textos claros que sobraram. */
+body.mundo #workspace-drawer{background:#FAF8F4!important}
 body.mundo #workspace-drawer :is(.vybe-link span,.workspace-close,dd,.owner-nomes,.workspace-action,.workspace-section-head,.workspace-dropzone div,.workspace-section summary){color:#1F1D1A!important}
 body.mundo #workspace-drawer :is(.workspace-id,.workspace-section summary){color:#6B675F!important}
 body.mundo #workspace-drawer .workspace-mais-menu .perigo{color:var(--sit-atrasada)!important}
-body.mundo #workspace-drawer .workspace-rodape{background:rgba(255,255,255,.96)!important;border-top:1px solid #E6E0D6!important}
+body.mundo #workspace-drawer .workspace-rodape{background:#FFFFFF!important;border-top:1px solid #E6E0D6!important}
 body.mundo #workspace-drawer :is(.workspace-action,.workspace-close){background:#FFFFFF!important;border:1px solid #E6E0D6!important}
 /* Cadastros (fc-*): a mesma janela e o mesmo fluxo, na pele clara do mundo. */
 body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.18)!important;backdrop-filter:none!important}
-body.mundo #fc-overlay .fc-modal{background:rgba(250,248,244,.97)!important;background-image:none!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
+body.mundo #fc-overlay .fc-modal{background:#FAF8F4!important;backdrop-filter:none;-webkit-backdrop-filter:none;background-image:none!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal *{border-color:#E6E0D6}
 body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli)){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-escolha.ativo,.fc-escolha[aria-pressed="true"],.fc-escolha.selecionado,.fc-escolha:focus-visible):not(.fc-cli){box-shadow:0 0 0 2px var(--vv-laranja),var(--vv-sombra-curta)!important}
@@ -518,7 +518,7 @@ body.mundo img.avatar-voxel{image-rendering:auto!important;object-fit:contain}
 
 /* ---------- Janelas do Escritório e dos jogos (Loja, Inventário, Carteira, Conquistas, Missões, Ranking) ---------- */
 /* Base comum: .ofc-dialogo (Loja/Inventário/Conquistas…) e .workflow-modal.ofc-menu-jogo (Ranking, menus de jogo). */
-body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){background:rgba(250,248,244,.97)!important;background-image:none!important;color:#1F1D1A!important;
+body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){background:#FAF8F4!important;background-image:none!important;color:#1F1D1A!important;
   border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;
   --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-abas,.ofc-catj-arvore,.ofc-catj-barra,.workflow-item){
@@ -526,7 +526,7 @@ body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-abas,.o
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-busca,.ofc-cat-chip,select,input:not([type=checkbox]):not([type=radio]):not([type=range])){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(h1,h2,h3,h4,b,strong,p,span,small,label,button,dt,dd,li):not([class*="raro"]):not([class*="epico"]):not([class*="lendario"]):not([class*="incomum"]):not(.ativo):not([aria-selected="true"]):not([aria-current]){color:inherit}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(small,.ofc-cat-sub,p){opacity:.82}
-body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]):not(.rk2-camp):not(.rk2-chip):not(.vb-chip){background:#1F1D1A!important;color:#FFFFFF!important}
+body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(button.ativo,[aria-selected="true"],[role="tab"][aria-selected="true"]):not(.rk2-camp):not(.rk2-chip):not(.vb-chip):not(.rk2-periodos > button){background:#1F1D1A!important;color:#FFFFFF!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel{transition:transform .18s var(--vv-mola)!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) .ofc-movel:hover{transform:translateY(-3px)}
 
@@ -578,7 +578,7 @@ body.mundo.mundo-modulo .plj-aviso.recolhido{left:auto!important;right:calc(var(
    As mesas de jogo (.ofc-snc-*) e os menus de jogo têm a pele delas e ficam de fora. */
 body.mundo .workflow-backdrop{background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo){
-  background:rgba(250,248,244,.97)!important;background-image:none!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:12px!important;
+  background:#FAF8F4!important;background-image:none!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:12px!important;
   box-shadow:0 30px 80px rgba(31,29,26,.22),0 2px 8px rgba(31,29,26,.08)!important;padding:22px 24px!important;color:#1F1D1A!important;font-family:var(--vv-texto)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-kicker){color:var(--vv-laranja)!important;font:700 11px var(--vv-texto)!important;letter-spacing:0;background:none!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-close{width:34px;height:34px;border-radius:8px!important;background:#fff!important;color:#6B675F!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)}
@@ -3221,15 +3221,15 @@ html body.mundo .vb-resumo-item:is(.info,.neutro):not(#vv-x){background:#EEF4FC!
 html body.mundo .vb-resumo-item b{color:inherit!important}
 
 /* ===== Módulo: tela cheia e fechar no canto ===== */
-.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 12px);right:calc(var(--vv-m) + 16px);z-index:640;gap:2px}
+.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 12px);right:calc(var(--vv-m) + 16px);z-index:640;gap:8px}
 /* Uma janela de módulo aberta por cima de uma tela antiga (palco-modulo) tem o próprio cabeçalho: o topo do mundo e o canto
    da tela antiga saem, para não cobrir o fechar, a ajuda e a ação dela (fase 3d, achado no Comercial). */
 body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
 /* O canto é do cabeçalho da janela: um vão flutuando no alto à direita faz o cabeçalho da tela antiga (título, ações)
    terminar antes do ⛶ e do X, sem mexer em cada tela; o que gruda no topo ao rolar já deixa o canto livre (abaixo). */
 body.mundo.mundo-modulo::before{content:"";float:right;width:84px;height:48px}
-.vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:transparent!important;border:0!important;box-shadow:none}
-.vv-canto-modulo .vv-botao:hover{background:#F4EFE8!important}
+.vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:none}
+.vv-canto-modulo .vv-botao:hover{background:#FFFFFF!important;border-color:var(--ds-acao,#FF7A2F)!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .vv-canto-modulo .vv-botao[aria-pressed="true"]{background:var(--vv-acao,#C2490C)!important}.vv-canto-modulo .vv-botao[aria-pressed="true"] svg{stroke:#fff}
 html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
@@ -5468,8 +5468,8 @@ body.mundo .vb-vitrine.vv-vitrine::after{display:none}
    ====================================================================================== */
 body.mundo{--pc-h:34px;--pc-h-p:28px;--pc-h-g:40px;--pc-r:8px;--pc-linha:#E6E0D6;--pc-tinta:#1F1D1A;--pc-fonte:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;--pc-sombra-acao:0 8px 20px -8px #E8602E;--pc-desligado-fundo:#F1EEE9;--pc-desligado-texto:#A8A29A}
 /* Secundário: branco, borda fina, tinta; no hover, borda e texto laranja. */
-body.mundo :is(.vc-sec,.vc-perigo,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar){display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--pc-h);padding:0 14px;border:1px solid var(--pc-linha);border-radius:var(--pc-r);background:#FFFFFF;color:var(--pc-tinta);font:var(--pc-fonte);white-space:nowrap;text-decoration:none;cursor:pointer;box-shadow:none;transition:border-color .15s,color .15s,background-color .15s}
-body.mundo :is(.vc-sec,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar):hover:not(:disabled):not(.desligado){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo :is(.vc-sec,.vc-perigo,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.vb-janela-x,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar){display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--pc-h);padding:0 14px;border:1px solid var(--pc-linha);border-radius:var(--pc-r);background:#FFFFFF;color:var(--pc-tinta);font:var(--pc-fonte);white-space:nowrap;text-decoration:none;cursor:pointer;box-shadow:none;transition:border-color .15s,color .15s,background-color .15s}
+body.mundo :is(.vc-sec,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.vb-janela-x,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar):hover:not(:disabled):not(.desligado){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
 /* Principal: o laranja do Criar, texto branco; um por área. */
 body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao){display:inline-flex;align-items:center;justify-content:center;gap:6px;height:auto;min-height:var(--pc-h);padding:0 16px;border:1px solid transparent;border-radius:var(--pc-r);background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font:var(--pc-fonte);font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:var(--pc-sombra-acao);transition:background-color .15s}
 body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao):hover:not(:disabled):not(.desligado){background:var(--ds-acao-hover,#E8602E);color:#FFFFFF}
@@ -5477,8 +5477,8 @@ body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-
 body.mundo :is(.vc-perigo,.vc-ico.perigo,.vi-botao.perigo){border-color:#F6BBC4;color:#B42318}
 body.mundo :is(.vc-perigo,.vc-ico.perigo,.vi-botao.perigo):hover:not(:disabled){background:#FDECEE;border-color:#F6BBC4;color:#B42318}
 /* Ícone (fechar, setas, mais): quadrado na altura do botão. */
-body.mundo :is(.vc-ico,.vp-x,.vf-x,.vi-x,.vga-fechar){min-width:var(--pc-h);height:var(--pc-h);padding:0 8px;font-size:15px}
-body.mundo :is(.vp-x,.vf-x,.vi-x,.vga-fechar){width:var(--pc-h);padding:0}
+body.mundo :is(.vc-ico,.vp-x,.vf-x,.vi-x,.vga-fechar,.vb-janela-x){min-width:var(--pc-h);height:var(--pc-h);padding:0 8px;font-size:15px}
+body.mundo :is(.vp-x,.vf-x,.vi-x,.vga-fechar,.vb-janela-x){width:var(--pc-h);padding:0}
 body.mundo :is(.vc-ico,.vp-x,.vf-x,.vi-x) svg{width:16px;height:16px}
 /* Alturas: pequena para filtros e linhas de tabela, grande para o rodapé de uma folha. */
 body.mundo :is(.dias-layout-btn,.conta-ensaio){min-height:var(--pc-h-p);padding:0 10px}
@@ -5538,6 +5538,8 @@ body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab{color:#1F1D1A}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab small{color:#5E5A53}
 /* Conquistas na janela clara: as abas (Entregas, Produção, Ritmo…) e a dica vinham na cor clara do jogo escuro e sumiam.
    Ficam no chip e no selecionado do sistema; os cartões de troféu continuam escuros (fase 3c). */
+/* 37 · os grupos quebram em linhas: nenhum chip cortado à direita (a fileira rolava de lado e escondia os últimos). */
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas{flex-wrap:wrap;overflow:visible}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip[aria-pressed="true"]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
 body.mundo #workflow-modal.ofc-menu-jogo .cq-dica{color:#5E5A53}
@@ -5847,6 +5849,8 @@ body.mundo #ofc-ranking .rk2-cab-icone{background:#F1ECE4;color:var(--jg-claro-t
 body.mundo #ofc-ranking .rk2-cab h2{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-periodos{background:#F1ECE4;border:0;box-shadow:none}
 body.mundo #ofc-ranking .rk2-periodos button{background:transparent;color:#5E5A53;box-shadow:none;border:0}
+/* 00 Sistema · o período escolhido é seleção: laranja do padrão, não preto (a regra geral do jogo deixa este alternador de fora). */
+body.mundo #ofc-ranking .rk2-periodos button[aria-selected="true"]{background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
 /* Categorias principais: cartões claros com o líder; a escolhida no selecionado laranja. */
 body.mundo #ofc-ranking .rk2-camp{background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-camp:hover{border-color:var(--jg-claro-borda-forte)}
@@ -6235,9 +6239,14 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 @media (max-width:760px){.ia-duas{grid-template-columns:1fr}}
 /* ===== Menus da tabela (quadro 23 do redesign, 10/11/2026) =====
    Menu de responsável: a busca no topo, no papel claro dos outros campos; o pé "+ N fora da disciplina" é um link. */
-body.mundo .dono-editor .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
-body.mundo .dono-editor .dono-busca::placeholder{color:#8A847A}
-body.mundo .dono-editor .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca::placeholder{color:#8A847A}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+/* A busca do responsável em lote (quadro 23) ocupa a largura do menu, acima das fichas. */
+.lote-dono .dono-busca{width:100%;margin:0 0 10px}
+/* Fora de um módulo antigo (o lote segue marcado ao ir para o Hoje) o nome da ficha saía quase branco no menu claro. */
+body.mundo .lote-dono .dono-ficha b{color:#1F1D1A}
+body.mundo .lote-dono .dono-ficha .owner-avatar-fallback{display:inline-grid;place-items:center}
 body.mundo .dono-editor .dono-ver-todos{margin:4px 8px 2px;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
 
 /* ===== Prévia da peça (quadro 27 do redesign, 10/11/2026) =====
@@ -6355,22 +6364,35 @@ body.mundo .pv-kpi-linha-item b{font:700 13.5px var(--vv-texto);color:#1F1D1A;ma
 body.mundo button.pv-kpi-linha-item{cursor:pointer;text-decoration:underline;text-decoration-color:#E6E0D6;text-underline-offset:3px}
 body.mundo button.pv-kpi-linha-item:hover{color:var(--vv-acao,#C2490C)}
 body.mundo .ops-command-bar{display:block;margin:6px 0 12px;padding:0;border:0;background:none;box-shadow:none}
-body.mundo .ops-command-bar .ops-botoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;overflow:visible;padding:0}
+body.mundo .ops-command-bar .ops-botoes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow:visible;padding:0}
 body.mundo .ops-command-bar :is(.toolbar-label,.ops-vao),body.mundo #agenda-filtros .agenda-filtros-rotulo{display:none}
 body.mundo .ops-command-bar .ops-segmentos{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:2px;margin:0;padding:3px;border:1px solid #E6E0D6;border-radius:10px;background:#F4EFE8;overflow-x:auto;scrollbar-width:none;max-width:100%}
-body.mundo .ops-command-bar .ops-segmentos button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;font:600 12.5px var(--vv-texto);white-space:nowrap}
-body.mundo .ops-command-bar .ops-segmentos button svg{width:15px;height:15px;flex:none}
-body.mundo .ops-command-bar .ops-attention{display:inline-flex;align-items:center;gap:8px}
-body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn){display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;font:600 12.5px var(--vv-texto)}
-body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn) .ops-action-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font:800 11px var(--vv-texto)}
+/* A barra cabe numa linha a 1440 (re-auditoria de 10/11/2026): o alternador sem os ícones e com a contagem como texto,
+   as peças mais justas (a cor do botão e do escolhido segue a do padrão) e o "Sem filtros" só aparece quando há filtro
+   para limpar. Se ainda assim passar de uma linha (contagens grandes, filtro ligado), Veiculação/Prazo vai para dentro
+   de "Mais filtros" quando isso basta para a barra caber (acomodarBarraDoPainel, vybe-agenda.js). */
+body.mundo .ops-command-bar .ops-segmentos button{display:inline-flex;align-items:center;gap:5px;height:30px;margin:0;padding:0 7px;border-radius:7px;font:600 12.5px var(--vv-texto);white-space:nowrap;cursor:pointer}
+body.mundo .ops-command-bar .ops-segmentos button:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+body.mundo .ops-command-bar .ops-segmentos button svg{display:none}
+body.mundo .ops-command-bar .ops-action-count{min-width:0;height:auto;margin:0;padding:0;border-radius:0;background:none;font:700 11.5px var(--vv-texto);opacity:.8}
+body.mundo .ops-command-bar .ops-clear-btn.is-idle{display:none}
+body.mundo .ops-command-bar .ops-attention{display:inline-flex;align-items:center;gap:6px}
+body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn){display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:999px;font:600 12px var(--vv-texto)}
 body.mundo .ops-command-bar #agenda-filtros{display:contents}
-body.mundo .ops-command-bar #agenda-filtros summary{height:32px;min-height:32px;border-radius:999px;background:#FFFFFF;border:1px solid #E6E0D6;color:#1F1D1A}
+body.mundo .ops-command-bar #agenda-filtros summary{height:32px;min-height:32px;padding:0 10px;border-radius:999px;background:#FFFFFF;border:1px solid #E6E0D6;color:#1F1D1A}
+body.mundo .ops-command-bar #agenda-filtros .agenda-filtro-escolha{margin-left:5px}
+/* A seta dos chips de filtro (Painel e Demandas) é desenhada, a mesma do menu "Modos": o "⌄" de texto ficava abaixo
+   da linha das letras (re-auditoria de 10/11/2026). */
+body.mundo :is(#agenda-filtros,#painel-demandas) summary::after{content:"";flex:none;width:6px;height:6px;margin-left:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;rotate:45deg;translate:0 -2px;transition:rotate .2s var(--curva,ease),translate .2s var(--curva,ease)}
+body.mundo :is(#agenda-filtros,#painel-demandas) details[open]>summary::after{rotate:-135deg;translate:0 2px}
 body.mundo .ops-command-bar #agenda-filtros summary:hover,body.mundo .ops-command-bar #agenda-filtros details[open]>summary{border-color:#F26B1D;background:#FFF8F2}
 body.mundo .ops-command-bar #agenda-filtros summary.tem-escolha{border-color:#F7C9A6;background:#FFF4EB}
 body.mundo .ops-command-bar #filter-bar{display:inline-flex;align-items:center;margin:0}
 body.mundo .ops-command-bar #date-mode-bar{margin:0}
+body.mundo .ops-command-bar #date-mode-bar > button{padding:7px 8px;border-radius:6px;font:650 12.5px/1 var(--vv-texto);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer}
 body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:0;display:grid;gap:8px}
 body.mundo .ops-command-bar .agenda-mais-rotulo{font:650 11.5px var(--vv-texto);color:#6B675F}
+body.mundo .ops-command-bar .agenda-mais-data:not([hidden]){display:grid;gap:8px;justify-items:start}
 body.mundo .ops-command-bar .agenda-mais-linha,body.mundo .ops-command-bar .agenda-mais-linha .agenda-filtros-semana{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
@@ -6670,15 +6692,15 @@ body.mundo .mundo-rotulo.rotulo-loja[data-mais]::after{content:attr(data-mais-te
 /* 43 · Prospecção desligada: sem as etapas nem a legenda (o display:flex das regras antigas vencia o hidden). */
 body.mundo .vv-placa :is(.vv-camada-filtros,.vv-cb-legenda)[hidden]{display:none}
 body.mundo .vv-placa .vv-camada-filtros{padding-left:4px}
-/* 38 · Jogos e Equipe online param acima do dock das salas (antes desciam por trás dele até o pé da tela). */
-@media (min-width:901px){
-  body.mundo:not(.mundo-centro) .vv-placa:has(> .vv-jogos,> .vv-online-lista){bottom:calc(var(--vv-m) * 2 + var(--vv-dock-alto,0px))}
-}
+/* 38 · Jogos e Equipe online param acima do dock das salas pela regra geral da placa (quadro 22, acima): o mesmo fim
+   das outras janelas. A regra própria daqui deixava a janela 8 px mais curta e o Hoje aparecia por baixo. */
 /* 36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, à direita do dock lateral e acima do dock das salas,
    em vez de cobrir quase a tela toda (a largura de 1.480 px do jogo antigo ficou só fora do mundo). */
 body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - 2 * var(--vv-m)));max-width:none}
 @media (min-width:901px){
   body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - var(--vv-palco-esq,0px) - var(--vv-m)));left:calc(50% + (var(--vv-palco-esq,0px) - var(--vv-m)) / 2)}
+  /* 35 · A Loja no mesmo lugar: centrada no espaço à direita do dock lateral (antes começava em x=160, por cima dele). */
+  body.mundo #office-catalogo{left:var(--vv-palco-esq,0px);right:var(--vv-m);width:min(1120px,calc(100vw - var(--vv-palco-esq,0px) - var(--vv-m)))}
 }
 /* 35 e 37 · Loja, inventário, Conquistas e Ranking: enquanto o retrato voxel do móvel ou do troféu não chega, o lugar
    brilha (a imagem do Habbo fica fora da caixa); com "Reduzir movimento", fica parado. */
@@ -6718,8 +6740,17 @@ body.mundo .capt-cal .capt-tb-dir{flex:0 1 auto;margin-left:auto;flex-wrap:wrap}
 /* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
 body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
 body.mundo .capt-cal .capt-tb-esq{flex-wrap:wrap;row-gap:8px}
-/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
-body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+/* Quadro 04, o que a re-auditoria de 10/11/2026 achou cortado ("Alinhamento da…", "09:00–11:00 · 2 pe…"): o bloco com
+   hora usa a letra do quadro (título 11/13, horário 10,5/12) e as linhas que o agendaSemanaHtml calcula para ela
+   (--linhas-mundo, --linhas-hora): título em até duas ou três linhas e a linha do horário quebra em duas quando há
+   altura. O fundo é branco com contorno; a cor do tipo fica só no traço da esquerda (regra do .ag-ev lá em cima). */
+body.mundo .ag-col .ag-ev{gap:0;padding:4px 7px 4px 9px}
+body.mundo .ag-col .ag-ev b{font:600 11px/13px var(--vv-texto);-webkit-line-clamp:var(--linhas-mundo,2)}
+body.mundo .ag-col .ag-ev:not(.mini) small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--linhas-hora,1);font:500 10.5px/12px var(--vv-texto);white-space:normal;overflow-wrap:break-word}
+@container (max-width:72px){
+  body.mundo .ag-col .ag-ev b{font-size:10.5px;-webkit-line-clamp:var(--linhas-estreito,2)}
+  body.mundo .ag-col .ag-ev:not(.mini) small{display:none}
+}
 /* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
 .capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
 .capt-linha-pecas .capt-progresso{margin:0}
@@ -6766,11 +6797,16 @@ body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds
   body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-dock-alto:0px}
   body.mundo .prod-v2-head.com-acao{flex-wrap:wrap;gap:10px}
   body.mundo .prod-v2-head.com-acao .p-head-acoes{width:100%}
-  body.mundo #workspace-drawer.workspace-drawer{inset:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px)) 0;width:100%;max-width:none;border-radius:0 0 14px 14px;border-left:0}
-  /* Fora de uma chamada o cartão das salas está guardado no Voz: a gaveta vai até a barra de baixo. */
-  body.mundo.dock-cartao:not(.cel-voz-aberta) #workspace-drawer.workspace-drawer{bottom:calc(64px + 2 * var(--vv-m,12px))}
+  /* A gaveta é a tela inteira (re-auditoria de 10/11/2026: ela acabava em ~760 px, o Hoje aparecia embaixo e a barra
+     de baixo sumia atrás do fundo escuro). Ela vai até o fim da tela e a faixa de baixo, da altura da barra (e do
+     cartão das salas quando o Voz está aberto; fora dele --vv-dock-alto é 0), é um respiro da própria gaveta: comentar
+     e passar bastão ficam acima dela. A barra de baixo é desenhada por cima dessa faixa; o resto do HUD (o Hoje e o
+     topo) some enquanto a gaveta está aberta, e tocar na barra fecha a gaveta antes (vybe-gaveta.js). */
+  body.mundo #workspace-drawer.workspace-drawer{inset:0;width:100%;max-width:none}
+  body.mundo:has(> #workspace-drawer) #mundo-hud{z-index:622}
+  body.mundo:has(> #workspace-drawer) #mundo-hud > :not(.vv-trilho){visibility:hidden}
   /* Sem o desfoque atrás: no celular a gaveta é a tela (e o WebKit deixava o painel de baixo aparecer através dela). */
-  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0}
+  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px))}
   body.mundo #workspace-drawer .workspace-rolagem{padding:0 14px}
   body.mundo #workspace-drawer .workspace-barra{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:6px;margin:0 -14px;padding:8px 10px;background:#FFFFFF;border-bottom:1px solid #EFEAE2}
   body.mundo #workspace-drawer .workspace-voltar{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border-radius:8px}
@@ -6783,3 +6819,69 @@ body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds
   body.mundo #workspace-drawer .workspace-rodape{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 -14px;padding:8px 10px}
   body.mundo #workspace-drawer .workspace-rodape .workspace-textarea{grid-column:1/-1;width:100%;min-height:40px}
 }
+/* ==== Redesign negocio2 (quadro 54, 2ª rodada, 10/11/2026): "Como o VYBES pensa" mora na página Agentes (o diagnóstico que
+   ficava nas Sinapses do cliente). O desenho das cadeias é o do cérebro (.cb-sin-*); aqui só o que a página Agentes muda:
+   sem a caixa de rolagem própria e com os chips claros do padrão. Na Sinapses do cliente fica o atalho para cá. ==== */
+#vv-agentes .vga-cerebro{margin-top:14px}
+#vv-agentes .vga-cerebro .cb-diagnostico{flex:none;overflow:visible;padding:0;gap:12px}
+#vv-agentes .vga-cerebro .cb-sin-filtro{min-height:28px;border-color:var(--pc-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:#1F1D1A}
+#vv-agentes .vga-cerebro .cb-sin-filtro b{min-width:0;padding:0;background:transparent;color:inherit;font:inherit;font-weight:700}
+#vv-agentes .vga-cerebro .cb-sin-filtro:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+#vv-agentes .vga-cerebro .cb-sin-filtro[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFE9DC);border-color:var(--ds-sel-borda,transparent);color:var(--ds-sel-texto,#C2490C)}
+.cb-sin-onde-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cb-sin-onde-acoes:empty{display:none}
+@media (max-width:640px){#vv-agentes .vga-cerebro{padding-bottom:56px}}
+
+/* ===== Acabamento, segunda rodada (10/11/2026) · um cabeçalho só (quadros 00 Main, 00 Sistema e 29) =====
+   Página e janela usam a mesma peça (vbCabecalhoHtml, vybe-core.js): título, uma frase do que a tela faz e as ações à
+   direita; na janela o X (vbFecharHtml) é a última ação, na mesma linha. Sem rótulo de setor em cima do título (o setor
+   está aceso no dock), sem faixa branca: o cabeçalho fica no papel da janela, com um fio embaixo. O título tem um
+   tamanho só (22 px); o de 28 px do padrão escuro ficou no painel antigo (vybe-padrao.css, :where(body:not(.mundo))). */
+body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo{display:block;flex:none;padding:16px 16px 14px 22px;background:transparent;border-bottom:1px solid #ECE6DC}
+body.mundo .vb-janela-topo > .vb-cabecalho{flex-wrap:nowrap;align-items:center;gap:12px 16px;margin:0;padding:0}
+body.mundo .vb-janela-topo .vb-cabecalho-texto{flex:1 1 auto;gap:3px}
+body.mundo .vb-janela-topo .vb-cabecalho-acoes{flex:none;flex-wrap:nowrap;margin-left:auto}
+body.mundo .vb-janela-topo :is(.vp-topo-botoes,.vi-topo-acoes){display:flex;align-items:center;gap:8px}
+body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo h2,
+body.mundo :is(.workspace-heading,.pv-cabeca,.vb-cabecalho-texto,.vv-g-topo) h2,
+body.mundo :is(.ai-usage-title,.auto-titulo),
+body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab h3,
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo b,
+body.mundo #vv-carteira .vc-topo h2{margin:0;font:700 22px/1.15 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A;text-wrap:balance}
+body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo .vb-cabecalho-texto p,
+body.mundo .vv-g-topo p,
+body.mundo .pv-cabeca .pv-frase,
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo small{margin:0;max-width:78ch;font:500 13px/1.45 var(--vv-texto,Inter),sans-serif;color:#6B675F;white-space:normal}
+/* O rótulo de setor sai de cima do título nas telas que ainda o trazem no HTML (Demandas, Clientes, Gestão). */
+body.mundo :is(.pv-cabeca .pv-etiqueta,.vv-g-topo .vv-cb-kicker,#vv-carteira .vc-topo .vc-kicker){display:none}
+/* O mesmo X em toda janela: caixa de 34 px com borda fina (a regra dos botões de ícone, acima, dá o resto). */
+body.mundo .vb-janela-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{background:transparent;border-bottom:1px solid #ECE6DC;padding:16px 16px 14px 22px}
+/* Telas antigas: as ações do cabeçalho param antes do ⛶ e do X do canto (o "Registrar agora" do Diário encostava neles). */
+body.mundo.mundo-modulo:not(.palco-modulo) :is(#diario-root,#ai-usage-root,#automacoes-root,.container) > .vb-cabecalho{padding-right:88px}
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone,
+body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab ~ .vv-fechar,
+body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar{width:34px;height:34px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;box-shadow:none}
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone:hover,body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar:hover{background:#FFFFFF;border-color:var(--ds-acao,#FF7A2F)}
+@media (max-width:600px){
+  body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo{padding:12px 12px 10px 14px}
+  body.mundo .vb-janela-topo > .vb-cabecalho{align-items:flex-start;gap:8px}
+  body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo h2,
+  body.mundo :is(.workspace-heading,.pv-cabeca,.vb-cabecalho-texto,.vv-g-topo) h2,
+  body.mundo :is(.ai-usage-title,.auto-titulo){font-size:19px}
+  body.mundo .vb-janela-topo .vb-cabecalho-texto p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
+/* 32 · Cidade: o Hoje sobre o 3D (estreito) traz a agenda do dia logo depois do guia e dos números (antes só havia o
+   atalho "Agenda" no fim); no Hoje de página inteira a mesma agenda fica na coluna da direita. */
+.vv-hoje-agenda-3d{display:none}
+body.mundo.mundo-centro #vv-hoje .vv-hoje-agenda-3d{display:block}
+body.mundo.mundo-centro #vv-hoje .vv-hoje-agenda-lado{display:none}
+/* 00 Main · zeros em linha discreta no Hoje e no painel do cliente: a linha quebra dentro do painel estreito. */
+.vv-radar-zeros{margin:0 0 10px}
+.vv-radar-zeros .vb-resumo{gap:6px}
+.vv-radar-zeros .vb-resumo-item{padding:5px 10px;text-align:left}
+.vv-radar-zeros .vb-resumo-item.espiavel{cursor:pointer}
+.vv-radar-zeros .vb-resumo-item.espiavel:hover{border-color:var(--ds-acao,#FF7A2F);color:#1F1D1A}
+#vv-hoje .vv-dono-radar + .vv-radar-zeros{margin-top:-4px}
+/* 30 · "Semana" do Hoje é um botão do padrão (era texto laranja clicável). */
+body.mundo .vv-semana-abrir{min-height:var(--pc-h-p,28px);padding:0 10px}
