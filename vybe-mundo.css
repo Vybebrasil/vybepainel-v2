@@ -484,7 +484,7 @@ body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dial
 body.mundo #workspace-drawer{background:#FAF8F4!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
 body.mundo .spotlight-dialog{background:#FBFAF7!important;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #notif-caixa{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;backdrop-filter:var(--vv-desfoque)!important}
-body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
 body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:#1F1D1A!important}
 body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:#FAF8F4!important;border-top:1px solid #E6E0D6!important}
 body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:#6B675F!important}
@@ -3292,7 +3292,7 @@ html body.mundo .manager-calendar-event :is(.manager-calendar-event-meta,.manage
 html body.mundo :is(.manager-calendar-add,.manager-calendar-more):not(#vv-x){background:#FAF8F4!important;border:1px solid #E6E0D6!important;color:#8A3A08!important}
 html body.mundo .manager-calendar-actions button:not(.active):not(.primary):not(#vv-x),html body.mundo .manager-calendar-month button:not(#vv-x){background:#fff!important;border:1px solid #E1DACE!important;color:#1F1D1A!important}
 /* barras que grudam no topo ao rolar deixam o canto do "tela cheia / fechar" livre */
-@media (min-width:901px){html body.mundo.mundo-modulo :is(.manager-calendar-toolbar,.capt-toolbar,.ag-cabeca,.da-barra):not(#vv-x){padding-right:104px!important}}
+@media (min-width:901px){html body.mundo.mundo-modulo :is(.manager-calendar-toolbar,.capt-toolbar,.da-barra):not(#vv-x){padding-right:104px!important}}
 /* rótulos neon (pensados para o escuro): mesma cor, com tinta para ler no claro */
 html body.mundo.mundo-modulo :is(.client-module-kicker,.da-discipline-tag,.da-command-daily-kicker,.da-capacity-signal strong):not(#vv-x){filter:saturate(1.4) brightness(.58)}
 /* agenda: o número do dia de hoje fica branco sobre o laranja */
@@ -7036,4 +7036,73 @@ body.mundo .vv-gestao{background:#F6F3EE;backdrop-filter:none;-webkit-backdrop-f
    iam até o pé da tela, por trás da barra. A folga de baixo é a altura da barra (64 px) mais as margens. */
 @media (max-width:600px){
   body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-pe-barra:calc(58px + var(--vv-m,8px))}
+}
+
+
+/* ==== Quarta rodada · sobras (11/11/2026) ==== */
+/* 1 · dica "Tela de trabalho" compacta: título e "Entendi" numa linha, a frase em até duas, "Ver de novo depois" e
+   "Não mostrar mais dicas" numa linha pequena embaixo. O lugar (vybe-mundo-tutorial.js, colocarCompacta) é uma vaga
+   sem controle nenhum; sem vaga, o cabeçalho da janela. */
+.vv-tour-balao.vv-tour-compacta{width:min(360px,calc(100vw - 24px));padding:6px 8px 3px 12px}
+.vv-tour-compacta-topo{display:flex;align-items:center;gap:8px;min-width:0}
+.vv-tour-compacta .vv-tour-avatar{width:22px;height:22px;box-shadow:0 4px 10px -5px rgba(91,75,214,.7)}
+.vv-tour-compacta .vv-tour-avatar i{width:7px;height:7px}
+.vv-tour-compacta .vv-tour-titulo{flex:1;min-width:0;margin:0;font-size:14.5px}
+.vv-tour-compacta .vv-tour-principal{flex:none;height:26px;padding:0 12px}
+.vv-tour-compacta .vv-tour-texto{margin:3px 0 0;font-size:12.5px;line-height:1.3}
+.vv-tour-compacta .vv-tour-mais{display:flex;flex-wrap:wrap;align-items:center;gap:0 2px;margin:1px 0 0 -6px}
+.vv-tour-compacta .vv-tour-mais :is(.vv-tour-sec,.vv-tour-link){height:20px;padding:0 6px;border:0;border-radius:6px;background:none;
+  color:var(--tour-apagado);font:600 11.5px/1 var(--vv-texto,system-ui),sans-serif}
+.vv-tour-compacta .vv-tour-mais :is(.vv-tour-sec,.vv-tour-link):hover{color:var(--tour-sel)}
+/* 6 · Nova reunião: o menu de escolha da janela (gaveta, modal, busca) tinha o fundo branco que apagava a seta do padrão;
+   a linha das janelas agora pinta a seta que o <select> oferece nesta variável (campo de texto não tem: fica sem). */
+body.mundo select:not([multiple]):not([size]){--vv-seta-select:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+/* cabeçalho único: título (com o cliente) e a frase à esquerda, o X do padrão à direita */
+body.mundo #workflow-modal .cad-reuniao > .vb-cabecalho{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;gap:12px;margin:0 0 14px;padding:0;background:none;border:0;box-shadow:none;min-height:0;height:auto}
+body.mundo #workflow-modal .cad-reuniao .vb-cabecalho-texto{flex:1 1 auto;min-width:0;display:grid;gap:4px}
+body.mundo #workflow-modal .cad-reuniao .vb-cabecalho-texto h2{margin:0;font:700 22px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A;text-wrap:balance}
+body.mundo #workflow-modal .cad-reuniao .vb-cabecalho-texto p{margin:0;font:500 13.5px/1.45 var(--vv-texto),sans-serif;color:#6B675F}
+body.mundo #workflow-modal .cad-reuniao .vb-cabecalho-acoes{flex:none;display:flex;margin-left:auto}
+@media (max-width:600px){body.mundo #workflow-modal .cad-reuniao .vb-cabecalho-texto h2{font-size:19px}}
+/* 4 · Painel com a demo cheia: no cartão da semana o status e o formato cabem inteiros. A coluna das pessoas tinha 64 px
+   fixos para um avatar de 22 (sobra da pilha de avatares); agora tem o tamanho da pilha, e o que ainda não couber na
+   linha (status longo + formato longo) desce para a linha de baixo em vez de virar "F…" ou passar da borda. */
+body.mundo .dias-colunas > .day-scroll-card .day-activity-pessoas .manager-owner-trigger{width:auto;min-width:22px}
+body.mundo .dias-colunas > .day-scroll-card .day-activity-actions{flex-wrap:wrap;row-gap:3px;overflow:visible}
+body.mundo .dias-colunas > .day-scroll-card .day-activity-actions .day-activity-formato{flex:0 0 auto;width:auto;max-width:100%}
+/* 3 · Agenda › Semana (e Dia): os dias da semana ficam presos logo abaixo da barra da Agenda quando a janela rola (a 1110
+   a barra ocupa 150 px e a grade rolava para fora com "seg 9, ter 10…"). O overflow:hidden da semana prendia o sticky
+   dentro dela; clip corta igual sem virar caixa de rolagem. --ag-cabeca-topo = altura da barra (captCabecaFixa). */
+body.mundo .capt-cal .ag-semana{overflow:clip}
+body.mundo .capt-cal .ag-semana > .ag-cabeca{top:var(--ag-cabeca-topo,0px)}
+/* 3 · data comemorativa no cabeçalho do dia: quebra dentro da coluna (entre palavras, letra de 10 px) em vez de passar
+   da borda da semana; o dia e o número continuam no alto de todas as colunas. O cabeçalho dos dias saiu da lista do
+   vão de 104 px à direita (moldura, linha "manager-calendar-toolbar"): preso abaixo da barra, ele não chega à caixa de
+   tela cheia/fechar, e o vão desalinhava as colunas dos dias das da grade embaixo. */
+body.mundo .capt-cal .ag-dia-cab{align-content:start}
+body.mundo .capt-cal .ag-dia-cab .vd-chips{max-width:100%;min-width:0;justify-content:center}
+body.mundo .capt-cal .ag-dia-cab .vd-chip{display:block;max-width:100%;min-width:0;box-sizing:border-box;padding:1px 4px;white-space:normal;text-align:center;font-size:10px;line-height:1.25}
+body.mundo .capt-cal .ag-dia-cab .vd-chip span{white-space:normal;overflow-wrap:break-word;hyphens:manual;-webkit-hyphens:manual;min-width:0}
+/* 2 · Agenda › Mês no computador: o nome do compromisso e a data comemorativa aparecem inteiros; a célula cresce (a
+   grade continua de 7 colunas e a linha toma a altura do dia mais cheio). No celular fica o limite de 4 linhas com a
+   faixa na cor do tipo (pedido do Paulo). */
+@media (min-width:701px){
+  body.mundo .capt-cal .capt-mes{container:capt-mes / inline-size}
+  body.mundo .capt-cal .capt-mes .ag-chip span,body.mundo .capt-cal .capt-mes .vd-chip span{display:block;-webkit-line-clamp:none;overflow:visible}
+  /* dia estreito (a 1110 a célula tem 97 px): a letra desce de 11 para 10,5 px, para a célula crescer menos */
+  @container capt-mes (max-width:819px){
+    body.mundo .capt-cal .capt-mes .ag-chip{font-size:10.5px;line-height:12.5px}
+  }
+}
+/* 7 · Conta (quadro 13): a divisória do menu vai até o fim da janela (antes parava em y=612, no fim do menu) e os dados
+   ficam em linhas rótulo | valor, o valor logo ao lado do rótulo (antes encostado na borda direita, com um vazio no
+   meio). A divisória é o fundo da janela da conta (desce pelo vão de baixo, que o tema antigo fixa e não dá para zerar): o menu
+   continua preso no alto ao rolar a Equipe. */
+@media (min-width:901px){
+  body.mundo .container.auto-shell:has(> .conta-tela){display:flex;flex-direction:column;min-height:100%;box-sizing:border-box;background:linear-gradient(#ECE6DC,#ECE6DC) 215px 0 / 1px calc(100% + 400px) no-repeat content-box border-box}
+  body.mundo .container.auto-shell > .conta-tela{flex:1 0 auto}
+  body.mundo .conta-barra{border-right:0}
+  body.mundo .conta-campo-linha{display:grid;grid-template-columns:140px minmax(0,1fr);justify-content:stretch}
+  body.mundo .conta-campo-linha b{text-align:left}
+  body.mundo .conta-ai-linha{grid-template-columns:140px minmax(0,1fr) auto}
 }
