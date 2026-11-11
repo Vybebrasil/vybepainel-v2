@@ -1836,7 +1836,10 @@ function voltarAoMenu() {
   if (typeof closeTransientOverlaysForNavigation === 'function') closeTransientOverlaysForNavigation();
   if (typeof openModeGate === 'function') openModeGate();
 }
-function chooseManagerMode() { closeTransientOverlaysForNavigation(); panelMode='gestor'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','gestor'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
+// `quadro` (opcional, quarta rodada 11/11/2026): o dock do mundo abre Demandas, Diário, IA, Automações e Conta direto,
+// sem desenhar o Painel de trabalho antes e trocar 300 ms depois (piscava o Painel e atrasava a tela). Sem ele, ou sem
+// acesso ao quadro pedido, é o Modo Gestor de sempre, no Painel de trabalho.
+function chooseManagerMode(quadro) { closeTransientOverlaysForNavigation(); panelMode='gestor'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','gestor'); setStorage('vybePanelFocusUser',''); closeModeGate(); const btnQuadro = typeof quadro === 'string' && quadro !== 'producao' ? document.getElementById('btn-board-' + quadro) : null; if (btnQuadro) switchBoard(quadro, btnQuadro); if (!btnQuadro || activeBoard !== quadro) activateOperationalBoard(); applyPanelMode(); }
 function chooseFocusUser(userId) { closeTransientOverlaysForNavigation(); panelMode='foco'; focusUserId=userId; selectedPersonIds.clear(); setStorage('vybePanelMode','foco'); setStorage('vybePanelFocusUser',userId); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
 function chooseDaControllerMode() { closeTransientOverlaysForNavigation(); panelMode='controler'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); daControllerPersonId='all'; setStorage('vybePanelMode','controler'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
 function chooseProductionMode() { closeTransientOverlaysForNavigation(); panelMode='producao'; focusUserId=''; currentPersonFilter='all'; selectedPersonIds.clear(); setStorage('vybePanelMode','producao'); setStorage('vybePanelFocusUser',''); closeModeGate(); activateOperationalBoard(); applyPanelMode(); }
@@ -1909,13 +1912,18 @@ function applyPanelMode() {
     } else if (currentPersonFilter === focusUserId) {
       currentPersonFilter = 'all';
     }
+    // Modo Gestor com as solicitações já à mão: ensureDemandasForOperationalViews, logo abaixo, desenha de novo na mesma
+    // hora as mesmas semanas e o mesmo resumo (renderIntegratedOperationalViews). Desenhar duas vezes dobrava o tempo de
+    // abrir o Painel de trabalho (quarta rodada, 11/11/2026); o resultado na tela é o mesmo.
+    const redesenhaLogoAbaixo = panelMode === 'gestor' && viewMode === 'day' && Boolean(META.weeks?.length)
+      && ((typeof unifiedDemandasLoading !== 'undefined' && unifiedDemandasLoading) || (typeof DADOS_DEMANDAS !== 'undefined' && DADOS_DEMANDAS.length > 0));
     const weeksCount = META.weeks ? META.weeks.length : 4;
-    for (let s=1;s<=weeksCount;s++) renderWeek(s,currentFilter,currentDayFilter);
+    if (!redesenhaLogoAbaixo) for (let s=1;s<=weeksCount;s++) renderWeek(s,currentFilter,currentDayFilter);
     if (isFocus) renderFocusDashboard();
     else if (isDaController) renderDaController();
     else if (isProductionCommand) renderProductionCommand();
     else if (isClientMode) renderClientesBoard();
-    else renderManagerIntelligence();
+    else if (!redesenhaLogoAbaixo) renderManagerIntelligence();
   }
   if (panelMode === 'gestor' || isFocus || isDaController || isClientMode) void ensureDemandasForOperationalViews();
 }

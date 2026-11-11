@@ -273,13 +273,17 @@
     const fechou = lista.some((m) => (m.type === 'attributes' ? IDS_DE_JANELA.has(m.target.id) && m.target.hidden : [...m.removedNodes].some((n) => IDS_DE_JANELA.has(n.id) || n.querySelector?.(SEL_JANELAS))));
     if (fechou && !remarcando) remarcando = requestAnimationFrame(remarcarAoFechar);
   }).observe(document.body, { childList: true, attributes: true, attributeFilter: ['hidden'], subtree: true });
+  // Sair de uma tela antiga para o mundo na mesma hora (quarta rodada, 11/11/2026: "o que veio do legado não abre como as
+  // interfaces novas"). Antes era voltarAoMenu e o destino 350 ms depois; agora o mundo volta a valer já (sincronizar, que
+  // o observador do portão só rodaria depois do clique) e o destino abre no mesmo clique.
+  function sairDaTelaAntiga() { chamar('voltarAoMenu'); sincronizar(); }
   function fecharJanelasDeModulo() { for (const n of JANELAS_DE_MODULO) { try { const m = window[n]; if (m && (typeof m.aberto !== 'function' || m.aberto())) m.fechar?.(); } catch { /* segue */ } } }
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
     if (id === 'setor:toolkit') { usarTrilho('toolkit'); return; }
     const t = TRILHO.find((x) => x && x.id === id);
     if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
-    if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => abrirVisaoSetor(id), 350); return; }
+    if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
     if (centroAberto) fecharCentro();
     if (!gestao.hidden) fecharGestao();
     limparTela();
@@ -365,7 +369,7 @@
       limparTela();
       // Saindo de uma tela antiga para uma nova: volta ao menu primeiro (uma vez só) e então abre o destino.
       if (!saiuDaAntiga && !TELAS_ANTIGAS.has(id) && !SUBMODULOS.find((x) => x.id === id)?.board && id !== 'centro' && id !== 'predio' && id !== 'minha-sala' && body.classList.contains('mundo-modulo')) {
-        chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id, botao, true), 350); return;
+        sairDaTelaAntiga(); usarTrilho(id, botao, true); return;
       }
     }
     window.VybeTutorial?.dica?.('trilho:' + id);
@@ -373,14 +377,14 @@
     if (andarAbertoId.startsWith('quarto:') && id !== 'criar' && id !== 'vybes' && id !== 'minha-sala') fecharAndarVoxel(false);
     if (id === 'minha-sala') {
       if (!gestao.hidden) fecharGestao();
-      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
       if (centroAberto) fecharCentro();
       abrirMinhaSala(); return;
     }
     // Centro e Prédio abrem o 3D; qualquer outro módulo fecha o Centro e ocupa a tela (o mapa para e some).
     if (id === 'centro' || id === 'predio') {
       if (!gestao.hidden) fecharGestao();
-      if (body.classList.contains('mundo-modulo')) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+      if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
       abrirCentro(id === 'predio' ? 'predio' : 'cidade'); return;
     }
     if (centroAberto && id !== 'criar' && id !== 'vybes') fecharCentro();
@@ -395,7 +399,8 @@
     if (sub?.board) {
       if (!gestao.hidden) fecharGestao();
       const quadro = () => chamar('switchBoard', sub.board, document.getElementById('btn-board-' + sub.board));
-      if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) { chamar('chooseManagerMode'); setTimeout(quadro, 300); } else quadro();
+      // Direto no quadro pedido (quarta rodada, 11/11/2026): antes abria o Painel de trabalho e trocava 300 ms depois.
+      if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) chamar('chooseManagerMode', sub.board); else quadro();
       marcarTrilho(id); return;
     }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
@@ -409,7 +414,7 @@
     if (id === 'gestao' || id === 'performance') { abrirGestao(id === 'performance' ? 'performance' : 'agencia'); return; }
     if (!gestao.hidden) fecharGestao();
     const noModulo = body.classList.contains('mundo-modulo');
-    if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) { chamar('voltarAoMenu'); setTimeout(() => usarTrilho(id), 350); return; }
+    if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) sairDaTelaAntiga();
     if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : usarTrilho.tarefas ? 'tarefas' : 'hoje'); usarTrilho.criacao = false; usarTrilho.tarefas = false; pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
@@ -1436,7 +1441,7 @@
     if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
-    if (acao === 'demandas') { chamar('chooseManagerMode'); const b = document.getElementById('btn-board-demandas'); if (b) chamar('switchBoard', 'demandas', b); return; }
+    if (acao === 'demandas') { chamar('chooseManagerMode', 'demandas'); return; } // direto em Demandas, sem passar pelo Painel
     if (acao === 'agenda') { abrirAgenda(); return; }
     if (acao === 'agenda-ler') { carregarAgenda(true); return; }
     // Os agentes viram (quadro 31): a peça do achado abre na janela da peça; o resto, na fila Depende de você.
@@ -1567,10 +1572,8 @@
         controler: () => chamar('chooseDaControllerMode'), producao: () => chamar('chooseProductionMode'), gestor: () => chamar('chooseManagerMode') })[mod.alvo]?.();
       return;
     }
-    // Quadro: o mesmo caminho do Modo Gestor, mais a aba pedida.
-    chamar('chooseManagerMode');
-    const btn = document.getElementById('btn-board-' + mod.alvo);
-    if (btn) chamar('switchBoard', mod.alvo, btn);
+    // Quadro: o mesmo caminho do Modo Gestor, já na aba pedida (sem desenhar o Painel de trabalho antes).
+    chamar('chooseManagerMode', mod.alvo);
   }
   const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybehub: 'Abrir o VybeHub', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
@@ -3383,7 +3386,7 @@
   // sobem junto, para nada cobrir a barra (regra do Paulo: nada cobre, nada rola).
   // Mede quando o conteúdo muda (MutationObserver não depende de a página estar desenhando) e quando a largura muda.
   // Fora dos módulos a barra da sala abre no topo pela barra de ícones: não empurra os avisos de baixo.
-  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); document.body?.style?.setProperty?.('--vv-voz-alto', (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'); }
+  function medirBarra() { const embaixo = !barra.hidden && document.body?.classList?.contains?.('mundo-modulo'); const v = (embaixo ? Math.round(barra.offsetHeight) : 0) + 'px'; if (document.body?.style?.getPropertyValue?.('--vv-voz-alto') !== v) document.body?.style?.setProperty?.('--vv-voz-alto', v); }
   if (typeof MutationObserver === 'function') new MutationObserver(medirBarra).observe(barra, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   if (typeof ResizeObserver === 'function') new ResizeObserver(medirBarra).observe(barra);
   let chamarAberto = false, pessoaAberta = null;
@@ -4017,6 +4020,14 @@
   // ---------- Mostrar o mundo junto com a tela de módulos ----------
   let timer = null;
   const APP_AGENDA = typeof location !== 'undefined' && /^\/agenda\/?$/.test(location.pathname);
+  // A volta ao topo vai para o próximo quadro (quarta rodada, 11/11/2026): escrever scrollTop aqui, logo depois de trocar
+  // as classes do body, obrigava o navegador a recalcular o estilo da página inteira uma vez a mais (~100 ms) antes da
+  // primeira pintura. No quadro, antes de pintar, sai o mesmo recálculo que a pintura faria de qualquer jeito.
+  function voltarAoTopoNoQuadro() {
+    if (typeof requestAnimationFrame !== 'function') { body.scrollTop = 0; return; }
+    if (voltarAoTopoNoQuadro.pedido) return; voltarAoTopoNoQuadro.pedido = true;
+    requestAnimationFrame(() => { voltarAoTopoNoQuadro.pedido = false; if (body.classList.contains('mundo-modulo')) body.scrollTop = 0; });
+  }
   function sincronizar() {
     if (body.classList.contains('auth-pending')) fonteAgentes?.limpar();
     const gateAberto = !!document.getElementById('mode-gate')?.classList.contains('open');
@@ -4044,7 +4055,7 @@
     body.classList.toggle('mundo-modulo', modulo);
     // A rolagem agora é a do body (dentro da moldura): ao trocar de módulo, volta ao topo como antes.
     const chaveModulo = modulo ? (typeof panelMode !== 'undefined' ? panelMode : '') + '|' + quadro : '';
-    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { body.scrollTop = 0; setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
+    if (chaveModulo !== sincronizar.ultimo) { sincronizar.ultimo = chaveModulo; if (modulo) { voltarAoTopoNoQuadro(); setTimeout(() => { if (body.classList.contains('mundo-modulo') && !body.classList.contains('auth-pending')) window.VybeTutorial?.dica?.('modulo'); }, 900); } }
     if (modulo && !window.VybeSetor?.aberto?.()) marcarTrilhoDoModulo();
     body.classList.toggle('mundo-sobre-escritorio', ligado && (visivel || Boolean(andarAberto) || jogandoAgora));
     body.classList.toggle('mundo', ligado);

@@ -7037,3 +7037,23 @@ body.mundo .vv-gestao{background:#F6F3EE;backdrop-filter:none;-webkit-backdrop-f
 @media (max-width:600px){
   body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-pe-barra:calc(58px + var(--vv-m,8px))}
 }
+
+/* ==== Quarta rodada · abertura: a tela antiga abre como as janelas novas (11/11/2026) ====
+   Paulo: "quando eu clico em Projetos pontuais abre instantaneamente; quando eu clico em Painel de trabalho (que veio do
+   legado) parece que demora um pouquinho e tá abrindo de outra tela". O tempo saiu no JS (sem medida forçada a cada
+   semana, sem o Painel antes do quadro pedido, sem as esperas de 300/350 ms); aqui sai o "outra tela":
+   1 · atrás da moldura fica o mesmo palco das janelas novas (o bege do Hoje), não o céu azul do mapa;
+   2 · moldura, cabeçalho e quadro entram juntos, com a mola e o tempo das janelas novas, sem começar transparentes
+       (a entrada antiga do quadro, vybe-quadro-entra, vinha do zero de opacidade e fica só no tema antigo). Só o
+       deslize: a escala de .982 encolheria cada pedaço em volta do próprio centro e a moldura descolaria do conteúdo.
+       Sem "both": translate que fica aplicado no fim muda a referência dos fixos de dentro (menus do cabeçalho). */
+html:has(body.mundo.mundo-modulo){background:var(--vv-palco-fundo,#EFEBE4)}
+body.mundo.mundo-modulo #mundo{background:var(--vv-palco-fundo)}
+body.mundo.mundo-modulo #mundo > *{display:none}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes vv-janela-desliza{from{translate:0 10px}to{translate:0 0}}
+  body.mundo.mundo-modulo #mundo-moldura:not([hidden]),
+  body.mundo.mundo-modulo :is(body > .app-header,body > .container,body > [id^="painel-"]:not(#painel-escritorio)){animation:vv-janela-desliza var(--vv-t-janela) var(--vv-mola)}
+  /* um deslize só: o .container de dentro de um quadro não desliza de novo por cima do quadro */
+  body.mundo.mundo-modulo [id^="painel-"] .container{animation:none}
+}
