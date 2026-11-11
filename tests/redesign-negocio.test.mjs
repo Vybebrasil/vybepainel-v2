@@ -280,3 +280,57 @@ test('Sinapses: "Como o VYBES pensa" e o detalhe por agente moram na página Age
   assert.ok(tabela);
   assert.doesNotMatch(tabela, /!important|html body\.mundo/);
 });
+
+// ---- 3ª rodada (11/11/2026): Churn com o tratamento dos Contratos (18) e Saúde sem cartão de zero (00 Main) ----
+test('Churn: sem nenhuma saída, Mensal/Anual some, um vazio só e a conta no ⓘ do título, não no rodapé', async () => {
+  const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
+  await vazio.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
+  let html = vazio.janela().innerHTML;
+  assert.match(html, /class="vc-controles" hidden/, 'sem saída nem entrada, o período não muda nada');
+  assert.match(html, /<h3>Saídas e retenção <span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="Saída = desativação no cadastro[^"]*Entrada = início do contrato/);
+  assert.match(html, /Nenhum cliente saiu até agora/);
+  assert.doesNotMatch(html, /<p class="vc-nota">Saída = desativação/, 'o parágrafo técnico saiu do rodapé');
+  assert.doesNotMatch(html, /cohort|Principal motivo|Ver o ano inteiro|<h3>Retenção por mês de entrada/, 'sem jargão nem três caixas de "nenhum"');
+  assert.match(html, /0<\/b> saídas/, 'os números continuam na linha, discretos');
+  // Com cliente ativo que tem data de entrada: o mês anda os gráficos (fica), Mensal/Anual não muda nada (sai).
+  const ativo = carteira({ resposta: semTabelas });
+  await ativo.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
+  html = ativo.janela().innerHTML;
+  assert.match(html, /<div class="vc-controles">\s*<div class="vc-segmento" role="group" aria-label="Período" hidden>/);
+  assert.match(html, /class="vb-mes"/);
+  assert.match(html, /Nenhum cliente saiu em novembro de 2026/);
+  assert.doesNotMatch(html, /Ver o ano inteiro/, 'sem saída na base, o ano inteiro também não tem');
+  assert.match(html, /<h3>Saídas por mês <span class="ar-dica vb-jogo-dica"[^>]*data-dica="Saída = desativação/);
+  assert.match(html, /<h3>Retenção por mês de entrada<\/h3><div class="vc-tabela-rola">/, 'a retenção de quem tem data de entrada aparece');
+  // Com saída: tudo de volta, e a explicação continua no ⓘ.
+  const saiu = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [{ id: '1', nome: 'Antonov', ativo: false, entrada: '2025-03-01', saida: '2026-11-05' }] } } });
+  await saiu.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
+  html = saiu.janela().innerHTML;
+  assert.match(html, /<div class="vc-segmento" role="group" aria-label="Período">/);
+  assert.match(html, /Principal motivo em novembro de 2026/);
+  assert.match(html, /<figcaption>Clientes que saíram<\/figcaption>\s*<svg/);
+  assert.doesNotMatch(html, /<p class="vc-nota">Saída = desativação/);
+  const js = ler('vybe-mundo-carteira.js');
+  assert.match(js, /const estadoVazio = \(titulo, texto = '', botao = ''\) => \(typeof vbEstadoHtml === 'function' \? vbEstadoHtml\(\{ titulo, texto, acao: botao \}\)/, 'o vazio é a peça do padrão');
+  assert.match(js, /estadoVazio\('Nenhum cliente saiu até agora'/);
+});
+
+test('Saúde da carteira: título igual ao do dock, a frase do cabeçalho e os números na linha (zero discreto), abrindo o mesmo painel', async () => {
+  const { ctx, janela } = carteira({ resposta: semTabelas });
+  await ctx.VybeCarteira.abrir('saude', { abas: ['saude'], rotulo: 'Clientes' }); await esperar();
+  assert.match(janela().innerHTML, /<h2 id="vc-titulo">Saúde da carteira<\/h2><p class="vc-frase">A nota de cada cliente ativo, de 0 a 100, e quem precisa de atenção primeiro\.<\/p>/);
+  await ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
+  assert.match(janela().innerHTML, /<h2 id="vc-titulo">Churn<\/h2><p class="vc-frase">Quem saiu, por quê e quanto de receita foi junto\.<\/p>/);
+  const js = ler('vybe-mundo-carteira.js');
+  assert.doesNotMatch(js, /class="vc-kpi|function kpi\(/, 'sem cartão de número grande em nenhuma aba');
+  assert.match(js, /numero\(r\.resumo\.alto, String\(r\.resumo\.alto\), ' em risco alto', \{[^}]*tom: r\.resumo\.alto \? 'alerta' : '', espiar: 'risco:alto' \}\)/);
+  assert.match(js, /numero\(r\.resumo\.medio, String\(r\.resumo\.medio\), ' em risco médio', \{[^}]*espiar: 'risco:medio' \}\)/);
+  assert.match(js, /numero\(r\.resumo\.baixo, String\(r\.resumo\.baixo\), ' em risco baixo', \{[^}]*espiar: 'risco:baixo' \}\)/);
+  // A peça de verdade: zero vira texto discreto e continua clicável (o mesmo data-espiar dos cartões).
+  const linha = ctx.vbResumoHtml([{ valor: '0', rotulo: ' em risco alto', tom: 'zero', espiar: 'carteira:risco:alto' }, { valor: '15', rotulo: ' em risco baixo', tom: 'ok', espiar: 'carteira:risco:baixo' }]);
+  assert.match(linha, /class="vb-resumo-item zero espiavel" data-espiar="carteira:risco:alto" role="button" tabindex="0"><b>0<\/b> em risco alto/);
+  assert.match(linha, /class="vb-resumo-item ok espiavel" data-espiar="carteira:risco:baixo"/);
+  const css = ler('vybe-mundo-carteira.css').split('/* === Terceira rodada (quadros 18 e 00 Main')[1];
+  assert.ok(css);
+  assert.doesNotMatch(css, /!important|html body\.mundo/);
+});

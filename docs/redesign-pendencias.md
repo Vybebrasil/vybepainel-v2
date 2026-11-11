@@ -58,6 +58,28 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
 - Zeros em linha discreta (Hoje, painel do cliente na Cidade, Recrutamento), plurais, mês no seletor de período em
   Pessoas, "Abrir a semana" como botão e a agenda do dia no Hoje da Cidade.
 
+## Terceira rodada: frente Telas (branch `codex/r3-telas`, 11/11/2026)
+Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a agenda cheia.
+- Agenda › Mês: no mundo o compromisso é branco com o traço na cor do tipo (saíram o fundo tingido de "gravada" e
+  "falta fechar" e, no celular, a faixa cheia); o nome quebra em até 3 linhas (4 no celular) e o "+N" abre o dia. O
+  tema antigo (fora do mundo) segue com a faixa cheia do jeito do Google Agenda.
+- Agenda › Semana: o bloco estreito (dois lado a lado) mostra o título e o começo do horário ("09:00"); o intervalo
+  inteiro fica no rótulo, na prévia e no cartão. Quando a coluna não dá 60 px para cada um (2 abaixo de 120 px, 3
+  abaixo de 180, 4 ou mais abaixo de 240), os que se cruzam viram uma pilha na faixa de horas do grupo, cada um com
+  "09:00 Título" na largura inteira; o que não cabe fica no "+N", que abre o dia (`agendaSemanaHtml`, `acoes.verDia`).
+  A hora da grade continua em 66 px.
+- Dica de primeira vez: `evitar` na dica (vybe-mundo-tutorial.js) lista o que o balão não pode cobrir; a "Tela de
+  trabalho" não abre mais em cima de "Marcar captação" nem da ação do cabeçalho das outras telas.
+- Nova reunião: o calendário já era o do painel (vybe-calendario.js); o ícone do navegador no campo some desde o
+  começo no mundo e o campo ganhou o ícone desenhado.
+- Churn: sem nenhuma saída, Mensal/Anual não aparece; sem saída, sem entrada com data e sem retenção, um estado vazio
+  só (`vbEstadoHtml`); a explicação da conta foi para o ⓘ do título. Saúde da carteira: título igual ao do dock, frase
+  no cabeçalho (as quatro telas da Carteira ganharam a frase) e os quatro cartões viraram a linha de números
+  (`vbResumoHtml`), cada risco abrindo o mesmo painel de antes.
+- Ficou como estava: o rótulo "Vybe OS · Reunião" em cima do título da Nova reunião; no bloco de meia hora da Semana
+  não cabe o horário (só o título, como já era); nome com mais linhas do que o bloco comporta termina em reticências
+  na última linha (o nome inteiro está na prévia e no cartão).
+
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
    os itens que faltam do quadro (pela auditoria), verifique e faça o commit no branch dela. Se a pasta não existir mais,

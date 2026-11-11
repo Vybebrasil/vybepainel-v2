@@ -5185,10 +5185,10 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
 .vc-dia b{font:600 12px var(--vv-texto);font-variant-numeric:tabular-nums}
 .vc-dia small{font:500 10.5px var(--vv-texto);color:#6B675F}
 /* Agenda da Produção no celular (vybe-styles.css, "jeito do Google Agenda"): no mundo, a faixa da captação fica com o texto
-   branco (o bloco gerado escurece o texto de todo .ag-chip) e o + fica acima do dock das salas e do menu de baixo. */
+   branco (o bloco gerado escurece o texto de todo .ag-chip) e o + fica acima do dock das salas e do menu de baixo.
+   Terceira rodada (11/11/2026): no mundo o chip do mês é branco com o traço na cor do tipo (bloco "Terceira rodada ·
+   Telas", no fim), então o texto branco da faixa cheia saiu daqui. */
 @media (max-width:700px){
-  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip{color:#FFFFFF!important}
-  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.t-reuniao{color:#1F1D1A!important}
   html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num.capt-mes-num{color:#FFFFFF!important}
   body.mundo .capt-fab{bottom:calc(64px + 4 * var(--vv-m,12px) + var(--vv-dock-alto,0px))}
 }
@@ -6748,8 +6748,9 @@ body.mundo .ag-col .ag-ev{gap:0;padding:4px 7px 4px 9px}
 body.mundo .ag-col .ag-ev b{font:600 11px/13px var(--vv-texto);-webkit-line-clamp:var(--linhas-mundo,2)}
 body.mundo .ag-col .ag-ev:not(.mini) small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--linhas-hora,1);font:500 10.5px/12px var(--vv-texto);white-space:normal;overflow-wrap:break-word}
 @container (max-width:72px){
-  body.mundo .ag-col .ag-ev b{font-size:10.5px;-webkit-line-clamp:var(--linhas-estreito,2)}
-  body.mundo .ag-col .ag-ev:not(.mini) small{display:none}
+  body.mundo .ag-col .ag-ev b{font-size:10.5px;margin-left:-2px;-webkit-line-clamp:var(--linhas-estreito,2)}
+  body.mundo .ag-col .ag-ev:not(.mini) small{display:block;margin:0 -5px 0 -2px;font-size:10px;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev .ag-h-resto{display:none}
 }
 /* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
 .capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
@@ -6885,3 +6886,62 @@ body.mundo.mundo-centro #vv-hoje .vv-hoje-agenda-lado{display:none}
 #vv-hoje .vv-dono-radar + .vv-radar-zeros{margin-top:-4px}
 /* 30 · "Semana" do Hoje é um botão do padrão (era texto laranja clicável). */
 body.mundo .vv-semana-abrir{min-height:var(--pc-h-p,28px);padding:0 10px}
+/* ==== Terceira rodada · Telas (quadros 04, 18 e 00 Main; 11/11/2026) ==== */
+/* 04 · Semana com a coluna apertada. Dois compromissos na mesma hora dividiam a coluna e, a 1110, ficavam com 40 px
+   cada: nem o nome cabia. A coluna mede a própria largura; quando não dá 60 px para cada um (2 abaixo de 120 px, 3
+   abaixo de 180, 4 ou mais abaixo de 240; grupo com bloco de meia hora, ".gm", sempre abaixo de 240), os que se
+   cruzam viram uma pilha na faixa de horas do grupo, com a largura inteira e "09:00 Título" em cada um (as medidas
+   vêm do agendaSemanaHtml em --e-top/--e-alt/--linhas-emp; aqui só se liga o --emp-* que o estilo do bloco lê). O
+   que não cabe na pilha fica atrás do "+N", que abre o dia. O intervalo inteiro continua no rótulo, na prévia e no
+   cartão. */
+body.mundo .ag-col{container:agcol / inline-size}
+.ag-junto-mais{position:absolute;left:2px;width:calc(100% - 4px);z-index:3;align-items:center;justify-content:center;padding:0 4px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:var(--ds-sel-texto,#C2490C);font:600 10.5px/1 var(--vv-texto,system-ui);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
+.ag-junto-mais:hover{border-color:var(--ds-acao,#FF7A2F)}
+.ag-junto-mais:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+@container agcol (max-width:119px){
+  body.mundo .ag-col .ag-ev.junto{--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto small,body.mundo .ag-col .ag-ev.junto-fora{display:none}
+  body.mundo .ag-col .ag-junto-mais{display:flex}
+}
+@container agcol (min-width:120px) and (max-width:179px){
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm){--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) small,body.mundo .ag-col .ag-ev.junto-fora:is(:not(.n2),.gm){display:none}
+  body.mundo .ag-col .ag-junto-mais:is(:not(.n2),.gm){display:flex}
+}
+@container agcol (min-width:180px) and (max-width:239px){
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm){--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) small,body.mundo .ag-col .ag-ev.junto-fora:is(.n4,.gm){display:none}
+  body.mundo .ag-col .ag-junto-mais:is(.n4,.gm){display:flex}
+}
+/* 04 · Mês. O compromisso é branco com o traço na cor do tipo, como na Semana e no Dia (saem o fundo tingido de
+   "gravada" e "falta fechar" e, no celular, a faixa cheia); o nome quebra em linhas (até três; quatro no celular,
+   onde o dia tem 50 px) em vez de terminar em reticências na primeira, e o que passa do limite do dia fica no "+N",
+   que abre o dia. O estado segue na cor do texto; o nome inteiro, no rótulo, na prévia e no cartão. A data
+   comemorativa quebra igual. */
+body.mundo .capt-cal .capt-mes .ag-chip{display:block;padding:3px 4px 3px 8px;border-radius:6px;background:#FFFFFF;box-shadow:inset 3px 0 0 var(--ag-cor),inset 0 0 0 1px var(--pc-linha,#E6E0D6);font:600 11px/13.5px var(--vv-texto);white-space:normal}
+body.mundo .capt-cal .capt-mes .ag-chip em{font-weight:500;font-size:10.5px}
+body.mundo .capt-cal .capt-mes .ag-chip:hover{background:#FBF8F4}
+body.mundo .capt-cal .capt-mes .ag-chip.sel{box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)}
+body.mundo .capt-cal .capt-mes .ag-chip i{display:none}
+body.mundo .capt-cal .capt-mes .ag-chip span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:normal;text-overflow:clip;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+body.mundo .capt-cal .capt-mes .vd-chips{flex-wrap:wrap}
+body.mundo .capt-cal .capt-mes .vd-chip{align-items:flex-start}
+body.mundo .capt-cal .capt-mes .vd-chip span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;white-space:normal;text-overflow:clip;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+@media (max-width:700px){
+  body.mundo .capt-cal .capt-mes .ag-chip{padding:2px 2px 2px 6px;border-radius:4px;font:600 10px/12px var(--vv-texto)}
+  body.mundo .capt-cal .capt-mes .ag-chip span{-webkit-line-clamp:4}
+}
+/* 30 · Campo de data (Nova reunião). O calendário que abre já é o do painel (vybe-calendario.js segura o do navegador em
+   todo input de data); o que ainda era do navegador era o ícone do campo, que só sumia depois de o primeiro calendário
+   abrir (o estilo entrava nessa hora). No mundo ele some desde o começo, e o campo do formulário ganha o ícone
+   desenhado do padrão; clicar no ícone abre o mesmo calendário (o ícone não recebe o clique). */
+body.mundo input[type="date"]::-webkit-calendar-picker-indicator{display:none}
+.cad-campo.cad-data{position:relative}
+.cad-campo.cad-data input[type="date"]{padding-right:38px;cursor:pointer}
+.cad-data-ico{position:absolute;right:12px;bottom:11px;width:16px;height:16px;fill:none;stroke:#6B675F;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}

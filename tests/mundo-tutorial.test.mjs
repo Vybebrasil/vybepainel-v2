@@ -432,3 +432,29 @@ test('os donos da Vybe são tratados por "senhor" (mesma personalidade do VYBES)
   assert.equal(t.T.iniciar(), true);
   assert.match(t.classe('vv-tour-texto').textContent, /^Oi, senhor\. Eu sou o VYBES/);
 });
+
+// 3ª rodada (11/11/2026): a dica "Tela de trabalho" abria à esquerda da caixa de tela cheia/fechar, em cima da ação do
+// cabeçalho ("Marcar captação" na Agenda).
+test('a dica não abre em cima da ação do cabeçalho: desce até passar do botão', () => {
+  const canto = { '.vv-canto-modulo': [alvo(1334, 12, 76, 34)] };
+  const cobre = (b, o) => { const x = parseInt(b.style.left, 10), y = parseInt(b.style.top, 10); return x < o[2] && x + 320 > o[0] && y < o[3] && y + 190 > o[1]; };
+  const botao = [1180, 64, 1336, 98]; // esquerda, topo, direita, fundo de "Marcar captação" a 1440
+  // Sem ação no cabeçalho: o lado pedido (esquerda), como sempre.
+  const livre = montar({ alvos: canto });
+  livre.T.dica('modulo', { forcar: true }); livre.rodar();
+  assert.equal(livre.titulo(), 'Tela de trabalho');
+  assert.equal(livre.balao().getAttribute('data-lado'), 'esquerda');
+  assert.ok(cobre(livre.balao(), botao), 'é esse lugar que cobriria o botão');
+  // Com a ação: nenhum lado que cabe fica livre, então o balão vai para baixo do botão.
+  const comAcao = montar({ alvos: { ...canto, '.p-head-acoes': [alvo(1180, 64, 156, 34)] } });
+  comAcao.T.dica('modulo', { forcar: true }); comAcao.rodar();
+  const b = comAcao.balao();
+  assert.equal(b.getAttribute('data-lado'), 'baixo');
+  assert.ok(parseInt(b.style.top, 10) >= 98 + 4, 'começa abaixo do botão');
+  assert.ok(!cobre(b, botao), 'não cobre o botão');
+  assert.ok(parseInt(b.style.left, 10) + 320 <= 1440 - 12 && parseInt(b.style.top, 10) + 190 <= 900 - 12, 'dentro da tela');
+  // Ação escondida não conta.
+  const escondida = montar({ alvos: { ...canto, '.p-head-acoes': [alvo(1180, 64, 156, 34, { hidden: true })] } });
+  escondida.T.dica('modulo', { forcar: true }); escondida.rodar();
+  assert.equal(escondida.balao().getAttribute('data-lado'), 'esquerda');
+});
