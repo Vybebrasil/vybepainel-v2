@@ -3696,7 +3696,9 @@
   const fecharModulo = () => { body.classList.remove('mundo-tela-cheia'); chamar('voltarAoMenu'); };
   cantoModulo.addEventListener?.('click', (e) => { const b = e.target.closest('[data-modulo-acao]'); if (!b) return; if (b.dataset.moduloAcao === 'cheia') alternarTelaCheia(); else fecharModulo(); });
   // Janelas por cima do módulo (briefing, cartão, menus, notificações, busca…): o Esc é delas.
-  const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
+  // A gaveta da peça (#workspace-drawer) nunca ganha a classe "open": ela só existe enquanto está aberta. Sem o id puro
+  // aqui, o Esc fechava a gaveta e a tela antiga juntas (quarta rodada, 11/11/2026).
+  const POR_CIMA = 'dialog[open], .brief-overlay, #cartao-rapido, .cartao-rapido-fundo, #workflow-modal, #workflow-backdrop, .workspace-drawer.open, #workspace-drawer.open, #workspace-drawer, #notif-caixa, #quem-sou-menu, #notas-janela, details.header-utilities[open] > .header-utilities-menu, .owner-editor, [class*="-overlay"], [class*="-modal"]:not(body)';
   const visivel = (el) => { if (!el.getClientRects?.().length) return false; const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > .05; };
   const janelaPorCima = () => [...document.querySelectorAll(POR_CIMA)].filter((el) => !el.closest('#mundo-hud, #mundo') && visivel(el)).pop() || null;
   const FECHAR_JANELA = '[data-fechar], .brief-fechar, [aria-label="Fechar"], [aria-label="Fechar janela"], [aria-label^="Fechar "], .modal-close, .fechar, .close, .fc-close, .workflow-close, .workspace-close, .cr-fechar, .p-draw-close, .manager-command-close, .cadastros-preview-close, .production-sheet-close, .x-fechar, [onclick*="fechar"], [onclick*="close"], [onclick*="Close"]';

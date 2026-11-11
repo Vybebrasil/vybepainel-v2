@@ -199,6 +199,10 @@ do clique no dock até a tela parada, três rodadas alternando a main e este bra
   Automações 1120 → 230, Conta 1149 → 138 (Projetos pontuais 138, Agentes 142, Carteira 116). Chromium: Painel 2302 → 310,
   Demandas 1651 → 85, Agenda 1109 → 128, Clientes 545 → 143, Diário 2048 → 84, IA 2056 → 102, Automações 2221 → 130,
   Conta 2390 → 115 (Projetos 142, Agentes 140, Carteira 94).
+- Esc fecha só o que está por cima: a gaveta da peça não entrava em `POR_CIMA` (vybe-mundo.js procurava
+  `#workspace-drawer.open`, classe que a gaveta nunca tem) e o mesmo Esc fechava a gaveta e a tela antiga. O link
+  `?atividade=` abre a gaveta como na main, mais cedo (≈3 s contra 5 a 9 s na demo). O que abre a peça no Painel é o
+  título dela (`.item-workspace-link`); a linha em si só arrasta.
 - Ainda diferente das janelas novas: a tela antiga continua sendo a própria página (rola o body; o cabeçalho é o do legado),
   não um elemento de janela; a entrada é só o deslize (a escala de .982 descolaria a moldura do conteúdo); a primeira
   pintura recalcula o estilo da página inteira, porque troca a classe do body; e o `pintarChamada` de 1,5 s em 1,5 s ainda
