@@ -151,13 +151,13 @@
     const max = Math.max(1, ...h.map((d) => d.concluidas + d.falhas));
     const total = h.reduce((t, d) => t + d.concluidas, 0), falhas = h.reduce((t, d) => t + d.falhas, 0);
     const kpi = (v, rot, dica, cls = '') => `<span class="vbl-kpi ${cls}" title="${esc(dica)}"><b>${v}</b><small>${rot}</small></span>`;
-    const barras = h.length ? `<div class="vbl-barras" role="img" aria-label="${total} execuções concluídas e ${falhas} falhas em ${h.length} dias">${h.map((d) => `<span title="${esc(d.dia.slice(8, 10) + '/' + d.dia.slice(5, 7))}: ${d.concluidas} concluídas${d.falhas ? ', ' + d.falhas + ' falhas' : ''}${d.aguardando ? ', ' + d.aguardando + ' esperando' : ''}"><i style="height:${Math.round(d.concluidas / max * 100)}%"></i>${d.falhas ? `<i class="f" style="height:${Math.max(6, Math.round(d.falhas / max * 100))}%"></i>` : ''}<small>${esc(d.dia.slice(8, 10))}</small></span>`).join('')}</div>` : '<p class="vbl-vazio">Sem execução registrada nos últimos 14 dias.</p>';
+    const barras = h.length ? `<div class="vbl-barras" role="img" aria-label="${plural(total, 'execução concluída', 'execuções concluídas')} e ${plural(falhas, 'falha', 'falhas')} em ${plural(h.length, 'dia', 'dias')}">${h.map((d) => `<span title="${esc(d.dia.slice(8, 10) + '/' + d.dia.slice(5, 7))}: ${d.concluidas} concluídas${d.falhas ? ', ' + d.falhas + ' falhas' : ''}${d.aguardando ? ', ' + d.aguardando + ' esperando' : ''}"><i style="height:${Math.round(d.concluidas / max * 100)}%"></i>${d.falhas ? `<i class="f" style="height:${Math.max(6, Math.round(d.falhas / max * 100))}%"></i>` : ''}<small>${esc(d.dia.slice(8, 10))}</small></span>`).join('')}</div>` : '<p class="vbl-vazio">Sem execução registrada nos últimos 14 dias.</p>';
     return secao('numeros', 'Como está indo', `<div class="vbl-kpis">
         ${kpi(n.abertos ?? b.abertos.length, 'em aberto', 'Achados abertos agora', (n.altas || b.urgentes) ? 'ruim' : '')}
         ${kpi(n.resolvidos7d ?? 0, 'resolvidos em 7 dias', 'Achados que fecharam na última semana')}
         ${kpi(n.acerto == null ? '—' : n.acerto + '%', 'de acerto', 'Resolvidos ÷ (resolvidos + marcados como errado), em 7 dias', n.acerto != null && n.acerto < 70 ? 'atencao' : '')}
         ${kpi(n.horasAteResolver == null ? '—' : n.horasAteResolver + ' h', 'até resolver', 'Mediana do tempo entre o agente achar e o achado fechar')}
-      </div>${barras}<p class="vbl-tendencia">${h.length ? `${total} execuções em ${h.length} dias${falhas ? `, ${falhas} com falha` : ', nenhuma falha'}` : ''}${b.tendencia ? `${h.length ? ' · ' : ''}tendência: ${esc(b.tendencia)}` : ''}</p>`);
+      </div>${barras}<p class="vbl-tendencia">${h.length ? `${plural(total, 'execução', 'execuções')} em ${plural(h.length, 'dia', 'dias')}${falhas ? `, ${falhas} com falha` : ', nenhuma falha'}` : ''}${b.tendencia ? `${h.length ? ' · ' : ''}tendência: ${esc(b.tendencia)}` : ''}</p>`);
   }
   function cartaoHtml(b) {
     const [rotEstado, corEstado] = ESTADO_SETOR[b.estado] || ESTADO_SETOR.ativo;

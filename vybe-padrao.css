@@ -332,7 +332,7 @@
 /* ---- Abas do topo que ainda estavam no estilo antigo (Demandas, Diário,
    Performance, IA & Custos, Automações, Conta & Equipe): mesmo título, mesmos
    botões e mesmos seletores de período do Painel de trabalho ---- */
-:where(body:not(.mundo)) :is(.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo),.conta-secao-topo h2{font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
+:where(body:not(.mundo)) :is(.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2){font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
 .auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
 :where(body:not(.mundo)) :is(.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal)){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
 :where(body:not(.mundo)) :is(.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover){border-color:rgba(255,179,92,.45)!important}
@@ -473,7 +473,7 @@
 
 /* Mizinho Agenda: o cabeçalho do padrão, sem a caixa em volta */
 .prod-v2-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important;align-items:center!important}
-.prod-v2-head .pv-cabeca h3{margin:2px 0 0!important;color:#fff!important;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
+:where(body:not(.mundo)) .prod-v2-head .pv-cabeca h3{margin:2px 0 0!important;color:#fff!important;font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em}
 .prod-v2-head .pv-cabeca p{color:#a8a39c!important;font-size:12px!important}
 .prod-v2-layout .prod-v2-head.prod-v2-head,.vybe-desktop .prod-v2-layout .prod-v2-head.prod-v2-head{border:0!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important;padding:4px 0 10px!important}
 .p-head-title.pv-cabeca{display:flex!important;flex-direction:row!important;align-items:center!important;gap:14px!important}

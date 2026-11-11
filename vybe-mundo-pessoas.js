@@ -310,13 +310,13 @@
   function vsEnps(vs) {
     if (!vs || vs.delta == null) return '<small class="vp-vs">sem pesquisa anterior para comparar</small>';
     if (vs.delta === 0) return '<small class="vp-vs">igual à pesquisa anterior</small>';
-    return `<small class="vp-vs ${vs.delta > 0 ? 'bom' : 'ruim'}">${vs.delta > 0 ? '▲' : '▼'} ${esc(Math.abs(vs.delta))} pontos vs anterior</small>`;
+    return `<small class="vp-vs ${vs.delta > 0 ? 'bom' : 'ruim'}">${vs.delta > 0 ? '▲' : '▼'} ${esc(plural(Math.abs(vs.delta), 'ponto', 'pontos'))} vs anterior</small>`;
   }
   const SITUACAO_PESQUISA = { aberta: ['Aberta', 'u6'], agendada: ['Agendada', 'u4'], encerrada: ['Encerrada', 'u5'] };
   function resultadoPesquisa(p, c) {
     const r = p.resultado || {}, de = `${br(p.abre)} a ${br(p.fecha)}`;
     let html = `<div class="vp-cartao"><div class="vp-linha-topo"><div><span class="vp-kicker">Resultado · ${esc(de)}</span><h3>${esc(p.titulo)}</h3></div>${chip(SITUACAO_PESQUISA[p.situacao] || SITUACAO_PESQUISA.encerrada)}</div>`;
-    if (!r.liberado) return html + `<p class="vp-nota">${esc(plural(r.respostas || 0, 'resposta', 'respostas'))}${c.equipe ? ` de ${esc(c.equipe)} pessoas` : ''}. O resultado aparece com ${esc(r.minimo || c.minimo || 3)} ou mais, para ninguém ser identificado.</p></div>`;
+    if (!r.liberado) return html + `<p class="vp-nota">${esc(plural(r.respostas || 0, 'resposta', 'respostas'))}${c.equipe ? ` de ${esc(plural(c.equipe, 'pessoa', 'pessoas'))}` : ''}. O resultado aparece com ${esc(r.minimo || c.minimo || 3)} ou mais, para ninguém ser identificado.</p></div>`;
     html += `<div class="vp-kpis">${kpi('eNPS', r.enps, vsEnps(p.vs))}${kpi('Respostas', c.equipe ? `${r.respostas} de ${c.equipe}` : r.respostas)}${kpi('Promotores (9–10)', r.promotores)}${kpi('Detratores (0–6)', r.detratores)}</div>
       <ul class="vp-comps">${(r.dimensoes || []).map((x) => `<li><span>${esc(x.nome)}</span><span class="vp-barra" aria-hidden="true"><i style="width:${(x.media || 0) / 5 * 100}%"></i></span><b>${x.media == null ? '—' : esc(decimal(x.media))}</b>${deltaDim(p.vsDimensoes?.[x.id])}</li>`).join('')}</ul>
       <p class="vp-nota">eNPS = % de promotores − % de detratores (de −100 a 100). Médias de 1 a 5.</p>
@@ -496,7 +496,7 @@
     if (!d) return `<h3 class="vp-titulo">Carga da semana</h3>${typeof vbEstadoHtml === 'function' ? vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando a carga' }) : ''}`;
     if (d.erro) return `<h3 class="vp-titulo">Carga da semana</h3><p class="vp-nota">Não deu para ler a carga agora. ${sec('Tentar de novo', 'data-vp-carga-semana="0"')}</p>`;
     const semana = d.semana || '';
-    return `<div class="vp-linha-topo"><h3 class="vp-titulo">Carga da semana <small>${br(semana)} a ${br(d.fim)} · capacidade ${esc(d.capacidade)} itens</small></h3>
+    return `<div class="vp-linha-topo"><h3 class="vp-titulo">Carga da semana <small>${br(semana)} a ${br(d.fim)} · capacidade ${esc(plural(d.capacidade, 'item', 'itens'))}</small></h3>
       <div class="vp-nav">${sec('‹', 'data-vp-carga-semana="-7" aria-label="Semana anterior"')}${sec('Hoje', 'data-vp-carga-semana="0"')}${sec('›', 'data-vp-carga-semana="7" aria-label="Próxima semana"')}</div></div>
       ${(d.carga || []).length ? `<ul class="vp-lista vp-carga">${d.carga.map((c) => `<li class="vp-item"><div class="vp-meio"><b>${esc(c.nome)}</b>
         <small>${plural(c.pecas, 'demanda', 'demandas')}${c.atrasadas ? ` · ${c.atrasadas} atrasada${c.atrasadas === 1 ? '' : 's'}` : ''}${c.etapas ? ` · ${plural(c.etapas, 'ponto', 'pontos')} de projeto` : ''}</small>
@@ -607,7 +607,7 @@
     const feitas = new Set(d.feitas || []), pr = t.progresso || { pct: 0, concluidas: 0, total: (t.aulas || []).length };
     return `<div class="vp-cartao vp-trilha"><div class="vp-linha-topo"><div><span class="vp-kicker">${t.minha ? 'Atribuída a você' : modelo ? 'Modelo' : 'Trilha'}</span><h3>${esc(t.nome)}</h3><p>${esc(t.descricao || '')}</p></div>
         ${d.gestao && !modelo ? `<button type="button" class="vp-link" data-vp-editar-trilha="${esc(t.id)}">Editar</button>` : ''}</div>
-      <div class="vp-progresso"><span class="vp-barra larga u6" aria-hidden="true"><i style="width:${pr.pct}%"></i></span><small>${esc(pr.concluidas)} de ${esc(pr.total)} aulas · ${esc(pr.pct)}%</small></div>
+      <div class="vp-progresso"><span class="vp-barra larga u6" aria-hidden="true"><i style="width:${pr.pct}%"></i></span><small>${esc(pr.concluidas)} de ${esc(plural(pr.total, 'aula', 'aulas'))} · ${esc(pr.pct)}%</small></div>
       <ol class="vp-aulas">${(t.aulas || []).map((a) => `<li><label><input type="checkbox" data-vp-aula="${esc(a.id || '')}"${feitas.has(String(a.id)) ? ' checked' : ''}${modelo ? ' disabled' : ''}><span>${esc(a.titulo)}<small>${a.tipo === 'doc' ? 'Documento' : 'Vídeo'} · ${esc(a.minutos)} min</small></span></label>
         ${a.link ? `<a class="vp-link" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : '<small class="vp-nota">link a definir</small>'}</li>`).join('')}</ol>
       ${d.gestao && !modelo ? `<details class="vp-det"><summary>Atribuir e acompanhar</summary>

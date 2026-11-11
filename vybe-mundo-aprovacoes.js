@@ -39,7 +39,7 @@
   const icone = (i) => `<svg class="vap-ico" viewBox="0 0 24 24" aria-hidden="true">${ICONE[tipoDe(i)]}</svg>`;
 
   function linha(i, { comHead }) {
-    const nome = i.tipo === 'planejamento' ? `Planejamento ${esc(i.mes ? i.mes.split('-').reverse().join('/') : '')}${i.pecas ? ` · ${i.pecas} peças` : ''}` : esc(i.titulo);
+    const nome = i.tipo === 'planejamento' ? `Planejamento ${esc(i.mes ? i.mes.split('-').reverse().join('/') : '')}${i.pecas ? ` · ${i.pecas} peça${Number(i.pecas) === 1 ? '' : 's'}` : ''}` : esc(i.titulo);
     const head = comHead && i.heads?.length ? `<span class="vap-head">${esc(i.heads.map((h) => h.nome).join(', '))}</span>` : '';
     const abrir = i.tipo === 'planejamento' ? `data-aprov-plano="${esc(i.id)}"` : `data-aprov-peca="${esc(i.ref)}" data-aprov-quadro="${esc(i.quadro)}"`;
     return `<button type="button" class="vap-item${atrasado(i) ? ' atrasado' : ''}" ${abrir}>${icone(i)}

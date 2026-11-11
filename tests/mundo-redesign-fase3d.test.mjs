@@ -159,7 +159,9 @@ test('fase 3d sem forçar nada: nenhum !important nem html body.mundo no bloco n
 test('aviso curto: some sozinho (o foco posto pelo código não segura) e sai de cima dos controles da janela', () => {
   const fonte = ler('vybe-core.js'), mundo = ler('vybe-mundo.js');
   // Só o teclado e o mouse que se mexe em cima seguram o aviso; o da Música dura 6 s.
-  assert.match(fonte, /addEventListener\('focusin', \(\) => \{ if \(AVISO_CURTO_PELO_TECLADO\) clearTimeout\(relogio\); \}\)/);
+  // O foco do teclado segura, mas com teto de 8 s desde que o aviso apareceu (ficava 13,5 s).
+  assert.match(fonte, /const AVISO_CURTO_TETO_FOCO = 8000;/);
+  assert.match(fonte, /addEventListener\('focusin', \(\) => \{ if \(AVISO_CURTO_PELO_TECLADO && tempo > 0 && !comMouse\) \{ clearTimeout\(relogio\); relogio = setTimeout\(sair, restante\(\)\); \} \}\)/);
   assert.match(fonte, /addEventListener\('pointermove'/);
   assert.doesNotMatch(fonte, /addEventListener\('pointerenter', \(\) => clearTimeout\(relogio\)\)/);
   assert.match(mundo, /chave: 'musica-fora'[\s\S]{0,400}tempo: 6000/);
@@ -167,4 +169,9 @@ test('aviso curto: some sozinho (o foco posto pelo código não segura) e sai de
   assert.match(fonte, /function ajustarAvisosCurtos\(\)/);
   assert.match(fonte, /contar\(\);\r?\n  ajustarAvisosCurtos\(\);/);
   assert.match(fonte, /document\.elementsFromPoint\(x, y\)\.find\(\(e\) => !caixa\.contains\(e\)\)/);
+  // Terceira rodada: dock lateral, barra de baixo e caixa ⛶/X contam inteiros; sem vaga, o aviso encolhe antes de cobrir.
+  assert.match(fonte, /const AVISO_CURTO_BARRAS = '\.vv-trilho,\.vv-dock-salas,\.vv-canto-modulo';/);
+  assert.match(fonte, /caixa\.classList\.add\('compacto'\)/);
+  assert.doesNotMatch(fonte, /painelSemVaga/, 'não fica mais por cima do dock lateral');
+  assert.match(css, /#vv-wa-avisos\.compacto \.vv-aviso-curto\{/);
 });

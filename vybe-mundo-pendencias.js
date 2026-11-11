@@ -41,7 +41,7 @@
       <div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>${esc(agente)} · Atendimento<span class="vv-pilula">${cli.length + time.length}</span><button type="button" class="vv-pend-agente" data-pend-agente="concierge">ver o agente</button></div>
       ${sinal()}
       <div class="vv-pend-colunas">
-        <div><small class="vv-pend-sub">Clientes esperando resposta</small>${cli.length ? cli.slice(0, 4).map(linhaCliente).join('') : st.dados ? '<p class="vv-vazio">Nenhum cliente esperando resposta.</p>' : ''}${cli.length > 4 ? `<button type="button" class="vv-mais" data-pend-whatsapp>+ ${cli.length - 4} clientes</button>` : ''}</div>
+        <div><small class="vv-pend-sub">Clientes esperando resposta</small>${cli.length ? cli.slice(0, 4).map(linhaCliente).join('') : st.dados ? '<p class="vv-vazio">Nenhum cliente esperando resposta.</p>' : ''}${cli.length > 4 ? `<button type="button" class="vv-mais" data-pend-whatsapp>+ ${cli.length - 4} cliente${cli.length - 4 === 1 ? '' : 's'}</button>` : ''}</div>
         <div><small class="vv-pend-sub">Time sem resolver</small>${time.length ? time.slice(0, 4).map(linhaTime).join('') : st.dados ? '<p class="vv-vazio">Nada parado nos grupos internos.</p>' : ''}${time.length > 4 ? `<button type="button" class="vv-mais" data-pend-whatsapp>+ ${time.length - 4} pendências</button>` : ''}</div>
       </div></section>`;
   }

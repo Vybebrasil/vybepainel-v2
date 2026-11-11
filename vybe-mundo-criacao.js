@@ -291,7 +291,7 @@
         <div class="vcr-cli-col"><small class="vcr-rot sugestao">Sugestão (não é demanda)</small>${c.sugestoes.length ? c.sugestoes.slice(0, 3).map((s) => `<p class="vcr-ideia"><em>${s.origem === 'danilo' ? 'Danilo viu' : 'Regra do painel'}</em>${esc(s.texto)}${s.ref ? ` <button type="button" class="vg-link" data-vcr-achado="${esc(s.ref)}">abrir a peça</button>` : ''}</p>`).join('') : '<small>Nada a sugerir agora.</small>'}</div></li>`;
     const aviso = st.achados.erro ? `<p class="vcr-nota">Os achados do Danilo não vieram (${esc(st.achados.erro)}); as sugestões abaixo são só as regras do painel.</p>` : '';
     const clientesHtml = `<section class="vs-bloco vcr-bloco" aria-label="Clientes: confirmado e sugestão"><div class="vs-bloco-cabeca"><span><b>Clientes: confirmado × sugestão</b><small>o que é demanda de verdade e o que é ideia para levar ao head</small></span></div>
-      ${aviso}${clientes.length ? `<ul class="vcr-clis">${clientes.slice(0, MAX).map(cartao).join('')}</ul>${clientes.length > MAX ? `<p class="vv-dica">e mais ${clientes.length - MAX} clientes sem sugestão.</p>` : ''}` : '<p class="vv-vazio">Sem clientes com peças do time agora.</p>'}
+      ${aviso}${clientes.length ? `<ul class="vcr-clis">${clientes.slice(0, MAX).map(cartao).join('')}</ul>${clientes.length > MAX ? `<p class="vv-dica">e mais ${plural(clientes.length - MAX, 'cliente', 'clientes')} sem sugestão.</p>` : ''}` : '<p class="vv-vazio">Sem clientes com peças do time agora.</p>'}
       <p class="vcr-nota">A análise das artes (capas, destaques, identidade) chega aqui quando o Danilo da central passar a olhar as imagens.</p></section>`;
     return { conversa, mudouHtml, sugestoes, clientesHtml, perfis: lista };
   }
