@@ -11,6 +11,9 @@
   function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
+  const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
+  const botaoX = (attr, classe = '') => (typeof window !== 'undefined' && typeof window.vbFecharHtml === 'function' ? window.vbFecharHtml(attr, classe) : `<button type="button" class="vb-janela-x ${classe}" ${attr} aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`);
   const ESTADOS = {
     revisar: ['Para revisar', 'u2'], ajustes: ['Ajustes pedidos', 'u3'], aprovado: ['Aprovado', 'u6'],
     enviado: ['Com o cliente', 'u4'], cadastrado: ['Peças cadastradas', 'u6'], rascunho: ['Rascunho', 'u5'],
@@ -80,10 +83,8 @@
     // Quem não é head de nenhum cliente começa no que pede ação ("Meus clientes 0" mostrando todos confundia).
     if (estado.filtro === 'meus' && !contar.meus && !estado.carregando) { estado.filtro = 'acao'; return pintar(); }
     const aba = (id, t) => `<button type="button" role="tab" data-plj-filtro="${id}" aria-selected="${estado.filtro === id}">${t} <span>${contar[id]}</span></button>`;
-    janela.innerHTML = `<div class="vv-plj-cabeca">
-        <div><span class="vv-plj-kicker">Produção · Centro de Operação</span><h2>Planejamentos</h2>
-        <p>Cada cliente com o planejamento do mês. Abra para ler como documento, editar, revisar peça a peça, aprovar e mandar para o cliente pelo WhatsApp com o aviso do Hub.</p></div>
-        <button type="button" class="vv-botao ic" data-plj-fechar aria-label="Fechar">✕</button></div>
+    janela.innerHTML = `<div class="vv-plj-cabeca vb-janela-topo">${cabecalho({ titulo: 'Planejamentos', texto: 'Cada cliente com o planejamento do mês. Abra para ler como documento, editar, revisar peça a peça, aprovar e mandar para o cliente pelo WhatsApp com o aviso do Hub.',
+        acoes: botaoX('data-plj-fechar') })}</div>
       <div class="vv-plj-abas" role="tablist">${aba('meus', 'Meus clientes')}${aba('acao', 'Pedem ação')}${aba('sem', 'Sem planejamento')}${aba('todos', 'Todos')}</div>
       <div class="vv-plj-grade">${estado.carregando ? '<p class="vv-plj-vazio">Buscando os planejamentos…</p>'
         : estado.erro ? `<p class="vv-plj-vazio">Não foi possível buscar: ${esc(estado.erro)} <button type="button" class="vv-botao" data-plj-recarregar>Tentar de novo</button></p>`

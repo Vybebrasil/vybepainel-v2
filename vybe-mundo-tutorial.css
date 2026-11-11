@@ -18,7 +18,7 @@
 /* ---------- Passeio: o fundo segura os cliques; a luz escurece tudo menos o recorte do alvo ---------- */
 .vv-tour-fundo{position:fixed;inset:0;pointer-events:auto;background:transparent}
 .vv-tour-luz{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:10px;pointer-events:none;
-  box-shadow:0 0 0 2px rgba(139,125,255,.9),0 0 0 6px rgba(139,125,255,.18),0 0 0 9999px var(--tour-veu)}
+  box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(255,122,47,.2),0 0 0 9999px var(--tour-veu)}
 .vv-tour-luz.vazia{box-shadow:0 0 0 9999px var(--tour-veu)}
 .vv-tour-anda .vv-tour-luz{transition:left .25s var(--tour-curva),top .25s var(--tour-curva),width .25s var(--tour-curva),height .25s var(--tour-curva),box-shadow .25s}
 .vv-tour-anda .vv-tour-balao{transition:left .25s var(--tour-curva),top .25s var(--tour-curva)}
@@ -27,7 +27,6 @@
 .vv-tour-balao{position:fixed;left:0;top:0;box-sizing:border-box;width:min(320px,calc(100vw - 24px));padding:14px 16px;border-radius:12px;
   background:var(--tour-papel);color:var(--tour-tinta);border:1px solid var(--tour-linha);box-shadow:0 24px 60px rgba(31,29,26,.25);
   pointer-events:auto;outline:0;animation:vv-tour-surge .2s var(--tour-curva) both}
-.vv-tour-balao:focus-visible{box-shadow:var(--tour-foco),0 24px 60px rgba(31,29,26,.25)}
 @keyframes vv-tour-surge{from{scale:.97}to{scale:1}}
 
 /* bico apontando para o alvo (data-lado = de que lado do alvo o balão ficou) */
@@ -68,8 +67,9 @@
 .vv-tour-pular:hover,.vv-tour-link:hover{color:var(--tour-sel)}
 .vv-tour-raiz :is(button,input):focus-visible{outline:0;box-shadow:var(--tour-foco)}
 
-/* ---------- Dica: sem escurecer a tela; um anel lilás em volta do que ela explica ---------- */
-.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px #8B7DFF,0 0 0 6px rgba(139,125,255,.22);animation:vv-tour-surge .2s var(--tour-curva) both}
+/* ---------- Dica: sem escurecer a tela; um anel em volta do que ela explica, na cor de destaque do padrão (laranja;
+   o lilás parecia um foco de outro sistema, re-auditoria de 10/11/2026) ---------- */
+.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(255,122,47,.2);animation:vv-tour-surge .2s var(--tour-curva) both}
 
 /* ---------- Ajuda do VYBES: painel no canto direito, acima do dock (quadro 66, 10/11/2026), sem véu nem blur ---------- */
 .vv-tour-ajuda{display:flex;justify-content:flex-end;align-items:flex-end;box-sizing:border-box;padding:var(--vv-m,14px);padding-bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));pointer-events:none}

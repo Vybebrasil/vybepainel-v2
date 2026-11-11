@@ -140,7 +140,7 @@
   function grupoHtml(g, setor) {
     const urg = g.achados.some((a) => a.gravidade === 'alta'), vis = g.clientes.slice(0, 6);
     return `<li class="vbl-achado vbl-grupo g-${urg ? 'alta' : 'media'}"><details><summary><span class="vbl-achado-txt"><b>${esc(g.titulo)}</b>
-      <small>${urg ? '<em>urgente</em> · ' : ''}${vis.map((c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c))).join(' ')}${g.clientes.length > vis.length ? ` e mais ${g.clientes.length - vis.length}` : ''}${g.exemplo ? ' · ex.: ' + esc(g.exemplo) : ''}</small></span><span class="vbl-ver">Ver os ${g.achados.length}</span></summary>
+      <small>${urg ? '<em>urgente</em> · ' : ''}${vis.map((c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c))).join(' ')}${g.clientes.length > vis.length ? ` e mais ${g.clientes.length - vis.length}` : ''}${g.exemplo ? ' · ex.: ' + esc(g.exemplo) : ''}</small></span><span class="vbl-ver">${g.achados.length === 1 ? 'Ver o achado' : `Ver os ${g.achados.length}`}</span></summary>
       <ul>${g.achados.map((a) => achadoHtml(a, setor)).join('')}</ul></details></li>`;
   }
   // Os números do agente (Paulo: "trazer gráfico, análise dentro de cada boletim"): o que fez por dia em 14 dias, com as

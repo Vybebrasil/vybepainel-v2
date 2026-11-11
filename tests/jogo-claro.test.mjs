@@ -78,7 +78,12 @@ test('o jogo claro no fim do vybe-mundo.css: sem !important, sem html body.mundo
   // A regra genérica antiga não pinta mais todo rk2-* de branco nem deixa a categoria escolhida preta.
   const antiga = css.slice(0, i);
   assert.doesNotMatch(antiga, /\[class\*="rk2-"\]:not\(\.rk2-janela\)/);
-  assert.match(antiga, /\[role="tab"\]\[aria-selected="true"\]\):not\(\.rk2-camp\):not\(\.rk2-chip\):not\(\.vb-chip\)\{background:#1F1D1A!important/);
+  // O período do Ranking também fica de fora da regra preta: a seleção é o laranja do padrão (segunda rodada, 10/11/2026).
+  assert.match(antiga, /\[role="tab"\]\[aria-selected="true"\]\):not\(\.rk2-camp\):not\(\.rk2-chip\):not\(\.vb-chip\):not\(\.rk2-periodos > button\)\{background:#1F1D1A!important/);
+  assert.match(css, /#ofc-ranking \.rk2-periodos button\[aria-selected="true"\]\{background:var\(--ds-sel-fundo\);color:var\(--ds-sel-texto\)\}/);
+  // Os grupos das Conquistas quebram em linhas (nenhum chip cortado) e a Loja fica à direita do dock lateral.
+  assert.match(css, /#workflow-modal\.ofc-menu-jogo \.ofc-cq-abas\{flex-wrap:wrap;overflow:visible\}/);
+  assert.match(css, /body\.mundo #office-catalogo\{left:var\(--vv-palco-esq,0px\);right:var\(--vv-m\);/);
 });
 
 test('retrato voxel do móvel: o mesmo voxel do quarto, uma foto por vez, só para imagens de móvel', () => {

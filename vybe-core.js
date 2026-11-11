@@ -214,7 +214,8 @@ function showToast(msg, type='info', duration=3000) {
 // Um desenho só para os avisos que chegam (menção, mensagem do WhatsApp, aviso do sino): ícone neutro, o título
 // inteiro, a frase e até duas ações. Sem faixa colorida na borda; cor só para erro. Empilham no canto de cima à direita,
 // na caixa #vv-wa-avisos (decisão do Paulo de 09/11/2026), no máximo três. Fora do mundo não aparece (devolve null) e
-// quem chamou segue com o aviso antigo. Parar o mouse ou o foco em cima segura o aviso na tela.
+// quem chamou segue com o aviso antigo. Parar o mouse em cima, ou chegar nele pelo teclado, segura o aviso na tela; o
+// foco posto pelo código depois de um clique (o da Música) não segura: o aviso some sozinho no tempo dele.
 const AVISO_CURTO_ICONES = {
   mencao: '<circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.4 6.8"/>',
   conversa: '<path d="M4 5h16v11H8l-4 4z"/>',
@@ -245,21 +246,91 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
     <div class="vv-aviso-curto-txt"><b>${esc(titulo)}</b>${frase ? `<small>${esc(frase)}</small>` : ''}${lista.length ? `<div class="vv-aviso-curto-acoes">${lista.map((a, i) => `<button type="button" class="${a.principal ? 'vc-acao' : 'vc-sec'}" data-aviso-curto="${i}">${esc(a.rotulo)}</button>`).join('')}</div>` : ''}</div>
     <button type="button" class="vc-ico vv-aviso-curto-x" aria-label="Fechar o aviso" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
   let relogio = null;
-  const sair = () => { clearTimeout(relogio); el.remove(); };
+  const sair = () => { clearTimeout(relogio); el.remove(); ajustarAvisosCurtos(); };
   const contar = () => { clearTimeout(relogio); if (tempo > 0) relogio = setTimeout(sair, tempo); };
   el.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     sair();
     if (b.dataset.avisoCurto != null) { try { lista[Number(b.dataset.avisoCurto)].fazer(); } catch { /* a ação falhou: o aviso já saiu */ } }
   });
-  el.addEventListener('pointerenter', () => clearTimeout(relogio));
-  el.addEventListener('pointerleave', contar);
-  el.addEventListener('focusin', () => clearTimeout(relogio));
+  // Só o mouse que se mexe em cima segura o aviso: nascer debaixo de um ponteiro parado (ou do último toque) não conta.
+  let comMouse = false;
+  el.addEventListener('pointermove', (e) => { if (!comMouse && e.pointerType !== 'touch') { comMouse = true; clearTimeout(relogio); } });
+  el.addEventListener('pointerleave', () => { comMouse = false; contar(); });
+  el.addEventListener('focusin', () => { if (AVISO_CURTO_PELO_TECLADO) clearTimeout(relogio); });
   el.addEventListener('focusout', (e) => { if (!el.contains(e.relatedTarget)) contar(); });
   caixa.append(el);
   while (caixa.children.length > 3) caixa.firstElementChild.remove();
   contar();
+  ajustarAvisosCurtos();
+  if (!AVISO_CURTO_VIGIA) AVISO_CURTO_VIGIA = setInterval(ajustarAvisosCurtos, 500);
   return el;
+}
+// De onde veio o último gesto: só o foco que chega pelo teclado segura o aviso na tela.
+let AVISO_CURTO_PELO_TECLADO = false;
+let AVISO_CURTO_VIGIA = null;
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('keydown', () => { AVISO_CURTO_PELO_TECLADO = true; }, true);
+  document.addEventListener('pointerdown', () => { AVISO_CURTO_PELO_TECLADO = false; }, true);
+}
+// O aviso não cobre botão de janela (quadro 29, regra 6; re-auditoria de 10/11/2026). O lugar continua o canto de cima
+// à direita (decisão do Paulo). Se ali houver um controle da tela (Copiar link, Log e Fechar da gaveta, o X de um
+// painel, um campo), a caixa sai de cima dele: com um painel encostado à direita e espaço ao lado, fica à esquerda do
+// painel, na mesma altura; sem espaço (celular, janela larga), desce até a primeira faixa sem controle embaixo.
+// Roda quando um aviso entra e enquanto houver aviso na tela (uma janela pode abrir depois dele).
+const AVISO_CURTO_CONTROLES = 'button,a[href],input,select,textarea,summary,[role="button"],[role="tab"],[role="switch"],[tabindex]:not([tabindex="-1"])';
+function ajustarAvisosCurtos() {
+  const caixa = document.getElementById('vv-wa-avisos');
+  if (!caixa || !caixa.children.length) {
+    if (caixa?.style) { caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; }
+    clearInterval(AVISO_CURTO_VIGIA); AVISO_CURTO_VIGIA = null;
+    return;
+  }
+  if (typeof document.elementsFromPoint !== 'function') return;
+  // Com o mouse ou o foco em cima, a caixa não sai do lugar (não foge de quem vai clicar nela).
+  if (caixa.matches(':hover') || (AVISO_CURTO_PELO_TECLADO && caixa.contains(document.activeElement))) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  // Os controles que estão de fato à vista (por cima de tudo, sem contar a caixa) na coluna da caixa.
+  const naColuna = (esq, dir) => [...document.querySelectorAll(AVISO_CURTO_CONTROLES)].map((c) => {
+    if (caixa.contains(c) || c.disabled) return null;
+    const q = c.getBoundingClientRect(); if (q.width < 3 || q.height < 3) return null;
+    const x = q.left + q.width / 2, y = q.top + q.height / 2;
+    if (x < esq || x > dir || y < 0 || y > H) return null;
+    const visto = document.elementsFromPoint(x, y).find((e) => !caixa.contains(e));
+    return visto && (visto === c || c.contains(visto)) ? { el: c, y } : null;
+  }).filter(Boolean);
+  const embaixo = (lista, topo, alto) => lista.filter((c) => c.y >= topo && c.y <= topo + alto);
+  let r = caixa.getBoundingClientRect();
+  if (!embaixo(naColuna(r.left, r.right), r.top, r.height).length) return;
+  // Volta ao lugar de sempre e mede de novo.
+  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = '';
+  r = caixa.getBoundingClientRect();
+  const lista = naColuna(r.left, r.right), cobertos = embaixo(lista, r.top, r.height);
+  if (!cobertos.length) return;
+  const margem = Math.max(8, W - r.right), trilho = document.querySelector('.vv-trilho')?.getBoundingClientRect();
+  const limite = trilho && trilho.width > 0 && trilho.right < W / 2 ? trilho.right : 0;
+  let painelSemVaga = null;
+  for (const c of cobertos) {
+    let p = c.el.parentElement, q = null;
+    for (; p && p !== document.body; p = p.parentElement) {
+      const pos = getComputedStyle(p).position; if (pos !== 'fixed' && pos !== 'absolute') continue;
+      q = p.getBoundingClientRect(); if (q.width >= 240 && q.height >= 160 && q.width < W - 2) break;
+      q = null;
+    }
+    if (!q || q.right < W - 80) continue;
+    const aoLado = (vaga) => { caixa.style.right = `${Math.round(W - q.left + margem)}px`; caixa.style.width = `${Math.round(Math.min(r.width, vaga))}px`; };
+    if (q.left - limite - 2 * margem >= 240) { aoLado(q.left - limite - 2 * margem); return; }
+    // Tela estreita: sem vaga entre o dock lateral e o painel. Se também não houver faixa livre mais abaixo, o aviso
+    // fica ao lado do painel mesmo assim (por cima do dock, por poucos segundos) em vez de cobrir um campo da janela.
+    if (q.left - 2 * margem >= 240) { painelSemVaga = () => aoLado(q.left - 2 * margem); break; }
+  }
+  let melhor = { n: cobertos.length, topo: r.top };
+  for (let topo = r.top + 8; melhor.n && topo + r.height <= H * 0.8; topo += 8) {
+    const n = embaixo(lista, topo, r.height).length;
+    if (n < melhor.n) melhor = { n, topo };
+  }
+  if (melhor.n && painelSemVaga) { painelSemVaga(); return; }
+  if (melhor.topo !== r.top) caixa.style.top = `${Math.round(melhor.topo)}px`;
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────
@@ -786,8 +857,14 @@ const VB_ICONES = {
 // Rótulo depois do número: "3 atrasadas"; sigla continua sigla ("NPS médio").
 function vbRotulo(texto) { const t = String(texto || ''); return /^[A-ZÀ-Ý]{2}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1); }
 function vbIcone(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${VB_ICONES[nome] || VB_ICONES.vazio}</svg>`; }
-function vbCabecalhoHtml({ titulo, texto = '', acoes = '' }) {
-  return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;
+// id: o id do título, para a janela que aponta para ele (aria-labelledby). O mesmo cabeçalho serve à página e à janela:
+// na janela, o X (vbFecharHtml) é a última ação, na mesma linha do título (quadros 00 Main, 00 Sistema e 29).
+function vbCabecalhoHtml({ titulo, texto = '', acoes = '', id = '' }) {
+  return `<header class="vb-cabecalho"><div class="vb-cabecalho-texto"><h2${id ? ` id="${safeText(id)}"` : ''}>${safeText(titulo)}</h2>${texto ? `<p>${safeText(texto)}</p>` : ''}</div>${acoes ? `<div class="vb-cabecalho-acoes">${acoes}</div>` : ''}</header>`;
+}
+// O X das janelas, um desenho só (caixa de 34 px, borda fina): `attr` leva o gancho do módulo (ex. 'data-vp-fechar').
+function vbFecharHtml(attr = '', classe = '') {
+  return `<button type="button" class="vb-janela-x${classe ? ' ' + classe : ''}" ${attr} aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
 }
 // itens: [{ valor, rotulo, tom: 'alerta'|'atencao'|'ok'|'zero'|'', onclick, espiar, dica }]; tom 'zero' = texto discreto.
 // espiar: a chave do mini painel (data-espiar, "quem está neste número"); dica: a explicação no ⓘ ao passar o mouse.
@@ -839,7 +916,7 @@ function vbEscolhaHtml({ rotulo = '', valor = '', opcoes = [], campo = '', vazio
     + `<input type="hidden" ${campo} value="${e(v)}">`
     + `<div class="vb-escolha-menu${grade ? ' grade' : ''}" role="listbox" aria-label="${e(rotulo)}"${grade ? ` style="--colunas:${Number(grade) || 1}"` : ''}>${lista.map((o) => `<button type="button" role="option" data-vb-escolha="${e(o.valor)}" aria-selected="${String(o.valor) === v}"><span>${e(o.nome)}</span>${conta(o.n)}</button>`).join('')}</div></details>`;
 }
-if (typeof window !== 'undefined') window.vbEscolhaHtml = vbEscolhaHtml;
+if (typeof window !== 'undefined') { window.vbEscolhaHtml = vbEscolhaHtml; window.vbCabecalhoHtml = vbCabecalhoHtml; window.vbFecharHtml = vbFecharHtml; window.vbMesHtml = vbMesHtml; window.vbResumoHtml = vbResumoHtml; }
 // Um menu aberto por vez: a opção grava no campo escondido e avisa (input e change); clicar fora ou Esc fecha.
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   const fecharEscolhas = (menos) => document.querySelectorAll('details.vb-escolha[open]').forEach((d) => { if (d !== menos) d.open = false; });

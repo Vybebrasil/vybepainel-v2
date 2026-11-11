@@ -100,7 +100,10 @@ test('36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, fora do do
 });
 
 test('Jogos e Equipe online param acima do dock das salas', () => {
-  assert.match(ler('vybe-mundo.css'), /\.vv-placa:has\(> \.vv-jogos,> \.vv-online-lista\)\{bottom:calc\(var\(--vv-m\) \* 2 \+ var\(--vv-dock-alto,0px\)\)\}/);
+  // A regra geral da placa dá o fim (o mesmo das outras janelas); a regra própria, 8 px mais curta, deixava o Hoje à vista.
+  const css = ler('vybe-mundo.css');
+  assert.match(css, /body\.mundo\.com-dock-salas:not\(\.mundo-centro\) \.vv-placa\{bottom:calc\(var\(--vv-m,14px\) \+ var\(--vv-dock-alto,74px\) \+ 6px\)\}/);
+  assert.doesNotMatch(css, /\.vv-placa:has\(> \.vv-jogos/);
 });
 
 test('o CSS novo da frente não usa !important nem html body.mundo', () => {
