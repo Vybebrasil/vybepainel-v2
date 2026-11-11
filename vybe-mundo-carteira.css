@@ -261,3 +261,10 @@
 #vv-carteira .vc-esteira-previa li i{width:22px;height:22px;border-radius:50%;border:0;background:#F1ECE4;color:#5E5A53;font-size:11px}
 #vv-carteira .vc-esteira-previa span{font-size:12px;font-weight:650}
 #vv-carteira .vc-esteira-previa small{color:#6B675F;font-size:11px;font-weight:500}
+/* === Redesign negocio2 (quadro 18, 2ª rodada, 10/11/2026): a explicação do mês a mês mora no ⓘ do título. O balão abre
+   para a direita, preso ao título (no celular cabe na largura dele), e o texto é escuro no balão claro do mundo: sem isso
+   ele saía branco sobre branco nas janelas novas, o do LTV também. */
+:is(#vv-carteira,#vv-comercial) .ar-dica.vb-jogo-dica[data-dica]::after{color:#1F1D1A;font-weight:500;text-align:left;white-space:normal}
+#vv-carteira .vc-secao>h3{position:relative}
+#vv-carteira .vc-secao>h3>.ar-dica{position:static;vertical-align:middle}
+#vv-carteira .vc-secao>h3>.ar-dica.vb-jogo-dica[data-dica]::after{left:0;right:auto;width:min(340px,100%)}

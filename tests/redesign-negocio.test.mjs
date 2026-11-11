@@ -165,7 +165,10 @@ test('Contas a pagar: números numa linha, para onde vai o dinheiro com %, "Nova
     souDonoDaSessao: () => true, VybeFinancas: { estado: () => ({ dados: { conectado: false, motivo: 'Sem ligação', passos: ['Leia docs/vybe-financas.md'] } }), carregar: async () => {} } });
   ctx.VybeComercial.abrir('contas', { abas: ['contas'] }); await esperar();
   let html = janela().innerHTML;
-  assert.equal((html.match(/Nova conta/g) || []).length, 1, 'vazio: o botão só no vazio');
+  // 2ª rodada (quadro 20): com a lista vazia o botão também fica no cabeçalho, e só nele.
+  assert.equal((html.match(/Nova conta/g) || []).length, 1, 'vazio: o botão só no cabeçalho');
+  assert.match(topoDe(html), /data-vc="conta">.*Nova conta/);
+  assert.match(html, /class="vc-vazio"><p>Nenhuma conta neste período\.[^<]*<\/p><\/div>/, 'o vazio fica só com a frase');
   assert.doesNotMatch(html, /class="vc-kpi|passo a passo|docs\/|type="month"/);
   assert.match(html, /nenhuma conta lançada no período/);
   assert.match(html, /class="vb-mes"/);
@@ -178,16 +181,23 @@ test('Contas a pagar: números numa linha, para onde vai o dinheiro com %, "Nova
   assert.match(html, /<i style="background:#1D4ED8"><\/i>Fixas 66,7%/, 'a porcentagem escrita, não só a cor');
 });
 
-test('Finanças por cliente: os seis números numa linha de resumo', async () => {
+test('Finanças por cliente: os números do topo entram na tabela (total no rodapé de cada coluna)', async () => {
   const { ctx, janela } = comercial((url) => (url.includes('aba=financas') ? { status: 200, corpo: { ok: true, pode: { ver_dinheiro: true }, clientes: [], resumo: { receita: 0, custo: 0, margem_percentual: null, criticas: 1, pagamento: { atrasado: 0, inadimplente: 0 } } } } : { status: 200, corpo: { ok: true } }), {
     souDonoDaSessao: () => true, CADASTRO_CLIENTES: [{ id: '1', nome: 'Antonov' }] });
   ctx.VybeComercial.abrir('financas', { abas: ['financas'] }); await esperar();
   const html = janela().innerHTML;
   assert.match(topoDe(html), /<b>Finanças por cliente<\/b>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
-  const linha = html.slice(html.indexOf('class="vb-resumo"'), html.indexOf('vc-busca'));
-  assert.equal((linha.match(/class="vb-resumo-item/g) || []).length, 6);
-  assert.match(linha, /vb-resumo-item alerta espiavel" data-espiar="comercial:financas:critica"[^>]*><b>1<\/b> em zona crítica/);
+  // 2ª rodada (quadro 59): sem chips acima e sem cartões; uma tabela com o cliente por linha e os totais no rodapé.
+  assert.doesNotMatch(html, /class="vb-resumo"|class="vc-cartao/);
+  assert.match(html, /<table class="vc-tabela vc-tab-financas">\s*<thead><tr><th scope="col">Cliente<\/th><th scope="col">Contrato<\/th><th scope="col">Custo estimado<\/th><th scope="col">Margem<\/th><th scope="col">Pagamento<\/th>/);
+  assert.equal((html.match(/<tr[^>]*>\s*<th scope="row" data-rot="Cliente">/g) || []).length, 1, 'o cliente ativo do cadastro aparece mesmo sem contrato');
+  const rodape = html.slice(html.indexOf('<tfoot>'), html.indexOf('</tfoot>'));
+  assert.match(rodape, /1 cliente ativo/);
+  assert.match(rodape, /nenhum contrato informado[\s\S]*sem pacote[\s\S]*sem contrato e pacote/, 'sem dado fica escrito, não vira zero');
+  assert.match(rodape, /class="vc-tab-conta alerta" data-espiar="comercial:financas:critica"[^>]*><b>1<\/b> em zona crítica/);
+  assert.match(rodape, /data-espiar="comercial:financas:atrasado"[^>]*>0 atrasados[\s\S]*data-espiar="comercial:financas:inadimplente"[^>]*>0 inadimplentes/);
+  assert.doesNotMatch(html, /Vybe Finanças/, 'o aviso fala do efeito, sem nome de sistema');
 });
 
 test('Conta: o WhatsApp é uma linha com "Conectar" (não um bloco); código só depois de pedir', () => {
@@ -212,4 +222,61 @@ test('CSS do redesign Negócio: no fim, sem !important nem html body.mundo', () 
     assert.ok(b);
     assert.doesNotMatch(b, /!important|html body\.mundo/);
   }
+});
+
+// ---- 2ª rodada (10/11/2026, re-auditoria): 13 e 60, 18, 30 e 54 ----
+test('Contratos: o mês a mês explica a conta no ⓘ do título, não no rodapé; sem dado, uma frase no lugar dos gráficos', async () => {
+  const comDado = carteira({ resposta: semTabelas });
+  await comDado.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
+  let html = comDado.janela().innerHTML;
+  assert.match(html, /<h3>Mês a mês <span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="Cada mês na data do último dia[^"]*Ticket = receita mensal ativa ÷ clientes ativos com valor[^"]*"/);
+  assert.doesNotMatch(html, /<p class="vc-nota">Cada mês na data/, 'o parágrafo técnico saiu do rodapé');
+  assert.match(html, /<figcaption>Clientes ativos<\/figcaption>\s*<svg/, 'com cliente ativo o gráfico aparece');
+  assert.match(html, /<figcaption>Clientes novos<\/figcaption><p class="vc-nota">Ninguém entrou nestes meses\.<\/p>/, 'gráfico só de zero vira uma linha');
+  const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
+  await vazio.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
+  html = vazio.janela().innerHTML;
+  const mes = html.slice(html.indexOf('<h3>Mês a mês'));
+  assert.match(mes, /^<h3>Mês a mês <span class="ar-dica vb-jogo-dica"[^>]*data-dica="Cada mês na data do último dia/, 'a explicação continua acessível sem dado');
+  assert.match(mes, /Os gráficos de ativos, novos, LTV e ticket aparecem quando houver cliente ativo com data de entrada\./);
+  assert.doesNotMatch(mes, /<svg|vc-graf/, 'nada de gráficos de seis meses só com zero');
+  assert.match(html, /class="vc-controles" hidden/, 'Mensal/Anual e o mês só onde mudam algo');
+  assert.match(ler('vybe-mundo-carteira.js'), /vbEstadoHtml\(\{ titulo: 'Ainda sem histórico para mostrar'/, 'o vazio é a peça do padrão');
+});
+
+test('"Ver o que falta" e "Atualizar" são botões do padrão, não texto clicável (quadro 30)', () => {
+  assert.match(ler('vybe-mundo-comercial.js'), /<button type="button" class="vc-sec" data-vc="falta" aria-expanded="\$\{st\.verFalta\}">Ver o que falta<\/button>/);
+  assert.doesNotMatch(ler('vybe-mundo-comercial.js'), /class="vc-link" data-vc="falta"/);
+  assert.match(ler('vybe-clientes-ficha.js'), /<button type="button" class="vb-botao" onclick="delete FICHA_REGISTROS\[[^>]*>Atualizar<\/button>/);
+});
+
+test('Conta: no mundo a tela não é um cartão dentro da janela (quadros 13 e 60)', () => {
+  const css = ler('vybe-appearance.css');
+  assert.match(css, /:where\(body:not\(\.mundo\)\)\.vybe-desktop \.conta-tela \{/, 'o cartão antigo só vale fora do mundo');
+  assert.doesNotMatch(css, /\.vybe-desktop :is\([^)]*\.conta-tela/);
+});
+
+test('Sinapses: "Como o VYBES pensa" e o detalhe por agente moram na página Agentes (quadro 54)', () => {
+  const cerebro = ler('vybe-clientes-cerebro.js');
+  const sinapses = cerebro.slice(cerebro.indexOf('function renderSinapsesCerebroHtml'), cerebro.indexOf('function renderDiagnosticoCerebroHtml'));
+  assert.doesNotMatch(sinapses, /Como o VYBES pensa|Fila do Qwen|filtrarMotorSinapses|porAgente/, 'o diagnóstico saiu das Sinapses do cliente');
+  assert.match(sinapses, /renderEstudoClienteCerebroHtml\(cliente\)/, 'o estudo (com o selo Qwen) fica');
+  assert.match(sinapses, /De onde vem cada coisa/);
+  assert.match(sinapses, /onclick="abrirDiagnosticoDosAgentes\(\)">Ver o diagnóstico em Agentes/);
+  assert.match(cerebro, /cb-sin-quando">Feito em [\s\S]{0,200}cerebroMotorHtml\('qwen'\)/,'o selo Qwen do estudo continua à vista (decisão do Paulo)');
+  const diag = cerebro.slice(cerebro.indexOf('function renderDiagnosticoCerebroHtml'), cerebro.indexOf('function focarClienteNoCerebro'));
+  for (const pedaco of ["'Qwen', k.qwen", "'Lógica fixa', k.logica", 'Fila do Qwen agora', 'porAgente.map', 'De onde vem']) assert.ok(diag.includes(pedaco), pedaco);
+  const agentes = ler('vybe-mundo-agentes.js');
+  assert.match(agentes, /data-vga-cerebro>[\s\S]*<b>Como o VYBES pensa<\/b>/, 'a entrada na lista da página Agentes');
+  assert.match(agentes, /if \(st\.vista === 'cerebro'\) return cerebroHtml\(\);/);
+  assert.match(agentes, /G\.renderDiagnosticoCerebroHtml\(\)/);
+  assert.match(agentes, /G\.VybeAgentes = \{ abrir, abrirCerebro, /);
+  assert.match(agentes, /addEventListener\('vybe:cerebro-mapa'/, 'repinta quando o mapa chega ou o filtro muda');
+  assert.match(cerebro, /function cerebroAvisarMapa\(\) \{ try \{ document\.dispatchEvent\(new CustomEvent\('vybe:cerebro-mapa'\)\)/);
+  const bloco = ler('vybe-mundo.css').split('/* ==== Redesign negocio2 (quadro 54')[1];
+  assert.ok(bloco);
+  assert.doesNotMatch(bloco, /!important|html body\.mundo/);
+  const tabela = ler('vybe-mundo-comercial.css').split('/* === Redesign negocio2 (quadro 59')[1];
+  assert.ok(tabela);
+  assert.doesNotMatch(tabela, /!important|html body\.mundo/);
 });
