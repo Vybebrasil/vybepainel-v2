@@ -113,7 +113,12 @@ Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110�
 ## Itens conhecidos que ficaram de fora (ditos pelas frentes, decidir com o Paulo)
 - 10 Diário: o gráfico usa os números que o registro guarda (data à frente, sem data, prazo passado); não há "feito/atrasado" no banco.
 - 11 Automações: não existe filtro "Quadro: todos" no código.
-- 26 Aprovação do cliente: não há rota para "aprovar todas" nem registro de "vista"; o progresso conta as respondidas.
+- 26 Aprovação do cliente: fechado no branch `codex/r4-aprovacao` (11/11/2026). "Aprovar todas as vistas" no fim da página
+  (POST `acao:'aprovar_vistas'` em `/aprovar-pecas/<token>`, `aprovarVistas`: uma transação, peça a peça as regras da
+  aprovação de uma, o que fica de fora volta com o motivo) e registro de vista (`registrarVista`, tabela
+  `vybe_aprovacao_vistas`). **Depende do Paulo:** aplicar `migrations/2026-11-11-aprovacao-vistas.sql` no Neon. Sem ela a
+  página conta as respondidas e o botão vira "Aprovar todas" (aprova o que está em aprovação e tem arte). O vídeo agora
+  responde por partes (Range/206), que o player do iPhone exige.
 - 27 Prévia: a ficha é só leitura (aprovar por ela abriria os portões de conferência por baixo).
 - 23: "Nova etiqueta" e "Ordem" continuam no menu de status; responsável em lote ainda sem busca.
 - 34 Minha sala: peças de parede e móveis sem receita ainda com cara do Habbo (precisa receita nova em `mundo/moveis-voxel.mjs`).

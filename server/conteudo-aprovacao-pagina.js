@@ -3,8 +3,10 @@
 //   GET                      a página (HTML, padrão Irecity claro, cabe no celular)
 //   GET  &arquivo=<id>       o arquivo da peça (proxy do Drive; só peças do cliente do link em aprovação)
 //   POST {conteudo_id, acao, nome, comentario}  a resposta (JSON)
+//   POST {acao:'vista', conteudo_id}            o cliente passou pela arte inteira da peça
+//   POST {acao:'aprovar_vistas', nome, conteudo_ids}  "Aprovar todas as vistas" (aprovarVistas)
 import { randomBytes } from 'node:crypto';
-import { pecasDoLink, arquivoDoLink, responderPeca, LIMITE_COMENTARIO, LIMITE_NOME } from './conteudo-aprovacao.js';
+import { pecasDoLink, arquivoDoLink, responderPeca, registrarVista, aprovarVistas, LIMITE_COMENTARIO, LIMITE_NOME } from './conteudo-aprovacao.js';
 import { LOGO_VYBE } from './vybe-logo.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -12,6 +14,14 @@ const corpoDe = (req) => (req.body && typeof req.body === 'object' ? req.body : 
 const dataBr = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? `${iso.slice(8)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '');
 const diaHora = (d) => { try { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(d)); } catch { return ''; } };
 const TETO_ARQUIVO = 60 * 1024 * 1024;
+// "bytes=ini-fim", "bytes=ini-" ou "bytes=-ultimos"; uma faixa só (o player não pede várias). null = arquivo inteiro.
+export function faixaPedida(cabecalho, total) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(cabecalho || '').trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  const ini = m[1] === '' ? Math.max(0, total - Number(m[2])) : Number(m[1]);
+  const fim = m[1] === '' || m[2] === '' ? total - 1 : Math.min(Number(m[2]), total - 1);
+  return ini <= fim && ini < total ? { ini, fim } : { invalida: true };
+}
 
 function cabecalhos(res, nonce) {
   res.setHeader('Cache-Control', 'no-store');
@@ -75,6 +85,14 @@ textarea{min-height:96px;resize:vertical}
 .historico li{list-style:none;padding:8px 0;border-top:1px solid #F0EBE3;font-size:13.5px}.historico ul{padding:0;margin:0}
 .historico small{color:#6B675F}
 .rodape{color:#6B675F;font-size:12px;text-align:center;margin-top:26px}
+.lote{display:none}.lote.on{display:block}.lote.feito [data-acao="lote-abrir"],.lote.feito .nota{display:none}
+.resposta p{margin:8px 0 0}.lote.feito .resposta{margin-top:0}
+.lote .nota{color:#6B675F;font-size:13.5px;margin:8px 0 0}
+.btn.largo{width:100%;height:48px}
+.lote .confirma{display:none}.lote.confirmando .confirma{display:block}.lote.confirmando [data-acao="lote-abrir"],.lote.confirmando .nota{display:none}
+.lote .confirma p{margin:0 0 8px;font-size:14.5px}
+.lote .confirma ul{margin:0 0 12px;padding:0 0 0 18px;font-size:14px;color:#3F3B35}.lote .confirma li{margin:2px 0;overflow-wrap:anywhere}
+.lote .fora{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:#5E5A53}.lote .fora li{padding:6px 0;border-top:1px solid #F0EBE3}
 @media (max-width:480px){h1{font-size:22px}.cartao{padding:14px}}
 @media (prefers-reduced-motion:reduce){.galeria{scroll-behavior:auto}.progresso i b{transition:none}}`;
 
@@ -87,6 +105,7 @@ function paginaSimples(res, codigo, titulo, msg) {
 
 const ICONE_CLIPE = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10.5 4.5 5.4 9.6a1.4 1.4 0 0 0 2 2l5.3-5.3a2.8 2.8 0 0 0-4-4L3.4 7.6a4.2 4.2 0 0 0 6 6l4.1-4.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const ICONE_ESPERA = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6V8l2.3 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const ICONE_CHECK = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.2 8.4 6.6 11.6 12.8 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 export const TEXTO_SEM_ARTE = 'A arte ainda não está aqui. A Vybe avisa quando chegar; não dá para aprovar sem ver.';
 
 // A arte da peça: vídeo com player na página, várias imagens como galeria de deslizar (carrossel),
@@ -119,7 +138,7 @@ export function paginaHtml(dados, { nonce, base }) {
         <span class="conta" data-conta>0/${LIMITE_COMENTARIO}</span>
         <button type="button" class="btn principal" data-acao="ajuste">Enviar pedido de ajuste</button></div>`
       : `<p class="sem-arte">${ICONE_ESPERA}<span>${TEXTO_SEM_ARTE}</span></p>`;
-    return `<article class="cartao" data-peca="${esc(p.id)}"${temArte ? '' : ' data-sem-arte'}>
+    return `<article class="cartao" data-peca="${esc(p.id)}"${temArte ? '' : ' data-sem-arte'}${p.vista ? ' data-vista' : ''}>
       <h2>${esc(p.titulo || 'Peça')}</h2>
       <div class="meta">${p.formato ? `<span class="pilula">${esc(p.formato)}</span>` : ''}${p.veiculacao ? `<span class="pilula">Publica em ${esc(dataBr(p.veiculacao))}</span>` : ''}${temArte ? '<span class="pilula espera">Esperando sua aprovação</span>' : '<span class="pilula sem">Esperando a arte</span>'}</div>
       ${corpo}
@@ -130,8 +149,21 @@ export function paginaHtml(dados, { nonce, base }) {
   const historico = respondidas.length ? `<section class="historico"><h3>Já respondidas por este link</h3><ul>${respondidas.map((r) =>
     `<li><b>${esc(r.titulo)}</b> — ${r.acao === 'aprovar' ? 'aprovada' : 'ajuste pedido'} por ${esc(r.nome)} <small>· ${esc(diaHora(r.em))}</small></li>`).join('')}</ul></section>` : '';
   const vazio = `<div class="cartao vazio"><b>Nada esperando sua aprovação agora</b><span>Quando a Vybe mandar novas peças, elas aparecem aqui neste mesmo link.</span></div>`;
-  // Progresso: só o que existe de verdade, as peças respondidas nesta página.
-  const progresso = pecas.length ? `<p class="progresso"><span><b data-feitas>0</b> de ${pecas.length} ${pecas.length === 1 ? 'respondida' : 'respondidas'}</span><i aria-hidden="true"><b data-barra></b></i></p>` : '';
+  // Progresso no topo (quadro 26): com o registro de vista no banco, "1 de 3 vistas · 0 respondidas" e a
+  // barra das vistas; sem ele (migração não aplicada), só o que existe, as respondidas nesta página.
+  const comVistas = Boolean(dados.vistas);
+  const vistasJa = pecas.filter((p) => p.vista).length;
+  const progresso = !pecas.length ? '' : comVistas
+    ? `<p class="progresso" data-modo="vistas"><span><b data-vistas>${vistasJa}</b> de ${pecas.length} <span data-vistas-rot>${vistasJa === 1 ? 'vista' : 'vistas'}</span> · <b data-feitas>0</b> <span data-feitas-rot>respondidas</span></span><i aria-hidden="true"><b data-barra></b></i></p>`
+    : `<p class="progresso"><span><b data-feitas>0</b> de ${pecas.length} ${pecas.length === 1 ? 'respondida' : 'respondidas'}</span><i aria-hidden="true"><b data-barra></b></i></p>`;
+  // "Aprovar todas as vistas" no fim (quadro 26). A página liga quando há duas ou mais para aprovar.
+  const lote = comArte ? `<section class="cartao lote" data-lote aria-live="polite">
+    <button type="button" class="btn sim largo" data-acao="lote-abrir">${ICONE_CHECK}<span data-lote-rot>${comVistas ? 'Aprovar todas as vistas' : 'Aprovar todas'}</span></button>
+    <p class="nota" data-lote-nota></p>
+    <div class="confirma"><p data-lote-pergunta></p><ul data-lote-lista></ul>
+      <div class="acoes"><button type="button" class="btn" data-acao="lote-voltar">Voltar</button><button type="button" class="btn sim" data-acao="lote-confirmar">Aprovar</button></div></div>
+    <div class="saida"></div>
+  </section>` : '';
   const semArte = pecas.length - comArte;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
 <title>Aprovação de peças · ${esc(cliente)}</title><style nonce="${nonce}">${CSS}</style></head><body>
@@ -139,30 +171,76 @@ export function paginaHtml(dados, { nonce, base }) {
 <main><p class="intro">${pecas.length ? `${pecas.length === 1 ? 'Uma peça espera' : `${pecas.length} peças esperam`} a sua aprovação.${comArte ? ' Veja cada uma e toque em <b>Aprovar</b> ou em <b>Pedir ajuste</b>.' : ''}${semArte ? ` ${semArte === 1 ? 'Uma ainda está' : `${semArte} ainda estão`} sem a arte.` : ''}` : 'Obrigado por acompanhar a sua produção com a Vybe.'} Este link vale até ${esc(diaHora(expira_em))}.</p>
 ${progresso}
 ${comArte ? `<div class="nome"><label for="nome">Seu nome</label><input id="nome" maxlength="${LIMITE_NOME}" autocomplete="name" placeholder="Quem está aprovando"></div>` : ''}
-${pecas.length ? cartoes : vazio}${historico}
+${pecas.length ? cartoes + lote : vazio}${historico}
 <p class="rodape">Este link é só seu. Ele mostra apenas as peças em aprovação da sua empresa.</p></main>
 <script nonce="${nonce}">(()=>{const nome=document.getElementById('nome');try{nome&&(nome.value=localStorage.getItem('vybe.aprovar.nome')||'')}catch{}
-const total=document.querySelectorAll('.cartao[data-peca]').length;let feitas=0;
-const contar=()=>{const f=document.querySelector('[data-feitas]'),b=document.querySelector('[data-barra]');if(f)f.textContent=feitas;if(b)b.style.width=(total?Math.round(feitas/total*100):0)+'%'};
-const saida=(c,cls,t)=>{const s=c.querySelector('.saida');s.innerHTML='';const d=document.createElement('div');d.className='resposta '+cls;d.textContent=t;s.append(d)};
+const VISTAS=${comVistas ? 'true' : 'false'};
+const cartoes=[...document.querySelectorAll('.cartao[data-peca]')],total=cartoes.length,lote=document.querySelector('[data-lote]');
+const plural=(n,um,varios)=>n===1?um:varios;
+const respondida=c=>c.dataset.respondida==='1',comArte=c=>!c.hasAttribute('data-sem-arte'),vista=c=>c.hasAttribute('data-vista')||respondida(c);
+const paraLote=()=>cartoes.filter(c=>comArte(c)&&!respondida(c)&&(!VISTAS||c.hasAttribute('data-vista')));
+const saida=(c,cls,t)=>{const s=c.querySelector('.saida');s.innerHTML='';const d=document.createElement('div');d.className='resposta '+cls;d.textContent=t;s.append(d);return d};
+const loteAtualiza=()=>{if(!lote||lote.dataset.ocupado)return;const n=paraLote().length;
+const faltam=VISTAS?cartoes.filter(c=>comArte(c)&&!respondida(c)&&!c.hasAttribute('data-vista')).length:0;
+lote.classList.toggle('on',n>=2||lote.dataset.resultado==='1');lote.classList.toggle('feito',n<2);if(n<2)lote.classList.remove('confirmando');
+lote.querySelector('[data-lote-rot]').textContent=(VISTAS?'Aprovar todas as vistas':'Aprovar todas')+' ('+n+')';
+lote.querySelector('[data-lote-nota]').textContent=VISTAS?(faltam?'Aprova as '+n+' peças que você já viu. '+plural(faltam,'Falta ver 1; ela fica','Faltam ver '+faltam+'; elas ficam')+' para depois.':'Aprova de uma vez as '+n+' peças que você já viu.'):'Aprova de uma vez as '+n+' peças com arte que ainda esperam a sua resposta.'};
+const contar=()=>{const feitas=cartoes.filter(respondida).length,vistas=cartoes.filter(vista).length;
+const f=document.querySelector('[data-feitas]'),b=document.querySelector('[data-barra]'),fr=document.querySelector('[data-feitas-rot]'),v=document.querySelector('[data-vistas]'),vr=document.querySelector('[data-vistas-rot]');
+if(f)f.textContent=feitas;if(fr)fr.textContent=plural(feitas,'respondida','respondidas');if(v)v.textContent=vistas;if(vr)vr.textContent=plural(vistas,'vista','vistas');
+if(b)b.style.width=(total?Math.round((VISTAS?vistas:feitas)/total*100):0)+'%';loteAtualiza()};
+const marcarRespondida=(c,acao)=>{c.dataset.respondida='1';const a=c.querySelector('.acoes'),j=c.querySelector('.ajuste'),p=c.querySelector('.pilula.espera');if(a)a.remove();if(j)j.remove();
+if(p){p.className='pilula '+(acao==='aprovar'?'ok':'ajuste');p.textContent=acao==='aprovar'?'Aprovada':'Ajuste pedido'}
+saida(c,acao==='aprovar'?'ok':'ajuste',acao==='aprovar'?'Aprovada. Obrigado! A Vybe segue com a publicação.':'Pedido de ajuste enviado. A Vybe ajusta e manda de novo.')};
+// Vista (quadro 26): a peça conta como vista quando o cliente passou pela arte inteira: cada imagem ao menos 60% na
+// tela por 1,2 s já carregada (na galeria, cada uma), o vídeo tocado, o arquivo aberto. O servidor confere de novo.
+try{if(VISTAS&&'IntersectionObserver' in window){const falta=new Map(),relogios=new Map();
+const enviar=async(c,tentativa=0)=>{if(c.hasAttribute('data-vista')||c.dataset.enviando)return;c.dataset.enviando='1';
+try{const r=await fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acao:'vista',conteudo_id:c.dataset.peca})});const d=await r.json().catch(()=>({}));
+if(r.ok&&d.vista){c.setAttribute('data-vista','');contar()}else if(r.status>=500&&tentativa<2)setTimeout(()=>enviar(c,tentativa+1),4000)}
+catch{if(tentativa<2)setTimeout(()=>enviar(c,tentativa+1),4000)}finally{delete c.dataset.enviando}};
+const viu=(c,el)=>{const s=falta.get(c);if(!s||!s.has(el))return;s.delete(el);if(!s.size)enviar(c)};
+const io=new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;clearTimeout(relogios.get(el));
+if(e.isIntersecting&&e.intersectionRatio>=.6)relogios.set(el,setTimeout(()=>{if(el.complete&&el.naturalWidth){io.unobserve(el);viu(el.closest('.cartao'),el)}},1200))}),{threshold:[0,.6]});
+cartoes.filter(c=>comArte(c)&&!c.hasAttribute('data-vista')).forEach(c=>{const s=new Set();falta.set(c,s);
+c.querySelectorAll('.galeria img,img.imagem').forEach(img=>{s.add(img);io.observe(img);img.addEventListener('load',()=>{if(s.has(img)){io.unobserve(img);io.observe(img)}})});
+c.querySelectorAll('.video').forEach(f=>{const v=f.querySelector('video');if(!v)return;s.add(v);v.addEventListener('play',()=>viu(c,v));f.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>viu(c,v)))});
+c.querySelectorAll('.arquivos a').forEach(a=>{s.add(a);a.addEventListener('click',()=>viu(c,a))})})}}catch{}
 const mmss=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 document.querySelectorAll('.video video').forEach(v=>{const pinta=()=>{if(isFinite(v.duration)&&v.duration>0){const d=v.closest('.video').querySelector('[data-duracao]');if(d)d.textContent=' · '+mmss(v.duration)}};v.addEventListener('loadedmetadata',pinta);pinta()});
 document.querySelectorAll('.galeria').forEach(g=>{const n=g.children.length,pos=g.nextElementSibling.querySelector('[data-pos]'),pts=[...g.nextElementSibling.querySelectorAll('.pontos i')];let i0=0;
 const ver=()=>{const i=Math.max(0,Math.min(n-1,Math.round(g.scrollLeft/Math.max(1,g.clientWidth+8))));if(i===i0)return;i0=i;pos.textContent=(i+1)+' de '+n;pts.forEach((p,k)=>p.classList.toggle('on',k===i))};
 g.addEventListener('scroll',ver,{passive:true});g.addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();g.scrollBy({left:(e.key==='ArrowRight'?1:-1)*(g.clientWidth+8),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})})});
 document.addEventListener('input',e=>{const t=e.target;if(t.tagName==='TEXTAREA'){const c=t.closest('.cartao').querySelector('[data-conta]');c.textContent=t.value.length+'/${LIMITE_COMENTARIO}'}});
-document.addEventListener('click',async e=>{const b=e.target.closest('button[data-acao]');if(!b)return;const c=b.closest('.cartao');const acao=b.dataset.acao;
+const nomeOuAviso=c=>{const n=(nome&&nome.value||'').trim();if(!n){saida(c,'erro','Escreva seu nome no topo da página antes de responder.');nome&&nome.focus()}return n};
+// "Aprovar todas as vistas": confirma com a lista, manda numa vez só e mostra o que ficou de fora e por quê.
+const noLote=async(b,acao)=>{if(acao==='lote-voltar'){lote.classList.remove('confirmando');lote.querySelector('[data-acao="lote-abrir"]').focus();return}
+const n=nomeOuAviso(lote);if(!n)return;const pecas=paraLote();if(!pecas.length){loteAtualiza();return}
+if(acao==='lote-abrir'){lote.querySelector('.saida').innerHTML='';lote.querySelector('[data-lote-pergunta]').textContent='Aprovar '+pecas.length+' peças em nome de '+n+'?';
+const ul=lote.querySelector('[data-lote-lista]');ul.innerHTML='';pecas.forEach(c=>{const li=document.createElement('li');li.textContent=c.querySelector('h2').textContent;ul.append(li)});
+lote.querySelector('[data-acao="lote-confirmar"]').textContent='Aprovar '+pecas.length;lote.classList.add('confirmando');lote.querySelector('[data-acao="lote-confirmar"]').focus();return}
+try{localStorage.setItem('vybe.aprovar.nome',n)}catch{}
+lote.querySelectorAll('button').forEach(x=>x.disabled=true);lote.dataset.ocupado='1';
+try{const r=await fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acao:'aprovar_vistas',nome:n,conteudo_ids:pecas.map(c=>c.dataset.peca)})});
+const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Nada foi aprovado: não foi possível registrar agora. Tente de novo.');
+const ok=d.aprovadas||[],fora=d.recusadas||[];ok.forEach(a=>{const c=cartoes.find(x=>x.dataset.peca===String(a.conteudo_id));if(c)marcarRespondida(c,'aprovar')});
+fora.forEach(f=>{const c=cartoes.find(x=>x.dataset.peca===String(f.conteudo_id));if(c&&/ainda não viu/.test(f.motivo||''))c.removeAttribute('data-vista')});
+const res=saida(lote,ok.length?'ok':'erro',ok.length?plural(ok.length,'1 peça aprovada.',ok.length+' peças aprovadas.')+' Obrigado! A Vybe segue com a publicação.'+(d.aviso?' '+d.aviso:''):'Nenhuma peça foi aprovada.');
+if(fora.length){const t=document.createElement('p');t.textContent=plural(fora.length,'Ficou de fora:','Ficaram de fora:');res.append(t);const ul=document.createElement('ul');ul.className='fora';
+fora.forEach(f=>{const li=document.createElement('li');const c=cartoes.find(x=>x.dataset.peca===String(f.conteudo_id));const bb=document.createElement('b');bb.textContent=f.titulo||(c&&c.querySelector('h2').textContent)||'Peça';li.append(bb,' — '+f.motivo);ul.append(li)});res.append(ul)}
+lote.dataset.resultado='1'}
+catch(err){saida(lote,'erro',err.message)}
+finally{delete lote.dataset.ocupado;lote.classList.remove('confirmando');lote.querySelectorAll('button').forEach(x=>x.disabled=false);contar()}};
+document.addEventListener('click',async e=>{const b=e.target.closest('button[data-acao]');if(!b)return;const acao=b.dataset.acao;
+if(acao.startsWith('lote-'))return noLote(b,acao);const c=b.closest('.cartao');
 if(acao==='abrir-ajuste'){const a=c.querySelector('.ajuste');a.classList.toggle('aberto');b.setAttribute('aria-expanded',a.classList.contains('aberto'));if(a.classList.contains('aberto'))a.querySelector('textarea').focus();return}
-const n=(nome&&nome.value||'').trim();if(!n){saida(c,'erro','Escreva seu nome no topo da página antes de responder.');nome&&nome.focus();return}
+const n=nomeOuAviso(c);if(!n)return;
 const comentario=acao==='ajuste'?c.querySelector('textarea').value.trim():'';if(acao==='ajuste'&&!comentario){saida(c,'erro','Escreva o que precisa ajustar.');return}
 try{localStorage.setItem('vybe.aprovar.nome',n)}catch{}
 c.querySelectorAll('button').forEach(x=>x.disabled=true);
 try{const r=await fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conteudo_id:c.dataset.peca,acao,nome:n,comentario})});
 const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Não foi possível registrar agora. Tente de novo.');
-c.querySelector('.acoes').remove();c.querySelector('.ajuste').remove();const p=c.querySelector('.pilula.espera');
-if(p){p.className='pilula '+(acao==='aprovar'?'ok':'ajuste');p.textContent=acao==='aprovar'?'Aprovada':'Ajuste pedido'}
-feitas++;contar();
-saida(c,acao==='aprovar'?'ok':'ajuste',acao==='aprovar'?'Aprovada. Obrigado! A Vybe segue com a publicação.':'Pedido de ajuste enviado. A Vybe ajusta e manda de novo.')}
+marcarRespondida(c,acao);contar()}
 catch(err){c.querySelectorAll('button').forEach(x=>x.disabled=false);saida(c,'erro',err.message)}});contar();})();</script>
 </body></html>`;
 }
@@ -174,7 +252,10 @@ export async function paginaAprovarPecas(req, res, sql, { baixarDoDrive, fazer }
       cabecalhos(res);
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       try {
-        const r = await responderPeca(sql, token, corpoDe(req), fazer);
+        const corpo = corpoDe(req);
+        const r = corpo.acao === 'vista' ? await registrarVista(sql, token, corpo)
+          : corpo.acao === 'aprovar_vistas' ? await aprovarVistas(sql, token, corpo, fazer)
+          : await responderPeca(sql, token, corpo, fazer);
         return res.status(200).json({ ok: true, ...r });
       } catch (e) { return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível registrar agora. Tente de novo.' }); }
     }
@@ -194,9 +275,19 @@ export async function paginaAprovarPecas(req, res, sql, { baixarDoDrive, fazer }
       const seguro = (/^image\//.test(tipo) && tipo !== 'image/svg+xml') || /^video\//.test(tipo) || tipo === 'application/pdf';
       const nome = String(a.nome || `arquivo${a.extensao || ''}`).replace(/["\r\n]/g, '');
       res.setHeader('Content-Type', seguro ? tipo : 'application/octet-stream');
-      res.setHeader('Content-Length', String(bytes.length));
       res.setHeader('Content-Disposition', `${seguro ? 'inline' : 'attachment'}; filename="${nome.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nome)}`);
       res.setHeader('Cache-Control', 'private, no-store');
+      // Pedaço do arquivo (Range): o player do Safari/iPhone só toca vídeo de quem responde por partes (206).
+      const parte = /^video\//.test(tipo) ? faixaPedida(req.headers?.range, bytes.length) : null;
+      if (parte) {
+        res.setHeader('Accept-Ranges', 'bytes');
+        if (parte.invalida) { res.setHeader('Content-Range', `bytes */${bytes.length}`); return res.status(416).end(); }
+        res.setHeader('Content-Range', `bytes ${parte.ini}-${parte.fim}/${bytes.length}`);
+        res.setHeader('Content-Length', String(parte.fim - parte.ini + 1));
+        return res.status(206).end(bytes.subarray(parte.ini, parte.fim + 1));
+      }
+      if (/^video\//.test(tipo)) res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', String(bytes.length));
       return res.status(200).end(bytes);
     }
     const dados = await pecasDoLink(sql, token);

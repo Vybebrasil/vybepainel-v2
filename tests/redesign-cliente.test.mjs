@@ -83,10 +83,11 @@ test('a página mostra o vídeo num player, o carrossel como galeria e a peça s
   // Ações lado a lado, Aprovar em verde (estado de sim), só onde há arte.
   assert.match(cartao(100), /data-acao="abrir-ajuste"[^>]*>Pedir ajuste<\/button><button type="button" class="btn sim" data-acao="aprovar">Aprovar/);
   assert.equal((html.match(/data-acao="aprovar"/g) || []).length, 2);
-  // Progresso só com o que existe (respondidas nesta página) e o logo de verdade.
+  // Sem o registro de vista (migração de 11/11 não aplicada): progresso das respondidas e o logo de verdade.
   assert.match(html, /<b data-feitas>0<\/b> de 4 respondidas/);
   assert.match(html, /<div class="marca"><img src="data:image\/png;base64,/);
-  assert.doesNotMatch(html, /Aprovar todas/, 'não há rota que aprove várias de uma vez');
+  // "Aprovar todas" no fim (rota em lote: tests/aprovacao-lote.test.mjs); sem vista, sem "as vistas".
+  assert.match(html, /data-lote-rot>Aprovar todas<\/span>/);
   // O logo embutido precisa do data: na política da página.
   const res = { cab: {}, status() { return this; }, setHeader(k, v) { this.cab[k.toLowerCase()] = v; }, send(b) { this.corpo = b; return this; } };
   await paginaAprovarPecas({ method: 'GET', query: { t: l.token } }, res, sql, { fazer });
