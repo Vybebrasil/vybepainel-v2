@@ -25,6 +25,6 @@ test('HUDs: X da janela sem o filtro do kicker, rodapé do tema antigo só no te
   // O grupo de botões dentro do kicker (barra da gaveta, quadro 06) também fica fora do filtro.
   assert.match(css, /\[class\*="-kicker"\]:has\(button,a,input,select\) > :not\(button,a,input,select\):not\(:has\(button,a,input,select\)\)\{filter:/);
   assert.ok(legado.includes(':where(body:not(.mundo)) :is(.workspace-actions,.workflow-actions){position:sticky;bottom:0!important;'));
-  assert.ok(css.includes('html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;'));
+  assert.ok(css.includes('html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px))!important;'));
   assert.ok(!css.includes('body.mundo.mundo-modulo.com-dock-salas::after'), 'no celular a janela já termina acima do dock, sem folga a mais');
 });

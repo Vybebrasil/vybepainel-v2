@@ -116,3 +116,24 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
   rolagem atrás da barra no QR Code (Baixar PNG/SVG), Agentes e Conversas.
 - Decisões que esperam o Paulo: posição do aviso quando há janela aberta; menção do WhatsApp 12 s; "Como o VYBES pensa" só
   para donos (página Agentes); "Nova etiqueta" e "Ordem" só no menu do grupo; hora da grade da agenda em 66 px.
+
+## Terceira rodada: frente Moldura (branch `codex/r3-moldura`, 11/11/2026)
+O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido no Chromium e no WebKit em 1440×900,
+1110×650 e 390×844, com a demo cheia (`DEMO_VOLUME=1`). O CSS está no bloco "Terceira rodada · moldura", no fim de
+`vybe-mundo.css`.
+- Caixa de tela cheia/fechar num lugar só: X de 34 px a 17 px do canto de cima à direita da janela (12 px no celular), ⛶ a
+  8 px dele, nas 46 janelas do dock. Nas telas antigas o cabeçalho termina `--vv-caixa-vao` (58 px) antes da borda, para a
+  ação ("+ Novo conteúdo", "Novo colaborador") não entrar na caixa. O vão flutuante da rodada anterior nunca valeu (o
+  `body:before` do tema antigo é `position:fixed`) e saiu; um float de verdade estreitaria a Agenda e a Conta inteiras.
+- Gaveta da demanda aberta: a caixa da tela de trás some (`body.mundo:has(> #workspace-drawer)`), fica só o X da gaveta.
+- Aviso curto (`ajustarAvisosCurtos`, vybe-core.js): nunca sobre controle (botão, campo, linha clicável, dock lateral,
+  barra de baixo). Ordem: canto de cima à direita; ao lado do painel da direita, sem entrar no dock; a vaga livre mais
+  perto do canto; encolhido (`#vv-wa-avisos.compacto`); só então onde cobre menos. No celular: encolhido acima da barra
+  de baixo, ou na faixa do título da janela. O foco do teclado segura no máximo 8 s (`AVISO_CURTO_TETO_FOCO`).
+- Título de 22 px na Agenda e na Conta; Gestão, Performance e visões de setor com fundo sólido.
+- Celular: com a barra de baixo à vista, toda janela e o Hoje terminam acima dela (`--vv-pe-barra` entra na conta do
+  `bottom`). Antes iam até o pé da tela; o Hoje ficava por cima da barra.
+- Plurais: "1 dia de atraso", "1 entregue", "1 falha", "1 cliente", "1 peça" e parecidos em Agentes, Boletim, Comercial,
+  Finanças, Pessoas, Performance, visões de setor, Hoje e Cérebro.
+- Ficou de fora: o título das telas antigas ainda começa mais baixo (34 a 48 px) que o das janelas novas (17 px); a
+  página rola por trás das janelas novas no WebKit com barra clássica (já era assim).
