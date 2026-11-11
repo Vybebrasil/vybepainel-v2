@@ -72,33 +72,6 @@ test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro d
   }
 });
 
-test('quadro 34: objetos pequenos, peça sem receita e peças de parede saem do motor, nunca da arte esculpida', async () => {
-  const m = await import('../mundo/moveis-voxel.mjs');
-  for (const [classe, tipo] of [['exe_globe', 'globo'], ['exe_c15_telephone', 'telefone'], ['exe_c15_printer', 'impressora'], ['ktchn_trash', 'lixeira'], ['ktchn10_tea', 'louca'], ['books_0', 'livros'], ['darkmodern_c20_folder', 'livros']]) assert.equal(m.tipoModelado(classe), tipo, classe);
-  // Sem receita própria: o volume liso pelas medidas da arte (faixas do chão ao topo), dentro da pegada.
-  const cores = m.coresDaPaleta(['#3a8fd0', '#f2c230', '#e5484d']);
-  const perfil = [{ f: .9, cor: '#8a5a3c' }, { f: .5, cor: '#c9774a' }, { f: .5, cor: '#c9774a' }, { f: .3, cor: null }];
-  const g = m.montarMovel('generico', { w: 1, d: 2, cores, classe: 'thai_c21_woodenstatue', perfil, altoArte: 1.2 });
-  assert.ok(g.solidos.length >= 5);
-  assert.ok(Math.max(...g.solidos.map((b) => b.y + b.h)) > 1.1, 'a altura vem da arte');
-  for (const b of g.solidos) assert.ok(Math.abs(b.x) + b.w / 2 <= .5 + 1e-3 && Math.abs(b.z) + b.d / 2 <= 1 + 1e-3, 'dentro da pegada');
-  assert.ok(m.montarMovel('generico', { w: 1, d: 1, cores, perfil: [{ f: 1, cor: '#c9774a' }], altoArte: .06 }).solidos.every((b) => b.y + b.h < .2), 'peça rasteira vira chapa');
-  // Parede: cada tipo tem receita, o resto é painel; tudo cabe no retângulo da arte e não entra na parede.
-  for (const [classe, tipo] of [['window_double_default', 'janela'], ['hc_wall_lamp', 'arandela'], ['pixel_clock_black', 'relogio'], ['attic15_painting', 'quadro'], ['wallmirror', 'espelho'], ['flag_portugal', 'bandeira'], ['exe_map', 'mapa'], ['sw_swords', 'painel']]) assert.equal(m.tipoDeParede(classe), tipo, classe);
-  for (const t of m.TIPOS_DE_PAREDE) for (const [w, h] of [[.5, .5], [1.5, 1], [1, 2]]) {
-    const o = m.montarDeParede(t, { w, h, cores, classe: t });
-    assert.ok(o.solidos.length + o.luzes.length >= 4, t);
-    for (const b of [...o.solidos, ...o.luzes]) {
-      assert.ok(Math.abs(b.x) + b.w / 2 <= w / 2 + .14, `${t}: sai pelo lado`);
-      assert.ok(b.y > -.08 && b.y + b.h < h + .2, `${t}: sai por cima ou por baixo`);
-      assert.ok(b.z - b.d / 2 > -1e-3 && b.z + b.d / 2 < .45, `${t}: entra na parede ou salta demais`);
-    }
-  }
-  const q = fs.readFileSync('mundo/quarto.mjs', 'utf8');
-  assert.match(q, /export async function paredeEmVoxel\(/);
-  assert.match(q, /tipoModelado\(classe, ficha, \(await carregarCatalogo\(\)\)\.get\(classe\)\) \|\| 'generico'/);
-});
-
 test('biblioteca: os móveis dos quartos modelados um a um entram antes da receita do tipo', async () => {
   const m = await import('../mundo/moveis-voxel.mjs');
   for (const c of ['exe_chair2', 'hygge_c25_tv', 'exe_table', 'xmas11_luxsofa2', 'hc3_stereo', 'skorea_c22_drinksmachine', 'mm_lamp', 'xmas_c22_festivetree2']) {

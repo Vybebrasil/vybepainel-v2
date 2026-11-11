@@ -338,38 +338,9 @@ export function paletaDoHabbo(classe, dir = 4, estado = 0) {
     const lista = []; for (let y = 0; y < v.h; y += 2) for (let x = 0; x < v.w; x += 2) { const c = v.cor(x, y); if (c) lista.push(c); }
     const hex = (c) => '#' + c.map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')).join('');
     const dim = dados.logic?.model?.dimensions || { x: 1, y: 1, z: 1 };
-    const W = Math.max(1, Number(dim.x) || 1), D = Math.max(1, Number(dim.y) || 1);
-    return { paleta: paletaCurta(lista, 6).map(hex), dim: { x: W, y: D, z: Number(dim.z) || 1 }, ...perfilDaVista(v, W, D, hex) };
+    return { paleta: paletaCurta(lista, 6).map(hex), dim: { x: Math.max(1, Number(dim.x) || 1), y: Math.max(1, Number(dim.y) || 1), z: Number(dim.z) || 1 } };
   })().catch(() => null));
   return CACHE.get(chave);
-}
-// Para a peça sem receita (moveis-voxel.mjs, "generico"): a altura que o desenho alcança e, em faixas do chão ao topo,
-// quanto da pegada a peça ocupa naquela altura e a cor que mais aparece ali. Só medidas: nenhum pixel vira bloco.
-// A peça de lado s × s ladrilhos projeta 64·s px de largura; o eixo dela fica em y = (W + D − 2)·8 px.
-function perfilDaVista(v, W, D, hex) {
-  const altura = Math.max(1 / 16, Math.min(10, (-16 - v.oy) / 32) * NIVEL_HABBO);
-  const n = Math.max(1, Math.min(8, Math.round(altura / (3 / 16)))), eixo = (W + D - 2) * 8, larguraCheia = (W + D) * 32;
-  const perfil = [];
-  for (let k = 0; k < n; k++) {
-    const y1 = Math.round(eixo - (k * altura / n / NIVEL_HABBO) * 32 - v.oy), y0 = Math.round(eixo - ((k + 1) * altura / n / NIVEL_HABBO) * 32 - v.oy);
-    let x0 = Infinity, x1 = -1; const cores = [];
-    for (let y = Math.max(0, y0); y < Math.min(v.h, Math.max(y1, y0 + 1)); y++) for (let x = 0; x < v.w; x++) {
-      if (v.alfa(x, y) <= 40) continue;
-      if (x < x0) x0 = x; if (x > x1) x1 = x;
-      if (!(x & 1) && !(y & 1)) { const c = v.cor(x, y); if (c) cores.push(c); }
-    }
-    const [c] = paletaCurta(cores, 1);
-    perfil.push({ f: x1 < 0 ? 0 : Math.max(.12, Math.min(1, (x1 - x0 + 1) / larguraCheia)), cor: c ? hex(c) : null });
-  }
-  return { altura, perfil };
-}
-// Para a peça de parede montada pelo motor: o retângulo que o desenho ocupa no plano da parede (a ao longo dela a
-// partir do apoio, em ladrilhos; h em níveis do Habbo) e as cores dele, da mais usada para a menos usada.
-export function medidaDaPlaca(pl) {
-  if (!pl?.blocos?.length) return null;
-  let a0 = Infinity, a1 = -Infinity, h0 = Infinity, h1 = -Infinity; const conta = new Map();
-  for (const b of pl.blocos) { a0 = Math.min(a0, b.a); a1 = Math.max(a1, b.a); h0 = Math.min(h0, b.h); h1 = Math.max(h1, b.h); conta.set(b.cor, (conta.get(b.cor) || 0) + 1); }
-  return { a0: a0 - pl.lado / 2, a1: a1 + pl.lado / 2, h0: h0 - pl.lado / 2, h1: h1 + pl.lado / 2, paleta: [...conta].sort((x, y) => y[1] - x[1]).map(([c]) => c) };
 }
 // Cor que mais aparece num revestimento de parede do Habbo (a arte do móvel de parede), para a parede do quarto.
 export function corDoRevestimento(classe) {
