@@ -12,6 +12,8 @@ import calc from '../shared/comercial-calculos.js';
 import { ehDono, podeEditarCrm, etapasCrm } from './crm.js';
 import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ultimosLeads } from './comercial-leads.js';
 import { lancamentosDoFinancas } from './vybe-financas-api.js';
+import { ehDonoPessoa } from './donos.js';
+import { fonteLocal } from './financas-local.js';
 
 export const ABAS_COMERCIAL = ['funil', 'pacotes', 'orcamentos', 'financas', 'creators', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa'];
 export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa']);
@@ -19,6 +21,20 @@ const ACOES_SO_DONOS = new Set(['pacote_salvar', 'financas_salvar', 'recebivel_s
   'conta_salvar', 'conta_pagar', 'conta_cancelar', 'fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar',
   'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
 const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar']);
+// O financeiro (Paulo, 11/11/2026): com a fonte no banco do Vybe OS (VYBE_FINANCAS_FONTE=local), estas abas e ações são
+// só dos quatro donos; administração sem ser dono fica de fora. Pela ponte vale a regra de antes.
+export const ABAS_FINANCEIRO = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']);
+const ACOES_FINANCEIRO = new Set(['financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar', 'conta_salvar', 'conta_pagar', 'conta_cancelar']);
+const TABELA_DA_ACAO = { recebivel_salvar: 'recebiveis', recebivel_receber: 'recebiveis', recebivel_proximo: 'recebiveis', recebivel_cancelar: 'recebiveis',
+  conta_salvar: 'contas', conta_pagar: 'contas', conta_cancelar: 'contas' };
+// Linha que o importador trouxe do Finanças (origem_financas_id) é espelho: não se edita nem se dá baixa por aqui.
+// to_jsonb deixa a consulta valer antes e depois da migração 2026-11-11-financas-base.sql.
+async function ehImportado(sql, tabela, id) {
+  const [l] = tabela === 'recebiveis'
+    ? await sql`SELECT 1 AS sim FROM vybe_comercial_recebiveis r WHERE r.id=${id} AND (to_jsonb(r) ->> 'origem_financas_id') IS NOT NULL`
+    : await sql`SELECT 1 AS sim FROM vybe_comercial_contas k WHERE k.id=${id} AND (to_jsonb(k) ->> 'origem_financas_id') IS NOT NULL`;
+  return Boolean(l);
+}
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 const texto = (v, max, campo, obrigatorio = false) => {
@@ -150,7 +166,7 @@ async function lerOrcamentos(sql, query) {
   const abertas = await Promise.resolve(sql`SELECT id::text, nome, etapa FROM vybe_crm_oportunidades WHERE etapa NOT IN ('ganho','perdido') ORDER BY nome LIMIT 500`).catch(() => []);
   return { orcamentos: lista.map((o) => ({ ...o, totais: calc.totalOrcamento(o) })), oportunidades: abertas, pacotes: (await pacotes(sql, false)).filter((p) => p.ativo), capacidade: await capacidade(sql) };
 }
-async function lerFinancas(sql, hoje = hojeNaBahia()) {
+async function lerFinancas(sql, hoje = hojeNaBahia(), pessoa = null) {
   const linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome, f.valor_mensal::float8 AS valor_mensal, f.pacote_id::text,
     COALESCE(f.status_pagamento,'em_dia') AS status_pagamento, COALESCE(f.observacao,'') AS observacao, f.versao::text, f.atualizado_em,
     p.nome AS pacote_nome, p.horas::float8 AS horas, p.custo_hora::float8 AS custo_hora, p.captacoes, p.custo_captacao::float8 AS custo_captacao, p.preco::float8 AS pacote_preco
@@ -159,7 +175,7 @@ async function lerFinancas(sql, hoje = hojeNaBahia()) {
   const entradas = linhas.map((l) => ({ ...l, pacote: l.pacote_id ? { horas: l.horas, custo_hora: l.custo_hora, captacoes: l.captacoes, custo_captacao: l.custo_captacao } : null }));
   // Com o Finanças ligado: a mensalidade dele quando o Vybe OS não tem valor, e o status de pagamento pelos lançamentos
   // vencidos dele (antes "Inadimplentes 0" convivia com R$ 41 mil em atraso na Visão geral).
-  const fin = await doFinancas(sql, hoje);
+  const fin = await doFinancas(sql, hoje, pessoa);
   if (fin) {
     const atraso = new Map(calc.inadimplencia(fin.recebiveis, hoje).clientes.filter((c) => c.cliente_id).map((c) => [String(c.cliente_id), c.atraso_mais_antigo]));
     for (const l of entradas) {
@@ -176,24 +192,28 @@ async function lerFinancas(sql, hoje = hojeNaBahia()) {
 const RECEBIVEIS = (sql) => sql`SELECT r.id::text, r.tipo, r.cliente_id::text, c.nome AS cliente_nome, r.descricao, r.categoria, r.ciclo,
   r.valor::float8 AS valor, r.valor_recebido::float8 AS valor_recebido, to_char(r.vencimento,'YYYY-MM-DD') AS vencimento,
   to_char(r.recebido_em,'YYYY-MM-DD') AS recebido_em, r.cancelado
-  FROM vybe_comercial_recebiveis r LEFT JOIN vybe_clientes c ON c.id=r.cliente_id ORDER BY r.vencimento DESC, r.id DESC LIMIT 5000`;
+  FROM vybe_comercial_recebiveis r LEFT JOIN vybe_clientes c ON c.id=r.cliente_id
+  WHERE (to_jsonb(r) ->> 'origem_financas_id') IS NULL ORDER BY r.vencimento DESC, r.id DESC LIMIT 5000`;
 const CONTAS = (sql) => sql`SELECT k.id::text, k.grupo, k.descricao, k.fornecedor_id::text, f.nome AS fornecedor_nome, k.valor::float8 AS valor,
   to_char(k.vencimento,'YYYY-MM-DD') AS vencimento, to_char(k.pago_em,'YYYY-MM-DD') AS pago_em, k.cancelada
-  FROM vybe_comercial_contas k LEFT JOIN vybe_comercial_fornecedores f ON f.id=k.fornecedor_id ORDER BY k.vencimento DESC, k.id DESC LIMIT 5000`;
+  FROM vybe_comercial_contas k LEFT JOIN vybe_comercial_fornecedores f ON f.id=k.fornecedor_id
+  WHERE (to_jsonb(k) ->> 'origem_financas_id') IS NULL ORDER BY k.vencimento DESC, k.id DESC LIMIT 5000`;
+// As duas listas acima são só o que foi lançado à mão no Vybe OS: o que o importador trouxe do Finanças
+// (origem_financas_id) chega pela fonte "local" (server/financas-local.js), como leitura, e nunca em dobro.
 const dentro = (d, p) => d >= p.inicio && d <= p.fim;
 // Com o Vybe Finanças ligado, ele é a fonte do dinheiro (Paulo, 08/11); falha ou desligado: as tabelas do Vybe OS.
-async function doFinancas(sql, hoje) { try { return await lancamentosDoFinancas(sql, { hoje }); } catch { return null; } }
+async function doFinancas(sql, hoje, pessoa) { try { return await lancamentosDoFinancas(sql, { hoje, pessoa }); } catch { return null; } }
 const ehDoFinancas = (id) => /^fin:/.test(String(id || ''));
 function periodoDaConsulta(query, hoje) { return calc.periodo(query.mes || hoje.slice(0, 7), query.periodo === 'anual' ? 'anual' : 'mensal'); }
-async function lerRecebimentos(sql, query, hoje) {
-  const fin = await doFinancas(sql, hoje);
+async function lerRecebimentos(sql, query, hoje, pessoa) {
+  const fin = await doFinancas(sql, hoje, pessoa);
   const p = periodoDaConsulta(query, hoje), todos = fin ? fin.recebiveis : await RECEBIVEIS(sql);
   const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
   const lista = todos.filter((r) => dentro(r.vencimento, p)).map((r) => ({ ...r, ...calc.statusRecebivel(r, hoje) }));
   return { periodo: p, hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', resumo: calc.resumoRecebimentos(todos, p, hoje), recebiveis: lista, clientes, ciclos: Object.keys(calc.CICLOS) };
 }
-async function lerContas(sql, query, hoje) {
-  const fin = await doFinancas(sql, hoje);
+async function lerContas(sql, query, hoje, pessoa) {
+  const fin = await doFinancas(sql, hoje, pessoa);
   const p = periodoDaConsulta(query, hoje), [todas, receb] = fin ? [fin.contas, fin.recebiveis] : await Promise.all([CONTAS(sql), RECEBIVEIS(sql)]);
   const rec = calc.resumoRecebimentos(receb, p, hoje);
   const fornecedores = await sql`SELECT id::text, nome FROM vybe_comercial_fornecedores WHERE ativo ORDER BY nome`;
@@ -201,16 +221,16 @@ async function lerContas(sql, query, hoje) {
     resumo: calc.resumoContas(todas, p, hoje, rec.atual.a_receber, rec.anterior.a_receber), contas: todas.filter((c) => dentro(c.vencimento, p)),
     grupos: calc.GRUPOS_CONTAS, fornecedores };
 }
-async function lerInadimplencia(sql, hoje) {
-  const fin = await doFinancas(sql, hoje);
+async function lerInadimplencia(sql, hoje, pessoa) {
+  const fin = await doFinancas(sql, hoje, pessoa);
   const r = calc.inadimplencia(fin ? fin.recebiveis : await RECEBIVEIS(sql), hoje);
   // Junta o status de pagamento informado à mão em Finanças por cliente (não muda as faturas).
   const manuais = await sql`SELECT f.cliente_id::text, c.nome AS cliente_nome, f.status_pagamento FROM vybe_comercial_financas_cliente f
     JOIN vybe_clientes c ON c.id=f.cliente_id WHERE f.status_pagamento <> 'em_dia' ORDER BY c.nome`;
   return { hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', ...r, marcados_a_mao: manuais };
 }
-async function lerCaixa(sql, hoje) {
-  const fin = await doFinancas(sql, hoje);
+async function lerCaixa(sql, hoje, pessoa) {
+  const fin = await doFinancas(sql, hoje, pessoa);
   const [receb, contas] = fin ? [fin.recebiveis, fin.contas] : await Promise.all([RECEBIVEIS(sql), CONTAS(sql)]);
   const recorrentes = receb.filter((r) => r.tipo === 'recorrente' && !r.cancelado), fixas = contas.filter((c) => ['fixa', 'folha'].includes(c.grupo) && !c.cancelada);
   // A tela recalcula com o risco de churn da Carteira (window.VybeCarteira), que só existe no navegador.
@@ -246,15 +266,16 @@ export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia
   if (!ABAS_COMERCIAL.includes(aba)) falhar('Aba desconhecida.');
   const r = await papeis(sql, pessoa);
   if (ABAS_SO_DONOS.has(aba) && !r.dono) falhar('Só os donos e a administração veem o dinheiro da agência.', 403);
+  if (ABAS_FINANCEIRO.has(aba) && fonteLocal() && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);
   const dados = aba === 'funil' ? await lerFunil(sql, r, query, hoje)
     : aba === 'pacotes' ? { pacotes: await pacotes(sql, r.dono), capacidade: await capacidade(sql), produtos: calc.produtoCampeao((await oportunidadesDoFunil(sql).catch((e) => { if (e.code === '42P01') return { linhas: [] }; throw e; })).linhas, await pacotes(sql, false)) }
     : aba === 'orcamentos' ? await lerOrcamentos(sql, query)
-    : aba === 'financas' ? await lerFinancas(sql, hoje)
-    : aba === 'recebimentos' ? await lerRecebimentos(sql, query, hoje)
-    : aba === 'contas' ? await lerContas(sql, query, hoje)
-    : aba === 'inadimplencia' ? await lerInadimplencia(sql, hoje)
+    : aba === 'financas' ? await lerFinancas(sql, hoje, pessoa)
+    : aba === 'recebimentos' ? await lerRecebimentos(sql, query, hoje, pessoa)
+    : aba === 'contas' ? await lerContas(sql, query, hoje, pessoa)
+    : aba === 'inadimplencia' ? await lerInadimplencia(sql, hoje, pessoa)
     : aba === 'fornecedores' ? await lerFornecedores(sql)
-    : aba === 'caixa' ? await lerCaixa(sql, hoje)
+    : aba === 'caixa' ? await lerCaixa(sql, hoje, pessoa)
     : await lerCreators(sql);
   return { aba, pode: { ver_dinheiro: r.dono, editar_comercial: r.comercial, editar_pacotes: r.dono }, ...dados };
 }
@@ -472,7 +493,10 @@ export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahi
   if (ACOES_SO_DONOS.has(acao) && !r.dono) falhar('Só os donos e a administração mexem no dinheiro da agência.', 403);
   if (ACOES_COMERCIAL.has(acao) && !r.comercial) falhar('Só a administração, os donos e a equipe comercial editam aqui.', 403);
   // Lançamento que veio do Vybe Finanças (id "fin:…") só se mexe lá: aqui ele é leitura.
+  if (ACOES_FINANCEIRO.has(acao) && fonteLocal() && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);
   if (ehDoFinancas(b.id)) falhar('Este lançamento vem do Vybe Finanças: dê baixa ou edite lá. O Vybe OS só mostra.', 409);
+  if (TABELA_DA_ACAO[acao] && b.id != null && b.id !== '' && await ehImportado(sql, TABELA_DA_ACAO[acao], idValido(b.id)))
+    falhar('Este lançamento foi importado do Vybe Finanças: nesta fase ele é só leitura no Vybe OS.', 409);
   const id = () => idValido(b.id);
   switch (acao) {
     case 'pacote_salvar': return salvarPacote(sql, pessoa, b);

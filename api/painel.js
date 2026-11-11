@@ -851,7 +851,12 @@ async function levarAoFinancas(db, id, { lancar = false } = {}) {
   try {
     const [linha] = await db`SELECT id, nome, cnpj, email, telefone, plano, valor, cadastro FROM vybe_clientes WHERE id=${Number(id)} AND apagado_em IS NULL`;
     if (!linha) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
-    return await conector.salvar(linha);
+    const r = await conector.salvar(linha);
+    // O id do cliente no Finanças já chegava aqui e era descartado: agora fica em vybe_clientes.financas_cliente_id
+    // (migração 2026-11-11-financas-base.sql). Sem a coluna ainda, ou com o id já em outro cliente, segue sem gravar.
+    if (/^[0-9a-f-]{36}$/i.test(String(r?.id || '')))
+      await Promise.resolve(db`UPDATE vybe_clientes SET financas_cliente_id=${String(r.id)}::uuid WHERE id=${Number(id)} AND financas_cliente_id IS NULL`).catch(() => {});
+    return r;
   } catch (erro) { if (lancar) throw erro; return { estado: 'erro', erro: erro.message }; }
 }
 

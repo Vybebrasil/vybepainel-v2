@@ -19,6 +19,13 @@ import calc from '../shared/financas-calculos.js';
 import { ehDono } from './crm.js';
 import { ehDonoPessoa } from './donos.js';
 import { conectorPadrao, ErroFinancas, MOTIVO_DESCONECTADO } from './vybe-financas.js';
+import { criarConectorLocal, fonteLocal } from './financas-local.js';
+
+// De onde vêm as linhas (Paulo, 11/11/2026): a ponte com o Supabase do Finanças (padrão) ou o próprio banco do
+// Vybe OS, pela chave VYBE_FINANCAS_FONTE=local (server/financas-local.js). As contas e a resposta são as mesmas.
+export function conectorDaFonte(sql, { pessoa = null, env = process.env } = {}) {
+  return fonteLocal(env) ? criarConectorLocal(sql, { pessoa, env }) : conectorPadrao();
+}
 
 // Os quatro donos de fato (sem a administração), pela regra única de server/donos.js.
 export const ehDonoDeFato = (pessoa) => ehDonoPessoa(pessoa);
@@ -33,10 +40,12 @@ export const PASSOS = Object.freeze([
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 
-async function clientesDoVybe(sql) {
+export async function clientesDoVybe(sql) {
   // Só os clientes ativos do Vybe OS (mesma regra da Carteira: ativo, não apagado e não marcado como "não é cliente").
-  try { return await sql`SELECT id::text, nome, COALESCE(cnpj,'') AS cnpj FROM vybe_clientes WHERE apagado_em IS NULL AND COALESCE(ativo, true) AND NOT COALESCE(nao_e_cliente, false) ORDER BY nome`; }
-  catch (e) { if (e.code !== '42703') throw e; return sql`SELECT id::text, nome, '' AS cnpj FROM vybe_clientes WHERE COALESCE(ativo, true) ORDER BY nome`; }
+  // financas_cliente_id (migração 2026-11-11-financas-base.sql) sai pelo to_jsonb para a consulta valer antes e depois dela.
+  try { return await sql`SELECT c.id::text, c.nome, COALESCE(c.cnpj,'') AS cnpj, to_jsonb(c) ->> 'financas_cliente_id' AS financas_cliente_id FROM vybe_clientes c
+    WHERE c.apagado_em IS NULL AND COALESCE(c.ativo, true) AND NOT COALESCE(c.nao_e_cliente, false) ORDER BY c.nome`; }
+  catch (e) { if (e.code !== '42703') throw e; return sql`SELECT c.id::text, c.nome, '' AS cnpj, to_jsonb(c) ->> 'financas_cliente_id' AS financas_cliente_id FROM vybe_clientes c WHERE COALESCE(c.ativo, true) ORDER BY c.nome`; }
 }
 
 // Os dados das três partes, a partir da base lida do Finanças (função pura sobre as linhas; testada sem rede).
@@ -45,7 +54,7 @@ export function montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) {
   const nomeFin = Object.fromEntries(base.clientes.map((c) => [c.id, c.name]));
   const quem = (finId) => { const par = finId ? ligacao.porFinancas[finId] : null;
     return { cliente_id: par ? par.vybe_id : null, cliente_nome: par ? par.vybe_nome : finId ? nomeFin[finId] || 'Cliente do Finanças' : 'Sem cliente', no_vybe: Boolean(par) }; };
-  const resumoLigacao = { ligados: ligacao.ligados.length, por_cnpj: ligacao.ligados.filter((l) => l.por === 'cnpj').length,
+  const resumoLigacao = { ligados: ligacao.ligados.length, por_cnpj: ligacao.ligados.filter((l) => l.por === 'cnpj').length, por_id: ligacao.ligados.filter((l) => l.por === 'id').length,
     sem_par: ligacao.sem_par.map(({ nome, status }) => ({ nome, status })), vybe_sem_par: ligacao.vybe_sem_par.map(({ nome }) => ({ nome })) };
 
   if (parte === 'comercial') {
@@ -81,8 +90,10 @@ export function montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) {
 
 // Lançamentos do Finanças no formato das abas do Comercial (Recebimentos, Contas, Inadimplência, Caixa, Por cliente).
 // null quando o Finanças não está ligado ou falhou: as abas seguem com as tabelas do próprio Vybe OS.
-export async function lancamentosDoFinancas(sql, { conector = conectorPadrao(), hoje = hojeNaBahia() } = {}) {
+export async function lancamentosDoFinancas(sql, { pessoa = null, env = process.env, conector = conectorDaFonte(sql, { pessoa, env }), hoje = hojeNaBahia() } = {}) {
   if (!conector.configurado()) return null;
+  // Pelo banco do Vybe OS, lançamento só sai para um dos quatro donos (quem não é não recebe lista vazia: recebe nada).
+  if (conector.local && !conector.dono) return null;
   const desde = (Number(hoje.slice(0, 4)) - 1) + '-01-01';
   const [base, vybe] = await Promise.all([conector.lerBase({ desde }), clientesDoVybe(sql)]);
   const ligacao = calc.ligarClientes(base.clientes, vybe), nomeFin = Object.fromEntries(base.clientes.map((c) => [c.id, c.name]));
@@ -91,13 +102,15 @@ export async function lancamentosDoFinancas(sql, { conector = conectorPadrao(), 
   return { recebiveis: calc.recebiveisDoFinancas(base.transacoes, ligacao.porFinancas, nomeFin, vybe), contas: calc.contasDoFinancas(base.transacoes), porVybe };
 }
 
-export async function lerVybeFinancas(sql, pessoa, query = {}, { conector = conectorPadrao(), hoje = hojeNaBahia() } = {}) {
+export async function lerVybeFinancas(sql, pessoa, query = {}, { env = process.env, conector = conectorDaFonte(sql, { pessoa, env }), hoje = hojeNaBahia() } = {}) {
   const parte = String(query.parte || 'comercial');
   if (!PARTES.includes(parte)) falhar('Parte desconhecida.');
   const mes = query.mes == null || query.mes === '' ? hoje.slice(0, 7) : String(query.mes);
   if (!calc.ehMes(mes) || mes < '2000-01' || mes > '2100-12') falhar('Mês inválido.');
-  const dinheiro = ehDono(pessoa), dono = ehDonoDeFato(pessoa);
-  if (parte === 'comercial' && !dinheiro) falhar('Só os donos e a administração veem o dinheiro da agência.', 403);
+  // Pelo banco do Vybe OS o financeiro inteiro é só dos quatro donos (Paulo, 11/11/2026); pela ponte segue a regra
+  // de antes (donos e administração) até a troca de fonte.
+  const dono = ehDonoDeFato(pessoa), dinheiro = conector.local ? dono : ehDono(pessoa);
+  if (parte === 'comercial' && !dinheiro) falhar(conector.local ? 'O financeiro é só dos donos.' : 'Só os donos e a administração veem o dinheiro da agência.', 403);
   if (parte === 'rh' && !dono) falhar('A folha é só dos donos.', 403);
   const pode = { ver_dinheiro: dinheiro, ver_salarios: dono };
   if (!conector.configurado()) {
@@ -108,7 +121,8 @@ export async function lerVybeFinancas(sql, pessoa, query = {}, { conector = cone
   // 12 meses até o mês escolhido (séries) e as pendências antigas (inadimplência).
   const desde = calc.somarMeses(mes, -11) + '-01';
   const [base, vybe] = await Promise.all([conector.lerBase({ desde }), clientesDoVybe(sql)]);
-  return { parte, mes, hoje, conectado: true, fonte: 'Vybe Finanças', pode, ...montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) };
+  // `fonte` continua o rótulo que a tela conhece; `origem_dados` diz de onde as linhas vieram de verdade.
+  return { parte, mes, hoje, conectado: true, fonte: 'Vybe Finanças', origem_dados: conector.local ? 'local' : 'ponte', pode, ...montarParte(parte, base, vybe, { mes, hoje, dinheiro, dono }) };
 }
 
 export async function areaVybeFinancas(req, res, quem, criarBanco, opcoes = {}) {

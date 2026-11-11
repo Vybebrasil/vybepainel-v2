@@ -22,7 +22,8 @@
 // Série mensal      = faturamento recebido × custos pagos (data de caixa) e ticket médio = receita recebida de
 //                     clientes (com client_id) ÷ clientes distintos que pagaram no mês.
 // Inadimplência     = receitas PENDING com date antes de hoje, somadas por cliente (o atraso mais antigo manda).
-// Ligação de clientes: CNPJ (14 dígitos) quando os dois lados têm; senão o nome normalizado (sem acento, minúsculas,
+// Ligação de clientes: o id do Finanças já gravado no cliente do Vybe OS (vybe_clientes.financas_cliente_id) manda;
+//   sem ele, CNPJ (14 dígitos) quando os dois lados têm; senão o nome normalizado (sem acento, minúsculas,
 //   sem pontuação e sem os sufixos ltda/me/eireli), só quando há um único cliente do Vybe OS com aquele nome.
 // Dinheiro sempre em centavos inteiros nas contas; a saída volta em reais.
 (function (raiz) {
@@ -55,17 +56,20 @@
   }
   const soDigitos = (v) => String(v || '').replace(/\D+/g, '');
   const cnpjValido = (v) => { const d = soDigitos(v); return d.length === 14 ? d : ''; };
-  // fin: [{ id, name, cnpj }] · vybe: [{ id, nome, cnpj }] → { porFinancas: { finId: { vybe_id, vybe_nome, por } }, ligados, sem_par }
+  // fin: [{ id, name, cnpj }] · vybe: [{ id, nome, cnpj, financas_cliente_id? }] → { porFinancas: { finId: { vybe_id, vybe_nome, por } }, ligados, sem_par }
   function ligarClientes(fin = [], vybe = []) {
-    const porCnpj = new Map(), porNome = new Map();
+    const porCnpj = new Map(), porNome = new Map(), porId = new Map();
     for (const v of vybe) {
+      // Ligação já decidida e gravada (11/11/2026): vale antes de CNPJ e nome, e não muda se o nome mudar.
+      const fid = String(v.financas_cliente_id || '').toLowerCase(); if (fid && !porId.has(fid)) porId.set(fid, v);
       const c = cnpjValido(v.cnpj); if (c && !porCnpj.has(c)) porCnpj.set(c, v);
       const n = normalizarNome(v.nome); if (n) porNome.set(n, porNome.has(n) ? null : v); // null = nome repetido no Vybe OS
     }
     const porFinancas = {}, ligados = [], semPar = [];
     for (const f of fin) {
       const c = cnpjValido(f.cnpj);
-      let v = c ? porCnpj.get(c) : null, por = v ? 'cnpj' : '';
+      let v = porId.get(String(f.id || '').toLowerCase()) || null, por = v ? 'id' : '';
+      if (!v && c) { v = porCnpj.get(c) || null; if (v) por = 'cnpj'; }
       if (!v) { v = porNome.get(normalizarNome(f.name)) || null; if (v) por = 'nome'; }
       // Nome parecido (Paulo, 08/11: "Brussolo" × "Brussolo Ristorante", "Alpha 1" × "Alpha1"): sem espaços, igual ou um
       // contendo o outro. Só liga quando há UM candidato só, para nunca ligar errado; o resto fica em "sem par".

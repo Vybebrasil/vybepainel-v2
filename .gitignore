@@ -14,3 +14,6 @@ assets/escritorio/habbo/_vitrine.json
 # Cena 3D da sinuca gerada para a prévia local (o build gera a do dist)
 assets/jogos/sinuca-3d.js
 *.local.html
+
+# Relatório do importador do Finanças: tem valores reais, nunca vai para o repositório
+financas-importacao-*.md
