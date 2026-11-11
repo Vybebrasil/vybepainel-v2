@@ -947,19 +947,20 @@
     // deitadas) são as de vybe-mundo-setor.js; o número clicável continua abrindo a lista por trás dele (data-espiar).
     const V = window.VybeSetor?.pecas;
     if (!V) { gestao.innerHTML = topo + '<p class="vv-vazio">Carregando os painéis…</p>'; return; }
-    const { kpi: k, bloco, barras, deitadas, linha, progresso } = V;
+    // Zero vira uma linha (00 Main, regra 4): kpiLinha marca o zero e G (pecas.grade) junta os zeros numa linha discreta.
+    const { kpiLinha: k = V.kpi, grade: G = (h) => `<div class="vs-kpis">${h}</div>`, bloco, barras, deitadas, linha, progresso } = V;
     const tabela = (h) => `<div class="vs-tabela">${h}</div>`;
     const SAUDE_CLS = { critico: 'ruim', atencao: 'atencao', ok: 'ok' };
     if (gestaoAba === 'agora') {
       const L = H.lista || {}, T = N.time || [], CL = N.clientes || [];
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Produção de hoje', valor: `${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, sub: H.previstas ? `${n0(Math.round((H.feitas / H.previstas) * 100))}% das previstas para hoje` : 'nada previsto para hoje', cls: H.previstas && H.feitas < H.previstas ? 'atencao' : '' })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
           ${k({ icone: 'calendario', titulo: 'Ainda não feitas hoje', valor: n0(H.faltam), sub: `${n0(H.paraAgendar?.hoje)} para agendar hoje`, espiar: 'faltam' })}
           ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
           ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
-        </div>
+        `)}
         ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a, i) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${i}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
           + bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas((N.gargalos || []).slice(0, 8).map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${n0(g.qtd)} <small>${n0(g.idadeMedianaDias)} d</small>`, sub: `${plural(g.qtd, 'peça, parada', 'peças, paradas')} há ${plural(g.idadeMedianaDias, 'dia', 'dias')} (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio' }))}
         ${linha(bloco('Atrasos por pessoa', 'atrasadas e risco de furo de cada um', deitadas(T.filter((t) => t.atrasadas || t.emRisco).sort((a, b) => b.atrasadas - a.atrasadas || b.emRisco - a.emRisco).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.atrasadas + t.emRisco, cls: t.atrasadas ? 'ruim' : 'atencao', rotulo: `${n0(t.atrasadas)} <small>+${n0(t.emRisco)} risco</small>`, sub: (t.cobrar || [])[0] || '' })), { vazio: 'Ninguém com atraso ou risco.' }), { icone: 'pessoas' })
@@ -970,26 +971,26 @@
     } else if (gestaoAba === 'semana') {
       const CL = N.clientes || [], meta = C.meta || 3;
       const pctSem = S.previstas ? Math.round(((S.previstasEntregues ?? S.entregues) / S.previstas) * 100) : null;
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${n0(S.previstasEntregues ?? S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: pctSem != null ? `${pctSem}% · ${n0(S.entregues)} entregas registradas` : 'nada previsto' })}
           ${k({ icone: 'doc', titulo: `Clientes com ${meta}+ posts`, valor: `${n0(C.clientesAtivos - (C.sem3 || []).length)}<i>/${n0(C.clientesAtivos)}</i>`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
           ${k({ icone: 'alerta', titulo: 'Sem nenhum conteúdo', valor: n0((C.semConteudo || []).length), sub: 'clientes nesta semana', cls: (C.semConteudo || []).length ? 'ruim' : '', espiar: 'semConteudo' })}
           ${k({ icone: 'calendario', titulo: 'Próxima semana abaixo', valor: n0((C.proximaSemanaSem3 || []).length), sub: `clientes com menos de ${meta} posts`, cls: (C.proximaSemanaSem3 || []).length ? 'atencao' : '' })}
           ${k({ icone: 'meta', titulo: 'Sem planejamento', valor: n0((C.semPlanejamento || []).length), sub: 'do mês atual ou seguinte', cls: (C.semPlanejamento || []).length ? 'atencao' : '', espiar: 'semPlanejamento' })}
-        </div>
+        `)}
         ${bloco('Dia a dia da semana', `previstas por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'} e entregues no dia`, `${controlesSemana(N.graficoSemana)}${barrasSemana(N.graficoSemana.porDia, { w: Math.max(640, Math.round((gestao.clientWidth || 900) - 110)), h: 160 })}<p class="vv-legenda"><i class="pv"></i>previstas <i class="en"></i>entregues no dia</p>`, { icone: 'alta' })}
         ${linha(bloco('Posts por cliente nesta semana', `a marca é a meta de ${meta}; os mais longe da meta primeiro`, deitadas([...CL].sort((a, b) => a.semana - b.semana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.semana, meta, cls: c.semana >= meta ? 'ok' : c.semana ? 'atencao' : 'ruim', rotulo: `${n0(c.semana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'doc' })
           + bloco('Próxima semana', `posts já previstos por cliente (meta ${meta})`, deitadas([...CL].sort((a, b) => a.proximaSemana - b.proximaSemana).slice(0, 12).map((c) => ({ cli: true, nome: c.cliente, valor: c.proximaSemana, meta, cls: c.proximaSemana >= meta ? 'ok' : c.proximaSemana ? 'atencao' : 'ruim', rotulo: `${n0(c.proximaSemana)}<small>/${meta}</small>` })), { vazio: 'Sem clientes ativos.' }), { icone: 'calendario' }))}
         ${bloco('Sem planejamento', esc((N.fonte || {}).planejamento || ''), (C.semPlanejamento || []).length ? `<div class="vs-chips">${(C.semPlanejamento || []).map((c) => `<button type="button" class="vs-chip" data-espiar-cliente="${esc(typeof c === 'string' ? c : c.cliente)}">${cliCor(typeof c === 'string' ? c : c.cliente)}</button>`).join('')}</div>` : '<p class="vs-aviso">Todos com planejamento.</p>', { icone: 'meta' })}`;
     } else if (gestaoAba === 'clientes') {
       const CL = N.clientes || [], conta = (s) => CL.filter((c) => c.saude === s).length;
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'pessoas', titulo: 'Clientes ativos', valor: n0(CL.length), sub: `${n0(CL.filter((c) => c.temPlanejamento).length)} com planejamento` })}
           ${k({ icone: 'alerta', titulo: 'Críticos', valor: n0(conta('critico')), sub: 'furo, 3+ atrasadas ou sem conteúdo', cls: conta('critico') ? 'ruim' : '', espiar: 'atencao' })}
           ${k({ icone: 'relogio', titulo: 'Em atenção', valor: n0(conta('atencao')), sub: 'atraso, risco ou abaixo da meta', cls: conta('atencao') ? 'atencao' : '' })}
           ${k({ icone: 'coracao', titulo: 'Em dia', valor: n0(conta('ok')), sub: CL.length ? `${n0(Math.round((conta('ok') / CL.length) * 100))}% da carteira` : '' })}
           ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(CL.reduce((a, c) => a + (c.abertas || 0), 0)), sub: plural(CL.reduce((a, c) => a + (c.atrasadas || 0), 0), 'atrasada', 'atrasadas') })}
-        </div>
+        `)}
         ${linha(bloco('Saúde da carteira', 'quantos clientes em cada faixa', deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]), { icone: 'coracao' })
           + bloco('Peças abertas por cliente', 'os que mais têm peça em aberto', deitadas([...CL].sort((a, b) => b.abertas - a.abertas).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.abertas, cls: SAUDE_CLS[c.saude] || '', rotulo: `${n0(c.abertas)}${c.atrasadas ? ` <small class="t-ruim">${n0(c.atrasadas)} atras.</small>` : ''}` }))), { icone: 'doc' }))}
         ${bloco('Todos os clientes', 'clique na linha para abrir o cérebro do cliente; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
@@ -1003,12 +1004,12 @@
       const ROT_SAUDE = { critico: ['crítico', 'críticos'], atencao: ['em atenção', 'em atenção'], ok: ['em dia', 'em dia'] };
       const pilulas = (sd = {}) => ['critico', 'atencao', 'ok'].filter((x) => sd[x]).map((x) => `<span class="pill ${SAUDE[x][1]}">${n0(sd[x])} ${ROT_SAUDE[x][sd[x] === 1 ? 0 : 1]}</span>`).join('') || '<span class="nao">—</span>';
       const comHead = heads.filter((h) => !h.semHead);
-      corpo = `${aviso}<div class="vs-kpis">
+      corpo = `${aviso}${G(`
           ${k({ icone: 'pessoas', titulo: 'Heads', valor: n0(comHead.length), sub: `${plural(heads.reduce((a, h) => a + (h.contas || 0), 0), 'conta', 'contas')} nas carteiras` })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas nas carteiras', valor: n0(heads.reduce((a, h) => a + (h.atrasadas || 0), 0)), cls: heads.some((h) => h.atrasadas) ? 'ruim' : '' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(heads.reduce((a, h) => a + (h.emRisco || 0), 0)), cls: heads.some((h) => h.emRisco) ? 'atencao' : '' })}
           ${k({ icone: 'coracao', titulo: 'Clientes críticos', valor: n0(heads.reduce((a, h) => a + (h.saude?.critico || 0), 0)), cls: heads.some((h) => h.saude?.critico) ? 'ruim' : '' })}
-        </div>
+        `)}
         ${linha(bloco('Entregas da semana por head', 'previstas da semana já entregues', heads.length ? progresso(heads.map((h) => ({ nome: h.head, texto: `${n0(h.semana?.entregues)} de ${n0(h.semana?.previstas)} · ${plural(h.contas, 'conta', 'contas')}`, barra: Math.max(0, Math.min(100, Number(h.semana?.pct) || 0)), percentual: h.semana?.pct, batida: h.semana?.pct === 100 }))) : '<p class="vs-aviso">Sem carteiras.</p>', { icone: 'meta' })
           + bloco('Peças por head', 'abertas, atrasadas e risco de furo', barras(heads.map((h) => ({ rotulo: h.semHead ? 'Sem head' : String(h.head).split(' ')[0], abertas: h.abertas, atrasadas: h.atrasadas, risco: h.emRisco })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }, { chave: 'risco', rotulo: 'Risco', cls: 'c1' }]), { icone: 'alta' }))}
         ${bloco('Carteiras por head', 'cliente com dois heads entra nas duas carteiras', tabela(`<table class="vv-g-tabela vv-g-carteiras"><thead><tr><th>Head</th><th class="n">Contas</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th></tr></thead><tbody>
@@ -1018,14 +1019,14 @@
       const bots = botsParaCobrar(); let f = null; try { f = fonteAgentes?.ler(); } catch {} const ags = f?.dados?.agentes || [];
       const T = N.time || [];
       const falhas = ags.reduce((a, ag) => a + ((estadoDoAgente(ag.setor).ultimos || []).filter((x) => x.estado === 'falhou').length), 0);
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'pessoas', titulo: 'Pessoas com peças', valor: n0(T.length) })}
           ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(T.reduce((a, t) => a + (t.abertas || 0), 0)), sub: 'cada peça conta para cada responsável' })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(T.reduce((a, t) => a + (t.atrasadas || 0), 0)), cls: T.some((t) => t.atrasadas) ? 'ruim' : '' })}
           ${k({ icone: 'aperto', titulo: 'Entregues em 7 dias', valor: n0(T.reduce((a, t) => a + (t.entregues7d || 0), 0)) })}
           ${k({ icone: 'relogio', titulo: 'Paradas há 3+ dias', valor: n0(T.reduce((a, t) => a + (t.paradas || 0), 0)), cls: T.some((t) => t.paradas) ? 'atencao' : '' })}
           ${k({ icone: 'alta', titulo: 'Bots', valor: n0(ags.length), sub: falhas ? plural(falhas, 'falha recente', 'falhas recentes') : 'sem falhas recentes', cls: falhas ? 'atencao' : '' })}
-        </div>
+        `)}
         ${linha(bloco('Carga por pessoa', 'abertas e atrasadas de cada um', barras([...T].sort((a, b) => b.abertas - a.abertas).slice(0, 10).map((t) => ({ rotulo: String(t.pessoa).split(' ')[0], abertas: t.abertas, atrasadas: t.atrasadas })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'pessoas' })
           + bloco('Entregues em 7 dias', 'por pessoa', deitadas([...T].sort((a, b) => b.entregues7d - a.entregues7d).slice(0, 10).map((t) => ({ nome: t.pessoa, valor: t.entregues7d, cls: 'ok', sub: `${n0(t.abertas)} abertas` })), { vazio: 'Sem entregas nos últimos 7 dias.' }), { icone: 'aperto' }))}
         ${bloco('Time', 'o que cobrar de cada pessoa; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Pessoa</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Entregues 7d</th><th class="n">Parado (med.)</th><th>O que cobrar</th></tr></thead><tbody>
@@ -1038,12 +1039,12 @@
     } else {
       const proj = P.proximaSemana || {};
       const sems = (Hi.semanas || []).map((s) => ({ ...s, rotulo: String(s.inicio || '').slice(8, 10) + '/' + String(s.inicio || '').slice(5, 7) }));
-      corpo = `<div class="vs-kpis">
+      corpo = `${G(`
           ${k({ icone: 'aperto', titulo: 'Entregues nesta semana', valor: n0(ultima.entregues), sub: `mediana de ${n0(Hi.medianaEntregues)} por semana` })}
           ${k({ icone: 'relogio', titulo: 'No prazo', valor: Hi.mediaNoPrazoPct != null ? `${Math.round(Hi.mediaNoPrazoPct)}%` : '—', sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })}
           ${k({ icone: 'alta', titulo: 'Tendência', valor: { subindo: 'Subindo', estavel: 'Estável', caindo: 'Caindo' }[Hi.tendencia] || '—', sub: '4 últimas semanas contra as 4 anteriores', cls: Hi.tendencia === 'caindo' ? 'ruim' : '' })}
           ${k({ icone: 'calendario', titulo: 'Próxima semana', valor: `${n0(proj.previstas)}<i>/${n0(proj.capacidadeMediana)}</i>`, sub: proj.folga != null ? (proj.folga >= 0 ? `previstas / capacidade · folga ${n0(proj.folga)}` : `previstas / capacidade · faltam ${n0(-proj.folga)}`) : 'previstas / capacidade', cls: proj.risco === 'alto' ? 'ruim' : proj.risco === 'medio' ? 'atencao' : '' })}
-        </div>
+        `)}
         ${bloco(`Entregas por semana · últimas ${n0((Hi.semanas || []).length)} e as próximas 4 previstas`, 'entregues, mediana e o que já está previsto', `${linhaHistorico(Hi.semanas || [], { mediana: Hi.medianaEntregues, projecao: P.proximas4 || [] })}<p class="vv-legenda"><i class="en2"></i>entregues <i class="md"></i>mediana <i class="pj"></i>previstas (futuro)</p>`, { icone: 'alta' })}
         ${linha(bloco('No prazo × atrasadas', 'entregas de cada semana', barras(sems, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadasEntregues', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'relogio' })
           + bloco('Semana a semana', 'previstas, entregues, no prazo e atrasadas', tabela(`<table class="vv-g-tabela"><thead><tr><th>Semana</th><th class="n">Previstas</th><th class="n">Entregues</th><th class="n">No prazo</th><th class="n">Atrasadas</th></tr></thead><tbody>

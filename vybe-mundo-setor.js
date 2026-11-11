@@ -67,16 +67,35 @@
 
   // ---------- Peças do painel ----------
   // Número com ícone, título, valor grande e a variação contra o período anterior (verde quando melhora).
-  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '', espiar = '', ir = null }) {
+  function kpi({ icone = 'meta', titulo, valor, sub = '', variacao = null, contra = 'vs mês anterior', inverte = false, cls = '', dica = '', espiar = '', ir = null, cartao = false }) {
     let chip = '';
     if (variacao != null && variacao !== 'sem' && Number.isFinite(Number(variacao))) {
       const v = Number(variacao), bom = inverte ? v < 0 : v > 0, ruim = inverte ? v > 0 : v < 0;
       chip = `<span class="vs-var ${bom ? 'sobe' : ruim ? 'desce' : ''}">${v > 0 ? '▲' : v < 0 ? '▼' : '•'} ${Math.abs(Math.round(v))}%</span><small>${esc(contra)}</small>`;
     } else if (variacao === 'sem') chip = `<span class="vs-var">—</span><small>${esc(contra)}</small>`;
+    // Zero vira uma linha (00 Main, regra 4): número zero, "R$ 0,00" ou "—" não ganha cartão grande. Sai marcado para
+    // grade() juntar numa linha discreta abaixo dos cartões, com o mesmo texto e abrindo o que o cartão abria.
+    // Fora daqui (pecas.kpi) o cartão continua cartão (cartao: true); quem quer a linha usa pecas.kpiLinha com pecas.grade.
+    const cru = String(valor ?? '').replace(/<[^>]*>/g, '').trim();
+    if (!cartao && /^(R\$\s?0(,00)?|0(,0)?\s?%?|0\s?h|—|-)?$/.test(cru)) {
+      const nome = /^[A-ZÀ-Ú][a-zà-ú]/.test(titulo || '') ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : String(titulo || '');
+      const mudou = variacao != null && variacao !== 'sem' && Number.isFinite(Number(variacao)) && Number(variacao) ? ` · ${Number(variacao) > 0 ? '▲' : '▼'} ${Math.abs(Math.round(Number(variacao)))}% ${esc(contra)}` : '';
+      const corpo = cru === '—' || cru === '-' || cru === '' ? `${esc(titulo)}: ${/^(sem|só|nenhum|aguardando|não)/i.test(String(sub).replace(/<[^>]*>/g, '').trim()) ? sub : 'sem dado' + (sub ? ' · ' + sub : '')}` : `<b>${esc(cru)}</b> ${esc(nome)}${sub ? ' · ' + sub : ''}${mudou}`;
+      const sub_ = ir && !espiar && (ctx?.subs || []).some((s) => s.id === ir[0]) ? ir[0] : '';
+      const item = espiar ? `<button type="button" class="vb-resumo-item zero espiavel" data-espiar="${esc(espiar)}"${dica ? ` title="${esc(dica)}"` : ''}>${corpo}</button>`
+        : sub_ ? `<button type="button" class="vb-resumo-item zero" data-setor-sub="${esc(sub_)}" title="${esc(ir[1] || 'Abrir')}">${corpo}</button>`
+          : `<span class="vb-resumo-item zero"${dica ? ` title="${esc(dica)}"` : ''}>${corpo}</span>`;
+      return `<!--vs-zero-->${item}<!--/vs-zero-->`;
+    }
     // Com espiar, o cartão é um botão que abre a lista por trás do número (o mini painel da Gestão).
     const tag = espiar ? `button type="button" data-espiar="${esc(espiar)}"` : 'div', fim = espiar ? 'button' : 'div';
     return `<${tag} class="vs-kpi ${cls}${espiar ? ' vs-kpi-espiar' : ''}"${dica ? ` title="${esc(dica)}"` : ''}><span class="vs-kpi-topo"><i>${ic(icone)}</i><span>${esc(titulo)}</span></span>
       <b class="vs-kpi-valor">${valor}</b>${sub ? `<span class="vs-kpi-sub">${sub}</span>` : ''}${chip ? `<span class="vs-kpi-var">${chip}</span>` : ''}${ir && !espiar ? abrirAba(ir[0], ir[1]).replace('class="vs-abrir"', 'class="vs-abrir vs-kpi-ir"') : ''}</${fim}>`;
+  }
+  // Os cartões dos números com valor; os de zero (marcados por kpi) numa linha discreta logo abaixo.
+  function grade(kpis) {
+    const zeros = [], cartoes = String(kpis || '').replace(/<!--vs-zero-->([\s\S]*?)<!--\/vs-zero-->/g, (_, x) => { zeros.push(x); return ''; });
+    return `${cartoes.trim() ? `<div class="vs-kpis">${cartoes}</div>` : ''}${zeros.length ? `<div class="vs-resumo vs-zeros"><div class="vb-resumo" role="group" aria-label="Sem movimento">${zeros.join('')}</div></div>` : ''}`;
   }
   const bloco = (titulo, sub, corpo, { icone = 'alta', cls = '', acao = '' } = {}) => `<section class="vs-bloco ${cls}"><div class="vs-bloco-cabeca"><i>${ic(icone)}</i><span><b>${esc(titulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${acao}</div>${corpo}</section>`;
   const abrirAba = (id, rotulo = 'Abrir') => (ctx?.subs || []).some((s) => s.id === id) ? `<button type="button" class="vs-abrir" data-setor-sub="${esc(id)}">${esc(rotulo)} →</button>` : '';
@@ -218,7 +237,7 @@
       const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}">${esc(rotulo)} →</button>`;
       return linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', alertasHtml, { icone: 'alerta', cls: 'vs-destaque' })
           + bloco('Metas do comercial', nomeMes(per.mes), metas.length ? progresso(metas) : aviso(com.falha ? falhaTexto(com) : 'Nenhuma meta definida para este período.'), { icone: 'meta', cls: 'vs-destaque', acao: ir('setor:comercial', 'Comercial') }))
-        + `<div class="vs-kpis">${kpis}</div>`
+        + `${grade(kpis)}`
         + linha(temVF
             ? bloco('Faturamento × custos', 'recebido e gasto nos últimos meses (Vybe Finanças)', barras(caixa, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais }), { icone: 'dinheiro', acao: ir('setor:financas', 'Finanças') })
             : bloco(val ? 'Vendas por mês' : 'Negócios por mês', val ? 'MRR e avulso fechados' : 'negócios fechados', com.falha ? aviso(falhaTexto(com)) : val ? barras(vendas, [{ chave: 'mrr', rotulo: 'MRR', cls: 'c1' }, { chave: 'avulso', rotulo: 'Avulso', cls: 'c2' }], { fmt: reais }) : barras(vendas, [{ chave: 'negocios', rotulo: 'Negócios', cls: 'c1' }]), { icone: 'dinheiro', acao: ir('setor:comercial', 'Comercial') })
@@ -261,7 +280,7 @@
       if (semNumeros) lista.push({ ponto: 'c', titulo: 'Os números do mês ainda não chegaram', sub: 'o funil abre com as oportunidades de agora', ir: ['funil', 'Abrir o funil'] });
       const series = (m.series || []).map((s) => ({ ...s, rotulo: mesCurto(s.mes) }));
       const fases = (R.fases || []).filter((f) => f.id !== 'perdido');
-      return `<div class="vs-kpis">${kpis}</div>`
+      return `${grade(kpis)}`
         + linha(bloco('Próximos passos', 'o que destrava o setor', passos(lista), { icone: 'aperto' })
           + metaDoMes(m.progresso, periodoNome))
         + linha(bloco('Leads gerados por mês', 'evolução até o período escolhido', barras(series, [{ chave: 'leads', rotulo: 'Leads', cls: 'c1' }]), { icone: 'pessoas' })
@@ -307,7 +326,7 @@
           + kpi({ icone: 'dinheiro', titulo: 'Folha do mês', valor: rs(Fo.total), variacao: Fo.variacao_percentual ?? 'sem', contra: 'vs mês anterior', inverte: true, sub: `${num(Fo.quantidade)} pessoa${Fo.quantidade === 1 ? '' : 's'}` })
           + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(R.resultado), cls: Number(R.resultado) < 0 ? 'ruim' : '', sub: 'recebido − despesas pagas' })
           + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(I.total), sub: `${num((I.clientes || []).length)} cliente${(I.clientes || []).length === 1 ? '' : 's'} · ${num(I.criticos)} crítico${Number(I.criticos) === 1 ? '' : 's'}`, cls: Number(I.total) > 0 ? 'ruim' : '' });
-        return `<p class="vs-fonte">fonte: Vybe Finanças</p><div class="vs-kpis">${kpis}</div>` + proximos()
+        return `<p class="vs-fonte">fonte: Vybe Finanças</p>${grade(kpis)}` + proximos()
           + linha(bloco('Faturamento × custos', 'recebido e gasto nos últimos meses', barras(serie, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais, curtoFmt: milInteiro }), { icone: 'caixa', acao: abrirAba('financas') })
             + bloco('Despesas por categoria', D.total ? `${reais(D.total)} no mês` : '', deitadas((D.categorias || []).slice(0, 6).map((c) => ({ nome: c.categoria, valor: c.total, rotulo: `${reais(c.total)} <small>${pct(c.percentual)}</small>` })), { vazio: 'Nenhuma despesa lançada no mês.' }), { icone: 'caixa', acao: abrirAba('contas') }))
           + linha(bloco('Margem real por cliente', 'recebido − gasto com o cliente no mês, os menores primeiro', deitadas(margens.map((c) => ({ cli: true, nome: c.cliente_nome, valor: Math.max(0, c.mes.margem_percentual ?? 0), cls: (c.mes.margem_percentual ?? 0) < 20 ? 'ruim' : 'ok', rotulo: pct(c.mes.margem_percentual), sub: `${reais(c.mes.receita)} recebido · ${reais(c.mes.despesas)} gasto` })), { vazio: 'Nenhum cliente com receita lançada no mês.' }), { icone: 'dinheiro', acao: abrirAba('financas') })
@@ -329,7 +348,7 @@
         + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: reais(ina.total), sub: `${num((ina.clientes || []).length)} cliente${(ina.clientes || []).length === 1 ? '' : 's'} · ${num(ina.criticos ?? 0)} crítico${Number(ina.criticos ?? 0) === 1 ? '' : 's'}`, cls: Number(ina.total) > 0 ? 'ruim' : '', ir: ['inadimplencia', 'Inadimplência'] });
       const prev = (cx.previsao?.meses || []).map((m) => ({ ...m, rotulo: mesCurto(m.mes) }));
       const piores = [...(fin.clientes || [])].filter((c) => c.margem_percentual != null && c.valor_mensal > 0).sort((a, b) => a.margem_percentual - b.margem_percentual).slice(0, 6);
-      return `<div class="vs-kpis">${kpis}</div>` + proximos()
+      return `${grade(kpis)}` + proximos()
         + linha(bloco('Previsão de caixa', 'entradas e saídas dos próximos meses', cx.falha ? aviso(falhaTexto(cx)) : barras(prev, [{ chave: 'entradas', rotulo: 'Entradas', cls: 'c3' }, { chave: 'saidas', rotulo: 'Saídas', cls: 'c4' }], { fmt: reais }), { icone: 'caixa', acao: abrirAba('caixa') })
           + bloco('Contas por grupo', K.total ? `${pct(K.fixo_percentual)} fixo · ${pct(K.variavel_percentual)} variável` : '', con.falha ? aviso(falhaTexto(con)) : deitadas((K.grupos || []).filter((g) => g.total).map((g) => ({ nome: g.nome, valor: g.total, rotulo: `${reais(g.total)} <small>${pct(g.percentual_faturamento)}</small>` })), { fmt: reais, vazio: 'Nenhuma conta neste período.' }), { icone: 'doc', acao: abrirAba('contas') }))
         + linha(bloco('Margem por cliente', 'os de menor margem primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente_nome, valor: Math.max(0, c.margem_percentual), cls: c.zona_critica ? 'ruim' : 'ok', rotulo: pct(c.margem_percentual), sub: `${reais(c.valor_mensal)} por mês · custo ${reais(c.custo)}` })), { vazio: 'Nenhum cliente com pacote e custo cadastrados.' }), { icone: 'dinheiro', acao: abrirAba('financas') })
@@ -359,7 +378,7 @@
         + kpi({ icone: 'saida', titulo: 'Saídas no mês', valor: semCart ? '—' : num(saidasMes.length), sub: semCart ? '' : saidasMes.length ? `receita perdida ${reais(saidasMes.reduce((s, r) => s + (Number(r.receita_mensal) || 0), 0))}` : 'nenhuma saída', cls: saidasMes.length ? 'ruim' : '' })
         + kpi({ icone: 'doc', titulo: 'Sem planejamento', valor: num((C.semPlanejamento || []).length), sub: 'do mês atual ou seguinte', cls: (C.semPlanejamento || []).length ? 'atencao' : '' });
       const piores = [...saude].sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 6);
-      return `<div class="vs-kpis">${kpis}</div>`
+      return `${grade(kpis)}`
         + linha(bloco('Entradas e saídas', 'clientes que começaram e que saíram, últimos 6 meses', semCart ? aviso(semCart) : barras(fluxo, [{ chave: 'entradas', rotulo: 'Entradas', cls: 'c3' }, { chave: 'saidas', rotulo: 'Saídas', cls: 'c4' }]), { icone: 'alta', acao: abrirAba('churn') })
           + bloco('Saúde da carteira', 'quantos clientes em cada faixa', cl.length ? deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]) : aviso('As demandas ainda estão carregando.'), { icone: 'coracao', acao: abrirAba('carteira') }))
         + linha(bloco('Clientes prioritários', 'a menor nota de saúde primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente, valor: c.score, cls: c.score < 50 ? 'ruim' : c.score < 70 ? 'atencao' : 'ok', sub: (c.motivos || []).slice(0, 2).join(' · ') })), { vazio: 'A saúde ainda está sendo calculada.' }), { icone: 'alerta', acao: abrirAba('clientes', 'Todos os clientes') })
@@ -412,7 +431,7 @@
         + kpi({ icone: 'calendario', titulo: 'Semana cheia', valor: num(cheias), sub: 'pessoas com 100% ou mais', cls: cheias ? 'atencao' : '' });
       const ranking = rk.slice(0, 8).map((p) => ({ nome: p.nome, valor: p.entregues, meta: p.meta || 0, cls: p.meta && p.entregues >= p.meta ? 'ok' : '', rotulo: `${num(p.entregues)}${p.meta ? ` <small>/ ${num(p.meta)}</small>` : ''}`, sub: p.cargoNome || '' }));
       const cargaL = [...P].sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0)).slice(0, 8).map((p) => ({ nome: p.nome, valor: Math.min(150, Number(p.pct) || 0), cls: Number(p.pct) >= 100 ? 'ruim' : Number(p.pct) >= 80 ? 'atencao' : 'ok', rotulo: pct(p.pct), sub: `${num(p.pecas)} peça${Number(p.pecas) === 1 ? '' : 's'} · ${num(p.etapas)} etapa${Number(p.etapas) === 1 ? '' : 's'} de projeto` }));
-      return `<div class="vs-kpis">${kpis}</div>`
+      return `${grade(kpis)}`
         + linha(bloco('Entregas do mês e meta', 'por pessoa (a marca é a meta proporcional até hoje)', rk.length ? deitadas(ranking) : aviso(prod.falha ? falhaTexto(prod) : 'Sem entregas no mês.'), { icone: 'trofeu', acao: abrirAba('produtividade') })
           + bloco('Carga da semana', 'peças e etapas abertas sobre a capacidade', deitadas(cargaL, { vazio: 'Sem números de carga agora.' }), { icone: 'relogio', acao: abrirAba('equipe') }))
         + linha(bloco('Entregas em 7 dias', 'por pessoa, das demandas do painel', deitadas([...T].sort((a, b) => (b.entregues7d || 0) - (a.entregues7d || 0)).slice(0, 8).map((t) => ({ nome: t.pessoa, valor: t.entregues7d, cls: 'ok', sub: `${num(t.abertas)} abertas` })), { vazio: 'Sem entregas nos últimos 7 dias.' }), { icone: 'aperto' })
@@ -489,6 +508,6 @@
     const c = destino.querySelector('.vs-corpo'); if (c) c.innerHTML = corpo;
   }
   // As peças do painel, para as abas da Gestão usarem o mesmo desenho (sem uma segunda versão delas).
-  const pecas = Object.freeze({ kpi, bloco, barras, deitadas, linha, progresso });
+  const pecas = Object.freeze({ kpi: (o) => kpi({ ...o, cartao: true }), kpiLinha: kpi, grade, bloco, barras, deitadas, linha, progresso });
   window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar(), pintarEm, pecas });
 })();

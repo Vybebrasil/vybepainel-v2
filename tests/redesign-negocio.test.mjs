@@ -334,3 +334,53 @@ test('Saúde da carteira: título igual ao do dock, a frase do cabeçalho e os n
   assert.ok(css);
   assert.doesNotMatch(css, /!important|html body\.mundo/);
 });
+
+test('Recebimentos, Inadimplência e Orçamentos (quadro 20 e 00 Main, regra 4): zero vira uma linha, criar só no cabeçalho, sem pacote leva a Pacotes', async () => {
+  let rec = [];
+  const resp = (url) => {
+    if (url.includes('aba=recebimentos')) return { status: 200, corpo: { ok: true, pode: { ver_dinheiro: true }, recebiveis: rec, periodo: { tipo: 'mensal', mes: '2026-11' },
+      resumo: { atual: { a_receber: rec.length ? 3000 : 0, recebido: 0, pendente: rec.length ? 3000 : 0, inadimplente: 0 }, variacao: {} } } };
+    if (url.includes('aba=inadimplencia')) return { status: 200, corpo: { ok: true, pode: { ver_dinheiro: true }, total: 0, criticos: 0, clientes: [], faturas: [] } };
+    if (url.includes('aba=orcamentos')) return { status: 200, corpo: { ok: true, pode: { editar_comercial: true }, pacotes: [], orcamentos: [] } };
+    return { status: 200, corpo: { ok: true } };
+  };
+  const { ctx, janela } = comercial(resp, { souDonoDaSessao: () => true });
+  ctx.VybeComercial.abrir('recebimentos', { abas: ['recebimentos'] }); await esperar();
+  let html = janela().innerHTML;
+  assert.doesNotMatch(html, /class="vc-kpi/);
+  assert.equal((html.match(/Novo recebimento/g) || []).length, 1, 'vazio: o botão só no cabeçalho');
+  assert.match(topoDe(html), /data-vc="recebivel">.*Novo recebimento/);
+  assert.match(html, /class="vc-vazio"><p>Nenhum recebimento neste período\.[^<]*botão do alto da tela\.<\/p><\/div>/);
+  assert.match(html, /class="vb-resumo-item zero"><b>R\$\s0,00<\/b> a receber/);
+  rec = [{ id: '1', tipo: 'pontual', descricao: 'Evento', valor: 3000, status: 'pendente', vencimento: '2026-11-20' }];
+  ctx.VybeComercial.abrir('recebimentos', { abas: ['recebimentos'] }); await esperar();
+  html = janela().innerHTML;
+  assert.equal((html.match(/Novo recebimento/g) || []).length, 1, 'com recebimento: só no cabeçalho');
+  assert.match(html, /class="vb-resumo-item atencao"><b>R\$\s3\.000,00<\/b> pendente/);
+  ctx.VybeComercial.abrir('inadimplencia', { abas: ['inadimplencia'] }); await esperar();
+  html = janela().innerHTML;
+  assert.doesNotMatch(html, /class="vc-kpi/);
+  assert.match(html, /class="vb-resumo-item zero espiavel" data-espiar="comercial:inadimplencia:criticos"[^>]*><b>0<\/b> críticos \(\+30 dias\)/, 'o zero continua abrindo quem está nele');
+  assert.match(html, /<b>0<\/b> clientes[\s\S]*<b>0<\/b> faturas/);
+  ctx.VybeComercial.abrir('orcamentos', { abas: ['pacotes', 'orcamentos'] }); await esperar();
+  html = janela().innerHTML;
+  assert.match(html, /os donos cadastram na aba Pacotes\.<\/p><button type="button" class="vc-acao" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  assert.doesNotMatch(html.slice(html.indexOf('vc-abas')), /<h3>Orçamentos<\/h3>/, 'o título fica só no cabeçalho');
+  assert.match(ler('vybe-mundo-comercial.js'), /'ir-pacotes': \(\) => abrir\('pacotes'/, 'o botão abre a aba Pacotes');
+  const css = ler('vybe-mundo.css').split('/* ==== Quadro 20 (Finanças, 11/11/2026)')[1];
+  assert.ok(css);
+  assert.doesNotMatch(css, /!important|html body\.mundo/);
+});
+
+test('Painéis de setor, Gestão e Performance (00 Main, regra 4): o zero sai do cartão grande para a linha discreta', () => {
+  const setor = ler('vybe-mundo-setor.js');
+  assert.ok(setor.includes('if (!cartao && /^(R'), 'zero, R$ 0,00 e "—" viram item da linha');
+  assert.match(setor, /data-espiar="\$\{esc\(espiar\)\}"/, 'o zero continua abrindo o mini painel');
+  assert.match(setor, /kpi: \(o\) => kpi\(\{ \.\.\.o, cartao: true \}\), kpiLinha: kpi, grade,/, 'fora daqui o cartão segue cartão');
+  assert.equal((setor.match(/\$\{grade\(kpis\)\}/g) || []).length, 6);
+  assert.match(ler('vybe-mundo.js'), /kpiLinha: k = V\.kpi, grade: G = /);
+  assert.match(ler('vybe-mundo-performance.js'), /kpiLinha: k = V\.kpi, grade: G = /);
+  const css = ler('vybe-mundo.css').split('/* ==== 00 Main, regra 4 (11/11/2026)')[1];
+  assert.ok(css);
+  assert.doesNotMatch(css, /!important|html body\.mundo/);
+});
