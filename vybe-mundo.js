@@ -351,6 +351,88 @@
     try { const f = document.getElementById('office-ficha'); if (f?.open) f.close(); } catch { /* sem ficha */ }
     document.querySelectorAll?.('details.header-utilities[open]').forEach((d) => d.removeAttribute('open'));
   }
+  // Tela antiga em pedaços (quinta rodada, 11/11/2026). No Safari o Painel de trabalho levava ~850 ms do clique até
+  // parar, contra ~420 ms de Projetos pontuais. Medido no WebKit: o desenho do resumo, da agenda e das seis semanas ia no
+  // mesmo passo do clique, e o primeiro quadro ainda montava as ~10 mil peças da tela (~150 ms); depois, cada quadro da
+  // entrada repintava as linhas e cartões (com desfoque e sombra) por baixo do deslize (~120 ms por quadro, aos trancos).
+  // Agora: o clique só troca a tela e o primeiro quadro mostra a moldura, o cabeçalho, o resumo e o esqueleto do resto
+  // (.container.vv-abrindo, CSS no fim de vybe-mundo.css: o resto fica fora da montagem); o desenho pesado vem logo depois
+  // desse quadro, a semana à vista primeiro, enquanto a moldura desliza leve; o conteúdo aparece no fim do deslize;
+  // as outras semanas se desenham quando o navegador folga. Cada desenho adiado é o MESMO de antes, com os mesmos
+  // argumentos; se a tela pedir o mesmo desenho de novo antes da vez dele, vale o pedido novo (nada se perde, nada sai velho).
+  const DESENHOS_ADIAVEIS = ['renderWeek', 'renderCompactSummary', 'renderOperationalTools', 'renderManagerCalendar', 'renderManagerIntelligence',
+    'renderDemandas', 'renderClientesBoard', 'renderDiarioLista', 'renderPerformance', 'renderProductionCommand', 'loadAiUsage', 'carregarAutomacoes', 'carregarConta',
+    'pintarSeletorDeSemana', 'pintarAbaDaSemana', 'updateClearFiltersState', 'pedirAcomodarBarraDoPainel'];
+  // O que cada semana escondida repinta na parte à vista (seletor e aba da semana, "limpar filtros", a barra): nas folgas,
+  // uma vez só, depois da última semana (antes, cada semana escondida remontava a tela inteira mais uma vez).
+  const SO_NO_FIM_DAS_FOLGAS = new Set(['pintarSeletorDeSemana', 'pintarAbaDaSemana', 'updateClearFiltersState', 'pedirAcomodarBarraDoPainel']);
+  let nasFolgas = false;
+  const desenhosNaFila = new Map();
+  // A entrada leva 420 ms (--vv-t-janela) com a mola --vv-mola (cubic-bezier(.32,.72,0,1)): aos 300 ms a janela já está a
+  // menos de 1 px do lugar. O conteúdo aparece aí, e o quadro dele cai no fim do deslize (medido: 509 ms no WebKit,
+  // contra 685 ms esperando a entrada acabar).
+  const CONTEUDO_APARECE_MS = 300;
+  let adiandoDesenho = false, aberturaAtual = 0;
+  function embrulharDesenhos() {
+    for (const nome of DESENHOS_ADIAVEIS) {
+      const f = window[nome];
+      if (typeof f !== 'function' || f.vvAdiavel) continue;
+      const embrulho = function (...a) {
+        const chave = nome === 'renderWeek' ? nome + ':' + a[0] : nome === 'pintarAbaDaSemana' ? nome + ':' + a[1] : nome;
+        if (adiandoDesenho ? !SO_NO_FIM_DAS_FOLGAS.has(nome) : nasFolgas && SO_NO_FIM_DAS_FOLGAS.has(nome)) { desenhosNaFila.delete(chave); desenhosNaFila.set(chave, { f, a, este: this }); return undefined; }
+        desenhosNaFila.delete(chave);
+        return f.apply(this, a);
+      };
+      embrulho.vvAdiavel = true;
+      try { window[nome] = embrulho; } catch { /* fica o de sempre */ }
+    }
+  }
+  function desenharDaFila(chave) {
+    const x = desenhosNaFila.get(chave); if (!x) return;
+    desenhosNaFila.delete(chave);
+    try { const r = x.f.apply(x.este, x.a); if (r && typeof r.catch === 'function') r.catch((e) => console.error('[mundo] desenho', e)); } catch (e) { console.error('[mundo] desenho', e); }
+  }
+  const quandoFolgar = (fn) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 300 }) : setTimeout(fn, 40));
+  function abrirEmPedacos(abrir) {
+    if (typeof requestAnimationFrame !== 'function') { abrir(); return; }
+    embrulharDesenhos();
+    const vez = ++aberturaAtual;
+    adiandoDesenho = true;
+    try { abrir(); } finally { adiandoDesenho = false; }
+    // A classe fica na própria tela (o Painel ou o #painel-… do quadro), não no body: trocar classe do body recalcula a
+    // página inteira, um quadro a mais.
+    document.querySelectorAll('body > .vv-abrindo').forEach((el) => el.classList.remove('vv-abrindo'));
+    const painel = [...body.children].find((el) => (el.matches('.container') && el.style.display !== 'none') || (el.matches('[id^="painel-"]:not(#painel-escritorio)') && el.style.display === 'block'));
+    painel?.classList.add('vv-abrindo');
+    // 1 · depois do primeiro quadro pintado (o rAF roda antes da pintura; o setTimeout, depois dela): a semana à vista e o
+    // resto da tela, ainda escondidos (sem montar a página no meio do deslize).
+    // 2 · no fim do deslize (CONTEUDO_APARECE_MS, contado do primeiro quadro), o conteúdo aparece e a barra do Painel é
+    // medida de novo, agora com a tela montada; 3 · as outras semanas, uma por folga.
+    const reduzido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const ativa = 'renderWeek:' + (document.querySelector('.week-panel.active')?.id?.match(/(\d+)$/)?.[1] || '');
+        for (const chave of [...desenhosNaFila.keys()]) if (!chave.startsWith('renderWeek:') || chave === ativa) desenharDaFila(chave);
+      }, 0);
+      setTimeout(() => {
+        if (vez !== aberturaAtual) return;
+        // O conteúdo chega já no lugar (a moldura terminou de deslizar): o esmaecer das abas do dia, que começaria agora,
+        // vai direto ao fim.
+        if (painel?.classList.contains('vv-abrindo')) {
+          painel.classList.remove('vv-abrindo');
+          if (typeof document.getAnimations === 'function') for (const a of document.getAnimations()) { const alvo = a.effect?.target; if (alvo && alvo !== painel && painel.contains(alvo) && /^vv-aba/.test(a.animationName || '')) { try { a.finish(); } catch { /* segue */ } } }
+        }
+        chamar('pedirAcomodarBarraDoPainel');
+        const proxima = () => {
+          const chave = desenhosNaFila.keys().next().value; if (!chave) return;
+          nasFolgas = [...desenhosNaFila.keys()].some((k) => !SO_NO_FIM_DAS_FOLGAS.has(k.split(':')[0]));
+          try { desenharDaFila(chave); } finally { nasFolgas = false; }
+          quandoFolgar(proxima);
+        };
+        quandoFolgar(proxima);
+      }, reduzido ? 0 : CONTEUDO_APARECE_MS);
+    });
+  }
   function usarTrilho(id, botao, saiuDaAntiga = false) {
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     // Item com cadeado chamado por outro caminho (busca, atalho): o mesmo aviso do dock.
@@ -400,7 +482,7 @@
       if (!gestao.hidden) fecharGestao();
       const quadro = () => chamar('switchBoard', sub.board, document.getElementById('btn-board-' + sub.board));
       // Direto no quadro pedido (quarta rodada, 11/11/2026): antes abria o Painel de trabalho e trocava 300 ms depois.
-      if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) chamar('chooseManagerMode', sub.board); else quadro();
+      abrirEmPedacos(() => { if (!body.classList.contains('mundo-modulo') || (typeof panelMode !== 'undefined' && panelMode !== 'gestor')) chamar('chooseManagerMode', sub.board); else quadro(); });
       marcarTrilho(id); return;
     }
     if (sub?.mod) { if (!gestao.hidden) fecharGestao(); marcarTrilho(id);
@@ -421,7 +503,7 @@
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
     ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
-      agenda: () => abrirAgenda(), clientes: () => chamar('chooseClientMode'), vybes: () => chamar('chooseVybesMode') })[id]?.();
+      agenda: () => abrirEmPedacos(() => abrirAgenda()), clientes: () => abrirEmPedacos(() => chamar('chooseClientMode')), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
 
   // ---------- Painel "Hoje": o dia da pessoa, com o VYBES dizendo por onde começar ----------
@@ -2013,15 +2095,21 @@
   const faixaDock = document.createElement('div'); faixaDock.className = 'vv-dock-salas-faixa'; faixaDock.id = 'vv-dock-salas-faixa'; faixaDock.hidden = true;
   faixaDock.innerHTML = '<nav class="vq-dock vv-dock-salas" aria-label="Salas: voz, ver a sala, quem está em cada uma, chat e música"></nav>';
   document.body.append?.(faixaDock);
+  // pintarDock roda a cada 1,5 s (pintarChamada). Ler a largura do dock e a posição dele obrigava o navegador a montar a
+  // página inteira na hora, e no meio da entrada de uma janela isso engasgava a animação (quinta rodada, 11/11/2026).
+  // Agora ele só mede quando algo que muda a medida mudou: o tamanho da tela, o dock à vista, o conteúdo do dock ou o
+  // jeito dele no celular. O resto do tempo usa a última medida.
+  const medidaDock = { tela: '', cabem: 0, chave: '' };
   function pintarDock() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     if (surdo) prenderSurdo();
     const ver = Boolean(e) && ligado && !body.classList.contains('auth-pending') && !body.classList.contains('mundo-lobby');
     if (faixaDock.hidden === ver) faixaDock.hidden = !ver;
     body.classList.toggle('com-dock-salas', ver);
-    if (!ver) { body.style.removeProperty?.('--vv-dock-alto'); return; }
-    const nav = faixaDock.firstElementChild, passo = 56;
-    const cabem = Math.floor((faixaDock.clientWidth - 20 - 12 * passo - 4 * 9) / passo);
+    if (!ver) { body.style.removeProperty?.('--vv-dock-alto'); medidaDock.tela = ''; medidaDock.chave = ''; return; }
+    const nav = faixaDock.firstElementChild, passo = 56, tela = `${innerWidth}x${innerHeight}|${body.classList.contains('trilho-largo')}|${body.classList.contains('mundo-quarto')}`;
+    if (medidaDock.tela !== tela) { medidaDock.tela = tela; medidaDock.cabem = Math.floor((faixaDock.clientWidth - 20 - 12 * passo - 4 * 9) / passo); }
+    const cabem = medidaDock.cabem;
     const html = dockSalasHtml(cabem);
     if (nav.dataset.html !== html) { nav.innerHTML = html; nav.dataset.html = html; }
     // Celular: dentro de uma sala o dock toma o lugar da barra de baixo; fora, o cartão. Na tela estreita (dock em cima
@@ -2035,6 +2123,9 @@
     hud.querySelector('[data-cel="voz"]')?.classList.toggle('na-chamada', cel && !nav.querySelector('.vq-cartao'));
     body.classList.toggle('cel-na-sala', cel && String(andarAbertoId || '').startsWith('quarto:'));
     const estreita = typeof matchMedia === 'function' && matchMedia('(max-width:900px)').matches;
+    const chave = [tela, estreita, html, ...['dock-cartao', 'cel-na-sala', 'cel-voz-aberta'].map((c) => body.classList.contains(c))].join('|');
+    if (chave === medidaDock.chave) return;
+    medidaDock.chave = chave;
     const margem = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 12, topo = nav.getBoundingClientRect?.().top || 0;
     const alto = estreita && topo > 0 ? Math.ceil(innerHeight - topo - margem) : 0;
     if (alto) { if (body.style.getPropertyValue?.('--vv-dock-alto') !== alto + 'px') body.style.setProperty?.('--vv-dock-alto', alto + 'px'); }
@@ -2845,7 +2936,9 @@
     const alertas = (() => { try { return typeof PLJ_ALERTAS !== 'undefined' ? PLJ_ALERTAS : []; } catch { return []; } })();
     const estados = (() => { try { return typeof PLJ_ESTADOS !== 'undefined' ? PLJ_ESTADOS : {}; } catch { return {}; } })();
     const mes = (iso) => { try { return typeof pljMes === 'function' ? pljMes(iso) : String(iso || ''); } catch { return String(iso || ''); } };
-    const notifs = listaDoPainel(), novas = naoLidasDoPainel();
+    // Avisos curtos que foram direto para o sino (celular sem vaga, quinta rodada): contam como novos até o sino abrir.
+    const curtosNovos = curtosNaoVistos();
+    const notifs = listaDoPainel(), novas = naoLidasDoPainel() + curtosNovos.length;
     const linha = ({ ic, titulo, sub = '', acao = '', novo = false, cls = '' }) => `<li class="vv-aviso-linha${novo ? ' nao-lido' : ''}${cls ? ' ' + cls : ''}">
       <span class="vv-aviso-ic" aria-hidden="true">${ic}</span><div class="vv-aviso-txt"><b>${novo ? '<em class="vv-aviso-novo">Novo</em>' : ''}${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div>${acao}</li>`;
     const partes = [];
@@ -2870,6 +2963,9 @@
     // Sem notificação guardada, o último aviso curto desta sessão (menção, WhatsApp, Música) faz o mesmo papel.
     const curto = globalThis.ULTIMO_AVISO_CURTO;
     const curtoLinha = curto?.titulo ? linha({ ic: IC_AVISO.sino, titulo: esc(curto.titulo), sub: esc([curto.frase, quandoFoiAviso(curto.em)].filter(Boolean).join(' · ')) }) : '';
+    if (curtosNovos.length) partes.unshift(`<h3>Chegaram agora</h3><ul>${curtosNovos.map((a) => linha({ ic: a.icone === 'mencao' ? IC_AVISO.mencao : IC_AVISO.sino, novo: true,
+      titulo: esc(a.titulo), sub: esc([a.frase, quandoFoiAviso(a.em)].filter(Boolean).join(' · ')),
+      acao: a.acoes?.[0] ? `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-curto-sino="${esc(a.em)}">${esc(a.acoes[0].rotulo)}</button>` : '' })).join('')}</ul>`);
     if (ultimo) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${notifLinha(ultimo)}</ul>`);
     else if (!novas && curtoLinha && partes.length) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${curtoLinha}</ul>`);
     if (anteriores.length) partes.push(`<h3>${ultimo ? 'Anteriores' : 'Notificações'}</h3><ul>${anteriores.map(notifLinha).join('')}</ul>`);
@@ -2898,6 +2994,7 @@
   function fecharAvisos(devolverFoco = false) {
     const p = hud.querySelector('.vv-avisos-painel'); if (!p) return false;
     p.remove(); document.removeEventListener('pointerdown', foraDosAvisos, true);
+    if (curtosNaoVistos().length) { marcarCurtosVistos(); pintarSelosDeAviso(); } // o sino abriu: os que chegaram foram vistos
     const b = hud.querySelector('[data-ferr="avisos"]'); b?.setAttribute('aria-expanded', 'false');
     if (devolverFoco) b?.focus?.();
     return true;
@@ -2915,11 +3012,12 @@
       const x = e.target.closest('button'); if (!x) return;
       if (x.hasAttribute('data-aviso-fechar')) { fecharAvisos(true); return; }
       if (x.dataset.avisoGrupo) { const k = x.dataset.avisoGrupo; if (grupoAberto.has(k)) grupoAberto.delete(k); else grupoAberto.add(k); pintarAvisos(); p.querySelector(`[data-aviso-grupo="${CSS.escape(k)}"]`)?.focus(); return; }
-      if (x.hasAttribute('data-aviso-lidos')) { Promise.resolve(fn('marcarNotificacoesLidas')?.()).finally(() => { pintarAvisos(); pintarSelosDeAviso(); }); return; }
+      if (x.hasAttribute('data-aviso-lidos')) { marcarCurtosVistos(); Promise.resolve(fn('marcarNotificacoesLidas')?.()).finally(() => { pintarAvisos(); pintarSelosDeAviso(); }); return; }
       fecharAvisos();
       if (x.dataset.avisoPlano) chamar('abrirPlanejamento', x.dataset.avisoPlano);
       else if (x.dataset.avisoPeca) chamar('pljAbrirPeca', x.dataset.avisoPeca, x.dataset.quadro);
       else if (x.dataset.avisoNotif) chamar('abrirDoNotificacao', x.dataset.avisoNotif, x.dataset.item);
+      else if (x.dataset.avisoCurtoSino) { try { (globalThis.AVISOS_CURTOS_NO_SINO || []).find((a) => a.em === x.dataset.avisoCurtoSino)?.acoes?.[0]?.fazer?.(); } catch { /* a ação falhou */ } }
       else if (x.hasAttribute('data-aviso-centro')) chamar('irParaSalaEscritorio', 'operacao');
     });
     setTimeout(() => document.addEventListener('pointerdown', foraDosAvisos, true), 0);
@@ -2927,8 +3025,12 @@
     // Relê as notificações: o painel se repinta quando chegam.
     Promise.resolve(fn('carregarNotificacoes')?.()).then(() => pintarAvisos(), () => {});
   }
+  const curtosNaoVistos = () => (Array.isArray(globalThis.AVISOS_CURTOS_NO_SINO) ? globalThis.AVISOS_CURTOS_NO_SINO.filter((a) => !a.lido) : []);
+  const marcarCurtosVistos = () => { for (const a of globalThis.AVISOS_CURTOS_NO_SINO || []) a.lido = true; };
+  // Aviso curto que foi direto para o sino (vybe-core.js): o número acende na hora.
+  document.addEventListener?.('vybe:aviso-no-sino', () => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); });
   function pintarSelosDeAviso() {
-    const n = naoLidasDoPainel() + avisosPlanejamento(), el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
+    const n = naoLidasDoPainel() + avisosPlanejamento() + curtosNaoVistos().length, el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
     if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
     b?.setAttribute('aria-label', n ? `Avisos · ${n} para ver` : 'Avisos');
   }
