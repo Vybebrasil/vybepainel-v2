@@ -127,7 +127,7 @@ body.vybe-desktop {
   box-shadow: var(--glass-highlight) !important;
 }
 .vybe-desktop .tabs { gap: 5px !important; padding: 6px !important; }
-.vybe-desktop .tab-btn { border-radius: 6px !important; border-bottom: 0 !important; padding: 10px 14px !important; }
+.vybe-desktop .tab-btn:not(:where(body.mundo .ops-segmentos > *)) { border-radius: 6px !important; border-bottom: 0 !important; padding: 10px 14px !important; }
 .vybe-desktop .tab-btn.active { background: #ff984f1c !important; color: #ffc08d !important; box-shadow: inset 0 0 0 1px #ffb57925; }
 .vybe-desktop :is(.global-search,.fc-campo,.fc-busca,.cadastros-form input,.cadastros-form textarea,
   .workspace-form-row input,.workspace-form-row select,.workspace-form-row textarea) {
@@ -1717,7 +1717,7 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
    escolhido fica branco. Só aparência: as classes e os cliques são os mesmos.
    O !important é porque as regras antigas desses botões usam !important. */
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 8px; background: #0000004d !important; border: 1px solid var(--vb-linha) !important; box-shadow: none !important; }
-.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button { padding: 7px 13px !important; border: 0 !important; border-radius: 6px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
+.vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button:not(:where(body.mundo .ops-command-bar *)) { padding: 7px 13px !important; border: 0 !important; border-radius: 6px !important; background: transparent !important; color: #cfd3dc !important; font: 650 12.5px/1 var(--mac-ui) !important; letter-spacing: 0 !important; text-transform: none !important; box-shadow: none !important; white-space: nowrap; cursor: pointer; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button:hover { color: #fff !important; background: #ffffff0d !important; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button.active { background: #fff !important; color: #14151b !important; }
 /* Nova demanda: a pergunta desliza ao avançar ou voltar de passo; a resposta

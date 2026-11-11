@@ -22,7 +22,7 @@ const CAPT = { pecas: null, captacoes: null, agenda: [], proximas: [], recentes:
 
 const AG_TIPOS = { captacao: "Captação", reuniao: "Reunião", outro: "Compromisso" };
 // 62 px por hora: o compromisso de 1 h cabe o título em duas linhas e o horário embaixo (quadro 04).
-const AG_HORA_PX = 62, AG_TOPO = 10;
+const AG_HORA_PX = 66, AG_TOPO = 10;
 const agHoje = () => (typeof hojeDeVerdade === "function" && hojeDeVerdade()) || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia" }).format(new Date());
 const agSomar = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const agSegunda = (iso) => { const d = new Date(`${iso}T12:00:00Z`); return agSomar(iso, -((d.getUTCDay() + 6) % 7)); };
@@ -97,8 +97,13 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
           // estreito (dois na mesma hora) o horário sai e o título usa a altura toda, em letra menor (--linhas-estreito).
           const mini = h < 40, linhas = mini ? 1 : Math.max(1, Math.min(3, Math.floor((h - 27) / 15)));
           const estreito = Math.max(1, Math.min(4, Math.floor((h - 10) / 13)));
+          // No mundo (re-auditoria de 10/11/2026) a letra do bloco é a do quadro 04 (título 11/13, horário 10,5/12, 4 px
+          // de respiro): 45 min já levam o título em duas linhas e o horário; com altura sobrando, a linha do horário
+          // ("14:00–16:00 · falta fechar") quebra em duas em vez de cortar. O tema antigo segue com --linhas.
+          const linhasHora = mini ? 0 : h - 34 >= 24 ? 2 : 1;
+          const linhasMundo = Math.max(1, Math.min(3, Math.floor((h - 8 - linhasHora * 12) / 13)));
           const pos = lado || n === 1 ? `left:calc(${(faixa / n) * 100}% + 2px);width:calc(${100 / n}% - 4px)` : `left:calc(${faixa * 16}% + 2px);width:calc(${100 - faixa * 16}% - 4px);z-index:${2 + faixa}`;
-          return bloco(e, ` style="top:${px(a)}px;height:${h}px;${pos};--linhas:${linhas};--linhas-estreito:${estreito}"`, h < 60 || (lado && n > 1), !lado && faixa > 0, mini); }).join("")}
+          return bloco(e, ` style="top:${px(a)}px;height:${h}px;${pos};--linhas:${linhas};--linhas-estreito:${estreito};--linhas-mundo:${linhasMundo};--linhas-hora:${linhasHora || 1}"`, h < 60 || (lado && n > 1), !lado && faixa > 0, mini); }).join("")}
       </div>`).join("")}
     </div></div>`;
   // Celular: faixa de dias e a lista do dia.

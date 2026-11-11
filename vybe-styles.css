@@ -7593,7 +7593,7 @@ html{scrollbar-gutter:stable}
 
 
 
-.ops-segmentos > button{
+:where(body:not(.mundo)) .ops-segmentos > button{
 
   border:0!important;border-radius:6px!important;background:transparent!important;
 
@@ -7605,29 +7605,29 @@ html{scrollbar-gutter:stable}
 
   transition:background-color .14s,color .14s}
 
-.ops-segmentos > button:hover{color:var(--vybe-text)!important;background:rgba(255,255,255,.05)!important}
+:where(body:not(.mundo)) .ops-segmentos > button:hover{color:var(--vybe-text)!important;background:rgba(255,255,255,.05)!important}
 
-.ops-segmentos > button.active{background:var(--accent,#ff6b00)!important;color:#fff!important}
+:where(body:not(.mundo)) .ops-segmentos > button.active{background:var(--accent,#ff6b00)!important;color:#fff!important}
 
-.ops-segmentos > button.active::after{content:none!important}
+:where(body:not(.mundo)) .ops-segmentos > button.active::after{content:none!important}
 
-.ops-segmentos > button.active .ops-action-count{background:rgba(0,0,0,.28)!important;color:#fff!important}
+:where(body:not(.mundo)) .ops-segmentos > button.active .ops-action-count{background:rgba(0,0,0,.28)!important;color:#fff!important}
 
-.ops-segmentos > button:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:2px}
+:where(body:not(.mundo)) .ops-segmentos > button:focus-visible{outline:2px solid var(--accent,#ff6b00);outline-offset:2px}
 
 
 
 /* divisória fina entre segmentos vizinhos que não estão acesos */
 
-.ops-segmentos > button + button{position:relative}
+:where(body:not(.mundo)) .ops-segmentos > button + button{position:relative}
 
-.ops-segmentos > button + button::before{content:'';position:absolute;left:-2px;top:6px;bottom:6px;
+:where(body:not(.mundo)) .ops-segmentos > button + button::before{content:'';position:absolute;left:-2px;top:6px;bottom:6px;
 
   width:1px;background:var(--vybe-line-quiet)}
 
-.ops-segmentos > button.active + button::before,
+:where(body:not(.mundo)) .ops-segmentos > button.active + button::before,
 
-.ops-segmentos > button + button.active::before{background:transparent}
+:where(body:not(.mundo)) .ops-segmentos > button + button.active::before{background:transparent}
 
 
 
