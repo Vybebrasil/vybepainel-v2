@@ -1900,9 +1900,10 @@
       ehDeParede: (c) => { try { return Boolean(fn('escritorioEhParede')?.(c)); } catch { return false; } }, itens };
   }
   // Tamanho de cada móvel pelo arquivo do Habbo (o mesmo que o mapa do Escritório carrega); sem ele, a caixa da peça voxel.
-  async function medidasDoHabbo(itens) {
+  // Só pede a arte de quem a tem no repositório (m.temArteLocal, redesign r5): as outras saem na medida do tipo.
+  async function medidasDoHabbo(itens, m = null) {
     const carregar = fn('mapaCarregarMovel'); if (!carregar) return [];
-    const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c)))];
+    const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c) && (!m?.temArteLocal || m.temArteLocal(c))))];
     const lista = await Promise.all(classes.map(async (c) => {
       try { const { dados } = await carregar(c); const d = dados?.logic?.model?.dimensions; return d ? [c, { x: d.x, y: d.y }] : null; } catch { return null; }
     }));
@@ -2171,7 +2172,7 @@
       const naSala = typeof escritorio !== 'undefined' && escritorio?.conectado && escritorio.zona === zona && escritorio.mapa;
       if (naSala && typeof escritorioIrPara === 'function') escritorioIrPara(x, y); else if (typeof escritorio !== 'undefined' && escritorio?.conectado) irParaSala(zona);
     });
-    medidasDoHabbo(quarto.itens).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
+    medidasDoHabbo(quarto.itens, m).then((l) => { if (l.length && geracao === geracaoAndar) andarAberto?.medidas?.(l); });
     let assinItens = JSON.stringify(quarto.itens);
     const pintar = () => {
       if (!andarAberto?.aoClicarPiso) return;
@@ -2633,7 +2634,7 @@
       const itens = await (fn('escritorioMoveisDaVitrine')?.(pid) || Promise.resolve([])).catch(() => []);
       if (!vivo || !itens.length) return;
       cena.itens(itens);
-      medidasDoHabbo(itens).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
+      medidasDoHabbo(itens, m).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
     }).catch((err) => console.error('[mundo] vitrine', err));
     return { destruir() { vivo = false; try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
   }
@@ -3309,10 +3310,13 @@
         img.dataset.voxel = '1';
         const classe = decodeURIComponent(u.pathname.split('/').pop().replace(/\.png$/i, ''));
         img.dataset.movel = classe; // a arte local que entra no erro da imagem (miniaturaLocalEscritorio) é o mesmo móvel
+        // A arte do Habbo também não aparece antes disto (redesign r5, quadro 35: no celular dois ícones do Habbo ficavam ~1 s
+        // à vista enquanto o módulo do mundo carregava): o CSS esconde toda imagem de móvel do Habbo pelo endereço, na hora
+        // em que ela entra na página; só a que nem o voxel monta ganha movel-habbo e volta a aparecer.
         // Enquanto o voxel não chega, a pixel art do Habbo não aparece (Paulo: "nada de pixel art do Habbo"): o lugar da
         // imagem brilha como um carregando. Só um móvel que nem o quarto consegue montar em voxel volta à arte de sempre.
         img.classList.add('movel-esperando');
-        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
+        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (!url) img.classList.add('movel-habbo'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
         // Pulada na fila se a imagem sair de vista antes da vez dela; volta a pedir quando reaparecer (o observador de src).
         const vivo = () => img.isConnected && img.offsetParent !== null && img.dataset.movel === classe;
         modAvatar.retratoDoMovel?.(classe, 96, vivo).then((url) => { if (!url && !vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; } pronto(url); }, () => pronto(''));

@@ -86,7 +86,7 @@ test('35 a 37 · ícones de móvel e troféu em voxel: parede também, guardados
   const mundo = ler('vybe-mundo.js');
   assert.match(mundo, /img\.classList\.add\('movel-esperando'\)/);
   assert.match(mundo, /modAvatar\.retratoDoMovel\?\.\(classe, 96, vivo\)/);
-  assert.match(ler('vybe-mundo.css'), /body\.mundo img\.movel-esperando\{object-position:-9999px -9999px/);
+  assert.match(ler('vybe-mundo.css'), /body\.mundo img\.movel-esperando,body\.mundo img\[src\*="habboassets\.com\/imaging\/furniture\/"\]:not\(\.movel-habbo\)\{object-position:-9999px -9999px/);
 });
 
 test('36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, fora do dock lateral', () => {

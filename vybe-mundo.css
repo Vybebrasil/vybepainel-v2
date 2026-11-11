@@ -6705,9 +6705,9 @@ body.mundo #workflow-modal.ofc-menu-jogo{width:min(1120px,calc(100vw - 2 * var(-
 }
 /* 35 e 37 · Loja, inventário, Conquistas e Ranking: enquanto o retrato voxel do móvel ou do troféu não chega, o lugar
    brilha (a imagem do Habbo fica fora da caixa); com "Reduzir movimento", fica parado. */
-body.mundo img.movel-esperando{object-position:-9999px -9999px;border-radius:8px;background:linear-gradient(100deg,#EFEAE2 30%,#F8F5F0 50%,#EFEAE2 70%) 0 0/300% 100%;animation:vv-retrato-espera 1.2s linear infinite}
+body.mundo img.movel-esperando,body.mundo img[src*="habboassets.com/imaging/furniture/"]:not(.movel-habbo){object-position:-9999px -9999px;border-radius:8px;background:linear-gradient(100deg,#EFEAE2 30%,#F8F5F0 50%,#EFEAE2 70%) 0 0/300% 100%;animation:vv-retrato-espera 1.2s linear infinite}
 @keyframes vv-retrato-espera{from{background-position:100% 0}to{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){body.mundo img.movel-esperando{animation:none}}
+@media (prefers-reduced-motion:reduce){body.mundo img.movel-esperando,body.mundo img[src*="habboassets.com/imaging/furniture/"]:not(.movel-habbo){animation:none}}
 /* 35 · Loja: as categorias saem da lista lateral e viram uma fileira de chips em cima da grade (os mesmos botões, com
    o número de cada); o escolhido no selecionado do sistema. A ordem também é chip (escritorioOrdemChipsHtml). */
 body.mundo #office-catalogo .ofc-catj-corpo{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}

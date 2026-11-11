@@ -8,7 +8,7 @@
 // Tudo na grade de 1/16 de ladrilho (o grão do padrão): medidas e posições caem nela.
 import { Obra } from './voxel.mjs';
 import { biblioteca } from './moveis-biblioteca.mjs';
-import { familias, TIPOS_FAMILIAS, tipoPeloNucleo, paredeFamilias, TIPOS_PAREDE_FAMILIAS } from './moveis-familias.mjs';
+import { familias, TIPOS_FAMILIAS, tipoPeloNucleo, paredeFamilias, TIPOS_PAREDE_FAMILIAS, tipoDeConstrucao } from './moveis-familias.mjs';
 
 const G = 1 / 16;
 // Encaixe fino (1/64): o grão do desenho é G, mas detalhe de meia grade (fresta, puxador, botão) existe de verdade.
@@ -75,7 +75,8 @@ export function carregarCatalogo() {
 export function tipoModelado(classe, ficha = null, info = null) {
   const c = (String(classe || '') + ' ' + String(info?.nome || '')).toLowerCase();
   // Peça de construção (piso, bloco, divisória): um bloco na paleta, com o desenho do material.
-  if (BLOCOS.has(info?.categoria)) return 'bloco';
+  // Divisórias, paredes, cantos, portas, cercas, colunas e escadas viram o que o nome diz (redesign r5); piso fica bloco.
+  if (BLOCOS.has(info?.categoria)) return (info.categoria !== 'Pisos do acervo' && tipoDeConstrucao(c)) || 'bloco';
   // O substantivo principal do nome do catálogo manda ("Pia de Limo" é pia); só sem ele valem as palavras soltas.
   let t = tipoPeloNucleo(info?.nome) || (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
   if (!t && info?.categoria) t = POR_CATEGORIA[info.categoria] || null;
@@ -644,3 +645,51 @@ export function montarMovel(tipo, { w = 1, d = 1, cores, classe = '', alto = 0, 
   return o;
 }
 export const TIPOS_MODELADOS = Object.keys(RECEITAS);
+
+// ---------- peça sem a arte do Habbo no repositório (redesign r5, quadro 35) ----------
+// A arte das peças fora de assets/escritorio/habbo vinha do habboassets pela API, que limita os pedidos (429) e
+// devolvia 404: a Loja ficava com a pixel art do Habbo e o console cheio de 404. Agora essas peças não pedem nada: o
+// voxel sai pelo que se sabe delas (tipo e família pelo nome e categoria do catálogo, altura da ficha do Habbo, cor
+// pelas palavras do nome ou a padrão da categoria). A lista das que têm arte é mundo/artes-locais.json.
+const CORES_DO_NOME = [
+  [/(^|[_ ])(red|vermelh|crimson|scarlet|carmesim|ruby|rubi)/, '#E5484D'], [/(^|[_ ])(pink|rosa($|[ _])|rose($|[ _])|fuchsia|magenta)/, '#F06EA0'],
+  [/(^|[_ ])(orange|laranja|tangerine)/, '#FF7A2F'], [/(^|[_ ])(yellow|amarel|lemon)/, '#F2C230'], [/(^|[_ ])(gold|golden|dourad|ouro)/, '#E9C46A'],
+  [/(^|[_ ])(lime|mint|menta)/, '#8FD3C7'], [/(^|[_ ])(green|verde|emerald|esmeralda|jade|olive)/, '#4FA35A'], [/(^|[_ ])(teal|turquoise|turquesa|aqua|cyan|ciano)/, '#2FA7A0'],
+  [/(^|[_ ])(blue|azul|navy|sapphire|safira|cobalt)/, '#3D7DD8'], [/(^|[_ ])(sky|celeste|ice|gelo|frozen|frost|snow|neve)/, '#A2C8E8'],
+  [/(^|[_ ])(purple|roxo|roxa|violet|violeta|lilac|lil[áa]s|lavender|lavanda|amethyst)/, '#8E6CC9'], [/(^|[_ ])(black|pret[oa]|dark|escur|ebony|obsidian|shadow|gothic|g[óo]tic)/, '#4A403A'],
+  [/(^|[_ ])(white|branc|ivory|marfim|pearl|marble|m[áa]rmore|cream|creme)/, '#F7F2E8'], [/(^|[_ ])(grey|gray|cinza|silver|prata|steel|a[çc]o|metal|iron|ferro|concrete|concreto|stone|pedra|rock)/, '#B8AE9F'],
+  [/(^|[_ ])(beige|bege|sand|areia|tan)/, '#E2D9C8'], [/(^|[_ ])(brown|marrom|chocolate|coffee|caf[ée]|mahogany|mogno|walnut)/, '#8A5A3C'],
+  [/(^|[_ ])(wood|madeira|oak|carvalho|pine|pinho|log|tronco|bamboo|bambu|plank|t[áa]bua|country|lodge|cabin|chal[ée])/, '#C9774A'],
+  [/(^|[_ ])(neon|rainbow|multicolou?r|colorid)/, '#F06EA0'], [/(^|[_ ])(lava|fire|fogo|flame|chama)/, '#FF7A2F'], [/(^|[_ ])(water|[áa]gua|sea|mar($|[ _])|ocean|pool|piscina)/, '#7FC8E8'],
+  [/(^|[_ ])(grass|grama|hedge|leaf|folha|jungle|selva|forest|floresta|garden|jardim|bush|arbusto|tree|[áa]rvore|plant)/, '#4FA35A'],
+];
+const COR_DA_CATEGORIA = { Jardim: '#4FA35A', Luzes: '#F2C230', 'Cadeiras e sofás': '#C9774A', Mesas: '#E0A36A', Estantes: '#B0623C', Tapetes: '#E5484D',
+  'Divisórias': '#E2D9C8', 'Blocos e materiais': '#B8AE9F', 'Pisos do acervo': '#E0A36A', Acabamentos: '#E2D9C8', Cozinha: '#F7F2E8', 'Detalhes de cozinha': '#F7F2E8',
+  Jogos: '#3D7DD8', 'Música': '#8E6CC9', Festa: '#F06EA0', 'Troféus': '#E9C46A', 'Física': '#2FA7A0', Gatilhos: '#8E6CC9', Ferramentas: '#857B70',
+  'Barracas e veículos': '#E5484D', 'Na parede': '#EDE3D2', 'Do escritório': '#857B70', 'Escritório': '#857B70', Casa: '#C9774A' };
+const COR_DO_TIPO = { planta: '#4FA35A', arvore: '#4FA35A', cogumelo: '#E5484D', abobora: '#FF7A2F', pedra: '#B8AE9F', cristal: '#A2C8E8', balao: '#E5484D',
+  aquario: '#7FC8E8', banheira: '#F7F2E8', maquina: '#F7F2E8', tela: '#2E2824', trofeu: '#E9C46A', neve: '#F7F2E8', fogueira: '#FF7A2F', bolo: '#F06EA0',
+  ovo: '#F7F2E8', lapide: '#B8AE9F', coluna: '#E2D9C8', parede: '#E2D9C8', divisoria: '#E0A36A', porta: '#C9774A', janela: '#F7F2E8', escada: '#C9774A',
+  cerca: '#C9774A', canto: '#E2D9C8', luminaria: '#F2C230', bicho: '#E0A36A', livros: '#B0623C', cama: '#3D7DD8', sofa: '#3D7DD8', poltrona: '#8E6CC9' };
+// { principal, segunda, acento } pelo nome (classe + nome do catálogo), pelo tipo e pela categoria.
+export function coresSemArte(classe, info = null, tipo = '') {
+  const texto = (String(classe || '').replace(/_/g, ' ') + ' ' + String(info?.nome || '')).toLowerCase();
+  const achadas = CORES_DO_NOME.filter(([r]) => r.test(texto)).map(([, c]) => c);
+  const base = achadas[0] || COR_DO_TIPO[tipo] || COR_DA_CATEGORIA[info?.categoria] || MADEIRA;
+  const segunda = achadas[1] || (lum(base) > .7 ? tom(base, -.3) : tom(base, .28));
+  const acento = achadas[2] || achadas[1] || (sat(base) > .3 ? '#F7F2E8' : '#FF7A2F');
+  return { principal: base, segunda, acento };
+}
+// Pegada (w × d, em ladrilhos) de quem não tem a arte: a mais comum de cada tipo no acervo; o nome ajusta ("Large",
+// "Three Seat", "Double").
+const PEGADA_DO_TIPO = { sofa: [2, 1], cama: [1, 2], sinuca: [2, 2], palco: [2, 2], barraca: [2, 2], casinha: [2, 2], veiculo: [2, 1], banheira: [2, 1],
+  tapete: [2, 2], arco: [2, 1], porta: [1, 1], parede: [1, 1], divisoria: [1, 1], cerca: [1, 1], canto: [1, 1], estante: [1, 1], mesa: [1, 1] };
+export function pegadaSemArte(tipo, info = null, classe = '') {
+  const [w, d] = PEGADA_DO_TIPO[tipo] || [1, 1], n = (String(classe) + ' ' + String(info?.nome || '')).toLowerCase();
+  const grande = /large|big|grande|giant|gigante|double|duplo|dupla|three|triple|three_?seat|long($|[ _])|longo|longa|wide|largo/.test(n);
+  return grande && tipo !== 'porta' && tipo !== 'coluna' ? { w: Math.max(w, 2), d } : { w, d };
+}
+// Peça de parede sem a arte: o retângulo (w × h, em ladrilhos/níveis) mais comum do tipo.
+const PLACA_DO_TIPO = { janela: [1, 1.3], paisagem: [1, 1.6], revestimento: [1, 2.2], cortina: [1, 1.8], prateleira: [.9, .5], quadro: [.7, .8], espelho: [.6, 1],
+  relogio: [.5, .5], arandela: [.35, .6], bandeira: [.7, 1], letreiro: [.9, .5], lousa: [1, .8], tela: [1, .7], lareira: [1, 1.2], fonte: [.8, 1] };
+export function placaSemArte(tipo) { const [w, h] = PLACA_DO_TIPO[tipo] || [.7, .7]; return { w, h }; }

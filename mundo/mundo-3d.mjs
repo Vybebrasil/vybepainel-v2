@@ -16,6 +16,7 @@ export { PLANTA, ESTADOS };
 export { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS, ZONAS_DO_PREDIO };
 export { abrirAndar } from './sala.mjs';
 export { abrirQuarto, retratoDoMovel } from './quarto.mjs';
+export { temArteLocal } from './quarto.mjs';
 export { avatarVoxel, avatarVoxelFiel, figuraFiel, lerFigura, iconeMovel, tipoDoMovel, desenharPreviaAvatar, desenharBoneco, figuraDaPessoa, figuraDoAgente, avatarDoAgente } from './avatar.mjs';
 export { CATALOGO, pecaDaClasse } from './catalogo.mjs';
 

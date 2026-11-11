@@ -238,3 +238,25 @@ do clique no dock até a tela parada, três rodadas alternando a main e este bra
   não um elemento de janela; a entrada é só o deslize (a escala de .982 descolaria a moldura do conteúdo); a primeira
   pintura recalcula o estilo da página inteira, porque troca a classe do body; e o `pintarChamada` de 1,5 s em 1,5 s ainda
   força recálculos quando cai no meio da entrada (vale para as janelas novas também).
+
+## Quinta rodada: frente Loja (branch `codex/r5-loja`, 11/11/2026) — quadro 35 e regra 4 do 29
+
+- **Causa da arte do Habbo:** ~80% do catálogo (7.770 das 9.597 peças) não tem a arte em `assets/escritorio/habbo`; a API
+  ia buscá-la no habboassets, que limita os pedidos (429 com 40 de 60 pedidos simultâneos) e devolvia 404. O retrato
+  voxel caía no `<img>` do Habbo. Agora só as peças de `mundo/artes-locais.json` (gerada no build por
+  `scripts/artes-locais.mjs`, conferida nos testes) pedem a arte; as outras saem pelo nome, categoria e ficha
+  (`coresSemArte`, `pegadaSemArte`, `placaSemArte`), sem pedido. Arte local que não desenha também cai nesse caminho.
+  `VERSAO_RETRATO` r6. O quarto e a vitrine seguem a mesma regra (medidas e revestimentos só de quem tem arte).
+- **Construção:** divisórias, blocos e acabamentos viram parede, divisória, canto, porta/portão, cerca, coluna, escada,
+  janela ou palco pelo nome (`tipoDeConstrucao`, receitas novas `parede`, `divisoria`, `canto`, `porta`); piso segue bloco.
+- **Sem Habbo nem no começo:** o CSS esconde toda imagem de móvel do Habbo (pelo endereço) desde que entra na página,
+  com o brilho de carregando do padrão; `movel-habbo` só para a que nem o voxel monta.
+- **Nomes:** ~830 palavras que sobravam em inglês entraram no tradutor (`shared/escritorio-nome-movel.js`, só na
+  exibição; `catalogo.json` não muda). O tradutor guarda cada nome traduzido (a Loja traduzia o mesmo nome a cada
+  comparação da ordem).
+- **Celular:** a base do Escritório é pedida no toque (antes, ~2 s depois), a capa não ordena o catálogo inteiro e as
+  contagens da árvore ficam guardadas. Grade em ~1,3 s (antes 3,1–5,6 s), primeiro ícone voxel em ~1,9–2,8 s.
+- Medido (demo 4501 e cheia 4502, WebKit e Chromium, 1440 e 390, 120 cartões por categoria): 0 Habbo, 0 respostas 404
+  na Loja, no Ranking e nas Conquistas. Fica: no WebKit a 1440, na primeira abertura (sem o cache do navegador), uma
+  página de ícones pode levar até ~8–12 s brilhando até todos virarem voxel (uma foto por vez); a partir da segunda vez,
+  na hora (IndexedDB).
