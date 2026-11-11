@@ -101,3 +101,18 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
 ## Já publicado em 10/11/2026
 - #637 fase 3 (3b, 3c, 3d, Clientes, Comercial, RH e Agentes) — a auditoria mostrou que vários desses quadros ainda estão pela metade.
 - #639 conserto: o documento do planejamento voltou a abrir em tela cheia.
+
+## Segunda rodada (10/11/2026, noite): o que entrou e o que ficou
+- Juntas neste branch: `codex/r2-operacao` (01, 04, 23, 28), `codex/r2-negocio` (13, 18, 20, 54, 59, 60 e parte do 30) e
+  `codex/r2-acabamento` (00, 29, 30, 32 e os defeitos do conjunto). Re-auditoria independente em
+  `docs/redesign-reauditoria-2026-11-10-rodada2.md`: 61 FEITO, 5 PELA METADE, 2 FORA, sem regressão.
+- **Móveis e ícones da Loja ficaram de fora por decisão do Paulo** ("não precisa refazer ainda"). O trabalho está guardado
+  no branch `codex/r2-moveis` (commit 49c0d2a0) e foi revertido aqui (accecadc). Para retomar, reverta essa reversão
+  (`git revert accecadc`) em vez de juntar o branch de novo, senão o git não traz as mudanças.
+- Pela metade, para uma terceira rodada: ação do cabeçalho encostando na caixa de tela cheia/fechar (Painel, Conta › Equipe);
+  aviso curto sobre o dock a 1110 com a gaveta, no meio da tela no celular e sobre "Buscar cliente"; Churn com Mensal/Anual
+  sem dado e parágrafo técnico no rodapé; zeros grandes na Saúde da carteira; vista Mês da agenda (reticências e fundo
+  tingido); título de 28 px na Agenda e na Conta; visões gerais de setor/Gestão/Performance em 0,97; no celular, fim da
+  rolagem atrás da barra no QR Code (Baixar PNG/SVG), Agentes e Conversas.
+- Decisões que esperam o Paulo: posição do aviso quando há janela aberta; menção do WhatsApp 12 s; "Como o VYBES pensa" só
+  para donos (página Agentes); "Nova etiqueta" e "Ordem" só no menu do grupo; hora da grade da agenda em 66 px.

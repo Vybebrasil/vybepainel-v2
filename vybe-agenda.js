@@ -2344,7 +2344,7 @@ function deckDeLoteHtml(quadro) {
   const acao = (rotulo, chamada, comLista = true) => `<button type="button" class="lote-acao" onclick="${chamada}">${
     safeText(rotulo)}${comLista ? `<i>${abre}</i>` : ''}</button>`;
   return SELECIONADAS.size ? `<div class="grupos-lote" role="toolbar" aria-label="Ações para as atividades marcadas">
-      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? 'demandas a alterar' : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
+      <span class="lote-conta"><b>${SELECIONADAS.size}</b><small>${quadro === 'demandas' ? (SELECIONADAS.size === 1 ? 'demanda a alterar' : 'demandas a alterar') : (SELECIONADAS.size === 1 ? 'marcada' : 'marcadas')}</small></span>
       <span class="lote-risco" aria-hidden="true"></span>
       ${acao('Status', 'loteStatus(event)')}
       ${acao('Responsável', 'loteResponsavel(event)')}
